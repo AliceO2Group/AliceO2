@@ -83,21 +83,36 @@ class Geometry : public TNamed {
   enum ObjectTypes {HalfType, HalfDiskType, PlaneType, LadderType, SensorType};
   
   /// \brief Returns Object type based on Unique ID provided
-  Int_t getObjectType(UInt_t uniqueID)  const {return ((uniqueID>>14)&0x7);};
+  Int_t getObjectType(UInt_t uniqueID) const {
+    return ((uniqueID>>16)&0x7)-1;
+  };
 
   /// \brief Returns Half-MFT ID based on Unique ID provided
-  Int_t getHalfMFTID(UInt_t uniqueID)      const {return ((uniqueID>>13)&0x1);};
+  Int_t getHalfID(UInt_t uniqueID) const {
+    return ((uniqueID>>14)&0x3)-1;
+  };
 
   /// \brief Returns Half-Disk ID based on Unique ID provided
-  Int_t getHalfDiskID(UInt_t uniqueID)  const {return ((uniqueID>>10)&0x7);};
+  Int_t getDiskID(UInt_t uniqueID) const {
+    return ((uniqueID>>11)&0x7)-1;
+  };
+
+  /// \brief Returns Half-Disk plane (side) ID based on Unique ID provided
+  Int_t getPlaneID(UInt_t uniqueID) const {
+    return ((uniqueID>>9)&0x3)-1;
+  };
 
   /// \brief Returns Ladder ID based on Unique ID provided
-  Int_t getLadderID(UInt_t uniqueID)    const {return ((uniqueID>>4)&0x3F);};
+  Int_t getLadderID(UInt_t uniqueID) const {
+    return ((uniqueID>>3)&0x3F)-1;
+  };
 
   /// \brief Returns Sensor ID based on Unique ID provided
-  Int_t getSensorID(UInt_t uniqueID)    const {return (uniqueID&0xF);};
+  Int_t getSensorID(UInt_t uniqueID) const {
+    return (uniqueID&0x7)-1;
+  };
   
-  UInt_t getObjectID(ObjectTypes type, Int_t half=0, Int_t disk=0, Int_t ladder=0, Int_t chip=0) const;
+  UInt_t getObjectID(ObjectTypes type, Int_t half = -1, Int_t disk = -1, Int_t plane = -1, Int_t ladder = -1, Int_t chip = -1) const;
   
   /// \brief Returns TGeo ID of the volume describing the sensors
   Int_t getSensorVolumeID()    const {return mSensorVolumeID;};
@@ -107,10 +122,6 @@ class Geometry : public TNamed {
 
   /// \brief Returns pointer to the segmentation
   Segmentation * getSegmentation() const {return mSegmentation;};
-
-  Bool_t hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const;
-
-  void getPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Double_t &xCenter, Double_t &yCenter, Double_t &zCenter ) const ;
 
   Int_t getDiskNSensors(Int_t diskId) const;
 

@@ -114,7 +114,7 @@ void Geometry::build()
 {
 
   // load the detector segmentation
-  if(!mSegmentation) mSegmentation = new Segmentation(gSystem->ExpandPathName("$(ALICE_ROOT)/ITSMFT/MFT/data/AliMFTGeometry.xml" ));
+  if(!mSegmentation) mSegmentation = new Segmentation(gSystem->ExpandPathName("$(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml" ));
 
   // build the geometry
   if (!mBuilder) mBuilder = new GeometryBuilder();
@@ -131,69 +131,18 @@ void Geometry::build()
 /// \param [in] chip: Sensor ID
 
 //_____________________________________________________________________________
-UInt_t Geometry::getObjectID(ObjectTypes type, Int_t half, Int_t disk, Int_t ladder, Int_t chip) const
+UInt_t Geometry::getObjectID(ObjectTypes type, Int_t half, Int_t disk, Int_t plane, Int_t ladder, Int_t chip) const
 {
 
-  UInt_t uniqueID = (type<<14) +  (half<<13) + (disk<<10) + (ladder<<4) + chip;
+  UInt_t uniqueID = 
+    ((type  +1) << 16) + 
+    ((half  +1) << 14) + 
+    ((disk  +1) << 11) + 
+    ((plane +1) <<  9) + 
+    ((ladder+1) <<  3) + 
+     (chip  +1);
 
   return uniqueID;
-
-}
-
-/// \brief Returns the pixel ID corresponding to a hit at (x,y,z) in the ALICE global frame
-///
-/// \param [in] xHit Double_t : x Position of the Hit
-/// \param [in] yHit Double_t : y Position of the Hit
-/// \param [in] zHit Double_t : z Position of the Hit
-/// \param [in] detElemID Int_t : Sensor Unique ID in which the hit occured
-///
-/// \param [out] xPixel Int_t : x position of the pixel hit on the sensor matrix
-/// \param [out] yPixel Int_t : y position of the pixel hit on the sensor matrix
-/// \retval <kTRUE> if hit into the active part of the sensor
-/// \retval <kFALSE> if hit outside the active part
-
-//_____________________________________________________________________________
-Bool_t Geometry::hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const
-{
-
-  return (mSegmentation->hitToPixelID(xHit, yHit, zHit, getHalfMFTID(detElemID), getHalfDiskID(detElemID), getLadderID(detElemID), getSensorID(detElemID), xPixel, yPixel));
-
-}
-
-/// \brief Returns the center of the pixel position in the ALICE global frame
-///
-/// \param [in] xPixel Int_t : x position of the pixel hit on the sensor matrix
-/// \param [in] yPixel Int_t : y position of the pixel hit on the sensor matrix
-/// \param [in] detElemID Int_t : Sensor Unique ID in which the hit occured
-/// \param [out] xCenter,yCenter,zCenter Double_t : (x,y,z) Position of the Hit in ALICE global frame
-
-//_____________________________________________________________________________
-void Geometry::getPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Double_t &xCenter, Double_t &yCenter, Double_t &zCenter ) const
-{
-
-  Double_t local[3];
-  local[0] = (0.5+xPixel) * Geometry::sXPixelPitch + Geometry::sSensorMargin;
-  local[1] = (0.5+yPixel) * Geometry::sYPixelPitch + (Geometry::sSensorHeight-Geometry::sSensorActiveHeight+ Geometry::sSensorMargin);
-  local[2] = Geometry::sSensorThickness/2.;
-
-  Double_t master[3];
-  
-  HalfSegmentation * halfSeg = mSegmentation->getHalf(getHalfMFTID(detElemID));
-  HalfDiskSegmentation * diskSeg = halfSeg->getHalfDisk(getHalfDiskID(detElemID));
-  LadderSegmentation * ladderSeg = diskSeg->getLadder(getLadderID(detElemID));
-  ChipSegmentation * chipSeg = ladderSeg->getSensor(getSensorID(detElemID));
-
-  chipSeg->getTransformation()->LocalToMaster(local, master);
-  for (int i=0; i<3; i++) local[i] = master[i];
-  ladderSeg->getTransformation()->LocalToMaster(local, master);
-  for (int i=0; i<3; i++) local[i] = master[i];
-  diskSeg->getTransformation()->LocalToMaster(local, master);
-  for (int i=0; i<3; i++) local[i] = master[i];
-  halfSeg->getTransformation()->LocalToMaster(local, master);
-
-  xCenter = master[0];
-  yCenter = master[1];
-  zCenter = master[2];
 
 }
 
@@ -220,7 +169,7 @@ Int_t Geometry::getDiskNSensors(Int_t diskId) const
 Int_t Geometry::getDetElemLocalID(Int_t detElemID) const
 {
   
-  return  mSegmentation->getDetElemLocalID(getHalfMFTID(detElemID), getHalfDiskID(detElemID), getLadderID(detElemID), getSensorID(detElemID));
+  return  mSegmentation->getDetElemLocalID(getHalfID(detElemID), getDiskID(detElemID), getLadderID(detElemID), getSensorID(detElemID));
   
 }
 

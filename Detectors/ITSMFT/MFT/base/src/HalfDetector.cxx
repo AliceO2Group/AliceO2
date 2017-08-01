@@ -50,7 +50,7 @@ mSegmentation(seg)
   
   SetUniqueID(mSegmentation->GetUniqueID());
   
-  SetName(Form("MFT_H_%d",mftGeom->getHalfMFTID(GetUniqueID())));
+  SetName(Form("MFT_H_%d",mftGeom->getHalfID(GetUniqueID())));
     
   Info("HalfDetector",Form("Creating : %s ",GetName()),0,0);
 
@@ -75,7 +75,7 @@ void HalfDetector::createHalfDisks()
   for (Int_t iDisk = 0 ; iDisk < mSegmentation->getNHalfDisks(); iDisk++) {
     HalfDiskSegmentation * halfDiskSeg = mSegmentation->getHalfDisk(iDisk);    
     auto * halfDisk = new HalfDisk(halfDiskSeg);
-    Int_t halfDiskId = Geometry::instance()->getHalfDiskID(halfDiskSeg->GetUniqueID());
+    Int_t halfDiskId = Geometry::instance()->getDiskID(halfDiskSeg->GetUniqueID());
     mHalfVolume->AddNode(halfDisk->getVolume(),halfDiskId,halfDiskSeg->getTransformation());
     delete halfDisk;
   }

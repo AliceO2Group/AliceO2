@@ -45,14 +45,14 @@ class FindTracks : public FairTask
 
  private:
 
-  TClonesArray*     mHits;         
+  TClonesArray*     mClusters;         
   TClonesArray*     mTracks;  
 
-  Int_t mNHits;
+  Int_t mNClusters;
   Int_t mNTracks;     
 
   Int_t mTNofEvents;
-  Int_t mTNofHits;
+  Int_t mTNofClusters;
   Int_t mTNofTracks;
 
   EventHeader *mEventHeader;

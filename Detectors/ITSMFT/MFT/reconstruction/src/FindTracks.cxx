@@ -9,12 +9,12 @@
 // or submit itself to any jurisdiction.
 
 /// \file FindTracks.h
-/// \brief Simple track finding from the hits
+/// \brief Simple track finding from the clusters
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 07/10/2016
 
 #include "MFTSimulation/EventHeader.h"
-#include "MFTReconstruction/Hit.h"
+#include "MFTReconstruction/Cluster.h"
 #include "MFTReconstruction/Track.h"
 #include "MFTReconstruction/FindTracks.h"
 
@@ -30,12 +30,12 @@ ClassImp(o2::MFT::FindTracks)
 
 //_____________________________________________________________________________
 FindTracks::FindTracks():
-mHits(nullptr),
+mClusters(nullptr),
 mTracks(nullptr),
-mNHits(0),
+mNClusters(0),
 mNTracks(0),
 mTNofEvents(0),
-mTNofHits(0),
+mTNofClusters(0),
 mTNofTracks(0),
 mEventHeader(nullptr)
 {
@@ -45,12 +45,12 @@ mEventHeader(nullptr)
 //_____________________________________________________________________________
 FindTracks::FindTracks(Int_t iVerbose)
   : FairTask("MFT Track Finder", iVerbose),
-    mHits(nullptr),
+    mClusters(nullptr),
     mTracks(nullptr),
-    mNHits(0),
+    mNClusters(0),
     mNTracks(0),
     mTNofEvents(0),
-    mTNofHits(0),
+    mTNofClusters(0),
     mTNofTracks(0),
     mEventHeader(nullptr)
 {
@@ -83,8 +83,8 @@ InitStatus FindTracks::Init()
   }
 
   // Get a pointer to the previous already existing data level
-  mHits = static_cast<TClonesArray*>(ioman->GetObject("MFTHits"));
-  if ( ! mHits ) {
+  mClusters = static_cast<TClonesArray*>(ioman->GetObject("MFTClusters"));
+  if ( ! mClusters ) {
     LOG(ERROR) << "FindTracks::Init >>>>> No InputDataLevelName array! "
                << "FindTracks will be inactive" << "";
     return kERROR;
@@ -132,46 +132,46 @@ void FindTracks::Exec(Option_t* /*opt*/)
   LOG(INFO) << "FindTracks::Exec >>>>>" << "";
 
   reset();
-
+  /*
   const Int_t nMaxTracks = 1000;
-  mNHits = mHits->GetEntriesFast();
+  mNClusters = mClusters->GetEntriesFast();
 
   auto **xPos = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) xPos[i] = new Float_t[mNHits];
+  for (Int_t i = 0; i < nMaxTracks; i++) xPos[i] = new Float_t[mNClusters];
   auto **yPos = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) yPos[i] = new Float_t[mNHits];
+  for (Int_t i = 0; i < nMaxTracks; i++) yPos[i] = new Float_t[mNClusters];
   auto **zPos = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) zPos[i] = new Float_t[mNHits];
+  for (Int_t i = 0; i < nMaxTracks; i++) zPos[i] = new Float_t[mNClusters];
   auto **xPosErr = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) xPosErr[i] = new Float_t[mNHits];
+  for (Int_t i = 0; i < nMaxTracks; i++) xPosErr[i] = new Float_t[mNClusters];
   auto **yPosErr = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) yPosErr[i] = new Float_t[mNHits];
+  for (Int_t i = 0; i < nMaxTracks; i++) yPosErr[i] = new Float_t[mNClusters];
 
-  Int_t nTrackHits[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) nTrackHits[i] = 0;
-
-  o2::MFT::Hit *hit;
+  Int_t nTrackClusters[nMaxTracks];
+  for (Int_t i = 0; i < nMaxTracks; i++) nTrackClusters[i] = 0;
+  
+  o2::MFT::Cluster *cluster;
   Int_t iMCindex;
-  for (Int_t iHit = 0; iHit < mNHits; iHit++) {
-    hit = static_cast<o2::MFT::Hit*>(mHits->At(iHit));
-    if ( !hit) { continue; }
+  for (Int_t iCls = 0; iCls < mNClusters; iCls++) {
+    cluster = static_cast<o2::MFT::Cluster*>(mClusters->At(iCls));
+    if ( !cluster) { continue; }
 
-    iMCindex = hit->GetRefIndex();
+    iMCindex = cluster->GetRefIndex();
 
-    xPos[iMCindex][nTrackHits[iMCindex]] = hit->GetX();
-    yPos[iMCindex][nTrackHits[iMCindex]] = hit->GetY();
-    zPos[iMCindex][nTrackHits[iMCindex]] = hit->GetZ();
+    xPos[iMCindex][nTrackClusters[iMCindex]] = cluster->GetX();
+    yPos[iMCindex][nTrackClusters[iMCindex]] = cluster->GetY();
+    zPos[iMCindex][nTrackClusters[iMCindex]] = cluster->GetZ();
 
-    xPosErr[iMCindex][nTrackHits[iMCindex]] = hit->GetDx();
-    yPosErr[iMCindex][nTrackHits[iMCindex]] = hit->GetDy();
+    xPosErr[iMCindex][nTrackClusters[iMCindex]] = cluster->GetDx();
+    yPosErr[iMCindex][nTrackClusters[iMCindex]] = cluster->GetDy();
 
-    //printf("Hits %6d: %10.4f %10.4f %10.4f %10.4f %10.4f %d %d \n",iHit,hit->GetX(),hit->GetY(),hit->GetZ(),hit->GetDx(),hit->GetDy(),iMCindex,nTrackHits[iMCindex]);
+    //printf("Clusters %6d: %10.4f %10.4f %10.4f %10.4f %10.4f %d %d \n",iCls,cluster->GetX(),cluster->GetY(),cluster->GetZ(),cluster->GetDx(),cluster->GetDy(),iMCindex,nTrackClusters[iMCindex]);
 
-    nTrackHits[iMCindex]++;
+    nTrackClusters[iMCindex]++;
 
   }
 
-  // a simple fit through the hits
+  // a simple fit through the clusters
   
   auto* f1 = new TF1("f1", "[0]*x + [1]");
   TGraphErrors *trackXZ, *trackYZ;
@@ -179,15 +179,15 @@ void FindTracks::Exec(Option_t* /*opt*/)
   Double_t slopeX, offX, chi2X, slopeY, offY, chi2Y;
   for (Int_t iTrack = 0; iTrack < nMaxTracks; iTrack++) {
 
-    if (nTrackHits[iTrack] < 4) continue; 
+    if (nTrackClusters[iTrack] < 4) continue; 
 
-    trackXZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], xPos[iTrack], nullptr, xPosErr[iTrack]);
+    trackXZ = new TGraphErrors(nTrackClusters[iTrack], zPos[iTrack], xPos[iTrack], nullptr, xPosErr[iTrack]);
     trackXZ->Fit("f1", "Q");
     slopeX = f1->GetParameter(0);
     offX = f1->GetParameter(1);
     chi2X = f1->GetChisquare();
 
-    trackYZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], yPos[iTrack], nullptr, yPosErr[iTrack]);
+    trackYZ = new TGraphErrors(nTrackClusters[iTrack], zPos[iTrack], yPos[iTrack], nullptr, yPosErr[iTrack]);
     trackYZ->Fit("f1", "Q");
     slopeY = f1->GetParameter(0);
     offY = f1->GetParameter(1);
@@ -204,7 +204,7 @@ void FindTracks::Exec(Option_t* /*opt*/)
     delete track;
 
   }  
-
+  
   delete [] xPos;
   delete [] yPos;
   delete [] zPos;
@@ -213,9 +213,9 @@ void FindTracks::Exec(Option_t* /*opt*/)
 
   delete trackXZ;
   delete trackYZ;
-
+  */
   mTNofEvents++;
-  mTNofHits   += mNHits;
+  mTNofClusters   += mNClusters;
   mTNofTracks += mNTracks;
 
 }
@@ -224,9 +224,9 @@ void FindTracks::Exec(Option_t* /*opt*/)
 void FindTracks::execMQ(TList* inputList,TList* outputList) 
 {
 
-  LOG(INFO) << "FindTracks::execMQ >>>>> add MFTHits for event " << mTNofEvents << "";
+  LOG(INFO) << "FindTracks::execMQ >>>>> add MFTClusters for event " << mTNofEvents << "";
 
-  mHits = (TClonesArray*)inputList->FindObject("MFTHits");
+  mClusters = (TClonesArray*)inputList->FindObject("MFTClusters");
   outputList->Add(mTracks);
 
   LOG(INFO) << "FindTracks::execMQ >>>>> add EventHeader. for event " << mTNofEvents << "";
@@ -244,7 +244,7 @@ void FindTracks::execMQ(TList* inputList,TList* outputList)
 void FindTracks::reset() 
 {
 
-  mNTracks = mNHits = 0;
+  mNTracks = mNClusters = 0;
   if ( mTracks ) mTracks->Clear();
 
 }

@@ -1,5 +1,32 @@
+#if !defined(__CINT__) || defined(__MAKECINT__)
+
+#include <TSystem.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TStopwatch.h>
+#include <TRandom.h>
+
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairPrimaryGenerator.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
+
+#include "DetectorsPassive/Cave.h"
+#include "Field/MagneticField.h"
+#include "ITSMFTBase/SegmentationPixel.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "MFTSimulation/Detector.h"
+
+#endif
+
+extern TSystem *gSystem;
+
 void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGeant3")
 {
+
+  printf("Run simulations: %d ev %d mu %s \n",nEvents,nMuons,mcEngine.Data());
+  //return;
 
   gRandom->SetSeed(0);	
 
@@ -45,9 +72,48 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
 
   o2::field::MagneticField field("field","field +5kG");
   run->SetField(&field);
-
+  
   o2::MFT::Detector* mft = new o2::MFT::Detector();
   run->AddModule(mft);
+  
+  // Delete the segmentations from previous runs
+  gSystem->Exec(" rm -f mftSegmentations.root ");
+
+  // build ITS upgrade detector
+  // pALPIDE3 15x30 mm^2  (X,Z) with 26.88 x 29.24 micron pitch
+  const double kSensThick = 18e-4;
+  const double kPitchZ = 29.24e-4;
+  const double kPitchX = 26.88e-4;
+  const int    kNRow   = 512; 
+  const int    kNCol   = 1024;
+  const double kSiThickIB = 50e-4;
+  const double kSiThickOB = 50e-4;
+  //  const double kSensThick = 120e-4;   // -> sensor Si thickness
+  //
+  const double kReadOutEdge = 0.12;   // width of the readout edge (passive bottom)
+  const double kTopEdge = 37.44e-4;   // dead area on top
+  const double kLeftRightEdge   = 29.12e-4; // width of passive area on left/right of the sensor
+  
+  // create segmentations
+  o2::ITSMFT::SegmentationPixel* seg0 = new o2::ITSMFT::SegmentationPixel(
+    0,           // segID (0:9)
+    1,           // chips per module
+    kNCol,       // ncols (total for module)
+    kNRow,       // nrows
+    kPitchX,     // default row pitch in cm
+    kPitchZ,     // default col pitch in cm
+    kSensThick,  // sensor thickness in cm
+    -1,          // no special left col between chips
+    -1,          // no special right col between chips
+    kLeftRightEdge, // left
+    kLeftRightEdge, // right
+    kTopEdge, // top
+    kReadOutEdge // bottom
+    );           // see SegmentationPixel.h for extra options
+  seg0->Store(o2::MFT::GeometryTGeo::getMFTsegmentationFileName());
+  cout << "Print the pixel segmentation: " << endl;
+  seg0->Print();
+  //return;
   
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
