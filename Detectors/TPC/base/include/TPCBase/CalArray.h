@@ -78,10 +78,10 @@ public:
   int getPadSubsetNumber() const { return mPadSubsetNumber; }
 
   void setValue(const size_t channel, const T& value) { mData[channel] = value; }
-  const T& getValue(const size_t channel) const { return mData[channel]; }
+  const T getValue(const size_t channel) const { return mData[channel]; }
 
   void setValue(const size_t row, const size_t pad, const T& value);
-  const T& getValue(const size_t row, const size_t pad) const;
+  const T getValue(const size_t row, const size_t pad) const;
 
   void setName(const std::string& name) { mName = name; }
   const std::string& getName() const { return mName; }
@@ -158,7 +158,7 @@ inline void CalArray<T>::setValue(const size_t row, const size_t pad, const T& v
 
 //______________________________________________________________________________
 template <class T>
-inline const T& CalArray<T>::getValue(const size_t row, const size_t pad) const
+inline const T CalArray<T>::getValue(const size_t row, const size_t pad) const
 {
   // TODO: might need speedup and beautification
   Mapper& mapper = Mapper::instance();
