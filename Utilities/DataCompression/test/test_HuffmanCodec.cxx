@@ -140,8 +140,9 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
               << "   code length: " << std::setw(3) << codeLen
               << "   code: ";
     if (not HuffmanModel_t::orderMSB) std::cout << std::setw(code.size() - codeLen);
-    for (int i = 0; i<codeLen; i++)
-      std::cout << code[codeLen-1-i];
+    for (int k = 0; k<codeLen; k++) {
+      std::cout << code[codeLen-1-k];
+    }
     std::cout << std::endl;
     if (HuffmanModel_t::orderMSB) code <<= (code.size()-codeLen);
     uint16_t decodedLen = 0;
