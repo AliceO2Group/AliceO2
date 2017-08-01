@@ -328,7 +328,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${ROOT_INCLUDE_DIR}/Math/GenVector
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
 o2_define_bucket(
