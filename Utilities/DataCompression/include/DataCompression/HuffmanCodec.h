@@ -451,10 +451,10 @@ public:
     }
     std::map<int, std::shared_ptr<_NodeType>> treeNodes;
     for (auto conf : treeNodeConfigurations) {
-      std::shared_ptr<_NodeType> left;
+      std::shared_ptr<_NodeType> left_local;
       auto ln = leaveNodeMap.find(conf.left);
       if ( ln != leaveNodeMap.end()) {
-        left = mLeaveNodes[ln->second];
+        left_local = mLeaveNodes[ln->second];
         leaveNodeMap.erase(ln);
       } else {
         auto tn = treeNodes.find(conf.left);
@@ -462,13 +462,13 @@ public:
           std::cerr << "Internal error: can not find left child node with index " << conf.left << std::endl;
           return -1;
         }
-        left = tn->second;
+        left_local = tn->second;
         treeNodes.erase(tn);
       }
-      std::shared_ptr<_NodeType> right;
+      std::shared_ptr<_NodeType> right_local;
       auto rn = leaveNodeMap.find(conf.right);
       if (rn != leaveNodeMap.end()) {
-        right = mLeaveNodes[rn->second];
+        right_local = mLeaveNodes[rn->second];
         leaveNodeMap.erase(rn);
       } else {
         auto tn = treeNodes.find(conf.right);
@@ -476,11 +476,11 @@ public:
           std::cerr << "Internal error: can not find right child node with index " << conf.right << std::endl;
           return -1;
         }
-        right = tn->second;
+        right_local = tn->second;
         treeNodes.erase(tn);
       }
       // make combined node shared ptr and add to map
-      treeNodes[conf.index] = std::make_shared<_NodeType>(left, right);
+      treeNodes[conf.index] = std::make_shared<_NodeType>(left_local, right_local);
     }
     if (leaveNodeMap.size() != 0 || treeNodes.size() != 1) {
       std::cerr << "error: " << leaveNodeMap.size() << " unhandled leave node(s)"
