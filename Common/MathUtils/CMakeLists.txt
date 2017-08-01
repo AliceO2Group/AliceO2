@@ -6,15 +6,29 @@ set(SRCS
   src/Chebyshev3D.cxx
   src/Chebyshev3DCalc.cxx
   src/MathBase.cxx
+  src/Cartesian3D.cxx
 )
 
 set(HEADERS
   include/${MODULE_NAME}/Chebyshev3D.h
   include/${MODULE_NAME}/Chebyshev3DCalc.h
   include/${MODULE_NAME}/MathBase.h
+  include/${MODULE_NAME}/Cartesian3D.h
 )
+
 set(LINKDEF src/MathUtilsLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME common_math_bucket)
 
 O2_GENERATE_LIBRARY()
+
+
+set(TEST_SRCS
+  test/testCartesian3D.cxx
+)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)
