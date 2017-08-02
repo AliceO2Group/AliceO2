@@ -8,6 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file testDetBaseLinkDef.h
+/// \brief Linking definitions of Vector class test
+/// \author Ruben Shahoyan <ruben.shahoyan@cern.ch>
 
 #ifdef __CLING__
 
@@ -15,15 +18,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::Base::Detector+;
-#pragma link C++ class o2::Base::Track::TrackParBase+;
-#pragma link C++ class o2::Base::Track::TrackPar+;
-#pragma link C++ class o2::Base::Track::TrackParCov+;
-#pragma link C++ class o2::Base::TrackReference+;
-#pragma link C++ class o2::Base::DetID+;
-#pragma link C++ class o2::Base::GeometryManager+;
-
-// this is used for the test only, should it be separate LinkDef?
 #pragma link C++ class o2::Base::Vector<o2::Base::Track::TrackPar,int>-;
 #pragma link C++ class vector<o2::Base::Track::TrackPar>+;
 
