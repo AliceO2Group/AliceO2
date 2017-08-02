@@ -112,10 +112,10 @@ class Detector : public FairDetector
     /// automatically assigned by geant/TGeo.
     /// This is required to easily being able to copy the geometry setup
     /// used in AliRoot
-    std::map<int, int> mMapMaterial; //! material mapping
+    std::map<int, int> mMapMaterial; //!< material mapping
 
     /// See comment for mMapMaterial
-    std::map<int, int> mMapMedium;   //! medium mapping
+    std::map<int, int> mMapMedium;   //!< medium mapping
 
     static Float_t mDensityFactor; //! factor that is multiplied to all material densities (ONLY for
     // systematic studies)
