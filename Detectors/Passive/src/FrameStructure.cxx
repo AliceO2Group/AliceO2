@@ -276,7 +276,7 @@ void FrameStructure::ConstructGeometry()
   trB77A->RegisterYourself();
   trB77B->RegisterYourself();
   TGeoCompositeShape* shB77 = new TGeoCompositeShape("shB77", "shB77A+shB77B:trB77A+shB77B:trB77B");
-  TGeoVolume* voB77 = new TGeoVolume("B077", shB77, gGeoManager->GetMedium("FRAME_Air"));
+  TGeoVolume* voB77 = new TGeoVolume("B077", shB77, gGeoManager->GetMedium(mAirMedID));
   voB77->SetName("B077"); // just to avoid a warning
 
   if (mCaveIsAvailable) {
@@ -290,7 +290,7 @@ void FrameStructure::ConstructGeometry()
   shBREFA->DefineSection(1, 376., 280., 280.1);
   shBREFA->SetName("shBREFA");
   TGeoCompositeShape* shBREF1 = new TGeoCompositeShape("shBREF1", "shBREFA-(shB77B:trB77A+shB77B:trB77B)");
-  TGeoVolume* voBREF = new TGeoVolume("BREF1", shBREF1, gGeoManager->GetMedium("FRAME_Air"));
+  TGeoVolume* voBREF = new TGeoVolume("BREF1", shBREF1, gGeoManager->GetMedium(mAirMedID));
   voBREF->SetVisibility(0);
   TVirtualMC::GetMC()->Gspos("BREF1", 1, "B077", 0., 0., 0., 0, "ONLY");
   //
@@ -940,7 +940,7 @@ void FrameStructure::ConstructGeometry()
     snprintf(nameCh, 16, "BTOF%d", i);
     char nameMo[16];
     snprintf(nameMo, 16, "BSEGMO%d", i);
-    TGeoVolume* btf = new TGeoVolume(nameCh, btofcs, gGeoManager->GetMedium("FRAME_Air"));
+    TGeoVolume* btf = new TGeoVolume(nameCh, btofcs, gGeoManager->GetMedium(mAirMedID));
     btf->SetName(nameCh);
     gGeoManager->GetVolume(nameCh)->SetVisibility(kFALSE);
     TVirtualMC::GetMC()->Gspos(nameCh, 1, nameMo, 0., 0., 43.525, 0, "ONLY");
@@ -1393,14 +1393,14 @@ void FrameStructure::CreateMaterials()
   auto kAirMatId = Mixture(5, "AIR$      ", aAir, zAir, dAir, 4, wAir);
   auto kAluMatId = Material(9, "ALU      ", 26.98, 13., 2.7, 8.9, 37.2);
 
-  mSteelMedID = Medium(65, "Stainless Steel", kSteelMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  mAirMedID = Medium(5, "Air", kAirMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  mAluMedID = Medium(9, "Aluminum", kAluMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  mSteelMedID = Medium(65, "FRAME_Stainless Steel", kSteelMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  mAirMedID = Medium(5, "FRAME_Air", kAirMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  mAluMedID = Medium(9, "FRAME_Aluminum", kAluMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   // do a cross check
-  assert(gGeoManager->GetMedium("Air")->GetId() == mAirMedID);
-  assert(gGeoManager->GetMedium("Aluminum")->GetId() == mAluMedID);
-  assert(gGeoManager->GetMedium("Stainless Steel")->GetId() == mSteelMedID);
+  assert(gGeoManager->GetMedium("FRAME_Air")->GetId() == mAirMedID);
+  assert(gGeoManager->GetMedium("FRAME_Aluminum")->GetId() == mAluMedID);
+  assert(gGeoManager->GetMedium("FRAME_Stainless Steel")->GetId() == mSteelMedID);
 }
 }
 }
