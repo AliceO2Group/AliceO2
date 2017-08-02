@@ -85,7 +85,7 @@ void Detector::ConstructGeometry()
     envelopA[1] = 30;
     envelopA[2] = 20;
     
-    TVirtualMC::GetMC()->Gsvolu("XEN1", "BOX", getMapMedium()[ID_SC], envelopA, 3) ;
+    TVirtualMC::GetMC()->Gsvolu("XEN1", "BOX", getMediumID(ID_SC), envelopA, 3) ;
     mEnvelop1.Set(3);
     
     for(Int_t i=0; i<3; i++) mEnvelop1[i] = envelopA[i]; // 23-may-05
@@ -108,7 +108,7 @@ void Detector::ConstructGeometry()
     envelopA[9] = envelopA[6] ;
     // radii are the same.
     
-    TVirtualMC::GetMC()->Gsvolu("XEN1", "PGON", getMapMedium()[ID_AIR], envelopA, 10) ;   // Polygone filled with air
+    TVirtualMC::GetMC()->Gsvolu("XEN1", "PGON", getMediumID(ID_AIR), envelopA, 10) ;   // Polygone filled with air
     mEnvelop1.Set(10, envelopA);
     
     LOG(DEBUG2) << "ConstructGeometry: XEN1 = " << envelopA[5] << ", " << envelopA[6] << FairLogger::endl;
@@ -201,7 +201,7 @@ void Detector::CreateShiskebabGeometry()
     for (Int_t i = 0; i < 3; i++)
       parSCM0[i] = mParEMOD[i] - wallThickness;
     parSCM0[3] = mParEMOD[3];
-    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMapMedium()[ID_AIR], parSCM0, 4);
+    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMediumID(ID_AIR), parSCM0, 4);
     TVirtualMC::GetMC()->Gspos("SCM0", 1, "EMOD", 0., 0., 0., 0, "ONLY");
   } else {
     Double_t wTh = g->GetLateralSteelStrip();
@@ -209,7 +209,7 @@ void Detector::CreateShiskebabGeometry()
     parSCM0[1] = mParEMOD[1] - wTh;
     parSCM0[2] = mParEMOD[2] - wTh;
     parSCM0[3] = mParEMOD[3] - g->GetTrd1AlFrontThick() / 2.;
-    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMapMedium()[ID_AIR], parSCM0, 4);
+    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMediumID(ID_AIR), parSCM0, 4);
     Double_t zshift = g->GetTrd1AlFrontThick() / 2.;
     TVirtualMC::GetMC()->Gspos("SCM0", 1, "EMOD", 0., 0., zshift, 0, "ONLY");
     //
@@ -243,7 +243,7 @@ void Detector::CreateShiskebabGeometry()
       LOG(DEBUG3) << " par[" << std::setw(2) << std::setprecision(2) << i << "] " << std::setw(9)
                   << std::setprecision(4) << parTRAP[i] << FairLogger::endl;
 
-    TVirtualMC::GetMC()->Gsvolu("SCMX", "TRAP", getMapMedium()[ID_SC], parTRAP, 11);
+    TVirtualMC::GetMC()->Gsvolu("SCMX", "TRAP", getMediumID(ID_SC), parTRAP, 11);
     xpos = +(parSCM0[1] + parSCM0[0]) / 4.;
     TVirtualMC::GetMC()->Gspos("SCMX", 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
 
@@ -262,7 +262,7 @@ void Detector::CreateShiskebabGeometry()
     if (!gn.Contains("V1")) {
       par[1] = parSCM0[2] / 2;            // y
       par[2] = g->GetECPbRadThick() / 2.; // z
-      TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMapMedium()[ID_PB], dummy, 0);
+      TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMediumID(ID_PB), dummy, 0);
 
       zpos = -mSampleWidth * g->GetNECLayers() / 2. + g->GetECPbRadThick() / 2.;
       LOG(DEBUG2) << " Pb tiles \n";
@@ -282,7 +282,7 @@ void Detector::CreateShiskebabGeometry()
       par[1] = parSCM0[2] / 2.;                 // y
       par[2] = g->GetTrd1BondPaperThick() / 2.; // z
       par[0] = parSCM0[0] / 2.;                 // x
-      TVirtualMC::GetMC()->Gsvolu("PAP1", "BOX", getMapMedium()[ID_PAPER], par, 3);
+      TVirtualMC::GetMC()->Gsvolu("PAP1", "BOX", getMediumID(ID_PAPER), par, 3);
 
       xpos = par[0] - xCenterSCMX;
       zpos = -parSCM0[3] + g->GetTrd1BondPaperThick() / 2.;
@@ -296,7 +296,7 @@ void Detector::CreateShiskebabGeometry()
         par[2] = g->GetECPbRadThick() / 2. + g->GetTrd1BondPaperThick(); // z
         par[0] = (parSCM0[0] + tanBetta * dz) / 2.;
         TString pa(Form("PA%2.2i", nr));
-        TVirtualMC::GetMC()->Gsvolu(pa.Data(), "BOX", getMapMedium()[ID_PAPER], par, 3);
+        TVirtualMC::GetMC()->Gsvolu(pa.Data(), "BOX", getMediumID(ID_PAPER), par, 3);
 
         xpos = par[0] - xCenterSCMX;
         zpos = -parSCM0[3] + dz + par[2];
@@ -305,7 +305,7 @@ void Detector::CreateShiskebabGeometry()
         // Pb
         TString pb(Form("PB%2.2i", nr));
         par[2] = g->GetECPbRadThick() / 2.; // z
-        TVirtualMC::GetMC()->Gsvolu(pb.Data(), "BOX", getMapMedium()[ID_PB], par, 3);
+        TVirtualMC::GetMC()->Gsvolu(pb.Data(), "BOX", getMediumID(ID_PB), par, 3);
         TVirtualMC::GetMC()->Gspos(pb.Data(), 1, pa.Data(), 0.0, 0.0, 0.0, 0, "ONLY");
       }
     }
@@ -441,9 +441,9 @@ void Detector::CreateSmod(const char* mother)
     par[1] = g->GetShellThickness() / 2.;
     par[2] = g->GetEtaModuleSize() * g->GetNZ() / 2. + 5;
 
-    TVirtualMC::GetMC()->Gsvolu("SMOD", "BOX", getMapMedium()[ID_AIR], par, 3);
+    TVirtualMC::GetMC()->Gsvolu("SMOD", "BOX", getMediumID(ID_AIR), par, 3);
 
-    LOG(DEBUG2) << "SMOD in WSUC : tmed " << getMapMedium()[ID_AIR] << " | dx " << std::setw(7) << std::setprecision(2)
+    LOG(DEBUG2) << "SMOD in WSUC : tmed " << getMediumID(ID_AIR) << " | dx " << std::setw(7) << std::setprecision(2)
                 << par[0] << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
                 << std::setprecision(2) << par[2] << " (SMOD, BOX)\n";
     mSmodPar0 = par[0];
@@ -514,7 +514,7 @@ void Detector::CreateSmod(const char* mother)
         LOG(ERROR) << "Unkown SM Type!!\n";
 
       if (SMOrder == 1) { // first time, create the SM
-        TVirtualMC::GetMC()->Gsvolu(smName.Data(), "BOX", getMapMedium()[ID_AIR], parC, 3);
+        TVirtualMC::GetMC()->Gsvolu(smName.Data(), "BOX", getMediumID(ID_AIR), parC, 3);
 
         LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )" << parC[0]
                     << ", par[1] = " << parC[1] << ", par[2] = " << parC[2] << FairLogger::endl;
@@ -544,9 +544,9 @@ void Detector::CreateSmod(const char* mother)
   // Steel plate
   if (g->GetSteelFrontThickness() > 0.0) { // 28-mar-05
     par[0] = g->GetSteelFrontThickness() / 2.;
-    TVirtualMC::GetMC()->Gsvolu("STPL", "BOX", getMapMedium()[ID_STEEL], par, 3);
+    TVirtualMC::GetMC()->Gsvolu("STPL", "BOX", getMediumID(ID_STEEL), par, 3);
 
-    LOG(DEBUG1) << "tmed " << getMapMedium()[ID_STEEL] << " | dx " << std::setw(7) << std::setprecision(2) << par[0]
+    LOG(DEBUG1) << "tmed " << getMediumID(ID_STEEL) << " | dx " << std::setw(7) << std::setprecision(2) << par[0]
                 << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
                 << std::setprecision(2) << par[2] << " (STPL) \n";
 
@@ -573,7 +573,7 @@ void Detector::CreateEmod(const char* mother, const char* child)
     mParEMOD[2] = g->GetPhiModuleSize() / 2.;
     ;                                          // dy
     mParEMOD[3] = g->GetLongModuleSize() / 2.; // dz
-    TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMapMedium()[ID_STEEL], mParEMOD, 4);
+    TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMediumID(ID_STEEL), mParEMOD, 4);
   }
 
   Int_t nr = 0;
@@ -663,7 +663,7 @@ void Detector::CreateAlFrontPlate(const char* mother, const char* child)
   parALFP[2] = g->GetPhiModuleSize() / 2. - g->GetLateralSteelStrip(); // dy
   parALFP[3] = g->GetTrd1AlFrontThick() / 2.;                          // dz
 
-  TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMapMedium()[ID_AL], parALFP, 4);
+  TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMediumID(ID_AL), parALFP, 4);
 
   zposALFP = -mParEMOD[3] + g->GetTrd1AlFrontThick() / 2.;
   TVirtualMC::GetMC()->Gspos(child, 1, mother, 0.0, 0.0, zposALFP, 0, "ONLY");
@@ -681,14 +681,14 @@ void Detector::Trd1Tower1X1(Double_t* parSCM0)
   // and as consequence the same abs is scheme
   LOG(DEBUG2) << "Trd1Tower1X1() : Create SCMX(SCMY) as SCM0\n";
 
-  TVirtualMC::GetMC()->Gsvolu("SCMY", "TRD1", getMapMedium()[ID_AIR], parSCM0, 4);
+  TVirtualMC::GetMC()->Gsvolu("SCMY", "TRD1", getMediumID(ID_AIR), parSCM0, 4);
   TVirtualMC::GetMC()->Gspos("SCMY", 1, "SCM0", 0.0, 0.0, 0.0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gsvolu("SCMX", "TRD1", getMapMedium()[ID_SC], parSCM0, 4);
+  TVirtualMC::GetMC()->Gsvolu("SCMX", "TRD1", getMediumID(ID_SC), parSCM0, 4);
   TVirtualMC::GetMC()->Gspos("SCMX", 1, "SCMY", 0.0, 0.0, 0.0, 0, "ONLY");
 
   // should be defined once
   Double_t* dummy = nullptr;
-  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMapMedium()[ID_PB], dummy, 0);
+  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMediumID(ID_PB), dummy, 0);
 
   PbInTrd1(parSCM0, "SCMX");
 
@@ -719,7 +719,7 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
   Double_t ndiv = 3., xpos = 0.0;
 
   // should be defined once
-  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMapMedium()[ID_PB], dummy, 0);
+  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMediumID(ID_PB), dummy, 0);
 
   for (Int_t ix = 1; ix <= 3; ix++) { // 3X3
     scmx = "SCX";                     // Nov 10,2006
@@ -757,7 +757,7 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
                   << std::setprecision(4) << parTRAP[i] << FairLogger::endl;
 
     scmx += ix;
-    TVirtualMC::GetMC()->Gsvolu(scmx.Data(), "TRAP", getMapMedium()[ID_SC], parTRAP, 11);
+    TVirtualMC::GetMC()->Gsvolu(scmx.Data(), "TRAP", getMediumID(ID_SC), parTRAP, 11);
     TVirtualMC::GetMC()->Gspos(scmx.Data(), 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
 
     PbInTrap(parTRAP, scmx);
