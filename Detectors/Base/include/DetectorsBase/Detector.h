@@ -15,6 +15,7 @@
 #define ALICEO2_BASE_DETECTOR_H_
 
 #include <map>
+#include <vector>
 #include <memory>
 
 #include "FairDetector.h"  // for FairDetector
@@ -100,6 +101,20 @@ class Detector : public FairDetector
         return iter->second;
       }
       return -1;
+    }
+
+    // fill the medium index mapping into a standard vector
+    // the vector gets sized properly and will be overridden
+    void getMediumIDMappingAsVector(std::vector<int>& mapping) {
+      mapping.clear();
+      // get the biggest mapped value (maps are sorted in keys)
+      auto maxkey = mMapMedium.rbegin()->first;
+      // resize mapping and initialize with -1 by default
+      mapping.resize(maxkey + 1, -1);
+      // fill vector with entries from map
+      for (auto& p : mMapMedium) {
+        mapping[p.first] = p.second;
+      }
     }
 
   protected:
