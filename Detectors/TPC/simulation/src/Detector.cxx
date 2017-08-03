@@ -3221,8 +3221,8 @@ void Detector::GeantHack()
              >> flag[6] >> flag[7] >> flag[8] >> flag[9] >> flag[10] >> flag[11];
 
     if(0<=itmed && itmed < 100) {
-      ktmed=getMedium(itmed);
-      if(!ktmed) {
+      ktmed=getMediumID(itmed);
+      if(ktmed==-1) {
         LOG(INFO) << Form("Invalid tracking medium code %d for %s",itmed,GetName()) << FairLogger::endl;
         continue;
       }
