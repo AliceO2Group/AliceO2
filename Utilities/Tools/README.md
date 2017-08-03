@@ -12,3 +12,20 @@ checkers are used by setting the O2_CHECKER_CHECKS environment variable.
 
 You can see what actually happens by looking at the `alidist/o2checkcode.sh`
 recipe.
+
+# Using the code checker on a restricted set of files
+
+Often, only a few files are changed in the repository and running the codechecker
+on the whole repository would be a considerable overhead. It is now possible to only check
+files which were modified or are influenced by a modification by saying
+
+```
+ALIBUILD_BASE_HASH=commit_id aliBuild build o2checkcode --defaults o2-daq --debug
+```
+
+where `commit_id` is some git commit from which onwards we would like to check changed code.
+Typically, `commit_id` should be the commit just before new modifications are applied.
+Examples are `commit_id=HEAD` when we want to compare to the last git commit, 
+or `commit_id=HEAD^^^` when we compare to the state 3 commits ago.
+
+The pull request checker uses this mechanism to provide faster checks on github.
