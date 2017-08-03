@@ -18,14 +18,6 @@ using namespace o2::trd;
 //_____________________________________________________________________________
 
 //
-// The geometry constants
-//
-const int TRDGeometryBase::fgkNsector = kNsector;
-const int TRDGeometryBase::fgkNlayer = kNlayer;
-const int TRDGeometryBase::fgkNstack = kNstack;
-const int TRDGeometryBase::fgkNdet = kNdet;
-
-//
 // Dimensions of the detector
 //
 
@@ -196,7 +188,7 @@ int TRDGeometryBase::GetDetectorSec(int layer, int stack)
   // Convert plane / stack into detector number for one single sector
   //
 
-  return (layer + stack * fgkNlayer);
+  return (layer + stack * kNlayer);
 }
 
 //_____________________________________________________________________________
@@ -206,7 +198,7 @@ int TRDGeometryBase::GetDetector(int layer, int stack, int sector)
   // Convert layer / stack / sector into detector number
   //
 
-  return (layer + stack * fgkNlayer + sector * fgkNlayer * fgkNstack);
+  return (layer + stack * kNlayer + sector * kNlayer * kNstack);
 }
 
 //_____________________________________________________________________________
@@ -216,7 +208,7 @@ int TRDGeometryBase::GetLayer(int det)
   // Reconstruct the layer number from the detector number
   //
 
-  return ((int)(det % fgkNlayer));
+  return ((int)(det % kNlayer));
 }
 
 //_____________________________________________________________________________
@@ -226,7 +218,7 @@ int TRDGeometryBase::GetStack(int det) const
   // Reconstruct the stack number from the detector number
   //
 
-  return ((int)(det % (fgkNlayer * fgkNstack)) / fgkNlayer);
+  return ((int)(det % (kNlayer * kNstack)) / kNlayer);
 }
 
 //_____________________________________________________________________________
@@ -238,10 +230,10 @@ int TRDGeometryBase::GetStack(double z, int layer) const
   // The return function has to be protected for positiveness !!
   //
 
-  if ((layer < 0) || (layer >= fgkNlayer))
+  if ((layer < 0) || (layer >= kNlayer))
     return -1;
 
-  int istck = fgkNstack;
+  int istck = kNstack;
   double zmin = 0.0;
   double zmax = 0.0;
 
@@ -341,11 +333,11 @@ bool TRDGeometryBase::IsOnBoundary(int det, float y, float z, float eps) const
   //
 
   int ly = GetLayer(det);
-  if ((ly < 0) || (ly >= fgkNlayer))
+  if ((ly < 0) || (ly >= kNlayer))
     return true;
 
   int stk = GetStack(det);
-  if ((stk < 0) || (stk >= fgkNstack))
+  if ((stk < 0) || (stk >= kNstack))
     return true;
 
   TRDPadPlane* pp = &mPadPlaneArray[GetDetectorSec(ly, stk)];

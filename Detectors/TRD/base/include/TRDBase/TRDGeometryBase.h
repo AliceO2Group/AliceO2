@@ -52,11 +52,7 @@ class TRDGeometryBase
   char GetSMstatus(int sm) const { return fgSMstatus[sm]; }
   static float GetChamberWidth(int layer) { return fgkCwidth[layer]; }
   static float GetChamberLength(int layer, int stack) { return fgkClength[layer][stack]; }
-  static double GetAlpha() { return 2.0 * 3.14159265358979324 / fgkNsector; }
-  static int Nsector() { return fgkNsector; }
-  static int Nlayer() { return fgkNlayer; }
-  static int Nstack() { return fgkNstack; }
-  static int Ndet() { return fgkNdet; }
+  static double GetAlpha() { return 2.0 * 3.14159265358979324 / kNsector; }
   static float Cheight() { return fgkCH; }
   static float CheightSV() { return fgkCHsv; }
   static float Cspace() { return fgkVspace; }
@@ -88,11 +84,6 @@ class TRDGeometryBase
   TRDGeometryBase();
   ~TRDGeometryBase();
      
-  static const int fgkNsector; //  Number of sectors in the full detector (18)
-  static const int fgkNlayer;  //  Number of layers of the TRD (6)
-  static const int fgkNstack;  //  Number of stacks in z-direction (5)
-  static const int fgkNdet;    //  Total number of detectors (18 * 6 * 5 = 540)
-
   static const float fgkTlength; //  Length of the TRD-volume in spaceframe (BTRD)
 
   static const float fgkSheight; //  Height of the supermodule
