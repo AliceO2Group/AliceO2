@@ -12,6 +12,7 @@
 #define O2_TRDGEOMETRY_H
 
 #include "TRDBase/TRDGeometryBase.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 #include <string>
 #include <vector>
@@ -48,6 +49,7 @@ class TRDGeometry : public TRDGeometryBase
 
  private:
   std::vector<std::string> mSensitiveVolumeNames; //!< vector keeping track of sensitive TRD volumes
+  static const o2::detectors::DetID sDetID;
 
   // helper function to create volumes and registering them automatically
   void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);

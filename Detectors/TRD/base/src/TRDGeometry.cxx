@@ -14,8 +14,8 @@
 #include <TVirtualMC.h>
 
 #include <FairLogger.h>
-//#include "AliAlignObjParams.h"
 
+#include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
 
@@ -25,6 +25,7 @@ using namespace o2::trd;
 
 TObjArray* TRDGeometry::fgClusterMatrixArray = nullptr;
 std::unique_ptr<TRDPadPlane[]> TRDGeometry::fgPadPlaneArray;
+const o2::detectors::DetID TRDGeometry::sDetID(o2::detectors::DetID::TRD);
 
 //_____________________________________________________________________________
 TRDGeometry::TRDGeometry() : TRDGeometryBase()
@@ -51,7 +52,7 @@ bool TRDGeometry::RotateBack(int det, const double* const loc, double* glb) cons
   //
 
   int sector = GetSector(det);
-  float phi = 2.0 * TMath::Pi() / (float)fgkNsector * ((float)sector + 0.5);
+  float phi = 2.0 * TMath::Pi() / (float)kNsector * ((float)sector + 0.5);
 
   glb[0] = loc[0] * TMath::Cos(phi) - loc[1] * TMath::Sin(phi);
   glb[1] = loc[0] * TMath::Sin(phi) + loc[1] * TMath::Cos(phi);
@@ -70,9 +71,9 @@ void TRDGeometry::CreatePadPlaneArray()
   if (fgPadPlaneArray != nullptr)
     return;
 
-  fgPadPlaneArray.reset(new TRDPadPlane[fgkNlayer * fgkNstack]);
-  for (int ilayer = 0; ilayer < fgkNlayer; ilayer++) {
-    for (int istack = 0; istack < fgkNstack; istack++) {
+  fgPadPlaneArray.reset(new TRDPadPlane[kNlayer * kNstack]);
+  for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
+    for (int istack = 0; istack < kNstack; istack++) {
       int ipp = GetDetectorSec(ilayer, istack);
       CreatePadPlane(ilayer, istack, fgPadPlaneArray.get()[ipp]);
     }
@@ -2585,84 +2586,65 @@ bool TRDGeometry::CreateClusterMatrixArray()
 
   fgClusterMatrixArray = new TObjArray(kNdet);
 
-  for (int iLayer = AliGeomManager::kTRD1; iLayer <= AliGeomManager::kTRD6; iLayer++) {
-    for (int iModule = 0; iModule < AliGeomManager::LayerSize(iLayer); iModule++) {
+  // in opposite to AliGeomManager, we use consecutive numbering of modules through whole TRD
+  int volid = -1;
+  
+  for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
+    for (int isector = 0; isector < kNsector; isector++ ) {
+      for (int istack = 0; istack < kNstack; istack++) {
+        Int_t lid = GetDetector(ilayer,istack,isector);
 
-      int        isector   = iModule/Nstack();
-      int        istack    = iModule%Nstack();
-      int        iLayerTRD = iLayer - AliGeomManager::kTRD1;
-      int        lid       = GetDetector(iLayerTRD,istack,isector);
-
-      // Check for disabled supermodules
-      volPath  = vpStr;
-      volPath += isector;
-      volPath += vpApp1;
-      volPath += isector;
-      volPath += vpApp2;
-      switch (isector) {
-      case 17:
-        if ((istack == 4) && (iLayerTRD == 4)) {
-    continue;
-  }
-        volPath += vpApp3d;
-        break;
-      case 13:
-      case 14:
-      case 15:
-        // Check for holes in from of PHOS
-        if (istack == 2) {
+        volid++;
+        // Check for disabled supermodules
+        volPath  = vpStr;
+        volPath += isector;
+        volPath += vpApp1;
+        volPath += isector;
+        volPath += vpApp2;
+        switch (isector) {
+        case 17:
+          if ((istack == 4) && (ilayer == 4)) {
+            continue;
+          }
+          volPath += vpApp3d;
+          break;
+        case 13:
+        case 14:
+        case 15:
+          // Check for holes in from of PHOS
+          if (istack == 2) {
+            continue;
+          }
+          volPath += vpApp3c;
+          break;
+        case 11:
+        case 12:
+          volPath += vpApp3b;
+          break;
+        default:
+          volPath += vpApp3a;
+        };
+        if (!gGeoManager->CheckPath(volPath.c_str())) {
+          //AliInfo(Form("Path not found in geometry: %s",volPath.Data()));
           continue;
-  }
-        volPath += vpApp3c;
-        break;
-      case 11:
-      case 12:
-        volPath += vpApp3b;
-        break;
-      default:
-        volPath += vpApp3a;
-      };
-      if (!gGeoManager->CheckPath(volPath)) {
-        //AliInfo(Form("Path not found in geometry: %s",volPath.Data()));
-  continue;
-      }
+        }
+        TGeoHMatrix *m = o2::Base::GeometryManager::getMatrix(sDetID, volid);
+        TGeoRotation mchange;
+        mchange.RotateY(90);
+        mchange.RotateX(90);
 
-      UShort_t     volid   = AliGeomManager::LayerToVolUID(iLayer,iModule);
-      const char  *symname = AliGeomManager::SymName(volid);
-      TGeoPNEntry *pne     = gGeoManager->GetAlignableEntry(symname);
-      const char  *path    = symname;
-      if (pne) {
-        path = pne->GetTitle();
+        //
+        // Cluster transformation matrix
+        //
+        std::unique_ptr<TGeoHMatrix> rotMatrix = std::make_unique<TGeoHMatrix>(mchange.Inverse());
+        rotMatrix->MultiplyLeft(m);
+        float sectorAngle = 20.0 * (isector % 18) + 10.0;
+        TGeoHMatrix  rotSector;
+        rotSector.RotateZ(sectorAngle);
+        const auto& inv = rotSector.Inverse();
+        rotMatrix->MultiplyLeft(&inv);
+        sClusterMatrixArray[lid] = rotMatrix;
       }
-      else {
-  continue;
-      }
-      if (!strstr(path,"ALIC")) {
-  // AliDebugClass(1,Form("Not a valid path: %s\n",path));
-        continue;
-      }
-      if (!gGeoManager->cd(path)) {
-        LOG(ERROR) << "TRD: Cannot go to path: " << path << "\n";
-        continue;
-      }
-      TGeoHMatrix *m = gGeoManager->GetCurrentMatrix();
-
-      TGeoRotation mchange;
-      mchange.RotateY(90);
-      mchange.RotateX(90);
-
-      //
-      // Cluster transformation matrix
-      //
-      TGeoHMatrix  rotMatrix(mchange.Inverse());
-      rotMatrix.MultiplyLeft(m);
-      double sectorAngle = 20.0 * (isector % 18) + 10.0;
-      TGeoHMatrix  rotSector;
-      rotSector.RotateZ(sectorAngle);
-      rotMatrix.MultiplyLeft(&rotSector.Inverse());
-
-      fgClusterMatrixArray->AddAt(new TGeoHMatrix(rotMatrix),lid);
-
     }
   }
 
