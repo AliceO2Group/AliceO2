@@ -14,7 +14,7 @@
 #include <iostream>
 #endif
 
-void drawTOFgeomery()
+void drawTOFgeometry()
 {
   // minimal macro to test setup of the geometry
 
