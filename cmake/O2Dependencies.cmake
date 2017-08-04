@@ -778,6 +778,18 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    passive_detector_bucket
+ 
+    DEPENDENCIES
+    fairroot_geom
+    Field
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/Field/include
+)
+
+o2_define_bucket(
+    NAME
     emcal_simulation_bucket
 
     DEPENDENCIES

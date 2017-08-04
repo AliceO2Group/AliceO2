@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Field/MagneticField.h"
 #include "DetectorsPassive/FrameStructureRun3.h"
 #include <TGeoArb8.h>
 #include <TGeoBBox.h>
 #include <TGeoBoolNode.h>
 #include <TGeoCompositeShape.h>
-#include <TGeoGlobalMagField.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
 #include <TGeoPgon.h>
@@ -22,7 +22,6 @@
 #include <TGeoXtru.h>
 #include <TMath.h>
 #include <TString.h>
-#include <TSystem.h>
 #include <TVirtualMC.h>
 
 #include <cassert>
@@ -251,8 +250,19 @@ void FrameStructure::createMaterials()
   tmaxfd = -20.;  // Maximum angle due to field deflection
   deemax = -.3;   // Maximum fractional energy loss, DLS
   stmin = -.8;
-  int isxfld = 2.;    //((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
-  float sxmgmx = 10.; //((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
+  int isxfld = 2; // field uniformity value as defined by Geant3
+  float sxmgmx = 10.; // max field
+  auto vmc = TVirtualMC::GetMC();
+  auto field = vmc->GetMagField();
+  if (dynamic_cast<o2::field::MagneticField*>(field) != nullptr) {
+    auto o2field = (o2::field::MagneticField*)field;
+    isxfld = o2field->Integral(); // default integration method?
+    sxmgmx = o2field->Max();
+    LOG(INFO) << "magnetic field found; using isxfld " << isxfld << " " << sxmgmx << " " << "\n";
+  }
+  else {
+    LOG(INFO) << "No magnetic field found; using default values " << isxfld << " " << sxmgmx << " to initialize media \n";
+  }
 
   float asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
   float zsteel[4] = { 26., 24., 28., 14. };
