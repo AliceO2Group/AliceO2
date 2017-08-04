@@ -9,6 +9,7 @@ set(SRCS
   src/Magnet.cxx
   src/PassiveContFact.cxx
   src/FrameStructure.cxx
+  src/FrameStructureRun3.cxx
 )
 
 Set(HEADERS
@@ -18,6 +19,7 @@ Set(HEADERS
     include/${MODULE_NAME}/PassiveContFact.h
     include/${MODULE_NAME}/Pipe.h
     include/${MODULE_NAME}/FrameStructure.h
+    include/${MODULE_NAME}/FrameStructureRun3.h
  )
 
 Set(LINKDEF src/PassiveLinkDef.h)
