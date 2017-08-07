@@ -45,6 +45,10 @@ void build_geometry() {
   auto tof = new o2::tof::Detector("TOF", true);
   run->AddModule(tof);
 
+  // TRD
+  auto trd = new o2::trd::Detector("TRD", true);
+  run->AddModule(trd);
+
   // tpc
   auto tpc = new o2::TPC::Detector("TPC", true);
   run->AddModule(tpc);
