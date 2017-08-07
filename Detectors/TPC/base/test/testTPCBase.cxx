@@ -12,7 +12,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "TPCBase/Point3D.h"
+#include "TPCBase/Defs.h"
 #include "TPCBase/Sector.h"
 #include <cmath>
 
@@ -22,9 +22,9 @@ namespace o2 {
     BOOST_AUTO_TEST_CASE(Point3D_test)
     {
       Point3D<double> testpoint(2.,3.,4.);
-      BOOST_CHECK_CLOSE(testpoint.getX(),2.,1E-12);
-      BOOST_CHECK_CLOSE(testpoint.getY(),3.,1E-12);
-      BOOST_CHECK_CLOSE(testpoint.getZ(),4.,1E-12);
+      BOOST_CHECK_CLOSE(testpoint.X(),2.,1E-12);
+      BOOST_CHECK_CLOSE(testpoint.Y(),3.,1E-12);
+      BOOST_CHECK_CLOSE(testpoint.Z(),4.,1E-12);
     }
 
     // test Sector stuff

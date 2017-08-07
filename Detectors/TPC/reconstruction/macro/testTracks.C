@@ -86,19 +86,19 @@ void testTracks(int checkEvent = 0,
     const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
           float zPosition       = Digitizer::getZfromTimeBin(inputcluster->getTimeMean(), cru.side());
 
-    LocalPosition3D posLoc(padCentre.getX(), localYfactor*padCentre.getY(), zPosition);
+    LocalPosition3D posLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
 
-    const float clusterX = posGlob.getX();
-    const float clusterY = posGlob.getY();
+    const float clusterX = posGlob.X();
+    const float clusterY = posGlob.Y();
     const float clusterZ = zPosition;
 
     grClusters->SetPoint(clusCounter, clusterX, clusterY);
     grClustersXZ->SetPoint(clusCounter, clusterX, clusterZ);
     grClusters3D->SetPoint(clusCounter, clusterX, clusterY, clusterZ);
-    grClustersLoc->SetPoint(clusCounter, posLoc.getX(), posLoc.getY());
-    grClustersLocXZ->SetPoint(clusCounter, posLoc.getX(), posLoc.getZ());
-    grClustersLoc3D->SetPoint(clusCounter++, posLoc.getX(), posLoc.getY(), posLoc.getZ());
+    grClustersLoc->SetPoint(clusCounter, posLoc.X(), posLoc.Y());
+    grClustersLocXZ->SetPoint(clusCounter, posLoc.X(), posLoc.Z());
+    grClustersLoc3D->SetPoint(clusCounter++, posLoc.X(), posLoc.Y(), posLoc.Z());
 
 
   }
@@ -138,29 +138,29 @@ void testTracks(int checkEvent = 0,
         const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
               float zPosition       = Digitizer::getZfromTimeBin(clusterObject.getTimeMean(), cru.side());
 
-        LocalPosition3D clusLoc(padCentre.getX(), localYfactor*padCentre.getY(), zPosition);
+        LocalPosition3D clusLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
         GlobalPosition3D clusGlob = Mapper::LocalToGlobal(clusLoc, cru.sector());
 
         // Track parameters are in local coordinate system - propagate to pad row of the cluster
-        trackObject.PropagateParamTo(clusLoc.getX(), bField);
+        trackObject.propagateParamTo(clusLoc.X(), bField);
 
-        LocalPosition3D trackLoc(trackObject.GetX(), trackObject.GetY(), trackObject.GetZ());
+        LocalPosition3D trackLoc(trackObject.getX(), trackObject.getY(), trackObject.getZ());
         /// \todo sector hardcoded for the time  being
         GlobalPosition3D trackGlob = Mapper::LocalToGlobal(trackLoc, 0.1632);
 
-        const float resY = trackLoc.getY() - clusLoc.getY();
-        const float resZ = trackLoc.getY() - clusLoc.getZ();
+        const float resY = trackLoc.Y() - clusLoc.Y();
+        const float resZ = trackLoc.Y() - clusLoc.Z();
 
         hResY->Fill(resY);
         hResZ->Fill(resZ);
 
         if(iEv == checkEvent) {
-          grTracks->SetPoint(counter, trackGlob.getX(), trackGlob.getY());
-          grTracksXZ->SetPoint(counter, trackGlob.getX(), trackGlob.getZ());
-          grTracks3D->SetPoint(counter, trackGlob.getX(), trackGlob.getY(), trackGlob.getZ());
-          grTracksLoc->SetPoint(counter, trackLoc.getX(), trackLoc.getY());
-          grTracksLocXZ->SetPoint(counter, trackLoc.getX(), trackLoc.getZ());
-          grTracksLoc3D->SetPoint(counter++, trackLoc.getX(), trackLoc.getY(), trackLoc.getZ());
+          grTracks->SetPoint(counter, trackGlob.X(), trackGlob.Y());
+          grTracksXZ->SetPoint(counter, trackGlob.X(), trackGlob.Z());
+          grTracks3D->SetPoint(counter, trackGlob.X(), trackGlob.Y(), trackGlob.Z());
+          grTracksLoc->SetPoint(counter, trackLoc.X(), trackLoc.Y());
+          grTracksLocXZ->SetPoint(counter, trackLoc.X(), trackLoc.Z());
+          grTracksLoc3D->SetPoint(counter++, trackLoc.X(), trackLoc.Y(), trackLoc.Z());
 
         }
       }
