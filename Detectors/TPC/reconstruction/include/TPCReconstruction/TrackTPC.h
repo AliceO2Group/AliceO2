@@ -13,6 +13,7 @@
 
 #include "DetectorsBase/Track.h"
 
+#include "TPCBase/Defs.h"
 #include "TPCSimulation/Cluster.h"
 
 #include <TClonesArray.h>

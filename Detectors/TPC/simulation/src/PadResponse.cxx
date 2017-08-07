@@ -68,14 +68,14 @@ float PadResponse::getPadResponse(GlobalPosition3D posEle, DigitPos digiPadPos) 
   const PadCentre padCentre = mapper.padCentre(mapper.globalPadNumber(digiPadPos.getPadPos()));
   const CRU cru(digiPadPos.getCRU());
   const Sector sector(digiPadPos.getPadSecPos().getSector());
-  const LocalPosition3D padCentreLocal(padCentre.getX(), padCentre.getY(), posEle.getZ());
+  const LocalPosition3D padCentreLocal(padCentre.X(), padCentre.Y(), posEle.Z());
   const GlobalPosition3D padCentrePos = mapper.LocalToGlobal(padCentreLocal, sector);
 
-  ///std::cout << padCentrePos.getX() << " " << posEle.getX() << " " << padCentrePos.getY() << " " << posEle.getY() << "\n";
+  ///std::cout << padCentrePos.X() << " " << posEle.X() << " " << padCentrePos.Y() << " " << posEle.Y() << "\n";
 
   const int gemStack = int(cru.gemStack());
-  const float offsetX = std::fabs(posEle.getX() - padCentre.getX())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
-  const float offsetY = std::fabs(posEle.getY() - padCentre.getY())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetX = std::fabs(posEle.X() - padCentre.X())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetY = std::fabs(posEle.Y() - padCentre.Y())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
   float normalizedPadResponse = 0;
   if(gemStack == 0) {
     normalizedPadResponse = mIROC->Interpolate(offsetX, offsetY);

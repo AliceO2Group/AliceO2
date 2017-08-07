@@ -20,8 +20,8 @@
 
 #include <cmath>
 
-#include "Point2D.h"
-#include "Point3D.h"
+#include "MathUtils/Cartesian2D.h"
+#include "MathUtils/Cartesian3D.h"
 
 namespace o2 {
 namespace TPC {
@@ -51,7 +51,11 @@ enum class PadSubset : char {
   Partition,  ///< Partitions (up to 36*5)
   Region      ///< Regions (up to 36*10)
 };
+// default point definitions for PointND, PointNDlocal, PointNDglobal are in
+// MathUtils/CartesianND.h
+
 /// Pad centres as 2D float
+//For some reason cling does not like the nested using statement, typedef works ...
 typedef Point2D<float> PadCentre;
 typedef Point2D<float> GlobalPosition2D;
 typedef Point2D<float> LocalPosition2D;
@@ -64,13 +68,13 @@ typedef unsigned short GlobalPadNumber;
 // GlobalPosition3D LocalToGlobal(const LocalPosition3D pos, const float alpha)
 // {
 //   const double cs=cos(alpha), sn=sin(alpha);
-//   return GlobalPosition3D(pos.getX()*cs-pos.getY()*sn,pos.getX()*sn+pos.getY()*cs,pos.getZ());
+//   return GlobalPosition3D(pos.X()*cs-pos.Y()*sn,pos.X()*sn+pos.Y()*cs,pos.Z());
 // }
 
 // LocalPosition3D GlobalToLocal(const GlobalPosition3D& pos, const float alpha)
 // {
 //   const double cs=cos(-alpha), sn=sin(-alpha);
-//   return LocalPosition3D(pos.getX()*cs-pos.getY()*sn,pos.getX()*sn+pos.getY()*cs,pos.getZ());
+//   return LocalPosition3D(pos.X()*cs-pos.Y()*sn,pos.X()*sn+pos.Y()*cs,pos.Z());
 // }
 
 

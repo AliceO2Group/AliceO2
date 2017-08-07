@@ -330,14 +330,14 @@ int loopcounter = 0;
     const PadCentre& padCentre  = mapper.padCentre(pad);
     const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
 
-    LocalPosition3D clusLoc(padCentre.getX(), localYfactor*padCentre.getY(), zPosition);
+    LocalPosition3D clusLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
     trackIndexArray[0] = iStartCluster;
     nClustersInTrackCand = 1;
     Int_t totalMisses = 0;
     Int_t currentSearchRow = oldRow + 1;
-    trackCandidateGraph->SetPoint(0,clusLoc.getX(),clusLoc.getY());
-    trackCandidateGraphYZ->SetPoint(0,clusLoc.getY(),startCluster->getTimeMean());
-    zGraph->SetPoint(0,clusLoc.getX(),startCluster->getTimeMean());
+    trackCandidateGraph->SetPoint(0,clusLoc.X(),clusLoc.Y());
+    trackCandidateGraphYZ->SetPoint(0,clusLoc.Y(),startCluster->getTimeMean());
+    zGraph->SetPoint(0,clusLoc.X(),startCluster->getTimeMean());
     Bool_t candidateFound = kFALSE;
     const Double_t searchWindow = fWindowPad;
     const Double_t timeWindow = fWindowTime;
@@ -412,14 +412,14 @@ int loopcounter = 0;
         const PadCentre& acceptedpadCentre  = mapper.padCentre(acceptedpad);
         const float acceptedlocalYfactor    = (acceptedcru.side()==Side::A)?-1.f:1.f;
 
-        LocalPosition3D acceptedclusLoc(acceptedpadCentre.getX(), acceptedlocalYfactor*acceptedpadCentre.getY(), zPosition);
+        LocalPosition3D acceptedclusLoc(acceptedpadCentre.X(), acceptedlocalYfactor*acceptedpadCentre.Y(), zPosition);
         GlobalPosition3D acceptedclusGlob = Mapper::LocalToGlobal(acceptedclusLoc, acceptedcru.sector());
 
 
 
-        trackCandidateGraph->SetPoint(trackCandidateGraph->GetN(),acceptedclusLoc.getX(),acceptedclusLoc.getY());
-        trackCandidateGraphYZ->SetPoint(trackCandidateGraph->GetN(),acceptedclusLoc.getY(), acceptedCluster->getTimeMean());
-        zGraph->SetPoint(zGraph->GetN(),acceptedclusLoc.getX(),acceptedCluster->getTimeMean());
+        trackCandidateGraph->SetPoint(trackCandidateGraph->GetN(),acceptedclusLoc.X(),acceptedclusLoc.Y());
+        trackCandidateGraphYZ->SetPoint(trackCandidateGraph->GetN(),acceptedclusLoc.Y(), acceptedCluster->getTimeMean());
+        zGraph->SetPoint(zGraph->GetN(),acceptedclusLoc.X(),acceptedCluster->getTimeMean());
       }
 
       if(reverse) currentSearchRow--;

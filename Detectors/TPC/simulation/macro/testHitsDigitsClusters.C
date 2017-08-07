@@ -118,11 +118,11 @@ void testHitsDigitsClusters(int iEv=0,
     const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
           float zPosition       = Digitizer::getZfromTimeBin(inputdigit->getTimeStamp(), cru.side());
 
-    LocalPosition3D posLoc(padCentre.getX(), localYfactor*padCentre.getY(), zPosition);
+    LocalPosition3D posLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
 
-    const float digiX = posGlob.getX();
-    const float digiY = posGlob.getY();
+    const float digiX = posGlob.X();
+    const float digiY = posGlob.Y();
     const float digiZ = zPosition;
 
     if(cru.side() == Side::A) {
@@ -170,11 +170,11 @@ void testHitsDigitsClusters(int iEv=0,
     const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
           float zPosition       = Digitizer::getZfromTimeBin(inputcluster->getTimeMean(), cru.side());
 
-    LocalPosition3D posLoc(padCentre.getX(), localYfactor*padCentre.getY(), zPosition);
+    LocalPosition3D posLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
 
-    const float digiX = posGlob.getX();
-    const float digiY = posGlob.getY();
+    const float digiX = posGlob.X();
+    const float digiY = posGlob.Y();
     const float digiZ = zPosition;
 
     if(cru.side() == Side::A) {
@@ -235,23 +235,23 @@ void testHitsDigitsClusters(int iEv=0,
       const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
             float zPosition       = Digitizer::getZfromTimeBin(clusterObject.getTimeMean(), cru.side());
 
-      LocalPosition3D posLoc(padCentre.getX(), localYfactor*padCentre.getY(), zPosition);
+      LocalPosition3D posLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
       GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
 
-      const float digiX = posGlob.getX();
-      const float digiY = posGlob.getY();
+      const float digiX = posGlob.X();
+      const float digiY = posGlob.Y();
       const float digiZ = zPosition;
 
       const std::array<float,3> bField = {{0,0,-5}};
 
       // Track parameters are in local coordinate system - propagate to pad row of the cluster
-      trackObject.propagateParamTo(posLoc.getX(), bField);
+      trackObject.propagateParamTo(posLoc.X(), bField);
 
       LocalPosition3D trackLoc(trackObject.getX(), trackObject.getY(), trackObject.getZ());
       GlobalPosition3D trackGlob = Mapper::LocalToGlobal(trackLoc, cru.sector());
 
-      const float resY = trackLoc.getY() - posLoc.getY();
-      const float resZ = trackLoc.getY() - posLoc.getZ();
+      const float resY = trackLoc.Y() - posLoc.Y();
+      const float resZ = trackLoc.Y() - posLoc.Z();
 
       hResY->Fill(resY);
       hResZ->Fill(resZ);
@@ -259,14 +259,14 @@ void testHitsDigitsClusters(int iEv=0,
       if(cru.side() == Side::A) {
         grClustersTrackA->SetPoint(clusCounterTrackA, digiX, digiY);
         grClustersTrackAxz->SetPoint(clusCounterTrackA++, digiX, digiZ);
-        grTrackA->SetPoint(trackCounterA++, trackGlob.getX(), trackGlob.getY());
+        grTrackA->SetPoint(trackCounterA++, trackGlob.X(), trackGlob.Y());
       }
       if(cru.side() == Side::C) {
         grClustersTrackC->SetPoint(clusCounterTrackC, digiX, digiY);
         grClustersTrackCxz->SetPoint(clusCounterTrackC++, digiX, digiZ);
-        grTrackC->SetPoint(trackCounterC++, trackGlob.getX(), trackGlob.getY());
+        grTrackC->SetPoint(trackCounterC++, trackGlob.X(), trackGlob.Y());
       }
-      grTrackxz->SetPoint(trackCounterXZ++, trackGlob.getX(), trackGlob.getZ());
+      grTrackxz->SetPoint(trackCounterXZ++, trackGlob.X(), trackGlob.Z());
     }
   }
 

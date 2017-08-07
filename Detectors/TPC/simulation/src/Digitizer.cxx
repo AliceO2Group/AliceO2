@@ -96,7 +96,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle);
 
       /// \todo Time management in continuous mode (adding the time of the event?)
-      const float driftTime = getTime(posEleDiff.getZ()) + inputpoint->GetTime() * 0.001; /// in us
+      const float driftTime = getTime(posEleDiff.Z()) + inputpoint->GetTime() * 0.001; /// in us
       const float absoluteTime = driftTime + eventTime;
 
       /// Attachment
@@ -104,7 +104,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
       /// Remove electrons that end up outside the active volume
       /// \todo should go to mapper?
-      if(fabs(posEleDiff.getZ()) > TPCLENGTH) continue;
+      if(fabs(posEleDiff.Z()) > TPCLENGTH) continue;
 
       const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
       if(!digiPadPos.isValid()) continue;

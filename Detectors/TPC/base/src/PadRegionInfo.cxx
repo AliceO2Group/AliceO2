@@ -54,12 +54,12 @@ void PadRegionInfo::init()
 
 const PadPos PadRegionInfo::findPad(const LocalPosition3D& pos) const
 {
-  return findPad(pos.getX(), pos.getY(), (pos.getZ()>=0) ? Side::A : Side::C);
+  return findPad(pos.X(), pos.Y(), (pos.Z()>=0) ? Side::A : Side::C);
 }
 
 const PadPos PadRegionInfo::findPad(const LocalPosition2D& pos, const Side side/*=Side::A*/) const
 {
-  return findPad(pos.getX(), pos.getY(), side);
+  return findPad(pos.X(), pos.Y(), side);
 }
 
 const PadPos PadRegionInfo::findPad(const float localX, const float localY, const Side side/*=Side::A*/) const
