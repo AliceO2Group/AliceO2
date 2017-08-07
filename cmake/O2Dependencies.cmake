@@ -554,7 +554,11 @@ o2_define_bucket(
     fairroot_base_bucket
     common_vc_bucket
     ParBase
+    MathUtils
     Core Hist Gpad
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
 o2_define_bucket(

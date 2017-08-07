@@ -13,7 +13,6 @@
 
 #include "TPCBase/Defs.h"
 #include "TPCBase/PadPos.h"
-#include "TPCBase/Point2D.h"
 #include "TPCBase/FECInfo.h"
 
 namespace o2 {

@@ -89,12 +89,12 @@ void Painter::draw(const CalDet<T>& calDet)
     int padNumber = offset;
     for (const auto& val : cal.getData()) {
       const PadCentre& localCoord = mapper.padCentre(padNumber);
-      const GlobalPosition3D pos = mapper.LocalToGlobal(LocalPosition3D(localCoord.getX(), localCoord.getY(), 0), sector);
+      const GlobalPosition3D pos = mapper.LocalToGlobal(LocalPosition3D(localCoord.X(), localCoord.Y(), 0), sector);
 
-      Int_t bin = hist2D->FindBin(pos.getX(), pos.getY());
+      Int_t bin = hist2D->FindBin(pos.X(), pos.Y());
 
       //hist2D->SetBinContent(bin, val);
-      hist2D->Fill(pos.getX(), pos.getY(), val);
+      hist2D->Fill(pos.X(), pos.Y(), val);
       hist1D->Fill(val);
 
       ++padNumber;
@@ -143,8 +143,8 @@ TH2* Painter::getHistogram2D(const CalDet<T>& calDet, Side side)
       for (int ipad=0; ipad<npads; ++ipad) {
         const auto val = calDet.getValue(roc, irow, ipad);
         const GlobalPosition2D pos = mapper.getPadCentre(PadROCPos(roc, irow, ipad));
-        const int binX = h2D->GetXaxis()->FindBin(pos.getX());
-        const int binY = h2D->GetXaxis()->FindBin(pos.getY());
+        const int binX = h2D->GetXaxis()->FindBin(pos.X());
+        const int binY = h2D->GetXaxis()->FindBin(pos.Y());
         h2D->SetBinContent(binX, binY, val);
       }
     }

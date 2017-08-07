@@ -259,66 +259,66 @@ public:
   static GlobalPosition3D LocalToGlobal(const LocalPosition3D& pos, const double alpha)
   {
     const double cs=std::cos(alpha), sn=std::sin(alpha);
-    return GlobalPosition3D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                            float(double(pos.getX())*sn+double(pos.getY()*cs)),
-                            pos.getZ());
+    return GlobalPosition3D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                            float(double(pos.X())*sn+double(pos.Y()*cs)),
+                            pos.Z());
   }
 
   static LocalPosition3D GlobalToLocal(const GlobalPosition3D& pos, const double alpha)
   {
     ///@todo: Lookup over sector number
     const double cs=std::cos(-alpha), sn=std::sin(-alpha);
-    return LocalPosition3D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                          float(double(pos.getX())*sn+double(pos.getY()*cs)),
-                          pos.getZ());
+    return LocalPosition3D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                          float(double(pos.X())*sn+double(pos.Y()*cs)),
+                          pos.Z());
   }
 
   static GlobalPosition3D LocalToGlobal(const LocalPosition3D& pos, const Sector sec)
   {
     const double cs=CosinsPerSector[sec.getSector()%SECTORSPERSIDE], sn=SinsPerSector[sec.getSector()%SECTORSPERSIDE];
-    return GlobalPosition3D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                            float(double(pos.getX())*sn+double(pos.getY()*cs)),
-                            pos.getZ());
+    return GlobalPosition3D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                            float(double(pos.X())*sn+double(pos.Y()*cs)),
+                            pos.Z());
   }
 
   static LocalPosition3D GlobalToLocal(const GlobalPosition3D& pos, const Sector sec)
   {
     ///@todo: Lookup over sector number
     const double cs=CosinsPerSector[sec.getSector()%SECTORSPERSIDE], sn=-SinsPerSector[sec.getSector()%SECTORSPERSIDE];
-    return LocalPosition3D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                          float(double(pos.getX())*sn+double(pos.getY()*cs)),
-                          pos.getZ());
+    return LocalPosition3D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                          float(double(pos.X())*sn+double(pos.Y()*cs)),
+                          pos.Z());
   }
 
   // --- 2D
   static GlobalPosition2D LocalToGlobal(const LocalPosition2D& pos, const double alpha)
   {
     const double cs=std::cos(alpha), sn=std::sin(alpha);
-    return GlobalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                            float(double(pos.getX())*sn+double(pos.getY()*cs)));
+    return GlobalPosition2D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                            float(double(pos.X())*sn+double(pos.Y()*cs)));
   }
 
   static LocalPosition2D GlobalToLocal(const GlobalPosition2D& pos, const double alpha)
   {
     ///@todo: Lookup over sector number
     const double cs=std::cos(-alpha), sn=std::sin(-alpha);
-    return LocalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                          float(double(pos.getX())*sn+double(pos.getY()*cs)));
+    return LocalPosition2D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                          float(double(pos.X())*sn+double(pos.Y()*cs)));
   }
 
   static GlobalPosition2D LocalToGlobal(const LocalPosition2D& pos, const Sector sec)
   {
     const double cs=CosinsPerSector[sec.getSector()%SECTORSPERSIDE], sn=SinsPerSector[sec.getSector()%SECTORSPERSIDE];
-    return GlobalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                            float(double(pos.getX())*sn+double(pos.getY()*cs)));
+    return GlobalPosition2D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                            float(double(pos.X())*sn+double(pos.Y()*cs)));
   }
 
   static LocalPosition2D GlobalToLocal(const GlobalPosition2D& pos, const Sector sec)
   {
     ///@todo: Lookup over sector number
     const double cs=CosinsPerSector[sec.getSector()%SECTORSPERSIDE], sn=-SinsPerSector[sec.getSector()%SECTORSPERSIDE];
-    return LocalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
-                          float(double(pos.getX())*sn+double(pos.getY()*cs)));
+    return LocalPosition2D(float(double(pos.X())*cs-double(pos.Y())*sn),
+                          float(double(pos.X())*sn+double(pos.Y()*cs)));
   }
 private:
   Mapper(const std::string& mappingDir);
@@ -421,11 +421,11 @@ inline const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3
 inline const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const
 {
   // ===| find sector |=========================================================
-  float phi=std::atan2(pos.getY(), pos.getX());
+  float phi=std::atan2(pos.Y(), pos.X());
   if (phi<0.) phi+=TWOPI;
   const unsigned char secNum = std::floor(phi/SECPHIWIDTH);
   const float        secPhi = secNum*SECPHIWIDTH+SECPHIWIDTH/2.;
-  Sector sec(secNum+(pos.getZ()<0)*SECTORSPERSIDE);
+  Sector sec(secNum+(pos.Z()<0)*SECTORSPERSIDE);
 
   // ===| rotated position |====================================================
 //   LocalPosition3D posLoc=GlobalToLocal(pos, secPhi);

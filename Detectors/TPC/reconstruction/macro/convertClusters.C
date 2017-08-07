@@ -149,12 +149,12 @@ void addCluster(std::vector<ClusterData> &data, Cluster& cluster)
   const int padNumber         = int(padY);
   const GlobalPadNumber pad   = mapper.globalPadNumber(PadPos(rowInSector, padNumber));
   const PadCentre& padCentre  = mapper.padCentre(pad);
-  const float localY          = padCentre.getY() - (padY - padNumber - 0.5) * region.getPadWidth();
+  const float localY          = padCentre.Y() - (padY - padNumber - 0.5) * region.getPadWidth();
   const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
         float zPosition         = cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
         //float zPosition         = TPCLENGTH - cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
 
-  Point2D<float> clusterPos(padCentre.getX(), localY); 
+  Point2D<float> clusterPos(padCentre.X(), localY); 
 
         printf("zPosition: %.2f\n", zPosition);
   // sanity checks
@@ -164,8 +164,8 @@ void addCluster(std::vector<ClusterData> &data, Cluster& cluster)
   ClusterData cl;
   cl.fId  = cluster.GetUniqueID();
   cl.fRow = rowInSector;
-  cl.fX    = clusterPos.getX();
-  cl.fY    = clusterPos.getY()*(localYfactor);
+  cl.fX    = clusterPos.X();
+  cl.fY    = clusterPos.Y()*(localYfactor);
   cl.fZ    = zPosition*(-localYfactor);
   cl.fAmp  = cluster.getQmax();
 
@@ -191,8 +191,8 @@ void dumpData(std::ofstream &fout, std::vector<ClusterData> &data)
     fclDatGlobal = cl;
     LocalPosition3D posLoc(cl.fX, cl.fY, cl.fZ);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, fsector);
-    fclDatGlobal.fX = posGlob.getX();
-    fclDatGlobal.fY = posGlob.getY();
+    fclDatGlobal.fX = posGlob.X();
+    fclDatGlobal.fY = posGlob.Y();
     fOutTree->Fill();
   }
   data.clear();
