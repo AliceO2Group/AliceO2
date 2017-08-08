@@ -106,53 +106,37 @@ private:
 // ===| pad region etc. initialisation |========================================
 template <class T>
 CalArray<T>::CalArray(PadSubset padSubset, int padSubsetNumber)
+  : mData(),
+    mPadSubset(padSubset),
+    mPadSubsetNumber(padSubsetNumber)
 {
   const auto& mapper = Mapper::instance();
-  mPadSubset       = padSubset;
-  mPadSubsetNumber = padSubsetNumber;
 
-  std::string name;
   switch (padSubset) {
     case PadSubset::ROC: {
       mData.resize(ROC(padSubsetNumber).rocType() == RocType::IROC? mapper.getPadsInIROC() : mapper.getPadsInOROC());
-      name = "ROC";
+      setName(boost::str(format("ROC %1$02d") % padSubsetNumber));
       break;
     }
     case PadSubset::Partition: {
       mData.resize(mapper.getPartitionInfo(padSubsetNumber % mapper.getNumberOfPartitions()).getNumberOfPads());
-      name = "Partition";
+      setName(boost::str(format("Partition %1$03d") % padSubsetNumber));
       break;
     }
     case PadSubset::Region: {
       mData.resize(mapper.getPadRegionInfo(padSubsetNumber % mapper.getNumberOfPadRegions()).getNumberOfPads());
-      name = "Region";
+      setName(boost::str(format("Region %1$03d") % padSubsetNumber));
       break;
     }
   }
-  setName(boost::str(format("%1% %2%") % name % padSubsetNumber));
 }
 //______________________________________________________________________________
 template <class T>
 inline void CalArray<T>::setValue(const size_t row, const size_t pad, const T& value)
 {
-  // TODO: might need speedup and beautification
-  Mapper& mapper = Mapper::instance();
-  size_t position = 0;
-  switch (mPadSubset) {
-    case PadSubset::ROC: {
-        position = mapper.globalPadNumber(PadPos(row,pad));
-        position -= (mPadSubsetNumber>=mapper.getNumberOfIROCs()) * mapper.getPadsInIROC();
-      break;
-    }
-    case PadSubset::Partition: {
-        const int partition = (mPadSubsetNumber % CRU::CRUperSector) >> 1;
-      break;
-    }
-    case PadSubset::Region: {
-        const int region = (mPadSubsetNumber % CRU::CRUperSector);
-      break;
-    }
-  }
+  /// \todo might need check for row, pad or position limits
+  static const auto& mapper = Mapper::instance();
+  size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   setValue(position, value);
 }
 
@@ -160,24 +144,9 @@ inline void CalArray<T>::setValue(const size_t row, const size_t pad, const T& v
 template <class T>
 inline const T CalArray<T>::getValue(const size_t row, const size_t pad) const
 {
-  // TODO: might need speedup and beautification
-  Mapper& mapper = Mapper::instance();
-  size_t position = 0;
-  switch (mPadSubset) {
-    case PadSubset::ROC: {
-        position = mapper.globalPadNumber(PadPos(row,pad));
-        position -= (mPadSubsetNumber>=mapper.getNumberOfIROCs()) * mapper.getPadsInIROC();
-      break;
-    }
-    case PadSubset::Partition: {
-        const int partition = (mPadSubsetNumber % CRU::CRUperSector) >> 1;
-      break;
-    }
-    case PadSubset::Region: {
-        const int region = (mPadSubsetNumber % CRU::CRUperSector);
-      break;
-    }
-  }
+  /// \todo might need check for row, pad or position limits
+  static const auto& mapper = Mapper::instance();
+  size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   return getValue(position);
 }
 
@@ -188,6 +157,10 @@ inline const CalArray<T>& CalArray<T>::operator+= (const CalArray& other)
   if ( !((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber) ) ){
     return *this;
   }
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] += other.getValue(i);
+  }
+  return *this;
 }
 
 //______________________________________________________________________________
