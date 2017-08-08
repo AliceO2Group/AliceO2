@@ -29,3 +29,9 @@ Examples are `commit_id=HEAD` when we want to compare to the last git commit,
 or `commit_id=HEAD^^^` when we compare to the state 3 commits ago.
 
 The pull request checker uses this mechanism to provide faster checks on github.
+
+# Configuring emacs to format according ALICE Coding guidelines
+
+While not 100% ok, the file `Utilities/Tools/google-c-style.el` closely matches
+our coding guidelines and can be used by emacs users as a template for their
+environment.
