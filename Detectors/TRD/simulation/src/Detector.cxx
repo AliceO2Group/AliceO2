@@ -9,6 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDSimulation/Detector.h"
+#include <TGeoManager.h>
+#include <TVirtualMC.h>
 #include <vector>
 #include "FairRootManager.h"
 #include "FairVolume.h"
@@ -23,8 +25,34 @@ Detector::Detector(const char* Name, bool Active)
 {
 }
 
-void Detector::Initialize() {}
-bool Detector::ProcessHits(FairVolume* v) { return true; }
+void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+bool Detector::ProcessHits(FairVolume* v)
+{
+  // very rudimentatary hit creation
+  // TODO: needs upgrade to the level of AliROOT
+
+  // TODO: reference to vmc --> put this as member of detector
+  static auto vmc = TVirtualMC::GetMC();
+
+  // If not charged track or already stopped or disappeared, just return.
+  if ((!vmc->TrackCharge()) || vmc->IsTrackDisappeared()) {
+    return false;
+  }
+
+  // just record position and basic quantities for the moment
+  // TODO: needs to be interpreted properly
+  double x, y, z;
+  vmc->TrackPosition(x, y, z);
+
+  float enDep = vmc->Edep();
+  float time = vmc->TrackTime() * 1.0e09;
+  auto trackID = vmc->GetStack()->GetCurrentTrackNumber();
+  auto detID = v->getMCid();
+  addHit((float)x, (float)y, (float)z, time, enDep, trackID, detID);
+
+  return true;
+}
+
 void Detector::Register() { FairRootManager::Instance()->Register("TRDHit", "TRD", mHitCollection, true); }
 TClonesArray* Detector::GetCollection(int iColl) const
 {
@@ -245,8 +273,24 @@ void Detector::ConstructGeometry()
   // to the geometry creation
   getMediumIDMappingAsVector(medmapping);
 
-  TRDGeometry geom;
-  geom.CreateGeometry(medmapping);
+  mGeom = new TRDGeometry();
+  mGeom->CreateGeometry(medmapping);
+
+  // register the sensitive volumes with FairRoot
+  defineSensitiveVolumes();
+}
+
+void Detector::defineSensitiveVolumes()
+{
+  auto vols = mGeom->getSensitiveTRDVolumes();
+  for (auto& name : vols) {
+    auto tgeovol = gGeoManager->GetVolume(name.c_str());
+    if (tgeovol != nullptr) {
+      AddSensitiveVolume(tgeovol);
+    } else {
+      LOG(WARNING) << "No TGeo volume for TRD vol name " << name << " found\n";
+    }
+  }
 }
 
 ClassImp(Detector);
