@@ -11,6 +11,7 @@
 #ifndef O2_TRDGEOMETRY_H
 #define O2_TRDGEOMETRY_H
 
+#include <string>
 #include <vector>
 
 class TGeoHMatrix;
@@ -99,6 +100,7 @@ class TRDGeometry
   static int Colmax() { return fgkColmax; }
   static int RowmaxC0() { return fgkRowmaxC0; }
   static int RowmaxC1() { return fgkRowmaxC1; }
+  std::vector<std::string> const& getSensitiveTRDVolumes() const { return mSensitiveVolumeNames; }
  protected:
   static const int fgkNsector; //  Number of sectors in the full detector (18)
   static const int fgkNlayer;  //  Number of layers of the TRD (6)
@@ -200,6 +202,11 @@ class TRDGeometry
   static char fgSMstatus[kNsector]; //  Super module status byte
 
  private:
+  std::vector<std::string> mSensitiveVolumeNames; //!< vector keeping track of sensitive TRD volumes
+
+  // helper function to create volumes and registering them automatically
+  void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);
+
   ClassDefNV(TRDGeometry, 1) //  TRD geometry class
 };
 } // end namespace trd
