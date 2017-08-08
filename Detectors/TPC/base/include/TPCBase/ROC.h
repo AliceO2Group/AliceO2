@@ -94,7 +94,7 @@ class ROC
     RocType rocType() const { return mROC < MaxROC / SIDES ? RocType::IROC : RocType::OROC; }
 
     /// get sector
-    Sector getSector() const { return Sector(mROC%SECTORSPERSIDE); }
+    Sector getSector() const { return Sector(mROC); }
 
     /// if increment operator went above MaxROC
     bool looped() const { return mLoop; }

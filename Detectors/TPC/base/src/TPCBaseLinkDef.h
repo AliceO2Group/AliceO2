@@ -49,15 +49,16 @@
 #pragma link C++ class o2::TPC::Sector;
 
 #pragma link C++ namespace o2::TPC::Painter;
-#pragma link C++ function o2::TPC::Painter::Draw(CalArray<float>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalArray<double>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalArray<int>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalArray<short>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalArray<bool>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalDet<float>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalDet<double>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalDet<int>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalDet<short>);
-#pragma link C++ function o2::TPC::Painter::Draw(CalDet<bool>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalArray<float>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalArray<double>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalArray<int>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalArray<short>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalArray<bool>);
+
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<float>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<double>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<int>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<short>);
+#pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<bool>);
 
 #endif

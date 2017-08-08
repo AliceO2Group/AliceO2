@@ -83,13 +83,40 @@ public:
     return mMapPadOffsetPerRow[row + rowOffset] + pad - padOffset; 
   }
 
+  /// return pad number for a pad subset type
+  /// \return global pad number in a padsubset
+  /// \param padSubset pad subset type (e.g. PadSubset::ROC)
+  /// \param padSubsetNumber number of the pad subset (e.g. 10 for ROC 10)
+  /// \param row row
+  /// \param pad pad
+  const GlobalPadNumber getPadNumber(const PadSubset padSubset, const size_t padSubsetNumber,
+                                     const int row, const int pad) const
+  {
+    switch (padSubset) {
+      case PadSubset::ROC: {
+        return getPadNumberInROC(PadROCPos(padSubsetNumber, row, pad));
+        break;
+      }
+      case PadSubset::Partition: {
+        return getPadNumberInPartition(padSubsetNumber, row, pad);
+        break;
+      }
+      case PadSubset::Region: {
+        return getPadNumberInRegion(CRU(padSubsetNumber), row, pad);
+        break;
+      }
+    }
+    return 0;
+  }
+
+
   const GlobalPadNumber globalPadNumber(const FECInfo& fec) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fec.getIndex(), fec.getSampaChip(), fec.getSampaChannel())]; }
   const GlobalPadNumber globalPadNumber(const int fecInSector, const int sampaOnFEC, const int channelOnSAMPA) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fecInSector, sampaOnFEC, channelOnSAMPA)]; }
 
   const GlobalPosition2D getPadCentre(const PadSecPos& padSec) const
   { 
     const PadCentre& padcent = getPadCentre(padSec.getPadPos());
-    return LocalToGlobal(padcent, padSec.getSector().getSector());
+    return LocalToGlobal(padcent, padSec.getSector());
   }
 
   const GlobalPosition2D getPadCentre(const PadROCPos& padRoc) const
