@@ -26,6 +26,7 @@ Detector::Detector(const char* Name, bool Active)
 }
 
 void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+
 bool Detector::ProcessHits(FairVolume* v)
 {
   // very rudimentatary hit creation
@@ -54,6 +55,7 @@ bool Detector::ProcessHits(FairVolume* v)
 }
 
 void Detector::Register() { FairRootManager::Instance()->Register("TRDHit", "TRD", mHitCollection, true); }
+
 TClonesArray* Detector::GetCollection(int iColl) const
 {
   if (iColl == 0) {
@@ -62,7 +64,10 @@ TClonesArray* Detector::GetCollection(int iColl) const
   return nullptr;
 }
 
-void Detector::Reset() {}
+void Detector::Reset() { mHitCollection->Clear(); }
+
+void Detector::EndOfEvent() { Reset(); }
+
 //_____________________________________________________________________________
 void Detector::createMaterials()
 {
