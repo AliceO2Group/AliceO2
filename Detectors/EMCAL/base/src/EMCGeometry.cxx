@@ -724,3 +724,5 @@ std::ostream& o2::EMCAL::operator<<(std::ostream& stream, const o2::EMCAL::EMCGe
   geo.PrintStream(stream);
   return stream;
 }
+
+ClassImp(EMCGeometry);
