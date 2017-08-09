@@ -358,6 +358,8 @@ class EMCGeometry
   Int_t mIHADR; ///< Options for Geant (MIP business) - will call in AliEMCAL
 
   Float_t mSteelFrontThick; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
+
+  ClassDefNV(EMCGeometry, 1);
 };
 
 std::ostream& operator<<(std::ostream& stream, const EMCGeometry& geo);

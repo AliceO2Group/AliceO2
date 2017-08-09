@@ -29,7 +29,7 @@ namespace passive
 class FrameStructure : public FairModule
 {
  public:
-  FrameStructure(const char* Name = "FrameStruct", const char* title = "FrameStruct");
+  FrameStructure(const char* name, const char* title = "FrameStruct");
 
   /**  default constructor    */
   FrameStructure() = default;
@@ -57,10 +57,10 @@ class FrameStructure : public FairModule
     true; //!< if holes are enabled (just a central place for other to query; no influence on frame structure)
 
   // medium IDs for the Frame
-  int mAirMedID = -1;
-  int mSteelMedID = -1;
-  int mAluMedID = -1;
-  int mG10MedID = -1;
+  int mAirMedID = -1; //!
+  int mSteelMedID = -1; //!
+  int mAluMedID = -1; //!
+  int mG10MedID = -1; //!
 
   ClassDefOverride(FrameStructure, 1);
 };
