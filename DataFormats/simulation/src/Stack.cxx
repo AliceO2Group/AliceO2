@@ -298,9 +298,9 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     mIndexIterator = mIndexMap.find(iMotherOld);
     if (mIndexIterator == mIndexMap.end()) {
       if (mLogger) {
-        mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in dex map! ", iMotherOld);
+        mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Track index %i not found index map! ", iMotherOld);
       }
-      Fatal("Stack::UpdateTrackIndex", "Particle index not found in map");
+      Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
     }
     track->SetMotherTrackId((*mIndexIterator).second);
   }
@@ -331,9 +331,9 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
         mIndexIterator = mIndexMap.find(iTrack);
         if (mIndexIterator == mIndexMap.end()) {
           if (mLogger) {
-            mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in index map! ", iTrack);
+            mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Track index %i not found in index map! ", iTrack);
           }
-          Fatal("Stack::UpdateTrackIndex", "Particle index not found in map");
+          Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
         }
         point->SetTrackID((*mIndexIterator).second);
         point->SetLink(FairLink("MCTrack", (*mIndexIterator).second));
