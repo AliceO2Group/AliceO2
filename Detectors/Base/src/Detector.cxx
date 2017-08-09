@@ -12,6 +12,7 @@
 /// \brief Implementation of the Detector class
 
 #include "DetectorsBase/Detector.h"
+#include "Field/MagneticField.h"
 #include <TVirtualMC.h>  // for TVirtualMC, gMC
 #include "TString.h"     // for TString
 
@@ -126,6 +127,23 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
                                 Int_t nmod, Double_t width, Double_t tilt, Double_t lthick,
                                 Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
 {
+}
+
+void Detector::initFieldTrackingParams(int& integration, float& maxfield)
+{
+  auto vmc = TVirtualMC::GetMC();
+  auto field = vmc->GetMagField();
+  // set reasonable default values
+  integration = 2;
+  maxfield = 10;
+  // see if we can query the o2 field
+  if (auto o2field = dynamic_cast<o2::field::MagneticField*>(field)) {
+    integration = o2field->Integral(); // default integration method?
+    maxfield = o2field->Max();
+  }
+  else {
+    LOG(INFO) << "No magnetic field found; using default tracking values " << integration << " " << maxfield << " to initialize media\n";
+  }
 }
 
 ClassImp(o2::Base::Detector)

@@ -117,6 +117,11 @@ class Detector : public FairDetector
       }
     }
 
+    // static and reusable service function to set tracking parameters in relation to field
+    // returns global integration mode (inhomogenety) for the field and the max field value
+    // which is required for media creation
+    static void initFieldTrackingParams(int &mode, float &maxfield);
+
   protected:
     Detector(const Detector &origin);
 

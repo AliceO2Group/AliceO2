@@ -450,13 +450,9 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
 
 void Detector::createMaterials()
 {
-  // Int_t   ifield = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Integral();
-  // Float_t fieldm = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Max();
-
-  // until we solve the problem of reading the field from files with changed class names we
-  //  need to hard code some values here to be able to run the macros  M.Al-Turany (Nov.14)
   Int_t ifield = 2;
   Float_t fieldm = 10.0;
+  o2::Base::Detector::initFieldTrackingParams(ifield, fieldm);
   ////////////
 
   Float_t tmaxfd = 0.1;   // 1.0; // Degree

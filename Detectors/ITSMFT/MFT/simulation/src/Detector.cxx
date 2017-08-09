@@ -28,7 +28,6 @@
 #include "Field/MagneticField.h"
 
 #include "TVirtualMC.h"
-#include "TGeoGlobalMagField.h"
 #include "TLorentzVector.h"
 #include "TVector3.h"
 #include "TClonesArray.h"
@@ -331,11 +330,10 @@ void Detector::createMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  o2::field::MagneticField *fld = (o2::field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
-
-  Int_t fieldType = fld->GetType();
-  Float_t maxField = fld->Max();
-
+  Int_t fieldType;
+  Float_t maxField;
+  o2::Base::Detector::initFieldTrackingParams(fieldType, maxField);
+  
   LOG(INFO) << "Detector::CreateMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
 
   o2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
