@@ -45,6 +45,7 @@ class Detector : public o2::Base::Detector
   TClonesArray* GetCollection(int iColl) const final;
 
   void Reset() override;
+  void EndOfEvent() override;
 
   void createMaterials();
   void ConstructGeometry() override;
