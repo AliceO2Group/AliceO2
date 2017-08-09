@@ -920,6 +920,15 @@ void TRDGeometry::CreateGeometry(std::vector<int> const& idtmed)
       TVirtualMC::GetMC()->Gspos("UTF2", 1, cTagV, xpos, -ypos, zpos, 0, "ONLY");
     }
   }
+
+  // Resolve runtime shapes (which is done as part of TGeoManager::CheckGeometry) NOW.
+  // This is otherwise done when saying gGeoManager->CloseGeometry().
+  // However, we need to make sure all the TGeoVolumes are correctly available even before this
+  // stage because FairMCApplication initializes the sensisitive volumes before closing the geometry.
+  // The true origin of the "problem" comes from the fact, that the TRD construction above uses
+  // Geant3-like construction routines that allow giving negative parameters, indicating dimensions to be
+  // fixed later. This prevents immediate construction of the TGeoVolume.
+  gGeoManager->CheckGeometry();
 }
 
 //_____________________________________________________________________________
