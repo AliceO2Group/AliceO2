@@ -15,7 +15,6 @@
   #include "FairParRootFileIo.h"
   #include "FairSystemInfo.h"
 
-  #include "TGeoGlobalMagField.h"
   #include "Field/MagneticField.h"
 
   #include "DetectorsPassive/Cave.h"

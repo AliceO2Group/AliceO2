@@ -39,7 +39,6 @@
 
 // geo stuff
 #include "TGeoManager.h"
-#include "TGeoGlobalMagField.h"
 #include "TGeoVolume.h"
 #include "TGeoPcon.h"
 #include "TGeoTube.h"
@@ -423,15 +422,10 @@ void Detector::CreateMaterials()
   // Origin: Marek Kowalski  IFJ, Krakow, Marek.Kowalski@ifj.edu.pl
   //-----------------------------------------------------------------
 
-  //   Int_t iSXFLD=((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
-  //   Float_t sXMGMX=((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
-  // Int_t   iSXFLD = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Integral();
-  // Float_t sXMGMX = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Max();
-
-  // until we solve the problem of reading the field from files with changed class names we
-  //  need to hard code some values here to be able to run the macros  M.Al-Turany (Nov.14)
   Int_t   iSXFLD = 2;
   Float_t sXMGMX = 10.0;
+  // init the field tracking params
+  o2::Base::Detector::initFieldTrackingParams(iSXFLD, sXMGMX);
 
   Float_t amat[7]; // atomic numbers
   Float_t zmat[7]; // z

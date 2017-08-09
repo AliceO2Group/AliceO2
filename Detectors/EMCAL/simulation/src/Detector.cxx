@@ -372,11 +372,10 @@ void Detector::CreateMaterials()
   // Don't forget to add a new tracking medium with non-default cuts
 
   // for EMCAL: idtmed[1599->1698] equivalent to fIdtmed[0->100]
-  // From TPCsimulation/src/Detector.cxx:
-  // until we solve the problem of reading the field from files with changed class names we
-  //  need to hard code some values here to be able to run the macros  M.Al-Turany (Nov.14)
+
   Int_t isxfld = 2;
   Float_t sxmgmx = 10.0;
+  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // Air                                                                         -> idtmed[1599]
   Medium(ID_AIR, "Air$", 0, 0, isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, nullptr, 0);
