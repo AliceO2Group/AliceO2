@@ -23,8 +23,6 @@
 #include <TNamed.h>
 #include <TParticle.h>
 #include <TVector3.h>
-#include "Math/GenVector/DisplacementVector3D.h"
-#include "Math/GenVector/PositionVector3D.h"
 
 #include "EMCALBase/Constants.h"
 #include "EMCALBase/EMCGeometry.h"
@@ -492,9 +490,9 @@ class Geometry
   ///
   /// \param absId cell absolute id. number, input
   /// \param xr,yr,zr - x,y,z coordinates of cell with absId inside SM, output
+  /// \throw InvalidCellIDException if cell ID does not exist
   ///
-  /// \return false if cell absId does not exist
-  Bool_t RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Double_t& zr) const;
+  void RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Double_t& zr) const;
 
   ///
   /// \brief Look to see what the relative position inside a given cell is for a recpoint.
@@ -505,27 +503,27 @@ class Geometry
   /// \param absId cell absolute id. number, input
   /// \param distEff shower max position? check call in AliEMCALRecPoint!, input
   /// \param xr,yr,zr - x,y,z coordinates of cell with absId inside SM, output
+  /// \throw InvalidCellIDException if cell ID does not exist
   ///
-  /// \return false if cell absId does not exist=
-  Bool_t RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr, Double_t& yr, Double_t& zr) const;
+  void RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr, Double_t& yr, Double_t& zr) const;
 
   ///
   /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   ///
   /// \param absId cell absolute id. number, input
   /// \param loc Double[3] with x,y,z coordinates of cell with absId inside SM, output
+  /// \throw InvalidCellIDException if cell ID does not exist
   ///
-  /// \return false if cell absId does not exist
-  Bool_t RelPosCellInSModule(Int_t absId, Double_t loc[3]) const;
+  void RelPosCellInSModule(Int_t absId, Double_t loc[3]) const;
 
   ///
   /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   ///
   /// \param absId cell absolute id. number, input
   /// \param vloc TVector3 with x,y,z coordinates of cell with absId inside SM, output
+  /// \throw InvalidCellIDException if cell ID does not exist
   ///
-  /// \return false if cell absId does not exist
-  Bool_t RelPosCellInSModule(Int_t absId, TVector3& vloc) const;
+  void RelPosCellInSModule(Int_t absId, TVector3& vloc) const;
 
   const Int_t* GetEMCSystem() const { return mEMCGeometry.GetEMCSystem(); } // EMC System, SM type list
   // Local Coordinates of SM

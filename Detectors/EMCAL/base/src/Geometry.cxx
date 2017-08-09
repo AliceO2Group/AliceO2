@@ -332,15 +332,20 @@ void Geometry::GetGlobal(Int_t absId, Double_t glob[3]) const
 {
   double loc[3];
 
-  glob[0] = glob[1] = glob[2] = 0.0; // bad case
-  if (RelPosCellInSModule(absId, loc)) {
-    Int_t nSupMod = std::get<0>(GetCellIndex(absId));
-    const TGeoHMatrix* m = GetMatrixForSuperModule(nSupMod);
-    if (m) {
-      m->LocalToMaster(loc, glob);
-    } else {
-      LOG(FATAL) << "Geo matrixes are not loaded \n";
-    }
+  memset(glob, 0, sizeof(Double_t) * 3);
+  try {
+    RelPosCellInSModule(absId, loc);
+  } catch (InvalidCellIDException& e) {
+    LOG(ERROR) << e.what() << FairLogger::endl;
+    return;
+  }
+
+  Int_t nSupMod = std::get<0>(GetCellIndex(absId));
+  const TGeoHMatrix* m = GetMatrixForSuperModule(nSupMod);
+  if (m) {
+    m->LocalToMaster(loc, glob);
+  } else {
+    LOG(FATAL) << "Geo matrixes are not loaded \n";
   }
 }
 
@@ -379,7 +384,7 @@ Int_t Geometry::GetAbsCellId(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nI
     else if (GetSMType(i) == DCAL_EXT)
       id += mNCellsInSupMod / 3;
     else
-      LOG(ERROR) << "Uknown SuperModule Type !!\n";
+      throw InvalidSupermoduleTypeException();
   }
 
   id += mNCellsInModule * nModule;
@@ -561,8 +566,7 @@ std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
     else if (GetSMType(nSupMod) == DCAL_EXT)
       test -= mNCellsInSupMod / 3;
     else {
-      LOG(ERROR) << "Uknown SuperModule Type !!\n";
-      return kFALSE;
+      throw InvalidSupermoduleTypeException();
     }
   }
 
@@ -605,7 +609,7 @@ std::tuple<double, double> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, 
   return std::make_tuple(iphi, ieta);
 }
 
-Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Double_t& zr) const
+void Geometry::RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Double_t& zr) const
 {
   // Shift index taking into account the difference between standard SM
   // and SM of half (or one third) size in phi direction
@@ -614,7 +618,7 @@ Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Do
   Double_t zshift = 0.5 * GetDCALInnerEdge();
 
   if (!CheckAbsCellId(absId))
-    return kFALSE;
+    throw InvalidCellIDException(absId);
 
   auto cellindex = GetCellIndex(absId);
   Int_t nSupMod = std::get<0>(cellindex), nModule = std::get<1>(cellindex), nIphi = std::get<2>(cellindex),
@@ -658,34 +662,26 @@ Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Do
 
   LOG(DEBUG) << "absId " << absId << " nSupMod " << nSupMod << " iphi " << iphi << " ieta " << ieta << " xr " << xr
              << " yr " << yr << " zr " << zr << FairLogger::endl;
-
-  return kTRUE;
 }
 
-Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t loc[3]) const
+void Geometry::RelPosCellInSModule(Int_t absId, Double_t loc[3]) const
 {
-  loc[0] = loc[1] = loc[2] = 0.0;
-  if (RelPosCellInSModule(absId, loc[0], loc[1], loc[2])) {
-    return kTRUE;
-  }
-
-  return kFALSE;
+  memset(loc, 0, sizeof(Double_t) * 3);
+  RelPosCellInSModule(absId, loc[0], loc[1], loc[2]);
 }
 
-Bool_t Geometry::RelPosCellInSModule(Int_t absId, TVector3& vloc) const
+void Geometry::RelPosCellInSModule(Int_t absId, TVector3& vloc) const
 {
   Double_t loc[3];
-
-  if (RelPosCellInSModule(absId, loc)) {
+  try {
+    RelPosCellInSModule(absId, loc);
     vloc.SetXYZ(loc[0], loc[1], loc[2]);
-    return kTRUE;
-  } else {
+  } catch (InvalidCellIDException& e) {
     vloc.SetXYZ(0, 0, 0);
-    return kFALSE;
   }
 }
 
-Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr, Double_t& yr, Double_t& zr) const
+void Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr, Double_t& yr, Double_t& zr) const
 {
   // Shift index taking into account the difference between standard SM
   // and SM of half (or one third) size in phi direction
@@ -697,7 +693,7 @@ Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr
   Int_t iphim = -1, ietam = -1;
   TVector2 v;
   if (!CheckAbsCellId(absId))
-    return kFALSE;
+    throw InvalidCellIDException(absId);
 
   auto cellindex = GetCellIndex(absId);
   Int_t nSupMod = std::get<0>(cellindex), nModule = std::get<1>(cellindex), nIphi = std::get<2>(cellindex),
@@ -750,8 +746,6 @@ Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr
 
   LOG(DEBUG) << "absId " << absId << " nSupMod " << nSupMod << " iphi " << iphi << " ieta " << ieta << " xr " << xr
              << " yr " << yr << " zr " << zr << FairLogger::endl;
-
-  return kTRUE;
 }
 
 void Geometry::CreateListOfTrd1Modules()
@@ -910,8 +904,12 @@ void Geometry::ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi, Int_t& 
   Double_t loc[3], loc2[3], loc3[3];
   Double_t glob[3] = {}, glob2[3] = {}, glob3[3] = {};
 
-  if (!RelPosCellInSModule(absId, loc))
+  try {
+    RelPosCellInSModule(absId, loc);
+  } catch (InvalidCellIDException& e) {
+    LOG(ERROR) << e.what() << FairLogger::endl;
     return;
+  }
 
   // loc is cell center of tower
   auto cellindex = GetCellIndex(absId);
@@ -931,12 +929,20 @@ void Geometry::ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi, Int_t& 
   absId3 = GetAbsCellId(nSupMod, nModule, nIphi2, nIeta);
 
   // 2nd point on emcal cell plane
-  if (!RelPosCellInSModule(absId2, loc2))
+  try {
+    RelPosCellInSModule(absId2, loc2);
+  } catch (InvalidCellIDException& e) {
+    LOG(ERROR) << e.what() << FairLogger::endl;
     return;
+  }
 
   // 3rd point on emcal cell plane
-  if (!RelPosCellInSModule(absId3, loc3))
+  try {
+    RelPosCellInSModule(absId3, loc3);
+  } catch (InvalidCellIDException& e) {
+    LOG(ERROR) << e.what() << FairLogger::endl;
     return;
+  }
 
   // Get Matrix
   const TGeoHMatrix* m = GetMatrixForSuperModule(nSupMod);
@@ -987,8 +993,6 @@ void Geometry::ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi, Int_t& 
 
   // shift vimpact from tower/module surface to center along vector (A,B,C) normal to tower/module plane
   vimpact.SetXYZ(vimpact(0) + dist * a / norm, vimpact(1) + dist * b / norm, vimpact(2) + dist * c / norm);
-
-  return;
 }
 
 Bool_t Geometry::IsInEMCAL(const Point3D<double>& pnt) const

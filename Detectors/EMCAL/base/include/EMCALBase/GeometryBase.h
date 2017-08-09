@@ -101,6 +101,14 @@ class InvalidCellIDException : public std::exception
   Int_t mCellID;        ///< Cell ID raising the exception
   std::string mMessage; ///< error Message
 };
+
+class InvalidSupermoduleTypeException : public std::exception
+{
+ public:
+  InvalidSupermoduleTypeException() = default;
+  ~InvalidSupermoduleTypeException() noexcept final = default;
+  const char* what() const noexcept final { return "Uknown SuperModule Type !!"; }
+};
 }
 }
 
