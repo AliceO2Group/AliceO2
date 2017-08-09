@@ -180,15 +180,15 @@ void Detector::CreateShiskebabGeometry()
     else
       tmpType = SMTypeList[i];
 
-    if (tmpType == Geometry::EMCAL_STANDARD)
+    if (tmpType == EMCAL_STANDARD)
       CreateEmod("SMOD", "EMOD"); // 18-may-05
-    else if (tmpType == Geometry::EMCAL_HALF)
+    else if (tmpType == EMCAL_HALF)
       CreateEmod("SM10", "EMOD"); // Nov 1,2006 1/2 SM
-    else if (tmpType == Geometry::EMCAL_THIRD)
+    else if (tmpType == EMCAL_THIRD)
       CreateEmod("SM3rd", "EMOD"); // Feb 1,2012 1/3 SM
-    else if (tmpType == Geometry::DCAL_STANDARD)
+    else if (tmpType == DCAL_STANDARD)
       CreateEmod("DCSM", "EMOD"); // Mar 13, 2012, 6 or 10 DCSM
-    else if (tmpType == Geometry::DCAL_EXT)
+    else if (tmpType == DCAL_EXT)
       CreateEmod("DCEXT", "EMOD"); // Mar 13, 2012, DCAL extension SM
     else
       LOG(ERROR) << "Unkown SM Type!!\n";
@@ -489,23 +489,23 @@ void Detector::CreateSmod(const char* mother)
       xpos = rpos * TMath::Cos(phiRad);
       ypos = rpos * TMath::Sin(phiRad);
       zpos = mSmodPar2; // 21-sep-04
-      if (tmpType == Geometry::EMCAL_STANDARD) {
+      if (tmpType == EMCAL_STANDARD) {
         smName = "SMOD";
-      } else if (tmpType == Geometry::EMCAL_HALF) {
+      } else if (tmpType == EMCAL_HALF) {
         smName = "SM10";
         parC[1] /= 2.;
         xpos += (par[1] / 2. * TMath::Sin(phiRad));
         ypos -= (par[1] / 2. * TMath::Cos(phiRad));
-      } else if (tmpType == Geometry::EMCAL_THIRD) {
+      } else if (tmpType == EMCAL_THIRD) {
         smName = "SM3rd";
         parC[1] /= 3.;
         xpos += (2. * par[1] / 3. * TMath::Sin(phiRad));
         ypos -= (2. * par[1] / 3. * TMath::Cos(phiRad));
-      } else if (tmpType == Geometry::DCAL_STANDARD) {
+      } else if (tmpType == DCAL_STANDARD) {
         smName = "DCSM";
         parC[2] *= 2. / 3.;
         zpos = mSmodPar2 + g->GetDCALInnerEdge() / 2.; // 21-sep-04
-      } else if (tmpType == Geometry::DCAL_EXT) {
+      } else if (tmpType == DCAL_EXT) {
         smName = "DCEXT";
         parC[1] /= 3.;
         xpos += (2. * par[1] / 3. * TMath::Sin(phiRad));

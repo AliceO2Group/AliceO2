@@ -9,8 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include <algorithm>
-#include <functional>
 #include <cassert>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 
@@ -184,7 +184,7 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   // geometry
   sInit = kFALSE; // Assume failed until proven otherwise.
   std::transform(mGeoName.begin(), mGeoName.end(), mGeoName.begin(), ::toupper);
- 
+
   // Convert old geometry names to new ones
   if (contains(mGeoName, "SHISH_77_TRD1_2X2_FINAL_110DEG")) {
     if (contains(mGeoName, "PBTH=0.144") && contains(mGeoName, "SCTH=0.176")) {
@@ -198,25 +198,25 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
     mGeoName = "EMCAL_WSUC";
 
   // check that we have a valid geometry name
-  if(!(contains(mGeoName, "EMCAL_PDC06") || contains(mGeoName, "EMCAL_WSUC") || contains(mGeoName, "EMCAL_COMPLETE") ||
-       contains(mGeoName, "EMCAL_COMPLETEV1") || contains(mGeoName, "EMCAL_COMPLETE12SMV1") ||
-       contains(mGeoName, "EMCAL_FIRSTYEAR") || contains(mGeoName, "EMCAL_FIRSTYEARV1"))) {
+  if (!(contains(mGeoName, "EMCAL_PDC06") || contains(mGeoName, "EMCAL_WSUC") || contains(mGeoName, "EMCAL_COMPLETE") ||
+        contains(mGeoName, "EMCAL_COMPLETEV1") || contains(mGeoName, "EMCAL_COMPLETE12SMV1") ||
+        contains(mGeoName, "EMCAL_FIRSTYEAR") || contains(mGeoName, "EMCAL_FIRSTYEARV1"))) {
     LOG(FATAL) << "Init, " << mGeoName << " is an undefined geometry!\n";
   }
 
   // Option to know whether we have the "half" supermodule(s) or not
   mKey110DEG = 0;
-  if(contains(mGeoName,"COMPLETE") || contains(mGeoName,"PDC06") || contains(mGeoName,"12SM"))
+  if (contains(mGeoName, "COMPLETE") || contains(mGeoName, "PDC06") || contains(mGeoName, "12SM"))
     mKey110DEG = 1; // for GetAbsCellId
-  if(contains(mGeoName,"COMPLETEV1"))
+  if (contains(mGeoName, "COMPLETEV1"))
     mKey110DEG = 0;
 
   mnSupModInDCAL = 0;
-  if(contains(mGeoName, "DCAL_DEV")) {
+  if (contains(mGeoName, "DCAL_DEV")) {
     mnSupModInDCAL = 10;
-  } else if(contains(mGeoName, "DCAL_8SM")) {
+  } else if (contains(mGeoName, "DCAL_8SM")) {
     mnSupModInDCAL = 8;
-  } else if(contains(mGeoName, "DCAL")) {
+  } else if (contains(mGeoName, "DCAL")) {
     mnSupModInDCAL = 6;
   }
 
@@ -257,14 +257,14 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   CheckAdditionalOptions();
 
   // modifications to the above for PDC06 geometry
-  if(contains(mGeoName, "PDC06")) {           // 18-may-05 - about common structure
+  if (contains(mGeoName, "PDC06")) {          // 18-may-05 - about common structure
     mECScintThick = mECPbRadThickness = 0.16; // (13-may-05 from V.Petrov)
     CheckAdditionalOptions();
   }
 
   // modifications to the above for WSUC geometry
-  if(contains(mGeoName, "WSUC")) { // 18-may-05 - about common structure
-    mNumberOfSuperModules = 2;     // 27-may-05; Nov 24,2010 for TB
+  if (contains(mGeoName, "WSUC")) { // 18-may-05 - about common structure
+    mNumberOfSuperModules = 2;      // 27-may-05; Nov 24,2010 for TB
     mNPhi = mNZ = 4;
     mTrd1AlFrontThick = 1.0; // one cm
     // Bond paper - two sheets around Sc tile
@@ -278,13 +278,13 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   }
 
   // In 2009-2010 data taking runs only 4 SM, in the upper position.
-  if(contains(mGeoName, "FIRSTYEAR")) {
+  if (contains(mGeoName, "FIRSTYEAR")) {
     mNumberOfSuperModules = 4;
     mArm1PhiMax = 120.0;
     CheckAdditionalOptions();
   }
 
-  if(contains(mGeoName, "FIRSTYEARV1") || contains(mGeoName, "COMPLETEV1") || contains(mGeoName, "COMPLETE12SMV1")) {
+  if (contains(mGeoName, "FIRSTYEARV1") || contains(mGeoName, "COMPLETEV1") || contains(mGeoName, "COMPLETE12SMV1")) {
     // Oct 26,2010 : First module has tilt = 0.75 degree :
     // look to AliEMCALShishKebabTrd1Module::DefineFirstModule(key)
     // New sizes from production drawing, added Al front plate.
@@ -299,19 +299,19 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
     mEtaModuleSize = mPhiModuleSize;
     mLateralSteelStrip = 0.015; // 0.015cm  = 0.15mm
 
-    if(contains(mGeoName, "COMPLETEV1")) {
+    if (contains(mGeoName, "COMPLETEV1")) {
       mNumberOfSuperModules = 10;
       mArm1PhiMax = 180.0;
-    } else if(contains(mGeoName, "COMPLETE12SMV1")) {
+    } else if (contains(mGeoName, "COMPLETE12SMV1")) {
       mNumberOfSuperModules = 12;
       mArm1PhiMax = 200.0;
     }
-    if(contains(mGeoName, "DCAL")) {
+    if (contains(mGeoName, "DCAL")) {
       mNumberOfSuperModules = 12 + mnSupModInDCAL;
       mArm1PhiMax = 320.0;
-      if(contains(mGeoName, "DCAL_8SM"))
+      if (contains(mGeoName, "DCAL_8SM"))
         mArm1PhiMax = 340.0; // degrees, End of DCAL Phi position
-      else if(contains(mGeoName, "DCAL_DEV"))
+      else if (contains(mGeoName, "DCAL_DEV"))
         mArm1PhiMin = 40.0; // degrees, Starting EMCAL(shifted) Phi position
       mDCALPhiMin = mArm1PhiMax - 10. * mnSupModInDCAL;
     }
@@ -332,18 +332,18 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 
   //
   // BASIC EMCAL SM
-  if(contains(mGeoName, "WSUC")) {
-    for(int i = 0; i < 2; i++) {
+  if (contains(mGeoName, "WSUC")) {
+    for (int i = 0; i < 2; i++) {
       mEMCSMSystem[iSM] = EMCAL_STANDARD;
       iSM++;
     }
-  } else if(contains(mGeoName, "FIRSTYEAR")) {
-    for(int i = 0; i < 4; i++) {
+  } else if (contains(mGeoName, "FIRSTYEAR")) {
+    for (int i = 0; i < 4; i++) {
       mEMCSMSystem[iSM] = EMCAL_STANDARD;
       iSM++;
     }
-  } else if(contains(mGeoName, "PDC06") || contains(mGeoName, "COMPLETE")) {
-    for(int i = 0; i < 10; i++) {
+  } else if (contains(mGeoName, "PDC06") || contains(mGeoName, "COMPLETE")) {
+    for (int i = 0; i < 10; i++) {
       mEMCSMSystem[iSM] = EMCAL_STANDARD;
       iSM++;
     }
@@ -352,9 +352,9 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   //
   // EMCAL 110SM
   if (mKey110DEG && contains(mGeoName, "12SM")) {
-    for(int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++) {
       mEMCSMSystem[iSM] = EMCAL_HALF;
-      if(contains(mGeoName, "12SMV1")) {
+      if (contains(mGeoName, "12SMV1")) {
         mEMCSMSystem[iSM] = EMCAL_THIRD;
       }
       iSM++;
@@ -363,18 +363,18 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 
   //
   // DCAL SM
-  if(mnSupModInDCAL && contains(mGeoName, "DCAL")) {
-    if(contains(mGeoName, "8SM")) {
-      for(int i = 0; i < mnSupModInDCAL - 2; i++) {
+  if (mnSupModInDCAL && contains(mGeoName, "DCAL")) {
+    if (contains(mGeoName, "8SM")) {
+      for (int i = 0; i < mnSupModInDCAL - 2; i++) {
         mEMCSMSystem[iSM] = DCAL_STANDARD;
         iSM++;
       }
-      for(int i = 0; i < 2; i++) {
+      for (int i = 0; i < 2; i++) {
         mEMCSMSystem[iSM] = DCAL_EXT;
         iSM++;
       }
     } else {
-      for(int i = 0; i < mnSupModInDCAL; i++) {
+      for (int i = 0; i < mnSupModInDCAL; i++) {
         mEMCSMSystem[iSM] = DCAL_STANDARD;
         iSM++;
       }
@@ -385,37 +385,37 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   mNCellsInModule = mNPHIdiv * mNETAdiv;
   mNCellsInSupMod = mNCellsInModule * mNPhi * mNZ;
   mNCells = 0;
-  for(int i = 0; i < mNumberOfSuperModules; i++) {
-    if(GetSMType(i) == EMCAL_STANDARD)
+  for (int i = 0; i < mNumberOfSuperModules; i++) {
+    if (GetSMType(i) == EMCAL_STANDARD)
       mNCells += mNCellsInSupMod;
-    else if(GetSMType(i) == EMCAL_HALF)
+    else if (GetSMType(i) == EMCAL_HALF)
       mNCells += mNCellsInSupMod / 2;
-    else if(GetSMType(i) == EMCAL_THIRD)
+    else if (GetSMType(i) == EMCAL_THIRD)
       mNCells += mNCellsInSupMod / 3;
-    else if(GetSMType(i) == DCAL_STANDARD)
+    else if (GetSMType(i) == DCAL_STANDARD)
       mNCells += 2 * mNCellsInSupMod / 3;
-    else if(GetSMType(i) == DCAL_EXT)
+    else if (GetSMType(i) == DCAL_EXT)
       mNCells += mNCellsInSupMod / 3;
     else
       LOG(ERROR) << "Uknown SuperModule Type !!\n";
   }
 
   mNPhiSuperModule = mNumberOfSuperModules / 2;
-  if(mNPhiSuperModule < 1)
+  if (mNPhiSuperModule < 1)
     mNPhiSuperModule = 1;
 
   mPhiTileSize = mPhiModuleSize / double(mNPHIdiv) - mLateralSteelStrip; // 13-may-05
   mEtaTileSize = mEtaModuleSize / double(mNETAdiv) - mLateralSteelStrip; // 13-may-05
 
   mLongModuleSize = mNECLayers * (mECScintThick + mECPbRadThickness);
-  if(contains(mGeoName, "V1")) {
+  if (contains(mGeoName, "V1")) {
     Double_t ws = mECScintThick + mECPbRadThickness + 2. * mTrd1BondPaperThick; // sampling width
     // Number of Pb tiles = Number of Sc tiles - 1
     mLongModuleSize = mTrd1AlFrontThick + (ws * mNECLayers - mECPbRadThickness);
   }
   m2Trd1Dx2 = mEtaModuleSize + 2. * mLongModuleSize * TMath::Tan(mTrd1Angle * TMath::DegToRad() / 2.);
 
-  if(!contains(mGeoName, "WSUC"))
+  if (!contains(mGeoName, "WSUC"))
     mShellThickness = TMath::Sqrt(mLongModuleSize * mLongModuleSize + m2Trd1Dx2 * m2Trd1Dx2);
 
   // These parameters are used to create the mother volume to hold the supermodules
@@ -439,25 +439,25 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   mPhiBoundariesOfSM[0] = mPhiCentersOfSM[0] - TMath::ATan2(mParSM[1], mIPDistance); // 1th and 2th modules)
   mPhiBoundariesOfSM[1] = mPhiCentersOfSM[0] + TMath::ATan2(mParSM[1], mIPDistance);
 
-  if(mNumberOfSuperModules > 2) { // 2 to Max
+  if (mNumberOfSuperModules > 2) { // 2 to Max
     Int_t tmpSMType = GetSMType(2);
-    for(int i = 1; i < mNPhiSuperModule; i++) {
+    for (int i = 1; i < mNPhiSuperModule; i++) {
       mPhiBoundariesOfSM[2 * i] += mPhiBoundariesOfSM[2 * i - 2] + kfSupermodulePhiWidth;
-      if(tmpSMType == GetSMType(2 * i)) {
+      if (tmpSMType == GetSMType(2 * i)) {
         mPhiBoundariesOfSM[2 * i + 1] += mPhiBoundariesOfSM[2 * i - 1] + kfSupermodulePhiWidth;
       } else {
         // changed SM Type, redefine the [2*i+1] Boundaries
         tmpSMType = GetSMType(2 * i);
         if (GetSMType(2 * i) == EMCAL_STANDARD) {
           mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + kfSupermodulePhiWidth;
-        } else if(GetSMType(2 * i) == EMCAL_HALF) {
+        } else if (GetSMType(2 * i) == EMCAL_HALF) {
           mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 2, mIPDistance);
-        } else if(GetSMType(2 * i) == EMCAL_THIRD) {
+        } else if (GetSMType(2 * i) == EMCAL_THIRD) {
           mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
-        } else if(GetSMType(2 * i) == DCAL_STANDARD) { // jump the gap
+        } else if (GetSMType(2 * i) == DCAL_STANDARD) { // jump the gap
           mPhiBoundariesOfSM[2 * i] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[0];
           mPhiBoundariesOfSM[2 * i + 1] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[1];
-        } else if(GetSMType(2 * i) == DCAL_EXT) {
+        } else if (GetSMType(2 * i) == DCAL_EXT) {
           mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
         }
       }
@@ -477,24 +477,24 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 
   mEMCALPhiMax = mArm1PhiMin;
   mDCALPhiMax = mDCALPhiMin; // DCAl extention will not be included
-  for(Int_t i = 0; i < mNumberOfSuperModules; i += 2) {
-    if(GetSMType(i) == EMCAL_STANDARD)
+  for (Int_t i = 0; i < mNumberOfSuperModules; i += 2) {
+    if (GetSMType(i) == EMCAL_STANDARD)
       mEMCALPhiMax += 20.;
-    else if(GetSMType(i) == EMCAL_HALF)
+    else if (GetSMType(i) == EMCAL_HALF)
       mEMCALPhiMax += mPhiSuperModule / 2. + innerExtandedPhi;
-    else if(GetSMType(i) == EMCAL_THIRD)
+    else if (GetSMType(i) == EMCAL_THIRD)
       mEMCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
-    else if(GetSMType(i) == DCAL_STANDARD) {
+    else if (GetSMType(i) == DCAL_STANDARD) {
       mDCALPhiMax += 20.;
       mDCALStandardPhiMax = mDCALPhiMax;
-    } else if(GetSMType(i) == DCAL_EXT)
+    } else if (GetSMType(i) == DCAL_EXT)
       mDCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
     else
       LOG(ERROR) << "Unkown SM Type!!\n";
   }
   // for compatible reason
   // if(fNumberOfSuperModules == 4) {fEMCALPhiMax = fArm1PhiMax ;}
-  if(mNumberOfSuperModules == 12) {
+  if (mNumberOfSuperModules == 12) {
     mEMCALPhiMax = mArm1PhiMax;
   }
 
@@ -641,7 +641,7 @@ void EMCGeometry::DefineSamplingFraction(const std::string_view mcname, const st
   } else if (mNECLayers == 61) { // 20% layer reduction
     mSampling = 12.80;
   } else if (mNECLayers == 77) {
-    if(contains(mGeoName, "V1")) {
+    if (contains(mGeoName, "V1")) {
       mSampling = 10.87;                                         // Adding paper sheets and cover plate; Nov 25,2010
     } else if (mECScintThick > 0.159 && mECScintThick < 0.161) { // original sampling fraction, equal layers
       mSampling = 12.327;                                        // fECScintThick = fECPbRadThickness = 0.160;
@@ -653,14 +653,14 @@ void EMCGeometry::DefineSamplingFraction(const std::string_view mcname, const st
   }
 
   Float_t samplingFactorTranportModel = 1.;
-  if(contains(mcname, "Geant3"))
+  if (contains(mcname, "Geant3"))
     samplingFactorTranportModel = 1.; // 0.988 // Do nothing
-  else if(contains(mcname, "Fluka"))
+  else if (contains(mcname, "Fluka"))
     samplingFactorTranportModel = 1.; // To be set
-  else if(contains(mcname, "Geant4")) {
-    if(contains(mctitle, "EMV-EMCAL"))
+  else if (contains(mcname, "Geant4")) {
+    if (contains(mctitle, "EMV-EMCAL"))
       samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
-    else if(contains(mctitle, "EMV"))
+    else if (contains(mctitle, "EMV"))
       samplingFactorTranportModel = 1.096; // 0.906, 0.896 (OPT)
     else
       samplingFactorTranportModel = 0.821; // 1.15 (CHIPS), 1.149 (BERT), 1.147 (BERT_CHIPS)
@@ -686,24 +686,20 @@ Double_t EMCGeometry::GetPhiCenterOfSM(Int_t nsupmod) const
   return mPhiCentersOfSM[i];
 }
 
-Bool_t EMCGeometry::GetPhiBoundariesOfSM(Int_t nSupMod, Double_t& phiMin, Double_t& phiMax) const
+std::tuple<double, double> EMCGeometry::GetPhiBoundariesOfSM(Int_t nSupMod) const
 {
-  static int i;
+  int i;
   if (nSupMod < 0 || nSupMod > 12 + mnSupModInDCAL - 1)
-    return kFALSE;
+    throw InvalidModuleException(nSupMod, 12 + mnSupModInDCAL);
   i = nSupMod / 2;
-  phiMin = (Double_t)mPhiBoundariesOfSM[2 * i];
-  phiMax = (Double_t)mPhiBoundariesOfSM[2 * i + 1];
-  return kTRUE;
+  return std::make_tuple((Double_t)mPhiBoundariesOfSM[2 * i], (Double_t)mPhiBoundariesOfSM[2 * i + 1]);
 }
 
-Bool_t EMCGeometry::GetPhiBoundariesOfSMGap(Int_t nPhiSec, Double_t& phiMin, Double_t& phiMax) const
+std::tuple<double, double> EMCGeometry::GetPhiBoundariesOfSMGap(Int_t nPhiSec) const
 {
   if (nPhiSec < 0 || nPhiSec > 5 + mnSupModInDCAL / 2 - 1)
-    return kFALSE;
-  phiMin = mPhiBoundariesOfSM[2 * nPhiSec + 1];
-  phiMax = mPhiBoundariesOfSM[2 * nPhiSec + 2];
-  return kTRUE;
+    throw InvalidModuleException(nPhiSec, 5 + mnSupModInDCAL / 2);
+  return std::make_tuple(mPhiBoundariesOfSM[2 * nPhiSec + 1], mPhiBoundariesOfSM[2 * nPhiSec + 2]);
 }
 
 int EMCGeometry::ParseString(const TString& topt, TObjArray& Opt)

@@ -13,6 +13,7 @@ set(SRCS
 set(HEADERS
   include/${MODULE_NAME}/Constants.h
   include/${MODULE_NAME}/Digit.h
+  include/${MODULE_NAME}/GeometryBase.h
   include/${MODULE_NAME}/Geometry.h
   include/${MODULE_NAME}/EMCGeometry.h
   include/${MODULE_NAME}/Hit.h
