@@ -718,7 +718,7 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
     }
   }
   
-  if (fDumpEvent)
+  if (fDumpEvent && nClustersTotal)
   {
     static int nEvent = 0;
     std::ofstream out;
