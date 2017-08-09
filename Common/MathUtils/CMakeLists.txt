@@ -6,6 +6,7 @@ set(SRCS
   src/Chebyshev3D.cxx
   src/Chebyshev3DCalc.cxx
   src/MathBase.cxx
+  src/Cartesian2D.cxx
   src/Cartesian3D.cxx
 )
 
@@ -13,6 +14,7 @@ set(HEADERS
   include/${MODULE_NAME}/Chebyshev3D.h
   include/${MODULE_NAME}/Chebyshev3DCalc.h
   include/${MODULE_NAME}/MathBase.h
+  include/${MODULE_NAME}/Cartesian2D.h
   include/${MODULE_NAME}/Cartesian3D.h
 )
 
