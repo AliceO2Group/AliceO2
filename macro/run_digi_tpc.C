@@ -14,7 +14,6 @@
   #include "FairParRootFileIo.h"
   #include "FairLinkManager.h"
 
-  #include "TGeoGlobalMagField.h"
   #include "Field/MagneticField.h"
 
   #include "TPCSimulation/DigitizerTask.h"

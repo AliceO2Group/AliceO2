@@ -323,13 +323,15 @@ o2_define_bucket(
     DEPENDENCIES
     fairroot_base_bucket
     root_physics_bucket
-    
+    Field
+
     VMC # ROOT
     Geom
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Common/Field/include
 )
 
 o2_define_bucket(
@@ -785,6 +787,7 @@ o2_define_bucket(
     DEPENDENCIES
     fairroot_geom
     Field
+    DetectorsBase
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/Field/include

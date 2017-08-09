@@ -104,10 +104,9 @@ TClonesArray* Detector::GetCollection(Int_t iColl) const
 void Detector::Reset() { mHitCollection->Clear(); }
 void Detector::CreateMaterials()
 {
-  //  AliMagF *magneticField = (AliMagF*)((AliMagF*)TGeoGlobalMagField::Instance()->GetField());
-
-  Int_t isxfld = 2;     // magneticField->Integ();
-  Float_t sxmgmx = 10.; // magneticField->Max();
+  Int_t isxfld = 2;
+  Float_t sxmgmx = 10.;
+  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //--- Quartz (SiO2) ---
   Float_t aq[2] = { 28.0855, 15.9994 };

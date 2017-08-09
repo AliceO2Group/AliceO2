@@ -74,9 +74,9 @@ void Detector::createMaterials()
   //
   // Create the materials for the TRD
   //
-
-  int isxfld = 2;     //((AliMagF *) TGeoGlobalMagField::Instance()->GetField())->Integ();
-  float sxmgmx = 10.; //((AliMagF *) TGeoGlobalMagField::Instance()->GetField())->Max();
+  int isxfld = 2;
+  float sxmgmx = 10.;
+  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //////////////////////////////////////////////////////////////////////////
   //     Define Materials

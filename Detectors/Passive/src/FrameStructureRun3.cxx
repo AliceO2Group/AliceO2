@@ -10,6 +10,7 @@
 
 #include "Field/MagneticField.h"
 #include "DetectorsPassive/FrameStructureRun3.h"
+#include "DetectorsBase/Detector.h"
 #include <TGeoArb8.h>
 #include <TGeoBBox.h>
 #include <TGeoBoolNode.h>
@@ -253,17 +254,7 @@ void FrameStructure::createMaterials()
   stmin = -.8;
   int isxfld = 2; // field uniformity value as defined by Geant3
   float sxmgmx = 10.; // max field
-  auto vmc = TVirtualMC::GetMC();
-  auto field = vmc->GetMagField();
-  if (dynamic_cast<o2::field::MagneticField*>(field) != nullptr) {
-    auto o2field = (o2::field::MagneticField*)field;
-    isxfld = o2field->Integral(); // default integration method?
-    sxmgmx = o2field->Max();
-    LOG(INFO) << "magnetic field found; using isxfld " << isxfld << " " << sxmgmx << " " << "\n";
-  }
-  else {
-    LOG(INFO) << "No magnetic field found; using default values " << isxfld << " " << sxmgmx << " to initialize media \n";
-  }
+  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   float asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
   float zsteel[4] = { 26., 24., 28., 14. };
