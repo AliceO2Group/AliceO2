@@ -288,7 +288,7 @@ void Detector::defineSensitiveVolumes()
     if (tgeovol != nullptr) {
       AddSensitiveVolume(tgeovol);
     } else {
-      LOG(WARNING) << "No TGeo volume for TRD vol name " << name << " found\n";
+      LOG(ERROR) << "No TGeo volume for TRD vol name " << name << " found\n";
     }
   }
 }
