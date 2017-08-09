@@ -14,8 +14,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::EMCAL::Digit;
-#pragma link C++ class o2::EMCAL::Hit;
-
+#pragma link C++ class o2::EMCAL::Digit+;
+#pragma link C++ class o2::EMCAL::Hit+;
+#pragma link C++ class o2::EMCAL::EMCGeometry+;
+#pragma link C++ class o2::EMCAL::Geometry+;
 
 #endif

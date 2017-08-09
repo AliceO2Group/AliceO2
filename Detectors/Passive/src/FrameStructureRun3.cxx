@@ -38,6 +38,7 @@ const char* TOPNAME = "cave";
 #define kDegrad TMath::DegToRad()
 
 FrameStructure::FrameStructure(const char* name, const char* Title) : FairModule(name, Title) {}
+
 void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int rot2)
 {
   // Heat screen panel
