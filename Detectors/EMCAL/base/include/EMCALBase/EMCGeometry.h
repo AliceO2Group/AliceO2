@@ -13,15 +13,19 @@
 
 #include <array>
 #include <iosfwd>
+#include <sstream>
 #include <string>
+#include <tuple>
 #include <vector>
 
+#include <RStringView.h>
 #include <TArrayD.h>
 #include <TList.h>
 #include <TMath.h>
-#include <RStringView.h>
 
 #include <FairLogger.h>
+
+#include <EMCALBase/GeometryBase.h>
 
 class TObjArray;
 
@@ -31,17 +35,7 @@ namespace EMCAL
 {
 class EMCGeometry
 {
-  /// possible SM Type
  public:
-  enum EMCSMType {
-    NOT_EXISTENT = -1,
-    EMCAL_STANDARD = 0,
-    EMCAL_HALF = 1,
-    EMCAL_THIRD = 2,
-    DCAL_STANDARD = 3,
-    DCAL_EXT = 4
-  };
-
   ///
   /// Default ctor only for internal usage (singleton).
   /// It must be kept public for root persistency purposes,
@@ -67,7 +61,7 @@ class EMCGeometry
   /// Destructor
   ///
   ~EMCGeometry();
-    
+
   /// Assignement operator requested by coding convention but not needed
   EMCGeometry& operator=(const EMCGeometry& /*rvalue*/)
   {
@@ -79,9 +73,9 @@ class EMCGeometry
   // General
   //
 
-  const std::string &GetName() const { return mGeoName; }
+  const std::string& GetName() const { return mGeoName; }
   Bool_t IsInitialized() const { return sInit; }
-  static const std::string &GetDefaultGeometryName() { return sDefaultGeometryName; }
+  static const std::string& GetDefaultGeometryName() { return sDefaultGeometryName; }
 
   ///
   /// Print EMCal parameters
@@ -112,13 +106,13 @@ class EMCGeometry
   /// \param mcname: Geant3/4, Flukla, ...
   /// \param mctitle: Geant4 physics list tag name
   ///
-    void DefineSamplingFraction(const std::string_view mcname = "", const std::string_view mctitle = "");
+  void DefineSamplingFraction(const std::string_view mcname = "", const std::string_view mctitle = "");
 
   //////////////////////////////////////
   // Return EMCAL geometrical parameters
   //
 
-  const std::string &GetGeoName() const { return mGeoName; }
+  const std::string& GetGeoName() const { return mGeoName; }
 
   const Int_t* GetEMCSystem() const { return mEMCSMSystem; }
   Int_t* GetEMCSystem() { return mEMCSMSystem; } // Why? GCB
@@ -213,18 +207,16 @@ class EMCGeometry
   ///
   /// SM boundaries
   ///
-  /// \param nSupMod: super module index, input
-  /// \param phiMin: minimum phi value in radians, output
-  /// \param phiMax: maximum phi value in radians, output
+  /// \param[in] nSupMod: super module index
+  /// \return tuple with (min, max) phi value in radians
   ///
-  Bool_t GetPhiBoundariesOfSM(Int_t nSupMod, Double_t& phiMin, Double_t& phiMax) const;
+  std::tuple<double, double> GetPhiBoundariesOfSM(Int_t nSupMod) const;
 
   ///
   /// SM boundaries between gaps
   ///
-  /// \param nPhiSec: super module sector index, input
-  /// \param phiMin: minimum phi value in radians, output
-  /// \param phiMax: maximum phi value in radians, output
+  /// \param[in] nPhiSec: super module sector index
+  /// \return tuple with (min, max) phi value in radians
   ///
   /// * 0;  gap boundaries between  0th&2th  | 1th&3th SM
   /// * 1;  gap boundaries between  2th&4th  | 3th&5th SM
@@ -233,7 +225,7 @@ class EMCGeometry
   /// * 4;  gap boundaries between  8th&10th | 9th&11th SM
   /// * 5;  gap boundaries between 10th&12th | 11h&13th SM
   ///
-  Bool_t GetPhiBoundariesOfSMGap(Int_t nPhiSec, Double_t& phiMin, Double_t& phiMax) const;
+  std::tuple<double, double> GetPhiBoundariesOfSMGap(Int_t nPhiSec) const;
 
   ///
   /// Play with strings names and modify them for better handling (?)
@@ -274,16 +266,16 @@ class EMCGeometry
   //////////////////////////////////////////////////
 
   static std::string sDefaultGeometryName; ///< Default name of geometry
-  static Bool_t sInit;                       ///< Tells if geometry has been succesfully set up.
+  static Bool_t sInit;                     ///< Tells if geometry has been succesfully set up.
 
  private:
   // Member data
 
   std::string mGeoName; ///< geometry name
 
-  TObjArray* mArrayOpts;          //!<! array of geometry options
+  TObjArray* mArrayOpts;                      //!<! array of geometry options
   std::array<std::string, 6> mAdditionalOpts; //!<! some additional options for the geometry type and name
-  Int_t mNAdditionalOpts;         //!<! size of additional options parameter
+  Int_t mNAdditionalOpts;                     //!<! size of additional options parameter
 
   Float_t mECPbRadThickness; ///< cm, Thickness of the Pb radiators
   Float_t mECScintThick;     ///< cm, Thickness of the scintillators

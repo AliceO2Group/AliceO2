@@ -13,6 +13,7 @@
 
 #include <exception>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <RStringView.h>
@@ -22,9 +23,12 @@
 #include <TNamed.h>
 #include <TParticle.h>
 #include <TVector3.h>
+#include "Math/GenVector/DisplacementVector3D.h"
+#include "Math/GenVector/PositionVector3D.h"
 
 #include "EMCALBase/Constants.h"
 #include "EMCALBase/EMCGeometry.h"
+#include "EMCALBase/GeometryBase.h"
 #include "MathUtils/Cartesian3D.h"
 
 namespace o2
@@ -36,50 +40,6 @@ class ShishKebabTrd1Module;
 class Geometry
 {
  public:
-  enum fEMCSMType {
-    EMCAL_STANDARD = 0,
-    EMCAL_HALF = 1,
-    EMCAL_THIRD = 2,
-    DCAL_STANDARD = 3,
-    DCAL_EXT = 4
-  }; // possible SM Type
-    
-  enum AcceptanceType_t {
-    EMCAL_ACCEPTANCE = 1,
-    DCAL_ACCEPTANCE = 2,
-    NON_ACCEPTANCE = 0
-  };
-
-  /// \class InvalidModuleException
-  /// \brief Error Handling when an invalid module ID (outside the limits) is called
-  class InvalidModuleException : public std::exception {
-  public:
-      /// \brief Constructor
-      /// \param nModule Module number raising the exception
-      /// \param nMax Maximum amount of modules in setup
-      InvalidModuleException(Int_t nModule, Int_t nMax): std::exception(), mModule(nModule), mMax(nMax), mMessage() {
-        mMessage = "Invalid Module [ " + std::to_string(mModule) + "|" + std::to_string(mMax) + "]";
-      }
-      /// \brief Destructor
-      ~InvalidModuleException() noexcept final = default;
-      
-      /// \brief Get ID of the module raising the exception
-      /// \return ID of the module
-      int GetModuleID() const { return mModule; }
-      
-      /// \brief Get number of modules
-      /// \return Number of modules
-      int GetMaxNumberOfModules() const { return mMax; }
-      
-      /// \brief Access to error message
-      /// \return Error message for given exception
-      const char *what() const noexcept final { return mMessage.c_str(); }
-  private:
-    Int_t       mModule;  ///< Module ID raising the exception
-    Int_t       mMax;     ///< Max. Number of modules
-    std::string mMessage; ///< Error message
-  };
-
   ///
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
@@ -127,7 +87,7 @@ class Geometry
   /// (check)
   ///
   static Geometry* GetInstance(const std::string_view name, const std::string_view mcname = "TGeant3",
-                                 const std::string_view mctitle = "");
+                               const std::string_view mctitle = "");
 
   ///
   /// Instanciate geometry depending on the run number. Mostly used in analysis and MC anchors.
@@ -139,15 +99,16 @@ class Geometry
   /// \param mcname: Geant3/4, Fluka, needed for settings of transport (check). Not really needed to be specified.
   /// \param mctitle:  Geant4 physics list (check). Not really needed to be specified.
   ///
-  static Geometry* GetInstanceFromRunNumber(Int_t runNumber, const std::string_view = "", const std::string_view mcname = "TGeant3",
-                                              const std::string_view mctitle = "");
+  static Geometry* GetInstanceFromRunNumber(Int_t runNumber, const std::string_view = "",
+                                            const std::string_view mcname = "TGeant3",
+                                            const std::string_view mctitle = "");
 
   //////////
   // General
   //
-    
-  const std::string &GetName() const { return mGeoName; }
-    
+
+  const std::string& GetName() const { return mGeoName; }
+
   static Bool_t IsInitialized() { return Geometry::sGeom != nullptr; }
   // static const Char_t* GetDefaultGeometryName() {return EMCGeometry::fgkDefaultGeometryName;}
 
@@ -158,7 +119,7 @@ class Geometry
   ///
   void CreateListOfTrd1Modules();
 
-  const std::vector<ShishKebabTrd1Module> &GetShishKebabTrd1Modules() const { return mShishKebabTrd1Modules; }
+  const std::vector<ShishKebabTrd1Module>& GetShishKebabTrd1Modules() const { return mShishKebabTrd1Modules; }
 
   ///
   /// \return  the shishkebabmodule at a given eta index point.
@@ -169,33 +130,33 @@ class Geometry
   /// Given a TParticle, check if it falls in the EMCal/DCal geometry
   /// Call ImpactOnEmcal.
   ///
-  /// \param particle: TParticle
+  /// \param particle TParticle
   /// \return true in EMCal/DCa;
   ///
   virtual Bool_t Impact(const TParticle* particle) const;
 
   ///
   /// Calculates the impact coordinates on EMCAL (centre of a tower/not on EMCAL surface)
-  /// of a neutral particle
-  /// emitted in the vertex vtx[3] with direction theta and phi in the ALICE global coordinate system
+  /// of a neutral particle emitted in the vertex vtx[3] with direction theta and phi in
+  /// the global coordinate system
   ///
-  /// \param vtx: TVector3 with vertex?, input
-  /// \param theta: theta location, input
-  /// \param phi: azimuthal angle, input
-  /// \param absId: absolute ID number
-  /// \param vimpact: TVector3 of impact coordinates?
+  /// \param[in] vtx TVector3 with vertex
+  /// \param[in] theta theta location
+  /// \param[in] phi azimuthal angle
+  /// \param[out] absId absolute ID number
+  /// \param[out] vimpact TVector3 of impact coordinates?
   ///
   void ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi, Int_t& absId, TVector3& vimpact) const;
 
   ///
   /// Checks whether point is inside the EMCal volume
   ///
-  Bool_t IsInEMCAL(Point3D<double> &pnt) const;
+  Bool_t IsInEMCAL(const Point3D<double>& pnt) const;
 
   ///
   /// Checks whether point is inside the DCal volume
   ///
-  Bool_t IsInDCAL(Point3D<double> &pnt) const;
+  Bool_t IsInDCAL(const Point3D<double>& pnt) const;
 
   ///
   /// Checks whether point is inside the EMCal volume (included DCal), used in AliEMCALv*.cxx
@@ -204,9 +165,9 @@ class Geometry
   /// Points behind EMCAl/DCal, i.e. R > outer radius, but eta, phi in acceptance
   /// are considered to inside
   ///
-  /// \return calo type, 1 EMCal, 2 DCal
+  /// \return calo acceptance type
   ///
-  AcceptanceType_t IsInEMCALOrDCAL(Point3D<double> &pnt) const;
+  AcceptanceType_t IsInEMCALOrDCAL(const Point3D<double>& pnt) const;
 
   //////////////////////////////////////
   // Return EMCAL geometrical parameters
@@ -214,7 +175,7 @@ class Geometry
 
   const EMCGeometry& GetEMCGeometry() const { return mEMCGeometry; }
 
-  EMCGeometry &AccessGeometry() { return mEMCGeometry; }
+  EMCGeometry& AccessGeometry() { return mEMCGeometry; }
 
   const Char_t* GetNameOfEMCALEnvelope() const { return mEMCGeometry.GetNameOfEMCALEnvelope(); }
   Float_t GetArm1PhiMin() const { return mEMCGeometry.GetArm1PhiMin(); }
@@ -291,13 +252,13 @@ class Geometry
 
   // Methods needed for SM in extension, where center of SM != center of the SM-section.
   // Used in AliEMCALv0 to calculate position.
-  Bool_t GetPhiBoundariesOfSM(Int_t nSupMod, Double_t& phiMin, Double_t& phiMax) const
+  std::tuple<double, double> GetPhiBoundariesOfSM(Int_t nSupMod) const
   {
-    return mEMCGeometry.GetPhiBoundariesOfSM(nSupMod, phiMin, phiMax);
+    return mEMCGeometry.GetPhiBoundariesOfSM(nSupMod);
   }
-  Bool_t GetPhiBoundariesOfSMGap(Int_t nPhiSec, Double_t& phiMin, Double_t& phiMax) const
+  std::tuple<double, double> GetPhiBoundariesOfSMGap(Int_t nPhiSec) const
   {
-    return mEMCGeometry.GetPhiBoundariesOfSMGap(nPhiSec, phiMin, phiMax);
+    return mEMCGeometry.GetPhiBoundariesOfSMGap(nPhiSec);
   }
 
   // Obsolete?
@@ -381,51 +342,38 @@ class Geometry
   /// Figure out the eta/phi coordinates of a cell.
   /// Call to GetGlobal().
   ///
-  /// \param absId: cell absolute id. number.
-  /// \param eta: pseudo-rapidity, double
-  /// \param phi: azimuthal angle, double
+  /// \param absId cell absolute id. number.
+  /// \return tuple with (pseudorapidity, polar angle)
   ///
-  void EtaPhiFromIndex(Int_t absId, Double_t& eta, Double_t& phi) const;
-
-  ///
-  /// Figure out the eta/phi coordinates of a cell.
-  /// Call to GetGlobal(). Discard? Keep upper one?
-  ///
-  /// \param absId: cell absolute id. number.
-  /// \param eta: pseudo-rapidity, float
-  /// \param phi: azimuthal angle, float
-  ///
-  void EtaPhiFromIndex(Int_t absId, Float_t& eta, Float_t& phi) const;
+  std::tuple<double, double> EtaPhiFromIndex(Int_t absId) const;
 
   ///
   /// Get cell absolute ID number from eta and phi location.
   ///
-  /// \param eta: pseudorapidity location
-  /// \param phi: azimutal location
-  /// \param absId: cell absolute ID number
+  /// \param eta pseudorapidity location
+  /// \param phi azimutal location
+  /// \return cell absolute ID number
+  /// \thow InvalidPositionException
   ///
-  /// \return true if cell connexion found
-  ///
-  Bool_t GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi, Int_t& absId) const;
+  int GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const;
 
   ///
   /// Given a global eta/phi point check if it belongs to a supermodule covered region.
-  /// \return false if phi belongs a phi cracks between SM or far from SM
   ///
-  /// \param eta: pseudorapidity location
-  /// \param phi: azimutal location
-  /// \param nSupMod: super module number, output
+  /// \param eta pseudorapidity location
+  /// \param phi azimutal location
+  /// \return super module number
+  /// \throw InvalidPositionException
   ///
-  Bool_t SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi, Int_t& nSupMod) const;
+  int SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const;
 
   ///
   /// Get cell absolute ID number from location module (2 times 2 cells) of a super module
   ///
-  /// \param nSupMod: super module number
-  /// \param nModule: module number
-  /// \param nIphi: index of cell in module in phi direction 0 or 1
-  /// \param nIeta: index of cell in module in eta direction 0 or 1
-  ///
+  /// \param nSupMod super module number
+  /// \param nModule module number
+  /// \param nIphi index of cell in module in phi direction 0 or 1
+  /// \param nIeta index of cell in module in eta direction 0 or 1
   /// \return cell absolute ID number
   ///
   Int_t GetAbsCellId(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
@@ -440,41 +388,37 @@ class Geometry
   ///
   /// Get cell SM, module numbers from absolute ID number
   ///
-  /// \param absId: cell absolute id. number
-  /// \param nSupMod: super module number
-  /// \param nModule: module number
-  /// \param nIphi: index of cell in module in phi direction 0 or 1
-  /// \param nIeta: index of cell in module in eta direction 0 or 1
+  /// \param absId cell absolute id. number
+  /// \param nSupMod super module number
+  /// \param nModule module number
   ///
-  /// \return true if absolute ID number exists
+  /// \return tuple(supermodule ID, module number, index of cell in module in phi, index of cell in module in eta)
+  /// \throw InvalidCellIDException
   ///
-  Bool_t GetCellIndex(Int_t absId, Int_t& nSupMod, Int_t& nModule, Int_t& nIphi, Int_t& nIeta) const;
+  std::tuple<int, int, int, int> GetCellIndex(Int_t absId) const;
 
   ///
-  /// Get eta-phi indexes of module in SM
+  /// \brief Get eta-phi indexes of module in SM
   ///
-  /// \param nSupMod: super module number, input
-  /// \param nModule: module number, input
-  /// \param iphim: index in phi direction of module, output
-  /// \param ietam: index in eta direction of module, output
+  /// \param[in] nSupMod: super module number, input
+  /// \param[in] nModule: module number, input
+  /// \return tuple (index in phi direction of module, index in eta direction of module)
   ///
-  void GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t& iphim, Int_t& ietam) const;
+  std::tuple<int, int> GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule) const;
 
   ///
-  /// Get eta-phi indexes of cell in SM
+  /// \brief Get eta-phi indexes of cell in SM
   ///
-  /// \param nSupMod: super module number, input
-  /// \param nModule: module number, input
-  /// \param nIphi: index in phi direction in module, input
-  /// \param nIeta: index in phi direction in module, input
-  /// \param iphi: index in phi direction in super module, output
-  /// \param ieta: index in eta direction in super module, output
+  /// \param nSupMod[in] super module number
+  /// \param nModule[in] module number
+  /// \param nIphi[in] index in phi direction in module
+  /// \param nIeta[in] index in phi direction in module
+  /// \return tuple (index in phi direction in super module, index in eta direction in super module)
   ///
-  void GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta, Int_t& iphi,
-                                   Int_t& ieta) const;
+  std::tuple<double, double> GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
 
   ///
-  /// Get cell SM,  from absolute ID number
+  /// \brief Get cell SM,  from absolute ID number
   ///
   /// \param absId: cell absolute id. number
   /// \return super module number
@@ -537,47 +481,48 @@ class Geometry
   /// Reverse procedure to the one in the method above
   /// ShiftOnlineToOfflineCellIndexes().
   ///
-  /// \param sm: super module number of the channel/cell
-  /// \param iphi: row/phi cell index, modified for DCal
-  /// \param ieta: column/eta index, modified for DCal
+  /// \param sm super module number of the channel/cell
+  /// \param iphi row/phi cell index, modified for DCal
+  /// \param ieta column/eta index, modified for DCal
   ///
   void ShiftOfflineToOnlineCellIndexes(Int_t sm, Int_t& iphi, Int_t& ieta) const;
 
   ///
-  /// Methods for AliEMCALRecPoint: Look to see what the relative position inside a given cell is for a recpoint.
+  /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   ///
-  /// \param absId: cell absolute id. number, input
+  /// \param absId cell absolute id. number, input
   /// \param xr,yr,zr - x,y,z coordinates of cell with absId inside SM, output
   ///
   /// \return false if cell absId does not exist
   Bool_t RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Double_t& zr) const;
 
   ///
-  /// Methods for AliEMCALRecPoint: Look to see what the relative position inside a given cell is for a recpoint.
+  /// \brief Look to see what the relative position inside a given cell is for a recpoint.
+  ///
   /// Same as RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t &yr, Double_t &zr)
   /// but taking into account position of shower max.
   ///
-  /// \param absId: cell absolute id. number, input
-  /// \param distEff: shower max position? check call in AliEMCALRecPoint!, input
+  /// \param absId cell absolute id. number, input
+  /// \param distEff shower max position? check call in AliEMCALRecPoint!, input
   /// \param xr,yr,zr - x,y,z coordinates of cell with absId inside SM, output
   ///
   /// \return false if cell absId does not exist=
   Bool_t RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr, Double_t& yr, Double_t& zr) const;
 
   ///
-  /// Methods for AliEMCALRecPoint: Look to see what the relative position inside a given cell is for a recpoint.
+  /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   ///
-  /// \param absId: cell absolute id. number, input
-  /// \param loc: Double[3] with x,y,z coordinates of cell with absId inside SM, output
+  /// \param absId cell absolute id. number, input
+  /// \param loc Double[3] with x,y,z coordinates of cell with absId inside SM, output
   ///
   /// \return false if cell absId does not exist
   Bool_t RelPosCellInSModule(Int_t absId, Double_t loc[3]) const;
 
   ///
-  /// Methods for AliEMCALRecPoint: Look to see what the relative position inside a given cell is for a recpoint.
+  /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   ///
-  /// \param absId: cell absolute id. number, input
-  /// \param vloc: TVector3 with x,y,z coordinates of cell with absId inside SM, output
+  /// \param absId cell absolute id. number, input
+  /// \param vloc TVector3 with x,y,z coordinates of cell with absId inside SM, output
   ///
   /// \return false if cell absId does not exist
   Bool_t RelPosCellInSModule(Int_t absId, TVector3& vloc) const;
@@ -639,7 +584,7 @@ class Geometry
                                 Float_t global[3]) const;
 
   ///
-  /// Provides shift-rotation matrix for EMCAL from externally set matrix or
+  /// \brief Provides shift-rotation matrix for EMCAL from externally set matrix or
   /// from TGeoManager
   /// \return alignment matrix for a super module number
   /// \param smod: super module number
@@ -647,7 +592,7 @@ class Geometry
   const TGeoHMatrix* GetMatrixForSuperModule(Int_t smod) const;
 
   ///
-  /// Provides shift-rotation matrix for EMCAL from the TGeoManager.
+  /// \brief Provides shift-rotation matrix for EMCAL from the TGeoManager.
   /// \return alignment matrix for a super module number
   /// \param smod: super module number
   ///
@@ -664,12 +609,12 @@ class Geometry
   const TGeoHMatrix* GetMatrixForSuperModuleFromArray(Int_t smod) const;
 
  protected:
-  /// initializes the parameters of EMCAL
+  /// \brief initializes the parameters of EMCAL
   void Init();
 
   EMCGeometry mEMCGeometry; ///< Geometry object for Electromagnetic calorimeter
 
-  std::string mGeoName; ///< Geometry name string
+  std::string mGeoName;       ///< Geometry name string
   Int_t mKey110DEG;           ///< For calculation abs cell id; 19-oct-05
   Int_t mnSupModInDCAL;       ///< For calculation abs cell id; 06-nov-12
   Int_t mNCellsInSupMod;      ///< Number cell in super module
@@ -701,14 +646,14 @@ class Geometry
   Float_t mDCALStandardPhiMax;   ///< Special edge for the case that DCAL contian extension
   Float_t mDCALInnerExtandedEta; ///< DCAL inner edge in Eta (with some extension)
   std::vector<ShishKebabTrd1Module> mShishKebabTrd1Modules; ///< List of modules
-  Float_t mParSM[3];             ///< SM sizes as in GEANT (TRD1)
-  Float_t mPhiModuleSize;        ///< Phi -> X
-  Float_t mEtaModuleSize;        ///< Eta -> Y
-  Float_t mPhiTileSize;          ///< Size of phi tile
-  Float_t mEtaTileSize;          ///< Size of eta tile
-  Int_t mNZ;                     ///< Number of Towers in the Z direction
-  Float_t mIPDistance;           ///< Radial Distance of the inner surface of the EMCAL
-  Float_t mLongModuleSize;       ///< Size of long module
+  Float_t mParSM[3];                                        ///< SM sizes as in GEANT (TRD1)
+  Float_t mPhiModuleSize;                                   ///< Phi -> X
+  Float_t mEtaModuleSize;                                   ///< Eta -> Y
+  Float_t mPhiTileSize;                                     ///< Size of phi tile
+  Float_t mEtaTileSize;                                     ///< Size of eta tile
+  Int_t mNZ;                                                ///< Number of Towers in the Z direction
+  Float_t mIPDistance;                                      ///< Radial Distance of the inner surface of the EMCAL
+  Float_t mLongModuleSize;                                  ///< Size of long module
 
   // Geometry Parameters
   Float_t mShellThickness; ///< Total thickness in (x,y) direction
@@ -718,10 +663,17 @@ class Geometry
   mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES]; ///< Orientations of EMCAL super modules
 
  private:
-  static Geometry* sGeom;                    ///< Pointer to the unique instance of the singleton
+  static Geometry* sGeom;                  ///< Pointer to the unique instance of the singleton
   static std::string sDefaultGeometryName; ///< Default name of geometry
-
 };
+
+inline Bool_t Geometry::CheckAbsCellId(Int_t absId) const
+{
+  if (absId < 0 || absId >= mNCells)
+    return kFALSE;
+  else
+    return kTRUE;
+}
 }
 }
 #endif
