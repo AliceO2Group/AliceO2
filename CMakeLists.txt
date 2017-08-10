@@ -66,6 +66,18 @@ include(CTest)
 include(CheckCompiler)
 #include(CheckFortran)
 
+# check if we have a simulation environment
+# (unfortunately neither GEANT4_FOUND nor GEANT3_FOUND work reliably)
+find_library(G4RUNLIB libG4run.dylib libG4run.so HINTS ENV LD_LIBRARY_PATH)
+find_library(G3RUNLIB libgeant321.dylib libgeant321.so HINTS ENV LD_LIBRARY_PATH)
+find_library(VMCLIB libgeant4vmc.dylib libgeant4vmc.so HINTS ENV LD_LIBRARY_PATH)
+if (G4RUNLIB AND G3RUNLIB AND VMCLIB)
+  SET (HAVESIMULATION 1)
+  message(STATUS "Simulation environment found")
+endif()
+
+
+
 #Check the compiler and set the compile and link flags
 IF (NOT CMAKE_BUILD_TYPE)
   Message(STATUS "Set BuildType DEBUG")
