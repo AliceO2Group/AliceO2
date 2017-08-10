@@ -18,13 +18,7 @@
 
 #include <map>
 
-#define TPC_DIGIT_USEFAIRLINKS 1
-
 #include "FairRootManager.h"
-#ifdef TPC_DIGIT_USEFAIRLINKS
-#include "FairMultiLinkedData.h"
-#include "FairLink.h"
-#endif
 #include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
 
@@ -57,11 +51,6 @@ class DigitPad{
     /// \return Accumulated charge
     float getChargePad() const {return mChargePad;}
 
-#ifdef TPC_DIGIT_USEFAIRLINKS
-    /// Get the MC Links
-    /// \return MC Links
-    const FairMultiLinkedData& getMCLinks() const { return mMCLinks; }
-#endif
     /// Add digit to the time bin container
     /// \param hitID MC Hit ID
     /// \param charge Charge of the digit
@@ -76,20 +65,14 @@ class DigitPad{
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode = 0);
 
   private:
-
-#ifndef TPC_DIGIT_USEFAIRLINKS
     /// The MC labels are sorted by occurrence such that the event/track combination with the largest number of occurrences is first
     /// This is then dumped into a std::vector and attached to the digits
     /// \todo Find out how many different event/track combinations are relevant
     /// \param std::vector containing the sorted MCLabels
     void processMClabels(std::vector<long> &sortedMCLabels) const;
-#endif
 
     float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
     unsigned char          mPad;         ///< Pad of the ADC value
-#ifdef TPC_DIGIT_USEFAIRLINKS
-    FairMultiLinkedData    mMCLinks;     ///< MC links
-#else
     // according to event + trackID + sorted according to most probable
     std::map<long, int>    mMCID;        //! Map containing the MC labels (key) and the according number of occurrence (value)
 
@@ -100,16 +83,13 @@ class DigitPad{
     //   unsigned int occurences : 32; // 4G occurrences possible
     // }
     // std::vector<MCID> mMCID;
-#endif
 };
 
 inline
 DigitPad::DigitPad(int pad)
   : mChargePad(0.)
   , mPad(pad)
-#ifdef TPC_DIGIT_USEFAIRLINKS
-  , mMCLinks()
-#endif
+  , mMCID()
 {}
 
 inline 
@@ -117,15 +97,11 @@ void DigitPad::setDigit(size_t trackID, float charge)
 {
   static FairRootManager *mgr = FairRootManager::Instance();
   const int eventID = mgr->GetEntryNr();
-#ifdef TPC_DIGIT_USEFAIRLINKS
-  mMCLinks.AddLink(FairLink(-1, eventID, "MCTrack", trackID));
-#else
   /// the MC ID is encoded such that we can have 999,999 tracks
   /// numbers larger than 1000000 correspond to the event ID
   /// i.e. 12000010 corresponds to event 12 with track ID 10
   /// \todo Faster would be a bit shift
   ++mMCID[(eventID)*1000000 + trackID];
-#endif
   mChargePad += charge;
 }
 
@@ -133,11 +109,7 @@ inline
 void DigitPad::reset()
 {
   mChargePad = 0;
-#ifdef TPC_DIGIT_USEFAIRLINKS
-  mMCLinks.Reset();
-#else
   mMCID.clear();
-#endif
 }
   
 }
