@@ -83,10 +83,13 @@ namespace TPC {
       startTime[i] = startTimeInit[i];
       ADC[i] = ADCinit[i];
     }
+    /// @todo here one should consider to load an exemplary wave form of a real SAMPA pulse (once available) and compare to the outcome of the Digitization
     Vc::float_v adcValue = 55.f*ADC*Vc::exp(-4.f*(time-startTime)/PEAKINGTIME) *(time-startTime)/PEAKINGTIME *(time-startTime)/PEAKINGTIME *(time-startTime)/PEAKINGTIME *(time-startTime)/PEAKINGTIME;
     Vc::float_v signal = sampa.getGamma4(time, startTime, ADC);
     for(int i =0; i<4; ++i) {
-      BOOST_CHECK_CLOSE(signal[i], adcValue[i], 1E-3);
+      float currentSignal = signal[i];
+      float currentADC = adcValue[i];
+      BOOST_CHECK_CLOSE(currentSignal, currentADC, 1E-3);
     }
   }
 }

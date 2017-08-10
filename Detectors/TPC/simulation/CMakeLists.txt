@@ -105,7 +105,7 @@ set(TEST_SRCS
    #test/testTPCDigitContainer.cxx
    test/testTPCElectronTransport.cxx
    test/testTPCGEMAmplification.cxx
-   #test/testTPCSAMPAProcessing.cxx
+   test/testTPCSAMPAProcessing.cxx
    test/testTPCSimulation.cxx
 )
 
