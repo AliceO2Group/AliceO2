@@ -65,7 +65,7 @@ void Config()
 /// (verbose level, global range cut, ..)
 
    TString configm(gSystem->Getenv("VMCWORKDIR"));
-   configm1 = configm + "/Detectors/gconfig/g4config.in";
+   auto configm1 = configm + "/Detectors/gconfig/g4config.in";
 
    //set geant4 specific stuff
   // geant4->SetMaxNStep(10000);  // default is 30000
