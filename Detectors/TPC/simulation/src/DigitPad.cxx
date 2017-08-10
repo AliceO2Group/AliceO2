@@ -32,26 +32,16 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
   const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)));
   if(mADC > 0) {
 
-#ifndef TPC_DIGIT_USEFAIRLINKS
     static std::vector<long> MClabels;
     MClabels.resize(0);
     DigitPad::processMClabels(MClabels);
-#endif
 
     TClonesArray &clref = *output;
     const size_t digiPos = clref.GetEntriesFast();
-    DigitMC *digit = new(clref[digiPos]) DigitMC(
-#ifndef TPC_DIGIT_USEFAIRLINKS
-						 MClabels,
-#endif
-						 cru, mADC, row, pad, timeBin, commonMode);
-#ifdef TPC_DIGIT_USEFAIRLINKS
-    digit->SetLinks(getMCLinks());
-#endif
+    DigitMC *digit = new(clref[digiPos]) DigitMC(MClabels, cru, mADC, row, pad, timeBin, commonMode);
   }
 }
 
-#ifndef TPC_DIGIT_USEFAIRLINKS
 void DigitPad::processMClabels(std::vector<long> &sortedMCLabels) const
 {
   /// Dump the map into a vector of pairs
@@ -63,4 +53,3 @@ void DigitPad::processMClabels(std::vector<long> &sortedMCLabels) const
     sortedMCLabels.emplace_back(aMCIDreversed.first);
   }
 }
-#endif

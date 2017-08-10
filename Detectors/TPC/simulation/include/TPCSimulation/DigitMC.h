@@ -33,9 +33,6 @@ class access;
 namespace o2 {
 namespace TPC {
 
-#ifdef TPC_DIGIT_USEFAIRLINKS
-  using DigitBase = FairTimeStamp;
-#else
   // A minimal (temporary) TimeStamp class, introduced here for
   // reducing memory consumption to a minimum.
   // This can be used only when MCtruth is not done using FairLinks.
@@ -50,7 +47,6 @@ namespace TPC {
     ClassDef(TimeStamp, 1);
   };
   using DigitBase = TimeStamp;
-#endif
 
 /// \class DigitMC
 /// This is the definition of the Monte Carlo Digit object, which is the final entity after Digitization
@@ -64,17 +60,6 @@ class DigitMC : public DigitBase, public Digit {
     /// Default constructor
     DigitMC();
 
-#ifdef TPC_DIGIT_USEFAIRLINKS
-    /// Constructor, initializing values for position, charge, time and common mode
-    /// \param MClabel std::vector containing the MC event and track ID encoded in a long int
-    /// \param cru CRU of the DigitMC
-    /// \param charge Accumulated charge of DigitMC
-    /// \param row Row in which the DigitMC was created
-    /// \param pad Pad in which the DigitMC was created
-    /// \param time Time at which the DigitMC was created
-    /// \param commonMode Common mode signal on that ROC in the time bin of the DigitMC. If not assigned, it is set to zero.
-    DigitMC(int cru, float charge, int row, int pad, int time, float commonMode = 0.f);
-#else
     /// Constructor, initializing values for position, charge, time and common mode
     /// \param MClabel std::vector containing the MC event and track ID encoded in a long int
     /// \param cru CRU of the DigitMC
@@ -84,7 +69,6 @@ class DigitMC : public DigitBase, public Digit {
     /// \param time Time at which the DigitMC was created
     /// \param commonMode Common mode signal on that ROC in the time bin of the DigitMC. If not assigned, it is set to zero.
     DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time, float commonMode = 0.f);
-#endif
 
     /// Destructor
     ~DigitMC() override = default;
@@ -97,13 +81,26 @@ class DigitMC : public DigitBase, public Digit {
     /// \return common mode signal of the DigitMC
     float getCommonMode() const { return mCommonMode; }
 
+    /// Get the number of MC labels associated to the DigitMC
+    /// \return Number of MC labels associated to the DigitMC
+    size_t getNumberOfMClabels() const { return mMClabel.size(); }
+
+    /// Get a specific MC Event ID
+    /// \param iOccurrence Sorted by occurrence, i.e. for iOccurrence=0 the MC event ID of the most dominant track
+    /// \return MC Event ID
+    int getMCEvent(int iOccurrence) const { return static_cast<int>(mMClabel[iOccurrence]*1E-6); }
+
+    /// Get a specific MC Track ID
+    /// \param iOccurrence Sorted by occurrence, i.e. for iOccurrence=0 the MC ID of the most dominant track
+    /// \return MC Track ID
+    int getMCTrack(int iOccurrence) const { return static_cast<int>((mMClabel[iOccurrence])%int(1E6)); }
+
   private:
     #ifndef __CINT__
     friend class boost::serialization::access;
     #endif
-#ifndef TPC_DIGIT_USEFAIRLINKS
+
     std::vector<long>       mMClabel;         ///< MC truth information to (multiple) event ID and track ID encoded in a long
-#endif
     float                   mCommonMode;      ///< Common mode value of the DigitMC
       
   ClassDefOverride(DigitMC, 3);
@@ -114,19 +111,9 @@ DigitMC::DigitMC()
   : DigitBase()
   , Digit(-1, -1.f, -1, -1)
   , mCommonMode(0.f)
-#ifndef TPC_DIGIT_USEFAIRLINKS
   , mMClabel()
-#endif
   {}
 
-#ifdef TPC_DIGIT_USEFAIRLINKS
-inline
-DigitMC::DigitMC(int cru, float charge, int row, int pad, int time, float commonMode)
-  : DigitBase(time)
-  , Digit(cru, charge, row, pad)
-  , mCommonMode(commonMode)
-{}
-#else
 inline
 DigitMC::DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time, float commonMode)
   : DigitBase(time)
@@ -134,7 +121,6 @@ DigitMC::DigitMC(std::vector<long> const &MClabel, int cru, float charge, int ro
   , mMClabel(MClabel)
   , mCommonMode(commonMode)
 {}
-#endif
 
 }
 }
