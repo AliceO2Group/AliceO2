@@ -26,7 +26,7 @@ GeneratorFromFile::GeneratorFromFile(const char* name)
 {
   mEventFile = TFile::Open(name);
   if (mEventFile == nullptr) {
-    LOG(ERROR) << "EventFile " << name << " not found \n";
+    LOG(FATAL) << "EventFile " << name << " not found \n";
     return;
   }
   // the kinematics will be stored inside a Tree "TreeK" with branch "Particles"

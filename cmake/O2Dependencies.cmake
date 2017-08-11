@@ -231,6 +231,18 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    configuration_bucket
+
+    DEPENDENCIES
+    common_boost_bucket
+    root_base_bucket
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
     CCDB_bucket
 
     DEPENDENCIES
@@ -883,4 +895,24 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include
+)
+
+# a bucket for "global" executables/macros
+o2_define_bucket(
+    NAME
+    run_bucket
+
+    DEPENDENCIES
+    #-- buckets follow
+    fairroot_base_bucket 
+
+    #-- precise modules follow
+    Configuration
+    DetectorsPassive
+    TPCSimulation
+    TRDSimulation
+    EMCALSimulation
+    TOFSimulation
+    Field
+    Generators
 )
