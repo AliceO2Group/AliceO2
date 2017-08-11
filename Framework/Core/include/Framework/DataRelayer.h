@@ -19,6 +19,8 @@
 namespace o2 {
 namespace framework {
 
+class MetricsService;
+
 class DataRelayer {
 public:
   enum RelayChoice {
@@ -51,7 +53,7 @@ public:
     std::vector<PartRef> readyInputs;
   };
 
-  DataRelayer(const InputsMap &, const ForwardsMap&);
+  DataRelayer(const InputsMap &, const ForwardsMap&, MetricsService &);
 
   RelayChoice relay(std::unique_ptr<FairMQMessage> &&header,
                     std::unique_ptr<FairMQMessage> &&payload);
@@ -70,6 +72,7 @@ private:
   };
   InputsMap mInputs;
   ForwardsMap mForwards;
+  MetricsService &mMetrics;
   std::vector<PartRef> mCache;
   std::vector<CompletionMask> mCompletion;
   std::vector<bool> mForwardingMask;

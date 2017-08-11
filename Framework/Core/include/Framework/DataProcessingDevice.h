@@ -29,6 +29,7 @@ public:
   void InitTask() override final;
 protected:
   bool HandleData(FairMQParts &parts, int index);
+  void error(const char *msg);
 private:
   DataProcessorSpec::InitCallback mInit;
   DataProcessorSpec::ProcessCallback mProcess;
@@ -41,6 +42,8 @@ private:
 
   std::vector<ChannelSpec> mChannels;
   std::map<std::string, InputSpec> mInputs;
+  std::map<std::string, InputSpec> mForwards;
+  int mErrorCount;
 };
 
 }

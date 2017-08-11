@@ -42,6 +42,7 @@ DataAllocator::newChunk(DataOrigin origin, DataDescription description, SubSpeci
   FairMQParts parts;
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0, sizeof(Header::DataHeader));
   Header::DataHeader *header = reinterpret_cast<Header::DataHeader*>(headerMessage->GetData());
+  header->magicStringInt = o2::Header::BaseHeader::sMagicString;
   header->dataOrigin = origin;
   header->dataDescription = description;
   header->subSpecification = subSpec;

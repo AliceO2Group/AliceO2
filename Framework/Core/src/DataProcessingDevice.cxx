@@ -7,24 +7,31 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ChannelMatching.h"
 #include "Framework/DataProcessingDevice.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/MetricsService.h"
 #include <fairmq/FairMQParts.h>
 
 using namespace o2::framework;
 
+using DataHeader = o2::Header::DataHeader;
+
 namespace o2 {
 namespace framework {
 
-DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec, ServiceRegistry &registry)
+DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
+                                           ServiceRegistry &registry)
 : mInit{spec.init},
   mProcess{spec.process},
   mError{spec.onError},
   mChannels{spec.channels},
   mAllocator{this, &mContext, spec.outputs},
-  mRelayer{spec.inputs, spec.forwards},
+  mRelayer{spec.inputs, spec.forwards, registry.get<MetricsService>()},
   mInputs{spec.inputs},
-  mServiceRegistry{registry}
+  mForwards{spec.forwards},
+  mServiceRegistry{registry},
+  mErrorCount{0}
 {
 }
 
@@ -67,7 +74,7 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
   }
 
   if (parts.Size() % 2) {
-    LOG(ERROR) << "Parts should come in couples. Dropping it.";
+    error("Parts should come in couples. Dropping it.");
     return true;
   }
 
@@ -80,20 +87,33 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
     auto relayed = mRelayer.relay(std::move(parts.At(headerIndex)),
                                   std::move(parts.At(payloadIndex)));
     if (relayed == DataRelayer::WillNotRelay) {
-      LOG(DEBUG) << "Unable to relay part.";
+      error("Unable to relay part.");
+      return true;
     }
     LOG(DEBUG) << "Relaying part idx: " << headerIndex;
+    assert(mRelayer.getCacheSize() > 0);
   }
 
+  // Notice that compleated represent ONE set of complete
+  // inputs because an incoming message can complete only 
+  // one pending set of inputs.
+  // FIXME: is the above true?!?!?!
   LOG(DEBUG) << "Getting parts to process";
   auto completed = mRelayer.getReadyToProcess();
 
-  metricsService.post("inputs/relayed/complete", (int)completed.readyInputs.size());
   metricsService.post("inputs/relayed/pending", (int)mRelayer.getCacheSize());
+  if (completed.readyInputs.empty()) {
+    metricsService.post("inputs/relayed/incomplete", 1);
+    return true;
+  }
 
   assert(!mInputs.empty());
-  if (completed.readyInputs.size() % mInputs.size()) {
-    LOG(ERROR) << "Number of parts should match the inputs. Dropping.";
+  if (completed.readyInputs.size() != mInputs.size()) {
+    std::ostringstream err;
+    err << "Number of parts (" << completed.readyInputs.size()
+        << ") should match the declared inputs ("
+        << mInputs.size() << "). Dropping.";
+    error(err.str().c_str());
     return true;
   }
 
@@ -106,41 +126,88 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
     inputs.push_back(std::move(DataRef{nullptr,
                                reinterpret_cast<char *>(readyParts.header->GetData()),
                                reinterpret_cast<char *>(readyParts.payload->GetData())}));
-    if (inputs.size() < mInputs.size()) {
+  }
+
+  // The above check should enforce this, which
+  // should never happen.
+  assert(inputs.size() == mInputs.size());
+  mContext.clear();
+
+  // If we are here, we have a complete set of inputs,
+  // therefore we dispatch the calculation, if available.
+  // After the computation is done, we get the output message
+  // context and we send the messages we find in it.
+  try {
+    if (mProcess) {
+      LOG(DEBUG) << "PROCESSING:START";
+      mProcess(inputs, mServiceRegistry, mAllocator);
+      LOG(DEBUG) << "PROCESSING:END";
+      for (auto &message : mContext) {
+        metricsService.post("output/parts", message.parts.Size());
+        assert(message.parts.Size() == 2);
+        FairMQParts outParts = std::move(message.parts);
+        assert(message.parts.Size() == 0);
+        assert(outParts.Size() == 2);
+        assert(outParts.At(0)->GetSize() == 80);
+        this->Send(outParts, message.channel, message.index);
+        assert(outParts.Size() == 2);
+      }
+    }
+  } catch(std::exception &e) {
+    LOG(DEBUG) << "Exception caught" << e.what() << std::endl;
+    if (mError) {
+      metricsService.post("error", 1);
+      mError(inputs, mServiceRegistry, e);
+    }
+  }
+
+  // Do the forwarding. We check if any of the inputs
+  // should be forwarded elsewhere.
+  // FIXME: do it in a smarter way than O(N^2)
+  LOG(DEBUG) << "FORWARDING:START";
+  for (auto &input : completed.readyInputs) {
+    assert(input.header);
+    assert(input.header->GetSize() == 80);
+    //auto h = o2::Header::get<DataHeader>(input.header->GetData());
+    auto h = reinterpret_cast<DataHeader*>(input.header->GetData());
+    if (!h) {
+      error("Header is not a DataHeader?");
       continue;
     }
-    mContext.clear();
-
-    // If we are here, we have a complete set of inputs,
-    // therefore we dispatch the calculation
-    try {
-      if (mProcess) {
-        LOG(DEBUG) << "Processing started";
-        mProcess(inputs, mServiceRegistry, mAllocator);
-        LOG(DEBUG) << "Processing ended";
-        for (auto &message : mContext) {
-          metricsService.post("output/parts", message.parts.Size());
-          assert(message.parts.Size() == 2);
-          FairMQParts outParts = std::move(message.parts);
-          assert(message.parts.Size() == 0);
-          assert(outParts.Size() == 2);
-          assert(outParts.At(0)->GetSize() == 80);
-          this->Send(outParts, message.channel, message.index);
-          assert(outParts.Size() == 2);
-        }
+    for (auto forward : mForwards) {
+      // This should check if any of the parts can be forwarded and
+      // where. 
+      if (strncmp(h->magicString, "O2O2", 4)) {
+        error("Could not find magic string");
       }
-    } catch(std::exception &e) {
-      LOG(DEBUG) << "Exception caught" << e.what() << std::endl;
-      if (mError) {
-        metricsService.post("error", 1);
-        mError(inputs, mServiceRegistry, e);
+      LOG(DEBUG) << "Input part content";
+      LOG(DEBUG) << h->dataOrigin.str;
+      LOG(DEBUG) << h->dataDescription.str;
+      LOG(DEBUG) << h->subSpecification;
+      if (DataSpecUtils::match(forward.second, h->dataOrigin,
+                               h->dataDescription,
+                               h->subSpecification)) {
+        LOG(DEBUG) << "Forwarding data to " << forward.first;
+        FairMQParts forwardedParts;
+        forwardedParts.AddPart(std::move(input.header));
+        forwardedParts.AddPart(std::move(input.payload));
+        // FIXME: this should use a correct subchannel
+        this->Send(forwardedParts, forward.first, 0);
       }
     }
-    // FIXME: do forwarding
-    // Once we are done, we can start processing a new set of inputs.
-    inputs.clear();
   }
+  LOG(DEBUG) << "FORWARDING:END";
+
+  // Once we are done, we can start processing a new set of inputs.
+  inputs.clear();
   return true;
+}
+
+void
+DataProcessingDevice::error(const char *msg) {
+  LOG(ERROR) << msg;
+  mErrorCount++;
+  mServiceRegistry.get<MetricsService>().post("dataprocessing/errors", mErrorCount);
 }
 
 } // namespace framework

@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "FairMQDevice.h"
+#include "Framework/ChannelMatching.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSourceDevice.h"
@@ -180,49 +181,6 @@ int doParent(fd_set *in_fdset,
     //        passed.
   }
   return 0;
-}
-
-struct LogicalChannel {
-  std::string name;
-  bool operator<(LogicalChannel const&other) const {
-    return this->name < other.name;
-  }
-};
-
-
-struct PhysicalChannel {
-  std::string id;
-  bool operator<(PhysicalChannel const&other) const {
-    return this->id < other.id;
-  }
-};
-
-LogicalChannel outputSpec2LogicalChannel(const OutputSpec &spec) {
-  return LogicalChannel{std::string("out_") + spec.origin.str + "_" + spec.description.str};
-}
-
-PhysicalChannel outputSpec2PhysicalChannel(const OutputSpec &spec, int count) {
-  char buffer[16];
-  auto channel = outputSpec2LogicalChannel(spec);
-  return PhysicalChannel{channel.name + (snprintf(buffer, 16, "_%d", count), buffer)};
-}
-
-LogicalChannel inputSpec2LogicalChannelMatcher(const InputSpec &spec) {
-  return LogicalChannel{std::string("out_") + spec.origin.str + "_" + spec.description.str};
-}
-
-PhysicalChannel inputSpec2PhysicalChannelMatcher(const InputSpec&spec, int count) {
-  char buffer[16];
-  auto channel = inputSpec2LogicalChannelMatcher(spec);
-  return PhysicalChannel{channel.name + (snprintf(buffer, 16, "_%d", count), buffer)};
-}
-
-/// @return true if a given DataSpec can use the provided channel.
-/// FIXME: for the moment we require a full match, however matcher could really be
-///        a *-expression or even a regular expression.
-bool matchDataSpec2Channel(const InputSpec &spec, const LogicalChannel &channel) {
-  auto matcher = inputSpec2LogicalChannelMatcher(spec);
-  return matcher.name == channel.name;
 }
 
 // Construct the list of actual devices we want, given a workflow.

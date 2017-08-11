@@ -243,6 +243,9 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
   }
 
   return [&infos, &devices, &controls, &metricsInfos]() {
+    ImGuiStyle &style = ImGui::GetStyle();
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
+
     displayDeviceHistograms(infos, devices, controls, metricsInfos);
     for (size_t i = 0; i < gState.devices.size(); ++i) {
       DeviceGUIState &state = gState.devices[i];
