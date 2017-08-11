@@ -14,11 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TPC::GlobalPosition2D;
-#pragma link C++ class o2::TPC::GlobalPosition3D;
-#pragma link C++ class o2::TPC::LocalPosition2D;
-#pragma link C++ class o2::TPC::LocalPosition3D;
-
 #pragma link C++ class o2::TPC::CalArray<float>+;
 #pragma link C++ class o2::TPC::CalArray<double>+;
 #pragma link C++ class o2::TPC::CalArray<int>+;
@@ -37,7 +32,6 @@
 #pragma link C++ class o2::TPC::DigitPos;
 #pragma link C++ class o2::TPC::FECInfo;
 #pragma link C++ class o2::TPC::Mapper;
-#pragma link C++ class o2::TPC::PadCentre;
 #pragma link C++ class o2::TPC::PadInfo;
 #pragma link C++ class o2::TPC::PadPos;
 #pragma link C++ class o2::TPC::PadRegionInfo;
