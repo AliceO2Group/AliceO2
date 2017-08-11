@@ -21,12 +21,10 @@
 namespace o2 {
 namespace TPC {
 
-
 /// \class DigitMCMetaData
-/// This is the definition of the Monte Carlo Digit object, which is the final entity after Digitization
-/// Its coordinates are defined by the CRU, the time bin, the pad row and the pad.
-/// It holds the ADC value of a given pad on the pad plane.
-/// Additional information attached to it are the MC label of the contributing tracks
+/// This is the definition of the Meta Data object of the Monte Carlo Digit
+/// It holds auxilliary information relevant for debugging:
+/// ADC value, Common Mode, Pedestal and Noise
 
 class DigitMCMetaData : public TObject {
   public:
@@ -42,7 +40,7 @@ class DigitMCMetaData : public TObject {
     DigitMCMetaData(float ADC, float commonMode, float pedestal, float noise);
 
     /// Destructor
-    virtual ~DigitMCMetaData() = default;
+    ~DigitMCMetaData() final = default;
 
     /// Get the raw ADC value
     /// \return Raw ADC value of the corresponding DigitMC (before saturation)
