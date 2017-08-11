@@ -30,15 +30,6 @@ void DigitRow::setDigit(size_t hitID, int pad, float charge)
   }
 }
 
-
-void DigitRow::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row)
-{
-  for(auto &aPad : mPads) {
-    if(aPad == nullptr) continue;
-    aPad->fillOutputContainer(output, cru, timeBin, row, aPad->getPad());
-  }
-}
-
 void DigitRow::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, float commonMode)
 {
   for(auto &aPad : mPads) {

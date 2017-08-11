@@ -117,7 +117,7 @@ namespace TPC {
       BOOST_CHECK(digit->getTimeStamp() == Time[digits]);
       BOOST_CHECK(digit->getRow() == Row[digits]);
       BOOST_CHECK(digit->getPad() == Pad[digits]);
-      BOOST_CHECK(digit->getCharge() == static_cast<int>(sampa.getADCSaturation(nEleSum)));
+      BOOST_CHECK(digit->getCharge() == static_cast<int>(sampa.getADCSaturation(nEleSum - digit->getCommonMode())));
       ++digits;
     }
 

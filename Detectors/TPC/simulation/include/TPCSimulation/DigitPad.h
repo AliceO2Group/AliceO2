@@ -19,7 +19,6 @@
 #include <map>
 
 #include "FairRootManager.h"
-#include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
 
 namespace o2 {
@@ -62,7 +61,7 @@ class DigitPad{
     /// \param timeBin Time bin
     /// \param row Row ID
     /// \param pad pad ID
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode = 0);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode = 0.f);
 
   private:
     /// The MC labels are sorted by occurrence such that the event/track combination with the largest number of occurrences is first

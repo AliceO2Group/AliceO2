@@ -33,24 +33,8 @@ void DigitTime::setDigit(size_t hitID, int cru, int row, int pad, float charge)
   mTotalChargeTimeBin+=charge;
 }
 
-void DigitTime::fillOutputContainer(TClonesArray *output, int cru, int timeBin)
+void DigitTime::fillOutputContainer(TClonesArray *output, int cru, int timeBin, float commonMode)
 {
-  for(auto &aRow : mRows) {
-    if(aRow == nullptr) continue;
-    aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow());
-  }
-}
-
-void DigitTime::fillOutputContainer(TClonesArray *output, int cru, int timeBin, std::vector<CommonMode> &commonModeContainer)
-{
-  float commonMode =0;
-  for (auto &aCommonMode :commonModeContainer){
-    if(aCommonMode.getCRU() == cru && aCommonMode.getTimeBin() == timeBin) {
-      commonMode = aCommonMode.getCommonMode();
-      break;
-    }
-  }
-
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow(), commonMode);

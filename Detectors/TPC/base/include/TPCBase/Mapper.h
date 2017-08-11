@@ -274,6 +274,27 @@ public:
   static const unsigned short getPadsInOROC  () { return mPadsInOROC  ; }
   static const unsigned short getPadsInSector() { return mPadsInSector; }
 
+  const unsigned short getNumberOfPads(const GEMstack gemStack) const {
+    switch (gemStack) {
+    case IROCgem: {
+      return getPadsInIROC();
+      break;
+    }
+    case OROC1gem: {
+      return getPadsInOROC1();
+      break;
+    }
+    case OROC2gem: {
+      return getPadsInOROC2();
+      break;
+    }
+    case OROC3gem: {
+      return getPadsInOROC3();
+      break;
+    }
+    }
+  }
+
 //   bool loadFECInfo();
 //   bool loadTraceLengh();
 //   bool loadPositions();

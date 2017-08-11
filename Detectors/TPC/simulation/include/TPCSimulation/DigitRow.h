@@ -69,14 +69,7 @@ class DigitRow{
     /// \param cru CRU
     /// \param timeBin Time bin
     /// \param row Row
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row);
-
-    /// Fill output TClonesArray
-    /// \param output Output container
-    /// \param cru CRU
-    /// \param timeBin Time bin
-    /// \param row Row
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, float commonMode);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, float commonMode = 0.f);
 
   private:
     unsigned char          mRow;                ///< Row of the ADC value

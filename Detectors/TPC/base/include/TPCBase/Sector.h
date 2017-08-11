@@ -68,7 +68,7 @@ class Sector
 
     /// int return operator to use similar as integer
     /// \return sector number
-    operator int() { return int(mSector); }
+    operator int() const { return int(mSector); }
 
     /// assignment operator with int
     Sector& operator=(int sector) { mSector=sector%MAXSECTOR; return *this; }

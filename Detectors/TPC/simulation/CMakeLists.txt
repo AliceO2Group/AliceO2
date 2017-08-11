@@ -12,7 +12,7 @@ set(SRCS
    src/Clusterer.cxx
    src/ClusterContainer.cxx
    src/ClustererTask.cxx
-   src/CommonMode.cxx
+   src/CommonModeContainer.cxx
    src/Detector.cxx
    src/DigitMC.cxx
    src/DigitContainer.cxx
@@ -41,7 +41,7 @@ set(HEADERS
    include/${MODULE_NAME}/Clusterer.h
    include/${MODULE_NAME}/ClusterContainer.h
    include/${MODULE_NAME}/ClustererTask.h
-   include/${MODULE_NAME}/CommonMode.h
+   include/${MODULE_NAME}/CommonModeContainer.h
    include/${MODULE_NAME}/Detector.h
    include/${MODULE_NAME}/DigitMC.h
    include/${MODULE_NAME}/DigitContainer.h
@@ -102,6 +102,7 @@ foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lis
 endforeach (_file RANGE 0 ${_length})
 
 set(TEST_SRCS
+   test/testTPCCommonMode.cxx
    test/testTPCDigitContainer.cxx
    test/testTPCElectronTransport.cxx
    test/testTPCGEMAmplification.cxx

@@ -16,7 +16,6 @@
 #define ALICEO2_TPC_DigitTime_H_
 
 #include "TPCSimulation/DigitRow.h"
-#include "TPCSimulation/CommonMode.h"
 
 class TClonesArray;
 
@@ -74,13 +73,7 @@ class DigitTime{
     /// \param output Output container
     /// \param cru CRU
     /// \param timeBin Time bin
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin);
-
-    /// Fill output TClonesArray
-    /// \param output Output container
-    /// \param cru CRU
-    /// \param timeBin Time bin
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, std::vector<CommonMode> &commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, float commonMode = 0.f);
 
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
