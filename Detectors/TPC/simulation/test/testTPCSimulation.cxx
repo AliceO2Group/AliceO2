@@ -43,15 +43,21 @@ namespace TPC {
   /// Precision: 1E-12 %
   BOOST_AUTO_TEST_CASE(DigitMC_test)
   {
-    /*
-    DigitMC testdigit(1, 2.f, 3, 4, 5, 6.f);
+    const std::vector<long> testMC = {{1000001, 2000002, 3000033}};
+    DigitMC testdigit(testMC, 1, 2.f, 3, 4, 5, 6.f);
     BOOST_CHECK(testdigit.getCRU() == 1);
-    BOOST_CHECK_CLOSE(testdigit.getCharge(),2.f,1E-12);
+    BOOST_CHECK_CLOSE(testdigit.getCharge(), 2.f, 1E-12);
     BOOST_CHECK(testdigit.getRow() == 3);
     BOOST_CHECK(testdigit.getPad() == 4);
-    BOOST_CHECK_CLOSE(testdigit.getTimeStamp(), 5.f, 1E-12);
+    BOOST_CHECK(testdigit.getTimeStamp() == 5);
     BOOST_CHECK_CLOSE(testdigit.getCommonMode(),6.f,1E-12);
-    */
+    BOOST_CHECK(testdigit.getNumberOfMClabels() == testMC.size());
+    BOOST_CHECK(testdigit.getMCEvent(0) == 1);
+    BOOST_CHECK(testdigit.getMCEvent(1) == 2);
+    BOOST_CHECK(testdigit.getMCEvent(2) == 3);
+    BOOST_CHECK(testdigit.getMCTrack(0) == 1);
+    BOOST_CHECK(testdigit.getMCTrack(1) == 2);
+    BOOST_CHECK(testdigit.getMCTrack(2) == 33);
   }
 }
 }
