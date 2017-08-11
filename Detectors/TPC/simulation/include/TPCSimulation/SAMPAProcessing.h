@@ -55,7 +55,7 @@ class SAMPAProcessing
     /// \param ADCcounts ADC value of the signal (common mode already subtracted)
     /// \param padSecPos PadSecPos of the signal
     /// \return ADC value after application of noise, pedestal and saturation
-    static float makeSignal(float ADCcounts, const PadSecPos &padSecPos);
+    static float makeSignal(float ADCcounts, const PadSecPos &padSecPos, float &pedestal, float &noise);
 
     /// A delta signal is shaped by the FECs and thus spread over several time bins
     /// This function returns an array with the signal spread into the following time bins
@@ -95,15 +95,16 @@ T SAMPAProcessing::getADCvalue(T nElectrons)
 }
 
 inline
-float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos)
+float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos, float &pedestal, float &noise)
 {
   SAMPAProcessing &sampa = SAMPAProcessing::instance();
   static Baseline baseline;
   float signal = ADCcounts;
   /// \todo Pedestal to be implemented in baseline class
-//  signal += baseline.getPedestal(padSecPos);
-  //signal += 70.f;
-  //signal += baseline.getNoise(padSecPos);
+//  pedestal = baseline.getPedestal(padSecPos);
+  noise = baseline.getNoise(padSecPos);
+//  signal += noise;
+//  signal += pedestal;
   return sampa.getADCSaturation(signal);
 }
 

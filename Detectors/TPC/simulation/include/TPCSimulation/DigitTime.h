@@ -71,9 +71,11 @@ class DigitTime{
 
     /// Fill output TClonesArray
     /// \param output Output container
-    /// \param cru CRU
+    /// \param debug Optional debug output container
+    /// \param cru CRU ID
     /// \param timeBin Time bin
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, float commonMode = 0.f);
+    /// \param commonMode Common mode value of that specific ROC
+    void fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int timeBin, float commonMode = 0.f);
 
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin

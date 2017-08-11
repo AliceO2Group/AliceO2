@@ -68,7 +68,7 @@ class DigitMC : public DigitBase, public Digit {
     /// \param pad Pad in which the DigitMC was created
     /// \param time Time at which the DigitMC was created
     /// \param commonMode Common mode signal on that ROC in the time bin of the DigitMC. If not assigned, it is set to zero.
-    DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time, float commonMode = 0.f);
+    DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time);
 
     /// Destructor
     ~DigitMC() override = default;
@@ -76,10 +76,6 @@ class DigitMC : public DigitBase, public Digit {
     /// Get the timeBin of the DigitMC
     /// \return timeBin of the DigitMC
     int getTimeStamp() const final { return static_cast<int>(DigitBase::GetTimeStamp()); };
-
-    /// Get the common mode signal of the DigitMC
-    /// \return common mode signal of the DigitMC
-    float getCommonMode() const { return mCommonMode; }
 
     /// Get the number of MC labels associated to the DigitMC
     /// \return Number of MC labels associated to the DigitMC
@@ -101,7 +97,6 @@ class DigitMC : public DigitBase, public Digit {
     #endif
 
     std::vector<long>       mMClabel;         ///< MC truth information to (multiple) event ID and track ID encoded in a long
-    float                   mCommonMode;      ///< Common mode value of the DigitMC
       
   ClassDefOverride(DigitMC, 3);
 };
@@ -110,16 +105,14 @@ inline
 DigitMC::DigitMC()
   : DigitBase()
   , Digit(-1, -1.f, -1, -1)
-  , mCommonMode(0.f)
   , mMClabel()
   {}
 
 inline
-DigitMC::DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time, float commonMode)
+DigitMC::DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time)
   : DigitBase(time)
   , Digit(cru, charge, row, pad)
   , mMClabel(MClabel)
-  , mCommonMode(commonMode)
 {}
 
 }

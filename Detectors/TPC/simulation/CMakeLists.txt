@@ -15,6 +15,7 @@ set(SRCS
    src/CommonModeContainer.cxx
    src/Detector.cxx
    src/DigitMC.cxx
+   src/DigitMCMetaData.cxx
    src/DigitContainer.cxx
    src/DigitCRU.cxx
    src/Digitizer.cxx
@@ -44,6 +45,7 @@ set(HEADERS
    include/${MODULE_NAME}/CommonModeContainer.h
    include/${MODULE_NAME}/Detector.h
    include/${MODULE_NAME}/DigitMC.h
+   include/${MODULE_NAME}/DigitMCMetaData.h
    include/${MODULE_NAME}/DigitContainer.h
    include/${MODULE_NAME}/DigitCRU.h
    include/${MODULE_NAME}/Digitizer.h

@@ -62,6 +62,7 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isCont
         // Setup digitizer
         o2::TPC::DigitizerTask *digiTPC = new o2::TPC::DigitizerTask;
         digiTPC->setContinuousReadout(isContinuous);
+        digiTPC->setDebugOutput("DigitMCDebug");
 
         run->AddTask(digiTPC);
 

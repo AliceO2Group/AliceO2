@@ -39,9 +39,11 @@ DigitizerTask::DigitizerTask(int sectorid)
   , mDigitContainer(nullptr)
   , mPointsArray(nullptr)
   , mDigitsArray(nullptr)
+  , mDigitsDebugArray(nullptr)
   , mHitFileName()
   , mTimeBinMax(1000000)
   , mIsContinuousReadout(true)
+  , mDigitDebugOutput(false)
   , mHitSector(sectorid)
 {
   /// \todo get rid of new
@@ -52,10 +54,8 @@ DigitizerTask::DigitizerTask(int sectorid)
 DigitizerTask::~DigitizerTask()
 {
   delete mDigitizer;
-  if (mDigitsArray){
-    delete mDigitsArray;
-  }
-
+  delete mDigitsArray;
+  delete mDigitsDebugArray;
   if (mHitFileName.c_str()) {
     mPointsArray->Delete();
     delete mPointsArray;
@@ -104,6 +104,11 @@ InitStatus DigitizerTask::Init()
   mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
   mDigitsArray->BypassStreamer(true);
   mgr->Register("TPCDigitMC", "TPC", mDigitsArray, kTRUE);
+  if(mDigitDebugOutput) {
+    mDigitsDebugArray = new TClonesArray("o2::TPC::DigitMCMetaData");
+    mDigitsDebugArray->BypassStreamer(true);
+    mgr->Register("TPCDigitMCMetaData", "TPC", mDigitsDebugArray, kTRUE);
+  }
   
   mDigitizer->init();
   mDigitContainer = mDigitizer->getDigitContainer();
@@ -121,6 +126,9 @@ void DigitizerTask::Exec(Option_t *option)
 
   LOG(DEBUG) << "Running digitization on new event at time bin " << eventTime << FairLogger::endl;
   mDigitsArray->Delete();
+  if(mDigitDebugOutput) {
+    mDigitsDebugArray->Delete();
+  }
 
 #ifdef TPC_GROUPED_HITS
 
@@ -139,7 +147,7 @@ void DigitizerTask::Exec(Option_t *option)
 #else
   mDigitContainer = mDigitizer->Process(mPointsArray);
 #endif
-  mDigitContainer->fillOutputContainer(mDigitsArray, eventTime, mIsContinuousReadout);
+  mDigitContainer->fillOutputContainer(mDigitsArray, mDigitsDebugArray, eventTime, mIsContinuousReadout);
 }
 
 void DigitizerTask::FinishTask()
@@ -148,7 +156,10 @@ void DigitizerTask::FinishTask()
   FairRootManager *mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   mDigitsArray->Delete();
-  mDigitContainer->fillOutputContainer(mDigitsArray, mTimeBinMax, mIsContinuousReadout);
+  if(mDigitDebugOutput) {
+    mDigitsDebugArray->Delete();
+  }
+  mDigitContainer->fillOutputContainer(mDigitsArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
 }
 
 void DigitizerTask::fillHitArrayFromFile()
