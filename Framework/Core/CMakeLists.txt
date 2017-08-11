@@ -16,7 +16,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 if (GLFW_FOUND)
   set(GUI_SOURCES src/FrameworkGUIDebugger.cxx)
 else()
-  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
+  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx src/DummyDebugGUI.cxx)
 endif()
 
 set(SRCS
