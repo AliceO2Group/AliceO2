@@ -45,6 +45,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+
 #include "fairmq/tools/runSimpleMQStateMachine.h"
 
 using namespace o2::framework;
@@ -111,7 +112,7 @@ int doParent(fd_set *in_fdset,
     timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 16666; // This should be enough to allow 60 HZ redrawing.
-    FD_COPY(in_fdset, fdset);
+    memcpy(fdset, in_fdset, sizeof(fd_set));
     int numFd = select(maxFd, fdset, NULL, NULL, &timeout);
     if (numFd == 0) {
       continue;
