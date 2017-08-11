@@ -35,11 +35,11 @@ void DigitContainer::addDigit(size_t hitID, int cru, int timeBin, int row, int p
 }
 
 
-void DigitContainer::fillOutputContainer(TClonesArray *output, int eventTime, bool isContinuous)
+void DigitContainer::fillOutputContainer(TClonesArray *output, TClonesArray *debug, int eventTime, bool isContinuous)
 {
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;
-    aCRU->fillOutputContainer(output, aCRU->getCRUID(), eventTime, isContinuous);
+    aCRU->fillOutputContainer(output, debug, aCRU->getCRUID(), eventTime, isContinuous);
     if(!isContinuous) {
       aCRU->reset();
     }

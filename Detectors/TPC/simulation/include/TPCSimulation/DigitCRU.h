@@ -69,8 +69,11 @@ class DigitCRU{
 
     /// Fill output TClonesArray
     /// \param output Output container
+    /// \param debug Optional debug output container
     /// \param cruID CRU ID
-    void fillOutputContainer(TClonesArray *output, int cru, int eventTime=0, bool isContinuous=true);
+    /// \param eventTime time stamp of the event
+    /// \param isContinuous Switch for continuous readout
+    void fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int eventTime=0, bool isContinuous=true);
 
   private:
     int                    mFirstTimeBin;

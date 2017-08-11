@@ -50,6 +50,7 @@ class DigitizerTask : public FairTask{
     /// Sets the debug flags for the sub-tasks
     /// \param debugsString String containing the debug flags
     ///        o PRFdebug - Debug output after application of the PRF
+    ///        o DigitMCDebug - Debug output for the DigitMC
     void setDebugOutput(TString debugString);
 
     /// Switch for triggered / continuous readout
@@ -74,11 +75,13 @@ class DigitizerTask : public FairTask{
       
     TClonesArray        *mPointsArray;  ///< Array of detector hits, passed to the digitization
     TClonesArray        *mDigitsArray;  ///< Array of the Digits, passed from the digitization
+    TClonesArray        *mDigitsDebugArray;  ///< Array of the Digits, for debugging purposes only, passed from the digitization
     
     std::string         mHitFileName;  ///< External hit file exported from AliRoot
 
     int                 mTimeBinMax;   ///< Maximum time bin to be written out
     bool                mIsContinuousReadout; ///< Switch for continuous readout
+    bool                mDigitDebugOutput;    ///< Switch for the debug output of the DigitMC
     int                 mHitSector=-1; ///< which sector to treat
 
     TClonesArray        *mSectorHitsArray[Sector::MAXSECTOR];
@@ -93,6 +96,10 @@ void DigitizerTask::setDebugOutput(TString debugString)
   if (debugString.Contains("PRFdebug")) {
     LOG(INFO) << "Pad response function, ";
     o2::TPC::Digitizer::setPRFDebug();
+  }
+  if (debugString.Contains("DigitMCDebug")) {
+    LOG(INFO) << "DigitMC, ";
+    mDigitDebugOutput = true;
   }
   LOG(INFO) << "\n";
 }

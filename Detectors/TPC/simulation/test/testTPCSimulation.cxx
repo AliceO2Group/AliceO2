@@ -18,6 +18,7 @@
 #include <boost/test/unit_test.hpp>
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/DigitMC.h"
+#include "TPCSimulation/DigitMCMetaData.h"
 
 template <typename T>
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
@@ -44,13 +45,12 @@ namespace TPC {
   BOOST_AUTO_TEST_CASE(DigitMC_test)
   {
     const std::vector<long> testMC = {{1000001, 2000002, 3000033}};
-    DigitMC testdigit(testMC, 1, 2.f, 3, 4, 5, 6.f);
+    DigitMC testdigit(testMC, 1, 2.f, 3, 4, 5);
     BOOST_CHECK(testdigit.getCRU() == 1);
     BOOST_CHECK_CLOSE(testdigit.getCharge(), 2.f, 1E-12);
     BOOST_CHECK(testdigit.getRow() == 3);
     BOOST_CHECK(testdigit.getPad() == 4);
     BOOST_CHECK(testdigit.getTimeStamp() == 5);
-    BOOST_CHECK_CLOSE(testdigit.getCommonMode(),6.f,1E-12);
     BOOST_CHECK(testdigit.getNumberOfMClabels() == testMC.size());
     BOOST_CHECK(testdigit.getMCEvent(0) == 1);
     BOOST_CHECK(testdigit.getMCEvent(1) == 2);
@@ -58,6 +58,17 @@ namespace TPC {
     BOOST_CHECK(testdigit.getMCTrack(0) == 1);
     BOOST_CHECK(testdigit.getMCTrack(1) == 2);
     BOOST_CHECK(testdigit.getMCTrack(2) == 33);
+  }
+
+  /// \brief Trivial test of the initialization of a DigitMCMetaData and its getters
+  /// Precision: 1E-12 %
+  BOOST_AUTO_TEST_CASE(DigitMCMetaData_test)
+  {
+    DigitMCMetaData testdigit(1.f, 2.f, 3.f, 4.f);
+    BOOST_CHECK_CLOSE(testdigit.getRawADC(), 1.f, 1E-12);
+    BOOST_CHECK_CLOSE(testdigit.getCommonMode(), 2.f,1E-12);
+    BOOST_CHECK_CLOSE(testdigit.getPedestal(), 3.f,1E-12);
+    BOOST_CHECK_CLOSE(testdigit.getNoise(), 4.f,1E-12);
   }
 }
 }

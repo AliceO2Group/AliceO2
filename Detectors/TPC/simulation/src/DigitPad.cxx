@@ -18,18 +18,22 @@
 #include "TPCBase/PadSecPos.h"
 #include "TPCBase/CRU.h"
 #include "TPCSimulation/DigitMC.h"
+#include "TPCSimulation/DigitMCMetaData.h"
 
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/bind.hpp>
 
 using namespace o2::TPC;
 
-void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
+void DigitPad::fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode)
 {
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise, pedestals and saturation of the SAMPA
 
-  const float mADC = totalADC; //SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)));
+  float noise = 0.f;
+  float pedestal = 0.f;
+
+  const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)), pedestal, noise);
   if(mADC > 0) {
 
     static std::vector<long> MClabels;
@@ -38,7 +42,12 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
 
     TClonesArray &clref = *output;
     const size_t digiPos = clref.GetEntriesFast();
-    DigitMC *digit = new(clref[digiPos]) DigitMC(MClabels, cru, mADC, row, pad, timeBin, commonMode);
+    new(clref[digiPos]) DigitMC(MClabels, cru, mADC, row, pad, timeBin); /// create DigitMC
+    if(debug!=nullptr) {
+      TClonesArray &clrefDebug = *debug;
+      const size_t digiPosDebug = clrefDebug.GetEntriesFast();
+      new(clrefDebug[digiPosDebug]) DigitMCMetaData(mChargePad, commonMode, pedestal, noise); /// create DigitMCMetaData
+    }
   }
 }
 

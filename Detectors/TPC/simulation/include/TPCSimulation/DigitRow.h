@@ -66,10 +66,12 @@ class DigitRow{
 
     /// Fill output TClonesArray
     /// \param output Output container
-    /// \param cru CRU
+    /// \param debug Optional debug output container
+    /// \param cru CRU ID
     /// \param timeBin Time bin
-    /// \param row Row
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, float commonMode = 0.f);
+    /// \param row Row ID
+    /// \param commonMode Common mode value of that specific ROC
+    void fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int timeBin, int row, float commonMode = 0.f);
 
   private:
     unsigned char          mRow;                ///< Row of the ADC value

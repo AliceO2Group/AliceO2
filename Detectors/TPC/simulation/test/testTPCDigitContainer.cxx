@@ -19,6 +19,7 @@
 #include "TClonesArray.h"
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitMC.h"
+#include "TPCSimulation/DigitMCMetaData.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include <memory>
 
@@ -49,7 +50,7 @@ namespace TPC {
     /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
     /// Usually the mDigitsArray is what is registered to the FairRootManager
     auto *mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
-    digitContainer.fillOutputContainer(mDigitsArray, 1000);
+    digitContainer.fillOutputContainer(mDigitsArray, nullptr, 1000);
 
     BOOST_CHECK(CRU.size() == mDigitsArray->GetEntriesFast());
 
@@ -76,6 +77,7 @@ namespace TPC {
   /// and that the MC labels are right
   BOOST_AUTO_TEST_CASE(DigitContainer_test2)
   {
+    const Mapper& mapper = Mapper::instance();
     const SAMPAProcessing& sampa = SAMPAProcessing::instance();
     static FairRootManager *mgr = FairRootManager::Instance();
     DigitContainer digitContainer;
@@ -101,13 +103,16 @@ namespace TPC {
     /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
     /// Usually the mDigitsArray is what is registered to the FairRootManager
     auto *mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
-    digitContainer.fillOutputContainer(mDigitsArray, 1000);
+    auto *mDigitsDebugArray = new TClonesArray("o2::TPC::DigitMCMetaData");
+    digitContainer.fillOutputContainer(mDigitsArray, mDigitsDebugArray, 1000);
 
     BOOST_CHECK(mDigitsArray->GetEntriesFast() == 1);
+    BOOST_CHECK(mDigitsArray->GetEntriesFast() == mDigitsDebugArray->GetEntriesFast());
 
     int digits = 0;
     for(auto digitsObject : *mDigitsArray) {
       DigitMC *digit = static_cast<DigitMC *>(digitsObject);
+      DigitMCMetaData *digitMetaData = static_cast<DigitMCMetaData *>(mDigitsDebugArray->At(digits));
       BOOST_CHECK(digit->getMCEvent(0) == MCeventSorted[digits]);
       for(int j=0; j<digit->getNumberOfMClabels(); ++j) {
         BOOST_CHECK(digit->getMCEvent(j) == MCeventSorted[j]);
@@ -117,7 +122,8 @@ namespace TPC {
       BOOST_CHECK(digit->getTimeStamp() == Time[digits]);
       BOOST_CHECK(digit->getRow() == Row[digits]);
       BOOST_CHECK(digit->getPad() == Pad[digits]);
-      BOOST_CHECK(digit->getCharge() == static_cast<int>(sampa.getADCSaturation(nEleSum - digit->getCommonMode())));
+      BOOST_CHECK(digit->getCharge() == static_cast<int>(sampa.getADCSaturation(nEleSum - digitMetaData->getCommonMode())));
+      BOOST_CHECK_CLOSE(digitMetaData->getCommonMode(), nEleSum/static_cast<float>(mapper.getPadsInIROC()), 1E-4);
       ++digits;
     }
 
