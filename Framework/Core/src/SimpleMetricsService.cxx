@@ -10,6 +10,8 @@
 #include "Framework/SimpleMetricsService.h"
 #include "FairMQLogger.h"
 
+#include <chrono>
+
 #include <cassert>
 
 namespace o2 {
