@@ -13,10 +13,7 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitContainer.h"
-#include "TPCSimulation/DigitCRU.h"
-#include "TPCSimulation/CommonMode.h"
 #include "TPCBase/Mapper.h"
-#include "TPCBase/CRU.h"
 #include <iostream>
 
 using namespace o2::TPC;
@@ -30,9 +27,11 @@ void DigitContainer::addDigit(size_t hitID, int cru, int timeBin, int row, int p
   }
   else{
     const Mapper& mapper = Mapper::instance();
-    mCRU[cru] = std::unique_ptr<DigitCRU> (new DigitCRU(cru));
+    mCRU[cru] = std::make_unique<DigitCRU>(cru, mCommonModeContainer);
     mCRU[cru]->setDigit(hitID, timeBin, row, pad, charge);
   }
+  /// Take care of the common mode
+  mCommonModeContainer.addDigit(cru, timeBin, charge);
 }
 
 
@@ -45,25 +44,5 @@ void DigitContainer::fillOutputContainer(TClonesArray *output, int eventTime, bo
       aCRU->reset();
     }
   }
-}
-
-void DigitContainer::fillOutputContainer(TClonesArray *output, std::vector<CommonMode> &commonModeContainer)
-{
-  for(auto &aCRU : mCRU) {
-    if(aCRU == nullptr) continue;
-    aCRU->fillOutputContainer(output, aCRU->getCRUID(), commonModeContainer);
-  }
-}
-
-
-void DigitContainer::processCommonMode(std::vector<CommonMode> & commonModeContainer)
-{
-  std::vector<CommonMode> summedCharges(0);
-  for(auto &aCRU : mCRU) {
-    if(aCRU == nullptr) continue;
-    aCRU->processCommonMode(summedCharges, aCRU->getCRUID());
-  }
-  
-  CommonMode c;
-  c.computeCommonMode(summedCharges, commonModeContainer);
+  mCommonModeContainer.cleanUp(eventTime, isContinuous);
 }

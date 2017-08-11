@@ -15,8 +15,8 @@
 #ifndef ALICEO2_TPC_DigitCRU_H_
 #define ALICEO2_TPC_DigitCRU_H_
 
-#include "DigitTime.h"
-#include "CommonMode.h"
+#include "TPCSimulation/DigitTime.h"
+#include "TPCSimulation/CommonModeContainer.h"
 
 #include <deque>
 
@@ -35,7 +35,7 @@ class DigitCRU{
     
     /// Constructor
     /// \param mCRU CRU ID
-    DigitCRU(int mCRU);
+    DigitCRU(int mCRU, CommonModeContainer &commonModeCont);
 
     /// Destructor
     ~DigitCRU() = default;
@@ -72,30 +72,23 @@ class DigitCRU{
     /// \param cruID CRU ID
     void fillOutputContainer(TClonesArray *output, int cru, int eventTime=0, bool isContinuous=true);
 
-    /// Fill output TClonesArray
-    /// \param output Output container
-    /// \param cruID CRU ID
-    void fillOutputContainer(TClonesArray *output, int cru, std::vector<CommonMode> &commonModeContainer);
-
-    /// Process Common Mode Information
-    /// \param output Output container
-    /// \param cruID CRU ID
-    void processCommonMode(std::vector<CommonMode> &, int cru);
-
   private:
     int                    mFirstTimeBin;
     int                    mEffectiveTimeBin;
     int                    mNTimeBins;        ///< Maximal number of time bins in that CRU
     unsigned short         mCRU;              ///< CRU of the ADC value
     std::deque<std::unique_ptr<DigitTime>> mTimeBins;         ///< Time bin Container for the ADC value
+    CommonModeContainer    &mCommonModeContainer; ///< Reference to the common mode container
 };
     
 inline
-DigitCRU::DigitCRU(int CRU)
-  : mFirstTimeBin(0)
-  , mEffectiveTimeBin(0)
-  , mNTimeBins(500)
-  , mCRU(CRU)
+DigitCRU::DigitCRU(int CRU, CommonModeContainer &commonModeCont)
+  : mFirstTimeBin(0),
+    mEffectiveTimeBin(0),
+    mNTimeBins(500),
+    mCRU(CRU),
+    mTimeBins(),
+    mCommonModeContainer(commonModeCont)
 {}
     
 inline 

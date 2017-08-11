@@ -29,7 +29,7 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise, pedestals and saturation of the SAMPA
 
-  const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)));
+  const float mADC = totalADC; //SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)));
   if(mADC > 0) {
 
     static std::vector<long> MClabels;

@@ -54,7 +54,7 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, int eventTime,
     if( ( nProcessedTimeBins + mFirstTimeBin < eventTime ) || !isContinuous) {
       ++nProcessedTimeBins;
       if(aTime == nullptr) continue;
-      aTime->fillOutputContainer(output, cru, aTime->getTimeBin());
+      aTime->fillOutputContainer(output, cru, aTime->getTimeBin(), mCommonModeContainer.getCommonMode(cru, aTime->getTimeBin()));
     }
     else break;
   }
@@ -65,21 +65,4 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, int eventTime,
     }
   }
   if(!isContinuous) mFirstTimeBin = 0;
-}
-
-void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, std::vector<CommonMode> &commonModeContainer)
-{
-  for(auto &aTime : mTimeBins) {
-    if(aTime == nullptr) continue;
-    aTime->fillOutputContainer(output, cru, aTime->getTimeBin(), commonModeContainer);
-  }
-}
-
-void DigitCRU::processCommonMode(std::vector<CommonMode> & commonModeCRU, int cru)
-{
-  for(auto &aTime : mTimeBins) {
-    if(aTime == nullptr) continue;
-    CommonMode commonMode(cru, aTime->getTimeBin(), aTime->getTotalChargeTimeBin());
-    commonModeCRU.emplace_back(commonMode);
-  }
 }

@@ -15,10 +15,9 @@
 #ifndef ALICEO2_TPC_DigitContainer_H_
 #define ALICEO2_TPC_DigitContainer_H_
 
-#include "TPCSimulation/DigitMC.h"
 #include "TPCBase/CRU.h"
 #include "TPCSimulation/DigitCRU.h"
-#include "TPCSimulation/CommonMode.h"
+#include "TPCSimulation/CommonModeContainer.h"
 #include "TPCSimulation/Constants.h"
 
 class TClonesArray;
@@ -63,21 +62,15 @@ class DigitContainer{
     /// \param output Output container
     void fillOutputContainer(TClonesArray *output, int eventTime=0, bool isContinuous=true);
 
-    /// Fill output TClonesArray
-    /// \param output Output container
-    void fillOutputContainer(TClonesArray *output, std::vector<CommonMode> &commonModeContainer);
-
-    /// Process Common Mode Information and sum up all charges in a given CRU and time bin
-    /// \param output Output container
-    void processCommonMode(std::vector<CommonMode> &);
-
   private:
     std::array<std::unique_ptr<DigitCRU> , CRU::MaxCRU> mCRU;   ///< CRU Container for the ADC value
+    CommonModeContainer                                 mCommonModeContainer; ///< Container for the common mode values
 };
 
 inline
 DigitContainer::DigitContainer()
   : mCRU()
+  , mCommonModeContainer()
 {}
 
 
