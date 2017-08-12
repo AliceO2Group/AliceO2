@@ -19,7 +19,6 @@ struct DeviceGUIState {
   std::string label;
 };
 
-
 struct WorkspaceGUIState {
   int selectedMetric;
   std::vector<std::string> availableMetrics;
@@ -105,74 +104,86 @@ struct HistoData {
   const T *points;
 };
 
-bool
-historyBar(DeviceGUIState &state, const DeviceMetricsInfo &metricsInfo) {
+
+void
+historyBar(DeviceGUIState &state,
+           const DeviceSpec &spec,
+           const DeviceMetricsInfo &metricsInfo) {
   bool open = ImGui::TreeNode(state.label.c_str());
+  if (open) {
+    ImGui::Text("# channels: %lu", spec.channels.size());
+    ImGui::TreePop();
+  }
+  ImGui::NextColumn();
 
   if (gState.selectedMetric == -1) {
-    return open;
+    ImGui::NextColumn();
+    return;
   }
 
   auto currentMetricName = gState.availableMetrics[gState.selectedMetric];
-  // FIXME: use binary_search?
-  size_t i = 0;
-  for (; i < metricsInfo.metricLabelsIdx.size(); ++i) {
-    auto &metricName = metricsInfo.metricLabelsIdx[i];
-    if (metricName.first == currentMetricName) {
-      break;
-    }
-  }
+
+  size_t i = metricIdxByName(currentMetricName, metricsInfo);
   // We did not find any plot, skipping this.
   if (i == metricsInfo.metricLabelsIdx.size()) {
-    return open;
+    ImGui::NextColumn();
+    return;
   }
   auto &metric = metricsInfo.metrics[i];
+  //assert(metricsInfo.metricLabelsIdx[i].first == currentMetricName);
 
   switch(metric.type) {
     case MetricType::Int:
       {
         HistoData<int> data;
-        data.mod = metricsInfo.timestamps[metric.storeIdx].size();
+        data.mod = metricsInfo.timestamps[i].size();
         data.first = metric.pos - data.mod;
         data.size = metricsInfo.intMetrics[metric.storeIdx].size();
         data.points = metricsInfo.intMetrics[metric.storeIdx].data();
 
         auto getter = [](void *hData, int idx) -> float {
           auto histoData = reinterpret_cast<HistoData<int> *>(hData);
-          return histoData->points[(histoData->first + idx) % histoData->mod];
+          size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+          assert(pos >= 0 && pos < 1024);
+          return histoData->points[pos];
         };
-        ImGui::SameLine(150);
+        ImGui::Text("metricIndex: %zu, storeIdx: %zu, 5th: %i",
+                    i,
+                    metric.storeIdx,
+                    metricsInfo.intMetrics[metric.storeIdx][5]);
         ImGui::PlotLines(currentMetricName.c_str(),
                          getter,
                          &data,
                          data.size);
+        ImGui::NextColumn();
       }
     break;
     case MetricType::Float:
       {
         HistoData<float> data;
-        data.mod = metricsInfo.timestamps[metric.storeIdx].size();
+        data.mod = metricsInfo.timestamps[i].size();
         data.first = metric.pos - data.mod;
         data.size = metricsInfo.floatMetrics[metric.storeIdx].size();
         data.points = metricsInfo.floatMetrics[metric.storeIdx].data();
 
         auto getter = [](void *hData, int idx) -> float {
           auto histoData = reinterpret_cast<HistoData<float> *>(hData);
-          return histoData->points[(histoData->first + idx) % histoData->mod];
+          size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+          assert(pos >= 0 && pos < 1024);
+          return histoData->points[pos];
         };
-        ImGui::SameLine(150);
         ImGui::PlotLines(currentMetricName.c_str(),
                          getter,
                          &data,
                          data.size);
+        ImGui::NextColumn();
       }
     break;
     default:
-    return open;
+      ImGui::NextColumn();
+      return;
     break;
   }
-
-  return open;
 }
 
 void
@@ -199,28 +210,28 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
   ImGui::Combo("Select metric",
                &gState.selectedMetric,
                [](void *data, int idx, const char **outText) -> bool {
-                NamesIndex *v = reinterpret_cast<NamesIndex*>(data);
-                if (idx >= v->size()) {
-                  return false;
-                }
-                *outText = v->at(idx).c_str();
-                return true;
+                 NamesIndex *v = reinterpret_cast<NamesIndex*>(data);
+                 if (idx >= v->size()) {
+                   return false;
+                 }
+                 *outText = v->at(idx).c_str();
+                 return true;
                },
                &gState.availableMetrics,
                gState.availableMetrics.size()
   );
   ImGui::BeginChild("ScrollingRegion", ImVec2(0,-ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+  ImGui::Columns(2);
+  ImGui::SetColumnOffset(1, 300);
   for (size_t i = 0; i < gState.devices.size(); ++i) {
-    DeviceGUIState &state = gState.devices[i];
+    DeviceGUIState &guiState = gState.devices[i];
     const DeviceSpec &spec = devices[i];
     const DeviceInfo &info = infos[i];
     const DeviceMetricsInfo &metricsInfo = metricsInfos[i];
 
-    if (historyBar(state, metricsInfo)) {
-      ImGui::Text("# channels: %lu", spec.channels.size());
-      ImGui::TreePop();
-    }
+    historyBar(guiState, spec, metricsInfo);
   }
+  ImGui::Columns(1);
   ImGui::EndChild();
   ImGui::End();
 }

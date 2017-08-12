@@ -31,7 +31,8 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
   mInputs{spec.inputs},
   mForwards{spec.forwards},
   mServiceRegistry{registry},
-  mErrorCount{0}
+  mErrorCount{0},
+  mProcessingCount{0}
 {
 }
 
@@ -140,6 +141,7 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
   try {
     if (mProcess) {
       LOG(DEBUG) << "PROCESSING:START";
+      metricsService.post("dataprocessing/process", mProcessingCount++);
       mProcess(inputs, mServiceRegistry, mAllocator);
       LOG(DEBUG) << "PROCESSING:END";
       for (auto &message : mContext) {

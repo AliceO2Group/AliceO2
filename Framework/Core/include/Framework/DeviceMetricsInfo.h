@@ -45,6 +45,8 @@ struct DeviceMetricsInfo {
 
 bool parseMetric(const std::string &s, std::smatch &match);
 bool processMetric(const std::smatch &match, DeviceMetricsInfo &info);
+size_t metricIdxByName(const std::string &name,
+                       const DeviceMetricsInfo &info);
 
 }
 }

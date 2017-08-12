@@ -44,6 +44,7 @@ private:
   std::map<std::string, InputSpec> mInputs;
   std::map<std::string, InputSpec> mForwards;
   int mErrorCount;
+  int mProcessingCount;
 };
 
 }

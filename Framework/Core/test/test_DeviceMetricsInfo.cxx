@@ -25,18 +25,18 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   DeviceMetricsInfo info;
 
   // Parse a simple metric
-  metric = "cjadnjca:METRIC:int:key:1789372894:12";
+  metric = "cjadnjca:METRIC:int:bkey:1789372894:12";
   result = parseMetric(metric, match);
   BOOST_CHECK(result == true);
   BOOST_CHECK(match[1] == "int");
-  BOOST_CHECK(match[2].str() == "key");
+  BOOST_CHECK(match[2].str() == "bkey");
   BOOST_CHECK(match[3].str() == "1789372894");
   BOOST_CHECK(match[4].str() == "12");
   // Add the first metric to the store
   result = processMetric(match, info);
   BOOST_CHECK(result == true);
   BOOST_CHECK(info.metricLabelsIdx.size() == 1);
-  BOOST_CHECK(info.metricLabelsIdx[0].first == "key");
+  BOOST_CHECK(info.metricLabelsIdx[0].first == "bkey");
   BOOST_CHECK(info.metricLabelsIdx[0].second == 0);
   BOOST_CHECK(info.intMetrics.size() == 1);
   BOOST_CHECK(info.floatMetrics.size() == 0);
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   BOOST_CHECK(info.intMetrics[0][1] == 0);
 
   // Parse a second metric with the same key
-  metric = "cjadnjca:METRIC:int:key:1789372894:13";
+  metric = "cjadnjca:METRIC:int:bkey:1789372894:13";
   result = parseMetric(metric, match);
   BOOST_CHECK(result == true);
   BOOST_CHECK(match[4].str() == "13");
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   BOOST_CHECK(info.metrics[0].pos == 2);
 
   // Parse a third metric with a different key
-  metric = "cjadnjca:METRIC:int:key2:1789372894:14";
+  metric = "cjadnjca:METRIC:int:akey:1789372894:14";
   result = parseMetric(metric, match);
   BOOST_CHECK(result == true);
   result = processMetric(match, info);
@@ -113,4 +113,8 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   BOOST_CHECK(info.metrics[2].type == MetricType::Float);
   BOOST_CHECK(info.metrics[2].storeIdx == 0);
   BOOST_CHECK(info.metrics[2].pos == 2);
+
+  BOOST_CHECK(metricIdxByName("akey", info) == 1);
+  BOOST_CHECK(metricIdxByName("bkey", info) == 0);
+  BOOST_CHECK(metricIdxByName("key3", info) == 2);
 }

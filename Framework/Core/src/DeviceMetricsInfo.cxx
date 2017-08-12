@@ -20,6 +20,7 @@
 namespace o2 {
 namespace framework {
 
+
 // Parses a metric in the form
 //
 // METRIC:<type>:<name>:<timestamp>:<value>
@@ -132,6 +133,19 @@ bool processMetric(const std::smatch &match,
   // Update the position where to write the next metric
   metricInfo.pos = (metricInfo.pos + 1) % mod;
   return true;
+}
+
+size_t
+metricIdxByName(const std::string &name, const DeviceMetricsInfo &info) {
+  size_t i = 0;
+  while (i < info.metricLabelsIdx.size()) {
+    auto &metricName = info.metricLabelsIdx[i];
+    if (metricName.first == name) {
+      return metricName.second;
+    }
+    ++i;
+  }
+  return i;
 }
 
 } // namespace framework

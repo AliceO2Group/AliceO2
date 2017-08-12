@@ -164,7 +164,8 @@ int doParent(fd_set *in_fdset,
           // if yes, we do not print it out and simply store it to be displayed
           // in the GUI.
           if (parseMetric(token, metricsMatch)) {
-              LOG(INFO) << "Found metric with key " << metricsMatch[2];
+              LOG(INFO) << "Found metric with key " << metricsMatch[2]
+                        << " and value " <<  metricsMatch[4];
               processMetric(metricsMatch, metrics);
           } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != NULL)) {
             assert(info.historyPos >= 0);
