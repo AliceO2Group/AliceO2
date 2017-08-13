@@ -130,7 +130,6 @@ historyBar(DeviceGUIState &state,
     return;
   }
   auto &metric = metricsInfo.metrics[i];
-  //assert(metricsInfo.metricLabelsIdx[i].first == currentMetricName);
 
   switch(metric.type) {
     case MetricType::Int:
@@ -147,10 +146,6 @@ historyBar(DeviceGUIState &state,
           assert(pos >= 0 && pos < 1024);
           return histoData->points[pos];
         };
-        ImGui::Text("metricIndex: %zu, storeIdx: %zu, 5th: %i",
-                    i,
-                    metric.storeIdx,
-                    metricsInfo.intMetrics[metric.storeIdx][5]);
         ImGui::PlotLines(currentMetricName.c_str(),
                          getter,
                          &data,
@@ -193,7 +188,8 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
                         const std::vector<DeviceMetricsInfo> &metricsInfos) {
   ImGui::SetNextWindowSize(ImVec2(0.0,100), ImGuiSetCond_FirstUseEver);
   ImGui::SetNextWindowPos(ImVec2(0, 500));
-  // Calculate the unique set of metrics, as available in the metrics service
+  // Calculate the unique set of metrics, as available in the metrics
+  // service
   std::set<std::string> allMetricsNames;
   for (const auto &metricsInfo : metricsInfos) {
     for (const auto &labelsPairs : metricsInfo.metricLabelsIdx) {
@@ -220,6 +216,29 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
                &gState.availableMetrics,
                gState.availableMetrics.size()
   );
+
+  // Calculate the full timestamp range for the selected metric
+  if (gState.selectedMetric >= 0) {
+    auto currentMetricName = gState.availableMetrics[gState.selectedMetric];
+    size_t minTime = -1;
+    size_t maxTime = 0;
+    for (auto &metricInfo : metricsInfos) {
+      size_t mi = metricIdxByName(currentMetricName, metricInfo);
+      if (mi == metricInfo.metricLabelsIdx.size()) {
+        continue;
+      }
+      auto &metric = metricInfo.metrics[mi];
+      size_t minRangePos = metric.pos % metricInfo.timestamps.size();
+      size_t maxRangePos = (size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
+      auto &timestamps = metricInfo.timestamps[mi];
+      size_t curMinTime = timestamps[minRangePos];
+      size_t curMaxTime = timestamps[maxRangePos];
+      minTime = minTime < curMinTime ? minTime : curMinTime;
+      maxTime = maxTime > curMaxTime ? maxTime : curMaxTime;
+    }
+    ImGui::Text("min timestamp: %zu, max timestamp: %zu",
+                minTime, maxTime);
+  }
   ImGui::BeginChild("ScrollingRegion", ImVec2(0,-ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
   ImGui::Columns(2);
   ImGui::SetColumnOffset(1, 300);
