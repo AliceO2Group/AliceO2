@@ -18,6 +18,7 @@ struct Summary {
   int clustersCount;
 };
 
+using DataHeader = o2::Header::DataHeader;
 // This is how you can define your processing in a declarative way
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
   DataProcessorSpec timeframeReader{
@@ -117,13 +118,29 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     [](const std::vector<DataRef> inputs,
        ServiceRegistry& services,
        DataAllocator& allocator) {
+      // We verify we got inputs in the correct order
+      auto h0 = reinterpret_cast<const DataHeader*>(inputs[0].header);
+      auto h1 = reinterpret_cast<const DataHeader*>(inputs[1].header);
+      auto h2 = reinterpret_cast<const DataHeader*>(inputs[2].header);
+      if (strncmp(h0->dataOrigin.str, "TPC", 4) != 0) {
+        throw std::runtime_error("Unexpected data origin");
+      }
+
+      if (strncmp(h1->dataOrigin.str, "TPC", 4) != 0) {
+        throw std::runtime_error("Unexpected data origin");
+      }
+
+      if (strncmp(h2->dataOrigin.str, "ITS", 4) != 0) {
+        throw std::runtime_error("Unexpected data origin");
+      }
+
       LOG(DEBUG) << "Consumer Invoked";
       LOG(DEBUG) << "Number of inputs" << inputs.size();
       auto &metrics = services.get<MetricsService>();
       metrics.post("merger/invoked", 1);
       metrics.post("merger/inputs", (int) inputs.size());
     },
-
+ 
   };
   specs.push_back(timeframeReader);
   specs.push_back(tpcClusterSummary);
