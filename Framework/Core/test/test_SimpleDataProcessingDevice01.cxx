@@ -19,15 +19,18 @@ struct Summary {
 };
 
 using DataHeader = o2::Header::DataHeader;
+
+using Inputs = std::vector<InputSpec>;
+using Outputs = std::vector<OutputSpec>;
+
 // This is how you can define your processing in a declarative way
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
   DataProcessorSpec timeframeReader{
     "reader",
-    { // No inputs
-    },
-    {
-      OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
-      OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
+    Inputs{},
+    Outputs{
+      {"TPC", "CLUSTERS", OutputSpec::Timeframe},
+      {"ITS", "CLUSTERS", OutputSpec::Timeframe}
     },
     [](const std::vector<DataRef> inputs,
        ServiceRegistry& services,
@@ -35,7 +38,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
        sleep(1);
        // Creates a new message of size 1000 which 
        // has "TPC" as data origin and "CLUSTERS" as data description.
-       auto tpcClusters = allocator.newCollectionChunk<FakeCluster>("TPC", "CLUSTERS", 0, 1000);
+       auto tpcClusters = allocator.newCollectionChunk<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
        int i = 0;
 
        for (auto &cluster : tpcClusters) {
@@ -47,7 +50,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
          i++;
        }
 
-       auto itsClusters = allocator.newCollectionChunk<FakeCluster>("ITS", "CLUSTERS", 0, 1000);
+       auto itsClusters = allocator.newCollectionChunk<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
        i = 0;
        for (auto &cluster : itsClusters) {
          assert(i < 1000);
@@ -63,17 +66,17 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
 
   DataProcessorSpec tpcClusterSummary {
     "tpc-cluster-summary",
-    {
-       InputSpec{"TPC", "CLUSTERS", InputSpec::Timeframe}
+    Inputs{
+       {"TPC", "CLUSTERS", InputSpec::Timeframe}
     },
-    {
-      OutputSpec{"TPC", "SUMMARY", OutputSpec::Timeframe}
+    Outputs{
+       {"TPC", "SUMMARY", OutputSpec::Timeframe}
     },
     [](const std::vector<DataRef> inputs,
        ServiceRegistry& services,
        DataAllocator& allocator)
     {
-      auto tpcSummary = allocator.newCollectionChunk<Summary>("TPC", "SUMMARY", 0, 1);
+      auto tpcSummary = allocator.newCollectionChunk<Summary>(OutputSpec{"TPC", "SUMMARY", 0}, 1);
       tpcSummary.at(0).inputCount = inputs.size();
     },
     {
@@ -86,16 +89,16 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
 
   DataProcessorSpec itsClusterSummary {
     "its-cluster-summary",
-    {
-      InputSpec{"ITS", "CLUSTERS", InputSpec::Timeframe}
+    Inputs{
+      {"ITS", "CLUSTERS", InputSpec::Timeframe}
     },
-    {
-      OutputSpec{"ITS", "SUMMARY", OutputSpec::Timeframe}
+    Outputs{
+      {"ITS", "SUMMARY", OutputSpec::Timeframe},
     },
     [](const std::vector<DataRef> inputs,
        ServiceRegistry& services,
        DataAllocator& allocator) {
-      auto itsSummary = allocator.newCollectionChunk<Summary>("ITS", "SUMMARY", 0, 1);
+      auto itsSummary = allocator.newCollectionChunk<Summary>(OutputSpec{"ITS", "SUMMARY", 0}, 1);
       itsSummary.at(0).inputCount = inputs.size();
     },
     {
@@ -108,13 +111,12 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
 
   DataProcessorSpec merger{
     "merger",
-    {
-      InputSpec{"TPC", "CLUSTERS", InputSpec::Timeframe},
-      InputSpec{"TPC", "SUMMARY", InputSpec::Timeframe},
-      InputSpec{"ITS", "SUMMARY", InputSpec::Timeframe}
+    Inputs{
+      {"TPC", "CLUSTERS", InputSpec::Timeframe},
+      {"TPC", "SUMMARY", InputSpec::Timeframe},
+      {"ITS", "SUMMARY", InputSpec::Timeframe}
     },
-    {
-    },
+    Outputs{},
     [](const std::vector<DataRef> inputs,
        ServiceRegistry& services,
        DataAllocator& allocator) {
@@ -140,7 +142,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       metrics.post("merger/invoked", 1);
       metrics.post("merger/inputs", (int) inputs.size());
     },
- 
+
   };
   specs.push_back(timeframeReader);
   specs.push_back(tpcClusterSummary);

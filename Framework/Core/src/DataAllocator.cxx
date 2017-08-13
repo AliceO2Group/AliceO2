@@ -22,30 +22,30 @@ DataAllocator::DataAllocator(FairMQDevice *device, MessageContext *context, cons
 }
 
 std::string
-DataAllocator::matchDataHeader(DataOrigin origin, DataDescription description, SubSpecificationType subSpec) {
+DataAllocator::matchDataHeader(const OutputSpec &spec) {
   for (auto &output : mAllowedOutputs) {
-    if (DataSpecUtils::match(output.second, origin, description, subSpec)) {
+    if (DataSpecUtils::match(output.second, spec.origin, spec.description, spec.subSpec)) {
       return output.first;
     }
   }
   std::ostringstream str;
   str << "Worker is not authorised to create message with "
-      << "origin(" << origin.str << ")"
-      << "description(" << description.str << ")"
-      << "subSpec(" << subSpec << ")";
+      << "origin(" << spec.origin.str << ")"
+      << "description(" << spec.description.str << ")"
+      << "subSpec(" << spec.subSpec << ")";
   throw std::runtime_error(str.str());
 }
 
 DataChunk
-DataAllocator::newChunk(DataOrigin origin, DataDescription description, SubSpecificationType subSpec, size_t size) {
-  std::string channel = matchDataHeader(origin, description, subSpec);
+DataAllocator::newChunk(const OutputSpec &spec, size_t size) {
+  std::string channel = matchDataHeader(spec);
   FairMQParts parts;
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0, sizeof(Header::DataHeader));
   Header::DataHeader *header = reinterpret_cast<Header::DataHeader*>(headerMessage->GetData());
   header->magicStringInt = o2::Header::BaseHeader::sMagicString;
-  header->dataOrigin = origin;
-  header->dataDescription = description;
-  header->subSpecification = subSpec;
+  header->dataOrigin = spec.origin;
+  header->dataDescription = spec.description;
+  header->subSpecification = spec.subSpec;
   // FIXME: how do we want to use subchannels? time based parallelism?
   FairMQMessagePtr payloadMessage = mDevice->NewMessageFor(channel, 0, size);
   auto dataPtr = payloadMessage->GetData();
@@ -59,16 +59,16 @@ DataAllocator::newChunk(DataOrigin origin, DataDescription description, SubSpeci
 }
 
 DataChunk
-DataAllocator::adoptChunk(DataOrigin origin, DataDescription description, SubSpecificationType subSpec, char *buffer, size_t size, fairmq_free_fn *freefn, void *hint = nullptr) {
+DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fairmq_free_fn *freefn, void *hint = nullptr) {
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
-  std::string channel = matchDataHeader(origin, description, subSpec);
+  std::string channel = matchDataHeader(spec);
   FairMQParts parts;
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0, sizeof(Header::DataHeader));
   Header::DataHeader *header = reinterpret_cast<Header::DataHeader*>(headerMessage->GetData());
-  header->dataOrigin = origin;
-  header->dataDescription = description;
-  header->subSpecification = subSpec;
+  header->dataOrigin = spec.origin;
+  header->dataDescription = spec.description;
+  header->subSpecification = spec.subSpec;
   // FIXME: how do we want to use subchannels? time based parallelism?
   FairMQMessagePtr payloadMessage = mDevice->NewMessageFor(channel, 0, buffer, size, freefn, hint);
   auto dataPtr = payloadMessage->GetData();

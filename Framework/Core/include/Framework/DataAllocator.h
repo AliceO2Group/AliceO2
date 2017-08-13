@@ -35,24 +35,23 @@ public:
   using SubSpecificationType = o2::Header::DataHeader::SubSpecificationType;
 
   DataAllocator(FairMQDevice *device, MessageContext *context, const AllowedOutputsMap &outputs);
-  DataChunk newChunk(DataOrigin, DataDescription, SubSpecificationType, size_t);
-
-  DataChunk adoptChunk(DataOrigin, DataDescription, SubSpecificationType, char *, size_t, fairmq_free_fn*, void *);
+  DataChunk newChunk(const OutputSpec &, size_t);
+  DataChunk adoptChunk(const OutputSpec &, char *, size_t, fairmq_free_fn*, void *);
 
   template <class T>
-  Collection<T> newCollectionChunk(DataOrigin origin, DataDescription desc, SubSpecificationType subSpec, size_t nElements) {
+  Collection<T> newCollectionChunk(const OutputSpec &spec, size_t nElements) {
     static_assert(std::is_pod<T>::value == true, "Type must be a PoD");
     auto size = nElements*sizeof(T);
-    LOG(DEBUG) << "Creating " << origin.str
-               << " \"" << desc.str
+    LOG(DEBUG) << "Creating " << spec.origin.str
+               << " \"" << spec.description.str
                << "\" " << size;
-    DataChunk chunk = newChunk(origin, desc, subSpec, size);
+    DataChunk chunk = newChunk(spec, size);
     LOG(DEBUG) << "New chunk returned for address "
                << std::hex << (int64_t)chunk.data << std::dec << " " << chunk.size;
     return Collection<T>(chunk.data, nElements);
   }
 private:
-  std::string matchDataHeader(DataOrigin, DataDescription, SubSpecificationType);
+  std::string matchDataHeader(const OutputSpec &spec);
   FairMQDevice *mDevice;
   AllowedOutputsMap mAllowedOutputs;
   MessageContext *mContext;
