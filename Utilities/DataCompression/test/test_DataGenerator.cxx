@@ -41,28 +41,27 @@ bool testWithDistribution(Args&&... args)
   o2::test::DataGenerator<value_type, DistributionType> dg(std::forward<Args>(args)...);
 
   std::vector<int> throws(dg.nbins);
-  const int nRolls = 1000000;
+  const unsigned nRolls = 1000000;
 
-  for (int n = 0; n < nRolls; n++) {
+  for (unsigned n = 0; n < nRolls; n++) {
     value_type v = dg();
-    int bin = v/dg.step - dg.min;
+    unsigned bin = v/dg.step - dg.min;
     BOOST_REQUIRE(bin < dg.nbins);
     throws[bin]++;
   }
 
-  value_type mostAbundantValue = dg.min;
+  int mostAbundantValueBin = 0;
   int mostAbundantValueCount = 0;
-  auto highestProbability = dg.getProbability(0);
-  highestProbability = 0.;
-  value_type mostProbableValue = dg.min;
+  auto highestProbability = dg.getProbability(dg.min);
+  highestProbability = 0;
   for (auto i : dg) {
     int bin = i/dg.step - dg.min;
+    BOOST_REQUIRE(bin >= 0);
     if (mostAbundantValueCount < throws[bin]) {
-      mostAbundantValue = i;
+      mostAbundantValueBin = bin;
       mostAbundantValueCount = throws[bin];
     }
     if (highestProbability < dg.getProbability(i)) {
-      mostProbableValue = i;
       highestProbability = dg.getProbability(i);
     }
     std::cout << std::setw(4)  << std::right << i << ": "
@@ -71,7 +70,14 @@ bool testWithDistribution(Args&&... args)
               << throws[bin]
               << std::endl;
   }
-  BOOST_CHECK(mostAbundantValue == mostProbableValue);
+  std::vector<int> mostProbableValueBins;
+  for (auto i : dg) {
+    int bin = i/dg.step - dg.min;
+    if (dg.getProbability(i) >= highestProbability) {
+      mostProbableValueBins.push_back(bin);
+    }
+  }
+  BOOST_CHECK(std::find(mostProbableValueBins.begin(), mostProbableValueBins.end(), mostAbundantValueBin) != mostProbableValueBins.end());
 
   return true;
 }

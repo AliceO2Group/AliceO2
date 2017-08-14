@@ -58,7 +58,7 @@ template<class T
 class Fifo : protected _BASE {
  public:
   Fifo() : mMutex(), mFillStatus(), mStop(false) {}
-  typedef T value_type;
+  using value_type = T;
 
   /**
    * Push value to the FIFO

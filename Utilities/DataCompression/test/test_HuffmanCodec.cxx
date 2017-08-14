@@ -77,10 +77,10 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   // in the range [-7, 10] including the upper bound
   // the first definition is a data type, then an object of this type is
   // defined
-  typedef o2::test::normal_distribution<double> TestDistribution_t;
-  typedef o2::test::DataGenerator<int16_t, TestDistribution_t> DataGenerator_t;
-  DataGenerator_t dg(-7.5, 10.5, 1., 0., 1.);
-  typedef ContiguousAlphabet<DataGenerator_t::value_type, -7, 10> SimpleRangeAlphabet_t;
+  using TestDistribution_t = o2::test::normal_distribution<double>;
+  using DataGenerator_t = o2::test::DataGenerator<int16_t, TestDistribution_t>;
+  DataGenerator_t dg(-7, 10, 1, 0., 1.);
+  using SimpleRangeAlphabet_t = ContiguousAlphabet<DataGenerator_t::value_type, -7, 10>;
   SimpleRangeAlphabet_t alphabet;
 
   ////////////////////////////////////////////////////////////////////////////
@@ -90,11 +90,11 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   // the node type is defined to be HuffmanNode specialized to bitset<16>
   // third template parameter determines whether code has to be decoded
   // MSB to LSB (true) or LSB to MSB (false)
-  typedef o2::HuffmanModel<
+  using HuffmanModel_t = o2::HuffmanModel<
     ProbabilityModel<SimpleRangeAlphabet_t>
     , o2::HuffmanNode<std::bitset<32> >
     , true
-    > HuffmanModel_t;
+    >;
   HuffmanModel_t huffmanmodel;
 
   std::cout << std::endl << "Huffman probability model after initialization: " << std::endl;
@@ -104,7 +104,6 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   }
 
   // add probabilities from data generator as weights for every symbol
-  int x = 0;
   for (auto s : alphabet) {
     huffmanmodel.addWeight(s, dg.getProbability(s));
   }
@@ -123,7 +122,7 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   std::cout << std::endl << "Generating binary tree and Huffman codes" << std::endl;
   huffmanmodel.GenerateHuffmanTree();
   huffmanmodel.print();
-  typedef o2::HuffmanCodec<HuffmanModel_t > Codec_t;
+  using Codec_t = o2::HuffmanCodec<HuffmanModel_t >;
   Codec_t codec(huffmanmodel);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -161,7 +160,7 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   o2::test::Fifo<DataGenerator_t::value_type> fifoRandvals;
 
   // FIFO for encoded values
-  typedef o2::test::Fifo<uint32_t> FifoBuffer_t;
+  using FifoBuffer_t = o2::test::Fifo<uint32_t>;
   FifoBuffer_t fifoEncoded;
 
   const int nRolls = 1000000;

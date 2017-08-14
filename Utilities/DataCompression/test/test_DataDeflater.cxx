@@ -46,7 +46,7 @@ namespace o2dc = o2::data_compression;
 template<typename DataContainerT, typename DeflatedDataT>
 bool compare(const DataContainerT& container, std::size_t bitwidth, const DeflatedDataT& targetBuffer)
 {
-  int wordcount = 0;
+  unsigned wordcount = 0;
   auto bufferWord = targetBuffer[wordcount];
   using target_type = typename DeflatedDataT::value_type;
   auto targetWidth = 8 * sizeof(target_type);
@@ -82,6 +82,8 @@ bool compare(const DataContainerT& container, std::size_t bitwidth, const Deflat
       length -= comparing;
     }
   }
+
+  return true;
 }
 
 BOOST_AUTO_TEST_CASE(test_DataDeflaterRaw)
