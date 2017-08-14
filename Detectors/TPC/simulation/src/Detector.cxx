@@ -10,7 +10,7 @@
 
 #include "TPCSimulation/Detector.h"
 #include "TPCSimulation/Point.h"
-#include "TPCSimulation/Constants.h"
+#include "TPCBase/ParameterGas.h"
 
 #include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
@@ -211,6 +211,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
   static auto *refMC = TVirtualMC::GetMC();
+  const static ParameterGas &gasParam = ParameterGas::defaultInstance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
@@ -240,8 +241,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     Float_t betaGamma = momentum.P()/refMC->TrackMass();
     betaGamma = TMath::Max(betaGamma, static_cast<Float_t>(7.e-3)); // protection against too small bg
     
-    // NPRIM etc. are defined in "TPCSimulation/Constants.h"
-    const Float_t pp = NPRIM * BetheBlochAleph(betaGamma, BBPARAM[0], BBPARAM[1], BBPARAM[2], BBPARAM[3], BBPARAM[4]);
+    const Float_t pp = gasParam.getNprim() * BetheBlochAleph(betaGamma, gasParam.getBetheBlochParam(0), gasParam.getBetheBlochParam(1), gasParam.getBetheBlochParam(2), gasParam.getBetheBlochParam(3), gasParam.getBetheBlochParam(4));
     
     refMC->SetMaxStep(-TMath::Log(rnd)/pp);
   } else {
@@ -260,15 +260,18 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // These parameters were tuned for GEANT4
 
   Int_t nel=0;
+  const float wIon = gasParam.getWion();
+  const float scaleG4 = gasParam.getScaleG4();
+  const float fanoG4 = gasParam.getFanoFactorG4();
   if(mSimulationType == SimulationType::GEANT3) {
     
-    nel = 1 + static_cast<int>((refMC->Edep()-IPOT) / WION);
+    nel = 1 + static_cast<int>((refMC->Edep()-gasParam.getIpot()) / wIon);
     // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "GEANT3: Nelectrons: " << nel << FairLogger::endl;
   } else {
     
-    const Double_t meanIon = refMC->Edep() / (WION*SCALEWIONG4);
+    const Double_t meanIon = refMC->Edep() / (wIon*scaleG4);
     if(meanIon > 0)
-      nel = static_cast<int>(FANOFACTORG4 * Gamma(meanIon/FANOFACTORG4)); 
+      nel = static_cast<int>(fanoG4 * Gamma(meanIon/fanoG4));
     // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "GEANT4: Eloss: " 
     //	      << refMC->Edep() << ", Nelectrons: "
     //	      << nel << FairLogger::endl;

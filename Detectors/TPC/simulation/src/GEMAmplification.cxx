@@ -13,7 +13,8 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/GEMAmplification.h"
-#include "TPCSimulation/Constants.h"
+#include "TPCBase/ParameterGas.h"
+#include "TPCBase/ParameterGEM.h"
 
 using namespace o2::TPC;
 using boost::format;
@@ -23,14 +24,17 @@ GEMAmplification::GEMAmplification()
   , mRandomFlat()
   , mGain()
 {
-  float kappa = 1/(SIGMAOVERMU*SIGMAOVERMU);
+  const static ParameterGas &gasParam = ParameterGas::defaultInstance();
+  const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();
+  const float sigmaOverMu = gasParam.getSigmaOverMu();
+  const float kappa = 1/(sigmaOverMu*sigmaOverMu);
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) *std::pow(x/%3%, %4%) *std::exp(-x/%5%)");
 
   for(int i=0; i<4; ++i) {
-    float s = MULTIPLICATION[i]/kappa;
+    float s = gemParam.getAbsoluteGain(i+1)/kappa;
     polya % kappa % s % s % (kappa-1) % s;
     /// \todo Get from root file or write own random generator
-    TF1 polyaDistribution("polya", (polya.str()).data(), 0, 10.f*MULTIPLICATION[i]);
+    TF1 polyaDistribution("polya", (polya.str()).data(), 0, 10.f*gemParam.getAbsoluteGain(i+1));
     /// this dramatically alters the speed with which the filling is executed... without this, the distribution makes discrete steps at every int
     polyaDistribution.SetNpx(100000);
     mGain[i].initialize(polyaDistribution);
@@ -62,14 +66,18 @@ int GEMAmplification::getSingleGEMAmplification(int nElectrons, int GEM)
   /// The effective gain, and thus the overall amplification of the GEM is then given by
   /// G_eff  = ε_coll * G_abs * ε_extr
   /// Each of the three processes is handled by a sub-routine
-  int collectionGEM    = getElectronLosses(nElectrons, COLLECTION[GEM-1]);
+  const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();
+  int collectionGEM    = getElectronLosses(nElectrons, gemParam.getCollectionEfficiency(GEM));
   int amplificationGEM = getGEMMultiplication(collectionGEM, GEM);
-  int extractionGEM    = getElectronLosses(amplificationGEM, EXTRACTION[GEM-1]);
+  int extractionGEM    = getElectronLosses(amplificationGEM, gemParam.getExtractionEfficiency(GEM));
   return extractionGEM;
 }
 
 int GEMAmplification::getGEMMultiplication(int nElectrons, int GEM)
 {
+  const static ParameterGas &gasParam = ParameterGas::defaultInstance();
+  const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();
+
   /// Total charge multiplication in the GEM
   /// We take into account fluctuations of the avalanche process
   if(nElectrons < 1) {
@@ -79,7 +87,7 @@ int GEMAmplification::getGEMMultiplication(int nElectrons, int GEM)
   else if(nElectrons > 500) {
    /// For this condition the central limit theorem holds and we can approximate the amplification fluctuations by a Gaussian for all electrons
    /// The mean is given by nElectrons * G_abs and the width by sqrt(nElectrons) * Sigma/Mu (Polya) * G_abs
-    return ((mRandomGaus.getNextValue() * std::sqrt(static_cast<float>(nElectrons)) * SIGMAOVERMU) + nElectrons) * MULTIPLICATION[GEM-1];
+    return ((mRandomGaus.getNextValue() * std::sqrt(static_cast<float>(nElectrons)) * gasParam.getSigmaOverMu()) + nElectrons) * gemParam.getAbsoluteGain(GEM);
   }
   else {
     /// Otherwise we compute the gain fluctuations as the convolution of many single electron amplification fluctuations

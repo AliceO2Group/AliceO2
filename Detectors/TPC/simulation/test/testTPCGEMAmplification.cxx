@@ -17,7 +17,8 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TPCSimulation/GEMAmplification.h"
-#include "TPCSimulation/Constants.h"
+#include "TPCBase/ParameterGas.h"
+#include "TPCBase/ParameterGEM.h"
 
 #include "TH1D.h"
 #include "TF1.h"
@@ -30,6 +31,7 @@ namespace TPC {
   /// the correct gain and energy resolution is tested
   BOOST_AUTO_TEST_CASE(GEMamplification_test)
   {
+    const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();
     static GEMAmplification gemStack;
     TH1D hTest("hTest", "", 10000, 0, 1000000);
     TF1 gaus("gaus", "gaus");
@@ -45,7 +47,7 @@ namespace TPC {
 
     /// Check the resulting gain
     /// \todo should be more restrictive
-    BOOST_CHECK_CLOSE(gaus.GetParameter(1)/static_cast<float>(nEleIn), (EFFGAINGEM1 * EFFGAINGEM2 * EFFGAINGEM3 * EFFGAINGEM4), 20.f);
+    BOOST_CHECK_CLOSE(gaus.GetParameter(1)/static_cast<float>(nEleIn), (gemParam.getEffectiveGain(1) * gemParam.getEffectiveGain(2) * gemParam.getEffectiveGain(3)* gemParam.getEffectiveGain(4)), 20.f);
     /// Check the resulting energy resolution
     /// we allow for 5% variation which is given by the uncertainty of the experimental determination of the energy resolution (12.1 +/- 0.5) %
     BOOST_CHECK_CLOSE(energyResolution, 12.1, 5);
@@ -55,6 +57,7 @@ namespace TPC {
   /// We filter 1000 electrons through a single GEM and compare to the outcome
   BOOST_AUTO_TEST_CASE(GEMamplification_singleGEM_test)
   {
+    const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();
     static GEMAmplification gemStack;
     TH1D hTest("hTest", "", 10000, 0, 10000);
     TF1 gaus("gaus", "gaus");
@@ -66,7 +69,7 @@ namespace TPC {
     hTest.Fit("gaus", "Q0");
 
     /// check the resulting gain
-    const float multiplication = COLLECTION[0] * MULTIPLICATION[0] * EXTRACTION[0];
+    const float multiplication = gemParam.getEffectiveGain(1);
     BOOST_CHECK_CLOSE(gaus.GetParameter(1), multiplication*1000.f, 0.1);
   }
 
@@ -76,6 +79,8 @@ namespace TPC {
   /// The outcome is compared to the expected value
   BOOST_AUTO_TEST_CASE(GEMamplification_singleGEMmultiplication_test)
   {
+    const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();
+    const static ParameterGas &gasParam = ParameterGas::defaultInstance();
     static GEMAmplification gemStack;
     TH1D hTest("hTest", "", 10000, 0, 10000);
     TH1D hTest2("hTest2", "", 10000, 0, 10000);
@@ -92,11 +97,11 @@ namespace TPC {
     /// -# case nElectrons < 1
     BOOST_CHECK(gemStack.getGEMMultiplication(0, 1) == 0);
     /// -# case nElectrons > 500 - Gaussian
-    BOOST_CHECK_CLOSE(gaus.GetParameter(1), MULTIPLICATION[1]*1000.f, 0.1);
+    BOOST_CHECK_CLOSE(gaus.GetParameter(1), gemParam.getAbsoluteGain(2)*1000.f, 0.1);
     /// As a gaussian is used the mean is tested as well, but with reduced precision
-    BOOST_CHECK_CLOSE(gaus.GetParameter(2), std::sqrt(1000.f)*SIGMAOVERMU*MULTIPLICATION[1], 2.5);
+    BOOST_CHECK_CLOSE(gaus.GetParameter(2), std::sqrt(1000.f)*gasParam.getSigmaOverMu()*gemParam.getAbsoluteGain(2), 2.5);
     /// -# case the probability is explicitly handled for each electron - the mean is a bad estimator, therefore larger tolerance
-    BOOST_CHECK_CLOSE(hTest2.GetMean(), MULTIPLICATION[0]*100.f, 5);
+    BOOST_CHECK_CLOSE(hTest2.GetMean(), gemParam.getAbsoluteGain(1)*100.f, 5);
   }
 
   /// \brief Test of the getElectronLosses function

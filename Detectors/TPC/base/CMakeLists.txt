@@ -17,6 +17,10 @@ set(SRCS
    src/PadROCPos.cxx
    src/PadSecPos.cxx
    src/Painter.cxx
+   src/ParameterDetector.cxx
+   src/ParameterElectronics.cxx
+   src/ParameterGas.cxx
+   src/ParameterGEM.cxx
    src/PartitionInfo.cxx
    src/RandomRing.cxx
    src/ROC.cxx
@@ -39,6 +43,10 @@ set(HEADERS
    include/TPCBase/PadROCPos.h
    include/TPCBase/PadSecPos.h
    include/TPCBase/Painter.h
+   include/TPCBase/ParameterDetector.h
+   include/TPCBase/ParameterElectronics.h
+   include/TPCBase/ParameterGas.h
+   include/TPCBase/ParameterGEM.h
    include/TPCBase/PartitionInfo.h
    include/TPCBase/RandomRing.h
    include/TPCBase/ROC.h
@@ -56,6 +64,7 @@ set(TEST_SRCS
    test/testTPCBase.cxx
    test/testTPCCalDet.cxx
    test/testTPCMapper.cxx
+   test/testTPCParameters.cxx
 )
 
 O2_GENERATE_TESTS(

@@ -15,7 +15,6 @@
 #ifndef ALICEO2_TPC_GEMAmplification_H_
 #define ALICEO2_TPC_GEMAmplification_H_
 
-#include "TPCSimulation/Constants.h"
 #include "TPCBase/RandomRing.h"
 
 namespace o2 {

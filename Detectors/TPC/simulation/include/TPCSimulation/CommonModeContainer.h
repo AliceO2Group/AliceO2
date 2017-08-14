@@ -15,7 +15,6 @@
 #ifndef ALICEO2_TPC_CommonModeContainer_H_
 #define ALICEO2_TPC_CommonModeContainer_H_
 
-#include "TPCSimulation/Constants.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/Mapper.h"
 #include <deque>

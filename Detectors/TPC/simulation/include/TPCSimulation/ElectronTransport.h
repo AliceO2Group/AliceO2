@@ -15,7 +15,7 @@
 #ifndef ALICEO2_TPC_ElectronTransport_H_
 #define ALICEO2_TPC_ElectronTransport_H_
 
-#include "TPCSimulation/Constants.h"
+#include "TPCBase/ParameterGas.h"
 
 #include "TPCBase/RandomRing.h"
 #include "TPCBase/Mapper.h"
@@ -58,7 +58,8 @@ class ElectronTransport
 inline
 bool ElectronTransport::isElectronAttachment(float driftTime)
 {
-  if(mRandomFlat.getNextValue() < ATTCOEF * OXYCONT * driftTime) {
+  const static ParameterGas &gasParam = ParameterGas::defaultInstance();
+  if(mRandomFlat.getNextValue() < gasParam.getAttachmentCoefficient() * gasParam.getOxygenContent() * driftTime) {
     return true;        ///electron is attached and lost
   }
   else return false;    /// not attached
