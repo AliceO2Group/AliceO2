@@ -98,9 +98,6 @@ class ParameterElectronics{
 
 
   private:
-    // use old c++03 due to root
-    ParameterElectronics(const ParameterElectronics&) {}
-    void operator=(const ParameterElectronics&) {}
 
     int mNShapedPoints;                    ///< Number of ADC samples which are taken into account for a given, shaped signal (should fit into SSE registers)
     float mPeakingTime;                    ///< Peaking time of the SAMPA [us]
