@@ -17,8 +17,8 @@
 
 #include <Vc/Vc>
 
-#include "TPCSimulation/Constants.h"
 #include "TPCBase/PadSecPos.h"
+#include "TPCBase/ParameterElectronics.h"
 #include "TPCSimulation/Baseline.h"
 
 #include "TSpline.h"
@@ -62,7 +62,8 @@ class SAMPAProcessing
     /// \param ADCsignal Signal of the incoming charge
     /// \param driftTime t0 of the incoming charge
     /// \return Array with the shaped signal
-    static void getShapedSignal(float ADCsignal, float driftTime, std::array<float, mNShapedPoints> &signalArray);
+    /// \todo the size of the array should be retrieved from ParameterElectronics::getNShapedPoints()
+    static void getShapedSignal(float ADCsignal, float driftTime, std::vector<float> &signalArray);
 
     /// Value of the Gamma4 shaping function at a given time (vectorized)
     /// \param time Time of the ADC value with respect to the first bin in the pulse
@@ -90,7 +91,8 @@ template<typename T>
 inline
 T SAMPAProcessing::getADCvalue(T nElectrons)
 {
-  T conversion = QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE; // 1E-15 is to convert Coulomb in fC
+  const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
+  T conversion = eleParam.getElectronCharge()*1.e15*eleParam.getChipGain()*eleParam.getADCSaturation()/eleParam.getADCDynamicRange(); // 1E-15 is to convert Coulomb in fC
   return nElectrons*conversion;
 }
 
@@ -111,9 +113,11 @@ float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos, f
 inline
 const float SAMPAProcessing::getADCSaturation(const float signal) const
 {
+  const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
   /// \todo Performance of TSpline?
   const float saturatedSignal = mSaturationSpline->Eval(signal);
-  if(saturatedSignal > ADCSAT-1) return ADCSAT-1;
+  const float adcSaturation = eleParam.getADCSaturation();
+  if(saturatedSignal > adcSaturation-1) return adcSaturation-1;
   return saturatedSignal;
 }
 
@@ -121,7 +125,8 @@ template<typename T>
 inline
 T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
 {
-  Vc::float_v tmp0 = (time-startTime)/PEAKINGTIME;
+  const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
+  Vc::float_v tmp0 = (time-startTime)/eleParam.getPeakingTime();
   Vc::float_m cond = (tmp0 > 0);
   Vc::float_v tmp;
   tmp(cond) = tmp0;

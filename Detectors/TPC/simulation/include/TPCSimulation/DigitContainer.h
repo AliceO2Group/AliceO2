@@ -18,7 +18,6 @@
 #include "TPCBase/CRU.h"
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/CommonModeContainer.h"
-#include "TPCSimulation/Constants.h"
 
 class TClonesArray;
 

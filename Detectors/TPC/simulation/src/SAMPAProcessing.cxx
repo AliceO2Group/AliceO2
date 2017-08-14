@@ -65,17 +65,17 @@ bool SAMPAProcessing::importSaturationCurve(std::string file)
   return true;
 }
 
-void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::array<float, mNShapedPoints>& signalArray)
+void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float> &signalArray)
 {
+  const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
   float timeBinTime = Digitizer::getTimeBinTime(driftTime);
   float offset = driftTime - timeBinTime;
-  signalArray.fill(0);
-  for (float bin = 0; bin < mNShapedPoints; bin += Vc::float_v::Size) {
+  for (float bin = 0; bin < eleParam.getNShapedPoints(); bin += Vc::float_v::Size) {
     Vc::float_v binvector;
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       binvector[i] = bin + i;
     }
-    Vc::float_v time = timeBinTime + binvector * ZBINWIDTH;
+    Vc::float_v time = timeBinTime + binvector * eleParam.getZBinWidth();
     Vc::float_v signal = getGamma4(time, Vc::float_v(timeBinTime+offset), Vc::float_v(ADCsignal));
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       signalArray[bin+i] = signal[i];

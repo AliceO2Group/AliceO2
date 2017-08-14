@@ -18,7 +18,6 @@
 #include "TPCSimulation/DigitizerTask.h"
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/Digitizer.h"
-#include "TPCSimulation/Constants.h"
 #include "TPCSimulation/Point.h"
 #include "TPCBase/Sector.h"
 
