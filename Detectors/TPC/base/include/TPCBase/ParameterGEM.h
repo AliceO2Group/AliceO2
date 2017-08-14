@@ -97,9 +97,6 @@ class ParameterGEM{
     float getExtractionEfficiency(int gem) const { return mExtractionEfficiency[gem-1]; }
 
   private:
-    // use old c++03 due to root
-    ParameterGEM(const ParameterGEM&) {}
-    void operator=(const ParameterGEM&) {}
 
     /// \todo Remove hard-coded number of GEMs in a stack
     std::array<float, 4> mAbsoluteGain;         ///< Absolute gain

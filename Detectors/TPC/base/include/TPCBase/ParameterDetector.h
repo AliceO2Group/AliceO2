@@ -58,9 +58,6 @@ class ParameterDetector{
 
 
   private:
-    // use old c++03 due to root
-    ParameterDetector(const ParameterDetector&) {}
-    void operator=(const ParameterDetector&) {}
 
     float mTPClength;                      ///< Length of the TPC [cm]
     float mPadCapacitance;                 ///< Capacitance of a single pad [pF]

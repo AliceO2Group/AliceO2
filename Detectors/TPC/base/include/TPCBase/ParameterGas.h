@@ -137,9 +137,6 @@ class ParameterGas{
     float getBetheBlochParam(int param) const { return mBetheBlochParam[param]; }
 
   private:
-    // use old c++03 due to root
-    ParameterGas(const ParameterGas&) {}
-    void operator=(const ParameterGas&) {}
 
     float mWion;                           ///< Effective ionization potential [GeV]
     float mIpot;                           ///< First ionization potential [GeV]
