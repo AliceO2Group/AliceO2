@@ -139,10 +139,13 @@ public:
   static bool isValid(value_type v);
 
   /// get index of value
-  static int getIndex(value_type symbol);
+  static unsigned getIndex(value_type symbol);
 
   /// get symbol from index
-  static value_type getSymbol(int index);
+  static value_type getSymbol(unsigned index);
+
+  /// get the range of indices aka number of indices
+  constexpr unsigned getIndexRange();
 
   typedef std::iterator<std::forward_iterator_tag, T> _iterator_base;
 
@@ -215,7 +218,8 @@ public:
   ///
   /// Each alphabet has to provide a one to one mapping of symbols to
   /// index values used for internal storage
-  static int getIndex(value_type symbol) {
+  /// For performance reasons, there is no range check
+  static unsigned getIndex(value_type symbol) {
     int index = symbol;
     if (_min < 0) index += -_min;
     else if (_min > 0) index -= _min;
@@ -223,8 +227,13 @@ public:
   }
 
   /// get symbol from index
-  static value_type getSymbol(int index) {
+  static value_type getSymbol(unsigned index) {
     return _min + index;
+  }
+
+  /// get the range of indices aka number of indices
+  constexpr unsigned getIndexRange() {
+    return _max - _min;
   }
 
   /// get the name of the alphabet

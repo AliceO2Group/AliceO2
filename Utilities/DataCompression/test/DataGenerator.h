@@ -8,8 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//-*- Mode: C++ -*-
-
 #ifndef DATAGENERATOR_H
 #define DATAGENERATOR_H
 //****************************************************************************
@@ -64,16 +62,17 @@ template<typename ValueT
          , typename ModelT>
 class DataGenerator {
 public:
-  typedef int size_type;
-  typedef ValueT result_type;
-  typedef DataGenerator self_type;
+  using size_type = std::size_t;
+  using value_type = ValueT;
+  using result_type = value_type;
+  using self_type = DataGenerator;
 
   template<typename... Args>
   DataGenerator(result_type _min,
                 result_type _max,
                 result_type _step,
                 Args&&... args)
-    : mGenerator(), min(_min), max(_max), step(_step), nbins((max-min)/step), mModel(std::forward<Args>(args)...) {}
+    : min(_min), max(_max), step(_step), nbins((max-min)/step), mGenerator(), mModel(std::forward<Args>(args)...) {}
   ~DataGenerator() {}
   DataGenerator(const DataGenerator&) = default;
   DataGenerator& operator=(const DataGenerator&) = default;
@@ -83,8 +82,7 @@ public:
   const result_type step;
   const size_type nbins;
 
-  typedef ValueT value_type;
-  typedef std::default_random_engine random_engine;
+  using random_engine = std::default_random_engine;
 
   /// get next random value
   // TODO: can it be const?
@@ -98,7 +96,7 @@ public:
       }
     }
     int bin = (v - min)/step;
-    return min + bin * step;
+    return min + bin * step + 0.5 * step;
   }
 
   /// get next random value
@@ -115,7 +113,7 @@ public:
     return mModel.getProbability(v);
   }
 
-  typedef std::iterator<std::forward_iterator_tag, result_type> _iterator_base;
+  using _iterator_base = std::iterator<std::forward_iterator_tag, result_type>;
 
   /**
    * @class iterator a forward iterator to access the bins
@@ -129,9 +127,9 @@ public:
     iterator(const ContainerT& parent, size_type count = 0) : mParent(parent), mCount(count) {}
     ~iterator() {}
 
-    typedef iterator self_type;
-    typedef typename _iterator_base::value_type value_type;
-    typedef typename _iterator_base::reference reference;
+    using self_type = iterator;
+    using value_type = typename _iterator_base::value_type;
+    using reference = typename _iterator_base::reference;
 
     // prefix increment
     self_type& operator++() {
@@ -153,7 +151,7 @@ public:
       return copy;
     }
 
-    value_type operator*() {return mParent.min + (mCount +.5) * mParent.step;}
+    value_type operator*() {return mParent.min + mCount * mParent.step + .5 * mParent.step;}
     //pointer operator->() const {return &mValue;}
     //reference operator[](size_type n) const;
 
@@ -194,7 +192,7 @@ template <class RealType = double
           >
 class normal_distribution : public _BASE {
 public:
-  typedef typename _BASE::result_type result_type;
+  using result_type = typename _BASE::result_type;
 
   normal_distribution(result_type _mean,
                       result_type _stddev
@@ -226,7 +224,7 @@ template <class IntType = int
           >
 class poisson_distribution : public _BASE {
 public:
-  typedef typename _BASE::result_type result_type;
+  using result_type = typename _BASE::result_type;
 
   poisson_distribution(result_type _mean) : _BASE(_mean), mean(_mean) {}
   ~poisson_distribution() {};
