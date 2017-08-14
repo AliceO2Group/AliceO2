@@ -6,7 +6,7 @@
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
-// or submit itself to any jurisdiction.#ifndef FRAMEWORK_CONFIG_PARAM_SPEC_H
+// or submit itself to any jurisdiction.
 #ifndef FRAMEWORK_DATAREFUTILS_H
 #define FRAMEWORK_DATAREFUTILS_H
 

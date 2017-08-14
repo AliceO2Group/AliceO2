@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry) {
   };
 
   struct ConcreteA : InterfaceA {
-    virtual bool method() final {return true; }
+    bool method() final {return true; }
   };
 
   struct InterfaceB {
@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry) {
   };
 
   struct ConcreteB : InterfaceB {
-    virtual bool method() final {return false; }
+    bool method() final {return false; }
   };
 
   struct InterfaceC {

@@ -37,9 +37,9 @@ bool processMetric(const std::smatch &match,
                    DeviceMetricsInfo &info) {
   auto type = match[1];
   auto name = match[2];
-  char *ep = 0;
+  char *ep = nullptr;
   auto timestamp = strtol(match[3].str().c_str(), &ep, 10);
-  if (ep == 0 || *ep != '\0') {
+  if (ep == nullptr || *ep != '\0') {
     return false;
   }
   auto stringValue = match[4];

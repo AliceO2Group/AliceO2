@@ -23,7 +23,7 @@ dumpDataProcessorSpec2Graphviz(const std::vector<DataProcessorSpec> &specs)
   std::cout << "digraph structs {\n";
   std::cout << "   node[shape=record]\n";
   for (auto &spec : specs) {
-    std::cout << "  struct [label=\"" << spec.name << "\"];\n";
+    std::cout << R"(  struct [label=")" << spec.name << R"("];\n)";
   }
   std::cout << "}\n";
 }
@@ -42,7 +42,7 @@ dumpDeviceSpec2Graphviz(const std::vector<DeviceSpec> &specs)
   for (auto &spec : specs) {
     auto id = spec.id;
     std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
-    std::cout << "   " << id << " [label=\"{{";
+    std::cout << "   " << id << R"( [label="{{)";
     bool firstInput = true;
     for (auto && input : spec.channels) {
       if (input.type != Sub) {
@@ -70,7 +70,7 @@ dumpDeviceSpec2Graphviz(const std::vector<DeviceSpec> &specs)
       firstOutput = false;
       std::cout <<  "<" << output.name << ">" << output.name;
     }
-    std::cout << "}}\"];\n";
+    std::cout << R"(}}"];\n)";
   }
   for (auto &spec : specs) {
     for (auto &channel: spec.channels) {
@@ -86,8 +86,7 @@ dumpDeviceSpec2Graphviz(const std::vector<DeviceSpec> &specs)
       std::cout << outputChannel2Device[outputName] << ":" << outputName
                 << "-> "
                 << id << ":" << channel.name
-                << " [label=\"" << channel.port << "\""
-              //  << " taillabel=\"" << outputChannel2Port[outputName] << "\""
+                << R"( [label=")" << channel.port << R"(")"
                 << "]\n";
     }
   }

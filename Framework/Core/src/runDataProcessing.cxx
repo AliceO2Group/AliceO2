@@ -37,7 +37,7 @@
 #include <string>
 
 #include <getopt.h>
-#include <signal.h>
+#include <csignal>
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -113,7 +113,7 @@ int doParent(fd_set *in_fdset,
     timeout.tv_sec = 0;
     timeout.tv_usec = 16666; // This should be enough to allow 60 HZ redrawing.
     memcpy(fdset, in_fdset, sizeof(fd_set));
-    int numFd = select(maxFd, fdset, NULL, NULL, &timeout);
+    int numFd = select(maxFd, fdset, nullptr, nullptr, &timeout);
     if (numFd == 0) {
       continue;
     }
@@ -167,7 +167,7 @@ int doParent(fd_set *in_fdset,
               LOG(INFO) << "Found metric with key " << metricsMatch[2]
                         << " and value " <<  metricsMatch[4];
               processMetric(metricsMatch, metrics);
-          } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != NULL)) {
+          } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != nullptr)) {
             assert(info.historyPos >= 0);
             assert(info.historyPos < info.history.size());
             info.history[info.historyPos] = token;
@@ -512,11 +512,11 @@ void handle_sigchld(int sig) {
 //     each DataProcessorSpec
 int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   static struct option longopts[] = {
-    {"quiet",     no_argument,  NULL, 'q' },
-    {"stop",   no_argument,  NULL, 's' },
-    {"batch", no_argument, NULL, 'b'},
-    {"graphviz", no_argument, NULL, 'g'},
-    { NULL,         0,            NULL, 0 }
+    {"quiet",     no_argument,  nullptr, 'q' },
+    {"stop",   no_argument,  nullptr, 's' },
+    {"batch", no_argument, nullptr, 'b'},
+    {"graphviz", no_argument, nullptr, 'g'},
+    { nullptr,         0,            nullptr, 0 }
   };
 
   int defaultQuiet = false;
@@ -525,7 +525,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   int graphViz = false;
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "qsb",longopts, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "qsb",longopts, nullptr)) != -1) {
     switch (opt) {
     case 'q':
         defaultQuiet = true;
@@ -624,7 +624,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
     sa_handle_int.sa_handler = handle_sigint;
     sigemptyset(&sa_handle_int.sa_mask);
     sa_handle_int.sa_flags = SA_RESTART;
-    if (sigaction(SIGINT, &sa_handle_int, NULL) == -1) {
+    if (sigaction(SIGINT, &sa_handle_int, nullptr) == -1) {
       perror("Unable to install signal handler");
       exit(1);
     }

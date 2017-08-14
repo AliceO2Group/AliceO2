@@ -25,9 +25,9 @@ namespace framework {
 class DataSourceDevice : public FairMQDevice {
 public:
   DataSourceDevice(const DeviceSpec &spec);
-  void InitTask() override final;
+  void InitTask() final;
 protected:
-  bool ConditionalRun() override final;
+  bool ConditionalRun() final;
 private:
   DataProcessorSpec::InitCallback mInit;
   DataProcessorSpec::ProcessCallback mProcess;

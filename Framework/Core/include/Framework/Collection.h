@@ -28,11 +28,11 @@ public:
   :mPtr{ptr}{
   }
 
-  T &operator*(void) const {
+  T &operator*() const {
     return *mPtr;
   }
 
-  T &operator->(void) {
+  T &operator->() {
     return *mPtr;
   }
 
@@ -43,7 +43,7 @@ public:
     return tmp;
   }
 
-  CollectionIt<T> operator++(void) {
+  CollectionIt<T> operator++() {
     mPtr++;
     return *this;
   }
@@ -54,7 +54,7 @@ public:
     return tmp;
   }
 
-  CollectionIt<T> operator--(void) {
+  CollectionIt<T> operator--() {
     mPtr--;
     return *this;
   }

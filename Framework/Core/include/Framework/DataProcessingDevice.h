@@ -26,7 +26,7 @@ namespace framework {
 class DataProcessingDevice : public FairMQDevice {
 public:
   DataProcessingDevice(const DeviceSpec &spec, ServiceRegistry &);
-  void InitTask() override final;
+  void InitTask() final;
 protected:
   bool HandleData(FairMQParts &parts, int index);
   void error(const char *msg);
