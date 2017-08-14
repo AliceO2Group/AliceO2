@@ -86,6 +86,8 @@ public:
   int reset() {
     mCurrent = 0;
     mFilledBits = 0;
+
+    return 0;
   }
 
   /**
@@ -169,7 +171,7 @@ private:
   /// current target word
   target_type mCurrent;
   /// current bit position
-  int mFilledBits;
+  unsigned mFilledBits;
   /// codec instance
   Codec mCodec;
 };
