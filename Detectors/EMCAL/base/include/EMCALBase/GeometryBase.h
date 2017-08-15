@@ -29,6 +29,8 @@ enum EMCALSMType {
 
 enum AcceptanceType_t { EMCAL_ACCEPTANCE = 1, DCAL_ACCEPTANCE = 2, NON_ACCEPTANCE = 0 };
 
+const std::string DEFAULT_GEOMETRY = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
+
 /// \class InvalidModuleException
 /// \brief Error Handling when an invalid module ID (outside the limits) is called
 class InvalidModuleException : public std::exception

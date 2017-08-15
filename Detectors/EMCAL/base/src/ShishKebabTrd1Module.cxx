@@ -12,12 +12,12 @@
 
 #include "RStringView.h"
 
-#include "EMCALBase/EMCGeometry.h"
+#include "EMCALBase/Geometry.h"
 #include "EMCALBase/ShishKebabTrd1Module.h"
 
 using namespace o2::EMCAL;
 
-ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, EMCGeometry* g)
+ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, Geometry* g)
  :  mGeometry(g),
     mOK(),
     mA(0.),
