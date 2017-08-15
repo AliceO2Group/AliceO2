@@ -25,11 +25,9 @@ using namespace o2::EMCAL;
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;
-std::string Geometry::sDefaultGeometryName = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
 
 Geometry::Geometry(const Geometry& geo)
-  : mEMCGeometry(geo.mEMCGeometry),
-    mGeoName(geo.mGeoName),
+  : mGeoName(geo.mGeoName),
     mKey110DEG(geo.mKey110DEG),
     mnSupModInDCAL(geo.mnSupModInDCAL),
     mNCellsInSupMod(geo.mNCellsInSupMod),
@@ -56,6 +54,7 @@ Geometry::Geometry(const Geometry& geo)
     mEMCALPhiMax(geo.mEMCALPhiMax),
     mDCALStandardPhiMax(geo.mDCALStandardPhiMax),
     mDCALInnerExtandedEta(geo.mDCALInnerExtandedEta),
+    mDCALInnerEdge(geo.mDCALInnerEdge),
     mShishKebabTrd1Modules(geo.mShishKebabTrd1Modules),
     mPhiModuleSize(geo.mPhiModuleSize),
     mEtaModuleSize(geo.mEtaModuleSize),
@@ -66,8 +65,27 @@ Geometry::Geometry(const Geometry& geo)
     mLongModuleSize(geo.mLongModuleSize),
     mShellThickness(geo.mShellThickness),
     mZLength(geo.mZLength),
-    mSampling(geo.mSampling)
+    mSampling(geo.mSampling),
+    mECPbRadThickness(geo.mECPbRadThickness),
+    mECScintThick(geo.mECScintThick),
+    mNECLayers(geo.mNECLayers),
+    mNumberOfSuperModules(geo.mNumberOfSuperModules),
+    mEMCSMSystem(new Int_t[mNumberOfSuperModules]),
+    mFrontSteelStrip(geo.mFrontSteelStrip),
+    mLateralSteelStrip(geo.mLateralSteelStrip),
+    mPassiveScintThick(geo.mPassiveScintThick),
+    mPhiSuperModule(geo.mPhiSuperModule),
+    mNPhiSuperModule(geo.mNPhiSuperModule),
+    mTrd1Angle(geo.mTrd1Angle),
+    m2Trd1Dx2(geo.m2Trd1Dx2),
+    mPhiGapForSM(geo.mPhiGapForSM),
+    mTrd1AlFrontThick(geo.mTrd1AlFrontThick),
+    mTrd1BondPaperThick(geo.mTrd1BondPaperThick),
+    mILOSS(geo.mILOSS),
+    mIHADR(geo.mIHADR),
+    mSteelFrontThick(geo.mSteelFrontThick) // obsolete data member?
 {
+  memcpy(mEMCSMSystem, geo.mEMCSMSystem, sizeof(Int_t) * mNumberOfSuperModules);
   memcpy(mEnvelop, geo.mEnvelop, sizeof(Float_t) * 3);
   memcpy(mParSM, geo.mParSM, sizeof(Float_t) * 3);
 
@@ -75,8 +93,7 @@ Geometry::Geometry(const Geometry& geo)
 }
 
 Geometry::Geometry(const std::string_view name, const std::string_view mcname, const std::string_view mctitle)
-  : mEMCGeometry(name, mcname, mctitle),
-    mGeoName(name),
+  : mGeoName(name),
     mKey110DEG(0),
     mnSupModInDCAL(0),
     mNCellsInSupMod(0),
@@ -103,6 +120,7 @@ Geometry::Geometry(const std::string_view name, const std::string_view mcname, c
     mEMCALPhiMax(0),
     mDCALStandardPhiMax(0),
     mDCALInnerExtandedEta(0),
+    mDCALInnerEdge(0.),
     mShishKebabTrd1Modules(),
     mPhiModuleSize(0.),
     mEtaModuleSize(0.),
@@ -113,66 +131,32 @@ Geometry::Geometry(const std::string_view name, const std::string_view mcname, c
     mLongModuleSize(0.),
     mShellThickness(0.),
     mZLength(0.),
-    mSampling(0.)
+    mSampling(0.),
+    mECPbRadThickness(0.),
+    mECScintThick(0.),
+    mNECLayers(0),
+    mNumberOfSuperModules(0),
+    mEMCSMSystem(nullptr),
+    mFrontSteelStrip(0.),
+    mLateralSteelStrip(0.),
+    mPassiveScintThick(0.),
+    mPhiSuperModule(0),
+    mNPhiSuperModule(0),
+    mTrd1Angle(0.),
+    m2Trd1Dx2(0.),
+    mPhiGapForSM(0.),
+    mTrd1AlFrontThick(0.0),
+    mTrd1BondPaperThick(0.),
+    mILOSS(-1),
+    mIHADR(-1),
+    mSteelFrontThick(0.) // obsolete data member?
 {
-  mGeoName = mEMCGeometry.GetGeoName();
-  mKey110DEG = mEMCGeometry.GetKey110DEG();
-  mnSupModInDCAL = mEMCGeometry.GetnSupModInDCAL();
-  mNCellsInSupMod = mEMCGeometry.GetNCellsInSupMod();
-  mNETAdiv = mEMCGeometry.GetNETAdiv();
-  mNPHIdiv = mEMCGeometry.GetNPHIdiv();
+  DefineEMC(mcname, mctitle);
   mNCellsInModule = mNPHIdiv * mNETAdiv;
-  Int_t nSMod = mEMCGeometry.GetNumberOfSuperModules();
-  mPhiBoundariesOfSM.Set(nSMod);
-  mPhiCentersOfSM.Set(nSMod / 2);
-  mPhiCentersOfSMSec.Set(nSMod / 2);
-  Int_t i = 0;
-  for (Int_t sm = 0; sm < nSMod; sm++) {
-    i = sm / 2;
-    auto boundaries = mEMCGeometry.GetPhiBoundariesOfSM(sm);
-    mPhiBoundariesOfSM[2 * i] = std::get<0>(boundaries);
-    mPhiBoundariesOfSM[2 * i + 1] = std::get<1>(boundaries);
-  }
-
-  for (Int_t sm = 0; sm < nSMod; sm++) {
-    i = sm / 2;
-    mPhiCentersOfSM[i] = mEMCGeometry.GetPhiCenterOfSM(sm);
-    mPhiCentersOfSMSec[i] = mEMCGeometry.GetPhiCenterOfSMSec(sm);
-  }
-
-  mNCells = mEMCGeometry.GetNCells();
-  mNPhi = mEMCGeometry.GetNPhi();
-  mEnvelop[0] = mEMCGeometry.GetEnvelop(0);
-  mEnvelop[1] = mEMCGeometry.GetEnvelop(1);
-  mEnvelop[2] = mEMCGeometry.GetEnvelop(2);
-  mParSM[0] = mEMCGeometry.GetSuperModulesPar(0);
-  mParSM[1] = mEMCGeometry.GetSuperModulesPar(1);
-  mParSM[2] = mEMCGeometry.GetSuperModulesPar(2);
-  mArm1EtaMin = mEMCGeometry.GetArm1EtaMin();
-  mArm1EtaMax = mEMCGeometry.GetArm1EtaMax();
-  mArm1PhiMin = mEMCGeometry.GetArm1PhiMin();
-  mArm1PhiMax = mEMCGeometry.GetArm1PhiMax();
-  mDCALPhiMin = mEMCGeometry.GetDCALPhiMin();
-  mDCALPhiMax = mEMCGeometry.GetDCALPhiMax();
-  mEMCALPhiMax = mEMCGeometry.GetEMCALPhiMax();
-  mDCALStandardPhiMax = mEMCGeometry.GetDCALStandardPhiMax();
-  mDCALInnerExtandedEta = mEMCGeometry.GetDCALInnerExtandedEta();
-  mShellThickness = mEMCGeometry.GetShellThickness();
-  mZLength = mEMCGeometry.GetZLength();
-  mSampling = mEMCGeometry.GetSampling();
-  mEtaModuleSize = mEMCGeometry.GetEtaModuleSize();
-  mPhiModuleSize = mEMCGeometry.GetPhiModuleSize();
-  mEtaTileSize = mEMCGeometry.GetEtaTileSize();
-  mPhiTileSize = mEMCGeometry.GetPhiTileSize();
-  mNZ = mEMCGeometry.GetNZ();
-  mIPDistance = mEMCGeometry.GetIPDistance();
-  mLongModuleSize = mEMCGeometry.GetLongModuleSize();
 
   CreateListOfTrd1Modules();
 
   memset(SMODULEMATRIX, 0, sizeof(TGeoHMatrix*) * EMCAL_MODULES);
-
-  LOG(DEBUG2) << mEMCGeometry << FairLogger::endl;
 
   LOG(INFO) << "Name <<" << name << ">>" << FairLogger::endl;
 }
@@ -190,7 +174,7 @@ Geometry::~Geometry()
     return;
   }
 
-  for (Int_t smod = 0; smod < mEMCGeometry.GetNumberOfSuperModules(); smod++) {
+  for (Int_t smod = 0; smod < mNumberOfSuperModules; smod++) {
     if (SMODULEMATRIX[smod])
       delete SMODULEMATRIX[smod];
   }
@@ -209,23 +193,14 @@ Geometry* Geometry::GetInstance(const std::string_view name, const std::string_v
 
   if (!sGeom) {
     if (name != std::string("")) { // get default geometry
-      sGeom = new Geometry(sDefaultGeometryName.c_str(), mcname, mctitle);
+      sGeom = new Geometry(DEFAULT_GEOMETRY, mcname, mctitle);
     } else {
       sGeom = new Geometry(name, mcname, mctitle);
     } // end if strcmp(name,"")
-
-    if (EMCGeometry::sInit)
-      rv = static_cast<Geometry*>(sGeom);
-    else {
-      rv = nullptr;
-      delete sGeom;
-      sGeom = nullptr;
-    } // end if fgInit
   } else {
     if (sGeom->GetName() != name) {
       LOG(INFO) << "\n current geometry is " << sGeom->GetName() << " : you should not call " << name
                 << FairLogger::endl;
-
     } // end
 
     rv = static_cast<Geometry*>(sGeom);
@@ -308,6 +283,370 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
     }
     return Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", mcname, mctitle);
   }
+}
+
+void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::string_view mctitle)
+{
+  // Jun 05,2006
+  // Look http://rhic.physics.wayne.edu/~pavlinov/ALICE/SHISHKEBAB/RES/linearityAndResolutionForTRD1.html
+  // Keep for compatibility
+  //
+  using boost::algorithm::contains;
+
+  // Sampling factor for G3
+  mSampling = 10.87;      // Default value - Nov 25,2010
+  if (mNECLayers == 69) { // 10% layer reduction
+    mSampling = 12.55;
+  } else if (mNECLayers == 61) { // 20% layer reduction
+    mSampling = 12.80;
+  } else if (mNECLayers == 77) {
+    if (contains(mGeoName, "V1")) {
+      mSampling = 10.87;                                         // Adding paper sheets and cover plate; Nov 25,2010
+    } else if (mECScintThick > 0.159 && mECScintThick < 0.161) { // original sampling fraction, equal layers
+      mSampling = 12.327;                                        // fECScintThick = fECPbRadThickness = 0.160;
+    } else if (mECScintThick > 0.175 && mECScintThick < 0.177) { // 10% Pb thicknes reduction
+      mSampling = 10.5;                                          // fECScintThick = 0.176, fECPbRadThickness=0.144;
+    } else if (mECScintThick > 0.191 && mECScintThick < 0.193) { // 20% Pb thicknes reduction
+      mSampling = 8.93;                                          // fECScintThick = 0.192, fECPbRadThickness=0.128;
+    }
+  }
+
+  Float_t samplingFactorTranportModel = 1.;
+  if (contains(mcname, "Geant3"))
+    samplingFactorTranportModel = 1.; // 0.988 // Do nothing
+  else if (contains(mcname, "Fluka"))
+    samplingFactorTranportModel = 1.; // To be set
+  else if (contains(mcname, "Geant4")) {
+    if (contains(mctitle, "EMV-EMCAL"))
+      samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
+    else if (contains(mctitle, "EMV"))
+      samplingFactorTranportModel = 1.096; // 0.906, 0.896 (OPT)
+    else
+      samplingFactorTranportModel = 0.821; // 1.15 (CHIPS), 1.149 (BERT), 1.147 (BERT_CHIPS)
+  }
+
+  LOG(INFO) << "MC modeler <" << mcname << ">, Title <" << mctitle << ">: Sampling " << std::setw(2)
+            << std::setprecision(3) << mSampling << ", model fraction with respect to G3 "
+            << samplingFactorTranportModel << ", final sampling " << mSampling * samplingFactorTranportModel
+            << FairLogger::endl;
+
+  mSampling *= samplingFactorTranportModel;
+}
+
+void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
+{
+  using boost::algorithm::contains;
+
+  // geometry
+  std::transform(mGeoName.begin(), mGeoName.end(), mGeoName.begin(), ::toupper);
+
+  // Convert old geometry names to new ones
+  if (contains(mGeoName, "SHISH_77_TRD1_2X2_FINAL_110DEG")) {
+    if (contains(mGeoName, "PBTH=0.144") && contains(mGeoName, "SCTH=0.176")) {
+      mGeoName = "EMCAL_COMPLETE";
+    } else {
+      mGeoName = "EMCAL_PDC06";
+    }
+  }
+
+  if (contains(mGeoName, "WSUC"))
+    mGeoName = "EMCAL_WSUC";
+
+  // check that we have a valid geometry name
+  if (!(contains(mGeoName, "EMCAL_PDC06") || contains(mGeoName, "EMCAL_WSUC") || contains(mGeoName, "EMCAL_COMPLETE") ||
+        contains(mGeoName, "EMCAL_COMPLETEV1") || contains(mGeoName, "EMCAL_COMPLETE12SMV1") ||
+        contains(mGeoName, "EMCAL_FIRSTYEAR") || contains(mGeoName, "EMCAL_FIRSTYEARV1"))) {
+    LOG(FATAL) << "Init, " << mGeoName << " is an undefined geometry!\n";
+  }
+
+  // Option to know whether we have the "half" supermodule(s) or not
+  mKey110DEG = 0;
+  if (contains(mGeoName, "COMPLETE") || contains(mGeoName, "PDC06") || contains(mGeoName, "12SM"))
+    mKey110DEG = 1; // for GetAbsCellId
+  if (contains(mGeoName, "COMPLETEV1"))
+    mKey110DEG = 0;
+
+  mnSupModInDCAL = 0;
+  if (contains(mGeoName, "DCAL_DEV")) {
+    mnSupModInDCAL = 10;
+  } else if (contains(mGeoName, "DCAL_8SM")) {
+    mnSupModInDCAL = 8;
+  } else if (contains(mGeoName, "DCAL")) {
+    mnSupModInDCAL = 6;
+  }
+
+  // JLK 13-Apr-2008
+  // default parameters are those of EMCAL_COMPLETE geometry
+  // all others render variations from these at the end of
+  // geometry-name specific options
+
+  mNumberOfSuperModules = 12; // 12 = 6 * 2 (6 in phi, 2 in Z)
+  mNPhi = 12;                 // module granularity in phi within smod (azimuth)
+  mNZ = 24;                   // module granularity along Z within smod (eta)
+  mNPHIdiv = mNETAdiv = 2;    // tower granularity within module
+  mArm1PhiMin = 80.0;         // degrees, Starting EMCAL Phi position
+  mArm1PhiMax = 200.0;        // degrees, Ending EMCAL Phi position
+  mArm1EtaMin = -0.7;         // pseudorapidity, Starting EMCAL Eta position
+  mArm1EtaMax = +0.7;         // pseudorapidity, Ending EMCAL Eta position
+  mIPDistance = 428.0;        // cm, radial distance to front face from nominal vertex point
+  mPhiGapForSM = 2.;          // cm, only for final TRD1 geometry
+  mFrontSteelStrip = 0.025;   // 0.025cm = 0.25mm  (13-may-05 from V.Petrov)
+  mPassiveScintThick = 0.8;   // 0.8cm   = 8mm     (13-may-05 from V.Petrov)
+  mLateralSteelStrip = 0.01;  // 0.01cm  = 0.1mm   (13-may-05 from V.Petrov) - was 0.025
+  mTrd1Angle = 1.5;           // in degrees
+
+  mSampling = 1.;            // should be calculated with call to DefineSamplingFraction()
+  mNECLayers = 77;           // (13-may-05 from V.Petrov) - can be changed with additional options
+  mECScintThick = 0.176;     // scintillator layer thickness
+  mECPbRadThickness = 0.144; // lead layer thickness
+
+  mPhiModuleSize = 12.26 - mPhiGapForSM / Float_t(mNPhi); // first assumption
+  mEtaModuleSize = mPhiModuleSize;
+
+  mZLength = 700.;       // Z coverage (cm)
+  mPhiSuperModule = 20.; // phi in degree
+  mDCALInnerEdge = mIPDistance * TMath::Tan(mTrd1Angle * 8. * TMath::DegToRad());
+
+  // modifications to the above for PDC06 geometry
+  if (contains(mGeoName, "PDC06")) {          // 18-may-05 - about common structure
+    mECScintThick = mECPbRadThickness = 0.16; // (13-may-05 from V.Petrov)
+  }
+
+  // modifications to the above for WSUC geometry
+  if (contains(mGeoName, "WSUC")) { // 18-may-05 - about common structure
+    mNumberOfSuperModules = 2;      // 27-may-05; Nov 24,2010 for TB
+    mNPhi = mNZ = 4;
+    mTrd1AlFrontThick = 1.0; // one cm
+    // Bond paper - two sheets around Sc tile
+    mTrd1BondPaperThick = 0.01; // 0.01cm = 0.1 mm
+
+    mPhiModuleSize = 12.0;
+    mEtaModuleSize = mPhiModuleSize;
+    mLateralSteelStrip = 0.015; // 0.015cm  = 0.15mm
+  }
+
+  // In 2009-2010 data taking runs only 4 SM, in the upper position.
+  if (contains(mGeoName, "FIRSTYEAR")) {
+    mNumberOfSuperModules = 4;
+    mArm1PhiMax = 120.0;
+  }
+
+  if (contains(mGeoName, "FIRSTYEARV1") || contains(mGeoName, "COMPLETEV1") || contains(mGeoName, "COMPLETE12SMV1")) {
+    // Oct 26,2010 : First module has tilt = 0.75 degree :
+    // look to AliEMCALShishKebabTrd1Module::DefineFirstModule(key)
+    // New sizes from production drawing, added Al front plate.
+    // The thickness of sampling is change due to existing two sheets of paper.
+
+    // Will replace fFrontSteelStrip
+    mTrd1AlFrontThick = 1.0; // one cm
+    // Bond paper - two sheets around Sc tile
+    mTrd1BondPaperThick = 0.01; // 0.01cm = 0.1 mm
+
+    mPhiModuleSize = 12.0;
+    mEtaModuleSize = mPhiModuleSize;
+    mLateralSteelStrip = 0.015; // 0.015cm  = 0.15mm
+
+    if (contains(mGeoName, "COMPLETEV1")) {
+      mNumberOfSuperModules = 10;
+      mArm1PhiMax = 180.0;
+    } else if (contains(mGeoName, "COMPLETE12SMV1")) {
+      mNumberOfSuperModules = 12;
+      mArm1PhiMax = 200.0;
+    }
+    if (contains(mGeoName, "DCAL")) {
+      mNumberOfSuperModules = 12 + mnSupModInDCAL;
+      mArm1PhiMax = 320.0;
+      if (contains(mGeoName, "DCAL_8SM"))
+        mArm1PhiMax = 340.0; // degrees, End of DCAL Phi position
+      else if (contains(mGeoName, "DCAL_DEV"))
+        mArm1PhiMin = 40.0; // degrees, Starting EMCAL(shifted) Phi position
+      mDCALPhiMin = mArm1PhiMax - 10. * mnSupModInDCAL;
+    }
+  }
+
+  //
+  // Init EMCal/DCal SMs type array
+  if (mEMCSMSystem)
+    delete[] mEMCSMSystem;
+
+  mEMCSMSystem = new Int_t[mNumberOfSuperModules];
+
+  for (Int_t i = 0; i < mNumberOfSuperModules; i++)
+    mEMCSMSystem[i] = NOT_EXISTENT;
+
+  Int_t iSM = 0;
+
+  //
+  // BASIC EMCAL SM
+  if (contains(mGeoName, "WSUC")) {
+    for (int i = 0; i < 2; i++) {
+      mEMCSMSystem[iSM] = EMCAL_STANDARD;
+      iSM++;
+    }
+  } else if (contains(mGeoName, "FIRSTYEAR")) {
+    for (int i = 0; i < 4; i++) {
+      mEMCSMSystem[iSM] = EMCAL_STANDARD;
+      iSM++;
+    }
+  } else if (contains(mGeoName, "PDC06") || contains(mGeoName, "COMPLETE")) {
+    for (int i = 0; i < 10; i++) {
+      mEMCSMSystem[iSM] = EMCAL_STANDARD;
+      iSM++;
+    }
+  }
+
+  //
+  // EMCAL 110SM
+  if (mKey110DEG && contains(mGeoName, "12SM")) {
+    for (int i = 0; i < 2; i++) {
+      mEMCSMSystem[iSM] = EMCAL_HALF;
+      if (contains(mGeoName, "12SMV1")) {
+        mEMCSMSystem[iSM] = EMCAL_THIRD;
+      }
+      iSM++;
+    }
+  }
+
+  //
+  // DCAL SM
+  if (mnSupModInDCAL && contains(mGeoName, "DCAL")) {
+    if (contains(mGeoName, "8SM")) {
+      for (int i = 0; i < mnSupModInDCAL - 2; i++) {
+        mEMCSMSystem[iSM] = DCAL_STANDARD;
+        iSM++;
+      }
+      for (int i = 0; i < 2; i++) {
+        mEMCSMSystem[iSM] = DCAL_EXT;
+        iSM++;
+      }
+    } else {
+      for (int i = 0; i < mnSupModInDCAL; i++) {
+        mEMCSMSystem[iSM] = DCAL_STANDARD;
+        iSM++;
+      }
+    }
+  }
+
+  // constant for transition absid <--> indexes
+  mNCellsInModule = mNPHIdiv * mNETAdiv;
+  mNCellsInSupMod = mNCellsInModule * mNPhi * mNZ;
+  mNCells = 0;
+  for (int i = 0; i < mNumberOfSuperModules; i++) {
+    if (GetSMType(i) == EMCAL_STANDARD)
+      mNCells += mNCellsInSupMod;
+    else if (GetSMType(i) == EMCAL_HALF)
+      mNCells += mNCellsInSupMod / 2;
+    else if (GetSMType(i) == EMCAL_THIRD)
+      mNCells += mNCellsInSupMod / 3;
+    else if (GetSMType(i) == DCAL_STANDARD)
+      mNCells += 2 * mNCellsInSupMod / 3;
+    else if (GetSMType(i) == DCAL_EXT)
+      mNCells += mNCellsInSupMod / 3;
+    else
+      LOG(ERROR) << "Uknown SuperModule Type !!\n";
+  }
+
+  mNPhiSuperModule = mNumberOfSuperModules / 2;
+  if (mNPhiSuperModule < 1)
+    mNPhiSuperModule = 1;
+
+  mPhiTileSize = mPhiModuleSize / double(mNPHIdiv) - mLateralSteelStrip; // 13-may-05
+  mEtaTileSize = mEtaModuleSize / double(mNETAdiv) - mLateralSteelStrip; // 13-may-05
+
+  mLongModuleSize = mNECLayers * (mECScintThick + mECPbRadThickness);
+  if (contains(mGeoName, "V1")) {
+    Double_t ws = mECScintThick + mECPbRadThickness + 2. * mTrd1BondPaperThick; // sampling width
+    // Number of Pb tiles = Number of Sc tiles - 1
+    mLongModuleSize = mTrd1AlFrontThick + (ws * mNECLayers - mECPbRadThickness);
+  }
+  m2Trd1Dx2 = mEtaModuleSize + 2. * mLongModuleSize * TMath::Tan(mTrd1Angle * TMath::DegToRad() / 2.);
+
+  if (!contains(mGeoName, "WSUC"))
+    mShellThickness = TMath::Sqrt(mLongModuleSize * mLongModuleSize + m2Trd1Dx2 * m2Trd1Dx2);
+
+  // These parameters are used to create the mother volume to hold the supermodules
+  // 2cm padding added to allow for misalignments - JLK 30-May-2008
+  mEnvelop[0] = mIPDistance - 1.;                   // mother volume inner radius
+  mEnvelop[1] = mIPDistance + mShellThickness + 1.; // mother volume outer r.
+  mEnvelop[2] = mZLength + 2.;                      // mother volume length
+
+  // Local coordinates
+  mParSM[0] = GetShellThickness() / 2.;
+  mParSM[1] = GetPhiModuleSize() * GetNPhi() / 2.;
+  mParSM[2] = mZLength / 4.; // divide by 4 to get half-length of SM
+
+  // SM phi boundaries - (0,1),(2,3) ... - has the same boundaries;
+  mPhiBoundariesOfSM.Set(mNumberOfSuperModules);
+  mPhiCentersOfSM.Set(mNumberOfSuperModules / 2);
+  mPhiCentersOfSMSec.Set(mNumberOfSuperModules / 2);
+  Double_t kfSupermodulePhiWidth = mPhiSuperModule * TMath::DegToRad();
+  mPhiCentersOfSM[0] = (mArm1PhiMin + mPhiSuperModule / 2.) * TMath::DegToRad();     // Define from First SM
+  mPhiCentersOfSMSec[0] = mPhiCentersOfSM[0];                                        // the same in the First SM
+  mPhiBoundariesOfSM[0] = mPhiCentersOfSM[0] - TMath::ATan2(mParSM[1], mIPDistance); // 1th and 2th modules)
+  mPhiBoundariesOfSM[1] = mPhiCentersOfSM[0] + TMath::ATan2(mParSM[1], mIPDistance);
+
+  if (mNumberOfSuperModules > 2) { // 2 to Max
+    Int_t tmpSMType = GetSMType(2);
+    for (int i = 1; i < mNPhiSuperModule; i++) {
+      mPhiBoundariesOfSM[2 * i] += mPhiBoundariesOfSM[2 * i - 2] + kfSupermodulePhiWidth;
+      if (tmpSMType == GetSMType(2 * i)) {
+        mPhiBoundariesOfSM[2 * i + 1] += mPhiBoundariesOfSM[2 * i - 1] + kfSupermodulePhiWidth;
+      } else {
+        // changed SM Type, redefine the [2*i+1] Boundaries
+        tmpSMType = GetSMType(2 * i);
+        if (GetSMType(2 * i) == EMCAL_STANDARD) {
+          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + kfSupermodulePhiWidth;
+        } else if (GetSMType(2 * i) == EMCAL_HALF) {
+          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 2, mIPDistance);
+        } else if (GetSMType(2 * i) == EMCAL_THIRD) {
+          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
+        } else if (GetSMType(2 * i) == DCAL_STANDARD) { // jump the gap
+          mPhiBoundariesOfSM[2 * i] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[0];
+          mPhiBoundariesOfSM[2 * i + 1] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[1];
+        } else if (GetSMType(2 * i) == DCAL_EXT) {
+          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
+        }
+      }
+      mPhiCentersOfSM[i] = (mPhiBoundariesOfSM[2 * i] + mPhiBoundariesOfSM[2 * i + 1]) / 2.;
+      mPhiCentersOfSMSec[i] = mPhiBoundariesOfSM[2 * i] + TMath::ATan2(mParSM[1], mIPDistance);
+    }
+  }
+
+  // inner extend in eta (same as outer part) for DCal (0.189917), //calculated from the smallest gap (1# cell to the
+  // 80-degree-edge),
+  Double_t innerExtandedPhi =
+    1.102840997; // calculated from the smallest gap (1# cell to the 80-degree-edge), too complicatd to explain...
+  mDCALInnerExtandedEta = -TMath::Log(
+    TMath::Tan((TMath::Pi() / 2. - 8 * mTrd1Angle * TMath::DegToRad() +
+                (TMath::Pi() / 2 - mNZ * mTrd1Angle * TMath::DegToRad() - TMath::ATan(TMath::Exp(mArm1EtaMin)) * 2)) /
+               2.));
+
+  mEMCALPhiMax = mArm1PhiMin;
+  mDCALPhiMax = mDCALPhiMin; // DCAl extention will not be included
+  for (Int_t i = 0; i < mNumberOfSuperModules; i += 2) {
+    if (GetSMType(i) == EMCAL_STANDARD)
+      mEMCALPhiMax += 20.;
+    else if (GetSMType(i) == EMCAL_HALF)
+      mEMCALPhiMax += mPhiSuperModule / 2. + innerExtandedPhi;
+    else if (GetSMType(i) == EMCAL_THIRD)
+      mEMCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
+    else if (GetSMType(i) == DCAL_STANDARD) {
+      mDCALPhiMax += 20.;
+      mDCALStandardPhiMax = mDCALPhiMax;
+    } else if (GetSMType(i) == DCAL_EXT)
+      mDCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
+    else
+      LOG(ERROR) << "Unkown SM Type!!\n";
+  }
+  // for compatible reason
+  // if(fNumberOfSuperModules == 4) {fEMCALPhiMax = fArm1PhiMax ;}
+  if (mNumberOfSuperModules == 12) {
+    mEMCALPhiMax = mArm1PhiMax;
+  }
+
+  // called after setting of scintillator and lead layer parameters
+  // called now in AliEMCALv0::CreateGeometry() - 15/03/16
+  // DefineSamplingFraction(mcname,mctitle);
 }
 
 void Geometry::GetGlobal(const Double_t* loc, Double_t* glob, int iSM) const
@@ -437,7 +776,7 @@ Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
     throw InvalidPositionException(eta, phi);
 
   phi = TVector2::Phi_0_2pi(phi); // move phi to (0,2pi) boundaries
-  Int_t nphism = mEMCGeometry.GetNumberOfSuperModules() / 2;
+  Int_t nphism = mNumberOfSuperModules / 2;
   Int_t nSupMod = 0;
   for (i = 0; i < nphism; i++) {
     if (phi >= mPhiBoundariesOfSM[2 * i] && phi <= mPhiBoundariesOfSM[2 * i + 1]) {
@@ -446,7 +785,7 @@ Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
         nSupMod++;
 
       if (GetSMType(nSupMod) == DCAL_STANDARD) { // Gap between DCAL
-        if (TMath::Abs(eta) < GetNEta() / 3 * (mEMCGeometry.GetTrd1Angle()) * TMath::DegToRad())
+        if (TMath::Abs(eta) < GetNEta() / 3 * mTrd1Angle * TMath::DegToRad())
           throw InvalidPositionException(eta, phi);
       }
 
@@ -753,10 +1092,10 @@ void Geometry::CreateListOfTrd1Modules()
   LOG(DEBUG2) << " o2::EMCAL::Geometry::CreateListOfTrd1Modules() started\n";
 
   if (!mShishKebabTrd1Modules.size()) {
-    for (int iz = 0; iz < mEMCGeometry.GetNZ(); iz++) {
+    for (int iz = 0; iz < mNZ; iz++) {
       if (iz == 0) {
         //        mod  = new AliEMCALShishKebabTrd1Module(TMath::Pi()/2.,this);
-        mShishKebabTrd1Modules.emplace_back(ShishKebabTrd1Module(TMath::Pi() / 2., &mEMCGeometry));
+        mShishKebabTrd1Modules.emplace_back(ShishKebabTrd1Module(TMath::Pi() / 2., this));
       } else {
         mShishKebabTrd1Modules.emplace_back(ShishKebabTrd1Module(mShishKebabTrd1Modules.back()));
       }
@@ -1043,7 +1382,7 @@ o2::EMCAL::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const Point3D<double>& pnt
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 {
-  if (smod < 0 || smod > mEMCGeometry.GetNumberOfSuperModules())
+  if (smod < 0 || smod > mNumberOfSuperModules)
     LOG(FATAL) << "Wrong supermodule index -> " << smod << FairLogger::endl;
 
   if (!SMODULEMATRIX[smod]) {
@@ -1063,7 +1402,7 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromArray(Int_t smod) const
 {
-  if (smod < 0 || smod > mEMCGeometry.GetNumberOfSuperModules())
+  if (smod < 0 || smod > mNumberOfSuperModules)
     LOG(FATAL) << "Wrong supermodule index -> " << smod << FairLogger::endl;
 
   return SMODULEMATRIX[smod];
@@ -1121,7 +1460,7 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
   if (gGeoManager) {
     // Recover some stuff
 
-    const Int_t nSMod = mEMCGeometry.GetNumberOfSuperModules();
+    const Int_t nSMod = mNumberOfSuperModules;
 
     gGeoManager->cd("ALIC_1/XEN1_1");
     TGeoNode* geoXEn1 = gGeoManager->GetCurrentNode();
@@ -1241,7 +1580,7 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 
 void Geometry::SetMisalMatrix(const TGeoHMatrix* m, Int_t smod) const
 {
-  if (smod >= 0 && smod < mEMCGeometry.GetNumberOfSuperModules()) {
+  if (smod >= 0 && smod < mNumberOfSuperModules) {
     if (!SMODULEMATRIX[smod])
       SMODULEMATRIX[smod] = new TGeoHMatrix(*m); // Set only if not set yet
   } else {
@@ -1251,7 +1590,7 @@ void Geometry::SetMisalMatrix(const TGeoHMatrix* m, Int_t smod) const
 
 Bool_t Geometry::IsDCALSM(Int_t iSupMod) const
 {
-  if (mEMCGeometry.GetEMCSystem()[iSupMod] == DCAL_STANDARD || mEMCGeometry.GetEMCSystem()[iSupMod] == DCAL_EXT)
+  if (mEMCSMSystem[iSupMod] == DCAL_STANDARD || mEMCSMSystem[iSupMod] == DCAL_EXT)
     return kTRUE;
 
   return kFALSE;
@@ -1259,8 +1598,36 @@ Bool_t Geometry::IsDCALSM(Int_t iSupMod) const
 
 Bool_t Geometry::IsDCALExtSM(Int_t iSupMod) const
 {
-  if (mEMCGeometry.GetEMCSystem()[iSupMod] == DCAL_EXT)
+  if (mEMCSMSystem[iSupMod] == DCAL_EXT)
     return kTRUE;
 
   return kFALSE;
+}
+
+Double_t Geometry::GetPhiCenterOfSMSec(Int_t nsupmod) const
+{
+  int i = nsupmod / 2;
+  return mPhiCentersOfSMSec[i];
+}
+
+Double_t Geometry::GetPhiCenterOfSM(Int_t nsupmod) const
+{
+  int i = nsupmod / 2;
+  return mPhiCentersOfSM[i];
+}
+
+std::tuple<double, double> Geometry::GetPhiBoundariesOfSM(Int_t nSupMod) const
+{
+  int i;
+  if (nSupMod < 0 || nSupMod > 12 + mnSupModInDCAL - 1)
+    throw InvalidModuleException(nSupMod, 12 + mnSupModInDCAL);
+  i = nSupMod / 2;
+  return std::make_tuple((Double_t)mPhiBoundariesOfSM[2 * i], (Double_t)mPhiBoundariesOfSM[2 * i + 1]);
+}
+
+std::tuple<double, double> Geometry::GetPhiBoundariesOfSMGap(Int_t nPhiSec) const
+{
+  if (nPhiSec < 0 || nPhiSec > 5 + mnSupModInDCAL / 2 - 1)
+    throw InvalidModuleException(nPhiSec, 5 + mnSupModInDCAL / 2);
+  return std::make_tuple(mPhiBoundariesOfSM[2 * nPhiSec + 1], mPhiBoundariesOfSM[2 * nPhiSec + 2]);
 }
