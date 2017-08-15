@@ -25,7 +25,6 @@
 #include <TVector3.h>
 
 #include "EMCALBase/Constants.h"
-#include "EMCALBase/EMCGeometry.h"
 #include "EMCALBase/GeometryBase.h"
 #include "MathUtils/Cartesian3D.h"
 
@@ -101,11 +100,22 @@ class Geometry
                                             const std::string_view mcname = "TGeant3",
                                             const std::string_view mctitle = "");
 
+  ///
+  /// Set the value of fSampling used to calibrate the MC hits energy (check)
+  /// Called in AliEMCALv0 and not anymore here in Init() in order to be able to work with Geant4
+  ///
+  /// \param mcname: Geant3/4, Flukla, ...
+  /// \param mctitle: Geant4 physics list tag name
+  ///
+  void DefineSamplingFraction(const std::string_view mcname = "", const std::string_view mctitle = "");
+
   //////////
   // General
   //
 
   const std::string& GetName() const { return mGeoName; }
+
+  static const std::string& GetDefaultGeometryName() { return DEFAULT_GEOMETRY; }
 
   static Bool_t IsInitialized() { return Geometry::sGeom != nullptr; }
   // static const Char_t* GetDefaultGeometryName() {return EMCGeometry::fgkDefaultGeometryName;}
@@ -131,7 +141,7 @@ class Geometry
   /// \param particle TParticle
   /// \return true in EMCal/DCa;
   ///
-  virtual Bool_t Impact(const TParticle* particle) const;
+  Bool_t Impact(const TParticle* particle) const;
 
   ///
   /// Calculates the impact coordinates on EMCAL (centre of a tower/not on EMCAL surface)
@@ -171,71 +181,68 @@ class Geometry
   // Return EMCAL geometrical parameters
   //
 
-  const EMCGeometry& GetEMCGeometry() const { return mEMCGeometry; }
-
-  EMCGeometry& AccessGeometry() { return mEMCGeometry; }
-
-  const Char_t* GetNameOfEMCALEnvelope() const { return mEMCGeometry.GetNameOfEMCALEnvelope(); }
-  Float_t GetArm1PhiMin() const { return mEMCGeometry.GetArm1PhiMin(); }
-  Float_t GetArm1PhiMax() const { return mEMCGeometry.GetArm1PhiMax(); }
-  Float_t GetArm1EtaMin() const { return mEMCGeometry.GetArm1EtaMin(); }
-  Float_t GetArm1EtaMax() const { return mEMCGeometry.GetArm1EtaMax(); }
-  Float_t GetIPDistance() const { return mEMCGeometry.GetIPDistance(); }
-  Float_t GetEnvelop(Int_t index) const { return mEMCGeometry.GetEnvelop(index); }
-  Float_t GetShellThickness() const { return mEMCGeometry.GetShellThickness(); }
-  Float_t GetZLength() const { return mEMCGeometry.GetZLength(); }
-  Float_t GetDCALInnerEdge() const { return mEMCGeometry.GetDCALInnerEdge(); }
-  Float_t GetDCALPhiMin() const { return mEMCGeometry.GetDCALPhiMin(); }
-  Float_t GetDCALPhiMax() const { return mEMCGeometry.GetDCALPhiMax(); }
-  Float_t GetEMCALPhiMax() const { return mEMCGeometry.GetEMCALPhiMax(); }
-  Int_t GetNECLayers() const { return mEMCGeometry.GetNECLayers(); }
-  Float_t GetDCALInnerExtandedEta() const { return mEMCGeometry.GetDCALInnerExtandedEta(); }
-  Int_t GetNZ() const { return mEMCGeometry.GetNZ(); }
-  Int_t GetNEta() const { return mEMCGeometry.GetNEta(); }
-  Int_t GetNPhi() const { return mEMCGeometry.GetNPhi(); }
-  Float_t GetECPbRadThick() const { return mEMCGeometry.GetECPbRadThick(); }
-  Float_t GetECScintThick() const { return mEMCGeometry.GetECScintThick(); }
-  Float_t GetSampling() const { return mEMCGeometry.GetSampling(); }
-  Int_t GetNumberOfSuperModules() const { return mEMCGeometry.GetNumberOfSuperModules(); }
-  Float_t GetPhiGapForSuperModules() const { return mEMCGeometry.GetPhiGapForSuperModules(); }
-  Float_t GetPhiModuleSize() const { return mEMCGeometry.GetPhiModuleSize(); }
-  Float_t GetEtaModuleSize() const { return mEMCGeometry.GetEtaModuleSize(); }
-  Float_t GetFrontSteelStrip() const { return mEMCGeometry.GetFrontSteelStrip(); }
-  Float_t GetLateralSteelStrip() const { return mEMCGeometry.GetLateralSteelStrip(); }
-  Float_t GetPassiveScintThick() const { return mEMCGeometry.GetPassiveScintThick(); }
-  Float_t GetPhiTileSize() const { return mEMCGeometry.GetPhiTileSize(); }
-  Float_t GetEtaTileSize() const { return mEMCGeometry.GetEtaTileSize(); }
-  Float_t GetPhiSuperModule() const { return mEMCGeometry.GetPhiSuperModule(); }
-  Int_t GetNPhiSuperModule() const { return mEMCGeometry.GetNPhiSuperModule(); }
-  Int_t GetNPHIdiv() const { return mEMCGeometry.GetNPHIdiv(); }
-  Int_t GetNETAdiv() const { return mEMCGeometry.GetNETAdiv(); }
-  Int_t GetNCells() const { return mEMCGeometry.GetNCells(); }
-  Float_t GetLongModuleSize() const { return mEMCGeometry.GetLongModuleSize(); }
-  Float_t GetTrd1Angle() const { return mEMCGeometry.GetTrd1Angle(); }
-  Float_t Get2Trd1Dx2() const { return mEMCGeometry.Get2Trd1Dx2(); }
-  Float_t GetTrd1AlFrontThick() const { return mEMCGeometry.GetTrd1AlFrontThick(); }
-  Float_t GetTrd1BondPaperThick() const { return mEMCGeometry.GetTrd1BondPaperThick(); }
+  const Char_t* GetNameOfEMCALEnvelope() const { return "XEN1"; }
+  Float_t GetArm1PhiMin() const { return mArm1PhiMin; }
+  Float_t GetArm1PhiMax() const { return mArm1PhiMax; }
+  Float_t GetArm1EtaMin() const { return mArm1EtaMin; }
+  Float_t GetArm1EtaMax() const { return mArm1EtaMax; }
+  Float_t GetIPDistance() const { return mIPDistance; }
+  Float_t GetEnvelop(Int_t index) const { return mEnvelop[index]; }
+  Float_t GetShellThickness() const { return mShellThickness; }
+  Float_t GetZLength() const { return mZLength; }
+  Float_t GetDCALInnerEdge() const { return mDCALInnerEdge; }
+  Float_t GetDCALPhiMin() const { return mDCALPhiMin; }
+  Float_t GetDCALPhiMax() const { return mDCALPhiMax; }
+  Float_t GetEMCALPhiMax() const { return mEMCALPhiMax; }
+  Float_t GetDCALStandardPhiMax() const { return mDCALStandardPhiMax; }
+  Int_t GetNECLayers() const { return mNECLayers; }
+  Float_t GetDCALInnerExtandedEta() const { return mDCALInnerExtandedEta; }
+  Int_t GetNZ() const { return mNZ; }
+  Int_t GetNEta() const { return mNZ; }
+  Int_t GetNPhi() const { return mNPhi; }
+  Float_t GetECPbRadThick() const { return mECPbRadThickness; }
+  Float_t GetECScintThick() const { return mECScintThick; }
+  Float_t GetSampling() const { return mSampling; }
+  Int_t GetNumberOfSuperModules() const { return mNumberOfSuperModules; }
+  Float_t GetPhiGapForSuperModules() const { return mPhiGapForSM; }
+  Float_t GetPhiModuleSize() const { return mPhiModuleSize; }
+  Float_t GetEtaModuleSize() const { return mEtaModuleSize; }
+  Float_t GetFrontSteelStrip() const { return mFrontSteelStrip; }
+  Float_t GetLateralSteelStrip() const { return mLateralSteelStrip; }
+  Float_t GetPassiveScintThick() const { return mPassiveScintThick; }
+  Float_t GetPhiTileSize() const { return mPhiTileSize; }
+  Float_t GetEtaTileSize() const { return mEtaTileSize; }
+  Float_t GetPhiSuperModule() const { return mPhiSuperModule; }
+  Int_t GetNPhiSuperModule() const { return mNPhiSuperModule; }
+  Int_t GetNPHIdiv() const { return mNPHIdiv; }
+  Int_t GetNETAdiv() const { return mNETAdiv; }
+  Int_t GetNCells() const { return mNCells; }
+  Float_t GetLongModuleSize() const { return mLongModuleSize; }
+  Float_t GetTrd1Angle() const { return mTrd1Angle; }
+  Float_t Get2Trd1Dx2() const { return m2Trd1Dx2; }
+  Float_t GetTrd1AlFrontThick() const { return mTrd1AlFrontThick; }
+  Float_t GetTrd1BondPaperThick() const { return mTrd1BondPaperThick; }
   // --
-  Int_t GetNCellsInSupMod() const { return mEMCGeometry.GetNCellsInSupMod(); }
-  Int_t GetNCellsInModule() const { return mEMCGeometry.GetNCellsInModule(); }
-  Int_t GetKey110DEG() const { return mEMCGeometry.GetKey110DEG(); }
-  Int_t GetnSupModInDCAL() const { return mEMCGeometry.GetnSupModInDCAL(); }
-  Int_t GetILOSS() const { return mEMCGeometry.GetILOSS(); }
-  Int_t GetIHADR() const { return mEMCGeometry.GetIHADR(); }
+  Int_t GetNCellsInSupMod() const { return mNCellsInSupMod; }
+  Int_t GetNCellsInModule() const { return mNCellsInModule; }
+  Int_t GetKey110DEG() const { return mKey110DEG; }
+  Int_t GetnSupModInDCAL() const { return mnSupModInDCAL; }
+  Int_t GetILOSS() const { return mILOSS; }
+  Int_t GetIHADR() const { return mIHADR; }
   // --
-  Float_t GetDeltaEta() const { return mEMCGeometry.GetDeltaEta(); }
-  Float_t GetDeltaPhi() const { return mEMCGeometry.GetDeltaPhi(); }
-  Int_t GetNTowers() const { return mEMCGeometry.GetNTowers(); }
+  Float_t GetDeltaEta() const { return (mArm1EtaMax - mArm1EtaMin) / ((Float_t)mNZ); }
+  Float_t GetDeltaPhi() const { return (mArm1PhiMax - mArm1PhiMin) / ((Float_t)mNPhi); }
+  Int_t GetNTowers() const { return mNPhi * mNZ; }
   //
-  Double_t GetPhiCenterOfSM(Int_t nsupmod) const { return mEMCGeometry.GetPhiCenterOfSM(nsupmod); }
-  Double_t GetPhiCenterOfSMSec(Int_t nsupmod) const { return mEMCGeometry.GetPhiCenterOfSMSec(nsupmod); }
-  Float_t GetSuperModulesPar(Int_t ipar) const { return mEMCGeometry.GetSuperModulesPar(ipar); }
+  Double_t GetPhiCenterOfSM(Int_t nsupmod) const;
+  Double_t GetPhiCenterOfSMSec(Int_t nsupmod) const;
+  Float_t GetSuperModulesPar(Int_t ipar) const { return mParSM[ipar]; }
   //
   Int_t GetSMType(Int_t nSupMod) const
   {
-    if (nSupMod > mEMCGeometry.GetNumberOfSuperModules())
+    if (nSupMod > mNumberOfSuperModules)
       return -1;
-    return mEMCGeometry.GetEMCSystem()[nSupMod];
+    return mEMCSMSystem[nSupMod];
   }
 
   ///
@@ -250,25 +257,19 @@ class Geometry
 
   // Methods needed for SM in extension, where center of SM != center of the SM-section.
   // Used in AliEMCALv0 to calculate position.
-  std::tuple<double, double> GetPhiBoundariesOfSM(Int_t nSupMod) const
-  {
-    return mEMCGeometry.GetPhiBoundariesOfSM(nSupMod);
-  }
-  std::tuple<double, double> GetPhiBoundariesOfSMGap(Int_t nPhiSec) const
-  {
-    return mEMCGeometry.GetPhiBoundariesOfSMGap(nPhiSec);
-  }
+  std::tuple<double, double> GetPhiBoundariesOfSM(Int_t nSupMod) const;
+  std::tuple<double, double> GetPhiBoundariesOfSMGap(Int_t nPhiSec) const;
 
   // Obsolete?
-  Float_t GetSteelFrontThickness() const { return mEMCGeometry.GetSteelFrontThickness(); }
+  Float_t GetSteelFrontThickness() const { return mSteelFrontThick; }
 
   ///////////////////////////////
   // Geometry data member setters
   //
-  void SetNZ(Int_t nz) { mEMCGeometry.SetNZ(nz); }
-  void SetNPhi(Int_t nphi) { mEMCGeometry.SetNPhi(nphi); }
+  void SetNZ(Int_t nz) { mNZ = nz; }
+  void SetNPhi(Int_t nphi) { mNPhi = nphi; }
   //
-  void SetSampling(Float_t samp) { mEMCGeometry.SetSampling(samp); }
+  void SetSampling(Float_t samp) { mSampling = samp; }
 
   //////////////////////////
   // Global geometry methods
@@ -525,7 +526,7 @@ class Geometry
   ///
   void RelPosCellInSModule(Int_t absId, TVector3& vloc) const;
 
-  const Int_t* GetEMCSystem() const { return mEMCGeometry.GetEMCSystem(); } // EMC System, SM type list
+  const Int_t* GetEMCSystem() const { return mEMCSMSystem; } // EMC System, SM type list
   // Local Coordinates of SM
   TArrayD GetCentersOfCellsEtaDir() const
   {
@@ -610,7 +611,8 @@ class Geometry
   /// \brief initializes the parameters of EMCAL
   void Init();
 
-  EMCGeometry mEMCGeometry; ///< Geometry object for Electromagnetic calorimeter
+  /// Init function of previous class EMCGeometry
+  void DefineEMC(std::string_view mcname, std::string_view mctitle);
 
   std::string mGeoName;       ///< Geometry name string
   Int_t mKey110DEG;           ///< For calculation abs cell id; 19-oct-05
@@ -643,6 +645,7 @@ class Geometry
   Float_t mEMCALPhiMax;          ///< Maximum angular position of EMCAL in Phi (degrees)
   Float_t mDCALStandardPhiMax;   ///< Special edge for the case that DCAL contian extension
   Float_t mDCALInnerExtandedEta; ///< DCAL inner edge in Eta (with some extension)
+  Float_t mDCALInnerEdge;        ///< Inner edge for DCAL
   std::vector<ShishKebabTrd1Module> mShishKebabTrd1Modules; ///< List of modules
   Float_t mParSM[3];                                        ///< SM sizes as in GEANT (TRD1)
   Float_t mPhiModuleSize;                                   ///< Phi -> X
@@ -658,11 +661,42 @@ class Geometry
   Float_t mZLength;        ///< Total length in z direction
   Float_t mSampling;       ///< Sampling factor
 
+  // Members from the EMCGeometry class
+  Float_t mECPbRadThickness; ///< cm, Thickness of the Pb radiators
+  Float_t mECScintThick;     ///< cm, Thickness of the scintillators
+  Int_t mNECLayers;          ///< number of scintillator layers
+
+  // Shish-kebab option - 23-aug-04 by PAI; COMPACT, TWIST, TRD1 and TRD2
+  Int_t mNumberOfSuperModules; ///< default is 12 = 6 * 2
+
+  /// geometry structure
+  Int_t* mEMCSMSystem; //[mNumberOfSuperModules]
+
+  Float_t mFrontSteelStrip;   ///< 13-may-05
+  Float_t mLateralSteelStrip; ///< 13-may-05
+  Float_t mPassiveScintThick; ///< 13-may-05
+
+  Float_t mPhiSuperModule; ///< Phi of normal supermodule (20, in degree)
+  Int_t mNPhiSuperModule;  ///< 9 - number supermodule in phi direction
+
+  // TRD1 options - 30-sep-04
+  Float_t mTrd1Angle;   ///< angle in x-z plane (in degree)
+  Float_t m2Trd1Dx2;    ///< 2*dx2 for TRD1
+  Float_t mPhiGapForSM; ///< Gap betweeen supermodules in phi direction
+
+  // Oct 26,2010
+  Float_t mTrd1AlFrontThick;   ///< Thickness of the Al front plate
+  Float_t mTrd1BondPaperThick; ///< Thickness of the Bond Paper sheet
+
+  Int_t mILOSS; ///< Options for Geant (MIP business) - will call in AliEMCAL
+  Int_t mIHADR; ///< Options for Geant (MIP business) - will call in AliEMCAL
+
+  Float_t mSteelFrontThick; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
+
   mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES]; ///< Orientations of EMCAL super modules
 
  private:
-  static Geometry* sGeom;                  ///< Pointer to the unique instance of the singleton
-  static std::string sDefaultGeometryName; ///< Default name of geometry
+  static Geometry* sGeom; ///< Pointer to the unique instance of the singleton
 };
 
 inline Bool_t Geometry::CheckAbsCellId(Int_t absId) const

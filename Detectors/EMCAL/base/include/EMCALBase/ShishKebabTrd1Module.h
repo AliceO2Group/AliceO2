@@ -44,7 +44,7 @@ class ShishKebabTrd1Module
   ///
   /// Constructor.
   ///
-  ShishKebabTrd1Module(Double_t theta = 0.0, EMCGeometry * g = nullptr);
+  ShishKebabTrd1Module(Double_t theta = 0.0, Geometry * g = nullptr);
 
   ///
   /// Constructor.
@@ -164,7 +164,7 @@ class ShishKebabTrd1Module
 
  protected:
   // geometry info
-  EMCGeometry *mGeometry; //!<! pointer to geometry info
+  Geometry *mGeometry; //!<! pointer to geometry info
   Double_t mga;           ///<  2*dx1=2*dy1
   Double_t mga2;          ///<  2*dx2
   Double_t mgb;           ///<  2*dz1

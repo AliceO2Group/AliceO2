@@ -97,7 +97,7 @@ void Detector::ConstructGeometry()
   {
     envelopA[0] = geom->GetArm1PhiMin();                         // minimum phi angle
     envelopA[1] = geom->GetArm1PhiMax() - geom->GetArm1PhiMin(); // angular range in phi
-    envelopA[2] = envelopA[1]/geom->GetEMCGeometry().GetPhiSuperModule();	 // Section of that
+    envelopA[2] = envelopA[1]/geom->GetPhiSuperModule();         // Section of that
     envelopA[3] = 2;                                             // 2: z coordinates
     envelopA[4] = -geom->GetEnvelop(2)/2.;                       // zmin - includes padding
     envelopA[5] = geom->GetEnvelop(0) ;                          // rmin at z1 - includes padding
@@ -124,7 +124,7 @@ void Detector::ConstructGeometry()
   
   // Set the sampling fraction used at creation hit level
   // Previously called in AliEMCALEMCGeometry::Init(), put it here for proper initialization by Geant3/4
-  geom->AccessGeometry().DefineSamplingFraction(TVirtualMC::GetMC()->GetName(),TVirtualMC::GetMC()->GetTitle());
+  geom->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(),TVirtualMC::GetMC()->GetTitle());
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v) { return true; }
@@ -172,7 +172,7 @@ void Detector::CreateShiskebabGeometry()
   LOG(DEBUG2) << "Name of mother volume: " << g->GetNameOfEMCALEnvelope() << FairLogger::endl;
   CreateSmod(g->GetNameOfEMCALEnvelope());
 
-  const Int_t* SMTypeList = g->GetEMCGeometry().GetEMCSystem();
+  const Int_t* SMTypeList = g->GetEMCSystem();
   Int_t tmpType = -1;
   for (Int_t i = 0; i < g->GetNumberOfSuperModules(); i++) {
     if (SMTypeList[i] == tmpType)
@@ -428,7 +428,7 @@ void Detector::CreateSmod(const char* mother)
   Int_t nSMod = g->GetNumberOfSuperModules();
   Int_t nphism = nSMod / 2; // 20-may-05
   if (nphism > 0) {
-    dphi = g->GetEMCGeometry().GetPhiSuperModule();
+    dphi = g->GetPhiSuperModule();
     rpos = (g->GetEnvelop(0) + g->GetEnvelop(1)) / 2.;
     LOG(DEBUG2) << " rpos " << std::setw(8) << std::setprecision(2) << rpos << " : dphi " << std::setw(6)
                 << std::setprecision(1) << dphi << " degree \n";

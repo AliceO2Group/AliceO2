@@ -14,6 +14,7 @@
 #include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/Detector.h"
 #include "Rtypes.h"
+#include "RStringView.h"
 #include "TArrayF.h"
 #include "TString.h"
 
@@ -37,7 +38,7 @@ class Detector : public o2::Base::Detector
 
   Detector() = default;
 
-  Detector(const char* Name, Bool_t Active);
+  Detector(const char *name, Bool_t isActive);
 
   ~Detector() override = default;
 
