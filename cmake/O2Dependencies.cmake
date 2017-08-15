@@ -167,6 +167,15 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    FrameworkApplication_bucket
+
+    DEPENDENCIES
+    O2DeviceApplication_bucket
+    Framework
+)
+
+o2_define_bucket(
+    NAME
     O2MessageMonitor_bucket
 
     DEPENDENCIES
