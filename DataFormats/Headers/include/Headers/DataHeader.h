@@ -36,11 +36,8 @@
 #include <memory>
 #include <cassert>
 #include <cstring> //needed for memcmp
+#include <algorithm> // std::min
 
-// enum class byte : unsigned char
-// {
-// };
-/// @typedef define a byte type
 using byte = unsigned char;
 
 namespace o2 {
@@ -202,16 +199,43 @@ constexpr T String2(const char (&str)[N])
 }
 
 //__________________________________________________________________________________________________
+/// helper traits to efficiently compare descriptors
+/// the default implementation with memcmp is basically never used
+/// specializations handle the two relevant cases
+template<int S>
+struct DescriptorCompareTraits {
+  template<typename T, typename Length>
+  static bool compare(const T &lh, const T &rh, Length N) {
+    return std::memcmp(lh.str, rh.str, N) == 0;
+  }
+};
+template<>
+struct DescriptorCompareTraits<1> {
+  template<typename T, typename Length>
+  static bool compare(const T &lh, const T &rh, Length) {
+    return lh.itg[0] == rh.itg[0];
+  }
+};
+template<>
+struct DescriptorCompareTraits<2> {
+  template<typename T, typename Length>
+  static bool compare(const T &lh, const T &rh, Length) {
+    return (lh.itg[0] == rh.itg[0]) && (lh.itg[1] == rh.itg[1]);
+  }
+};
+
+//__________________________________________________________________________________________________
 /// generic descriptor class faturing the union of a char and a uint element
 /// of the same size
 /// this is currently working only for up to 8 bytes aka uint64_t, the general
 /// solution is working also for multiples of 64 bit, but then the itg member needs
 /// to be an array for all. This has not been enabled yet, first the implications
 /// have to be studied.
-template <int N, typename PrinterPolicy = Internal::defaultPrinter>
+template <std::size_t N, typename PrinterPolicy = Internal::defaultPrinter>
 struct Descriptor {
   static_assert(Internal::NumberOfActiveBits<N>::value == 1,
 		"Descriptor size is required to be a power of 2");
+  using self_type = Descriptor<N>;
   static int const size = N;
   static int const bitcount = size*8;
   static constexpr int arraySize = Internal::ArraySize<uint64_t, size>();
@@ -239,10 +263,12 @@ struct Descriptor {
   }
 
   /// constructor from a compile-time string
-  constexpr Descriptor(const char* in) : str{0}
+  template<std::size_t L>
+  constexpr Descriptor(const char (&in)[L]) : str{0}
   {
-    int i = 0;
-    for (; in[i] && i < N ; ++i) {
+    static_assert(L <= N + 1, "initializer string must not exceed descriptor size");
+    unsigned i = 0;
+    for (; in[i] && i < std::min(N, L) ; ++i) {
       str[i] = in[i];
     }
   }
@@ -256,17 +282,17 @@ struct Descriptor {
   void runtimeInit(const char* string, short length = -1) {
     char* target = str;
     char* targetEnd = target;
-    if (length >= 0 && length < N) targetEnd += length;
+    if (length >= 0 && length < (int)N) targetEnd += length;
     else targetEnd += N;
     const char* source = string;
     for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
     targetEnd = str + N;
     for ( ; target < targetEnd; ++target) *target = 0;
     // require the string to be not longer than the descriptor size
-    assert(source != nullptr && (*source == 0 || (length >= 0 && length <= N)));
+    assert(source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N)));
   }
 
-  bool operator==(const Descriptor& other) const {return std::memcmp(str,other.str,N)==0;}
+  bool operator==(const Descriptor& other) const {return DescriptorCompareTraits<arraySize>::compare(*this,other, N);}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
 
   // explicitly forbid comparison with e.g. const char* strings
@@ -711,6 +737,10 @@ static_assert(sizeof(DataOrigin) == 4,
               "DataOrigin struct must be of size 4");
 static_assert(sizeof(DataHeader) == 80,
               "DataHeader struct must be of size 80");
+static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
+	      "Size mismatch in magic string union");
+static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),
+	      "Inconsitent size of global magic identifier");
 
 //__________________________________________________________________________________________________
 ///helper function to print a hex/ASCII dump of some memory
