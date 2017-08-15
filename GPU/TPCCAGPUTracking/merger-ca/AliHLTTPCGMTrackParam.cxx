@@ -618,6 +618,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 	{
 		ok = 1;
 		nTrackHits = nTrackHitsOld;
+		for (int k = 0;k < nTrackHits;k++) if (rowType[k] < 0) rowType[k] = -rowType[k] - 1;
 	}
 	track.SetOK(ok);
 	if (!ok) return;
