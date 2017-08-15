@@ -15,5 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::trd::Detector+;
+#pragma link C++ class o2::trd::HitType+;
 
 #endif
