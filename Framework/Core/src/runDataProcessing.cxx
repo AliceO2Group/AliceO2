@@ -485,7 +485,7 @@ void handle_sigchld(int sig) {
   pid_t exited = -1;
   std::vector<pid_t> pids;
   while (true) {
-    pid_t pid = waitpid((pid_t)(-1), 0, WNOHANG);
+    pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);
     if (pid > 0) {
       pids.push_back(pid);
       continue;
@@ -576,8 +576,8 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   sa_handle_child.sa_handler = &handle_sigchld;
   sigemptyset(&sa_handle_child.sa_mask);
   sa_handle_child.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-  if (sigaction(SIGCHLD, &sa_handle_child, 0) == -1) {
-    perror(0);
+  if (sigaction(SIGCHLD, &sa_handle_child, nullptr) == -1) {
+    perror(nullptr);
     exit(1);
   }
 

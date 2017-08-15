@@ -42,12 +42,7 @@ public:
   Collection<T> newCollectionChunk(const OutputSpec &spec, size_t nElements) {
     static_assert(std::is_pod<T>::value == true, "Type must be a PoD");
     auto size = nElements*sizeof(T);
-    LOG(DEBUG) << "Creating " << spec.origin.str
-               << " \"" << spec.description.str
-               << "\" " << size;
     DataChunk chunk = newChunk(spec, size);
-    LOG(DEBUG) << "New chunk returned for address "
-               << std::hex << (int64_t)chunk.data << std::dec << " " << chunk.size;
     return Collection<T>(chunk.data, nElements);
   }
 private:
