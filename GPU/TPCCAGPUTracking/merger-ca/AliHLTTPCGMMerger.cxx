@@ -94,7 +94,6 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   Clear();
 }
 
-
 AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   :
   fSliceParam(),
@@ -141,7 +140,6 @@ const AliHLTTPCGMMerger &AliHLTTPCGMMerger::operator=(const AliHLTTPCGMMerger&) 
   return *this;
 }
 
-
 AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
 {
   //* destructor
@@ -158,7 +156,6 @@ void AliHLTTPCGMMerger::Clear()
   ClearMemory();
 }
  
-
 void AliHLTTPCGMMerger::ClearMemory()
 {
   if (fOutputClusterIds) delete[] fOutputClusterIds;
@@ -188,7 +185,6 @@ void AliHLTTPCGMMerger::ClearMemory()
   fBorderMemory = 0;  
   fBorderRangeMemory = 0;
 }
-
 
 void AliHLTTPCGMMerger::SetSliceData( int index, const AliHLTTPCCASliceOutput *sliceData )
 {
@@ -228,7 +224,7 @@ bool AliHLTTPCGMMerger::Reconstruct()
 #ifdef HLTCA_STANDALONE
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
 #endif
-    MergeWithingSlices();
+   MergeWithingSlices();
 #ifdef HLTCA_STANDALONE
 	AliHLTTPCCATracker::StandaloneQueryTime(&c);
 #endif
@@ -261,8 +257,6 @@ bool AliHLTTPCGMMerger::Reconstruct()
 
   return 1;
 }
-
-
 
 bool AliHLTTPCGMMerger::AllocateMemory()
 {
@@ -404,10 +398,6 @@ void AliHLTTPCGMMerger::UnpackSlices()
   free(TrackIds);
 #endif
 }
-
-
-
-
 
 void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB )
 {
@@ -615,9 +605,6 @@ void AliHLTTPCGMMerger::MergeWithingSlices()
   }
 }
 
-
-
-
 void AliHLTTPCGMMerger::MergeSlices()
 {
   //* track merging between slices
@@ -645,8 +632,6 @@ void AliHLTTPCGMMerger::MergeSlices()
     MergeBorderTracks( iSlice, bCurr, nCurr, jSlice, bNext, nNext );
   }
 }
-
-
 
 struct clcomparestruct {int i; float x; float z; float q;};
 
@@ -895,7 +880,6 @@ void AliHLTTPCGMMerger::Refit()
 	  for ( int itr = 0; itr < fNOutputTracks; itr++ )
 	  {
 		  AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fPolinomialFieldBz, fClusterX, fClusterY, fClusterZ, fClusterRowType, fClusterAngle, fSliceParam);
-
 	  }
 	}
 }
