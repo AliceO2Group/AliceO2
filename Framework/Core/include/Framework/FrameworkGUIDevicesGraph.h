@@ -7,25 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/FrameworkGUIDebugger.h"
+
+#include "Framework/DeviceSpec.h"
+
 #include <vector>
-#include <algorithm>
 
 namespace o2 {
 namespace framework {
 
-// Dummy function in case we want to build without debugger.
-std::function<void(void)>
-getGUIDebugger(const std::vector<DeviceInfo> &infos,
-               const std::vector<DeviceSpec> &devices,
-               const std::vector<DeviceMetricsInfo> &metricsInfos,
-               std::vector<DeviceControl> &controls
-               )
-{
-  return [](){};
-}
-
-void showNodeGraph(bool* opened) {}
+void showTopologyNodeGraph(bool* opened, const std::vector<DeviceSpec> &specs);
 
 } // namespace framework
 } // namespace o2

@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/FrameworkGUIDebugger.h"
+#include "Framework/FrameworkGUIDevicesGraph.h"
 #include <imgui.h>
 #include <set>
 #include <algorithm>
@@ -186,8 +187,11 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
                         const std::vector<DeviceSpec> &devices,
                         std::vector<DeviceControl> &controls,
                         const std::vector<DeviceMetricsInfo> &metricsInfos) {
-  ImGui::SetNextWindowSize(ImVec2(0.0,100), ImGuiSetCond_FirstUseEver);
-  ImGui::SetNextWindowPos(ImVec2(0, 500));
+  bool graphNodes = true;
+  showTopologyNodeGraph(&graphNodes, devices);
+  ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - 300), 0);
+  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 0), 0);
+
   // Calculate the unique set of metrics, as available in the metrics
   // service
   std::set<std::string> allMetricsNames;

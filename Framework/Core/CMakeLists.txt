@@ -14,7 +14,8 @@ set(MODULE_BUCKET_NAME O2DeviceApplication_bucket)
 
 O2_SETUP(NAME ${MODULE_NAME})
 if (GLFW_FOUND)
-  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx)
+  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx
+                  src/FrameworkGUIDevicesGraph.cxx)
 else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx src/DummyDebugGUI.cxx)
 endif()

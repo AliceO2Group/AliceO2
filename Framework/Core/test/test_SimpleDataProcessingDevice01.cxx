@@ -124,15 +124,15 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       auto h0 = reinterpret_cast<const DataHeader*>(inputs[0].header);
       auto h1 = reinterpret_cast<const DataHeader*>(inputs[1].header);
       auto h2 = reinterpret_cast<const DataHeader*>(inputs[2].header);
-      if (strncmp(h0->dataOrigin.str, "TPC", 4) != 0) {
+      if (h0->dataOrigin != o2::Header::DataOrigin("TPC")) {
         throw std::runtime_error("Unexpected data origin");
       }
 
-      if (strncmp(h1->dataOrigin.str, "TPC", 4) != 0) {
+      if (h1->dataOrigin != o2::Header::DataOrigin("TPC")) {
         throw std::runtime_error("Unexpected data origin");
       }
 
-      if (strncmp(h2->dataOrigin.str, "ITS", 4) != 0) {
+      if (h1->dataOrigin != o2::Header::DataOrigin("ITS")) {
         throw std::runtime_error("Unexpected data origin");
       }
 
