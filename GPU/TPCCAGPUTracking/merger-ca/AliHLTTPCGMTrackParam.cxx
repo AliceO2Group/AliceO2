@@ -57,7 +57,12 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       float ex1i = 0;
       if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2))
       {
-        if (first) for (int i = 0;i < 15;i++) fC[i] = 0;
+        if (first)
+        {
+            for (int i = 0;i < 15;i++) fC[i] = 0;
+            fChi2 = 0.;
+            fNDF = 1;
+        }
         break;
       }
       if (first == 0)
