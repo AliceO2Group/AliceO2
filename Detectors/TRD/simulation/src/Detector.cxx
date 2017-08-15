@@ -21,7 +21,7 @@
 using namespace o2::trd;
 
 Detector::Detector(const char* Name, bool Active)
-  : o2::Base::Detector(Name, Active), mHitCollection(new TClonesArray("o2::BasicXYZEHit<float>"))
+  : o2::Base::Detector(Name, Active), mHitCollection(new TClonesArray("o2::trd::HitType"))
 {
 }
 
