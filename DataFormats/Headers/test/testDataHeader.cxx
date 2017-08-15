@@ -15,6 +15,11 @@
 #include <iomanip>
 #include "Headers/DataHeader.h"
 
+#include <chrono>
+
+using system_clock = std::chrono::system_clock;
+using TimeScale = std::chrono::nanoseconds;
+
 namespace o2 {
   namespace Header {
 
@@ -141,6 +146,25 @@ namespace o2 {
       // DataHeader must have size 80
       static_assert(sizeof(DataHeader) == 80,
                     "DataHeader struct must be of size 80");
+    }
+
+    BOOST_AUTO_TEST_CASE(Descriptor_benchmark)
+    {
+      using TestDescriptor = Descriptor<8>;
+      TestDescriptor a("TESTDESC");
+      TestDescriptor b(a);
+
+      auto refTime = system_clock::now();
+      const int nrolls = 1000000;
+      for (auto count = 0; count < nrolls; ++count) {
+	if (a == b) {
+	  ++a.itg[0];
+	  ++b.itg[0];
+	}
+      }
+      auto duration = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - refTime);
+      std::cout << nrolls << " operation(s): " << duration.count() << " ns" << std::endl;
+      // there is not really a check at the moment
     }
   }
 }
