@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <iomanip>
+
 #include "TClonesArray.h"
 #include "TVirtualMC.h"
 
@@ -20,111 +22,113 @@
 #include "EMCALSimulation/Detector.h"
 #include "EMCALSimulation/SpaceFrame.h"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 using namespace o2::EMCAL;
 
 ClassImp(Detector);
 
 Detector::Detector(const char* Name, Bool_t Active)
   : o2::Base::Detector(Name, Active),
-  mBirkC0(0),
-  mBirkC1(0.),
-  mBirkC2(0.),
-  mPointCollection(new TClonesArray("o2::EMCAL::Hit")),
-  mGeometry(nullptr),
-  mEnvelop1(),
-  mIdRotm(0),
-  mSampleWidth(0.),
-  mSmodPar0(0.),
-  mSmodPar1(0.),
-  mSmodPar2(0.),
-  mInnerEdge(0.)
+    mBirkC0(0),
+    mBirkC1(0.),
+    mBirkC2(0.),
+    mPointCollection(new TClonesArray("o2::EMCAL::Hit")),
+    mGeometry(nullptr),
+    mEnvelop1(),
+    mIdRotm(0),
+    mSampleWidth(0.),
+    mSmodPar0(0.),
+    mSmodPar1(0.),
+    mSmodPar2(0.),
+    mInnerEdge(0.)
 
 {
+  using boost::algorithm::contains;
   memset(mParEMOD, 0, sizeof(Double_t) * 5);
-  
-  Geometry *geo  = GetGeometry() ;
-  
-  TString gn(geo->GetName());
-  gn.ToUpper();
-    
+
+  Geometry* geo = GetGeometry();
+
+  std::string gn = geo->GetName();
+  std::transform(gn.begin(), gn.end(), gn.begin(), ::toupper);
+
   mSampleWidth = Double_t(geo->GetECPbRadThick() + geo->GetECScintThick());
-  
-  if(gn.Contains("V1")) mSampleWidth += 2.*geo->GetTrd1BondPaperThick();
+
+  if (contains(gn, "V1"))
+    mSampleWidth += 2. * geo->GetTrd1BondPaperThick();
 }
 
 void Detector::Initialize() {}
 
 void Detector::ConstructGeometry()
 {
+  using boost::algorithm::contains;
   LOG(DEBUG) << "Creating EMCAL geometry\n";
   CreateMaterials();
 
   SpaceFrame emcalframe;
   emcalframe.CreateGeometry();
-  
-  Geometry * geom = GetGeometry() ;
-  TString gn(geom->GetName());
-  gn.ToUpper();
-  
-  if(!(geom->IsInitialized()))
-  {
+
+  Geometry* geom = GetGeometry();
+  std::string gn = geom->GetName();
+  std::transform(gn.begin(), gn.end(), gn.begin(), ::toupper);
+
+  if (!(geom->IsInitialized())) {
     LOG(ERROR) << "ConstructGeometry: EMCAL Geometry class has not been set up.\n";
   }
-  
+
   mIdRotm = 1;
   //  TVirtualMC::GetMC()->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3) - see AliModule
-  Matrix(mIdRotm, 90.0, 0., 90.0, 90.0, 0.0, 0.0) ;
-  
+  Matrix(mIdRotm, 90.0, 0., 90.0, 90.0, 0.0, 0.0);
+
   // Create the EMCAL Mother Volume (a polygone) within which to place the Detector and named XEN1
-  
+
   Float_t envelopA[10];
-  if(gn.Contains("WSUC") )
-  { // TRD1 for WSUC facility
+  if (contains(gn, "WSUC")) { // TRD1 for WSUC facility
     // Nov 25,2010
     envelopA[0] = 30.;
     envelopA[1] = 30;
     envelopA[2] = 20;
-    
-    TVirtualMC::GetMC()->Gsvolu("XEN1", "BOX", getMediumID(ID_SC), envelopA, 3) ;
+
+    TVirtualMC::GetMC()->Gsvolu("XEN1", "BOX", getMediumID(ID_SC), envelopA, 3);
     mEnvelop1.Set(3);
-    
-    for(Int_t i=0; i<3; i++) mEnvelop1[i] = envelopA[i]; // 23-may-05
+
+    for (Int_t i = 0; i < 3; i++)
+      mEnvelop1[i] = envelopA[i]; // 23-may-05
     // Position the EMCAL Mother Volume (XEN1) in WSUC.
     // Look to AliEMCALWsuCosmicRaySetUp.
-    TVirtualMC::GetMC()->Gspos("XEN1", 1, "WSUC", 0.0, 0.0, + 265., mIdRotm, "ONLY") ;
-  }
-  else
-  {
+    TVirtualMC::GetMC()->Gspos("XEN1", 1, "WSUC", 0.0, 0.0, +265., mIdRotm, "ONLY");
+  } else {
     envelopA[0] = geom->GetArm1PhiMin();                         // minimum phi angle
     envelopA[1] = geom->GetArm1PhiMax() - geom->GetArm1PhiMin(); // angular range in phi
-    envelopA[2] = envelopA[1]/geom->GetPhiSuperModule();         // Section of that
+    envelopA[2] = envelopA[1] / geom->GetPhiSuperModule();       // Section of that
     envelopA[3] = 2;                                             // 2: z coordinates
-    envelopA[4] = -geom->GetEnvelop(2)/2.;                       // zmin - includes padding
-    envelopA[5] = geom->GetEnvelop(0) ;                          // rmin at z1 - includes padding
-    envelopA[6] = geom->GetEnvelop(1) ;                          // rmax at z1 - includes padding
-    envelopA[7] = geom->GetEnvelop(2)/2.;                        // zmax includes padding
-    
-    envelopA[8] = envelopA[5] ;                                  // radii are the same.
-    envelopA[9] = envelopA[6] ;
+    envelopA[4] = -geom->GetEnvelop(2) / 2.;                     // zmin - includes padding
+    envelopA[5] = geom->GetEnvelop(0);                           // rmin at z1 - includes padding
+    envelopA[6] = geom->GetEnvelop(1);                           // rmax at z1 - includes padding
+    envelopA[7] = geom->GetEnvelop(2) / 2.;                      // zmax includes padding
+
+    envelopA[8] = envelopA[5]; // radii are the same.
+    envelopA[9] = envelopA[6];
     // radii are the same.
-    
-    TVirtualMC::GetMC()->Gsvolu("XEN1", "PGON", getMediumID(ID_AIR), envelopA, 10) ;   // Polygone filled with air
+
+    TVirtualMC::GetMC()->Gsvolu("XEN1", "PGON", getMediumID(ID_AIR), envelopA, 10); // Polygone filled with air
     mEnvelop1.Set(10, envelopA);
-    
+
     LOG(DEBUG2) << "ConstructGeometry: XEN1 = " << envelopA[5] << ", " << envelopA[6] << FairLogger::endl;
     LOG(DEBUG2) << "ConstructGeometry: XU0 = " << envelopA[5] << ", " << envelopA[6] << FairLogger::endl;
-    
+
     // Position the EMCAL Mother Volume (XEN1) in Alice (ALIC)
-    TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "cave", 0.0, 0.0, 0.0, mIdRotm, "ONLY") ;
+    TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "cave", 0.0, 0.0, 0.0, mIdRotm, "ONLY");
   }
-  
+
   // COMPACT, TRD1
-  LOG(DEBUG2) << "Shish-Kebab geometry : " <<  GetTitle() << FairLogger::endl;
+  LOG(DEBUG2) << "Shish-Kebab geometry : " << GetTitle() << FairLogger::endl;
   CreateShiskebabGeometry();
-  
+
   // Set the sampling fraction used at creation hit level
   // Previously called in AliEMCALEMCGeometry::Init(), put it here for proper initialization by Geant3/4
-  geom->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(),TVirtualMC::GetMC()->GetTitle());
+  geom->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(), TVirtualMC::GetMC()->GetTitle());
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v) { return true; }
@@ -159,9 +163,11 @@ Geometry* Detector::GetGeometry()
 void Detector::CreateShiskebabGeometry()
 {
   // TRD1
+  using boost::algorithm::contains;
   Geometry* g = GetGeometry();
-  TString gn(g->GetName());
-  gn.ToUpper();
+  std::string gn = g->GetName();
+  std::transform(gn.begin(), gn.end(), gn.begin(), ::toupper);
+
   Double_t trd1Angle = g->GetTrd1Angle() * TMath::DegToRad(), tanTrd1 = TMath::Tan(trd1Angle / 2.);
   // see AliModule::fFIdTmedArr
   //  fIdTmedArr = fIdtmed->GetArray() - 1599 ; // see AliEMCAL::::CreateMaterials()
@@ -196,7 +202,7 @@ void Detector::CreateShiskebabGeometry()
 
   // Sensitive SC  (2x2 tiles)
   Double_t parSCM0[5] = { 0, 0, 0, 0 }, *dummy = nullptr, parTRAP[11];
-  if (!gn.Contains("V1")) {
+  if (!contains(gn, "V1")) {
     Double_t wallThickness = g->GetPhiModuleSize() / g->GetNPHIdiv() - g->GetPhiTileSize();
     for (Int_t i = 0; i < 3; i++)
       parSCM0[i] = mParEMOD[i] - wallThickness;
@@ -253,13 +259,13 @@ void Detector::CreateShiskebabGeometry()
     TVirtualMC::GetMC()->Gspos("SCMX", 2, "SCMY", xpos, 0.0, 0.0, mIdRotm, "ONLY");
 
     // put LED to the SCM0
-    const ShishKebabTrd1Module &mod = g->GetShishKebabTrd1Modules()[0];
+    const ShishKebabTrd1Module& mod = g->GetShishKebabTrd1Modules()[0];
     Double_t tanBetta = mod.GetTanBetta();
 
     Int_t nr = 0;
     ypos = 0.0;
     Double_t xCenterSCMX = (parTRAP[4] + parTRAP[8]) / 2.;
-    if (!gn.Contains("V1")) {
+    if (!contains(gn, "V1")) {
       par[1] = parSCM0[2] / 2;            // y
       par[2] = g->GetECPbRadThick() / 2.; // z
       TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMediumID(ID_PB), dummy, 0);
@@ -403,14 +409,16 @@ void Detector::CreateMaterials()
   mBirkC2 = 9.6e-6 / (dP * dP);
 }
 
-void Detector::CreateSmod(const char* mother)
+void Detector::CreateSmod(const std::string_view mother)
 {
   // 18-may-05; mother="XEN1";
   // child="SMOD" from first to 10th, "SM10" (11th and 12th)
   // "DCSM" from 13th to 18/22th (TRD1 case), "DCEXT"(18th and 19th)  adapted for DCAL, Oct-23-2012
+
+  using boost::algorithm::contains;
   Geometry* g = GetGeometry();
-  TString gn(g->GetName());
-  gn.ToUpper();
+  std::string gn = g->GetName();
+  std::transform(gn.begin(), gn.end(), gn.begin(), ::toupper);
 
   Double_t par[3], xpos = 0., ypos = 0., zpos = 0., rpos = 0., dphi = 0., phi = 0.0, phiRad = 0.;
   Double_t parC[3] = { 0 };
@@ -434,7 +442,7 @@ void Detector::CreateSmod(const char* mother)
                 << std::setprecision(1) << dphi << " degree \n";
   }
 
-  if (gn.Contains("WSUC")) {
+  if (contains(gn, "WSUC")) {
     Int_t nr = 0;
     par[0] = g->GetPhiModuleSize() * g->GetNPhi() / 2.;
     par[1] = g->GetShellThickness() / 2.;
@@ -452,12 +460,12 @@ void Detector::CreateSmod(const char* mother)
     for (Int_t i = 0; i < nphism; i++) {
       xpos = ypos = zpos = 0.0;
       mIdRotm = 0;
-      TVirtualMC::GetMC()->Gspos("SMOD", 1, mother, xpos, ypos, zpos, mIdRotm, "ONLY");
+      TVirtualMC::GetMC()->Gspos("SMOD", 1, mother.data(), xpos, ypos, zpos, mIdRotm, "ONLY");
 
-      LOG(DEBUG2) << " fIdRotm " << std::setw(3) << mIdRotm << " phi " << std::setw(7) << std::setprecision(1) << phi << "("
-                  << std::setw(5) << std::setprecision(3) << phiRad << ") xpos " << std::setw(7) << std::setprecision(2)
-                  << xpos << " ypos " << std::setw(7) << std::setprecision(2) << ypos << " zpos " << std::setw(7)
-                  << std::setprecision(2) << zpos << FairLogger::endl;
+      LOG(DEBUG2) << " fIdRotm " << std::setw(3) << mIdRotm << " phi " << std::setw(7) << std::setprecision(1) << phi
+                  << "(" << std::setw(5) << std::setprecision(3) << phiRad << ") xpos " << std::setw(7)
+                  << std::setprecision(2) << xpos << " ypos " << std::setw(7) << std::setprecision(2) << ypos
+                  << " zpos " << std::setw(7) << std::setprecision(2) << zpos << FairLogger::endl;
 
       nr++;
     }
@@ -515,8 +523,8 @@ void Detector::CreateSmod(const char* mother)
       if (SMOrder == 1) { // first time, create the SM
         TVirtualMC::GetMC()->Gsvolu(smName.Data(), "BOX", getMediumID(ID_AIR), parC, 3);
 
-        LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )" << parC[0]
-                    << ", par[1] = " << parC[1] << ", par[2] = " << parC[2] << FairLogger::endl;
+        LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )"
+                    << parC[0] << ", par[1] = " << parC[1] << ", par[2] = " << parC[2] << FairLogger::endl;
       }
 
       if (smodnum % 2 == 1) {
@@ -528,7 +536,7 @@ void Detector::CreateSmod(const char* mother)
       }
 
       Matrix(mIdRotm, 90.0, phi, 90.0, phiy, phiz, 0.0);
-      TVirtualMC::GetMC()->Gspos(smName.Data(), SMOrder, mother, xpos, ypos, zpos, mIdRotm, "ONLY");
+      TVirtualMC::GetMC()->Gspos(smName.Data(), SMOrder, mother.data(), xpos, ypos, zpos, mIdRotm, "ONLY");
 
       LOG(DEBUG3) << smName << " : " << std::setw(2) << SMOrder << ", fIdRotm " << std::setw(3) << mIdRotm << " phi "
                   << std::setw(6) << std::setprecision(1) << phi << "(" << std::setw(5) << std::setprecision(3)
@@ -554,25 +562,26 @@ void Detector::CreateSmod(const char* mother)
   }
 }
 
-void Detector::CreateEmod(const char* mother, const char* child)
+void Detector::CreateEmod(const std::string_view mother, const std::string_view child)
 {
   // 17-may-05; mother="SMOD"; child="EMOD"
   // Oct 26,2010
+  using boost::algorithm::contains;
   Geometry* g = GetGeometry();
-  TString gn(g->GetName());
-  gn.ToUpper();
+  std::string gn = g->GetName();
+  std::transform(gn.begin(), gn.end(), gn.begin(), ::toupper);
 
   // Module definition
   Double_t xpos = 0., ypos = 0., zpos = 0.;
   // Double_t trd1Angle = g->GetTrd1Angle()*TMath::DegToRad();tanTrd1 = TMath::Tan(trd1Angle/2.);
 
-  if (strcmp(mother, "SMOD") == 0) {
+  if (!mother.compare("SMOD")) {
     mParEMOD[0] = g->GetEtaModuleSize() / 2.; // dx1
     mParEMOD[1] = g->Get2Trd1Dx2() / 2.;      // dx2
     mParEMOD[2] = g->GetPhiModuleSize() / 2.;
     ;                                          // dy
     mParEMOD[3] = g->GetLongModuleSize() / 2.; // dz
-    TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMediumID(ID_STEEL), mParEMOD, 4);
+    TVirtualMC::GetMC()->Gsvolu(child.data(), "TRD1", getMediumID(ID_STEEL), mParEMOD, 4);
   }
 
   Int_t nr = 0;
@@ -581,10 +590,10 @@ void Detector::CreateEmod(const char* mother, const char* child)
 
   for (Int_t iz = 0; iz < g->GetNZ(); iz++) {
     Double_t angle = 90., phiOK = 0;
-    const ShishKebabTrd1Module &mod = g->GetShishKebabTrd1Modules()[iz];
+    const ShishKebabTrd1Module& mod = g->GetShishKebabTrd1Modules()[iz];
     angle = mod.GetThetaInDegree();
 
-    if (!gn.Contains("WSUC")) { // ALICE
+    if (!contains(gn, "WSUC")) { // ALICE
       Matrix(mIdRotm, 90. - angle, 180., 90.0, 90.0, angle, 0.);
       phiOK = mod.GetCenterOfModule().Phi() * 180. / TMath::Pi();
       LOG(DEBUG4) << std::setw(2) << iz + 1 << " | angle | " << std::setw(6) << std::setprecision(3) << angle << " - "
@@ -595,22 +604,22 @@ void Detector::CreateEmod(const char* mother, const char* child)
       zpos = mod.GetPosZ() - mSmodPar2;
 
       Int_t iyMax = g->GetNPhi();
-      if (strcmp(mother, "SM10") == 0) {
+      if (!mother.compare("SM10")) {
         iyMax /= 2;
-      } else if (strcmp(mother, "SM3rd") == 0) {
+      } else if (!mother.compare("SM3rd")) {
         iyMax /= 3;
-      } else if (strcmp(mother, "DCEXT") == 0) {
+      } else if (!mother.compare("DCEXT")) {
         iyMax /= 3;
-      } else if (strcmp(mother, "DCSM") == 0) {
+      } else if (!mother.compare("DCSM")) {
         if (iz < 8)
           continue; //!!!DCSM from 8th to 23th
         zpos = mod.GetPosZ() - mSmodPar2 - g->GetDCALInnerEdge() / 2.;
-      } else if (strcmp(mother, "SMOD") != 0)
+      } else if (mother.compare("SMOD"))
         LOG(ERROR) << "Unknown super module Type!!\n";
 
       for (Int_t iy = 0; iy < iyMax; iy++) { // flat in phi
         ypos = g->GetPhiModuleSize() * (2 * iy + 1 - iyMax) / 2.;
-        TVirtualMC::GetMC()->Gspos(child, ++nr, mother, xpos, ypos, zpos, mIdRotm, "ONLY");
+        TVirtualMC::GetMC()->Gspos(child.data(), ++nr, mother.data(), xpos, ypos, zpos, mIdRotm, "ONLY");
 
         // printf(" %2i xpos %7.2f ypos %7.2f zpos %7.2f fIdRotm %i\n", nr, xpos, ypos, zpos, fIdRotm);
         LOG(DEBUG3) << std::setw(3) << std::setprecision(3) << nr << "(" << std::setw(2) << std::setprecision(2)
@@ -637,7 +646,7 @@ void Detector::CreateEmod(const char* mother, const char* child)
 
       for (Int_t ix = 0; ix < g->GetNPhi(); ix++) { // flat in phi
         xpos = g->GetPhiModuleSize() * (2 * ix + 1 - g->GetNPhi()) / 2.;
-        TVirtualMC::GetMC()->Gspos(child, ++nr, mother, xpos, ypos, zpos, mIdRotm, "ONLY");
+        TVirtualMC::GetMC()->Gspos(child.data(), ++nr, mother.data(), xpos, ypos, zpos, mIdRotm, "ONLY");
         // printf(" %7.2f ", xpos);
       }
       // printf("\n");
@@ -647,13 +656,11 @@ void Detector::CreateEmod(const char* mother, const char* child)
   LOG(DEBUG2) << " Number of modules in Super Module(" << mother << ") " << nr << FairLogger::endl;
 }
 
-void Detector::CreateAlFrontPlate(const char* mother, const char* child)
+void Detector::CreateAlFrontPlate(const std::string_view mother, const std::string_view child)
 {
   // Oct 26,2010 : Al front plate : ALFP
   Geometry* g = GetGeometry();
 
-  TString gn(g->GetName());
-  gn.ToUpper();
   Double_t trd1Angle = g->GetTrd1Angle() * TMath::DegToRad(), tanTrd1 = TMath::Tan(trd1Angle / 2.);
   Double_t parALFP[5], zposALFP = 0.;
 
@@ -662,10 +669,10 @@ void Detector::CreateAlFrontPlate(const char* mother, const char* child)
   parALFP[2] = g->GetPhiModuleSize() / 2. - g->GetLateralSteelStrip(); // dy
   parALFP[3] = g->GetTrd1AlFrontThick() / 2.;                          // dz
 
-  TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMediumID(ID_AL), parALFP, 4);
+  TVirtualMC::GetMC()->Gsvolu(child.data(), "TRD1", getMediumID(ID_AL), parALFP, 4);
 
   zposALFP = -mParEMOD[3] + g->GetTrd1AlFrontThick() / 2.;
-  TVirtualMC::GetMC()->Gspos(child, 1, mother, 0.0, 0.0, zposALFP, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos(child.data(), 1, mother.data(), 0.0, 0.0, zposALFP, 0, "ONLY");
 }
 
 void Detector::Trd1Tower1X1(Double_t* parSCM0)
@@ -707,15 +714,13 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
   Double_t parTRAP[11], *dummy = nullptr;
   Geometry* g = GetGeometry();
 
-  TString gn(g->GetName()), scmx;
-  gn.ToUpper();
-
   // Division to tile size
   LOG(DEBUG2) << "Trd1Tower3X3() : Divide SCM0 on y-axis " << g->GetNETAdiv() << FairLogger::endl;
 
   TVirtualMC::GetMC()->Gsdvn("SCMY", "SCM0", g->GetNETAdiv(), 2); // y-axis
-  Double_t dx1 = parSCM0[0], dx2 = parSCM0[1], dy = parSCM0[2], dz = parSCM0[3];
-  Double_t ndiv = 3., xpos = 0.0;
+  Double_t dx1 = parSCM0[0], dx2 = parSCM0[1], dy = parSCM0[2], dz = parSCM0[3], xpos = 0.;
+  const Double_t NDIV = 3.;
+  std::string scmx;
 
   // should be defined once
   TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMediumID(ID_PB), dummy, 0);
@@ -729,12 +734,12 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
     parTRAP[1] = TMath::ATan2((xCentTop - xCentBot), 2. * dz) * TMath::RadToDeg(); // theta
     parTRAP[2] = 0.;                                                               // phi
     // bottom
-    parTRAP[3] = dy / ndiv;  // H1
-    parTRAP[4] = dx1 / ndiv; // BL1
+    parTRAP[3] = dy / NDIV;  // H1
+    parTRAP[4] = dx1 / NDIV; // BL1
     parTRAP[5] = parTRAP[4]; // TL1
     parTRAP[6] = 0.0;        // ALP1
     // top
-    parTRAP[7] = dy / ndiv;          // H2
+    parTRAP[7] = dy / NDIV;          // H2
     parTRAP[8] = dx2 / 2 - dx1 / 6.; // BL2
     parTRAP[9] = parTRAP[8];         // TL2
     parTRAP[10] = 0.0;               // ALP2
@@ -745,7 +750,7 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
       xpos = -xpos;
     } else if (ix == 2) { // central part is box but we treat as trapesoid due to numbering
       parTRAP[1] = 0.;
-      parTRAP[8] = dx1 / ndiv; // BL2
+      parTRAP[8] = dx1 / NDIV; // BL2
       parTRAP[9] = parTRAP[8]; // TL2
       xpos = 0.0;
     }
@@ -756,8 +761,8 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
                   << std::setprecision(4) << parTRAP[i] << FairLogger::endl;
 
     scmx += ix;
-    TVirtualMC::GetMC()->Gsvolu(scmx.Data(), "TRAP", getMediumID(ID_SC), parTRAP, 11);
-    TVirtualMC::GetMC()->Gspos(scmx.Data(), 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
+    TVirtualMC::GetMC()->Gsvolu(scmx.c_str(), "TRAP", getMediumID(ID_SC), parTRAP, 11);
+    TVirtualMC::GetMC()->Gspos(scmx.c_str(), 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
 
     PbInTrap(parTRAP, scmx);
   }
@@ -765,7 +770,7 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
   LOG(DEBUG2) << "Trd1Tower3X3 - Ver. 1.0 : was tested.\n";
 }
 
-void Detector::PbInTrap(const Double_t parTRAP[11], TString n)
+void Detector::PbInTrap(const Double_t parTRAP[11], const std::string_view n)
 {
   // 8-dec-04 by PAI
   // see for example CreateShishKebabGeometry(); just for case TRD1
@@ -790,7 +795,7 @@ void Detector::PbInTrap(const Double_t parTRAP[11], TString n)
     if (parTRAP[1] < 0.)
       xpos = -xpos;
 
-    TVirtualMC::GetMC()->Gsposp("PBTI", ++nr, n.Data(), xpos, ypos, zpos, 0, "ONLY", par, 3);
+    TVirtualMC::GetMC()->Gsposp("PBTI", ++nr, n.data(), xpos, ypos, zpos, 0, "ONLY", par, 3);
 
     LOG(DEBUG2) << iz + 1 << " xpos " << std::setw(9) << std::setprecision(3) << xpos << " zpos " << std::setw(9)
                 << std::setprecision(3) << zpos << " par[0] " << std::setw(9) << std::setprecision(3) << par[0]
@@ -809,7 +814,7 @@ void Detector::PbInTrap(const Double_t parTRAP[11], TString n)
   LOG(DEBUG2) << " PbInTrap Ver. 1.0 : was tested.\n";
 }
 
-void Detector::PbInTrd1(const Double_t* parTrd1, TString n)
+void Detector::PbInTrd1(const Double_t* parTrd1, const std::string_view n)
 {
   // see PbInTrap(const Double_t parTrd1[11], TString n)
   Int_t nr = 0;
@@ -826,7 +831,7 @@ void Detector::PbInTrd1(const Double_t* parTrd1, TString n)
 
   for (Int_t iz = 0; iz < g->GetNECLayers(); iz++) {
     par[0] = parTrd1[0] + coef * mSampleWidth * iz;
-    TVirtualMC::GetMC()->Gsposp("PBTI", ++nr, n.Data(), xpos, ypos, zpos, 0, "ONLY", par, 3);
+    TVirtualMC::GetMC()->Gsposp("PBTI", ++nr, n.data(), xpos, ypos, zpos, 0, "ONLY", par, 3);
 
     LOG(DEBUG2) << iz + 1 << " xpos " << std::setw(9) << std::setprecision(3) << xpos << " zpos " << std::setw(9)
                 << std::setprecision(3) << zpos << " par[0] " << std::setw(9) << std::setprecision(3) << par[0]
