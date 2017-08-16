@@ -32,8 +32,8 @@ bool o2::TPC::Digitizer::mDebugFlagPRF = false;
 bool o2::TPC::Digitizer::mIsContinuous = true;
 
 Digitizer::Digitizer()
-  : mDigitContainer(nullptr)
-  , mDebugTreePRF(nullptr)
+  : mDigitContainer(nullptr),
+    mDebugTreePRF(nullptr)
 {}
 
 Digitizer::~Digitizer()

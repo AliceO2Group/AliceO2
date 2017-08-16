@@ -20,9 +20,9 @@ using namespace o2::TPC;
 using boost::format;
 
 GEMAmplification::GEMAmplification()
-  : mRandomGaus()
-  , mRandomFlat()
-  , mGain()
+  : mRandomGaus(),
+    mRandomFlat(),
+    mGain()
 {
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();

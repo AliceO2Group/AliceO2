@@ -71,8 +71,8 @@ class DigitContainer{
 
 inline
 DigitContainer::DigitContainer()
-  : mCRU()
-  , mCommonModeContainer()
+  : mCRU(),
+    mCommonModeContainer()
 {}
 
 

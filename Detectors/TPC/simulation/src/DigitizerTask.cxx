@@ -33,17 +33,17 @@ using namespace o2::TPC;
 
 
 DigitizerTask::DigitizerTask(int sectorid)
-  : FairTask("TPCDigitizerTask")
-  , mDigitizer(nullptr)
-  , mDigitContainer(nullptr)
-  , mPointsArray(nullptr)
-  , mDigitsArray(nullptr)
-  , mDigitsDebugArray(nullptr)
-  , mHitFileName()
-  , mTimeBinMax(1000000)
-  , mIsContinuousReadout(true)
-  , mDigitDebugOutput(false)
-  , mHitSector(sectorid)
+  : FairTask("TPCDigitizerTask"),
+    mDigitizer(nullptr),
+    mDigitContainer(nullptr),
+    mPointsArray(nullptr),
+    mDigitsArray(nullptr),
+    mDigitsDebugArray(nullptr),
+    mHitFileName(),
+    mTimeBinMax(1000000),
+    mIsContinuousReadout(true),
+    mDigitDebugOutput(false),
+    mHitSector(sectorid)
 {
   /// \todo get rid of new
   mDigitizer = new Digitizer;

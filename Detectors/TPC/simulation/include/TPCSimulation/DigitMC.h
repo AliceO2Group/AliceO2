@@ -103,16 +103,16 @@ class DigitMC : public DigitBase, public Digit {
 
 inline
 DigitMC::DigitMC()
-  : DigitBase()
-  , Digit(-1, -1.f, -1, -1)
-  , mMClabel()
+  : DigitBase(),
+    Digit(-1, -1.f, -1, -1),
+    mMClabel()
   {}
 
 inline
 DigitMC::DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time)
-  : DigitBase(time)
-  , Digit(cru, charge, row, pad)
-  , mMClabel(MClabel)
+  : DigitBase(time),
+    Digit(cru, charge, row, pad),
+    mMClabel(MClabel)
 {}
 
 }

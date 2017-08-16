@@ -88,9 +88,9 @@ class DigitPad{
 
 inline
 DigitPad::DigitPad(int pad)
-  : mChargePad(0.)
-  , mPad(pad)
-  , mMCID()
+  : mChargePad(0.),
+    mPad(pad),
+    mMCID()
 {}
 
 inline 

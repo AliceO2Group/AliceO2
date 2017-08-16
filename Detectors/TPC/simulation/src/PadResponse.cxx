@@ -25,9 +25,9 @@
 using namespace o2::TPC;
 
 PadResponse::PadResponse()
-  : mIROC()
-  , mOROC12()
-  , mOROC3()
+  : mIROC(),
+    mOROC12(),
+    mOROC3()
 {
   mIROC   = std::unique_ptr<TGraph2D> (new TGraph2D());
   mOROC12 = std::unique_ptr<TGraph2D> (new TGraph2D());
