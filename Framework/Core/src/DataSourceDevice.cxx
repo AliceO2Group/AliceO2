@@ -9,9 +9,12 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataSourceDevice.h"
 #include "Framework/MetricsService.h"
+#include "Framework/TMessageSerializer.h"
+#include "Framework/DataProcessor.h"
 #include <cassert>
 
 using namespace o2::framework;
+using DataHeader = o2::Header::DataHeader;
 
 namespace o2 {
 namespace framework {
@@ -20,7 +23,7 @@ DataSourceDevice::DataSourceDevice(const DeviceSpec &spec)
 : mInit{spec.init},
   mProcess{spec.process},
   mError{spec.onError},
-  mAllocator{this,&mContext,spec.outputs}
+  mAllocator{this,&mContext,&mRootContext,spec.outputs}
 {
 }
 
@@ -33,6 +36,7 @@ void DataSourceDevice::InitTask() {
   LOG(DEBUG) << "DataSourceDevice::InitTask::END";
 }
 
+
 bool DataSourceDevice::ConditionalRun() {
   // We do not have any inputs for a source, by definition, 
   // so we simply pass an empty vector.
@@ -41,21 +45,15 @@ bool DataSourceDevice::ConditionalRun() {
   std::vector<DataRef> dummyInputs;
   try {
     mContext.clear();
+    mRootContext.clear();
     if (mProcess) {
       LOG(DEBUG) << "Has process callback";
       mProcess(dummyInputs, mServiceRegistry, mAllocator);
     }
-    LOG(DEBUG) << "Process produced " << mContext.size() << " messages";
-    for (auto &message : mContext) {
- //     metricsService.post("outputs/total", message.parts.Size());
-      assert(message.parts.Size() == 2);
-      FairMQParts parts = std::move(message.parts);
-      assert(message.parts.Size() == 0);
-      assert(parts.Size() == 2);
-      assert(parts.At(0)->GetSize() == 80);
-      this->Send(parts, message.channel, message.index);
-      assert(parts.Size() == 2);
-    }
+    size_t nMsg = mContext.size() + mRootContext.size();
+    LOG(DEBUG) << "Process produced " << nMsg << " messages";
+    DataProcessor::doSend(*this, mContext);
+    DataProcessor::doSend(*this, mRootContext);
   } catch(std::exception &e) {
     if (mError) {
       mError(dummyInputs, mServiceRegistry, e);

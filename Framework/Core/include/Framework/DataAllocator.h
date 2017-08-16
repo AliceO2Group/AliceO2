@@ -19,10 +19,13 @@
 #include <map>
 #include <string>
 
+class TClonesArray;
+
 namespace o2 {
 namespace framework {
 
 class MessageContext;
+class RootObjectContext;
 
 /// This allocator is responsible to make sure that the messages created match 
 /// the provided spec.
@@ -34,9 +37,13 @@ public:
   using DataDescription = o2::Header::DataDescription;
   using SubSpecificationType = o2::Header::DataHeader::SubSpecificationType;
 
-  DataAllocator(FairMQDevice *device, MessageContext *context, const AllowedOutputsMap &outputs);
+  DataAllocator(FairMQDevice *device,
+                MessageContext *context,
+                RootObjectContext *rootContext,
+                const AllowedOutputsMap &outputs);
   DataChunk newChunk(const OutputSpec &, size_t);
   DataChunk adoptChunk(const OutputSpec &, char *, size_t, fairmq_free_fn*, void *);
+  TClonesArray &newTClonesArray(const OutputSpec &, const char *, size_t);
 
   template <class T>
   Collection<T> newCollectionChunk(const OutputSpec &spec, size_t nElements) {
@@ -45,11 +52,13 @@ public:
     DataChunk chunk = newChunk(spec, size);
     return Collection<T>(chunk.data, nElements);
   }
+
 private:
   std::string matchDataHeader(const OutputSpec &spec);
   FairMQDevice *mDevice;
   AllowedOutputsMap mAllowedOutputs;
   MessageContext *mContext;
+  RootObjectContext *mRootContext;
 };
 
 }

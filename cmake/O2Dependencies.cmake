@@ -172,6 +172,9 @@ o2_define_bucket(
     DEPENDENCIES
     O2DeviceApplication_bucket
     Framework
+    Net
+    Core
+    Hist
 )
 
 o2_define_bucket(

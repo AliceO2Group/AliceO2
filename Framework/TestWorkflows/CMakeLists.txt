@@ -30,4 +30,12 @@ O2_GENERATE_EXECUTABLE(
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_o2RootMessageWorkflow"
+  SOURCES "src/test_o2RootMessageWorkflow"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
 target_compile_options(o2DummyWorkflow PUBLIC -O0 -g -fno-omit-frame-pointer)
+target_compile_options(test_o2RootMessageWorkflow PUBLIC -O0 -g -fno-omit-frame-pointer)

@@ -11,7 +11,11 @@
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/MetricsService.h"
+#include "Framework/TMessageSerializer.h"
+#include "Framework/DataProcessor.h"
 #include <fairmq/FairMQParts.h>
+#include <TMessage.h>
+#include <TClonesArray.h>
 
 using namespace o2::framework;
 
@@ -26,7 +30,7 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
   mProcess{spec.process},
   mError{spec.onError},
   mChannels{spec.channels},
-  mAllocator{this, &mContext, spec.outputs},
+  mAllocator{this, &mContext, &mRootContext, spec.outputs},
   mRelayer{spec.inputs, spec.forwards, registry.get<MetricsService>()},
   mInputs{spec.inputs},
   mForwards{spec.forwards},
@@ -133,6 +137,7 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
   // should never happen.
   assert(inputs.size() == mInputs.size());
   mContext.clear();
+  mRootContext.clear();
 
   // If we are here, we have a complete set of inputs,
   // therefore we dispatch the calculation, if available.
@@ -144,16 +149,8 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
       metricsService.post("dataprocessing/process", mProcessingCount++);
       mProcess(inputs, mServiceRegistry, mAllocator);
       LOG(DEBUG) << "PROCESSING:END";
-      for (auto &message : mContext) {
-        metricsService.post("output/parts", message.parts.Size());
-        assert(message.parts.Size() == 2);
-        FairMQParts outParts = std::move(message.parts);
-        assert(message.parts.Size() == 0);
-        assert(outParts.Size() == 2);
-        assert(outParts.At(0)->GetSize() == 80);
-        this->Send(outParts, message.channel, message.index);
-        assert(outParts.Size() == 2);
-      }
+      DataProcessor::doSend(*this, mContext);
+      DataProcessor::doSend(*this, mRootContext);
     }
   } catch(std::exception &e) {
     LOG(DEBUG) << "Exception caught" << e.what() << std::endl;

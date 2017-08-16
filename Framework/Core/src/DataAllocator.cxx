@@ -9,14 +9,20 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataAllocator.h"
 #include "Framework/MessageContext.h"
+#include "Framework/RootObjectContext.h"
 #include "Framework/DataSpecUtils.h"
+#include <TClonesArray.h>
 
 namespace o2 {
 namespace framework {
 
-DataAllocator::DataAllocator(FairMQDevice *device, MessageContext *context, const AllowedOutputsMap &outputs)
+DataAllocator::DataAllocator(FairMQDevice *device,
+                             MessageContext *context,
+                             RootObjectContext *rootContext,
+                             const AllowedOutputsMap &outputs)
 : mDevice{device},
   mContext{context},
+  mRootContext{rootContext},
   mAllowedOutputs{outputs}
 {
 }
@@ -78,6 +84,23 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
   parts.AddPart(std::move(payloadMessage));
   mContext->addPart(std::move(parts), channel, 0);
   return DataChunk{reinterpret_cast<char *>(dataPtr), dataSize};
+}
+
+TClonesArray&
+DataAllocator::newTClonesArray(const OutputSpec &spec, const char *className, size_t nElements) {
+  std::string channel = matchDataHeader(spec);
+  FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0, sizeof(Header::DataHeader));
+  Header::DataHeader *header = reinterpret_cast<Header::DataHeader*>(headerMessage->GetData());
+  header->dataOrigin = spec.origin;
+  header->dataDescription = spec.description;
+  header->subSpecification = spec.subSpec;
+  header->payloadSize = 0; // We will override this at Send time.
+  auto payload = std::make_unique<TClonesArray>(className, nElements);
+  payload->SetOwner(kTRUE);
+  auto &result = *payload.get();
+  mRootContext->addObject(std::move(headerMessage), std::move(payload), channel, 0);
+  assert(payload.get() == 0);
+  return result;
 }
 
 }

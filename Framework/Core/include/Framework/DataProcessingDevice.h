@@ -19,6 +19,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/MessageContext.h"
+#include "Framework/RootObjectContext.h"
 
 namespace o2 {
 namespace framework {
@@ -37,6 +38,7 @@ private:
   ConfigParamRegistry mConfigRegistry;
   ServiceRegistry mServiceRegistry;
   MessageContext mContext;
+  RootObjectContext mRootContext;
   DataAllocator mAllocator;
   DataRelayer mRelayer;
 
