@@ -19,8 +19,8 @@
 using namespace o2::TPC;
 
 ElectronTransport::ElectronTransport()
-  : mRandomGaus()
-  , mRandomFlat()
+  : mRandomGaus(),
+    mRandomFlat()
 {
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
   mRandomFlat.initialize(RandomRing::RandomType::Flat);

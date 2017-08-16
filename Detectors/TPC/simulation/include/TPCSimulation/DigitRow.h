@@ -81,8 +81,8 @@ class DigitRow{
 
 inline
 DigitRow::DigitRow(int row, int npads)
-  : mRow(row)
-  , mPads(npads)
+  : mRow(row),
+    mPads(npads)
 {}
 
 inline

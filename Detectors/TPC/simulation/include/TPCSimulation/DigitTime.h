@@ -85,9 +85,9 @@ class DigitTime{
 
 inline
 DigitTime::DigitTime(int timeBin, int nrows)
-  : mTotalChargeTimeBin(0.)
-  , mTimeBin(timeBin)
-  , mRows(nrows)
+  : mTotalChargeTimeBin(0.),
+    mTimeBin(timeBin),
+    mRows(nrows)
 {}
 
 inline    
