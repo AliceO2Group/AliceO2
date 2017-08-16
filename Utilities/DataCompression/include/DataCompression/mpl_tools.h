@@ -32,6 +32,12 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/set.hpp>
+#include <boost/mpl/placeholders.hpp>
+#include <boost/mpl/bind.hpp>
+
+using boost::mpl::placeholders::_;
+using boost::mpl::placeholders::_1;
+using boost::mpl::placeholders::_2;
 
 namespace o2 {
 namespace mpl {
@@ -69,6 +75,23 @@ public:
   enum {isSequence = VectorTraits<T, typename boost::mpl::begin<T>::type >::result };
   /// the tarits type, always a sequence
   typedef typename VectorTraits<T, typename boost::mpl::begin<T>::type >::type type;
+};
+
+/******************************************************************************
+ * @brief Meta program to create a vector of wrapped types from a sequencs
+ * of types. A new mpl vector containing Wrapper<Type> for every
+ * element of the original sequence is created
+ * mpl::fold recursivly applies the elements of the list to the previous result
+ * placeholder _2 refers to the element, placeholder _1 to the previous result
+ * or initial condition for the first element
+ */
+template <typename Seq, typename Wrapper>
+struct do_typewrap {
+  using type = typename boost::mpl::fold<                     //
+    Seq,                                                      //
+    boost::mpl::vector<>,                                     //
+    boost::mpl::push_back<_1, boost::mpl::bind1<Wrapper, _2>> //
+    >::type;
 };
 
 /******************************************************************************
