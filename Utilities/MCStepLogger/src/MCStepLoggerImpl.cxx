@@ -102,8 +102,13 @@ StepLogger logger;
 extern "C" void dispatchOriginal(TVirtualMCApplication* app, char const* libname, char const* origFunctionName)
 {
   typedef void (TVirtualMCApplication::*StepMethodType)();
-  static StepMethodType origMethod = nullptr;
-  if (origMethod == nullptr) {
+  // static map to avoid having to lookup the right symbols in the shared lib at each call
+  // (We could do this outside of course)
+  static std::map<const char *, StepMethodType> functionNameToSymbolMap;
+  StepMethodType origMethod = nullptr;
+
+  auto iter = functionNameToSymbolMap.find(origFunctionName);
+  if(iter == functionNameToSymbolMap.end()){
     auto libHandle = dlopen(libname, RTLD_NOW);
     // try to make the library loading a bit more portable:
     if (!libHandle){
@@ -121,9 +126,16 @@ extern "C" void dispatchOriginal(TVirtualMCApplication* app, char const* libname
     assert(libHandle);
     void* symbolAddress = dlsym(libHandle, origFunctionName);
     assert(symbolAddress);
+    // Purposely ignore compiler warning
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsizeof-pointer-memaccess"
     // hack since C++ does not allow casting to C++ member function pointers
     // thanks to gist.github.com/mooware/1174572
     memcpy(&origMethod, &symbolAddress, sizeof(&symbolAddress));
+#pragma GCC diagnostic pop
+    functionNameToSymbolMap[origFunctionName]=origMethod;
+  } else {
+    origMethod = iter->second;
   }
   (app->*origMethod)();
 }
