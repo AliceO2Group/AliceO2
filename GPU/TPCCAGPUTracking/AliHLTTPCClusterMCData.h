@@ -5,9 +5,6 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-#include "AliHLTDataTypes.h"
-
-
 /**
  * @struct AliHLTTPCClusterMCWeight
  * This in a struct for MC weights
@@ -19,8 +16,8 @@ struct AliHLTTPCClusterMCWeight
   AliHLTTPCClusterMCWeight(): fMCID(-1), fWeight(0)
   {}
 
-  AliHLTInt32_t  fMCID;     // MC track ID
-  AliHLTFloat32_t fWeight; // weight of the track ID
+  int  fMCID;     // MC track ID
+  float fWeight; // weight of the track ID
 };  
 
 typedef struct AliHLTTPCClusterMCWeight AliHLTTPCClusterMCWeight;
@@ -45,7 +42,7 @@ typedef struct AliHLTTPCClusterMCLabel AliHLTTPCClusterMCLabel;
  */
 struct AliHLTTPCClusterMCData 
 {
-  AliHLTUInt32_t fCount;
+  int fCount;
 #if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
   AliHLTTPCClusterMCLabel fLabels[1];
 #else
