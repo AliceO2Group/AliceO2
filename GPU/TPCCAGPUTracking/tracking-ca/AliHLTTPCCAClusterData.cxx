@@ -37,8 +37,8 @@ template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const T* const 
 {
 	unsigned i;
 	i = fNumberOfClusters;
-	out.write((char*) &i, sizeof(i));
-	out.write((char*) data, i * sizeof(T));
+	out.write((const char*) &i, sizeof(i));
+	out.write((const char*) data, i * sizeof(T));
 }
 
 template <class T> void AliHLTTPCCAClusterData::ReadEventVector(T* &data, std::istream &in, int MinSize)
