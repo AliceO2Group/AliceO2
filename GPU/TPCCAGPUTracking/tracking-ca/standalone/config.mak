@@ -44,7 +44,14 @@ CONFIG_X11					= 1
 DEFINES						+= BUILD_EVENT_DISPLAY
 endif
 
+ifeq ($(BUILD_QA), 1)
+CPPFILES					+= qa/qa.cpp
+DEFINES						+= BUILD_QA
+INCLUDEPATHSSYSTEM				+= $(shell root-config --incdir)
+LIBSUSE						+= $(shell root-config --libs)
+endif
+
 ALLDEP						+= config_common.mak
 
 o2:
-	make CONFIGFILE=config_o2.mak -f makefile
+						make CONFIGFILE=config_o2.mak -f makefile

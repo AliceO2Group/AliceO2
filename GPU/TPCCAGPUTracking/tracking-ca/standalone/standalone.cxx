@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 {
 	int i;
 	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0,
-	    continueOnError = 0, seed = -1, writeoutput = 0, writebinary = 0, resetids = 0, lowpt = 0, nways = 1, cont = 0;
+	    continueOnError = 0, seed = -1, writeoutput = 0, writebinary = 0, resetids = 0, lowpt = 0, nways = 1, cont = 0, qa = 0;
 	float dzdr = 0.;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
@@ -160,8 +160,12 @@ int main(int argc, char** argv)
 		{
 			printf("Event Display enabled\n");
 			hlt.ExitGPU();
-			RUNGPU=1;
 			eventDisplay = 1;
+		}
+		if ( !strcmp( argv[i], "-QA" ) ) 
+		{
+			printf("QA enabled\n");
+			qa = 1;
 		}
 
 		if ( !strcmp( argv[i], "-ENUMERATECLUSTERIDS" ) ) 
@@ -253,6 +257,7 @@ int main(int argc, char** argv)
 	}
 	hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(eventDisplay);
+	hlt.SetRunQA(qa);
 	hlt.SetRunMerger(merger);
 	if (RUNGPU)
 		printf("Standalone Test Framework for CA Tracker - Using GPU\n");
@@ -309,7 +314,7 @@ int main(int argc, char** argv)
 		printf("Loading Event %d\n", i);
 
 		hlt.StartDataReading(0);
-		hlt.ReadEvent(in, eventDisplay != 0 || resetids);
+		hlt.ReadEvent(in, eventDisplay != 0 || qa != 0 || resetids);
 		
 #ifdef BROKEN_EVENTS
 		int break_slices = rand() % 36;

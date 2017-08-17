@@ -9,3 +9,4 @@ extern void* OpenGLMain( void* );
 extern void ShowNextEvent();
 extern volatile int buttonPressed;
 extern volatile int displayEventNr;
+void RunQA();
