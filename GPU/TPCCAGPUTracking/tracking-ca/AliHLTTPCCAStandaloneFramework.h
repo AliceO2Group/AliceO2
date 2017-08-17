@@ -18,6 +18,8 @@
 #endif
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCATrackerFramework.h"
+#include "AliHLTTPCClusterMCData.h"
+#include "AliHLTTPCCAMCInfo.h"
 #include <iostream>
 #include <fstream>
 
@@ -101,6 +103,11 @@ class AliHLTTPCCAStandaloneFramework
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
 	void SetOutputControl(char* ptr, size_t size) {fOutputControl.fOutputPtr = ptr;fOutputControl.fOutputMaxSize = size;}
+	
+	int GetNMCLabels() {return(fMCLabels.size());}
+	int GetNMCInfo() {return(fMCInfo.size());}
+	const AliHLTTPCClusterMCLabel* GetMCLabels() {return(fMCLabels.data());}
+	const AliHLTTPCCAMCInfo* GetMCInfo() {return(fMCInfo.data());}
 
   private:
 
@@ -124,6 +131,8 @@ class AliHLTTPCCAStandaloneFramework
 	int fDebugLevel;	//Tracker Framework Debug Level
 	int fEventDisplay;	//Display event in Standalone Event Display
 	int fRunMerger;		//Run Track Merger
+	std::vector<AliHLTTPCClusterMCLabel> fMCLabels;
+	std::vector<AliHLTTPCCAMCInfo> fMCInfo;
 };
 
 #endif //ALIHLTTPCCASTANDALONEFRAMEWORK_H
