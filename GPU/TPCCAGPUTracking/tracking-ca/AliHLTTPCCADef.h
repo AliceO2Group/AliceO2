@@ -44,6 +44,7 @@
 
 #if defined(HLTCA_STANDALONE) || (defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE))
 
+#ifndef ROOT_Rtypes
 // class TObject{};
 
 #define ClassDef(name,id)
@@ -90,6 +91,7 @@ typedef short          SCoord_t;    //Screen coordinates (short)
 typedef double         Coord_t;     //Pad world coordinates (double)
 typedef float          Angle_t;     //Graphics angle (float)
 typedef float          Size_t;      //Attribute size (float)
+#endif
 
 #define TRACKER_KEEP_TEMPDATA
 
