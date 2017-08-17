@@ -29,6 +29,8 @@ find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(Protobuf REQUIRED)
 
+find_package(GLFW)
+
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
   add_definitions(-DDDS_FOUND)
@@ -62,6 +64,17 @@ elseif(UNIX)
 endif()
 
 ########## Bucket definitions ############
+o2_define_bucket(
+  NAME
+  glfw_bucket
+
+  DEPENDENCIES
+  ${GLFW_LIBRARIES}
+
+  INCLUDE_DIRECTORIES
+  ${GLFW_INCLUDE_DIR}
+  )
+
 o2_define_bucket(
     NAME
     common_vc_bucket
@@ -135,6 +148,10 @@ o2_define_bucket(
 
 # a common bucket for the implementation of devices inherited
 # from O2device
+if(GLFW_FOUND)
+  set(GUI_LIBRARIES DebugGUI)
+endif()
+
 o2_define_bucket(
     NAME
     O2DeviceApplication_bucket
@@ -145,6 +162,19 @@ o2_define_bucket(
     TimeFrame
     O2Device
     dl
+    ${GUI_LIBRARIES}
+)
+
+o2_define_bucket(
+    NAME
+    FrameworkApplication_bucket
+
+    DEPENDENCIES
+    O2DeviceApplication_bucket
+    Framework
+    Net
+    Core
+    Hist
 )
 
 o2_define_bucket(
@@ -169,6 +199,17 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}/fairmq # temporary fix, until bucket system works with imported targets
     ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
+)
+
+o2_define_bucket(
+    NAME
+    O2DataProcessingApplication_bucket
+
+    DEPENDENCIES
+    O2DeviceApplication_bucket
+    Framework
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Core/include
 )
 
 o2_define_bucket(
