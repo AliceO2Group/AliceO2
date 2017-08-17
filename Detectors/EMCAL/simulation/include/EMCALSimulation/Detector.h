@@ -11,12 +11,11 @@
 #ifndef ALICEO2_EMCAL_DETECTOR_H_
 #define ALICEO2_EMCAL_DETECTOR_H_
 
-#include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/Detector.h"
-#include "Rtypes.h"
+#include "MathUtils/Cartesian3D.h"
 #include "RStringView.h"
+#include "Rtypes.h"
 #include "TArrayF.h"
-#include "TString.h"
 
 #include <vector>
 
@@ -27,10 +26,9 @@ namespace o2
 {
 namespace EMCAL
 {
-
 class Hit;
 class Geometry;
-    
+
 class Detector : public o2::Base::Detector
 {
  public:
@@ -38,7 +36,7 @@ class Detector : public o2::Base::Detector
 
   Detector() = default;
 
-  Detector(const char *name, Bool_t isActive);
+  Detector(const char* name, Bool_t isActive);
 
   ~Detector() override = default;
 
@@ -73,17 +71,17 @@ class Detector : public o2::Base::Detector
   ///
   /// Generate super module geometry
   ///
-  void CreateSmod(const char* mother = "XEN1");
+  void CreateSmod(const std::string_view mother = "XEN1");
 
   ///
   /// Generate module geometry (2x2 towers)
   ///
-  void CreateEmod(const char* mother = "SMOD", const char* child = "EMOD");
+  void CreateEmod(const std::string_view mother = "SMOD", const std::string_view child = "EMOD");
 
   ///
   /// Generate aluminium plates geometry
   ///
-  void CreateAlFrontPlate(const char* mother = "EMOD", const char* child = "ALFP");
+  void CreateAlFrontPlate(const std::string_view mother = "EMOD", const std::string_view child = "ALFP");
 
   ///
   /// Generate towers in module of 1x1
@@ -101,13 +99,13 @@ class Detector : public o2::Base::Detector
   /// Used by AliEMCALv0::Trd1Tower3X3
   /// Prototype studies, remove?
   ///
-  void PbInTrap(const Double_t parTRAP[11], TString n);
+  void PbInTrap(const Double_t parTRAP[11], const std::string_view n);
 
   ///
   /// Used by AliEMCALv0::Trd1Tower1X1
   /// Prototype studies, remove?
   ///
-  void PbInTrd1(const Double_t* parTrd1, TString n);
+  void PbInTrd1(const Double_t* parTrd1, const std::string_view n);
 
  private:
   Int_t mBirkC0;
@@ -117,8 +115,8 @@ class Detector : public o2::Base::Detector
   TClonesArray* mPointCollection; ///< Collection of EMCAL points
   Geometry* mGeometry;            ///< Geometry pointer
 
-  TArrayF mEnvelop1;         //!<! parameters of EMCAL envelop for TRD1(2) case
-  Int_t mIdRotm;             //!<! number of rotation matrix (working variable)
+  TArrayF mEnvelop1; //!<! parameters of EMCAL envelop for TRD1(2) case
+  Int_t mIdRotm;     //!<! number of rotation matrix (working variable)
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module
