@@ -33,6 +33,7 @@
 
 #include "AliHLTTPCRawCluster.h"
 #include "AliHLTTPCClusterXYZ.h"
+#include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliExternalTrackParam.h"
@@ -43,7 +44,15 @@
 #include "TObjArray.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
-
+#include "AliRunLoader.h"
+#include "AliHeader.h"
+#include "TBranch.h"
+#include "TTree.h"
+#include "AliStack.h"
+#include "AliMCParticle.h"
+#include "AliTrackReference.h"
+#include "AliHLTTPCCAMCInfo.h"
+#include "TPDGCode.h"
 #if __GNUC__>= 3
 using namespace std;
 #endif
@@ -157,6 +166,7 @@ void AliHLTTPCCATrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataT
   list.clear();
   list.push_back( AliHLTTPCDefinitions::RawClustersDataType() );
   list.push_back( AliHLTTPCDefinitions::ClustersXYZDataType() );
+  list.push_back( AliHLTTPCDefinitions::AliHLTDataTypeClusterMCInfo() );
 }
 
 AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
@@ -629,96 +639,90 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
   }
 
   //Prepare everything for all slices
-
+  const AliHLTTPCClusterMCData* clusterLabels[36][6] = {NULL};
+  const AliHLTTPCClusterXYZData* clustersXYZ[36][6] = {NULL};
+  const AliHLTTPCRawClusterData* clustersRaw[36][6] = {NULL};
+  bool labelsPresent = false;
+  
+  for ( unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
+  {
+    const AliHLTComponentBlockData &pBlock = blocks[ndx];
+    int slice = AliHLTTPCDefinitions::GetMinSliceNr(pBlock);
+    int patch = AliHLTTPCDefinitions::GetMinPatchNr(pBlock);
+    if ( pBlock.fDataType == AliHLTTPCDefinitions::RawClustersDataType() )
+    {
+      clustersRaw[slice][patch] = (const AliHLTTPCRawClusterData*) pBlock.fPtr;
+    }
+    else if ( pBlock.fDataType == AliHLTTPCDefinitions::ClustersXYZDataType() )
+    {
+      clustersXYZ[slice][patch] = (const AliHLTTPCClusterXYZData*) pBlock.fPtr;
+    }
+    else if ( pBlock.fDataType == AliHLTTPCDefinitions::AliHLTDataTypeClusterMCInfo() )
+    {
+      clusterLabels[slice][patch] = (const AliHLTTPCClusterMCData*) pBlock.fPtr;
+      labelsPresent = true;
+    }
+  }
+  
   int nClustersTotal = 0;
   for (int islice = 0;islice < fSliceCount;islice++)
   {
     int slice = fMinSlice + islice;
-
-    // total n Hits
     int nClustersSliceTotal = 0;
-
-    // sort patches
-    const AliHLTTPCClusterXYZData *pcXYZ[fgkNPatches];
-    const AliHLTTPCRawClusterData *pcRaw[fgkNPatches];
-    int pcN[fgkNPatches];
-    for( int i=0; i<fgkNPatches; i++ ){
-      pcXYZ[i] = NULL;
-      pcRaw[i] = NULL;
-      pcN[i] = 0;
+    for (int patch = 0;patch < 6;patch++)
+    {
+      if (clustersXYZ[slice][patch]) nClustersSliceTotal += clustersXYZ[slice][patch]->fCount;
     }
-    
-    for ( unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
-      const AliHLTComponentBlockData &pBlock = blocks[ndx];
-      if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( pBlock ) ) continue;
-      int patch = AliHLTTPCDefinitions::GetMinPatchNr( pBlock );
-      if( patch<0 || patch>=fgkNPatches ) continue; 
-      fBenchmark.AddInput(pBlock.fSize); 
-      if ( pBlock.fDataType == AliHLTTPCDefinitions::RawClustersDataType() ){
-	pcRaw[ patch ] = reinterpret_cast<AliHLTTPCRawClusterData*>( pBlock.fPtr );	
-      } else if( pBlock.fDataType == AliHLTTPCDefinitions::ClustersXYZDataType() ){
-	pcXYZ[ patch ] = reinterpret_cast<AliHLTTPCClusterXYZData*>( pBlock.fPtr );
-      }
-    }
-    
-    for( int i=0; i<fgkNPatches; i++ ){
-      if( !pcRaw[i] || !pcXYZ[i] ) continue;
-      if( pcXYZ[i]->fCount != pcRaw[i]->fCount ){
-	HLTError("Number of entries in raw and xyz clusters are not mached %d vs %d", pcRaw[i]->fCount, pcXYZ[i]->fCount );
-	continue;
-      }
-      pcN[i] = pcXYZ[i]->fCount;
-      nClustersSliceTotal+=pcN[i];
-    }
-    nClustersTotal += nClustersSliceTotal;
-
-    // pass event to CA Tracker
-
-    Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
-      "Total %d hits to read for slice %d", nClustersSliceTotal, slice );
-
     if (nClustersSliceTotal > 500000)
     {
       HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, slice not included in tracking", slice, nClustersSliceTotal );
-      fClusterData[islice].StartReading( slice, 0 );
+      fClusterData[islice].StartReading(slice, 0);
     }
     else if (nClustersSliceTotal == 0)
     {
-      fClusterData[islice].StartReading( slice, 0 );
+      fClusterData[islice].StartReading(slice, 0);
     }
     else
     {
       fClusterData[islice].StartReading( slice, nClustersSliceTotal );
-      
-      for( int patch=0; patch<fgkNPatches; patch++ ){
+      AliHLTTPCCAClusterData::Data* pCluster = fClusterData[islice].Clusters();
+      for (int patch = 0;patch < 6;patch++)
+      {
+        if (clustersXYZ[slice][patch] != NULL && clustersRaw[slice][patch] != NULL)
+        {
+          const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[slice][patch];
+          const AliHLTTPCRawClusterData& clRaw = *clustersRaw[slice][patch];
+          
+          if (clXYZ.fCount != clRaw.fCount)
+          {
+            HLTError("Number of entries in raw and xyz clusters are not mached %d vs %d", clXYZ.fCount, clRaw.fCount);
+            continue;
+          }
 
-	int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
-
-	const AliHLTTPCClusterXYZ* cXYZ = pcXYZ[patch]->fClusters;
-	const AliHLTTPCRawCluster* cRaw = pcRaw[patch]->fClusters;
-	
-	AliHLTTPCCAClusterData::Data* pCluster = &fClusterData[islice].Clusters()[fClusterData[islice].NumberOfClusters()];
-      
-	for( int ic=0; ic<pcN[patch]; ic++ ){
-	  const AliHLTTPCClusterXYZ &c = cXYZ[ic];
-	  if ( c.GetZ() > fClusterZCut || c.GetZ() < -fClusterZCut) continue;
-	  if ( c.GetX() <1.f ) continue; // cluster xyz position was not calculated for whatever reason
-	  pCluster->fId = AliHLTTPCGeometry::CreateClusterID( slice, patch, ic );
-	  pCluster->fX = c.GetX();
-	  pCluster->fY = c.GetY();
-	  pCluster->fZ = c.GetZ();
-	  pCluster->fRow = firstRow + cRaw[ic].GetPadRow();
-	  pCluster->fAmp = cRaw[ic].GetCharge();
-	  pCluster++;
-	}
-	fClusterData[islice].SetNumberOfClusters(pCluster - fClusterData[islice].Clusters());
-      
-        HLTDebug("Read %d->%d hits for slice %d - patch %d", pcN[patch], fClusterData[islice].NumberOfClusters(), slice, patch );
+          const int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
+          for (int ic = 0;ic < clXYZ.fCount;ic++)
+          {
+            const AliHLTTPCClusterXYZ &c = clXYZ.fClusters[ic];
+            const AliHLTTPCRawCluster &cRaw = clRaw.fClusters[ic];
+            if ( c.GetZ() > fClusterZCut || c.GetZ() < -fClusterZCut) continue;
+            if ( c.GetX() <1.f ) continue; // cluster xyz position was not calculated for whatever reason
+            pCluster->fId = AliHLTTPCGeometry::CreateClusterID( slice, patch, ic );
+            pCluster->fX = c.GetX();
+            pCluster->fY = c.GetY();
+            pCluster->fZ = c.GetZ();
+            pCluster->fRow = firstRow + cRaw.GetPadRow();
+            pCluster->fAmp = cRaw.GetCharge();
+            pCluster++;
+          }
+        }
       }
+      fClusterData[islice].SetNumberOfClusters(pCluster - fClusterData[islice].Clusters());
+      nClustersTotal += fClusterData[islice].NumberOfClusters();
+      HLTDebug("Read %d->%d hits for slice %d", nClustersSliceTotal, fClusterData[islice].NumberOfClusters(), slice );
     }
   }
   
-  if (fDumpEvent && nClustersTotal)
+  if (fDumpEvent && nClustersTotal && fSliceCount == 36)
   {
     static int nEvent = 0;
     std::ofstream out;
@@ -727,11 +731,148 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
     out.open(filename, std::ofstream::binary);
     if (!out.fail())
     {
+      //Write cluster data
       for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ )
       {
         fClusterData[iSlice].WriteEvent( out );
       }
-      out.close();
+    
+      //Write cluster labels
+      std::vector<AliHLTTPCClusterMCLabel> labels;
+      for (int iSlice = 0;iSlice < 36;iSlice++)
+      {
+        AliHLTTPCCAClusterData::Data* pCluster = fClusterData[iSlice].Clusters();
+        for (int iPatch = 0;iPatch < 6;iPatch++)
+        {
+          if (clusterLabels[iSlice][iPatch] == NULL || clustersXYZ[iSlice][iPatch] == NULL || clusterLabels[iSlice][iPatch]->fCount != clustersXYZ[iSlice][iPatch]->fCount) continue;
+          const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[iSlice][iPatch];
+          for (int ic = 0;ic < clXYZ.fCount;ic++)
+          {
+            if (pCluster->fId != AliHLTTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) continue;
+            labels.push_back(clusterLabels[iSlice][iPatch]->fLabels[ic]);
+            pCluster++;
+          }
+        }
+      }
+      if (!labels.size() || labels.size() != nClustersTotal)
+      {
+        printf("Error getting cluster MC labels\n");
+      }
+      else
+      {
+        out.write((const char*) labels.data(), labels.size() * sizeof(labels[0]));
+        
+        //Write MC tracks
+        bool OK = false;
+        do
+        {
+          AliRunLoader* rl = AliRunLoader::Instance();
+          if (rl == NULL) {printf("RL\n"); break;}
+          
+          rl->LoadKinematics();
+          rl->LoadTrackRefs(); 
+          
+          int nTracks = rl->GetHeader()->GetNtrack();
+          printf("tracks %d\n", nTracks);
+          
+          AliStack* stack = rl->Stack();
+          if (stack == NULL) {printf("stack\n");break;}
+          TTree *TR = rl->TreeTR();
+          if (TR == NULL) {printf("TR\n");break;}
+          TBranch *branch = TR->GetBranch("TrackReferences");
+          if (branch == NULL) {printf("branch\n");break;}
+
+          int nPrimaries = stack->GetNprimary();
+          
+          std::vector<AliTrackReference*> trackRefs(nTracks, NULL);
+          TClonesArray* tpcRefs = NULL;
+          branch->SetAddress(&tpcRefs);
+          int nr = TR->GetEntries();
+          for (int r = 0;r < nr;r++)
+          {
+            TR->GetEvent(r);
+            for (int i = 0;i < tpcRefs->GetEntriesFast();i++)
+            {
+              AliTrackReference* tpcRef = (AliTrackReference*) tpcRefs->UncheckedAt(i);
+              if (tpcRef->DetectorId() != AliTrackReference::kTPC) continue;
+              if (tpcRef->Label() < 0 || tpcRef->Label() >= nTracks)
+              {
+                printf("Invalid reference %d / %d\n", tpcRef->Label(), nTracks);
+                continue;
+              }
+              if (trackRefs[tpcRef->Label()] != NULL) continue;
+              trackRefs[tpcRef->Label()] = new AliTrackReference(*tpcRef);
+            }
+          }
+          
+          std::vector<AliHLTTPCCAMCInfo> mcInfo(nTracks);
+          memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
+          
+          for (int i = 0;i < labels.size();i++)
+          {
+            float weightTotal = 0.f;
+            for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0) weightTotal += labels[i].fClusterID[j].fWeight;
+            for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0)
+            {
+              if (labels[i].fClusterID[j].fMCID < nTracks)
+              {
+                mcInfo[labels[i].fClusterID[j].fMCID].fNWeightCls += labels[i].fClusterID[j].fWeight / weightTotal;
+              }
+              else
+              {
+                printf("Invalid cluster label %d / %d\n", labels[i].fClusterID[j].fMCID, nTracks);
+              }
+            }
+          }
+          for (int i = 0;i < nTracks;i++)
+          {
+            mcInfo[i].fPID = -100;
+            TParticle *particle = (TParticle*) stack->Particle(i);
+            if (particle == NULL) continue;
+            if (particle->GetPDG() == NULL) continue;
+            
+            int charge = (int) particle->GetPDG()->Charge();
+            int prim = stack->IsPhysicalPrimary(i);
+            int hasPrimDaughter = particle->GetFirstDaughter() != -1 && particle->GetFirstDaughter() < nPrimaries;
+            
+            mcInfo[i].fCharge = charge;
+            mcInfo[i].fPrim = prim;
+            mcInfo[i].fPrimDaughters = hasPrimDaughter;
+            
+            Int_t pid = -1;
+            if(TMath::Abs(particle->GetPdgCode()) == kElectron) pid = 0;
+            if(TMath::Abs(particle->GetPdgCode()) == kMuonMinus) pid = 1;
+            if(TMath::Abs(particle->GetPdgCode()) == kPiPlus) pid = 2;
+            if(TMath::Abs(particle->GetPdgCode()) == kKPlus) pid = 3;
+            if(TMath::Abs(particle->GetPdgCode()) == kProton) pid = 4;
+            mcInfo[i].fPID = pid;
+            
+            AliTrackReference* ref = trackRefs[i];
+            if (ref)
+            {
+              mcInfo[i].fX = ref->X();
+              mcInfo[i].fY = ref->Y();
+              mcInfo[i].fZ = ref->Z();
+              mcInfo[i].fPx = ref->Px();
+              mcInfo[i].fPy = ref->Py();
+              mcInfo[i].fPz = ref->Pz();
+            }
+            
+            //if (ref) printf("Particle %d: Charge %d, Prim %d, PrimDaughter %d, Pt %f %f ref %p\n", i, charge, prim, hasPrimDaughter, ref->Pt(), particle->Pt(), ref);
+          }
+          for (int i = 0;i < nTracks;i++) delete trackRefs[i];
+          
+          out.write((const char*) &nTracks, sizeof(nTracks));
+          out.write((const char*) mcInfo.data(), nTracks * sizeof(mcInfo[0]));
+          OK = true;
+        } while (false);
+          
+        if (!OK)
+        {
+          printf("Error accessing MC data\n");
+        }
+      }
+      out.close();      
     }
   }
 
