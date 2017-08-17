@@ -51,7 +51,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework(int allowGPU, con
 #else
     NULL
 #endif
-  ), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
+  ), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
 {
   //* constructor
 
@@ -64,7 +64,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework(int allowGPU, con
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fClusterData(fInternalClusterData), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
+    : fMerger(), fClusterData(fInternalClusterData), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
 {
   //* dummy
   for ( int i = 0; i < 20; i++ ) {
@@ -400,8 +400,31 @@ void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds 
     }
     nClusters += fClusterData[iSlice].NumberOfClusters();
   }
+  fMCLabels.resize(nClusters);
+  in.read((char*) fMCLabels.data(), nClusters * sizeof(fMCLabels[0]));
+  if (!in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
+  {
+    printf("Error reading %d / %d\n", (int) in.gcount(), (int) nClusters * (int) sizeof(fMCLabels[0]));
+    fMCLabels.clear();
+    fMCInfo.clear();
+  }
+  else
+  {
+    int nMCTracks = 0;
+    in.read((char*) &nMCTracks, sizeof(nMCTracks));
+    if (in.eof())
+    {
+      fMCInfo.clear();
+    }
+    else
+    {
+      fMCInfo.resize(nMCTracks);
+      in.read((char*) fMCInfo.data(), nMCTracks * sizeof(fMCInfo[0]));
+      if (in.eof()) fMCInfo.clear();
+    }
+  }
 #ifdef HLTCA_STANDALONE
-  printf("Read %d Clusters\n", nClusters);
+  printf("Read %d Clusters with %d MC labels and %d MC tracks\n", nClusters, (int) fMCLabels.size(), (int) fMCInfo.size());
 #endif
 }
 
