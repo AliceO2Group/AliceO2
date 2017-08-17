@@ -51,7 +51,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework(int allowGPU, con
 #else
     NULL
 #endif
-  ), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
+  ), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunQA(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
 {
   //* constructor
 
@@ -64,7 +64,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework(int allowGPU, con
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fClusterData(fInternalClusterData), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
+    : fMerger(), fClusterData(fInternalClusterData), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunQA(0), fRunMerger(1), fMCLabels(0), fMCInfo(0)
 {
   //* dummy
   for ( int i = 0; i < 20; i++ ) {
@@ -199,6 +199,12 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fLastTime[2] = timer2.CpuTime();
 
 #ifdef HLTCA_STANDALONE
+#ifdef BUILD_QA
+  if (fRunQA)
+  {
+    RunQA();
+  }
+#endif
 #ifdef BUILD_EVENT_DISPLAY
   if (fEventDisplay)
   {

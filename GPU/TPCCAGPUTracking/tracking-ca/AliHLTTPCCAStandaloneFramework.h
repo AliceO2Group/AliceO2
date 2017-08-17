@@ -98,6 +98,7 @@ class AliHLTTPCCAStandaloneFramework
 	void SetSearchWindowDZDR(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetSearchWindowDZDR(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetSearchWindowDZDR(v);}
 	void SetContinuousTracking(bool v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetContinuousTracking(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetContinuousTracking(v);}
 	void SetEventDisplay(int v) {fEventDisplay = v;}
+	void SetRunQA(int v) {fRunQA = v;}
 	void SetRunMerger(int v) {fRunMerger = v;}
 	void SetExternalClusterData(AliHLTTPCCAClusterData* v) {fClusterData = v;}
 
@@ -130,6 +131,7 @@ class AliHLTTPCCAStandaloneFramework
 
 	int fDebugLevel;	//Tracker Framework Debug Level
 	int fEventDisplay;	//Display event in Standalone Event Display
+	int fRunQA;         //Stun Standalone QA
 	int fRunMerger;		//Run Track Merger
 	std::vector<AliHLTTPCClusterMCLabel> fMCLabels;
 	std::vector<AliHLTTPCCAMCInfo> fMCInfo;
