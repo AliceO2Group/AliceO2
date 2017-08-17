@@ -15,20 +15,10 @@
 #ifndef ALICEO2_TPC_DigitMC_H_
 #define ALICEO2_TPC_DigitMC_H_
 
-#ifndef __CINT__
-#include <boost/serialization/base_object.hpp>
-#endif
-
 #include "TPCBase/Digit.h"
 #include "TPCSimulation/DigitPad.h"
 
 #include "FairTimeStamp.h"
-
-namespace boost {
-namespace serialization {
-class access; 
-}
-}
 
 namespace o2 {
 namespace TPC {
@@ -92,10 +82,6 @@ class DigitMC : public DigitBase, public Digit {
     int getMCTrack(int iOccurrence) const { return static_cast<int>((mMClabel[iOccurrence])%int(1E6)); }
 
   private:
-    #ifndef __CINT__
-    friend class boost::serialization::access;
-    #endif
-
     std::vector<long>       mMClabel;         ///< MC truth information to (multiple) event ID and track ID encoded in a long
       
   ClassDefOverride(DigitMC, 3);
