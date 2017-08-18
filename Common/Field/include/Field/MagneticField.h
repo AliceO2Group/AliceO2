@@ -18,6 +18,7 @@
 #include "FairField.h"         // for FairField
 #include "Field/MagFieldParam.h"
 #include "Field/MagneticWrapperChebyshev.h" // for MagneticWrapperChebyshev
+#include "Field/MagFieldFast.h"
 #include "TSystem.h"
 #include "Rtypes.h"            // for Double_t, Char_t, Int_t, Float_t, etc
 #include "TNamed.h"            // for TNamed
@@ -30,8 +31,6 @@ namespace o2 { namespace field { class MagneticWrapperChebyshev; }}  // lines 19
 namespace o2 {
 namespace field {
 
-class MagneticWrapperChebyshev;
-class MagFieldFast;
 
 /// Interface between the TVirtualMagField and MagneticWrapperChebyshev: wrapper to the set of magnetic field data +
 /// Tosca
