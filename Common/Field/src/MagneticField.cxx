@@ -13,7 +13,6 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "Field/MagneticField.h"
-#include "Field/MagFieldFast.h"
 #include <TFile.h>                     // for TFile
 #include <TPRegexp.h>                  // for TPRegexp
 #include <TSystem.h>                   // for TSystem, gSystem
