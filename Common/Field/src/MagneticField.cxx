@@ -227,7 +227,7 @@ Bool_t MagneticField::loadParameterization()
   return kTRUE;
 }
 
-void MagneticField::GetFieldValue(const Double_t *xyz, Double_t *b)
+void MagneticField::Field(const Double_t * __restrict__ xyz, Double_t * __restrict__ b)
 {
   /*
    * query field value at point
@@ -322,7 +322,7 @@ void MagneticField::initializeMachineField(MagFieldParam::BeamType_t btype, Doub
   mCompensatorField2A = 11.7905;
 }
 
-void MagneticField::MachineField(const Double_t *x, Double_t *b) const
+void MagneticField::MachineField(const Double_t * __restrict__ x, Double_t * __restrict__ b) const
 {
   // ---- This is the ZDC part
   // Compansators for Alice Muon Arm Dipole
