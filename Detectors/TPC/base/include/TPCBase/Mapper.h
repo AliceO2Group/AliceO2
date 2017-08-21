@@ -295,6 +295,13 @@ public:
     }
   }
 
+  const unsigned short getNumberOfPads(const ROC roc) const {
+    if (roc.rocType() == RocType::IROC) {
+      return getPadsInIROC();
+    }
+    return getPadsInOROC();
+  }
+
 //   bool loadFECInfo();
 //   bool loadTraceLengh();
 //   bool loadPositions();

@@ -54,7 +54,7 @@ class CalibRawBase
       NoReaders   ///< No raw reader configures
     };
 
-    CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(0), mPadSubset(padSubset) {;}
+    CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mDebugLevel(0), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(0), mPadSubset(padSubset), mGBTFrameContainers(), mRawReaders() {;}
 
     virtual ~CalibRawBase() = default;
 
@@ -99,11 +99,15 @@ class CalibRawBase
 
     void setupContainers(TString fileInfo);
 
+    /// Set the debug level
+    /// \param debugLevel debug level
+    void setDebugLevel(int debugLevel=1) { mDebugLevel = debugLevel; }
+
     /// Rewind the events
     void rewindEvents();
 
     /// Dump the relevant data to file
-    virtual void dumpToFile(TString filename) {}
+    virtual void dumpToFile(const std::string filename) {}
 
     /// number of processed events
     size_t getNumberOfProcessedEvents() const { return mNevents; }
@@ -114,20 +118,26 @@ class CalibRawBase
     /// number of processed time bins in last event
     size_t getNumberOfProcessedTimeBins() const { return mProcessedTimeBins; }
 
+    /// Debug level
+    int getDebugLevel() const { return mDebugLevel; }
+
   protected:
-    const Mapper&  mMapper;    //!< TPC mapper
+    const Mapper&  mMapper;            //!< TPC mapper
+    int   mDebugLevel;                 //!< debug level
 
   private:
     size_t    mNevents;                //!< number of processed events
-    Int_t     mTimeBinsPerCall;        //!< number of time bins to process in processEvent
+    int       mTimeBinsPerCall;        //!< number of time bins to process in processEvent
     size_t    mProcessedTimeBins;      //!< number of processed time bins in last event
     size_t    mPresentEventNumber;     //!< present event number
+
     PadSubset mPadSubset;              //!< pad subset type used
     std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //! raw reader pointer
     std::vector<std::unique_ptr<RawReader>> mRawReaders; //! raw reader pointer
 
     virtual void resetEvent() = 0;
     virtual void endEvent() = 0;
+    virtual void endReader() {};
 
     /// Process one event with mTimeBinsPerCall length using GBTFrameContainers
     ProcessStatus processEventGBT();
@@ -223,6 +233,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
         status = ProcessStatus::Truncated;
       }
     }
+
+    // notify that one raw reader processing finalized for this event
+    endReader();
   }
 
   endEvent();
@@ -312,6 +325,8 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
       }
     }
 
+    // notify that one raw reader processing finalized for this event
+    endReader();
     ++processedReaders;
   }
 

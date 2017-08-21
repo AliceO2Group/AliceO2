@@ -21,6 +21,8 @@ using o2::mathUtils::mathBase::fitGaus;
 
 CalibPedestal::CalibPedestal(PadSubset padSubset)
   : CalibRawBase(padSubset),
+    mFirstTimeBin(0),
+    mLastTimeBin(500),
     mADCMin(0),
     mADCMax(120),
     mNumberOfADCs(mADCMax-mADCMin+1),
@@ -39,6 +41,7 @@ Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad
                                const Int_t timeBin, const Float_t signal)
 {
   Int_t adcValue = Int_t(signal);
+  if (timeBin<mFirstTimeBin || timeBin>mLastTimeBin) return 0;
   if (adcValue<mADCMin || adcValue>mADCMax) return 0;
 
   const GlobalPadNumber padInROC = mMapper.getPadNumberInROC(PadROCPos(roc, row, pad));
@@ -118,11 +121,10 @@ void CalibPedestal::resetData()
 }
 
 //______________________________________________________________________________
-void CalibPedestal::dumpToFile(TString filename)
+void CalibPedestal::dumpToFile(const std::string filename)
 {
-  TFile *f = TFile::Open(filename, "recreate");
+  auto f = std::unique_ptr<TFile>(TFile::Open(filename.c_str(), "recreate"));
   f->WriteObject(&mPedestal, "Pedestals");
   f->WriteObject(&mNoise, "Noise");
   f->Close();
-  delete f;
 }

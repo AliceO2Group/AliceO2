@@ -50,8 +50,12 @@ class CalibPedestal : public CalibRawBase
 
     /// update function called once per digit
     ///
-    /// \param sector
-    Int_t updateROC(const Int_t sector, const Int_t row, const Int_t pad,
+    /// \param roc readout chamber
+    /// \param row row in roc
+    /// \param pad pad in row
+    /// \param timeBin time bin
+    /// \param signal ADC signal
+    Int_t updateROC(const Int_t roc, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final;
 
     /// not used
@@ -64,6 +68,8 @@ class CalibPedestal : public CalibRawBase
     /// set the adc range
     void setADCRange(int minADC, int maxADC) { mADCMin = minADC; mADCMax = maxADC; mNumberOfADCs = mADCMax-mADCMin+1;}
 
+    /// set the time bin range to analyse
+    void setTimeBinRange(int first, int last) { mFirstTimeBin=first; mLastTimeBin=last; }
     /// Analyse the buffered adc values and calculate noise and pedestal
     void analyse();
 
@@ -78,17 +84,19 @@ class CalibPedestal : public CalibRawBase
     const CalPad& getNoise() const { return mNoise; }
 
     /// Dump the relevant data to file
-    void dumpToFile(TString filename) final;
+    void dumpToFile(const std::string filename) final;
 
     /// Dummy end event
     void endEvent() final {};
 
-  //private:
-    Int_t      mADCMin;    ///< minimum adc value
-    Int_t      mADCMax;    ///< maximum adc value
-    Int_t      mNumberOfADCs; ///< number of adc values (mADCMax-mADCMin+1)
-    CalPad     mPedestal;  ///< CalDet object with pedestal information
-    CalPad     mNoise;     ///< CalDet object with noise
+  private:
+    int        mFirstTimeBin; ///< first time bin used in analysis
+    int        mLastTimeBin;  ///< first time bin used in analysis
+    int        mADCMin;       ///< minimum adc value
+    int        mADCMax;       ///< maximum adc value
+    int        mNumberOfADCs; ///< number of adc values (mADCMax-mADCMin+1)
+    CalPad     mPedestal;     ///< CalDet object with pedestal information
+    CalPad     mNoise;        ///< CalDet object with noise
 
     std::vector<std::unique_ptr<vectorType>> mADCdata; //!< ADC data to calculate noise and pedestal
 
