@@ -23,6 +23,15 @@ class Geo
 {
  public:
   // From AliTOFGeometry
+  static void Translation(Float_t* xyz, Float_t translationVector[3]);
+  static void Rotation(Float_t* xyz, Double_t rotationAngles[6]);
+
+  static void RotationSector(Float_t* xyz, Int_t isector);
+  static void RotationStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
+
+  static void InverseRotation(Float_t* xyz, Double_t rotationAngles[6]);
+  static void GetDetID(Float_t* pos, Int_t* det);
+
   static Float_t GetAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t GetHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
   static Float_t GetDistances(Int_t iplate, Int_t istrip) { return DISTANCES[iplate][istrip]; }
@@ -45,6 +54,9 @@ class Geo
   static constexpr Float_t XTOF = 372.00; // Inner radius of the TOF for Reconstruction (cm)
   static constexpr Float_t RMIN = 371;
   static constexpr Float_t RMAX = 400.05;
+
+  static constexpr Float_t RMIN2 = RMIN * RMIN;
+  static constexpr Float_t RMAX2 = RMAX * RMAX;
 
   static constexpr Float_t XPAD = 2.5;
   static constexpr Float_t ZPAD = 3.5;
@@ -105,13 +117,13 @@ class Geo
   };
 
   // from AliTOFv6T0 class
-  static constexpr Bool_t FEAWITHMASKS[18] =
+  static constexpr Bool_t FEAWITHMASKS[NSECTORS] =
     // TOF sectors with Nino masks: 0, 8, 9, 10, 16
     { kTRUE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE,
       kTRUE, kTRUE,  kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE,  kFALSE };
   ; // Selecting TOF sectors containing FEA cooling masks
 
-  static constexpr Float_t MODULEWALLTHICKNESS = 0.33;  // wall thickness (cm)
+  static constexpr Float_t MODULEWALLTHICKNESS = 0.33;  // wall thickness (cm) (nofe: 0.3 as in AliTOFGeometry?)
   static constexpr Float_t INTERCENTRMODBORDER1 = 49.5; // 1st distance of
   // border between
   // central and
@@ -184,7 +196,35 @@ class Geo
   static constexpr Float_t BARS1[3] = { BARS[0], BAR1[1], BAR1[2] };                               // (cm)
   static constexpr Float_t BARS2[3] = { BARS[0], BAR2[1], BAR2[2] };                               // (cm)
 
+  static constexpr Float_t HHONY = 1.0;           // height of HONY Layer
+  static constexpr Float_t HPCBY = 0.08;          // height of PCB Layer
+  static constexpr Float_t HRGLY = 0.055;         // height of RED GLASS Layer
+  static constexpr Float_t HFILIY = 0.125;        // height of FISHLINE Layer
+  static constexpr Float_t HGLASSY = 0.160 * 0.5; // semi-height of GLASS Layer
+  static constexpr Float_t HCPCBY = 0.16;         // height of PCB  Central Layer
+  static constexpr Float_t WHONZ = 8.1;           // z dimension of HONEY Layer
+  static constexpr Float_t WPCBZ1 = 10.64;        // z dimension of PCB Lower Layer
+  static constexpr Float_t WPCBZ2 = 11.6;         // z dimension of PCB Upper Layer
+  static constexpr Float_t WCPCBZ = 12.4;         // z dimension of PCB Central Layer
+  static constexpr Float_t WRGLZ = 8.;            // z dimension of RED GLASS Layer
+  static constexpr Float_t WGLFZ = 7.;            // z dimension of GLASS Layer
+  static constexpr Float_t HSENSMY = 0.0105;      // height of Sensitive Layer
+
  private:
+  static void Init();
+
+  static Int_t GetSector(const Float_t* pos);
+  static Int_t GetPlate(const Float_t* pos);
+  static Int_t GetPadZ(const Float_t* pos);
+  static Int_t GetPadX(const Float_t* pos);
+
+  static void FromGlobalToPlate(Float_t* pos, Int_t isector); // change coords to Plate reference
+  static Int_t FromPlateToStrip(Float_t* pos, Int_t iplate);  // change coord to Strip reference and return strip number
+
+  static Bool_t mToBeIntit;
+  static Float_t mRotationMatrixSector[NSECTORS + 1][3][3]; // rotation matrixes
+  static Float_t mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
+
   ClassDefNV(Geo, 1);
 };
 }
