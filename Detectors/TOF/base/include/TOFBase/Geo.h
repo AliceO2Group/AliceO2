@@ -27,11 +27,6 @@ class Geo
   static void Rotation(Float_t* xyz, Double_t rotationAngles[6]);
   static void InverseRotation(Float_t* xyz, Double_t rotationAngles[6]);
   static void GetDetID(Float_t* pos, Int_t* det);
-  static Int_t GetSector(const Float_t* pos);
-  static Int_t GetPlate(const Float_t* pos);
-  static Int_t GetStrip(const Float_t* pos);
-  static Int_t GetPadZ(const Float_t* pos);
-  static Int_t GetPadX(const Float_t* pos);
 
   static Float_t GetAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t GetHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
@@ -55,6 +50,9 @@ class Geo
   static constexpr Float_t XTOF = 372.00; // Inner radius of the TOF for Reconstruction (cm)
   static constexpr Float_t RMIN = 371;
   static constexpr Float_t RMAX = 400.05;
+
+  static constexpr Float_t RMIN2 = RMIN*RMIN;
+  static constexpr Float_t RMAX2 = RMAX*RMAX;
 
   static constexpr Float_t XPAD = 2.5;
   static constexpr Float_t ZPAD = 3.5;
@@ -209,6 +207,14 @@ class Geo
   static constexpr Float_t HSENSMY = 0.0105;      // height of Sensitive Layer
 
  private:
+  static Int_t GetSector(const Float_t* pos);
+  static Int_t GetPlate(const Float_t* pos);
+  static Int_t GetPadZ(const Float_t* pos);
+  static Int_t GetPadX(const Float_t* pos);
+
+  static void FromGlobalToPlate(Float_t* pos,Int_t  isector); // change coords to Plate reference
+  static Int_t FromPlateToStrip(Float_t* pos,Int_t  iplate); // change coord to Strip reference and return strip number
+
   ClassDefNV(Geo, 1);
 };
 }
