@@ -62,3 +62,6 @@ compile_commands.json
 # Datafiles
 *.root
 *.o2tf
+
+# rbenv files
+.ruby-version
