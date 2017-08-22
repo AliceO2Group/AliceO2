@@ -265,11 +265,7 @@ macro(O2_GENERATE_LIBRARY)
   endforeach ()
 
   ############### build the library #####################
-  if (${CMAKE_GENERATOR} MATCHES Xcode)
-    Add_Library(${Int_LIB} SHARED ${Int_SRCS} ${NO_DICT_SRCS} ${HDRS} ${LINKDEF})
-  else ()
-    Add_Library(${Int_LIB} SHARED ${Int_SRCS} ${NO_DICT_SRCS} ${LINKDEF})
-  endif ()
+  Add_Library(${Int_LIB} SHARED ${Int_SRCS} ${NO_DICT_SRCS} ${HDRS} ${LINKDEF})
 
   ############### Add dependencies ######################
   o2_target_link_bucket(TARGET ${Int_LIB} BUCKET ${BUCKET_NAME})
