@@ -7,6 +7,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCGMMergedTrack.h"
+#include "AliHLTTPCGMTrackLinearisation.h"
 #include "include.h"
 #include <algorithm>
 
@@ -123,6 +124,7 @@ void RunQA()
 
 	char name[1024], fname[1024];
 
+	//Create Histograms
 	if (init == false)
 	{
 		for (Int_t i = 0;i < ColorCount;i++)
@@ -139,6 +141,7 @@ void RunQA()
 		const int axis_bins[5] = {50, 50, 144, 30, 50};
 		const float res_axes[5] = {-1.,-1.,-0.03,-0.03,-0.2};
 		
+		//Create Efficiency Histograms
 		for (int i = 0;i < 4;i++)
 		{
 			for (int j = 0;j < 2;j++)
@@ -167,6 +170,7 @@ void RunQA()
 			}
 		}
 		
+		//Create Canvas / Pads for Efficiency Histograms
 		for (int ii = 0;ii < 6;ii++)
 		{
 			Int_t i = ii == 5 ? 4 : ii;
@@ -184,6 +188,7 @@ void RunQA()
 			legendeff[ii]->SetFillColor(0);
 		}
 		
+		//Create Resolution Histograms
 		for (int i = 0;i < 5;i++)
 		{
 			for (int j = 0;j < 5;j++)
@@ -217,6 +222,7 @@ void RunQA()
 		}
 	}
 	
+	//Initialize Arrays
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
 	trackMCLabels.resize(merger.NOutputTracks());
@@ -229,6 +235,7 @@ void RunQA()
 	for (size_t i = 0;i < trackMCLabelsReverse.size();i++) trackMCLabelsReverse[i] = -1;
 	totalFakes = 0;
 
+	//Assign Track MC Labels
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
 		int nClusters = 0;
@@ -309,6 +316,8 @@ void RunQA()
 		}
 	}
 	
+	//Compute MC Track Parameters for MC Tracks
+	//Fill Efficiency Histograms
 	for (int i = 0;i < hlt.GetNMCInfo();i++)
 	{
 		const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
@@ -353,20 +362,63 @@ void RunQA()
 		mcParam[i].pt = mcpt; mcParam[i].phi = mcphi; mcParam[i].theta = mctheta; mcParam[i].eta = mceta;
 	}
 	
+	//Fill Resolution Histograms
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
 		if (trackMCLabels[i] < 0) continue;
 		const AliHLTTPCCAMCInfo& mc1 = hlt.GetMCInfo()[trackMCLabels[i]];
 		const additionalMCParameters& mc2 = mcParam[trackMCLabels[i]];
-		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+		const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[i];
 		
 		if (!track.OK()) continue;
 		if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
 		if (mc1.fCharge == 0.) continue;
 		if (mc1.fPID < 0) continue;
 		if (mc1.fNWeightCls < MIN_WEIGHT_CLS) continue;
+		
+		float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
+		float c = TMath::Cos(track.GetAlpha());
+		float s = TMath::Sin(track.GetAlpha());
+		float x = mc1.fX;
+		float y = mc1.fY;
+		mclocal[0] = x*c + y*s;
+		mclocal[1] =-x*s + y*c;
+		float px = mc1.fPx;
+		float py = mc1.fPy;
+		mclocal[2] = px*c + py*s;
+		mclocal[3] =-px*s + py*c;
+		
+		AliHLTTPCGMTrackParam param = track.GetParam();
+		AliHLTTPCGMTrackLinearisation t0(param);
+		AliHLTTPCGMTrackParam::AliHLTTPCGMTrackFitParam par;
+		int N = 0;
+		float alpha = track.GetAlpha();
+		float dL = 0., ex1i = 0., trDzDs2 = t0.DzDs() * t0.DzDs();
+		const float kRho = 1.025e-3;//0.9e-3;
+		const float kRadLen = 29.532;//28.94;
+		const float kRhoOverRadLen = kRho / kRadLen;
+		param.CalculateFitParameters( par, kRhoOverRadLen, kRho, false );
+		param.PropagateTrack(merger.PolinomialFieldBz(), mclocal[0], mclocal[1], mc1.fZ, track.GetAlpha(), 0, merger.SliceParam(), N, alpha, 0.999, false, false, par, t0, dL, ex1i, trDzDs2);
+		
+		float deltaY = param.GetY() - mclocal[1];
+		float deltaZ = param.GetZ() - mc1.fZ;
+		float deltaPhi = TMath::ASin(param.GetSinPhi()) - TMath::ATan2(mclocal[3], mclocal[2]);
+		float deltaLambda = TMath::ATan(param.GetDzDs()) - TMath::ATan2(mc1.fPz, mc2.pt);
+		float deltaPt = (fabs(1. / param.GetQPt()) - mc2.pt) / mc2.pt;
+		
+		float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
+		float resval[5] = {deltaY, deltaZ, deltaPhi, deltaLambda, deltaPt};
+		
+		for (int j = 0;j < 5;j++)
+		{
+			for (int k = 0;k < 5;k++)
+			{
+				res2[j][k]->Fill(paramval[j], resval[k]);
+			}
+		}
 	}
 	
+	//Process / Draw Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
 	{
 		Int_t i = ii == 5 ? 4 : ii;
