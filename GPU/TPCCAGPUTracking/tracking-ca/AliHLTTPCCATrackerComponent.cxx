@@ -773,7 +773,6 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
           rl->LoadTrackRefs(); 
           
           int nTracks = rl->GetHeader()->GetNtrack();
-          printf("tracks %d\n", nTracks);
           
           AliStack* stack = rl->Stack();
           if (stack == NULL) {printf("stack\n");break;}
