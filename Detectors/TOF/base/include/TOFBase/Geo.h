@@ -23,14 +23,17 @@ class Geo
 {
  public:
   // From AliTOFGeometry
-  static void Translation(Float_t* xyz, Float_t translationVector[3]);
-  static void Rotation(Float_t* xyz, Double_t rotationAngles[6]);
+  static void translate(Float_t* xyz, Float_t translationVector[3]);
+  static void rotation(Float_t* xyz, Double_t rotationAngles[6]);
 
-  static void RotationSector(Float_t* xyz, Int_t isector);
-  static void RotationStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
+  static void rotationSector(Float_t* xyz, Int_t isector);
+  static void rotationStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
 
-  static void InverseRotation(Float_t* xyz, Double_t rotationAngles[6]);
+  static void antiRotation(Float_t* xyz, Double_t rotationAngles[6]);
   static void GetDetID(Float_t* pos, Int_t* det);
+
+  static void GetPos(Int_t* det, Float_t* pos);
+  static void GetVolumePath(const Int_t* ind, Char_t* path);
 
   static Float_t GetAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t GetHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
@@ -213,13 +216,13 @@ class Geo
  private:
   static void Init();
 
-  static Int_t GetSector(const Float_t* pos);
-  static Int_t GetPlate(const Float_t* pos);
-  static Int_t GetPadZ(const Float_t* pos);
-  static Int_t GetPadX(const Float_t* pos);
+  static Int_t getSector(const Float_t* pos);
+  static Int_t getPlate(const Float_t* pos);
+  static Int_t getPadZ(const Float_t* pos);
+  static Int_t getPadX(const Float_t* pos);
 
-  static void FromGlobalToPlate(Float_t* pos, Int_t isector); // change coords to Plate reference
-  static Int_t FromPlateToStrip(Float_t* pos, Int_t iplate);  // change coord to Strip reference and return strip number
+  static void fromGlobalToSector(Float_t* pos, Int_t isector); // change coords to Sector reference
+  static Int_t fromPlateToStrip(Float_t* pos, Int_t iplate); // change coord to Strip reference and return strip number
 
   static Bool_t mToBeIntit;
   static Float_t mRotationMatrixSector[NSECTORS + 1][3][3]; // rotation matrixes
