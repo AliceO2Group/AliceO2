@@ -10,3 +10,4 @@ extern void ShowNextEvent();
 extern volatile int buttonPressed;
 extern volatile int displayEventNr;
 void RunQA();
+void DrawQAHistograms();

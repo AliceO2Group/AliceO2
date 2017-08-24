@@ -21,6 +21,7 @@
 
 #include "AliHLTTPCGMMergedTrack.h"
 #include "interface/outputtrack.h"
+#include "include.h"
 
 //#define BROKEN_EVENTS
 
@@ -484,6 +485,10 @@ int main(int argc, char** argv)
 		}
 	}}
 breakrun:
+
+#ifdef BUILD_QA
+	if (qa) DrawQAHistograms();
+#endif
 
 	if (clusterstats >= 2)
 	{
