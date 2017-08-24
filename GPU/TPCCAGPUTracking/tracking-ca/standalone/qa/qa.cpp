@@ -40,6 +40,8 @@ TPad* peff[6][4];
 TLegend* legendeff[6];
 bool init = false;
 
+#define DEBUG 0
+
 #define SORT_NLABELS 1
 #define REC_THRESHOLD 0.9f
 
@@ -250,7 +252,11 @@ void RunQA()
 			for (int j = 0;j < 3;j++)
 			{
 				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= hlt.GetNMCInfo()) {printf("Invalid label\n");return;}
-				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0) labels.push_back(hlt.GetMCLabels()[hitId].fClusterID[j]);
+				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0)
+				{
+					if (DEBUG >= 3 && track.OK()) printf("Track %d Cluster %d Label %d: %d (%f)\n", i, k, j, hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight);
+					labels.push_back(hlt.GetMCLabels()[hitId].fClusterID[j]);
+				}
 			}
 		}
 		if (labels.size() == 0)
@@ -266,7 +272,7 @@ void RunQA()
 		if (SORT_NLABELS) cur.fWeight = 1;
 		float sumweight = 0.f;
 		int curcount = 1, maxcount = 0;
-		//for (unsigned int k = 0;k < labels.size();k++) printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
+		if (DEBUG >= 2 && track.OK()) for (unsigned int k = 0;k < labels.size();k++) printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
 		for (unsigned int k = 1;k <= labels.size();k++)
 		{
 			if (k == labels.size() || labels[k].fMCID != cur.fMCID)
@@ -309,10 +315,10 @@ void RunQA()
 			}
 		}
 		trackMCLabels[i] = maxLabel.fMCID;
-		if (0 && track.OK() && hlt.GetNMCInfo() > maxLabel.fMCID)
+		if (DEBUG && track.OK() && hlt.GetNMCInfo() > maxLabel.fMCID)
 		{
-			const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[maxLabel.fMCID];
-			printf("Track %d label %d weight %f (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID, maxLabel.fWeight, maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
+			const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[maxLabel.fMCID >= 0 ? maxLabel.fMCID : (-maxLabel.fMCID - 2)];
+			printf("Track %d label %d weight %f clusters %d (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, track.NClusters(), maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
 		}
 	}
 	
