@@ -35,8 +35,8 @@ void checkRotation(const char *nameinput="../../../macro/geometry.root"){
 	  indextof[3] = l;
 	  for(Int_t m=0;m<2;m++){
 	    indextof[4] = m;
-	    o2::tof::Geo::GetPos(indextof,pos);
-	    o2::tof::Geo::GetDetID(pos,indextof2);
+	    o2::tof::Geo::getPos(indextof,pos);
+	    o2::tof::Geo::getDetID(pos,indextof2);
 
 	    if(indextof[0] != indextof2[0]) ErrorSe=1,locError=1;
 	    if(indextof[1] != indextof2[1]) ErrorPl=1,locError=1;

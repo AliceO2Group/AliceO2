@@ -64,25 +64,25 @@ void Geo::Init()
 
   for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
     for (Int_t istrip = 0; istrip < NMAXNSTRIP; istrip++) {
-      if (GetAngles(iplate, istrip) > 0.) {
+      if (getAngles(iplate, istrip) > 0.) {
         rotationAngles[0] = 90. * TMath::DegToRad();
         rotationAngles[1] = 0.;
         rotationAngles[3] = 90. * TMath::DegToRad();
-        rotationAngles[4] = GetAngles(iplate, istrip) * TMath::DegToRad();
+        rotationAngles[4] = getAngles(iplate, istrip) * TMath::DegToRad();
         rotationAngles[5] = 90. * TMath::DegToRad();
         rotationAngles[2] = 90. * TMath::DegToRad() + rotationAngles[4];
-      } else if (GetAngles(iplate, istrip) == 0.) {
+      } else if (getAngles(iplate, istrip) == 0.) {
         rotationAngles[0] = 90. * TMath::DegToRad();
         rotationAngles[1] = 0.;
         rotationAngles[2] = 90. * TMath::DegToRad();
         rotationAngles[3] = 90. * TMath::DegToRad();
         rotationAngles[4] = 0;
         rotationAngles[5] = 0.;
-      } else if (GetAngles(iplate, istrip) < 0.) {
+      } else if (getAngles(iplate, istrip) < 0.) {
         rotationAngles[0] = 90. * TMath::DegToRad();
         rotationAngles[1] = 0.;
         rotationAngles[3] = 90. * TMath::DegToRad();
-        rotationAngles[4] = -GetAngles(iplate, istrip) * TMath::DegToRad();
+        rotationAngles[4] = -getAngles(iplate, istrip) * TMath::DegToRad();
         rotationAngles[5] = 270. * TMath::DegToRad();
         rotationAngles[2] = 90. * TMath::DegToRad() - rotationAngles[4];
       }
@@ -100,7 +100,7 @@ void Geo::Init()
   mToBeIntit = kFALSE;
 }
 
-void Geo::GetVolumePath(const Int_t* ind, Char_t* path)
+void Geo::getVolumePath(const Int_t* ind, Char_t* path)
 {
   //--------------------------------------------------------------------
   // This function returns the colume path of a given pad
@@ -147,14 +147,14 @@ void Geo::GetVolumePath(const Int_t* ind, Char_t* path)
   snprintf(path, 2 * kSize, "%s/%s/%s", string1, string2, string3);
 }
 
-void Geo::GetPos(Int_t* det, Float_t* pos)
+void Geo::getPos(Int_t* det, Float_t* pos)
 {
   //
   // Returns space point coor (x,y,z) (cm)  for Detector
   // Indices  (iSect,iPlate,iStrip,iPadX,iPadZ)
   //
   Char_t path[200];
-  GetVolumePath(det, path);
+  getVolumePath(det, path);
   if (!gGeoManager) {
     printf("ERROR: no TGeo\n");
   }
@@ -168,7 +168,7 @@ void Geo::GetPos(Int_t* det, Float_t* pos)
   pos[2] = tr[2];
 }
 
-void Geo::GetDetID(Float_t* pos, Int_t* det)
+void Geo::getDetID(Float_t* pos, Int_t* det)
 {
   //
   // Returns Detector Indices (iSect,iPlate,iStrip,iPadX,iPadZ)
@@ -200,13 +200,13 @@ void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
   }
 
   // ALICE reference frame -> B071/B074/B075 = BTO1/2/3 reference frame
-  rotationSector(pos, isector);
+  rotateToSector(pos, isector);
 
   Float_t step[3] = { 0., 0., static_cast<Float_t>((RMAX + RMIN) * 0.5) };
   translate(pos, step);
 
   // B071/B074/B075 = BTO1/2/3 reference frame -> FTOA = FLTA reference frame
-  rotationSector(pos, NSECTORS);
+  rotateToSector(pos, NSECTORS);
 }
 
 Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
@@ -240,11 +240,11 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
     Float_t posLoc2[3] = { pos[0], pos[1], pos[2] };
 
     step[0] = 0.;
-    step[1] = GetHeights(iplate, istrip);
-    step[2] = -GetDistances(iplate, istrip);
+    step[1] = getHeights(iplate, istrip);
+    step[2] = -getDistances(iplate, istrip);
     translate(posLoc2, step);
 
-    rotationStrip(posLoc2, iplate, istrip);
+    rotateToStrip(posLoc2, iplate, istrip);
 
     if ((TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
         (TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5)) {
@@ -390,7 +390,7 @@ void Geo::translate(Float_t* xyz, Float_t translationVector[3])
   return;
 }
 
-void Geo::rotationSector(Float_t* xyz, Int_t isector)
+void Geo::rotateToSector(Float_t* xyz, Int_t isector)
 {
   Float_t xyzDummy[3] = { 0., 0., 0. };
 
@@ -405,7 +405,7 @@ void Geo::rotationSector(Float_t* xyz, Int_t isector)
   return;
 }
 
-void Geo::rotationStrip(Float_t* xyz, Int_t iplate, Int_t istrip)
+void Geo::rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip)
 {
   Float_t xyzDummy[3] = { 0., 0., 0. };
 
@@ -421,7 +421,7 @@ void Geo::rotationStrip(Float_t* xyz, Int_t iplate, Int_t istrip)
   return;
 }
 
-void Geo::rotation(Float_t* xyz, Double_t rotationAngles[6])
+void Geo::rotate(Float_t* xyz, Double_t rotationAngles[6])
 {
   //
   // Return the vector xyz rotated according to the rotationAngles angles
@@ -450,7 +450,7 @@ void Geo::rotation(Float_t* xyz, Double_t rotationAngles[6])
   return;
 }
 
-void Geo::antiRotation(Float_t* xyz, Double_t rotationAngles[6])
+void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
 {
   //
   // Rotates the vector xyz acordint to the rotationAngles

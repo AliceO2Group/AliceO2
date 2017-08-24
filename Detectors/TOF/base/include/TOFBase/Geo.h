@@ -24,20 +24,20 @@ class Geo
  public:
   // From AliTOFGeometry
   static void translate(Float_t* xyz, Float_t translationVector[3]);
-  static void rotation(Float_t* xyz, Double_t rotationAngles[6]);
+  static void rotate(Float_t* xyz, Double_t rotationAngles[6]);
 
-  static void rotationSector(Float_t* xyz, Int_t isector);
-  static void rotationStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
+  static void rotateToSector(Float_t* xyz, Int_t isector);
+  static void rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
 
-  static void antiRotation(Float_t* xyz, Double_t rotationAngles[6]);
-  static void GetDetID(Float_t* pos, Int_t* det);
+  static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
+  static void getDetID(Float_t* pos, Int_t* det);
 
-  static void GetPos(Int_t* det, Float_t* pos);
-  static void GetVolumePath(const Int_t* ind, Char_t* path);
+  static void getPos(Int_t* det, Float_t* pos);
+  static void getVolumePath(const Int_t* ind, Char_t* path);
 
-  static Float_t GetAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
-  static Float_t GetHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
-  static Float_t GetDistances(Int_t iplate, Int_t istrip) { return DISTANCES[iplate][istrip]; }
+  static Float_t getAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
+  static Float_t getHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
+  static Float_t getDistances(Int_t iplate, Int_t istrip) { return DISTANCES[iplate][istrip]; }
   static constexpr Int_t NPADX = 48;
   static constexpr Int_t NPADZ = 2;
   static constexpr Int_t NSTRIPA = 15;

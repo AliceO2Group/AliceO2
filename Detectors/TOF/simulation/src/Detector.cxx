@@ -67,12 +67,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();
   int detID = v->getMCid();
 
-  AddHit(position.X(), position.Y(), position.Z(), time, enDep, trackID, detID);
+  addHit(position.X(), position.Y(), position.Z(), time, enDep, trackID, detID);
 
   return kTRUE;
 }
 
-HitType* Detector::AddHit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId)
+HitType* Detector::addHit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId)
 {
   TClonesArray& clref = *mHitCollection;
 
@@ -311,26 +311,26 @@ void Detector::DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA)
   yFLT = ytof * 0.5 - Geo::MODULEWALLTHICKNESS;
   zFLTA = zlenA - 2. * Geo::MODULEWALLTHICKNESS;
 
-  CreateModules(xtof, ytof, zlenA, xFLT, yFLT, zFLTA);
-  MakeStripsInModules(ytof, zlenA);
+  createModules(xtof, ytof, zlenA, xFLT, yFLT, zFLTA);
+  makeStripsInModules(ytof, zlenA);
 
-  CreateModuleCovers(xtof, zlenA);
+  createModuleCovers(xtof, zlenA);
 
-  CreateBackZone(xtof, ytof, zlenA);
-  MakeFrontEndElectronics(xtof);
-  MakeFEACooling(xtof);
-  MakeNinoMask(xtof);
-  MakeSuperModuleCooling(xtof, ytof, zlenA);
-  MakeSuperModuleServices(xtof, ytof, zlenA);
+  createBackZone(xtof, ytof, zlenA);
+  makeFrontEndElectronics(xtof);
+  makeFEACooling(xtof);
+  makeNinoMask(xtof);
+  makeSuperModuleCooling(xtof, ytof, zlenA);
+  makeSuperModuleServices(xtof, ytof, zlenA);
 
-  MakeModulesInBTOFvolumes(ytof, zlenA);
-  MakeCoversInBTOFvolumes();
-  MakeBackInBTOFvolumes(ytof);
+  makeModulesInBTOFvolumes(ytof, zlenA);
+  makeCoversInBTOFvolumes();
+  makeBackInBTOFvolumes(ytof);
 
-  MakeReadoutCrates(ytof);
+  makeReadoutCrates(ytof);
 }
 
-void Detector::CreateModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t xFLT, Float_t yFLT, Float_t zFLTA) const
+void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t xFLT, Float_t yFLT, Float_t zFLTA) const
 {
   //
   // Create supermodule volume
@@ -617,7 +617,7 @@ void Detector::CreateModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t 
   }
 }
 
-void Detector::MakeStripsInModules(Float_t ytof, Float_t zlenA) const
+void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
 {
   //
   // Define MRPC strip volume, called FSTR
@@ -751,7 +751,7 @@ void Detector::MakeStripsInModules(Float_t ytof, Float_t zlenA) const
     if (iplate > 0)
       totalStrip += maxStripNumbers[iplate - 1];
     for (Int_t istrip = 0; istrip < maxStripNumbers[iplate]; istrip++) {
-      ang = Geo::GetAngles(iplate, istrip);
+      ang = Geo::getAngles(iplate, istrip);
 
       if (ang > 0.)
         Matrix(idrotm[istrip + totalStrip], 90., 0., 90. + ang, 90., ang, 90.);
@@ -761,8 +761,8 @@ void Detector::MakeStripsInModules(Float_t ytof, Float_t zlenA) const
         Matrix(idrotm[istrip + totalStrip], 90., 0., 90. + ang, 90., -ang, 270.);
 
       xpos = 0.;
-      ypos = Geo::GetHeights(iplate, istrip) + yFLT * 0.5;
-      zpos = Geo::GetDistances(iplate, istrip);
+      ypos = Geo::getHeights(iplate, istrip) + yFLT * 0.5;
+      zpos = Geo::getDistances(iplate, istrip);
       TVirtualMC::GetMC()->Gspos("FSTR", istrip + totalStrip + 1, "FLTA", xpos, ypos, -zpos,
                                  idrotm[istrip + totalStrip], "ONLY");
 
@@ -782,7 +782,7 @@ void Detector::MakeStripsInModules(Float_t ytof, Float_t zlenA) const
   }
 }
 
-void Detector::CreateModuleCovers(Float_t xtof, Float_t zlenA) const
+void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
 {
   //
   // Create covers for module:
@@ -975,7 +975,7 @@ void Detector::CreateModuleCovers(Float_t xtof, Float_t zlenA) const
   TVirtualMC::GetMC()->Gspos("FCC3", 0, "FFC3", 0., 0., 0., 0, "ONLY");
 }
 
-void Detector::CreateBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
+void Detector::createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
 {
   //
   // Define:
@@ -1076,7 +1076,7 @@ void Detector::CreateBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
   }
 }
 
-void Detector::MakeFrontEndElectronics(Float_t xtof) const
+void Detector::makeFrontEndElectronics(Float_t xtof) const
 {
   //
   // Fill FCA1/2 volumes with FEA cards (FFEA volumes).
@@ -1110,7 +1110,7 @@ void Detector::MakeFrontEndElectronics(Float_t xtof) const
   TVirtualMC::GetMC()->Gspos("FFEA", 3, "FCA2", xCoor, yCoor, zCoor, 0, "ONLY");
 }
 
-void Detector::MakeFEACooling(Float_t xtof) const
+void Detector::makeFEACooling(Float_t xtof) const
 {
   //
   // Make cooling system attached to each FEA card
@@ -1238,7 +1238,7 @@ void Detector::MakeFEACooling(Float_t xtof) const
   TVirtualMC::GetMC()->Gspos("FBA2", 7, "FCA2", xcoor, ycoor, zcoor, 0, "ONLY");
 }
 
-void Detector::MakeNinoMask(Float_t xtof) const
+void Detector::makeNinoMask(Float_t xtof) const
 {
   //
   // Make cooling Nino mask
@@ -1296,7 +1296,7 @@ void Detector::MakeNinoMask(Float_t xtof) const
   TVirtualMC::GetMC()->Gspos("FRO2", 3, "FCA1", xcoor, ycoor, zcoor, 0, "ONLY");
 }
 
-void Detector::MakeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const
+void Detector::makeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const
 {
   //
   // Make cooling tubes (FTUB volume)
@@ -1485,7 +1485,7 @@ void Detector::MakeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA)
 }
 
 //_____________________________________________________________________________
-void Detector::MakeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const
+void Detector::makeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const
 {
   //
   // Make signal cables (FCAB/L and FCBL/B volumes),
@@ -1640,7 +1640,7 @@ void Detector::MakeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA
 }
 
 //_____________________________________________________________________________
-void Detector::MakeReadoutCrates(Float_t ytof) const
+void Detector::makeReadoutCrates(Float_t ytof) const
 {
   // Services Volumes
 
@@ -1692,7 +1692,7 @@ void Detector::MakeReadoutCrates(Float_t ytof) const
   TVirtualMC::GetMC()->Gspos("FTOS", 1, "BBCE", ra, -3., zcoor, 0, "ONLY");
 }
 
-void Detector::MakeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const
+void Detector::makeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const
 {
   //
   // Fill BTOF_%i (for i=0,...17) volumes
@@ -1741,7 +1741,7 @@ void Detector::MakeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const
   //  TVirtualMC::GetMC()->Gspos("FTOA", 0, "cave", xcoor, ycoor, zcoor, idrotm[0], "ONLY");
 }
 
-void Detector::MakeCoversInBTOFvolumes() const
+void Detector::makeCoversInBTOFvolumes() const
 {
   //
   // Fill BTOF_%i (for i=0,...17) volumes
@@ -1778,7 +1778,7 @@ void Detector::MakeCoversInBTOFvolumes() const
 }
 
 //_____________________________________________________________________________
-void Detector::MakeBackInBTOFvolumes(Float_t ytof) const
+void Detector::makeBackInBTOFvolumes(Float_t ytof) const
 {
   //
   // Fill BTOF_%i (for i=0,...17) volumes with volumes called FAIA and
@@ -1817,7 +1817,7 @@ void Detector::MakeBackInBTOFvolumes(Float_t ytof) const
   }
 }
 
-void Detector::AddAlignableVolumes() const
+void Detector::addAlignableVolumes() const
 {
   //
   // Create entries for alignable volumes associating the symbolic volume
