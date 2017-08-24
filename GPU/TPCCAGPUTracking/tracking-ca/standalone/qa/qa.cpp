@@ -40,8 +40,8 @@ static TH2F* res2[5][5];
 static TCanvas *ceff[6];
 static TPad* peff[6][4];
 static TLegend* legendeff[6];
-static TCanvas *cres[6];
-static TPad* pres[6][5];
+static TCanvas *cres[7];
+static TPad* pres[7][5];
 static TLegend* legendres[6];
 static bool init = false;
 
@@ -174,25 +174,6 @@ void RunQA()
 			}
 		}
 		
-		//Create Canvas / Pads for Efficiency Histograms
-		for (int ii = 0;ii < 6;ii++)
-		{
-			Int_t i = ii == 5 ? 4 : ii;
-			sprintf(fname, "ceff_%d", ii);
-			sprintf(name, "Efficiency versus %s", ParameterNames[i]);
-			ceff[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
-			ceff[ii]->cd();
-			Float_t dy=1./2.;
-			peff[ii][0] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); peff[ii][0]->Draw();peff[ii][0]->SetRightMargin(0.04);
-			peff[ii][1] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); peff[ii][1]->Draw();peff[ii][1]->SetRightMargin(0.04);
-			peff[ii][2] = new TPad( "p2","",0.0,dy*1,0.5,dy*2-.001); peff[ii][2]->Draw();peff[ii][2]->SetRightMargin(0.04);
-			peff[ii][3] = new TPad( "p3","",0.5,dy*1,1.0,dy*2-.001); peff[ii][3]->Draw();peff[ii][3]->SetRightMargin(0.04);
-			legendeff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.83) / 2. * (float) ConfigNumInputs,0.98,0.949);
-			legendeff[ii]->SetTextFont(72);
-			legendeff[ii]->SetTextSize(0.016);
-			legendeff[ii]->SetFillColor(0);
-		}
-		
 		//Create Resolution Histograms
 		for (int i = 0;i < 5;i++)
 		{
@@ -225,27 +206,7 @@ void RunQA()
 				}
 			}
 		}
-	
-		//Create Canvas / Pads for Resolution Histograms
-		for (Int_t ii = 0;ii < 6;ii++)
-		{
-			Int_t i = ii == 5 ? 4 : ii;
-			sprintf(fname, "cres_%d", ii);
-			sprintf(name, "Resolution versus %s", ParameterNames[i]);
-			cres[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
-			cres[ii]->cd();
-			Float_t dy=1./2.;
-			pres[ii][3] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); pres[ii][3]->Draw();pres[ii][3]->SetRightMargin(0.04);
-			pres[ii][4] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); pres[ii][4]->Draw();pres[ii][4]->SetRightMargin(0.04);
-			pres[ii][0] = new TPad( "p2","",0.0,dy*1,1./3.,dy*2-.001); pres[ii][0]->Draw();pres[ii][0]->SetRightMargin(0.04);pres[ii][0]->SetLeftMargin(0.15);
-			pres[ii][1] = new TPad( "p3","",1./3.,dy*1,2./3.,dy*2-.001); pres[ii][1]->Draw();pres[ii][1]->SetRightMargin(0.04);pres[ii][1]->SetLeftMargin(0.135);
-			pres[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); pres[ii][2]->Draw();pres[ii][2]->SetRightMargin(0.06);pres[ii][2]->SetLeftMargin(0.135);
-			legendres[ii] = new TLegend(0.885 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949);
-			legendres[ii]->SetTextFont(72);
-			legendres[ii]->SetTextSize(0.016);
-			legendres[ii]->SetFillColor(0);
-		}
-	}
+}
 
 	//Initialize Arrays
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
@@ -428,7 +389,8 @@ void RunQA()
 		const float kRadLen = 29.532;//28.94;
 		const float kRhoOverRadLen = kRho / kRadLen;
 		param.CalculateFitParameters( par, kRhoOverRadLen, kRho, false );
-		param.PropagateTrack(merger.PolinomialFieldBz(), mclocal[0], mclocal[1], mc1.fZ, track.GetAlpha(), 0, merger.SliceParam(), N, alpha, 0.999, false, false, par, t0, dL, ex1i, trDzDs2);
+		if (param.PropagateTrack(merger.PolinomialFieldBz(), mclocal[0], mclocal[1], mc1.fZ, track.GetAlpha(), 0, merger.SliceParam(), N, alpha, 0.999, false, false, par, t0, dL, ex1i, trDzDs2)) continue;
+		if (fabs(param.Y() - mclocal[1]) > 4. || fabs(param.Z() - mc1.fZ) > 4.) continue;
 		
 		float deltaY = param.GetY() - mclocal[1];
 		float deltaZ = param.GetZ() - mc1.fZ;
@@ -460,6 +422,49 @@ void RunQA()
 void DrawQAHistograms()
 {
 	char name[1024], fname[1024];
+
+	//Create Canvas / Pads for Efficiency Histograms
+	for (int ii = 0;ii < 6;ii++)
+	{
+		Int_t i = ii == 5 ? 4 : ii;
+		sprintf(fname, "ceff_%d", ii);
+		sprintf(name, "Efficiency versus %s", ParameterNames[i]);
+		ceff[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
+		ceff[ii]->cd();
+		Float_t dy=1./2.;
+		peff[ii][0] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); peff[ii][0]->Draw();peff[ii][0]->SetRightMargin(0.04);
+		peff[ii][1] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); peff[ii][1]->Draw();peff[ii][1]->SetRightMargin(0.04);
+		peff[ii][2] = new TPad( "p2","",0.0,dy*1,0.5,dy*2-.001); peff[ii][2]->Draw();peff[ii][2]->SetRightMargin(0.04);
+		peff[ii][3] = new TPad( "p3","",0.5,dy*1,1.0,dy*2-.001); peff[ii][3]->Draw();peff[ii][3]->SetRightMargin(0.04);
+		legendeff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.83) / 2. * (float) ConfigNumInputs,0.98,0.949);
+		legendeff[ii]->SetTextFont(72);
+		legendeff[ii]->SetTextSize(0.016);
+		legendeff[ii]->SetFillColor(0);
+	}
+
+	//Create Canvas / Pads for Resolution Histograms
+	for (Int_t ii = 0;ii < 7;ii++)
+	{
+		Int_t i = ii == 5 ? 4 : ii;
+		sprintf(fname, "cres_%d", ii);
+		if (ii == 6) sprintf(name, "Integral Resolution");
+		else sprintf(name, "Resolution versus %s", ParameterNames[i]);
+		cres[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
+		cres[ii]->cd();
+		Float_t dy=1./2.;
+		pres[ii][3] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); pres[ii][3]->Draw();pres[ii][3]->SetRightMargin(0.04);
+		pres[ii][4] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); pres[ii][4]->Draw();pres[ii][4]->SetRightMargin(0.04);
+		pres[ii][0] = new TPad( "p2","",0.0,dy*1,1./3.,dy*2-.001); pres[ii][0]->Draw();pres[ii][0]->SetRightMargin(0.04);pres[ii][0]->SetLeftMargin(0.15);
+		pres[ii][1] = new TPad( "p3","",1./3.,dy*1,2./3.,dy*2-.001); pres[ii][1]->Draw();pres[ii][1]->SetRightMargin(0.04);pres[ii][1]->SetLeftMargin(0.135);
+		pres[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); pres[ii][2]->Draw();pres[ii][2]->SetRightMargin(0.06);pres[ii][2]->SetLeftMargin(0.135);
+		if (ii < 6)
+		{
+			legendres[ii] = new TLegend(0.885 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949);
+			legendres[ii]->SetTextFont(72);
+			legendres[ii]->SetTextSize(0.016);
+			legendres[ii]->SetFillColor(0);
+		}
+	}
 
 	//Process / Draw Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
@@ -516,6 +521,8 @@ void DrawQAHistograms()
 	}
 
 	//Process / Draw Resolution Histograms
+	TH1D* resIntegral[5] = {};
+	TF1* fitFunc = new TF1("G", "[0]*exp(-(x-[1])*(x-[1])/(2.*[2]*[2]))", -3, 3);
 	for (int ii = 0;ii < 6;ii++)
 	{
 		Int_t i = ii == 5 ? 4 : ii;
@@ -527,7 +534,6 @@ void DrawQAHistograms()
 				cfit.cd();
 				TAxis* axis = res2[j][i]->GetYaxis();
 				int nBins = axis->GetNbins();
-				TF1* fitFunc = new TF1("G", "[0]*exp(-(x-[1])*(x-[1])/(2.*[2]*[2]))", -3, 3);
 				fitFunc->SetParLimits(2, 0.0001, 100.);
 				fitFunc->SetLineWidth(2);
 				fitFunc->SetFillStyle(0);
@@ -537,9 +543,10 @@ void DrawQAHistograms()
 					int bin0 = std::max(bin - integ, 0);
 					int bin1 = std::min(bin + integ, nBins);
 					TH1D* proj = res2[j][i]->ProjectionX("proj", bin0, bin1);
-					if (proj->GetEntries())
+					if (proj->GetEntries() && proj->GetRMS() != 0.)
 					{
 						fitFunc->SetParameters(proj->GetMaximum(), proj->GetMean(), proj->GetRMS());
+						printf("Res %d vs %d bin %d Entries %d Mean %f RMS %f\n", j, ii, bin, (int) proj->GetEntries(), proj->GetMean(), proj->GetRMS());
 						proj->Fit(fitFunc, "sQ");
 						float sigma = fabs(fitFunc->GetParameter(2));
 						if (sigma > 0.)
@@ -563,6 +570,10 @@ void DrawQAHistograms()
 						res[j][i][1]->SetBinError(bin, 0.);
 					}
 					delete proj;
+				}
+				if (ii == 0)
+				{
+					resIntegral[j] = res2[j][0]->ProjectionX(ParameterNames[j], 0, nBins + 1);
 				}
 			}
 			pres[ii][j]->cd();
@@ -623,4 +634,19 @@ void DrawQAHistograms()
 		sprintf(fname, "res_vs_%s.pdf", VSParameterNames[ii]);
 		cres[ii]->Print(fname);
 	}
+	delete fitFunc;
+	
+	for (int j = 0;j < 5;j++)
+	{
+		pres[6][j]->cd();
+		sprintf(fname, "Res%s", ParameterNames[j]);
+		sprintf(name, "%s Resolution", ParameterNames[j]);
+		resIntegral[j]->SetTitle(name);
+		resIntegral[j]->GetEntries();
+		resIntegral[j]->Fit("gaus","sQ");
+		resIntegral[j]->Draw();
+		cres[6]->cd();
+	}
+	cres[6]->Print("res_integral.pdf");
+	for (int j = 0;j < 5;j++) delete resIntegral[j];
 }
