@@ -13,12 +13,14 @@
 
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TH1D.h"
 #include "TCanvas.h"
 #include "TPad.h"
 #include "TLegend.h"
 #include "TMath.h"
 #include "TColor.h"
 #include "TPaveText.h"
+#include "TF1.h"
 
 struct additionalMCParameters
 {
@@ -30,15 +32,18 @@ std::vector<int> trackMCLabelsReverse;
 std::vector<int> recTracks;
 std::vector<int> fakeTracks;
 std::vector<additionalMCParameters> mcParam;
-int totalFakes = 0;
+static int totalFakes = 0;
 
-TH1F* eff[4][2][2][5][2]; //eff,clone,fake - findable - secondaries - y,z,phi,eta,pt,ptlog - work,result
-TH1F* res[5][5][2]; //y,z,phi,lambda,pt,ptlog - see above - res,mean
-TH2F* res2[5][5];
-TCanvas *ceff[6];
-TPad* peff[6][4];
-TLegend* legendeff[6];
-bool init = false;
+static TH1F* eff[4][2][2][5][2]; //eff,clone,fake - findable - secondaries - y,z,phi,eta,pt,ptlog - work,result
+static TH1F* res[5][5][2]; //y,z,phi,lambda,pt,ptlog - see above - res,mean
+static TH2F* res2[5][5];
+static TCanvas *ceff[6];
+static TPad* peff[6][4];
+static TLegend* legendeff[6];
+static TCanvas *cres[6];
+static TPad* pres[6][5];
+static TLegend* legendres[6];
+static bool init = false;
 
 #define DEBUG 0
 
@@ -47,9 +52,8 @@ bool init = false;
 
 bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b) {return(a.fMCID > b.fMCID);}
 
-#define Y_MIN -100
 #define Y_MAX 100
-#define Z_MIN -100
+#define Y_MAX2 40
 #define Z_MAX 100
 #define PT_MIN 0.015
 #define PT_MIN2 0.1
@@ -61,8 +65,29 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 #define MIN_WEIGHT_CLS 40
 #define FINDABLE_WEIGHT_CLS 70
 
-const Int_t ColorCount = 12;
-Color_t colorNums[ColorCount];
+static const int ColorCount = 12;
+static Color_t colorNums[ColorCount];
+
+static const char* EffTypes[4] = {"rec", "clone", "fake", "all"};
+static const char* FindableNames[2] = {"all", "findables"};
+static const char* PrimNames[2] = {"primaries", "secondaries"};
+static const char* ParameterNames[5] = {"Y", "Z", "#Phi", "#lambda", "Relative p_{T}"};
+static const char* VSParameterNames[6] = {"Y", "Z", "Phi", "Eta", "Pt", "Pt_log"};
+static const char* EffNames[3] = {"Efficiency", "Clone Rate", "Fake Rate"};
+static const char* EfficiencyTitles[4] = {"Efficiency (Primary Tracks, Findable)", "Efficiency (Secondary Tracks, Findable)", "Efficiency (Primary Tracks)", "Efficiency (Secondary Tracks)"};
+static const double Scale[5] = {10., 10., 1000., 1000., 100.};
+static const char* XAxisTitles[5] = {"y_{mc} [cm]", "z_{mc} [cm]", "#Phi_{mc} [rad]", "#eta_{mc}", "p_{Tmc} [Gev/c]"};
+static const char* AxisTitles[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "#phi-#phi_{mc} [mrad] (Resolution)", "#lambda-#lambda_{mc} [mrad] (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} [%] (Resolution)"};
+static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
+
+static double legendSpacingString = 0;
+static int ConfigNumInputs = 1;
+static int ConfigDashedMarkers = 0;
+
+static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0., -ETA_MAX, PT_MIN};
+static const float axes_max[5] = {Y_MAX2, Z_MAX, 2. *  M_PI, ETA_MAX, PT_MAX};
+static const int axis_bins[5] = {50, 50, 144, 30, 50};
+static const float res_axes[5] = {1., 1., 0.03, 0.03, 0.2};
 
 static void SetAxisSize(TH1F* e)
 {
@@ -106,24 +131,6 @@ static void ChangePadTitleSize(TPad* p, Double_t size)
 
 void RunQA()
 {
-	const Char_t* EffTypes[4] = {"rec", "clone", "fake", "all"};
-	const Char_t* FindableNames[2] = {"all", "findables"};
-	const Char_t* PrimNames[2] = {"primaries", "secondaries"};
-	const Char_t* ParameterNames[5] = {"Y", "Z", "#Phi", "#lambda", "Relative p_{T}"};
-	const Char_t* VSParameterNames[6] = {"Y", "Z", "Phi", "Eta", "Pt", "Pt_log"};
-	const Char_t* ShortParameterNames[5] = {"", "", "phi", "eta", "pt"};
-	const Char_t* EffNames[3] = {"Efficiency", "Clone Rate", "Fake Rate"};
-	const Char_t* ShortEffNames[3] = {"RecEff", "Clone", "Fake"};
-	const Char_t* EfficiencyTitles[4] = {"Efficiency (Primary Tracks, Findable)", "Efficiency (Secondary Tracks, Findable)", "Efficiency (Primary Tracks)", "Efficiency (Secondary Tracks)"};
-	const Double_t Scale[5] = {10., 10., 1000., 1000., 100.};
-	const Char_t* XAxisTitles[5] = {"y_{mc} [cm]", "z_{mc} [cm]", "#Phi_{mc} [rad]", "#eta_{mc}", "p_{Tmc} [Gev/c]"};
-	const Char_t* AxisTitles[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "#phi-#phi_{mc} [mrad] (Resolution)", "#lambda-#lambda_{mc} [mrad] (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} [%] (Resolution)"};
-	Int_t colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
-
-	double legendSpacingString = 0;
-	int ConfigNumInputs = 1;
-	int ConfigDashedMarkers = 0;
-
 	char name[1024], fname[1024];
 
 	//Create Histograms
@@ -137,11 +144,6 @@ void RunQA()
 			TColor* c = new TColor(10000 + i, f1, f2, f3);
 			colorNums[i] = c->GetNumber();
 		}
-		
-		const float axes_min[5] = {Y_MIN, Z_MIN, 0., -ETA_MAX, PT_MIN};
-		const float axes_max[5] = {Y_MAX, Z_MAX, 2. *  M_PI, ETA_MAX, PT_MAX};
-		const int axis_bins[5] = {50, 50, 144, 30, 50};
-		const float res_axes[5] = {-1.,-1.,-0.03,-0.03,-0.2};
 		
 		//Create Efficiency Histograms
 		for (int i = 0;i < 4;i++)
@@ -179,6 +181,7 @@ void RunQA()
 			sprintf(fname, "ceff_%d", ii);
 			sprintf(name, "Efficiency versus %s", ParameterNames[i]);
 			ceff[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
+			ceff[ii]->cd();
 			Float_t dy=1./2.;
 			peff[ii][0] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); peff[ii][0]->Draw();peff[ii][0]->SetRightMargin(0.04);
 			peff[ii][1] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); peff[ii][1]->Draw();peff[ii][1]->SetRightMargin(0.04);
@@ -222,8 +225,28 @@ void RunQA()
 				}
 			}
 		}
-	}
 	
+		//Create Canvas / Pads for Resolution Histograms
+		for (Int_t ii = 0;ii < 6;ii++)
+		{
+			Int_t i = ii == 5 ? 4 : ii;
+			sprintf(fname, "cres_%d", ii);
+			sprintf(name, "Resolution versus %s", ParameterNames[i]);
+			cres[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
+			cres[ii]->cd();
+			Float_t dy=1./2.;
+			pres[ii][3] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); pres[ii][3]->Draw();pres[ii][3]->SetRightMargin(0.04);
+			pres[ii][4] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); pres[ii][4]->Draw();pres[ii][4]->SetRightMargin(0.04);
+			pres[ii][0] = new TPad( "p2","",0.0,dy*1,1./3.,dy*2-.001); pres[ii][0]->Draw();pres[ii][0]->SetRightMargin(0.04);pres[ii][0]->SetLeftMargin(0.15);
+			pres[ii][1] = new TPad( "p3","",1./3.,dy*1,2./3.,dy*2-.001); pres[ii][1]->Draw();pres[ii][1]->SetRightMargin(0.04);pres[ii][1]->SetLeftMargin(0.135);
+			pres[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); pres[ii][2]->Draw();pres[ii][2]->SetRightMargin(0.06);pres[ii][2]->SetLeftMargin(0.135);
+			legendres[ii] = new TLegend(0.885 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949);
+			legendres[ii]->SetTextFont(72);
+			legendres[ii]->SetTextSize(0.016);
+			legendres[ii]->SetFillColor(0);
+		}
+	}
+
 	//Initialize Arrays
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
@@ -381,6 +404,7 @@ void RunQA()
 		if (mc1.fCharge == 0.) continue;
 		if (mc1.fPID < 0) continue;
 		if (mc1.fNWeightCls < MIN_WEIGHT_CLS) continue;
+		if (!mc1.fPrim) continue;
 		
 		float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
 		float c = TMath::Cos(track.GetAlpha());
@@ -419,11 +443,24 @@ void RunQA()
 		{
 			for (int k = 0;k < 5;k++)
 			{
-				res2[j][k]->Fill(paramval[j], resval[k]);
+				res2[j][k]->Fill(resval[j], paramval[k]);
 			}
 		}
 	}
-	
+
+	/*TCanvas bla;
+	bla.cd();
+	res2[4][3]->Draw();
+	bla.Print("test.pdf");*/
+
+
+	init = true;
+}
+
+void DrawQAHistograms()
+{
+	char name[1024], fname[1024];
+
 	//Process / Draw Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
 	{
@@ -449,7 +486,7 @@ void RunQA()
 						eff[l][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][1], 1, 1, "B");
 					}
 				}
-				
+
 				TH1F* e = eff[l][j / 2][j % 2][i][1];
 				e->SetTitle(EfficiencyTitles[j]);
 				e->SetStats(kFALSE);
@@ -478,5 +515,112 @@ void RunQA()
 		ceff[ii]->Print(fname);
 	}
 
-	init = true;
+	//Process / Draw Resolution Histograms
+	for (int ii = 0;ii < 6;ii++)
+	{
+		Int_t i = ii == 5 ? 4 : ii;
+		for (int j = 0;j < 5;j++)
+		{
+			if (ii != 6)
+			{
+				TCanvas cfit;
+				cfit.cd();
+				TAxis* axis = res2[j][i]->GetYaxis();
+				int nBins = axis->GetNbins();
+				TF1* fitFunc = new TF1("G", "[0]*exp(-(x-[1])*(x-[1])/(2.*[2]*[2]))", -3, 3);
+				fitFunc->SetParLimits(2, 0.0001, 100.);
+				fitFunc->SetLineWidth(2);
+				fitFunc->SetFillStyle(0);
+				int integ = 1;
+				for (int bin = 1;bin <= nBins;bin++)
+				{
+					int bin0 = std::max(bin - integ, 0);
+					int bin1 = std::min(bin + integ, nBins);
+					TH1D* proj = res2[j][i]->ProjectionX("proj", bin0, bin1);
+					if (proj->GetEntries())
+					{
+						fitFunc->SetParameters(proj->GetMaximum(), proj->GetMean(), proj->GetRMS());
+						proj->Fit(fitFunc, "sQ");
+						float sigma = fabs(fitFunc->GetParameter(2));
+						if (sigma > 0.)
+						{
+							res[j][i][0]->SetBinContent(bin, fabs(fitFunc->GetParameter(2)));
+							res[j][i][1]->SetBinContent(bin, fitFunc->GetParameter(1));
+						}
+						else
+						{
+							res[j][i][0]->SetBinContent(bin, 0);
+							res[j][i][1]->SetBinContent(bin, 0);
+						}
+						res[j][i][0]->SetBinError(bin, fitFunc->GetParError(2));
+						res[j][i][1]->SetBinError(bin, fitFunc->GetParError(1));
+					}
+					else
+					{
+						res[j][i][0]->SetBinContent(bin, 0.);
+						res[j][i][0]->SetBinError(bin, 0.);
+						res[j][i][1]->SetBinContent(bin, 0.);
+						res[j][i][1]->SetBinError(bin, 0.);
+					}
+					delete proj;
+				}
+			}
+			pres[ii][j]->cd();
+
+			int numColor = 0;
+			int tmpMax = -1000.;
+			int tmpMin = 1000.;
+			
+			int k = 0;
+			
+			for (int l = 0;l < 2;l++)
+			{
+				TH1F* e = res[j][i][l];
+				if (ii != 5)
+				{
+					e->Scale(Scale[j]);
+					e->GetYaxis()->SetTitle(AxisTitles[j]);
+					e->GetXaxis()->SetTitle(XAxisTitles[i]);
+				}
+				if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
+				if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
+			}
+
+			double tmpSpan;
+			tmpSpan = tmpMax - tmpMin;
+			tmpMax += tmpSpan * .02;
+			tmpMin -= tmpSpan * .02;
+			if (j == 2 && i < 3) tmpMax += tmpSpan * 0.13 * ConfigNumInputs;
+
+			for (Int_t l = 0;l < 2;l++)
+			{
+				TH1F* e = res[j][i][l];
+				e->SetMaximum(tmpMax);
+				e->SetMinimum(tmpMin);
+				e->SetStats(kFALSE);
+				e->SetMarkerColor(kBlack);
+				e->SetLineWidth(1);
+				e->SetLineColor(colorNums[numColor++ % ColorCount]);
+				e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
+				sprintf(name, "%s Resolution", ParameterNames[j]);
+				e->SetTitle(name);
+				SetAxisSize(e);
+				if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
+				else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
+				e->Draw(k || l ? "same" : "");
+				if (j == 0)
+				{
+					sprintf(name, "%s", l ? "Mean Resolution" : "Resolution");
+					legendres[ii]->AddEntry(e, name, "l");
+				}
+			}
+			if (ii == 5) pres[ii][j]->SetLogx();
+			cres[ii]->cd();
+		}
+		ChangePadTitleSize(pres[ii][4], 0.056);
+		legendres[ii]->Draw();
+
+		sprintf(fname, "res_vs_%s.pdf", VSParameterNames[ii]);
+		cres[ii]->Print(fname);
+	}
 }
