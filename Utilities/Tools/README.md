@@ -39,6 +39,6 @@ boost, reporting false positives which can limit its usefulness. For
 this reason it offers the possibility to specify a suppression file
 (via the `--suppressions=<filename>` option) to avoid reporting known
 false positives. In case your false positives come from ROOT and
-boost, you can use the `Utilities/Tools/root-boost.supp` file (notice
+boost, you can use the `Utilities/Tools/boost-root.supp` file (notice
 that different platforms and version of the software might require
 adjustments in order to eliminate all the false positives).
