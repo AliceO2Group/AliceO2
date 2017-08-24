@@ -31,9 +31,12 @@ class Geo
 
   static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
   static void getDetID(Float_t* pos, Int_t* det);
+  static Int_t getIndex(const Int_t * detId); // Get channel index from det Id (for calibration mainly)
+  static void getVolumeIndices(Int_t index, Int_t *detId); // Get volume index from channel index
 
   static void getPos(Int_t* det, Float_t* pos);
   static void getVolumePath(const Int_t* ind, Char_t* path);
+  static Int_t getStripNumberPerSM(Int_t iplate, Int_t istrip);
 
   static Float_t getAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t getHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }

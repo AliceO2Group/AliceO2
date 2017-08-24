@@ -704,8 +704,8 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   // getchar();
 
   // dividing FSEN along z in Geo::NPADZ=2 and along x in Geo::NPADX=48
-  TVirtualMC::GetMC()->Gsdvn("FSEZ", "FSEN", Geo::NPADX, 1);
-  TVirtualMC::GetMC()->Gsdvn("FPAD", "FSEZ", Geo::NPADZ, 3);
+  TVirtualMC::GetMC()->Gsdvn("FSEZ", "FSEN", Geo::NPADZ, 3);
+  TVirtualMC::GetMC()->Gsdvn("FPAD", "FSEZ", Geo::NPADX, 1);
   // positioning sensitive layer inside FPCB
   TVirtualMC::GetMC()->Gspos("FSEN", 1, "FPCB", 0., 0., 0., 0, "ONLY");
 

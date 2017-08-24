@@ -141,9 +141,9 @@ void Geo::getVolumePath(const Int_t* ind, Char_t* path)
       snprintf(string2, kSize, "FTOC_0/FLTC_0/FSTR_%i", icopy);
   }
 
-  Int_t padx = ind[3] + 1;
-  Int_t padz = ind[4] + 1;
-  snprintf(string3, kSize, "FPCB_1/FSEN_1/FSEZ_%i/FPAD_%i", padx, padz);
+  Int_t padz = ind[3] + 1;
+  Int_t padx = ind[4] + 1;
+  snprintf(string3, kSize, "FPCB_1/FSEN_1/FSEZ_%i/FPAD_%i", padz, padx);
   snprintf(path, 2 * kSize, "%s/%s/%s", string1, string2, string3);
 }
 
@@ -171,7 +171,7 @@ void Geo::getPos(Int_t* det, Float_t* pos)
 void Geo::getDetID(Float_t* pos, Int_t* det)
 {
   //
-  // Returns Detector Indices (iSect,iPlate,iStrip,iPadX,iPadZ)
+  // Returns Detector Indices (iSect,iPlate,iStrip,iPadZ,iPadX)
   // space point coor (x,y,z) (cm)
 
   if (mToBeIntit)
@@ -189,9 +189,134 @@ void Geo::getDetID(Float_t* pos, Int_t* det)
 
   det[2] = fromPlateToStrip(posLocal, det[1]);
 
-  det[3] = getPadX(posLocal);
-  det[4] = getPadZ(posLocal);
+  det[3] = getPadZ(posLocal);
+  det[4] = getPadX(posLocal);
 }
+
+void Geo::getVolumeIndices(Int_t index, Int_t *detId)
+{
+  //
+  // Retrieve volume indices from the calibration channel index 
+  //
+  Int_t npadxstrip = NPADX*NPADZ;
+
+  detId[0] = index/npadxstrip/NSTRIPXSECTOR;
+
+  Int_t dummyStripPerModule = 
+    ( index - ( NSTRIPXSECTOR*npadxstrip*detId[0]) ) / npadxstrip;
+  if (dummyStripPerModule<NSTRIPC) {
+    detId[1] = 0;
+    detId[2] = dummyStripPerModule;
+  }
+  else if (dummyStripPerModule>=NSTRIPC && dummyStripPerModule<NSTRIPC+NSTRIPB) {
+    detId[1] = 1;
+    detId[2] = dummyStripPerModule-NSTRIPC;
+  }
+  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB && dummyStripPerModule<NSTRIPC+NSTRIPB+NSTRIPA) {
+    detId[1] = 2;
+    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB;
+  }
+  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB+NSTRIPA && dummyStripPerModule<NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB) {
+    detId[1] = 3;
+    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB-NSTRIPA;
+  }
+  else if (dummyStripPerModule>=NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB && dummyStripPerModule<NSTRIPXSECTOR) {
+    detId[1] = 4;
+    detId[2] = dummyStripPerModule-NSTRIPC-NSTRIPB-NSTRIPA-NSTRIPB;
+  }
+
+  Int_t padPerStrip = ( index - ( NSTRIPXSECTOR*npadxstrip*detId[0]) ) - dummyStripPerModule*npadxstrip;
+
+  detId[3] = padPerStrip / NPADX; // padZ
+  detId[4] = padPerStrip - detId[3]*NPADX; // padX
+
+}
+
+Int_t Geo::getIndex(const Int_t * detId)
+{
+  //Retrieve calibration channel index 
+  Int_t isector = detId[0];
+  if (isector >= NSECTORS){
+    printf("Wrong sector number in TOF (%d) !\n",isector);
+    return -1;
+  }
+  Int_t iplate = detId[1];
+  if (iplate >= NPLATES){
+    printf("Wrong plate number in TOF (%d) !\n",iplate);
+    return -1;
+  }
+  Int_t istrip = detId[2];
+  Int_t stripOffset = getStripNumberPerSM(iplate,istrip);
+  if (stripOffset==-1) {
+    printf("Wrong strip number per SM in TOF (%d) !\n",stripOffset);
+    return -1;
+  }
+
+  Int_t ipadz = detId[3];
+  Int_t ipadx = detId[4];
+
+  Int_t idet = ((2*(NSTRIPC+NSTRIPB)+NSTRIPA)*NPADZ*NPADX)*isector +
+               (stripOffset*NPADZ*NPADX)+
+	       (NPADX)*ipadz+
+	        ipadx;
+  return idet;
+}
+
+Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
+{
+  //
+  // Get the serial number of the TOF strip number istrip [0,14/18],
+  //   in the module number iplate [0,4].
+  // This number will range in [0,90].
+  //
+
+  Int_t index = -1;
+
+  Bool_t check = (
+		  (iplate<0 || iplate>=NPLATES)
+		  ||
+		  (
+		   (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
+		   ||
+		   (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
+		   )
+		  );
+
+  if (iplate<0 || iplate>=NPLATES)
+    Error("getStripNumberPerSM",Form("Wrong plate number in TOF (%1d)!\n",iplate));
+
+  if (
+      (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
+      ||
+      (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
+      )
+    Error("getStripNumberPerSM",Form("Wrong strip number in TOF (strip=%2d in the plate=%1d)!\n",istrip,iplate));
+
+  Int_t stripOffset = 0;
+  switch (iplate) {
+  case 0:
+    stripOffset = 0;
+    break;
+  case 1:
+    stripOffset = NSTRIPC;
+    break;
+  case 2:
+    stripOffset = NSTRIPC+NSTRIPB;
+    break;
+  case 3:
+    stripOffset = NSTRIPC+NSTRIPB+NSTRIPA;
+    break;
+  case 4:
+    stripOffset = NSTRIPC+NSTRIPB+NSTRIPA+NSTRIPB;
+    break;
+  };
+
+  if (!check) index = stripOffset + istrip;
+
+  return index;
+
+}
+
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
 {
   if (isector == -1) {

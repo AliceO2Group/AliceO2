@@ -1,19 +1,8 @@
-void checkRotation(const char *nameinput="../../../macro/geometry.root"){
-  Float_t pos[3];
+void checkIndex(){
   Int_t indextof[5];
+  Int_t chan;
   Int_t indextof2[5];
   Int_t i,j,k,l,m;
-
-  Float_t radius = 375;
-
-  Float_t phi,z;
-
-  Int_t n=1;
-
-  TFile *fin = new TFile(nameinput);
-  fin->Get("FAIRGeom");
-
-  Int_t isector;
 
   Bool_t ErrorSe=0;
   Bool_t ErrorPl=0;
@@ -35,8 +24,9 @@ void checkRotation(const char *nameinput="../../../macro/geometry.root"){
 	  indextof[3] = l;
 	  for(Int_t m=0;m<48;m++){
 	    indextof[4] = m;
-	    o2::tof::Geo::getPos(indextof,pos);
-	    o2::tof::Geo::getDetID(pos,indextof2);
+
+	    chan =  o2::tof::Geo::getIndex(indextof);
+	    o2::tof::Geo::getVolumeIndices(chan,indextof2);
 
 	    if(indextof[0] != indextof2[0]) ErrorSe=1,locError=1;
 	    if(indextof[1] != indextof2[1]) ErrorPl=1,locError=1;
@@ -45,8 +35,8 @@ void checkRotation(const char *nameinput="../../../macro/geometry.root"){
 	    if(indextof[4] != indextof2[4]) ErrorPz=1,locError=1;
 
 
-	    if(locError){
-	      printf("in:%i %i %i %i %i --> out:%i %i %i %i %i\n",indextof[0],indextof[1],indextof[2],indextof[3],indextof[4],indextof2[0],indextof2[1],indextof2[2],indextof2[3],indextof2[4]);
+	    if(locError && j==1 && k==3){
+	      printf("in:%i %i %i %i %i --> out:%i %i %i %i %i (ch=%i)\n",indextof[0],indextof[1],indextof[2],indextof[3],indextof[4],indextof2[0],indextof2[1],indextof2[2],indextof2[3],indextof2[4],chan);
 	    }
 	  }
 	}
