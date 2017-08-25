@@ -129,6 +129,14 @@ static void ChangePadTitleSize(TPad* p, Double_t size)
 	}
 }
 
+void DrawHisto(TH1* histo, char* filename)
+{
+	TCanvas tmp;
+	tmp.cd();
+	histo->Draw();
+	tmp.Print(filename);
+}
+
 void RunQA()
 {
 	char name[1024], fname[1024];
@@ -365,7 +373,6 @@ void RunQA()
 		if (mc1.fCharge == 0.) continue;
 		if (mc1.fPID < 0) continue;
 		if (mc1.fNWeightCls < MIN_WEIGHT_CLS) continue;
-		if (!mc1.fPrim) continue;
 		
 		float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
 		float c = TMath::Cos(track.GetAlpha());
@@ -405,16 +412,12 @@ void RunQA()
 		{
 			for (int k = 0;k < 5;k++)
 			{
+				if (k != 4 && mc2.pt < PT_MIN2) continue;
+				if (k != 3 && mc2.eta > ETA_MAX2) continue;
 				res2[j][k]->Fill(resval[j], paramval[k]);
 			}
 		}
 	}
-
-	/*TCanvas bla;
-	bla.cd();
-	res2[4][3]->Draw();
-	bla.Print("test.pdf");*/
-
 
 	init = true;
 }
@@ -522,45 +525,59 @@ void DrawQAHistograms()
 
 	//Process / Draw Resolution Histograms
 	TH1D* resIntegral[5] = {};
-	TF1* fitFunc = new TF1("G", "[0]*exp(-(x-[1])*(x-[1])/(2.*[2]*[2]))", -3, 3);
 	for (int ii = 0;ii < 6;ii++)
 	{
 		Int_t i = ii == 5 ? 4 : ii;
 		for (int j = 0;j < 5;j++)
 		{
-			if (ii != 6)
+			if (ii != 5)
 			{
 				TCanvas cfit;
 				cfit.cd();
 				TAxis* axis = res2[j][i]->GetYaxis();
 				int nBins = axis->GetNbins();
-				fitFunc->SetParLimits(2, 0.0001, 100.);
-				fitFunc->SetLineWidth(2);
-				fitFunc->SetFillStyle(0);
 				int integ = 1;
 				for (int bin = 1;bin <= nBins;bin++)
 				{
 					int bin0 = std::max(bin - integ, 0);
 					int bin1 = std::min(bin + integ, nBins);
 					TH1D* proj = res2[j][i]->ProjectionX("proj", bin0, bin1);
-					if (proj->GetEntries() && proj->GetRMS() != 0.)
+					if (proj->GetEntries())
 					{
-						fitFunc->SetParameters(proj->GetMaximum(), proj->GetMean(), proj->GetRMS());
-						printf("Res %d vs %d bin %d Entries %d Mean %f RMS %f\n", j, ii, bin, (int) proj->GetEntries(), proj->GetMean(), proj->GetRMS());
-						proj->Fit(fitFunc, "sQ");
-						float sigma = fabs(fitFunc->GetParameter(2));
-						if (sigma > 0.)
+						if (proj->GetEntries() < 20 || proj->GetRMS() < 0.00001)
 						{
-							res[j][i][0]->SetBinContent(bin, fabs(fitFunc->GetParameter(2)));
-							res[j][i][1]->SetBinContent(bin, fitFunc->GetParameter(1));
+							res[j][i][0]->SetBinContent(bin, proj->GetRMS());
+							res[j][i][0]->SetBinError(bin, sqrt(proj->GetRMS()));
+							res[j][i][1]->SetBinContent(bin, proj->GetMean());
+							res[j][i][1]->SetBinError(bin, sqrt(proj->GetRMS()));
 						}
 						else
 						{
-							res[j][i][0]->SetBinContent(bin, 0);
-							res[j][i][1]->SetBinContent(bin, 0);
+							proj->Fit("gaus", proj->GetMaximum() < 20 ? "sQl" : "sQ");
+							TF1* fitFunc = proj->GetFunction("gaus");
+							float sigma = fabs(fitFunc->GetParameter(2));
+							if (sigma > 0.)
+							{
+								res[j][i][0]->SetBinContent(bin, fabs(fitFunc->GetParameter(2)));
+								res[j][i][1]->SetBinContent(bin, fitFunc->GetParameter(1));
+							}
+							else
+							{
+								res[j][i][0]->SetBinContent(bin, 0);
+								res[j][i][1]->SetBinContent(bin, 0);
+							}
+							res[j][i][0]->SetBinError(bin, fitFunc->GetParError(2));
+							res[j][i][1]->SetBinError(bin, fitFunc->GetParError(1));
+
+							bool fail = fabs(proj->GetMean() - res[j][i][1]->GetBinContent(bin)) > res_axes[j] || res[j][i][0]->GetBinError(bin) > 1 || res[j][i][1]->GetBinError(bin) > 1;
+							if (fail)
+							{
+								res[j][i][0]->SetBinContent(bin, proj->GetMean());
+								res[j][i][1]->SetBinContent(bin, proj->GetRMS());
+								res[j][i][0]->SetBinError(bin, sqrt(proj->GetRMS()));
+								res[j][i][1]->SetBinError(bin, sqrt(proj->GetRMS()));
+							}
 						}
-						res[j][i][0]->SetBinError(bin, fitFunc->GetParError(2));
-						res[j][i][1]->SetBinError(bin, fitFunc->GetParError(1));
 					}
 					else
 					{
@@ -579,8 +596,8 @@ void DrawQAHistograms()
 			pres[ii][j]->cd();
 
 			int numColor = 0;
-			int tmpMax = -1000.;
-			int tmpMin = 1000.;
+			float tmpMax = -1000.;
+			float tmpMin = 1000.;
 			
 			int k = 0;
 			
@@ -593,6 +610,11 @@ void DrawQAHistograms()
 					e->GetYaxis()->SetTitle(AxisTitles[j]);
 					e->GetXaxis()->SetTitle(XAxisTitles[i]);
 				}
+				if (ii == 4) e->GetXaxis()->SetRangeUser(0.2, PT_MAX);
+				else if (ii == 5) e->GetXaxis()->SetRange(1, 0);
+				e->SetMinimum(-1111);
+				e->SetMaximum(-1111);
+				
 				if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
 				if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
 			}
@@ -634,7 +656,6 @@ void DrawQAHistograms()
 		sprintf(fname, "res_vs_%s.pdf", VSParameterNames[ii]);
 		cres[ii]->Print(fname);
 	}
-	delete fitFunc;
 	
 	for (int j = 0;j < 5;j++)
 	{
