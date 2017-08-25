@@ -34,6 +34,11 @@ int main(int argc, char** argv)
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
+	int nMerge = 0;
+	float averageDistance = 200;
+	bool randomizeDistance = true;
+	bool shiftFirstEvent = true;
+	int iEventInTimeframe = 0;
 
 	if (hlt.GetGPUStatus() == 0)
 	{
@@ -43,6 +48,23 @@ int main(int argc, char** argv)
 
 	for( int i=0; i < argc; i++ )
 	{
+		if ( !strcmp( argv[i], "-MERGE" ) && argc > i + 1)
+		{
+			nMerge = atoi(argv[i + 1]);
+		}
+		if ( !strcmp( argv[i], "-MERGEDIST" ) && argc > i + 1)
+		{
+			averageDistance = atof(argv[i + 1]);
+		}
+		if ( !strcmp( argv[i], "-MERGERAND" ) && argc > i + 1)
+		{
+			randomizeDistance = atoi(argv[i + 1]);
+		}
+		if ( !strcmp( argv[i], "-MERGEFIRST" ) && argc > i + 1)
+		{
+			shiftFirstEvent = atoi(argv[i + 1]);
+		}
+
 		if ( !strcmp( argv[i], "-CPU" ) ) 
 		{
 			printf("CPU enabled\n");
@@ -281,7 +303,8 @@ int main(int argc, char** argv)
 	if (cont) hlt.SetContinuousTracking(cont);
 	if (dzdr != 0.) hlt.SetSearchWindowDZDR(dzdr);
 	
-	for( int i=0; i < argc; i++ ){
+	for( int i=0; i < argc; i++ )
+	{
 		if ( !strcmp( argv[i], "-GPUOPT" ) && argc >= i + 1 ) 
 		{
 			int tmpOption = atoi(argv[i + 2]);
@@ -313,9 +336,43 @@ int main(int argc, char** argv)
 			return(1);
 		}
 		printf("Loading Event %d\n", i);
+		
+		float shift;
+		if (nMerge && (shiftFirstEvent || iEventInTimeframe))
+		{
+			if (randomizeDistance)
+			{
+				shift = (double) rand() / (double) RAND_MAX;
+				if (shiftFirstEvent)
+				{
+					if (iEventInTimeframe == 0) shift = shift * averageDistance;
+					else shift = (iEventInTimeframe + shift) * averageDistance;
+				}
+				else
+				{
+					if (iEventInTimeframe == 0) shift = 0;
+					else shift = (iEventInTimeframe - 0.5 + shift) * averageDistance;
+				}
+			}
+			else
+			{
+				if (shiftFirstEvent)
+				{
+					shift = averageDistance * (iEventInTimeframe + 0.5);
+				}
+				else
+				{
+					shift = averageDistance * (iEventInTimeframe);
+				}
+			}
+		}
+		else
+		{
+			shift = 0.;
+		}
 
-		hlt.StartDataReading(0);
-		hlt.ReadEvent(in, eventDisplay != 0 || qa != 0 || resetids);
+		if (nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
+		hlt.ReadEvent(in, eventDisplay != 0 || qa != 0 || resetids, nMerge > 0, shift);
 		
 #ifdef BROKEN_EVENTS
 		int break_slices = rand() % 36;
@@ -334,8 +391,21 @@ int main(int argc, char** argv)
 		}
 #endif
 		
-		hlt.FinishDataReading();
 		in.close();
+		
+		iEventInTimeframe++;
+		if (nMerge)
+		{
+			if (iEventInTimeframe == nMerge || i == NEvents - 1)
+			{
+				iEventInTimeframe = 0;
+			}
+			else
+			{
+				continue;
+			}
+		}
+		hlt.FinishDataReading();
 
 		printf("Processing Event %d\n", i);
 		for (int j = 0;j < runs;j++)
