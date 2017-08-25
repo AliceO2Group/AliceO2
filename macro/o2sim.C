@@ -61,6 +61,7 @@ void o2sim()
 
   // run init
   run->Init();
+  gGeoManager->Export("O2geometry.root");
 
   // runtime database
   bool kParameterMerged = true;

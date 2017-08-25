@@ -21,37 +21,35 @@
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
-
 #ifndef ALICEO2_PASSIVE_MAGNET_H
 #define ALICEO2_PASSIVE_MAGNET_H
 
-#include "FairModule.h"                 // for FairModule
-#include "Rtypes.h"                     // for Magnet::Class, Bool_t, etc
-#include <string>                       // for string
-namespace o2 {
-namespace Passive {
+#include "FairModule.h" // for FairModule
+#include "Rtypes.h"     // for Magnet::Class, Bool_t, etc
 
+namespace o2
+{
+namespace passive
+{
 class Magnet : public FairModule
 {
-  public:
-    Magnet(const char* name, const char* Title="MY Magnet");
-    Magnet();
-    ~Magnet() override;
-    void ConstructGeometry() override;
+ public:
+  Magnet(const char* name, const char* Title = "ALICE Magnet");
+  Magnet();
+  ~Magnet() override;
+  void ConstructGeometry() override;
+  void createMaterials();
 
-    /// Clone this object (used in MT mode only)
-    FairModule* CloneModule() const override;
+  /// Clone this object (used in MT mode only)
+  FairModule* CloneModule() const override;
 
-  private:
-    Magnet(const Magnet& orig);
-    Magnet& operator=(const Magnet&);
+ private:
+  Magnet(const Magnet& orig);
+  Magnet& operator=(const Magnet&);
 
-    ClassDefOverride(o2::Passive::Magnet,1)
-
+  ClassDefOverride(o2::passive::Magnet, 1)
 };
-
 }
 }
-    
-#endif //MAGNET_H
 
+#endif // MAGNET_H
