@@ -3,6 +3,7 @@ set(MODULE_NAME "DetectorsPassive")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+  src/Absorber.cxx
   src/Cave.cxx
   src/GeoCave.cxx
   src/Pipe.cxx
@@ -13,6 +14,7 @@ set(SRCS
 )
 
 Set(HEADERS
+    include/${MODULE_NAME}/Absorber.h
     include/${MODULE_NAME}/Cave.h
     include/${MODULE_NAME}/GeoCave.h
     include/${MODULE_NAME}/Magnet.h
