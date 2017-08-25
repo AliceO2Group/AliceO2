@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(createViewerDevice)
   const std::string viewerId = "Viewer_1";
   const int numberOfThreads = 1;
 
-  ViewerDevice viewer(viewerId, numberOfThreads);
+  ViewerDevice viewer(viewerId);
 
   BOOST_TEST(viewer.GetId() == viewerId);
 }
@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(establishChannelByViewerDevice)
 {
   const std::string viewerId = "Viewer_1";
   const int numberOfThreads = 1;
-  ViewerDevice viewer(viewerId, numberOfThreads);
+  ViewerDevice viewer(viewerId);
 
   BOOST_TEST(viewer.fChannels.size() == 0, "Viewer device has a channel connected at startup");
 

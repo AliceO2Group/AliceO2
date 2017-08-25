@@ -24,7 +24,7 @@ int main(int argc, char** argv)
   if (argc == 2) {
     drawingOptions = argv[1];
   }
-  ViewerDevice viewerDevice("Viewer_1", 1, drawingOptions);
+  ViewerDevice viewerDevice("Viewer_1", drawingOptions);
   viewerDevice.CatchSignals();
   auto* app = new TApplication("app1", &argc, argv);
 

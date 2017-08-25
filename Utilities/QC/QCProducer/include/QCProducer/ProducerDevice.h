@@ -26,7 +26,7 @@ namespace qc
 class ProducerDevice : public FairMQDevice
 {
  public:
-  ProducerDevice(const char* producerId, const int numIoThreads, std::shared_ptr<Producer>& producer);
+  ProducerDevice(const char* producerId, std::shared_ptr<Producer>& producer);
   ~ProducerDevice() override = default;
 
   static void deleteTMessage(void* data, void* hint);

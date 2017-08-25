@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_SUITE(ProducerTestSuite)
 BOOST_AUTO_TEST_CASE(establishChannelByProducerDevice)
 {
   shared_ptr<Producer> producer(new TH1Producer(NAME, TITLE, NUMBER_OF_BINS));
-  unique_ptr<ProducerDevice> producerDevice(new ProducerDevice("Producer", 1, producer));
+  unique_ptr<ProducerDevice> producerDevice(new ProducerDevice("Producer", producer));
 
   BOOST_TEST(producerDevice->fChannels.size() == 0, "Producer device has a channel connected at startup");
 

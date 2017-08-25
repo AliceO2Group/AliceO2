@@ -24,11 +24,10 @@ namespace o2
 {
 namespace qc
 {
-ViewerDevice::ViewerDevice(std::string viewerId, int numIoThreads, string drawingOptions)
+ViewerDevice::ViewerDevice(std::string viewerId, string drawingOptions)
 {
   this->SetTransport("zeromq");
   this->SetId(viewerId);
-  this->SetNumIoThreads(numIoThreads);
   mDrawingOptions = drawingOptions;
 }
 
