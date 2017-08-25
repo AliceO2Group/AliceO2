@@ -62,9 +62,9 @@ class AliHLTTPCCAClusterData
     /**
      * Read/Write Events from/to file
      */
-    void ReadEvent(std::istream &in);
+    void ReadEvent(std::istream &in, bool addData = false);
     void WriteEvent(std::ostream &out) const;
-    template <class T> void ReadEventVector(T* &data, std::istream &in, int MinSize = 0);
+    template <class T> void ReadEventVector(T* &data, std::istream &in, int MinSize = 0, bool addData = false);
     template <class T> void WriteEventVector(const T* const &data, std::ostream &out) const;
 
     /**

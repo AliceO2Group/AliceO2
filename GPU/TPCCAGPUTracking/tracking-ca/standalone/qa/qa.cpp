@@ -129,11 +129,11 @@ static void ChangePadTitleSize(TPad* p, Double_t size)
 	}
 }
 
-void DrawHisto(TH1* histo, char* filename)
+void DrawHisto(TH1* histo, char* filename, char* options)
 {
 	TCanvas tmp;
 	tmp.cd();
-	histo->Draw();
+	histo->Draw(options);
 	tmp.Print(filename);
 }
 
@@ -214,7 +214,7 @@ void RunQA()
 				}
 			}
 		}
-}
+	}
 
 	//Initialize Arrays
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
@@ -240,10 +240,10 @@ void RunQA()
 			if (merger.ClusterRowType()[track.FirstClusterRef() + k] < 0) continue;
 			nClusters++;
 			int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
-			if (hitId > hlt.GetNMCLabels()) {printf("Invalid hit id\n");return;}
+			if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());return;}
 			for (int j = 0;j < 3;j++)
 			{
-				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= hlt.GetNMCInfo()) {printf("Invalid label\n");return;}
+				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= hlt.GetNMCInfo()) {printf("Invalid label %d > %d\n", hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetNMCInfo());return;}
 				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0)
 				{
 					if (DEBUG >= 3 && track.OK()) printf("Track %d Cluster %d Label %d: %d (%f)\n", i, k, j, hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight);
@@ -418,6 +418,7 @@ void RunQA()
 			}
 		}
 	}
+	
 
 	init = true;
 }

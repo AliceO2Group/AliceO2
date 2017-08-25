@@ -41,13 +41,14 @@ template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const T* const 
 	out.write((const char*) data, i * sizeof(T));
 }
 
-template <class T> void AliHLTTPCCAClusterData::ReadEventVector(T* &data, std::istream &in, int MinSize)
+template <class T> void AliHLTTPCCAClusterData::ReadEventVector(T* &data, std::istream &in, int MinSize, bool addData)
 {
 	int i;
 	in.read((char*) &i, sizeof(i));
-	fNumberOfClusters = i;
+	int currentClusters = addData ? fNumberOfClusters : 0;
+	fNumberOfClusters = currentClusters + i;
 	Allocate(CAMath::Max(MinSize, fNumberOfClusters));
-	in.read((char*) data, i * sizeof(T));
+	in.read((char*) (data + currentClusters), i * sizeof(T));
 }
 
 void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
@@ -55,9 +56,9 @@ void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
 	WriteEventVector<Data>(fData, out);
 }
 
-void AliHLTTPCCAClusterData::ReadEvent(std::istream &in)
+void AliHLTTPCCAClusterData::ReadEvent(std::istream &in, bool addData)
 {
-	ReadEventVector<Data>(fData, in, 64);
+	ReadEventVector<Data>(fData, in, 64, addData);
 }
 
 void AliHLTTPCCAClusterData::Allocate(int number)
