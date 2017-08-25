@@ -29,3 +29,16 @@ Examples are `commit_id=HEAD` when we want to compare to the last git commit,
 or `commit_id=HEAD^^^` when we compare to the state 3 commits ago.
 
 The pull request checker uses this mechanism to provide faster checks on github.
+
+# Remove false positives from valgrind
+
+[valgrind](http://valgrind.org) is a popular multiplatform memory
+debugger and profiler. While it helps catching many subtle memory
+error and leaks, it can be fooled by complex codebases like ROOT and
+boost, reporting false positives which can limit its usefulness. For
+this reason it offers the possibility to specify a suppression file
+(via the `--suppressions=<filename>` option) to avoid reporting known
+false positives. In case your false positives come from ROOT and
+boost, you can use the `Utilities/Tools/boost-root.supp` file (notice
+that different platforms and version of the software might require
+adjustments in order to eliminate all the false positives).
