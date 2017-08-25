@@ -32,12 +32,11 @@ namespace o2
 {
 namespace qc
 {
-MergerDevice::MergerDevice(unique_ptr<Merger> merger, string mergerId, int numIoThreads)
+MergerDevice::MergerDevice(unique_ptr<Merger> merger, string mergerId)
   : mMerger(move(merger)), ddsCustomCmd(new CCustomCmd(mService))
 {
   this->SetTransport("zeromq");
   this->SetId(mergerId);
-  this->SetNumIoThreads(numIoThreads);
 
   procSelfStatus.open("/proc/self/status");
 

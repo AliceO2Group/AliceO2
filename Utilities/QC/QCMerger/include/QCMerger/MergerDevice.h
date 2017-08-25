@@ -32,7 +32,7 @@ namespace qc
 class MergerDevice : public FairMQDevice
 {
  public:
-  MergerDevice(std::unique_ptr<Merger> merger, std::string producerId, int numIoThreads);
+  MergerDevice(std::unique_ptr<Merger> merger, std::string producerId);
   ~MergerDevice() override;
 
   static void deleteTMessage(void* data, void* hint);

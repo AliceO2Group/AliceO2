@@ -26,7 +26,7 @@ namespace qc
 class ViewerDevice : public FairMQDevice
 {
  public:
-  ViewerDevice(std::string viewerId, int numIoThreads, std::string drawingOptions = "");
+  ViewerDevice(std::string viewerId, std::string drawingOptions = "");
   ~ViewerDevice() override = default;
 
   void executeRunLoop();

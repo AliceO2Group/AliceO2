@@ -29,12 +29,11 @@ namespace o2
 {
 namespace qc
 {
-ProducerDevice::ProducerDevice(const char* producerId, const int numIoThreads, shared_ptr<Producer>& producer)
+ProducerDevice::ProducerDevice(const char* producerId, shared_ptr<Producer>& producer)
   : ddsCustomCmd(new CCustomCmd(mService))
 {
   this->SetTransport("zeromq");
   this->SetId(producerId);
-  this->SetNumIoThreads(numIoThreads);
   mProducer = producer;
   lastCheckedSecond = getCurrentSecond();
 }

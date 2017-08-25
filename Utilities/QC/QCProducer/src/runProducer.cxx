@@ -31,7 +31,6 @@ using namespace o2::qc;
 namespace
 {
 shared_ptr<Producer> producer;
-const int NUMBER_OF_IO_THREADS = 1;
 const char* outputAddress;
 mutex keyMutex;
 }
@@ -77,7 +76,7 @@ int main(int argc, char** argv)
     return -1;
   }
 
-  ProducerDevice producerDevice(producerId, NUMBER_OF_IO_THREADS, producer);
+  ProducerDevice producerDevice(producerId, producer);
   producerDevice.CatchSignals();
 
   LOG(INFO) << "PID: " << getpid();

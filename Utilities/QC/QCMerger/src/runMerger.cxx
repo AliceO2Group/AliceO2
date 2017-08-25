@@ -38,7 +38,6 @@ namespace bpo = boost::program_options;
 
 namespace
 {
-const int NUMBER_OF_IO_THREADS = 1;
 const int NUMBER_OF_REQUIRED_PROGRAM_PARAMETERS = 6;
 ostringstream localAddress;
 
@@ -97,8 +96,7 @@ int main(int argc, char** argv)
   bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
   bpo::notify(vm);
 
-  MergerDevice mergerDevice(unique_ptr<Merger>(new Merger(NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA)), MERGER_DEVICE_ID,
-                            NUMBER_OF_IO_THREADS);
+  MergerDevice mergerDevice(unique_ptr<Merger>(new Merger(NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA)), MERGER_DEVICE_ID);
   mergerDevice.CatchSignals();
 
   LOG(INFO) << "PID: " << getpid();
