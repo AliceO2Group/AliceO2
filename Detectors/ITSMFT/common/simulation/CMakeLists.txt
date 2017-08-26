@@ -6,26 +6,21 @@ set(SRCS
     src/Point.cxx
     src/ClusterShape.cxx
     src/AlpideSimResponse.cxx
+    src/Chip.cxx
+    src/SimuClusterShaper.cxx
+    src/SimulationAlpide.cxx
+    src/DigiParams.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Point.h
     include/${MODULE_NAME}/ClusterShape.h
     include/${MODULE_NAME}/AlpideSimResponse.h
-    )
-set(NO_DICT_SRCS # sources not for the dictionary
-    src/Chip.cxx
-    src/DigitChip.cxx
-    src/DigitContainer.cxx
-    src/SimuClusterShaper.cxx
-    src/SimulationAlpide.cxx
-   )
-set(NO_DICT_HEADERS # sources not for the dictionary
+    include/${MODULE_NAME}/DigiParams.h
     include/${MODULE_NAME}/Chip.h
-    include/${MODULE_NAME}/DigitChip.h
-    include/${MODULE_NAME}/DigitContainer.h
     include/${MODULE_NAME}/SimuClusterShaper.h
     include/${MODULE_NAME}/SimulationAlpide.h
-   )
+    )
+
 Set(LINKDEF src/ITSMFTSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME itsmft_simulation_bucket)

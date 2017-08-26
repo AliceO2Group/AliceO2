@@ -86,7 +86,7 @@ InitStatus HitAnalysis::Init()
 
   if (mProcessChips) {
     for (int chipid = 0; chipid < mGeometry->getNumberOfChips(); chipid++) {
-      mChips[chipid] = new Chip(chipid, mGeometry->getMatrixSensor(chipid));
+      mChips[chipid] = new Chip(nullptr, chipid, mGeometry->getMatrixSensor(chipid));
     }
     LOG(DEBUG) << "Created " << mChips.size() << " chips." << FairLogger::endl;
 
