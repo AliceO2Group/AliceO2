@@ -20,6 +20,8 @@
 
 using namespace o2::ITSMFT;
 
+ClassImp(o2::ITSMFT::SimuClusterShaper);
+
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper() :
 mHitX(0.f),

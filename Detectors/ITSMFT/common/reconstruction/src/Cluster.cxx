@@ -33,7 +33,6 @@ Cluster::Cluster()
     mSigmaZ2(0),
     mSigmaYZ(0),
     mVolumeId(0),
-    mCharge(0),
     mRecoInfo(0),
     mNxNzN(0)
 #ifdef _ClusterTopology_
@@ -67,7 +66,6 @@ Cluster::Cluster(const Cluster& cluster)
     mSigmaZ2(cluster.mSigmaZ2),
     mSigmaYZ(cluster.mSigmaYZ),
     mVolumeId(cluster.mVolumeId),
-    mCharge(cluster.mCharge),
     mRecoInfo(cluster.mRecoInfo),
     mNxNzN(cluster.mNxNzN)
 #ifdef _ClusterTopology_
@@ -148,10 +146,10 @@ Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
 {
   // check if clusters have common tracks
   int lbi, lbj;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < maxLabels; i++) {
     if ((lbi = getLabel(i)) < 0)
       break;
-    for (int j = 0; j < 3; j++) {
+    for (int j = 0; j < maxLabels; j++) {
       if ((lbj = cl->getLabel(j)) < 0)
         break;
       if (lbi == lbj)

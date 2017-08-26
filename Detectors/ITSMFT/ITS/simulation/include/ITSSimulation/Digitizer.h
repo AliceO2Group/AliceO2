@@ -19,8 +19,8 @@
 #include "TObject.h" // for TObject
 
 #include "ITSMFTSimulation/SimulationAlpide.h"
-#include "ITSMFTSimulation/DigitContainer.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTSimulation/DigiParams.h"
 
 class TClonesArray;
 
@@ -40,15 +40,31 @@ namespace o2
       void init(Bool_t build = kTRUE);
 
       /// Steer conversion of points to digits
-      /// @param points Container with ITS points
-      /// @return digits container
-      o2::ITSMFT::DigitContainer& process(TClonesArray* points);
-      void process(TClonesArray* points, TClonesArray* digits);
+      void   process(TClonesArray* points, TClonesArray* digits);
 
+      void   setEventTime(double t);
+      double getEventTime()        const  {return mEventTime;}
+
+      void   setContinuous(bool v) {mParams.setContinuous(v);}
+      bool   isContinuous()  const {return mParams.isContinuous();}
+      void   fillOutputContainer(TClonesArray* digits, UInt_t maxFrame=0xffffffff);
+
+      void   setDigiParams(const o2::ITSMFT::DigiParams& par) {mParams = par;}
+      const  o2::ITSMFT::DigiParams& getDigitParams()   const {return mParams;}
+
+      void   setCoeffToNanoSecond(double cf)                  { mCoeffToNanoSecond = cf; }
+      double getCoeffToNanoSecond()                     const { return mCoeffToNanoSecond; }
+      
     private:
-      GeometryTGeo mGeometry;                     ///< ITS upgrade geometry
+      
+      GeometryTGeo mGeometry;                    ///< ITS upgrade geometry
       std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
-      o2::ITSMFT::DigitContainer mDigitContainer; ///< Internal digit storage
+      o2::ITSMFT::DigiParams mParams;            ///< digitization parameters
+      double mEventTime = 0;                     ///< global event time
+      double mCoeffToNanoSecond = 1.0;           ///< coefficient to convert event time (Fair) to ns
+      bool   mContinuous = false;                ///< flag for continuous simulation
+      UInt_t mROFrameMin = 0;                    ///< lowest RO frame of current digits
+      UInt_t mROFrameMax = 0;                    ///< highest RO frame of current digits
 
       ClassDefOverride(Digitizer, 2);
     };

@@ -13,6 +13,7 @@
 #ifndef ALICEO2_ITS_CLUSTERER_H
 #define ALICEO2_ITS_CLUSTERER_H
 
+#include "ITSMFTReconstruction/PixelReader.h"
 #include <utility>
 #include <vector>
 
@@ -24,9 +25,13 @@ namespace o2
 {
 namespace ITS
 {
-  class PixelReader;
-  class Clusterer
-{
+  
+class Clusterer {
+  
+  using PixelReader = o2::ITSMFT::PixelReader;
+  using PixelData = o2::ITSMFT::PixelReader::PixelData;
+  using ChipPixelData = o2::ITSMFT::PixelReader::ChipPixelData;
+  
  public:
   Clusterer();
   ~Clusterer() = default;
@@ -40,22 +45,24 @@ namespace ITS
   void process(PixelReader &r, TClonesArray &clusters);
 
  private:
+  
   enum {kMaxRow=650}; //Anything larger than the real number of rows (512 for ALPIDE)
-  void initChip(UShort_t chipID, UShort_t row, UShort_t col, Int_t label);
-  void updateChip(UShort_t chipID, UShort_t row, UShort_t col, Int_t label);
+  void initChip();
+  void updateChip(int ip);
   void finishChip(TClonesArray &clusters);
+  void fetchMCLabels(const PixelData* pix, int *labels, int &nfilled) const;
 
+  ChipPixelData mChipData;   ///< single chip data provided by the reader
+  
   Int_t mColumn1[kMaxRow+2];
   Int_t mColumn2[kMaxRow+2];
   Int_t *mCurr, *mPrev;
   
-  using Pixel = std::pair<UShort_t,UShort_t>;
   using NextIndex = Int_t;
-  std::vector< std::pair<NextIndex, Pixel> > mPixels;
+  std::vector< std::pair<NextIndex, const PixelData*> > mPixels;
 
-  using MCLabel = Int_t;
   using FirstIndex = Int_t;
-  std::vector< std::pair<FirstIndex,MCLabel> > mPreClusterHeads;
+  std::vector< FirstIndex > mPreClusterHeads;
   
   std::vector<Int_t> mPreClusterIndices;
   
@@ -65,6 +72,8 @@ namespace ITS
   static Float_t mPitchX, mPitchZ; ///< Pixel pitch in X and Z (cm)
   static Float_t mX0, mZ0;         ///< Local X and Y coordinates (cm) of the very 1st pixel
 };
+
+
 
 }
 }

@@ -65,6 +65,8 @@ class Cluster : public FairTimeStamp
          kTruncateMask = 0x8000 };
 #endif
  public:
+  static constexpr int maxLabels=3;
+
   Cluster();
   Cluster(const Cluster& cluster);
   ~Cluster() override;
@@ -74,7 +76,7 @@ class Cluster : public FairTimeStamp
   //****** Basic methods ******************
   void setLabel(Int_t lab, Int_t i)
   {
-    if (i >= 0 && i < 3)
+    if (i >= 0 && i < maxLabels)
       mTracks[i] = lab;
   }
   void setX(Float_t x) { mX = x; }
@@ -141,8 +143,8 @@ class Cluster : public FairTimeStamp
   Int_t getNPix() const { return (mNxNzN >> kOffsNPix) & kMaskNPix; }
   Int_t getClusterUsage() const { return (mNxNzN >> kOffsClUse) & kMaskClUse; }
   //
-  void setQ(UShort_t q) { mCharge = q; }
-  Int_t getQ() const { return mCharge; }
+  UInt_t getROFrame()         const {return mROFrame;}
+  void   setROFrame(UInt_t v)       {mROFrame = v;}
   //
   UShort_t getRecoInfo() const { return mRecoInfo; }
   void setRecoInfo(UShort_t v)
@@ -177,16 +179,16 @@ class Cluster : public FairTimeStamp
   //
  protected:
   //
-  Int_t mTracks[3];   ///< MC labels
+  Int_t mTracks[maxLabels];   ///< MC labels
   Float_t mX;         ///< X of the cluster in the tracking c.s.
   Float_t mY;         ///< Y of the cluster in the tracking c.s.
   Float_t mZ;         ///< Z of the cluster in the tracking c.s.
   Float_t mSigmaY2;   ///< Sigma Y square of cluster
   Float_t mSigmaZ2;   ///< Sigma Z square of cluster
   Float_t mSigmaYZ;   ///< Non-diagonal element of cov.matrix
+  UInt_t  mROFrame;   ///< RO Frame
   UShort_t mVolumeId; ///< Volume ID of the detector element
 
-  UShort_t mCharge;        ///< charge (for MC studies only)
   UShort_t mRecoInfo;      //!< space reserved for reco time manipulations
   Int_t mNxNzN;            ///< effective cluster size in X (1st byte) and Z (2nd byte) directions
                            ///< and total Npix(next 9 bits).

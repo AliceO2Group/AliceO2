@@ -29,6 +29,7 @@ namespace ITS
 class Cluster : public o2::ITSMFT::Cluster
 {
  public:
+  
   Cluster();
   Cluster(const Cluster& cluster);
   ~Cluster() override;

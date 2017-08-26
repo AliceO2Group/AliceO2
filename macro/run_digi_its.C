@@ -13,7 +13,10 @@
   #include "ITSSimulation/DigitizerTask.h"
 #endif
 
-void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp=kFALSE){
+void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp=kTRUE, Float_t rate=50.e3)
+{
+  // if rate>0 then continuous simulation for this rate will be performed
+  
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
         logger->SetLogVerbosityLevel("LOW");
@@ -34,6 +37,8 @@ void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp=k
         fRun->SetSource(fFileSource);
         fRun->SetOutputFile(outputfile.str().c_str());
 
+	if (rate>0) fFileSource->SetEventMeanTime(1.e9/rate); //is in us
+	
         // Setup Runtime DB
         FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
         FairParRootFileIo* parInput1 = new FairParRootFileIo();
@@ -43,6 +48,8 @@ void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp=k
         // Setup digitizer
         // Call o2::ITS::DigitizerTask(kTRUE) to activate the ALPIDE simulation
         o2::ITS::DigitizerTask *digi = new o2::ITS::DigitizerTask(alp);
+	digi->setContinuous(rate>0);
+	digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
         fRun->AddTask(digi);
 
         fRun->Init();

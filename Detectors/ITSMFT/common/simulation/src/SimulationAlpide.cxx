@@ -15,6 +15,7 @@
 #include <TLorentzVector.h>
 #include <TClonesArray.h>
 #include <TSeqCollection.h>
+#include <climits>
 
 #include "FairLogger.h"
 
@@ -23,29 +24,12 @@
 #include "ITSMFTSimulation/SimulationAlpide.h"
 #include "ITSMFTSimulation/SimuClusterShaper.h"
 #include "ITSMFTSimulation/Point.h"
-#include "ITSMFTSimulation/DigitContainer.h"
+#include "ITSMFTSimulation/DigiParams.h"
+
 
 using namespace o2::ITSMFT;
 
-//______________________________________________________________________
-SimulationAlpide::SimulationAlpide():
-Chip() {
-  for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=0.;
-}
-
-//______________________________________________________________________
-SimulationAlpide::SimulationAlpide(Double_t par[NumberOfParameters], Int_t n, const TGeoHMatrix *m):
-Chip(n,m) {
-  for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=par[i];
-}
-
-
-//______________________________________________________________________
-SimulationAlpide::SimulationAlpide(const SimulationAlpide &s):
-Chip(s) {
-  for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=s.mParam[i];
-}
-
+constexpr float sec2ns = 1e9;
 
 //______________________________________________________________________
 Double_t SimulationAlpide::betaGammaFunction(Double_t Par0, Double_t Par1, Double_t Par2, Double_t x) const {
@@ -56,8 +40,10 @@ Double_t SimulationAlpide::betaGammaFunction(Double_t Par0, Double_t Par1, Doubl
 
 
 //______________________________________________________________________
-Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x) const {
-  Double_t evalX = betaGammaFunction(mParam[ACSFromBGPar0], mParam[ACSFromBGPar1], mParam[ACSFromBGPar2], x);
+Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x) const
+{
+  Double_t evalX = betaGammaFunction(mParams->getACSFromBGPar0(), mParams->getACSFromBGPar1(),
+				     mParams->getACSFromBGPar2(), x);
   return evalX;
 }
 
@@ -98,7 +84,7 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
   glob[1] = dir.Py()/dir.P();
   glob[2] = dir.Pz()/dir.P();
 
-  Chip::globalToLocalVector(glob, loc);
+  globalToLocalVector(glob, loc);
 
   TVector3 pdirection(loc[0], loc[1], loc[2]);
   TVector3 normal(0., -1., 0.);
@@ -114,95 +100,162 @@ void SimulationAlpide::updateACSWithAngle(Double_t& acs, Double_t angle) const {
   acs = acs/TMath::Power(TMath::Cos(angle*TMath::Pi()/180.), 0.7873);
 }
 
-
 //______________________________________________________________________
-void SimulationAlpide::addNoise(Double_t mean, const SegmentationPixel* seg, DigitContainer *digitContainer) {
-  UInt_t row = 0;
-  UInt_t col = 0;
-  Int_t nhits = 0;
-  Int_t chipId = Chip::GetChipIndex();
-  nhits = gRandom->Poisson(mean);
-  for (Int_t i = 0; i < nhits; ++i) {
-    row = gRandom->Integer(seg->getNumberOfRows());
-    col = gRandom->Integer(seg->getNumberOfColumns());
-    Digit *noiseD = digitContainer->addDigit(chipId, row, col, 0., 0.);
-    noiseD->setLabel(0, -1);
+void SimulationAlpide::Points2Digits(const SegmentationPixel *seg, Double_t eventTime, UInt_t &minFr, UInt_t &maxFr)
+{
+  Int_t nhits = GetNumberOfPoints();
+
+  // convert hits to digits, returning the min and max RO frames processed
+  //
+  // addNoise(mParam[Noise], seg);
+  // RS: attention: the noise will be added just before transferring the digits of the given frame to the output,
+  // because at this stage we don't know to which RO frame the noise should be added
+
+  for (Int_t h = 0; h < nhits; ++h) {
+
+    const Point *hit = GetPointAt(h);
+    double hTime0 = hit->GetTime()*sec2ns + eventTime - mParams->getTimeOffset(); // time from the RO start, in ns
+    if (hTime0 > UINT_MAX) {
+      LOG(WARNING) << "Hit RO Frame undefined: time: " << hTime0 << " is in far future: hitTime: "
+		   << hit->GetTime() << " EventTime: " << eventTime << " ChipOffset: "
+		   << mParams->getTimeOffset() << FairLogger::endl;
+      return;
+    }
+    
+    // calculate RO Frame for this hit
+    UInt_t roframe = static_cast<UInt_t>(hTime0);
+    roframe /= mParams->getROFrameLenght();
+    if (roframe<minFr) minFr = roframe;
+    if (roframe>maxFr) maxFr = roframe;
+    
+    // check if the hit time is not in the dead time of the chip
+    if ( mParams->getROFrameLenght() - roframe%mParams->getROFrameLenght() < mParams->getROFrameDeadTime()) continue;
+
+    switch (mParams->getPoint2DigitsMethod()) {
+    case DigiParams::p2dCShape :
+      Point2DigitsCShape(hit, roframe, eventTime, seg);
+      break;
+    case DigiParams::p2dSimple :
+      Point2DigitsSimple(hit, roframe, eventTime, seg);
+      break;
+    default:
+      LOG(ERROR) << "Unknown point to digit mode " <<  mParams->getPoint2DigitsMethod() << FairLogger::endl;
+      break;
+    }
   }
 }
 
+//________________________________________________________________________
+void SimulationAlpide::Point2DigitsCShape(const Point *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
+{
+  // convert single hit to digits with CShape generation method
+  Double_t x0, x1, y0, y1, z0, z1, tof, de;
+  if (!LineSegmentLocal(hit, x0, x1, y0, y1, z0, z1, tof, de)) return;
+  double hTime  = hit->GetTime()*sec2ns + eventTime; // time in ns
+  
+  // To local coordinates
+  Float_t x = x0 + 0.5*x1;
+  Float_t y = y0 + 0.5*y1;
+  Float_t z = z0 + 0.5*z1;
+  
+  TLorentzVector trackP4;
+  trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
+  Double_t beta = std::min(0.99999, trackP4.Beta());
+  Double_t bgamma = beta / std::sqrt(1. - beta*beta);
+  if (bgamma < 0.001) return;
+  Double_t effangle = computeIncidenceAngle(trackP4);
+  
+  // Get the pixel ID
+  Int_t ix, iz;
+  if (!seg->localToDetector(x, z, ix, iz)) return;
+  
+  Double_t acs = getACSFromBetaGamma(bgamma);
+  updateACSWithAngle(acs, effangle);
+  UInt_t cs = getPixelPositionResponse(seg, ix, iz, x, z, acs);
+  // cs = 6; // uncomment to set the cluster size manually
+  
+  // Create the shape
+  std::vector<UInt_t> cshape;
+  auto csManager = std::make_unique<SimuClusterShaper>(cs);
+  csManager->SetFireCenter(true);
+  
+  csManager->SetHit(ix, iz, x, z, seg);
+  csManager->FillClusterSorted();
+  
+  cs = csManager->GetCS();
+  csManager->GetShape(cshape);
+  UInt_t nrows = csManager->GetNRows();
+  UInt_t ncols = csManager->GetNCols();
+  Int_t cx = csManager->GetCenterC();
+  Int_t cz = csManager->GetCenterR();
+  
+  LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+  LOG(DEBUG) << "_/_/_/ pALPIDE debug  _/_/_/" << FairLogger::endl;
+  LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+  LOG(DEBUG) << " Beta*Gamma: " << bgamma << FairLogger::endl;
+  LOG(DEBUG) << "        ACS: " << acs << FairLogger::endl;
+  LOG(DEBUG) << "         CS: " <<  cs << FairLogger::endl;
+  LOG(DEBUG) << "      Shape: " << ClusterShape::ShapeSting(cshape).c_str() << FairLogger::endl;
+  LOG(DEBUG) << "     Center: " << cx << ' ' << cz << FairLogger::endl;
+  LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+  
+  for (Int_t ipix = 0; ipix < cs; ++ipix) {
+    Int_t r = (Int_t) cshape[ipix] / nrows;
+    Int_t c = (Int_t) cshape[ipix] % nrows;
+    Int_t nx = ix - cx + c;
+    if (nx<0) continue;
+    if (nx>=seg->getNumberOfRows()) continue;
+    Int_t nz = iz - cz + r;
+    if (nz<0) continue;
+    if (nz>=seg->getNumberOfColumns()) continue;
+    Double_t charge = hit->GetEnergyLoss();
+    addDigit(roFrame,nx,nz,charge,hit->GetTrackID(),hTime);
+  }
+
+}
+
+//________________________________________________________________________
+void SimulationAlpide::Point2DigitsSimple(const Point *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
+{
+  // convert single hit to digits with 1 to 1 mapping
+  Double_t x = 0.5 * (hit->GetX() + hit->GetStartX());
+  Double_t y = 0.5 * (hit->GetY() + hit->GetStartY());
+  Double_t z = 0.5 * (hit->GetZ() + hit->GetStartZ());
+  Double_t charge = hit->GetEnergyLoss();
+  Int_t label = hit->GetTrackID();
+  double hTime  = hit->GetTime()*sec2ns + eventTime; // time in ns
+
+  const Double_t glo[3] = { x, y, z };
+  Double_t loc[3] = { 0., 0., 0. };
+  mMat->MasterToLocal(glo, loc);
+  Int_t ix, iz;
+  seg->localToDetector(loc[0], loc[2], ix, iz);
+  if ((ix < 0) || (iz < 0)) {
+    LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
+    return;
+  }
+  addDigit(roFrame, ix, iz, charge, hit->GetTrackID(),hTime);
+}
 
 //______________________________________________________________________
-void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer *digitContainer) {
-  Int_t nhits = Chip::GetNumberOfPoints();
+void SimulationAlpide::addNoise(const SegmentationPixel* seg, UInt_t rofMin, UInt_t rofMax)
+{
+  UInt_t row = 0;
+  UInt_t col = 0;
+  Int_t nhits = 0;
+  constexpr float ns2sec = 1e-9;
 
-  // Add noise to the chip
-  addNoise(mParam[Noise], seg, digitContainer);
-
-  if (nhits <= 0) return;
-  for (Int_t h = 0; h < nhits; ++h) {
-    Double_t x0, x1, y0, y1, z0, z1, tof, de;
-    if (!Chip::LineSegmentLocal(h, x0, x1, y0, y1, z0, z1, tof, de)) continue;
-
-    // To local coordinates
-    Float_t x = x0 + 0.5*x1;
-    Float_t y = y0 + 0.5*y1;
-    Float_t z = z0 + 0.5*z1;
-
-    const Point *hit = Chip::GetPointAt(h);
-    TLorentzVector trackP4;
-    trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
-    Double_t beta = std::min(0.99999, trackP4.Beta());
-    Double_t bgamma = beta / std::sqrt(1. - beta*beta);
-    if (bgamma < 0.001) continue;
-    Double_t effangle = computeIncidenceAngle(trackP4);
-
-    // Get the pixel ID
-    Int_t ix, iz;
-    if (!seg->localToDetector(x, z, ix, iz)) continue;
-
-    Double_t acs = getACSFromBetaGamma(bgamma);
-    updateACSWithAngle(acs, effangle);
-    UInt_t cs = getPixelPositionResponse(seg, ix, iz, x, z, acs);
-    //cs = 3; // uncomment to set the cluster size manually
-
-    // Create the shape
-    std::vector<UInt_t> cshape;
-    auto csManager = std::make_unique<SimuClusterShaper>(cs);
-    csManager->SetFireCenter(true);
-
-    csManager->SetHit(ix, iz, x, z, seg);
-    csManager->FillClusterSorted();
-
-    cs = csManager->GetCS();
-    csManager->GetShape(cshape);
-    UInt_t nrows = csManager->GetNRows();
-    UInt_t ncols = csManager->GetNCols();
-    Int_t cx = csManager->GetCenterC();
-    Int_t cz = csManager->GetCenterR();
-
-    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
-    LOG(DEBUG) << "_/_/_/ pALPIDE debug  _/_/_/" << FairLogger::endl;
-    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
-    LOG(DEBUG) << " Beta*Gamma: " << bgamma << FairLogger::endl;
-    LOG(DEBUG) << "        ACS: " << acs << FairLogger::endl;
-    LOG(DEBUG) << "         CS: " <<  cs << FairLogger::endl;
-    LOG(DEBUG) << "      Shape: " << ClusterShape::ShapeSting(cshape).c_str() << FairLogger::endl;
-    LOG(DEBUG) << "     Center: " << cx << ' ' << cz << FairLogger::endl;
-    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
-
-    for (Int_t ipix = 0; ipix < cs; ++ipix) {
-      Int_t r = (Int_t) cshape[ipix] / nrows;
-      Int_t c = (Int_t) cshape[ipix] % nrows;
-      Int_t nx = ix - cx + c;
-      if (nx<0) continue;
-      if (nx>=seg->getNumberOfRows()) continue;
-      Int_t nz = iz - cz + r;
-      if (nz<0) continue;
-      if (nz>=seg->getNumberOfColumns()) continue;
-      Int_t chipID = hit->GetDetectorID();
-      Double_t charge = hit->GetEnergyLoss();
-      Digit *digit = digitContainer->addDigit(chipID, nx, nz, charge, hit->GetTime());
-      digit->setLabel(0, hit->GetTrackID());
+  float mean = mParams->getNoisePerPixel()*seg->getNumberOfPads();
+  float nel = mParams->getThreshold()*1.1;  // RS: TODO: need realistic spectrum of noise abovee threshold
+  
+  for (UInt_t rof = rofMin; rof<=rofMax; rof++) {
+    nhits = gRandom->Poisson(mean);
+    double tstamp = mParams->getTimeOffset()+rof*mParams->getROFrameLenght(); // time in ns
+    for (Int_t i = 0; i < nhits; ++i) {
+      row = gRandom->Integer(seg->getNumberOfRows());
+      col = gRandom->Integer(seg->getNumberOfColumns());
+      // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
+      addDigit(rof, row, col, nel, -1, tstamp);
     }
   }
 }

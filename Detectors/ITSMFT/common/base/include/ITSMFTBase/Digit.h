@@ -40,7 +40,10 @@ namespace ITSMFT
 class Digit : public FairTimeStamp
 {
  public:
-  /// Default constructor
+
+  static constexpr int maxLabels=3;
+  
+  /// Default constructor  
   Digit();
 
   /// Constructor, initializing values for position, charge and time
@@ -48,7 +51,7 @@ class Digit : public FairTimeStamp
   /// @param pixelindex Index of the pixel within the chip
   /// @param charge Accumulated charge of digit
   /// @param timestamp Time at which the digit was created
-  Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
+  Digit(UShort_t chipindex, UInt_t frame, UShort_t row, UShort_t col, Float_t charge, Double_t timestamp);
 
   /// Destructor
   ~Digit() override;
@@ -77,7 +80,7 @@ class Digit : public FairTimeStamp
   UShort_t getRow() const { return mRow; }
   /// Get the accumulated charged of the digit
   /// @return charge of the digit
-  Double_t getCharge() const { return mCharge; }
+  Float_t getCharge() const { return mCharge; }
   /// Get the labels connected to this digit
   Int_t getLabel(Int_t idx) const { return mLabels[idx]; }
   /// Add Label to the list of Monte-Carlo labels
@@ -95,16 +98,53 @@ class Digit : public FairTimeStamp
 
   /// Set the charge of the digit
   /// @param charge The charge of the the digit
-  void setCharge(Double_t charge) { mCharge = charge; }
+  void setCharge(Float_t charge) { mCharge = charge; }
+
+  /// Add charge to the digit, registering the label if provided
+  void addCharge(Float_t charge, int lbl=-1) {
+    mCharge += charge;
+    if (lbl<0) return;
+    for (int i=0;i<maxLabels;i++) {
+      if (mLabels[i] == lbl) break; // label was already added
+      if (mLabels[i] < 0) {
+	mLabels[i] = lbl;
+      }
+    }
+  }
+
   /// Check whether digit is equal to other digit.
   /// Comparison is done based on the chip index and pixel index
   /// @param other The digit to compare with
   /// @return True if digits are equal, false otherwise
+
+  /// Get the RO frame ID, stripping overflow part
+  UInt_t getROFrame()         const {return mROFrame>>ROFrameOverFlowBits;}
+
+  /// Get the number of extra RO frames the signal will propagate
+  Int_t  getNOverflowFrames() const {return mROFrame & ROFrameOverFlowMask;}
+
+  /// Set RO frame ID (no overflow recorded)
+  void  setROFrame(UInt_t v)        {mROFrame = v<<ROFrameOverFlowBits;}
+
+  /// Set number of overflow RO frames
+  void  setNOverflowFrames(Int_t n)  {mROFrame &= ROFrameMask; mROFrame |= n&ROFrameOverFlowMask;}
+
+  /// Get global ordering key made of readout frame, column and row
+  static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col) {
+    return (static_cast<ULong64_t>(roframe)<<(8*sizeof(UInt_t))) + (col<<(8*sizeof(Short_t))) + row;
+  } 
+
+  /// Get ROFrame from the ordering key
+  static UInt_t key2ROFrame(ULong64_t key) {
+    return static_cast<UInt_t>(key>>(8*(sizeof(UInt_t)+ROFrameOverFlowBits)));
+  }
+  
   bool equal(FairTimeStamp* other) override
   {
     Digit* mydigi = dynamic_cast<Digit*>(other);
     if (mydigi) {
-      if (mChipIndex == mydigi->getChipIndex() && mCol == mydigi->getColumn() && mRow == mydigi->getRow()) {
+      if (mChipIndex == mydigi->getChipIndex() && mCol == mydigi->getColumn() &&
+	  mRow == mydigi->getRow() && getROFrame() == mydigi->getROFrame()) {
         return true;
       }
     }
@@ -154,6 +194,7 @@ class Digit : public FairTimeStamp
     ar& mRow;
     ar& mCol;
     ar& mCharge;
+    ar& mROFrame;
     ar& mLabels;
   }
 
@@ -166,10 +207,15 @@ class Digit : public FairTimeStamp
   UShort_t mChipIndex; ///< Chip index
   UShort_t mRow;       ///< Pixel index in X
   UShort_t mCol;       ///< Pixel index in Z
-  Double_t mCharge;    ///< Accumulated charge
-  Int_t mLabels[3];    ///< Particle labels associated to this digit
+  Float_t  mCharge;    ///< Accumulated charge
+  UInt_t   mROFrame;   ///< readout frame ID + number of following frames the signal propagates 
+  Int_t mLabels[maxLabels];    ///< Particle labels associated to this digit
 
-  ClassDefOverride(Digit, 2);
+  static constexpr int    ROFrameOverFlowBits = 3;   ///< max bits occupied by ROFrame overflow record
+  static constexpr UInt_t ROFrameOverFlowMask = (0x1<<ROFrameOverFlowBits)-1; //< mask for ROFrame overflow record
+  static constexpr UInt_t ROFrameMask = ~ROFrameOverFlowMask; //< mask for ROFrame record
+  
+  ClassDefOverride(Digit, 3);
 };
 }
 }

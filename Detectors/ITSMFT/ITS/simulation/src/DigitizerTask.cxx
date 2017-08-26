@@ -16,7 +16,6 @@
 //
 //
 
-#include "ITSMFTSimulation/DigitContainer.h"
 #include "ITSSimulation/DigitizerTask.h"
 
 #include "FairLogger.h"      // for LOG
@@ -24,13 +23,14 @@
 #include "TClonesArray.h"    // for TClonesArray
 #include "TObject.h"         // for TObject
 
+
 ClassImp(o2::ITS::DigitizerTask)
 
-using o2::ITSMFT::DigitContainer;
 using namespace o2::ITS;
+using namespace o2::ITSMFT;
 
 DigitizerTask::DigitizerTask(Bool_t useAlpide)
-  : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mPointsArray(nullptr), mDigitsArray(nullptr)
+  : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer()
 {
 }
 
@@ -63,19 +63,39 @@ InitStatus DigitizerTask::Init()
   mDigitsArray = new TClonesArray("o2::ITSMFT::Digit");
   mgr->Register("ITSDigit", "ITS", mDigitsArray, kTRUE);
 
+  DigiParams param; // RS: TODO: Eventually load this from the CCDB
+
+  param.setContinuous(mContinuous);
+  param.setPointDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
+  mDigitizer.setDigiParams(param);
+
+  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
+  
   mDigitizer.init(kTRUE);
 
   return kSUCCESS;
 }
 
+//________________________________________________________
 void DigitizerTask::Exec(Option_t* option)
 {
+  FairRootManager* mgr = FairRootManager::Instance();
+
   mDigitsArray->Clear();
+  mDigitizer.setEventTime(mgr->GetEventTime());
+
+  // the type of digitization is steered by the DigiParams object of the Digitizer
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
-  if (!mUseAlpideSim) {
-    DigitContainer& digits = mDigitizer.process(mPointsArray);
-    digits.fillOutputContainer(mDigitsArray);
-  } else {
-    mDigitizer.process(mPointsArray, mDigitsArray); // ALPIDE response
-  }
+  mDigitizer.process(mPointsArray,mDigitsArray);
+}
+
+//________________________________________________________
+void DigitizerTask::FinishTask()
+{
+  // finalize digitization, if needed, flash remaining digits
+  if(!mContinuous) return;
+  FairRootManager *mgr = FairRootManager::Instance();
+  mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
+  mDigitsArray->Clear();
+  mDigitizer.fillOutputContainer(mDigitsArray);
 }
