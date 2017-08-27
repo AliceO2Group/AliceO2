@@ -19,8 +19,12 @@
 
 #pragma link C++ namespace o2::mathUtils::mathBase;
 
-#pragma link C++ function o2::mathBase::mathBase::fitGaus<float>;
-#pragma link C++ function o2::mathBase::mathBase::fitGaus<double>;
+#pragma link C++ function o2::mathUtils::mathBase::fitGaus<float>;
+#pragma link C++ function o2::mathUtils::mathBase::fitGaus<double>;
+
+#pragma link C++ function o2::mathUtils::mathBase::getStatisticsData<float>;
+#pragma link C++ function o2::mathUtils::mathBase::getStatisticsData<double>;
+#pragma link C++ function o2::mathUtils::mathBase::getStatisticsData<short>;
 
 #pragma link C++ class o2::Base::Transform3D+;
 #pragma link C++ class o2::Base::Rotation2D+;

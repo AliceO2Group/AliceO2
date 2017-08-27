@@ -14,6 +14,8 @@
 /// \file   MathBase.h
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#include <cmath>
+
 #include "Rtypes.h"
 #include "TLinearFitter.h"
 #include "TVectorD.h"
@@ -154,6 +156,66 @@ namespace mathBase {
     }
     return chi2;
   
+  }
+
+  /// struct for returning statistical parameters
+  ///
+  /// \todo make type templated?
+  /// \todo use Vc
+  struct StatisticsData {
+    double mCOG{0}; ///< calculated centre of gravity
+    double mStdDev{0}; ///< standard deviation
+    double mSum{0};    ///< sum of values
+  };
+
+  /// calculate statistical parameters on an array
+  ///
+  /// The function assumes a binned array of
+  /// \param nBins size of the array
+  /// \param xMin lower histogram bound
+  /// \param xMax upper histogram bound
+  /// \todo make return type templated?
+  template <typename T>
+  StatisticsData getStatisticsData(const T* arr, const size_t nBins, const double xMin, const double xMax)
+  {
+    double mean = 0;
+    double rms2 = 0;
+    double sum  = 0;
+    size_t npoints = 0;
+
+    double binWidth = (xMax-xMin)/(double)nBins;
+
+    StatisticsData data;
+    // in case something went wrong the COG is the histogram lower limit
+    data.mCOG = xMin; 
+
+    for (size_t ibin=0; ibin<nBins; ++ibin) {
+      double entriesI = (double)arr[ibin];
+      double xcenter = xMin+(ibin+0.5)*binWidth; // +0.5 to shift to bin centre
+      if ( entriesI>0 ) {
+        mean += xcenter*entriesI;
+        rms2 += xcenter*entriesI*xcenter;
+        sum  += entriesI;
+        ++npoints;
+      }
+    }
+    if ( sum == 0 ) return data;
+    mean/=sum;
+
+    data.mCOG = mean;
+    // exception in case of only one bin is filled
+    // set the standard deviation to bin width over sqrt(12)
+    rms2 /= sum;
+    if (npoints == 1) {
+      data.mStdDev = binWidth/std::sqrt(12.);
+    }
+    else {
+      data.mStdDev = std::sqrt(std::abs(rms2-mean*mean));
+    }
+
+    data.mSum = sum;
+
+    return data;
   }
 
 } // namespace mathBase
