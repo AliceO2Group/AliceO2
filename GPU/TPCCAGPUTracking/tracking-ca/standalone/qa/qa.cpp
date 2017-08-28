@@ -21,28 +21,43 @@
 #include "TColor.h"
 #include "TPaveText.h"
 #include "TF1.h"
+#include "TFile.h"
 
 struct additionalMCParameters
 {
 	float pt, phi, theta, eta;
 };
 
+struct additionalClusterParameters
+{
+	int attached, fakeAttached;
+	float pt;
+};
+
 std::vector<int> trackMCLabels;
 std::vector<int> trackMCLabelsReverse;
 std::vector<int> recTracks;
 std::vector<int> fakeTracks;
+std::vector<additionalClusterParameters> clusterParam;
 std::vector<additionalMCParameters> mcParam;
 static int totalFakes = 0;
 
 static TH1F* eff[4][2][2][5][2]; //eff,clone,fake - findable - secondaries - y,z,phi,eta,pt,ptlog - work,result
-static TH1F* res[5][5][2]; //y,z,phi,lambda,pt,ptlog - see above - res,mean
-static TH2F* res2[5][5];
 static TCanvas *ceff[6];
 static TPad* peff[6][4];
 static TLegend* legendeff[6];
+
+static TH1F* res[5][5][2]; //y,z,phi,lambda,pt,ptlog - see above - res,mean
+static TH2F* res2[5][5];
 static TCanvas *cres[7];
 static TPad* pres[7][5];
 static TLegend* legendres[6];
+
+static TH1F* clusters[11]; //attached, fakeAttached, tracks, all, attachedRel, fakeAttachedRel, treaksRel, attachedInt, fakeAttachedInt, treaksInt, AllInt
+static TCanvas* cclust[3];
+static TPad* pclust[3];
+static TLegend* legendclust[3];
+
 static bool init = false;
 
 #define DEBUG 0
@@ -58,6 +73,7 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 #define PT_MIN 0.015
 #define PT_MIN2 0.1
 #define PT_MIN_PRIM 0.1
+#define PT_MIN_CLUST 0.015
 #define PT_MAX 20
 #define ETA_MAX 1.5
 #define ETA_MAX2 0.9
@@ -78,6 +94,8 @@ static const char* EfficiencyTitles[4] = {"Efficiency (Primary Tracks, Findable)
 static const double Scale[5] = {10., 10., 1000., 1000., 100.};
 static const char* XAxisTitles[5] = {"y_{mc} [cm]", "z_{mc} [cm]", "#Phi_{mc} [rad]", "#eta_{mc}", "p_{Tmc} [Gev/c]"};
 static const char* AxisTitles[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "#phi-#phi_{mc} [mrad] (Resolution)", "#lambda-#lambda_{mc} [mrad] (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} [%] (Resolution)"};
+static const char* ClustersNames[4] = {"Correctly attached clusters", "Fake attached clusters", "Clusters of reconstructed tracks", "All clusters"};
+static const char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
 static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
 static double legendSpacingString = 0;
@@ -114,7 +132,7 @@ static double* CreateLogAxis(int nbins, double xmin, double xmax)
 	return xbins;
 }
 
-static void ChangePadTitleSize(TPad* p, Double_t size)
+static void ChangePadTitleSize(TPad* p, double size)
 {
 	p->Update();
 	TPaveText *pt = (TPaveText*)(p->GetPrimitive("title")); 
@@ -144,7 +162,7 @@ void RunQA()
 	//Create Histograms
 	if (init == false)
 	{
-		for (Int_t i = 0;i < ColorCount;i++)
+		for (int i = 0;i < ColorCount;i++)
 		{
 			float f1 = (float) ((colorsHex[i] >> 16) & 0xFF) / (float) 0xFF;
 			float f2 = (float) ((colorsHex[i] >> 8) & 0xFF) / (float) 0xFF;
@@ -214,6 +232,15 @@ void RunQA()
 				}
 			}
 		}
+		
+		//Create Cluster Histograms
+		for (int i = 0;i < 11;i++)
+		{
+			sprintf(name, "clusters_%d", i);
+			double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
+			clusters[i] = new TH1F(name, name, axis_bins[4], binsPt);
+			delete[] binsPt;
+		}
 	}
 
 	//Initialize Arrays
@@ -227,6 +254,8 @@ void RunQA()
 	memset(recTracks.data(), 0, recTracks.size() * sizeof(recTracks[0]));
 	memset(fakeTracks.data(), 0, fakeTracks.size() * sizeof(fakeTracks[0]));
 	for (size_t i = 0;i < trackMCLabelsReverse.size();i++) trackMCLabelsReverse[i] = -1;
+	clusterParam.resize(hlt.GetNMCLabels());
+	memset(clusterParam.data(), 0, clusterParam.size() * sizeof(clusterParam[0]));
 	totalFakes = 0;
 
 	//Assign Track MC Labels
@@ -289,6 +318,20 @@ void RunQA()
 				curcount++;
 			}
 		}
+		
+		if (track.OK())
+		{
+			for (int k = 0;k < track.NClusters();k++)
+			{
+				if (merger.ClusterRowType()[track.FirstClusterRef() + k] < 0) continue;
+				int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+				bool correct = false;
+				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == maxLabel.fMCID) {correct=true;break;}
+				if (correct) clusterParam[hitId].attached++;
+				else clusterParam[hitId].fakeAttached++;
+			}
+		}
+
 		if (maxcount < REC_THRESHOLD * nClusters)
 		{
 			fakeTracks[maxLabel.fMCID]++;
@@ -320,16 +363,17 @@ void RunQA()
 	{
 		const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
 		if (info.fNWeightCls == 0.) continue;
+		float mcpt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
+		float mcphi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
+		float mctheta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
+		float mceta = -TMath::Log(TMath::Tan(0.5 * mctheta));
+		mcParam[i].pt = mcpt; mcParam[i].phi = mcphi; mcParam[i].theta = mctheta; mcParam[i].eta = mceta;
+
 		if (info.fPrim && info.fPrimDaughters) continue;
 		if (info.fNWeightCls < MIN_WEIGHT_CLS) continue;
 		int findable = info.fNWeightCls >= FINDABLE_WEIGHT_CLS;
 		if (info.fPID < 0) continue;
 		if (info.fCharge == 0.) continue;
-		
-		float mcpt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
-		float mcphi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
-		float mctheta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
-		float mceta = -TMath::Log(TMath::Tan(0.5 * mctheta));
 		
 		if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
 		
@@ -356,8 +400,6 @@ void RunQA()
 				}
 			}
 		}
-		
-		mcParam[i].pt = mcpt; mcParam[i].phi = mcphi; mcParam[i].theta = mctheta; mcParam[i].eta = mceta;
 	}
 	
 	//Fill Resolution Histograms
@@ -419,23 +461,51 @@ void RunQA()
 		}
 	}
 	
-
+	//Fill Cluster Histograms
+	for (int i = 0;i < hlt.GetNMCInfo();i++)
+	{
+		const AliHLTTPCCAMCInfo& mc1 = hlt.GetMCInfo()[i];
+		const additionalMCParameters& mc2 = mcParam[i];
+		
+		float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
+		clusters[3]->Fill(pt, mc1.fNWeightCls);
+		if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc1.fNWeightCls);
+	}
+	for (int i = 0;i < hlt.GetNMCLabels();i++)
+	{
+		float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached;
+		if (totalAttached <= 0) continue;
+		float totalWeight = 0.;
+		for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
+		for (int j = 0;j < 3;j++)
+		{
+			if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0)
+			{
+				float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
+				if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
+				clusters[0]->Fill(pt, clusterParam[i].attached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+				clusters[1]->Fill(pt, clusterParam[i].fakeAttached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+			}
+		}
+	}
+	
 	init = true;
 }
 
 void DrawQAHistograms()
 {
 	char name[1024], fname[1024];
+	TFile* tout = new TFile("histograms.root","RECREATE");
 
 	//Create Canvas / Pads for Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
 	{
-		Int_t i = ii == 5 ? 4 : ii;
+		int i = ii == 5 ? 4 : ii;
 		sprintf(fname, "ceff_%d", ii);
 		sprintf(name, "Efficiency versus %s", ParameterNames[i]);
 		ceff[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
 		ceff[ii]->cd();
-		Float_t dy=1./2.;
+		float dy = 1. / 2.;
 		peff[ii][0] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); peff[ii][0]->Draw();peff[ii][0]->SetRightMargin(0.04);
 		peff[ii][1] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); peff[ii][1]->Draw();peff[ii][1]->SetRightMargin(0.04);
 		peff[ii][2] = new TPad( "p2","",0.0,dy*1,0.5,dy*2-.001); peff[ii][2]->Draw();peff[ii][2]->SetRightMargin(0.04);
@@ -447,15 +517,15 @@ void DrawQAHistograms()
 	}
 
 	//Create Canvas / Pads for Resolution Histograms
-	for (Int_t ii = 0;ii < 7;ii++)
+	for (int ii = 0;ii < 7;ii++)
 	{
-		Int_t i = ii == 5 ? 4 : ii;
+		int i = ii == 5 ? 4 : ii;
 		sprintf(fname, "cres_%d", ii);
 		if (ii == 6) sprintf(name, "Integral Resolution");
 		else sprintf(name, "Resolution versus %s", ParameterNames[i]);
 		cres[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
 		cres[ii]->cd();
-		Float_t dy=1./2.;
+		float dy = 1. / 2.;
 		pres[ii][3] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); pres[ii][3]->Draw();pres[ii][3]->SetRightMargin(0.04);
 		pres[ii][4] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); pres[ii][4]->Draw();pres[ii][4]->SetRightMargin(0.04);
 		pres[ii][0] = new TPad( "p2","",0.0,dy*1,1./3.,dy*2-.001); pres[ii][0]->Draw();pres[ii][0]->SetRightMargin(0.04);pres[ii][0]->SetLeftMargin(0.15);
@@ -469,11 +539,22 @@ void DrawQAHistograms()
 			legendres[ii]->SetFillColor(0);
 		}
 	}
+	
+	//Create Canvas for Cluster Histos
+	for (int i = 0;i < 3;i++)
+	{
+		sprintf(fname, "cclust_%d", i);
+		cclust[i] = new TCanvas(fname,ClusterTitles[i],0,0,700,700.*2./3.);
+		cclust[i]->cd();
+		pclust[i] = new TPad( "p0","",0.0,0.0,1.0,1.0);
+		pclust[i]->Draw();
+		legendclust[i] = new TLegend(0.885 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949);
+	}
 
 	//Process / Draw Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
 	{
-		Int_t i = ii == 5 ? 4 : ii;
+		int i = ii == 5 ? 4 : ii;
 		for (int j = 0;j < 4;j++)
 		{
 			peff[ii][j]->cd();
@@ -528,7 +609,7 @@ void DrawQAHistograms()
 	TH1D* resIntegral[5] = {};
 	for (int ii = 0;ii < 6;ii++)
 	{
-		Int_t i = ii == 5 ? 4 : ii;
+		int i = ii == 5 ? 4 : ii;
 		for (int j = 0;j < 5;j++)
 		{
 			if (ii != 5)
@@ -626,7 +707,7 @@ void DrawQAHistograms()
 			tmpMin -= tmpSpan * .02;
 			if (j == 2 && i < 3) tmpMax += tmpSpan * 0.13 * ConfigNumInputs;
 
-			for (Int_t l = 0;l < 2;l++)
+			for (int l = 0;l < 2;l++)
 			{
 				TH1F* e = res[j][i][l];
 				e->SetMaximum(tmpMax);
@@ -658,6 +739,7 @@ void DrawQAHistograms()
 		cres[ii]->Print(fname);
 	}
 	
+	//Process Integral Resolution Histogreams
 	for (int j = 0;j < 5;j++)
 	{
 		pres[6][j]->cd();
@@ -671,4 +753,64 @@ void DrawQAHistograms()
 	}
 	cres[6]->Print("res_integral.pdf");
 	for (int j = 0;j < 5;j++) delete resIntegral[j];
+	
+	//Process Cluster Histograms
+	for (int i = 0;i < 11;i++) clusters[i]->Sumw2();
+	
+	for (int i = 0;i < 4;i++)
+	{
+		double val = 0;
+		for (int j = 1;j < clusters[i]->GetXaxis()->GetNbins() + 2;j++)
+		{
+			val += clusters[i]->GetBinContent(j);
+			clusters[7 + i]->SetBinContent(j, val);
+		}
+	}
+	for (int i = 0;i < 4;i++)
+	{
+		clusters[7 + i]->SetMaximum(clusters[10]->GetMaximum() * 1.02);
+		clusters[7 + i]->SetMinimum(clusters[10]->GetMaximum() * -0.02);
+	}
+	
+	for (int i = 0;i < 3;i++)
+	{
+		clusters[i + 4]->Divide(clusters[i], clusters[3], 1, 1, "B");
+		clusters[i + 4]->SetMinimum(-0.02);
+		clusters[i + 4]->SetMaximum(1.02);
+	}
+	
+	for (int i = 0;i < 4;i++)
+	{
+		clusters[i]->SetMaximum(clusters[3]->GetMaximum() * 1.02);
+		clusters[i]->SetMinimum(clusters[3]->GetMaximum() * -0.02);
+	}
+	
+	for (int i = 0;i < 3;i++)
+	{
+		pclust[i]->cd();
+		pclust[i]->SetLogx();
+		int begin = i == 2 ?  7 : i == 1 ? 4 : 0;
+		int end   = i == 2 ? 11 : i == 1 ? 7 : 4;
+		int numColor = 0;
+		for (int k = begin;k < end;k++)
+		{
+			TH1F* e = clusters[k];
+			const char* options = k == begin ? "" : "same";
+			e->SetStats(kFALSE);
+			e->SetMarkerColor(kBlack);
+			e->SetLineWidth(1);
+			e->SetLineColor(colorNums[numColor++ % ColorCount]);
+			e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
+			e->SetTitle(ClusterTitles[i]);
+			e->Draw(options);
+			legendclust[i]->AddEntry(e, ClustersNames[k - begin], "l");
+		}
+		legendclust[i]->Draw();
+		cclust[i]->cd();
+		cclust[i]->Print(i == 2 ? "clusters_integral.pdf" : i == 1 ? "clusters_relative.pdf" : "clusters.pdf");
+	}
+	
+	for (int i = 0;i < 11;i++) clusters[i]->Write();
+	tout->Close();
+	delete tout;
 }
