@@ -41,6 +41,7 @@ endif ()
 link_directories(
     ${ROOT_LIBRARY_DIR}
     ${FAIRROOT_LIBRARY_DIR}
+    ${Boost_LIBRARY_DIRS}
 )
 if(Pythia6_FOUND)
   link_directories(
@@ -494,6 +495,7 @@ o2_define_bucket(
     FairRoot::FairMQ
     pthread
     Boost::date_time
+    Boost::timer
     ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
