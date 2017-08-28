@@ -7,4 +7,6 @@
 /glpos.tmp
 /output.*.txt
 /output.bin
+/*.pdf
+/*.root
 
