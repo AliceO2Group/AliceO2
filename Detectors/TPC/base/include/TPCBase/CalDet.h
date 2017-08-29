@@ -16,6 +16,9 @@
 #include <vector>
 #include <string>
 #include <boost/format.hpp>
+#include <boost/range/combine.hpp>
+
+#include "FairLogger.h"
 
 #include "TPCBase/Defs.h"
 #include "TPCBase/Mapper.h"
@@ -36,13 +39,23 @@ public:
   CalDet() = default;
   ~CalDet() = default;
 
-  CalDet(PadSubset padSubset);
+  CalDet(PadSubset padSusbset)
+    : mName{"PadCalibrationObject"},
+      mData{},
+      mPadSubset{padSusbset}
+  {
+    initData();
+  }
+
+//______________________________________________________________________________
 
   CalDet(const std::string name) : 
     mName(name),
     mData(),
     mPadSubset(PadSubset::ROC)
-  {}
+  {
+    initData();
+  }
 
   //CalDet(const CalDet& calDet) :
     //mName(calDet.mName),
@@ -73,11 +86,21 @@ public:
   const CalDet& multiply(const T& val) { return *this *= val; }
 
   const CalDet& operator+= (const CalDet& other);
+  const CalDet& operator-= (const CalDet& other);
+  const CalDet& operator*= (const CalDet& other);
+  const CalDet& operator/= (const CalDet& other);
+
+  const CalDet& operator+= (const T& val);
+  const CalDet& operator-= (const T& val);
   const CalDet& operator*= (const T& val);
+  const CalDet& operator/= (const T& val);
 private:
   std::string mName;          ///< name of the object
   std::vector<CalType> mData; ///< internal CalArrays
   PadSubset mPadSubset;       ///< Pad subset granularity
+
+  /// initialize the data array depending on what is set as PadSubset
+  void initData();
 };
 
 //______________________________________________________________________________
@@ -151,6 +174,100 @@ inline const T CalDet<T>::getValue(const CRU cru, const size_t row, const size_t
 template <class T>
 inline const CalDet<T>& CalDet<T>::operator+= (const CalDet& other)
 {
+  // make sure the calibration objects have the same substructure
+  // TODO: perhaps make it independed of this
+  if (mPadSubset != other.mPadSubset) {
+    LOG(ERROR) << "Pad subste type of the objects it not compatible" 
+               << FairLogger::endl;
+    return *this;
+  }
+  // somehow rootcint does not like boost::combine for some reason :(
+  //for (auto& val : boost::combine(mData, other.mData)) {
+    //val.get<0>() += val.get<1>();
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] += other.mData[i];
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalDet<T>& CalDet<T>::operator-= (const CalDet& other)
+{
+  // make sure the calibration objects have the same substructure
+  // TODO: perhaps make it independed of this
+  if (mPadSubset != other.mPadSubset) {
+    LOG(ERROR) << "Pad subste type of the objects it not compatible" 
+               << FairLogger::endl;
+    return *this;
+  }
+  // somehow rootcint does not like boost::combine for some reason :(
+  //for (auto& val : boost::combine(mData, other.mData)) {
+    //val.get<0>() -= val.get<1>();
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] -= other.mData[i];
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalDet<T>& CalDet<T>::operator*= (const CalDet& other)
+{
+  // make sure the calibration objects have the same substructure
+  // TODO: perhaps make it independed of this
+  if (mPadSubset != other.mPadSubset) {
+    LOG(ERROR) << "Pad subste type of the objects it not compatible" 
+               << FairLogger::endl;
+    return *this;
+  }
+  // somehow rootcint does not like boost::combine for some reason :(
+  //for (auto& val : boost::combine(mData, other.mData)) {
+    //val.get<0>() *= val.get<1>();
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] *= other.mData[i];
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalDet<T>& CalDet<T>::operator/= (const CalDet& other)
+{
+  // make sure the calibration objects have the same substructure
+  // TODO: perhaps make it independed of this
+  if (mPadSubset != other.mPadSubset) {
+    LOG(ERROR) << "Pad subste type of the objects it not compatible" 
+               << FairLogger::endl;
+    return *this;
+  }
+  // somehow rootcint does not like boost::combine for some reason :(
+  //for (auto& val : boost::combine(mData, other.mData)) {
+    //val.get<0>() /= val.get<1>();
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] /= other.mData[i];
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalDet<T>& CalDet<T>::operator+= (const T& val)
+{
+  for (auto& cal : mData) {
+    cal += val;
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalDet<T>& CalDet<T>::operator-= (const T& val)
+{
+  for (auto& cal : mData) {
+    cal -= val;
+  }
+  return *this;
 }
 
 //______________________________________________________________________________
@@ -163,13 +280,21 @@ inline const CalDet<T>& CalDet<T>::operator*= (const T& val)
   return *this;
 }
 
+//______________________________________________________________________________
+template <class T>
+inline const CalDet<T>& CalDet<T>::operator/= (const T& val)
+{
+  for (auto& cal : mData) {
+    cal /= val;
+  }
+  return *this;
+}
+
 // ===| Full detector initialisation |==========================================
 template <class T>
-CalDet<T>::CalDet(PadSubset padSusbset)
+void CalDet<T>::initData()
 {
   const auto& mapper = Mapper::instance();
-
-  mPadSubset = padSusbset;
 
   // ---| Define number of sub pad regions |------------------------------------
   size_t size = 0;
