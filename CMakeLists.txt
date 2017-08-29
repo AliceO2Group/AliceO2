@@ -183,6 +183,7 @@ add_subdirectory(macro)
 add_subdirectory(Utilities)
 add_subdirectory(doc)
 add_subdirectory(run)
+add_subdirectory(config)
 
 IF (IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS
