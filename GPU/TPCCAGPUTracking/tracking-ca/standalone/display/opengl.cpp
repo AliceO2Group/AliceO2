@@ -35,6 +35,8 @@ int g_nLastMousePositX = 0;
 int g_nLastMousePositY = 0;
 bool g_bMousing = false;
 
+int screenshot_scale = 2;
+
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #endif
 #include <GL/gl.h>  // Header File For The OpenGL32 Library
@@ -905,16 +907,8 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 
 	float tmpPointSize = pointSize;
 	float tmpLineWidth = lineWidth;
-	//pointSize *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
-	//lineWidth *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
-
-	if (animate)
-	{
-	}
-	else
-	{
-		pointSize *= 2;
-	}
+	pointSize *= (float) (SCALE_X + SCALE_Y) / 2.;
+	lineWidth *= (float) (SCALE_X + SCALE_Y) / 2.;
 
 	GLint view[4], viewold[4];
 	glGetIntegerv(GL_VIEWPORT, viewold);
@@ -923,31 +917,40 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 	view[3] *= SCALE_Y;
 	unsigned char *pixels = (unsigned char *) malloc(4 * view[2] * view[3]);
 
-	memset(pixels, 0, 4 * view[2] * view[3]);
-	unsigned char *pixels2 = (unsigned char *) malloc(4 * view[2] * view[3]);
-	for (int i = 0; i < SCALE_X; i++)
+	if (SCALE_X != 1 || SCALE_Y != 1)
 	{
-		for (int j = 0; j < SCALE_Y; j++)
+		memset(pixels, 0, 4 * view[2] * view[3]);
+		unsigned char *pixels2 = (unsigned char *) malloc(4 * view[2] * view[3]);
+		for (int i = 0; i < SCALE_X; i++)
 		{
-			glViewport(-i * viewold[2], -j * viewold[3], view[2], view[3]);
-
-			DrawGLScene();
-			glPixelStorei(GL_PACK_ALIGNMENT, 1);
-			glReadBuffer(GL_BACK);
-			glReadPixels(0, 0, view[2], view[3], GL_RGBA, GL_UNSIGNED_BYTE, pixels2);
-			for (int k = 0; k < viewold[2]; k++)
+			for (int j = 0; j < SCALE_Y; j++)
 			{
-				for (int l = 0; l < viewold[3]; l++)
+				glViewport(-i * viewold[2], -j * viewold[3], view[2], view[3]);
+
+				DrawGLScene();
+				glPixelStorei(GL_PACK_ALIGNMENT, 1);
+				glReadBuffer(GL_BACK);
+				glReadPixels(0, 0, view[2], view[3], GL_RGBA, GL_UNSIGNED_BYTE, pixels2);
+				for (int k = 0; k < viewold[2]; k++)
 				{
-					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4] = pixels2[(l * view[2] + k) * 4 + 2];
-					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 1] = pixels2[(l * view[2] + k) * 4 + 1];
-					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 2] = pixels2[(l * view[2] + k) * 4];
-					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 3] = 0;
+					for (int l = 0; l < viewold[3]; l++)
+					{
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4] = pixels2[(l * view[2] + k) * 4 + 2];
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 1] = pixels2[(l * view[2] + k) * 4 + 1];
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 2] = pixels2[(l * view[2] + k) * 4];
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 3] = 0;
+					}
 				}
 			}
 		}
+		free(pixels2);
 	}
-	free(pixels2);
+	else
+	{
+		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+		glReadBuffer(GL_BACK);
+		glReadPixels(0, 0, view[2], view[3], GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+	}
 
 	if (mixBuffer)
 	{
@@ -975,7 +978,7 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 		memset(&bmpIH, 0, sizeof(bmpIH));
 
 		bmpFH.bfType = 19778; //"BM"
-		bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + 3 * view[2] * view[3];
+		bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + 4 * view[2] * view[3];
 		bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
 
 		bmpIH.biSize = sizeof(bmpIH);
@@ -983,6 +986,10 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 		bmpIH.biHeight = view[3];
 		bmpIH.biPlanes = 1;
 		bmpIH.biBitCount = 32;
+		bmpIH.biCompression = BI_RGB;
+		bmpIH.biSizeImage = view[2] * view[3] * 4;
+		bmpIH.biXPelsPerMeter = 5670;
+		bmpIH.biYPelsPerMeter = 5670;
 
 		fwrite(&bmpFH, 1, sizeof(bmpFH), fp);
 		fwrite(&bmpIH, 1, sizeof(bmpIH), fp);
@@ -1113,7 +1120,7 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == 'T')
 	{
 		printf("Taking Screenshot\n");
-		DoScreenshot("screenshot.bmp", 3);
+		DoScreenshot("screenshot.bmp", screenshot_scale);
 	}
 	else if (wParam == 'O')
 	{
