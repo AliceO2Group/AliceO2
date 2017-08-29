@@ -1739,14 +1739,14 @@ void *OpenGLMain(void *ptr)
 
 	// Request the X window to be displayed on the screen
 	XMapWindow(g_pDisplay, g_window);
+	
+	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
+    XSetWMProtocols(g_pDisplay, g_window, &WM_DELETE_WINDOW, 1);	
 
 	// Init OpenGL...
 	init();
 
-	//
-	// Enter the render loop and don't forget to dispatch X events as
-	// they occur.
-	//
+	// Enter the render loop and don't forget to dispatch X events as they occur.
 	
 	XMapWindow(g_pDisplay, g_window);
 	XFlush(g_pDisplay);
@@ -1851,6 +1851,13 @@ void *OpenGLMain(void *ptr)
 					glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
 					ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
 				}
+				break;
+				
+				case ClientMessage:
+				{
+					buttonPressed = 2;
+				}
+				break;
 			}
 		} while (XPending(g_pDisplay)); // Loop to compress events
 		if (buttonPressed == 2) break;
