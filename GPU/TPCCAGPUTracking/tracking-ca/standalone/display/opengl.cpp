@@ -1579,18 +1579,6 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 					SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 				}
 			}
-
-			/*if (keys[VK_F1])						// Is F1 Being Pressed?
-			{
-				keys[VK_F1]=FALSE;					// If So Make Key FALSE
-				KillGLWindow();						// Kill Our Current Window
-				fullscreen=!fullscreen;				// Toggle Fullscreen / Windowed Mode
-				// Recreate Our OpenGL Window
-				if (!CreateGLWindow("NeHe's OpenGL Framework",640,480,16,fullscreen))
-				{
-					return 0;						// Quit If Window Was Not Created
-				}
-			}*/
 		}
 	}
 
@@ -1716,8 +1704,8 @@ void *OpenGLMain(void *ptr)
 	// Create an X window with the selected visual
 	g_window = XCreateWindow(g_pDisplay,
 	                         win,
-	                         0, 0,     // x/y position of top-left outside corner of the window
-	                         3840, 2000, // Width and height of window
+	                         50, 50,     // x/y position of top-left outside corner of the window
+	                         1024, 1024, // Width and height of window
 	                         0,        // Border width
 	                         visualInfo->depth,
 	                         InputOutput,
@@ -1740,8 +1728,22 @@ void *OpenGLMain(void *ptr)
 	// Request the X window to be displayed on the screen
 	XMapWindow(g_pDisplay, g_window);
 	
+	XEvent xev;
+	Atom wm_state  =  XInternAtom(g_pDisplay, "_NET_WM_STATE", False);
+	Atom max_horz  =  XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+	Atom max_vert  =  XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+	memset(&xev, 0, sizeof(xev));
+	xev.type = ClientMessage;
+	xev.xclient.window = g_window;
+	xev.xclient.message_type = wm_state;
+	xev.xclient.format = 32;
+	xev.xclient.data.l[0] = 1; //_NET_WM_STATE_ADD
+	xev.xclient.data.l[1] = max_horz;
+	xev.xclient.data.l[2] = max_vert;
+	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
+	
 	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
-    XSetWMProtocols(g_pDisplay, g_window, &WM_DELETE_WINDOW, 1);	
+    XSetWMProtocols(g_pDisplay, g_window, &WM_DELETE_WINDOW, 1);
 
 	// Init OpenGL...
 	init();
