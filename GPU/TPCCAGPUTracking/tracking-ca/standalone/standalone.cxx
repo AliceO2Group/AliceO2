@@ -302,6 +302,7 @@ int main(int argc, char** argv)
 	hlt.SetNWays(nways);
 	if (cont) hlt.SetContinuousTracking(cont);
 	if (dzdr != 0.) hlt.SetSearchWindowDZDR(dzdr);
+	hlt.SetGPUTrackerOption("GlobalTracking", 1);
 	
 	for( int i=0; i < argc; i++ )
 	{
