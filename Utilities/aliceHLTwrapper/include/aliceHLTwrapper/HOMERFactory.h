@@ -38,8 +38,8 @@
 class AliHLTHOMERReader;
 class AliHLTHOMERWriter;
 
-namespace ALICE {
-  namespace HLT {
+namespace o2 {
+  namespace alice_hlt {
 
 /**
  * @class HOMERFactory
@@ -185,6 +185,6 @@ static  int fgLibraryStatus; //!transient
   static const char* fgkLibraries[]; /// List of libraries to try and load.
   static int fgkLibRefCount[]; /// The library reference count to control when to unload the library.
 };
-}    // namespace hlt
-}    // namespace alice
+}    // namespace alice_hlt
+}    // namespace o2
 #endif

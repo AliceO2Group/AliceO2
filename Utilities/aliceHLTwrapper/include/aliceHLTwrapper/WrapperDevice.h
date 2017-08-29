@@ -35,8 +35,8 @@ namespace bpo = boost::program_options;
 
 class FairMQMessage;
 
-namespace ALICE {
-namespace HLT {
+namespace o2 {
+namespace alice_hlt {
 class Component;
 
 /// @class WrapperDevice
@@ -106,6 +106,6 @@ private:
   int mVerbosity;            // verbosity level
 };
 
-} // namespace hlt
-} // namespace alice
+} // namespace alice_hlt
+} // namespace o2
 #endif // WRAPPERDEVICE_H

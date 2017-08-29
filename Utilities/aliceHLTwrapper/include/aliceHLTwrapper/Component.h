@@ -37,8 +37,8 @@ typedef boost::signals2::signal<unsigned char* (unsigned int)> cballoc_signal_t;
 
 namespace bpo = boost::program_options;
 
-namespace ALICE {
-namespace HLT {
+namespace o2 {
+namespace alice_hlt {
 class SystemInterface;
 
 /// @class Component
@@ -122,7 +122,7 @@ public:
   /// the AliHLTComponentBlockData header immediately followed by the block
   /// payload. After processing, handles to output blocks are provided in this
   /// list.
-  int process(std::vector<o2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray,
+  int process(std::vector<o2::alice_hlt::MessageFormat::BufferDesc_t>& dataArray,
               cballoc_signal_t* cbAllocate=nullptr);
 
   int getEventCount() const {return mEventCount;}
@@ -143,10 +143,10 @@ private:
   /// handle of the processing component
   AliHLTComponentHandle mProcessor;
   /// container for handling the i/o buffers
-  o2::AliceHLT::MessageFormat mFormatHandler;
+  o2::alice_hlt::MessageFormat mFormatHandler;
   int mEventCount;
 };
 
-} // namespace hlt
-} // namespace alice
+} // namespace alice_hlt
+} // namespace o2
 #endif // COMPONENT_H

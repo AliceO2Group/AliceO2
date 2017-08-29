@@ -27,7 +27,7 @@
 
 #include "aliceHLTwrapper/EventSampler.h"
 #include "runFairMQDevice.h" // FairMQDevice launcher boiler plate code
-using namespace ALICE::HLT;
+using namespace o2::alice_hlt;
 
 namespace bpo = boost::program_options;
 
@@ -38,5 +38,5 @@ void addCustomOptions(bpo::options_description& options)
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)
 {
-  return new ALICE::HLT::EventSampler;
+  return new o2::alice_hlt::EventSampler;
 }

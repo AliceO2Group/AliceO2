@@ -38,8 +38,8 @@
 #include <sstream>
 #include <getopt.h>
 #include <memory>
-using namespace ALICE::HLT;
-using namespace o2::AliceHLT;
+
+using namespace o2::alice_hlt;
 
 using std::endl;
 using std::string;
@@ -175,7 +175,7 @@ int Component::init(int argc, char** argv)
 
   int iResult = 0;
   // TODO: make the SystemInterface a singleton
-  unique_ptr<ALICE::HLT::SystemInterface> iface(new SystemInterface);
+  unique_ptr<o2::alice_hlt::SystemInterface> iface(new SystemInterface);
   if (iface.get() == nullptr || ((iResult = iface->initSystem(runNumber))) < 0) {
     // LOG(ERROR) << "failed to set up SystemInterface " << iface.get() << " (" << iResult << ")";
     return -ENOSYS;

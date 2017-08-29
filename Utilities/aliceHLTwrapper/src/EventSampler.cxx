@@ -52,7 +52,7 @@ using std::chrono::system_clock;
 typedef std::chrono::duration<int,std::ratio<60*60*24> > PeriodDay;
 const std::chrono::time_point<system_clock, PeriodDay> dayref=std::chrono::time_point_cast<PeriodDay>(system_clock::now());
 
-using namespace ALICE::HLT;
+using namespace o2::alice_hlt;
 
 EventSampler::EventSampler(int verbosity)
   : mEventPeriod(-1)
