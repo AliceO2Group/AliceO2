@@ -248,8 +248,21 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 		usleep(10000);
 #endif
 		iKey = kbhit() ? getch() : 0;
-		if (iKey == 'q') return(2);
-	} while (iKey != 'n' && buttonPressed == 0);
+		if (iKey == 'q') buttonPressed = 2;
+        else if (iKey == 'n') break;
+        else if (iKey)
+        {
+            while (sendKey != 0)
+            {
+                #ifdef R__WIN32
+                		Sleep(1);
+                #else
+                		usleep(1000);
+                #endif                
+            }
+            sendKey = iKey;
+        }
+	} while (buttonPressed == 0);
 	if (buttonPressed == 2) return(2);
 	buttonPressed = 0;
 	printf("Loading next event\n");

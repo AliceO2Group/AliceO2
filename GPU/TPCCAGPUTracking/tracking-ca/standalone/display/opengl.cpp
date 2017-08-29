@@ -35,7 +35,7 @@ int g_nLastMousePositX = 0;
 int g_nLastMousePositY = 0;
 bool g_bMousing = false;
 
-int screenshot_scale = 2;
+int screenshot_scale = 1;
 
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #endif
@@ -66,7 +66,9 @@ float mouseMvX, mouseMvY;
 bool mouseDn = false;
 bool mouseDnR = false;
 int mouseWheel = 0;
+
 volatile int buttonPressed = 0;
+volatile int sendKey = 0;
 
 GLfloat currentMatrice[16];
 
@@ -1772,6 +1774,7 @@ void *OpenGLMain(void *ptr)
 			}
 			else if (num_ready_fds > 0) needUpdate = 0;
 			if (buttonPressed == 2) break;
+			if (sendKey) needUpdate = 1;
 		} while (!(num_ready_fds || needUpdate));
 		
 		do
@@ -1831,7 +1834,7 @@ void *OpenGLMain(void *ptr)
 				{
 					KeySym sym = XLookupKeysym(&event.xkey, 0);
 					int wParam = GetKey(sym);
-					fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam);
+					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam);
 					HandleKeyRelease(wParam);
 				}
 				break;
@@ -1860,6 +1863,14 @@ void *OpenGLMain(void *ptr)
 					buttonPressed = 2;
 				}
 				break;
+			}
+			
+			if (sendKey)
+			{
+				//fprintf(stderr, "sendKey %d '%c'\n", sendKey, (char) sendKey);
+				if (sendKey >= 'a' && sendKey <= 'z') sendKey ^= 'a' ^ 'A';
+				HandleKeyRelease(sendKey);
+				sendKey = 0;
 			}
 		} while (XPending(g_pDisplay)); // Loop to compress events
 		if (buttonPressed == 2) break;
