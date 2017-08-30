@@ -190,21 +190,15 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		cudaThreadExit();
 		return(1);
 	}
-	fGPUMergerMemory = ((char*) fGPUMemory) + fGPUMemSize - fGPUMergerMaxMemory;
-	if (fDebugLevel >= 1) HLTInfo("GPU Memory used: %d", (int) fGPUMemSize);
-	int hostMemSize = HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + sliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + HLTCA_GPU_TRACKER_OBJECT_MEMORY;
-#ifdef HLTCA_GPU_MERGER
-	hostMemSize += fGPUMergerMaxMemory;
-#endif
-	if (GPUFailedMsg(cudaMallocHost(&fHostLockedMemory, hostMemSize)))
+	if (fDebugLevel >= 1) HLTInfo("GPU Memory used: %lld", fGPUMemSize);
+	if (GPUFailedMsg(cudaMallocHost(&fHostLockedMemory, fHostMemSize)))
 	{
 		cudaFree(fGPUMemory);
 		cudaThreadExit();
 		HLTError("Error allocating Page Locked Host Memory");
 		return(1);
 	}
-	if (fDebugLevel >= 1) HLTInfo("Host Memory used: %d", hostMemSize);
-	fGPUMergerHostMemory = ((char*) fHostLockedMemory) + hostMemSize - fGPUMergerMaxMemory;
+	if (fDebugLevel >= 1) HLTInfo("Host Memory used: %lld", fHostMemSize);
 
 	if (fDebugLevel >= 1)
 	{
@@ -826,24 +820,24 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 		fGpuTracker[iSlice].SetPointersSliceData(&pClusterData[iSlice], false);
 
 		tmpSliceMemHost += fSlaveTrackers[firstSlice + iSlice].Data().MemorySize();
-		tmpSliceMemHost = alignPointer(tmpSliceMemHost, 64 * 1024);
+		tmpSliceMemHost = alignPointer(tmpSliceMemHost, HLTCA_GPU_MEMALIGN_SMALL);
 		tmpSliceMemGpu += fSlaveTrackers[firstSlice + iSlice].Data().MemorySize();
-		tmpSliceMemGpu = alignPointer(tmpSliceMemGpu, 64 * 1024);
+		tmpSliceMemGpu = alignPointer(tmpSliceMemGpu, HLTCA_GPU_MEMALIGN_SMALL);
 
 		//Set Pointers to GPU Memory
 		char* tmpMem = (char*) GlobalMemory(fGPUMemory, iSlice);
 
 		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Hits Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerHitsMemory(tmpMem, pClusterData[iSlice].NumberOfClusters());
-		tmpMem = alignPointer(tmpMem, 64 * 1024);
+		tmpMem = alignPointer(tmpMem, HLTCA_GPU_MEMALIGN_SMALL);
 
 		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Tracklet Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTrackletsMemory(tmpMem, HLTCA_GPU_MAX_TRACKLETS, fConstructorBlockCount);
-		tmpMem = alignPointer(tmpMem, 64 * 1024);
+		tmpMem = alignPointer(tmpMem, HLTCA_GPU_MEMALIGN_SMALL);
 
 		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Track Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTracksMemory(tmpMem, HLTCA_GPU_MAX_TRACKS, pClusterData[iSlice].NumberOfClusters());
-		tmpMem = alignPointer(tmpMem, 64 * 1024);
+		tmpMem = alignPointer(tmpMem, HLTCA_GPU_MEMALIGN_SMALL);
 
 		if (fGpuTracker[iSlice].TrackMemorySize() >= HLTCA_GPU_TRACKS_MEMORY)
 		{
@@ -851,7 +845,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 			return(1);
 		}
 
-		if (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice) > HLTCA_GPU_GLOBAL_MEMORY)
+		if ((size_t) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)) > HLTCA_GPU_GLOBAL_MEMORY)
 		{
 			HLTError("Insufficiant Global Memory");
 			return(1);
@@ -1065,8 +1059,6 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 	AliHLTTPCGMMergedTrack* tracks;
 	float* field;
 	AliHLTTPCCAParam* param;
-
-	gpumem = alignPointer(gpumem, 1024 * 1024);
 
 	AssignMemory(X, gpumem, Merger->NClusters());
 	AssignMemory(Y, gpumem, Merger->NClusters());

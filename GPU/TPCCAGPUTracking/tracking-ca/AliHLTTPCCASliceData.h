@@ -189,8 +189,8 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     int fNumberOfHits;         // the number of hits in this slice
     int fNumberOfHitsPlusAlign;
 
-    int fMemorySize;           // size of the allocated memory in bytes
-    int fGpuMemorySize;        // size of Memory needed to be transfered to GPU
+    size_t fMemorySize;           // size of the allocated memory in bytes
+    size_t fGpuMemorySize;        // size of Memory needed to be transfered to GPU
     GPUglobalref() char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
     GPUglobalref() char *fGPUTextureBase;     // pointer to start of GPU texture
 
