@@ -299,10 +299,9 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	}
 	if (clEnqueueMigrateMemObjects(ocl->command_queue[0], 1, &ocl->mem_gpu, 0, 0, NULL, NULL) != CL_SUCCESS) quit("Error migrating buffer");
 
-	if (fDebugLevel >= 1) HLTInfo("GPU Memory used: %d", (int) fGPUMemSize);
-	int hostMemSize = HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + sliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + HLTCA_GPU_TRACKER_OBJECT_MEMORY;
+	if (fDebugLevel >= 1) HLTInfo("GPU Memory used: %lld", fGPUMemSize);
 
-	ocl->mem_host = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, hostMemSize, NULL, &ocl_error);
+	ocl->mem_host = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, fHostMemSize, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS) quit("Error allocating pinned host memory");
 
 	const char* krnlGetPtr = "__kernel void krnlGetPtr(__global char* gpu_mem, __global size_t* host_mem) {if (get_global_id(0) == 0) *host_mem = (size_t) gpu_mem;}";
@@ -327,23 +326,21 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	clReleaseProgram(program);
 
 	if (fDebugLevel >= 2) HLTInfo("Mapping hostmemory");
-	ocl->mem_host_ptr = clEnqueueMapBuffer(ocl->command_queue[0], ocl->mem_host, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, hostMemSize, 0, NULL, NULL, &ocl_error);
+	ocl->mem_host_ptr = clEnqueueMapBuffer(ocl->command_queue[0], ocl->mem_host, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, fHostMemSize, 0, NULL, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		HLTError("Error allocating Page Locked Host Memory");
 		return(1);
 	}
 	fHostLockedMemory = ocl->mem_host_ptr;
-	if (fDebugLevel >= 1) HLTInfo("Host Memory used: %d", hostMemSize);
-	fGPUMergerHostMemory = ((char*) fHostLockedMemory) + hostMemSize - fGPUMergerMaxMemory;
+	if (fDebugLevel >= 1) HLTInfo("Host Memory used: %lld", fHostMemSize);
 
 	if (fDebugLevel >= 2) HLTInfo("Obtained Pointer to GPU Memory: %p", *((void**) ocl->mem_host_ptr));
 	fGPUMemory = *((void**) ocl->mem_host_ptr);
-	fGPUMergerMemory = ((char*) fGPUMemory) + fGPUMemSize - fGPUMergerMaxMemory;
 
 	if (fDebugLevel >= 1)
 	{
-		memset(ocl->mem_host_ptr, 0, hostMemSize);
+		memset(ocl->mem_host_ptr, 0, fHostMemSize);
 	}
 
 	ocl->selector_events = new cl_event[fSliceCount];

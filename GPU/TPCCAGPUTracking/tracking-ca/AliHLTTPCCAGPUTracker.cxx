@@ -39,5 +39,5 @@ unsigned long long int* AliHLTTPCCAGPUTracker::PerfTimer(int /*iSlice*/, unsigne
 const AliHLTTPCCASliceOutput::outputControlStruct* AliHLTTPCCAGPUTracker::OutputControl() const { return NULL; }
 int AliHLTTPCCAGPUTracker::GetSliceCount() const { return(0); }
 int AliHLTTPCCAGPUTracker::RefitMergedTracks(AliHLTTPCGMMerger* /*Merger*/) { return(0); }
-char* AliHLTTPCCAGPUTracker::MergerBaseMemory() {return(NULL);}
+char* AliHLTTPCCAGPUTracker::MergerHostMemory() {return(NULL);}
 int AliHLTTPCCAGPUTracker::GPUMergerAvailable() {return(0);}

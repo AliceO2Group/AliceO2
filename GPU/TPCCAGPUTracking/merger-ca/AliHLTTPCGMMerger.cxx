@@ -281,13 +281,18 @@ bool AliHLTTPCGMMerger::AllocateMemory()
   fSliceTrackInfos = new AliHLTTPCGMSliceTrack[nTracks];
   if (fGPUTracker && fGPUTracker->IsInitialized())
   {
-	char* basemem = fGPUTracker->MergerBaseMemory();
+	char* basemem = fGPUTracker->MergerHostMemory();
 	AssignMemory(fClusterX, basemem, fNClusters);
 	AssignMemory(fClusterY, basemem, fNClusters);
 	AssignMemory(fClusterZ, basemem, fNClusters);
 	AssignMemory(fClusterAngle, basemem, fNClusters);
 	AssignMemory(fClusterRowType, basemem, fNClusters);
 	AssignMemory(fOutputTracks, basemem, nTracks);
+	if ((size_t) (basemem - fGPUTracker->MergerHostMemory()) > HLTCA_GPU_MERGER_MEMORY)
+	{
+		printf("Insufficient memory for track merger %lld > %lld\n", (long long int) (basemem - fGPUTracker->MergerHostMemory()), (long long int) HLTCA_GPU_MERGER_MEMORY);
+		return(false);
+	}
   }
   else
   {

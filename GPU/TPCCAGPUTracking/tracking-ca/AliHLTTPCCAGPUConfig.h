@@ -82,12 +82,15 @@
 
 #define HLTCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
 
-#define HLTCA_GPU_TRACKER_OBJECT_MEMORY 1024 * 1024		//Total amount of Memory to reserve for GPU Tracker Objects
-#define HLTCA_GPU_ROWS_MEMORY 1024 * 1024				//Total amount of Memory to reserve for GPU Row Parameters
-#define HLTCA_GPU_COMMON_MEMORY 1024 * 1024				//Total amount of Memory to reserve for CommomMemoryStruct on GPU
-#define HLTCA_GPU_SLICE_DATA_MEMORY 9 * 1024 * 1024		//Amount of Slice Data Memory to reserve per Slice on GPU
-#define HLTCA_GPU_GLOBAL_MEMORY 25 * 1024 * 1024		//Amount of global temporary Memory to reserve per Slice on GPU
-#define HLTCA_GPU_TRACKS_MEMORY 5 * 1024 * 1024			//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
+#define HLTCA_GPU_TRACKER_OBJECT_MEMORY		((size_t)       1024 * 1024)		//Total amount of Memory to reserve for GPU Tracker Objects
+#define HLTCA_GPU_ROWS_MEMORY				((size_t)       1024 * 1024)		//Total amount of Memory to reserve for GPU Row Parameters
+#define HLTCA_GPU_COMMON_MEMORY				((size_t)       1024 * 1024)		//Total amount of Memory to reserve for CommomMemoryStruct on GPU
+#define HLTCA_GPU_SLICE_DATA_MEMORY			((size_t)   9 * 1024 * 1024)		//Amount of Slice Data Memory to reserve per Slice on GPU
+#define HLTCA_GPU_GLOBAL_MEMORY				((size_t)  25 * 1024 * 1024)		//Amount of global temporary Memory to reserve per Slice on GPU
+#define HLTCA_GPU_TRACKS_MEMORY				((size_t)   5 * 1024 * 1024)		//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
+#define HLTCA_GPU_MERGER_MEMORY				((size_t) 100 * 1024 * 1024)		//Memory for track merger
+#define HLTCA_GPU_MEMALIGN					((size_t)       1024 * 1024)		//Alignment of memory blocks, all constants above must be multiple of this!!!
+#define HLTCA_GPU_MEMALIGN_SMALL			((size_t)         64 * 1024)		//Alignment of small blocks, HLTCA_GPU_MEMALIGN must be multiple of this!!!
 
 //Make sure options do not interfere
 
@@ -117,4 +120,3 @@
 #define HLTCA_GPU_ERROR_WRONG_ROW 5
 
 #endif
-

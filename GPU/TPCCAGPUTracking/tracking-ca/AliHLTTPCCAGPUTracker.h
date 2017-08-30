@@ -41,7 +41,7 @@ public:
 	virtual int GetSliceCount() const;
 
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
-	virtual char* MergerBaseMemory();
+	virtual char* MergerHostMemory();
 	virtual int GPUMergerAvailable();
 
 private:
