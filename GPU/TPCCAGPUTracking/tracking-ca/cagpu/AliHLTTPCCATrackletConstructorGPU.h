@@ -562,7 +562,6 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 		}
 	}
 }
- 
 
 #else //HLTCA_GPU_ALTERNATIVE_SCHEDULER
 
@@ -773,6 +772,60 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 
 #endif //HLTCA_GPU_ALTERNATIVE_SCHEDULER
 
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorSingleSlice(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem)
+{
+	GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker = *pTracker;
+	int iRow, iRowEnd;
+
+	MEM_PLAIN(AliHLTTPCCATrackParam) tParam;
+	AliHLTTPCCAThreadMemory rMem;
+
+	if (get_local_id(0) == 0) sMem.fNTracklets = *tracker.NTracklets();
+	for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += get_local_size(0))
+	{
+		reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
+	}
+	GPUsync();
+
+	for (rMem.fItr = get_global_id(0);rMem.fItr < sMem.fNTracklets;rMem.fItr += get_global_size(0))
+	{
+		AliHLTTPCCAHitId id = tracker.TrackletStartHits()[rMem.fItr];
+
+		rMem.fStartRow = rMem.fEndRow = rMem.fFirstRow = rMem.fLastRow = id.RowIndex();
+		rMem.fCurrIH = id.HitIndex();
+		rMem.fStage = 0;
+		rMem.fNHits = 0;
+		rMem.fNMissed = 0;
+
+		AliHLTTPCCATrackletConstructor::InitTracklet(tParam);
+
+		rMem.fGo = 1;
+		iRow = rMem.fStartRow;
+		iRowEnd = tracker.Param().NRows();
+
+		for (int k = 0;k < 2;k++)
+		{
+			for (;iRow != iRowEnd;iRow += rMem.fStage == 2 ? -1 : 1)
+			{
+				UpdateTracklet(0, 0, 0, 0, sMem, rMem, tracker, tParam, iRow);
+			}
+
+			if (rMem.fStage == 2)
+			{
+				StoreTracklet( 0, 0, 0, 0, sMem, rMem, tracker, tParam );
+			}
+			else
+			{
+				rMem.fNMissed = 0;
+				rMem.fStage = 2;
+				if (rMem.fGo) if (!tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999)) rMem.fGo = 0;
+				iRow = rMem.fEndRow;
+				iRowEnd = -1;
+			}
+		}
+	}
+}
+
 #ifndef __OPENCL__
 GPUg() void AliHLTTPCCATrackletConstructorGPU()
 {
@@ -787,6 +840,13 @@ GPUg() void AliHLTTPCCATrackletConstructorGPUPP(int firstSlice, int sliceCount)
 	if (get_group_id(0) >= sliceCount) return;
 	AliHLTTPCCATracker *pTracker = &( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[firstSlice + get_group_id(0)];
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPUPP(pTracker);
+}
+
+GPUg() void AliHLTTPCCATrackletConstructorSingleSlice(int iSlice)
+{
+	GPUshared() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory) sMem;
+	AliHLTTPCCATracker *pTracker = ((AliHLTTPCCATracker*) gAliHLTTPCCATracker) + iSlice;
+	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorSingleSlice(pTracker, sMem);
 }
 
 GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPUPP(AliHLTTPCCATracker *tracker)
