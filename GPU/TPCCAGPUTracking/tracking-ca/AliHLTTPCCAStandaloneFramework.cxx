@@ -437,7 +437,6 @@ void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds,
   in.read((char*) (fMCLabels.data() + nCurrentClusters), nClusters * sizeof(fMCLabels[0]));
   if (!in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
   {
-    printf("Error reading %d / %d\n", (int) in.gcount(), (int) nClusters * (int) sizeof(fMCLabels[0]));
     fMCLabels.clear();
     fMCInfo.clear();
   }

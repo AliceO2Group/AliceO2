@@ -97,6 +97,7 @@ class AliHLTTPCCAStandaloneFramework
 	void SetNWays(int v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetNWays(v); fMerger.SetSliceParam(param);}
 	void SetSearchWindowDZDR(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetSearchWindowDZDR(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetSearchWindowDZDR(v);}
 	void SetContinuousTracking(bool v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetContinuousTracking(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetContinuousTracking(v);}
+	void UpdateGPUSliceParam() {fTracker.UpdateGPUSliceParam();}
 	void SetEventDisplay(int v) {fEventDisplay = v;}
 	void SetRunQA(int v) {fRunQA = v;}
 	void SetRunMerger(int v) {fRunMerger = v;}
