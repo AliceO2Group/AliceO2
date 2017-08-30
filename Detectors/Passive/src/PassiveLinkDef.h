@@ -28,6 +28,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class  o2::passive::Absorber+;
+#pragma link C++ class  o2::passive::Dipole+;
 #pragma link C++ class  o2::passive::Magnet+;
 #pragma link C++ class  o2::Passive::Cave+;
 #pragma link C++ class  o2::Passive::GeoCave+;

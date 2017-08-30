@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/Absorber.cxx
   src/Cave.cxx
+  src/Dipole.cxx
   src/GeoCave.cxx
   src/Pipe.cxx
   src/Magnet.cxx
@@ -16,6 +17,7 @@ set(SRCS
 Set(HEADERS
     include/${MODULE_NAME}/Absorber.h
     include/${MODULE_NAME}/Cave.h
+    include/${MODULE_NAME}/Dipole.h
     include/${MODULE_NAME}/GeoCave.h
     include/${MODULE_NAME}/Magnet.h
     include/${MODULE_NAME}/PassiveContFact.h
