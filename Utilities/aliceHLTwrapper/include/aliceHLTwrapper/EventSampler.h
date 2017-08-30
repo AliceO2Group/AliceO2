@@ -33,8 +33,8 @@
 
 namespace bpo = boost::program_options;
 
-namespace ALICE {
-namespace HLT {
+namespace o2 {
+namespace alice_hlt {
 class Component;
 
 /// @class EventSampler
@@ -104,6 +104,6 @@ private:
   std::string mLatencyLogFileName;   // output file for logging of latency
 };
 
-} // namespace hlt
-} // namespace alice
+} // namespace alice_hlt
+} // namespace o2
 #endif // EVENTSAMPLER_H

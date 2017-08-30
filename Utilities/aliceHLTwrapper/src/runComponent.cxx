@@ -72,7 +72,7 @@ int main(int argc, char** argv)
     }
   }
 
-  ALICE::HLT::Component component;
+  o2::alice_hlt::Component component;
   if ((iResult = component.init(componentOptions.size(), &componentOptions[0])) < 0) {
     cerr << "error: init failed with " << iResult << endl;
     // the ALICE HLT external interface uses the following error definition
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
     return -iResult;
   }
 
-  vector<o2::AliceHLT::MessageFormat::BufferDesc_t> blockData;
+  vector<o2::alice_hlt::MessageFormat::BufferDesc_t> blockData;
   char* inputBuffer = nullptr;
   if (inputFileName) {
     std::ifstream input(inputFileName, std::ifstream::binary);

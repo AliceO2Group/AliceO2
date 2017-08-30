@@ -28,16 +28,15 @@
 
 #include "runFairMQDevice.h" // FairMQDevice launcher boiler plate code
 #include "aliceHLTwrapper/WrapperDevice.h"
-using namespace ALICE::HLT;
 
 namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
-  options.add(WrapperDevice::GetOptionsDescription());
+  options.add(o2::alice_hlt::WrapperDevice::GetOptionsDescription());
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)
 {
-  return new ALICE::HLT::WrapperDevice;
+  return new o2::alice_hlt::WrapperDevice;
 }

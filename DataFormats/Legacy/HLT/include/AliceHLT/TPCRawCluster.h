@@ -33,9 +33,8 @@
 #include <fstream>  // ifstream
 #include <cstring>  // memcpy
 
-namespace ALICE {
-namespace HLT {
-namespace TPC {
+namespace o2 {
+namespace AliceHLT {
 
 /**
  * @struct RawCluster
@@ -214,7 +213,6 @@ private:
   RawCluster* mClustersEnd;
 };
 
-}; // namespace TPC
 }; // namespace HLT
 }; // namespace ALICE
 #endif

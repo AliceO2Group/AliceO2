@@ -18,7 +18,7 @@
 #include "Headers/HeartbeatFrame.h"
 
 namespace o2 { 
-namespace AliceHLT {
+namespace alice_hlt {
   template<typename... Targs>
   void hexDump(Targs... Fargs) {
     //o2::Header::hexDump(Fargs...);
@@ -266,5 +266,5 @@ namespace AliceHLT {
       ++datafieldidx;
     }
   }
-} // namespace AliceHLT
+} // namespace alice_hlt
 } // namespace o2

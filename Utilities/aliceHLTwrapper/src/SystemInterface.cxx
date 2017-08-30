@@ -32,7 +32,7 @@
 #include <cstring>
 #include <iostream>
 #include <dlfcn.h>
-using namespace ALICE::HLT;
+using namespace o2::alice_hlt;
 
 using std::cerr;
 using std::cout;

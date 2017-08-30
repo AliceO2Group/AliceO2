@@ -46,7 +46,7 @@
 using std::string;
 using std::vector;
 using std::unique_ptr;
-using namespace ALICE::HLT;
+using namespace o2::alice_hlt;
 
 using std::chrono::system_clock;
 using TimeScale = std::chrono::milliseconds;
@@ -93,7 +93,7 @@ void WrapperDevice::InitTask()
 
   int iResult=0;
 
-  std::unique_ptr<Component> component(new ALICE::HLT::Component);
+  std::unique_ptr<Component> component(new o2::alice_hlt::Component);
   if (!component.get()) return /*-ENOMEM*/;
 
   // loop over program options, check if the option was used and
@@ -247,7 +247,7 @@ void WrapperDevice::Run()
 
     if (!mSkipProcessing) {
       // prepare input from messages
-      vector<o2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
+      vector<o2::alice_hlt::MessageFormat::BufferDesc_t> dataArray;
       for (auto& socketInput : socketInputs) {
         for (auto& msg : socketInput.fParts) {
           void* buffer=msg->GetData();
