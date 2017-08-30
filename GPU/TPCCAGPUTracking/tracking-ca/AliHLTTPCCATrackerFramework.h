@@ -38,6 +38,7 @@ public:
 	int SetGPUTracker(bool enable);
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
+	void UpdateGPUSliceParam();
 
 	GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
 	GPUhd() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);

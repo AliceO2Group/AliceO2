@@ -59,7 +59,7 @@ public:
 
 	virtual unsigned long long int* PerfTimer(int iSlice, unsigned int i);
 
-	virtual int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
+	virtual int InitializeSliceParam(int iSlice, const AliHLTTPCCAParam &param);
 	virtual void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 
 	virtual const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const;

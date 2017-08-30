@@ -407,7 +407,7 @@ void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
 }
 
-int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param)
+int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, const AliHLTTPCCAParam &param)
 {
 	//Initialize Slice Tracker Parameter for a slave tracker
 	fSlaveTrackers[iSlice].Initialize(param);
