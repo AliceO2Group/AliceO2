@@ -17,9 +17,7 @@
 #include <vector>
 
 #include <RStringView.h>
-#include <TArrayD.h>
 #include <TGeoMatrix.h>
-#include <TList.h>
 #include <TNamed.h>
 #include <TParticle.h>
 #include <TVector3.h>
@@ -33,6 +31,9 @@ namespace o2
 namespace EMCAL
 {
 class ShishKebabTrd1Module;
+
+using doublevect = std::vector<double>;
+using intvect = std::vector<int>;
 
 class Geometry
 {
@@ -154,7 +155,7 @@ class Geometry
   /// \param[out] absId absolute ID number
   /// \param[out] vimpact TVector3 of impact coordinates?
   ///
-  void ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi, Int_t& absId, TVector3& vimpact) const;
+  void ImpactOnEmcal(const Point3D<double> &vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const;
 
   ///
   /// Checks whether point is inside the EMCal volume
@@ -238,10 +239,10 @@ class Geometry
   Double_t GetPhiCenterOfSMSec(Int_t nsupmod) const;
   Float_t GetSuperModulesPar(Int_t ipar) const { return mParSM[ipar]; }
   //
-  Int_t GetSMType(Int_t nSupMod) const
+  EMCALSMType GetSMType(Int_t nSupMod) const
   {
     if (nSupMod > mNumberOfSuperModules)
-      return -1;
+      return NOT_EXISTENT;
     return mEMCSMSystem[nSupMod];
   }
 
@@ -459,93 +460,47 @@ class Geometry
   Int_t GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t ieta) const;
 
   ///
-  /// Online mapping and numbering is the same for EMCal and DCal SMs but:
-  ///  - DCal odd SM (13,15,17) has online cols: 16-47; offline cols 0-31.
-  ///  - Even DCal SMs have the same numbering online and offline 0-31.
-  ///  - DCal 1/3 SM (18,19), online rows 16-23; offline rows 0-7
-  ///
-  /// Here shift the online cols or rows depending on the
-  /// super-module number to match the offline mapping.
-  ///
-  /// \param sm: super module number of the channel/cell
-  /// \param iphi: row/phi cell index, modified for DCal
-  /// \param ieta: column/eta index, modified for DCal
-  ///
-  void ShiftOnlineToOfflineCellIndexes(Int_t sm, Int_t& iphi, Int_t& ieta) const;
-
-  ///
-  /// Here shift the DCal online cols or rows depending on the
-  /// super-module number to match the online mapping.
-  ///
-  /// Reverse procedure to the one in the method above
-  /// ShiftOnlineToOfflineCellIndexes().
-  ///
-  /// \param sm super module number of the channel/cell
-  /// \param iphi row/phi cell index, modified for DCal
-  /// \param ieta column/eta index, modified for DCal
-  ///
-  void ShiftOfflineToOnlineCellIndexes(Int_t sm, Int_t& iphi, Int_t& ieta) const;
-
-  ///
-  /// \brief Look to see what the relative position inside a given cell is for a recpoint.
-  ///
-  /// \param absId cell absolute id. number, input
-  /// \param xr,yr,zr - x,y,z coordinates of cell with absId inside SM, output
-  /// \throw InvalidCellIDException if cell ID does not exist
-  ///
-  void RelPosCellInSModule(Int_t absId, Double_t& xr, Double_t& yr, Double_t& zr) const;
-
-  ///
   /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   ///
   /// Same as RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t &yr, Double_t &zr)
   /// but taking into account position of shower max.
   ///
-  /// \param absId cell absolute id. number, input
-  /// \param distEff shower max position? check call in AliEMCALRecPoint!, input
-  /// \param xr,yr,zr - x,y,z coordinates of cell with absId inside SM, output
+  /// \param[in] absId cell absolute id. number, input
+  /// \param[in] distEff shower max position? check call in RecPoint!
+  /// \return Point3D with x,y,z coordinates of cell with absId inside SM
   /// \throw InvalidCellIDException if cell ID does not exist
   ///
-  void RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr, Double_t& yr, Double_t& zr) const;
+  Point3D<double> RelPosCellInSModule(Int_t absId, Double_t distEf) const;
 
   ///
   /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   ///
   /// \param absId cell absolute id. number, input
-  /// \param loc Double[3] with x,y,z coordinates of cell with absId inside SM, output
+  /// \return Point3D with x,y,z coordinates of cell with absId inside SM
   /// \throw InvalidCellIDException if cell ID does not exist
   ///
-  void RelPosCellInSModule(Int_t absId, Double_t loc[3]) const;
+  Point3D<double> RelPosCellInSModule(Int_t absId) const;
 
-  ///
-  /// \brief Look to see what the relative position inside a given cell is for a recpoint.
-  ///
-  /// \param absId cell absolute id. number, input
-  /// \param vloc TVector3 with x,y,z coordinates of cell with absId inside SM, output
-  /// \throw InvalidCellIDException if cell ID does not exist
-  ///
-  void RelPosCellInSModule(Int_t absId, TVector3& vloc) const;
-
-  const Int_t* GetEMCSystem() const { return mEMCSMSystem; } // EMC System, SM type list
+  std::vector<EMCALSMType> GetEMCSystem() const { return mEMCSMSystem; } // EMC System, SM type list
   // Local Coordinates of SM
-  TArrayD GetCentersOfCellsEtaDir() const
+  doublevect GetCentersOfCellsEtaDir() const
   {
     return mCentersOfCellsEtaDir;
   } // size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
-  TArrayD GetCentersOfCellsXDir() const
+  doublevect GetCentersOfCellsXDir() const
   {
     return mCentersOfCellsXDir;
   } // size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
-  TArrayD GetCentersOfCellsPhiDir() const
+  doublevect GetCentersOfCellsPhiDir() const
   {
     return mCentersOfCellsPhiDir;
   } // size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
   //
-  TArrayD GetEtaCentersOfCells() const
+  doublevect GetEtaCentersOfCells() const
   {
     return mEtaCentersOfCells;
   } // [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
-  TArrayD GetPhiCentersOfCells() const
+  doublevect GetPhiCentersOfCells() const
   {
     return mPhiCentersOfCells;
   } // [fNPhi*fNPHIdiv] from center of SM (-10. < phi < +10.)
@@ -621,19 +576,19 @@ class Geometry
   Int_t mNETAdiv;             ///< Number eta division of module
   Int_t mNPHIdiv;             ///< Number phi division of module
   Int_t mNCellsInModule;      ///< Number cell in module
-  TArrayD mPhiBoundariesOfSM; ///< Phi boundaries of SM in rad; size is fNumberOfSuperModules;
-  TArrayD mPhiCentersOfSM;    ///< Phi of centers of SM; size is fNumberOfSuperModules/2
-  TArrayD mPhiCentersOfSMSec; ///< Phi of centers of section where SM lies; size is fNumberOfSuperModules/2
+  doublevect mPhiBoundariesOfSM; ///< Phi boundaries of SM in rad; size is fNumberOfSuperModules;
+  doublevect mPhiCentersOfSM;    ///< Phi of centers of SM; size is fNumberOfSuperModules/2
+  doublevect mPhiCentersOfSMSec; ///< Phi of centers of section where SM lies; size is fNumberOfSuperModules/2
 
   // Local Coordinates of SM
-  TArrayD mPhiCentersOfCells;    ///< [fNPhi*fNPHIdiv] from center of SM (-10. < phi < +10.)
-  TArrayD mCentersOfCellsEtaDir; ///< Size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
-  TArrayD mCentersOfCellsPhiDir; ///< Size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
-  TArrayD
+  doublevect mPhiCentersOfCells;    ///< [fNPhi*fNPHIdiv] from center of SM (-10. < phi < +10.)
+  doublevect mCentersOfCellsEtaDir; ///< Size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
+  doublevect mCentersOfCellsPhiDir; ///< Size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
+  doublevect
     mEtaCentersOfCells; ///< [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
   Int_t mNCells;        ///< Number of cells in calo
   Int_t mNPhi;          ///< Number of Towers in the PHI direction
-  TArrayD mCentersOfCellsXDir;   ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
+  doublevect mCentersOfCellsXDir;   ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
   Float_t mEnvelop[3];           ///< The GEANT TUB for the detector
   Float_t mArm1EtaMin;           ///< Minimum pseudorapidity position of EMCAL in Eta
   Float_t mArm1EtaMax;           ///< Maximum pseudorapidity position of EMCAL in Eta
@@ -670,7 +625,7 @@ class Geometry
   Int_t mNumberOfSuperModules; ///< default is 12 = 6 * 2
 
   /// geometry structure
-  Int_t* mEMCSMSystem; //[mNumberOfSuperModules]
+  std::vector<EMCALSMType> mEMCSMSystem; ///< Type of the supermodule (size number of supermodules
 
   Float_t mFrontSteelStrip;   ///< 13-may-05
   Float_t mLateralSteelStrip; ///< 13-may-05
