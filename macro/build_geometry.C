@@ -19,6 +19,7 @@
 #include "DetectorsPassive/Dipole.h"
 #include "DetectorsPassive/Absorber.h"
 #include "DetectorsPassive/Shil.h"
+#include "DetectorsPassive/Hall.h"
 #include <Field/MagneticField.h>
 #include <TPCSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
@@ -74,6 +75,12 @@ void build_geometry(FairRunSim* run = nullptr)
   // the experiment hall (cave)
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
+
+  // the experimental hall
+  if (isActivated("HALL")) {
+    auto hall = new o2::passive::Hall("Hall", "Experimental Hall");
+    run->AddModule(hall);
+  }
 
   // the magnet
   if (isActivated("MAG")) {

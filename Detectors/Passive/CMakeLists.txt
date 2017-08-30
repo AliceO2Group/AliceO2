@@ -13,6 +13,7 @@ set(SRCS
   src/FrameStructure.cxx
   src/FrameStructureRun3.cxx
   src/Shil.cxx
+  src/Hall.cxx
 )
 
 Set(HEADERS
@@ -26,6 +27,7 @@ Set(HEADERS
     include/${MODULE_NAME}/FrameStructure.h
     include/${MODULE_NAME}/FrameStructureRun3.h
     include/${MODULE_NAME}/Shil.h
+    include/${MODULE_NAME}/Hall.h
 )
 
 Set(LINKDEF src/PassiveLinkDef.h)
