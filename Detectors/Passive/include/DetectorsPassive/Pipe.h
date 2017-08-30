@@ -8,48 +8,52 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
-
-// -------------------------------------------------------------------------
-// -----                    AliPipe file                                -----
-// -----                Created by M. Al-Turany  June 2014             -----
-// -------------------------------------------------------------------------
-
 #ifndef ALICEO2_PASSIVE_PIPE_H
 #define ALICEO2_PASSIVE_PIPE_H
 
-#include "FairModule.h"  // for FairModule
-#include "Rtypes.h"      // for Pipe::Class, ClassDef, Pipe::Streamer
+#include "FairModule.h" // for FairModule
+#include "Rtypes.h"     // for Pipe::Class, ClassDef, Pipe::Streamer
 
-namespace o2 {
-namespace Passive {
- 
+class TGeoPcon;
 
-class Pipe : public FairModule {
-  public:
-    Pipe(const char * name, const char *Title="Alice Pipe");
-    Pipe();
+namespace o2
+{
+namespace passive
+{
+class Pipe : public FairModule
+{
+ public:
+  Pipe(const char* name, const char* Title = "Alice Pipe", float rho = 0.f, float thick = 0.f);
+  Pipe();
 
-    ~Pipe() override;
-    void ConstructGeometry() override;
+  ~Pipe() override;
+  void ConstructGeometry() override;
 
-    /// Clone this object (used in MT mode only)
-    FairModule* CloneModule() const override;
+  /// Clone this object (used in MT mode only)
+  FairModule* CloneModule() const override;
 
-  private:
-    Pipe(const Pipe& orig);
-    Pipe& operator=(const Pipe&);
-   
-  ClassDefOverride(Pipe,1) //PIPE
+  float getRmin() const { return mBePipeRmax - mBePipeThick; }
+  float getRmax() const { return mBePipeRmax; }
+  float getWidth() const { return mBePipeThick; }
+  float getDz() const { return mIpHLength; }
+ private:
+  void createMaterials();
+  Pipe(const Pipe& orig);
+  Pipe& operator=(const Pipe&);
 
+  TGeoPcon* MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin = -1, Int_t imax = -1, Float_t r0 = 0.,
+                                   Int_t nz = -1);
+  TGeoPcon* MakeInsulationFromTemplate(TGeoPcon* shape);
+  TGeoVolume* MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rMax, Float_t dU, Float_t rPlie,
+                         Float_t dPlie);
+  TGeoVolume* MakeBellowCside(const char* ext, Int_t nc, Float_t rMin, Float_t rMax, Float_t rPlie, Float_t dPlie);
+
+  float mBePipeRmax = 0.;  // outer diameter of the Be section
+  float mBePipeThick = 0.; // Be section thickness
+  float mIpHLength = 0.;   // half length of the beampipe around the IP // FixMe: up to now, hardcoded to 57.25cm
+
+  ClassDefOverride(Pipe, 1)
 };
 }
 }
-#endif //PIPE_H
-
+#endif // PIPE_H

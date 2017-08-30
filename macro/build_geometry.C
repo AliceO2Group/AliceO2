@@ -20,6 +20,7 @@
 #include "DetectorsPassive/Absorber.h"
 #include "DetectorsPassive/Shil.h"
 #include "DetectorsPassive/Hall.h"
+#include "DetectorsPassive/Pipe.h"
 #include <Field/MagneticField.h>
 #include <TPCSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
@@ -91,11 +92,15 @@ void build_geometry(FairRunSim* run = nullptr)
 
    // the dipole
   if (isActivated("DIPO")) {
-    // the frame structure to support other detectors
     auto dipole = new o2::passive::Dipole("Dipole", "Alice Dipole");
     run->AddModule(dipole);
   }
 
+  // beam pipe
+  if (isActivated("PIPE")) {
+    run->AddModule(new o2::passive::Pipe("Pipe", "Beam pipe"));
+  }
+  
   // the absorber
   if (isActivated("ABSO")) {
     // the frame structure to support other detectors
