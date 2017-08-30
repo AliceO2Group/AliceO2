@@ -36,6 +36,7 @@
 #pragma link C++ class  o2::Passive::Pipe+;
 #pragma link C++ class  o2::Passive::FrameStructure+;
 #pragma link C++ class  o2::passive::FrameStructure+;
+#pragma link C++ class  o2::passive::Shil+;
 
 #endif
 
