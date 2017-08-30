@@ -16,6 +16,7 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "DetectorsPassive/Magnet.h"
+#include "DetectorsPassive/Dipole.h"
 #include "DetectorsPassive/Absorber.h"
 #include <Field/MagneticField.h>
 #include <TPCSimulation/Detector.h>
@@ -78,6 +79,13 @@ void build_geometry(FairRunSim* run = nullptr)
     // the frame structure to support other detectors
     auto magnet = new o2::passive::Magnet("Magnet", "L3 Magnet");
     run->AddModule(magnet);
+  }
+
+   // the dipole
+  if (isActivated("DIPO")) {
+    // the frame structure to support other detectors
+    auto dipole = new o2::passive::Dipole("Dipole", "Alice Dipole");
+    run->AddModule(dipole);
   }
 
   // the absorber
