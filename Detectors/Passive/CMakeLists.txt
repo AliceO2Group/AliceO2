@@ -11,6 +11,7 @@ set(SRCS
   src/PassiveContFact.cxx
   src/FrameStructure.cxx
   src/FrameStructureRun3.cxx
+  src/Shil.cxx
 )
 
 Set(HEADERS
@@ -22,7 +23,8 @@ Set(HEADERS
     include/${MODULE_NAME}/Pipe.h
     include/${MODULE_NAME}/FrameStructure.h
     include/${MODULE_NAME}/FrameStructureRun3.h
- )
+    include/${MODULE_NAME}/Shil.h
+)
 
 Set(LINKDEF src/PassiveLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})

@@ -17,6 +17,7 @@
 #include "DetectorsPassive/FrameStructure.h"
 #include "DetectorsPassive/Magnet.h"
 #include "DetectorsPassive/Absorber.h"
+#include "DetectorsPassive/Shil.h"
 #include <Field/MagneticField.h>
 #include <TPCSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
@@ -85,6 +86,12 @@ void build_geometry(FairRunSim* run = nullptr)
     // the frame structure to support other detectors
     auto abso = new o2::passive::Absorber("Absorber", "Absorber");
     run->AddModule(abso);
+  }
+
+  // the shil
+  if (isActivated("SHIL")) {
+    auto shil = new o2::passive::Shil("Shield", "Small angle beam shield");
+    run->AddModule(shil);
   }
   
   if (isActivated("TOF") || isActivated("TRD") || isActivated("FRAME")) {
