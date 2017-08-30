@@ -13,14 +13,14 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
 //* The authors make no claims about the suitability of this software for    *
 //* any purpose. It is provided "as is" without express or implied warranty. *
-//*									     *
+//*                                                                          *
 //* See original copyright notice below                                      *
 //****************************************************************************
 
@@ -89,26 +89,26 @@ class HOMERFactory {
    * Open a homer reader working on a TCP port.
    */
   AliHLTHOMERReader* OpenReader(const char* hostname, unsigned short port );
-  
+
   /**
    * Open a homer reader working on multiple TCP ports.
    */
   AliHLTHOMERReader* OpenReader(unsigned int tcpCnt, const char** hostnames, unsigned short* ports);
-	
+
   /**
    * Open a HOMER reader for reading from a System V shared memory segment.
   AliHLTHOMERReader* OpenReader(key_t shmKey, int shmSize );
    */
-	
+
   /**
    * Open a HOMER reader for reading from multiple System V shared memory segments
   AliHLTHOMERReader* OpenReader(unsigned int shmCnt, key_t* shmKey, int* shmSize );
    */
-	
+
   /**
    * Open a HOMER reader for reading from multiple TCP ports and multiple System V shared memory segments
   AliHLTHOMERReader* OpenReader(unsigned int tcpCnt, const char** hostnames, unsigned short* ports, 
-				    unsigned int shmCnt, key_t* shmKey, int* shmSize );
+                                    unsigned int shmCnt, key_t* shmKey, int* shmSize );
    */
 
   /**
@@ -156,34 +156,34 @@ class HOMERFactory {
   int UnloadHOMERLibrary();
 
   /** status of the loading of the HOMER library */
-static  int fgLibraryStatus; //!transient
+  static  int sLibraryStatus; //!transient
 
   /** entry in the HOMER library */
-  void (*fFctCreateReaderFromTCPPort)(); //!transient
+  void (*mFctCreateReaderFromTCPPort)(); //!transient
 
   /** entry in the HOMER library */
-  void (*fFctCreateReaderFromTCPPorts)(); //!transient
+  void (*mFctCreateReaderFromTCPPorts)(); //!transient
 
   /** entry in the HOMER library */
-  void (*fFctCreateReaderFromBuffer)(); //!transient
+  void (*mFctCreateReaderFromBuffer)(); //!transient
 
   /** entry in the HOMER library */
-  void (*fFctDeleteReader)(); //!transient
+  void (*mFctDeleteReader)(); //!transient
 
   /** entry in the HOMER library */
-  void (*fFctCreateWriter)(); //!transient
+  void (*mFctCreateWriter)(); //!transient
 
   /** entry in the HOMER library */
-  void (*fFctDeleteWriter)(); //!transient
+  void (*mFctDeleteWriter)(); //!transient
 
   /** Indicates the library that was actually (and if) loaded in LoadHOMERLibrary(). */
-  const char* fLoadedLib;  //!transient
+  const char* mLoadedLib;  //!transient
 
   /** library handle returned by dlopen */
-  void* fHandle;
+  void* mHandle;
 
-  static const char* fgkLibraries[]; /// List of libraries to try and load.
-  static int fgkLibRefCount[]; /// The library reference count to control when to unload the library.
+  static const char* sLibraries[]; /// List of libraries to try and load.
+  static int sLibRefCount[]; /// The library reference count to control when to unload the library.
 };
 }    // namespace alice_hlt
 }    // namespace o2
