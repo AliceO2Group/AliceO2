@@ -697,7 +697,11 @@ GPUh() void AliHLTTPCCATracker::ReconstructOutput()
 
 GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
 {
-	if (fOutputControl == NULL) fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
+	if (fOutputControl == NULL)
+	{
+		fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
+		memset(fOutputControl, 0, sizeof(*fOutputControl));
+	}
 	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
 }
 
@@ -718,14 +722,17 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	if (useOutput == NULL) return;
 
 	useOutput->SetNTracks( 0 );
+	useOutput->SetNLocalTracks( 0 );
 	useOutput->SetNTrackClusters( 0 );
+	
+	if (fCommonMem->fNTracks == 0) return;
 
 	int nStoredHits = 0;
 	int nStoredTracks = 0;
 	int nStoredLocalTracks = 0;
 
 	AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
-
+	
 	trackSortData* trackOrder = new trackSortData[fCommonMem->fNTracks];
 	for (int i = 0;i < fCommonMem->fNTracks;i++)
 	{
@@ -735,7 +742,8 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	qsort(trackOrder, fCommonMem->fNLocalTracks, sizeof(trackSortData), SortComparison);
 	qsort(trackOrder + fCommonMem->fNLocalTracks, fCommonMem->fNTracks - fCommonMem->fNLocalTracks, sizeof(trackSortData), SortComparison);
 
-	for ( int iTrTmp = 0; iTrTmp < fCommonMem->fNTracks; iTrTmp++ ) {
+	for (int iTrTmp = 0;iTrTmp < fCommonMem->fNTracks;iTrTmp++)
+	{
 		int iTr = trackOrder[iTrTmp].fTtrack;
 		AliHLTTPCCATrack &iTrack = fTracks[iTr];
 
@@ -747,7 +755,8 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		int nClu = 0;
 		int iID = iTrack.FirstHitID();
 
-		for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
+		for (int ith = 0;ith < iTrack.NHits();ith++)
+		{
 			const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
 			int iRow = ic.RowIndex();
 			int ih = ic.HitIndex();
@@ -786,7 +795,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		if (iTr < fCommonMem->fNLocalTracks) nStoredLocalTracks++;
 		nStoredHits+=nClu; 
 		out->SetNClusters( nClu );
-		out = out->NextTrack();    
+		out = out->NextTrack();
 	}
 	delete[] trackOrder;
 
