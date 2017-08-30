@@ -580,17 +580,22 @@ RestartTrackletConstructor:
 	}
 
 	int runSlices = 0;
+	int useStream = 0;
+	int streamMap[36];
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice += runSlices)
 	{
 		if (runSlices < HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
-		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Slice %d to %d)", iSlice, iSlice + runSlices);
-		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<selectorBlockCount, HLTCA_GPU_THREAD_COUNT_SELECTOR, 0, cudaStreams[iSlice]>>>(iSlice, CAMath::Min(runSlices, sliceCountLocal - iSlice));
+		runSlices = CAMath::Min(runSlices, sliceCountLocal - iSlice);
+		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
+		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<selectorBlockCount, HLTCA_GPU_THREAD_COUNT_SELECTOR, 0, cudaStreams[useStream]>>>(iSlice, runSlices);
 		if (GPUSync("Tracklet Selector", iSlice, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			cudaThreadSynchronize();
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
 			return(1);
 		}
+		for (int k = iSlice;k < iSlice + runSlices;k++) streamMap[k] = useStream;
+		useStream++;
 	}
 	StandalonePerfTime(firstSlice, 9);
 
@@ -598,31 +603,30 @@ RestartTrackletConstructor:
 	fSliceOutputReady = 0;
 	
 	if (Reconstruct_Base_StartGlobal(pOutput, tmpMemoryGlobalTracking)) return(1);
+	
+	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
+	{
+		if (GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + iSlice].CommonMemory(), fGpuTracker[iSlice].CommonMemory(), fGpuTracker[iSlice].CommonMemorySize(), cudaMemcpyDeviceToHost, cudaStreams[streamMap[iSlice]])) RANDOM_ERROR)
+		{
+			ResetHelperThreads(1);
+			ActivateThreadContext();
+			return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
+		}
+	}
 
-	int tmpSlice = 0, tmpSlice2 = 0;
+	int tmpSlice = 0;
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
 		if (fDebugLevel >= 3) HLTInfo("Transfering Tracks from GPU to Host");
 
-		while(tmpSlice < sliceCountLocal && (tmpSlice == iSlice || cudaStreamQuery(cudaStreams[tmpSlice]) == (cudaError_t) CUDA_SUCCESS))
+		while (tmpSlice < sliceCountLocal && (tmpSlice == iSlice ? cudaStreamSynchronize(cudaStreams[streamMap[tmpSlice]]) : cudaStreamQuery(cudaStreams[streamMap[tmpSlice]])) == (cudaError_t) CUDA_SUCCESS)
 		{
-			if (GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemorySize(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice])) RANDOM_ERROR)
+			if (*fSlaveTrackers[firstSlice + tmpSlice].NTracks() > 0)
 			{
-				ResetHelperThreads(1);
-				ActivateThreadContext();
-				return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
+				GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].Tracks(), fGpuTracker[tmpSlice].Tracks(), sizeof(AliHLTTPCCATrack) * *fSlaveTrackers[firstSlice + tmpSlice].NTracks(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice]));
+				GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].TrackHits(), fGpuTracker[tmpSlice].TrackHits(), sizeof(AliHLTTPCCAHitId) * *fSlaveTrackers[firstSlice + tmpSlice].NTrackHits(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice]));
 			}
 			tmpSlice++;
-		}
-
-		while (tmpSlice2 < tmpSlice && (tmpSlice2 == iSlice ? cudaStreamSynchronize(cudaStreams[tmpSlice2]) : cudaStreamQuery(cudaStreams[tmpSlice2])) == (cudaError_t) CUDA_SUCCESS)
-		{
-			if (*fSlaveTrackers[firstSlice + tmpSlice2].NTracks() > 0)
-			{
-				GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice2].Tracks(), fGpuTracker[tmpSlice2].Tracks(), sizeof(AliHLTTPCCATrack) * *fSlaveTrackers[firstSlice + tmpSlice2].NTracks(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice2]));
-				GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice2].TrackHits(), fGpuTracker[tmpSlice2].TrackHits(), sizeof(AliHLTTPCCAHitId) * *fSlaveTrackers[firstSlice + tmpSlice2].NTrackHits(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice2]));
-			}
-			tmpSlice2++;
 		}
 
 		if (GPUFailedMsg(cudaStreamSynchronize(cudaStreams[iSlice])) RANDOM_ERROR)

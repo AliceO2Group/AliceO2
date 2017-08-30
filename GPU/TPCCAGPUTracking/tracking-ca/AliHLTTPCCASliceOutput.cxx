@@ -22,8 +22,7 @@
 int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
 {
   // calculate the amount of memory [bytes] needed for the event
-
-  return sizeof( AliHLTTPCCASliceOutput ) + sizeof( AliHLTTPCCASliceOutTrack )*nOfTracks + sizeof(AliHLTTPCCASliceOutCluster)*nOfTrackClusters;
+  return sizeof(AliHLTTPCCASliceOutput) + sizeof(AliHLTTPCCASliceOutTrack) * nOfTracks + sizeof(AliHLTTPCCASliceOutCluster) * nOfTrackClusters;
 }
 
 #ifndef HLTCA_GPUCODE
@@ -39,7 +38,7 @@ inline void AssignNoAlignment( int &dst, int &size, int count )
 void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl)
 {
 	//Allocate All memory needed for slice output
-	const int memsize =  EstimateSize(nTracks, nTrackHits);
+	const int memsize = EstimateSize(nTracks, nTrackHits);
 
 	if (outputControl->fOutputPtr)
 	{
