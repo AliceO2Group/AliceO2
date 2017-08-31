@@ -15,7 +15,6 @@
 #include "MathUtils/Cartesian3D.h"
 #include "RStringView.h"
 #include "Rtypes.h"
-#include "TLorentzVector.h"
 
 #include <vector>
 
@@ -171,8 +170,6 @@ class Detector : public o2::Base::Detector
   Int_t mCurrentTrackID;      //!<! ID of the current track
   Int_t mCurrentCellID;       //!<! ID of the current cell
   Hit* mCurrentHit;           //!<! current summed energy
-  TLorentzVector mCurrentPos; //!<! Current hit position (needed for VMC interface)
-  TLorentzVector mCurrentMom; //!<! Current momentum vector (needed for VMC interface)
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module

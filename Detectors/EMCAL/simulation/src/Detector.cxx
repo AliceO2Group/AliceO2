@@ -45,8 +45,6 @@ Detector::Detector(const char* Name, Bool_t Active)
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
     mCurrentHit(nullptr),
-    mCurrentPos(),
-    mCurrentMom(),
     mSampleWidth(0.),
     mSmodPar0(0.),
     mSmodPar1(0.),
@@ -154,14 +152,15 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // - Inside different cell
     // - First track of the event
     std::cout << "New track / cell started\n";
-    mcapp->TrackPosition(mCurrentPos);
-    mcapp->TrackMomentum(mCurrentMom);
+    Double_t posX, posY, posZ, momX, momY, momZ, energy;
+    mcapp->TrackPosition(posX, posY, posZ);
+    mcapp->TrackMomentum(momX, momY, momZ, energy);
     Double_t estart = mcapp->Etot(), time = mcapp->TrackTime() * 1e9; // time in ns
 
     /// check handling of primary particles
     mCurrentHit =
-      AddHit(partID, parent, 0, estart, detID, Point3D<float>(mCurrentPos.X(), mCurrentPos.Y(), mCurrentPos.Z()),
-             Vector3D<float>(mCurrentMom.Px(), mCurrentMom.Py(), mCurrentMom.Pz()), time, lightyield);
+      AddHit(partID, parent, 0, estart, detID, Point3D<float>(float(posX), float(posY), float(posZ)),
+             Vector3D<float>(float(momX), float(momY), float(momZ)), time, lightyield);
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
   } else {
