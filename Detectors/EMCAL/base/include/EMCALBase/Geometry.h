@@ -32,8 +32,8 @@ namespace EMCAL
 {
 class ShishKebabTrd1Module;
 
-using doublevect = std::vector<double>;
-using intvect = std::vector<int>;
+using DoubleVect = std::vector<double>;
+using IntVect = std::vector<int>;
 
 class Geometry
 {
@@ -483,24 +483,24 @@ class Geometry
 
   std::vector<EMCALSMType> GetEMCSystem() const { return mEMCSMSystem; } // EMC System, SM type list
   // Local Coordinates of SM
-  doublevect GetCentersOfCellsEtaDir() const
+  DoubleVect GetCentersOfCellsEtaDir() const
   {
     return mCentersOfCellsEtaDir;
   } // size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
-  doublevect GetCentersOfCellsXDir() const
+  DoubleVect GetCentersOfCellsXDir() const
   {
     return mCentersOfCellsXDir;
   } // size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
-  doublevect GetCentersOfCellsPhiDir() const
+  DoubleVect GetCentersOfCellsPhiDir() const
   {
     return mCentersOfCellsPhiDir;
   } // size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
   //
-  doublevect GetEtaCentersOfCells() const
+  DoubleVect GetEtaCentersOfCells() const
   {
     return mEtaCentersOfCells;
   } // [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
-  doublevect GetPhiCentersOfCells() const
+  DoubleVect GetPhiCentersOfCells() const
   {
     return mPhiCentersOfCells;
   } // [fNPhi*fNPHIdiv] from center of SM (-10. < phi < +10.)
@@ -576,19 +576,19 @@ class Geometry
   Int_t mNETAdiv;             ///< Number eta division of module
   Int_t mNPHIdiv;             ///< Number phi division of module
   Int_t mNCellsInModule;      ///< Number cell in module
-  doublevect mPhiBoundariesOfSM; ///< Phi boundaries of SM in rad; size is fNumberOfSuperModules;
-  doublevect mPhiCentersOfSM;    ///< Phi of centers of SM; size is fNumberOfSuperModules/2
-  doublevect mPhiCentersOfSMSec; ///< Phi of centers of section where SM lies; size is fNumberOfSuperModules/2
+  DoubleVect mPhiBoundariesOfSM; ///< Phi boundaries of SM in rad; size is fNumberOfSuperModules;
+  DoubleVect mPhiCentersOfSM;    ///< Phi of centers of SM; size is fNumberOfSuperModules/2
+  DoubleVect mPhiCentersOfSMSec; ///< Phi of centers of section where SM lies; size is fNumberOfSuperModules/2
 
   // Local Coordinates of SM
-  doublevect mPhiCentersOfCells;    ///< [fNPhi*fNPHIdiv] from center of SM (-10. < phi < +10.)
-  doublevect mCentersOfCellsEtaDir; ///< Size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
-  doublevect mCentersOfCellsPhiDir; ///< Size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
-  doublevect
+  DoubleVect mPhiCentersOfCells;    ///< [fNPhi*fNPHIdiv] from center of SM (-10. < phi < +10.)
+  DoubleVect mCentersOfCellsEtaDir; ///< Size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
+  DoubleVect mCentersOfCellsPhiDir; ///< Size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM, in cm)
+  DoubleVect
     mEtaCentersOfCells; ///< [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
   Int_t mNCells;        ///< Number of cells in calo
   Int_t mNPhi;          ///< Number of Towers in the PHI direction
-  doublevect mCentersOfCellsXDir;   ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
+  DoubleVect mCentersOfCellsXDir;   ///< Size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
   Float_t mEnvelop[3];           ///< The GEANT TUB for the detector
   Float_t mArm1EtaMin;           ///< Minimum pseudorapidity position of EMCAL in Eta
   Float_t mArm1EtaMax;           ///< Maximum pseudorapidity position of EMCAL in Eta
