@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <algorithm>
 #include <iomanip>
 
 #include "TClonesArray.h"
@@ -161,9 +162,9 @@ Hit* Detector::AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t ini
               << ")  with energy " << initialEnergy << " loosing " << eLoss << std::endl;
 
   Hit* myhit(nullptr);
-  auto hitentry = mEventHits.find({ trackID, nullptr });
+  auto hitentry = mEventHits.find(trackID);
   if (hitentry != mEventHits.end()) {
-    myhit = hitentry->mHit;
+    myhit = hitentry->second;
     myhit->SetEnergyLoss(myhit->GetEnergyLoss() + eLoss);
   } else {
     TClonesArray& refCollection = *mPointCollection;

@@ -16,8 +16,8 @@
 #include "RStringView.h"
 #include "Rtypes.h"
 
-#include <set>
 #include <vector>
+#include <unordered_map>
 
 class FairVolume;
 class TClonesArray;
@@ -28,20 +28,6 @@ namespace EMCAL
 {
 class Hit;
 class Geometry;
-
-/// \struct Track hit
-/// \brief Helper structure storing hits assigned to the same track within the event
-///
-/// Hits are handled additive in the EMCAL simulation, meaning all hits belonging to
-/// the same track are added. This struct is used internally in the EMCAL detector class
-/// setting up a search structure for hits belonging to a certain track
-struct TrackHit {
-  Int_t mTrackID; ///< track ID
-  Hit* mHit;      ///< Associated EMCAL hit
-
-  bool operator==(const TrackHit& other) const { return mTrackID == other.mTrackID; }
-  bool operator<(const TrackHit& other) const { return mTrackID < other.mTrackID; }
-};
 
 ///
 /// \class Detector
@@ -178,7 +164,7 @@ class Detector : public o2::Base::Detector
   Double_t mBirkC1;
   Double_t mBirkC2;
 
-  std::set<TrackHit>
+  std::unordered_map<int, Hit *>
     mEventHits; ///< Set of hits within the event, used for fast lookup of hits connected to a primary particle
   TClonesArray* mPointCollection; ///< Collection of EMCAL points
   Geometry* mGeometry;            ///< Geometry pointer
