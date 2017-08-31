@@ -509,18 +509,21 @@ function(O2_GENERATE_MAN)
       COMMAND nroff -Tascii -man ${CMAKE_CURRENT_SOURCE_DIR}/doc/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}.in > ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}
       VERBATIM
     )
-    ADD_CUSTOM_TARGET(${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    # the prefix man. for the target name avoids circular dependencies for the
+    # man pages added at top level. Simply droping the dependency for those
+    # does not invoke the custom command on all systems.
+    set(CUSTOM_TARGET_NAME man.${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    ADD_CUSTOM_TARGET(${CUSTOM_TARGET_NAME} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
     if (PARSED_ARGS_MODULE)
       # add to the man target of specified module
-      add_dependencies(${PARSED_ARGS_MODULE}.man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+      add_dependencies(${PARSED_ARGS_MODULE}.man ${CUSTOM_TARGET_NAME})
     elseif(MODULE_NAME)
       # add to the man target of current module
-      add_dependencies(${MODULE_NAME}.man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+      add_dependencies(${MODULE_NAME}.man ${CUSTOM_TARGET_NAME})
     else()
       # add to top level target otherwise
-      add_dependencies(man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+      add_dependencies(man ${CUSTOM_TARGET_NAME})
     endif()
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION} DESTINATION share/man/man${PARSED_ARGS_SECTION})
   endif(NROFF_FOUND)
 endfunction(O2_GENERATE_MAN)
-
