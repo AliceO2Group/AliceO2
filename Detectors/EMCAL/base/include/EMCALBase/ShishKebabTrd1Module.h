@@ -44,7 +44,7 @@ class ShishKebabTrd1Module
   ///
   /// Constructor.
   ///
-  ShishKebabTrd1Module(Double_t theta = 0.0, Geometry * g = nullptr);
+  ShishKebabTrd1Module(Double_t theta = 0.0, Geometry* g = nullptr);
 
   ///
   /// Constructor.
@@ -91,10 +91,10 @@ class ShishKebabTrd1Module
   const TVector2& GetCenterOfModule() const { return mOK; }
   Double_t GetPosX() const { return mOK.Y(); }
   Double_t GetPosZ() const { return mOK.X(); }
-  Double_t GetPosXfromR() const { return mOK.Y() - mgr; }
+  Double_t GetPosXfromR() const { return mOK.Y() - sr; }
   Double_t GetA() const { return mA; }
   Double_t GetB() const { return mB; }
-  Double_t GetRadius() const { return mgr; }
+  Double_t GetRadius() const { return sr; }
   TVector2 GetORB() const { return mORB; }
   TVector2 GetORT() const { return mORT; }
 
@@ -117,7 +117,7 @@ class ShishKebabTrd1Module
       xr = mOK1.Y();
       zr = mOK1.X();
     }
-    LOG(DEBUG2) <<  " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
+    LOG(DEBUG2) << " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
                 << std::setprecision(4) << xr << " zr " << std::setw(8) << std::setprecision(4) << zr
                 << FairLogger::endl;
   }
@@ -134,7 +134,7 @@ class ShishKebabTrd1Module
 
   void GetCenterOfCellInLocalCoordinateofSM1X1(Double_t& xr, Double_t& zr) const
   { // 1X1 case - Nov 27,2006 // Center of cell is center of module
-    xr = mOK.Y() - mgr;
+    xr = mOK.Y() - sr;
     zr = mOK.X();
   }
 
@@ -152,8 +152,8 @@ class ShishKebabTrd1Module
   void GetPositionAtCenterCellLine(Int_t ieta, Double_t dist, TVector2& v) const;
 
   //
-  Double_t GetTanBetta() const { return mgtanBetta; }
-  Double_t Getb() const { return mgb; }
+  Double_t GetTanBetta() const { return stanBetta; }
+  Double_t Getb() const { return sb; }
 
   // service methods
   void PrintShish(Int_t pri = 1) const; // *MENU*
@@ -164,13 +164,13 @@ class ShishKebabTrd1Module
 
  protected:
   // geometry info
-  Geometry *mGeometry; //!<! pointer to geometry info
-  Double_t mga;           ///<  2*dx1=2*dy1
-  Double_t mga2;          ///<  2*dx2
-  Double_t mgb;           ///<  2*dz1
-  Double_t mgangle;       ///<  in rad (1.5 degree)
-  Double_t mgtanBetta;    ///<  tan(fgangle/2.)
-  Double_t mgr;           ///<  radius to IP
+  Geometry* mGeometry;       //!<! pointer to geometry info
+  static Double_t sa;        ///<  2*dx1=2*dy1
+  static Double_t sa2;       ///<  2*dx2
+  static Double_t sb;        ///<  2*dz1
+  static Double_t sangle;    ///<  in rad (1.5 degree)
+  static Double_t stanBetta; ///<  tan(fgangle/2.)
+  static Double_t sr;        ///<  radius to IP
 
   TVector2 mOK;     ///< position the module center in ALICE system; x->y; z->x;
   Double_t mA;      ///< parameters of right line : y = A*z + B
@@ -198,7 +198,6 @@ class ShishKebabTrd1Module
   // Apr 14, 2010 - checking of geometry
   TVector2 mORB; ///< position of right/bottom point of module
   TVector2 mORT; ///< position of right/top    point of module
-
 };
 }
 }

@@ -15,7 +15,7 @@
 #include "MathUtils/Cartesian3D.h"
 #include "RStringView.h"
 #include "Rtypes.h"
-#include "TArrayF.h"
+#include "TLorentzVector.h"
 
 #include <vector>
 
@@ -29,30 +29,91 @@ namespace EMCAL
 class Hit;
 class Geometry;
 
+///
+/// \class Detector
+/// \bief Detector class for the EMCAL detector
+///
+/// The detector class handles the implementation of the EMCAL detector
+/// within the virtual Monte-Carlo framework and the simulation of the
+/// EMCAL detector up to hit generation
 class Detector : public o2::Base::Detector
 {
  public:
   enum { ID_AIR = 0, ID_PB = 1, ID_SC = 2, ID_AL = 3, ID_STEEL = 4, ID_PAPER = 5 };
 
+  ///
+  /// Default constructor
+  ///
   Detector() = default;
 
+  ///
+  /// Main constructor
+  ///
+  /// \param[in] name Name of the detector (EMCAL)
+  /// \param[in] isActive Switch whether detector is active in simulation
   Detector(const char* name, Bool_t isActive);
 
+  ///
+  /// Destructor
+  ///
   ~Detector() override = default;
 
+  ///
+  /// Initializing detector
+  ///
   void Initialize() final;
 
+  ///
+  /// Processing hit creation in the EMCAL scintillator volume
+  ///
+  /// \param[in] v Current sensitive volume
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
-  Hit* AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
-              const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t length);
+  ///
+  /// Add EMCAL hit
+  /// Internally adding hits coming from the same track
+  ///
+  /// \param[in] trackID Index of the track in the MC stack
+  /// \param[in] parentID Index of the parent particle (entering the EMCAL) in the MC stack
+  /// \param[in] primary Index of the primary particle in the MC stack
+  /// \param[in] initialEnergy Energy of the particle entering the EMCAL
+  /// \param[in] detID Index of the detector (cell) for which the hit is created
+  /// \param[in] pos Position vector of the particle at the hit
+  /// \param[in] mom Momentum vector of the particle at the hit
+  /// \param[in] time Time of the hit
+  /// \param[in] energyloss Energy deposit in EMCAL
+  ///
+  Hit* AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
+              const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t energyloss);
 
+  ///
+  /// Register TClonesArray with hits
+  ///
   void Register() override;
 
+  ///
+  /// Get access to the point collection
+  /// \return TClonesArray with points
+  ///
   TClonesArray* GetCollection(Int_t iColl) const final;
 
+  ///
+  /// Reset
+  /// Clean point collection
+  ///
   void Reset() final;
 
+  ///
+  /// Steps to be carried out at the end of the event
+  /// For EMCAL cleaning the hit collection and the lookup table
+  ///
+  void EndOfEvent() final;
+
+  ///
+  /// Get the EMCAL geometry desciption
+  /// Will be created the first time the function is called
+  /// \return Access to the EMCAL Geometry description
+  ///
   Geometry* GetGeometry();
 
  protected:
@@ -64,6 +125,11 @@ class Detector : public o2::Base::Detector
   void ConstructGeometry() override;
 
   ///
+  /// Generate EMCAL envelop (mother volume of all supermodules)
+  ///
+  void CreateEmcalEnvelope();
+
+  ///
   /// Generate tower geometry
   ///
   void CreateShiskebabGeometry();
@@ -71,12 +137,12 @@ class Detector : public o2::Base::Detector
   ///
   /// Generate super module geometry
   ///
-  void CreateSmod(const std::string_view mother = "XEN1");
+  void CreateSupermoduleGeometry(const std::string_view mother = "XEN1");
 
   ///
   /// Generate module geometry (2x2 towers)
   ///
-  void CreateEmod(const std::string_view mother = "SMOD", const std::string_view child = "EMOD");
+  void CreateEmcalModuleGeometry(const std::string_view mother = "SMOD", const std::string_view child = "EMOD");
 
   ///
   /// Generate aluminium plates geometry
@@ -84,28 +150,14 @@ class Detector : public o2::Base::Detector
   void CreateAlFrontPlate(const std::string_view mother = "EMOD", const std::string_view child = "ALFP");
 
   ///
-  /// Generate towers in module of 1x1
-  /// Prototype studies, remove?
+  /// Calculate the amount of light seen by the APD for a given track segment (charged particles only)
+  /// Calculation done according to Bricks law
   ///
-  void Trd1Tower1X1(Double_t* parSCM0);
-
+  /// \param[in] energydeposit Energy deposited by a charged particle in the track segment
+  /// \param[in] tracklength Length of the track segment
+  /// \param[in] charge Track charge (in units of elementary charge)
   ///
-  /// Generate towers in module of 3x3
-  /// Prototype studies, remove?
-  ///
-  void Trd1Tower3X3(const Double_t* parSCM0);
-
-  ///
-  /// Used by AliEMCALv0::Trd1Tower3X3
-  /// Prototype studies, remove?
-  ///
-  void PbInTrap(const Double_t parTRAP[11], const std::string_view n);
-
-  ///
-  /// Used by AliEMCALv0::Trd1Tower1X1
-  /// Prototype studies, remove?
-  ///
-  void PbInTrd1(const Double_t* parTrd1, const std::string_view n);
+  Double_t CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const;
 
  private:
   Int_t mBirkC0;
@@ -115,8 +167,12 @@ class Detector : public o2::Base::Detector
   TClonesArray* mPointCollection; ///< Collection of EMCAL points
   Geometry* mGeometry;            ///< Geometry pointer
 
-  TArrayF mEnvelop1; //!<! parameters of EMCAL envelop for TRD1(2) case
-  Int_t mIdRotm;     //!<! number of rotation matrix (working variable)
+  // Worker variables during hit creation
+  Int_t mCurrentTrackID;      //!<! ID of the current track
+  Int_t mCurrentCellID;       //!<! ID of the current cell
+  Hit* mCurrentHit;           //!<! current summed energy
+  TLorentzVector mCurrentPos; //!<! Current hit position (needed for VMC interface)
+  TLorentzVector mCurrentMom; //!<! Current momentum vector (needed for VMC interface)
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module
