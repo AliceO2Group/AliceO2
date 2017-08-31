@@ -45,6 +45,8 @@ Detector::Detector(const char* Name, Bool_t Active)
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
     mCurrentHit(nullptr),
+    mCurrentPos(),
+    mCurrentMom(),
     mSampleWidth(0.),
     mSmodPar0(0.),
     mSmodPar1(0.),
@@ -138,32 +140,32 @@ Bool_t Detector::ProcessHits(FairVolume* v)
               << mcapp->CurrentVolOffName(3) << std::endl;
 
   Int_t partID = mcapp->GetStack()->GetCurrentTrackNumber(),
-    parent = mcapp->GetStack()->GetCurrentTrack()->GetMother(0),
-    detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
+        parent = mcapp->GetStack()->GetCurrentTrack()->GetMother(0),
+        detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
 
   Double_t lightyield(eloss);
   if (mcapp->TrackCharge())
     lightyield = CalculateLightYield(eloss, mcapp->TrackStep(), mcapp->TrackCharge());
   lightyield /= geom->GetSampling();
 
-  if(partID != mCurrentTrackID || detID != mCurrentCellID || !mCurrentHit){
+  if (partID != mCurrentTrackID || detID != mCurrentCellID || !mCurrentHit) {
     // Condition for new hit:
     // - Processing different track
     // - Inside different cell
     // - First track of the event
     std::cout << "New track / cell started\n";
-    TLorentzVector pos, mom;
-    mcapp->TrackPosition(pos);
-    mcapp->TrackMomentum(mom);
+    mcapp->TrackPosition(mCurrentPos);
+    mcapp->TrackMomentum(mCurrentMom);
     Double_t estart = mcapp->Etot(), time = mcapp->TrackTime() * 1e9; // time in ns
 
     /// check handling of primary particles
-    mCurrentHit = AddHit(partID, parent, 0, estart, detID, Point3D<float>(pos.X(), pos.Y(), pos.Z()),
-                           Vector3D<float>(mom.Px(), mom.Py(), mom.Pz()), time, lightyield);
+    mCurrentHit =
+      AddHit(partID, parent, 0, estart, detID, Point3D<float>(mCurrentPos.X(), mCurrentPos.Y(), mCurrentPos.Z()),
+             Vector3D<float>(mCurrentMom.Px(), mCurrentMom.Py(), mCurrentMom.Pz()), time, lightyield);
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
   } else {
-    //std::cout << "Adding energy to the current hit\n";
+    // std::cout << "Adding energy to the current hit\n";
     mCurrentHit->SetEnergyLoss(mCurrentHit->GetEnergyLoss() + lightyield);
   }
 
@@ -180,7 +182,7 @@ Hit* Detector::AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t ini
   TClonesArray& refCollection = *mPointCollection;
 
   Int_t size = refCollection.GetEntriesFast();
-  return  new (refCollection[size]) Hit(primary, trackID, parentID, detID, initialEnergy, pos, mom, time, eLoss);
+  return new (refCollection[size]) Hit(primary, trackID, parentID, detID, initialEnergy, pos, mom, time, eLoss);
 }
 
 Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const
