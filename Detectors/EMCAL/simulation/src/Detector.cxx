@@ -40,9 +40,11 @@ Detector::Detector(const char* Name, Bool_t Active)
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
-    mEventHits(),
     mPointCollection(new TClonesArray("o2::EMCAL::Hit")),
     mGeometry(nullptr),
+    mCurrentTrackID(-1),
+    mCurrentCellID(-1),
+    mCurrentHit(nullptr),
     mSampleWidth(0.),
     mSmodPar0(0.),
     mSmodPar1(0.),
@@ -135,22 +137,36 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   LOG(DEBUG3) << "Name of the supermodule type " << mcapp->CurrentVolOffName(4) << ", Module name "
               << mcapp->CurrentVolOffName(3) << std::endl;
 
-  TLorentzVector pos, mom;
-  mcapp->TrackPosition(pos);
-  mcapp->TrackMomentum(mom);
-  Double_t estart = mcapp->Etot(), time = mcapp->TrackTime() * 1e9; // time in ns
   Int_t partID = mcapp->GetStack()->GetCurrentTrackNumber(),
-        parent = mcapp->GetStack()->GetCurrentTrack()->GetMother(0),
-        detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
+    parent = mcapp->GetStack()->GetCurrentTrack()->GetMother(0),
+    detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
 
   Double_t lightyield(eloss);
   if (mcapp->TrackCharge())
     lightyield = CalculateLightYield(eloss, mcapp->TrackStep(), mcapp->TrackCharge());
   lightyield /= geom->GetSampling();
 
-  /// check handling of primary particles
-  AddHit(partID, parent, 0, estart, detID, Point3D<float>(pos.X(), pos.Y(), pos.Z()),
-         Vector3D<float>(mom.Px(), mom.Py(), mom.Pz()), time, lightyield);
+  if(partID != mCurrentTrackID || detID != mCurrentCellID || !mCurrentHit){
+    // Condition for new hit:
+    // - Processing different track
+    // - Inside different cell
+    // - First track of the event
+    std::cout << "New track / cell started\n";
+    TLorentzVector pos, mom;
+    mcapp->TrackPosition(pos);
+    mcapp->TrackMomentum(mom);
+    Double_t estart = mcapp->Etot(), time = mcapp->TrackTime() * 1e9; // time in ns
+
+    /// check handling of primary particles
+    mCurrentHit = AddHit(partID, parent, 0, estart, detID, Point3D<float>(pos.X(), pos.Y(), pos.Z()),
+                           Vector3D<float>(mom.Px(), mom.Py(), mom.Pz()), time, lightyield);
+    mCurrentTrackID = partID;
+    mCurrentCellID = detID;
+  } else {
+    //std::cout << "Adding energy to the current hit\n";
+    mCurrentHit->SetEnergyLoss(mCurrentHit->GetEnergyLoss() + lightyield);
+  }
+
   return true;
 }
 
@@ -161,19 +177,10 @@ Hit* Detector::AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t ini
               << pos.Y() << ", " << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z()
               << ")  with energy " << initialEnergy << " loosing " << eLoss << std::endl;
 
-  Hit* myhit(nullptr);
-  auto hitentry = mEventHits.find(trackID);
-  if (hitentry != mEventHits.end()) {
-    myhit = hitentry->second;
-    myhit->SetEnergyLoss(myhit->GetEnergyLoss() + eLoss);
-  } else {
-    TClonesArray& refCollection = *mPointCollection;
+  TClonesArray& refCollection = *mPointCollection;
 
-    Int_t size = refCollection.GetEntriesFast();
-    myhit = new (refCollection[size]) Hit(primary, trackID, parentID, detID, initialEnergy, pos, mom, time, eLoss);
-    mEventHits.insert({ trackID, myhit });
-  }
-  return myhit;
+  Int_t size = refCollection.GetEntriesFast();
+  return  new (refCollection[size]) Hit(primary, trackID, parentID, detID, initialEnergy, pos, mom, time, eLoss);
 }
 
 Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const
@@ -212,7 +219,9 @@ void Detector::Reset()
 {
   LOG(DEBUG) << "Cleaning EMCAL hits ...\n";
   mPointCollection->Clear();
-  mEventHits.clear();
+  mCurrentTrackID = -1;
+  mCurrentCellID = -1;
+  mCurrentHit = nullptr;
 }
 
 Geometry* Detector::GetGeometry()

@@ -17,7 +17,6 @@
 #include "Rtypes.h"
 
 #include <vector>
-#include <unordered_map>
 
 class FairVolume;
 class TClonesArray;
@@ -164,10 +163,13 @@ class Detector : public o2::Base::Detector
   Double_t mBirkC1;
   Double_t mBirkC2;
 
-  std::unordered_map<int, Hit *>
-    mEventHits; ///< Set of hits within the event, used for fast lookup of hits connected to a primary particle
   TClonesArray* mPointCollection; ///< Collection of EMCAL points
   Geometry* mGeometry;            ///< Geometry pointer
+  
+  // Worker variables during hit creation
+  Int_t mCurrentTrackID; //!<! ID of the current track
+  Int_t mCurrentCellID;  //!<! ID of the current cell
+  Hit * mCurrentHit; //!<! current summed energy
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module
