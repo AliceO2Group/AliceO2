@@ -25,6 +25,12 @@
 //  @since  2017-06-29
 //  @brief  A logging service for MCSteps (hooking into Stepping of TVirtualMCApplication's)
 
+#include <StepInfo.h>
+#include <TBranch.h>
+#include <TClonesArray.h>
+#include <TFile.h>
+#include <TGeoManager.h>
+#include <TGeoVolume.h>
 #include <TTree.h>
 #include <TVirtualMC.h>
 #include <TVirtualMCApplication.h>
@@ -32,9 +38,12 @@
 #include <sstream>
 
 #include <dlfcn.h>
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <set>
+#include <sstream>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -42,16 +51,106 @@
 
 namespace o2
 {
+const char* getLogFileName()
+{
+  if (const char* f = std::getenv("MCSTEPLOG_OUTFILE")) {
+    return f;
+  } else {
+    return "MCStepLoggerOutput.root";
+  }
+}
+
+const char* getVolMapFile()
+{
+  if (const char* f = std::getenv("MCSTEPLOG_VOLMAPFILE")) {
+    return f;
+  } else {
+    return "MCStepLoggerVolMap.dat";
+  }
+}
+
+// initializes a mapping from volumename to detector
+// used for step resolution to detectors
+void initVolumeMap()
+{
+  auto volmap = new std::map<std::string, std::string>;
+  // open for reading or fail
+  std::ifstream ifs;
+  auto f = getVolMapFile();
+  std::cerr << "[MCLOGGER:] TRYING TO READ VOLUMEMAPS FROM " << f << "\n";
+  ifs.open(f);
+  if (ifs.is_open()) {
+    std::string line;
+    while (std::getline(ifs, line)) {
+      std::istringstream ss(line);
+      std::string token;
+      // split the line into key + value
+      int counter = 0;
+      std::string keyvalue[2] = { "NULL", "NULL" };
+      while (counter < 2 && std::getline(ss, token, ' ')) {
+        if (!token.empty()) {
+          keyvalue[counter] = token;
+          counter++;
+        }
+      }
+      // put into map
+      volmap->insert({ keyvalue[0], keyvalue[1] });
+    }
+    ifs.close();
+    StepInfo::volnametomodulemap = volmap;
+  } else {
+    std::cerr << "[MCLOGGER:] VOLUMEMAPSFILE NOT FILE\n";
+    StepInfo::volnametomodulemap = nullptr;
+  }
+}
+
+template <typename T>
+void flushToTTree(const char* branchname, T* address)
+{
+  TFile* f = new TFile(getLogFileName(), "UPDATE");
+  const char* treename = "StepLoggerTree";
+  auto tree = (TTree*)f->Get(treename);
+  if (!tree) {
+    // create tree
+    tree = new TTree(treename, "Tree container information from MC step logger");
+  }
+  auto branch = tree->GetBranch(branchname);
+  if (!branch) {
+    branch = tree->Branch(branchname, &address);
+  }
+  branch->SetAddress(&address);
+  branch->Fill();
+  tree->SetEntries(branch->GetEntries());
+  f->Write();
+  f->Close();
+  delete f;
+}
+
 // a class collecting field access per volume
 class FieldLogger
 {
   int counter = 0;
   std::map<int, int> volumetosteps;
   std::map<int, std::string> idtovolname;
+  bool mTTreeIO = false;
+  std::vector<MagCallInfo> callcontainer;
 
  public:
-  void addStep(TVirtualMC* mc)
+  FieldLogger()
   {
+    // check if streaming or interactive
+    // configuration done via env variable
+    if (std::getenv("MCSTEPLOG_TTREE")) {
+      mTTreeIO = true;
+    }
+  }
+
+  void addStep(TVirtualMC* mc, const double* x, const double* b)
+  {
+    if (mTTreeIO) {
+      callcontainer.emplace_back(mc, x[0], x[1], x[2], b[0], b[1], b[2]);
+      return;
+    }
     counter++;
     int copyNo;
     auto id = mc->CurrentVolID(copyNo);
@@ -70,18 +169,25 @@ class FieldLogger
     counter = 0;
     volumetosteps.clear();
     idtovolname.clear();
+    if (mTTreeIO) {
+      callcontainer.clear();
+    }
   }
 
   void flush()
   {
-    std::cerr << "[FIELDLOGGER]: did " << counter << " steps \n";
-    // summarize steps per volume
-    for (auto& p : volumetosteps) {
-      std::cerr << "[FIELDLOGGER]: VolName " << idtovolname[p.first] << " COUNT " << p.second;
-      std::cerr << "\n";
+    if (mTTreeIO) {
+      flushToTTree("Calls", &callcontainer);
+    } else {
+      std::cerr << "[FIELDLOGGER]: did " << counter << " steps \n";
+      // summarize steps per volume
+      for (auto& p : volumetosteps) {
+        std::cerr << "[FIELDLOGGER]: VolName " << idtovolname[p.first] << " COUNT " << p.second;
+        std::cerr << "\n";
+      }
+      std::cerr << "[FIELDLOGGER]: ----- END OF EVENT ------\n";
     }
     clear();
-    std::cerr << "[FIELDLOGGER]: ----- END OF EVENT ------\n";
   }
 };
 
@@ -96,42 +202,64 @@ class StepLogger
   std::map<int, int> volumetoNSecondaries;            // number of secondaries created in this volume
   std::map<std::pair<int, int>, int> volumetoProcess; // mapping of volumeid x processID to secondaries produced
 
-  // TODO: consider writing to a TTree/TFile
+  std::vector<StepInfo> container;
+  bool mTTreeIO = false;
+
  public:
+  StepLogger()
+  {
+    // check if streaming or interactive
+    // configuration done via env variable
+    if (std::getenv("MCSTEPLOG_TTREE")) {
+      mTTreeIO = true;
+    }
+    // try to load the volumename -> modulename mapping
+    initVolumeMap();
+  }
+
   void addStep(TVirtualMC* mc)
   {
-    assert(mc);
-    stepcounter++;
-    auto stack = mc->GetStack();
-    assert(stack);
-    trackset.insert(stack->GetCurrentTrackNumber());
-    pdgset.insert(mc->TrackPid());
-    int copyNo;
-    auto id = mc->CurrentVolID(copyNo);
-    if (volumetosteps.find(id) == volumetosteps.end()) {
-      volumetosteps.insert(std::pair<int, int>(id, 0));
+    if (mTTreeIO) {
+      container.emplace_back(mc);
     } else {
-      volumetosteps[id]++;
-    }
-    if (idtovolname.find(id) == idtovolname.end()) {
-      idtovolname.insert(std::pair<int, std::string>(id, std::string(mc->CurrentVolName())));
-    }
+      assert(mc);
+      stepcounter++;
 
-    // for the secondaries
-    if (volumetoNSecondaries.find(id) == volumetoNSecondaries.end()) {
-      volumetoNSecondaries.insert(std::pair<int, int>(id, mc->NSecondaries()));
-    } else {
-      volumetoNSecondaries[id] += mc->NSecondaries();
-    }
+      auto stack = mc->GetStack();
+      assert(stack);
+      trackset.insert(stack->GetCurrentTrackNumber());
+      pdgset.insert(mc->TrackPid());
+      int copyNo;
+      auto id = mc->CurrentVolID(copyNo);
 
-    // for the processes
-    for (int i = 0; i < mc->NSecondaries(); ++i) {
-      auto process = mc->ProdProcess(i);
-      auto p = std::pair<int, int>(id, process);
-      if (volumetoProcess.find(p) == volumetoProcess.end()) {
-        volumetoProcess.insert(std::pair<std::pair<int, int>, int>(p, 1));
+      TArrayI procs;
+      mc->StepProcesses(procs);
+
+      if (volumetosteps.find(id) == volumetosteps.end()) {
+        volumetosteps.insert(std::pair<int, int>(id, 0));
       } else {
-        volumetoProcess[p]++;
+        volumetosteps[id]++;
+      }
+      if (idtovolname.find(id) == idtovolname.end()) {
+        idtovolname.insert(std::pair<int, std::string>(id, std::string(mc->CurrentVolName())));
+      }
+
+      // for the secondaries
+      if (volumetoNSecondaries.find(id) == volumetoNSecondaries.end()) {
+        volumetoNSecondaries.insert(std::pair<int, int>(id, mc->NSecondaries()));
+      } else {
+        volumetoNSecondaries[id] += mc->NSecondaries();
+      }
+
+      // for the processes
+      for (int i = 0; i < mc->NSecondaries(); ++i) {
+        auto process = mc->ProdProcess(i);
+        auto p = std::pair<int, int>(id, process);
+        if (volumetoProcess.find(p) == volumetoProcess.end()) {
+          volumetoProcess.insert(std::pair<std::pair<int, int>, int>(p, 1));
+        } else {
+          volumetoProcess[p]++;
+        }
       }
     }
   }
@@ -145,6 +273,10 @@ class StepLogger
     idtovolname.clear();
     volumetoNSecondaries.clear();
     volumetoProcess.clear();
+    if (mTTreeIO) {
+      container.clear();
+    }
+    StepInfo::resetCounter();
   }
 
   // prints list of processes for volumeID
@@ -159,24 +291,30 @@ class StepLogger
 
   void flush()
   {
-    std::cerr << "[STEPLOGGER]: did " << stepcounter << " steps \n";
-    std::cerr << "[STEPLOGGER]: transported " << trackset.size() << " different tracks \n";
-    std::cerr << "[STEPLOGGER]: transported " << pdgset.size() << " different types \n";
-    // summarize steps per volume
-    for (auto& p : volumetosteps) {
-      std::cerr << "[STEPLOGGER]: VolName " << idtovolname[p.first] << " COUNT " << p.second << " SECONDARIES "
-                << volumetoNSecondaries[p.first] << " ";
-      // loop over processes
-      printProcesses(p.first);
-      std::cerr << "\n";
+    if (!mTTreeIO) {
+      std::cerr << "[STEPLOGGER]: did " << stepcounter << " steps \n";
+      std::cerr << "[STEPLOGGER]: transported " << trackset.size() << " different tracks \n";
+      std::cerr << "[STEPLOGGER]: transported " << pdgset.size() << " different types \n";
+      // summarize steps per volume
+      for (auto& p : volumetosteps) {
+        std::cerr << "[STEPLOGGER]: VolName " << idtovolname[p.first] << " COUNT " << p.second << " SECONDARIES "
+                  << volumetoNSecondaries[p.first] << " ";
+        // loop over processes
+        printProcesses(p.first);
+        std::cerr << "\n";
+      }
+      std::cerr << "[STEPLOGGER]: ----- END OF EVENT ------\n";
+    } else {
+      flushToTTree("Steps", &container);
     }
     clear();
-    std::cerr << "[STEPLOGGER]: ----- END OF EVENT ------\n";
   }
 };
 
-StepLogger logger;
-FieldLogger fieldlogger;
+// the global logging instances (in anonymous namespace)
+// pointers to dissallow construction at each library load
+StepLogger* logger;
+FieldLogger* fieldlogger;
 
 } // end namespace
 
@@ -244,17 +382,26 @@ extern "C" void dispatchOriginalField(TVirtualMagField* field, char const* libna
 extern "C" void performLogging(TVirtualMCApplication* app)
 {
   static TVirtualMC* mc = TVirtualMC::GetMC();
-  o2::logger.addStep(mc);
+  o2::logger->addStep(mc);
 }
 
-extern "C" void logField()
+extern "C" void logField(double const* p, double const* b)
 {
   static TVirtualMC* mc = TVirtualMC::GetMC();
-  o2::fieldlogger.addStep(mc);
+  o2::fieldlogger->addStep(mc, p, b);
+}
+
+extern "C" void initLogger()
+{
+  // initializes the logging instances
+  o2::logger = new o2::StepLogger();
+  o2::fieldlogger = new o2::FieldLogger();
 }
 
 extern "C" void flushLog()
 {
-  o2::logger.flush();
-  o2::fieldlogger.flush();
+  std::cerr << "[MCLOGGER:] START FLUSHING ----\n";
+  o2::logger->flush();
+  o2::fieldlogger->flush();
+  std::cerr << "[MCLOGGER:] END FLUSHING ----\n";
 }

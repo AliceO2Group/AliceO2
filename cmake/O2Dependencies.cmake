@@ -371,6 +371,9 @@ o2_define_bucket(
     dl
     root_base_bucket
     VMC
+    EG
+    Tree
+    Geom
 
     INCLUDE_DIRECTORIES
 )
