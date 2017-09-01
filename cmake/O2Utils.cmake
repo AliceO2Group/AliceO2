@@ -317,7 +317,21 @@ function(O2_GENERATE_EXECUTABLE)
   CHECK_VARIABLE(PARSED_ARGS_EXE_NAME "You must provide an executable name")
   CHECK_VARIABLE(PARSED_ARGS_BUCKET_NAME "You must provide a bucket name")
   CHECK_VARIABLE(PARSED_ARGS_SOURCES "You must provide the list of sources")
-#  CHECK_VARIABLE(PARSED_ARGS_MODULE_LIBRARY_NAME "You must provide the module library name this executable belongs to")
+  # note: LIBRARY_NAME is not mandatory
+
+  #######################################################
+  # check that the module/directory name and application name can be distinguished
+  # on case insensitive file systems
+  string(FIND ${CMAKE_CURRENT_BINARY_DIR} "/" CURRENT_BINARY_DIR_START REVERSE)
+  string(LENGTH ${CMAKE_CURRENT_BINARY_DIR} CURRENT_BINARY_DIR_LENGTH)
+  math(EXPR CURRENT_BINARY_DIR_START "${CURRENT_BINARY_DIR_START}+1")
+  math(EXPR CURRENT_BINARY_DIR_LENGTH "${CURRENT_BINARY_DIR_LENGTH}-${CURRENT_BINARY_DIR_START}")
+  string(SUBSTRING ${CMAKE_CURRENT_BINARY_DIR} ${CURRENT_BINARY_DIR_START} ${CURRENT_BINARY_DIR_LENGTH} CURRENT_BINARY_DIR_NAME)
+  string(TOLOWER ${CURRENT_BINARY_DIR_NAME} CURRENT_BINARY_DIR_NAME_LOWER)
+  string(TOLOWER ${PARSED_ARGS_EXE_NAME} EXE_NAME_LOWER)
+  if (CURRENT_BINARY_DIR_NAME_LOWER STREQUAL EXE_NAME_LOWER)
+    message(FATAL_ERROR "module name ${CURRENT_BINARY_DIR_NAME} and application name ${PARSED_ARGS_EXE_NAME} can not be distinguished on case-insensitive file systems. Please choose different names to avoid compilation errors")
+  endif()
 
   ############### build the library #####################
   ADD_EXECUTABLE(${PARSED_ARGS_EXE_NAME} ${PARSED_ARGS_SOURCES})
