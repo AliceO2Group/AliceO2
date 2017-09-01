@@ -8,10 +8,16 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/MCStepInterceptor.cxx
     src/MCStepLoggerImpl.cxx
+    src/StepInfo.cxx
    )
+
+set(HEADERS
+   src/StepInfo.h
+  )
 
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+set(LINKDEF src/MCStepLoggerLinkDef.h)
 
 O2_GENERATE_LIBRARY()
 
