@@ -151,7 +151,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // - Processing different track
     // - Inside different cell
     // - First track of the event
-    std::cout << "New track / cell started\n";
+    // std::cout << "New track / cell started\n";
     Double_t posX, posY, posZ, momX, momY, momZ, energy;
     mcapp->TrackPosition(posX, posY, posZ);
     mcapp->TrackMomentum(momX, momY, momZ, energy);
