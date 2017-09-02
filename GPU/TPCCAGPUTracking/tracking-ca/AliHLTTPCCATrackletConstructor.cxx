@@ -319,22 +319,18 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 		for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
           assert( (signed) fIh < row.NHits() );
           ushort2 hh;
-		  if (r.fStage <= 2 || tracker.HitWeight(row, fIh) >= 0)
-		  {
-
 #if defined(HLTCA_GPU_TEXTURE_FETCH)
-			hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + fIh);
+		  hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + fIh);
 #else
-			hh = hits[fIh];
+		  hh = hits[fIh];
 #endif //HLTCA_GPU_TEXTURE_FETCH
-			int ddy = ( int )( hh.x ) - fY0;
-			int ddz = ( int )( hh.y ) - fZ0;
-			int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
-			if ( dds < ds ) {
-				ds = dds;
-				best = fIh;
-			}
-          }
+		  int ddy = ( int )( hh.x ) - fY0;
+		  int ddz = ( int )( hh.y ) - fZ0;
+		  int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
+		  if ( dds < ds ) {
+			ds = dds;
+			best = fIh;
+		  }
         }
 
 		for ( unsigned int fIh = fHitYfst1; fIh < fHitYlst1; fIh++ ) {
