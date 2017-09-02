@@ -35,7 +35,7 @@ void Painter::draw(const CalDet<T>& calDet)
   static const Mapper& mapper = Mapper::instance();
 
   // ===| name and title |======================================================
-  static const auto title = calDet.getName().c_str();
+  const auto title = calDet.getName().c_str();
   std::string name = calDet.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
 
@@ -83,7 +83,7 @@ void Painter::draw(const CalDet<T>& calDet)
   }
 
   // ===| Draw histograms |=====================================================
-  auto c = new TCanvas(Form("c_%s", name.c_str()));
+  auto c = new TCanvas(Form("c_%s", name.c_str()), title);
   c->Divide(2,2);
 
   c->cd(1);
@@ -106,9 +106,10 @@ void Painter::draw(const CalDet<T>& calDet)
 template <class T>
 void Painter::draw(const CalArray<T>& calArray)
 {
+  const auto title = calArray.getName().c_str();
   std::string name = calArray.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
-  auto c = new TCanvas(Form("c_%s", name.c_str()));
+  auto c = new TCanvas(Form("c_%s", name.c_str()), title);
 
   auto hist = getHistogram2D(calArray);
   hist->Draw("colz");
@@ -163,7 +164,7 @@ TH2* Painter::getHistogram2D(const CalArray<T>& calArray)
   const auto title = calArray.getName().c_str();
   std::string name = calArray.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
-  auto hist = new TH2D(Form("h_%s", name.c_str()),
+  auto hist = new TH2F(Form("h_%s", name.c_str()),
                        Form("%s;pad row;pad", title),
                        nrows, 0., nrows,
                        npads, -npads/2, npads/2);
@@ -176,7 +177,7 @@ TH2* Painter::getHistogram2D(const CalArray<T>& calArray)
       const auto val = calArray.getValue(pad);
       const int cpad = ipad - padsInRow/2;
       hist->Fill(irow, cpad, val);
-      printf("%d %d: %f\n", irow, cpad, (double)val);
+      //printf("%d %d: %f\n", irow, cpad, (double)val);
     }
   }
   return hist;
