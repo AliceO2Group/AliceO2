@@ -95,11 +95,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 #endif //EXTERN_ROW_HITS
 				if ( ih >= 0 ) {
 					GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( irow );
-#ifdef GLOBAL_TRACKING_ONLY_UNASSIGNED_HITS
-					bool own = ( abs(tracker.HitWeight( row, ih )) <= w );
-#else
 					bool own = ( tracker.HitWeight( row, ih ) <= w );
-#endif
 					bool sharedOK = ( ( nShared < nHits * kMaxShared ) );
 					if ( own || sharedOK ) {//SG!!!
 						gap = 0;
@@ -138,17 +134,11 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 							if (jh < HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
 							{
 								tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
-#ifdef GLOBAL_TRACKING_ONLY_UNASSIGNED_HITS
-								tracker.SetHitWeight( tracker.Row( s.fHits[iThread][jh].RowIndex() ), s.fHits[iThread][jh].HitIndex(), -w );
-#endif
 							}
 							else
 #endif //HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 							{
 								tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
-#ifdef GLOBAL_TRACKING_ONLY_UNASSIGNED_HITS
-								tracker.SetHitWeight( tracker.Row( trackHits[jh - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE].RowIndex() ), trackHits[jh - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE].HitIndex(), -w );
-#endif
 							}
 						}
 					}

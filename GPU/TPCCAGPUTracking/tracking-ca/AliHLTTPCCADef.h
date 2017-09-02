@@ -112,7 +112,6 @@ typedef float          Size_t;      //Attribute size (float)
 #define GLOBAL_TRACKING_Y_RANGE_LOWER_LEFT 0.85
 #define GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT 0.85
 #define GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT 0.85
-//#define GLOBAL_TRACKING_ONLY_UNASSIGNED_HITS		//Only use unassigned clusters in the global tracking step
 #define GLOBAL_TRACKING_MIN_ROWS 10					//Min num of rows an additional global track must span over
 #define GLOBAL_TRACKING_MIN_HITS 8					//Min num of hits for an additional global track
 #ifdef HLTCA_STANDALONE
