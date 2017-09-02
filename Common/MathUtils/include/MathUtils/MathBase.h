@@ -168,7 +168,7 @@ namespace mathBase {
     double mSum{0};    ///< sum of values
   };
 
-  /// calculate statistical parameters on an array
+  /// calculate statistical parameters on a binned array
   ///
   /// The function assumes a binned array of
   /// \param nBins size of the array
@@ -218,6 +218,26 @@ namespace mathBase {
     return data;
   }
 
+  /// median of values in a std::vector
+  ///
+  /// we need to make a copy of the vector since we need to sort it
+  /// based on this discussion: https://stackoverflow.com/questions/1719070/what-is-the-right-approach-when-using-stl-container-for-median-calculation/1719155#1719155
+  /// \todo Is there a better way to do this?
+  template <typename T, typename R=double>
+  R median(std::vector<T> v)
+  {
+    if(v.empty()) {
+      return R{};
+    }
+    auto n = v.size() / 2;
+    nth_element(v.begin(), v.begin()+n, v.end());
+    auto med = R{v[n]};
+    if(!(v.size() & 1)) { //If the set size is even
+      auto max_it = max_element(v.begin(), v.begin()+n);
+      med = R{(*max_it + med) / 2.0};
+    }
+    return med;    
+  }
 } // namespace mathBase
 } // namespace mathUtils
 } // namespace o2
