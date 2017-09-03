@@ -11,15 +11,17 @@ public:
 	void Reset();
 	void ResetStart();
 	double GetElapsedTime();
-	double GetCurrentElapsedTime();
+	double GetCurrentElapsedTime(bool reset = false);
 
 private:
-	static double Frequency;
-	static double GetFrequency();
-
 	double ElapsedTime;
 	double StartTime;
 	int running;
+
+	static double GetFrequency();
+#ifndef GPUCODE
+	static double Frequency;
+#endif
 }; 
 
 #endif
