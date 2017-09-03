@@ -199,11 +199,6 @@ GPUhd() inline float AliHLTTPCCAMath::ASin( float x )
   return choiceA( asinf( x ), asin( x ), TMath::ASin( x ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::FMulRZ( float a, float b )
-{
-  return choiceA( __fmul_rz( a, b ), a*b, a*b );
-}
-
 GPUhd() inline float AliHLTTPCCAMath::Log(float x)
 {
 	return choice( Log(x), Log(x), TMath::Log(x));

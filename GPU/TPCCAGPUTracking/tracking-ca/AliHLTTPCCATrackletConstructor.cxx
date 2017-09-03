@@ -359,7 +359,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       if ( sy2 > 2. ) sy2 = 2.;
       if ( sz2 > 2. ) sz2 = 2.;
 
-      if ( CAMath::FMulRZ( dy, dy ) > sy2 || CAMath::FMulRZ( dz, dz ) > sz2  ) {
+      if (dy * dy > sy2 || dz * dz > sz2) {
         SETRowHit(iRow, -1);
         break;
       }
