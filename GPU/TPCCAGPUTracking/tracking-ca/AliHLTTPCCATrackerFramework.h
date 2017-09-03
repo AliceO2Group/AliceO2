@@ -44,7 +44,8 @@ public:
 	GPUhd() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 
 	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput);
-	unsigned long long int* PerfTimer(int GPU, int iSlice, int iTimer);
+	double GetTimer(int iSlice, int iTimer);
+	void ResetTimer(int iSlice, int iTimer);
 
 	int MaxSliceCount() const { return(fUseGPUTracker ? (fGPUTrackerAvailable ? fGPUTracker->GetSliceCount() : 0) : fCPUSliceCount); }
 	int GetGPUStatus() const { return(fGPUTrackerAvailable + fUseGPUTracker); }

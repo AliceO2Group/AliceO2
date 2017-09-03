@@ -30,6 +30,16 @@ MEM_CLASS_PRE() class AliHLTTPCCATrackParam;
 class AliHLTTPCCAClusterData;
 MEM_CLASS_PRE() class AliHLTTPCCARow;
 
+#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_GPUCODE
+#define GPUCODE
+#endif
+#include "../cmodules/timer.h"
+#ifdef HLTCA_GPUCODE
+#undef GPUCODE
+#endif
+#endif
+
 #if !(defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE))
 #include "TStopwatch.h"
 #endif
@@ -56,7 +66,9 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   AliHLTTPCCATracker()
     :
 #ifdef HLTCA_STANDALONE
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
       fStageAtSync( NULL ),
+#endif
 	  fLinkTmpMemory( NULL ),
 #endif
 	  fParam(),
@@ -87,9 +99,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
       fTrackHits( 0 ),
       fOutput( 0 )
   {
-    // constructor
-    for( int i=0; i<10; i++ ) fTimers[i] = 0;
-    for( int i=0; i<16; i++ ) fPerfTimers[i] = 0;
   }
   ~AliHLTTPCCATracker();
   
@@ -183,7 +192,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
 
   GPUh() void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory) { fData.SetGPUSliceDataMemory(pSliceMemory, pRowMemory); }
-  GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 
   GPUh() static int SortComparison(const void* a, const void* b);
 #endif  
@@ -218,9 +226,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUhd() MakeType(const MEM_LG(AliHLTTPCCASliceData)&) Data() const { return fData; }
   
   GPUhd() GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow)& Row( int rowIndex ) const { return fData.Row( rowIndex ); }
-  
-  GPUhd() double Timer( int i ) const { return fTimers[i]; }
-  GPUhd() void SetTimer( int i, double v ) { fTimers[i] = v; }
   
   GPUhd() int NHitsTotal() const { return fData.NumberOfHits(); }
   
@@ -304,19 +309,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUhd() MakeType(MEM_LG(StructGPUParametersConst)*) GPUParametersConst() {return(&fGPUParametersConst);}
   GPUhd() void SetGPUTextureBase(char* val) { fData.SetGPUTextureBase(val); }
 
-#ifdef HLTCA_STANDALONE
-  GPUhd() char* StageAtSync() {return(fStageAtSync);}
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
-  GPUh() const char* LinkTmpMemory() const {return(fLinkTmpMemory);}
-#endif
-#endif
-
-#ifdef HLTCA_STANDALONE
-	static inline void StandaloneQueryTime(ULong64_t *i);
-	static inline void StandaloneQueryFreq(ULong64_t *i);
-#endif //HLTCA_STANDALONE
-  void StandalonePerfTime(int i);
-
   struct trackSortData
   {
 	int fTtrack;		//Track ID
@@ -324,6 +316,11 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   };
 
   void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks);
+  
+  void StartTimer(int i) {if (fGPUDebugLevel) fTimers[i].Start();}
+  void StopTimer(int i) {if (fGPUDebugLevel) fTimers[i].Stop();}
+  double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
+  void ResetTimer(int i) {fTimers[i].Reset();}
 
 private:
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
@@ -333,14 +330,17 @@ private:
 	//Temporary Variables for Standalone measurements
 #ifdef HLTCA_STANDALONE
 public:
+#ifdef  HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
+#endif
   char *fLinkTmpMemory;				//tmp memory for hits after neighbours finder
 private:
 #endif
   
   MEM_LG(AliHLTTPCCAParam) fParam; // parameters
-  double fTimers[10]; // timers
-  ULong64_t fPerfTimers[16]; // running CPU time for different parts of the algorithm
+#ifdef HLTCA_STANDALONE
+  HighResTimer fTimers[10];
+#endif
   
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl; // output control
   
@@ -399,27 +399,5 @@ private:
   
   static int StarthitSortComparison(const void*a, const void* b);
 };
-
-#if defined(HLTCA_STANDALONE) && (!defined(__OPENCL__) || defined(HLTCA_HOSTCODE))
-	void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
-	{
-	#ifdef R__WIN32
-		  QueryPerformanceCounter((LARGE_INTEGER*) i);
-	#else
-		  timespec t;
-		  clock_gettime(CLOCK_REALTIME, &t);
-		  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
-	#endif //R__WIN32
-	}
-
-	void AliHLTTPCCATracker::StandaloneQueryFreq(unsigned long long int *i)
-	{
-	#ifdef R__WIN32
-		  QueryPerformanceFrequency((LARGE_INTEGER*) i);
-	#else
-		*i = 1000000000;
-	#endif //R__WIN32
-	}
-#endif //HLTCA_STANDALONE
 
 #endif //ALIHLTTPCCATRACKER_H

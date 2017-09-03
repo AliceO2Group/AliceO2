@@ -3,7 +3,6 @@ include						config_common.mak
 TARGET						= libAliHLTTPCCAGPUSAOpenCL
 TARGETTYPE					= LIB
 
-CPPFILES					= 
 CXXFILES					= code/AliHLTTPCCATracker.cxx \
 							  code/AliHLTTPCCASliceData.cxx \
 							  code/AliHLTTPCCASliceOutput.cxx \

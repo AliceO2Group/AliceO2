@@ -279,6 +279,7 @@ void AliHLTTPCCAGPUTrackerBase::SetDebugLevel(const int dwLevel, std::ostream* c
 	//Set Debug Level and Debug output File if applicable
 	fDebugLevel = dwLevel;
 	if (NewOutFile) fOutFile = NewOutFile;
+	for (int i = 0;i < fgkNSlices;i++) fSlaveTrackers[i].SetGPUDebugLevel(dwLevel > 0); //Set at least to 1 to collect timing information
 }
 
 int AliHLTTPCCAGPUTrackerBase::SetGPUTrackerOption(char* OptionName, int OptionValue)
@@ -323,19 +324,6 @@ int AliHLTTPCCAGPUTrackerBase::SetGPUTrackerOption(char* OptionName, int OptionV
 
 	return(0);
 }
-
-#ifdef HLTCA_STANDALONE
-void AliHLTTPCCAGPUTrackerBase::StandalonePerfTime(int iSlice, int i)
-{
-	//Run Performance Query for timer i of slice iSlice
-	if (fDebugLevel >= 1)
-	{
-		AliHLTTPCCATracker::StandaloneQueryTime( fSlaveTrackers[iSlice].PerfTimer(i));
-	}
-}
-#else
-void AliHLTTPCCAGPUTrackerBase::StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
-#endif
 
 int AliHLTTPCCAGPUTrackerBase::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
@@ -535,12 +523,6 @@ int AliHLTTPCCAGPUTrackerBase::GetThread()
 #else
 	return((int) syscall (SYS_gettid));
 #endif
-}
-
-unsigned long long int* AliHLTTPCCAGPUTrackerBase::PerfTimer(int iSlice, unsigned int i)
-{
-	//Returns pointer to PerfTimer i of slice iSlice
-	return(fSlaveTrackers ? fSlaveTrackers[iSlice].PerfTimer(i) : NULL);
 }
 
 const AliHLTTPCCASliceOutput::outputControlStruct* AliHLTTPCCAGPUTrackerBase::OutputControl() const
@@ -826,8 +808,6 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput*
 		}
 	}
 
-	StandalonePerfTime(firstSlice, 10);
-
 	if (fDebugLevel >= 3) HLTInfo("GPU Reconstruction finished");
 	return(0);
 }
@@ -866,8 +846,6 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_StartGlobal(AliHLTTPCCASliceOutp
 
 int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData* pClusterData, int& iSlice, int& firstSlice)
 {
-	StandalonePerfTime(firstSlice + iSlice, 0);
-
 	//Initialize GPU Slave Tracker
 	if (fDebugLevel >= 3) HLTInfo("Creating Slice Data (Slice %d)", iSlice);
 	if (iSlice % (fNHelperThreads + 1) == 0)
@@ -1024,3 +1002,6 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 
 	return(0);
 }
+
+double AliHLTTPCCAGPUTrackerBase::GetTimer(int iSlice, unsigned int iTimer) {return fSlaveTrackers[iSlice].GetTimer(iTimer) / ((iTimer == 0 || iTimer >= 8) ? (fNHelperThreads + 1) : 1);}
+void AliHLTTPCCAGPUTrackerBase::ResetTimer(int iSlice, unsigned int iTimer) {fSlaveTrackers[iSlice].ResetTimer(iTimer);}

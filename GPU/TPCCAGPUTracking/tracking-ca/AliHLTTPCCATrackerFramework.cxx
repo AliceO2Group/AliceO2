@@ -124,9 +124,6 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 #endif
 		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
 		{
-#ifdef HLTCA_STANDALONE
-			fCPUTrackers[firstSlice + iSlice].StandalonePerfTime(0);
-#endif
 			fCPUTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].Reconstruct();
@@ -195,10 +192,13 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	return(0);
 }
 
-unsigned long long int* AliHLTTPCCATrackerFramework::PerfTimer(int GPU, int iSlice, int iTimer)
+double AliHLTTPCCATrackerFramework::GetTimer(int iSlice, int iTimer)
 {
-	//Performance information for slice trackers
-	return(GPU ? fGPUTracker->PerfTimer(iSlice, iTimer) : fCPUTrackers[iSlice].PerfTimer(iTimer));
+	return(fUseGPUTracker ? fGPUTracker->GetTimer(iSlice, iTimer) : fCPUTrackers[iSlice].GetTimer(iTimer));
+}
+void AliHLTTPCCATrackerFramework::ResetTimer(int iSlice, int iTimer)
+{
+	return(fUseGPUTracker ? fGPUTracker->ResetTimer(iSlice, iTimer) : fCPUTrackers[iSlice].ResetTimer(iTimer));
 }
 
 int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param)

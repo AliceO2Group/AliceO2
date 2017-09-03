@@ -30,12 +30,8 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** /*pTracker*/, Al
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 int AliHLTTPCCAGPUTracker::InitializeSliceParam(int /*iSlice*/, const AliHLTTPCCAParam& /*param*/) { return 1; }
 void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* /*val*/) {}
-unsigned long long int* AliHLTTPCCAGPUTracker::PerfTimer(int /*iSlice*/, unsigned int /*i*/)
-{
-	//Just return some dummy adress the caller can access
-	static unsigned long long int tmp;
-	return(&tmp);
-}
+double AliHLTTPCCAGPUTracker::GetTimer(int /*iSlice*/, unsigned int /*i*/) {return 0;}
+void AliHLTTPCCAGPUTracker::ResetTimer(int /*iSlice*/, unsigned int /*i*/) {};
 const AliHLTTPCCASliceOutput::outputControlStruct* AliHLTTPCCAGPUTracker::OutputControl() const { return NULL; }
 int AliHLTTPCCAGPUTracker::GetSliceCount() const { return(0); }
 int AliHLTTPCCAGPUTracker::RefitMergedTracks(AliHLTTPCGMMerger* /*Merger*/) { return(0); }

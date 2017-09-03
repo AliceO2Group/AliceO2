@@ -147,10 +147,8 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   TStopwatch timer1;
 
 #ifdef HLTCA_STANDALONE
-  unsigned long long int startTime, endTime, checkTime;
-  unsigned long long int cpuTimers[16], gpuTimers[16], tmpFreq;
-  AliHLTTPCCATracker::StandaloneQueryFreq(&tmpFreq);
-  AliHLTTPCCATracker::StandaloneQueryTime(&startTime);
+  HighResTimer timerTracking, timerMerger;
+  timerTracking.Start();
 
   if (fEventDisplay)
   {
@@ -171,15 +169,12 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   }
 
 #ifdef HLTCA_STANDALONE
-  AliHLTTPCCATracker::StandaloneQueryTime(&endTime);
-  AliHLTTPCCATracker::StandaloneQueryTime(&checkTime);
+  timerTracking.Stop();
 #endif
-
-  timer1.Stop();
-  TStopwatch timer2;
 
   if (fRunMerger)
   {
+      timerMerger.Start();
 	  fMerger.Clear();
 
 	  for ( int i = 0; i < fgkNSlices; i++ ) {
@@ -191,14 +186,8 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 	  if (fTracker.GetGPUTracker()->GPUMergerAvailable()) fMerger.SetGPUTracker(fTracker.GetGPUTracker());
 #endif
 	  fMerger.Reconstruct();
+      timerMerger.Stop();
   }
-
-  timer2.Stop();
-  timer0.Stop();
-  
-  fLastTime[0] = timer0.CpuTime();
-  fLastTime[1] = timer1.CpuTime();
-  fLastTime[2] = timer2.CpuTime();
 
 #ifdef HLTCA_STANDALONE
 #ifdef BUILD_QA
@@ -277,43 +266,33 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   }
 #endif
 
-  printf("Tracking Time: %lld us\nTime uncertainty: %lld ns\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000000 / tmpFreq);
+  printf("Tracking Time: %1.0f us\n", 1000000 * timerTracking.GetElapsedTime());
 
   if (fDebugLevel >= 1)
   {
-		const char* tmpNames[16] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Reserved", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused", "Unused", "Unused", "Unused", "Unused", "Unused"};
+		const char* tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Global Tracking", "Write Output"};
 
 		for (int i = 0;i < 10;i++)
 		{
-			if (i == 6) continue;
-			cpuTimers[i] = gpuTimers[i] = 0;
+            double time = 0;
 			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
 			{
 				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
-				cpuTimers[i] += *fTracker.PerfTimer(0, iSlice, i + 1) - *fTracker.PerfTimer(0, iSlice, i);
-				if (forceSingleSlice != -1 || (fTracker.MaxSliceCount() && (iSlice % fTracker.MaxSliceCount() == 0 || i <= 5)))
-					gpuTimers[i] += *fTracker.PerfTimer(1, iSlice, i + 1) - *fTracker.PerfTimer(1, iSlice, i);
+				time += fTracker.GetTimer(iSlice, i);
+                fTracker.ResetTimer(iSlice, i);
 				if (forceSingleSlice != -1) break;
 			}
 			if (forceSingleSlice == -1)
 			{
-				cpuTimers[i] /= fgkNSlices;
-				gpuTimers[i] /= fgkNSlices;
+				time /= fgkNSlices;
 			}
-			cpuTimers[i] *= 1000000;
-			gpuTimers[i] *= 1000000;
-			cpuTimers[i] /= tmpFreq;
-			gpuTimers[i] /= tmpFreq;
-			cpuTimers[i] /= omp_get_max_threads();
+			if (fTracker.GetGPUStatus() < 2) time /= omp_get_max_threads();
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
-				printf("CPU: %15lld\t\t", cpuTimers[i]);
-				printf("GPU: %15lld\t\t", gpuTimers[i]);
-			if (fDebugLevel >=6 && gpuTimers[i])
-				printf("Speedup: %4lld%%", cpuTimers[i] * 100 / gpuTimers[i]);
+			printf("Time: %1.0f us", time * 1000000);
 			printf("\n");
 		}
-		printf("Execution Time: Task: %20s CPU: %15lld\n", "Merger", (long long int) (timer2.RealTime() * 1000000));
+		printf("Execution Time: Task: %20s Time: %1.0f us\n", "Merger", timerMerger.GetElapsedTime() * 1000000.);
   }
 #endif
 

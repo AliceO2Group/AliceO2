@@ -209,43 +209,42 @@ bool AliHLTTPCGMMerger::Reconstruct()
   }
   
   int nIter = 1;
-  TStopwatch timer;
 #ifdef HLTCA_STANDALONE
-  unsigned long long int a, b, c, d, e, f, g;
-  AliHLTTPCCATracker::StandaloneQueryFreq(&g);
+  HighResTimer timer;
+  double times[5];
 #endif
   //cout<<"Merger..."<<endl;
   for( int iter=0; iter<nIter; iter++ ){
     if( !AllocateMemory() ) return 0;
 #ifdef HLTCA_STANDALONE
-	AliHLTTPCCATracker::StandaloneQueryTime(&a);
+	timer.ResetStart();
 #endif
     UnpackSlices();
 #ifdef HLTCA_STANDALONE
-	AliHLTTPCCATracker::StandaloneQueryTime(&b);
+	times[0] = timer.GetCurrentElapsedTime(true);
 #endif
    MergeWithingSlices();
 #ifdef HLTCA_STANDALONE
-	AliHLTTPCCATracker::StandaloneQueryTime(&c);
+    times[1] = timer.GetCurrentElapsedTime(true);
 #endif
     MergeSlices();
 #ifdef HLTCA_STANDALONE
-	AliHLTTPCCATracker::StandaloneQueryTime(&d);
+    times[2] = timer.GetCurrentElapsedTime(true);
 #endif
     CollectMergedTracks();
 #ifdef HLTCA_STANDALONE
-	AliHLTTPCCATracker::StandaloneQueryTime(&e);
+    times[3] = timer.GetCurrentElapsedTime(true);
 #endif
     Refit();
 #ifdef HLTCA_STANDALONE
-	AliHLTTPCCATracker::StandaloneQueryTime(&f);
+    times[4] = timer.GetCurrentElapsedTime();
 	if (fDebugLevel > 0)
 	{
-		printf("Merge Time:\tUnpack Slices:\t%lld us\n", (b - a) * 1000000 / g);
-		printf("\t\tMerge Within:\t%lld us\n", (c - b) * 1000000 / g);
-		printf("\t\tMerge Slices:\t%lld us\n", (d - c) * 1000000 / g);
-		printf("\t\tCollect:\t%lld us\n", (e - d) * 1000000 / g);
-		printf("\t\tRefit:\t\t%lld us\n", (f - e) * 1000000 / g);
+		printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000);
+		printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000);
+		printf("\t\tMerge Slices:\t%1.0f us\n", times[2] * 1000000);
+		printf("\t\tCollect:\t%1.0f us\n", times[3] * 1000000);
+		printf("\t\tRefit:\t\t%1.0f us\n", times[4] * 1000000);
 	}
 	int newTracks = 0;
 	for (int i = 0;i < fNOutputTracks;i++) if (fOutputTracks[i].OK()) newTracks++;
