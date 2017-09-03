@@ -154,8 +154,6 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
   float stepY = row.HstepY();
   float z0 = row.Grid().ZMin();
   float stepZ = row.HstepZ();
-  float stepYi = row.HstepYi();
-  float stepZi = row.HstepZi();
 
   if ( r.fStage == 0 ) { // fitting part
     do {
@@ -326,7 +324,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 			float z = z0 + hh.y * stepZ;
 			float dy = y - fY;
 			float dz = z - fZ;
-			float dds = dy * dy + dz * dz;
+			float dds = HLTCA_Y_FACTOR * fabs(dy) + fabs(dz);
 			if ( dds < ds ) {
 			  ds = dds;
 			  best = fIh;

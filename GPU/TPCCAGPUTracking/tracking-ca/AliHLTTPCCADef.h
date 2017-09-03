@@ -118,6 +118,9 @@ typedef float          Size_t;      //Attribute size (float)
 #define GLOBAL_TRACKING_MAINTAIN_TRACKLETS			//Maintain tracklets for standalone OpenGL event display
 #endif
 
+#define HLTCA_Y_FACTOR 4							//Weight of y residual vs z residual in tracklet constructor
+#define HLTCA_GPU_MAXN 40							//Maximum number of neighbor hits to consider in one row in neightbors finder
+
 #define REPRODUCIBLE_CLUSTER_SORTING
 
 #ifdef HLTCA_GPUCODE
