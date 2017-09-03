@@ -71,7 +71,7 @@ GPUdi() int AliHLTTPCCAGrid::GetBin( float Y, float Z ) const
   //* get the bin pointer
   const int yBin = static_cast<int>( CAMath::FMulRZ( Y - fYMin, fStepYInv ) );
   const int zBin = static_cast<int>( CAMath::FMulRZ( Z - fZMin, fStepZInv ) );
-  const int bin = CAMath::Mul24( zBin, fNy ) + yBin;
+  const int bin = zBin * fNy + yBin;
 #ifndef HLTCA_GPUCODE
   assert( bin >= 0 );
   assert( bin < static_cast<int>( fN ) );
@@ -84,7 +84,7 @@ GPUdi() int AliHLTTPCCAGrid::GetBinBounded( float Y, float Z ) const
   //* get the bin pointer
   const int yBin = static_cast<int>( CAMath::FMulRZ( Y - fYMin, fStepYInv ) );
   const int zBin = static_cast<int>( CAMath::FMulRZ( Z - fZMin, fStepZInv ) );
-  const int bin = CAMath::Mul24( zBin, fNy ) + yBin;
+  const int bin = zBin * fNy + yBin;
   if ( bin < 0 ) return 0;
   if ( bin >= static_cast<int>( fN ) ) return fN - 1;
   return bin;
