@@ -211,7 +211,8 @@ bool AliHLTTPCGMMerger::Reconstruct()
   int nIter = 1;
 #ifdef HLTCA_STANDALONE
   HighResTimer timer;
-  double times[5];
+  static double times[5] = {};
+  static int nCount = 0;
 #endif
   //cout<<"Merger..."<<endl;
   for( int iter=0; iter<nIter; iter++ ){
@@ -221,34 +222,40 @@ bool AliHLTTPCGMMerger::Reconstruct()
 #endif
     UnpackSlices();
 #ifdef HLTCA_STANDALONE
-	times[0] = timer.GetCurrentElapsedTime(true);
+	times[0] += timer.GetCurrentElapsedTime(true);
 #endif
    MergeWithingSlices();
 #ifdef HLTCA_STANDALONE
-    times[1] = timer.GetCurrentElapsedTime(true);
+    times[1] += timer.GetCurrentElapsedTime(true);
 #endif
     MergeSlices();
 #ifdef HLTCA_STANDALONE
-    times[2] = timer.GetCurrentElapsedTime(true);
+    times[2] += timer.GetCurrentElapsedTime(true);
 #endif
     CollectMergedTracks();
 #ifdef HLTCA_STANDALONE
-    times[3] = timer.GetCurrentElapsedTime(true);
+    times[3] += timer.GetCurrentElapsedTime(true);
 #endif
     Refit();
 #ifdef HLTCA_STANDALONE
-    times[4] = timer.GetCurrentElapsedTime();
+    times[4] += timer.GetCurrentElapsedTime();
+    nCount++;
 	if (fDebugLevel > 0)
 	{
-		printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000);
-		printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000);
-		printf("\t\tMerge Slices:\t%1.0f us\n", times[2] * 1000000);
-		printf("\t\tCollect:\t%1.0f us\n", times[3] * 1000000);
-		printf("\t\tRefit:\t\t%1.0f us\n", times[4] * 1000000);
+		printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000 / nCount);
+		printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000 / nCount);
+		printf("\t\tMerge Slices:\t%1.0f us\n", times[2] * 1000000 / nCount);
+		printf("\t\tCollect:\t%1.0f us\n", times[3] * 1000000 / nCount);
+		printf("\t\tRefit:\t\t%1.0f us\n", times[4] * 1000000 / nCount);
 	}
 	int newTracks = 0;
 	for (int i = 0;i < fNOutputTracks;i++) if (fOutputTracks[i].OK()) newTracks++;
 	printf("Output Tracks: %d\n", newTracks);
+    if (!HLTCA_TIMING_SUM)
+    {
+        for (int i = 0;i < 5;i++) times[i] = 0.;
+        nCount = 0;
+    }
 #endif
   }  
   timer.Stop();  
