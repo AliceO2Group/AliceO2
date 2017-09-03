@@ -46,6 +46,7 @@ include						config_common.mak
 
 TARGET						= ca
 SUBTARGETS					= libAliHLTTPCCAGPUSA
+SUBTARGETS_CLEAN				= libAliHLTTPCCAGPUSA.*
 #TARGETPATH					= ../
 
 TARGETTYPE					= LIB

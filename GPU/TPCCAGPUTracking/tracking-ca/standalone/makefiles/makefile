@@ -261,7 +261,7 @@ $(WORKPATH)/make_cuda_device_link/dl_$(TARGET).$(OBJ):	$(CUFILES:%.cu=$(WORKPATH
 								$(NVCC) $(NVCCFLAGSUSE) -dlink $(CUFILES:%.cu=$(WORKPATH)/cu/%.$(OBJ)) -o $@ -lcudadevrt
 							
 clean:							$(SUBTARGETS:%=subclean/%.mak)
-								rm -Rf *.plg *.dpi *.exp *.lib $(EXECUTABLE) $(COPIED_EXECUTABLE) x64/release/* *.cubin *.gpu *.ptx *.linkinfo *.ii cuda.compute_* $(DEPENDS) $(OBJFILES) $(CUFILES:%.cu=$(WORKPATH)/cu/%.cpp) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.asm) $(CLEANRELEASEDIR)
+								rm -Rf *.plg *.dpi *.exp *.lib $(EXECUTABLE) $(COPIED_EXECUTABLE) x64/release/* *.cubin *.gpu *.ptx *.linkinfo *.ii cuda.compute_* $(DEPENDS) $(OBJFILES) $(CUFILES:%.cu=$(WORKPATH)/cu/%.cpp) $(ASMFILES:%.asm=$(WORKPATH)/asm/%.asm) $(CLEANRELEASEDIR) $(SUBTARGETS_CLEAN)
 							
 subclean/%.mak:
 								+export CONFIGFILE=config_`echo $@ | sed s,subclean/,,` && $(MAKE) -f makefile clean
