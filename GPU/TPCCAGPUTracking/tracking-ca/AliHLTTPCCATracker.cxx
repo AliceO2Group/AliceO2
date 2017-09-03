@@ -401,6 +401,7 @@ void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 {
 	// read event
 
+	StartTimer(0);
 	fClusterData = clusterData;
 
 	StartEvent();
@@ -415,6 +416,7 @@ void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 		}
 		SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
 	}
+	StopTimer(0);
 }
 
 GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
@@ -514,19 +516,6 @@ void AliHLTTPCCATracker::RunTrackletSelector()
 	AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector>( 1, fCommonMem->fNTracklets, *this );
 }
 
-#ifdef HLTCA_STANDALONE
-void AliHLTTPCCATracker::StandalonePerfTime(int i)
-{
-	//Query Performance Timer for Standalone Version of Tracker
-	if (fGPUDebugLevel >= 1)
-	{
-		StandaloneQueryTime(&fPerfTimers[i]);
-	}
-}
-#else
-void AliHLTTPCCATracker::StandalonePerfTime(int /*i*/) {}
-#endif
-
 GPUh() void AliHLTTPCCATracker::DoTracking()
 {
 	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
@@ -540,11 +529,9 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 		DumpSliceData(*fGPUDebugOut);
 	}
 
-	StandalonePerfTime(1);
-
+	StartTimer(1);
 	RunNeighboursFinder();
-
-	StandalonePerfTime(2);
+	StopTimer(1);
 
 #ifdef TRACKER_KEEP_TEMPDATA
 	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
@@ -567,20 +554,21 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	}
 #endif //DRAW1
 
+	StartTimer(2);
 	RunNeighboursCleaner();
-
-	StandalonePerfTime(3);
+	StopTimer(2);
 
 	if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
+	StartTimer(3);
 	RunStartHitsFinder();
-
-	StandalonePerfTime(4);
-	StandalonePerfTime(5);
+	StopTimer(3);
 
 	if (fGPUDebugLevel >= 6) DumpStartHits(*fGPUDebugOut);
 
+	StartTimer(5);
 	fData.ClearHitWeights();
+	StopTimer(5);
 
 	if (!fIsGPUTracker)
 	{
@@ -593,12 +581,9 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for hits
 	SetPointersTracks( fCommonMem->fNTracklets * 2 + 50, NHitsTotal() ); // set pointers for hits
 
-	StandalonePerfTime(6);
-	StandalonePerfTime(7);
-
+	StartTimer(6);
 	RunTrackletConstructor();
-
-	StandalonePerfTime(8);
+	StopTimer(6);
 
 	if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
@@ -607,9 +592,9 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 
 	//std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
 
+	StartTimer(7);
 	RunTrackletSelector();
-
-	StandalonePerfTime(9);
+	StopTimer(7);
 
 	//std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
@@ -620,21 +605,6 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 
 GPUh() void AliHLTTPCCATracker::Reconstruct()
 {
-	//* reconstruction of event
-	//std::cout<<"Reconstruct slice "<<fParam.ISlice()<<", nHits="<<NHitsTotal()<<std::endl;
-
-	fTimers[0] = 0; // find neighbours
-	fTimers[1] = 0; // construct tracklets
-	fTimers[2] = 0; // fit tracklets
-	fTimers[3] = 0; // prolongation of tracklets
-	fTimers[4] = 0; // selection
-	fTimers[5] = 0; // write output
-	fTimers[6] = 0;
-	fTimers[7] = 0;
-
-	//if( fParam.ISlice()<1 ) return; //SG!!!
-
-	TStopwatch timer0;
 
 	if (CheckEmptySlice()) return;
 
@@ -653,16 +623,12 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 #endif //DRAW1
 
 	DoTracking();
-	fTimers[0] = timer0.CpuTime() / 100.;
 }
 
 GPUh() void AliHLTTPCCATracker::ReconstructOutput()
 {
-	TStopwatch timer0;
 	WriteOutputPrepare();
 	WriteOutput();
-
-	StandalonePerfTime(10);
 
 #ifdef DRAW1
 	{
@@ -690,19 +656,18 @@ GPUh() void AliHLTTPCCATracker::ReconstructOutput()
 		disp.Ask();
 	}
 #endif //DRAW1
-
-	timer0.Stop();
-	fTimers[0] += timer0.CpuTime() / 100.;
 }
 
 GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
 {
+	StartTimer(9);
 	if (fOutputControl == NULL)
 	{
 		fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
 		memset(fOutputControl, 0, sizeof(*fOutputControl));
 	}
 	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
+	StopTimer(9);
 }
 
 GPUh() int AliHLTTPCCATracker::SortComparison(const void* a, const void* b)
@@ -715,8 +680,6 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	// write output
 	AliHLTTPCCASliceOutput* useOutput = *fOutput;
 
-	TStopwatch timer;
-
 	//cout<<"output: nTracks = "<<*fNTracks<<", nHitsTotal="<<NHitsTotal()<<std::endl;
 
 	if (useOutput == NULL) return;
@@ -726,6 +689,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	useOutput->SetNTrackClusters( 0 );
 	
 	if (fCommonMem->fNTracks == 0) return;
+	StartTimer(9);
 
 	int nStoredHits = 0;
 	int nStoredTracks = 0;
@@ -803,8 +767,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
 
-	timer.Stop();
-	fTimers[5] += timer.CpuTime();
+	StopTimer(9);
 }
 
 #endif
@@ -1084,6 +1047,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 
 GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks)
 {
+	StartTimer(8);
 	int ul = 0, ur = 0, ll = 0, lr = 0;
 	for (int i = 0;i < fCommonMem->fNLocalTracks;i++)
 	{
@@ -1131,6 +1095,7 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 			}
 		}
 	}
+	StopTimer(8);
 	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", fParam.ISlice(), ll, lr, ul, ur);
 }
 

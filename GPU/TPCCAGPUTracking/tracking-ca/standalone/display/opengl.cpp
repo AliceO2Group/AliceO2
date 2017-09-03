@@ -49,6 +49,7 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "include.h"
+#include "../cmodules/timer.h"
 
 #define fgkNSlices 36
 
@@ -450,8 +451,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1;
 
-	static int framesDone = 0;
-	static unsigned long long int startTime, displayFpsTime, timeFreq;
+	static int framesDone = 0, framesDoneFPS = 0;
+	static HighResTimer timerFPS, timerDisplay;
 
 	static GLuint glDLlines[fgkNSlices][6];
 	static GLuint glDLlinesFinal;
@@ -556,9 +557,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		glLoadIdentity();
 		glTranslatef(0, 0, -16);
 
-		AliHLTTPCCATracker::StandaloneQueryTime(&startTime);
-		displayFpsTime = startTime;
-		framesDone = 0;
+		timerFPS.ResetStart();
+		framesDone = framesDoneFPS = 0;
 
 		pointSize = 2.0;
 		drawSlice = -1;
@@ -637,10 +637,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 
 		currentEventNr = displayEventNr;
 
-		AliHLTTPCCATracker::StandaloneQueryFreq(&timeFreq);
-		AliHLTTPCCATracker::StandaloneQueryTime(&startTime);
-		displayFpsTime = startTime;
-		framesDone = 0;
+		timerFPS.ResetStart();
+		framesDone = framesDoneFPS = 0;
 		glDLrecent = 0;
 		updateDLList = 0;
 	}
@@ -688,14 +686,14 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 				char *tmpMem[fgkNSlices];
 				for (int i = 0; i < fgkNSlices; i++)
 				{
-					if (tracker.LinkTmpMemory() == NULL)
+					if (tracker.fLinkTmpMemory == NULL)
 					{
 						printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
 						break;
 					}
 					AliHLTTPCCATracker &tracker = hlt.fTracker.fCPUTrackers[i];
 					tmpMem[i] = tracker.Data().Memory();
-					tracker.SetGPUSliceDataMemory((void *) tracker.LinkTmpMemory(), tracker.Data().Rows());
+					tracker.SetGPUSliceDataMemory((void *) tracker.fLinkTmpMemory, tracker.Data().Rows());
 					tracker.SetPointersSliceData(tracker.ClusterData());
 					DrawLinks(tracker, 1, true);
 					tracker.SetGPUSliceDataMemory(tmpMem[i], tracker.Data().Rows());
@@ -756,15 +754,16 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		}
 	}
 
-	++framesDone;
-	unsigned long long int tmpTime;
-	AliHLTTPCCATracker::StandaloneQueryTime(&tmpTime);
-	if (tmpTime - displayFpsTime > timeFreq)
+	framesDone++;
+	framesDoneFPS++;
+	double time = timerFPS.GetCurrentElapsedTime();
+	if (time > 1.)
 	{
-		displayFpsTime = tmpTime;
-		float fps = (double) framesDone * (double) timeFreq / (double) (tmpTime - startTime);
+		float fps = (double) framesDoneFPS / time;
 		printf("FPS: %f (%d frames, Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d)\n", fps, framesDone, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal);
 		fpsscale = 60 / fps;
+		timerFPS.ResetStart();
+		framesDoneFPS = 0;
 	}
 
 	//Draw Event

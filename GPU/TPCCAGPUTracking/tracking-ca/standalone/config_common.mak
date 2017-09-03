@@ -15,8 +15,10 @@ CC_i686-pc-cygwin			= ICC
 
 INCLUDEPATHS				= include code base merger-ca cagpubuild
 DEFINES						= HLTCA_STANDALONE
+CPPFILES				= cmodules/timer.cpp
 
 EXTRAFLAGSGCC				= -Weffc++ -Wno-unused-local-typedefs
+EXTRAFLAGSLINK				=
 
 COMPILER_FLAGS				= OPT
 CONFIG_LTO					= 1
