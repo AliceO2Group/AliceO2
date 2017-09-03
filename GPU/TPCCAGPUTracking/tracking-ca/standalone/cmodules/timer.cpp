@@ -6,10 +6,8 @@
 #include <time.h>
 #endif
 
-HighResTimer::HighResTimer()
+HighResTimer::HighResTimer() : ElapsedTime(0), StartTime(0), running(0)
 {
-	ElapsedTime = 0;
-	running = 0;
 }
 
 HighResTimer::~HighResTimer() {}
@@ -63,9 +61,14 @@ double HighResTimer::GetElapsedTime()
 	return ElapsedTime / Frequency;
 }
 
-double HighResTimer::GetCurrentElapsedTime()
+double HighResTimer::GetCurrentElapsedTime(bool reset)
 {
-	if (running == 0) return(GetElapsedTime());
+	if (running == 0)
+    {
+        double retVal = GetElapsedTime();
+        Reset();
+        return(retVal);
+    }
 	double CurrentTime = 0;
 #ifdef _WIN32
 	__int64 iend;
@@ -76,7 +79,13 @@ double HighResTimer::GetCurrentElapsedTime()
 	clock_gettime(CLOCK_REALTIME, &tv);
 	CurrentTime = (double) tv.tv_sec * 1.0e9 + (double) tv.tv_nsec;
 #endif
-	return((CurrentTime - StartTime + ElapsedTime) / Frequency);
+    double retVal = (CurrentTime - StartTime + ElapsedTime) / Frequency;
+    if (reset)
+    {
+        ElapsedTime = 0;
+        Start();
+    }
+	return(retVal);
 }
 
 double HighResTimer::GetFrequency()
