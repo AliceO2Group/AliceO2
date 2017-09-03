@@ -1,0 +1,11 @@
+/get_private_profile.h
+/os_low_level_helper.h
+/affinity.cpp
+/affinity.h
+/qmath.h
+/qmultialloc.cpp
+/qmultialloc.h
+/sched_affinity_win32_wrapper.h
+/switchtemplate.h
+/util_adl.cpp
+/util_adl.h
