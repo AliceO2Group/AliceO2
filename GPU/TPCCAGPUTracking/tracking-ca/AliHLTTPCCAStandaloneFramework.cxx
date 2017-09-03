@@ -147,7 +147,8 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   TStopwatch timer1;
 
 #ifdef HLTCA_STANDALONE
-  HighResTimer timerTracking, timerMerger;
+  static HighResTimer timerTracking, timerMerger;
+  static int nCount = 0;
   timerTracking.Start();
 
   if (fEventDisplay)
@@ -266,7 +267,8 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   }
 #endif
 
-  printf("Tracking Time: %1.0f us\n", 1000000 * timerTracking.GetElapsedTime());
+  nCount++;
+  printf("Tracking Time: %1.0f us\n", 1000000 * timerTracking.GetElapsedTime() / nCount);
 
   if (fDebugLevel >= 1)
   {
@@ -279,7 +281,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			{
 				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 				time += fTracker.GetTimer(iSlice, i);
-                fTracker.ResetTimer(iSlice, i);
+                if (!HLTCA_TIMING_SUM) fTracker.ResetTimer(iSlice, i);
 				if (forceSingleSlice != -1) break;
 			}
 			if (forceSingleSlice == -1)
@@ -289,10 +291,16 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			if (fTracker.GetGPUStatus() < 2) time /= omp_get_max_threads();
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
-			printf("Time: %1.0f us", time * 1000000);
+			printf("Time: %1.0f us", time * 1000000 / nCount);
 			printf("\n");
 		}
-		printf("Execution Time: Task: %20s Time: %1.0f us\n", "Merger", timerMerger.GetElapsedTime() * 1000000.);
+		printf("Execution Time: Task: %20s Time: %1.0f us\n", "Merger", timerMerger.GetElapsedTime() * 1000000. / nCount);
+        if (!HLTCA_TIMING_SUM)
+        {
+            timerTracking.Reset();
+            timerMerger.Reset();
+            nCount = 0;
+        }
   }
 #endif
 
