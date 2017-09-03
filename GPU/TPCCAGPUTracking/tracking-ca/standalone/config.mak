@@ -6,10 +6,12 @@ TARGET						= ca
 ifeq ($(BUILD_CUDA), 1)
 SUBTARGETS					+= libAliHLTTPCCAGPUSA
 endif
+SUBTARGETS_CLEAN				+= libAliHLTTPCCAGPUSA.*
 
 ifeq ($(BUILD_OPENCL), 1)
 SUBTARGETS					+= libAliHLTTPCCAGPUSAOpenCL
 endif
+SUBTARGETS_CLEAN				+= libAliHLTTPCCAGPUSAOpenCL.Q
 
 CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCATrack.cxx \
