@@ -3,7 +3,7 @@ CUDASDKPATH						= $(CUDAPATH)/sdk
 AMDPATH							= $(AMDAPPSDKROOT)
 INTELPATH						:= $(shell which icc 2> /dev/null | sed "s,/bin/.*/icc$$,,")
 ifeq ($(INTELPATH), )
-INTELPATH						= /opt/intel/composerxe-2015.0.090
+INTELPATH						= /opt/intel/compilers_and_libraries_2016.2.181/linux
 endif
 
 GCC3264							= c++
@@ -31,7 +31,7 @@ GCCARCHA							= -march=$(GCCARCH) -msse4.2 -m$(ARCHBITS)
 endif
 
 ifeq ("$(CONFIG_OPENMP)", "1")
-INTELFLAGSCOMMON					+= -openmp
+INTELFLAGSCOMMON					+= -qopenmp
 ifneq ("0$(CPPFILES_ICC)", "0")
 LIBSUSE							+= -liomp5
 endif
