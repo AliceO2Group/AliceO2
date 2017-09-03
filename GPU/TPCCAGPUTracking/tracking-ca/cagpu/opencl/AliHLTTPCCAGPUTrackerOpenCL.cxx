@@ -778,12 +778,6 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 	return(0);
 }
 
-int AliHLTTPCCAGPUTrackerOpenCL::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
-{
-	HLTFatal("Not implemented in OpenCL (ReconstructPP)");
-	return(1);
-}
-
 int AliHLTTPCCAGPUTrackerOpenCL::ExitGPU_Runtime()
 {
 	//Uninitialize OPENCL

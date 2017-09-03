@@ -102,7 +102,6 @@ protected:
 	int Reconstruct_Base_StartGlobal(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking);
 	int Reconstruct_Base_FinishSlices(AliHLTTPCCASliceOutput** pOutput, int& iSlice, int& firstSlice);
 	int Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking, int& firstSlice);
-	virtual int ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1) = 0;
 	
 	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
 	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
@@ -149,7 +148,6 @@ protected:
 	int fThreadId; //Thread ID that is valid for the local CUDA context
 	int fCudaInitialized; //Flag if CUDA is initialized
 
-	int fPPMode; //Flag if GPU tracker runs in PP Mode
 	int fSelfheal; //Reinitialize GPU on failure
 
 	int fConstructorBlockCount; //GPU blocks used in Tracklet Constructor

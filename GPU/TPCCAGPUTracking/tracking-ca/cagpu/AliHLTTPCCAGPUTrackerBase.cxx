@@ -207,7 +207,6 @@ fCudaDevice(0),
 fOutputControl(NULL),
 fThreadId(0),
 fCudaInitialized(0),
-fPPMode(0),
 fSelfheal(0),
 fConstructorBlockCount(30),
 selectorBlockCount(30),
@@ -285,11 +284,7 @@ void AliHLTTPCCAGPUTrackerBase::SetDebugLevel(const int dwLevel, std::ostream* c
 int AliHLTTPCCAGPUTrackerBase::SetGPUTrackerOption(char* OptionName, int OptionValue)
 {
 	//Set a specific GPU Tracker Option
-	if (strcmp(OptionName, "PPMode") == 0)
-	{
-		fPPMode = OptionValue;
-	}
-	else if (strcmp(OptionName, "DebugMask") == 0)
+	if (strcmp(OptionName, "DebugMask") == 0)
 	{
 		fDebugMask = OptionValue;
 	}
@@ -936,12 +931,6 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 	}
 	
 	ActivateThreadContext();
-	if (fPPMode)
-	{
-		int retVal = ReconstructPP(pOutput, pClusterData, firstSlice, sliceCountLocal);
-		ReleaseThreadContext();
-		return(retVal);
-	}
 
 	for (int i = fNHelperThreads;i < fNCPUTrackers + fNHelperThreads;i++)
 	{
