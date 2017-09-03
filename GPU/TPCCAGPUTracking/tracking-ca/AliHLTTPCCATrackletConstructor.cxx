@@ -25,6 +25,8 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCATrackletConstructor.h"
+#include "AliHLTTPCCAHitArea.h"
+#include "AliHLTTPCCAHit.h"
 
 #define kMaxRowGap 4
 
@@ -270,13 +272,29 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         break;
       }
 
-#ifndef HLTCA_GPU_TEXTURE_FETCH
-	  GPUglobalref() const ushort2 *hits = tracker.HitData(row);
-#endif //!HLTCA_GPU_TEXTURE_FETCH
-
+      #ifndef HLTCA_GPU_TEXTURE_FETCH
+      	  GPUglobalref() const ushort2 *hits = tracker.HitData(row);
+      #endif //!HLTCA_GPU_TEXTURE_FETCH
       float fY = tParam.GetY();
       float fZ = tParam.GetZ();
       int best = -1;
+
+      float ds = 1e6;
+      AliHLTTPCCAHitArea area;
+      area.Init(row, tracker.Data(), fY, fZ, 1.5, 1.5);
+      while (true)
+      {
+          AliHLTTPCCAHit hh;
+          int ih = area.GetNext(tracker, row, tracker.Data(), &hh);
+          if (ih < 0) break;
+          float dy = hh.Y() - fY;
+          float dz = hh.Z() - fZ;
+          float dds = HLTCA_Y_FACTOR * fabs(dy) + fabs(dz);
+          if ( dds < ds ) {
+            ds = dds;
+            best = ih;
+          }          
+      }
 
       { // search for the closest hit
         const int fIndYmin = row.Grid().GetBinBounded( fY - 1.f, fZ - 1.f );
@@ -285,7 +303,6 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         float ds = 1e6;
 
         unsigned int hitYfst[2], hitYlst[2];
-
         {
           int nY = row.Grid().Ny();
 
