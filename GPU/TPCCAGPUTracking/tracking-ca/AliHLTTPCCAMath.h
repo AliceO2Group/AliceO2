@@ -199,16 +199,6 @@ GPUhd() inline float AliHLTTPCCAMath::ASin( float x )
   return choiceA( asinf( x ), asin( x ), TMath::ASin( x ) );
 }
 
-
-GPUd() inline int AliHLTTPCCAMath::Mul24( int a, int b )
-{
-#if defined(FERMI) || defined(__OPENCL__) || defined(KEPLER)
-  return(a * b);
-#else
-  return choice( __mul24( a, b ), a*b, a*b );
-#endif
-}
-
 GPUd() inline float AliHLTTPCCAMath::FMulRZ( float a, float b )
 {
   return choiceA( __fmul_rz( a, b ), a*b, a*b );
