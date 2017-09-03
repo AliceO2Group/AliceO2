@@ -30,7 +30,6 @@ public:
 
 	virtual int InitGPU_Runtime(int sliceCount = -1, int forceDeviceID = -1);
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
-	virtual int ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	virtual int ExitGPU_Runtime();
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
 
