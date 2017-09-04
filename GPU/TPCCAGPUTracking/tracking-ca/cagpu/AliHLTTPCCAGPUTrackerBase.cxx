@@ -268,7 +268,7 @@ void AliHLTTPCCAGPUTrackerBase::SetDebugLevel(const int dwLevel, std::ostream* c
 	for (int i = 0;i < fgkNSlices;i++) fSlaveTrackers[i].SetGPUDebugLevel(dwLevel > 0); //Set at least to 1 to collect timing information
 }
 
-int AliHLTTPCCAGPUTrackerBase::SetGPUTrackerOption(char* OptionName, int OptionValue)
+int AliHLTTPCCAGPUTrackerBase::SetGPUTrackerOption(const char* OptionName, int OptionValue)
 {
 	//Set a specific GPU Tracker Option
 	if (strcmp(OptionName, "DebugMask") == 0)

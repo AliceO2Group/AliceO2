@@ -178,12 +178,14 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		HLTError( "Unsupported CUDA Device" );
 		return(1);
 	}
-	
+
+#ifdef HLTCA_GPU_USE_TEXTURES
 	if (HLTCA_GPU_SLICE_DATA_MEMORY * sliceCount > (size_t) fCudaDeviceProp.maxTexture1DLinear)
 	{
 		HLTError("Invalid maximum texture size of device: %lld < %lld\n", (long long int) fCudaDeviceProp.maxTexture1DLinear, (long long int) (HLTCA_GPU_SLICE_DATA_MEMORY * sliceCount));
 		return(1);
 	}
+#endif
 
 	int nStreams = HLTCA_GPU_NUM_STREAMS == 0 ? CAMath::Max(3, fSliceCount) : HLTCA_GPU_NUM_STREAMS;
 	if (nStreams < 3)

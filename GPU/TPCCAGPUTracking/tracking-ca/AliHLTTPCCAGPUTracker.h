@@ -30,7 +30,7 @@ public:
 	virtual int ExitGPU();
 
 	virtual void SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile = NULL);
-	virtual int SetGPUTrackerOption(char* OptionName, int OptionValue);
+	virtual int SetGPUTrackerOption(const char* OptionName, int OptionValue);
 
 	virtual double GetTimer(int iSlice, unsigned int i);
 	virtual void ResetTimer(int iSlice, unsigned int i);
