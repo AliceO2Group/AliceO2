@@ -31,10 +31,10 @@
 #include <sm_20_atomic_functions.h>
 
 __constant__ float4 gAliHLTTPCCATracker[HLTCA_GPU_TRACKER_CONSTANT_MEM / sizeof( float4 )];
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-texture<ushort2, 1, cudaReadModeElementType> gAliTexRefu2;
-texture<unsigned short, 1, cudaReadModeElementType> gAliTexRefu;
-texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
+#ifdef HLTCA_GPU_USE_TEXTURES
+texture<ushort2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
+texture<unsigned short, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
+texture<signed short, cudaTextureType1D, cudaReadModeElementType> gAliTexRefs;
 #endif
 
 //Include CXX Files, GPUd() macro will then produce CUDA device code out of the tracker source code
@@ -178,6 +178,12 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		HLTError( "Unsupported CUDA Device" );
 		return(1);
 	}
+	
+	if (HLTCA_GPU_SLICE_DATA_MEMORY * sliceCount > (size_t) fCudaDeviceProp.maxTexture1DLinear)
+	{
+		HLTError("Invalid maximum texture size of device: %lld < %lld\n", (long long int) fCudaDeviceProp.maxTexture1DLinear, (long long int) (HLTCA_GPU_SLICE_DATA_MEMORY * sliceCount));
+		return(1);
+	}
 
 	int nStreams = HLTCA_GPU_NUM_STREAMS == 0 ? CAMath::Max(3, fSliceCount) : HLTCA_GPU_NUM_STREAMS;
 	if (nStreams < 3)
@@ -281,7 +287,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 	if (Reconstruct_Base_Init(pOutput, pClusterData, firstSlice, sliceCountLocal)) return(1);
 
-#ifdef HLTCA_GPU_TEXTURE_FETCH
+#ifdef HLTCA_GPU_USE_TEXTURES
 	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<ushort2>();
 	size_t offset;
 	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, fGpuTracker[0].Data().Memory(), &channelDescu2, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)

@@ -20,6 +20,7 @@
 #define HLTCA_GPU_THREAD_COUNT_FINDER 512
 #define HLTCA_GPU_NUM_STREAMS 8
 #define HLTCA_GPU_CONSTRUCTOR_SINGLE_SLICE
+//#define HLTCA_GPU_USE_TEXTURES
 #elif defined(KEPLER)
 #define HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 4
 #define HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER 3
@@ -63,9 +64,9 @@
 #define HLTCA_GPU_ROWALIGNMENT uint4					//Align Row Hits and Grid
 #define HLTCA_GPU_ROWCOPY int							//must not be bigger than row alignment!!!
 
-#if defined (HLTCA_GPU_USE_TEXTURES)
-#define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
-#define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
+#ifdef HLTCA_GPU_USE_TEXTURES
+#define HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR				//Fetch data through texture cache
+#define HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS				//Fetch also in Neighbours Finder
 #endif
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
@@ -100,11 +101,11 @@
 
 #ifndef HLTCA_GPUCODE
 //No texture fetch for CPU Tracker
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-#undef HLTCA_GPU_TEXTURE_FETCH
+#ifdef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+#undef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
 #endif
-#ifdef HLTCA_GPU_TEXTURE_FETCHa
-#undef HLTCA_GPU_TEXTURE_FETCHa
+#ifdef HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS
+#undef HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS
 #endif
 
 //Do not cache Row Hits during Tracklet selection in Registers for CPU Tracker

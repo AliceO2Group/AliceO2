@@ -168,18 +168,18 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	  }
 
 	  ushort2 hh;
-#if defined(HLTCA_GPU_TEXTURE_FETCH)
+#if defined(HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR)
 	  hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + r.fCurrIH);
 #else
 	  hh = tracker.HitData(row)[r.fCurrIH];
 #endif //HLTCA_GPU_TEXTURE_FETCH
 
       int oldIH = r.fCurrIH;
-#if defined(HLTCA_GPU_TEXTURE_FETCH)
+#if defined(HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR)
 	  r.fCurrIH = tex1Dfetch(gAliTexRefs, ((char*) tracker.Data().HitLinkUpData(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + r.fCurrIH);
 #else
 	  r.fCurrIH = tracker.HitLinkUpData(row)[r.fCurrIH]; // read from linkup data
-#endif //HLTCA_GPU_TEXTURE_FETCH
+#endif //HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
 
       float x = row.X();
       float y = y0 + hh.x * stepY;
@@ -267,14 +267,13 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         break;
       }
       if ( row.NHits() < 1 ) {
-        // skip empty row
-          SETRowHit(iRow, -1);
+        SETRowHit(iRow, -1);
         break;
       }
 
-#ifndef HLTCA_GPU_TEXTURE_FETCH
+#ifndef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
       GPUglobalref() const ushort2 *hits = tracker.HitData(row);
-#endif //!HLTCA_GPU_TEXTURE_FETCH
+#endif //!HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
       float fY = tParam.GetY();
       float fZ = tParam.GetZ();
       int best = -1;
@@ -290,28 +289,28 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         int bin, ny, nz;
         row.Grid().GetBinArea(fY, fZ, 1.5, 1.5, bin, ny, nz);
         float ds = 1e6;
-#ifndef HLTCA_GPU_TEXTURE_FETCH
+#ifndef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
         GPUglobalref()  const unsigned short *sGridP = tracker.FirstHitInBin(row);
-#endif //!HLTCA_GPU_TEXTURE_FETCH
+#endif //!HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
         for (int k = 0;k <= nz;k++)
         {
           int nBinsY = row.Grid().Ny();
           int mybin = bin + k * nBinsY;
-#ifdef HLTCA_GPU_TEXTURE_FETCH
+#ifdef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
           unsigned int hitFst = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + mybin);
           unsigned int hitLst = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + mybin + ny + 1);
 #else
           unsigned int hitFst = sGridP[mybin];
           unsigned int hitLst = sGridP[mybin + ny + 1];
-#endif //HLTCA_GPU_TEXTURE_FETCH                      
+#endif //HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR                      
           for ( unsigned int ih = hitFst; ih < hitLst; ih++ ) {
             assert( (signed) ih < row.NHits() );
             ushort2 hh;
-#if defined(HLTCA_GPU_TEXTURE_FETCH)
+#if defined(HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR)
             hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + ih);
 #else
             hh = hits[ih];
-#endif //HLTCA_GPU_TEXTURE_FETCH
+#endif //HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
             float y = y0 + hh.x * stepY;
             float z = z0 + hh.y * stepZ;
             float dy = y - fY;
@@ -334,11 +333,11 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       }
 
       ushort2 hh;
-#if defined(HLTCA_GPU_TEXTURE_FETCH)
+#if defined(HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR)
       hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + best);
 #else
       hh = hits[best];
-#endif //HLTCA_GPU_TEXTURE_FETCH
+#endif //HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;
 
