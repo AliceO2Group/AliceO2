@@ -325,7 +325,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 #else
   void StartTimer(int i) {}
   void StopTimer(int i) {}
-  double GetTimer(int i) {return 0}
+  double GetTimer(int i) {return 0;}
   void ResetTimer(int i) {}
 #endif
 
