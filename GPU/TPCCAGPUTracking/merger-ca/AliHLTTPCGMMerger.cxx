@@ -256,9 +256,9 @@ bool AliHLTTPCGMMerger::Reconstruct()
         for (int i = 0;i < 5;i++) times[i] = 0.;
         nCount = 0;
     }
+    timer.Stop();  
 #endif
   }  
-  timer.Stop();  
   //cout<<"\nMerger time = "<<timer.CpuTime()*1.e3/nIter<<" ms\n"<<endl;
 
   return 1;

@@ -175,7 +175,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (fRunMerger)
   {
+#ifdef HLTCA_STANDALONE
       timerMerger.Start();
+#endif
 	  fMerger.Clear();
 
 	  for ( int i = 0; i < fgkNSlices; i++ ) {
@@ -187,7 +189,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 	  if (fTracker.GetGPUTracker()->GPUMergerAvailable()) fMerger.SetGPUTracker(fTracker.GetGPUTracker());
 #endif
 	  fMerger.Reconstruct();
+#ifdef HLTCA_STANDALONE
       timerMerger.Stop();
+#endif
   }
 
 #ifdef HLTCA_STANDALONE
