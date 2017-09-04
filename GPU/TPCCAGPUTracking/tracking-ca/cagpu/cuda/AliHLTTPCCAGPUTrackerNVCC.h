@@ -39,7 +39,6 @@ protected:
 	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0);
 
 private:
-	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	void* fCudaContext; //Pointer to CUDA context
 	bool GPUFailedMsgA(cudaError_t error, const char* file, int line);
 

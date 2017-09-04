@@ -62,21 +62,8 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 
 			int firstRow = tracklet.FirstRow();
 			int lastRow = tracklet.LastRow();
-			if (firstRow < 0 || lastRow > tracker.Param().NRows() || tracklet.NHits() < 0)
-			{
-#ifdef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-				//tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_WRONG_ROW;
-				//return;
-#else
-				continue;
-#endif
-			}
 
 			const int w = tracklet.HitWeight();
-
-			//int w = (tNHits<<16)+itr;
-			//int nRows = tracker.Param().NRows();
-			//std::cout<<" store tracklet: "<<firstRow<<" "<<lastRow<<std::endl;
 
 			int irow = firstRow;
 

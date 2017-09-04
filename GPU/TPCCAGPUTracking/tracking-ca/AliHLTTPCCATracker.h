@@ -157,7 +157,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {fGPUDebugLevel = Level;if (NewDebugOut) fGPUDebugOut = NewDebugOut;}
   char* SetGPUTrackerCommonMemory(char* const pGPUMemory);
   char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
-  char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets, int constructorBlockCount);
+  char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets);
   char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
   
   //Debugging Stuff
@@ -297,14 +297,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUhd() GPUglobalref() MEM_GLOBAL(AliHLTTPCCARow)* SliceDataRows() const {return(fData.Rows()); }
   
   GPUhd() GPUglobalref() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
-#ifdef HLTCA_GPUCODE
-  MEM_CLASS_PRE2() GPUhd() AliHLTTPCCATrackletConstructor::MEM_LG2(AliHLTTPCCAGPUTempMemory)* GPUTrackletTemp() const {return(fGPUTrackletTemp);}
-#endif
-  GPUhd() GPUglobalref() int* RowBlockTracklets(int reverse, int iRowBlock) const {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * fCommonMem->fNTracklets]);}
-  GPUhd() GPUglobalref() int* RowBlockTracklets() const {return(fRowBlockTracklets);}
-  GPUhd() GPUglobalref() int4* RowBlockPos(int reverse, int iRowBlock) const {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
-  GPUhd() GPUglobalref() int4* RowBlockPos() const {return(fRowBlockPos);}
-  GPUhd() GPUglobalref() uint2* BlockStartingTracklet() const {return(fBlockStartingTracklet);}
   GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
   GPUhd() MakeType(MEM_LG(StructGPUParametersConst)*) GPUParametersConst() {return(&fGPUParametersConst);}
   GPUhd() void SetGPUTextureBase(char* val) { fData.SetGPUTextureBase(val); }
@@ -368,7 +360,7 @@ private:
   //GPU Temp Arrays
   GPUglobalref() uint3* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
   GPUglobalref() AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
-  GPUglobalref() MEM_GLOBAL(AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory)* fGPUTrackletTemp;	//Temp Memory for GPU Tracklet Constructor
+  GPUglobalref() MEM_GLOBAL(char)* fGPUTrackletTemp;       //Temp Memory for GPU Tracklet Constructor
   GPUglobalref() int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
   GPUglobalref() int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized  
   GPUglobalref() uint2* fBlockStartingTracklet;			// First Tracklet that is to be processed by current GPU MP
