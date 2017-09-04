@@ -272,89 +272,66 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         break;
       }
 
-      #ifndef HLTCA_GPU_TEXTURE_FETCH
-      	  GPUglobalref() const ushort2 *hits = tracker.HitData(row);
-      #endif //!HLTCA_GPU_TEXTURE_FETCH
+#ifndef HLTCA_GPU_TEXTURE_FETCH
+      GPUglobalref() const ushort2 *hits = tracker.HitData(row);
+#endif //!HLTCA_GPU_TEXTURE_FETCH
       float fY = tParam.GetY();
       float fZ = tParam.GetZ();
       int best = -1;
 
-      float ds = 1e6;
-      AliHLTTPCCAHitArea area;
-      area.Init(row, tracker.Data(), fY, fZ, 1.5, 1.5);
-      while (true)
-      {
-          AliHLTTPCCAHit hh;
-          int ih = area.GetNext(tracker, row, tracker.Data(), &hh);
-          if (ih < 0) break;
-          float dy = hh.Y() - fY;
-          float dz = hh.Z() - fZ;
-          float dds = HLTCA_Y_FACTOR * fabs(dy) + fabs(dz);
-          if ( dds < ds ) {
-            ds = dds;
-            best = ih;
-          }          
-      }
-
       { // search for the closest hit
-        const int fIndYmin = row.Grid().GetBinBounded( fY - 1.f, fZ - 1.f );
-        assert( fIndYmin >= 0 );
-
+        tracker.GetErrors2( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
+        const float kFactor = tracker.Param().HitPickUpFactor() * tracker.Param().HitPickUpFactor() * 3.5 * 3.5;
+        float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
+        float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
+        if ( sy2 > 2. ) sy2 = 2.;
+        if ( sz2 > 2. ) sz2 = 2.;
+                                
+        int bin, ny, nz;
+        row.Grid().GetBinArea(fY, fZ, 1.5, 1.5, bin, ny, nz);
         float ds = 1e6;
-
-        unsigned int hitYfst[2], hitYlst[2];
-        {
-          int nY = row.Grid().Ny();
-
 #ifndef HLTCA_GPU_TEXTURE_FETCH
-		  GPUglobalref()  const unsigned short *sGridP = tracker.FirstHitInBin(row);
+        GPUglobalref()  const unsigned short *sGridP = tracker.FirstHitInBin(row);
 #endif //!HLTCA_GPU_TEXTURE_FETCH
-
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-		  hitYfst[0] = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + fIndYmin);
-		  hitYlst[0] = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + fIndYmin+2);
-		  hitYfst[1] = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + fIndYmin+nY);
-		  hitYlst[1] = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + fIndYmin+nY+2);
-#else
-          hitYfst[0] = sGridP[fIndYmin];
-          hitYlst[0] = sGridP[fIndYmin+2];
-          hitYfst[1] = sGridP[fIndYmin+nY];
-          hitYlst[1] = sGridP[fIndYmin+nY+2];
-#endif //HLTCA_GPU_TEXTURE_FETCH
-          assert( (signed) hitYfst[0] <= row.NHits() );
-          assert( (signed) hitYlst[0] <= row.NHits() );
-          assert( (signed) hitYfst[1] <= row.NHits() );
-          assert( (signed) hitYlst[1] <= row.NHits() );
-        }
-
-        for (int k = 0;k < 2;k++)
+        for (int k = 0;k <= nz;k++)
         {
-		  for ( unsigned int fIh = hitYfst[k]; fIh < hitYlst[k]; fIh++ ) {
-            assert( (signed) fIh < row.NHits() );
+          int nBinsY = row.Grid().Ny();
+          int mybin = bin + k * nBinsY;
+#ifdef HLTCA_GPU_TEXTURE_FETCH
+          unsigned int hitFst = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + mybin);
+          unsigned int hitLst = tex1Dfetch(gAliTexRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.Data().GPUTextureBase()) / sizeof(unsigned short) + mybin + ny + 1);
+#else
+          unsigned int hitFst = sGridP[mybin];
+          unsigned int hitLst = sGridP[mybin + ny + 1];
+#endif //HLTCA_GPU_TEXTURE_FETCH                      
+          for ( unsigned int ih = hitFst; ih < hitLst; ih++ ) {
+            assert( (signed) ih < row.NHits() );
             ushort2 hh;
 #if defined(HLTCA_GPU_TEXTURE_FETCH)
-			hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + fIh);
+            hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + ih);
 #else
-			hh = hits[fIh];
+            hh = hits[ih];
 #endif //HLTCA_GPU_TEXTURE_FETCH
-			float y = y0 + hh.x * stepY;
-			float z = z0 + hh.y * stepZ;
-			float dy = y - fY;
-			float dz = z - fZ;
-			float dds = HLTCA_Y_FACTOR * fabs(dy) + fabs(dz);
-			if ( dds < ds ) {
-			  ds = dds;
-			  best = fIh;
-		    }
-		  }
+            float y = y0 + hh.x * stepY;
+            float z = z0 + hh.y * stepZ;
+            float dy = y - fY;
+            float dz = z - fZ;
+            if (dy * dy < sy2 && dz * dz < sz2) {
+              float dds = HLTCA_Y_FACTOR * fabs(dy) + fabs(dz);
+              if ( dds < ds ) {
+                ds = dds;
+                best = ih;
+              }
+            }
+          }
         }
       }// end of search for the closest hit
 
       if ( best < 0 )
-	  {
-          SETRowHit(iRow, -1);
-		  break;
-	  }
+      {
+        SETRowHit(iRow, -1);
+        break;
+      }
 
       ushort2 hh;
 #if defined(HLTCA_GPU_TEXTURE_FETCH)
@@ -362,24 +339,9 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 #else
       hh = hits[best];
 #endif //HLTCA_GPU_TEXTURE_FETCH
-
-      tracker.GetErrors2( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
-
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;
-      float dy = y - fY;
-      float dz = z - fZ;
 
-      const float kFactor = tracker.Param().HitPickUpFactor() * tracker.Param().HitPickUpFactor() * 3.5 * 3.5;
-      float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
-      float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
-      if ( sy2 > 2. ) sy2 = 2.;
-      if ( sz2 > 2. ) sz2 = 2.;
-
-      if (dy * dy > sy2 || dz * dz > sz2) {
-        SETRowHit(iRow, -1);
-        break;
-      }
       if (!tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
         break;
       }
