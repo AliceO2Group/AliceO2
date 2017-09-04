@@ -354,6 +354,45 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
   }
 }
 
+GPUdi() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker)& tracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem, AliHLTTPCCAThreadMemory& rMem)
+{
+	int iRow = 0, iRowEnd = tracker.Param().NRows();;
+	MEM_PLAIN(AliHLTTPCCATrackParam) tParam;
+	if (rMem.fGo)
+	{
+		AliHLTTPCCAHitId id = tracker.TrackletStartHits()[rMem.fItr];
+
+		rMem.fStartRow = rMem.fEndRow = rMem.fFirstRow = rMem.fLastRow = id.RowIndex();
+		rMem.fCurrIH = id.HitIndex();
+		rMem.fNMissed = 0;
+		iRow = rMem.fStartRow;
+		AliHLTTPCCATrackletConstructor::InitTracklet(tParam);
+	}
+	rMem.fStage = 0;
+	rMem.fNHits = 0;
+
+	for (int k = 0;k < 2;k++)
+	{
+		for (;iRow != iRowEnd;iRow += rMem.fStage == 2 ? -1 : 1)
+		{
+			UpdateTracklet(0, 0, 0, 0, sMem, rMem, tracker, tParam, iRow);
+		}
+
+		if (rMem.fStage == 2)
+		{
+			StoreTracklet( 0, 0, 0, 0, sMem, rMem, tracker, tParam );
+		}
+		else
+		{
+			rMem.fNMissed = 0;
+			rMem.fStage = 2;
+			if (rMem.fGo) if (!tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999)) rMem.fGo = 0;
+			iRow = rMem.fEndRow;
+			iRowEnd = -1;
+		}
+	}
+}
+
 #ifdef HLTCA_GPUCODE
 
 #include "AliHLTTPCCATrackletConstructorGPU.h"
@@ -367,42 +406,11 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(A
 	sMem.fNTracklets = *tracker.NTracklets();
 	for (int iTracklet = 0;iTracklet < *tracker.NTracklets();iTracklet++)
 	{
-		AliHLTTPCCATrackParam tParam;
 		AliHLTTPCCAThreadMemory rMem;
-		
-		AliHLTTPCCAHitId id = tracker.TrackletStartHits()[iTracklet];
-
-		rMem.fStartRow = rMem.fEndRow = rMem.fFirstRow = rMem.fLastRow = id.RowIndex();
-		rMem.fCurrIH = id.HitIndex();
-		rMem.fStage = 0;
-		rMem.fNHits = 0;
-		rMem.fNMissed = 0;
-
-		AliHLTTPCCATrackletConstructor::InitTracklet(tParam);
-
 		rMem.fItr = iTracklet;
 		rMem.fGo = 1;
 
-		for (int j = rMem.fStartRow;j < tracker.Param().NRows();j++)
-		{
-			UpdateTracklet(1, 1, 0, iTracklet, sMem, rMem, tracker, tParam, j);
-			if (!rMem.fGo) break;
-		}
-
-		rMem.fNMissed = 0;
-		rMem.fStage = 2;
-		if ( rMem.fGo )
-		{
-			if ( !tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999 ) ) rMem.fGo = 0;
-		}
-
-		for (int j = rMem.fEndRow;j >= 0;j--)
-		{
-			if (!rMem.fGo) break;
-			UpdateTracklet( 1, 1, 0, iTracklet, sMem, rMem, tracker, tParam, j);
-		}
-
-		StoreTracklet( 1, 1, 0, iTracklet, sMem, rMem, tracker, tParam );
+		DoTracklet(tracker, sMem, rMem);
 	}
 }
 
