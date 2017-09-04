@@ -316,11 +316,18 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   };
 
   void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks);
-  
+
+#ifdef HLTCA_STANDALONE  
   void StartTimer(int i) {if (fGPUDebugLevel) fTimers[i].Start();}
   void StopTimer(int i) {if (fGPUDebugLevel) fTimers[i].Stop();}
   double GetTimer(int i) {return fTimers[i].GetElapsedTime();}
   void ResetTimer(int i) {fTimers[i].Reset();}
+#else
+  void StartTimer(int i) {}
+  void StopTimer(int i) {}
+  double GetTimer(int i) {return 0}
+  void ResetTimer(int i) {}
+#endif
 
 private:
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
