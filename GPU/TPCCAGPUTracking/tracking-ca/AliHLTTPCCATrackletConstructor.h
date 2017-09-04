@@ -36,16 +36,10 @@ public:
 #if !defined(HLTCA_GPUCODE)
 		AliHLTTPCCAThreadMemory()
 			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
-#ifdef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-			, fIRow(0), fIRowEnd(0)
-#endif
 		{}
 
 		AliHLTTPCCAThreadMemory( const AliHLTTPCCAThreadMemory& /*dummy*/ )
 			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
-#ifdef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-			, fIRow(0), fIRowEnd(0)
-#endif
 		{}
 		AliHLTTPCCAThreadMemory& operator=( const AliHLTTPCCAThreadMemory& /*dummy*/ ) { return *this; }
 #endif //!HLTCA_GPUCODE
@@ -64,20 +58,6 @@ public:
 		int fNMissed; // n missed hits during search
 		float fLastY; // Y of the last fitted cluster
 		float fLastZ; // Z of the last fitted cluster
-#if defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER)
-		int fIRow; //current row for alt sched
-		int fIRowEnd; //last row for current alt sched iteration
-#endif
-	};
-
-	//Structure to store track parameters and temporary thread variables in global memory when rescheduling
-	MEM_CLASS_PRE2() struct AliHLTTPCCAGPUTempMemory
-	{
-#if !defined(HLTCA_GPUCODE)
-		AliHLTTPCCAGPUTempMemory() : fThreadMem(), fParam() {}
-#endif
-		AliHLTTPCCAThreadMemory fThreadMem;// thread memory
-		MEM_LG2(AliHLTTPCCATrackParam) fParam;// parameters
 	};
 
 	MEM_CLASS_PRE() class AliHLTTPCCASharedMemory
@@ -85,28 +65,10 @@ public:
 		friend class AliHLTTPCCATrackletConstructor; // friend class
 	public:
 #if !defined(HLTCA_GPUCODE)
-		AliHLTTPCCASharedMemory()
-			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletFirstRun(0)
-#if defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER) && !defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE)
-				,fTrackletStorePos(0)
-#endif
-				, fNTracklets(0) {
-#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
-#endif
+		AliHLTTPCCASharedMemory() : fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletFirstRun(0), fNTracklets(0) {
 		}
 
-		AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletFirstRun(0)
-#if defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER) && !defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE)
-				,fTrackletStorePos(0)
-#endif
-				, fNTracklets(0) {
-#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
-#endif
+		AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ ) : fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletFirstRun(0), fNTracklets(0) {
 		}
 
 		AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
@@ -117,24 +79,11 @@ public:
 		int fNextTrackletFirst; //First tracklet to be processed by CUDA block during next iteration
 		int fNextTrackletCount; //Number of Tracklets to be processed by CUDA block during next iteration
 		int fNextTrackletFirstRun; //First run for dynamic scheduler?
-		//Use IFDEF to save GPU shared memory
-#ifdef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE
-		int fTrackletStorePos; //position in temporary storage
-		AliHLTTPCCATrackletConstructor::MEM_LG(AliHLTTPCCAGPUTempMemory) swapMemory[HLTCA_GPU_ALTSCHED_MIN_THREADS]; //temporary swap space for scheduling
-#endif
-#elif defined(HLTCA_GPU_RESCHED)
-		int fNextTrackletStupidDummy; //Shared Dummy variable to access
-		int fStartRows[HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1]; // start rows
-		int fEndRows[HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1]; // end rows
-#endif
 		int fNTracklets; // Total number of tracklets
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 		int fMaxSync; //temporary shared variable during profile creation
 #endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-
-		int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];//Number of tracklets to store in tracklet pool for rescheduling
 	};
 
 	MEM_CLASS_PRE2() GPUd() static void InitTracklet( register MEM_LG2(AliHLTTPCCATrackParam) &tParam );
@@ -153,12 +102,7 @@ public:
 	GPUd() static void AliHLTTPCCATrackletConstructorGPU(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem);
 	GPUd() static void AliHLTTPCCATrackletConstructorSingleSlice(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem);
 	MEM_CLASS_PRE2() GPUd() static void AliHLTTPCCATrackletConstructorGPUPP(MEM_LG2(AliHLTTPCCATracker) *pTracker);
-#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-	GPUd() static int FetchTracklet(GPUconstant() AliHLTTPCCATracker &tracker, GPUshared() AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock, int &mustInit);
-	GPUd() static void AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracke);
-#else
 	GPUd() static int FetchTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &sMem, AliHLTTPCCAThreadMemory &rMem, MEM_PLAIN(AliHLTTPCCATrackParam) &tParam);
-#endif
 	MEM_TEMPLATE4() GPUd() static void CopyTrackletTempData( MEM_TYPE(AliHLTTPCCAThreadMemory) &rMemSrc, MEM_TYPE2(AliHLTTPCCAThreadMemory) &rMemDst, MEM_TYPE3(AliHLTTPCCATrackParam) &tParamSrc, MEM_TYPE4(AliHLTTPCCATrackParam) &tParamDst);
 #else
 	GPUd() static void AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker);

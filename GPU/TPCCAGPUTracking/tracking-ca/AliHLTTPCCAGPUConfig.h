@@ -63,16 +63,6 @@
 #define HLTCA_GPU_ROWALIGNMENT uint4					//Align Row Hits and Grid
 #define HLTCA_GPU_ROWCOPY int							//must not be bigger than row alignment!!!
 
-#define HLTCA_GPU_SCHED_ROW_STEP 32						//Amount of Rows to process in one step before rescheduling
-#define HLTCA_GPU_SCHED_FIXED_START						//Assign each GPU thread a start tracklet to start with instead of using the scheduler to obtain start tracklet
-//#define HLTCA_GPU_SCHED_FIXED_SLICE					//Make each Multiprocessor on the GPU work only on a single slice during tracklet construction
-#define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
-
-#define HLTCA_GPU_ALTERNATIVE_SCHEDULER					//Use alternative scheduling algorithm (makes upper 4 options obsolete)
-#define HLTCA_GPU_ALTSCHED_STEPSIZE 80					//Number of rows to process in between of rescheduling
-#define HLTCA_GPU_ALTSCHED_MIN_THREADS 64				//Reschedule if less than n threads are active
-#define HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE			//Use simple version of alternative scheduler
-
 #if defined (HLTCA_GPU_USE_TEXTURES)
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder

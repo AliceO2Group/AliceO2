@@ -40,7 +40,6 @@ protected:
 	virtual int GPUSync(const char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 
 private:
-	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	bool GPUFailedMsgA(int, const char* file, int line);
 	AliHLTTPCCAGPUTrackerOpenCLInternals* ocl;
 
