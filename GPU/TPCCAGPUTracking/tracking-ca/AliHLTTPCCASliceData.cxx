@@ -327,7 +327,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     }
 
     AliHLTArray<unsigned short> c = binCreationMemory;           // number of hits in all previous bins
-    AliHLTArray<unsigned short> bins = c + ( numberOfBins + 3 ); // cache for the bin index for every hit in this row
+    AliHLTArray<unsigned short> bins = c + ( numberOfBins + 3 ); // cache for the bin index for every hit in this row, 3 extra empty bins at the end!!!
     AliHLTArray<unsigned short> filled = bins + row.fNHits;      // counts how many hits there are per bin
 
     for ( unsigned int bin = 0; bin < row.fGrid.N() + 3; ++bin ) {
@@ -482,4 +482,3 @@ void AliHLTTPCCASliceData::ClearLinks()
   }
 #endif
 }
-

@@ -32,6 +32,7 @@ class AliHLTTPCCAGrid
      */
     GPUd() int GetBinBounded( float Y, float Z ) const;
     GPUd() void GetBin( float Y, float Z, int* const bY, int* const bZ ) const;
+    GPUd() void GetBinArea( float Y, float Z, float dy, float dz, int& bin, int& ny, int& nz ) const;
 
     GPUd() unsigned int  N()        const { return fN;  }
     GPUd() unsigned int  Ny()       const { return fNy; }
