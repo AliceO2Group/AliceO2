@@ -35,13 +35,6 @@ class AliHLTTPCCAHitArea
      */
     MEM_TEMPLATE() GPUd() int GetNext( register GPUconstant() const MEM_CONSTANT(AliHLTTPCCATracker) &tracker, const MEM_TYPE( AliHLTTPCCARow) &row,
                  GPUglobalref() const MEM_GLOBAL(AliHLTTPCCASliceData) &slice, AliHLTTPCCAHit *h );
-    /**
-     * look up the best hit in the next hits in the requested area.
-     * Sets h to the coordinates and returns the index for the hit data
-     *
-    int GetBest( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
-        const int *content, AliHLTTPCCAHit *h);
-     */
 
     float Y() const { return fY; }
     float Z() const { return fZ; }
