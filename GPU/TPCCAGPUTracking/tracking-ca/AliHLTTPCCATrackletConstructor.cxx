@@ -57,13 +57,7 @@ MEM_CLASS_PRE2() GPUdi() bool AliHLTTPCCATrackletConstructor::CheckCov(MEM_LG2(A
 
 MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
-  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory)
-#if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
-  &s
-#else
-  &/*s*/
-#endif  //!HLTCA_GPUCODE
-  , AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_LG2(AliHLTTPCCATracker) &tracker, MEM_LG3(AliHLTTPCCATrackParam) &tParam )
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_LG2(AliHLTTPCCATracker) &tracker, MEM_LG3(AliHLTTPCCATrackParam) &tParam )
 {
   // reconstruction of tracklets, tracklet store step
 
@@ -107,11 +101,7 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 	if (r.fStartRow < r.fFirstRow) r.fFirstRow = r.fStartRow;
 	tracklet.SetFirstRow( r.fFirstRow );
     tracklet.SetLastRow( r.fLastRow );
-#ifdef HLTCA_GPUCODE
-    tracklet.SetParam( tParam.fParam );
-#else
     tracklet.SetParam( tParam.GetParam() );
-#endif //HLTCA_GPUCODE
     int w = tracker.CalculateHitWeight(r.fNHits, tParam.GetChi2(), r.fItr);
     tracklet.SetHitWeight(w);
     for ( int iRow = r.fFirstRow; iRow <= r.fLastRow; iRow++ ) {
@@ -130,13 +120,7 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 
 MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
-  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory)
-#if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
-  &s
-#else
-  &/*s*/
-#endif //HLTCA_GPUCODE
-  , AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, MEM_LG2(AliHLTTPCCATrackParam) &tParam, int iRow )
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, MEM_LG2(AliHLTTPCCATrackParam) &tParam, int iRow )
 {
   // reconstruction of tracklets, tracklets update step
 

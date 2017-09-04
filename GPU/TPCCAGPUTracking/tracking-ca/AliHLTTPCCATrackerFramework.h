@@ -34,7 +34,7 @@ public:
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
 	int ExitGPU();
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
-	int SetGPUTrackerOption(char* OptionName, int OptionValue) {if (strcmp(OptionName, "GlobalTracking") == 0) fGlobalTracking = OptionValue;return(fGPUTracker->SetGPUTrackerOption(OptionName, OptionValue));}
+	int SetGPUTrackerOption(const char* OptionName, int OptionValue) {if (strcmp(OptionName, "GlobalTracking") == 0) fGlobalTracking = OptionValue;return(fGPUTracker->SetGPUTrackerOption(OptionName, OptionValue));}
 	int SetGPUTracker(bool enable);
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
