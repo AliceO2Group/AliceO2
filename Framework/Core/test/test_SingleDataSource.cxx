@@ -18,17 +18,15 @@ void defineDataProcessing(WorkflowSpec &specs) {
   WorkflowSpec workflow = {
   {
     "A",
-    Inputs{},
-    Outputs{
-      {"TST", "A1", OutputSpec::Timeframe}
+    {},
+    {
+      OutputSpec{"TST", "A1", OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      [](const std::vector<DataRef> inputs,
-         ServiceRegistry& services,
-         DataAllocator& allocator) {
+      [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = allocator.newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
-       services.get<ControlService>().readyToQuit(true);
+       auto aData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
+       ctx.services().get<ControlService>().readyToQuit(true);
       }
     },
     Options{{"test-option", VariantType::String, "test", "A test option"}},

@@ -12,12 +12,14 @@
 
 #include <fairmq/FairMQDevice.h>
 #include "Headers/DataHeader.h"
-#include "Framework/OutputSpec.h"
+#include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
 #include "Framework/Collection.h"
 
+#include <vector>
 #include <map>
 #include <string>
+#include <utility>
 
 class TClonesArray;
 
@@ -28,11 +30,13 @@ class MessageContext;
 class RootObjectContext;
 
 /// This allocator is responsible to make sure that the messages created match
-/// the provided spec.
+/// the provided spec and that depending on how many pipelined reader we
+/// have, messages get created on the channel for the reader of the current
+/// timeframe.
 class DataAllocator
 {
 public:
-  using AllowedOutputsMap = std::map<std::string, OutputSpec>;
+  using AllowedOutputsMap = std::vector<OutputRoute>;
   using DataOrigin = o2::Header::DataOrigin;
   using DataDescription = o2::Header::DataDescription;
   using SubSpecificationType = o2::Header::DataHeader::SubSpecificationType;
@@ -54,7 +58,7 @@ public:
   }
 
 private:
-  std::string matchDataHeader(const OutputSpec &spec);
+  std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQDevice *mDevice;
   AllowedOutputsMap mAllowedOutputs;
   MessageContext *mContext;

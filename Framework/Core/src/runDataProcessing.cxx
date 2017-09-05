@@ -16,6 +16,7 @@
 #include "Framework/DebugGUI.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DeviceExecution.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/FrameworkGUIDebugger.h"
@@ -23,9 +24,11 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/TextControlService.h"
+#include "Framework/ParallelContext.h"
 
 #include "GraphvizHelpers.h"
 #include "DDSConfigHelpers.h"
+#include "DeviceSpecHelpers.h"
 #include "options/FairMQProgOptions.h"
 
 #include <cinttypes>
@@ -56,6 +59,7 @@ using namespace o2::framework;
 std::vector<DeviceInfo> gDeviceInfos;
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 std::vector<DeviceControl> gDeviceControls;
+std::vector<DeviceExecution> gDeviceExecutions;
 
 // Read from a given fd and print it.
 // return true if we can still read from it,
@@ -231,6 +235,7 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
     serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
     serviceRegistry.registerService<RootFileService>(new LocalRootFileService());
     serviceRegistry.registerService<ControlService>(new TextControlService());
+    serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
 
     std::unique_ptr<FairMQDevice> device;
     if (spec.inputs.empty()) {
@@ -282,36 +287,6 @@ int createPipes(int maxFd, int *pipes) {
       kill(-1*getpid(), SIGKILL);
     }
     return maxFd;
-}
-
-
-void verifyWorkflow(const o2::framework::WorkflowSpec &specs) {
-  std::set<std::string> validNames;
-  std::vector<OutputSpec> availableOutputs;
-  std::vector<InputSpec> requiredInputs;
-
-  // An index many to one index to go from a given input to the
-  // associated spec
-  std::map<size_t, size_t> inputToSpec;
-  // A one to one index to go from a given output to the Spec emitting it
-  std::map<size_t, size_t> outputToSpec;
-
-  for (auto &spec : specs)
-  {
-    if (spec.name.empty())
-      throw std::runtime_error("Invalid DataProcessorSpec name");
-    if (validNames.find(spec.name) != validNames.end())
-      throw std::runtime_error("Name " + spec.name + " is used twice.");
-    for (auto &option : spec.options) {
-      if (option.type != option.defaultValue.type()) {
-        std::ostringstream ss;
-        ss << "Mismatch between declared option type and default value type"
-           << "for " << option.name << " in DataProcessorSpec of "
-           << spec.name;
-        throw std::runtime_error(ss.str());
-      }
-    }
-  }
 }
 
 // Kill all the active children
@@ -422,8 +397,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   std::vector<DeviceSpec> deviceSpecs;
 
   try {
-    verifyWorkflow(specs);
-    dataProcessorSpecs2DeviceSpecs(specs, deviceSpecs);
+    DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(specs, deviceSpecs);
     // This should expand nodes so that we can build a consistent DAG.
   } catch (std::runtime_error &e) {
     std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -445,17 +419,20 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   assert(frameworkId.empty());
 
   gDeviceControls.resize(deviceSpecs.size());
-  prepareArguments(argc, argv, defaultQuiet,
-                   defaultStopped, deviceSpecs, gDeviceControls);
+  gDeviceExecutions.resize(deviceSpecs.size());
+
+  DeviceSpecHelpers::prepareArguments(
+      argc, argv, defaultQuiet,
+      defaultStopped, deviceSpecs, gDeviceExecutions, gDeviceControls);
 
   if (graphViz) {
     // Dump a graphviz representation of what I will do.
-    dumpDeviceSpec2Graphviz(std::cout, deviceSpecs);
+    GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, deviceSpecs);
     exit(0);
   }
 
   if (generateDDS) {
-    dumpDeviceSpec2DDS(std::cout, deviceSpecs);
+    dumpDeviceSpec2DDS(std::cout, deviceSpecs, gDeviceExecutions);
     exit(0);
   }
 
@@ -479,6 +456,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   for (size_t di = 0; di < deviceSpecs.size(); ++di) {
     auto &spec = deviceSpecs[di];
     auto &control = gDeviceControls[di];
+    auto &execution = gDeviceExecutions[di];
     int childstdout[2];
     int childstderr[2];
 
@@ -508,7 +486,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
       close(STDERR_FILENO);
       dup2(childstdout[1], STDOUT_FILENO);
       dup2(childstderr[1], STDERR_FILENO);
-      execvp(spec.args[0], spec.args.data());
+      execvp(execution.args[0], execution.args.data());
     }
 
     // This is the parent. We close the write end of

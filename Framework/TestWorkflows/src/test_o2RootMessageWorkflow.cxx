@@ -11,6 +11,7 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/MetricsService.h"
+#include "Headers/DataHeader.h"
 // FIXME: this should not be needed as the framework should be able to
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
@@ -23,26 +24,21 @@ using DataHeader = o2::Header::DataHeader;
 using DataOrigin = o2::Header::DataOrigin;
 using DataDescription = o2::Header::DataDescription;
 
-using Inputs = std::vector<InputSpec>;
-using Outputs = std::vector<OutputSpec>;
-
 // This is how you can define your processing in a declarative way
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     std::vector<DataProcessorSpec> workflow = {
     {
       "producer",
-      Inputs{},
-      Outputs{
-        {"TEST", "HISTOS", OutputSpec::Timeframe},
+      {},
+      {
+        OutputSpec{"TEST", "HISTOS", OutputSpec::Timeframe},
       },
       AlgorithmSpec{
-        [](const std::vector<DataRef> inputs,
-        ServiceRegistry& services,
-        DataAllocator& allocator) {
+        [](ProcessingContext &ctx) {
           sleep(1);
           // Creates a new message of size 1000 which
           // has "TPC" as data origin and "CLUSTERS" as data description.
-          auto &histoCollection = allocator.newTClonesArray(OutputSpec{"TEST", "HISTOS", 0}, "TH1F", 1000);
+          auto &histoCollection = ctx.allocator().newTClonesArray(OutputSpec{"TEST", "HISTOS", 0}, "TH1F", 1000);
           auto histo = new TH1F("h2", "test",100, -10., 10.);
           histo->FillRandom("gaus", 1000);
           histoCollection[0] = histo;
@@ -51,23 +47,20 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     },
     {
       "consumer",
-      Inputs{
-         {"TEST", "HISTOS", InputSpec::Timeframe}
+      {
+         InputSpec{"histos", "TEST", "HISTOS", InputSpec::Timeframe}
       },
-      Outputs{},
+      {},
       AlgorithmSpec{
-        [](const std::vector<DataRef> inputs,
-           ServiceRegistry& services,
-           DataAllocator& allocator)
-        {
-          if (inputs.size() != 1) {
+        [](ProcessingContext &ctx) {
+          if (ctx.inputs().size() != 1) {
             throw std::runtime_error("Expecting one and only one input");
           }
           // FIXME: for the moment we need to do the deserialization ourselves.
           //        this should probably be encoded in the serialization field
           //        of the DataHeader and done automatically by the framework
-          auto &ref = inputs.back();
-          const DataHeader *header = reinterpret_cast<const DataHeader*>(ref.header);
+          auto ref = ctx.inputs().get("histos");
+          const DataHeader *header = o2::Header::get<DataHeader>(ref.header);
           // This is actually checked by the framework, so the assert
           // should not trigger, independently of the input.
           assert(header->dataOrigin == DataOrigin("TEST"));
@@ -84,7 +77,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
             str << "TClonesArray should have only one object, found " << output->GetSize();
             throw std::runtime_error(str.str());
           }
-          services.get<MetricsService>().post("histograms/received", output->GetSize());
+          ctx.services().get<MetricsService>().post("histograms/received", output->GetSize());
         }
       }
     }

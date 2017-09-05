@@ -12,21 +12,23 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceControl.h"
 #include "../src/DDSConfigHelpers.h"
 #include <boost/test/unit_test.hpp>
+#include "../src/DeviceSpecHelpers.h"
 
+#include <sstream>
 
 using namespace o2::framework;
 
 AlgorithmSpec simplePipe(o2::Header::DataDescription what) {
   return AlgorithmSpec{
-    [what](const std::vector<DataRef> inputs,
-       ServiceRegistry& services,
-       DataAllocator& allocator)
+    [what](ProcessingContext &ctx)
       {
-        auto bData = allocator.newCollectionChunk<int>(OutputSpec{"TST", what, 0}, 1);
+        auto bData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", what, 0}, 1);
       }
     };
 }
@@ -38,42 +40,38 @@ WorkflowSpec defineDataProcessing() {
     "A",
     Inputs{},
     Outputs{
-      {"TST", "A1", OutputSpec::Timeframe},
-      {"TST", "A2", OutputSpec::Timeframe}
+      OutputSpec{"TST", "A1", OutputSpec::Timeframe},
+      OutputSpec{"TST", "A2", OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      [](const std::vector<DataRef> inputs,
-         ServiceRegistry& services,
-         DataAllocator& allocator) {
+      [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = allocator.newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
-       auto bData = allocator.newCollectionChunk<int>(OutputSpec{"TST", "A2", 0}, 1);
+       auto aData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
+       auto bData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", "A2", 0}, 1);
       }
     }
   },
   {
     "B",
-    Inputs{{"TST", "A1", InputSpec::Timeframe}},
-    Outputs{{"TST", "B1", OutputSpec::Timeframe}},
+    {InputSpec{"x", "TST", "A1", InputSpec::Timeframe}},
+    Outputs{OutputSpec{"TST", "B1", OutputSpec::Timeframe}},
     simplePipe(o2::Header::DataDescription{"B1"})
   },
   {
     "C",
-    Inputs{{"TST", "A2", InputSpec::Timeframe}},
-    Outputs{{"TST", "C1", OutputSpec::Timeframe}},
+    {InputSpec{"y", "TST", "A2", InputSpec::Timeframe}},
+    Outputs{OutputSpec{"TST", "C1", OutputSpec::Timeframe}},
     simplePipe(o2::Header::DataDescription{"C1"})
   },
   {
     "D",
-    Inputs{
-      {"TST", "B1", InputSpec::Timeframe},
-      {"TST", "C1", InputSpec::Timeframe},
+    {
+      InputSpec{"x", "TST", "B1", InputSpec::Timeframe},
+      InputSpec{"y", "TST", "C1", InputSpec::Timeframe},
     },
     Outputs{},
     AlgorithmSpec{
-      [](const std::vector<DataRef> inputs,
-         ServiceRegistry& services,
-         DataAllocator& allocator) {
+      [](ProcessingContext &context) {
       },
     }
   }
@@ -82,16 +80,18 @@ WorkflowSpec defineDataProcessing() {
 
 BOOST_AUTO_TEST_CASE(TestGraphviz) {
   auto workflow = defineDataProcessing();
-  std::ostringstream str;
+  std::ostringstream ss{""};
   std::vector<DeviceSpec> devices;
-  dataProcessorSpecs2DeviceSpecs(workflow, devices);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, devices);
   char *fakeArgv[] = {strdup("foo"), nullptr};
   std::vector<DeviceControl> controls;
+  std::vector<DeviceExecution> executions;
   controls.resize(devices.size());
-  prepareArguments(1, fakeArgv, false, false, devices,
-                   controls);
-  dumpDeviceSpec2DDS(str, devices);
-  BOOST_CHECK(str.str() == R"EXPECTED(<topology id="o2-dataflow">
+  executions.resize(devices.size());
+  DeviceSpecHelpers::prepareArguments(1, fakeArgv, false, false, devices,
+                   executions, controls);
+  dumpDeviceSpec2DDS(ss, devices, executions);
+  BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
    <decltask id="A">
        <exe reachable="true">foo --id A --control static --log-color 0 </exe>
    </decltask>

@@ -21,6 +21,7 @@
 #include "Framework/ServiceRegistry.h"
 
 #include <memory>
+#include <cstddef>
 
 namespace o2 {
 namespace framework {
@@ -43,6 +44,7 @@ private:
   MessageContext mContext;
   RootObjectContext mRootContext;
   DataAllocator mAllocator;
+  size_t mCurrentTimeslice;
 };
 
 }

@@ -33,7 +33,11 @@ struct PhysicalChannel {
 };
 
 inline LogicalChannel outputSpec2LogicalChannel(const OutputSpec &spec) {
-  return LogicalChannel{std::string("out_") + spec.origin.str + "_" + spec.description.str};
+  auto name = std::string("out_") +
+              spec.origin.str + "_" +
+              spec.description.str + "_" +
+              std::to_string(spec.subSpec);
+  return LogicalChannel{name};
 }
 
 inline PhysicalChannel outputSpec2PhysicalChannel(const OutputSpec &spec, int count) {
@@ -43,7 +47,8 @@ inline PhysicalChannel outputSpec2PhysicalChannel(const OutputSpec &spec, int co
 }
 
 inline LogicalChannel inputSpec2LogicalChannelMatcher(const InputSpec &spec) {
-  return LogicalChannel{std::string("out_") + spec.origin.str + "_" + spec.description.str};
+  auto name = std::string("out_") + spec.origin.str + "_" + spec.description.str + "_" + std::to_string(spec.subSpec);
+  return LogicalChannel{name};
 }
 
 inline PhysicalChannel inputSpec2PhysicalChannelMatcher(const InputSpec&spec, int count) {
@@ -59,7 +64,6 @@ inline bool matchDataSpec2Channel(const InputSpec &spec, const LogicalChannel &c
   auto matcher = inputSpec2LogicalChannelMatcher(spec);
   return matcher.name == channel.name;
 }
-
 
 } // namespace framework
 } // namespace o2

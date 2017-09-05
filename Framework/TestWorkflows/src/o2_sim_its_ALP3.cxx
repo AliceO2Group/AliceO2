@@ -23,6 +23,8 @@
 #include "DetectorsPassive/Cave.h"
 #include "Field/MagneticField.h"
 #include "ITSSimulation/Detector.h"
+#include <cstdlib>
+#include <cstdio>
 
 using namespace o2::framework;
 
@@ -44,11 +46,11 @@ DataProcessorSpec sim_its_ALP3() {
   return {
     "sim_its_ALP3",
     Inputs{},
-    Outputs{
-      {"ITS", "HITS", OutputSpec::Timeframe}
+    {
+      OutputSpec{"ITS", "HITS", OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      [](const ConfigParamRegistry &params, ServiceRegistry &services) {
+      [](InitContext &setup) {
         Int_t nEvents = 10;
         TString mcEngine = "TGeant3";
 
@@ -119,9 +121,7 @@ DataProcessorSpec sim_its_ALP3() {
         rtdb->print();
 
         // This is the actual inner loop for the device
-        return [run](const std::vector<DataRef> inputs,
-                  ServiceRegistry& s,
-                  DataAllocator& allocator) {
+        return [run](ProcessingContext &ctx) {
                  run->Run(10);
                  // FIXME: After we run we should readback events
                  // and push them as messages, for the next stage of

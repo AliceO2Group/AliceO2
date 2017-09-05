@@ -25,8 +25,12 @@ using Options = std::vector<ConfigParamSpec>;
 }
 }
 
-// to be implemented by the user to specify one or more DataProcessorSpec
-void defineDataProcessing(std::vector<o2::framework::DataProcessorSpec> &specs);
+/// To be implemented by the user to specify one or more DataProcessorSpec.
+/// The reason why this passes a preallocated specs, rather than asking the
+/// caller to allocate his / her own is that if we end up wrapping this in
+/// some scripting language, we do not need to delegate the allocation to the
+/// scripting language itself.
+void  defineDataProcessing(o2::framework::WorkflowSpec &specs);
 
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char **argv, const o2::framework::WorkflowSpec &specs);

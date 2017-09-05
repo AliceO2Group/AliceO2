@@ -10,7 +10,7 @@
 #ifndef FRAMEWORK_GRAPHVIZHELPERS_H
 #define FRAMEWORK_GRAPHVIZHELPERS_H
 
-#include "Framework/DataProcessorSpec.h"
+#include "Framework/WorkflowSpec.h"
 #include "Framework/DeviceSpec.h"
 #include <vector>
 #include <iosfwd>
@@ -18,8 +18,11 @@
 namespace o2 {
 namespace framework {
 
-void dumpDataProcessorSpec2Graphviz(std::ostream &, const std::vector<o2::framework::DataProcessorSpec> &specs);
-void dumpDeviceSpec2Graphviz(std::ostream &, const std::vector<o2::framework::DeviceSpec> &specs);
+struct GraphvizHelpers {
+  using Devices = std::vector<DeviceSpec>;
+  static void dumpDataProcessorSpec2Graphviz(std::ostream &, const WorkflowSpec &specs);
+  static void dumpDeviceSpec2Graphviz(std::ostream &, const Devices &specs);
+};
 
 } // namespace framework
 } // namespace o2

@@ -21,6 +21,8 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/InputRoute.h"
+#include "Framework/ForwardRoute.h"
 
 #include <memory>
 
@@ -46,9 +48,11 @@ private:
   DataAllocator mAllocator;
   DataRelayer mRelayer;
 
-  std::vector<ChannelSpec> mChannels;
-  std::map<std::string, InputSpec> mInputs;
-  std::map<std::string, InputSpec> mForwards;
+  std::vector<InputChannelSpec> mInputChannels;
+  std::vector<OutputChannelSpec> mOutputChannels;
+
+  std::vector<InputRoute> mInputs;
+  std::vector<ForwardRoute> mForwards;
   int mErrorCount;
   int mProcessingCount;
 };

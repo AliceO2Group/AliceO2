@@ -11,6 +11,7 @@
 #define FRAMEWORK_DDSCONFIGHELPERS_H
 
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceExecution.h"
 #include <vector>
 #include <iosfwd>
 
@@ -22,7 +23,11 @@ namespace framework {
 /// @a out is a stream where the configuration will be printed
 /// @a specs is the internal representation of the dataflow topology
 ///          which we want to dump.
-void dumpDeviceSpec2DDS(std::ostream &out, const std::vector<DeviceSpec> &specs);
+/// @a executions is the transient parameters for the afore mentioned
+///          specifications
+void dumpDeviceSpec2DDS(std::ostream &out,
+                        std::vector<DeviceSpec> const &specs,
+                        std::vector<DeviceExecution> const &executions);
 
 } // namespace framework
 } // namespace o2

@@ -10,183 +10,310 @@
 #include "Framework/DataRelayer.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/MetricsService.h"
+#include "Framework/DataProcessingHeader.h"
+#include "Framework/DataRef.h"
+#include "Framework/InputRecord.h"
 #include "fairmq/FairMQLogger.h"
 
 using DataHeader = o2::Header::DataHeader;
+using DataProcessingHeader = o2::framework::DataProcessingHeader;
+
+constexpr size_t MAX_PARALLEL_TIMESLICES = 256;
 
 namespace o2 {
 namespace framework {
 
+constexpr int64_t INVALID_TIMESLICE = -1;
+constexpr int INVALID_INPUT = -1;
+constexpr DataRelayer::TimesliceId INVALID_TIMESLICE_ID = {INVALID_TIMESLICE};
+
+// 4 is just a magic number, assuming that each timeslice is a timeframe.
+// The number should really be tuned at runtime for each processor.
+constexpr int DEFAULT_PIPELINE_LENGTH = 4;
+
 // FIXME: do we really need to pass the forwards?
-DataRelayer::DataRelayer(const InputsMap &inputs,
-                         const ForwardsMap &forwards,
+DataRelayer::DataRelayer(const std::vector<InputRoute> &inputs,
+                         const std::vector<ForwardRoute> &forwards,
                          MetricsService &metrics)
 : mInputs{inputs},
   mForwards{forwards},
   mMetrics{metrics}
 {
+  setPipelineLength(DEFAULT_PIPELINE_LENGTH);
 }
 
 size_t
-assignInputSpecId(void *data, DataRelayer::InputsMap &specs) {
-  size_t inputIdx = 0;
-  for (auto &input : specs) {
-    const DataHeader *h = reinterpret_cast<const DataHeader*>(data);
+assignInputSpecId(void *data, std::vector<InputRoute> const &routes) {
+  for (size_t ri = 0, re = routes.size(); ri < re; ++ri) {
+    auto &route = routes[ri];
+    const DataHeader *h = o2::Header::get<DataHeader>(data);
+    if (h == nullptr) {
+      return re;
+    }
 
-    if (DataSpecUtils::match(input.second,
+    if (DataSpecUtils::match(route.matcher,
                              h->dataOrigin,
                              h->dataDescription,
                              h->subSpecification)) {
-      return inputIdx;
+      return ri;
     }
-    inputIdx++;
   }
-  return inputIdx;
+  return routes.size();
 }
 
 DataRelayer::RelayChoice
 DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
                    std::unique_ptr<FairMQMessage> &&payload) {
-  // Find out which input is this and assign a valid id to it.
-  size_t inputIdx = assignInputSpecId(header->GetData(), mInputs);
-  // If this is true, it means the message we got does
-  // not match any of the expected inputs.
-  if (inputIdx == mInputs.size()) {
+  // STATE HOLDING VARIABLES
+  // This is the class level state of the relaying. If we start supporting
+  // multithreading this will have to be made thread safe before we can invoke
+  // relay concurrently.
+  const auto &inputs = mInputs;
+  std::vector<TimesliceId> &timeslices = mTimeslices;
+  auto &cache = mCache;
+  const auto &readonlyCache = mCache;
+
+  // IMPLEMENTATION DETAILS
+  // 
+  // This returns the identifier for the given input. We use a separate
+  // function because while it's trivial now, the actual matchmaking will
+  // become more complicated when we will start supporting ranges.
+  auto getInput = [&inputs,&header] () -> int {
+    return assignInputSpecId(header->GetData(), inputs);
+  };
+
+  // This will check if the input is valid. We hide the details so that
+  // in principle the outer code will work regardless of the actual
+  // implementation.
+  auto isValidInput = [](int inputIdx) {
+    // If this is true, it means the message we got does
+    // not match any of the expected inputs.
+    return inputIdx != INVALID_INPUT;
+  };
+
+  // This will check if the timeslice is valid. We hide the details so that in
+  // principle outer code will work regardless of the actual implementation.
+  auto isValidTimeslice = [](int64_t timesliceId) -> bool {
+    return timesliceId != INVALID_TIMESLICE;
+  };
+
+  // The timeslice is embedded in the DataProcessingHeader header of the O2
+  // header stack. This is an extension to the DataHeader, because apparently
+  // we do have data which comes without a timestamp, although I am personally
+  // not sure what that would be.
+  auto getTimeslice = [&header,&timeslices]() -> int64_t {
+    const DataProcessingHeader *dph = o2::Header::get<DataProcessingHeader>(header->GetData());
+    if (dph == nullptr) {
+      return -1;
+    }
+    size_t timesliceId = dph->startTime;
+    assert(timeslices.size());
+    size_t slotIndex = timesliceId % timeslices.size();
+    return timesliceId;
+  };
+
+  // Late arrival means that the incoming timeslice is actually older 
+  // then the one hold in the current cache.
+  auto isInputFromObsolete = [&timeslices](int64_t timeslice) {
+    auto &current = timeslices[timeslice % timeslices.size()];
+    return current.value > timeslice;
+  };
+
+  // A cache line is obsolete if the incoming one has a greater timestamp or 
+  // if the slot contains an invalid timeslice.
+  auto isCacheEntryObsoleteFor = [&timeslices](int64_t timeslice){
+    auto &current = timeslices[timeslice % timeslices.size()];
+    return current.value == INVALID_TIMESLICE
+           || (current.value < timeslice);
+  };
+
+  // We need to prune the cache from the old stuff, if any. Otherwise we
+  // simply store the payload in the cache and we mark relevant bit in the
+  // completion mask. Notice that late arrivals should simply be ignored,
+  // hence the first if.
+  auto pruneCacheSlotFor = [&cache,&inputs,&timeslices](int64_t timeslice) {
+    size_t slotIndex = timeslice % timeslices.size();
+    auto &current = timeslices[slotIndex];
+    // Prune old stuff from the cache, hopefully deleting it...
+    // We set the current slot to the timeslice value, so that old stuff
+    // will be ignored.
+    // assert(current.value < timeslice || current.value == INVALID_TIMESLICE);
+    assert(inputs.size() * slotIndex < cache.size());
+    timeslices[slotIndex].value = timeslice;
+    for (size_t ai = slotIndex*inputs.size(), ae = ai + inputs.size(); ai != ae ; ++ai) {
+      cache[ai].header.reset(nullptr);
+      cache[ai].payload.reset(nullptr);
+    }
+  };
+
+  // We need to check if the slot for the current input is already taken for
+  // the current timeslice.
+  // This should never happen, however given this is dependent on the input
+  // we want to protect again malicious / bad upstream source.
+  auto hasCacheInputAlreadyFor = [&cache, &timeslices, &inputs](int64_t timeslice, int input) {
+    size_t slotIndex = timeslice % timeslices.size();
+    PartRef &currentPart = cache[inputs.size()*slotIndex + input];
+    return (currentPart.payload != nullptr) || (currentPart.header != nullptr);
+  };
+
+  // Actually save the header / payload in the slot
+  auto saveInSlot = [&header, &payload, &cache, &timeslices, &inputs](int64_t timeslice, int input) {
+    size_t slotIndex = timeslice % timeslices.size();
+    PartRef &currentPart = cache[inputs.size()*slotIndex + input];
+    PartRef ref{std::move(header), std::move(payload)};
+    currentPart = std::move(ref);
+    timeslices[slotIndex] = {timeslice};
+    assert(header.get() == nullptr && payload.get() == nullptr);
+  };
+
+  // OUTER LOOP
+  // 
+  // This is the actual outer loop processing input as part of a given
+  // timeslice. All the other implementation details are hidden by the lambdas
+  auto input = getInput();
+
+  if (isValidInput(input) == false) {
+    LOG(ERROR) << "A malformed message just arrived";
     return WillNotRelay;
   }
 
-  // Calculate the mask for the given index and verify
-  size_t inputMask = 1 << inputIdx;
-
-  // FIXME: for the moment we assume that we cannot have overlapping timeframes and
-  //        that same payload for the two different timeframes will be processed
-  //        in order. This might actually not be the case and we would need some
-  //        way of marking to which timeframe each (header,payload) belongs.
-  if (mCompletion.empty()) {
-    mCompletion.emplace_back(CompletionMask{TimeframeId{0},0});
-  }
-  assert(!mCompletion.empty());
-  // The input is already there for current timeframe. We assume this
-  // means we got an input for the next timeframe, therefore we add a new
-  // entry.
-  if (mCompletion.back().mask & inputMask) {
-    LOG(DEBUG) << "Got an entry for the next timeframe";
-    TimeframeId nextTimeframe = TimeframeId{mCompletion.back().timeframeId.value + 1};
-    mCompletion.push_back(CompletionMask{nextTimeframe, 0});
+  auto timeslice = getTimeslice();
+  LOG(DEBUG) << "Received timeslice" << timeslice;
+  if (isValidTimeslice(timeslice) == false) {
+    LOG(ERROR) << "Could not determine the timeslice for input";
+    return WillNotRelay;
   }
 
-  TimeframeId inputTimeframeId = sInvalidTimeframeId;
-  // We associate the payload to the first empty spot
-  for (auto &completion : mCompletion) {
-    if ((completion.mask & inputMask) == 0) {
-      completion.mask |= inputMask;
-      inputTimeframeId = completion.timeframeId;
-      LOG(DEBUG) << "Completion mask for timeframe " << completion.timeframeId.value
-                 << " is " << completion.mask;
-      break;
-    }
+  if (isInputFromObsolete(timeslice)) {
+    LOG(ERROR) << "An entry for timeslice " << timeslice << " just arrived but too late to be processed";
+    return WillNotRelay;
   }
-  assert(inputTimeframeId.value != sInvalidTimeframeId.value);
-  mCache.push_back(std::move(PartRef{inputTimeframeId,
-                                     inputIdx,
-                                     std::move(header),
-                                     std::move(payload)}));
 
-  LOG(DEBUG) << "Adding one part to the cache. Cache size is " << mCache.size();
+  if (isCacheEntryObsoleteFor(timeslice)) {
+    pruneCacheSlotFor(timeslice);
+  }
+  if (hasCacheInputAlreadyFor(timeslice, input)) {
+    LOG(ERROR) << "Got a message with the same header and timeslice twice!!";
+    return WillNotRelay;
+  }
+  saveInSlot(timeslice, input);
   return WillRelay;
 }
 
-DataRelayer::DataReadyInfo
+std::vector<int>
 DataRelayer::getReadyToProcess() {
-  size_t allInputsMask = (1 << mInputs.size()) - 1;
-  std::vector<TimeframeId> readyInputs;
+  // THE STATE
+  std::vector<int> completed;
+  const auto &cache = mCache;
+  const auto &inputs = mInputs;
+  //
+  // THE IMPLEMENTATION DETAILS
+  //
+  // We use this to bail out early from the check as soon as we find something
+  // which we know is not complete.
+  auto theLineWillBeIncomplete = [&cache, &inputs](int li, int ai) -> bool {
+    auto &input = cache[li*inputs.size() + ai];
+    if (input.header == nullptr || input.payload == nullptr) {
+      return true;
+    }
+    return false;
+  };
 
-  decltype(mCompletion) newCompletion;
-  newCompletion.reserve(mCompletion.size());
+  // These two are trivial, but in principle the whole loop could be parallelised
+  // or vectorised so "completed" could be a thread local variable which needs
+  // merging at the end.
+  auto updateCompletionResults = [&completed](size_t li) {
+    completed.push_back(li);
+  };
 
-  for (auto &completion : mCompletion) {
-    if (completion.mask == allInputsMask) {
-      LOG(DEBUG) << "Input from timeframe " << completion.timeframeId.value
-                 << " is complete.";
-      readyInputs.push_back(completion.timeframeId);
-    } else {
-      newCompletion.push_back(completion);
+  auto completionResults = [&completed]() -> std::vector<int> {
+    return completed;
+  };
+
+  // THE OUTER LOOP
+  //
+  // To determine if a line is complete, we iterate on all the arguments
+  // and check if they are ready. We do it this way, because in the end
+  // the number of inputs is going to be small and having a more complex
+  // structure will probably result in a larger footprint in any case.
+  // Also notice that ai == inputsNumber only when we reach the end of the
+  // iteration, that means we have found all the required bits.
+  assert(!inputs.empty());
+  size_t cacheLines = cache.size() / inputs.size();
+  assert(cacheLines * inputs.size() == cache.size());
+
+  for (size_t li = 0; li < cacheLines; ++li) {
+    size_t ai;
+    for (ai = 0; ai < inputs.size(); ++ai) {
+      if (theLineWillBeIncomplete(li, ai)) {
+        break;
+      }
+    }
+    if (ai == inputs.size()) {
+      updateCompletionResults(li);
     }
   }
-  // We remove the completed timeframes from the list of what needs to be
-  // completed.
-  mCompletion.swap(newCompletion);
+  return completionResults();
+}
 
-  // We sort so that outputs are ordered correctly
-  std::sort(mCache.begin(), mCache.end());
+std::vector<std::unique_ptr<FairMQMessage>>
+DataRelayer::getInputsForTimeslice(size_t timeslice) {
+  // State of the computation
+  std::vector<std::unique_ptr<FairMQMessage>> messages;
+  messages.reserve(mInputs.size()*2);
+  auto &cache = mCache;
+  auto &timeslices = mTimeslices;
+  const auto &inputs = mInputs;
 
-  // We create a vector with all the parts which can be processed
-  DataReadyInfo result;
+  // Nothing to see here, this is just to make the outer loop more understandable.
+  auto jumpToCacheEntryAssociatedWith = [](size_t) {
+    return;
+  };
 
-  size_t rti = 0;
-  size_t ci = 0;
-  decltype(mCache) newCache;
+  // We move ownership so that the cache can be reused once the computation is
+  // finished. We bump by one the timeslice for the given cache entry, so that
+  // in case we get (for whatever reason) an old input, it will be
+  // automatically discarded by the relay method.
+  auto moveHeaderPayloadToOutput = [&messages, &cache, &timeslices, &inputs](size_t ti, size_t arg) {
+    messages.emplace_back(std::move(cache[ti*inputs.size() + arg].header));
+    messages.emplace_back(std::move(cache[ti*inputs.size() + arg].payload));
+    timeslices[ti % timeslices.size()].value += 1;
+  };
 
-  while (true) {
-    // We do not have any more ready inputs to process
-    if (rti >= readyInputs.size()) {
-      LOG(DEBUG) << "All " << readyInputs.size() << " entries processed";
-      break;
+  // An invalid set of arguments is a set of arguments associated to an invalid
+  // timeslice, so I can simply do that. I keep the assertion there because in principle
+  // we should have dispatched the timeslice already!
+  // FIXME: what happens when we have enough timeslices to hit the invalid one?
+  auto invalidateCacheFor = [&inputs, &timeslices, &cache](size_t ti) {
+    for (size_t ai = ti*inputs.size(), ae = ai + inputs.size(); ai != ae; ++ai) {
+       assert(cache[ai].header.get() == nullptr);
+       assert(cache[ai].payload.get() == nullptr);
     }
+    timeslices[ti % timeslices.size()] = INVALID_TIMESLICE_ID;
+  };
 
-    // We do not have any more cache items to process
-    // (can this happen????)
-    if (ci >= mCache.size()) {
-      LOG(DEBUG) << "No more entries in cache to process";
-      break;
-    }
-
-    assert(rti < readyInputs.size());
-    assert(ci < mCache.size());
-    TimeframeId &ready = readyInputs[rti];
-    PartRef &part = mCache[ci];
-    // There are three possibilities:
-    // - We are now processing parts which are older
-    //   than the current ready timeframe we are processing
-    //   move to the next ready timeframe.
-    // - The part in question belongs to the current timeframe
-    //   id. Will append it to the list of those to be processed.
-    // - If we are here it means that the current timeframe is
-    //   larger than the one of the part we are looking at,
-    //   we therefore need to keep it for later.
-    if (ready.value < part.timeframeId.value) {
-      LOG(DEBUG) << "Timeframe " << part.timeframeId.value
-                 << " is not ready. Skipping";
-      ++rti;
-    } else if (ready.value == part.timeframeId.value) {
-      LOG(DEBUG) << "Timeframe " << part.timeframeId.value
-                 << " is ready. Adding it to results";
-      result.readyInputs.push_back(std::move(part));
-      ++ci;
-    } else {
-      LOG(DEBUG) << "Timeframe " << part.timeframeId.value
-                 << " is not ready. Putting it back in cache";
-      newCache.push_back(std::move(part));
-      ++ci;
-    }
+  // Outer loop here.
+  jumpToCacheEntryAssociatedWith(timeslice);
+  for (size_t ai = 0, ae = inputs.size(); ai != ae;  ++ai) {
+    moveHeaderPayloadToOutput(timeslice, ai);
   }
+  invalidateCacheFor(timeslice);
 
-  // Add the remaining bits to the new cache
-  while(ci < mCache.size()) {
-    newCache.push_back(std::move(mCache[ci]));
-    ci++;
-  }
-
-  // Cleanup the parts which have been scheduled for processing
-  mCache.swap(newCache);
-  assert(result.readyInputs.size() % mInputs.size() == 0);
-  return std::move(result);
+  return std::move(messages);
 }
 
 size_t
-DataRelayer::getCacheSize() const {
-  return mCache.size();
+DataRelayer::getParallelTimeslices() const {
+  return mCache.size() / mInputs.size();
 }
+
+/// Tune the maximum number of in flight timeslices this can handle.
+void
+DataRelayer::setPipelineLength(size_t s) {
+  mTimeslices.resize(s, INVALID_TIMESLICE_ID);
+  mCache.resize(mInputs.size() * mTimeslices.size());
+}
+
 
 }
 }

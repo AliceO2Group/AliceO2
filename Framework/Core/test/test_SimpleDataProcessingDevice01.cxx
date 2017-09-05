@@ -30,26 +30,21 @@ struct Summary {
 
 using DataHeader = o2::Header::DataHeader;
 
-using Inputs = std::vector<InputSpec>;
-using Outputs = std::vector<OutputSpec>;
-
 // This is how you can define your processing in a declarative way
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
   DataProcessorSpec simple{
     "simple",
     Inputs{},
-    Outputs{
-      {"TPC", "CLUSTERS", OutputSpec::Timeframe},
-      {"ITS", "CLUSTERS", OutputSpec::Timeframe}
+    {
+      OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
+      OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      [](const std::vector<DataRef> inputs,
-        ServiceRegistry& services,
-        DataAllocator& allocator) {
+      [](ProcessingContext &ctx) {
         sleep(1);
         // Creates a new message of size 1000 which
         // has "TPC" as data origin and "CLUSTERS" as data description.
-        auto tpcClusters = allocator.newCollectionChunk<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
+        auto tpcClusters = ctx.allocator().newCollectionChunk<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
         int i = 0;
 
         for (auto &cluster : tpcClusters) {
@@ -61,7 +56,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           i++;
         }
 
-        auto itsClusters = allocator.newCollectionChunk<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
+        auto itsClusters = ctx.allocator().newCollectionChunk<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
         i = 0;
         for (auto &cluster : itsClusters) {
           assert(i < 1000);

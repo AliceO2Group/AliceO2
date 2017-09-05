@@ -16,9 +16,14 @@
 #include "Framework/DeviceControl.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/ForwardRoute.h"
+#include "Framework/InputRoute.h"
+#include "Framework/OutputRoute.h"
+
 #include <vector>
 #include <string>
 #include <map>
+#include <utility>
 
 namespace o2 {
 namespace framework {
@@ -27,33 +32,21 @@ namespace framework {
 /// a DataProcessor.
 struct DeviceSpec {
   std::string id;
-  std::vector<ChannelSpec> channels;
+  std::vector<InputChannelSpec> inputChannels;
+  std::vector<OutputChannelSpec> outputChannels;
   std::vector<std::string> arguments;
   std::vector<ConfigParamSpec> options;
 
   AlgorithmSpec algorithm;
 
-  std::map<std::string, InputSpec> inputs;
-  std::map<std::string, OutputSpec> outputs;
-  std::map<std::string, InputSpec> forwards;
-  std::vector<char *> args; // Calculated list of args for the device.
+  std::vector<InputRoute> inputs;
+  std::vector<OutputRoute> outputs;
+  std::vector<ForwardRoute> forwards;
+  size_t rank; // Id of a parallel processing I am part of
+  size_t nSlots; // Total number of parallel units I am part of
+  size_t inputTimesliceId;
 };
 
-/// Helper to convert from an abstract dataflow specification, @a workflow,
-/// to an actual set of devices which will have to run.
-void
-dataProcessorSpecs2DeviceSpecs(const o2::framework::WorkflowSpec &workflow,
-                               std::vector<o2::framework::DeviceSpec> &devices);
-
-/// Helper to prepare the arguments which will be used to 
-/// start the various devices.
-void
-prepareArguments(int argc,
-                 char **argv,
-                 bool defaultQuiet,
-                 bool defaultStopped,
-                 std::vector<DeviceSpec> &deviceSpecs,
-                 std::vector<DeviceControl> &deviceControls);
 }
 }
 #endif

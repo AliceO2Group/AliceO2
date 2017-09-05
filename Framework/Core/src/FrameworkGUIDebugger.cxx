@@ -156,7 +156,7 @@ historyBar(DeviceGUIState &state,
            const DeviceMetricsInfo &metricsInfo) {
   bool open = ImGui::TreeNode(state.label.c_str());
   if (open) {
-    ImGui::Text("# channels: %lu", spec.channels.size());
+    ImGui::Text("# channels: %lu", spec.outputChannels.size() + spec.inputChannels.size());
     ImGui::TreePop();
   }
   ImGui::NextColumn();
@@ -303,6 +303,25 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
   ImGui::End();
 }
 
+struct ChannelsTableHelper {
+  template <typename C>
+  static void channelsTable(const char *title, const C &channels) {
+    ImGui::TextUnformatted(title);
+    ImGui::Columns(2);
+    ImGui::TextUnformatted("Name");
+    ImGui::NextColumn();
+    ImGui::TextUnformatted("Port");
+    ImGui::NextColumn();
+    for (auto channel : channels) {
+      ImGui::TextUnformatted(channel.name.c_str());
+      ImGui::NextColumn();
+      ImGui::Text("%d", channel.port);
+      ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
+  }
+};
+
 // FIXME: return empty function in case we were not built
 // with GLFW support.
 std::function<void(void)>
@@ -342,19 +361,9 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
       }
       ImGui::Begin(state.label.c_str());
       if (ImGui::CollapsingHeader("Channels")) {
-        ImGui::Text("# channels: %lu", spec.channels.size());
-        ImGui::Columns(2);
-        ImGui::TextUnformatted("Name");
-        ImGui::NextColumn();
-        ImGui::TextUnformatted("Port");
-        ImGui::NextColumn();
-        for (auto channel : spec.channels) {
-          ImGui::TextUnformatted(channel.name.c_str());
-          ImGui::NextColumn();
-          ImGui::Text("%d", channel.port);
-          ImGui::NextColumn();
-        }
-        ImGui::Columns(1);
+        ImGui::Text("# channels: %lu", spec.inputChannels.size() + spec.outputChannels.size());
+        ChannelsTableHelper::channelsTable("Inputs:", spec.inputChannels);
+        ChannelsTableHelper::channelsTable("Outputs:", spec.outputChannels);
       }
       optionsTable(spec, control);
       if (ImGui::CollapsingHeader("Logs", ImGuiTreeNodeFlags_DefaultOpen)) {

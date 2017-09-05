@@ -12,10 +12,10 @@
 #include "Framework/TMessageSerializer.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/FairOptionsRetriever.h"
+#include "Framework/DataProcessingHeader.h"
 #include <cassert>
 
 using namespace o2::framework;
-using DataHeader = o2::Header::DataHeader;
 
 namespace o2 {
 namespace framework {
@@ -26,8 +26,9 @@ DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &regi
   mStatelessProcess{spec.algorithm.onProcess},
   mError{spec.algorithm.onError},
   mConfigRegistry{nullptr},
-  mAllocator{this,&mContext,&mRootContext,spec.outputs},
-  mServiceRegistry{registry}
+  mAllocator{this,&mContext, &mRootContext, spec.outputs},
+  mServiceRegistry{registry},
+  mCurrentTimeslice{0}
 {
 }
 
@@ -38,21 +39,23 @@ void DataSourceDevice::Init() {
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(retriever)));
   if (mInit) {
     LOG(DEBUG) << "Found onInit method. Executing";
-    mStatefulProcess = mInit(*mConfigRegistry, mServiceRegistry);
+    InitContext initContext{*mConfigRegistry,mServiceRegistry};
+    mStatefulProcess = mInit(initContext);
   }
   LOG(DEBUG) << "DataSourceDevice::InitTask::END";
 }
 
 bool DataSourceDevice::ConditionalRun() {
-  // We do not have any inputs for a source, by definition,
-  // so we simply pass an empty vector.
-//  auto &metricsService = mServiceRegistry.get<MetricsService>();
   LOG(DEBUG) << "DataSourceDevice::Processing::START";
   LOG(DEBUG) << "ConditionalRun thread" << pthread_self();
-  std::vector<DataRef> dummyInputs;
+  // This is dummy because a source does not really have inputs.
+  // However, in order to be orthogonal between sources and
+  // processing code, we still specify it.
+  InputRecord dummyInputs{{}, {}};
   try {
-    mContext.clear();
-    mRootContext.clear();
+    mContext.prepareForTimeslice(mCurrentTimeslice);
+    mRootContext.prepareForTimeslice(mCurrentTimeslice);
+    mCurrentTimeslice += 1;
 
     // Avoid runaway process in case we have nothing to do.
     if ((!mStatefulProcess) && (!mStatelessProcess)) {
@@ -60,13 +63,14 @@ bool DataSourceDevice::ConditionalRun() {
       sleep(1);
     }
 
+    ProcessingContext processingContext{dummyInputs, mServiceRegistry, mAllocator};
     if (mStatelessProcess) {
       LOG(DEBUG) << "Has stateless process callback";
-      mStatelessProcess(dummyInputs, mServiceRegistry, mAllocator);
+      mStatelessProcess(processingContext);
     }
     if (mStatefulProcess) {
       LOG(DEBUG) << "Has stateful process callback";
-      mStatefulProcess(dummyInputs, mServiceRegistry, mAllocator);
+      mStatefulProcess(processingContext);
     }
     size_t nMsg = mContext.size() + mRootContext.size();
     LOG(DEBUG) << "Process produced " << nMsg << " messages";
@@ -74,7 +78,8 @@ bool DataSourceDevice::ConditionalRun() {
     DataProcessor::doSend(*this, mRootContext);
   } catch(std::exception &e) {
     if (mError) {
-      mError(dummyInputs, mServiceRegistry, e);
+      ErrorContext errorContext{dummyInputs, mServiceRegistry, e};
+      mError(errorContext);
     } else {
       LOG(DEBUG) << "Uncaught exception: " << e.what();
     }
