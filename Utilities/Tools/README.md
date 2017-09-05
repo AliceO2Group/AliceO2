@@ -42,3 +42,10 @@ false positives. In case your false positives come from ROOT and
 boost, you can use the `Utilities/Tools/boost-root.supp` file (notice
 that different platforms and version of the software might require
 adjustments in order to eliminate all the false positives).
+
+# Configuring emacs to format according ALICE Formatting Guidelines
+
+While not 100% ok, the file `Utilities/Tools/google-c-style.el` closely matches
+our coding guidelines and can be used by emacs users as a template for their
+environment.
+
