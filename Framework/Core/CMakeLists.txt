@@ -29,6 +29,7 @@ set(SRCS
     src/DataRelayer.cxx
     src/DataSourceDevice.cxx
     src/DeviceMetricsInfo.cxx
+    src/DeviceSpec.cxx
     src/DDSConfigHelpers.cxx
     src/FairOptionsRetriever.cxx
     src/FairOptionsRetriever.cxx
@@ -70,6 +71,7 @@ set(TEST_SRCS
       test/test_BoostOptionsRetriever.cxx
       test/test_SuppressionGenerator.cxx
       test/test_SingleDataSource.cxx
+      test/test_Graphviz.cxx
    )
 
 O2_GENERATE_TESTS(

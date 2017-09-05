@@ -13,12 +13,13 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
 #include <vector>
+#include <iosfwd>
 
 namespace o2 {
 namespace framework {
 
-void dumpDataProcessorSpec2Graphviz(const std::vector<o2::framework::DataProcessorSpec> &specs);
-void dumpDeviceSpec2Graphviz(const std::vector<o2::framework::DeviceSpec> &specs);
+void dumpDataProcessorSpec2Graphviz(std::ostream &, const std::vector<o2::framework::DataProcessorSpec> &specs);
+void dumpDeviceSpec2Graphviz(std::ostream &, const std::vector<o2::framework::DeviceSpec> &specs);
 
 } // namespace framework
 } // namespace o2
