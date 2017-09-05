@@ -60,6 +60,8 @@ dataProcessorSpecs2DeviceSpecs(const o2::framework::WorkflowSpec &workflow,
     device.id = processor.name;
     device.algorithm = processor.algorithm;
     device.options = processor.options;
+    device.rank = processor.rank;
+    device.nSlots = processor.nSlots;
 
     // Channels which need to be forwarded (because they are used by
     // a downstream provider).

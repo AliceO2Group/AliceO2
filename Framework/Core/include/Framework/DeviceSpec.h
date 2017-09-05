@@ -34,6 +34,8 @@ struct DeviceSpec {
   std::map<std::string, OutputSpec> outputs;
   std::map<std::string, InputSpec> forwards;
   std::vector<char *> args; // Calculated list of args for the device.
+  size_t rank;
+  size_t nSlots;
 };
 
 void

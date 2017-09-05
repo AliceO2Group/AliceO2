@@ -37,6 +37,7 @@ set(SRCS
     src/LocalRootFileService.cxx
     src/SimpleMetricsService.cxx
     src/TextControlService.cxx
+    src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
     ${GUI_SOURCES}
    )
@@ -72,6 +73,7 @@ set(TEST_SRCS
       test/test_SuppressionGenerator.cxx
       test/test_SingleDataSource.cxx
       test/test_Graphviz.cxx
+      test/test_ParallelProducer.cxx
    )
 
 O2_GENERATE_TESTS(

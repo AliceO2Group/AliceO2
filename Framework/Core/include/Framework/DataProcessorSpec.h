@@ -39,6 +39,12 @@ struct DataProcessorSpec {
   Options options;
   // FIXME: not used for now...
   std::vector<std::string> requiredServices;
+  // FIXME: for the moment I put them here, but it's a hack
+  //        since we do not want to expose this to users...
+  //        Maybe we should have a ParallelGroup kind of node
+  //        which embdes them and hides them from users.
+  size_t rank = 0;
+  size_t nSlots = 0;
 };
 
 } // namespace framework

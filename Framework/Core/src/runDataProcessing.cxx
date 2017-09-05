@@ -23,6 +23,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/TextControlService.h"
+#include "Framework/ParallelContext.h"
 
 #include "GraphvizHelpers.h"
 #include "DDSConfigHelpers.h"
@@ -245,6 +246,7 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
     serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
     serviceRegistry.registerService<RootFileService>(new LocalRootFileService());
     serviceRegistry.registerService<ControlService>(new TextControlService());
+    serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
 
     std::unique_ptr<FairMQDevice> device;
     if (spec.inputs.empty()) {
