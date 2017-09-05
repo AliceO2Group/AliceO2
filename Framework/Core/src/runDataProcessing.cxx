@@ -507,8 +507,8 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
         char *currentOptValue = argv[ai+1];
         const std::string &validOption = "--" + spec.options[oi].name;
         if (strncmp(currentOpt, validOption.c_str(), validOption.size()) == 0) {
-          tmpArgs.push_back(strdup(validOption.c_str()));
-          tmpArgs.push_back(strdup(currentOptValue));
+          tmpArgs.emplace_back(strdup(validOption.c_str()));
+          tmpArgs.emplace_back(strdup(currentOptValue));
           control.options.insert(std::make_pair(spec.options[oi].name,
                                                 currentOptValue));
           break;
