@@ -75,10 +75,13 @@ class AlpideSimResponse
   int mNBinX = 0;                /// number of bins in X
   int mNBinY = 0;                /// number of bins in Y
   int mNBinZ = 0;                /// number of bins in Z (sensor dept)
+  int mMaxBinX = 0;              /// max allowed Xb (to avoid subtraction)
+  int mMaxBinY = 0;              /// max allowed Yb (to avoid subtraction)  
   float mXMax = 14.62e-4;        /// upper boundary of X
   float mYMax = 13.44e-4;        /// upper boundary of Y
   float mZMin = 0.f;             /// lower boundary of Z
   float mZMax = 0.f;             /// upper boundary of Z
+  float mZMaxOffs = 0.f;         /// upper boundary offsetted by half bin; 
   float mStepInvX = 0;           /// inverse step of the X grid
   float mStepInvY = 0;           /// inverse step of the Y grid
   float mStepInvZ = 0;           /// inverse step of the Z grid
@@ -104,9 +107,9 @@ class AlpideSimResponse
   float getYMax() const { return mYMax; }
   float getZMin() const { return mZMin; }
   float getZMax() const { return mZMax; }
-  float getStepX() const { return mStepInvX ? mStepInvX : 0.f; }
-  float getStepY() const { return mStepInvY ? mStepInvY : 0.f; }
-  float getStepZ() const { return mStepInvZ ? mStepInvZ : 0.f; }
+  float getStepX() const { return mStepInvX ? 1./mStepInvX : 0.f; }
+  float getStepY() const { return mStepInvY ? 1./mStepInvY : 0.f; }
+  float getStepZ() const { return mStepInvZ ? 1./mStepInvZ : 0.f; }
   void setDataPath(const std::string pth) { mDataPath = pth; }
   void setGridXName(const std::string nm) { mGridXName = nm; }
   void setGridYName(const std::string nm) { mGridYName = nm; }
@@ -124,14 +127,16 @@ class AlpideSimResponse
 inline int AlpideSimResponse::getXBin(float xpos) const
 {
   /// get x bin w/o checking for over/under flow. xpos MUST be >=0
-  return xpos * mStepInvX + 0.5f;
+  int ix = xpos * mStepInvX + 0.5f;
+  return ix<mNBinX ? ix:mMaxBinX;
 }
 
 //-----------------------------------------------------
 inline int AlpideSimResponse::getYBin(float ypos) const
 {
   /// get y bin w/o checking for over/under flow. ypos MUST be >=0
-  return ypos * mStepInvY + 0.5f;
+  int iy = ypos * mStepInvY + 0.5f;
+  return iy<mNBinY ? iy:mMaxBinY;
 }
 
 //-----------------------------------------------------
@@ -139,7 +144,8 @@ inline int AlpideSimResponse::getZBin(float zpos) const
 {
   /// get z bin w/o checking for over/under flow. zpos is with respect of the beginning
   /// of epitaxial layer
-  return (mZMax - zpos) * mStepInvZ; // hights bin
+  int iz = (mZMaxOffs - zpos) * mStepInvZ;
+  return iz<0 ? 0:iz; // depth bin
 }
 }
 }
