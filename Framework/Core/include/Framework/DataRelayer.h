@@ -11,9 +11,9 @@
 #define FRAMEWORK_DATARELAYER_H
 
 #include <fairmq/FairMQMessage.h>
-#include "Framework/InputSpec.h"
+#include "Framework/InputRoute.h"
+#include "Framework/ForwardRoute.h"
 #include <cstddef>
-#include <map>
 #include <vector>
 
 namespace o2 {
@@ -28,55 +28,65 @@ public:
     WillNotRelay
   };
 
-  using InputsMap = std::map<std::string, InputSpec>;
-  using ForwardsMap = std::map<std::string, InputSpec>;
-
-  struct TimeframeId {
-    size_t value;
+  struct TimesliceId {
+    int64_t value;
   };
 
+  // Reference to an inflight part.
   struct PartRef {
-    TimeframeId timeframeId;
-    size_t partPos;
     std::unique_ptr<FairMQMessage> header;
     std::unique_ptr<FairMQMessage> payload;
-    bool operator<(const PartRef& rhs) const {
-      return std::tie(timeframeId.value, partPos) < std::tie(rhs.timeframeId.value, rhs.partPos);
-    }
   };
 
-  /// This is used to communicate the parts which are ready to be processed and
-  /// those which are ready to be forwaded.
-  /// readyInputs is a vector of parts which can be be processed, sorted by timeframe and
-  /// then position in the argument bindings.
-  struct DataReadyInfo {
-    std::vector<PartRef> readyInputs;
-  };
+  DataRelayer(std::vector<InputRoute> const&,
+              std::vector<ForwardRoute> const&,
+              MetricsService &);
 
-  DataRelayer(const InputsMap &, const ForwardsMap&, MetricsService &);
-
+  /// This is used to ask for relaying a given (header,payload) pair.
+  /// Notice that we expect that the header is an O2 Header Stack
+  /// with a DataProcessingHeader inside so that we can assess time.
   RelayChoice relay(std::unique_ptr<FairMQMessage> &&header,
                     std::unique_ptr<FairMQMessage> &&payload);
 
-  DataReadyInfo getReadyToProcess();
+  /// Returns the lines in the cache which are ready to be completed.
+  std::vector<int> getReadyToProcess();
 
-  // The messages which need to be forwarded to next stage.
-  const std::vector<bool> &forwardingMask();
-  size_t getCacheSize() const;
+  /// Returns an input registry associated to the given timeslice and gives
+  /// ownership to the caller. This is because once the inputs are out of the
+  /// DataRelayer they need to be deleted once the processing is concluded.
+  std::vector<std::unique_ptr<FairMQMessage>>
+  getInputsForTimeslice(size_t i);
 
+  /// Returns the index of the arguments which have to be forwarded to
+  /// the next processor
+  const std::vector<int> &forwardingMask();
+
+  /// Returns how many timeslices we can handle in parallel
+  size_t getParallelTimeslices() const;
+
+  /// Lookup the timeslice for the given index in the cache
+  size_t getTimesliceForCacheline(size_t i) {
+    assert(i < mTimeslices.size());
+    return mTimeslices[i].value;
+  }
+
+  /// Tune the maximum number of in flight timeslices this can handle.
+  void setPipelineLength(size_t s);
 private:
-  static constexpr TimeframeId sInvalidTimeframeId{(size_t) -1};
-  struct CompletionMask {
-    TimeframeId timeframeId;
-    size_t mask;
-  };
-  InputsMap mInputs;
-  ForwardsMap mForwards;
+  std::vector<InputRoute> mInputs;
+  std::vector<ForwardRoute> mForwards;
   MetricsService &mMetrics;
+
+  /// This is the actual cache of all the parts in flight. 
+  /// Notice that we store them as a NxM sized vector, where
+  /// N is the maximum number of inflight timeslices, while
+  /// M is the number of inputs which are requested.
   std::vector<PartRef> mCache;
-  std::vector<CompletionMask> mCompletion;
+
+  /// This is the timeslices for all the in flight parts.
+  std::vector<TimesliceId> mTimeslices;
+
   std::vector<bool> mForwardingMask;
-  size_t mAllInputsMask;
 };
 
 }

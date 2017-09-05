@@ -21,7 +21,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
       {"TST", "A1", OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      [](const std::vector<DataRef> inputs,
+      [](const InputRecord &inputs,
          ServiceRegistry& services,
          DataAllocator& allocator) {
        sleep(1);

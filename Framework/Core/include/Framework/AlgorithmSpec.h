@@ -10,23 +10,20 @@
 #ifndef FRAMEWORK_ALGORITHMSPEC_H
 #define FRAMEWORK_ALGORITHMSPEC_H
 
-#include "Framework/DataRef.h"
-#include <vector>
+#include "Framework/ProcessingContext.h"
+#include "Framework/ErrorContext.h"
+#include "Framework/InitContext.h"
+
 #include <functional>
 
 namespace o2 {
 namespace framework {
 
-class ConfigParamRegistry;
-class DataAllocator;
-class ServiceRegistry;
-
-/// This is the class holding the actual algorithm to be used.
-/// Notice that the InitCallback can be used to define stateful
-/// data as it returns a ProcessCallback which will be invoked
-/// to do the data processing. For example if you want to have
-/// some geometry available at process time, but of course
-/// you do not want to initialise it at every creation, you can do:
+/// This is the class holding the actual algorithm to be used. Notice that the
+/// InitCallback  can  be  used  to  define stateful  data  as  it  returns  a
+/// ProcessCallback  which will  be invoked  to  do the  data processing.  For
+/// example if you  want to have some geometry available  at process time, but
+/// of course you do not want to initialise it at every creation, you can do:
 ///
 ///
 ///     AlgorithmSpec{InitCallback{
@@ -38,12 +35,12 @@ class ServiceRegistry;
 ///     }
 ///     }
 ///
-///     FIXME: we should probably return also a function to handle
-///            EXIT transition...
+/// FIXME:  we  should  probably  return   also  a  function  to  handle  EXIT
+/// transition...
 struct AlgorithmSpec {
-  using ProcessCallback = std::function<void(const std::vector<DataRef>, ServiceRegistry&, DataAllocator&)>;
-  using InitCallback = std::function<ProcessCallback(const ConfigParamRegistry &, ServiceRegistry &)>;
-  using ErrorCallback = std::function<void(const std::vector<DataRef>, ServiceRegistry &, std::exception &e)>;
+  using ProcessCallback = std::function<void(ProcessingContext &)>;
+  using InitCallback = std::function<ProcessCallback(InitContext&)>;
+  using ErrorCallback = std::function<void(ErrorContext &)>;
   static ErrorCallback &emptyErrorCallback() {
     static ErrorCallback callback = nullptr;
     return callback;

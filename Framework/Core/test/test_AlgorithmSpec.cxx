@@ -13,7 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/AlgorithmSpec.h"
-#include "Framework/DataRef.h"
+#include "Framework/InputRecord.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DataAllocator.h"
 #include <boost/test/unit_test.hpp>
@@ -24,25 +24,25 @@ using namespace o2::framework;
 
 BOOST_AUTO_TEST_CASE(TestAlgorithmSpec) {
   using namespace o2::framework;
-  AlgorithmSpec::ProcessCallback foo = [](const std::vector<DataRef>, ServiceRegistry &, DataAllocator &){};
-  AlgorithmSpec::InitCallback bar = [&foo](const ConfigParamRegistry&, ServiceRegistry &){return foo;};
+  AlgorithmSpec::ProcessCallback foo = [](ProcessingContext&){};
+  AlgorithmSpec::InitCallback bar = [&foo](InitContext&){return foo;};
   AlgorithmSpec spec1{bar};
   AlgorithmSpec spec2{bar, AlgorithmSpec::emptyErrorCallback()};
-  AlgorithmSpec spec3{AlgorithmSpec::InitCallback{[&foo](const ConfigParamRegistry &, ServiceRegistry &) {
+  AlgorithmSpec spec3{AlgorithmSpec::InitCallback{[&foo](InitContext &) {
     return foo;
    }}
   };
-  AlgorithmSpec spec4{AlgorithmSpec::InitCallback{[&foo](const ConfigParamRegistry &, ServiceRegistry &) {
-    return [](const std::vector<DataRef>, ServiceRegistry &, DataAllocator &){};
+  AlgorithmSpec spec4{AlgorithmSpec::InitCallback{[&foo](InitContext &) {
+    return [](ProcessingContext &){};
    }}
   };
-  AlgorithmSpec spec5{AlgorithmSpec::InitCallback{[&foo](const ConfigParamRegistry &, ServiceRegistry &) {
-    return [](const std::vector<DataRef>, ServiceRegistry &, DataAllocator &){};
+  AlgorithmSpec spec5{AlgorithmSpec::InitCallback{[&foo](InitContext &) {
+    return [](ProcessingContext &){};
     }},
     AlgorithmSpec::emptyErrorCallback()
   };
-  AlgorithmSpec spec6{{[&foo](const ConfigParamRegistry &, ServiceRegistry &) {
-    return [](const std::vector<DataRef>, ServiceRegistry &, DataAllocator &){};
+  AlgorithmSpec spec6{{[&foo](InitContext &) {
+    return [](ProcessingContext &){};
     }},
     AlgorithmSpec::emptyErrorCallback()
   };

@@ -27,6 +27,7 @@ struct InputSpec {
     Transient
   };
 
+  std::string binding;
   Header::DataOrigin origin;
   Header::DataDescription description;
   Header::DataHeader::SubSpecificationType subSpec;

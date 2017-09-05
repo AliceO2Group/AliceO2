@@ -13,11 +13,9 @@ using namespace o2::framework;
 
 AlgorithmSpec simplePipe(o2::Header::DataDescription what) {
   return AlgorithmSpec{
-    [what](const std::vector<DataRef> inputs,
-       ServiceRegistry& services,
-       DataAllocator& allocator)
+    [what](ProcessingContext &ctx)
       {
-        auto bData = allocator.newCollectionChunk<int>(OutputSpec{"TST", what, 0}, 1);
+        auto bData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", what, 0}, 1);
       }
     };
 }
@@ -28,43 +26,39 @@ void defineDataProcessing(WorkflowSpec &specs) {
   {
     "A",
     Inputs{},
-    Outputs{
-      {"TST", "A1", OutputSpec::Timeframe},
-      {"TST", "A2", OutputSpec::Timeframe}
+    {
+      OutputSpec{"TST", "A1", OutputSpec::Timeframe},
+      OutputSpec{"TST", "A2", OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      [](const std::vector<DataRef> inputs,
-         ServiceRegistry& services,
-         DataAllocator& allocator) {
+      [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = allocator.newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
-       auto bData = allocator.newCollectionChunk<int>(OutputSpec{"TST", "A2", 0}, 1);
+       auto aData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
+       auto bData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", "A2", 0}, 1);
       }
     }
   },
   {
     "B",
-    Inputs{{"TST", "A1", InputSpec::Timeframe}},
-    Outputs{{"TST", "B1", OutputSpec::Timeframe}},
+    {InputSpec{"x", "TST", "A1", InputSpec::Timeframe}},
+    {OutputSpec{"TST", "B1", OutputSpec::Timeframe}},
     simplePipe(o2::Header::DataDescription{"B1"})
   },
   {
     "C",
-    Inputs{{"TST", "A2", InputSpec::Timeframe}},
-    Outputs{{"TST", "C1", OutputSpec::Timeframe}},
+    Inputs{InputSpec{"x", "TST", "A2", InputSpec::Timeframe}},
+    Outputs{OutputSpec{"TST", "C1", OutputSpec::Timeframe}},
     simplePipe(o2::Header::DataDescription{"C1"})
   },
   {
     "D",
     Inputs{
-      {"TST", "B1", InputSpec::Timeframe},
-      {"TST", "C1", InputSpec::Timeframe},
+      InputSpec{"b", "TST", "B1", InputSpec::Timeframe},
+      InputSpec{"c", "TST", "C1", InputSpec::Timeframe},
     },
     Outputs{},
     AlgorithmSpec{
-      [](const std::vector<DataRef> inputs,
-         ServiceRegistry& services,
-         DataAllocator& allocator) {
+      [](ProcessingContext &ctx) {
       },
     }
   }

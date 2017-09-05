@@ -18,7 +18,7 @@ namespace framework {
 
 /// Helper to dump a workflow as a graphviz file
 void
-dumpDataProcessorSpec2Graphviz(std::ostream &out, const std::vector<DataProcessorSpec> &specs)
+GraphvizHelpers::dumpDataProcessorSpec2Graphviz(std::ostream &out, const std::vector<DataProcessorSpec> &specs)
 {
   out << "digraph structs {\n";
   out << "  node[shape=record]\n";
@@ -30,7 +30,7 @@ dumpDataProcessorSpec2Graphviz(std::ostream &out, const std::vector<DataProcesso
 
 /// Helper to dump a set of devices as a graphviz file
 void
-dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<DeviceSpec> &specs)
+GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<DeviceSpec> &specs)
 {
   out << R"GRAPHVIZ(digraph structs {
   node[shape=record]
@@ -43,10 +43,7 @@ dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<DeviceSpec> &specs)
     std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
     out << "  " << id << R"( [label="{{)";
     bool firstInput = true;
-    for (auto && input : spec.channels) {
-      if (input.type != Sub) {
-        continue;
-      }
+    for (auto && input : spec.inputChannels) {
       if (firstInput == false) {
         out << "|";
       }
@@ -54,15 +51,14 @@ dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<DeviceSpec> &specs)
       out << "<" << input.name << ">" << input.name;
     }
     out << "}|";
-    out << id << "(" << spec.channels.size() << ")";
+    auto totalChannels = spec.inputChannels.size() +
+                         spec.outputChannels.size();
+    out << id << "(" << totalChannels << ")";
     out << "|{";
     bool firstOutput = true;
-    for (auto && output : spec.channels) {
+    for (auto && output : spec.outputChannels) {
       outputChannel2Device.insert(std::make_pair(output.name, id));
       outputChannel2Port.insert(std::make_pair(output.name, output.port));
-      if (output.type != Pub) {
-        continue;
-      }
       if (firstOutput == false) {
         out << "|";
       }
@@ -72,20 +68,16 @@ dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<DeviceSpec> &specs)
     out << R"(}}"];)" << "\n";
   }
   for (auto &spec : specs) {
-    for (auto &channel: spec.channels) {
+    for (auto &input : spec.inputChannels) {
       auto id = spec.id;
       std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
-      // If this is an output, we do not care for now.
-      // FIXME: make sure that all the outputs are sinked by something.
-      if (channel.type == Pub) {
-        continue;
-      }
-      auto outputName = channel.name;
-      outputName.erase(0, 3);
+      // input and output name are now the same
+      auto outputName = input.name;
+      // outputName.erase(0, 3);
       out << "  " << outputChannel2Device[outputName] << ":" << outputName
                   << "-> "
-                  << id << ":" << channel.name
-                  << R"( [label=")" << channel.port << R"(")"
+                  << id << ":" << input.name
+                  << R"( [label=")" << input.port << R"(")"
                   << "]\n";
     }
   }

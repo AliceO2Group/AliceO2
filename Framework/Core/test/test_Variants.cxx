@@ -14,7 +14,8 @@
 #include <boost/test/unit_test.hpp>
 #include "Framework/Variant.h"
 #include <stdexcept>
-#include <iostream>
+#include <sstream>
+#include <cstring>
 
 using namespace o2::framework;
 
@@ -23,7 +24,7 @@ bool unknown_type(std::runtime_error const &ex) {
 }
 
 BOOST_AUTO_TEST_CASE(VariantTest) {
-  std::ostringstream ss;
+  std::ostringstream ss{};
   Variant a(10);
   BOOST_CHECK(a.get<int>() == 10);
   ss << a;

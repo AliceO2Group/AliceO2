@@ -25,19 +25,17 @@ public:
     FairMQMessagePtr header;
     std::unique_ptr<TObject> payload;
     std::string channel;
-    int index;
   };
+
   using Messages = std::vector<MessageRef>;
 
   void addObject(FairMQMessagePtr header,
                  std::unique_ptr<TObject> obj,
-                 const std::string &channel,
-                 int index)
+                 const std::string &channel)
   {
     mMessages.push_back(std::move(MessageRef{std::move(header),
                                              std::move(obj),
-                                             channel,
-                                             index}));
+                                             channel}));
   }
 
   Messages::iterator begin()
@@ -55,7 +53,7 @@ public:
     return mMessages.size();
   }
 
-  void clear()
+  void prepareForTimeslice(size_t timeslice)
   {
     // On send we move the header, but the payload remains
     // there because what's really sent is the TMessage
@@ -65,9 +63,16 @@ public:
       assert(m.payload.get() != nullptr);
     }
     mMessages.clear();
+    mTimeslice = timeslice;
+  }
+
+  size_t timeslice() const
+  {
+    return mTimeslice;
   }
 private:
   Messages mMessages;
+  size_t mTimeslice;
 };
 
 }

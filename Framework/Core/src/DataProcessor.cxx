@@ -29,8 +29,7 @@ void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
     FairMQParts parts = std::move(message.parts);
     assert(message.parts.Size() == 0);
     assert(parts.Size() == 2);
-    assert(parts.At(0)->GetSize() == 80);
-    device.Send(parts, message.channel, message.index);
+    device.Send(parts, message.channel, 0);
     assert(parts.Size() == 2);
   }
 }
@@ -42,14 +41,14 @@ void DataProcessor::doSend(FairMQDevice &device, RootObjectContext &context) {
     FairMQMessagePtr payload(device.NewMessage());
     TClonesArray *a = reinterpret_cast<TClonesArray*>(message.payload.get());
     device.Serialize<TMessageSerializer>(*payload, a);
-    const DataHeader *cdh = reinterpret_cast<const DataHeader*>(message.header->GetData());
+    const DataHeader *cdh = o2::Header::get<DataHeader>(message.header->GetData());
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
     DataHeader *dh = const_cast<DataHeader *>(cdh);
     dh->payloadSize = payload->GetSize();
     parts.AddPart(std::move(message.header));
     parts.AddPart(std::move(payload));
-    device.Send(parts, message.channel, message.index);
+    device.Send(parts, message.channel, 0);
   }
 }
 

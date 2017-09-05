@@ -34,13 +34,11 @@ void defineDataProcessing(WorkflowSpec &specs) {
       // The producer is stateful, we use a static for the state in this
       // particular case, but a Singleton or a captured new object would
       // work as well.
-      AlgorithmSpec{[](const ConfigParamRegistry &params, ServiceRegistry &registry) {
+      AlgorithmSpec{[](InitContext &setup) {
         static int foo = 0;
-        return [](const std::vector<DataRef> inputs,
-                  ServiceRegistry& services,
-                  DataAllocator& allocator) {
+        return [](ProcessingContext &ctx) {
             sleep(1);
-            auto out = allocator.newChunk({"TES", "STATEFUL", 0}, sizeof(int));
+            auto out = ctx.allocator().newChunk({"TES", "STATEFUL", 0}, sizeof(int));
             auto outI = reinterpret_cast<int *>(out.data);
             outI[0] = foo++;
           };
@@ -50,15 +48,13 @@ void defineDataProcessing(WorkflowSpec &specs) {
     {
       "consumer",
       Inputs{
-        {"TES", "STATEFUL", OutputSpec::Timeframe},
+        {"test", "TES", "STATEFUL", OutputSpec::Timeframe},
       },
       Outputs{},
-      AlgorithmSpec{[](const ConfigParamRegistry &params, ServiceRegistry &registry) {
+      AlgorithmSpec{[](InitContext &) {
           static int expected = 0;
-          return [](const std::vector<DataRef> inputs,
-                    ServiceRegistry& services,
-                    DataAllocator& allocator) {
-            const int *in = reinterpret_cast<const int *>(inputs[0].payload);
+          return [](ProcessingContext &ctx) {
+            const int *in = reinterpret_cast<const int *>(ctx.inputs().get("test").payload);
 
             if (*in != expected++) {
               LOG(ERROR) << "Expecting " << expected << " found " << *in;

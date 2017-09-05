@@ -61,17 +61,13 @@ void showTopologyNodeGraph(bool* opened,
     static ImVec2 scrolling = ImVec2(0.0f, 0.0f);
     static bool show_grid = true;
     static int node_selected = -1;
-    if (!inited)
-    {
+
+    auto prepareChannelView = [&specs](ImVector<Node> &nodes) {
       std::map<std::string, std::pair<int, int>> linkToIndex;
       for (int si = 0; si < specs.size(); ++si) {
         int oi = 0;
-        for (auto &&output : specs[si].outputs) {
-          linkToIndex.insert(std::make_pair(output.first, std::make_pair(si, oi)));
-          oi += 1;
-        }
-        for (auto &&forward : specs[si].forwards) {
-          linkToIndex.insert(std::make_pair(forward.first, std::make_pair(si, oi)));
+        for (auto &&output : specs[si].outputChannels) {
+          linkToIndex.insert(std::make_pair(output.name, std::make_pair(si, oi)));
           oi += 1;
         }
       }
@@ -80,12 +76,12 @@ void showTopologyNodeGraph(bool* opened,
         // FIXME: display nodes using topological sort
         nodes.push_back(Node(si, spec.id.c_str(),  ImVec2(40+120*si,50 + (120 * si) % 500), 0.5f,
                         ImColor(255,100,100),
-                        spec.inputs.size(),
-                        spec.outputs.size() + spec.forwards.size()));
+                        spec.inputChannels.size(),
+                        spec.outputChannels.size()));
         int ii = 0;
-        for (auto &input : spec.inputs) {
-          std::string outName{input.first, 3};
-          const auto &out = linkToIndex.find(outName);
+        for (auto &input : spec.inputChannels) {
+          auto const &outName = input.name;
+          auto const &out = linkToIndex.find(input.name);
           if (out == linkToIndex.end()) {
             LOG(ERROR) << "Could not find suitable node for " << outName;
             continue;
@@ -93,8 +89,13 @@ void showTopologyNodeGraph(bool* opened,
           links.push_back(NodeLink{ out->second.first, out->second.second, si, ii});
           ii += 1;
         }
-        inited = true;
       }
+    };
+
+    if (!inited)
+    {
+      prepareChannelView(nodes);
+      inited = true;
     }
 
     // Draw a list of nodes on the left side
@@ -244,16 +245,16 @@ void showTopologyNodeGraph(bool* opened,
         ImVec2 scene_pos = ImGui::GetMousePosOnOpeningCurrentPopup() - offset;
         if (node)
         {
-            ImGui::Text("Node '%s'", node->Name);
-            ImGui::Separator();
-            if (ImGui::MenuItem("Rename..", NULL, false, false)) {}
-            if (ImGui::MenuItem("Delete", NULL, false, false)) {}
-            if (ImGui::MenuItem("Copy", NULL, false, false)) {}
+      //      ImGui::Text("Node '%s'", node->Name);
+      //      ImGui::Separator();
+      //      if (ImGui::MenuItem("Rename..", NULL, false, false)) {}
+      //      if (ImGui::MenuItem("Delete", NULL, false, false)) {}
+      //      if (ImGui::MenuItem("Copy", NULL, false, false)) {}
         }
         else
         {
-            if (ImGui::MenuItem("Add")) { nodes.push_back(Node(nodes.Size, "New node", scene_pos, 0.5f, ImColor(100,100,200), 2, 2)); }
-            if (ImGui::MenuItem("Paste", NULL, false, false)) {}
+     //       if (ImGui::MenuItem("Add")) { nodes.push_back(Node(nodes.Size, "New node", scene_pos, 0.5f, ImColor(100,100,200), 2, 2)); }
+     //       if (ImGui::MenuItem("Paste", NULL, false, false)) {}
         }
         ImGui::EndPopup();
     }

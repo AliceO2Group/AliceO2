@@ -8,11 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
-#include "Framework/ServiceRegistry.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/MetricsService.h"
 #include "Framework/RootFileService.h"
-#include "Framework/ConfigParamRegistry.h"
+#include "Framework/AlgorithmSpec.h"
 
 #include "FairMQLogger.h"
 
@@ -43,13 +42,13 @@ DataProcessorSpec sim_tpc() {
   return {
     "sim_tpc",
     Inputs{},
-    Outputs{
-      {"TPC", "GEN", OutputSpec::Timeframe}
+    {
+      OutputSpec{"TPC", "GEN", OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      [](const ConfigParamRegistry &params, ServiceRegistry &services) {
-        int nEvents = params.get<int>("nEvents");
-        auto mcEngine = params.get<std::string>("mcEngine");
+      [](InitContext &setup) {
+        int nEvents = setup.options().get<int>("nEvents");
+        auto mcEngine = setup.options().get<std::string>("mcEngine");
 
         // FIXME: this should probably be part of some generic
         //        FairRunInitSpec
@@ -62,7 +61,7 @@ DataProcessorSpec sim_tpc() {
 
         // Requiring a file is something which requires IO, and it's therefore
         // delegated to the framework
-        auto &rfm = services.get<RootFileService>();
+        auto &rfm = setup.services().get<RootFileService>();
         // FIXME: We should propably have a service for FairRunSim, rather than
         //        for the root files themselves...
         // Output file name
@@ -133,9 +132,7 @@ DataProcessorSpec sim_tpc() {
         static bool once = true;
 
         // This is the actual inner loop for the device
-        return [run,nEvents](const std::vector<DataRef> inputs,
-                  ServiceRegistry& s,
-                  DataAllocator& allocator) {
+        return [run,nEvents](ProcessingContext &ctx) {
                   if (!once) {
                     run->Run(nEvents);
                     once = true;
