@@ -62,7 +62,8 @@ void AlpideSimResponse::initData()
   if (!mNBinX || mStepInvX < kTiny) {
     LOG(FATAL) << "Failed to read X binning from " << inpfname << FairLogger::endl;
   }
-  mStepInvX = (mNBinX - 1) / mStepInvX; // inverse of the X bin width
+  mMaxBinX = mNBinX-1;
+  mStepInvX = mMaxBinX / mStepInvX; // inverse of the X bin width
   inpGrid.close();
 
   // read Y grid
@@ -77,7 +78,8 @@ void AlpideSimResponse::initData()
   if (!mNBinY || mStepInvY < kTiny) {
     LOG(FATAL) << "Failed to read Y binning from " << inpfname << FairLogger::endl;
   }
-  mStepInvY = (mNBinY - 1) / mStepInvY; // inverse of the Y bin width
+  mMaxBinY = mNBinY - 1;
+  mStepInvY = mMaxBinY / mStepInvY; // inverse of the Y bin width
   inpGrid.close();
 
   // load response data
@@ -157,6 +159,7 @@ void AlpideSimResponse::initData()
   mZMin *= micron2cm;
   mZMax *= micron2cm;
   mStepInvZ = (mNBinZ - 1) / (mZMax - mZMin);
+  mZMaxOffs = mZMax;
   mZMin -= 0.5 / mStepInvZ;
   mZMax += 0.5 / mStepInvZ;
 
@@ -209,8 +212,9 @@ const RespSimMat* AlpideSimResponse::getResponse(float x, float y, float z) cons
   size_t bin = getZBin(z) + mNBinZ * (getYBin(y) + mNBinY * getXBin(x));
   if (bin >= mData.size()) {
     // this should not happen
-    LOG(FATAL) << "requested bin " << bin << ">= maxBin " << mData.size() << "for X="
-	       << x << " Y=" << y << " Z=" << z << FairLogger::endl;
+    LOG(FATAL) << "requested bin " << bin << "(xyz: " << getXBin(x) << ":" << getYBin(y)
+	       << ":" << getZBin(z) << ")" <<">= maxBin " << mData.size()
+	       << " for X=" << x << " Y=" << y << " Z=" << z << FairLogger::endl;
   }
   return &mData[bin];
 }
