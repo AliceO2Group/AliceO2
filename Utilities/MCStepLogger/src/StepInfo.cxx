@@ -25,7 +25,6 @@
 //  @since  2017-06-29
 //  @brief  structures encapsulating information about MC stepping
 
-
 #include <StepInfo.h>
 #include <TArrayI.h>
 #include <TParticle.h>
@@ -55,50 +54,33 @@ StepInfo::StepInfo(TVirtualMC* mc)
   }
   stepcounter++;
   stepid = stepcounter;
-  currentinstance = this;
 
-  eventid = mc->CurrentEvent();
   auto stack = mc->GetStack();
 
   trackID = stack->GetCurrentTrackNumber();
-  pdg = mc->TrackPid();
-  auto particle = TDatabasePDG::Instance()->GetParticle(pdg);
-  pname = particle ? particle->GetName() : "NULL";
+  lookupstructures.insertPDG(trackID, mc->TrackPid());
+
   auto id = mc->CurrentVolID(copyNo);
   volId = id;
 
   auto curtrack = stack->GetCurrentTrack();
-  primary = curtrack ? curtrack->IsPrimary() : false;
-
-  auto geovolume = gGeoManager->GetCurrentVolume();
-  volname = geovolume ? geovolume->GetName() : "NULL";
-  auto medium = geovolume ? geovolume->GetMedium() : nullptr;
-  mediumname = medium ? medium->GetName() : "NULL";
+  auto parentID = curtrack->IsPrimary() ? -1 : stack->GetCurrentParentTrackNumber();
+  lookupstructures.insertParent(trackID, parentID);
 
   // try to resolve the module via external map
   // keep information in faster vector once looked up
-  modulename = "UNKNOWN";
+  auto volname = mc->CurrentVolName();
+  lookupstructures.insertVolName(volId, volname);
+
   if (volnametomodulemap && volnametomodulemap->size() > 0 && volId >= 0) {
-    // lookup in vector first
-    if (volId >= volidtomodulevector.size()) {
-      volidtomodulevector.resize(volId + 1, nullptr);
-    }
-    if (volidtomodulevector[volId] == nullptr) {
+    if (lookupstructures.getModuleAt(volId) == nullptr) {
       // lookup in map
       auto iter = volnametomodulemap->find(volname);
       if (iter != volnametomodulemap->end()) {
-        volidtomodulevector[volId] = &iter->second;
+        lookupstructures.insertModuleName(volId, iter->second);
       }
     }
-    if (volidtomodulevector[volId]) {
-      modulename = *volidtomodulevector[volId];
-    }
   }
-
-  // auto v2 = gGeoManager->GetCurrentNavigator()->GetCurrentVolume();
-  // if (strcmp(mc->CurrentVolName(), v2->GetName())!=0){
-  //  std::cerr << "inconsistent state\n";
-  //}
 
   double xd, yd, zd;
   mc->TrackPosition(xd, yd, zd);
@@ -107,7 +89,7 @@ StepInfo::StepInfo(TVirtualMC* mc)
   z = zd;
   E = curtrack->Energy();
   auto now = std::chrono::high_resolution_clock::now();
-  cputimestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(now - starttime).count();
+  // cputimestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(now - starttime).count();
   nsecondaries = mc->NSecondaries();
 
   if (nsecondaries > 0) {
@@ -122,30 +104,22 @@ StepInfo::StepInfo(TVirtualMC* mc)
   mc->StepProcesses(procs);
   nprocessesactive = procs.GetSize();
 
-  // is track entering volume
-
-  // is track exiting volume
-
-  // was track stoped due to energy limit ??
+  // was track stopped due to energy limit ??
   stopped = mc->IsTrackStop();
 }
 
 std::chrono::time_point<std::chrono::high_resolution_clock> StepInfo::starttime;
 int StepInfo::stepcounter = -1;
-StepInfo* StepInfo::currentinstance = nullptr;
 std::map<std::string, std::string>* StepInfo::volnametomodulemap = nullptr;
 std::vector<std::string*> StepInfo::volidtomodulevector;
+StepLookups StepInfo::lookupstructures;
 
 MagCallInfo::MagCallInfo(TVirtualMC* mc, float ax, float ay, float az, float aBx, float aBy, float aBz)
-  : x{ ax }, y{ ay }, z{ az }, Bx{ aBx }, By{ aBy }, Bz{ aBz }
+  : x{ ax }, y{ ay }, z{ az }, B{ std::sqrt(aBx * aBx + aBy * aBy + aBz * aBz) }
 {
   stepcounter++;
   id = stepcounter;
   stepid = StepInfo::stepcounter;
-  // copy the stepinfo
-  if (StepInfo::currentinstance) {
-    // stepinfo = *StepInfo::currentinstance;
-  }
 }
 
 int MagCallInfo::stepcounter = -1;
