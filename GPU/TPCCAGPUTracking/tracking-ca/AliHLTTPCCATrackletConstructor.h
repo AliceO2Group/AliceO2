@@ -35,11 +35,11 @@ public:
 	public:
 #if !defined(HLTCA_GPUCODE)
 		AliHLTTPCCAThreadMemory()
-			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
+			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNHitsEndRow( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
 		{}
 
 		AliHLTTPCCAThreadMemory( const AliHLTTPCCAThreadMemory& /*dummy*/ )
-			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
+			: fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fStage( 0 ), fNHits( 0 ), fNHitsEndRow( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 )
 		{}
 		AliHLTTPCCAThreadMemory& operator=( const AliHLTTPCCAThreadMemory& /*dummy*/ ) { return *this; }
 #endif //!HLTCA_GPUCODE
@@ -55,6 +55,7 @@ public:
 		bool fGo; // do fit/searching flag
 		int fStage; // reco stage
 		int fNHits; // n track hits
+		int fNHitsEndRow; // n hits at end row
 		int fNMissed; // n missed hits during search
 		float fLastY; // Y of the last fitted cluster
 		float fLastZ; // Z of the last fitted cluster

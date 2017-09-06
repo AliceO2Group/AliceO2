@@ -120,6 +120,8 @@ typedef float          Size_t;      //Attribute size (float)
 
 #define HLTCA_Y_FACTOR 4							//Weight of y residual vs z residual in tracklet constructor
 #define HLTCA_GPU_MAXN 40							//Maximum number of neighbor hits to consider in one row in neightbors finder
+#define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP 4			//Maximum number of consecutive rows without hit in track following
+#define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED 2		//Same, but during fit of seed
 
 #define HLTCA_TIMING_SUM 1
 
