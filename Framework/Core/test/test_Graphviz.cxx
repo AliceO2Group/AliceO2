@@ -98,14 +98,14 @@ BOOST_AUTO_TEST_CASE(TestGraphviz) {
   dumpDeviceSpec2Graphviz(str, devices);
   BOOST_CHECK(str.str() == R"EXPECTED(digraph structs {
   node[shape=record]
-  A [label="{{}|A(2)|{<out_TST_A1_0>out_TST_A1_0|<out_TST_A2_0>out_TST_A2_0}}"];
-  B [label="{{<in_out_TST_A1_0>in_out_TST_A1_0}|B(2)|{<out_TST_B1_0>out_TST_B1_0}}"];
-  C [label="{{<in_out_TST_A2_0>in_out_TST_A2_0}|C(2)|{<out_TST_C1_0>out_TST_C1_0}}"];
-  D [label="{{<in_out_TST_B1_0>in_out_TST_B1_0|<in_out_TST_C1_0>in_out_TST_C1_0}|D(2)|{}}"];
-  A:out_TST_A1_0-> B:in_out_TST_A1_0 [label="22000"]
-  A:out_TST_A2_0-> C:in_out_TST_A2_0 [label="22001"]
-  B:out_TST_B1_0-> D:in_out_TST_B1_0 [label="22002"]
-  C:out_TST_C1_0-> D:in_out_TST_C1_0 [label="22003"]
+  A [label="{{}|A(2)|{<out_TST_A1_0_0>out_TST_A1_0_0|<out_TST_A2_0_0>out_TST_A2_0_0}}"];
+  B [label="{{<in_out_TST_A1_0_0>in_out_TST_A1_0_0}|B(2)|{<out_TST_B1_0_0>out_TST_B1_0_0}}"];
+  C [label="{{<in_out_TST_A2_0_0>in_out_TST_A2_0_0}|C(2)|{<out_TST_C1_0_0>out_TST_C1_0_0}}"];
+  D [label="{{<in_out_TST_B1_0_0>in_out_TST_B1_0_0|<in_out_TST_C1_0_0>in_out_TST_C1_0_0}|D(2)|{}}"];
+  A:out_TST_A1_0_0-> B:in_out_TST_A1_0_0 [label="22000"]
+  A:out_TST_A2_0_0-> C:in_out_TST_A2_0_0 [label="22001"]
+  B:out_TST_B1_0_0-> D:in_out_TST_B1_0_0 [label="22002"]
+  C:out_TST_C1_0_0-> D:in_out_TST_C1_0_0 [label="22003"]
 }
 )EXPECTED");
 }
