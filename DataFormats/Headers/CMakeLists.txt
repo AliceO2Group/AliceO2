@@ -25,6 +25,7 @@ O2_GENERATE_LIBRARY()
 set(TEST_SRCS
   test/testDataHeader.cxx
   test/testTimeStamp.cxx
+  test/test_HeartbeatFrame.cxx
 )
 
 O2_GENERATE_TESTS(
