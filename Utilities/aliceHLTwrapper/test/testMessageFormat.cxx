@@ -21,6 +21,7 @@ namespace o2 {
 namespace alice_hlt {
   template<typename... Targs>
   void hexDump(Targs... Fargs) {
+    // a simple redirect to enable the hexdump printout
     //o2::Header::hexDump(Fargs...);
   }
 
@@ -37,7 +38,7 @@ namespace alice_hlt {
       "anotherDataSet"
     };
 
-    std::vector<BlockDescriptor> dataDescriptors;
+    MessageFormat::BlockDescriptorList dataDescriptors;
     for (auto & dataField : dataFields) {
       dataDescriptors.emplace_back((void*)dataField.c_str(), dataField.size() + 1, AliHLTComponentDataTypeInitializer("TESTDATA", "TEST"), 0);
     }
@@ -87,7 +88,7 @@ namespace alice_hlt {
       "anotherDataSet"
     };
 
-    std::vector<BlockDescriptor> dataDescriptors;
+    MessageFormat::BlockDescriptorList dataDescriptors;
     for (auto & dataField : dataFields) {
       dataDescriptors.emplace_back((void*)dataField.c_str(), dataField.size() + 1, AliHLTComponentDataTypeInitializer("TESTDATA", "TEST"), 0);
     }
@@ -129,7 +130,7 @@ namespace alice_hlt {
       "anotherDataSet"
     };
 
-    std::vector<BlockDescriptor> dataDescriptors;
+    MessageFormat::BlockDescriptorList dataDescriptors;
     for (auto & dataField : dataFields) {
       dataDescriptors.emplace_back((void*)dataField.c_str(), dataField.size() + 1, AliHLTComponentDataTypeInitializer("TESTDATA", "TEST"), 0);
     }
@@ -164,7 +165,12 @@ namespace alice_hlt {
     int result = inputHandler.addMessages(outputs);
     BOOST_REQUIRE(result == dataFields.size());
 
-    const std::vector<BlockDescriptor>& descriptors = inputHandler.getBlockDescriptors();
+    MessageFormat::BlockDescriptorList descriptors;
+    auto columniterator = handler.begin();
+    if (columniterator != handler.end()) {
+      descriptors = *columniterator;
+    }
+
     dataidx = 0;
     for (auto & desc : descriptors) {
       hexDump("Readback: HLT data descriptor", &desc, sizeof(desc));
@@ -212,7 +218,7 @@ namespace alice_hlt {
       "anotherDataSet"
     };
 
-    std::vector<BlockDescriptor> dataDescriptors;
+    MessageFormat::BlockDescriptorList dataDescriptors;
     for (auto & dataField : dataFields) {
       dataDescriptors.emplace_back((void*)dataField.c_str(), dataField.size() + 1, AliHLTComponentDataTypeInitializer("TESTDATA", "TEST"), 0);
     }
@@ -230,22 +236,35 @@ namespace alice_hlt {
     auto outputs = handler.createMessages(&dataDescriptors[0], dataDescriptors.size(), totalPayloadSize);
     std::cout << "... checking messages" << std::endl;
     BOOST_REQUIRE(outputs.size() % 2 == 0);
+
+    // index in the output data
     unsigned dataidx = 0;
+    // index in the incoming data
     unsigned datafieldidx = 0;
     for (auto & output : outputs) {
       if (dataidx % 2 == 0) {
-        hexDump("Header block", output.mP, output.mSize);
+        hexDump("   ------\nHeader block", output.mP, output.mSize);
         BOOST_CHECK(output.mSize >= sizeof(o2::Header::DataHeader));
       } else {
         hexDump("Payload block", output.mP, output.mSize);
-        hexDump("  Data string", dataFields[datafieldidx].c_str(), dataFields[datafieldidx].size() + 1);
+        // the first message pair is the heartbeat envelope message
+        // the data blocks are coming after
         if (dataidx >= 2) {
-          const HeartbeatHeader* hbh = reinterpret_cast<const HeartbeatHeader*>(output.mP);
-          const HeartbeatTrailer* hbt = reinterpret_cast<const HeartbeatTrailer*>(output.mP + output.mSize - sizeof(HeartbeatTrailer));
+          hexDump("  Incoming data string", dataFields[datafieldidx].c_str(), dataFields[datafieldidx].size() + 1);
+          auto* hbh = reinterpret_cast<const HeartbeatHeader*>(output.mP);
+          auto* hbt = reinterpret_cast<const HeartbeatTrailer*>(output.mP + output.mSize - sizeof(HeartbeatTrailer));
           BOOST_CHECK(hbh->blockType == 1 && hbh->headerLength == 1);
           BOOST_CHECK(hbt->blockType == 5 && hbt->trailerLength == 1);
-          const char* data = (char*)(output.mP + sizeof(HeartbeatHeader));
-          BOOST_CHECK(dataFields[datafieldidx] == data);
+
+          // data comes after the heartbeat header
+          const char* data = reinterpret_cast<const char*>(hbh + 1);
+
+          // data consists of heartbeat header and trailer, and the string data
+          // with length including terminating 0
+          BOOST_CHECK(dataFields[datafieldidx].length() + 1 + sizeof(HeartbeatHeader) + sizeof(HeartbeatTrailer) == output.mSize);
+          // length of payload in the heartbeat frame is set in the trailer
+          BOOST_CHECK(dataFields[datafieldidx].length() + 1 == hbt->dataLength);
+          BOOST_CHECK(dataFields[datafieldidx].compare(0, dataFields[datafieldidx].length(), data) == 0);
           ++datafieldidx;
         }
       }
@@ -255,7 +274,11 @@ namespace alice_hlt {
     std::cout << "... reading back messages" << std::endl;
     MessageFormat readhandler;
     readhandler.addMessages(outputs);
-    const auto readbackdescriptors = readhandler.getBlockDescriptors();
+    MessageFormat::BlockDescriptorList readbackdescriptors;
+    auto columniterator = readhandler.begin();
+    if (columniterator != readhandler.end()) {
+      readbackdescriptors = *columniterator;
+    }
     BOOST_CHECK(readbackdescriptors.size() == dataFields.size());
     datafieldidx = 0;
     for (auto readbackdesc : readbackdescriptors) {

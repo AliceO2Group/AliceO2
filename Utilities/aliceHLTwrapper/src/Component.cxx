@@ -246,7 +246,11 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   // prepare input structure for the ALICE HLT component
   mFormatHandler.clear();
   mFormatHandler.addMessages(dataArray);
-  vector<BlockDescriptor>& inputBlocks = mFormatHandler.getBlockDescriptors();
+  auto columniterator = mFormatHandler.begin();
+  vector<BlockDescriptor> inputBlocks;
+  if (columniterator != mFormatHandler.end()) {
+    inputBlocks = *columniterator;
+  }
   unsigned nofInputBlocks = inputBlocks.size();
   if (dataArray.size() > 0 && nofInputBlocks == 0 && mFormatHandler.getEvtDataList().size() == 0) {
     LOG(ERROR) << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input";

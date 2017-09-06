@@ -78,6 +78,7 @@ void MessageFormat::clear()
   // invalidate the heartbeat header and trailer
   mHeartbeatHeader.headerWord = 0;
   mHeartbeatTrailer.trailerWord = 0;
+  mSeqHandler.clear();
 }
 
 int MessageFormat::addMessage(uint8_t* buffer, unsigned size)
@@ -135,14 +136,38 @@ int MessageFormat::addMessage(uint8_t* buffer, unsigned size)
 
 int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
 {
-  // add list of messages
+  // handler callback for parseO2Format method
+  auto onHeartbeatFct = [&] (const auto & hbInfo) {
+    mHeartbeatHeader= hbInfo.header;
+    mHeartbeatTrailer = hbInfo.trailer;
+  }; // end handler callback
+
+  // handler callback for parseO2Format method
+  auto insertFct = [&] (const auto & dataheader,
+                        BufferDesc_t::PtrT ptr,
+                        BufferDesc_t::SizeT size) {
+    if (dataheader.dataDescription == o2::Header::gDataDescriptionHeartbeatFrame) {
+      // this is pure O2 information, do not forward to HLT component
+      return 0;
+    }
+    if (mSeqHandler.addRow(dataheader, ptr, size) > 0) {
+      // the data set has a heartbeat structure
+      // TODO: check mBlockDescriptors is empty, the two input
+      // structures can not be combined at the moment
+    } else {
+      // no heartbeat structure, this is a pure payload block
+      mBlockDescriptors.emplace_back(ptr, size, dataheader);
+    }
+    return 1;
+  }; // end handler callback
+
   int totalCount = 0;
   int i = 0;
   bool tryO2format = true;
   for (auto & data : list) {
     if (tryO2format) {
       if (o2::Header::get<o2::Header::DataHeader>(data.mP, data.mSize)) {
-        return readO2Format(list, mBlockDescriptors, mHeartbeatHeader, mHeartbeatTrailer);
+        return parseO2Format(list, insertFct, HeartbeatFrameEnvelope(), onHeartbeatFct);
       }
       tryO2format = false;
     }
@@ -164,8 +189,8 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
 int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
                                      vector<BlockDescriptor>& descriptorList) const
 {
-  // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
-  // from a buffer
+  // read a sequence of pairs consisting of AliHLTComponentBlockData directly
+  // followed by payload.
   if (buffer == nullptr) return 0;
   unsigned position = 0;
   vector<BlockDescriptor> input;
@@ -189,7 +214,7 @@ int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
       // Note: also a valid block, payload is optional
       input.back().fPtr = nullptr;
     }
-    // offset always 0 for iput blocks
+    // offset always 0 for input blocks
     input.back().fOffset = 0;
   }
 
@@ -221,60 +246,6 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
   }
 
   return nofBlocks;
-}
-
-int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList, HeartbeatHeader& hbh, HeartbeatTrailer& hbt) const
-{
-  int partNumber = 0;
-  const o2::Header::DataHeader* dh = nullptr;
-  for (auto part : list) {
-    if (!dh) {
-      // new header - payload pair, read DataHeader
-      dh = o2::Header::get<o2::Header::DataHeader>(part.mP, part.mSize);
-      if (!dh) {
-        cerr << "can not find DataHeader" << endl;
-        return -ENOMSG;
-      }
-      // extract the heartbeat information if available and keep it to
-      // envelope the data blocks in the output message
-      if (dh->dataDescription == o2::Header::gDataDescriptionHeartbeatFrame) {
-        const HeartbeatFrameEnvelope* hbf = o2::Header::get<HeartbeatFrameEnvelope>(part.mP, part.mSize);
-        if (hbf) {
-          hbh = hbf->header;
-          hbt = hbf->trailer;
-        } else {
-          hbh.headerWord = hbt.trailerWord = 0;
-        }
-      }
-    } else {
-      if (dh->dataDescription == o2::Header::gDataDescriptionHeartbeatFrame) {
-        // this is pure O2 information, do not forward to HLT component
-        dh = nullptr;
-        continue;
-      }
-      auto ptr = part.mP;
-      auto size = part.mSize;
-      if (hbh) {
-        // check if the data is enveloped in a heartbeat frame
-        if (size > sizeof(HeartbeatHeader) + sizeof(HeartbeatTrailer)) {
-          auto* datahbh = reinterpret_cast<const HeartbeatHeader*>(ptr);
-          auto* datahbt = reinterpret_cast<const HeartbeatTrailer*>(ptr + size - sizeof(HeartbeatTrailer));
-          if ((*datahbh) && (*datahbt)) {
-            // valid header and trailer found, strip the block
-            ptr += sizeof(HeartbeatHeader);
-            size -= sizeof(HeartbeatHeader) + sizeof(HeartbeatTrailer);
-          }
-        }
-      }
-      descriptorList.emplace_back(ptr, size, *dh);
-      dh = nullptr;
-    }
-  }
-  if (dh) {
-    cerr << "missing payload to the last header" << endl;
-    return -ENOMSG;
-  }
-  return list.size()/2;
 }
 
 vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
@@ -318,7 +289,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
   } else if (mOutputMode == kOutputModeMultiPart ||
              mOutputMode == kOutputModeSequence ||
              mOutputMode == kOutputModeO2) {
-    // the output blocks are assempled in the internal buffer, for each
+    // the output blocks are assembled in the internal buffer, for each
     // block BlockData is added as header information, directly followed
     // by the block payload
     //
@@ -467,6 +438,8 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
             memcpy(pTarget + offset, pData, pOutputBlock->fSize);
             offset += pOutputBlock->fSize;
             memcpy(pTarget + offset, &mHeartbeatTrailer, sizeof(mHeartbeatTrailer));
+            auto hbTrailerPtr = reinterpret_cast<HeartbeatTrailer*>(pTarget + offset);
+            hbTrailerPtr->dataLength = pOutputBlock->fSize;
             offset += sizeof(mHeartbeatTrailer);
             mMessages.emplace_back(pTarget, offset);
             if (cbAllocate == nullptr) position += offset;
@@ -490,7 +463,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
   return mMessages;
 }
 
-uint8_t* MessageFormat::MakeTarget(unsigned size, unsigned position, boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
+MessageFormat::BufferDesc_t::PtrT MessageFormat::MakeTarget(unsigned size, unsigned position, boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
 {
   // TODO: obviously this can be done in a better way, it's a bit of a hack
   // taking account for the limited lifetime of the wrapper device code
