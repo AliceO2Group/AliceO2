@@ -25,7 +25,9 @@
 
 #include <Rtypes.h>
 #include <chrono>
+#include <iostream>
 #include <map>
+#include <vector>
 
 class TVirtualMC;
 class TGeoVolume;
@@ -60,20 +62,83 @@ struct VolInfoContainer {
   ClassDefNV(VolInfoContainer, 1);
 };
 
+// LookupStructures to translate some step information such
+// as volumeid, to readable names
+struct StepLookups {
+  // using pointers to allow "nullptr==unknown" and faster query
+  std::vector<std::string*> volidtovolname;
+  std::vector<std::string*> volidtomodule;
+  std::vector<std::string*> volidtomedium;
+  std::vector<int> tracktopdg;
+  std::vector<int> tracktoparent; // when parent is -1 we mean primary
+
+  void insertVolName(int index, std::string const& s) { insertValueAt(index, s, volidtovolname); }
+  void insertModuleName(int index, std::string const& s) { insertValueAt(index, s, volidtomodule); }
+  std::string* getModuleAt(int index) const
+  {
+    if (index >= volidtomodule.size())
+      return nullptr;
+    return volidtomodule[index];
+  }
+
+  void insertPDG(int trackindex, int pdg)
+  {
+    constexpr int INVALIDPDG = 0;
+    if (trackindex >= tracktopdg.size()) {
+      tracktopdg.resize(trackindex + 1, INVALIDPDG);
+    }
+    auto prev = tracktopdg[trackindex];
+    if (prev != INVALIDPDG && prev != pdg) {
+      std::cerr << "Warning: Seeing more than one pdg for same trackID\n";
+    }
+    tracktopdg[trackindex] = pdg;
+  }
+
+  void insertParent(int trackindex, int parent)
+  {
+    constexpr int PRIMARY = -1;
+    if (trackindex >= tracktoparent.size()) {
+      tracktoparent.resize(trackindex + 1, PRIMARY);
+    }
+    auto prev = tracktoparent[trackindex];
+    if (prev != PRIMARY && prev != parent) {
+      std::cerr << "Warning: Seeing more than one parent for same trackID\n";
+    }
+    tracktoparent[trackindex] = parent;
+  }
+
+ private:
+  void insertValueAt(int index, std::string const& s, std::vector<std::string*>& container)
+  {
+    if (index >= container.size()) {
+      container.resize(index + 1, nullptr);
+    }
+    //#ifdef CHECKMODE
+    // check that if a value exists at some index it is the same that we want to write
+    if (container[index] != nullptr) {
+      auto previous = *(container[index]);
+      if (s.compare(previous) != 0) {
+        std::cerr << "trying to override " << previous << " with " << s << "\n";
+      }
+    }
+    //#endif
+    // can we use unique pointers??
+    container[index] = new std::string(s);
+  }
+
+  ClassDefNV(StepLookups, 1);
+};
+
 struct StepInfo {
   StepInfo() = default;
   // construct directly using virtual mc
   StepInfo(TVirtualMC* mc);
 
-  long cputimestamp;
+  // long cputimestamp;
   int stepid = -1; // serves as primary key
-  int eventid = -1;
-  int volId = -1; // keep another branch somewhere mapping this to name, medium, etc.
+  int volId = -1;  // keep another branch somewhere mapping this to name, medium, etc.
   int copyNo = -1;
   int trackID = -1;
-  int pdg = 0;
-  std::string pname; // particle name
-  std::string modulename;
   float x = 0.;
   float y = 0.;
   float z = 0.;
@@ -84,10 +149,6 @@ struct StepInfo {
   int* secondaryprocesses = nullptr; //[nsecondaries]
   int nprocessesactive = 0;          // number of active processes
   bool stopped = false;              //
-  bool primary = false;
-
-  std::string volname;
-  std::string mediumname;
 
   static int stepcounter;           //!
   static StepInfo* currentinstance; //!
@@ -96,6 +157,7 @@ struct StepInfo {
   static std::map<std::string, std::string>* volnametomodulemap;
   static std::vector<std::string*> volidtomodulevector;
 
+  static StepLookups lookupstructures;
   ClassDefNV(StepInfo, 2);
 };
 
@@ -105,13 +167,10 @@ struct MagCallInfo {
 
   long id = -1;
   long stepid = -1; // cross-reference to current MC stepid (if any??)
-  //  StepInfo stepinfo; // cross-reference to step info via pointer
   float x = 0.;
   float y = 0.;
   float z = 0.;
-  float Bx = 0.;
-  float By = 0.;
-  float Bz = 0.;
+  float B = 0.; // absolute value of the B field
 
   static int stepcounter;
   ClassDefNV(MagCallInfo, 1);

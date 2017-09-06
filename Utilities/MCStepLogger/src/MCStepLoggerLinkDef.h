@@ -23,6 +23,7 @@
 #pragma link C++ class std::vector<TGeoVolume const *>+;
 #pragma link C++ class std::vector<std::vector<TGeoVolume const *> *>+;
 #pragma link C++ class o2::VolInfoContainer+;
+#pragma link C++ class o2::StepLookups+;
 
 
 #endif

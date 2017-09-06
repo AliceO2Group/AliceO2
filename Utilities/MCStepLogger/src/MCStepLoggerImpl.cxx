@@ -306,6 +306,7 @@ class StepLogger
       std::cerr << "[STEPLOGGER]: ----- END OF EVENT ------\n";
     } else {
       flushToTTree("Steps", &container);
+      flushToTTree("Lookups", &StepInfo::lookupstructures);
     }
     clear();
   }
