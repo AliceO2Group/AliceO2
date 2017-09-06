@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_DEVICESPEC_H
 #define FRAMEWORK_DEVICESPEC_H
 
+#include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/AlgorithmSpec.h"
@@ -34,6 +35,10 @@ struct DeviceSpec {
   std::map<std::string, InputSpec> forwards;
   std::vector<char *> args; // Calculated list of args for the device.
 };
+
+void
+dataProcessorSpecs2DeviceSpecs(const o2::framework::WorkflowSpec &workflow,
+                               std::vector<o2::framework::DeviceSpec> &devices);
 
 }
 }

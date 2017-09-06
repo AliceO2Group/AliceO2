@@ -18,45 +18,44 @@ namespace framework {
 
 /// Helper to dump a workflow as a graphviz file
 void
-dumpDataProcessorSpec2Graphviz(const std::vector<DataProcessorSpec> &specs)
+dumpDataProcessorSpec2Graphviz(std::ostream &out, const std::vector<DataProcessorSpec> &specs)
 {
-  std::cout << "digraph structs {\n";
-  std::cout << "   node[shape=record]\n";
+  out << "digraph structs {\n";
+  out << "  node[shape=record]\n";
   for (auto &spec : specs) {
-    std::cout << R"(  struct [label=")" << spec.name << R"("];\n)";
+    out << R"(  struct [label=")" << spec.name << R"("];)" << "\n";
   }
-  std::cout << "}\n";
+  out << "}\n";
 }
 
 /// Helper to dump a set of devices as a graphviz file
 void
-dumpDeviceSpec2Graphviz(const std::vector<DeviceSpec> &specs)
+dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<DeviceSpec> &specs)
 {
-  std::cout << R"GRAPHVIZ(
-    digraph structs {
-    node[shape=record]
-  )GRAPHVIZ";
+  out << R"GRAPHVIZ(digraph structs {
+  node[shape=record]
+)GRAPHVIZ";
   std::map<std::string, std::string> outputChannel2Device;
   std::map<std::string, unsigned int> outputChannel2Port;
 
   for (auto &spec : specs) {
     auto id = spec.id;
     std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
-    std::cout << "   " << id << R"( [label="{{)";
+    out << "  " << id << R"( [label="{{)";
     bool firstInput = true;
     for (auto && input : spec.channels) {
       if (input.type != Sub) {
         continue;
       }
       if (firstInput == false) {
-        std::cout << "|";
+        out << "|";
       }
       firstInput = false;
-      std::cout << "<" << input.name << ">" << input.name;
+      out << "<" << input.name << ">" << input.name;
     }
-    std::cout << "}|";
-    std::cout << id << "(" << spec.channels.size() << ")";
-    std::cout << "|{";
+    out << "}|";
+    out << id << "(" << spec.channels.size() << ")";
+    out << "|{";
     bool firstOutput = true;
     for (auto && output : spec.channels) {
       outputChannel2Device.insert(std::make_pair(output.name, id));
@@ -65,12 +64,12 @@ dumpDeviceSpec2Graphviz(const std::vector<DeviceSpec> &specs)
         continue;
       }
       if (firstOutput == false) {
-        std::cout << "|";
+        out << "|";
       }
       firstOutput = false;
-      std::cout <<  "<" << output.name << ">" << output.name;
+      out <<  "<" << output.name << ">" << output.name;
     }
-    std::cout << R"(}}"];\n)";
+    out << R"(}}"];)" << "\n";
   }
   for (auto &spec : specs) {
     for (auto &channel: spec.channels) {
@@ -83,14 +82,14 @@ dumpDeviceSpec2Graphviz(const std::vector<DeviceSpec> &specs)
       }
       auto outputName = channel.name;
       outputName.erase(0, 3);
-      std::cout << outputChannel2Device[outputName] << ":" << outputName
-                << "-> "
-                << id << ":" << channel.name
-                << R"( [label=")" << channel.port << R"(")"
-                << "]\n";
+      out << "  " << outputChannel2Device[outputName] << ":" << outputName
+                  << "-> "
+                  << id << ":" << channel.name
+                  << R"( [label=")" << channel.port << R"(")"
+                  << "]\n";
     }
   }
-  std::cout << "}\n";
+  out << "}\n";
 }
 
 } // namespace framework
