@@ -35,7 +35,6 @@ DataProcessorSpec templateProducer() {
     // particular case, but a Singleton or a captured new object would
     // work as well.
     AlgorithmSpec{[](const ConfigParamRegistry &params, ServiceRegistry &registry) {
-      srandom(registry.get<ParallelContext>().index1D());
       return [](const std::vector<DataRef> inputs,
                 ServiceRegistry& services,
                 DataAllocator& allocator) {
@@ -43,6 +42,7 @@ DataProcessorSpec templateProducer() {
           size_t index = services.get<ParallelContext>().index1D();
           sleep(1);
           auto aData = allocator.newCollectionChunk<int>(OutputSpec{"TST", "A", index}, 1);
+          services.get<ControlService>().readyToQuit(true);
         };
       }
     }
