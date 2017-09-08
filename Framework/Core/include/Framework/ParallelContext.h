@@ -14,6 +14,18 @@
 namespace o2 {
 namespace framework {
 
+/// Purpose of this class is to provide DataProcessors which
+/// have been instanciated in parallel via the o2::framework::parallel
+/// function with information relevant to the parallel execution,
+/// e.g. how many workers have been created by the above mentioned function
+/// and what's the unique id the caller is associated with.
+/// This context is exposed as a Service and it's therefore available 
+/// to both the init and the processing callbacks via:
+///
+///    auto ctx = services.get<ParallelContext>();
+///
+/// FIXME: should we have convenience methods to address workers using
+///        different parallel topology (e.g. have a index2D, rather than index1D).
 class ParallelContext {
 public:
   // FIXME: find better names... rank1D and rank1DSize?

@@ -184,20 +184,20 @@ Data flow parallelism is simply expressed by tuning the data flow, adding explic
     DataProcessorSpec{
       "tpc_processor_1",
       Inputs{},
-      Outputs{{"TPC", "CLUSTERS", SubSpec(1)}},
+      Outputs{{"TPC", "CLUSTERS", SubSpec(0)}},
       ...
     },
     DataProcessorSpec{
       "tpc_processor_2",
       Inputs{},
-      Outputs{{"TPC", "CLUSTERS", SubSpec(2)}},
+      Outputs{{"TPC", "CLUSTERS", SubSpec(1)}},
       ...
     }
     ...
     DataProcessorSpec{
       "tpc_processor_18",
       Inputs{},
-      Outputs{{"TPC", "CLUSTERS", SubSpec(18)}},
+      Outputs{{"TPC", "CLUSTERS", SubSpec(17)}},
       ...
     }
 
