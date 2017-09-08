@@ -86,9 +86,9 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 static const int ColorCount = 12;
 static Color_t colorNums[ColorCount];
 
-static const char* EffTypes[4] = {"rec", "clone", "fake", "all"};
-static const char* FindableNames[2] = {"all", "findables"};
-static const char* PrimNames[2] = {"primaries", "secondaries"};
+static const char* EffTypes[4] = {"Rec", "Clone", "Fake", "All"};
+static const char* FindableNames[2] = {"", "Findable"};
+static const char* PrimNames[2] = {"Prim", "Sec"};
 static const char* ParameterNames[5] = {"Y", "Z", "#Phi", "#lambda", "Relative p_{T}"};
 static const char* VSParameterNames[6] = {"Y", "Z", "Phi", "Eta", "Pt", "Pt_log"};
 static const char* EffNames[3] = {"Efficiency", "Clone Rate", "Fake Rate"};
@@ -98,6 +98,8 @@ static const char* XAxisTitles[5] = {"y_{mc} [cm]", "z_{mc} [cm]", "#Phi_{mc} [r
 static const char* AxisTitles[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "#phi-#phi_{mc} [mrad] (Resolution)", "#lambda-#lambda_{mc} [mrad] (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} [%] (Resolution)"};
 static const char* ClustersNames[4] = {"Correctly attached clusters", "Fake attached clusters", "Clusters of reconstructed tracks", "All clusters"};
 static const char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
+static const char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "All"};
+static const char* ClusterTypes[3] = {"", "Ratio", "Integral"};
 static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
 static double legendSpacingString = 0;
@@ -184,7 +186,7 @@ void RunQA()
 					{
 						for (int m = 0;m < 2;m++)
 						{
-							sprintf(name, "%s_%s-%s_vs_%s%s", EffTypes[i], FindableNames[j], PrimNames[k], VSParameterNames[l], m ? "" : "_work");
+							sprintf(name, "%s%s%s%sVs%s", m ? "eff" : "tracks", EffTypes[i], FindableNames[j], PrimNames[k], VSParameterNames[l]);
 							if (l == 4)
 							{
 								double* binsPt = CreateLogAxis(axis_bins[4], k == 0 ? PT_MIN_PRIM : axes_min[4], axes_max[4]);
@@ -207,8 +209,8 @@ void RunQA()
 		{
 			for (int j = 0;j < 5;j++)
 			{
-				sprintf(name, "res_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
-				sprintf(fname, "meanres_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+				sprintf(name, "rms_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+				sprintf(fname, "mean_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
 				if (j == 4)
 				{
 					double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
@@ -221,7 +223,7 @@ void RunQA()
 					res[i][j][0] = new TH1F(name, name, axis_bins[j], axes_min[j], axes_max[j]);
 					res[i][j][1] = new TH1F(fname, fname, axis_bins[j], axes_min[j], axes_max[j]);
 				}
-				strcat(name, "_work");
+				sprintf(name, "res_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
 				if (j == 4)
 				{
 					double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
@@ -238,7 +240,9 @@ void RunQA()
 		//Create Cluster Histograms
 		for (int i = 0;i < 11;i++)
 		{
-			sprintf(name, "clusters_%d", i);
+			int ioffset = i >= 7 ? 7 : i >= 4 ? 4 : 0;
+			int itype   = i >= 7 ? 2 : i >= 4 ? 1 : 0;
+			sprintf(name, "clusters%s%s", ClusterNamesShort[i - ioffset], ClusterTypes[itype]);
 			double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
 			clusters[i] = new TH1F(name, name, axis_bins[4], binsPt);
 			delete[] binsPt;
@@ -572,6 +576,7 @@ void DrawQAHistograms()
 				{
 					if (l == 0)
 					{
+						//Divide eff, compute all for fake/clone
 						eff[0][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][0], 1, 1, "B");
 						eff[3][j / 2][j % 2][i][1]->Reset(); //Sum up rec + clone + fake for clone/fake rate
 						eff[3][j / 2][j % 2][i][1]->Add(eff[0][j / 2][j % 2][i][0]);
@@ -580,22 +585,26 @@ void DrawQAHistograms()
 					}
 					else
 					{
+						//Divide fake/clone
 						eff[l][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][1], 1, 1, "B");
 					}
 				}
 
 				TH1F* e = eff[l][j / 2][j % 2][i][1];
 				e->SetTitle(EfficiencyTitles[j]);
+				e->GetYaxis()->SetTitle("(Efficiency)");
+				e->GetXaxis()->SetTitle(XAxisTitles[i]);
 				e->SetStats(kFALSE);
+				e->SetMaximum(1.02);
+				e->SetMinimum(-0.02);
+				eff[l][j / 2][j % 2][i][0]->Write();
+				e->Write();
+				if (l == 2) eff[3][j / 2][j % 2][i][0]->Write(); //Store also all histogram!
 				e->SetMarkerColor(kBlack);
 				e->SetLineWidth(1);
 				e->SetLineColor(colorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % ColorCount]);
 				e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
-				e->SetMaximum(1.02);
-				e->SetMinimum(-0.02);
 				SetAxisSize(e);
-				e->GetYaxis()->SetTitle("(Efficiency)");
-				e->GetXaxis()->SetTitle(XAxisTitles[i]);
 				e->Draw(k || l ? "same" : "");
 				if (init == false && j == 0)
 				{
@@ -717,15 +726,21 @@ void DrawQAHistograms()
 			for (int l = 0;l < 2;l++)
 			{
 				TH1F* e = res[j][i][l];
+				sprintf(name, "%s Resolution", ParameterNames[j]);
+				e->SetTitle(name);
+				e->SetStats(kFALSE);
+				if (l == 0)
+				{
+					res2[j][i]->SetOption("colz");
+					res2[j][i]->Write();
+				}
+				e->Write();
 				e->SetMaximum(tmpMax);
 				e->SetMinimum(tmpMin);
-				e->SetStats(kFALSE);
 				e->SetMarkerColor(kBlack);
 				e->SetLineWidth(1);
 				e->SetLineColor(colorNums[numColor++ % ColorCount]);
 				e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
-				sprintf(name, "%s Resolution", ParameterNames[j]);
-				e->SetTitle(name);
 				SetAxisSize(e);
 				if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
 				else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
@@ -750,11 +765,13 @@ void DrawQAHistograms()
 	for (int j = 0;j < 5;j++)
 	{
 		pres[6][j]->cd();
-		sprintf(fname, "Res%s", ParameterNames[j]);
+		sprintf(fname, "IntRes%s", ParameterNames[j]);
 		sprintf(name, "%s Resolution", ParameterNames[j]);
+		resIntegral[j]->SetName(fname);
 		resIntegral[j]->SetTitle(name);
 		resIntegral[j]->GetEntries();
 		resIntegral[j]->Fit("gaus","sQ");
+		resIntegral[j]->Write();
 		resIntegral[j]->Draw();
 		cres[6]->cd();
 	}
@@ -802,14 +819,14 @@ void DrawQAHistograms()
 		for (int k = begin;k < end;k++)
 		{
 			TH1F* e = clusters[k];
-			const char* options = k == begin ? "" : "same";
+			e->SetTitle(ClusterTitles[i]);
+			e->Write();
 			e->SetStats(kFALSE);
 			e->SetMarkerColor(kBlack);
 			e->SetLineWidth(1);
 			e->SetLineColor(colorNums[numColor++ % ColorCount]);
 			e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
-			e->SetTitle(ClusterTitles[i]);
-			e->Draw(options);
+			e->Draw(k == begin ? "" : "same");
 			legendclust[i]->AddEntry(e, ClustersNames[k - begin], "l");
 		}
 		legendclust[i]->Draw();
@@ -817,7 +834,6 @@ void DrawQAHistograms()
 		cclust[i]->Print(i == 2 ? "clusters_integral.pdf" : i == 1 ? "clusters_relative.pdf" : "clusters.pdf");
 	}
 	
-	for (int i = 0;i < 11;i++) clusters[i]->Write();
 	tout->Close();
 	delete tout;
 }
