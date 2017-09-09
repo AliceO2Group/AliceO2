@@ -13,6 +13,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/DeviceControl.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include <vector>
@@ -22,6 +23,8 @@
 namespace o2 {
 namespace framework {
 
+/// Concrete description of the device which will actually run 
+/// a DataProcessor.
 struct DeviceSpec {
   std::string id;
   std::vector<ChannelSpec> channels;
@@ -36,10 +39,21 @@ struct DeviceSpec {
   std::vector<char *> args; // Calculated list of args for the device.
 };
 
+/// Helper to convert from an abstract dataflow specification, @a workflow,
+/// to an actual set of devices which will have to run.
 void
 dataProcessorSpecs2DeviceSpecs(const o2::framework::WorkflowSpec &workflow,
                                std::vector<o2::framework::DeviceSpec> &devices);
 
+/// Helper to prepare the arguments which will be used to 
+/// start the various devices.
+void
+prepareArguments(int argc,
+                 char **argv,
+                 bool defaultQuiet,
+                 bool defaultStopped,
+                 std::vector<DeviceSpec> &deviceSpecs,
+                 std::vector<DeviceControl> &deviceControls);
 }
 }
 #endif

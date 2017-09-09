@@ -15,26 +15,31 @@
 namespace o2 {
 namespace framework {
 
-/// Helper to dump a set of devices as a graphviz file
 void
-dumpDeviceSpec2DDS(const std::vector<DeviceSpec> &specs)
+dumpDeviceSpec2DDS(std::ostream &out, const std::vector<DeviceSpec> &specs)
 {
-  std::cout << R"(<topology id="o2-framework-topology">)" "\n";
+  out << R"(<topology id="o2-dataflow">)" "\n";
   for (auto &spec : specs) {
     auto id = spec.id;
     std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
-    std::cout << "   " << R"(<decltask id=")" << id << R"(">)" "\n";
-    std::cout << "       " << R"(<exe reachable="true">)";
-    for (auto &arg : spec.args) {
+    out << "   " << R"(<decltask id=")" << id << R"(">)" "\n";
+    out << "       " << R"(<exe reachable="true">)";
+    for (size_t ai = 0; ai < spec.args.size(); ++ai) {
+      const char *arg = spec.args[ai];
       if (!arg) {
         break;
       }
-      std::cout << arg << " ";
+      // Do not print out channel information
+      if (strcmp(arg, "--channel-config") == 0) {
+        ai++;
+        continue;
+      }
+      out << arg << " ";
     }
-    std::cout << "</exe>\n";
-    std::cout << "   </decltask>\n";
+    out << "</exe>\n";
+    out << "   </decltask>\n";
   }
-  std::cout << "</topology>\n";
+  out << "</topology>\n";
 }
 
 } // namespace framework
