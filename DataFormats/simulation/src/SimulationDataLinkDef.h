@@ -24,6 +24,7 @@
 
 #pragma link C++ class o2::Data::Stack+;
 #pragma link C++ class MCTrack+;
+#pragma link C++ class o2::MCCompLabel+;
 
 #pragma link C++ class o2::BaseHit+;
 #pragma link C++ class o2::BasicXYZEHit<float,float>+;
