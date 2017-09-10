@@ -13,7 +13,9 @@
 #ifndef ALICEO2_ITS_CLUSTERER_H
 #define ALICEO2_ITS_CLUSTERER_H
 
+#include "ITSReconstruction/Cluster.h"
 #include "ITSMFTReconstruction/PixelReader.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include <utility>
 #include <vector>
 
@@ -31,6 +33,8 @@ class Clusterer {
   using PixelReader = o2::ITSMFT::PixelReader;
   using PixelData = o2::ITSMFT::PixelReader::PixelData;
   using ChipPixelData = o2::ITSMFT::PixelReader::ChipPixelData;
+  using Cluster = o2::ITSMFT::Cluster;
+  using Label = o2::MCCompLabel;
   
  public:
   Clusterer();
@@ -50,7 +54,7 @@ class Clusterer {
   void initChip();
   void updateChip(int ip);
   void finishChip(TClonesArray &clusters);
-  void fetchMCLabels(const PixelData* pix, int *labels, int &nfilled) const;
+  void fetchMCLabels(const PixelData* pix, std::array<Label,Cluster::maxLabels> &labels, int &nfilled) const;
 
   ChipPixelData mChipData;   ///< single chip data provided by the reader
   

@@ -54,6 +54,12 @@ namespace o2
 
       void   setCoeffToNanoSecond(double cf)                  { mCoeffToNanoSecond = cf; }
       double getCoeffToNanoSecond()                     const { return mCoeffToNanoSecond; }
+
+      int getCurrSrcID() const { return mCurrSrcID; }
+      int getCurrEvID()  const { return mCurrEvID; }
+
+      void setCurrSrcID(int v);
+      void setCurrEvID(int v);
       
     private:
       
@@ -65,7 +71,9 @@ namespace o2
       bool   mContinuous = false;                ///< flag for continuous simulation
       UInt_t mROFrameMin = 0;                    ///< lowest RO frame of current digits
       UInt_t mROFrameMax = 0;                    ///< highest RO frame of current digits
-
+      int    mCurrSrcID = 0;                     ///< current MC source from the manager
+      int    mCurrEvID = 0;                      ///< current event ID from the manager
+      
       ClassDefOverride(Digitizer, 2);
     };
   }

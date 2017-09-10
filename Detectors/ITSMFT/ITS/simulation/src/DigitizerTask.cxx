@@ -85,8 +85,17 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setEventTime(mgr->GetEventTime());
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event " << mEventID
+	     << " from source " << mSourceID << FairLogger::endl;
+
+  /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
+  /// provided and identified.
+  mDigitizer.setCurrSrcID( mSourceID );
+  mDigitizer.setCurrEvID( mEventID );
+  
   mDigitizer.process(mPointsArray,mDigitsArray);
+
+  mEventID++;
 }
 
 //________________________________________________________

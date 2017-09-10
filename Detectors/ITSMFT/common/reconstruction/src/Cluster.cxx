@@ -25,8 +25,7 @@ ClassImp(o2::ITSMFT::Cluster)
 
 //_____________________________________________________
 Cluster::Cluster()
-  : mTracks{ -1, -1, -1 },
-    mX(0),
+  : mX(0),
     mY(0),
     mZ(0),
     mSigmaY2(0),
@@ -145,15 +144,17 @@ void Cluster::setPatternColSpan(UShort_t nc, Bool_t truncated)
 Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
 {
   // check if clusters have common tracks
-  int lbi, lbj;
+  Label lbi, lbj;
   for (int i = 0; i < maxLabels; i++) {
-    if ((lbi = getLabel(i)) < 0)
-      break;
+    Label lbi = getLabel(i);
+    if ( lbi.isEmpty() ) break;
+    if ( !lbi.isPosTrackID() ) continue;
+
     for (int j = 0; j < maxLabels; j++) {
-      if ((lbj = cl->getLabel(j)) < 0)
-        break;
-      if (lbi == lbj)
-        return kTRUE;
+      Label lbj = cl->getLabel(j);
+      if ( lbj.isEmpty() ) break;
+      if ( !lbj.isPosTrackID() ) continue;
+      if (lbi == lbj) return kTRUE;
     }
   }
   return kFALSE;

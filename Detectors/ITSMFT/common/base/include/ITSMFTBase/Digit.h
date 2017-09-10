@@ -19,6 +19,7 @@
 
 #endif
 
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "FairTimeStamp.h" // for FairTimeStamp
 #include "Rtypes.h"        // for Double_t, ULong_t, etc
 
@@ -32,6 +33,7 @@ class access;
 
 namespace o2
 {
+
 namespace ITSMFT
 {
 /// \class Digit
@@ -40,11 +42,11 @@ namespace ITSMFT
 class Digit : public FairTimeStamp
 {
  public:
-
+  using Label = o2::MCCompLabel;
   static constexpr int maxLabels=3;
   
   /// Default constructor  
-  Digit();
+  Digit() = default;
 
   /// Constructor, initializing values for position, charge and time
   /// @param chipindex Global index of the pixel chip
@@ -82,9 +84,10 @@ class Digit : public FairTimeStamp
   /// @return charge of the digit
   Float_t getCharge() const { return mCharge; }
   /// Get the labels connected to this digit
-  Int_t getLabel(Int_t idx) const { return mLabels[idx]; }
+  Label getLabel(Int_t idx) const { return mLabels[idx]; }
   /// Add Label to the list of Monte-Carlo labels
-  void setLabel(Int_t idx, Int_t label) { mLabels[idx] = label; }
+  void setLabel(Int_t idx, Label label) { mLabels[idx] = label; }
+  void setLabel(Int_t idx, int tr, int ev, int src=0) { mLabels[idx].set(tr,ev,src); }
   /// Set the index of the chip
   /// @param index The chip index
   void setChipIndex(UShort_t index) { mChipIndex = index; }
@@ -101,12 +104,12 @@ class Digit : public FairTimeStamp
   void setCharge(Float_t charge) { mCharge = charge; }
 
   /// Add charge to the digit, registering the label if provided
-  void addCharge(Float_t charge, int lbl=-1) {
+  void addCharge(Float_t charge, Label lbl) {
     mCharge += charge;
-    if (lbl<0) return;
+    if ( lbl.isEmpty() ) return;
     for (int i=0;i<maxLabels;i++) {
-      if (mLabels[i] == lbl) break; // label was already added
-      if (mLabels[i] < 0) {
+      if ( mLabels[i] == lbl ) break; // label was already added
+      if ( mLabels[i].isEmpty() ) {
 	mLabels[i] = lbl;
       }
     }
@@ -158,6 +161,8 @@ class Digit : public FairTimeStamp
   /// -# Chip indices are equal, but pixel index of this chip is lower
   /// @param other The digit to compare with
   /// @return True if this digit has a lower total index, false otherwise
+  //
+  using FairTimeStamp::operator<; // to avoid hiding
   virtual bool operator<(const Digit& other) const
   {
     /* if (mChipIndex < other.mChipIndex || */
@@ -166,7 +171,7 @@ class Digit : public FairTimeStamp
     /* } */
     return false;
   }
-
+  
   /// Print function: Print basic digit information on the  output stream
   /// @param output Stream to put the digit on
   /// @return The output stream
@@ -204,12 +209,12 @@ class Digit : public FairTimeStamp
   friend class boost::serialization::access;
 
 #endif
-  UShort_t mChipIndex; ///< Chip index
-  UShort_t mRow;       ///< Pixel index in X
-  UShort_t mCol;       ///< Pixel index in Z
-  Float_t  mCharge;    ///< Accumulated charge
-  UInt_t   mROFrame;   ///< readout frame ID + number of following frames the signal propagates 
-  Int_t mLabels[maxLabels];    ///< Particle labels associated to this digit
+  UShort_t mChipIndex = 0; ///< Chip index
+  UShort_t mRow = 0;       ///< Pixel index in X
+  UShort_t mCol = 0;       ///< Pixel index in Z
+  Float_t  mCharge = 0.f;    ///< Accumulated charge
+  UInt_t   mROFrame = 0;   ///< readout frame ID + number of following frames the signal propagates 
+  Label    mLabels[maxLabels];    ///< Particle labels associated to this digit
 
   static constexpr int    ROFrameOverFlowBits = 3;   ///< max bits occupied by ROFrame overflow record
   static constexpr UInt_t ROFrameOverFlowMask = (0x1<<ROFrameOverFlowBits)-1; //< mask for ROFrame overflow record

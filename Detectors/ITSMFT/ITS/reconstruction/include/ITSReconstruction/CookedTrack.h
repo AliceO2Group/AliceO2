@@ -20,6 +20,7 @@
 #include <TObject.h>
 
 #include "DetectorsBase/Track.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -29,6 +30,8 @@ class Cluster;
 
 class CookedTrack : public TObject 
 {
+  using Label = o2::MCCompLabel;
+  
  public:
   CookedTrack();
   CookedTrack(float x, float alpha, const std::array<float,o2::Base::Track::kNParams> &par, const std::array<float,o2::Base::Track::kCovMatSize> &cov);
@@ -54,8 +57,8 @@ class CookedTrack : public TObject
   void setExternalClusterIndex(Int_t layer, Int_t idx);
   void resetClusters();
 
-  void setLabel(Int_t lab) { mLabel = lab; }
-  Int_t getLabel() const { return mLabel; }
+  void setLabel(Label lab) { mLabel = lab; }
+  Label getLabel() const { return mLabel; }
   Bool_t isBetter(const CookedTrack& best, Double_t maxChi2) const;
 
   Double_t getCurvature(Double_t bz) const { return mTrack.GetCurvature(float(bz)); }
@@ -71,7 +74,7 @@ class CookedTrack : public TObject
   
  private:
   o2::Base::Track::TrackParCov mTrack; ///< Base track
-  Int_t mLabel;              ///< Monte Carlo label for this track
+  Label  mLabel;              ///< Monte Carlo label for this track
   Double_t mMass;            ///< Assumed mass for this track
   Double_t mChi2;            ///< Chi2 for this track
   std::vector<Int_t> mIndex; ///< Indices of associated clusters

@@ -76,7 +76,7 @@ class CookedTracker
   class Layer;
 
  protected:
-  enum {kNLayers=7};
+  static constexpr int kNLayers = 7;
   void loadClusters(const TClonesArray& clusters);
   void unloadClusters();
   

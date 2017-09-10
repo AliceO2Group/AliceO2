@@ -26,6 +26,7 @@
 #include <TObject.h>    // for TObject
 #include <TGeoMatrix.h>   
 #include <ITSMFTBase/Digit.h>
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2 { namespace ITSMFT { class Point; }}  // lines 22-22
 
@@ -44,7 +45,7 @@ class DigiParams;
 class Chip
 {
   public:
-
+    using Label = o2::MCCompLabel;
     /// @class IndexException
     /// @brief Handling discrepancies between Chip index stored in the hit
     /// and Chip index stored in the chip
@@ -231,7 +232,7 @@ class Chip
     /// @return path length between points
     Double_t PathLength(const Point *p1, const Point *p2) const;
     
-    o2::ITSMFT::Digit* addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, int lbl, double timestamp);
+    o2::ITSMFT::Digit* addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, Label lbl, double timestamp);
 
     void      fillOutputContainer(TClonesArray* digits, UInt_t maxFrame);
  
@@ -257,7 +258,7 @@ inline Bool_t Chip::LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t
 				      Double_t &ystart, Double_t &ypoint,
 				      Double_t &zstart, Double_t &zpoint,
 				      Double_t &timestart, Double_t &eloss) const {
-  return (hitindex >= mPoints.size()) ?
+  return (hitindex >= int(mPoints.size())) ?
     kFALSE : LineSegmentGlobal(mPoints[hitindex],xstart,xpoint,ystart,ypoint,zstart,zpoint,timestart,eloss);
 }
  
@@ -267,7 +268,7 @@ inline Bool_t Chip::LineSegmentLocal(Int_t hitindex,
 				     Double_t &ystart, Double_t &ypoint,
 				     Double_t &zstart, Double_t &zpoint,
 				     Double_t &timestart, Double_t &eloss) const {
-  return (hitindex >= mPoints.size())  ?
+  return (hitindex >= int(mPoints.size()))  ?
     kFALSE : LineSegmentLocal(mPoints[hitindex],xstart,xpoint,ystart,ypoint,zstart,zpoint,timestart,eloss);
 }
 

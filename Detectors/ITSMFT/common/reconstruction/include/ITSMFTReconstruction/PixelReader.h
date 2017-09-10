@@ -15,6 +15,7 @@
 
 #include <Rtypes.h>
 #include "ITSMFTBase/Digit.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 class TClonesArray;
 
@@ -28,14 +29,16 @@ namespace ITSMFT
 /// \brief PixelReader class for the ITSMFT
 ///
 class PixelReader {
-  
+
+  using Label = o2::MCCompLabel;
+
   public:
 
   /// Transient data for single fired pixel
   struct PixelData {
     UShort_t row;
     UShort_t col;  
-    Int_t labels[Digit::maxLabels] = {-1,-1,-1};
+    Label labels[Digit::maxLabels];
     
     PixelData(const Digit* dig) :
     row(dig->getRow()), col(dig->getColumn())

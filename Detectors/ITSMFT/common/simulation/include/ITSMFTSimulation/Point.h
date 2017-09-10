@@ -15,6 +15,7 @@
 #define ALICEO2_ITSMFT_POINT_H_
 
 #include "SimulationDataFormat/BaseHits.h"     // for BasicXYZEHit
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "Rtypes.h"       // for Bool_t, Double_t, Int_t, Double32_t, etc
 #include "TVector3.h"     // for TVector3
 #include <iostream>
@@ -26,6 +27,7 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
 {
 
   public:
+    using Label = o2::MCCompLabel;
     enum PointStatus_t
     {
         kTrackEntering = 0x1,
@@ -105,6 +107,22 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
       return of;
     }
 
+    void SetSrcEvID(int srcID, int evID) {
+      /// RS: ATTENTION! this is just a trick until we clarify how the hits from different source are
+      // provided and identified. At the moment we just create a combined identifier from eventID
+      // and sourceID and store it TEMPORARILY in the cached Point's TObject UniqueID
+      SetUniqueID( ( srcID << Label::nbitsEvID ) | evID);
+    }
+
+    Label getCombLabel() const {
+      /// RS: ATTENTION! this is just a trick until we clarify how the hits from different source are
+      // provided and identified. At the moment we just create on the fly the label from the track ID
+      // and SrcEv id stored as UniqueID
+      int srcID = ( GetUniqueID()>>Label::nbitsEvID ) & Label::maskSrcID;
+      int evID = GetUniqueID() & Label::maskEvID;
+      return Label( GetTrackID(), evID, srcID );
+    }
+    
   private:
     /// Copy constructor
     Point(const Point &point);
