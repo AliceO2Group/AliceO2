@@ -22,5 +22,5 @@
 #pragma link C++ class o2::Base::TrackReference+;
 #pragma link C++ class o2::Base::DetID+;
 #pragma link C++ class o2::Base::GeometryManager+;
-#pragma link C++ class o2::Base::BaseCluster+;
+#pragma link C++ class o2::Base::BaseCluster<float>+;
 #endif

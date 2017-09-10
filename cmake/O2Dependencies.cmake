@@ -407,8 +407,10 @@ o2_define_bucket(
     Hist
     ParBase
     Field
-
+    SimulationDataFormat
+    
     INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
 )
 
 o2_define_bucket(

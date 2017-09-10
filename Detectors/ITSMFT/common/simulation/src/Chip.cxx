@@ -203,7 +203,7 @@ void Chip::MedianHitLocal(const Point *p1, const Point *p2, Double_t &x, Double_
 }
 
 //_______________________________________________________________________
-Digit* Chip::addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, int lbl, double timestamp)
+Digit* Chip::addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, Label lbl, double timestamp)
 {
   auto key = Digit::getOrderingKey(roframe,row,col);
   auto dig = findDigit(key);

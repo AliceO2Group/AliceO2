@@ -209,7 +209,8 @@ void SimulationAlpide::Point2DigitsCShape(const Point *hit, UInt_t roFrame, doub
     if (nz<0) continue;
     if (nz>=seg->getNumberOfColumns()) continue;
     Double_t charge = hit->GetEnergyLoss();
-    addDigit(roFrame,nx,nz,charge,hit->GetTrackID(),hTime);
+    
+    addDigit(roFrame,nx,nz,charge,hit->getCombLabel(),hTime);
   }
 
 }
@@ -234,7 +235,8 @@ void SimulationAlpide::Point2DigitsSimple(const Point *hit, UInt_t roFrame, doub
     LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
     return;
   }
-  addDigit(roFrame, ix, iz, charge, hit->GetTrackID(),hTime);
+  
+  addDigit(roFrame, ix, iz, charge, hit->getCombLabel(),hTime);
 }
 
 //______________________________________________________________________
@@ -255,7 +257,7 @@ void SimulationAlpide::addNoise(const SegmentationPixel* seg, UInt_t rofMin, UIn
       row = gRandom->Integer(seg->getNumberOfRows());
       col = gRandom->Integer(seg->getNumberOfColumns());
       // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
-      addDigit(rof, row, col, nel, -1, tstamp);
+      addDigit(rof, row, col, nel, Label(0,0,-1), tstamp);
     }
   }
 }

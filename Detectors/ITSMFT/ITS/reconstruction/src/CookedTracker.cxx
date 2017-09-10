@@ -30,11 +30,12 @@
 #include "ITSReconstruction/Cluster.h"
 #include "ITSReconstruction/CookedTrack.h"
 #include "ITSReconstruction/CookedTracker.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 using namespace o2::ITS;
 using namespace o2::Base::Constants;
 using o2::field::MagneticField;
-
+using Label = o2::MCCompLabel;
 //************************************************
 // Constants hardcoded for the moment:
 //************************************************
@@ -100,49 +101,51 @@ void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
   Int_t noc = t.getNumberOfClusters();
   if (noc < 1)
     return;
-  std::vector<Int_t> lb(noc, 0);
-  std::vector<Int_t> mx(noc, 0);
-  std::vector<Cluster*> clusters(noc);
-
-  Int_t i;
-  for (i = 0; i < noc; i++) {
+  std::array<Label, Cluster::maxLabels*CookedTracker::kNLayers > lb;
+  std::array<Int_t, Cluster::maxLabels*CookedTracker::kNLayers > mx;
+  std::array<Cluster*,CookedTracker::kNLayers> clusters;
+  int nLabels = 0;
+  
+  for (int i=noc; i--;) {
     Int_t index = t.getClusterIndex(i);
     clusters[i] = getCluster(index);
   }
 
-  Int_t lab = 123456789;
-  for (i = 0; i < noc; i++) {
+  Label lab;
+  for (int i=noc; i--;) {
     Cluster* c = clusters[i];
-    lab = TMath::Abs(c->getLabel(0));
-    Int_t j;
-    for (j = 0; j < noc; j++)
-      if (lb[j] == lab || mx[j] == 0)
-        break;
-    if (j < noc) {
-      lb[j] = lab;
-      (mx[j])++;
+    for (int il=0;il<Cluster::maxLabels;il++) { // check all labels of the cluster
+      lab = c->getLabel(il);
+      if ( lab.isEmpty() ) break; // all following labels will be empty also
+      // was this label already accounted for ?
+      bool add = true;
+      for (int j=nLabels; j--;) {
+	if ( lb[j] == lab ) {
+	  add = false;
+	  mx[j]++; // just increment counter
+	  break;
+	}
+      }
+      if (add) {
+	lb[nLabels] = lab;
+	mx[nLabels] = 1;
+      }
     }
   }
-
-  Int_t max = 0;
-  for (i = 0; i < noc; i++)
-    if (mx[i] > max) {
-      max = mx[i];
+  
+  Int_t maxL = 0; // find most encountered label
+  for (int i=nLabels; i--;) {
+    if (mx[i] > maxL) {
+      maxL = mx[i];
       lab = lb[i];
     }
-
-  for (i = 0; i < noc; i++) {
-    Cluster* c = clusters[i];
-    // if (TMath::Abs(c->getLabel(1)) == lab ||
-    //    TMath::Abs(c->getLabel(2)) == lab ) max++;
-    if (TMath::Abs(c->getLabel(0) != lab))
-      if (TMath::Abs(c->getLabel(1)) == lab || TMath::Abs(c->getLabel(2)) == lab)
-        max++;
   }
-
-  if ((1. - Float_t(max) / noc) > wrong)
-    lab = -lab;
-  // t.SetFakeRatio((1.- Float_t(max)/noc));
+  
+  if ((1. - Float_t(maxL) / noc) > wrong) {
+    // change the track ID to negative
+    lab.set( -lab.getTrackID(), lab.getEventID(), lab.getSourceID() );
+  }
+  // t.SetFakeRatio((1.- Float_t(maxL)/noc));
   t.setLabel(lab);
 }
 
@@ -545,8 +548,8 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
     nSeeds += seedArray[t].size();
     for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
-      Int_t label = track.getLabel();
-      if (label >= 0) ngood++;
+      Label label = track.getLabel();
+      if (label.getTrackID() >= 0) ngood++;
       new (tracks[tracks.GetEntriesFast()]) CookedTrack(track);
     }
   }
@@ -705,7 +708,7 @@ void CookedTracker::loadClusters(const TClonesArray& clusters)
   //--------------------------------------------------------------------
   Int_t numOfClusters = clusters.GetEntriesFast();
   if (numOfClusters == 0) {
-    LOG(FATAL) << "No clusters to load !" << FairLogger::endl;
+    LOG(WARNING) << "No clusters to load !" << FairLogger::endl;
     return;
   }
 

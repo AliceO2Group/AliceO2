@@ -16,7 +16,6 @@
 #include "TClonesArray.h"
 
 #include "ITSReconstruction/Clusterer.h"
-#include "ITSReconstruction/Cluster.h"
 
 using namespace o2::ITS;
 using namespace o2::ITSMFT;
@@ -116,6 +115,8 @@ void Clusterer::finishChip(TClonesArray &clusters)
   static Float_t sigmaX2 = mPitchX * mPitchX / 12.; //FIXME
   static Float_t sigmaY2 = mPitchZ * mPitchZ / 12.;
 
+  std::array<Label,Cluster::maxLabels> labels;
+  
   Int_t noc = clusters.GetEntriesFast();  
   for (Int_t i1=0; i1<mPreClusterHeads.size(); ++i1) {
     const auto ci = mPreClusterIndices[i1];
@@ -123,7 +124,7 @@ void Clusterer::finishChip(TClonesArray &clusters)
     UShort_t xmax=0, xmin=65535;
     UShort_t zmax=0, zmin=65535;
     Float_t x=0., z=0.;
-    int labels[Cluster::maxLabels], nlab = 0, npix = 0;
+    int nlab = 0, npix = 0;
     Int_t next = mPreClusterHeads[i1];
     while (next >= 0) {
       const auto &dig = mPixels[next];
@@ -179,13 +180,15 @@ void Clusterer::finishChip(TClonesArray &clusters)
   }
 }
 
-void Clusterer::fetchMCLabels(const PixelReader::PixelData* pix, int *labels, int &nfilled) const
+void Clusterer::fetchMCLabels(const PixelReader::PixelData* pix,
+			      std::array<Label,Cluster::maxLabels> &labels,
+			      int &nfilled) const
 {
   // transfer MC labels to cluster
   if (nfilled>=Cluster::maxLabels) return;
-  int lbl;
   for (int id=0;id<Digit::maxLabels;id++) {
-    if ((lbl=pix->labels[id])<0) return; // all following labels will be 0
+    Label lbl = pix->labels[id];
+    if ( lbl.isEmpty() ) return; // all following labels will be invalid
     int ic = nfilled;
     for (;ic--;) { // check if the label is already present
       if (labels[ic]==lbl) break;

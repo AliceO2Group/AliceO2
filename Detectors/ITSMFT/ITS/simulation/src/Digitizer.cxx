@@ -11,6 +11,7 @@
 /// \file Digitizer.cxx
 /// \brief Implementation of the ITS digitizer
 
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSMFTSimulation/Point.h"
@@ -88,6 +89,11 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
   TIter nextPoint(points);
   Point* point = nullptr;
   while ( (point = (Point*)nextPoint()) ) {
+    
+    // RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
+    // provided and identified. At the moment we just create a combined identifier from eventID
+    // and sourceID and store it TEMPORARILY in the cached Point's TObject UniqueID  
+    point->SetSrcEvID(mCurrSrcID,mCurrEvID); 
     mSimulations[point->GetDetectorID()].InsertPoint(point);
   }
     
@@ -148,4 +154,26 @@ void Digitizer::fillOutputContainer(TClonesArray* digits, UInt_t maxFrame)
     }
   }
   mROFrameMin = maxFrame+1;
+}
+
+//_______________________________________________________________________
+void Digitizer::setCurrSrcID(int v)
+{
+  // set current MC source ID
+  if ( v > MCCompLabel::maxSourceID() ) {
+    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label "
+	       << MCCompLabel::maxSourceID() << FairLogger::endl;
+  }
+  mCurrSrcID = v;
+}
+
+//_______________________________________________________________________
+void Digitizer::setCurrEvID(int v)
+{
+  // set current MC event ID
+  if ( v > MCCompLabel::maxEventID() ) {
+    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label "
+	       << MCCompLabel::maxEventID() << FairLogger::endl;
+  }
+  mCurrEvID = v;
 }

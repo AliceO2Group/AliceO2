@@ -24,7 +24,7 @@ using namespace o2::ITS;
 using namespace o2::Base::Constants;
 using namespace o2::Base::Track;
 
-CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2(0.)
+CookedTrack::CookedTrack() : TObject(), mTrack(), mMass(0.14), mChi2(0.)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
@@ -33,7 +33,7 @@ CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2
 }
 
 CookedTrack::CookedTrack(float x, float alpha, const std::array<float,kNParams> &par, const std::array<float,kCovMatSize> &cov)
-  : TObject(), mTrack(x, alpha, par, cov), mLabel(-1), mMass(0.14), mChi2(0.)
+  : TObject(), mTrack(x, alpha, par, cov), mMass(0.14), mChi2(0.)
 {
   //--------------------------------------------------------------------
   // Main constructor

@@ -14,6 +14,7 @@
 #define ALICEO2_ITSMFT_CLUSTER_H
 
 #include "FairTimeStamp.h" // for FairTimeStamp
+#include "SimulationDataFormat/MCCompLabel.h"
 
 // uncomment this to have cluster topology in stored
 //#define _ClusterTopology_
@@ -30,6 +31,8 @@ namespace ITSMFT
 
 class Cluster : public FairTimeStamp
 {
+  using Label = o2::MCCompLabel;
+  
  public:
   enum { // frame in which the track is currently defined
     kUsed = BIT(14),
@@ -74,7 +77,7 @@ class Cluster : public FairTimeStamp
   Cluster& operator=(const Cluster& cluster) = delete;
 
   //****** Basic methods ******************
-  void setLabel(Int_t lab, Int_t i)
+  void setLabel(Label lab, Int_t i)
   {
     if (i >= 0 && i < maxLabels)
       mTracks[i] = lab;
@@ -94,7 +97,7 @@ class Cluster : public FairTimeStamp
       SetBit(kUsed);
   }
 
-  Int_t getLabel(Int_t i) const { return mTracks[i]; }
+  Label   getLabel(Int_t i) const { return mTracks[i]; }
   Float_t getX() const { return mX; }
   Float_t getY() const { return mY; }
   Float_t getZ() const { return mZ; }
@@ -179,7 +182,7 @@ class Cluster : public FairTimeStamp
   //
  protected:
   //
-  Int_t mTracks[maxLabels];   ///< MC labels
+  Label mTracks[maxLabels];   ///< MC labels
   Float_t mX;         ///< X of the cluster in the tracking c.s.
   Float_t mY;         ///< Y of the cluster in the tracking c.s.
   Float_t mZ;         ///< Z of the cluster in the tracking c.s.
