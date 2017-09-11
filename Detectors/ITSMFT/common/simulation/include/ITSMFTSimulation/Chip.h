@@ -160,8 +160,8 @@ class Chip
     { return mHits.size(); }
 
     /// reset points container
-    void ClearPoints() {
-      mPoints.clear();
+    void ClearHits() {
+      mHits.clear();
     }
 
     o2::ITSMFT::Digit* findDigit(ULong64_t key);
@@ -189,7 +189,7 @@ class Chip
     /// @param eloss Energy loss during the hit
     Bool_t LineSegmentLocal(Int_t hitindex, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
                             Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const;
-    Bool_t LineSegmentLocal(const Point* hit, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
+    Bool_t LineSegmentLocal(const Hit* hit, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
                             Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const;
 
     /// Get the line segment of a given point (from start to current position)
@@ -207,7 +207,7 @@ class Chip
     /// @param eloss Energy loss during the hit
     Bool_t LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
                              Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const;
-    Bool_t LineSegmentGlobal(const Point* hit, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
+    Bool_t LineSegmentGlobal(const Hit* hit, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
                              Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const;
 
     /// Calculate median position of two hits
@@ -230,7 +230,7 @@ class Chip
     /// @param p1 First point for the path length calculation
     /// @param p2 Second point for the path length calculation
     /// @return path length between points
-    Double_t PathLength(const Point *p1, const Point *p2) const;
+    Double_t PathLength(const Hit *p1, const Hit *p2) const;
     
     o2::ITSMFT::Digit* addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, Label lbl, double timestamp);
 
@@ -240,7 +240,7 @@ class Chip
     
     Int_t  mChipIndex = -1;     ///< Chip ID
     const DigiParams* mParams = nullptr;   ///< externally set digitization parameters   
-    std::vector<const Point *>mPoints;     ///< Hits connnected to the given chip
+    std::vector<const Hit *>mHits;     ///< Hits connnected to the given chip
     std::map<ULong64_t, o2::ITSMFT::Digit> mDigits; ///< Map of fired pixels, possibly in multiple frames
     const TGeoHMatrix *mMat = nullptr;     ///< Transformation matrix
 
@@ -258,8 +258,8 @@ inline Bool_t Chip::LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t
 				      Double_t &ystart, Double_t &ypoint,
 				      Double_t &zstart, Double_t &zpoint,
 				      Double_t &timestart, Double_t &eloss) const {
-  return (hitindex >= int(mPoints.size())) ?
-    kFALSE : LineSegmentGlobal(mPoints[hitindex],xstart,xpoint,ystart,ypoint,zstart,zpoint,timestart,eloss);
+  return (hitindex >= int(mHits.size())) ?
+    kFALSE : LineSegmentGlobal(mHits[hitindex],xstart,xpoint,ystart,ypoint,zstart,zpoint,timestart,eloss);
 }
  
 //_______________________________________________________________________
@@ -268,8 +268,8 @@ inline Bool_t Chip::LineSegmentLocal(Int_t hitindex,
 				     Double_t &ystart, Double_t &ypoint,
 				     Double_t &zstart, Double_t &zpoint,
 				     Double_t &timestart, Double_t &eloss) const {
-  return (hitindex >= int(mPoints.size()))  ?
-    kFALSE : LineSegmentLocal(mPoints[hitindex],xstart,xpoint,ystart,ypoint,zstart,zpoint,timestart,eloss);
+  return (hitindex >= int(mHits.size()))  ?
+    kFALSE : LineSegmentLocal(mHits[hitindex],xstart,xpoint,ystart,ypoint,zstart,zpoint,timestart,eloss);
 }
 
  

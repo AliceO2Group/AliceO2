@@ -101,9 +101,9 @@ void SimulationAlpide::updateACSWithAngle(Double_t& acs, Double_t angle) const {
 }
 
 //______________________________________________________________________
-void SimulationAlpide::Points2Digits(const SegmentationPixel *seg, Double_t eventTime, UInt_t &minFr, UInt_t &maxFr)
+void SimulationAlpide::Hits2Digits(const SegmentationPixel *seg, Double_t eventTime, UInt_t &minFr, UInt_t &maxFr)
 {
-  Int_t nhits = GetNumberOfPoints();
+  Int_t nhits = GetNumberOfHits();
 
   // convert hits to digits, returning the min and max RO frames processed
   //
@@ -113,7 +113,7 @@ void SimulationAlpide::Points2Digits(const SegmentationPixel *seg, Double_t even
 
   for (Int_t h = 0; h < nhits; ++h) {
 
-    const Point *hit = GetPointAt(h);
+    const Hit *hit = GetHitAt(h);
     double hTime0 = hit->GetTime()*sec2ns + eventTime - mParams->getTimeOffset(); // time from the RO start, in ns
     if (hTime0 > UINT_MAX) {
       LOG(WARNING) << "Hit RO Frame undefined: time: " << hTime0 << " is in far future: hitTime: "
@@ -131,22 +131,22 @@ void SimulationAlpide::Points2Digits(const SegmentationPixel *seg, Double_t even
     // check if the hit time is not in the dead time of the chip
     if ( mParams->getROFrameLenght() - roframe%mParams->getROFrameLenght() < mParams->getROFrameDeadTime()) continue;
 
-    switch (mParams->getPoint2DigitsMethod()) {
+    switch (mParams->getHit2DigitsMethod()) {
     case DigiParams::p2dCShape :
-      Point2DigitsCShape(hit, roframe, eventTime, seg);
+      Hit2DigitsCShape(hit, roframe, eventTime, seg);
       break;
     case DigiParams::p2dSimple :
-      Point2DigitsSimple(hit, roframe, eventTime, seg);
+      Hit2DigitsSimple(hit, roframe, eventTime, seg);
       break;
     default:
-      LOG(ERROR) << "Unknown point to digit mode " <<  mParams->getPoint2DigitsMethod() << FairLogger::endl;
+      LOG(ERROR) << "Unknown point to digit mode " <<  mParams->getHit2DigitsMethod() << FairLogger::endl;
       break;
     }
   }
 }
 
 //________________________________________________________________________
-void SimulationAlpide::Point2DigitsCShape(const Point *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
+void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
 {
   // convert single hit to digits with CShape generation method
   Double_t x0, x1, y0, y1, z0, z1, tof, de;
@@ -216,7 +216,7 @@ void SimulationAlpide::Point2DigitsCShape(const Point *hit, UInt_t roFrame, doub
 }
 
 //________________________________________________________________________
-void SimulationAlpide::Point2DigitsSimple(const Point *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
+void SimulationAlpide::Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
 {
   // convert single hit to digits with 1 to 1 mapping
   Double_t x = 0.5 * (hit->GetX() + hit->GetStartX());

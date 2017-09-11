@@ -46,7 +46,7 @@ namespace o2 {
 
       SimulationAlpide& operator=(const SimulationAlpide&) = delete;
 
-      void      Points2Digits(const SegmentationPixel *seg, double eventTime, UInt_t &minFr, UInt_t &maxFr);
+      void      Hits2Digits(const SegmentationPixel *seg, double eventTime, UInt_t &minFr, UInt_t &maxFr);
 
       void      addNoise(const SegmentationPixel* seg, UInt_t rofMin, UInt_t rofMax);
       
@@ -54,8 +54,8 @@ namespace o2 {
       
     private:
       
-      void      Point2DigitsCShape(const Point *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg);
-      void      Point2DigitsSimple(const Point *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg);
+      void      Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg);
+      void      Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg);
 
       
       Double_t  betaGammaFunction(Double_t, Double_t, Double_t, Double_t) const;
