@@ -64,16 +64,18 @@ target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit
 
 set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
-      test/test_Variants.cxx
-      test/test_Collections.cxx
-      test/test_Services.cxx
-      test/test_DeviceMetricsInfo.cxx
-      test/test_SimpleStatefulProcessing01.cxx
       test/test_BoostOptionsRetriever.cxx
-      test/test_SuppressionGenerator.cxx
+      test/test_Collections.cxx
+      test/test_DeviceMetricsInfo.cxx
+      test/test_FrameworkDataFlowToDDS.cxx
+      test/test_Graphviz.cxx
+      test/test_Services.cxx
+      test/test_SimpleStatefulProcessing01.cxx
       test/test_SingleDataSource.cxx
       test/test_Graphviz.cxx
       test/test_ParallelProducer.cxx
+      test/test_SuppressionGenerator.cxx
+      test/test_Variants.cxx
    )
 
 O2_GENERATE_TESTS(

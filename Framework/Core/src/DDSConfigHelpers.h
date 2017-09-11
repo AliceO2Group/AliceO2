@@ -12,11 +12,17 @@
 
 #include "Framework/DeviceSpec.h"
 #include <vector>
+#include <iosfwd>
 
 namespace o2 {
 namespace framework {
 
-void dumpDeviceSpec2DDS(const std::vector<DeviceSpec> &specs);
+/// Helper to dump DDS configuration to run in a deployed
+/// manner.
+/// @a out is a stream where the configuration will be printed
+/// @a specs is the internal representation of the dataflow topology
+///          which we want to dump.
+void dumpDeviceSpec2DDS(std::ostream &out, const std::vector<DeviceSpec> &specs);
 
 } // namespace framework
 } // namespace o2

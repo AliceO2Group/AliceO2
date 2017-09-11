@@ -10,6 +10,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ChannelMatching.h"
+#include "Framework/DeviceControl.h"
 #include <vector>
 
 using namespace o2::framework;
@@ -163,6 +164,108 @@ dataProcessorSpecs2DeviceSpecs(const o2::framework::WorkflowSpec &workflow,
       }
     }
     devices.push_back(device);
+  }
+}
+
+/// This creates a string to configure channels of a FairMQDevice
+/// FIXME: support shared memory
+std::string channel2String(const ChannelSpec &channel) {
+  std::string result;
+  char buffer[32];
+  auto addressFormat = (channel.method == Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
+
+  result += "name=" + channel.name + ",";
+  result += std::string("type=") + (channel.type == Pub ? "pub" : "sub") + ",";
+  result += std::string("method=") + (channel.method == Bind ? "bind" : "connect") + ",";
+  result += std::string("address=") + (snprintf(buffer,32,addressFormat, channel.port), buffer);
+
+  return result;
+}
+
+void
+prepareArguments(int argc,
+                 char **argv,
+                 bool defaultQuiet,
+                 bool defaultStopped,
+                 std::vector<DeviceSpec> &deviceSpecs,
+                 std::vector<DeviceControl> &deviceControls)
+{
+  for (size_t si = 0; si < deviceSpecs.size(); ++si) {
+    auto &spec = deviceSpecs[si];
+    auto &control = deviceControls[si];
+    control.quiet = defaultQuiet;
+    control.stopped = defaultStopped;
+
+    // We duplicate the list of options, filtering only those
+    // which are actually relevant for the given device. The additional
+    // four are to add
+    // * name of the executable
+    // * --framework-id <id> so that we can use the workflow
+    //   executable also in other context where we do not fork, e.g. DDS.
+    // * final NULL required by execvp
+    //
+    // We do it here because we are still in the parent and we can therefore
+    // capture them to be displayed in the GUI or to populate the DDS configuration
+    // to dump
+
+    // Set up options for the device running underneath
+    // FIXME: add some checksum in framework id. We could use this
+    //        to avoid redeploys when only a portion of the workflow is changed.
+    // FIXME: this should probably be done in one go with char *, but I am lazy.
+    std::vector<std::string> tmpArgs = {
+      argv[0],
+      "--id",
+      spec.id.c_str(),
+      "--control",
+      "static",
+      "--log-color",
+      "0"
+    };
+
+    // Do filtering. Since we should only have few options,
+    // FIXME: finish here...
+    for (size_t ai = 0; ai < argc; ++ai) {
+      for (size_t oi = 0; oi < spec.options.size(); ++oi) {
+        char *currentOpt = argv[ai];
+        LOG(DEBUG) << "Checking if " << currentOpt << " is needed by " << spec.id;
+        if (ai + 1 > argc) {
+          std::cerr << "Missing value for " << currentOpt;
+          exit(1);
+        }
+        char *currentOptValue = argv[ai+1];
+        const std::string &validOption = "--" + spec.options[oi].name;
+        if (strncmp(currentOpt, validOption.c_str(), validOption.size()) == 0) {
+          tmpArgs.emplace_back(strdup(validOption.c_str()));
+          tmpArgs.emplace_back(strdup(currentOptValue));
+          control.options.insert(std::make_pair(spec.options[oi].name,
+                                                currentOptValue));
+          break;
+        }
+      }
+    }
+
+    // Add the channel configuration
+    for (auto &channel : spec.channels) {
+      tmpArgs.emplace_back(std::string("--channel-config"));
+      tmpArgs.emplace_back(channel2String(channel));
+    }
+
+    // We create the final option list, depending on the channels
+    // which are present in a device.
+    for (auto &arg : tmpArgs) {
+      spec.args.emplace_back(strdup(arg.c_str()));
+    }
+    // execvp wants a NULL terminated list.
+    spec.args.push_back(nullptr);
+
+    //FIXME: this should probably be reflected in the GUI
+    std::ostringstream str;
+    for (size_t ai = 0; ai < spec.args.size() - 1; ai++) {
+      assert(spec.args[ai]);
+      str << " " << spec.args[ai];
+    }
+    LOG(DEBUG) << "The following options are being forwarded to "
+               << spec.id << ":" << str.str();
   }
 }
 
