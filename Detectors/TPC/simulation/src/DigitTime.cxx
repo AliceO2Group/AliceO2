@@ -33,10 +33,10 @@ void DigitTime::setDigit(size_t hitID, int cru, int row, int pad, float charge)
   mTotalChargeTimeBin+=charge;
 }
 
-void DigitTime::fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int timeBin, float commonMode)
+void DigitTime::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int timeBin, float commonMode)
 {
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
-    aRow->fillOutputContainer(output, debug, cru, timeBin, aRow->getRow(), commonMode);
+    aRow->fillOutputContainer(output, mcTruth, debug, cru, timeBin, aRow->getRow(), commonMode);
   }
 }

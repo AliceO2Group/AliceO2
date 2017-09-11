@@ -59,10 +59,11 @@ class DigitContainer{
 
     /// Fill output TClonesArray
     /// \param output Output container
+    /// \param mcTruth MC Truth container
     /// \param debug Optional debug output container
     /// \param eventTime time stamp of the event
     /// \param isContinuous Switch for continuous readout
-    void fillOutputContainer(TClonesArray *output, TClonesArray *debug, int eventTime=0, bool isContinuous=true);
+    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int eventTime=0, bool isContinuous=true);
 
   private:
     std::array<std::unique_ptr<DigitCRU> , CRU::MaxCRU> mCRU;   ///< CRU Container for the ADC value

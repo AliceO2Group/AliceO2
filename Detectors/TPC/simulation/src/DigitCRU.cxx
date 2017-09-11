@@ -45,7 +45,7 @@ void DigitCRU::setDigit(size_t hitID, int timeBin, int row, int pad, float charg
   }
 }
 
-void DigitCRU::fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int eventTime, bool isContinuous)
+void DigitCRU::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int eventTime, bool isContinuous)
 {
   int nProcessedTimeBins = 0;
   for(auto &aTime : mTimeBins) {
@@ -54,7 +54,7 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, TClonesArray *debug, in
     if( ( nProcessedTimeBins + mFirstTimeBin < eventTime ) || !isContinuous) {
       ++nProcessedTimeBins;
       if(aTime == nullptr) continue;
-      aTime->fillOutputContainer(output, debug, cru, aTime->getTimeBin(), mCommonModeContainer.getCommonMode(cru, aTime->getTimeBin()));
+      aTime->fillOutputContainer(output, mcTruth, debug, cru, aTime->getTimeBin(), mCommonModeContainer.getCommonMode(cru, aTime->getTimeBin()));
     }
     else break;
   }

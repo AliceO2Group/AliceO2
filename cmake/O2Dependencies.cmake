@@ -670,6 +670,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${MS_GSL_INCLUDE_DIR}
 )
 
 

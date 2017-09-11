@@ -33,6 +33,7 @@ namespace TPC {
     const SAMPAProcessing& sampa = SAMPAProcessing::instance();
     static FairRootManager *mgr = FairRootManager::Instance();
     DigitContainer digitContainer;
+    o2::dataformats::MCTruthContainer<long> mMCTruthArray;
 
     const std::vector<int> MCevent = {1, 250, 3, 62, 1000};
     const std::vector<int> MCtrack = {22, 3, 4, 23, 523};
@@ -50,7 +51,7 @@ namespace TPC {
     /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
     /// Usually the mDigitsArray is what is registered to the FairRootManager
     auto *mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
-    digitContainer.fillOutputContainer(mDigitsArray, nullptr, 1000);
+    digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, nullptr, 1000);
 
     BOOST_CHECK(CRU.size() == mDigitsArray->GetEntriesFast());
 
@@ -81,6 +82,7 @@ namespace TPC {
     const SAMPAProcessing& sampa = SAMPAProcessing::instance();
     static FairRootManager *mgr = FairRootManager::Instance();
     DigitContainer digitContainer;
+    o2::dataformats::MCTruthContainer<long> mMCTruthArray;
 
     const std::vector<int> MCevent = { 1, 62,  1, 62, 62, 50, 62, 1, 1, 1};
     const std::vector<int> MCtrack = {22, 3, 22, 3, 3, 70, 3, 7, 7, 7};
@@ -104,7 +106,7 @@ namespace TPC {
     /// Usually the mDigitsArray is what is registered to the FairRootManager
     auto *mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
     auto *mDigitsDebugArray = new TClonesArray("o2::TPC::DigitMCMetaData");
-    digitContainer.fillOutputContainer(mDigitsArray, mDigitsDebugArray, 1000);
+    digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, 1000);
 
     BOOST_CHECK(mDigitsArray->GetEntriesFast() == 1);
     BOOST_CHECK(mDigitsArray->GetEntriesFast() == mDigitsDebugArray->GetEntriesFast());
@@ -115,6 +117,8 @@ namespace TPC {
       DigitMCMetaData *digitMetaData = static_cast<DigitMCMetaData *>(mDigitsDebugArray->At(digits));
       BOOST_CHECK(digit->getMCEvent(0) == MCeventSorted[digits]);
       for(int j=0; j<digit->getNumberOfMClabels(); ++j) {
+        BOOST_CHECK(digit->getMCEvent(j) == int(mMCTruthArray.getElement(j)*1E-6));
+        BOOST_CHECK(digit->getMCTrack(j) == int(mMCTruthArray.getElement(j)%int(1E6)));
         BOOST_CHECK(digit->getMCEvent(j) == MCeventSorted[j]);
         BOOST_CHECK(digit->getMCTrack(j) == MCtrackSorted[j]);
       }

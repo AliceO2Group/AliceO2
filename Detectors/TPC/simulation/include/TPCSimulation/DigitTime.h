@@ -71,11 +71,12 @@ class DigitTime{
 
     /// Fill output TClonesArray
     /// \param output Output container
+    /// \param mcTruth MC Truth container
     /// \param debug Optional debug output container
     /// \param cru CRU ID
     /// \param timeBin Time bin
     /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int timeBin, float commonMode = 0.f);
+    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int timeBin, float commonMode = 0.f);
 
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
@@ -90,7 +91,7 @@ DigitTime::DigitTime(int timeBin, int nrows)
     mRows(nrows)
 {}
 
-inline    
+inline
 void DigitTime::reset()
 {  
   for(auto &aRow : mRows) {
