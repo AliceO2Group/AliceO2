@@ -38,6 +38,7 @@ DigitizerTask::DigitizerTask(int sectorid)
     mDigitContainer(nullptr),
     mPointsArray(nullptr),
     mDigitsArray(nullptr),
+    mMCTruthArray(),
     mDigitsDebugArray(nullptr),
     mHitFileName(),
     mTimeBinMax(1000000),
@@ -103,6 +104,11 @@ InitStatus DigitizerTask::Init()
   mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
   mDigitsArray->BypassStreamer(true);
   mgr->Register("TPCDigitMC", "TPC", mDigitsArray, kTRUE);
+
+  // Register MC Truth container
+  mgr->Register("TPCDigitMCTruth", "TPC", &mMCTruthArray, kTRUE);
+
+  // Register additional (optional) debug output
   if(mDigitDebugOutput) {
     mDigitsDebugArray = new TClonesArray("o2::TPC::DigitMCMetaData");
     mDigitsDebugArray->BypassStreamer(true);
@@ -125,6 +131,7 @@ void DigitizerTask::Exec(Option_t *option)
 
   LOG(DEBUG) << "Running digitization on new event at time bin " << eventTime << FairLogger::endl;
   mDigitsArray->Delete();
+  mMCTruthArray.clear();
   if(mDigitDebugOutput) {
     mDigitsDebugArray->Delete();
   }
@@ -146,7 +153,7 @@ void DigitizerTask::Exec(Option_t *option)
 #else
   mDigitContainer = mDigitizer->Process(mPointsArray);
 #endif
-  mDigitContainer->fillOutputContainer(mDigitsArray, mDigitsDebugArray, eventTime, mIsContinuousReadout);
+  mDigitContainer->fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, eventTime, mIsContinuousReadout);
 }
 
 void DigitizerTask::FinishTask()
@@ -155,10 +162,11 @@ void DigitizerTask::FinishTask()
   FairRootManager *mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   mDigitsArray->Delete();
+  mMCTruthArray.clear();
   if(mDigitDebugOutput) {
     mDigitsDebugArray->Delete();
   }
-  mDigitContainer->fillOutputContainer(mDigitsArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
+  mDigitContainer->fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
 }
 
 void DigitizerTask::fillHitArrayFromFile()

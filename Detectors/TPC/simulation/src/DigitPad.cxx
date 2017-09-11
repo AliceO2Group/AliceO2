@@ -18,6 +18,7 @@
 #include "TPCBase/PadSecPos.h"
 #include "TPCBase/CRU.h"
 #include "TPCSimulation/DigitMC.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "TPCSimulation/DigitMCMetaData.h"
 
 #include <boost/range/adaptor/reversed.hpp>
@@ -25,7 +26,7 @@
 
 using namespace o2::TPC;
 
-void DigitPad::fillOutputContainer(TClonesArray *output, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode)
+void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode)
 {
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise, pedestals and saturation of the SAMPA
@@ -43,6 +44,12 @@ void DigitPad::fillOutputContainer(TClonesArray *output, TClonesArray *debug, in
     TClonesArray &clref = *output;
     const size_t digiPos = clref.GetEntriesFast();
     new(clref[digiPos]) DigitMC(MClabels, cru, mADC, row, pad, timeBin); /// create DigitMC
+
+    for(int j=0; j<MClabels.size(); ++j) {
+      // fill MCtruth output
+      mcTruth.addElement(digiPos, MClabels[j]);
+    }
+
     if(debug!=nullptr) {
       TClonesArray &clrefDebug = *debug;
       const size_t digiPosDebug = clrefDebug.GetEntriesFast();
