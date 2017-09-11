@@ -48,7 +48,7 @@ Chip &Chip::operator=(const Chip &ref)
   if (this != &ref) {
     mMat = ref.mMat;
     mChipIndex = ref.mChipIndex;
-    mHits = ref.Hits;
+    mHits = ref.mHits;
     mDigits = ref.mDigits;
   }
   return *this;
@@ -73,7 +73,7 @@ Bool_t Chip::operator<(const Chip &other) const
 }
 
 //_______________________________________________________________________
-void Chip::InsertHit(const Point *p)
+void Chip::InsertHit(const Hit *p)
 {
   if (p->GetDetectorID() != mChipIndex) {
     throw IndexException(mChipIndex, p->GetDetectorID());
@@ -82,7 +82,7 @@ void Chip::InsertHit(const Point *p)
 }
 
 //_______________________________________________________________________
-const Point *Chip::GetHitAt(Int_t i) const
+const Hit *Chip::GetHitAt(Int_t i) const
 {
   if (i < mHits.size()) {
     return mHits[i];
@@ -98,7 +98,7 @@ void Chip::Clear()
 
 
 //_______________________________________________________________________
-Bool_t Chip::LineSegmentLocal(const Point* hit,
+Bool_t Chip::LineSegmentLocal(const Hit* hit,
 			      Double_t &xstart, Double_t &xpoint,
 			      Double_t &ystart, Double_t &ypoint,
 			      Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
@@ -131,7 +131,7 @@ Bool_t Chip::LineSegmentLocal(const Point* hit,
 
 
 //_______________________________________________________________________
-Bool_t Chip::LineSegmentGlobal(const Point* hit, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
+Bool_t Chip::LineSegmentGlobal(const Hit* hit, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
                                Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
 {
   if (hit->IsEntering()) return kFALSE;

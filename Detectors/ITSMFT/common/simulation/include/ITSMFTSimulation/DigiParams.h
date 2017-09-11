@@ -31,7 +31,7 @@ namespace ITSMFT {
   class DigiParams { 
   public:
 
-    enum Point2DigitsMethod {p2dSimple, p2dCShape};
+    enum Hit2DigitsMethod {p2dSimple, p2dCShape};
     
     DigiParams() = default;
     ~DigiParams() = default;
@@ -62,12 +62,12 @@ namespace ITSMFT {
     float getACSFromBGPar2()        const {return mACSFromBGPar2;}
 
     bool  isTimeOffsetSet()         const {return mTimeOffset>-infTime;}
-    Point2DigitsMethod getPoint2DigitsMethod() const {return mPoint2DigitsMethod;}
-    void setPointDigitsMethod(Point2DigitsMethod m) { mPoint2DigitsMethod = m; }
+    Hit2DigitsMethod getHit2DigitsMethod() const {return mHit2DigitsMethod;}
+    void setHitDigitsMethod(Hit2DigitsMethod m) { mHit2DigitsMethod = m; }
     
   private:
     static constexpr double infTime = 1e99;
-    Point2DigitsMethod mPoint2DigitsMethod = p2dCShape; ///< method of point to digitis conversion
+    Hit2DigitsMethod mHit2DigitsMethod = p2dCShape; ///< method of point to digitis conversion
     bool   mIsContinuous = false;   ///< flag for continuous simulation
     float  mThreshold = 1.e-6;      ///< threshold in N electrons RS: TODO: Fix conversion from eloss to nelectrons 
     float  mNoisePerPixel = 1.e-7;  ///< ALPIDE Noise per chip
