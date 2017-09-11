@@ -12,6 +12,8 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
+#include <iomanip>
+#include <ios>
 #include <iostream>
 #include "SimulationDataFormat/MCCompLabel.h"
 

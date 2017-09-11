@@ -9,11 +9,23 @@
 // or submit itself to any jurisdiction.
 
 #include "SimulationDataFormat/MCCompLabel.h"
+#include <iomanip>
+#include <ios>
+#include <iostream>
+#include <cassert>
 
 using namespace o2;
 
 ClassImp(o2::MCCompLabel);
 
+//_____________________________________________
+void MCCompLabel::print() const
+{
+  // print itself
+  std::cout << (MCCompLabel)*this << std::endl;
+}
+
+//_____________________________________________
 std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c)
 {
   // stream itself
@@ -24,4 +36,13 @@ std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c)
     os << "[unset]";
   }
   return os;
+}
+
+ //_____________________________________________
+void MCCompLabel::checkFieldConsistensy()
+{
+  // check if the fields are defined consistently
+  static_assert(nbitsTrackID==sizeof(int)*8, "TrackID must have int size");
+  static_assert(nbitsTrackID+nbitsEvID+nbitsSrcID<=sizeof(ULong64_t)*8,
+		"Fields cannot be stored in 64 bits");
 }

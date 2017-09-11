@@ -12,9 +12,6 @@
 #define ALICEO2_MCCOMPLABEL_H
 
 #include <Rtypes.h>
-#include <iomanip>
-#include <ios>
-#include <iostream>
 
 namespace o2
 {
@@ -28,11 +25,13 @@ class MCCompLabel
 
   ULong64_t mLabel = NotSet; ///< MC label encoding MCtrack ID and MCevent origin
 
+  void checkFieldConsistensy();
+  
  public:
 
   // number of bits reserved for MC track ID, DON'T modify this, sine the
   // track ID might be negative
-  static constexpr int nbitsTrackID = 32;
+  static constexpr int nbitsTrackID = sizeof(int)*8;
   static constexpr int nbitsEvID = 19;    // number of bits reserved for MC event ID
   static constexpr int nbitsSrcID = 8;    // number of bits reserved for MC source ID
   // the rest of the bits is reserved at the moment
@@ -82,7 +81,7 @@ class MCCompLabel
     srcID = getSourceID();
   }
 
-  void print() const { std::cout << (MCCompLabel)*this << std::endl; }
+  void print() const;
 
   static constexpr int maxSourceID()  { return maskSrcID; }
   static constexpr int maxEventID()   { return maskEvID; }
