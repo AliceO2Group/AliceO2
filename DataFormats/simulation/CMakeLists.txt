@@ -11,6 +11,7 @@ Set(HEADERS
     include/${MODULE_NAME}/Stack.h
     include/${MODULE_NAME}/MCTrack.h
     include/${MODULE_NAME}/BaseHits.h
+    include/${MODULE_NAME}/MCTruthContainer.h
 )
 
 Set(LINKDEF src/SimulationDataLinkDef.h)
@@ -21,6 +22,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/testBasicHits.cxx
+  test/testMCTruthContainer.cxx
 )
 
 O2_GENERATE_TESTS(

@@ -28,5 +28,7 @@
 #pragma link C++ class o2::BaseHit+;
 #pragma link C++ class o2::BasicXYZEHit<float,float>+;
 #pragma link C++ class o2::BasicXYZEHit<double,double>+;
+#pragma link C++ struct o2::dataformats::MCTruthHeaderElement+;
+#pragma link C++ class o2::dataformats::MCTruthContainer<long>+;
 
 #endif
