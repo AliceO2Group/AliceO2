@@ -17,8 +17,7 @@
 #include "TPCBase/PadPos.h"
 #include "TPCBase/PadSecPos.h"
 #include "TPCBase/CRU.h"
-#include "TPCSimulation/DigitMC.h"
-#include "SimulationDataFormat/MCCompLabel.h"
+#include "TPCBase/Digit.h"
 #include "TPCSimulation/DigitMCMetaData.h"
 
 #include <boost/range/adaptor/reversed.hpp>
@@ -26,7 +25,7 @@
 
 using namespace o2::TPC;
 
-void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode)
+void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode)
 {
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise, pedestals and saturation of the SAMPA
@@ -37,17 +36,17 @@ void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTrut
   const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)), pedestal, noise);
   if(mADC > 0) {
 
-    static std::vector<long> MClabels;
-    MClabels.resize(0);
-    DigitPad::processMClabels(MClabels);
+    /// Sort the MC labels according to their occurrence
+    using P = std::pair<MCCompLabel, int>;
+    std::sort(mMClabel.begin(), mMClabel.end(), [](const P& a, const P& b) { return a.second > b.second;});
 
+    /// Write out the Digit
     TClonesArray &clref = *output;
     const size_t digiPos = clref.GetEntriesFast();
-    new(clref[digiPos]) DigitMC(MClabels, cru, mADC, row, pad, timeBin); /// create DigitMC
+    new(clref[digiPos]) Digit(cru, mADC, row, pad, timeBin); /// create Digit
 
-    for(int j=0; j<MClabels.size(); ++j) {
-      // fill MCtruth output
-      mcTruth.addElement(digiPos, MClabels[j]);
+    for(auto &mcLabel : mMClabel) {
+      mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
     }
 
     if(debug!=nullptr) {
@@ -55,17 +54,5 @@ void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTrut
       const size_t digiPosDebug = clrefDebug.GetEntriesFast();
       new(clrefDebug[digiPosDebug]) DigitMCMetaData(mChargePad, commonMode, pedestal, noise); /// create DigitMCMetaData
     }
-  }
-}
-
-void DigitPad::processMClabels(std::vector<long> &sortedMCLabels) const
-{
-  /// Dump the map into a vector of pairs
-  std::vector<std::pair<long, int> > pairMClabels(mMCID.begin(), mMCID.end());
-  /// Sort by the number of occurrences
-  std::sort(pairMClabels.begin(), pairMClabels.end(), boost::bind(&std::pair<long, int>::second, _1) < boost::bind(&std::pair<long, int>::second, _2));
-  // iterate backwards over the vector and hence write MC with largest number of occurrences as first into the sortedMClabels vector
-  for(auto &aMCIDreversed : boost::adaptors::reverse(pairMClabels)) {
-    sortedMCLabels.emplace_back(aMCIDreversed.first);
   }
 }

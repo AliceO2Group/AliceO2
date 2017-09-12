@@ -18,7 +18,7 @@
 #include "TPCReconstruction/AdcClockMonitor.h"
 #include "TPCReconstruction/SyncPatternMonitor.h"
 #include "TPCReconstruction/HalfSAMPAData.h"
-#include "TPCReconstruction/DigitData.h"
+#include "TPCBase/Digit.h"
 #include "TPCBase/Mapper.h" 
 //#include <TClonesArray.h>  
 
@@ -151,7 +151,7 @@ class GBTFrameContainer {
     /// Extracts the digits after all 80 channels were transmitted (5*16)
     /// @param container Digit Container to store the digits in
     /// @return If true, at least one digit was added.
-    bool getData(std::vector<DigitData>& container);
+    bool getData(std::vector<Digit> &container);
 
     bool getData(std::vector<HalfSAMPAData>& container);
 

@@ -18,8 +18,7 @@
 
 #include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/ClusterContainer.h"
-#include "TPCSimulation/DigitMC.h"
-#include "TPCReconstruction/DigitData.h"
+#include "TPCBase/Digit.h"
 #include "TPCReconstruction/GBTFrameContainer.h"
 
 using namespace o2::TPC;
@@ -55,7 +54,7 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   int events = 0;
   bool data = true;
   while (data && (events<maxEvents)) {
-    std::vector<DigitData> digits(80);
+    std::vector<Digit> digits(80);
 
     for (auto& reader_ptr : mGBTFrameContainers) {
       auto reader = reader_ptr.get();
@@ -69,11 +68,11 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
     printf("Event %d, found digits: %zu\n", events, digits.size());
 
     float maxTime = 0;
-    TClonesArray arr("o2::TPC::DigitMC");
+    TClonesArray arr("o2::TPC::Digit");
     for (auto& digi : digits) {
       if (digi.getRow() == 255 && digi.getPad() == 255) continue;
       const size_t nDig = arr.GetEntries();
-      new (arr[nDig]) DigitMC(digi.getCRU(), digi.getChargeFloat(), digi.getRow(), digi.getPad(), digi.getTimeStamp());
+      new (arr[nDig]) Digit(digi.getCRU(), digi.getChargeFloat(), digi.getRow(), digi.getPad(), digi.getTimeStamp());
       if (digi.getTimeStamp() > maxTime) maxTime = digi.getTimeStamp();
     }
 

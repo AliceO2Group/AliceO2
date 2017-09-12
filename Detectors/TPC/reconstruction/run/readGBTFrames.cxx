@@ -23,7 +23,7 @@
 
 #include "TPCReconstruction/GBTFrameContainer.h"
 #include "TPCReconstruction/HalfSAMPAData.h"
-#include "TPCReconstruction/DigitData.h"
+#include "TPCBase/Digit.h"
 
 namespace bpo = boost::program_options;
 
@@ -50,7 +50,6 @@ void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int fra
 void readData(o2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
   done = 0;
   std::vector<o2::TPC::HalfSAMPAData> data;
-//  std::vector<o2::TPC::DigitData> data;
   int i;
   while (!run) {
     std::this_thread::sleep_for(std::chrono::microseconds{100});

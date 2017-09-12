@@ -5,8 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-   src/AdcClockMonitor.cxx 
-   src/DigitData.cxx
+   src/AdcClockMonitor.cxx
    src/GBTFrame.cxx
    src/GBTFrameContainer.cxx
    src/HalfSAMPAData.cxx
@@ -17,7 +16,6 @@ set(SRCS
 
 set(HEADERS
    include/${MODULE_NAME}/AdcClockMonitor.h
-   include/${MODULE_NAME}/DigitData.h
    include/${MODULE_NAME}/GBTFrame.h
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/HalfSAMPAData.h

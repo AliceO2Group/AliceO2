@@ -101,9 +101,9 @@ InitStatus DigitizerTask::Init()
 #endif
   
   // Register output container
-  mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
+  mDigitsArray = new TClonesArray("o2::TPC::Digit");
   mDigitsArray->BypassStreamer(true);
-  mgr->Register("TPCDigitMC", "TPC", mDigitsArray, kTRUE);
+  mgr->Register("TPCDigit", "TPC", mDigitsArray, kTRUE);
 
   // Register MC Truth container
   mgr->Register("TPCDigitMCTruth", "TPC", &mMCTruthArray, kTRUE);

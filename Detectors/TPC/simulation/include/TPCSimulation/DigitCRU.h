@@ -74,7 +74,7 @@ class DigitCRU{
     /// \param cruID CRU ID
     /// \param eventTime time stamp of the event
     /// \param isContinuous Switch for continuous readout
-    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int eventTime=0, bool isContinuous=true);
+    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int eventTime=0, bool isContinuous=true);
 
   private:
     int                    mFirstTimeBin;
