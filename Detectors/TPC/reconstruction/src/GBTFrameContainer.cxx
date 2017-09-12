@@ -454,7 +454,7 @@ void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame
   }
 }
 
-bool GBTFrameContainer::getData(std::vector<DigitData>& container)
+bool GBTFrameContainer::getData(std::vector<Digit>& container)
 {
 //  std::vector<std::vector<int>> iData(5);
 //  mAdcMutex.lock();

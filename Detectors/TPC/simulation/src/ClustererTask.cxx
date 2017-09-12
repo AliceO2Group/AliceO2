@@ -70,7 +70,7 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigitMC"));
+  mDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigit"));
   if( !mDigitsArray ) {
     LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

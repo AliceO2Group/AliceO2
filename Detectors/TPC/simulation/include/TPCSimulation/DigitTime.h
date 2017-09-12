@@ -76,7 +76,7 @@ class DigitTime{
     /// \param cru CRU ID
     /// \param timeBin Time bin
     /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int timeBin, float commonMode = 0.f);
+    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, float commonMode = 0.f);
 
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin

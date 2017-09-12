@@ -32,7 +32,7 @@
 #include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/BoxClusterer.h"
 #include "TPCSimulation/ClusterContainer.h"
-#include "TPCReconstruction/DigitData.h"
+#include "TPCBase/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "TPCSimulation/Cluster.h"
@@ -122,7 +122,7 @@ Int_t RawClusterFinder::updateCRU(const CRU& cru, const Int_t row, const Int_t p
   }
 
   // ===| add new digit |=======================================================
-  mVectorDigits.emplace_back(new DigitData(cru, corrSignal, row, pad, timeBin));
+  mVectorDigits.emplace_back(new Digit(cru, corrSignal, row, pad, timeBin));
 
   return 1;
 }

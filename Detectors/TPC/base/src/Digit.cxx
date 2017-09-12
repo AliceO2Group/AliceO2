@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file Digit.cxx
-/// \brief Implementation of the Common TPC Digit
+/// \brief Implementation of the TPC Digit
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCBase/Digit.h"

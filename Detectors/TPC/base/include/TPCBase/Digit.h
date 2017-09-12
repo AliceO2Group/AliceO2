@@ -9,21 +9,39 @@
 // or submit itself to any jurisdiction.
 
 /// \file Digit.h
-/// \brief Definition of the Digit
+/// \brief Definition of the TPC Digit
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
-#ifndef ALICEO2_TPC_Digit_H_
-#define ALICEO2_TPC_Digit_H_
+#ifndef ALICEO2_TPC_DIGIT_H_
+#define ALICEO2_TPC_DIGIT_H_
+
+#include "TObject.h"
 
 namespace o2 {
 namespace TPC {
+
+// A minimal (temporary) TimeStamp class, introduced here for
+// reducing memory consumption to a minimum.
+// This can be used only when MCtruth is not done using FairLinks.
+class TimeStamp : public TObject {
+public:
+  TimeStamp() {}
+  TimeStamp(int time) {
+    // we use the TObjectID for the time
+    SetUniqueID(time);
+  }
+  int GetTimeStamp() const { return TObject::GetUniqueID(); }
+  ClassDef(TimeStamp, 1);
+};
+using DigitBase = TimeStamp;
+
 
 /// \class Digit
 /// This is the definition of the common Digit object, which is the final entity after Digitization
 /// Its coordinates are defined by the CRU, the time bin, the pad row and the pad.
 /// It holds the ADC value of a given pad on the pad plane.
 
-class Digit {
+class Digit : public DigitBase {
   public:
 
     /// Default constructor
@@ -34,10 +52,10 @@ class Digit {
     /// \param charge Accumulated charge of Digit
     /// \param row Row in which the Digit was created
     /// \param pad Pad in which the Digit was created
-    Digit(int cru, float charge, int row, int pad);
+    Digit(int cru, float charge, int row, int pad, int time);
 
     /// Destructor
-    virtual ~Digit()= default;
+    ~Digit() final = default;
 
     /// Get the accumulated charged of the Digit in ADC counts.
     /// The conversion is such that the decimals are simply stripped
@@ -62,7 +80,7 @@ class Digit {
 
     /// Get the timeBin of the Digit
     /// \return timeBin of the Digit
-    virtual int getTimeStamp() const = 0;
+    int getTimeStamp() const { return static_cast<int>(DigitBase::GetTimeStamp()); }
 
 
   protected:
@@ -72,25 +90,30 @@ class Digit {
     unsigned char           mRow;             ///< Row of the Digit
     unsigned char           mPad;             ///< Pad of the Digit
 
+
+    ClassDef(Digit, 1);
+
 };
 
 inline
 Digit::Digit()
-  : mCharge(0.f)
-  , mCRU(-1)
-  , mRow(-1)
-  , mPad(-1)
+  : DigitBase(),
+    mCharge(0.f),
+    mCRU(-1),
+    mRow(-1),
+    mPad(-1)
 {}
 
 inline
-Digit::Digit(int cru, float charge, int row, int pad)
-  : mCharge(charge)
-  , mCRU(cru)
-  , mRow(row)
-  , mPad(pad)
+Digit::Digit(int cru, float charge, int row, int pad, int time)
+  : DigitBase(time),
+    mCharge(charge),
+    mCRU(cru),
+    mRow(row),
+    mPad(pad)
 {}
 
 }
 }
 
-#endif // ALICEO2_TPC_Digit_H_
+#endif // ALICEO2_TPC_DIGIT_H_

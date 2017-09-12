@@ -27,7 +27,7 @@ void testRawRead(std::string filename)
   cont.addGBTFramesFromBinaryFile(filename);
   std::cout << " ... done. Read " << cont.getSize() << "\n";
 
-  std::vector<DigitData> digits(80);
+  std::vector<Digit> digits(80);
 
   int maxPad=-1;
 

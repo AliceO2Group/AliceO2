@@ -20,6 +20,7 @@
 
 #include "FairRootManager.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include <TClonesArray.h>
 
 namespace o2 {
@@ -65,19 +66,19 @@ class DigitPad{
     /// \param row Row ID
     /// \param pad pad ID
     /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode = 0.f);
+    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode = 0.f);
 
   private:
-    /// The MC labels are sorted by occurrence such that the event/track combination with the largest number of occurrences is first
-    /// This is then dumped into a std::vector and attached to the digits
-    /// \todo Find out how many different event/track combinations are relevant
-    /// \param std::vector containing the sorted MCLabels
-    void processMClabels(std::vector<long> &sortedMCLabels) const;
+
+    /// Compare two MC labels regarding trackID, eventID and sourceID
+    /// \param label1 MC label 1
+    /// \param label2 MC label 2
+    /// \return true, if trackID, eventID and sourceID are the same
+    bool compareMClabels(const MCCompLabel &label1, const MCCompLabel &label2) const;
 
     float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
     unsigned char          mPad;         ///< Pad of the ADC value
-    // according to event + trackID + sorted according to most probable
-    std::map<long, int>    mMCID;        //! Map containing the MC labels (key) and the according number of occurrence (value)
+    std::vector<std::pair<MCCompLabel, int>> mMClabel; ///< vector to accumulate the MC labels
 
     // TODO: optimize this treatment, for example by using a structure like this
     // struct MCIDValue {
@@ -92,19 +93,22 @@ inline
 DigitPad::DigitPad(int pad)
   : mChargePad(0.),
     mPad(pad),
-    mMCID()
+    mMClabel()
 {}
 
 inline 
 void DigitPad::setDigit(size_t trackID, float charge)
 {
   static FairRootManager *mgr = FairRootManager::Instance();
-  const int eventID = mgr->GetEntryNr();
-  /// the MC ID is encoded such that we can have 999,999 tracks
-  /// numbers larger than 1000000 correspond to the event ID
-  /// i.e. 12000010 corresponds to event 12 with track ID 10
-  /// \todo Faster would be a bit shift
-  ++mMCID[(eventID)*1000000 + trackID];
+  bool isKnown = false;
+  MCCompLabel tempLabel(trackID, mgr->GetEntryNr());
+  for(auto &mcLabel : mMClabel) {
+    if(compareMClabels(tempLabel, mcLabel.first)) {
+      ++mcLabel.second;
+      isKnown=true;
+    }
+  }
+  if(!isKnown) mMClabel.emplace_back(tempLabel, 1);
   mChargePad += charge;
 }
 
@@ -112,8 +116,15 @@ inline
 void DigitPad::reset()
 {
   mChargePad = 0;
-  mMCID.clear();
+  mMClabel.clear();
 }
+
+inline
+bool DigitPad::compareMClabels(const MCCompLabel &label1, const MCCompLabel &label2) const
+{
+  return (label1.getEventID() == label2.getEventID() && label1.getTrackID() == label2.getTrackID() && label1.getSourceID() == label2.getSourceID());
+}
+
   
 }
 }

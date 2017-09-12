@@ -30,7 +30,7 @@ void DigitRow::setDigit(size_t hitID, int pad, float charge)
   }
 }
 
-void DigitRow::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<long> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, float commonMode)
+void DigitRow::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, float commonMode)
 {
   for(auto &aPad : mPads) {
     if(aPad == nullptr) continue;

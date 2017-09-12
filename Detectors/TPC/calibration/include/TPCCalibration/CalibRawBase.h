@@ -166,7 +166,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
 
   ProcessStatus status = ProcessStatus::Ok;
 
-  std::vector<DigitData> digits(80);
+  std::vector<Digit> digits(80);
   for (auto& reader_ptr : mGBTFrameContainers) {
     auto reader = reader_ptr.get();
     int readTimeBins = 0;

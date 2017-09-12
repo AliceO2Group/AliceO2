@@ -76,7 +76,7 @@ class DigitizerTask : public FairTask{
       
     TClonesArray        *mPointsArray;  ///< Array of detector hits, passed to the digitization
     TClonesArray        *mDigitsArray;  ///< Array of the Digits, passed from the digitization
-    o2::dataformats::MCTruthContainer<long> mMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
     TClonesArray        *mDigitsDebugArray;  ///< Array of the Digits, for debugging purposes only, passed from the digitization
     
     std::string         mHitFileName;  ///< External hit file exported from AliRoot
