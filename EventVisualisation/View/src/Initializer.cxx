@@ -13,11 +13,13 @@
 /// \author  Jeremi Niedziela
 ///
 
-#include "Initializer.h"
+#include "EventVisualisationView/Initializer.h"
 
-#include "EventManager.h"
-#include "GeometryManager.h"
-#include "MultiView.h"
+#include "EventVisualisationBase/ConfigurationManager.h"
+#include "EventVisualisationBase/EventManager.h"
+#include "EventVisualisationBase/GeometryManager.h"
+#include "EventVisualisationView/MultiView.h"
+#include "EventVisualisationBase/VisualisationConstants.h"
 
 #include <TGTab.h>
 #include <TEnv.h>
@@ -26,6 +28,7 @@
 #include <TRegexp.h>
 #include <TSystem.h>
 #include <TSystemDirectory.h>
+#include <TROOT.h>
 
 #include <iostream>
 
@@ -37,16 +40,15 @@ namespace EventVisualisation {
 Initializer::Initializer(EventManager::EDataSource defaultDataSource)
 {
   TEnv settings;
-  getConfig(settings);
+  ConfigurationManager::getInstance().getConfig(settings);
   
   const bool fullscreen      = settings.GetValue("fullscreen.mode",false);       // hide left and bottom tabs
   const string ocdbStorage   = settings.GetValue("OCDB.default.path","local://$ALICE_ROOT/OCDB");// default path to OCDB
   cout<<"Initializer -- OCDB path:"<<ocdbStorage<<endl;
   
-  EventManager *eventManager = EventManager::getInstance();
-  
-  eventManager->setDataSourceType(defaultDataSource);
-  eventManager->setCdbPath(ocdbStorage);
+  auto &eventManager = EventManager::getInstance();
+  eventManager.setDataSourceType(defaultDataSource);
+  eventManager.setCdbPath(ocdbStorage);
   
 //  gEve->AddEvent(eventManager);
   
@@ -64,12 +66,16 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
   if(fullscreen){
     ((TGWindow*)gEve->GetBrowser()->GetTabLeft()->GetParent())->Resize(1,0);
     ((TGWindow*)gEve->GetBrowser()->GetTabBottom()->GetParent())->Resize(0,1);
-    
   }
   gEve->GetBrowser()->Layout();
   gSystem->ProcessEvents();
   
   setupCamera();
+  
+  // Temporary:
+  // For the time being we draw single random event on startup.
+  // Later this will be triggered by button, and finally moved to configuration.
+  MultiView::getInstance()->drawRandomEvent();
 }
  
 Initializer::~Initializer()
@@ -81,63 +87,28 @@ void Initializer::setupGeometry()
 {
   // read path to geometry files from config file
   TEnv settings;
-  getConfig(settings);
+  ConfigurationManager::getInstance().getConfig(settings);
   
-  string geomPath = settings.GetValue("simple.geom.path","${ALICEO2_ROOT}/EventVisualisation/resources/geometry/run3/");
-  const string o2basePath = "";//gSystem->Getenv("ALICEO2_ROOT"); // this variable is not set in O2, to be fixed
-  const size_t o2pos = geomPath.find("${ALICEO2_ROOT}");
-
-  if(o2pos != string::npos){
-    geomPath.replace(o2pos,o2pos+13,o2basePath);
-  }
-
-  // open root files matching "simple_geom_XYZ.txt"
-  TSystemDirectory dir(geomPath.c_str(),geomPath.c_str());
-  TList *files(dir.GetListOfFiles());
-  vector<TString> detectorsList;
-  
-  if (files){
-    TRegexp geomNamePattern("simple_geom_[A-Z,0-9][A-Z,0-9][A-Z,0-9].root");
-    TRegexp detectorNamePattern("[A-Z,0-9][A-Z,0-9][A-Z,0-9]");
-    
-    TSystemFile *file = nullptr;
-    TString fileName;
-    TIter next(files);
-    
-    while ((file=static_cast<TSystemFile*>(next()))){
-      fileName = file->GetName();
-      
-      if(fileName.Contains(geomNamePattern)){
-        TString detectorName = fileName(detectorNamePattern);
-        detectorName.Resize(3);
-        detectorsList.push_back(detectorName);
-      }
-    }
-  }
-  else{
-    cout<<"\n\nInitializer -- geometry files not found!!!"<<endl;
-    cout<<"Searched directory was:"<<endl;
-    dir.Print();
-  }
-
   // get geometry from Geometry Manager and register in multiview
-  auto geoManager = GeometryManager::getInstance();
+  auto multiView = MultiView::getInstance();
   
-  for(int i=0;i<detectorsList.size();++i){
-    if(settings.GetValue(detectorsList[i]+".draw", true))
+  for(int iDet=0;iDet<NvisualisationGroups;++iDet){
+    EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
+    string detName = gVisualisationGroupName[det];
+    if(settings.GetValue((detName+".draw").c_str(), false))
     {
-      if(   detectorsList[i]=="TPC" || detectorsList[i]=="MCH" || detectorsList[i]=="MTR"
-         || detectorsList[i]=="MID" || detectorsList[i]=="MFT" || detectorsList[i]=="AD0"
-         || detectorsList[i]=="FMD"){// don't load MUON+MFT and AD and standard TPC to R-Phi view
+      if(   detName=="TPC" || detName=="MCH" || detName=="MTR"
+         || detName=="MID" || detName=="MFT" || detName=="AD0"
+         || detName=="FMD"){// don't load MUON+MFT and AD and standard TPC to R-Phi view
         
-        geoManager->drawGeometryForDetector(detectorsList[i].Data(),true,false);
+        multiView->drawGeometryForDetector(detName,true,false);
       }
-      else if(detectorsList[i]=="RPH"){// special TPC geom from R-Phi view
+      else if(detName=="RPH"){// special TPC geom from R-Phi view
         
-        geoManager->drawGeometryForDetector("RPH",false,true,false);
+        multiView->drawGeometryForDetector(detName,false,true,false);
       }
       else{// default
-        geoManager->drawGeometryForDetector(detectorsList[i].Data());
+        multiView->drawGeometryForDetector(detName);
       }
     }
   }
@@ -147,7 +118,7 @@ void Initializer::setupCamera()
 {
   // move and rotate sub-views
   TEnv settings;
-  getConfig(settings);
+  ConfigurationManager::getInstance().getConfig(settings);
   
   // read settings from config file
   const double angleHorizontal = settings.GetValue("camera.3D.rotation.horizontal",-0.4);
@@ -176,27 +147,11 @@ void Initializer::setupBackground()
 {
   // get viewers of multiview and change color to the value from config file
   TEnv settings;
-  getConfig(settings);
+  ConfigurationManager::getInstance().getConfig(settings);
   
   for(int viewIter=0;viewIter<MultiView::NumberOfViews;++viewIter){
     TEveViewer *view = MultiView::getInstance()->getView(static_cast<MultiView::EViews>(viewIter));
     view->GetGLViewer()->SetClearColor(settings.GetValue("background.color",1));
-  }
-}
-  
-void Initializer::getConfig(TEnv &settings)
-{
-  if(settings.ReadFile(Form("%s/.eve_config",gSystem->Getenv("HOME")), kEnvUser) < 0)
-  {
-    if(settings.ReadFile(Form("%s/eve_config",gSystem->Getenv("HOME")), kEnvUser) < 0)
-    {
-      cout<<"WARNING -- could not find eve_config in home directory! Trying default one in O2/EventVisualisation/Base/"<<endl;
-      if(settings.ReadFile(Form("%s/EventVisualisation/Base/src/eve_config",gSystem->Getenv("ALICEO2_INSTALL_PATH")), kEnvUser) < 0)
-      {
-        cout<<"ERROR -- could not find eve_config file!."<<endl;
-        exit(0);
-      }
-    }
   }
 }
 

@@ -16,9 +16,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_INITIALIZER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_INITIALIZER_H
 
-#include "EventManager.h"
-
-#include <TEnv.h>
+#include "EventVisualisationBase/EventManager.h"
 
 namespace o2  {
 namespace EventVisualisation {
@@ -26,7 +24,7 @@ namespace EventVisualisation {
 /// This class initializes a core of the visualisation system.
 ///
 /// Initializer should be created only once when starting
-/// event display. It will create all scenes, load geometries,
+/// event display. It will create MultiView, load geometries,
 /// setup camera and background and finally resize and position
 /// the main window.
 
@@ -37,9 +35,7 @@ class Initializer
     explicit Initializer(const EventManager::EDataSource defaultDataSource = EventManager::SourceOffline);// default data source will be moved to a config file
     /// Default destructor
     ~Initializer();
-    
-    /// Returns current event display configuration
-    static void getConfig(TEnv &settings); // this will be moved to different class
+  
   private:
     /// Loads geometry for all detectors
     void setupGeometry();

@@ -22,48 +22,33 @@
 namespace o2  {
 namespace EventVisualisation {
 
-/// GeometryManager is responsible for drawing geometry of detectors.
+/// GeometryManager allows access to geometries of detectors.
 ///
 /// GeometryManager is a singleton class which opens ROOT files with
 /// simplified geometries, reads drawing parameters (such as color or transparency)
-/// from the config file, prepares and draws the volumes. If needed, it can remove
-/// and redraw geometry for given detector or all geometries.
+/// from the config file, prepares and return ready-to-draw volumes.
   
 class GeometryManager
 {
   public:
     /// Returns an instance of GeometryManager
-    static GeometryManager* getInstance();
-    
-    /// Draws geometry for given detector
-    /// \param detectorName  The name of the detector to draw geometry of
-    /// \param threeD Should 3D view be drawn
-    /// \param rPhi Should R-Phi projection be drawn
-    /// \param zRho Should Z-Rho projection be drawn
-    void drawGeometryForDetector(std::string detectorName,bool threeD=true, bool rPhi=true, bool zRho=true);
-    /// Removes all geometries
-    void destroyAllGeometries();
-    
-  private:
-    /// Default constructor
-    GeometryManager();
-    /// Default destructor
-    ~GeometryManager();
-    
-    static GeometryManager *sInstance;        ///< Static instance of GeometryManager
-    
-    /// Vector keeping all geometries
-    ///
-    /// This is used just to know what to remove
-    /// when destroying of all geometries is requested
-    std::vector<TEveGeoShape*> mGeomVector;
-    
+    static GeometryManager& getInstance();
+  
     /// Returns ROOT shapes describing simplified geometry of given detector
     TEveGeoShape* getGeometryForDetector(std::string detectorName);
+  
+  private:
     /// Goes through all children nodes of geometry shape and sets drawing options
     void drawDeep(TEveGeoShape *geomShape, Color_t color, Char_t transparency, Color_t lineColor);
-    /// Registers geometry to be drawn in appropriate views
-    void registerGeometry(TEveGeoShape *geom,bool threeD=true, bool rPhi=true, bool zRho=true);
+  
+    /// Default constructor
+    GeometryManager(){}
+    /// Default destructor
+    ~GeometryManager(){}
+    /// Deleted copy constructor
+    GeometryManager(GeometryManager const&) = delete;
+    /// Deleted assignment operator
+    void operator=(GeometryManager const&)  = delete;
 };
   
 }

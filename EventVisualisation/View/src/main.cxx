@@ -13,12 +13,13 @@
 /// \author  Jeremi Niedziela
 ///
 
-#include "Initializer.h"
+#include "EventVisualisationView/Initializer.h"
 
 #include <TApplication.h>
 #include <TEveBrowser.h>
 #include <TEveManager.h>
 
+#include <ctime>
 #include <iostream>
 
 using namespace std;
@@ -29,6 +30,8 @@ using namespace o2::EventVisualisation;
 int main(int argc, char **argv)
 {
   cout<<"Welcome in O2 event visualisation tool"<<endl;
+ 
+  srand(static_cast<unsigned int>(time(nullptr)));
   
   // create ROOT application environment
   TApplication *app = new TApplication("o2eve", &argc, argv);
