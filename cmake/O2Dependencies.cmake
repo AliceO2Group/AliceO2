@@ -913,10 +913,11 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    event_visualisation_bucket
+    event_visualisation_base_bucket
 
     DEPENDENCIES
     root_base_bucket
+    EventVisualisationDataConverter
     Graf3d
     Eve
     RGL
@@ -925,6 +926,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/CCDB/include
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/DataConverter/include
 
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -971,4 +973,69 @@ o2_define_bucket(
     TOFSimulation
     Field
     Generators
+)
+
+o2_define_bucket(
+NAME
+    event_visualisation_detectors_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    EventVisualisationBase
+    EventVisualisationDataConverter
+    Graf3d
+    Eve
+    RGL
+    Gui
+    CCDB
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/Base/include
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/DataConverter/include
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    event_visualisation_view_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    EventVisualisationBase
+    EventVisualisationDetectors
+    EventVisualisationDataConverter
+    Graf3d
+    Eve
+    RGL
+    Gui
+    CCDB
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/Base/include
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/Detectors/include
+    ${CMAKE_SOURCE_DIR}/EventVisualisation/DataConverter/include
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+NAME
+    event_visualisation_data_converter_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    Graf3d
+    Eve
+    RGL
+    Gui
+    CCDB
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/CCDB/include
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
 )

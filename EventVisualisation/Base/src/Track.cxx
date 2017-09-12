@@ -9,42 +9,47 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    EventManager.cxx
+/// \file    Track.cxx
 /// \author  Jeremi Niedziela
+
+#include "EventVisualisationBase/Track.h"
 
 #include "EventVisualisationBase/EventManager.h"
 
-#include "EventVisualisationDataConverter/MinimalisticEvent.h"
-#include "EventVisualisationBase/Track.h"
-#include "EventVisualisationBase/ConfigurationManager.h"
-
-#include <TEveManager.h>
-#include <TEveProjectionManager.h>
-#include <TSystem.h>
-#include <TEnv.h>
+#include <TROOT.h>
+#include <TMath.h>
+#include <TEveUtil.h>
+#include <TEvePointSet.h>
 #include <TEveElement.h>
+#include <TEveManager.h>
 #include <TEveTrackPropagator.h>
-#include <TGListTree.h>
-#include <TEveTrack.h>
 
-using namespace std;
+
 
 namespace o2  {
 namespace EventVisualisation {
 
-EventManager& EventManager::getInstance()
-{
-  static EventManager instance;
-  return instance;
-}
-
-EventManager::EventManager() : TEveEventManager("Event",""),
-mCurrentDataSourceType(SourceOffline)
+Track::Track() : TEveTrack()
 {
 }
 
-EventManager::~EventManager()
+Track::~Track()
 {
+}
+  
+void Track::setVertex(double v[3])
+{
+  fV.Set(v);
+}
+  
+void Track::setMomentum(double p[3])
+{
+  fP.Set(p);
+}
+  
+void Track::setBeta(double beta)
+{
+  fBeta=beta;
 }
   
 }

@@ -7,7 +7,7 @@
 
 trigger.class.filter:                   none
 
-axes.show:                              1
+axes.show:                              0
 fullscreen.mode:                        0
 background.color:                       1
 
@@ -17,7 +17,16 @@ camera.3D.zoom:                         1.0
 camera.R-Phi.zoom:                      1.0
 camera.Rho-Z.zoom:                      1.0
 
-simple.geom.path:                       ${ALICE_ROOT}/EVE/resources/geometry/run3/
+simple.geom.path:                       ${ALICE_ROOT}/EVE/resources/geometry/run2/
+
+tracks.width:                           2
+
+tracks.byType.electron:                 600
+tracks.byType.muon:                     416
+tracks.byType.pion:                     632
+tracks.byType.kaon:                     400
+tracks.byType.proton:                   797
+tracks.byType.unknown:                  920
 
 PHS.draw:                               1
 TPC.draw:                               1
@@ -87,7 +96,7 @@ FIT.line.color:                         1
 AD0.line.color:                         1
 FMD.line.color:                         907
 
-OCDB.default.path:                      local://$(ALICE_ROOT)/OCDB/
+OCDB.default.path:                      local:///local/cdb/
 
 #
 # EOF

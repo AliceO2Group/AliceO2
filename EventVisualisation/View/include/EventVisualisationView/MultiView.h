@@ -28,7 +28,9 @@ namespace EventVisualisation {
 /// This singleton class manages views and scenes of the event display.
 ///
 /// MultiView will create all necessary views and scenes, give them proper names
-/// and descriptions and provide pointers to these objects. 
+/// and descriptions and provide pointers to these objects. It also allows to draw
+/// or remove simplified geometries. One can also register visualisation objects for
+/// drawing in the MultiView, which will be imported to 3D view and projections.
   
 class MultiView
 {
@@ -64,7 +66,24 @@ class MultiView
     inline TEveScene* getScene(EScenes scene){return mScenes[scene];}
     /// Returns pointer to specific projection manager
     inline TEveProjectionManager* getProjection(EProjections projection){return mProjections[projection];}
-    
+  
+    /// Draws geometry for given detector
+    /// \param detectorName  The name of the detector to draw geometry of
+    /// \param threeD Should 3D view be drawn
+    /// \param rPhi Should R-Phi projection be drawn
+    /// \param zRho Should Z-Rho projection be drawn
+    void drawGeometryForDetector(std::string detectorName,bool threeD=true, bool rPhi=true, bool zRho=true);
+    /// Registers geometry to be drawn in appropriate views
+    void registerGeometry(TEveGeoShape *geom,bool threeD=true, bool rPhi=true, bool zRho=true);
+    /// Removes all geometries
+    void destroyAllGeometries();
+  
+    /// Registers an event to be drawn
+    void registerEvent(TEveElement* event);
+    /// Removes all shapes representing current event
+    void destroyAllEvents();
+  
+    void drawRandomEvent();
   private:
     /// Default constructor
     MultiView();
@@ -84,6 +103,12 @@ class MultiView
     void setupMultiview();
     /// Returns geometry scene for given projection manager
     EScenes getSceneOfProjection(EProjections projection);
+  
+  /// Vector keeping all geometries
+  ///
+  /// This is used just to know what to remove
+  /// when destroying of all geometries is requested
+  std::vector<TEveGeoShape*> mGeomVector;
 };
 
 }
