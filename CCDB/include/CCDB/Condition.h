@@ -17,6 +17,7 @@
 #include "CCDB/ConditionId.h"        // for ConditionId
 #include "CCDB/ConditionMetaData.h"  // for ConditionMetaData
 #include "CCDB/IdPath.h"             // for IdPath
+#include <CCDB/TObjectWrapper.h>
 #include "Rtypes.h"             // for Int_t, kFALSE, Bool_t, etc
 #include "TObject.h"            // for TObject
 #include "TString.h"            // for TString
@@ -108,6 +109,19 @@ class Condition : public TObject
     {
       return mObject;
     };
+
+    /// retrieve object as specified type
+    /// return false if failed/true otherwise
+    template<typename T>
+    bool getObjectAs(T *& obj) {
+      obj = nullptr;
+      // test if saved object was a wrapped object
+      if(auto wrapped = dynamic_cast<TObjectWrapper<T>*>(mObject)) {
+        obj = wrapped->getObj();
+        return true;
+      }
+      return false; 
+   }
 
     void setConditionMetaData(ConditionMetaData *metaData)
     {

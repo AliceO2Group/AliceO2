@@ -34,7 +34,7 @@ public:
   void Pack(const std::string& path, const std::string& key, std::string*& messageString) override;
 
   /// Parses an incoming message from the CCDB server and prints the metadata of the included object
-  void UnPack(std::unique_ptr<FairMQMessage> msg) override;
+  Condition* UnPack(std::unique_ptr<FairMQMessage> msg) override;
 };
 }
 }
