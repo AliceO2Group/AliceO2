@@ -2637,28 +2637,21 @@ void Detector::ConstructTPCGeometry()
   //
   // outer rod plug left
   //
-  auto *outplug = new TGeoPcon("outplug", 0.0, 360.0, 14);
+  auto *outplug = new TGeoPcon("outplug", 0.0, 360.0, 13);
 
   outplug->DefineSection(0, 0.5, 0.0, 2.2);
   outplug->DefineSection(1, 0.7, 0.0, 2.2);
-
   outplug->DefineSection(2, 0.7, 1.55, 2.2);
   outplug->DefineSection(3, 0.8, 1.55, 2.2);
-
   outplug->DefineSection(4, 0.8, 1.55, 1.75);
   outplug->DefineSection(5, 1.2, 1.55, 1.75);
-
   outplug->DefineSection(6, 1.2, 1.55, 2.2);
   outplug->DefineSection(7, 1.875, 1.55, 2.2);
-
-  outplug->DefineSection(8, 1.875, 1.55, 2.2);
-  outplug->DefineSection(9, 2.47, 1.75, 2.2);
-
-  outplug->DefineSection(10, 2.47, 1.75, 2.08);
-  outplug->DefineSection(11, 2.57, 1.8, 2.08);
-
-  outplug->DefineSection(12, 2.57, 1.92, 2.08);
-  outplug->DefineSection(13, 2.95, 1.92, 2.08);
+  outplug->DefineSection(8, 2.47, 1.75, 2.2);
+  outplug->DefineSection(9, 2.47, 1.75, 2.08);
+  outplug->DefineSection(10, 2.57, 1.8, 2.08);
+  outplug->DefineSection(11, 2.57, 1.92, 2.08);
+  outplug->DefineSection(12, 2.95, 1.92, 2.08);
   //
   shift1[0] = 0.0;
   shift1[1] = 2.09;
