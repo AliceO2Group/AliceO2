@@ -14,7 +14,6 @@
 #include "TSystem.h"
 
 #include "DetectorsPassive/Cave.h"
-#include "DetectorsPassive/FrameStructure.h"
 #include "DetectorsPassive/Magnet.h"
 #include "DetectorsPassive/Dipole.h"
 #include "DetectorsPassive/Absorber.h"
