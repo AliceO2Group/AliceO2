@@ -127,7 +127,7 @@ void Digitizer::setEventTime(double t)
     }
   }
   else { // in the triggered mode we start from 0 ROFrame in every event
-    mParams.setTimeOffset(+0.);
+    mParams.setTimeOffset( mEventTime + mParams.getROFrameLenght()*(gRandom->Rndm()-0.5));
     mROFrameMin = 0;  // so we reset the frame counters
     mROFrameMax = 0;
   }

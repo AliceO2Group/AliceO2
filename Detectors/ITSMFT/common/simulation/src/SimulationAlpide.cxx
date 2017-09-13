@@ -129,7 +129,8 @@ void SimulationAlpide::Hits2Digits(const SegmentationPixel *seg, Double_t eventT
     if (roframe>maxFr) maxFr = roframe;
     
     // check if the hit time is not in the dead time of the chip
-    if ( mParams->getROFrameLenght() - roframe%mParams->getROFrameLenght() < mParams->getROFrameDeadTime()) continue;
+    // RS: info from L.Musa: no inefficiency on the frame boundary
+    //if ( mParams->getROFrameLenght() - roframe%mParams->getROFrameLenght() < mParams->getROFrameDeadTime()) continue;
 
     switch (mParams->getHit2DigitsMethod()) {
     case DigiParams::p2dCShape :
