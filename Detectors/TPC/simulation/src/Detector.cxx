@@ -2390,7 +2390,7 @@ void Detector::ConstructTPCGeometry()
   //
   // and now left inner "head"
   //
-  auto *inplug = new TGeoPcon("inplug", 0.0, 360.0, 14);
+  auto *inplug = new TGeoPcon("inplug", 0.0, 360.0, 13);
 
   inplug->DefineSection(0, 0.3, 0.0, 2.2);
   inplug->DefineSection(1, 0.6, 0.0, 2.2);
@@ -2404,14 +2404,14 @@ void Detector::ConstructTPCGeometry()
   inplug->DefineSection(6, 1.6, 1.55, 2.2);
   inplug->DefineSection(7, 1.875, 1.55, 2.2);
 
-  inplug->DefineSection(8, 1.875, 1.55, 2.2);
-  inplug->DefineSection(9, 2.47, 1.75, 2.2);
 
-  inplug->DefineSection(10, 2.47, 1.75, 2.08);
-  inplug->DefineSection(11, 2.57, 1.8, 2.08);
+  inplug->DefineSection(8, 2.47, 1.75, 2.2);
 
-  inplug->DefineSection(12, 2.57, 1.92, 2.08);
-  inplug->DefineSection(13, 2.95, 1.92, 2.08);
+  inplug->DefineSection(9, 2.47, 1.75, 2.08);
+  inplug->DefineSection(10, 2.57, 1.8, 2.08);
+
+  inplug->DefineSection(11, 2.57, 1.92, 2.08);
+  inplug->DefineSection(12, 2.95, 1.92, 2.08);
   //
   shift1[0]=0.0;
   shift1[1]=-2.09;
