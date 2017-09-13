@@ -10,7 +10,6 @@ set(SRCS
   src/Pipe.cxx
   src/Magnet.cxx
   src/PassiveContFact.cxx
-  src/FrameStructure.cxx
   src/FrameStructureRun3.cxx
   src/Shil.cxx
   src/Hall.cxx
@@ -24,7 +23,6 @@ Set(HEADERS
     include/${MODULE_NAME}/Magnet.h
     include/${MODULE_NAME}/PassiveContFact.h
     include/${MODULE_NAME}/Pipe.h
-    include/${MODULE_NAME}/FrameStructure.h
     include/${MODULE_NAME}/FrameStructureRun3.h
     include/${MODULE_NAME}/Shil.h
     include/${MODULE_NAME}/Hall.h
