@@ -38,10 +38,11 @@ void BackendOCDB::Pack(const std::string& path, const std::string& key, std::str
   LOG(ERROR) << "The PUT operation is not supported for the OCDB backend yet";
 }
 
-void BackendOCDB::UnPack(std::unique_ptr<FairMQMessage> msg)
+Condition* BackendOCDB::UnPack(std::unique_ptr<FairMQMessage> msg)
 {
   WrapTMessage tmsg(msg->GetData(), msg->GetSize());
   Condition* aCondition = (Condition*)(tmsg.ReadObject(tmsg.GetClass()));
   LOG(DEBUG) << "Received a condition from the server:";
   aCondition->printConditionMetaData();
+  return aCondition;
 }

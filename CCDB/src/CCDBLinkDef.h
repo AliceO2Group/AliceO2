@@ -33,5 +33,9 @@
 #pragma link C++ class o2::CDB::GridStorageFactory+;
 #pragma link C++ class o2::CDB::GridStorageParameters+;
 #pragma link C++ class o2::CDB::XmlHandler+;
+/// for the unit test
+#pragma link C++ class TestClass+;
+#pragma link C++ class o2::TObjectWrapper<TestClass>+;
+
 
 #endif

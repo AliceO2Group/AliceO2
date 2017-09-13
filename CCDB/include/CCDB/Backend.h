@@ -27,6 +27,8 @@
 namespace o2 {
 namespace CDB {
 
+class Condition;
+
 class Backend {
 public:
   virtual ~Backend()= default;
@@ -35,7 +37,7 @@ public:
   virtual void Pack(const std::string& path, const std::string& key, std::string*& messageString) = 0;
 
   /// UnPack
-  virtual void UnPack(std::unique_ptr<FairMQMessage> msg) = 0;
+  virtual Condition* UnPack(std::unique_ptr<FairMQMessage> msg) = 0;
 
   /// Serializes a key (and optionally value) to an std::string using Protocol Buffers
   void Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,

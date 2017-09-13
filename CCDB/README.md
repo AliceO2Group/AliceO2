@@ -26,6 +26,10 @@ conditions-server --id parmq-server --mq-config <installation directory>/bin/con
 conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source OCDB --object-path <installation directory>/bin/config/O2CDB
 ```
 
+* We can also query the running conditions-server using any user code as
+  demonstrated in `standalone-client` which works for an O2CDB
+  generated from the unit test `testWriteReadAny`
+
 ### Riak backend
 
 To run the MQ server-client example with the MQ server executing PUT or GET commands to a Riak cluster through an MQ broker, the steps below should be followed:

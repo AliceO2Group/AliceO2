@@ -127,8 +127,9 @@ void BackendRiak::Pack(const std::string& path, const std::string& key, std::str
   Serialize(messageString, key, "PUT", "Riak", compressed_object);
 }
 
-void BackendRiak::UnPack(std::unique_ptr<FairMQMessage> msg)
+Condition* BackendRiak::UnPack(std::unique_ptr<FairMQMessage> msg)
 {
+  // FIXME: how to actually extract a condition or a binary blob here?
   std::string brokerString(static_cast<char*>(msg->GetData()), msg->GetSize());
 
   // Deserialize the received string
@@ -138,4 +139,7 @@ void BackendRiak::UnPack(std::unique_ptr<FairMQMessage> msg)
   // Decompress the compressed object
   std::string object;
   Decompress(object, compressedObject);
+  
+  // nullptr since no other possibility at moment
+  return nullptr;
 }

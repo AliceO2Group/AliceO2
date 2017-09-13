@@ -11,7 +11,7 @@
                 {
                     "type": "push",
                     "method": "connect",
-                    "address": "tcp://localhost:5005",
+                    "address": "tcp://localhost:25005",
                     "sndBufSize": "200",
                     "rcvBufSize": "1000",
                     "rateLogging": "0"
@@ -24,7 +24,7 @@
                 {
                     "type": "req",
                     "method": "connect",
-                    "address": "tcp://localhost:5006",
+                    "address": "tcp://localhost:25006",
                     "sndBufSize": "1000",
                     "rcvBufSize": "1000",
                     "rateLogging": "0"

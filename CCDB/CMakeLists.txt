@@ -39,6 +39,7 @@ set(HEADERS
   include/${MODULE_NAME}/ObjectHandler.h
   include/${MODULE_NAME}/Storage.h
   include/${MODULE_NAME}/XmlHandler.h
+  test/TestClass.h
 )
 
 Set(NO_DICT_SRCS
@@ -57,11 +58,13 @@ O2_GENERATE_LIBRARY()
 Set(Exe_Names
   conditions-server
   conditions-client
+  standalone-client
 )
 
 Set(Exe_Source
   src/runConditionsServer.cxx
   src/runConditionsClient.cxx
+  test/testQueryServerStandalone.cxx
 )
 
 list(LENGTH Exe_Names _length)
@@ -87,3 +90,15 @@ install(
     example/fill_local_ocdb.C
     DESTINATION bin/config
 )
+
+set(TEST_SRCS
+   test/testWriteReadAny.cxx
+)
+
+O2_GENERATE_TESTS(
+  BUCKET_NAME ${BUCKET_NAME}
+  MODULE_LIBRARY_NAME ${MODULE_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)
+
+

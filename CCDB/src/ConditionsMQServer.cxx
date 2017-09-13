@@ -168,7 +168,7 @@ void ConditionsMQServer::getFromOCDB(std::string key)
   Condition* aCondition = nullptr;
 
   mCdbManager->setRun(runId);
-  aCondition = mCdbManager->getObject(IdPath(identifier), runId);
+  aCondition = mCdbManager->getCondition(IdPath(identifier), runId);
 
   if (aCondition) {
     LOG(DEBUG) << "Sending following parameter to the client:";

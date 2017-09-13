@@ -11,7 +11,7 @@
                 {
                     "type": "pull",
                     "method": "bind",
-                    "address": "tcp://*:5005",
+                    "address": "tcp://*:25005",
                     "sndBufSize": "1000",
                     "rcvBufSize": "1000",
                     "rateLogging": "0"
@@ -24,7 +24,7 @@
                 {
                     "type": "rep",
                     "method": "bind",
-                    "address": "tcp://*:5006",
+                    "address": "tcp://*:25006",
                     "sndBufSize": "1000",
                     "rcvBufSize": "1000",
                     "rateLogging": "0"
