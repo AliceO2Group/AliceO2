@@ -13,7 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "TFile.h"
+#include <algorithm>
 
 namespace o2
 {
@@ -42,6 +42,25 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   BOOST_CHECK(container.getElement(1) == 2);
   BOOST_CHECK(container.getElement(2) == 1);
   BOOST_CHECK(container.getElement(3) == 10);
+
+  // get iterable container view on labels for index 0
+  auto view = container.getLabels(0);
+  BOOST_CHECK(view.size() == 2);
+  BOOST_CHECK(view[0] == 1);
+  BOOST_CHECK(view[1] == 2);
+  // try to sort the view
+  std::sort(view.begin(), view.end(), [](TruthElement a, TruthElement b){return a>b;});
+  BOOST_CHECK(view[0] == 2);
+  BOOST_CHECK(view[1] == 1);
+
+  // same for another data index
+  view = container.getLabels(2);
+  BOOST_CHECK(view.size() == 1);
+  BOOST_CHECK(view[0] == 10);
+
+  // try to get something invalid
+  view = container.getLabels(10);
+  BOOST_CHECK(view.size() == 0);
 }
 
 } // end namespace
