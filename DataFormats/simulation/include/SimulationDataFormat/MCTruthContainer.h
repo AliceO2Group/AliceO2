@@ -18,6 +18,7 @@
 #include <TNamed.h>
 #include <cassert>
 #include <stdexcept>
+#include <gsl/gsl> // for guideline support library; array_view
 
 namespace o2
 {
@@ -64,6 +65,21 @@ class MCTruthContainer : public TNamed
   size_t getIndexedSize() const { return mHeaderArray.size(); }
   // return the number of elements managed in this container
   size_t getNElements() const { return mTruthArray.size(); }
+
+  // get individual "view" container for a given data index
+  // the caller can do modifications on this view (such as sorting)
+  gsl::span<TruthElement> getLabels(int dataindex) {
+    if(dataindex >= getIndexedSize()) return gsl::span<TruthElement>();
+    return gsl::span<TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], mHeaderArray[dataindex].size);
+  }
+
+  // get individual const "view" container for a given data index
+  // the caller can't do modifications on this view
+  gsl::span<const TruthElement> getLabels(int dataindex) const {
+    if(dataindex >= getIndexedSize()) return gsl::span<const TruthElement>();
+    return gsl::span<const TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], mHeaderArray[dataindex].size);
+  }
+
   void clear()
   {
     mHeaderArray.clear();

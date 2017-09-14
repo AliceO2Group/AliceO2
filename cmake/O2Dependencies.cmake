@@ -23,6 +23,8 @@ find_package(IWYU)
 find_package(DDS)
 
 find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time REQUIRED)
+# for the guideline support library
+include_directories(${MS_GSL_INCLUDE_DIR})
 
 find_package(AliRoot)
 find_package(FairRoot REQUIRED)
@@ -375,6 +377,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${MS_GSL_INCLUDE_DIR}
 )
 
 o2_define_bucket(
