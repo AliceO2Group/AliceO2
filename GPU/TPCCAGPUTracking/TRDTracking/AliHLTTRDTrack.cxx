@@ -90,12 +90,7 @@ Int_t AliHLTTRDTrack::GetTracklet(Int_t iLayer) const
     //Error("GetTracklet", "illegal layer number %i", iLayer);
     return -1;
   }
-  if (fAttachedTracklets[iLayer] == -1) {
-    return -1;
-  }
-  else {
-    return fAttachedTracklets[iLayer];
-  }
+  return fAttachedTracklets[iLayer];
 }
 
 
