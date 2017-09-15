@@ -13,6 +13,7 @@
 using namespace o2::Base;
 
 ClassImp(o2::Base::Transform3D);
+ClassImp(o2::Base::Rotation2D);
 
 //_________________________________________________
 Transform3D::Transform3D(const TGeoMatrix& m)
@@ -41,4 +42,13 @@ void Transform3D::print() const
    * print itself
    */
   std::cout << *this << std::endl;
+}
+
+//_________________________________________________
+std::ostream &operator<<(std::ostream &os, const o2::Base::Rotation2D &t)
+{
+  float cs,sn;
+  t.getComponents(cs,sn);
+  os << "cos: " << cs << " sin: " << sn ;
+  return os;
 }

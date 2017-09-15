@@ -20,8 +20,11 @@
 #include <Math/GenVector/Translation3D.h>
 #include <Rtypes.h>
 #include <TGeoMatrix.h>
-#include "Math/GenVector/DisplacementVector3D.h"
-#include "Math/GenVector/PositionVector3D.h"
+#include <Math/GenVector/DisplacementVector3D.h>
+#include <Math/GenVector/PositionVector3D.h>
+#include "MathUtils/Cartesian2D.h"
+#include <iostream>
+
 
 template <typename T>
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
@@ -33,6 +36,95 @@ namespace o2
 {
 namespace Base
 {
+
+class Rotation2D
+{
+  //
+  // class to perform rotation of 3D (around Z) and 2D points
+
+ public:
+
+  Rotation2D(float cs, float sn) : mCos(cs), mSin(sn) {}
+  Rotation2D(float phiZ) : mCos(cos(phiZ)), mSin(sin(phiZ)) {}
+  ~Rotation2D() = default;
+  Rotation2D(const Rotation2D& src) = default;
+  Rotation2D& operator=(const Rotation2D& src) = default;
+
+  void set(float phiZ)
+  {
+    mCos = cos(phiZ);
+    mSin = sin(phiZ);
+  }
+
+  void set(float cs, float sn)
+  {
+    mCos = cs;
+    mSin = sn;
+  }
+
+  void getComponents(float& cs, float &sn) const
+  {
+    cs = mCos;
+    sn = mSin;
+  }
+  
+  template <typename T>
+  Point3D<T> operator()(const Point3D<T>& v) const
+  { // local->master
+    return Point3D<T>( v.X()*mCos - v.Y()*mSin, v.X()*mSin + v.Y()*mCos, v.Z() );
+  }
+
+  template <typename T>
+  Point3D<T> operator^(const Point3D<T>& v) const
+  { // master->local
+    return Point3D<T>( v.X()*mCos + v.Y()*mSin, -v.X()*mSin + v.Y()*mCos, v.Z() );
+  }
+
+  template <typename T>
+  Vector3D<T> operator()(const Vector3D<T>& v) const
+  { // local->master
+    return Vector3D<T>( v.X()*mCos - v.Y()*mSin, v.X()*mSin + v.Y()*mCos, v.Z() );
+  }
+
+  template <typename T>
+  Vector3D<T> operator^(const Vector3D<T>& v) const
+  { // master->local
+    return Vector3D<T>( v.X()*mCos + v.Y()*mSin, -v.X()*mSin + v.Y()*mCos, v.Z() );
+  }
+
+  template <typename T>
+  Point2D<T> operator()(const Point2D<T>& v) const
+  { // local->master
+    return Point2D<T>( v.X()*mCos - v.Y()*mSin, v.X()*mSin + v.Y()*mCos );
+  }
+
+  template <typename T>
+  Point2D<T> operator^(const Point2D<T>& v) const
+  { // master->local
+    return Point2D<T>( v.X()*mCos + v.Y()*mSin, -v.X()*mSin + v.Y()*mCos );
+  }
+
+  template <typename T>
+  Vector2D<T> operator()(const Vector2D<T>& v) const
+  { // local->master
+    return Vector2D<T>( v.X()*mCos - v.Y()*mSin, v.X()*mSin + v.Y()*mCos );
+  }
+
+  template <typename T>
+  Vector2D<T> operator^(const Vector2D<T>& v) const
+  { // master->local
+    return Vector2D<T>( v.X()*mCos + v.Y()*mSin, -v.X()*mSin + v.Y()*mCos );
+  }
+  
+ private:
+  
+  float mCos = 0.f;  ///< cos of rotation angle
+  float mSin = 0.f;  ///< sin of rotation angle
+
+  ClassDefNV(Rotation2D,1);
+};
+ 
+  
 class Transform3D : public ROOT::Math::Transform3D
 {
   //
@@ -112,5 +204,8 @@ class Transform3D : public ROOT::Math::Transform3D
 };
 }
 }
+
+std::ostream &operator<<(std::ostream &os, const o2::Base::Rotation2D &t);
+
 
 #endif
