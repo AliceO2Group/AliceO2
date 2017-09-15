@@ -22,11 +22,13 @@ class AliHLTTRDTrack : public AliKalmanTrack
 
   Int_t GetTPCtrackId() const { return fTPCtrackId; }
   Int_t GetNtracklets() const { return fNtracklets; }
+  Int_t GetNtrackletsOffline() const { return fNtrackletsOffline; }
   Int_t GetTracklet(Int_t iLayer) const;
 
   void AddTracklet(int iLayer, int idx) { fAttachedTracklets[iLayer] = idx; }
   void SetTPCtrackId( Int_t v ){ fTPCtrackId = v;}
   void SetNtracklets( Int_t nTrklts) { fNtracklets = nTrklts; }
+  void SetNtrackletsOffline( Int_t nTrklts) { fNtrackletsOffline = nTrklts; }
 
   using AliExternalTrackParam::GetPredictedChi2;
   using AliExternalTrackParam::Update;
@@ -54,6 +56,7 @@ class AliHLTTRDTrack : public AliKalmanTrack
 
   Int_t fTPCtrackId;            // corresponding TPC track
   Int_t fNtracklets;            // number of attached TRD tracklets
+  Int_t fNtrackletsOffline;     // number of attached offline TRD tracklets for debugging only
   Int_t fAttachedTracklets[6];  // IDs for attached tracklets sorted by layer
 
   ClassDef(AliHLTTRDTrack,1) //HLT TRD tracker

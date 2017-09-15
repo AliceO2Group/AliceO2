@@ -6,7 +6,8 @@ ClassImp(AliHLTTRDTrack);
 
 AliHLTTRDTrack::AliHLTTRDTrack() :
   fTPCtrackId(0),
-  fNtracklets(0)
+  fNtracklets(0),
+  fNtrackletsOffline(0)
 {
   //------------------------------------------------------------------
   //Default constructor
@@ -20,7 +21,8 @@ AliHLTTRDTrack::AliHLTTRDTrack() :
 AliHLTTRDTrack::AliHLTTRDTrack(const AliHLTTRDTrack& t) :
   AliKalmanTrack(t),
   fTPCtrackId( t.fTPCtrackId),
-  fNtracklets( t.fNtracklets)
+  fNtracklets( t.fNtracklets),
+  fNtrackletsOffline( t.fNtrackletsOffline)
 {
   //------------------------------------------------------------------
   //Copy constructor
@@ -40,6 +42,7 @@ AliHLTTRDTrack &AliHLTTRDTrack::operator=(const AliHLTTRDTrack& t)
   *(AliKalmanTrack*)this = t;
   fTPCtrackId = t.fTPCtrackId;
   fNtracklets = t.fNtracklets;
+  fNtrackletsOffline = t.fNtrackletsOffline;
   for (Int_t i=0; i<=5; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
   }
@@ -50,7 +53,8 @@ AliHLTTRDTrack &AliHLTTRDTrack::operator=(const AliHLTTRDTrack& t)
 AliHLTTRDTrack::AliHLTTRDTrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
   AliKalmanTrack(),
   fTPCtrackId(0),
-  fNtracklets(0)
+  fNtracklets(0),
+  fNtrackletsOffline(0)
 {
   //------------------------------------------------------------------
   // Conversion ESD track -> TRD HLT track.
@@ -70,7 +74,8 @@ AliHLTTRDTrack::AliHLTTRDTrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
 AliHLTTRDTrack::AliHLTTRDTrack(AliExternalTrackParam& t ) throw (const Char_t *) :
   AliKalmanTrack(),
   fTPCtrackId(0),
-  fNtracklets(0)
+  fNtracklets(0),
+  fNtrackletsOffline(0)
 {
   //------------------------------------------------------------------
   // Conversion ESD track -> TRD track.
@@ -119,6 +124,7 @@ void AliHLTTRDTrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
   Set(t.fX, t.fAlpha, &(t.fY), t.fC);
   SetTPCtrackId( t.fTPCTrackID );
   fNtracklets = 0;
+  fNtrackletsOffline = 0;
   for ( int iLayer=0; iLayer <6; iLayer++ ){
     fAttachedTracklets[iLayer] = t.fAttachedTracklets[ iLayer ];
     if( fAttachedTracklets[iLayer]>=0 ) fNtracklets++;
