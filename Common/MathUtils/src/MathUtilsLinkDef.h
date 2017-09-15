@@ -23,5 +23,6 @@
 #pragma link C++ function o2::mathBase::mathBase::fitGaus<double>;
 
 #pragma link C++ class o2::Base::Transform3D+;
+#pragma link C++ class o2::Base::Rotation2D+;
 
 #endif
