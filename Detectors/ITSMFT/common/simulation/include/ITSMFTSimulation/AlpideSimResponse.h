@@ -24,21 +24,37 @@ namespace o2
 namespace ITSMFT
 {
 /*
- * RespSimMat : class to access the response: probability to collect electron 
+ * AlpideRespSimMat : class to access the response: probability to collect electron 
  * in MNPix*MNPix cells. 
  */
-class RespSimMat
+class AlpideRespSimMat
 {
  public:
   static int constexpr NPix = 5;              /// side of quadrant (pixels) with non-0 response
   static int constexpr MatSize = NPix * NPix; /// number of pixels in the quadrant
   static int constexpr getNPix() { return NPix; }
   
-  RespSimMat() = default;
-  ~RespSimMat() = default;
+  AlpideRespSimMat() = default;
+  ~AlpideRespSimMat() = default;
 
+  void adopt(const AlpideRespSimMat& src, bool flipX=false, bool flipY=false)
+  {
+    // copy constructor with option of channels flipping
+    for (int i=NPix;i--;) {
+      for (int j=NPix;j--;) {
+	int bDest = (flipY ? NPix-1-i : i)*NPix + (flipX ? NPix-1-j : j);
+	data[bDest] = src.data[i*NPix+j];
+      }
+    }
+  }
+  
   /// probability to find an electron in pixel ix,iy,iz 
   float getValue(int ix, int iy) const { return data[ix * NPix + iy]; }
+  float getValue(int ix, int iy, bool flipX, bool flipY) const
+  {
+    int bin = (flipY ? NPix-1-ix : ix)*NPix + (flipX ? NPix-1-iy : iy);
+    return data[bin];
+  }
 
   /// pointer on underlying array
   std::array<float, MatSize>* getArray() { return &data; }
@@ -49,7 +65,7 @@ class RespSimMat
  private:
   std::array<float, MatSize> data;
 
-  ClassDefNV(RespSimMat, 1)
+  ClassDefNV(AlpideRespSimMat, 1)
 };
 
 
@@ -81,11 +97,10 @@ class AlpideSimResponse
   float mYMax = 13.44e-4;        /// upper boundary of Y
   float mZMin = 0.f;             /// lower boundary of Z
   float mZMax = 0.f;             /// upper boundary of Z
-  float mZMaxOffs = 0.f;         /// upper boundary offsetted by half bin; 
   float mStepInvX = 0;           /// inverse step of the X grid
   float mStepInvY = 0;           /// inverse step of the Y grid
   float mStepInvZ = 0;           /// inverse step of the Z grid
-  std::vector<RespSimMat> mData; /// response data
+  std::vector<AlpideRespSimMat> mData; /// response data
   /// path to look for data file
   std::string mDataPath  = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData";
   std::string mGridXName = "grid_list_x.txt";           /// name of the file with grid in X
@@ -98,8 +113,9 @@ class AlpideSimResponse
 
   void initData();
 
-  const RespSimMat* getResponse(float x, float y, float z) const;
-  static int constexpr getNPix() { return RespSimMat::getNPix(); }
+  bool getResponse(float x, float y, float z, AlpideRespSimMat& dest) const;
+  const AlpideRespSimMat* getResponse(float x, float y, float z, bool& flipX, bool& flipY) const;
+  static int constexpr getNPix() { return AlpideRespSimMat::getNPix(); }
   int getNBinX() const { return mNBinX; }
   int getNBinY() const { return mNBinY; }
   int getNBinZ() const { return mNBinZ; }
@@ -144,7 +160,7 @@ inline int AlpideSimResponse::getZBin(float zpos) const
 {
   /// get z bin w/o checking for over/under flow. zpos is with respect of the beginning
   /// of epitaxial layer
-  int iz = (mZMaxOffs - zpos) * mStepInvZ;
+  int iz = (mZMax - zpos) * mStepInvZ;
   return iz<0 ? 0:iz; // depth bin
 }
 }

@@ -25,20 +25,21 @@ BOOST_AUTO_TEST_CASE(AlpideSimResponse_test)
   resp.initData();
   float x=1.e-4, y=1.e-4, z=10.e-4;
   LOG(INFO) << "Checking response from X:" << x << " Y:" << y << " Z:" << z << FairLogger::endl;
-  auto rspmat = resp.getResponse(1e-4,1e-4,resp.getZMax()-10e-04);
-  BOOST_CHECK(rspmat != nullptr);
-  rspmat->print();
+  bool flipX, flipY;
+  auto respMat = resp.getResponse(1e-4,1e-4,resp.getZMax()-10e-04,flipX,flipY);
+  BOOST_CHECK( respMat!=nullptr );
+  respMat->print();
   // repsonse at central pixel for electron close to the surface should be >>0
-  int pixCen = resp.getNPix()/2;
+  int pixCen = respMat->getNPix()/2;
   LOG(INFO) << "Response at central pixel " << pixCen << ":" << pixCen
-	    << " is " << rspmat->getValue(pixCen,pixCen) << FairLogger::endl;
-  BOOST_CHECK(rspmat->getValue(pixCen,pixCen) > 1e-6);
+	    << " is " << respMat->getValue(pixCen,pixCen,flipX,flipY) << FairLogger::endl;
+  BOOST_CHECK(respMat->getValue(pixCen,pixCen,flipX,flipY) > 1e-6);
   //
   // check normalization
   float norm = 0.f;
-  for (int ix=resp.getNPix();ix--;) {
-    for (int iy=resp.getNPix();iy--;) {
-      norm += rspmat->getValue(ix,iy);
+  for (int ix=respMat->getNPix();ix--;) {
+    for (int iy=respMat->getNPix();iy--;) {
+      norm += respMat->getValue(ix,iy,flipX,flipY);
     }
   }
   LOG(INFO) << "Total response to 1 electron: " << norm << FairLogger::endl;
