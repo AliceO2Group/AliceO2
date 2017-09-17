@@ -44,7 +44,8 @@ CXXFILES					= standalone.cxx \
 								merger-ca/AliHLTTPCGMTrackParam.cxx \
 								standalone/AliHLTLogging.cxx
 
-CPPFILES                                       += cmodules/qconfig.cpp
+CPPFILES					+= cmodules/qconfig.cpp
+
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
 CPPFILES					+= display/opengl.cpp
 CONFIG_OPENGL				= 1
