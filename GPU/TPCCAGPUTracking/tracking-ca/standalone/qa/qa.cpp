@@ -25,6 +25,8 @@
 #include "TFile.h"
 #include "TStyle.h"
 
+#include "../cmodules/qconfig.h"
+
 struct additionalMCParameters
 {
 	float pt, phi, theta, eta;
@@ -103,7 +105,6 @@ static const char* ClusterTypes[3] = {"", "Ratio", "Integral"};
 static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
 static double legendSpacingString = 0;
-static int ConfigNumInputs = 1;
 static int ConfigDashedMarkers = 0;
 
 static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0., -ETA_MAX, PT_MIN};
@@ -501,10 +502,20 @@ void RunQA()
 	init = true;
 }
 
-void DrawQAHistograms()
+int DrawQAHistograms()
 {
 	char name[1024], fname[1024];
-	TFile* tout = new TFile("histograms.root","RECREATE");
+	
+	structConfigQA& config = configStandalone.configQA;
+	int ConfigNumInputs = 1 + config.compareInputs.size();
+	
+	std::vector<TFile*> tin(config.compareInputs.size());
+	for (unsigned int i = 0;i < config.compareInputs.size();i++)
+	{
+		tin[i] = new TFile(config.compareInputs[i]);
+	}
+	TFile* tout = NULL;
+	if (config.output) tout = new TFile(config.output, "RECREATE");
 
 	//Create Canvas / Pads for Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
@@ -566,55 +577,72 @@ void DrawQAHistograms()
 	for (int ii = 0;ii < 6;ii++)
 	{
 		int i = ii == 5 ? 4 : ii;
-		for (int j = 0;j < 4;j++)
+		for (int k = 0;k < ConfigNumInputs;k++)
 		{
-			peff[ii][j]->cd();
-			for (int l = 0;l < 3;l++)
+			for (int j = 0;j < 4;j++)
 			{
-				int k = 0;
-				if (ii != 5)
+				peff[ii][j]->cd();
+				for (int l = 0;l < 3;l++)
 				{
-					if (l == 0)
+					if (ii != 5)
 					{
-						//Divide eff, compute all for fake/clone
-						eff[0][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][0], 1, 1, "B");
-						eff[3][j / 2][j % 2][i][1]->Reset(); //Sum up rec + clone + fake for clone/fake rate
-						eff[3][j / 2][j % 2][i][1]->Add(eff[0][j / 2][j % 2][i][0]);
-						eff[3][j / 2][j % 2][i][1]->Add(eff[1][j / 2][j % 2][i][0]);
-						eff[3][j / 2][j % 2][i][1]->Add(eff[2][j / 2][j % 2][i][0]);
+						if (l == 0)
+						{
+							//Divide eff, compute all for fake/clone
+							eff[0][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][0], 1, 1, "B");
+							eff[3][j / 2][j % 2][i][1]->Reset(); //Sum up rec + clone + fake for clone/fake rate
+							eff[3][j / 2][j % 2][i][1]->Add(eff[0][j / 2][j % 2][i][0]);
+							eff[3][j / 2][j % 2][i][1]->Add(eff[1][j / 2][j % 2][i][0]);
+							eff[3][j / 2][j % 2][i][1]->Add(eff[2][j / 2][j % 2][i][0]);
+						}
+						else
+						{
+							//Divide fake/clone
+							eff[l][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][1], 1, 1, "B");
+						}
 					}
-					else
+				
+					TH1F* e = eff[l][j / 2][j % 2][i][1];
+						
+					if (k == 0)
 					{
-						//Divide fake/clone
-						eff[l][j / 2][j % 2][i][1]->Divide(eff[l][j / 2][j % 2][i][0], eff[3][j / 2][j % 2][i][1], 1, 1, "B");
+						e->SetTitle(EfficiencyTitles[j]);
+						e->GetYaxis()->SetTitle("(Efficiency)");
+						e->GetXaxis()->SetTitle(XAxisTitles[i]);
+						e->SetStats(kFALSE);
+						e->SetMaximum(1.02);
+						e->SetMinimum(-0.02);
+						if (tout)
+						{
+							eff[l][j / 2][j % 2][i][0]->Write();
+							e->Write();
+							if (l == 2) eff[3][j / 2][j % 2][i][0]->Write(); //Store also all histogram!
+						}
 					}
-				}
+					else if ((e = dynamic_cast<TH1F*>(tin[k - 1]->Get(e->GetName()))) == NULL)
+					{
+						printf("Missing histogram in input %s\n", config.compareInputs[k - 1]);
+						return(1);
+					}
 
-				TH1F* e = eff[l][j / 2][j % 2][i][1];
-				e->SetTitle(EfficiencyTitles[j]);
-				e->GetYaxis()->SetTitle("(Efficiency)");
-				e->GetXaxis()->SetTitle(XAxisTitles[i]);
-				e->SetStats(kFALSE);
-				e->SetMaximum(1.02);
-				e->SetMinimum(-0.02);
-				eff[l][j / 2][j % 2][i][0]->Write();
-				e->Write();
-				if (l == 2) eff[3][j / 2][j % 2][i][0]->Write(); //Store also all histogram!
-				e->SetMarkerColor(kBlack);
-				e->SetLineWidth(1);
-				e->SetLineColor(colorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % ColorCount]);
-				e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
-				SetAxisSize(e);
-				e->Draw(k || l ? "same" : "");
-				if (init == false && j == 0)
-				{
-					sprintf(name, "%s - %s", "HLT", EffNames[l]);
-					legendeff[ii]->AddEntry(e, name, "l");
+					e->SetMarkerColor(kBlack);
+					e->SetLineWidth(1);
+					e->SetLineColor(colorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % ColorCount]);
+					e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
+					SetAxisSize(e);
+					e->Draw(k || l ? "same" : "");
+					if (j == 0)
+					{
+						if (k || config.name) sprintf(fname, "%s - ", k ? (config.compareInputNames.size() > (unsigned) (k - 1) ? config.compareInputNames[k - 1] : config.compareInputs[k - 1]) : config.name);
+						else fname[0] = 0;
+						sprintf(name, "%s%s", fname, EffNames[l]);
+						legendeff[ii]->AddEntry(e, name, "l");
+					}
+					if (ii == 5) peff[ii][j]->SetLogx();
 				}
-				if (ii == 5) peff[ii][j]->SetLogx();
+				ceff[ii]->cd();
+				ChangePadTitleSize(peff[ii][j], 0.056);
 			}
-			ceff[ii]->cd();
-			ChangePadTitleSize(peff[ii][j], 0.056);				
 		}
 		legendeff[ii]->Draw();
 		sprintf(fname, "eff_vs_%s.pdf", VSParameterNames[ii]);
@@ -697,8 +725,6 @@ void DrawQAHistograms()
 			float tmpMax = -1000.;
 			float tmpMin = 1000.;
 			
-			int k = 0;
-			
 			for (int l = 0;l < 2;l++)
 			{
 				TH1F* e = res[j][i][l];
@@ -723,32 +749,48 @@ void DrawQAHistograms()
 			tmpMin -= tmpSpan * .02;
 			if (j == 2 && i < 3) tmpMax += tmpSpan * 0.13 * ConfigNumInputs;
 
-			for (int l = 0;l < 2;l++)
+			for (int k = 0;k < ConfigNumInputs;k++)
 			{
-				TH1F* e = res[j][i][l];
-				sprintf(name, "%s Resolution", ParameterNames[j]);
-				e->SetTitle(name);
-				e->SetStats(kFALSE);
-				if (l == 0)
+				for (int l = 0;l < 2;l++)
 				{
-					res2[j][i]->SetOption("colz");
-					res2[j][i]->Write();
-				}
-				e->Write();
-				e->SetMaximum(tmpMax);
-				e->SetMinimum(tmpMin);
-				e->SetMarkerColor(kBlack);
-				e->SetLineWidth(1);
-				e->SetLineColor(colorNums[numColor++ % ColorCount]);
-				e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
-				SetAxisSize(e);
-				if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
-				else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
-				e->Draw(k || l ? "same" : "");
-				if (j == 0)
-				{
-					sprintf(name, "%s", l ? "Mean Resolution" : "Resolution");
-					legendres[ii]->AddEntry(e, name, "l");
+					TH1F* e = res[j][i][l];
+					if (k == 0)
+					{
+						sprintf(name, "%s Resolution", ParameterNames[j]);
+						e->SetTitle(name);
+						e->SetStats(kFALSE);
+						if (tout)
+						{
+							if (l == 0)
+							{
+								res2[j][i]->SetOption("colz");
+								res2[j][i]->Write();
+							}
+							e->Write();
+						}
+					}
+					else if ((e = dynamic_cast<TH1F*>(tin[k - 1]->Get(e->GetName()))) == NULL)
+					{
+						printf("Missing histogram in input %s\n", config.compareInputs[k - 1]);
+						return(1);
+					}
+					e->SetMaximum(tmpMax);
+					e->SetMinimum(tmpMin);
+					e->SetMarkerColor(kBlack);
+					e->SetLineWidth(1);
+					e->SetLineColor(colorNums[numColor++ % ColorCount]);
+					e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
+					SetAxisSize(e);
+					if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
+					else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
+					e->Draw(k || l ? "same" : "");
+					if (j == 0)
+					{
+						if (k || config.name) sprintf(fname, "%s - ", k ? (config.compareInputNames.size() > (unsigned) (k - 1) ? config.compareInputNames[k - 1] : config.compareInputs[k - 1]) : config.name);
+						else fname[0] = 0;
+						sprintf(name, "%s%s", fname, l ? "Mean Resolution" : "Resolution");
+						legendres[ii]->AddEntry(e, name, "l");
+					}
 				}
 			}
 			if (ii == 5) pres[ii][j]->SetLogx();
@@ -762,17 +804,17 @@ void DrawQAHistograms()
 	}
 	
 	//Process Integral Resolution Histogreams
-	for (int j = 0;j < 5;j++)
+	for (int i = 0;i < 5;i++)
 	{
-		pres[6][j]->cd();
-		sprintf(fname, "IntRes%s", ParameterNames[j]);
-		sprintf(name, "%s Resolution", ParameterNames[j]);
-		resIntegral[j]->SetName(fname);
-		resIntegral[j]->SetTitle(name);
-		resIntegral[j]->GetEntries();
-		resIntegral[j]->Fit("gaus","sQ");
-		resIntegral[j]->Write();
-		resIntegral[j]->Draw();
+		pres[6][i]->cd();
+		sprintf(fname, "IntRes%s", ParameterNames[i]);
+		sprintf(name, "%s Resolution", ParameterNames[i]);
+		resIntegral[i]->SetName(fname);
+		resIntegral[i]->SetTitle(name);
+		resIntegral[i]->GetEntries();
+		resIntegral[i]->Fit("gaus","sQ");
+		if (tout) resIntegral[i]->Write();
+		resIntegral[i]->Draw();
 		cres[6]->cd();
 	}
 	cres[6]->Print("res_integral.pdf");
@@ -816,24 +858,33 @@ void DrawQAHistograms()
 		int begin = i == 2 ?  7 : i == 1 ? 4 : 0;
 		int end   = i == 2 ? 11 : i == 1 ? 7 : 4;
 		int numColor = 0;
-		for (int k = begin;k < end;k++)
+		for (int j = begin;j < end;j++)
 		{
-			TH1F* e = clusters[k];
+			TH1F* e = clusters[j];
 			e->SetTitle(ClusterTitles[i]);
-			e->Write();
+			if (tout) e->Write();
 			e->SetStats(kFALSE);
 			e->SetMarkerColor(kBlack);
 			e->SetLineWidth(1);
 			e->SetLineColor(colorNums[numColor++ % ColorCount]);
-			e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
-			e->Draw(k == begin ? "" : "same");
-			legendclust[i]->AddEntry(e, ClustersNames[k - begin], "l");
+			e->SetLineStyle(ConfigDashedMarkers ? j + 1 : 1);
+			e->Draw(j == begin ? "" : "same");
+			legendclust[i]->AddEntry(e, ClustersNames[j - begin], "l");
 		}
 		legendclust[i]->Draw();
 		cclust[i]->cd();
 		cclust[i]->Print(i == 2 ? "clusters_integral.pdf" : i == 1 ? "clusters_relative.pdf" : "clusters.pdf");
 	}
 	
-	tout->Close();
-	delete tout;
+	if (tout)
+	{
+		tout->Close();
+		delete tout;
+	}
+	for (unsigned int i = 0;i < config.compareInputs.size();i++)
+	{
+		tin[i]->Close();
+		delete tin[i];
+	}
+	return(0);
 }

@@ -11,4 +11,4 @@ extern volatile int buttonPressed;
 extern volatile int displayEventNr;
 extern volatile int sendKey;
 void RunQA();
-void DrawQAHistograms();
+int DrawQAHistograms();

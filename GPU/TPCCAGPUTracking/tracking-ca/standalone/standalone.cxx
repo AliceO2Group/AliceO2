@@ -34,8 +34,6 @@ int main(int argc, char** argv)
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	int iEventInTimeframe = 0;
 	
-	std::vector<const char*> compareFiles;
-
 	if (hlt.GetGPUStatus() == 0)
 	{
 		printf("No GPU Available, restricting to CPU\n");
@@ -308,8 +306,7 @@ int main(int argc, char** argv)
 breakrun:
 
 #ifdef BUILD_QA
-	compareFiles.push_back("");
-	if (configStandalone.qa) DrawQAHistograms(compareFiles.data());
+	if (configStandalone.qa) DrawQAHistograms();
 #endif
 
 	if (configStandalone.DebugLevel >= 4)
