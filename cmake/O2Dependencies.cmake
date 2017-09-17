@@ -259,7 +259,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    FairRoot::FairMQ Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector
+    FairRoot::FairMQ Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector RIO
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -376,6 +376,7 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     common_math_bucket
+    RIO
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
@@ -630,6 +631,7 @@ o2_define_bucket(
     root_base_bucket
     fairroot_base_bucket
     common_vc_bucket
+    common_math_bucket
     ParBase
     MathUtils
     Core Hist Gpad
@@ -651,6 +653,7 @@ o2_define_bucket(
     SimulationDataFormat
     Geom
     MathCore
+    MathUtils
     RIO
     Hist
     DetectorsPassive
