@@ -24,5 +24,6 @@
 
 #pragma link C++ class o2::Base::Transform3D+;
 #pragma link C++ class o2::Base::Rotation2D+;
+#pragma link C++ class o2::Base::CachingTF1+;
 
 #endif

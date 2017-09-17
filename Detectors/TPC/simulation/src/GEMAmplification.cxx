@@ -15,6 +15,10 @@
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterGEM.h"
+#include <TStopwatch.h>
+#include <iostream>
+#include "MathUtils/CachingTF1.h"
+#include <TFile.h>
 
 using namespace o2::TPC;
 using boost::format;
@@ -24,23 +28,51 @@ GEMAmplification::GEMAmplification()
     mRandomFlat(),
     mGain()
 {
+  TStopwatch watch;
+  watch.Start();
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterGEM &gemParam = ParameterGEM::defaultInstance();
   const float sigmaOverMu = gasParam.getSigmaOverMu();
   const float kappa = 1/(sigmaOverMu*sigmaOverMu);
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) *std::pow(x/%3%, %4%) *std::exp(-x/%5%)");
 
+  bool cacheexists = false;
+  // FIXME: this should come from the CCDB (just as the other parameters)
+  auto outfile = TFile::Open(TString::Format("tpc_polyadist.root").Data());
+  if(outfile) {
+    cacheexists=true;
+  }
+  else {
+    outfile = TFile::Open(TString::Format("tpc_polyadist.root").Data(), "create");
+  }
+    
   for(int i=0; i<4; ++i) {
     float s = gemParam.getAbsoluteGain(i+1)/kappa;
     polya % kappa % s % s % (kappa-1) % s;
-    /// \todo Get from root file or write own random generator
-    TF1 polyaDistribution("polya", (polya.str()).data(), 0, 10.f*gemParam.getAbsoluteGain(i+1));
-    /// this dramatically alters the speed with which the filling is executed... without this, the distribution makes discrete steps at every int
-    polyaDistribution.SetNpx(100000);
-    mGain[i].initialize(polyaDistribution);
+      std::string name = polya.str();
+      o2::Base::CachingTF1* polyaDistribution = nullptr;
+      if (!cacheexists) {
+        polyaDistribution = new o2::Base::CachingTF1("polya", name.c_str(), 0, 10.f*gemParam.getAbsoluteGain(i+1));
+        /// this dramatically alters the speed with which the filling is executed... without this, the distribution makes discrete steps at every int
+        polyaDistribution->SetNpx(100000);
+      }
+      else {
+        polyaDistribution = (o2::Base::CachingTF1*)outfile->Get(TString::Format("func%d",i).Data());
+	// FIXME: verify that distribution corresponds to the parameters used here
+      }
+    mGain[i].initialize(*polyaDistribution);
+  
+    if(!cacheexists) {
+        outfile->WriteTObject(polyaDistribution, TString::Format("func%d",i).Data());
+    }
+    delete polyaDistribution;
   }
+
+  if(outfile) outfile->Close();
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
   mRandomFlat.initialize(RandomRing::RandomType::Flat);
+  watch.Stop();
+  std::cerr << "GEM SETUP TOOK " << watch.CpuTime() << "\n";
 }
 
 GEMAmplification::~GEMAmplification()

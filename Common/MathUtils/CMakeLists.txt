@@ -8,6 +8,7 @@ set(SRCS
   src/MathBase.cxx
   src/Cartesian2D.cxx
   src/Cartesian3D.cxx
+  src/CachingTF1.cxx
 )
 
 set(HEADERS
@@ -16,6 +17,7 @@ set(HEADERS
   include/${MODULE_NAME}/MathBase.h
   include/${MODULE_NAME}/Cartesian2D.h
   include/${MODULE_NAME}/Cartesian3D.h
+  include/${MODULE_NAME}/CachingTF1.h
 )
 
 set(LINKDEF src/MathUtilsLinkDef.h)
@@ -27,6 +29,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/testCartesian3D.cxx
+  test/testCachingTF1.cxx
 )
 
 O2_GENERATE_TESTS(
