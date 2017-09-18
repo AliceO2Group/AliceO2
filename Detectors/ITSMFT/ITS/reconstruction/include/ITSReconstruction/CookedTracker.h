@@ -21,14 +21,21 @@
 //-------------------------------------------------------------------------
 
 #include <vector>
+#include "ITSBase/GeometryTGeo.h"
+#include "MathUtils/Cartesian3D.h"
 
 class TClonesArray;
 
 namespace o2
 {
+
+namespace ITSMFT
+{
+  class Cluster;
+}
+  
 namespace ITS
 {
-class Cluster;
 class CookedTrack;
 
 class CookedTracker
@@ -69,8 +76,10 @@ class CookedTracker
   // Int_t propagateBack(std::vector<CookedTrack> *event);
   // Int_t RefitInward(std::vector<CookedTrack> *event);
   // Bool_t refitAt(Double_t x, CookedTrack *seed, const CookedTrack *t);
-  Cluster* getCluster(Int_t index) const;
+  o2::ITSMFT::Cluster* getCluster(Int_t index) const;
 
+  void setGeometry(o2::ITS::GeometryTGeo* geom);
+  
   // internal helper classes
   class ThreadData;
   class Layer;
@@ -87,6 +96,9 @@ class CookedTracker
   Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const;
 
  private:
+
+  const o2::ITS::GeometryTGeo* mGeom = nullptr; /// interface to geometry
+  
   Int_t mNumOfThreads; ///< Number of tracking threads
   
   Double_t mBz;///< Effective Z-component of the magnetic field (kG)
@@ -110,25 +122,24 @@ class CookedTracker::Layer
   Layer& operator=(const Layer& tr) = delete;
 
   void init();
-  Bool_t insertCluster(Cluster* c);
+  Bool_t insertCluster(o2::ITSMFT::Cluster* c);
   void setR(Double_t r) { mR = r; }
   void unloadClusters();
   void selectClusters(std::vector<Int_t> &s, Float_t phi, Float_t dy, Float_t z, Float_t dz);
   Int_t findClusterIndex(Double_t z) const;
   Float_t getR() const { return mR; }
-  Cluster* getCluster(Int_t i) const { return mClusters[i]; }
-  Float_t getXRef(Int_t i) const { return mXRef[i]; }
+  o2::ITSMFT::Cluster* getCluster(Int_t i) const { return mClusters[i]; }
   Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }
   Float_t getClusterPhi(Int_t i) const { return mPhi[i]; }
   Int_t getNumberOfClusters() const { return mClusters.size(); }
+  void  setGeometry(o2::ITS::GeometryTGeo* geom) { mGeom = geom; }
 
  protected:
   enum {kNSectors=21};
 
   Float_t mR; ///< mean radius of this layer
-
-  std::vector<Cluster*>mClusters;          ///< All clusters
-  std::vector<Float_t> mXRef;              ///< x of the reference plane
+  const o2::ITS::GeometryTGeo* mGeom = nullptr; /// interface to geometry
+  std::vector<o2::ITSMFT::Cluster*>mClusters;          ///< All clusters
   std::vector<Float_t> mAlphaRef;          ///< alpha of the reference plane
   std::vector<Float_t> mPhi;               ///< cluster phi
   std::vector<Int_t> mSectors[kNSectors];  ///< Cluster indices sector-by-sector

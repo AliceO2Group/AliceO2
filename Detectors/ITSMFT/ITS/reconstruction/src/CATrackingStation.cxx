@@ -133,21 +133,31 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
     detID = c->GetDetectorID();
     ITSDetInfo_t det;
     det.index = iCl;
-    //
-    TGeoHMatrix m;
-    geo->getOriginalMatrix(detID,m);
-    //
     mIndex[detID - mVIDOffset] = mDetectors.size();
-    const TGeoHMatrix *tm = geo->getMatrixT2L(detID);
-    m.Multiply(tm);
-    double txyz[3] = {0.,0.,0.}, xyz[3] = {0.,0.,0.};
-    m.LocalToMaster(txyz,xyz);
-    det.xTF = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
 
-    det.phiTF = atan2(xyz[1],xyz[0]);
+    //
+    /*
+      RS: using origL2G * T2L matrix will add bias, sine origL2G is for chip, while T2L is for misaligned sensor
+      TGeoHMatrix m;
+      geo->getOriginalMatrix(detID,m);
+      //
+      const TGeoHMatrix *tm = &geo->getMatrixT2L(detID);
+      m.Multiply(tm);
+      double txyz[3] = {0.,0.,0.}, xyz[3] = {0.,0.,0.};
+      m.LocalToMaster(txyz,xyz);
+      det.xTF = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
+    */
+    Point3D<float> loc(0.f,0.f,0.f);
+    auto glo = geo->getMatrixSensor(detID)(loc);
+
+    det.xTF = det.xTF = glo.Rho();
+    det.phiTF = glo.Phi();
     det.sinTF = sinf(det.phiTF);
     det.cosTF = cosf(det.phiTF);
     //
+    // RS: did not understand this routine - just 1st HIT of the chip is selected?
+    // to discuss with Max
+    /*
     // compute the real radius (with misalignment)
     TGeoHMatrix mmisal(*(geo->getMatrix(detID)));
     mmisal.Multiply(tm);
@@ -157,6 +167,7 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
     mmisal.LocalToMaster(txyz,xyz);
     det.xTFmisal = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
     mDetectors.push_back(det);
+    */
     //
     c->GetStartPosition(cl.x,cl.y,cl.z);
     cl.r = sqrt(cl.x*cl.x + cl.y*cl.y);

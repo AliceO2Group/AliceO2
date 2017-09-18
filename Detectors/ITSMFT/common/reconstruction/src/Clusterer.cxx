@@ -15,7 +15,8 @@
 
 #include "TClonesArray.h"
 
-#include "ITSReconstruction/Clusterer.h"
+#include "ITSMFTReconstruction/Clusterer.h"
+#include "ITSMFTReconstruction/Cluster.h"
 
 using namespace o2::ITS;
 using namespace o2::ITSMFT;
@@ -25,16 +26,16 @@ Float_t Clusterer::mPitchZ=0.002;
 Float_t Clusterer::mX0=0.;
 Float_t Clusterer::mZ0=0.;
 
+//__________________________________________________
 Clusterer::Clusterer()
   :mCurr(mColumn2+1)
   ,mPrev(mColumn1+1)
-  ,mChipID(65535)
-  ,mCol(65535)
 {
   std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
   std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
 }
 
+//__________________________________________________
 void Clusterer::process(PixelReader &reader, TClonesArray &clusters)
 {
   reader.init();
@@ -49,6 +50,7 @@ void Clusterer::process(PixelReader &reader, TClonesArray &clusters)
 
 }
 
+//__________________________________________________
 void Clusterer::initChip()
 {
   mPrev=mColumn1+1;
@@ -68,6 +70,7 @@ void Clusterer::initChip()
   mPixels.emplace_back(-1,pix);
 }
 
+//__________________________________________________
 void Clusterer::updateChip(int ip)
 {
   PixelReader::PixelData* pix = &mChipData.pixels[ip]; 
@@ -110,6 +113,7 @@ void Clusterer::updateChip(int ip)
 
 }
 
+//__________________________________________________
 void Clusterer::finishChip(TClonesArray &clusters)
 {
   static Float_t sigmaX2 = mPitchX * mPitchX / 12.; //FIXME
@@ -161,25 +165,20 @@ void Clusterer::finishChip(TClonesArray &clusters)
       }
       mPreClusterIndices[i2] = -1;
     }    
-    x /= npix;
-    x = mX0 + x*mPitchX;
-    z /= npix;
-    z = mZ0 + z*mPitchZ;
+
+    Point3D<float> xyzLoc( mX0 + x*mPitchX/npix, 0.f, mZ0 + z*mPitchZ/npix );
+    auto xyzTra = mGeometry->getMatrixT2L(mChipData.chipID)^(xyzLoc); // inverse transform from Local to Tracking frame
     Cluster *c = static_cast<Cluster *>(clusters.ConstructedAt(noc++));
-    c->setVolumeId(mChipData.chipID);
     c->setROFrame(mChipData.roFrame);
-    c->SetTimeStamp(mChipData.timeStamp);
-    c->setX(x);
-    c->setY(0);
-    c->setZ(z);
-    c->setSigmaY2(sigmaX2);
-    c->setSigmaZ2(sigmaY2);
+    c->setSensorID(mChipData.chipID);
+    c->setPos(xyzTra);
+    c->setErrors(sigmaX2, sigmaY2, 0.f);
     c->setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
-    c->setFrameLoc();
     for (int i=nlab;i--;) c->setLabel(labels[i],i);
   }
 }
 
+//__________________________________________________
 void Clusterer::fetchMCLabels(const PixelReader::PixelData* pix,
 			      std::array<Label,Cluster::maxLabels> &labels,
 			      int &nfilled) const

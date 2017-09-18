@@ -38,7 +38,7 @@ class CookedTrackerTask : public FairTask
 
  private:
   Int_t mNumOfThreads;    ///< Number of threads
-  GeometryTGeo mGeometry; ///< ITS geometry
+  o2::ITS::GeometryTGeo* mGeometry; ///< ITS geometry
   CookedTracker mTracker; ///< Track finder
 
   const TClonesArray* mClustersArray;   ///< Array of clusters

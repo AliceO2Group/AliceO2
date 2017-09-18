@@ -15,11 +15,12 @@
 #include <TMath.h>
 
 #include "DetectorsBase/Constants.h"
-#include "ITSReconstruction/Cluster.h"
+#include "ITSMFTReconstruction/Cluster.h"
 #include "ITSReconstruction/CookedTrack.h"
 
 ClassImp(o2::ITS::CookedTrack)
 
+using namespace o2::ITSMFT;
 using namespace o2::ITS;
 using namespace o2::Base::Constants;
 using namespace o2::Base::Track;
@@ -144,9 +145,7 @@ Double_t CookedTrack::getPredictedChi2(const Cluster* c) const
   //-----------------------------------------------------------------
   // This function calculates a predicted chi2 increment.
   //-----------------------------------------------------------------
-  std::array<float,2> p{ c->getY(), c->getZ() };
-  std::array<float,3> cov{ c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
-  return mTrack.GetPredictedChi2(p, cov);
+  return mTrack.GetPredictedChi2(*c);
 }
 
 Bool_t CookedTrack::propagate(Double_t alpha, Double_t x, Double_t bz)
@@ -168,10 +167,7 @@ Bool_t CookedTrack::update(const Cluster* c, Double_t chi2, Int_t idx)
   //--------------------------------------------------------------------
   // Update track params
   //--------------------------------------------------------------------
-  std::array<float,2> p{ c->getY(), c->getZ() };
-  std::array<float,3> cov{ c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
-
-  if (!mTrack.Update(p, cov))
+  if (!mTrack.Update(*c))
     return kFALSE;
 
   mChi2 += chi2;

@@ -3,14 +3,12 @@ set(MODULE_NAME "ITSReconstruction")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-    src/Cluster.cxx
     src/TrivialClustererTask.cxx
     src/ClustererTask.cxx
     src/CookedTrack.cxx
     src/CookedTrackerTask.cxx
     )
 set(HEADERS
-    include/${MODULE_NAME}/Cluster.h
     include/${MODULE_NAME}/TrivialClustererTask.h
     include/${MODULE_NAME}/ClustererTask.h
     include/${MODULE_NAME}/CookedTrack.h
@@ -18,7 +16,6 @@ set(HEADERS
     )
 set(NO_DICT_SRCS # sources not for the dictionary
     src/TrivialClusterer.cxx
-    src/Clusterer.cxx
     src/CAaux.cxx
     src/CATracker.cxx
     src/CATrackingStation.cxx
@@ -26,7 +23,6 @@ set(NO_DICT_SRCS # sources not for the dictionary
     )
 set(NO_DICT_HEADERS # sources not for the dictionary
     include/${MODULE_NAME}/TrivialClusterer.h
-    include/${MODULE_NAME}/Clusterer.h
     include/${MODULE_NAME}/CAaux.h
     include/${MODULE_NAME}/CATracker.h
     include/${MODULE_NAME}/CATrackingStation.h

@@ -39,7 +39,7 @@ namespace o2 {
     class SimulationAlpide : public Chip {
     public:
       SimulationAlpide() = default;
-      SimulationAlpide(const DigiParams* par, Int_t index, const TGeoHMatrix *m)
+      SimulationAlpide(const DigiParams* par, Int_t index, const o2::Base::Transform3D *m)
 	: Chip(par, index, m) {}
 	
       ~SimulationAlpide() = default;

@@ -17,6 +17,8 @@
 //
 
 #include "ITSSimulation/DigitizerTask.h"
+#include "DetectorsBase/Utils.h"
+#include "ITSBase/GeometryTGeo.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
@@ -27,7 +29,10 @@
 ClassImp(o2::ITS::DigitizerTask)
 
 using namespace o2::ITS;
-using namespace o2::ITSMFT;
+using namespace o2::Base;
+using namespace o2::Base::Utils;
+
+using o2::ITSMFT::DigiParams;
 
 DigitizerTask::DigitizerTask(Bool_t useAlpide)
   : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer()
@@ -71,7 +76,11 @@ InitStatus DigitizerTask::Init()
 
   mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
   
-  mDigitizer.init(kTRUE);
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache( bit2Mask(TransformType::L2G) ); // make sure L2G matrices are loaded
+  mDigitizer.setGeometry(geom);
+  
+  mDigitizer.init();
 
   return kSUCCESS;
 }

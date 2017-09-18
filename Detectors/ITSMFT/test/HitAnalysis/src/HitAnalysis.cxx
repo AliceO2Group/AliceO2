@@ -28,11 +28,16 @@
 #include "ITSMFTSimulation/Hit.h"
 #include "ITSMFTBase/Segmentation.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "MathUtils/Cartesian3D.h"
+#include "DetectorsBase/Utils.h"
 
 using o2::ITSMFT::Segmentation;
 using o2::ITSMFT::Chip;
 using o2::ITSMFT::Hit;
+
 using namespace o2::ITS;
+using namespace o2::Base;
+using namespace o2::Base::Utils;
 
 HitAnalysis::HitAnalysis() :
   FairTask(),
@@ -82,11 +87,15 @@ InitStatus HitAnalysis::Init()
   }
 
   // Create geometry, initialize chip array
-  mGeometry = new GeometryTGeo(kTRUE, kTRUE);
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  if ( !geom->isBuilt() ) geom->Build(true);
+  geom->fillMatrixCache( bit2Mask(TransformType::L2G) ); // make sure T2L matrices are loaded
+
+  mGeometry = geom;
 
   if (mProcessChips) {
     for (int chipid = 0; chipid < mGeometry->getNumberOfChips(); chipid++) {
-      mChips[chipid] = new Chip(nullptr, chipid, mGeometry->getMatrixSensor(chipid));
+      mChips[chipid] = new Chip(nullptr, chipid, &mGeometry->getMatrixSensor(chipid));
     }
     LOG(DEBUG) << "Created " << mChips.size() << " chips." << FairLogger::endl;
 
@@ -218,24 +227,17 @@ void HitAnalysis::ProcessHits()
 {
   for (TIter pointiter = TIter(mHitsArray).Begin(); pointiter != TIter::End(); ++pointiter) {
     Hit *p = static_cast<Hit *>(*pointiter);
-    Double_t phitloc[3], pstartloc[3],
-      phitglob[3] = {p->GetX(), p->GetY(), p->GetZ()},
-      pstartglob[3] = {p->GetStartX(), p->GetStartY(), p->GetStartZ()};
-
-    //fGeometry->getMatrix(p->GetDetectorID())->MasterToLocal(phitglob, phitloc);
-    //fGeometry->getMatrix(p->GetDetectorID())->MasterToLocal(pstartglob, pstartloc);
-    mGeometry->globalToLocal(p->GetDetectorID(), phitglob, phitloc);
-    mGeometry->globalToLocal(p->GetDetectorID(), pstartglob, pstartloc);
-
-    mLocalX0->Fill(pstartloc[0]);
-    mLocalY0->Fill(pstartloc[1]);
-    mLocalZ0->Fill(pstartloc[2]);
-    mLocalX1->Fill(phitloc[0] - pstartloc[0]);
-    mLocalY1->Fill(phitloc[1] - pstartloc[1]);
-    mLocalZ1->Fill(phitloc[2] - pstartloc[2]);
-    //fLocalX1->Fill(phitloc[0]);
-    //fLocalY1->Fill(phitloc[1]);
-    //fLocalZ1->Fill(phitloc[2]);
+    auto loc = p->GetPos();
+    auto locS = p->GetPosStart();
+    auto glo = mGeometry->getMatrixL2G(p->GetDetectorID())(loc);
+    auto gloS = mGeometry->getMatrixL2G(p->GetDetectorID())(locS);
+    mLocalX0->Fill(locS.X());
+    mLocalY0->Fill(locS.Y());
+    mLocalZ0->Fill(locS.Z());
+    loc.SetXYZ(loc.X()-locS.X(),loc.Y()-locS.Y(),loc.Z()-locS.Z());
+    mLocalX1->Fill(loc.X());
+    mLocalY1->Fill(loc.Y());
+    mLocalZ1->Fill(loc.Z());
   }
 }
 

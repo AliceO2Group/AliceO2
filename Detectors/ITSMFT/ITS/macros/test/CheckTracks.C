@@ -14,7 +14,7 @@
   #include <TString.h>
 
   #include "SimulationDataFormat/MCTrack.h"
-  #include "ITSReconstruction/Cluster.h"
+  #include "ITSMFTReconstruction/Cluster.h"
   #include "ITSReconstruction/CookedTrack.h"
 #endif
 
@@ -30,14 +30,14 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   // MC tracks
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
-  TTree *mcTree=(TTree*)gFile->Get("cbmsim");
+  TTree *mcTree=(TTree*)gFile->Get("o2sim");
   TClonesArray mcArr("MCTrack"), *pmcArr(&mcArr);
   mcTree->SetBranchAddress("MCTrack",&pmcArr);
 
   // Reconstructed tracks
   sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
-  TTree *recTree=(TTree*)gFile->Get("cbmsim");
+  TTree *recTree=(TTree*)gFile->Get("o2sim");
   TClonesArray recArr("o2::ITS::CookedTrack"), *precArr(&recArr);
   recTree->SetBranchAddress("ITSTrack",&precArr);
   

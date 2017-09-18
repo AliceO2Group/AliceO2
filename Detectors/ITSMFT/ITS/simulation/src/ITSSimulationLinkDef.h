@@ -18,9 +18,7 @@
 #pragma link C++ class o2::ITS::V1Layer+;
 #pragma link C++ class o2::ITS::V3Layer+;
 #pragma link C++ class o2::ITS::Detector+;
-#pragma link C++ class o2::ITS::GeometryHandler+;
 #pragma link C++ class o2::ITS::DigitWriteoutBuffer+;
-#pragma link C++ class o2::ITS::Digitizer+;
 #pragma link C++ class o2::ITS::DigitizerTask+;
 
 #endif

@@ -15,14 +15,15 @@
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "ITSSimulation/Digitizer.h"
+#include "ITSMFTSimulation/Digitizer.h"
+#include "MathUtils/Cartesian3D.h"
 
 #include "FairLogger.h"   // for LOG
 #include "TClonesArray.h" // for TClonesArray
 #include <TRandom.h>
 #include <climits>
 
-ClassImp(o2::ITS::Digitizer)
+ClassImp(o2::ITSMFT::Digitizer)
 
 using o2::ITSMFT::Hit;
 using o2::ITSMFT::Chip;
@@ -30,23 +31,18 @@ using o2::ITSMFT::SimulationAlpide;
 using o2::ITSMFT::SegmentationPixel;
 using o2::ITSMFT::Digit;
 
-using namespace o2::ITS;
-
-//_______________________________________________________________________
-Digitizer::Digitizer() : mGeometry(), mSimulations() {}
+using namespace o2::ITSMFT;
+using namespace o2::Base;
 
 
 //_______________________________________________________________________
-Digitizer::~Digitizer() = default;
-
-//_______________________________________________________________________
-void Digitizer::init(Bool_t build)
+void Digitizer::init()
 {
-  mGeometry.Build(build);
-  const Int_t numOfChips = mGeometry.getNumberOfChips();
   
+  const Int_t numOfChips = mGeometry->getNumberOfChips();
+
   for (Int_t i = 0; i < numOfChips; i++) {
-    mSimulations.emplace_back(&mParams, i, mGeometry.getMatrixSensor(i));
+    mSimulations.emplace_back(&mParams, i, &mGeometry->getMatrixL2G(i));
   }
 }
 
@@ -54,10 +50,9 @@ void Digitizer::init(Bool_t build)
 void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
 {
   // digitize single event
-
   
-  const Int_t numOfChips = mGeometry.getNumberOfChips();  
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
+  const Int_t numOfChips = mGeometry->getNumberOfChips();  
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
   
   // estimate the smalles RO Frame this event may have
   double hTime0 = mEventTime - mParams.getTimeOffset();
@@ -138,7 +133,7 @@ void Digitizer::fillOutputContainer(TClonesArray* digits, UInt_t maxFrame)
 {
   // fill output with digits ready to be stored, generating the noise beforehand
   if (maxFrame>mROFrameMax) maxFrame = mROFrameMax;
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
 
   LOG(INFO) << "Filling ITS digits output for RO frames " << mROFrameMin << ":" << maxFrame << FairLogger::endl ;
 

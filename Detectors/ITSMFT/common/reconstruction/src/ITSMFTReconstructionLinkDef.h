@@ -15,5 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ITSMFT::Cluster+;
+#pragma link C++ class o2::ITSMFT::Clusterer+;
 
 #endif

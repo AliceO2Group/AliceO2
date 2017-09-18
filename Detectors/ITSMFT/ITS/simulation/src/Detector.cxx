@@ -14,7 +14,6 @@
 #include "ITSMFTSimulation/Hit.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
-#include "ITSSimulation/GeometryHandler.h"
 #include "ITSSimulation/V3Layer.h"
 
 #include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
@@ -91,7 +90,6 @@ Detector::Detector()
     mBuildLevel(nullptr),
     mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
     
-    mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(nullptr),
     mGeometry(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
@@ -139,7 +137,6 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mBuildLevel(nullptr),
 
     mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
-    mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(nullptr),
     
     mGeometry(nullptr),
@@ -227,7 +224,6 @@ Detector::Detector(const Detector &rhs)
 
   /// Container for data points
     mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
-    mGeometryHandler(rhs.mGeometryHandler), // CHECK
     mMisalignmentParameter(nullptr),
 
     mGeometry(rhs.mGeometry),
@@ -317,7 +313,6 @@ Detector &Detector::operator=(const Detector &rhs)
   /// Container for data points
   mHitCollection = nullptr;
 
-  mGeometryHandler = nullptr;
   mMisalignmentParameter = nullptr;
 
   mGeometry = nullptr;
@@ -342,7 +337,7 @@ void Detector::Initialize()
     mLayerID[i] = gMC ? TVirtualMC::GetMC()->VolId(mLayerName[i]) : 0;
   }
 
-  mGeometryTGeo = new GeometryTGeo(kTRUE);
+  mGeometryTGeo = GeometryTGeo::Instance();
 
   FairDetector::Initialize();
 

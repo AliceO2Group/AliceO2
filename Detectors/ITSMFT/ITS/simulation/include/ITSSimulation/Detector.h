@@ -33,7 +33,6 @@ class TString;
 
 namespace o2 { namespace ITSMFT { class Hit; }}
 
-namespace o2 { namespace ITS { class GeometryHandler; }}
 namespace o2 { namespace ITS { class MisalignmentParameter; }}
 namespace o2 { namespace ITS { class GeometryTGeo; }}
 namespace o2 { namespace ITS { class V3Layer; }}
@@ -315,7 +314,6 @@ class Detector : public o2::Base::Detector
 
     Detector &operator=(const Detector &);
 
-    GeometryHandler *mGeometryHandler;
     MisalignmentParameter *mMisalignmentParameter;
 
     V3Layer **mGeometry;   //! Geometry

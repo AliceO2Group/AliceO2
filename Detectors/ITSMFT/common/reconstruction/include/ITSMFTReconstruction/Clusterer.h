@@ -13,7 +13,8 @@
 #ifndef ALICEO2_ITS_CLUSTERER_H
 #define ALICEO2_ITS_CLUSTERER_H
 
-#include "ITSReconstruction/Cluster.h"
+#include "ITSMFTReconstruction/Cluster.h"
+#include "ITSMFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <utility>
@@ -47,6 +48,9 @@ class Clusterer {
     mPitchX=px; mPitchZ=pz; mX0=x0; mZ0=z0;
   }
   void process(PixelReader &r, TClonesArray &clusters);
+  
+  // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
+  void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
 
  private:
   
@@ -70,8 +74,9 @@ class Clusterer {
   
   std::vector<Int_t> mPreClusterIndices;
   
-  UShort_t mChipID; ///< ID of the chip being processed
-  UShort_t mCol;    ///< Column being processed
+  UShort_t mCol = 0xffff;    ///< Column being processed
+
+  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
 
   static Float_t mPitchX, mPitchZ; ///< Pixel pitch in X and Z (cm)
   static Float_t mX0, mZ0;         ///< Local X and Y coordinates (cm) of the very 1st pixel

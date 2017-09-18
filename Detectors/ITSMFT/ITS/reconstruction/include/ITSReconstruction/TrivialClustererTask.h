@@ -33,9 +33,9 @@ class TrivialClustererTask : public FairTask
 
   InitStatus Init() override;
   void Exec(Option_t* option) override;
-
+  
  private:
-  GeometryTGeo mGeometry; ///< ITS geometry
+  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS geometry
   TrivialClusterer mTrivialClusterer;   ///< Cluster finder
 
   TClonesArray* mDigitsArray;   ///< Array of digits

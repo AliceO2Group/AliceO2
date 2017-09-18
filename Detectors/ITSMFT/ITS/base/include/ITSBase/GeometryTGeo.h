@@ -16,30 +16,30 @@
 #ifndef ALICEO2_ITS_GEOMETRYTGEO_H_
 #define ALICEO2_ITS_GEOMETRYTGEO_H_
 
+#include <vector>
+#include <array>
+#include <string>
 #include <TGeoMatrix.h> // for TGeoHMatrix
-#include <TObjArray.h>  // for TObjArray
 #include <TObject.h>    // for TObject
-#include <TString.h>    // for TString
 #include "DetectorsBase/DetID.h"
+#include "DetectorsBase/Utils.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "ITSMFTBase/GeometryTGeo.h"
 #include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
-class TGeoPNEntry; // lines 17-17
-
-namespace o2
-{
-namespace ITSMFT
-{
-class Segmentation;
+class TGeoPNEntry; 
+namespace o2 {
+namespace ITSMFT {
+  class Segmentation;
+  class SegmentationPixel;
 }
 }
-
+  
 namespace o2
 {
+  
 namespace ITS
 {
-// Adapted from the AliITSUAux class
-const UInt_t gMaxLayers = 15; ///< max number of active layers
 
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
 /// and reconstruction in order to query the TGeo ITS geometry.
@@ -55,394 +55,347 @@ const UInt_t gMaxLayers = 15; ///< max number of active layers
 /// CoarseType*kMaxSegmPerChipType + segmentationType
 /// The only requirement on the segmentationType that should be < kMaxSegmPerChipType.
 /// The methods like getLayerChipTypeID return the full chip type
-class GeometryTGeo : public TObject
+class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 {
  public:
-  enum { kITSVNA, kITSVUpg }; // ITS version
 
-  enum {
-    kChipTypePix = 0,
-    kNChipTypes,
-    kMaxSegmPerChipType = 10
-  }; // defined detector chip types (each one can have different segmentations)
+  typedef o2::Base::Transform3D Mat3D;
+  using DetMatrixCache::getMatrixT2L;
+  using DetMatrixCache::getMatrixL2G;
+  using DetMatrixCache::getMatrixT2GRot;
+  // this method is not advised for ITS: for barrel detectors whose tracking frame is just a rotation
+  // it is cheaper to use T2GRot
+  using DetMatrixCache::getMatrixT2G;
 
-  GeometryTGeo(Bool_t build = kFALSE, Bool_t loadSegmentationsentations = kTRUE);
+  
+  static GeometryTGeo* Instance() {
+    // get (create if needed) a unique instance of the object
+    if (!sInstance) sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, true, 0));
+    return sInstance.get();
+  }
 
+  // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
+  static void adopt(GeometryTGeo* raw); 
+  
+  // constructor
+  // ATTENTION: this class is supposed to behave as a singleton, but to make it root-persistent
+  // we must define public default constructor.
+  // NEVER use it, it will throw exception if the class instance was already created
+  // Use GeometryTGeo::Instance() instead
+  GeometryTGeo(bool build = kFALSE, bool loadSegm = kTRUE,
+	       int loadTrans=0
+	       /*o2::Base::Utils::bit2Mask(o2::Base::TransformType::T2L, // default transformations to load
+						       o2::Base::TransformType::T2G,
+						       o2::Base::TransformType::L2G)*/
+	       );  
+
+  
   /// Default destructor
-  ~GeometryTGeo() override;
+  ~GeometryTGeo() override = default;
+  
+  GeometryTGeo(const GeometryTGeo& src) = delete;
+  GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
+  
+  // implement filling of the matrix cache
+  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  void fillMatrixCache(int mask) override;
 
-  GeometryTGeo(const GeometryTGeo& src);
-
+  // cache parameters of sensors tracking frames
+  void fillTrackingFramesCache();
+  
   /// Exract ITS parameters from TGeo
-  void Build(Bool_t loadSegmentations);
+  void Build(bool loadSegmentations, int loadTrans=0) override;
 
-  GeometryTGeo& operator=(const GeometryTGeo& geom);
-
-  Int_t getNumberOfChips() const { return mNumberOfChips; }
-  Int_t getNumberOfChipRowsPerModule(Int_t lay) const { return mNumberOfChipRowsPerModule[lay]; }
-  Int_t getNumberOfChipColsPerModule(Int_t lay) const
+  int getNumberOfChipRowsPerModule(int lay) const { return mNumberOfChipRowsPerModule[lay]; }
+  int getNumberOfChipColsPerModule(int lay) const
   {
     return mNumberOfChipRowsPerModule[lay] ? mNumberOfChipsPerModule[lay] / mNumberOfChipRowsPerModule[lay] : -1;
   }
 
-  Int_t getNumberOfChipsPerModule(Int_t lay) const { return mNumberOfChipsPerModule[lay]; }
-  Int_t getNumberOfChipsPerHalfStave(Int_t lay) const { return mNumberOfChipsPerHalfStave[lay]; }
-  Int_t getNumberOfChipsPerStave(Int_t lay) const { return mNumberOfChipsPerStave[lay]; }
-  Int_t getNumberOfChipsPerLayer(Int_t lay) const { return mNumberOfChipsPerLayer[lay]; }
-  Int_t getNumberOfModules(Int_t lay) const { return mNumberOfModules[lay]; }
-  Int_t getNumberOfHalfStaves(Int_t lay) const { return mNumberOfHalfStaves[lay]; }
-  Int_t getNumberOfStaves(Int_t lay) const { return mNumberOfStaves[lay]; }
-  Int_t getNumberOfLayers() const { return mNumberOfLayers; }
-  Int_t getChipIndex(Int_t lay, int detInLay) const { return getFirstChipIndex(lay) + detInLay; }
+  int getNumberOfChipsPerModule(int lay) const { return mNumberOfChipsPerModule[lay]; }
+  int getNumberOfChipsPerHalfStave(int lay) const { return mNumberOfChipsPerHalfStave[lay]; }
+  int getNumberOfChipsPerStave(int lay) const { return mNumberOfChipsPerStave[lay]; }
+  int getNumberOfChipsPerLayer(int lay) const { return mNumberOfChipsPerLayer[lay]; }
+  int getNumberOfModules(int lay) const { return mNumberOfModules[lay]; }
+  int getNumberOfHalfStaves(int lay) const { return mNumberOfHalfStaves[lay]; }
+  int getNumberOfStaves(int lay) const { return mNumberOfStaves[lay]; }
+  int getNumberOfLayers() const { return mNumberOfLayers; }
+  int getChipIndex(int lay, int detInLay) const { return getFirstChipIndex(lay) + detInLay; }
   /// This routine computes the chip index number from the layer, stave, and chip number in stave
-  /// \param Int_t lay The layer number. Starting from 0.
-  /// \param Int_t sta The stave number. Starting from 0
-  /// \param Int_t chipInStave The chip number in the stave. Starting from 0
-  Int_t getChipIndex(Int_t lay, Int_t sta, Int_t detInSta) const;
+  /// \param int lay The layer number. Starting from 0.
+  /// \param int sta The stave number. Starting from 0
+  /// \param int chipInStave The chip number in the stave. Starting from 0
+  int getChipIndex(int lay, int sta, int detInSta) const;
 
   /// This routine computes the chip index number from the layer, stave, substave and chip number
   /// in substave
-  /// \param Int_t lay The layer number. Starting from 0.
-  /// \param Int_t sta The stave number. Starting from 0
-  /// \param Int_t substa The substave number. Starting from 0
-  /// \param Int_t chipInSStave The chip number in the sub stave. Starting from 0
-  Int_t getChipIndex(Int_t lay, Int_t sta, Int_t subSta, Int_t detInSubSta) const;
+  /// \param int lay The layer number. Starting from 0.
+  /// \param int sta The stave number. Starting from 0
+  /// \param int substa The substave number. Starting from 0
+  /// \param int chipInSStave The chip number in the sub stave. Starting from 0
+  int getChipIndex(int lay, int sta, int subSta, int detInSubSta) const;
 
   /// This routine computes the chip index number from the layer,stave, substave module and
   /// chip number in module.
-  /// \param Int_t lay The layer number. Starting from 0.
-  /// \param Int_t sta The stave number. Starting from 0
-  /// \param Int_t substa The substave number. Starting from 0
-  /// \param Int_t module The module number ...
-  /// \param Int_t chipInSStave The chip number in the module. Starting from 0
-  Int_t getChipIndex(Int_t lay, Int_t sta, Int_t subSta, Int_t md, Int_t detInMod) const;
+  /// \param int lay The layer number. Starting from 0.
+  /// \param int sta The stave number. Starting from 0
+  /// \param int substa The substave number. Starting from 0
+  /// \param int module The module number ...
+  /// \param int chipInSStave The chip number in the module. Starting from 0
+  int getChipIndex(int lay, int sta, int subSta, int md, int detInMod) const;
 
   /// This routine computes the layer, stave, substave, module and chip number
   /// given the chip index number
-  /// \param Int_t index The chip index number, starting from zero.
-  /// \param Int_t lay The layer number. Starting from 0
-  /// \param Int_t sta The stave number. Starting from 0
-  /// \param Int_t ssta The halfstave number. Starting from 0
-  /// \param Int_t mod The module number. Starting from 0
-  /// \param Int_t chip The detector number. Starting from 0
-  Bool_t getChipId(Int_t index, Int_t& lay, Int_t& sta, Int_t& ssta, Int_t& mod, Int_t& chip) const;
+  /// \param int index The chip index number, starting from zero.
+  /// \param int lay The layer number. Starting from 0
+  /// \param int sta The stave number. Starting from 0
+  /// \param int ssta The halfstave number. Starting from 0
+  /// \param int mod The module number. Starting from 0
+  /// \param int chip The detector number. Starting from 0
+  bool getChipId(int index, int& lay, int& sta, int& ssta, int& mod, int& chip) const;
 
   /// Get chip layer, from 0
-  Int_t getLayer(Int_t index) const;
+  int getLayer(int index) const;
 
   /// Get chip stave, from 0
-  Int_t getStave(Int_t index) const;
+  int getStave(int index) const;
 
   /// Get chip substave id in stave, from 0
-  Int_t getHalfStave(Int_t index) const;
+  int getHalfStave(int index) const;
 
   /// Get chip module id in substave, from 0
-  Int_t getModule(Int_t index) const;
+  int getModule(int index) const;
 
   /// Get chip number within layer, from 0
-  Int_t getChipIdInLayer(Int_t index) const;
+  int getChipIdInLayer(int index) const;
 
   /// Get chip number within stave, from 0
-  Int_t getChipIdInStave(Int_t index) const;
+  int getChipIdInStave(int index) const;
 
   /// Get chip number within stave, from 0
-  Int_t getChipIdInHalfStave(Int_t index) const;
+  int getChipIdInHalfStave(int index) const;
 
   /// Get chip number within module, from 0
-  Int_t getChipIdInModule(Int_t index) const;
+  int getChipIdInModule(int index) const;
 
-  Int_t getLastChipIndex(Int_t lay) const { return mLastChipIndex[lay]; }
-  Int_t getFirstChipIndex(Int_t lay) const { return (lay == 0) ? 0 : mLastChipIndex[lay - 1] + 1; }
-  const char* getSymbolicName(Int_t index) const
+  int getLastChipIndex(int lay) const { return mLastChipIndex[lay]; }
+  int getFirstChipIndex(int lay) const { return (lay == 0) ? 0 : mLastChipIndex[lay - 1] + 1; }
+  const char* getSymbolicName(int index) const
   {
     /// return symbolic name of sensor
-    return o2::Base::GeometryManager::getSymbolicName(sDetID, index);
+    return o2::Base::GeometryManager::getSymbolicName(getDetID(), index);
   }
 
-  const char* getSymbolicName(Int_t lay, Int_t sta, Int_t det) const
+  const char* getSymbolicName(int lay, int sta, int det) const
   {
     /// return symbolic name of sensor
     return getSymbolicName(getChipIndex(lay, sta, det));
   }
-
-  /// Get the transformation matrix for a given chip 'index' by quering the TGeoManager
-  TGeoHMatrix* getMatrix(Int_t index) const { return o2::Base::GeometryManager::getMatrix(sDetID, index); }
-  TGeoHMatrix* getMatrix(Int_t lay, Int_t sta, Int_t sens) const { return getMatrix(getChipIndex(lay, sta, sens)); }
-  Bool_t getOriginalMatrix(Int_t index, TGeoHMatrix& m) const
+  
+  /// Get the transformation matrix for a given chip (NOT A SENSOR!!!) 'index' by quering the TGeoManager
+  TGeoHMatrix* getMatrix(int index) const { return o2::Base::GeometryManager::getMatrix(getDetID(), index); }
+  TGeoHMatrix* getMatrix(int lay, int sta, int sens) const { return getMatrix(getChipIndex(lay, sta, sens)); }
+  bool getOriginalMatrix(int index, TGeoHMatrix& m) const
   {
     /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
     /// The method is slow, so it should be used with great care (for caching only)
-    return o2::Base::GeometryManager::getOriginalMatrix(sDetID, index, m);
+    return o2::Base::GeometryManager::getOriginalMatrix(getDetID(), index, m);
   }
 
-  Bool_t getOriginalMatrix(Int_t lay, Int_t sta, Int_t det, TGeoHMatrix& m) const
+  bool getOriginalMatrix(int lay, int sta, int det, TGeoHMatrix& m) const
   {
     /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
     /// The method is slow, so it should be used with great care (for caching only)
     return getOriginalMatrix(getChipIndex(lay, sta, det), m);
   }
 
-  const TGeoHMatrix* getMatrixT2L(Int_t index);
+  const Mat3D& getMatrixT2L(int lay, int sta, int det) const { return getMatrixT2L(getChipIndex(lay, sta, det)); }
 
-  const TGeoHMatrix* getMatrixT2L(Int_t lay, Int_t sta, Int_t det) { return getMatrixT2L(getChipIndex(lay, sta, det)); }
-  const TGeoHMatrix* getMatrixSensor(Int_t index);
-
-  const TGeoHMatrix* getMatrixSensor(Int_t lay, Int_t sta, Int_t det)
+  const Mat3D& getMatrixSensor(int index) const {return getMatrixL2G(index);}
+  const Mat3D& getMatrixSensor(int lay, int sta, int det)
   {
-    // get positioning matrix of the sensor
+    // get positioning matrix of the sensor, alias to getMatrixL2G
     return getMatrixSensor(getChipIndex(lay, sta, det));
   }
 
-  /// Get the matrix which transforms from the tracking r.s. to the global one
-  /// Returns kFALSE in case of error.
-  Bool_t getTrackingMatrix(Int_t index, TGeoHMatrix& m);
-
-  Bool_t getTrackingMatrix(Int_t lay, Int_t sta, Int_t sens, TGeoHMatrix& m)
+  const Rot2D& getMatrixT2GRot(int lay, int sta, int sens)
   {
-    /// assign to m the matrix transforming from Tracking to Global frame
-    return getTrackingMatrix(getChipIndex(lay, sta, sens), m);
+    /// get matrix for tracking to global frame transformation
+    return getMatrixT2GRot(getChipIndex(lay, sta, sens));
   }
 
+  bool isTrackingFrameCached() const { return !mCacheRefX.empty(); }
+  
+  void getSensorXAlphaRefPlane(int index, float& x, float& alpha) const {
+    x = getSensorRefX(index);
+    alpha = getSensorRefAlpha(index);
+  }
+  
+  float getSensorRefX(int isn) const { return mCacheRefX[isn]; }
+  
+  float getSensorRefAlpha(int isn) const { return mCacheRefAlpha[isn]; }  
+  
   // Attention: these are transformations wrt sensitive volume!
-  void localToGlobal(Int_t index, const Double_t* loc, Double_t* glob);
+  void localToGlobal(int index, const double* loc, double* glob);
 
-  void localToGlobal(Int_t lay, Int_t sta, Int_t det, const Double_t* loc, Double_t* glob);
+  void localToGlobal(int lay, int sta, int det, const double* loc, double* glob);
 
-  void globalToLocal(Int_t index, const Double_t* glob, Double_t* loc);
+  void globalToLocal(int index, const double* glob, double* loc);
 
-  void globalToLocal(Int_t lay, Int_t sta, Int_t det, const Double_t* glob, Double_t* loc);
+  void globalToLocal(int lay, int sta, int det, const double* glob, double* loc);
 
-  void localToGlobalVector(Int_t index, const Double_t* loc, Double_t* glob);
+  void localToGlobalVector(int index, const double* loc, double* glob);
 
-  void globalToLocalVector(Int_t index, const Double_t* glob, Double_t* loc);
+  void globalToLocalVector(int index, const double* glob, double* loc);
 
-  Int_t getLayerChipTypeId(Int_t lr) const;
+  int getLayerChipTypeId(int lr) const;
 
-  Int_t getChipChipTypeId(Int_t id) const;
+  int getChipChipTypeId(int id) const;
 
-  const o2::ITSMFT::Segmentation* getSegmentationById(Int_t id) const;
+  const o2::ITSMFT::Segmentation* getSegmentation(int lr) const;
 
-  const o2::ITSMFT::Segmentation* getSegmentation(Int_t lr) const;
+  void Print(Option_t* opt = "") const;
 
-  TObjArray* getSegmentations() const { return (TObjArray*)mSegmentations; }
-  void Print(Option_t* opt = "") const override;
+  static const char* getITSVolPattern()       { return sVolumeName.c_str(); }
+  static const char* getITSLayerPattern()     { return sLayerName.c_str(); }
+  static const char* getITSWrapVolPattern()   { return sWrapperVolumeName.c_str(); }
+  static const char* getITSStavePattern()     { return sStaveName.c_str(); }
+  static const char* getITSHalfStavePattern() { return sHalfStaveName.c_str(); }
+  static const char* getITSModulePattern()    { return sModuleName.c_str(); }
+  static const char* getITSChipPattern()      { return sChipName.c_str(); }
+  static const char* getITSSensorPattern()    { return sSensorName.c_str(); }
+  static const char* getITSSegmentationFileName() { return sSegmentationFileName.c_str(); }
 
-  static const char* getITSVolPattern() { return sVolumeName.Data(); }
-  static const char* getITSLayerPattern() { return sLayerName.Data(); }
-  static const char* getITSWrapVolPattern() { return sWrapperVolumeName.Data(); }
-  static const char* getITSStavePattern() { return sStaveName.Data(); }
-  static const char* getITSHalfStavePattern() { return sHalfStaveName.Data(); }
-  static const char* getITSModulePattern() { return sModuleName.Data(); }
-  static const char* getITSChipPattern() { return sChipName.Data(); }
-  static const char* getITSSensorPattern() { return sSensorName.Data(); }
-  static const char* getITSsegmentationFileName() { return sSegmentationFileName.Data(); }
-  static const char* getChipTypeName(Int_t i);
-
-  static void setITSVolPattern(const char* nm) { sVolumeName = nm; }
-  static void setITSLayerPattern(const char* nm) { sLayerName = nm; }
-  static void setITSWrapVolPattern(const char* nm) { sWrapperVolumeName = nm; }
-  static void setITSStavePattern(const char* nm) { sStaveName = nm; }
+  static void setITSVolPattern(const char* nm)       { sVolumeName = nm; }
+  static void setITSLayerPattern(const char* nm)     { sLayerName = nm; }
+  static void setITSWrapVolPattern(const char* nm)   { sWrapperVolumeName = nm; }
+  static void setITSStavePattern(const char* nm)     { sStaveName = nm; }
   static void setITSHalfStavePattern(const char* nm) { sHalfStaveName = nm; }
-  static void setITSModulePattern(const char* nm) { sModuleName = nm; }
-  static void setITSChipPattern(const char* nm) { sChipName = nm; }
-  static void setITSSensorPattern(const char* nm) { sSensorName = nm; }
-  static void setChipTypeName(Int_t i, const char* nm);
+  static void setITSModulePattern(const char* nm)    { sModuleName = nm; }
+  static void setITSChipPattern(const char* nm)      { sChipName = nm; }
+  static void setITSSensorPattern(const char* nm)    { sSensorName = nm; }
+  static void setChipTypeName(int i, const char* nm);
 
-  static void setITSsegmentationFileName(const char* nm) { sSegmentationFileName = nm; }
+  static void setITSSegmentationFileName(const char* nm) { sSegmentationFileName = nm; }
   static UInt_t composeChipTypeId(UInt_t segmId);
 
   /// sym name of the layer
-  static const char* composeSymNameITS();
+  static const char* composeSymNameITS() {return o2::Base::DetID(o2::Base::DetID::ITS).getName();}
 
   /// sym name of the layer
-  static const char* composeSymNameLayer(Int_t lr);
+  static const char* composeSymNameLayer(int lr);
 
   /// Sym name of the stave at given layer
-  static const char* composeSymNameStave(Int_t lr, Int_t sta);
+  static const char* composeSymNameStave(int lr, int sta);
 
   /// Sym name of the stave at given layer
-  static const char* composeSymNameHalfStave(Int_t lr, Int_t sta, Int_t ssta);
+  static const char* composeSymNameHalfStave(int lr, int sta, int ssta);
 
   /// Sym name of the substave at given layer/stave
-  static const char* composeSymNameModule(Int_t lr, Int_t sta, Int_t ssta, Int_t mod);
+  static const char* composeSymNameModule(int lr, int sta, int ssta, int mod);
 
   /// Sym name of the chip in the given layer/stave/substave/module
-  static const char* composeSymNameChip(Int_t lr, Int_t sta, Int_t ssta, Int_t mod, Int_t chip);
+  static const char* composeSymNameChip(int lr, int sta, int ssta, int mod, int chip);
 
  protected:
-  /// Store pointer on often used matrices for faster access
-  void fetchMatrices();
-
-  void createT2LMatrices();
-
+  
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
   /// for a given chip 'index' by quering the TGeoManager
-  TGeoHMatrix* extractMatrixSensor(Int_t index) const;
+  TGeoHMatrix* extractMatrixSensor(int index) const;
 
+  // create matrix for transformation from sensor local frame to global one
+  TGeoHMatrix& createT2LMatrix(int isn);
+
+  // get sensor tracking frame alpha and 
+  void extractSensorXAlpha(int isn, float &x, float &alp);
+  
   /// This routine computes the layer number a given the chip index
-  /// \param Int_t index The chip index number, starting from zero.
-  /// \param Int_t indexInLr The chip index inside a layer, starting from zero.
-  /// \param Int_t lay The layer number. Starting from 0.
-  Bool_t getLayer(Int_t index, Int_t& lay, Int_t& index2) const;
+  /// \param int index The chip index number, starting from zero.
+  /// \param int indexInLr The chip index inside a layer, starting from zero.
+  /// \param int lay The layer number. Starting from 0.
+  bool getLayer(int index, int& lay, int& index2) const;
 
   /// Determines the number of chips per module on the (sub)stave in the Geometry
   /// Also extract the layout: span of module centers in Z and X
   /// \param lay: layer number from 0
-  Int_t extractNumberOfChipsPerModule(Int_t lay, Int_t& nrow) const;
+  int extractNumberOfChipsPerModule(int lay, int& nrow) const;
 
   /// Determines the number of layers in the Geometry
   /// \param lay: layer number, starting from 0
-  Int_t extractNumberOfStaves(Int_t lay) const;
+  int extractNumberOfStaves(int lay) const;
 
   /// Determines the number of substaves in the stave of the layer
   /// \param lay: layer number, starting from 0
-  Int_t extractNumberOfHalfStaves(Int_t lay) const;
+  int extractNumberOfHalfStaves(int lay) const;
 
   /// Determines the number of modules in substave in the stave of the layer
   /// \param lay: layer number, starting from 0
   /// For the setup w/o modules defined the module and the stave or the substave is the same thing
-  Int_t extractNumberOfModules(Int_t lay) const;
+  int extractNumberOfModules(int lay) const;
 
   /// Determines the layer detector type the Geometry and
   /// returns the detector type id for the layer
   /// \param lay: layer number from 0
-  Int_t extractLayerChipType(Int_t lay) const;
+  int extractLayerChipType(int lay) const;
 
   /// Determines the number of layers in the Geometry
-  Int_t extractNumberOfLayers();
+  int extractNumberOfLayers();
 
   /// Extract number following the prefix in the name string
-  Int_t extractVolumeCopy(const char* name, const char* prefix) const;
+  int extractVolumeCopy(const char* name, const char* prefix) const;
 
-  TGeoPNEntry* getPNEntry(Int_t index) const
+  TGeoPNEntry* getPNEntry(int index) const
   {
     /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
     /// Returns NULL in case of invalid index, missing TGeoManager or invalid symbolic name
-    return o2::Base::GeometryManager::getPNEntry(sDetID, index);
+    return o2::Base::GeometryManager::getPNEntry(getDetID(), index);
   }
 
  protected:
-  Int_t mVersion;                 ///< ITS Version
-  Int_t mNumberOfLayers;          ///< number of layers
-  Int_t mNumberOfChips;           ///< The total number of chips
-  Int_t* mNumberOfStaves;         //[mNumberOfLayers] Array of the number of staves/layer(layer)
-  Int_t* mNumberOfHalfStaves;     //[mNumberOfLayers] Array of the number of substaves/stave(layer)
-  Int_t* mNumberOfModules;        //[mNumberOfLayers] Array of the number of modules/substave(layer)
-  Int_t* mNumberOfChipsPerModule; //[mNumberOfLayers] Array of the number of chips per module
-  // (group of chips on the substaves)
-  Int_t* mNumberOfChipRowsPerModule; //[mNumberOfLayers] Array of the number of chips rows per
-  // module (relevant for OB modules)
-  Int_t* mNumberOfChipsPerHalfStave;   //[mNumberOfLayers] Array of number of chips per substave
-  Int_t* mNumberOfChipsPerStave;       //[mNumberOfLayers] Array of the number of chips per stave
-  Int_t* mNumberOfChipsPerLayer;       //[mNumberOfLayers] Array of the number of chips per stave
-  Int_t* mLayerChipType;               //[mNumberOfLayers] Array of layer chip types
-  Int_t* mLastChipIndex;               //[mNumberOfLayers] max ID of the detctor in the layer
-  Char_t mLayerToWrapper[gMaxLayers];  ///< Layer to wrapper correspondence
-  TObjArray* mSensorMatrices;          ///< Sensor's matrices pointers in the geometry
-  TObjArray* mTrackingToLocalMatrices; ///< Tracking to Local matrices pointers in the geometry
-  TObjArray* mSegmentations;           ///< segmentations
+  static constexpr int MAXLAYERS = 15;      ///< max number of active layers
+  
+  Int_t mNumberOfLayers;                         ///< number of layers
+  std::vector<int> mNumberOfStaves;              ///< number of staves/layer(layer)
+  std::vector<int> mNumberOfHalfStaves;          ///< the number of substaves/stave(layer)
+  std::vector<int> mNumberOfModules;             ///< number of modules/substave(layer)
+  std::vector<int> mNumberOfChipsPerModule;      ///< number of chips per module (group of chips on substaves)
+  std::vector<int> mNumberOfChipRowsPerModule;   ///< number of chips rows per module (relevant for OB modules)
+  std::vector<int> mNumberOfChipsPerHalfStave;   ///< number of chips per substave
+  std::vector<int> mNumberOfChipsPerStave;       ///< number of chips per stave
+  std::vector<int> mNumberOfChipsPerLayer;       ///< number of chips per stave
+  std::vector<int> mLayerChipType;               ///< layer chip types
+  std::vector<int> mLastChipIndex;               ///< max ID of the detctor in the layer
+  std::array<char,MAXLAYERS> mLayerToWrapper;    ///< Layer to wrapper correspondence
 
-  static TString sVolumeName;                ///< Mother volume name
-  static TString sLayerName;                 ///< Layer name
-  static TString sStaveName;                 ///< Stave name
-  static TString sHalfStaveName;             ///< HalfStave name
-  static TString sModuleName;                ///< Module name
-  static TString sChipName;                  ///< Chip name
-  static TString sSensorName;                ///< Sensor name
-  static TString sWrapperVolumeName;         ///< Wrapper volume name
-  static TString sChipTypeName[kNChipTypes]; ///< upg detType Names
+  std::vector<float> mCacheRefX;                 ///< sensors tracking plane reference X
+  std::vector<float> mCacheRefAlpha;             ///< sensors tracking plane reference alpha
+  
+  static std::string sVolumeName;          ///< Mother volume name
+  static std::string sLayerName;           ///< Layer name
+  static std::string sStaveName;           ///< Stave name
+  static std::string sHalfStaveName;       ///< HalfStave name
+  static std::string sModuleName;          ///< Module name
+  static std::string sChipName;            ///< Chip name
+  static std::string sSensorName;          ///< Sensor name
+  static std::string sWrapperVolumeName;   ///< Wrapper volume name
 
-  static TString sSegmentationFileName; ///< file name for segmentations
+  static std::string sSegmentationFileName; ///< file name for segmentations
 
-  static const o2::Base::DetID sDetID; ///< det ID for comminication with GeometryManager
-
-  ClassDefOverride(GeometryTGeo, 1) // ITS geometry based on TGeo
+ private:
+  static std::unique_ptr<o2::ITS::GeometryTGeo> sInstance;       ///< singletone instance 
+  
+  ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };
 
 /// Detector type ID of layer
-inline Int_t GeometryTGeo::getLayerChipTypeId(Int_t lr) const { return mLayerChipType[lr]; }
+inline int GeometryTGeo::getLayerChipTypeId(int lr) const { return mLayerChipType[lr]; }
 // Detector type ID of chip
-inline Int_t GeometryTGeo::getChipChipTypeId(Int_t id) const { return getLayerChipTypeId(getLayer(id)); }
-/// Access global to sensor matrix
-inline const TGeoHMatrix* GeometryTGeo::getMatrixSensor(Int_t index)
-{
-  if (!mSensorMatrices) {
-    fetchMatrices();
-  }
-  return (TGeoHMatrix*)mSensorMatrices->At(index);
-}
-
-/// Access tracking to local matrix
-inline const TGeoHMatrix* GeometryTGeo::getMatrixT2L(Int_t index)
-{
-  if (!mTrackingToLocalMatrices) {
-    fetchMatrices();
-  }
-  return (TGeoHMatrix*)mTrackingToLocalMatrices->At(index);
-}
-
-/// Sensor local to global
-inline void GeometryTGeo::localToGlobal(Int_t index, const Double_t* loc, Double_t* glob)
-{
-  getMatrixSensor(index)->LocalToMaster(loc, glob);
-}
-
-/// Global to sensor local
-inline void GeometryTGeo::globalToLocal(Int_t index, const Double_t* glob, Double_t* loc)
-{
-  getMatrixSensor(index)->MasterToLocal(glob, loc);
-}
-
-/// Sensor local to global
-inline void GeometryTGeo::localToGlobalVector(Int_t index, const Double_t* loc, Double_t* glob)
-{
-  getMatrixSensor(index)->LocalToMasterVect(loc, glob);
-}
-
-/// Global to sensor local
-inline void GeometryTGeo::globalToLocalVector(Int_t index, const Double_t* glob, Double_t* loc)
-{
-  getMatrixSensor(index)->MasterToLocalVect(glob, loc);
-}
-
-/// Local2Master (sensor)
-inline void GeometryTGeo::localToGlobal(Int_t lay, Int_t sta, Int_t det, const Double_t* loc, Double_t* glob)
-{
-  localToGlobal(getChipIndex(lay, sta, det), loc, glob);
-}
-
-/// Master2local (sensor)
-inline void GeometryTGeo::globalToLocal(Int_t lay, Int_t sta, Int_t det, const Double_t* glob, Double_t* loc)
-{
-  globalToLocal(getChipIndex(lay, sta, det), glob, loc);
-}
-
-inline const char* GeometryTGeo::getChipTypeName(Int_t i)
-{
-  if (i >= kNChipTypes) {
-    i /= kMaxSegmPerChipType; // full type is provided
-  }
-  return sChipTypeName[i].Data();
-}
-
-inline void GeometryTGeo::setChipTypeName(Int_t i, const char* nm)
-{
-  if (i >= kNChipTypes) {
-    i /= kMaxSegmPerChipType; // full type is provided
-  }
-  sChipTypeName[i] = nm;
-}
-
-/// Get segmentation by ID
-inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentationById(Int_t id) const
-{
-  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(id) : nullptr;
-}
+inline int GeometryTGeo::getChipChipTypeId(int id) const { return getLayerChipTypeId(getLayer(id)); }
 
 /// Get segmentation of layer
-inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(Int_t lr) const
+inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(int lr) const
 {
-  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(getLayerChipTypeId(lr)) : nullptr;
+  return getSegmentationById(getLayerChipTypeId(lr));
 }
 }
 }

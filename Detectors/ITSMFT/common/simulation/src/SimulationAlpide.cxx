@@ -27,6 +27,7 @@
 #include "ITSMFTSimulation/DigiParams.h"
 
 
+
 using namespace o2::ITSMFT;
 
 constexpr float sec2ns = 1e9;
@@ -55,7 +56,8 @@ Double_t SimulationAlpide::gaussian2D(Double_t sigma, Double_t offc, Double_t x,
 
 
 //______________________________________________________________________
-Int_t SimulationAlpide::getPixelPositionResponse(const SegmentationPixel *seg, Int_t idPadX, Int_t idPadZ, Float_t locx, Float_t locz, Double_t acs) const {
+Int_t SimulationAlpide::getPixelPositionResponse(const SegmentationPixel *seg, Int_t idPadX,
+						 Int_t idPadZ, Float_t locx, Float_t locz, Double_t acs) const {
   Float_t centerX, centerZ;
   seg->detectorToLocal(idPadX, idPadZ, centerX, centerZ);
 
@@ -78,20 +80,25 @@ Int_t SimulationAlpide::sampleCSFromLandau(Double_t mpv, Double_t w) const {
 
 
 //______________________________________________________________________
-Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
-  Double_t glob[3], loc[3];
-  glob[0] = dir.Px()/dir.P();
-  glob[1] = dir.Py()/dir.P();
-  glob[2] = dir.Pz()/dir.P();
+Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const
+{
+  Vector3D<float> glob(dir.Px()/dir.P(), dir.Py()/dir.P(), dir.Pz()/dir.P());
+  auto loc = (*mMat)^(glob);
 
-  globalToLocalVector(glob, loc);
-
-  TVector3 pdirection(loc[0], loc[1], loc[2]);
+  /* 
+     proper way to calculate real impact angle
+     Vector3D<float> normal(0.f,-1.f,0.f);
+     return TMath::Abs(loc.Dot(normal)/TMath::Sqrt(loc.Mag2()));
+  */
+  
+  // but the method defines its own angle
+  TVector3 pdirection(loc.X(), loc.Y(), loc.Z());
   TVector3 normal(0., -1., 0.);
   Double_t theta = pdirection.Theta() - normal.Theta();
   Double_t phi   = pdirection.Phi() - normal.Phi();
   Double_t angle = TMath::Sqrt(theta*theta + phi*phi);
   return TMath::Sqrt(theta*theta + phi*phi);
+
 }
 
 
@@ -220,25 +227,20 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
 void SimulationAlpide::Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
 {
   // convert single hit to digits with 1 to 1 mapping
-  Double_t x = 0.5 * (hit->GetX() + hit->GetStartX());
-  Double_t y = 0.5 * (hit->GetY() + hit->GetStartY());
-  Double_t z = 0.5 * (hit->GetZ() + hit->GetStartZ());
-  Double_t charge = hit->GetEnergyLoss();
-  Int_t label = hit->GetTrackID();
-  double hTime  = hit->GetTime()*sec2ns + eventTime; // time in ns
-
-  const Double_t glo[3] = { x, y, z };
-  Double_t loc[3] = { 0., 0., 0. };
-  mMat->MasterToLocal(glo, loc);
-  Int_t ix, iz;
-  seg->localToDetector(loc[0], loc[2], ix, iz);
+  Point3D<float> glo( 0.5*(hit->GetX() + hit->GetStartX()),
+		      0.5*(hit->GetY() + hit->GetStartY()),
+		      0.5*(hit->GetZ() + hit->GetStartZ()) );
+  auto loc = (*mMat)^( glo );
+  
+  int ix, iz;
+  seg->localToDetector(loc.X(), loc.Z(), ix, iz);
   if ((ix < 0) || (iz < 0)) {
     LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
     return;
   }
-  
-  addDigit(roFrame, ix, iz, charge, hit->getCombLabel(),hTime);
+  addDigit(roFrame, ix, iz, hit->GetEnergyLoss(), hit->getCombLabel(), hit->GetTime()*sec2ns + eventTime);
 }
+
 
 //______________________________________________________________________
 void SimulationAlpide::addNoise(const SegmentationPixel* seg, UInt_t rofMin, UInt_t rofMax)
@@ -258,7 +260,7 @@ void SimulationAlpide::addNoise(const SegmentationPixel* seg, UInt_t rofMin, UIn
       row = gRandom->Integer(seg->getNumberOfRows());
       col = gRandom->Integer(seg->getNumberOfColumns());
       // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
-      addDigit(rof, row, col, nel, Label(0,0,-1), tstamp);
+      addDigit(rof, row, col, nel, Label(-1,0,0), tstamp);
     }
   }
 }

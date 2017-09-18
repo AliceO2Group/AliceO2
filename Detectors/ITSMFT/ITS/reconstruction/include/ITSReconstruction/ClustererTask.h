@@ -18,7 +18,7 @@
 
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/PixelReader.h"
-#include "ITSReconstruction/Clusterer.h"
+#include "ITSMFTReconstruction/Clusterer.h"
 
 class TClonesArray;
 
@@ -29,6 +29,8 @@ namespace ITS
   
 class ClustererTask : public FairTask
 {
+  using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
+  
  public:
   ClustererTask();
   ~ClustererTask() override;
@@ -37,9 +39,10 @@ class ClustererTask : public FairTask
   void Exec(Option_t* option) override;
 
  private:
-  GeometryTGeo mGeometry;                ///< ITS geometry
-  o2::ITSMFT::DigitPixelReader mReader;  ///< Pixel reader
-  Clusterer mClusterer;                  ///< Cluster finder
+
+  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
+  DigitPixelReader mReader;  ///< Pixel reader
+  Clusterer mClusterer;      ///< Cluster finder
 
   TClonesArray* mClustersArray = nullptr; ///< Array of clusters
 
