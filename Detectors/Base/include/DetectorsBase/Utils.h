@@ -76,6 +76,18 @@ namespace o2 {
         return Sector2Angle(Angle2Sector(phi));
       }
 
+      //-------------------------------------->>>
+      // recursive creation of bitmask
+      template<typename T>
+	constexpr int bit2Mask(T v) {
+	return 0x1<<v;
+      }
+
+      template<typename T, typename... Args>
+	constexpr int bit2Mask(T first, Args... args) {
+	return (0x1<<first) | bit2Mask(args...);
+      }
+      //--------------------------------------<<<
     }
   }
 }

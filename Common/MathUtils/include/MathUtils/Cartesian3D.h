@@ -37,6 +37,17 @@ namespace o2
 namespace Base
 {
 
+/// predefined transformations: Tracking->Local, Tracking->Global, Local->Global etc 
+/// The IDs must be < 32
+
+struct TransformType {
+  static constexpr int L2G = 0;
+  static constexpr int T2L = 1;
+  static constexpr int T2G = 2;
+  static constexpr int T2GRot = 3;  
+};      /// transformation types
+
+
 class Rotation2D
 {
   //
@@ -44,6 +55,7 @@ class Rotation2D
 
  public:
 
+  Rotation2D() = default;
   Rotation2D(float cs, float sn) : mCos(cs), mSin(sn) {}
   Rotation2D(float phiZ) : mCos(cos(phiZ)), mSin(sin(phiZ)) {}
   ~Rotation2D() = default;
@@ -118,13 +130,12 @@ class Rotation2D
   
  private:
   
-  float mCos = 0.f;  ///< cos of rotation angle
+  float mCos = 1.f;  ///< cos of rotation angle
   float mSin = 0.f;  ///< sin of rotation angle
 
   ClassDefNV(Rotation2D,1);
 };
- 
-  
+   
 class Transform3D : public ROOT::Math::Transform3D
 {
   //
@@ -141,6 +152,9 @@ class Transform3D : public ROOT::Math::Transform3D
   Transform3D(const TGeoMatrix& m);
   ~Transform3D() = default;
 
+  // inherit assignment operators of the base class
+  using ROOT::Math::Transform3D::operator=;
+  
   // to avoid conflict between the base Transform3D(const ForeignMatrix & m) and
   // Transform3D(const TGeoMatrix &m) constructors we cannot inherit base c-tors,
   // therefore we redefine them here
@@ -149,6 +163,16 @@ class Transform3D : public ROOT::Math::Transform3D
   template <class IT>
   Transform3D(IT begin, IT end) : ROOT::Math::Transform3D(begin, end) {}
 
+  // conversion operator to TGeoHMatrix
+  operator TGeoHMatrix&() const {
+    static TGeoHMatrix tmp;
+    double rot[9],tra[3];
+    GetComponents(rot[0],rot[1],rot[2],tra[0],rot[3],rot[4],rot[5],tra[1],rot[6],rot[7],rot[8],tra[2]);
+    tmp.SetRotation(rot);
+    tmp.SetTranslation(tra);
+    return tmp;
+  }
+  
   void set(const TGeoMatrix& m); // set parameters from TGeoMatrix
 
   using ROOT::Math::Transform3D::operator();

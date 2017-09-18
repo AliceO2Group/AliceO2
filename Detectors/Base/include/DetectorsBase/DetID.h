@@ -8,25 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @copyright
-/// © Copyright 2014 Copyright Holders of the ALICE O2 collaboration.
-/// See https://aliceinfo.cern.ch/AliceO2 for details on the Copyright holders.
-/// This software is distributed under the terms of the
-/// GNU General Public License version 3 (GPL Version 3).
-///
-/// License text in a separate file.
-///
-/// In applying this license, CERN does not waive the privileges and immunities
-/// granted to it by virtue of its status as an Intergovernmental Organization
-/// or submit itself to any jurisdiction.
-
 /// @brief ALICE detectors ID's, names, masks
 ///
 /// @author Ruben Shahoyan, ruben.shahoyan@cern.ch
 
 /*!
   Example of class usage:
-  using namespace o2::base;
+  using namespace o2::Base;
   DetID det[3] = {DetID(DetID::ITS), DetID(DetID::TPC), DetID(DetID::TRD)};
   int mskTot = 0;
   for (int i=0;i<3;i++) {
@@ -43,45 +31,42 @@
 #include <array>
 #include <type_traits>
 #include <Rtypes.h>
+#include "DetectorsBase/Utils.h"
 
 namespace o2
 {
 namespace Base
 {
-/// generic template to convert enum to underlying int type
-template <typename E>
-constexpr typename std::underlying_type<E>::type toInt(const E e)
-{
-  return static_cast<typename std::underlying_type<E>::type>(e);
-}
-
-constexpr std::int32_t IDtoMask(int id) { return 0x1 << id; }
  
 /// Static class with identifiers, bitmasks and names for ALICE detectors
 class DetID
 {
  public:
   /// Detector identifiers: continuous, starting from 0
-  enum ID : std::int32_t {
-    ITS = 0,
-    TPC,
-    TRD,
-    TOF,
-    PHS,
-    CPV,
-    EMC,
-    HMP,
-    MFT,
-    MCH,
-    MID,
-    ZDC,
-    FIT,
-    First = ITS,
-    Last = FIT
-  };
+  typedef std::int32_t ID;
 
-  DetID(ID id);
+  static constexpr ID ITS = 0;
+  static constexpr ID TPC = 1;
+  static constexpr ID TRD = 2;
+  static constexpr ID TOF = 3;
+  static constexpr ID PHS = 4;
+  static constexpr ID CPV = 5;
+  static constexpr ID EMC = 6;
+  static constexpr ID HMP = 7;
+  static constexpr ID MFT = 8;
+  static constexpr ID MCH = 9;
+  static constexpr ID MID = 10;
+  static constexpr ID ZDC = 11;
+  static constexpr ID FIT = 12;
+  static constexpr ID ACO = 13;
+  static constexpr ID First = ITS;
+  static constexpr ID Last  = ACO;  ///< if extra detectors added, update this !!!
 
+  static constexpr int nDetectors = Last+1; ///< number of defined detectors
+  
+  DetID(ID id) :mID(id) {}
+  constexpr DetID(const char* name);
+  
   /// get derector id
   ID getID() const { return mID; }
 
@@ -99,30 +84,40 @@ class DetID
   static constexpr int getNDetectors() { return nDetectors; }
 
   /// names of defined detectors
-  static const char* getName(ID id) { return sDetNames[toInt(id)]; }
+  static  constexpr const char* getName(ID id) { return sDetNames[id]; }
 
   // detector ID to mask conversion
-  static std::int32_t getMask(ID id) { return sMasks[toInt(id)]; }
+  static constexpr std::int32_t getMask(ID id) { return sMasks[id]; }
 
   // we need default c-tor only for root persistency, code must use c-tor with argument
-  DetID() : mID(ID::First) {}
+  DetID() : mID(First) {}
 
  private:
+
+  // are 2 strings equal ? (trick from Giulio)
+  inline static constexpr bool sameStr(char const *x, char const *y) {
+    return !*x && !*y     ? true
+      : /* default */    (*x == *y && sameStr(x+1, y+1));
+  }
+  
+  inline static constexpr int nameToID(char const *name, int id) {
+    return id>Last ? id :
+      sameStr(name, sDetNames[id]) ? id : nameToID(name, id+1);
+  }
+
+  
   ID mID; ///< detector ID
-
-  /// number of defined detectors
-  static constexpr int nDetectors = toInt(ID::Last) + 1;
-
-  static constexpr std::array<const char[4], nDetectors> sDetNames =      ///< defined detector names
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FIT"};
+  
+  static constexpr const char* sDetNames[nDetectors+1] =      ///< defined detector names
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FIT","ACO", nullptr};
 
   // detector names, will be defined in DataSources
-  static constexpr std::array<std::int32_t,nDetectors> sMasks =  ///< detectot masks for bitvectors
-    { IDtoMask(toInt(ITS)), IDtoMask(toInt(TPC)), IDtoMask(toInt(TRD)),
-      IDtoMask(toInt(TOF)), IDtoMask(toInt(PHS)), IDtoMask(toInt(CPV)),
-      IDtoMask(toInt(EMC)), IDtoMask(toInt(HMP)), IDtoMask(toInt(MFT)),
-      IDtoMask(toInt(MCH)), IDtoMask(toInt(MID)), IDtoMask(toInt(ZDC)),
-      IDtoMask(toInt(FIT)) };
+  static constexpr std::array<std::int32_t, nDetectors> sMasks =  ///< detectot masks for bitvectors
+    { Utils::bit2Mask(ITS), Utils::bit2Mask(TPC), Utils::bit2Mask(TRD),
+      Utils::bit2Mask(TOF), Utils::bit2Mask(PHS), Utils::bit2Mask(CPV),
+      Utils::bit2Mask(EMC), Utils::bit2Mask(HMP), Utils::bit2Mask(MFT),
+      Utils::bit2Mask(MCH), Utils::bit2Mask(MID), Utils::bit2Mask(ZDC),
+      Utils::bit2Mask(FIT) };
 
   ClassDefNV(DetID, 1);
 };

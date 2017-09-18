@@ -14,6 +14,7 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
+#pragma link C++ enum o2::Base::TransformType;
 
 #pragma link C++ class o2::Base::Detector+;
 #pragma link C++ class o2::Base::Track::TrackParBase+;
@@ -23,4 +24,8 @@
 #pragma link C++ class o2::Base::DetID+;
 #pragma link C++ class o2::Base::GeometryManager+;
 #pragma link C++ class o2::Base::BaseCluster<float>+;
+#pragma link C++ class o2::Base::MatrixCache<o2::Base::Transform3D>+;
+#pragma link C++ class o2::Base::MatrixCache<o2::Base::Rotation2D>+;
+#pragma link C++ class o2::Base::DetMatrixCache+;
+
 #endif
