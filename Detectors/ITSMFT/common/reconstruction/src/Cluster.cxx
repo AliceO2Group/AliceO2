@@ -23,64 +23,6 @@ using namespace o2::ITSMFT;
 
 ClassImp(o2::ITSMFT::Cluster)
 
-//_____________________________________________________
-Cluster::Cluster()
-  : mX(0),
-    mY(0),
-    mZ(0),
-    mSigmaY2(0),
-    mSigmaZ2(0),
-    mSigmaYZ(0),
-    mVolumeId(0),
-    mRecoInfo(0),
-    mNxNzN(0)
-#ifdef _ClusterTopology_
-    ,
-    mPatternNRows(0),
-    mPatternNCols(0),
-    mPatternMinRow(0),
-    mPatternMinCol(0)
-#endif
-{
-// default constructor
-#ifdef _ClusterTopology_
-  memset(mPattern, 0, kMaxPatternBytes * sizeof(UChar_t));
-#endif
-}
-
-//_____________________________________________________
-Cluster::~Cluster()
-{
-  // default destructor
-}
-
-//_____________________________________________________
-Cluster::Cluster(const Cluster& cluster)
-  : FairTimeStamp(cluster),
-    mTracks{ cluster.mTracks[0], cluster.mTracks[1], cluster.mTracks[2] },
-    mX(cluster.mX),
-    mY(cluster.mY),
-    mZ(cluster.mZ),
-    mSigmaY2(cluster.mSigmaY2),
-    mSigmaZ2(cluster.mSigmaZ2),
-    mSigmaYZ(cluster.mSigmaYZ),
-    mVolumeId(cluster.mVolumeId),
-    mRecoInfo(cluster.mRecoInfo),
-    mNxNzN(cluster.mNxNzN)
-#ifdef _ClusterTopology_
-    ,
-    mPatternNRows(cluster.mPatternNRows),
-    mPatternNCols(cluster.mPatternNCols),
-    mPatternMinRow(cluster.mPatternMinRow),
-    mPatternMinCol(cluster.mPatternMinCol)
-#endif
-{
-// copy constructor
-#ifdef _ClusterTopology_
-  memcpy(mPattern, cluster.mPattern, kMaxPatternBytes * sizeof(UChar_t));
-#endif
-}
-
 #ifdef _ClusterTopology_
 //______________________________________________________________________________
 void Cluster::resetPattern()
@@ -144,7 +86,6 @@ void Cluster::setPatternColSpan(UShort_t nc, Bool_t truncated)
 Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
 {
   // check if clusters have common tracks
-  Label lbi, lbj;
   for (int i = 0; i < maxLabels; i++) {
     Label lbi = getLabel(i);
     if ( lbi.isEmpty() ) break;

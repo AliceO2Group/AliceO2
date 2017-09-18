@@ -10,12 +10,14 @@ set(SRCS
     src/SimuClusterShaper.cxx
     src/SimulationAlpide.cxx
     src/DigiParams.cxx
+    src/Digitizer.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Hit.h
     include/${MODULE_NAME}/ClusterShape.h
     include/${MODULE_NAME}/AlpideSimResponse.h
     include/${MODULE_NAME}/DigiParams.h
+    include/${MODULE_NAME}/Digitizer.h
     include/${MODULE_NAME}/Chip.h
     include/${MODULE_NAME}/SimuClusterShaper.h
     include/${MODULE_NAME}/SimulationAlpide.h

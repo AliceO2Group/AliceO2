@@ -13,7 +13,7 @@
 //  ALICEO2
 //
 //  Created by Markus Fasel on 23.07.15.
-//  Adapted from AliITSUChip by Massimo Masersa
+//  Adapted from AliITSUChip by Massimo Masera
 //
 
 #ifndef ALICEO2_ITSMFT_CHIP_
@@ -24,9 +24,9 @@
 #include <vector>
 #include <map>
 #include <TObject.h>    // for TObject
-#include <TGeoMatrix.h>   
 #include <ITSMFTBase/Digit.h>
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "MathUtils/Cartesian3D.h"
 
 namespace o2 { namespace ITSMFT { class Hit; }}
 
@@ -104,7 +104,7 @@ class Chip
     /// Main constructor
     /// @param chipindex Index of the chip
     /// @param mat Transformation matrix
-    Chip(const DigiParams* par, Int_t index, const TGeoHMatrix *mat);
+    Chip(const DigiParams* par, Int_t index, const o2::Base::Transform3D *mat);
 
     /// Copy constructor
     /// @param ref Reference for the copy
@@ -142,7 +142,7 @@ class Chip
     void SetChipIndex(Int_t index)
     { mChipIndex = index; }
 
-    void Init(Int_t index, const TGeoHMatrix *mat)
+    void Init(Int_t index, const o2::Base::Transform3D *mat)
     { mChipIndex = index; mMat=mat; }
 
     /// Get the chip index
@@ -170,10 +170,6 @@ class Chip
     /// @param index Index of the point
     /// @return Hit at given index (nullptr if index is out of bounds)
     const Hit *GetHitAt(Int_t index) const;
-
-    void globalToLocalVector(Double_t glob[3], Double_t loc[3]) const {
-       mMat->MasterToLocalVect(glob, loc);
-    }
     
     /// Get the line segment of a given point (from start to current position)
     /// in local coordinates.
@@ -240,9 +236,9 @@ class Chip
     
     Int_t  mChipIndex = -1;     ///< Chip ID
     const DigiParams* mParams = nullptr;   ///< externally set digitization parameters   
+    const o2::Base::Transform3D *mMat = nullptr;     ///< Transformation matrix
     std::vector<const Hit *>mHits;     ///< Hits connnected to the given chip
     std::map<ULong64_t, o2::ITSMFT::Digit> mDigits; ///< Map of fired pixels, possibly in multiple frames
-    const TGeoHMatrix *mMat = nullptr;     ///< Transformation matrix
 
     ClassDefNV(Chip,1);
 };

@@ -139,7 +139,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
     kGuardRing,  // top
     kReadOutEdge // bottom
     );           // see UpgradeSegmentationPixel.h for extra options
-  seg0->Store(o2::ITS::GeometryTGeo::getITSsegmentationFileName());
+  seg0->Store(o2::ITS::GeometryTGeo::getITSSegmentationFileName());
   seg0->Print();
 
   double dzLr, rLr, phi0, turbo;

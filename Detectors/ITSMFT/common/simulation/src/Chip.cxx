@@ -28,11 +28,12 @@
 #include "ITSMFTSimulation/DigiParams.h"
 
 using namespace o2::ITSMFT;
+using namespace o2::Base;
 
 ClassImp(o2::ITSMFT::Chip);
 
 //_______________________________________________________________________
-Chip::Chip(const DigiParams* par, Int_t chipindex, const TGeoHMatrix *mat) :
+Chip::Chip(const DigiParams* par, Int_t chipindex, const o2::Base::Transform3D *mat) :
   mParams(par),
   mChipIndex(chipindex),
   mMat(mat)
@@ -105,23 +106,18 @@ Bool_t Chip::LineSegmentLocal(const Hit* hit,
 {
   if (hit->IsEntering()) return kFALSE;
 
-  Double_t posglob[3] = {hit->GetX(), hit->GetY(), hit->GetZ()},
-    posglobStart[3] = {hit->GetStartX(), hit->GetStartY(), hit->GetStartZ()},
-    posloc[3], poslocStart[3];
-  memset(posloc, 0, sizeof(Double_t) * 3);
-  memset(poslocStart, 0, sizeof(Double_t) * 3);
-
   // convert to local position
-  mMat->MasterToLocal(posglob, posloc);
-  mMat->MasterToLocal(posglobStart, poslocStart);
+  auto posLoc  = (*mMat)^( hit->GetPos() );
+  auto posLocS = (*mMat)^( hit->GetPosStart() );  
 
   // Prepare output, hit point relative to starting point
-  xstart = poslocStart[0];
-  ystart = poslocStart[1];
-  zstart = poslocStart[2];
-  xpoint = posloc[0] - poslocStart[0];
-  ypoint = posloc[1] - poslocStart[1];
-  zpoint = posloc[2] - poslocStart[2];
+  // RS: think about returning Point3D
+  xstart = posLocS.X();
+  ystart = posLocS.Y();
+  zstart = posLocS.Z();
+  xpoint = posLoc.X() - xstart;
+  ypoint = posLoc.Y() - ystart;
+  zpoint = posLoc.Z() - zstart;
 
   timestart = hit->GetTime();
   eloss = hit->GetEnergyLoss();
@@ -162,43 +158,41 @@ Double_t Chip::PathLength(const Hit *p1, const Hit *p2) const
 void Chip::MedianHitGlobal(const Hit *p1, const Hit *p2, Double_t &x, Double_t &y, Double_t &z) const
 {
   // Get hit positions in global coordinates
-  Double_t pos1Glob[3] = {p1->GetX(), p1->GetY(), p1->GetZ()},
-    pos2Glob[3] = {p2->GetX(), p2->GetY(), p2->GetZ()}, posMedianLocal[3], posMedianGlobal[3];
+  Double_t pos1Glob[3] = {p1->GetX(), p1->GetY(), p1->GetZ()},pos2Glob[3] = {p2->GetX(), p2->GetY(), p2->GetZ()};
+  Point3D<float> posMedianLocal;
 
   // Calculate mean positions
-  posMedianLocal[1] = 0.;
+  posMedianLocal.SetX(0.f);
   if ((pos1Glob[1] * pos2Glob[1]) < 0.) {
-    posMedianLocal[0] = (-pos1Glob[1] / (pos2Glob[1] - pos1Glob[1])) * (pos2Glob[0] - pos1Glob[0]) + pos1Glob[0];
-    posMedianLocal[2] = (-pos1Glob[1] / (pos2Glob[1] - pos1Glob[1])) * (pos2Glob[2] - pos1Glob[2]) + pos1Glob[2];
+    posMedianLocal.SetY( (-pos1Glob[1] / (pos2Glob[1] - pos1Glob[1])) * (pos2Glob[0] - pos1Glob[0]) + pos1Glob[0] );
+    posMedianLocal.SetZ( (-pos1Glob[1] / (pos2Glob[1] - pos1Glob[1])) * (pos2Glob[2] - pos1Glob[2]) + pos1Glob[2] );
   } else {
-    posMedianLocal[0] = 0.5 * (pos1Glob[0] + pos2Glob[0]);
-    posMedianLocal[2] = 0.5 * (pos1Glob[2] + pos2Glob[2]);
+    posMedianLocal.SetY( 0.5 * (pos1Glob[0] + pos2Glob[0]) );
+    posMedianLocal.SetZ( 0.5 * (pos1Glob[2] + pos2Glob[2]) );
   }
 
   // Convert to global coordinates
-  mMat->LocalToMaster(posMedianLocal, posMedianGlobal);
-  x = posMedianGlobal[0];
-  y = posMedianGlobal[1];
-  z = posMedianGlobal[2];
+  auto posMedianGlobal = (*mMat)(posMedianLocal);
+  x = posMedianGlobal.X();
+  y = posMedianGlobal.Y();
+  z = posMedianGlobal.Z();
 }
 
 //_______________________________________________________________________
 void Chip::MedianHitLocal(const Hit *p1, const Hit *p2, Double_t &x, Double_t &y, Double_t &z) const
 {
   // Convert hit positions into local positions inside the chip
-  Double_t pos1Glob[3] = {p1->GetX(), p1->GetY(), p1->GetZ()},
-    pos2Glob[3] = {p2->GetX(), p2->GetY(), p2->GetZ()}, pos1Loc[3], pos2Loc[3];
-  mMat->MasterToLocal(pos1Glob, pos1Loc);
-  mMat->MasterToLocal(pos2Glob, pos2Loc);
-
+  auto pos1Loc = (*mMat)^(p1->GetPos());
+  auto pos2Loc = (*mMat)^(p2->GetPos());
+  
   // Calculate mean positions
   y = 0.;
-  if ((pos1Loc[1] * pos2Loc[1]) < 0.) {
-    x = (-pos1Loc[1] / (pos2Loc[1] - pos1Loc[1])) * (pos2Loc[0] - pos1Loc[0]) + pos1Loc[0];
-    z = (-pos1Loc[1] / (pos2Loc[1] - pos1Loc[1])) * (pos2Loc[2] - pos1Loc[2]) + pos1Loc[2];
+  if ((pos1Loc.Y() * pos2Loc.Y()) < 0.) {
+    x = (-pos1Loc.Y() / (pos2Loc.Y() - pos1Loc.Y())) * (pos2Loc.X() - pos1Loc.X()) + pos1Loc.X();
+    z = (-pos1Loc.Y() / (pos2Loc.Y() - pos1Loc.Y())) * (pos2Loc.Z() - pos1Loc.Z()) + pos1Loc.Z();
   } else {
-    x = 0.5 * (pos1Loc[0] + pos2Loc[0]);
-    z = 0.5 * (pos1Loc[2] + pos2Loc[2]);
+    x = 0.5 * (pos1Loc.X() + pos2Loc.X());
+    z = 0.5 * (pos1Loc.Z() + pos2Loc.Z());
   }
 }
 

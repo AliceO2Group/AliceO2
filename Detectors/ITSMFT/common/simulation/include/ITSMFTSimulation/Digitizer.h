@@ -19,25 +19,26 @@
 #include "TObject.h" // for TObject
 
 #include "ITSMFTSimulation/SimulationAlpide.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTSimulation/DigiParams.h"
+#include "ITSMFTBase/GeometryTGeo.h"
 
 class TClonesArray;
 
 namespace o2
 {
-  namespace ITS
+  namespace ITSMFT
   {
     class Digitizer : public TObject
     {
     public:
-      Digitizer();
-      ~Digitizer() override;
+      
+      Digitizer() = default;
+      ~Digitizer() override = default;
       Digitizer(const Digitizer&) = delete;
       Digitizer& operator=(const Digitizer&) = delete;
 
 
-      void init(Bool_t build = kTRUE);
+      void init();
 
       /// Steer conversion of points to digits
       void   process(TClonesArray* points, TClonesArray* digits);
@@ -60,10 +61,13 @@ namespace o2
 
       void setCurrSrcID(int v);
       void setCurrEvID(int v);
+            
+      // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
+      void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
       
     private:
-      
-      GeometryTGeo mGeometry;                    ///< ITS upgrade geometry
+
+      const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
       std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
       o2::ITSMFT::DigiParams mParams;            ///< digitization parameters
       double mEventTime = 0;                     ///< global event time

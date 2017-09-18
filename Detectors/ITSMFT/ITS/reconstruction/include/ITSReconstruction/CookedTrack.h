@@ -24,9 +24,13 @@
 
 namespace o2
 {
+
+namespace ITSMFT {
+class Cluster;
+}
+
 namespace ITS
 {
-class Cluster;
 
 class CookedTrack : public TObject 
 {
@@ -40,10 +44,10 @@ class CookedTrack : public TObject
   ~CookedTrack() override;
 
   // These functions must be provided
-  Double_t getPredictedChi2(const Cluster* c) const;
+  Double_t getPredictedChi2(const o2::ITSMFT::Cluster* c) const;
   Bool_t propagate(Double_t alpha, Double_t x, Double_t bz);
   Bool_t correctForMeanMaterial(Double_t x2x0, Double_t xrho, Bool_t anglecorr = kTRUE);
-  Bool_t update(const Cluster* c, Double_t chi2, Int_t idx);
+  Bool_t update(const o2::ITSMFT::Cluster* c, Double_t chi2, Int_t idx);
 
   // Other functions
   Int_t getChi2() const { return mChi2; }
@@ -71,6 +75,8 @@ class CookedTrack : public TObject
   Double_t getPt() const { return mTrack.GetPt(); }
   Bool_t getPxPyPz(std::array<float,3> &pxyz) const { return mTrack.GetPxPyPz(pxyz); }
   void resetCovariance(Double_t s2 = 0.) { mTrack.ResetCovariance(float(s2)); }
+
+  const o2::Base::Track::TrackParCov&  getBaseTrack() const {return mTrack;}
   
  private:
   o2::Base::Track::TrackParCov mTrack; ///< Base track

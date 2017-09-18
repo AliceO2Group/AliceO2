@@ -145,7 +145,7 @@ DataProcessorSpec sim_its_ALP3() {
           kTopEdge, // top
           kReadOutEdge // bottom
           );           // see SegmentationPixel.h for extra options
-        seg0->Store(o2::ITS::GeometryTGeo::getITSsegmentationFileName());
+        seg0->Store(o2::ITS::GeometryTGeo::getITSSegmentationFileName());
         seg0->Print();
 
         double dzLr, rLr, phi0, turbo;

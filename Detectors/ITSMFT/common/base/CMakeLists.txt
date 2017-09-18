@@ -12,6 +12,7 @@ set(SRCS
      src/SegmentationPixel.cxx
 #    src/ContainerFactory.cxx
 #    src/MisalignmentParameter.cxx
+     src/GeometryTGeo.cxx
     )
 
 set(HEADERS
@@ -24,6 +25,7 @@ set(HEADERS
      include/${MODULE_NAME}/SegmentationPixel.h
 #    include/${MODULE_NAME}/ContainerFactory.h
 #    include/${MODULE_NAME}/MisalignmentParameter.h
+     include/${MODULE_NAME}/GeometryTGeo.h
     )
 
 

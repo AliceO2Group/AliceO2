@@ -41,8 +41,10 @@ namespace ITSMFT
 ///
 class Digit : public FairTimeStamp
 {
- public:
   using Label = o2::MCCompLabel;
+
+ public:
+
   static constexpr int maxLabels=3;
   
   /// Default constructor  

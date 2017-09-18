@@ -22,5 +22,6 @@
 #pragma link C++ class o2::ITSMFT::AlpideSimResponse+;
 #pragma link C++ class o2::ITSMFT::AlpideRespSimMat+;
 #pragma link C++ class o2::ITSMFT::DigiParams+;
+#pragma link C++ class o2::ITSMFT::Digitizer+;
 
 #endif

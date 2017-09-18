@@ -14,12 +14,14 @@
 #define ALICEO2_ITS_TRIVIALCLUSTERER_H
 
 #include "Rtypes.h"  // for TrivialClusterer::Class, Double_t, ClassDef, etc
+#include "ITSMFTBase/GeometryTGeo.h"
 
 class TClonesArray;
 
 namespace o2 {
   namespace ITSMFT {
     class SegmentationPixel;
+    class Cluster;
   }
 }
 
@@ -40,6 +42,11 @@ namespace ITS
   /// @param points Container with ITS points
   /// @return digits container
   void process(const o2::ITSMFT::SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters);
+  // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
+  void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
+
+ protected:
+  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
 
 };
 }

@@ -12,6 +12,8 @@
 /// \brief Implementation of the ITS cluster finder task
 
 #include "ITSReconstruction/TrivialClustererTask.h"
+#include "MathUtils/Cartesian3D.h"
+#include "DetectorsBase/Utils.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
@@ -21,9 +23,12 @@ ClassImp(o2::ITS::TrivialClustererTask)
 
 using o2::ITSMFT::SegmentationPixel;
 using namespace o2::ITS;
+using namespace o2::Base;
+using namespace o2::Base::Utils;
 
 //_____________________________________________________________________
-TrivialClustererTask::TrivialClustererTask() : FairTask("ITSTrivialClustererTask"), mDigitsArray(nullptr), mClustersArray(nullptr) {}
+TrivialClustererTask::TrivialClustererTask() : FairTask("ITSTrivialClustererTask"),
+					       mDigitsArray(nullptr), mClustersArray(nullptr) {}
 
 //_____________________________________________________________________
 TrivialClustererTask::~TrivialClustererTask()
@@ -54,8 +59,11 @@ InitStatus TrivialClustererTask::Init()
   // Register output container
   mClustersArray = new TClonesArray("o2::ITS::Cluster");
   mgr->Register("ITSCluster", "ITS", mClustersArray, kTRUE);
-
-  mGeometry.Build(kTRUE);
+  
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
+  mGeometry = geom;
+  mTrivialClusterer.setGeometry(geom);
 
   return kSUCCESS;
 }
@@ -66,7 +74,7 @@ void TrivialClustererTask::Exec(Option_t* option)
   mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
 
   mTrivialClusterer.process(seg, mDigitsArray, mClustersArray);
 }

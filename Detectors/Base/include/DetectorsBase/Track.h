@@ -22,9 +22,12 @@
 
 #include "DetectorsBase/Constants.h"
 #include "DetectorsBase/Utils.h"
+#include "DetectorsBase/BaseCluster.h"
+#include "MathUtils/Cartesian3D.h"
 
 namespace o2 {
   namespace Base {
+    
     namespace Track {
 
       // aliases for track elements
@@ -78,6 +81,8 @@ namespace o2 {
 
           float GetP()                         const;
           float GetPt()                        const;
+
+	  Point3D<float> GetXYZ()                          const;
           void  GetXYZ(std::array<float,3> &xyz)           const;
           bool  GetPxPyPz(std::array<float,3> &pxyz)       const;
           bool  GetPosDir(std::array<float,9> &posdirp)    const;
@@ -137,8 +142,25 @@ namespace o2 {
           bool  PropagateTo(float xk, const std::array<float,3> &b);
           void  Invert();
 
-          float GetPredictedChi2(const std::array<float,2> &p, const std::array<float,3> &cov) const;
-          bool  Update(const std::array<float,2> &p, const std::array<float,3> &cov);
+	  float GetPredictedChi2(const std::array<float,2> &p, const std::array<float,3> &cov) const;	  
+	  template <typename T> 
+	    float GetPredictedChi2(const BaseCluster<T> &p) const
+	    {
+	      const std::array<float,2> pyz = { p.getY(),p.getZ() };
+	      const std::array<float,3> cov = { p.getSigmaY2(),p.getSigmaYZ(),p.getSigmaZ2() };
+	      return GetPredictedChi2(pyz, cov);
+	    }
+
+
+	  bool  Update(const std::array<float,2> &p, const std::array<float,3> &cov);
+
+	  template <typename T> 
+	    bool  Update(const BaseCluster<T> &p)
+	    {
+	      const std::array<float,2> pyz{ p.getY(),p.getZ() };
+	      const std::array<float,3> cov{ p.getSigmaY2(),p.getSigmaYZ(),p.getSigmaZ2() };
+	      return Update(pyz, cov);
+	    }
 
           bool  CorrectForMaterial(float x2x0,float xrho,float mass,bool anglecorr=false,float dedx=kCalcdEdxAuto);
 
@@ -174,6 +196,13 @@ namespace o2 {
         Utils::RotateZ(xyz,GetAlpha());
       }
 
+      //_______________________________________________________
+      inline Point3D<float> TrackParBase::GetXYZ() const {
+	std::array<float,3> xyz = { GetX(), GetY(), GetZ() };
+        Utils::RotateZ(xyz,GetAlpha());
+	return Point3D<float>(xyz[0],xyz[1],xyz[2]);
+      }
+      
       //_______________________________________________________
       inline float TrackParBase::GetPhiPos() const {
         // angle of track position
