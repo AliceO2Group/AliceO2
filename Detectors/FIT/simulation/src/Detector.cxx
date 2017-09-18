@@ -25,6 +25,7 @@
 
 #include "FITBase/Geometry.h"
 #include "FITSimulation/Detector.h"
+#include <sstream>
 
 using namespace o2::FIT;
 
