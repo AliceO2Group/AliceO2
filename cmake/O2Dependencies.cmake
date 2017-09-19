@@ -974,7 +974,10 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/Simulations/include )
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/Simulations/include 
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
 
 o2_define_bucket(
     NAME
