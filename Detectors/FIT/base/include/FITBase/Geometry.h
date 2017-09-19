@@ -44,7 +44,7 @@ class Geometry : public TNamed
   ///
   /// Destructor.
   ///
-  virtual ~Geometry() override ;
+  ~Geometry() override ;
 
   ///
   /// Assign operator.
