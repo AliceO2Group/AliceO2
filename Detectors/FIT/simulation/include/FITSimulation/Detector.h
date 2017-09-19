@@ -24,7 +24,7 @@ class FairModule;
 class FairVolume;
 class TClonesArray;
 class TGeoVolume;
-http://alice-o2.web.cern.ch/license
+
 class TParticle;
 
 class TString;
