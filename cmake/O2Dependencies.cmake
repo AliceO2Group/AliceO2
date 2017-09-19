@@ -1048,3 +1048,13 @@ NAME
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
 )
+
+o2_define_bucket(
+    NAME
+    Algorithm_bucket
+
+    DEPENDENCIES
+    Headers
+
+    INCLUDE_DIRECTORIES
+)
