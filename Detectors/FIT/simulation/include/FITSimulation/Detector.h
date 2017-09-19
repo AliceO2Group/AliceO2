@@ -2,7 +2,7 @@
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,7 +24,7 @@ class FairModule;
 class FairVolume;
 class TClonesArray;
 class TGeoVolume;
-
+http://alice-o2.web.cern.ch/license
 class TParticle;
 
 class TString;
@@ -98,8 +98,8 @@ class Detector : public o2::Base::Detector
     
  private:
      
-  Int_t fIdSens1; // Sensetive volume  in T0
-  TGraph *fPMTeff; //pmt registration effeicincy
+  Int_t mIdSens1; // Sensetive volume  in T0
+  TGraph *mPMTeff; //pmt registration effeicincy
 
   /// Container for data points
   TClonesArray *mHitCollection;

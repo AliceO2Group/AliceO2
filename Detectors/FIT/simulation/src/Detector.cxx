@@ -2,7 +2,7 @@
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -33,8 +33,8 @@ ClassImp(Detector);
 
 Detector::Detector(const char* Name, Bool_t Active)
   : o2::Base::Detector(Name, Active),
-		     fIdSens1(0),
-   fPMTeff(0x0),
+		     mIdSens1(0),
+   mPMTeff(nullptr),
     mHitCollection(new TClonesArray("o2::FIT::HitType"))
 {
   //  Geometry *geo  = GetGeometry() ;
@@ -387,24 +387,24 @@ void Detector::DefineOpticalProperties()
   optPropPath = gSystem->ExpandPathName(optPropPath.Data()); // Expand $(ALICE_ROOT) into real system path
 
 // Prepare pointers for arrays read from the input file
-  Float_t *aPckov=NULL;
-  Double_t *dPckov=NULL;
-  Float_t *aAbsSiO2=NULL;
-  Float_t *rindexSiO2=NULL;
-  Float_t *qeff = NULL;
+  Float_t *aPckov=nullptr;
+  Double_t *dPckov=nullptr;
+  Float_t *aAbsSiO2=nullptr;
+  Float_t *rindexSiO2=nullptr;
+  Float_t *qeff = nullptr;
   Int_t kNbins=0;
   ReadOptProperties(optPropPath.Data(), &aPckov, &dPckov, &aAbsSiO2, &rindexSiO2, &qeff, kNbins);
   // set QE
-   fPMTeff = new TGraph(kNbins,aPckov,qeff);
+   mPMTeff = new TGraph(kNbins,aPckov,qeff);
 
 // Prepare pointers for arrays with constant and hardcoded values (independent on wavelength)
-  Float_t *efficAll=NULL;
-  Float_t *rindexAir=NULL;
-  Float_t *absorAir=NULL;
-  Float_t *rindexCathodeNext=NULL;
-  Float_t *absorbCathodeNext=NULL;
-  Double_t *efficMet=NULL;
-  Double_t *aReflMet=NULL;
+  Float_t *efficAll=nullptr;
+  Float_t *rindexAir=nullptr;
+  Float_t *absorAir=nullptr;
+  Float_t *rindexCathodeNext=nullptr;
+  Float_t *absorbCathodeNext=nullptr;
+  Double_t *efficMet=nullptr;
+  Double_t *aReflMet=nullptr;
   FillOtherOptProperties(&efficAll, &rindexAir, &absorAir, &rindexCathodeNext,
     &absorbCathodeNext, &efficMet, &aReflMet, kNbins);
   
@@ -472,7 +472,7 @@ Bool_t Detector::RegisterPhotoE(Double_t energy)
   //  Float_t hc=197.326960*1.e6; //mev*nm
   Double_t hc=1.973*1.e-6; //gev*nm
   Float_t lambda=hc/energy;
-  Float_t eff = fPMTeff->Eval(lambda);
+  Float_t eff = mPMTeff->Eval(lambda);
   Double_t  p = gRandom->Rndm();
   
   if (p > eff)
