@@ -401,7 +401,7 @@ void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const
   }
 }
 
-void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, bool addData, float shift )
+int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, bool addData, float shift, bool silent )
 {
   //* Read event from file
   int nClusters = 0, nCurrentClusters = 0;
@@ -428,55 +428,62 @@ void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds,
     }
     nClusters += fClusterData[iSlice].NumberOfClusters() - nSliceOldClusters;
   }
-  fMCLabels.resize(nCurrentClusters + nClusters);
-  in.read((char*) (fMCLabels.data() + nCurrentClusters), nClusters * sizeof(fMCLabels[0]));
-  if (!in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
+  if (nClusters)
   {
-    fMCLabels.clear();
-    fMCInfo.clear();
-  }
-  else
-  {
-    if (addData)
-    {
-        for (int i = 0;i < nClusters;i++)
+      fMCLabels.resize(nCurrentClusters + nClusters);
+      in.read((char*) (fMCLabels.data() + nCurrentClusters), nClusters * sizeof(fMCLabels[0]));
+      if (!in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
+      {
+        fMCLabels.clear();
+        fMCInfo.clear();
+      }
+      else
+      {
+        if (addData)
         {
-            for (int j = 0;j < 3;j++)
+            for (int i = 0;i < nClusters;i++)
             {
-                AliHLTTPCClusterMCWeight& tmp = fMCLabels[nCurrentClusters + i].fClusterID[j];
-                if (tmp.fMCID >= 0) tmp.fMCID += nCurrentMCTracks;
+                for (int j = 0;j < 3;j++)
+                {
+                    AliHLTTPCClusterMCWeight& tmp = fMCLabels[nCurrentClusters + i].fClusterID[j];
+                    if (tmp.fMCID >= 0) tmp.fMCID += nCurrentMCTracks;
+                }
             }
         }
-    }
-    int nMCTracks = 0;
-    in.read((char*) &nMCTracks, sizeof(nMCTracks));
-    if (in.eof())
-    {
-      fMCInfo.clear();
-    }
-    else
-    {
-      fMCInfo.resize(nCurrentMCTracks + nMCTracks);
-      in.read((char*) (fMCInfo.data() + nCurrentMCTracks), nMCTracks * sizeof(fMCInfo[0]));
-      if (in.eof())
-      {
+        int nMCTracks = 0;
+        in.read((char*) &nMCTracks, sizeof(nMCTracks));
+        if (in.eof())
+        {
           fMCInfo.clear();
-      }
-      else if (shift != 0.)
-      {
-          for (int i = 0;i < nMCTracks;i++)
+        }
+        else
+        {
+          fMCInfo.resize(nCurrentMCTracks + nMCTracks);
+          in.read((char*) (fMCInfo.data() + nCurrentMCTracks), nMCTracks * sizeof(fMCInfo[0]));
+          if (in.eof())
           {
-              AliHLTTPCCAMCInfo& tmp = fMCInfo[nCurrentMCTracks + i];
-              tmp.fZ += tmp.fZ > 0 ? shift : -shift;
+              fMCInfo.clear();
           }
+          else if (shift != 0.)
+          {
+              for (int i = 0;i < nMCTracks;i++)
+              {
+                  AliHLTTPCCAMCInfo& tmp = fMCInfo[nCurrentMCTracks + i];
+                  tmp.fZ += tmp.fZ > 0 ? shift : -shift;
+              }
+          }
+        }
       }
-    }
   }
 #ifdef HLTCA_STANDALONE
-  printf("Read %d Clusters with %d MC labels and %d MC tracks\n", nClusters, (int) fMCLabels.size() - nCurrentClusters, (int) fMCInfo.size() - nCurrentMCTracks);
-  if (addData) printf("Total %d Clusters with %d MC labels and %d MC tracks\n", nClusters + nCurrentClusters, (int) fMCLabels.size(), (int) fMCInfo.size());
+  if (!silent)
+  {
+    printf("Read %d Clusters with %d MC labels and %d MC tracks\n", nClusters, (int) (fMCLabels.size() ? (fMCLabels.size() - nCurrentClusters) : 0), (int) fMCInfo.size() - nCurrentMCTracks);
+    if (addData) printf("Total %d Clusters with %d MC labels and %d MC tracks\n", nClusters + nCurrentClusters, (int) fMCLabels.size(), (int) fMCInfo.size());
+  }
 #endif
   nClusters += nCurrentClusters;
+  return(nClusters);
 }
 
 void AliHLTTPCCAStandaloneFramework::WriteTracks( std::ostream &out ) const

@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 {
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-	int iEventInTimeframe = 0;
+	int iEventInTimeframe = 0, nEventsInDirectory = 0;
 	
 	if (hlt.GetGPUStatus() == 0)
 	{
@@ -141,73 +141,160 @@ int main(int argc, char** argv)
 	}
 
 	if (configStandalone.seed != -1) srand(configStandalone.seed);
+	
+	int trainDist = 0;
+	float collisionProbability = 0.;
+	const int orbitRate = 11000;
+	const int driftTime = 100000;
+	const int TPCZ = 250;
+	const int timeOrbit = 1000000000 / orbitRate;
+	const int maxBunchesFull = timeOrbit / configStandalone.configTF.bunchSpacing;
+	const int maxBunches = (timeOrbit - configStandalone.configTF.abortGapTime) / configStandalone.configTF.bunchSpacing;
+	if (configStandalone.configTF.bunchSim)
+	{
+		for (nEventsInDirectory = 0;true;nEventsInDirectory++)
+		{
+			std::ifstream in;
+			char filename[256];
+			sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, nEventsInDirectory);
+			in.open(filename, std::ifstream::binary);
+			if (in.fail()) break;
+			in.close();
+		}
+		if (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount > maxBunches)
+		{
+			printf("Invalid timeframe settings: too many colliding bunches requested!\n");
+			return(1);
+		}
+		trainDist = maxBunches / configStandalone.configTF.bunchTrainCount;
+		collisionProbability = (float) configStandalone.configTF.interactionRate / (float) orbitRate / (float) (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount);
+		printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, collision probability %f, mixing %d events\n",
+			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, collisionProbability, nEventsInDirectory);
+	}
 
 	for (int jj = 0;jj < configStandalone.runs2;jj++) {if (configStandalone.runs2 > 1) printf("RUN2: %d\n", jj);
 	for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
 	{
-		std::ifstream in;
-		char filename[256];
-		sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, i);
-		in.open(filename, std::ifstream::binary);
-		if (in.fail())
+		if (configStandalone.configTF.bunchSim)
 		{
-			if (configStandalone.NEvents == -1) break;
-			printf("Error opening file %s\n", filename);
-			getchar();
-			return(1);
-		}
-		printf("Loading Event %d\n", i);
-		
-		float shift;
-		if (configStandalone.configTF.nMerge && (configStandalone.configTF.shiftFirstEvent || iEventInTimeframe))
-		{
-			if (configStandalone.configTF.randomizeDistance)
+			hlt.StartDataReading(0);
+			int nBunch = -driftTime / configStandalone.configTF.bunchSpacing;
+			int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
+			int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
+			int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
+			bool* eventUsed = new bool[nEventsInDirectory];
+			int nTrain = 0;
+			while (nBunch < lastBunch)
 			{
-				shift = (double) rand() / (double) RAND_MAX;
-				if (configStandalone.configTF.shiftFirstEvent)
+				for (int iTrain = 0;iTrain < configStandalone.configTF.bunchTrainCount && nBunch < lastBunch;iTrain++)
 				{
-					if (iEventInTimeframe == 0) shift = shift * configStandalone.configTF.averageDistance;
-					else shift = (iEventInTimeframe + shift) * configStandalone.configTF.averageDistance;
+					int nCollisionsInTrain = 0;
+					for (int iBunch = 0;iBunch < configStandalone.configTF.bunchCount && nBunch < lastBunch;iBunch++)
+					{
+						int nInBunchPileUp = 0;
+						while ((float) rand() / (float) RAND_MAX < collisionProbability / (nInBunchPileUp + 1) * (nInBunchPileUp ? 1. : exp(-collisionProbability)))
+						{
+							if (nCollisionsInTrain >= nEventsInDirectory)
+							{
+								printf("Error: insuffient events for mixing!\n");
+								return(1);
+							}
+							if (nCollisionsInTrain == 0) memset(eventUsed, 0, nEventsInDirectory * sizeof(eventUsed[0]));
+							if (nBunch >= 0 && nBunch < lastTFBunch) nCollisions++;
+							else nBorderCollisions++;
+							int useEvent;
+							while (eventUsed[useEvent = rand() % nEventsInDirectory]);
+							eventUsed[useEvent] = true;
+							std::ifstream in;
+							char filename[256];
+							sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, useEvent);
+							in.open(filename, std::ifstream::binary);
+							if (in.fail()) {printf("Unexpected error\n");return(1);}
+							float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
+							int nClusters = hlt.ReadEvent(in, true, true, shift, true);
+							printf("Placing event %4d at z %7.3f %s(collisions %4d, bunch %6d, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", useEvent, shift, nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
+							in.close();
+							nInBunchPileUp++;
+							nCollisionsInTrain++;
+						}
+						if (nInBunchPileUp > 1) nMultipleCollisions++;
+						nBunch++;
+					}
+					nBunch += trainDist - configStandalone.configTF.bunchCount;
+					if (nCollisionsInTrain) nTrainCollissions++;
+					if (nCollisionsInTrain > 1) nTrainMultipleCollisions++;
+					nTrain++;
 				}
-				else
-				{
-					if (iEventInTimeframe == 0) shift = 0;
-					else shift = (iEventInTimeframe - 0.5 + shift) * configStandalone.configTF.averageDistance;
-				}
+				nBunch += maxBunchesFull - trainDist * configStandalone.configTF.bunchTrainCount;
 			}
-			else
-			{
-				if (configStandalone.configTF.shiftFirstEvent)
-				{
-					shift = configStandalone.configTF.averageDistance * (iEventInTimeframe + 0.5);
-				}
-				else
-				{
-					shift = configStandalone.configTF.averageDistance * (iEventInTimeframe);
-				}
-			}
+			delete eventUsed;
+			printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
 		}
 		else
 		{
-			shift = 0.;
-		}
-
-		if (configStandalone.configTF.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
-		if (configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true;
-		hlt.ReadEvent(in, configStandalone.resetids, configStandalone.configTF.nMerge > 0, shift);
-		
-		in.close();
-		
-		iEventInTimeframe++;
-		if (configStandalone.configTF.nMerge)
-		{
-			if (iEventInTimeframe == configStandalone.configTF.nMerge || i == configStandalone.NEvents - 1)
+			std::ifstream in;
+			char filename[256];
+			sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, i);
+			in.open(filename, std::ifstream::binary);
+			if (in.fail())
 			{
-				iEventInTimeframe = 0;
+				if (configStandalone.NEvents == -1) break;
+				printf("Error opening file %s\n", filename);
+				getchar();
+				return(1);
+			}
+			printf("Loading Event %d\n", i);
+			
+			float shift;
+			if (configStandalone.configTF.nMerge && (configStandalone.configTF.shiftFirstEvent || iEventInTimeframe))
+			{
+				if (configStandalone.configTF.randomizeDistance)
+				{
+					shift = (double) rand() / (double) RAND_MAX;
+					if (configStandalone.configTF.shiftFirstEvent)
+					{
+						if (iEventInTimeframe == 0) shift = shift * configStandalone.configTF.averageDistance;
+						else shift = (iEventInTimeframe + shift) * configStandalone.configTF.averageDistance;
+					}
+					else
+					{
+						if (iEventInTimeframe == 0) shift = 0;
+						else shift = (iEventInTimeframe - 0.5 + shift) * configStandalone.configTF.averageDistance;
+					}
+				}
+				else
+				{
+					if (configStandalone.configTF.shiftFirstEvent)
+					{
+						shift = configStandalone.configTF.averageDistance * (iEventInTimeframe + 0.5);
+					}
+					else
+					{
+						shift = configStandalone.configTF.averageDistance * (iEventInTimeframe);
+					}
+				}
 			}
 			else
 			{
-				continue;
+				shift = 0.;
+			}
+
+			if (configStandalone.configTF.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
+			if (configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true;
+			hlt.ReadEvent(in, configStandalone.resetids, configStandalone.configTF.nMerge > 0, shift);
+			in.close();
+			
+			iEventInTimeframe++;
+			if (configStandalone.configTF.nMerge)
+			{
+				if (iEventInTimeframe == configStandalone.configTF.nMerge || i == configStandalone.NEvents - 1)
+				{
+					iEventInTimeframe = 0;
+				}
+				else
+				{
+					continue;
+				}
 			}
 		}
 		hlt.FinishDataReading();
