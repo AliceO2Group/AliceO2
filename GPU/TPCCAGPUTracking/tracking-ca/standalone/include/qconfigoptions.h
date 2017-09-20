@@ -9,6 +9,7 @@ AddOption(bunchSpacing, int, 50, "BUNCHSPACING", 0, "Spacing between benches in 
 AddOption(bunchTrainCount, int, 48, "BUNCHTRAINCOUNT", 0, "Number of bunch trains")
 AddOption(abortGapTime, int, (500 * 25), "ABORTGAP", 0, "Length of abort gap in ns")
 AddOption(interactionRate, int, 50000, "RATE", 0, "Instantaneous interaction rate")
+AddOption(timeFrameLen, int, (1000000000 / 44), "TF", 0, "Timeframe len in ns")
 EndConfig()
 
 BeginSubConfig(structConfigQA, configQA, configStandalone, "QA", 'q')
