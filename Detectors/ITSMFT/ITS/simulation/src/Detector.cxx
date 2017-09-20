@@ -37,11 +37,8 @@
 #include "TString.h"                // for TString, operator+
 #include "TVirtualMC.h"             // for gMC, TVirtualMC
 #include "TVirtualMCStack.h"        // for TVirtualMCStack
-#include "TSystem.h"
 
 #include <cstdio>                  // for NULL, snprintf
-
-extern TSystem *gSystem;
 
 class FairModule;
 
@@ -142,7 +139,7 @@ static void configITS(Detector *its) {
   const double zModuleGap = 0.01;// For OB: gap in Z between modules
 
   // Delete the segmentations from previous runs
-  gSystem->Exec(" rm itsSegmentations.root ");
+  std::remove("itsSegmentations.root");
 
   // create segmentations:
   o2::ITSMFT::SegmentationPixel* seg0 = new o2::ITSMFT::SegmentationPixel(
