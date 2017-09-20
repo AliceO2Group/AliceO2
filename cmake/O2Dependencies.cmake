@@ -974,6 +974,7 @@ o2_define_bucket(
     Configuration
     DetectorsPassive
     TPCSimulation
+    ITSSimulation
     TRDSimulation
     EMCALSimulation
     TOFSimulation
