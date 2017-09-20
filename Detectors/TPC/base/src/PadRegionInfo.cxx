@@ -71,12 +71,12 @@ const PadPos PadRegionInfo::findPad(const float localX, const float localY, cons
   // the localY-sign must be changed
   const float localYfactor=(side==Side::A)?-1.f:1.f;
   const unsigned int row  = std::floor((localX-mRadiusFirstRow)/mPadHeight);
-  if (row<0 || row>= mNumberOfPadRows) return PadPos(255, 255);
+  if (row>=mNumberOfPadRows) return PadPos(255, 255);
 
   const unsigned int npads=getPadsInRowRegion(row);
   const unsigned int pad  =int((npads/2*mPadWidth-localYfactor*localY)/mPadWidth);
 
-  if (pad<0 || pad>=npads) return PadPos(255, 255);
+  if (pad>=npads) return PadPos(255, 255);
 
   return PadPos(row, pad);
 }
