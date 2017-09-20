@@ -384,6 +384,7 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       return istrip;
     }
   }
+  return -1;
 }
 
 Int_t Geo::getSector(const Float_t* pos)
