@@ -34,8 +34,14 @@ class FrameStructure : public FairModule
   /**  default constructor    */
   FrameStructure() = default;
 
+  /**  copy constructor (used in MT mode only)   */
+  FrameStructure(const FrameStructure& rhs);
+
   /**  destructor     */
   ~FrameStructure() override = default;
+
+  /**  Clone this object (used in MT mode only)  */
+  FairModule* CloneModule() const override;
 
   /**  Create the module geometry  */
   void ConstructGeometry() override;

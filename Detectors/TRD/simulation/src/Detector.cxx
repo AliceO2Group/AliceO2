@@ -12,7 +12,7 @@
 #include <TGeoManager.h>
 #include <TVirtualMC.h>
 #include <vector>
-#include "FairRootManager.h"
+#include "FairGenericRootManager.h"
 #include "FairVolume.h"
 #include "TClonesArray.h"
 #include "TRDBase/TRDCommonParam.h"
@@ -25,6 +25,16 @@ Detector::Detector(const char* Name, bool Active)
 {
 }
 
+Detector::Detector(const Detector& rhs)
+  : o2::Base::Detector(rhs), mHitCollection(new TClonesArray("o2::trd::HitType"))
+{
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
 void Detector::Initialize() { o2::Base::Detector::Initialize(); }
 
 bool Detector::ProcessHits(FairVolume* v)
@@ -33,7 +43,7 @@ bool Detector::ProcessHits(FairVolume* v)
   // TODO: needs upgrade to the level of AliROOT
 
   // TODO: reference to vmc --> put this as member of detector
-  static auto vmc = TVirtualMC::GetMC();
+  TMCThreadLocalStatic auto vmc = TVirtualMC::GetMC();
 
   // If not charged track or already stopped or disappeared, just return.
   if ((!vmc->TrackCharge()) || vmc->IsTrackDisappeared()) {
@@ -54,7 +64,7 @@ bool Detector::ProcessHits(FairVolume* v)
   return true;
 }
 
-void Detector::Register() { FairRootManager::Instance()->Register("TRDHit", "TRD", mHitCollection, true); }
+void Detector::Register() { FairGenericRootManager::Instance()->Register("TRDHit", "TRD", mHitCollection, true); }
 
 TClonesArray* Detector::GetCollection(int iColl) const
 {

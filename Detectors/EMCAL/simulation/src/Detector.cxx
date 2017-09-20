@@ -17,7 +17,7 @@
 #include "TVirtualMC.h"
 
 #include "FairGeoNode.h"
-#include "FairRootManager.h"
+#include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
 #include "EMCALBase/Geometry.h"
@@ -65,6 +65,33 @@ Detector::Detector(const char* Name, Bool_t Active)
 
   if (contains(gn, "V1"))
     mSampleWidth += 2. * geo->GetTrd1BondPaperThick();
+}
+
+Detector::Detector(const Detector& rhs)
+  : o2::Base::Detector(rhs),
+    mBirkC0(rhs.mBirkC0),
+    mBirkC1(rhs.mBirkC1),
+    mBirkC2(rhs.mBirkC2),
+    mPointCollection(new TClonesArray("o2::EMCAL::Hit")),
+    mGeometry(rhs.mGeometry),
+    mCurrentTrackID(-1),
+    mCurrentCellID(-1),
+    mCurrentHit(nullptr),
+    mSampleWidth(rhs.mSampleWidth),
+    mSmodPar0(rhs.mSmodPar0),
+    mSmodPar1(rhs.mSmodPar1),
+    mSmodPar2(rhs.mSmodPar2),
+    mInnerEdge(rhs.mInnerEdge)
+
+{
+  for ( int i=0; i<5; ++i) {
+    mParEMOD[i] = rhs.mParEMOD[i];
+  }
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
 }
 
 void Detector::Initialize() { o2::Base::Detector::Initialize(); }
@@ -207,7 +234,7 @@ Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklen
   return energydeposit / (1. + birkC1Mod * dedxcm + mBirkC2 * dedxcm * dedxcm);
 }
 
-void Detector::Register() { FairRootManager::Instance()->Register("EMCALHit", "EMCAL", mPointCollection, kTRUE); }
+void Detector::Register() { FairGenericRootManager::Instance()->Register("EMCALHit", "EMCAL", mPointCollection, kTRUE); }
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {

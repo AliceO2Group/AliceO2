@@ -34,7 +34,11 @@ class Detector : public o2::Base::Detector
 
   Detector(const char* Name, bool Active);
 
+  Detector(const Detector& rhs);
+
   ~Detector() override = default;
+
+  FairModule* CloneModule() const override;
 
   void Initialize() override;
 

@@ -39,12 +39,28 @@ Detector::Detector(const char* Name, Bool_t Active)
     mTOFSectors[i] = 1;
 }
 
+Detector::Detector(const Detector& rhs)
+  : o2::Base::Detector(rhs),
+    mEventNr(0),
+    mTOFHoles(rhs.mTOFHoles),
+    mHitCollection(new TClonesArray("o2::tof::HitType")),
+    mMCTrackBranchId(-1)
+{
+  for (Int_t i = 0; i < Geo::NSECTORS; i++)
+    mTOFSectors[i] = rhs.mTOFSectors[i];
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
 void Detector::Initialize() { o2::Base::Detector::Initialize(); }
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  static auto* refMC = TVirtualMC::GetMC();
+  TMCThreadLocalStatic auto* refMC = TVirtualMC::GetMC();
 
-  static TLorentzVector position2;
+  TMCThreadLocalStatic TLorentzVector position2;
   refMC->TrackPosition(position2);
   Float_t radius = TMath::Sqrt(position2.X() * position2.X() + position2.Y() * position2.Y());
   LOG(DEBUG) << "Process hit in TOF volume ar R=" << radius << " - Z=" << position2.Z() << FairLogger::endl;
@@ -61,7 +77,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     return kFALSE; // wo se need a threshold?
 
   // ADD HIT
-  static TLorentzVector position;
+  TMCThreadLocalStatic TLorentzVector position;
   refMC->TrackPosition(position);
   float time = refMC->TrackTime() * 1.0e09;
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();

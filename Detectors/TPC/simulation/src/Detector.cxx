@@ -91,6 +91,19 @@ Detector::Detector(const char* name, Bool_t active)
   }
 }
 
+Detector::Detector(const Detector &rhs)
+  : o2::Base::Detector(rhs),
+    mSimulationType(rhs.mSimulationType),
+    mPointCollection(new TClonesArray("o2::TPC::Point")),
+    mHitGroupCollection(new TClonesArray("o2::TPC::LinkableHitGroup")),
+    mGeoFileName(rhs.mGeoFileName),
+    mEventNr(rhs.mEventNr)
+{
+  for(int i=0;i<Sector::MAXSECTOR;++i){
+    mHitsPerSectorCollection[i]=new TClonesArray("o2::TPC::LinkableHitGroup");
+    mHitsPerSectorCollection[i]->BypassStreamer(true);
+  }
+}
 
 Detector::~Detector()
 {
@@ -107,6 +120,11 @@ Detector::~Detector()
   std::cout << "Produced hits " << mHitCounter << "\n";
   std::cout << "Produced electrons " << mElectronCounter << "\n";
   std::cout << "Stepping called " << mStepCounter << "\n";
+}
+
+FairModule *Detector::CloneModule() const
+{
+  return new Detector(*this);
 }
 
 void Detector::Initialize()
@@ -210,7 +228,9 @@ void Detector::SetSpecialPhysicsCuts()
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  static auto *refMC = TVirtualMC::GetMC();
+  TMCThreadLocalStatic auto *refMC = TVirtualMC::GetMC();
+  // // Make it for MT only
+  // auto *refMC = TVirtualMC::GetMC();
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
@@ -233,7 +253,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // random shift to avoid binning effects), which was tuned for GEANT4, see
   // https://indico.cern.ch/event/316891/contributions/732168/
 
-  static TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
+  TMCThreadLocalStatic TLorentzVector momentum;
   refMC->TrackMomentum(momentum);
   const Double_t rnd = refMC->GetRandom()->Rndm();
   if(mSimulationType == SimulationType::GEANT3) {
@@ -283,7 +303,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     return kFALSE;
   
   // ADD HIT
-  static TLorentzVector position;
+  TMCThreadLocalStatic TLorentzVector position;
   refMC->TrackPosition(position);
   float time    = refMC->TrackTime() * 1.0e09;
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();
@@ -291,13 +311,13 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   int sectorID = static_cast<int>(Sector::ToSector(position.X(), position.Y(), position.Z()));
 
 #ifdef TPC_GROUPED_HITS
-  static int oldTrackId = trackID;
-  static int oldDetId = detID;
-  static int groupCounter = 0;
-  static int oldSectorId = sectorID;
+  TMCThreadLocalStatic int oldTrackId = trackID;
+  TMCThreadLocalStatic int oldDetId = detID;
+  TMCThreadLocalStatic int groupCounter = 0;
+  TMCThreadLocalStatic int oldSectorId = sectorID;
 
   //  a new group is starting -> put it into the container
-  static LinkableHitGroup *currentgroup = nullptr;
+  TMCThreadLocalStatic LinkableHitGroup *currentgroup = nullptr;
   if (groupCounter == 0) {
     //TClonesArray& clref = *mHitGroupCollection;
     TClonesArray& clref = *mHitsPerSectorCollection[sectorID];
@@ -360,7 +380,7 @@ void Detector::Register()
       this collection will not be written to the file, it will exist
       only during the simulation.
   */
-  auto *mgr=FairRootManager::Instance();
+  auto *mgr=FairGenericRootManager::Instance();
 #ifdef TPC_GROUPED_HITS
   mgr->Register("TPCGroupedHits", "TPC", mHitGroupCollection, kTRUE);
   for (int i=0;i<Sector::MAXSECTOR;++i) {
@@ -3126,11 +3146,11 @@ void Detector::DefineSensitiveVolumes()
 
 Double_t Detector::Gamma(Double_t k)
 {
-  static Double_t n=0;
-  static Double_t c1=0;
-  static Double_t c2=0;
-  static Double_t b1=0;
-  static Double_t b2=0;
+  TMCThreadLocalStatic Double_t n=0;
+  TMCThreadLocalStatic Double_t c1=0;
+  TMCThreadLocalStatic Double_t c2=0;
+  TMCThreadLocalStatic Double_t b1=0;
+  TMCThreadLocalStatic Double_t b2=0;
   if (k > 0) {
     if (k < 0.4) 
       n = 1./k;
