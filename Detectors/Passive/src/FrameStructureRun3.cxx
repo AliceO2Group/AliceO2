@@ -40,6 +40,15 @@ const char* TOPNAME = "cave";
 
 FrameStructure::FrameStructure(const char* name, const char* Title) : FairModule(name, Title) {}
 
+FrameStructure::FrameStructure(const FrameStructure& rhs) : FairModule(rhs)
+{}
+
+FairModule* FrameStructure::CloneModule() const
+{
+  std::cout << "cloning FrameStructure - now the right one !" << std::endl;
+  return new FrameStructure(*this);
+}
+
 void FrameStructure::makeHeatScreen(const char* name, float dyP, int rot1, int rot2)
 {
   // Heat screen panel

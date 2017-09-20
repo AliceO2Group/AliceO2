@@ -43,6 +43,8 @@ class SimConfig
   // returns true of correctly initialized and not --help called
   bool resetFromArguments(int argc, char* argv[]);
 
+  bool print() const;
+
   // get MC engine
   std::string getMCEngine() const { return mMCEngine; }
   // get selected active detectors

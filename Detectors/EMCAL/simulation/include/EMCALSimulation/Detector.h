@@ -53,9 +53,19 @@ class Detector : public o2::Base::Detector
   Detector(const char* name, Bool_t isActive);
 
   ///
+  /// Copy constructor (used in MT)
+  ///
+  Detector(const Detector& rhs);
+
+  ///
   /// Destructor
   ///
   ~Detector() override = default;
+
+  ///
+  /// Clone this object (used in MT mode only)
+  ///
+  FairModule *CloneModule() const override;
 
   ///
   /// Initializing detector

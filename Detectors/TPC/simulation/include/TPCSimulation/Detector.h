@@ -42,11 +42,17 @@ class Detector: public o2::Base::Detector {
     */
     Detector(const char* Name, Bool_t Active);
 
+    /**      copy constructor (used in MT)    */
+    Detector(const Detector& rhs);
+
     /**      default constructor    */
     Detector();
 
     /**       destructor     */
     ~Detector() override;
+
+    /**      Clone this object (used in MT mode only)    */
+    FairModule *CloneModule() const override;
 
     /**      Initialization of the detector is done here    */
     void   Initialize() override;
@@ -141,7 +147,7 @@ class Detector: public o2::Base::Detector {
 
     int mMCTrackBranchId; //! cache for the MCTrackBranchID (to avoid string based query)
 
-    Detector(const Detector&);
+    // Detector(const Detector&);
     Detector& operator=(const Detector&);
 
     ClassDefOverride(Detector,1)

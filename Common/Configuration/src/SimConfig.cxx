@@ -52,7 +52,23 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
   mExtKinFileName = vm["extKinFile"].as<std::string>();
   mStartEvent = vm["startEvent"].as<unsigned int>();
 
+  // print the selected configuration on the screen
+  print();
+
   return true;
+}
+
+bool SimConfig::print() const {
+  std::cout << "MCEngine: " << mMCEngine << std::endl;
+  std::cout << "ActiveDetectors: ";
+  for ( auto activeDetector : mActiveDetectors ) {
+    std::cout << activeDetector << " ";
+  }
+  std::cout << std::endl;
+  std::cout << "Generator " << mGenerator  << std::endl;
+  std::cout << "NEvents " << mNEvents << std::endl;
+  std::cout << "ExtKinFileName " << mExtKinFileName << std::endl;
+  std::cout << "StartEvent " << mStartEvent << std::endl;
 }
 
 ClassImp(o2::conf::SimConfig);
