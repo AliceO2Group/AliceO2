@@ -56,6 +56,8 @@ class CalibRawBase
 
     CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(0), mPadSubset(padSubset) {;}
 
+    virtual ~CalibRawBase() = default;
+
     /// update function called once per digit
     ///
     /// \param roc readout chamber
