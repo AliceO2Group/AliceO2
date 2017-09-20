@@ -176,16 +176,16 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
             ids[1] = (words[0] >> 16) & 0xF;
             ids[0] = (words[0] >> 20) & 0xF;
 
-            adcValues[4][((ids[4] & 0x7)*2)+1] = ((ids[4]>>3)&0x1 == 0) ? 0 : words[3] & 0x3FF;
-            adcValues[4][((ids[4] & 0x7)*2)  ] = ((ids[4]>>3)&0x1 == 0) ? 0 : (words[3] >> 10) & 0x3FF;
-            adcValues[3][((ids[3] & 0x7)*2)+1] = ((ids[3]>>3)&0x1 == 0) ? 0 : (words[3] >> 20) & 0x3FF;
-            adcValues[3][((ids[3] & 0x7)*2)  ] = ((ids[3]>>3)&0x1 == 0) ? 0 : ((words[2] & 0xFF) << 2) | ((words[3] >> 30) & 0x3);
-            adcValues[2][((ids[2] & 0x7)*2)+1] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[2] >> 8) & 0x3FF;
-            adcValues[2][((ids[2] & 0x7)*2)  ] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[2] >> 18) & 0x3FF;
-            adcValues[1][((ids[1] & 0x7)*2)+1] = ((ids[1]>>3)&0x1 == 0) ? 0 : ((words[1] & 0x3F) << 4) | ((words[2] >> 28) & 0xF);
-            adcValues[1][((ids[1] & 0x7)*2)  ] = ((ids[1]>>3)&0x1 == 0) ? 0 : (words[1] >> 6) & 0x3FF;
-            adcValues[0][((ids[0] & 0x7)*2)+1] = ((ids[0]>>3)&0x1 == 0) ? 0 : (words[1] >> 16) & 0x3FF;
-            adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[0] & 0xF) << 6) | ((words[1] >> 26) & 0x3F);
+            adcValues[4][((ids[4] & 0x7)*2)+1] = (((ids[4]>>3)&0x1) == 0) ? 0 : words[3] & 0x3FF;
+            adcValues[4][((ids[4] & 0x7)*2)  ] = (((ids[4]>>3)&0x1) == 0) ? 0 : (words[3] >> 10) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)+1] = (((ids[3]>>3)&0x1) == 0) ? 0 : (words[3] >> 20) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)  ] = (((ids[3]>>3)&0x1) == 0) ? 0 : ((words[2] & 0xFF) << 2) | ((words[3] >> 30) & 0x3);
+	    adcValues[2][((ids[2] & 0x7)*2)+1] = (((ids[2]>>3)&0x1) == 0) ? 0 : (words[2] >> 8) & 0x3FF;
+	    adcValues[2][((ids[2] & 0x7)*2)  ] = (((ids[2]>>3)&0x1) == 0) ? 0 : (words[2] >> 18) & 0x3FF;
+	    adcValues[1][((ids[1] & 0x7)*2)+1] = (((ids[1]>>3)&0x1) == 0) ? 0 : ((words[1] & 0x3F) << 4) | ((words[2] >> 28) & 0xF);
+	    adcValues[1][((ids[1] & 0x7)*2)  ] = (((ids[1]>>3)&0x1) == 0) ? 0 : (words[1] >> 6) & 0x3FF;
+	    adcValues[0][((ids[0] & 0x7)*2)+1] = (((ids[0]>>3)&0x1) == 0) ? 0 : (words[1] >> 16) & 0x3FF;
+            adcValues[0][((ids[0] & 0x7)*2)  ] = (((ids[0]>>3)&0x1) == 0) ? 0 : ((words[0] & 0xF) << 6) | ((words[1] >> 26) & 0x3F);
 
             for (int j=0; j<5; ++j) {
               std::cout << std::bitset<4>(ids[j]) << " " <<  adcValues[0][((ids[0] & 0x7)*2)  ] << " " << adcValues[0][((ids[0] & 0x7)*2)+1] << std::endl;
@@ -196,7 +196,7 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
               if (ids[j] == 0x8) writeValue[j] = true;
             }
             for (int j=0; j<5; ++j) {
-              if (writeValue[j] & ids[j] == 0xF) {
+              if ((writeValue[j] & ids[j]) == 0xF) {
                 for (int k=0; k<16; ++k) {
                   mAdcValues[j]->push(adcValues[j][k]);
                   std::cout << adcValues[j][k] << " ";
@@ -227,22 +227,22 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
             ids[1] = (words[4] >> 16) & 0xF;
             ids[0] = (words[4] >> 20) & 0xF;
 
-            adcValues[4][((ids[4] & 0x7)*2)+1] = ((ids[4]>>3)&0x1 == 0) ? 0 : words[7] & 0x3FF;
-            adcValues[4][((ids[4] & 0x7)*2)  ] = ((ids[4]>>3)&0x1 == 0) ? 0 : (words[7] >> 10) & 0x3FF;
-            adcValues[3][((ids[3] & 0x7)*2)+1] = ((ids[3]>>3)&0x1 == 0) ? 0 : (words[7] >> 20) & 0x3FF;
-            adcValues[3][((ids[3] & 0x7)*2)  ] = ((ids[3]>>3)&0x1 == 0) ? 0 : ((words[6] & 0xFF) << 2) | ((words[7] >> 30) & 0x3);
-            adcValues[2][((ids[2] & 0x7)*2)+1] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[6] >> 8) & 0x3FF;
-            adcValues[2][((ids[2] & 0x7)*2)  ] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[6] >> 18) & 0x3FF;
-            adcValues[1][((ids[1] & 0x7)*2)+1] = ((ids[1]>>3)&0x1 == 0) ? 0 : ((words[5] & 0x3F) << 4) | ((words[6] >> 28) & 0xF);
-            adcValues[1][((ids[1] & 0x7)*2)  ] = ((ids[1]>>3)&0x1 == 0) ? 0 : (words[5] >> 6) & 0x3FF;
-            adcValues[0][((ids[0] & 0x7)*2)+1] = ((ids[0]>>3)&0x1 == 0) ? 0 : (words[5] >> 16) & 0x3FF;
-            adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[4] & 0xF) << 6) | ((words[5] >> 26) & 0x3F);
+            adcValues[4][((ids[4] & 0x7)*2)+1] = (((ids[4]>>3)&0x1) == 0) ? 0 : words[7] & 0x3FF;
+            adcValues[4][((ids[4] & 0x7)*2)  ] = (((ids[4]>>3)&0x1) == 0) ? 0 : (words[7] >> 10) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)+1] = (((ids[3]>>3)&0x1) == 0) ? 0 : (words[7] >> 20) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)  ] = (((ids[3]>>3)&0x1) == 0) ? 0 : ((words[6] & 0xFF) << 2) | ((words[7] >> 30) & 0x3);
+            adcValues[2][((ids[2] & 0x7)*2)+1] = (((ids[2]>>3)&0x1) == 0) ? 0 : (words[6] >> 8) & 0x3FF;
+            adcValues[2][((ids[2] & 0x7)*2)  ] = (((ids[2]>>3)&0x1) == 0) ? 0 : (words[6] >> 18) & 0x3FF;
+            adcValues[1][((ids[1] & 0x7)*2)+1] = (((ids[1]>>3)&0x1) == 0) ? 0 : ((words[5] & 0x3F) << 4) | ((words[6] >> 28) & 0xF);
+            adcValues[1][((ids[1] & 0x7)*2)  ] = (((ids[1]>>3)&0x1) == 0) ? 0 : (words[5] >> 6) & 0x3FF;
+            adcValues[0][((ids[0] & 0x7)*2)+1] = (((ids[0]>>3)&0x1) == 0) ? 0 : (words[5] >> 16) & 0x3FF;
+            adcValues[0][((ids[0] & 0x7)*2)  ] = (((ids[0]>>3)&0x1) == 0) ? 0 : ((words[4] & 0xF) << 6) | ((words[5] >> 26) & 0x3F);
                                                                                                                       
             for (int j=0; j<5; ++j) {
               if (ids[j] == 0x8) writeValue[j] = true;
             }
             for (int j=0; j<5; ++j) {
-              if (writeValue[j] & ids[j] == 0xF) {
+              if ((writeValue[j] & ids[j]) == 0xF) {
                 for (int k=0; k<16; ++k) {
                   mAdcValues[j]->push(adcValues[j][k]);
                 }
