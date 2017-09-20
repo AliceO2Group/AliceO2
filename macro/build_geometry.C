@@ -26,7 +26,7 @@
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
-#include <DetectorsPassive/FrameStructureRun3.h>
+#include <DetectorsPassive/FrameStructure.h>
 #include <Configuration/SimConfig.h>
 #include "FairRunSim.h"
 #include <algorithm>

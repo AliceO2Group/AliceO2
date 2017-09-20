@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Field/MagneticField.h"
-#include "DetectorsPassive/FrameStructureRun3.h"
+#include "DetectorsPassive/FrameStructure.h"
 #include "DetectorsBase/Detector.h"
 #include <TGeoArb8.h>
 #include <TGeoBBox.h>
