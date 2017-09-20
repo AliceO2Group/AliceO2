@@ -86,7 +86,7 @@ Detector &Detector::operator=(const Detector &src)
   mTrackData.mPositionStart = src.mTrackData.mPositionStart;
   mTrackData.mMomentumStart = src.mTrackData.mMomentumStart;
   mTrackData.mEnergyLoss = src.mTrackData.mEnergyLoss;
-
+  return *this;
 }
 
 //_____________________________________________________________________________
