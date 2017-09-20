@@ -140,9 +140,9 @@ class Cluster : public o2::Base::BaseCluster<float>
   UShort_t mPatternMinCol = 0;            ///< pattern start column
   UChar_t mPattern[kMaxPatternBytes] = {0}; ///< cluster topology
   //
-  ClassDef(Cluster, CLUSTER_VERSION + 1)
+  ClassDefOverride(Cluster, CLUSTER_VERSION + 1)
 #else
-  ClassDef(Cluster, CLUSTER_VERSION)
+  ClassDefOverride(Cluster, CLUSTER_VERSION)
 #endif
 };
 //______________________________________________________
