@@ -161,7 +161,7 @@ static void configITS(Detector *its) {
   seg0->Print();
 
   double dzLr, rLr, phi0, turbo;
-  int nStaveLr, nModPerStaveLr, idLr;
+  int nStaveLr, nModPerStaveLr;
 
   its->setStaveModelIB(o2::ITS::Detector::kIBModel4);
   its->setStaveModelOB(o2::ITS::Detector::kOBModel2);
