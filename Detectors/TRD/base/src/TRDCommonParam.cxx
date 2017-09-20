@@ -156,6 +156,7 @@ float TRDCommonParam::GetOmegaTau(float vdrift)
 
   return 0.0;
   */
+  return 0.; // fix compiler warning
 }
 
 //_____________________________________________________________________________
@@ -245,6 +246,7 @@ bool TRDCommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
 
   }
   */
+  return false; // fix compiler warning
 }
 
 //_____________________________________________________________________________
