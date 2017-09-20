@@ -89,7 +89,7 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   //boxGen->SetThetaRange(0.0, 90.0);
   boxGen->SetEtaRange(-0.9,0.9);
-  boxGen->SetPtRange(1, 1.01);
+  boxGen->SetPtRange(5, 5.01);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kFALSE);
 
