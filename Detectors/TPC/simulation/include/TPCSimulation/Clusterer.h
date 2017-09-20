@@ -45,7 +45,7 @@ class Clusterer {
         bool requirePositiveCharge, bool requireNeighbouringPad);
     
     /// Destructor
-    ~Clusterer() = default;
+    virtual ~Clusterer() = default;
     
     /// Initialization function for clusterer
     virtual void Init() = 0;
