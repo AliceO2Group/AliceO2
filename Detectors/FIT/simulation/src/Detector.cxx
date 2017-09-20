@@ -279,7 +279,6 @@ void Detector::SetOneMCP(TGeoVolume *ins)
 Bool_t Detector::ProcessHits(FairVolume* v)
 {  
   TLorentzVector position;
-  printf("@@@FIT ProcessHits enter \n");
   static auto* refMC = TVirtualMC::GetMC();
   if(refMC->IsTrackEntering()) {
     refMC->TrackPosition(position);
@@ -293,7 +292,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     float etot = refMC->Etot();
     int iPart= refMC->TrackPid();
     float enDep = refMC->Edep();
-    printf("@@@FIT ProcessHits x %f y %f z %f DetID %i \n", x,y,z, detID);
     if (iPart == 50000050)   // If particles is photon then ...
       {
 	if(RegisterPhotoE(etot)) {

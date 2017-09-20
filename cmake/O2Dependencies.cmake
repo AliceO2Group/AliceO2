@@ -939,8 +939,8 @@ o2_define_bucket(
     fit_base_bucket
 
     DEPENDENCIES # library names
-    ExampleModule1 # another module
-    ExampleModule1_bucket # another bucket
+    root_base_bucket
+    fairroot_geom
     Core Hist # ROOT
 
     INCLUDE_DIRECTORIES
