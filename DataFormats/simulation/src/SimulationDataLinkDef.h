@@ -31,8 +31,14 @@
 #pragma link C++ class o2::BasicXYZEHit<double,double>+;
 #pragma link C++ struct o2::dataformats::MCTruthHeaderElement+;
 #pragma link C++ class o2::dataformats::MCTruthContainer<long>+;
+#pragma link C++ class o2::dataformats::MCTruthContainerList<long>+;
 #pragma link C++ class o2::dataformats::MCTruthContainer<o2::MCCompLabel>+;
-#pragma link C++ class std::vector<o2::MCCompLabel>+;
-#pragma link C++ class std::vector<o2::dataformats::MCTruthHeaderElement>+;
+#pragma link C++ class o2::vector<o2::MCCompLabel>+;
+#pragma link C++ class o2::vector<o2::dataformats::MCTruthHeaderElement>+;
+
+//#pragma link C++ class o2::dataformats::LabelContainer<long,true>::HeaderElementCont+;
+//#pragma link C++ class o2::dataformats::LabelContainer<long,true>::HeaderElementLinked+;
+#pragma link C++ class o2::dataformats::LabelContainer<long,true>+;
+#pragma link C++ class o2::dataformats::LabelContainer<long,false>+;
 
 #endif
