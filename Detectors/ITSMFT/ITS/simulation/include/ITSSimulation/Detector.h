@@ -64,7 +64,7 @@ class Detector : public o2::Base::Detector
     /// Name : Detector Name
     /// Active: kTRUE for active detectors (ProcessHits() will be called)
     ///         kFALSE for inactive detectors
-    Detector(const char *Name, Bool_t Active, const Int_t nlay);
+    Detector(const char *Name, Bool_t Active);
 
     /// Default constructor
     Detector();
