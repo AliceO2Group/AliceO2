@@ -144,8 +144,8 @@ int main(int argc, char** argv)
 	
 	int trainDist = 0;
 	float collisionProbability = 0.;
-	const int orbitRate = 11000;
-	const int driftTime = 100000;
+	const int orbitRate = 11245;
+	const int driftTime = 93000;
 	const int TPCZ = 250;
 	const int timeOrbit = 1000000000 / orbitRate;
 	const int maxBunchesFull = timeOrbit / configStandalone.configTF.bunchSpacing;
