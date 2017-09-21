@@ -423,7 +423,7 @@ int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, 
       for (int i = 0;i < fClusterData[iSlice].NumberOfClusters() - nSliceOldClusters;i++)
       {
         AliHLTTPCCAClusterData::Data& tmp = fClusterData[iSlice].Clusters()[nSliceOldClusters + i];
-        tmp.fZ += tmp.fZ > 0 ? shift : -shift;
+        tmp.fZ += iSlice < 18 ? shift : -shift;
       }
     }
     nClusters += fClusterData[iSlice].NumberOfClusters() - nSliceOldClusters;
