@@ -220,7 +220,7 @@ GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
       mChipSensorID[i] = src.mChipSensorID[i];
     }
   }
-
+  return *this;
 }
 
 //_____________________________________________________________________________

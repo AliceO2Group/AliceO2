@@ -86,7 +86,7 @@ Detector &Detector::operator=(const Detector &src)
   mTrackData.mPositionStart = src.mTrackData.mPositionStart;
   mTrackData.mMomentumStart = src.mTrackData.mMomentumStart;
   mTrackData.mEnergyLoss = src.mTrackData.mEnergyLoss;
-
+  return *this;
 }
 
 //_____________________________________________________________________________
@@ -122,7 +122,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   Geometry *mftGeo = Geometry::instance();
   Segmentation * seg = mftGeo->getSegmentation();
-  if (!seg) Fatal("ProcessHits","No segmentation available",0,0);
+  if (!seg) Fatal("ProcessHits","No segmentation available");
 
   Int_t copy;
   // Check if hit is into a MFT sensor volume

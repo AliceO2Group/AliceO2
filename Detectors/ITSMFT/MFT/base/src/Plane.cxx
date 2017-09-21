@@ -135,7 +135,7 @@ Plane::Plane(const Plane& plane):
 Plane::~Plane() 
 {
 
-  Info("~Plane","Delete Plane",0,0);
+  Info("~Plane","Delete Plane");
   if(mActiveElements) mActiveElements->Delete();
   delete mActiveElements; 
   if(mReadoutElements) mReadoutElements->Delete();
@@ -149,7 +149,7 @@ Plane::~Plane()
 void Plane::Clear(const Option_t* /*opt*/) 
 {
 
-  Info("Clear","Clear Plane",0,0);
+  Info("Clear","Clear Plane");
   if(mActiveElements) mActiveElements->Delete();
   delete mActiveElements; mActiveElements=nullptr;
   if(mReadoutElements) mReadoutElements->Delete();
@@ -531,7 +531,7 @@ void Plane::drawPlane(Option_t *opt)
     h->SetYTitle("y [cm]");
     h->Draw();
 
-    Info("DrawPlane","Created hist",0,0);
+    Info("DrawPlane","Created hist");
 
     auto *supportExt = new TEllipse(0.0, 0.0, mRMaxSupport, mRMaxSupport);
     auto *supportInt = new TEllipse(0.0, 0.0, mRMinSupport, mRMinSupport);

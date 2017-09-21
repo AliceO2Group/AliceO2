@@ -53,7 +53,7 @@ HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetN
   Geometry * mftGeom = Geometry::instance();
   SetUniqueID(mSegmentation->GetUniqueID());
 
-  LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName()) << FairLogger::endl;
+  LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName(), mSegmentation->GetUniqueID()) << FairLogger::endl;
 
   mHalfDiskVolume = new TGeoVolumeAssembly(GetName());
   /*  
