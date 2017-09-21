@@ -184,6 +184,7 @@ int main(int argc, char** argv)
 			int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
 			bool* eventUsed = new bool[nEventsInDirectory];
 			int nTrain = 0;
+			int mcMin = -1, mcMax = -1;
 			while (nBunch < lastBunch)
 			{
 				for (int iTrain = 0;iTrain < configStandalone.configTF.bunchTrainCount && nBunch < lastBunch;iTrain++)
@@ -191,6 +192,8 @@ int main(int argc, char** argv)
 					int nCollisionsInTrain = 0;
 					for (int iBunch = 0;iBunch < configStandalone.configTF.bunchCount && nBunch < lastBunch;iBunch++)
 					{
+						if (mcMin == -1 && nBunch >= 0) mcMin = hlt.GetNMCInfo();
+						if (mcMax == -1 && nBunch >= lastTFBunch) mcMax = hlt.GetNMCInfo();
 						int nInBunchPileUp = 0;
 						while ((float) rand() / (float) RAND_MAX < collisionProbability / (nInBunchPileUp + 1) * (nInBunchPileUp ? 1. : exp(-collisionProbability)))
 						{
@@ -211,7 +214,8 @@ int main(int argc, char** argv)
 							in.open(filename, std::ifstream::binary);
 							if (in.fail()) {printf("Unexpected error\n");return(1);}
 							float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
-							int nClusters = hlt.ReadEvent(in, true, true, shift, true);
+							//int nClusters = hlt.ReadEvent(in, true, true, shift, 0, configStandalone.configTF.timeFrameLen * TPCZ / driftTime, true);
+							int nClusters = hlt.ReadEvent(in, true, true, shift, -1e6, 1e6, true);
 							printf("Placing event %4d at z %7.3f %s(collisions %4d, bunch %6d, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", useEvent, shift, nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
 							in.close();
 							nInBunchPileUp++;
@@ -227,8 +231,9 @@ int main(int argc, char** argv)
 				}
 				nBunch += maxBunchesFull - trainDist * configStandalone.configTF.bunchTrainCount;
 			}
-			delete eventUsed;
+			delete[] eventUsed;
 			printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
+			//SetMCTrackRange(mcMin, mcMax);
 		}
 		else
 		{
