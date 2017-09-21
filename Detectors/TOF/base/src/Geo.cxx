@@ -11,6 +11,7 @@
 #include "TOFBase/Geo.h"
 #include "TGeoManager.h"
 #include "TMath.h"
+#include "FairLogger.h"
 
 ClassImp(o2::tof::Geo);
 
@@ -283,14 +284,14 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
 		  );
 
   if (iplate<0 || iplate>=NPLATES)
-    Error("getStripNumberPerSM",Form("Wrong plate number in TOF (%1d)!\n",iplate));
+    LOG(ERROR) << "getStripNumberPerSM : " << "Wrong plate number in TOF (" << iplate << ")!\n";
 
   if (
       (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
       ||
       (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
       )
-    Error("getStripNumberPerSM",Form("Wrong strip number in TOF (strip=%2d in the plate=%1d)!\n",istrip,iplate));
+    LOG(ERROR) << "getStripNumberPerSM : " << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
 
   Int_t stripOffset = 0;
   switch (iplate) {
@@ -384,6 +385,7 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       return istrip;
     }
   }
+  return -1;
 }
 
 Int_t Geo::getSector(const Float_t* pos)
