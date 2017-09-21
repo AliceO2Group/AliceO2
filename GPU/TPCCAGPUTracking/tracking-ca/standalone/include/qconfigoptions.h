@@ -43,7 +43,7 @@ AddOption(eventDisplay, bool, false, "DISPLAY", 'd', "Show standalone event disp
 AddOption(qa, bool, false, "QA", 'q', "Enable tracking QA", message("Running QA: %s"))
 AddOption(resetids, bool, false, "ENUMERATECLUSTERIDS", 0, "Enumerate cluster IDs when loading clusters overwriting predefined IDs")
 AddOption(lowpt, bool, false, "LOWPT", 'l', "Special treatment of low-Pt tracks")
-AddOption(nways, int, 0, "3WAY", 0, "Use 3-way track-fit", set(3))
+AddOption(nways, int, 1, "3WAY", 0, "Use 3-way track-fit", set(3), min(1))
 AddOption(dzdr, float, 0., "DZDR", 0, "Use dZ/dR search window instead of vertex window", set(2.5f))
 AddOption(cont, bool, false, "CONT", 0, "Process continuous timeframe data")
 AddOption(outputcontrolmem, unsigned long long int, 0, "OUTPUTMEMORY", 0, "Use predefined output buffer of this size", min(0ull), message("Using %lld bytes as output memory"))
