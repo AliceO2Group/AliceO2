@@ -51,7 +51,10 @@ IF (NOT ALICEO2_MODULAR_BUILD)
   set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules" ${CMAKE_MODULE_PATH})
   set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules_old" ${CMAKE_MODULE_PATH})
   set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
-
+  
+  # Use the same boost library as the one used in FairSoft
+  # No need to install it :)
+  set(BOOST_ROOT $ENV{SIMPATH})
   Set(CheckSrcDir "${FAIRROOTPATH}/share/fairbase/cmake/checks")
 ELSE (NOT ALICEO2_MODULAR_BUILD)
   find_package(Boost REQUIRED)
