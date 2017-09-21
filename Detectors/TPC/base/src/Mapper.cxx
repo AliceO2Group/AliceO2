@@ -177,6 +177,7 @@ bool Mapper::readMappingFile(std::string file)
       //<< sampaChip<< " "
       //<< sampaChannel << std::endl;
   }
+  return true;
 }
 
 void Mapper::load(const std::string& mappingDir)

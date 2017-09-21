@@ -61,7 +61,7 @@ class HwClusterer : public Clusterer {
         int cfPerRow = 0);
     
     /// Destructor
-    ~HwClusterer();
+    ~HwClusterer() override;
     
     // Should this really be a public member?
     // Maybe better to just call by process

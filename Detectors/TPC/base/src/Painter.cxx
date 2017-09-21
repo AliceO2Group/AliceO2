@@ -176,7 +176,7 @@ TH2* Painter::getHistogram2D(const CalArray<T>& calArray)
       const auto val = calArray.getValue(pad);
       const int cpad = ipad - padsInRow/2;
       hist->Fill(irow, cpad, val);
-      printf("%d %d: %f\n", irow, cpad, val);
+      printf("%d %d: %f\n", irow, cpad, (double)val);
     }
   }
   return hist;

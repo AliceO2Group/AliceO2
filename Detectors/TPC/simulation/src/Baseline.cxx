@@ -65,11 +65,13 @@ float Baseline::getRandomNoise()
 //______________________________________________________________________________
 float Baseline::getPseudoRealisticNoise(const PadSecPos& padSecPos)
 {
+  return 0.;
 }
 
 //______________________________________________________________________________
 float Baseline::getNoiseFromDataBase(const PadSecPos& padSecPos)
 {
+  return 0.;
 }
 
 //______________________________________________________________________________
@@ -81,26 +83,31 @@ float_v Baseline::getRandomNoiseVc()
 //______________________________________________________________________________
 float_v Baseline::getPseudoRealisticNoiseVc(const PadSecPos& padSecPos)
 {
+  return 0.;
 }
 
 //______________________________________________________________________________
 float_v Baseline::getNoiseFromDataBaseVc(const PadSecPos& padSecPos)
 {
+  return 0.;
 }
 
 //______________________________________________________________________________
 float Baseline::getRandomPedestal(const PadSecPos& padSecPos)
 {
+  return 0.;
 }
 
 //______________________________________________________________________________
 float Baseline::getPseudoRealisticPedestal(const PadSecPos& padSecPos)
 {
+  return 0.;
 }
 
 //______________________________________________________________________________
 float Baseline::getPedestalFromDataBase(const PadSecPos& padSecPos)
 {
+  return 0.;
 }
 
 

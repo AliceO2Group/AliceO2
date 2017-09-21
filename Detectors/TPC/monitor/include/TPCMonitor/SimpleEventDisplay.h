@@ -40,7 +40,7 @@ class SimpleEventDisplay : public CalibRawBase
   public:
     SimpleEventDisplay();
     
-    virtual ~SimpleEventDisplay() = default;
+    ~SimpleEventDisplay() override = default;
 
     Int_t updateROC(const Int_t roc, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final;

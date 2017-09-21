@@ -46,7 +46,7 @@ class CalibPedestal : public CalibRawBase
     CalibPedestal(PadSubset padSubset = PadSubset::ROC);
 
     /// default destructor
-    virtual ~CalibPedestal() = default;
+    ~CalibPedestal() override = default;
 
     /// update function called once per digit
     ///
