@@ -12,3 +12,4 @@ extern volatile int displayEventNr;
 extern volatile int sendKey;
 void RunQA();
 int DrawQAHistograms();
+void SetMCTrackRange(int min, int max);

@@ -29,7 +29,7 @@
 
 struct additionalMCParameters
 {
-	float pt, phi, theta, eta;
+	float pt, phi, theta, eta, nWeightCls;
 };
 
 struct additionalClusterParameters
@@ -158,6 +158,13 @@ void DrawHisto(TH1* histo, char* filename, char* options)
 	tmp.cd();
 	histo->Draw(options);
 	tmp.Print(filename);
+}
+
+int mcTrackMin = -1, mcTrackMax = -1;
+void SetMCTrackRange(int min, int max)
+{
+	mcTrackMin = min;
+	mcTrackMax = max;
 }
 
 void RunQA()
@@ -364,12 +371,26 @@ void RunQA()
 		}
 	}
 	
+	//Recompute fNWeightCls (might have changed after merging events into timeframes)
+	for (int i = 0;i < hlt.GetNMCInfo();i++) mcParam[i].nWeightCls = 0.;
+	for (int i = 0;i < hlt.GetNMCLabels();i++)
+	{
+		const AliHLTTPCClusterMCLabel* labels = hlt.GetMCLabels();
+		float weightTotal = 0.f;
+		for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0) weightTotal += labels[i].fClusterID[j].fWeight;
+		for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0)
+		{
+			mcParam[labels[i].fClusterID[j].fMCID].nWeightCls += labels[i].fClusterID[j].fWeight / weightTotal;
+		}
+	}
+	
 	//Compute MC Track Parameters for MC Tracks
 	//Fill Efficiency Histograms
 	for (int i = 0;i < hlt.GetNMCInfo();i++)
 	{
+		if ((mcTrackMin != -1 && i < mcTrackMin) || (mcTrackMax != -1 && i >= mcTrackMax)) continue;
 		const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
-		if (info.fNWeightCls == 0.) continue;
+		if (mcParam[i].nWeightCls == 0.) continue;
 		float mcpt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
 		float mcphi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
 		float mctheta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
@@ -377,8 +398,8 @@ void RunQA()
 		mcParam[i].pt = mcpt; mcParam[i].phi = mcphi; mcParam[i].theta = mctheta; mcParam[i].eta = mceta;
 
 		if (info.fPrim && info.fPrimDaughters) continue;
-		if (info.fNWeightCls < MIN_WEIGHT_CLS) continue;
-		int findable = info.fNWeightCls >= FINDABLE_WEIGHT_CLS;
+		if (mcParam[i].nWeightCls < MIN_WEIGHT_CLS) continue;
+		int findable = mcParam[i].nWeightCls >= FINDABLE_WEIGHT_CLS;
 		if (info.fPID < 0) continue;
 		if (info.fCharge == 0.) continue;
 		
@@ -426,11 +447,13 @@ void RunQA()
 		const additionalMCParameters& mc2 = mcParam[trackMCLabels[i]];
 		const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[i];
 		
+		if ((mcTrackMin != -1 && trackMCLabels[i] < mcTrackMin) || (mcTrackMax != -1 && trackMCLabels[i] >= mcTrackMax)) continue;
+		
 		if (!track.OK()) continue;
 		if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
 		if (mc1.fCharge == 0.) continue;
 		if (mc1.fPID < 0) continue;
-		if (mc1.fNWeightCls < MIN_WEIGHT_CLS) continue;
+		if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
 		
 		float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
 		float c = TMath::Cos(track.GetAlpha());
@@ -474,12 +497,11 @@ void RunQA()
 	//Fill Cluster Histograms
 	for (int i = 0;i < hlt.GetNMCInfo();i++)
 	{
-		const AliHLTTPCCAMCInfo& mc1 = hlt.GetMCInfo()[i];
 		const additionalMCParameters& mc2 = mcParam[i];
 		
 		float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
-		clusters[3]->Fill(pt, mc1.fNWeightCls);
-		if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc1.fNWeightCls);
+		clusters[3]->Fill(pt, mc2.nWeightCls);
+		if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc2.nWeightCls);
 	}
 	for (int i = 0;i < hlt.GetNMCLabels();i++)
 	{

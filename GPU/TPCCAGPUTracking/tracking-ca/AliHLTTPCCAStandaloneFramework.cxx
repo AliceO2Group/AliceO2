@@ -401,84 +401,119 @@ void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const
   }
 }
 
-int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, bool addData, float shift, bool silent )
+int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, bool addData, float shift, float minZ, float maxZ, bool silent )
 {
   //* Read event from file
   int nClusters = 0, nCurrentClusters = 0;
   if (addData) for (int i = 0;i < fgkNSlices;i++) nCurrentClusters += fClusterData[i].NumberOfClusters();
   int nCurrentMCTracks = addData ? fMCInfo.size() : 0;
   
+  int sliceOldClusters[36];
+  int sliceNewClusters[36];
+  int removed = 0;
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
-    const int nSliceOldClusters = addData ? fClusterData[iSlice].NumberOfClusters() : 0;
+    sliceOldClusters[iSlice] = addData ? fClusterData[iSlice].NumberOfClusters() : 0;
     fClusterData[iSlice].ReadEvent( in, addData );
+    sliceNewClusters[iSlice] = fClusterData[iSlice].NumberOfClusters() - sliceOldClusters[iSlice];
     if (resetIds)
     {
-      for (int i = 0;i < fClusterData[iSlice].NumberOfClusters() - nSliceOldClusters;i++)
+      for (int i = 0;i < sliceNewClusters[iSlice];i++)
       {
-        fClusterData[iSlice].Clusters()[nSliceOldClusters + i].fId = nCurrentClusters + nClusters + i;
+        fClusterData[iSlice].Clusters()[sliceOldClusters[iSlice] + i].fId = nCurrentClusters + nClusters + i;
       }
     }
     if (shift != 0.)
     {
-      for (int i = 0;i < fClusterData[iSlice].NumberOfClusters() - nSliceOldClusters;i++)
+      for (int i = 0;i < sliceNewClusters[iSlice];i++)
       {
-        AliHLTTPCCAClusterData::Data& tmp = fClusterData[iSlice].Clusters()[nSliceOldClusters + i];
+        AliHLTTPCCAClusterData::Data& tmp = fClusterData[iSlice].Clusters()[sliceOldClusters[iSlice] + i];
         tmp.fZ += iSlice < 18 ? shift : -shift;
       }
     }
-    nClusters += fClusterData[iSlice].NumberOfClusters() - nSliceOldClusters;
+    nClusters += sliceNewClusters[iSlice];
   }
   if (nClusters)
   {
-      fMCLabels.resize(nCurrentClusters + nClusters);
-      in.read((char*) (fMCLabels.data() + nCurrentClusters), nClusters * sizeof(fMCLabels[0]));
-      if (!in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
+    fMCLabels.resize(nCurrentClusters + nClusters);
+    in.read((char*) (fMCLabels.data() + nCurrentClusters), nClusters * sizeof(fMCLabels[0]));
+    if (!in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
+    {
+      fMCLabels.clear();
+      fMCInfo.clear();
+    }
+    else
+    {
+      if (addData)
       {
-        fMCLabels.clear();
+          for (int i = 0;i < nClusters;i++)
+          {
+              for (int j = 0;j < 3;j++)
+              {
+                  AliHLTTPCClusterMCWeight& tmp = fMCLabels[nCurrentClusters + i].fClusterID[j];
+                  if (tmp.fMCID >= 0) tmp.fMCID += nCurrentMCTracks;
+              }
+          }
+      }
+      int nMCTracks = 0;
+      in.read((char*) &nMCTracks, sizeof(nMCTracks));
+      if (in.eof())
+      {
         fMCInfo.clear();
       }
       else
       {
-        if (addData)
-        {
-            for (int i = 0;i < nClusters;i++)
-            {
-                for (int j = 0;j < 3;j++)
-                {
-                    AliHLTTPCClusterMCWeight& tmp = fMCLabels[nCurrentClusters + i].fClusterID[j];
-                    if (tmp.fMCID >= 0) tmp.fMCID += nCurrentMCTracks;
-                }
-            }
-        }
-        int nMCTracks = 0;
-        in.read((char*) &nMCTracks, sizeof(nMCTracks));
+        fMCInfo.resize(nCurrentMCTracks + nMCTracks);
+        in.read((char*) (fMCInfo.data() + nCurrentMCTracks), nMCTracks * sizeof(fMCInfo[0]));
         if (in.eof())
         {
-          fMCInfo.clear();
+            fMCInfo.clear();
         }
-        else
+        else if (shift != 0.)
         {
-          fMCInfo.resize(nCurrentMCTracks + nMCTracks);
-          in.read((char*) (fMCInfo.data() + nCurrentMCTracks), nMCTracks * sizeof(fMCInfo[0]));
-          if (in.eof())
-          {
-              fMCInfo.clear();
-          }
-          else if (shift != 0.)
-          {
-              for (int i = 0;i < nMCTracks;i++)
-              {
-                  AliHLTTPCCAMCInfo& tmp = fMCInfo[nCurrentMCTracks + i];
-                  tmp.fZ += tmp.fZ > 0 ? shift : -shift;
-              }
-          }
+            for (int i = 0;i < nMCTracks;i++)
+            {
+                AliHLTTPCCAMCInfo& tmp = fMCInfo[nCurrentMCTracks + i];
+                tmp.fZ += tmp.fZ > 0 ? shift : -shift;
+            }
         }
       }
+    }
+    if (shift && (minZ > -1e6 || maxZ < 1e6))
+    {
+      unsigned int currentCluster = nCurrentClusters;
+      unsigned int iTotal = 0;
+      for (int iSlice = 0;iSlice < 36;iSlice++)
+      {
+        int currentClusterSlice = sliceOldClusters[iSlice];
+        for (int i = sliceOldClusters[iSlice];i < sliceOldClusters[iSlice] + sliceNewClusters[iSlice];i++)
+        {
+          float sign = iSlice < 18 ? 1 : -1;
+          if (sign * fClusterData[iSlice].Clusters()[i].fZ >= minZ && sign * fClusterData[iSlice].Clusters()[i].fZ <= maxZ)
+          {
+            if (currentClusterSlice != i) fClusterData[iSlice].Clusters()[currentClusterSlice] = fClusterData[iSlice].Clusters()[i];
+            if (resetIds) fClusterData[iSlice].Clusters()[currentClusterSlice].fId = currentCluster;
+            currentClusterSlice++;
+            if (fMCLabels.size() > iTotal && currentCluster != iTotal) fMCLabels[currentCluster] = fMCLabels[iTotal];
+            currentCluster++;
+          }
+          else
+          {
+            removed++;
+          }
+          iTotal++;
+        }
+        fClusterData[iSlice].SetNumberOfClusters(currentClusterSlice);
+        sliceNewClusters[iSlice] = currentClusterSlice - sliceOldClusters[iSlice];
+      }
+      nClusters = currentCluster - nCurrentClusters;
+      if (currentCluster < fMCLabels.size()) fMCLabels.resize(currentCluster);
+    }
   }
 #ifdef HLTCA_STANDALONE
   if (!silent)
   {
     printf("Read %d Clusters with %d MC labels and %d MC tracks\n", nClusters, (int) (fMCLabels.size() ? (fMCLabels.size() - nCurrentClusters) : 0), (int) fMCInfo.size() - nCurrentMCTracks);
+    if (minZ > -1e6 || maxZ < 1e6) printf("Removed %d / %d clusters\n", removed, nClusters + removed);
     if (addData) printf("Total %d Clusters with %d MC labels and %d MC tracks\n", nClusters + nCurrentClusters, (int) fMCLabels.size(), (int) fMCInfo.size());
   }
 #endif
