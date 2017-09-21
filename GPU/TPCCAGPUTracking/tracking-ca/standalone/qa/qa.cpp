@@ -104,7 +104,7 @@ static const char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "A
 static const char* ClusterTypes[3] = {"", "Ratio", "Integral"};
 static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
-static double legendSpacingString = 0;
+static double legendSpacingString = 0.025;
 static int ConfigDashedMarkers = 0;
 
 static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0., -ETA_MAX, PT_MIN};
@@ -552,7 +552,7 @@ int DrawQAHistograms()
 		peff[ii][1] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); peff[ii][1]->Draw();peff[ii][1]->SetRightMargin(0.04);
 		peff[ii][2] = new TPad( "p2","",0.0,dy*1,0.5,dy*2-.001); peff[ii][2]->Draw();peff[ii][2]->SetRightMargin(0.04);
 		peff[ii][3] = new TPad( "p3","",0.5,dy*1,1.0,dy*2-.001); peff[ii][3]->Draw();peff[ii][3]->SetRightMargin(0.04);
-		legendeff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.83) / 2. * (float) ConfigNumInputs,0.98,0.949);
+		legendeff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.83 - (0.93 - 0.83) / 2. * (float) ConfigNumInputs,0.98,0.849);
 		legendeff[ii]->SetTextFont(72);
 		legendeff[ii]->SetTextSize(0.016);
 		legendeff[ii]->SetFillColor(0);
@@ -577,7 +577,7 @@ int DrawQAHistograms()
 		pres[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); pres[ii][2]->Draw();pres[ii][2]->SetRightMargin(0.06);pres[ii][2]->SetLeftMargin(0.135);
 		if (ii < 6)
 		{
-			legendres[ii] = new TLegend(0.885 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949);
+			legendres[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949);
 			legendres[ii]->SetTextFont(72);
 			legendres[ii]->SetTextSize(0.016);
 			legendres[ii]->SetFillColor(0);
@@ -592,7 +592,10 @@ int DrawQAHistograms()
 		cclust[i]->cd();
 		pclust[i] = new TPad( "p0","",0.0,0.0,1.0,1.0);
 		pclust[i]->Draw();
-		legendclust[i] = new TLegend(0.885 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949);
+		legendclust[i] = new TLegend(i == 2 ? 0.1 : 0.65, i != 1 ? 0.8 : 0.45, i == 2 ? 0.35 : 0.9, i != 1 ? 0.9 : 0.55);
+		legendclust[i]->SetTextFont(72);
+		legendclust[i]->SetTextSize(0.016);
+		legendclust[i]->SetFillColor(0);
 	}
 
 	//Process / Draw Efficiency Histograms
@@ -845,13 +848,15 @@ int DrawQAHistograms()
 	//Process Cluster Histograms
 	for (int i = 0;i < 11;i++) clusters[i]->Sumw2();
 	
+	double totalVal = 0;
+	for (int j = 0;j < clusters[3]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[3]->GetBinContent(j);
 	for (int i = 0;i < 4;i++)
 	{
 		double val = 0;
-		for (int j = 1;j < clusters[i]->GetXaxis()->GetNbins() + 2;j++)
+		for (int j = 0;j < clusters[i]->GetXaxis()->GetNbins() + 2;j++)
 		{
 			val += clusters[i]->GetBinContent(j);
-			clusters[7 + i]->SetBinContent(j, val);
+			clusters[7 + i]->SetBinContent(j, val / totalVal);
 		}
 	}
 	for (int i = 0;i < 4;i++)
@@ -884,6 +889,8 @@ int DrawQAHistograms()
 		{
 			TH1F* e = clusters[j];
 			e->SetTitle(ClusterTitles[i]);
+			e->GetYaxis()->SetTitle(i == 0 ? "Number of clusters" : "Fraction of clusters");
+			e->GetXaxis()->SetTitle("p_{Tmc} [Gev/c]");
 			if (tout) e->Write();
 			e->SetStats(kFALSE);
 			e->SetMarkerColor(kBlack);
