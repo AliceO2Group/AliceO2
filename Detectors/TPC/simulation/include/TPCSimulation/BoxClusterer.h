@@ -33,7 +33,7 @@ namespace o2{
       BoxClusterer();
       
       /// Destructor
-      ~BoxClusterer();
+      ~BoxClusterer() override;
       
       // Should this really be a public member?
       // Maybe better to just call by process
