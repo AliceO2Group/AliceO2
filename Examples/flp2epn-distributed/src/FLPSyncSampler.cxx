@@ -78,7 +78,7 @@ bool FLPSyncSampler::ConditionalRun()
 
   // rate limiting
   --mEventCounter;
-  while (mEventCounter == 0) {
+  while (mEventCounter <= 0) {
     this_thread::sleep_for(milliseconds(1));
   }
 
