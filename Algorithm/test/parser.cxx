@@ -21,93 +21,7 @@
 #include <iomanip>
 #include <vector>
 #include "../include/Algorithm/Parser.h"
-
-namespace {
-
-/**
- * Helper struct to define a composite element from a header, some payload
- * and a trailer
- */
-template <typename HeaderT
-          , typename TrailerT>
-struct Composite {
-  using HeaderType = HeaderT;
-  using TrailerType = TrailerT;
-  size_t length = 0;
-
-  template<size_t N>
-  constexpr Composite(const HeaderType& h, const char  (&d)[N], const TrailerType& t)
-    : header(h)
-    , data(d)
-    , trailer(t)
-  {
-    length = sizeof(HeaderType) + N + sizeof(TrailerType);
-  }
-
-  constexpr size_t getDataLength() const noexcept {
-    return length - sizeof(HeaderType) - sizeof(TrailerType);
-  }
-
-  const HeaderType& header;
-  const char* data = nullptr;
-  const TrailerType& trailer;
-};
-
-/// recursively calculate the length of the sequence
-template <typename T, typename... TArgs>
-constexpr size_t sequenceLength(const T& first, const TArgs... args) noexcept {
-  return sequenceLength(first) + sequenceLength(args...);
-}
-
-/// terminating template secialization of sequence length calculation
-template <typename T>
-constexpr size_t sequenceLength(const T& first) noexcept {
-  return first.length;
-}
-
-/// recursive insert of variable number of elements
-template <typename InputType, typename T, typename... TArgs>
-constexpr size_t sequenceInsert(InputType* buffer, const T& first, const TArgs... args) noexcept {
-  size_t length = sequenceLength(first);
-  sequenceInsert(buffer, first);
-  buffer += length;
-  length += sequenceInsert(buffer, args...);
-  return length;
-}
-
-/// terminating template specialization, i.e. for the last element
-template <typename InputType, typename T>
-constexpr size_t sequenceInsert(InputType* buffer, const T& element) noexcept {
-  size_t length = 0;
-  memcpy(buffer + length, &element.header, sizeof(typename T::HeaderType));
-  length += sizeof(typename T::HeaderType);
-  memcpy(buffer + length, element.data, element.getDataLength());
-  length += element.getDataLength();
-  memcpy(buffer + length, &element.trailer, sizeof(typename T::TrailerType));
-  length += sizeof(typename T::TrailerType);
-  return length;
-}
-
-/**
- * Helper struct to create a buffer from multiple blocks
- */
-struct TestFrame {
-  using BufferType = std::unique_ptr<unsigned char[]>;
-
-  BufferType buffer;
-  size_t length;
-
-  TestFrame() = delete;
-
-  template <typename CompositeType, typename... Targs>
-  TestFrame(CompositeType block, Targs... args)
-  {
-    length = sequenceLength(block, args...);
-    std::cout << "make TestFrame length " << length << std::endl;
-    buffer  = std::make_unique<BufferType::element_type[]>(length);
-    sequenceInsert(buffer.get(), block, args...);
-  }
-};
+#include "StaticSequenceAllocator.h"
 
 // header test class
 struct Header {
@@ -136,15 +50,16 @@ struct SizedTrailer {
 
 BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
 {
-  using FrameT = Composite<Header, Trailer>;
+  using FrameT = o2::algorithm::Composite<Header, Trailer>;
   // note: the length of the data is set in the header word
+  using TestFrame = o2::algorithm::StaticSequenceAllocator;
   TestFrame tf(FrameT(16, "lotsofsillydata", 0xaa),
                FrameT(5,  "test",            0xcc),
                FrameT(10, "dummydata",       0x33)
                );
 
   using ParserT = o2::algorithm::ForwardParser<typename FrameT::HeaderType,
-					       typename FrameT::TrailerType>;
+                                               typename FrameT::TrailerType>;
 
   auto checkHeader = [] (const typename FrameT::HeaderType& header) {
     return header.identifier == 0xdeadbeef;
@@ -163,12 +78,12 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
   };
 
   ParserT parser;
-  auto result = parser.parse(tf.buffer.get(), tf.length,
+  auto result = parser.parse(tf.buffer.get(), tf.size(),
                              checkHeader,
-	                     checkTrailer,
-	                     getFrameSize,
+                             checkTrailer,
+                             getFrameSize,
                              insert
-	                     );
+                             );
 
   BOOST_REQUIRE(result == 3);
   BOOST_REQUIRE(frames.size() == 3);
@@ -182,15 +97,16 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
 
 BOOST_AUTO_TEST_CASE(test_reverseparser)
 {
-  using FrameT = Composite<Header, SizedTrailer>;
+  using FrameT = o2::algorithm::Composite<Header, SizedTrailer>;
   // note: the length of the data is set in the trailer word
+  using TestFrame = o2::algorithm::StaticSequenceAllocator;
   TestFrame tf(FrameT(0, "lotsofsillydata", {16, 0xaa}),
                FrameT(0, "test",            {5,  0xcc}),
                FrameT(0, "dummydata",       {10, 0x33})
                );
 
   using ParserT = o2::algorithm::ReverseParser<typename FrameT::HeaderType,
-					       typename FrameT::TrailerType>;
+                                               typename FrameT::TrailerType>;
 
   auto checkHeader = [] (const typename FrameT::HeaderType& header) {
     return header.identifier == 0xdeadbeef;
@@ -209,12 +125,12 @@ BOOST_AUTO_TEST_CASE(test_reverseparser)
   };
 
   ParserT parser;
-  auto result = parser.parse(tf.buffer.get(), tf.length,
+  auto result = parser.parse(tf.buffer.get(), tf.size(),
                              checkHeader,
-	                     checkTrailer,
-	                     getFrameSize,
+                             checkTrailer,
+                             getFrameSize,
                              insert
-	                     );
+                             );
 
   BOOST_REQUIRE(result == 3);
   BOOST_REQUIRE(frames.size() == 3);
@@ -223,5 +139,3 @@ BOOST_AUTO_TEST_CASE(test_reverseparser)
   BOOST_CHECK(memcmp(frames[1].payload, "test",            frames[1].length) == 0);
   BOOST_CHECK(memcmp(frames[0].payload, "dummydata",       frames[0].length) == 0);
 }
-
-} // unnamed namespace
