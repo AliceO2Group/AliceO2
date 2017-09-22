@@ -138,9 +138,9 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
 {
   using FrameT = Composite<Header, Trailer>;
   // note: the length of the data is set in the header word
-  TestFrame tf(FrameT({16}, "lotsofsillydata", {0xaa}),
-               FrameT({5},  "test",            {0xcc}),
-               FrameT({10}, "dummydata",       {0x33})
+  TestFrame tf(FrameT(16, "lotsofsillydata", 0xaa),
+               FrameT(5,  "test",            0xcc),
+               FrameT(10, "dummydata",       0x33)
                );
 
   using ParserT = o2::algorithm::ForwardParser<typename FrameT::HeaderType,
@@ -184,9 +184,9 @@ BOOST_AUTO_TEST_CASE(test_reverseparser)
 {
   using FrameT = Composite<Header, SizedTrailer>;
   // note: the length of the data is set in the trailer word
-  TestFrame tf(FrameT({0}, "lotsofsillydata", {{16}, 0xaa}),
-               FrameT({0}, "test",            {{5},  0xcc}),
-               FrameT({0}, "dummydata",       {{10}, 0x33})
+  TestFrame tf(FrameT(0, "lotsofsillydata", {16, 0xaa}),
+               FrameT(0, "test",            {5,  0xcc}),
+               FrameT(0, "dummydata",       {10, 0x33})
                );
 
   using ParserT = o2::algorithm::ReverseParser<typename FrameT::HeaderType,
