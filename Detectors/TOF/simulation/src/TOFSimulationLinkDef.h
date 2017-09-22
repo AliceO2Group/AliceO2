@@ -15,6 +15,5 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::tof::Detector+;
-#pragma link C++ class o2::tof::HitType+;
 
 #endif
