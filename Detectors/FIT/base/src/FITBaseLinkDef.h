@@ -16,5 +16,4 @@
 
 #pragma link C++ class o2::fit::Geometry;
 
-
 #endif

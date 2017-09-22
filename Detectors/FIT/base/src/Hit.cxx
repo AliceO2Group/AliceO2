@@ -12,16 +12,16 @@
 
 ClassImp(o2::fit::Hit)
 
-using namespace o2::fit;
+  using namespace o2::fit;
 
-void Hit::PrintStream(std::ostream &stream) const {
-  stream  << "FIT point:  "  << " in detector segment " << GetDetectorID()
-          << " at position (" << GetX() << "|" << GetY() << "|" << GetZ();
+void Hit::PrintStream(std::ostream& stream) const
+{
+  stream << "FIT point:  "
+         << " in detector segment " << GetDetectorID() << " at position (" << GetX() << "|" << GetY() << "|" << GetZ();
 }
 
-
-std::ostream &operator<<(std::ostream &stream, const Hit &p) {
+std::ostream& operator<<(std::ostream& stream, const Hit& p)
+{
   p.PrintStream(stream);
   return stream;
 }
-

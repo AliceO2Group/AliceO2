@@ -25,15 +25,10 @@ using namespace o2::fit;
 Geometry* Geometry::sGeom = nullptr;
 const Char_t* Geometry::sDefaultGeometryName = "fit";
 
-Geometry::Geometry(const Geometry& geo)
-  : TNamed(geo)
-{
-  
-}
+Geometry::Geometry(const Geometry& geo) : TNamed(geo) {}
 Geometry::Geometry(const Text_t* name, const Text_t* title, const Text_t* mcname, const Text_t* mctitle)
   : TNamed(name, title)
 {
- 
 }
 Geometry& Geometry::operator=(const Geometry& /*rvalue*/)
 {

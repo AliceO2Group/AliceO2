@@ -13,34 +13,37 @@
 
 #include "SimulationDataFormat/BaseHits.h"
 
-namespace o2 {
-  namespace fit {
-    /// \class Hit
-    /// \brief TOF simulation hit information
-    class Hit : public o2::BasicXYZEHit<float> {
-    public:
-      
-      /// \brief Default constructor
-      Hit() = default;
-      
-      /// \brief Hit constructor
-        /// \param shunt
-      /// \param trackID Index of the track
-      /// \param detID ID of the detector segment
-       /// \param pos Position vector of the point
-      /// \param tof Time of the hit
-    Hit( Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId):
-      o2::BasicXYZEHit<float> ( x,  y,  z,  time,  energy, trackId,  detId)
-	{}
-      /// \brief Destructor
-      ~Hit() override = default;
-      
-      void PrintStream(std::ostream &stream) const;
-      
-   ClassDef(Hit, 1);
-   
-   //   std::ostream &operator<<(std::ostream &stream, const Hit &point);
-    };
+namespace o2
+{
+namespace fit
+{
+/// \class Hit
+/// \brief TOF simulation hit information
+class Hit : public o2::BasicXYZEHit<float>
+{
+ public:
+  /// \brief Default constructor
+  Hit() = default;
+
+  /// \brief Hit constructor
+  /// \param shunt
+  /// \param trackID Index of the track
+  /// \param detID ID of the detector segment
+  /// \param pos Position vector of the point
+  /// \param tof Time of the hit
+  Hit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId)
+    : o2::BasicXYZEHit<float>(x, y, z, time, energy, trackId, detId)
+  {
   }
+  /// \brief Destructor
+  ~Hit() override = default;
+
+  void PrintStream(std::ostream& stream) const;
+
+  ClassDef(Hit, 1);
+
+  //   std::ostream &operator<<(std::ostream &stream, const Hit &point);
+};
 }
-#endif  
+}
+#endif

@@ -20,11 +20,10 @@ namespace o2
 {
 namespace fit
 {
-
 class Geometry : public TNamed
 {
  public:
-   ///
+  ///
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
@@ -44,7 +43,7 @@ class Geometry : public TNamed
   ///
   /// Destructor.
   ///
-  ~Geometry() override ;
+  ~Geometry() override;
 
   ///
   /// Assign operator.
@@ -61,7 +60,7 @@ class Geometry : public TNamed
   ///
   /// \return the pointer of the unique instance of the geometry
   ///
-    ///
+  ///
   //  static Geometry* GetInstance(const Text_t* name, const Text_t* title = "", const Text_t* mcname = "TGeant3",
   //                               const Text_t* mctitle = "");
 
@@ -70,7 +69,7 @@ class Geometry : public TNamed
   ///
   /// \return the pointer of the unique instance
   ///
-//////////
+  //////////
   // General
   //
   //  static Bool_t IsInitialized() { return Geometry::sGeom != nullptr; }
@@ -79,8 +78,8 @@ class Geometry : public TNamed
  private:
   static Geometry* sGeom;                    ///< Pointer to the unique instance of the singleton
   static const Char_t* sDefaultGeometryName; ///< Default name of geometry
-  
- private: 
+
+ private:
   ClassDef(Geometry, 1);
 };
 }
