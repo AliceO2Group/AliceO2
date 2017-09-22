@@ -3241,10 +3241,10 @@ Double_t V3Layer::getGammaConversionRodDiam()
 // Created:      26 Oct 2016  Mario Sitta
 //
 
-  if (mAddGammaConv)
-    return mGammaConvDiam;
-  else
+  if (!mAddGammaConv){
     LOG(WARNING) << "Gamma Conversion rods not defined for this layer" << FairLogger::endl;
+  }
+  return mGammaConvDiam;
 }
 
 Double_t V3Layer::getGammaConversionRodXPos()
@@ -3264,10 +3264,10 @@ Double_t V3Layer::getGammaConversionRodXPos()
 // Created:      26 Oct 2016  Mario Sitta
 //
 
-  if (mAddGammaConv)
-    return mGammaConvXPos;
-  else
+  if (!mAddGammaConv){
     LOG(WARNING) << "Gamma Conversion rods not defined for this layer" << FairLogger::endl;
+  }
+  return mGammaConvXPos;
 }
 
 Double_t V3Layer::radiusOmTurboContainer()
