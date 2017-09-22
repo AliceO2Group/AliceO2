@@ -25,10 +25,6 @@ class FairVolume;
 class TClonesArray;
 class TGeoVolume;
 
-class TParticle;
-
-class TString;
-
 namespace o2
 {
 namespace fit
