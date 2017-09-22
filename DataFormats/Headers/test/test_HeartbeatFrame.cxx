@@ -146,6 +146,10 @@ BOOST_AUTO_TEST_CASE(test_heartbeat_sequence)
                 );
 
   o2::Header::HeartbeatFrameSequence<o2::Header::DataHeader> seqHandler;
+
+  //check iterators of the empty handler
+  BOOST_CHECK(seqHandler.begin() == seqHandler.end());
+
   o2::Header::DataHeader dh;
   dh.dataDescription = o2::Header::DataDescription("FIRSTSLOT");
   dh.dataOrigin = o2::Header::DataOrigin("TST");

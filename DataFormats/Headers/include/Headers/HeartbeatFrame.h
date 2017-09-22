@@ -50,23 +50,22 @@ struct HeartbeatHeader
     // the complete 64 bit header word, initialize with blockType 1 and size 1
     uint64_t headerWord = 0x1100000000000000;
     struct {
-        // bit 0 to 31: orbit number
-        uint32_t orbit;
-        // bit 32 to 43: bunch crossing id
-        uint16_t bcid:12;
-        // bit 44 to 47: reserved
-        uint16_t reserved:4;
-        // bit 48 to 51: trigger type
-        uint8_t triggerType:4;
-        // bit 52 to 55: reserved
-        uint8_t reservedTriggerType:4;
-        // bit 56 to 59: header length
-        uint8_t headerLength:4;
-        // bit 60 to 63: block type (=1 HBF/trigger Header)
-        uint8_t blockType:4;
+      // bit 0 to 31: orbit number
+      uint32_t orbit;
+      // bit 32 to 43: bunch crossing id
+      uint16_t bcid:12;
+      // bit 44 to 47: reserved
+      uint16_t reserved:4;
+      // bit 48 to 51: trigger type
+      uint8_t triggerType:4;
+      // bit 52 to 55: reserved
+      uint8_t reservedTriggerType:4;
+      // bit 56 to 59: header length
+      uint8_t headerLength:4;
+      // bit 60 to 63: block type (=1 HBF/trigger Header)
+      uint8_t blockType:4;
     };
-
-  };
+  }; // end union
 
   operator bool() const {return headerWord != 0 && blockType == 0x1;}
 
@@ -76,6 +75,7 @@ struct HeartbeatHeader
 
   operator uint64_t() const {return headerWord;}
 };
+static_assert(sizeof(HeartbeatHeader) == 8, "Heartbeat header must be 64bit");
 
 struct HeartbeatTrailer
 {
@@ -83,27 +83,28 @@ struct HeartbeatTrailer
     // the complete 64 bit trailer word, initialize with blockType 5 and size 1
     uint64_t trailerWord = 0x5100000000000000;
     struct {
-        // bit 0 to 31: data length in words
-        uint32_t dataLength;
-        // bit 32 to 52: detector specific status words
-        uint32_t status:21;
-        // bit 53: =1 in case a new physics trigger arrived within read-out period
-        uint16_t hbfTruncated:1;
-        // bit 54: =0 HBF correctly transmitted
-        uint16_t hbfStatus:1;
-        // bit 55: =1 HBa/0 HBr received
-        uint16_t hbAccept:1;
-        // bit 56 to 59: trailer length
-        uint16_t trailerLength:4;
-        // bit 60 to 63: block type (=5 HBF Trailer)
-        uint8_t blockType:4;
+      // bit 0 to 31: data length in words
+      uint32_t dataLength;
+      // bit 32 to 52: detector specific status words
+      uint32_t status:21;
+      // bit 53: =1 in case a new physics trigger arrived within read-out period
+      uint16_t hbfTruncated:1;
+      // bit 54: =0 HBF correctly transmitted
+      uint16_t hbfStatus:1;
+      // bit 55: =1 HBa/0 HBr received
+      uint16_t hbAccept:1;
+      // bit 56 to 59: trailer length
+      uint16_t trailerLength:4;
+      // bit 60 to 63: block type (=5 HBF Trailer)
+      uint8_t blockType:4;
     };
-  };
+  }; // end union
 
   operator bool() const {return trailerWord != 0 && blockType == 0x5;}
 
   operator uint64_t() const {return trailerWord;}
 };
+static_assert(sizeof(HeartbeatTrailer) == 8, "Heartbeat trailer must be 64bit");
 
 // composite struct for the HBH and HBT which are the envelope for the payload
 // in the heartbeat frame
@@ -445,23 +446,24 @@ public:
   };
 
   /// definition of the outer iterator over column
-  using columnIterator = outerIterator<iterator::kAlongRow>;
+  using ColumnIterator = outerIterator<iterator::kAlongRow>;
   /// definition of the outer iterator over row
-  using rowIterator = outerIterator<iterator::kAlongColumn>;
+  using RowIterator = outerIterator<iterator::kAlongColumn>;
 
   /// begin of the outer iteration
-  columnIterator begin() {
-    return columnIterator(this, 0);
+  ColumnIterator begin() {
+    return ColumnIterator(this, 0);
   }
 
   /// end of outer iteration
-  columnIterator end() {
-    return columnIterator(this, mColumns.size());
+  ColumnIterator end() {
+    return ColumnIterator(this, mColumns.size());
   }
 
 private:
   /// private access function for the iterators
   bool get(unsigned row, unsigned column, FrameData& data) {
+    if (this->mColumns.size() == 0) return false;
     auto element = this->mFrames.find(FrameIndex{this->mColumns[column], row});
     if (element != this->mFrames.end()) {
       data = element->second;
