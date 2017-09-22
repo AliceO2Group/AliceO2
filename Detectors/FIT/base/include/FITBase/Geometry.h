@@ -80,7 +80,7 @@ class Geometry : public TNamed
   static const Char_t* sDefaultGeometryName; ///< Default name of geometry
 
  private:
-  ClassDef(Geometry, 1);
+  ClassDefOverride(Geometry, 1);
 };
 }
 }
