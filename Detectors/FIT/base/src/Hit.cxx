@@ -10,9 +10,9 @@
 
 #include "FITBase/Hit.h"
 
-ClassImp(o2::FIT::Hit)
+ClassImp(o2::fit::Hit)
 
-using namespace o2::FIT;
+using namespace o2::fit;
 
 void Hit::PrintStream(std::ostream &stream) const {
   stream  << "FIT point:  "  << " in detector segment " << GetDetectorID()

@@ -14,8 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::FIT::Digit+;
-#pragma link C++ class o2::FIT::Hit+;
+#pragma link C++ class o2::fit::Digit+;
+#pragma link C++ class o2::fit::Hit+;
 
 
 #endif

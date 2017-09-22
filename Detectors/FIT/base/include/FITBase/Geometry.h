@@ -18,7 +18,7 @@
 #include <TNamed.h>
 namespace o2
 {
-namespace FIT
+namespace fit
 {
 
 class Geometry : public TNamed

@@ -14,7 +14,7 @@
 #include "SimulationDataFormat/BaseHits.h"
 
 namespace o2 {
-  namespace FIT {
+  namespace fit {
     /// \class Hit
     /// \brief TOF simulation hit information
     class Hit : public o2::BasicXYZEHit<float> {

@@ -17,9 +17,9 @@
 
 #include <FairLogger.h>
 
-ClassImp(o2::FIT::Geometry);
+ClassImp(o2::fit::Geometry);
 
-using namespace o2::FIT;
+using namespace o2::fit;
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;

@@ -27,7 +27,7 @@
 #include "FITSimulation/Detector.h"
 #include <sstream>
 
-using namespace o2::FIT;
+using namespace o2::fit;
 
 ClassImp(Detector);
 
@@ -35,7 +35,7 @@ Detector::Detector(const char* Name, Bool_t Active)
   : o2::Base::Detector(Name, Active),
 		     mIdSens1(0),
    mPMTeff(nullptr),
-    mHitCollection(new TClonesArray("o2::FIT::HitType"))
+    mHitCollection(new TClonesArray("o2::fit::HitType"))
 {
   //  Geometry *geo  = GetGeometry() ;
   
