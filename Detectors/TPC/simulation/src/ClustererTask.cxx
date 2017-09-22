@@ -98,7 +98,7 @@ InitStatus ClustererTask::Init()
     mgr->Register("TPCClusterHW", "TPC", mHwClustersArray, kTRUE);
   }
 
-  return kSUCCESS;
+  // return kSUCCESS;
 }
 
 //_____________________________________________________________________
