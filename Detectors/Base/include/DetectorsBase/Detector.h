@@ -156,8 +156,8 @@ inline std::string demangle(const char* name)
 
 // a utility function to get the unmangled original (un-aliased)
 // type name given a type to be used as arguments for TClonesArray constructor
-// (which cannot otherwise resolve alias typenames); This function also performs also strong
-// requirements check if T is compatible with a TClonesArray (needs to inherit from TObject)
+// (which cannot otherwise resolve alias typenames); This function also performs strong
+// requirements checks if T is compatible with a TClonesArray (needs to inherit from TObject)
 // AT COMPILE TIME
 template <typename T>
 inline std::string getTClArrTrueTypeName()
