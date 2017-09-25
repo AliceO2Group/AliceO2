@@ -32,7 +32,7 @@ Detector::Detector(const char* Name, Bool_t Active)
   : o2::Base::Detector(Name, Active),
     mEventNr(0),
     mTOFHoles(kTRUE),
-    mHitCollection(new TClonesArray("o2::tof::HitType")),
+    mHitCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<HitType>().c_str())),
     mMCTrackBranchId(-1)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)

@@ -40,7 +40,7 @@ Detector::Detector(const char* Name, Bool_t Active)
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
-    mPointCollection(new TClonesArray("o2::EMCAL::Hit")),
+    mPointCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<Hit>().c_str())),
     mGeometry(nullptr),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),

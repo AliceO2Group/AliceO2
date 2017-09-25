@@ -20,6 +20,9 @@
 
 #include "FairDetector.h"  // for FairDetector
 #include "Rtypes.h"        // for Float_t, Int_t, Double_t, Detector::Class, etc
+#include <cxxabi.h>
+#include <typeinfo>
+#include <type_traits>
 
 namespace o2 {
 namespace Base {
@@ -142,6 +145,26 @@ class Detector : public FairDetector
 
     ClassDefOverride(Detector, 1) // Base class for ALICE Modules
 };
+
+/// utility function to demangle cxx type names
+inline std::string demangle(const char* name)
+{
+  int status = -4; // some arbitrary value to eliminate compiler warnings
+  std::unique_ptr<char, void (*)(void*)> res{ abi::__cxa_demangle(name, nullptr, nullptr, &status), std::free };
+  return (status == 0) ? res.get() : name;
+}
+
+// a utility function to get the unmangled original (un-aliased)
+// type name given a type to be used as arguments for TClonesArray constructor
+// (which cannot otherwise resolve alias typenames); This function also performs also strong
+// requirements check if T is compatible with a TClonesArray (needs to inherit from TObject)
+// AT COMPILE TIME
+template <typename T>
+inline std::string getTClArrTrueTypeName()
+{
+  static_assert(std::is_base_of<TObject, T>::value, "type needs to inherit from TObject");
+  return demangle(typeid(T).name()).c_str();
+}
 }
 }
 
