@@ -61,7 +61,7 @@ Component::~Component()
 
 constexpr const char* Component::OptionKeys[];
 
-bpo::options_description Component::GetOptionsDescription()
+bpo::options_description Component::getOptionsDescription() const
 {
   bpo::options_description od("HLT Component options");
   od.add_options()
@@ -101,7 +101,7 @@ int Component::init(int argc, char** argv)
      bpo::value<string>()->required(),
      "internal instance id");
   // now add all the visible options
-  od.add(GetOptionsDescription());
+  od.add(getOptionsDescription());
 
   // HLT components are implemented in shared libraries, the library name
   // and component id are used to factorize a component

@@ -51,8 +51,8 @@ using namespace o2::alice_hlt;
 using std::chrono::system_clock;
 using TimeScale = std::chrono::milliseconds;
 
-WrapperDevice::WrapperDevice(int verbosity)
-  : mComponent(nullptr)
+WrapperDevice::WrapperDevice(ProcessorCreator creatorFct, int verbosity)
+  : mProcessor(nullptr)
   , mMessages()
   , mPollingPeriod(10)
   , mSkipProcessing(0)
@@ -64,17 +64,23 @@ WrapperDevice::WrapperDevice(int verbosity)
   , mMaxReadCycles(-1)
   , mNSamples(-1)
   , mVerbosity(verbosity)
+  , mProcessorCreatorFct(creatorFct)
 {
 }
 
 WrapperDevice::~WrapperDevice()
-= default;
+{
+  if (mProcessor) {
+    delete mProcessor;
+  }
+  mProcessor = nullptr;
+}
 
 constexpr const char* WrapperDevice::OptionKeys[];
 
 bpo::options_description WrapperDevice::GetOptionsDescription()
 {
-  // assemble the options for the device class and component
+  // assemble the options for the device class and processor
   bpo::options_description od("WrapperDevice options");
   od.add_options()
     (OptionKeys[OptionKeyPollPeriod],
@@ -83,7 +89,6 @@ bpo::options_description WrapperDevice::GetOptionsDescription()
     ((std::string(OptionKeys[OptionKeyDryRun]) + ",n").c_str(),
      bpo::value<bool>()->zero_tokens()->default_value(false),
      "skip component processing");
-  od.add(Component::GetOptionsDescription());
   return od;
 }
 
@@ -93,8 +98,8 @@ void WrapperDevice::InitTask()
 
   int iResult=0;
 
-  std::unique_ptr<Component> component(new o2::alice_hlt::Component);
-  if (!component.get()) return /*-ENOMEM*/;
+  std::unique_ptr<Processor> processor(mProcessorCreatorFct());
+  if (!processor.get()) return /*-ENOMEM*/;
 
   // loop over program options, check if the option was used and
   // add it together with the parameter to the argument vector.
@@ -102,13 +107,13 @@ void WrapperDevice::InitTask()
   // option_description entires, but options_description does not
   // provide such a functionality
   vector<std::string> argstrings;
-  bpo::options_description componentOptionDescriptions = Component::GetOptionsDescription();
+  bpo::options_description processorOptionDescriptions = processor->getOptionsDescription();
   const auto * config = GetConfig();
   if (config) {
     const auto varmap = config->GetVarMap();
     for (const auto varit : varmap) {
       // check if this key belongs to the options of the device
-      const auto * description = componentOptionDescriptions.find_nothrow(varit.first, false);
+      const auto * description = processorOptionDescriptions.find_nothrow(varit.first, false);
       if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
         argstrings.emplace_back("--");
         argstrings.back() += varit.first;
@@ -143,13 +148,13 @@ void WrapperDevice::InitTask()
     argv.emplace_back(&argstringiter[0]);
   }
 
-  if ((iResult=component->init(argv.size(), &argv[0]))<0) {
-    LOG(ERROR) << "component init failed with error code " << iResult;
-    throw std::runtime_error("component init failed");
+  if ((iResult = processor->init(argv.size(), &argv[0]))<0) {
+    LOG(ERROR) << "processor init failed with error code " << iResult;
+    throw std::runtime_error("processor init failed");
     return /*iResult*/;
   }
 
-  mComponent=component.release();
+  mProcessor = processor.release();
   mLastCalcTime=-1;
   mLastSampleTime=-1;
   mMinTimeBetweenSample=-1;
@@ -230,7 +235,7 @@ void WrapperDevice::Run()
     mLastSampleTime=duration.count();
     if (duration.count()-mLastCalcTime>1000) {
       LOG(INFO) << "------ processed  " << mNSamples << " sample(s) - total " 
-                << mComponent->getEventCount() << " sample(s)";
+                << mProcessor->getEventCount() << " sample(s)";
       if (mNSamples > 0) {
         LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg "
                   << (duration.count() - mLastCalcTime) / mNSamples << "ms ";
@@ -255,15 +260,15 @@ void WrapperDevice::Run()
         }
       }
 
-      // create a signal with the callback to the buffer allocation, the component
+      // create a signal with the callback to the buffer allocation, the processor
       // can create messages via the callback and writes data directly to buffer
       cballoc_signal_t cbsignal;
       cbsignal.connect([this](unsigned int size){return this->createMessageBuffer(size);} );
       mMessages.clear();
 
-      // call the component
-      if ((iResult=mComponent->process(dataArray, &cbsignal))<0) {
-        LOG(ERROR) << "component processing failed with error code " << iResult;
+      // call the processor
+      if ((iResult=mProcessor->process(dataArray, &cbsignal))<0) {
+        LOG(ERROR) << "worker processing failed with error code " << iResult;
       }
 
       // build messages from output data

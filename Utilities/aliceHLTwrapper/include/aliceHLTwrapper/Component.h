@@ -41,6 +41,25 @@ namespace o2 {
 namespace alice_hlt {
 class SystemInterface;
 
+class Processor {
+public:
+  Processor() = default;
+  virtual ~Processor() = default;
+
+  /// get description of options
+  virtual bpo::options_description getOptionsDescription() const = 0;
+
+  /// init processor
+  virtual int init(int argc, char** argv) = 0;
+
+  /// Process one event
+  virtual int process(std::vector<MessageFormat::BufferDesc_t>& dataArray,
+		      cballoc_signal_t* cbAllocate=nullptr
+		      ) = 0;
+
+  virtual int getEventCount() const = 0;
+};
+
 /// @class Component
 /// This class handles the creation of an HLT component and data processing
 /// via the SystemInterface. Each HLT component is implemented in a library
@@ -72,7 +91,7 @@ class SystemInterface;
 ///                 2  blocks concatenated in one message (default)
 ///                 3  O2 data format (default)
 ///
-class Component {
+class Component : public Processor{
 public:
   /// default constructor
   Component();
@@ -80,7 +99,7 @@ public:
   ~Component();
 
   /// get description of options
-  static bpo::options_description GetOptionsDescription();
+  bpo::options_description getOptionsDescription() const;
 
   // TODO: have been trying to use strongly typed enums, however
   // the problem starts with the iteration over all elements (which
