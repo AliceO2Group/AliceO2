@@ -86,7 +86,6 @@ public:
   size_t addRow(RowDescType rowData, byte* seqData, size_t seqSize) {
     unsigned nFrames = mFrames.size();
     unsigned currentRow = mRowData.size();
-    mRowData.emplace_back(rowData);
     ParserType p;
     p.parse(seqData, seqSize,
             [](const typename ParserT::HeaderType& h) {return (h);},
@@ -110,7 +109,11 @@ public:
               return result.second;
             }
             );
-    return mFrames.size() - nFrames;
+    auto insertedFrames = mFrames.size() - nFrames;
+    if (insertedFrames > 0) {
+      mRowData.emplace_back(rowData);
+    }
+    return insertedFrames;
   }
 
   /// clear the index, i.e. all internal lists
