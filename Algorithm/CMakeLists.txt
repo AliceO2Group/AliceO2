@@ -41,6 +41,7 @@ set(TEST_SRCS
   test/headerstack.cxx
   test/parser.cxx
   test/tableview.cxx
+  test/pageparser.cxx
 )
 
 O2_GENERATE_TESTS(
