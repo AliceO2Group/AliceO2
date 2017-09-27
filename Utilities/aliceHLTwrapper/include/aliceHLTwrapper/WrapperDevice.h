@@ -29,6 +29,7 @@
 
 #include <FairMQDevice.h>
 #include <vector>
+#include <memory>
 #include <boost/program_options.hpp>
 
 namespace bpo = boost::program_options;
@@ -92,6 +93,9 @@ protected:
 private:
   /// create a new message with data buffer of specified size
   unsigned char* createMessageBuffer(unsigned size);
+  /// read messages
+  int ReadMessages(std::unique_ptr<FairMQPoller>& poller,
+                   std::vector<FairMQParts>& socketInputs);
 
   Processor* mProcessor;     // worker/processor instance
   std::vector<FairMQMessagePtr> mMessages; // array of output messages

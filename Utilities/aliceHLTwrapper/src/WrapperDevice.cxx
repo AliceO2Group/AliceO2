@@ -185,35 +185,21 @@ void WrapperDevice::Run()
   while (CheckCurrentState(RUNNING)) {
 
     // read input messages
-    if (poller) {
-      poller->Poll(mPollingPeriod);
-    } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(mPollingPeriod));
+    auto nMessagesReceived = ReadMessages(poller, socketInputs);
+
+    if (nMessagesReceived > 0) {
+      nReadCycles++;
     }
-    int inputsReceived=0;
-    bool receivedAtLeastOneMessage=false;
-    for(int i = 0; i < numInputs; i++) {
-      if (socketInputs[i].Size() > 0) {
-        inputsReceived++;
-        continue;
+
+    auto checkComplete = [&socketInputs](){
+      for (const auto & socket : socketInputs) {
+        if (socket.Size() == 0) return false;
       }
-      if (poller->CheckInput(i)) {
-        if (Receive(socketInputs[i], "data-in", i)) {
-          receivedAtLeastOneMessage = true;
-          inputsReceived++;
-          if (mVerbosity > 3) {
-            LOG(INFO) << " |---- receive Msgs from socket " << i;
-          }
-        }
-        if (mVerbosity > 2) {
-          LOG(INFO) << "------ received " << socketInputs[i].Size() << " message(s) from socket " << i;
-        }
-      }
-    }
-    if (receivedAtLeastOneMessage) nReadCycles++;
-    if (inputsReceived<numInputs) {
-      continue;
-    }
+      return true;
+    };
+
+    if (!checkComplete()) continue;
+
     mNSamples++;
     mTotalReadCycles+=nReadCycles;
     if (mMaxReadCycles<0 || mMaxReadCycles<nReadCycles)
@@ -289,6 +275,8 @@ void WrapperDevice::Run()
               break;
             }
           }
+          // not found in the preallocated messages, create a new one
+          // and copy the data
           if (omsg==nullptr) {
             FairMQMessagePtr msg = NewMessage(opayload.mSize);
             if (msg.get()) {
@@ -302,12 +290,6 @@ void WrapperDevice::Run()
               uint8_t* pTarget = reinterpret_cast<uint8_t*>(msg->GetData());
               memcpy(pTarget, opayload.mP, opayload.mSize);
               mMessages.emplace_back(move(msg));
-            } else {
-              if (errorCount == maxError && errorCount++ > 0)
-                LOG(ERROR) << "persistent error, suppressing further output";
-              else if (errorCount++ < maxError)
-                LOG(ERROR) << "can not get output message from framework";
-              iResult = -ENOMSG;
             }
           }
         }
@@ -358,4 +340,33 @@ unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
   }
   mMessages.emplace_back(move(msg));
   return reinterpret_cast<uint8_t*>(mMessages.back()->GetData());
+}
+
+int WrapperDevice::ReadMessages(std::unique_ptr<FairMQPoller>& poller,
+                 std::vector<FairMQParts>& socketInputs) {
+    if (poller) {
+      poller->Poll(mPollingPeriod);
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(mPollingPeriod));
+    }
+    int newInputsReceived=0;
+    for(int i = 0, numInputs = socketInputs.size(); i < numInputs; i++) {
+      if (socketInputs[i].Size() > 0) {
+        // have the message for this slot already
+        continue;
+      }
+      if (poller->CheckInput(i)) {
+        if (Receive(socketInputs[i], "data-in", i)) {
+          newInputsReceived++;
+          if (mVerbosity > 3) {
+            LOG(INFO) << " |---- receive Msgs from socket " << i;
+          }
+        }
+        if (mVerbosity > 2) {
+          LOG(INFO) << "------ received " << socketInputs[i].Size() << " message(s) from socket " << i;
+        }
+      }
+    }
+
+    return newInputsReceived;
 }
