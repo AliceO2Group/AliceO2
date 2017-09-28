@@ -22,6 +22,12 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <TClonesArray.h>
+#include "SimulationDataFormat/LabelContainer.h"
+
+// temporary include
+#include <iostream>
+
+#define EXTLABELS
 
 namespace o2 {
 namespace TPC {
@@ -78,8 +84,11 @@ class DigitPad{
 
     float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
     unsigned char          mPad;         ///< Pad of the ADC value
+#ifdef EXTLABELS
+    unsigned int           mId;          ///< An integer id for this digit (can be combined with mPad to not waste memory??)
+#else
     std::vector<std::pair<MCCompLabel, int>> mMClabel; ///< vector to accumulate the MC labels
-
+#endif
     // TODO: optimize this treatment, for example by using a structure like this
     // struct MCIDValue {
     //   unsigned int eventId : 15; // 32k event Id possible
@@ -87,14 +96,25 @@ class DigitPad{
     //   unsigned int occurences : 32; // 4G occurrences possible
     // }
     // std::vector<MCID> mMCID;
+
+    // a global memory space where we keep intermediate monte carlo labels
+    // (this avoids having to use a std::vector<> member inside each digit which has at leas 24bytes overhead)
+    static o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false> sLabels;
+    static unsigned int sID; // a global id counter
 };
 
 inline
 DigitPad::DigitPad(int pad)
   : mChargePad(0.),
     mPad(pad),
+#ifdef EXTLABELS
+    mId(sID++)
+#else
     mMClabel()
-{}
+#endif
+{
+  //  if(sID == 0) std::cerr << "OVERFLOW\n";
+}
 
 inline 
 void DigitPad::setDigit(size_t trackID, float charge)
@@ -102,6 +122,8 @@ void DigitPad::setDigit(size_t trackID, float charge)
   static FairRootManager *mgr = FairRootManager::Instance();
   bool isKnown = false;
   MCCompLabel tempLabel(trackID, mgr->GetEntryNr());
+  mChargePad += charge;
+#ifndef EXTLABELS
   for(auto &mcLabel : mMClabel) {
     if(compareMClabels(tempLabel, mcLabel.first)) {
       ++mcLabel.second;
@@ -109,14 +131,29 @@ void DigitPad::setDigit(size_t trackID, float charge)
     }
   }
   if(!isKnown) mMClabel.emplace_back(tempLabel, 1);
-  mChargePad += charge;
+#else
+  // same using global labelview container
+  isKnown = false;
+  for(auto &mcLabel : sLabels.getLabels(mId)) {
+    if(compareMClabels(tempLabel, mcLabel.first)) {
+       ++mcLabel.second;
+       isKnown=true;
+     }
+  }
+  if(!isKnown) sLabels.addLabel(mId, std::make_pair(tempLabel, 1));
+#endif
 }
 
 inline
 void DigitPad::reset()
 {
+  std::cerr << " RESETING PAD \n";
+  // FIXME: We have to think about what this means for the global label container
+  // likely all pads will be reset at once and we can clear the whole container
   mChargePad = 0;
+#ifndef EXTLABELS
   mMClabel.clear();
+#endif
 }
 
 inline

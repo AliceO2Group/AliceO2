@@ -194,7 +194,7 @@ class LabelContainer : public TNamed
     }
   }
  
-  ClassDefOverride(LabelContainer, 1);
+ //  ClassDefOverride(LabelContainer, 1);
 }; // end class
 
 }
