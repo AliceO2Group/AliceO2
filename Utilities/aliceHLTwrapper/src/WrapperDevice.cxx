@@ -259,9 +259,16 @@ void WrapperDevice::Run()
       mMessages.clear();
 
       // call the processor
-      if ((iResult=mProcessor->process(dataArray, &cbsignal))<0) {
+      Processor::OutputContainer container;
+      if ((iResult=mProcessor->process(dataArray, container))<0) {
         LOG(ERROR) << "worker processing failed with error code " << iResult;
       }
+
+      dataArray = mProcessor->finalize(container, &cbsignal);
+      container.first.clear();
+      // move the internal memory back to the processor so that it can be
+      // used in the next cycle
+      mProcessor->absorb(std::move(container.second));
 
       // build messages from output data
       if (dataArray.size() > 0) {

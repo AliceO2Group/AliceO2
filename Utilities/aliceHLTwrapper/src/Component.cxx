@@ -49,6 +49,7 @@ using std::stringstream;
 
 Component::Component()
   : mOutputBuffer()
+  , mOutputBufferSize(0)
   , mpSystem(nullptr)
   , mProcessor(kEmptyHLTComponentHandle)
   , mFormatHandler()
@@ -146,8 +147,7 @@ int Component::init(int argc, char** argv)
       break;
     case OptionKeyMsgsize: {
       unsigned size = 0;
-      stringstream(varmap[OptionKeys[option]].as<string>()) >> size;
-      mOutputBuffer.resize(size);
+      stringstream(varmap[OptionKeys[option]].as<string>()) >> mOutputBufferSize;
     } break;
     case OptionKeyOutputMode: {
       unsigned mode;
@@ -227,8 +227,7 @@ int Component::init(int argc, char** argv)
   return iResult;
 }
 
-int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
-                       cballoc_signal_t* cbAllocate)
+int Component::process(MessageList& dataArray, Component::OutputContainer& output)
 {
   if (!mpSystem) return -ENOSYS;
   int iResult = 0;
@@ -248,9 +247,12 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   memset(&trigData, 0, sizeof(trigData));
   trigData.fStructSize = sizeof(trigData);
 
+  auto systemDeleterFct = [this] (auto* ptr) {
+    this->mpSystem->dealloc(ptr, 0);
+  };
   uint32_t outputBlockCnt = 0;
-  AliHLTComponentBlockData* pOutputBlocks = nullptr;
-  AliHLTComponentEventDoneData* pEventDoneData = nullptr;
+  auto OutputBlocks = std::unique_ptr<AliHLTComponentBlockData, decltype(systemDeleterFct)>(nullptr, systemDeleterFct);
+  auto ComponentEventDoneData = std::unique_ptr<AliHLTComponentEventDoneData, decltype(systemDeleterFct)>(nullptr, systemDeleterFct);
 
   // prepare input structure for the ALICE HLT component
   mFormatHandler.clear();
@@ -303,14 +305,11 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       break;
     }
     outputBufferSize = mOutputBuffer.size();
-    // TODO: check if that is working with the corresponding allocation method of the
-    // component environment
-    if (pOutputBlocks) mpSystem->dealloc(pOutputBlocks, outputBlockCnt * sizeof(AliHLTComponentBlockData));
+    OutputBlocks.reset();
+    ComponentEventDoneData.reset();
     outputBlockCnt = 0;
-    pOutputBlocks = nullptr;
-    if (pEventDoneData) mpSystem->dealloc(pEventDoneData, sizeof(AliHLTComponentEventDoneData));
-    pEventDoneData = nullptr;
-
+    AliHLTComponentBlockData* pOutputBlocks = nullptr;
+    AliHLTComponentEventDoneData* pEventDoneData = nullptr;
     iResult = mpSystem->processEvent(mProcessor, &evtData, &inputBlocks[0], &trigData,
                                      &mOutputBuffer[0], &outputBufferSize,
                                      &outputBlockCnt, &pOutputBlocks,
@@ -326,9 +325,13 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       mOutputBuffer.clear();
     }
 
+    OutputBlocks.reset(pOutputBlocks);
+    ComponentEventDoneData.reset(pEventDoneData);
   } while (iResult == ENOSPC && --nofTrials > 0);
 
   // prepare output
+  std::vector<AliHLTComponentBlockData>& outputDescriptors = output.first;
+  outputDescriptors.clear();
   { // keep this after removing condition to preserve formatting
     uint8_t* pOutputBufferStart = &mOutputBuffer[0];
     uint8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
@@ -342,10 +345,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     // early days of development that is only allowed if fPtr is set to the beginning
     // of output buffer. The block is however fully described by offset relative to
     // beginning of output buffer.
-    unsigned validBlocks = 0;
-    unsigned totalPayloadSize = 0;
-    AliHLTComponentBlockData* pOutputBlock = pOutputBlocks;
-    AliHLTComponentBlockData* pFiltered = pOutputBlocks;
+    AliHLTComponentBlockData* pOutputBlock = OutputBlocks.get();
     for (unsigned blockIndex = 0; blockIndex < outputBlockCnt; blockIndex++, pOutputBlock++) {
       // filter special data blocks
       if (pOutputBlock->fDataType == kDataTypeEvent) continue;
@@ -376,33 +376,33 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       }
 
       if (bValid) {
-        totalPayloadSize += pOutputBlock->fSize;
-        validBlocks++;
-        memcpy(pFiltered, pOutputBlock, sizeof(AliHLTComponentBlockData));
-        pFiltered++;
+        outputDescriptors.emplace_back(*pOutputBlock);
       } else {
         LOG(ERROR) << "Inconsistent data reference in output block " << blockIndex;
       }
     }
-    evtData.fBlockCnt=validBlocks;
-
-    // create the messages
-    // TODO: for now there is an extra copy of the data, but it should be
-    // handled in place
-    vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, &evtData, cbAllocate);
-    dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 
-  // cleanup
-  // NOTE: don't cleanup mOutputBuffer as the data is going to be used outside the class
-  // until released.
-  inputBlocks.clear();
-  if (pOutputBlocks) mpSystem->dealloc(pOutputBlocks, outputBlockCnt * sizeof(AliHLTComponentBlockData));
-  pOutputBlocks = nullptr;
-  outputBlockCnt = 0;
-  if (pEventDoneData) mpSystem->dealloc(pEventDoneData, sizeof(AliHLTComponentEventDoneData));
-  pEventDoneData = nullptr;
+  output.second = std::move(mOutputBuffer);
+  return iResult;
+}
 
-  return -iResult;
+Component::MessageList Component::finalize(OutputContainer& output, cballoc_signal_t* cbAllocate)
+{
+  AliHLTComponentEventData evtData;
+  memset(&evtData, 0, sizeof(evtData));
+  evtData.fStructSize = sizeof(evtData);
+  if (mFormatHandler.getEvtDataList().size()>0) {
+    // copy the oldest event header
+    memcpy(&evtData, &mFormatHandler.getEvtDataList().front(), sizeof(AliHLTComponentEventData));
+  }
+  unsigned totalOutputSize = 0;
+  for (auto& bd : output.first) {
+    totalOutputSize += bd.fSize;
+  }
+  evtData.fBlockCnt=output.first.size();
+  return mFormatHandler.createMessages(&output.first[0],
+                                       output.first.size(),
+                                       totalOutputSize,
+                                       &evtData, cbAllocate);
 }

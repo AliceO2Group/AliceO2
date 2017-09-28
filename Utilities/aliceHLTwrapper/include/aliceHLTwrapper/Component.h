@@ -46,6 +46,12 @@ public:
   Processor() = default;
   virtual ~Processor() = default;
 
+  using MessageList = std::vector<MessageFormat::BufferDesc_t>;
+  using OutputDataType = uint8_t;
+  using OutputBufferType = std::vector<OutputDataType>;
+  using OutputContainer = std::pair<std::vector<AliHLTComponentBlockData>, OutputBufferType>;
+  using OutputMessages = std::vector<o2::alice_hlt::MessageFormat::BufferDesc_t>;
+
   /// get description of options
   virtual bpo::options_description getOptionsDescription() const = 0;
 
@@ -53,11 +59,16 @@ public:
   virtual int init(int argc, char** argv) = 0;
 
   /// Process one event
-  virtual int process(std::vector<MessageFormat::BufferDesc_t>& dataArray,
-		      cballoc_signal_t* cbAllocate=nullptr
-		      ) = 0;
+  virtual int process(MessageList& dataArray, OutputContainer& output) = 0;
 
+  /// Finalize the output
+  virtual MessageList finalize(OutputContainer& output, cballoc_signal_t* cbAllocate=nullptr) = 0;
+
+  /// get the event count
   virtual int getEventCount() const = 0;
+
+  /// absorb a buffer into the processor
+  virtual void absorb(OutputBufferType&& /*source*/) {}
 };
 
 /// @class Component
@@ -137,14 +148,30 @@ public:
   int init(int argc, char** argv);
 
   /// Process one event
-  /// Method takes a list of binary buffers which are expected to start with
-  /// the AliHLTComponentBlockData header immediately followed by the block
-  /// payload. After processing, handles to output blocks are provided in this
-  /// list.
-  int process(std::vector<o2::alice_hlt::MessageFormat::BufferDesc_t>& dataArray,
-              cballoc_signal_t* cbAllocate=nullptr);
+  /// Method takes a list of binary buffers, different format options can apply:
+  /// - sequence of AliHLTComponentBlockData header each immediately followed by
+  ///   the block payload
+  /// - AliHLTComponentBlockData header and payload in separate buffers
+  /// - the O2 header payload pair sequence
+  ///
+  /// The output container is a pair of
+  /// - vector of AliHLTComponentBlockData headers
+  /// - data vector
+  int process(MessageList& dataArray, OutputContainer& output);
 
+  /// create the final list of message buffers, the list can then be
+  /// converted to messages
+  MessageList finalize(OutputContainer& output, cballoc_signal_t* cbAllocate=nullptr);
+
+  /// get the event count
   int getEventCount() const {return mEventCount;}
+
+  /// absorb a buffer into the processor
+  /// the processor takes ownership of a previously allocated data vector
+  /// which e.g. has been returned by process method
+  void absorb(OutputBufferType&& source) {
+    mOutputBuffer = std::move(source);
+  }
 
 protected:
 
@@ -156,6 +183,8 @@ private:
 
   /// output buffer to receive the data produced by component
   std::vector<uint8_t> mOutputBuffer;
+  /// default size of the output buffer for HLT component output
+  size_t mOutputBufferSize;
 
   /// instance of the system interface
   SystemInterface* mpSystem;
@@ -163,6 +192,7 @@ private:
   AliHLTComponentHandle mProcessor;
   /// container for handling the i/o buffers
   o2::alice_hlt::MessageFormat mFormatHandler;
+  /// event counter
   int mEventCount;
 };
 
