@@ -107,10 +107,10 @@ public:
   /// default constructor
   Component();
   /// destructor
-  ~Component();
+  ~Component() final;
 
   /// get description of options
-  bpo::options_description getOptionsDescription() const;
+  bpo::options_description getOptionsDescription() const final;
 
   // TODO: have been trying to use strongly typed enums, however
   // the problem starts with the iteration over all elements (which
@@ -145,7 +145,7 @@ public:
   };
 
   /// Init the component
-  int init(int argc, char** argv);
+  int init(int argc, char** argv) final;
 
   /// Process one event
   /// Method takes a list of binary buffers, different format options can apply:
@@ -157,19 +157,19 @@ public:
   /// The output container is a pair of
   /// - vector of AliHLTComponentBlockData headers
   /// - data vector
-  int process(MessageList& dataArray, OutputContainer& output);
+  int process(MessageList& dataArray, OutputContainer& output) final;
 
   /// create the final list of message buffers, the list can then be
   /// converted to messages
-  MessageList finalize(OutputContainer& output, cballoc_signal_t* cbAllocate=nullptr);
+  MessageList finalize(OutputContainer& output, cballoc_signal_t* cbAllocate=nullptr) final;
 
   /// get the event count
-  int getEventCount() const {return mEventCount;}
+  int getEventCount() const final {return mEventCount;}
 
   /// absorb a buffer into the processor
   /// the processor takes ownership of a previously allocated data vector
   /// which e.g. has been returned by process method
-  void absorb(OutputBufferType&& source) {
+  void absorb(OutputBufferType&& source) final {
     mOutputBuffer = std::move(source);
   }
 
