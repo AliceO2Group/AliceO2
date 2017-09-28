@@ -70,10 +70,7 @@ WrapperDevice::WrapperDevice(ProcessorCreator creatorFct, int verbosity)
 
 WrapperDevice::~WrapperDevice()
 {
-  if (mProcessor) {
-    delete mProcessor;
-  }
-  mProcessor = nullptr;
+  ResetTask();
 }
 
 constexpr const char* WrapperDevice::OptionKeys[];
@@ -163,6 +160,15 @@ void WrapperDevice::InitTask()
   mMaxReadCycles=-1;
   mNSamples=0;
 }
+
+void WrapperDevice::ResetTask()
+{
+  if (mProcessor) {
+    delete mProcessor;
+  }
+  mProcessor = nullptr;
+}
+
 
 void WrapperDevice::Run()
 {

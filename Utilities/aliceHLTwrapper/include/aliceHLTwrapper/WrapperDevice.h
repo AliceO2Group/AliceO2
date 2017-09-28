@@ -83,6 +83,8 @@ public:
   void InitTask() override;
   /// inherited from FairMQDevice
   void Run() override;
+  /// inherited from FairMQDevice
+  void ResetTask() override;
 
   /////////////////////////////////////////////////////////////////
   // device property identifier

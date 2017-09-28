@@ -57,7 +57,16 @@ Component::Component()
 }
 
 Component::~Component()
-= default;
+{
+  if (mpSystem) {
+    if (mProcessor) {
+      mpSystem->destroyComponent(mProcessor);
+      mProcessor = kEmptyHLTComponentHandle;
+    }
+    delete mpSystem;
+  }
+  mFormatHandler.clear();
+}
 
 constexpr const char* Component::OptionKeys[];
 
@@ -294,12 +303,12 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       break;
     }
     outputBufferSize = mOutputBuffer.size();
-    outputBlockCnt = 0;
     // TODO: check if that is working with the corresponding allocation method of the
     // component environment
-    if (pOutputBlocks) delete[] pOutputBlocks;
+    if (pOutputBlocks) mpSystem->dealloc(pOutputBlocks, outputBlockCnt * sizeof(AliHLTComponentBlockData));
+    outputBlockCnt = 0;
     pOutputBlocks = nullptr;
-    if (pEventDoneData) delete pEventDoneData;
+    if (pEventDoneData) mpSystem->dealloc(pEventDoneData, sizeof(AliHLTComponentEventDoneData));
     pEventDoneData = nullptr;
 
     iResult = mpSystem->processEvent(mProcessor, &evtData, &inputBlocks[0], &trigData,
@@ -389,10 +398,10 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   // NOTE: don't cleanup mOutputBuffer as the data is going to be used outside the class
   // until released.
   inputBlocks.clear();
-  outputBlockCnt = 0;
-  if (pOutputBlocks) delete[] pOutputBlocks;
+  if (pOutputBlocks) mpSystem->dealloc(pOutputBlocks, outputBlockCnt * sizeof(AliHLTComponentBlockData));
   pOutputBlocks = nullptr;
-  if (pEventDoneData) delete pEventDoneData;
+  outputBlockCnt = 0;
+  if (pEventDoneData) mpSystem->dealloc(pEventDoneData, sizeof(AliHLTComponentEventDoneData));
   pEventDoneData = nullptr;
 
   return -iResult;
