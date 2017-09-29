@@ -229,11 +229,11 @@ if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
     SET(EXE_NAME ${CMAKE_BINARY_DIR}/tmp_scripts/macro_test${TEST_NO}.sh)
 
     # Create test script for macros
-    FILE(WRITE ${EXE_NAME} "root -b -l -q -e \".L ${MACRO_FILE}\"")
+    FILE(WRITE ${EXE_NAME} "export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib\n root -b -l -q -e \".L ${MACRO_FILE}\"")
 
     ADD_TEST(NAME ${MACRO_FILE}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMAND ${BASH_PROGRAM} ${EXE_NAME}
     )
   ENDFOREACH()
-endif(CHECK_ROOTMACRO_COMPILE)
+endif()
