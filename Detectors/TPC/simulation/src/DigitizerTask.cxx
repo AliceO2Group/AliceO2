@@ -56,7 +56,7 @@ DigitizerTask::~DigitizerTask()
   delete mDigitizer;
   delete mDigitsArray;
   delete mDigitsDebugArray;
-  if (mHitFileName.c_str()) {
+  if (mHitFileName.size()) {
     mPointsArray->Delete();
     delete mPointsArray;
   }
