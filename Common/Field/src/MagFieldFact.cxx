@@ -11,7 +11,6 @@
 #include "Field/MagFieldFact.h"
 #include "Field/MagFieldParam.h"
 #include "Field/MagneticField.h"
-#include "FairRunAna.h"
 #include "FairRuntimeDb.h"
 #include "FairField.h"
 
@@ -40,8 +39,7 @@ MagFieldFact::~MagFieldFact()
 
 void MagFieldFact::SetParm()
 {
-  FairRunAna *Run = FairRunAna::Instance();
-  FairRuntimeDb *RunDB = Run->GetRuntimeDb();
+  auto RunDB = FairRuntimeDb::instance();
   mFieldPar = (MagFieldParam*) RunDB->getContainer("MagFieldParam");
 }
 
