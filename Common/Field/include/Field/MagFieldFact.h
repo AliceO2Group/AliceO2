@@ -17,6 +17,8 @@
 #define ALICEO2_FIELD_MAGFIELDFACT_H
 
 #include "FairFieldFactory.h"
+#include "Field/MagneticField.h"
+#include <memory>
 class FairField;
 
 namespace o2 {
@@ -33,14 +35,14 @@ class MagFieldFact : public FairFieldFactory
   FairField* createFairField() override;
   void SetParm() override;
   
- protected:
-  MagFieldParam* mFieldPar;
-  
  private:
   MagFieldFact(const MagFieldFact&);
   MagFieldFact& operator=(const MagFieldFact&);
 
-  ClassDefOverride(MagFieldFact,1)
+  MagFieldParam* mFieldPar;
+  std::unique_ptr<MagneticField> mField;  // the resource-owning handle to a field
+
+  ClassDefOverride(MagFieldFact,2)
 };
 
 }
