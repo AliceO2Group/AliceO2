@@ -71,8 +71,8 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::field::MagneticField *magField = new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagFieldParam::k5kG);
-  run->SetField(magField);
+  auto magField = std::make_unique<o2::field::MagneticField>("Maps","Maps", -1., -1., o2::field::MagFieldParam::k5kG);
+  run->SetField(magField.get());
 
   // ===| Add TPC |============================================================
   o2::TPC::Detector* tpc = new o2::TPC::Detector("TPC", kTRUE);

@@ -29,7 +29,8 @@ static MagFieldFact gMagFieldFact;
 
 MagFieldFact::MagFieldFact()
   :FairFieldFactory(),
-   mFieldPar(nullptr)
+   mFieldPar(nullptr),
+   mField()
 {
 	fCreator=this;
 }
@@ -45,15 +46,14 @@ void MagFieldFact::SetParm()
 
 FairField* MagFieldFact::createFairField()
 { 
-  FairField *fMagneticField=nullptr;
-  
   if ( !mFieldPar ) {
     FairLogger::GetLogger()->Error(MESSAGE_ORIGIN, "No field parameters available");
     return nullptr;
   }
   // since we have just 1 field class, we don't need to consider fFieldPar->GetType()
-  fMagneticField = new MagneticField(*mFieldPar);
-  return fMagneticField;
+  mField = std::make_unique<MagneticField>(*mFieldPar);
+  std::cerr << "creating the field\n";
+  return mField.get();
 }
 
 
