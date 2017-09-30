@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/select.h>
+#include <fenv.h>
 #endif
 
 #include "AliHLTTPCGMMergedTrack.h"
@@ -68,9 +69,14 @@ int main(int argc, char** argv)
 			return(1);
 		}
 	}
+	if (configStandalone.fpe)
+	{
+		feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+	}
 #else
 	if (configStandalone.affinity != -1) {printf("Affinity setting not supported on Windows\n"); return(1);}
 	if (configStandalone.fifi) {printf("FIFO Scheduler setting not supported on Windows\n"); return(1);}
+	if (configStandalone.fpe) {printf("FPE not supported on Windows\n"); return(1);}
 #endif
 
 	if (configStandalone.OMPTHreads != -1) omp_set_num_threads(configStandalone.OMPTHreads);
