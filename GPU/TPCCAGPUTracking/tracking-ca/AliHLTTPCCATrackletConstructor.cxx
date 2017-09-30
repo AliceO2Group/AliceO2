@@ -170,7 +170,10 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         float err2Y, err2Z;
         float dx = x - tParam.X();
         float dy, dz;
-        if (r.fNHits >= 10)
+        //I am not sure if this SinPhi check is ideal. We have followed the track for some time now, and something went wrong already, so we could also break.
+        //But perhaps we can recover it by following it further. Should not happen too often anyway
+        //Also, in principle, the hits that screwed up SinPhi should have been skipped in the first place.
+        if (r.fNHits >= 10 && CAMath::Abs( tParam.SinPhi() ) < .99)
         {
             dy = y - tParam.Y();
             dz = z - tParam.Z();
