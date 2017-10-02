@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ClusterizerTask.h
+/// \file ClustererTask.h
 /// \brief Task driving the cluster finding from digits
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 03/05/2017
@@ -19,8 +19,8 @@
 #include "FairTask.h"
 
 #include "MFTBase/GeometryTGeo.h"
-#include "MFTReconstruction/PixelReader.h"
-#include "MFTReconstruction/Clusterizer.h"
+#include "ITSMFTReconstruction/PixelReader.h"
+#include "ITSMFTReconstruction/Clusterer.h"
 
 class TClonesArray;
 
@@ -29,26 +29,28 @@ namespace o2
   namespace MFT 
   {
     class EventHeader; 
-    class ClusterizerTask : public FairTask
+    class ClustererTask : public FairTask
     {
-      
+      using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
+      using Clusterer        = o2::ITS::Clusterer;
+  
     public:
       
-      ClusterizerTask();
-      ~ClusterizerTask() override;
+      ClustererTask();
+      ~ClustererTask() override;
       
       InitStatus Init() override;
       void Exec(Option_t* opt) override;
       
     private:
       
-      GeometryTGeo mGeometry;    ///< MFT geometry
-      DigitPixelReader mReader;  ///< Pixel reader
-      Clusterizer mClusterizer;  ///< Cluster finder
+      const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
+      DigitPixelReader mReader;                               ///< Pixel reader
+      Clusterer mClusterer;                                   ///< Cluster finder
 
-      TClonesArray* mClustersArray; ///< Array of clusters
+      TClonesArray* mClustersArray = nullptr;                 ///< Array of clusters
 
-      ClassDefOverride(ClusterizerTask,1);
+      ClassDefOverride(ClustererTask,1);
       
     };    
   }

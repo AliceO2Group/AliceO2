@@ -110,7 +110,7 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
     kTopEdge, // top
     kReadOutEdge // bottom
     );           // see SegmentationPixel.h for extra options
-  seg0->Store(o2::MFT::GeometryTGeo::getMFTsegmentationFileName());
+  seg0->Store(o2::MFT::GeometryTGeo::getMFTSegmentationFileName());
   cout << "Print the pixel segmentation: " << endl;
   seg0->Print();
   //return;

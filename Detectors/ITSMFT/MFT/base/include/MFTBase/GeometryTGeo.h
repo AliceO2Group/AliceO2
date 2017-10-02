@@ -9,152 +9,178 @@
 // or submit itself to any jurisdiction.
 
 /// \file GeometryTGeo.h
-/// \brief A simple interface class to TGeoManager
-/// \author bogdan.vulpescu@cern.ch 
-/// \date 01/08/2016
+/// \brief Definition of the GeometryTGeo class
+/// \author bogdan.vulpescu@clermont.in2p3.fr - adapted from ITS, 21.09.2017
 
-#ifndef ALICEO2_MFT_GEOMETRYTGEO_H_
-#define ALICEO2_MFT_GEOMETRYTGEO_H_
+#ifndef ALICEO2_MFT_GEOMETRYTGEO_H
+#define ALICEO2_MFT_GEOMETRYTGEO_H
 
-#include <boost/bimap.hpp>
+#include <vector>
+#include <array>
+#include <string>
+#include <TGeoMatrix.h> // for TGeoHMatrix
+#include <TObject.h>    // for TObject
+#include "DetectorsBase/DetID.h"
+#include "DetectorsBase/Utils.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "ITSMFTBase/GeometryTGeo.h"
+#include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
-#include "TObject.h"
-#include "TString.h"
-#include "TObjArray.h"
-#include "TGeoMatrix.h"
-
+class TGeoPNEntry; 
 namespace o2 {
-  namespace ITSMFT {
-    class Segmentation;
-  }
+namespace ITSMFT {
+  class Segmentation;
+  class SegmentationPixel;
+}
 }
 
-namespace o2 {
-namespace MFT {
-
-typedef boost::bimap<int,int> BimapType;
-
-class GeometryTGeo : public TObject {
-
-public:
-
-  GeometryTGeo(Bool_t forceBuild = kFALSE, Bool_t loadSegmentations = kTRUE);
-  ~GeometryTGeo() override;
-
-  /// The number of disks
-  Int_t getNumberOfDisks() const { return mNumberOfDisks; }
-  /// The number of chips (sensors)
-  Int_t getNumberOfChips() const {return mNumberOfChips;}  
-
-  static const Char_t* getVolumeName()   { return sVolumeName.Data();   }
-  static const Char_t* getHalfName()     { return sHalfName.Data();  }
-  static const Char_t* getDiskName()     { return sDiskName.Data(); }
-  // ... nothing for the plane ...
-  static const Char_t* getLadderName()   { return sLadderName.Data();   }
-  static const Char_t* getSensorName()   { return sSensorName.Data();   }
-
-  static const char* getMFTsegmentationFileName() { return sSegmentationFileName.Data(); }
- 
-  void build(Bool_t loadSegmentations);
-
-  const o2::ITSMFT::Segmentation* getSegmentationById(Int_t id) const;
-
-  TObjArray* getSegmentations() const { return (TObjArray*)mSegmentations; }
+namespace o2
+{
   
-  const TGeoHMatrix* getMatrixSensor(Int_t index);
-  const TGeoHMatrix* getMatrixSensorToITS(Int_t index);
-  const TGeoHMatrix* getMatrixMFTtoITS() { return mRotateMFTtoITS; }
+namespace MFT
+{
 
-  const TGeoHMatrix* getMatrixSensor(Int_t half, Int_t disk, Int_t ladder, Int_t sensor)
-  {
-    // get positioning matrix of the sensor
-    return getMatrixSensor(getChipIndex(half, disk, ladder, sensor));
+class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+{
+ public:
+
+  typedef o2::Base::Transform3D Mat3D;
+  using DetMatrixCache::getMatrixT2L;
+  using DetMatrixCache::getMatrixL2G;
+  using DetMatrixCache::getMatrixT2G;
+
+  static GeometryTGeo* Instance() {
+    // get (create if needed) a unique instance of the object
+    if (!sInstance) sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, true, 0));
+    return sInstance.get();
   }
 
-  const TGeoHMatrix* getMatrixSensorToITS(Int_t half, Int_t disk, Int_t ladder, Int_t sensor)
-  {
-    // get positioning matrix of the sensor
-    return getMatrixSensorToITS(getChipIndex(half, disk, ladder, sensor));
-  }
+  // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
+  static void adopt(GeometryTGeo* raw); 
+
+  // constructor
+  // ATTENTION: this class is supposed to behave as a singleton, but to make it 
+  // root-persistent we must define public default constructor.
+  // NEVER use it, it will throw exception if the class instance was already 
+  // created. Use GeometryTGeo::Instance() instead
+  GeometryTGeo(Bool_t build = kFALSE, Bool_t loadSegm = kTRUE, Int_t loadTrans=0
+               /*o2::Base::Utils::bit2Mask(o2::Base::TransformType::T2L, // default transformations to load
+                                           o2::Base::TransformType::T2G,
+                                           o2::Base::TransformType::L2G)*/
+	       );  
+
   
-  Int_t getChipIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
+  /// Default destructor
+  ~GeometryTGeo() override = default;
+  
+  GeometryTGeo(const GeometryTGeo& src) = delete;
+  GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
+  
+  // implement filling of the matrix cache
+  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  void fillMatrixCache(Int_t mask) override;
 
-  Int_t getChipHalfID(Int_t index) const;
-  Int_t getChipDiskID(Int_t index) const;
-  Int_t getChipPlaneID(Int_t index) const;
-  Int_t getChipLadderID(Int_t index) const;
-  Int_t getChipSensorID(Int_t index) const;
+  /// Exract MFT parameters from TGeo
+  void Build(bool loadSegmentations, int loadTrans=0) override;
 
-protected:
+  static const Char_t* getMFTVolPattern()       { return sVolumeName.c_str(); }
+  static const Char_t* getMFTHalfPattern()      { return sHalfName.c_str(); }
+  static const Char_t* getMFTDiskPattern()      { return sDiskName.c_str(); }
+  static const Char_t* getMFTLadderPattern()    { return sLadderName.c_str(); }
+  static const Char_t* getMFTSensorPattern()    { return sSensorName.c_str(); }
 
-  /// Store pointer on often used matrices for faster access
-  void fetchMatrices();
-  void createT2LMatrices();
-  /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
-  /// for a given chip 'index' by quering the TGeoManager
+  static const char* getMFTSegmentationFileName() { return sSegmentationFileName.c_str(); }
+
+  /// This routine computes the sensor index (as it is used in the list of 
+  /// transformations) from the detector half, disk, ladder and position 
+  /// of the sensor in the ladder
+  Int_t getSensorIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const; 
+
+  TGeoHMatrix* getTransMFT2ITS() const { return mTransMFT2ITS; }
+
+ protected:
+  /// Determines the number of detector halves in the Geometry
+  Int_t extractNumberOfHalves();
+
+  /// Determines the number of disks in each detector half
+  Int_t extractNumberOfDisks(Int_t half) const;
+
+  /// Determines the number of ladders in each disk of each half
+  Int_t extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensors) const;
+
+  /// Maps the internal matrix index to the geometry index from the XML file
+  Int_t extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensors, Int_t& nL);
+
+  /// Determines the number of sensors in each ladder of each disk of each half
+  Int_t extractNumberOfSensorsPerLadder(Int_t half, Int_t disk, Int_t ladder) const;
+
+  /// Extract number following the prefix in the name string
+  Int_t extractVolumeCopy(const Char_t* name, const Char_t* prefix) const;
+
+  /// Get the transformation matrix of the sensor [...]
+  /// for a given sensor 'index' by quering the TGeoManager
   TGeoHMatrix* extractMatrixSensor(Int_t index) const;
 
-  GeometryTGeo(const GeometryTGeo &src);
-  GeometryTGeo& operator=(const GeometryTGeo &);
+  // Create matrix for transformation from sensor local frame to global one
+  TGeoHMatrix& createT2LMatrix(Int_t isn);
 
-protected:
+  /// Get sensor tracking frame alpha and x (ITS), where the normal to the sensor 
+  /// intersects the sensor surface
+  void extractSensorXAlpha(int index, float &x, float &alp);
 
-  TObjArray* mSensorMatrices;           ///< Sensor's matrices pointers in the geometry
-  TObjArray* mSensorMatricesToITS;      ///< Sensor's matrices pointers in the geometry used by the common digitization with the ITS
-  TGeoHMatrix* mRotateMFTtoITS;         ///< Transformation from local MFT to local ITS (combination of two rotations) for the two planes of one MFT disk
-  TObjArray* mTrackingToLocalMatrices;  ///< Tracking to Local matrices pointers in the geometry
-  TObjArray* mSegmentations;            ///< segmentations
+  /// This routine computes the half, disk, ladder and sensor number
+  /// given the sensor index number
+  /// \param int index The sensor index number, starting from zero.
+  /// \param int half The half number. Starting from 0
+  /// \param int disk The disk number in a half. Starting from 0
+  /// \param int ladder The ladder number in a disk. Starting from 0
+  /// \param int sensor The sensor number in a ladder. Starting from 0
+  Bool_t getSensorID(Int_t index, Int_t& half, Int_t& disk, Int_t& ladder, Int_t& sensor) const;
 
-  static TString sSegmentationFileName; ///< file name for segmentations
+  /// From matrix index to half ID
+  Int_t getHalf(Int_t index) const;
 
-  Int_t  mNumberOfDisks;
-  Int_t  mNumberOfChips;                   ///< total number of chips
+  /// From matrix index to disk ID
+  Int_t getDisk(Int_t index) const;
 
-  BimapType mChipIDmap;    ///< Map with key=chipID to sensorUniqueID
+  /// From matrix index to ladder ID
+  Int_t getLadder(Int_t index) const;
 
-  static TString sVolumeName;      ///< \brief MFT-mother volume name
-  static TString sHalfName;        ///< \brief MFT-half prefix
-  static TString sDiskName;        ///< \brief MFT-half disk prefix
-  static TString sLadderName;      ///< \brief MFT-ladder prefix
-  static TString sSensorName;      ///< \brief MFT-sensor (chip) prefix
+  /// In a disk start numbering the sensors from zero
+  Int_t getFirstSensorIndex(Int_t disk) const { return (disk == 0) ? 0 : mLastSensorIndex[disk - 1] + 1; }
 
-  /// Go from chip ID to half, disk, plane, ladder, sensor (in ladder) ID
-  Int_t* mChipHalfID;              //[mNumberOfChips]
-  Int_t* mChipDiskID;              //[mNumberOfChips]
-  Int_t* mChipPlaneID;             //[mNumberOfChips]
-  Int_t* mChipLadderID;            //[mNumberOfChips]
-  Int_t* mChipSensorID;            //[mNumberOfChips]
+ protected:
+  static constexpr Int_t MinSensorsPerLadder = 2;
+  static constexpr Int_t MaxSensorsPerLadder = 5;
 
-  ClassDefOverride(GeometryTGeo, 1) // MFT geometry based on TGeo
+  Int_t mTotalNumberOfSensors;                            ///< total number of sensors in the detector
+  Int_t mNumberOfHalves;                                  ///< number of detector halves
+  std::vector<Int_t> mNumberOfDisks;                      ///< disks/half
+  std::vector<std::vector<Int_t>> mNumberOfLadders;       ///< ladders[nsensor]/halfdisk
+  std::vector<Int_t> mNumberOfLaddersPerDisk;             ///< ladders/halfdisk
 
+  std::vector<std::vector<Int_t>> mLadderIndex2Id;  ///< from matrix index to geometry index
+  std::vector<std::vector<Int_t>> mLadderId2Index;  ///< from to geometry index to matrix index
+
+  std::vector<Int_t> mLastSensorIndex;   ///< last sensor index in a layer
+
+  static std::string sVolumeName;          ///< 
+  static std::string sHalfName;            ///< 
+  static std::string sDiskName;            ///< 
+  static std::string sLadderName;          ///< 
+  static std::string sSensorName;          ///< 
+ 
+  static std::string sSegmentationFileName; ///< file name for segmentations
+
+  TGeoHMatrix* mTransMFT2ITS;        ///< transformation due to the different conventions
+
+ private:
+  static std::unique_ptr<o2::MFT::GeometryTGeo> sInstance;   ///< singleton instance 
+  
+  ClassDefOverride(GeometryTGeo, 1); // MFT geometry based on TGeo
 };
-
-/// Access global to sensor matrix
-inline const TGeoHMatrix* GeometryTGeo::getMatrixSensor(Int_t index)
-{
-  if (!mSensorMatrices) {
-    fetchMatrices();
-  }
-  return (TGeoHMatrix*)mSensorMatrices->At(index);
-}
-
-/// Access global to sensor matrix suitable for the ITS chip digitization
-inline const TGeoHMatrix* GeometryTGeo::getMatrixSensorToITS(Int_t index)
-{
-  if (!mSensorMatricesToITS) {
-    fetchMatrices();
-  }
-  return (TGeoHMatrix*)mSensorMatricesToITS->At(index);
-}
-
-/// Get segmentation by ID
-inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentationById(Int_t id) const
-{
-  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(id) : nullptr;
-}
 
 }
 }
 
 #endif
-

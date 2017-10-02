@@ -13,21 +13,26 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 03/05/2017
 
-#include "FairLogger.h"
-
-#include "ITSMFTSimulation/DigitContainer.h"
-
 #include "MFTSimulation/DigitizerTask.h"
+#include "DetectorsBase/Utils.h"
+#include "MFTBase/GeometryTGeo.h"
+
+#include "FairLogger.h"      // for LOG
+#include "FairRootManager.h" // for FairRootManager
+#include "TClonesArray.h"    // for TClonesArray
+#include "TObject.h"         // for TObject
 
 ClassImp(o2::MFT::DigitizerTask)
 
-using o2::ITSMFT::DigitContainer;
-
 using namespace o2::MFT;
+using namespace o2::Base;
+using namespace o2::Base::Utils;
+
+using o2::ITSMFT::DigiParams;
 
 //_____________________________________________________________________________
 DigitizerTask::DigitizerTask(Bool_t useAlpide)
-  : FairTask("MFTDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mHitsArray(nullptr), mDigitsArray(nullptr)
+  : FairTask("MFTDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer()
 {
 
 }
@@ -65,7 +70,20 @@ InitStatus DigitizerTask::Init()
   mDigitsArray = new TClonesArray("o2::ITSMFT::Digit");
   mgr->Register("MFTDigits", "MFT", mDigitsArray, kTRUE);
 
-  mDigitizer.init(kTRUE);
+  DigiParams param; // RS: TODO: Eventually load this from the CCDB
+
+  param.setContinuous(mContinuous);
+  param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
+  param.setNoisePerPixel(0.);
+  mDigitizer.setDigiParams(param);
+
+  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
+  
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache( bit2Mask(TransformType::L2G) ); // make sure L2G matrices are loaded
+  mDigitizer.setGeometry(geom);
+
+  mDigitizer.init();
 
   return kSUCCESS;
 
@@ -75,14 +93,36 @@ InitStatus DigitizerTask::Init()
 void DigitizerTask::Exec(Option_t* option)
 {
 
+  FairRootManager* mgr = FairRootManager::Instance();
+
   mDigitsArray->Clear();
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
-  if (!mUseAlpideSim) {
-    DigitContainer& digits = mDigitizer.process(mHitsArray);
-    digits.fillOutputContainer(mDigitsArray);
-  } else {
-    mDigitizer.process(mHitsArray, mDigitsArray); // ALPIDE response
-  }
+  mDigitizer.setEventTime(mgr->GetEventTime());
+
+  // the type of digitization is steered by the DigiParams object of the Digitizer
+  LOG(DEBUG) << "Running digitization on new event " << mEventID
+             << " from source " << mSourceID << FairLogger::endl;
+
+  /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
+  /// provided and identified.
+  mDigitizer.setCurrSrcID( mSourceID );
+  mDigitizer.setCurrEvID( mEventID );
+  
+  mDigitizer.process(mHitsArray,mDigitsArray);
+
+  mEventID++;
 
 }
 
+//________________________________________________________
+void DigitizerTask::FinishTask()
+{
+
+  // finalize digitization, if needed, flash remaining digits
+
+  if(!mContinuous) return;
+  FairRootManager *mgr = FairRootManager::Instance();
+  mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
+  mDigitsArray->Clear();
+  mDigitizer.fillOutputContainer(mDigitsArray);
+
+}

@@ -15,8 +15,10 @@
 
 #endif
 
-void run_digi_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGeant3", Bool_t alp=kTRUE)
+void run_digi_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGeant3", Bool_t alp=kTRUE, Float_t rate=50.e3)
 {
+
+  // if rate>0 then continuous simulation for this rate will be performed
 
   FairLogger *logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
@@ -37,12 +39,17 @@ void run_digi_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGean
   sprintf(filepar, "AliceO2_%s.params_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
   TString parFile = filepar;
 
+  // Setup timer
+  TStopwatch timer;
+
   // Setup FairRoot analysis manager
   FairRunAna * fRun = new FairRunAna();
   FairFileSource *fFileSource = new FairFileSource(inFile);
   fRun->SetSource(fFileSource);
   fRun->SetOutputFile(outFile);
 
+  if (rate>0) fFileSource->SetEventMeanTime(1.e9/rate); //is in us
+        
   // Setup Runtime DB
   FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
   FairParRootFileIo* parInput1 = new FairParRootFileIo();
@@ -52,11 +59,40 @@ void run_digi_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGean
   // Setup digitizer
   // Call o2::MFT::DigitizerTask(kTRUE) to activate the ALPIDE simulation
   o2::MFT::DigitizerTask *digi = new o2::MFT::DigitizerTask(alp);
+  digi->setContinuous(rate>0);
+  digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
   fRun->AddTask(digi);
   
   fRun->Init();
   
   fRun->Run();
+
+  std::cout << std::endl << std::endl;
+  
+  // Extract the maximal used memory an add is as Dart measurement
+  // This line is filtered by CTest and the value send to CDash
+  FairSystemInfo sysInfo;
+  Float_t maxMemory=sysInfo.GetMaxMemory();
+  std::cout << "<DartMeasurement name=\"MaxMemory\" type=\"numeric/double\">";
+  std::cout << maxMemory;
+  std::cout << "</DartMeasurement>" << std::endl;
+
+  timer.Stop();
+  Double_t rtime = timer.RealTime();
+  Double_t ctime = timer.CpuTime();
+
+  Float_t cpuUsage=ctime/rtime;
+  cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
+  cout << cpuUsage;
+  cout << "</DartMeasurement>" << endl;
+  cout << endl << endl;
+  std::cout << "Macro finished succesfully" << std::endl;
+  
+  std::cout << endl << std::endl;
+  std::cout << "Output file is "    << fileout << std::endl;
+  //std::cout << "Parameter file is " << parFile << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime
+	    << "s" << endl << endl;
 
 }
 

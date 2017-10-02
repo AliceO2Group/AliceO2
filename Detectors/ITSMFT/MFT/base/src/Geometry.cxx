@@ -14,6 +14,8 @@
 
 #include "TSystem.h"
 
+#include "FairLogger.h"
+
 #include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryBuilder.h"

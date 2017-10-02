@@ -13,8 +13,9 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 07/10/2016
 
+#include "ITSMFTReconstruction/Cluster.h"
+
 #include "MFTSimulation/EventHeader.h"
-#include "MFTReconstruction/Cluster.h"
 #include "MFTReconstruction/Track.h"
 #include "MFTReconstruction/FindTracks.h"
 

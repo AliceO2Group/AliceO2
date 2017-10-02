@@ -46,7 +46,6 @@ ClassImp(o2::MFT::Detector)
 Detector::Detector()
 : o2::Base::Detector("MFT", kTRUE, kAliMft),
   mVersion(1),
-  mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
   mHits(new TClonesArray("o2::ITSMFT::Hit")),
   mTrackData()
@@ -58,7 +57,6 @@ Detector::Detector()
 Detector::Detector(const Detector& src)
   : o2::Base::Detector(src),
     mVersion(src.mVersion),
-    mGeometryTGeo(src.mGeometryTGeo),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
     mHits(nullptr),
     mTrackData()
@@ -78,7 +76,6 @@ Detector &Detector::operator=(const Detector &src)
   Base::Detector::operator=(src);
 
   mVersion = src.mVersion;
-  mGeometryTGeo = src.mGeometryTGeo;
   mDensitySupportOverSi = src.mDensitySupportOverSi;
   mHits = nullptr;
   mTrackData.mHitStarted = src.mTrackData.mHitStarted;
@@ -93,8 +90,6 @@ Detector &Detector::operator=(const Detector &src)
 Detector::~Detector()
 {
 
-  delete mGeometryTGeo;
-
   if (mHits) {
     mHits->Delete();
     delete mHits;
@@ -105,6 +100,8 @@ Detector::~Detector()
 //_____________________________________________________________________________
 void Detector::Initialize()
 {
+
+  mGeometryTGeo = GeometryTGeo::Instance();
 
   FairDetector::Initialize();
 
@@ -129,15 +126,15 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if(TVirtualMC::GetMC()->CurrentVolID(copy) != mftGeo->getSensorVolumeID() ) return kFALSE;
 
   // Get The Sensor Unique ID
-  Int_t chipID = -1, ladderID = -1, diskID = -1, halfID = -1, level = 0;
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,chipID);
+  Int_t sensorID = -1, ladderID = -1, diskID = -1, halfID = -1, level = 0;
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,sensorID);
   TVirtualMC::GetMC()->CurrentVolOffID(++level,ladderID);
   TVirtualMC::GetMC()->CurrentVolOffID(++level,diskID);
   TVirtualMC::GetMC()->CurrentVolOffID(++level,halfID);
+  
+  Int_t sensorIndex = mGeometryTGeo->getSensorIndex(halfID,diskID,ladderID,sensorID);
 
-  Int_t chipIndex = mGeometryTGeo->getChipIndex(halfID,diskID,ladderID,chipID);
-
-  //LOG(INFO) << "Found hit into half = " << halfID << "; disk = " << diskID << "; ladder = " << ladderID << "; chip = " << chipID << FairLogger::endl;
+  //LOG(INFO) << "Found hit into half = " << halfID << "; disk = " << diskID << "; ladder = " << ladderID << "; sensor = " << sensorID << FairLogger::endl;
 
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
@@ -179,7 +176,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     //Int_t detID = vol->getMCid();
 
     Hit *p = addHit(trackID,
-                    chipIndex,
+                    sensorIndex,
 		    mTrackData.mPositionStart.Vect(),
 		    positionStop.Vect(),
 		    mTrackData.mMomentumStart.Vect(),
@@ -193,7 +190,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     stack->AddPoint(kAliMft);
     
   }
-
+  
   return kTRUE;
 
 }
@@ -335,7 +332,7 @@ void Detector::createMaterials()
   Float_t maxField;
   o2::Base::Detector::initFieldTrackingParams(fieldType, maxField);
   
-  LOG(INFO) << "Detector::CreateMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
+  LOG(INFO) << "Detector::createMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
 
   o2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
   o2::Base::Detector::Medium(Air,     "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
@@ -423,7 +420,7 @@ void Detector::createMaterials()
   o2::Base::Detector::Material(++matId,"CarbonFleece$",12.0107,6,0.4,radCarb,absCarb);          // 999,999);  why 999???
   o2::Base::Detector::Medium(CarbonFleece,  "CarbonFleece$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
-  LOG(INFO) << "Detector::CreateMaterials -----> matId = " << matId << "\n";
+  LOG(INFO) << "Detector::createMaterials -----> matId = " << matId << "\n";
 
 }
 
@@ -433,9 +430,6 @@ void Detector::createGeometry()
 
   Geometry *mftGeom = Geometry::instance();
   mftGeom->build();
-
-  mGeometryTGeo = new GeometryTGeo();
-  mGeometryTGeo->build(kFALSE);
 
 }
 
