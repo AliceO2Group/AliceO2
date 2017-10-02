@@ -38,7 +38,7 @@ void drawTOFgeometry()
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::Passive::FrameStructure* frame = new o2::Passive::FrameStructure("Frame", "Frame");
+  o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
   run->AddModule(frame);
 
   o2::tof::Detector* tof = new o2::tof::Detector("TOF", kTRUE);

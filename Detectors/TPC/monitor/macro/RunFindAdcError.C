@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include "FairLogger.h"
 
 #include "TPCBase/PadPos.h"
@@ -26,6 +26,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "TH2F.h"
+#endif
 
 
 TH2F* hAdcError = nullptr;
@@ -35,7 +36,6 @@ bool run_parallel = true;
 
 using namespace std;
 using namespace o2::TPC;
-//#endif
 
 struct Result {
   int mRun;

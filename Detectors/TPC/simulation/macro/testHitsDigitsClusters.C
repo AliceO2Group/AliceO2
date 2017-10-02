@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -24,12 +25,13 @@
 #include "TAxis.h"
 #include "TH1F.h"
 #include "TPCSimulation/Point.h"
-#include "TPCSimulation/DigitMC.h"
+#include "TPCBase/Digit.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
 #include "TPCBase/Mapper.h"
+#endif
 
 using namespace o2::TPC;
 
@@ -88,9 +90,9 @@ void testHitsDigitsClusters(int iEv=0,
   TFile *digitFile = TFile::Open(digiFile.data());
   TTree *digitTree = (TTree *)gDirectory->Get("cbmsim");
 
-  TClonesArray digitArr("DigitMC");
+  TClonesArray digitArr("Digit");
   TClonesArray *digits(&digitArr);
-  digitTree->SetBranchAddress("TPCDigitMC",&digits);
+  digitTree->SetBranchAddress("TPCDigit",&digits);
 
   const Mapper& mapper = Mapper::instance();
 
@@ -107,7 +109,7 @@ void testHitsDigitsClusters(int iEv=0,
   int digiCounterC = 0;
   digitTree->GetEntry(iEv);
   for(auto digitObject : *digits) {
-    DigitMC *inputdigit = static_cast<DigitMC *>(digitObject);
+    Digit *inputdigit = static_cast<Digit *>(digitObject);
 
     const CRU cru(inputdigit->getCRU());
 

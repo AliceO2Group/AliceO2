@@ -1,20 +1,20 @@
-#if !defined(__CINT__) || defined(__MAKECINT__)
-  #include <TSystem.h>
-  #include <TMath.h>
-  #include <TString.h>
-  #include <TStopwatch.h>
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#include <TSystem.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TStopwatch.h>
 
-  #include "FairRunSim.h"
-  #include "FairRuntimeDb.h"
-  #include "FairPrimaryGenerator.h"
-  #include "FairBoxGenerator.h"
-  #include "FairParRootFileIo.h"
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairPrimaryGenerator.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
 
-  #include "DetectorsPassive/Cave.h"
-  #include "Field/MagneticField.h"
-  #include "ITSBase/GeometryTGeo.h"
-  #include "ITSMFTBase/SegmentationPixel.h"
-  #include "ITSSimulation/Detector.h"
+#include "DetectorsPassive/Cave.h"
+#include "Field/MagneticField.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTBase/SegmentationPixel.h"
+#include "ITSSimulation/Detector.h"
 #endif
 
 extern TSystem *gSystem;

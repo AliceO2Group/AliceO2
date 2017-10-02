@@ -1,7 +1,7 @@
 /// \file DisplayTrack.C
 /// \brief Simple macro to display ITSU tracks
 
-#if !defined(__CINT__) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
   #include <string>
 
   #include <TFile.h>
@@ -156,7 +156,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   Int_t nt=trkArr.GetEntriesFast(); n=0;
   while(nt--) {
       CookedTrack *t=static_cast<CookedTrack *>(trkArr.UncheckedAt(nt));
-      if (TMath::Abs(t->getLabel()) != track) continue;
+      if (t->getLabel() != track) continue;
       Int_t nc=t->getNumberOfClusters();
       while (n<nc) {
 	Int_t idx=t->getClusterIndex(n);

@@ -8,7 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include <vector>
+
 #include <fstream>
 #include <iostream>
 
@@ -21,6 +23,7 @@
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
+#endif
 
 using namespace o2::TPC;
 using namespace o2::Base::Track;

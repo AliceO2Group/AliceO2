@@ -1,7 +1,7 @@
 /// \file CheckDigits.C
 /// \brief Simple macro to check ITSU digits
 
-#if !defined(__CINT__) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include <climits>
 
 #include <TFile.h>
@@ -14,8 +14,8 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSMFTBase/Digit.h"
-#include "ITSSimulation/Point.h"
-#include "ITSSimulation/ClusterShape.h"
+#include "TPCSimulation/Point.h"
+#include "ITSMFTSimulation/ClusterShape.h"
 #endif
 
 using o2::ITSMFT::SegmentationPixel;
@@ -102,8 +102,8 @@ public:
     return m_pixels[l];
   }
 
-  static ClusterShape* PixelsToClusterShape(std::vector<Pixel> v) {
-    if (v.size() == 0) return new ClusterShape();
+  static o2::ITSMFT::ClusterShape* PixelsToClusterShape(std::vector<Pixel> v) {
+    if (v.size() == 0) return new o2::ITSMFT::ClusterShape();
 
     // To remove the multiple hits problem
     Pixel p0 = v[0];
@@ -134,7 +134,7 @@ public:
       pindex.push_back(index);
     }
 
-    return new ClusterShape(rows, cols, pindex);
+    return new o2::ITSMFT::ClusterShape(rows, cols, pindex);
   }
 
 private:
@@ -158,7 +158,7 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freq
       //cout << cls.GetNClusters(i);
       vector<Pixel> pv = cls.GetPixels(i);
       if (pv.size() == 0) continue;
-      ClusterShape *cs = Cluster::PixelsToClusterShape(pv);
+      o2::ITSMFT::ClusterShape *cs = Cluster::PixelsToClusterShape(pv);
       shapeId = cs->GetShapeID();
       cSizeDist->Fill(cs->GetNFiredPixels());
       cout << endl << shapeId << ":" << endl << *cs << endl << endl;

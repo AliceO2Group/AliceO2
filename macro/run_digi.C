@@ -1,19 +1,19 @@
-#if !defined(__CINT__) || defined(__MAKECINT__)
-  #include <Rtypes.h>
-  #include <TString.h>
-  #include <TStopwatch.h>
-  #include <TGeoManager.h>
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#include <Rtypes.h>
+#include <TString.h>
+#include <TStopwatch.h>
+#include <TGeoManager.h>
 
-  #include "FairLogger.h"
-  #include "FairRunAna.h"
-  #include "FairFileSource.h"
-  #include "FairSystemInfo.h"
-  #include "FairRuntimeDb.h"
-  #include "FairParRootFileIo.h"
+#include "FairLogger.h"
+#include "FairRunAna.h"
+#include "FairFileSource.h"
+#include "FairSystemInfo.h"
+#include "FairRuntimeDb.h"
+#include "FairParRootFileIo.h"
 
-  #include "ITSSimulation/DigitizerTask.h"
+#include "ITSSimulation/DigitizerTask.h"
 
-  #include "TPCSimulation/DigitizerTask.h"
+#include "TPCSimulation/DigitizerTask.h"
 #endif
 
 void run_digi(Int_t nEvents = 2, TString mcEngine = "TGeant3"){

@@ -1,4 +1,4 @@
-#if !defined(__CINT__) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 
 #include <TSystem.h>
 #include <TMath.h>

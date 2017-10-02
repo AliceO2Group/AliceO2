@@ -8,5 +8,5 @@ void putCondition()
   ConditionMetaData *md = new ConditionMetaData("any comment");
   md->addDateToComment();
   Condition *e = new Condition(h1, id, md);
-  cdb->putObject(e);
+  cdb->getDefaultStorage()->putObject(e);
 }

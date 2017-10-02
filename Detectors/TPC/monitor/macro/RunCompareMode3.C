@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include "TObjString.h"
 #include "TObjArray.h"
 #include "FairLogger.h"
@@ -21,10 +21,10 @@
 #include <fstream>
 #include <memory>
 #include <algorithm>
+#endif
 
 using namespace std;
 using namespace o2::TPC;
-//#endif
 /*
 .L RunSimpleEventDisplay.C+
 RunCompareMode3("GBTx0_Run005:0:0;GBTx1_Run005:1:0")

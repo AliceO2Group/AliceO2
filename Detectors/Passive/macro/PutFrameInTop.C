@@ -31,7 +31,7 @@ void PutFrameInTop() {
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::Passive::FrameStructure* frame = new o2::Passive::FrameStructure("Frame","Frame");
+  o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame","Frame");
   run->AddModule(frame);
 
   auto *trd = new o2::trd::Detector("TRD",true);

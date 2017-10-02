@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include "TObjString.h"
 #include "TH1F.h"
 #include "TH2F.h"
@@ -35,9 +35,9 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#endif
 using namespace std;
 using namespace o2::TPC;
-//#endif
 /*
 .L RunSimpleEventDisplay.C+
 RunSimpleEventDisplay("GBTx0_Run005:0:0;GBTx1_Run005:1:0")
@@ -430,6 +430,9 @@ void Next(int eventNumber=-1)
       return;
       break;
     }
+    default:
+      // Do nothing for non-listed values of Status enum
+      break;
   }
   //Bool_t res=mEvDisp.processEvent();
   //printf("Next: %d, %d (%d - %d), %d\n",res, ((AliRawReaderGEMDate*)mRawReader)->mEventInFile,((AliRawReaderGEMDate*)mRawReader)->GetCamacData(0),mRawReader->GetEventFromTag(), mRawReader->GetDataSize());

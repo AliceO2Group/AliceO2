@@ -1,7 +1,7 @@
 /// \file CheckTracks.C
 /// \brief Simple macro to check ITSU tracks
 
-#if !defined(__CINT__) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
   #include <array>
 
   #include <TFile.h>
