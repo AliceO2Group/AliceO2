@@ -65,7 +65,7 @@ mHalfDisks(nullptr)
   
   UInt_t halfUniqueID = mftGeom->getObjectID(Geometry::HalfType, id);
   SetUniqueID(halfUniqueID);
-  SetName(Form("%s_%d",GeometryTGeo::getHalfName(),id));
+  SetName(Form("%s_%d",GeometryTGeo::getMFTHalfPattern(),id));
     
   mHalfDisks = new TClonesArray("o2::MFT::HalfDiskSegmentation", Constants::sNDisks);
   mHalfDisks -> SetOwner(kTRUE);
@@ -176,7 +176,6 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     }
     new ((*mHalfDisks)[idisk]) HalfDiskSegmentation(*halfDisk);
     delete halfDisk;
-    //getDisk(idisk)->Print("ls");
 
   }
 

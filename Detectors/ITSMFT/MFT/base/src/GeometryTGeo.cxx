@@ -10,321 +10,366 @@
 
 /// \file GeometryTGeo.cxx
 /// \brief Implementation of the GeometryTGeo class
-/// \author bogdan.vulpescu@cern.ch 
-/// \date 01/08/2016
+/// \author bogdan.vulpescu@clermont.in2p3.fr - adapted from ITS, 21.09.2017
 
-#include <boost/bimap.hpp>
-
-#include "TGeoManager.h"
-#include "TSystem.h"
-
-#include "FairLogger.h"
-
-#include "ITSMFTBase/Segmentation.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "MathUtils/Cartesian3D.h"
 #include "ITSMFTBase/SegmentationPixel.h"
 
-#include "MFTBase/Constants.h"
-#include "MFTBase/Geometry.h"
-#include "MFTBase/GeometryTGeo.h"
-#include "MFTBase/HalfSegmentation.h"
-#include "MFTBase/HalfDiskSegmentation.h"
-#include "MFTBase/LadderSegmentation.h"
+#include "FairLogger.h" // for LOG
+
+#include <TGeoBBox.h>         // for TGeoBBox
+#include <TGeoManager.h>      // for gGeoManager, TGeoManager
+#include <TGeoPhysicalNode.h> // for TGeoPNEntry, TGeoPhysicalNode
+#include <TGeoShape.h>        // for TGeoShape
+#include <TMath.h>            // for Nint, ATan2, RadToDeg
+#include <TString.h>          // for TString, Form
+#include "TClass.h"           // for TClass
+#include "TGeoMatrix.h"       // for TGeoHMatrix
+#include "TGeoNode.h"         // for TGeoNode, TGeoNodeMatrix
+#include "TGeoVolume.h"       // for TGeoVolume
+#include "TMathBase.h"        // for Max
+#include "TObjArray.h"        // for TObjArray
+#include "TObject.h"          // for TObject
+
+#include <cctype>  // for isdigit
+#include <cstdio>  // for snprintf, NULL, printf
+#include <cstring> // for strstr, strlen
 
 using o2::ITSMFT::Segmentation;
 using o2::ITSMFT::SegmentationPixel;
-
+using namespace TMath;
 using namespace o2::MFT;
+using namespace o2::Base;
+using namespace o2::Base::Utils;
 
-ClassImp(o2::MFT::GeometryTGeo)
+ClassImp(o2::MFT::GeometryTGeo);
 
-TString GeometryTGeo::sVolumeName   = "MFT";
-TString GeometryTGeo::sHalfName     = "MFT_H";
-TString GeometryTGeo::sDiskName     = "MFT_D";
-TString GeometryTGeo::sLadderName   = "MFT_L";
-TString GeometryTGeo::sSensorName   = "MFT_S";
+std::unique_ptr<o2::MFT::GeometryTGeo> GeometryTGeo::sInstance;
 
-TString GeometryTGeo::sSegmentationFileName = "mftSegmentations.root";
+std::string GeometryTGeo::sVolumeName     = "MFT";           ///< 
+std::string GeometryTGeo::sHalfName       = "MFT_H";         ///< 
+std::string GeometryTGeo::sDiskName       = "MFT_D";         ///< 
+std::string GeometryTGeo::sLadderName     = "MFT_L";         ///< 
+std::string GeometryTGeo::sSensorName     = "MFT_S";         ///< 
 
-//_____________________________________________________________________________
-GeometryTGeo::GeometryTGeo(Bool_t forceBuild, Bool_t loadSegmentations) 
-  : TObject(),
-    mSensorMatrices(nullptr),
-    mSensorMatricesToITS(nullptr),
-    mRotateMFTtoITS(nullptr),
-    mTrackingToLocalMatrices(nullptr),
-    mSegmentations(nullptr),
-    mNumberOfDisks(0),
-    mNumberOfChips(0),
-    mChipIDmap(),
-    mChipHalfID(nullptr),
-    mChipDiskID(nullptr),
-    mChipPlaneID(nullptr),
-    mChipLadderID(nullptr),
-    mChipSensorID(nullptr)
+std::string GeometryTGeo::sSegmentationFileName = "mftSegmentations.root"; ///< file name for segmentations
+
+//__________________________________________________________________________
+GeometryTGeo::GeometryTGeo(Bool_t build, Bool_t loadSegmentations, Int_t loadTrans)
+  : o2::ITSMFT::GeometryTGeo(DetID::MFT)
 {
-  // default constructor
-
-  if (forceBuild) {
-    build(loadSegmentations);
-  }
-
-}
-
-//_____________________________________________________________________________
-GeometryTGeo::~GeometryTGeo()
-{
-  // destructor
-
-  delete mSensorMatrices;
-  delete mSensorMatricesToITS;
-  delete mSegmentations;
-
-  delete [] mChipHalfID;
-  delete [] mChipDiskID;
-  delete [] mChipPlaneID;
-  delete [] mChipLadderID;
-  delete [] mChipSensorID;
-
-}
-
-//_____________________________________________________________________________
-GeometryTGeo::GeometryTGeo(const GeometryTGeo& src)
-  : TObject(src),
-    mSensorMatrices(nullptr),
-    mSensorMatricesToITS(nullptr),
-    mRotateMFTtoITS(nullptr),
-    mTrackingToLocalMatrices(nullptr),
-    mSegmentations(nullptr),
-    mNumberOfDisks(src.mNumberOfDisks),
-    mNumberOfChips(src.mNumberOfChips),
-    mChipIDmap(),
-    mChipHalfID(nullptr),
-    mChipDiskID(nullptr),
-    mChipPlaneID(nullptr),
-    mChipLadderID(nullptr),
-    mChipSensorID(nullptr)
-{
-  // copy constructor
-
-  mRotateMFTtoITS = new TGeoHMatrix(*src.mRotateMFTtoITS);
-
-  if (src.mSensorMatrices) {
-    mSensorMatrices = new TObjArray(mNumberOfChips);
-    mSensorMatrices->SetOwner(kTRUE);
-    for (int i = 0; i < mNumberOfChips; i++) {
-      const TGeoHMatrix* mat = (TGeoHMatrix*)src.mSensorMatrices->At(i);
-      mSensorMatrices->AddAt(new TGeoHMatrix(*mat), i);
-    }
-  }
-  if (src.mSensorMatricesToITS) {
-    mSensorMatricesToITS = new TObjArray(mNumberOfChips);
-    mSensorMatricesToITS->SetOwner(kTRUE);
-    for (int i = 0; i < mNumberOfChips; i++) {
-      const TGeoHMatrix* mat = (TGeoHMatrix*)src.mSensorMatricesToITS->At(i);
-      mSensorMatricesToITS->AddAt(new TGeoHMatrix(*mat), i);
-    }
-  }
-  if (src.mSegmentations) {
-    int sz = src.mSegmentations->GetEntriesFast();
-    mSegmentations = new TObjArray(sz);
-    mSegmentations->SetOwner(kTRUE);
-    for (int i = 0; i < sz; i++) {
-      Segmentation* sg = (Segmentation*)src.mSegmentations->UncheckedAt(i);
-      if (!sg) {
-	continue;
-      }
-      mSegmentations->AddAt(sg->Clone(), i);
-    }
-  }
-
-  for (BimapType::const_iterator iter = src.mChipIDmap.begin(), iend = src.mChipIDmap.end(); iter != iend; ++iter) {
-    mChipIDmap.insert(BimapType::value_type(iter->left,iter->right));
-  }
-
-  if (mNumberOfChips) {
-    mChipHalfID = new Int_t[mNumberOfChips];
-    mChipDiskID = new Int_t[mNumberOfChips];
-    mChipPlaneID = new Int_t[mNumberOfChips];
-    mChipLadderID = new Int_t[mNumberOfChips];
-    mChipSensorID = new Int_t[mNumberOfChips];
-    for (Int_t i = 0; i < mNumberOfChips; i++) {
-      mChipHalfID[i] = src.mChipHalfID[i];
-      mChipDiskID[i] = src.mChipDiskID[i];
-      mChipPlaneID[i] = src.mChipPlaneID[i];
-      mChipLadderID[i] = src.mChipLadderID[i];
-      mChipSensorID[i] = src.mChipSensorID[i];
-    }
-  }
-
-}
-
-//_____________________________________________________________________________
-GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
-{
-
-  if (this == &src) {
-    return *this;
-  }
-
-  TObject::operator=(src);
-  mNumberOfDisks = src.mNumberOfDisks;
-  mNumberOfChips = src.mNumberOfChips;
-
-  mRotateMFTtoITS = new TGeoHMatrix(*src.mRotateMFTtoITS);
-
-  if (src.mSensorMatrices) {
-    delete mSensorMatrices;
-    mSensorMatrices = new TObjArray(mNumberOfChips);
-    mSensorMatrices->SetOwner(kTRUE);
-    for (int i = 0; i < mNumberOfChips; i++) {
-      const TGeoHMatrix* mat = (TGeoHMatrix*)src.mSensorMatrices->At(i);
-      mSensorMatrices->AddAt(new TGeoHMatrix(*mat), i);
-    }
-  }
-  if (src.mSensorMatricesToITS) {
-    delete mSensorMatricesToITS;
-    mSensorMatricesToITS = new TObjArray(mNumberOfChips);
-    mSensorMatricesToITS->SetOwner(kTRUE);
-    for (int i = 0; i < mNumberOfChips; i++) {
-      const TGeoHMatrix* mat = (TGeoHMatrix*)src.mSensorMatricesToITS->At(i);
-      mSensorMatricesToITS->AddAt(new TGeoHMatrix(*mat), i);
-    }
-  }
-  if (src.mSegmentations) {
-    int sz = src.mSegmentations->GetEntriesFast();
-    mSegmentations = new TObjArray(sz);
-    mSegmentations->SetOwner(kTRUE);
-    for (int i = 0; i < sz; i++) {
-      Segmentation* sg = (Segmentation*)src.mSegmentations->UncheckedAt(i);
-      if (!sg) {
-	continue;
-      }
-      mSegmentations->AddAt(sg->Clone(), i);
-    }
-  }
-  for (BimapType::const_iterator iter = src.mChipIDmap.begin(), iend = src.mChipIDmap.end(); iter != iend; ++iter) {
-    mChipIDmap.insert(BimapType::value_type(iter->left,iter->right));
+  // default c-tor, if build is true, the structures will be filled and the transform matrices
+  // will be cached
+  if (sInstance) {
+    LOG(FATAL) << "Invalid use of public constructor: o2::MFT::GeometryTGeo instance exists" << FairLogger::endl; 
+    //throw std::runtime_error("Invalid use of public constructor: o2::MFT::GeometryTGeo instance exists");
   }
   
-  if (mNumberOfChips) {
-    mChipHalfID = new Int_t[mNumberOfChips];
-    mChipDiskID = new Int_t[mNumberOfChips];
-    mChipPlaneID = new Int_t[mNumberOfChips];
-    mChipLadderID = new Int_t[mNumberOfChips];
-    mChipSensorID = new Int_t[mNumberOfChips];
-    for (Int_t i = 0; i < mNumberOfChips; i++) {
-      mChipHalfID[i] = src.mChipHalfID[i];
-      mChipDiskID[i] = src.mChipDiskID[i];
-      mChipPlaneID[i] = src.mChipPlaneID[i];
-      mChipLadderID[i] = src.mChipLadderID[i];
-      mChipSensorID[i] = src.mChipSensorID[i];
-    }
+  if (build) {
+    //loadTrans = kTRUE;
+    Build(loadSegmentations,loadTrans);
   }
-  return *this;
 }
 
-//_____________________________________________________________________________
-Int_t GeometryTGeo::getChipIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const
+//__________________________________________________________________________
+void GeometryTGeo::Build(Bool_t loadSegmentations, Int_t loadTrans)
 {
-
-  Geometry *mftGeo = Geometry::instance();
-  Int_t sensorUniqueID, chipID;
-  for (Int_t plane = 0; plane < 2; plane++) {
-    sensorUniqueID = mftGeo->getObjectID(Geometry::SensorType,half,disk,plane,ladder,sensor);
-    for (BimapType::left_map::const_iterator left_iter = mChipIDmap.left.begin(), iend = mChipIDmap.left.end(); left_iter != iend; ++left_iter) {
-      if (left_iter->first == sensorUniqueID) {
-	chipID = left_iter->second; 
-      }
-    }
+  if ( isBuilt() ) {
+    LOG(WARNING) << "Already built" << FairLogger::endl;
+    return; // already initialized
   }
-
-  return chipID;
-
-}
-
-//_____________________________________________________________________________
-void GeometryTGeo::fetchMatrices()
-{
-
+  
   if (!gGeoManager) {
+    // RSTODO: in future there will be a method to load matrices from the CDB
     LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
   }
 
-  mSensorMatrices = new TObjArray(mNumberOfChips);
-  mSensorMatrices->SetOwner(kTRUE);
-  for (int i = 0; i < mNumberOfChips; i++) {
-    mSensorMatrices->AddAt(new TGeoHMatrix(*extractMatrixSensor(i)), i);
+  mNumberOfHalves = extractNumberOfHalves();
+  if (!mNumberOfHalves) {
+    return;
   }
 
-  mSensorMatricesToITS = new TObjArray(mNumberOfChips);
-  mSensorMatricesToITS->SetOwner(kTRUE);
+  //LOG(INFO) << "Number of halves " << mNumberOfHalves << FairLogger::endl;
+  mNumberOfDisks.resize(mNumberOfHalves);
 
-  TGeoHMatrix *mSensorMatrixToITS[mNumberOfChips];
+  mTotalNumberOfSensors = 0;
+  for (Int_t i = 0; i < mNumberOfHalves; i++) {
+
+    mNumberOfDisks[i] = extractNumberOfDisks(i);
+    //LOG(INFO) << "Number of disks " << mNumberOfDisks[i] << " in half " << i << FairLogger::endl;
+
+    // use one half only
+    if (i == 0) {
+
+      mNumberOfLadders.resize(mNumberOfDisks[i]);
+      mNumberOfLaddersPerDisk.resize(mNumberOfDisks[i]);
+      mLastSensorIndex.resize(mNumberOfDisks[i]);
+      mLadderIndex2Id.resize(mNumberOfDisks[i]);
+      mLadderId2Index.resize(mNumberOfDisks[i]);
+
+      // loop over disks
+      for (Int_t j = 0; j < mNumberOfDisks[i]; j++) {
+
+	mNumberOfLadders[j].resize(MaxSensorsPerLadder);
+	Int_t numberOfLadders = 0;
+	for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
+
+	  mNumberOfLadders[j][nSensor] = extractNumberOfLadders(i,j,nSensor);
+	  //LOG(INFO) << "Number of ladders with " << nSensor << " sensors is " << mNumberOfLadders[j][nSensor] << " in disk " << j << FairLogger::endl;
+
+	  numberOfLadders += mNumberOfLadders[j][nSensor];
+	  mTotalNumberOfSensors += mNumberOfLadders[j][nSensor]*nSensor;
+	    
+	} // nSensor
+	mLastSensorIndex[j] = mTotalNumberOfSensors - 1;
+	mNumberOfLaddersPerDisk[j] = numberOfLadders;
+
+	mLadderIndex2Id[j].resize(numberOfLadders);
+	mLadderId2Index[j].resize(numberOfLadders);
+	Int_t nL = 0;
+	for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
+	  if (mNumberOfLadders[j][nSensor] == 0) continue;
+	  Int_t n = extractNumberOfLadders(i,j,nSensor,nL);
+	} // nSensor
+    
+      } // disk
+
+    } // half = 0
+
+  } // halves
+
+  mTotalNumberOfSensors *= mNumberOfHalves;
+  LOG(INFO) << "Total number of sensors " << mTotalNumberOfSensors << " in " << mNumberOfHalves << " detector halves" << FairLogger::endl;
+  /*
+  // checks
+  for (Int_t i = 0; i < mTotalNumberOfSensors; i++) {
+    Int_t ladder = getLadder(i);
+    Int_t disk = getDisk(i);
+    Int_t half = getHalf(i);
+    Int_t ladderID = mLadderIndex2Id[disk][ladder];
+    LOG(INFO) << "Index " << i << " half " << half << " disk " << disk << " ladder " << ladder << " geomap " << ladderID << FairLogger::endl;
+  }
+  */
+  setSize(mTotalNumberOfSensors);
+
+  // still need to do this, because of the different conventions between 
+  // ITS and MFT in placing the chips (rows, cols) in the geometry at 
+  // construction time
   //
   // xITS    0  +1   0   xMFT
   // yITS =  0   0  +1 * yMFT
   // zITS   +1   0   0   zMFT
   //
-  mRotateMFTtoITS = new TGeoHMatrix();
-  mRotateMFTtoITS->RotateY(-90.);
-  mRotateMFTtoITS->RotateZ(-90.);
+  mTransMFT2ITS = new TGeoHMatrix();
+  mTransMFT2ITS->RotateY(-90.);
+  mTransMFT2ITS->RotateZ(-90.);
+
+  fillMatrixCache(loadTrans);
+ 
+  if (loadSegmentations) {
+    SegmentationPixel::loadSegmentations(&mSegmentations, getMFTSegmentationFileName());
+  }
+  /*
+  // checks
+  Int_t index;
+  for (Int_t iH = 0; iH < mNumberOfHalves; iH++) {
+    for (Int_t iD = 0; iD < mNumberOfDisks[iH]; iD++) {
+      for (Int_t iL = 0; iL < mNumberOfLaddersPerDisk[iD]; iL++) {
+	Int_t ladder = mLadderId2Index[iD][iL];
+	Int_t nS = extractNumberOfSensorsPerLadder(iH,iD,iL);
+	for (Int_t iS = 0; iS < nS; iS++) {
+	  index = getSensorIndex(iH,iD,iL,iS);
+	  LOG(INFO) << "Half " << iH << " disk " << iD << " ladder " << ladder << " ladderID " << iL << " sensor " << iS << " index " << index << FairLogger::endl;
+	} // sensor
+      } // ladder
+    } // disk
+  } // half
+  */
+}
+
+//__________________________________________________________________________
+Int_t GeometryTGeo::extractNumberOfSensorsPerLadder(Int_t half, Int_t disk, Int_t ladder) const
+{
+ 
+  Int_t numberOfSensors = 0;
+  Char_t laddername[30];
+  snprintf(laddername, 30, "%s_%d_%d_%d", getMFTLadderPattern(), half, disk, ladder);
+  TGeoVolume* volLadder = gGeoManager->GetVolume(laddername);
+  if (!volLadder) {
+    LOG(FATAL) << "can't find volume " << laddername << FairLogger::endl;
+  }
+  // Loop on all ladder nodes, count sensor volumes by checking names
+  Int_t nNodes = volLadder->GetNodes()->GetEntries();
+  for (int j = 0; j < nNodes; j++) {
+    if (strstr(volLadder->GetNodes()->At(j)->GetName(), getMFTSensorPattern())) {
+      numberOfSensors++;
+    }
+  }
+ 
+  // the "glue" volume has the same name as the sensor !!!
+  return numberOfSensors/2;
+
+}
+
+//__________________________________________________________________________
+Int_t GeometryTGeo::extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensor) const
+{
   
-  Double_t *rotMFTtoITSmatrix;
-  Double_t rotMatrix_2[9] = {0.,0.,0.,0.,0.,0.,0.,0.,0.};
-  for (int iChip = 0; iChip < mNumberOfChips; iChip++) {
-    rotMFTtoITSmatrix = mRotateMFTtoITS->GetRotationMatrix();
-    mSensorMatrixToITS[iChip] = new TGeoHMatrix(*(TGeoHMatrix*)mSensorMatrices->At(iChip));
-    Double_t *rotMatrix_1 = mSensorMatrixToITS[iChip]->GetRotationMatrix();
-    for (Int_t i = 0; i < 3; i++) {
-      for (Int_t j = 0; j < 3; j++) {
-	rotMatrix_2[i*3+j] = 0.;
-	for (Int_t k = 0; k < 3; k++) {
-	  rotMatrix_2[i*3+j] += rotMFTtoITSmatrix[i*3+k]*rotMatrix_1[k*3+j];
-	}
+  Int_t numberOfLadders = 0;
+  Char_t diskname[30];
+  snprintf(diskname, 30, "%s_%d_%d", getMFTDiskPattern(), half, disk);
+  TGeoVolume* volDisk = gGeoManager->GetVolume(diskname);
+  if (!volDisk) {
+    LOG(FATAL) << "can't find volume " << diskname << FairLogger::endl;
+  }
+  // Loop on all disk nodes, count ladder volumes by checking names
+  TObjArray* nodes = volDisk->GetNodes();
+  Int_t nNodes = nodes->GetEntries();
+  Int_t ladderID = -1;
+  for (int j = 0; j < nNodes; j++) {
+    TGeoNode* nd = (TGeoNode*)nodes->At(j);
+    const Char_t* name = nd->GetName();
+    if (strstr(name, getMFTLadderPattern())) {
+      ladderID = extractVolumeCopy(name, Form("%s_%d_%d",GeometryTGeo::getMFTLadderPattern(),half,disk));
+      if (nsensor == extractNumberOfSensorsPerLadder(half,disk,ladderID)) { 
+	numberOfLadders++;
       }
     }
-    mSensorMatrixToITS[iChip]->SetRotation(rotMatrix_2);
-    mSensorMatricesToITS->AddAt(mSensorMatrixToITS[iChip],iChip);
   }
   
-  createT2LMatrices();
+  return numberOfLadders;
 
 }
 
-//_____________________________________________________________________________
-void GeometryTGeo::createT2LMatrices()
+//__________________________________________________________________________
+Int_t GeometryTGeo::extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensor, Int_t& nL)
 {
-  // create tracking to local (Sensor!) matrices
+  
+  Int_t numberOfLadders = 0;
+  Char_t diskname[30];
+  snprintf(diskname, 30, "%s_%d_%d", getMFTDiskPattern(), half, disk);
+  TGeoVolume* volDisk = gGeoManager->GetVolume(diskname);
+  if (!volDisk) {
+    LOG(FATAL) << "can't find volume " << diskname << FairLogger::endl;
+  }
+  // Loop on all disk nodes, count ladder volumes by checking names
+  TObjArray* nodes = volDisk->GetNodes();
+  Int_t nNodes = nodes->GetEntries();
+  Int_t ladderID = -1;
+  for (int j = 0; j < nNodes; j++) {
+    TGeoNode* nd = (TGeoNode*)nodes->At(j);
+    const Char_t* name = nd->GetName();
+    if (strstr(name, getMFTLadderPattern())) {
+      ladderID = extractVolumeCopy(name, Form("%s_%d_%d",GeometryTGeo::getMFTLadderPattern(),half,disk));
+      if (nsensor == extractNumberOfSensorsPerLadder(half,disk,ladderID)) { 
+	// map the new index with the one from the geometry
+	mLadderIndex2Id[disk][nL] = ladderID;     
+	mLadderId2Index[disk][ladderID] = nL;     
+	//LOG(INFO) << "In disk " << disk << " ladder with " << nsensor << " sensors has matrix index " << nL << " and geometry index " << mLadderIndex2Id[disk][nL] << FairLogger::endl;
+	nL++;
+	//
+	numberOfLadders++;
+      }
+    }
+  }
+  
+  return numberOfLadders;
 
 }
 
-//_____________________________________________________________________________
+//__________________________________________________________________________
+Int_t GeometryTGeo::extractNumberOfDisks(Int_t half) const
+{
+
+  Int_t numberOfDisks = 0;
+  Char_t halfname[30];
+  snprintf(halfname, 30, "%s_%d", getMFTHalfPattern(), half);
+  TGeoVolume* volHalf = gGeoManager->GetVolume(halfname);
+  if (!volHalf) {
+    LOG(FATAL) << "can't find " << halfname << " volume" << FairLogger::endl;
+    return -1;
+  }
+
+  // Loop on all half nodes, count disk volumes by checking names
+  Int_t nNodes = volHalf->GetNodes()->GetEntries();
+  for (Int_t j = 0; j < nNodes; j++) {
+    if (strstr(volHalf->GetNodes()->At(j)->GetName(), getMFTDiskPattern())) {
+      numberOfDisks++;
+    }
+  }
+
+  return numberOfDisks;
+
+}
+
+//__________________________________________________________________________
+Int_t GeometryTGeo::extractNumberOfHalves()
+{
+ 
+  Int_t numberOfHalves = 0;
+
+  TGeoVolume* volMFT = gGeoManager->GetVolume(getMFTVolPattern());
+  if (!volMFT) {
+    LOG(FATAL) << "MFT volume " << getMFTVolPattern() << " is not in the geometry" << FairLogger::endl;
+  }
+
+  // Loop on all MFT nodes and count half detector volumes by checking names
+  TObjArray* nodes = volMFT->GetNodes();
+  int nNodes = nodes->GetEntriesFast();
+
+  for (int j = 0; j < nNodes; j++) {
+    Int_t halfID = -1;
+    TGeoNode* nd = (TGeoNode*)nodes->At(j);
+    const Char_t* name = nd->GetName();
+
+    if (strstr(name, getMFTHalfPattern())) {
+      numberOfHalves++;
+      if ((halfID = extractVolumeCopy(name, GeometryTGeo::getMFTHalfPattern())) < 0) {
+        LOG(FATAL) << "Failed to extract half ID from the " << name << FairLogger::endl;
+        exit(1);
+      }
+    } 
+  }
+
+  return numberOfHalves;
+
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::extractVolumeCopy(const char* name, const char* prefix) const
+{
+
+  TString nms = name;
+  if (!nms.BeginsWith(prefix)) {
+    return -1;
+  }
+  nms.Remove(0, strlen(prefix)+1);
+  if (!isdigit(nms.Data()[0])) {
+    return -1;
+  }
+
+  return nms.Atoi();
+
+}
+
+//__________________________________________________________________________
 TGeoHMatrix* GeometryTGeo::extractMatrixSensor(Int_t index) const
 {
 
-  Geometry *mftGeo = Geometry::instance();
+  Int_t half, disk, ladder, sensor, ladderID;
+  getSensorID(index, half, disk, ladder, sensor);
+  ladderID = mLadderIndex2Id[disk][ladder];
+  //LOG(INFO) << "extractMatrixSensor index " << index << " half " << half << " disk " << disk << " ladder " << ladder << " ladderID " << ladderID << FairLogger::endl;
 
-  Int_t sensorUniqueID, type, halfID, diskID, planeID, ladderID, sensorID;
-
-  for (BimapType::right_map::const_iterator right_iter = mChipIDmap.right.begin(), iend = mChipIDmap.right.end(); right_iter != iend; ++right_iter) {
-    if (right_iter->first == index) {
-      sensorUniqueID = right_iter->second; 
-    }
-  }
-  
-  type     = mftGeo->getObjectType(sensorUniqueID);
-  halfID   = mftGeo->getHalfID(sensorUniqueID);
-  diskID   = mftGeo->getDiskID(sensorUniqueID);
-  planeID  = mftGeo->getPlaneID(sensorUniqueID);
-  ladderID = mftGeo->getLadderID(sensorUniqueID);
-  sensorID = mftGeo->getSensorID(sensorUniqueID);
-
-  TString path = Form("/cave_1/%s_0/",GeometryTGeo::getVolumeName());
-
-  path += Form("%s_%d_%d/",GeometryTGeo::getHalfName(),halfID,halfID);
-  path += Form("%s_%d_%d_%d/",GeometryTGeo::getDiskName(),halfID,diskID,diskID);
-  path += Form("%s_%d_%d_%d_%d/",GeometryTGeo::getLadderName(),halfID,diskID,ladderID,ladderID);
-  path += Form("%s_%d_%d_%d_%d",GeometryTGeo::getSensorName(),halfID,diskID,ladderID,sensorID);
+  TString path = Form("/cave_1/%s_0/", GeometryTGeo::getMFTVolPattern());
+  path += Form("%s_%d_%d/%s_%d_%d_%d/%s_%d_%d_%d_%d/%s_%d_%d_%d_%d",
+                GeometryTGeo::getMFTHalfPattern(),half,half,
+                GeometryTGeo::getMFTDiskPattern(),half,disk,disk,
+                GeometryTGeo::getMFTLadderPattern(),half,disk,ladderID,ladderID,
+                GeometryTGeo::getMFTSensorPattern(),half,disk,ladderID,sensor);
+  //LOG(INFO) << "Volume path is " << path.Data() << FairLogger::endl;
 
   static TGeoHMatrix matTmp;
   gGeoManager->PushPath();
@@ -333,148 +378,207 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(Int_t index) const
     gGeoManager->PopPath();
     LOG(ERROR) << "Error in cd-ing to " << path.Data() << FairLogger::endl;
     return nullptr;
-  }
+  } // end if !gGeoManager
 
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
 
   // Restore the modeler state.
   gGeoManager->PopPath();
 
-  return &matTmp;
+  Double_t *rot1 = mTransMFT2ITS->GetRotationMatrix();
+
+  Double_t rot2[9] = {0.,0.,0.,0.,0.,0.,0.,0.,0.};
+
+  TGeoHMatrix* matTmp1 = new TGeoHMatrix(matTmp);
+  Double_t *rot3 = matTmp1->GetRotationMatrix();
+
+  for (Int_t i = 0; i < 3; i++) {
+    for (Int_t j = 0; j < 3; j++) {
+      rot2[i*3+j] = 0.;
+      for (Int_t k = 0; k < 3; k++) {
+	rot2[i*3+j] += rot1[i*3+k]*rot3[k*3+j];
+      }
+    }
+  }
+  matTmp1->SetRotation(rot2);
+
+  return matTmp1;
 
 }
 
-//_____________________________________________________________________________
-void GeometryTGeo::build(Bool_t loadSegmentations)
+//__________________________________________________________________________
+void GeometryTGeo::fillMatrixCache(Int_t mask)
 {
 
-  if (!gGeoManager) {
-    LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
+  // populate matrix cache for requested transformations
+  //  
+  if (mSize < 1) {    
+    LOG(WARNING) << "The method Build was not called yet" << FairLogger::endl;
+    Build(true,mask);
+    return;
+  }
+  //LOG(INFO) << "mask " << mask << " bit2Mask " << bit2Mask(TransformType::L2G) << FairLogger::endl;
+  // build matrices
+  if ( (mask & bit2Mask(TransformType::L2G)) && !getCacheL2G().isFilled() ) {
+    LOG(INFO) << "Loading MFT L2G matrices from TGeo" <<  FairLogger::endl;
+    auto& cacheL2G = getCacheL2G();
+    cacheL2G.setSize(mSize);
+    for (Int_t i = 0; i < mSize; i++) {
+      TGeoHMatrix* hm = extractMatrixSensor(i);
+      cacheL2G.setMatrix( hm ? Mat3D(*hm) : Mat3D(), i);
+    }
   } 
-  Geometry *mftGeo = Geometry::instance();
 
-  Segmentation *seg;
-  if (loadSegmentations) {
-    LOG(INFO) << "GeometryTGeo::build load segmentation from xml file!" << FairLogger::endl;
-    seg = new Segmentation(gSystem->ExpandPathName("$(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml" ));
-  } else {
-    LOG(INFO) << "GeometryTGeo::build get segmentation from the geometry!" << FairLogger::endl;
-    seg = mftGeo->getSegmentation();
-  }
-
-  mNumberOfDisks = Constants::sNDisks;
-
-  // fill the map <sensorUniqueID,chipID>
-  Int_t chipID = 0;
-  Int_t sensorUniqueID;
-  for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
-    HalfSegmentation * halfSeg = seg->getHalf(iHalf);
-    for (Int_t iDisk = 0; iDisk < mNumberOfDisks; iDisk++) {
-      HalfDiskSegmentation* halfDiskSeg = halfSeg->getHalfDisk(iDisk);
-      for (Int_t iLadder = 0; iLadder < halfDiskSeg->getNLadders(); iLadder++) {
-	LadderSegmentation* ladderSeg = halfDiskSeg->getLadder(iLadder);
-	mNumberOfChips += ladderSeg->getNSensors();
-	for (Int_t iSensor = 0; iSensor < ladderSeg->getNSensors(); iSensor++) {
-	  ChipSegmentation * chipSeg = ladderSeg->getSensor(iSensor);
-	  sensorUniqueID = chipSeg->GetUniqueID();
-	  mChipIDmap.insert(BimapType::value_type(sensorUniqueID,chipID++));
-	}
-      }
+  if ( (mask & bit2Mask(TransformType::T2L)) && !getCacheT2L().isFilled() ) {
+    // matrices for Tracking to Local frame transformation
+    LOG(INFO) << "Loading MFT T2L matrices from TGeo" <<  FairLogger::endl;
+    auto& cacheT2L = getCacheT2L();
+    cacheT2L.setSize(mSize);
+    for (int i=0;i<mSize;i++) {
+      TGeoHMatrix& hm = createT2LMatrix(i);
+      cacheT2L.setMatrix( Mat3D(hm) , i);
     }
   }
-  
-  mChipHalfID = new Int_t[mNumberOfChips];
-  mChipDiskID = new Int_t[mNumberOfChips];
-  mChipPlaneID = new Int_t[mNumberOfChips];
-  mChipLadderID = new Int_t[mNumberOfChips];
-  mChipSensorID = new Int_t[mNumberOfChips];
-  for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
-    HalfSegmentation * halfSeg = seg->getHalf(iHalf);
-    for (Int_t iDisk = 0; iDisk < mNumberOfDisks; iDisk++) {
-      HalfDiskSegmentation* halfDiskSeg = halfSeg->getHalfDisk(iDisk);
-      for (Int_t iLadder = 0; iLadder < halfDiskSeg->getNLadders(); iLadder++) {
-	LadderSegmentation* ladderSeg = halfDiskSeg->getLadder(iLadder);
-	for (Int_t iSensor = 0; iSensor < ladderSeg->getNSensors(); iSensor++) {
-	  ChipSegmentation * chipSeg = ladderSeg->getSensor(iSensor);
-	  for (Int_t plane = 0; plane < 2; plane++) {
-	    sensorUniqueID = mftGeo->getObjectID(Geometry::SensorType,iHalf,iDisk,plane,iLadder,iSensor);
-	    for (BimapType::left_map::const_iterator left_iter = mChipIDmap.left.begin(), iend = mChipIDmap.left.end(); left_iter != iend; ++left_iter) {
-	      if (left_iter->first == sensorUniqueID) {
-		chipID = left_iter->second; 
-		mChipHalfID[chipID] = iHalf;
-		mChipDiskID[chipID] = iDisk;
-		mChipPlaneID[chipID] = plane;
-		mChipLadderID[chipID] = iLadder;
-		mChipSensorID[chipID] = iSensor;
-	      }
-	    }
-	  }
-	}
-      }
-    }
-  }
-  
-  fetchMatrices();
 
-  if (loadSegmentations) {
-    mSegmentations = new TObjArray();
-    SegmentationPixel::loadSegmentations(mSegmentations, getMFTsegmentationFileName());
+  if ( (mask & bit2Mask(TransformType::T2G)) && !getCacheT2G().isFilled() ) {
+    // matrices for Tracking to Global frame transformation
+    LOG(INFO) << "Loading MFT T2G matrices from TGeo" <<  FairLogger::endl;
+    auto& cacheT2G = getCacheT2G();
+    cacheT2G.setSize(mSize);
+    for (int i=0;i<mSize;i++) {
+      TGeoHMatrix& mat = createT2LMatrix(i);
+      mat.MultiplyLeft( extractMatrixSensor(i) );
+      cacheT2G.setMatrix( Mat3D(mat), i);
+    }    
   }
 
 }
 
-//_____________________________________________________________________________
-Int_t GeometryTGeo::getChipHalfID(Int_t index) const
+//__________________________________________________________________________
+TGeoHMatrix& GeometryTGeo::createT2LMatrix(Int_t index)
 {
 
-  if (index >= 0 && index < mNumberOfChips) 
-    return mChipHalfID[index];
-  else 
-    return -1;
+  // create for sensor isn the TGeo matrix for Tracking to Local frame transformations
+
+  static TGeoHMatrix t2l;
+  Float_t x = 0.f, alpha = 0.f;
+  extractSensorXAlpha(index,x,alpha);
+  t2l.Clear();
+  /*
+  t2l.RotateZ(alpha * RadToDeg()); // rotate in direction of normal to the sensor plane
+  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+  t2l.MultiplyLeft(&matL2G->Inverse());
+  */
+  return t2l;
 
 }
 
-//_____________________________________________________________________________
-Int_t GeometryTGeo::getChipDiskID(Int_t index) const
+//__________________________________________________________________________
+void GeometryTGeo::extractSensorXAlpha(int index, float &x, float &alpha)
 {
-
-  if (index >= 0 && index < mNumberOfChips) 
-    return mChipDiskID[index];
-  else 
-    return -1;
 
 }
 
-//_____________________________________________________________________________
-Int_t GeometryTGeo::getChipPlaneID(Int_t index) const
+//__________________________________________________________________________
+Bool_t GeometryTGeo::getSensorID(Int_t index, Int_t& half, Int_t& disk, Int_t& ladder, Int_t& sensor) const
 {
 
-  if (index >= 0 && index < mNumberOfChips) 
-    return mChipPlaneID[index];
-  else 
-    return -1;
+  if (index < 0 || index >= mTotalNumberOfSensors) return kFALSE;
+
+  half = index/(mTotalNumberOfSensors/mNumberOfHalves);
+  index = index%(mTotalNumberOfSensors/mNumberOfHalves);
+  disk = 0;
+  while (index > mLastSensorIndex[disk]) {
+    disk++;
+  }
+  index -= getFirstSensorIndex(disk);
+  Int_t nSensor = MinSensorsPerLadder;
+  Int_t nFirstSensorIndex = 0, nFirstSensorIndexSave = 0;
+  ladder = 0;
+  while (index > ((nFirstSensorIndex += nSensor*mNumberOfLadders[disk][nSensor])-1)) {
+    ladder += mNumberOfLadders[disk][nSensor];
+    nFirstSensorIndexSave = nFirstSensorIndex;
+    nSensor++; 
+  }
+  index -= nFirstSensorIndexSave;
+  ladder += index/nSensor;
+  sensor = index%nSensor;
+
+  return kTRUE;
 
 }
 
-//_____________________________________________________________________________
-Int_t GeometryTGeo::getChipLadderID(Int_t index) const
+//__________________________________________________________________________
+Int_t GeometryTGeo::getHalf(Int_t index) const
 {
 
-  if (index >= 0 && index < mNumberOfChips) 
-    return mChipLadderID[index];
-  else 
-    return -1;
+  Int_t half = index/(mTotalNumberOfSensors/mNumberOfHalves);
+
+  return half;
 
 }
 
-//_____________________________________________________________________________
-Int_t GeometryTGeo::getChipSensorID(Int_t index) const
+
+//__________________________________________________________________________
+Int_t GeometryTGeo::getDisk(Int_t index) const
 {
 
-  if (index >= 0 && index < mNumberOfChips) 
-    return mChipSensorID[index];
-  else 
-    return -1;
+  index = index%(mTotalNumberOfSensors/mNumberOfHalves);
+  Int_t disk = 0;
+  while (index > mLastSensorIndex[disk]) {
+    disk++;
+  }
+
+  return disk;
 
 }
 
+//__________________________________________________________________________
+Int_t GeometryTGeo::getLadder(Int_t index) const
+{
+
+  index = index%(mTotalNumberOfSensors/mNumberOfHalves);
+  Int_t disk = 0;
+  while (index > mLastSensorIndex[disk]) {
+    disk++;
+  }
+
+  index -= getFirstSensorIndex(disk);
+
+  Int_t nSensor = MinSensorsPerLadder;
+  Int_t ladder = 0, nFirstSensorIndex = 0, nFirstSensorIndexSave = 0;
+  while (index > ((nFirstSensorIndex += nSensor*mNumberOfLadders[disk][nSensor])-1)) {
+    ladder += mNumberOfLadders[disk][nSensor];
+    nFirstSensorIndexSave = nFirstSensorIndex;
+    nSensor++; 
+  }
+  index -= nFirstSensorIndexSave;
+  ladder += index/nSensor;
+
+  return ladder;
+
+}
+
+//__________________________________________________________________________
+Int_t GeometryTGeo::getSensorIndex(Int_t halfID, Int_t diskID, Int_t ladderID, Int_t sensorID) const
+{
+
+  Int_t index = 0;
+  Int_t ladder = mLadderId2Index[diskID][ladderID];
+
+  Int_t nL = 0;
+  Int_t nS = MinSensorsPerLadder;
+  while (ladder > ((nL += mNumberOfLadders[diskID][nS])-1)) {
+    index += nS*mNumberOfLadders[diskID][nS];
+    nS++;
+  }
+  ladder -= nL-mNumberOfLadders[diskID][nS];
+
+  index += ladder*nS;
+  index += sensorID;
+  index += getFirstSensorIndex(diskID);
+  index += halfID*mTotalNumberOfSensors/2;
+
+  return index;
+
+}

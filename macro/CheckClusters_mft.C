@@ -1,229 +1,155 @@
+/// \file CheckDigits.C
+/// \brief Simple macro to check ITSU clusters
+
 #if !defined(__CINT__) || defined(__MAKECINT__)
 
-#include <sstream>
-
-#include <TStopwatch.h>
-#include <TH2F.h>
-#include <TCanvas.h>
-
-#include "FairLogger.h"
-#include "FairRunAna.h"
-#include "FairFileSource.h"
-#include "FairRuntimeDb.h"
-#include "FairParRootFileIo.h"
-#include "FairSystemInfo.h"
-
-#include <TTreeReader.h>
 #include <TFile.h>
+#include <TTree.h>
 #include <TClonesArray.h>
-
-#include "MFTReconstruction/Cluster.h"
-#include "MFTBase/Geometry.h"
-#include "MFTBase/GeometryTGeo.h"
+#include <TH2F.h>
+#include <TNtuple.h>
+#include <TCanvas.h>
+#include <TString.h>
 
 #include "ITSMFTSimulation/Hit.h"
+#include "DetectorsBase/Utils.h"
+#include "MathUtils/Cartesian3D.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "ITSMFTReconstruction/Cluster.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 #endif
 
-void CheckClusters(Int_t nEvents = 1, Int_t nMuons = 1, std::string mcEngine = "TGeant3") {
+using namespace o2::Base;
+using o2::ITSMFT::Cluster;
 
-  // macro/compare_cluster.C (TPC)
+void CheckClusters(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3") 
+{
 
-  // MFT local X (column) and Y (row)
-  TH2F *hDifLocXcYr = new TH2F("hDifLocXcYr","hDifLocXcYr",100,-50.,+50.,100,-50.,+50.);
-  // Global (ALCIE c.s.) X and Y
-  TH2F *hDifGloXY = new TH2F("hDifGloXY","hDifGloXY",100,-50.,+50.,100,-50.,+50.);
+  using o2::ITSMFT::Hit;
+  using namespace o2::MFT;
 
-  // Input files
+  TH1F *hTrackID = new TH1F("hTrackID","hTrackID",1.1*nMuons+1,-0.5,(nMuons+0.1*nMuons)+0.5);
+  TH2F *hDifLocXrZc = new TH2F("hDifLocXrZc","hDifLocXrZc",100,-50.,+50.,100,-50.,+50.);
 
-  std::string treeName = "cbmsim";
+  TFile *f = TFile::Open("CheckClusters.root","recreate");
+  TNtuple *nt = new TNtuple("ntc","cluster ntuple","x:y:z:dx:dz:lab:rof:ev:hlx:hlz:clx:clz");
 
-  // clusters
+  Char_t filename[100];
 
-  std::string filenameClus = "AliceO2_" + mcEngine + ".clus_" + std::to_string(nEvents) + "ev_" + std::to_string(nMuons) + "mu.root";
-
-  // Output file name
-  char fileout[100];
-  sprintf(fileout, "macro.root");
-  TString outFile = fileout;
-
-  // Parameter file name
-  char filepar[100];
-  sprintf(filepar, "AliceO2_%s.params_%iev_%imu.root", mcEngine.c_str(), nEvents, nMuons);
-  TString parFile = filepar;
-
-  // Setup FairRoot analysis manager
-  FairRunAna * fRun = new FairRunAna();
-  FairFileSource *fFileSource = new FairFileSource(filenameClus);
-  fRun->SetSource(fFileSource);
-  fRun->SetOutputFile(outFile);
-
-  // Setup Runtime DB
-  FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
-  FairParRootFileIo* parInput1 = new FairParRootFileIo();
-  parInput1->open(parFile);
-  rtdb->setFirstInput(parInput1);
-
-  // necessary to create the geometry interface for the MFT
-  fRun->Init();
-
-  // geometry 
-
-  o2::MFT::Geometry *mftGeom = o2::MFT::Geometry::instance();
-  mftGeom->build();
-
-  o2::MFT::GeometryTGeo *mftTGeo = new o2::MFT::GeometryTGeo();
-  mftTGeo->build(kFALSE);
-
-  TFile *fileClus = TFile::Open(filenameClus.c_str());
-  if (fileClus == NULL) {
-    std::cout << "ERROR: Can't open file " << filenameClus << std::endl;
-    return;
-  }
-
-  TTree* treeClus = (TTree*)fileClus->Get(treeName.c_str());
-  if (treeClus == NULL) {
-    std::cout << "ERROR: can't get tree " << treeName << std::endl;
-    return;
-  }
-
-  TTreeReader readClus(treeName.c_str(), fileClus);
-  TTreeReaderValue<TClonesArray> mClusters(readClus, "MFTClusters");
-
-  // MC hits
-
-  std::string filenameHits = "AliceO2_" + mcEngine + ".mc_" + std::to_string(nEvents) + "ev_" + std::to_string(nMuons) + "mu.root";
-
-  TFile *fileHits = TFile::Open(filenameHits.c_str());
-  if (fileHits == NULL) {
-    std::cout << "ERROR: Can't open file " << filenameHits << std::endl;
-    return;
-  }
-
-  TTree* treeHits = (TTree*)fileHits->Get(treeName.c_str());
-  if (treeHits == NULL) {
-    std::cout << "ERROR: can't get tree " << treeName << std::endl;
-    return;
-  }
-
-  TTreeReader readHits(treeName.c_str(), fileHits);
-  TTreeReaderValue<TClonesArray> mHits(readHits, "MFTHits");
-
-  Double_t hitLocMFT[3], hitLocITS[3], hitGlobal[3];
-  memset(hitLocMFT, 0, sizeof(Double_t) * 3);
-  memset(hitLocITS, 0, sizeof(Double_t) * 3);
-  memset(hitGlobal, 0, sizeof(Double_t) * 3);
-  const TGeoHMatrix *matMFTtoITS = mftTGeo->getMatrixMFTtoITS();
-  matMFTtoITS->Print();
-
-  Int_t plane, half;
-  // print transformation matrices
-  /*
-  for (Int_t i = 0; i < 920; i++) {
-    plane = mftTGeo->getChipPlaneID(i);
-    if (plane == 1) {
-      const TGeoHMatrix* m = mftTGeo->getMatrixSensor(i);
-      m->Print();
-      break;
-    }
-  }
-  */
-  //return;
+  // Geometry
+  sprintf(filename, "AliceO2_%s.params_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
+  TFile *file = TFile::Open(filename);
+  gFile->Get("FairGeoParSet");
   
-  // read hits
-  while (readHits.Next()) {
+  auto gman = o2::MFT::GeometryTGeo::Instance();
+  gman->fillMatrixCache( Utils::bit2Mask(TransformType::T2L, TransformType::T2G, TransformType::L2G) ); // request cached transforms
+  
+  // Hits
+  sprintf(filename, "AliceO2_%s.mc_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
+  TFile *file0 = TFile::Open(filename);
+  TTree *hitTree = (TTree*)gFile->Get("o2sim");
+  TClonesArray hitArr("o2::ITSMFT::Hit"), *phitArr(&hitArr);
+  hitTree->SetBranchAddress("MFTHits",&phitArr);
 
-    std::cout << readHits.GetCurrentEntry()+1 << " / " << readHits.GetEntries(false) << std::endl;
+  // Clusters
+  sprintf(filename, "AliceO2_%s.clus_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
+  TFile *file1 = TFile::Open(filename);
+  TTree *clusTree = (TTree*)gFile->Get("o2sim");
+  TClonesArray clusArr("o2::ITSMFT::Cluster"), *pclusArr(&clusArr);
+  clusTree->SetBranchAddress("MFTClusters",&pclusArr);
 
-    int nHits = mHits->GetEntries();
-    std::cout << nHits << " hits" << std::endl;
-    
-    // read clusters
-    readClus.Next();
-    int nClusters = mClusters->GetEntries();
-    std::cout << nClusters << " clusters" << std::endl;
-    
-    // loop hits for event
-    for (int i = 0; i < mHits->GetEntries(); i++) {
+  Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
+  Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
+  Int_t ievC = 0, ievH = 0;
+  Int_t lastReadHitEv = -1;
 
-      o2::ITSMFT::Hit* mHit = dynamic_cast<o2::ITSMFT::Hit*>(mHits->At(i));
+  Int_t nNoise = 0;
 
-      //printf("Hit: %5d  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %10.6f  %5d  %5d \n",i,mHit->GetStartX(),mHit->GetStartY(),mHit->GetStartZ(),mHit->GetX(),mHit->GetY(),mHit->GetZ(),mHit->GetDetectorID(),mHit->GetTrackID());
+  for (ievC = 0; ievC < nevCl; ievC++) {
+    clusTree->GetEvent(ievC);
+    Int_t nc = clusArr.GetEntriesFast();
 
-      hitGlobal[0] = mHit->GetX();
-      hitGlobal[1] = mHit->GetY();
-      hitGlobal[2] = mHit->GetZ();
+    while (nc--) {
 
-      // transform MC hit in local coordinates MFT and ITS
-
-      const TGeoHMatrix* matSensor = mftTGeo->getMatrixSensor(mHit->GetDetectorID());
-      const TGeoHMatrix* matSensorToITS = mftTGeo->getMatrixSensorToITS(mHit->GetDetectorID());
-      //matSensor->Print();
-      //matSensorToITS->Print();
-
-      matSensor->MasterToLocal(hitGlobal,hitLocMFT);
-      //printf("LocMFT:  %10.6f  %10.6f  %10.6f \n",hitLocMFT[0],hitLocMFT[1],hitLocMFT[2]);
-      matSensorToITS->MasterToLocal(hitGlobal,hitLocITS);
-      //printf("LocITS:  %10.6f  %10.6f  %10.6f \n",hitLocITS[0],hitLocITS[1],hitLocITS[2]);
+      // cluster is in tracking coordinates always
+      Cluster *c = static_cast<Cluster*>(clusArr.UncheckedAt(nc));
+      Int_t chipID = c->getSensorID();
       
-      // loop clusters for event and for each hit
-      for (int i = 0; i < mClusters->GetEntries(); i++) {
+      const auto locC = c->getXYZLoc(*gman); // convert from tracking to local frame
+      const auto gloC = c->getXYZGlo(*gman); // convert from tracking to global frame
+      o2::MCCompLabel lab = c->getLabel(0);
 
-	o2::MFT::Cluster* mCluster = dynamic_cast<o2::MFT::Cluster*>(mClusters->At(i));
-
-	//printf("ITS: %5d  %10.6f  %10.6f  %10.6f \n",i,mCluster->getX(),mCluster->getY(),mCluster->getZ());
-	//printf("MFT: %5d  %10.6f  %10.6f  %10.6f \n",i,mCluster->getMFTLocalX(),mCluster->getMFTLocalY(),mCluster->getMFTLocalZ());
-	//printf("Global: %5d  %10.6f  %10.6f  %10.6f  %2d  %2d  %2d \n",i,mCluster->getGlobalX(),mCluster->getGlobalY(),mCluster->getGlobalZ(),mCluster->getNx(),mCluster->getNz(),mCluster->getNPix());
-	
-	if (mCluster->getVolumeId() == mHit->GetDetectorID()) {
-
-	  //printf("Global: %5d  %10.6f  %10.6f  %10.6f  %2d  %2d  %2d  %5d \n",i,mCluster->getGlobalX(),mCluster->getGlobalY(),mCluster->getGlobalZ(),mCluster->getNx(),mCluster->getNz(),mCluster->getNPix(),mCluster->getLabel(0));
-
-	  if (mHit->GetTrackID() == mCluster->getLabel(0)) {
-
-	    hDifLocXcYr->Fill(1.e+4*(mCluster->getMFTLocalX()-hitLocMFT[0]),
-			      1.e+4*(mCluster->getMFTLocalY()-hitLocMFT[1]));
-	    
-	    hDifGloXY->Fill(1.e+4*(mCluster->getGlobalX()-hitGlobal[0]),
-			    1.e+4*(mCluster->getGlobalY()-hitGlobal[1]));
-
-	  } // select MC label
-
-	} // select sensor
+      Float_t dx = 0, dz = 0;
+      Int_t trID = lab.getTrackID();
+      Int_t ievH = lab.getEventID();
       
-      } // end loop clusters
-      
-    } // end loop hits
-    
-  } // end loop events
+      Point3D<Float_t> locH,locHsta;
 
-  // read all clusters
-  /*
-  while (readClus.Next()) {
-    
-    std::cout << readClus.GetCurrentEntry()+1 << " / " << readClus.GetEntries(false) << std::endl;
-    int nClusters = mClusters->GetEntries();
-    std::cout << nClusters << " clusters" << std::endl;
-    for (int i = 0; i < mClusters->GetEntries(); i++) {
-      o2::MFT::Cluster* mCluster = dynamic_cast<o2::MFT::Cluster*>(mClusters->At(i));
-      //printf("ITS: %5d  %10.6f  %10.6f  %10.6f \n",i,mCluster->getX(),mCluster->getY(),mCluster->getZ());
-      //printf("MFT: %5d  %10.6f  %10.6f  %10.6f \n",i,mCluster->getMFTLocalX(),mCluster->getMFTLocalY(),mCluster->getMFTLocalZ());
-      //printf("Global: %5d  %10.6f  %10.6f  %10.6f  %2d  %2d  %2d \n",i,mCluster->getGlobalX(),mCluster->getGlobalY(),mCluster->getGlobalZ(),mCluster->getNx(),mCluster->getNz(),mCluster->getNPix());
-      
-    }
-    
-  }
-  */
-  fileClus->Close();
-  fileHits->Close();
+      if (trID >= 0) { // is this cluster from hit or noise ?  
 
-  TCanvas *c1 = new TCanvas("c1","hDifXcYr",50,50,800,400);
-  c1->Divide(2,1);
-  c1->cd(1);
-  hDifGloXY->Draw("COL2");
-  c1->cd(2);
-  hDifLocXcYr->Draw("COL2");
+	Hit* p = nullptr;
+	if (lastReadHitEv != ievH) {
+	  hitTree->GetEvent(ievH);
+	  lastReadHitEv = ievH;
+	}
+
+	Int_t nh = hitArr.GetEntriesFast();
+
+	for (Int_t i = 0; i < nh; i++) {
+
+	  Hit* ptmp = static_cast<Hit*>(hitArr.UncheckedAt(i));
+	  if (ptmp->GetDetectorID() != (Short_t)chipID) continue; 
+	  if (ptmp->GetTrackID() != (Int_t)trID) continue;
+	  hTrackID->Fill((Float_t)ptmp->GetTrackID());
+	  p = ptmp;
+	  break;
+
+	} // hits
+
+	if (!p) {
+	  printf("did not find hit (scanned HitEvs %d %d) for cluster of tr%d on chip %d\n",ievH,nevH,trID,chipID);
+	  locH.SetXYZ(0.f,0.f,0.f);
+	} else {
+	  // mean local position of the hit
+	  locH    = gman->getMatrixL2G(chipID)^( p->GetPos() );  // inverse conversion from global to local
+	  locHsta = gman->getMatrixL2G(chipID)^( p->GetPosStart() );
+	  locH.SetXYZ( 0.5*(locH.X()+locHsta.X()),0.5*(locH.Y()+locHsta.Y()),0.5*(locH.Z()+locHsta.Z()) );
+	  //std::cout << "chip "<< p->GetDetectorID() << "  PposGlo " << p->GetPos() << std::endl;
+	  //std::cout << "chip "<< c->getSensorID() << "  PposLoc " << locH << std::endl;
+	  dx = locH.X()-locC.X();
+	  dz = locH.Z()-locC.Z();
+	  hDifLocXrZc->Fill(1.e4*dx,1.e4*dz);
+	}
+
+      } else {
+	nNoise++;
+      } // not noise
+
+      nt->Fill(gloC.X(),gloC.Y(),gloC.Z(), dx, dz, trID, c->getROFrame(), ievC,
+	       locH.X(),locH.Z(), locC.X(),locC.Z());
+
+    } //clusters
+
+  } // events
+
+  printf("nt has %lld entries\n",nt->GetEntriesFast());
+
+  TCanvas *c1 = new TCanvas("c1","hTrackID",50,50,600,600);
+  hTrackID->Scale(1./(Float_t)nEvents);
+  hTrackID->SetMinimum(0.);
+  hTrackID->DrawCopy();
+
+  TCanvas *c2 = new TCanvas("c2","hDifLocXrZc",50,50,600,600);
+  hDifLocXrZc->DrawCopy("COL2");
+
+  new TCanvas; nt->Draw("y:x");
+  new TCanvas; nt->Draw("dx:dz");
+  f->cd();
+  nt->Write();
+  hTrackID->Write();
+  f->Close();
+
+  printf("noise clusters %d \n",nNoise);
 
 }
-
-

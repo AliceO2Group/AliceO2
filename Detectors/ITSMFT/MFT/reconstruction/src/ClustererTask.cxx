@@ -18,28 +18,27 @@
 #include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
 #include "MFTSimulation/EventHeader.h"
-#include "MFTReconstruction/Cluster.h"
-#include "MFTReconstruction/ClusterizerTask.h"
+#include "MFTReconstruction/ClustererTask.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
 #include "TClonesArray.h"
 
+ClassImp(o2::MFT::ClustererTask)
+
 using o2::ITSMFT::SegmentationPixel;
 using namespace o2::MFT;
-
-ClassImp(o2::MFT::ClusterizerTask)
+using namespace o2::Base;
+using namespace o2::Base::Utils;
 
 //_____________________________________________________________________________
-ClusterizerTask::ClusterizerTask() 
-: FairTask("MFTClusterizerTask"), 
-  mClustersArray(nullptr)
+ClustererTask::ClustererTask() : FairTask("MFTClustererTask")
 {
 
 }
 
 //_____________________________________________________________________________
-ClusterizerTask::~ClusterizerTask()
+ClustererTask::~ClustererTask()
 {
 
   if (mClustersArray) {
@@ -50,7 +49,7 @@ ClusterizerTask::~ClusterizerTask()
 }
 
 //_____________________________________________________________________________
-InitStatus ClusterizerTask::Init()
+InitStatus ClustererTask::Init()
 {
 
   FairRootManager* mgr = FairRootManager::Instance();
@@ -67,29 +66,33 @@ InitStatus ClusterizerTask::Init()
   mReader.setDigitArray(arr);
 
   // Register output container
-  mClustersArray = new TClonesArray("o2::MFT::Cluster");
+  mClustersArray = new TClonesArray("o2::ITSMFT::Cluster");
   mgr->Register("MFTClusters", "MFT", mClustersArray, kTRUE);
 
-  mGeometry.build(kTRUE);
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
+  mGeometry = geom;
+  mClusterer.setGeometry(geom);
+
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
 
   Float_t px = seg->cellSizeX();
   Float_t pz = seg->cellSizeZ(1);  //FIXME
   Float_t x0,z0; seg->detectorToLocal(0,0,x0,z0);
-  mClusterizer.setPixelGeometry(px,pz,x0,z0);
+  mClusterer.setPixelGeometry(px,pz,x0,z0);
 
   return kSUCCESS;
 
 }
 
 //_____________________________________________________________________________
-void ClusterizerTask::Exec(Option_t* /*opt*/) 
+void ClustererTask::Exec(Option_t* /*opt*/) 
 {
 
   mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  mClusterizer.process(mReader, *mClustersArray, &mGeometry);
+  mClusterer.process(mReader, *mClustersArray);
 
 }
 

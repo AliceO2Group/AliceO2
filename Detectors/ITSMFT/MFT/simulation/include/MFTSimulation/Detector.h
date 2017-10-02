@@ -13,8 +13,8 @@
 /// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
 /// \date 01/08/2016
 
-#ifndef ALICEO2_MFT_DETECTOR_H_
-#define ALICEO2_MFT_DETECTOR_H_
+#ifndef ALICEO2_MFT_DETECTOR_H
+#define ALICEO2_MFT_DETECTOR_H
 
 #include "TLorentzVector.h"
 
@@ -23,8 +23,9 @@
 class TClonesArray;
 class TVector3;
 
-namespace o2 { namespace MFT { class GeometryTGeo; } }
 namespace o2 { namespace ITSMFT { class Hit; } }
+
+namespace o2 { namespace MFT { class GeometryTGeo; } }
 
 namespace o2 {
 namespace MFT {
@@ -71,8 +72,6 @@ public:
 
   Int_t isVersion() const { return mVersion; }
 
-  GeometryTGeo* getGeometryTGeo() const { return mGeometryTGeo; }
-  
   /// Creating materials for the detector
 
   void createMaterials();
@@ -87,10 +86,11 @@ public:
   void createGeometry();
   void defineSensitiveVolumes();
 
+  GeometryTGeo *mGeometryTGeo;     //! access to geometry details
+
 protected:
 
   Int_t mVersion;                  //
-  GeometryTGeo *mGeometryTGeo;     //!
   Double_t mDensitySupportOverSi;  //
   TClonesArray *mHits;             //!
  

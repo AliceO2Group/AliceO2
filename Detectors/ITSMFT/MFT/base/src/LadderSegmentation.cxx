@@ -48,7 +48,7 @@ LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
 
   Geometry * mftGeom = Geometry::instance();
   
-  SetName(Form("%s_%d_%d_%d",GeometryTGeo::getLadderName(),
+  SetName(Form("%s_%d_%d_%d",GeometryTGeo::getMFTLadderPattern(),
                mftGeom->getHalfID(GetUniqueID()),
                mftGeom->getDiskID(GetUniqueID()),
                mftGeom->getLadderID(GetUniqueID()) ));

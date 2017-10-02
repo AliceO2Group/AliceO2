@@ -1,5 +1,6 @@
 void load_all_libs()
 {
+
    gSystem->Load("libDetectorsBase");
    gSystem->Load("libDetectorsPassive");
    gSystem->Load("libExampleModule1");
@@ -9,15 +10,19 @@ void load_all_libs()
    gSystem->Load("libGenerators");
    gSystem->Load("libHeaders");
    gSystem->Load("libHitAnalysis");
+
+   gSystem->Load("libITSMFTBase");
+   gSystem->Load("libITSMFTSimulation");
+   gSystem->Load("libITSMFTReconstruction");
+
    gSystem->Load("libITSBase");
    gSystem->Load("libITSReconstruction");
    gSystem->Load("libITSSimulation");
+
    gSystem->Load("libMFTBase");
-   gSystem->Load("libMFTReconstruction");
    gSystem->Load("libMFTSimulation");
-   gSystem->Load("libITSMFTBase");
-   gSystem->Load("libITSMFTReconstruction");
-   gSystem->Load("libITSMFTSimulation");
+   gSystem->Load("libMFTReconstruction");
+
    gSystem->Load("libMathUtils");
    gSystem->Load("libO2Device");
    gSystem->Load("libQCMerger");
@@ -25,10 +30,10 @@ void load_all_libs()
    gSystem->Load("libQCProducer");
    gSystem->Load("libQCViewer");
    gSystem->Load("libSimulationDataFormat");
-   gSystem->Load("libTPCBase");
-   gSystem->Load("libTPCSimulation");
-   gSystem->Load("libaliceHLTwrapper");
    gSystem->Load("libflp2epn");
+
    cout << endl << endl;
+
    cout << "Macro finished succesfully." << endl;
+
  }

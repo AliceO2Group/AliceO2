@@ -54,7 +54,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
   
   Geometry * mftGeom = Geometry::instance();
   
-  SetName(Form("%s_%d_%d",GeometryTGeo::getDiskName(),mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()) ));
+  SetName(Form("%s_%d_%d",GeometryTGeo::getMFTDiskPattern(),mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()) ));
   
   mLadders  = new TClonesArray("o2::MFT::LadderSegmentation");
   mLadders -> SetOwner(kTRUE);
