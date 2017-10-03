@@ -119,7 +119,7 @@ public:
   }
   
   GPUd() int PropagateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float& ex1i, float trDzDs2);
-  GPUd() int UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2, bool rejectChi2);
+  GPUd() int UpdateTrack( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, int& N, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2, bool rejectChi2);
   
   GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* rowType, float* alpha, const AliHLTTPCCAParam& param);
 

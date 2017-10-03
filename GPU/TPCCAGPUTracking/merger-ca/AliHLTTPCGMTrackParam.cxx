@@ -68,7 +68,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       if (first == 0)
       {
         bool rejectThisRound = nWays == 1 || iWay == 1;
-        int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, dL, ex1i, trDzDs2, rejectThisRound);
+        int retVal = UpdateTrack( y[ihit], z[ihit], rowType[ihit], param, N, maxSinPhi, par, dL, ex1i, trDzDs2, rejectThisRound);
         if (retVal == 0) {}
         else if (retVal == 2)
         {
@@ -253,7 +253,7 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz, float
     return 0;
 }
 
-GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2, bool rejectChi2)
+GPUd() int AliHLTTPCGMTrackParam::UpdateTrack( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, int& N, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2, bool rejectChi2)
 {
 	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 2;
 	
@@ -320,7 +320,7 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;
     fChi2  += mS0*z0*z0;
     fChi2  +=  mS2*z1*z1;
-    if (fChi2 / (N + 1) > 5) return 1;
+    if (fChi2 / ((fNDF+5)/2 + 1) > 5) return 1;
     if( fabs( fP[2] + z0*c20*mS0  ) > maxSinPhi ) return 1;
     
     // MS block
