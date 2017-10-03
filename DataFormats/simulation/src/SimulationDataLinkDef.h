@@ -46,4 +46,12 @@
 #pragma link C++ class std::vector<o2::TrackReference>+;
 #pragma link C++ class o2::dataformats::MCTruthContainer<o2::TrackReference>+;
 
+#pragma link C++ class o2::dataformats::MCEventHeader + ;
+#pragma link C++ class std::vector < GeneratorHeader* > ;
+#pragma link C++ class o2::dataformats::GeneratorHeader + ;
+#pragma link C++ class std::map < std::string, GeneratorInfo* > +;
+#pragma link C++ class o2::dataformats::GeneratorInfo + ;
+#pragma link C++ class o2::dataformats::HeavyIonInfo + ;
+#pragma link C++ class o2::dataformats::CrossSectionInfo + ;
+
 #endif
