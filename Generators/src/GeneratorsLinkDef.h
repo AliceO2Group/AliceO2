@@ -30,5 +30,6 @@
 #pragma link C++ class  o2::eventgen::Pythia8Generator+;
 #pragma link C++ class  o2::eventgen::GeneratorFromFile+;
 #pragma link C++ class o2::PDG + ;
+#pragma link C++ class o2::eventgen::PrimaryGenerator + ;
 
 #endif
