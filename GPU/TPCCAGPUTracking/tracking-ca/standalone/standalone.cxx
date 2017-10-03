@@ -239,7 +239,9 @@ int main(int argc, char** argv)
 			}
 			delete[] eventUsed;
 			printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
+#ifdef BUILD_QA
 			//SetMCTrackRange(mcMin, mcMax);
+#endif
 		}
 		else
 		{
