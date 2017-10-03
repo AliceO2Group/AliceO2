@@ -99,11 +99,11 @@ GPUd() inline AliHLTTPCGMPhysicalTrackModel::AliHLTTPCGMPhysicalTrackModel( cons
   fY = t.GetY();
   fZ = t.GetZ();
 
-  fPt = 1.f/pti;  
+  fPt = 1./pti;  
   fSinPhi = t.GetSinPhi();
   if( fSinPhi >  .999f ) fSinPhi = .999f;
   if( fSinPhi < -.999f ) fSinPhi = -.999f;
-  fCosPhi = sqrt( 1.f - fSinPhi*fSinPhi );  
+  fCosPhi = sqrt( (1. - fSinPhi)*(1.+fSinPhi) );  
   fSecPhi = 1./fCosPhi;
   fDzDs = t.GetDzDs();
   fDlDs = sqrt(1.f+fDzDs*fDzDs);
@@ -126,13 +126,13 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( float X, float Y, float Z
 
 GPUd() inline void AliHLTTPCGMPhysicalTrackModel::UpdateValues()
 {
-  if( fPx<0 ){ // should not happen, change direction of the movenment
+  if( fPx<0.f ){ // should not happen, change direction of the movenment
     fPx = -fPx;
     fPy = -fPy;
     fPz = -fPz;
     fQ = -fQ;
   }
-  if( fPx<1.e-8 ) fPx = 1.e-8;  
+  if( fPx<1.e-8f ) fPx = 1.e-8f;  
   fPt = sqrt( fPx*fPx + fPy*fPy );
   float pti = 1.f/fPt;
   fP = sqrt(fPx*fPx + fPy*fPy + fPz*fPz );

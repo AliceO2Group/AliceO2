@@ -547,8 +547,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 				etrack.Propagate(alpha, x, bz);
 				int rowType = padrow < 64 ? 0 : (padrow < 128 ? 2 : 1);
-				float fdL = 0;
-				float fex1i = 0;
+				float fdL = 0;				
 				if (ip == 0)
 				{
 					ftrack.Par()[0] = xyz[1];
@@ -567,12 +566,12 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 					ftrack.CalculateFitParameters(fpar, kRhoOverRadLen, kRho, 0);
 
 					int fakeN;
-					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), falpha, rowType, *fSliceParam, fakeN, falpha, .999, 0, 1, fpar, ft0, fdL, fex1i, ftrDzDs2);
+					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), falpha, rowType, *fSliceParam, fakeN, falpha, .999, 0, 1, fpar, ft0, fdL, ftrDzDs2);
 				}
 				else
 				{
 					int fakeN;
-					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), alpha, rowType, *fSliceParam, fakeN, falpha, .999, 0, 0, fpar, ft0, fdL, fex1i, ftrDzDs2);
+					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), alpha, rowType, *fSliceParam, fakeN, falpha, .999, 0, 0, fpar, ft0, fdL, ftrDzDs2);
 				}
 
 				nClusterTracks++;
@@ -641,7 +640,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				if (ip != 0)
 				{
 					int fakeN;
-					ftrack.UpdateTrack(xyz[1], xyz[2], rowType, *fSliceParam, fakeN, .999, fpar, fdL, fex1i, ftrDzDs2, false);
+					ftrack.UpdateTrack(xyz[1], xyz[2], rowType, *fSliceParam, fakeN, .999, fpar, fdL, ft0.SecPhi(), ftrDzDs2, false);
 				}
 			}
 			if (hitsUsed)
