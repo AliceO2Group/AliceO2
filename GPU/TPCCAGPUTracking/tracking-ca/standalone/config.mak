@@ -36,6 +36,7 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAGPUTracker.cxx \
 								merger-ca/AliHLTTPCGMMerger.cxx \
 								merger-ca/AliHLTTPCGMSliceTrack.cxx \
+								merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx \
 								merger-ca/AliHLTTPCGMTrackParam.cxx \
 								standalone/AliHLTLogging.cxx
 
