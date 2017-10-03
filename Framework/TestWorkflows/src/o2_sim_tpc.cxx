@@ -92,7 +92,7 @@ DataProcessorSpec sim_tpc() {
         run->SetField(magField);
 
         // ===| Add TPC |============================================================
-        o2::TPC::Detector* tpc = new o2::TPC::Detector("TPC", kTRUE);
+        o2::TPC::Detector* tpc = new o2::TPC::Detector(kTRUE);
         tpc->SetGeoFileName("TPCGeometry.root");
         run->AddModule(tpc);
 

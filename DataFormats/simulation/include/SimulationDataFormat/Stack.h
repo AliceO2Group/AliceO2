@@ -15,8 +15,6 @@
 #ifndef ALICEO2_DATA_STACK_H_
 #define ALICEO2_DATA_STACK_H_
 
-#include "SimulationDataFormat/DetectorList.h"
-
 #include "FairGenericStack.h"
 
 #include "Rtypes.h"
@@ -183,12 +181,12 @@ class Stack : public FairGenericStack
     /// Increment number of points for the current track in a given detector
     /// \param iDet  Detector unique identifier
 
-    void AddPoint(DetectorId iDet);
+    void AddPoint(int iDet);
 
     /// Increment number of points for an arbitrary track in a given detector
     /// \param iDet    Detector unique identifier
     /// \param iTrack  Track number
-    void AddPoint(DetectorId iDet, Int_t iTrack);
+    void AddPoint(int iDet, Int_t iTrack);
 
     /// Accessors
     TParticle *GetParticle(Int_t trackId) const;

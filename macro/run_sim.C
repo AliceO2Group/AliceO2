@@ -85,7 +85,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
 //  TGeoGlobalMagField::Instance()->SetField(new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagneticField::k5kG));
 
 /*
-  o2::ITS::Detector* its = new o2::ITS::Detector("ITS", kTRUE, 7);
+  o2::ITS::Detector* its = new o2::ITS::Detector(kTRUE);
   run->AddModule(its);
 
   // build ITS upgrade detector
@@ -183,7 +183,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   }
 */
   // ===| Add TPC |============================================================
-  o2::TPC::Detector* tpc = new o2::TPC::Detector("TPC", kTRUE);
+  o2::TPC::Detector* tpc = new o2::TPC::Detector(kTRUE);
   //tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

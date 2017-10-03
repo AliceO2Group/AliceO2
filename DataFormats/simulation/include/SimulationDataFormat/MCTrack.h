@@ -21,8 +21,6 @@
 #include "TMath.h"
 #include "TVector3.h"
 
-#include "SimulationDataFormat/DetectorList.h"
-
 class TParticle;
 
 /// Data class for storing Monte Carlo tracks processed by the Stack.
@@ -123,7 +121,7 @@ class MCTrack : public TObject
     void GetStartVertex(TVector3 &vertex);
 
     /// Accessors to the number of MCPoints in the detectors
-    Int_t getNumberOfPoints(DetectorId detId) const;
+    Int_t getNumberOfPoints(int detId) const;
 
     ///  Modifiers
     void SetMotherTrackId(Int_t id)

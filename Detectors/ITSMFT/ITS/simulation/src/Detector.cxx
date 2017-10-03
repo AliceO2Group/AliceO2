@@ -19,7 +19,6 @@
 
 #include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
 
-#include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
 
 //FairRoot includes
@@ -53,7 +52,7 @@ using o2::ITSMFT::Hit;
 using namespace o2::ITS;
 
 Detector::Detector()
-  : o2::Base::Detector("ITS", kTRUE, kAliIts),
+  : o2::Base::Detector("ITS", kTRUE),
     mLayerID(nullptr),
     mNumberLayers(),
     mTrackData(),
@@ -200,8 +199,8 @@ static void configITS(Detector *its) {
   delete seg0;
 }
 
-Detector::Detector(const char *name, Bool_t active)
-  : o2::Base::Detector(name, active, kAliIts),
+Detector::Detector(Bool_t active)
+  : o2::Base::Detector("ITS", active),
     mLayerID(nullptr),
     mNumberLayers(7),
     mLayerName(new TString[mNumberLayers]),
@@ -543,7 +542,7 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle
     o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-    stack->AddPoint(kAliIts);
+    stack->AddPoint(GetDetId());
   }
   
   return kTRUE;
@@ -734,9 +733,8 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->Register("ITSHit", "ITS", mHitCollection, kTRUE);
-  }
+  FairGenericRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mHitCollection, kTRUE);
+
 }
 
 TClonesArray *Detector::GetCollection(Int_t iColl) const

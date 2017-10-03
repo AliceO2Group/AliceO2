@@ -51,7 +51,7 @@ class Detector : public o2::Base::Detector
 
   Detector() = default;
 
-  Detector(const char* Name, Bool_t Active);
+  Detector(Bool_t active);
 
   ~Detector() override = default;
 

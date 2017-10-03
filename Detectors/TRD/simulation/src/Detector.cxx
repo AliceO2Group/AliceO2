@@ -17,11 +17,12 @@
 #include "TClonesArray.h"
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
+#include "SimulationDataFormat/Stack.h"
 
 using namespace o2::trd;
 
-Detector::Detector(const char* Name, bool Active)
-  : o2::Base::Detector(Name, Active), 
+Detector::Detector(Bool_t active)
+  : o2::Base::Detector("TRD", active), 
     mHitCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<HitType>().c_str()))
 {
 }
@@ -48,14 +49,19 @@ bool Detector::ProcessHits(FairVolume* v)
 
   float enDep = vmc->Edep();
   float time = vmc->TrackTime() * 1.0e09;
-  auto trackID = vmc->GetStack()->GetCurrentTrackNumber();
-  auto detID = v->getMCid();
-  addHit((float)x, (float)y, (float)z, time, enDep, trackID, detID);
+  auto stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+  auto trackID = stack->GetCurrentTrackNumber();
+  auto sensID = v->getMCid();
+  addHit((float)x, (float)y, (float)z, time, enDep, trackID, sensID);
+  stack->AddPoint(GetDetId());
 
   return true;
 }
 
-void Detector::Register() { FairRootManager::Instance()->Register("TRDHit", "TRD", mHitCollection, true); }
+void Detector::Register()
+{
+  FairRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mHitCollection, true);
+}
 
 TClonesArray* Detector::GetCollection(int iColl) const
 {

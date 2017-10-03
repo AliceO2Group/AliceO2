@@ -12,6 +12,7 @@
 /// \brief Implementation of the Detector class
 
 #include "DetectorsBase/Detector.h"
+#include "DetectorsBase/DetID.h"
 #include "Field/MagneticField.h"
 #include <TVirtualMC.h>  // for TVirtualMC, gMC
 #include "TString.h"     // for TString
@@ -33,8 +34,8 @@ Detector::Detector()
 {
 }
 
-Detector::Detector(const char *name, Bool_t Active, Int_t DetId)
-  : FairDetector(name, Active, DetId),
+Detector::Detector(const char* name, Bool_t Active)
+  : FairDetector(name, Active, DetID(name)),
     mMapMaterial(),
     mMapMedium()
 {

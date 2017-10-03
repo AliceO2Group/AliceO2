@@ -92,7 +92,7 @@ DataProcessorSpec sim_its_ALP3() {
         o2::field::MagneticField field("field","field +5kG");
         run->SetField(&field);
 
-        o2::ITS::Detector* its = new o2::ITS::Detector("ITS", kTRUE);
+        o2::ITS::Detector* its = new o2::ITS::Detector(kTRUE);
         run->AddModule(its);
 
         // Create PrimaryGenerator

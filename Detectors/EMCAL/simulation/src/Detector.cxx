@@ -35,8 +35,8 @@ using namespace o2::EMCAL;
 
 ClassImp(Detector);
 
-Detector::Detector(const char* Name, Bool_t Active)
-  : o2::Base::Detector(Name, Active),
+Detector::Detector(Bool_t active)
+  : o2::Base::Detector("EMC", active),
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
@@ -161,8 +161,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     mCurrentHit =
       AddHit(partID, parent, 0, estart, detID, Point3D<float>(float(posX), float(posY), float(posZ)),
              Vector3D<float>(float(momX), float(momY), float(momZ)), time, lightyield);
+    static_cast<o2::Data::Stack*>(mcapp->GetStack())->AddPoint(GetDetId());
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
+    
   } else {
     // std::cout << "Adding energy to the current hit\n";
     mCurrentHit->SetEnergyLoss(mCurrentHit->GetEnergyLoss() + lightyield);
@@ -207,7 +209,10 @@ Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklen
   return energydeposit / (1. + birkC1Mod * dedxcm + mBirkC2 * dedxcm * dedxcm);
 }
 
-void Detector::Register() { FairRootManager::Instance()->Register("EMCALHit", "EMCAL", mPointCollection, kTRUE); }
+void Detector::Register()
+{
+  FairRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mPointCollection, kTRUE);
+}
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {

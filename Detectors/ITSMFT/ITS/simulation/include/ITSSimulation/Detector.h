@@ -15,6 +15,7 @@
 #define ALICEO2_ITS_DETECTOR_H_
 
 #include "DetectorsBase/Detector.h"   // for Detector
+#include "DetectorsBase/DetID.h"   // for Detector
 #include "Rtypes.h"          // for Int_t, Double_t, Float_t, Bool_t, etc
 #include "TArrayD.h"         // for TArrayD
 #include "TGeoManager.h"     // for gGeoManager, TGeoManager (ptr only)
@@ -64,7 +65,7 @@ class Detector : public o2::Base::Detector
     /// Name : Detector Name
     /// Active: kTRUE for active detectors (ProcessHits() will be called)
     ///         kFALSE for inactive detectors
-    Detector(const char *Name, Bool_t Active);
+    Detector(Bool_t active);
 
     /// Default constructor
     Detector();

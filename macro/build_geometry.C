@@ -122,31 +122,31 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("TOF")){
     // TOF
-    auto tof = new o2::tof::Detector("TOF", true);
+    auto tof = new o2::tof::Detector(true);
     run->AddModule(tof);
   }
 
   if (isActivated("TRD")) {
     // TRD
-    auto trd = new o2::trd::Detector("TRD", true);
+    auto trd = new o2::trd::Detector(true);
     run->AddModule(trd);
   }
 
   if (isActivated("TPC")){
     // tpc
-    auto tpc = new o2::TPC::Detector("TPC", true);
+    auto tpc = new o2::TPC::Detector(true);
     run->AddModule(tpc);
   }
 
   if (isActivated("ITS")){
     // its
-    auto its = new o2::ITS::Detector("ITS", true);
+    auto its = new o2::ITS::Detector(true);
     run->AddModule(its);
   }
   
-  if (isActivated("EMCAL")){
+  if (isActivated("EMC")){
     // emcal
-    run->AddModule(new o2::EMCAL::Detector("EMCAL", true));
+    run->AddModule(new o2::EMCAL::Detector(true));
   }
    
   if (geomonly) {
