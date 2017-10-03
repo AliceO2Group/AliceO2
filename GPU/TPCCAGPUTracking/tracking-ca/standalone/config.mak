@@ -1,3 +1,6 @@
+config_options.mak:
+						cp config_options.sample config_options.mak
+
 include						config_options.mak
 include						config_common.mak
 
