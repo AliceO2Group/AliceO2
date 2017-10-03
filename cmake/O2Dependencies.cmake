@@ -376,10 +376,12 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     common_math_bucket
+    detectors_base_bucket
     RIO
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${MS_GSL_INCLUDE_DIR}
 )
 

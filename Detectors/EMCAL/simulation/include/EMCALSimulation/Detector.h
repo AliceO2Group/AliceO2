@@ -48,9 +48,9 @@ class Detector : public o2::Base::Detector
   ///
   /// Main constructor
   ///
-  /// \param[in] name Name of the detector (EMCAL)
+  /// \param[in] name Name of the detector (EMC)
   /// \param[in] isActive Switch whether detector is active in simulation
-  Detector(const char* name, Bool_t isActive);
+  Detector(Bool_t isActive);
 
   ///
   /// Destructor

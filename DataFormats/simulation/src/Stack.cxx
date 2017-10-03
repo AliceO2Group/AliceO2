@@ -12,6 +12,7 @@
 /// \brief Implementation of the Stack class
 /// \author M. Al-Turany - June 2014
 
+#include "DetectorsBase/DetID.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/MCTrack.h"
 
@@ -265,7 +266,7 @@ void Stack::FillTrackArray()
       auto *track = new((*mTracks)[mNumberOfEntriesInTracks]) MCTrack(GetParticle(iPart));
       mIndexMap[iPart] = mNumberOfEntriesInTracks;
       // Set the number of points in the detectors for this track
-      for (Int_t iDet = kAliIts; iDet < kSTOPHERE; iDet++) {
+      for (Int_t iDet = o2::Base::DetID::First; iDet < o2::Base::DetID::nDetectors; iDet++) {
         pair<Int_t, Int_t> a(iPart, iDet);
         track->setNumberOfPoints(iDet, mPointsMap[a]);
       }
@@ -388,9 +389,8 @@ void Stack::Print(Option_t* option) const
   Print(verbose);
 }
 
-void Stack::AddPoint(DetectorId detId)
+void Stack::AddPoint(int iDet)
 {
-  Int_t iDet = detId;
   // cout << "Add point for Detektor" << iDet << endl;
   pair<Int_t, Int_t> a(mIndexOfCurrentTrack, iDet);
   if (mPointsMap.find(a) == mPointsMap.end()) {
@@ -400,12 +400,11 @@ void Stack::AddPoint(DetectorId detId)
   }
 }
 
-void Stack::AddPoint(DetectorId detId, Int_t iTrack)
+void Stack::AddPoint(int iDet, Int_t iTrack)
 {
   if (iTrack < 0) {
     return;
   }
-  Int_t iDet = detId;
   pair<Int_t, Int_t> a(iTrack, iDet);
   if (mPointsMap.find(a) == mPointsMap.end()) {
     mPointsMap[a] = 1;
@@ -460,7 +459,7 @@ void Stack::SelectTracks()
 
     // Calculate number of points
     Int_t nPoints = 0;
-    for (Int_t iDet = kAliIts; iDet < kSTOPHERE; iDet++) {
+    for (Int_t iDet = o2::Base::DetID::First; iDet < o2::Base::DetID::nDetectors; iDet++) {
       pair<Int_t, Int_t> a(i, iDet);
       if (mPointsMap.find(a) != mPointsMap.end()) {
         nPoints += mPointsMap[a];

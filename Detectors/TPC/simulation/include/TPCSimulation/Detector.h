@@ -40,7 +40,7 @@ class Detector: public o2::Base::Detector {
      *       Active: kTRUE for active detectors (ProcessHits() will be called)
      *               kFALSE for inactive detectors
     */
-    Detector(const char* Name, Bool_t Active);
+    Detector(Bool_t Active);
 
     /**      default constructor    */
     Detector();

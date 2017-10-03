@@ -103,7 +103,7 @@ Double_t MCTrack::GetRapidity() const
   return y;
 }
 
-Int_t MCTrack::getNumberOfPoints(DetectorId detId) const
+Int_t MCTrack::getNumberOfPoints(int detId) const
 {
   //   // TODO: Where does this come from
   // if      ( detId == kREF  ) { return (  mNumberOfPoints &   1); }

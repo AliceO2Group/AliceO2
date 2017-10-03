@@ -34,7 +34,7 @@ void PutFrameInTop() {
   o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame","Frame");
   run->AddModule(frame);
 
-  auto *trd = new o2::trd::Detector("TRD",true);
+  auto *trd = new o2::trd::Detector(true);
   run->AddModule(trd);
 
   run->Init();

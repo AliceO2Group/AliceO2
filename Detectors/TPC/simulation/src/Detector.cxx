@@ -12,7 +12,6 @@
 #include "TPCSimulation/Point.h"
 #include "TPCBase/ParameterGas.h"
 
-#include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
 
 #include "FairVolume.h"         // for FairVolume
@@ -64,7 +63,7 @@ using namespace o2::TPC;
 
 
 Detector::Detector()
-  : o2::Base::Detector("TPC", kTRUE, kAliTpc),
+  : o2::Base::Detector("TPC", kTRUE),
     mSimulationType(SimulationType::Other),
     mPointCollection(new TClonesArray("o2::TPC::Point")),
     mHitGroupCollection(new TClonesArray("o2::TPC::LinkableHitGroup")),
@@ -77,8 +76,8 @@ Detector::Detector()
   }
 }
 
-Detector::Detector(const char* name, Bool_t active)
-  : o2::Base::Detector(name, active, kAliTpc),
+Detector::Detector(Bool_t active)
+  : o2::Base::Detector("TPC", active),
     mSimulationType(SimulationType::Other),
     mPointCollection(new TClonesArray("o2::TPC::Point")),
     mHitGroupCollection(new TClonesArray("o2::TPC::LinkableHitGroup")),
@@ -336,7 +335,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   
   // Increment number of Detector det points in TParticle
   o2::Data::Stack* stack = (o2::Data::Stack*)refMC->GetStack();
-  stack->AddPoint(kAliTpc);
+  stack->AddPoint(GetDetId());
   
   return kTRUE;
 }
@@ -362,14 +361,14 @@ void Detector::Register()
   */
   auto *mgr=FairRootManager::Instance();
 #ifdef TPC_GROUPED_HITS
-  mgr->Register("TPCGroupedHits", "TPC", mHitGroupCollection, kTRUE);
+  mgr->Register(addNameTo("GroupedHits").data(), GetName(), mHitGroupCollection, kTRUE);
   for (int i=0;i<Sector::MAXSECTOR;++i) {
     TString name;
-    name.Form("TPCHitsSector%d", i);
-    mgr->Register(name.Data(), "TPC", mHitsPerSectorCollection[i], kTRUE);
+    name.Form("%sHitsSector%d", GetName(), i);
+    mgr->Register(name.Data(), GetName(), mHitsPerSectorCollection[i], kTRUE);
   }
 #else
-  mgr->Register("TPCPoint", "TPC", mPointCollection, kTRUE);
+  mgr->Register(addNameTo("Point").data(), GetName(), mPointCollection, kTRUE);
 #endif
   mMCTrackBranchId=mgr->GetBranchId("MCTrack");
 }

@@ -24,7 +24,7 @@ constexpr const char* DetID::sDetNames[DetID::nDetectors+1];
 constexpr std::array<std::int32_t, DetID::nDetectors> DetID::sMasks;
 
 //_______________________________
-constexpr DetID::DetID(const char* name) :  mID(nameToID(name, First))
+DetID::DetID(const char* name) :  mID(nameToID(name, First))
 {
   // construct from the name
   assert(mID<nDetectors);

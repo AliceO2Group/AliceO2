@@ -77,7 +77,7 @@ void run_sim_emcal(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetField(magField);
 
   // ===| Add TPC |============================================================
-  o2::EMCAL::Detector* emcal = new o2::EMCAL::Detector("EMCAL", kTRUE);
+  o2::EMCAL::Detector* emcal = new o2::EMCAL::Detector(kTRUE);
   run->AddModule(emcal);
 
   // Create PrimaryGenerator

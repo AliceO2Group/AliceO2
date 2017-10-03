@@ -41,7 +41,7 @@ void drawTOFgeometry()
   o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
   run->AddModule(frame);
 
-  o2::tof::Detector* tof = new o2::tof::Detector("TOF", kTRUE);
+  o2::tof::Detector* tof = new o2::tof::Detector(kTRUE);
   run->AddModule(tof);
 
   run->Init();

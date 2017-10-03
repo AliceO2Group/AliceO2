@@ -32,6 +32,7 @@
 #include <type_traits>
 #include <Rtypes.h>
 #include "DetectorsBase/Utils.h"
+#include <cassert>
 
 namespace o2
 {
@@ -65,7 +66,7 @@ class DetID
   static constexpr int nDetectors = Last+1; ///< number of defined detectors
   
   DetID(ID id) :mID(id) {}
-  constexpr DetID(const char* name);
+  DetID(const char* name);
   
   /// get derector id
   ID getID() const { return mID; }
@@ -106,7 +107,7 @@ class DetID
   }
 
   
-  ID mID; ///< detector ID
+  ID mID = First; ///< detector ID
   
   static constexpr const char* sDetNames[nDetectors+1] =      ///< defined detector names
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FIT","ACO", nullptr};

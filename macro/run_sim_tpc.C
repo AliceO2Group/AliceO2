@@ -75,7 +75,7 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetField(magField.get());
 
   // ===| Add TPC |============================================================
-  o2::TPC::Detector* tpc = new o2::TPC::Detector("TPC", kTRUE);
+  o2::TPC::Detector* tpc = new o2::TPC::Detector(kTRUE);
   tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

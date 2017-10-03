@@ -76,7 +76,9 @@ public:
 
   void createMaterials();
 
-  enum EMedia{Zero, Air, Vacuum, Si, Readout, Support, Carbon, Be, Alu, Water, SiO2, Inox, Kapton, Epoxy, CarbonFiber, CarbonEpoxy, Rohacell, Polyimide, PEEK, FR4, Cu, X7R, X7Rw, CarbonFleece, SE4445};  // media IDs used in CreateMaterials
+  enum EMedia{Zero, Air, Vacuum, Si, Readout, Support, Carbon, Be, Alu, Water, SiO2, Inox,
+	      Kapton, Epoxy, CarbonFiber, CarbonEpoxy, Rohacell, Polyimide, PEEK, FR4, Cu,
+	      X7R, X7Rw, CarbonFleece, SE4445};  // media IDs used in CreateMaterials
 
   void setDensitySupportOverSi(Double_t density) { 
     if (density > 1e-6) mDensitySupportOverSi = density; 
@@ -99,7 +101,9 @@ private:
   Detector(const Detector&);
   Detector& operator=(const Detector&);
 
-  o2::ITSMFT::Hit* addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus);
+  o2::ITSMFT::Hit* addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos,
+			  TVector3 startMom, double startE, double endTime, double eLoss,
+			  unsigned char startStatus, unsigned char endStatus);
 
   /// this is transient data about track passing the sensor
   struct TrackData {                  // this is transient 

@@ -21,15 +21,15 @@
 #include "TOFSimulation/Detector.h"
 
 #include "DetectorsBase/GeometryManager.h"
-
+#include "SimulationDataFormat/Stack.h"
 #include <TVirtualMC.h> // for TVirtualMC, gMC
 
 using namespace o2::tof;
 
 ClassImp(Detector);
 
-Detector::Detector(const char* Name, Bool_t Active)
-  : o2::Base::Detector(Name, Active),
+Detector::Detector(Bool_t active)
+  : o2::Base::Detector("TOF", active),
     mEventNr(0),
     mTOFHoles(kTRUE),
     mHitCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<HitType>().c_str())),
@@ -64,10 +64,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   static TLorentzVector position;
   refMC->TrackPosition(position);
   float time = refMC->TrackTime() * 1.0e09;
-  int trackID = refMC->GetStack()->GetCurrentTrackNumber();
-  int detID = v->getMCid();
+  auto stack = static_cast<o2::Data::Stack*>(TVirtualMC::GetMC()->GetStack());
+  int trackID = stack->GetCurrentTrackNumber();
+  int sensID = v->getMCid();
 
-  addHit(position.X(), position.Y(), position.Z(), time, enDep, trackID, detID);
+  addHit(position.X(), position.Y(), position.Z(), time, enDep, trackID, sensID);
+  stack->AddPoint(GetDetId());
 
   return kTRUE;
 }
@@ -89,7 +91,7 @@ HitType* Detector::addHit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t
 void Detector::Register()
 {
   auto* mgr = FairRootManager::Instance();
-  mgr->Register("TOFHit", "TOF", mHitCollection, kTRUE);
+  mgr->Register(addNameTo("Hit").data(), GetName(), mHitCollection, kTRUE);
 
   mMCTrackBranchId = mgr->GetBranchId("MCTrack");
 }

@@ -23,7 +23,6 @@
 
 #include "MFTSimulation/Detector.h"
 
-#include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
 #include "Field/MagneticField.h"
 
@@ -44,7 +43,7 @@ ClassImp(o2::MFT::Detector)
 
 //_____________________________________________________________________________
 Detector::Detector()
-: o2::Base::Detector("MFT", kTRUE, kAliMft),
+: o2::Base::Detector("MFT", kTRUE),
   mVersion(1),
   mDensitySupportOverSi(0.036),
   mHits(new TClonesArray("o2::ITSMFT::Hit")),
@@ -187,7 +186,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 		    status);
     
     o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-    stack->AddPoint(kAliMft);
+    stack->AddPoint(GetDetId());
     
   }
   
@@ -470,9 +469,7 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->Register("MFTHits", "MFT", mHits, kTRUE);
-  }
+  FairGenericRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mHits, kTRUE);
 
 }
 //_____________________________________________________________________________
