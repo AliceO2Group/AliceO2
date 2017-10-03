@@ -1,16 +1,16 @@
-#if !defined(__CINT__) || defined(__MAKECINT__)
-  #include <sstream>
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#include <sstream>
 
-  #include <TStopwatch.h>
+#include <TStopwatch.h>
 
-  #include "FairLogger.h"
-  #include "FairRunAna.h"
-  #include "FairFileSource.h"
-  #include "FairRuntimeDb.h"
-  #include "FairParRootFileIo.h"
-  #include "FairSystemInfo.h"
+#include "FairLogger.h"
+#include "FairRunAna.h"
+#include "FairFileSource.h"
+#include "FairRuntimeDb.h"
+#include "FairParRootFileIo.h"
+#include "FairSystemInfo.h"
 
-  #include "ITSReconstruction/ClustererTask.h"
+#include "ITSReconstruction/ClustererTask.h"
 #endif
 
 void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){

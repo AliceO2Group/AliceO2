@@ -1,17 +1,17 @@
-#if !defined(__CINT__) || defined(__MAKECINT__)
-  #include <sstream>
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#include <sstream>
 
-  #include <TStopwatch.h>
+#include <TStopwatch.h>
 
-  #include "FairLogger.h"
-  #include "FairRunAna.h"
-  #include "FairFileSource.h"
-  #include "FairRuntimeDb.h"
-  #include "FairParRootFileIo.h"
-  #include "FairSystemInfo.h"
-  #include "Field/MagneticField.h"
+#include "FairLogger.h"
+#include "FairRunAna.h"
+#include "FairFileSource.h"
+#include "FairRuntimeDb.h"
+#include "FairParRootFileIo.h"
+#include "FairSystemInfo.h"
+#include "Field/MagneticField.h"
 
-  #include "ITSReconstruction/CookedTrackerTask.h"
+#include "ITSReconstruction/CookedTrackerTask.h"
 #endif
 
 void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){

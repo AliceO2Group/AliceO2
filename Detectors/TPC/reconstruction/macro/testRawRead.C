@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 void testRawRead(std::string filename)
 {
   TH1F *hDigits = new TH1F("hDigits","digits", 1000, 0., 1000.);

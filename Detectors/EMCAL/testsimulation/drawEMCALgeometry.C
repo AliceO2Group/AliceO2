@@ -38,7 +38,7 @@ void drawEMCALgeometry()
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::Passive::FrameStructure* frame = new o2::Passive::FrameStructure("Frame", "Frame");
+  o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
   run->AddModule(frame);
 
   o2::EMCAL::Detector* tof = new o2::EMCAL::Detector("EMCAL", kTRUE);

@@ -14,6 +14,7 @@
 /// \file   RawClusterFinder.h
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include <vector>
 #include <memory>
 #include <fstream>
@@ -38,7 +39,7 @@
 #include "TPCSimulation/Cluster.h"
 
 #include "TCanvas.h"
-
+#endif
 
 namespace o2
 {

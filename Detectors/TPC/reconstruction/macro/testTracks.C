@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include "TFile.h"
 #include "TTree.h"
 #include "TCanvas.h"
@@ -17,12 +18,12 @@
 #include "TGraph.h"
 #include "TLine.h"
 #include "TMath.h"
-#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
 #include "TPCBase/Mapper.h"
+#endif
 
 using namespace o2::TPC;
 
