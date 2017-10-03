@@ -641,7 +641,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				if (ip != 0)
 				{
 					int fakeN;
-					ftrack.UpdateTrack(fPolinomialFieldBz, xyz[0], xyz[1], xyz[2], alpha, rowType, *fSliceParam, fakeN, falpha, .999, fpar, fdL, fex1i, ftrDzDs2, false);
+					ftrack.UpdateTrack(xyz[1], xyz[2], rowType, *fSliceParam, fakeN, .999, fpar, fdL, fex1i, ftrDzDs2, false);
 				}
 			}
 			if (hitsUsed)
