@@ -35,7 +35,7 @@ inline GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x,  
   float pye = fPy - dx*b; // extrapolated py
   float pxe2 = pt2 - pye*pye;
 
-  if( fPx<1.e-3 || pxe2<1.e-6 ) return -1; // can not transport to x=x  
+  if( fPx<1.e-3f || pxe2<1.e-6f ) return -1; // can not transport to x=x  
   
   float pxe = AliHLTTPCCAMath::Sqrt( pxe2 ); // extrapolated px
   float pti = 1.f/AliHLTTPCCAMath::Sqrt(pt2);
@@ -85,16 +85,23 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,  float y,
   //
   
   dLp = 0.;
+   
+  if(0){ // simple transport in Bz for test proposes
+    if( fabs(x-X())<1.e-8f ) return 0;
+    if( PropagateToXBzLight( x, Bz, dLp ) !=0 ) return -1;
+    UpdateValues(); 
+    return 0;
+  }
   
   // Rotate to the system where Bx=By=0.
 
   float bt = AliHLTTPCCAMath::Sqrt(Bz*Bz + By*By);
   float bb = AliHLTTPCCAMath::Sqrt(Bx*Bx + By*By + Bz*Bz);
 
-  float c1=1., s1=0.;
-  float c2=1., s2=0.;
+  float c1=1.f, s1=0.f;
+  float c2=1.f, s2=0.f;
 
-  if( bt > 1.e-4) {
+  if( bt > 1.e-4f) {
     c1=Bz/bt; s1= By/bt;
     c2=bt/bb; s2=-Bx/bb;
   }
@@ -186,12 +193,12 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz( float Lp, float Bz )
      sintt = sint/tet;
      tsint = (tet - sint)/tet;
      float t=CAMath::Sin(0.5*tet);
-     cos1t = 2*t*t/tet;
+     cos1t = 2.f*t*t/tet;
   } else {
      tsint = tet*tet/6.;
-     sintt = (1.-tet*kOvSqSix)*(1.+tet*kOvSqSix); // 1.- tsint;
+     sintt = (1.f-tet*kOvSqSix)*(1.f+tet*kOvSqSix); // 1.- tsint;
      sint  = tet*sintt;
-     cos1t = 0.5*tet; 
+     cos1t = 0.5f*tet; 
   }
 
   float f1 = step*sintt;

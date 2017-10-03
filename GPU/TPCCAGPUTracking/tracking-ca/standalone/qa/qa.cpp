@@ -433,12 +433,12 @@ void RunQA()
 		AliHLTTPCGMTrackParam::AliHLTTPCGMTrackFitParam par;
 		int N = 0;
 		float alpha = track.GetAlpha();
-		float dL = 0., ex1i = 0., trDzDs2 = t0.DzDs() * t0.DzDs();
+		float dL = 0., trDzDs2 = t0.DzDs() * t0.DzDs();
 		const float kRho = 1.025e-3;//0.9e-3;
 		const float kRadLen = 29.532;//28.94;
 		const float kRhoOverRadLen = kRho / kRadLen;
 		param.CalculateFitParameters( par, kRhoOverRadLen, kRho, false );
-		if (param.PropagateTrack(merger.PolinomialFieldBz(), mclocal[0], mclocal[1], mc1.fZ, track.GetAlpha(), 0, merger.SliceParam(), N, alpha, 0.999, false, false, par, t0, dL, ex1i, trDzDs2)) continue;
+		if (param.PropagateTrack(merger.PolinomialFieldBz(), mclocal[0], mclocal[1], mc1.fZ, track.GetAlpha(), 0, merger.SliceParam(), N, alpha, 0.999, false, false, par, t0, dL, trDzDs2)) continue;
 		if (fabs(param.Y() - mclocal[1]) > 4. || fabs(param.Z() - mc1.fZ) > 4.) continue;
 		
 		float deltaY = param.GetY() - mclocal[1];

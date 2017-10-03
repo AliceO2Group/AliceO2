@@ -120,9 +120,9 @@ public:
     if( mask ) x = v;
   }
   
-  GPUd() int PropagateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float& ex1i, float trDzDs2);
+  GPUd() int PropagateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float trDzDs2);
 
-  GPUd() int PropagateTrackBxByBz(float* PolinomialFieldBz, float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMPhysicalTrackModel& t0, float& dL, float& ex1i, float trDzDs2);
+  GPUd() int PropagateTrackBxByBz(float* PolinomialFieldBz, float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMPhysicalTrackModel& t0, float& dL, float trDzDs2);
 
   GPUd() int UpdateTrack( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, int& N, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2, bool rejectChi2);
   
