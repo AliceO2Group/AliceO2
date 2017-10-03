@@ -22,6 +22,7 @@ add_library(${MODULE} SHARED code/AliHLTTPCCATrack.cxx
                                                                 code/AliHLTTPCCAGPUTracker.cxx
                                                                 merger-ca/AliHLTTPCGMMerger.cxx
                                                                 merger-ca/AliHLTTPCGMSliceTrack.cxx
+                                                                merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx
                                                                 merger-ca/AliHLTTPCGMTrackParam.cxx
                                                                 interface/AliHLTTPCCAO2Interface.cxx
                                                                 standalone/AliHLTLogging.cxx)
