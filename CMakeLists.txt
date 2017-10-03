@@ -227,7 +227,10 @@ ENDIF()
 if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
   FIND_PROGRAM(BASH_PROGRAM bash)
 
+  # On Mac OS GLOB_RECURSE returns both .C and .c files, i.e. case insensitive
   FILE(GLOB_RECURSE MACRO_FILES "*.C")
+  # Case sensitive filtering of .C files
+  LIST(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
   SET(TEST_NO 0)
   FOREACH(MACRO_FILE ${MACRO_FILES})
     MATH(EXPR TEST_NO "${TEST_NO} + 1")
