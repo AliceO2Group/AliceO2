@@ -49,7 +49,7 @@ class Detector : public o2::Base::Detector
     kHoneyHoles = 16
   };
 
-  Detector() = default;
+  Detector();
 
   Detector(const char* Name, Bool_t Active);
 

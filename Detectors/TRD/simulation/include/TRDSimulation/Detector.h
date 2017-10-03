@@ -30,7 +30,7 @@ using HitType = o2::BasicXYZEHit<float>;
 class Detector : public o2::Base::Detector
 {
  public:
-  Detector() = default;
+  Detector();
 
   Detector(const char* Name, bool Active);
 
@@ -58,13 +58,13 @@ class Detector : public o2::Base::Detector
   template <typename T>
   void addHit(T x, T y, T z, T time, T energy, int trackId, int detId);
 
-  TClonesArray* mHitCollection; ///< Collection of TRD hits
+  TClonesArray* mHitCollection; ///!< Collection of TRD hits
 
   float mFoilDensity;
   float mGasNobleFraction;
   float mGasDensity;
 
-  TRDGeometry* mGeom = nullptr;
+  TRDGeometry* mGeom = nullptr; //!
 
   ClassDefOverride(Detector, 1)
 };
