@@ -24,6 +24,10 @@
 #include "AliHLTTPCGeometry.h"
 #include "TStopwatch.h"
 
+#if defined(HLTCA_BUILD_O2_LIB) & defined(HLTCA_STANDALONE)
+#undef HLTCA_STANDALONE //We disable the standalone application features for the O2 lib. This is a hack since the HLTCA_STANDALONE setting is ambigious... In this file it affects standalone application features, in the other files it means independence from aliroot
+#endif
+
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
 #include "include.h"

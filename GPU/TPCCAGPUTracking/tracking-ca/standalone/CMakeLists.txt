@@ -25,9 +25,10 @@ add_library(${MODULE} SHARED code/AliHLTTPCCATrack.cxx
                                                                 merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx
                                                                 merger-ca/AliHLTTPCGMTrackParam.cxx
                                                                 interface/AliHLTTPCCAO2Interface.cxx
-                                                                standalone/AliHLTLogging.cxx)
+                                                                standalone/AliHLTLogging.cxx
+                                                                cmodules/timer.cpp)
 
-add_definitions(-DHLTCA_STANDALONE -DHLTCA_TPC_GEOMETRY_O2)
+add_definitions(-DHLTCA_STANDALONE -DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 
 include_directories(include code base merger-ca cagpubuild)
 
