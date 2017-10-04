@@ -13,7 +13,6 @@
 
 #include "AliHLTTPCCAMath.h"
 
-class AliHLTTPCGMTrackLinearisation;
 class AliHLTTPCGMBorderTrack;
 class AliExternalTrackParam;
 class AliHLTTPCCAParam;
@@ -31,7 +30,7 @@ class AliHLTTPCGMTrackParam
 {
 public:
 
-  struct AliHLTTPCGMTrackFitParam {
+  struct AliHLTTPCGMTrackMaterialCorrection {
     //float fBethe, fE, fTheta2, fEP2, fSigmadE2, fK22, fK33, fK43, fK44;// parameters
     float fDLMax, fBetheRho, fE, fTheta2, fEP2, fSigmadE2, fK22, fK33, fK43, fK44;// parameters
   };
@@ -88,11 +87,12 @@ public:
   GPUd() void SetCov( int i, float v ) { fC[i] = v; }
   GPUd() void SetChi2( float v )  {  fChi2 = v; }
   GPUd() void SetNDF( int v )   { fNDF = v; }
-  
+
+  GPUd() void ResetCovariance();
 
   GPUd() static float ApproximateBetheBloch( float beta2 );
 
-  GPUd() void CalculateFitParameters( AliHLTTPCGMTrackFitParam &par,float RhoOverRadLen,  float Rho,  bool NoField=0, float mass = 0.13957 );
+  GPUd() static void CalculateMaterialCorrection( AliHLTTPCGMTrackMaterialCorrection &par, const AliHLTTPCGMPhysicalTrackModel &t0, float RhoOverRadLen,  float Rho,  bool NoField=0, float mass = 0.13957 );
 
   GPUd() bool CheckNumericalQuality() const ;
 
@@ -105,8 +105,7 @@ public:
    float maxSinPhi = .999
    );
   
-  GPUd() bool Rotate( float alpha, AliHLTTPCGMTrackLinearisation &t0, float maxSinPhi = .999 );
-  GPUd() bool Rotate( float alpha, AliHLTTPCGMPhysicalTrackModel &t0, float maxSinPhi );
+  GPUd() bool Rotate( float alpha, AliHLTTPCGMPhysicalTrackModel &t0, float maxSinPhi = .999 );
 
   GPUhd() static float GetBz( float x, float y, float z, float* PolinomialFieldBz );
   GPUhd() float GetBz(float* PolinomialFieldBz ) const{ return GetBz( fX, fP[0], fP[1], PolinomialFieldBz );}
@@ -120,11 +119,9 @@ public:
     if( mask ) x = v;
   }
   
-  GPUd() int PropagateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float trDzDs2);
+  GPUd() int PropagateTrack(float* PolinomialFieldBz, float posX, float posY, float posZ, float posAlpha, const AliHLTTPCCAParam &param, float& Alpha, float maxSinPhi, bool UseMeanPt, AliHLTTPCGMTrackMaterialCorrection& par, AliHLTTPCGMPhysicalTrackModel& t0, bool inFlyDirection );
 
-  GPUd() int PropagateTrackBxByBz(float* PolinomialFieldBz, float posX, float posY, float posZ, float posAlpha, int rowType, const AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMPhysicalTrackModel& t0, float& dL, float trDzDs2);
-
-  GPUd() int UpdateTrack( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, int& N, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2, bool rejectChi2);
+  GPUd() int UpdateTrack( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, AliHLTTPCGMPhysicalTrackModel& t0, float maxSinPhi, bool rejectChi2);
   
   GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* rowType, float* alpha, const AliHLTTPCCAParam& param);
 
@@ -148,6 +145,17 @@ inline float AliHLTTPCGMTrackParam::GetBz( float x, float y, float z, float* Pol
   float r  = sqrt( r2 );
   const float *c = PolinomialFieldBz;
   return ( c[0] + c[1]*z  + c[2]*r  + c[3]*z*z + c[4]*z*r + c[5]*r2 );
+}
+
+GPUd() inline void AliHLTTPCGMTrackParam::ResetCovariance()
+{
+  fC[ 0] = 100.;
+  fC[ 1] = 0.;  fC[ 2] = 100.;
+  fC[ 3] = 0.;  fC[ 4] = 0.;  fC[ 5] = 1.;
+  fC[ 6] = 0.;  fC[ 7] = 0.;  fC[ 8] = 0.; fC[ 9] = 1.;
+  fC[10] = 0.;  fC[11] = 0.;  fC[12] = 0.; fC[13] = 0.; fC[14] = 10.;
+  fChi2 = 0;
+  fNDF = -5;
 }
 
 #endif //ALIHLTTPCCATRACKPARAM_H
