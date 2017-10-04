@@ -32,7 +32,8 @@ class AliHLTTPCGMPhysicalTrackModel
   {};
   
   GPUd() AliHLTTPCGMPhysicalTrackModel( const AliHLTTPCGMTrackParam &t );
-     
+
+  GPUd() void Set( const AliHLTTPCGMTrackParam &t );   
   GPUd() void Set( float X, float Y, float Z, float Px, float Py, float Pz, float Q);
     
   GPUd() float& X() { return fX; }
@@ -51,6 +52,23 @@ class AliHLTTPCGMPhysicalTrackModel
   GPUd() float& QPt() { return fQPt; }
   GPUd() float& P() { return fP; }
   GPUd() float& Pt() { return fPt; }
+
+  GPUd() float GetX() const { return fX; }
+  GPUd() float GetY() const { return fY; }
+  GPUd() float GetZ() const { return fZ; }
+  GPUd() float GetPx() const { return fPx; }
+  GPUd() float GetPy() const { return fPy; }
+  GPUd() float GetPz() const { return fPz; }
+  GPUd() float GetQ() const { return fQ; }
+
+  GPUd() float GetSinPhi() const { return fSinPhi; }
+  GPUd() float GetCosPhi() const { return fCosPhi; }
+  GPUd() float GetSecPhi() const { return fSecPhi; }
+  GPUd() float GetDzDs() const { return fDzDs; }
+  GPUd() float GetDlDs() const { return fDlDs; }
+  GPUd() float GetQPt() const { return fQPt; }
+  GPUd() float GetP() const { return fP; }
+  GPUd() float GetPt() const { return fPt; }
 
   GPUd() int PropagateToXBzLight( float x, float Bz, float &dLp );
   
@@ -89,8 +107,7 @@ class AliHLTTPCGMPhysicalTrackModel
 };
 
 
-GPUd() inline AliHLTTPCGMPhysicalTrackModel::AliHLTTPCGMPhysicalTrackModel( const AliHLTTPCGMTrackParam &t )
-: fX(0.f), fY(0.f), fZ(0.f), fPx(1.e4f), fPy(0.f), fPz(0.f), fQ(1.f), fSinPhi( 0. ), fCosPhi( 1. ), fSecPhi( 1. ), fDzDs( 0. ), fDlDs( 0.), fQPt( 0. ), fP(fPx), fPt(fPx)
+GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( const AliHLTTPCGMTrackParam &t )
 {
   float pti = fabs(t.GetQPt());
   if( pti < 1.e-4 ) pti = 1.e-4; // set 10000 GeV momentum for straight track
@@ -98,7 +115,7 @@ GPUd() inline AliHLTTPCGMPhysicalTrackModel::AliHLTTPCGMPhysicalTrackModel( cons
   fX = t.GetX();
   fY = t.GetY();
   fZ = t.GetZ();
-
+  
   fPt = 1./pti;  
   fSinPhi = t.GetSinPhi();
   if( fSinPhi >  .999f ) fSinPhi = .999f;
@@ -113,6 +130,12 @@ GPUd() inline AliHLTTPCGMPhysicalTrackModel::AliHLTTPCGMPhysicalTrackModel( cons
   fPx = fPt*fCosPhi;
   fPz = fPt*fDzDs;
   fQPt = fQ*pti;
+}
+
+GPUd() inline AliHLTTPCGMPhysicalTrackModel::AliHLTTPCGMPhysicalTrackModel( const AliHLTTPCGMTrackParam &t )
+: fX(0.f), fY(0.f), fZ(0.f), fPx(1.e4f), fPy(0.f), fPz(0.f), fQ(1.f), fSinPhi( 0. ), fCosPhi( 1. ), fSecPhi( 1. ), fDzDs( 0. ), fDlDs( 0.), fQPt( 0. ), fP(fPx), fPt(fPx)
+{
+  Set(t);
 }
 
 

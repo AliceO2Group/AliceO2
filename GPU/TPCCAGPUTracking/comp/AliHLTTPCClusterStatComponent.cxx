@@ -33,7 +33,7 @@
 #include "AliHLTTPCClusterXYZ.h"
 #include "AliHLTTPCDataCompressionComponent.h"
 #include "AliHLTTPCDefinitions.h"
-#include "AliHLTTPCGMTrackLinearisation.h"
+#include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCGeometry.h"
@@ -492,9 +492,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 			AliHLTTPCGMTrackParam ftrack;
 			float falpha;
-			AliHLTTPCGMTrackLinearisation ft0;
-			float ftrDzDs2;
-			AliHLTTPCGMTrackParam::AliHLTTPCGMTrackFitParam fpar;
+			AliHLTTPCGMPhysicalTrackModel ft0;			
+			AliHLTTPCGMTrackParam::AliHLTTPCGMTrackMaterialCorrection fpar;
 
 			int hitsUsed = 0;
 			float averageCharge = 0;
@@ -547,7 +546,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 				etrack.Propagate(alpha, x, bz);
 				int rowType = padrow < 64 ? 0 : (padrow < 128 ? 2 : 1);
-				float fdL = 0;				
+			       				
 				if (ip == 0)
 				{
 					ftrack.Par()[0] = xyz[1];
@@ -556,22 +555,21 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 						ftrack.Par()[k] = etrack.GetParameter()[k];
 					ftrack.SetX(xyz[0]);
 					falpha = alpha;
-
-					ft0.Set(ftrack.GetSinPhi(), 0., 0., ftrack.GetDzDs(), 0., ftrack.GetQPt());
-					ftrDzDs2 = ft0.DzDs() * ft0.DzDs();
-
+					
+					ft0.Set( ftrack );
+					
 					const float kRho = 1.025e-3; //From GMMerger
 					const float kRadLen = 29.532;
 					const float kRhoOverRadLen = kRho / kRadLen;
-					ftrack.CalculateFitParameters(fpar, kRhoOverRadLen, kRho, 0);
-
-					int fakeN;
-					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), falpha, rowType, *fSliceParam, fakeN, falpha, .999, 0, 1, fpar, ft0, fdL, ftrDzDs2);
+					ftrack.CalculateMaterialCorrection(fpar, ft0, kRhoOverRadLen, kRho, 0);
+					ftrack.ResetCovariance();
+					bool inFlyDirection = 1;
+					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), falpha, *fSliceParam, falpha, .999, 0, fpar, ft0,inFlyDirection);
 				}
 				else
 				{
-					int fakeN;
-					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), alpha, rowType, *fSliceParam, fakeN, falpha, .999, 0, 0, fpar, ft0, fdL, ftrDzDs2);
+				        bool inFlyDirection = 0;
+					ftrack.PropagateTrack(fPolinomialFieldBz, xyz[0], ftrack.GetY(), ftrack.GetZ(), alpha, *fSliceParam, falpha, .999, 0, fpar, ft0,inFlyDirection);
 				}
 
 				nClusterTracks++;
@@ -638,9 +636,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				averageQMax += cluster.GetQMax();
 
 				if (ip != 0)
-				{
-					int fakeN;
-					ftrack.UpdateTrack(xyz[1], xyz[2], rowType, *fSliceParam, fakeN, .999, fpar, fdL, ft0.SecPhi(), ftrDzDs2, false);
+				{				       
+					ftrack.UpdateTrack(xyz[1], xyz[2], rowType, *fSliceParam, ft0, .999, false);
 				}
 			}
 			if (hitsUsed)

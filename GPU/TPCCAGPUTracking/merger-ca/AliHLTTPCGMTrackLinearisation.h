@@ -48,6 +48,13 @@ class AliHLTTPCGMTrackLinearisation
     GPUd() float& DzDs()   { return fDzDs; }
     GPUd() float& DlDs()   { return fDlDs; }
     GPUd() float& QPt()    { return fQPt; }
+    
+    GPUd() float GetSinPhi() const { return fSinPhi; }
+    GPUd() float GetCosPhi() const { return fCosPhi; }
+    GPUd() float GetSecPhi() const { return fSecPhi; }
+    GPUd() float GetDzDs()   const { return fDzDs; }
+    GPUd() float GetDlDs()   const { return fDlDs; }
+    GPUd() float GetQPt()    const { return fQPt; }
 
 
  private:
