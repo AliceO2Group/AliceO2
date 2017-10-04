@@ -86,6 +86,7 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
   for (int i = 0; i < 36; i++) {
     mClusterData[i].StartReading(i, nClusters[i]);
   }
+  int nClustersConverted = 0;
   for (Int_t icluster = 0; icluster < inputClusters->GetEntries(); ++icluster) {
     Cluster& cluster = *static_cast<Cluster*>(inputClusters->At(icluster));
     const CRU cru(cluster.getCRU());
@@ -103,25 +104,31 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
     const PadCentre& padCentre = mapper.padCentre(pad);
     const float localY = padCentre.Y() - (padY - padNumber - 0.5) * region.getPadWidth();
     const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-    float zPosition = detParam.getTPClength() - cluster.getTimeMean()*elParam.getZBinWidth()*gasParam.getVdrift();
+    float zPositionAbs = cluster.getTimeMean()*elParam.getZBinWidth()*gasParam.getVdrift();
+    if (!mTrackingCAO2Interface->GetParamContinuous()) zPositionAbs = detParam.getTPClength() - zPositionAbs;
 
     Point2D<float> clusterPos(padCentre.X(), localY);
 
     // sanity checks
-    if (zPosition < 0)
+    if (zPositionAbs < 0 || (!mTrackingCAO2Interface->GetParamContinuous() && zPositionAbs > detParam.getTPClength())) {
+      LOG(INFO) << "Removing cluster " << icluster << "/" << inputClusters->GetEntries() << " time: " << cluster.getTimeMean() << ", abs. z: " << zPositionAbs << "\n";
       continue;
-    if (zPosition > detParam.getTPClength())
-      continue;
+    }
 
     hltCluster.fId = icluster;
     hltCluster.fX = clusterPos.X();
     hltCluster.fY = clusterPos.Y() * (localYfactor);
-    hltCluster.fZ = zPosition * (-localYfactor);
+    hltCluster.fZ = zPositionAbs * (-localYfactor);
     hltCluster.fRow = rowInSector;
     hltCluster.fAmp = cluster.getQmax();
 
     cd.SetNumberOfClusters(cd.NumberOfClusters() + 1);
+    nClustersConverted++;
   }
+  if (inputClusters->GetEntries() != nClustersConverted) {
+    LOG(INFO) << "Passed " << nClustersConverted << " (out of " << inputClusters->GetEntries() << ") clusters to CA tracker\n";
+  }
+
   retVal = mTrackingCAO2Interface->RunTracking(mClusterData, tracks, nTracks, trackClusterIDs);
   if (retVal == 0)
   {
