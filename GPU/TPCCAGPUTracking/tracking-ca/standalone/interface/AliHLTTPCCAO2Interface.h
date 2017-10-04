@@ -24,12 +24,16 @@ public:
 	
 	int RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const unsigned int* &outputTrackClusterIDs);
 	void Cleanup();
+	
+	bool GetParamContinuous() {return(fContinuous);}
 
 private:
 	AliHLTTPCCAO2Interface(const AliHLTTPCCAO2Interface&);
 	AliHLTTPCCAO2Interface &operator=( const AliHLTTPCCAO2Interface& );
 	
 	bool fInitialized;
+	bool fDumpEvents;
+	bool fContinuous;
 	AliHLTTPCCAStandaloneFramework* fHLT;
 };
 
