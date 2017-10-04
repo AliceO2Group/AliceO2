@@ -77,15 +77,6 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 	if (markNonFittedClusters) rowType[ihit] = -(rowType[ihit] + 1);
 	if( first && err!=0 ) N+=1;
 	continue;
-	/*
-        if (first)
-        {
-            for (int i = 0;i < 15;i++) fC[i] = 0;
-            fChi2 = 0.;
-            fNDF = 1;
-        }
-        break;
-	*/
       }
       if (first == 0)
       {        
@@ -100,6 +91,11 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       first = 0;
     }
     maxN = iihit;
+  }
+  if( fNDF<1 ){
+    for (int i = 0;i < 15;i++) fC[i] = 0;
+    fChi2 = 0.;
+    fNDF = 1;  
   }
 }
 
@@ -750,9 +746,10 @@ GPUd() bool AliHLTTPCGMTrackParam::Rotate( float alpha, AliHLTTPCGMPhysicalTrack
 
 #include "AliTracker.h"
 
-void GetBxByBz( float Alpha, float x, float y, float z, float* PolinomialFieldBz, float B[3] )
+inline void GetBxByBz( float Alpha, float x, float y, float z, float* PolinomialFieldBz, float B[3] )
 {
-  /*
+  const double kCLight = 0.000299792458;
+
   // get global coordinates
   double cs=AliHLTTPCCAMath::Cos(Alpha), sn=AliHLTTPCCAMath::Sin(Alpha);
   double r[3] = { x*cs - y*sn, x*sn + y*cs, z};
@@ -761,17 +758,18 @@ void GetBxByBz( float Alpha, float x, float y, float z, float* PolinomialFieldBz
 
   // rotate field to local coordinates
 
-  B[0] =  bb[0]*cs + bb[1]*sn;
-  B[1] = -bb[0]*sn + bb[1]*cs;
-  B[2] = bb[2];
-  */
+  B[0] = kCLight*(  bb[0]*cs + bb[1]*sn );
+  B[1] = kCLight*( -bb[0]*sn + bb[1]*cs );
+  B[2] = kCLight*( bb[2] );
+  /*
   // at the moment, test with old polynomial Bz field
   B[0] = 0.;
   B[1] = 0.;
   B[2] = AliHLTTPCGMTrackParam::GetBz( x, y, z, PolinomialFieldBz );
+  */
 }
 #else
-void GetBxByBz( float Alpha, float x, float y, float z, float* PolinomialFieldBz, float B[3] )
+inline void GetBxByBz( float Alpha, float x, float y, float z, float* PolinomialFieldBz, float B[3] )
 {
   B[0] = 0.;
   B[1] = 0.;
