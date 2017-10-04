@@ -25,7 +25,6 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
 #include "TPCSimulation/Cluster.h"
-#include "TPCSimulation/Constants.h"
 #include "TPCReconstruction/TPCCATracking.h"
 #include "TPCReconstruction/SyncPatternMonitor.h"
 #include "TPCReconstruction/TrackTPC.h"

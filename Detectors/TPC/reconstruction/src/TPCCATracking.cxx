@@ -28,7 +28,9 @@ class AliHLTTPCCAClusterData {}; // same
 #include "TPCBase/Sector.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "TPCSimulation/Cluster.h"
-#include "TPCSimulation/Constants.h"
+#include "TPCBase/ParameterDetector.h"
+#include "TPCBase/ParameterGas.h"
+#include "TPCBase/ParameterElectronics.h"
 
 using namespace o2::TPC;
 
@@ -67,6 +69,10 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
   int retVal = 0;
 
 #ifdef HAVE_O2_TPCCA_TRACKING_LIB
+  const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
+  const static ParameterGas &gasParam = ParameterGas::defaultInstance();
+  const static ParameterElectronics &elParam = ParameterElectronics::defaultInstance();
+  
   const AliHLTTPCGMMergedTrack* tracks;
   int nTracks;
   const unsigned int* trackClusterIDs;
@@ -95,21 +101,21 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
     const int padNumber = int(padY);
     const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(rowInSector, padNumber));
     const PadCentre& padCentre = mapper.padCentre(pad);
-    const float localY = padCentre.getY() - (padY - padNumber - 0.5) * region.getPadWidth();
+    const float localY = padCentre.Y() - (padY - padNumber - 0.5) * region.getPadWidth();
     const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-    float zPosition = TPCLENGTH - cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
+    float zPosition = detParam.getTPClength() - cluster.getTimeMean()*elParam.getZBinWidth()*gasParam.getVdrift();
 
-    Point2D<float> clusterPos(padCentre.getX(), localY);
+    Point2D<float> clusterPos(padCentre.X(), localY);
 
     // sanity checks
     if (zPosition < 0)
       continue;
-    if (zPosition > TPCLENGTH)
+    if (zPosition > detParam.getTPClength())
       continue;
 
     hltCluster.fId = icluster;
-    hltCluster.fX = clusterPos.getX();
-    hltCluster.fY = clusterPos.getY() * (localYfactor);
+    hltCluster.fX = clusterPos.X();
+    hltCluster.fY = clusterPos.Y() * (localYfactor);
     hltCluster.fZ = zPosition * (-localYfactor);
     hltCluster.fRow = rowInSector;
     hltCluster.fAmp = cluster.getQmax();
