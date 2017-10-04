@@ -12,13 +12,12 @@
 /// \author David Rohr
 
 #include "TPCReconstruction/TPCCATracking.h"
-
 #ifdef HAVE_O2_TPCCA_TRACKING_LIB
+#include "TObject.h"
 #include "AliHLTTPCCAO2Interface.h"
 #else
-class AliHLTTPCCAO2Interface // Dummy class such that the compiler can create a destructor for the unique_ptr
-{
-};
+class AliHLTTPCCAO2Interface {}; // Dummy class such that the compiler can create a destructor for the unique_ptr
+class AliHLTTPCCAClusterData {}; // same
 #endif
 
 #include "DetectorsBase/Track.h"
