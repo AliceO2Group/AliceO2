@@ -81,6 +81,8 @@ class AliHLTTPCGMPhysicalTrackModel
   GPUd() void UpdateValues();
 
   GPUd() void Print() const;
+
+  GPUd() float GetMirroredY( float Bz ) const ;
   
  private:
 
@@ -165,6 +167,13 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::UpdateValues()
   fDzDs = fPz*pti;
   fDlDs = fP*pti;
   fQPt = fQ*pti;
+}
+
+GPUd() inline float AliHLTTPCGMPhysicalTrackModel::GetMirroredY( float Bz ) const
+{
+  // get Y of the point which has the same X, but located on the other side of trajectory
+  if( fabs(Bz)<1.e-8 ) Bz = 1.e-8;
+  return fY - 2.f*fQ*fPx/Bz;
 }
 
 #endif
