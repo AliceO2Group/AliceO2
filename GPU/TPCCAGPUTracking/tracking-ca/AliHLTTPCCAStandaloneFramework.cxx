@@ -108,36 +108,7 @@ void AliHLTTPCCAStandaloneFramework::StartDataReading( int guessForNumberOfClust
 
 void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 {
-  // finish reading of the event
-
-  /*static int event_number = 0;
-  char filename[256];
-
-  sprintf(filename, "events/event.%d.dump", event_number);
-  printf("Dumping event into file %s\n", filename);
-  std::ofstream outfile(filename, std::ofstream::binary);
-  if (outfile.fail())
-  {
-    printf("Error opening event dump file\n");
-    exit(1);
-  }
-  WriteEvent(outfile);
-  if (outfile.fail())
-  {
-    printf("Error writing event dump file\n");
-    exit(1);
-  }
-  outfile.close();
-
-  event_number++;*/
-  
-  /*std::ifstream infile(filename, std::ifstream::binary);
-  ReadEvent(infile);
-  infile.close();*/
-
-  for ( int i = 0; i < fgkNSlices; i++ ) {
-    //fClusterData[i].FinishReading();			//No longer needed
-  }
+  //No longer needed
 }
 
 
@@ -519,23 +490,4 @@ int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, 
 #endif
   nClusters += nCurrentClusters;
   return(nClusters);
-}
-
-void AliHLTTPCCAStandaloneFramework::WriteTracks( std::ostream &out ) const
-{
-  //* Write tracks to file
-
-  for ( int i = 0; i < 20; i++ ) out << fLastTime[i] << std::endl;
-  //fMerger.Output()->Write( out );
-}
-
-void AliHLTTPCCAStandaloneFramework::ReadTracks( std::istream &in )
-{
-  //* Read tracks  from file
-
-  for ( int i = 0; i < 20; i++ ) {
-    in >> fLastTime[i];
-    fStatTime[i] += fLastTime[i];
-  }
-  //fMerger.Output()->Read( in );
 }
