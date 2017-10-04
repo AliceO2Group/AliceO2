@@ -33,11 +33,11 @@
 using namespace o2::TPC;
 using namespace std;
 
-void runCATracking(TString filename, TString outputFile, Int_t nmaxEvent=-1, Int_t startEvent=0) {
+void runCATracking(TString filename, TString outputFile, TString options, Int_t nmaxEvent=-1, Int_t startEvent=0) {
   gSystem->Load("libTPCReconstruction.so");
   TPCCATracking tracker;
   vector<TrackTPC> tracks;
-  if (tracker.initialize())   {
+  if (tracker.initialize(options.Data())) {
     printf("Error initializing tracker\n");
     return;
   }
