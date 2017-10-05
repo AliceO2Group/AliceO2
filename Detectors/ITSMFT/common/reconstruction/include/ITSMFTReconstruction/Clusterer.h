@@ -26,7 +26,7 @@ class TClonesArray;
 
 namespace o2
 {
-namespace ITS
+namespace ITSMFT
 {
   
 class Clusterer {
