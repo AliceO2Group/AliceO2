@@ -51,8 +51,8 @@ using namespace o2::alice_hlt;
 using std::chrono::system_clock;
 using TimeScale = std::chrono::milliseconds;
 
-WrapperDevice::WrapperDevice(int verbosity)
-  : mComponent(nullptr)
+WrapperDevice::WrapperDevice(ProcessorCreator creatorFct, int verbosity)
+  : mProcessor(nullptr)
   , mMessages()
   , mPollingPeriod(10)
   , mSkipProcessing(0)
@@ -64,17 +64,20 @@ WrapperDevice::WrapperDevice(int verbosity)
   , mMaxReadCycles(-1)
   , mNSamples(-1)
   , mVerbosity(verbosity)
+  , mProcessorCreatorFct(creatorFct)
 {
 }
 
 WrapperDevice::~WrapperDevice()
-= default;
+{
+  ResetTask();
+}
 
 constexpr const char* WrapperDevice::OptionKeys[];
 
 bpo::options_description WrapperDevice::GetOptionsDescription()
 {
-  // assemble the options for the device class and component
+  // assemble the options for the device class and processor
   bpo::options_description od("WrapperDevice options");
   od.add_options()
     (OptionKeys[OptionKeyPollPeriod],
@@ -83,7 +86,6 @@ bpo::options_description WrapperDevice::GetOptionsDescription()
     ((std::string(OptionKeys[OptionKeyDryRun]) + ",n").c_str(),
      bpo::value<bool>()->zero_tokens()->default_value(false),
      "skip component processing");
-  od.add(Component::GetOptionsDescription());
   return od;
 }
 
@@ -93,8 +95,8 @@ void WrapperDevice::InitTask()
 
   int iResult=0;
 
-  std::unique_ptr<Component> component(new o2::alice_hlt::Component);
-  if (!component.get()) return /*-ENOMEM*/;
+  std::unique_ptr<Processor> processor(mProcessorCreatorFct());
+  if (!processor.get()) return /*-ENOMEM*/;
 
   // loop over program options, check if the option was used and
   // add it together with the parameter to the argument vector.
@@ -102,13 +104,13 @@ void WrapperDevice::InitTask()
   // option_description entires, but options_description does not
   // provide such a functionality
   vector<std::string> argstrings;
-  bpo::options_description componentOptionDescriptions = Component::GetOptionsDescription();
+  bpo::options_description processorOptionDescriptions = processor->getOptionsDescription();
   const auto * config = GetConfig();
   if (config) {
     const auto varmap = config->GetVarMap();
     for (const auto varit : varmap) {
       // check if this key belongs to the options of the device
-      const auto * description = componentOptionDescriptions.find_nothrow(varit.first, false);
+      const auto * description = processorOptionDescriptions.find_nothrow(varit.first, false);
       if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
         argstrings.emplace_back("--");
         argstrings.back() += varit.first;
@@ -143,13 +145,13 @@ void WrapperDevice::InitTask()
     argv.emplace_back(&argstringiter[0]);
   }
 
-  if ((iResult=component->init(argv.size(), &argv[0]))<0) {
-    LOG(ERROR) << "component init failed with error code " << iResult;
-    throw std::runtime_error("component init failed");
+  if ((iResult = processor->init(argv.size(), &argv[0]))<0) {
+    LOG(ERROR) << "processor init failed with error code " << iResult;
+    throw std::runtime_error("processor init failed");
     return /*iResult*/;
   }
 
-  mComponent=component.release();
+  mProcessor = processor.release();
   mLastCalcTime=-1;
   mLastSampleTime=-1;
   mMinTimeBetweenSample=-1;
@@ -158,6 +160,15 @@ void WrapperDevice::InitTask()
   mMaxReadCycles=-1;
   mNSamples=0;
 }
+
+void WrapperDevice::ResetTask()
+{
+  if (mProcessor) {
+    delete mProcessor;
+  }
+  mProcessor = nullptr;
+}
+
 
 void WrapperDevice::Run()
 {
@@ -180,35 +191,21 @@ void WrapperDevice::Run()
   while (CheckCurrentState(RUNNING)) {
 
     // read input messages
-    if (poller) {
-      poller->Poll(mPollingPeriod);
-    } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(mPollingPeriod));
+    auto nMessagesReceived = ReadMessages(poller, socketInputs);
+
+    if (nMessagesReceived > 0) {
+      nReadCycles++;
     }
-    int inputsReceived=0;
-    bool receivedAtLeastOneMessage=false;
-    for(int i = 0; i < numInputs; i++) {
-      if (socketInputs[i].Size() > 0) {
-        inputsReceived++;
-        continue;
+
+    auto checkComplete = [&socketInputs](){
+      for (const auto & socket : socketInputs) {
+        if (socket.Size() == 0) return false;
       }
-      if (poller->CheckInput(i)) {
-        if (Receive(socketInputs[i], "data-in", i)) {
-          receivedAtLeastOneMessage = true;
-          inputsReceived++;
-          if (mVerbosity > 3) {
-            LOG(INFO) << " |---- receive Msgs from socket " << i;
-          }
-        }
-        if (mVerbosity > 2) {
-          LOG(INFO) << "------ received " << socketInputs[i].Size() << " message(s) from socket " << i;
-        }
-      }
-    }
-    if (receivedAtLeastOneMessage) nReadCycles++;
-    if (inputsReceived<numInputs) {
-      continue;
-    }
+      return true;
+    };
+
+    if (!checkComplete()) continue;
+
     mNSamples++;
     mTotalReadCycles+=nReadCycles;
     if (mMaxReadCycles<0 || mMaxReadCycles<nReadCycles)
@@ -230,7 +227,7 @@ void WrapperDevice::Run()
     mLastSampleTime=duration.count();
     if (duration.count()-mLastCalcTime>1000) {
       LOG(INFO) << "------ processed  " << mNSamples << " sample(s) - total " 
-                << mComponent->getEventCount() << " sample(s)";
+                << mProcessor->getEventCount() << " sample(s)";
       if (mNSamples > 0) {
         LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg "
                   << (duration.count() - mLastCalcTime) / mNSamples << "ms ";
@@ -255,16 +252,23 @@ void WrapperDevice::Run()
         }
       }
 
-      // create a signal with the callback to the buffer allocation, the component
+      // create a signal with the callback to the buffer allocation, the processor
       // can create messages via the callback and writes data directly to buffer
       cballoc_signal_t cbsignal;
       cbsignal.connect([this](unsigned int size){return this->createMessageBuffer(size);} );
       mMessages.clear();
 
-      // call the component
-      if ((iResult=mComponent->process(dataArray, &cbsignal))<0) {
-        LOG(ERROR) << "component processing failed with error code " << iResult;
+      // call the processor
+      Processor::OutputContainer container;
+      if ((iResult=mProcessor->process(dataArray, container))<0) {
+        LOG(ERROR) << "worker processing failed with error code " << iResult;
       }
+
+      dataArray = mProcessor->finalize(container, &cbsignal);
+      container.first.clear();
+      // move the internal memory back to the processor so that it can be
+      // used in the next cycle
+      mProcessor->absorb(std::move(container.second));
 
       // build messages from output data
       if (dataArray.size() > 0) {
@@ -284,6 +288,8 @@ void WrapperDevice::Run()
               break;
             }
           }
+          // not found in the preallocated messages, create a new one
+          // and copy the data
           if (omsg==nullptr) {
             FairMQMessagePtr msg = NewMessage(opayload.mSize);
             if (msg.get()) {
@@ -297,12 +303,6 @@ void WrapperDevice::Run()
               uint8_t* pTarget = reinterpret_cast<uint8_t*>(msg->GetData());
               memcpy(pTarget, opayload.mP, opayload.mSize);
               mMessages.emplace_back(move(msg));
-            } else {
-              if (errorCount == maxError && errorCount++ > 0)
-                LOG(ERROR) << "persistent error, suppressing further output";
-              else if (errorCount++ < maxError)
-                LOG(ERROR) << "can not get output message from framework";
-              iResult = -ENOMSG;
             }
           }
         }
@@ -353,4 +353,33 @@ unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
   }
   mMessages.emplace_back(move(msg));
   return reinterpret_cast<uint8_t*>(mMessages.back()->GetData());
+}
+
+int WrapperDevice::ReadMessages(std::unique_ptr<FairMQPoller>& poller,
+                 std::vector<FairMQParts>& socketInputs) {
+    if (poller) {
+      poller->Poll(mPollingPeriod);
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(mPollingPeriod));
+    }
+    int newInputsReceived=0;
+    for(int i = 0, numInputs = socketInputs.size(); i < numInputs; i++) {
+      if (socketInputs[i].Size() > 0) {
+        // have the message for this slot already
+        continue;
+      }
+      if (poller->CheckInput(i)) {
+        if (Receive(socketInputs[i], "data-in", i)) {
+          newInputsReceived++;
+          if (mVerbosity > 3) {
+            LOG(INFO) << " |---- receive Msgs from socket " << i;
+          }
+        }
+        if (mVerbosity > 2) {
+          LOG(INFO) << "------ received " << socketInputs[i].Size() << " message(s) from socket " << i;
+        }
+      }
+    }
+
+    return newInputsReceived;
 }

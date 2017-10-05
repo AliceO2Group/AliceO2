@@ -29,6 +29,7 @@
 
 #include <FairMQDevice.h>
 #include <vector>
+#include <memory>
 #include <boost/program_options.hpp>
 
 namespace bpo = boost::program_options;
@@ -37,7 +38,7 @@ class FairMQMessage;
 
 namespace o2 {
 namespace alice_hlt {
-class Component;
+class Processor;
 
 /// @class WrapperDevice
 /// A FairMQ device class supporting the HLT component interface
@@ -48,8 +49,15 @@ class Component;
 /// using the Component class.
 class WrapperDevice : public FairMQDevice {
 public:
+  using ProcessorCreator = std::function<Processor*()>;
+
+  WrapperDevice() = delete;
   /// default constructor
-  WrapperDevice(int verbosity = 0);
+  WrapperDevice(ProcessorCreator creatorFct, int verbosity = 0);
+  // copy constructor prohibited
+  WrapperDevice(const WrapperDevice&) = delete;
+  // assignment operator prohibited
+  WrapperDevice& operator=(const WrapperDevice&) = delete;
   /// destructor
   ~WrapperDevice() override;
 
@@ -75,6 +83,8 @@ public:
   void InitTask() override;
   /// inherited from FairMQDevice
   void Run() override;
+  /// inherited from FairMQDevice
+  void ResetTask() override;
 
   /////////////////////////////////////////////////////////////////
   // device property identifier
@@ -83,19 +93,17 @@ public:
 protected:
 
 private:
-  // copy constructor prohibited
-  WrapperDevice(const WrapperDevice&);
-  // assignment operator prohibited
-  WrapperDevice& operator=(const WrapperDevice&);
-
   /// create a new message with data buffer of specified size
   unsigned char* createMessageBuffer(unsigned size);
+  /// read messages
+  int ReadMessages(std::unique_ptr<FairMQPoller>& poller,
+                   std::vector<FairMQParts>& socketInputs);
 
-  Component* mComponent;     // component instance
+  Processor* mProcessor;     // worker/processor instance
   std::vector<FairMQMessagePtr> mMessages; // array of output messages
 
   int mPollingPeriod;        // period of polling on input sockets in ms
-  int mSkipProcessing;       // skip component processing
+  int mSkipProcessing;       // skip processing of the worker instance
   int mLastCalcTime;         // start time of current statistic period
   int mLastSampleTime;       // time of last data sample
   int mMinTimeBetweenSample; // min time between data samples in statistic period
@@ -104,6 +112,7 @@ private:
   int mMaxReadCycles;        // max number of read cycles in statistic period
   int mNSamples;             // number of samples in statistic period
   int mVerbosity;            // verbosity level
+  ProcessorCreator mProcessorCreatorFct; // creator function
 };
 
 } // namespace alice_hlt

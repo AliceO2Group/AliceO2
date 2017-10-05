@@ -106,10 +106,10 @@ public:
 			unsigned long* constBlockBase, double* inputBlockMultiplier);
 
   /// clear the object and reset pointer references
-  virtual void clear(const char* /*option*/ = "");
+  void clear(const char* /*option*/ = "");
 
   /// print info
-  virtual void print(const char* option = "") const;
+  void print(const char* option = "") const;
 
   /// allocate memory
   static void* alloc(void* param, unsigned long size);

@@ -98,9 +98,12 @@ int main(int argc, char** argv)
       blockData.emplace_back(reinterpret_cast<unsigned char*>(inputBuffer), length);
     }
   }
-  if ((iResult = component.process(blockData)) < 0) {
+  o2::alice_hlt::Processor::OutputContainer output;
+  if ((iResult = component.process(blockData, output)) < 0) {
     cerr << "error: init failed with " << iResult << endl;
   }
+  blockData = component.finalize(output);
+
   if (inputBuffer) delete[] inputBuffer;
   inputBuffer = nullptr;
   if (iResult < 0) return -iResult;
@@ -118,4 +121,6 @@ int main(int argc, char** argv)
            << " data block(s) produced by component, use option '-o' to specify output file" << endl;
     }
   }
+
+  return 0;
 }

@@ -165,6 +165,10 @@ o2_define_bucket(
     TimeFrame
     O2Device
     dl
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Algorithm/include
+
 )
 
 o2_define_bucket(
