@@ -83,10 +83,6 @@ public:
   /// sampler loop started in a separate thread
   void samplerLoop();
 
-  /////////////////////////////////////////////////////////////////
-  // device property identifier
-  enum { Id = FairMQDevice::Last, PollingTimeout, SkipProcessing, EventPeriod, InitialDelay, OutputFile, Last };
-
 protected:
 
 private:

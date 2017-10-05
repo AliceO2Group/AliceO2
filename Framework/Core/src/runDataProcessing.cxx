@@ -49,7 +49,7 @@
 #include <unistd.h>
 
 
-#include "fairmq/tools/runSimpleMQStateMachine.h"
+#include <fairmq/DeviceRunner.h>
 
 using namespace o2::framework;
 
@@ -215,13 +215,15 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
   std::cout << "Spawing new device " << spec.id
             << " in process with pid " << getpid() << std::endl;
   try {
+    fair::mq::DeviceRunner runner{argc, argv};
+
     // Populate options from the command line. Notice that only the options
     // declared in the workflow definition are allowed.
-    FairMQProgOptions config;
-    boost::program_options::options_description optsDesc;
-    populateBoostProgramOptions(optsDesc, spec.options);
-    config.AddToCmdLineOptions(optsDesc, true);
-    config.ParseAll(argc, argv);
+    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r){
+      boost::program_options::options_description optsDesc;
+      populateBoostProgramOptions(optsDesc, spec.options);
+      r.fConfig.AddToCmdLineOptions(optsDesc, true);
+    });
 
     // We initialise this in the driver, because different drivers might have
     // different versions of the service
@@ -239,16 +241,11 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
       device.reset(new DataProcessingDevice(spec, serviceRegistry));
     }
 
-    if (!device) {
-      LOG(ERROR) << "getDevice(): no valid device provided. Exiting.";
-      return 1;
-    }
+    runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r){
+      r.fDevice = std::shared_ptr<FairMQDevice>{std::move(device)};
+    });
 
-    int result = runStateMachine(*device, config);
-
-    if (result > 0) {
-      return 1;
-    }
+    return runner.Run();
   }
   catch(std::exception &e) {
     LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";

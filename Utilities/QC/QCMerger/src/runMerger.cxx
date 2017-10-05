@@ -97,7 +97,6 @@ int main(int argc, char** argv)
   bpo::notify(vm);
 
   MergerDevice mergerDevice(unique_ptr<Merger>(new Merger(NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA)), MERGER_DEVICE_ID);
-  mergerDevice.CatchSignals();
 
   LOG(INFO) << "PID: " << getpid();
   LOG(INFO) << "Merger id: " << mergerDevice.GetId();
