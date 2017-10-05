@@ -27,18 +27,17 @@
 
 namespace o2 {
 namespace ITSMFT {
+
+  class AlpideSimResponse;
   
-  class DigiParams { 
+  class DigiParams {
   public:
 
     enum Hit2DigitsMethod {p2dSimple, p2dCShape};
-    
+
     DigiParams() = default;
     ~DigiParams() = default;
-
-    void  setThreshold(float v)           {mThreshold = v;}
-    float getThreshold()            const {return mThreshold;}
-
+    
     void  setNoisePerPixel(float v)       {mNoisePerPixel = v;}
     float getNoisePerPixel()        const {return mNoisePerPixel;}
 
@@ -46,7 +45,7 @@ namespace ITSMFT {
     bool  isContinuous()            const {return mIsContinuous;}
 
     void   setROFrameLenght(UInt_t l)     {mROFrameLenght = l;}
-    void   setROFrameDeadTime(UInt_t l)   {mROFrameDeadTime = l;}    
+    void   setROFrameDeadTime(UInt_t l)   {mROFrameDeadTime = l;}
     UInt_t getROFrameLenght()       const {return mROFrameLenght;}
     UInt_t getROFrameDeadTime()     const {return mROFrameDeadTime;}
 
@@ -56,20 +55,28 @@ namespace ITSMFT {
     void setACSFromBGPar0(float v)        {mACSFromBGPar0 = v;}
     void setACSFromBGPar1(float v)        {mACSFromBGPar1 = v;}
     void setACSFromBGPar2(float v)        {mACSFromBGPar2 = v;}
+    void setChargeThreshold(int v)        {mChargeThreshold = v;}
+    void setNSimSteps(int v)              {mNSimSteps = v;}
+    void setEnergyToNElectrons(float v)   {mEnergyToNElectrons = v;}
 
     float getACSFromBGPar0()        const {return mACSFromBGPar0;}
     float getACSFromBGPar1()        const {return mACSFromBGPar1;}
     float getACSFromBGPar2()        const {return mACSFromBGPar2;}
+    int   getChargeThreshold()      const {return mChargeThreshold;}
+    int   getNSimSteps()            const {return mNSimSteps;}
+    float getEnergyToNElectrons()   const {return mEnergyToNElectrons;}
 
     bool  isTimeOffsetSet()         const {return mTimeOffset>-infTime;}
     Hit2DigitsMethod getHit2DigitsMethod() const {return mHit2DigitsMethod;}
     void setHitDigitsMethod(Hit2DigitsMethod m) { mHit2DigitsMethod = m; }
+
+    const o2::ITSMFT::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
+    void setAlpSimResponse(const o2::ITSMFT::AlpideSimResponse* par) { mAlpSimResponse=par; }
     
   private:
     static constexpr double infTime = 1e99;
     Hit2DigitsMethod mHit2DigitsMethod = p2dCShape; ///< method of point to digitis conversion
     bool   mIsContinuous = false;   ///< flag for continuous simulation
-    float  mThreshold = 1.e-6;      ///< threshold in N electrons RS: TODO: Fix conversion from eloss to nelectrons 
     float  mNoisePerPixel = 1.e-7;  ///< ALPIDE Noise per chip
     float  mROFrameLenght = 10000;  ///< length of RO frame in ns
     float  mROFrameDeadTime = 25;   ///< dead time in end of the ROFrame, in ns
@@ -78,11 +85,17 @@ namespace ITSMFT {
     float mACSFromBGPar0 = -1.315;
     float mACSFromBGPar1 = 0.5018;
     float mACSFromBGPar2 = 1.084;
+
+    int mChargeThreshold = 150;  ///< charge threshold in Nelectrons
+    int mNSimSteps       = 7;    ///< number of steps in response simulation
+    float mEnergyToNElectrons = 1./3.6e-9; // conversion of eloss to Nelectrons
+
+    const o2::ITSMFT::AlpideSimResponse* mAlpSimResponse = nullptr;
     
     ClassDefNV(DigiParams,1);
   };
 
-  
+
 }
 }
 

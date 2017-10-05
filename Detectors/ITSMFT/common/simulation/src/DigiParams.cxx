@@ -12,5 +12,8 @@
 /// \brief Implementation of the ITS digitization steering params
 
 #include "ITSMFTSimulation/DigiParams.h"
+#include "ITSMFTSimulation/AlpideSimResponse.h"
 
 ClassImp(o2::ITSMFT::DigiParams);
+
+using namespace o2::ITSMFT;
