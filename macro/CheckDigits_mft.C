@@ -1,7 +1,7 @@
 /// \file CheckDigits.C
 /// \brief Simple macro to check ITSU digits
 
-#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include <TFile.h>
 #include <TTree.h>
