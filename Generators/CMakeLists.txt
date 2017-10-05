@@ -10,8 +10,10 @@ set(SRCS
     src/PrimaryGenerator.cxx
     src/Generator.cxx
     src/GeneratorHepMC.cxx
+    src/GeneratorTGenerator.cxx
     src/Trigger.cxx
     src/TriggerHepMC.cxx
+    src/TriggerTGenerator.cxx
     src/Pythia6Generator.cxx
     src/Pythia8Generator.cxx
     src/PDG.cxx	
@@ -21,8 +23,10 @@ set(HEADERS
     include/${MODULE_NAME}/PrimaryGenerator.h
     include/${MODULE_NAME}/Generator.h
     include/${MODULE_NAME}/GeneratorHepMC.h
+    include/${MODULE_NAME}/GeneratorTGenerator.h
     include/${MODULE_NAME}/Trigger.h
     include/${MODULE_NAME}/TriggerHepMC.h
+    include/${MODULE_NAME}/TriggerTGenerator.h
     include/${MODULE_NAME}/Pythia6Generator.h
     include/${MODULE_NAME}/Pythia8Generator.h
     include/${MODULE_NAME}/PDG.h

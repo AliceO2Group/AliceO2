@@ -33,7 +33,9 @@
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
 #pragma link C++ class o2::eventgen::Generator + ;
 #pragma link C++ class o2::eventgen::GeneratorHepMC + ;
+#pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
 #pragma link C++ class o2::eventgen::Trigger + ;
 #pragma link C++ class o2::eventgen::TriggerHepMC + ;
+#pragma link C++ class o2::eventgen::TriggerTGenerator + ;
 
 #endif
