@@ -69,7 +69,6 @@ set(TEST_SRCS
       test/test_FrameworkDataFlowToDDS.cxx
       test/test_Graphviz.cxx
       test/test_Services.cxx
-      test/test_SimpleStatefulProcessing01.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
       test/test_Variants.cxx
