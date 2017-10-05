@@ -17,6 +17,7 @@
 
 #include <cstddef> // size_t
 #include <fstream> // writing to file (DEBUG)
+#include <iomanip>
 
 #include <FairMQLogger.h>
 #include <options/FairMQProgOptions.h>

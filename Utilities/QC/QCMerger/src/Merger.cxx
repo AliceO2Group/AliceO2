@@ -17,6 +17,7 @@
 #include <TTree.h>
 
 #include "QCMerger/Merger.h"
+#include <sstream>
 
 using namespace std;
 
