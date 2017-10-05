@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
+#include <fstream>
 
 // A simple tool which verifies timeframe files
 int main(int argc, char **argv) {

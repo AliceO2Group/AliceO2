@@ -76,10 +76,6 @@ public:
   /// inherited from FairMQDevice
   void Run() override;
 
-  /////////////////////////////////////////////////////////////////
-  // device property identifier
-  enum { Id = FairMQDevice::Last, PollingPeriod, SkipProcessing, Last };
-
 protected:
 
 private:

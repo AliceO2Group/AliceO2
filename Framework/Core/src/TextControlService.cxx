@@ -11,6 +11,7 @@
 #include "FairMQLogger.h"
 #include <string>
 #include <regex>
+#include <iostream>
 
 namespace o2 {
 namespace framework {

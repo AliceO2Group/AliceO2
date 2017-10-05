@@ -77,7 +77,6 @@ int main(int argc, char** argv)
   }
 
   ProducerDevice producerDevice(producerId, producer);
-  producerDevice.CatchSignals();
 
   LOG(INFO) << "PID: " << getpid();
   LOG(INFO) << "Producer id: " << producerDevice.GetId();

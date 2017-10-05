@@ -25,7 +25,6 @@ int main(int argc, char** argv)
     drawingOptions = argv[1];
   }
   ViewerDevice viewerDevice("Viewer_1", drawingOptions);
-  viewerDevice.CatchSignals();
   auto* app = new TApplication("app1", &argc, argv);
 
   LOG(INFO) << "PID: " << getpid();
