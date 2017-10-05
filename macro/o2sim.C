@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "build_geometry.C"
-#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <FairBoxGenerator.h>
 #include <FairPrimaryGenerator.h>
 #include <TStopwatch.h>

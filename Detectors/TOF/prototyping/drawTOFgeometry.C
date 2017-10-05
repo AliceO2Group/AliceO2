@@ -1,4 +1,4 @@
-#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "FairRunSim.h"

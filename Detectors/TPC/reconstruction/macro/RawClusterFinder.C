@@ -14,7 +14,7 @@
 /// \file   RawClusterFinder.h
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
-#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <vector>
 #include <memory>
 #include <fstream>

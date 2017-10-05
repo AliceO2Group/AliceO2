@@ -1,7 +1,7 @@
 /// \file DisplayTrack.C
 /// \brief Simple macro to display ITSU tracks
 
-#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+#if !defined(__CLING__) || defined(__ROOTCLING__)
   #include <string>
 
   #include <TFile.h>
