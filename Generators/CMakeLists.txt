@@ -9,32 +9,48 @@ set(SRCS
     src/GeneratorFromFile.cxx
     src/PrimaryGenerator.cxx
     src/Generator.cxx
+    src/GeneratorHepMC.cxx
     src/Trigger.cxx
+    src/TriggerHepMC.cxx
     src/Pythia6Generator.cxx
+    src/Pythia8Generator.cxx
     src/PDG.cxx	
    )
 set(HEADERS
     include/${MODULE_NAME}/GeneratorFromFile.h
     include/${MODULE_NAME}/PrimaryGenerator.h
     include/${MODULE_NAME}/Generator.h
+    include/${MODULE_NAME}/GeneratorHepMC.h
     include/${MODULE_NAME}/Trigger.h
+    include/${MODULE_NAME}/TriggerHepMC.h
     include/${MODULE_NAME}/Pythia6Generator.h
+    include/${MODULE_NAME}/Pythia8Generator.h
     include/${MODULE_NAME}/PDG.h
    )
 
-if (PYTHIA8_INCLUDE_DIR)
-  set(SRCS ${SRCS}
-      src/Pythia8Generator.cxx
-     )
-  set(HEADERS ${HEADERS}
-      include/${MODULE_NAME}/Pythia8Generator.h
-      )
-  set(BUCKET_NAME generators_bucket)
-else (PYTHIA8_INCLUDE_DIR)
-  message(STATUS "module 'Generators' requires Pythia8 ... deactivated")
-  set(BUCKET_NAME generators_base_bucket)
-endif (PYTHIA8_INCLUDE_DIR)
+if (NOT HepMC3_FOUND)
+   list(REMOVE_ITEM SRCS
+                    src/GeneratorHepMC.cxx
+                    src/TriggerHepMC.cxx
+                    )
+   list(REMOVE_ITEM HEADERS
+                    include/${MODULE_NAME}/GeneratorHepMC.h
+                    include/${MODULE_NAME}/TriggerHepMC.h
+                    )
+   message(STATUS "module 'Generators' requires HepMC3 ... HepMC3 support deactivated")
+endif()
 
+if (NOT PYTHIA8_FOUND)
+   list(REMOVE_ITEM SRCS
+                    src/Pythia8Generator.cxx
+                    )
+   list(REMOVE_ITEM HEADERS
+                    include/${MODULE_NAME}/Pythia8Generator.h
+                    )
+   message(STATUS "module 'Generators' requires Pythia8 ... Pythia8 support deactivated")
+endif()
+
+set(BUCKET_NAME generators_bucket)
 set(LINKDEF src/GeneratorsLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})
 
