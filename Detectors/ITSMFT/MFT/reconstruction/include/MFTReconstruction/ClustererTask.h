@@ -32,7 +32,7 @@ namespace o2
     class ClustererTask : public FairTask
     {
       using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
-      using Clusterer        = o2::ITS::Clusterer;
+      using Clusterer        = o2::ITSMFT::Clusterer;
   
     public:
       

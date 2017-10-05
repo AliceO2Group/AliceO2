@@ -18,7 +18,6 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/Cluster.h"
 
-using namespace o2::ITS;
 using namespace o2::ITSMFT;
 
 Float_t Clusterer::mPitchX=0.002;
