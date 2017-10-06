@@ -80,7 +80,7 @@ class AliHLTTPCCAStandaloneFramework
 
     void SetSettings( );
     void WriteEvent( std::ostream &out ) const;
-    int ReadEvent( std::istream &in, bool ResetIds = false, bool addData = false, float shift = 0., float minZ = -1e6, float maxZ = 1e6, bool silent = false );
+    int ReadEvent( std::istream &in, bool ResetIds = false, bool addData = false, float shift = 0., float minZ = -1e6, float maxZ = -1e6, bool silent = false );
 
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1) { return(fTracker.InitGPU(sliceCount, forceDeviceID)); }
 	int ExitGPU() { return(fTracker.ExitGPU()); }

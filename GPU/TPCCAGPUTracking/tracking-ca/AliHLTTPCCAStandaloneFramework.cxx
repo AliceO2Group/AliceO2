@@ -449,10 +449,10 @@ int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, 
         }
       }
     }
-    if (shift && (minZ > -1e6 || maxZ < 1e6))
+    if (minZ > -1e6 || maxZ > -1e6)
     {
       unsigned int currentCluster = nCurrentClusters;
-      unsigned int iTotal = 0;
+      unsigned int currentClusterTotal = nCurrentClusters;
       for (int iSlice = 0;iSlice < 36;iSlice++)
       {
         int currentClusterSlice = sliceOldClusters[iSlice];
@@ -463,15 +463,17 @@ int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, 
           {
             if (currentClusterSlice != i) fClusterData[iSlice].Clusters()[currentClusterSlice] = fClusterData[iSlice].Clusters()[i];
             if (resetIds) fClusterData[iSlice].Clusters()[currentClusterSlice].fId = currentCluster;
+            if (fMCLabels.size() > currentClusterTotal && currentCluster != currentClusterTotal) fMCLabels[currentCluster] = fMCLabels[currentClusterTotal];
+            //printf("Keeping Cluster ID %d (ID in slice %d) Z=%f (sector %d) --> %d (slice %d)\n", currentClusterTotal, i, fClusterData[iSlice].Clusters()[i].fZ, iSlice, currentCluster, currentClusterSlice);
             currentClusterSlice++;
-            if (fMCLabels.size() > iTotal && currentCluster != iTotal) fMCLabels[currentCluster] = fMCLabels[iTotal];
             currentCluster++;
           }
           else
           {
+            //printf("Removing Cluster ID %d (ID in slice %d) Z=%f (sector %d)\n", currentClusterTotal, i, fClusterData[iSlice].Clusters()[i].fZ, iSlice);
             removed++;
           }
-          iTotal++;
+          currentClusterTotal++;
         }
         fClusterData[iSlice].SetNumberOfClusters(currentClusterSlice);
         sliceNewClusters[iSlice] = currentClusterSlice - sliceOldClusters[iSlice];
@@ -484,7 +486,7 @@ int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, 
   if (!silent)
   {
     printf("Read %d Clusters with %d MC labels and %d MC tracks\n", nClusters, (int) (fMCLabels.size() ? (fMCLabels.size() - nCurrentClusters) : 0), (int) fMCInfo.size() - nCurrentMCTracks);
-    if (minZ > -1e6 || maxZ < 1e6) printf("Removed %d / %d clusters\n", removed, nClusters + removed);
+    if (minZ > -1e6 || maxZ > 1e6) printf("Removed %d / %d clusters\n", removed, nClusters + removed);
     if (addData) printf("Total %d Clusters with %d MC labels and %d MC tracks\n", nClusters + nCurrentClusters, (int) fMCLabels.size(), (int) fMCInfo.size());
   }
 #endif
