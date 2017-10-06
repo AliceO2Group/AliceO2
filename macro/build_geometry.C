@@ -23,6 +23,7 @@
 #include <Field/MagneticField.h>
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
+#include <MFTSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
@@ -142,6 +143,12 @@ void build_geometry(FairRunSim* run = nullptr)
     // its
     auto its = new o2::ITS::Detector(true);
     run->AddModule(its);
+  }
+
+  if (isActivated("MFT")){
+    // mft
+    auto mft = new o2::MFT::Detector();
+    run->AddModule(mft);
   }
   
   if (isActivated("EMC")){
