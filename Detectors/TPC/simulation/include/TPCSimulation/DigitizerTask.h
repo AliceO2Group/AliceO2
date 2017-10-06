@@ -46,8 +46,6 @@ class DigitizerTask : public FairTask{
     /// Inititializes the digitizer and connects input and output container
     InitStatus Init() override;
 
-    void setHitFileName(std::string name) { mHitFileName = name; }
-
     /// Sets the debug flags for the sub-tasks
     /// \param debugsString String containing the debug flags
     ///        o PRFdebug - Debug output after application of the PRF
@@ -69,18 +67,13 @@ class DigitizerTask : public FairTask{
     void FinishTask() override;
 
   private:
-    void fillHitArrayFromFile();
-
     Digitizer           *mDigitizer;    ///< Digitization process
     DigitContainer      *mDigitContainer;
       
-    TClonesArray        *mPointsArray;  ///< Array of detector hits, passed to the digitization
     TClonesArray        *mDigitsArray;  ///< Array of the Digits, passed from the digitization
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
     TClonesArray        *mDigitsDebugArray;  ///< Array of the Digits, for debugging purposes only, passed from the digitization
     
-    std::string         mHitFileName;  ///< External hit file exported from AliRoot
-
     int                 mTimeBinMax;   ///< Maximum time bin to be written out
     bool                mIsContinuousReadout; ///< Switch for continuous readout
     bool                mDigitDebugOutput;    ///< Switch for the debug output of the DigitMC
