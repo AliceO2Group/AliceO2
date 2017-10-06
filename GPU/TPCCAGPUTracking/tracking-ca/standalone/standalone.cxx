@@ -78,6 +78,13 @@ int main(int argc, char** argv)
 	if (configStandalone.fifi) {printf("FIFO Scheduler setting not supported on Windows\n"); return(1);}
 	if (configStandalone.fpe) {printf("FPE not supported on Windows\n"); return(1);}
 #endif
+#ifndef BUILD_QA
+	if (configStandalone.qa) {printf("QA not enabled in build\n"); return(1);}
+#endif
+#ifndef BUILD_EVENT_DISPLAY
+	if (configStandalone.eventDisplay) {printf("EventDisplay not enabled in build\n"); return(1);}
+#endif
+	if (configStandalone.configTF.bunchSim && configStandalone.configTF.nMerge) {printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n"); return(1);}
 
 	if (configStandalone.OMPTHreads != -1) omp_set_num_threads(configStandalone.OMPTHreads);
 	
