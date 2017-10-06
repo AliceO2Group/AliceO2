@@ -17,6 +17,7 @@
 
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/PadResponse.h"
+#include "TPCSimulation/Point.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
@@ -28,7 +29,6 @@
 using std::vector;
 
 class TTree;
-class TClonesArray;
 
 namespace o2 {
 namespace TPC {
@@ -71,7 +71,7 @@ class Digitizer {
     /// Steer conversion of points to digits
     /// \param points Container with TPC points
     /// \return digits container
-    DigitContainer *Process(TClonesArray *points);
+    DigitContainer* Process(const std::vector<o2::TPC::LinkableHitGroup>& hits);
 
     DigitContainer *getDigitContainer() const { return mDigitContainer; }
 

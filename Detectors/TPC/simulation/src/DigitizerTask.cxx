@@ -74,7 +74,7 @@ InitStatus DigitizerTask::Init()
     std::stringstream sectornamestr;
     sectornamestr << "TPCHitsSector" << mHitSector;
     LOG(INFO) << "FETCHING HITS FOR SECTOR " << mHitSector << "\n";
-    mSectorHitsArray[mHitSector] = dynamic_cast<TClonesArray *>(mgr->GetObject(sectornamestr.str().c_str()));
+    mSectorHitsArray[mHitSector] = mgr->InitObjectAs<const std::vector<LinkableHitGroup>*>(sectornamestr.str().c_str());
   }
   else {
     // in case we are treating all sectors
@@ -82,7 +82,7 @@ InitStatus DigitizerTask::Init()
       std::stringstream sectornamestr;
       sectornamestr << "TPCHitsSector" << s;
       LOG(INFO) << "FETCHING HITS FOR SECTOR " << s << "\n";
-      mSectorHitsArray[s] = dynamic_cast<TClonesArray *>(mgr->GetObject(sectornamestr.str().c_str()));
+      mSectorHitsArray[s] = mgr->InitObjectAs<const std::vector<LinkableHitGroup>*>(sectornamestr.str().c_str());
     }
   }
   
@@ -123,12 +123,12 @@ void DigitizerTask::Exec(Option_t *option)
     // treat all sectors
     for (int s=0; s<Sector::MAXSECTOR; ++s){
       LOG(DEBUG) << "Processing sector " << s << "\n";
-      mDigitContainer = mDigitizer->Process(mSectorHitsArray[s]);
+      mDigitContainer = mDigitizer->Process(*mSectorHitsArray[s]);
     }
   }
   else {
     // treat only chosen sector
-    mDigitContainer = mDigitizer->Process(mSectorHitsArray[mHitSector]);
+    mDigitContainer = mDigitizer->Process(*mSectorHitsArray[mHitSector]);
   }
   mDigitContainer->fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, eventTime, mIsContinuousReadout);
 }
