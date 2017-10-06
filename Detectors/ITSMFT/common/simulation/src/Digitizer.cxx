@@ -62,8 +62,9 @@ void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
 		 << mParams.getTimeOffset() << FairLogger::endl;
     return;
   }
-  
-  UInt_t minNewROFrame = static_cast<UInt_t>(hTime0)/mParams.getROFrameLenght();
+
+  if (hTime0<0) hTime0 = 0.;
+  UInt_t minNewROFrame = static_cast<UInt_t>(hTime0/mParams.getROFrameLenght());
 
   LOG(INFO) << "Digitizing ITS event at time " << mEventTime
 	    << " (TOffset= " << mParams.getTimeOffset() << " ROFrame= " << minNewROFrame << ")"
