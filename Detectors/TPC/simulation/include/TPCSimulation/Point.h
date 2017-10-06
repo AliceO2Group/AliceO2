@@ -16,10 +16,6 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include <vector>
 
-// this decides if TPC hits are grouped into
-// a LinkableHitGroup container
-#define TPC_GROUPED_HITS 1
-
 namespace o2 {
 namespace TPC {
 

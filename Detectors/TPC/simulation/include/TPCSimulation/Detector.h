@@ -15,9 +15,7 @@
 #include "DetectorsBase/Detector.h"   // for Detector
 #include "Rtypes.h"          // for Int_t, Double32_t, Double_t, Bool_t, etc
 #include "TLorentzVector.h"  // for TLorentzVector
-#include "TClonesArray.h"
 #include "TString.h"
-#include "FairLink.h"
 
 #include "TPCSimulation/Point.h"
 #include "TPCBase/Sector.h"
@@ -96,9 +94,6 @@ class Detector: public o2::Base::Detector {
     /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
     */
-
-    void   CopyClones( TClonesArray* cl1,  TClonesArray* cl2 ,
-                               Int_t offset) override {;}
     void   SetSpecialPhysicsCuts() override;// {;}
     void   EndOfEvent() override;
     void   FinishPrimary() override {;}
@@ -131,10 +126,8 @@ class Detector: public o2::Base::Detector {
     /** Define the sensitive volumes of the geometry */
     void DefineSensitiveVolumes();
 
-    /** container for data points */
-    TClonesArray*  mPointCollection;
-    TClonesArray*  mHitGroupCollection;    //! container that keeps track-grouped hits
-    TClonesArray*  mHitsPerSectorCollection[Sector::MAXSECTOR];
+    /** container for produced hits */
+    TClonesArray*  mHitsPerSectorCollection[Sector::MAXSECTOR]; //! container that keeps track-grouped hits per sector
 
     TString mGeoFileName;                  ///< Name of the file containing the TPC geometry
     size_t mEventNr;                       //!< current event number
@@ -146,16 +139,6 @@ class Detector: public o2::Base::Detector {
 
     ClassDefOverride(Detector,1)
 };
-
-inline
-Point* Detector::addHit(float x, float y, float z, float time, float nElectrons, float trackID, float detID)
-{
-  TClonesArray& clref = *mPointCollection;
-  Int_t size = clref.GetEntriesFast();
-  Point *point = new(clref[size]) Point(x, y, z, time, nElectrons, trackID, detID);
-  point->SetLink(FairLink(-1, mEventNr, mMCTrackBranchId, trackID));
-  return point;
-}
 
 template<typename T>
 inline

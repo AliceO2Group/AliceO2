@@ -72,16 +72,11 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
   static size_t hitCounter=0;
   for(auto pointObject : *points) {
-#ifdef TPC_GROUPED_HITS
     auto *inputgroup = static_cast<LinkableHitGroup*>(pointObject);
     const int MCTrackID = inputgroup->GetTrackID();
     for(size_t hitindex = 0; hitindex<inputgroup->getSize(); ++hitindex){
       ElementalHit eh = inputgroup->getHit(hitindex);
       auto *inputpoint = &eh;
-#else
-    Point *inputpoint = static_cast<Point *>(pointObject);
-    const int MCTrackID = inputpoint->GetTrackID();
-#endif
 
     const GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
 
@@ -155,9 +150,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     }
     /// end of loop over electrons
     ++hitCounter;
-#ifdef TPC_GROUPED_HITS
     }
-#endif
   }
   /// end of loop over points
 
