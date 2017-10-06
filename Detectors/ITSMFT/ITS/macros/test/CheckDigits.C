@@ -26,7 +26,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   using namespace o2::ITS;
 
   TFile *f=TFile::Open("CheckDigits.root","recreate");
-  TNtuple *nt=new TNtuple("ntd","digit ntuple","x:y:z:dx:dz");
+  TNtuple *nt=new TNtuple("ntd","digit ntuple","id:x:y:z:rowD:colD:rowH:colH:xlH:zlH:xlcH:zlcH:dx:dz");
 
   char filename[100];
 
@@ -88,12 +88,17 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 	for (Int_t i=0; i<nh; i++) {
 	  Hit *p=(Hit *)hitArr.UncheckedAt(i);
 	  if (p->GetDetectorID() != chipID) continue; 
-	  if (p->GetTrackID() != lab) continue;
+	  if (p->GetTrackID() != trID) continue;
 	  auto locH    = gman->getMatrixL2G(chipID)^( p->GetPos() );  // inverse conversion from global to local
 	  auto locHsta = gman->getMatrixL2G(chipID)^( p->GetPosStart() );
 	  locH.SetXYZ( 0.5*(locH.X()+locHsta.X()),0.5*(locH.Y()+locHsta.Y()),0.5*(locH.Z()+locHsta.Z()) );
+	  int row,col;
+	  float xlc,zlc;
+	  seg->localToDetector(locH.X(),locH.Z(), row, col);
+	  seg->detectorToLocal(row,col,xlc,zlc);
 	  //
-	  nt->Fill(gloD.X(),gloD.Y(),gloD.Z(),locH.X()-locD.X(),locH.Z()-locD.Z());
+	  nt->Fill(chipID,gloD.X(),gloD.Y(),gloD.Z(),ix,iz,row,col,
+		   locH.X(),locH.Z(), xlc,zlc,  locH.X()-locD.X(),locH.Z()-locD.Z());
 	  break;
 	}      
       }
