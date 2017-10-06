@@ -413,7 +413,13 @@ int main(int argc, char** argv)
 breakrun:
 
 #ifdef BUILD_QA
-	if (configStandalone.qa) DrawQAHistograms();
+	if (configStandalone.qa)
+	{
+#ifndef _WIN32
+		fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+#endif
+		DrawQAHistograms();
+	}
 #endif
 
 	if (configStandalone.DebugLevel >= 4)
