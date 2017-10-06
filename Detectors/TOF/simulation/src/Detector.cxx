@@ -28,6 +28,15 @@ using namespace o2::tof;
 
 ClassImp(Detector);
 
+Detector::Detector()
+  : o2::Base::Detector("TOF", kTRUE), 
+    mEventNr(0),
+    mTOFHoles(kTRUE),
+    mHitCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<HitType>().c_str())),
+    mMCTrackBranchId(-1)
+{
+}
+
 Detector::Detector(const char* Name, Bool_t Active)
   : o2::Base::Detector(Name, Active),
     mEventNr(0),
