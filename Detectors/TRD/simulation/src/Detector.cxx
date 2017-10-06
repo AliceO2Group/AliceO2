@@ -14,16 +14,16 @@
 #include <vector>
 #include "FairRootManager.h"
 #include "FairVolume.h"
-#include "TClonesArray.h"
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
 #include "SimulationDataFormat/Stack.h"
+#include <stdexcept>
 
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
   : o2::Base::Detector("TRD", active), 
-    mHitCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<HitType>().c_str()))
+    mHits(new std::vector<HitType>)
 {
 }
 
@@ -60,18 +60,16 @@ bool Detector::ProcessHits(FairVolume* v)
 
 void Detector::Register()
 {
-  FairRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mHitCollection, true);
+  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true);
 }
 
 TClonesArray* Detector::GetCollection(int iColl) const
 {
-  if (iColl == 0) {
-    return mHitCollection;
-  }
+  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
   return nullptr;
 }
 
-void Detector::Reset() { mHitCollection->Clear(); }
+void Detector::Reset() { mHits->clear(); }
 
 void Detector::EndOfEvent() { Reset(); }
 
