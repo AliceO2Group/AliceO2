@@ -602,7 +602,15 @@ int DrawQAHistograms()
 		legendclust[i]->SetTextSize(0.016);
 		legendclust[i]->SetFillColor(0);
 	}
-
+	
+	printf("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)\n",
+		(int) eff[3][1][0][0][0]->GetEntries(), (int) eff[3][1][0][3][0]->GetEntries(), (int) eff[3][1][0][4][0]->GetEntries(),
+		eff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., eff[3][0][0][0][0]->GetSumOfWeights()), eff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., eff[3][1][0][0][0]->GetSumOfWeights()),
+		(int) eff[3][1][1][0][0]->GetEntries(), (int) eff[3][1][1][3][0]->GetEntries(), (int) eff[3][1][1][4][0]->GetEntries(),
+		eff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., eff[3][0][1][0][0]->GetSumOfWeights()), eff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., eff[3][1][1][0][0]->GetSumOfWeights()),
+		(int) res2[0][0]->GetEntries(), (int) res2[0][3]->GetEntries(), (int) res2[0][4]->GetEntries()
+	);
+	
 	//Process / Draw Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
 	{
