@@ -78,16 +78,11 @@ class Detector : public o2::Base::Detector
   void CreateMaterials();
   void ConstructGeometry() override;
   void SetOneMCP(TGeoVolume* stl);
+
   // Optical properties reader: e-Energy, abs-AbsorptionLength[cm], n-refractive index
-  Int_t ReadOptProperties(const std::string inputFilePath, Float_t** e, Double_t** de, Float_t** abs, Float_t** n,
-                          Float_t** qe, Int_t& kNbins) const;
   void DefineOpticalProperties();
-  void FillOtherOptProperties(Float_t** efficAll, Float_t** rindexAir, Float_t** absorAir, Float_t** rindexCathodeNext,
-                              Float_t** absorbCathodeNext, Double_t** efficMet, Double_t** aReflMet,
-                              const Int_t kNbins) const;
-  void DeleteOptPropertiesArr(Float_t** e, Double_t** de, Float_t** abs, Float_t** n, Float_t** efficAll,
-                              Float_t** rindexAir, Float_t** absorAir, Float_t** rindexCathodeNext,
-                              Float_t** absorbCathodeNext, Double_t** efficMet, Double_t** aReflMet) const;
+  Int_t ReadOptProperties(const std::string inputFilePath);
+  void FillOtherOptProperties();
   Bool_t RegisterPhotoE(Double_t energy);
 
   //  Geometry* GetGeometry();
@@ -106,6 +101,21 @@ class Detector : public o2::Base::Detector
  private:
   Int_t mIdSens1;  // Sensetive volume  in T0
   TGraph* mPMTeff; // pmt registration effeicincy
+
+  // Optical properties to be extracted from file
+  std::vector<Double_t> photonEnergyD;
+  std::vector<Double_t> absorptionLength;
+  std::vector<Double_t> refractionIndex;
+  std::vector<Double_t> quantumEfficiency;
+
+  // Optical properties to be set to constants
+  std::vector<Double_t> efficAll;
+  std::vector<Float_t> rindexAir;
+  std::vector<Float_t> absorAir;
+  std::vector<Float_t> rindexCathodeNext;
+  std::vector<Float_t> absorbCathodeNext;
+  std::vector<Double_t> efficMet;
+  std::vector<Double_t> aReflMet;
 
   /// Container for data points
   TClonesArray* mHitCollection;

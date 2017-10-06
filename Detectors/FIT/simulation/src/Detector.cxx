@@ -358,82 +358,40 @@ void Detector::DefineOpticalProperties()
   TString optPropPath = inputDir + "quartzOptProperties.txt";
   optPropPath = gSystem->ExpandPathName(optPropPath.Data()); // Expand $(ALICE_ROOT) into real system path
 
-  // Prepare pointers for arrays read from the input file
-  Float_t* aPckov = nullptr;
-  Double_t* dPckov = nullptr;
-  Float_t* aAbsSiO2 = nullptr;
-  Float_t* rindexSiO2 = nullptr;
-  Float_t* qeff = nullptr;
-  Int_t kNbins = 0;
-  ReadOptProperties(optPropPath.Data(), &aPckov, &dPckov, &aAbsSiO2, &rindexSiO2, &qeff, kNbins);
+  if(ReadOptProperties(optPropPath.Data())<0){
+    // Error reading file
+    return;
+  }
+  Int_t nBins = photonEnergyD.size();
   // set QE
-  mPMTeff = new TGraph(kNbins, aPckov, qeff);
+  mPMTeff = new TGraph(nBins, &(photonEnergyD[0]), &(quantumEfficiency[0]));
 
   // Prepare pointers for arrays with constant and hardcoded values (independent on wavelength)
-  Float_t* efficAll = nullptr;
-  Float_t* rindexAir = nullptr;
-  Float_t* absorAir = nullptr;
-  Float_t* rindexCathodeNext = nullptr;
-  Float_t* absorbCathodeNext = nullptr;
-  Double_t* efficMet = nullptr;
-  Double_t* aReflMet = nullptr;
-  FillOtherOptProperties(&efficAll, &rindexAir, &absorAir, &rindexCathodeNext, &absorbCathodeNext, &efficMet, &aReflMet,
-                         kNbins);
+  FillOtherOptProperties();
 
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlass), kNbins, aPckov, aAbsSiO2, efficAll, rindexSiO2);
+  // Quick conversion from vector<Double_t> to Double_t*: photonEnergyD -> &(photonEnergyD[0])
+  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlass), nBins, &(photonEnergyD[0]), &(absorptionLength[0]), &(efficAll[0]), &(refractionIndex[0]));
   // TVirtualMC::GetMC()->SetCerenkov (getMediumID(kOpGlassCathode), kNbins, aPckov, aAbsSiO2, effCathode, rindexSiO2);
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlassCathode), kNbins, aPckov, aAbsSiO2, efficAll, rindexSiO2);
+  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlassCathode), nBins, &(photonEnergyD[0]), &(absorptionLength[0]), &(efficAll[0]), &(refractionIndex[0]));
 
   // Define a border for radiator optical properties
-  // TODO: Maciek: The following 3 lines just generate warnings and do nothing else - could be deleted
   TVirtualMC::GetMC()->DefineOpSurface("surfRd", kUnified /*kGlisur*/, kDielectric_metal, kPolished, 0.);
-  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "EFFICIENCY", kNbins, dPckov, efficMet);
-  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "REFLECTIVITY", kNbins, dPckov, aReflMet);
-
-  DeleteOptPropertiesArr(&aPckov, &dPckov, &aAbsSiO2, &rindexSiO2, &efficAll, &rindexAir, &absorAir, &rindexCathodeNext,
-                         &absorbCathodeNext, &efficMet, &aReflMet);
+  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "EFFICIENCY", nBins, &(photonEnergyD[0]), &(efficMet[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "REFLECTIVITY", nBins, &(photonEnergyD[0]), &(aReflMet[0]));
 }
 
-void Detector::FillOtherOptProperties(Float_t** efficAll, Float_t** rindexAir, Float_t** absorAir,
-                                      Float_t** rindexCathodeNext, Float_t** absorbCathodeNext, Double_t** efficMet,
-                                      Double_t** aReflMet, const Int_t kNbins) const
+void Detector::FillOtherOptProperties()
 {
-  // Allocate memory for these arrays according to the required size
-  *efficAll = new Float_t[kNbins];
-  *rindexAir = new Float_t[kNbins];
-  *absorAir = new Float_t[kNbins];
-  *rindexCathodeNext = new Float_t[kNbins];
-  *absorbCathodeNext = new Float_t[kNbins];
-  *efficMet = new Double_t[kNbins];
-  *aReflMet = new Double_t[kNbins];
-
-  // Set constant values to the arrays
-  for (Int_t i = 0; i < kNbins; i++) {
-    (*efficAll)[i] = 1.;
-    (*rindexAir)[i] = 1.;
-    (*absorAir)[i] = 0.3;
-    (*rindexCathodeNext)[i] = 0;
-    (*absorbCathodeNext)[i] = 0;
-    (*efficMet)[i] = 0.;
-    (*aReflMet)[i] = 1.;
+  // Set constant values to the other arrays
+  for (Int_t i = 0; i < photonEnergyD.size(); i++) {
+    efficAll.push_back(1.);
+    rindexAir.push_back(1.);
+    absorAir.push_back(0.3);
+    rindexCathodeNext.push_back(0.);
+    absorbCathodeNext.push_back(0.);
+    efficMet.push_back(0.);
+    aReflMet.push_back(1.);
   }
-}
-
-void Detector::DeleteOptPropertiesArr(Float_t** e, Double_t** de, Float_t** abs, Float_t** n, Float_t** efficAll,
-                                      Float_t** rindexAir, Float_t** absorAir, Float_t** rindexCathodeNext,
-                                      Float_t** absorbCathodeNext, Double_t** efficMet, Double_t** aReflMet) const
-{
-  delete[](*e);
-  delete[](*de);
-  delete[](*abs);
-  delete[](*n);
-  delete[](*efficAll);
-  delete[](*rindexAir);
-  delete[](*absorAir);
-  delete[](*rindexCathodeNext);
-  delete[](*absorbCathodeNext);
-  delete[](*efficMet);
-  delete[](*aReflMet);
 }
 
 //------------------------------------------------------------------------
@@ -451,8 +409,7 @@ Bool_t Detector::RegisterPhotoE(Double_t energy)
   return kTRUE;
 }
 
-Int_t Detector::ReadOptProperties(const std::string filePath, Float_t** e, Double_t** de, Float_t** abs, Float_t** n,
-                                  Float_t** qe, Int_t& kNbins) const
+Int_t Detector::ReadOptProperties(const std::string filePath)
 {
   std::ifstream infile;
   infile.open(filePath.c_str());
@@ -471,18 +428,12 @@ Int_t Detector::ReadOptProperties(const std::string filePath, Float_t** e, Doubl
   getline(infile, comment); // 2nd comment line
 
   // Get number of elements required for the array
-  infile >> kNbins;
-  if (kNbins < 0 || kNbins > 1e4) {
+  Int_t nLines;
+  infile >> nLines;
+  if (nLines < 0 || nLines > 1e4) {
     //   AliFatal(Form("Input arraySize out of range 0..1e4: %i. Check input file: %s", kNbins, filePath.c_str()));
     return -4;
   }
-
-  // Allocate memory required for arrays
-  *e = new Float_t[kNbins];
-  *de = new Double_t[kNbins];
-  *abs = new Float_t[kNbins];
-  *n = new Float_t[kNbins];
-  *qe = new Float_t[kNbins];
 
   getline(infile, comment); // finish 3rd line after the nEntries are read
   getline(infile, comment); // 4th comment line
@@ -492,18 +443,29 @@ Int_t Detector::ReadOptProperties(const std::string filePath, Float_t** e, Doubl
   std::string sLine;
   getline(infile, sLine);
   while (!infile.eof()) {
-    if (iLine >= kNbins) {
+    if (iLine >= nLines) {
       //      AliFatal(Form("Line number: %i reaches range of declared arraySize: %i. Check input file: %s", iLine,
       //      kNbins, filePath.c_str()));
       return -5;
     }
     std::stringstream ssLine(sLine);
-    ssLine >> (*de)[iLine];
-    (*de)[iLine] *= 1e-9;                             // Convert eV -> GeV immediately
-    (*e)[iLine] = static_cast<Float_t>((*de)[iLine]); // same value, different precision
-    ssLine >> (*abs)[iLine];
-    ssLine >> (*n)[iLine];
-    ssLine >> (*qe)[iLine];
+    // First column:
+    Double_t energy;
+    ssLine >> energy;
+    energy *= 1e-9;                                        // Convert eV -> GeV immediately
+    photonEnergyD.push_back(energy);
+    // Second column:
+    Double_t absorption;
+    ssLine >> absorption;
+    absorptionLength.push_back(absorption);
+    // Third column:
+    Double_t refraction;
+    ssLine >> refraction;
+    refractionIndex.push_back(refraction);
+    // Fourth column:
+    Double_t efficiency;
+    ssLine >> efficiency;
+    quantumEfficiency.push_back(efficiency);
     if (!(ssLine.good() || ssLine.eof())) { // check if there were problems with numbers conversion
       //    AliFatal(Form("Error while reading line %i: %s", iLine, ssLine.str().c_str()));
       return -6;
@@ -511,7 +473,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath, Float_t** e, Doubl
     getline(infile, sLine);
     iLine++;
   }
-  if (iLine != kNbins) {
+  if (iLine != photonEnergyD.size()) {
     //    AliFatal(Form("Total number of lines %i is different than declared %i. Check input file: %s", iLine, kNbins,
     //    filePath.c_str()));
     return -7;
