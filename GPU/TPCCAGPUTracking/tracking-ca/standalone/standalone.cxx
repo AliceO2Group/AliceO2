@@ -227,9 +227,8 @@ int main(int argc, char** argv)
 							in.open(filename, std::ifstream::binary);
 							if (in.fail()) {printf("Unexpected error\n");return(1);}
 							float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
-							//int nClusters = hlt.ReadEvent(in, true, true, shift, 0, configStandalone.configTF.timeFrameLen * TPCZ / driftTime, true);
-							int nClusters = hlt.ReadEvent(in, true, true, shift, -1e6, 1e6, true);
-							printf("Placing event %4d at z %7.3f %s(collisions %4d, bunch %6d, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", useEvent, shift, nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
+							int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (float) configStandalone.configTF.timeFrameLen * TPCZ / driftTime, true);
+							printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %dns) %s(collisions %4d, bunch %6d, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * configStandalone.configTF.bunchSpacing), nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
 							in.close();
 							nInBunchPileUp++;
 							nCollisionsInTrain++;
@@ -247,7 +246,7 @@ int main(int argc, char** argv)
 			delete[] eventUsed;
 			printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
 #ifdef BUILD_QA
-			//SetMCTrackRange(mcMin, mcMax);
+			SetMCTrackRange(mcMin, mcMax);
 #endif
 		}
 		else
