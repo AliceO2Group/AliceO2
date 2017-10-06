@@ -130,8 +130,8 @@ void SimulationAlpide::Hits2Digits(const SegmentationPixel *seg, Double_t eventT
     }
     
     // calculate RO Frame for this hit
-    UInt_t roframe = static_cast<UInt_t>(hTime0);
-    roframe /= mParams->getROFrameLenght();
+    if (hTime0<0) hTime0 = 0.;
+    UInt_t roframe = static_cast<UInt_t>(hTime0/mParams->getROFrameLenght());
     if (roframe<minFr) minFr = roframe;
     if (roframe>maxFr) maxFr = roframe;
     
