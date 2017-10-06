@@ -36,7 +36,8 @@ class ElementalHit {
  public:
   ElementalHit() = default; // for ROOT IO
   ~ElementalHit() = default;
-
+  ElementalHit(ElementalHit const &) = default;
+  
   // constructor
   ElementalHit(float x, float y, float z, float time, float e)
     :  mPos(x, y, z), mTime(time), mELoss(e) {}
@@ -52,6 +53,7 @@ class ElementalHit {
 class LinkableHitGroup : public o2::BaseHit {
 public:
   LinkableHitGroup() :
+  o2::BaseHit(),
 #ifdef HIT_AOS
   mHits()
 #else
@@ -59,18 +61,13 @@ public:
   mHitsYVctr(),
   mHitsZVctr(),
   mHitsTVctr(),
-  mHitsEVctr(),
-  mHitsX(nullptr),
-  mHitsY(nullptr),
-  mHitsZ(nullptr),
-  mHitsT(nullptr),
-  mHitsE(nullptr),
-  mSize(0)
+  mHitsEVctr()
 #endif
     {
     }
 
   LinkableHitGroup(int trackID) :
+  o2::BaseHit(trackID),
 #ifdef HIT_AOS
   mHits()
 #else
@@ -78,20 +75,13 @@ public:
   mHitsYVctr(),
   mHitsZVctr(),
   mHitsTVctr(),
-  mHitsEVctr(),
-  mHitsX(nullptr),
-  mHitsY(nullptr),
-  mHitsZ(nullptr),
-  mHitsT(nullptr),
-  mHitsE(nullptr),
-  mSize(0)
+  mHitsEVctr()
 #endif
   {
-    SetTrackID(trackID);
   }
 
   ~LinkableHitGroup() override = default;
-
+  
   void addHit(float x, float y, float z, float time, short e) {
 #ifdef HIT_AOS
     mHits.emplace_back(x,y,z,time,e);
@@ -101,12 +91,6 @@ public:
     mHitsZVctr.emplace_back(z);
     mHitsTVctr.emplace_back(time);
     mHitsEVctr.emplace_back(e);
-    mSize=mHitsXVctr.size();
-    mHitsX=&mHitsXVctr[0];
-    mHitsY=&mHitsYVctr[0];
-    mHitsZ=&mHitsZVctr[0];
-    mHitsT=&mHitsTVctr[0];
-    mHitsE=&mHitsEVctr[0];
 #endif
   }
 
@@ -114,7 +98,7 @@ public:
 #ifdef HIT_AOS
     return mHits.size();
 #else
-    return mSize;
+    return mHitsXVctr.size();
 #endif
   }
 
@@ -123,7 +107,7 @@ public:
     // std::vector storage
     return mHits[index];
 #else
-    return ElementalHit(mHitsX[index],mHitsY[index],mHitsZ[index],mHitsT[index],mHitsE[index]);
+    return ElementalHit(mHitsXVctr[index],mHitsYVctr[index],mHitsZVctr[index],mHitsTVctr[index],mHitsEVctr[index]);
 #endif
   }
 
@@ -154,12 +138,6 @@ public:
     mHitsZVctr.shrink_to_fit();
     mHitsTVctr.shrink_to_fit();
     mHitsEVctr.shrink_to_fit();
-    mHitsX=&mHitsXVctr[0];
-    mHitsY=&mHitsYVctr[0];
-    mHitsZ=&mHitsZVctr[0];
-    mHitsT=&mHitsTVctr[0];
-    mHitsE=&mHitsEVctr[0];
-    mSize=mHitsXVctr.size();
 #endif
   }
 
@@ -171,18 +149,11 @@ public:
 #ifdef HIT_AOS
   std::vector<o2::TPC::ElementalHit> mHits; // the hits for this group
 #else
-  std::vector<float> mHitsXVctr; //! do not stream this (just for memory handling convenience)
-  std::vector<float> mHitsYVctr; //! do not stream this
-  std::vector<float> mHitsZVctr; //! do not stream this
-  std::vector<float> mHitsTVctr; //! do not stream this
-  std::vector<short> mHitsEVctr; //! do not stream this
-  // let us stream ordinary buffers for compression AND ROOT IO/speed!!
-  Int_t mSize;
-  float* mHitsX = nullptr; //[mSize]
-  float* mHitsY = nullptr; //[mSize]
-  float* mHitsZ = nullptr; //[mSize]
-  float* mHitsT = nullptr; //[mSize]
-  short* mHitsE = nullptr; //[mSize]
+  std::vector<float> mHitsXVctr; 
+  std::vector<float> mHitsYVctr; 
+  std::vector<float> mHitsZVctr; 
+  std::vector<float> mHitsTVctr; 
+  std::vector<short> mHitsEVctr; 
 #endif
   ClassDefOverride(LinkableHitGroup, 1);
 };

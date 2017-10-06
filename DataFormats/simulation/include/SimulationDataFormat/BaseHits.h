@@ -31,7 +31,7 @@ class BaseHit : public FairMultiLinkedData_Interface
   void SetTrackID(int id) { mTrackID = id; }
 
  private:
-  int mTrackID; // track_id
+  int mTrackID = 0; // track_id
   ClassDefOverride(BaseHit, 1);
 };
 
