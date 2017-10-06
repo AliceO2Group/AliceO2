@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -29,10 +30,13 @@
 #include "TPCReconstruction/SyncPatternMonitor.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
+#endif
 
 using namespace o2::TPC;
 using namespace std;
 
+//This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg TClonesArray of clusters.
+//It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
 void runCATracking(TString filename, TString outputFile, TString options, Int_t nmaxEvent=-1, Int_t startEvent=0) {
   gSystem->Load("libTPCReconstruction.so");
   TPCCATracking tracker;

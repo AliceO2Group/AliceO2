@@ -12,6 +12,10 @@
 /// \author David Rohr
 
 #include "TPCReconstruction/TPCCATracking.h"
+
+//This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
+//Currently, this library is only linked to O2 conditionally, because it needs a special AliRoot branch.
+//Therefore, for the time being, we build the O2 tracking class only if the standalone library is available.
 #ifdef HAVE_O2_TPCCA_TRACKING_LIB
 #include "TObject.h"
 #include "AliHLTTPCCAO2Interface.h"
@@ -31,6 +35,7 @@ class AliHLTTPCCAClusterData {}; // same
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
+#include "TPCBase/Sector.h"
 
 using namespace o2::TPC;
 
@@ -51,7 +56,7 @@ int TPCCATracking::initialize(const char* options) {
   if (retVal) {
     mTrackingCAO2Interface.reset();
   } else {
-    mClusterData_UPTR.reset(new AliHLTTPCCAClusterData[36]);
+    mClusterData_UPTR.reset(new AliHLTTPCCAClusterData[Sector::MAXSECTOR]);
     mClusterData = mClusterData_UPTR.get();
   }
   return (retVal);
@@ -65,10 +70,10 @@ void TPCCATracking::deinitialize() {
 }
 
 int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<TrackTPC>* outputTracks) {
-  if (mTrackingCAO2Interface == nullptr) return (1);
-  int retVal = 0;
-
 #ifdef HAVE_O2_TPCCA_TRACKING_LIB
+  if (mTrackingCAO2Interface == nullptr) return (1);
+
+  int retVal = 0;
   const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterElectronics &elParam = ParameterElectronics::defaultInstance();
@@ -77,13 +82,13 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
   int nTracks;
   const unsigned int* trackClusterIDs;
 
-  int nClusters[36] = {};
+  int nClusters[Sector::MAXSECTOR] = {};
   for (Int_t icluster = 0; icluster < inputClusters->GetEntries(); ++icluster) {
     Cluster& cluster = *static_cast<Cluster*>(inputClusters->At(icluster));
     const Sector sector = CRU(cluster.getCRU()).sector();
     nClusters[sector.getSector()]++;
   }
-  for (int i = 0; i < 36; i++) {
+  for (int i = 0; i < Sector::MAXSECTOR; i++) {
     mClusterData[i].StartReading(i, nClusters[i]);
   }
   int nClustersConverted = 0;
@@ -150,7 +155,8 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
     }
   }
   mTrackingCAO2Interface->Cleanup();
-#endif
-
   return (retVal);
+#else
+  return(1); //Return error code when the HLT O2 CA tracking library is not available.
+#endif
 }
