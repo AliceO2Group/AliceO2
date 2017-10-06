@@ -46,12 +46,12 @@ std::vector<additionalClusterParameters> clusterParam;
 std::vector<additionalMCParameters> mcParam;
 static int totalFakes = 0;
 
-static TH1F* eff[4][2][2][5][2]; //eff,clone,fake - findable - secondaries - y,z,phi,eta,pt,ptlog - work,result
+static TH1F* eff[4][2][2][5][2]; //eff,clone,fake,all - findable - secondaries - y,z,phi,eta,pt - work,result
 static TCanvas *ceff[6];
 static TPad* peff[6][4];
 static TLegend* legendeff[6];
 
-static TH1F* res[5][5][2]; //y,z,phi,lambda,pt,ptlog - see above - res,mean
+static TH1F* res[5][5][2]; //y,z,phi,lambda,pt,ptlog res - param - res,mean
 static TH2F* res2[5][5];
 static TCanvas *cres[7];
 static TPad* pres[7][5];
@@ -256,7 +256,7 @@ void RunQA()
 			delete[] binsPt;
 		}
 	}
-
+	
 	//Initialize Arrays
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
@@ -271,6 +271,8 @@ void RunQA()
 	clusterParam.resize(hlt.GetNMCLabels());
 	memset(clusterParam.data(), 0, clusterParam.size() * sizeof(clusterParam[0]));
 	totalFakes = 0;
+
+	if (hlt.GetNMCInfo() == 0 || hlt.GetNMCLabels() == 0) return;
 
 	//Assign Track MC Labels
 	for (int i = 0; i < merger.NOutputTracks(); i++)
@@ -419,7 +421,7 @@ void RunQA()
 				for (int l = 0;l < 5;l++)
 				{
 					if (info.fPrim && mcpt < PT_MIN_PRIM) continue;
-					if (l != 3 && fabs(mceta) > ETA_MAX) continue;
+					if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
 					if (l < 4 && mcpt < PT_MIN2) continue;
 					
 					float pos = l == 0 ? info.fX : l == 1 ? info.fY : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
@@ -487,8 +489,8 @@ void RunQA()
 		{
 			for (int k = 0;k < 5;k++)
 			{
-				if (k != 4 && mc2.pt < PT_MIN2) continue;
-				if (k != 3 && mc2.eta > ETA_MAX2) continue;
+				if (k != 3 && fabs(mc2.eta) > ETA_MAX2) continue;
+				if (k < 4 && mc2.pt < PT_MIN2) continue;
 				res2[j][k]->Fill(resval[j], paramval[k]);
 			}
 		}
@@ -509,14 +511,17 @@ void RunQA()
 		if (totalAttached <= 0) continue;
 		float totalWeight = 0.;
 		for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
-		for (int j = 0;j < 3;j++)
+		if (totalWeight > 0)
 		{
-			if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0)
+			for (int j = 0;j < 3;j++)
 			{
-				float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
-				if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
-				clusters[0]->Fill(pt, clusterParam[i].attached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
-				clusters[1]->Fill(pt, clusterParam[i].fakeAttached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+				if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0)
+				{
+					float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
+					if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
+					clusters[0]->Fill(pt, clusterParam[i].attached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+					clusters[1]->Fill(pt, clusterParam[i].fakeAttached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+				}
 			}
 		}
 	}
@@ -850,6 +855,7 @@ int DrawQAHistograms()
 	
 	double totalVal = 0;
 	for (int j = 0;j < clusters[3]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[3]->GetBinContent(j);
+	if (totalVal == 0.) totalVal = 1.;
 	for (int i = 0;i < 4;i++)
 	{
 		double val = 0;
