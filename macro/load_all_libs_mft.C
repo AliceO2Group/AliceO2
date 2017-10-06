@@ -1,4 +1,4 @@
-void load_all_libs()
+void load_all_libs_mft()
 {
 
    gSystem->Load("libDetectorsBase");
