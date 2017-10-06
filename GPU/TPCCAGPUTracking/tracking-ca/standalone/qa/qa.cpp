@@ -272,7 +272,11 @@ void RunQA()
 	memset(clusterParam.data(), 0, clusterParam.size() * sizeof(clusterParam[0]));
 	totalFakes = 0;
 
-	if (hlt.GetNMCInfo() == 0 || hlt.GetNMCLabels() == 0) return;
+	if (hlt.GetNMCInfo() == 0 || hlt.GetNMCLabels() == 0)
+	{
+		printf("Missing MC information, skipping QA\n");
+		return;
+	}
 
 	//Assign Track MC Labels
 	for (int i = 0; i < merger.NOutputTracks(); i++)
