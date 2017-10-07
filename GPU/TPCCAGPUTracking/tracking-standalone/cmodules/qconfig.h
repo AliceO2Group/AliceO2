@@ -11,19 +11,19 @@
 	else if (QCONFIG_COMPARE(optname, optnameshort)) \
 	{ \
 		qConfigType<type>::qAddOption(tmp.name, i, argv, argc, default, __VA_ARGS__); \
-	} \
+	}
 	
 #define AddOptionSet(name, type, value, optname, optnameshort, ...) \
 	else if (QCONFIG_COMPARE(optname, optnameshort)) \
 	{ \
 		qConfigType<type>::qAddOption(tmp.name, i, nullptr, 0, value, __VA_ARGS__, set(value)); \
-	} \
+	}
 
 #define AddOptionVec(name, type, optname, optnameshort, ...) \
 	else if (QCONFIG_COMPARE(optname, optnameshort)) \
 	{ \
 		qConfigType<type>::qAddOptionVec(tmp.name, i, argv, argc, __VA_ARGS__); \
-	} \
+	}
 
 #define AddSubConfig(name, instance)
 
@@ -33,28 +33,62 @@
 		constexpr const char preoptshort = 0; \
 		name& tmp = instance; \
 		bool tmpfound = true; \
-		if (found); \
+		if (found);
 
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort) \
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
 	{ \
 		constexpr const char* preopt = preoptname; \
 		constexpr const char preoptshort = preoptnameshort; \
 		name& tmp = parent.instance; \
 		bool tmpfound = true; \
-		if (found); \
+		if (found);
 
 #define EndConfig() \
 		else tmpfound = false; \
 		if (tmpfound) found = true; \
-	} \
-	
+	}
+
+#define AddHelp(cmd, cmdshort) \
+	else if (QCONFIG_COMPARE(cmd, cmdshort)) \
+	{ \
+		if (qConfigHelp(preopt)) return(3); \
+	}
+
+#define AddHelpAll(cmd, cmdshort) \
+	else if (QCONFIG_COMPARE(cmd, cmdshort)) \
+	{ \
+		if (qConfigHelp()) return(3); \
+	}
+
+#define AddCommand(cmd, cmdshort, command, help) \
+	else if (QCONFIG_COMPARE(cmd, cmdshort)) \
+	{ \
+		if (command) return(4); \
+	}
+#elif defined(QCONFIG_HELP)
+#define AddOption(name, type, default, optname, optnameshort, help, ...) printf("\t%s: %s%c%c%s--%s%s, %stype: " qon_mxstr(type) ", default: " qon_mxstr(default) ")\n\t\t%s\n\n", \
+	qon_mxstr(name), optnameshort == 0 || preoptshort == 0 ? "" : "-", (int) (optnameshort == 0 ? 0 : preoptshort == 0 ? '-' : preoptshort), (int) (optnameshort == 0 ? 0 : optnameshort), optnameshort == 0 ? "" : " (", preopt, optname, optnameshort == 0 ? "(" : "", help);
+#define AddOptionSet(name, type, optname, optnameshort, help, ...) //AddOption(name, type, 0, optname, optnameshort, help, __VA_ARGS__)
+#define AddOptionVec(name, type, optname, optnameshort, help, ...) AddOption(name, type, 0, optname, optnameshort, help, __VA_ARGS__)
+#define AddSubConfig(name, instance) 
+#define BeginConfig(name, instance) if (subConfig == NULL || *subConfig == 0) { \
+	constexpr const char* preopt = ""; \
+	constexpr const char preoptshort = 0; \
+	printf("\n%s:\n", "Main settings");
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) if (subConfig == NULL || strcmp(subConfig, preoptname) == 0) { \
+	constexpr const char* preopt = preoptname; \
+	constexpr const char preoptshort = preoptnameshort; \
+	printf("\n%s:\n", descr);
+#define EndConfig() }
+#define AddHelpAll(cmd, cmdshort) AddOption(help, help, no, cmd, cmdshort, "Show usage info")
+#define AddCommand(cmd, cmdshort, command, help) AddOption(command, command, no, cmd, cmdshort, help)
 #elif defined(QCONFIG_INSTANCE)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) name(default), 
 #define AddOptionSet(name, type, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) name(),
 #define AddSubConfig(name, instance) instance(),
 #define BeginConfig(name, instance) name instance; name::name() :
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort) name::name() :
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) name::name() :
 #define EndConfig() _qConfigDummy() {}
 #elif defined(QCONFIG_EXTERNS)
 #define AddOption(name, type, default, optname, optnameshort, help, ...)
@@ -62,7 +96,7 @@
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddSubConfig(name, instance)
 #define BeginConfig(name, instance) extern name instance;
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort)
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
 #define EndConfig()
 #undef QCONFIG_EXTERNS
 extern int qConfigParse(int argc, const char** argv, const char* filename = NULL);
@@ -72,10 +106,20 @@ extern int qConfigParse(int argc, const char** argv, const char* filename = NULL
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 #define AddSubConfig(name, instance) name instance;
 #define BeginConfig(name, instance) struct name { name(); name(const name& s); name& operator =(const name& s);
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort) struct name { name(); name(const name& s); name& operator =(const name& s);
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name { name(); name(const name& s); name& operator =(const name& s);
 #define EndConfig() qConfigDummy _qConfigDummy; };
 #define QCONFIG_EXTERNS
 struct qConfigDummy{qConfigDummy() {}};
+#endif
+
+#ifndef AddHelp
+#define AddHelp(cmd, cmdshort)
+#endif
+#ifndef AddHelpAll
+#define AddHelpAll(cmd, cmdshort)
+#endif
+#ifndef AddCommand
+#define AddCommand(cmd, cmdshort, command)
 #endif
 
 #include "qconfigoptions.h"
@@ -87,6 +131,9 @@ struct qConfigDummy{qConfigDummy() {}};
 #undef BeginConfig
 #undef BeginSubConfig
 #undef EndConfig
+#undef AddHelp
+#undef AddHelpAll
+#undef AddCommand
 #ifdef QCONFIG_COMPARE
 #undef QCONFIG_COMPARE
 #endif
