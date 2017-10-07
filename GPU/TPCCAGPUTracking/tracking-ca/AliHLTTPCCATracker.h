@@ -69,9 +69,9 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
       fStageAtSync( NULL ),
 #endif
-	  fLinkTmpMemory( NULL ),
+      fLinkTmpMemory( NULL ),
 #endif
-	  fParam(),
+      fParam(),
       fOutputControl(),
       fClusterData( 0 ),
       fData(),
@@ -105,7 +105,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   struct StructGPUParameters
   {
     StructGPUParameters() : fNextTracklet(0), fScheduleFirstDynamicTracklet( 0 ), fGPUError( 0 ) {}
-	int fNextTracklet;						//Next Tracklet to process
+    int fNextTracklet;						//Next Tracklet to process
     int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
     int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
   };
@@ -116,7 +116,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
     int fGPUFixedBlockCount;				//Count of blocks that is used for this tracker in fixed schedule situations
     int fGPUiSlice;							// slice number processed by running GPU MP
     int fGPUnSlices;						// n of slices to be processed in parallel
-	GPUglobalref() char* fGPUMem;			//Base pointer to GPU memory (Needed for OpenCL for verification)
+    GPUglobalref() char* fGPUMem;			//Base pointer to GPU memory (Needed for OpenCL for verification)
   };
   
   struct commonMemoryStruct
@@ -124,9 +124,9 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
     commonMemoryStruct() : fNTracklets( 0 ), fNTracks( 0 ), fNLocalTracks( 0 ), fNTrackHits( 0 ), fNLocalTrackHits( 0 ), fGPUParameters() {}
     int fNTracklets;     // number of tracklets
     int fNTracks;            // number of reconstructed tracks
-	int fNLocalTracks;	 //number of reconstructed tracks before global tracking
+    int fNLocalTracks;	 //number of reconstructed tracks before global tracking
     int fNTrackHits;           // number of track hits
-	int fNLocalTrackHits; //see above
+    int fNLocalTrackHits; //see above
     StructGPUParameters fGPUParameters; // GPU parameters
   };
   
@@ -360,7 +360,7 @@ private:
   //GPU Temp Arrays
   GPUglobalref() uint3* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
   GPUglobalref() AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
-  GPUglobalref() MEM_GLOBAL(char)* fGPUTrackletTemp;       //Temp Memory for GPU Tracklet Constructor
+  GPUglobalref() char* fGPUTrackletTemp;					//Temp Memory for GPU Tracklet Constructor
   GPUglobalref() int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
   GPUglobalref() int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized  
   GPUglobalref() uint2* fBlockStartingTracklet;			// First Tracklet that is to be processed by current GPU MP
