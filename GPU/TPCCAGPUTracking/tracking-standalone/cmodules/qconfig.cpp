@@ -16,6 +16,8 @@ namespace qConfig {
 
 #define qon_mcat(a, b, c) a ## b ## c
 #define qon_mxcat3(a, b, c) qon_mcat(a, b, c)
+#define qon_mstr(a) #a
+#define qon_mxstr(a) qon_mstr(a)
 #define QCONFIG_SETTING(name, type) \
 	struct qon_mxcat3(q, name, _t) {type v; constexpr qon_mxcat3(q, name, _t)(type s) : v(s) {}}; \
 	constexpr qon_mxcat3(q, name, _t) name(type v) {return(std::move(qon_mxcat3(q, name, _t)(v)));}
@@ -189,6 +191,15 @@ template <typename T> inline void qAddOptionMessage(qConfigSettings<T>& settings
 template <> inline void qAddOptionMessage<bool>(qConfigSettings<bool>& settings, bool& ref)
 {
 	if (settings.message) {printf(settings.message, ref ? "ON" : "OFF"); printf("\n");}
+}
+
+int qConfigHelp(const char* subConfig = NULL)
+{
+	printf("Usage Info:\n");
+#define QCONFIG_HELP
+#include "qconfig.h"
+#undef QCONFIG_HELP
+	return(3);
 }
 
 //Create parser for configuration
