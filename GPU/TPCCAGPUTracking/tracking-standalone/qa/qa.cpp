@@ -277,8 +277,11 @@ void RunQA()
 	}
 
 	//Assign Track MC Labels
+	bool ompError = false;
+#pragma omp parallel for
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
+		if (ompError) continue;
 		int nClusters = 0;
 		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
 		std::vector<AliHLTTPCClusterMCWeight> labels;
@@ -287,17 +290,19 @@ void RunQA()
 			if (merger.ClusterRowType()[track.FirstClusterRef() + k] < 0) continue;
 			nClusters++;
 			int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
-			if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());return;}
+			if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());ompError = true;break;}
 			for (int j = 0;j < 3;j++)
 			{
-				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= hlt.GetNMCInfo()) {printf("Invalid label %d > %d\n", hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetNMCInfo());return;}
+				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= hlt.GetNMCInfo()) {printf("Invalid label %d > %d\n", hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetNMCInfo());ompError = true;break;}
 				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0)
 				{
 					if (DEBUG >= 3 && track.OK()) printf("Track %d Cluster %d Label %d: %d (%f)\n", i, k, j, hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight);
 					labels.push_back(hlt.GetMCLabels()[hitId].fClusterID[j]);
 				}
 			}
+			if (ompError) break;
 		}
+		if (ompError) continue;
 		if (labels.size() == 0)
 		{
 			trackMCLabels[i] = -1;
@@ -374,6 +379,7 @@ void RunQA()
 			printf("Track %d label %d weight %f clusters %d (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, track.NClusters(), maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
 		}
 	}
+	if (ompError) return;
 	
 	//Recompute fNWeightCls (might have changed after merging events into timeframes)
 	for (int i = 0;i < hlt.GetNMCInfo();i++) mcParam[i].nWeightCls = 0.;
