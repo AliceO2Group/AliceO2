@@ -21,7 +21,7 @@ class AliTRDtrackletMCM;
 class AliHLTTRDTrackletWord {
  public:
   AliHLTTRDTrackletWord(UInt_t trackletWord = 0);
-  AliHLTTRDTrackletWord(UInt_t trackletWord, Int_t hcid, Int_t id, Int_t label = -1);
+  AliHLTTRDTrackletWord(UInt_t trackletWord, Int_t hcid, Int_t id, Int_t *label = 0);
   AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs);
@@ -43,8 +43,9 @@ class AliHLTTRDTrackletWord {
   Int_t GetMCM() const;
 
   Int_t GetId() const { return fId; }
-  Int_t GetLabel() const { return fLabel; }
-
+  const Int_t* GetLabel() const { return fLabel; }
+  Int_t GetLabel(int i=0) const { return fLabel[i];}
+  
   // ----- Getters for offline corresponding values -----
   Bool_t CookPID() { return kFALSE; }
   Double_t GetPID(Int_t /* is */) const { return (Double_t) GetPID()/256.; }
@@ -62,12 +63,13 @@ class AliHLTTRDTrackletWord {
   void SetTrackletWord(UInt_t trackletWord) { fTrackletWord = trackletWord; }
   void SetDetector(Int_t id) { fHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
   void SetId(Int_t id) { fId = id; }
-  void SetLabel(Int_t label) { fLabel = label; }
+  void SetLabel(const Int_t *label) { for (int i=3;i--;) fLabel[i] = label[i]; }
+  void SetLabel(int i, int label) { fLabel[i] = label; }
   void SetHCId(Int_t id) { fHCId = id; }
 
  protected:
   Int_t fId;              // index in tracklet array
-  Int_t fLabel;           // MC label
+  Int_t fLabel[3];        // MC label
   Int_t fHCId;            // half-chamber ID
   UInt_t fTrackletWord;   // tracklet word: PID | Z | deflection length | Y
                           //          bits:   8   4            7          13
