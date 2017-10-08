@@ -18,6 +18,7 @@ AddOptionVec(compareInputs, const char*, "input", 0, "Read histogram from these 
 AddOptionVec(compareInputNames, const char*, "inputName", 0, "Legend entries for data from comparison histogram files")
 AddOption(name, const char*, NULL, "name", 0, "Legend entry for new data from current processing")
 AddOption(output, const char*, NULL, "histOut", 0, "Store histograms in output root file", def("histograms.root"))
+AddOption(inputHistogramsOnly, bool, false, "only", 0, "Do not run tracking, but just create PDFs from input root files")
 AddHelp("help", 'h')
 EndConfig()
 

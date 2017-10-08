@@ -70,7 +70,7 @@
 #elif defined(QCONFIG_HELP)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) printf("\t%s: %s%c%c%s--%s%s, %stype: " qon_mxstr(type) ", default: " qon_mxstr(default) ")\n\t\t%s\n\n", \
 	qon_mxstr(name), optnameshort == 0 || preoptshort == 0 ? "" : "-", (int) (optnameshort == 0 ? 0 : preoptshort == 0 ? '-' : preoptshort), (int) (optnameshort == 0 ? 0 : optnameshort), optnameshort == 0 ? "" : " (", preopt, optname, optnameshort == 0 ? "(" : "", help);
-#define AddOptionSet(name, type, optname, optnameshort, help, ...) //AddOption(name, type, 0, optname, optnameshort, help, __VA_ARGS__)
+#define AddOptionSet(name, type, value, optname, optnameshort, help, ...) AddOption(name, type, value, optname, optnameshort, help, __VA_ARGS__)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) AddOption(name, type, 0, optname, optnameshort, help, __VA_ARGS__)
 #define AddSubConfig(name, instance) printf("\t%s\n\n", qon_mxcat(qConfig_subconfig_, name));
 	if (followSub) qConfigHelp(qon_mxstr(name), 2);
@@ -90,7 +90,7 @@
 #define AddCommand(cmd, cmdshort, command, help) AddOption(command, command, no, cmd, cmdshort, help)
 #elif defined(QCONFIG_INSTANCE)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) name(default), 
-#define AddOptionSet(name, type, optname, optnameshort, help, ...)
+#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) name(),
 #define AddSubConfig(name, instance) instance(),
 #define BeginConfig(name, instance) name instance; name::name() :
@@ -98,7 +98,7 @@
 #define EndConfig() _qConfigDummy() {}
 #elif defined(QCONFIG_EXTERNS)
 #define AddOption(name, type, default, optname, optnameshort, help, ...)
-#define AddOptionSet(name, type, optname, optnameshort, help, ...)
+#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddSubConfig(name, instance)
 #define BeginConfig(name, instance) extern name instance;
@@ -108,7 +108,7 @@
 extern int qConfigParse(int argc, const char** argv, const char* filename = NULL);
 #else
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
-#define AddOptionSet(name, type, optname, optnameshort, help, ...)
+#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 #define AddSubConfig(name, instance) name instance;
 #define BeginConfig(name, instance) struct name { name(); name(const name& s); name& operator =(const name& s);

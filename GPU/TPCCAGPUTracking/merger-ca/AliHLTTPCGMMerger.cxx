@@ -248,7 +248,6 @@ bool AliHLTTPCGMMerger::Reconstruct()
 		printf("\t\tCollect:\t%1.0f us\n", times[3] * 1000000 / nCount);
 		printf("\t\tRefit:\t\t%1.0f us\n", times[4] * 1000000 / nCount);
 	}
-	int newTracks = 0;
     if (!HLTCA_TIMING_SUM)
     {
         for (int i = 0;i < 5;i++) times[i] = 0.;
