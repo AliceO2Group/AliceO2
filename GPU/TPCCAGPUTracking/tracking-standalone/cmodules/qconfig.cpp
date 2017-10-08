@@ -101,12 +101,34 @@ template <typename T> struct qConfigType
 	
 	template <typename... Args> static inline int qAddOptionVec(std::vector<T>& ref, int& i, const char** argv, const int argc, const char* help, Args&&... args)
 	{
-		T tmp = 0;
-		T def = 0;
-		int retVal = qAddOption(tmp, i, argv, argc, def, help, args...);
-		if (retVal) return(retVal);
-		ref.push_back(tmp);
+		int iFirst = i, iLast;
+		do
+		{
+			iLast = i;
+			T tmp = 0;
+			T def = 0;
+			int retVal = qAddOption(tmp, i, argv, argc, def, help, args...);
+			if (retVal) return(i == iFirst ? retVal : 0);
+			if (i == iFirst || i != iLast) ref.push_back(tmp);
+		} while (i != iLast);
 		return(0);
+	}
+	
+	template <typename... Args> static inline void qConfigHelpOption(const char* name, const char* type, const char* def, const char* optname, char optnameshort, const char* preopt, char preoptshort, int optionType, const char* help, Args&&... args)
+	{
+		qConfigSettings<T> settings;
+		qAddOptionSettings(settings, args...);
+		std::cout << "\t" << name << ": " << (optnameshort == 0 || preoptshort == 0 ? "" : "-") << (char) (optnameshort == 0 ? 0 : preoptshort == 0 ? '-' : preoptshort) << (char) (optnameshort == 0 ? 0 : optnameshort) <<
+			(optnameshort == 0 ? "" : " (") << "--" << preopt << optname << (optnameshort == 0 ? " (" : ", ") << "type: " << type;
+		if (optionType == 0) std::cout << ", default: " << def;
+		if (optionType == 1) std::cout << ", sets " << name << " to " << def;
+		if (settings.checkMin) std::cout << ", minimum: " << settings.min;
+		if (settings.checkMax) std::cout << ", maximum: " << settings.max;
+		std::cout << ")\n\t\t" << help << ".\n";
+		if (settings.doDefault) std::cout << "\t\tIf no argument is supplied, " << name << " is set to " << settings.set << ".\n";
+		else if (optionType != 1 && std::is_same<T, bool>::value) std::cout << "\t\tIf no argument is supplied, " << name << " is set to true.\n";
+		if (optionType == 2) std::cout << "\t\tCan be set multiple times, or can accept multiple arguments.\n";
+		std::cout << "\n";
 	}
 };
 
@@ -129,7 +151,8 @@ template <class T> inline int qAddOptionGeneric(T& ref, int& i, const char** arg
 		ref = def;
 		return(0);
 	}
-	return(1);
+	printf("Argument missing for option %s!\n", argv[i]);
+	return(qcrArgMissing);
 }
 
 //Handling of all supported types
@@ -171,13 +194,13 @@ template <typename T> inline int qAddOptionMinMax(qConfigSettings<T>& settings, 
 {
 	if (settings.checkMin && ref < settings.min)
 	{
-		std::cout << "Invalid setting for " << arg << ": minimum threshold exceeded (" << ref << " < " << settings.min << ")\n";
-		return(1);
+		std::cout << "Invalid setting for " << arg << ": minimum threshold exceeded (" << ref << " < " << settings.min << ")!\n";
+		return(qcrMinFailure);
 	}
 	if (settings.checkMax && ref > settings.max)
 	{
-		std::cout << "Invalid setting for " << arg << ": maximum threshold exceeded (" << ref << " > " << settings.max << ")\n";
-		return(2);
+		std::cout << "Invalid setting for " << arg << ": maximum threshold exceeded (" << ref << " > " << settings.max << ")!\n";
+		return(qcrMaxFailure);
 	}
 	return(0);
 }
@@ -195,13 +218,12 @@ template <> inline void qAddOptionMessage<bool>(qConfigSettings<bool>& settings,
 	if (settings.message) {printf(settings.message, ref ? "ON" : "OFF"); printf("\n");}
 }
 
-int qConfigHelp(const char* subConfig = NULL, int followSub = 0)
+void qConfigHelp(const char* subConfig = NULL, int followSub = 0)
 {
 	if (followSub < 2) printf("Usage Info:");
 #define QCONFIG_HELP
 #include "qconfig.h"
 #undef QCONFIG_HELP
-	return(3);
 }
 
 //Create parser for configuration
