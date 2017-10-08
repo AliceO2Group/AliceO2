@@ -51,13 +51,15 @@
 #define AddHelp(cmd, cmdshort) \
 	else if (QCONFIG_COMPARE(cmd, cmdshort)) \
 	{ \
-		if (qConfigHelp(preopt)) return(3); \
+		const char* arg = getArg(i, argv, argc); \
+		if (qConfigHelp(arg ? arg : preopt)) return(3); \
 	}
 
 #define AddHelpAll(cmd, cmdshort) \
 	else if (QCONFIG_COMPARE(cmd, cmdshort)) \
 	{ \
-		if (qConfigHelp()) return(3); \
+		const char* arg = getArg(i, argv, argc); \
+		if (qConfigHelp(arg ? arg : "", true)) return(3); \
 	}
 
 #define AddCommand(cmd, cmdshort, command, help) \
@@ -70,17 +72,21 @@
 	qon_mxstr(name), optnameshort == 0 || preoptshort == 0 ? "" : "-", (int) (optnameshort == 0 ? 0 : preoptshort == 0 ? '-' : preoptshort), (int) (optnameshort == 0 ? 0 : optnameshort), optnameshort == 0 ? "" : " (", preopt, optname, optnameshort == 0 ? "(" : "", help);
 #define AddOptionSet(name, type, optname, optnameshort, help, ...) //AddOption(name, type, 0, optname, optnameshort, help, __VA_ARGS__)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) AddOption(name, type, 0, optname, optnameshort, help, __VA_ARGS__)
-#define AddSubConfig(name, instance) 
+#define AddSubConfig(name, instance) printf("\t%s\n\n", qon_mxcat(qConfig_subconfig_, name));
+	if (followSub) qConfigHelp(qon_mxstr(name), 2);
 #define BeginConfig(name, instance) if (subConfig == NULL || *subConfig == 0) { \
 	constexpr const char* preopt = ""; \
 	constexpr const char preoptshort = 0; \
-	printf("\n%s:\n", "Main settings");
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) if (subConfig == NULL || strcmp(subConfig, preoptname) == 0) { \
-	constexpr const char* preopt = preoptname; \
-	constexpr const char preoptshort = preoptnameshort; \
-	printf("\n%s:\n", descr);
+	printf("\n");
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
+	const char* qon_mxcat(qConfig_subconfig_, name) = preoptnameshort == 0 ? (qon_mxstr(name) ": --" preoptname "\n\t\t" descr) : (qon_mxstr(name) ": -" qon_mxstr('a') " (--" preoptname ")\n\t\t" descr); \
+	if (subConfig == NULL || strcmp(subConfig, followSub == 2 ? qon_mxstr(name) : preoptname) == 0) { \
+		constexpr const char* preopt = preoptname; \
+		constexpr const char preoptshort = preoptnameshort; \
+		printf("\n  %s: (--%s%s%c)\n", descr, preoptname, preoptnameshort == 0 ? "" : " or -", (int) preoptnameshort);
 #define EndConfig() }
-#define AddHelpAll(cmd, cmdshort) AddOption(help, help, no, cmd, cmdshort, "Show usage info")
+#define AddHelp(cmd, cmdshort) AddOption(help, help, no, cmd, cmdshort, "Show usage info")
+#define AddHelpAll(cmd, cmdshort) AddOption(help, help, no, cmd, cmdshort, "Show usage info including all subparameters")
 #define AddCommand(cmd, cmdshort, command, help) AddOption(command, command, no, cmd, cmdshort, help)
 #elif defined(QCONFIG_INSTANCE)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) name(default), 
