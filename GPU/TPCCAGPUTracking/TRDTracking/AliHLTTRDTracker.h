@@ -34,7 +34,7 @@ public:
     double fCov[2];           // sigma_y^2, sigma_yz, sigma_z^2
     double fDy;               // deflection over drift length
     int fId;                  // index
-    int fLabel;               // MC label
+    int fLabel[3];            // MC labels
     unsigned short fVolumeId; // basically derived from TRD chamber number
   };
 

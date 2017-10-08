@@ -352,7 +352,8 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
       }
       matrix->LocalToMaster(xTrklt, fSpacePoints[trkltIdx].fX);
       fSpacePoints[trkltIdx].fId = fTracklets[trkltIdx].GetId();
-      fSpacePoints[trkltIdx].fLabel = TMath::Abs(fTracklets[trkltIdx].GetLabel());
+      //fSpacePoints[trkltIdx].fLabel = TMath::Abs(fTracklets[trkltIdx].GetLabel()); // RS: why abs? 
+      for (int i=3;i--;) fSpacePoints[trkltIdx].fLabel[i] = fTracklets[trkltIdx].GetLabel(i);
       fSpacePoints[trkltIdx].fCov[0] = TMath::Power(0.10, 2);
       fSpacePoints[trkltIdx].fCov[1] = TMath::Power(padPlane->GetRowSize(fTracklets[trkltIdx].GetZbin()), 2) / 12.;
       fSpacePoints[trkltIdx].fDy = 0.014 * fTracklets[trkltIdx].GetdY();
@@ -600,12 +601,19 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
                 fHypothesis[nCurrHypothesis].fTrackletId = trkltIdx;
                 nCurrHypothesis++;
               }
-              if ( (nTrkltInWindow < 10) &&
-                   (fSpacePoints[trkltIdx].fLabel != lbTrack) &&
-                   (std::find(relatives.begin(), relatives.end(), fSpacePoints[trkltIdx].fLabel) == relatives.end())
-                 )
-              {
-                chi2InWindow[iLayer][nTrkltInWindow++] = chi2;
+              if (nTrkltInWindow < 10) {
+		Bool_t fnd = kFALSE;
+		for (int il=0;il<3;il++) {
+		  int lbl = fSpacePoints[trkltIdx].fLabel[il];
+		  if (lbl<0) break; // no more valid labels
+		  if (lbl==lbTrack ||
+		      std::find(relatives.begin(), relatives.end(), lbl) == relatives.end() ) {
+		    fnd = kTRUE;
+		    break;
+		  }
+		}
+		// RS: why do we register chi2 only if it is not correct and not "related"? 
+		if (!fnd) chi2InWindow[iLayer][nTrkltInWindow++] = chi2;
               }
             }
             nTrkltsInWindow(iLayer) += 1;
@@ -742,22 +750,29 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
   } // end layer loop
   for (int iLy = 0; iLy < kNLayers; iLy++) {
     tracklets(iLy) = 0;
-    if (fMCEvent) {
-      if (t->GetTracklet(iLy) != -1) {
-        int lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel;
-        tracklets(iLy) = 1;
-        AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(fSpacePoints[t->GetTracklet(iLy)].fLabel);
-        int motherPart = fSpacePoints[t->GetTracklet(iLy)].fLabel;
-        while (mcPart) {
-          motherPart = mcPart->GetMother();
-          if (motherPart == lbTrack) {
-            tracklets(iLy) = 8;
-          }
-          mcPart = motherPart >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPart) : 0;
-        }
-        if (lbTracklet == lbTrack) {
-          tracklets(iLy) = 64;
-        }
+    if (fMCEvent && t->GetTracklet(iLy) != -1) {
+      tracklets(iLy) = 1;
+      int lbTracklet;
+      for (int il=0;il<3;il++) {
+	if ( (lbTracklet=fSpacePoints[t->GetTracklet(iLy)].fLabel[il])<0 ) break; // no more valid labels
+ 	if (lbTracklet == lbTrack) {
+	  tracklets(iLy) = 64; // RS: exact match, do we need to flag non-first matching label as 64+il ? 
+	  break;
+	}
+      }
+      if (tracklets(iLy)<2) { // no exact match, check in related labels
+	for (int il=0;il<3;il++) {
+	  if ( (lbTracklet=fSpacePoints[t->GetTracklet(iLy)].fLabel[il])<0 ) break; // no more valid labels
+	  AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
+	  while (mcPart) {
+	    int motherPart = mcPart->GetMother();
+	    if (motherPart == lbTrack) {
+	      tracklets(iLy) = 8; // RS: related match, do we need to flag non-first matching label as 8+il ? 
+	      break;
+	    }
+	    mcPart = motherPart >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPart) : 0; 
+	  }
+	}
       }
     }
   }
@@ -887,8 +902,13 @@ void AliHLTTRDTracker::CountMatches(int trkLbl, std::vector<int> *matches)
     int layer = fTRDgeometry->GetLayer(k);
     for (int iTrklt = 0; iTrklt < fTrackletIndexArray[k][1]; iTrklt++) {
       int trkltIdx = fTrackletIndexArray[k][0] + iTrklt;
-      if (fSpacePoints[trkltIdx].fLabel == trkLbl) {
-        matches[layer].push_back(trkltIdx);
+      for (int il=0;il<3;il++) {
+	int lb = fSpacePoints[trkltIdx].fLabel[il];
+	if (lb<0) break; // no more valid labels
+	if (lb == trkLbl) {
+	  matches[layer].push_back(trkltIdx);
+	  break;
+	}
       }
     }
   }
