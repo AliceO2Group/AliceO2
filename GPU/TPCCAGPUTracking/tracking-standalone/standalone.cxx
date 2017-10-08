@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 #endif
 	if (configStandalone.configTF.bunchSim && configStandalone.configTF.nMerge) {printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n"); return(1);}
 
-	if (configStandalone.OMPTHreads != -1) omp_set_num_threads(configStandalone.OMPTHreads);
+	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	
 	std::ofstream CPUOut, GPUOut;
 	FILE* fpBinaryOutput = NULL;
