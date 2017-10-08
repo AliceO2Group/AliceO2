@@ -247,7 +247,10 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #endif
 
   nCount++;
+#ifndef HLTCA_BUILD_O2_LIB
   printf("Tracking Time: %1.0f us\n", 1000000 * timerTracking.GetElapsedTime() / nCount);
+  printf("Merging and Refit Time: %1.0f us\n", 1000000 * timerMerger.GetElapsedTime() / nCount);
+#endif
 
   if (fDebugLevel >= 1)
   {

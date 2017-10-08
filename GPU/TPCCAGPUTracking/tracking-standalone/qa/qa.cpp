@@ -646,14 +646,14 @@ int DrawQAHistograms()
 				
 					TH1F* e = eff[l][j / 2][j % 2][i][1];
 						
+					e->SetStats(kFALSE);
+					e->SetMaximum(1.02);
+					e->SetMinimum(-0.02);
 					if (k == 0)
 					{
 						e->SetTitle(EfficiencyTitles[j]);
 						e->GetYaxis()->SetTitle("(Efficiency)");
 						e->GetXaxis()->SetTitle(XAxisTitles[i]);
-						e->SetStats(kFALSE);
-						e->SetMaximum(1.02);
-						e->SetMinimum(-0.02);
 						if (tout)
 						{
 							eff[l][j / 2][j % 2][i][0]->Write();
