@@ -185,230 +185,251 @@ int main(int argc, char** argv)
 			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, collisionProbability, nEventsInDirectory);
 	}
 
-	for (int jj = 0;jj < configStandalone.runs2;jj++) {if (configStandalone.runs2 > 1) printf("RUN2: %d\n", jj);
-	for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
+	for (int jj = 0;jj < configStandalone.runs2;jj++)
 	{
-		if (configStandalone.configTF.bunchSim)
+		if (configStandalone.runs2 > 1) printf("RUN2: %d\n", jj);
+		int nEventsProcessed = 0;
+		long long int nTracksTotal = 0;
+		long long int nClustersTotal = 0;
+	
+		for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
 		{
-			hlt.StartDataReading(0);
-			int nBunch = -driftTime / configStandalone.configTF.bunchSpacing;
-			int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
-			int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
-			int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
-			bool* eventUsed = new bool[nEventsInDirectory];
-			int nTrain = 0;
-			int mcMin = -1, mcMax = -1;
-			while (nBunch < lastBunch)
+			if (configStandalone.configTF.bunchSim)
 			{
-				for (int iTrain = 0;iTrain < configStandalone.configTF.bunchTrainCount && nBunch < lastBunch;iTrain++)
+				hlt.StartDataReading(0);
+				int nBunch = -driftTime / configStandalone.configTF.bunchSpacing;
+				int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
+				int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
+				int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
+				bool* eventUsed = new bool[nEventsInDirectory];
+				int nTrain = 0;
+				int mcMin = -1, mcMax = -1;
+				while (nBunch < lastBunch)
 				{
-					int nCollisionsInTrain = 0;
-					for (int iBunch = 0;iBunch < configStandalone.configTF.bunchCount && nBunch < lastBunch;iBunch++)
+					for (int iTrain = 0;iTrain < configStandalone.configTF.bunchTrainCount && nBunch < lastBunch;iTrain++)
 					{
-						if (mcMin == -1 && nBunch >= 0) mcMin = hlt.GetNMCInfo();
-						if (mcMax == -1 && nBunch >= lastTFBunch) mcMax = hlt.GetNMCInfo();
-						int nInBunchPileUp = 0;
-						while ((float) rand() / (float) RAND_MAX < collisionProbability / (nInBunchPileUp + 1) * (nInBunchPileUp ? 1. : exp(-collisionProbability)))
+						int nCollisionsInTrain = 0;
+						for (int iBunch = 0;iBunch < configStandalone.configTF.bunchCount && nBunch < lastBunch;iBunch++)
 						{
-							if (nCollisionsInTrain >= nEventsInDirectory)
+							if (mcMin == -1 && nBunch >= 0) mcMin = hlt.GetNMCInfo();
+							if (mcMax == -1 && nBunch >= lastTFBunch) mcMax = hlt.GetNMCInfo();
+							int nInBunchPileUp = 0;
+							while ((float) rand() / (float) RAND_MAX < collisionProbability / (nInBunchPileUp + 1) * (nInBunchPileUp ? 1. : exp(-collisionProbability)))
 							{
-								printf("Error: insuffient events for mixing!\n");
-								return(1);
+								if (nCollisionsInTrain >= nEventsInDirectory)
+								{
+									printf("Error: insuffient events for mixing!\n");
+									return(1);
+								}
+								if (nCollisionsInTrain == 0) memset(eventUsed, 0, nEventsInDirectory * sizeof(eventUsed[0]));
+								if (nBunch >= 0 && nBunch < lastTFBunch) nCollisions++;
+								else nBorderCollisions++;
+								int useEvent;
+								while (eventUsed[useEvent = rand() % nEventsInDirectory]);
+								eventUsed[useEvent] = true;
+								std::ifstream in;
+								char filename[256];
+								sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, useEvent);
+								in.open(filename, std::ifstream::binary);
+								if (in.fail()) {printf("Unexpected error\n");return(1);}
+								float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
+								int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (float) configStandalone.configTF.timeFrameLen * TPCZ / driftTime, true);
+								printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %dns) %s(collisions %4d, bunch %6d, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * configStandalone.configTF.bunchSpacing), nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
+								in.close();
+								nInBunchPileUp++;
+								nCollisionsInTrain++;
 							}
-							if (nCollisionsInTrain == 0) memset(eventUsed, 0, nEventsInDirectory * sizeof(eventUsed[0]));
-							if (nBunch >= 0 && nBunch < lastTFBunch) nCollisions++;
-							else nBorderCollisions++;
-							int useEvent;
-							while (eventUsed[useEvent = rand() % nEventsInDirectory]);
-							eventUsed[useEvent] = true;
-							std::ifstream in;
-							char filename[256];
-							sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, useEvent);
-							in.open(filename, std::ifstream::binary);
-							if (in.fail()) {printf("Unexpected error\n");return(1);}
-							float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
-							int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (float) configStandalone.configTF.timeFrameLen * TPCZ / driftTime, true);
-							printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %dns) %s(collisions %4d, bunch %6d, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * configStandalone.configTF.bunchSpacing), nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
-							in.close();
-							nInBunchPileUp++;
-							nCollisionsInTrain++;
+							if (nInBunchPileUp > 1) nMultipleCollisions++;
+							nBunch++;
 						}
-						if (nInBunchPileUp > 1) nMultipleCollisions++;
-						nBunch++;
+						nBunch += trainDist - configStandalone.configTF.bunchCount;
+						if (nCollisionsInTrain) nTrainCollissions++;
+						if (nCollisionsInTrain > 1) nTrainMultipleCollisions++;
+						nTrain++;
 					}
-					nBunch += trainDist - configStandalone.configTF.bunchCount;
-					if (nCollisionsInTrain) nTrainCollissions++;
-					if (nCollisionsInTrain > 1) nTrainMultipleCollisions++;
-					nTrain++;
+					nBunch += maxBunchesFull - trainDist * configStandalone.configTF.bunchTrainCount;
 				}
-				nBunch += maxBunchesFull - trainDist * configStandalone.configTF.bunchTrainCount;
-			}
-			delete[] eventUsed;
-			printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
-#ifdef BUILD_QA
-			SetMCTrackRange(mcMin, mcMax);
-#endif
-		}
-		else
-		{
-			std::ifstream in;
-			char filename[256];
-			sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, i);
-			in.open(filename, std::ifstream::binary);
-			if (in.fail())
-			{
-				if (configStandalone.NEvents == -1) break;
-				printf("Error opening file %s\n", filename);
-				getchar();
-				return(1);
-			}
-			printf("Loading Event %d\n", i);
-			
-			float shift;
-			if (configStandalone.configTF.nMerge && (configStandalone.configTF.shiftFirstEvent || iEventInTimeframe))
-			{
-				if (configStandalone.configTF.randomizeDistance)
-				{
-					shift = (double) rand() / (double) RAND_MAX;
-					if (configStandalone.configTF.shiftFirstEvent)
-					{
-						if (iEventInTimeframe == 0) shift = shift * configStandalone.configTF.averageDistance;
-						else shift = (iEventInTimeframe + shift) * configStandalone.configTF.averageDistance;
-					}
-					else
-					{
-						if (iEventInTimeframe == 0) shift = 0;
-						else shift = (iEventInTimeframe - 0.5 + shift) * configStandalone.configTF.averageDistance;
-					}
-				}
-				else
-				{
-					if (configStandalone.configTF.shiftFirstEvent)
-					{
-						shift = configStandalone.configTF.averageDistance * (iEventInTimeframe + 0.5);
-					}
-					else
-					{
-						shift = configStandalone.configTF.averageDistance * (iEventInTimeframe);
-					}
-				}
+				delete[] eventUsed;
+				printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
+	#ifdef BUILD_QA
+				SetMCTrackRange(mcMin, mcMax);
+	#endif
 			}
 			else
 			{
-				shift = 0.;
-			}
-
-			if (configStandalone.configTF.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
-			if (configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true;
-			hlt.ReadEvent(in, configStandalone.resetids, configStandalone.configTF.nMerge > 0, shift);
-			in.close();
-			
-			iEventInTimeframe++;
-			if (configStandalone.configTF.nMerge)
-			{
-				if (iEventInTimeframe == configStandalone.configTF.nMerge || i == configStandalone.NEvents - 1)
+				std::ifstream in;
+				char filename[256];
+				sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, i);
+				in.open(filename, std::ifstream::binary);
+				if (in.fail())
 				{
-					iEventInTimeframe = 0;
+					if (configStandalone.NEvents == -1) break;
+					printf("Error opening file %s\n", filename);
+					getchar();
+					return(1);
+				}
+				printf("Loading Event %d\n", i);
+				
+				float shift;
+				if (configStandalone.configTF.nMerge && (configStandalone.configTF.shiftFirstEvent || iEventInTimeframe))
+				{
+					if (configStandalone.configTF.randomizeDistance)
+					{
+						shift = (double) rand() / (double) RAND_MAX;
+						if (configStandalone.configTF.shiftFirstEvent)
+						{
+							if (iEventInTimeframe == 0) shift = shift * configStandalone.configTF.averageDistance;
+							else shift = (iEventInTimeframe + shift) * configStandalone.configTF.averageDistance;
+						}
+						else
+						{
+							if (iEventInTimeframe == 0) shift = 0;
+							else shift = (iEventInTimeframe - 0.5 + shift) * configStandalone.configTF.averageDistance;
+						}
+					}
+					else
+					{
+						if (configStandalone.configTF.shiftFirstEvent)
+						{
+							shift = configStandalone.configTF.averageDistance * (iEventInTimeframe + 0.5);
+						}
+						else
+						{
+							shift = configStandalone.configTF.averageDistance * (iEventInTimeframe);
+						}
+					}
 				}
 				else
 				{
-					continue;
+					shift = 0.;
 				}
-			}
-		}
-		hlt.FinishDataReading();
 
-		printf("Processing Event %d\n", i);
-		for (int j = 0;j < configStandalone.runs;j++)
-		{
-			if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
-			
-			if (configStandalone.DebugLevel >= 4 && configStandalone.cleardebugout)
-			{
-				GPUOut.close();
-				GPUOut.open("GPU.out");
-				CPUOut.close();
-				CPUOut.open("GPU.out");
-			}
-
-			if (configStandalone.outputcontrolmem)
-			{
-				hlt.SetOutputControl((char*) outputmemory, configStandalone.outputcontrolmem);
-			}
-
-			int tmpRetVal = hlt.ProcessEvent(configStandalone.forceSlice);
-			if (tmpRetVal == 2)
-			{
-				configStandalone.continueOnError = 0; //Forced exit from event display loop
-				configStandalone.noprompt = 1;
-			}
-			if (tmpRetVal && !configStandalone.continueOnError)
-			{
-				if (tmpRetVal != 2) printf("Error occured\n");
-				goto breakrun;
-			}
-
-			if (configStandalone.merger)
-			{
-				const AliHLTTPCGMMerger& merger = hlt.Merger();
-				if (configStandalone.resetids && (configStandalone.writeoutput || configStandalone.writebinary))
+				if (configStandalone.configTF.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
+				if (configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true;
+				hlt.ReadEvent(in, configStandalone.resetids, configStandalone.configTF.nMerge > 0, shift);
+				in.close();
+				
+				iEventInTimeframe++;
+				if (configStandalone.configTF.nMerge)
 				{
-					printf("\nWARNING: Renumbering Cluster IDs, Cluster IDs in output do NOT match IDs from input\n\n");
-				}
-				if (configStandalone.writeoutput)
-				{
-					char filename[1024];
-					sprintf(filename, "output.%d.txt", i);
-					printf("Creating output file %s\n", filename);
-					FILE* foutput = fopen(filename, "w+");
-					if (foutput == NULL)
+					if (iEventInTimeframe == configStandalone.configTF.nMerge || i == configStandalone.NEvents - 1)
 					{
-						printf("Error creating file\n");
-						exit(1);
+						iEventInTimeframe = 0;
 					}
-					fprintf(foutput, "Event %d\n", i);
-					for (int k = 0;k < merger.NOutputTracks();k++)
+					else
 					{
-						const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
-						const AliHLTTPCGMTrackParam& param = track.GetParam();
-						fprintf(foutput, "Track %d: %4s Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f q/Pt %f - Clusters ", k, track.OK() ? "OK" : "FAIL", track.GetAlpha(), param.GetX(), param.GetY(), param.GetZ(), param.GetSinPhi(), param.GetDzDs(), param.GetQPt());
-						for (int l = 0;l < track.NClusters();l++)
+						continue;
+					}
+				}
+			}
+			hlt.FinishDataReading();
+
+			printf("Processing Event %d\n", i);
+			for (int j = 0;j < configStandalone.runs;j++)
+			{
+				if (configStandalone.runs > 1) printf("Run %d\n", j + 1);
+				
+				if (configStandalone.DebugLevel >= 4 && configStandalone.cleardebugout)
+				{
+					GPUOut.close();
+					GPUOut.open("GPU.out");
+					CPUOut.close();
+					CPUOut.open("GPU.out");
+				}
+
+				if (configStandalone.outputcontrolmem)
+				{
+					hlt.SetOutputControl((char*) outputmemory, configStandalone.outputcontrolmem);
+				}
+
+				int tmpRetVal = hlt.ProcessEvent(configStandalone.forceSlice);
+				int nTracks = 0, nClusters = 0;
+				for (int k = 0;k < hlt.Merger().NOutputTracks();k++) if (hlt.Merger().OutputTracks()[k].OK()) nTracks++;
+				for (int k = 0;k < 36;k++) nClusters += hlt.ClusterData(i).NumberOfClusters();
+				printf("Output Tracks: %d\n", nTracks);
+				if (j == 0)
+				{
+					nTracksTotal += nTracks;
+					nClustersTotal += nClusters;
+					nEventsProcessed++;
+				}
+				if (tmpRetVal == 2)
+				{
+					configStandalone.continueOnError = 0; //Forced exit from event display loop
+					configStandalone.noprompt = 1;
+				}
+				if (tmpRetVal && !configStandalone.continueOnError)
+				{
+					if (tmpRetVal != 2) printf("Error occured\n");
+					goto breakrun;
+				}
+
+				if (configStandalone.merger)
+				{
+					const AliHLTTPCGMMerger& merger = hlt.Merger();
+					if (configStandalone.resetids && (configStandalone.writeoutput || configStandalone.writebinary))
+					{
+						printf("\nWARNING: Renumbering Cluster IDs, Cluster IDs in output do NOT match IDs from input\n\n");
+					}
+					if (configStandalone.writeoutput)
+					{
+						char filename[1024];
+						sprintf(filename, "output.%d.txt", i);
+						printf("Creating output file %s\n", filename);
+						FILE* foutput = fopen(filename, "w+");
+						if (foutput == NULL)
 						{
-							fprintf(foutput, "%d ", merger.OutputClusterIds()[track.FirstClusterRef() + l]);
+							printf("Error creating file\n");
+							exit(1);
 						}
-						fprintf(foutput, "\n");
+						fprintf(foutput, "Event %d\n", i);
+						for (int k = 0;k < merger.NOutputTracks();k++)
+						{
+							const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
+							const AliHLTTPCGMTrackParam& param = track.GetParam();
+							fprintf(foutput, "Track %d: %4s Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f q/Pt %f - Clusters ", k, track.OK() ? "OK" : "FAIL", track.GetAlpha(), param.GetX(), param.GetY(), param.GetZ(), param.GetSinPhi(), param.GetDzDs(), param.GetQPt());
+							for (int l = 0;l < track.NClusters();l++)
+							{
+								fprintf(foutput, "%d ", merger.OutputClusterIds()[track.FirstClusterRef() + l]);
+							}
+							fprintf(foutput, "\n");
+						}
+						fclose(foutput);
 					}
-					fclose(foutput);
-				}
-				
-				if (configStandalone.writebinary)
-				{
-					int numTracks = merger.NOutputTracks();
-					fwrite(&numTracks, sizeof(numTracks), 1, fpBinaryOutput);
-					for (int k = 0;k < numTracks;k++)
+					
+					if (configStandalone.writebinary)
 					{
-						OutputTrack tmpTrack;
-						const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
-						const AliHLTTPCGMTrackParam& param = track.GetParam();
-						
-						tmpTrack.Alpha = track.GetAlpha();
-						tmpTrack.X = param.GetX();
-						tmpTrack.Y = param.GetY();
-						tmpTrack.Z = param.GetZ();
-						tmpTrack.SinPhi = param.GetSinPhi();
-						tmpTrack.DzDs = param.GetDzDs();
-						tmpTrack.QPt = param.GetQPt();
-						tmpTrack.NClusters = track.NClusters();
-						tmpTrack.FitOK = track.OK();
-						fwrite(&tmpTrack, sizeof(tmpTrack), 1, fpBinaryOutput);
-						const unsigned int* hitIds = merger.OutputClusterIds() + track.FirstClusterRef();
-						fwrite(hitIds, sizeof(hitIds[0]), track.NClusters(), fpBinaryOutput);
+						int numTracks = merger.NOutputTracks();
+						fwrite(&numTracks, sizeof(numTracks), 1, fpBinaryOutput);
+						for (int k = 0;k < numTracks;k++)
+						{
+							OutputTrack tmpTrack;
+							const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
+							const AliHLTTPCGMTrackParam& param = track.GetParam();
+							
+							tmpTrack.Alpha = track.GetAlpha();
+							tmpTrack.X = param.GetX();
+							tmpTrack.Y = param.GetY();
+							tmpTrack.Z = param.GetZ();
+							tmpTrack.SinPhi = param.GetSinPhi();
+							tmpTrack.DzDs = param.GetDzDs();
+							tmpTrack.QPt = param.GetQPt();
+							tmpTrack.NClusters = track.NClusters();
+							tmpTrack.FitOK = track.OK();
+							fwrite(&tmpTrack, sizeof(tmpTrack), 1, fpBinaryOutput);
+							const unsigned int* hitIds = merger.OutputClusterIds() + track.FirstClusterRef();
+							fwrite(hitIds, sizeof(hitIds[0]), track.NClusters(), fpBinaryOutput);
+						}
 					}
+					
 				}
-				
 			}
 		}
-	}}
+		if (nEventsProcessed > 1)
+		{
+			printf("Total: %lld clusters, %lld tracks\n", nClustersTotal, nTracksTotal);
+		}
+	}
 breakrun:
 
 #ifdef BUILD_QA

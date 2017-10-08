@@ -118,7 +118,7 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
       if ( ih >= 0 ) {
         MAKESharedRef(AliHLTTPCCARow, row, tracker.Row(iRow), s.fRows[iRow]);
         tracker.MaximizeHitWeight( row, ih, w );
-    }
+      }
     }
   }
 
@@ -329,16 +329,9 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;
       
-      int oldHit = GETRowHit(iRow);
-      int oldState = 0;
-      if (r.fStage == 2 && iRow >= r.fStartRow && oldHit != -1)
+      if (!(r.fStage == 2 && iRow >= r.fStartRow && GETRowHit(iRow) == best))
       {
-          if (oldHit == best) oldState = 2;
-          else oldState = 1;
-      }
-
-      if (oldState != 2 && !tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
-        break;
+        if (!tParam.Filter( y, z, err2Y, err2Z, .99)) break;
       }
       SETRowHit(iRow, best);
       r.fNMissed = 0;
@@ -368,7 +361,6 @@ GPUdi() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTA
 	}
 	r.fStage = 0;
 	r.fNHits = 0;
-	//if (tracker.Param().ISlice() != 24 || r.fItr != 9) {StoreTracklet( 0, 0, 0, 0, s, r, tracker, tParam );return;}
 
 	for (int k = 0;k < 2;k++)
 	{
