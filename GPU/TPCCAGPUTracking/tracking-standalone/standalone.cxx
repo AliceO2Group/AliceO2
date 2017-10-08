@@ -38,12 +38,12 @@ int main(int argc, char** argv)
 	if (hlt.GetGPUStatus() == 0)
 	{
 		printf("No GPU Available, restricting to CPU\n");
-		configStandalone.RUNGPU = 0;
+		configStandalone.runGPU = 0;
 	}
 	
 	if (qConfigParse(argc, (const char**) argv)) return(1);
-	if (configStandalone.RUNGPU && hlt.GetGPUStatus() == 0) {printf("Cannot enable GPU\n"); configStandalone.RUNGPU = 0;}
-	if (configStandalone.RUNGPU == 0 || configStandalone.eventDisplay) hlt.ExitGPU();
+	if (configStandalone.runGPU && hlt.GetGPUStatus() == 0) {printf("Cannot enable GPU\n"); configStandalone.runGPU = 0;}
+	if (configStandalone.runGPU == 0 || configStandalone.eventDisplay) hlt.ExitGPU();
 #ifndef _WIN32
 	if (configStandalone.affinity != -1)
 	{
@@ -120,12 +120,12 @@ int main(int argc, char** argv)
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
 	hlt.SetRunQA(configStandalone.qa);
 	hlt.SetRunMerger(configStandalone.merger);
-	if (configStandalone.RUNGPU)
+	if (configStandalone.runGPU)
 		printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 	else
 		printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 
-	if (configStandalone.RUNGPU && (configStandalone.cudaDevice != -1 || configStandalone.DebugLevel || (configStandalone.sliceCount != -1 && configStandalone.sliceCount != hlt.GetGPUMaxSliceCount())) && hlt.InitGPU(configStandalone.sliceCount, configStandalone.cudaDevice))
+	if (configStandalone.runGPU && (configStandalone.cudaDevice != -1 || configStandalone.DebugLevel || (configStandalone.sliceCount != -1 && configStandalone.sliceCount != hlt.GetGPUMaxSliceCount())) && hlt.InitGPU(configStandalone.sliceCount, configStandalone.cudaDevice))
 	{
 		printf("Error Initialising GPU\n");
 		printf("Press a key to exit!\n");
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
 		return(1);
 	}
 	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
-	hlt.SetGPUTracker(configStandalone.RUNGPU);
+	hlt.SetGPUTracker(configStandalone.runGPU);
 
 	hlt.SetSettings();
 	if (configStandalone.lowpt) hlt.SetHighQPtForward(1./0.1);
