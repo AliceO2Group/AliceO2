@@ -11,6 +11,7 @@
 #include "AliHLTTPCGMPropagator.h"
 #include "include.h"
 #include <algorithm>
+#include <cstdio>
 
 #include "TH1F.h"
 #include "TH2F.h"
@@ -61,8 +62,6 @@ static TH1F* clusters[11]; //attached, fakeAttached, tracks, all, attachedRel, f
 static TCanvas* cclust[3];
 static TPad* pclust[3];
 static TLegend* legendclust[3];
-
-static bool init = false;
 
 #define DEBUG 0
 
@@ -167,96 +166,95 @@ void SetMCTrackRange(int min, int max)
 	mcTrackMax = max;
 }
 
-void RunQA()
+void InitQA()
 {
 	char name[1024], fname[1024];
 
-	//Create Histograms
-	if (init == false)
+	for (int i = 0;i < ColorCount;i++)
 	{
-		for (int i = 0;i < ColorCount;i++)
+		float f1 = (float) ((colorsHex[i] >> 16) & 0xFF) / (float) 0xFF;
+		float f2 = (float) ((colorsHex[i] >> 8) & 0xFF) / (float) 0xFF;
+		float f3 = (float) ((colorsHex[i] >> 0) & 0xFF) / (float) 0xFF;
+		TColor* c = new TColor(10000 + i, f1, f2, f3);
+		colorNums[i] = c->GetNumber();
+	}
+	
+	//Create Efficiency Histograms
+	for (int i = 0;i < 4;i++)
+	{
+		for (int j = 0;j < 2;j++)
 		{
-			float f1 = (float) ((colorsHex[i] >> 16) & 0xFF) / (float) 0xFF;
-			float f2 = (float) ((colorsHex[i] >> 8) & 0xFF) / (float) 0xFF;
-			float f3 = (float) ((colorsHex[i] >> 0) & 0xFF) / (float) 0xFF;
-			TColor* c = new TColor(10000 + i, f1, f2, f3);
-			colorNums[i] = c->GetNumber();
-		}
-		
-		//Create Efficiency Histograms
-		for (int i = 0;i < 4;i++)
-		{
-			for (int j = 0;j < 2;j++)
+			for (int k = 0;k < 2;k++)
 			{
-				for (int k = 0;k < 2;k++)
+				for (int l = 0;l < 5;l++)
 				{
-					for (int l = 0;l < 5;l++)
+					for (int m = 0;m < 2;m++)
 					{
-						for (int m = 0;m < 2;m++)
+						sprintf(name, "%s%s%s%sVs%s", m ? "eff" : "tracks", EffTypes[i], FindableNames[j], PrimNames[k], VSParameterNames[l]);
+						if (l == 4)
 						{
-							sprintf(name, "%s%s%s%sVs%s", m ? "eff" : "tracks", EffTypes[i], FindableNames[j], PrimNames[k], VSParameterNames[l]);
-							if (l == 4)
-							{
-								double* binsPt = CreateLogAxis(axis_bins[4], k == 0 ? PT_MIN_PRIM : axes_min[4], axes_max[4]);
-								eff[i][j][k][l][m] = new TH1F(name, name, axis_bins[l], binsPt);
-								delete[] binsPt;
-							}
-							else
-							{
-								eff[i][j][k][l][m] = new TH1F(name, name, axis_bins[l], axes_min[l], axes_max[l]);
-							}
-							eff[i][j][k][l][m]->Sumw2();
+							double* binsPt = CreateLogAxis(axis_bins[4], k == 0 ? PT_MIN_PRIM : axes_min[4], axes_max[4]);
+							eff[i][j][k][l][m] = new TH1F(name, name, axis_bins[l], binsPt);
+							delete[] binsPt;
 						}
+						else
+						{
+							eff[i][j][k][l][m] = new TH1F(name, name, axis_bins[l], axes_min[l], axes_max[l]);
+						}
+						eff[i][j][k][l][m]->Sumw2();
 					}
 				}
 			}
 		}
-		
-		//Create Resolution Histograms
-		for (int i = 0;i < 5;i++)
+	}
+	
+	//Create Resolution Histograms
+	for (int i = 0;i < 5;i++)
+	{
+		for (int j = 0;j < 5;j++)
 		{
-			for (int j = 0;j < 5;j++)
+			sprintf(name, "rms_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+			sprintf(fname, "mean_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+			if (j == 4)
 			{
-				sprintf(name, "rms_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
-				sprintf(fname, "mean_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
-				if (j == 4)
-				{
-					double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
-					res[i][j][0] = new TH1F(name, name, axis_bins[j], binsPt);
-					res[i][j][1] = new TH1F(fname, fname, axis_bins[j], binsPt);
-					delete[] binsPt;
-				}
-				else
-				{
-					res[i][j][0] = new TH1F(name, name, axis_bins[j], axes_min[j], axes_max[j]);
-					res[i][j][1] = new TH1F(fname, fname, axis_bins[j], axes_min[j], axes_max[j]);
-				}
-				sprintf(name, "res_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
-				if (j == 4)
-				{
-					double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
-					res2[i][j] = new TH2F(name, name, 100, -res_axes[i], res_axes[i], axis_bins[j], binsPt);
-					delete[] binsPt;
-				}
-				else
-				{
-					res2[i][j] = new TH2F(name, name, 100, -res_axes[i], res_axes[i], axis_bins[j], axes_min[j], axes_max[j]);
-				}
+				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
+				res[i][j][0] = new TH1F(name, name, axis_bins[j], binsPt);
+				res[i][j][1] = new TH1F(fname, fname, axis_bins[j], binsPt);
+				delete[] binsPt;
 			}
-		}
-		
-		//Create Cluster Histograms
-		for (int i = 0;i < 11;i++)
-		{
-			int ioffset = i >= 7 ? 7 : i >= 4 ? 4 : 0;
-			int itype   = i >= 7 ? 2 : i >= 4 ? 1 : 0;
-			sprintf(name, "clusters%s%s", ClusterNamesShort[i - ioffset], ClusterTypes[itype]);
-			double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
-			clusters[i] = new TH1F(name, name, axis_bins[4], binsPt);
-			delete[] binsPt;
+			else
+			{
+				res[i][j][0] = new TH1F(name, name, axis_bins[j], axes_min[j], axes_max[j]);
+				res[i][j][1] = new TH1F(fname, fname, axis_bins[j], axes_min[j], axes_max[j]);
+			}
+			sprintf(name, "res_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+			if (j == 4)
+			{
+				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
+				res2[i][j] = new TH2F(name, name, 100, -res_axes[i], res_axes[i], axis_bins[j], binsPt);
+				delete[] binsPt;
+			}
+			else
+			{
+				res2[i][j] = new TH2F(name, name, 100, -res_axes[i], res_axes[i], axis_bins[j], axes_min[j], axes_max[j]);
+			}
 		}
 	}
 	
+	//Create Cluster Histograms
+	for (int i = 0;i < 11;i++)
+	{
+		int ioffset = i >= 7 ? 7 : i >= 4 ? 4 : 0;
+		int itype   = i >= 7 ? 2 : i >= 4 ? 1 : 0;
+		sprintf(name, "clusters%s%s", ClusterNamesShort[i - ioffset], ClusterTypes[itype]);
+		double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
+		clusters[i] = new TH1F(name, name, axis_bins[4], binsPt);
+		delete[] binsPt;
+	}
+}
+
+void RunQA()
+{
 	//Initialize Arrays
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
@@ -529,8 +527,6 @@ void RunQA()
 			}
 		}
 	}
-	
-	init = true;
 }
 
 int DrawQAHistograms()
@@ -538,7 +534,8 @@ int DrawQAHistograms()
 	char name[1024], fname[1024];
 	
 	structConfigQA& config = configStandalone.configQA;
-	int ConfigNumInputs = 1 + config.compareInputs.size();
+	int nNewInput = config.inputHistogramsOnly ? 0 : 1;
+	int ConfigNumInputs = nNewInput + config.compareInputs.size();
 	
 	std::vector<TFile*> tin(config.compareInputs.size());
 	for (unsigned int i = 0;i < config.compareInputs.size();i++)
@@ -626,7 +623,7 @@ int DrawQAHistograms()
 				peff[ii][j]->cd();
 				for (int l = 0;l < 3;l++)
 				{
-					if (ii != 5)
+					if (k == 0 && config.inputHistogramsOnly == 0 && ii != 5)
 					{
 						if (l == 0)
 						{
@@ -649,7 +646,7 @@ int DrawQAHistograms()
 					e->SetStats(kFALSE);
 					e->SetMaximum(1.02);
 					e->SetMinimum(-0.02);
-					if (k == 0)
+					if (!config.inputHistogramsOnly && k == 0)
 					{
 						e->SetTitle(EfficiencyTitles[j]);
 						e->GetYaxis()->SetTitle("(Efficiency)");
@@ -661,9 +658,9 @@ int DrawQAHistograms()
 							if (l == 2) eff[3][j / 2][j % 2][i][0]->Write(); //Store also all histogram!
 						}
 					}
-					else if ((e = dynamic_cast<TH1F*>(tin[k - 1]->Get(e->GetName()))) == NULL)
+					else if ((e = dynamic_cast<TH1F*>(tin[k - nNewInput]->Get(e->GetName()))) == NULL)
 					{
-						printf("Missing histogram in input %s\n", config.compareInputs[k - 1]);
+						printf("Missing histogram in input %s\n", config.compareInputs[k - nNewInput]);
 						return(1);
 					}
 
@@ -675,7 +672,7 @@ int DrawQAHistograms()
 					e->Draw(k || l ? "same" : "");
 					if (j == 0)
 					{
-						if (k || config.name) sprintf(fname, "%s - ", k ? (config.compareInputNames.size() > (unsigned) (k - 1) ? config.compareInputNames[k - 1] : config.compareInputs[k - 1]) : config.name);
+						if (k || config.inputHistogramsOnly || config.name) sprintf(fname, "%s - ", config.inputHistogramsOnly || k ? (config.compareInputNames.size() > (unsigned) (k - nNewInput) ? config.compareInputNames[k - nNewInput] : config.compareInputs[k - nNewInput]) : config.name);
 						else fname[0] = 0;
 						sprintf(name, "%s%s", fname, EffNames[l]);
 						legendeff[ii]->AddEntry(e, name, "l");
@@ -698,7 +695,7 @@ int DrawQAHistograms()
 		int i = ii == 5 ? 4 : ii;
 		for (int j = 0;j < 5;j++)
 		{
-			if (ii != 5)
+			if (!config.inputHistogramsOnly && ii != 5)
 			{
 				TCanvas cfit;
 				cfit.cd();
@@ -769,20 +766,28 @@ int DrawQAHistograms()
 			
 			for (int l = 0;l < 2;l++)
 			{
-				TH1F* e = res[j][i][l];
-				if (ii != 5)
+				for (int k = 0;k < ConfigNumInputs;k++)
 				{
-					e->Scale(Scale[j]);
-					e->GetYaxis()->SetTitle(AxisTitles[j]);
-					e->GetXaxis()->SetTitle(XAxisTitles[i]);
+					TH1F* e = res[j][i][l];
+					if ((config.inputHistogramsOnly || k) && (e = dynamic_cast<TH1F*>(tin[k - nNewInput]->Get(e->GetName()))) == NULL)
+					{
+						printf("Missing histogram in input %s\n", config.compareInputs[k - nNewInput]);
+						return(1);
+					}
+					if (nNewInput && k == 0 && ii != 5)
+					{
+						e->Scale(Scale[j]);
+						e->GetYaxis()->SetTitle(AxisTitles[j]);
+						e->GetXaxis()->SetTitle(XAxisTitles[i]);
+					}
+					if (ii == 4) e->GetXaxis()->SetRangeUser(0.2, PT_MAX);
+					else if (ii == 5) e->GetXaxis()->SetRange(1, 0);
+					e->SetMinimum(-1111);
+					e->SetMaximum(-1111);
+					
+					if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
+					if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
 				}
-				if (ii == 4) e->GetXaxis()->SetRangeUser(0.2, PT_MAX);
-				else if (ii == 5) e->GetXaxis()->SetRange(1, 0);
-				e->SetMinimum(-1111);
-				e->SetMaximum(-1111);
-				
-				if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
-				if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
 			}
 
 			double tmpSpan;
@@ -796,7 +801,7 @@ int DrawQAHistograms()
 				for (int l = 0;l < 2;l++)
 				{
 					TH1F* e = res[j][i][l];
-					if (k == 0)
+					if (!config.inputHistogramsOnly && k == 0)
 					{
 						sprintf(name, "%s Resolution", ParameterNames[j]);
 						e->SetTitle(name);
@@ -811,9 +816,9 @@ int DrawQAHistograms()
 							e->Write();
 						}
 					}
-					else if ((e = dynamic_cast<TH1F*>(tin[k - 1]->Get(e->GetName()))) == NULL)
+					else if ((e = dynamic_cast<TH1F*>(tin[k - nNewInput]->Get(e->GetName()))) == NULL)
 					{
-						printf("Missing histogram in input %s\n", config.compareInputs[k - 1]);
+						printf("Missing histogram in input %s\n", config.compareInputs[k - nNewInput]);
 						return(1);
 					}
 					e->SetMaximum(tmpMax);
@@ -828,7 +833,7 @@ int DrawQAHistograms()
 					e->Draw(k || l ? "same" : "");
 					if (j == 0)
 					{
-						if (k || config.name) sprintf(fname, "%s - ", k ? (config.compareInputNames.size() > (unsigned) (k - 1) ? config.compareInputNames[k - 1] : config.compareInputs[k - 1]) : config.name);
+						if (k || config.inputHistogramsOnly || config.name) sprintf(fname, "%s - ", config.inputHistogramsOnly || k ? (config.compareInputNames.size() > (unsigned) (k - nNewInput) ? config.compareInputNames[k - nNewInput] : config.compareInputs[k - nNewInput]) : config.name);
 						else fname[0] = 0;
 						sprintf(name, "%s%s", fname, l ? "Mean Resolution" : "Resolution");
 						legendres[ii]->AddEntry(e, name, "l");
@@ -846,81 +851,97 @@ int DrawQAHistograms()
 	}
 	
 	//Process Integral Resolution Histogreams
-	for (int i = 0;i < 5;i++)
+	if (config.inputHistogramsOnly)
 	{
-		pres[6][i]->cd();
-		sprintf(fname, "IntRes%s", ParameterNames[i]);
-		sprintf(name, "%s Resolution", ParameterNames[i]);
-		resIntegral[i]->SetName(fname);
-		resIntegral[i]->SetTitle(name);
-		resIntegral[i]->GetEntries();
-		resIntegral[i]->Fit("gaus","sQ");
-		if (tout) resIntegral[i]->Write();
-		resIntegral[i]->Draw();
-		cres[6]->cd();
+		std::remove("res_integral.pdf");
 	}
-	cres[6]->Print("res_integral.pdf");
-	for (int j = 0;j < 5;j++) delete resIntegral[j];
+	else
+	{
+		for (int i = 0;i < 5;i++)
+		{
+			pres[6][i]->cd();
+			sprintf(fname, "IntRes%s", ParameterNames[i]);
+			sprintf(name, "%s Resolution", ParameterNames[i]);
+			resIntegral[i]->SetName(fname);
+			resIntegral[i]->SetTitle(name);
+			resIntegral[i]->GetEntries();
+			resIntegral[i]->Fit("gaus","sQ");
+			if (tout) resIntegral[i]->Write();
+			resIntegral[i]->Draw();
+			cres[6]->cd();
+		}
+		cres[6]->Print("res_integral.pdf");
+		for (int j = 0;j < 5;j++) delete resIntegral[j];
+	}
 	
 	//Process Cluster Histograms
-	for (int i = 0;i < 11;i++) clusters[i]->Sumw2();
-	
-	double totalVal = 0;
-	for (int j = 0;j < clusters[3]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[3]->GetBinContent(j);
-	if (totalVal == 0.) totalVal = 1.;
-	for (int i = 0;i < 4;i++)
+	if (config.inputHistogramsOnly)
 	{
-		double val = 0;
-		for (int j = 0;j < clusters[i]->GetXaxis()->GetNbins() + 2;j++)
+		std::remove("clusters.pdf");
+		std::remove("clusters_relative.pdf");
+		std::remove("clusters_integral.pdf");
+	}
+	else
+	{
+		for (int i = 0;i < 11;i++) clusters[i]->Sumw2();
+		
+		double totalVal = 0;
+		for (int j = 0;j < clusters[3]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[3]->GetBinContent(j);
+		if (totalVal == 0.) totalVal = 1.;
+		for (int i = 0;i < 4;i++)
 		{
-			val += clusters[i]->GetBinContent(j);
-			clusters[7 + i]->SetBinContent(j, val / totalVal);
+			double val = 0;
+			for (int j = 0;j < clusters[i]->GetXaxis()->GetNbins() + 2;j++)
+			{
+				val += clusters[i]->GetBinContent(j);
+				clusters[7 + i]->SetBinContent(j, val / totalVal);
+			}
 		}
-	}
-	for (int i = 0;i < 4;i++)
-	{
-		clusters[7 + i]->SetMaximum(clusters[10]->GetMaximum() * 1.02);
-		clusters[7 + i]->SetMinimum(clusters[10]->GetMaximum() * -0.02);
-	}
-	
-	for (int i = 0;i < 3;i++)
-	{
-		clusters[i + 4]->Divide(clusters[i], clusters[3], 1, 1, "B");
-		clusters[i + 4]->SetMinimum(-0.02);
-		clusters[i + 4]->SetMaximum(1.02);
-	}
-	
-	for (int i = 0;i < 4;i++)
-	{
-		clusters[i]->SetMaximum(clusters[3]->GetMaximum() * 1.02);
-		clusters[i]->SetMinimum(clusters[3]->GetMaximum() * -0.02);
-	}
-	
-	for (int i = 0;i < 3;i++)
-	{
-		pclust[i]->cd();
-		pclust[i]->SetLogx();
-		int begin = i == 2 ?  7 : i == 1 ? 4 : 0;
-		int end   = i == 2 ? 11 : i == 1 ? 7 : 4;
-		int numColor = 0;
-		for (int j = begin;j < end;j++)
+		for (int i = 0;i < 4;i++)
 		{
-			TH1F* e = clusters[j];
-			e->SetTitle(ClusterTitles[i]);
-			e->GetYaxis()->SetTitle(i == 0 ? "Number of clusters" : "Fraction of clusters");
-			e->GetXaxis()->SetTitle("p_{Tmc} [Gev/c]");
-			if (tout) e->Write();
-			e->SetStats(kFALSE);
-			e->SetMarkerColor(kBlack);
-			e->SetLineWidth(1);
-			e->SetLineColor(colorNums[numColor++ % ColorCount]);
-			e->SetLineStyle(ConfigDashedMarkers ? j + 1 : 1);
-			e->Draw(j == begin ? "" : "same");
-			legendclust[i]->AddEntry(e, ClustersNames[j - begin], "l");
+			clusters[7 + i]->SetMaximum(clusters[10]->GetMaximum() * 1.02);
+			clusters[7 + i]->SetMinimum(clusters[10]->GetMaximum() * -0.02);
 		}
-		legendclust[i]->Draw();
-		cclust[i]->cd();
-		cclust[i]->Print(i == 2 ? "clusters_integral.pdf" : i == 1 ? "clusters_relative.pdf" : "clusters.pdf");
+		
+		for (int i = 0;i < 3;i++)
+		{
+			clusters[i + 4]->Divide(clusters[i], clusters[3], 1, 1, "B");
+			clusters[i + 4]->SetMinimum(-0.02);
+			clusters[i + 4]->SetMaximum(1.02);
+		}
+		
+		for (int i = 0;i < 4;i++)
+		{
+			clusters[i]->SetMaximum(clusters[3]->GetMaximum() * 1.02);
+			clusters[i]->SetMinimum(clusters[3]->GetMaximum() * -0.02);
+		}
+		
+		for (int i = 0;i < 3;i++)
+		{
+			pclust[i]->cd();
+			pclust[i]->SetLogx();
+			int begin = i == 2 ?  7 : i == 1 ? 4 : 0;
+			int end   = i == 2 ? 11 : i == 1 ? 7 : 4;
+			int numColor = 0;
+			for (int j = begin;j < end;j++)
+			{
+				TH1F* e = clusters[j];
+				e->SetTitle(ClusterTitles[i]);
+				e->GetYaxis()->SetTitle(i == 0 ? "Number of clusters" : "Fraction of clusters");
+				e->GetXaxis()->SetTitle("p_{Tmc} [Gev/c]");
+				if (tout) e->Write();
+				e->SetStats(kFALSE);
+				e->SetMarkerColor(kBlack);
+				e->SetLineWidth(1);
+				e->SetLineColor(colorNums[numColor++ % ColorCount]);
+				e->SetLineStyle(ConfigDashedMarkers ? j + 1 : 1);
+				e->Draw(j == begin ? "" : "same");
+				legendclust[i]->AddEntry(e, ClustersNames[j - begin], "l");
+			}
+			legendclust[i]->Draw();
+			cclust[i]->cd();
+			cclust[i]->Print(i == 2 ? "clusters_integral.pdf" : i == 1 ? "clusters_relative.pdf" : "clusters.pdf");
+		}
 	}
 	
 	if (tout)

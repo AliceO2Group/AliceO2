@@ -85,6 +85,7 @@ int main(int argc, char** argv)
 	if (configStandalone.eventDisplay) {printf("EventDisplay not enabled in build\n"); return(1);}
 #endif
 	if (configStandalone.configTF.bunchSim && configStandalone.configTF.nMerge) {printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n"); return(1);}
+	if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {printf("Can only produce QA pdf output when input files are specified!\n"); return(1);}
 
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	
@@ -184,9 +185,17 @@ int main(int argc, char** argv)
 		printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, collision probability %f, mixing %d events\n",
 			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, collisionProbability, nEventsInDirectory);
 	}
+	
+	#ifdef BUILD_QA
+		if (configStandalone.qa)
+		{
+			InitQA();
+		}
+	#endif
 
 	for (int jj = 0;jj < configStandalone.runs2;jj++)
 	{
+		if (configStandalone.configQA.inputHistogramsOnly) break;
 		if (configStandalone.runs2 > 1) printf("RUN2: %d\n", jj);
 		int nEventsProcessed = 0;
 		long long int nTracksTotal = 0;

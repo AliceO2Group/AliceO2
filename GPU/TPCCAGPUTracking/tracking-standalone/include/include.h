@@ -10,6 +10,7 @@ extern void ShowNextEvent();
 extern volatile int buttonPressed;
 extern volatile int displayEventNr;
 extern volatile int sendKey;
+void InitQA();
 void RunQA();
 int DrawQAHistograms();
 void SetMCTrackRange(int min, int max);
