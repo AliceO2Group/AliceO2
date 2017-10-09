@@ -124,9 +124,6 @@ class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
     }
     
   private:
-    /// Copy constructor
-    Hit(const Hit &point);
-    Hit operator=(const Hit &point);
     Vector3D<Float_t> mMomentum;              ///< momentum at entrance
     Point3D<Float_t> mPosStart;               ///< position at entrance (base mPos give position on exit)
     Float_t mE;                               ///< total energy at entrance

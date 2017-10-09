@@ -16,6 +16,7 @@
   #include "ITSBase/GeometryTGeo.h"
   #include "ITSMFTReconstruction/Cluster.h"
   #include "SimulationDataFormat/MCCompLabel.h"
+  #include <vector>
 #endif
 
 using namespace o2::Base;
@@ -42,9 +43,10 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *hitTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray hitArr("o2::ITSMFT::Hit"), *phitArr(&hitArr);
-  hitTree->SetBranchAddress("ITSHit",&phitArr);
+  std::vector<o2::ITSMFT::Hit> *hitArray = nullptr;
+  hitTree->SetBranchAddress("ITSHit", &hitArray);
 
+  
   // Clusters
   sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
@@ -79,12 +81,10 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 	  hitTree->GetEvent(ievH);
 	  lastReadHitEv = ievH;
 	}
-	Int_t nh = hitArr.GetEntriesFast();
-	for (Int_t i=0; i<nh; i++) {
-	  Hit* ptmp = static_cast<Hit *>(hitArr.UncheckedAt(i));
-	  if (ptmp->GetDetectorID() != chipID) continue; 
-	  if (ptmp->GetTrackID() != trID) continue;
-	  p = ptmp;
+	for (auto& ptmp : *hitArray) {
+	  if (ptmp.GetDetectorID() != chipID) continue; 
+	  if (ptmp.GetTrackID() != trID) continue;
+	  p = &ptmp;
 	  break;
 	}
 	if (!p) {

@@ -44,7 +44,9 @@ namespace o2
 
       /// Steer conversion of points to digits
       void   process(TClonesArray* points, TClonesArray* digits);
-
+      /// new version
+      void   process(std::vector<Hit>* hits, TClonesArray* digits);
+      
       void   setEventTime(double t);
       double getEventTime()        const  {return mEventTime;}
 
