@@ -37,22 +37,23 @@ class AlpideRespSimMat
   AlpideRespSimMat() = default;
   ~AlpideRespSimMat() = default;
 
-  void adopt(const AlpideRespSimMat& src, bool flipX=false, bool flipY=false)
+  void adopt(const AlpideRespSimMat& src, bool flipRow=false, bool flipCol=false)
   {
     // copy constructor with option of channels flipping
-    for (int i=NPix;i--;) {
-      for (int j=NPix;j--;) {
-	int bDest = (flipY ? NPix-1-i : i)*NPix + (flipX ? NPix-1-j : j);
-	data[bDest] = src.data[i*NPix+j];
+    for (int iRow=NPix;iRow--;) {
+      int rw = flipRow ? NPix-1-iRow : iRow;
+      for (int iCol=NPix;iCol--;) {
+	int bDest = rw*NPix + (flipCol ? NPix-1-iCol : iCol);
+	data[bDest] = src.data[iRow*NPix+iCol];
       }
     }
   }
   
   /// probability to find an electron in pixel ix,iy,iz 
-  float getValue(int ix, int iy) const { return data[ix * NPix + iy]; }
-  float getValue(int ix, int iy, bool flipX, bool flipY) const
+  float getValue(int iRow, int iCol) const { return data[iRow * NPix + iCol]; }
+  float getValue(int iRow, int iCol, bool flipRow, bool flipCol) const
   {
-    int bin = (flipY ? NPix-1-ix : ix)*NPix + (flipX ? NPix-1-iy : iy);
+    int bin = (flipRow ? NPix-1-iRow : iRow)*NPix + (flipCol ? NPix-1-iCol : iCol);
     return data[bin];
   }
 
@@ -60,7 +61,7 @@ class AlpideRespSimMat
   std::array<float, MatSize>* getArray() { return &data; }
 
   /// print values
-  void print() const;
+  void print(bool flipRow=false, bool flipCol=false) const;
 
  private:
   std::array<float, MatSize> data;
@@ -73,39 +74,39 @@ class AlpideRespSimMat
  * AlpideSimResponse: container for Alpide simulates parameterized response matrices
  * Based on the Miljenko Šuljić standalone code and needs as an input text matrices
  * from simulation. 
- * Provides for the electron injected to point X,Y (with respect to pixel center) 
- * and Z (with respect to epitaxial layer inner serface!!! i.e. touching the substrate) 
- * the probability to be collected in every of 5x5 pixels with reference pixel in the
- * center. 
+ * Provides for the electron injected to point X(columns direction),Y (rows direction) 
+ * (with respect to pixel center) and Z (depth, with respect to epitaxial layer inner 
+ * serface!!! i.e. touching the substrate) the probability to be collected in every 
+ * of NPix*NPix pixels with reference pixel in the center. 
  */
 
 class AlpideSimResponse
 {
 
  private:
-  int getXBin(float xpos) const;
-  int getYBin(float ypos) const;
-  int getZBin(float zpos) const;
-  std::string composeDataName(int xbin, int ybin);
+  int getColBin(float pos) const;
+  int getRowBin(float pos) const;
+  int getDptBin(float pos) const;
+  std::string composeDataName(int colBin, int rowBin);
 
-  int mNBinX = 0;                /// number of bins in X
-  int mNBinY = 0;                /// number of bins in Y
-  int mNBinZ = 0;                /// number of bins in Z (sensor dept)
-  int mMaxBinX = 0;              /// max allowed Xb (to avoid subtraction)
-  int mMaxBinY = 0;              /// max allowed Yb (to avoid subtraction)  
-  float mXMax = 14.62e-4;        /// upper boundary of X
-  float mYMax = 13.44e-4;        /// upper boundary of Y
-  float mZMin = 0.f;             /// lower boundary of Z
-  float mZMax = 0.f;             /// upper boundary of Z
-  float mStepInvX = 0;           /// inverse step of the X grid
-  float mStepInvY = 0;           /// inverse step of the Y grid
-  float mStepInvZ = 0;           /// inverse step of the Z grid
+  int mNBinCol = 0;                /// number of bins in X(col direction)
+  int mNBinRow = 0;                /// number of bins in Y(row direction)
+  int mNBinDpt = 0;                /// number of bins in Z(sensor dept)
+  int mMaxBinCol = 0;              /// max allowed Xb (to avoid subtraction)
+  int mMaxBinRow = 0;              /// max allowed Yb (to avoid subtraction)  
+  float mColMax = 14.62e-4;        /// upper boundary of Col
+  float mRowMax = 13.44e-4;        /// upper boundary of Row
+  float mDptMin = 0.f;             /// lower boundary of Dpt
+  float mDptMax = 0.f;             /// upper boundary of Dpt
+  float mStepInvCol = 0;           /// inverse step of the Col grid
+  float mStepInvRow = 0;           /// inverse step of the Row grid
+  float mStepInvDpt = 0;           /// inverse step of the Dpt grid
   std::vector<AlpideRespSimMat> mData; /// response data
   /// path to look for data file
   std::string mDataPath  = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData";
-  std::string mGridXName = "grid_list_x.txt";           /// name of the file with grid in X
-  std::string mGridYName = "grid_list_y.txt";           /// name of the file with grid in Y
-  std::string mXYDataFmt = "data_pixels_%.2f_%.2f.txt"; /// format to read the data for given X,Y
+  std::string mGridColName = "grid_list_x.txt";           /// name of the file with grid in Col
+  std::string mGridRowName = "grid_list_y.txt";           /// name of the file with grid in Row
+  std::string mColRowDataFmt = "data_pixels_%.2f_%.2f.txt"; /// format to read the data for given Col,Row
 
  public:
   AlpideSimResponse() = default;
@@ -113,56 +114,57 @@ class AlpideSimResponse
 
   void initData();
 
-  bool getResponse(float x, float y, float z, AlpideRespSimMat& dest) const;
-  const AlpideRespSimMat* getResponse(float x, float y, float z, bool& flipX, bool& flipY) const;
+  bool getResponse(float vRow, float vCol, float cDepth, AlpideRespSimMat& dest) const;
+  const AlpideRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol) const;
   static int constexpr getNPix() { return AlpideRespSimMat::getNPix(); }
-  int getNBinX() const { return mNBinX; }
-  int getNBinY() const { return mNBinY; }
-  int getNBinZ() const { return mNBinZ; }
-  float getXMax() const { return mXMax; }
-  float getYMax() const { return mYMax; }
-  float getZMin() const { return mZMin; }
-  float getZMax() const { return mZMax; }
-  float getStepX() const { return mStepInvX ? 1./mStepInvX : 0.f; }
-  float getStepY() const { return mStepInvY ? 1./mStepInvY : 0.f; }
-  float getStepZ() const { return mStepInvZ ? 1./mStepInvZ : 0.f; }
+  int getNBinCol() const { return mNBinCol; }
+  int getNBinRow() const { return mNBinRow; }
+  int getNBinDpt() const { return mNBinDpt; }
+  float getColMax() const { return mColMax; }
+  float getRowMax() const { return mRowMax; }
+  float getDptMin() const { return mDptMin; }
+  float getDptMax() const { return mDptMax; }
+  float getStepCol() const { return mStepInvCol ? 1./mStepInvCol : 0.f; }
+  float getStepRow() const { return mStepInvRow ? 1./mStepInvRow : 0.f; }
+  float getStepDpt() const { return mStepInvDpt ? 1./mStepInvDpt : 0.f; }
   void setDataPath(const std::string pth) { mDataPath = pth; }
-  void setGridXName(const std::string nm) { mGridXName = nm; }
-  void setGridYName(const std::string nm) { mGridYName = nm; }
-  void setXYDataFmt(const std::string nm) { mXYDataFmt = nm; }
+  void setGridColName(const std::string nm) { mGridColName = nm; }
+  void setGridRowName(const std::string nm) { mGridRowName = nm; }
+  void setColRowDataFmt(const std::string nm) { mColRowDataFmt = nm; }
   const std::string& getDataPath() const { return mDataPath; }
-  const std::string& getGridXName() const { return mGridXName; }
-  const std::string& getGridYName() const { return mGridYName; }
-  const std::string& getXYDataFmt() const { return mXYDataFmt; }
+  const std::string& getGridColName() const { return mGridColName; }
+  const std::string& getGridRowName() const { return mGridRowName; }
+  const std::string& getColRowDataFmt() const { return mColRowDataFmt; }
   void print() const;
 
   ClassDef(AlpideSimResponse, 1)
 };
 
 //-----------------------------------------------------
-inline int AlpideSimResponse::getXBin(float xpos) const
+inline int AlpideSimResponse::getColBin(float pos) const
 {
-  /// get x bin w/o checking for over/under flow. xpos MUST be >=0
-  int ix = xpos * mStepInvX + 0.5f;
-  return ix<mNBinX ? ix:mMaxBinX;
+  /// get column bin w/o checking for over/under flow. pos MUST be >=0
+  int i = pos * mStepInvCol + 0.5f;
+  return i<mNBinCol ? i:mMaxBinCol;
 }
 
 //-----------------------------------------------------
-inline int AlpideSimResponse::getYBin(float ypos) const
+inline int AlpideSimResponse::getRowBin(float pos) const
 {
-  /// get y bin w/o checking for over/under flow. ypos MUST be >=0
-  int iy = ypos * mStepInvY + 0.5f;
-  return iy<mNBinY ? iy:mMaxBinY;
+  /// get row bin w/o checking for over/under flow. pos MUST be >=0
+  int i = pos * mStepInvRow + 0.5f;
+  return i<mNBinRow ? i:mMaxBinRow;
 }
 
 //-----------------------------------------------------
-inline int AlpideSimResponse::getZBin(float zpos) const
+inline int AlpideSimResponse::getDptBin(float pos) const
 {
-  /// get z bin w/o checking for over/under flow. zpos is with respect of the beginning
+  /// get depth bin w/o checking for over/under flow. pos is with respect of the beginning
   /// of epitaxial layer
-  int iz = (mZMax - zpos) * mStepInvZ;
-  return iz<0 ? 0:iz; // depth bin
+  int i = (mDptMax - pos) * mStepInvDpt;
+  return i<0 ? 0:i; // depth bin
 }
+
 }
 }
 

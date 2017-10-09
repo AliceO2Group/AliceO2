@@ -38,9 +38,15 @@ using namespace o2::Base;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  
+
   const Int_t numOfChips = mGeometry->getNumberOfChips();
 
+  if (mParams.getHit2DigitsMethod() == DigiParams::p2dCShape && !mParams.getAlpSimResponse()) {
+    mAlpSimResp = std::make_unique<o2::ITSMFT::AlpideSimResponse>();
+    mAlpSimResp->initData();
+    mParams.setAlpSimResponse(mAlpSimResp.get());
+  }
+    
   for (Int_t i = 0; i < numOfChips; i++) {
     mSimulations.emplace_back(&mParams, i, &mGeometry->getMatrixL2G(i));
   }
@@ -50,10 +56,10 @@ void Digitizer::init()
 void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
 {
   // digitize single event
-  
-  const Int_t numOfChips = mGeometry->getNumberOfChips();  
+
+  const Int_t numOfChips = mGeometry->getNumberOfChips();
   const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
-  
+
   // estimate the smalles RO Frame this event may have
   double hTime0 = mEventTime - mParams.getTimeOffset();
   if (hTime0 > UINT_MAX) {
@@ -70,7 +76,7 @@ void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
 	    << " (TOffset= " << mParams.getTimeOffset() << " ROFrame= " << minNewROFrame << ")"
 	    << " cont.mode: " << isContinuous() << " current Min/Max RO Frames "
 	    << mROFrameMin << "/" << mROFrameMax << FairLogger::endl ;
-  
+
   if (mParams.isContinuous() && minNewROFrame>mROFrameMin) {
     // if there are already digits cached for previous RO Frames AND the new event
     // cannot contribute to these digits, move them to the output container
@@ -80,20 +86,20 @@ void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
     }
     //    fillOutputContainer(digits, minNewROFrame-1);
   }
-  
+
   // accumulate hits for every chip
   TIter nextPoint(hits);
   Hit* hit = nullptr;
   while ( (hit = (Hit*)nextPoint()) ) {
-    
+
     // RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
     // provided and identified. At the moment we just create a combined identifier from eventID
-    // and sourceID and store it TEMPORARILY in the cached Point's TObject UniqueID  
-    hit->SetSrcEvID(mCurrSrcID,mCurrEvID); 
+    // and sourceID and store it TEMPORARILY in the cached Point's TObject UniqueID
+    hit->SetSrcEvID(mCurrSrcID,mCurrEvID);
     mSimulations[hit->GetDetectorID()].InsertHit(hit);
   }
-    
-  // Convert hits to digits  
+
+  // Convert hits to digits
   for (auto &simulation : mSimulations) {
     simulation.Hits2Digits(seg, mEventTime, mROFrameMin, mROFrameMax);
     simulation.ClearHits();
@@ -111,7 +117,7 @@ void Digitizer::setEventTime(double t)
   // assign event time, it should be in a strictly increasing order
   // convert to ns
   t *= mCoeffToNanoSecond;
-  
+
   if (t<mEventTime && mParams.isContinuous()) {
     LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")" << FairLogger::endl;
   }

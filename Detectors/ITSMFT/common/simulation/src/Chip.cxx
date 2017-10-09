@@ -228,7 +228,7 @@ void Chip::fillOutputContainer(TClonesArray* digits, UInt_t maxFrame)
     Digit &dig = iter->second;
     //printf("Chip%d Fr:%d Q:%f R:%d C:%d\n",dig.getChipIndex(),dig.getROFrame(),dig.getCharge(), dig.getRow(),dig.getColumn());
 
-    if (dig.getCharge()>mParams->getThreshold() ) {
+    if (dig.getCharge()>mParams->getChargeThreshold() ) {
       new( (*digits)[digits->GetEntriesFast()] ) Digit( dig );
     }
   }

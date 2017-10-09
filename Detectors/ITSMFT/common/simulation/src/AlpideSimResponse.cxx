@@ -46,7 +46,7 @@ void AlpideSimResponse::initData()
     mDataPath.push_back('/');
   }
   mDataPath = gSystem->ExpandPathName(mDataPath.data());
-  string inpfname = mDataPath + mGridXName;
+  string inpfname = mDataPath + mGridColName;
   std::ifstream inpGrid;
 
   // read X grid
@@ -55,31 +55,31 @@ void AlpideSimResponse::initData()
     LOG(FATAL) << "Failed to open file " << inpfname << FairLogger::endl;
   }
 
-  while (inpGrid >> mStepInvX && inpGrid.good()) {
-    mNBinX++;
+  while (inpGrid >> mStepInvCol && inpGrid.good()) {
+    mNBinCol++;
   }
   
-  if (!mNBinX || mStepInvX < kTiny) {
-    LOG(FATAL) << "Failed to read X binning from " << inpfname << FairLogger::endl;
+  if (!mNBinCol || mStepInvCol < kTiny) {
+    LOG(FATAL) << "Failed to read X(col) binning from " << inpfname << FairLogger::endl;
   }
-  mMaxBinX = mNBinX-1;
-  mStepInvX = mMaxBinX / mStepInvX; // inverse of the X bin width
+  mMaxBinCol = mNBinCol-1;
+  mStepInvCol = mMaxBinCol / mStepInvCol; // inverse of the X bin width
   inpGrid.close();
 
   // read Y grid
-  inpfname = mDataPath + mGridYName;
+  inpfname = mDataPath + mGridRowName;
   inpGrid.open(inpfname, std::ifstream::in);
   if (inpGrid.fail()) {
     LOG(FATAL) << "Failed to open file " << inpfname << FairLogger::endl;
   }
 
-  while (inpGrid >> mStepInvY && inpGrid.good())
-    mNBinY++;
-  if (!mNBinY || mStepInvY < kTiny) {
-    LOG(FATAL) << "Failed to read Y binning from " << inpfname << FairLogger::endl;
+  while (inpGrid >> mStepInvRow && inpGrid.good())
+    mNBinRow++;
+  if (!mNBinRow || mStepInvRow < kTiny) {
+    LOG(FATAL) << "Failed to read Y(row) binning from " << inpfname << FairLogger::endl;
   }
-  mMaxBinY = mNBinY - 1;
-  mStepInvY = mMaxBinY / mStepInvY; // inverse of the Y bin width
+  mMaxBinRow = mNBinRow - 1;
+  mStepInvRow = mMaxBinRow / mStepInvRow; // inverse of the Row bin width
   inpGrid.close();
 
   // load response data
@@ -88,12 +88,12 @@ void AlpideSimResponse::initData()
   float val, gx, gy, gz;
   int lost, untrck, dead, nele;
   size_t dataSize = 0;
-  mZMax = -2.e9;
-  mZMin = 2.e9;
+  mDptMax = -2.e9;
+  mDptMin = 2.e9;
   const int npix = AlpideRespSimMat::getNPix();
 
-  for (int ix = 0; ix < mNBinX; ix++) {
-    for (int iy = 0; iy < mNBinY; iy++) {
+  for (int ix = 0; ix < mNBinCol; ix++) {
+    for (int iy = 0; iy < mNBinRow; iy++) {
       inpfname = composeDataName(ix, iy);
       inpGrid.open(inpfname, std::ifstream::in);
       if (inpGrid.fail()) {
@@ -101,11 +101,11 @@ void AlpideSimResponse::initData()
       }
       inpGrid >> nz;
       if (cnt == 0) {
-        mNBinZ = nz;
-        dataSize = mNBinX * mNBinY * mNBinZ;
+        mNBinDpt = nz;
+        dataSize = mNBinCol * mNBinRow * mNBinDpt;
         mData.reserve(dataSize); // reserve space for data
-      } else if (nz != mNBinZ) {
-        LOG(FATAL) << "Mismatch in Nz slices of bin X: " << ix << " Y: " << iy
+      } else if (nz != mNBinDpt) {
+        LOG(FATAL) << "Mismatch in Nz slices of bin X(col): " << ix << " Y(row): " << iy
 		   << " wrt bin 0,0. File " << inpfname << FairLogger::endl;
       }
 
@@ -122,17 +122,17 @@ void AlpideSimResponse::initData()
         inpGrid >> lost >> dead >> untrck >> nele >> gx >> gy >> gz;
 
         if (inpGrid.bad()) {
-          LOG(FATAL) << "Failed reading data for Z slice " << iz << " from "
+          LOG(FATAL) << "Failed reading data for depth(Z) slice " << iz << " from "
 		     << inpfname << FairLogger::endl;
         }
         if (!nele) {
-          LOG(FATAL) << "Wrong normalization Nele=" << nele << "for  Z slice "
+          LOG(FATAL) << "Wrong normalization Nele=" << nele << "for  depth(Z) slice "
 		     << iz << " from " << inpfname
 		     << FairLogger::endl;
         }
 
-        if (mZMax < -1e9) mZMax = gz;
-        if (mZMin > gz)   mZMin = gz;
+        if (mDptMax < -1e9) mDptMax = gz;
+        if (mDptMin > gz)   mDptMin = gz;
 
         // normalize
         float norm = 1.f/nele;
@@ -151,16 +151,16 @@ void AlpideSimResponse::initData()
 	       << " number of bins" << FairLogger::endl;
   }
 
-  // normalize Z boundaries
+  // normalize Dpt boundaries
 
-  mStepInvX /= micron2cm;
-  mStepInvY /= micron2cm;
+  mStepInvCol /= micron2cm;
+  mStepInvRow /= micron2cm;
 
-  mZMin *= micron2cm;
-  mZMax *= micron2cm;
-  mStepInvZ = (mNBinZ - 1) / (mZMax - mZMin);
-  mZMin -= 0.5 / mStepInvZ;
-  mZMax += 0.5 / mStepInvZ;
+  mDptMin *= micron2cm;
+  mDptMax *= micron2cm;
+  mStepInvDpt = (mNBinDpt - 1) / (mDptMax - mDptMin);
+  mDptMin -= 0.5 / mStepInvDpt;
+  mDptMax += 0.5 / mStepInvDpt;
   print();
 }
 
@@ -170,110 +170,112 @@ void AlpideSimResponse::print() const
   /*
    * print itself
    */
-  printf("Alpide response object of %zu matrices to map chagre in XYZ to %dx%d pixels\n",
+  printf("Alpide response object of %zu matrices to map chagre in xyz to %dx%d pixels\n",
 	 mData.size(), getNPix(),getNPix());
-  printf("X range: %+e : %+e | step: %e | Nbins: %d\n", 0.f, mXMax, 1.f / mStepInvX, mNBinX);
-  printf("Y range: %+e : %+e | step: %e | Nbins: %d\n", 0.f, mYMax, 1.f / mStepInvY, mNBinY);
-  printf("Z range: %+e : %+e | step: %e | Nbins: %d\n", mZMin, mZMax, 1.f / mStepInvZ, mNBinZ);
+  printf("X(col) range: %+e : %+e | step: %e | Nbins: %d\n", 0.f, mColMax, 1.f / mStepInvCol, mNBinCol);
+  printf("Y(row) range: %+e : %+e | step: %e | Nbins: %d\n", 0.f, mRowMax, 1.f / mStepInvRow, mNBinRow);
+  printf("Z(dpt) range: %+e : %+e | step: %e | Nbins: %d\n", mDptMin, mDptMax, 1.f / mStepInvDpt, mNBinDpt);
 }
 
 //-----------------------------------------------------
-string AlpideSimResponse::composeDataName(int xbin, int ybin)
+string AlpideSimResponse::composeDataName(int colBin, int rowBin)
 {
   /*
-   * compose the file-name to read data for bin xbin,ybin
+   * compose the file-name to read data for bin colBin,rowBin
    */
 
   // ugly but safe way to compose the file name
-  float x = xbin / mStepInvX, y = ybin / mStepInvY;
-  size_t size = snprintf(nullptr, 0, mXYDataFmt.data(), x, y) + 1;
+  float vcol = colBin / mStepInvCol, vrow = rowBin / mStepInvRow;
+  size_t size = snprintf(nullptr, 0, mColRowDataFmt.data(), vcol, vrow) + 1;
   unique_ptr<char[]> tmp(new char[size]);
-  snprintf(tmp.get(), size, mXYDataFmt.data(), x, y);
+  snprintf(tmp.get(), size, mColRowDataFmt.data(), vcol, vrow);
   return mDataPath + string(tmp.get(), tmp.get() + size - 1);
 }
 
 //____________________________________________________________
-bool AlpideSimResponse::getResponse(float x, float y, float z, AlpideRespSimMat& dest) const
+bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, AlpideRespSimMat& dest) const
 {
   /*
-   * get linearized NPix*NPix matrix for response at point x,y,z
+   * get linearized NPix*NPix matrix for response at point vRow(sensor local X, along row)
+   * vCol(sensor local Z, along columns) and vDepth (sensor local Y, i.e. depth)
    */
-  if (!mNBinZ) {
+  if (!mNBinDpt) {
     LOG(FATAL) << "response object is not initialized" << FairLogger::endl;
   }
-  bool flipX = false, flipY = false;
-  if (z < mZMin || z > mZMax) return false;
-  if (x < 0) {
-    x = -x;
-    flipX = true;
+  bool flipCol = false, flipRow = false;
+  if (vDepth < mDptMin || vDepth > mDptMax) return false;
+  if (vCol < 0) {
+    vCol = -vCol;
+    flipCol = true;
   }
-  if (x > mXMax) return false;
-  if (y < 0) {
-    y = -y;
-    flipY = true;
+  if (vCol > mColMax) return false;
+  if (vRow < 0) {
+    vRow = -vRow;
+    flipRow = true;
   }
-  if (y > mYMax) return false;
+  if (vRow > mRowMax) return false;
 
-  size_t bin = getZBin(z) + mNBinZ * (getYBin(y) + mNBinY * getXBin(x));
+  size_t bin = getDptBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {
     // this should not happen
-    LOG(FATAL) << "requested bin " << bin << "(xyz: " << getXBin(x) << ":" << getYBin(y)
-	       << ":" << getZBin(z) << ")" <<">= maxBin " << mData.size()
-	       << " for X=" << x << " Y=" << y << " Z=" << z << FairLogger::endl;
+    LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol) 
+	       << ":" << getDptBin(vDepth) << ")" <<">= maxBin " << mData.size()
+	       << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
   }
-  // printf("bin %d %d %d\n",getXBin(x),getYBin(y),getZBin(z));
+  // printf("bin %d %d %d\n",getColBin(vCol),getRowBin(vRow),getDptBin(vDepth));
   //  return &mData[bin];
-  dest.adopt( mData[bin], flipX, flipY );
+  dest.adopt( mData[bin], flipRow, flipCol);
   return true;
 }
 
 //____________________________________________________________
-const AlpideRespSimMat* AlpideSimResponse::getResponse(float x, float y, float z, bool& flipX, bool& flipY) const
+const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol) const
 {
   /*
-   * get linearized NPix*NPix matrix for response at point x,y,z
+   * get linearized NPix*NPix matrix for response at point vRow(sensor local X, along row)
+   * vCol(sensor local Z, along columns) and vDepth (sensor local Y, i.e. depth)
    */
-  if (!mNBinZ) {
+  if (!mNBinDpt) {
     LOG(FATAL) << "response object is not initialized" << FairLogger::endl;
   }
-  if (z < mZMin || z > mZMax) return nullptr;
-  if (x < 0) {
-    x = -x;
-    flipX = true;
+  if (vDepth < mDptMin || vDepth > mDptMax) return nullptr;
+  if (vCol < 0) {
+    vCol = -vCol;
+    flipCol = true;
   }
   else {
-    flipX = false;
+    flipCol = false;
   }
-  if (x > mXMax) return nullptr;
-  if (y < 0) {
-    y = -y;
-    flipY = true;
+  if (vCol > mColMax) return nullptr;
+  if (vRow < 0) {
+    vRow = -vRow;
+    flipRow = true;
   }
   else {
-    flipY = false;
+    flipRow = false;
   }
-  if (y > mYMax) return nullptr;
+  if (vRow > mRowMax) return nullptr;
 
-  size_t bin = getZBin(z) + mNBinZ * (getYBin(y) + mNBinY * getXBin(x));
+  size_t bin = getDptBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {
     // this should not happen
-    LOG(FATAL) << "requested bin " << bin << "(xyz: " << getXBin(x) << ":" << getYBin(y)
-	       << ":" << getZBin(z) << ")" <<">= maxBin " << mData.size()
-	       << " for X=" << x << " Y=" << y << " Z=" << z << FairLogger::endl;
+    LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol) 
+	       << ":" << getDptBin(vDepth) << ")" <<">= maxBin " << mData.size()
+	       << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
   }
   return &mData[bin];
 
 }
 
 //__________________________________________________
-void AlpideRespSimMat::print() const
+void AlpideRespSimMat::print(bool flipRow,bool flipCol) const
 {
   /*
    * print the response matrix
    */
-  for (int ix = 0; ix < NPix; ix++) {
-    for (int iy = 0; iy < NPix; iy++) {
-      printf("%+e ", getValue(ix, iy));
+  for (int iRow = 0; iRow < NPix; iRow++) {
+    for (int iCol = 0; iCol < NPix; iCol++) {
+      printf("%+e ", getValue(iRow, iCol, flipRow,flipCol));
     }
     printf("\n");
   }
