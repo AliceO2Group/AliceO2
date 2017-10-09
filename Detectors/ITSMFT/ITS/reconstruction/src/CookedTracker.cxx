@@ -134,6 +134,7 @@ void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
       if (add) {
 	lb[nLabels] = lab;
 	mx[nLabels] = 1;
+        nLabels++;
       }
     }
   }
