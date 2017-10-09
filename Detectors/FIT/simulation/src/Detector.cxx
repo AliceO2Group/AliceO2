@@ -285,6 +285,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     }
     return kTRUE;
   }
+  return kFALSE;
 }
 
 HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
@@ -294,6 +295,8 @@ HitType* Detector::AddHit(float x, float y, float z, float time, float energy, I
   Int_t size = clref.GetEntriesFast();
 
   HitType* hit = new (clref[size]) HitType(x, y, z, time, energy, trackId, detId);
+
+  return hit;
 }
 
 void Detector::Register() { FairRootManager::Instance()->Register("FITHit", "FIT", mHitCollection, kTRUE); }
@@ -362,35 +365,35 @@ void Detector::DefineOpticalProperties()
     // Error reading file
     return;
   }
-  Int_t nBins = photonEnergyD.size();
+  Int_t nBins = mPhotonEnergyD.size();
   // set QE
-  mPMTeff = new TGraph(nBins, &(photonEnergyD[0]), &(quantumEfficiency[0]));
+  mPMTeff = new TGraph(nBins, &(mPhotonEnergyD[0]), &(mQuantumEfficiency[0]));
 
   // Prepare pointers for arrays with constant and hardcoded values (independent on wavelength)
   FillOtherOptProperties();
 
   // Quick conversion from vector<Double_t> to Double_t*: photonEnergyD -> &(photonEnergyD[0])
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlass), nBins, &(photonEnergyD[0]), &(absorptionLength[0]), &(efficAll[0]), &(refractionIndex[0]));
+  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlass), nBins, &(mPhotonEnergyD[0]), &(mAbsorptionLength[0]), &(mEfficAll[0]), &(mRefractionIndex[0]));
   // TVirtualMC::GetMC()->SetCerenkov (getMediumID(kOpGlassCathode), kNbins, aPckov, aAbsSiO2, effCathode, rindexSiO2);
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlassCathode), nBins, &(photonEnergyD[0]), &(absorptionLength[0]), &(efficAll[0]), &(refractionIndex[0]));
+  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlassCathode), nBins, &(mPhotonEnergyD[0]), &(mAbsorptionLength[0]), &(mEfficAll[0]), &(mRefractionIndex[0]));
 
   // Define a border for radiator optical properties
   TVirtualMC::GetMC()->DefineOpSurface("surfRd", kUnified /*kGlisur*/, kDielectric_metal, kPolished, 0.);
-  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "EFFICIENCY", nBins, &(photonEnergyD[0]), &(efficMet[0]));
-  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "REFLECTIVITY", nBins, &(photonEnergyD[0]), &(aReflMet[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficMet[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflMet[0]));
 }
 
 void Detector::FillOtherOptProperties()
 {
   // Set constant values to the other arrays
-  for (Int_t i = 0; i < photonEnergyD.size(); i++) {
-    efficAll.push_back(1.);
-    rindexAir.push_back(1.);
-    absorAir.push_back(0.3);
-    rindexCathodeNext.push_back(0.);
-    absorbCathodeNext.push_back(0.);
-    efficMet.push_back(0.);
-    aReflMet.push_back(1.);
+  for (Int_t i = 0; i < mPhotonEnergyD.size(); i++) {
+    mEfficAll.push_back(1.);
+    mRindexAir.push_back(1.);
+    mAbsorAir.push_back(0.3);
+    mRindexCathodeNext.push_back(0.);
+    mAbsorbCathodeNext.push_back(0.);
+    mEfficMet.push_back(0.);
+    mReflMet.push_back(1.);
   }
 }
 
@@ -453,19 +456,19 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
     Double_t energy;
     ssLine >> energy;
     energy *= 1e-9;                                        // Convert eV -> GeV immediately
-    photonEnergyD.push_back(energy);
+    mPhotonEnergyD.push_back(energy);
     // Second column:
     Double_t absorption;
     ssLine >> absorption;
-    absorptionLength.push_back(absorption);
+    mAbsorptionLength.push_back(absorption);
     // Third column:
     Double_t refraction;
     ssLine >> refraction;
-    refractionIndex.push_back(refraction);
+    mRefractionIndex.push_back(refraction);
     // Fourth column:
     Double_t efficiency;
     ssLine >> efficiency;
-    quantumEfficiency.push_back(efficiency);
+    mQuantumEfficiency.push_back(efficiency);
     if (!(ssLine.good() || ssLine.eof())) { // check if there were problems with numbers conversion
       //    AliFatal(Form("Error while reading line %i: %s", iLine, ssLine.str().c_str()));
       return -6;
@@ -473,7 +476,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
     getline(infile, sLine);
     iLine++;
   }
-  if (iLine != photonEnergyD.size()) {
+  if (iLine != mPhotonEnergyD.size()) {
     //    AliFatal(Form("Total number of lines %i is different than declared %i. Check input file: %s", iLine, kNbins,
     //    filePath.c_str()));
     return -7;

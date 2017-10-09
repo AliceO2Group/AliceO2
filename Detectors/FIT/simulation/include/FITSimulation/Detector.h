@@ -103,19 +103,19 @@ class Detector : public o2::Base::Detector
   TGraph* mPMTeff; // pmt registration effeicincy
 
   // Optical properties to be extracted from file
-  std::vector<Double_t> photonEnergyD;
-  std::vector<Double_t> absorptionLength;
-  std::vector<Double_t> refractionIndex;
-  std::vector<Double_t> quantumEfficiency;
+  std::vector<Double_t> mPhotonEnergyD;
+  std::vector<Double_t> mAbsorptionLength;
+  std::vector<Double_t> mRefractionIndex;
+  std::vector<Double_t> mQuantumEfficiency;
 
   // Optical properties to be set to constants
-  std::vector<Double_t> efficAll;
-  std::vector<Float_t> rindexAir;
-  std::vector<Float_t> absorAir;
-  std::vector<Float_t> rindexCathodeNext;
-  std::vector<Float_t> absorbCathodeNext;
-  std::vector<Double_t> efficMet;
-  std::vector<Double_t> aReflMet;
+  std::vector<Double_t> mEfficAll;
+  std::vector<Float_t> mRindexAir;
+  std::vector<Float_t> mAbsorAir;
+  std::vector<Float_t> mRindexCathodeNext;
+  std::vector<Float_t> mAbsorbCathodeNext;
+  std::vector<Double_t> mEfficMet;
+  std::vector<Double_t> mReflMet;
 
   /// Container for data points
   TClonesArray* mHitCollection;
