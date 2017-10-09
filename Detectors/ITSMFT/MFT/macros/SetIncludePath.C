@@ -1,4 +1,4 @@
-void SetIncludePath_mft()
+void SetIncludePath()
 {
  TString dir = getenv("VMCWORKDIR");
  if (!dir.IsWhitespace()){

@@ -1,5 +1,5 @@
 /// \file CheckDigits.C
-/// \brief Simple macro to check ITSU digits
+/// \brief Simple macro to check MFT digits
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
@@ -21,7 +21,7 @@
 
 using namespace o2::Base;
 
-void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3") 
+void CheckDigits(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3") 
 {
 
   using o2::ITSMFT::SegmentationPixel;

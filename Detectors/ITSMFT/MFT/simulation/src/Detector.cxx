@@ -14,6 +14,7 @@
 /// \date 01/08/2016
 
 #include "ITSMFTSimulation/Hit.h"
+#include "ITSMFTBase/SegmentationPixel.h"
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -99,6 +100,39 @@ Detector::~Detector()
 //_____________________________________________________________________________
 void Detector::Initialize()
 {
+
+  // pALPIDE3 15x30 mm^2  (X,Z) with 26.88 x 29.24 micron pitch
+  // define constants
+  const Double_t kSensThick     = 18e-4;
+  const Double_t kPitchZ        = 29.24e-4;
+  const Double_t kPitchX        = 26.88e-4;
+  const Int_t    kNRow          = 512;
+  const Int_t    kNCol          = 1024;
+  const Double_t kSiThickIB     = 50e-4;
+  const Double_t kSiThickOB     = 50e-4;
+  const Double_t kReadOutEdge   = 0.12;   // width of the readout edge (passive bottom)
+  const Double_t kTopEdge       = 37.44e-4;   // dead area on top
+  const Double_t kLeftRightEdge = 29.12e-4; // width of passive area on left/right of the sensor
+
+  // create segmentations
+  o2::ITSMFT::SegmentationPixel* seg0 = new o2::ITSMFT::SegmentationPixel(
+    0,              // segID (0:9)
+    1,              // chips per module
+    kNCol,          // ncols (total for module)
+    kNRow,          // nrows
+    kPitchX,        // default row pitch in cm
+    kPitchZ,        // default col pitch in cm
+    kSensThick,     // sensor thickness in cm
+    -1,             // no special left col between chips
+    -1,             // no special right col between chips
+    kLeftRightEdge, // left
+    kLeftRightEdge, // right
+    kTopEdge,       // top
+    kReadOutEdge    // bottom
+  );                // see SegmentationPixel.h for extra options
+  seg0->Store(o2::MFT::GeometryTGeo::getMFTSegmentationFileName());
+  LOG(INFO) << "Print the pixel segmentation: " << FairLogger::endl;
+  seg0->Print();
 
   mGeometryTGeo = GeometryTGeo::Instance();
 
@@ -195,7 +229,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 }
 
 //_____________________________________________________________________________
-Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
+Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, Double_t startE, Double_t endTime, Double_t eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
   TClonesArray &clref = *mHits;
