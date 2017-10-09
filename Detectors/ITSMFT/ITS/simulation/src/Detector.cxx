@@ -476,8 +476,9 @@ void Detector::setParameterContainers()
 
 Bool_t Detector::ProcessHits(FairVolume *vol)
 {
+  auto vmc = TVirtualMC::GetMC();
   // This method is called from the MC stepping
-  if (!(TVirtualMC::GetMC()->TrackCharge())) {
+  if (!(vmc->TrackCharge())) {
     return kFALSE;
   }
 
@@ -491,17 +492,17 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
   if (notSens) return kFALSE; //RS: can this happen? This method must be called for sensors only?
   
   // FIXME: Is it needed to keep a track reference when the outer ITS volume is encountered?
-  // if(TVirtualMC::GetMC()->IsTrackExiting()) {
+  // if(vmc->IsTrackExiting()) {
   //  AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kITS);
   // } // if Outer ITS mother Volume
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Hit::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Hit::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Hit::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Hit::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Hit::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Hit::kTrackAlive; }
+  if (vmc->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (vmc->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (vmc->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (vmc->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (vmc->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (vmc->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
   if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
@@ -512,32 +513,32 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit) mTrackData.mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  if (!startHit) mTrackData.mEnergyLoss += vmc->Edep();
   if (!(startHit|stopHit)) return kFALSE; // do noting
 
   if (startHit) {
     mTrackData.mEnergyLoss = 0.;
-    TVirtualMC::GetMC()->TrackMomentum(mTrackData.mMomentumStart);
-    TVirtualMC::GetMC()->TrackPosition(mTrackData.mPositionStart);
+    vmc->TrackMomentum(mTrackData.mMomentumStart);
+    vmc->TrackPosition(mTrackData.mPositionStart);
     mTrackData.mTrkStatusStart = status;
     mTrackData.mHitStarted = true;
   }
   if (stopHit) {
     TLorentzVector positionStop;
-    TVirtualMC::GetMC()->TrackPosition(positionStop);
+    vmc->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
     int stave(0), halfstave(0), chipinmodule(0), module;
-    TVirtualMC::GetMC()->CurrentVolOffID(1, chipinmodule);
-    TVirtualMC::GetMC()->CurrentVolOffID(2, module);
-    TVirtualMC::GetMC()->CurrentVolOffID(3, halfstave);
-    TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
+    vmc->CurrentVolOffID(1, chipinmodule);
+    vmc->CurrentVolOffID(2, module);
+    vmc->CurrentVolOffID(3, halfstave);
+    vmc->CurrentVolOffID(4, stave);
     int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
     
-    Hit *p = addHit(TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber(), chipindex,
+    Hit *p = addHit(vmc->GetStack()->GetCurrentTrackNumber(), chipindex,
 		      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
 		      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
 		      mTrackData.mTrkStatusStart,status);
-    //p->SetTotalEnergy(TVirtualMC::GetMC()->Etot());
+    //p->SetTotalEnergy(vmc->Etot());
 
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle
