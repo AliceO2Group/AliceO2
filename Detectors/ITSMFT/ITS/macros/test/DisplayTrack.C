@@ -17,6 +17,7 @@
   #include <TMath.h>
   #include <TString.h>
 
+  #include "SimulationDataFormat/MCCompLabel.h"
   #include "ITSMFTSimulation/Hit.h"
   #include "DetectorsBase/Utils.h"
   #include "MathUtils/Cartesian3D.h"
@@ -116,7 +117,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kMagenta);
   
-  TClonesArray clusArr("o2::ITS::Cluster"), *pclusArr(&clusArr);
+  TClonesArray clusArr("o2::ITSMFT::Cluster"), *pclusArr(&clusArr);
   tree->SetBranchAddress("ITSCluster",&pclusArr);
 
   tree->GetEvent(event);
@@ -128,7 +129,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   while(nc--) {
       Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(nc));
       auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
-      if (c->getLabel(0) == track) {
+      if (c->getLabel(0).getTrackID() == track) {
          points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
          n++;
       }      
@@ -156,7 +157,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   Int_t nt=trkArr.GetEntriesFast(); n=0;
   while(nt--) {
       CookedTrack *t=static_cast<CookedTrack *>(trkArr.UncheckedAt(nt));
-      if (t->getLabel() != track) continue;
+      if (TMath::Abs(t->getLabel().getTrackID()) != track) continue;
       Int_t nc=t->getNumberOfClusters();
       while (n<nc) {
 	Int_t idx=t->getClusterIndex(n);
@@ -164,13 +165,13 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
 	auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
         points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
         n++;
-      }      
+      }
       break;
   } 
   cout<<"Number of attached clusters: "<<n<<endl;
 
   gEve->AddElement(points,0);
   f->Close();
-  
+
 }
 

@@ -14,6 +14,7 @@
   #include <TString.h>
 
   #include "SimulationDataFormat/MCTrack.h"
+  #include "SimulationDataFormat/MCCompLabel.h"
   #include "ITSMFTReconstruction/Cluster.h"
   #include "ITSReconstruction/CookedTrack.h"
 #endif
@@ -72,7 +73,8 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       
       for (Int_t i=0; i<nrec; i++) {
          CookedTrack *recTrack = (CookedTrack *)recArr.UncheckedAt(i);
-	 Int_t lab = recTrack->getLabel();
+	 o2::MCCompLabel mclab = recTrack->getLabel();
+	 Int_t lab = mclab.getTrackID();
 	 if (TMath::Abs(lab) != nmc) continue;
 	 std::array<float,3> p;
 	 recTrack->getPxPyPz(p);
