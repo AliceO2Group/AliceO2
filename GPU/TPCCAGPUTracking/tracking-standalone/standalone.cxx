@@ -359,7 +359,7 @@ int main(int argc, char** argv)
 				int tmpRetVal = hlt.ProcessEvent(configStandalone.forceSlice);
 				int nTracks = 0, nClusters = 0;
 				for (int k = 0;k < hlt.Merger().NOutputTracks();k++) if (hlt.Merger().OutputTracks()[k].OK()) nTracks++;
-				for (int k = 0;k < 36;k++) nClusters += hlt.ClusterData(i).NumberOfClusters();
+				for (int k = 0;k < 36;k++) nClusters += hlt.ClusterData(k).NumberOfClusters();
 				printf("Output Tracks: %d\n", nTracks);
 				if (j == 0)
 				{
