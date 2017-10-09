@@ -23,7 +23,7 @@
 using namespace o2::Base;
 using o2::ITSMFT::Cluster;
 
-void CheckClusters(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3") 
+void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3") 
 {
 
   using o2::ITSMFT::Hit;
