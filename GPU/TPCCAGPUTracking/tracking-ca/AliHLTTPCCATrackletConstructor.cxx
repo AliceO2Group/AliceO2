@@ -95,11 +95,9 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 
   if ( !SAVE() ) return;
 
-/*#ifndef HLTCA_GPUCODE
-  printf("Tracklet %d: Hits %3d NDF %3d Chi %8.4f Sign %f Cov: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f\n", r.fItr, r.fNHits, tParam.GetNDF(), tParam.GetChi2(), tParam.GetSignCosPhi(),
+/*printf("Tracklet %d: Hits %3d NDF %3d Chi %8.4f Sign %f Cov: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f\n", r.fItr, r.fNHits, tParam.GetNDF(), tParam.GetChi2(), tParam.GetSignCosPhi(),
 	  tParam.Cov()[0], tParam.Cov()[1], tParam.Cov()[2], tParam.Cov()[3], tParam.Cov()[4], tParam.Cov()[5], tParam.Cov()[6], tParam.Cov()[7], tParam.Cov()[8], tParam.Cov()[9], 
-	  tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);
-#endif*/
+	  tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);*/
 
   GPUglobalref() MEM_GLOBAL(AliHLTTPCCATracklet) &tracklet = tracker.Tracklets()[r.fItr];
 
@@ -170,28 +168,10 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         float err2Y, err2Z;
         float dx = x - tParam.X();
         float dy, dz;
-        //I am not sure if this SinPhi check is ideal. We have followed the track for some time now, and something went wrong already, so we could also break.
-        //But perhaps we can recover it by following it further. Should not happen too often anyway
-        //Also, in principle, the hits that screwed up SinPhi should have been skipped in the first place.
-        if (r.fNHits >= 10 && CAMath::Abs( tParam.SinPhi() ) < .99)
+        if (r.fNHits >= 10)
         {
             dy = y - tParam.Y();
             dz = z - tParam.Z();
-            tracker.GetErrors2( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
-            const float kFactor = tracker.Param().HitPickUpFactor() * tracker.Param().HitPickUpFactor() * 3.5 * 3.5;
-            float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
-            float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
-            if ( sy2 > 2. ) sy2 = 2.;
-            if ( sz2 > 2. ) sz2 = 2.;
-            if (dy * dy > sy2 || dz * dz > sz2)
-            {
-                if (++r.fNMissed >= TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED)
-                {
-                    r.fCurrIH = -1;
-                }
-                SETRowHit(iRow, -1);
-                break;
-            }
         }
         else
         {
@@ -213,7 +193,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           tParam.SetCov( 2, err2Z );
         }
         float sinPhi, cosPhi;
-        if ( r.fNHits >= 10 && CAMath::Abs( tParam.SinPhi() ) < .99 ) {
+        if (r.fNHits >= 10 && CAMath::Abs( tParam.SinPhi() ) < .99 ) {
           sinPhi = tParam.SinPhi();
           cosPhi = CAMath::Sqrt( 1 - sinPhi * sinPhi );
         } else {
@@ -225,6 +205,26 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           break;
         }
         tracker.GetErrors2( iRow, tracker.Param().GetContinuousTracking() ? 125. : tParam.GetZ(), sinPhi, cosPhi, tParam.GetDzDs(), err2Y, err2Z );
+
+        if (r.fNHits >= 10)
+        {
+          const float kFactor = tracker.Param().HitPickUpFactor() * tracker.Param().HitPickUpFactor() * 3.5 * 3.5;
+          float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
+          float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
+          if ( sy2 > 2. ) sy2 = 2.;
+          if ( sz2 > 2. ) sz2 = 2.;
+          dy = y - tParam.Y();
+          dz = z - tParam.Z();
+          if (dy * dy > sy2 || dz * dz > sz2)
+          {
+            if (++r.fNMissed >= TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED)
+            {
+              r.fCurrIH = -1;
+            }
+            SETRowHit(iRow, -1);
+            break;
+          }
+        }
 
         if ( !tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
           SETRowHit(iRow, -1);
@@ -329,13 +329,11 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;
       
-      if (!(r.fStage == 2 && iRow >= r.fStartRow && GETRowHit(iRow) == best))
-      {
-        if (!tParam.Filter( y, z, err2Y, err2Z, .99)) break;
-      }
+      int oldHit = (r.fStage == 2 && iRow >= r.fStartRow) ? GETRowHit(iRow) : -1;
+      if (oldHit != best && !tParam.Filter( y, z, err2Y, err2Z, .99, oldHit != -1)) break;
       SETRowHit(iRow, best);
-      r.fNMissed = 0;
       r.fNHits++;
+      r.fNMissed = 0;
       if ( r.fStage == 1 ) r.fLastRow = iRow;
       else r.fFirstRow = iRow;
     } while ( 0 );
@@ -361,6 +359,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTA
 	}
 	r.fStage = 0;
 	r.fNHits = 0;
+	//if (tracker.Param().ISlice() != 35 && tracker.Param().ISlice() != 34 || r.fItr == -1) {StoreTracklet( 0, 0, 0, 0, s, r, tracker, tParam );return;}
 
 	for (int k = 0;k < 2;k++)
 	{
@@ -384,13 +383,8 @@ GPUdi() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTA
 		else
 		{
 			r.fNMissed = 0;
-			if (r.fNHits >= 10)
-			{
-				r.fGo = 1;
-				if (!tParam.TransportToX( tracker.Row( r.fEndRow ).X(), tracker.Param().ConstBz(), .999)) r.fGo = 0;
-				tParam.SetY(r.fLastY);
-				tParam.SetZ(r.fLastZ);
-			}
+			r.fGo = 1;
+			if (!(tParam.TransportToX( tracker.Row( r.fEndRow ).X(), tracker.Param().ConstBz(), .999) && tParam.Filter( r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., .99, true))) r.fGo = 0;
 			r.fNHits -= r.fNHitsEndRow;
 			r.fStage = 2;
 			iRow = r.fEndRow;

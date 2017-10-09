@@ -131,7 +131,7 @@ class AliHLTTPCCATrackLinearisation;
 
     GPUd() bool Rotate( float alpha, float maxSinPhi = .999 );
     GPUd() bool Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi = .999 );
-    GPUd() bool Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi = .999 );
+    GPUd() bool Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi = .999, bool paramOnly = false );
 
     GPUd() bool CheckNumericalQuality() const;
 

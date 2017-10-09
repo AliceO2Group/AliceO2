@@ -174,7 +174,7 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   SetPar(0, Y() + dy     + h2 * d[2]           +   h4 * d[4]);
   SetPar(1, Z() + dz               + dS * d[3]);
   SetPar(2, t0.SinPhi() +     d[2]           + dxBz * d[4]);
-
+  
   float c00 = fC[0];
   float c10 = fC[1];
   float c11 = fC[2];
@@ -191,11 +191,11 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   float c43 = fC[13];
   float c44 = fC[14];
 
-  fC[0] = ( c00  + h2 * h2 * c22 + h4 * h4 * c44
-            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 )  );
+  fC[0] = AliHLTTPCCAMath::Max( c00, c00  + h2 * h2 * c22 + h4 * h4 * c44
+            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 ) );
 
   fC[1] = c10 + h2 * c21 + h4 * c41 + dS * ( c30 + h2 * c32 + h4 * c43 );
-  fC[2] = c11 + 2 * dS * c31 + dS * dS * c33;
+  fC[2] = AliHLTTPCCAMath::Max( c11, c11 + 2 * dS * c31 + dS * dS * c33 );
 
   fC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * ( c40 + h2 * c42 + h4 * c44 );
   fC[4] = c21 + dS * c32 + dxBz * ( c41 + dS * c43 );
@@ -211,7 +211,7 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   fC[12] = c42 + dxBz * c44;
   fC[13] = c43;
   fC[14] = c44;
-
+  
   return 1;
 }
 
@@ -251,7 +251,6 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   SetPar(1, GetPar(1) + dS * DzDs());
   SetPar(2, sinPhi);
 
-
   float c00 = fC[0];
   float c10 = fC[1];
   float c11 = fC[2];
@@ -268,12 +267,11 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   float c43 = fC[13];
   float c44 = fC[14];
 
-
-  fC[0] = ( c00  + h2 * h2 * c22 + h4 * h4 * c44
-            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 )  );
+  fC[0] = AliHLTTPCCAMath::Max( c00, c00  + h2 * h2 * c22 + h4 * h4 * c44
+            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 ) );
 
   fC[1] = c10 + h2 * c21 + h4 * c41 + dS * ( c30 + h2 * c32 + h4 * c43 );
-  fC[2] = c11 + 2 * dS * c31 + dS * dS * c33;
+  fC[2] = AliHLTTPCCAMath::Max(c11, c11 + 2 * dS * c31 + dS * dS * c33);
 
   fC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * ( c40 + h2 * c42 + h4 * c44 );
   fC[4] = c21 + dS * c32 + dxBz * ( c41 + dS * c43 );
@@ -289,7 +287,7 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   fC[12] = c42 + dxBz * c44;
   fC[13] = c43;
   fC[14] = c44;
-
+  
   return 1;
 }
 
@@ -623,7 +621,7 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::Rotate( float alpha,
   return 1;
 }
 
-MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi )
+MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi, bool paramOnly )
 {
   //* Add the y,z measurement with the Kalman filter
 
@@ -661,14 +659,15 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::Filter( float y, flo
 
   if ( maxSinPhi > 0 && CAMath::Abs( sinPhi ) >= maxSinPhi ) return 0;
 
-  fNDF  += 2;
-  fChi2 += mS0 * z0 * z0 + mS2 * z1 * z1 ;
-
   SetPar(0, GetPar(0) + k00 * z0);
   SetPar(1, GetPar(1) + k11 * z1);
   SetPar(2, sinPhi);
   SetPar(3, GetPar(3) + k31 * z1);
   SetPar(4, GetPar(4) + k40 * z0);
+  if (paramOnly) return true;
+
+  fNDF  += 2;
+  fChi2 += mS0 * z0 * z0 + mS2 * z1 * z1 ;
 
   fC[ 0] -= k00 * c00 ;
   fC[ 3] -= k20 * c00 ;
@@ -731,4 +730,3 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCATrackParam)::Print() const
   std::cout << "errs2: " << GetErr2Y() << " " << GetErr2Z() << " " << GetErr2SinPhi() << " " << GetErr2DzDs() << " " << GetErr2QPt() << std::endl;
 #endif
 }
-
