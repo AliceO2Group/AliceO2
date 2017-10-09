@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TClonesArray.h"
 #include "TGeoManager.h" // for TGeoManager
 #include "TLorentzVector.h"
 #include "TMath.h"
@@ -32,7 +31,7 @@ Detector::Detector(Bool_t active)
   : o2::Base::Detector("TOF", active),
     mEventNr(0),
     mTOFHoles(kTRUE),
-    mHitCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<HitType>().c_str())),
+    mHits(new std::vector<HitType>),
     mMCTrackBranchId(-1)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
@@ -76,34 +75,25 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 HitType* Detector::addHit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId)
 {
-  TClonesArray& clref = *mHitCollection;
-
-  Int_t size = clref.GetEntriesFast();
-
-  HitType* hit = new (clref[size]) HitType(x, y, z, time, energy, trackId, detId);
-
-  if (mMCTrackBranchId > -1)
-    hit->SetLink(FairLink(-1, mEventNr, mMCTrackBranchId, trackId));
-
-  return hit;
+  mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  return &mHits->back();
 }
 
 void Detector::Register()
 {
   auto* mgr = FairRootManager::Instance();
-  mgr->Register(addNameTo("Hit").data(), GetName(), mHitCollection, kTRUE);
+  mgr->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
 
   mMCTrackBranchId = mgr->GetBranchId("MCTrack");
 }
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
-  if (iColl > 0)
-    return nullptr;
-  return mHitCollection;
+  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
+  return nullptr;
 }
 
-void Detector::Reset() { mHitCollection->Clear(); }
+void Detector::Reset() { mHits->clear(); }
 void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;
