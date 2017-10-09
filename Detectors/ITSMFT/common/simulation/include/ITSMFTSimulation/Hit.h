@@ -52,7 +52,7 @@ class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
     /// \param eLoss Energy deposit [GeV]
     /// \param startStatus: status at entrance
     /// \param endStatus: status at exit
-    inline Hit(int trackID, unsigned short detID, TVector3 startPos, TVector3 pos, TVector3 mom, double startE,
+    inline Hit(int trackID, unsigned short detID, const TVector3& startPos, const TVector3& pos, const TVector3& mom, double startE,
 		 double endTime, double eLoss,unsigned char statusStart, unsigned char status);
 
 
@@ -110,16 +110,16 @@ class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
     void SetSrcEvID(int srcID, int evID) {
       /// RS: ATTENTION! this is just a trick until we clarify how the hits from different source are
       // provided and identified. At the moment we just create a combined identifier from eventID
-      // and sourceID and store it TEMPORARILY in the cached Point's TObject UniqueID
-      SetUniqueID( ( srcID << Label::nbitsEvID ) | evID);
+      // and sourceID
+      mLabel = ( srcID << Label::nbitsEvID ) | evID;
     }
 
     Label getCombLabel() const {
       /// RS: ATTENTION! this is just a trick until we clarify how the hits from different source are
       // provided and identified. At the moment we just create on the fly the label from the track ID
-      // and SrcEv id stored as UniqueID
-      int srcID = ( GetUniqueID()>>Label::nbitsEvID ) & Label::maskSrcID;
-      int evID = GetUniqueID() & Label::maskEvID;
+      // and SrcEv id stored as mLabel
+      int srcID = ( mLabel>>Label::nbitsEvID ) & Label::maskSrcID;
+      int evID = mLabel & Label::maskEvID;
       return Label( GetTrackID(), evID, srcID );
     }
     
@@ -130,13 +130,14 @@ class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
     Vector3D<Float_t> mMomentum;              ///< momentum at entrance
     Point3D<Float_t> mPosStart;               ///< position at entrance (base mPos give position on exit)
     Float_t mE;                               ///< total energy at entrance
+    UInt_t  mLabel;                           ///< member to store a composed MC label
     UChar_t mTrackStatusEnd;                  ///< MC status flag at exit
     UChar_t mTrackStatusStart;                ///< MC status at starting point
 
   ClassDefOverride(Hit, 3)
 };
 
-Hit::Hit(int trackID, unsigned short detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
+Hit::Hit(int trackID, unsigned short detID, const TVector3& startPos, const TVector3& endPos, const TVector3& startMom,
              double startE,double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
   : BasicXYZEHit(endPos.X(),endPos.Y(),endPos.Z(),endTime,eLoss,trackID,detID),
     mMomentum(startMom.Px(),startMom.Py(),startMom.Pz()),
