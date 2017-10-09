@@ -88,8 +88,7 @@ Detector::Detector()
     mDetectorThickness(nullptr),
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
-    mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
-    
+    mHits(new std::vector<o2::ITSMFT::Hit>),
     mMisalignmentParameter(nullptr),
     mGeometry(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
@@ -238,7 +237,7 @@ Detector::Detector(Bool_t active)
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
 
-    mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
+    mHits(new std::vector<o2::ITSMFT::Hit>),
     mMisalignmentParameter(nullptr),
     
     mGeometry(nullptr),
@@ -326,9 +325,8 @@ Detector::Detector(const Detector &rhs)
     mDetectorThickness(nullptr),
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
-
-  /// Container for data points
-    mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
+    /// Container for data points
+    mHits(new std::vector<o2::ITSMFT::Hit>),
     mMisalignmentParameter(nullptr),
 
     mGeometry(rhs.mGeometry),
@@ -362,9 +360,8 @@ Detector::~Detector()
   delete[] mWrapperZSpan;
   delete[] mWrapperLayerId;
 
-  if (mHitCollection) {
-    mHitCollection->Delete();
-    delete mHitCollection;
+  if (mHits) {
+    delete mHits;
   }
 
   delete[] mLayerID;
@@ -416,7 +413,7 @@ Detector &Detector::operator=(const Detector &rhs)
   mBuildLevel = nullptr;
 
   /// Container for data points
-  mHitCollection = nullptr;
+  mHits = nullptr;
 
   mMisalignmentParameter = nullptr;
 
@@ -725,7 +722,7 @@ void Detector::createMaterials()
 
 void Detector::EndOfEvent()
 {
-  if (mHitCollection) { mHitCollection->Clear(); }
+  Reset();
 }
 
 void Detector::Register()
@@ -734,22 +731,21 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  FairGenericRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mHitCollection, kTRUE);
-
+  // FIXME: fix MT interface
+  if (FairGenericRootManager::Instance()) {
+    FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  }
 }
 
 TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
-  if (iColl == 0) {
-    return mHitCollection;
-  } else {
-    return nullptr;
-  }
+  LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
+  return nullptr;
 }
 
 void Detector::Reset()
 {
-  mHitCollection->Clear();
+  mHits->clear();
 }
 
 void Detector::setNumberOfWrapperVolumes(Int_t n)
@@ -1149,12 +1145,11 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
-Hit *Detector::addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE,
+Hit *Detector::addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos, const TVector3& startMom, double startE,
 			double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
-  TClonesArray &clref = *mHitCollection;
-  Int_t size = clref.GetEntriesFast();
-  return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  return &(mHits->back());
 }
 
 TParticle *Detector::GetParticle() const

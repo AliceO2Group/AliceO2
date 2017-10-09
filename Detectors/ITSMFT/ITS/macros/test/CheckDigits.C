@@ -15,6 +15,7 @@
   #include "ITSMFTBase/Digit.h"
   #include "ITSMFTSimulation/Hit.h"
   #include "ITSBase/GeometryTGeo.h"
+  #include <vector>
 #endif
 
 using namespace o2::Base;
@@ -44,8 +45,8 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *hitTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray hitArr("o2::ITSMFT::Hit"), *phitArr(&hitArr);
-  hitTree->SetBranchAddress("ITSHit",&phitArr);
+  std::vector<o2::ITSMFT::Hit> *hitArray = nullptr;
+  hitTree->SetBranchAddress("ITSHit", &hitArray);
 
   // Digits
   sprintf(filename, "AliceO2_%s.digi_%i_event.root", mcEngine.Data(), nEvents);
@@ -83,14 +84,12 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 	  hitTree->GetEvent(ievH);
 	  lastReadHitEv = ievH;
 	}
-	Int_t nh=hitArr.GetEntriesFast();
 
-	for (Int_t i=0; i<nh; i++) {
-	  Hit *p=(Hit *)hitArr.UncheckedAt(i);
-	  if (p->GetDetectorID() != chipID) continue; 
-	  if (p->GetTrackID() != trID) continue;
-	  auto locH    = gman->getMatrixL2G(chipID)^( p->GetPos() );  // inverse conversion from global to local
-	  auto locHsta = gman->getMatrixL2G(chipID)^( p->GetPosStart() );
+	for (auto& p : *hitArray) {
+	  if (p.GetDetectorID() != chipID) continue; 
+	  if (p.GetTrackID() != trID) continue;
+	  auto locH    = gman->getMatrixL2G(chipID)^( p.GetPos() );  // inverse conversion from global to local
+	  auto locHsta = gman->getMatrixL2G(chipID)^( p.GetPosStart() );
 	  locH.SetXYZ( 0.5*(locH.X()+locHsta.X()),0.5*(locH.Y()+locHsta.Y()),0.5*(locH.Z()+locHsta.Z()) );
 	  int row,col;
 	  float xlc,zlc;

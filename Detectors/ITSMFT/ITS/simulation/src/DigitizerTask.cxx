@@ -17,6 +17,7 @@
 //
 
 #include "ITSSimulation/DigitizerTask.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "DetectorsBase/Utils.h"
 #include "ITSBase/GeometryTGeo.h"
 
@@ -58,7 +59,7 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mHitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSHit"));
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("ITSHit");
   if (!mHitsArray) {
     LOG(ERROR) << "ITS hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -102,7 +103,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setCurrSrcID( mSourceID );
   mDigitizer.setCurrEvID( mEventID );
   
-  mDigitizer.process(mHitsArray,mDigitsArray);
+  mDigitizer.process(const_cast<std::vector<o2::ITSMFT::Hit>*>(mHitsArray),mDigitsArray);
 
   mEventID++;
 }

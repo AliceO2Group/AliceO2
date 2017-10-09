@@ -22,15 +22,14 @@
 #include <map>
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for Bool_t, HitAnalysis::Class, ClassDef, etc
+#include "ITSMFTSimulation/Hit.h"
+#include <vector>
 
-class TClonesArray;  // lines 17-17
 class TH1;  // lines 16-16
 namespace o2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
 
 
 class TH1;
-
-class TClonesArray;
 
 namespace o2 {
 namespace ITSMFT {
@@ -69,7 +68,7 @@ class HitAnalysis : public FairTask
     Bool_t mIsInitialized;       ///< Check whether task is initialized
     Bool_t mProcessChips;        ///< Process chips or hits
     std::map<int, o2::ITSMFT::Chip *> mChips; ///< lookup map for ITS chips
-    TClonesArray *mHitsArray;        ///< Array with ITS space points, filled by the FairRootManager
+    const std::vector<o2::ITSMFT::Hit>* mHits;     ///< Array with ITS hits, filled by the FairRootManager
     const GeometryTGeo *mGeometry;           ///<  geometry
     TH1 *mLineSegment;        ///< Histogram for line segment
     TH1 *mLocalX0;            ///< Histogram for Starting X position in local coordinates

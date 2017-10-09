@@ -16,6 +16,7 @@
   #include <TClonesArray.h>
   #include <TMath.h>
   #include <TString.h>
+  #include <vector>
 
   #include "SimulationDataFormat/MCCompLabel.h"
   #include "ITSMFTSimulation/Hit.h"
@@ -88,19 +89,19 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   TEvePointSet* points = new TEvePointSet(s.data());
   points->SetMarkerColor(kBlue);
 
-  TClonesArray pntArr("o2::ITSMFT::Hit"), *ppntArr(&pntArr);
-  tree->SetBranchAddress("ITSHit",&ppntArr);
+  std::vector<o2::ITSMFT::Hit>* hitArr = nullptr;
+  tree->SetBranchAddress("ITSHit", &hitArr);
 
   tree->GetEvent(event);
 
-  Int_t nc=pntArr.GetEntriesFast(), n=0;
+  Int_t nc=hitArr->size(), n=0;
   while(nc--) {
-      Hit *c=static_cast<Hit *>(pntArr.UncheckedAt(nc));
-      if (c->GetTrackID() == track) {
-         points->SetNextPoint(c->GetX(),c->GetY(),c->GetZ());
-         n++;
-      }      
-  } 
+    Hit& c=(*hitArr)[nc];
+    if (c.GetTrackID() == track) {
+      points->SetNextPoint(c.GetX(),c.GetY(),c.GetZ());
+      n++;
+    }
+  }
   cout<<"Number of points: "<<n<<endl;
 
   gEve->AddElement(points,0);
