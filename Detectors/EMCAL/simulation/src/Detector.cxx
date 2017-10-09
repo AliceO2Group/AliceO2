@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <iomanip>
 
-#include "TClonesArray.h"
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
 #include "TVirtualMC.h"
@@ -40,7 +39,7 @@ Detector::Detector(Bool_t active)
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
-    mPointCollection(new TClonesArray(o2::Base::getTClArrTrueTypeName<Hit>().c_str())),
+    mHits(new std::vector<Hit>),
     mGeometry(nullptr),
     mCurrentTrackID(-1),
     mCurrentCellID(-1),
@@ -179,11 +178,8 @@ Hit* Detector::AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t ini
   LOG(DEBUG4) << "Adding hit for track " << trackID << " (mother " << parentID << ") with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z()
               << ")  with energy " << initialEnergy << " loosing " << eLoss << std::endl;
-
-  TClonesArray& refCollection = *mPointCollection;
-
-  Int_t size = refCollection.GetEntriesFast();
-  return new (refCollection[size]) Hit(primary, trackID, parentID, detID, initialEnergy, pos, mom, time, eLoss);
+  mHits->emplace_back(primary, trackID, parentID, detID, initialEnergy, pos, mom, time, eLoss);
+  return &(mHits->back());
 }
 
 Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const
@@ -211,20 +207,19 @@ Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklen
 
 void Detector::Register()
 {
-  FairRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mPointCollection, kTRUE);
+  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
 }
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
-  if (iColl == 0)
-    return mPointCollection;
+  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
   return nullptr;
 }
 
 void Detector::Reset()
 {
   LOG(DEBUG) << "Cleaning EMCAL hits ...\n";
-  mPointCollection->Clear();
+  mHits->clear();
   mCurrentTrackID = -1;
   mCurrentCellID = -1;
   mCurrentHit = nullptr;
