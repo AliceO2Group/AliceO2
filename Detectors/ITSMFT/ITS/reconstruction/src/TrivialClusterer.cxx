@@ -12,14 +12,14 @@
 /// \brief Implementation of the ITS cluster finder
 #include "MathUtils/Cartesian3D.h"
 #include "ITSMFTBase/Digit.h"
-#include "ITSMFTBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSReconstruction/TrivialClusterer.h"
 #include "ITSMFTReconstruction/Cluster.h"
 
 #include "FairLogger.h"   // for LOG
 #include "TClonesArray.h" // for TClonesArray
 
-using o2::ITSMFT::SegmentationPixel;
+using o2::ITSMFT::SegmentationAlpide;
 using o2::ITSMFT::Digit;
 using namespace o2::ITS;
 using namespace o2::ITSMFT;
@@ -31,9 +31,9 @@ TrivialClusterer::TrivialClusterer() = default;
 TrivialClusterer::~TrivialClusterer() = default;
 
 void
-TrivialClusterer::process(const SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters)
+TrivialClusterer::process(const TClonesArray* digits, TClonesArray* clusters)
 {
-  Float_t sigma2 = seg->cellSizeX() * seg->cellSizeX() / 12.;
+  Float_t sigma2 = SegmentationAlpide::PitchRow * SegmentationAlpide::PitchRow / 12.;
 
   TClonesArray& clref = *clusters;
   for (TIter digP = TIter(digits).Begin(); digP != TIter::End(); ++digP) {
@@ -41,7 +41,7 @@ TrivialClusterer::process(const SegmentationPixel *seg, const TClonesArray* digi
     Int_t ix = dig->getRow(), iz = dig->getColumn();
     Int_t lab = dig->getLabel(0);
     Float_t x = 0., y = 0., z = 0.;
-    seg->detectorToLocal(ix, iz, x, z);
+    SegmentationAlpide::detectorToLocal(ix, iz, x, z);
     Point3Df loc(x,0.f,z);
     // inverse transform from local to tracking frame
     auto tra = mGeometry->getMatrixT2L( dig->getChipIndex() )^(loc);

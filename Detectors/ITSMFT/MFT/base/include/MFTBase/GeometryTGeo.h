@@ -27,12 +27,6 @@
 #include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
 class TGeoPNEntry; 
-namespace o2 {
-namespace ITSMFT {
-  class Segmentation;
-  class SegmentationPixel;
-}
-}
 
 namespace o2
 {
@@ -51,7 +45,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 
   static GeometryTGeo* Instance() {
     // get (create if needed) a unique instance of the object
-    if (!sInstance) sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, true, 0));
+    if (!sInstance) sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
     return sInstance.get();
   }
 
@@ -63,7 +57,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   // root-persistent we must define public default constructor.
   // NEVER use it, it will throw exception if the class instance was already 
   // created. Use GeometryTGeo::Instance() instead
-  GeometryTGeo(Bool_t build = kFALSE, Bool_t loadSegm = kTRUE, Int_t loadTrans=0
+  GeometryTGeo(Bool_t build = kFALSE, Int_t loadTrans=0
                /*o2::Base::Utils::bit2Mask(o2::Base::TransformType::T2L, // default transformations to load
                                            o2::Base::TransformType::T2G,
                                            o2::Base::TransformType::L2G)*/
@@ -81,15 +75,13 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   void fillMatrixCache(Int_t mask) override;
 
   /// Exract MFT parameters from TGeo
-  void Build(bool loadSegmentations, int loadTrans=0) override;
+  void Build(int loadTrans=0) override;
 
   static const Char_t* getMFTVolPattern()       { return sVolumeName.c_str(); }
   static const Char_t* getMFTHalfPattern()      { return sHalfName.c_str(); }
   static const Char_t* getMFTDiskPattern()      { return sDiskName.c_str(); }
   static const Char_t* getMFTLadderPattern()    { return sLadderName.c_str(); }
   static const Char_t* getMFTSensorPattern()    { return sSensorName.c_str(); }
-
-  static const char* getMFTSegmentationFileName() { return sSegmentationFileName.c_str(); }
 
   /// This routine computes the sensor index (as it is used in the list of 
   /// transformations) from the detector half, disk, ladder and position 
@@ -170,8 +162,6 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static std::string sLadderName;          ///< 
   static std::string sSensorName;          ///< 
  
-  static std::string sSegmentationFileName; ///< file name for segmentations
-
   TGeoHMatrix* mTransMFT2ITS;        ///< transformation due to the different conventions
 
  private:

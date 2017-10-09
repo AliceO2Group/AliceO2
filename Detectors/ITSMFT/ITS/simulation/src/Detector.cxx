@@ -11,7 +11,7 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "ITSMFTBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
@@ -49,6 +49,7 @@ using std::cout;
 using std::endl;
 
 using o2::ITSMFT::Hit;
+using Segmentation = o2::ITSMFT::SegmentationAlpide;
 using namespace o2::ITS;
 
 Detector::Detector()
@@ -104,23 +105,14 @@ static double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 
 static void configITS(Detector *its) {
   // build ITS upgrade detector
-  // pALPIDE3 15x30 mm^2  (X,Z) with 26.88 x 29.24 micron pitch
-  const double kSensThick = 18e-4;
-  const double kPitchZ = 29.24e-4;
-  const double kPitchX = 26.88e-4;
-  const int    kNRow   = 512; 
-  const int    kNCol   = 1024;
   const double kSiThickIB = 50e-4;
   const double kSiThickOB = 50e-4;
-  //  const double kSensThick = 120e-4;   // -> sensor Si thickness
-  //
-  const double kReadOutEdge = 0.12;   // width of the readout edge (passive bottom)
-  const double kTopEdge = 37.44e-4;   // dead area on top
-  const double kLeftRightEdge   = 29.12e-4; // width of passive area on left/right of the sensor
   //
   const int kNLr = 7;
   const int kNLrInner = 3;
   const int kBuildLevel = 0;
+  const int kSensTypeID = 0; // dummy id for Alpide sensor
+
   enum { kRmn, kRmd, kRmx, kNModPerStave, kPhi0, kNStave, kNPar };
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
   const double tdr5dat[kNLr][kNPar] = {
@@ -135,28 +127,6 @@ static void configITS(Detector *its) {
   const int nChipsPerModule = 7; // For OB: how many chips in a row
   const double zChipGap = 0.01;  // For OB: gap in Z between chips
   const double zModuleGap = 0.01;// For OB: gap in Z between modules
-
-  // Delete the segmentations from previous runs
-  std::remove("itsSegmentations.root");
-
-  // create segmentations:
-  o2::ITSMFT::SegmentationPixel* seg0 = new o2::ITSMFT::SegmentationPixel(
-    0,           // segID (0:9)
-    1,           // chips per module
-    kNCol,       // ncols (total for module)
-    kNRow,       // nrows
-    kPitchX,     // default row pitch in cm
-    kPitchZ,     // default col pitch in cm
-    kSensThick,  // sensor thickness in cm
-    -1,          // no special left col between chips
-    -1,          // no special right col between chips
-    kLeftRightEdge, // left
-    kLeftRightEdge, // right
-    kTopEdge, // top
-    kReadOutEdge // bottom
-    );           // see SegmentationPixel.h for extra options
-  seg0->Store(o2::ITS::GeometryTGeo::getITSSegmentationFileName());
-  seg0->Print();
 
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
@@ -183,19 +153,18 @@ static void configITS(Detector *its) {
     nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
     if (idLr >= kNLrInner) {
-      double modlen = nChipsPerModule*seg0->Dz() + (nChipsPerModule-1)*zChipGap;
+      double modlen = nChipsPerModule*Segmentation::SensorSizeCols + (nChipsPerModule-1)*zChipGap;
       double zlen = nModPerStaveLr*modlen + (nModPerStaveLr-1)*zModuleGap;
       its->defineLayer(idLr, phi0, rLr, zlen, nStaveLr, nModPerStaveLr,
-                       kSiThickOB, seg0->Dy(), seg0->getChipTypeID(), kBuildLevel);
+                       kSiThickOB, Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
     } else {
-      turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], seg0->Dx());
-      its->defineLayerTurbo(idLr, phi0, rLr, nChipsPerStaveLr * seg0->Dz(), nStaveLr,
-                            nChipsPerStaveLr, seg0->Dx(), turbo, kSiThickIB, seg0->Dy(),
-                            seg0->getChipTypeID(), kBuildLevel);
+      turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
+      its->defineLayerTurbo(idLr, phi0, rLr, nChipsPerStaveLr * Segmentation::SensorSizeCols, nStaveLr,
+                            nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo, kSiThickIB,
+			    Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
     }
   }
 
-  delete seg0;
 }
 
 Detector::Detector(Bool_t active)

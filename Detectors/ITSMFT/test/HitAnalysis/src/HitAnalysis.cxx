@@ -25,13 +25,13 @@
 
 #include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "ITSMFTBase/Segmentation.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/Utils.h"
 #include <vector>
 
-using o2::ITSMFT::Segmentation;
+using Segmentation = o2::ITSMFT::SegmentationAlpide;
 using o2::ITSMFT::Chip;
 using o2::ITSMFT::Hit;
 
@@ -112,14 +112,10 @@ InitStatus HitAnalysis::Init()
 
   // Create histograms
   // Ranges to be adjusted
-  Double_t maxLengthX(-1.), maxLengthY(-1.), maxLengthZ(-1.);
-  const Segmentation *itsseg(nullptr);
-  for (int ily = 0; ily < 7; ily++) {
-    itsseg = mGeometry->getSegmentation(ily);
-    if (itsseg->Dx() > maxLengthX) { maxLengthX = itsseg->Dx(); }
-    if (itsseg->Dy() > maxLengthY) { maxLengthY = itsseg->Dy(); }
-    if (itsseg->Dz() > maxLengthX) { maxLengthZ = itsseg->Dz(); }
-  }
+  Double_t maxLengthX(Segmentation::SensorSizeRows),
+    maxLengthY(Segmentation::SensorThickness),
+    maxLengthZ(Segmentation::SensorSizeCols);
+
   mLineSegment = new TH1D("lineSegment", "Length of the line segment within the chip", 500, 0.0, 0.01);
   mLocalX0 = new TH1D("localX0", "X position in local (chip) coordinates at the start of a hit", 5000, -2 * maxLengthX,
                       2 * maxLengthX);

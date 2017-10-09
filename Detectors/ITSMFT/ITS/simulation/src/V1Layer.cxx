@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file SegmentationPixel.cxx
-/// \brief Implementation of the SegmentationPixel class
+/// \file V1Layer.cxx
+/// \brief Implementation of the V1Layer class
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 

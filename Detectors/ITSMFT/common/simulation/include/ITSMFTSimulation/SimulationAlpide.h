@@ -35,8 +35,6 @@ namespace o2 {
 
     //-------------------------------------------------------------------
 
-    class SegmentationPixel;
-
     class SimulationAlpide : public Chip {
     public:
       SimulationAlpide() = default;
@@ -47,16 +45,16 @@ namespace o2 {
 
       SimulationAlpide& operator=(const SimulationAlpide&) = delete;
 
-      void      Hits2Digits(const SegmentationPixel *seg, double eventTime, UInt_t &minFr, UInt_t &maxFr);
+      void      Hits2Digits(double eventTime, UInt_t &minFr, UInt_t &maxFr);
 
-      void      addNoise(const SegmentationPixel* seg, UInt_t rofMin, UInt_t rofMax);
+      void      addNoise(UInt_t rofMin, UInt_t rofMax);
 
       void      clearSimulation() { Chip::Clear(); }
 
     private:
 
-      void      Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg);
-      void      Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg);
+      void      Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double eventTime);
+      void      Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime);
 
 
       Double_t  computeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip

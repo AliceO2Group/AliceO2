@@ -18,7 +18,6 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Cartesian3D.h"
-#include "ITSMFTBase/SegmentationPixel.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -40,8 +39,6 @@
 #include <cstdio>  // for snprintf, NULL, printf
 #include <cstring> // for strstr, strlen
 
-using o2::ITSMFT::Segmentation;
-using o2::ITSMFT::SegmentationPixel;
 using namespace TMath;
 using namespace o2::ITS;
 using namespace o2::Base;
@@ -59,11 +56,10 @@ std::string GeometryTGeo::sModuleName        = "ITSUModule";     ///< Module nam
 std::string GeometryTGeo::sChipName          = "ITSUChip";       ///< Chip name
 std::string GeometryTGeo::sSensorName        = "ITSUSensor";     ///< Sensor name
 std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol";    ///< Wrapper volume name
-std::string GeometryTGeo::sSegmentationFileName = "itsSegmentations.root"; ///< file name for segmentations
 
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, bool loadSegmentations, int loadTrans)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans)
   : o2::ITSMFT::GeometryTGeo(DetID::ITS)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
@@ -77,7 +73,7 @@ GeometryTGeo::GeometryTGeo(bool build, bool loadSegmentations, int loadTrans)
     mLayerToWrapper[i] = -1;
   }
   if (build) {
-    Build(loadSegmentations,loadTrans);
+    Build(loadTrans);
   }
 }
 
@@ -318,7 +314,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::Build(bool loadSegmentations, int loadTrans)
+void GeometryTGeo::Build(int loadTrans)
 {
   if ( isBuilt() ) {
     LOG(WARNING) << "Already built" << FairLogger::endl;
@@ -343,12 +339,10 @@ void GeometryTGeo::Build(bool loadSegmentations, int loadTrans)
   mNumberOfChipsPerHalfStave.resize(mNumberOfLayers);
   mNumberOfChipsPerStave.resize(mNumberOfLayers);
   mNumberOfChipsPerLayer.resize(mNumberOfLayers);
-  mLayerChipType.resize(mNumberOfLayers);
   mLastChipIndex.resize(mNumberOfLayers);
   int numberOfChips = 0;
 
   for (int i = 0; i < mNumberOfLayers; i++) {
-    mLayerChipType[i] = extractLayerChipType(i);
     mNumberOfStaves[i] = extractNumberOfStaves(i);
     mNumberOfHalfStaves[i] = extractNumberOfHalfStaves(i);
     mNumberOfModules[i] = extractNumberOfModules(i);
@@ -363,10 +357,7 @@ void GeometryTGeo::Build(bool loadSegmentations, int loadTrans)
   fillTrackingFramesCache();
   //
   fillMatrixCache(loadTrans);
-  
-  if (loadSegmentations) { // fetch segmentations
-    SegmentationPixel::loadSegmentations(&mSegmentations, getITSSegmentationFileName());
-  }
+
 }
 
 //__________________________________________________________________________
@@ -376,7 +367,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
   //  
   if (mSize<1) {    
     LOG(WARNING) << "The method Build was not called yet" << FairLogger::endl;
-    Build(true,mask);
+    Build(mask);
     return;
   }
   
@@ -674,15 +665,6 @@ int GeometryTGeo::extractLayerChipType(int lay) const
 }
 
 //__________________________________________________________________________
-UInt_t GeometryTGeo::composeChipTypeId(UInt_t segmId)
-{
-  if (segmId >= kMaxSegmPerChipType) {
-    LOG(FATAL) << "Id=" << segmId << " is >= max.allowed " << kMaxSegmPerChipType << FairLogger::endl;
-  }
-  return segmId + kChipTypePix * kMaxSegmPerChipType;
-}
-
-//__________________________________________________________________________
 void GeometryTGeo::Print(Option_t*) const
 {
   printf("NLayers:%d NChips:%d\n", mNumberOfLayers, getNumberOfChips());
@@ -691,10 +673,10 @@ void GeometryTGeo::Print(Option_t*) const
   for (int i = 0; i < mNumberOfLayers; i++) {
     printf(
       "Lr%2d\tNStav:%2d\tNChips:%2d "
-      "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChipType:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
+      "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
       i, mNumberOfStaves[i], mNumberOfChipsPerModule[i], mNumberOfChipRowsPerModule[i],
       mNumberOfChipRowsPerModule[i] ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i] : 0,
-      mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], mLayerChipType[i], getFirstChipIndex(i),
+      mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], getFirstChipIndex(i),
       getLastChipIndex(i), mLayerToWrapper[i]);
   }
 }

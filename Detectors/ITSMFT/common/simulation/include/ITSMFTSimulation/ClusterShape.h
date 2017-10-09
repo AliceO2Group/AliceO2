@@ -24,7 +24,6 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
-#include "ITSMFTBase/SegmentationPixel.h"
 
 namespace o2 {
   namespace ITSMFT {

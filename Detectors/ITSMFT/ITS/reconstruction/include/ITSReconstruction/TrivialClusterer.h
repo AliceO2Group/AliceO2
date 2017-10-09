@@ -20,7 +20,6 @@ class TClonesArray;
 
 namespace o2 {
   namespace ITSMFT {
-    class SegmentationPixel;
     class Cluster;
   }
 }
@@ -41,8 +40,8 @@ namespace ITS
   /// Steer conversion of points to digits
   /// @param points Container with ITS points
   /// @return digits container
-  void process(const o2::ITSMFT::SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters);
-  // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
+  void process(const TClonesArray* digits, TClonesArray* clusters);
+  // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
 
  protected:

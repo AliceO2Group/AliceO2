@@ -13,7 +13,6 @@
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ITSMFTBase/Digit.h"
-#include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "ITSMFTSimulation/Digitizer.h"
 #include "MathUtils/Cartesian3D.h"
@@ -27,8 +26,6 @@ ClassImp(o2::ITSMFT::Digitizer)
 
 using o2::ITSMFT::Hit;
 using o2::ITSMFT::Chip;
-using o2::ITSMFT::SimulationAlpide;
-using o2::ITSMFT::SegmentationPixel;
 using o2::ITSMFT::Digit;
 
 using namespace o2::ITSMFT;
@@ -59,7 +56,6 @@ void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
   // digitize single event
 
   const Int_t numOfChips = mGeometry->getNumberOfChips();
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
 
   // estimate the smalles RO Frame this event may have
   double hTime0 = mEventTime - mParams.getTimeOffset();
@@ -102,7 +98,7 @@ void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
 
   // Convert hits to digits
   for (auto &simulation : mSimulations) {
-    simulation.Hits2Digits(seg, mEventTime, mROFrameMin, mROFrameMax);
+    simulation.Hits2Digits(mEventTime, mROFrameMin, mROFrameMax);
     simulation.ClearHits();
   }
 
@@ -118,8 +114,7 @@ void Digitizer::process(std::vector<Hit>* hits, TClonesArray* digits)
   // digitize single event
   
   const Int_t numOfChips = mGeometry->getNumberOfChips();  
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
-  
+
   // estimate the smalles RO Frame this event may have
   double hTime0 = mEventTime - mParams.getTimeOffset();
   if (hTime0 > UINT_MAX) {
@@ -158,7 +153,7 @@ void Digitizer::process(std::vector<Hit>* hits, TClonesArray* digits)
     
   // Convert hits to digits  
   for (auto &simulation : mSimulations) {
-    simulation.Hits2Digits(seg, mEventTime, mROFrameMin, mROFrameMax);
+    simulation.Hits2Digits(mEventTime, mROFrameMin, mROFrameMax);
     simulation.ClearHits();
   }
 
@@ -198,13 +193,12 @@ void Digitizer::fillOutputContainer(TClonesArray* digits, UInt_t maxFrame)
 {
   // fill output with digits ready to be stored, generating the noise beforehand
   if (maxFrame>mROFrameMax) maxFrame = mROFrameMax;
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
 
   LOG(INFO) << "Filling ITS digits output for RO frames " << mROFrameMin << ":" << maxFrame << FairLogger::endl ;
 
   for (auto &simulation : mSimulations) {
     // add the random noise to all ROFrame being stored
-    simulation.addNoise(seg,mROFrameMin,maxFrame);
+    simulation.addNoise(mROFrameMin,maxFrame);
   }
 
   // we have to write chips in RO increasing order, therefore have to loop over the frames here

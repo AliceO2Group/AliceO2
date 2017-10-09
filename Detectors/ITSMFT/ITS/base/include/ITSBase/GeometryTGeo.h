@@ -28,12 +28,6 @@
 #include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
 class TGeoPNEntry; 
-namespace o2 {
-namespace ITSMFT {
-  class Segmentation;
-  class SegmentationPixel;
-}
-}
   
 namespace o2
 {
@@ -46,15 +40,7 @@ namespace ITS
 /// RS: In order to preserve the static character of the class but make it dynamically access
 /// geometry, we need to check in every method if the structures are initialized. To be converted
 /// to singleton at later stage.
-/// Note on the upgrade chip types:
-/// The coarse type defines chips served by different classes, like Pix. Each such a chip type can
-/// have kMaxSegmPerChipType segmentations (pitch etc.) whose parameteres are stored in the
-/// Segmentation derived class (like SegmentationPixel). This allows to have in the setup
-/// chips served by the same classes but with different segmentations. The full chip type is
-/// composed as:
-/// CoarseType*kMaxSegmPerChipType + segmentationType
-/// The only requirement on the segmentationType that should be < kMaxSegmPerChipType.
-/// The methods like getLayerChipTypeID return the full chip type
+
 class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 {
  public:
@@ -70,7 +56,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   
   static GeometryTGeo* Instance() {
     // get (create if needed) a unique instance of the object
-    if (!sInstance) sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, true, 0));
+    if (!sInstance) sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
     return sInstance.get();
   }
 
@@ -82,8 +68,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   // we must define public default constructor.
   // NEVER use it, it will throw exception if the class instance was already created
   // Use GeometryTGeo::Instance() instead
-  GeometryTGeo(bool build = kFALSE, bool loadSegm = kTRUE,
-	       int loadTrans=0
+  GeometryTGeo(bool build = kFALSE, int loadTrans=0
 	       /*o2::Base::Utils::bit2Mask(o2::Base::TransformType::T2L, // default transformations to load
 						       o2::Base::TransformType::T2G,
 						       o2::Base::TransformType::L2G)*/
@@ -102,10 +87,10 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 
   // cache parameters of sensors tracking frames
   void fillTrackingFramesCache();
-  
-  /// Exract ITS parameters from TGeo
-  void Build(bool loadSegmentations, int loadTrans=0) override;
 
+  /// Exract ITS parameters from TGeo
+  void Build(int loadTrans=0) override;
+  
   int getNumberOfChipRowsPerModule(int lay) const { return mNumberOfChipRowsPerModule[lay]; }
   int getNumberOfChipColsPerModule(int lay) const
   {
@@ -248,12 +233,6 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 
   void globalToLocalVector(int index, const double* glob, double* loc);
 
-  int getLayerChipTypeId(int lr) const;
-
-  int getChipChipTypeId(int id) const;
-
-  const o2::ITSMFT::Segmentation* getSegmentation(int lr) const;
-
   void Print(Option_t* opt = "") const;
 
   static const char* getITSVolPattern()       { return sVolumeName.c_str(); }
@@ -264,7 +243,6 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static const char* getITSModulePattern()    { return sModuleName.c_str(); }
   static const char* getITSChipPattern()      { return sChipName.c_str(); }
   static const char* getITSSensorPattern()    { return sSensorName.c_str(); }
-  static const char* getITSSegmentationFileName() { return sSegmentationFileName.c_str(); }
 
   static void setITSVolPattern(const char* nm)       { sVolumeName = nm; }
   static void setITSLayerPattern(const char* nm)     { sLayerName = nm; }
@@ -274,10 +252,6 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static void setITSModulePattern(const char* nm)    { sModuleName = nm; }
   static void setITSChipPattern(const char* nm)      { sChipName = nm; }
   static void setITSSensorPattern(const char* nm)    { sSensorName = nm; }
-  static void setChipTypeName(int i, const char* nm);
-
-  static void setITSSegmentationFileName(const char* nm) { sSegmentationFileName = nm; }
-  static UInt_t composeChipTypeId(UInt_t segmId);
 
   /// sym name of the layer
   static const char* composeSymNameITS() {return o2::Base::DetID(o2::Base::DetID::ITS).getName();}
@@ -331,6 +305,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   /// Determines the number of modules in substave in the stave of the layer
   /// \param lay: layer number, starting from 0
   /// For the setup w/o modules defined the module and the stave or the substave is the same thing
+  /// Legacy method, keep it just in case...
   int extractNumberOfModules(int lay) const;
 
   /// Determines the layer detector type the Geometry and
@@ -363,7 +338,6 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   std::vector<int> mNumberOfChipsPerHalfStave;   ///< number of chips per substave
   std::vector<int> mNumberOfChipsPerStave;       ///< number of chips per stave
   std::vector<int> mNumberOfChipsPerLayer;       ///< number of chips per stave
-  std::vector<int> mLayerChipType;               ///< layer chip types
   std::vector<int> mLastChipIndex;               ///< max ID of the detctor in the layer
   std::array<char,MAXLAYERS> mLayerToWrapper;    ///< Layer to wrapper correspondence
 
@@ -379,24 +353,12 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static std::string sSensorName;          ///< Sensor name
   static std::string sWrapperVolumeName;   ///< Wrapper volume name
 
-  static std::string sSegmentationFileName; ///< file name for segmentations
-
  private:
   static std::unique_ptr<o2::ITS::GeometryTGeo> sInstance;       ///< singletone instance 
   
   ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };
 
-/// Detector type ID of layer
-inline int GeometryTGeo::getLayerChipTypeId(int lr) const { return mLayerChipType[lr]; }
-// Detector type ID of chip
-inline int GeometryTGeo::getChipChipTypeId(int id) const { return getLayerChipTypeId(getLayer(id)); }
-
-/// Get segmentation of layer
-inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(int lr) const
-{
-  return getSegmentationById(getLayerChipTypeId(lr));
-}
 }
 }
 

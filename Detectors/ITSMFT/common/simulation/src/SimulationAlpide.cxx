@@ -21,7 +21,7 @@
 #include "FairLogger.h"
 
 #include "ITSMFTBase/Digit.h"
-#include "ITSMFTBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/SimulationAlpide.h"
 #include "ITSMFTSimulation/SimuClusterShaper.h"
 #include "ITSMFTSimulation/Hit.h"
@@ -30,6 +30,7 @@
 
 
 using namespace o2::ITSMFT;
+using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
 constexpr float sec2ns = 1e9;
 
@@ -45,13 +46,13 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const
 
 
 //______________________________________________________________________
-void SimulationAlpide::Hits2Digits(const SegmentationPixel *seg, Double_t eventTime, UInt_t &minFr, UInt_t &maxFr)
+void SimulationAlpide::Hits2Digits(Double_t eventTime, UInt_t &minFr, UInt_t &maxFr)
 {
   Int_t nhits = GetNumberOfHits();
 
   // convert hits to digits, returning the min and max RO frames processed
   //
-  // addNoise(mParam[Noise], seg);
+  // addNoise(mParam[Noise]);
   // RS: attention: the noise will be added just before transferring the digits of the given frame to the output,
   // because at this stage we don't know to which RO frame the noise should be added
 
@@ -78,10 +79,10 @@ void SimulationAlpide::Hits2Digits(const SegmentationPixel *seg, Double_t eventT
 
     switch (mParams->getHit2DigitsMethod()) {
     case DigiParams::p2dCShape :
-      Hit2DigitsCShape(hit, roframe, eventTime, seg);
+      Hit2DigitsCShape(hit, roframe, eventTime);
       break;
     case DigiParams::p2dSimple :
-      Hit2DigitsSimple(hit, roframe, eventTime, seg);
+      Hit2DigitsSimple(hit, roframe, eventTime);
       break;
     default:
       LOG(ERROR) << "Unknown point to digit mode " <<  mParams->getHit2DigitsMethod() << FairLogger::endl;
@@ -91,7 +92,7 @@ void SimulationAlpide::Hits2Digits(const SegmentationPixel *seg, Double_t eventT
 }
 
 //________________________________________________________________________
-void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
+void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double eventTime)
 {
   // convert single hit to digits with CShape generation method
 
@@ -107,12 +108,12 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
   
   int rowS=-1,colS=-1,rowE=-1,colE=-1, nSkip=0;
   // get entrance pixel row and col
-  while (!seg->localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
+  while (!Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
     if (++nSkip>=nSteps) return; // did not enter to sensitive matrix
     xyzLocS += step;
   }
   // get exit pixel row and col
-  while (!seg->localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
+  while (!Segmentation::localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
     if (++nSkip>=nSteps) return; // did not enter to sensitive matrix
     xyzLocE += step;
   }
@@ -122,11 +123,11 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
   rowS -= AlpideRespSimMat::NPix/2;
   rowE += AlpideRespSimMat::NPix/2;
   if (rowS<0) rowS = 0;
-  if (rowE>seg->getNumberOfRows()) rowE = seg->getNumberOfRows()-1;
+  if (rowE>=Segmentation::NRows) rowE = Segmentation::NRows-1;
   colS -= AlpideRespSimMat::NPix/2;
   colE += AlpideRespSimMat::NPix/2;
   if (colS<0) colS = 0;
-  if (colE>seg->getNumberOfColumns()) colE = seg->getNumberOfColumns()-1;
+  if (colE>=Segmentation::NCols) colE = Segmentation::NCols-1;
   int rowSpan = rowE-rowS+1, colSpan = colE-colS+1; // size of plaquet response is expected
 
   float respMatrix[rowSpan][colSpan]; // response accumulated here
@@ -143,9 +144,9 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
   
   for (int iStep=nSteps;iStep--;) {
     // Get the pixel ID
-    seg->localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
+    Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
     if (row!=rowPrev || col!=colPrev) { // update pixel and coordinates of its center
-      if (!seg->detectorToLocal(row, col, cRowPix, cColPix)) continue; // should not happen
+      if (!Segmentation::detectorToLocal(row, col, cRowPix, cColPix)) continue; // should not happen
       rowPrev = row;
       colPrev = col;
     }
@@ -185,7 +186,7 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
 }
 
 //________________________________________________________________________
-void SimulationAlpide::Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime, const SegmentationPixel* seg)
+void SimulationAlpide::Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime)
 {
   // convert single hit to digits with 1 to 1 mapping
   Point3D<float> glo( 0.5*(hit->GetX() + hit->GetStartX()),
@@ -194,7 +195,7 @@ void SimulationAlpide::Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double e
   auto loc = (*mMat)^( glo );
 
   int ix, iz;
-  if (!seg->localToDetector(loc.X(), loc.Z(), ix, iz)) {
+  if (!Segmentation::localToDetector(loc.X(), loc.Z(), ix, iz)) {
     LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
     return;
   }
@@ -203,22 +204,22 @@ void SimulationAlpide::Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double e
 
 
 //______________________________________________________________________
-void SimulationAlpide::addNoise(const SegmentationPixel* seg, UInt_t rofMin, UInt_t rofMax)
+void SimulationAlpide::addNoise(UInt_t rofMin, UInt_t rofMax)
 {
   UInt_t row = 0;
   UInt_t col = 0;
   Int_t nhits = 0;
   constexpr float ns2sec = 1e-9;
 
-  float mean = mParams->getNoisePerPixel()*seg->getNumberOfPads();
+  float mean = mParams->getNoisePerPixel()*Segmentation::NPixels;
   float nel = mParams->getChargeThreshold()*1.1;  // RS: TODO: need realistic spectrum of noise abovee threshold
 
   for (UInt_t rof = rofMin; rof<=rofMax; rof++) {
     nhits = gRandom->Poisson(mean);
     double tstamp = mParams->getTimeOffset()+rof*mParams->getROFrameLenght(); // time in ns
     for (Int_t i = 0; i < nhits; ++i) {
-      row = gRandom->Integer(seg->getNumberOfRows());
-      col = gRandom->Integer(seg->getNumberOfColumns());
+      row = gRandom->Integer(Segmentation::NRows);
+      col = gRandom->Integer(Segmentation::NCols);
       // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
       addDigit(rof, row, col, nel, Label(-1,0,0), tstamp);
     }

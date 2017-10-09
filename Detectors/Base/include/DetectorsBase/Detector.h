@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file UpgradeSegmentationPixel.h
-/// \brief Definition of the UpgradeSegmentationPixel class
+/// \file Detector.h
+/// \brief Definition of the Detector class
 
 #ifndef ALICEO2_BASE_DETECTOR_H_
 #define ALICEO2_BASE_DETECTOR_H_
