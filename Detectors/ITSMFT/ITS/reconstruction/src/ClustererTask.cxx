@@ -11,7 +11,6 @@
 /// \file  ClustererTask.cxx
 /// \brief Implementation of the ITS cluster finder task
 
-#include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSReconstruction/ClustererTask.h"
 #include "DetectorsBase/Utils.h"
 #include "MathUtils/Cartesian3D.h"
@@ -22,7 +21,6 @@
 
 ClassImp(o2::ITS::ClustererTask)
 
-using o2::ITSMFT::SegmentationPixel;
 using namespace o2::ITS;
 using namespace o2::Base;
 using namespace o2::Base::Utils;
@@ -65,13 +63,6 @@ InitStatus ClustererTask::Init()
   geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
   mGeometry = geom;
   mClusterer.setGeometry(geom);
-
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
-
-  Float_t px = seg->cellSizeX();
-  Float_t pz = seg->cellSizeZ(1);  //FIXME
-  Float_t x0,z0; seg->detectorToLocal(0,0,x0,z0);
-  mClusterer.setPixelGeometry(px,pz,x0,z0);
   
   return kSUCCESS;
 }

@@ -44,12 +44,9 @@ class Clusterer {
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
-  static void setPixelGeometry(Float_t px, Float_t pz, Float_t x0, Float_t z0) {
-    mPitchX=px; mPitchZ=pz; mX0=x0; mZ0=z0;
-  }
   void process(PixelReader &r, TClonesArray &clusters);
   
-  // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
+  // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
 
  private:
@@ -78,8 +75,6 @@ class Clusterer {
 
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
 
-  static Float_t mPitchX, mPitchZ; ///< Pixel pitch in X and Z (cm)
-  static Float_t mX0, mZ0;         ///< Local X and Y coordinates (cm) of the very 1st pixel
 };
 
 

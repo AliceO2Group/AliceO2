@@ -17,13 +17,10 @@
 
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/Cluster.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 using namespace o2::ITSMFT;
-
-Float_t Clusterer::mPitchX=0.002;
-Float_t Clusterer::mPitchZ=0.002;
-Float_t Clusterer::mX0=0.;
-Float_t Clusterer::mZ0=0.;
+using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
 //__________________________________________________
 Clusterer::Clusterer()
@@ -115,8 +112,8 @@ void Clusterer::updateChip(int ip)
 //__________________________________________________
 void Clusterer::finishChip(TClonesArray &clusters)
 {
-  static Float_t sigmaX2 = mPitchX * mPitchX / 12.; //FIXME
-  static Float_t sigmaY2 = mPitchZ * mPitchZ / 12.;
+  constexpr Float_t SigmaX2 = Segmentation::PitchRow*Segmentation::PitchRow / 12.; //FIXME
+  constexpr Float_t SigmaY2 = Segmentation::PitchCol*Segmentation::PitchCol / 12.; //FIXME
 
   std::array<Label,Cluster::maxLabels> labels;
   
@@ -165,13 +162,14 @@ void Clusterer::finishChip(TClonesArray &clusters)
       mPreClusterIndices[i2] = -1;
     }    
 
-    Point3D<float> xyzLoc( mX0 + x*mPitchX/npix, 0.f, mZ0 + z*mPitchZ/npix );
+    Point3D<float> xyzLoc( Segmentation::getFirstRowCoordinate() + x*Segmentation::PitchRow/npix, 0.f,
+			   Segmentation::getFirstColCoordinate() + z*Segmentation::PitchCol/npix );
     auto xyzTra = mGeometry->getMatrixT2L(mChipData.chipID)^(xyzLoc); // inverse transform from Local to Tracking frame
     Cluster *c = static_cast<Cluster *>(clusters.ConstructedAt(noc++));
     c->setROFrame(mChipData.roFrame);
     c->setSensorID(mChipData.chipID);
     c->setPos(xyzTra);
-    c->setErrors(sigmaX2, sigmaY2, 0.f);
+    c->setErrors(SigmaX2, SigmaY2, 0.f);
     c->setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
     for (int i=nlab;i--;) c->setLabel(labels[i],i);
   }

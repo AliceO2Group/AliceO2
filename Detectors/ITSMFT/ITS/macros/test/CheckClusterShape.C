@@ -12,17 +12,16 @@
 #include <TCanvas.h>
 
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTBase/Digit.h"
 #include "TPCSimulation/Point.h"
 #include "ITSMFTSimulation/ClusterShape.h"
 #endif
 
-using o2::ITSMFT::SegmentationPixel;
+using o2::ITSMFT::SegmentationAlpide;
 using o2::ITSMFT::Digit;
 using namespace o2::ITS;
 GeometryTGeo *gman;
-SegmentationPixel *seg;
 
 
 //////////////////////////////////////////
@@ -171,7 +170,7 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freq
       //   for (auto j = 0; j < cls.GetNClusters(i); ++j) {
       //     Pixel p = cls.GetPixel(i, j);
       //     cout << "(" << p.GetRow() << "," << p.GetCol() << ")";
-      //     //seg->detectorToLocal(p.GetRow(),p.GetCol(),x,z);
+      //     //SegmentationAlpide::detectorToLocal(p.GetRow(),p.GetCol(),x,z);
       //     //cout << "(" << x << "," << z << ")";
       //     if (j < cls.GetNClusters(i)-1) cout << "  ";
       //   }
@@ -206,7 +205,6 @@ void CheckClusterShape() {
   TFile *file = TFile::Open("AliceO2_TGeant3.params_10.root");
   gFile->Get("FairGeoParSet");
   gman = new GeometryTGeo(kTRUE);
-  seg = (SegmentationPixel*) gman->getSegmentationById(0);
 
   // Digits
   TFile *file1 = TFile::Open("AliceO2_TGeant3.digi_10_event.root");

@@ -15,7 +15,6 @@
 #include "MFTBase/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Cartesian3D.h"
-#include "ITSMFTBase/SegmentationPixel.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -37,8 +36,6 @@
 #include <cstdio>  // for snprintf, NULL, printf
 #include <cstring> // for strstr, strlen
 
-using o2::ITSMFT::Segmentation;
-using o2::ITSMFT::SegmentationPixel;
 using namespace TMath;
 using namespace o2::MFT;
 using namespace o2::Base;
@@ -54,10 +51,8 @@ std::string GeometryTGeo::sDiskName       = "MFT_D";         ///<
 std::string GeometryTGeo::sLadderName     = "MFT_L";         ///< 
 std::string GeometryTGeo::sSensorName     = "MFT_S";         ///< 
 
-std::string GeometryTGeo::sSegmentationFileName = "mftSegmentations.root"; ///< file name for segmentations
-
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(Bool_t build, Bool_t loadSegmentations, Int_t loadTrans)
+GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans)
   : o2::ITSMFT::GeometryTGeo(DetID::MFT)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
@@ -69,12 +64,12 @@ GeometryTGeo::GeometryTGeo(Bool_t build, Bool_t loadSegmentations, Int_t loadTra
   
   if (build) {
     //loadTrans = kTRUE;
-    Build(loadSegmentations,loadTrans);
+    Build(loadTrans);
   }
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::Build(Bool_t loadSegmentations, Int_t loadTrans)
+void GeometryTGeo::Build(Int_t loadTrans)
 {
   if ( isBuilt() ) {
     LOG(WARNING) << "Already built" << FairLogger::endl;
@@ -168,9 +163,6 @@ void GeometryTGeo::Build(Bool_t loadSegmentations, Int_t loadTrans)
 
   fillMatrixCache(loadTrans);
  
-  if (loadSegmentations) {
-    SegmentationPixel::loadSegmentations(&mSegmentations, getMFTSegmentationFileName());
-  }
   /*
   // checks
   Int_t index;
@@ -414,7 +406,7 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
   //  
   if (mSize < 1) {    
     LOG(WARNING) << "The method Build was not called yet" << FairLogger::endl;
-    Build(true,mask);
+    Build(mask);
     return;
   }
   //LOG(INFO) << "mask " << mask << " bit2Mask " << bit2Mask(TransformType::L2G) << FairLogger::endl;

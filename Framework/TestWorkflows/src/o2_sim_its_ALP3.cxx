@@ -22,8 +22,6 @@
 
 #include "DetectorsPassive/Cave.h"
 #include "Field/MagneticField.h"
-#include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSSimulation/Detector.h"
 
 using namespace o2::framework;

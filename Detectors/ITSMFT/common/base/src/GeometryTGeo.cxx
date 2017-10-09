@@ -20,5 +20,3 @@ ClassImp(o2::ITSMFT::GeometryTGeo);
 
 using namespace o2::ITSMFT;
 
-std::array<std::string,GeometryTGeo::kNChipTypes> GeometryTGeo::sChipTypeName { "Pix" }; ///< upg detType Names
-

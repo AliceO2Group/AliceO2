@@ -11,7 +11,7 @@
   #include <TString.h>
 
   #include "DetectorsBase/Utils.h"
-  #include "ITSMFTBase/SegmentationPixel.h"
+  #include "ITSMFTBase/SegmentationAlpide.h"
   #include "ITSMFTBase/Digit.h"
   #include "ITSMFTSimulation/Hit.h"
   #include "ITSBase/GeometryTGeo.h"
@@ -21,7 +21,7 @@
 using namespace o2::Base;
 
 void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
-  using o2::ITSMFT::SegmentationPixel;
+  using o2::ITSMFT::SegmentationAlpide;
   using o2::ITSMFT::Digit;
   using o2::ITSMFT::Hit;
   using namespace o2::ITS;
@@ -39,7 +39,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   auto *gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache( Utils::bit2Mask(TransformType::L2G) );
   
-  SegmentationPixel *seg = (SegmentationPixel*)gman->getSegmentationById(0);
+  SegmentationAlpide seg;
 
   // Hits
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
@@ -58,7 +58,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   int nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   int nevH = hitTree->GetEntries(); // hits are stored as one event per entry
   int lastReadHitEv = -1;
-  
+
   for (int iev = 0;iev<nevD; iev++) {
 
     digTree->GetEvent(iev);
@@ -67,8 +67,8 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
     while(nd--) {
       Digit *d=(Digit *)digArr.UncheckedAt(nd);
       Int_t ix=d->getRow(), iz=d->getColumn();
-      Float_t x,z; 
-      seg->detectorToLocal(ix,iz,x,z);
+      Float_t x=0.f,z=0.f; 
+      seg.detectorToLocal(ix,iz,x,z);
       const Point3D<float> locD(x,0.,z);
       
       Int_t chipID=d->getChipIndex();
@@ -84,7 +84,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 	  hitTree->GetEvent(ievH);
 	  lastReadHitEv = ievH;
 	}
-
+	bool ok = false;
 	for (auto& p : *hitArray) {
 	  if (p.GetDetectorID() != chipID) continue; 
 	  if (p.GetTrackID() != trID) continue;
@@ -93,13 +93,17 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 	  locH.SetXYZ( 0.5*(locH.X()+locHsta.X()),0.5*(locH.Y()+locHsta.Y()),0.5*(locH.Z()+locHsta.Z()) );
 	  int row,col;
 	  float xlc,zlc;
-	  seg->localToDetector(locH.X(),locH.Z(), row, col);
-	  seg->detectorToLocal(row,col,xlc,zlc);
+	  seg.localToDetector(locH.X(),locH.Z(), row, col);
+	  seg.detectorToLocal(row,col,xlc,zlc);
 	  //
 	  nt->Fill(chipID,gloD.X(),gloD.Y(),gloD.Z(),ix,iz,row,col,
 		   locH.X(),locH.Z(), xlc,zlc,  locH.X()-locD.X(),locH.Z()-locD.Z());
+	  ok = true;
 	  break;
-	}      
+	}
+	if (!ok) {
+	  printf("did not find hit for digit %d in ev %d: MCEv:%d MCTrack %d\n",nd,iev,ievH,trID);
+	}
       }
     }
   }

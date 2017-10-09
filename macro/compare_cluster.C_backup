@@ -13,7 +13,7 @@
 //  #include "DetectorsPassive/Cave.h"
 //
 //  #include "ITSBase/GeometryTGeo.h"
-//  #include "ITSBase/SegmentationPixel.h"
+//  #include "ITSBase/SegmentationAlpide.h"
 //  #include "ITSSimulation/Detector.h"
 //
 //  #include "TPCSimulation/Detector.h"

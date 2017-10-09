@@ -21,7 +21,6 @@
 
 ClassImp(o2::ITS::TrivialClustererTask)
 
-using o2::ITSMFT::SegmentationPixel;
 using namespace o2::ITS;
 using namespace o2::Base;
 using namespace o2::Base::Utils;
@@ -74,7 +73,5 @@ void TrivialClustererTask::Exec(Option_t* option)
   mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry->getSegmentationById(0);
-
-  mTrivialClusterer.process(seg, mDigitsArray, mClustersArray);
+  mTrivialClusterer.process(mDigitsArray, mClustersArray);
 }

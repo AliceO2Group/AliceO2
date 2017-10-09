@@ -17,8 +17,10 @@
 #include <TRandom.h>
 
 #include "ITSMFTSimulation/SimuClusterShaper.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 using namespace o2::ITSMFT;
+using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
 ClassImp(o2::ITSMFT::SimuClusterShaper);
 
@@ -30,7 +32,6 @@ mHitC(0),
 mHitR(0),
 mFireCenter(false),
 mNpixOn(0),
-mSeg(nullptr),
 mCShape(nullptr) {}
 
 
@@ -45,7 +46,6 @@ SimuClusterShaper::SimuClusterShaper(const UInt_t &cs) {
   UInt_t nRows = cs;
   UInt_t nCols = cs;
 
-  mSeg = nullptr;
   mCShape = new ClusterShape(nRows, nCols);
 }
 
@@ -103,7 +103,7 @@ void SimuClusterShaper::FillClusterSorted() {
     UInt_t c = i % mCShape->GetNRows();
     UInt_t nx = mHitC - mCShape->GetCenterC() + c;
     UInt_t nz = mHitR - mCShape->GetCenterR() + r;
-    mSeg->detectorToLocal(nx, nz, pX, pZ);
+    Segmentation::detectorToLocal(nx, nz, pX, pZ);
     Double_t d = sqrt(pow(mHitX-pX,2)+pow(mHitZ-pZ,2));
 
     // what to do when you reached the border?
@@ -135,7 +135,7 @@ void SimuClusterShaper::AddNoisePixel() {
 void SimuClusterShaper::ReComputeCenters() {
   UInt_t  r  = 0,   c = 0;
   Float_t pX = 0.f, pZ = 0.f;
-  mSeg->detectorToLocal(mHitC, mHitR, pX, pZ);
+  Segmentation::detectorToLocal(mHitC, mHitR, pX, pZ);
 
   // c is even
   if (mCShape->GetNCols() % 2 == 0) {

@@ -12,7 +12,7 @@
 #include <TString.h>
 
 #include "DetectorsBase/Utils.h"
-#include "ITSMFTBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -24,7 +24,7 @@ using namespace o2::Base;
 void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3") 
 {
 
-  using o2::ITSMFT::SegmentationPixel;
+  using Segmentation = o2::ITSMFT::SegmentationAlpide;
   using o2::ITSMFT::Digit;
   using o2::ITSMFT::Hit;
   using namespace o2::MFT;
@@ -44,8 +44,6 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
   auto *gman = o2::MFT::GeometryTGeo::Instance();
   gman->fillMatrixCache( Utils::bit2Mask(TransformType::L2G) );
   
-  SegmentationPixel *seg = (SegmentationPixel*)gman->getSegmentationById(0);
-
   // Hits
   sprintf(filename, "AliceO2_%s.mc_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
   TFile *file0 = TFile::Open(filename);
@@ -81,7 +79,7 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
       Digit *d = (Digit *)digArr.UncheckedAt(nd);
       Int_t ix = d->getRow(), iz=d->getColumn();
       Float_t x,z; 
-      seg->detectorToLocal(ix,iz,x,z);
+      Segmentation::detectorToLocal(ix,iz,x,z);
       const Point3D<Float_t> locD(x,0.,z);
       
       Int_t chipID = d->getChipIndex();
