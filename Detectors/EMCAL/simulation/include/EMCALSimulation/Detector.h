@@ -12,6 +12,7 @@
 #define ALICEO2_EMCAL_DETECTOR_H_
 
 #include "DetectorsBase/Detector.h"
+#include "EMCALBase/Hit.h"
 #include "MathUtils/Cartesian3D.h"
 #include "RStringView.h"
 #include "Rtypes.h"
@@ -163,7 +164,7 @@ class Detector : public o2::Base::Detector
   Double_t mBirkC1;
   Double_t mBirkC2;
 
-  TClonesArray* mPointCollection; ///< Collection of EMCAL points
+  std::vector<Hit>* mHits;        ///< Collection of EMCAL hits
   Geometry* mGeometry;            ///< Geometry pointer
 
   // Worker variables during hit creation
