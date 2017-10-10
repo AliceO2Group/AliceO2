@@ -191,6 +191,8 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   float c43 = fC[13];
   float c44 = fC[14];
 
+  //This is not the correct propagation!!! The max ensures the positional error does not decrease during track finding.
+  //A different propagation method is used for the fit.
   fC[0] = AliHLTTPCCAMath::Max( c00, c00  + h2 * h2 * c22 + h4 * h4 * c44
             + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 ) );
 
@@ -267,6 +269,8 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
   float c43 = fC[13];
   float c44 = fC[14];
 
+  //This is not the correct propagation!!! The max ensures the positional error does not decrease during track finding.
+  //A different propagation method is used for the fit.
   fC[0] = AliHLTTPCCAMath::Max( c00, c00  + h2 * h2 * c22 + h4 * h4 * c44
             + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 ) );
 
