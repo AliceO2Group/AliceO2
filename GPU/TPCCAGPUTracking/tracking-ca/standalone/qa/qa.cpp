@@ -7,7 +7,8 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCGMMergedTrack.h"
-#include "AliHLTTPCGMPhysicalTrackModel.h"
+//#include "AliHLTTPCGMPhysicalTrackModel.h"
+#include "AliHLTTPCGMPropagator.h"
 #include "include.h"
 #include <algorithm>
 
@@ -404,6 +405,15 @@ void RunQA()
 	}
 	
 	//Fill Resolution Histograms
+	AliHLTTPCGMPropagator prop;
+	const float kRho = 1.025e-3;//0.9e-3;
+	const float kRadLen = 29.532;//28.94;
+	prop.SetMaxSinPhi( .999 );
+	prop.SetMaterial( kRadLen, kRho );
+	prop.SetPolynomialFieldBz( merger.PolinomialFieldBz() );
+	prop.SetUseMeanMomentum(kFALSE );
+	prop.SetContinuousTracking( kFALSE );
+	
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
 		if (trackMCLabels[i] < 0) continue;
@@ -430,15 +440,10 @@ void RunQA()
 		mclocal[3] =-px*s + py*c;
 		
 		AliHLTTPCGMTrackParam param = track.GetParam();
-		AliHLTTPCGMPhysicalTrackModel t0(param);
-		AliHLTTPCGMTrackParam::AliHLTTPCGMTrackMaterialCorrection par;		
 		float alpha = track.GetAlpha();		
-		const float kRho = 1.025e-3;//0.9e-3;
-		const float kRadLen = 29.532;//28.94;
-		const float kRhoOverRadLen = kRho / kRadLen;
-		param.CalculateMaterialCorrection( par, t0, kRhoOverRadLen, kRho, false );
-		bool inFlyDirection = 0;
-		if (param.PropagateTrack(merger.PolinomialFieldBz(), mclocal[0], mclocal[1], mc1.fZ, track.GetAlpha(), merger.SliceParam(), alpha, 0.999, false, par, t0, inFlyDirection)) continue;
+		prop.SetTrack(&param, alpha);	
+		bool inFlyDirection = 0;		
+		if (prop.PropagateToXAlpha( mclocal[0], mclocal[1], mc1.fZ, alpha, inFlyDirection ) ) continue;
 		if (fabs(param.Y() - mclocal[1]) > 4. || fabs(param.Z() - mc1.fZ) > 4.) continue;
 		
 		float deltaY = param.GetY() - mclocal[1];
