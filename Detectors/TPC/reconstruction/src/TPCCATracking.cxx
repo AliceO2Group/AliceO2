@@ -13,17 +13,6 @@
 
 #include "TPCReconstruction/TPCCATracking.h"
 
-//This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
-//Currently, this library is only linked to O2 conditionally, because it needs a special AliRoot branch.
-//Therefore, for the time being, we build the O2 tracking class only if the standalone library is available.
-#ifdef HAVE_O2_TPCCA_TRACKING_LIB
-#include "TObject.h"
-#include "AliHLTTPCCAO2Interface.h"
-#else
-class AliHLTTPCCAO2Interface {}; // Dummy class such that the compiler can create a destructor for the unique_ptr
-class AliHLTTPCCAClusterData {}; // same
-#endif
-
 #include "DetectorsBase/Track.h"
 #include "FairLogger.h"
 #include "TClonesArray.h"
@@ -37,6 +26,15 @@ class AliHLTTPCCAClusterData {}; // same
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/Sector.h"
 
+//The AliHLTTPCCAO2Interface.h needs certain macro definitions.
+//The AliHLTTPCCAO2Interface will only be included once here, all O2 TPC tracking will run through this TPCCATracking class.
+//Therefore, the macros are defined here and not globally, in order not to pollute the global namespace
+#define HLTCA_STANDALONE 
+#define HLTCA_TPC_GEOMETRY_O2
+
+//This class is only a wrapper for the actual tracking contained in the HLT O2 CA Tracking library.
+#include "AliHLTTPCCAO2Interface.h"
+
 using namespace o2::TPC;
 
 TPCCATracking::TPCCATracking() : mTrackingCAO2Interface(), mClusterData_UPTR(), mClusterData(nullptr) {
@@ -47,10 +45,6 @@ TPCCATracking::~TPCCATracking() {
 }
 
 int TPCCATracking::initialize(const char* options) {
-#ifndef HAVE_O2_TPCCA_TRACKING_LIB
-  LOG(FATAL) << "O2 compiled without TPC CA Tracking library, cannot run TPC CA Tracker\n";
-  return (1);
-#else
   mTrackingCAO2Interface.reset(new AliHLTTPCCAO2Interface);
   int retVal = mTrackingCAO2Interface->Initialize(options);
   if (retVal) {
@@ -60,7 +54,6 @@ int TPCCATracking::initialize(const char* options) {
     mClusterData = mClusterData_UPTR.get();
   }
   return (retVal);
-#endif
 }
 
 void TPCCATracking::deinitialize() {
@@ -70,7 +63,6 @@ void TPCCATracking::deinitialize() {
 }
 
 int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<TrackTPC>* outputTracks) {
-#ifdef HAVE_O2_TPCCA_TRACKING_LIB
   if (mTrackingCAO2Interface == nullptr) return (1);
 
   int retVal = 0;
@@ -156,7 +148,4 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
   }
   mTrackingCAO2Interface->Cleanup();
   return (retVal);
-#else
-  return(1); //Return error code when the HLT O2 CA tracking library is not available.
-#endif
 }
