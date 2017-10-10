@@ -19,6 +19,7 @@ private:
 	int running;
 
 	static double GetFrequency();
+	static double GetTime();
 #ifndef GPUCODE
 	static double Frequency;
 #endif
