@@ -22,7 +22,6 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCGeometry.h"
-#include "TStopwatch.h"
 
 #if defined(HLTCA_BUILD_O2_LIB) & defined(HLTCA_STANDALONE)
 #undef HLTCA_STANDALONE //We disable the standalone application features for the O2 lib. This is a hack since the HLTCA_STANDALONE setting is ambigious... In this file it affects standalone application features, in the other files it means independence from aliroot
@@ -117,9 +116,6 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   // perform the event reconstruction
 
   fStatNEvents++;
-
-  TStopwatch timer0;
-  TStopwatch timer1;
 
 #ifdef HLTCA_STANDALONE
   static HighResTimer timerTracking, timerMerger;

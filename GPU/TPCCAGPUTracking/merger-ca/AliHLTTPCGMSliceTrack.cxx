@@ -20,7 +20,6 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMBorderTrack.h"
 #include "AliHLTTPCGMTrackLinearisation.h"
-#include "Riostream.h"
 #include "AliHLTTPCCAParam.h"
 #include <cmath>
 
