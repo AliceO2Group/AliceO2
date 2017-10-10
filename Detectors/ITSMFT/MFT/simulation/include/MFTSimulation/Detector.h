@@ -19,11 +19,10 @@
 #include "TLorentzVector.h"
 
 #include "DetectorsBase/Detector.h"
+#include "ITSMFTSimulation/Hit.h"
+#include <vector>
 
-class TClonesArray;
 class TVector3;
-
-namespace o2 { namespace ITSMFT { class Hit; } }
 
 namespace o2 { namespace MFT { class GeometryTGeo; } }
 
@@ -94,15 +93,15 @@ protected:
 
   Int_t mVersion;                  //
   Double_t mDensitySupportOverSi;  //
-  TClonesArray *mHits;             //!
+  std::vector<o2::ITSMFT::Hit>* mHits;  //! The hit container
  
 private:
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);
 
-  o2::ITSMFT::Hit* addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos,
-			  TVector3 startMom, double startE, double endTime, double eLoss,
+  o2::ITSMFT::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
+			  const TVector3& startMom, double startE, double endTime, double eLoss,
 			  unsigned char startStatus, unsigned char endStatus);
 
   /// this is transient data about track passing the sensor

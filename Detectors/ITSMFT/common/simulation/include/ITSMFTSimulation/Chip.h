@@ -28,8 +28,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MathUtils/Cartesian3D.h"
 
-namespace o2 { namespace ITSMFT { class Hit; }}
-
 namespace o2 {
 
 namespace ITSMFT {

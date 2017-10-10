@@ -49,65 +49,6 @@ void Digitizer::init()
   }
 }
 
-// this version should be deprecated once we are not using TClonesArrays anymore
-//_______________________________________________________________________
-void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
-{
-  // digitize single event
-
-  const Int_t numOfChips = mGeometry->getNumberOfChips();
-
-  // estimate the smalles RO Frame this event may have
-  double hTime0 = mEventTime - mParams.getTimeOffset();
-  if (hTime0 > UINT_MAX) {
-    LOG(WARNING) << "min Hit RO Frame undefined: time: " << hTime0 << " is in far future: "
-		 << " EventTime: " << mEventTime << " TimeOffset: "
-		 << mParams.getTimeOffset() << FairLogger::endl;
-    return;
-  }
-
-  if (hTime0<0) hTime0 = 0.;
-  UInt_t minNewROFrame = static_cast<UInt_t>(hTime0/mParams.getROFrameLenght());
-
-  LOG(INFO) << "Digitizing ITS event at time " << mEventTime
-	    << " (TOffset= " << mParams.getTimeOffset() << " ROFrame= " << minNewROFrame << ")"
-	    << " cont.mode: " << isContinuous() << " current Min/Max RO Frames "
-	    << mROFrameMin << "/" << mROFrameMax << FairLogger::endl ;
-
-  if (mParams.isContinuous() && minNewROFrame>mROFrameMin) {
-    // if there are already digits cached for previous RO Frames AND the new event
-    // cannot contribute to these digits, move them to the output container
-    if (mROFrameMax<minNewROFrame) mROFrameMax = minNewROFrame-1;
-    for (auto rof=mROFrameMin; rof<minNewROFrame; rof++) {
-      fillOutputContainer(digits, rof);
-    }
-    //    fillOutputContainer(digits, minNewROFrame-1);
-  }
-
-  // accumulate hits for every chip
-  TIter nextPoint(hits);
-  Hit* hit = nullptr;
-  while ( (hit = (Hit*)nextPoint()) ) {
-
-    // RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
-    // provided and identified. At the moment we just create a combined identifier from eventID
-    // and sourceID and store it TEMPORARILY in the cached Point's TObject UniqueID
-    hit->SetSrcEvID(mCurrSrcID,mCurrEvID);
-    mSimulations[hit->GetDetectorID()].InsertHit(hit);
-  }
-
-  // Convert hits to digits
-  for (auto &simulation : mSimulations) {
-    simulation.Hits2Digits(mEventTime, mROFrameMin, mROFrameMax);
-    simulation.ClearHits();
-  }
-
-  // in the triggered mode store digits after every MC event
-  if (!mParams.isContinuous()) {
-    fillOutputContainer(digits, mROFrameMax);
-  }
-}
-
 //_______________________________________________________________________
 void Digitizer::process(std::vector<Hit>* hits, TClonesArray* digits)
 {

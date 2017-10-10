@@ -59,7 +59,7 @@ namespace o2
       Int_t mSourceID = 0;                  ///< current source
       Int_t mEventID = 0;                   ///< current event id from the source
       Digitizer mDigitizer;                 ///< Digitizer      
-      TClonesArray* mHitsArray = nullptr;   ///< Array of MC hits
+      const std::vector<o2::ITSMFT::Hit>* mHitsArray = nullptr;   ///< Array of MC hits
       TClonesArray* mDigitsArray = nullptr; ///< Array of digits
       
       ClassDefOverride(DigitizerTask, 1);
