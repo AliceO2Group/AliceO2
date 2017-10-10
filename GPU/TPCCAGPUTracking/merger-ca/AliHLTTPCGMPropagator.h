@@ -29,6 +29,9 @@ public:
   AliHLTTPCGMPropagator();
 
   struct MaterialCorrection {
+    MaterialCorrection() : fRadLen(29.532), fRho(1.025e-3), fRhoOverRadLen(fRho/fRadLen), 
+			   fDLMax(0.f), fEP2(0.f), fSigmadE2(0.f), fK22(0.f), fK33(0.f), fK43(0.f), fK44(0.f) {}
+
     float fRadLen, fRho, fRhoOverRadLen,
       fDLMax, fEP2, fSigmadE2, fK22, fK33, fK43, fK44; // precalculated values for MS and EnergyLoss correction
   };
@@ -52,6 +55,10 @@ public:
   GPUd() float GetBz( float Alpha, float X, float Y, float Z ) const;
   GPUd() void  GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const;
 
+  GPUd() float GetAlpha() const { return fAlpha; }
+  GPUd() float GetQPt0() const { return fT0.GetQPt(); }
+  GPUd() float GetSinPhi0() const { return fT0.GetSinPhi(); }
+
 private:
 
   GPUd() void CalculateMaterialCorrection();
@@ -68,8 +75,8 @@ private:
 };
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
-   : fT(0), fAlpha(0), fT0(), fMaterial({29.532, 1.025e-3, 1.025e-3/29.532, 0.,0.,0.,0.,0.,0.,0.}),
-				    fUseMeanMomentum(0), fContinuousTracking(0), fMaxSinPhi(.999)
+   : fT(0), fAlpha(0), fT0(), fMaterial(),
+     fUseMeanMomentum(0), fContinuousTracking(0), fMaxSinPhi(.999)
 {
   for( int i=0; i<6; i++ ) fPolynomialFieldBz[i] = 0.f;
 }

@@ -95,8 +95,6 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
 
   // rotate fT0 track
   {
-    float px = fT0.Px();
-    float py = fT0.Py();
     fT0.X()  =  x0*cc + y0*ss;
     fT0.Y()  = -x0*ss + y0*cc;
     fT0.Px() =  pxe;
@@ -330,11 +328,11 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
     
   // Filter block
     
-  float mS0 = 1.f/(err2Y + c00);    
+  float mS0 = 1./(err2Y + c00);    
 
   float  z0 = posY - fP[0];
   float  z1 = posZ - fP[1];
-  float mS2 = 1.f/(err2Z + c11);
+  float mS2 = 1./(err2Z + c11);
   
   //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1, z0, z1);
   float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 5 : 5; // change to fT0
@@ -346,7 +344,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
     
     
   // K = CHtS
-    
+     
   float k00, k11, k20, k31, k40;
   
   k00 = c00 * mS0;
@@ -430,7 +428,6 @@ GPUd() void AliHLTTPCGMPropagator::CalculateMaterialCorrection()
   float beta2 = w2 / ( w2 + mass2 * pti2 );
   
   float p2 = w2 / pti2; // impuls 2
-
   float betheRho = ApproximateBetheBloch( p2 / mass2 )*fMaterial.fRho;
   float E = sqrt( p2 + mass2 );
   float theta2 = ( 14.1*14.1/1.e6 ) / ( beta2 * p2 )*fMaterial.fRhoOverRadLen;
