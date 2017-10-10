@@ -336,10 +336,8 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
   
   //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1, z0, z1);
   float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 5 : 5; // change to fT0
-  if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;
+  //if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;
   fT->Chi2()  += mS0*z0*z0 + mS2*z1*z1;
-  //SG!!! if (fChi2 / ((fNDF+5)/2 + 1) > 5) return 1;
-  //if (fChi2 / ((fNDF+5)/2 + 1) > 5) return 2;
   //SG!!! if( fabs( fP[2] + z0*c20*mS0  ) > fMaxSinPhi ) return 1;
     
     
@@ -450,5 +448,3 @@ GPUd() void AliHLTTPCGMPropagator::CalculateMaterialCorrection()
   fMaterial.fEP2*= betheRho;
   fMaterial.fSigmadE2 = fMaterial.fSigmadE2*betheRho + fMaterial.fK44;
 }
-
-
