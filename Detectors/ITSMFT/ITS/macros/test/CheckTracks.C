@@ -40,7 +40,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *recTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray *recArr=nullptr;
+  std::vector<CookedTrack> *recArr=nullptr;
   recTree->SetBranchAddress("ITSTrack",&recArr);
   // Track MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabArr=nullptr;
@@ -54,7 +54,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
     mcTree->GetEvent(n);
     Int_t nmc=mcArr->GetEntriesFast();
     recTree->GetEvent(n);
-    Int_t nrec=recArr->GetEntriesFast();
+    Int_t nrec=recArr->size();
     while(nmc--) {
       MCTrack *mcTrack = (MCTrack *)mcArr->UncheckedAt(nmc);
       Int_t mID = mcTrack->getMotherTrackId();
@@ -77,18 +77,18 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       Double_t label=-123456789.; 
       
       for (Int_t i=0; i<nrec; i++) {
-         CookedTrack *recTrack = (CookedTrack *)recArr->UncheckedAt(i);
+	 const CookedTrack &recTrack = (*recArr)[i];
 	 auto mclab = (trkLabArr->getLabels(i))[0];
 	 Int_t lab = mclab.getTrackID();
 	 if (TMath::Abs(lab) != nmc) continue;
 	 std::array<float,3> p;
-	 recTrack->getPxPyPz(p);
-	 recPt = recTrack->getPt();
+	 recTrack.getPxPyPz(p);
+	 recPt = recTrack.getPt();
          recPhi = TMath::ATan2(p[1],p[0]);
 	 recLam = TMath::ATan2(p[2],recPt);
 	 Double_t vx=0., vy=0., vz=0.;  // Assumed primary vertex
 	 Double_t bz=5.;                // Assumed magnetic field 
-         recTrack->getImpactParams(vx, vy, vz, bz, ip);
+         recTrack.getImpactParams(vx, vy, vz, bz, ip);
          label = lab;
 	 
 	 if (label>0) nGoo++; // Good found tracks for the efficiency calculation

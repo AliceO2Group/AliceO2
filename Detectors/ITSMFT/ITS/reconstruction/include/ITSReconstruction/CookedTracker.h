@@ -23,6 +23,7 @@
 #include <vector>
 #include "ITSBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
+#include "ITSReconstruction/CookedTrack.h"
 
 class TClonesArray;
 
@@ -42,8 +43,6 @@ namespace ITSMFT
   
 namespace ITS
 {
-class CookedTrack;
-
 class CookedTracker
 {
  public:
@@ -78,7 +77,7 @@ class CookedTracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
   
   // These functions must be implemented
-  void process(const TClonesArray& clusters, TClonesArray& tracks);
+  void process(const TClonesArray& clusters, std::vector<CookedTrack> &tracks);
   // Int_t propagateBack(std::vector<CookedTrack> *event);
   // Int_t RefitInward(std::vector<CookedTrack> *event);
   // Bool_t refitAt(Double_t x, CookedTrack *seed, const CookedTrack *t);

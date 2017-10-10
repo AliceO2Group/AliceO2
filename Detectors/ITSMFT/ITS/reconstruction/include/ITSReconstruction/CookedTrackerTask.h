@@ -47,7 +47,7 @@ class CookedTrackerTask : public FairTask
   CookedTracker mTracker; ///< Track finder
 
   const TClonesArray* mClustersArray=nullptr;   ///< Array of clusters
-  TClonesArray* mTracksArray=nullptr; ///< Array of tracks
+  std::vector<CookedTrack> *mTracksArray=nullptr; ///< Array of tracks
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray=nullptr; ///< MC labels
 
   ClassDefOverride(CookedTrackerTask, 1)

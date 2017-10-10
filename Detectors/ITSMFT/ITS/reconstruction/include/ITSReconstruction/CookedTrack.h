@@ -17,8 +17,6 @@
 
 #include <vector>
 
-#include <TObject.h>
-
 #include "DetectorsBase/Track.h"
 
 namespace o2
@@ -31,14 +29,14 @@ class Cluster;
 namespace ITS
 {
 
-class CookedTrack : public TObject 
+class CookedTrack
 {
  public:
   CookedTrack();
   CookedTrack(float x, float alpha, const std::array<float,o2::Base::Track::kNParams> &par, const std::array<float,o2::Base::Track::kCovMatSize> &cov);
   CookedTrack(const CookedTrack& t);
   CookedTrack& operator=(const CookedTrack& tr);
-  ~CookedTrack() override;
+  ~CookedTrack()=default;
 
   // These functions must be provided
   Double_t getPredictedChi2(const o2::ITSMFT::Cluster* c) const;
@@ -79,7 +77,7 @@ class CookedTrack : public TObject
   Double_t mChi2;            ///< Chi2 for this track
   std::vector<Int_t> mIndex; ///< Indices of associated clusters
 
-  ClassDefOverride(CookedTrack, 1)
+  ClassDef(CookedTrack, 1)
 };
 }
 }

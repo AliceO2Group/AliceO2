@@ -151,7 +151,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kGreen);
   
-  TClonesArray *trkArr=nullptr;
+  std::vector<CookedTrack> *trkArr=nullptr;
   tree->SetBranchAddress("ITSTrack",&trkArr);
   // Track MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabArr=nullptr;
@@ -159,14 +159,14 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
 
   tree->GetEvent(event);
 
-  Int_t nt=trkArr->GetEntriesFast(); n=0;
+  Int_t nt=trkArr->size(); n=0;
   while(nt--) {
-      CookedTrack *t=static_cast<CookedTrack *>(trkArr->UncheckedAt(nt));
+    const CookedTrack &t=(*trkArr)[nt];
       o2::MCCompLabel lab=trkLabArr->getElement(nt);
       if (TMath::Abs(lab.getTrackID()) != track) continue;
-      Int_t nc=t->getNumberOfClusters();
+      Int_t nc=t.getNumberOfClusters();
       while (n<nc) {
-	Int_t idx=t->getClusterIndex(n);
+	Int_t idx=t.getClusterIndex(n);
         Cluster *c=static_cast<Cluster *>(clusArr->UncheckedAt(idx));
 	auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
         points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());

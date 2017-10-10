@@ -25,7 +25,7 @@ using namespace o2::ITS;
 using namespace o2::Base::Constants;
 using namespace o2::Base::Track;
 
-CookedTrack::CookedTrack() : TObject(), mTrack(), mMass(0.14), mChi2(0.)
+CookedTrack::CookedTrack() : mTrack(), mMass(0.14), mChi2(0.)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
@@ -34,7 +34,7 @@ CookedTrack::CookedTrack() : TObject(), mTrack(), mMass(0.14), mChi2(0.)
 }
 
 CookedTrack::CookedTrack(float x, float alpha, const std::array<float,kNParams> &par, const std::array<float,kCovMatSize> &cov)
-  : TObject(), mTrack(x, alpha, par, cov), mMass(0.14), mChi2(0.)
+  : mTrack(x, alpha, par, cov), mMass(0.14), mChi2(0.)
 {
   //--------------------------------------------------------------------
   // Main constructor
@@ -42,7 +42,7 @@ CookedTrack::CookedTrack(float x, float alpha, const std::array<float,kNParams> 
 }
 
 CookedTrack::CookedTrack(const CookedTrack& t)
-  : TObject(t), mTrack(t.mTrack), mMass(t.mMass), mChi2(t.mChi2), mIndex(t.mIndex)
+  : mTrack(t.mTrack), mMass(t.mMass), mChi2(t.mChi2), mIndex(t.mIndex)
 {
   //--------------------------------------------------------------------
   // Copy constructor
@@ -52,20 +52,12 @@ CookedTrack::CookedTrack(const CookedTrack& t)
 CookedTrack& CookedTrack::operator=(const CookedTrack& t)
 {
   if (&t != this) {
-    TObject::operator=(t);
     mTrack=t.mTrack;
     mMass = t.mMass;
     mChi2 = t.mChi2;
     mIndex = t.mIndex;
   }
   return *this;
-}
-
-CookedTrack::~CookedTrack()
-{
-  //--------------------------------------------------------------------
-  // Virtual destructor
-  //--------------------------------------------------------------------
 }
 
 bool CookedTrack::operator<(const CookedTrack& o) const

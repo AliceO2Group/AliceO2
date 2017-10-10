@@ -29,7 +29,6 @@
 #include "DetectorsBase/Utils.h"
 #include "Field/MagneticField.h"
 #include "ITSMFTReconstruction/Cluster.h"
-#include "ITSReconstruction/CookedTrack.h"
 #include "ITSReconstruction/CookedTracker.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -495,7 +494,7 @@ std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
+void CookedTracker::process(const TClonesArray& clusters, std::vector<CookedTrack> &tracks)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -546,14 +545,14 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
     nSeeds += seedArray[t].size();
     for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
-      Int_t idx=tracks.GetEntriesFast();
       if (mMCTruth) {
          Label label = cookLabel(track, 0.); // For comparison only
          if (label.getTrackID() >= 0) ngood++;
+         Int_t idx=tracks.size();
 	 mMCTruth->addElement(idx,label);
       }
       setExternalIndices(track);
-      new (tracks[idx]) CookedTrack(track);
+      tracks.push_back(track);
     }
   }
 

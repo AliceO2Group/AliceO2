@@ -32,7 +32,6 @@ using namespace o2::Base::Utils;
 //_____________________________________________________________________
 CookedTrackerTask::CookedTrackerTask(Int_t n, Bool_t useMCTruth):FairTask("ITSCookedTrackerTask")
   ,mTracker(n){
-  mTracksArray = new TClonesArray("o2::ITS::CookedTrack");
   if (useMCTruth)
     mMCTruthArray = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 }
@@ -41,7 +40,7 @@ CookedTrackerTask::CookedTrackerTask(Int_t n, Bool_t useMCTruth):FairTask("ITSCo
 CookedTrackerTask::~CookedTrackerTask()
 {
   if (mTracksArray) {
-    mTracksArray->Delete();
+    mTracksArray->clear();
     delete mTracksArray;
   }
   if (mMCTruthArray) {
@@ -68,7 +67,7 @@ InitStatus CookedTrackerTask::Init()
   }
 
   // Register output container
-  mgr->Register("ITSTrack", "ITS", mTracksArray, kTRUE);
+  mgr->RegisterAny("ITSTrack", mTracksArray, kTRUE);
 
   // Register MC Truth container
   if (mMCTruthArray)
@@ -85,7 +84,7 @@ InitStatus CookedTrackerTask::Init()
 //_____________________________________________________________________
 void CookedTrackerTask::Exec(Option_t* option)
 {
-  if (mTracksArray)  mTracksArray->Clear();
+  if (mTracksArray) mTracksArray->clear();
   if (mMCTruthArray) mMCTruthArray->clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
