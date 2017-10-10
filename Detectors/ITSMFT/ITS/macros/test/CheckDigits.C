@@ -59,12 +59,14 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   int nevH = hitTree->GetEntries(); // hits are stored as one event per entry
   int lastReadHitEv = -1;
 
+  int ndr=0,ndf=0;
+  
   for (int iev = 0;iev<nevD; iev++) {
 
     digTree->GetEvent(iev);
     Int_t nd=digArr.GetEntriesFast();
 
-    while(nd--) {
+    while(nd--) {      
       Digit *d=(Digit *)digArr.UncheckedAt(nd);
       Int_t ix=d->getRow(), iz=d->getColumn();
       Float_t x=0.f,z=0.f; 
@@ -77,6 +79,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       int ievH = lab.getEventID();
 
       if (trID>=0) { // not a noise
+	ndr++;
 	const auto gloD = gman->getMatrixL2G(chipID)(locD); // convert to global
 	float dx=0., dz=0.;
 	
@@ -99,6 +102,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 	  nt->Fill(chipID,gloD.X(),gloD.Y(),gloD.Z(),ix,iz,row,col,
 		   locH.X(),locH.Z(), xlc,zlc,  locH.X()-locD.X(),locH.Z()-locD.Z());
 	  ok = true;
+	  ndf++;
 	  break;
 	}
 	if (!ok) {
@@ -111,4 +115,5 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   new TCanvas; nt->Draw("dx:dz");
   f->Write();
   f->Close();
+  printf("read %d filled %d\n",ndr,ndf);
 }

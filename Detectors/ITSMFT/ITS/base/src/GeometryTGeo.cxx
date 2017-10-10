@@ -15,6 +15,7 @@
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
 
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Cartesian3D.h"
@@ -43,6 +44,8 @@ using namespace TMath;
 using namespace o2::ITS;
 using namespace o2::Base;
 using namespace o2::Base::Utils;
+
+using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
 ClassImp(o2::ITS::GeometryTGeo);
 
@@ -272,6 +275,13 @@ const char* GeometryTGeo::composeSymNameChip(int lr, int sta, int substave, int 
 //__________________________________________________________________________
 TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 {
+  // extract matrix transforming from the PHYSICAL sensor frame to global one
+  // Note, the if the effective sensitive layer thickness is smaller than the
+  // total physical sensor tickness, this matrix is biased and connot be used
+  // directly for transformation from sensor frame to global one.
+  //
+  // Therefore we need to add a shift
+
   int lay, stav, sstav, mod, chipInMod;
   getChipId(index, lay, stav, sstav, mod, chipInMod);
 
@@ -310,6 +320,12 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   //  mat->Print();
   // Restore the modeler state.
   gGeoManager->PopPath();
+
+  // account for the difference between sensitive layer and physical sensor ticknesses
+  static TGeoTranslation tra(0.,0.5*(Segmentation::SensorThickness-Segmentation::SensLayerThickness),0.);
+
+  matTmp *= tra;
+  
   return &matTmp;
 }
 
@@ -377,9 +393,10 @@ void GeometryTGeo::fillMatrixCache(int mask)
     LOG(INFO) << "Loading ITS L2G matrices from TGeo" <<  FairLogger::endl;
     auto& cacheL2G = getCacheL2G();
     cacheL2G.setSize(mSize);
+
     for (int i=0;i<mSize;i++) {
-      TGeoHMatrix* hm = extractMatrixSensor(i);
-      cacheL2G.setMatrix( hm ? Mat3D(*hm) : Mat3D(), i);
+      TGeoHMatrix *hm = extractMatrixSensor(i);
+      cacheL2G.setMatrix( Mat3D( *hm ) , i);
     }
   } 
 
@@ -400,6 +417,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
     LOG(INFO) << "Loading ITS T2G matrices from TGeo" <<  FairLogger::endl;
     auto& cacheT2G = getCacheT2G();
     cacheT2G.setSize(mSize);
+    
     for (int i=0;i<mSize;i++) {
       TGeoHMatrix& mat = createT2LMatrix(i);
       mat.MultiplyLeft( extractMatrixSensor(i) );
@@ -688,6 +706,7 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float &x, float &alp)
   // (i.e. phi of the tracking frame alpha and X of the sensor in this frame)
   double locA[3] = {-100.,0.,0.}, locB[3] = {100.,0.,0.}, gloA[3], gloB[3];
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+
   matL2G->LocalToMaster(locA, gloA);
   matL2G->LocalToMaster(locB, gloB);
   double dx = gloB[0] - gloA[0], dy = gloB[1] - gloA[1];
@@ -709,7 +728,7 @@ TGeoHMatrix& GeometryTGeo::createT2LMatrix(int isn)
   t2l.Clear();
   t2l.RotateZ(alp * RadToDeg()); // rotate in direction of normal to the sensor plane
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
-  t2l.MultiplyLeft(&matL2G->Inverse());
+  t2l.MultiplyLeft( &matL2G->Inverse() );
   return t2l;
 }
 
