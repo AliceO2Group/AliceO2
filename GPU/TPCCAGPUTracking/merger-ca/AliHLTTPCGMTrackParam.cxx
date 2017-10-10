@@ -23,7 +23,6 @@
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCGMBorderTrack.h"
 #include "AliHLTTPCGMMergedTrack.h"
-#include "Riostream.h"
 #ifndef HLTCA_STANDALONE
 #include "AliExternalTrackParam.h"
 #endif

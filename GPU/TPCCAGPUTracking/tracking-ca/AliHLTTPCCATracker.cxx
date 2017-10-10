@@ -38,7 +38,6 @@
 #include "AliHLTTPCCAGPUConfig.h"
 
 #if !defined(HLTCA_GPUCODE)
-#include "TStopwatch.h"
 #include <iostream>
 #include <iomanip>
 #include <string.h>

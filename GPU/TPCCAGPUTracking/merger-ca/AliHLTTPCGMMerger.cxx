@@ -26,7 +26,6 @@
 #include "AliHLTTPCGMMerger.h"
 
 #include "AliHLTTPCCAMath.h"
-#include "TStopwatch.h"
 
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCASliceOutput.h"
