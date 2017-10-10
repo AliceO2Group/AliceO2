@@ -161,6 +161,7 @@ void AlpideSimResponse::initData()
   mStepInvDpt = (mNBinDpt - 1) / (mDptMax - mDptMin);
   mDptMin -= 0.5 / mStepInvDpt;
   mDptMax += 0.5 / mStepInvDpt;
+  mDptShift = 0.5*(mDptMax+mDptMin);
   print();
 }
 
@@ -215,14 +216,14 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
   }
   if (vRow > mRowMax) return false;
 
-  size_t bin = getDptBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
+  size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {
     // this should not happen
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol) 
-	       << ":" << getDptBin(vDepth) << ")" <<">= maxBin " << mData.size()
+	       << ":" << getDepthBin(vDepth) << ")" <<">= maxBin " << mData.size()
 	       << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
   }
-  // printf("bin %d %d %d\n",getColBin(vCol),getRowBin(vRow),getDptBin(vDepth));
+  // printf("bin %d %d %d\n",getColBin(vCol),getRowBin(vRow),getDepthBin(vDepth));
   //  return &mData[bin];
   dest.adopt( mData[bin], flipRow, flipCol);
   return true;
@@ -256,11 +257,11 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
   }
   if (vRow > mRowMax) return nullptr;
 
-  size_t bin = getDptBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
+  size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {
     // this should not happen
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol) 
-	       << ":" << getDptBin(vDepth) << ")" <<">= maxBin " << mData.size()
+	       << ":" << getDepthBin(vDepth) << ")" <<">= maxBin " << mData.size()
 	       << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
   }
   return &mData[bin];

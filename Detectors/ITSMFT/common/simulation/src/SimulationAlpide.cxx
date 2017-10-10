@@ -115,7 +115,7 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
   // get exit pixel row and col
   while (!Segmentation::localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
     if (++nSkip>=nSteps) return; // did not enter to sensitive matrix
-    xyzLocE += step;
+    xyzLocE -= step;
   }
   // estimate the limiting min/max row and col where the non-0 response is possible
   if (rowS>rowE) std::swap(rowS,rowE);
@@ -141,6 +141,9 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
   float cRowPix=0.f, cColPix=0.f; // local coordinated of the current pixel center
 
   const o2::ITSMFT::AlpideSimResponse* resp = mParams->getAlpSimResponse();
+
+  // take into account that the AlpideSimResponse has min/max thickness non-symmetric around 0
+  xyzLocS.SetY( xyzLocS.Y() + resp->getDepthShift());
   
   for (int iStep=nSteps;iStep--;) {
     // Get the pixel ID

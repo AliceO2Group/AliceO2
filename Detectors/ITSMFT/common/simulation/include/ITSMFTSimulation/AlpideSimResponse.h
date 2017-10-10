@@ -86,7 +86,7 @@ class AlpideSimResponse
  private:
   int getColBin(float pos) const;
   int getRowBin(float pos) const;
-  int getDptBin(float pos) const;
+  int getDepthBin(float pos) const;
   std::string composeDataName(int colBin, int rowBin);
 
   int mNBinCol = 0;                /// number of bins in X(col direction)
@@ -98,6 +98,7 @@ class AlpideSimResponse
   float mRowMax = 13.44e-4;        /// upper boundary of Row
   float mDptMin = 0.f;             /// lower boundary of Dpt
   float mDptMax = 0.f;             /// upper boundary of Dpt
+  float mDptShift = 0.f;           /// shift of the depth center wrt 0
   float mStepInvCol = 0;           /// inverse step of the Col grid
   float mStepInvRow = 0;           /// inverse step of the Row grid
   float mStepInvDpt = 0;           /// inverse step of the Dpt grid
@@ -119,14 +120,15 @@ class AlpideSimResponse
   static int constexpr getNPix() { return AlpideRespSimMat::getNPix(); }
   int getNBinCol() const { return mNBinCol; }
   int getNBinRow() const { return mNBinRow; }
-  int getNBinDpt() const { return mNBinDpt; }
+  int getNBinDepth() const { return mNBinDpt; }
   float getColMax() const { return mColMax; }
   float getRowMax() const { return mRowMax; }
-  float getDptMin() const { return mDptMin; }
-  float getDptMax() const { return mDptMax; }
+  float getDepthMin() const { return mDptMin; }
+  float getDepthMax() const { return mDptMax; }
+  float getDepthShift() const {return mDptShift;}
   float getStepCol() const { return mStepInvCol ? 1./mStepInvCol : 0.f; }
   float getStepRow() const { return mStepInvRow ? 1./mStepInvRow : 0.f; }
-  float getStepDpt() const { return mStepInvDpt ? 1./mStepInvDpt : 0.f; }
+  float getStepDepth() const { return mStepInvDpt ? 1./mStepInvDpt : 0.f; }
   void setDataPath(const std::string pth) { mDataPath = pth; }
   void setGridColName(const std::string nm) { mGridColName = nm; }
   void setGridRowName(const std::string nm) { mGridRowName = nm; }
@@ -157,7 +159,7 @@ inline int AlpideSimResponse::getRowBin(float pos) const
 }
 
 //-----------------------------------------------------
-inline int AlpideSimResponse::getDptBin(float pos) const
+inline int AlpideSimResponse::getDepthBin(float pos) const
 {
   /// get depth bin w/o checking for over/under flow. pos is with respect of the beginning
   /// of epitaxial layer

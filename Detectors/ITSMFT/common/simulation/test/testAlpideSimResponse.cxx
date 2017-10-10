@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(AlpideSimResponse_test)
   LOG(INFO) << "Checking response from vRow:" << vCol << " vCol:" << vCol
 	    << " Depth:" << vDepth << FairLogger::endl;
   bool flipCol, flipRow;
-  auto respMat = resp.getResponse(vRow,vCol,resp.getDptMax()-vDepth,flipRow,flipCol);
+  auto respMat = resp.getResponse(vRow,vCol,resp.getDepthMax()-vDepth,flipRow,flipCol);
   BOOST_CHECK( respMat!=nullptr );
   respMat->print(flipRow,flipCol);
   // repsonse at central pixel for electron close to the surface should be >>0
