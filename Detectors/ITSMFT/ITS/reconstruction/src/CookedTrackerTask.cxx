@@ -16,6 +16,8 @@
 #include "ITSMFTReconstruction/Cluster.h"
 #include "DetectorsBase/Utils.h"
 #include "MathUtils/Cartesian3D.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
@@ -28,7 +30,12 @@ using namespace o2::Base;
 using namespace o2::Base::Utils;
 
 //_____________________________________________________________________
-CookedTrackerTask::CookedTrackerTask(Int_t n) : FairTask("ITSCookedTrackerTask"), mNumOfThreads(n), mClustersArray(nullptr), mTracksArray(nullptr) {}
+CookedTrackerTask::CookedTrackerTask(Int_t n, Bool_t useMCTruth):FairTask("ITSCookedTrackerTask")
+  ,mTracker(n){
+  mTracksArray = new TClonesArray("o2::ITS::CookedTrack");
+  if (useMCTruth)
+    mMCTruthArray = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+}
 
 //_____________________________________________________________________
 CookedTrackerTask::~CookedTrackerTask()
@@ -36,6 +43,10 @@ CookedTrackerTask::~CookedTrackerTask()
   if (mTracksArray) {
     mTracksArray->Delete();
     delete mTracksArray;
+  }
+  if (mMCTruthArray) {
+    mMCTruthArray->clear();
+    delete mMCTruthArray;
   }
 }
 
@@ -57,14 +68,16 @@ InitStatus CookedTrackerTask::Init()
   }
 
   // Register output container
-  mTracksArray = new TClonesArray("o2::ITS::CookedTrack");
   mgr->Register("ITSTrack", "ITS", mTracksArray, kTRUE);
+
+  // Register MC Truth container
+  if (mMCTruthArray)
+  mgr->Register("ITSTrackMCTruth", "ITS", mMCTruthArray, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache( bit2Mask(TransformType::T2GRot) ); // make sure T2GRot matrices are loaded
   mTracker.setGeometry(geom);
-
-  mTracker.setNumberOfThreads(mNumOfThreads);
+  mTracker.setMCTruthContainer(mMCTruthArray);
   
   return kSUCCESS;
 }
@@ -72,7 +85,8 @@ InitStatus CookedTrackerTask::Init()
 //_____________________________________________________________________
 void CookedTrackerTask::Exec(Option_t* option)
 {
-  mTracksArray->Clear();
+  if (mTracksArray)  mTracksArray->Clear();
+  if (mMCTruthArray) mMCTruthArray->clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
   mTracker.process(*mClustersArray, *mTracksArray);

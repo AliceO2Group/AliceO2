@@ -42,8 +42,9 @@ void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         rtdb->setFirstInput(parInput1);
 
         // Setup tracker
-        // To run with n threads call o2::ITS::CookedTrackerTask(n)
-        o2::ITS::CookedTrackerTask *trac = new o2::ITS::CookedTrackerTask;
+        Int_t n=1;            // Number of threads
+        Bool_t mcTruth=kTRUE; // kFALSE if no comparison with MC is needed
+        o2::ITS::CookedTrackerTask *trac = new o2::ITS::CookedTrackerTask(n,mcTruth);
 
         fRun->AddTask(trac);
 

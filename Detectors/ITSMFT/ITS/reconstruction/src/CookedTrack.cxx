@@ -42,7 +42,7 @@ CookedTrack::CookedTrack(float x, float alpha, const std::array<float,kNParams> 
 }
 
 CookedTrack::CookedTrack(const CookedTrack& t)
-  : TObject(t), mTrack(t.mTrack), mLabel(t.mLabel), mMass(t.mMass), mChi2(t.mChi2), mIndex(t.mIndex)
+  : TObject(t), mTrack(t.mTrack), mMass(t.mMass), mChi2(t.mChi2), mIndex(t.mIndex)
 {
   //--------------------------------------------------------------------
   // Copy constructor
@@ -54,7 +54,6 @@ CookedTrack& CookedTrack::operator=(const CookedTrack& t)
   if (&t != this) {
     TObject::operator=(t);
     mTrack=t.mTrack;
-    mLabel = t.mLabel;
     mMass = t.mMass;
     mChi2 = t.mChi2;
     mIndex = t.mIndex;

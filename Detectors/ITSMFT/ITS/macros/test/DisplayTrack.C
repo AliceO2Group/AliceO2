@@ -19,6 +19,7 @@
   #include <vector>
 
   #include "SimulationDataFormat/MCCompLabel.h"
+  #include "SimulationDataFormat/MCTruthContainer.h"
   #include "ITSMFTSimulation/Hit.h"
   #include "DetectorsBase/Utils.h"
   #include "MathUtils/Cartesian3D.h"
@@ -118,17 +119,17 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kMagenta);
   
-  TClonesArray clusArr("o2::ITSMFT::Cluster"), *pclusArr(&clusArr);
-  tree->SetBranchAddress("ITSCluster",&pclusArr);
+  TClonesArray *clusArr=nullptr;
+  tree->SetBranchAddress("ITSCluster",&clusArr);
 
   tree->GetEvent(event);
 
   o2::ITS::GeometryTGeo *gman = GeometryTGeo::Instance();
   gman->fillMatrixCache( Utils::bit2Mask(TransformType::T2GRot) ); // request cached transforms
 
-  nc=clusArr.GetEntriesFast(); n=0;
+  nc=clusArr->GetEntriesFast(); n=0;
   while(nc--) {
-      Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(nc));
+      Cluster *c=static_cast<Cluster *>(clusArr->UncheckedAt(nc));
       auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
       if (c->getLabel(0).getTrackID() == track) {
          points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
@@ -150,19 +151,23 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kGreen);
   
-  TClonesArray trkArr("o2::ITS::CookedTrack"), *ptrkArr(&trkArr);
-  tree->SetBranchAddress("ITSTrack",&ptrkArr);
+  TClonesArray *trkArr=nullptr;
+  tree->SetBranchAddress("ITSTrack",&trkArr);
+  // Track MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabArr=nullptr;
+  tree->SetBranchAddress("ITSTrackMCTruth",&trkLabArr);
 
   tree->GetEvent(event);
 
-  Int_t nt=trkArr.GetEntriesFast(); n=0;
+  Int_t nt=trkArr->GetEntriesFast(); n=0;
   while(nt--) {
-      CookedTrack *t=static_cast<CookedTrack *>(trkArr.UncheckedAt(nt));
-      if (TMath::Abs(t->getLabel().getTrackID()) != track) continue;
+      CookedTrack *t=static_cast<CookedTrack *>(trkArr->UncheckedAt(nt));
+      o2::MCCompLabel lab=trkLabArr->getElement(nt);
+      if (TMath::Abs(lab.getTrackID()) != track) continue;
       Int_t nc=t->getNumberOfClusters();
       while (n<nc) {
 	Int_t idx=t->getClusterIndex(n);
-        Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(idx));
+        Cluster *c=static_cast<Cluster *>(clusArr->UncheckedAt(idx));
 	auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
         points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
         n++;

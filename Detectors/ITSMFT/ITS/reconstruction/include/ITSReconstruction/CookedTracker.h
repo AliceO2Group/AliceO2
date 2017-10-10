@@ -28,6 +28,12 @@ class TClonesArray;
 
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
 
 namespace ITSMFT
 {
@@ -63,7 +69,7 @@ class CookedTracker
   Double_t getSigmaX() const { return mSigmaX; }
   Double_t getSigmaY() const { return mSigmaY; }
   Double_t getSigmaZ() const { return mSigmaZ; }
-  void cookLabel(CookedTrack& t, Float_t wrong) const;
+  o2::MCCompLabel cookLabel(CookedTrack& t, Float_t wrong) const;
   void setExternalIndices(CookedTrack& t) const;
   Double_t getBz() const;
   void setBz(Double_t bz) { mBz = bz; }
@@ -79,6 +85,9 @@ class CookedTracker
   o2::ITSMFT::Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::ITS::GeometryTGeo* geom);
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
+    mMCTruth=truth;
+  }
   
   // internal helper classes
   class ThreadData;
@@ -98,6 +107,7 @@ class CookedTracker
  private:
 
   const o2::ITS::GeometryTGeo* mGeom = nullptr; /// interface to geometry
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruth = nullptr; /// MC labels
   
   Int_t mNumOfThreads; ///< Number of tracking threads
   

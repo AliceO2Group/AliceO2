@@ -32,6 +32,7 @@
 #include "ITSReconstruction/CookedTrack.h"
 #include "ITSReconstruction/CookedTracker.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::ITS;
 using namespace o2::ITSMFT;
@@ -97,15 +98,13 @@ CookedTracker::~CookedTracker()
 }
 
 //__________________________________________________________________________
-void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
+Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
 {
   //--------------------------------------------------------------------
   // This function "cooks" a track label.
   // A label<0 indicates that some of the clusters are wrongly assigned.
   //--------------------------------------------------------------------
   Int_t noc = t.getNumberOfClusters();
-  if (noc < 1)
-    return;
   std::array<Label, Cluster::maxLabels*CookedTracker::kNLayers > lb;
   std::array<Int_t, Cluster::maxLabels*CookedTracker::kNLayers > mx;
   std::array<Cluster*,CookedTracker::kNLayers> clusters;
@@ -152,7 +151,7 @@ void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
     lab.set( -lab.getTrackID(), lab.getEventID(), lab.getSourceID() );
   }
   // t.SetFakeRatio((1.- Float_t(maxL)/noc));
-  t.setLabel(lab);
+  return lab;
 }
 
 //__________________________________________________________________________
@@ -468,14 +467,12 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
     }
 
     if (best.getNumberOfClusters() >= kminNumberOfClusters) {
-      cookLabel(best, 0.); // For comparison only
       Int_t noc = best.getNumberOfClusters();
       for (Int_t ic = 3; ic < noc; ic++) {
         Int_t index = best.getClusterIndex(ic);
         Int_t l = (index & 0xf0000000) >> 28, c = (index & 0x0fffffff);
         used[l][c]=true;
       }
-      setExternalIndices(best);
     }
     track = best;
   }
@@ -549,9 +546,14 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
     nSeeds += seedArray[t].size();
     for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
-      Label label = track.getLabel();
-      if (label.getTrackID() >= 0) ngood++;
-      new (tracks[tracks.GetEntriesFast()]) CookedTrack(track);
+      Int_t idx=tracks.GetEntriesFast();
+      if (mMCTruth) {
+         Label label = cookLabel(track, 0.); // For comparison only
+         if (label.getTrackID() >= 0) ngood++;
+	 mMCTruth->addElement(idx,label);
+      }
+      setExternalIndices(track);
+      new (tracks[idx]) CookedTrack(track);
     }
   }
 
