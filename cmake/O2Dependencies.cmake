@@ -2356,3 +2356,19 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
 )
+
+
+o2_define_bucket(
+    NAME
+    DataDistributionBase_bucket
+
+    DEPENDENCIES
+    Headers
+    O2Device
+    common_boost_bucket
+    Boost::container
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/DataDistribution/Common/include
+    ${MS_GSL_INCLUDE_DIR}
+)

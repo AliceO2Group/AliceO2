@@ -162,6 +162,7 @@ set(GENERATORS_LIBRARY Generators)
 
 add_subdirectory(CCDB)
 add_subdirectory(Common)
+add_subdirectory(DataDistribution)
 add_subdirectory(DataFormats)
 add_subdirectory(Detectors)
 add_subdirectory(EventVisualisation)

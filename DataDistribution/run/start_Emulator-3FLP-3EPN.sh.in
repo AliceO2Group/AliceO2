@@ -1,0 +1,176 @@
+#!/bin/bash -u
+
+chainConfig="@CMAKE_BINARY_DIR@/bin/config/readout-emu-flp-epn-chain.json"
+readoutConfig="@CMAKE_BINARY_DIR@/bin/config/readout_cfg/readout_emu.cfg"
+
+function parse_parameters() {
+read -d '' PARSER <<"EOF"
+import argparse
+
+parser = argparse.ArgumentParser(description='Run FLP-EPN chain',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--readout', dest='readout', required=False, action='store_true', help='Use readout.exe data source in emulation mode.')
+
+parser.add_argument('--tmux', required=False, action='store_true', help='Run in tmux CC mode')
+parser.add_argument('--no-gui', dest='nogui', required=False, action='store_true', help='Show GUI')
+
+parser.add_argument('-f', '--flp', required=False, default=1, action='store', type=int, help='Number of FLP instances (1,2,3)')
+parser.add_argument('-e', '--epn', required=False, default=0, action='store', type=int, help='Number of EPN instances (0,1,2,3)')
+parser.add_argument('-n', '--equip', required=False, default=2, action='store', type=int, help='Number data producer equipment per FLP chain')
+parser.add_argument('-r', '--rate', required=False, default=2.0, action='store', type=float, help='Data rate of each equipment instance (in Gb/s)')
+parser.add_argument('-s', '--rsize', required=False, default=4, action='store', type=int, help='Size of the readout memory segment (in GiB)')
+parser.add_argument('-p', '--spsize', required=False, default=2, action='store', type=int, help='Size of the readout super-pages (in MiB)')
+
+parser.add_argument('--stf-builder-sink-dir', required=False, default='', action='store', help='Dir where to store STFs from SubTimeFrameBuilder')
+parser.add_argument('--tf-builder-sink-dir', required=False, default='', action='store', help='Dir where to store TFs from TimeFrameBuilder')
+
+try:
+  args = parser.parse_args()
+except SystemExit:
+  exit(1) # return error to stop the script if help is shown
+
+print("EMU=%s" % ("readout" if args.readout else "emu"))
+print("FLP_CNT=%s" % args.flp)
+print("EPN_CNT=%s" % args.epn)
+print("EQUIPMENT_CNT=%s" % args.equip)
+print("EQUIPMENT_RATE=%s" % int(args.rate * 1e+9))
+print("DATA_REGION_SIZE=%s" % int(args.rsize * (1<<30)))
+print("SUPERPAGE_SIZE=%s" % int(args.spsize * (1<<20)))
+print("USE_TMUX=%s" % ("1" if args.tmux else ""))
+print("GUI=%s" % ("" if args.nogui else "--gui"))
+print("STF_BUILDER_SINK_DIR='%s'" % args.stf_builder_sink_dir)
+print("TF_BUILDER_SINK_DIR='%s'" % args.tf_builder_sink_dir)
+EOF
+
+python -c "$PARSER" "$@"
+}
+
+ARGS="$(parse_parameters "$@")"
+if [ ! $? -eq 0 ]; then
+  echo "$ARGS"
+  exit 1
+fi
+
+echo "$ARGS"
+eval $ARGS
+
+shmmonitor --cleanup &> /dev/null
+
+IO_THREADS=8
+
+if [[ "$EMU" == "emu" ]]; then
+  READOUT="@CMAKE_BINARY_DIR@/bin/ReadoutEmulatorDevice"
+  READOUT+=" --transport shmem"
+  READOUT+=" --shm-monitor true"
+  READOUT+=" --mq-config $chainConfig"
+  READOUT+=" --data-shm-region-size $DATA_REGION_SIZE"
+  READOUT+=" --cru-superpage-size $SUPERPAGE_SIZE"
+  READOUT+=" --cru-link-count $EQUIPMENT_CNT"
+  READOUT+=" --cru-link-bits-per-s $EQUIPMENT_RATE"
+  READOUT+=" $GUI"
+  READOUT+=" --io-threads $IO_THREADS"
+else
+  echo "Using readout.exe in emulation mode. Configuration is read from $readoutConfig"
+  echo "Make sure the Readout is installed or the Readout module is loaded."
+  echo "Only 1 FLP chain can be emulated when using the readout source."
+  FLP_CNT=1
+
+  READOUT="readout.exe"
+  READOUT+=" file://$readoutConfig"
+fi
+
+STF_BUILDER="@CMAKE_BINARY_DIR@/bin/SubTimeFrameBuilderDevice"
+STF_BUILDER+=" --transport shmem"
+STF_BUILDER+=" --shm-monitor true"
+STF_BUILDER+=" --mq-config $chainConfig"
+STF_BUILDER+=" --cru-count 1" # remove
+STF_BUILDER+=" $GUI"
+STF_BUILDER+=" --io-threads $IO_THREADS"
+
+if [[ ! -z $STF_BUILDER_SINK_DIR ]]; then
+  if [[ ! -d $STF_BUILDER_SINK_DIR ]]; then
+    echo "STF Builder file sink directory does not exist!"
+    exit 1
+  fi
+
+  STF_BUILDER+=" --data-sink-enable"
+  STF_BUILDER+=" --data-sink-dir $STF_BUILDER_SINK_DIR"
+  STF_BUILDER+=" --data-sink-max-stfs-per-file 44"
+  STF_BUILDER+=" --data-sink-sidecar"
+fi
+
+STF_SENDER="@CMAKE_BINARY_DIR@/bin/SubTimeFrameSenderDevice"
+STF_SENDER+=" --transport shmem"
+STF_SENDER+=" --shm-monitor true"
+STF_SENDER+=" --mq-config $chainConfig"
+STF_SENDER+=" --epn-count $EPN_CNT"
+STF_SENDER+=" $GUI"
+STF_SENDER+=" --io-threads $IO_THREADS"
+
+TF_BUILDER="@CMAKE_BINARY_DIR@/bin/TimeFrameBuilderDevice"
+TF_BUILDER+=" --transport shmem"
+TF_BUILDER+=" --shm-monitor true"
+TF_BUILDER+=" --mq-config $chainConfig"
+TF_BUILDER+=" --flp-count $FLP_CNT"
+TF_BUILDER+=" $GUI"
+TF_BUILDER+=" --io-threads $IO_THREADS"
+
+if [[ ! -z $TF_BUILDER_SINK_DIR ]]; then
+  if [[ ! -d $TF_BUILDER_SINK_DIR ]]; then
+    echo "TF Builder file sink directory does not exist!"
+    exit 1
+  fi
+
+  TF_BUILDER+=" --data-sink-enable"
+  TF_BUILDER+=" --data-sink-dir $TF_BUILDER_SINK_DIR"
+  TF_BUILDER+=" --data-sink-max-stfs-per-file 44"
+  TF_BUILDER+=" --data-sink-sidecar"
+fi
+
+if [[ -z $USE_TMUX ]]; then
+
+  # (EPN) Start TimeFrameBuilders
+  if [[ $EPN_CNT -gt 0 ]]; then
+    xterm -geometry 90x20+1680+0 -hold -e $TF_BUILDER --id tf_builder-0 --session epn-s0 &
+  fi
+  if [[ $EPN_CNT -gt 1 ]]; then
+    xterm -geometry 90x20+1680+300 -hold -e $TF_BUILDER --id tf_builder-1 --session epn-s1 &
+  fi
+  if [[ $EPN_CNT -gt 2 ]]; then
+    xterm -geometry 90x20+1680+600 -hold -e $TF_BUILDER --id tf_builder-2 --session epn-s2 &
+  fi
+
+  # (FLP) Start FLP processes
+  if [[ $FLP_CNT -gt 0 ]]; then
+    xterm -geometry 90x57+1120+0 -hold -e $STF_SENDER --id stf_sender-0  --session default &
+    xterm -geometry 90x57+560+0 -hold -e $STF_BUILDER --id stf_builder-0 --session default &
+    xterm -geometry 90x57+0+0 -hold -e $READOUT --id readout-0 --link-id-offset 0  --session default &
+  fi
+  if [[ $FLP_CNT -gt 1 ]]; then
+    xterm -geometry 90x57+1120+0 -hold -e $STF_SENDER --id stf_sender-1  --session flp-s1 &
+    xterm -geometry 90x57+560+0  -hold -e $STF_BUILDER --id stf_builder-1 --session flp-s1 &
+    xterm -geometry 90x57+0+0    -hold -e $READOUT --id readout-1 --link-id-offset 1000  --session flp-s1 &
+  fi
+  if [[ $FLP_CNT -gt 2 ]]; then
+    xterm -geometry 90x57+1120+0 -hold -e $STF_SENDER  --id stf_sender-2  --session flp-s2 &
+    xterm -geometry 90x57+560+0  -hold -e $STF_BUILDER --id stf_builder-2 --session flp-s2 &
+    xterm -geometry 90x57+0+0    -hold -e $READOUT     --id readout-2 --link-id-offset 2000  --session flp-s2 &
+  fi
+
+else
+  # poor man's tmux environment cloning; make sure you're running tmux in control center (-CC) mode
+  ENV_VAR_FILE=$(mktemp)
+  typeset -gx > $ENV_VAR_FILE
+  # cat $ENV_VAR_FILE
+
+  tmux -CC \
+    new-window \
+    "source $ENV_VAR_FILE; $READOUT --id readout-0 --cru-id 0; read" \; \
+    split-window \
+    "source $ENV_VAR_FILE; $STF_BUILDER; read" \; \
+    split-window  \
+    "source $ENV_VAR_FILE; $STF_SENDER; read" \; \
+    split-window  \
+    "source $ENV_VAR_FILE; $TF_BUILDER --id tf_builder-0; read" \; \
+    select-layout even-horizontal
+fi

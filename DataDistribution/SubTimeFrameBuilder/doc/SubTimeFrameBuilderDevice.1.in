@@ -1,0 +1,202 @@
+.TH "SubTimeFrameBuilderDevice" "1" "September 2018" "" ""
+.SH NAME
+.PP
+SubTimeFrameBuilderDevice \[en] aggregate readout data into Sub Time
+Frames (STF)
+.SH DESCRIPTION
+.PP
+\f[B]SubTimeFrameBuilderDevice\f[] (StfBuilder) is the O2 device
+responsible for aggregating readout data into SubTimeFrame objects on
+the FLPs.
+On the input channel, the StfBuilder receives HBFrame data from the
+readout.
+On the output, the StfBuilder supports the DPL or the native data
+distribution chain forwarding (to SubTimeFrameSender).
+Optionally, the StfBuilder can be used to write STFs to files, before
+they are sent out.
+.SH OPTIONS
+.SS General options
+.TP
+.B \f[B]\-h\f[], \f[B]\-\-help\f[]
+Print help
+.RS
+.RE
+.TP
+.B \f[B]\-v\f[] \f[B]\-\-version\f[]
+Print version
+.RS
+.RE
+.TP
+.B \f[B]\-\-severity\f[] level
+Log severity level: trace, debug, info, state, warn, error, fatal,
+nolog.
+The default value of this parameter is \[aq]\f[I]debug\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-verbosity\f[] level
+Log verbosity level: veryhigh, high, medium, low.
+The default value of this parameter is \[aq]\f[I]medium\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-color\f[] arg
+Log color (true/false).
+The default value of this parameter is \[aq]\f[I]1\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-log\-to\-file\f[] filename
+Log output to a file.
+.RS
+.RE
+.TP
+.B \f[B]\-\-print\-options\f[] [arg]
+Print options.
+The default value of this parameter is \[aq]\f[I]1\f[]\[aq].
+.RS
+.RE
+.SS FairMQ device options
+.TP
+.B \f[B]\-\-id\f[] arg
+Device ID (\f[B]required\f[]).
+.RS
+.RE
+.TP
+.B \f[B]\-\-io\-threads\f[] n
+Number of I/O threads.
+The default value of this parameter is \[aq]\f[I]1\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-transport\f[] arg (=zeromq)
+Transport (\[aq]zeromq\[aq]/\[aq]nanomsg\[aq]/\[aq]shmem\[aq]).
+The default value of this parameter is \[aq]\f[I]zeromq\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-network\-interface\f[] arg
+Network interface to bind on (e.g.
+eth0, ib0..., default will try to detect the interface of the default
+route).
+The default value of this parameter is \[aq]\f[I]default\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-session\f[] arg
+Session name.
+All FairMQ devices in the chain must use the same session parameter.
+The default value of this parameter is \[aq]\f[I]default\f[]\[aq].
+.RS
+.RE
+.SS FairMQ channel parser options
+.TP
+.B \f[B]\-\-mq\-config\f[] path
+JSON input as file.
+.RS
+.RE
+.TP
+.B \f[B]\-\-channel\-config\f[] conf
+Configuration of single or multiple channel(s) by comma separated
+\f[I]key=value\f[] list.
+.RS
+.RE
+.SS SubTimeFrameBuilderDevice options
+.TP
+.B \f[B]\-\-input\-channel\-name\f[] name
+Name of the input readout channel (\f[B]required\f[]).
+.RS
+.RE
+.TP
+.B \f[B]\-\-stand\-alone\f[]
+Standalone operation.
+SubTimeFrames will not be forwarded to other processes.
+.RS
+.RE
+.TP
+.B \f[B]\-\-max\-buffered\-stfs\f[] num
+Maximum number of buffered SubTimeFrames before starting to drop data.
+Unlimited: \-1.
+The default value of this parameter is \[aq]\f[I]\-1\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-output\-channel\-name\f[] name
+Name of the output channel for non\-DPL deployments (\f[B]required\f[]).
+.RS
+.RE
+.TP
+.B \f[B]\-\-cru\-count\f[] num
+Number of CRU Readout processes (each connects to the readout channel,
+index 0 to N\-1).
+The default value of this parameter is \[aq]\f[I]1\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-gui\f[]
+Enable GUI.
+.RS
+.RE
+.SS SubTimeFrameBuilderDevice DPL options
+.TP
+.B \f[B]\-\-enable\-dpl\f[]
+Enable DPL.
+.RS
+.RE
+.TP
+.B \f[B]\-\-dpl\-channel\-name\f[] name
+Name of the DPL output channel for DPL deployments (\f[B]required\f[]
+when \-\-enable\-dpl is used).
+.RS
+.RE
+.SS (Sub)TimeFrame file sink options
+.TP
+.B \f[B]\-\-data\-sink\-enable\f[]
+Enable writing of (Sub)TimeFrames to file.
+.RS
+.RE
+.TP
+.B \f[B]\-\-data\-sink\-dir\f[] dir
+Specifies a root directory where (Sub)TimeFrames are to be written.
+Note: A new directory will be created here for all files of the current
+run.
+.RS
+.RE
+.TP
+.B \f[B]\-\-data\-sink\-file\-name\f[] pattern
+Specifies file name pattern: %n \- file index, %D \- date, %T \- time.
+The default value of this parameter is \[aq]\f[I]%n\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-data\-sink\-max\-stfs\-per\-file\f[] num
+Limit the number of (Sub)TimeFrames per file.
+The default value of this parameter is \[aq]\f[I]1\f[]\[aq].
+.RS
+.RE
+.TP
+.B \f[B]\-\-data\-sink\-max\-file\-size\f[] arg (=4294967296)
+Limit the target size for (Sub)TimeFrame files.\[aq] Note: Actual file
+size might exceed the limit since the (Sub)TimeFrames are written as a
+whole.
+.RS
+.RE
+.TP
+.B \f[B]\-\-data\-sink\-sidecar\f[]
+Write a sidecar file for each (Sub)TimeFrame file containing information
+about data blocks written in the data file.
+Note: Useful for debugging.
+\f[I]Warning: Format of sidecar files is not stable. This option is for
+debugging only.\f[]
+.RS
+.RE
+.SH NOTES
+.PP
+To enable zero\-copy operation using shared memory, make sure the
+parameter \f[B]\-\-transport\f[] is set to \[aq]\f[I]shmem\f[]\[aq] and
+that all input and output channels are of \[aq]\f[I]shmem\f[]\[aq] type
+as well.
+Also, consider setting the \f[B]\-\-io\-threads\f[] parameter to a value
+equal to, or lower than, the number of CPU cores on your system.
+.SH AUTHORS
+Gvozden Nešković <gvozden.neskovic@cern.ch>.

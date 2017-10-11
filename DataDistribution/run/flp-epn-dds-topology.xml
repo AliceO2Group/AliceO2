@@ -1,0 +1,78 @@
+<topology id="myTopology">
+    <var id="numFLPs" value="1" />
+    <var id="numEPNs" value="3" />
+
+    <var id="session" value="default" />
+    <var id="ioThreads" value="8" />
+
+    <!-- one property per communication channel name, written by binders, read by connecters -->
+    <property id="readout" />
+    <property id="builder-stf-channel" />
+    <property id="sender-stf-channel" />
+
+    <decltask id="Readout"> <!-- Readout -->
+        <exe reachable="true">$READOUT_ROOT/bin/readout.exe file://$O2_ROOT/bin/config/readout_emu.cfg</exe>
+    </decltask>
+
+    <decltask id="SubTimeFrameBuilder"> <!-- SubTimeFrameBuilder to run with Readout -->
+        <exe reachable="true">$O2_ROOT/bin/SubTimeFrameBuilderDevice --id stf_builder_%taskIndex% --session ${session} --transport shmem --shm-monitor true --color 0 --channel-config name=builder-stf-channel,type=pair,method=connect name=readout,type=pair,method=connect,address=ipc:///tmp/readout-pipe-0 --io-threads ${ioThreads} -S "&lt;$FAIRROOT_ROOT/lib" -P dds --gui false</exe>
+        <properties>
+            <id access="read">builder-stf-channel</id>
+        </properties>
+    </decltask>
+
+    <decltask id="ReadoutEmulator"> <!-- Readout EMULATOR -->
+        <exe reachable="true">$O2_ROOT/bin/ReadoutEmulatorDevice --id readout-%taskIndex% --transport shmem --shm-monitor true --color 0 --channel-config name=readout,type=pair,method=bind --data-shm-region-size 4294967296 --cru-superpage-size 2097152 --cru-dma-chunk-size 0 --cru-link-count 2 --cru-link-bits-per-s 10000000000 --io-threads ${ioThreads} -S "&lt;$FAIRROOT_ROOT/lib" -P dds --gui false</exe>
+        <properties>
+            <id access="write">readout</id>
+        </properties>
+    </decltask>
+
+    <decltask id="SubTimeFrameBuilderEmu"> <!-- SubTimeFrameBuilder to run with Readout EMULATOR -->
+        <exe reachable="true">$O2_ROOT/bin/SubTimeFrameBuilderDevice --id stf_builder_%taskIndex% --session ${session} --cru-count 1 --transport shmem --shm-monitor true --color 0 --channel-config name=readout,type=pair,method=connect name=builder-stf-channel,type=pair,method=connect --io-threads ${ioThreads} -S "&lt;$FAIRROOT_ROOT/lib" -P dds --gui false</exe>
+        <properties>
+            <id access="read">readout</id>
+            <id access="read">builder-stf-channel</id>
+        </properties>
+    </decltask>
+
+    <decltask id="SubTimeFrameSender">
+        <exe reachable="true">$O2_ROOT/bin/SubTimeFrameSenderDevice --id stf_sender_%taskIndex% --session ${session} --transport shmem --shm-monitor true --color 0 --channel-config name=builder-stf-channel,type=pair,method=bind name=sender-stf-channel,type=pair,method=bind,transport=zeromq,numSockets=${numEPNs} --epn-count ${numEPNs} --io-threads ${ioThreads} -S "&lt;$FAIRROOT_ROOT/lib" -P dds --gui false</exe>
+        <properties>
+            <id access="write">builder-stf-channel</id>
+            <id access="write">sender-stf-channel</id>
+        </properties>
+    </decltask>
+
+    <decltask id="TimeFrameBuilder">
+        <exe reachable="true">$O2_ROOT/bin/TimeFrameBuilderDevice --id tfbuilder_%taskIndex% --session ${session} --shm-monitor true --flp-count ${numFLPs} --color 0 --channel-config name=sender-stf-channel,type=pair,method=connect --io-threads ${ioThreads} -S "&lt;$FAIRROOT_ROOT/lib" -P dds --dds-i %taskIndex% --gui false</exe>
+        <properties>
+            <id access="read">sender-stf-channel</id>
+        </properties>
+    </decltask>
+
+    <declcollection id="flpcollection"><!-- FLP collection with Readout -->
+        <tasks>
+            <id>Readout</id>
+            <id>SubTimeFrameBuilder</id>
+            <id>SubTimeFrameSender</id>
+        </tasks>
+    </declcollection>
+
+    <declcollection id="flpcollectionemu"> <!-- FLP collection with Readout EMULATOR -->
+        <tasks>
+            <id>ReadoutEmulator</id>
+            <id>SubTimeFrameBuilderEmu</id>
+            <id>SubTimeFrameSender</id>
+        </tasks>
+    </declcollection>
+
+    <main id="main">
+        <group id="FLPgroup" n="${numFLPs}">
+            <collection>flpcollectionemu</collection>
+        </group>
+        <group id="EPNgroup" n="${numEPNs}">
+            <task>TimeFrameBuilder</task>
+        </group>
+    </main>
+</topology>

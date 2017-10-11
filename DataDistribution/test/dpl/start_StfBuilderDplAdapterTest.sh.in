@@ -1,0 +1,123 @@
+#!/bin/bash -u
+
+shmmonitor --cleanup &> /dev/null
+
+chainConfig="@CMAKE_BINARY_DIR@/bin/config/readout-emu-flp-epn-chain.json"
+readoutConfig="@CMAKE_BINARY_DIR@/bin/config/readout_cfg/readout_emu.cfg"
+
+function parse_parameters() {
+read -d '' PARSER <<"EOF"
+import argparse
+parser = argparse.ArgumentParser(description='Run StfBuilder-DPL chain',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--no-gui', dest='nogui', required=False, action='store_true', help='Show GUI')
+parser.add_argument('--readout', dest='readout', required=False, action='store_true', help='Use Readout.exe data source.')
+
+parser.add_argument('-f', '--flp', required=False, default=1, action='store', type=int, help='Number of FLP instances (1,2,3)')
+parser.add_argument('-n', '--equip', required=False, default=1, action='store', type=int, help='Number data producer equipment per FLP chain')
+parser.add_argument('-r', '--rate', required=False, default=0.1, action='store', type=float, help='Data rate of each equipment instance (in Gb/s)')
+parser.add_argument('-s', '--rsize', required=False, default=2, action='store', type=int, help='Size of the readout memory segment (in GiB)')
+parser.add_argument('-p', '--spsize', required=False, default=2, action='store', type=int, help='Size of the readout super-pages (in MiB)')
+
+parser.add_argument('--stf-builder-sink-dir', required=False, default='', action='store', help='Dir where to store STFs from SubTimeFrameBuilder')
+try:
+  args = parser.parse_args()
+except SystemExit:
+  exit(1) # return error to stop the script if help is shown
+print("EMU=%s" % ("readout" if args.readout else "emu"))
+print("FLP_CNT=%s" % args.flp)
+print("EQUIPMENT_CNT=%s" % args.equip)
+print("EQUIPMENT_RATE=%s" % int(args.rate * 1e+8))
+print("DATA_REGION_SIZE=%s" % int(args.rsize * (1<<30)))
+print("SUPERPAGE_SIZE=%s" % int(args.spsize * (1<<20)))
+print("GUI=%s" % ("" if args.nogui else "--gui"))
+print("STF_BUILDER_SINK_DIR='%s'" % args.stf_builder_sink_dir)
+EOF
+
+python -c "$PARSER" "$@"
+}
+
+ARGS="$(parse_parameters "$@")"
+if [ ! $? -eq 0 ]; then
+  echo "$ARGS"
+  exit 1
+fi
+
+echo "$ARGS"
+eval $ARGS
+
+IO_THREADS=8
+
+if [[ "$EMU" == "emu" ]]; then
+  READOUT="@CMAKE_BINARY_DIR@/bin/ReadoutEmulatorDevice"
+  READOUT+=" --id readout-0"
+  READOUT+=" --transport shmem"
+  READOUT+=" --session default"
+  READOUT+=" --shm-monitor true"
+  READOUT+=" --mq-config $chainConfig"
+  READOUT+=" --data-shm-region-size $DATA_REGION_SIZE"
+  READOUT+=" --cru-superpage-size $SUPERPAGE_SIZE"
+  READOUT+=" --cru-link-count $EQUIPMENT_CNT"
+  READOUT+=" --cru-link-bits-per-s $EQUIPMENT_RATE"
+  READOUT+=" $GUI"
+  READOUT+=" --io-threads $IO_THREADS"
+  READOUT+=" --link-id-offset 0"
+else
+  echo "Using readout.exe in emulation mode. Configuration is read from $readoutConfig"
+  echo "Make sure the Readout is installed or the Readout module is loaded."
+  echo "Only 1 FLP chain can be emulated when using the readout source."
+  FLP_CNT=1
+
+  READOUT="readout.exe"
+  READOUT+=" file://$readoutConfig"
+fi
+
+STF_BUILDER="SubTimeFrameBuilderDevice"
+STF_BUILDER+=" --id stf_builder-0"
+STF_BUILDER+=" --transport shmem"
+STF_BUILDER+=" --session default"
+STF_BUILDER+=" --shm-monitor true"
+STF_BUILDER+=" --mq-config $chainConfig"
+STF_BUILDER+=" $GUI"
+STF_BUILDER+=" --io-threads $IO_THREADS"
+STF_BUILDER+=" --enable-dpl"
+STF_BUILDER+=" --channel-config name=dpl-stf-channel,transport=shmem,type=pair,method=bind,address=ipc:///tmp/stf-builder-dpl-pipe-0,rateLogging=1"
+
+if [[ ! -z $STF_BUILDER_SINK_DIR ]]; then
+  if [[ ! -d $STF_BUILDER_SINK_DIR ]]; then
+    echo "STF Builder file sink directory does not exist!"
+    exit 1
+  fi
+
+  STF_BUILDER+=" --data-sink-enable"
+  STF_BUILDER+=" --data-sink-dir $STF_BUILDER_SINK_DIR"
+  STF_BUILDER+=" --data-sink-max-stfs-per-file 44"
+  STF_BUILDER+=" --data-sink-sidecar"
+fi
+
+DPL_STF_BRIDGE="StfBuilderDplAdapter"
+DPL_STF_BRIDGE+=" --monitoring-backend no-op://"
+DPL_STF_BRIDGE+=" --id stf-dpl-source"
+DPL_STF_BRIDGE+=" --channel-config name=stf-dpl-source,transport=shmem,type=pair,method=connect,address=ipc:///tmp/stf-builder-dpl-pipe-0,rateLogging=1"
+DPL_STF_BRIDGE+=" --channel-config name=from_stf-dpl-source_to_stf-dpl-sink,transport=shmem,type=pair,method=bind,address=ipc:///tmp/stf-dpl_adapter-pipe-0,rateLogging=1"
+DPL_STF_BRIDGE+=" --stf-dpl-source"
+DPL_STF_BRIDGE+=" --severity info"
+
+DPL_STF_PROCESSOR="StfBuilderDplAdapter"
+DPL_STF_PROCESSOR+=" --monitoring-backend no-op://"
+DPL_STF_PROCESSOR+=" --id stf-dpl-sink"
+DPL_STF_PROCESSOR+=" --channel-config name=from_stf-dpl-source_to_stf-dpl-sink,transport=shmem,type=pair,method=connect,address=ipc:///tmp/stf-dpl_adapter-pipe-0,rateLogging=1"
+DPL_STF_PROCESSOR+=" --stf-dpl-sink"
+DPL_STF_PROCESSOR+=" --severity info"
+
+
+# (FLP) Start FLP+DPL processes
+if [[ $FLP_CNT -gt 0 ]]; then
+  # DPL
+  xterm -geometry 90x57+1680+0 -hold -e @CMAKE_BINARY_DIR@/bin/$DPL_STF_PROCESSOR &
+  xterm -geometry 90x57+1120+0 -hold -e @CMAKE_BINARY_DIR@/bin/$DPL_STF_BRIDGE &
+
+  # FLP
+  xterm -geometry 90x57+560+0 -hold -e @CMAKE_BINARY_DIR@/bin/$STF_BUILDER &
+  xterm -geometry 90x57+0+0 -hold -e $READOUT &
+fi
