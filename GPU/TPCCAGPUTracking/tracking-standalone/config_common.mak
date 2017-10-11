@@ -22,3 +22,33 @@ EXTRAFLAGSLINK				=
 
 COMPILER_FLAGS				= OPT
 CONFIG_LTO					= 1
+
+CXXFILES				= code/AliHLTTPCCASliceData.cxx \
+                                          code/AliHLTTPCCASliceOutput.cxx \
+                                          code/AliHLTTPCCATracker.cxx \
+                                          code/AliHLTTPCCARow.cxx \
+                                          code/AliHLTTPCCANeighboursFinder.cxx \
+                                          code/AliHLTTPCCANeighboursCleaner.cxx \
+                                          code/AliHLTTPCCAGrid.cxx \
+                                          code/AliHLTTPCCAParam.cxx \
+                                          code/AliHLTTPCCATrackletConstructor.cxx \
+                                          code/AliHLTTPCCATrackletSelector.cxx \
+                                          code/AliHLTTPCCAStartHitsFinder.cxx \
+                                          code/AliHLTTPCCAHitArea.cxx \
+                                          code/AliHLTTPCCAGPUTracker.cxx \
+                                          code/AliHLTTPCCATrackParam.cxx \
+                                          code/AliHLTTPCCAClusterData.cxx \
+                                          code/AliHLTTPCCATrackerFramework.cxx \
+                                          standalone/AliHLTLogging.cxx
+
+HLTCA_MERGER_CXXFILES			= merger-ca/AliHLTTPCGMMerger.cxx \
+                                          merger-ca/AliHLTTPCGMSliceTrack.cxx \
+                                          merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx \
+                                          merger-ca/AliHLTTPCGMPropagator.cxx \
+                                          merger-ca/AliHLTTPCGMTrackParam.cxx
+
+
+HLTCA_STANDALONE_CXXFILES		= code/AliHLTTPCCATrack.cxx \
+                                          code/AliHLTTPCCATracklet.cxx \
+                                          code/AliHLTTPCCAStandaloneFramework.cxx \
+                                          code/AliHLTTPCCAMCPoint.cxx
