@@ -25,15 +25,15 @@ set(HEADERS
    include/${MODULE_NAME}/TrackTPC.h
    include/${MODULE_NAME}/TPCCATracking.h
 )
-Set(LINKDEF src/TPCReconstructionLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
+set(LINKDEF src/TPCReconstructionLinkDef.h)
+set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_reconstruction_bucket)
 
 if(DEFINED O2_TPCCA_TRACKING_LIB_DIR)
   include_directories(${O2_TPCCA_TRACKING_LIB_DIR}/include)
-  FIND_LIBRARY(CATRACKING_LIB libO2TPCCATracking.so ${O2_TPCCA_TRACKING_LIB_DIR}/lib)
+  find_library(CATRACKING_LIB NAMES O2TPCCATracking PATHS ${O2_TPCCA_TRACKING_LIB_DIR}/lib NO_DEFAULT_PATH)
   if(NOT CATRACKING_LIB)
-    message(FATAL_ERROR "Cannot find library libO2TPCCATracking.so in ${O2_TPCCA_TRACKING_LIB_DIR}/lib")
+    message(FATAL_ERROR "Cannot find library O2TPCCATracking in ${O2_TPCCA_TRACKING_LIB_DIR}/lib")
   endif()
   link_libraries(${CATRACKING_LIB})
   message("Building TPCCA tracking interface from standalone library in ${O2_TPCCA_TRACKING_LIB_DIR}")
