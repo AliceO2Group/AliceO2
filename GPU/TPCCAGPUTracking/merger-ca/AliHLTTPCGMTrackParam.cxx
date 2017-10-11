@@ -34,10 +34,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 (
  float* PolinomialFieldBz,
  float x[], float y[], float z[], int rowType[], float alpha[], const AliHLTTPCCAParam &param,
- int &N,
- float &Alpha,
- bool UseMeanPt,
- float maxSinPhi
+ int &N, float &Alpha, bool UseMeanPt, float maxSinPhi
  ){
 
   const float kRho = 1.025e-3;//0.9e-3;
@@ -56,13 +53,11 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
   {
     ResetCovariance();
 
-    bool rejectChi2ThisRound = ( nWays == 1 || iWay == 1 );
-    bool markNonFittedClusters = rejectChi2ThisRound && !(param.HighQPtForward() < fabs(prop.GetQPt0()));   
+    const bool rejectChi2ThisRound = ( nWays == 1 || iWay == 1 );
+    const bool markNonFittedClusters = rejectChi2ThisRound && !(param.HighQPtForward() < fabs(fP[4]));
     const double kDeg2Rad = 3.14159265358979323846/180.;
     const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
   
-    bool inFlyDirection = 1;
-
     prop.SetTrack( this, Alpha);
 
     N = 0;
@@ -72,22 +67,20 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       const int ihit = (iWay & 1) ? (maxN - iihit - 1) : iihit;
       if (rowType[ihit] < 0) continue; // hit is excluded from fit
       
-      int err = prop.PropagateToXAlpha(x[ihit], y[ihit], z[ihit], alpha[ihit], inFlyDirection );
+      int err = prop.PropagateToXAlpha(x[ihit], y[ihit], z[ihit], alpha[ihit], iWay & 1 );
 
       if ( err || CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate )
       {
-	// can not propagate or the angle is too big - mark the cluster and continue w/o update
-	if (markNonFittedClusters) rowType[ihit] = -(rowType[ihit] + 1);
+	if (markNonFittedClusters) rowType[ihit] = -(rowType[ihit] + 1); // can not propagate or the angle is too big - mark the cluster and continue w/o update
 	continue;
       }
       
-      inFlyDirection = 0;
       int retVal = prop.Update( y[ihit], z[ihit], rowType[ihit], param, rejectChi2ThisRound);
       if (retVal == 0) { // track is updated
 	N++;
       }
       else if (retVal == 2){ // cluster far away form the track
-	if (markNonFittedClusters) rowType[ihit] = -(rowType[ihit] + 1);       
+	if (markNonFittedClusters) rowType[ihit] = -(rowType[ihit] + 1);
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
