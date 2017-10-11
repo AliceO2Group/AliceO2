@@ -14,10 +14,15 @@
 #ifndef ALICEO2_BASE_GEOMETRYMANAGER_H_
 #define ALICEO2_BASE_GEOMETRYMANAGER_H_
 
+#include <TGeoManager.h> // for TGeoManager
+#include <TGeoMaterial.h>
 #include <TGeoPhysicalNode.h> // for TGeoPNEntry
-#include <TObject.h>          // for TObject
+#include <TGeoShape.h>
+#include <TMath.h>
+#include <TObject.h> // for TObject
 #include "DetectorsBase/DetID.h"
-#include "Rtypes.h" // for Bool_t, GeometryManager::Class, ClassDef, etc
+#include "FairLogger.h" // for LOG
+#include "MathUtils/Cartesian3D.h"
 
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
@@ -54,6 +59,37 @@ class GeometryManager : public TObject
   /// Default destructor
   ~GeometryManager() override = default;
 
+  struct MatBudget {
+    double meanRho = 0.;  // mean density: sum(x_i*rho_i)/sum(x_i) [g/cm3]
+    double meanX2X0 = 0.; // equivalent rad length fraction: sum(x_i/X0_i) [adimensional]
+    double meanA = 0.;    // mean A: sum(x_i*A_i)/sum(x_i) [adimensional]
+    double meanZ = 0.;    // mean Z: sum(x_i*Z_i)/sum(x_i) [adimensional]
+    double meanZ2A = 0.;  // Z/A mean: sum(x_i*Z_i/A_i)/sum(x_i) [adimensional]
+    double length = -1.;  // length: sum(x_i) [cm]
+    int nCross = 0;
+    ; // number of boundary crosses
+
+    MatBudget() = default;
+    ~MatBudget() = default;
+    MatBudget(const MatBudget& src) = default;
+    MatBudget& operator=(const MatBudget& src) = default;
+    void normalize(double step);
+    void accountMaterial(const TGeoMaterial* material);
+    ClassDefNV(MatBudget, 1);
+  };
+
+  static MatBudget MeanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
+
+  static MatBudget MeanMaterialBudget(const Point3D<float>& start, const Point3D<float>& end)
+  {
+    return MeanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+  }
+
+  static MatBudget MeanMaterialBudget(const Point3D<double>& start, const Point3D<double>& end)
+  {
+    return MeanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
+  }
+
  private:
   /// Default constructor
   GeometryManager();
@@ -73,6 +109,7 @@ class GeometryManager : public TObject
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
 };
+
 }
 }
 
