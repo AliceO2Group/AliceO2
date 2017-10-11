@@ -21,6 +21,7 @@
 #pragma link C++ class o2::TPC::RawReader;
 #pragma link C++ class o2::TPC::SyncPatternMonitor;
 #pragma link C++ class o2::TPC::TrackTPC+;
+#pragma link C++ class o2::TPC::TPCCATracking;
 
 #pragma link C++ class std::vector<o2::TPC::TrackTPC>+;
 

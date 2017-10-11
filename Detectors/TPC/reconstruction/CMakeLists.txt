@@ -12,6 +12,7 @@ set(SRCS
    src/RawReader.cxx
    src/SyncPatternMonitor.cxx
    src/TrackTPC.cxx
+   src/TPCCATracking.cxx
 )
 
 set(HEADERS
@@ -22,10 +23,23 @@ set(HEADERS
    include/${MODULE_NAME}/RawReader.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TrackTPC.h
+   include/${MODULE_NAME}/TPCCATracking.h
 )
-Set(LINKDEF src/TPCReconstructionLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})
+set(LINKDEF src/TPCReconstructionLinkDef.h)
+set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_reconstruction_bucket)
+
+if(DEFINED O2_TPCCA_TRACKING_LIB_DIR)
+  include_directories(${O2_TPCCA_TRACKING_LIB_DIR}/include)
+  find_library(CATRACKING_LIB NAMES O2TPCCATracking PATHS ${O2_TPCCA_TRACKING_LIB_DIR}/lib NO_DEFAULT_PATH)
+  if(NOT CATRACKING_LIB)
+    message(FATAL_ERROR "Cannot find library O2TPCCATracking in ${O2_TPCCA_TRACKING_LIB_DIR}/lib")
+  endif()
+  link_libraries(${CATRACKING_LIB})
+  message("Building TPCCA tracking interface from standalone library in ${O2_TPCCA_TRACKING_LIB_DIR}")
+else()
+  message(FATAL_ERROR "cmake variable O2_TPCCA_TRACKING_LIB_DIR is not defined")
+endif()
 
 O2_GENERATE_LIBRARY()
 
