@@ -59,6 +59,8 @@ texture<signed short, cudaTextureType1D, cudaReadModeElementType> gAliTexRefs;
 #ifdef HLTCA_GPU_MERGER
 #include "AliHLTTPCGMMerger.h"
 #include "AliHLTTPCGMTrackParam.cxx"
+#include "AliHLTTPCGMPhysicalTrackModel.cxx"
+#include "AliHLTTPCGMPropagator.cxx"
 #endif
 
 ClassImp( AliHLTTPCCAGPUTrackerNVCC )
