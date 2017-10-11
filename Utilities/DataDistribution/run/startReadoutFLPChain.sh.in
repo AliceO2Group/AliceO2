@@ -1,0 +1,80 @@
+#!/bin/bash
+
+shmmonitor --cleanup
+
+NUM_CRUS=2
+DMA_STREAMS_PER_CRU=4
+
+# ThroughputPer of input streams (or CRU links). Specified in Gbits / s !
+# Max physical limit should ~5Gbit/s for TPC input link (~333 MB/STF/CRU)
+# This works as long as DMA_CHUNK_SIZE is set to 0 (see below)
+DMA_STREAM_BITS_PER_S=$((4 * 1000 * 1000 * 1000))
+
+DATA_REGION_SIZE=$((2 * 1024 * 1024 * 1024))
+SUPERPAGE_SIZE=$((1 * 1024 * 1024))
+
+# Value 0 ignores DMA Chunk size and the whole system works with HBFrame data unit
+# (estimated from the Link speed)
+DMA_CHUNK_SIZE=$((0 * 1024))
+
+readoutMockupConfig="@CMAKE_BINARY_DIR@/bin/config/readout-flp-chain.json"
+
+IO_THREADS=2
+READOUT="ReadoutEmulatorDevice"
+READOUT+=" --transport shmem"
+READOUT+=" --mq-config $readoutMockupConfig"
+READOUT+=" --data-shm-region-size $DATA_REGION_SIZE"
+READOUT+=" --cru-superpage-size $SUPERPAGE_SIZE"
+READOUT+=" --cru-dma-chunk-size $DMA_CHUNK_SIZE"
+READOUT+=" --cru-link-count $DMA_STREAMS_PER_CRU"
+READOUT+=" --cru-link-bits-per-s $DMA_STREAM_BITS_PER_S"
+READOUT+=" --io-threads $IO_THREADS"
+
+BUILDER="SubTimeFrameBuilderDevice"
+BUILDER+=" --id builder"
+BUILDER+=" --transport shmem"
+BUILDER+=" --mq-config $readoutMockupConfig"
+BUILDER+=" --cru-count $NUM_CRUS"
+BUILDER+=" --io-threads $IO_THREADS"
+
+HANDLER="SubTimeFrameTransporterDevice"
+HANDLER+=" --id handler"
+HANDLER+=" --transport shmem"
+HANDLER+=" --mq-config $readoutMockupConfig"
+HANDLER+=" --io-threads $IO_THREADS"
+
+if [[ -z $USE_TMUX ]]; then
+  xterm -geometry 90x57+0+0 -hold -e @CMAKE_BINARY_DIR@/bin/$READOUT --id readout-0 --cru-id 0 &
+  if [[ $NUM_CRUS -gt 1 ]]; then
+    xterm -geometry 90x57+560+0 -hold -e @CMAKE_BINARY_DIR@/bin/$READOUT --id readout-1 --cru-id 1 &
+  fi
+  xterm -geometry 90x57+1120+0 -hold -e @CMAKE_BINARY_DIR@/bin/$BUILDER &
+  xterm -geometry 90x57+1680+0 -hold -e @CMAKE_BINARY_DIR@/bin/$HANDLER &
+else
+  # poor man's tmux environment cloning; make sure you're running tmux in control center (-CC) mode
+  ENV_VAR_FILE=$(mktemp)
+  typeset -gx > $ENV_VAR_FILE
+  cat $ENV_VAR_FILE
+
+  if [[ $NUM_CRUS -gt 1 ]]; then
+    tmux -CC \
+      new-window \
+      "source $ENV_VAR_FILE; @CMAKE_BINARY_DIR@/bin/$READOUT --id readout-0 --cru-id 0; read" \; \
+      split-window \
+      "source $ENV_VAR_FILE; @CMAKE_BINARY_DIR@/bin/$READOUT --id readout-1 --cru-id 1; read" \; \
+      split-window \
+      "source $ENV_VAR_FILE; @CMAKE_BINARY_DIR@/bin/$BUILDER; read" \; \
+      split-window  \
+      "source $ENV_VAR_FILE; @CMAKE_BINARY_DIR@/bin/$HANDLER; read" \; \
+      select-layout even-horizontal
+  else
+    tmux -CC \
+      new-window \
+      "source $ENV_VAR_FILE; @CMAKE_BINARY_DIR@/bin/$READOUT0; read" \; \
+      split-window \
+      "source $ENV_VAR_FILE; @CMAKE_BINARY_DIR@/bin/$BUILDER; read" \; \
+      split-window  \
+      "source $ENV_VAR_FILE; @CMAKE_BINARY_DIR@/bin/$HANDLER; read" \; \
+      select-layout even-horizontal
+    fi
+fi
