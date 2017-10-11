@@ -30,6 +30,8 @@ add_library(${MODULE} SHARED
         ../standalone/AliHLTLogging.cxx
         ../cmodules/timer.cpp)
 
+#set_target_properties(${MODULE} PROPERTIES SUFFIX .so) #Could force .so on MacOS, but no longer needed
+
 add_definitions(-DHLTCA_STANDALONE -DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 
 include_directories(../include ../code ../base ../merger-ca ../cagpubuild)
