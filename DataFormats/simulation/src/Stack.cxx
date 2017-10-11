@@ -13,6 +13,7 @@
 /// \author M. Al-Turany - June 2014
 
 #include "DetectorsBase/DetID.h"
+#include "DetectorsBase/Detector.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/MCTrack.h"
 
@@ -316,6 +317,12 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
 
   FairDetector *det = nullptr;
   while ((det = (FairDetector *) fDetIter->Next())) {
+
+    // in future we will update track indices like this:
+    // (where the dynamic cast should be avoided and
+    // rather the list of o2::Base::Detectors cached somewhere)
+    auto o2det = dynamic_cast<o2::Base::Detector*>(det);
+    o2det->updateHitTrackIndices(mIndexMap);
 
     // Get hit collections from detector
     Int_t iColl = 0;
