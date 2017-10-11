@@ -91,6 +91,7 @@ int main(int argc, char** argv)
 #endif
 	if (configStandalone.configTF.bunchSim && configStandalone.configTF.nMerge) {printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n"); return(1);}
 	if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {printf("Can only produce QA pdf output when input files are specified!\n"); return(1);}
+	if ((configStandalone.nways & 1) == 0) {printf("nWay setting musst be odd number!\n"); return(1);}
 
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	

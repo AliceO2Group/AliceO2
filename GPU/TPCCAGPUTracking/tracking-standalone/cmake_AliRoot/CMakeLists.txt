@@ -24,6 +24,8 @@ add_library(${MODULE} SHARED
         ../merger-ca/AliHLTTPCGMMerger.cxx
         ../merger-ca/AliHLTTPCGMSliceTrack.cxx
         ../merger-ca/AliHLTTPCGMTrackParam.cxx
+        ../merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx
+        ../merger-ca/AliHLTTPCGMPropagator.cxx
         ../interface/AliHLTTPCCAO2Interface.cxx
         ../standalone/AliHLTLogging.cxx
         ../cmodules/timer.cpp)
