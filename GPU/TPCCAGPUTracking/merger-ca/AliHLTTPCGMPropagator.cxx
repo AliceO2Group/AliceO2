@@ -335,7 +335,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
   float mS2 = 1./(err2Z + c11);
   
   //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1, z0, z1);
-  float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 5 : 5; // change to fT0
+  //float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 5 : 5; // change to fT0
   //if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;
   fT->Chi2()  += mS0*z0*z0 + mS2*z1*z1;
   //SG!!! if( fabs( fP[2] + z0*c20*mS0  ) > fMaxSinPhi ) return 1;
