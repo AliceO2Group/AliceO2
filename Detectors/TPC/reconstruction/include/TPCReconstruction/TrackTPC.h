@@ -89,9 +89,9 @@ class TrackTPC {
 
     float getP()                         const { return mTrackParCov.GetP(); }
     float getPt()                        const { return mTrackParCov.GetPt(); }
-    void  getXYZ(std::array<float,3> &xyz)           const { mTrackParCov.GetXYZ(xyz); }
-    bool  getPxPyPz(std::array<float,3> &pxyz)       const { return mTrackParCov.GetPxPyPz(pxyz); }
-    bool  getPosDir(std::array<float,9> &posdirp)    const { return mTrackParCov.GetPosDir(posdirp); }
+    void  getXYZ(std::array<float,3> &xyz)           const { mTrackParCov.GetXYZGlo(xyz); }
+    bool  getPxPyPz(std::array<float,3> &pxyz)       const { return mTrackParCov.GetPxPyPzGlo(pxyz); }
+    bool  getPosDir(std::array<float,9> &posdirp)    const { return mTrackParCov.GetPosDirGlo(posdirp); }
 
     /// \todo implement getters for covariance (missing access to full covariance in Track.h)
 

@@ -12,11 +12,7 @@
 /// \brief Implementation of the GeometryManager class
 
 #include "DetectorsBase/GeometryManager.h"
-
-#include "FairLogger.h" // for LOG
-
 #include "TCollection.h"      // for TIter
-#include "TGeoManager.h"      // for TGeoManager
 #include "TGeoMatrix.h"       // for TGeoHMatrix
 #include "TGeoNode.h"         // for TGeoNode
 #include "TGeoPhysicalNode.h" // for TGeoPhysicalNode, TGeoPNEntry
@@ -28,14 +24,16 @@
 
 using namespace o2::Base;
 
-ClassImp(o2::Base::GeometryManager)
+ClassImp(o2::Base::GeometryManager);
+ClassImp(o2::Base::GeometryManager::MatBudget);
 
-  TGeoManager* GeometryManager::sGeometry = nullptr;
+TGeoManager* GeometryManager::sGeometry = nullptr;
 
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
 /// collects several static methods
 
+//______________________________________________________________________
 GeometryManager::GeometryManager()
 {
   /// default constructor
@@ -45,6 +43,7 @@ GeometryManager::GeometryManager()
                 "N detectors exceeds available N bits for their encoding");
 }
 
+//______________________________________________________________________
 Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
@@ -81,6 +80,7 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
   return getOriginalMatrixFromPath(path, m);
 }
 
+//______________________________________________________________________
 Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m)
 {
   m.Clear();
@@ -127,6 +127,7 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
   return kTRUE;
 }
 
+//______________________________________________________________________
 const char* GeometryManager::getSymbolicName(DetID detid, int sensid)
 {
   /**
@@ -156,6 +157,7 @@ TGeoPNEntry* GeometryManager::getPNEntry(DetID detid, Int_t sensid)
   return pne;
 }
 
+//______________________________________________________________________
 TGeoHMatrix* GeometryManager::getMatrix(DetID detid, Int_t sensid)
 {
   /**
@@ -184,6 +186,7 @@ TGeoHMatrix* GeometryManager::getMatrix(DetID detid, Int_t sensid)
   return &matTmp;
 }
 
+//______________________________________________________________________
 Bool_t GeometryManager::getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& m)
 {
   /**
@@ -197,4 +200,137 @@ Bool_t GeometryManager::getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& 
   }
 
   return getOriginalMatrix(symname, m);
+}
+
+// ================= methods for nested MatBudget class ================
+
+//______________________________________________________________________
+void GeometryManager::MatBudget::normalize(double step)
+{
+  double nrm = 1. / step;
+  meanRho *= nrm;
+  meanA *= nrm;
+  meanZ *= nrm;
+  meanZ2A *= nrm;
+  length = step;
+}
+
+//______________________________________________________________________
+void GeometryManager::MatBudget::accountMaterial(const TGeoMaterial* material)
+{
+  meanRho = material->GetDensity();
+  meanX2X0 = material->GetRadLen();
+  meanA = material->GetA();
+  meanZ = material->GetZ();
+  if (material->IsMixture()) {
+    TGeoMixture* mixture = (TGeoMixture*)material;
+    Double_t norm = 0.;
+    meanZ2A = 0.;
+    for (Int_t iel = 0; iel < mixture->GetNelements(); iel++) {
+      norm += mixture->GetWmixt()[iel];
+      meanZ2A += mixture->GetZmixt()[iel] * mixture->GetWmixt()[iel] / mixture->GetAmixt()[iel];
+    }
+    meanZ2A /= norm;
+  } else {
+    meanZ2A = meanZ / meanA;
+  }
+}
+
+//_____________________________________________________________________________________
+GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y0, float z0,
+							       float x1, float y1, float z1)
+{
+  //
+  // Calculate mean material budget and material properties between
+  //    the points "0" and "1".
+  //
+  // "mparam" - parameters used for the energy and multiple scattering
+  //  corrections:
+  //
+  // see MatBudget data members for provided information
+  //
+  //  Origin:  Marian Ivanov, Marian.Ivanov@cern.ch
+  //
+  //  Corrections and improvements by
+  //        Andrea Dainese, Andrea.Dainese@lnl.infn.it,
+  //        Andrei Gheata,  Andrei.Gheata@cern.ch
+  //
+  //  Ported to O2: ruben.shahoyan@cern.ch
+  //
+
+  double length, startD[3] = { x0, y0, z0 };
+  double dir[3] = { x1 - x0, y1 - y0, z1 - z0 };
+  if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) <
+      TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
+    return MatBudget(); // return empty struct
+  }
+  length = TMath::Sqrt(length);
+  double invlen = 1. / length;
+  for (int i = 3; i--;) {
+    dir[i] *= invlen;
+  }
+  
+  // Initialize start point and direction
+  TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
+  if (!currentnode) {
+    LOG(ERROR) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0 << FairLogger::endl;
+    return MatBudget(); // return empty struct
+  }
+
+  MatBudget budTotal, budStep;
+  budStep.accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial());
+  budStep.length = length;
+
+  // Locate next boundary within length without computing safety.
+  // Propagate either with length (if no boundary found) or just cross boundary
+  gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
+  Double_t stepTot = 0.0; // Step made
+  Double_t step = gGeoManager->GetStep();
+  // If no boundary within proposed length, return current step data
+  if (!gGeoManager->IsOnBoundary()) {
+    budStep.meanX2X0 = budStep.length / budStep.meanX2X0;
+    return MatBudget(budStep);
+  }
+  // Try to cross the boundary and see what is next
+  Int_t nzero = 0;
+  while (length > TGeoShape::Tolerance()) {
+    if (step < 2. * TGeoShape::Tolerance()) {
+      nzero++;
+    }
+    else {
+      nzero = 0;
+    }
+    if (nzero > 3) {
+      // This means navigation has problems on one boundary
+      // Try to cross by making a small step
+      const double* curPos = gGeoManager->GetCurrentPoint();
+      LOG(ERROR) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')'
+                 << FairLogger::endl;
+      budTotal.normalize(stepTot);
+      budTotal.nCross = -1; // flag failed navigation
+      return MatBudget(budTotal);
+    }
+    stepTot += step;
+
+    budTotal.meanRho += step * budStep.meanRho;
+    budTotal.meanX2X0 += step / budStep.meanX2X0;
+    budTotal.meanA += step * budStep.meanA;
+    budTotal.meanZ += step * budStep.meanZ;
+    budTotal.meanZ2A += step * budStep.meanZ2A;
+    budTotal.nCross++;
+
+    if (step >= length) {
+      break;
+    }
+    currentnode = gGeoManager->GetCurrentNode();
+    if (!currentnode) {
+      break;
+    }
+    length -= step;
+    budStep.accountMaterial(currentnode->GetVolume()->GetMedium()->GetMaterial());
+    gGeoManager->FindNextBoundaryAndStep(length, kFALSE);
+    step = gGeoManager->GetStep();
+  }
+  budTotal.normalize(stepTot);
+  return MatBudget(budTotal);
 }

@@ -73,7 +73,7 @@ class CookedTrack : public TObject
   Double_t getSnp() const { return mTrack.GetSnp(); }
   Double_t getTgl() const { return mTrack.GetTgl(); }
   Double_t getPt() const { return mTrack.GetPt(); }
-  Bool_t getPxPyPz(std::array<float,3> &pxyz) const { return mTrack.GetPxPyPz(pxyz); }
+  Bool_t getPxPyPz(std::array<float,3> &pxyz) const { return mTrack.GetPxPyPzGlo(pxyz); }
   void resetCovariance(Double_t s2 = 0.) { mTrack.ResetCovariance(float(s2)); }
 
   const o2::Base::Track::TrackParCov&  getBaseTrack() const {return mTrack;}
