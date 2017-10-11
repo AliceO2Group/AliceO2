@@ -16,7 +16,6 @@
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSMFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/PixelReader.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include <utility>
 #include <vector>
 
@@ -26,6 +25,13 @@ class TClonesArray;
 
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
+
 namespace ITSMFT
 {
   
@@ -48,7 +54,10 @@ class Clusterer {
   
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
-
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
+    mClsLabels = truth;
+  }
+  
  private:
   
   enum {kMaxRow=650}; //Anything larger than the real number of rows (512 for ALPIDE)
@@ -74,7 +83,7 @@ class Clusterer {
   UShort_t mCol = 0xffff;    ///< Column being processed
 
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
-
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels = nullptr; // Cluster MC labels
 };
 
 

@@ -18,6 +18,8 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::ITSMFT;
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
@@ -165,13 +167,16 @@ void Clusterer::finishChip(TClonesArray &clusters)
     Point3D<float> xyzLoc( Segmentation::getFirstRowCoordinate() + x*Segmentation::PitchRow/npix, 0.f,
 			   Segmentation::getFirstColCoordinate() + z*Segmentation::PitchCol/npix );
     auto xyzTra = mGeometry->getMatrixT2L(mChipData.chipID)^(xyzLoc); // inverse transform from Local to Tracking frame
-    Cluster *c = static_cast<Cluster *>(clusters.ConstructedAt(noc++));
+    Cluster *c = static_cast<Cluster *>(clusters.ConstructedAt(noc));
     c->setROFrame(mChipData.roFrame);
     c->setSensorID(mChipData.chipID);
     c->setPos(xyzTra);
     c->setErrors(SigmaX2, SigmaY2, 0.f);
     c->setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
-    for (int i=nlab;i--;) c->setLabel(labels[i],i);
+    if (mClsLabels) {
+      for (int i=nlab;i--;) mClsLabels->addElement(noc,labels[i]);
+    }
+    noc++;
   }
 }
 

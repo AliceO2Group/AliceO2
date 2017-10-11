@@ -49,7 +49,7 @@ class CookedTracker
   CookedTracker(Int_t nThreads=1);
   CookedTracker(const CookedTracker&) = delete;
   CookedTracker& operator=(const CookedTracker& tr) = delete;
-  virtual ~CookedTracker();
+  ~CookedTracker() = default;
 
   void setVertex(const Double_t* xyz, const Double_t* ers = nullptr)
   {
@@ -84,8 +84,10 @@ class CookedTracker
   o2::ITSMFT::Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::ITS::GeometryTGeo* geom);
-  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
-    mMCTruth=truth;
+  void setMCTruthContainers(const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clsLabels,
+                            o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabels) {
+    mClsLabels=clsLabels;
+    mTrkLabels=trkLabels;
   }
   
   // internal helper classes
@@ -106,7 +108,9 @@ class CookedTracker
  private:
 
   const o2::ITS::GeometryTGeo* mGeom = nullptr; /// interface to geometry
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruth = nullptr; /// MC labels
+  const
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels = nullptr; /// Cluster MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mTrkLabels = nullptr; /// Track MC labels
   
   Int_t mNumOfThreads; ///< Number of tracking threads
   

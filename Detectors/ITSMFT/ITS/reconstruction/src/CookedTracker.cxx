@@ -89,13 +89,6 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
   setVertex(xyz, ers);
 }
 
-CookedTracker::~CookedTracker()
-{
-  //--------------------------------------------------------------------
-  // Virtual destructor
-  //--------------------------------------------------------------------
-}
-
 //__________________________________________________________________________
 Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
 {
@@ -106,19 +99,13 @@ Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
   Int_t noc = t.getNumberOfClusters();
   std::array<Label, Cluster::maxLabels*CookedTracker::kNLayers > lb;
   std::array<Int_t, Cluster::maxLabels*CookedTracker::kNLayers > mx;
-  std::array<Cluster*,CookedTracker::kNLayers> clusters;
+
   int nLabels = 0;
-  
   for (int i=noc; i--;) {
     Int_t index = t.getClusterIndex(i);
-    clusters[i] = getCluster(index);
-  }
-
-  Label lab;
-  for (int i=noc; i--;) {
-    Cluster* c = clusters[i];
-    for (int il=0;il<Cluster::maxLabels;il++) { // check all labels of the cluster
-      lab = c->getLabel(il);
+    const Cluster* c = getCluster(index);
+    auto labels = mClsLabels->getLabels(c->GetUniqueID());
+    for (auto lab : labels) { // check all labels of the cluster
       if ( lab.isEmpty() ) break; // all following labels will be empty also
       // was this label already accounted for ?
       bool add = true;
@@ -137,6 +124,7 @@ Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
     }
   }
   
+  Label lab;
   Int_t maxL = 0; // find most encountered label
   for (int i=nLabels; i--;) {
     if (mx[i] > maxL) {
@@ -545,11 +533,11 @@ void CookedTracker::process(const TClonesArray& clusters, std::vector<CookedTrac
     nSeeds += seedArray[t].size();
     for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
-      if (mMCTruth) {
+      if (mTrkLabels) {
          Label label = cookLabel(track, 0.); // For comparison only
          if (label.getTrackID() >= 0) ngood++;
          Int_t idx=tracks.size();
-	 mMCTruth->addElement(idx,label);
+	 mTrkLabels->addElement(idx,label);
       }
       setExternalIndices(track);
       tracks.push_back(track);

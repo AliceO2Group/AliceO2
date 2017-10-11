@@ -46,7 +46,7 @@ TrivialClusterer::process(const TClonesArray* digits, TClonesArray* clusters)
     // inverse transform from local to tracking frame
     auto tra = mGeometry->getMatrixT2L( dig->getChipIndex() )^(loc);
     Cluster c(dig->getChipIndex(), tra, sigma2, sigma2, 0.);
-    c.setLabel(lab, 0);
+    //c.setLabel(lab, 0);
 
     new (clref[clref.GetEntriesFast()]) Cluster(c);
   }

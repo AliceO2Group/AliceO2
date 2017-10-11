@@ -16,6 +16,7 @@
   #include "ITSBase/GeometryTGeo.h"
   #include "ITSMFTReconstruction/Cluster.h"
   #include "SimulationDataFormat/MCCompLabel.h"
+  #include "SimulationDataFormat/MCTruthContainer.h"
   #include <vector>
 #endif
 
@@ -51,8 +52,11 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *clusTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray clusArr("o2::ITSMFT::Cluster"), *pclusArr(&clusArr);
-  clusTree->SetBranchAddress("ITSCluster",&pclusArr);
+  TClonesArray *clusArr=nullptr;
+  clusTree->SetBranchAddress("ITSCluster",&clusArr);
+  // Cluster MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clusLabArr=nullptr;
+  clusTree->SetBranchAddress("ITSClusterMCTruth",&clusLabArr);
 
   Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
   Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
@@ -60,16 +64,16 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   int lastReadHitEv = -1;
   for (ievC=0;ievC<nevCl;ievC++) {
     clusTree->GetEvent(ievC);
-    Int_t nc = clusArr.GetEntriesFast();
+    Int_t nc = clusArr->GetEntriesFast();
     printf("processing cluster event %d\n",ievC);
 
     while(nc--) {
       // cluster is in tracking coordinates always
-      Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(nc));
+      Cluster *c=static_cast<Cluster *>(clusArr->UncheckedAt(nc));
       Int_t chipID = c->getSensorID();
       const auto locC = c->getXYZLoc(*gman); // convert from tracking to local frame
       const auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
-      o2::MCCompLabel lab = c->getLabel(0);
+      auto lab = (clusLabArr->getLabels(nc))[0];
 
       float dx=0,dz=0;
       int trID = lab.getTrackID();

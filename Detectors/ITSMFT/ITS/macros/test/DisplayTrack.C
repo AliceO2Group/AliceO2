@@ -121,6 +121,9 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   
   TClonesArray *clusArr=nullptr;
   tree->SetBranchAddress("ITSCluster",&clusArr);
+  // Cluster MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clsLabArr=nullptr;
+  tree->SetBranchAddress("ITSClusterMCTruth",&clsLabArr);
 
   tree->GetEvent(event);
 
@@ -130,8 +133,9 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   nc=clusArr->GetEntriesFast(); n=0;
   while(nc--) {
       Cluster *c=static_cast<Cluster *>(clusArr->UncheckedAt(nc));
+      auto lab=(clsLabArr->getLabels(nc))[0];
       auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
-      if (c->getLabel(0).getTrackID() == track) {
+      if (lab.getTrackID() == track) {
          points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
          n++;
       }      
@@ -161,8 +165,8 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
 
   Int_t nt=trkArr->size(); n=0;
   while(nt--) {
-    const CookedTrack &t=(*trkArr)[nt];
-      o2::MCCompLabel lab=trkLabArr->getElement(nt);
+      const CookedTrack &t=(*trkArr)[nt];
+      auto lab=(trkLabArr->getLabels(nt))[0];
       if (TMath::Abs(lab.getTrackID()) != track) continue;
       Int_t nc=t.getNumberOfClusters();
       while (n<nc) {

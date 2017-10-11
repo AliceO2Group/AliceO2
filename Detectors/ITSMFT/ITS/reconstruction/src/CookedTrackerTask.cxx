@@ -33,7 +33,7 @@ using namespace o2::Base::Utils;
 CookedTrackerTask::CookedTrackerTask(Int_t n, Bool_t useMCTruth):FairTask("ITSCookedTrackerTask")
   ,mTracker(n){
   if (useMCTruth)
-    mMCTruthArray = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    mTrkLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 }
 
 //_____________________________________________________________________
@@ -43,9 +43,9 @@ CookedTrackerTask::~CookedTrackerTask()
     mTracksArray->clear();
     delete mTracksArray;
   }
-  if (mMCTruthArray) {
-    mMCTruthArray->clear();
-    delete mMCTruthArray;
+  if (mTrkLabels) {
+    mTrkLabels->clear();
+    delete mTrkLabels;
   }
 }
 
@@ -70,13 +70,20 @@ InitStatus CookedTrackerTask::Init()
   mgr->RegisterAny("ITSTrack", mTracksArray, kTRUE);
 
   // Register MC Truth container
-  if (mMCTruthArray)
-  mgr->Register("ITSTrackMCTruth", "ITS", mMCTruthArray, kTRUE);
-
+  if (mTrkLabels) {
+     mgr->Register("ITSTrackMCTruth", "ITS", mTrkLabels, kTRUE);
+     mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *>("ITSClusterMCTruth");
+     if (!mClsLabels) {
+        LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..."
+		   << FairLogger::endl;
+        return kERROR;
+     }
+  }
+  
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache( bit2Mask(TransformType::T2GRot) ); // make sure T2GRot matrices are loaded
   mTracker.setGeometry(geom);
-  mTracker.setMCTruthContainer(mMCTruthArray);
+  mTracker.setMCTruthContainers(mClsLabels, mTrkLabels);
   
   return kSUCCESS;
 }
@@ -85,7 +92,7 @@ InitStatus CookedTrackerTask::Init()
 void CookedTrackerTask::Exec(Option_t* option)
 {
   if (mTracksArray) mTracksArray->clear();
-  if (mMCTruthArray) mMCTruthArray->clear();
+  if (mTrkLabels) mTrkLabels->clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
   mTracker.process(*mClustersArray, *mTracksArray);

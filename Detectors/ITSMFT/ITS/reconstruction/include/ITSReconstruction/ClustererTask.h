@@ -24,6 +24,13 @@ class TClonesArray;
 
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
+ 
 namespace ITS
 {
   
@@ -33,7 +40,7 @@ class ClustererTask : public FairTask
   using Clusterer = o2::ITSMFT::Clusterer;
   
  public:
-  ClustererTask();
+  ClustererTask(Bool_t useMCTruth=kTRUE);
   ~ClustererTask() override;
 
   InitStatus Init() override;
@@ -46,6 +53,7 @@ class ClustererTask : public FairTask
   Clusterer mClusterer;      ///< Cluster finder
 
   TClonesArray* mClustersArray = nullptr; ///< Array of clusters
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< MC labels
 
   ClassDefOverride(ClustererTask, 1)
 };
