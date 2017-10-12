@@ -275,13 +275,34 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posY, floa
   return 0;
 }
 
+GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int rowType)
+{
+  const float *cy = param.GetParamS0Par(0,rowType);
+  const float *cz = param.GetParamS0Par(1,rowType);
+  
+  float secPhi2 = fT0.GetSecPhi()*fT0.GetSecPhi();
+  const float kZLength = 250.f - 0.275f;
+  float zz = fContinuousTracking ? 125. : fabs( kZLength - fabs(posZ) );
+  float zz2 = zz*zz;
+  float angleY2 = secPhi2 - 1.f; 
+  float angleZ2 = fT0.DzDs()*fT0.DzDs() * secPhi2 ;
+
+  float cy0 = cy[0] + cy[1]*zz + cy[3]*zz2;
+  float cy1 = cy[2] + cy[5]*zz;
+  float cy2 = cy[4];
+  float cz0 = cz[0] + cz[1]*zz + cz[3]*zz2;
+  float cz1 = cz[2] + cz[5]*zz;
+  float cz2 = cz[4];
+  
+  err2Y = fabs( cy0 + angleY2 * ( cy1 + angleY2*cy2 ) );
+  err2Z = fabs( cz0 + angleZ2 * ( cz1 + angleZ2*cz2 ) );      
+}
 
 GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, bool rejectChi2 )
 {
-  if (fabs(posY - fT0.GetY()) > 3 || fabs(posZ - fT0.GetZ()) > 3) return 2; 
-
   float *fC = fT->Cov();
   float *fP = fT->Par();
+  if (fT->NDF() > 0 && (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3)) return 2; 
   float 
     c00 = fC[ 0],
     c11 = fC[ 2],
@@ -289,29 +310,8 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
     c31 = fC[ 7],
     c40 = fC[10];
 
-  //Copy computation of err2? from first propagation (above) for update
   float err2Y, err2Z;
-  {
-    const float *cy = param.GetParamS0Par(0,rowType);
-    const float *cz = param.GetParamS0Par(1,rowType);
-    
-    float secPhi2 = fT0.GetSecPhi()*fT0.GetSecPhi();
-    const float kZLength = 250.f - 0.275f;
-    float zz = fContinuousTracking ? 125. : fabs( kZLength - fabs(posZ) );
-    float zz2 = zz*zz;
-    float angleY2 = secPhi2 - 1.f; 
-    float angleZ2 = fT0.DzDs()*fT0.DzDs() * secPhi2 ;
-
-    float cy0 = cy[0] + cy[1]*zz + cy[3]*zz2;
-    float cy1 = cy[2] + cy[5]*zz;
-    float cy2 = cy[4];
-    float cz0 = cz[0] + cz[1]*zz + cz[3]*zz2;
-    float cz1 = cz[2] + cz[5]*zz;
-    float cz2 = cz[4];
-    
-    err2Y = fabs( cy0 + angleY2 * ( cy1 + angleY2*cy2 ) );
-    err2Z = fabs( cz0 + angleZ2 * ( cz1 + angleZ2*cz2 ) );      
-  }
+  GetErr2(err2Y, err2Z, param, posZ, rowType);
   
   if ( fT->NDF()==-5 ) { // first measurement: no need to filter, as the result is known in advance. just set it. 
     fP[ 0] = posY;
