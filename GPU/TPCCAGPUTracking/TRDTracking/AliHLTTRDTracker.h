@@ -30,8 +30,9 @@ public:
 
   // struct to hold the information on the space points
   struct AliHLTTRDSpacePointInternal {
-    double fX[3];             // 3d position in sector coordinates
-    double fCov[2];           // sigma_y^2, sigma_yz, sigma_z^2
+    double fR;                // x position (7mm above anode wires)
+    double fX[2];             // y and z position (sector coordinates)
+    double fCov[3];           // sigma_y^2, sigma_yz, sigma_z^2
     double fDy;               // deflection over drift length
     int fId;                  // index
     int fLabel[3];            // MC labels
@@ -42,12 +43,18 @@ public:
 
   struct Hypothesis {
     double fChi2;
+    int fLayers;
     int fCandidateId;
     int fTrackletId;
   };
 
   static bool Hypothesis_Sort(const Hypothesis &lhs, const Hypothesis &rhs) {
-    return (lhs.fChi2 < rhs.fChi2);
+    if (lhs.fLayers < 1 || rhs.fLayers < 1) {
+      return ( lhs.fChi2 < rhs.fChi2 );
+    }
+    else {
+      return ( (lhs.fChi2/lhs.fLayers) < (rhs.fChi2/rhs.fLayers) );
+    }
   }
 
   void Init();
@@ -56,28 +63,33 @@ public:
   void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
   void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPCLab, int nTPCTracks, int *tracksTPCnTrklts = 0x0);
   bool CalculateSpacePoints();
-  bool FollowProlongation(AliHLTTRDTrack *t, double mass);
-  void EnableDebugOutput() { fDebugOutput = true; }
-  void SetPtThreshold(float minPt) { fMinPt = minPt; }
-  void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
+  bool FollowProlongation(AliHLTTRDTrack *t);
   int GetDetectorNumber(const double zPos, double alpha, int layer);
-  bool AdjustSector(AliHLTTRDTrack *t);
+  bool AdjustSector(AliHLTTRDTrack *t, int layer);
   int GetSector(double alpha);
   void CountMatches(int trkLbl, std::vector<int> *matches);
   bool FindChambersInRoad(AliHLTTRDTrack *t, float roadY, float roadZ, int iLayer, std::vector<int> &det, float zMax);
   bool IsFindable(float y, float z, float alpha, int layer);
 
-  // for testing
-  bool IsTrackletSortingOk();
+  // settings
+  void SetMCEvent(AliMCEvent* mc) {fMCEvent = mc;}
+  void EnableDebugOutput() { fDebugOutput = true; }
+  void SetPtThreshold(float minPt) { fMinPt = minPt; }
+  void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
+  void SetMaxMissingLayers(int ly) {fMaxMissingLy = ly; }
+
   float GetPtThreshold() { return fMinPt; }
   float GetChi2Threshold() { return fMaxChi2; }
+  int   GetMaxMissingLayers() { return fMaxMissingLy; }
 
+  // for testing
+  bool IsTrackletSortingOk();
 
   AliHLTTRDTrack *Tracks() const { return fTracks;}
   int NTracks() const { return fNTracks;}
   AliHLTTRDSpacePointInternal *SpacePoints() const { return fSpacePoints; }
 
-  //----- Functions to be overridden from AliTracker -----
+  //----- Functions to be overwritten from AliTracker -----
   Int_t Clusters2Tracks(AliESDEvent *event) { return 0; }
   Int_t PropagateBack(AliESDEvent *event) { return 0; }
   Int_t RefitInward(AliESDEvent *event) { return 0; }
@@ -89,8 +101,6 @@ public:
 
   AliHLTTRDTracker();
   virtual ~AliHLTTRDTracker();
-
-  void SetMCEvent(AliMCEvent* mc) {fMCEvent = mc;}
 
 protected:
 
@@ -109,10 +119,11 @@ protected:
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
   AliHLTTRDTrack *fCandidates[2][kNcandidates];     // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
-  AliTRDgeometry *fTRDgeometry;               // TRD geometry
+  AliTRDgeometry *fGeo;                       // TRD geometry
   bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking
   float fMaxChi2;                             // max chi2 for tracklets
+  int fMaxMissingLy;                          // max number of missing layers per track
   double fChi2Penalty;                        // chi2 added to the track for no update
   int fNhypothesis;                           // number of track hypothesis per layer
   std::vector<int> fMaskedChambers;           // vector holding bad TRD chambers
