@@ -21,7 +21,7 @@ class AliTRDtrackletMCM;
 class AliHLTTRDTrackletWord {
  public:
   AliHLTTRDTrackletWord(UInt_t trackletWord = 0);
-  AliHLTTRDTrackletWord(UInt_t trackletWord, Int_t hcid, Int_t id, Int_t *label = 0);
+  AliHLTTRDTrackletWord(UInt_t trackletWord, Int_t hcid, Int_t id, Int_t *label = 0x0);
   AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs);
@@ -43,7 +43,7 @@ class AliHLTTRDTrackletWord {
   Int_t GetMCM() const;
 
   Int_t GetId() const { return fId; }
-  const Int_t* GetLabel() const { return fLabel; }
+  const Int_t* GetLabels() const { return fLabel; }
   Int_t GetLabel(int i=0) const { return fLabel[i];}
   
   // ----- Getters for offline corresponding values -----
