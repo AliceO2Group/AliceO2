@@ -61,7 +61,7 @@ public:
   float* ClusterY() const {return(fClusterY);}
   float* ClusterZ() const {return(fClusterZ);}
   float* ClusterAngle() const {return(fClusterAngle);}
-  int* ClusterRowType() const {return(fClusterRowType);}
+  int* ClusterRow() const {return(fClusterRow);}
   
 private:
   
@@ -103,7 +103,7 @@ private:
   float *fClusterX;         // cluster X
   float *fClusterY;         // cluster Y
   float *fClusterZ;         // cluster Z
-  int *fClusterRowType;  // cluster row type
+  int *fClusterRow;  // cluster row type
   float *fClusterAngle;     // angle    
   AliHLTTPCGMBorderTrack *fBorderMemory; // memory for border tracks
   AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory; // memory for border tracks

@@ -90,7 +90,7 @@ public:
   GPUd() void Fit
   (
    float* PolinomialFieldBz,
-   float x[], float y[], float z[], int rowType[], float alpha[], const AliHLTTPCCAParam &param,
+   float x[], float y[], float z[], int row[], float alpha[], const AliHLTTPCCAParam &param,
    int &N, float &Alpha, 
    bool UseMeanPt = 0,
    float maxSinPhi = .999
@@ -110,7 +110,7 @@ public:
     if( mask ) x = v;
   }
   
-  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* rowType, float* alpha, const AliHLTTPCCAParam& param);
+  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* row, float* alpha, const AliHLTTPCCAParam& param);
 
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
   bool GetExtParam( AliExternalTrackParam &T, double alpha ) const;

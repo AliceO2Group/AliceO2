@@ -287,7 +287,7 @@ void RunQA()
 		std::vector<AliHLTTPCClusterMCWeight> labels;
 		for (int k = 0;k < track.NClusters();k++)
 		{
-			if (merger.ClusterRowType()[track.FirstClusterRef() + k] < 0) continue;
+			if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
 			nClusters++;
 			int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
 			if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());ompError = true;break;}
@@ -346,7 +346,7 @@ void RunQA()
 		{
 			for (int k = 0;k < track.NClusters();k++)
 			{
-				if (merger.ClusterRowType()[track.FirstClusterRef() + k] < 0) continue;
+				if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
 				int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
 				bool correct = false;
 				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == maxLabel.fMCID) {correct=true;break;}

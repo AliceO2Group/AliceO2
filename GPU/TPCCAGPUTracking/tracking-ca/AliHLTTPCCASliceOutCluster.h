@@ -26,15 +26,7 @@ class AliHLTTPCCASliceOutCluster
   public:
 
   GPUh() void Set( UInt_t id, UInt_t row, float x, float y, float z ){
-    UInt_t rowtype;
-    //if( row<64 ) rowtype = 0;
-    //else if( row<128 ) rowtype = (UInt_t(2)<<30);
-    //else rowtype = (1<<30);
-    //fId = id|rowtype;
-    if( row<64 ) rowtype = 0;
-    else if( row<128 ) rowtype = 2;
-    else rowtype = 1;
-    fRowType = rowtype;
+    fRow = row;
     fId = id;
     fX = x; fY = y; fZ = z;
   }
@@ -43,12 +35,12 @@ class AliHLTTPCCASliceOutCluster
   GPUh() float GetY() const {return fY;}
   GPUh() float GetZ() const {return fZ;}
   GPUh() UInt_t GetId() const {return fId; } //fId & 0x3FFFFFFF;}
-  GPUh() UInt_t GetRowType() const {return fRowType; }//fId>>30;}
+  GPUh() UInt_t GetRow() const {return fRow; }//fId>>30;}
 
   private:
 
   UInt_t  fId; // Id ( slice, patch, cluster )    
-  UInt_t  fRowType; // row type
+  UInt_t  fRow; // row
   Float_t fX;// coordinates
   Float_t fY;// coordinates
   Float_t fZ;// coordinates

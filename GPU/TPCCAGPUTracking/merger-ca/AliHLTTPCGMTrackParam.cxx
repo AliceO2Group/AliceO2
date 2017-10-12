@@ -33,12 +33,14 @@
 GPUd() void AliHLTTPCGMTrackParam::Fit
 (
  float* PolinomialFieldBz,
- float x[], float y[], float z[], int rowType[], float alpha[], const AliHLTTPCCAParam &param,
+ float x[], float y[], float z[], int row[], float alpha[], const AliHLTTPCCAParam &param,
  int &N, float &Alpha, bool UseMeanPt, float maxSinPhi
  ){
 
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
+
+  ResetCovariance();
 
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
@@ -51,8 +53,6 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
   int maxN = N;
   for (int iWay = 0;iWay < nWays;iWay++)
   {
-    ResetCovariance();
-
     const bool rejectChi2ThisRound = ( nWays == 1 || iWay == 1 );
     const bool markNonFittedClusters = rejectChi2ThisRound && !(param.HighQPtForward() < fabs(fP[4]));
     const double kDeg2Rad = 3.14159265358979323846/180.;
@@ -65,38 +65,32 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     for( iihit=0; iihit<maxN; iihit++)
     {
       const int ihit = (iWay & 1) ? (maxN - iihit - 1) : iihit;
-      if (rowType[ihit] < 0) continue; // hit is excluded from fit
+      const int rowType = row[ihit] < 64 ? 0 : row[ihit] < 128 ? 2 : 1;
+      if (row[ihit] < 0) continue; // hit is excluded from fit
       
       int err = prop.PropagateToXAlpha(x[ihit], y[ihit], z[ihit], alpha[ihit], iWay & 1 );
 
       if ( err || CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate )
       {
-	if (markNonFittedClusters) rowType[ihit] = -(rowType[ihit] + 1); // can not propagate or the angle is too big - mark the cluster and continue w/o update
-	continue;
+        if (markNonFittedClusters) row[ihit] = -(row[ihit] + 1); // can not propagate or the angle is too big - mark the cluster and continue w/o update
+        continue;
       }
       
-      int retVal = prop.Update( y[ihit], z[ihit], rowType[ihit], param, rejectChi2ThisRound);
-      if (retVal == 0) { // track is updated
-	N++;
+      int retVal = prop.Update( y[ihit], z[ihit], rowType, param, rejectChi2ThisRound);
+      if (retVal == 0) // track is updated
+      {
+        N++;
       }
-      else if (retVal == 2){ // cluster far away form the track
-	if (markNonFittedClusters) rowType[ihit] = -(rowType[ihit] + 1);
+      else if (retVal == 2) // cluster far away form the track
+      {
+        if (markNonFittedClusters) row[ihit] = -(row[ihit] + 1);
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
     maxN = iihit;
   }
-  if( N<1 || fNDF<1 ){ // just for a case..
-    ResetCovariance();
-    fNDF = 1;
-    N=1;
-  }
   Alpha = prop.GetAlpha();
 }
-
-
-
-
 
 GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
 {
@@ -129,9 +123,6 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
   return ok;
 }
 
-
-
-
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
 bool AliHLTTPCGMTrackParam::GetExtParam( AliExternalTrackParam &T, double alpha ) const
 {
@@ -153,8 +144,6 @@ bool AliHLTTPCGMTrackParam::GetExtParam( AliExternalTrackParam &T, double alpha 
   T.Set( (double) fX, alpha, par, cov );
   return ok;
 }
-
-
  
 void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 {
@@ -168,7 +157,7 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 }
 #endif
 
-GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* rowType, float* alpha, const AliHLTTPCCAParam& param)
+GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* row, float* alpha, const AliHLTTPCCAParam& param)
 {
 	if( !track.OK() ) return;    
 
@@ -182,7 +171,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 	   x+track.FirstClusterRef(),
 	   y+track.FirstClusterRef(),
 	   z+track.FirstClusterRef(),
-	   rowType+track.FirstClusterRef(),
+	   row+track.FirstClusterRef(),
 	   alpha+track.FirstClusterRef(),
 	   param, nTrackHits, Alpha );      
 	
@@ -198,7 +187,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 	{
 		ok = 1;
 		nTrackHits = nTrackHitsOld;
-		for (int k = 0;k < nTrackHits;k++) if (rowType[k] < 0) rowType[k] = -rowType[k] - 1;
+		for (int k = 0;k < nTrackHits;k++) if (row[k] < 0) row[k] = -row[k] - 1;
 	}
 	track.SetOK(ok);
 	if (!ok) return;
@@ -225,11 +214,11 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 
 #ifdef HLTCA_GPUCODE
 
-GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, int* rowType, float* alpha, AliHLTTPCCAParam* param)
+GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, int* row, float* alpha, AliHLTTPCCAParam* param)
 {
 	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
-		AliHLTTPCGMTrackParam::RefitTrack(tracks[i], PolinomialFieldBz, x, y, z, rowType, alpha, *param);
+		AliHLTTPCGMTrackParam::RefitTrack(tracks[i], PolinomialFieldBz, x, y, z, row, alpha, *param);
 	}
 }
 
