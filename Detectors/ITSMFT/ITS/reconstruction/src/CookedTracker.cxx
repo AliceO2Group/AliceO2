@@ -297,7 +297,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
     // Int_t lab=c1->getLabel(0);
     //    
     Double_t z1 = c1->getZ();
-    auto xyz1 = ((Cluster*)c1)->getXYZGloRot(*mGeom); // FIXME: Cannot this method be const ?
+    auto xyz1 = c1->getXYZGloRot(*mGeom);
     Double_t r1 = xyz1.rho(), phi1 = layer1.getClusterPhi(n1);
     
     Double_t zr2 = zv + layer2.getR() / r1 * (z1 - zv);
@@ -316,7 +316,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
       if (TMath::Abs(phi2 - phi1) > kpWin)
         continue; // check in Phi
 
-      auto xyz2 = ((Cluster*)c2)->getXYZGloRot(*mGeom); // FIXME: Cannot this method be const ?
+      auto xyz2 = c2->getXYZGloRot(*mGeom);
       Double_t r2 = xyz2.rho();
       Double_t crv = f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
 
@@ -342,7 +342,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
 	Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
 	//	txyz2.SetX(layer2.getXRef(n2));  // The clusters are already in the tracking frame
 
-	auto xyz3 = ((Cluster*)c3)->getXYZGloRot(*mGeom); // FIXME: Cannot this method be const ?
+	auto xyz3 = c3->getXYZGloRot(*mGeom);
 
 	CookedTrack seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
@@ -767,7 +767,7 @@ void CookedTracker::Layer::init()
     //Float_t xRef, aRef; 
     //mGeom->getSensorXAlphaRefPlane(c->getSensorID(),xRef, aRef);
     mAlphaRef.push_back( mGeom->getSensorRefAlpha(c->getSensorID()) );
-    auto xyz = ((Cluster *)c)->getXYZGloRot(*mGeom); // FIXME : Cannot this method be const ?
+    auto xyz = c->getXYZGloRot(*mGeom);
     r += xyz.rho();    
     Float_t phi = xyz.Phi();
     BringTo02Pi(phi); 
