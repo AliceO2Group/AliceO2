@@ -27,7 +27,8 @@ class TRDGeometry;
 // define TRD hit type
 using HitType = o2::BasicXYZEHit<float>;
 
-class Detector : public o2::Base::Detector
+class Detector : public o2::Base::Detector,
+                 public o2::Base::DetectorImplHelper<Detector>
 {
  public:
 
@@ -42,6 +43,10 @@ class Detector : public o2::Base::Detector
   void Register() override;
 
   TClonesArray* GetCollection(int iColl) const final;
+  std::vector<HitType>* GetHits(int iColl) {
+    if(iColl==0) return mHits;
+    return nullptr;
+  }
 
   void Reset() override;
   void EndOfEvent() override;

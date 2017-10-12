@@ -28,9 +28,19 @@
 namespace o2 {
 namespace Base {
 
+// class providing interface to update trackID on hits
+// (as used by the MC stack after discarding non-selected particles/tracks)
+class ITrackIDUpdateable {
+public:
+  // FIXME: make pure virtual as soon as all detectors are converted
+  virtual void updateHitTrackIndices(std::map<int, int> const&) {};
+};
+
+
 /// This is the basic class for any AliceO2 detector module, whether it is
 /// sensitive or not. Detector classes depend on this.
-class Detector : public FairDetector
+class Detector : public FairDetector,
+                 public ITrackIDUpdateable
 {
 
   public:
@@ -153,6 +163,28 @@ class Detector : public FairDetector
     ClassDefOverride(Detector, 1) // Base class for ALICE Modules
 };
 
+// helper class to automatically implement interfaces in a generic way
+// (using the CRT pattern)
+template <typename Det>
+class DetectorImplHelper : public ITrackIDUpdateable {
+public:
+  
+  // generic implementation for the updateHitTrackIndices interface
+  // assumes Detectors have a GetHits(int) function that return some iterable
+  // hits which are o2::BaseHits
+  void updateHitTrackIndices(std::map<int, int> const& indexmapping) override final {
+    int probe=0; // some Detectors have multiple hit vectors and we are probing
+                 // them via a probe integer until we get a nullptr
+    while (auto hits = static_cast<Det*>(this)->Det::GetHits(probe++))
+    {
+      for(auto& hit : *hits) {
+        auto iter = indexmapping.find(hit.GetTrackID());
+        hit.SetTrackID(iter->second);
+      }
+    }
+  }
+};
+ 
 /// utility function to demangle cxx type names
 inline std::string demangle(const char* name)
 {
