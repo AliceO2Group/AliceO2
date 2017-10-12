@@ -58,7 +58,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fClusterX(0),
   fClusterY(0),
   fClusterZ(0),
-  fClusterRowType(0),
+  fClusterRow(0),
   fClusterAngle(0),
   fBorderMemory(0),
   fBorderRangeMemory(0),
@@ -105,7 +105,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   fClusterX(0),
   fClusterY(0),
   fClusterZ(0),
-  fClusterRowType(0),
+  fClusterRow(0),
   fClusterAngle(0),
   fBorderMemory(0),
   fBorderRangeMemory(0),
@@ -165,7 +165,7 @@ void AliHLTTPCGMMerger::ClearMemory()
 	  if (fClusterX) delete[] fClusterX;
 	  if (fClusterY) delete[] fClusterY;
 	  if (fClusterZ) delete[] fClusterZ;
-	  if (fClusterRowType) delete[] fClusterRowType;
+	  if (fClusterRow) delete[] fClusterRow;
 	  if (fClusterAngle) delete[] fClusterAngle;
   }
   if (fBorderMemory) delete[] fBorderMemory;
@@ -179,7 +179,7 @@ void AliHLTTPCGMMerger::ClearMemory()
   fClusterX = 0;
   fClusterY = 0;
   fClusterZ = 0;
-  fClusterRowType = 0;
+  fClusterRow = 0;
   fClusterAngle = 0;
   fBorderMemory = 0;  
   fBorderRangeMemory = 0;
@@ -288,7 +288,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 	AssignMemory(fClusterY, basemem, fNClusters);
 	AssignMemory(fClusterZ, basemem, fNClusters);
 	AssignMemory(fClusterAngle, basemem, fNClusters);
-	AssignMemory(fClusterRowType, basemem, fNClusters);
+	AssignMemory(fClusterRow, basemem, fNClusters);
 	AssignMemory(fOutputTracks, basemem, nTracks);
 	if ((size_t) (basemem - fGPUTracker->MergerHostMemory()) > HLTCA_GPU_MERGER_MEMORY)
 	{
@@ -302,7 +302,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 	  fClusterX = new float[fNClusters];
 	  fClusterY = new float[fNClusters];
 	  fClusterZ = new float[fNClusters];
-	  fClusterRowType = new int[fNClusters];
+	  fClusterRow = new int[fNClusters];
 	  fClusterAngle = new float[fNClusters];        
   }
   fBorderMemory = new AliHLTTPCGMBorderTrack[fMaxSliceTracks*2];
@@ -314,7 +314,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 	   && ( fClusterX!=NULL )
 	   && ( fClusterY!=NULL )
 	   && ( fClusterZ!=NULL )
-	   && ( fClusterRowType!=NULL )
+	   && ( fClusterRow!=NULL )
 	   && ( fClusterAngle!=NULL )
 	   && ( fBorderMemory!=NULL )
 	   && ( fBorderRangeMemory!=NULL )
@@ -823,8 +823,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       UInt_t *clId = fOutputClusterIds + nOutTrackClusters;
       for( int i=0; i<nHits; i++ ) clId[i] = trackClusters[i].GetId();
       
-      int *clT  = fClusterRowType + nOutTrackClusters;
-      for( int i=0; i<nHits; i++ ) clT[i] = trackClusters[i].GetRowType();
+      int *clT  = fClusterRow + nOutTrackClusters;
+      for( int i=0; i<nHits; i++ ) clT[i] = trackClusters[i].GetRow();
       
       float *clX = fClusterX + nOutTrackClusters;
       for( int i=0; i<nHits; i++ ) clX[i] = trackClusters[i].GetX();
@@ -886,7 +886,7 @@ void AliHLTTPCGMMerger::Refit()
 #endif
 	  for ( int itr = 0; itr < fNOutputTracks; itr++ )
 	  {
-		  AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fPolinomialFieldBz, fClusterX, fClusterY, fClusterZ, fClusterRowType, fClusterAngle, fSliceParam);
+		  AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fPolinomialFieldBz, fClusterX, fClusterY, fClusterZ, fClusterRow, fClusterAngle, fSliceParam);
 	  }
 	}
 }
