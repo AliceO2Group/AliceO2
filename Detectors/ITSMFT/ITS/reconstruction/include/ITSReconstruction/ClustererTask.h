@@ -20,8 +20,6 @@
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 
-class TClonesArray;
-
 namespace o2
 {
 class MCCompLabel;
@@ -38,6 +36,7 @@ class ClustererTask : public FairTask
 {
   using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
   using Clusterer = o2::ITSMFT::Clusterer;
+  using Cluster = o2::ITSMFT::Cluster;
   
  public:
   ClustererTask(Bool_t useMCTruth=kTRUE);
@@ -52,7 +51,7 @@ class ClustererTask : public FairTask
   DigitPixelReader mReader;  ///< Pixel reader
   Clusterer mClusterer;      ///< Cluster finder
 
-  TClonesArray* mClustersArray = nullptr; ///< Array of clusters
+  std::vector<Cluster> *mClustersArray=nullptr; ///< Array of clusters
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< MC labels
 
   ClassDefOverride(ClustererTask, 1)

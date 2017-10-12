@@ -21,7 +21,6 @@
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
-#include "TClonesArray.h"    // for TClonesArray
 
 ClassImp(o2::ITS::CookedTrackerTask)
 
@@ -60,7 +59,7 @@ InitStatus CookedTrackerTask::Init()
     return kERROR;
   }
 
-  mClustersArray = dynamic_cast<const TClonesArray*>(mgr->GetObject("ITSCluster"));
+  mClustersArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Cluster> *>("ITSCluster");
   if (!mClustersArray) {
     LOG(ERROR) << "ITS clusters not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;

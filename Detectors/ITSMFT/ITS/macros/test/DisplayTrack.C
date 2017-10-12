@@ -16,7 +16,6 @@
   #include <TClonesArray.h>
   #include <TMath.h>
   #include <TString.h>
-  #include <vector>
 
   #include "SimulationDataFormat/MCCompLabel.h"
   #include "SimulationDataFormat/MCTruthContainer.h"
@@ -28,12 +27,12 @@
   #include "ITSReconstruction/CookedTrack.h"
 #endif
 
-using namespace o2::Base;
-using o2::ITSMFT::Cluster;
-
 void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=0, Int_t track=0) {
-  using o2::ITSMFT::Hit;
+  using namespace o2::Base;
   using namespace o2::ITS;
+  
+  using o2::ITSMFT::Hit;
+  using o2::ITSMFT::Cluster;
 
   char filename[100];
 
@@ -90,7 +89,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   TEvePointSet* points = new TEvePointSet(s.data());
   points->SetMarkerColor(kBlue);
 
-  std::vector<o2::ITSMFT::Hit>* hitArr = nullptr;
+  std::vector<Hit>* hitArr = nullptr;
   tree->SetBranchAddress("ITSHit", &hitArr);
 
   tree->GetEvent(event);
@@ -119,8 +118,14 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kMagenta);
   
-  TClonesArray *clusArr=nullptr;
-  tree->SetBranchAddress("ITSCluster",&clusArr);
+  std::vector<Cluster> *clusArr=nullptr;
+  //tree->SetBranchAddress("ITSCluster",&clusArr); // Why this does not work ???
+  auto *branch = tree->GetBranch("ITSCluster");
+  if (!branch) {
+    std::cout<<"No clusters !"<<std::endl;
+    return;
+  }
+  branch->SetAddress(&clusArr);
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clsLabArr=nullptr;
   tree->SetBranchAddress("ITSClusterMCTruth",&clsLabArr);
@@ -130,11 +135,11 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   o2::ITS::GeometryTGeo *gman = GeometryTGeo::Instance();
   gman->fillMatrixCache( Utils::bit2Mask(TransformType::T2GRot) ); // request cached transforms
 
-  nc=clusArr->GetEntriesFast(); n=0;
+  nc=clusArr->size(); n=0;
   while(nc--) {
-      Cluster *c=static_cast<Cluster *>(clusArr->UncheckedAt(nc));
+      Cluster &c=(*clusArr)[nc];
       auto lab=(clsLabArr->getLabels(nc))[0];
-      auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
+      auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
       if (lab.getTrackID() == track) {
          points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
          n++;
@@ -171,8 +176,8 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
       Int_t nc=t.getNumberOfClusters();
       while (n<nc) {
 	Int_t idx=t.getClusterIndex(n);
-        Cluster *c=static_cast<Cluster *>(clusArr->UncheckedAt(idx));
-	auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
+        Cluster &c=(*clusArr)[idx];
+	auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
         points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
         n++;
       }

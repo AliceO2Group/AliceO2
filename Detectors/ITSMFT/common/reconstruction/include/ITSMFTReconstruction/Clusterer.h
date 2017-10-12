@@ -51,6 +51,7 @@ class Clusterer {
   Clusterer& operator=(const Clusterer&) = delete;
 
   void process(PixelReader &r, TClonesArray &clusters);
+  void process(PixelReader &r, std::vector<Cluster> &clusters);
   
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
@@ -63,7 +64,7 @@ class Clusterer {
   enum {kMaxRow=650}; //Anything larger than the real number of rows (512 for ALPIDE)
   void initChip();
   void updateChip(int ip);
-  void finishChip(TClonesArray &clusters);
+  void finishChip(std::vector<Cluster> &clusters);
   void fetchMCLabels(const PixelData* pix, std::array<Label,Cluster::maxLabels> &labels, int &nfilled) const;
 
   ChipPixelData mChipData;   ///< single chip data provided by the reader

@@ -31,7 +31,9 @@ namespace ITS
 
 class CookedTrack
 {
- public:
+  using Cluster = o2::ITSMFT::Cluster;
+  
+public:
   CookedTrack();
   CookedTrack(float x, float alpha, const std::array<float,o2::Base::Track::kNParams> &par, const std::array<float,o2::Base::Track::kCovMatSize> &cov);
   CookedTrack(const CookedTrack& t);
@@ -39,10 +41,10 @@ class CookedTrack
   ~CookedTrack()=default;
 
   // These functions must be provided
-  Double_t getPredictedChi2(const o2::ITSMFT::Cluster* c) const;
+  Double_t getPredictedChi2(const Cluster* c) const;
   Bool_t propagate(Double_t alpha, Double_t x, Double_t bz);
   Bool_t correctForMeanMaterial(Double_t x2x0, Double_t xrho, Bool_t anglecorr = kTRUE);
-  Bool_t update(const o2::ITSMFT::Cluster* c, Double_t chi2, Int_t idx);
+  Bool_t update(const Cluster* c, Double_t chi2, Int_t idx);
 
   // Other functions
   Int_t getChi2() const { return mChi2; }

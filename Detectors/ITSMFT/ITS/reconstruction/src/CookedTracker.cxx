@@ -19,7 +19,6 @@
 #include <future>
 #include <chrono>
 
-#include <TClonesArray.h>
 #include <TGeoGlobalMagField.h>
 #include <TMath.h>
 
@@ -103,7 +102,7 @@ Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
   int nLabels = 0;
   for (int i=noc; i--;) {
     Int_t index = t.getClusterIndex(i);
-    const Cluster* c = getCluster(index);
+    const Cluster *c = getCluster(index);
     auto labels = mClsLabels->getLabels(c->GetUniqueID());
     for (auto lab : labels) { // check all labels of the cluster
       if ( lab.isEmpty() ) break; // all following labels will be empty also
@@ -150,7 +149,7 @@ void CookedTracker::setExternalIndices(CookedTrack& t) const
   Int_t noc = t.getNumberOfClusters();
   for (Int_t i = 0; i < noc; i++) {
     Int_t index = t.getClusterIndex(i);
-    Cluster *c = getCluster(index);
+    const Cluster *c = getCluster(index);
     Int_t idx=c->GetUniqueID();
     t.setExternalClusterIndex(i,idx);
   }
@@ -293,19 +292,19 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
   Int_t nClusters3 = layer3.getNumberOfClusters();
 
   for (Int_t n1 = first; n1 < last; n1++) {
-    Cluster* c1 = layer1.getCluster(n1);
+    const Cluster* c1 = layer1.getCluster(n1);
     //
     // Int_t lab=c1->getLabel(0);
     //    
     Double_t z1 = c1->getZ();
-    auto xyz1 = c1->getXYZGloRot(*mGeom);
+    auto xyz1 = ((Cluster*)c1)->getXYZGloRot(*mGeom); // FIXME: Cannot this method be const ?
     Double_t r1 = xyz1.rho(), phi1 = layer1.getClusterPhi(n1);
     
     Double_t zr2 = zv + layer2.getR() / r1 * (z1 - zv);
     Int_t start2 = layer2.findClusterIndex(zr2 - kzWin);
 
     for (Int_t n2 = start2; n2 < nClusters2; n2++) {
-      Cluster* c2 = layer2.getCluster(n2);
+      const Cluster* c2 = layer2.getCluster(n2);
       //
       // if (c2->getLabel(0)!=lab) continue;
       //
@@ -317,7 +316,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
       if (TMath::Abs(phi2 - phi1) > kpWin)
         continue; // check in Phi
 
-      auto xyz2 = c2->getXYZGloRot(*mGeom);
+      auto xyz2 = ((Cluster*)c2)->getXYZGloRot(*mGeom); // FIXME: Cannot this method be const ?
       Double_t r2 = xyz2.rho();
       Double_t crv = f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
 
@@ -326,7 +325,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
       
       Int_t start3 = layer3.findClusterIndex(zr3 - dz);
       for (Int_t n3 = start3; n3 < nClusters3; n3++) {
-        Cluster* c3 = layer3.getCluster(n3);
+        const Cluster* c3 = layer3.getCluster(n3);
         //
         // if (c3->getLabel(0)!=lab) continue;
         //
@@ -343,7 +342,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
 	Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
 	//	txyz2.SetX(layer2.getXRef(n2));  // The clusters are already in the tracking frame
 
-	auto xyz3 = c3->getXYZGloRot(*mGeom);
+	auto xyz3 = ((Cluster*)c3)->getXYZGloRot(*mGeom); // FIXME: Cannot this method be const ?
 
 	CookedTrack seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
@@ -482,7 +481,7 @@ std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(const TClonesArray& clusters, std::vector<CookedTrack> &tracks)
+void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<CookedTrack> &tracks)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -691,28 +690,26 @@ Int_t CookedTracker::RefitInward(std::vector<CookedTrack> *tracks) {
 }
 */
 
-void CookedTracker::loadClusters(const TClonesArray& clusters)
+void CookedTracker::loadClusters(const std::vector<Cluster> &clusters)
 {
   //--------------------------------------------------------------------
   // This function reads the ITSU clusters from the tree,
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
-  Int_t numOfClusters = clusters.GetEntriesFast();
+  Int_t numOfClusters = clusters.size();
   if (numOfClusters == 0) {
     LOG(WARNING) << "No clusters to load !" << FairLogger::endl;
     return;
   }
 
-  for (Int_t i = 0; i < numOfClusters; i++) {
-    Cluster* c = (Cluster*)clusters.UncheckedAt(i);
-    c->SetUniqueID(i);
+  for (auto &c : clusters) {
     //    c->goToFrameTrk(); // RS now clusters are always in tracking frame
 
-    Int_t layer = mGeom->getLayer(c->getSensorID());
+    Int_t layer = mGeom->getLayer(c.getSensorID());
     //    if ((layer == kSeedingLayer1) || (layer == kSeedingLayer2) || (layer == kSeedingLayer3))
     //      c->goToFrameGlo();
 
-    if (!sLayers[layer].insertCluster(c))
+    if (!sLayers[layer].insertCluster(&c))
       continue;
   }
 
@@ -736,7 +733,7 @@ void CookedTracker::unloadClusters()
     sLayers[i].unloadClusters();
 }
 
-Cluster* CookedTracker::getCluster(Int_t index) const
+const Cluster* CookedTracker::getCluster(Int_t index) const
 {
   //--------------------------------------------------------------------
   //       Return pointer to a given cluster
@@ -766,11 +763,11 @@ void CookedTracker::Layer::init()
   const Float_t pi2 = 2. * TMath::Pi();
   Int_t m=mClusters.size();
   for (Int_t i = 0; i < m; i++) {
-    Cluster* c = mClusters[i];
+    const Cluster* c = mClusters[i];
     //Float_t xRef, aRef; 
     //mGeom->getSensorXAlphaRefPlane(c->getSensorID(),xRef, aRef);
     mAlphaRef.push_back( mGeom->getSensorRefAlpha(c->getSensorID()) );
-    auto xyz = c->getXYZGloRot(*mGeom);
+    auto xyz = ((Cluster *)c)->getXYZGloRot(*mGeom); // FIXME : Cannot this method be const ?
     r += xyz.rho();    
     Float_t phi = xyz.Phi();
     BringTo02Pi(phi); 
@@ -793,7 +790,7 @@ void CookedTracker::Layer::unloadClusters()
   for (Int_t s=0; s<kNSectors; s++) mSectors[s].clear();
 }
 
-Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
+Bool_t CookedTracker::Layer::insertCluster(const Cluster* c)
 {
   //--------------------------------------------------------------------
   // This function inserts a cluster to this layer
@@ -859,7 +856,7 @@ Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrac
   // Try to attach a clusters with index ci to running track hypothesis
   //--------------------------------------------------------------------
   Layer& layer = sLayers[nl];
-  Cluster* c = layer.getCluster(ci);
+  const Cluster* c = layer.getCluster(ci);
 
   Int_t vid = c->getSensorID();
 

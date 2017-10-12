@@ -37,7 +37,7 @@ ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("ITSClustererTask") {
 ClustererTask::~ClustererTask()
 {
   if (mClustersArray) {
-    mClustersArray->Delete();
+    mClustersArray->clear();
     delete mClustersArray;
   }
   if (mClsLabels) {
@@ -65,8 +65,7 @@ InitStatus ClustererTask::Init()
   mReader.setDigitArray(arr);
   
   // Register output container
-  mClustersArray = new TClonesArray("o2::ITSMFT::Cluster");
-  mgr->Register("ITSCluster", "ITS", mClustersArray, kTRUE);
+  mgr->RegisterAny("ITSCluster", mClustersArray, kTRUE);
 
   // Register MC Truth container
   if (mClsLabels)
@@ -84,7 +83,7 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  if (mClustersArray) mClustersArray->Clear();
+  if (mClustersArray) mClustersArray->clear();
   if (mClsLabels)  mClsLabels->clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 

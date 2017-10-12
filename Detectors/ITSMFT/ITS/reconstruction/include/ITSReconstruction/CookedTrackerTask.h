@@ -20,8 +20,6 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/CookedTracker.h"
 
-class TClonesArray;
-
 namespace o2
 {
 class MCCompLabel;
@@ -46,9 +44,11 @@ class CookedTrackerTask : public FairTask
  private:
   CookedTracker mTracker; ///< Track finder
 
-  const TClonesArray* mClustersArray=nullptr;   ///< Array of clusters
+  const
+  std::vector<o2::ITSMFT::Cluster>* mClustersArray=nullptr;   ///< Array of clusters
   const
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< Cluster MC labels
+
   std::vector<CookedTrack> *mTracksArray=nullptr; ///< Array of tracks
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mTrkLabels=nullptr; ///< Track MC labels
 

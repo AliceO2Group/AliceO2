@@ -25,8 +25,6 @@
 #include "MathUtils/Cartesian3D.h"
 #include "ITSReconstruction/CookedTrack.h"
 
-class TClonesArray;
-
 namespace o2
 {
 class MCCompLabel;
@@ -45,7 +43,9 @@ namespace ITS
 {
 class CookedTracker
 {
- public:
+  using Cluster = o2::ITSMFT::Cluster;
+
+public:
   CookedTracker(Int_t nThreads=1);
   CookedTracker(const CookedTracker&) = delete;
   CookedTracker& operator=(const CookedTracker& tr) = delete;
@@ -77,11 +77,11 @@ class CookedTracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
   
   // These functions must be implemented
-  void process(const TClonesArray& clusters, std::vector<CookedTrack> &tracks);
+  void process(const std::vector<Cluster> &clusters, std::vector<CookedTrack> &tracks);
   // Int_t propagateBack(std::vector<CookedTrack> *event);
   // Int_t RefitInward(std::vector<CookedTrack> *event);
   // Bool_t refitAt(Double_t x, CookedTrack *seed, const CookedTrack *t);
-  o2::ITSMFT::Cluster* getCluster(Int_t index) const;
+  const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::ITS::GeometryTGeo* geom);
   void setMCTruthContainers(const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clsLabels,
@@ -96,7 +96,7 @@ class CookedTracker
 
  protected:
   static constexpr int kNLayers = 7;
-  void loadClusters(const TClonesArray& clusters);
+  void loadClusters(const std::vector<Cluster> &clusters);
   void unloadClusters();
   
   std::vector<CookedTrack> trackInThread(Int_t first, Int_t last);
@@ -135,13 +135,13 @@ class CookedTracker::Layer
   Layer& operator=(const Layer& tr) = delete;
 
   void init();
-  Bool_t insertCluster(o2::ITSMFT::Cluster* c);
+  Bool_t insertCluster(const Cluster* c);
   void setR(Double_t r) { mR = r; }
   void unloadClusters();
   void selectClusters(std::vector<Int_t> &s, Float_t phi, Float_t dy, Float_t z, Float_t dz);
   Int_t findClusterIndex(Double_t z) const;
   Float_t getR() const { return mR; }
-  o2::ITSMFT::Cluster* getCluster(Int_t i) const { return mClusters[i]; }
+  const Cluster* getCluster(Int_t i) const { return mClusters[i]; }
   Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }
   Float_t getClusterPhi(Int_t i) const { return mPhi[i]; }
   Int_t getNumberOfClusters() const { return mClusters.size(); }
@@ -152,7 +152,7 @@ class CookedTracker::Layer
 
   Float_t mR; ///< mean radius of this layer
   const o2::ITS::GeometryTGeo* mGeom = nullptr; /// interface to geometry
-  std::vector<o2::ITSMFT::Cluster*>mClusters;          ///< All clusters
+  std::vector<const Cluster*>mClusters;          ///< All clusters
   std::vector<Float_t> mAlphaRef;          ///< alpha of the reference plane
   std::vector<Float_t> mPhi;               ///< cluster phi
   std::vector<Int_t> mSectors[kNSectors];  ///< Cluster indices sector-by-sector
