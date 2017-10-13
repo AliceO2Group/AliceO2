@@ -238,7 +238,9 @@ void AliHLTTPCCAMerger::UnpackSlices()
 	const AliHLTTPCCASliceOutCluster &c = sliceTr->Cluster( iTrClu );
 	
         clu.SetISlice( iSlice );
-        clu.SetRowType( c.GetRowType() );
+        int row = c.GetRow();
+        int rowType = row < 64 ? 0 : row < 128 ? 2 : 1;
+        clu.SetRowType( rowType );
         clu.SetId( c.GetId() );
         clu.SetPackedAmp( 0 );
         clu.SetX( c.GetX() );
