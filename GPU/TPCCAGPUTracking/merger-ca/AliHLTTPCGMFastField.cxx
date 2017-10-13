@@ -16,12 +16,8 @@
 //                                                                          *
 //***************************************************************************
 
-#define GMPropagatorUseFullField
-
 #include "AliHLTTPCGMFastField.h"
-#include "AliHLTTPCCAMath.h"
 #include <cmath>
-
 
 
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
@@ -32,7 +28,6 @@
 #include "TMath.h"
 #include "TNtuple.h"
 #include "Riostream.h"
-#include "AliTrackerBase.h"
 #include "AliExternalTrackParam.h"
 
 void AliHLTTPCGMFastField::DumpField( const char *fileName ) const
@@ -46,12 +41,12 @@ void AliHLTTPCGMFastField::DumpField( const char *fileName ) const
   double xMax = AliHLTTPCGeometry::Row2X(nRows-1);
   double rMin = xMin;
   double rMax = xMax/TMath::Cos(sectorAngle/2.);  
-  double dA = 1./rMax; // anguöar step == 1 cm at outer radius
+  double dA = 1./rMax; // angular step == 1 cm at outer radius
   int nSectorParticles = (int) (sectorAngle/dA);
   dA = sectorAngle/nSectorParticles;
     
-  double zMin = -0.;// -AliHLTTPCGeometry::GetZLength();
-  double zMax =  0.;// AliHLTTPCGeometry::GetZLength();
+  double zMin = -AliHLTTPCGeometry::GetZLength();
+  double zMax =  AliHLTTPCGeometry::GetZLength();
 
   double alMin = -sectorAngle/2.;
   double alMax =  sectorAngle/2. - 0.5*dA;

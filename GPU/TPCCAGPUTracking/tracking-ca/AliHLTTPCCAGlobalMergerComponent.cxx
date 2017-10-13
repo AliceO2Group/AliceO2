@@ -333,7 +333,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
     arguments += argv[i];
   }
 
-  return Configure( NULL, NULL, arguments.Data()  );
+  int retVal = Configure( NULL, NULL, arguments.Data()  );
+
+  return retVal;
 }
 
 int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
