@@ -17,7 +17,7 @@
 #include "TVirtualMC.h"
 
 #include "FairLogger.h"
-#include "FairRootManager.h"
+#include "FairGenericRootManager.h"        // for FairGenericRootManager
 #include "FairVolume.h"
 
 #include "FairRootManager.h"
@@ -28,14 +28,15 @@
 #include "FITSimulation/Detector.h"
 
 using namespace o2::fit;
+using o2::fit::Geometry;
 
 ClassImp(Detector);
 
-Detector::Detector(const char* Name, Bool_t Active)
-  : o2::Base::Detector(Name, Active),
+Detector::Detector(Bool_t Active)
+  : o2::Base::Detector("FIT", Active),
     mIdSens1(0),
     mPMTeff(nullptr),
-    mHitCollection(new TClonesArray("o2::fit::HitType"))
+    mHits(new std::vector<o2::fit::Hit>)
 {
   //  Geometry *geo  = GetGeometry() ;
 
@@ -43,6 +44,7 @@ Detector::Detector(const char* Name, Bool_t Active)
 }
 
 void Detector::Initialize() {}
+
 void Detector::ConstructGeometry()
 {
   LOG(DEBUG) << "Creating FIT geometry\n";
@@ -77,24 +79,24 @@ void Detector::ConstructGeometry()
     gridpoints[i] = crad * TMath::Sin((1 - 1 / (2 * TMath::Abs(grdin[i]))) * grdin[i] * btta);
   }
 
-  Double_t xi[28] = { gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0], gridpoints[1],
+  Double_t xi[Geometry::NCellsC] = { gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0], gridpoints[1],
                       gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
                       gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5],
                       gridpoints[0], gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
                       gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4] };
-  Double_t yi[28] = { gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4], gridpoints[4],
+  Double_t yi[Geometry::NCellsC] = { gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4], gridpoints[4],
                       gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[3], gridpoints[3],
                       gridpoints[3], gridpoints[3], gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[2],
                       gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1],
                       gridpoints[0], gridpoints[0], gridpoints[0], gridpoints[0] };
-  Double_t zi[28];
-  for (Int_t i = 0; i < 28; i++) {
+  Double_t zi[Geometry::NCellsC];
+  for (Int_t i = 0; i < Geometry::NCellsC; i++) {
     zi[i] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[i], 2) - TMath::Power(yi[i], 2));
   }
 
   // get rotation data
-  Double_t ac[28], bc[28], gc[28];
-  for (Int_t i = 0; i < 28; i++) {
+  Double_t ac[Geometry::NCellsC], bc[Geometry::NCellsC], gc[Geometry::NCellsC];
+  for (Int_t i = 0; i < Geometry::NCellsC; i++) {
     ac[i] = TMath::ATan(yi[i] / xi[i]) - TMath::Pi() / 2 + 2 * TMath::Pi();
     if (xi[i] < 0) {
       bc[i] = TMath::ACos(zi[i] / crad);
@@ -102,12 +104,12 @@ void Detector::ConstructGeometry()
       bc[i] = -1 * TMath::ACos(zi[i] / crad);
     }
   }
-  Double_t xc2[28], yc2[28], zc2[28];
+  Double_t xc2[Geometry::NCellsC], yc2[Geometry::NCellsC], zc2[Geometry::NCellsC];
 
   // compensation based on node position within individual detector geometries
   // determine compensated radius
   Double_t rcomp = crad + pstartC[2] / 2.0; //
-  for (Int_t i = 0; i < 28; i++) {
+  for (Int_t i = 0; i < Geometry::NCellsC; i++) {
     // Get compensated translation data
     xc2[i] = rcomp * TMath::Cos(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
     yc2[i] = rcomp * TMath::Sin(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
@@ -120,10 +122,10 @@ void Detector::ConstructGeometry()
   }
   // A Side
 
-  Float_t xa[24] = { -11.8, -5.9, 0,     5.9,  11.8, -11.8, -5.9, 0,     5.9,  11.8, -12.8, -6.9,
+  Float_t xa[Geometry::NCellsA] = { -11.8, -5.9, 0,     5.9,  11.8, -11.8, -5.9, 0,     5.9,  11.8, -12.8, -6.9,
                      6.9,   12.8, -11.8, -5.9, 0,    5.9,   11.8, -11.8, -5.9, 0,    5.9,   11.8 };
 
-  Float_t ya[24] = { 11.9, 11.9, 12.9, 11.9, 11.9, 6.0,  6.0,  7.0,   6.0,   6.0,   -0.1,  -0.1,
+  Float_t ya[Geometry::NCellsA] = { 11.9, 11.9, 12.9, 11.9, 11.9, 6.0,  6.0,  7.0,   6.0,   6.0,   -0.1,  -0.1,
                      0.1,  0.1,  -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9 };
 
   TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("0STL"); // A side mother
@@ -133,11 +135,11 @@ void Detector::ConstructGeometry()
   TVirtualMC::GetMC()->Gsvolu("0INS", "BOX", getMediumID(kAir), pinstart, 3);
   TGeoVolume* ins = gGeoManager->GetVolume("0INS");
   //
-  TGeoTranslation* tr[52];
+  TGeoTranslation* tr[Geometry::NCellsA+Geometry::NCellsC];
   TString nameTr;
 
   // A side Translations
-  for (Int_t itr = 0; itr < 24; itr++) {
+  for (Int_t itr = 0; itr < Geometry::NCellsA; itr++) {
     nameTr = Form("0TR%i", itr + 1);
     z = -pstartA[2] + pinstart[2];
     tr[itr] = new TGeoTranslation(nameTr.Data(), xa[itr], ya[itr], z);
@@ -146,26 +148,27 @@ void Detector::ConstructGeometry()
     stlinA->AddNode(ins, itr, tr[itr]);
   }
 
-  TGeoRotation* rot[28];
+  TGeoRotation* rot[Geometry::NCellsC];
   TString nameRot;
 
-  TGeoCombiTrans* com[28];
+  TGeoCombiTrans* com[Geometry::NCellsC];
   TString nameCom;
 
   // C Side Transformations
-  for (Int_t itr = 24; itr < 52; itr++) {
+  for (Int_t itr = Geometry::NCellsA; itr < Geometry::NCellsA+Geometry::NCellsC; itr++) {
     nameTr = Form("0TR%i", itr + 1);
     nameRot = Form("0Rot%i", itr + 1);
+    int ic = itr - Geometry::NCellsA;
     // nameCom = Form("0Com%i",itr+1);
-    rot[itr - 24] = new TGeoRotation(nameRot.Data(), ac[itr - 24], bc[itr - 24], gc[itr - 24]);
-    rot[itr - 24]->RegisterYourself();
+    rot[ic] = new TGeoRotation(nameRot.Data(), ac[ic], bc[ic], gc[ic]);
+    rot[ic]->RegisterYourself();
 
-    tr[itr] = new TGeoTranslation(nameTr.Data(), xc2[itr - 24], yc2[itr - 24], (zc2[itr - 24] - 80.));
+    tr[itr] = new TGeoTranslation(nameTr.Data(), xc2[ic], yc2[ic], (zc2[ic] - 80.));
     tr[itr]->RegisterYourself();
 
-    //   com[itr-24] = new TGeoCombiTrans(tr[itr],rot[itr-24]);
-    com[itr - 24] = new TGeoCombiTrans(xc2[itr - 24], yc2[itr - 24], (zc2[itr - 24] - 80), rot[itr - 24]);
-    TGeoHMatrix hm = *com[itr - 24];
+    //   com[itr-Geometry::NCellsA] = new TGeoCombiTrans(tr[itr],rot[itr-Geometry::NCellsA]);
+    com[ic] = new TGeoCombiTrans(xc2[ic], yc2[ic], (zc2[ic] - 80), rot[ic]);
+    TGeoHMatrix hm = *com[ic];
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);
   }
@@ -281,24 +284,29 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
-  TClonesArray& clref = *mHitCollection;
-
-  Int_t size = clref.GetEntriesFast();
-
-  HitType* hit = new (clref[size]) HitType(x, y, z, time, energy, trackId, detId);
-
-  return hit;
+  mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  return &(mHits->back());
 }
 
-void Detector::Register() { FairRootManager::Instance()->Register("FITHit", "FIT", mHitCollection, kTRUE); }
+void Detector::Register()
+{
+  // This will create a branch in the output tree called Hit, setting the last
+  // parameter to kFALSE means that this collection will not be written to the file,
+  // it will exist only during the simulation
+
+  if (FairGenericRootManager::Instance()) {
+    FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  }
+}
+
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
-  if (iColl == 0)
-    return mHitCollection;
+  LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
   return nullptr;
 }
 
 void Detector::Reset() {}
+
 void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;     // magneticField->Integ();
@@ -389,13 +397,13 @@ void Detector::FillOtherOptProperties()
 }
 
 //------------------------------------------------------------------------
-Bool_t Detector::RegisterPhotoE(Double_t energy)
+Bool_t Detector::RegisterPhotoE(float energy)
 {
   //  Float_t hc=197.326960*1.e6; //mev*nm
-  Double_t hc = 1.973 * 1.e-6; // gev*nm
-  Float_t lambda = hc / energy;
-  Float_t eff = mPMTeff->Eval(lambda);
-  Double_t p = gRandom->Rndm();
+  float hc = 1.973 * 1.e-6; // gev*nm
+  float lambda = hc / energy;
+  float eff = mPMTeff->Eval(lambda);
+  float p = gRandom->Rndm();
 
   if (p > eff)
     return kFALSE;

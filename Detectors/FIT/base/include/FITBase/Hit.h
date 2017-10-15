@@ -40,7 +40,7 @@ class Hit : public o2::BasicXYZEHit<float>
 
   void PrintStream(std::ostream& stream) const;
 
-  ClassDef(Hit, 1);
+  ClassDefOverride(Hit, 1);
 
   //   std::ostream &operator<<(std::ostream &stream, const Hit &point);
 };

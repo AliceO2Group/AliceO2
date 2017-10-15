@@ -10,7 +10,7 @@
 
 #include "FITBase/Hit.h"
 
-ClassImp(o2::fit::Hit)
+ClassImp(o2::fit::Hit);
 
   using namespace o2::fit;
 

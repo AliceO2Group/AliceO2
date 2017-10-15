@@ -17,7 +17,7 @@
 #include <TGraph.h>
 #include "DetectorsBase/Detector.h" // for Detector
 #include "FITBase/Geometry.h"
-#include "SimulationDataFormat/BaseHits.h"
+#include "FITBase/Hit.h"
 
 class FairModule;
 
@@ -57,15 +57,15 @@ class Detector : public o2::Base::Detector
   /// Name : Detector Name
   /// Active: kTRUE for active detectors (ProcessHits() will be called)
   ///         kFALSE for inactive detectors
-  Detector(const char* Name, Bool_t Active);
+  Detector(Bool_t Active);
 
   /// Default constructor
-  Detector() {}
+  Detector() = default;
   /// Initialization of the detector is done here
   void Initialize() override;
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
-  Bool_t ProcessHits(FairVolume* v = nullptr) override;
+  Bool_t ProcessHits(FairVolume* v) override;
   o2::BasicXYZEHit<float>* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
 
   void Register() override;
@@ -83,7 +83,7 @@ class Detector : public o2::Base::Detector
   void DefineOpticalProperties();
   Int_t ReadOptProperties(const std::string inputFilePath);
   void FillOtherOptProperties();
-  Bool_t RegisterPhotoE(Double_t energy);
+  Bool_t RegisterPhotoE(float energy);
 
   //  Geometry* GetGeometry();
 
@@ -118,7 +118,8 @@ class Detector : public o2::Base::Detector
   std::vector<Double_t> mReflMet;
 
   /// Container for data points
-  TClonesArray* mHitCollection;
+  // TClonesArray *mHitCollection;
+  std::vector<o2::fit::Hit>* mHits;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
