@@ -48,16 +48,7 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FIT geometry\n";
   CreateMaterials();
 
-  /*
-  Geometry * geom = GetGeometry() ;
-  TString gn(geom->GetName());
-  gn.ToUpper();
-
-  if(!(geom->IsInitialized()))
-  {
-    LOG(ERROR) << "ConstructGeometry: FIT Geometry class has not been set up.\n";
-  }
-  */
+ 
   Float_t zdetA = 333;
   Float_t zdetC = 82;
 

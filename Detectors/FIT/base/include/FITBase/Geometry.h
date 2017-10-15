@@ -15,72 +15,26 @@
 ////////////////////////////////////////////////
 
 #include <Rtypes.h>
-#include <TNamed.h>
+#include <TVector3.h>
 namespace o2
 {
 namespace fit
 {
-class Geometry : public TNamed
+// FIT is not tracking detector, Geometry could be used in future but not now. So just simple settings
+class Geometry
 {
  public:
   ///
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
-  Geometry() = default;
-
+  Geometry();
   ///
-  /// Constructor for normal use.
-  ///
-  ///
-  Geometry(const Text_t* name, const Text_t* title = "", const Text_t* mcname = "", const Text_t* mctitle = "");
-
-  ///
-  /// Copy constructor.
-  ///
-  Geometry(const Geometry& geom);
-
-  ///
-  /// Destructor.
-  ///
-  ~Geometry() override;
-
-  ///
-  /// Assign operator.
-  ///
-  Geometry& operator=(const Geometry& rvalue);
-
-  ///
-  /// \return the pointer of the unique instance of the geometry
-  ///
-  /// It should have been set before.
-  ///
-  static Geometry* GetInstance();
-
-  ///
-  /// \return the pointer of the unique instance of the geometry
-  ///
-  ///
-  //  static Geometry* GetInstance(const Text_t* name, const Text_t* title = "", const Text_t* mcname = "TGeant3",
-  //                               const Text_t* mctitle = "");
-
-  ///
-  /// Instanciate geometry depending on the run number. Mostly used in analysis and MC anchors.
-  ///
-  /// \return the pointer of the unique instance
-  ///
-  //////////
-  // General
-  //
-  //  static Bool_t IsInitialized() { return Geometry::sGeom != nullptr; }
-  // static const Char_t* GetDefaultGeometryName() {return EMCGeometry::fgkDefaultGeometryName;}
-
+  TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
  private:
-  static Geometry* sGeom;                    ///< Pointer to the unique instance of the singleton
-  static const Char_t* sDefaultGeometryName; ///< Default name of geometry
+  TVector3 mMCP[52];
 
- private:
-  ClassDefOverride(Geometry, 1);
+  ClassDefNV(Geometry, 1);
 };
 }
 }

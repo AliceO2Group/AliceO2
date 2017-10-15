@@ -941,6 +941,11 @@ o2_define_bucket(
     DEPENDENCIES # library names
     root_base_bucket
     fairroot_geom
+    root_base_bucket
+    fairroot_base_bucket
+    Matrix
+    Physics
+    Geom
     Core Hist # ROOT
 
     INCLUDE_DIRECTORIES
