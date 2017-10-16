@@ -21,14 +21,13 @@
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
-#include "AliHLTTPCGMBorderTrack.h"
-#include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCCAParam.h"
 #include <cmath>
 
 
 #if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
 #include "AliTracker.h"
+#include "AliMagF.h"
 #endif
 
 
@@ -36,28 +35,39 @@ GPUd() inline void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, floa
 {
 
   if( fContinuousTracking ) Z =  ( Z > 0 ? 125. : -125.);
-    
-#if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
-  const double kCLight = 0.000299792458;
 
   // get global coordinates
 
-  double cs = AliHLTTPCCAMath::Cos(Alpha);
-  double sn = AliHLTTPCCAMath::Sin(Alpha);
+  float cs = AliHLTTPCCAMath::Cos(Alpha);
+  float sn = AliHLTTPCCAMath::Sin(Alpha);
+
+#if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
+  const double kCLight = 0.000299792458;
   double r[3] = { X*cs - Y*sn, X*sn + Y*cs, Z };
   double bb[3];
   AliTracker::GetBxByBz( r, bb);
+  bb[0]*=kCLight;
+  bb[1]*=kCLight;
+  bb[2]*=kCLight;
+  /*
+  cout<<"AliTracker::GetBz()= "<<AliTracker::GetBz()<<endl;
+  cout<<"AliTracker::UniformField() "<<AliTracker::UniformField()<<endl;
+  AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
+  cout<<"Fast field = "<<(void*) fld->GetFastField()<<endl;
+  AliMagF::BMap_t  type = fld->GetMapType() ;
+  cout<<"Field type: "<<type<<endl;
+  //  fMapType==k2BMap_t     
+  */
+#else
+  float  bb[3];
+  fField.GetField( X*cs - Y*sn, X*sn + Y*cs, Z, bb);
+#endif
 
   // rotate field to local coordinates
 
-  B[0] = kCLight*(  bb[0]*cs + bb[1]*sn );
-  B[1] = kCLight*( -bb[0]*sn + bb[1]*cs );
-  B[2] = kCLight*( bb[2] );
-  return;
-#endif
-  B[0] = 0.;
-  B[1] = 0.;
-  B[2] = GetBz( Alpha, X, Y, Z );
+  B[0] =  bb[0]*cs + bb[1]*sn ;
+  B[1] = -bb[0]*sn + bb[1]*cs ;
+  B[2] =  bb[2] ;
 }
 
 

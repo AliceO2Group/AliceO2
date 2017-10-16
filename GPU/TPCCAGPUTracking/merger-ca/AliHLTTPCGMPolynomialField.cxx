@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCGMFastField.cxx 41769 2010-06-16 13:58:00Z sgorbuno $
+// $Id: AliHLTTPCGMPolynomialField.cxx 41769 2010-06-16 13:58:00Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -16,7 +16,7 @@
 //                                                                          *
 //***************************************************************************
 
-#include "AliHLTTPCGMFastField.h"
+#include "AliHLTTPCGMPolynomialField.h"
 #include <cmath>
 
 
@@ -28,9 +28,8 @@
 #include "TMath.h"
 #include "TNtuple.h"
 #include "Riostream.h"
-#include "AliExternalTrackParam.h"
 
-void AliHLTTPCGMFastField::DumpField( const char *fileName ) const
+void AliHLTTPCGMPolynomialField::DumpField( const char *fileName ) const
 {
 
   const double sectorAngleShift = 10./180.*TMath::Pi();
@@ -93,7 +92,7 @@ void AliHLTTPCGMFastField::DumpField( const char *fileName ) const
  
 #else
 
-void AliHLTTPCGMFastField::DumpField( const float *) const
+void AliHLTTPCGMPolynomialField::DumpField( const float *) const
 {
   // do nothing
 }

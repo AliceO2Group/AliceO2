@@ -48,6 +48,7 @@
 
 AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   :
+  fField(),
   fSliceParam(),
   fNOutputTracks( 0 ),
   fNOutputTrackClusters( 0 ),
@@ -81,6 +82,8 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   {
     const double kCLight = 0.000299792458;
     double constBz = fSliceParam.BzkG() * kCLight;
+
+    fField.Init(0.001); // set very wrong initial value in order to see if the field was not properly initialised
     
     fPolinomialFieldBz[0] = constBz * (  0.999286   );
     fPolinomialFieldBz[1] = constBz * ( -4.54386e-7 );
@@ -95,6 +98,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
 
 AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   :
+  fField(),
   fSliceParam(),
   fNOutputTracks( 0 ),
   fNOutputTrackClusters( 0 ),
@@ -122,6 +126,8 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   {
     const double kCLight = 0.000299792458;
     double constBz = fSliceParam.BzkG() * kCLight;
+
+    fField.Init(0.001);
 
     fPolinomialFieldBz[0] = constBz * (  0.999286   );
     fPolinomialFieldBz[1] = constBz * ( -4.54386e-7 );
@@ -196,6 +202,8 @@ bool AliHLTTPCGMMerger::Reconstruct()
   //* main merging routine
 
   {
+    fField.Init( fSliceParam.BzkG() );
+    
     const double kCLight = 0.000299792458;
     double constBz = fSliceParam.BzkG() * kCLight;
 
@@ -886,7 +894,7 @@ void AliHLTTPCGMMerger::Refit()
 #endif
 	  for ( int itr = 0; itr < fNOutputTracks; itr++ )
 	  {
-		  AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fPolinomialFieldBz, fClusterX, fClusterY, fClusterZ, fClusterRow, fClusterAngle, fSliceParam);
+	    AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fField, fPolinomialFieldBz, fClusterX, fClusterY, fClusterZ, fClusterRow, fClusterAngle, fSliceParam);
 	  }
 	}
 }

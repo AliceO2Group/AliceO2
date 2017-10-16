@@ -13,6 +13,7 @@
 
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
+#include "AliHLTTPCGMPolynomialField.h"
 
 class AliHLTTPCGMTrackParam;
 class AliHLTTPCCAParam;
@@ -37,7 +38,9 @@ public:
   };
 
   GPUd() void SetMaterial( float radLen, float rho );
+
   GPUd() void SetPolynomialFieldBz( const float *fieldBz );
+  GPUd() void SetPolynomialField( const AliHLTTPCGMPolynomialField &field ){ fField = field; }
 
   GPUd() void SetUseMeanMomentum( bool Flag ){ fUseMeanMomentum = Flag; CalculateMaterialCorrection(); }
   GPUd() void SetContinuousTracking( bool Flag ){ fContinuousTracking = Flag; }
@@ -67,6 +70,8 @@ private:
   GPUd() void CalculateMaterialCorrection();
   GPUd() static float ApproximateBetheBloch( float beta2 );
 
+  AliHLTTPCGMPolynomialField fField;
+
   AliHLTTPCGMTrackParam *fT;
   float fAlpha; // rotation angle of the track coordinate system
   AliHLTTPCGMPhysicalTrackModel fT0;
@@ -78,7 +83,7 @@ private:
 };
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
-   : fT(0), fAlpha(0), fT0(), fMaterial(),
+: fField(), fT(0), fAlpha(0), fT0(), fMaterial(),
      fUseMeanMomentum(0), fContinuousTracking(0), fMaxSinPhi(.999)
 {
   for( int i=0; i<6; i++ ) fPolynomialFieldBz[i] = 0.f;
