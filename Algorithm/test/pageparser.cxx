@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_pageparser)
   o2::Header::hexDump("pagebuffer", buffer.first.get(), buffer.second);
 
   using RawParser = o2::algorithm::PageParser<PageHeader, pagesize, ClusterData>;
-  RawParser parser(buffer.first.get(), buffer.second);
+  const RawParser parser(buffer.first.get(), buffer.second);
 
   unsigned dataidx = 0;
   for (auto i : parser) {
@@ -145,5 +145,21 @@ BOOST_AUTO_TEST_CASE(test_pageparser)
   dataidx = 0;
   for (auto i : linearizedData) {
     BOOST_REQUIRE( i == dataset[dataidx++]);
+  }
+
+  dataidx = 0;
+  RawParser writer(buffer.first.get(), buffer.second);
+  std::vector<std::pair<unsigned, unsigned>> xvalues;
+  for (auto &i : writer) {
+    i.x = (dataidx * 3) % 7;
+    xvalues.emplace_back(i.x, dataidx);
+    ++dataidx;
+  }
+  o2::Header::hexDump("changed buffer", buffer.first.get(), buffer.second);
+
+  dataidx = 0;
+  for (auto i : parser) {
+    o2::Header::hexDump("clusterdata", &i, sizeof(ClusterData));
+    BOOST_REQUIRE( i.x == xvalues[dataidx++].first);
   }
 }
