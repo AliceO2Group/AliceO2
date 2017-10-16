@@ -52,7 +52,7 @@ void AliHLTTPCGMPolynomialField::DumpField( const char *fileName ) const
      
   Double_t solenoidBz = AliTracker::GetBz();
   
-  cout<<"solenoidBz "<<solenoidBz<<" almost0 = "<<0.5*kAlmost0Field<<endl;
+  cout<<"solenoidBz "<<solenoidBz<<endl;
 
   TFile *file = new TFile(fileName,"RECREATE");
   file->cd();
@@ -92,7 +92,7 @@ void AliHLTTPCGMPolynomialField::DumpField( const char *fileName ) const
  
 #else
 
-void AliHLTTPCGMPolynomialField::DumpField( const float *) const
+void AliHLTTPCGMPolynomialField::DumpField( const char *) const
 {
   // do nothing
 }
