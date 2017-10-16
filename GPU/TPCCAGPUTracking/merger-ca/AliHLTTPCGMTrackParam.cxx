@@ -23,6 +23,7 @@
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCGMBorderTrack.h"
 #include "AliHLTTPCGMMergedTrack.h"
+#include "AliHLTTPCGMPolynomialField.h"
 #ifndef HLTCA_STANDALONE
 #include "AliExternalTrackParam.h"
 #endif
@@ -32,6 +33,7 @@
 
 GPUd() void AliHLTTPCGMTrackParam::Fit
 (
+ const AliHLTTPCGMPolynomialField &field,
  float* PolinomialFieldBz,
  float x[], float y[], float z[], int row[], float alpha[], const AliHLTTPCCAParam &param,
  int &N, float &Alpha, bool UseMeanPt, float maxSinPhi
@@ -44,6 +46,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
+  prop.SetPolynomialField( field );
   prop.SetPolynomialFieldBz( PolinomialFieldBz );  
   prop.SetUseMeanMomentum( UseMeanPt );
   prop.SetContinuousTracking( param.GetContinuousTracking() );
@@ -157,7 +160,7 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 }
 #endif
 
-GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* row, float* alpha, const AliHLTTPCCAParam& param)
+GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField &field, float* PolinomialFieldBz, float* x, float* y, float* z, int* row, float* alpha, const AliHLTTPCCAParam& param)
 {
 	if( !track.OK() ) return;    
 
@@ -167,7 +170,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 	float Alpha = track.Alpha();  
 	int nTrackHitsOld = nTrackHits;
 	//float ptOld = t.QPt();
-	t.Fit( PolinomialFieldBz,
+	t.Fit( field, PolinomialFieldBz,
 	   x+track.FirstClusterRef(),
 	   y+track.FirstClusterRef(),
 	   z+track.FirstClusterRef(),
@@ -214,11 +217,11 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 
 #ifdef HLTCA_GPUCODE
 
-GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, int* row, float* alpha, AliHLTTPCCAParam* param)
+GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, const AliHLTTPCGMPolynomialField &field, float* PolinomialFieldBz, float* x, float* y, float* z, int* row, float* alpha, AliHLTTPCCAParam* param)
 {
 	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
-		AliHLTTPCGMTrackParam::RefitTrack(tracks[i], PolinomialFieldBz, x, y, z, row, alpha, *param);
+	  AliHLTTPCGMTrackParam::RefitTrack(tracks[i], field, PolinomialFieldBz, x, y, z, row, alpha, *param);
 	}
 }
 

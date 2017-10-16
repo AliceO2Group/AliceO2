@@ -14,6 +14,7 @@
 #include "AliHLTTPCGMBorderTrack.h"
 #include "AliHLTTPCGMSliceTrack.h"
 #include "AliHLTTPCCAGPUTracker.h"
+#include "AliHLTTPCGMPolynomialField.h"
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
@@ -85,6 +86,8 @@ private:
   static const int fgkNSlices = 36;       //* N slices
   int fNextSliceInd[fgkNSlices];
   int fPrevSliceInd[fgkNSlices];
+
+  AliHLTTPCGMPolynomialField fField;
   
   AliHLTTPCCAParam fSliceParam;           //* slice parameters (geometry, calibr, etc.)
   const AliHLTTPCCASliceOutput *fkSlices[fgkNSlices]; //* array of input slice tracks
@@ -113,7 +116,7 @@ private:
   int fNWays;
 
   int fNClusters;			//Total number of incoming clusters
-
+  
   float fPolinomialFieldBz[6];   // field coefficients
 };
 
