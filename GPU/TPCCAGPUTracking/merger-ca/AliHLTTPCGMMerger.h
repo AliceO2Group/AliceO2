@@ -55,6 +55,7 @@ public:
   void SetDebugLevel(int debug) {fDebugLevel = debug;}
 
   float* PolinomialFieldBz() const {return((float*) fPolinomialFieldBz);}
+  AliHLTTPCGMPolynomialField Field() const {return fField;}
 
   int NClusters() const { return(fNClusters); }
   int NOutputTrackClusters() const { return(fNOutputTrackClusters); }
