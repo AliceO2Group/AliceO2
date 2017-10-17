@@ -412,7 +412,7 @@ function(O2_GENERATE_TESTS)
   foreach (test ${PARSED_ARGS_TEST_SRCS})
     string(REGEX REPLACE ".*/" "" test_name ${test})
     string(REGEX REPLACE "\\..*" "" test_name ${test_name})
-    set(test_name test_${MODULE_NAME}${test_name})
+    set(test_name test_${MODULE_NAME}_${test_name})
 
     message(STATUS "Generate test ${test_name}")
 
