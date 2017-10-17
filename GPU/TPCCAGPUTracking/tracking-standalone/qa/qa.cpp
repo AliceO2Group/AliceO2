@@ -489,7 +489,7 @@ void RunQA()
 		bool inFlyDirection = 0;
 		if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() - mc1.fZ) * (param.Z() - mc1.fZ) > 25) continue;
 		
-		if (prop.PropagateToXAlpha( mclocal[0], mclocal[1], mc1.fZ, alpha, inFlyDirection ) ) continue;
+		if (prop.PropagateToXAlpha( mclocal[0], alpha, inFlyDirection ) ) continue;
 		if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1. : 4.) || fabs(param.Z() - mc1.fZ) > (config.strict ? 1. : 4.)) continue;
 		
 		float deltaY = param.GetY() - mclocal[1];

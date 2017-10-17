@@ -484,6 +484,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	  const float kRadLen = 29.532;//28.94;
 	  prop.SetMaxSinPhi( .999 );
  	  prop.SetMaterial( kRadLen, kRho );
+	  AliHLTTPCGMPolynomialField field;
+	  field.Init( GetBz() );
+	  prop.SetPolynomialField( field );
 	  prop.SetPolynomialFieldBz( fPolinomialFieldBz );  
 	  prop.SetUseMeanMomentum(kFALSE );
 	  prop.SetContinuousTracking( kFALSE );
@@ -564,12 +567,12 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 					prop.SetTrack(&ftrack, falpha);					
 					ftrack.ResetCovariance();
 					bool inFlyDirection = 1;
-					prop.PropagateToXAlpha( xyz[0], ftrack.GetY(), ftrack.GetZ(), falpha,  inFlyDirection );
+					prop.PropagateToXAlpha( xyz[0], falpha,  inFlyDirection );
 				}
 				else
 				{
 				        bool inFlyDirection = 0;
-					prop.PropagateToXAlpha( xyz[0], ftrack.GetY(), ftrack.GetZ(), alpha,  inFlyDirection );
+					prop.PropagateToXAlpha( xyz[0], alpha,  inFlyDirection );
 
 				}
 

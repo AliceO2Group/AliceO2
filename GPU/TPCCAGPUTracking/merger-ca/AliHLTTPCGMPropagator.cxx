@@ -147,7 +147,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
 }
 
 
-GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posY, float posZ, float posAlpha, bool inFlyDirection)
+GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection)
 {
   
   if ( fabs( posAlpha - fAlpha) > 1.e-4 ) {
@@ -161,7 +161,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posY, floa
   
   AliHLTTPCGMPhysicalTrackModel t0e(fT0);
   float dLp = 0;
-  int err = t0e.PropagateToXBxByBz( posX, posY, posZ, B[0], B[1], B[2], dLp );
+  int err = t0e.PropagateToXBxByBz( posX, B[0], B[1], B[2], dLp );
   if( err ) return 1;
   if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -1;
 

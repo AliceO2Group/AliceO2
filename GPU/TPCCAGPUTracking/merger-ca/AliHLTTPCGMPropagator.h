@@ -50,7 +50,7 @@ public:
     
   GPUd() int RotateToAlpha( float newAlpha );
   
-  GPUd() int PropagateToXAlpha( float posX, float posY, float posZ, float posAlpha, bool inFlyDirection );
+  GPUd() int PropagateToXAlpha( float posX, float posAlpha, bool inFlyDirection );
 
   GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
 
