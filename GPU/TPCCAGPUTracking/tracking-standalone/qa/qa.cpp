@@ -431,7 +431,7 @@ void RunQA()
 				{
 					if (info.fPrim && mcpt < PT_MIN_PRIM) continue;
 					if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
-					if (l < 4 && mcpt < PT_MIN2) continue;
+					if (l < 4 && mcpt < 1. / config.qpt) continue;
 					
 					float pos = l == 0 ? info.fX : l == 1 ? info.fY : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
 
@@ -506,7 +506,7 @@ void RunQA()
 			for (int k = 0;k < 5;k++)
 			{
 				if (k != 3 && fabs(mc2.eta) > ETA_MAX2) continue;
-				if (k < 4 && mc2.pt < PT_MIN2) continue;
+				if (k < 4 && mc2.pt < 1. / config.qpt) continue;
 				res2[j][k]->Fill(resval[j], paramval[k]);
 			}
 		}
