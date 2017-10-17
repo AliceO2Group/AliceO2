@@ -655,9 +655,9 @@ struct AliHLTTPCGMMerger_CompareClusterIds
 	float fQPt, fDzDs, fThresh;
 	AliHLTTPCGMMerger_CompareClusterIds(float q, float z) : fQPt(q), fDzDs(z), fThresh(fabs(0.1f * 3.14f * 666.f * z / q)) {if (fThresh < 1.) fThresh = 1.; if (fThresh > 4.) fThresh = 4.;}
 	bool operator()(const clcomparestruct& a, const clcomparestruct& b) { //a < b ?
-		if (a.q * b.q < 0) return((a.z - b.z) * fDzDs > 0);
 		float dz = a.z - b.z;
-		if (fabs(dz) > fThresh) return((a.z - b.z) * fDzDs > 0);
+		if (a.q * b.q < 0) return(dz * fDzDs > 0);
+		if (fabs(dz) > fThresh) return(dz * fDzDs > 0);
 		return((a.x - b.x) * a.q * fQPt > 0);
 	}
 };
@@ -766,8 +766,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  int nTmpHits = 0;
 	  
 	  //Find QPt and DzDs for the segment closest to the vertex, if low/mid Pt
-	  float baseQPt = 1.f;
-	  float baseZ = 1.0;
+	  float baseQPt = trackParts[0]->QPt() > 0 ? 1.f : -1.0;
+	  float baseZ = trackParts[0]->DzDs() > 0 ? 1.0 : -1.0;
 	  if (fabs(trackParts[0]->QPt()) > 2)
 	  {
 		  float minZ = 1000.f;
