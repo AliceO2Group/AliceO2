@@ -21,8 +21,8 @@
 #include <bitset>
 #include <vector>
 
-#include "TPCReconstruction/HalfSAMPAData.h"
 #include "TPCReconstruction/RawReader.h"
+#include "TPCBase/PadPos.h"
 #include "FairLogger.h"
 
 namespace bpo = boost::program_options; 
@@ -72,11 +72,15 @@ int main(int argc, char *argv[])
   rr.addInputFile(region,link,infile);
   rr.setUseRawInMode3(useRawInMode3);
   rr.setCheckAdcClock(false);
-  rr.setPrintRawData(true);
+  rr.setPrintRawData(false);
 
   int i=0;
+  o2::TPC::PadPos padPos;
   while((rr.loadNextEventNoWrap() >= 0) & ((readEvents>=0)? i<readEvents : true)) {
     ++i;
+    while (std::shared_ptr<std::vector<uint16_t>> data = rr.getNextData(padPos)) {
+//      std::cout << (*data).size() << " timebins from pad " << (int)padPos.getPad() << " in row " << (int)padPos.getRow() << std::endl;
+    }
   }
 
   return EXIT_SUCCESS;
