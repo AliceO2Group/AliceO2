@@ -1,5 +1,5 @@
 /// \file CheckDigits.C
-/// \brief Simple macro to check ITSU clusters
+/// \brief Simple macro to check MFT clusters
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
@@ -17,6 +17,7 @@
 #include "MFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 #endif
 
@@ -26,8 +27,10 @@ using o2::ITSMFT::Cluster;
 void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGeant3") 
 {
 
-  using o2::ITSMFT::Hit;
+  using namespace o2::Base;
   using namespace o2::MFT;
+
+  using o2::ITSMFT::Hit;
 
   TH1F *hTrackID = new TH1F("hTrackID","hTrackID",1.1*nMuons+1,-0.5,(nMuons+0.1*nMuons)+0.5);
   TH2F *hDifLocXrZc = new TH2F("hDifLocXrZc","hDifLocXrZc",100,-50.,+50.,100,-50.,+50.);
@@ -49,16 +52,26 @@ void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = 
   sprintf(filename, "AliceO2_%s.mc_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
   TFile *file0 = TFile::Open(filename);
   TTree *hitTree = (TTree*)gFile->Get("o2sim");
-  TClonesArray hitArr("o2::ITSMFT::Hit"), *phitArr(&hitArr);
-  hitTree->SetBranchAddress("MFTHits",&phitArr);
+  std::vector<Hit> *hitArray = nullptr;
+  hitTree->SetBranchAddress("MFTHit",&hitArray);
 
   // Clusters
   sprintf(filename, "AliceO2_%s.clus_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
   TFile *file1 = TFile::Open(filename);
   TTree *clusTree = (TTree*)gFile->Get("o2sim");
-  TClonesArray clusArr("o2::ITSMFT::Cluster"), *pclusArr(&clusArr);
-  clusTree->SetBranchAddress("MFTClusters",&pclusArr);
+  std::vector<Cluster> *clusArray = nullptr;
+  //clusTree->SetBranchAddress("MFTCluster",&clusArray);
+  auto *branch = clusTree->GetBranch("MFTCluster");
+  if (!branch) {
+    std::cout << "No clusters !" << std::endl;
+    return;
+  }
+  branch->SetAddress(&clusArray);
 
+  // Cluster MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clusLabArray = nullptr;
+  clusTree->SetBranchAddress("MFTClusterMCTruth",&clusLabArray);
+ 
   Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
   Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
   Int_t ievC = 0, ievH = 0;
@@ -68,17 +81,17 @@ void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = 
 
   for (ievC = 0; ievC < nevCl; ievC++) {
     clusTree->GetEvent(ievC);
-    Int_t nc = clusArr.GetEntriesFast();
+    Int_t nc = clusArray->size();
 
     while (nc--) {
 
       // cluster is in tracking coordinates always
-      Cluster *c = static_cast<Cluster*>(clusArr.UncheckedAt(nc));
-      Int_t chipID = c->getSensorID();
-      
-      const auto locC = c->getXYZLoc(*gman); // convert from tracking to local frame
-      const auto gloC = c->getXYZGlo(*gman); // convert from tracking to global frame
-      o2::MCCompLabel lab = c->getLabel(0);
+      Cluster &c=(*clusArray)[nc];
+
+      Int_t chipID = c.getSensorID();      
+      const auto locC = c.getXYZLoc(*gman); // convert from tracking to local frame
+      const auto gloC = c.getXYZGlo(*gman); // convert from tracking to global frame
+      auto lab = (clusLabArray->getLabels(nc))[0];
 
       Float_t dx = 0, dz = 0;
       Int_t trID = lab.getTrackID();
@@ -94,17 +107,12 @@ void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = 
 	  lastReadHitEv = ievH;
 	}
 
-	Int_t nh = hitArr.GetEntriesFast();
-
-	for (Int_t i = 0; i < nh; i++) {
-
-	  Hit* ptmp = static_cast<Hit*>(hitArr.UncheckedAt(i));
-	  if (ptmp->GetDetectorID() != (Short_t)chipID) continue; 
-	  if (ptmp->GetTrackID() != (Int_t)trID) continue;
-	  hTrackID->Fill((Float_t)ptmp->GetTrackID());
-	  p = ptmp;
+        for (auto& ptmp : *hitArray) {
+	  if (ptmp.GetDetectorID() != (Short_t)chipID) continue; 
+	  if (ptmp.GetTrackID() != (Int_t)trID) continue;
+	  hTrackID->Fill((Float_t)ptmp.GetTrackID());
+	  p = &ptmp;
 	  break;
-
 	} // hits
 
 	if (!p) {
@@ -115,8 +123,8 @@ void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = 
 	  locH    = gman->getMatrixL2G(chipID)^( p->GetPos() );  // inverse conversion from global to local
 	  locHsta = gman->getMatrixL2G(chipID)^( p->GetPosStart() );
 	  locH.SetXYZ( 0.5*(locH.X()+locHsta.X()),0.5*(locH.Y()+locHsta.Y()),0.5*(locH.Z()+locHsta.Z()) );
-	  //std::cout << "chip "<< p->GetDetectorID() << "  PposGlo " << p->GetPos() << std::endl;
-	  //std::cout << "chip "<< c->getSensorID() << "  PposLoc " << locH << std::endl;
+	  //std::cout << "chip "<< p->qGetDetectorID() << "  PposGlo " << p->GetPos() << std::endl;
+	  //std::cout << "chip "<< c.getSensorID() << "  PposLoc " << locH << std::endl;
 	  dx = locH.X()-locC.X();
 	  dz = locH.Z()-locC.Z();
 	  hDifLocXrZc->Fill(1.e4*dx,1.e4*dz);
@@ -126,7 +134,7 @@ void CheckClusters_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = 
 	nNoise++;
       } // not noise
 
-      nt->Fill(gloC.X(),gloC.Y(),gloC.Z(), dx, dz, trID, c->getROFrame(), ievC,
+      nt->Fill(gloC.X(),gloC.Y(),gloC.Z(), dx, dz, trID, c.getROFrame(), ievC,
 	       locH.X(),locH.Z(), locC.X(),locC.Z());
 
     } //clusters

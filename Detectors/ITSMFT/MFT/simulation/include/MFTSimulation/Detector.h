@@ -19,6 +19,9 @@
 #include "TLorentzVector.h"
 
 #include "DetectorsBase/Detector.h"
+#include "DetectorsBase/DetID.h"   // for Detector
+#include "ITSMFTSimulation/Hit.h"     // for Hit
+#include <vector>            // for vector
 
 class TClonesArray;
 class TVector3;
@@ -94,9 +97,11 @@ protected:
 
   Int_t mVersion;                  //
   Double_t mDensitySupportOverSi;  //
-  TClonesArray *mHits;             //!
  
 private:
+
+  /// Container for hit data
+  std::vector<o2::ITSMFT::Hit>* mHits;
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);
