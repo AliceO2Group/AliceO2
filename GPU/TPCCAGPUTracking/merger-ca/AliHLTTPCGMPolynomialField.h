@@ -69,7 +69,7 @@ inline void AliHLTTPCGMPolynomialField::Init( float NominalBzkG )
 
 inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, float B[] ) const
 {
-  float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+  const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bx = 0.f, by = 0.f, bz = 0.f;
   for( int i=0; i<fkM; i++){
     bx+= fBx[i]*f[i];
@@ -83,7 +83,7 @@ inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, flo
 
 inline float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, float z ) const
 {
-  float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+  const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bz = 0.f;
   for( int i=0; i<fkM; i++){
     bz+= fBz[i]*f[i];
