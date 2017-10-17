@@ -19,6 +19,7 @@ AddOptionVec(compareInputNames, const char*, "inputName", 0, "Legend entries for
 AddOption(name, const char*, NULL, "name", 0, "Legend entry for new data from current processing")
 AddOption(output, const char*, NULL, "histOut", 0, "Store histograms in output root file", def("histograms.root"))
 AddOption(inputHistogramsOnly, bool, false, "only", 0, "Do not run tracking, but just create PDFs from input root files")
+AddOption(strict, bool, true, "strict", 0, "Strict QA mode: Only consider resolution of tracks where the fit ended within 5 cm of the reference, and remove outliers.")
 AddHelp("help", 'h')
 EndConfig()
 
