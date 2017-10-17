@@ -24,6 +24,7 @@
 #include "interface/outputtrack.h"
 #include "include.h"
 #include <vector>
+#include <xmmintrin.h>
 
 #include "cmodules/qconfig.h"
 
@@ -34,6 +35,18 @@ int main(int argc, char** argv)
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	int iEventInTimeframe = 0, nEventsInDirectory = 0;
+	
+#ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
+	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#else
+#ifndef _MM_FLUSH_ZERO_ON
+#define _MM_FLUSH_ZERO_ON 0x8000
+#endif
+#ifndef _MM_DENORMALS_ZERO_ON
+#define _MM_DENORMALS_ZERO_ON 0x0040
+#endif
+	_mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
+#endif
 	
 	if (hlt.GetGPUStatus() == 0)
 	{
@@ -76,7 +89,7 @@ int main(int argc, char** argv)
 	}
 	if (configStandalone.fpe)
 	{
-		feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+		feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 	}
 #else
 	if (configStandalone.affinity != -1) {printf("Affinity setting not supported on Windows\n"); return(1);}
@@ -451,7 +464,7 @@ breakrun:
 	if (configStandalone.qa)
 	{
 #ifndef _WIN32
-		fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW);
+		if (configStandalone.fpe) fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 #endif
 		DrawQAHistograms();
 	}
