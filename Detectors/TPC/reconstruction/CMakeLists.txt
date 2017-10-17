@@ -46,14 +46,12 @@ O2_GENERATE_LIBRARY()
 Set(Exe_Names
   tpc-read-GBTFrames
   tpc-read-RawData
-  testRawReader
 )
 
 
 Set(Exe_Source
   run/readGBTFrames.cxx
   run/readRawData.cxx
-  run/testRawReader.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
