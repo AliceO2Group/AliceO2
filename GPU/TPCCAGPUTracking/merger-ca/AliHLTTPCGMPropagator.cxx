@@ -292,7 +292,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
     if( RotateToAlpha( posAlpha )!=0 ) return -1;
   }
 
-  float bz = GetBz( fAlpha, fT0.X(), fT0.Y(), fT0.Z() );
+  float Bz = GetBz( fAlpha, fT0.X(), fT0.Y(), fT0.Z() );
 
   // propagate fT0 to t0e
   
@@ -310,16 +310,16 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
 
   if( inFlyDirection ) dL = -dL;
   
-  float k  = -fT0.QPt()*bz;
+  float k  = -fT0.QPt()*Bz;
   float dx = posX - fT0.X();
   float kdx = k*dx; 
   float dxcci = dx / (fT0.CosPhi() + t0e.CosPhi());            
       
   float hh = dxcci*t0e.SecPhi()*(2.f+0.5f*kdx*kdx); 
   float h02 = fT0.SecPhi()*hh;
-  float h04 = -bz*dxcci*hh;
+  float h04 = -Bz*dxcci*hh;
   float h13 = dS;  
-  float h24 = -dx*bz;
+  float h24 = -dx*Bz;
 
   float *p = fT->Par();
 
