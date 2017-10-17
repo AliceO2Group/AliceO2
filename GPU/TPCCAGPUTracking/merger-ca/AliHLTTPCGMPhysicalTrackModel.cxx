@@ -19,7 +19,7 @@
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCCAMath.h"
 
-inline GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x,  float Bz, float &dLp )
+GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x,  float Bz, float &dLp )
 {
   //
   // transport the track to X=x in magnetic field B = ( 0, 0, Bz[kG*0.000299792458] )
