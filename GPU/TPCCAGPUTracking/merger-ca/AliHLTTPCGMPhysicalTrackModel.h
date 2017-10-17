@@ -72,7 +72,7 @@ class AliHLTTPCGMPhysicalTrackModel
 
   GPUd() int PropagateToXBzLight( float x, float Bz, float &dLp );
   
-  GPUd() int PropagateToXBxByBz( float x,  float y,  float z,
+  GPUd() int PropagateToXBxByBz( float x,
 				 float Bx, float By, float Bz,				   
 				 float &dLp );
   

@@ -71,7 +71,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       const int rowType = row[ihit] < 64 ? 0 : row[ihit] < 128 ? 2 : 1;
       if (row[ihit] < 0) continue; // hit is excluded from fit
       
-      int err = prop.PropagateToXAlpha(x[ihit], y[ihit], z[ihit], alpha[ihit], iWay & 1 );
+      int err = prop.PropagateToXAlpha(x[ihit], alpha[ihit], iWay & 1 );
 
       if ( err || CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate )
       {
