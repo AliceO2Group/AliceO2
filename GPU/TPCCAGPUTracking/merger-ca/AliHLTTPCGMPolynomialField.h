@@ -20,7 +20,7 @@ class AliHLTTPCGMPolynomialField
 {
 public:
 
-  AliHLTTPCGMPolynomialField(): fNominalBzkG(.001), fBx0(0.f), fBy0(0.f), fBz0(0.f) {
+  AliHLTTPCGMPolynomialField(): fNominalBzkG(.001) {
     Init(fNominalBzkG);
   }
   
@@ -38,12 +38,9 @@ private:
   static const int fkM = 10;
 
   float fNominalBzkG; // Bz field constant in kGaus  
-  float fBx0;
-  float fBy0;
-  float fBz0; 
-  float fBx[fkM-1];
-  float fBy[fkM-1];
-  float fBz[fkM-1];
+  float fBx[fkM];
+  float fBy[fkM];
+  float fBz[fkM];
 };
 
 inline void AliHLTTPCGMPolynomialField::Init( float NominalBzkG )
@@ -65,36 +62,33 @@ inline void AliHLTTPCGMPolynomialField::Init( float NominalBzkG )
 
   double constBz = fNominalBzkG * kCLight;
   
-  fBx0 = constBz*cBx[0];
-  fBy0 = constBz*cBy[0];
-  fBz0 = constBz*cBz[0];
-  for( int i=1; i<fkM; i++ ) fBx[i-1] = constBz*cBx[i];
-  for( int i=1; i<fkM; i++ ) fBy[i-1] = constBz*cBy[i];
-  for( int i=1; i<fkM; i++ ) fBz[i-1] = constBz*cBz[i];
+  for( int i=0; i<fkM; i++ ) fBx[i] = constBz*cBx[i];
+  for( int i=0; i<fkM; i++ ) fBy[i] = constBz*cBy[i];
+  for( int i=0; i<fkM; i++ ) fBz[i] = constBz*cBz[i];
 }
 
 inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, float B[] ) const
 {
-  float f[fkM-1] = { x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+  float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bx = 0.f, by = 0.f, bz = 0.f;
-  for( int i=0; i<fkM-1; i++){
+  for( int i=0; i<fkM; i++){
     bx+= fBx[i]*f[i];
     by+= fBy[i]*f[i];
     bz+= fBz[i]*f[i];
   }
-  B[0] = fBx0 + bx;
-  B[1] = fBy0 + by;
-  B[2] = fBz0 + bz;
+  B[0] = bx;
+  B[1] = by;
+  B[2] = bz;
 }
 
 inline float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, float z ) const
 {
-  float f[fkM-1] = { x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+  float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bz = 0.f;
-  for( int i=0; i<fkM-1; i++){
+  for( int i=0; i<fkM; i++){
     bz+= fBz[i]*f[i];
   }
-  return fBz0 + bz;
+  return bz;
 }
 
 #endif 
