@@ -285,6 +285,143 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posY, floa
   return 0;
 }
 
+GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection)
+{
+  
+  if ( fabs( posAlpha - fAlpha) > 1.e-4 ) {
+    if( RotateToAlpha( posAlpha )!=0 ) return -1;
+  }
+
+  float bz = GetBz( fAlpha, fT0.X(), fT0.Y(), fT0.Z() );
+
+  // propagate fT0 to t0e
+  
+  AliHLTTPCGMPhysicalTrackModel t0e(fT0);
+  float dLp = 0;
+  int err = t0e.PropagateToXBzLight( posX, Bz, dLp );
+  if( err ) return 1;
+  t0e.UpdateValues();
+  if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -1;
+
+  // propagate track and cov matrix with derivatives for (0,0,Bz) field
+
+  float dS =  dLp*t0e.Pt();
+  float dL =  fabs(dLp*t0e.P());   
+
+  if( inFlyDirection ) dL = -dL;
+  
+  float k  = -fT0.QPt()*bz;
+  float dx = posX - fT0.X();
+  float kdx = k*dx; 
+  float dxcci = dx / (fT0.CosPhi() + t0e.CosPhi());            
+      
+  float hh = dxcci*t0e.SecPhi()*(2.f+0.5f*kdx*kdx); 
+  float h02 = fT0.SecPhi()*hh;
+  float h04 = -bz*dxcci*hh;
+  float h13 = dS;  
+  float h24 = -dx*bz;
+
+  float *p = fT->Par();
+
+  float d0 = p[0] - fT0.Y();
+  float d1 = p[1] - fT0.Z();
+  float d2 = p[2] - fT0.SinPhi();
+  float d3 = p[3] - fT0.DzDs();
+  float d4 = p[4] - fT0.QPt();
+	  
+  fT0 = t0e;
+
+  fT->X() = t0e.X();
+  p[0] = t0e.Y() + d0    + h02*d2         + h04*d4;
+  p[1] = t0e.Z() + d1    + h13*d3;
+  p[2] = t0e.SinPhi() +  d2           + h24*d4;    
+  p[3] = t0e.DzDs() + d3;
+  p[4] = t0e.QPt() + d4;  
+
+  float *c = fT->Cov();
+  float c20 = c[ 3];
+  float c21 = c[ 4];
+  float c22 = c[ 5];
+  float c30 = c[ 6];
+  float c31 = c[ 7];
+  float c32 = c[ 8];
+  float c33 = c[ 9];
+  float c40 = c[10];
+  float c41 = c[11];
+  float c42 = c[12];
+  float c43 = c[13];
+  float c44 = c[14];
+  
+  float c20ph04c42 =  c20 + h04*c42;
+  float h02c22 = h02*c22;
+  float h04c44 = h04*c44;
+  
+  float n6 = c30 + h02*c32 + h04*c43;
+  float n7 = c31 + h13*c33;
+  float n10 = c40 + h02*c42 + h04c44;
+  float n11 = c41 + h13*c43;
+  float n12 = c42 + h24*c44;
+      
+  c[8] = c32 + h24*c43;
+  
+  c[0]+= h02*h02c22 + h04*h04c44 + float(2.f)*( h02*c20ph04c42  + h04*c40 );
+  
+  c[1]+= h02*c21 + h04*c41 + h13*n6;
+  c[6] = n6;
+  
+  c[2]+= h13*(c31 + n7);
+  c[7] = n7; 
+  
+  c[3] = c20ph04c42 + h02c22  + h24*n10;
+  c[10] = n10;
+  
+  c[4] = c21 + h13*c32 + h24*n11;
+  c[11] = n11;
+      
+  c[5] = c22 + h24*( c42 + n12 );
+  c[12] = n12;
+
+  // Energy Loss
+  
+  float &fC22 = c[5];
+  float &fC33 = c[9];
+  float &fC40 = c[10];
+  float &fC41 = c[11];
+  float &fC42 = c[12];
+  float &fC43 = c[13];
+  float &fC44 = c[14];
+
+  float dLmask = 0.f;
+  bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
+  if( maskMS ) dLmask = dL;
+  float dLabs = fabs( dLmask); 
+  float corr = float(1.f) - fMaterial.fEP2* dLmask ;
+
+  float corrInv = 1.f/corr;
+  fT0.Px()*=corrInv;
+  fT0.Py()*=corrInv;
+  fT0.Pz()*=corrInv;
+  fT0.Pt()*=corrInv;
+  fT0.P()*=corrInv;
+  fT0.QPt()*=corr;
+
+  p[4]*= corr;
+  
+  fC40 *= corr;
+  fC41 *= corr;
+  fC42 *= corr;
+  fC43 *= corr;
+  fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2;
+  
+  //  Multiple Scattering
+  
+  fC22 += dLabs * fMaterial.fK22 * fT0.CosPhi()*fT0.CosPhi();
+  fC33 += dLabs * fMaterial.fK33;
+  fC43 += dLabs * fMaterial.fK43;
+  
+  return 0;
+}
+
 GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int rowType)
 {
   const float *cy = param.GetParamS0Par(0,rowType);

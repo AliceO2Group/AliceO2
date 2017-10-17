@@ -52,6 +52,8 @@ public:
   
   GPUd() int PropagateToXAlpha( float posX, float posY, float posZ, float posAlpha, bool inFlyDirection );
 
+  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
+
   GPUd() int Update( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, bool rejectChi2 );  
 
   GPUd() float GetBz( float Alpha, float X, float Y, float Z ) const;
