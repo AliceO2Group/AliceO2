@@ -269,6 +269,7 @@ void RunQA()
 	clusterParam.resize(hlt.GetNMCLabels());
 	memset(clusterParam.data(), 0, clusterParam.size() * sizeof(clusterParam[0]));
 	totalFakes = 0;
+	structConfigQA& config = configStandalone.configQA;	
 
 	if (hlt.GetNMCInfo() == 0 || hlt.GetNMCLabels() == 0)
 	{
@@ -479,11 +480,17 @@ void RunQA()
 		mclocal[3] =-px*s + py*c;
 		
 		AliHLTTPCGMTrackParam param = track.GetParam();
+		
+		if (mclocal[0] < 80) continue;
+		if (mclocal[0] > param.GetX() + 20) continue;
+
 		float alpha = track.GetAlpha();		
 		prop.SetTrack(&param, alpha);	
-		bool inFlyDirection = 0;		
+		bool inFlyDirection = 0;
+		if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() - mc1.fZ) * (param.Z() - mc1.fZ) > 25) continue;
+		
 		if (prop.PropagateToXAlpha( mclocal[0], mclocal[1], mc1.fZ, alpha, inFlyDirection ) ) continue;
-		if (fabs(param.Y() - mclocal[1]) > 4. || fabs(param.Z() - mc1.fZ) > 4.) continue;
+		if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1. : 4.) || fabs(param.Z() - mc1.fZ) > (config.strict ? 1. : 4.)) continue;
 		
 		float deltaY = param.GetY() - mclocal[1];
 		float deltaZ = param.GetZ() - mc1.fZ;
