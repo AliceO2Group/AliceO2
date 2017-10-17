@@ -151,7 +151,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 {
   
   if ( fabs( posAlpha - fAlpha) > 1.e-4 ) {
-    if( RotateToAlpha( posAlpha )!=0 ) return -1;
+    if( RotateToAlpha( posAlpha )!=0 ) return -2;
   }
 
   float B[3];
@@ -163,7 +163,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   float dLp = 0;
   int err = t0e.PropagateToXBxByBz( posX, B[0], B[1], B[2], dLp );
   if( err ) return 1;
-  if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -1;
+  if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -3;
 
   // propagate track and cov matrix with derivatives for (0,0,Bz) field
 

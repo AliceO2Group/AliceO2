@@ -47,6 +47,7 @@ public:
   GPUd() void SetMaxSinPhi( float maxSinPhi ){ fMaxSinPhi = maxSinPhi; }
   
   GPUd() void SetTrack( AliHLTTPCGMTrackParam *track, float Alpha ); 
+  GPUd() void ResetT0 () { if (!fT) return; fT0.Set(*fT);}
     
   GPUd() int RotateToAlpha( float newAlpha );
   
