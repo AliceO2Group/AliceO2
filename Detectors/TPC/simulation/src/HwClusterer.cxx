@@ -160,15 +160,15 @@ void HwClusterer::processDigits(
      */
     short t,p;
     float noise;
-    for (t = 0; t < timeDiff; ++t) {
-      for (p = 0; p < config.iMaxPads; ++p) {
-        if (config.iEnableNoiseSim && config.iNoiseObject != nullptr)
+    if (config.iEnableNoiseSim && config.iNoiseObject != nullptr) {
+      for (t=timeDiff; t--;) {
+        for (p=config.iMaxPads; p--;) {
           iAllBins[t][p] = config.iNoiseObject->getValue(CRU(config.iCRU),iRow,p);
-        else
-          iAllBins[t][p] = 0.0;
+        }
       }
+    } else {
+      std::fill(&iAllBins[0][0], &iAllBins[0][0]+timeDiff*config.iMaxPads, 0.f);
     }
-
 
     /*
      * fill in digits
@@ -179,7 +179,7 @@ void HwClusterer::processDigits(
       const Float_t charge      = (*it)->getChargeFloat();
   
 //      std::cout << iCRU << " " << iRow << " " << iPad << " " << iTime << " (" << iTime-minTime << "," << timeDiff << ") " << charge << std::endl;
-      iAllBins[iTime-config.iMinTimeBin][iPad] = charge;
+      iAllBins[iTime-config.iMinTimeBin][iPad] += charge;
       if (config.iEnablePedestalSubtraction && config.iPedestalObject != nullptr) {
         const float pedestal = config.iPedestalObject->getValue(CRU(config.iCRU),iRow,iPad-2);
         //printf("digit: %.2f, pedestal: %.2f\n", iAllBins[iTime-config.iMinTimeBin][iPad], pedestal);
@@ -218,7 +218,7 @@ void HwClusterer::processDigits(
     /*
      * add empty timebins to find last clusters
      */
-    if (config.iIsContinuousReadout) {
+    if (!config.iIsContinuousReadout) {
       // +2 so that for sure all data is processed
       for (time = 0; time < clusterFinder[iRow][0]->getNtimebins()+2; ++time){
         for (auto rit = clusterFinder[iRow].crbegin(); rit != clusterFinder[iRow].crend(); ++rit) {
