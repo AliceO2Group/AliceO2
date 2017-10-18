@@ -267,6 +267,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       float x = row.X();
       float err2Y, err2Z;
       if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz(), .99 ) ) {
+        r.fGo = 0;
         SETRowHit(iRow, -1);
         break;
       }
