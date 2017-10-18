@@ -21,8 +21,6 @@
 
 #include "Rtypes.h"
 
-class TClonesArray;
-
 namespace o2
 {
 class MCCompLabel;
@@ -50,7 +48,6 @@ class Clusterer {
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
-  void process(PixelReader &r, TClonesArray &clusters);
   void process(PixelReader &r, std::vector<Cluster> &clusters);
   
   // provide the common ITSMFT::GeometryTGeo to access matrices

@@ -13,8 +13,6 @@
 #include <algorithm>
 #include "FairLogger.h"      // for LOG
 
-#include "TClonesArray.h"
-
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
@@ -31,20 +29,6 @@ Clusterer::Clusterer()
 {
   std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
   std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
-}
-
-//__________________________________________________
-void Clusterer::process(PixelReader &reader, TClonesArray &clusters)
-{
-  // This function will be removed as soon as the MFT code catches up. 
-  LOG(WARNING) << "DO NOT USE THIS DEPRECATED FUNCTION !" << FairLogger::endl;
-
-  std::vector<Cluster> vec;
-  process(reader, vec);
-  for (auto &c : vec) {
-    int n = clusters.GetEntriesFast();
-    new(clusters[n]) Cluster(c);
-  }
 }
 
 //__________________________________________________

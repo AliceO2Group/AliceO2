@@ -15,7 +15,6 @@
 
 //#include "FairTimeStamp.h" // for FairTimeStamp
 #include "DetectorsBase/BaseCluster.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 
 // uncomment this to have cluster topology in stored
 //#define _ClusterTopology_
@@ -34,12 +33,6 @@ namespace ITSMFT
 class Cluster : public o2::Base::BaseCluster<float>
 {
  public:
-  o2::MCCompLabel getLabel(int) const {
-    // This function will be removed as soon as the MFT code catches up. 
-    LOG(WARNING) << "DO NOT USE THIS DEPRECATED FUNCTION !" << FairLogger::endl;
-    return o2::MCCompLabel();
-  }
-  
   enum { // frame in which the track is currently defined
     kUsed,
     kShared
