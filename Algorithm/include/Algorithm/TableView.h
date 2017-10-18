@@ -16,6 +16,9 @@
 /// @since  2017-09-21
 /// @brief  Container class for multiple sequences of data wrapped by markers
 
+#include <vector>
+#include <map>
+
 namespace o2 {
 
 namespace algorithm {
