@@ -77,6 +77,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     prop.SetTrack( this, Alpha);
 
     N = 0;
+    const bool inFlyDirection = iWay & 1;
     char directionState = 2;
     bool directionChangePending = 0;
     const int wayDirection = (iWay & 1) ? -1 : 1;
@@ -119,11 +120,11 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       lastRow = row[ihit];
       if (DEBUG && (changeDirection || canChangeDirection || directionChangePending)) printf("    Change direction possibly change %d can %d pending %d\n", (int) changeDirection, (int) canChangeDirection, (int) directionChangePending);
       if (DEBUG) printf("\t%17sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), (fabs(prop.GetAlpha() - alpha[ihit]) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
-      int err = prop.PropagateToXAlpha(xx, alpha[ihit], iWay & 1 );
+      int err = prop.PropagateToXAlpha(xx, alpha[ihit], inFlyDirection );
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
       {
-          if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), iWay & 1 ) == 0)
-            err = prop.PropagateToXAlpha(xx, alpha[ihit], iWay & 1 );
+          if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), inFlyDirection ) == 0)
+            err = prop.PropagateToXAlpha(xx, alpha[ihit], inFlyDirection );
       }
       
       if (PRINT_TRACKS)
@@ -148,50 +149,38 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
           }
       }
     
-      if (DEBUG) printf("\t%17sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
+      if (DEBUG) printf("\t%17sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);
       const float Bz = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
-      if (MIRROR && err == 0 && (changeDirection || canChangeDirection) && fP[2] * fP[4] * Bz < 0)
+      if (MIRROR && err == 0 && (changeDirection || canChangeDirection || directionChangePending) && fP[2] * fP[4] * Bz < 0)
       {
-          const float mirrordY = fP[0] - 2.0 * prop.GetCosPhi0() / (prop.GetQPt0() * Bz);
+          float sinphi = fabs(fP[2]) > 0.99 ? 0.99 : fP[2];
+          float cosphi = sqrt(1 - sinphi * sinphi);
+          const float mirrordY = fP[0] - 2.0 * cosphi  / (fP[4] * Bz);
           if (DEBUG) printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);
           if (changeDirection || ((directionChangePending || canChangeDirection) && fabs(yy - fP[0]) > fabs(yy - mirrordY)))
           {
               if (DEBUG) printf(" - Mirroring!!!");
+              prop.Mirror(inFlyDirection);
               float err2Y, err2Z;
               prop.GetErr2(err2Y, err2Z, param, zz, rowType);
-              fP[0] = yy;
-              fP[1] = zz;
+              prop.Model().Y() = fP[0] = yy;
+              prop.Model().Z() = fP[1] = zz;
               if (fC[0] < err2Y) fC[0] = err2Y;
               if (fC[2] < err2Z) fC[2] = err2Z;
-              if (fabs(prop.GetSinPhi0()) > maxSinForUpdate)
-              {
-                  if (DEBUG) printf(" - RESET PHI!!!");
-                  fP[2] = prop.GetSinPhi0() > 0 ? -0.9 : 0.9;
-              }
-              else
-              {
-                  fP[2] = -prop.GetSinPhi0();
-              }
               if (fabs(fC[5]) < 0.1) fC[5] = fC[5] > 0 ? 0.1 : -0.1;
-              fP[3] = -fP[3];
               if (fC[9] < 1.) fC[9] = 1.;
-              fP[4] = -prop.GetQPt0();
-              fC[3] = -fC[3];
-              fC[4] = -fC[4];
-              fC[6] = -fC[6];
-              fC[7] = -fC[7];
-              fC[10] = -fC[10];
-              fC[11] = -fC[11];
-              fNDF = -3;
-              //TODO: Covariance modification misssing!!!
               prop.SetTrack(this, prop.GetAlpha());
+
+              fNDF = -3;
               directionState = 2;
               directionChangePending = 0;
               N++;
               resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
               if (DEBUG) printf("\n");
+              if (DEBUG) printf("\t%17sMirror  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
               continue;
           }
+          if (DEBUG) printf("\n");
       }
 
       if ( err || CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate )
@@ -200,10 +189,9 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
         if (DEBUG) printf(" --- break\n");
         continue;
       }
-      if (DEBUG) printf("\n");
       
       int retVal = prop.Update( yy, zz, rowType, param, rejectChi2ThisRound);
-      if (DEBUG) printf("\t%17sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
+      if (DEBUG) printf("\t%17sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], retVal);
       if (retVal == 0) // track is updated
       {
         N++;
