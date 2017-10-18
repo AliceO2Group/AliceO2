@@ -68,10 +68,10 @@ public:
   GPUd() float GetCosPhi0() const { return fT0.GetCosPhi(); }
   GPUd() void Mirror(bool inFlyDirection);
   GPUd() AliHLTTPCGMPhysicalTrackModel& Model() {return fT0;}
+  GPUd() void CalculateMaterialCorrection();
 
 private:
 
-  GPUd() void CalculateMaterialCorrection();
   GPUd() static float ApproximateBetheBloch( float beta2 );
 
   AliHLTTPCGMPolynomialField fField;
