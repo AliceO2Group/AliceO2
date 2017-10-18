@@ -107,11 +107,11 @@ void dispatchHeaderStackCallback(PtrType ptr,
  * type is in the stack, its content will be assigned to the variable.
  *
  * Usage:
+ *   DataHeader dataheader;
+ *   TriggerHeader triggerheader
  *   parseHeaderStack(ptr, size,
- *                   MyHeader(),
- *                   [] (const auto & h) {
- *                     // do something with h
- *                   }
+ *                    dataheader,
+ *                    triggerheader
  */
 template<
   typename PtrType,

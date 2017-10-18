@@ -16,6 +16,9 @@
 /// @since  2017-09-20
 /// @brief  Utilities for parsing of data sequences
 
+#include <functional>
+#include <vector>
+
 namespace o2 {
 
 namespace algorithm {
