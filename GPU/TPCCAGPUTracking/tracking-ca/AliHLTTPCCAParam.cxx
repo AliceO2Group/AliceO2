@@ -204,7 +204,7 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2v1( int 
   //
 
   z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
-  float s2 = sinPhi*sinPhi
+  float s2 = sinPhi*sinPhi;
   if( s2>0.95f*0.95f ) s2 = 0.95f*0.95f;
   float sec2 = 1.f/(1.f-s2);
   float angleY2 = s2 * sec2; // dy/dx
