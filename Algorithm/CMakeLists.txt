@@ -38,6 +38,7 @@ EndForEach (_file RANGE 0 ${_length})
 endif()
 
 set(TEST_SRCS
+  test/o2formatparser.cxx
   test/headerstack.cxx
   test/parser.cxx
   test/tableview.cxx
