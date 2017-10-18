@@ -546,6 +546,7 @@ GPUd() void AliHLTTPCGMPropagator::CalculateMaterialCorrection()
   
   float qpt = fT0.GetQPt();
   if( fUseMeanMomentum ) qpt = 1./0.35;
+  if (fabs(qpt) > 20) qpt = 20;
 
   float w2 = ( 1. + fT0.GetDzDs() * fT0.GetDzDs() );//==(P/pt)2
   float pti2 = qpt * qpt;
