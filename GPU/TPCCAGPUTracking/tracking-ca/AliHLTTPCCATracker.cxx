@@ -29,6 +29,7 @@
 #include "AliHLTTPCCANeighboursCleaner.h"
 #include "AliHLTTPCCAStartHitsFinder.h"
 #include "AliHLTTPCCATrackletConstructor.h"
+#include "AliHLTTPCCATrackLinearisation.h"
 #include "AliHLTTPCCATrackletSelector.h"
 #include "AliHLTTPCCAProcess.h"
 #include "AliHLTTPCCAClusterData.h"
@@ -944,14 +945,20 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	if (!tParam.Rotate(angle, .999)) return(0);
 	//printf("Rotated X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f\n", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi());
 
-	int maxRowGap = 6;
+	int maxRowGap = 10;
+	AliHLTTPCCATrackLinearisation t0( tParam );
 	do
 	{
 		rowIndex += direction;
-		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999)) {maxRowGap = 0;break;}
+		if (!tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), t0, fParam.ConstBz(), .999)) return(0); //Reuse t0 linearization until we are in the next sector
 		//printf("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)\n", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), sliceNeighbour.Row(rowIndex).MaxY());
-	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY() && --maxRowGap);
-	if (maxRowGap == 0) return(0);
+		if (--maxRowGap == 0) return(0);
+	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY());
+
+	float err2Y, err2Z;
+	GetErrors2( rowIndex, *((MEM_LG2(AliHLTTPCCATrackParam)*) &tParam ), err2Y, err2Z );
+	if (tParam.GetCov(0) < err2Y) tParam.SetCov(0, err2Y);
+	if (tParam.GetCov(2) < err2Z) tParam.SetCov(2, err2Z);
 
 #ifdef GLOBAL_TRACKING_MAINTAIN_TRACKLETS
 	int tmphits[HLTCA_ROW_COUNT];
@@ -984,7 +991,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
 					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
-					if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999);
+					if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999); //Use transport with new linearisation, we have changed the track in between
 					i++;
 				}
 				rowIndex ++;
