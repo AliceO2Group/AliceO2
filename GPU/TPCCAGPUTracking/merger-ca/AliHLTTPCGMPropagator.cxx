@@ -577,3 +577,95 @@ GPUd() void AliHLTTPCGMPropagator::CalculateMaterialCorrection()
   fMaterial.fEP2*= betheRho;
   fMaterial.fSigmadE2 = fMaterial.fSigmadE2*betheRho + fMaterial.fK44;
 }
+
+
+GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection) 
+{
+  // mirror the track and the track approximation to the point which has the same X, but located on the other side of trajectory
+  float B[3];
+  GetBxByBz(  fAlpha, fT0.X(), fT0.Y(), fT0.Z(), B );
+  float Bz = B[2];
+  if( fabs(Bz)<1.e-8 ) Bz = 1.e-8;
+
+  float dy = - 2.f*fT0.Q()*fT0.Px()/Bz;  
+  float dS; // path in XY
+  {
+    float chord = dy; // chord to the extrapolated point == |dy|*sign(x direction)
+    float sa = -fT0.CosPhi(); //  sin( half of the rotation angle ) ==  (chord/2) / radius
+  
+    // dS = (Pt/b)*2*arcsin( sa )
+    //    = (Pt/b)*2*sa*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )
+    //    =       chord*(1 + 1/6 sa^2 + 3/40 sa^4 + 5/112 sa^6 +... )   
+    
+    float sa2 = sa*sa;
+    const float k2 = 1./6.;
+    const float k4 = 3./40.;
+    //const float k6 = 5.f/112.f;
+    dS =  chord + chord*sa2*(k2 + k4*sa2);
+    //dS = sqrt(pt2)/b*2.*AliHLTTPCCAMath::ASin( sa );
+  }
+
+  if( fT0.SinPhi()<0.f ) dS = -dS;
+    
+  fT0.X() = fT0.X();
+  fT0.Y() = fT0.Y() + dy;
+  fT0.Z() = fT0.Z() + fT0.DzDs()*dS;
+  fT0.Px() = fT0.Px();
+  fT0.Py() = -fT0.Py();
+  fT0.Pz() = -fT0.Pz();
+  fT0.Q()  = -fT0.Q();
+  fT0.UpdateValues();
+
+  fT->X() = fT0.X();
+  fT->Y() = fT->Y()+dy;
+  fT->Z() = fT->Z() + fT0.DzDs()*dS;
+  fT->SinPhi() = -fT->SinPhi();
+  fT->DzDs()   = -fT->DzDs();
+  fT->QPt()    = -fT->QPt();
+
+  float *c = fT->Cov();
+  
+  c[3] = -c[3];
+  c[4] = -c[4];
+  c[6] = -c[6];
+  c[7] = -c[7];
+  c[10] = -c[10];
+  c[11] = -c[11];
+
+  // Energy Loss
+
+  float dL =  fabs(dS*fT0.GetDlDs());
+
+  if( inFlyDirection ) dL = -dL;
+
+  float &fC22 = c[5];
+  float &fC33 = c[9];
+  float &fC40 = c[10];
+  float &fC41 = c[11];
+  float &fC42 = c[12];
+  float &fC43 = c[13];
+  float &fC44 = c[14];
+
+  float dLmask = 0.f;
+  bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
+  if( maskMS ) dLmask = dL;
+  float dLabs = fabs( dLmask); 
+  float corr = float(1.f) - fMaterial.fEP2* dLmask ;
+
+  float corrInv = 1.f/corr;
+  fT0.Px()*=corrInv;
+  fT0.Py()*=corrInv;
+  fT0.Pz()*=corrInv;
+  fT0.Pt()*=corrInv;
+  fT0.P()*=corrInv;
+  fT0.QPt()*=corr;
+
+  fT->QPt()*= corr;
+  
+  fC40 *= corr;
+  fC41 *= corr;
+  fC42 *= corr;
+  fC43 *= corr;
+  fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2;
+   
+}

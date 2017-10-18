@@ -65,7 +65,9 @@ public:
   GPUd() float GetAlpha() const { return fAlpha; }
   GPUd() float GetQPt0() const { return fT0.GetQPt(); }
   GPUd() float GetSinPhi0() const { return fT0.GetSinPhi(); }
-  
+
+  GPUd() void Mirror(bool inFlyDirection);
+
   GPUd() AliHLTTPCGMPhysicalTrackModel& Model() {return fT0;}
 
 private:
@@ -122,6 +124,5 @@ GPUd() inline float AliHLTTPCGMPropagator::GetBz( float /*Alpha*/, float x, floa
   const float *c = fPolynomialFieldBz;
   return ( c[0] + c[1]*z  + c[2]*r  + c[3]*z*z + c[4]*z*r + c[5]*r2 );
 }
-
 
 #endif 
