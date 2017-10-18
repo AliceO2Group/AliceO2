@@ -65,9 +65,8 @@ public:
   GPUd() float GetAlpha() const { return fAlpha; }
   GPUd() float GetQPt0() const { return fT0.GetQPt(); }
   GPUd() float GetSinPhi0() const { return fT0.GetSinPhi(); }
-
+  GPUd() float GetCosPhi0() const { return fT0.GetCosPhi(); }
   GPUd() void Mirror(bool inFlyDirection);
-
   GPUd() AliHLTTPCGMPhysicalTrackModel& Model() {return fT0;}
 
 private:
