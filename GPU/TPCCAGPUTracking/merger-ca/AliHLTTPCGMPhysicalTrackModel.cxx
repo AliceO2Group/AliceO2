@@ -18,7 +18,6 @@
 
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCCAMath.h"
-#include "Riostream.h"
 
 GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x,  float Bz, float &dLp )
 {
@@ -29,7 +28,6 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x,  float B
   //
   // Additional values are not recalculated, UpdateValues() has to be called afterwards!!
   //
-  
   float b = fQ*Bz;
   float pt2 = fPx*fPx + fPy*fPy;  
   float dx = x - fX;
@@ -225,7 +223,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz( float Lp, float Bz )
 }
 
 #if !defined(HLTCA_GPUCODE)
-#include <iostream>
+#include <Riostream.h>
 #endif
 
 GPUd() void AliHLTTPCGMPhysicalTrackModel::Print() const
