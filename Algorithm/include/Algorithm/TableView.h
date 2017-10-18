@@ -154,8 +154,10 @@ public:
   /// Iterator class for configurable direction, i.e. either row or column
   class iterator { // TODO: derive from forward_iterator
   public:
+    struct value_type : public FrameData {
+      RowDescType desc;
+    };
     using self_type = iterator;
-    using value_type = FrameData;
 
     enum IteratorDirections {
       kAlongRow,
@@ -191,6 +193,7 @@ public:
       if (!mIsCached) {
         self_type* ncthis = const_cast<self_type*>(this);
         mParent->get(mRow, mColumn, ncthis->mCache);
+        ncthis->mCache.desc = mParent->getRowData(mRow);
         ncthis->mIsCached = true;
       }
       return mCache;
@@ -212,13 +215,9 @@ public:
       if (!mIsCached) {
         self_type* ncthis = const_cast<self_type*>(this);
         ncthis->mIsCached = mParent->get(mRow, mColumn, ncthis->mCache);
+        ncthis->mCache.desc = mParent->getRowData(mRow);
       }
       return mIsCached;
-    }
-
-    const RowDescType& getRowData() const {
-      static RowDescType invalid;
-      return invalid;
     }
 
   protected:
