@@ -638,8 +638,6 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
 
   if( inFlyDirection ) dL = -dL;
 
-  float &fC22 = c[5];
-  float &fC33 = c[9];
   float &fC40 = c[10];
   float &fC41 = c[11];
   float &fC42 = c[12];

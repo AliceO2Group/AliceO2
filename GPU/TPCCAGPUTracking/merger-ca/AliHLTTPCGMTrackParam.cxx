@@ -32,8 +32,11 @@
 #include <stdlib.h>
 
 #define DEBUG 0
+#define PRINT_TRACKS 0
 #define MIRROR 1
 #define DOUBLE 1
+#include "TFile.h"
+#include "TNtuple.h"
 
 GPUd() void AliHLTTPCGMTrackParam::Fit
 (
@@ -45,6 +48,9 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
+  
+  static int nTracks = 0;
+  if (PRINT_TRACKS || DEBUG) nTracks++;
 
   ResetCovariance();
 
@@ -58,9 +64,10 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
   
   int nWays = param.GetNWays();
   int maxN = N;
+  int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
   for (int iWay = 0;iWay < nWays;iWay++)
   {
-    if (DEBUG) printf("Fitting track way %d\n", iWay);
+    if (DEBUG) printf("Fitting track %d way %d\n", nTracks, iWay);
 
     const bool rejectChi2ThisRound = ( nWays == 1 || iWay == 1 );
     const bool markNonFittedClusters = rejectChi2ThisRound && !(param.HighQPtForward() < fabs(fP[4]));
@@ -79,6 +86,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     {
       if (row[ihit] < 0) continue; // hit is excluded from fit
       const int rowType = row[ihit] < 64 ? 0 : row[ihit] < 128 ? 2 : 1;
+      if (DEBUG) printf("\tHit %3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, row[ihit], alpha[ihit], x[ihit], y[ihit], z[ihit]);
       
       char newState = N > 0 ? (lastRow > row[ihit]) : 2;
       bool doubleRow = ihit + wayDirection >= 0 && ihit + wayDirection < maxN && row[ihit] == row[ihit + wayDirection];
@@ -91,6 +99,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
           do
           {
               if (alpha[ihit] != alpha[ihit + wayDirection] || fabs(y[ihit] - y[ihit + wayDirection]) > 4. || fabs(z[ihit] - z[ihit + wayDirection]) > 4.) break;
+              if (DEBUG) printf("    Merging hit row %d X %f Y %f Z %f\n", row[ihit], x[ihit], y[ihit], z[ihit]);
               ihit += wayDirection;
               xx += x[ihit];
               yy += y[ihit];
@@ -109,20 +118,41 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       directionState = newState;
       lastRow = row[ihit];
       if (DEBUG && (changeDirection || canChangeDirection || directionChangePending)) printf("    Change direction possibly change %d can %d pending %d\n", (int) changeDirection, (int) canChangeDirection, (int) directionChangePending);
-      if (DEBUG) printf("\tTrack Hit %3d Row %3d: Alpha %4.1f %s QPt %7.2f X %8.3f Y %8.3f (%8.3f) Z %8.3f (%8.3f) - Cluster: X %8.3f Y %8.3f Z %8.3f", ihit, row[ihit], prop.GetAlpha(), (fabs(prop.GetAlpha() - alpha[ihit]) < 0.01 ? "   " : " R!"), fP[4], fX, fP[0], prop.Model().GetY(), fP[1], prop.Model().GetZ(), xx, yy, zz);
+      if (DEBUG) printf("\t%17sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), (fabs(prop.GetAlpha() - alpha[ihit]) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
       int err = prop.PropagateToXAlpha(xx, alpha[ihit], iWay & 1 );
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
       {
-          if (prop.PropagateToXAlphaBz(xx, prop.GetAlpha(), iWay & 1 ) == 0)
+          if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), iWay & 1 ) == 0)
             err = prop.PropagateToXAlpha(xx, alpha[ihit], iWay & 1 );
       }
-          
-      if (DEBUG) printf(" --> %8.3f (%8.3f) %8.3f (%8.3f) Fail %d  Sin %5.2f(%5.2f)/%4.2f/%d", fP[0], prop.Model().GetY(), fP[1], prop.Model().GetZ(), err, fP[2], prop.GetSinPhi0(), maxSinForUpdate, (int) (CAMath::Abs(prop.GetSinPhi0()) < maxSinForUpdate));
+      
+      if (PRINT_TRACKS)
+      {
+          float ac = cos(alpha[ihit]), as = sin(alpha[ihit]);
+          static int init = 0;
+          static TFile *file;
+          static TNtuple *nt;
+          if (init == 0)
+          {
+            file = new TFile("tracksout.root","RECREATE");
+            file->cd();
+            nt = new TNtuple("field","field","track:cx:cy:cz:tx:ty:tz:mx:my:mz");      
+            init = 1;
+          }
+          nt->Fill((float) nTracks, ac * xx - as * yy, as * xx + ac * yy, zz, ac * fX - as * fP[0], as * fX + ac * fP[0], fP[1], ac * prop.Model().X() - as * prop.Model().Y(), as * prop.Model().X() + ac * prop.Model().Y(), prop.Model().Z());
+          if (nTracks == 29) {
+            nt->Write();
+            file->Write();
+            file->Close();
+            exit(0);
+          }
+      }
+    
+      if (DEBUG) printf("\t%17sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
       const float Bz = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
       if (MIRROR && err == 0 && (changeDirection || canChangeDirection) && fP[2] * fP[4] * Bz < 0)
       {
-          const float Cos = AliHLTTPCCAMath::Sqrt(1 - prop.GetSinPhi0() * prop.GetSinPhi0());
-          const float mirrordY = fP[0] - 2.0 * Cos / (fP[4] * Bz);
+          const float mirrordY = fP[0] - 2.0 * prop.GetCosPhi0() / (prop.GetQPt0() * Bz);
           if (DEBUG) printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);
           if (changeDirection || ((directionChangePending || canChangeDirection) && fabs(yy - fP[0]) > fabs(yy - mirrordY)))
           {
@@ -131,28 +161,34 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
               prop.GetErr2(err2Y, err2Z, param, zz, rowType);
               fP[0] = yy;
               fP[1] = zz;
-              fC[0] = err2Y;
-              fC[2] = err2Z;
+              if (fC[0] < err2Y) fC[0] = err2Y;
+              if (fC[2] < err2Z) fC[2] = err2Z;
               if (fabs(prop.GetSinPhi0()) > maxSinForUpdate)
               {
                   if (DEBUG) printf(" - RESET PHI!!!");
                   fP[2] = prop.GetSinPhi0() > 0 ? -0.9 : 0.9;
-                  fC[5] = 1.;
               }
               else
               {
                   fP[2] = -prop.GetSinPhi0();
-                  if (fabs(fC[5]) < 0.1) fC[5] = fC[5] > 0 ? 0.1 : -0.1;
               }
+              if (fabs(fC[5]) < 0.1) fC[5] = fC[5] > 0 ? 0.1 : -0.1;
               fP[3] = -fP[3];
               if (fC[9] < 1.) fC[9] = 1.;
-              fP[4] = -fP[4];
+              fP[4] = -prop.GetQPt0();
+              fC[3] = -fC[3];
+              fC[4] = -fC[4];
+              fC[6] = -fC[6];
+              fC[7] = -fC[7];
+              fC[10] = -fC[10];
+              fC[11] = -fC[11];
               fNDF = -3;
               //TODO: Covariance modification misssing!!!
-              prop.ResetT0();
+              prop.SetTrack(this, prop.GetAlpha());
               directionState = 2;
               directionChangePending = 0;
               N++;
+              resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
               if (DEBUG) printf("\n");
               continue;
           }
@@ -164,12 +200,20 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
         if (DEBUG) printf(" --- break\n");
         continue;
       }
+      if (DEBUG) printf("\n");
       
       int retVal = prop.Update( yy, zz, rowType, param, rejectChi2ThisRound);
-      if (DEBUG) printf(" --> Y %8.3f Z %8.3f Err %d\n", fP[0], fP[1], retVal);
+      if (DEBUG) printf("\t%17sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
       if (retVal == 0) // track is updated
       {
         N++;
+        float dy = fP[0] - prop.Model().Y();
+        float dz = fP[1] - prop.Model().Z();
+        if (fP[4] > 10 && --resetT0 <= 0 && fabs(fP[2] < 0.15) && dy*dy+dz*dz>1)
+        {
+            if (DEBUG) printf("Reinit linearization\n");
+            prop.SetTrack(this, prop.GetAlpha());
+        }
       }
       else if (retVal == 2) // cluster far away form the track
       {
