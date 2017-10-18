@@ -119,6 +119,22 @@ o2::Header::DataHeader::DataHeader()
 }
 
 //__________________________________________________________________________________________________
+o2::Header::DataHeader::DataHeader(DataDescription desc,
+                                   DataOrigin origin,
+                                   SubSpecificationType subspec,
+                                   uint64_t size
+                                   )
+  : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
+  , dataOrigin(origin)
+  , reserved(gInvalidToken32)
+  , payloadSerializationMethod(gSerializationMethodInvalid)
+  , dataDescription(desc)
+  , subSpecification(subspec)
+  , payloadSize(size)
+{
+}
+
+//__________________________________________________________________________________________________
 void o2::Header::DataHeader::print() const
 {
   printf("Data header version %i, flags: %i\n",headerVersion, flags);
