@@ -157,7 +157,6 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::Global2Slice( float X, fl
 MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz, int type, float z, float angle ) const
 {
   //* recalculate the cluster error wih respect to the track slope
-
   float angle2 = angle * angle;
   MakeType(const float*) c = fParamS0Par[yz][type];
   float v = c[0] + z * ( c[1] + c[3] * z ) + angle2 * ( c[2] + angle2 * c[4] + c[5] * z );
@@ -166,18 +165,9 @@ MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz
 
 MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
 {
-  //
   // Use calibrated cluster error from OCDB
-  //
-
-  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
   int    type = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
-  float cosPhiInv = CAMath::Abs( cosPhi ) > 1.e-2 ? 1. / cosPhi : 0;
-  float angleY = sinPhi * cosPhiInv ; // dy/dx
-  float angleZ = DzDs * cosPhiInv ; // dz/dx
-
-  Err2Y = GetClusterError2( 0, type, z, angleY );
-  Err2Z = GetClusterError2( 1, type, z, angleZ );
+  GetClusterErrors2v1(type, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z);
 }
 
 MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
