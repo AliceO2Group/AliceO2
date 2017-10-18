@@ -33,6 +33,27 @@ GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
       fMinNTrackClusters( -1 ), fMaxTrackQPt(1./0.015), fHighQPtForward(1.e10), fNWays(1), fSearchWindowDZDR(0.), fContinuousTracking(false)
 {
   // constructor
+
+  float const kParamRMS0[2][3][4] =
+    {
+      {  { 4.17516864836e-02, 1.87623649254e-04, 5.63788712025e-02, 5.38373768330e-01,  }, 
+	 { 8.29434990883e-02, 2.03291710932e-04, 6.81538805366e-02, 9.70965325832e-01,  }, 
+	 { 8.67543518543e-02, 2.10733342101e-04, 1.38366967440e-01, 2.55089461803e-01,  }
+      }, 
+      {  { 5.96254616976e-02, 8.62886518007e-05, 3.61776389182e-02, 4.79704320431e-01,  }, 
+	 { 6.12571723759e-02, 7.23929333617e-05, 3.93057651818e-02, 9.29222583771e-01,  }, 
+	 { 6.58465921879e-02, 1.03639606095e-04, 6.07583411038e-02, 9.90289509296e-01,  }
+      }
+    }; 
+  
+  for( int i=0; i<2; i++){
+    for( int j=0; j<3; j++){  
+      for( int k=0; k<4; k++){
+	fParamRMS0[i][j][k] = kParamRMS0[i][j][k];
+      }
+    }
+  }
+  
   fParamS0Par[0][0][0] = 0.00047013;
   fParamS0Par[0][0][1] = 2.00135e-05;
   fParamS0Par[0][0][2] = 0.0106533;
@@ -154,13 +175,19 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::Global2Slice( float X, fl
   *z = Z;
 }
 
-MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz, int type, float z, float angle ) const
+MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz, int type, float z, float angle2 ) const
 {
   //* recalculate the cluster error wih respect to the track slope
-  float angle2 = angle * angle;
+
+  /* new parameterisation, not working properly  
+     MakeType(const float*) c = fParamRMS0[yz][type];
+     float v = c[0] + c[1]*z + c[2]*angle2;
+     return CAMath::Abs( v );
+  */
+  
   MakeType(const float*) c = fParamS0Par[yz][type];
   float v = c[0] + z * ( c[1] + c[3] * z ) + angle2 * ( c[2] + angle2 * c[4] + c[5] * z );
-  return CAMath::Abs( v );
+  return CAMath::Abs( v );  
 }
 
 MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
@@ -177,12 +204,13 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2v1( int 
   //
 
   z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
-  float cosPhiInv = CAMath::Abs( cosPhi ) > 1.e-2 ? 1. / cosPhi : 0;
-  float angleY = sinPhi * cosPhiInv ; // dy/dx
-  float angleZ = DzDs * cosPhiInv ; // dz/dx
-
-  Err2Y = GetClusterError2( 0, rowType, z, angleY );
-  Err2Z = GetClusterError2( 1, rowType, z, angleZ );
+  float s2 = sinPhi*sinPhi
+  if( s2>0.95f*0.95f ) s2 = 0.95f*0.95f;
+  float sec2 = 1.f/(1.f-s2);
+  float angleY2 = s2 * sec2; // dy/dx
+  float angleZ2 = DzDs * DzDs * sec2; // dz/dx
+  Err2Y = GetClusterError2( 0, rowType, z, angleY2 );
+  Err2Z = GetClusterError2( 1, rowType, z, angleZ2 );
 }
 
 #ifndef HLTCA_GPUCODE
