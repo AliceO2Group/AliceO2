@@ -17,8 +17,8 @@
 #include "DetectorsBase/BaseCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
-// uncomment this to have cluster topology in stored
-//#define _ClusterTopology_
+// uncomment this to have cluster topology stored
+#define _ClusterTopology_
 
 #define CLUSTER_VERSION 2
 
@@ -51,11 +51,11 @@ class Cluster : public o2::Base::BaseCluster<float>
     kOffsClUse = 25,
     kMaskClUse = 0x7f
   };
-//
-#ifdef _ClusterTopology_
+  //
+  // used for the cluster topology definition
   enum { kMaxPatternBits = 32 * 16, kMaxPatternBytes = kMaxPatternBits / 8, kSpanMask = 0x7fff,
          kTruncateMask = 0x8000 };
-#endif
+
   using BaseCluster::BaseCluster;
 
  public:
@@ -103,6 +103,8 @@ class Cluster : public o2::Base::BaseCluster<float>
   //
   bool hasCommonTrack(const Cluster* cl) const;
   //
+  void print() const;
+  
 #ifdef _ClusterTopology_
   int  getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
   int  getPatternColSpan() const { return mPatternNCols & kSpanMask; }
@@ -111,8 +113,8 @@ class Cluster : public o2::Base::BaseCluster<float>
   bool isPatternTruncated() const { return isPatternRowsTruncated() || isPatternColsTruncated(); }
   void setPatternRowSpan(UShort_t nr, bool truncated);
   void setPatternColSpan(UShort_t nc, bool truncated);
-  void setPatternMinRow(UShort_t row) { mPatternMinRow = row; }
-  void setPatternMinCol(UShort_t col) { mPatternMinCol = col; }
+  void setPatternRowMin(UShort_t row) { mPatternRowMin = row; }
+  void setPatternColMin(UShort_t col) { mPatternColMin = col; }
   void resetPattern();
   bool testPixel(UShort_t row, UShort_t col) const;
   void setPixel(UShort_t row, UShort_t col, bool fired = kTRUE);
@@ -121,8 +123,8 @@ class Cluster : public o2::Base::BaseCluster<float>
     for (int i=kMaxPatternBytes; i--;)
       patt[i] = mPattern[i];
   }
-  int getPatternMinRow() const { return mPatternMinRow; }
-  int getPatternMinCol() const { return mPatternMinCol; }
+  int getPatternRowMin() const { return mPatternRowMin; }
+  int getPatternColMin() const { return mPatternColMin; }
 #endif
   //
  protected:
@@ -136,8 +138,8 @@ class Cluster : public o2::Base::BaseCluster<float>
 #ifdef _ClusterTopology_
   UShort_t mPatternNRows = 0;             ///< pattern span in rows
   UShort_t mPatternNCols = 0;             ///< pattern span in columns
-  UShort_t mPatternMinRow = 0;            ///< pattern start row
-  UShort_t mPatternMinCol = 0;            ///< pattern start column
+  UShort_t mPatternRowMin = 0;            ///< pattern start row
+  UShort_t mPatternColMin = 0;            ///< pattern start column
   UChar_t mPattern[kMaxPatternBytes] = {0}; ///< cluster topology
   //
   ClassDefOverride(Cluster, CLUSTER_VERSION + 1)

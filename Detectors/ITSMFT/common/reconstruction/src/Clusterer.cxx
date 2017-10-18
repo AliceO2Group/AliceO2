@@ -29,6 +29,14 @@ Clusterer::Clusterer()
 {
   std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
   std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
+
+#ifdef _ClusterTopology_
+  LOG(INFO) << "*********************************************************************" << FairLogger::endl;
+  LOG(INFO) << "ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN"  << FairLogger::endl;
+  LOG(INFO) << "*********************************************************************" << FairLogger::endl;
+#endif //_ClusterTopology_
+
+  
 }
 
 //__________________________________________________
@@ -38,7 +46,7 @@ void Clusterer::process(PixelReader &reader, TClonesArray &clusters)
 
   while (reader.getNextChipData(mChipData)) {
     LOG(DEBUG) <<"ITSClusterer got Chip " << mChipData.chipID << " ROFrame " << mChipData.roFrame
-	       << " Nhits " << mChipData.pixels.size() << FairLogger::endl;;
+	       << " Nhits " << mChipData.pixels.size() << FairLogger::endl;
     initChip();
     for (int ip=1;ip<mChipData.pixels.size();ip++) updateChip(ip);
     finishChip(clusters);
@@ -116,13 +124,14 @@ void Clusterer::finishChip(TClonesArray &clusters)
   constexpr Float_t SigmaY2 = Segmentation::PitchCol*Segmentation::PitchCol / 12.; //FIXME
 
   std::array<Label,Cluster::maxLabels> labels;
+  std::array<const PixelData*,Cluster::kMaxPatternBits*2> pixArr;
   
   Int_t noc = clusters.GetEntriesFast();  
   for (Int_t i1=0; i1<mPreClusterHeads.size(); ++i1) {
     const auto ci = mPreClusterIndices[i1];
     if (ci<0) continue;
-    UShort_t xmax=0, xmin=65535;
-    UShort_t zmax=0, zmin=65535;
+    UShort_t rowMax=0, rowMin=65535;
+    UShort_t colMax=0, colMin=65535;
     Float_t x=0., z=0.;
     int nlab = 0, npix = 0;
     Int_t next = mPreClusterHeads[i1];
@@ -131,12 +140,11 @@ void Clusterer::finishChip(TClonesArray &clusters)
       const auto pix = dig.second; // PixelReader.PixelData*
       x += pix->row;
       z += pix->col;
-      if (pix->row < xmin) xmin = pix->row;
-      if (pix->row > xmax) xmax = pix->row;
-      if (pix->col < zmin) zmin = pix->col;
-      if (pix->col > zmax) zmax = pix->col;
-      //
-      // add labels
+      if (pix->row < rowMin) rowMin = pix->row;
+      if (pix->row > rowMax) rowMax = pix->row;
+      if (pix->col < colMin) colMin = pix->col;
+      if (pix->col > colMax) colMax = pix->col;
+      if (npix<pixArr.size()) pixArr[npix] = pix;  // needed for cluster topology
       fetchMCLabels(pix, labels, nlab);      
       npix++;
       next = dig.first;
@@ -150,10 +158,11 @@ void Clusterer::finishChip(TClonesArray &clusters)
 	const auto pix = dig.second; // PixelReader.PixelData*
 	x += pix->row;
 	z += pix->col;
-	if (pix->row < xmin) xmin = pix->row;
-	if (pix->row > xmax) xmax = pix->row;
-	if (pix->col < zmin) zmin = pix->col;
-	if (pix->col > zmax) zmax = pix->col;
+	if (pix->row < rowMin) rowMin = pix->row;
+	if (pix->row > rowMax) rowMax = pix->row;
+	if (pix->col < colMin) colMin = pix->col;
+	if (pix->col > colMax) colMax = pix->col;
+	if (npix<pixArr.size()) pixArr[npix] = pix;  // needed for cluster topology
 	// add labels
 	fetchMCLabels(pix, labels, nlab);   
         npix++;
@@ -170,8 +179,38 @@ void Clusterer::finishChip(TClonesArray &clusters)
     c->setSensorID(mChipData.chipID);
     c->setPos(xyzTra);
     c->setErrors(SigmaX2, SigmaY2, 0.f);
-    c->setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
+    c->setNxNzN(rowMax-rowMin+1,colMax-colMin+1,npix);
     for (int i=nlab;i--;) c->setLabel(labels[i],i);
+
+#ifdef _ClusterTopology_
+    unsigned short colSpan=(colMax+1-colMin), rowSpan=(rowMax+1-rowMin), colSpanW=colSpan, rowSpanW=rowSpan;
+    if (colSpan*rowSpan>Cluster::kMaxPatternBits) { // need to store partial info
+      // will curtail largest dimension
+      if (colSpan>rowSpan) {
+	if ( (colSpanW=Cluster::kMaxPatternBits/rowSpan)==0 ) {
+	  colSpanW = 1;
+	  rowSpanW = Cluster::kMaxPatternBits;
+	}
+      }
+      else {
+	if ( (rowSpanW=Cluster::kMaxPatternBits/colSpan)==0 ) {
+	  rowSpanW = 1;
+	  colSpanW = Cluster::kMaxPatternBits;
+	}
+      }
+    }
+    c->setPatternRowSpan(rowSpanW,rowSpanW<rowSpan);
+    c->setPatternColSpan(colSpanW,colSpanW<colSpan);
+    c->setPatternRowMin(rowMin);
+    c->setPatternColMin(colMin);
+    if (npix>pixArr.size()) npix = pixArr.size();
+    for (int i=0;i<npix;i++) {
+      const auto pix = pixArr[i];
+      unsigned short ir = pix->row - rowMin, ic = pix->col - colMin;
+      if (ir<rowSpanW && ic<colSpanW) c->setPixel(ir,ic);
+    }
+#endif //_ClusterTopology_  
+    
   }
 }
 
