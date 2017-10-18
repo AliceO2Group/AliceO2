@@ -424,25 +424,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
 
 GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int rowType)
 {
-  const float *cy = param.GetParamS0Par(0,rowType);
-  const float *cz = param.GetParamS0Par(1,rowType);
-  
-  float secPhi2 = fT0.GetSecPhi()*fT0.GetSecPhi();
-  const float kZLength = 250.f - 0.275f;
-  float zz = fContinuousTracking ? 125. : fabs( kZLength - fabs(posZ) );
-  float zz2 = zz*zz;
-  float angleY2 = secPhi2 - 1.f; 
-  float angleZ2 = fT0.DzDs()*fT0.DzDs() * secPhi2 ;
-
-  float cy0 = cy[0] + cy[1]*zz + cy[3]*zz2;
-  float cy1 = cy[2] + cy[5]*zz;
-  float cy2 = cy[4];
-  float cz0 = cz[0] + cz[1]*zz + cz[3]*zz2;
-  float cz1 = cz[2] + cz[5]*zz;
-  float cz2 = cz[4];
-  
-  err2Y = fabs( cy0 + angleY2 * ( cy1 + angleY2*cy2 ) );
-  err2Z = fabs( cz0 + angleZ2 * ( cz1 + angleZ2*cz2 ) );      
+  param.GetClusterErrors2v1( rowType,  fContinuousTracking ? 125.:posZ, fT0.GetSinPhi(),fT0.GetCosPhi(),fT0.DzDs(), err2Y, err2Z );
 }
 
 GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, bool rejectChi2 )
