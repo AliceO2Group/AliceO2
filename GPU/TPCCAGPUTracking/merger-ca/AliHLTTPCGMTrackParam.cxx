@@ -151,9 +151,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       const float Bz = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
       if (MIRROR && err == 0 && (changeDirection || canChangeDirection || directionChangePending) && fP[2] * fP[4] * Bz < 0)
       {
-          float sinphi = fabs(fP[2]) > 0.99 ? 0.99 : fP[2];
-          float cosphi = sqrt(1 - sinphi * sinphi);
-          const float mirrordY = fP[0] - 2.0 * cosphi  / (fP[4] * Bz);
+          const float mirrordY = prop.GetMirroredYTrack();
           if (DEBUG) printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);
           if (changeDirection || ((directionChangePending || canChangeDirection) && fabs(yy - fP[0]) > fabs(yy - mirrordY)))
           {
