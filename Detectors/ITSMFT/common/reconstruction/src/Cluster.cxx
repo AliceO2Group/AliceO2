@@ -100,7 +100,7 @@ Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
   }
   return kFALSE;
 }
-
+*/
 //______________________________________________________________________________
 void Cluster::print() const
 {

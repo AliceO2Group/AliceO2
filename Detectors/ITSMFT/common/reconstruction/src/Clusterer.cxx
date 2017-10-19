@@ -182,7 +182,7 @@ void Clusterer::finishChip(std::vector<Cluster> &clusters)
     c.setSensorID(mChipData.chipID);
     c.setPos(xyzTra);
     c.setErrors(SigmaX2, SigmaY2, 0.f);
-    c.setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
+    c.setNxNzN(rowMax-rowMin+1,colMax-colMin+1,npix);
     if (mClsLabels) {
       for (int i=nlab;i--;) mClsLabels->addElement(noc,labels[i]);
     }
@@ -213,7 +213,7 @@ void Clusterer::finishChip(std::vector<Cluster> &clusters)
     for (int i=0;i<npix;i++) {
       const auto pix = pixArr[i];
       unsigned short ir = pix->row - rowMin, ic = pix->col - colMin;
-      if (ir<rowSpanW && ic<colSpanW) c->setPixel(ir,ic);
+      if (ir<rowSpanW && ic<colSpanW) c.setPixel(ir,ic);
     }
 #endif //_ClusterTopology_  
     
