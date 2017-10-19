@@ -54,7 +54,8 @@ class AliHLTTPCGMBorderTrack
     float cxy = cxy1 + cxy2;
     float cy = cy1 + cy2;
     float det = cx*cy - cxy*cxy ;
-    return ( ( cy*dx - (cxy+cxy)*dy )*dx + cx*dy*dy < (det+det)*chi2cut );
+    //printf("Res %f Det %f Cut %f %s   -   ", ( cy*dx - (cxy+cxy)*dy )*dx + cx*dy*dy, det, (det + det) * chi2cut, (fabs(( cy*dx - (cxy+cxy)*dy )*dx + cx*dy*dy) < fabs((det+det)*chi2cut)) ? "OK" : "Fail");
+    return ( fabs(( cy*dx - (cxy+cxy)*dy )*dx + cx*dy*dy) < fabs((det+det)*chi2cut) );
   }
 
   bool CheckChi2Y( const AliHLTTPCGMBorderTrack &t, float chi2cut ) const {
