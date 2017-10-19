@@ -447,8 +447,7 @@ void RunQA()
 	const float kRadLen = 29.532;//28.94;
 	prop.SetMaxSinPhi( .999 );
 	prop.SetMaterial( kRadLen, kRho );
-	prop.SetPolynomialField( merger.Field() );
-	prop.SetPolynomialFieldBz( merger.PolinomialFieldBz() );
+	prop.SetPolynomialField( merger.Field() );	
 	prop.SetUseMeanMomentum(kFALSE );
 	prop.SetContinuousTracking( kFALSE );
 	
