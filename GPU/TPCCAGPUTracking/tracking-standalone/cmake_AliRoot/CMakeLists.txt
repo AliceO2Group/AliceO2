@@ -28,7 +28,7 @@ add_library(${MODULE} SHARED
         ../merger-ca/AliHLTTPCGMPropagator.cxx
         ../merger-ca/AliHLTTPCGMPolynomialField.cxx \
         ../interface/AliHLTTPCCAO2Interface.cxx
-        ../standalone/AliHLTLogging.cxx
+        ../interface/AliHLTLogging.cxx
         ../cmodules/timer.cpp)
 
 #set_target_properties(${MODULE} PROPERTIES SUFFIX .so) #Could force .so on MacOS, but no longer needed

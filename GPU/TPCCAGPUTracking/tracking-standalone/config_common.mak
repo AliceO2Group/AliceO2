@@ -39,7 +39,7 @@ CXXFILES				= code/AliHLTTPCCASliceData.cxx \
                                           code/AliHLTTPCCATrackParam.cxx \
                                           code/AliHLTTPCCAClusterData.cxx \
                                           code/AliHLTTPCCATrackerFramework.cxx \
-                                          standalone/AliHLTLogging.cxx
+                                          interface/AliHLTLogging.cxx
 
 HLTCA_MERGER_CXXFILES			= merger-ca/AliHLTTPCGMMerger.cxx \
                                           merger-ca/AliHLTTPCGMSliceTrack.cxx \

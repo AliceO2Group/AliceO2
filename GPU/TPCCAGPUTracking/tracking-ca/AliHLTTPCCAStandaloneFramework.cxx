@@ -288,11 +288,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 }
 
 
-void AliHLTTPCCAStandaloneFramework::SetSettings( )
+void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz)
 {
-	float solenoidBz = -5.00668;
-	
-	for (int slice = 0;slice < fgkNSlices;slice++)
+    for (int slice = 0;slice < fgkNSlices;slice++)
     {
       int iSec = slice;
       float inRmin = 83.65;

@@ -155,7 +155,7 @@ int main(int argc, char** argv)
 	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(configStandalone.runGPU);
 
-	hlt.SetSettings();
+	hlt.SetSettings(configStandalone.solenoidBz);
 	if (configStandalone.lowpt) hlt.SetHighQPtForward(1./0.1);
 	hlt.SetNWays(configStandalone.nways);
 	if (configStandalone.cont) hlt.SetContinuousTracking(configStandalone.cont);

@@ -132,15 +132,15 @@ template <typename T> struct qConfigType
 	}
 };
 
-inline const char* getArg(int& i, const char** argv, const int argc)
+inline const char* getArg(int& i, const char** argv, const int argc, bool allowOption = false)
 {
-	if (i + 1 < argc && argv[i + 1][0] && argv[i + 1][0] != '-') return(argv[++i]);
+	if (i + 1 < argc && argv[i + 1][0] && (allowOption || argv[i + 1][0] != '-')) return(argv[++i]);
 	return(nullptr);
 }
 
 template <class T> inline int qAddOptionGeneric(T& ref, int& i, const char** argv, const int argc, T def, std::function<T(const char*)> func, bool allowDefault = false)
 {
-	const char* arg = getArg(i, argv, argc);
+	const char* arg = getArg(i, argv, argc, !allowDefault);
 	if (arg)
 	{
 		ref = func(arg);
