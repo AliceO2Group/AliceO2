@@ -143,7 +143,7 @@ GPUd() inline float AliHLTTPCGMTrackParam::GetMirroredY( float Bz ) const
   float qptBz = GetQPt()*Bz;
   float cosPhi2 = 1.f - GetSinPhi()*GetSinPhi();
   if( fabs(qptBz)<1.e-8 ) qptBz = 1.e-8;
-  if( fabs(cosPhi2)<0.f ) cosPhi2 = 0.f;
+  if( cosPhi2<0.f ) cosPhi2 = 0.f;
   return GetY() - 2.f*sqrt(cosPhi2)/qptBz;
 }
 
