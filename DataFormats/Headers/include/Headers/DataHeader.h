@@ -624,12 +624,12 @@ struct DataHeader : public BaseHeader
   /// need something for alignment, is there another field needed?
   /// how about a hash?
   ///
-  uint32_t reserved;
+  uint32_t reserved = 0;
 
   ///
   /// serialization method
   ///
-  SerializationMethod payloadSerializationMethod;
+  SerializationMethod payloadSerializationMethod = SerializationMethod(gInvalidToken64);
 
   ///
   /// sub specification (e.g. link number)
@@ -646,6 +646,12 @@ struct DataHeader : public BaseHeader
 
   //___the functions:
   DataHeader(); ///ctor
+  DataHeader(DataDescription desc,
+             DataOrigin origin,
+             SubSpecificationType subspec,
+             uint64_t size
+             ); /// ctor
+
   DataHeader(const DataHeader&) = default;
   DataHeader& operator=(const DataHeader&); //assignment
   DataHeader& operator=(const DataOrigin&); //assignment

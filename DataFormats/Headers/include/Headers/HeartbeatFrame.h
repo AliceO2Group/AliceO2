@@ -19,6 +19,7 @@
 // @brief  Definition of the heartbeat frame layout
 
 #include "Headers/DataHeader.h"
+#include <functional>
 #include <map>
 #include <vector>
 
