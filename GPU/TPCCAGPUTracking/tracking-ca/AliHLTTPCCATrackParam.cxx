@@ -193,11 +193,11 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
 
   //This is not the correct propagation!!! The max ensures the positional error does not decrease during track finding.
   //A different propagation method is used for the fit.
-  fC[0] = c00  + h2 * h2 * c22 + h4 * h4 * c44
-            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 );
+  fC[0] = CAMath::Max(c00, c00  + h2 * h2 * c22 + h4 * h4 * c44
+            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 ));
 
   fC[1] = c10 + h2 * c21 + h4 * c41 + dS * ( c30 + h2 * c32 + h4 * c43 );
-  fC[2] = c11 + 2 * dS * c31 + dS * dS * c33;
+  fC[2] = CAMath::Max(c11, c11 + 2 * dS * c31 + dS * dS * c33);
 
   fC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * ( c40 + h2 * c42 + h4 * c44 );
   fC[4] = c21 + dS * c32 + dxBz * ( c41 + dS * c43 );
@@ -271,11 +271,11 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
 
   //This is not the correct propagation!!! The max ensures the positional error does not decrease during track finding.
   //A different propagation method is used for the fit.
-  fC[0] = c00  + h2 * h2 * c22 + h4 * h4 * c44
-            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 );
+  fC[0] = CAMath::Max(c00, c00  + h2 * h2 * c22 + h4 * h4 * c44
+            + 2 * ( h2 * c20 + h4 * c40 + h2 * h4 * c42 ));
 
   fC[1] = c10 + h2 * c21 + h4 * c41 + dS * ( c30 + h2 * c32 + h4 * c43 );
-  fC[2] = c11 + 2 * dS * c31 + dS * dS * c33;
+  fC[2] = CAMath::Max(c11, c11 + 2 * dS * c31 + dS * dS * c33);
 
   fC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * ( c40 + h2 * c42 + h4 * c44 );
   fC[4] = c21 + dS * c32 + dxBz * ( c41 + dS * c43 );
