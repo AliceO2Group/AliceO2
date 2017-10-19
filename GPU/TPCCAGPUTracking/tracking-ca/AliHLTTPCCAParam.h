@@ -38,6 +38,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
                             float rMin, float rMax, float zMin, float zMax,
                             float padPitch, float zSigma, float bz );
     void Update();
+    void LoadClusterErrors();
 #endif //!HLTCA_GPUCODE
 
 	GPUd() void Slice2Global( float x, float y,  float z,
@@ -121,6 +122,9 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
     GPUd() void GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
+
+    GPUd() float GetClusterError2New( int yz, int type, float z, float angle2 ) const;
+    GPUd() void GetClusterErrors2New( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
     void WriteSettings( std::ostream &out ) const;
