@@ -201,6 +201,8 @@ bool AliHLTTPCGMMerger::Reconstruct()
 {
   //* main merging routine
 
+  //fSliceParam.LoadClusterErrors();
+  
   {
     fField.Init( fSliceParam.BzkG() );
     
