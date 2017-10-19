@@ -35,6 +35,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	if (fInitialized) return(1);
 	fHLT = &AliHLTTPCCAStandaloneFramework::Instance(-1);
 	if (fHLT == NULL) return(1);
+	float solenoidBz = -5.00668;
 
 	if (options && *options)
 	{
@@ -55,6 +56,11 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 				fDumpEvents = true;
 				printf("Dumping of input events enabled\n");
 			}
+			else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0)
+			{
+				sscanf(optPtr + 3, "%f", &solenoidBz);
+				printf("Using solenoid field %f\n", solenoidBz);
+			}
 			else
 			{
 				printf("Unknown option: %s\n", optPtr);
@@ -72,7 +78,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	hlt.SetHighQPtForward(1./0.1);
 	hlt.SetNWays(nways);*/
 
-	fHLT->SetSettings();
+	fHLT->SetSettings(solenoidBz);
 	fHLT->SetGPUTrackerOption("HelperThreads", 0);
 	fHLT->SetGPUTrackerOption("GlobalTracking", 1);
 	fHLT->SetSearchWindowDZDR(2.5f);
