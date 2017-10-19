@@ -222,13 +222,13 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToLpBz( float Lp, float Bz )
   return 0;
 }
 
-#if !defined(HLTCA_GPUCODE)
+#if !defined(HLTCA_GPUCODE) & !defined(HLTCA_STANDALONE)
 #include <Riostream.h>
 #endif
 
 GPUd() void AliHLTTPCGMPhysicalTrackModel::Print() const
 {
-#if !defined(HLTCA_GPUCODE)
+#if !defined(HLTCA_GPUCODE) & !defined(HLTCA_STANDALONE)
   std::cout<<"AliHLTTPCGMPhysicalTrackModel:  x "<<fX<<" y "<<fY<<" z "<<fZ<<" px "<<fPx<<" py "<<fPy<<" pz "<<fPz<<" q "<<fQ<<std::endl;
 #endif
 }
