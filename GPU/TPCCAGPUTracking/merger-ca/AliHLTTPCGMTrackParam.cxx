@@ -35,8 +35,8 @@
 #define PRINT_TRACKS 0
 #define MIRROR 1
 #define DOUBLE 1
-#include "TFile.h"
-#include "TNtuple.h"
+/*#include "TFile.h"
+#include "TNtuple.h"*/
 
 GPUd() void AliHLTTPCGMTrackParam::Fit
 (
@@ -125,7 +125,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
             err = prop.PropagateToXAlpha(xx, alpha[ihit], inFlyDirection );
       }
       
-      if (PRINT_TRACKS)
+      /*if (PRINT_TRACKS)
       {
           float ac = cos(alpha[ihit]), as = sin(alpha[ihit]);
           static int init = 0;
@@ -145,7 +145,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
             file->Close();
             exit(0);
           }
-      }
+      }*/
     
       if (DEBUG) printf("\t%17sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);
       const float Bz = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
