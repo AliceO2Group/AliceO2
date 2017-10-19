@@ -54,7 +54,6 @@ public:
   void SetGPUTracker(AliHLTTPCCAGPUTracker* gpu) {fGPUTracker = gpu;}
   void SetDebugLevel(int debug) {fDebugLevel = debug;}
 
-  float* PolinomialFieldBz() const {return((float*) fPolinomialFieldBz);}
   AliHLTTPCGMPolynomialField Field() const {return fField;}
 
   int NClusters() const { return(fNClusters); }
@@ -118,7 +117,6 @@ private:
 
   int fNClusters;			//Total number of incoming clusters
   
-  float fPolinomialFieldBz[6];   // field coefficients
 };
 
 #endif //ALIHLTTPCCAMERGER_H

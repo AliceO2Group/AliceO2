@@ -39,7 +39,6 @@ public:
 
   GPUd() void SetMaterial( float radLen, float rho );
 
-  GPUd() void SetPolynomialFieldBz( const float *fieldBz );
   GPUd() void SetPolynomialField( const AliHLTTPCGMPolynomialField &field ){ fField = field; }
 
   GPUd() void SetUseMeanMomentum( bool Flag ){ fUseMeanMomentum = Flag; CalculateMaterialCorrection(); }
@@ -67,6 +66,9 @@ public:
   GPUd() float GetSinPhi0() const { return fT0.GetSinPhi(); }
   GPUd() float GetCosPhi0() const { return fT0.GetCosPhi(); }
   GPUd() void Mirror(bool inFlyDirection);
+  GPUd() float GetMirroredYModel() const;
+  GPUd() float GetMirroredYTrack() const;
+  
   GPUd() AliHLTTPCGMPhysicalTrackModel& Model() {return fT0;}
   GPUd() void CalculateMaterialCorrection();
 
@@ -83,14 +85,12 @@ private:
   bool fUseMeanMomentum;//
   bool fContinuousTracking; // take field at the mean TPC Z
   float fMaxSinPhi;
-  float fPolynomialFieldBz[6];
 };
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
 : fField(), fT(0), fAlpha(0), fT0(), fMaterial(),
      fUseMeanMomentum(0), fContinuousTracking(0), fMaxSinPhi(.999)
 {
-  for( int i=0; i<6; i++ ) fPolynomialFieldBz[i] = 0.f;
 }
 
 GPUd() inline void AliHLTTPCGMPropagator::SetMaterial( float radLen, float rho )
@@ -99,12 +99,6 @@ GPUd() inline void AliHLTTPCGMPropagator::SetMaterial( float radLen, float rho )
   fMaterial.fRadLen = radLen;
   fMaterial.fRhoOverRadLen = (radLen>1.e-4) ?rho/radLen : 0.;
   CalculateMaterialCorrection();
-}
-
-GPUd() inline void AliHLTTPCGMPropagator::SetPolynomialFieldBz( const float *field )
-{
-  if( !field ) return;
-  for( int i=0; i<6; i++ ) fPolynomialFieldBz[i] = field[i];
 }
 
 GPUd() inline void AliHLTTPCGMPropagator::SetTrack( AliHLTTPCGMTrackParam *track, float Alpha )
@@ -116,12 +110,17 @@ GPUd() inline void AliHLTTPCGMPropagator::SetTrack( AliHLTTPCGMTrackParam *track
   CalculateMaterialCorrection();
 }
 
-GPUd() inline float AliHLTTPCGMPropagator::GetBz( float /*Alpha*/, float x, float y, float z ) const
+GPUd() inline float AliHLTTPCGMPropagator::GetMirroredYModel() const
 {
-  float r2 = x * x + y * y;
-  float r  = sqrt( r2 );
-  const float *c = fPolynomialFieldBz;
-  return ( c[0] + c[1]*z  + c[2]*r  + c[3]*z*z + c[4]*z*r + c[5]*r2 );
+  float Bz = GetBz( fAlpha, fT0.GetX(), fT0.GetY(), fT0.GetZ() );
+  return fT0.GetMirroredY( Bz );
+}
+
+GPUd() inline float AliHLTTPCGMPropagator::GetMirroredYTrack() const
+{
+  if( !fT ) return -1.E10;
+  float Bz = GetBz( fAlpha, fT->GetX(), fT->GetY(), fT->GetZ() );  
+  return fT->GetMirroredY( Bz ); 
 }
 
 #endif 

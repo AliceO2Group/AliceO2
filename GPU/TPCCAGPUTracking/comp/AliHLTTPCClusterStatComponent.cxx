@@ -195,18 +195,6 @@ int AliHLTTPCClusterStatComponent::DoInit(int argc, const char **argv)
 		delete[] rowX;
 	}
 
-	{
-		const double kCLight = 0.000299792458;
-		double constBz = fSliceParam->BzkG() * kCLight;
-
-		fPolinomialFieldBz[0] = constBz * (0.999286);
-		fPolinomialFieldBz[1] = constBz * (-4.54386e-7);
-		fPolinomialFieldBz[2] = constBz * (2.32950e-5);
-		fPolinomialFieldBz[3] = constBz * (-2.99912e-7);
-		fPolinomialFieldBz[4] = constBz * (-2.03442e-8);
-		fPolinomialFieldBz[5] = constBz * (9.71402e-8);
-	}
-
 	return iResult;
 }
 
@@ -487,7 +475,6 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	  AliHLTTPCGMPolynomialField field;
 	  field.Init( GetBz() );
 	  prop.SetPolynomialField( field );
-	  prop.SetPolynomialFieldBz( fPolinomialFieldBz );  
 	  prop.SetUseMeanMomentum(kFALSE );
 	  prop.SetContinuousTracking( kFALSE );
 	  for (unsigned i = 0; i < tracks->fCount; i++)

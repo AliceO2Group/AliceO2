@@ -68,7 +68,6 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   AliHLTTPCClusterStatComponent& operator=(const AliHLTTPCClusterStatComponent&);
   
   AliHLTTPCCAParam* fSliceParam;
-  float fPolinomialFieldBz[6];
 
   int fTotal, fEdge, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
 

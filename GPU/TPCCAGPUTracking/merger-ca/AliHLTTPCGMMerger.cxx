@@ -79,19 +79,8 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fNextSliceInd[ mid ] = 0;
   fPrevSliceInd[ 0 ] = mid;  fNextSliceInd[ last ] = fgkNSlices / 2;
   fPrevSliceInd[ fgkNSlices/2 ] = last;
-  {
-    const double kCLight = 0.000299792458;
-    double constBz = fSliceParam.BzkG() * kCLight;
 
-    fField.Init(0.001); // set very wrong initial value in order to see if the field was not properly initialised
-    
-    fPolinomialFieldBz[0] = constBz * (  0.999286   );
-    fPolinomialFieldBz[1] = constBz * ( -4.54386e-7 );
-    fPolinomialFieldBz[2] = constBz * (  2.32950e-5 );
-    fPolinomialFieldBz[3] = constBz * ( -2.99912e-7 );
-    fPolinomialFieldBz[4] = constBz * ( -2.03442e-8 );
-    fPolinomialFieldBz[5] = constBz * (  9.71402e-8 );    
-  }
+  fField.Init(0.001); // set very wrong initial value in order to see if the field was not properly initialised    
   
   Clear();
 }
@@ -123,19 +112,8 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
     fNextSliceInd[iSlice] = 0;
     fPrevSliceInd[iSlice] = 0;
   }
-  {
-    const double kCLight = 0.000299792458;
-    double constBz = fSliceParam.BzkG() * kCLight;
+  fField.Init(0.001);
 
-    fField.Init(0.001);
-
-    fPolinomialFieldBz[0] = constBz * (  0.999286   );
-    fPolinomialFieldBz[1] = constBz * ( -4.54386e-7 );
-    fPolinomialFieldBz[2] = constBz * (  2.32950e-5 );
-    fPolinomialFieldBz[3] = constBz * ( -2.99912e-7 );
-    fPolinomialFieldBz[4] = constBz * ( -2.03442e-8 );
-    fPolinomialFieldBz[5] = constBz * (  9.71402e-8 );    
-  }  
   Clear();
 }
 
@@ -203,19 +181,7 @@ bool AliHLTTPCGMMerger::Reconstruct()
 
   //fSliceParam.LoadClusterErrors();
   
-  {
-    fField.Init( fSliceParam.BzkG() );
-    
-    const double kCLight = 0.000299792458;
-    double constBz = fSliceParam.BzkG() * kCLight;
-
-    fPolinomialFieldBz[0] = constBz * (  0.999286   );
-    fPolinomialFieldBz[1] = constBz * ( -4.54386e-7 );
-    fPolinomialFieldBz[2] = constBz * (  2.32950e-5 );
-    fPolinomialFieldBz[3] = constBz * ( -2.99912e-7 );
-    fPolinomialFieldBz[4] = constBz * ( -2.03442e-8 );
-    fPolinomialFieldBz[5] = constBz * (  9.71402e-8 );    
-  }
+  fField.Init( fSliceParam.BzkG() );  
   
   int nIter = 1;
 #ifdef HLTCA_STANDALONE
@@ -896,7 +862,7 @@ void AliHLTTPCGMMerger::Refit()
 #endif
 	  for ( int itr = 0; itr < fNOutputTracks; itr++ )
 	  {
-	    AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fField, fPolinomialFieldBz, fClusterX, fClusterY, fClusterZ, fClusterRow, fClusterAngle, fSliceParam);
+	    AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fField, fClusterX, fClusterY, fClusterZ, fClusterRow, fClusterAngle, fSliceParam);
 	  }
 	}
 }

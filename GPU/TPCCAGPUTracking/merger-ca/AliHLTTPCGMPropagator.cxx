@@ -70,6 +70,26 @@ GPUd() inline void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, floa
   B[2] =  bb[2] ;
 }
 
+GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, float Z ) const
+{
+
+  if( fContinuousTracking ) Z =  ( Z > 0 ? 125. : -125.);
+
+  // get global coordinates
+
+  float cs = AliHLTTPCCAMath::Cos(Alpha);
+  float sn = AliHLTTPCCAMath::Sin(Alpha);
+
+#if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
+  const double kCLight = 0.000299792458;
+  double r[3] = { X*cs - Y*sn, X*sn + Y*cs, Z };
+  double bb[3];
+  AliTracker::GetBxByBz( r, bb);
+  return bb[2] * kCLight;
+#else
+  return fField.GetFieldBz( X*cs - Y*sn, X*sn + Y*cs, Z);
+#endif
+}
 
 GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
 {
