@@ -39,7 +39,7 @@ Bool_t Cluster::testPixel(UShort_t row, UShort_t col) const
   if (nbits >= kMaxPatternBits)
     return kFALSE;
   int bytn = nbits >> 3; // 1/8
-  int bitn = nbits % 8;
+  int bitn = 7 - (nbits % 8);
   return (mPattern[bytn] & (0x1 << bitn)) != 0;
   //
 }
@@ -52,7 +52,7 @@ void Cluster::setPixel(UShort_t row, UShort_t col, Bool_t fired)
   if (nbits >= kMaxPatternBits)
     return;
   int bytn = nbits >> 3; // 1/8
-  int bitn = nbits % 8;
+  int bitn = 7 - (nbits % 8);
   if (nbits >= kMaxPatternBits)
     exit(1);
   if (fired)
@@ -111,7 +111,7 @@ void Cluster::print() const
   //
  #ifdef _ClusterTopology_
   int nr = getPatternRowSpan();
-  int nc = getPatternColSpan();    
+  int nc = getPatternColSpan();
   printf("Pattern: %d rows from %d",nr,mPatternRowMin);
   if (isPatternRowsTruncated()) printf("(truncated)");
   printf(", %d cols from %d",nc,mPatternColMin);
@@ -121,6 +121,6 @@ void Cluster::print() const
     for (int ic=0;ic<nc;ic++) printf("%c",testPixel(ir,ic) ? '+':'-');
     printf("\n");
   }
-#endif 
-  
+#endif
+
 }
