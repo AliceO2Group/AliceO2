@@ -78,7 +78,7 @@ InitStatus ClustererTask::Init()
 
   // Register MC Truth container
   if (mClsLabels) {
-    mgr->Register("MFTClusterMCTruth", "MFT", mClsLabels, kTRUE);
+    mgr->RegisterAny("MFTClusterMCTruth", mClsLabels, kTRUE);
   }
 
   GeometryTGeo* geom = GeometryTGeo::Instance();

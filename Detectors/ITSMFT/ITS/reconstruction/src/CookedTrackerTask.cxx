@@ -70,7 +70,7 @@ InitStatus CookedTrackerTask::Init()
 
   // Register MC Truth container
   if (mTrkLabels) {
-     mgr->Register("ITSTrackMCTruth", "ITS", mTrkLabels, kTRUE);
+     mgr->RegisterAny("ITSTrackMCTruth", mTrkLabels, kTRUE);
      mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *>("ITSClusterMCTruth");
      if (!mClsLabels) {
         LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..."

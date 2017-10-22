@@ -69,7 +69,7 @@ InitStatus ClustererTask::Init()
 
   // Register MC Truth container
   if (mClsLabels)
-  mgr->Register("ITSClusterMCTruth", "ITS", mClsLabels, kTRUE);
+  mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
