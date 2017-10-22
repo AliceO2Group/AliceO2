@@ -27,7 +27,6 @@
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 
 class TLorentzVector;
-class TClonesArray;
 class TSeqCollection;
 
 namespace o2 {

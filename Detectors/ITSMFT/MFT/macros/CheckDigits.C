@@ -5,7 +5,6 @@
 
 #include <TFile.h>
 #include <TTree.h>
-#include <TClonesArray.h>
 #include <TH2F.h>
 #include <TNtuple.h>
 #include <TCanvas.h>
@@ -61,8 +60,8 @@ void CheckDigits(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGean
   TFile *file1 = TFile::Open(filename);
   std::cout << " Open digits file " << filename << std::endl;
   TTree *digTree = (TTree*)gFile->Get("o2sim");
-  TClonesArray digArr("o2::ITSMFT::Digit"), *pdigArr(&digArr);
-  digTree->SetBranchAddress("MFTDigit",&pdigArr);
+  std::vector<o2::ITSMFT::Digit> *digArr = nullptr;
+  digTree->SetBranchAddress("MFTDigit",&digArr);
   
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
@@ -76,11 +75,11 @@ void CheckDigits(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "TGean
   for (Int_t iev = 0; iev < nevD; iev++) {
 
     digTree->GetEvent(iev);
-    Int_t nd = digArr.GetEntriesFast();
+    Int_t nd = digArr->size();
 
     while (nd--) {
 
-      Digit *d = (Digit *)digArr.UncheckedAt(nd);
+      const Digit *d = &(*digArr)[nd];
       Int_t ix = d->getRow(), iz=d->getColumn();
       Float_t x = 0.f, z = 0.f; 
       seg.detectorToLocal(ix,iz,x,z);

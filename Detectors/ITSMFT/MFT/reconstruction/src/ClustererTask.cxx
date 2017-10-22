@@ -24,7 +24,6 @@
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
-#include "TClonesArray.h"
 
 ClassImp(o2::MFT::ClustererTask)
 
@@ -66,7 +65,8 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  TClonesArray *arr = dynamic_cast<TClonesArray*>(mgr->GetObject("MFTDigit"));
+  const std::vector<o2::ITSMFT::Digit> *arr =
+    mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit> *>("MFTDigit");
   if (!arr) {
     LOG(ERROR)<<"MFT digits not registered in the FairRootManager. Exiting ..."<<FairLogger::endl;
     return kERROR;

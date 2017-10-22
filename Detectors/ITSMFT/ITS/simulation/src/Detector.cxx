@@ -29,7 +29,6 @@
 #include "FairRuntimeDb.h"          // for FairRuntimeDb
 #include "FairVolume.h"             // for FairVolume
 
-#include "TClonesArray.h"           // for TClonesArray
 #include "TGeoManager.h"            // for TGeoManager, gGeoManager
 #include "TGeoTube.h"               // for TGeoTube
 #include "TGeoVolume.h"             // for TGeoVolume, TGeoVolumeAssembly
@@ -704,12 +703,6 @@ void Detector::Register()
   if (FairGenericRootManager::Instance()) {
     FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
   }
-}
-
-TClonesArray *Detector::GetCollection(Int_t iColl) const
-{
-  LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
-  return nullptr;
 }
 
 void Detector::Reset()

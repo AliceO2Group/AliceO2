@@ -6,7 +6,6 @@
 
 #include <TFile.h>
 #include <TTree.h>
-#include <TClonesArray.h>
 #include <TH2F.h>
 #include <TNtuple.h>
 #include <TCanvas.h>
@@ -208,9 +207,9 @@ void CheckClusterShape() {
 
   // Digits
   TFile *file1 = TFile::Open("AliceO2_TGeant3.digi_10_event.root");
-  TTree *digTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray digArr("o2::ITS::Digit"), *pdigArr(&digArr);
-  digTree->SetBranchAddress("ITSDigit",&pdigArr);
+  TTree *digTree=(TTree*)gFile->Get("o2sim");
+  std::vector<o2::ITSMFT::Digit> *digArr = nullptr;
+  digTree->SetBranchAddress("ITSDigit",&digArr);
 
   TH1F *freqDist = new TH1F("freqDist", "", 300, 0, 300);
   //freqDist->GetXaxis()->SetTitle("Shape ID");
@@ -223,20 +222,20 @@ void CheckClusterShape() {
   while (nev--) {
     map<UInt_t, Cluster> clusters;
     digTree->GetEvent(nev);
-    Int_t nd = digArr.GetEntriesFast();
+    Int_t nd = digArr->size();
     while(nd--) {
-      Digit *d=(Digit *)digArr.UncheckedAt(nd);
-      Int_t ix=d->getRow(), iz=d->getColumn();
+      const Digit &d=(*digArr)[nd];
+      Int_t ix=d.getRow(), iz=d.getColumn();
 
-      Int_t chipID=d->getChipIndex();
+      Int_t chipID=d.getChipIndex();
       UInt_t layer = gman->getLayer(chipID);
 
       Pixel pixels(ix, iz);
-      if (clusters.find(d->getLabel(0)) == clusters.end()) {
+      if (clusters.find(d.getLabel(0)) == clusters.end()) {
         Cluster c;
-        clusters[d->getLabel(0)] = c;
+        clusters[d.getLabel(0)] = c;
       }
-      clusters[d->getLabel(0)].AddPixel(layer, pixels);
+      clusters[d.getLabel(0)].AddPixel(layer, pixels);
     }
     AnalyzeClusters(nev, clusters, freqDist, cSizeDist);
   }

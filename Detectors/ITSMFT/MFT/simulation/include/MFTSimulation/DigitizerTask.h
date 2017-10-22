@@ -23,8 +23,6 @@
 #include "ITSMFTSimulation/DigiParams.h"
 #include "ITSMFTSimulation/Digitizer.h"
 
-class TClonesArray;
-
 namespace o2 
 {
 namespace MFT 
@@ -60,7 +58,7 @@ namespace MFT
     Int_t mEventID = 0;                   ///< current event id from the source
     Digitizer mDigitizer;                 ///< Digitizer      
     const std::vector<o2::ITSMFT::Hit>* mHitsArray = nullptr;   ///< Array of MC hits
-    TClonesArray* mDigitsArray = nullptr; ///< Array of digits
+    std::vector<o2::ITSMFT::Digit>* mDigitsArray = nullptr; ///< Array of digits
     
     ClassDefOverride(DigitizerTask, 1);
     

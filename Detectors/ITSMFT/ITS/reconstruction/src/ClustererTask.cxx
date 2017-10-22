@@ -19,7 +19,6 @@
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
-#include "TClonesArray.h"    // for TClonesArray
 
 ClassImp(o2::ITS::ClustererTask)
 
@@ -57,7 +56,8 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  TClonesArray *arr = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSDigit"));
+  const std::vector<o2::ITSMFT::Digit> *arr =
+    mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit> *>("ITSDigit");
   if (!arr) {
     LOG(ERROR)<<"ITS digits not registered in the FairRootManager. Exiting ..."<<FairLogger::endl;
     return kERROR;
@@ -85,7 +85,7 @@ void ClustererTask::Exec(Option_t* option)
 {
   if (mClustersArray) mClustersArray->clear();
   if (mClsLabels)  mClsLabels->clear();
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
 
   mClusterer.process(mReader, *mClustersArray);
 }

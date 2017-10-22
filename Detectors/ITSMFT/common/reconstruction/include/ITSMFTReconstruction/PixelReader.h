@@ -17,8 +17,6 @@
 #include "ITSMFTBase/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
-class TClonesArray;
-
 namespace o2
 {
 namespace ITSMFT
@@ -80,8 +78,8 @@ class PixelReader {
 class DigitPixelReader : public PixelReader {
   
  public:
-  DigitPixelReader() : mDigitArray(nullptr), mIdx(0) {}
-  void setDigitArray(const TClonesArray *a) { mDigitArray=a; mIdx=0; }
+  DigitPixelReader() = default;
+  void setDigitArray(const std::vector<o2::ITSMFT::Digit> *a) { mDigitArray=a; mIdx=0; }
 
   void init() override {
     mIdx=0;
@@ -97,7 +95,7 @@ class DigitPixelReader : public PixelReader {
     chipData.pixels.emplace_back(dig);
   }
   
-  const TClonesArray *mDigitArray;
+  const std::vector<o2::ITSMFT::Digit> *mDigitArray = nullptr;
   const Digit* mLastDigit = nullptr;
   Int_t        mIdx = 0;
 };
