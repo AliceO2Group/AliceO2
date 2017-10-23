@@ -16,6 +16,7 @@
 #include "DetectorsBase/Track.h"
 #include "FairLogger.h"
 #include "TClonesArray.h"
+#include "TChain.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
 #include "TPCBase/Sector.h"
@@ -62,8 +63,11 @@ void TPCCATracking::deinitialize() {
   mClusterData = nullptr;
 }
 
-int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<TrackTPC>* outputTracks) {
+int TPCCATracking::runTracking(TChain* inputClustersChain, const TClonesArray* inputClustersArray, std::vector<TrackTPC>* outputTracks) {
   if (mTrackingCAO2Interface == nullptr) return (1);
+  if (inputClustersChain && inputClustersArray) {
+    LOG(FATAL) << "Internal error, must not pass in both TChain and TClonesArray of clusters\n";
+  }
 
   int retVal = 0;
   const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
@@ -73,57 +77,85 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
   const AliHLTTPCGMMergedTrack* tracks;
   int nTracks;
   const unsigned int* trackClusterIDs;
+  
+  std::vector<Cluster> clusterCache;
 
   int nClusters[Sector::MAXSECTOR] = {};
-  for (Int_t icluster = 0; icluster < inputClusters->GetEntries(); ++icluster) {
-    Cluster& cluster = *static_cast<Cluster*>(inputClusters->At(icluster));
-    const Sector sector = CRU(cluster.getCRU()).sector();
-    nClusters[sector.getSector()]++;
-  }
-  for (int i = 0; i < Sector::MAXSECTOR; i++) {
-    mClusterData[i].StartReading(i, nClusters[i]);
-  }
   int nClustersConverted = 0;
-  for (Int_t icluster = 0; icluster < inputClusters->GetEntries(); ++icluster) {
-    Cluster& cluster = *static_cast<Cluster*>(inputClusters->At(icluster));
-    const CRU cru(cluster.getCRU());
-    const Sector sector = cru.sector();
-    AliHLTTPCCAClusterData& cd = mClusterData[sector.getSector()];
-    AliHLTTPCCAClusterData::Data& hltCluster = cd.Clusters()[cd.NumberOfClusters()];
-
-    // ===| mapper |==============================================================
-    Mapper& mapper = Mapper::instance();
-    const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
-    const int rowInSector = cluster.getRow() + region.getGlobalRowOffset();
-    const float padY = cluster.getPadMean();
-    const int padNumber = int(padY);
-    const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(rowInSector, padNumber));
-    const PadCentre& padCentre = mapper.padCentre(pad);
-    const float localY = padCentre.Y() - (padY - padNumber - 0.5) * region.getPadWidth();
-    const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-    float zPositionAbs = cluster.getTimeMean()*elParam.getZBinWidth()*gasParam.getVdrift();
-    if (!mTrackingCAO2Interface->GetParamContinuous()) zPositionAbs = detParam.getTPClength() - zPositionAbs;
-
-    Point2D<float> clusterPos(padCentre.X(), localY);
-
-    // sanity checks
-    if (zPositionAbs < 0 || (!mTrackingCAO2Interface->GetParamContinuous() && zPositionAbs > detParam.getTPClength())) {
-      LOG(INFO) << "Removing cluster " << icluster << "/" << inputClusters->GetEntries() << " time: " << cluster.getTimeMean() << ", abs. z: " << zPositionAbs << "\n";
-      continue;
-    }
-
-    hltCluster.fId = icluster;
-    hltCluster.fX = clusterPos.X();
-    hltCluster.fY = clusterPos.Y() * (localYfactor);
-    hltCluster.fZ = zPositionAbs * (-localYfactor);
-    hltCluster.fRow = rowInSector;
-    hltCluster.fAmp = cluster.getQmax();
-
-    cd.SetNumberOfClusters(cd.NumberOfClusters() + 1);
-    nClustersConverted++;
+  int nClustersTotal = 0;
+  int numChunks;
+  if (inputClustersChain) {
+    inputClustersChain->SetBranchAddress("TPCClusterHW", &inputClustersArray);
+    numChunks = inputClustersChain->GetEntries();
+  } else {
+    numChunks = 1;
   }
-  if (inputClusters->GetEntries() != nClustersConverted) {
-    LOG(INFO) << "Passed " << nClustersConverted << " (out of " << inputClusters->GetEntries() << ") clusters to CA tracker\n";
+  
+  for (int iChunk = 0;iChunk < numChunks;iChunk++) {
+    if (inputClustersChain) {
+      inputClustersChain->GetEntry(iChunk);
+    }
+    for (Int_t icluster = 0; icluster < inputClustersArray->GetEntries(); ++icluster) {
+      Cluster& cluster = *static_cast<Cluster*>(inputClustersArray->At(icluster));
+      const Sector sector = CRU(cluster.getCRU()).sector();
+      nClusters[sector.getSector()]++;
+    }
+    nClustersTotal += inputClustersArray->GetEntries();
+    if (inputClustersChain) clusterCache.resize(nClustersTotal);
+    for (int i = 0; i < Sector::MAXSECTOR; i++) {
+      if (iChunk == 0) {
+        mClusterData[i].StartReading(i, nClusters[i]);
+      } else {
+        mClusterData[i].Allocate(mClusterData[i].NumberOfClusters() + nClusters[i]);
+      }
+    }
+    for (Int_t icluster = 0; icluster < inputClustersArray->GetEntries(); ++icluster) {
+      Cluster& cluster = *static_cast<Cluster*>(inputClustersArray->At(icluster));
+      const CRU cru(cluster.getCRU());
+      const Sector sector = cru.sector();
+      AliHLTTPCCAClusterData& cd = mClusterData[sector.getSector()];
+      AliHLTTPCCAClusterData::Data& hltCluster = cd.Clusters()[cd.NumberOfClusters()];
+
+      // ===| mapper |==============================================================
+      Mapper& mapper = Mapper::instance();
+      const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
+      const int rowInSector = cluster.getRow() + region.getGlobalRowOffset();
+      const float padY = cluster.getPadMean();
+      const int padNumber = int(padY);
+      const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(rowInSector, padNumber));
+      const PadCentre& padCentre = mapper.padCentre(pad);
+      const float localY = padCentre.Y() - (padY - padNumber - 0.5) * region.getPadWidth();
+      const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
+      float zPositionAbs = cluster.getTimeMean()*elParam.getZBinWidth()*gasParam.getVdrift();
+      if (!mTrackingCAO2Interface->GetParamContinuous()) zPositionAbs = detParam.getTPClength() - zPositionAbs;
+
+      Point2D<float> clusterPos(padCentre.X(), localY);
+
+      // sanity checks
+      if (zPositionAbs < 0 || (!mTrackingCAO2Interface->GetParamContinuous() && zPositionAbs > detParam.getTPClength())) {
+        LOG(INFO) << "Removing cluster " << icluster << "/" << inputClustersArray->GetEntries() << " time: " << cluster.getTimeMean() << ", abs. z: " << zPositionAbs << "\n";
+        continue;
+      }
+
+      hltCluster.fX = clusterPos.X();
+      hltCluster.fY = clusterPos.Y() * (localYfactor);
+      hltCluster.fZ = zPositionAbs * (-localYfactor);
+      hltCluster.fRow = rowInSector;
+      hltCluster.fAmp = cluster.getQmax();
+      if (inputClustersChain) {
+        clusterCache[nClustersConverted] = cluster;
+        hltCluster.fId = nClustersConverted;
+      } else {
+        hltCluster.fId = icluster;
+      }
+
+      cd.SetNumberOfClusters(cd.NumberOfClusters() + 1);
+      nClustersConverted++;
+    }
+  }
+  
+  if (nClustersTotal != nClustersConverted) {
+    LOG(INFO) << "Passed " << nClustersConverted << " (out of " << nClustersTotal << ") clusters to CA tracker\n";
   }
 
   retVal = mTrackingCAO2Interface->RunTracking(mClusterData, tracks, nTracks, trackClusterIDs);
@@ -141,7 +173,11 @@ int TPCCATracking::runTracking(const TClonesArray* inputClusters, std::vector<Tr
           tracks[i].GetParam().GetCov(9), tracks[i].GetParam().GetCov(10), tracks[i].GetParam().GetCov(11),
           tracks[i].GetParam().GetCov(12), tracks[i].GetParam().GetCov(13), tracks[i].GetParam().GetCov(14) });
       for (int j = 0; j < tracks[i].NClusters(); j++) {
-        trackTPC.addCluster(*(static_cast<Cluster*>(inputClusters->At(trackClusterIDs[tracks[i].FirstClusterRef() + j]))));
+        if (inputClustersChain) {
+          trackTPC.addCluster(clusterCache[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
+        } else {
+          trackTPC.addCluster(*(static_cast<Cluster*>(inputClustersArray->At(trackClusterIDs[tracks[i].FirstClusterRef() + j]))));
+        }
       }
       outputTracks->push_back(trackTPC);
     }

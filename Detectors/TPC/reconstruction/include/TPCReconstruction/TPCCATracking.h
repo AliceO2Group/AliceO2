@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 class TClonesArray;
+class TChain;
 class AliHLTTPCCAO2Interface;
 class AliHLTTPCCAClusterData;
 
@@ -36,9 +37,12 @@ public:
   int initialize(const char* options = nullptr);
   void deinitialize();
 
-  int runTracking(const TClonesArray* inputClusters, std::vector<TrackTPC>* outputTracks);
+  int runTracking(const TClonesArray* inputClusters, std::vector<TrackTPC>* outputTracks) {return runTracking(nullptr, inputClusters, outputTracks);}
+  int runTracking(TChain* inputClusters, std::vector<TrackTPC>* outputTracks) {return runTracking(inputClusters, nullptr, outputTracks);}
 
 private:
+  int runTracking(TChain* inputClustersChain, const TClonesArray* inputClustersArray, std::vector<TrackTPC>* outputTracks);
+
   std::unique_ptr<AliHLTTPCCAO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
                                                                   //The tracking code itself is not included in the O2 package, but contained in the CA library.
                                                                   //The TPCCATracking class interfaces this library via this pointer to AliHLTTPCCAO2Interface class.
