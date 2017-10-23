@@ -20,14 +20,8 @@
 #include "TChain.h"
 #include "TClonesArray.h"
 
-#include "TPCBase/Defs.h"
-#include "TPCBase/CRU.h"
-#include "TPCBase/Sector.h"
-#include "TPCBase/Mapper.h"
-#include "TPCBase/PadRegionInfo.h"
 #include "TPCSimulation/Cluster.h"
 #include "TPCReconstruction/TPCCATracking.h"
-#include "TPCReconstruction/SyncPatternMonitor.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #endif
@@ -37,7 +31,7 @@ using namespace std;
 
 //This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg TClonesArray of clusters.
 //It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
-void runCATracking(TString filename, TString outputFile, TString options, Int_t nmaxEvent=-1, Int_t startEvent=0) {
+void runCATracking(TString filename, TString outputFile, TString options, bool mergeChain = false, int nmaxEvent=-1, int startEvent=0) {
   gSystem->Load("libTPCReconstruction.so");
   TPCCATracking tracker;
   vector<TrackTPC> tracks;
@@ -50,33 +44,44 @@ void runCATracking(TString filename, TString outputFile, TString options, Int_t 
   TChain c("cbmsim");
   c.AddFile(filename);
 
-  TClonesArray *clusters=0x0;
-  c.SetBranchAddress("TPCClusterHW", &clusters);
-
   // ===| output tree |=========================================================
   TFile fout(outputFile, "recreate");
   TTree tout("events","events");
   tout.Branch("Tracks", &tracks);
 
-  // ===| event ranges |========================================================
-  const Int_t nentries = c.GetEntries();
-  const Int_t start = startEvent>nentries?0:startEvent;
-  const Int_t max   = nmaxEvent>0 ? TMath::Min(nmaxEvent, nentries-startEvent) : nentries;
-
-  // ===| loop over events |====================================================
-  for (Int_t iEvent=0; iEvent<max; ++iEvent)   {
-    c.GetEntry(start+iEvent);
-
-    printf("Processing event %d with %d clusters\n", iEvent, clusters->GetEntries());
-    if (!clusters->GetEntries()) continue;
-
+  if (mergeChain) {
     tracks.clear();
-    if (tracker.runTracking(clusters, &tracks) == 0)     {
+    printf("Processing full TChain of clusters at once\n");
+    if (tracker.runTracking(&c, &tracks) == 0)     {
       printf("\tFound %d tracks\n", (int) tracks.size());
     } else {
       printf("\tError during tracking\n");
     }
     tout.Fill();
+  } else {
+    TClonesArray *clusters = nullptr;
+    c.SetBranchAddress("TPCClusterHW", &clusters);
+
+    // ===| event ranges |========================================================
+    const int nentries = c.GetEntries();
+    const int start = startEvent>nentries?0:startEvent;
+    const int max   = nmaxEvent>0 ? TMath::Min(nmaxEvent, nentries-startEvent) : nentries;
+
+    // ===| loop over events |====================================================
+    for (int iEvent=0; iEvent<max; ++iEvent)   {
+      c.GetEntry(start+iEvent);
+
+      printf("Processing event %d with %d clusters\n", iEvent, clusters->GetEntries());
+      if (!clusters->GetEntries()) continue;
+
+      tracks.clear();
+      if (tracker.runTracking(clusters, &tracks) == 0)     {
+        printf("\tFound %d tracks\n", (int) tracks.size());
+      } else {
+        printf("\tError during tracking\n");
+      }
+      tout.Fill();
+    }
   }
   fout.Write();
   fout.Close();
