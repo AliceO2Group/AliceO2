@@ -13,7 +13,6 @@
   #include <TEveGeoShape.h>
   #include <TEveGeoNode.h>
   #include <TEvePointSet.h>
-  #include <TClonesArray.h>
   #include <TMath.h>
   #include <TString.h>
 
@@ -102,7 +101,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
       n++;
     }
   }
-  cout<<"Number of points: "<<n<<endl;
+  cout<<"Number of hits: "<<n<<endl;
 
   gEve->AddElement(points,0);
   f->Close();
