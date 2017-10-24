@@ -23,12 +23,14 @@
 
 class TParticle;
 
+namespace o2 {
+
 /// Data class for storing Monte Carlo tracks processed by the Stack.
 /// An MCTrack can be a primary track put into the simulation or a
 /// secondary one produced by the transport through decay or interaction.
 /// This is a light weight particle class that is saved to disk
 /// instead of saving the TParticle class. It is also used for filtering the stack
-class MCTrack : public TObject
+class MCTrack
 {
 
   public:
@@ -46,7 +48,7 @@ class MCTrack : public TObject
     MCTrack(TParticle *particle);
 
     ///  Destructor
-    ~MCTrack() override;
+    ~MCTrack();
 
     ///  Output to screen
     void Print(Int_t iTrack = 0) const;
@@ -161,7 +163,7 @@ class MCTrack : public TObject
 
     Int_t mNumberOfPoints;
 
-  ClassDefOverride(MCTrack, 1);
+  ClassDefNV(MCTrack, 1);
 };
 
 inline Double_t MCTrack::GetEnergy() const
@@ -186,4 +188,6 @@ inline void MCTrack::GetStartVertex(TVector3 &vertex)
   vertex.SetXYZ(mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ);
 }
 
+}
+ 
 #endif

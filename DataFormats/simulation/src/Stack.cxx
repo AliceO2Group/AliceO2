@@ -38,7 +38,7 @@ Stack::Stack(Int_t size)
   : FairGenericStack(),
     mStack(),
     mParticles(new TClonesArray("TParticle", size)),
-    mTracks(new TClonesArray("MCTrack", size)),
+    mTracks(new std::vector<o2::MCTrack>(size)),
     mStoreMap(),
     mStoreIterator(),
     mIndexMap(),
@@ -66,6 +66,7 @@ Stack::Stack(const Stack &rhs)
     mStoreMap(),
     mStoreIterator(),
     mIndexMap(),
+    mIndexVector(),
     mIndexIterator(),
     mPointsMap(),
     mIndexOfCurrentTrack(-1),
@@ -80,7 +81,7 @@ Stack::Stack(const Stack &rhs)
     mLogger(FairLogger::GetLogger())
 {
   mParticles = new TClonesArray("TParticle", rhs.mParticles->GetSize());
-  mTracks = new TClonesArray("MCTrack", rhs.mTracks->GetSize());
+  mTracks = new std::vector<MCTrack>(rhs.mTracks->size());
 
   // LOG(INFO) << "Stack::Stack(rhs) " << this << " mTracks " << mTracks << std::endl;
 }
@@ -92,7 +93,6 @@ Stack::~Stack()
     delete mParticles;
   }
   if (mTracks) {
-    mTracks->Delete();
     delete mTracks;
   }
 }
@@ -107,7 +107,7 @@ Stack &Stack::operator=(const Stack &rhs)
 
   // assignment operator
   mParticles = new TClonesArray("TParticle", rhs.mParticles->GetSize());
-  mTracks = new TClonesArray("MCTrack", rhs.mTracks->GetSize());
+  mTracks = new std::vector<MCTrack>(rhs.mTracks->size());
   mIndexOfCurrentTrack = -1;
   mNumberOfPrimaryParticles = 0;
   mNumberOfEntriesInParticles = 0;
@@ -226,15 +226,6 @@ TParticle *Stack::GetCurrentTrack() const
   return currentPart;
 }
 
-void Stack::AddParticle(TParticle *oldPart)
-{
-  TClonesArray &array = *mParticles;
-  auto *newPart = new(array[mIndex]) TParticle(*oldPart);
-  newPart->SetWeight(oldPart->GetWeight());
-  newPart->SetUniqueID(oldPart->GetUniqueID());
-  mIndex++;
-}
-
 void Stack::FillTrackArray()
 {
   if (mLogger) {
@@ -245,6 +236,8 @@ void Stack::FillTrackArray()
 
   // Reset index map and number of output tracks
   mIndexMap.clear();
+  mIndexVector.clear();
+  mIndexVector.resize(mNumberOfEntriesInParticles, -2);
   mNumberOfEntriesInTracks = 0;
 
   // Check tracks for selection criteria
@@ -263,12 +256,15 @@ void Stack::FillTrackArray()
     Bool_t store = (*mStoreIterator).second;
 
     if (store) {
-      auto *track = new((*mTracks)[mNumberOfEntriesInTracks]) MCTrack(GetParticle(iPart));
+      mTracks->emplace_back(GetParticle(iPart));
+      auto& track = mTracks->back();			    
       mIndexMap[iPart] = mNumberOfEntriesInTracks;
+      mIndexVector[iPart] = mNumberOfEntriesInTracks;
+
       // Set the number of points in the detectors for this track
       for (Int_t iDet = o2::Base::DetID::First; iDet < o2::Base::DetID::nDetectors; iDet++) {
         pair<Int_t, Int_t> a(iPart, iDet);
-        track->setNumberOfPoints(iDet, mPointsMap[a]);
+        track.setNumberOfPoints(iDet, mPointsMap[a]);
       }
       mNumberOfEntriesInTracks++;
     } else {
@@ -294,8 +290,8 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
 
   // First update mother ID in MCTracks
   for (Int_t i = 0; i < mNumberOfEntriesInTracks; i++) {
-    MCTrack *track = (MCTrack *) mTracks->At(i);
-    Int_t iMotherOld = track->getMotherTrackId();
+    auto& track = (*mTracks)[i];
+    Int_t iMotherOld = track.getMotherTrackId();
     mIndexIterator = mIndexMap.find(iMotherOld);
     if (mIndexIterator == mIndexMap.end()) {
       if (mLogger) {
@@ -303,7 +299,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
       }
       Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
     }
-    track->SetMotherTrackId((*mIndexIterator).second);
+    track.SetMotherTrackId((*mIndexIterator).second);
   }
 
   if (fDetList == nullptr) {
@@ -358,7 +354,7 @@ void Stack::Reset()
     mStack.pop();
   }
   mParticles->Clear();
-  mTracks->Clear();
+  mTracks->clear();
   mPointsMap.clear();
 }
 
@@ -367,7 +363,8 @@ void Stack::Register()
   // LOG(INFO) << this << " register in "
   //   << FairGenericRootManager::Instance() << " mTracks: " <<  mTracks << std::endl;
 
-  FairGenericRootManager::Instance()->Register("MCTrack", "Stack", mTracks, kTRUE);
+  //  FairGenericRootManager::Instance()->Register("MCTrack", "Stack", mTracks, kTRUE);
+  FairRootManager::Instance()->RegisterAny("MCTrack", mTracks, kTRUE);
 }
 
 void Stack::Print(Int_t iVerbose) const
@@ -376,8 +373,8 @@ void Stack::Print(Int_t iVerbose) const
   cout << "              Total number of particles  = " << mNumberOfEntriesInParticles << endl;
   cout << "              Number of tracks in output = " << mNumberOfEntriesInTracks << endl;
   if (iVerbose) {
-    for (Int_t iTrack = 0; iTrack < mNumberOfEntriesInTracks; iTrack++) {
-      ((MCTrack *) mTracks->At(iTrack))->Print(iTrack);
+    for (auto& track : *mTracks) {
+      track.Print();
     }
   }
 }

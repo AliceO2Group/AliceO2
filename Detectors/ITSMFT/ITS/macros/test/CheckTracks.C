@@ -33,7 +33,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *mcTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray *mcArr=nullptr;
+  std::vector<o2::MCTrack>* mcArr = nullptr;
   mcTree->SetBranchAddress("MCTrack",&mcArr);
 
   // Reconstructed tracks
@@ -52,22 +52,22 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
     std::cout<<"Event "<<n<<'/'<<nev<<std::endl;
     Int_t nGen=0, nGoo=0;
     mcTree->GetEvent(n);
-    Int_t nmc=mcArr->GetEntriesFast();
+    Int_t nmc=mcArr->size();
     recTree->GetEvent(n);
     Int_t nrec=recArr->size();
     while(nmc--) {
-      MCTrack *mcTrack = (MCTrack *)mcArr->UncheckedAt(nmc);
-      Int_t mID = mcTrack->getMotherTrackId();
+      const auto& mcTrack = (*mcArr)[nmc];
+      Int_t mID = mcTrack.getMotherTrackId();
       if (mID >= 0) continue; // Select primary particles 
-      Int_t pdg = mcTrack->GetPdgCode();
+      Int_t pdg = mcTrack.GetPdgCode();
       if (TMath::Abs(pdg) != 211) continue;  // Select pions
 
       nGen++; // Generated tracks for the efficiency calculation 
       
-      Double_t mcPx = mcTrack->GetStartVertexMomentumX();
-      Double_t mcPy = mcTrack->GetStartVertexMomentumY();
-      Double_t mcPz = mcTrack->GetStartVertexMomentumZ();
-      Double_t mcPt = mcTrack->GetPt();
+      Double_t mcPx = mcTrack.GetStartVertexMomentumX();
+      Double_t mcPy = mcTrack.GetStartVertexMomentumY();
+      Double_t mcPz = mcTrack.GetStartVertexMomentumZ();
+      Double_t mcPt = mcTrack.GetPt();
       Double_t mcPhi= TMath::ATan2(mcPy,mcPx);
       Double_t mcLam= TMath::ATan2(mcPz,mcPt);
       Double_t recPhi=-1.; 
