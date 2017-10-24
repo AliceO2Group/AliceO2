@@ -10,7 +10,7 @@
 
 /// \file MCTrack.cxx
 /// \brief Implementation of the MCTrack class
-/// \author M. Al-Turany - June 2014
+/// \author M. Al-Turany, S. Wenzel - June 2014
 
 #include "SimulationDataFormat/MCTrack.h"
 
@@ -19,9 +19,12 @@
 #include "TParticle.h"
 #include "TParticlePDG.h"
 
+ClassImp(o2::MCTrack);
+
+namespace o2 {
+
 MCTrack::MCTrack()
-  : TObject(),
-    mPdgCode(0),
+  : mPdgCode(0),
     mMotherTrackId(-1),
     mStartVertexMomentumX(0.),
     mStartVertexMomentumY(0.),
@@ -36,8 +39,7 @@ MCTrack::MCTrack()
 
 MCTrack::MCTrack(Int_t pdgCode, Int_t motherId, Double_t px, Double_t py, Double_t pz, Double_t x, Double_t y,
                  Double_t z, Double_t t, Int_t nPoints = 0)
-  : TObject(),
-    mPdgCode(pdgCode),
+  : mPdgCode(pdgCode),
     mMotherTrackId(motherId),
     mStartVertexMomentumX(px),
     mStartVertexMomentumY(py),
@@ -54,8 +56,7 @@ MCTrack::MCTrack(const MCTrack &track)
   = default;
 
 MCTrack::MCTrack(TParticle *part)
-  : TObject(),
-    mPdgCode(part->GetPdgCode()),
+  : mPdgCode(part->GetPdgCode()),
     mMotherTrackId(part->GetMother(0)),
     mStartVertexMomentumX(part->Px()),
     mStartVertexMomentumY(part->Py()),
@@ -76,11 +77,6 @@ void MCTrack::Print(Int_t trackId) const
   LOG(DEBUG) << "Track " << trackId << ", mother : " << mMotherTrackId << ", Type " << mPdgCode << ", momentum ("
              << mStartVertexMomentumX << ", " << mStartVertexMomentumY << ", " << mStartVertexMomentumZ << ") GeV"
              << FairLogger::endl;
-  // LOG(DEBUG2) << "       Ref " << getNumberOfPoints(kREF)
-  //           << ", TutDet " << getNumberOfPoints(kTutDet)
-  //           << ", Rutherford " << getNumberOfPoints(kFairRutherford)
-  //           << FairLogger::endl;
-  //
 }
 
 Double_t MCTrack::GetMass() const
@@ -143,4 +139,6 @@ void MCTrack::setNumberOfPoints(Int_t iDet, Int_t nPoints)
   //
 }
 
-ClassImp(MCTrack)
+
+
+}
