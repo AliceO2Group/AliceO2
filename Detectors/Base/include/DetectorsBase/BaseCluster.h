@@ -69,19 +69,19 @@ class BaseCluster : public TObject // temprarily derive from TObject
   Point3D<T>& getXYZ() { return mPos; }
 
   // position in local frame, no check for matrices cache validity 
-  Point3D<T> getXYZLoc(const DetMatrixCache& dm) {
+  Point3D<T> getXYZLoc(const DetMatrixCache& dm) const {
     return dm.getMatrixT2L(mSensorID)(mPos);
   }
 
   // position in global frame, no check for matrices cache validity 
-  Point3D<T> getXYZGlo(const DetMatrixCache& dm) {
+  Point3D<T> getXYZGlo(const DetMatrixCache& dm) const {
     return dm.getMatrixT2G(mSensorID)(mPos);
   }
 
   // position in global frame obtained as simple rotation from tracking one:
   // much faster for barrel detectors than using full 3D matrix.
   // no check for matrices cache validity 
-  Point3D<T> getXYZGloRot(const DetMatrixCache& dm) {
+  Point3D<T> getXYZGloRot(const DetMatrixCache& dm) const {
     return dm.getMatrixT2GRot(mSensorID)(mPos);
   }
   

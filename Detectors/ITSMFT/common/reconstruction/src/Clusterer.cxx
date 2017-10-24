@@ -13,11 +13,11 @@
 #include <algorithm>
 #include "FairLogger.h"      // for LOG
 
-#include "TClonesArray.h"
-
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::ITSMFT;
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
@@ -40,7 +40,7 @@ Clusterer::Clusterer()
 }
 
 //__________________________________________________
-void Clusterer::process(PixelReader &reader, TClonesArray &clusters)
+void Clusterer::process(PixelReader &reader, std::vector<Cluster> &clusters)
 {
   reader.init();
 
@@ -118,7 +118,7 @@ void Clusterer::updateChip(int ip)
 }
 
 //__________________________________________________
-void Clusterer::finishChip(TClonesArray &clusters)
+void Clusterer::finishChip(std::vector<Cluster> &clusters)
 {
   constexpr Float_t SigmaX2 = Segmentation::PitchRow*Segmentation::PitchRow / 12.; //FIXME
   constexpr Float_t SigmaY2 = Segmentation::PitchCol*Segmentation::PitchCol / 12.; //FIXME
@@ -126,7 +126,7 @@ void Clusterer::finishChip(TClonesArray &clusters)
   std::array<Label,Cluster::maxLabels> labels;
   std::array<const PixelData*,Cluster::kMaxPatternBits*2> pixArr;
   
-  Int_t noc = clusters.GetEntriesFast();  
+  Int_t noc = clusters.size();  
   for (Int_t i1=0; i1<mPreClusterHeads.size(); ++i1) {
     const auto ci = mPreClusterIndices[i1];
     if (ci<0) continue;
@@ -174,13 +174,19 @@ void Clusterer::finishChip(TClonesArray &clusters)
     Point3D<float> xyzLoc( Segmentation::getFirstRowCoordinate() + x*Segmentation::PitchRow/npix, 0.f,
 			   Segmentation::getFirstColCoordinate() + z*Segmentation::PitchCol/npix );
     auto xyzTra = mGeometry->getMatrixT2L(mChipData.chipID)^(xyzLoc); // inverse transform from Local to Tracking frame
-    Cluster *c = static_cast<Cluster *>(clusters.ConstructedAt(noc++));
-    c->setROFrame(mChipData.roFrame);
-    c->setSensorID(mChipData.chipID);
-    c->setPos(xyzTra);
-    c->setErrors(SigmaX2, SigmaY2, 0.f);
-    c->setNxNzN(rowMax-rowMin+1,colMax-colMin+1,npix);
-    for (int i=nlab;i--;) c->setLabel(labels[i],i);
+
+    clusters.emplace_back();
+    Cluster &c = clusters[noc];
+    c.SetUniqueID(noc); // Let the cluster remember its position within the cluster array
+    c.setROFrame(mChipData.roFrame);
+    c.setSensorID(mChipData.chipID);
+    c.setPos(xyzTra);
+    c.setErrors(SigmaX2, SigmaY2, 0.f);
+    c.setNxNzN(rowMax-rowMin+1,colMax-colMin+1,npix);
+    if (mClsLabels) {
+      for (int i=nlab;i--;) mClsLabels->addElement(noc,labels[i]);
+    }
+    noc++;
 
 #ifdef _ClusterTopology_
     unsigned short colSpan=(colMax+1-colMin), rowSpan=(rowMax+1-rowMin), colSpanW=colSpan, rowSpanW=rowSpan;
@@ -199,15 +205,15 @@ void Clusterer::finishChip(TClonesArray &clusters)
 	}
       }
     }
-    c->setPatternRowSpan(rowSpanW,rowSpanW<rowSpan);
-    c->setPatternColSpan(colSpanW,colSpanW<colSpan);
-    c->setPatternRowMin(rowMin);
-    c->setPatternColMin(colMin);
+    c.setPatternRowSpan(rowSpanW,rowSpanW<rowSpan);
+    c.setPatternColSpan(colSpanW,colSpanW<colSpan);
+    c.setPatternRowMin(rowMin);
+    c.setPatternColMin(colMin);
     if (npix>pixArr.size()) npix = pixArr.size();
     for (int i=0;i<npix;i++) {
       const auto pix = pixArr[i];
       unsigned short ir = pix->row - rowMin, ic = pix->col - colMin;
-      if (ir<rowSpanW && ic<colSpanW) c->setPixel(ir,ic);
+      if (ir<rowSpanW && ic<colSpanW) c.setPixel(ir,ic);
     }
 #endif //_ClusterTopology_  
     

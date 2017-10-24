@@ -481,10 +481,12 @@ o2_define_bucket(
     itsmft_base_bucket
     ITSMFTBase
     DetectorsBase
+    SimulationDataFormat
     
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${MS_GSL_INCLUDE_DIR}
 )
 
 o2_define_bucket(

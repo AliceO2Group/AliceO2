@@ -20,16 +20,21 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/CookedTracker.h"
 
-class TClonesArray;
-
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
+ 
 namespace ITS
 {
 class CookedTrackerTask : public FairTask
 {
  public:
-  CookedTrackerTask(Int_t nThreads=1);
+  CookedTrackerTask(Int_t nThreads=1, Bool_t useMCTruth=kTRUE);
   ~CookedTrackerTask() override;
 
   InitStatus Init() override;
@@ -37,12 +42,15 @@ class CookedTrackerTask : public FairTask
   void setBz(Double_t bz) { mTracker.setBz(bz); }
 
  private:
-  Int_t mNumOfThreads;    ///< Number of threads
-  o2::ITS::GeometryTGeo* mGeometry; ///< ITS geometry
   CookedTracker mTracker; ///< Track finder
 
-  const TClonesArray* mClustersArray;   ///< Array of clusters
-  TClonesArray* mTracksArray; ///< Array of tracks
+  const
+  std::vector<o2::ITSMFT::Cluster>* mClustersArray=nullptr;   ///< Array of clusters
+  const
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< Cluster MC labels
+
+  std::vector<CookedTrack> *mTracksArray=nullptr; ///< Array of tracks
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mTrkLabels=nullptr; ///< Track MC labels
 
   ClassDefOverride(CookedTrackerTask, 1)
 };

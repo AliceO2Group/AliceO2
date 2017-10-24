@@ -230,7 +230,7 @@ class Chip
     
     o2::ITSMFT::Digit* addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, Label lbl, double timestamp);
 
-    void      fillOutputContainer(TClonesArray* digits, UInt_t maxFrame);
+    void      fillOutputContainer(std::vector<Digit>* digits, UInt_t maxFrame);
  
   protected:
     

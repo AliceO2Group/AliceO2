@@ -4,7 +4,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
   #include <TFile.h>
   #include <TTree.h>
-  #include <TClonesArray.h>
   #include <TH2F.h>
   #include <TNtuple.h>
   #include <TCanvas.h>
@@ -52,8 +51,8 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.digi_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *digTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray digArr("o2::ITSMFT::Digit"), *pdigArr(&digArr);
-  digTree->SetBranchAddress("ITSDigit",&pdigArr);
+  std::vector<o2::ITSMFT::Digit> *digArr = nullptr;
+  digTree->SetBranchAddress("ITSDigit",&digArr);
   
   int nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   int nevH = hitTree->GetEntries(); // hits are stored as one event per entry
@@ -64,17 +63,17 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   for (int iev = 0;iev<nevD; iev++) {
 
     digTree->GetEvent(iev);
-    Int_t nd=digArr.GetEntriesFast();
 
-    while(nd--) {      
-      Digit *d=(Digit *)digArr.UncheckedAt(nd);
-      Int_t ix=d->getRow(), iz=d->getColumn();
+    int nd=-1;
+    for (const auto &d : *digArr) {
+      nd++;
+      Int_t ix=d.getRow(), iz=d.getColumn();
       Float_t x=0.f,z=0.f; 
       seg.detectorToLocal(ix,iz,x,z);
       const Point3D<float> locD(x,0.,z);
       
-      Int_t chipID=d->getChipIndex();
-      o2::MCCompLabel lab = d->getLabel(0);
+      Int_t chipID=d.getChipIndex();
+      o2::MCCompLabel lab = d.getLabel(0);
       int trID = lab.getTrackID();
       int ievH = lab.getEventID();
 

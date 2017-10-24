@@ -81,7 +81,7 @@ void Cluster::setPatternColSpan(UShort_t nc, Bool_t truncated)
 }
 
 #endif
-
+/*
 //______________________________________________________________________________
 Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
 {
@@ -100,7 +100,7 @@ Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
   }
   return kFALSE;
 }
-
+*/
 //______________________________________________________________________________
 void Cluster::print() const
 {

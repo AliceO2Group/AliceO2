@@ -4,7 +4,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
   #include <TFile.h>
   #include <TTree.h>
-  #include <TClonesArray.h>
   #include <TH2F.h>
   #include <TNtuple.h>
   #include <TCanvas.h>
@@ -16,15 +15,15 @@
   #include "ITSBase/GeometryTGeo.h"
   #include "ITSMFTReconstruction/Cluster.h"
   #include "SimulationDataFormat/MCCompLabel.h"
-  #include <vector>
+  #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-using namespace o2::Base;
-using o2::ITSMFT::Cluster;
-
 void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
-  using o2::ITSMFT::Hit;
+  using namespace o2::Base;
   using namespace o2::ITS;
+
+  using o2::ITSMFT::Hit;
+  using o2::ITSMFT::Cluster;
 
   TFile *f=TFile::Open("CheckClusters.root","recreate");
   TNtuple *nt=new TNtuple("ntc","cluster ntuple","x:y:z:dx:dz:lab:rof:ev:hlx:hlz:clx:clz");
@@ -43,7 +42,7 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *hitTree=(TTree*)gFile->Get("o2sim");
-  std::vector<o2::ITSMFT::Hit> *hitArray = nullptr;
+  std::vector<Hit> *hitArray = nullptr;
   hitTree->SetBranchAddress("ITSHit", &hitArray);
 
   
@@ -51,8 +50,17 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *clusTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray clusArr("o2::ITSMFT::Cluster"), *pclusArr(&clusArr);
-  clusTree->SetBranchAddress("ITSCluster",&pclusArr);
+  std::vector<Cluster> *clusArr=nullptr;
+  //clusTree->SetBranchAddress("ITSCluster",&clusArr); // Why this does not work ???
+  auto *branch = clusTree->GetBranch("ITSCluster");
+  if (!branch) {
+    std::cout<<"No clusters !"<<std::endl;
+    return;
+  }
+  branch->SetAddress(&clusArr);
+  // Cluster MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clusLabArr=nullptr;
+  clusTree->SetBranchAddress("ITSClusterMCTruth",&clusLabArr);
 
   Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
   Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
@@ -60,16 +68,16 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   int lastReadHitEv = -1;
   for (ievC=0;ievC<nevCl;ievC++) {
     clusTree->GetEvent(ievC);
-    Int_t nc = clusArr.GetEntriesFast();
+    Int_t nc = clusArr->size();
     printf("processing cluster event %d\n",ievC);
 
     while(nc--) {
       // cluster is in tracking coordinates always
-      Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(nc));
-      Int_t chipID = c->getSensorID();
-      const auto locC = c->getXYZLoc(*gman); // convert from tracking to local frame
-      const auto gloC = c->getXYZGloRot(*gman); // convert from tracking to global frame
-      o2::MCCompLabel lab = c->getLabel(0);
+      Cluster &c=(*clusArr)[nc];
+      Int_t chipID = c.getSensorID();
+      const auto locC = c.getXYZLoc(*gman); // convert from tracking to local frame
+      const auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
+      auto lab = (clusLabArr->getLabels(nc))[0];
 
       float dx=0,dz=0;
       int trID = lab.getTrackID();
@@ -102,7 +110,7 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 	  dz = locH.Z()-locC.Z();
 	}
       }
-      nt->Fill(gloC.X(),gloC.Y(),gloC.Z(), dx, dz, trID, c->getROFrame(), ievC,
+      nt->Fill(gloC.X(),gloC.Y(),gloC.Z(), dx, dz, trID, c.getROFrame(), ievC,
 	       locH.X(),locH.Z(), locC.X(),locC.Z());
     }
   }

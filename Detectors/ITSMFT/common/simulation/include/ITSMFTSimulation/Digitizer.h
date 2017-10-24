@@ -24,8 +24,6 @@
 #include "ITSMFTSimulation/DigiParams.h"
 #include "ITSMFTBase/GeometryTGeo.h"
 
-class TClonesArray;
-
 namespace o2
 {
   namespace ITSMFT
@@ -42,17 +40,15 @@ namespace o2
 
       void init();
 
-      /// Steer conversion of points to digits
-      void   process(TClonesArray* points, TClonesArray* digits);
-      /// new version
-      void   process(std::vector<Hit>* hits, TClonesArray* digits);
+      /// Steer conversion of hits to digits
+      void   process(const std::vector<Hit>* hits, std::vector<Digit>* digits);
       
       void   setEventTime(double t);
       double getEventTime()        const  {return mEventTime;}
 
       void   setContinuous(bool v) {mParams.setContinuous(v);}
       bool   isContinuous()  const {return mParams.isContinuous();}
-      void   fillOutputContainer(TClonesArray* digits, UInt_t maxFrame=0xffffffff);
+      void   fillOutputContainer(std::vector<Digit>* digits, UInt_t maxFrame=0xffffffff);
 
       void   setDigiParams(const o2::ITSMFT::DigiParams& par) {mParams = par;}
       const  o2::ITSMFT::DigiParams& getDigitParams()   const {return mParams;}

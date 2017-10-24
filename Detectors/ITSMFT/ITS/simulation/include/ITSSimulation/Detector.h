@@ -84,8 +84,10 @@ class Detector : public o2::Base::Detector
     void Register() override;
 
     /// Gets the produced collections
-    TClonesArray *GetCollection(Int_t iColl) const override;
-
+    TClonesArray *GetCollection(Int_t iColl) const override {
+       LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
+       return nullptr;
+    }
     /// Has to be called after each event to reset the containers
     void Reset() override;
 
@@ -164,14 +166,6 @@ class Detector : public o2::Base::Detector
 
     /// Set per wrapper volume parameters
     void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan) override;
-
-    // The following methods can be implemented if you need to make
-    // any optional action in your detector during the transport
-
-    void CopyClones(TClonesArray *cl1, TClonesArray *cl2, Int_t offset) override
-    {
-      ;
-    }
 
     void SetSpecialPhysicsCuts() override
     {
@@ -298,7 +292,6 @@ class Detector : public o2::Base::Detector
     Int_t *mBuildLevel;            //! Vector of Material Budget Studies
 
     /// Container for hit data
-    // TClonesArray *mHitCollection;
     std::vector<o2::ITSMFT::Hit>* mHits;
 
     /// Creates an air-filled wrapper cylindrical volume

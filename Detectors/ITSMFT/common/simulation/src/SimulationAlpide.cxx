@@ -13,7 +13,6 @@
 
 #include <TRandom.h>
 #include <TLorentzVector.h>
-#include <TClonesArray.h>
 #include <TSeqCollection.h>
 #include <climits>
 #include <algorithm>

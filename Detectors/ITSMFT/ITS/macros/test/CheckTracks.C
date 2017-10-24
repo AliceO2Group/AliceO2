@@ -15,6 +15,7 @@
 
   #include "SimulationDataFormat/MCTrack.h"
   #include "SimulationDataFormat/MCCompLabel.h"
+  #include "SimulationDataFormat/MCTruthContainer.h"
   #include "ITSMFTReconstruction/Cluster.h"
   #include "ITSReconstruction/CookedTrack.h"
 #endif
@@ -32,26 +33,30 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *mcTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray mcArr("MCTrack"), *pmcArr(&mcArr);
-  mcTree->SetBranchAddress("MCTrack",&pmcArr);
+  TClonesArray *mcArr=nullptr;
+  mcTree->SetBranchAddress("MCTrack",&mcArr);
 
   // Reconstructed tracks
   sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *recTree=(TTree*)gFile->Get("o2sim");
-  TClonesArray recArr("o2::ITS::CookedTrack"), *precArr(&recArr);
-  recTree->SetBranchAddress("ITSTrack",&precArr);
+  std::vector<CookedTrack> *recArr=nullptr;
+  recTree->SetBranchAddress("ITSTrack",&recArr);
+  // Track MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabArr=nullptr;
+  recTree->SetBranchAddress("ITSTrackMCTruth",&trkLabArr);
+
   
   Int_t nev=mcTree->GetEntries();
   for (Int_t n=0; n<nev; n++) {
     std::cout<<"Event "<<n<<'/'<<nev<<std::endl;
     Int_t nGen=0, nGoo=0;
     mcTree->GetEvent(n);
-    Int_t nmc=mcArr.GetEntriesFast();
+    Int_t nmc=mcArr->GetEntriesFast();
     recTree->GetEvent(n);
-    Int_t nrec=recArr.GetEntriesFast();
+    Int_t nrec=recArr->size();
     while(nmc--) {
-      MCTrack *mcTrack = (MCTrack *)mcArr.UncheckedAt(nmc);
+      MCTrack *mcTrack = (MCTrack *)mcArr->UncheckedAt(nmc);
       Int_t mID = mcTrack->getMotherTrackId();
       if (mID >= 0) continue; // Select primary particles 
       Int_t pdg = mcTrack->GetPdgCode();
@@ -72,18 +77,18 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       Double_t label=-123456789.; 
       
       for (Int_t i=0; i<nrec; i++) {
-         CookedTrack *recTrack = (CookedTrack *)recArr.UncheckedAt(i);
-	 o2::MCCompLabel mclab = recTrack->getLabel();
+	 const CookedTrack &recTrack = (*recArr)[i];
+	 auto mclab = (trkLabArr->getLabels(i))[0];
 	 Int_t lab = mclab.getTrackID();
 	 if (TMath::Abs(lab) != nmc) continue;
 	 std::array<float,3> p;
-	 recTrack->getPxPyPz(p);
-	 recPt = recTrack->getPt();
+	 recTrack.getPxPyPz(p);
+	 recPt = recTrack.getPt();
          recPhi = TMath::ATan2(p[1],p[0]);
 	 recLam = TMath::ATan2(p[2],recPt);
 	 Double_t vx=0., vy=0., vz=0.;  // Assumed primary vertex
 	 Double_t bz=5.;                // Assumed magnetic field 
-         recTrack->getImpactParams(vx, vy, vz, bz, ip);
+         recTrack.getImpactParams(vx, vy, vz, bz, ip);
          label = lab;
 	 
 	 if (label>0) nGoo++; // Good found tracks for the efficiency calculation

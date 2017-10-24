@@ -1,26 +1,18 @@
 01.08.2017 (Bogdan Vulpescu, LPC)
 ---------------------------------
 
-updated: 02.10.2017
+updated: 17.10.2017
 
-Check the simulation chain
---------------------------
+Howto check the simulation chain for the MFT detector
+-----------------------------------------------------
 
-1) copy and rename the macros:
-
-cp SetIncludePath_mft.C SetIncludePath.C
-cp load_all_libs_mft.C  load_all_libs.C
-cp rootlogon_mft.C      rootlogon.C
-cp CheckDigits_mft.C    CheckDigits.C
-cp CheckClusters_mft.C  CheckClusters.C
-
-2) simulation:
+1) simulation:
 
 10 events each with 100 muons using GEANT3 as transport engine:
 
 ./run_sim_mft.sh 10 100 TGeant3
 
-3) digitization:
+2) digitization:
 
 ./run_digi_mft.sh 10 100 TGeant3 1 50.e3
 
@@ -32,17 +24,17 @@ it can have a value in Hz (50.e3 = 50kHz) which means that the
 digitization is done in continuous mode, per Read-Out frame at 50kHz 
 collision frequency
 
-4) clusterization:
+3) clusterization:
 
 ./run_clus_mft.sh 10 100 TGeant3
 
-5) check the digits:
+4) check the digits:
 
 root.exe
-.x CheckDigits.C+(10,100,"TGeant3")
+.x CheckDigits_mft.C+(10,100,"TGeant3")
 
-6) check the clusters:
+5) check the clusters:
 
 root.exe
-.x CheckClusters.C+(10,100,"TGeant3")
+.x CheckClusters_mft.C+(10,100,"TGeant3")
 

@@ -16,20 +16,28 @@
 #include "Rtypes.h"  // for TrivialClusterer::Class, Double_t, ClassDef, etc
 #include "ITSMFTBase/GeometryTGeo.h"
 
-class TClonesArray;
-
 namespace o2 {
   namespace ITSMFT {
+    class Digit;
     class Cluster;
   }
 }
 
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
 namespace ITS
 {
   class TrivialClusterer
 {
+  using Digit = o2::ITSMFT::Digit;
+  using Cluster = o2::ITSMFT::Cluster;
+  using Label = o2::MCCompLabel;
  public:
   TrivialClusterer();
   ~TrivialClusterer();
@@ -40,12 +48,16 @@ namespace ITS
   /// Steer conversion of points to digits
   /// @param points Container with ITS points
   /// @return digits container
-  void process(const TClonesArray* digits, TClonesArray* clusters);
+  void process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters);
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
+    mClsLabels = truth;
+  }
 
  protected:
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels = nullptr; // Cluster MC labels
 
 };
 }

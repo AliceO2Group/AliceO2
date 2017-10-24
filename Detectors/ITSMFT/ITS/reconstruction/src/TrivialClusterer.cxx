@@ -15,12 +15,12 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSReconstruction/TrivialClusterer.h"
 #include "ITSMFTReconstruction/Cluster.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "FairLogger.h"   // for LOG
-#include "TClonesArray.h" // for TClonesArray
 
 using o2::ITSMFT::SegmentationAlpide;
-using o2::ITSMFT::Digit;
 using namespace o2::ITS;
 using namespace o2::ITSMFT;
 
@@ -31,23 +31,27 @@ TrivialClusterer::TrivialClusterer() = default;
 TrivialClusterer::~TrivialClusterer() = default;
 
 void
-TrivialClusterer::process(const TClonesArray* digits, TClonesArray* clusters)
+TrivialClusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters)
 {
   Float_t sigma2 = SegmentationAlpide::PitchRow * SegmentationAlpide::PitchRow / 12.;
 
-  TClonesArray& clref = *clusters;
-  for (TIter digP = TIter(digits).Begin(); digP != TIter::End(); ++digP) {
-    Digit* dig = static_cast<Digit*>(*digP);
-    Int_t ix = dig->getRow(), iz = dig->getColumn();
-    Int_t lab = dig->getLabel(0);
+  for (const auto &d : *digits) {
+    Int_t ix = d.getRow(), iz = d.getColumn();
     Float_t x = 0., y = 0., z = 0.;
     SegmentationAlpide::detectorToLocal(ix, iz, x, z);
     Point3Df loc(x,0.f,z);
     // inverse transform from local to tracking frame
-    auto tra = mGeometry->getMatrixT2L( dig->getChipIndex() )^(loc);
-    Cluster c(dig->getChipIndex(), tra, sigma2, sigma2, 0.);
-    c.setLabel(lab, 0);
+    auto tra = mGeometry->getMatrixT2L( d.getChipIndex() )^(loc);
 
-    new (clref[clref.GetEntriesFast()]) Cluster(c);
+    int noc=clusters->size();
+    clusters->emplace_back(d.getChipIndex(), tra, sigma2, sigma2, 0.);
+    (*clusters)[noc].SetUniqueID(noc); // Save the index within the cluster array
+    if (mClsLabels) {
+      for (int i=0; i<Digit::maxLabels; i++) {
+	Label lab = d.getLabel(i);
+	if (lab.isEmpty()) break;
+       	mClsLabels->addElement(noc,lab);
+      }
+    }
   }
 }

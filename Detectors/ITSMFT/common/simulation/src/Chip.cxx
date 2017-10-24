@@ -21,7 +21,6 @@
 
 #include <TMath.h>
 #include <TObjArray.h>
-#include <TClonesArray.h>
 
 #include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/Hit.h"
@@ -215,7 +214,7 @@ Digit* Chip::addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, 
 }
 
 //______________________________________________________________________
-void Chip::fillOutputContainer(TClonesArray* digits, UInt_t maxFrame)
+void Chip::fillOutputContainer(std::vector<Digit>* digits, UInt_t maxFrame)
 {
   // transfer digits with RO Frame < maxFrame to the output array
   if (mDigits.empty()) return;
@@ -229,7 +228,7 @@ void Chip::fillOutputContainer(TClonesArray* digits, UInt_t maxFrame)
     //printf("Chip%d Fr:%d Q:%f R:%d C:%d\n",dig.getChipIndex(),dig.getROFrame(),dig.getCharge(), dig.getRow(),dig.getColumn());
 
     if (dig.getCharge()>mParams->getChargeThreshold() ) {
-      new( (*digits)[digits->GetEntriesFast()] ) Digit( dig );
+      digits->emplace_back(dig);
     }
   }
 

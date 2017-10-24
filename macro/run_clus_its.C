@@ -41,7 +41,8 @@ void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         rtdb->setFirstInput(parInput1);
 
         // Setup clusterizer
-        o2::ITS::ClustererTask *clus = new o2::ITS::ClustererTask;
+        Bool_t useMCTruth=kTRUE; // kFALSE if no comparison with MC needed
+        o2::ITS::ClustererTask *clus = new o2::ITS::ClustererTask(useMCTruth);
         fRun->AddTask(clus);
 
         fRun->Init();

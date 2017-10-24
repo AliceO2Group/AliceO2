@@ -19,16 +19,28 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/TrivialClusterer.h"
 
-class TClonesArray;
-
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
+
+namespace ITSMFT {
+  class Digit;
+}
+ 
 namespace ITS
 {
 class TrivialClustererTask : public FairTask
 {
+  using Digit = o2::ITSMFT::Digit;
+  using Cluster = o2::ITSMFT::Cluster;
+
  public:
-  TrivialClustererTask();
+  TrivialClustererTask(Bool_t useMCTruth=kTRUE);
   ~TrivialClustererTask() override;
 
   InitStatus Init() override;
@@ -38,8 +50,9 @@ class TrivialClustererTask : public FairTask
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS geometry
   TrivialClusterer mTrivialClusterer;   ///< Cluster finder
 
-  TClonesArray* mDigitsArray;   ///< Array of digits
-  TClonesArray* mClustersArray; ///< Array of clusters
+  const std::vector<Digit>* mDigitsArray = nullptr;   ///< Array of digits
+  std::vector<Cluster>* mClustersArray   = nullptr;   ///< Array of clusters
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< MC labels
 
   ClassDefOverride(TrivialClustererTask, 2)
 };

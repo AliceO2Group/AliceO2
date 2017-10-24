@@ -16,10 +16,11 @@
 #include "ITSMFTReconstruction/Cluster.h"
 #include "DetectorsBase/Utils.h"
 #include "MathUtils/Cartesian3D.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
-#include "TClonesArray.h"    // for TClonesArray
 
 ClassImp(o2::ITS::CookedTrackerTask)
 
@@ -28,14 +29,22 @@ using namespace o2::Base;
 using namespace o2::Base::Utils;
 
 //_____________________________________________________________________
-CookedTrackerTask::CookedTrackerTask(Int_t n) : FairTask("ITSCookedTrackerTask"), mNumOfThreads(n), mClustersArray(nullptr), mTracksArray(nullptr) {}
+CookedTrackerTask::CookedTrackerTask(Int_t n, Bool_t useMCTruth):FairTask("ITSCookedTrackerTask")
+  ,mTracker(n){
+  if (useMCTruth)
+    mTrkLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+}
 
 //_____________________________________________________________________
 CookedTrackerTask::~CookedTrackerTask()
 {
   if (mTracksArray) {
-    mTracksArray->Delete();
+    mTracksArray->clear();
     delete mTracksArray;
+  }
+  if (mTrkLabels) {
+    mTrkLabels->clear();
+    delete mTrkLabels;
   }
 }
 
@@ -50,21 +59,30 @@ InitStatus CookedTrackerTask::Init()
     return kERROR;
   }
 
-  mClustersArray = dynamic_cast<const TClonesArray*>(mgr->GetObject("ITSCluster"));
+  mClustersArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Cluster> *>("ITSCluster");
   if (!mClustersArray) {
     LOG(ERROR) << "ITS clusters not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   // Register output container
-  mTracksArray = new TClonesArray("o2::ITS::CookedTrack");
-  mgr->Register("ITSTrack", "ITS", mTracksArray, kTRUE);
+  mgr->RegisterAny("ITSTrack", mTracksArray, kTRUE);
 
+  // Register MC Truth container
+  if (mTrkLabels) {
+     mgr->RegisterAny("ITSTrackMCTruth", mTrkLabels, kTRUE);
+     mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *>("ITSClusterMCTruth");
+     if (!mClsLabels) {
+        LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..."
+		   << FairLogger::endl;
+        return kERROR;
+     }
+  }
+  
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache( bit2Mask(TransformType::T2GRot) ); // make sure T2GRot matrices are loaded
   mTracker.setGeometry(geom);
-
-  mTracker.setNumberOfThreads(mNumOfThreads);
+  mTracker.setMCTruthContainers(mClsLabels, mTrkLabels);
   
   return kSUCCESS;
 }
@@ -72,7 +90,8 @@ InitStatus CookedTrackerTask::Init()
 //_____________________________________________________________________
 void CookedTrackerTask::Exec(Option_t* option)
 {
-  mTracksArray->Clear();
+  if (mTracksArray) mTracksArray->clear();
+  if (mTrkLabels) mTrkLabels->clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
   mTracker.process(*mClustersArray, *mTracksArray);

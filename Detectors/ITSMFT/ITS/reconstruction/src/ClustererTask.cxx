@@ -14,10 +14,11 @@
 #include "ITSReconstruction/ClustererTask.h"
 #include "DetectorsBase/Utils.h"
 #include "MathUtils/Cartesian3D.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
-#include "TClonesArray.h"    // for TClonesArray
 
 ClassImp(o2::ITS::ClustererTask)
 
@@ -26,14 +27,21 @@ using namespace o2::Base;
 using namespace o2::Base::Utils;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask() : FairTask("ITSClustererTask"), mClustersArray(nullptr) {}
+ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("ITSClustererTask") {
+  if (useMCTruth)
+    mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+}
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
   if (mClustersArray) {
-    mClustersArray->Delete();
+    mClustersArray->clear();
     delete mClustersArray;
+  }
+  if (mClsLabels) {
+    mClsLabels->clear();
+    delete mClsLabels;
   }
 }
 
@@ -48,7 +56,8 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  TClonesArray *arr = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSDigit"));
+  const std::vector<o2::ITSMFT::Digit> *arr =
+    mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit> *>("ITSDigit");
   if (!arr) {
     LOG(ERROR)<<"ITS digits not registered in the FairRootManager. Exiting ..."<<FairLogger::endl;
     return kERROR;
@@ -56,13 +65,17 @@ InitStatus ClustererTask::Init()
   mReader.setDigitArray(arr);
   
   // Register output container
-  mClustersArray = new TClonesArray("o2::ITSMFT::Cluster");
-  mgr->Register("ITSCluster", "ITS", mClustersArray, kTRUE);
+  mgr->RegisterAny("ITSCluster", mClustersArray, kTRUE);
+
+  // Register MC Truth container
+  if (mClsLabels)
+  mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
   mGeometry = geom;
   mClusterer.setGeometry(geom);
+  mClusterer.setMCTruthContainer(mClsLabels);
   
   return kSUCCESS;
 }
@@ -70,8 +83,9 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  mClustersArray->Clear();
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
+  if (mClustersArray) mClustersArray->clear();
+  if (mClsLabels)  mClsLabels->clear();
+  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
 
   mClusterer.process(mReader, *mClustersArray);
 }

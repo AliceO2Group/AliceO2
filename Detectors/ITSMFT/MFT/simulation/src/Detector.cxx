@@ -46,7 +46,7 @@ Detector::Detector()
 : o2::Base::Detector("MFT", kTRUE),
   mVersion(1),
   mDensitySupportOverSi(0.036),
-  mHits(new TClonesArray("o2::ITSMFT::Hit")),
+  mHits(new std::vector<o2::ITSMFT::Hit>),
   mTrackData()
 {
 
@@ -57,7 +57,7 @@ Detector::Detector(const Detector& src)
   : o2::Base::Detector(src),
     mVersion(src.mVersion),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
-    mHits(nullptr),
+    mHits(new std::vector<o2::ITSMFT::Hit>),
     mTrackData()
 {
   
@@ -90,7 +90,6 @@ Detector::~Detector()
 {
 
   if (mHits) {
-    mHits->Delete();
     delete mHits;
   }
   
@@ -196,10 +195,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, Double_t startE, Double_t endTime, Double_t eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
-  TClonesArray &clref = *mHits;
-  Int_t size = clref.GetEntriesFast();
+  mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 
-  return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  return &(mHits->back());
 
 }
 
@@ -454,9 +452,7 @@ void Detector::defineSensitiveVolumes()
 void Detector::EndOfEvent()
 {
 
-  if (mHits) { 
-    mHits->Clear(); 
-  }
+  Reset();
 
 }
 
@@ -467,18 +463,17 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  FairGenericRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mHits, kTRUE);
+  if (FairGenericRootManager::Instance()) {
+    FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  }
 
 }
 //_____________________________________________________________________________
 TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
 
-  if (iColl == 0) {
-    return mHits;
-  } else {
-    return nullptr;
-  }
+  LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
+  return nullptr;
 
 }
 
@@ -486,6 +481,6 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 void Detector::Reset()
 {
 
-  mHits->Clear();
+  mHits->clear();
 
 }

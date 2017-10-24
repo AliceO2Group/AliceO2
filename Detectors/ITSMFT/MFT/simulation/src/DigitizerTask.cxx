@@ -14,13 +14,12 @@
 /// \date 03/05/2017
 
 #include "MFTSimulation/DigitizerTask.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "DetectorsBase/Utils.h"
 #include "MFTBase/GeometryTGeo.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
-#include "TClonesArray.h"    // for TClonesArray
-#include "TObject.h"         // for TObject
 
 ClassImp(o2::MFT::DigitizerTask)
 
@@ -42,7 +41,7 @@ DigitizerTask::~DigitizerTask()
 {
 
   if (mDigitsArray) {
-    mDigitsArray->Delete();
+    mDigitsArray->clear();
     delete mDigitsArray;
   }
 
@@ -60,15 +59,14 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mHitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("MFTHits"));
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("MFTHit");
   if (!mHitsArray) {
     LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   // Register output container
-  mDigitsArray = new TClonesArray("o2::ITSMFT::Digit");
-  mgr->Register("MFTDigits", "MFT", mDigitsArray, kTRUE);
+  mgr->RegisterAny("MFTDigit", mDigitsArray, kTRUE);
 
   DigiParams param; // RS: TODO: Eventually load this from the CCDB
 
@@ -95,7 +93,7 @@ void DigitizerTask::Exec(Option_t* option)
 
   FairRootManager* mgr = FairRootManager::Instance();
 
-  mDigitsArray->Clear();
+  if (mDigitsArray) mDigitsArray->clear();
   mDigitizer.setEventTime(mgr->GetEventTime());
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
@@ -107,7 +105,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setCurrSrcID( mSourceID );
   mDigitizer.setCurrEvID( mEventID );
   
-  mDigitizer.process(mHitsArray,mDigitsArray);
+  mDigitizer.process(const_cast<std::vector<o2::ITSMFT::Hit>*>(mHitsArray),mDigitsArray);
 
   mEventID++;
 
@@ -122,7 +120,7 @@ void DigitizerTask::FinishTask()
   if(!mContinuous) return;
   FairRootManager *mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  mDigitsArray->Clear();
+  if (mDigitsArray) mDigitsArray->clear();
   mDigitizer.fillOutputContainer(mDigitsArray);
 
 }

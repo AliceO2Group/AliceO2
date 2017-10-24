@@ -16,16 +16,20 @@
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSMFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/PixelReader.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include <utility>
 #include <vector>
 
 #include "Rtypes.h"
 
-class TClonesArray;
-
 namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
+
 namespace ITSMFT
 {
   
@@ -44,17 +48,20 @@ class Clusterer {
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
-  void process(PixelReader &r, TClonesArray &clusters);
+  void process(PixelReader &r, std::vector<Cluster> &clusters);
   
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm;}
-
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
+    mClsLabels = truth;
+  }
+  
  private:
   
   enum {kMaxRow=650}; //Anything larger than the real number of rows (512 for ALPIDE)
   void initChip();
   void updateChip(int ip);
-  void finishChip(TClonesArray &clusters);
+  void finishChip(std::vector<Cluster> &clusters);
   void fetchMCLabels(const PixelData* pix, std::array<Label,Cluster::maxLabels> &labels, int &nfilled) const;
 
   ChipPixelData mChipData;   ///< single chip data provided by the reader
@@ -74,7 +81,7 @@ class Clusterer {
   UShort_t mCol = 0xffff;    ///< Column being processed
 
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
-
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels = nullptr; // Cluster MC labels
 };
 
 

@@ -19,7 +19,6 @@
 #include <future>
 #include <chrono>
 
-#include <TClonesArray.h>
 #include <TGeoGlobalMagField.h>
 #include <TMath.h>
 
@@ -29,9 +28,9 @@
 #include "DetectorsBase/Utils.h"
 #include "Field/MagneticField.h"
 #include "ITSMFTReconstruction/Cluster.h"
-#include "ITSReconstruction/CookedTrack.h"
 #include "ITSReconstruction/CookedTracker.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::ITS;
 using namespace o2::ITSMFT;
@@ -89,38 +88,23 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
   setVertex(xyz, ers);
 }
 
-CookedTracker::~CookedTracker()
-{
-  //--------------------------------------------------------------------
-  // Virtual destructor
-  //--------------------------------------------------------------------
-}
-
 //__________________________________________________________________________
-void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
+Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
 {
   //--------------------------------------------------------------------
   // This function "cooks" a track label.
   // A label<0 indicates that some of the clusters are wrongly assigned.
   //--------------------------------------------------------------------
   Int_t noc = t.getNumberOfClusters();
-  if (noc < 1)
-    return;
   std::array<Label, Cluster::maxLabels*CookedTracker::kNLayers > lb;
   std::array<Int_t, Cluster::maxLabels*CookedTracker::kNLayers > mx;
-  std::array<Cluster*,CookedTracker::kNLayers> clusters;
+
   int nLabels = 0;
-  
   for (int i=noc; i--;) {
     Int_t index = t.getClusterIndex(i);
-    clusters[i] = getCluster(index);
-  }
-
-  Label lab;
-  for (int i=noc; i--;) {
-    Cluster* c = clusters[i];
-    for (int il=0;il<Cluster::maxLabels;il++) { // check all labels of the cluster
-      lab = c->getLabel(il);
+    const Cluster *c = getCluster(index);
+    auto labels = mClsLabels->getLabels(c->GetUniqueID());
+    for (auto lab : labels) { // check all labels of the cluster
       if ( lab.isEmpty() ) break; // all following labels will be empty also
       // was this label already accounted for ?
       bool add = true;
@@ -139,6 +123,7 @@ void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
     }
   }
   
+  Label lab;
   Int_t maxL = 0; // find most encountered label
   for (int i=nLabels; i--;) {
     if (mx[i] > maxL) {
@@ -152,7 +137,7 @@ void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
     lab.set( -lab.getTrackID(), lab.getEventID(), lab.getSourceID() );
   }
   // t.SetFakeRatio((1.- Float_t(maxL)/noc));
-  t.setLabel(lab);
+  return lab;
 }
 
 //__________________________________________________________________________
@@ -164,7 +149,7 @@ void CookedTracker::setExternalIndices(CookedTrack& t) const
   Int_t noc = t.getNumberOfClusters();
   for (Int_t i = 0; i < noc; i++) {
     Int_t index = t.getClusterIndex(i);
-    Cluster *c = getCluster(index);
+    const Cluster *c = getCluster(index);
     Int_t idx=c->GetUniqueID();
     t.setExternalClusterIndex(i,idx);
   }
@@ -307,7 +292,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
   Int_t nClusters3 = layer3.getNumberOfClusters();
 
   for (Int_t n1 = first; n1 < last; n1++) {
-    Cluster* c1 = layer1.getCluster(n1);
+    const Cluster* c1 = layer1.getCluster(n1);
     //
     // Int_t lab=c1->getLabel(0);
     //    
@@ -319,7 +304,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
     Int_t start2 = layer2.findClusterIndex(zr2 - kzWin);
 
     for (Int_t n2 = start2; n2 < nClusters2; n2++) {
-      Cluster* c2 = layer2.getCluster(n2);
+      const Cluster* c2 = layer2.getCluster(n2);
       //
       // if (c2->getLabel(0)!=lab) continue;
       //
@@ -340,7 +325,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
       
       Int_t start3 = layer3.findClusterIndex(zr3 - dz);
       for (Int_t n3 = start3; n3 < nClusters3; n3++) {
-        Cluster* c3 = layer3.getCluster(n3);
+        const Cluster* c3 = layer3.getCluster(n3);
         //
         // if (c3->getLabel(0)!=lab) continue;
         //
@@ -468,14 +453,12 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
     }
 
     if (best.getNumberOfClusters() >= kminNumberOfClusters) {
-      cookLabel(best, 0.); // For comparison only
       Int_t noc = best.getNumberOfClusters();
       for (Int_t ic = 3; ic < noc; ic++) {
         Int_t index = best.getClusterIndex(ic);
         Int_t l = (index & 0xf0000000) >> 28, c = (index & 0x0fffffff);
         used[l][c]=true;
       }
-      setExternalIndices(best);
     }
     track = best;
   }
@@ -498,7 +481,7 @@ std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
+void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<CookedTrack> &tracks)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -549,9 +532,14 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
     nSeeds += seedArray[t].size();
     for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
-      Label label = track.getLabel();
-      if (label.getTrackID() >= 0) ngood++;
-      new (tracks[tracks.GetEntriesFast()]) CookedTrack(track);
+      if (mTrkLabels) {
+         Label label = cookLabel(track, 0.); // For comparison only
+         if (label.getTrackID() >= 0) ngood++;
+         Int_t idx=tracks.size();
+	 mTrkLabels->addElement(idx,label);
+      }
+      setExternalIndices(track);
+      tracks.push_back(track);
     }
   }
 
@@ -702,28 +690,26 @@ Int_t CookedTracker::RefitInward(std::vector<CookedTrack> *tracks) {
 }
 */
 
-void CookedTracker::loadClusters(const TClonesArray& clusters)
+void CookedTracker::loadClusters(const std::vector<Cluster> &clusters)
 {
   //--------------------------------------------------------------------
   // This function reads the ITSU clusters from the tree,
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
-  Int_t numOfClusters = clusters.GetEntriesFast();
+  Int_t numOfClusters = clusters.size();
   if (numOfClusters == 0) {
     LOG(WARNING) << "No clusters to load !" << FairLogger::endl;
     return;
   }
 
-  for (Int_t i = 0; i < numOfClusters; i++) {
-    Cluster* c = (Cluster*)clusters.UncheckedAt(i);
-    c->SetUniqueID(i);
+  for (auto &c : clusters) {
     //    c->goToFrameTrk(); // RS now clusters are always in tracking frame
 
-    Int_t layer = mGeom->getLayer(c->getSensorID());
+    Int_t layer = mGeom->getLayer(c.getSensorID());
     //    if ((layer == kSeedingLayer1) || (layer == kSeedingLayer2) || (layer == kSeedingLayer3))
     //      c->goToFrameGlo();
 
-    if (!sLayers[layer].insertCluster(c))
+    if (!sLayers[layer].insertCluster(&c))
       continue;
   }
 
@@ -747,7 +733,7 @@ void CookedTracker::unloadClusters()
     sLayers[i].unloadClusters();
 }
 
-Cluster* CookedTracker::getCluster(Int_t index) const
+const Cluster* CookedTracker::getCluster(Int_t index) const
 {
   //--------------------------------------------------------------------
   //       Return pointer to a given cluster
@@ -777,7 +763,7 @@ void CookedTracker::Layer::init()
   const Float_t pi2 = 2. * TMath::Pi();
   Int_t m=mClusters.size();
   for (Int_t i = 0; i < m; i++) {
-    Cluster* c = mClusters[i];
+    const Cluster* c = mClusters[i];
     //Float_t xRef, aRef; 
     //mGeom->getSensorXAlphaRefPlane(c->getSensorID(),xRef, aRef);
     mAlphaRef.push_back( mGeom->getSensorRefAlpha(c->getSensorID()) );
@@ -804,7 +790,7 @@ void CookedTracker::Layer::unloadClusters()
   for (Int_t s=0; s<kNSectors; s++) mSectors[s].clear();
 }
 
-Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
+Bool_t CookedTracker::Layer::insertCluster(const Cluster* c)
 {
   //--------------------------------------------------------------------
   // This function inserts a cluster to this layer
@@ -870,7 +856,7 @@ Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrac
   // Try to attach a clusters with index ci to running track hypothesis
   //--------------------------------------------------------------------
   Layer& layer = sLayers[nl];
-  Cluster* c = layer.getCluster(ci);
+  const Cluster* c = layer.getCluster(ci);
 
   Int_t vid = c->getSensorID();
 

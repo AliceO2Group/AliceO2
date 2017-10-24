@@ -13,8 +13,8 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 03/05/2017
 
-#ifndef ALICEO2_MFT_CLUSTERIZERTASK_H
-#define ALICEO2_MFT_CLUSTERIZERTASK_H
+#ifndef ALICEO2_MFT_CLUSTERERTASK_H
+#define ALICEO2_MFT_CLUSTERERTASK_H
 
 #include "FairTask.h"
 
@@ -26,34 +26,43 @@ class TClonesArray;
 
 namespace o2 
 {
-  namespace MFT 
+class MCCompLabel;
+namespace dataformats
+{
+  template<typename T>
+  class MCTruthContainer;
+}
+
+namespace MFT 
+{
+  class EventHeader; 
+  class ClustererTask : public FairTask
   {
-    class EventHeader; 
-    class ClustererTask : public FairTask
-    {
-      using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
-      using Clusterer        = o2::ITSMFT::Clusterer;
-  
-    public:
-      
-      ClustererTask();
-      ~ClustererTask() override;
-      
-      InitStatus Init() override;
-      void Exec(Option_t* opt) override;
-      
-    private:
-      
-      const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
-      DigitPixelReader mReader;                               ///< Pixel reader
-      Clusterer mClusterer;                                   ///< Cluster finder
-
-      TClonesArray* mClustersArray = nullptr;                 ///< Array of clusters
-
-      ClassDefOverride(ClustererTask,1);
-      
-    };    
-  }
+    using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
+    using Clusterer        = o2::ITSMFT::Clusterer;
+    using Cluster          = o2::ITSMFT::Cluster;
+    
+  public:
+    
+    ClustererTask(Bool_t useMCTruth=kTRUE);
+    ~ClustererTask() override;
+    
+    InitStatus Init() override;
+    void Exec(Option_t* opt) override;
+    
+  private:
+    
+    const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
+    DigitPixelReader mReader;                               ///< Pixel reader
+    Clusterer mClusterer;                                   ///< Cluster finder
+    
+    std::vector<Cluster> *mClustersArray=nullptr; ///< Array of clusters
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< MC labels
+    
+    ClassDefOverride(ClustererTask,1);
+    
+  };    
+}
 }
 
 #endif

@@ -11,8 +11,6 @@
 /// \file PixelReader.cxx
 /// \brief Implementation of the ITS pixel reader class
 
-#include <TClonesArray.h>
-
 #include "ITSMFTReconstruction/PixelReader.h"
 
 using namespace o2::ITSMFT;
@@ -23,10 +21,10 @@ Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData &chipData)
 {
   chipData.clear();
   if (!mLastDigit) {
-    if (mIdx >= mDigitArray->GetEntriesFast()) {
+    if (mIdx >= mDigitArray->size()) {
       return kFALSE;
     }
-    mLastDigit = static_cast<Digit*>(mDigitArray->UncheckedAt(mIdx++));
+    mLastDigit = &((*mDigitArray)[mIdx++]);
   }
   chipData.chipID  = mLastDigit->getChipIndex();
   chipData.roFrame = mLastDigit->getROFrame();
@@ -34,8 +32,8 @@ Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData &chipData)
   chipData.pixels.emplace_back(mLastDigit);
   mLastDigit = nullptr;
   
-  while (mIdx < mDigitArray->GetEntriesFast()) {
-    mLastDigit = static_cast<Digit*>(mDigitArray->UncheckedAt(mIdx++));
+  while (mIdx < mDigitArray->size()) {
+    mLastDigit = &((*mDigitArray)[mIdx++]);
     if (chipData.chipID  != mLastDigit->getChipIndex()) break;
     if (chipData.roFrame != mLastDigit->getROFrame()) break;
     chipData.pixels.emplace_back(mLastDigit);

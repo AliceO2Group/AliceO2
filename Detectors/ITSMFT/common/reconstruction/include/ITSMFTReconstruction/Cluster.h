@@ -15,7 +15,6 @@
 
 //#include "FairTimeStamp.h" // for FairTimeStamp
 #include "DetectorsBase/BaseCluster.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 
 // uncomment this to have cluster topology stored
 #define _ClusterTopology_
@@ -33,8 +32,6 @@ namespace ITSMFT
 
 class Cluster : public o2::Base::BaseCluster<float>
 {
-  using Label = o2::MCCompLabel;
-  
  public:
   enum { // frame in which the track is currently defined
     kUsed,
@@ -66,14 +63,6 @@ class Cluster : public o2::Base::BaseCluster<float>
   Cluster& operator=(const Cluster& cluster) = delete; // RS why?
 
   //****** Basic methods ******************
-  void setLabel(Label lab, Int_t i)
-  {
-    if (i >= 0 && i < maxLabels)
-      mTracks[i] = lab;
-  }
-
-  Label   getLabel(Int_t i) const { return mTracks[i]; }
-
   void setUsed()                { setBit(kUsed);}
   void setShared()              { setBit(kShared);}
   void increaseClusterUsage()   { isUsed() ? setBit(kShared) : setBit(kUsed); }
@@ -101,7 +90,7 @@ class Cluster : public o2::Base::BaseCluster<float>
   UInt_t getROFrame()         const {return mROFrame;}
   void   setROFrame(UInt_t v)       {mROFrame = v;}
   //
-  bool hasCommonTrack(const Cluster* cl) const;
+  //bool hasCommonTrack(const Cluster* cl) const;
   //
   void print() const;
   
@@ -129,7 +118,6 @@ class Cluster : public o2::Base::BaseCluster<float>
   //
  protected:
   //
-  Label mTracks[maxLabels];   ///< MC labels
   UInt_t  mROFrame;   ///< RO Frame
   Int_t mNxNzN=0;          ///< effective cluster size in X (1st byte) and Z (2nd byte) directions
                            ///< and total Npix(next 9 bits).
