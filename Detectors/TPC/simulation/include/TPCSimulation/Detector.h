@@ -127,7 +127,7 @@ class Detector: public o2::Base::Detector {
     void DefineSensitiveVolumes();
 
     /** container for produced hits */
-    std::vector<LinkableHitGroup>*  mHitsPerSectorCollection[Sector::MAXSECTOR]; //! container that keeps track-grouped hits per sector
+    std::vector<HitGroup>*  mHitsPerSectorCollection[Sector::MAXSECTOR]; //! container that keeps track-grouped hits per sector
 
     TString mGeoFileName;                  ///< Name of the file containing the TPC geometry
     size_t mEventNr;                       //!< current event number

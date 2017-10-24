@@ -67,7 +67,7 @@ Detector::Detector(Bool_t active)
     mEventNr(0)
 {
   for(int i=0;i<Sector::MAXSECTOR;++i){
-    mHitsPerSectorCollection[i]=new std::vector<o2::TPC::LinkableHitGroup>;
+    mHitsPerSectorCollection[i]=new std::vector<o2::TPC::HitGroup>;
   }
 }
 
@@ -272,7 +272,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   static int oldSectorId = sectorID;
 
   //  a new group is starting -> put it into the container
-  static LinkableHitGroup *currentgroup = nullptr;
+  static HitGroup *currentgroup = nullptr;
   if (groupCounter == 0) {
     mHitsPerSectorCollection[sectorID]->emplace_back(trackID);
     currentgroup = &(mHitsPerSectorCollection[sectorID]->back());

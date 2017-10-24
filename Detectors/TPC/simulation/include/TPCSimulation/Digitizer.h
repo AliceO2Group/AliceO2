@@ -71,7 +71,7 @@ class Digitizer {
     /// Steer conversion of points to digits
     /// \param points Container with TPC points
     /// \return digits container
-    DigitContainer* Process(const std::vector<o2::TPC::LinkableHitGroup>& hits);
+    DigitContainer* Process(const std::vector<o2::TPC::HitGroup>& hits);
 
     DigitContainer *getDigitContainer() const { return mDigitContainer; }
 

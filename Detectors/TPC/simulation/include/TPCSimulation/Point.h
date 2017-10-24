@@ -48,11 +48,9 @@ class ElementalHit {
 // a higher order hit class encapsulating
 // a set of elemental hits belonging to the same trackid (and sector)
 // construct used to do less MC truth linking and to save memory
-// this hitcontainer is linkable with FairLinks,
-// and can be stored as element of a TClonesArray into a branch
-class LinkableHitGroup : public o2::BaseHit {
+class HitGroup : public o2::BaseHit {
 public:
-  LinkableHitGroup() :
+  HitGroup() :
   o2::BaseHit(),
 #ifdef HIT_AOS
   mHits()
@@ -66,7 +64,7 @@ public:
     {
     }
 
-  LinkableHitGroup(int trackID) :
+  HitGroup(int trackID) :
   o2::BaseHit(trackID),
 #ifdef HIT_AOS
   mHits()
@@ -80,7 +78,7 @@ public:
   {
   }
 
-  ~LinkableHitGroup() override = default;
+  ~HitGroup() = default;
   
   void addHit(float x, float y, float z, float time, short e) {
 #ifdef HIT_AOS
@@ -109,21 +107,6 @@ public:
 #else
     return ElementalHit(mHitsXVctr[index],mHitsYVctr[index],mHitsZVctr[index],mHitsTVctr[index],mHitsEVctr[index]);
 #endif
-  }
-
-  // the Clear method of TObject
-  // called for instance from TClonesArray->Clear("C")
-  void Clear(Option_t */*option*/) override {
-#ifdef HIT_AOS
-    mHits.clear();
-#else
-    mHitsXVctr.clear();
-    mHitsYVctr.clear();
-    mHitsZVctr.clear();
-    mHitsTVctr.clear();
-    mHitsEVctr.clear();
-#endif
-    shrinkToFit();
   }
 
   void shrinkToFit() {
@@ -155,7 +138,7 @@ public:
   std::vector<float> mHitsTVctr; 
   std::vector<short> mHitsEVctr; 
 #endif
-  ClassDefOverride(LinkableHitGroup, 1);
+  ClassDefNV(HitGroup, 1);
 };
 
 class Point : public o2::BasicXYZEHit<float>
@@ -176,17 +159,17 @@ class Point : public o2::BasicXYZEHit<float>
     Point(float x, float y, float z, float time, float nElectrons, float trackID, float detID);
 
     /// Destructor
-    ~Point() override = default;
+    ~Point() = default;
 
     /// Output to screen
-    void Print(const Option_t* opt) const override;
+    void Print(const Option_t* opt) const;
 
   private:
     /// Copy constructor
     Point(const Point& point);
     Point operator=(const Point& point);
 
-  ClassDefOverride(o2::TPC::Point,1)
+  ClassDefNV(o2::TPC::Point,1)
 };
 
 inline
