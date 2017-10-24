@@ -27,5 +27,5 @@ void Point::Print(const Option_t* opt) const
 }
 
 ClassImp(Point)
-ClassImp(LinkableHitGroup)
+ClassImp(HitGroup)
 ClassImp(ElementalHit)

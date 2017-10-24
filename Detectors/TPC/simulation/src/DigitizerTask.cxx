@@ -74,7 +74,7 @@ InitStatus DigitizerTask::Init()
     std::stringstream sectornamestr;
     sectornamestr << "TPCHitsSector" << mHitSector;
     LOG(INFO) << "FETCHING HITS FOR SECTOR " << mHitSector << "\n";
-    mSectorHitsArray[mHitSector] = mgr->InitObjectAs<const std::vector<LinkableHitGroup>*>(sectornamestr.str().c_str());
+    mSectorHitsArray[mHitSector] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
   }
   else {
     // in case we are treating all sectors
@@ -82,7 +82,7 @@ InitStatus DigitizerTask::Init()
       std::stringstream sectornamestr;
       sectornamestr << "TPCHitsSector" << s;
       LOG(INFO) << "FETCHING HITS FOR SECTOR " << s << "\n";
-      mSectorHitsArray[s] = mgr->InitObjectAs<const std::vector<LinkableHitGroup>*>(sectornamestr.str().c_str());
+      mSectorHitsArray[s] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
     }
   }
   

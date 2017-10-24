@@ -51,7 +51,7 @@ void Digitizer::init()
 //  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
 }
 
-DigitContainer* Digitizer::Process(const std::vector<o2::TPC::LinkableHitGroup>& hits)
+DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits)
 {
 //  mDigitContainer->reset();
   const static Mapper& mapper = Mapper::instance();
@@ -72,7 +72,7 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::LinkableHitGroup>&
 
   static size_t hitCounter=0;
   for(auto& inputgroup : hits) {
-    //    auto *inputgroup = static_cast<LinkableHitGroup*>(pointObject);
+    //    auto *inputgroup = static_cast<HitGroup*>(pointObject);
     const int MCTrackID = inputgroup.GetTrackID();
     for(size_t hitindex = 0; hitindex < inputgroup.getSize(); ++hitindex){
       const auto& eh = inputgroup.getHit(hitindex);

@@ -51,13 +51,14 @@ BOOST_AUTO_TEST_CASE(BasicXYZHit_ROOTIO)
   // try writing hit to a TBuffer
   {
     TFile fout("HitsIO.root", "RECREATE");
-    fout.WriteTObject(&hit, "TestObject");
+    fout.WriteObject(&hit, "TestObject");
     fout.Close();
   }
 
   {
     TFile fin("HitsIO.root");
-    TObject* obj = (TObject*)fin.Get("TestObject");
+    HitType* obj = nullptr;
+    fin.GetObject("TestObject", obj);
 
     BOOST_CHECK(obj != nullptr);
     fin.Close();
@@ -70,13 +71,14 @@ BOOST_AUTO_TEST_CASE(BasicXYZHit_ROOTIO)
   // try writing hit to a TBuffer
   {
     TFile fout("HitsIO.root", "RECREATE");
-    fout.WriteTObject(&hitD, "TestObject");
+    fout.WriteObject(&hitD, "TestObject");
     fout.Close();
   }
 
   {
     TFile fin("HitsIO.root");
-    TObject* obj = (TObject*)fin.Get("TestObject");
+    HitTypeD* obj = nullptr;
+    fin.GetObject("TestObject", obj);
 
     BOOST_CHECK(obj != nullptr);
     fin.Close();

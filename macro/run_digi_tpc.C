@@ -12,7 +12,6 @@
   #include "FairSystemInfo.h"
   #include "FairRuntimeDb.h"
   #include "FairParRootFileIo.h"
-  #include "FairLinkManager.h"
 
   #include "Field/MagneticField.h"
 
@@ -36,12 +35,6 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isCont
 
         // Setup FairRoot analysis manager
         FairRunAna * run = new FairRunAna();
-
-        // ===| Activation of fair links for MC ID |============================
-        run->SetUseFairLinks(kTRUE);
-        // -- only store the link to the MC track
-        //    if commented, also the links to all previous steps will be stored
-        FairLinkManager::Instance()->AddIncludeType(0);
 
         FairFileSource *fFileSource = new FairFileSource(inputfile.str().c_str());
         run->SetSource(fFileSource);

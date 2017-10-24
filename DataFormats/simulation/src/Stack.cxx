@@ -20,6 +20,7 @@
 #include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger
 #include "SimulationDataFormat/BaseHits.h"
 #include "FairGenericRootManager.h"  // for FairGenericRootManager
+#include "FairRootManager.h"
 
 #include "TClonesArray.h"     // for TClonesArray
 #include "TIterator.h"        // for TIterator
@@ -333,7 +334,6 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
           Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
         }
         point->SetTrackID((*mIndexIterator).second);
-        point->SetLink(FairLink("MCTrack", (*mIndexIterator).second));
       }
 
     } // Collections of this detector

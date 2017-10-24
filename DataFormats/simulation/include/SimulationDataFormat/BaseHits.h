@@ -10,7 +10,6 @@
 
 #ifndef ALICEO2_BASE_HIT_H
 #define ALICEO2_BASE_HIT_H
-#include "FairMultiLinkedData_Interface.h"
 #include "MathUtils/Cartesian3D.h"
 
 namespace o2
@@ -22,7 +21,7 @@ namespace o2
 // at the moment ony GetTrackID() used by Stack.h
 // eventually we could add some interfaces to retrieve
 // the coordinates as floats or something
-class BaseHit : public FairMultiLinkedData_Interface
+class BaseHit
 {
  public:
   BaseHit() = default;
@@ -32,7 +31,7 @@ class BaseHit : public FairMultiLinkedData_Interface
 
  private:
   int mTrackID = 0; // track_id
-  ClassDefOverride(BaseHit, 1);
+  ClassDefNV(BaseHit, 1);
 };
 
 // a set of configurable classes to define basic hit types
@@ -84,7 +83,7 @@ class BasicXYZEHit : public BaseHit
   }
   void SetPos(Point3D<T> const &p) { mPos = p; }
 
-  ClassDefOverride(BasicXYZEHit, 1);
+  ClassDefNV(BasicXYZEHit, 1);
 };
 
 } // end namespace AliceO2

@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "FairDetector.h"  // for FairDetector
+#include "FairRootManager.h"
 #include "Rtypes.h"        // for Float_t, Int_t, Double_t, Detector::Class, etc
 #include <cxxabi.h>
 #include <typeinfo>

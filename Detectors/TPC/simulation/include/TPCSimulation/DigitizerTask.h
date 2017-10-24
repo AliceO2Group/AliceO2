@@ -79,7 +79,7 @@ class DigitizerTask : public FairTask{
     bool                mDigitDebugOutput;    ///< Switch for the debug output of the DigitMC
     int                 mHitSector=-1; ///< which sector to treat
 
-    const std::vector<o2::TPC::LinkableHitGroup> *mSectorHitsArray[Sector::MAXSECTOR];
+    const std::vector<o2::TPC::HitGroup> *mSectorHitsArray[Sector::MAXSECTOR];
 
     ClassDefOverride(DigitizerTask, 1);
 };

@@ -68,7 +68,7 @@ class Hit : public o2::BasicXYZEHit<float>
   Hit operator+(const Hit& rhs) const;
 
   /// \brief Destructor
-  ~Hit() override = default;
+  ~Hit() = default;
 
   /// \brief Get the initial energy of the primary particle entering EMCAL
   /// \return Energy of the primary particle entering EMCAL
@@ -104,7 +104,7 @@ class Hit : public o2::BasicXYZEHit<float>
   Int_t mParent;             ///< Parent particle that entered the EMCAL
   Double32_t mInitialEnergy; ///< Energy of the parent particle that entered the EMCAL
 
-  ClassDefOverride(Hit, 1);
+  ClassDefNV(Hit, 1);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Hit& point);

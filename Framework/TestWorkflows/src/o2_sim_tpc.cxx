@@ -73,8 +73,6 @@ DataProcessorSpec sim_tpc() {
 
         // Create simulation run
         FairRunSim* run = new FairRunSim();
-        // enable usage of the fair link mechanism
-        run->SetUseFairLinks(kTRUE);
 
         run->SetName(mcEngine.c_str());
         run->SetOutputFile(outFile.c_str()); // Output file
