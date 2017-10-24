@@ -46,7 +46,7 @@ Detector::Detector()
 : o2::Base::Detector("MFT", kTRUE),
   mVersion(1),
   mDensitySupportOverSi(0.036),
-  mHits(new TClonesArray("o2::ITSMFT::Hit")),
+  mHits(new std::vector<o2::ITSMFT::Hit>),
   mTrackData()
 {
 
@@ -88,12 +88,9 @@ Detector &Detector::operator=(const Detector &src)
 //_____________________________________________________________________________
 Detector::~Detector()
 {
-
   if (mHits) {
-    mHits->Delete();
     delete mHits;
   }
-  
 }
 
 //_____________________________________________________________________________
@@ -109,10 +106,11 @@ void Detector::Initialize()
 //_____________________________________________________________________________
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
+  auto vmc = TVirtualMC::GetMC();
   // This method is called from the MC stepping
 
   // do not track neutral particles
-  if (!(TVirtualMC::GetMC()->TrackCharge())) {
+  if (!(vmc->TrackCharge())) {
     return kFALSE;
   }
 
@@ -120,14 +118,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   Int_t copy;
   // Check if hit is into a MFT sensor volume
-  if(TVirtualMC::GetMC()->CurrentVolID(copy) != mftGeo->getSensorVolumeID() ) return kFALSE;
+  if(vmc->CurrentVolID(copy) != mftGeo->getSensorVolumeID() ) return kFALSE;
 
   // Get The Sensor Unique ID
   Int_t sensorID = -1, ladderID = -1, diskID = -1, halfID = -1, level = 0;
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,sensorID);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,ladderID);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,diskID);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,halfID);
+  vmc->CurrentVolOffID(++level,sensorID);
+  vmc->CurrentVolOffID(++level,ladderID);
+  vmc->CurrentVolOffID(++level,diskID);
+  vmc->CurrentVolOffID(++level,halfID);
   
   Int_t sensorIndex = mGeometryTGeo->getSensorIndex(halfID,diskID,ladderID,sensorID);
 
@@ -135,12 +133,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Hit::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Hit::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Hit::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Hit::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Hit::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Hit::kTrackAlive; }
+  if (vmc->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (vmc->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (vmc->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (vmc->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (vmc->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (vmc->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
   if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
@@ -151,14 +149,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit) mTrackData.mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  if (!startHit) mTrackData.mEnergyLoss += vmc->Edep();
   if (!(startHit|stopHit)) return kFALSE; // do noting
 
   if (startHit) {
 
     mTrackData.mEnergyLoss = 0.;
-    TVirtualMC::GetMC()->TrackMomentum(mTrackData.mMomentumStart);
-    TVirtualMC::GetMC()->TrackPosition(mTrackData.mPositionStart);
+    vmc->TrackMomentum(mTrackData.mMomentumStart);
+    vmc->TrackPosition(mTrackData.mPositionStart);
     mTrackData.mTrkStatusStart = status;
     mTrackData.mHitStarted = true;
 
@@ -167,9 +165,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (stopHit) {
 
     TLorentzVector positionStop;
-    TVirtualMC::GetMC()->TrackPosition(positionStop);
+    vmc->TrackPosition(positionStop);
 
-    Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+    Int_t trackID  = vmc->GetStack()->GetCurrentTrackNumber();
     //Int_t detID = vol->getMCid();
 
     Hit *p = addHit(trackID,
@@ -183,7 +181,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 		    mTrackData.mTrkStatusStart,
 		    status);
     
-    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+    o2::Data::Stack *stack = (o2::Data::Stack *) vmc->GetStack();
     stack->AddPoint(GetDetId());
     
   }
@@ -193,14 +191,10 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 }
 
 //_____________________________________________________________________________
-Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, Double_t startE, Double_t endTime, Double_t eLoss, unsigned char startStatus, unsigned char endStatus)
+Hit* Detector::addHit(Int_t trackID, Int_t detID, const TVector3& startPos, const TVector3& endPos, const TVector3& startMom, Double_t startE, Double_t endTime, Double_t eLoss, unsigned char startStatus, unsigned char endStatus)
 {
-
-  TClonesArray &clref = *mHits;
-  Int_t size = clref.GetEntriesFast();
-
-  return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
-
+  mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  return &(mHits->back());
 }
 
 //_____________________________________________________________________________
@@ -453,11 +447,9 @@ void Detector::defineSensitiveVolumes()
 //_____________________________________________________________________________
 void Detector::EndOfEvent()
 {
-
   if (mHits) { 
-    mHits->Clear(); 
+    mHits->clear(); 
   }
-
 }
 
 //_____________________________________________________________________________
@@ -467,25 +459,19 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  FairGenericRootManager::Instance()->Register(addNameTo("Hit").data(), GetName(), mHits, kTRUE);
-
+  // FIXME: need variant for MT
+  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
 }
+
 //_____________________________________________________________________________
 TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
-
-  if (iColl == 0) {
-    return mHits;
-  } else {
-    return nullptr;
-  }
-
+  LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
+  return nullptr;
 }
 
 //_____________________________________________________________________________
 void Detector::Reset()
 {
-
-  mHits->Clear();
-
+  mHits->clear();
 }

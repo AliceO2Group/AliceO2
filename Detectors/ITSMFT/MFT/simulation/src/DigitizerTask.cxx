@@ -14,6 +14,7 @@
 /// \date 03/05/2017
 
 #include "MFTSimulation/DigitizerTask.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "DetectorsBase/Utils.h"
 #include "MFTBase/GeometryTGeo.h"
 
@@ -60,7 +61,7 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mHitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("MFTHits"));
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("MFTHits");
   if (!mHitsArray) {
     LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -106,8 +107,9 @@ void DigitizerTask::Exec(Option_t* option)
   /// provided and identified.
   mDigitizer.setCurrSrcID( mSourceID );
   mDigitizer.setCurrEvID( mEventID );
-  
-  mDigitizer.process(mHitsArray,mDigitsArray);
+
+  // FIXME: the const_cast is a workaround as usually the hits are consumed and are read only
+  mDigitizer.process(const_cast<std::vector<o2::ITSMFT::Hit>*>(mHitsArray),mDigitsArray);
 
   mEventID++;
 
