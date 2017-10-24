@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/Track.h"
+#include <FairLogger.h>
 
 using std::array;
 using o2::Base::Track::TrackParBase;
@@ -481,7 +482,7 @@ bool TrackParCov::PropagateTo(float xk, float b)
   // evaluate matrix in double prec.
   double rinv = 1. / r1;
   double r3inv = rinv * rinv * rinv;
-  double f24 = dx * b * kB2C; // x2r/mC[kQ2Pt];
+  double f24 = dx * b * kB2C; // x2r/mP[kQ2Pt];
   double f02 = dx * r3inv;
   double f04 = 0.5 * f24 * f02;
   double f12 = f02 * GetTgl() * f1;
@@ -1001,6 +1002,140 @@ float TrackParCov::GetPredictedChi2(const array<float, 2>& p, const array<float,
   return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
 }
 
+//______________________________________________
+void TrackParCov::BuildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5 &cov) const
+{
+  // fill combined cov.matrix (NOT inverted)
+  cov(kY,kY) = GetSigmaY2() + rhs.GetSigmaY2();
+  cov(kZ,kY) = GetSigmaZY() + rhs.GetSigmaZY();
+  cov(kZ,kZ) = GetSigmaZ2() + rhs.GetSigmaZ2();
+  cov(kSnp,kY) = GetSigmaSnpY() + rhs.GetSigmaSnpY();
+  cov(kSnp,kZ) = GetSigmaSnpZ() + rhs.GetSigmaSnpZ();
+  cov(kSnp,kSnp) = GetSigmaSnp2() + rhs.GetSigmaSnp2();
+  cov(kTgl,kY) = GetSigmaTglY() + rhs.GetSigmaTglY();
+  cov(kTgl,kZ) = GetSigmaTglZ() + rhs.GetSigmaTglZ();
+  cov(kTgl,kSnp) = GetSigmaTglSnp() + rhs.GetSigmaTglSnp();
+  cov(kTgl,kTgl) = GetSigmaTgl2() + rhs.GetSigmaTgl2();
+  cov(kQ2Pt,kY) = GetSigma1PtY() + rhs.GetSigma1PtY();
+  cov(kQ2Pt,kZ) = GetSigma1PtZ() + rhs.GetSigma1PtZ();
+  cov(kQ2Pt,kSnp) = GetSigma1PtSnp() + rhs.GetSigma1PtSnp();
+  cov(kQ2Pt,kTgl) = GetSigma1PtTgl() + rhs.GetSigma1PtTgl();
+  cov(kQ2Pt,kQ2Pt) = GetSigma1Pt2() + rhs.GetSigma1Pt2();
+}
+
+//______________________________________________
+float TrackParCov::GetPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const
+{
+  // get chi2 wrt other track, which must be defined at the same parameters X,alpha
+  // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
+  
+  if (std::abs(mAlpha-rhs.mAlpha)>FLT_EPSILON) {
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << mAlpha << " : " << rhs.mAlpha << FairLogger::endl;
+    return 2.*HugeF;
+  }
+  if (std::abs(mX-rhs.mX)>FLT_EPSILON) {
+    LOG(ERROR) << "The reference X of the tracks differ: " << mX << " : " << rhs.mX << FairLogger::endl;
+    return 2.*HugeF;
+  }
+  BuildCombinedCovMatrix(rhs, covToSet);
+  if (!covToSet.Invert()) {
+    LOG(ERROR) << "Cov.matrix inversion failed: " << covToSet << FairLogger::endl;
+    return 2.*HugeF;
+  }
+  double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
+  for (int i=kNParams;i--;) {
+    diff[i] = mP[i] - rhs.mP[i];
+    chi2diag += diff[i]*diff[i]*covToSet(i,i);
+  }
+  for (int i=kNParams;i--;) {
+    for (int j=i;j--;) {
+      chi2ndiag += diff[i]*diff[j]*covToSet(i,j);
+    }
+  }
+  return chi2diag + 2.*chi2ndiag;
+}
+
+//______________________________________________
+bool TrackParCov::Update(const TrackParCov& rhs, const MatrixDSym5 &covInv) 
+{
+  // update track with other track, the inverted combined cov matrix should be supplied
+
+  // consider skipping this check, since it is usually already done upstream
+  if (std::abs(mAlpha-rhs.mAlpha)>FLT_EPSILON) {
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << mAlpha << " : " << rhs.mAlpha << FairLogger::endl;
+    return false;
+  }
+  if (std::abs(mX-rhs.mX)>FLT_EPSILON) {
+    LOG(ERROR) << "The reference X of the tracks differ: " << mX << " : " << rhs.mX << FairLogger::endl;
+    return false;
+  }
+  
+  // gain matrix K = Cov0*H*(Cov0+Cov0)^-1 (for measurement matrix H=I)
+  MatrixDSym5 matC0;
+  matC0(kY,kY) = GetSigmaY2();
+  matC0(kZ,kY) = GetSigmaZY();
+  matC0(kZ,kZ) = GetSigmaZ2();
+  matC0(kSnp,kY) = GetSigmaSnpY();
+  matC0(kSnp,kZ) = GetSigmaSnpZ();
+  matC0(kSnp,kSnp) = GetSigmaSnp2();
+  matC0(kTgl,kY) = GetSigmaTglY();
+  matC0(kTgl,kZ) = GetSigmaTglZ();
+  matC0(kTgl,kSnp) = GetSigmaTglSnp();
+  matC0(kTgl,kTgl) = GetSigmaTgl2();
+  matC0(kQ2Pt,kY) = GetSigma1PtY();
+  matC0(kQ2Pt,kZ) = GetSigma1PtZ();
+  matC0(kQ2Pt,kSnp) = GetSigma1PtSnp();
+  matC0(kQ2Pt,kTgl) = GetSigma1PtTgl();
+  matC0(kQ2Pt,kQ2Pt) = GetSigma1Pt2();
+  MatrixD5 matK = matC0*covInv;
+
+  // updated state vector: x = K*(x1-x0)
+  // RS: why SMatix, SVector does not provide multiplication operators ???
+  double diff[kNParams];
+  for (int i=kNParams;i--;) {
+    diff[i] = rhs.mP[i] - mP[i];
+  }
+  for (int i=kNParams;i--;) {
+    for (int j=kNParams;j--;) {
+      mP[i] += matK(i,j)*diff[j];
+    }
+  }
+  
+  // updated covariance: Cov0 = Cov0 - K*Cov0
+  matK *= ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams>>(matC0);
+  mC[kSigY2] -= matK(kY,kY);
+  mC[kSigZY] -= matK(kZ,kY);
+  mC[kSigZ2] -= matK(kZ,kZ);
+  mC[kSigSnpY] -= matK(kSnp,kY);
+  mC[kSigSnpZ] -= matK(kSnp,kZ);
+  mC[kSigSnp2] -= matK(kSnp,kSnp);  
+  mC[kSigTglY] -= matK(kTgl,kY);
+  mC[kSigTglZ] -= matK(kTgl,kZ);
+  mC[kSigTglSnp] -= matK(kTgl,kSnp);
+  mC[kSigTgl2] -= matK(kTgl,kTgl);
+  mC[kSigQ2PtY] -= matK(kQ2Pt,kY);
+  mC[kSigQ2PtZ] -= matK(kQ2Pt,kZ);
+  mC[kSigQ2PtSnp] -= matK(kQ2Pt,kSnp);
+  mC[kSigQ2PtTgl] -= matK(kQ2Pt,kTgl);
+  mC[kSigQ2Pt2] -= matK(kQ2Pt,kQ2Pt);
+
+  return true;
+}
+
+//______________________________________________
+bool TrackParCov::Update(const TrackParCov& rhs)
+{
+  // update track with other track
+  MatrixDSym5 covI; // perform matrix operations in double!
+  BuildCombinedCovMatrix(rhs,covI);
+  if (!covI.Invert()) {
+    LOG(ERROR) << "Cov.matrix inversion failed: " << covI << FairLogger::endl;
+    return false;
+  }
+  return Update(rhs, covI);
+}
+  
+//______________________________________________
 bool TrackParCov::Update(const array<float, 2>& p, const array<float, 3>& cov)
 {
   // Update the track parameters with the space point "p" having

@@ -20,6 +20,10 @@
 #include <array>
 #include <cstring>
 #include <iostream>
+#include <cmath>
+#include <cfloat>
+#include "Math/SMatrix.h"
+#include "Math/SVector.h"
 
 #include "DetectorsBase/BaseCluster.h"
 #include "DetectorsBase/Constants.h"
@@ -61,6 +65,8 @@ constexpr float kCY2max = 100 * 100, // SigmaY<=100cm
   kC1Pt2max = 100 * 100,             // Sigma1/Pt<=100 1/GeV
   kCalcdEdxAuto = -999.f;            // value indicating request for dedx calculation
 
+constexpr float HugeF = 1e33;       // large float as dummy value
+ 
 // helper function
 float BetheBlochSolid(float bg, float rho = 2.33f, float kp1 = 0.20f, float kp2 = 3.00f, float meanI = 173e-9f,
                       float meanZA = 0.49848f);
@@ -123,6 +129,10 @@ class TrackParBase
 // rootcint does not swallow final keyword here
 class TrackParCov final : public TrackParBase
 { // track+error parameterization
+
+  using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
+  using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams>>;
+  
  public:
   TrackParCov() : TrackParBase{} {}
   TrackParCov(float x, float alpha, const std::array<float, kNParams>& par, const std::array<float, kCovMatSize>& cov);
@@ -157,6 +167,7 @@ class TrackParCov final : public TrackParBase
   void Invert();
 
   float GetPredictedChi2(const std::array<float, 2>& p, const std::array<float, 3>& cov) const;
+
   template <typename T>
   float GetPredictedChi2(const BaseCluster<T>& p) const
   {
@@ -165,6 +176,15 @@ class TrackParCov final : public TrackParBase
     return GetPredictedChi2(pyz, cov);
   }
 
+  float GetPredictedChi2(const TrackParCov& rhs) const {
+    MatrixDSym5 cov; // perform matrix operations in double!
+    return GetPredictedChi2(rhs, cov);
+  }
+
+  float GetPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const;
+
+  void BuildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5 &cov) const;
+  
   bool Update(const std::array<float, 2>& p, const std::array<float, 3>& cov);
 
   template <typename T>
@@ -175,6 +195,9 @@ class TrackParCov final : public TrackParBase
     return Update(pyz, cov);
   }
 
+  bool Update(const TrackParCov& rhs, const MatrixDSym5 &covInv);  
+  bool Update(const TrackParCov& rhs);
+  
   bool CorrectForMaterial(float x2x0, float xrho, float mass, bool anglecorr = false, float dedx = kCalcdEdxAuto);
 
   void ResetCovariance(float s2 = 0);
