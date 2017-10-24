@@ -7,21 +7,30 @@ set(SRCS
     src/ClustererTask.cxx
     src/CookedTrack.cxx
     src/CookedTrackerTask.cxx
+    src/CA/Track.cxx
+    src/CA/TrackerTask.cxx
     )
-set(HEADERS
-    include/${MODULE_NAME}/TrivialClustererTask.h
-    include/${MODULE_NAME}/ClustererTask.h
-    include/${MODULE_NAME}/CookedTrack.h
-    include/${MODULE_NAME}/CookedTrackerTask.h
-    )
-set(NO_DICT_SRCS # sources not for the dictionary
+
+set(NO_DICT_SRCS
     src/TrivialClusterer.cxx
     src/CookedTracker.cxx
+    src/CA/Cell.cxx
+    src/CA/Cluster.cxx
+    src/CA/Event.cxx
+    src/CA/Layer.cxx
+    src/CA/PrimaryVertexContext.cxx
+    src/CA/Road.cxx
+    src/CA/Tracker.cxx
+    src/CA/TrackingUtils.cxx
+    src/CA/Tracklet.cxx
     )
-set(NO_DICT_HEADERS # sources not for the dictionary
-    include/${MODULE_NAME}/TrivialClusterer.h
-    include/${MODULE_NAME}/CookedTracker.h
-    )
+
+# Headers from sources
+string(REPLACE ".cxx" ".h" HEADERS_WRONG_DIR "${SRCS}")
+string(REPLACE "src" "include/${MODULE_NAME}" HEADERS "${HEADERS_WRONG_DIR}")
+string(REPLACE ".cxx" ".h" NO_DICT_HEADERS_WRONG_DIR "${NO_DICT_SRCS}")
+string(REPLACE "src" "include/${MODULE_NAME}" NO_DICT_HEADERS "${NO_DICT_HEADERS_WRONG_DIR}")
+
 Set(LINKDEF src/ITSReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 Set(BUCKET_NAME its_reconstruction_bucket)

@@ -8,18 +8,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file Track.cxx
+/// \brief
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "ITSReconstruction/CA/Track.h"
+#include <cmath>
 
-#pragma link C++ class o2::ITS::Cluster+;
-#pragma link C++ class o2::ITS::TrivialClustererTask+;
-#pragma link C++ class o2::ITS::ClustererTask+;
-#pragma link C++ class o2::ITS::CookedTrack+;
-#pragma link C++ class o2::ITS::CookedTrackerTask+;
-#pragma link C++ class o2::ITS::CA::TrackObject+;
-#pragma link C++ class o2::ITS::CA::TrackerTask+;
+ClassImp(o2::ITS::CA::TrackObject)
 
-#endif
+namespace o2
+{
+namespace ITS
+{
+namespace CA
+{
+
+Track::Track(const Base::Track::TrackParCov& param, float chi2, const std::array<int,7>& clusters) :
+  mParam{param},
+  mChi2{chi2},
+  mClusters{clusters} {}
+
+TrackObject::TrackObject(const Track& track) :
+  TObject{},
+  mTrack{track} {}
+
+TrackObject::~TrackObject() {}
+
+}
+}
+}
