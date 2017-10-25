@@ -33,7 +33,7 @@ namespace o2 { namespace MFT { class GeometryTGeo; } }
 namespace o2 {
 namespace MFT {
 
-class Detector : public o2::Base::Detector {
+class Detector : public o2::Base::DetImpl<Detector> {
 
 public:
 
@@ -55,8 +55,14 @@ public:
   /// Registers the produced collections in FAIRRootManager
   void Register() override; 
 
-  /// Gets the produced collections
-  TClonesArray* GetCollection(Int_t iColl) const override;
+  /// Gets the produced hits
+  std::vector<o2::ITSMFT::Hit>* getHits(Int_t iColl) const
+  {
+    if (iColl == 0) {
+      return mHits;
+    }
+    return nullptr;
+  }
 
   void EndOfEvent() override;
 

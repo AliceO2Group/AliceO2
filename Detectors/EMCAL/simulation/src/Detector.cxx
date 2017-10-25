@@ -35,7 +35,7 @@ using namespace o2::EMCAL;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::Detector("EMC", active),
+  : o2::Base::DetImpl<Detector>("EMC", active),
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
@@ -208,12 +208,6 @@ Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklen
 void Detector::Register()
 {
   FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
-}
-
-TClonesArray* Detector::GetCollection(Int_t iColl) const
-{
-  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
-  return nullptr;
 }
 
 void Detector::Reset()

@@ -52,7 +52,7 @@ using Segmentation = o2::ITSMFT::SegmentationAlpide;
 using namespace o2::ITS;
 
 Detector::Detector()
-  : o2::Base::Detector("ITS", kTRUE),
+  : o2::Base::DetImpl<Detector>("ITS", kTRUE),
     mLayerID(nullptr),
     mNumberLayers(),
     mTrackData(),
@@ -167,7 +167,7 @@ static void configITS(Detector *its) {
 }
 
 Detector::Detector(Bool_t active)
-  : o2::Base::Detector("ITS", active),
+  : o2::Base::DetImpl<Detector>("ITS", active),
     mLayerID(nullptr),
     mNumberLayers(7),
     mLayerName(new TString[mNumberLayers]),
@@ -252,7 +252,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector &rhs)
-  : o2::Base::Detector(rhs),
+  : o2::Base::DetImpl<Detector>(rhs),
     mLayerID(nullptr),
     mNumberLayers(rhs.mNumberLayers),
     mLayerName(nullptr),

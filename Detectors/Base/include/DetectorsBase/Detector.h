@@ -128,6 +128,18 @@ class Detector : public FairDetector
       return s+ext;
     }
     
+
+    // interface to update track indices of data objects
+    // usually called by the Stack, at the end of an event, which might have changed
+    // the track indices due to filtering
+    // FIXME: make private friend of stack?
+    virtual void updateHitTrackIndices(std::map<int, int> const&) = 0;
+
+    // The GetCollection interface is made final and deprecated since
+    // we no longer support TClonesArrays
+    [[deprecated("Use getHits API on concrete detectors!")]]
+    TClonesArray* GetCollection(int iColl) const final;
+
     // static and reusable service function to set tracking parameters in relation to field
     // returns global integration mode (inhomogenety) for the field and the max field value
     // which is required for media creation
@@ -162,17 +174,32 @@ inline std::string demangle(const char* name)
   return (status == 0) ? res.get() : name;
 }
 
-// a utility function to get the unmangled original (un-aliased)
-// type name given a type to be used as arguments for TClonesArray constructor
-// (which cannot otherwise resolve alias typenames); This function also performs strong
-// requirements checks if T is compatible with a TClonesArray (needs to inherit from TObject)
-// AT COMPILE TIME
-template <typename T>
-inline std::string getTClArrTrueTypeName()
+// an implementation helper template which automatically implements
+// common functionality for deriving classes via the CRT pattern
+// (example: it implements the updateHitTrackIndices function and avoids
+// code duplication, while at the same time avoiding virtual function calls)
+template <typename Det>
+class DetImpl : public o2::Base::Detector
 {
-  static_assert(std::is_base_of<TObject, T>::value, "type needs to inherit from TObject");
-  return demangle(typeid(T).name()).c_str();
-}
+ public:
+  // offer same constructors as base
+  using Detector::Detector;
+
+  // generic implementation for the updateHitTrackIndices interface
+  // assumes Detectors have a GetHits(int) function that return some iterable
+  // hits which are o2::BaseHits
+  void updateHitTrackIndices(std::map<int, int> const& indexmapping) override
+  {
+    int probe = 0; // some Detectors have multiple hit vectors and we are probing
+                   // them via a probe integer until we get a nullptr
+    while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
+      for (auto& hit : *hits) {
+        auto iter = indexmapping.find(hit.GetTrackID());
+        hit.SetTrackID(iter->second);
+      }
+    }
+  }
+};
 }
 }
 

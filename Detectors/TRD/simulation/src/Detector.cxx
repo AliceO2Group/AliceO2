@@ -22,7 +22,7 @@
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
-  : o2::Base::Detector("TRD", active), 
+  : o2::Base::DetImpl<Detector>("TRD", active),
     mHits(new std::vector<HitType>)
 {
 }
@@ -61,12 +61,6 @@ bool Detector::ProcessHits(FairVolume* v)
 void Detector::Register()
 {
   FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true);
-}
-
-TClonesArray* Detector::GetCollection(int iColl) const
-{
-  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
-  return nullptr;
 }
 
 void Detector::Reset() { mHits->clear(); }

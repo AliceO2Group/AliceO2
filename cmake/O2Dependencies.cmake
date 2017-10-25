@@ -377,6 +377,7 @@ o2_define_bucket(
     root_physics_bucket
     common_math_bucket
     detectors_base_bucket
+    DetectorsBase
     RIO
 
     INCLUDE_DIRECTORIES

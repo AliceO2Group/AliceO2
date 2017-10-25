@@ -61,7 +61,7 @@ using namespace o2::TPC;
 
 
 Detector::Detector(Bool_t active)
-  : o2::Base::Detector("TPC", active),
+  : o2::Base::DetImpl<Detector>("TPC", active),
     mSimulationType(SimulationType::Other),
     mGeoFileName(),
     mEventNr(0)
@@ -325,13 +325,6 @@ void Detector::Register()
     name.Form("%sHitsSector%d", GetName(), i);
     mgr->RegisterAny(name.Data(), mHitsPerSectorCollection[i], kTRUE);
   }
-  mMCTrackBranchId=mgr->GetBranchId("MCTrack");
-}
-
-TClonesArray* Detector::GetCollection(Int_t iColl) const
-{
-  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
-  return nullptr;
 }
 
 void Detector::Reset()

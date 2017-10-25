@@ -25,7 +25,7 @@ class FairVolume;  // lines 10-10
 namespace o2 {
 namespace TPC {
 
-class Detector: public o2::Base::Detector {
+class Detector: public o2::Base::DetImpl<Detector> {
 
   public:
   enum class SimulationType : char {
@@ -58,8 +58,14 @@ class Detector: public o2::Base::Detector {
     /**       Registers the produced collections in FAIRRootManager.     */
     void   Register() override;
 
-    /** Gets the produced collections */
-    TClonesArray* GetCollection(Int_t iColl) const override ;
+    /** Get the produced hits */
+    std::vector<HitGroup>* getHits(Int_t iColl) const
+    {
+      if (iColl > 0 && iColl < Sector::MAXSECTOR) {
+        return mHitsPerSectorCollection[iColl];
+      }
+      return nullptr;
+    }
 
     /**      has to be called after each event to reset the containers      */
     void   Reset() override;
@@ -132,7 +138,6 @@ class Detector: public o2::Base::Detector {
     TString mGeoFileName;                  ///< Name of the file containing the TPC geometry
     size_t mEventNr;                       //!< current event number
 
-    int mMCTrackBranchId; //! cache for the MCTrackBranchID (to avoid string based query)
 
     Detector(const Detector&);
     Detector& operator=(const Detector&);
