@@ -103,7 +103,6 @@ static const char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "A
 static const char* ClusterTypes[3] = {"", "Ratio", "Integral"};
 static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
-static double legendSpacingString = 0.025;
 static int ConfigDashedMarkers = 0;
 
 static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0., -ETA_MAX, PT_MIN};
@@ -542,13 +541,21 @@ void RunQA()
 	}
 }
 
+void GetName(char* fname, int k)
+{
+	const structConfigQA& config = configStandalone.configQA;
+	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;
+	if (k || config.inputHistogramsOnly || config.name) sprintf(fname, "%s - ", config.inputHistogramsOnly || k ? (config.compareInputNames.size() > (unsigned) (k - nNewInput) ? config.compareInputNames[k - nNewInput] : config.compareInputs[k - nNewInput]) : config.name);
+	else fname[0] = 0;
+}
+
 int DrawQAHistograms()
 {
 	char name[1024], fname[1024];
 	
-	structConfigQA& config = configStandalone.configQA;
-	int nNewInput = config.inputHistogramsOnly ? 0 : 1;
-	int ConfigNumInputs = nNewInput + config.compareInputs.size();
+	const structConfigQA& config = configStandalone.configQA;
+	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;
+	const int ConfigNumInputs = nNewInput + config.compareInputs.size();
 	
 	std::vector<TFile*> tin(config.compareInputs.size());
 	for (unsigned int i = 0;i < config.compareInputs.size();i++)
@@ -557,6 +564,13 @@ int DrawQAHistograms()
 	}
 	TFile* tout = NULL;
 	if (config.output) tout = new TFile(config.output, "RECREATE");
+	
+	double legendSpacingString = 0.025;
+	for (int i = 0;i < ConfigNumInputs;i++)
+	{
+		GetName(fname, i);
+		if (strlen(fname) * 0.006 > legendSpacingString) legendSpacingString = strlen(fname) * 0.006;
+	}
 
 	//Create Canvas / Pads for Efficiency Histograms
 	for (int ii = 0;ii < 6;ii++)
@@ -685,8 +699,7 @@ int DrawQAHistograms()
 					e->Draw(k || l ? "same" : "");
 					if (j == 0)
 					{
-						if (k || config.inputHistogramsOnly || config.name) sprintf(fname, "%s - ", config.inputHistogramsOnly || k ? (config.compareInputNames.size() > (unsigned) (k - nNewInput) ? config.compareInputNames[k - nNewInput] : config.compareInputs[k - nNewInput]) : config.name);
-						else fname[0] = 0;
+						GetName(fname, k);
 						sprintf(name, "%s%s", fname, EffNames[l]);
 						legendeff[ii]->AddEntry(e, name, "l");
 					}
@@ -846,8 +859,7 @@ int DrawQAHistograms()
 					e->Draw(k || l ? "same" : "");
 					if (j == 0)
 					{
-						if (k || config.inputHistogramsOnly || config.name) sprintf(fname, "%s - ", config.inputHistogramsOnly || k ? (config.compareInputNames.size() > (unsigned) (k - nNewInput) ? config.compareInputNames[k - nNewInput] : config.compareInputs[k - nNewInput]) : config.name);
-						else fname[0] = 0;
+						GetName(fname, k);
 						sprintf(name, "%s%s", fname, l ? "Mean Resolution" : "Resolution");
 						legendres[ii]->AddEntry(e, name, "l");
 					}
