@@ -134,7 +134,7 @@ template <typename T> struct qConfigType
 
 inline const char* getArg(int& i, const char** argv, const int argc, bool allowOption = false)
 {
-	if (i + 1 < argc && argv[i + 1][0] && (allowOption || argv[i + 1][0] != '-')) return(argv[++i]);
+	if (i + 1 < argc && argv[i + 1][0] && ((allowOption && argv[i + 1][0] != '-' && argv[i + 1][1] != '-') || argv[i + 1][0] != '-')) return(argv[++i]);
 	return(nullptr);
 }
 
@@ -231,6 +231,8 @@ inline int qConfigParse(int argc, const char** argv, const char* filename)
 {
 	for (int i = 1;i < argc;i++)
 	{
+		const char* thisoption = argv[i];
+		repeat:
 		bool found = false;
 #define QCONFIG_PARSE
 #include "qconfig.h"
@@ -239,6 +241,7 @@ inline int qConfigParse(int argc, const char** argv, const char* filename)
 		{
 			printf("Invalid argument: %s\n", argv[i]);
 			return(1);
+			goto repeat; //Suppress warnings, never executed
 		}
 	}
 	return(0);
