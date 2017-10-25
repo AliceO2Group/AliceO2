@@ -66,7 +66,6 @@ static TLegend* legendclust[3];
 #define DEBUG 0
 
 #define SORT_NLABELS 1
-#define REC_THRESHOLD 0.9f
 
 bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b) {return(a.fMCID > b.fMCID);}
 
@@ -278,7 +277,6 @@ void RunQA()
 
 	//Assign Track MC Labels
 	bool ompError = false;
-#pragma omp parallel for
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
 		if (ompError) continue;
@@ -324,7 +322,7 @@ void RunQA()
 				sumweight += cur.fWeight;
 				if (cur.fWeight > maxLabel.fWeight)
 				{
-					if (maxcount >= REC_THRESHOLD * nClusters) recTracks[maxLabel.fMCID]++;
+					if (maxcount >= config.recThreshold * nClusters) recTracks[maxLabel.fMCID]++;
 					maxLabel = cur;
 					maxcount = curcount;
 				}
@@ -355,7 +353,7 @@ void RunQA()
 			}
 		}
 
-		if (maxcount < REC_THRESHOLD * nClusters)
+		if (maxcount < config.recThreshold * nClusters)
 		{
 			fakeTracks[maxLabel.fMCID]++;
 			maxLabel.fMCID = -2 - maxLabel.fMCID;

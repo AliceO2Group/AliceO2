@@ -21,6 +21,7 @@ AddOption(output, const char*, NULL, "histOut", 0, "Store histograms in output r
 AddOption(inputHistogramsOnly, bool, false, "only", 0, "Do not run tracking, but just create PDFs from input root files")
 AddOption(strict, bool, true, "strict", 0, "Strict QA mode: Only consider resolution of tracks where the fit ended within 5 cm of the reference, and remove outliers.")
 AddOption(qpt, float, 10.f, "qpt", 0, "Set cut for Q/Pt", set(2.f))
+AddOption(recThreshold, float, 0.9f, "recThreshold", 0, "Compute the efficiency including impure tracks with fake contamination")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAonly")
 AddHelp("help", 'h')
 EndConfig()
