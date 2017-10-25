@@ -1,10 +1,10 @@
 #ifdef QCONFIG_PARSE
 
-#define QCONFIG_COMPARE(optname, optnameshort) (argv[i][0] == '-' && ( \
-	(preoptshort == 0 && argv[i][1] == optnameshort && argv[i][2] == 0) || \
-	(argv[i][1] == '-' && strlen(preopt) == 0 && strcmp(&argv[i][2], optname) == 0) || \
-	(preoptshort != 0 && argv[i][1] == preoptshort && argv[i][2] == optnameshort && argv[i][3] == 0) || \
-	(argv[i][1] == '-' && strlen(preopt) && strncmp(&argv[i][2], preopt, strlen(preopt)) == 0 && strcmp(&argv[i][2 + strlen(preopt)], optname) == 0) \
+#define QCONFIG_COMPARE(optname, optnameshort) (thisoption[0] == '-' && ( \
+	(preoptshort == 0 && thisoption[1] == optnameshort && thisoption[2] == 0) || \
+	(thisoption[1] == '-' && strlen(preopt) == 0 && strcmp(&thisoption[2], optname) == 0) || \
+	(preoptshort != 0 && thisoption[1] == preoptshort && thisoption[2] == optnameshort && thisoption[3] == 0) || \
+	(thisoption[1] == '-' && strlen(preopt) && strncmp(&thisoption[2], preopt, strlen(preopt)) == 0 && strcmp(&thisoption[2 + strlen(preopt)], optname) == 0) \
 	))
 
 #define AddOption(name, type, default, optname, optnameshort, ...) \
@@ -72,6 +72,17 @@
 	{ \
 		if (command) return(qcrCmd); \
 	}
+	
+#define AddShortcut(cmd, cmdshort, forward, help, ...) \
+	else if (QCONFIG_COMPARE(cmd, cmdshort)) \
+	{ \
+		const char* options[] = {"", __VA_ARGS__}; \
+		const int nOptions = sizeof(options) / sizeof(options[0]); \
+		qConfigParse(nOptions, options, NULL); \
+		thisoption = forward; \
+		goto repeat; \
+	}
+	
 #elif defined(QCONFIG_HELP)
 #define AddOption(name, type, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(default), optname, optnameshort, preopt, preoptshort, 0, __VA_ARGS__);
 #define AddOptionSet(name, type, value, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(value), optname, optnameshort, preopt, preoptshort, 1, __VA_ARGS__);
@@ -92,6 +103,7 @@
 #define AddHelp(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage information");
 #define AddHelpAll(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters");
 #define AddCommand(cmd, cmdshort, command, help) qConfigType<void*>::qConfigHelpOption("command", "command", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
+#define AddShortcut(cmd, cmdshort, forward, help, ...) qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
 #elif defined(QCONFIG_INSTANCE)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) name(default), 
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
@@ -132,6 +144,9 @@ struct qConfigDummy{qConfigDummy() {}};
 #ifndef AddCommand
 #define AddCommand(cmd, cmdshort, command)
 #endif
+#ifndef AddShortcut
+#define AddShortcut(cmd, cmdshort, forward, help, ...)
+#endif
 
 #include "qconfigoptions.h"
 
@@ -145,6 +160,7 @@ struct qConfigDummy{qConfigDummy() {}};
 #undef AddHelp
 #undef AddHelpAll
 #undef AddCommand
+#undef AddShortcut
 #ifdef QCONFIG_COMPARE
 #undef QCONFIG_COMPARE
 #endif
