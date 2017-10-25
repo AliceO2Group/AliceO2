@@ -36,7 +36,7 @@ class Geometry;
 /// The detector class handles the implementation of the EMCAL detector
 /// within the virtual Monte-Carlo framework and the simulation of the
 /// EMCAL detector up to hit generation
-class Detector : public o2::Base::Detector
+class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
   enum { ID_AIR = 0, ID_PB = 1, ID_SC = 2, ID_AL = 3, ID_STEEL = 4, ID_PAPER = 5 };
@@ -92,10 +92,15 @@ class Detector : public o2::Base::Detector
   void Register() override;
 
   ///
-  /// Get access to the point collection
-  /// \return TClonesArray with points
+  /// Get access to the hits
   ///
-  TClonesArray* GetCollection(Int_t iColl) const final;
+  std::vector<Hit>* getHits(Int_t iColl) const
+  {
+    if (iColl == 0) {
+      return mHits;
+    }
+    return nullptr;
+  }
 
   ///
   /// Reset

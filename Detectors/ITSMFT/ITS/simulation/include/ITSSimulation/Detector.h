@@ -44,7 +44,7 @@ namespace ITS {
 
 class V3Layer;
 
-class Detector : public o2::Base::Detector
+class Detector : public o2::Base::DetImpl<Detector>
 {
 
   public:
@@ -84,10 +84,14 @@ class Detector : public o2::Base::Detector
     void Register() override;
 
     /// Gets the produced collections
-    TClonesArray *GetCollection(Int_t iColl) const override {
-       LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
-       return nullptr;
+    std::vector<o2::ITSMFT::Hit>* getHits(Int_t iColl) const
+    {
+      if (iColl == 0) {
+        return mHits;
+      }
+      return nullptr;
     }
+
     /// Has to be called after each event to reset the containers
     void Reset() override;
 

@@ -10,9 +10,10 @@
 
 /// \file Stack.cxx
 /// \brief Implementation of the Stack class
-/// \author M. Al-Turany - June 2014
+/// \author M. Al-Turany, S. Wenzel - June 2014
 
 #include "DetectorsBase/DetID.h"
+#include "DetectorsBase/Detector.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/MCTrack.h"
 
@@ -282,6 +283,24 @@ void Stack::FillTrackArray()
 
 void Stack::UpdateTrackIndex(TRefArray *detList)
 {
+  // we are getting the detectorlist from FairRoot as TRefArray
+  // at each call, but this list never changes so we cache it here
+  // as the right type to avoid repeated dynamic casts
+  if (mActiveDetectors.size() == 0) {
+    if (detList == nullptr) {
+      LOG(FATAL) << "No detList passed to Stack" << FairLogger::endl;
+    }
+    auto iter = detList->MakeIterator();
+    while (auto det = iter->Next()) {
+      auto o2det = dynamic_cast<o2::Base::Detector*>(det);
+      if (o2det) {
+        mActiveDetectors.emplace_back(o2det);
+      } else {
+        LOG(FATAL) << "Found nonconforming detector" << FairLogger::endl;
+      }
+    }
+  }
+
   if (mLogger) {
     mLogger->Debug(MESSAGE_ORIGIN, "Stack: Updating track indices...");
   } else {
@@ -303,41 +322,11 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     track.SetMotherTrackId((*mIndexIterator).second);
   }
 
-  if (fDetList == nullptr) {
-    // Now iterate through all active detectors
-    fDetIter = detList->MakeIterator();
-    fDetIter->Reset();
-  } else {
-    fDetIter->Reset();
-  }
+  for(auto det : mActiveDetectors) {
+    // update the track indices by delegating to specialized detector functions
+    det->updateHitTrackIndices(mIndexMap);
+  } // List of active detectors
 
-  FairDetector *det = nullptr;
-  while ((det = (FairDetector *) fDetIter->Next())) {
-
-    // Get hit collections from detector
-    Int_t iColl = 0;
-    TClonesArray *hitArray;
-    while ((hitArray = det->GetCollection(iColl++))) {
-      nColl++;
-      Int_t nPoints = hitArray->GetEntriesFast();
-
-      // Update track index for all MCPoints in the collection
-      for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-        auto *point = (o2::BaseHit *) hitArray->UncheckedAt(iPoint);
-        Int_t iTrack = point->GetTrackID();
-
-        mIndexIterator = mIndexMap.find(iTrack);
-        if (mIndexIterator == mIndexMap.end()) {
-          if (mLogger) {
-            mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Track index %i not found in index map! ", iTrack);
-          }
-          Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
-        }
-        point->SetTrackID((*mIndexIterator).second);
-      }
-
-    } // Collections of this detector
-  }   // List of active detectors
   if (mLogger) {
     mLogger->Debug(MESSAGE_ORIGIN, "...stack and  %i collections updated.", nColl);
   } else {

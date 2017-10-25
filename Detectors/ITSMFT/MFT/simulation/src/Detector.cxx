@@ -43,7 +43,7 @@ ClassImp(o2::MFT::Detector)
 
 //_____________________________________________________________________________
 Detector::Detector()
-: o2::Base::Detector("MFT", kTRUE),
+: o2::Base::DetImpl<Detector>("MFT", kTRUE),
   mVersion(1),
   mDensitySupportOverSi(0.036),
   mHits(new std::vector<o2::ITSMFT::Hit>),
@@ -54,7 +54,7 @@ Detector::Detector()
 
 //_____________________________________________________________________________
 Detector::Detector(const Detector& src)
-  : o2::Base::Detector(src),
+  : o2::Base::DetImpl<Detector>(src),
     mVersion(src.mVersion),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
     mHits(new std::vector<o2::ITSMFT::Hit>),
@@ -466,14 +466,6 @@ void Detector::Register()
   if (FairGenericRootManager::Instance()) {
     FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
   }
-
-}
-//_____________________________________________________________________________
-TClonesArray *Detector::GetCollection(Int_t iColl) const
-{
-
-  LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
-  return nullptr;
 
 }
 

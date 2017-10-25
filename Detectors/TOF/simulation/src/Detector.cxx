@@ -28,11 +28,10 @@ using namespace o2::tof;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::Detector("TOF", active),
+  : o2::Base::DetImpl<Detector>("TOF", active),
     mEventNr(0),
     mTOFHoles(kTRUE),
-    mHits(new std::vector<HitType>),
-    mMCTrackBranchId(-1)
+    mHits(new std::vector<HitType>)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
     mTOFSectors[i] = 1;
@@ -83,14 +82,6 @@ void Detector::Register()
 {
   auto* mgr = FairRootManager::Instance();
   mgr->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
-
-  mMCTrackBranchId = mgr->GetBranchId("MCTrack");
-}
-
-TClonesArray* Detector::GetCollection(Int_t iColl) const
-{
-  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
-  return nullptr;
 }
 
 void Detector::Reset() { mHits->clear(); }

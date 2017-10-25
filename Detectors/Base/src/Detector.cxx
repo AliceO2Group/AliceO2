@@ -147,4 +147,11 @@ void Detector::initFieldTrackingParams(int& integration, float& maxfield)
   }
 }
 
+TClonesArray* Detector::GetCollection(int) const
+{
+  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
+  LOG(WARNING) << "Use the GetHits function on invidiual detectors" << FairLogger::endl;
+  return nullptr;
+}
+
 ClassImp(o2::Base::Detector)

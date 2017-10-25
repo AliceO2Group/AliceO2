@@ -34,6 +34,11 @@ class TRefArray;
 class FairLogger;
 
 namespace o2 {
+
+namespace Base {
+class Detector;
+}
+
 namespace Data {
 
 /// This class handles the particle stack for the transport simulation.
@@ -221,6 +226,9 @@ class Stack : public FairGenericStack
     
     /// STL map from track index and detector ID to number of MCPoints
     std::map<std::pair<Int_t, Int_t>, Int_t> mPointsMap; //!
+
+    /// cache active O2 detectors
+    std::vector<o2::Base::Detector *> mActiveDetectors;
 
     /// Some indices and counters
     Int_t mIndexOfCurrentTrack;        //! Index of current track
