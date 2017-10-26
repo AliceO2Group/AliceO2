@@ -127,15 +127,18 @@ template <typename T> struct qConfigType
 	{
 		qConfigSettings<T> settings;
 		qAddOptionSettings(settings, args...);
+		const bool boolType = optionType != 1 && std::is_same<T, bool>::value;
+		const char* arguments = settings.doSet ? " (" : (settings.doDefault || optionType == 1 || boolType) ? " [arg] (" : optionType == 2 ? " [...] (" : " arg (";
 		std::cout << "\t" << name << ": " << (optnameshort == 0 || preoptshort == 0 ? "" : "-") << (char) (optnameshort == 0 ? 0 : preoptshort == 0 ? '-' : preoptshort) << (char) (optnameshort == 0 ? 0 : optnameshort) <<
-			(optnameshort == 0 ? "" : " (") << "--" << preopt << optname << (optnameshort == 0 ? " (" : ", ") << "type: " << type;
+			(optnameshort == 0 ? "" : arguments) << "--" << preopt << optname << (optnameshort == 0 ? arguments : ", ") << "type: " << type;
 		if (optionType == 0) std::cout << ", default: " << def;
 		if (optionType == 1) std::cout << ", sets " << name << " to " << def;
 		if (settings.checkMin) std::cout << ", minimum: " << settings.min;
 		if (settings.checkMax) std::cout << ", maximum: " << settings.max;
 		std::cout << ")\n\t\t" << help << ".\n";
-		if (settings.doDefault) std::cout << "\t\tIf no argument is supplied, " << name << " is set to " << settings.set << ".\n";
-		else if (optionType != 1 && std::is_same<T, bool>::value) std::cout << "\t\tIf no argument is supplied, " << name << " is set to true.\n";
+		if (settings.doSet) std::cout << "\t\tSets " << name << " to " << settings.set << ".\n";
+		else if (settings.doDefault) std::cout << "\t\tIf no argument is supplied, " << name << " is set to " << settings.set << ".\n";
+		else if (boolType) std::cout << "\t\tIf no argument is supplied, " << name << " is set to true.\n";
 		if (optionType == 2) std::cout << "\t\tCan be set multiple times, accepts multiple arguments.\n";
 		std::cout << "\n";
 	}
