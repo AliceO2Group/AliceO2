@@ -54,7 +54,8 @@ public:
   void SetGPUTracker(AliHLTTPCCAGPUTracker* gpu) {fGPUTracker = gpu;}
   void SetDebugLevel(int debug) {fDebugLevel = debug;}
 
-  AliHLTTPCGMPolynomialField Field() const {return fField;}
+  const AliHLTTPCGMPolynomialField& Field() const {return fField;}
+  const AliHLTTPCGMPolynomialField* pField() const {return &fField;}
 
   int NClusters() const { return(fNClusters); }
   int NOutputTrackClusters() const { return(fNOutputTrackClusters); }

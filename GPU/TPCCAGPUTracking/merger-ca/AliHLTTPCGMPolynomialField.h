@@ -11,6 +11,8 @@
 #ifndef AliHLTTPCGMPolynomialField_H
 #define AliHLTTPCGMPolynomialField_H
 
+#include "AliHLTTPCCADef.h"
+
 /**
  * @class AliHLTTPCGMPolynomialField
  *
@@ -28,8 +30,29 @@ public:
   
   float GetNominalBzkG() const { return fNominalBzkG;}
   
-  void GetField( float x, float y, float z, float B[] ) const;
-  float GetFieldBz( float x, float y, float z ) const;
+  GPUdi() void GetField( float x, float y, float z, float B[] ) const
+  {
+    const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+    float bx = 0.f, by = 0.f, bz = 0.f;
+    for( int i=0; i<fkM; i++){
+      bx+= fBx[i]*f[i];
+      by+= fBy[i]*f[i];
+      bz+= fBz[i]*f[i];
+    }
+    B[0] = bx;
+    B[1] = by;
+    B[2] = bz;
+  }
+
+  GPUdi() float GetFieldBz( float x, float y, float z ) const
+  {
+    const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+    float bz = 0.f;
+    for( int i=0; i<fkM; i++){
+      bz+= fBz[i]*f[i];
+    }
+    return bz;
+  }
 
   void DumpField( const char *fileName="field.root" ) const;
 
@@ -65,30 +88,6 @@ inline void AliHLTTPCGMPolynomialField::Init( float NominalBzkG )
   for( int i=0; i<fkM; i++ ) fBx[i] = constBz*cBx[i];
   for( int i=0; i<fkM; i++ ) fBy[i] = constBz*cBy[i];
   for( int i=0; i<fkM; i++ ) fBz[i] = constBz*cBz[i];
-}
-
-inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, float B[] ) const
-{
-  const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
-  float bx = 0.f, by = 0.f, bz = 0.f;
-  for( int i=0; i<fkM; i++){
-    bx+= fBx[i]*f[i];
-    by+= fBy[i]*f[i];
-    bz+= fBz[i]*f[i];
-  }
-  B[0] = bx;
-  B[1] = by;
-  B[2] = bz;
-}
-
-inline float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, float z ) const
-{
-  const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
-  float bz = 0.f;
-  for( int i=0; i<fkM; i++){
-    bz+= fBz[i]*f[i];
-  }
-  return bz;
 }
 
 #endif 

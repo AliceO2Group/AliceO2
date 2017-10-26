@@ -39,7 +39,7 @@ public:
 
   GPUd() void SetMaterial( float radLen, float rho );
 
-  GPUd() void SetPolynomialField( const AliHLTTPCGMPolynomialField &field ){ fField = field; }
+  GPUd() void SetPolynomialField( const AliHLTTPCGMPolynomialField* field ){ fField = field; }
 
   GPUd() void SetUseMeanMomentum( bool Flag ){ fUseMeanMomentum = Flag; CalculateMaterialCorrection(); }
   GPUd() void SetContinuousTracking( bool Flag ){ fContinuousTracking = Flag; }
@@ -76,8 +76,7 @@ private:
 
   GPUd() static float ApproximateBetheBloch( float beta2 );
 
-  AliHLTTPCGMPolynomialField fField;
-
+  const AliHLTTPCGMPolynomialField* fField;
   AliHLTTPCGMTrackParam *fT;
   float fAlpha; // rotation angle of the track coordinate system
   AliHLTTPCGMPhysicalTrackModel fT0;
@@ -88,7 +87,7 @@ private:
 };
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
-: fField(), fT(0), fAlpha(0), fT0(), fMaterial(),
+: fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
      fUseMeanMomentum(0), fContinuousTracking(0), fMaxSinPhi(.999)
 {
 }

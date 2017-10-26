@@ -876,7 +876,7 @@ void AliHLTTPCGMMerger::Refit()
 #endif
 	  for ( int itr = 0; itr < fNOutputTracks; itr++ )
 	  {
-	    AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fField, fClusterX, fClusterY, fClusterZ, fClusterRow, fClusterAngle, fSliceParam);
+	    AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], &fField, fClusterX, fClusterY, fClusterZ, fClusterRow, fClusterAngle, fSliceParam);
 	  }
 	}
 }

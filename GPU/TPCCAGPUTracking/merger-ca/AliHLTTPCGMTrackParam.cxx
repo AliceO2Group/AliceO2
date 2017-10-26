@@ -40,7 +40,7 @@
 
 GPUd() void AliHLTTPCGMTrackParam::Fit
 (
- const AliHLTTPCGMPolynomialField &field,
+ const AliHLTTPCGMPolynomialField* field,
  float x[], float y[], float z[], int row[], float alpha[], const AliHLTTPCCAParam &param,
  int &N, float &Alpha, bool UseMeanPt, float maxSinPhi
  ){
@@ -193,7 +193,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
         N++;
         float dy = fP[0] - prop.Model().Y();
         float dz = fP[1] - prop.Model().Z();
-        if (fP[4] > 10 && --resetT0 <= 0 && fabs(fP[2] < 0.15) && dy*dy+dz*dz>1)
+        if (AliHLTTPCCAMath::Abs(fP[4]) > 10 && --resetT0 <= 0 && AliHLTTPCCAMath::Abs(fP[2]) < 0.15 && dy*dy+dz*dz>1)
         {
             if (DEBUG) printf("Reinit linearization\n");
             prop.SetTrack(this, prop.GetAlpha());
@@ -275,7 +275,7 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 }
 #endif
 
-GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField &field, float* x, float* y, float* z, int* row, float* alpha, const AliHLTTPCCAParam& param)
+GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field, float* x, float* y, float* z, int* row, float* alpha, const AliHLTTPCCAParam& param)
 {
 	if( !track.OK() ) return;    
 
@@ -332,7 +332,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 
 #ifdef HLTCA_GPUCODE
 
-GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, const AliHLTTPCGMPolynomialField &field, float* x, float* y, float* z, int* row, float* alpha, AliHLTTPCCAParam* param)
+GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, const AliHLTTPCGMPolynomialField* field, float* x, float* y, float* z, int* row, float* alpha, AliHLTTPCCAParam* param)
 {
 	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
