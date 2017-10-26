@@ -28,12 +28,6 @@ namespace TPC {
 class Detector: public o2::Base::DetImpl<Detector> {
 
   public:
-  enum class SimulationType : char {
-    GEANT3,    ///< GEANT3 simulation
-    Other      ///< Other simulation, e.g. GEANT4
-      };
-
-
     /**      Name :  Detector Name
      *       Active: kTRUE for active detectors (ProcessHits() will be called)
      *               kFALSE for inactive detectors
@@ -100,7 +94,13 @@ class Detector: public o2::Base::DetImpl<Detector> {
     /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
     */
-    void   SetSpecialPhysicsCuts() override;// {;}
+
+    /// Special Geant3? limits and definitions
+    /// \todo Check how to deal with this in O2 compared to AliRoot
+    /// \todo Discuss in a wider scope
+    /// \todo Check correctness of the implementation
+    void   SetSpecialPhysicsCuts() override;
+
     void   EndOfEvent() override;
     void   FinishPrimary() override {;}
     void   FinishRun() override {;}
@@ -116,12 +116,12 @@ class Detector: public o2::Base::DetImpl<Detector> {
     int mHitCounter = 0;
     int mElectronCounter = 0;
     int mStepCounter = 0;
-    
-    SimulationType mSimulationType;       ///< Type of simulation
 
     /// Create the detector materials
     virtual void CreateMaterials();
+
     /// Geant settings hack
+    /// \todo Check if still needed see comment in \ref SetSpecialPhysicsCuts
     void GeantHack();
 
     /// Construct the detector geometry
