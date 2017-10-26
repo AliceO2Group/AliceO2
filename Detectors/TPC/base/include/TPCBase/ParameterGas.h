@@ -47,6 +47,12 @@ class ParameterGas{
     /// \param ipot First ionization potential [GeV]
     void setIpot(float ipot) { mIpot = ipot; }
 
+    /// Set maximum energy we are able to deposit [GeV]
+    void setEend(float eend) { mEend = eend; }
+
+    /// Set the exponent of the energy loss
+    void setExp(float exp) { mExp = exp; }
+
     /// Set attachment coefficient
     /// \param attcoeff Attachment coefficient [1/m]
     void setAttachmentCoefficient(float attcoeff) { mAttCoeff = attcoeff; }
@@ -96,6 +102,14 @@ class ParameterGas{
     /// \return First ionization potential [GeV]
     float getIpot() const { return mIpot; }
 
+    /// Get maximum energy we are able to deposit [GeV]
+    /// \return Maximum energy we are able to deposit [GeV]
+    float getEend() const { return mEend; }
+
+    /// Get the exponent of the energy loss
+    /// \return Exponent of the energy loss
+    float getExp() const { return mExp; }
+
     /// Get attachment coefficient
     /// \return Attachment coefficient [1/m]
     float getAttachmentCoefficient() const { return mAttCoeff; }
@@ -140,6 +154,8 @@ class ParameterGas{
 
     float mWion;                           ///< Effective ionization potential [GeV]
     float mIpot;                           ///< First ionization potential [GeV]
+    float mEend;                           ///< Maximum allowed energy loss [GeV]
+    float mExp;                            ///< Exponent of the energy loss
     float mAttCoeff;                       ///< Attachement coefficient [1/m]
     float mOxyCont;                        ///< Oxygen content [1E6 ppm]
     float mDriftV;                         ///< Drift velocity [cm/us]
@@ -149,6 +165,7 @@ class ParameterGas{
     float mNprim;                          ///< Number of primary electrons per MIP and cm [1/cm]
     float mScaleFactorG4;                  ///< Scale factor to tune WION for GEANT4
     float mFanoFactorG4;                   ///< Parameter for smearing the number of ionizations (nel) using GEANT4
+
     std::array<float,5> mBetheBlochParam;  ///< Bethe-Bloch parameters
 
   };

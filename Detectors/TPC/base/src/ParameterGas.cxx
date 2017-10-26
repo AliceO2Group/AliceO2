@@ -19,6 +19,8 @@ using namespace o2::TPC;
 ParameterGas::ParameterGas()
   : mWion(0.f),
     mIpot(0.f),
+    mEend(0.f),
+    mExp(0.f),
     mAttCoeff(0.f),
     mOxyCont(0.f),
     mDriftV(0.f),
@@ -35,6 +37,8 @@ void ParameterGas::setDefaultValues()
 {
   mWion = 37.3e-9f;
   mIpot = 20.77e-9f;
+  mEend = 1e-5f;
+  mExp  = 2.2;
   mAttCoeff = 250.f;
   mOxyCont = 5.e-6f;
   mDriftV = 2.58f;
