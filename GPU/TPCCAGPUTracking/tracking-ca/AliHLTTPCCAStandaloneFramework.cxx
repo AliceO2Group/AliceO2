@@ -111,15 +111,22 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 }
 
 
-int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
+int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool resetTimers)
 {
   // perform the event reconstruction
 
   fStatNEvents++;
 
 #ifdef HLTCA_STANDALONE
-  static HighResTimer timerTracking, timerMerger;
+  static HighResTimer timerTracking, timerMerger, timerQA;
   static int nCount = 0;
+  if (resetTimers)
+  {
+      timerTracking.Reset();
+      timerMerger.Reset();
+      timerQA.Reset();
+      nCount = 0;
+  }
   timerTracking.Start();
 
   if (fEventDisplay)
@@ -169,7 +176,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #ifdef BUILD_QA
   if (fRunQA)
   {
+    timerQA.Start();
     RunQA();
+    timerQA.Stop();
   }
 #endif
 #ifdef BUILD_EVENT_DISPLAY
@@ -246,6 +255,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #ifndef HLTCA_BUILD_O2_LIB
   printf("Tracking Time: %1.0f us\n", 1000000 * timerTracking.GetElapsedTime() / nCount);
   if (fRunMerger) printf("Merging and Refit Time: %1.0f us\n", 1000000 * timerMerger.GetElapsedTime() / nCount);
+  if (fRunQA) printf("QA Time: %1.0f us\n", 1000000 * timerQA.GetElapsedTime() / nCount);
 #endif
 
   if (fDebugLevel >= 1)
@@ -277,6 +287,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
         {
             timerTracking.Reset();
             timerMerger.Reset();
+            timerQA.Reset();
             nCount = 0;
         }
   }
