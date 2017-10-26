@@ -257,7 +257,7 @@ public:
   const std::array<PadRegionInfo,10>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
   const int getNumberOfPadRegions() const { return int(mMapPadRegionInfo.size()); }
 
-  const PartitionInfo& getPartitionInfo(const unsigned char region) const { return mMapPartitionInfo[region]; }
+  const PartitionInfo& getPartitionInfo(const unsigned char partition) const { return mMapPartitionInfo[partition]; }
   const std::array<PartitionInfo,5>& getMapPartitionInfo() const { return mMapPartitionInfo; }
   const int getNumberOfPartitions() const { return int(mMapPartitionInfo.size()); }
 
