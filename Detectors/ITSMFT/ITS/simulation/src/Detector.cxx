@@ -569,6 +569,12 @@ void Detector::createMaterials()
   Float_t wWC[2]={0.5, 0.5};
   Float_t dWC   = 15.63;
 
+  // BEOL (Metal interconnection stack in Si sensors)
+  Float_t aBEOL[3]={26.982, 28.086, 15.999};
+  Float_t zBEOL[3]={13, 14, 8}; // Al, Si, O
+  Float_t wBEOL[3]={0.170, 0.388, 0.442};
+  Float_t dBEOL = 2.28;
+
   // Inox 304
   Float_t aInox304[4]={12.0107,51.9961,58.6928,55.845};
   Float_t zInox304[4]={6.,24.,28,26}; // C, Cr, Ni, Fe
@@ -610,6 +616,17 @@ void Detector::createMaterials()
                                   deemax, epsil, stmin);
 
   // values below modified as compared to source AliITSv11 !
+
+  // BEOL (Metal interconnection stack in Si sensors)
+  o2::Base::Detector::Mixture(29, "METALSTACK$", aBEOL, zBEOL, dBEOL, 3, wBEOL);
+  o2::Base::Detector::Medium(29, "METALSTACK$", 29, 0, ifield, fieldm, tmaxfd, stemax,
+                                  deemax,epsil,stmin);
+
+  // Glue between IB chip and FPC: density reduced to take into account
+  // empty spaces (160 glue spots/chip , diam. 1 spot = 1 mm)
+  o2::Base::Detector::Material(30, "GLUE_IBFPC$", 12.011, 6, 1.05*0.3, 999,999);
+  o2::Base::Detector::Medium(30, "GLUE_IBFPC$", 30, 0, ifield, fieldm, tmaxfd, stemax,
+                                  deemax,epsil,stmin);
 
   // All types of carbon
   // Unidirectional prepreg
