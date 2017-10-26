@@ -36,15 +36,16 @@ QCONFIG_SETTING_TEMPLATE(def)
 
 template <typename T> struct qConfigSettings
 {
-	qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(0), max(0), set(0), message(nullptr) {}
+	qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(0), max(0), set(0), message(nullptr), allowEmpty(false) {}
 	bool checkMin, checkMax;
 	bool doSet, doDefault;
 	T min, max;
 	T set;
 	const char* message;
+	bool allowEmpty;
 };
 
-template <typename T> int qAddOptionType(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def, const char* help);
+template <typename T> int qAddOptionType(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def);
 template <typename T> void qAddOptionMessage(qConfigSettings<T>& settings, T& ref);
 template <typename T> int qAddOptionMinMax(qConfigSettings<T>& settings, T& ref, const char* arg);
 
@@ -86,28 +87,36 @@ template <typename T> struct qConfigType
 	}
 	
 	//Main processing function for arguments
-	template <typename... Args> static inline int qAddOption(T& ref, int& i, const char** argv, const int argc, T def, const char* help, Args&&... args)
+	static inline int qAddOptionMain(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def)
 	{
-		qConfigSettings<T> settings;
-		qAddOptionSettings(settings, args...);
 		int retVal = 0;
 		int iOrg = i;
 		if (settings.doSet) ref = settings.set;
-		else if ((retVal = qAddOptionType<T>(settings, ref, i, argv, argc, def, help))) return(retVal);
+		else if ((retVal = qAddOptionType<T>(settings, ref, i, argv, argc, def))) return(retVal);
 		if ((retVal = qAddOptionMinMax<T>(settings, ref, iOrg < argc ? argv[iOrg] : ""))) return(retVal);
 		qAddOptionMessage<T>(settings, ref);
 		return(0);
 	}
 	
+	template <typename... Args> static inline int qAddOption(T& ref, int& i, const char** argv, const int argc, T def, const char* help, Args&&... args)
+	{
+		qConfigSettings<T> settings;
+		qAddOptionSettings(settings, args...);
+		return qAddOptionMain(settings, ref, i, argv, argc, def);
+	}
+	
 	template <typename... Args> static inline int qAddOptionVec(std::vector<T>& ref, int& i, const char** argv, const int argc, const char* help, Args&&... args)
 	{
+		qConfigSettings<T> settings;
+		qAddOptionSettings(settings, args...);
 		int iFirst = i, iLast;
 		do
 		{
 			iLast = i;
 			T tmp = 0;
 			T def = 0;
-			int retVal = qAddOption(tmp, i, argv, argc, def, help, args...);
+			settings.allowEmpty = (i != iFirst);
+			int retVal = qAddOptionMain(settings, tmp, i, argv, argc, def);
 			if (retVal) return(i == iFirst ? retVal : 0);
 			if (i == iFirst || i != iLast) ref.push_back(tmp);
 		} while (i != iLast);
@@ -127,7 +136,7 @@ template <typename T> struct qConfigType
 		std::cout << ")\n\t\t" << help << ".\n";
 		if (settings.doDefault) std::cout << "\t\tIf no argument is supplied, " << name << " is set to " << settings.set << ".\n";
 		else if (optionType != 1 && std::is_same<T, bool>::value) std::cout << "\t\tIf no argument is supplied, " << name << " is set to true.\n";
-		if (optionType == 2) std::cout << "\t\tCan be set multiple times, or can accept multiple arguments.\n";
+		if (optionType == 2) std::cout << "\t\tCan be set multiple times, accepts multiple arguments.\n";
 		std::cout << "\n";
 	}
 };
@@ -138,7 +147,7 @@ inline const char* getArg(int& i, const char** argv, const int argc, bool allowO
 	return(nullptr);
 }
 
-template <class T> inline int qAddOptionGeneric(T& ref, int& i, const char** argv, const int argc, T def, std::function<T(const char*)> func, bool allowDefault = false)
+template <class T> inline int qAddOptionGeneric(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def, std::function<T(const char*)> func, bool allowDefault = false)
 {
 	const char* arg = getArg(i, argv, argc, !allowDefault);
 	if (arg)
@@ -151,42 +160,42 @@ template <class T> inline int qAddOptionGeneric(T& ref, int& i, const char** arg
 		ref = def;
 		return(0);
 	}
-	printf("Argument missing for option %s!\n", argv[i]);
+	if (!settings.allowEmpty) printf("Argument missing for option %s!\n", argv[i]);
 	return(qcrArgMissing);
 }
 
 //Handling of all supported types
-template <> inline int qAddOptionType<bool>(qConfigSettings<bool>& settings, bool& ref, int& i, const char** argv, const int argc, bool def, const char* help)
+template <> inline int qAddOptionType<bool>(qConfigSettings<bool>& settings, bool& ref, int& i, const char** argv, const int argc, bool def)
 {
-	return qAddOptionGeneric<bool>(ref, i, argv, argc, settings.doDefault ? settings.set : true, [](const char* a)->bool{return atoi(a);}, true);
+	return qAddOptionGeneric<bool>(settings, ref, i, argv, argc, settings.doDefault ? settings.set : true, [](const char* a)->bool{return atoi(a);}, true);
 }
-template <> inline int qAddOptionType<int>(qConfigSettings<int>& settings, int& ref, int& i, const char** argv, const int argc, int def, const char* help)
+template <> inline int qAddOptionType<int>(qConfigSettings<int>& settings, int& ref, int& i, const char** argv, const int argc, int def)
 {
-	return qAddOptionGeneric<int>(ref, i, argv, argc, settings.set, [](const char* a)->int{return atoi(a);}, settings.doDefault);
+	return qAddOptionGeneric<int>(settings, ref, i, argv, argc, settings.set, [](const char* a)->int{return atoi(a);}, settings.doDefault);
 }
-template <> inline int qAddOptionType<unsigned int>(qConfigSettings<unsigned int>& settings, unsigned int& ref, int& i, const char** argv, const int argc, unsigned int def, const char* help)
+template <> inline int qAddOptionType<unsigned int>(qConfigSettings<unsigned int>& settings, unsigned int& ref, int& i, const char** argv, const int argc, unsigned int def)
 {
-	return qAddOptionGeneric<unsigned int>(ref, i, argv, argc, settings.set, [](const char* a)->unsigned int{return strtoul(a, nullptr, 0);}, settings.doDefault);
+	return qAddOptionGeneric<unsigned int>(settings, ref, i, argv, argc, settings.set, [](const char* a)->unsigned int{return strtoul(a, nullptr, 0);}, settings.doDefault);
 }
-template <> inline int qAddOptionType<long long int>(qConfigSettings<long long int>& settings, long long int& ref, int& i, const char** argv, const int argc, long long int def, const char* help)
+template <> inline int qAddOptionType<long long int>(qConfigSettings<long long int>& settings, long long int& ref, int& i, const char** argv, const int argc, long long int def)
 {
-	return qAddOptionGeneric<long long int>(ref, i, argv, argc, settings.set, [](const char* a)->long long int{return strtoll(a, nullptr, 0);}, settings.doDefault);
+	return qAddOptionGeneric<long long int>(settings, ref, i, argv, argc, settings.set, [](const char* a)->long long int{return strtoll(a, nullptr, 0);}, settings.doDefault);
 }
-template <> inline int qAddOptionType<unsigned long long int>(qConfigSettings<unsigned long long int>& settings, unsigned long long int& ref, int& i, const char** argv, const int argc, unsigned long long int def, const char* help)
+template <> inline int qAddOptionType<unsigned long long int>(qConfigSettings<unsigned long long int>& settings, unsigned long long int& ref, int& i, const char** argv, const int argc, unsigned long long int def)
 {
-	return qAddOptionGeneric<unsigned long long int>(ref, i, argv, argc, settings.set, [](const char* a)->unsigned long long int{return strtoull(a, nullptr, 0);}, settings.doDefault);
+	return qAddOptionGeneric<unsigned long long int>(settings, ref, i, argv, argc, settings.set, [](const char* a)->unsigned long long int{return strtoull(a, nullptr, 0);}, settings.doDefault);
 }
-template <> inline int qAddOptionType<float>(qConfigSettings<float>& settings, float& ref, int& i, const char** argv, const int argc, float def, const char* help)
+template <> inline int qAddOptionType<float>(qConfigSettings<float>& settings, float& ref, int& i, const char** argv, const int argc, float def)
 {
-	return qAddOptionGeneric<float>(ref, i, argv, argc, settings.set, [](const char* a)->float{return (float) atof(a);}, settings.doDefault);
+	return qAddOptionGeneric<float>(settings, ref, i, argv, argc, settings.set, [](const char* a)->float{return (float) atof(a);}, settings.doDefault);
 }
-template <> inline int qAddOptionType<double>(qConfigSettings<double>& settings, double& ref, int& i, const char** argv, const int argc, double def, const char* help)
+template <> inline int qAddOptionType<double>(qConfigSettings<double>& settings, double& ref, int& i, const char** argv, const int argc, double def)
 {
-	return qAddOptionGeneric<double>(ref, i, argv, argc, settings.set, [](const char* a)->double{return atof(a);}, settings.doDefault);
+	return qAddOptionGeneric<double>(settings, ref, i, argv, argc, settings.set, [](const char* a)->double{return atof(a);}, settings.doDefault);
 }
-template <> inline int qAddOptionType<const char*>(qConfigSettings<const char*>& settings, const char*& ref, int& i, const char** argv, const int argc, const char* def, const char* help)
+template <> inline int qAddOptionType<const char*>(qConfigSettings<const char*>& settings, const char*& ref, int& i, const char** argv, const int argc, const char* def)
 {
-	return qAddOptionGeneric<const char*>(ref, i, argv, argc, settings.set, [](const char* a)->const char*{return a;}, settings.doDefault);
+	return qAddOptionGeneric<const char*>(settings, ref, i, argv, argc, settings.set, [](const char* a)->const char*{return a;}, settings.doDefault);
 }
 
 //Checks and messages for additional settings

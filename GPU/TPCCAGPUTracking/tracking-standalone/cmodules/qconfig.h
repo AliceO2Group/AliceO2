@@ -76,8 +76,8 @@
 #define AddShortcut(cmd, cmdshort, forward, help, ...) \
 	else if (QCONFIG_COMPARE(cmd, cmdshort)) \
 	{ \
-		const char* options[] = {"", __VA_ARGS__}; \
-		const int nOptions = sizeof(options) / sizeof(options[0]); \
+		const char* options[] = {"", __VA_ARGS__, NULL}; \
+		const int nOptions = sizeof(options) / sizeof(options[0]) - 1; \
 		qConfigParse(nOptions, options, NULL); \
 		thisoption = forward; \
 		goto repeat; \
