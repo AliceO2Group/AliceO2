@@ -240,7 +240,10 @@ class V3Layer : public V11Geometry
     /// \param mgr The GeoManager (used only to get the proper material)
     TGeoVolume *createStave(const TGeoManager *mgr = gGeoManager);
 
-    // TGeoVolume* createChip(Double_t x, Double_t z, const TGeoManager *mgr=gGeoManager);
+    /// Creates the actual Chip
+    /// \param xchip,ychip,zchip The chip half dimensions
+    /// \param mgr The GeoManager (used only to get the proper material)
+    TGeoVolume *createChip(Double_t x, Double_t y, Double_t z, const TGeoManager *mgr = gGeoManager);
 
     /// Creates the IB Module: (only the chips for the time being)
     /// Returns the module as a TGeoVolume
@@ -248,15 +251,23 @@ class V3Layer : public V11Geometry
     /// \param mgr The GeoManager (used only to get the proper material)
     TGeoVolume *createModuleInnerB(Double_t x, Double_t y, Double_t z, const TGeoManager *mgr = gGeoManager);
 
-    /// Creates the actual Chip
-    /// \param xchip,ychip,zchip The chip dimensions
-    /// \param mgr The GeoManager (used only to get the proper material)
-    TGeoVolume *createChipInnerB(Double_t x, Double_t y, Double_t z, const TGeoManager *mgr = gGeoManager);
-
     /// Creates the OB Module: HIC + FPC + Carbon plate
     /// Returns the module as a TGeoVolume
     /// \param mgr The GeoManager (used only to get the proper material)
     TGeoVolume *createModuleOuterB(const TGeoManager *mgr = gGeoManager);
+
+    /// Creates the IB FPC Aluminum Ground layer
+    /// Returns the layer as a TGeoVolume
+    /// \param x, z X, Z layer half lengths
+    /// \param mgr The GeoManager (used only to get the proper material)
+    TGeoVolume* createIBFPCAlGnd(Double_t x, Double_t z, const TGeoManager *mgr=gGeoManager);
+
+    /// Creates the IB FPC Aluminum Anode layer
+    /// Returns the layer as a TGeoVolume
+    /// \param x, z X, Z layer half lengths
+    /// \param mgr The GeoManager (used only to get the proper material)
+    TGeoVolume* createIBFPCAlAnode(Double_t x, Double_t z, const TGeoManager *mgr=gGeoManager);
+
 
     /// Create the chip stave for the Inner Barrel(Here we fake the halfstave volume to have the
     /// same formal geometry hierarchy as for the Outer Barrel)
@@ -390,13 +401,21 @@ class V3Layer : public V11Geometry
 
     static const Double_t sDefaultSensorThick; ///< Default sensor thickness
     static const Double_t sDefaultChipThick;   ///< Default chip thickness
+    static const Double_t sMetalLayerThick;    ///< Metal layer thickness
 
     // Inner Barrel Parameters
     static const Int_t sIBChipsPerRow; ///< IB chips per row in module
     static const Int_t sIBNChipRows;   ///< IB chip rows in module
+    static const Double_t sIBChipZGap;         ///< Gap between IB chips on Z
 
+    static const Double_t sIBFPCWiderXPlus;    ///< FPC protrusion at X>0
+    static const Double_t sIBFPCWiderXNeg ;    ///< FPC protrusion at X<0
     static const Double_t sIBFlexCableAlThick; ///< Thickness of FPC Aluminum
+    static const Double_t sIBFPCAlGNDWidth;    ///< Width of total FPC Al Gnd
+    static const Double_t sIBFPCAlAnodeWidth1; ///< Width of FPC Al Anode
+    static const Double_t sIBFPCAlAnodeWidth2; ///< Width of FPC Al Anode
     static const Double_t sIBFlexCableKapThick;///< Thickness of FPC Kapton
+    static const Double_t sIBFlexCablePolyThick;///< Thickness of FPC Coverlay
     static const Double_t sIBGlueThick;        ///< IB glue thickness
     static const Double_t sIBCarbonFleeceThick;///< IB carbon fleece thickness
     static const Double_t sIBCarbonPaperThick; ///< IB Carbon Paper Thickness
@@ -454,6 +473,8 @@ class V3Layer : public V11Geometry
     // Outer Barrel Parameters
     static const Int_t    sOBChipsPerRow;       ///< OB chips per row in module
     static const Int_t    sOBNChipRows;         ///< OB chip rows in module
+
+    static const Double_t sOBChipThickness;     ///< Default OB chip thickness
 
     static const Double_t sOBHalfStaveWidth;    ///< OB Half Stave Width
     static const Double_t sOBModuleWidth;       ///< OB Module Width
