@@ -54,7 +54,7 @@ static GEMRESPONSE GEMresponse;
 /// -# Induction of the signal on the pad plane, including a spread of the signal due to the pad response (PadResponse)
 /// -# Shaping and further signal processing in the Front-End Cards (SampaProcessing)
 /// The such created Digits and then sorted in an intermediate Container (DigitContainer) and after processing of the full event/drift time summed up
-/// and sorted as Digits into a TClonesArray which is then passed further on
+/// and sorted as Digits into a vector which is then passed further on
 
 class Digitizer {
   public:

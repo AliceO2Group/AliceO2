@@ -16,9 +16,10 @@
 #define ALICEO2_TPC_DigitRow_H_
 
 #include "TPCSimulation/DigitPad.h"
-#include <memory>
+#include "TPCBase/Digit.h"
+#include "TPCSimulation/DigitMCMetaData.h"
 
-class TClonesArray;
+#include <memory>
 
 namespace o2 {
 namespace TPC {
@@ -28,7 +29,7 @@ namespace TPC {
 /// The structure assures proper sorting of the Digits when later on written out for further processing.
 /// This class holds the individual Pad containers and is contained within the Time Bin Container.
 
-class DigitRow{
+class DigitRow {
   public:
 
     /// Constructor
@@ -64,7 +65,7 @@ class DigitRow{
     /// \param charge Charge of the digit
     void setDigit(size_t hitID, int pad, float charge);
 
-    /// Fill output TClonesArray
+    /// Fill output vector
     /// \param output Output container
     /// \param mcTruth MC Truth container
     /// \param debug Optional debug output container
@@ -72,7 +73,8 @@ class DigitRow{
     /// \param timeBin Time bin
     /// \param row Row ID
     /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, float commonMode = 0.f);
+    void fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
+			     std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, int row, float commonMode = 0.f);
 
   private:
     unsigned char          mRow;                ///< Row of the ADC value

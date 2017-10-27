@@ -42,13 +42,13 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   int mTimeBinsPerCall=500;
 
   // ===| output file and container |===========================================
-  TClonesArray arrCluster("o2::TPC::Cluster");
+  std::vector<o2::TPC::HwCluster> arrCluster;
   TFile fout(outputFileName,"recreate");
   TTree t("clusters","clusters");
   t.Branch("cl", &arrCluster);
 
   // ===| cluster finder |======================================================
-  HwClusterer cl;
+  HwClusterer cl(&arrCluster);
   cl.setPedestalObject(pedestal);
   cl.Init();
 
@@ -69,28 +69,26 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
 
     printf("Event %d, found digits: %zu\n", events, digits.size());
 
+    // Review if this copy from digits to arr is still needed? (as it used to be when it was still a TClonesArray)
     float maxTime = 0;
-    TClonesArray arr("o2::TPC::Digit");
+    std::vector<Digit> arr; 
     for (auto& digi : digits) {
       if (digi.getRow() == 255 && digi.getPad() == 255) continue;
-      const size_t nDig = arr.GetEntries();
-      new (arr[nDig]) Digit(digi.getCRU(), digi.getChargeFloat(), digi.getRow(), digi.getPad(), digi.getTimeStamp());
+      arr.emplace_back(digi.getCRU(), digi.getChargeFloat(), digi.getRow(), digi.getPad(), digi.getTimeStamp());
       if (digi.getTimeStamp() > maxTime) maxTime = digi.getTimeStamp();
     }
 
-    printf("Converted digits: %d, max time: %.2f\n", arr.GetEntriesFast(), maxTime);
+    printf("Converted digits: %lu, max time: %.2f\n", arr.size(), maxTime);
     //for (Int_t i=0; i<10; ++i) {
       //printf("%.2f ", ((DigitMC*)arr.At(i))->getChargeFloat());
     //}
     //printf("\n");
 
-    ClusterContainer* clCont = cl.Process(&arr);
-
-    clCont->FillOutputContainer(&arrCluster);
+    cl.Process(arr);
     t.Fill();
 
-    printf("Found clusters: %d\n", arrCluster.GetEntriesFast());
-    arrCluster.Clear();
+    printf("Found clusters: %lu\n", arrCluster.size());
+    arrCluster.clear();
     ++events;
   }
 

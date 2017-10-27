@@ -17,7 +17,6 @@
 #include "TPCSimulation/HwCluster.h"
 
 #include "FairLogger.h"
-#include "TClonesArray.h"
 
 
 using namespace o2::TPC;

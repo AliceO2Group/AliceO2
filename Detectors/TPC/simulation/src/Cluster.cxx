@@ -23,8 +23,8 @@ std::ostream& Cluster::print(std::ostream& out) const {
 //{
   out << "TPC Cluster in CRU [" << mCRU << "], pad row ["
 	 << mRow << "] with charge/maxCharge " << mQ << "/" << mQmax
-	 << " and coordinates (" << mPadMean << ", " << GetTimeStamp() << ")"
-	 << " and width (" << mPadSigma << ", " << GetTimeStampError() << ")";
+	 << " and coordinates (" << mPadMean << ", " << getTimeStamp() << ")"
+	 << " and width (" << mPadSigma << ", " << getTimeStampError() << ")";
   return out;
 }
 

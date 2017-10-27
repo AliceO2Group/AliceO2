@@ -19,11 +19,12 @@
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/CommonModeContainer.h"
 
-class TClonesArray;
-
 namespace o2 {
 namespace TPC {
 
+class Digit;
+class DigitMCMetaData;
+  
 /// \class DigitContainer
 /// This is the base class of the intermediate Digit Containers, in which all incoming electrons from the hits are sorted into after amplification
 /// The structure assures proper sorting of the Digits when later on written out for further processing.
@@ -57,13 +58,14 @@ class DigitContainer{
     /// \param charge Charge of the digit
     void addDigit(size_t hitID, int cru, int timeBin, int row, int pad, float charge);
 
-    /// Fill output TClonesArray
+    /// Fill output vector
     /// \param output Output container
     /// \param mcTruth MC Truth container
     /// \param debug Optional debug output container
     /// \param eventTime time stamp of the event
     /// \param isContinuous Switch for continuous readout
-    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int eventTime=0, bool isContinuous=true);
+    void fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
+			     std::vector<o2::TPC::DigitMCMetaData> *debug, int eventTime=0, bool isContinuous=true);
 
   private:
     std::array<std::unique_ptr<DigitCRU> , CRU::MaxCRU> mCRU;   ///< CRU Container for the ADC value

@@ -58,7 +58,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString chere
   float cherenkovValue = 0.;
   int runNumber = 0;
 
-  TClonesArray *clusters=0x0;
+  std::vector<o2::TPC::HwCluster> *clusters=nullptr;
   c.SetBranchAddress("TPCClusterHW", &clusters);
   //c.SetBranchAddress("TPC_Cluster", &clusters);
   c.SetBranchAddress("cherenkovValue", &cherenkovValue);
@@ -132,7 +132,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString chere
       {
         //printf(" %d", ClusterIDs[iCluster]);
 
-        Cluster& tempCluster = *(static_cast<Cluster*>(clusters->At(ClusterIDs[iCluster])));
+        const auto& tempCluster = (*clusters)[ClusterIDs[iCluster]];
         storedTrack.addCluster(tempCluster);
       }
       //printf("\n");

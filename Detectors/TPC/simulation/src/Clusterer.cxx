@@ -25,8 +25,7 @@ Clusterer::Clusterer()
 //________________________________________________________________________
 Clusterer::Clusterer(int rowsMax, int padsMax, int timeBinsMax, int minQMax,
     bool requirePositiveCharge, bool requireNeighbouringPad)
-  : mClusterContainer(nullptr)
-  , mRowsMax(rowsMax)
+  : mRowsMax(rowsMax)
   , mPadsMax(padsMax)
   , mTimeBinsMax(timeBinsMax)
   , mMinQMax(minQMax)

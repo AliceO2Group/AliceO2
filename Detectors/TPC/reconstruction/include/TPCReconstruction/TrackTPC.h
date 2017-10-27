@@ -16,8 +16,6 @@
 #include "TPCBase/Defs.h"
 #include "TPCSimulation/Cluster.h"
 
-#include <TClonesArray.h>
-
 
 namespace o2 {
 namespace TPC {
@@ -49,10 +47,11 @@ class TrackTPC {
     ~TrackTPC() = default;
 
     /// Add a single cluster to the track
-    void addCluster(Cluster &c);
+    void addCluster(const Cluster &c);
 
-    /// Add an array of clusters to the track
-    void addClusterArray(TClonesArray *arr);
+    /// Add an array/vector of clusters to the track; ClusterType needs to inherit from o2::TPC::Cluster
+    template <typename ClusterType>
+    void addClusterArray(std::vector<ClusterType> *arr);
 
     /// Get the clusters which are associated with the track
     /// \return clusters of the track as a std::vector
@@ -129,18 +128,18 @@ TrackTPC::TrackTPC(const std::array<float,3> &xyz,const std::array<float,3> &pxp
   , mClusterVector()
 {}
 
-inline
-void TrackTPC::addCluster(Cluster &c)
+inline void TrackTPC::addCluster(const Cluster& c)
 {
   mClusterVector.push_back(c);
 }
 
+template<typename ClusterType>
 inline
-void TrackTPC::addClusterArray(TClonesArray *arr)
+void TrackTPC::addClusterArray(std::vector<ClusterType> *arr)
 {
+  static_assert(std::is_base_of<o2::TPC::Cluster, ClusterType>::value, "ClusterType needs to inherit from o2::TPC::Cluster");
   for (auto clusterObject : *arr){
-    Cluster *inputcluster = static_cast<Cluster*>(clusterObject);
-    addCluster(*inputcluster);
+    addCluster(clusterObject);
   }
 }
 

@@ -15,11 +15,10 @@
 #define ALICEO2_TPC_HWClusterer_H_
 
 #include "TPCSimulation/Clusterer.h"
+#include "TPCSimulation/HwCluster.h"
 #include "TPCBase/CalDet.h" 
 
 #include <vector>
-
-class TClonesArray;
 
 namespace o2{
 namespace TPC {
@@ -37,6 +36,7 @@ class HwClusterer : public Clusterer {
     enum class Processing : int { Sequential, Parallel};
 
     /// Constructor
+    /// \param output is pointer to vector to be filled with clusters
     /// \param processingType parallel or sequential
     /// \param globalTime value of first timebin
     /// \param cru Number of CRUs to process
@@ -48,7 +48,8 @@ class HwClusterer : public Clusterer {
     /// \param timebinsPerCF Timebins per cluster finder
     /// \param cfPerRow Number of cluster finder in each row
     HwClusterer(
-        Processing processingType = Processing::Parallel,
+	std::vector<o2::TPC::HwCluster> *output,
+	Processing processingType = Processing::Parallel,
         int globalTime = 0, 
         int cruMin = 0,
         int cruMax = 360, 
@@ -70,8 +71,8 @@ class HwClusterer : public Clusterer {
     /// Steer conversion of points to digits
     /// @param digits Container with TPC digits
     /// @return Container with clusters
-    ClusterContainer* Process(TClonesArray *digits) override;
-    ClusterContainer* Process(std::vector<std::unique_ptr<Digit>>& digits) override;
+    void Process(std::vector<o2::TPC::Digit> const &digits) override;
+    void Process(std::vector<std::unique_ptr<Digit>>& digits) override;
 
     void setProcessingType(Processing processing)    { mProcessingType = processing; };   
 
@@ -104,7 +105,7 @@ class HwClusterer : public Clusterer {
     };
     
     static void processDigits(
-        const std::vector<std::vector<Digit*>>& digits, 
+        const std::vector<std::vector<Digit const*>>& digits, 
         const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
               std::vector<HwCluster>& cluster, 
               CfConfig config);
@@ -114,10 +115,10 @@ class HwClusterer : public Clusterer {
 //              unsigned minTimeBin,
 //              unsigned maxTimeBin);
     
-    ClusterContainer* ProcessTimeBins(int iTimeBinMin, int iTimeBinMax);
+    void ProcessTimeBins(int iTimeBinMin, int iTimeBinMax);
 
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
-    std::vector<std::vector<std::vector<Digit*>>> mDigitContainer;
+    std::vector<std::vector<std::vector<Digit const*>>> mDigitContainer;
 
     std::vector<std::vector<HwCluster>> mClusterStorage;
     
@@ -136,6 +137,8 @@ class HwClusterer : public Clusterer {
     int     mCfPerRow;
     int     mLastTimebin;
 
+    std::vector<o2::TPC::HwCluster>* mClusterArray;    ///< Internal cluster storage
+    
     CalDet<float>* mNoiseObject;
     CalDet<float>* mPedestalObject;
   };

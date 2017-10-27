@@ -23,15 +23,16 @@ namespace TPC {
 // A minimal (temporary) TimeStamp class, introduced here for
 // reducing memory consumption to a minimum.
 // This can be used only when MCtruth is not done using FairLinks.
-class TimeStamp : public TObject {
+class TimeStamp {
 public:
   TimeStamp() {}
   TimeStamp(int time) {
-    // we use the TObjectID for the time
-    SetUniqueID(time);
+    mTimeStamp = time;
   }
-  int GetTimeStamp() const { return TObject::GetUniqueID(); }
-  ClassDef(TimeStamp, 1);
+  int GetTimeStamp() const { return mTimeStamp; }
+private:
+  int mTimeStamp = 0;
+  ClassDefNV(TimeStamp, 1);
 };
 using DigitBase = TimeStamp;
 
@@ -55,7 +56,7 @@ class Digit : public DigitBase {
     Digit(int cru, float charge, int row, int pad, int time);
 
     /// Destructor
-    ~Digit() final = default;
+    ~Digit() = default;
 
     /// Get the accumulated charged of the Digit in ADC counts.
     /// The conversion is such that the decimals are simply stripped
@@ -91,8 +92,7 @@ class Digit : public DigitBase {
     unsigned char           mPad;             ///< Pad of the Digit
 
 
-    ClassDef(Digit, 1);
-
+    ClassDefNV(Digit, 1);
 };
 
 inline

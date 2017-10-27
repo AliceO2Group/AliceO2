@@ -22,6 +22,7 @@
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
+#include "TPCSimulation/HwCluster.h"
 #include "TPCBase/Mapper.h"
 #endif
 
@@ -43,8 +44,7 @@ void testTracks(int checkEvent = 0,
   TFile *clusFile = TFile::Open(clusterFile.data());
   TTree *clusterTree = (TTree *)gDirectory->Get("cbmsim");
 
-  TClonesArray clusterArr("Cluster");
-  TClonesArray *clusters(&clusterArr);
+  std::vector<o2::TPC::HwCluster> *clusters=nullptr;
   clusterTree->SetBranchAddress("TPCClusterHW",&clusters);
 
   TGraph *grClusters   = new TGraph();
@@ -76,8 +76,8 @@ void testTracks(int checkEvent = 0,
 
   int clusCounter = 0;
   clusterTree->GetEntry(checkEvent);
-  for(auto clusterObject : *clusters) {
-    Cluster *inputcluster = static_cast<Cluster *>(clusterObject);
+  for(auto& clusterObject : *clusters) {
+    Cluster* inputcluster = &clusterObject;
     const CRU cru(inputcluster->getCRU());
 
     const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
@@ -129,7 +129,7 @@ void testTracks(int checkEvent = 0,
     for (auto trackObject : *arrTracks) {
       std::vector<Cluster> clCont;
       trackObject.getClusterVector(clCont);
-      for(auto clusterObject : clCont) {
+      for(auto& clusterObject : clCont) {
         const CRU cru(clusterObject.getCRU());
 
         const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());

@@ -18,9 +18,8 @@
 
 #include "Rtypes.h"
 #include "TPCSimulation/Clusterer.h"
+#include "TPCSimulation/BoxCluster.h"
 #include "TPCBase/CalDet.h"
-
-class TClonesArray;
 
 namespace o2{
   
@@ -30,7 +29,7 @@ namespace o2{
     
     class BoxClusterer : public Clusterer {
     public:
-      BoxClusterer();
+      BoxClusterer(std::vector<o2::TPC::BoxCluster> *output);
       
       /// Destructor
       ~BoxClusterer() override;
@@ -42,8 +41,8 @@ namespace o2{
       /// Steer conversion of points to digits
       /// @param digits Container with TPC digits
       /// @return Container with clusters
-      ClusterContainer* Process(TClonesArray *digits) override;
-      ClusterContainer* Process(std::vector<std::unique_ptr<Digit>>& digits) override;
+      void Process(std::vector<o2::TPC::Digit> const & digits) override;
+      void Process(std::vector<std::unique_ptr<Digit>>& digits) override;
       
       /// Set a pedestal object
       void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
@@ -74,6 +73,8 @@ namespace o2{
       Int_t**   mAllSigBins;   //!<! Array of pointers to the indexes over threshold
       Int_t*    mAllNSigBins;  //!<! Array with number of signals in each row
       CalPad*   mPedestals;    //!<! Pedestal data
+
+      std::vector<o2::TPC::BoxCluster>* mClusterArray; ///< Internal cluster storage
       
       ClassDefNV(BoxClusterer, 1);
     };

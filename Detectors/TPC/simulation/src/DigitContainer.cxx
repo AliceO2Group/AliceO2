@@ -35,7 +35,8 @@ void DigitContainer::addDigit(size_t hitID, int cru, int timeBin, int row, int p
 }
 
 
-void DigitContainer::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel>  &mcTruth, TClonesArray *debug, int eventTime, bool isContinuous)
+void DigitContainer::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
+					 std::vector<o2::TPC::DigitMCMetaData> *debug, int eventTime, bool isContinuous)
 {
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;

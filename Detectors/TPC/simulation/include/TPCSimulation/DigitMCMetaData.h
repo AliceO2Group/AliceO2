@@ -16,7 +16,6 @@
 #define ALICEO2_TPC_DigitMCMetaData_H_
 
 #include <Rtypes.h>
-#include <TObject.h>
 
 namespace o2 {
 namespace TPC {
@@ -26,7 +25,7 @@ namespace TPC {
 /// It holds auxilliary information relevant for debugging:
 /// ADC value, Common Mode, Pedestal and Noise
 
-class DigitMCMetaData : public TObject {
+class DigitMCMetaData {
   public:
 
     /// Default constructor
@@ -40,7 +39,7 @@ class DigitMCMetaData : public TObject {
     DigitMCMetaData(float ADC, float commonMode, float pedestal, float noise);
 
     /// Destructor
-    ~DigitMCMetaData() final = default;
+    ~DigitMCMetaData() = default;
 
     /// Get the raw ADC value
     /// \return Raw ADC value of the corresponding DigitMC (before saturation)
@@ -64,7 +63,7 @@ class DigitMCMetaData : public TObject {
     float         mPedestal;        ///< Pedestal value of the DigitMCMetaData
     float         mNoise;           ///< Noise value of the DigitMCMetaData
 
-  ClassDef(DigitMCMetaData, 1);
+  ClassDefNV(DigitMCMetaData, 1);
 };
 
 inline

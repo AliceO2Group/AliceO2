@@ -12,7 +12,6 @@
 /// \brief Implementation of the ALICE TPC digitizer
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
-#include <TClonesArray.h>
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/GEMAmplification.h"

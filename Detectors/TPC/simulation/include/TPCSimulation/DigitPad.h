@@ -21,17 +21,19 @@
 #include "FairRootManager.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include <TClonesArray.h>
 
 namespace o2 {
 namespace TPC {
 
+class Digit;
+class DigitMCMetaData;
+  
 /// \class DigitPad
 /// This is the fifth and lowest class of the intermediate Digit Containers, in which all incoming electrons from the hits are sorted into after amplification
 /// The structure assures proper sorting of the Digits when later on written out for further processing.
 /// This class holds the individual pad containers and is contained within the Row Container.
 
-class DigitPad{
+class DigitPad {
   public:
 
     /// Constructor
@@ -57,7 +59,7 @@ class DigitPad{
     /// \param charge Charge of the digit
     void setDigit(size_t hitID, float charge);
 
-    /// Fill output TClonesArray
+    /// Fill output vector
     /// \param output Output container
     /// \param mcTruth MC Truth container
     /// \param debug Optional debug output container
@@ -66,7 +68,8 @@ class DigitPad{
     /// \param row Row ID
     /// \param pad pad ID
     /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode = 0.f);
+    void fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
+			     std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, int row, int pad, float commonMode = 0.f);
 
   private:
 

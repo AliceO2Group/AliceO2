@@ -23,9 +23,12 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/bind.hpp>
 
+#include <vector>
+
 using namespace o2::TPC;
 
-void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode)
+void DigitPad::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
+				   std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, int row, int pad, float commonMode)
 {
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise, pedestals and saturation of the SAMPA
@@ -41,18 +44,15 @@ void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTrut
     std::sort(mMClabel.begin(), mMClabel.end(), [](const P& a, const P& b) { return a.second > b.second;});
 
     /// Write out the Digit
-    TClonesArray &clref = *output;
-    const size_t digiPos = clref.GetEntriesFast();
-    new(clref[digiPos]) Digit(cru, mADC, row, pad, timeBin); /// create Digit
-
+    const auto digiPos = output->size();
+    output->emplace_back(cru, mADC, row, pad, timeBin); /// create Digit and append to container
+    
     for(auto &mcLabel : mMClabel) {
       mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
     }
 
     if(debug!=nullptr) {
-      TClonesArray &clrefDebug = *debug;
-      const size_t digiPosDebug = clrefDebug.GetEntriesFast();
-      new(clrefDebug[digiPosDebug]) DigitMCMetaData(mChargePad, commonMode, pedestal, noise); /// create DigitMCMetaData
+      debug->emplace_back(mChargePad, commonMode, pedestal, noise); /// create DigitMCMetaData
     }
   }
 }

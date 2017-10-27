@@ -47,7 +47,7 @@ class HwCluster : public Cluster {
         float** clusterData, short maxPad, short maxTime);
 
     /// Destructor
-    ~HwCluster() override = default;
+    ~HwCluster() = default;
 
     /// Copy Constructor
     /// \param other HwCluster to be copied
@@ -73,7 +73,7 @@ class HwCluster : public Cluster {
     /// \param output Stream to put the HwCluster on
     /// \return The output stream
     friend std::ostream& operator<< (std::ostream& out, const HwCluster &c) { return c.print(out); }
-    std::ostream& print(std::ostream &output) const override;
+    std::ostream& print(std::ostream &output) const;
     std::ostream& PrintDetails(std::ostream &output) const;
 
   private:
@@ -88,7 +88,7 @@ class HwCluster : public Cluster {
 
     std::vector<std::vector<float>> mClusterData;  ///< CLuster data
 
-    ClassDefOverride(HwCluster, 1);
+    ClassDefNV(HwCluster, 1);
   };
 }
 }

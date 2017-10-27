@@ -18,13 +18,11 @@
 
 #include "TPCSimulation/ClustererTask.h"
 #include "TPCSimulation/ClusterContainer.h"  // for ClusterContainer
-
-#include "TObject.h"             // for TObject
-#include "TClonesArray.h"        // for TClonesArray
+#include "TPCBase/Digit.h"
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager
 
-ClassImp(o2::TPC::ClustererTask)
+ClassImp(o2::TPC::ClustererTask);
 
 using namespace o2::TPC;
 
@@ -70,32 +68,35 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigit"));
+  mDigitsArray = mgr->InitObjectAs<decltype(mDigitsArray)>("TPCDigit");
   if( !mDigitsArray ) {
     LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   if (mBoxClustererEnable) {
-    mBoxClusterer = new BoxClusterer();
-    mBoxClusterer->Init();
     
-    // Register output container
-    mClustersArray = new TClonesArray("o2::TPC::Cluster");
-    mgr->Register("TPCCluster", "TPC", mClustersArray, kTRUE);
+    // Create and register output container
+    mClustersArray = new std::vector<o2::TPC::BoxCluster>;
+    mgr->RegisterAny("TPCCluster", mClustersArray, kTRUE);
+
+    // create clusterer and pass output pointer
+    mBoxClusterer = new BoxClusterer(mClustersArray);
+    mBoxClusterer->Init();
   }
 
   if (mHwClustererEnable) {
-    mHwClusterer = new HwClusterer();
+    // Register output container
+    mHwClustersArray = new std::vector<o2::TPC::HwCluster>;
+    mgr->RegisterAny("TPCClusterHW", mHwClustersArray, kTRUE);
+
+     // create clusterer and pass output pointer
+    mHwClusterer = new HwClusterer(mHwClustersArray);
     mHwClusterer->setContinuousReadout(mIsContinuousReadout);
     mHwClusterer->Init();
 // TODO: implement noise/pedestal objecta
 //    mHwClusterer->setNoiseObject();
 //    mHwClusterer->setPedestalObject();
-
-    // Register output container
-    mHwClustersArray = new TClonesArray("o2::TPC::Cluster");
-    mgr->Register("TPCClusterHW", "TPC", mHwClustersArray, kTRUE);
   }
 
   return kSUCCESS;
@@ -104,19 +105,16 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t *option)
 {
-  LOG(DEBUG) << "Running clusterization on new event with " << mDigitsArray->GetEntriesFast() << " digits" << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on new event with " << mDigitsArray->size() << " digits" << FairLogger::endl;
 
   if (mBoxClustererEnable) {
-    mClustersArray->Clear();
-    ClusterContainer* clusters = mBoxClusterer->Process(mDigitsArray);
-    clusters->FillOutputContainer(mClustersArray);
+    mClustersArray->clear();
+    mBoxClusterer->Process(*mDigitsArray);
   }
 
   if (mHwClustererEnable) {
-    mHwClustersArray->Clear();
-    ClusterContainer* hwClusters = mHwClusterer->Process(mDigitsArray);
-    hwClusters->FillOutputContainer(mHwClustersArray);
-    LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->GetEntriesFast() << " clusters" << FairLogger::endl;
+    mHwClustersArray->clear();
+    mHwClusterer->Process(*mDigitsArray);
+    LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl;
   }
-
 }
