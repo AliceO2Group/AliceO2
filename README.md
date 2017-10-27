@@ -50,3 +50,4 @@ clang-format -style=file -i SOURCEFILE
 
 ##### Using an IDE
 A number of config files are available [here](https://github.com/AliceO2Group/CodingGuidelines) for various IDEs.
+
