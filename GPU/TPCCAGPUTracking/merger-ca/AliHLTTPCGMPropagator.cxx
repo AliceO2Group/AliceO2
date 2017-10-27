@@ -464,14 +464,11 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
   GetErr2(err2Y, err2Z, param, posZ, rowType);
   
   if ( fT->NDF()==-5 ) { // first measurement: no need to filter, as the result is known in advance. just set it. 
+    fT->ResetCovariance();
     fP[ 0] = posY;
     fP[ 1] = posZ;
     fC[ 0] = err2Y;
-    fC[ 1] = 0;     fC[ 2] = err2Z;
-    fC[ 3] = 0;     fC[ 4] = 0;     fC[ 5] = 1;
-    fC[ 6] = 0;     fC[ 7] = 0;     fC[ 8] = 0;   fC[ 9] = 10;
-    fC[10] = 0;     fC[11] = 0;     fC[12] = 0;   fC[13] =  0;    fC[14] = 10;
-    fT->Chi2() = 0.f;
+    fC[ 2] = err2Z;
     fT->NDF() = -3;   
     return 0;
   }  
