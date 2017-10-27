@@ -27,6 +27,7 @@
 #include "TStyle.h"
 
 #include "../cmodules/qconfig.h"
+#include "../cmodules/timer.h"
 
 struct additionalMCParameters
 {
@@ -64,6 +65,7 @@ static TPad* pclust[3];
 static TLegend* legendclust[3];
 
 #define DEBUG 0
+#define TIMING 0
 
 #define SORT_NLABELS 1
 
@@ -268,6 +270,7 @@ void RunQA()
 	memset(clusterParam.data(), 0, clusterParam.size() * sizeof(clusterParam[0]));
 	totalFakes = 0;
 	structConfigQA& config = configStandalone.configQA;	
+	HighResTimer timer;
 
 	if (hlt.GetNMCInfo() == 0 || hlt.GetNMCLabels() == 0)
 	{
@@ -276,7 +279,11 @@ void RunQA()
 	}
 
 	//Assign Track MC Labels
+	timer.Start();
 	bool ompError = false;
+#if DEBUG == 0
+#pragma omp parallel for
+#endif
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
 		if (ompError) continue;
@@ -303,7 +310,7 @@ void RunQA()
 		if (ompError) continue;
 		if (labels.size() == 0)
 		{
-			trackMCLabels[i] = -1;
+			trackMCLabels[i] = -1e9;
 			totalFakes++;
 			continue;
 		}
@@ -340,19 +347,6 @@ void RunQA()
 			}
 		}
 		
-		if (track.OK())
-		{
-			for (int k = 0;k < track.NClusters();k++)
-			{
-				if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
-				int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
-				bool correct = false;
-				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == maxLabel.fMCID) {correct=true;break;}
-				if (correct) clusterParam[hitId].attached++;
-				else clusterParam[hitId].fakeAttached++;
-			}
-		}
-
 		if (maxcount < config.recThreshold * nClusters)
 		{
 			fakeTracks[maxLabel.fMCID]++;
@@ -378,6 +372,44 @@ void RunQA()
 		}
 	}
 	if (ompError) return;
+	for (int i = 0; i < merger.NOutputTracks(); i++)
+	{
+		if (trackMCLabels[i] == -1e9) continue;
+		int label = trackMCLabels[i] < 0 ? (-trackMCLabels[i] - 2) : trackMCLabels[i]
+		;
+		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+		if (track.OK())
+		{
+			for (int k = 0;k < track.NClusters();k++)
+			{
+				if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
+				int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+				bool correct = false;
+				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true;break;}
+				if (correct) clusterParam[hitId].attached++;
+				else clusterParam[hitId].fakeAttached++;
+			}
+		}
+		if (trackMCLabels[i] < 0)
+		{
+			fakeTracks[label]++;
+		}
+		else
+		{
+			recTracks[label]++;
+			
+			int& revLabel = trackMCLabelsReverse[label];
+			if (revLabel == -1 ||
+				!merger.OutputTracks()[revLabel].OK() ||
+				(merger.OutputTracks()[i].OK() && fabs(merger.OutputTracks()[i].GetParam().GetZ()) < fabs(merger.OutputTracks()[revLabel].GetParam().GetZ())))
+			{
+				revLabel = i;
+			}
+		}
+	}
+	
+	if (TIMING) printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+	timer.ResetStart();
 	
 	//Recompute fNWeightCls (might have changed after merging events into timeframes)
 	for (int i = 0;i < hlt.GetNMCInfo();i++) mcParam[i].nWeightCls = 0.;
@@ -391,6 +423,8 @@ void RunQA()
 			mcParam[labels[i].fClusterID[j].fMCID].nWeightCls += labels[i].fClusterID[j].fWeight / weightTotal;
 		}
 	}
+	if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+	timer.ResetStart();
 	
 	//Compute MC Track Parameters for MC Tracks
 	//Fill Efficiency Histograms
@@ -437,7 +471,9 @@ void RunQA()
 			}
 		}
 	}
-	
+	if (TIMING) printf("QA Time: Fill efficiency histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+	timer.ResetStart();
+
 	//Fill Resolution Histograms
 	AliHLTTPCGMPropagator prop;
 	const float kRho = 1.025e-3;//0.9e-3;
@@ -507,6 +543,8 @@ void RunQA()
 			}
 		}
 	}
+	if (TIMING) printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+	timer.ResetStart();
 	
 	//Fill Cluster Histograms
 	for (int i = 0;i < hlt.GetNMCInfo();i++)
@@ -516,9 +554,6 @@ void RunQA()
 		float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
 		clusters[3]->Fill(pt, mc2.nWeightCls);
 		if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc2.nWeightCls);
-	}
-	for (int i = 0;i < hlt.GetNMCLabels();i++)
-	{
 		float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached;
 		if (totalAttached <= 0) continue;
 		float totalWeight = 0.;
@@ -537,6 +572,7 @@ void RunQA()
 			}
 		}
 	}
+	if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 }
 
 void GetName(char* fname, int k)
