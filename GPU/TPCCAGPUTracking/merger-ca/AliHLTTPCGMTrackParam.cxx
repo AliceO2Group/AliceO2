@@ -284,7 +284,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	   
 	AliHLTTPCGMTrackParam t = track.Param();
 	float Alpha = track.Alpha();  
-	int nTrackHitsOld = nTrackHits;
+	//int nTrackHitsOld = nTrackHits;
 	//float ptOld = t.QPt();
 	t.Fit( field,
 	   x+track.FirstClusterRef(),
@@ -305,14 +305,13 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
 		ok = 1;
-		nTrackHits = nTrackHitsOld;
 		for (int k = 0;k < nTrackHits;k++) if (row[k] < 0) row[k] = -row[k] - 1;
 	}
 	track.SetOK(ok);
 	if (!ok) return;
 
 	if( 1 ){//SG!!!
-	  track.SetNClusters( nTrackHits );
+	  track.SetNClustersFitted( nTrackHits );
 	  track.Param() = t;
 	  track.Alpha() = Alpha;
 	}
