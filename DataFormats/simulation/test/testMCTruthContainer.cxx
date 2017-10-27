@@ -13,7 +13,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/LabelContainer.h"
 #include <algorithm>
+#include <iostream>
 
 namespace o2
 {
@@ -61,6 +63,79 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   // try to get something invalid
   view = container.getLabels(10);
   BOOST_CHECK(view.size() == 0);
+}
+
+
+BOOST_AUTO_TEST_CASE(MCTruth_Iter)
+{
+  using TruthElement = long;
+  dataformats::MCTruthContainerList<TruthElement> container;
+  container.addElement(0, TruthElement(1));
+  container.addElement(1, TruthElement(1));
+  container.addElement(0, TruthElement(10));
+  container.addElement(2, TruthElement(20));
+
+  BOOST_CHECK(container.getNElements() == 4);
+
+  auto iter = container.begin(2);
+  for(;iter!=container.end();++iter){
+    std::cerr << *iter << "\n";
+  }
+
+  iter = container.begin(2);
+  for(;iter!=container.end();++iter){
+    std::cerr << *iter << "\n";
+  }
+
+  auto view = container.getLabels(0);
+  for(auto &e : view) {
+    std::cerr << e << "\n";
+  }
+ 
+  // FIXME: sorting
+  // std::sort(view.begin(), view.end(), [](TruthElement a, TruthElement b){return a>b;});
+}
+
+  
+BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
+{
+  using TruthElement = long;
+  // creates a container where labels might not be contiguous
+  dataformats::LabelContainer<TruthElement, false> container;
+  container.addLabel(0, TruthElement(1));
+  container.addLabel(1, TruthElement(1));
+  container.addLabel(0, TruthElement(10));
+  container.addLabel(2, TruthElement(20));
+
+  auto view = container.getLabels(0);
+  BOOST_CHECK(view.size() == 2);
+  for(auto &e : view) {
+    std::cerr << e << "\n";
+  }
+
+  std::vector<TruthElement> v;
+  container.fillVectorOfLabels(0,v);  
+  BOOST_CHECK(v.size()==2);
+  std::sort(v.begin(), v.end(), [](TruthElement a, TruthElement b){return a>b;});
+  for(auto &e : v) {
+    std::cerr << e << "\n";
+  }
+  
+  // in this case we have to add the elements contiguously per dataindex:
+  dataformats::LabelContainer<TruthElement, true> cont2;
+  cont2.addLabel(0, TruthElement(1));
+  cont2.addLabel(0, TruthElement(10));
+  cont2.addLabel(1, TruthElement(1));
+  cont2.addLabel(2, TruthElement(20));
+
+  auto view2 = cont2.getLabels(0);
+  BOOST_CHECK(view2.size() == 2);
+  for(auto &e : view2) {
+    std::cerr << e << "\n";
+  }
+
+  // get labels for nonexisting dataelement
+  BOOST_CHECK(cont2.getLabels(100).size() == 0);
 }
 
 } // end namespace

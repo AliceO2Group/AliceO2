@@ -22,8 +22,12 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/bind.hpp>
+#include <cassert>
 
 using namespace o2::TPC;
+
+unsigned int DigitPad::sID = 0; // a global id counter
+o2::dataformats::LabelContainer<std::pair<o2::MCCompLabel, int>, false> DigitPad::sLabels;
 
 void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, int row, int pad, float commonMode)
 {
@@ -35,19 +39,32 @@ void DigitPad::fillOutputContainer(TClonesArray *output, o2::dataformats::MCTrut
 
   const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)), pedestal, noise);
   if(mADC > 0) {
-
-    /// Sort the MC labels according to their occurrence
     using P = std::pair<MCCompLabel, int>;
-    std::sort(mMClabel.begin(), mMClabel.end(), [](const P& a, const P& b) { return a.second > b.second;});
-
+#ifndef EXTLABELS
+    // Sort the MC labels according to their occurrence
+    std::sort(mMClabel.begin(), mMClabel.end(), [](const P& a, const P& b) {return a.second > b.second;});
+#else
+    static std::vector<std::pair<o2::MCCompLabel, int>> labelvec;
+    // involves some copying but does not need repeated allocations for labelvec
+    sLabels.fillVectorOfLabels(mId, labelvec);
+    std::sort(labelvec.begin(), labelvec.end(), [](const P& a, const P& b) {return a.second > b.second;});
+#endif
+    
     /// Write out the Digit
     TClonesArray &clref = *output;
     const size_t digiPos = clref.GetEntriesFast();
     new(clref[digiPos]) Digit(cru, mADC, row, pad, timeBin); /// create Digit
-
+#ifndef EXTLABELS
     for(auto &mcLabel : mMClabel) {
+//      std::cerr << "putting " << mcLabel.first << " in size " << labelvec.size() << "\n";
       mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
     }
+#else
+    for(auto &mcLabel : labelvec) {
+    //      std::cerr << "putting " << mcLabel.first << " in size " << labelvec.size() << "\n";
+      mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output
+    }
+#endif
 
     if(debug!=nullptr) {
       TClonesArray &clrefDebug = *debug;
