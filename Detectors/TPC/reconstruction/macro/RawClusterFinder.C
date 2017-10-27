@@ -20,7 +20,6 @@
 #include <fstream>
 
 #include "Rtypes.h"
-#include "TClonesArray.h"
 #include "TFile.h"
 #include "TSystem.h"
 #include "TGraph.h"
@@ -90,13 +89,13 @@ class RawClusterFinder : public CalibRawBase
                     const Int_t timeBin, const Float_t signal) final;
 
 
-    void TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, TClonesArray *pclusterArray, vector<TrackTPC> &arrTracks);
+    void TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, std::vector<o2::TPC::Cluster> *pclusterArray, vector<TrackTPC> &arrTracks);
     static void GetFit(TGraph *trackGraph, float& slope, float& offset, float& slopeError, float& offsetError, float& chi2);
 
     void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
     static void processEvents(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, TString cherenkovFile="", ClustererType clustererType=ClustererType::HW);
 
-    std::vector<std::unique_ptr<Digit>>& getDigitVector() { return mVectorDigits; }
+    std::vector<Digit>& getDigitVector() { return mVectorDigits; }
 
     /// Dummy end event
     virtual void endEvent() final {};
@@ -106,7 +105,7 @@ class RawClusterFinder : public CalibRawBase
   private:
     ClustererType     mClustererType;
     CalPad       *mPedestals;
-    std::vector<std::unique_ptr<Digit>> mVectorDigits;
+    std::vector<Digit> mVectorDigits;
 
     /// dummy reset
     void resetEvent() final { mVectorDigits.clear(); }
@@ -123,7 +122,7 @@ Int_t RawClusterFinder::updateCRU(const CRU& cru, const Int_t row, const Int_t p
   }
 
   // ===| add new digit |=======================================================
-  mVectorDigits.emplace_back(new Digit(cru, corrSignal, row, pad, timeBin));
+  mVectorDigits.emplace_back(cru, corrSignal, row, pad, timeBin);
 
   return 1;
 }
@@ -144,7 +143,8 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   }
 
   // ===| output file and container |===========================================
-  TClonesArray arrCluster("o2::TPC::Cluster");
+  std::vector<o2::TPC::HwCluster> arrCluster;
+  std::vector<o2::TPC::BoxCluster> *arrClusterBox = nullptr;
   float cherenkovValue = 0.;
   int runNumber = 0;
 
@@ -176,13 +176,13 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   // HW cluster finder
   std::unique_ptr<Clusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer *hwCl = new HwClusterer(HwClusterer::Processing::Parallel, 0, 0, 4);
+    HwClusterer *hwCl = new HwClusterer(&arrCluster, HwClusterer::Processing::Parallel, 0, 0, 4);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<Clusterer>(hwCl);
   }
   else if (clustererType == ClustererType::Box) {
-    BoxClusterer *boxCl = new BoxClusterer;
+    BoxClusterer *boxCl = new BoxClusterer(arrClusterBox);
     boxCl->setPedestals(pedestal);
     cl = std::unique_ptr<Clusterer>(boxCl);
   }
@@ -212,9 +212,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     if (!arr.size()) {++events; continue;}
     //printf("Converted digits: %zu %f\n", arr.size(), arr.at(0)->getChargeFloat());
 
-    ClusterContainer* clCont = cl->Process(arr);
-
-    clCont->FillOutputContainer(&arrCluster);
+    cl->Process(arr);
 
     // ---| set cherenkov value|---------------------------------------------
     if (istr.is_open()) {
@@ -224,7 +222,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     }
     t.Fill();
 
-    printf("Found clusters: %d\n", arrCluster.GetEntriesFast());
+    printf("Found clusters: %d\n", arrCluster.size());
 
     Int_t nTries = -1; // defaults to number of clusters in the roc
     Int_t allowedMisses = 3;  //number of allowed holes in track before discarding
@@ -234,7 +232,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     //converter.TrackFinder(nTries, allowedMisses, minClusters, reverse, &arrCluster, arrTracks);
 
     tOut.Fill();
-    arrCluster.Clear();
+    arrCluster.clear();
     ++events;
   }
 
@@ -244,10 +242,10 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   foutTracks.Close();
 }
 
-void RawClusterFinder::TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, TClonesArray *pclusterArray, vector<TrackTPC> &arrTracks)
+void RawClusterFinder::TrackFinder(int nTries, int allowedMisses, int minClusters, bool reverse, std::vector<o2::TPC::Cluster> *pclusterArray, vector<TrackTPC> &arrTracks)
 {
 
-int loopcounter = 0;
+  int loopcounter = 0;
 
   float zPosition = 0.;
   float fWindowPad = 4.;
@@ -255,17 +253,17 @@ int loopcounter = 0;
  
 
   Mapper &mapper = Mapper::instance();
-  TClonesArray &clusterArray = *pclusterArray;
+  auto &clusterArray = *pclusterArray;
   std::vector<int> trackNumbers;
-  trackNumbers.resize(clusterArray.GetEntriesFast());
+  trackNumbers.resize(clusterArray.size());
 
   arrTracks.clear();
 
-  if (nTries < 0) nTries = clusterArray.GetEntriesFast();
+  if (nTries < 0) nTries = clusterArray.size();
 
   int nTracks = 0;
 
-  if(clusterArray.GetEntriesFast()>=1000) {
+  if(clusterArray.size()>=1000) {
     printf("Very large event, no tracking will be performed!!");
     return;
   }
@@ -273,9 +271,9 @@ int loopcounter = 0;
   uint nclustersUsed = 0;
 
   //loop over the n (given bu nTries) clusters and use iFirst as starting point for tracking
-  for(Int_t iFirst = 0; (iFirst<nTries&&iFirst<clusterArray.GetEntriesFast()); iFirst++){
+  for(Int_t iFirst = 0; (iFirst<nTries&&iFirst<clusterArray.size()); iFirst++){
 
-    Int_t nClusters = clusterArray.GetEntriesFast();
+    Int_t nClusters = clusterArray.size();
     Int_t searchIndexArray[1000]; //array of cluster indices to be used in the tracking
     for(Int_t i = 0; i<1000;i++){
       searchIndexArray[i] = -1;
@@ -283,12 +281,12 @@ int loopcounter = 0;
     Int_t freeClusters = 0; //no of clusters not already associated to a track
 
     for(Int_t iCluster = iFirst; iCluster<nClusters;iCluster++) {
-      Cluster *cluster = 0;
-      if (reverse) cluster =  (Cluster*) clusterArray.At(clusterArray.GetEntriesFast()-1-iCluster);
-      else cluster =  (Cluster*) clusterArray.At(iCluster);
+      Cluster *cluster = nullptr;
+      if (reverse) cluster =  &clusterArray[clusterArray.size()-1-iCluster];
+      else cluster =  &clusterArray[iCluster];
       //if(cluster->getTrackNr() ==0) {
       if(trackNumbers[iCluster] ==0) {
-	if (reverse) searchIndexArray[freeClusters] =clusterArray.GetEntriesFast()-1- iCluster;
+	if (reverse) searchIndexArray[freeClusters] =clusterArray.size()-1- iCluster;
 	else searchIndexArray[freeClusters] = iCluster;
 	freeClusters++;
       }
@@ -307,10 +305,10 @@ int loopcounter = 0;
     for(Int_t i = 0; i<100;i++) trackIndexArray[i] = -1;
 
     iStartCluster = searchIndexArray[0];
-    Cluster *startCluster = (Cluster*) clusterArray.At(iStartCluster);
+    Cluster *startCluster = &clusterArray[iStartCluster];
 
     // Cluster *test = 0;
-    //if(reverse) test =(Cluster*) clusterArray.At(clusterArray.GetEntriesFast()-1-iFirst);
+    //if(reverse) test =(Cluster*) clusterArray.At(clusterArray.size()-1-iFirst);
     //else test = (Cluster*) clusterArray.At(iFirst);
     //if(startCluster->getTrackNr() != 0) continue;
     if(trackNumbers[iStartCluster] != 0) continue;
@@ -347,7 +345,7 @@ int loopcounter = 0;
     for(Int_t iCluster = 1; iCluster < freeClusters; iCluster++) {
 
 
-      Cluster *currentCluster = (Cluster*) clusterArray.At(searchIndexArray[iCluster]);
+      Cluster *currentCluster = &clusterArray[searchIndexArray[iCluster]];
       //DigitPos currentpos(currentCluster->getCRU(), PadPos(currentCluster->getRow(), currentCluster->getPadMean()));
       //Int_t clusterRow = currentpos.getPadSecPos().getPadPos().getRow();
       const PadRegionInfo& region = mapper.getPadRegionInfo(currentCluster->getCRU());
@@ -380,7 +378,7 @@ int loopcounter = 0;
           iClosest = iCluster;
         }
         if (searchIndexArray[iCluster+1]==-1) break;
-        currentCluster = (Cluster*) clusterArray.At(searchIndexArray[iCluster+1]);
+        currentCluster = &clusterArray[searchIndexArray[iCluster+1]];
         DigitPos newcurrentpos(currentCluster->getCRU(), PadPos(currentCluster->getRow(), currentCluster->getPadMean()));
 
         clusterRow = Int_t(newcurrentpos.getPadSecPos().getPadPos().getRow());
@@ -398,7 +396,7 @@ int loopcounter = 0;
         trackIndexArray[nClustersInTrackCand] = searchIndexArray[iClosest];
         nClustersInTrackCand++;
 
-        Cluster *acceptedCluster = (Cluster*) clusterArray.At(searchIndexArray[iClosest]);
+        Cluster *acceptedCluster = &clusterArray[searchIndexArray[iClosest]];
         DigitPos acceptedpos(currentCluster->getCRU(), PadPos(currentCluster->getRow(), currentCluster->getPadMean()));
 
         // 	oldX = acceptedCluster->GetRow();
@@ -488,7 +486,7 @@ int loopcounter = 0;
       for(Int_t i = 0; i<nClustersInTrackCand;i++) {
 
 
-        Cluster *chosen = (Cluster*) clusterArray.At(trackIndexArray[i]);
+        Cluster *chosen = &clusterArray[trackIndexArray[i]];
         trackNumbers[trackIndexArray[i]]=nTracks+1;
         //chosen->setTrackNr(nTracks+1);
 

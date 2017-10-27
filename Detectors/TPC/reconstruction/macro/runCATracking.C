@@ -21,6 +21,7 @@
 #include "TClonesArray.h"
 
 #include "TPCSimulation/Cluster.h"
+#include "TPCSimulation/HwCluster.h"
 #include "TPCReconstruction/TPCCATracking.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
@@ -41,7 +42,7 @@ void runCATracking(TString filename, TString outputFile, TString options, bool m
   }
 
   // ===| input chain initialisation |==========================================
-  TChain c("cbmsim");
+  TChain c("o2sim");
   c.AddFile(filename);
 
   // ===| output tree |=========================================================
@@ -59,7 +60,7 @@ void runCATracking(TString filename, TString outputFile, TString options, bool m
     }
     tout.Fill();
   } else {
-    TClonesArray *clusters = nullptr;
+    std::vector<o2::TPC::HwCluster>* clusters=nullptr;
     c.SetBranchAddress("TPCClusterHW", &clusters);
 
     // ===| event ranges |========================================================
@@ -71,8 +72,8 @@ void runCATracking(TString filename, TString outputFile, TString options, bool m
     for (int iEvent=0; iEvent<max; ++iEvent)   {
       c.GetEntry(start+iEvent);
 
-      printf("Processing event %d with %d clusters\n", iEvent, clusters->GetEntries());
-      if (!clusters->GetEntries()) continue;
+      printf("Processing event %lu with %d clusters\n", iEvent, clusters->size());
+      if (!clusters->size()) continue;
 
       tracks.clear();
       if (tracker.runTracking(clusters, &tracks) == 0)     {
@@ -86,5 +87,6 @@ void runCATracking(TString filename, TString outputFile, TString options, bool m
   fout.Write();
   fout.Close();
 
+  
   tracker.deinitialize();
 }

@@ -20,6 +20,8 @@
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Point.h"
 #include "TPCBase/Sector.h"
+#include "TPCBase/Digit.h"
+#include "TPCSimulation/DigitMCMetaData.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -87,18 +89,16 @@ InitStatus DigitizerTask::Init()
   }
   
   // Register output container
-  mDigitsArray = new TClonesArray("o2::TPC::Digit");
-  mDigitsArray->BypassStreamer(true);
-  mgr->Register("TPCDigit", "TPC", mDigitsArray, kTRUE);
+  mDigitsArray = new std::vector<o2::TPC::Digit>;
+  mgr->RegisterAny("TPCDigit", mDigitsArray, kTRUE);
 
   // Register MC Truth container
   mgr->Register("TPCDigitMCTruth", "TPC", &mMCTruthArray, kTRUE);
 
   // Register additional (optional) debug output
   if(mDigitDebugOutput) {
-    mDigitsDebugArray = new TClonesArray("o2::TPC::DigitMCMetaData");
-    mDigitsDebugArray->BypassStreamer(true);
-    mgr->Register("TPCDigitMCMetaData", "TPC", mDigitsDebugArray, kTRUE);
+    mDigitsDebugArray = new std::vector<o2::TPC::DigitMCMetaData>;
+    mgr->RegisterAny("TPCDigitMCMetaData", mDigitsDebugArray, kTRUE);
   }
   
   mDigitizer->init();
@@ -113,10 +113,10 @@ void DigitizerTask::Exec(Option_t *option)
   const int eventTime = Digitizer::getTimeBinFromTime(mgr->GetEventTime() * 0.001);
 
   LOG(DEBUG) << "Running digitization on new event at time bin " << eventTime << FairLogger::endl;
-  mDigitsArray->Delete();
+  mDigitsArray->clear();
   mMCTruthArray.clear();
   if(mDigitDebugOutput) {
-    mDigitsDebugArray->Delete();
+    mDigitsDebugArray->clear();
   }
 
   if (mHitSector == -1){
@@ -138,10 +138,10 @@ void DigitizerTask::FinishTask()
   if(!mIsContinuousReadout) return;
   FairRootManager *mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  mDigitsArray->Delete();
+  mDigitsArray->clear();
   mMCTruthArray.clear();
   if(mDigitDebugOutput) {
-    mDigitsDebugArray->Delete();
+    mDigitsDebugArray->clear();
   }
   mDigitContainer->fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
 }

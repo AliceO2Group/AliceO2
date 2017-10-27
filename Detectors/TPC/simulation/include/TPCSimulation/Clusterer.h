@@ -19,15 +19,13 @@
 
 #include "TPCSimulation/ClusterContainer.h"
 
-class TClonesArray;
-
 namespace o2{
 namespace TPC {
     
 class Digit;
 
 /// \class Clusterer
-/// \brief Base Class fot TPC clusterer
+/// \brief Base Class for TPC clusterer
 class Clusterer {
   public:
 
@@ -53,8 +51,8 @@ class Clusterer {
     /// Processing all digits
     /// \param digits Container with TPC digits
     /// \return Container with clusters
-    virtual ClusterContainer* Process(TClonesArray *digits) = 0;
-    virtual ClusterContainer* Process(std::vector<std::unique_ptr<Digit>>& digits) = 0;
+    virtual void Process(std::vector<o2::TPC::Digit> const &digits) = 0;
+    virtual void Process(std::vector<std::unique_ptr<Digit>>& digits) = 0;
 
     void setRowsMax(int val)                    { mRowsMax = val; };
     void setPadsMax(int val)                    { mPadsMax = val; };
@@ -72,7 +70,6 @@ class Clusterer {
     
   protected:
     
-    ClusterContainer* mClusterContainer;    ///< Internal cluster storage
     
     int     mRowsMax;                       ///< Maximum row number
     int     mPadsMax;                       ///< Maximum pad number

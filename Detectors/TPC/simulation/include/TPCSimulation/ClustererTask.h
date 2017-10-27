@@ -24,8 +24,7 @@
 #include "TPCSimulation/Clusterer.h"       // for Clusterer
 #include "TPCSimulation/BoxClusterer.h"       // for Clusterer
 #include "TPCSimulation/HwClusterer.h"       // for Clusterer
-
-class TClonesArray;
+#include <vector>
 
 namespace o2 {
 namespace TPC{
@@ -76,9 +75,10 @@ class ClustererTask : public FairTask{
     BoxClusterer        *mBoxClusterer;
     HwClusterer         *mHwClusterer;
     
-    TClonesArray        *mDigitsArray;
-    TClonesArray        *mClustersArray;
-    TClonesArray        *mHwClustersArray;
+    std::vector<o2::TPC::Digit> const  *mDigitsArray;
+    // produced data containers
+    std::vector<o2::TPC::BoxCluster>  *mClustersArray;
+    std::vector<o2::TPC::HwCluster>  *mHwClustersArray;
     
     ClassDefOverride(ClustererTask, 1)
 };

@@ -16,12 +16,12 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "TClonesArray.h"
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCBase/Digit.h"
 #include "TPCSimulation/DigitMCMetaData.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include <memory>
+#include <vector>
 
 namespace o2 {
 namespace TPC {
@@ -50,24 +50,23 @@ namespace TPC {
 
     /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
     /// Usually the mDigitsArray is what is registered to the FairRootManager
-    auto *mDigitsArray = new TClonesArray("o2::TPC::Digit");
+    auto *mDigitsArray = new std::vector<o2::TPC::Digit>;
     digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, nullptr, 1000);
 
-    BOOST_CHECK(CRU.size() == mDigitsArray->GetEntriesFast());
+    BOOST_CHECK(CRU.size() == mDigitsArray->size());
 
     int digits = 0;
-    for(auto digitsObject : *mDigitsArray) {
-      Digit *digit = static_cast<Digit *>(digitsObject);
+    for(auto& digit : *mDigitsArray) {
       gsl::span<const o2::MCCompLabel> mcArray = mMCTruthArray.getLabels(digits);
       for(int j=0; j<static_cast<int>(mcArray.size()); ++j) {
         BOOST_CHECK(mMCTruthArray.getElement(mMCTruthArray.getMCTruthHeader(digits).index+j).getTrackID() == MCtrack[digits]);
         BOOST_CHECK(mMCTruthArray.getElement(mMCTruthArray.getMCTruthHeader(digits).index+j).getEventID() == MCevent[digits]);
       }
-      BOOST_CHECK(digit->getCRU() == CRU[digits]);
-      BOOST_CHECK(digit->getTimeStamp() == Time[digits]);
-      BOOST_CHECK(digit->getRow() == Row[digits]);
-      BOOST_CHECK(digit->getPad() == Pad[digits]);
-      BOOST_CHECK(digit->getCharge() == static_cast<int>(sampa.getADCSaturation(nEle[digits])));
+      BOOST_CHECK(digit.getCRU() == CRU[digits]);
+      BOOST_CHECK(digit.getTimeStamp() == Time[digits]);
+      BOOST_CHECK(digit.getRow() == Row[digits]);
+      BOOST_CHECK(digit.getPad() == Pad[digits]);
+      BOOST_CHECK(digit.getCharge() == static_cast<int>(sampa.getADCSaturation(nEle[digits])));
       ++digits;
     }
 
@@ -107,28 +106,27 @@ namespace TPC {
 
     /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
     /// Usually the mDigitsArray is what is registered to the FairRootManager
-    auto *mDigitsArray = new TClonesArray("o2::TPC::Digit");
-    auto *mDigitsDebugArray = new TClonesArray("o2::TPC::DigitMCMetaData");
+    auto *mDigitsArray = new std::vector<o2::TPC::Digit>;
+    auto *mDigitsDebugArray = new std::vector<o2::TPC::DigitMCMetaData>;
     digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, 1000);
 
-    BOOST_CHECK(mDigitsArray->GetEntriesFast() == 1);
-    BOOST_CHECK(mDigitsArray->GetEntriesFast() == mDigitsDebugArray->GetEntriesFast());
+    BOOST_CHECK(mDigitsArray->size() == 1);
+    BOOST_CHECK(mDigitsArray->size() == mDigitsDebugArray->size());
 
     int digits = 0;
-    for(auto digitsObject : *mDigitsArray) {
-      Digit *digit = static_cast<Digit *>(digitsObject);
-      DigitMCMetaData *digitMetaData = static_cast<DigitMCMetaData *>(mDigitsDebugArray->At(digits));
+    for(auto& digit : *mDigitsArray) {
+      auto& digitMetaData = mDigitsDebugArray->at(digits);
       gsl::span<const o2::MCCompLabel> mcArray = mMCTruthArray.getLabels(digits);
       for(int j=0; j<static_cast<int>(mcArray.size()); ++j) {
         BOOST_CHECK(mMCTruthArray.getElement(mMCTruthArray.getMCTruthHeader(digits).index+j).getTrackID() == MCtrackSorted[j]);
         BOOST_CHECK(mMCTruthArray.getElement(mMCTruthArray.getMCTruthHeader(digits).index+j).getEventID() == MCeventSorted[j]);
       }
-      BOOST_CHECK(digit->getCRU() == CRU[digits]);
-      BOOST_CHECK(digit->getTimeStamp() == Time[digits]);
-      BOOST_CHECK(digit->getRow() == Row[digits]);
-      BOOST_CHECK(digit->getPad() == Pad[digits]);
-      BOOST_CHECK(digit->getCharge() == static_cast<int>(sampa.getADCSaturation(nEleSum - digitMetaData->getCommonMode())));
-      BOOST_CHECK_CLOSE(digitMetaData->getCommonMode(), nEleSum/static_cast<float>(mapper.getPadsInIROC()), 1E-4);
+      BOOST_CHECK(digit.getCRU() == CRU[digits]);
+      BOOST_CHECK(digit.getTimeStamp() == Time[digits]);
+      BOOST_CHECK(digit.getRow() == Row[digits]);
+      BOOST_CHECK(digit.getPad() == Pad[digits]);
+      BOOST_CHECK(digit.getCharge() == static_cast<int>(sampa.getADCSaturation(nEleSum - digitMetaData.getCommonMode())));
+      BOOST_CHECK_CLOSE(digitMetaData.getCommonMode(), nEleSum/static_cast<float>(mapper.getPadsInIROC()), 1E-4);
       ++digits;
     }
 

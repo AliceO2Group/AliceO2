@@ -22,6 +22,7 @@
 #include "TPCBase/Sector.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "TPCSimulation/Cluster.h"
+#include "TPCSimulation/HwCluster.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
@@ -63,7 +64,7 @@ void TPCCATracking::deinitialize() {
   mClusterData = nullptr;
 }
 
-int TPCCATracking::runTracking(TChain* inputClustersChain, const TClonesArray* inputClustersArray, std::vector<TrackTPC>* outputTracks) {
+int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2::TPC::HwCluster>* inputClustersArray, std::vector<TrackTPC>* outputTracks) {
   if (mTrackingCAO2Interface == nullptr) return (1);
   if (inputClustersChain && inputClustersArray) {
     LOG(FATAL) << "Internal error, must not pass in both TChain and TClonesArray of clusters\n";
@@ -95,12 +96,11 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const TClonesArray* i
     if (inputClustersChain) {
       inputClustersChain->GetEntry(iChunk);
     }
-    for (Int_t icluster = 0; icluster < inputClustersArray->GetEntries(); ++icluster) {
-      Cluster& cluster = *static_cast<Cluster*>(inputClustersArray->At(icluster));
+    for (const auto& cluster : *inputClustersArray) {
       const Sector sector = CRU(cluster.getCRU()).sector();
       nClusters[sector.getSector()]++;
     }
-    nClustersTotal += inputClustersArray->GetEntries();
+    nClustersTotal += inputClustersArray->size();
     if (inputClustersChain) clusterCache.resize(nClustersTotal);
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       if (iChunk == 0) {
@@ -109,8 +109,8 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const TClonesArray* i
         mClusterData[i].Allocate(mClusterData[i].NumberOfClusters() + nClusters[i]);
       }
     }
-    for (Int_t icluster = 0; icluster < inputClustersArray->GetEntries(); ++icluster) {
-      Cluster& cluster = *static_cast<Cluster*>(inputClustersArray->At(icluster));
+    for (Int_t icluster = 0; icluster < inputClustersArray->size(); ++icluster) {
+      const auto& cluster = (*inputClustersArray)[icluster];
       const CRU cru(cluster.getCRU());
       const Sector sector = cru.sector();
       AliHLTTPCCAClusterData& cd = mClusterData[sector.getSector()];
@@ -133,7 +133,7 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const TClonesArray* i
 
       // sanity checks
       if (zPositionAbs < 0 || (!mTrackingCAO2Interface->GetParamContinuous() && zPositionAbs > detParam.getTPClength())) {
-        LOG(INFO) << "Removing cluster " << icluster << "/" << inputClustersArray->GetEntries() << " time: " << cluster.getTimeMean() << ", abs. z: " << zPositionAbs << "\n";
+        LOG(INFO) << "Removing cluster " << icluster << "/" << inputClustersArray->size() << " time: " << cluster.getTimeMean() << ", abs. z: " << zPositionAbs << "\n";
         continue;
       }
 
@@ -176,7 +176,8 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const TClonesArray* i
         if (inputClustersChain) {
           trackTPC.addCluster(clusterCache[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
         } else {
-          trackTPC.addCluster(*(static_cast<Cluster*>(inputClustersArray->At(trackClusterIDs[tracks[i].FirstClusterRef() + j]))));
+          //trackTPC.addCluster(*(static_cast<Cluster*>(inputClustersArray->At(trackClusterIDs[tracks[i].FirstClusterRef() + j]))));
+	  trackTPC.addCluster((*inputClustersArray)[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
         }
       }
       outputTracks->push_back(trackTPC);

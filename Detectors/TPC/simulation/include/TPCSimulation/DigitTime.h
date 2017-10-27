@@ -17,8 +17,6 @@
 
 #include "TPCSimulation/DigitRow.h"
 
-class TClonesArray;
-
 namespace o2 {
 namespace TPC {
     
@@ -69,14 +67,15 @@ class DigitTime{
     /// \param charge Charge of the digit
     void setDigit(size_t hitID, int cru, int row, int pad, float charge);
 
-    /// Fill output TClonesArray
+    /// Fill output vector
     /// \param output Output container
     /// \param mcTruth MC Truth container
     /// \param debug Optional debug output container
     /// \param cru CRU ID
     /// \param timeBin Time bin
     /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(TClonesArray *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth, TClonesArray *debug, int cru, int timeBin, float commonMode = 0.f);
+    void fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
+			     std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, float commonMode = 0.f);
 
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin

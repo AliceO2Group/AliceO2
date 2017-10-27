@@ -18,6 +18,7 @@
 #pragma link C++ class o2::TPC::BoxCluster+;
 #pragma link C++ class o2::TPC::BoxClusterer+;
 #pragma link C++ class o2::TPC::CommonModeContainer+;
+#pragma link C++ class o2::TPC::ClusterTimeStamp+;
 #pragma link C++ class o2::TPC::Cluster+;
 #pragma link C++ class o2::TPC::Clusterer+;
 #pragma link C++ class o2::TPC::ClusterContainer+;

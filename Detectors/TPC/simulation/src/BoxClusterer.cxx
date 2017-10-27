@@ -98,15 +98,15 @@
 #include "FairLogger.h"
 #include "TMath.h"
 #include "TError.h"   // for R__ASSERT()
-#include "TClonesArray.h"
 
 ClassImp(o2::TPC::BoxClusterer)
 
 using namespace o2::TPC;
 
 //________________________________________________________________________
-BoxClusterer::BoxClusterer():
+BoxClusterer::BoxClusterer(std::vector<o2::TPC::BoxCluster> *output):
   Clusterer(),
+  mClusterArray(output),
   mAllBins(nullptr),
   mAllSigBins(nullptr),
   mAllNSigBins(nullptr),
@@ -117,8 +117,6 @@ BoxClusterer::BoxClusterer():
 //________________________________________________________________________
 BoxClusterer::~BoxClusterer()
 {
-  delete mClusterContainer;
-
   for (Int_t iRow = 0; iRow < mRowsMax; iRow++) {
     delete [] mAllBins[iRow];
     delete [] mAllSigBins[iRow];
@@ -131,12 +129,6 @@ BoxClusterer::~BoxClusterer()
 //________________________________________________________________________
 void BoxClusterer::Init()
 {
-  // Test that init was not called before
-  R__ASSERT(!mClusterContainer);
-
-  mClusterContainer = new ClusterContainer();
-  mClusterContainer->InitArray("o2::TPC::BoxCluster");
-
   mAllBins = new Float_t*[mRowsMax];
   mAllSigBins = new Int_t*[mRowsMax];
   mAllNSigBins = new Int_t[mRowsMax];
@@ -153,54 +145,45 @@ void BoxClusterer::Init()
 }
 
 //________________________________________________________________________
-ClusterContainer* BoxClusterer::Process(TClonesArray *digits)
+void BoxClusterer::Process(std::vector<o2::TPC::Digit> const &digits)
 {
-  R__ASSERT(mClusterContainer);
-  mClusterContainer->Reset();
+  mClusterArray->clear(); // check this
 
   Int_t nSignals = 0;
   Int_t lastCRU = -1;
   Int_t iCRU    = -1;
 
-  for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer)
-    {
-      Digit* digit = dynamic_cast<Digit*>(*digititer);
-
-                  iCRU     = digit->getCRU();
-      const Int_t iRow     = digit->getRow();
-      const Int_t iPad     = digit->getPad();
-      const Int_t iTimeBin = digit->getTimeStamp();
-      const Float_t charge = digit->getCharge();
-//      if (iCRU == 179) {
-//        printf("box: digi: %d, %d, %d, %d, %.2f\n", iCRU, iRow, iPad, iTimeBin, charge);
-//      }
-      if(iCRU != lastCRU) {
-        if(nSignals>0) {
-          FindLocalMaxima(lastCRU);
-          CleanArrays();
-        }
-        lastCRU = iCRU;
-        nSignals = 0;
-      } //else { // add signal to array
-      Update(iCRU, iRow, iPad, iTimeBin, charge);
-      ++nSignals;
-      //}
-    }
-
-    // processing of last CRU
-    if(nSignals>0) {
-      FindLocalMaxima(iCRU);
-      CleanArrays();
-    }
-
-  return mClusterContainer;
+  for(auto& digit : digits) {
+                iCRU     = digit.getCRU();
+    const Int_t iRow     = digit.getRow();
+    const Int_t iPad     = digit.getPad();
+    const Int_t iTimeBin = digit.getTimeStamp();
+    const Float_t charge = digit.getCharge();
+//  if (iCRU == 179) {
+//    printf("box: digi: %d, %d, %d, %d, %.2f\n", iCRU, iRow, iPad, iTimeBin, charge);
+//  }
+    if(iCRU != lastCRU) {
+      if(nSignals>0) {
+        FindLocalMaxima(lastCRU);
+        CleanArrays();
+      }
+      lastCRU = iCRU;
+      nSignals = 0;
+    } //else { // add signal to array
+    Update(iCRU, iRow, iPad, iTimeBin, charge);
+    ++nSignals;
+  }
+  // processing of last CRU
+  if(nSignals>0) {
+    FindLocalMaxima(iCRU);
+    CleanArrays();
+  }
 }
 
 //________________________________________________________________________
-ClusterContainer* BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
+void BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
 {
-  R__ASSERT(mClusterContainer);
-  mClusterContainer->Reset();
+  mClusterArray->clear();
 
   Int_t nSignals = 0;
   Int_t lastCRU = -1;
@@ -235,8 +218,6 @@ ClusterContainer* BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& dig
       FindLocalMaxima(iCRU);
       CleanArrays();
     }
-
-  return mClusterContainer;
 }
 
 //_____________________________________________________________________
@@ -371,9 +352,7 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 	Short_t nPad = maxP-minP+1;
 	Short_t nTimeBins = maxT-minT+1;
 	Short_t size = 10*nPad+nTimeBins;
-	BoxCluster* cluster = dynamic_cast<BoxCluster*>
-	  (mClusterContainer->AddCluster(iCRU, iRow, qTot, qMax, meanP, meanT,
-					 sigmaP, sigmaT));
+	BoxCluster* cluster = ClusterContainer::AddCluster<BoxCluster>(mClusterArray, iCRU, iRow, qTot, qMax, meanP, meanT,sigmaP, sigmaT);
 	cluster->setBoxParameters(pad, timebin, size);
 
 //    if ((iCRU == 179)) {// && iRow == 5)){// && (int)meanP == 103 && (int)meanT == 170) || 
