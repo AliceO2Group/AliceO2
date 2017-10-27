@@ -131,7 +131,7 @@ GPUd() inline void AliHLTTPCGMTrackParam::ResetCovariance()
   fC[ 0] = 100.;
   fC[ 1] = 0.;  fC[ 2] = 100.;
   fC[ 3] = 0.;  fC[ 4] = 0.;  fC[ 5] = 1.;
-  fC[ 6] = 0.;  fC[ 7] = 0.;  fC[ 8] = 0.; fC[ 9] = 1.;
+  fC[ 6] = 0.;  fC[ 7] = 0.;  fC[ 8] = 0.; fC[ 9] = 10.;
   fC[10] = 0.;  fC[11] = 0.;  fC[12] = 0.; fC[13] = 0.; fC[14] = 10.;
   fChi2 = 0;
   fNDF = -5;
