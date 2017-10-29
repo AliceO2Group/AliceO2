@@ -91,6 +91,168 @@ GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, floa
 #endif
 }
 
+
+GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
+{
+  //
+  // Rotate the track coordinate system in XY to the angle newAlpha
+  // return value is error code (0==no error)
+  //
+  
+  float cc = CAMath::Cos( newAlpha - fAlpha );
+  float ss = CAMath::Sin( newAlpha - fAlpha );
+
+  AliHLTTPCGMPhysicalTrackModel t0 = fT0; 
+  
+  float x0 = fT0.X();
+  float y0 = fT0.Y();
+  float px0 = fT0.Px();
+  float py0 = fT0.Py();
+  //float pt0 = fT0.GetPt();
+
+  if ( CAMath::Abs( fT->GetSinPhi() ) >= fMaxSinPhi  || CAMath::Abs( px0 ) < 1.e-2 ) return -1;
+ 
+  // rotate t0 track
+
+  float px1  =  px0*cc + py0*ss;
+  float py1  = -px0*ss + py0*cc;
+  
+  {
+    t0.X()  =  x0*cc + y0*ss;
+    t0.Y()  = -x0*ss + y0*cc;
+    t0.Px() =  px1;
+    t0.Py() =  py1;
+    t0.UpdateValues(); // if px1<0, t0 direction is changed here: t0.GetPx()==-px1, etc.
+  }
+
+  if ( CAMath::Abs( py1 ) > fMaxSinPhi*fT0.GetPt() || CAMath::Abs( px1 ) < 1.e-2  ) return -1;
+
+  // calculate X of rotated track:
+
+  float trackX = x0*cc + ss*fT->Y();
+  
+  // transport t0 to trackX
+
+  
+  float B[3];
+  GetBxByBz( newAlpha, t0.X(), t0.Y(), t0.Z(), B );
+  float dLp = 0;
+  int err = t0.PropagateToXBxByBz( trackX, B[0], B[1], B[2], dLp );
+  if( err ) return -1;
+  
+  if( fabs( t0.SinPhi() ) >= fMaxSinPhi ) return -1;
+
+  // now t0 is rotated and propagated, all checks are passed
+
+  
+  // Rotate track using fT0 for linearisation. After rotation X is not fixed, but has a covariance
+
+  
+  //                    Y  Z Sin DzDs q/p
+  // Jacobian J0 = { { j0, 0, 0,  0,  0 }, // Y
+  //                 {  0, 1, 0,  0,  0 }, // Z
+  //                 {  0, 0, j1, 0,  0 }, // SinPhi
+  //                 {  0, 0, 0,  1,  0 }, // DzDs
+  //                 {  0, 0, 0,  0,  1 }, // q/p
+  //                 { j2, 0, 0,  0,  0 } }// X (rotated )
+   
+  float j0 = cc;
+  float j1 = px1 / px0;
+  float j2 = ss;
+  //float dy = fT->Y() - y0;
+  //float ds = fT->SinPhi() - fT0.SinPhi();
+  
+  fT->X() =  trackX; // == x0*cc + ss*fT->Y()  == t0.X() + j0*dy;
+  fT->Y() = -x0*ss  + cc*fT->Y(); //== t0.Y() + j0*dy;
+  //fT->SinPhi() = py1/pt0 + j1*ds; // == t0.SinPhi() + j1*ds; // use py1, since t0.SinPhi can have different sign
+  fT->SinPhi() = -sqrt(1.f-fT->SinPhi()*fT->SinPhi())*ss + fT->SinPhi()*cc;
+    
+  // Rotate cov. matrix Cr = J0 x C x J0T. Cr has one more row+column for X:
+
+  float *c = fT->Cov();
+  
+  float c15 = c[ 0]*j0*j2;  
+  float c16 = c[ 1]*j2;
+  float c17 = c[ 3]*j1*j2;
+  float c18 = c[ 6]*j2;
+  float c19 = c[10]*j2;
+  float c20 = c[ 0]*j2*j2;
+  
+  
+  c[ 0] *= j0 * j0;
+  c[ 1] *= j0;
+  c[ 3] *= j0;
+  c[ 6] *= j0;
+  c[10] *= j0;
+  
+  c[ 3] *= j1;
+  c[ 4] *= j1;
+  c[ 5] *= j1 * j1;
+  c[ 8] *= j1;
+  c[12] *= j1;
+  
+  if( px1 <0 ){ // change direction ( t0 direction is already changed in t0.UpdateValues(); )
+    fT->SinPhi() = -fT->SinPhi();
+    fT->DzDs()   = -fT->DzDs();
+    fT->QPt()    = -fT->QPt();    
+    c[3] = -c[3]; // covariances with SinPhi
+    c[4] = -c[4];
+    c17 = -c17;
+    c[6] = -c[6];// covariances with DzDs
+    c[7] = -c[7];
+    c18 = -c18;
+    c[10] = -c[10];// covariances with QPt
+    c[11] = -c[11];
+    c19 = -c19;
+  } 
+  
+  // Now fix the X coordinate: so to say, transport track T to fixed X = fT->X().
+  // only covariance changes. Use rotated and transported t0 for linearisation
+  
+  float j3 = -t0.Py()/t0.Px();
+  float j4 = -t0.Pz()/t0.Px();
+  float j5 =  t0.QPt()*B[2];
+
+  //                    Y  Z Sin DzDs q/p  X
+  // Jacobian J1 = { {  1, 0, 0,  0,  0,  j3 }, // Y 
+  //                 {  0, 1, 0,  0,  0,  j4 }, // Z
+  //                 {  0, 0, 1,  0,  0,  j5 }, // SinPhi
+  //                 {  0, 0, 0,  1,  0,   0 }, // DzDs
+  //                 {  0, 0, 0,  0,  1,   0 } }; // q/p    
+
+  float h15 = c15 + c20*j3;
+  float h16 = c16 + c20*j4;
+  float h17 = c17 + c20*j5;
+  
+  c[ 0] += j3*(c15 + h15);
+
+  c[ 1] += c16*j3 + h15*j4;
+  c[ 2] += j4*(c16 + h16);
+
+  c[ 3] += c17*j3 + h15*j5;
+  c[ 4] += c17*j4 + h16*j5;
+  c[ 5] += j5*(c17 + h17);
+
+  c[ 6] += c18*j3;
+  c[ 7] += c18*j4;
+  c[ 8] += c18*j5;
+  // c[ 9] = c[ 9];
+
+  c[10] += c19*j3;
+  c[11] += c19*j4;
+  c[12] += c19*j5;
+  // c[13] = c[13];
+  // c[14] = c[14];
+ 
+  fAlpha = newAlpha;
+  fT0 = t0;
+  
+  return 0;
+}
+
+
+/*
+// OLD
 GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
 {
   //
@@ -165,7 +327,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   
   return 0;
 }
-
+*/
 
 GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection)
 {
