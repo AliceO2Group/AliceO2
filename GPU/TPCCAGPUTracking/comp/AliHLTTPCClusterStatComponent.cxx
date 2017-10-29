@@ -474,7 +474,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
  	  prop.SetMaterial( kRadLen, kRho );
 	  AliHLTTPCGMPolynomialField field;
 	  field.Init( GetBz() );
-	  prop.SetPolynomialField( field );
+	  prop.SetPolynomialField( &field );
 	  prop.SetUseMeanMomentum(kFALSE );
 	  prop.SetContinuousTracking( kFALSE );
 	  for (unsigned i = 0; i < tracks->fCount; i++)
