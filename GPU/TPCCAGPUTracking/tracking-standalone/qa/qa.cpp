@@ -584,6 +584,7 @@ void RunQA()
 	if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 	timer.ResetStart();
 	
+	//Fill other histograms
 	for (int i = 0;i < merger.NOutputTracks(); i++)
 	{
 		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
@@ -592,6 +593,67 @@ void RunQA()
 		ncl->Fill(track.NClustersFitted());
 	}
 	if (TIMING) printf("QA Time: Others:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+	
+	//Create CSV DumpTrackHits
+	if (config.csvDump)
+	{
+		std::vector<float> clusterInfo(hlt.GetNMCLabels());
+		memset(clusterInfo.data(), 0, clusterInfo.size() * sizeof(clusterInfo[0]));
+		for (int i = 0; i < merger.NOutputTracks(); i++)
+		{
+			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+			if (!track.OK()) continue;
+			for (int k = 0;k < track.NClusters();k++)
+			{
+				if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
+				int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+				float pt = fabs(1.f/track.GetParam().GetQPt());
+				if (pt > clusterInfo[hitId]) clusterInfo[hitId] = pt;
+			}
+		}
+		static int csvNum = 0;
+		char fname[256];
+		sprintf(fname, "dump.%d.csv", csvNum++);
+		FILE* fp = fopen(fname, "w+");
+		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum\n\n");
+		for (int iSlice = 0; iSlice < 36; iSlice++)
+		{
+			const AliHLTTPCCAClusterData &cdata = hlt.ClusterData(iSlice);
+			for (int i = 0; i < cdata.NumberOfClusters(); i++)
+			{
+				const int cid = cdata.Id(i);
+				float x, y, z;
+				merger.SliceParam().Slice2Global(cdata.X(i), cdata.Y(i), cdata.Z(i), &x, &y, &z);
+				float totalWeight = 0.f;
+				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[cid].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[cid].fClusterID[j].fWeight;
+				
+				float maxPt = 0.;
+				float p = 0.;
+
+				if (totalWeight > 0)
+				{
+					for (int j = 0;j < 3;j++)
+					{
+						const AliHLTTPCClusterMCWeight label = hlt.GetMCLabels()[cid].fClusterID[j];
+						if (label.fMCID >= 0 && label.fWeight > 0.1 * totalWeight)
+						{
+							const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[label.fMCID];
+							const additionalMCParameters& mc2 = mcParam[label.fMCID];
+							const float pt = fabs(mc2.pt);
+							if (pt > maxPt)
+							{
+								maxPt = pt;
+								p = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy + info.fPz * info.fPz);
+							}
+						}
+					}
+				}
+				
+				fprintf(fp, "%f;%f;%f;%f;%f;%f\n", x, y, z, clusterInfo[cid], p, maxPt);
+			}
+		}
+		fclose(fp);
+	} 
 }
 
 void GetName(char* fname, int k)
