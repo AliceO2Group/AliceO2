@@ -31,6 +31,7 @@ class GeometryTGeo;
 
 class Cluster : public o2::BaseCluster<float>
 {
+
  public:
   enum { // frame in which the track is currently defined
     kUsed,
@@ -110,11 +111,7 @@ class Cluster : public o2::BaseCluster<float>
   void resetPattern();
   bool testPixel(UShort_t row, UShort_t col) const;
   void setPixel(UShort_t row, UShort_t col, bool fired = kTRUE);
-  void getPattern(UChar_t patt[kMaxPatternBytes])
-  {
-    for (int i = kMaxPatternBytes; i--;)
-      patt[i] = mPattern[i];
-  }
+  void getPattern(void* destination,int nbytes) const { memcpy(destination,mPattern,nbytes); }
   int getPatternRowMin() const { return mPatternRowMin; }
   int getPatternColMin() const { return mPatternColMin; }
 #endif
