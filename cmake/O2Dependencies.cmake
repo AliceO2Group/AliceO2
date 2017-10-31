@@ -1049,6 +1049,7 @@ o2_define_bucket(
     TRDSimulation
     EMCALSimulation
     TOFSimulation
+    FITSimulation
     Field
     Generators
 )

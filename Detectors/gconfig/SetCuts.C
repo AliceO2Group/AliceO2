@@ -39,6 +39,7 @@ void SetCuts()
   TVirtualMC::GetMC()->SetProcess("DCAY",1); /**decay*/
   TVirtualMC::GetMC()->SetProcess("LOSS",2); /**energy loss*/
   TVirtualMC::GetMC()->SetProcess("MULS",1); /**multiple scattering*/
+  TVirtualMC::GetMC()->SetProcess("CKOV",1); /**cherenkov */
 
   
     

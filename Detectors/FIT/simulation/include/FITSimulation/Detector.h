@@ -14,16 +14,15 @@
 #ifndef ALICEO2_FIT_DETECTOR_H_
 #define ALICEO2_FIT_DETECTOR_H_
 
-#include <TGraph.h>
+#include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h" // for Detector
 #include "FITBase/Geometry.h"
-#include "FITBase/Hit.h"
 
 class FairModule;
 
 class FairVolume;
-class TClonesArray;
 class TGeoVolume;
+class TGraph;
 
 namespace o2
 {
@@ -38,9 +37,8 @@ namespace o2
 namespace fit
 {
 using HitType = o2::BasicXYZEHit<float>;
-// class Hit;
 class Geometry;
-class Detector : public o2::Base::Detector
+class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
   enum constants {
@@ -66,11 +64,17 @@ class Detector : public o2::Base::Detector
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   Bool_t ProcessHits(FairVolume* v) override;
-  o2::BasicXYZEHit<float>* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
+  HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
 
   void Register() override;
 
-  TClonesArray* GetCollection(Int_t iColl) const final;
+  std::vector<HitType>* getHits(Int_t iColl)
+  {
+    if (iColl == 0) {
+      return mHits;
+    }
+    return nullptr;
+  }
 
   void Reset() override;
 
@@ -118,8 +122,7 @@ class Detector : public o2::Base::Detector
   std::vector<Double_t> mReflMet;
 
   /// Container for data points
-  // TClonesArray *mHitCollection;
-  std::vector<o2::fit::Hit>* mHits;
+  std::vector<HitType>* mHits;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
