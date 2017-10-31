@@ -44,7 +44,6 @@
 #include "AliHLTTPCCAGPUConfig.h"
 #include "MemoryAssignmentHelpers.h"
 
-#define GLOBAL_TRACKS_SPECIAL_TREATMENT
 #define DEBUG 0
 
 AliHLTTPCGMMerger::AliHLTTPCGMMerger()
@@ -305,13 +304,15 @@ void AliHLTTPCGMMerger::UnpackSlices()
 
   const AliHLTTPCCASliceOutTrack* firstGlobalTracks[fgkNSlices];
 
-  for( int i=0; i<fgkNSlices; i++) firstGlobalTracks[i] = 0;
+  int maxSliceTracks = 0;
+  for( int i=0; i<fgkNSlices; i++)
+  {
+      firstGlobalTracks[i] = 0;
+      if (fkSlices[i]->NLocalTracks() > maxSliceTracks) maxSliceTracks = fkSlices[i]->NLocalTracks();
+  }
 
-#ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
-  const int kMaxTrackIdInSlice = AliHLTTPCCASliceOutTrack::MaxTrackId();
-  int* TrackIds = (int*) malloc(kMaxTrackIdInSlice * fgkNSlices * sizeof(int));
-  for (int i = 0;i < kMaxTrackIdInSlice * fgkNSlices;i++) TrackIds[i] = -1;
-#endif
+  int* TrackIds = new int[maxSliceTracks * fgkNSlices];
+  for (int i = 0;i < maxSliceTracks * fgkNSlices;i++) TrackIds[i] = -1;
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
 
@@ -326,11 +327,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
     const AliHLTTPCCASliceOutput &slice = *( fkSlices[iSlice] );
     const AliHLTTPCCASliceOutTrack *sliceTr = slice.GetFirstTrack();    
 
-#ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
     for ( int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack() ) {
-#else
-    for ( int itr = 0; itr < slice.NTracks(); itr++, sliceTr = sliceTr->GetNextTrack() ) {
-#endif
       AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
       track.Set( sliceTr, alpha );
       if( !track.FilterErrors( fSliceParam, .999 ) ) continue;
@@ -339,19 +336,15 @@ void AliHLTTPCGMMerger::UnpackSlices()
       track.SetNextNeighbour( -1 );
       track.SetSliceNeighbour( -1 );
       track.SetUsed( 0 );
-#ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
 	  track.SetGlobalTrackId(0, -1);
 	  track.SetGlobalTrackId(1, -1);
-	  TrackIds[iSlice * kMaxTrackIdInSlice + sliceTr->LocalTrackId()] = nTracksCurrent;
-#endif
+      if (sliceTr->LocalTrackId() != itr) printf("Mismatch!!!!\n");
+	  TrackIds[iSlice * maxSliceTracks + sliceTr->LocalTrackId()] = nTracksCurrent;
 	  nTracksCurrent++;
       fSliceNTrackInfos[ iSlice ]++;
     }
     firstGlobalTracks[iSlice] = sliceTr;
-   
-    //std::cout<<"Unpack slice "<<iSlice<<": ntracks "<<slice.NTracks()<<"/"<<fSliceNTrackInfos[iSlice]<<std::endl;
-    }
-#ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
+  }
   for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
   {
 	  fSliceTrackGlobalInfoStart[iSlice] = nTracksCurrent;
@@ -364,7 +357,8 @@ void AliHLTTPCGMMerger::UnpackSlices()
 	  const AliHLTTPCCASliceOutTrack *sliceTr = firstGlobalTracks[iSlice];
 	  for (int itr = slice.NLocalTracks();itr < slice.NTracks();itr++, sliceTr = sliceTr->GetNextTrack())
 	  {
-		  if (TrackIds[sliceTr->LocalTrackId()] == -1) continue;
+		  int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * maxSliceTracks + (sliceTr->LocalTrackId() & 0xFFFFFF)];
+		  if (localId == -1) continue;
 		  AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
 		  track.Set( sliceTr, alpha );
 		  track.SetGlobalSectorTrackCov();
@@ -372,14 +366,13 @@ void AliHLTTPCGMMerger::UnpackSlices()
 		  track.SetNextNeighbour( -1 );
 		  track.SetSliceNeighbour( -1 );
 		  track.SetUsed( 0 );           
-		  track.SetLocalTrackId(TrackIds[sliceTr->LocalTrackId()]);
+		  track.SetLocalTrackId(localId);
 		  nTracksCurrent++;
 		  fSliceNGlobalTrackInfos[ iSlice ]++;
 	  }
   }
 
-  free(TrackIds);
-#endif
+  delete[] TrackIds;
 }
 
 void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB )
@@ -655,7 +648,6 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   //}
 
   //Resolve connections for global tracks first
-#ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
   for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
   {
     for (int itr = 0;itr < fSliceNGlobalTrackInfos[iSlice];itr++)
@@ -665,7 +657,6 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 		localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, fSliceTrackGlobalInfoStart[iSlice] + itr);
 	}
   }
-#endif
 
   //Now collect the merged tracks
   fNOutputTracks = 0;
@@ -690,9 +681,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       do{
 	    if( nParts >= kMaxParts ) break;
 	    trackParts[nParts++] = tr;
-#ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
 	    for (int i = 0;i < 2;i++) if (tr->GlobalTrackId(i) != -1) trackParts[nParts++] = &fSliceTrackInfos[tr->GlobalTrackId(i)];
-#endif
+
 	    int jtr = tr->SliceNeighbour();
 	    if( jtr >= 0 ) {
 	      tr = &(fSliceTrackInfos[fSliceTrackInfoStart[jSlice] + jtr]);

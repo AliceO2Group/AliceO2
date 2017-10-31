@@ -124,6 +124,8 @@ typedef float          Size_t;      //Attribute size (float)
 #define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED 2		//Same, but during fit of seed
 #define MIN_TRACK_PT_DEFAULT 0.015					//Default setting for minimum track Pt at some places
 
+#define MAX_SLICE_NTRACK (2 << 24)					//Maximum number of tracks per slice (limited by track id format)
+
 #define HLTCA_TIMING_SUM 1
 
 #define REPRODUCIBLE_CLUSTER_SORTING

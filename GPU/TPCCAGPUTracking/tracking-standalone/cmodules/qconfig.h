@@ -101,7 +101,7 @@
 		printf("\n  %s: (--%s%s%c)\n", descr, preoptname, preoptnameshort == 0 ? "" : " or -", (int) preoptnameshort);
 #define EndConfig() }
 #define AddHelp(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage information");
-#define AddHelpAll(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help", "help", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters");
+#define AddHelpAll(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help all", "help all", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters");
 #define AddCommand(cmd, cmdshort, command, help) qConfigType<void*>::qConfigHelpOption("command", "command", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
 #define AddShortcut(cmd, cmdshort, forward, help, ...) qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
 #elif defined(QCONFIG_INSTANCE)

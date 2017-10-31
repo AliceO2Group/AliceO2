@@ -109,8 +109,6 @@ public:
 	GPUd() static void AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker);
 	GPUd() static int AliHLTTPCCATrackletConstructorGlobalTracking(AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam& tParam, int startrow, int increment);
 #endif //HLTCA_GPUCODE
-
-	GPUd() static bool SAVE() { return 1; }
 };
 
 #endif //ALIHLTTPCCATRACKLETCONSTRUCTOR_H
