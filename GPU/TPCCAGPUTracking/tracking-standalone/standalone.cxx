@@ -219,6 +219,7 @@ int main(int argc, char** argv)
 		int nEventsProcessed = 0;
 		long long int nTracksTotal = 0;
 		long long int nClustersTotal = 0;
+		int simBunchNoRepeatEvent = configStandalone.StartEvent;
 	
 		for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
 		{
@@ -232,7 +233,7 @@ int main(int argc, char** argv)
 				int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
 				int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
 				int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
-				bool* eventUsed = new bool[nEventsInDirectory];
+				std::vector<char> eventUsed(nEventsInDirectory);
 				int nTrain = 0;
 				int mcMin = -1, mcMax = -1;
 				while (nBunch < lastBunch)
@@ -252,12 +253,13 @@ int main(int argc, char** argv)
 									printf("Error: insuffient events for mixing!\n");
 									return(1);
 								}
-								if (nCollisionsInTrain == 0) memset(eventUsed, 0, nEventsInDirectory * sizeof(eventUsed[0]));
+								if (nCollisionsInTrain == 0) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
 								if (nBunch >= 0 && nBunch < lastTFBunch) nCollisions++;
 								else nBorderCollisions++;
 								int useEvent;
-								while (eventUsed[useEvent = rand() % nEventsInDirectory]);
-								eventUsed[useEvent] = true;
+								if (configStandalone.configTF.noEventRepeat) useEvent = simBunchNoRepeatEvent++;
+								else while (eventUsed[useEvent = rand() % nEventsInDirectory]);
+								eventUsed[useEvent] = 1;
 								std::ifstream in;
 								char filename[256];
 								sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, useEvent);
@@ -269,6 +271,7 @@ int main(int argc, char** argv)
 								in.close();
 								nInBunchPileUp++;
 								nCollisionsInTrain++;
+								if (configStandalone.configTF.noEventRepeat && simBunchNoRepeatEvent >= nEventsInDirectory) nBunch = lastBunch;
 							}
 							if (nInBunchPileUp > 1) nMultipleCollisions++;
 							nBunch++;
@@ -280,7 +283,6 @@ int main(int argc, char** argv)
 					}
 					nBunch += maxBunchesFull - trainDist * configStandalone.configTF.bunchTrainCount;
 				}
-				delete[] eventUsed;
 				printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
 	#ifdef BUILD_QA
 				SetMCTrackRange(mcMin, mcMax);
