@@ -435,22 +435,32 @@ void RunQA()
 	if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 	timer.ResetStart();
 	
+#pragma omp parallel for
+	for (int i = 0;i < hlt.GetNMCInfo();i++)
+	{
+		const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
+		additionalMCParameters& mc2 = mcParam[i];
+		mc2.pt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
+		mc2.phi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
+		mc2.theta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
+		mc2.eta = -TMath::Log(TMath::Tan(0.5 * mc2.theta));
+	}
+	
 	//Compute MC Track Parameters for MC Tracks
 	//Fill Efficiency Histograms
 	for (int i = 0;i < hlt.GetNMCInfo();i++)
 	{
 		if ((mcTrackMin != -1 && i < mcTrackMin) || (mcTrackMax != -1 && i >= mcTrackMax)) continue;
 		const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
-		if (mcParam[i].nWeightCls == 0.) continue;
-		float mcpt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
-		float mcphi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
-		float mctheta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
-		float mceta = -TMath::Log(TMath::Tan(0.5 * mctheta));
-		mcParam[i].pt = mcpt; mcParam[i].phi = mcphi; mcParam[i].theta = mctheta; mcParam[i].eta = mceta;
+		const additionalMCParameters& mc2 = mcParam[i];
+		if (mc2.nWeightCls == 0.) continue;
+		const float& mcpt = mc2.pt;
+		const float& mcphi = mc2.phi;
+		const float& mceta = mc2.eta;
 
 		if (info.fPrim && info.fPrimDaughters) continue;
-		if (mcParam[i].nWeightCls < MIN_WEIGHT_CLS) continue;
-		int findable = mcParam[i].nWeightCls >= FINDABLE_WEIGHT_CLS;
+		if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
+		int findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
 		if (info.fPID < 0) continue;
 		if (info.fCharge == 0.) continue;
 		
