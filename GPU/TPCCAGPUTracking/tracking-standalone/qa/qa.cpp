@@ -84,10 +84,10 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 #define Y_MAX 100
 #define Y_MAX2 40
 #define Z_MAX 100
-#define PT_MIN 0.015
+#define PT_MIN MIN_TRACK_PT_DEFAULT
 #define PT_MIN2 0.1
 #define PT_MIN_PRIM 0.1
-#define PT_MIN_CLUST 0.015
+#define PT_MIN_CLUST MIN_TRACK_PT_DEFAULT
 #define PT_MAX 20
 #define ETA_MAX 1.5
 #define ETA_MAX2 0.9
