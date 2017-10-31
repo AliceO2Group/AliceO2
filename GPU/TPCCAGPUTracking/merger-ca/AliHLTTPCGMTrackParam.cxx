@@ -305,7 +305,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
 		ok = 1;
-		for (int k = 0;k < nTrackHits;k++) if (row[k] < 0) row[k] = -row[k] - 1;
+		for (int k = 0;k < track.NClusters();k++) if (row[k] < 0) row[k] = -row[k] - 1;
 	}
 	track.SetOK(ok);
 	if (!ok) return;
