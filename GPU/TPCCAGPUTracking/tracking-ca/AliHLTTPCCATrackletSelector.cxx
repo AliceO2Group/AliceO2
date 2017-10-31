@@ -70,7 +70,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 			int gap = 0;
 			int nShared = 0;
 			nHits = 0;
-			const int minHits = TRACKLET_SELECTOR_MIN_HITS(tracklet.Param().QPt());
+			const int minHits = tracker.Param().MinNTrackClusters() == -1 ? TRACKLET_SELECTOR_MIN_HITS(tracklet.Param().QPt()) : tracker.Param().MinNTrackClusters();
 
 			for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++ )
 			{

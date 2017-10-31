@@ -70,23 +70,12 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
   GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_LG2(AliHLTTPCCATracker) &tracker, MEM_LG3(AliHLTTPCCATrackParam) &tParam )
 {
   // reconstruction of tracklets, tracklet store step
-  do {
-    if ( r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ) {
-      r.fNHits = 0;
-      break;
-    }
-
-    {
-        bool ok = CheckCov(tParam);
-
-      if ( !ok ) {
-        r.fNHits = 0;
-        break;
-      }
-    }
-  } while ( 0 );
-
-  if ( !SAVE() ) return;
+  if ( r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ||
+    !CheckCov(tParam) ||
+    AliHLTTPCCAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt() )
+  {
+    r.fNHits = 0;
+  }
 
 /*printf("Tracklet %d: Hits %3d NDF %3d Chi %8.4f Sign %f Cov: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f\n", r.fItr, r.fNHits, tParam.GetNDF(), tParam.GetChi2(), tParam.GetSignCosPhi(),
 	  tParam.Cov()[0], tParam.Cov()[1], tParam.Cov()[2], tParam.Cov()[3], tParam.Cov()[4], tParam.Cov()[5], tParam.Cov()[6], tParam.Cov()[7], tParam.Cov()[8], tParam.Cov()[9], 
@@ -97,7 +86,6 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
   tracklet.SetNHits( r.fNHits );
 
   if ( r.fNHits > 0 ) {
-    if ( CAMath::Abs( tParam.Par()[4] ) < 1.e-4 ) tParam.SetPar( 4, 1.e-4 );
     if (r.fStartRow < r.fFirstRow) r.fFirstRow = r.fStartRow;
     tracklet.SetFirstRow( r.fFirstRow );
     tracklet.SetLastRow( r.fLastRow );
