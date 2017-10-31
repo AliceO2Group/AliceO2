@@ -563,6 +563,9 @@ void RunQA()
 		float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
 		clusters[3]->Fill(pt, mc2.nWeightCls);
 		if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc2.nWeightCls);
+	}
+ 	for (int i = 0;i < hlt.GetNMCLabels();i++)
+ 	{
 		float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached;
 		if (totalAttached <= 0) continue;
 		float totalWeight = 0.;
@@ -616,6 +619,7 @@ void RunQA()
 		sprintf(fname, "dump.%d.csv", csvNum++);
 		FILE* fp = fopen(fname, "w+");
 		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum\n\n");
+		int clustersAttached = 0;
 		for (int iSlice = 0; iSlice < 36; iSlice++)
 		{
 			const AliHLTTPCCAClusterData &cdata = hlt.ClusterData(iSlice);
@@ -648,11 +652,12 @@ void RunQA()
 						}
 					}
 				}
-				
+				if (clusterInfo[cid] > 0.) clustersAttached++;
 				fprintf(fp, "%f;%f;%f;%f;%f;%f\n", x, y, z, clusterInfo[cid], p, maxPt);
 			}
 		}
 		fclose(fp);
+		printf("Wrote %s, %d out of %lu clusters attached (%6.2f%%)\n", fname, clustersAttached, clusterInfo.size(), 100.f * clustersAttached / clusterInfo.size());
 	} 
 }
 
