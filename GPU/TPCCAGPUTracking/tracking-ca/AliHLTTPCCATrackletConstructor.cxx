@@ -76,13 +76,6 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
       break;
     }
 
-    if ( 0 ) {
-      if ( 1. / .5 < CAMath::Abs( tParam.QPt() ) ) { //SG!!!
-        r.fNHits = 0;
-        break;
-      }
-    }
-
     {
         bool ok = CheckCov(tParam);
 
