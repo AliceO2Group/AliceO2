@@ -12,6 +12,7 @@
 #include "TGeoManager.h" // for TGeoManager
 #include "TLorentzVector.h"
 #include "TMath.h"
+#include "TGraph.h"
 #include "TString.h"
 #include "TSystem.h"
 #include "TVirtualMC.h"
@@ -33,14 +34,15 @@ using o2::fit::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::Base::Detector("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(new std::vector<o2::fit::Hit>)
+  : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>)
 {
   //  Geometry *geo  = GetGeometry() ;
 
   //  TString gn(geo->GetName());
 }
 
-void Detector::Initialize() {}
+void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+
 void Detector::ConstructGeometry()
 {
   LOG(DEBUG) << "Creating FIT geometry\n";
@@ -178,7 +180,16 @@ void Detector::ConstructGeometry()
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
+
+  // FIXME: we need to register the sensitive volumes with FairRoot
+  TGeoVolume* v = gGeoManager->GetVolume("0REG");
+  if (v == nullptr)
+    printf("Sensitive volume 0REG not found!!!!!!!!");
+  else {
+    AddSensitiveVolume(v);
+  }
 }
+
 //_________________________________________
 void Detector::SetOneMCP(TGeoVolume* ins)
 {
@@ -253,6 +264,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
+
   TLorentzVector position;
   static auto* refMC = TVirtualMC::GetMC();
   if (refMC->IsTrackEntering()) {
@@ -270,7 +282,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {
-        //	fIshunt = 2;
         AddHit(x, y, z, time, enDep, trackID, detID);
       }
     }
@@ -296,18 +307,13 @@ void Detector::Register()
   }
 }
 
-TClonesArray* Detector::GetCollection(Int_t iColl) const
-{
-  LOG(WARNING) << "GetCollection will be deprecated" << FairLogger::endl;
-  return nullptr;
-}
-
-void Detector::Reset() {}
+void Detector::Reset() { mHits->clear(); }
 void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;     // magneticField->Integ();
   Float_t sxmgmx = 10.; // magneticField->Max();
-
+  // FIXME: use o2::Base::Detector::initFieldTrack to init mag field params
+  
   //   Float_t a,z,d,radl,absl,buf[1];
   // Int_t nbuf;
   // AIR
@@ -358,7 +364,8 @@ void Detector::DefineOpticalProperties()
 
   if (ReadOptProperties(optPropPath.Data()) < 0) {
     // Error reading file
-    return;
+    LOG(ERROR) << "Could not read FIT optical properties" << FairLogger::endl;
+	return;
   }
   Int_t nBins = mPhotonEnergyD.size();
   // set QE

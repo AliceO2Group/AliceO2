@@ -15,6 +15,5 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::fit::Detector+;
-#pragma link C++ class o2::fit::Hit+;
 
 #endif

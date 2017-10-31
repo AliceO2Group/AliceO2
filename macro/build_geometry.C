@@ -27,6 +27,7 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
+#include <FITSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <Configuration/SimConfig.h>
@@ -155,7 +156,12 @@ void build_geometry(FairRunSim* run = nullptr)
     // emcal
     run->AddModule(new o2::EMCAL::Detector(true));
   }
-   
+
+  if (isActivated("FIT")) {
+    // FIT
+    run->AddModule(new o2::fit::Detector(true));
+  }
+
   if (geomonly) {
     run->Init();
     gGeoManager->Export("O2geometry.root");
