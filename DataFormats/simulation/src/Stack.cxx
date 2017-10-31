@@ -40,7 +40,7 @@ Stack::Stack(Int_t size)
   : FairGenericStack(),
     mStack(),
     mParticles(new TClonesArray("TParticle", size)),
-    mTracks(new std::vector<o2::MCTrack>(size)),
+    mTracks(new std::vector<o2::MCTrack>),
     mStoreMap(),
     mStoreIterator(),
     mIndexMap(),
