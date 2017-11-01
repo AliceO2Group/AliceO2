@@ -43,6 +43,7 @@
 #include <iomanip>
 #include <string.h>
 #include <cmath>
+#include <algorithm>
 #endif
 
 //#define DRAW1
@@ -659,6 +660,11 @@ GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
 	StopTimer(9);
 }
 
+template <class T> static inline bool SortComparison(const T& a, const T& b)
+{
+	return(a.fSortVal < b.fSortVal);
+}
+
 GPUh() void AliHLTTPCCATracker::WriteOutput()
 {
 	// write output
@@ -686,8 +692,18 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 	AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
 	
-	for (int iTr = 0;iTr < fCommonMem->fNTracks;iTr++)
+	trackSortData* trackOrder = new trackSortData[fCommonMem->fNTracks];
+	for (int i = 0;i < fCommonMem->fNTracks;i++)
 	{
+		trackOrder[i].fTtrack = i;
+		trackOrder[i].fSortVal = fTracks[trackOrder[i].fTtrack].NHits() / 1000.f + fTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + fTracks[trackOrder[i].fTtrack].Param().GetY();
+	}
+	std::sort(trackOrder, trackOrder + fCommonMem->fNLocalTracks, SortComparison<trackSortData>);
+	std::sort(trackOrder + fCommonMem->fNLocalTracks, trackOrder + fCommonMem->fNTracks, SortComparison<trackSortData>);
+	
+	for (int iTrTmp = 0;iTrTmp < fCommonMem->fNTracks;iTrTmp++)
+	{
+		const int iTr = trackOrder[iTrTmp].fTtrack;
 		AliHLTTPCCATrack &iTrack = fTracks[iTr];
 
 		out->SetParam( iTrack.Param() );
