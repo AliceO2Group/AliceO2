@@ -168,7 +168,12 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
 
       if ( err || CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate )
       {
-        if (markNonFittedClusters) clusters[ihit].fState = -(clusters[ihit].fState + 1); // can not propagate or the angle is too big - mark the cluster and continue w/o update
+        if (markNonFittedClusters)
+        {
+          if (fNDF > 0 && (fabs(yy - fP[0]) > 3 || fabs(zz - fP[1]) > 3)) clusters[ihit].fState = -2;
+          else if (err) clusters[ihit].fState = -1;
+        }
+        
         if (DEBUG) printf(" --- break\n");
         continue;
       }
@@ -190,7 +195,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else if (retVal == 2) // cluster far away form the track
       {
-        if (markNonFittedClusters) clusters[ihit].fState = -(clusters[ihit].fState + 1);
+        if (markNonFittedClusters) clusters[ihit].fState = -2;
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
