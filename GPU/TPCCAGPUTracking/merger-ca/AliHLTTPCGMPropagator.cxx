@@ -172,7 +172,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   float *c = fT->Cov();
   
   float c15 = c[ 0]*j0*j2;  
-  float c16 = c[ 1]*j2;
+  float c16 = c[ 1]*j2; 
   float c17 = c[ 3]*j1*j2;
   float c18 = c[ 6]*j2;
   float c19 = c[10]*j2;
@@ -180,16 +180,19 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   
   
   c[ 0] *= j0 * j0;
-  c[ 1] *= j0;
   c[ 3] *= j0;
-  c[ 6] *= j0;
   c[10] *= j0;
   
   c[ 3] *= j1;
-  c[ 4] *= j1;
   c[ 5] *= j1 * j1;
-  c[ 8] *= j1;
   c[12] *= j1;
+
+  if( !fFitInProjections ){
+    c[ 1] *= j0;
+    c[ 6] *= j0;
+    c[ 4] *= j1;
+    c[ 8] *= j1;
+  }
   
   if( px1 <0 ){ // change direction ( t0 direction is already changed in t0.UpdateValues(); )
     fT->SinPhi() = -fT->SinPhi();
@@ -225,25 +228,28 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   float h17 = c17 + c20*j5;
   
   c[ 0] += j3*(c15 + h15);
-
-  c[ 1] += c16*j3 + h15*j4;
+  
   c[ 2] += j4*(c16 + h16);
 
   c[ 3] += c17*j3 + h15*j5;
-  c[ 4] += c17*j4 + h16*j5;
   c[ 5] += j5*(c17 + h17);
 
-  c[ 6] += c18*j3;
   c[ 7] += c18*j4;
-  c[ 8] += c18*j5;
   // c[ 9] = c[ 9];
 
   c[10] += c19*j3;
-  c[11] += c19*j4;
   c[12] += c19*j5;
-  // c[13] = c[13];
   // c[14] = c[14];
- 
+
+  if( !fFitInProjections ){
+    c[ 1] += c16*j3 + h15*j4;
+    c[ 4] += c17*j4 + h16*j5;
+    c[ 6] += c18*j3;
+    c[ 8] += c18*j5;
+    c[11] += c19*j4;
+    //c[13] = c[13];
+  }
+  
   fAlpha = newAlpha;
   fT0 = t0;
   
