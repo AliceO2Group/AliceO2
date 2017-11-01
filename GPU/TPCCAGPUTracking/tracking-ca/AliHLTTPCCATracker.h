@@ -189,7 +189,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 
   GPUh() void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory) { fData.SetGPUSliceDataMemory(pSliceMemory, pRowMemory); }
 
-  GPUh() static int SortComparison(const void* a, const void* b);
 #endif  
   
   MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliHLTTPCCATrackParam) &t, float &Err2Y, float &Err2Z ) const {fParam.GetClusterErrors2( iRow, fParam.GetSearchWindowDZDR() != 0. ? 125. : t.Z(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );}

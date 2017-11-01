@@ -302,11 +302,10 @@ void AliHLTTPCGMMerger::UnpackSlices()
       track.SetNextNeighbour( -1 );
       track.SetSliceNeighbour( -1 );
       track.SetUsed( 0 );
-	  track.SetGlobalTrackId(0, -1);
-	  track.SetGlobalTrackId(1, -1);
-      if (sliceTr->LocalTrackId() != itr) printf("Mismatch!!!!\n");
-	  TrackIds[iSlice * maxSliceTracks + sliceTr->LocalTrackId()] = nTracksCurrent;
-	  nTracksCurrent++;
+      track.SetGlobalTrackId(0, -1);
+      track.SetGlobalTrackId(1, -1);
+      TrackIds[iSlice * maxSliceTracks + sliceTr->LocalTrackId()] = nTracksCurrent;
+      nTracksCurrent++;
       fSliceNTrackInfos[ iSlice ]++;
     }
     firstGlobalTracks[iSlice] = sliceTr;
