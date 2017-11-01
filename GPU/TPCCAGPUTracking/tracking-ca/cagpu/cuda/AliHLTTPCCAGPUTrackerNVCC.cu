@@ -766,17 +766,12 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 	static double times[3];
 	static int nCount = 0;
 	char* gpumem = (char*) fGPUMergerMemory;
-	float *X, *Y, *Z, *Angle;
-	int *Row;
+	AliHLTTPCGMMergedTrackHit *clusters;
 	AliHLTTPCGMMergedTrack* tracks;
 	AliHLTTPCGMPolynomialField* field;
 	AliHLTTPCCAParam* param;
 
-	AssignMemory(X, gpumem, Merger->NClusters());
-	AssignMemory(Y, gpumem, Merger->NClusters());
-	AssignMemory(Z, gpumem, Merger->NClusters());
-	AssignMemory(Angle, gpumem, Merger->NClusters());
-	AssignMemory(Row, gpumem, Merger->NClusters());
+	AssignMemory(clusters, gpumem, Merger->NClusters());
 	AssignMemory(tracks, gpumem, Merger->NOutputTracks());
 	AssignMemory(field, gpumem, 1);
 	AssignMemory(param, gpumem, 1);
@@ -790,23 +785,15 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 
 	if (fDebugLevel >= 2) HLTInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
 	timer.Start();
-	GPUFailedMsg(cudaMemcpy(X, Merger->ClusterX(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	GPUFailedMsg(cudaMemcpy(Y, Merger->ClusterY(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	GPUFailedMsg(cudaMemcpy(Z, Merger->ClusterZ(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	GPUFailedMsg(cudaMemcpy(Angle, Merger->ClusterAngle(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	GPUFailedMsg(cudaMemcpy(Row, Merger->ClusterRow(), Merger->NOutputTrackClusters() * sizeof(unsigned int), cudaMemcpyHostToDevice));
+	GPUFailedMsg(cudaMemcpy(clusters, Merger->Clusters(), Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyHostToDevice));
 	GPUFailedMsg(cudaMemcpy(tracks, Merger->OutputTracks(), Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyHostToDevice));
 	GPUFailedMsg(cudaMemcpy(field, Merger->pField(), sizeof(AliHLTTPCGMPolynomialField), cudaMemcpyHostToDevice));
 	GPUFailedMsg(cudaMemcpy(param, &Merger->SliceParam(), sizeof(AliHLTTPCCAParam), cudaMemcpyHostToDevice));
 	times[0] += timer.GetCurrentElapsedTime(true);
-	RefitTracks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), field, X, Y, Z, Row, Angle, param);
+	RefitTracks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), field, clusters, param);
 	GPUFailedMsg(cudaThreadSynchronize());
 	times[1] += timer.GetCurrentElapsedTime(true);
-	GPUFailedMsg(cudaMemcpy(Merger->ClusterX(), X, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	GPUFailedMsg(cudaMemcpy(Merger->ClusterY(), Y, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	GPUFailedMsg(cudaMemcpy(Merger->ClusterZ(), Z, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	GPUFailedMsg(cudaMemcpy(Merger->ClusterAngle(), Angle, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	GPUFailedMsg(cudaMemcpy(Merger->ClusterRow(), Row, Merger->NOutputTrackClusters() * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	GPUFailedMsg(cudaMemcpy(Merger->Clusters(), clusters, Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyDeviceToHost));
 	GPUFailedMsg(cudaMemcpy((void*) Merger->OutputTracks(), tracks, Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyDeviceToHost));
 	GPUFailedMsg(cudaThreadSynchronize());
 	times[2] += timer.GetCurrentElapsedTime();

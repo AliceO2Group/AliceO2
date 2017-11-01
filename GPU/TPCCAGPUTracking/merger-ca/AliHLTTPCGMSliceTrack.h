@@ -24,29 +24,30 @@ class AliHLTTPCGMSliceTrack
   
  public:
   
-  float Alpha()                      const { return fAlpha;      }
-  int   NClusters()                  const { return fNClusters;       }
-  int   PrevNeighbour()              const { return fPrevNeighbour;   }
-  int   NextNeighbour()              const { return fNextNeighbour;   }
+  float Alpha()                      const { return fAlpha;          }
+  char  Slice()                      const { return (char) fSlice;   }
+  int   NClusters()                  const { return fNClusters;      }
+  int   PrevNeighbour()              const { return fPrevNeighbour;  }
+  int   NextNeighbour()              const { return fNextNeighbour;  }
   int   SliceNeighbour()             const { return fSliceNeighbour; }
-  int   Used()                       const { return fUsed;            }
+  int   Used()                       const { return fUsed;           }
   const AliHLTTPCCASliceOutTrack* OrigTrack() const { return fOrigTrack; }
-  float X()                      const { return fX;      }
-  float Y()                      const { return fY;      }
-  float Z()                      const { return fZ;      }
-  float SinPhi()                      const { return fSinPhi;      }
-  float CosPhi()                      const { return fCosPhi;      }
-  float SecPhi()                      const { return fSecPhi;      }
-  float DzDs()                      const { return fDzDs;      }
-  float QPt()                      const { return fQPt;      }
+  float X()                          const { return fX;      }
+  float Y()                          const { return fY;      }
+  float Z()                          const { return fZ;      }
+  float SinPhi()                     const { return fSinPhi; }
+  float CosPhi()                     const { return fCosPhi; }
+  float SecPhi()                     const { return fSecPhi; }
+  float DzDs()                       const { return fDzDs;   }
+  float QPt()                        const { return fQPt;    }
 
-  int  LocalTrackId()        const { return fLocalTrackId; }
-  void SetLocalTrackId( int v )        { fLocalTrackId = v; }
-  int  GlobalTrackId(int n)        const { return fGlobalTrackIds[n]; }
-  void SetGlobalTrackId( int n, int v )        { fGlobalTrackIds[n] = v; }
+  int  LocalTrackId()             const { return fLocalTrackId; }
+  void SetLocalTrackId( int v )         { fLocalTrackId = v; }
+  int  GlobalTrackId(int n)       const { return fGlobalTrackIds[n]; }
+  void SetGlobalTrackId( int n, int v ) { fGlobalTrackIds[n] = v; }
 
 
-  void Set( const AliHLTTPCCASliceOutTrack *sliceTr, float alpha ){
+  void Set( const AliHLTTPCCASliceOutTrack *sliceTr, float alpha, int slice ){
     const AliHLTTPCCABaseTrackParam &t = sliceTr->Param();
     fOrigTrack = sliceTr;
     fX = t.GetX();
@@ -58,6 +59,7 @@ class AliHLTTPCGMSliceTrack
     fCosPhi = sqrt(1.f - fSinPhi*fSinPhi);
     fSecPhi = 1.f / fCosPhi;
     fAlpha = alpha;
+    fSlice = slice;
     fNClusters = sliceTr->NClusters();
   }
   
@@ -99,6 +101,7 @@ class AliHLTTPCGMSliceTrack
   float fX, fY, fZ, fSinPhi, fDzDs, fQPt, fCosPhi, fSecPhi; // parameters
   float fC0, fC2, fC3, fC5, fC7, fC9, fC10, fC12, fC14; // covariances
   float fAlpha;           // alpha angle 
+  int fSlice;             // slice of this track segment
   int fNClusters;         // N clusters
   int fPrevNeighbour;     // neighbour in the previous slise
   int fNextNeighbour;     // neighbour in the next slise

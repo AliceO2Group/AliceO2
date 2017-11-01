@@ -320,9 +320,9 @@ void RunQA()
 		std::vector<AliHLTTPCClusterMCWeight> labels;
 		for (int k = 0;k < track.NClusters();k++)
 		{
-			if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
+			if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
 			nClusters++;
-			int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+			int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
 			if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());ompError = true;break;}
 			for (int j = 0;j < 3;j++)
 			{
@@ -392,8 +392,8 @@ void RunQA()
 		int label = trackMCLabels[i] < 0 ? (-trackMCLabels[i] - 2) : trackMCLabels[i];
 		for (int k = 0;k < track.NClusters();k++)
 		{
-			if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
-			int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+			if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
+			int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
 			bool correct = false;
 			for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true;break;}
 			if (correct) clusterParam[hitId].attached++;
@@ -618,8 +618,8 @@ void RunQA()
 			if (!track.OK()) continue;
 			for (int k = 0;k < track.NClusters();k++)
 			{
-				if (merger.ClusterRow()[track.FirstClusterRef() + k] < 0) continue;
-				int hitId = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+				if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
+				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
 				float pt = fabs(1.f/track.GetParam().GetQPt());
 				if (pt > clusterInfo[hitId]) clusterInfo[hitId] = pt;
 			}

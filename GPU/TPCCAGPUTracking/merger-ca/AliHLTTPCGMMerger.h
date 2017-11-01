@@ -15,6 +15,7 @@
 #include "AliHLTTPCGMSliceTrack.h"
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCGMPolynomialField.h"
+#include "AliHLTTPCGMMergedTrack.h"
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
@@ -25,7 +26,6 @@ class AliHLTTPCCASliceTrack;
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCGMCluster;
 class AliHLTTPCGMTrackParam;
-class AliHLTTPCGMMergedTrack;
 
 /**
  * @class AliHLTTPCGMMerger
@@ -47,7 +47,6 @@ public:
   
   Int_t NOutputTracks() const { return fNOutputTracks; }
   const AliHLTTPCGMMergedTrack * OutputTracks() const { return fOutputTracks; }
-  const UInt_t * OutputClusterIds() const { return fOutputClusterIds; }
    
   const AliHLTTPCCAParam &SliceParam() const { return fSliceParam; }
 
@@ -59,11 +58,7 @@ public:
 
   int NClusters() const { return(fNClusters); }
   int NOutputTrackClusters() const { return(fNOutputTrackClusters); }
-  float* ClusterX() const {return(fClusterX);}
-  float* ClusterY() const {return(fClusterY);}
-  float* ClusterZ() const {return(fClusterZ);}
-  float* ClusterAngle() const {return(fClusterAngle);}
-  int* ClusterRow() const {return(fClusterRow);}
+  AliHLTTPCGMMergedTrackHit* Clusters() const {return(fClusters);}
   
 private:
   
@@ -96,7 +91,6 @@ private:
   Int_t fNOutputTracks;
   Int_t fNOutputTrackClusters;
   AliHLTTPCGMMergedTrack *fOutputTracks;       //* array of output merged tracks
-  UInt_t * fOutputClusterIds;
   
   AliHLTTPCGMSliceTrack *fSliceTrackInfos; //* additional information for slice tracks
   int fSliceTrackInfoStart[fgkNSlices];   //* slice starting index in fTrackInfos array;
@@ -104,11 +98,7 @@ private:
   int fSliceTrackGlobalInfoStart[fgkNSlices]; //* Same for global tracks
   int fSliceNGlobalTrackInfos[fgkNSlices]; //* Same for global tracks
   int fMaxSliceTracks;      // max N tracks in one slice
-  float *fClusterX;         // cluster X
-  float *fClusterY;         // cluster Y
-  float *fClusterZ;         // cluster Z
-  int *fClusterRow;  // cluster row type
-  float *fClusterAngle;     // angle    
+  AliHLTTPCGMMergedTrackHit *fClusters;
   AliHLTTPCGMBorderTrack *fBorderMemory; // memory for border tracks
   AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory; // memory for border tracks
 

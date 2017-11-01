@@ -424,7 +424,7 @@ int main(int argc, char** argv)
 							fprintf(foutput, "Track %d: %4s Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f q/Pt %f - Clusters ", k, track.OK() ? "OK" : "FAIL", track.GetAlpha(), param.GetX(), param.GetY(), param.GetZ(), param.GetSinPhi(), param.GetDzDs(), param.GetQPt());
 							for (int l = 0;l < track.NClusters();l++)
 							{
-								fprintf(foutput, "%d ", merger.OutputClusterIds()[track.FirstClusterRef() + l]);
+								fprintf(foutput, "%d ", merger.Clusters()[track.FirstClusterRef() + l].fId);
 							}
 							fprintf(foutput, "\n");
 						}
@@ -451,8 +451,11 @@ int main(int argc, char** argv)
 							tmpTrack.NClusters = track.NClusters();
 							tmpTrack.FitOK = track.OK();
 							fwrite(&tmpTrack, sizeof(tmpTrack), 1, fpBinaryOutput);
-							const unsigned int* hitIds = merger.OutputClusterIds() + track.FirstClusterRef();
-							fwrite(hitIds, sizeof(hitIds[0]), track.NClusters(), fpBinaryOutput);
+							const AliHLTTPCGMMergedTrackHit* clusters = merger.Clusters() + track.FirstClusterRef();
+							for (int l = 0;l < track.NClusters();l++)
+							{
+								fwrite(&clusters[l].fId, sizeof(clusters[l].fId), 1, fpBinaryOutput);
+							}
 						}
 					}
 					

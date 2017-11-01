@@ -11,6 +11,7 @@
 #define ALIHLTTPCGMMERGEDTRACK_H
 
 #include "AliHLTTPCGMTrackParam.h"
+#include "AliHLTTPCGMMergedTrackHit.h"
 
 /**
  * @class AliHLTTPCGMMergedTrack
@@ -42,6 +43,7 @@ class AliHLTTPCGMMergedTrack
   GPUd() void SetLastY( float v )                        { fLastY = v; }
   GPUd() void SetLastZ( float v )                        { fLastZ = v; }
   GPUd() void SetOK( bool v ) {fOK = v;}
+  
  private:
 
   AliHLTTPCGMTrackParam fParam; //* fitted track parameters 
@@ -55,6 +57,5 @@ class AliHLTTPCGMMergedTrack
   int fNClustersFitted;         //* number of clusters used in fit
   bool fOK;//
 };
-
 
 #endif 

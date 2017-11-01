@@ -12,13 +12,14 @@
 #define ALIHLTTPCGMTRACKPARAM_H
 
 #include "AliHLTTPCCAMath.h"
+#include "AliHLTTPCGMMergedTrackHit.h"
 
 class AliHLTTPCGMBorderTrack;
 class AliExternalTrackParam;
 class AliHLTTPCCAParam;
-class AliHLTTPCGMMergedTrack;
 class AliHLTTPCGMPhysicalTrackModel;
 class AliHLTTPCGMPolynomialField;
+class AliHLTTPCGMMergedTrack;
 
 /**
  * @class AliHLTTPCGMTrackParam
@@ -93,7 +94,7 @@ public:
   GPUd() void Fit
   (
    const AliHLTTPCGMPolynomialField* field,
-   float x[], float y[], float z[], int row[], float alpha[], const AliHLTTPCCAParam &param,
+   AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param,
    int &N, float &Alpha, 
    bool UseMeanPt = 0,
    float maxSinPhi = .999
@@ -110,7 +111,7 @@ public:
     if( mask ) x = v;
   }
   
-  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field, float* x, float* y, float* z, int* row, float* alpha, const AliHLTTPCCAParam& param);
+  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param);
 
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
   bool GetExtParam( AliExternalTrackParam &T, double alpha ) const;

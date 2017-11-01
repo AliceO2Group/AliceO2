@@ -54,7 +54,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUhd() float RowX( int iRow ) const { return fRowX[iRow]; }
 
     GPUd() float Alpha() const { return fAlpha;}
-    GPUd() float Alpha( int iSlice ) const { return 0.174533 + DAlpha()*iSlice;}
+    GPUd() float Alpha( int iSlice ) const { return 0.174533 + DAlpha() * (iSlice < 18 ? iSlice : (iSlice - 18));}
     GPUd() float DAlpha() const { return fDAlpha;}
     GPUd() float CosAlpha() const { return fCosAlpha;}
     GPUd() float SinAlpha() const { return fSinAlpha;}
