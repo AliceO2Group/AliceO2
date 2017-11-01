@@ -692,7 +692,6 @@ template <class T> T* GetHist(T* &ee, std::vector<TFile*>& tin, int k, int nNewI
 	return(e);
 }
 
-
 int DrawQAHistograms()
 {
 	char name[1024], fname[1024];
@@ -773,7 +772,7 @@ int DrawQAHistograms()
 		legendncl = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendncl);
 	}
 	
-	printf("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)\n",
+	if (!config.inputHistogramsOnly) printf("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)\n",
 		(int) eff[3][1][0][0][0]->GetEntries(), (int) eff[3][1][0][3][0]->GetEntries(), (int) eff[3][1][0][4][0]->GetEntries(),
 		eff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., eff[3][0][0][0][0]->GetSumOfWeights()), eff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., eff[3][1][0][0][0]->GetSumOfWeights()),
 		(int) eff[3][1][1][0][0]->GetEntries(), (int) eff[3][1][1][3][0]->GetEntries(), (int) eff[3][1][1][4][0]->GetEntries(),
@@ -827,7 +826,7 @@ int DrawQAHistograms()
 							if (l == 2) eff[3][j / 2][j % 2][i][0]->Write(); //Store also all histogram!
 						}
 					}
-					else if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+					else if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 
 					e->SetMarkerColor(kBlack);
 					e->SetLineWidth(1);
@@ -922,6 +921,14 @@ int DrawQAHistograms()
 					resIntegral[j] = res2[j][0]->ProjectionX(ParameterNames[j], 0, nBins + 1);
 				}
 			}
+			if (ii == 0)
+			{
+				if (config.inputHistogramsOnly) resIntegral[j] = new TH1D;
+				sprintf(fname, "IntRes%s", ParameterNames[j]);
+				sprintf(name, "%s Resolution", ParameterNames[j]);
+				resIntegral[j]->SetName(fname);
+				resIntegral[j]->SetTitle(name);
+			}
 			pres[ii][j]->cd();
 
 			int numColor = 0;
@@ -933,7 +940,7 @@ int DrawQAHistograms()
 				for (int k = 0;k < ConfigNumInputs;k++)
 				{
 					TH1F* e = res[j][i][l];
-					if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 					if (nNewInput && k == 0 && ii != 5)
 					{
 						e->Scale(Scale[j]);
@@ -976,7 +983,7 @@ int DrawQAHistograms()
 							e->Write();
 						}
 					}
-					else if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+					else if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 					e->SetMaximum(tmpMax);
 					e->SetMinimum(tmpMin);
 					e->SetMarkerColor(kBlack);
@@ -1014,10 +1021,6 @@ int DrawQAHistograms()
 			if (!config.inputHistogramsOnly)
 			{
 				TH1D* e = resIntegral[i];
-				sprintf(fname, "IntRes%s", ParameterNames[i]);
-				sprintf(name, "%s Resolution", ParameterNames[i]);
-				e->SetName(fname);
-				e->SetTitle(name);
 				e->GetEntries();
 				e->Fit("gaus","sQ");
 			}
@@ -1026,7 +1029,7 @@ int DrawQAHistograms()
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
 				TH1D* e = resIntegral[i];
-				if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 				e->SetMaximum(-1111);
 				if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
 			}
@@ -1034,7 +1037,7 @@ int DrawQAHistograms()
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
 				TH1D* e = resIntegral[i];
-				if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 				e->SetMaximum(tmpMax * 1.02);
 				e->SetMinimum(tmpMax * -0.02);
 				e->SetLineColor(colorNums[numColor++ % ColorCount]);
@@ -1083,7 +1086,7 @@ int DrawQAHistograms()
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
 			TH1F* e = clusters[3];
-			if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+			if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 			e->SetMinimum(-1111);
 			e->SetMaximum(-1111);
 			
@@ -1095,7 +1098,7 @@ int DrawQAHistograms()
 			for (int i = 0;i < 4;i++)
 			{
 				TH1F* e = clusters[i];
-				if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 				e->SetMaximum(tmpMax * 1.02);
 				e->SetMinimum(tmpMax * -0.02);
 			}
@@ -1113,7 +1116,7 @@ int DrawQAHistograms()
 				for (int j = begin;j < end;j++)
 				{
 					TH1F* e = clusters[j];
-					if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 
 					e->SetTitle(ClusterTitles[i]);
 					e->GetYaxis()->SetTitle(i == 0 ? "Number of clusters" : "Fraction of clusters");
@@ -1142,7 +1145,7 @@ int DrawQAHistograms()
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
 			TH1F* e = tracks;
-			if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+			if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 			e->SetMaximum(-1111);
 			if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
 		}
@@ -1151,7 +1154,7 @@ int DrawQAHistograms()
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
 			TH1F* e = tracks;
-			if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+			if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 			if (tout && !config.inputHistogramsOnly && k == 0) e->Write();
 			e->SetMaximum(tmpMax * 1.02);
 			e->SetMinimum(tmpMax * -0.02);
@@ -1173,7 +1176,7 @@ int DrawQAHistograms()
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
 			TH1F* e = ncl;
-			if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+			if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 			e->SetMaximum(-1111);
 			if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
 		}
@@ -1181,7 +1184,7 @@ int DrawQAHistograms()
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
 			TH1F* e = ncl;
-			if (GetHist(e, tin, k, nNewInput) == NULL) return(1);
+			if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 			if (tout && !config.inputHistogramsOnly && k == 0) e->Write();
 			e->SetMaximum(tmpMax * 1.02);
 			e->SetMinimum(tmpMax * -0.02);
