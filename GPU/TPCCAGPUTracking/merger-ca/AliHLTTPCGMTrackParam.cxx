@@ -72,30 +72,26 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
 
     N = 0;
     const bool inFlyDirection = iWay & 1;
-    char directionState = 2;
-    bool directionChangePending = 0;
+    unsigned char lastLeg = clusters[ihitStart].fLeg;
     const int wayDirection = (iWay & 1) ? -1 : 1;
     int ihit = ihitStart;
-    int lastRow = 0;
     for(;ihit >= 0 && ihit<maxN;ihit += wayDirection)
     {
       if (clusters[ihit].fState < 0) continue; // hit is excluded from fit
       const int rowType = clusters[ihit].fRow < 64 ? 0 : clusters[ihit].fRow < 128 ? 2 : 1;
       if (DEBUG) printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, maxN, clusters[ihit].fRow, param.Alpha(clusters[ihit].fSlice), clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);
       
-      char newState = N > 0 ? (lastRow > clusters[ihit].fRow) : 2;
-      bool doubleRow = ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow;
       float xx = clusters[ihit].fX;
       float yy = clusters[ihit].fY;
       float zz = clusters[ihit].fZ;
-      if (DOUBLE && doubleRow)
+      if (DOUBLE && ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
       {
           float count = 1.;
           do
           {
-              if (clusters[ihit].fSlice != clusters[ihit + wayDirection].fSlice || fabs(clusters[ihit].fY - clusters[ihit + wayDirection].fY) > 4. || fabs(clusters[ihit].fZ - clusters[ihit + wayDirection].fZ) > 4.) break;
-              if (DEBUG) printf("\t\tMerging hit row %d X %f Y %f Z %f\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);
+              if (clusters[ihit].fSlice != clusters[ihit + wayDirection].fSlice || clusters[ihit].fLeg != clusters[ihit + wayDirection].fLeg || fabs(clusters[ihit].fY - clusters[ihit + wayDirection].fY) > 4. || fabs(clusters[ihit].fZ - clusters[ihit + wayDirection].fZ) > 4.) break;
               ihit += wayDirection;
+              if (DEBUG) printf("\t\tMerging hit row %d X %f Y %f Z %f\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);
               xx += clusters[ihit].fX;
               yy += clusters[ihit].fY;
               zz += clusters[ihit].fZ;
@@ -107,13 +103,10 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
           if (DEBUG) printf("\t\tDouble row (%d hits)\n", (int) count);
       }
       
-      bool changeDirection = ((directionState ^ newState) == 1);
-      if (changeDirection) directionChangePending = 1;
-      bool canChangeDirection = (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && (newState ^ (clusters[ihit].fRow > clusters[ihit + wayDirection].fRow)) == 1);
-      directionState = newState;
-      lastRow = clusters[ihit].fRow;
-      if (DEBUG && (changeDirection || canChangeDirection || directionChangePending)) printf("\t\tChange direction possibly change %d can %d pending %d\n", (int) changeDirection, (int) canChangeDirection, (int) directionChangePending);
-      if (DEBUG) printf("\t%21sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), (fabs(prop.GetAlpha() - param.Alpha(clusters[ihit].fSlice)) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
+      bool changeDirection = (clusters[ihit].fLeg - lastLeg) & 1;
+      if (DEBUG && changeDirection) printf("\t\tChange direction\n");
+      if (DEBUG) printf("\tLeg %3d%14sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n",
+        (int) clusters[ihit].fLeg, "", prop.GetAlpha(), (fabs(prop.GetAlpha() - param.Alpha(clusters[ihit].fSlice)) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
       int err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
       {
@@ -145,11 +138,11 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     
       if (DEBUG) printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);
       const float Bz = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
-      if (MIRROR && err == 0 && (changeDirection || canChangeDirection || directionChangePending) && fP[2] * fP[4] * Bz < 0)
+      if (MIRROR && err == 0 && changeDirection && fP[2] * fP[4] * Bz < 0)
       {
           const float mirrordY = prop.GetMirroredYTrack();
           if (DEBUG) printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);
-          if (changeDirection || ((directionChangePending || canChangeDirection) && fabs(yy - fP[0]) > fabs(yy - mirrordY)))
+          if (fabs(yy - fP[0]) > fabs(yy - mirrordY))
           {
               if (DEBUG) printf(" - Mirroring!!!");
               prop.Mirror(inFlyDirection);
@@ -164,8 +157,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               prop.SetTrack(this, prop.GetAlpha());
 
               fNDF = -3;
-              directionState = 2;
-              directionChangePending = 0;
+              lastLeg = clusters[ihit].fLeg;
               N++;
               resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
               if (DEBUG) printf("\n");
