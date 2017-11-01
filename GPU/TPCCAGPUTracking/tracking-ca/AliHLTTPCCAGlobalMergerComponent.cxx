@@ -545,7 +545,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 	currOutTrack->fTrackID = itr;
 	currOutTrack->fFlags = 0;
 	currOutTrack->fNPoints = track.NClusters();    
-	for ( int i = 0; i < track.NClusters(); i++ ) currOutTrack->fPointIDs[i] = fGlobalMerger->OutputClusterIds()[track.FirstClusterRef() + i ];
+	for ( int i = 0; i < track.NClusters(); i++ ) currOutTrack->fPointIDs[i] = fGlobalMerger->Clusters()[track.FirstClusterRef() + i].fId;
 	
 	currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
 	mySize += dSize;
