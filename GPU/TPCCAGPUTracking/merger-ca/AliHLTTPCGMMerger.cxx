@@ -683,7 +683,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	{
 		*c2 = *c;
 		clA[nHits].x = t->Slice();
-		clA[nHits++].y = (t->QPt() * t->DzDs() > 0);
+		clA[nHits++].y = (t->QPt() > 0);
 	}
       }
       if ( nHits < TRACKLET_SELECTOR_MIN_HITS(track.QPt()) ) continue;
