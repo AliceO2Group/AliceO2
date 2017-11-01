@@ -44,13 +44,13 @@ class TrackReference : public TObject
         kTOF = 4,
         kMUON = 5,
         kHMPID = 6,
-        kT0 = 7,
+        kFIT = 7,
         kEMCAL = 8,
         kPMD = 10,
         kFMD = 12,
         kVZERO = 14,
         kMFT = 16,
-        kHALL = 17
+        kHALL = 17  
     };
 
     /// Default Constructor
