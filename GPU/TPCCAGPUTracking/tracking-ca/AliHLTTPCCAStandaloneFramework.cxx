@@ -311,7 +311,7 @@ void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz)
       float minusZmin = -249.645;
       float minusZmax = -0.0799937;
       float dalpha = 0.349066;
-      float alpha = 0.174533 + dalpha * iSec;
+      float alpha = 0.174533 + dalpha * (iSec < 18 ? iSec : iSec - 18);
 
       bool zPlus = ( iSec < 18 );
       float zMin =  zPlus ? plusZmin : minusZmin;
