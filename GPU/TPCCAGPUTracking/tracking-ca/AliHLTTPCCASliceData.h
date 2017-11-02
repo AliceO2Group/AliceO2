@@ -68,7 +68,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 
     void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory);
     size_t SetPointers(const AliHLTTPCCAClusterData *data, bool allocate = false);
-    void InitFromClusterData( const AliHLTTPCCAClusterData &data );
+    int InitFromClusterData( const AliHLTTPCCAClusterData &data );
 
     /**
      * Clear the slice data (e.g. for an empty slice)
@@ -86,19 +86,19 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
      *
      * The links values give the hit index in the row above/below. Or -1 if there is no link.
      */
-    MEM_TEMPLATE() GPUd() short_v HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row, const short_v &hitIndex ) const;
-    MEM_TEMPLATE() GPUd() short_v HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row, const short_v &hitIndex ) const;
+    MEM_TEMPLATE() GPUd() calink HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex ) const;
+    MEM_TEMPLATE() GPUd() calink HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex ) const;
 
     MEM_TEMPLATE() GPUhd() GPUglobalref() const ushort2 *HitData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fHitData[row.fHitNumberOffset];}
     GPUhd() GPUglobalref() const ushort2* HitData() const { return(fHitData); }
-	MEM_TEMPLATE() GPUd() GPUglobalref() const short_v *HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkUpData[row.fHitNumberOffset];}
-	MEM_TEMPLATE() GPUd() GPUglobalref() const short_v *HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkDownData[row.fHitNumberOffset];}
-	MEM_TEMPLATE() GPUd() GPUglobalref() const ushort_v *FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow) &row ) const {return &fFirstHitInBin[row.fFirstHitInBinOffset];}
+	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkUpData[row.fHitNumberOffset];}
+	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkDownData[row.fHitNumberOffset];}
+	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow) &row ) const {return &fFirstHitInBin[row.fFirstHitInBinOffset];}
 
-    MEM_TEMPLATE() GPUd() void SetHitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row, const short_v &hitIndex,
-                             const short_v &value );
-    MEM_TEMPLATE() GPUd() void SetHitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row, const short_v &hitIndex,
-                             const short_v &value );
+    MEM_TEMPLATE() GPUd() void SetHitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex,
+                             const calink &value );
+    MEM_TEMPLATE() GPUd() void SetHitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex,
+                             const calink &value );
 
     /**
      * Reset all links to -1.
@@ -119,7 +119,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
      *
      * \param binIndexes in the range 0 to row.Grid.N + row.Grid.Ny + 3.
      */
-    MEM_TEMPLATE() GPUd() ushort_v FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row, ushort_v binIndexes ) const;
+    MEM_TEMPLATE() GPUd() calink FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row, calink binIndexes ) const;
 
     /**
      * If the given weight is higher than what is currently stored replace with the new weight.
@@ -196,8 +196,8 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 
     GPUglobalref() MEM_GLOBAL(AliHLTTPCCARow) *fRows;     // The row objects needed for most accessor functions
 
-    GPUglobalref() short *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
-    GPUglobalref() short *fLinkDownData;      // hit index in the row below which is linked to the given (global) hit index
+    GPUglobalref() calink *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
+    GPUglobalref() calink *fLinkDownData;      // hit index in the row below which is linked to the given (global) hit index
 
     GPUglobalref() ushort2 *fHitData;         // packed y,z coordinate of the given (global) hit index
 
@@ -207,28 +207,28 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
      * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization
      * to remove the need for bounds checking. The last values are the same as the entry at [N - 1].
      */
-    GPUglobalref() unsigned short *fFirstHitInBin;         // see FirstHitInBin
+    GPUglobalref() calink *fFirstHitInBin;         // see FirstHitInBin
 
     GPUglobalref() int *fHitWeights;          // the weight of the longest tracklet crossed the cluster
 
 };
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline short_v MEM_LG(AliHLTTPCCASliceData)::HitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const short_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline calink MEM_LG(AliHLTTPCCASliceData)::HitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex ) const
 {
   return fLinkUpData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline short_v MEM_LG(AliHLTTPCCASliceData)::HitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const short_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline calink MEM_LG(AliHLTTPCCASliceData)::HitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex ) const
 {
   return fLinkDownData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const short_v &hitIndex, const short_v &value )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex, const calink &value )
 {
   fLinkUpData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const short_v &hitIndex, const short_v &value )
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::SetHitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, const calink &hitIndex, const calink &value )
 {
   fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
@@ -248,7 +248,7 @@ MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline ushort2 MEM_LG(AliHLTTPCCASliceData
   return fHitData[row.fHitNumberOffset + hitIndex];
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline ushort_v MEM_LG(AliHLTTPCCASliceData)::FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row, ushort_v binIndexes ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline calink MEM_LG(AliHLTTPCCASliceData)::FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row, calink binIndexes ) const
 {
   return fFirstHitInBin[row.fFirstHitInBinOffset + binIndexes];
 }

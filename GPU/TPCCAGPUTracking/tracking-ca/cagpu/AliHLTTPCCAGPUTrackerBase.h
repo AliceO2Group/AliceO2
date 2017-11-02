@@ -88,6 +88,7 @@ protected:
 		int fPhase;
 		int CPUTracker;
 		volatile int fDone;
+		volatile bool fError;
 		volatile bool fReset;
 	};
 
@@ -104,7 +105,7 @@ protected:
 	int Reconstruct_Base_FinishSlices(AliHLTTPCCASliceOutput** pOutput, int& iSlice, int& firstSlice);
 	int Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput** pOutput, char*& tmpMemoryGlobalTracking, int& firstSlice);
 	
-	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
+	int ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
 	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
 	int GlobalTracking(int iSlice, int threadId, helperParam* hParam);
 

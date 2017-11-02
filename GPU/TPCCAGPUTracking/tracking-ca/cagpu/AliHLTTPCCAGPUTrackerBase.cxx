@@ -86,7 +86,11 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 				if (myISlice >= 0)
 				{
 					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
-					tmpTracker->ReadEvent(&par->pClusterData[myISlice]);
+					if (tmpTracker->ReadEvent(&par->pClusterData[myISlice]))
+					{
+						printf("Fatal error during CPU tracking!\n");
+						exit(1);
+					}
 					tmpTracker->DoTracking();
 					tmpTracker->SetOutput(&par->pOutput[myISlice]);
 					pthread_mutex_lock((pthread_mutex_t*) cls->fHelperMemMutex);
@@ -141,7 +145,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 				}
 				else
 				{
-					cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1);
+					if (cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1)) par->fError = 1;
 					par->fDone = i + 1;
 				}
 				//if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
@@ -343,18 +347,19 @@ int AliHLTTPCCAGPUTrackerBase::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOut
 	return(retVal);
 }
 
-void AliHLTTPCCAGPUTrackerBase::ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId)
+int AliHLTTPCCAGPUTrackerBase::ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId)
 {
 	fSlaveTrackers[firstSlice + iSlice].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, iSlice), RowMemory(fHostLockedMemory, firstSlice + iSlice));
 #ifdef HLTCA_GPU_TIME_PROFILE
 	unsigned long long int a, b;
 	AliHLTTPCCATracker::StandaloneQueryTime(&a);
 #endif
-	fSlaveTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
+	if (fSlaveTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice])) return(1);
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
 	HLTInfo("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
+	return(0);
 }
 
 void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId)
@@ -836,12 +841,21 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData
 	if (fDebugLevel >= 3) HLTInfo("Creating Slice Data (Slice %d)", iSlice);
 	if (iSlice % (fNHelperThreads + 1) == 0)
 	{
-		ReadEvent(pClusterData, firstSlice, iSlice, 0);
+		if (ReadEvent(pClusterData, firstSlice, iSlice, 0))
+		{
+			ResetHelperThreads(1);
+			return(1);
+		}
 	}
 	else
 	{
 		if (fDebugLevel >= 3) HLTInfo("Waiting for helper thread %d", iSlice % (fNHelperThreads + 1) - 1);
 		while(fHelperParams[iSlice % (fNHelperThreads + 1) - 1].fDone < iSlice);
+		if (fHelperParams[iSlice % (fNHelperThreads + 1) - 1].fError)
+		{
+			ResetHelperThreads(1);
+			return(1);
+		}
 	}
 
 	if (fDebugLevel >= 4)
@@ -979,6 +993,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 	{
 		fHelperParams[i].CPUTracker = 0;
 		fHelperParams[i].fDone = 0;
+		fHelperParams[i].fError = 0;
 		fHelperParams[i].fPhase = 0;
 		fHelperParams[i].pClusterData = pClusterData;
 		fHelperParams[i].fSliceCount = sliceCountLocal;

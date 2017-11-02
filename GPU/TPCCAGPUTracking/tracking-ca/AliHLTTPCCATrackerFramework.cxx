@@ -102,6 +102,16 @@ GPUhd() void AliHLTTPCCATrackerFramework::SetOutputControl( AliHLTTPCCASliceOutp
 
 int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput)
 {
+	long long int totalNClusters = 0;
+	for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+	{
+		totalNClusters += pClusterData[iSlice].NumberOfClusters();
+		if (totalNClusters > ((long long int) 1) << (sizeof(int) * 8))
+		{
+			printf("Too many clusters for cluster indexing: %lld > %lld\n", totalNClusters, ((long long int) 1) << (sizeof(int) * 8));
+			return(1);
+		}
+	}
 	int useGlobalTracking = fGlobalTracking;
 	if (fGlobalTracking && (firstSlice || sliceCount != fgkNSlices))
 	{
@@ -123,12 +133,18 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			return(1);
 		}
 		int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
+		bool error = false;
 
 #pragma omp parallel for
 #endif
 		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
 		{
-			fCPUTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
+			if (error) continue;
+			if (fCPUTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]))
+			{
+				error = true;
+				continue;
+			}
 			fCPUTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].Reconstruct();
 			fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTracks = fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNTracks;
@@ -146,6 +162,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 				}
 			}
 		}
+		if (error) return(1);
 
 		if (useGlobalTracking)
 		{

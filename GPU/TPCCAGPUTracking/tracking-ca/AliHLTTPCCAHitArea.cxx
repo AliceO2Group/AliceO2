@@ -44,8 +44,8 @@ MEM_TEMPLATE() GPUdi() void AliHLTTPCCAHitArea::Init( const MEM_TYPE( AliHLTTPCC
 
   // for given fIz (which is min atm.) get
 #ifdef HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS
-  fHitYfst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
-  fHitYlst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
+  fHitYfst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin);
+  fHitYlst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin + fBDY);
 #else
   fHitYfst = slice.FirstHitInBin( row, fIndYmin ); // first and
   fHitYlst = slice.FirstHitInBin( row, fIndYmin + fBDY ); // last hit index in the bin
@@ -76,8 +76,8 @@ MEM_TEMPLATE() GPUdi() int AliHLTTPCCAHitArea::GetNext( GPUconstant() const MEM_
       ++fIz;
       fIndYmin += fNy;
 #ifdef HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS
-	  fHitYfst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
-	  fHitYlst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
+	  fHitYfst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin);
+	  fHitYlst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(calink) + fIndYmin + fBDY);
 #else
       fHitYfst = slice.FirstHitInBin( row, fIndYmin );
       fHitYlst = slice.FirstHitInBin( row, fIndYmin + fBDY );
@@ -94,7 +94,7 @@ MEM_TEMPLATE() GPUdi() int AliHLTTPCCAHitArea::GetNext( GPUconstant() const MEM_
     h->SetZ( z0 + tracker.HitDataZ( row, fIh ) * stepZ );
 #endif
 
-    if ( 1 && ( h->Z() > fMaxZ || h->Z() < fMinZ || h->Y() < fMinY || h->Y() > fMaxY ) ) { //SG!!!
+    if ( h->Z() > fMaxZ || h->Z() < fMinZ || h->Y() < fMinY || h->Y() > fMaxY ) {
       fIh++;
       continue;
     }

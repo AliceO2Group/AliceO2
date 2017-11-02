@@ -21,29 +21,29 @@
 #include <assert.h>
 #endif //!assert
 
-template<unsigned int X>
+template<size_t X>
 GPUhd() static inline void AlignTo( char *&mem )
 {
   STATIC_ASSERT( ( X & ( X - 1 ) ) == 0, X_needs_to_be_a_multiple_of_2 );
-  const int offset = reinterpret_cast<unsigned long long>( mem ) & ( X - 1 );
+  const size_t offset = reinterpret_cast<size_t>( mem ) & ( X - 1 );
   if ( offset > 0 ) {
     mem += ( X - offset );
   }
   //assert( ( reinterpret_cast<unsigned long>( mem ) & ( X - 1 ) ) == 0 );
 }
 
-template<unsigned int X>
-GPUhd() static inline unsigned int NextMultipleOf( unsigned int value )
+template<size_t X>
+GPUhd() static inline unsigned int NextMultipleOf( size_t value )
 {
   STATIC_ASSERT( ( X & ( X - 1 ) ) == 0, X_needs_to_be_a_multiple_of_2 );
-  const int offset = value & ( X - 1 );
+  const size_t offset = value & ( X - 1 );
   if ( offset > 0 ) {
     return value + X - offset;
   }
   return value;
 }
 
-template<typename T, unsigned int Alignment> static T *AssignMemory( char *&mem, unsigned int size )
+template<typename T, size_t Alignment> static T *AssignMemory( char *&mem, size_t size )
 {
   STATIC_ASSERT( ( Alignment & ( Alignment - 1 ) ) == 0, Alignment_needs_to_be_a_multiple_of_2 );
   AlignTo<Alignment> ( mem );
@@ -52,13 +52,13 @@ template<typename T, unsigned int Alignment> static T *AssignMemory( char *&mem,
   return r;
 }
 
-template<typename T, unsigned int Alignment> static inline T *AssignMemory( char *&mem, unsigned int stride, unsigned int count )
+template<typename T, size_t Alignment> static inline T *AssignMemory( char *&mem, size_t stride, size_t count )
 {
   assert( 0 == ( stride & ( Alignment - 1 ) ) );
   return AssignMemory<T, Alignment>( mem, stride * count );
 }
 
-template<typename T, unsigned int Alignment> GPUhd() static T *_assignMemory( char *&mem, unsigned int size )
+template<typename T, size_t Alignment> GPUhd() static T *_assignMemory( char *&mem, size_t size )
 {
   STATIC_ASSERT( ( Alignment & ( Alignment - 1 ) ) == 0, Alignment_needs_to_be_a_multiple_of_2 );
   AlignTo<Alignment < sizeof( HLTCA_GPU_ROWALIGNMENT ) ? sizeof( HLTCA_GPU_ROWALIGNMENT ) : Alignment>( mem );
@@ -67,7 +67,7 @@ template<typename T, unsigned int Alignment> GPUhd() static T *_assignMemory( ch
   return r;
 }
 
-template<typename T> GPUhd() static inline void AssignMemory( T *&dst, char *&mem, int count )
+template<typename T> GPUhd() static inline void AssignMemory( T *&dst, char *&mem, size_t count )
 {
 	dst = _assignMemory < T, ( sizeof( T ) & ( sizeof( T ) - 1 ) ) == 0 && sizeof( T ) <= 16 ? sizeof( T ) : sizeof( void * ) > ( mem, count );
 }

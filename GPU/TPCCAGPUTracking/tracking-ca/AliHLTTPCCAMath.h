@@ -201,7 +201,7 @@ GPUhd() inline float AliHLTTPCCAMath::ASin( float x )
 
 GPUhd() inline float AliHLTTPCCAMath::Log(float x)
 {
-	return choice( Log(x), Log(x), TMath::Log(x));
+	return choice( log(x), log(x), TMath::Log(x));
 }
 
 #if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)

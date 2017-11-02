@@ -130,6 +130,9 @@ typedef float          Size_t;      //Attribute size (float)
 
 #define REPRODUCIBLE_CLUSTER_SORTING
 
+typedef unsigned short calink;
+#define CALINK_INVAL ((calink) -1)
+
 #ifdef HLTCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 1000

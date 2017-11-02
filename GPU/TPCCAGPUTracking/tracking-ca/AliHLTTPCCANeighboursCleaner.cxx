@@ -62,15 +62,14 @@ GPUdi() void AliHLTTPCCANeighboursCleaner::Thread
         int up = tracker.HitLinkUpData( row, ih );
         if ( up >= 0 ) {
           short upDn = tracker.HitLinkDownData( rowUp, up );
-          if ( ( upDn != ih ) ) tracker.SetHitLinkUpData( row, ih, -1 );
+          if ( ( upDn != ih ) ) tracker.SetHitLinkUpData( row, ih, CALINK_INVAL );
         }
         int dn = tracker.HitLinkDownData( row, ih );
         if ( dn >= 0 ) {
           short dnUp = tracker.HitLinkUpData( rowDn, dn );
-          if ( dnUp != ih ) tracker.SetHitLinkDownData( row, ih, -1 );
+          if ( dnUp != ih ) tracker.SetHitLinkDownData( row, ih, CALINK_INVAL );
         }
       }
     }
   }
 }
-
