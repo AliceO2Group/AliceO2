@@ -623,6 +623,95 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
 {
   float *fC = fT->Cov();
   float *fP = fT->Par();
+
+  float err2Y, err2Z;
+  GetErr2(err2Y, err2Z, param, posZ, iRow);
+  
+  if ( fT->NDF()==-5 ) { // first measurement: no need to filter, as the result is known in advance. just set it. 
+    fT->ResetCovariance();
+    fP[ 0] = posY;
+    fP[ 1] = posZ;
+    fC[ 0] = err2Y;
+    fC[ 2] = err2Z;
+    fT->NDF() = -3;   
+    return 0;
+  }
+        
+  float w0=fC[2]+err2Z,  w1=fC[1], w2=fC[0]+err2Y;
+  
+  { // Invert symmetric matrix
+    float det = w0*w2 - w1*w1;
+    if( CAMath::Abs(det)<1.e-10 ) return -1;
+    det = 1./det;    
+    w0 =  w0*det;
+    w1 = -w1*det;
+    w2 =  w2*det;
+  }
+
+  float k00= fC[ 0]*w0 + fC[ 1]*w1;   float k01= fC[ 0]*w1 + fC[ 1]*w2;
+  float k10= fC[ 1]*w0 + fC[ 2]*w1;   float k11= fC[ 1]*w1 + fC[ 2]*w2;  
+  float k20= fC[ 3]*w0 + fC[ 4]*w1;   float k21= fC[ 3]*w1 + fC[ 4]*w2;
+  float k30= fC[ 6]*w0 + fC[ 7]*w1;   float k31= fC[ 6]*w1 + fC[ 7]*w2; 
+  float k40= fC[10]*w0 + fC[11]*w1;   float k41= fC[10]*w1 + fC[11]*w2;
+  
+  float z0= posY - fP[0];   float z1= posZ - fP[1];
+
+  float dChi2 = CAMath::Abs( (w0*z0 + w1*z1 )*z0 + (w1*z0 + w2*z1 )*z1 );
+
+  //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1, z0, z1);
+  //float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 5 : 5; // change to fT0
+  //if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;  
+  //SG!!! if( fabs( fP[2] + z0*c20*mS0  ) > fMaxSinPhi ) return 1;
+ 
+  fT->Chi2()+= dChi2;
+  fT->NDF() += 2;  
+  
+  fP[0]+= k00*z0 + k01*z1;
+  fP[1]+= k10*z0 + k11*z1;
+  fP[2]+= k20*z0 + k21*z1;
+  fP[3]+= k30*z0 + k31*z1;
+  fP[4]+= k40*z0 + k41*z1;
+
+  float d00= fC[ 0]; float d01= fC[ 1]; float d02= fC[ 3]; float d03= fC[ 6]; float d04= fC[10];
+  float d10= fC[ 1]; float d11= fC[ 2]; float d12= fC[ 4]; float d13= fC[ 7]; float d14= fC[11];
+
+  fC[0]-= k00*d00 + k01*d10;
+  
+  fC[2]-= k10*d01 + k11*d11;
+
+  fC[3]-= k20*d00 + k21*d10;
+  fC[5]-= k20*d02 + k21*d12;
+
+  fC[7]-= k30*d01 + k31*d11;
+  fC[9]-= k30*d03 + k31*d13;
+
+  fC[10]-= k40*d00 + k41*d10;
+  fC[12]-= k40*d02 + k41*d12;
+  fC[14]-= k40*d04 + k41*d14;
+
+  if( !fFitInProjections ){
+    
+    fC[1]-= k10*d00 + k11*d10;
+    
+    fC[4]-= k20*d01 + k21*d11;
+    
+    fC[6]-= k30*d00 + k31*d10;
+    fC[8]-= k30*d02 + k31*d12;
+    
+    
+    fC[11]-= k40*d01 + k41*d11;
+    fC[13]-= k40*d03 + k41*d13;
+  }
+  
+  return 0;
+}
+
+/* OLD
+
+GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, bool rejectChi2 )
+{
+  float *fC = fT->Cov();
+  float *fP = fT->Par();
   
   float 
     c00 = fC[ 0],
@@ -691,7 +780,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
     
   return 0;
 }
-
+*/
 
 //*
 //*  Multiple scattering and energy losses
