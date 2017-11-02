@@ -14,8 +14,8 @@
 #ifndef ALICEO2_TPC_HWClusterer_H_
 #define ALICEO2_TPC_HWClusterer_H_
 
-#include "TPCSimulation/Clusterer.h"
-#include "TPCSimulation/HwCluster.h"
+#include "TPCReconstruction/Clusterer.h"
+#include "TPCReconstruction/HwCluster.h"
 #include "TPCBase/CalDet.h" 
 
 #include <vector>

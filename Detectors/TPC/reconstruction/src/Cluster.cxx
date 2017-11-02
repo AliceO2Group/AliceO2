@@ -11,7 +11,7 @@
 /// \file Cluster.cxx
 /// \brief Cluster structure for TPC clusters
 
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 
 ClassImp(o2::TPC::Cluster)
 

@@ -1044,6 +1044,7 @@ o2_define_bucket(
     Configuration
     DetectorsPassive
     TPCSimulation
+    TPCReconstruction
     ITSSimulation
     MFTSimulation
     TRDSimulation

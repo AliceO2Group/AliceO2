@@ -16,8 +16,8 @@
 //
 //
 
-#include "TPCSimulation/ClustererTask.h"
-#include "TPCSimulation/ClusterContainer.h"  // for ClusterContainer
+#include "TPCReconstruction/ClustererTask.h"
+#include "TPCReconstruction/ClusterContainer.h"  // for ClusterContainer
 #include "TPCBase/Digit.h"
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager

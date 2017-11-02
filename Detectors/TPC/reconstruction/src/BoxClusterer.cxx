@@ -90,10 +90,10 @@
 
 
 #include "TPCBase/CRU.h"
-#include "TPCSimulation/BoxClusterer.h"
+#include "TPCReconstruction/BoxClusterer.h"
 #include "TPCBase/Digit.h"
-#include "TPCSimulation/ClusterContainer.h"
-#include "TPCSimulation/BoxCluster.h"
+#include "TPCReconstruction/ClusterContainer.h"
+#include "TPCReconstruction/BoxCluster.h"
 
 #include "FairLogger.h"
 #include "TMath.h"

@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TPCSimulation/ClusterContainer.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/ClusterContainer.h"
+#include "TPCReconstruction/Cluster.h"
 
 #include "FairLogger.h"
 #include <cassert>

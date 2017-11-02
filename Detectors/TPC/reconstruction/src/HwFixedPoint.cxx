@@ -11,7 +11,7 @@
 /// \file HwFixedPoint.cxx
 /// \brief Class to Fixed Point calculations as it would be done in Hardware
 
-#include "TPCSimulation/HwFixedPoint.h"
+#include "TPCReconstruction/HwFixedPoint.h"
 
 using namespace o2::TPC;
 

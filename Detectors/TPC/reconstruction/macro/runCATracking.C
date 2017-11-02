@@ -20,8 +20,8 @@
 #include "TChain.h"
 #include "TClonesArray.h"
 
-#include "TPCSimulation/Cluster.h"
-#include "TPCSimulation/HwCluster.h"
+#include "TPCReconstruction/Cluster.h"
+#include "TPCReconstruction/HwCluster.h"
 #include "TPCReconstruction/TPCCATracking.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
@@ -32,7 +32,7 @@ using namespace std;
 
 //This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg TClonesArray of clusters.
 //It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
-void runCATracking(TString filename, TString outputFile, TString options, bool mergeChain = false, int nmaxEvent=-1, int startEvent=0) {
+void runCATracking(TString filename, TString outputFile, TString options="", bool mergeChain = false, int nmaxEvent=-1, int startEvent=0) {
   gSystem->Load("libTPCReconstruction.so");
   TPCCATracking tracker;
   vector<TrackTPC> tracks;
@@ -72,7 +72,7 @@ void runCATracking(TString filename, TString outputFile, TString options, bool m
     for (int iEvent=0; iEvent<max; ++iEvent)   {
       c.GetEntry(start+iEvent);
 
-      printf("Processing event %lu with %d clusters\n", iEvent, clusters->size());
+      printf("Processing event %d with %zu clusters\n", iEvent, clusters->size());
       if (!clusters->size()) continue;
 
       tracks.clear();

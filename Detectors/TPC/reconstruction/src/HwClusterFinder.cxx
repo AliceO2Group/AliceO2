@@ -12,9 +12,9 @@
 /// \brief HwClusterFinder for the TPC
 
 
-#include "TPCSimulation/HwClusterFinder.h"
-#include "TPCSimulation/ClusterContainer.h"
-#include "TPCSimulation/HwCluster.h"
+#include "TPCReconstruction/HwClusterFinder.h"
+#include "TPCReconstruction/ClusterContainer.h"
+#include "TPCReconstruction/HwCluster.h"
 
 #include "FairLogger.h"
 

@@ -16,7 +16,7 @@
 
 #include <memory>
 #include <vector>
-#include "TPCSimulation/HwCluster.h"
+#include "TPCReconstruction/HwCluster.h"
 class TChain;
 class AliHLTTPCCAO2Interface;
 class AliHLTTPCCAClusterData;

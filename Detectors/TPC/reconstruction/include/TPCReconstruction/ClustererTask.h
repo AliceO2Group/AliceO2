@@ -21,9 +21,9 @@
 #include <cstdio>
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
-#include "TPCSimulation/Clusterer.h"       // for Clusterer
-#include "TPCSimulation/BoxClusterer.h"       // for Clusterer
-#include "TPCSimulation/HwClusterer.h"       // for Clusterer
+#include "TPCReconstruction/Clusterer.h"       // for Clusterer
+#include "TPCReconstruction/BoxClusterer.h"       // for Clusterer
+#include "TPCReconstruction/HwClusterer.h"       // for Clusterer
 #include <vector>
 
 namespace o2 {

@@ -11,8 +11,8 @@
 /// \file BoxCluster.cxx
 /// \brief Class to have some more info about the BoxClusterer clusters
 
-#include "TPCSimulation/BoxCluster.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/BoxCluster.h"
+#include "TPCReconstruction/Cluster.h"
 
 ClassImp(o2::TPC::BoxCluster)
 

@@ -11,7 +11,7 @@
 /// \file HwCluster.cxx
 /// \brief Class to have some more info about the HwClusterer clusters
 
-#include "TPCSimulation/HwCluster.h"
+#include "TPCReconstruction/HwCluster.h"
 #include "FairLogger.h"
 
 #include <cmath>

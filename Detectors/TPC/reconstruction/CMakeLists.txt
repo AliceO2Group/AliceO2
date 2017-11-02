@@ -6,9 +6,20 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
    src/AdcClockMonitor.cxx
+
+   src/BoxCluster.cxx
+   src/BoxClusterer.cxx
+   src/Cluster.cxx
+   src/Clusterer.cxx
+   src/ClusterContainer.cxx
+   src/ClustererTask.cxx
    src/GBTFrame.cxx
    src/GBTFrameContainer.cxx
    src/HalfSAMPAData.cxx
+   src/HwCluster.cxx
+   src/HwClusterer.cxx
+   src/HwClusterFinder.cxx
+   src/HwFixedPoint.cxx
    src/RawReader.cxx
    src/SyncPatternMonitor.cxx
    src/TrackTPC.cxx
@@ -17,9 +28,19 @@ set(SRCS
 
 set(HEADERS
    include/${MODULE_NAME}/AdcClockMonitor.h
+   include/${MODULE_NAME}/BoxCluster.h
+   include/${MODULE_NAME}/BoxClusterer.h
+   include/${MODULE_NAME}/Cluster.h
+   include/${MODULE_NAME}/Clusterer.h
+   include/${MODULE_NAME}/ClusterContainer.h
+   include/${MODULE_NAME}/ClustererTask.h
    include/${MODULE_NAME}/GBTFrame.h
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/HalfSAMPAData.h
+   include/${MODULE_NAME}/HwCluster.h
+   include/${MODULE_NAME}/HwClusterer.h
+   include/${MODULE_NAME}/HwClusterFinder.h
+   include/${MODULE_NAME}/HwFixedPoint.h
    include/${MODULE_NAME}/RawReader.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TrackTPC.h

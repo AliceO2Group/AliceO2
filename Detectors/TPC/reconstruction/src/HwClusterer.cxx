@@ -11,10 +11,10 @@
 /// \file AliTPCUpgradeHwClusterer.cxx
 /// \brief Hwclusterer for the TPC
 
-#include "TPCSimulation/HwCluster.h"
-#include "TPCSimulation/HwClusterer.h"
-#include "TPCSimulation/HwClusterFinder.h"
-#include "TPCSimulation/ClusterContainer.h"
+#include "TPCReconstruction/HwCluster.h"
+#include "TPCReconstruction/HwClusterer.h"
+#include "TPCReconstruction/HwClusterFinder.h"
+#include "TPCReconstruction/ClusterContainer.h"
 #include "TPCBase/Digit.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CRU.h"
