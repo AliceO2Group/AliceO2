@@ -226,14 +226,14 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
   int tmpOffset = 0;
   for (int i = fFirstRow;i <= fLastRow;i++)
   {
-      if ((long long int) NumberOfClustersInRow[i] > ((long long int) 1 << (sizeof(*fLinkUpData) * 8)))
+      if ((long long int) NumberOfClustersInRow[i] >= ((long long int) 1 << (sizeof(*fLinkUpData) * 8)))
       {
-        printf("Too many clusters in row %d for row indexing (%d > %lld), indexing insufficient\n", i, NumberOfClustersInRow[i], ((long long int) 1 << (sizeof(*fLinkUpData) * 8)));
+        printf("Too many clusters in row %d for row indexing (%d >= %lld), indexing insufficient\n", i, NumberOfClustersInRow[i], ((long long int) 1 << (sizeof(*fLinkUpData) * 8)));
         return(1);
       }
-      if (NumberOfClustersInRow[i] > (1 << 24))
+      if (NumberOfClustersInRow[i] >= (1 << 24))
       {
-        printf("Too many clusters in row %d for hit id indexing (%d > %d), indexing insufficient\n", i, NumberOfClustersInRow[i], 1 << 24);
+        printf("Too many clusters in row %d for hit id indexing (%d >= %d), indexing insufficient\n", i, NumberOfClustersInRow[i], 1 << 24);
         return(1);
       }
 	  RowOffset[i] = tmpOffset;

@@ -52,7 +52,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracklet
     int fLastRow;               // last TPC row
     MEM_LG(AliHLTTPCCABaseTrackParam) fParam; // tracklet parameters
 #ifndef EXTERN_ROW_HITS
-    int fRowHits[HLTCA_ROW_COUNT + 1];          // hit index for each TPC row
+    calink fRowHits[HLTCA_ROW_COUNT + 1];          // hit index for each TPC row
 #endif //EXTERN_ROW_HITS
     int fHitWeight;		//Hit Weight of Tracklet
 };
