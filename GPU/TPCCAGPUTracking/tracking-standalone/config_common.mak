@@ -53,3 +53,5 @@ HLTCA_STANDALONE_CXXFILES		= code/AliHLTTPCCATrack.cxx \
                                           code/AliHLTTPCCATracklet.cxx \
                                           code/AliHLTTPCCAStandaloneFramework.cxx \
                                           code/AliHLTTPCCAMCPoint.cxx
+
+CONFIG_CPP11				= 1

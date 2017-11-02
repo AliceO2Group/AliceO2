@@ -7,7 +7,7 @@ INTELPATH						= /opt/intel/compilers_and_libraries_2016.2.181/linux
 endif
 
 GCC3264							= c++
-CLANG3264						= clang
+CLANG3264						= clang++
 ICC32							= $(INTELPATH)/bin/ia32/icc
 ICC64							= $(INTELPATH)/bin/intel64/icc
 
@@ -99,8 +99,13 @@ ifeq ($(CC_x86_64-pc-linux-gnu), ICC)
 CC								= $(ICC)
 LINK							= $(ICCLINK)
 else
+ifeq ($(CC_x86_64-pc-linux-gnu), clang)
+CC								= $(CLANG)
+LINK							= $(CLANG)
+else
 CC								= $(GCC)
 LINK							= $(GCCLINK)
+endif
 ifneq ($(CPPFILES_ICC), )
 LIBSUSE							+= -lintlc -lsvml -limf -lirc
 endif
