@@ -28,6 +28,9 @@ void CalibRawBase::setupContainers(TString fileInfo)
   // input data
   TString rorcType="raw";
   auto arrData = fileInfo.Tokenize("; ");
+
+  std::shared_ptr<RawReaderEventSync> eventSync = std::make_shared<RawReaderEventSync>();
+
   for (auto o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
 
@@ -54,6 +57,7 @@ void CalibRawBase::setupContainers(TString fileInfo)
 
     if ( rorcType == "raw" ) {
       auto rawReader = new RawReader;
+      rawReader->addEventSynchronizer(eventSync);
       rawReader->addInputFile(data.Data());
 
       addRawReader(rawReader);

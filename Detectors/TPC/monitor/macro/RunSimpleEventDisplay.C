@@ -383,7 +383,7 @@ void InitGUI()
   c = new TCanvas("MaxValsI","MaxValsI",1*w,0*h,w,h);
   c->AddExec("padSig","DrawPadSignal(\"SigI\")");
   mHMaxIROC=new TH2F("hMaxValsIROC","Max Values IROC;row;pad",63,0,63,108,-54,54);
-  mHMaxIROC->GetYaxis()->SetRangeUser(5,30);
+  mHMaxIROC->GetYaxis()->SetRangeUser(-20,15);
   mHMaxIROC->SetStats(kFALSE);
   mHMaxIROC->Draw("colz");
   //histograms and canvases for max values OROC
