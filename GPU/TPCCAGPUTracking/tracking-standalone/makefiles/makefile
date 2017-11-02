@@ -80,10 +80,11 @@ include							makefiles/$(ARCHFILE)
 GCCFLAGSARCH					+= $(GCCARCHA)
 ifeq ($(CONFIG_CPP11), 1)
 GCCFLAGSCOMMON						+= -std=c++11
+CLANGFLAGSCOMMON					+= -std=c++11
 endif
 ifeq ($(CONFIG_OPENMP), 1)
 GCCFLAGSCOMMON						+= -fopenmp
-CLANGFLAGSCOMMON					+= -openmp
+CLANGFLAGSCOMMON					+= -fopenmp
 GCCLINK							+= -fopenmp
 endif
 
@@ -131,6 +132,9 @@ CCWITHLINK						= /link
 endif
 ifeq ($(CC_SELECTED), GCC)
 CPPFILES_GCC					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ)) 
+endif
+ifeq ($(CC_SELECTED), clang)
+CPPFILES_CLANG					+= $(CPPFILES:%.cpp=$(WORKPATH)/cpp/%.$(OBJ)) $(CXXFILES:%.cxx=$(WORKPATH)/cxx/%.$(OBJ)) $(CFILES:%.c=$(WORKPATH)/c/%.$(OBJ)) 
 endif
 
 ifeq ($(CONFIG_LTO), 1)
