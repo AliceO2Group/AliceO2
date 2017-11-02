@@ -596,21 +596,6 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 {
 
 	if (CheckEmptySlice()) return;
-
-#ifdef DRAW1
-	//if( fParam.ISlice()==2 || fParam.ISlice()==3)
-	{
-		AliHLTTPCCADisplay::Instance().ClearView();
-		AliHLTTPCCADisplay::Instance().SetSliceView();
-		AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
-		AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
-		if ( NHitsTotal() > 0 ) {
-			AliHLTTPCCADisplay::Instance().DrawSliceHits( kRed, .5 );
-			AliHLTTPCCADisplay::Instance().Ask();
-		}
-	}
-#endif //DRAW1
-
 	DoTracking();
 }
 
@@ -618,33 +603,6 @@ GPUh() void AliHLTTPCCATracker::ReconstructOutput()
 {
 	WriteOutputPrepare();
 	WriteOutput();
-
-#ifdef DRAW1
-	{
-		AliHLTTPCCADisplay &disp = AliHLTTPCCADisplay::Instance();
-		AliHLTTPCCATracker &slice = *this;
-		std::cout << "N out tracks = " << slice.NOutTracks() << std::endl;
-		AliHLTTPCCADisplay::Instance().SetSliceView();
-		AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
-		AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
-		disp.DrawSliceHits( kRed, .5 );
-		disp.Ask();
-		for ( int itr = 0; itr < slice.NOutTracks(); itr++ ) {
-			std::cout << "track N " << itr << ", nhits=" << slice.OutTracks()[itr].NHits() << std::endl;
-			disp.DrawSliceOutTrack( itr, kBlue );      
-			//disp.Ask();
-			//int id = slice.OutTracks()[itr].OrigTrackID();
-			//AliHLTTPCCATrack &tr = Tracks()[id];
-			//for( int ih=0; ih<tr.NHits(); ih++ ){
-			//int ic = (fTrackHits[tr.FirstHitID()+ih]);
-			//std::cout<<ih<<" "<<ID2IRow(ic)<<" "<<ID2IHit(ic)<<std::endl;
-			//}
-			//disp.DrawSliceTrack( id, kBlue );
-			//disp.Ask();
-		}
-		disp.Ask();
-	}
-#endif //DRAW1
 }
 
 GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
@@ -761,128 +719,6 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 }
 
 #endif
-
-GPUh() void AliHLTTPCCATracker::FitTrackFull( const MEM_LG2(AliHLTTPCCATrack) &/**/, float * /**/ ) const
-{
-	// fit track with material
-#ifdef XXX
-	//* Fit the track
-	FitTrack( iTrack, tt0 );
-	if ( iTrack.NHits() <= 3 ) return;
-
-	AliHLTTPCCATrackParam &t = iTrack.Param();
-	AliHLTTPCCATrackParam t0 = t;
-
-	t.Chi2() = 0;
-	t.NDF() = -5;
-	bool first = 1;
-
-	int iID = iTrack.FirstHitID();
-	for ( int ih = 0; ih < iTrack.NHits(); ih++, iID++ ) {
-		const AliHLTTPCCAHitId &ic = fTrackHits[iID];
-		int iRow = ic.rowIndex();
-		const AliHLTTPCCARow &row = fData.Row( iRow );
-		if ( !t0.TransportToX( row.X() ) ) continue;
-		float dy, dz;
-		const AliHLTTPCCAHit &h = ic.hitIndex();
-
-		// check for wrong hits
-		if ( 0 ) {
-			dy = t0.GetY() - h.Y();
-			dz = t0.GetZ() - h.Z();
-
-			//if( dy*dy > 3.5*3.5*(/*t0.GetErr2Y() + */h.ErrY()*h.ErrY() ) ) continue;//SG!!!
-			//if( dz*dz > 3.5*3.5*(/*t0.GetErr2Z() + */h.ErrZ()*h.ErrZ() ) ) continue;
-		}
-
-		if ( !t.TransportToX( row.X() ) ) continue;
-
-		//* Update the track
-
-		if ( first ) {
-			t.Cov()[ 0] = .5 * .5;
-			t.Cov()[ 1] = 0;
-			t.Cov()[ 2] = .5 * .5;
-			t.Cov()[ 3] = 0;
-			t.Cov()[ 4] = 0;
-			t.Cov()[ 5] = .2 * .2;
-			t.Cov()[ 6] = 0;
-			t.Cov()[ 7] = 0;
-			t.Cov()[ 8] = 0;
-			t.Cov()[ 9] = .2 * .2;
-			t.Cov()[10] = 0;
-			t.Cov()[11] = 0;
-			t.Cov()[12] = 0;
-			t.Cov()[13] = 0;
-			t.Cov()[14] = .2 * .2;
-			t.Chi2() = 0;
-			t.NDF() = -5;
-		}
-		float err2Y, err2Z;
-		GetErrors2( iRow, t, err2Y, err2Z );
-
-		if ( !t.Filter2( h.Y(), h.Z(), err2Y, err2Z ) ) continue;
-
-		first = 0;
-	}
-	/*
-	float cosPhi = iTrack.Param().GetCosPhi();
-	p0.Param().TransportToX(ID2Row( iTrack.PointID()[0] ).X());
-	p2.Param().TransportToX(ID2Row( iTrack.PointID()[1] ).X());
-	if( p0.Param().GetCosPhi()*cosPhi<0 ){ // change direction
-	float *par = p0.Param().Par();
-	float *cov = p0.Param().Cov();
-	par[2] = -par[2]; // sin phi
-	par[3] = -par[3]; // DzDs
-	par[4] = -par[4]; // kappa
-	cov[3] = -cov[3];
-	cov[4] = -cov[4];
-	cov[6] = -cov[6];
-	cov[7] = -cov[7];
-	cov[10] = -cov[10];
-	cov[11] = -cov[11];
-	p0.Param().CosPhi() = -p0.Param().GetCosPhi();
-	}
-	*/
-#endif
-}
-
-GPUh() void AliHLTTPCCATracker::FitTrack( const AliHLTTPCCATrack &/*track*/, float * /*t0[]*/ ) const
-{
-	//* Fit the track
-#ifdef XXX
-	AliHLTTPCCAEndPoint &p2 = ID2Point( track.PointID()[1] );
-	const AliHLTTPCCAHit &c0 = ID2Hit( fTrackHits[p0.TrackHitID()].HitID() );
-	const AliHLTTPCCAHit &c1 = ID2Hit( fTrackHits[track.HitID()[1]].HitID() );
-	const AliHLTTPCCAHit &c2 = ID2Hit( fTrackHits[p2.TrackHitID()].HitID() );
-	const AliHLTTPCCARow &row0 = ID2Row( fTrackHits[p0.TrackHitID()].HitID() );
-	const AliHLTTPCCARow &row1 = ID2Row( fTrackHits[track.HitID()[1]].HitID() );
-	const AliHLTTPCCARow &row2 = ID2Row( fTrackHits[p2.TrackHitID()].HitID() );
-	float sp0[5] = {row0.X(), c0.Y(), c0.Z(), c0.ErrY(), c0.ErrZ() };
-	float sp1[5] = {row1.X(), c1.Y(), c1.Z(), c1.ErrY(), c1.ErrZ() };
-	float sp2[5] = {row2.X(), c2.Y(), c2.Z(), c2.ErrY(), c2.ErrZ() };
-	//std::cout<<"Fit track, points ="<<sp0[0]<<" "<<sp0[1]<<" / "<<sp1[0]<<" "<<sp1[1]<<" / "<<sp2[0]<<" "<<sp2[1]<<std::endl;
-	if ( track.NHits() >= 3 ) {
-		p0.Param().ConstructXYZ3( sp0, sp1, sp2, p0.Param().CosPhi(), t0 );
-		p2.Param().ConstructXYZ3( sp2, sp1, sp0, p2.Param().CosPhi(), t0 );
-		//p2.Param() = p0.Param();
-		//p2.Param().TransportToX(row2.X());
-		//p2.Param().Par()[1] = -p2.Param().Par()[1];
-		//p2.Param().Par()[4] = -p2.Param().Par()[4];
-	} else {
-		p0.Param().X() = row0.X();
-		p0.Param().Y() = c0.Y();
-		p0.Param().Z() = c0.Z();
-		p0.Param().Err2Y() = c0.ErrY() * c0.ErrY();
-		p0.Param().Err2Z() = c0.ErrZ() * c0.ErrZ();
-		p2.Param().X() = row2.X();
-		p2.Param().Y() = c2.Y();
-		p2.Param().Z() = c2.Z();
-		p2.Param().Err2Y() = c2.ErrY() * c2.ErrY();
-		p2.Param().Err2Z() = c2.ErrZ() * c2.ErrZ();
-	}
-#endif
-}
 
 #if !defined(HLTCA_GPUCODE)
 
