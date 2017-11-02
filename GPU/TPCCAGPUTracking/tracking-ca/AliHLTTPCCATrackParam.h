@@ -24,7 +24,7 @@ class AliHLTTPCCATrackLinearisation;
  * which is used by the AliHLTTPCCATracker slice tracker.
  *
  */
- MEM_CLASS_PRE() class AliHLTTPCCATrackParam
+MEM_CLASS_PRE() class AliHLTTPCCATrackParam
 {
   public:
 

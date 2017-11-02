@@ -80,11 +80,6 @@
 #define HLTCA_GPU_MAX_TRACKLETS 32768					//Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
 #define HLTCA_GPU_MAX_TRACKS 8192						//Max number of Tracks that can be processd by GPU Tracker per sector, must be below 2^24 for track ID format!!!
 
-//#define HLTCA_GPU_EMULATION_SINGLE_TRACKLET 1313		//Run Tracklet constructor on on single Tracklet in Device Emulation Mode
-//#define HLTCA_GPU_EMULATION_DEBUG_TRACKLET 1313
-
-//#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
-
 #define HLTCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
 
 #define HLTCA_GPU_TRACKER_OBJECT_MEMORY		((size_t)       1024 * 1024)		//Total amount of Memory to reserve for GPU Tracker Objects
@@ -123,5 +118,7 @@
 #define HLTCA_GPU_ERROR_TRACK_OVERFLOW 3
 #define HLTCA_GPU_ERROR_SCHEDULE_COLLISION 4
 #define HLTCA_GPU_ERROR_WRONG_ROW 5
+#define HLTCA_GPU_ERROR_STARTHIT_OVERFLOW 6
+#define HLTCA_GPU_ERROR_STRINGS {"HLTCA_GPU_ERROR_NONE", "HLTCA_GPU_ERROR_ROWBLOCK_TRACKLET_OVERFLOW", "HLTCA_GPU_ERROR_TRACKLET_OVERFLOW", "HLTCA_GPU_ERROR_TRACK_OVERFLOW", "HLTCA_GPU_ERROR_SCHEDULE_COLLISION", "HLTCA_GPU_ERROR_WRONG_ROW", "HLTCA_GPU_ERROR_STARTHIT_OVERFLOW"}
 
 #endif

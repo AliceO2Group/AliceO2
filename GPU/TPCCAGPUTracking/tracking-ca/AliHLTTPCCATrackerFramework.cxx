@@ -194,6 +194,16 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 				}
 			}
 		}
+		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+		{
+			if (fCPUTrackers[iSlice].GPUParameters()->fGPUError != 0)
+			{
+				const char* errorMsgs[] = HLTCA_GPU_ERROR_STRINGS;
+				const char* errorMsg = (unsigned) fCPUTrackers[iSlice].GPUParameters()->fGPUError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[fCPUTrackers[iSlice].GPUParameters()->fGPUError];
+				printf("Error during tracking: %s\n", errorMsg);
+				return(1);
+			}
+		}
 #ifdef HLTCA_STANDALONE
 		//printf("Slice Tracks Output %d: - Tracks: %d local, %d global -  Hits: %d local, %d global\n", nOutputTracks, nLocalTracks, nGlobalTracks, nLocalHits, nGlobalHits);
 		/*for (int i = firstSlice;i < firstSlice + sliceCount;i++)
