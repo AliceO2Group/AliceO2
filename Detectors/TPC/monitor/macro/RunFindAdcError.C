@@ -45,7 +45,7 @@ struct Result {
   int mSampa;
   int mTimebin;
   int mSyncPos;
-  
+
   Result() : mRun(-1), mEvent(-1), mRegion(-1), mLink(-1), mSampa(-1), mTimebin(-1), mSyncPos(-1) {};
   Result(int run, int event, int region, int link, int sampa, int timebin, int syncpos) :
     mRun(run), mEvent(event), mRegion(region), mLink(link), mSampa(sampa), mTimebin(timebin), mSyncPos(syncpos) {};
@@ -54,8 +54,8 @@ struct Result {
 void loopReader(std::shared_ptr<RawReader> reader_ptr, std::vector<Result>& result_ptr) {
   auto reader = reader_ptr.get();
   while (reader->loadNextEventNoWrap() >= 0) {
-    if (reader->getAdcError().size() != 0) {
-      for (const auto &err : reader->getAdcError()){
+    if (reader->getAdcError()->size() != 0) {
+      for (const auto &err : *reader->getAdcError()){
         result_ptr.emplace_back(
             reader->getRunNumber(),
             reader->getEventNumber(),
@@ -80,7 +80,7 @@ void RunFindAdcError(int run_min, int run_max)
 
 
   // ===========================================================================
-  // Preparing File Infos 
+  // Preparing File Infos
   // ===========================================================================
   std::vector<std::string> fileInfos;
   for (int r = run_min; r <= run_max; ++r) {
@@ -103,7 +103,7 @@ void RunFindAdcError(int run_min, int run_max)
 
 
   // ===========================================================================
-  // Preparing the Readers 
+  // Preparing the Readers
   // ===========================================================================
   LOG(INFO) << "Create all Readers..." << FairLogger::endl;
   std::vector<std::shared_ptr<RawReader>> RawReaders;
@@ -130,7 +130,7 @@ void RunFindAdcError(int run_min, int run_max)
   std::vector<std::thread> threads;
   std::vector<std::vector<Result>> results(RawReaders.size());
   int i = 0;
-  for (auto& reader_ptr : RawReaders) { 
+  for (auto& reader_ptr : RawReaders) {
     if (run_parallel)
       threads.emplace_back(loopReader, std::ref(reader_ptr), std::ref(results[i]));
     else
@@ -160,7 +160,7 @@ void RunFindAdcError(int run_min, int run_max)
     for (const auto &r : results[i]) {
       sampaChip = (r.mRegion*4)+((r.mLink-9)*3)+r.mSampa;
       hAdcError->Fill(sampaChip,r.mTimebin);
-      std::cout 
+      std::cout
         << r.mRun << " "
         << r.mEvent << " "
         << r.mRegion << " "

@@ -26,6 +26,7 @@
 
 #include "TPCReconstruction/GBTFrameContainer.h"
 #include "TPCReconstruction/RawReader.h"
+#include "TPCReconstruction/RawReaderEventSync.h"
 
 
 namespace o2

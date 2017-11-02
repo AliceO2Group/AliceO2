@@ -23,6 +23,7 @@
 
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CalDet.h"
+#include "TPCReconstruction/RawReaderEventSync.h"
 
 namespace o2 {
 namespace TPC {
@@ -43,7 +44,7 @@ class RawReader {
       uint64_t eventCount_w;    ///< Event counter, high and low fields are reversed
       uint64_t reserved_2_w;    ///< Reserved part, high and low fields are reversed
 
-      /// Get the timestamp
+      /// Get the time stamp
       /// @return corrected header time stamp
       uint64_t timeStamp() { return (timeStamp_w << 32) | (timeStamp_w >> 32);}
 
@@ -59,7 +60,7 @@ class RawReader {
       Header() {};
 
       /// Copy constructor
-      Header(const Header& other) = default;// : dataType(h.dataType), reserved_01(h.reserved_01), 
+      Header(const Header& other) = default;// : dataType(h.dataType), reserved_01(h.reserved_01),
         //headerVersion(h.headerVersion), nWords(h.nWords), timeStamp_w(h.timeStamp_w),
         //eventCount_w(h.eventCount_w), reserved_2_w(h.reserved_2_w) {};
     };
@@ -118,7 +119,7 @@ class RawReader {
     bool addInputFile(std::string infile);
 
     /// Add several input files for decoding
-    /// @param infiles vector of input file strings, each formated as "path_to_file:#region:#fec"
+    /// @param infiles vector of input file strings, each formatted as "path_to_file:#region:#fec"
     /// @return True if at least one string has correct format and file can be opened
     bool addInputFile(const std::vector<std::string>* infiles);
 
@@ -139,41 +140,58 @@ class RawReader {
     uint64_t getLastEvent() const {  return (mEvents.size() == 0) ? mEvents.begin()->first : mEvents.rbegin()->first; };
 
     /// Get number of events
-    /// @return If events are continous, it's the number of stored events
+    /// @return If events are continuous, it's the number of stored events
     int getNumberOfEvents() const { return  mEvents.size(); };
 
     /// Get time stamp of first data
     /// @param hf half SAMPA
-    /// @return Timestamp of first decoded ADC value
+    /// @return Time stamp of first decoded ADC value
     uint64_t getTimeStamp(short hf) const { return mTimestampOfFirstData[hf]; };
 
     /// Get data
     /// @param padPos local pad position (row starts with 0 in each region)
-    /// @return shared pointer to data vector, each element is one timebin
+    /// @return shared pointer to data vector, each element is one time bin
     std::shared_ptr<std::vector<uint16_t>> getData(const PadPos& padPos);
 
     /// Get data of next pad position
     /// @param padPos local pad position (row starts with 0 in each region)
-    /// @return shared pointer to data vector, each element is one timebin
+    /// @return shared pointer to data vector, each element is one time bin
     std::shared_ptr<std::vector<uint16_t>> getNextData(PadPos& padPos);
 
     int getRegion() const { return mRegion; };
     int getLink() const { return mLink; };
     int getEventNumber() const { return mLastEvent; };
     int getRunNumber() const { return mRun; };
+    short getSyncPos(short hf) const { return mSyncPos[hf]; };
 
-    void setUseRawInMode3(bool val) { mUseRawInMode3 = val; };
-    void setApplyChannelMask(bool val) { mApplyChannelMask = val; };
+    /// Set type of decoding for data in readout mode 3
+    /// @param useRaw If true, raw GBT frames are decoded, if false, pre-decoded data is used
+    void setUseRawInMode3(bool useRaw) { mUseRawInMode3 = useRaw; };
+
+    /// Apply a channel mask
+    /// @param applyMask The channel mask set via setChannelMask() is applied
+    void setApplyChannelMask(bool applyMask) { mApplyChannelMask = applyMask; };
+
+    /// Set a channel mask
+    /// @param channelMask Pointer to a existing mask, is applied only if enable flag is set
     void setChannelMask(std::shared_ptr<CalDet<bool>> channelMask) { mChannelMask = channelMask; };
-    void setPrintRawData(bool val) { mPrintRawData = val; };
-    void setCheckAdcClock(bool val) { mCheckAdcClock = val; };
 
-    /// Returns some innformation about the event, e.g. the header
+    /// Does the ADC clock check
+    /// @param checkAdc Checks for a valid ADC clock in the data stream
+    void setCheckAdcClock(bool checkAdc) { mCheckAdcClock = checkAdc; };
+
+    /// Returns some information about the event, e.g. the header
     /// @param event Event number
     /// @return shared pointer to vector with event informations
     std::shared_ptr<std::vector<EventInfo>> getEventInfo(uint64_t event) const;
 
-    std::vector<std::tuple<short,short,short>> getAdcError() { return mAdcError; };
+    /// Add Event Synchronizer
+    /// @param eventSync Synchronizer instance
+    void addEventSynchronizer(std::shared_ptr<RawReaderEventSync> eventSync) { mEventSynchronizer = eventSync; };
+
+    /// Returns the result of the ADC clock check for the last loaded event
+    /// @return shared pointer to the clock check results. The tuples consist of the SAMPA ID, index in data stream and sync pattern position
+    std::shared_ptr<std::vector<std::tuple<short,short,short>>> getAdcError() { return mAdcError; };
 
   private:
 
@@ -186,16 +204,17 @@ class RawReader {
     bool mUseRawInMode3;                ///< in readout mode 3 decode GBT frames
     bool mApplyChannelMask;             ///< apply channel mask
     bool mCheckAdcClock;                ///< check the ADC clock
-    bool mPrintRawData;                 ///< print the RAW data while decoding
     int64_t mLastEvent;                 ///< Number of last loaded event
-    std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half sampa
+    std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half SAMPA
     std::map<uint64_t, std::shared_ptr<std::vector<EventInfo>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>> mData;                      ///< ADC values of last loaded Event
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>>::iterator mDataIterator;    ///< Iterator to last requested data
-    std::array<short,5> mSyncPos;       ///< positions of the sync pattern (for readout mode 3)
+    std::array<short,5> mSyncPos;                                                       ///< positions of the sync pattern (for readout mode 3)
 
-    std::shared_ptr<CalDet<bool>> mChannelMask;     ///< Channel mask
-    std::vector<std::tuple<short,short,short>> mAdcError;
+    std::shared_ptr<CalDet<bool>> mChannelMask;                                         ///< Channel mask
+    std::shared_ptr<std::vector<std::tuple<short,short,short>>> mAdcError;              ///< Storage for found ADC errors, tuple consists of SAMPA ID, index in data stream and sync pattern position
+
+    std::shared_ptr<RawReaderEventSync> mEventSynchronizer;                             ///< Event synchronizer for triggered readout
 };
 
 inline
@@ -215,20 +234,20 @@ std::shared_ptr<std::vector<uint16_t>> RawReader::getData(const PadPos& padPos) 
     std::shared_ptr<std::vector<uint16_t>> emptyVecPtr(new std::vector<uint16_t>);
     return emptyVecPtr;
   }
-  return mDataIterator->second; 
+  return mDataIterator->second;
 };
 
 inline
-std::shared_ptr<std::vector<uint16_t>> RawReader::getNextData(PadPos& padPos) { 
+std::shared_ptr<std::vector<uint16_t>> RawReader::getNextData(PadPos& padPos) {
   if (mDataIterator == mData.end()) return nullptr;
   std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>>::iterator last = mDataIterator;
   mDataIterator++;
   padPos = last->first;
-  return last->second; 
+  return last->second;
 };
 
 inline
-int RawReader::loadNextEvent() { 
+int RawReader::loadNextEvent() {
   if (mLastEvent == -1) {
 
     mSyncPos.fill(-1);
@@ -254,7 +273,7 @@ int RawReader::loadNextEvent() {
 };
 
 inline
-int RawReader::loadPreviousEvent() { 
+int RawReader::loadPreviousEvent() {
   if (mLastEvent <= getFirstEvent()) {
 
     mSyncPos.fill(-1);
@@ -281,7 +300,7 @@ int RawReader::loadPreviousEvent() {
 };
 
 inline
-int RawReader::loadNextEventNoWrap() { 
+int RawReader::loadNextEventNoWrap() {
   if (mLastEvent == -1) {
 
     mSyncPos.fill(-1);
@@ -303,7 +322,7 @@ int RawReader::loadNextEventNoWrap() {
 };
 
 inline
-int RawReader::loadPreviousEventNoWrap() { 
+int RawReader::loadPreviousEventNoWrap() {
   if (mLastEvent <= getFirstEvent()) {
     return -1;
 

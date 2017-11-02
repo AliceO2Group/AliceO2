@@ -21,6 +21,7 @@ set(SRCS
    src/HwClusterFinder.cxx
    src/HwFixedPoint.cxx
    src/RawReader.cxx
+   src/RawReaderEventSync.cxx
    src/SyncPatternMonitor.cxx
    src/TrackTPC.cxx
    src/TPCCATracking.cxx
@@ -42,6 +43,7 @@ set(HEADERS
    include/${MODULE_NAME}/HwClusterFinder.h
    include/${MODULE_NAME}/HwFixedPoint.h
    include/${MODULE_NAME}/RawReader.h
+   include/${MODULE_NAME}/RawReaderEventSync.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TrackTPC.h
    include/${MODULE_NAME}/TPCCATracking.h
