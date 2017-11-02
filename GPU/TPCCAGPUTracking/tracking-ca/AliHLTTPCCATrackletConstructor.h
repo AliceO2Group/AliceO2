@@ -9,12 +9,6 @@
 #ifndef ALIHLTTPCCATRACKLETCONSTRUCTOR_H
 #define ALIHLTTPCCATRACKLETCONSTRUCTOR_H
 
-#ifdef HLTCA_GPUCODE
-#define HLTCA_GPU_USE_INT short
-#else
-#define HLTCA_GPU_USE_INT int
-#endif //HLTCA_GPUCODE
-
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 #include "AliHLTTPCCATrackParam.h"
