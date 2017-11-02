@@ -277,7 +277,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUhd() GPUglobalref() AliHLTTPCCAHitId *TrackletTmpStartHits() const { return fTrackletTmpStartHits; }
   MEM_CLASS_PRE2() GPUhd() const MEM_LG2(AliHLTTPCCATracklet) &Tracklet( int i ) const { return fTracklets[i]; }
   GPUhd() GPUglobalref() MEM_GLOBAL(AliHLTTPCCATracklet) *Tracklets() const { return fTracklets;}
-  GPUhd() GPUglobalref()int* TrackletRowHits() const { return fTrackletRowHits; }
+  GPUhd() GPUglobalref() calink* TrackletRowHits() const { return fTrackletRowHits; }
 
   GPUhd() GPUglobalref() int *NTracks()  const { return &fCommonMem->fNTracks; }
   GPUhd() GPUglobalref() MEM_GLOBAL(AliHLTTPCCATrack) *Tracks() const { return fTracks; }
@@ -373,7 +373,7 @@ private:
 
   GPUglobalref() AliHLTTPCCAHitId *fTrackletStartHits;   // start hits for the tracklets
   GPUglobalref() MEM_GLOBAL(AliHLTTPCCATracklet) *fTracklets; // tracklets
-  GPUglobalref() int *fTrackletRowHits;			//Hits for each Tracklet in each row
+  GPUglobalref() calink *fTrackletRowHits;			//Hits for each Tracklet in each row
 
   //
   GPUglobalref() MEM_GLOBAL(AliHLTTPCCATrack) *fTracks;  // reconstructed tracks

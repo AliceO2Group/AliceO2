@@ -45,7 +45,7 @@ public:
 		int fLastRow; // last row index
 		int fStartRow;  // first row index
 		int fEndRow;  // first row index
-		int fCurrIH; // indef of the current hit
+		calink fCurrIH; // indef of the current hit
 		bool fGo; // do fit/searching flag
 		int fStage; // reco stage
 		int fNHits; // n track hits

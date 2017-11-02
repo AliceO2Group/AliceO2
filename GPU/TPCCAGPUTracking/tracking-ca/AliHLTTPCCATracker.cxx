@@ -339,10 +339,11 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
 			{
 #ifdef EXTERN_ROW_HITS
-				if (fTrackletRowHits[i * fCommonMem->fNTracklets + j] != -1)
+				calink ih = fTrackletRowHits[i * fCommonMem->fNTracklets + j];
 #else
-				if (Tracklets()[j].RowHit(i) != -1)
+				calink ih = Tracklets()[j].RowHit(i);
 #endif
+				if (ih != CALINK_INVAL)
 				{
 					nHits++;
 				}
@@ -655,8 +656,8 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		trackOrder[i].fTtrack = i;
 		trackOrder[i].fSortVal = fTracks[trackOrder[i].fTtrack].NHits() / 1000.f + fTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + fTracks[trackOrder[i].fTtrack].Param().GetY();
 	}
-	std::sort(trackOrder, trackOrder + fCommonMem->fNLocalTracks, SortComparison<trackSortData>);
-	std::sort(trackOrder + fCommonMem->fNLocalTracks, trackOrder + fCommonMem->fNTracks, SortComparison<trackSortData>);
+	//std::sort(trackOrder, trackOrder + fCommonMem->fNLocalTracks, SortComparison<trackSortData>);
+	//std::sort(trackOrder + fCommonMem->fNLocalTracks, trackOrder + fCommonMem->fNTracks, SortComparison<trackSortData>);
 	
 	for (int iTrTmp = 0;iTrTmp < fCommonMem->fNTracks;iTrTmp++)
 	{
@@ -820,11 +821,11 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 			while (i < nHits)
 			{
 #ifdef EXTERN_ROW_HITS
-				const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
+				const calink rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
 #else
-				const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
+				const calink rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
 #endif
-				if (rowHit != -1)
+				if (rowHit != CALINK_INVAL)
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
 					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
@@ -840,11 +841,11 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 			while (i >= 0)
 			{
 #ifdef EXTERN_ROW_HITS
-				const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
+				const calink rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
 #else
-				const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
+				const calink rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
 #endif
-				if (rowHit != -1)
+				if (rowHit != CALINK_INVAL)
 	    			{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
 					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);

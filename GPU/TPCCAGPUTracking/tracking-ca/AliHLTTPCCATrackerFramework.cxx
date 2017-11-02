@@ -106,9 +106,9 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
 	{
 		totalNClusters += pClusterData[iSlice].NumberOfClusters();
-		if (totalNClusters > ((long long int) 1) << (sizeof(int) * 8))
+		if (totalNClusters >= ((long long int) 1) << (sizeof(int) * 8))
 		{
-			printf("Too many clusters for cluster indexing: %lld > %lld\n", totalNClusters, ((long long int) 1) << (sizeof(int) * 8));
+			printf("Too many clusters for cluster indexing: %lld >= %lld\n", totalNClusters, ((long long int) 1) << (sizeof(int) * 8));
 			return(1);
 		}
 	}

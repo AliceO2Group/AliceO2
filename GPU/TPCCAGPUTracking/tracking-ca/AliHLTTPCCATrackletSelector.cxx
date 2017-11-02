@@ -76,11 +76,11 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 			{
 				gap++;
 #ifdef EXTERN_ROW_HITS
-				int ih = tracker.TrackletRowHits()[irow * s.fNTracklets + itr];
+				calink ih = tracker.TrackletRowHits()[irow * s.fNTracklets + itr];
 #else
-				int ih = tracklet.RowHit( irow );
+				calink ih = tracklet.RowHit( irow );
 #endif //EXTERN_ROW_HITS
-				if ( ih >= 0 ) {
+				if ( ih != CALINK_INVAL ) {
 					GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( irow );
 					bool own = ( tracker.HitWeight( row, ih ) <= w );
 					bool sharedOK = ( ( nShared < nHits * kMaxShared ) );
