@@ -199,9 +199,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 	Err2Z*=fParam.ClusterError2CorrectionZ();
   }
   
-  MEM_CLASS_PRE2() void FitTrack( const MEM_LG2(AliHLTTPCCATrack) &track, float *t0 = 0 ) const;
-  MEM_CLASS_PRE2() void FitTrackFull( const MEM_LG2(AliHLTTPCCATrack) &track, float *t0 = 0 ) const;
-  
   void SetupCommonMemory();
   void SetPointersHits( int MaxNHits );
   void SetPointersTracklets ( int MaxNTracklets );

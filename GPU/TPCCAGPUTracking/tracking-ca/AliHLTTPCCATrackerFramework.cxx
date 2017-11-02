@@ -126,6 +126,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	}
 	else
 	{
+		bool error = false;
 #ifdef HLTCA_STANDALONE
 		if (fOutputControl->fOutputPtr && omp_get_max_threads() > 1)
 		{
@@ -133,7 +134,6 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			return(1);
 		}
 		int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
-		bool error = false;
 
 #pragma omp parallel for
 #endif
