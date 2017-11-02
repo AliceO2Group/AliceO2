@@ -206,6 +206,7 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
   ////////////////////////////////////
 
   fNumberOfHits = data.NumberOfClusters();
+  fMaxZ = 0.f;
 
   float2* YZData = new float2[fNumberOfHits];
   int* tmpHitIndex = new int[fNumberOfHits];
@@ -248,6 +249,7 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
 		float2 tmp;
 		tmp.x = data.Y(i);
 		tmp.y = data.Z(i);
+        if (fabs(tmp.y) > fMaxZ) fMaxZ = fabs(tmp.y);
 		int tmpRow = data.RowNumber(i);
 		int newIndex = RowOffset[tmpRow] + (RowsFilled[tmpRow])++;
 		YZData[newIndex] = tmp;

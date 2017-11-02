@@ -34,7 +34,11 @@ GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
       s.fNRowStartHits = 0;
       if ( s.fIRow <= s.fNRows - 4 ) {
         s.fNHits = tracker.Row( s.fIRow ).NHits();
-        if ( s.fNHits >= ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS ) s.fNHits = ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS - 1;
+        if ( s.fNHits >= ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS )
+        {
+            tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_STARTHIT_OVERFLOW;
+            s.fNHits = - 1;
+        }
       } else s.fNHits = -1;
     }
   } else if ( iSync == 1 ) {

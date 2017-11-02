@@ -43,13 +43,6 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 
 		for ( int itr = s.fItr0 + iThread; itr < s.fNTracklets; itr += s.fNThreadsTotal ) {
 
-#ifdef HLTCA_GPU_EMULATION_DEBUG_TRACKLET
-			if (itr == HLTCA_GPU_EMULATION_DEBUG_TRACKLET)
-			{
-				tracker.GPUParameters()->fGPUError = 1;
-			}
-#endif //HLTCA_GPU_EMULATION_DEBUG_TRACKLET
-
 			while (tracker.Tracklets()[itr].NHits() == 0)
 			{
 				itr += s.fNThreadsTotal;

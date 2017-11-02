@@ -49,7 +49,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
   public:
     AliHLTTPCCASliceData()
       : 
-      fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+      fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxZ(0.f), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
       ,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
       , fFirstHitInBin( 0 ), fHitWeights( 0 )
     {
@@ -162,18 +162,11 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 #endif
 
     void SetGpuSliceData() { fIsGpuSliceData = 1; }
+    float MaxZ() const { return fMaxZ; }
 
   private:
-    AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
-      : 
-      fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow(0), fLastRow(HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
-      ,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
-      , fFirstHitInBin( 0 ), fHitWeights( 0 )
-    {
-    }
-    AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData & ) {
-      return *this;
-    }
+    AliHLTTPCCASliceData( const AliHLTTPCCASliceData & );
+    AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData & ) ;
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
     void CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset );
@@ -188,6 +181,8 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 
     int fNumberOfHits;         // the number of hits in this slice
     int fNumberOfHitsPlusAlign;
+    
+    float fMaxZ;
 
     size_t fMemorySize;           // size of the allocated memory in bytes
     size_t fGpuMemorySize;        // size of Memory needed to be transfered to GPU

@@ -399,6 +399,11 @@ int AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 
 	//* Convert input hits, create grids, etc.
 	if (fData.InitFromClusterData( *clusterData )) return 1;
+	if (fData.MaxZ() > 300 && !fParam.GetContinuousTracking())
+	{
+		printf("Need to set continuous tracking mode for data outside of the TPC volume!\n");
+		return 1;
+	}
 	if (!fIsGPUTracker)
 	{
 		SetPointersHits( fData.NumberOfHits() ); // to calculate the size
