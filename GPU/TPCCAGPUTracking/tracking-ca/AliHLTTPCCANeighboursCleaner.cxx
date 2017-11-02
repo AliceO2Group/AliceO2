@@ -61,12 +61,12 @@ GPUdi() void AliHLTTPCCANeighboursCleaner::Thread
       for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
         int up = tracker.HitLinkUpData( row, ih );
         if ( up >= 0 ) {
-          short upDn = tracker.HitLinkDownData( rowUp, up );
+          int upDn = tracker.HitLinkDownData( rowUp, up );
           if ( ( upDn != ih ) ) tracker.SetHitLinkUpData( row, ih, CALINK_INVAL );
         }
         int dn = tracker.HitLinkDownData( row, ih );
         if ( dn >= 0 ) {
-          short dnUp = tracker.HitLinkUpData( rowDn, dn );
+          int dnUp = tracker.HitLinkUpData( rowDn, dn );
           if ( dnUp != ih ) tracker.SetHitLinkDownData( row, ih, CALINK_INVAL );
         }
       }

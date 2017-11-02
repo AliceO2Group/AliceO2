@@ -86,7 +86,7 @@ MEM_TEMPLATE() GPUdi() int AliHLTTPCCAHitArea::GetNext( GPUconstant() const MEM_
     }
 
 #ifdef HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS
-	ushort2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*) slice.HitData(row) - slice.GPUTextureBaseConst()) / sizeof(ushort2) + fIh);;
+	cahit2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*) slice.HitData(row) - slice.GPUTextureBaseConst()) / sizeof(cahit2) + fIh);;
 	h->SetY( y0 + tmpval.x * stepY );
     h->SetZ( z0 + tmpval.y * stepZ );
 #else

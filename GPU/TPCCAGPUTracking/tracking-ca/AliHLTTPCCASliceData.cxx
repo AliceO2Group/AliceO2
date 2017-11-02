@@ -97,8 +97,8 @@ inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const 
       std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
     }
     // HitData is bin sorted
-    fHitData[globalHitIndex].x = (unsigned short) xx;
-    fHitData[globalHitIndex].y = (unsigned short) yy;
+    fHitData[globalHitIndex].x = (cahit) xx;
+    fHitData[globalHitIndex].y = (cahit) yy;
   }
 }
 
@@ -158,7 +158,7 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 
   const int memorySize =
     // LinkData, HitData
-    fNumberOfHitsPlusAlign * 2 * (sizeof( short ) + sizeof( calink )) +
+    fNumberOfHitsPlusAlign * 2 * (sizeof( cahit ) + sizeof( calink )) +
     // FirstHitInBin
     NextMultipleOf<kVectorAlignment>( ( firstHitInBinSize ) * sizeof( int ) ) +
     // HitWeights, ClusterDataIndex

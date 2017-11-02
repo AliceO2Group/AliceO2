@@ -158,7 +158,7 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 
         // coordinates of the hit in the current row
 #if defined(HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS)
-		ushort2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + ih);
+		cahit2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(cahit2) + row.HitNumberOffset() + ih);
         const float y = y0 + tmpval.x * stepY;
         const float z = z0 + tmpval.y * stepZ;
 #else

@@ -32,9 +32,8 @@
 
 __constant__ float4 gAliHLTTPCCATracker[HLTCA_GPU_TRACKER_CONSTANT_MEM / sizeof( float4 )];
 #ifdef HLTCA_GPU_USE_TEXTURES
-texture<ushort2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
-texture<unsigned short, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
-texture<signed short, cudaTextureType1D, cudaReadModeElementType> gAliTexRefs;
+texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
+texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
 
 //Include CXX Files, GPUd() macro will then produce CUDA device code out of the tracker source code
@@ -292,25 +291,18 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	if (Reconstruct_Base_Init(pOutput, pClusterData, firstSlice, sliceCountLocal)) return(1);
 
 #ifdef HLTCA_GPU_USE_TEXTURES
-	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<ushort2>();
+	cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
 	size_t offset;
 	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, fGpuTracker[0].Data().Memory(), &channelDescu2, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
 	{
-		HLTError("Error binding CUDA Texture ushort2 (Offset %d)", (int) offset);
+		HLTError("Error binding CUDA Texture cahit2 (Offset %d)", (int) offset);
 		ResetHelperThreads(0);
 		return(1);
 	}
-	cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<unsigned short>();
+	cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<calink>();
 	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, fGpuTracker[0].Data().Memory(), &channelDescu, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
 	{
-		HLTError("Error binding CUDA Texture ushort (Offset %d)", (int) offset);
-		ResetHelperThreads(0);
-		return(1);
-	}
-	cudaChannelFormatDesc channelDescs = cudaCreateChannelDesc<signed short>();
-	if (GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefs, fGpuTracker[0].Data().Memory(), &channelDescs, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset RANDOM_ERROR)
-	{
-		HLTError("Error binding CUDA Texture short (Offset %d)", (int) offset);
+		HLTError("Error binding CUDA Texture calink (Offset %d)", (int) offset);
 		ResetHelperThreads(0);
 		return(1);
 	}

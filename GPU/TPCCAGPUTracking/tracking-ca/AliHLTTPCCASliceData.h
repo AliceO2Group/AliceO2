@@ -89,8 +89,8 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     MEM_TEMPLATE() GPUd() calink HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex ) const;
     MEM_TEMPLATE() GPUd() calink HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row, const calink &hitIndex ) const;
 
-    MEM_TEMPLATE() GPUhd() GPUglobalref() const ushort2 *HitData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fHitData[row.fHitNumberOffset];}
-    GPUhd() GPUglobalref() const ushort2* HitData() const { return(fHitData); }
+    MEM_TEMPLATE() GPUhd() GPUglobalref() const cahit2 *HitData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fHitData[row.fHitNumberOffset];}
+    GPUhd() GPUglobalref() const cahit2* HitData() const { return(fHitData); }
 	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkUpData  ( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkUpData[row.fHitNumberOffset];}
 	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkDownData( const MEM_TYPE(AliHLTTPCCARow) &row ) const {return &fLinkDownData[row.fHitNumberOffset];}
 	MEM_TEMPLATE() GPUd() GPUglobalref() const calink *FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow) &row ) const {return &fFirstHitInBin[row.fFirstHitInBinOffset];}
@@ -109,9 +109,9 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
      * Return the y and z coordinate(s) of the given hit(s).
      */
     // TODO return float_v
-    MEM_TEMPLATE() GPUd() ushort_v HitDataY( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
-    MEM_TEMPLATE() GPUd() ushort_v HitDataZ( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
-    MEM_TEMPLATE() GPUd() ushort2 HitData( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
+    MEM_TEMPLATE() GPUd() cahit HitDataY( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
+    MEM_TEMPLATE() GPUd() cahit HitDataZ( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
+    MEM_TEMPLATE() GPUd() cahit2 HitData( const MEM_TYPE( AliHLTTPCCARow) &row, const uint_v &hitIndex ) const;
 
     /**
      * For a given bin index, content tells how many hits there are in the preceding bins. This maps
@@ -199,7 +199,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     GPUglobalref() calink *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
     GPUglobalref() calink *fLinkDownData;      // hit index in the row below which is linked to the given (global) hit index
 
-    GPUglobalref() ushort2 *fHitData;         // packed y,z coordinate of the given (global) hit index
+    GPUglobalref() cahit2 *fHitData;         // packed y,z coordinate of the given (global) hit index
 
     GPUglobalref() int *fClusterDataIndex;    // see ClusterDataIndex()
 
@@ -233,17 +233,17 @@ MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline void MEM_LG(AliHLTTPCCASliceData)::
   fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline ushort_v MEM_LG(AliHLTTPCCASliceData)::HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline cahit MEM_LG(AliHLTTPCCASliceData)::HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
 {
   return fHitData[row.fHitNumberOffset + hitIndex].x;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline ushort_v MEM_LG(AliHLTTPCCASliceData)::HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline cahit MEM_LG(AliHLTTPCCASliceData)::HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
 {
   return fHitData[row.fHitNumberOffset + hitIndex].y;
 }
 
-MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline ushort2 MEM_LG(AliHLTTPCCASliceData)::HitData( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
+MEM_CLASS_PRE() MEM_TEMPLATE() GPUd() inline cahit2 MEM_LG(AliHLTTPCCASliceData)::HitData( const MEM_TYPE( AliHLTTPCCARow)&row, const uint_v &hitIndex ) const
 {
   return fHitData[row.fHitNumberOffset + hitIndex];
 }

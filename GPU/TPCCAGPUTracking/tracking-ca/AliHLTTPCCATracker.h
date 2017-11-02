@@ -226,21 +226,20 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   MEM_TEMPLATE() GPUd() calink HitLinkUpData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
   MEM_TEMPLATE() GPUd() calink HitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
   
-  //MEM_CLASS_PRE2() GPUd() GPUglobalref() const ushort2 *HitData( const MEM_TYPE( AliHLTTPCCARow)&row ) const { return fData.HitData(row); }
-  MEM_TEMPLATE() GPUd() GPUglobalref() const ushort2 *HitData( const MEM_TYPE( AliHLTTPCCARow)& row ) const { return fData.HitData(row); }
+  MEM_TEMPLATE() GPUd() GPUglobalref() const cahit2 *HitData( const MEM_TYPE( AliHLTTPCCARow)& row ) const { return fData.HitData(row); }
   MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkUpData  ( const MEM_TYPE( AliHLTTPCCARow)&row ) const { return fData.HitLinkUpData(row); }
   MEM_TEMPLATE() GPUd() GPUglobalref() const calink *HitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row ) const { return fData.HitLinkDownData(row); }
   MEM_TEMPLATE() GPUd() GPUglobalref() const calink *FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row ) const { return fData.FirstHitInBin(row); }
   
   MEM_TEMPLATE() GPUd() int FirstHitInBin( const MEM_TYPE( AliHLTTPCCARow)&row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
   
-  MEM_TEMPLATE() GPUd() unsigned short HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const {
+  MEM_TEMPLATE() GPUd() cahit HitDataY( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const {
     return fData.HitDataY( row, hitIndex );
   }
-  MEM_TEMPLATE() GPUd() unsigned short HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const {
+  MEM_TEMPLATE() GPUd() cahit HitDataZ( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const {
     return fData.HitDataZ( row, hitIndex );
   }
-  MEM_TEMPLATE() GPUd() ushort2 HitData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const {
+  MEM_TEMPLATE() GPUd() cahit2 HitData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex ) const {
     return fData.HitData( row, hitIndex );
   }
   
