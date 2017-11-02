@@ -60,7 +60,6 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fBorderRangeMemory(0),
   fGPUTracker(NULL),
   fDebugLevel(0),
-  fNWays(1),
   fNClusters(0)
 {
   //* constructor
@@ -94,7 +93,6 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   fBorderRangeMemory(0),
   fGPUTracker(NULL),
   fDebugLevel(0),
-  fNWays(1),
   fNClusters(0)
 {
   //* dummy
@@ -252,8 +250,8 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 	  fClusters = new AliHLTTPCGMMergedTrackHit[fNClusters];
   }
   fBorderMemory = new AliHLTTPCGMBorderTrack[fMaxSliceTracks*2];
-  fBorderRangeMemory = new AliHLTTPCGMBorderTrack::Range[fMaxSliceTracks*2];  
-
+  fBorderRangeMemory = new AliHLTTPCGMBorderTrack::Range[fMaxSliceTracks*2];
+  
   return ( ( fOutputTracks!=NULL )
 	   && ( fSliceTrackInfos!=NULL )
 	   && ( fClusters!=NULL )
@@ -292,7 +290,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
 
     const AliHLTTPCCASliceOutput &slice = *( fkSlices[iSlice] );
     const AliHLTTPCCASliceOutTrack *sliceTr = slice.GetFirstTrack();    
-
+    
     for ( int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack() ) {
       AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
       track.Set( sliceTr, alpha, iSlice );
@@ -357,7 +355,7 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
   } else if ( iBorder == 1 ) { //  transport to the right age of the sector and rotate horisontally
     dAlpha = -dAlpha - CAMath::Pi() / 2 ;
   } else if ( iBorder == 2 ) { // transport to the left age of the sector and rotate vertically
-    dAlpha = dAlpha;
+    //dAlpha = dAlpha; //causes compiler warning
     x0 = fSliceParam.RowX( 63 );
   } else if ( iBorder == 3 ) { // transport to the right age of the sector and rotate vertically
     dAlpha = -dAlpha;

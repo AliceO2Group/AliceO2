@@ -18,6 +18,7 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <fenv.h>
+#include <locale.h>
 #endif
 
 #include "AliHLTTPCGMMergedTrack.h"
@@ -47,7 +48,7 @@ int main(int argc, char** argv)
 #endif
 	_mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
 #endif
-	
+
 	if (hlt.GetGPUStatus() == 0)
 	{
 		printf("No GPU Available, restricting to CPU\n");
@@ -63,6 +64,7 @@ int main(int argc, char** argv)
 	if (configStandalone.runGPU && hlt.GetGPUStatus() == 0) {printf("Cannot enable GPU\n"); configStandalone.runGPU = 0;}
 	if (configStandalone.runGPU == 0 || configStandalone.eventDisplay) hlt.ExitGPU();
 #ifndef _WIN32
+	setlocale(LC_ALL, "");
 	if (configStandalone.affinity != -1)
 	{
 		cpu_set_t mask;

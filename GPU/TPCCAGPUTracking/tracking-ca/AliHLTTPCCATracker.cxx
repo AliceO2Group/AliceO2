@@ -387,7 +387,7 @@ void AliHLTTPCCATracker::SetupCommonMemory()
 	fCommonMem->fNTrackHits = 0;
 }
 
-void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
+int AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 {
 	// read event
 
@@ -397,16 +397,15 @@ void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 	StartEvent();
 
 	//* Convert input hits, create grids, etc.
-	fData.InitFromClusterData( *clusterData );
+	if (fData.InitFromClusterData( *clusterData )) return 1;
+	if (!fIsGPUTracker)
 	{
-		if (!fIsGPUTracker)
-		{
-			SetPointersHits( fData.NumberOfHits() ); // to calculate the size
-			fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
-		}
-		SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
+		SetPointersHits( fData.NumberOfHits() ); // to calculate the size
+		fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
 	}
+	SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
 	StopTimer(0);
+	return 0;
 }
 
 GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )

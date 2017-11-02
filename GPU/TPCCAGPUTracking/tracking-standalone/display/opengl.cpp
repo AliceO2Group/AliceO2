@@ -210,7 +210,7 @@ void DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 			const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
 			for (int j = 0; j < row.NHits(); j++)
 			{
-				if (tracker.Data().HitLinkUpData(row, j) != -1)
+				if (tracker.Data().HitLinkUpData(row, j) != CALINK_INVAL)
 				{
 					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
 					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
@@ -225,7 +225,7 @@ void DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 			const AliHLTTPCCARow &rowDown = tracker.Data().Row(i - 2);
 			for (int j = 0; j < row.NHits(); j++)
 			{
-				if (tracker.Data().HitLinkDownData(row, j) != -1)
+				if (tracker.Data().HitLinkDownData(row, j) != CALINK_INVAL)
 				{
 					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
 					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j)));
