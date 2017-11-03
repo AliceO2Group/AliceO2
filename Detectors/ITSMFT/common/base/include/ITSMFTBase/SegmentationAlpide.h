@@ -44,7 +44,7 @@ class SegmentationAlpide
   static constexpr float ActiveMatrixSizeCols = PitchCol*NCols; // Active size along columns
   static constexpr float ActiveMatrixSizeRows = PitchRow*NRows; // Active size along rows
   
-  static constexpr float SensorThickness = 45.e-4;     // effective thickness of sensitive part
+  static constexpr float SensorThickness = 30.e-4;     // effective thickness of sensitive part
   static constexpr float SensorSizeCols = ActiveMatrixSizeCols+PassiveEdgeSide+PassiveEdgeSide; // SensorSize along columns
   static constexpr float SensorSizeRows = ActiveMatrixSizeRows+PassiveEdgeTop+PassiveEdgeReadOut; // SensorSize along rows
 
