@@ -79,7 +79,7 @@ class Sector
 
     bool looped() const { return mLoop; }
 
-    const double phi() const { return (mSector % SECTORSPERSIDE) * SECPHIWIDTH + SECPHIWIDTH / 2.; }
+    double phi() const { return (mSector % SECTORSPERSIDE) * SECPHIWIDTH + SECPHIWIDTH / 2.; }
 
     // helper function to retrieve a TPC sector given cartesian coordinates
     template <typename T>

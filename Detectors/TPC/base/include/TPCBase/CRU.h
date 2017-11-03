@@ -43,8 +43,8 @@ namespace TPC {
       unsigned char partition() const { return (mCRU%CRUperSector)/CRUperPartition; }
       unsigned char region()    const { return (mCRU%CRUperSector); }
       const Sector  sector()    const { return Sector(mCRU/CRUperSector); }
-      const RocType rocType()   const { return mCRU%CRUperSector < CRUperIROC ? RocType::IROC : RocType::OROC; }
-      const GEMstack gemStack() const;
+      RocType rocType()   const { return mCRU%CRUperSector < CRUperIROC ? RocType::IROC : RocType::OROC; }
+      GEMstack gemStack() const;
 
       /// int return operator to use similar as integer
       /// \return cru number
@@ -59,7 +59,7 @@ namespace TPC {
   };
 
   inline
-  const GEMstack CRU::gemStack() const {
+  GEMstack CRU::gemStack() const {
     const int reg = int(region());
 
     if(reg < CRUperIROC) return GEMstack::IROCgem;
