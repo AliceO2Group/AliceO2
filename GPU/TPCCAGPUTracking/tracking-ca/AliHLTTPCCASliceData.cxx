@@ -62,10 +62,17 @@ inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const float2*
     if ( zMin > z ) zMin = z;
   }
 
-  const float norm = fastInvSqrt( row->fNHits );
+  float dz = zMax - zMin;
+  float tfFactor = 1.;
+  if (dz > 270.)
+  {
+      tfFactor = dz / 250.;
+      dz = 250.;
+  }
+  const float norm = fastInvSqrt( row->fNHits / tfFactor );
   row->fGrid.Create( yMin, yMax, zMin, zMax,
                      CAMath::Max( ( yMax - yMin ) * norm, 2.f ),
-                     CAMath::Max( ( zMax - zMin ) * norm, 2.f ) );
+                     CAMath::Max( dz * norm, 2.f ) );
 }
 
 inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const AliHLTArray<AliHLTTPCCAHit> &binSortedHits )
@@ -328,6 +335,11 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
     CreateGrid( &row, YZData, RowOffset[rowIndex] );
     const AliHLTTPCCAGrid &grid = row.fGrid;
     const int numberOfBins = grid.N();
+    if ((long long int) numberOfBins >= ((long long int) 1 << (sizeof(calink) * 8)))
+    {
+      printf("Too many bins in row %d for grid (%d >= %lld), indexing insufficient\n", rowIndex, numberOfBins, ((long long int) 1 << (sizeof(calink) * 8)));
+      return(1);
+    }
 
     int binCreationMemorySizeNew;
     if ( ( binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1) > binCreationMemorySize ) {
