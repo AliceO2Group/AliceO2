@@ -24,16 +24,18 @@
 #include "TPCReconstruction/Clusterer.h"       // for Clusterer
 #include "TPCReconstruction/BoxClusterer.h"       // for Clusterer
 #include "TPCReconstruction/HwClusterer.h"       // for Clusterer
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include <vector>
 
 namespace o2 {
 namespace TPC{
-  
+
 class ClustererTask : public FairTask{
   public:
     ClustererTask();
     ~ClustererTask() override;
-    
+
     InitStatus Init() override;
     void Exec(Option_t *option) override;
 
@@ -45,24 +47,24 @@ class ClustererTask : public FairTask{
       };
     };
 
-    bool isClustererEnable(ClustererType type) const { 
+    bool isClustererEnable(ClustererType type) const {
       switch (type) {
         case ClustererType::HW:   return mHwClustererEnable;
         case ClustererType::Box:  return mBoxClustererEnable;
       };
     };
 
-    Clusterer* getClusterer(ClustererType type) { 
+    Clusterer* getClusterer(ClustererType type) {
       switch (type) {
         case ClustererType::HW:   return mHwClusterer;
         case ClustererType::Box:  return mBoxClusterer;
       };
     };
-    
+
     BoxClusterer* getBoxClusterer()   const { return mBoxClusterer; };
     HwClusterer* getHwClusterer()     const { return mHwClusterer; };
     //             Clusterer *GetClusterer() const { return fClusterer; }
-    
+
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
   void setContinuousReadout(bool isContinuous);
@@ -74,12 +76,15 @@ class ClustererTask : public FairTask{
 
     BoxClusterer        *mBoxClusterer;
     HwClusterer         *mHwClusterer;
-    
+
     std::vector<o2::TPC::Digit> const  *mDigitsArray;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> const *mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
     // produced data containers
     std::vector<o2::TPC::BoxCluster>  *mClustersArray;
     std::vector<o2::TPC::HwCluster>  *mHwClustersArray;
-    
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> mClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mClustersArrays
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> mHwClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mHwClustersArrays
+
     ClassDefOverride(ClustererTask, 1)
 };
 

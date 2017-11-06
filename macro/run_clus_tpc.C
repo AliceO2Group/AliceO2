@@ -56,8 +56,8 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isConti
   // Initialize everything
   run->Init();
 
-//  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Parallel);
-  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Sequential);
+  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Parallel);
+//  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Sequential);
 
   // Start simulation
   timer.Start();

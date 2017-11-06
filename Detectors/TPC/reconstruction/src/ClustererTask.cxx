@@ -35,8 +35,11 @@ ClustererTask::ClustererTask()
   , mBoxClusterer(nullptr)
   , mHwClusterer(nullptr)
   , mDigitsArray(nullptr)
+  , mDigitMCTruthArray(nullptr)
   , mClustersArray(nullptr)
   , mHwClustersArray(nullptr)
+  , mClustersMCTruthArray()
+  , mHwClustersMCTruthArray()
 {
 }
 
@@ -74,11 +77,19 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
+  mDigitMCTruthArray = mgr->InitObjectAs<decltype(mDigitMCTruthArray)>("TPCDigitMCTruth");
+  if( !mDigitMCTruthArray ) {
+    LOG(ERROR) << "TPC MC truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    return kERROR;
+  }
+
   if (mBoxClustererEnable) {
-    
+
     // Create and register output container
     mClustersArray = new std::vector<o2::TPC::BoxCluster>;
     mgr->RegisterAny("TPCCluster", mClustersArray, kTRUE);
+
+    mgr->Register("TPCClusterMCTruth", "TPC", &mClustersMCTruthArray, kTRUE);
 
     // create clusterer and pass output pointer
     mBoxClusterer = new BoxClusterer(mClustersArray);
@@ -89,6 +100,8 @@ InitStatus ClustererTask::Init()
     // Register output container
     mHwClustersArray = new std::vector<o2::TPC::HwCluster>;
     mgr->RegisterAny("TPCClusterHW", mHwClustersArray, kTRUE);
+
+    mgr->Register("TPCClusterHWMCTruth", "TPC", &mHwClustersMCTruthArray, kTRUE);
 
      // create clusterer and pass output pointer
     mHwClusterer = new HwClusterer(mHwClustersArray);
@@ -109,12 +122,13 @@ void ClustererTask::Exec(Option_t *option)
 
   if (mBoxClustererEnable) {
     mClustersArray->clear();
-    mBoxClusterer->Process(*mDigitsArray);
+    mBoxClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mClustersMCTruthArray);
   }
 
   if (mHwClustererEnable) {
     mHwClustersArray->clear();
-    mHwClusterer->Process(*mDigitsArray);
+    mHwClustersMCTruthArray.clear();
+    mHwClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mHwClustersMCTruthArray);
     LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl;
   }
 }

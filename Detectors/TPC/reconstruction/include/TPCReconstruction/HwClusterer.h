@@ -16,13 +16,17 @@
 
 #include "TPCReconstruction/Clusterer.h"
 #include "TPCReconstruction/HwCluster.h"
-#include "TPCBase/CalDet.h" 
+#include "TPCBase/CalDet.h"
+
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 #include <vector>
+#include <utility>
 
 namespace o2{
 namespace TPC {
-    
+
 class ClusterContainer;
 class ClustererTask;
 class HwClusterFinder;
@@ -32,6 +36,7 @@ class Digit;
 /// \class HwClusterer
 /// \brief Class for TPC HW cluster finding
 class HwClusterer : public Clusterer {
+  using MCLabel = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   public:
     enum class Processing : int { Sequential, Parallel};
 
@@ -40,7 +45,7 @@ class HwClusterer : public Clusterer {
     /// \param processingType parallel or sequential
     /// \param globalTime value of first timebin
     /// \param cru Number of CRUs to process
-    /// \param minQDiff Min charge differece 
+    /// \param minQDiff Min charge differece
     /// \param assignChargeUnique Avoid using same charge for multiple nearby clusters
     /// \param enableNoiseSim Enables the Noise simulation for empty pads (noise object has to be set)
     /// \param enablePedestalSubtraction Enables the Pedestal subtraction (pedestal object has to be set)
@@ -50,31 +55,33 @@ class HwClusterer : public Clusterer {
     HwClusterer(
 	std::vector<o2::TPC::HwCluster> *output,
 	Processing processingType = Processing::Parallel,
-        int globalTime = 0, 
+        int globalTime = 0,
         int cruMin = 0,
-        int cruMax = 360, 
+        int cruMax = 360,
         float minQDiff = 0,
         bool assignChargeUnique = false,
-        bool enableNoiseSim = true, 
-        bool enablePedestalSubtraction = true, 
-        int padsPerCF = 8, 
-        int timebinsPerCF = 8, 
+        bool enableNoiseSim = true,
+        bool enablePedestalSubtraction = true,
+        int padsPerCF = 8,
+        int timebinsPerCF = 8,
         int cfPerRow = 0);
-    
+
     /// Destructor
     ~HwClusterer() override;
-    
+
     // Should this really be a public member?
     // Maybe better to just call by process
     void Init() override;
-    
+
     /// Steer conversion of points to digits
     /// @param digits Container with TPC digits
+    /// @param mcDigitTruth MC Digit Truth container
+    /// @param mcClusterTruth MC Cluster Truth container
     /// @return Container with clusters
-    void Process(std::vector<o2::TPC::Digit> const &digits) override;
-    void Process(std::vector<std::unique_ptr<Digit>>& digits) override;
+    void Process(std::vector<o2::TPC::Digit> const &digits, MCLabel const* mcDigitTruth, MCLabel &mcClusterTruth) override;
+    void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabel const* mcDigitTruth, MCLabel &mcClusterTruth) override;
 
-    void setProcessingType(Processing processing)    { mProcessingType = processing; };   
+    void setProcessingType(Processing processing)    { mProcessingType = processing; };
 
     void setNoiseObject(CalDet<float>* noiseObject) { mNoiseObject = noiseObject; };
     void setPedestalObject(CalDet<float>* pedestalObject) { mPedestalObject = pedestalObject; };
@@ -85,7 +92,7 @@ class HwClusterer : public Clusterer {
 
     void setCRUMin(int cru) { mCRUMin = cru; };
     void setCRUMax(int cru) { mCRUMax = cru; };
-    
+
   private:
     // To be done
     /* BoxClusterer(const BoxClusterer &); */
@@ -103,26 +110,21 @@ class HwClusterer : public Clusterer {
       CalDet<float>* iNoiseObject;
       CalDet<float>* iPedestalObject;
     };
-    
+
     static void processDigits(
-        const std::vector<std::vector<Digit const*>>& digits, 
-        const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
-              std::vector<HwCluster>& cluster, 
+        const std::vector<std::vector<std::pair<Digit const*, gsl::span<const o2::MCCompLabel>>>>& digits,
+        const std::vector<std::vector<HwClusterFinder*>>& clusterFinder,
+              std::vector<HwCluster>& cluster,
               CfConfig config);
-//              int iCRU,
-//              int maxRows,
-//              int maxPads, 
-//              unsigned minTimeBin,
-//              unsigned maxTimeBin);
-    
+
     void ProcessTimeBins(int iTimeBinMin, int iTimeBinMax);
 
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
-    std::vector<std::vector<std::vector<Digit const*>>> mDigitContainer;
+    std::vector<std::vector<std::vector<std::pair<Digit const*, gsl::span<const o2::MCCompLabel>>>>> mDigitContainer;
 
     std::vector<std::vector<HwCluster>> mClusterStorage;
-    
-    Processing    mProcessingType; 
+
+    Processing    mProcessingType;
 
     int     mGlobalTime;
     int     mCRUMin;
@@ -138,7 +140,7 @@ class HwClusterer : public Clusterer {
     int     mLastTimebin;
 
     std::vector<o2::TPC::HwCluster>* mClusterArray;    ///< Internal cluster storage
-    
+
     CalDet<float>* mNoiseObject;
     CalDet<float>* mPedestalObject;
   };
@@ -146,4 +148,4 @@ class HwClusterer : public Clusterer {
 }
 
 
-#endif 
+#endif

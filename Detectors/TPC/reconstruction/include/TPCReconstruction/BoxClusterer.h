@@ -21,6 +21,9 @@
 #include "TPCReconstruction/BoxCluster.h"
 #include "TPCBase/CalDet.h"
 
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+
 namespace o2{
   
   namespace TPC {
@@ -40,9 +43,11 @@ namespace o2{
       
       /// Steer conversion of points to digits
       /// @param digits Container with TPC digits
+      /// @param mcDigitTruth MC Digit Truth container
+      /// @param mcClusterTruth MC Cluster Truth container
       /// @return Container with clusters
-      void Process(std::vector<o2::TPC::Digit> const & digits) override;
-      void Process(std::vector<std::unique_ptr<Digit>>& digits) override;
+      void Process(std::vector<o2::TPC::Digit> const & digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) override;
+      void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) override;
       
       /// Set a pedestal object
       void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }

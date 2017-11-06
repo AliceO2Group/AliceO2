@@ -19,7 +19,7 @@
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/PadSecPos.h"
-#include "TPCBase/CalArray.h" 
+#include "TPCBase/CalArray.h"
 
 #include "FairLogger.h"
 #include "TMath.h"
@@ -72,7 +72,7 @@ HwClusterer::~HwClusterer()
 //________________________________________________________________________
 void HwClusterer::Init()
 {
-  LOG(DEBUG) << "Enter Initializer of HwClusterer" << FairLogger::endl;     
+  LOG(DEBUG) << "Enter Initializer of HwClusterer" << FairLogger::endl;
 
   /*
    * initalize all cluster finder
@@ -110,9 +110,9 @@ void HwClusterer::Init()
   mClusterStorage.resize(mCRUMax);
 
 
-  /* 
+  /*
    * vector of digit vectors, one vector for each CRU (possible thread) to
-   * store there only those digits which are relevant for this particular 
+   * store there only those digits which are relevant for this particular
    * CRU (thread)
    */
   mDigitContainer.resize(mCRUMax);
@@ -123,15 +123,10 @@ void HwClusterer::Init()
 
 //________________________________________________________________________
 void HwClusterer::processDigits(
-    const std::vector<std::vector<Digit const*>>& digits,
-    const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
+    const std::vector<std::vector<std::pair<Digit const*, gsl::span<const o2::MCCompLabel>>>>& digits,
+    const std::vector<std::vector<HwClusterFinder*>>& clusterFinder,
           std::vector<HwCluster>& cluster,
     const CfConfig config)
-//          int iCRU,
-//          int maxRows,
-//          int maxPads, 
-//          unsigned minTime,
-//          unsigned maxTime)
 {
   int timeDiff = (config.iMaxTimeBin+1) - config.iMinTimeBin;
   if (timeDiff < 0) return;
@@ -139,13 +134,6 @@ void HwClusterer::processDigits(
 //  g_display_mutex.lock();
 //  std::cout << "thread " << this_id << " started.\n";
 //  g_display_mutex.unlock();
-
-//  float iAllBins[maxTime][maxPads];
-//  for (float (&timebin)[maxPads] : iAllBins) {
-//    for (float &pad : timebin) {
-//        pad = 0.0;
-//    }
-//  }
 
   float iAllBins[timeDiff][config.iMaxPads];
 
@@ -170,10 +158,10 @@ void HwClusterer::processDigits(
      * fill in digits
      */
     for (auto& digit : digits[iRow]){
-      const Int_t iTime         = digit->getTimeStamp();
-      const Int_t iPad          = digit->getPad() + 2;  // offset to have 2 empty pads on the "left side"
-      const Float_t charge      = digit->getChargeFloat();
-  
+      const Int_t iTime         = digit.first->getTimeStamp();
+      const Int_t iPad          = digit.first->getPad() + 2;  // offset to have 2 empty pads on the "left side"
+      const Float_t charge      = digit.first->getChargeFloat();
+
 //      std::cout << iCRU << " " << iRow << " " << iPad << " " << iTime << " (" << iTime-minTime << "," << timeDiff << ") " << charge << std::endl;
       iAllBins[iTime-config.iMinTimeBin][iPad] += charge;
       if (config.iEnablePedestalSubtraction && config.iPedestalObject != nullptr) {
@@ -182,7 +170,7 @@ void HwClusterer::processDigits(
         iAllBins[iTime-config.iMinTimeBin][iPad] -= pedestal;
       }
     }
-  
+
     /*
      * copy data to cluster finders
      */
@@ -190,17 +178,17 @@ void HwClusterer::processDigits(
     const Short_t iTimebinsPerCF = clusterFinder[iRow][0]->getNtimebins();
     std::vector<std::vector<HwClusterFinder*>::const_reverse_iterator> cfWithCluster;
     unsigned time,pad;
-    for (time = 0; time < timeDiff; ++time){
+    for (time = 0; time < timeDiff; ++time){    // ordering important!!
       for (pad = 0; pad < config.iMaxPads; pad = pad + (iPadsPerCF -2 -2 )) {
         const Short_t cf = pad / (iPadsPerCF-2-2);
         clusterFinder[iRow][cf]->AddTimebin(&iAllBins[time][pad],time+config.iMinTimeBin,(config.iMaxPads-pad)>=iPadsPerCF?iPadsPerCF:(config.iMaxPads-pad));
       }
-      
+
       /*
        * search for clusters and store reference to CF if one was found
        */
       if (clusterFinder[iRow][0]->getTimebinsAfterLastProcessing() == iTimebinsPerCF-2 -2)  {
-        /*  
+        /*
          * ordering is important: from right to left, so that the CFs could inform each other if cluster was found
          */
         for (auto rit = clusterFinder[iRow].crbegin(); rit != clusterFinder[iRow].crend(); ++rit) {
@@ -225,7 +213,7 @@ void HwClusterer::processDigits(
          * search for clusters and store reference to CF if one was found
          */
         if (clusterFinder[iRow][0]->getTimebinsAfterLastProcessing() == iTimebinsPerCF-2 -2)  {
-          /*  
+          /*
            * ordering is important: from right to left, so that the CFs could inform each other if cluster was found
            */
           for (auto rit = clusterFinder[iRow].crbegin(); rit != clusterFinder[iRow].crend(); ++rit) {
@@ -239,8 +227,8 @@ void HwClusterer::processDigits(
         (*rit)->setTimebinsAfterLastProcessing(0);
       }
     }
-  
-    /*  
+
+    /*
      * collect found cluster
      */
     for (std::vector<HwClusterFinder*>::const_reverse_iterator &cf_it : cfWithCluster) {
@@ -251,15 +239,6 @@ void HwClusterer::processDigits(
       (*cf_it)->clearClusterContainer();
     }
 
-//    /* 
-//     * remove digits again from storage
-//     */
-//    for (std::vector<Digit*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
-//      const Int_t iTime       = (*it)->getTimeStamp();
-//      const Int_t iPad        = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
-//  
-//      iAllBins[iTime-minTime][iPad] = 0.0;
-//    }
   }
 
 //  g_display_mutex.lock();
@@ -268,11 +247,12 @@ void HwClusterer::processDigits(
 }
 
 //________________________________________________________________________
-void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits)
+void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabel const* mcDigitTruth, MCLabel &mcClusterTruth
+    )
 {
   mClusterArray->clear();
 
-  /*  
+  /*
    * clear old storages
    */
   for (auto& cs : mClusterStorage) cs.clear();
@@ -280,68 +260,68 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits)
     for (auto& dcc : dc) dcc.clear();
   }
 
-//  int iCRU;
-//  int iRow;
-//  int iPad;
-//  float charge;
   int iTimeBin;
   int iTimeBinMin = (mIsContinuousReadout)?mLastTimebin + 1 : 0;
   //int iTimeBinMin = mLastTimebin + 1;
   int iTimeBinMax = mLastTimebin;
 
-  /*  
+  /*
    * Loop over digits
    */
+  int digitIndex = 0;
   for (const auto& digit : digits) {
+
     /*
      * add current digit to storage
      */
-//    iCRU     = digit->getCRU();
-//    iRow     = digit->getRow();
-//    iPad     = digit->getPad();
-//    charge   = digit->getChargeFloat();
-//    if ((cru == 179)) {// && iRow == 5)){
-//      printf("hw:  digi: %d, %d, %d, %d, %.2f\n", cru, iRow, iPad, iTimeBin, charge);
-//    }
 
     iTimeBin = digit.getTimeStamp();
     if (iTimeBin < iTimeBinMin) continue;
     iTimeBinMax = std::max(iTimeBinMax,iTimeBin);
-    mDigitContainer[digit.getCRU()][digit.getRow()].push_back(&digit);
+    if (mcDigitTruth == nullptr)
+      mDigitContainer[digit.getCRU()][digit.getRow()].push_back(std::make_pair(&digit,nullptr));
+    else
+      mDigitContainer[digit.getCRU()][digit.getRow()].push_back(std::make_pair(&digit,mcDigitTruth->getLabels(digitIndex)));
+    ++digitIndex;
   }
   ProcessTimeBins(iTimeBinMin, iTimeBinMax);
 }
 
 //________________________________________________________________________
-void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
+void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabel const* mcDigitTruth, MCLabel &mcClusterTruth)
 {
   mClusterArray->clear();
 
-  /*  
+  /*
    * clear old storages
    */
   for (auto& cs : mClusterStorage) cs.clear();
   for (auto& dc : mDigitContainer ) {
-              for (auto& dcc : dc) dcc.clear();
+    for (auto& dcc : dc) dcc.clear();
   }
 
   int iTimeBin;
   int iTimeBinMin = (mIsContinuousReadout)?mLastTimebin + 1 : 0;
   int iTimeBinMax = mLastTimebin;
 
-  /*  
+  /*
    * Loop over digits
    */
+  int digitIndex = 0;
   for (auto& digit_ptr : digits) {
     Digit* digit = digit_ptr.get();
+
     /*
      * add current digit to storage
      */
-
     iTimeBin = digit->getTimeStamp();
     if (iTimeBin < iTimeBinMin) continue;
     iTimeBinMax = std::max(iTimeBinMax,iTimeBin);
-    mDigitContainer[digit->getCRU()][digit->getRow()].push_back(digit);
+    if (mcDigitTruth == nullptr)
+      mDigitContainer[digit->getCRU()][digit->getRow()].push_back(std::make_pair(digit,nullptr));
+    else
+      mDigitContainer[digit->getCRU()][digit->getRow()].push_back(std::make_pair(digit,mcDigitTruth->getLabels(digitIndex)));
+    ++digitIndex;
   }
 
   ProcessTimeBins(iTimeBinMin, iTimeBinMax);
@@ -386,12 +366,6 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
             std::ref(mClusterFinder[iCRU]),     // cluster finder for individual CRUs
             std::ref(mClusterStorage[iCRU]),    // container to store found clusters
             cfConfig
-//            iCRU,                               // current CRU for deb. purposes
-//            mRowsMax,                           // max. numbers of rows per CRU
-//            mPadsMax+2+2,                       // max. numbers of pads in each row (+2 empty ones on each side)
-//            iTimeBinMin,                        // Min timebin of digit
-//            iTimeBinMax                         // Max timebin of digits
-          
         );
     else {
       processDigits(
@@ -399,11 +373,6 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
           std::ref(mClusterFinder[iCRU]),
           std::ref(mClusterStorage[iCRU]),
           cfConfig);
-//          iCRU,
-//          mRowsMax,
-//          mPadsMax+2+2,
-//          iTimeBinMin,
-//          iTimeBinMax);
     }
   }
 
@@ -419,23 +388,14 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
    * collect clusters from individual cluster finder
    */
   for (auto& cc : mClusterStorage) {
-    if (cc.size() != 0) {  
+    if (cc.size() != 0) {
       for (auto& c : cc){
 	ClusterContainer::AddCluster<HwCluster>(mClusterArray, c.getCRU(),c.getRow(),c.getQ(),c.getQmax(),
             c.getPadMean(),c.getTimeMean(),c.getPadSigma(),c.getTimeSigma());
-////          if (c.getPadSigma() > 0.45 && c.getPadSigma() < 0.5) {
-//          if ((c.getCRU() == 179)){// && c.getRow() == 5)){// && (int)c.getPadMean() == 103 && (int)c.getTimeMean() == 170) || 
-////              (iCRU == 256 && iRow == 10 && (int)c.getPadMean() == 27 && (int)c.getTimeMean() == 181) ) { 
-//           std::cout << "HwCluster - ";
-////           c.Print(std::cout);
-//           c.PrintDetails(std::cout);
-//           std::cout << std::endl;
-//          }
-//          c.Print();
       }
     }
   }
 
   mLastTimebin = iTimeBinMax;
 }
-      
+
