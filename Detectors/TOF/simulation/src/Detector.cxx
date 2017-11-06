@@ -62,12 +62,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   static TLorentzVector position;
   refMC->TrackPosition(position);
   float time = refMC->TrackTime() * 1.0e09;
-  auto stack = static_cast<o2::Data::Stack*>(TVirtualMC::GetMC()->GetStack());
+  auto stack = static_cast<o2::Data::Stack*>(refMC->GetStack());
   int trackID = stack->GetCurrentTrackNumber();
   int sensID = v->getMCid();
 
   addHit(position.X(), position.Y(), position.Z(), time, enDep, trackID, sensID);
-  stack->AddPoint(GetDetId());
+  stack->addHit(GetDetId());
 
   return kTRUE;
 }

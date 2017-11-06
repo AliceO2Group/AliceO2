@@ -53,7 +53,7 @@ bool Detector::ProcessHits(FairVolume* v)
   auto trackID = stack->GetCurrentTrackNumber();
   auto sensID = v->getMCid();
   addHit((float)x, (float)y, (float)z, time, enDep, trackID, sensID);
-  stack->AddPoint(GetDetId());
+  stack->addHit(GetDetId());
 
   return true;
 }

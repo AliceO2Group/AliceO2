@@ -17,17 +17,16 @@
 
 #include "FairGenericStack.h"
 #include "SimulationDataFormat/MCTrack.h"
+#include "DetectorsBase/DetID.h"
 
 #include "Rtypes.h"
-#include "TMCProcess.h"
+#include "TParticle.h"
 
 #include <map>
 #include <stack>
 #include <utility>
 
 class TClonesArray;
-
-class TParticle;
 
 class TRefArray;
 
@@ -50,11 +49,11 @@ namespace Data {
 /// The filtering criteria for the output tracks are:
 /// - primary tracks are stored in any case.
 /// - secondary tracks are stored if they have a minimal number of
-///   points (sum of all detectors) and a minimal energy, or are the
+///   hits (sum of all detectors) and a minimal energy, or are the
 ///
 /// The storage of secondaries can be switched off.
 /// The storage of all mothers can be switched off.
-/// By default, the minimal number of points is 1 and the energy cut is 0.
+/// By default, the minimal number of hits is 1 and the energy cut is 0.
 class Stack : public FairGenericStack
 {
 
@@ -142,7 +141,7 @@ class Stack : public FairGenericStack
     /// Fill the MCTrack output array, applying filter criteria
     void FillTrackArray() override;
 
-    /// Update the track index in the MCTracks and MCPoints
+    /// Update the track index in the MCTracks and data produced by detectors
     void UpdateTrackIndex(TRefArray *detArray = nullptr) override;
 
     /// Resets arrays and stack and deletes particles and tracks
@@ -166,9 +165,9 @@ class Stack : public FairGenericStack
       mStoreSecondaries = choice;
     }
 
-    void SetMinPoints(Int_t min)
+    void setMinHits(Int_t min)
     {
-      mMinPoints = min;
+      mMinHits = min;
     }
 
     void SetEnergyCut(Double_t eMin)
@@ -181,19 +180,18 @@ class Stack : public FairGenericStack
       mStoreMothers = choice;
     }
 
-    /// Increment number of points for the current track in a given detector
+    /// Increment number of hits for the current track in a given detector
     /// \param iDet  Detector unique identifier
+    void addHit(int iDet);
 
-    void AddPoint(int iDet);
-
-    /// Increment number of points for an arbitrary track in a given detector
+    /// Increment number of hits for an arbitrary track in a given detector
     /// \param iDet    Detector unique identifier
     /// \param iTrack  Track number
-    void AddPoint(int iDet, Int_t iTrack);
+    void addHit(int iDet, Int_t iTrack);
 
     /// Accessors
     TParticle *GetParticle(Int_t trackId) const;
-
+    
     TClonesArray *GetListOfParticles() override
     {
       return mParticles;
@@ -202,6 +200,22 @@ class Stack : public FairGenericStack
     /// Clone for worker (used in MT mode only)
     FairGenericStack *CloneStack() const override;
 
+    // encode whether to store the particle or not as part of the TParticles (user) bits
+    static void setStore(TParticle &p, bool store) {
+      // using the first available user-bit (according to TObject docu)
+      p.SetBit(BIT(14), store);
+    }
+    static bool isStore(const TParticle& p) {
+      return p.TestBit(BIT(14));
+    }
+    // store integer encoding hits/detector information inside the TParticle
+    static void setHitEncoding(TParticle &p, Int_t i) {
+      p.SetUniqueID(i);
+    }
+    static Int_t getHitEncoding(const TParticle &p) {
+      return p.GetUniqueID();
+    }
+    
   private:
     FairLogger *mLogger;
 
@@ -215,21 +229,12 @@ class Stack : public FairGenericStack
     /// vector of reducded tracks written to the output
     std::vector<o2::MCTrack>* mTracks;
     
-    /// STL map from particle index to storage flag
-    std::map<Int_t, Bool_t> mStoreMap;                //!
-    std::map<Int_t, Bool_t>::iterator mStoreIterator; //!
-
     /// STL map from particle index to track index
     std::map<Int_t, Int_t> mIndexMap;                //!
-    std::map<Int_t, Int_t>::iterator mIndexIterator; //!
-    std::vector<Int_t> mIndexVector; //!
-    
-    /// STL map from track index and detector ID to number of MCPoints
-    std::map<std::pair<Int_t, Int_t>, Int_t> mPointsMap; //!
 
     /// cache active O2 detectors
-    std::vector<o2::Base::Detector *> mActiveDetectors;
-
+    std::vector<o2::Base::Detector *> mActiveDetectors; //!
+    
     /// Some indices and counters
     Int_t mIndexOfCurrentTrack;        //! Index of current track
     Int_t mNumberOfPrimaryParticles;   //! Number of primary particles
@@ -240,18 +245,28 @@ class Stack : public FairGenericStack
     /// Variables defining the criteria for output selection
     Bool_t mStoreMothers;
     Bool_t mStoreSecondaries;
-    Int_t mMinPoints;
+    Int_t mMinHits;
     Double32_t mEnergyCut;
 
     /// Mark tracks for output using selection criteria
-    void SelectTracks();
-
+    /// returns true if all available tracks are selected
+    /// returns false if some tracks are discarded
+    bool selectTracks();
+    
     Stack(const Stack &);
 
     Stack &operator=(const Stack &);
 
   ClassDefOverride(Stack, 1)
 };
+
+
+inline
+TParticle *Stack::GetParticle(Int_t trackID) const
+{
+  return (TParticle *) mParticles->At(trackID);
+}
+
 }
 }
 

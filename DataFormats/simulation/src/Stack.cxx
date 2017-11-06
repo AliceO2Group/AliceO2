@@ -41,11 +41,7 @@ Stack::Stack(Int_t size)
     mStack(),
     mParticles(new TClonesArray("TParticle", size)),
     mTracks(new std::vector<o2::MCTrack>),
-    mStoreMap(),
-    mStoreIterator(),
     mIndexMap(),
-    mIndexIterator(),
-    mPointsMap(),
     mIndexOfCurrentTrack(-1),
     mNumberOfPrimaryParticles(0),
     mNumberOfEntriesInParticles(0),
@@ -53,7 +49,7 @@ Stack::Stack(Int_t size)
     mIndex(0),
     mStoreMothers(kTRUE),
     mStoreSecondaries(kTRUE),
-    mMinPoints(1),
+    mMinHits(1),
     mEnergyCut(0.),
     mLogger(FairLogger::GetLogger())
 {
@@ -65,12 +61,7 @@ Stack::Stack(const Stack &rhs)
     mStack(),
     mParticles(nullptr),
     mTracks(nullptr),
-    mStoreMap(),
-    mStoreIterator(),
     mIndexMap(),
-    mIndexVector(),
-    mIndexIterator(),
-    mPointsMap(),
     mIndexOfCurrentTrack(-1),
     mNumberOfPrimaryParticles(0),
     mNumberOfEntriesInParticles(0),
@@ -78,7 +69,7 @@ Stack::Stack(const Stack &rhs)
     mIndex(0),
     mStoreMothers(rhs.mStoreMothers),
     mStoreSecondaries(rhs.mStoreSecondaries),
-    mMinPoints(rhs.mMinPoints),
+    mMinHits(rhs.mMinHits),
     mEnergyCut(rhs.mEnergyCut),
     mLogger(FairLogger::GetLogger())
 {
@@ -117,7 +108,7 @@ Stack &Stack::operator=(const Stack &rhs)
   mIndex = 0;
   mStoreMothers = rhs.mStoreMothers;
   mStoreSecondaries = rhs.mStoreSecondaries;
-  mMinPoints = rhs.mMinPoints;
+  mMinHits = rhs.mMinHits;
   mEnergyCut = rhs.mEnergyCut;
   mLogger = nullptr;
 
@@ -149,7 +140,11 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
     TParticle(pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   particle->SetPolarisation(polx, poly, polz);
   particle->SetWeight(weight);
-  particle->SetUniqueID(proc);
+
+  // BEWARE: we are currently using the UniqueID inherited from TObject to
+  // store information concerning hits per detector originating from this particle.
+  // We could pack additional information into this integer.
+  particle->SetUniqueID(0);
 
   // Increment counter
   if (parentId < 0) {
@@ -238,51 +233,39 @@ void Stack::FillTrackArray()
 
   // Reset index map and number of output tracks
   mIndexMap.clear();
-  mIndexVector.clear();
-  mIndexVector.resize(mNumberOfEntriesInParticles, -2);
   mNumberOfEntriesInTracks = 0;
 
   // Check tracks for selection criteria
-  SelectTracks();
+  // if allselected is true we can avoid some computation below
+  auto allselected = selectTracks();
+  LOG(INFO) << " All tracks selected ? : " << allselected << "\n";
 
   // Loop over mParticles array and copy selected tracks
   for (Int_t iPart = 0; iPart < mNumberOfEntriesInParticles; iPart++) {
-
-    mStoreIterator = mStoreMap.find(iPart);
-    if (mStoreIterator == mStoreMap.end()) {
-      if (mLogger) {
-        mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle %i not found in storage map! ", iPart);
-      }
-      Fatal("Stack::FillTrackArray", "Particle not found in storage map.");
-    }
-    Bool_t store = (*mStoreIterator).second;
-
-    if (store) {
-      mTracks->emplace_back(GetParticle(iPart));
+    const auto particle = GetParticle(iPart);
+    if (Stack::isStore(*particle)) {
+      mTracks->emplace_back(particle);
       auto& track = mTracks->back();			    
-      mIndexMap[iPart] = mNumberOfEntriesInTracks;
-      mIndexVector[iPart] = mNumberOfEntriesInTracks;
-
-      // Set the number of points in the detectors for this track
-      for (Int_t iDet = o2::Base::DetID::First; iDet < o2::Base::DetID::nDetectors; iDet++) {
-        pair<Int_t, Int_t> a(iPart, iDet);
-        track.setNumberOfPoints(iDet, mPointsMap[a]);
+      if (!allselected) {
+        mIndexMap[iPart] = mNumberOfEntriesInTracks;
       }
+      // store hit information inside persistent track
+      track.setHitMask(Stack::getHitEncoding(*particle));
       mNumberOfEntriesInTracks++;
-    } else {
-      mIndexMap[iPart] = -2;
     }
   }
-
-  // Map index for primary mothers
-  mIndexMap[-1] = -1;
-
-  // Screen output
-  // Print(1);
+  LOG(INFO) << "Stack: " << mTracks->size() << " out of " << mNumberOfEntriesInParticles << " stored \n";
 }
 
 void Stack::UpdateTrackIndex(TRefArray *detList)
 {
+  // we can avoid any updating in case no tracks have been filtered out
+  // check this like this
+  if (mIndexMap.size() == 0) {
+    LOG(INFO) << "No TrackIndex update necessary\n";
+    return;
+  }
+
   // we are getting the detectorlist from FairRoot as TRefArray
   // at each call, but this list never changes so we cache it here
   // as the right type to avoid repeated dynamic casts
@@ -312,14 +295,18 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
   for (Int_t i = 0; i < mNumberOfEntriesInTracks; i++) {
     auto& track = (*mTracks)[i];
     Int_t iMotherOld = track.getMotherTrackId();
-    mIndexIterator = mIndexMap.find(iMotherOld);
-    if (mIndexIterator == mIndexMap.end()) {
+    if (iMotherOld == -1) {
+      // no need to lookup this case
+      continue;
+    }
+    auto iter = mIndexMap.find(iMotherOld);
+    if (iter == mIndexMap.end()) {
       if (mLogger) {
         mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Track index %i not found index map! ", iMotherOld);
       }
       Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
     }
-    track.SetMotherTrackId((*mIndexIterator).second);
+    track.SetMotherTrackId(iter->second);
   }
 
   for(auto det : mActiveDetectors) {
@@ -342,9 +329,8 @@ void Stack::Reset()
   while (!mStack.empty()) {
     mStack.pop();
   }
-  mParticles->Clear();
+  mParticles->Clear("C");
   mTracks->clear();
-  mPointsMap.clear();
 }
 
 void Stack::Register()
@@ -375,28 +361,20 @@ void Stack::Print(Option_t* option) const
   Print(verbose);
 }
 
-void Stack::AddPoint(int iDet)
+void Stack::addHit(int iDet)
 {
-  // cout << "Add point for Detektor" << iDet << endl;
-  pair<Int_t, Int_t> a(mIndexOfCurrentTrack, iDet);
-  if (mPointsMap.find(a) == mPointsMap.end()) {
-    mPointsMap[a] = 1;
-  } else {
-    mPointsMap[a]++;
-  }
+  addHit(iDet, mIndexOfCurrentTrack);
 }
 
-void Stack::AddPoint(int iDet, Int_t iTrack)
+void Stack::addHit(int iDet, Int_t iTrack)
 {
   if (iTrack < 0) {
     return;
   }
-  pair<Int_t, Int_t> a(iTrack, iDet);
-  if (mPointsMap.find(a) == mPointsMap.end()) {
-    mPointsMap[a] = 1;
-  } else {
-    mPointsMap[a]++;
-  }
+  auto part=GetParticle(iTrack);
+  auto encoding = Stack::getHitEncoding(*part);
+  MCTrack::setHit(iDet, encoding);
+  Stack::setHitEncoding(*part, encoding);
 }
 
 Int_t Stack::GetCurrentParentTrackNumber() const
@@ -409,25 +387,13 @@ Int_t Stack::GetCurrentParentTrackNumber() const
   }
 }
 
-TParticle *Stack::GetParticle(Int_t trackID) const
+bool Stack::selectTracks()
 {
-  if (trackID < 0 || trackID >= mNumberOfEntriesInParticles) {
-    if (mLogger) {
-      mLogger->Debug(MESSAGE_ORIGIN, "Stack: Particle index %i out of range.", trackID);
-    }
-    Fatal("Stack::GetParticle", "Index out of range");
-  }
-  return (TParticle *) mParticles->At(trackID);
-}
-
-void Stack::SelectTracks()
-{
-
+  bool tracksdiscarded = false;
+  
   // Clear storage map
-  mStoreMap.clear();
-
-  // LOG(INFO) << "mPointsMap.size(): " << mPointsMap.size() << std::endl;
-
+  TLorentzVector p;
+  
   // Check particles in the fParticle array
   for (Int_t i = 0; i < mNumberOfEntriesInParticles; i++) {
 
@@ -436,53 +402,55 @@ void Stack::SelectTracks()
 
     // Get track parameters
     Int_t iMother = thisPart->GetMother(0);
-    TLorentzVector p;
+
     thisPart->Momentum(p);
     Double_t energy = p.E();
     Double_t mass = p.M();
-    //    Double_t mass   = thisPart->GetMass();
     Double_t eKin = energy - mass;
 
-    // Calculate number of points
-    Int_t nPoints = 0;
-    for (Int_t iDet = o2::Base::DetID::First; iDet < o2::Base::DetID::nDetectors; iDet++) {
-      pair<Int_t, Int_t> a(i, iDet);
-      if (mPointsMap.find(a) != mPointsMap.end()) {
-        nPoints += mPointsMap[a];
-      }
-    }
-
+    // Calculate number of hits created by this track
+    // Note: we only distinguish between no hit and more than 0 hits
+    int nHits = Stack::getHitEncoding(*thisPart);
+    nHits = (nHits!=0) ? 1 : 0;
+    
     // Check for cuts (store primaries in any case)
     if (iMother < 0) {
       store = kTRUE;
     } else {
       if (!mStoreSecondaries) {
         store = kFALSE;
+        tracksdiscarded = true;
       }
-      if (nPoints < mMinPoints) {
+      if (nHits < mMinHits) {
         store = kFALSE;
+        tracksdiscarded = true;
       }
       if (eKin < mEnergyCut) {
         store = kFALSE;
+        tracksdiscarded = true;
       }
     }
 
     // Set storage flag
-    mStoreMap[i] = store;
+    Stack::setStore(*thisPart, store);
   }
 
   // If flag is set, flag recursively mothers of selected tracks
   if (mStoreMothers) {
     for (Int_t i = 0; i < mNumberOfEntriesInParticles; i++) {
-      if (mStoreMap[i]) {
-        Int_t iMother = GetParticle(i)->GetMother(0);
+      auto particle = GetParticle(i);
+      if (Stack::isStore(*particle)) {
+        Int_t iMother = particle->GetMother(0);
         while (iMother >= 0) {
-          mStoreMap[iMother] = kTRUE;
-          iMother = GetParticle(iMother)->GetMother(0);
+          auto mother = GetParticle(iMother);
+     	  Stack::setStore(*mother, true);
+	      iMother = mother->GetMother(0);
         }
       }
     }
   }
+
+  return !tracksdiscarded;
 }
 
 FairGenericStack *Stack::CloneStack() const
