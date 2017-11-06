@@ -29,6 +29,7 @@
 #pragma link C++ class o2::TPC::ContainerFactory;
 #pragma link C++ class o2::TPC::CRU;
 #pragma link C++ class o2::TPC::Digit+;
+#pragma link C++ class std::vector<o2::TPC::Digit>+;
 #pragma link C++ class o2::TPC::DigitPos;
 #pragma link C++ class o2::TPC::FECInfo;
 #pragma link C++ class o2::TPC::Mapper;

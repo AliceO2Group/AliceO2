@@ -25,6 +25,7 @@
 #pragma link C++ class o2::TPC::ClustererTask+;
 #pragma link C++ class o2::TPC::Detector+;
 #pragma link C++ class o2::TPC::DigitMCMetaData+;
+#pragma link C++ class std::vector<o2::TPC::DigitMCMetaData>+;
 #pragma link C++ class o2::TPC::DigitContainer+;
 #pragma link C++ class o2::TPC::DigitCRU+;
 #pragma link C++ class o2::TPC::Digitizer+;
@@ -46,6 +47,8 @@
 #pragma link C++ class o2::TPC::SAMPAProcessing+;
 
 #pragma link C++ class std::vector<o2::TPC::Cluster>+;
+#pragma link C++ class std::vector<o2::TPC::BoxCluster>+;
+#pragma link C++ class std::vector<o2::TPC::HwCluster>+;
 #pragma link C++ class std::vector<o2::TPC::HitGroup>+;
 
 #endif
