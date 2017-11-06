@@ -30,8 +30,7 @@ using HitType = o2::BasicXYZEHit<float>;
 class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
-
-  Detector(Bool_t active);
+  Detector(Bool_t active=true);
 
   ~Detector() override = default;
 
