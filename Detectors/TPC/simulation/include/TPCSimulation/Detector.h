@@ -55,7 +55,7 @@ class Detector: public o2::Base::DetImpl<Detector> {
     /** Get the produced hits */
     std::vector<HitGroup>* getHits(Int_t iColl) const
     {
-      if (iColl > 0 && iColl < Sector::MAXSECTOR) {
+      if (iColl >= 0 && iColl < Sector::MAXSECTOR) {
         return mHitsPerSectorCollection[iColl];
       }
       return nullptr;
