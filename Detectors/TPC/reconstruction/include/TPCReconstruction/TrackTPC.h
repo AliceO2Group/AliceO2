@@ -14,7 +14,7 @@
 #include "DetectorsBase/Track.h"
 
 #include "TPCBase/Defs.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 
 
 namespace o2 {

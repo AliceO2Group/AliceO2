@@ -15,14 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::TPC::Baseline+;
-#pragma link C++ class o2::TPC::BoxCluster+;
-#pragma link C++ class o2::TPC::BoxClusterer+;
 #pragma link C++ class o2::TPC::CommonModeContainer+;
-#pragma link C++ class o2::TPC::ClusterTimeStamp+;
-#pragma link C++ class o2::TPC::Cluster+;
-#pragma link C++ class o2::TPC::Clusterer+;
-#pragma link C++ class o2::TPC::ClusterContainer+;
-#pragma link C++ class o2::TPC::ClustererTask+;
 #pragma link C++ class o2::TPC::Detector+;
 #pragma link C++ class o2::TPC::DigitMCMetaData+;
 #pragma link C++ class o2::TPC::DigitContainer+;
@@ -34,10 +27,6 @@
 #pragma link C++ class o2::TPC::DigitTime+;
 #pragma link C++ class o2::TPC::ElectronTransport+;
 #pragma link C++ class o2::TPC::GEMAmplification+;
-#pragma link C++ class o2::TPC::HwCluster+;
-#pragma link C++ class o2::TPC::HwClusterer+;
-#pragma link C++ class o2::TPC::HwClusterFinder+;
-#pragma link C++ class o2::TPC::HwFixedPoint+;
 #pragma link C++ class o2::TPC::PadResponse+;
 #pragma link C++ class o2::TPC::Point+;
 #pragma link C++ class o2::TPC::ElementalHit+;

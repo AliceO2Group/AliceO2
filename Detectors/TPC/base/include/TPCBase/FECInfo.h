@@ -27,11 +27,11 @@ class FECInfo {
     : mIndex(index), /*mConnector(connector), mChannel(channel),*/ mSampaChip(sampaChip), mSampaChannel(sampaChannel)
     {}
 
-    const unsigned char getIndex()        const { return mIndex;       }
+    unsigned char getIndex()        const { return mIndex;       }
     //const unsigned char getConnector()    const { return mConnector;   } // -> can be calculated from mSampaChannel and mSampaChip
     //const unsigned char getChannel()      const { return mChannel;     } // -> can be calculated from mSampaChannel and mSampaChip
-    const unsigned char getSampaChip()    const { return mSampaChip;   }
-    const unsigned char getSampaChannel() const { return mSampaChannel;}
+    unsigned char getSampaChip()    const { return mSampaChip;   }
+    unsigned char getSampaChannel() const { return mSampaChannel;}
 
     /// equal operator
     bool operator==(const FECInfo &other) const {

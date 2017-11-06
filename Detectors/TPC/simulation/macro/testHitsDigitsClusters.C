@@ -29,7 +29,8 @@
 #include "TPCSimulation/Digitizer.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
+#include "TPCReconstruction/HwCluster.h"
 #include "TPCBase/Mapper.h"
 #endif
 
@@ -38,87 +39,100 @@ using namespace o2::TPC;
 void drawSectorBoundaries();
 
 void testHitsDigitsClusters(int iEv=0,
-               std::string simFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/AliceO2_TGeant3.tpc.mc_100_event.root",
-               std::string digiFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/AliceO2_TGeant3.tpc.digi_100_event.root",
-               std::string clusFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/AliceO2_TGeant3.tpc.clusters_100_event.root",
-               std::string trackFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/tracks.root")
+               std::string simFile="",
+               std::string digiFile="",
+               std::string clusFile="",
+               std::string trackFile="")
 {
   gStyle->SetMarkerStyle(20);
   gStyle->SetMarkerSize(0.5);
   gStyle->SetTitleSize(24);
 
-  // process the hits
+  // ===| process the hits |====================================================
   TFile *hitFile   = TFile::Open(simFile.data());
-  TTree *hitTree = (TTree *)gDirectory->Get("cbmsim");
+  TTree *hitTree = (TTree *)gDirectory->Get("o2sim");
 
-  TClonesArray pointArr("Point");
-  TClonesArray *points(&pointArr);
-  hitTree->SetBranchAddress("TPCPoint",&points);
+  std::vector<o2::TPC::HitGroup> *sectorHitsArray[Sector::MAXSECTOR];
+  for (int s=0;s<Sector::MAXSECTOR;++s){
+    sectorHitsArray[s] = nullptr;
+    std::stringstream sectornamestr;
+    sectornamestr << "TPCHitsSector" << s;
+    hitTree->SetBranchAddress(sectornamestr.str().c_str(), &sectorHitsArray[s]);
+  }
 
   TGraph *grHitsA = new TGraph();
-  grHitsA->SetTitle("A side ; x [cm]; y [cm]");
+  grHitsA->SetTitle(Form("Hits - Cluster comparison A-Side Event %d;x (cm);y (cm)", iEv));
   grHitsA->SetMarkerColor(kBlue+2);
+
   TGraph *grHitsC = new TGraph();
-  grHitsC->SetTitle("C side ; x [cm]; y [cm]");
+  grHitsC->SetTitle(Form("Hits - Cluster comparison C-Side Event %d;x (cm);y (cm)", iEv));
   grHitsC->SetMarkerColor(kBlue+2);
-  TGraph *grHitsAxz = new TGraph();
-  grHitsAxz->SetMarkerColor(kBlue+2);
-  grHitsAxz->SetTitle("; x [cm]; z [cm]");
-  TGraph *grHitsCxz = new TGraph();
-  grHitsCxz->SetMarkerColor(kBlue+2);
-  grHitsCxz->SetTitle("; x [cm]; z [cm]");
+
+  TGraph *grHitsAzr = new TGraph();
+  grHitsAzr->SetTitle(Form("Hits - Cluster comparison A-Side Event %d;z (cm);r (cm)", iEv));
+  grHitsAzr->SetMarkerColor(kBlue+2);
+
+  TGraph *grHitsCzr = new TGraph();
+  grHitsCzr->SetTitle(Form("Hits - Cluster comparison C-Side Event %d;z (cm);r (cm)", iEv));
+  grHitsCzr->SetMarkerColor(kBlue+2);
 
 
   int hitCounterA = 0;
   int hitCounterC = 0;
   hitTree->GetEntry(iEv);
-  for(auto pointObject : *points) {
-    Point *inputpoint = static_cast<Point *>(pointObject);
-    // A side
-    if(inputpoint->GetZ() > 0 ) {
-      grHitsA->SetPoint(hitCounterA, inputpoint->GetX(), inputpoint->GetY());
-      grHitsAxz->SetPoint(hitCounterA++, inputpoint->GetX(), inputpoint->GetZ());
-    }
-    // C side
-    if(inputpoint->GetZ() < 0 ) {
-      grHitsC->SetPoint(hitCounterC, inputpoint->GetX(), inputpoint->GetY());
-      grHitsCxz->SetPoint(hitCounterC++, inputpoint->GetX(), inputpoint->GetZ());
+  for (auto hits : sectorHitsArray) { // loop over sectors
+    for(auto& inputgroup : *hits) {
+      const int MCTrackID = inputgroup.GetTrackID();
+      for(size_t hitindex = 0; hitindex < inputgroup.getSize(); ++hitindex){
+        const auto& eh = inputgroup.getHit(hitindex);
+
+        // A side
+        if(eh.GetZ() > 0 ) {
+          grHitsA->SetPoint(hitCounterA, eh.GetX(), eh.GetY());
+          grHitsAzr->SetPoint(hitCounterA++, eh.GetZ(), TMath::Sqrt(eh.GetX()*eh.GetX() + eh.GetY()*eh.GetY()));
+        }
+        // C side
+        if(eh.GetZ() < 0 ) {
+          grHitsC->SetPoint(hitCounterC, eh.GetX(), eh.GetY());
+          grHitsCzr->SetPoint(hitCounterC++, eh.GetZ(), TMath::Sqrt(eh.GetX()*eh.GetX() + eh.GetY()*eh.GetY()));
+        }
+      }
     }
   }
 
-  // process the digits
+  // ===| process the digits |==================================================
   TFile *digitFile = TFile::Open(digiFile.data());
-  TTree *digitTree = (TTree *)gDirectory->Get("cbmsim");
+  TTree *digitTree = (TTree *)gDirectory->Get("o2sim");
 
-  TClonesArray digitArr("Digit");
-  TClonesArray *digits(&digitArr);
-  digitTree->SetBranchAddress("TPCDigit",&digits);
+  std::vector<o2::TPC::Digit> *digitsArray = nullptr;
+  digitTree->SetBranchAddress("TPCDigit", &digitsArray);
 
   const Mapper& mapper = Mapper::instance();
 
   TGraph *grDigitsA = new TGraph();
   grDigitsA->SetMarkerColor(kGreen+2);
+
   TGraph *grDigitsC = new TGraph();
   grDigitsC->SetMarkerColor(kGreen+2);
-  TGraph *grDigitsAxz = new TGraph();
-  grDigitsAxz->SetMarkerColor(kGreen+2);
-  TGraph *grDigitsCxz = new TGraph();
-  grDigitsCxz->SetMarkerColor(kGreen+2);
+
+  TGraph *grDigitsAzr = new TGraph();
+  grDigitsAzr->SetMarkerColor(kGreen+2);
+
+  TGraph *grDigitsCzr = new TGraph();
+  grDigitsCzr->SetMarkerColor(kGreen+2);
 
   int digiCounterA = 0;
   int digiCounterC = 0;
   digitTree->GetEntry(iEv);
-  for(auto digitObject : *digits) {
-    Digit *inputdigit = static_cast<Digit *>(digitObject);
-
-    const CRU cru(inputdigit->getCRU());
+  for(auto& digit : *digitsArray) {
+    const CRU cru(digit.getCRU());
 
     const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
-    const int rowInSector       = inputdigit->getRow() + region.getGlobalRowOffset();
-    const GlobalPadNumber pad   = mapper.globalPadNumber(PadPos(rowInSector, inputdigit->getPad()));
+    const int rowInSector       = digit.getRow() + region.getGlobalRowOffset();
+    const GlobalPadNumber pad   = mapper.globalPadNumber(PadPos(rowInSector, digit.getPad()));
     const PadCentre& padCentre  = mapper.padCentre(pad);
     const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
-          float zPosition       = Digitizer::getZfromTimeBin(inputdigit->getTimeStamp(), cru.side());
+          float zPosition       = Digitizer::getZfromTimeBin(digit.getTimeStamp(), cru.side());
 
     LocalPosition3D posLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
@@ -129,86 +143,98 @@ void testHitsDigitsClusters(int iEv=0,
 
     if(cru.side() == Side::A) {
       grDigitsA->SetPoint(digiCounterA, digiX, digiY);
-      grDigitsAxz->SetPoint(digiCounterA++, digiX, digiZ);
+      grDigitsAzr->SetPoint(digiCounterA++, digiZ, TMath::Sqrt(digiX*digiX + digiY*digiY));
     }
     if(cru.side() == Side::C) {
       grDigitsC->SetPoint(digiCounterC, digiX, digiY);
-      grDigitsCxz->SetPoint(digiCounterC++, digiX, digiZ);
+      grDigitsCzr->SetPoint(digiCounterC++, digiZ, TMath::Sqrt(digiX*digiX + digiY*digiY));
+      grDigitsCzr->SetPoint(digiCounterC++, digiX, digiZ);
     }
   }
 
-  // process the clusters
+  // ===| process the clusters |================================================
   TFile *clusterFile = TFile::Open(clusFile.data());
-  TTree *clusterTree = (TTree *)gDirectory->Get("cbmsim");
+  TTree *clusterTree = (TTree *)gDirectory->Get("o2sim");
 
-  TClonesArray clusterArr("Cluster");
-  TClonesArray *clusters(&clusterArr);
-  clusterTree->SetBranchAddress("TPCClusterHW",&clusters);
+  std::vector<o2::TPC::HwCluster>  *clustersArray = nullptr;
+  clusterTree->SetBranchAddress("TPCClusterHW", &clustersArray);
 
   TGraph *grClustersA = new TGraph();
   grClustersA->SetMarkerColor(kRed+2);
   grClustersA->SetMarkerSize(1);
+
   TGraph *grClustersC = new TGraph();
   grClustersC->SetMarkerColor(kRed+2);
   grClustersC->SetMarkerSize(1);
-  TGraph *grClustersAxz = new TGraph();
-  grClustersAxz->SetMarkerColor(kRed+2);
-  grClustersAxz->SetMarkerSize(1);
-  TGraph *grClustersCxz = new TGraph();
-  grClustersCxz->SetMarkerColor(kRed+2);
-  grClustersCxz->SetMarkerSize(1);
+
+  TGraph *grClustersAzr = new TGraph();
+  grClustersAzr->SetMarkerColor(kRed+2);
+  grClustersAzr->SetMarkerSize(1);
+
+  TGraph *grClustersCzr = new TGraph();
+  grClustersCzr->SetMarkerColor(kRed+2);
+  grClustersCzr->SetMarkerSize(1);
 
   int clusCounterA = 0;
   int clusCounterC = 0;
   clusterTree->GetEntry(iEv);
-  for(auto clusterObject : *clusters) {
-    Cluster *inputcluster = static_cast<Cluster *>(clusterObject);
-    const CRU cru(inputcluster->getCRU());
+  for(auto& cluster: *clustersArray) {
+    const CRU cru(cluster.getCRU());
 
     const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
-    const int rowInSector       = inputcluster->getRow() + region.getGlobalRowOffset();
-    const GlobalPadNumber pad   = mapper.globalPadNumber(PadPos(rowInSector, inputcluster->getPadMean()));
+    const int rowInSector       = cluster.getRow() + region.getGlobalRowOffset();
+    const GlobalPadNumber pad   = mapper.globalPadNumber(PadPos(rowInSector, cluster.getPadMean()));
     const PadCentre& padCentre  = mapper.padCentre(pad);
     const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
-          float zPosition       = Digitizer::getZfromTimeBin(inputcluster->getTimeMean(), cru.side());
+          float zPosition       = Digitizer::getZfromTimeBin(cluster.getTimeMean(), cru.side());
 
     LocalPosition3D posLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
 
-    const float digiX = posGlob.X();
-    const float digiY = posGlob.Y();
-    const float digiZ = zPosition;
+    const float clusterX = posGlob.X();
+    const float clusterY = posGlob.Y();
+    const float clusterZ = zPosition;
 
     if(cru.side() == Side::A) {
-      grClustersA->SetPoint(clusCounterA, digiX, digiY);
-      grClustersAxz->SetPoint(clusCounterA++, digiX, digiZ);
+      grClustersA->SetPoint(clusCounterA, clusterX, clusterY);
+      grClustersAzr->SetPoint(clusCounterA++, clusterZ, TMath::Sqrt(clusterX*clusterX + clusterY*clusterY));
     }
     if(cru.side() == Side::C) {
-      grClustersC->SetPoint(clusCounterC, digiX, digiY);
-      grClustersCxz->SetPoint(clusCounterC++, digiX, digiZ);
+      grClustersC->SetPoint(clusCounterC, clusterX, clusterY);
+      grClustersCzr->SetPoint(clusCounterC++, clusterZ, TMath::Sqrt(clusterX*clusterX + clusterY*clusterY));
     }
   }
 
-  // Tracks
-  TFile *tracks = TFile::Open(trackFile.data());
-  TTree *trackTree = (TTree *)gDirectory->Get("events");
+  // ===| process tracks |======================================================
+  auto tracks = TFile::Open(trackFile.data());
+  auto trackTree = (TTree *)gDirectory->Get("events");
 
+  // cluster graphs
   TGraph *grClustersTrackA = new TGraph();
   grClustersTrackA->SetMarkerColor(kOrange+2);
   grClustersTrackA->SetMarkerSize(1);
+
   TGraph *grClustersTrackC = new TGraph();
   grClustersTrackC->SetMarkerColor(kOrange+2);
   grClustersTrackC->SetMarkerSize(1);
-  TGraph *grClustersTrackAxz = new TGraph();
-  grClustersTrackAxz->SetMarkerColor(kOrange+2);
-  grClustersTrackAxz->SetMarkerSize(1);
-  TGraph *grClustersTrackCxz = new TGraph();
-  grClustersTrackCxz->SetMarkerColor(kOrange+2);
-  grClustersTrackCxz->SetMarkerSize(1);
 
+  TGraph *grClustersTrackAzr = new TGraph();
+  grClustersTrackAzr->SetMarkerColor(kOrange+2);
+  grClustersTrackAzr->SetMarkerSize(1);
+
+  TGraph *grClustersTrackCzr = new TGraph();
+  grClustersTrackCzr->SetMarkerColor(kOrange+2);
+  grClustersTrackCzr->SetMarkerSize(1);
+
+  // Track graphs
   TGraph *grTrackA = new TGraph();
+  grTrackA->SetTitle(Form("Track - Cluster comparison A-Side Event %d;x (cm);y (cm)", iEv));
+
   TGraph *grTrackC = new TGraph();
-  TGraph *grTrackxz = new TGraph();
+  grTrackC->SetTitle(Form("Track - Cluster comparison C-Side Event %d;x (cm);y (cm)", iEv));
+
+  TGraph *grTrackzr = new TGraph();
+  grTrackzr->SetTitle(Form("Track - Cluster comparison Event %d;z (cm);x (cm)", iEv));
 
   TH1F *hResY = new TH1F("hResY", "; Residual y [cm]; Entries", 101, -2, 2);
   TH1F *hResZ = new TH1F("hResZ", "; Residual z [cm]; Entries", 101, -2, 2);
@@ -260,20 +286,20 @@ void testHitsDigitsClusters(int iEv=0,
 
       if(cru.side() == Side::A) {
         grClustersTrackA->SetPoint(clusCounterTrackA, digiX, digiY);
-        grClustersTrackAxz->SetPoint(clusCounterTrackA++, digiX, digiZ);
+        grClustersTrackAzr->SetPoint(clusCounterTrackA++, digiZ, TMath::Sqrt(digiX*digiX + digiY*digiY));
         grTrackA->SetPoint(trackCounterA++, trackGlob.X(), trackGlob.Y());
       }
       if(cru.side() == Side::C) {
         grClustersTrackC->SetPoint(clusCounterTrackC, digiX, digiY);
-        grClustersTrackCxz->SetPoint(clusCounterTrackC++, digiX, digiZ);
+        grClustersTrackCzr->SetPoint(clusCounterTrackC++, digiZ, TMath::Sqrt(digiX*digiX + digiY*digiY));
         grTrackC->SetPoint(trackCounterC++, trackGlob.X(), trackGlob.Y());
       }
-      grTrackxz->SetPoint(trackCounterXZ++, trackGlob.X(), trackGlob.Z());
+      grTrackzr->SetPoint(trackCounterXZ++, trackGlob.Z(), TMath::Sqrt(trackGlob.X()*trackGlob.X() + trackGlob.Y()*trackGlob.Y()));
     }
   }
 
-  // Drawing
-  TCanvas *CDigits = new TCanvas("CDigits", "Compare Digits - Hits on A & C side", 1200, 600);
+  // ===| Drawing |=============================================================
+  auto CDigits = new TCanvas("CDigits", "Compare Digits - Hits on A & C side", 1200, 600);
   CDigits->Divide(2,1);
   CDigits->cd(1);
   grHitsA->Draw("ap");
@@ -283,6 +309,7 @@ void testHitsDigitsClusters(int iEv=0,
   grDigitsA->Draw("p");
   grClustersA->Draw("p");
   grClustersTrackA->Draw("p");
+
   CDigits->cd(2);
   grHitsC->Draw("ap");
   grHitsC->GetXaxis()->SetLimits(-250, 250);
@@ -292,23 +319,23 @@ void testHitsDigitsClusters(int iEv=0,
   grClustersC->Draw("p");
   grClustersTrackC->Draw("p");
 
-  TCanvas *CDigitsXZ = new TCanvas("CDigitsXZ", "Compare Digits - Hits on A & C side", 600, 600);
-  grHitsAxz->Draw("ap");
-  grHitsAxz->GetXaxis()->SetLimits(-250, 250);
-  grHitsAxz->SetMinimum(-250);
-  grHitsAxz->SetMaximum(250);
-  grDigitsAxz->Draw("p");
-  grClustersAxz->Draw("p");
-  grClustersTrackAxz->Draw("p");
-  grHitsCxz->Draw("p");
-  grHitsCxz->GetXaxis()->SetLimits(-250, 250);
-  grHitsCxz->SetMinimum(-250);
-  grHitsCxz->SetMaximum(250);
-  grDigitsCxz->Draw("p");
-  grClustersCxz->Draw("p");
-  grClustersTrackCxz->Draw("p");
+  auto CDigitsXZ = new TCanvas("CDigitsXZ", "Compare Digits - Hits on A & C side", 600, 600);
+  grHitsAzr->Draw("ap");
+  grHitsAzr->GetXaxis()->SetLimits(-250, 250);
+  grHitsAzr->SetMinimum(-250);
+  grHitsAzr->SetMaximum(250);
+  grDigitsAzr->Draw("p");
+  grClustersAzr->Draw("p");
+  grClustersTrackAzr->Draw("p");
+  grHitsCzr->Draw("p");
+  grHitsCzr->GetXaxis()->SetLimits(-250, 250);
+  grHitsCzr->SetMinimum(-250);
+  grHitsCzr->SetMaximum(250);
+  grDigitsCzr->Draw("p");
+  grClustersCzr->Draw("p");
+  grClustersTrackCzr->Draw("p");
 
-  TCanvas *CTracks = new TCanvas("CTracks", "Compare Tracks - Cluster on A & C side", 1200, 600);
+  auto CTracks = new TCanvas("CTracks", "Compare Tracks - Cluster on A & C side", 1200, 600);
   CTracks->Divide(2,1);
   CTracks->cd(1);
   grClustersTrackA->Draw("ap");
@@ -325,13 +352,13 @@ void testHitsDigitsClusters(int iEv=0,
   grTrackC->Draw("p");
   drawSectorBoundaries();
 
-  TCanvas *CTracksXZ = new TCanvas("CTracksXZ", "Compare Tracks - Clusters on A & C side", 600, 600);
-  grClustersAxz->Draw("ap");
-  grClustersAxz->GetXaxis()->SetLimits(-250, 250);
-  grClustersAxz->SetMinimum(-250);
-  grClustersAxz->SetMaximum(250);
-  grClustersCxz->Draw("p");
-  grTrackxz->Draw("p");
+  auto CTracksXZ = new TCanvas("CTracksXZ", "Compare Tracks - Clusters on A & C side", 600, 600);
+  grClustersAzr->Draw("ap");
+  grClustersAzr->GetXaxis()->SetLimits(-250, 250);
+  grClustersAzr->SetMinimum(-250);
+  grClustersAzr->SetMaximum(250);
+  grClustersCzr->Draw("p");
+  grTrackzr->Draw("p");
 }
 
 void drawSectorBoundaries()

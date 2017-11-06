@@ -17,7 +17,7 @@
 #include <boost/serialization/base_object.hpp>  // for base_object
 #endif
 
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 #include "FairTimeStamp.h"                      // for FairTimeStamp
 #include "Rtypes.h"                             // for Double_t, ULong_t, etc
 

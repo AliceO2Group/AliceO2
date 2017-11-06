@@ -45,12 +45,12 @@ public:
   const FECInfo&    fecInfo   (GlobalPadNumber padNumber) const { return mMapGlobalPadFECInfo [padNumber%mPadsInSector]; }
 
   //const GlobalPadNumber globalPadNumber(const PadPos& padPosition) const { return mMapPadPosGlobalPad.find(padPosition)->second; }
-  const GlobalPadNumber globalPadNumber(const PadPos& globalPadPosition) const { return mMapPadOffsetPerRow[globalPadPosition.getRow()] + globalPadPosition.getPad(); }
+  GlobalPadNumber globalPadNumber(const PadPos& globalPadPosition) const { return mMapPadOffsetPerRow[globalPadPosition.getRow()] + globalPadPosition.getPad(); }
 
   /// return the global pad number in ROC for PadROCPos (ROC, row, pad)
   /// \return global pad number of PadROCPos (ROC, row, pad)
   /// \todo add check for row and pad limits
-  const GlobalPadNumber getPadNumberInROC(const PadROCPos& rocPadPosition) const
+  GlobalPadNumber getPadNumberInROC(const PadROCPos& rocPadPosition) const
   { 
     const size_t padOffset = (rocPadPosition.getROCType() == RocType::IROC)? 0 : mPadsInIROC;
     const size_t rowOffset = (rocPadPosition.getROCType() == RocType::IROC)? 0 : mNumberOfPadRowsIROC;
@@ -61,7 +61,7 @@ public:
   /// return the global pad number in a partition for partition, row, pad
   /// \return global pad number in a partition for partition, row, pad
   /// \todo add check for row and pad limits
-  const GlobalPadNumber getPadNumberInPartition(int partition, int row, int pad) const
+  GlobalPadNumber getPadNumberInPartition(int partition, int row, int pad) const
   { 
     const auto& info = mMapPartitionInfo[partition % mMapPartitionInfo.size()];
     const size_t rowOffset = info.getGlobalRowOffset();
@@ -74,7 +74,7 @@ public:
   /// return the global pad number in a region for region, row, pad
   /// \return global pad number in a region for region, row, pad
   /// \todo add check for row and pad limits
-  const GlobalPadNumber getPadNumberInRegion(CRU cru, int row, int pad) const
+  GlobalPadNumber getPadNumberInRegion(CRU cru, int row, int pad) const
   { 
     const auto& info = mMapPadRegionInfo[cru.region() % mMapPadRegionInfo.size()];
     const size_t rowOffset = info.getGlobalRowOffset();
@@ -89,7 +89,7 @@ public:
   /// \param padSubsetNumber number of the pad subset (e.g. 10 for ROC 10)
   /// \param row row
   /// \param pad pad
-  const GlobalPadNumber getPadNumber(const PadSubset padSubset, const size_t padSubsetNumber,
+  GlobalPadNumber getPadNumber(const PadSubset padSubset, const size_t padSubsetNumber,
                                      const int row, const int pad) const
   {
     switch (padSubset) {
@@ -110,16 +110,16 @@ public:
   }
 
 
-  const GlobalPadNumber globalPadNumber(const FECInfo& fec) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fec.getIndex(), fec.getSampaChip(), fec.getSampaChannel())]; }
-  const GlobalPadNumber globalPadNumber(const int fecInSector, const int sampaOnFEC, const int channelOnSAMPA) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fecInSector, sampaOnFEC, channelOnSAMPA)]; }
+  GlobalPadNumber globalPadNumber(const FECInfo& fec) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fec.getIndex(), fec.getSampaChip(), fec.getSampaChannel())]; }
+  GlobalPadNumber globalPadNumber(const int fecInSector, const int sampaOnFEC, const int channelOnSAMPA) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fecInSector, sampaOnFEC, channelOnSAMPA)]; }
 
-  const GlobalPosition2D getPadCentre(const PadSecPos& padSec) const
+  GlobalPosition2D getPadCentre(const PadSecPos& padSec) const
   { 
     const PadCentre& padcent = getPadCentre(padSec.getPadPos());
     return LocalToGlobal(padcent, padSec.getSector());
   }
 
-  const GlobalPosition2D getPadCentre(const PadROCPos& padRoc) const
+  GlobalPosition2D getPadCentre(const PadROCPos& padRoc) const
   {
     const int row = (padRoc.getROCType() == RocType::IROC) ? padRoc.getRow() : padRoc.getRow()+mNumberOfPadRowsIROC;
     const PadSecPos pos(padRoc.getSector(), PadPos(row, padRoc.getPad()));
@@ -202,11 +202,11 @@ public:
   }
 
   // ===| pad number and pad row mappings |=====================================
-  const int getNumberOfRows()                       const { return mNumberOfPadRowsIROC + mNumberOfPadRowsOROC; }
-  const int getNumberOfRowsROC(ROC roc)             const { return (roc.rocType() == RocType::IROC) ? mNumberOfPadRowsIROC : mNumberOfPadRowsOROC; }
-  const int getNumberOfRowsRegion(int region)       const { return mMapPadRegionInfo[region % getNumberOfPadRegions()].getNumberOfPadRows(); }
-  const int getNumberOfRowsPartition(CRU cru)       const { return mMapPartitionInfo[cru % getNumberOfPartitions()].getNumberOfPadRows(); }
-  const int getNumberOfPadRows(PadSubset padSubset, int position) const {
+  int getNumberOfRows()                       const { return mNumberOfPadRowsIROC + mNumberOfPadRowsOROC; }
+  int getNumberOfRowsROC(ROC roc)             const { return (roc.rocType() == RocType::IROC) ? mNumberOfPadRowsIROC : mNumberOfPadRowsOROC; }
+  int getNumberOfRowsRegion(int region)       const { return mMapPadRegionInfo[region % getNumberOfPadRegions()].getNumberOfPadRows(); }
+  int getNumberOfRowsPartition(CRU cru)       const { return mMapPartitionInfo[cru % getNumberOfPartitions()].getNumberOfPadRows(); }
+  int getNumberOfPadRows(PadSubset padSubset, int position) const {
     switch (padSubset) {
       case PadSubset::ROC: {
         return getNumberOfRowsROC(position);
@@ -223,11 +223,11 @@ public:
     }
   }
 
-  const int getNumberOfPadsInRowSector(int row)                   const { return mMapNumberOfPadsPerRow[row]; }
-  const int getNumberOfPadsInRowROC(int roc, int row)             const { return mMapNumberOfPadsPerRow[row + (roc%72>=getNumberOfIROCs())*mNumberOfPadRowsIROC]; }
-  const int getNumberOfPadsInRowRegion(int region, int row)       const { return mMapNumberOfPadsPerRow[row + mMapPadRegionInfo[region    % getNumberOfPadRegions()].getGlobalRowOffset()]; }
-  const int getNumberOfPadsInRowPartition(int partition, int row) const { return mMapNumberOfPadsPerRow[row + mMapPartitionInfo[partition % getNumberOfPartitions()].getGlobalRowOffset()]; }
-  const int getNumberOfPadsInRow(PadSubset padSubset, int position, int row) const {
+  int getNumberOfPadsInRowSector(int row)                   const { return mMapNumberOfPadsPerRow[row]; }
+  int getNumberOfPadsInRowROC(int roc, int row)             const { return mMapNumberOfPadsPerRow[row + (roc%72>=getNumberOfIROCs())*mNumberOfPadRowsIROC]; }
+  int getNumberOfPadsInRowRegion(int region, int row)       const { return mMapNumberOfPadsPerRow[row + mMapPadRegionInfo[region    % getNumberOfPadRegions()].getGlobalRowOffset()]; }
+  int getNumberOfPadsInRowPartition(int partition, int row) const { return mMapNumberOfPadsPerRow[row + mMapPartitionInfo[partition % getNumberOfPartitions()].getGlobalRowOffset()]; }
+  int getNumberOfPadsInRow(PadSubset padSubset, int position, int row) const {
     switch (padSubset) {
       case PadSubset::ROC: {
         return getNumberOfPadsInRowROC(position, row);
@@ -255,11 +255,11 @@ public:
   // ===| Partition and Region mappings |=======================================
   const PadRegionInfo& getPadRegionInfo(const unsigned char region) const { return mMapPadRegionInfo[region]; }
   const std::array<PadRegionInfo,10>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
-  const int getNumberOfPadRegions() const { return int(mMapPadRegionInfo.size()); }
+  int getNumberOfPadRegions() const { return int(mMapPadRegionInfo.size()); }
 
   const PartitionInfo& getPartitionInfo(const unsigned char partition) const { return mMapPartitionInfo[partition]; }
   const std::array<PartitionInfo,5>& getMapPartitionInfo() const { return mMapPartitionInfo; }
-  const int getNumberOfPartitions() const { return int(mMapPartitionInfo.size()); }
+  int getNumberOfPartitions() const { return int(mMapPartitionInfo.size()); }
 
   const DigitPos findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec) const;
   const DigitPos findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const;
@@ -267,14 +267,14 @@ public:
 
   static constexpr unsigned short getNumberOfIROCs() { return 36; }
   static constexpr unsigned short getNumberOfOROCs() { return 36; }
-  static const unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
-  static const unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
-  static const unsigned short getPadsInOROC2 () { return mPadsInOROC2 ; }
-  static const unsigned short getPadsInOROC3 () { return mPadsInOROC3 ; }
-  static const unsigned short getPadsInOROC  () { return mPadsInOROC  ; }
-  static const unsigned short getPadsInSector() { return mPadsInSector; }
+  static unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
+  static unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
+  static unsigned short getPadsInOROC2 () { return mPadsInOROC2 ; }
+  static unsigned short getPadsInOROC3 () { return mPadsInOROC3 ; }
+  static unsigned short getPadsInOROC  () { return mPadsInOROC  ; }
+  static unsigned short getPadsInSector() { return mPadsInSector; }
 
-  const unsigned short getNumberOfPads(const GEMstack gemStack) const {
+  unsigned short getNumberOfPads(const GEMstack gemStack) const {
     switch (gemStack) {
     case IROCgem: {
       return getPadsInIROC();

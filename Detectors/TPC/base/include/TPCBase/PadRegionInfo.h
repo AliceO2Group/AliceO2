@@ -61,44 +61,85 @@ class PadRegionInfo
                   const unsigned char globalRowOffset
                  );
 
-    const unsigned char getRegion() const { return mRegion; }
+    /// Return the pad region
+    /// \return pad region
+    unsigned char getRegion() const { return mRegion; }
 
-    const unsigned char getPartition() const { return mPartition; }
+    /// Return the partition
+    /// \return partition
+    unsigned char getPartition() const { return mPartition; }
 
-    const unsigned char getNumberOfPadRows() const { return mNumberOfPadRows; }
+    /// Return the number of pad rows in this region
+    /// \return number of pad rows in this region
+    unsigned char getNumberOfPadRows() const { return mNumberOfPadRows; }
 
-    const unsigned short getNumberOfPads() const { return mNumberOfPads; }
+    /// Return the total number of pads in this region
+    /// \return total number of pads in this region
+    unsigned short getNumberOfPads() const { return mNumberOfPads; }
 
-    const float getPadHeight() const { return mPadHeight; }
+    /// Return the pad height in this region
+    /// \return pad height in this region
+    float getPadHeight() const { return mPadHeight; }
 
-    const float getPadWidth() const { return mPadWidth; }
+    /// Return the pad width in this region
+    /// \return pad width in this region
+    float getPadWidth() const { return mPadWidth; }
 
-    const float getRadiusFirstRow() const { return mRadiusFirstRow; }
+    /// Return the radius of the first row in this region
+    /// \return radius of the first row in this region
+    float getRadiusFirstRow() const { return mRadiusFirstRow; }
 
-    const unsigned char getGlobalRowOffset() const { return mGlobalRowOffset; }
+    /// Return the row offset in the sector
+    /// \return row offset in the sector
+    unsigned char getGlobalRowOffset() const { return mGlobalRowOffset; }
 //   const unsigned char  getRowOffset()        const { return mRowOffset;        }
 //   const float          getXhelper()         const { return mXhelper;         }
 
-    const unsigned char getPadsInRow(const PadPos &padPos) const
+    /// Return the number of pads for the row in `padPos` (row in the sector)
+    /// \param padPos pad position in the sector
+    /// \return number of pads for the row in `padPos` (row in the sector)
+    unsigned char getPadsInRow(const PadPos &padPos) const
     {
       return mPadsPerRow[padPos.getRow() - mGlobalRowOffset];
     }
 
-    const unsigned char getPadsInRow(const int row) const { return mPadsPerRow[row - mGlobalRowOffset]; }
+    /// Return the number of pads for the `row` (row in the sector)
+    /// \param padPos row in the sector
+    /// \return number of pads for the row in in the sector
+    unsigned char getPadsInRow(const int row) const { return mPadsPerRow[row - mGlobalRowOffset]; }
 
-    const unsigned char getPadsInRowRegion(const int row) const { return mPadsPerRow[row]; }
+    /// Return the number of pads for the `row` (row in the pad region)
+    /// \param padPos row in the pad region
+    /// \return number of pads for the row in in the pad region
+    unsigned char getPadsInRowRegion(const int row) const { return mPadsPerRow[row]; }
 
-    //TODO check function
-    const bool isInRegion(float localX, float border = 0.f) const
+    /// Check if the local X position is in the region
+    /// \param localX local X position
+    /// \param border an optional border width
+    /// \return true if the local X position is in the region
+    /// \todo check function
+    bool isInRegion(float localX, float border = 0.f) const
     {
       return localX - mRadiusFirstRow - border > 0.f && localX - mRadiusFirstRow <
                                                         (mNumberOfPadRows + 1) * mPadHeight + border;
     }
 
+    /// Find the pad and row for a local 3D position
+    /// \param pos 3D position in local coordinates
+    /// \return pad and row for a local 3D position
     const PadPos findPad(const LocalPosition3D &pos) const;
 
+    /// Find the pad and row for a local 2D position and readout side
+    /// \param pos 2D position in local coordinates
+    /// \param side readout side
+    /// \return pad and row for a local 2D position and return side
     const PadPos findPad(const LocalPosition2D &pos, const Side side = Side::A) const;
 
+    /// Find the pad and row for a local X and Y position and readout side
+    /// \param localX local X position in local coordinates
+    /// \param localY local Y position in local coordinates
+    /// \param side readout side
+    /// \return pad and row for a local X and Y position and readout side
     const PadPos findPad(const float localX, const float localY, const Side side = Side::A) const;
 
   private:

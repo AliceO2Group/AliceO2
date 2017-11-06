@@ -12,7 +12,7 @@
 /// \brief Base class for TPC Clusterer
 
 
-#include "TPCSimulation/Clusterer.h"
+#include "TPCReconstruction/Clusterer.h"
 
 
 using namespace o2::TPC;

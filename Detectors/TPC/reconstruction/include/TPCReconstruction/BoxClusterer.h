@@ -17,8 +17,8 @@
 #include <memory>
 
 #include "Rtypes.h"
-#include "TPCSimulation/Clusterer.h"
-#include "TPCSimulation/BoxCluster.h"
+#include "TPCReconstruction/Clusterer.h"
+#include "TPCReconstruction/BoxCluster.h"
 #include "TPCBase/CalDet.h"
 
 namespace o2{

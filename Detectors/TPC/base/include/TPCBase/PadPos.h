@@ -39,11 +39,11 @@ class PadPos
 
     /// numeric row number
     /// @return numeric row number
-    const unsigned char getRow() const { return mRow; }
+    unsigned char getRow() const { return mRow; }
 
     /// numeric pad number
     /// @return numeric pad number
-    const unsigned char getPad() const { return mPad; }
+    unsigned char getPad() const { return mPad; }
 
     /// setter for row number
     /// @param [in] row row number

@@ -17,7 +17,7 @@
 #include <vector>
 #include <memory>
 
-#include "TPCSimulation/ClusterContainer.h"
+#include "TPCReconstruction/ClusterContainer.h"
 
 namespace o2{
 namespace TPC {

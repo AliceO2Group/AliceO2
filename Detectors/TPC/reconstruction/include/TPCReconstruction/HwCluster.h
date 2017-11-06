@@ -14,7 +14,7 @@
 #ifndef ALICEO2_TPC_HWCLUSTER_H
 #define ALICEO2_TPC_HWCLUSTER_H
 
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 #include <vector>
 
 namespace boost { namespace serialization { class access; } }

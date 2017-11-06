@@ -23,6 +23,19 @@
 #pragma link C++ class o2::TPC::TrackTPC+;
 #pragma link C++ class o2::TPC::TPCCATracking;
 
+#pragma link C++ class o2::TPC::BoxCluster+;
+#pragma link C++ class o2::TPC::BoxClusterer+;
+#pragma link C++ class o2::TPC::ClusterTimeStamp+;
+#pragma link C++ class o2::TPC::Cluster+;
+#pragma link C++ class o2::TPC::Clusterer+;
+#pragma link C++ class o2::TPC::ClusterContainer+;
+#pragma link C++ class o2::TPC::ClustererTask+;
+#pragma link C++ class o2::TPC::HwCluster+;
+#pragma link C++ class o2::TPC::HwClusterer+;
+#pragma link C++ class o2::TPC::HwClusterFinder+;
+#pragma link C++ class o2::TPC::HwFixedPoint+;
+
+
 #pragma link C++ class std::vector<o2::TPC::TrackTPC>+;
 
 #endif

@@ -13,9 +13,8 @@
   #include "FairRuntimeDb.h"
   #include "FairParRootFileIo.h"
 
-  #include "TPCSimulation/ClustererTask.h"
+  #include "TPCReconstruction/ClustererTask.h"
 #endif
-
 void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isContinuous=true)
 {
   // Initialize logger
@@ -95,5 +94,4 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isConti
 	    << "s" << std::endl << std::endl;
   std::cout << "Macro finished succesfully." << std::endl;
   return;
-
 }
