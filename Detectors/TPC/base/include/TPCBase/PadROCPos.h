@@ -77,6 +77,21 @@ class PadROCPos
 
     PadPos& getPadPos() { return mPadPos; }
 
+    /// check if is valid
+    /// @return pad valid
+    bool isValid() const { return mPadPos.isValid(); }
+
+    /// equal operator
+    bool operator==(const PadROCPos &other) const { return (mROC == other.mROC) && (mPadPos == other.mPadPos); }
+
+    /// smaller operator
+    bool operator<(const PadROCPos &other) const
+    {
+      if (mROC<other.mROC) return true;
+      if (mROC == other.mROC && mPadPos<other.mPadPos) return true;
+      return false;
+    }
+
   private:
     ROC mROC{};
     PadPos mPadPos{};

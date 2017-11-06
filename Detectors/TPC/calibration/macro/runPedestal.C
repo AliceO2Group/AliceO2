@@ -26,7 +26,7 @@ void runPedestal(TString fileInfo, TString outputFileName="", Int_t nevents=100,
 
   cout << "Number of processed events: " << ped.getNumberOfProcessedEvents() << '\n';
   if (outputFileName.IsNull()) outputFileName="Pedestals.root";
-  ped.dumpToFile(outputFileName);
+  ped.dumpToFile(outputFileName.Data());
 
   //const CalDet<float>& calPedestal = ped.getPedestal();
   //const CalDet<float>& calNoise    = ped.getNoise();

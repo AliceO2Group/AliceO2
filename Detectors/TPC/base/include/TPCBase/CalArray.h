@@ -18,6 +18,8 @@
 #include <type_traits>
 #include <boost/format.hpp>
 
+#include "FairLogger.h"
+
 #include "TPCBase/Mapper.h"
 
 using boost::format;
@@ -38,36 +40,44 @@ public:
   /// Default destructor
   ~CalArray() = default;
 
-  CalArray(PadSubset padSubset, int padSubsetNumber);
+  /// Constructor sets a default name depending on the pad subset type and number
+  /// \param padSubset pad subset type (e.g. PadSubset::ROC)
+  /// \param padSubsetNumber number of the pad subset (e.g. 0 for ROC 0)
+  CalArray(const PadSubset padSubset, const int padSubsetNumber)
+    : mName(),
+      mData(),
+      mPadSubset(padSubset),
+      mPadSubsetNumber(padSubsetNumber)
+  {
+    // initialize the data array
+    initData();
+  }
 
-  CalArray(const std::string name) :
-    mName(name),
-    mData()
-  {}
+  /// Constructor assumes PadSubset::ROC
+  /// \param name name of the calibration array
+  /// \param padSubsetNumber number of the pad subset (e.g. 0 for ROC 0)
+  CalArray(const std::string_view name, const int padSubsetNumber)
+    : mName(name),
+      mData(),
+      mPadSubset(PadSubset::ROC),
+      mPadSubsetNumber(padSubsetNumber)
+  {
+    // initialize the data array
+    initData();
+  }
 
-  CalArray(const size_t size) :
-    mName(),
-    mData(size)
-  {}
-
-  //CalArray(const CalArray& calDet) :
-    //mName(calDet.mName),
-    //mData(calDet.mData),
-    //mPadSubset(calDet.mPadSubset),
-    //mPadSubsetNumber(calDet.mPadSubsetNumber)
-  //{}
-
-  //CalArray(CalArray&& calDet) :
-    //mName(std::move(calDet.mName)),
-    //mData(std::move(calDet.mData)),
-    //mPadSubset(std::move(calDet.mPadSubset)),
-    //mPadSubsetNumber(std::move(calDet.mPadSubsetNumber))
-  //{}
-
-  //CalArray& operator= (const CalArray& calArray)
-  //{
-    //return *this;
-  //}
+  /// Constructor
+  /// \param name name of the calibration array
+  /// \param padSubsetNumber number of the pad subset (e.g. 0 for ROC 0)
+  CalArray(const std::string_view name, const PadSubset padSubset, const int padSubsetNumber)
+    : mName(name),
+      mData(),
+      mPadSubset(padSubset),
+      mPadSubsetNumber(padSubsetNumber)
+  {
+    // initialize the data array
+    initData();
+  }
 
   /// Return the pad subset type
   /// \return pad subset type
@@ -91,8 +101,29 @@ public:
 
   const CalArray<T>& multiply(const T& val) { return *this *= val; }
 
+  /// Add other to this channel by channel
   const CalArray& operator+= (const CalArray& other);
+
+  /// Subtract other from this channel by channel
+  const CalArray& operator-= (const CalArray& other);
+
+  /// Multiply other to this channel by channel
+  const CalArray& operator*= (const CalArray& other);
+
+  /// Divide this by other channel by channel
+  const CalArray& operator/= (const CalArray& other);
+
+  /// Add value to all channels
+  const CalArray& operator+= (const T& val);
+
+  /// Subtract value from all channels
+  const CalArray& operator-= (const T& val);
+
+  /// Multiply value to all channels
   const CalArray& operator*= (const T& val);
+
+  /// Divide value on all channels
+  const CalArray& operator/= (const T& val);
 private:
   std::string mName;
   // better to use std::array?
@@ -101,31 +132,31 @@ private:
   std::vector<T> mData;       ///< calibration data
   PadSubset mPadSubset;       ///< Subset type
   int       mPadSubsetNumber; ///< Number of the pad subset, e.g. ROC 0 is IROC A00
+
+  /// initialize the data array depending on what is set as PadSubset
+  void initData();
 };
 
 // ===| pad region etc. initialisation |========================================
 template <class T>
-CalArray<T>::CalArray(PadSubset padSubset, int padSubsetNumber)
-  : mData(),
-    mPadSubset(padSubset),
-    mPadSubsetNumber(padSubsetNumber)
+void CalArray<T>::initData()
 {
   const auto& mapper = Mapper::instance();
 
-  switch (padSubset) {
+  switch (mPadSubset) {
     case PadSubset::ROC: {
-      mData.resize(ROC(padSubsetNumber).rocType() == RocType::IROC? mapper.getPadsInIROC() : mapper.getPadsInOROC());
-      setName(boost::str(format("ROC %1$02d") % padSubsetNumber));
+      mData.resize(ROC(mPadSubsetNumber).rocType() == RocType::IROC? mapper.getPadsInIROC() : mapper.getPadsInOROC());
+      if (mName.length()) setName(boost::str(format("ROC_%1$02d") % mPadSubsetNumber));
       break;
     }
     case PadSubset::Partition: {
-      mData.resize(mapper.getPartitionInfo(padSubsetNumber % mapper.getNumberOfPartitions()).getNumberOfPads());
-      setName(boost::str(format("Partition %1$03d") % padSubsetNumber));
+      mData.resize(mapper.getPartitionInfo(mPadSubsetNumber % mapper.getNumberOfPartitions()).getNumberOfPads());
+      if (mName.length()) setName(boost::str(format("Partition_%1$03d") % mPadSubsetNumber));
       break;
     }
     case PadSubset::Region: {
-      mData.resize(mapper.getPadRegionInfo(padSubsetNumber % mapper.getNumberOfPadRegions()).getNumberOfPads());
-      setName(boost::str(format("Region %1$03d") % padSubsetNumber));
+      mData.resize(mapper.getPadRegionInfo(mPadSubsetNumber % mapper.getNumberOfPadRegions()).getNumberOfPads());
+      if (mName.length()) setName(boost::str(format("Region_%1$03d") % mPadSubsetNumber));
       break;
     }
   }
@@ -152,9 +183,11 @@ inline const T CalArray<T>::getValue(const size_t row, const size_t pad) const
 
 //______________________________________________________________________________
 template <class T>
-inline const CalArray<T>& CalArray<T>::operator+= (const CalArray& other)
+inline const CalArray<T>& CalArray<T>::operator+= (const CalArray<T>& other)
 {
   if ( !((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber) ) ){
+    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects"
+               << FairLogger::endl;
     return *this;
   }
   for (size_t i=0; i<mData.size(); ++i) {
@@ -165,10 +198,85 @@ inline const CalArray<T>& CalArray<T>::operator+= (const CalArray& other)
 
 //______________________________________________________________________________
 template <class T>
+inline const CalArray<T>& CalArray<T>::operator-= (const CalArray<T>& other)
+{
+  if ( !((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber) ) ){
+    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects"
+               << FairLogger::endl;
+    return *this;
+  }
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] -= other.getValue(i);
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalArray<T>& CalArray<T>::operator*= (const CalArray<T>& other)
+{
+  if ( !((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber) ) ){
+    LOG(ERROR) << "pad subste type of the objects it not compatible" 
+               << FairLogger::endl;
+    return *this;
+  }
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] *= other.getValue(i);
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalArray<T>& CalArray<T>::operator/= (const CalArray<T>& other)
+{
+  if ( !((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber) ) ){
+    LOG(ERROR) << "pad subste type of the objects it not compatible" 
+               << FairLogger::endl;
+    return *this;
+  }
+  for (size_t i=0; i<mData.size(); ++i) {
+    mData[i] /= other.getValue(i);
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalArray<T>& CalArray<T>::operator+= (const T& val)
+{
+  for (auto& data : mData) {
+    data += val;
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalArray<T>& CalArray<T>::operator-= (const T& val)
+{
+  for (auto& data : mData) {
+    data -= val;
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
 inline const CalArray<T>& CalArray<T>::operator*= (const T& val)
 {
   for (auto& data : mData) {
     data *= val;
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalArray<T>& CalArray<T>::operator/= (const T& val)
+{
+  for (auto& data : mData) {
+    data /= val;
   }
   return *this;
 }

@@ -14,7 +14,9 @@
 #include <boost/range/combine.hpp>
 #include <boost/test/unit_test.hpp>
 #include <vector>
+#include <limits>
 
+#include "TMath.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalArray.h"
 #include "TPCBase/CalDet.h"
@@ -24,6 +26,15 @@ namespace o2
 {
 namespace TPC
 {
+
+//templated euqality check
+// for integer one would need a specialisation to check for == instead of <
+template <typename T>
+bool isEqualAbs(T val1, T val2)
+{
+  return std::abs(val1 - val2) < std::numeric_limits<T>::epsilon();
+}
+
 BOOST_AUTO_TEST_CASE(CalArray_ROOTIO)
 {
   //CalROC roc(PadSubset::ROC, 10);
@@ -158,6 +169,143 @@ BOOST_AUTO_TEST_CASE(CalDet_ROOTIO)
   BOOST_CHECK_CLOSE(sumRegion, 0.f, 1.E-12);
   BOOST_CHECK_EQUAL(numberOfPadsRegion, numberOfPads);
 } // BOOST_AUTO_TEST_CASE
+
+BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
+{
+  // data
+  CalPad pad(PadSubset::ROC);
+
+  // data 2 for testing operators on objects
+  CalPad pad2(PadSubset::ROC);
+
+  // for applying the operators on
+  CalPad padCmp(PadSubset::ROC);
+  
+  // ===| fill with data |======================================================
+  int iter = 0;
+  // --- ROC type
+  for (auto &calArray : pad.getData()) {
+    for (auto &value : calArray.getData()) {
+       value = iter++;
+    }
+  }
+
+  iter = 1;
+  for (auto &calArray : pad2.getData()) {
+    for (auto &value : calArray.getData()) {
+       value = iter++;
+    }
+  }
+
+  //
+  // ===| test operators with simple numbers |==================================
+  //
+  const float number = 0.2;
+  bool isEqual = true;
+
+  // + operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp += number;
+
+  for (auto const& arrays : boost::combine(padCmp.getData(), pad.getData())) {
+    for (auto const& val : boost::combine(arrays.get<0>().getData(), arrays.get<1>().getData())) {
+      isEqual &= isEqualAbs(val.get<0>(), val.get<1>() + number);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+
+  // - operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp -= number;
+
+  for (auto const& arrays : boost::combine(padCmp.getData(), pad.getData())) {
+    for (auto const& val : boost::combine(arrays.get<0>().getData(), arrays.get<1>().getData())) {
+      isEqual &= isEqualAbs(val.get<0>(), val.get<1>() - number);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+
+  // * operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp *= number;
+
+  for (auto const& arrays : boost::combine(padCmp.getData(), pad.getData())) {
+    for (auto const& val : boost::combine(arrays.get<0>().getData(), arrays.get<1>().getData())) {
+      isEqual &= isEqualAbs(val.get<0>(), val.get<1>() * number);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+
+  // / operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp /= number;
+
+  for (auto const& arrays : boost::combine(padCmp.getData(), pad.getData())) {
+    for (auto const& val : boost::combine(arrays.get<0>().getData(), arrays.get<1>().getData())) {
+      isEqual &= isEqualAbs(val.get<0>(), val.get<1>() / number);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+
+  //
+  // ===| test operators with full object |=====================================
+  //
+  // + operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp += pad2;
+
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
+    {
+      isEqual &= isEqualAbs( *itval3, *itval1 + *itval2);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+
+  // - operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp -= pad2;
+
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
+    {
+      isEqual &= isEqualAbs( *itval3, *itval1 - *itval2);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+
+  // * operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp *= pad2;
+
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
+    {
+      isEqual &= isEqualAbs( *itval3, *itval1 * *itval2);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+
+  // / operator
+  isEqual = true;
+  padCmp = pad;
+  padCmp /= pad2;
+
+  for (auto itpad = pad.getData().begin(), itpad2 = pad2.getData().begin(), itpadCmp = padCmp.getData().begin(); itpad!=pad.getData().end(); ++itpad, ++itpad2, ++itpadCmp) {
+    for (auto itval1 = (*itpad).getData().begin(), itval2 = (*itpad2).getData().begin(), itval3 = (*itpadCmp).getData().begin(); itval1 != (*itpad).getData().end(); ++itval1, ++itval2, ++itval3)
+    {
+      isEqual &= isEqualAbs( *itval3, *itval1 / *itval2);
+    }
+  }
+  BOOST_CHECK_EQUAL(isEqual, true);
+}
 
 } // TPC
 } // AliceO2
