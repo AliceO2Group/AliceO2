@@ -53,7 +53,7 @@ void Config()
 /// create the Specific stack
    o2::Data::Stack *stack = new o2::Data::Stack(1000);
    stack->StoreSecondaries(kTRUE);
-   stack->SetMinPoints(0);
+   stack->setMinHits(0);
    geant4->SetStack(stack);
 
    if(FairRunSim::Instance()->IsExtDecayer()){

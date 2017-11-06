@@ -160,7 +160,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     mCurrentHit =
       AddHit(partID, parent, 0, estart, detID, Point3D<float>(float(posX), float(posY), float(posZ)),
              Vector3D<float>(float(momX), float(momY), float(momZ)), time, lightyield);
-    static_cast<o2::Data::Stack*>(mcapp->GetStack())->AddPoint(GetDetId());
+    static_cast<o2::Data::Stack*>(mcapp->GetStack())->addHit(GetDetId());
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
     

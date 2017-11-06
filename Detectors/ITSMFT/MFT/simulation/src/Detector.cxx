@@ -183,7 +183,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 		    status);
     
     o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-    stack->AddPoint(GetDetId());
+    stack->addHit(GetDetId());
     
   }
   

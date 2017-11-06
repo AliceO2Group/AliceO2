@@ -15,11 +15,11 @@
 #ifndef ALICEO2_DATA_MCTRACK_H_
 #define ALICEO2_DATA_MCTRACK_H_
 
-#include "TObject.h"
 #include "Rtypes.h"
 #include "TLorentzVector.h"
 #include "TMath.h"
 #include "TVector3.h"
+#include "DetectorsBase/DetID.h"
 
 class TParticle;
 
@@ -122,8 +122,9 @@ class MCTrack
 
     void GetStartVertex(TVector3 &vertex);
 
-    /// Accessors to the number of MCPoints in the detectors
-    Int_t getNumberOfPoints(int detId) const;
+    /// Accessors to the hit mask
+    Int_t getHitMask() const { return mHitMask; }
+    void setHitMask(Int_t m) { mHitMask = m; }
 
     ///  Modifiers
     void SetMotherTrackId(Int_t id)
@@ -131,9 +132,32 @@ class MCTrack
       mMotherTrackId = id;
     }
 
-    void setNumberOfPoints(Int_t iDet, Int_t np);
+    static void setHit(Int_t iDet, int& encoding) { encoding |= 1 << iDet; }
 
-  private:
+    // set bit indicating that this track
+    // left a hit in detector with id iDet
+    void setHit(Int_t iDet) {
+      assert(0<=iDet && iDet < o2::Base::DetID::nDetectors);
+      MCTrack::setHit(iDet, mHitMask);
+    }
+
+    // did detector iDet see this track?
+    bool leftTrace(Int_t iDet) const {
+      return (mHitMask & ( 1 << iDet )) > 0;
+    }
+
+    // determine how many detectors "saw" this track
+    int getNumDet() const
+    {
+      int count = 0;
+      for (auto i = o2::Base::DetID::First; i < o2::Base::DetID::nDetectors; ++i) {
+        if (leftTrace(i))
+          count++;
+      }
+      return count;
+    }
+
+   private:
     ///  PDG particle code
     Int_t mPdgCode;
 
@@ -146,22 +170,10 @@ class MCTrack
     /// Coordinates of start vertex [cm, ns]
     Double32_t mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ, mStartVertexCoordinatesT;
 
-    /// Bitvector representing the number of MCPoints for this track in
-    /// each subdetector. The detectors can be represented by (example from CBM)
-    /// REF:         Bit  0      (1 bit,  max. value  1)
-    /// MVD:         Bit  1 -  3 (3 bits, max. value  7)
-    /// STS:         Bit  4 -  8 (5 bits, max. value 31)
-    /// RICH:        Bit  9      (1 bit,  max. value  1)
-    /// MUCH:        Bit 10 - 14 (5 bits, max. value 31)
-    /// TRD:         Bit 15 - 19 (5 bits, max. value 31)
-    /// TOF:         Bit 20 - 23 (4 bits, max. value 15)
-    /// ECAL:        Bit 24      (1 bit,  max. value  1)
-    /// ZDC:         Bit 25      (1 bit,  max. value  1)
-    /// The respective point numbers can be accessed and modified
-    /// with the inline functions.
-    /// Bits 26-31 are spare for potential additional detectors.
-
-    Int_t mNumberOfPoints;
+    // hitmask stored as an int
+    // if bit i is set it means that this track left a trace in detector i
+    // we should have sizeof(int) < o2::Base::DetId::nDetectors
+    Int_t mHitMask = 0;
 
   ClassDefNV(MCTrack, 1);
 };

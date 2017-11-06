@@ -508,7 +508,7 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle
     o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-    stack->AddPoint(GetDetId());
+    stack->addHit(GetDetId());
   }
   
   return kTRUE;
