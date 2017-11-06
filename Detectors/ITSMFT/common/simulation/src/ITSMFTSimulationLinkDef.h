@@ -15,6 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ITSMFT::Hit+;
+#pragma link C++ class std::vector<o2::ITSMFT::Hit>+;
 #pragma link C++ class o2::ITSMFT::ClusterShape+;
 #pragma link C++ class o2::ITSMFT::Chip+;
 #pragma link C++ class o2::ITSMFT::SimuClusterShaper+;
