@@ -222,6 +222,8 @@ int main(int argc, char** argv)
 		long long int nTracksTotal = 0;
 		long long int nClustersTotal = 0;
 		int simBunchNoRepeatEvent = configStandalone.StartEvent;
+		std::vector<char> eventUsed(nEventsInDirectory);
+		if (configStandalone.configTF.noEventRepeat == 2) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
 	
 		for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
 		{
@@ -235,7 +237,6 @@ int main(int argc, char** argv)
 				int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
 				int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
 				int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
-				std::vector<char> eventUsed(nEventsInDirectory);
 				int nTrain = 0;
 				int mcMin = -1, mcMax = -1;
 				while (nBunch < lastBunch)
@@ -255,12 +256,13 @@ int main(int argc, char** argv)
 									printf("Error: insuffient events for mixing!\n");
 									return(1);
 								}
-								if (nCollisionsInTrain == 0) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
+								if (nCollisionsInTrain == 0 && configStandalone.configTF.noEventRepeat == 0) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
 								if (nBunch >= 0 && nBunch < lastTFBunch) nCollisions++;
 								else nBorderCollisions++;
 								int useEvent;
-								if (configStandalone.configTF.noEventRepeat) useEvent = simBunchNoRepeatEvent++;
+								if (configStandalone.configTF.noEventRepeat == 1) useEvent = simBunchNoRepeatEvent;
 								else while (eventUsed[useEvent = rand() % nEventsInDirectory]);
+								if (configStandalone.configTF.noEventRepeat) simBunchNoRepeatEvent++;
 								eventUsed[useEvent] = 1;
 								std::ifstream in;
 								char filename[256];

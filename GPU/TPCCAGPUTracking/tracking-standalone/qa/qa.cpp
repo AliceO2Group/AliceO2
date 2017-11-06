@@ -300,302 +300,299 @@ void RunQA()
 	structConfigQA& config = configStandalone.configQA;	
 	HighResTimer timer;
 
-	if (hlt.GetNMCInfo() == 0 || hlt.GetNMCLabels() == 0)
+	if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
 	{
-		printf("Missing MC information, skipping QA\n");
-		return;
-	}
-
-	//Assign Track MC Labels
-	timer.Start();
-	bool ompError = false;
-#if DEBUG == 0
-#pragma omp parallel for
-#endif
-	for (int i = 0; i < merger.NOutputTracks(); i++)
-	{
-		if (ompError) continue;
-		int nClusters = 0;
-		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
-		std::vector<AliHLTTPCClusterMCWeight> labels;
-		for (int k = 0;k < track.NClusters();k++)
+		//Assign Track MC Labels
+		timer.Start();
+		bool ompError = false;
+	#if DEBUG == 0
+	#pragma omp parallel for
+	#endif
+		for (int i = 0; i < merger.NOutputTracks(); i++)
 		{
-			if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
-			nClusters++;
-			int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
-			if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());ompError = true;break;}
-			for (int j = 0;j < 3;j++)
+			if (ompError) continue;
+			int nClusters = 0;
+			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+			std::vector<AliHLTTPCClusterMCWeight> labels;
+			for (int k = 0;k < track.NClusters();k++)
 			{
-				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= hlt.GetNMCInfo()) {printf("Invalid label %d > %d\n", hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetNMCInfo());ompError = true;break;}
-				if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0)
+				if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
+				nClusters++;
+				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
+				if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());ompError = true;break;}
+				for (int j = 0;j < 3;j++)
 				{
-					if (DEBUG >= 3 && track.OK()) printf("Track %d Cluster %d Label %d: %d (%f)\n", i, k, j, hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight);
-					labels.push_back(hlt.GetMCLabels()[hitId].fClusterID[j]);
+					if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= hlt.GetNMCInfo()) {printf("Invalid label %d > %d\n", hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetNMCInfo());ompError = true;break;}
+					if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0)
+					{
+						if (DEBUG >= 3 && track.OK()) printf("Track %d Cluster %d Label %d: %d (%f)\n", i, k, j, hlt.GetMCLabels()[hitId].fClusterID[j].fMCID, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight);
+						labels.push_back(hlt.GetMCLabels()[hitId].fClusterID[j]);
+					}
+				}
+				if (ompError) break;
+			}
+			if (ompError) continue;
+			if (labels.size() == 0)
+			{
+				trackMCLabels[i] = -1e9;
+				totalFakes++;
+				continue;
+			}
+			std::sort(labels.data(), labels.data() + labels.size(), MCComp);
+			
+			AliHLTTPCClusterMCWeight maxLabel;
+			AliHLTTPCClusterMCWeight cur = labels[0];
+			if (SORT_NLABELS) cur.fWeight = 1;
+			float sumweight = 0.f;
+			int curcount = 1, maxcount = 0;
+			if (DEBUG >= 2 && track.OK()) for (unsigned int k = 0;k < labels.size();k++) printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
+			for (unsigned int k = 1;k <= labels.size();k++)
+			{
+				if (k == labels.size() || labels[k].fMCID != cur.fMCID)
+				{
+					sumweight += cur.fWeight;
+					if (cur.fWeight > maxLabel.fWeight)
+					{
+						if (maxcount >= config.recThreshold * nClusters) recTracks[maxLabel.fMCID]++;
+						maxLabel = cur;
+						maxcount = curcount;
+					}
+					if (k < labels.size())
+					{
+						cur = labels[k];
+						if (SORT_NLABELS) cur.fWeight = 1;
+						curcount = 1;
+					}
+				}
+				else
+				{
+					cur.fWeight += SORT_NLABELS ? 1 : labels[k].fWeight;
+					curcount++;
 				}
 			}
-			if (ompError) break;
-		}
-		if (ompError) continue;
-		if (labels.size() == 0)
-		{
-			trackMCLabels[i] = -1e9;
-			totalFakes++;
-			continue;
-		}
-		std::sort(labels.data(), labels.data() + labels.size(), MCComp);
-		
-		AliHLTTPCClusterMCWeight maxLabel;
-		AliHLTTPCClusterMCWeight cur = labels[0];
-		if (SORT_NLABELS) cur.fWeight = 1;
-		float sumweight = 0.f;
-		int curcount = 1, maxcount = 0;
-		if (DEBUG >= 2 && track.OK()) for (unsigned int k = 0;k < labels.size();k++) printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
-		for (unsigned int k = 1;k <= labels.size();k++)
-		{
-			if (k == labels.size() || labels[k].fMCID != cur.fMCID)
+			
+			if (maxcount < config.recThreshold * nClusters) maxLabel.fMCID = -2 - maxLabel.fMCID;
+			trackMCLabels[i] = maxLabel.fMCID;
+			if (DEBUG && track.OK() && hlt.GetNMCInfo() > maxLabel.fMCID)
 			{
-				sumweight += cur.fWeight;
-				if (cur.fWeight > maxLabel.fWeight)
-				{
-					if (maxcount >= config.recThreshold * nClusters) recTracks[maxLabel.fMCID]++;
-					maxLabel = cur;
-					maxcount = curcount;
-				}
-				if (k < labels.size())
-				{
-					cur = labels[k];
-					if (SORT_NLABELS) cur.fWeight = 1;
-					curcount = 1;
-				}
+				const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[maxLabel.fMCID >= 0 ? maxLabel.fMCID : (-maxLabel.fMCID - 2)];
+				printf("Track %d label %d weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, nClusters, track.NClustersFitted(), maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
+			}
+		}
+		if (ompError) return;
+		for (int i = 0; i < merger.NOutputTracks(); i++)
+		{
+			if (trackMCLabels[i] == -1e9) continue;
+			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+			if (!track.OK()) continue;
+			int label = trackMCLabels[i] < 0 ? (-trackMCLabels[i] - 2) : trackMCLabels[i];
+			for (int k = 0;k < track.NClusters();k++)
+			{
+				if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
+				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
+				bool correct = false;
+				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true;break;}
+				if (correct) clusterParam[hitId].attached++;
+				else clusterParam[hitId].fakeAttached++;
+			}
+			if (trackMCLabels[i] < 0)
+			{
+				fakeTracks[label]++;
 			}
 			else
 			{
-				cur.fWeight += SORT_NLABELS ? 1 : labels[k].fWeight;
-				curcount++;
+				recTracks[label]++;
+				
+				int& revLabel = trackMCLabelsReverse[label];
+				if (revLabel == -1 ||
+					!merger.OutputTracks()[revLabel].OK() ||
+					(merger.OutputTracks()[i].OK() && fabs(merger.OutputTracks()[i].GetParam().GetZ()) < fabs(merger.OutputTracks()[revLabel].GetParam().GetZ())))
+				{
+					revLabel = i;
+				}
 			}
 		}
 		
-		if (maxcount < config.recThreshold * nClusters) maxLabel.fMCID = -2 - maxLabel.fMCID;
-		trackMCLabels[i] = maxLabel.fMCID;
-		if (DEBUG && track.OK() && hlt.GetNMCInfo() > maxLabel.fMCID)
+		if (TIMING) printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		timer.ResetStart();
+		
+		//Recompute fNWeightCls (might have changed after merging events into timeframes)
+		for (int i = 0;i < hlt.GetNMCInfo();i++) mcParam[i].nWeightCls = 0.;
+		for (int i = 0;i < hlt.GetNMCLabels();i++)
 		{
-			const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[maxLabel.fMCID >= 0 ? maxLabel.fMCID : (-maxLabel.fMCID - 2)];
-			printf("Track %d label %d weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, nClusters, track.NClustersFitted(), maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
+			const AliHLTTPCClusterMCLabel* labels = hlt.GetMCLabels();
+			float weightTotal = 0.f;
+			for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0) weightTotal += labels[i].fClusterID[j].fWeight;
+			for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0)
+			{
+				mcParam[labels[i].fClusterID[j].fMCID].nWeightCls += labels[i].fClusterID[j].fWeight / weightTotal;
+			}
 		}
-	}
-	if (ompError) return;
-	for (int i = 0; i < merger.NOutputTracks(); i++)
-	{
-		if (trackMCLabels[i] == -1e9) continue;
-		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
-		if (!track.OK()) continue;
-		int label = trackMCLabels[i] < 0 ? (-trackMCLabels[i] - 2) : trackMCLabels[i];
-		for (int k = 0;k < track.NClusters();k++)
+		if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		timer.ResetStart();
+		
+	#pragma omp parallel for
+		for (int i = 0;i < hlt.GetNMCInfo();i++)
 		{
-			if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
-			int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
-			bool correct = false;
-			for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true;break;}
-			if (correct) clusterParam[hitId].attached++;
-			else clusterParam[hitId].fakeAttached++;
+			const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
+			additionalMCParameters& mc2 = mcParam[i];
+			mc2.pt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
+			mc2.phi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
+			mc2.theta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
+			mc2.eta = -TMath::Log(TMath::Tan(0.5 * mc2.theta));
 		}
-		if (trackMCLabels[i] < 0)
+		
+		//Compute MC Track Parameters for MC Tracks
+		//Fill Efficiency Histograms
+		for (int i = 0;i < hlt.GetNMCInfo();i++)
 		{
-			fakeTracks[label]++;
-		}
-		else
-		{
-			recTracks[label]++;
+			if ((mcTrackMin != -1 && i < mcTrackMin) || (mcTrackMax != -1 && i >= mcTrackMax)) continue;
+			const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
+			const additionalMCParameters& mc2 = mcParam[i];
+			if (mc2.nWeightCls == 0.) continue;
+			const float& mcpt = mc2.pt;
+			const float& mcphi = mc2.phi;
+			const float& mceta = mc2.eta;
+
+			if (info.fPrim && info.fPrimDaughters) continue;
+			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
+			int findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
+			if (info.fPID < 0) continue;
+			if (info.fCharge == 0.) continue;
 			
-			int& revLabel = trackMCLabelsReverse[label];
-			if (revLabel == -1 ||
-				!merger.OutputTracks()[revLabel].OK() ||
-				(merger.OutputTracks()[i].OK() && fabs(merger.OutputTracks()[i].GetParam().GetZ()) < fabs(merger.OutputTracks()[revLabel].GetParam().GetZ())))
+			if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
+			
+			for (int j = 0;j < 4;j++)
 			{
-				revLabel = i;
-			}
-		}
-	}
-	
-	if (TIMING) printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
-	timer.ResetStart();
-	
-	//Recompute fNWeightCls (might have changed after merging events into timeframes)
-	for (int i = 0;i < hlt.GetNMCInfo();i++) mcParam[i].nWeightCls = 0.;
-	for (int i = 0;i < hlt.GetNMCLabels();i++)
-	{
-		const AliHLTTPCClusterMCLabel* labels = hlt.GetMCLabels();
-		float weightTotal = 0.f;
-		for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0) weightTotal += labels[i].fClusterID[j].fWeight;
-		for (int j = 0;j < 3;j++) if (labels[i].fClusterID[j].fMCID >= 0)
-		{
-			mcParam[labels[i].fClusterID[j].fMCID].nWeightCls += labels[i].fClusterID[j].fWeight / weightTotal;
-		}
-	}
-	if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
-	timer.ResetStart();
-	
-#pragma omp parallel for
-	for (int i = 0;i < hlt.GetNMCInfo();i++)
-	{
-		const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
-		additionalMCParameters& mc2 = mcParam[i];
-		mc2.pt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
-		mc2.phi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
-		mc2.theta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
-		mc2.eta = -TMath::Log(TMath::Tan(0.5 * mc2.theta));
-	}
-	
-	//Compute MC Track Parameters for MC Tracks
-	//Fill Efficiency Histograms
-	for (int i = 0;i < hlt.GetNMCInfo();i++)
-	{
-		if ((mcTrackMin != -1 && i < mcTrackMin) || (mcTrackMax != -1 && i >= mcTrackMax)) continue;
-		const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
-		const additionalMCParameters& mc2 = mcParam[i];
-		if (mc2.nWeightCls == 0.) continue;
-		const float& mcpt = mc2.pt;
-		const float& mcphi = mc2.phi;
-		const float& mceta = mc2.eta;
-
-		if (info.fPrim && info.fPrimDaughters) continue;
-		if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
-		int findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
-		if (info.fPID < 0) continue;
-		if (info.fCharge == 0.) continue;
-		
-		if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
-		
-		for (int j = 0;j < 4;j++)
-		{
-			for (int k = 0;k < 2;k++)
-			{
-				if (k == 0 && findable == 0) continue;
-				
-				int val = (j == 0) ? (recTracks[i] ? 1 : 0) :
-					(j == 1) ? (recTracks[i] ? recTracks[i] - 1 : 0) :
-					(j == 2) ? fakeTracks[i] :
-					1;
-				
-				for (int l = 0;l < 5;l++)
+				for (int k = 0;k < 2;k++)
 				{
-					if (info.fPrim && mcpt < PT_MIN_PRIM) continue;
-					if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
-					if (l < 4 && mcpt < 1. / config.qpt) continue;
+					if (k == 0 && findable == 0) continue;
 					
-					float pos = l == 0 ? info.fX : l == 1 ? info.fY : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
+					int val = (j == 0) ? (recTracks[i] ? 1 : 0) :
+						(j == 1) ? (recTracks[i] ? recTracks[i] - 1 : 0) :
+						(j == 2) ? fakeTracks[i] :
+						1;
+					
+					for (int l = 0;l < 5;l++)
+					{
+						if (info.fPrim && mcpt < PT_MIN_PRIM) continue;
+						if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
+						if (l < 4 && mcpt < 1. / config.qpt) continue;
+						
+						float pos = l == 0 ? info.fX : l == 1 ? info.fY : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
 
-					eff[j][k][!info.fPrim][l][0]->Fill(pos, val);
+						eff[j][k][!info.fPrim][l][0]->Fill(pos, val);
+					}
 				}
 			}
 		}
-	}
-	if (TIMING) printf("QA Time: Fill efficiency histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
-	timer.ResetStart();
+		if (TIMING) printf("QA Time: Fill efficiency histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		timer.ResetStart();
 
-	//Fill Resolution Histograms
-	AliHLTTPCGMPropagator prop;
-	const float kRho = 1.025e-3;//0.9e-3;
-	const float kRadLen = 29.532;//28.94;
-	prop.SetMaxSinPhi( .999 );
-	prop.SetMaterial( kRadLen, kRho );
-	prop.SetPolynomialField( merger.pField() );
-	prop.SetUseMeanMomentum(kFALSE );
-	prop.SetContinuousTracking( kFALSE );
-	
-	for (int i = 0; i < merger.NOutputTracks(); i++)
-	{
-		if (trackMCLabels[i] < 0) continue;
-		const AliHLTTPCCAMCInfo& mc1 = hlt.GetMCInfo()[trackMCLabels[i]];
-		const additionalMCParameters& mc2 = mcParam[trackMCLabels[i]];
-		const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[i];
+		//Fill Resolution Histograms
+		AliHLTTPCGMPropagator prop;
+		const float kRho = 1.025e-3;//0.9e-3;
+		const float kRadLen = 29.532;//28.94;
+		prop.SetMaxSinPhi( .999 );
+		prop.SetMaterial( kRadLen, kRho );
+		prop.SetPolynomialField( merger.pField() );
+		prop.SetUseMeanMomentum(kFALSE );
+		prop.SetContinuousTracking( kFALSE );
 		
-		if ((mcTrackMin != -1 && trackMCLabels[i] < mcTrackMin) || (mcTrackMax != -1 && trackMCLabels[i] >= mcTrackMax)) continue;
-		
-		if (!track.OK()) continue;
-		if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
-		if (mc1.fCharge == 0.) continue;
-		if (mc1.fPID < 0) continue;
-		if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
-		
-		float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
-		float c = TMath::Cos(track.GetAlpha());
-		float s = TMath::Sin(track.GetAlpha());
-		float x = mc1.fX;
-		float y = mc1.fY;
-		mclocal[0] = x*c + y*s;
-		mclocal[1] =-x*s + y*c;
-		float px = mc1.fPx;
-		float py = mc1.fPy;
-		mclocal[2] = px*c + py*s;
-		mclocal[3] =-px*s + py*c;
-		
-		AliHLTTPCGMTrackParam param = track.GetParam();
-		
-		if (mclocal[0] < 80) continue;
-		if (mclocal[0] > param.GetX() + 20) continue;
+		for (int i = 0; i < merger.NOutputTracks(); i++)
+		{
+			if (trackMCLabels[i] < 0) continue;
+			const AliHLTTPCCAMCInfo& mc1 = hlt.GetMCInfo()[trackMCLabels[i]];
+			const additionalMCParameters& mc2 = mcParam[trackMCLabels[i]];
+			const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[i];
+			
+			if ((mcTrackMin != -1 && trackMCLabels[i] < mcTrackMin) || (mcTrackMax != -1 && trackMCLabels[i] >= mcTrackMax)) continue;
+			
+			if (!track.OK()) continue;
+			if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
+			if (mc1.fCharge == 0.) continue;
+			if (mc1.fPID < 0) continue;
+			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
+			
+			float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
+			float c = TMath::Cos(track.GetAlpha());
+			float s = TMath::Sin(track.GetAlpha());
+			float x = mc1.fX;
+			float y = mc1.fY;
+			mclocal[0] = x*c + y*s;
+			mclocal[1] =-x*s + y*c;
+			float px = mc1.fPx;
+			float py = mc1.fPy;
+			mclocal[2] = px*c + py*s;
+			mclocal[3] =-px*s + py*c;
+			
+			AliHLTTPCGMTrackParam param = track.GetParam();
+			
+			if (mclocal[0] < 80) continue;
+			if (mclocal[0] > param.GetX() + 20) continue;
 
-		float alpha = track.GetAlpha();		
-		prop.SetTrack(&param, alpha);	
-		bool inFlyDirection = 0;
-		if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() - mc1.fZ) * (param.Z() - mc1.fZ) > 25) continue;
-		
-		if (prop.PropagateToXAlpha( mclocal[0], alpha, inFlyDirection ) ) continue;
-		if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1. : 4.) || fabs(param.Z() - mc1.fZ) > (config.strict ? 1. : 4.)) continue;
-		
-		float deltaY = param.GetY() - mclocal[1];
-		float deltaZ = param.GetZ() - mc1.fZ;
-		float deltaPhi = TMath::ASin(param.GetSinPhi()) - TMath::ATan2(mclocal[3], mclocal[2]);
-		float deltaLambda = TMath::ATan(param.GetDzDs()) - TMath::ATan2(mc1.fPz, mc2.pt);
-		float deltaPt = (fabs(1. / param.GetQPt()) - mc2.pt) / mc2.pt;
-		
-		float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
-		float resval[5] = {deltaY, deltaZ, deltaPhi, deltaLambda, deltaPt};
-		
-		for (int j = 0;j < 5;j++)
-		{
-			for (int k = 0;k < 5;k++)
+			float alpha = track.GetAlpha();		
+			prop.SetTrack(&param, alpha);	
+			bool inFlyDirection = 0;
+			if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() - mc1.fZ) * (param.Z() - mc1.fZ) > 25) continue;
+			
+			if (prop.PropagateToXAlpha( mclocal[0], alpha, inFlyDirection ) ) continue;
+			if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1. : 4.) || fabs(param.Z() - mc1.fZ) > (config.strict ? 1. : 4.)) continue;
+			
+			float deltaY = param.GetY() - mclocal[1];
+			float deltaZ = param.GetZ() - mc1.fZ;
+			float deltaPhi = TMath::ASin(param.GetSinPhi()) - TMath::ATan2(mclocal[3], mclocal[2]);
+			float deltaLambda = TMath::ATan(param.GetDzDs()) - TMath::ATan2(mc1.fPz, mc2.pt);
+			float deltaPt = (fabs(1. / param.GetQPt()) - mc2.pt) / mc2.pt;
+			
+			float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
+			float resval[5] = {deltaY, deltaZ, deltaPhi, deltaLambda, deltaPt};
+			
+			for (int j = 0;j < 5;j++)
 			{
-				if (k != 3 && fabs(mc2.eta) > ETA_MAX2) continue;
-				if (k < 4 && mc2.pt < 1. / config.qpt) continue;
-				res2[j][k]->Fill(resval[j], paramval[k]);
-			}
-		}
-	}
-	if (TIMING) printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
-	timer.ResetStart();
-	
-	//Fill Cluster Histograms
-	for (int i = 0;i < hlt.GetNMCInfo();i++)
-	{
-		const additionalMCParameters& mc2 = mcParam[i];
-		
-		float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
-		clusters[3]->Fill(pt, mc2.nWeightCls);
-		if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc2.nWeightCls);
-	}
- 	for (int i = 0;i < hlt.GetNMCLabels();i++)
- 	{
-		float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached;
-		if (totalAttached <= 0) continue;
-		float totalWeight = 0.;
-		for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
-		if (totalWeight > 0)
-		{
-			for (int j = 0;j < 3;j++)
-			{
-				if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0)
+				for (int k = 0;k < 5;k++)
 				{
-					float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
-					if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
-					clusters[0]->Fill(pt, clusterParam[i].attached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
-					clusters[1]->Fill(pt, clusterParam[i].fakeAttached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+					if (k != 3 && fabs(mc2.eta) > ETA_MAX2) continue;
+					if (k < 4 && mc2.pt < 1. / config.qpt) continue;
+					res2[j][k]->Fill(resval[j], paramval[k]);
 				}
 			}
 		}
+		if (TIMING) printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		timer.ResetStart();
+		
+		//Fill Cluster Histograms
+		for (int i = 0;i < hlt.GetNMCInfo();i++)
+		{
+			const additionalMCParameters& mc2 = mcParam[i];
+			
+			float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
+			clusters[3]->Fill(pt, mc2.nWeightCls);
+			if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc2.nWeightCls);
+		}
+	 	for (int i = 0;i < hlt.GetNMCLabels();i++)
+	 	{
+			float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached;
+			if (totalAttached <= 0) continue;
+			float totalWeight = 0.;
+			for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
+			if (totalWeight > 0)
+			{
+				for (int j = 0;j < 3;j++)
+				{
+					if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0)
+					{
+						float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
+						if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
+						clusters[0]->Fill(pt, clusterParam[i].attached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+						clusters[1]->Fill(pt, clusterParam[i].fakeAttached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+					}
+				}
+			}
+		}
+		if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
+		timer.ResetStart();
 	}
-	if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
-	timer.ResetStart();
 	
 	//Fill other histograms
 	for (int i = 0;i < merger.NOutputTracks(); i++)
@@ -610,7 +607,10 @@ void RunQA()
 	//Create CSV DumpTrackHits
 	if (config.csvDump)
 	{
-		std::vector<float> clusterInfo(hlt.GetNMCLabels());
+		int totalNCls = hlt.GetNMCLabels();
+		if (totalNCls == 0) for (int iSlice = 0; iSlice < 36; iSlice++) totalNCls += hlt.ClusterData(iSlice).NumberOfClusters();
+			
+		std::vector<float> clusterInfo(totalNCls);
 		memset(clusterInfo.data(), 0, clusterInfo.size() * sizeof(clusterInfo[0]));
 		for (int i = 0; i < merger.NOutputTracks(); i++)
 		{
@@ -626,9 +626,9 @@ void RunQA()
 		}
 		static int csvNum = 0;
 		char fname[256];
-		sprintf(fname, "dump.%d.csv", csvNum++);
+		sprintf(fname, "dump.%d.csv", csvNum);
 		FILE* fp = fopen(fname, "w+");
-		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum\n\n");
+		fprintf(fp, "x;y;z;reconstructedPt;individualMomentum;individualTransverseMomentum;trackLabel1;trackLabel2;trackLabel3\n\n");
 		int clustersAttached = 0;
 		for (int iSlice = 0; iSlice < 36; iSlice++)
 		{
@@ -639,7 +639,10 @@ void RunQA()
 				float x, y, z;
 				merger.SliceParam().Slice2Global(cdata.X(i), cdata.Y(i), cdata.Z(i), &x, &y, &z);
 				float totalWeight = 0.f;
-				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[cid].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[cid].fClusterID[j].fWeight;
+				if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
+					for (int j = 0;j < 3;j++)
+						if (hlt.GetMCLabels()[cid].fClusterID[j].fMCID >= 0)
+							totalWeight += hlt.GetMCLabels()[cid].fClusterID[j].fWeight;
 				
 				float maxPt = 0.;
 				float p = 0.;
@@ -663,10 +666,27 @@ void RunQA()
 					}
 				}
 				if (clusterInfo[cid] > 0.) clustersAttached++;
-				fprintf(fp, "%f;%f;%f;%f;%f;%f\n", x, y, z, clusterInfo[cid], p, maxPt);
+				int labels[3] = {};
+				if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
+					for (int i = 0;i < 3;i++)
+						labels[i] = hlt.GetMCLabels()[cid].fClusterID[i].fMCID;
+				fprintf(fp, "%f;%f;%f;%f;%f;%f;%d;%d;%d\n", x, y, z, clusterInfo[cid], p, maxPt, labels[0], labels[1], labels[2]);
 			}
 		}
 		fclose(fp);
+		if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
+		{
+			sprintf(fname, "dump_event.%d.csv", csvNum++);
+			fp = fopen(fname, "w+");
+			fprintf(fp, "trackLabel;trackMomentum;trackMomentumTransverse;trackMomentumZ\n\n");
+			for (int i = 0;i < hlt.GetNMCInfo();i++)
+			{
+				const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
+				additionalMCParameters& mc2 = mcParam[i];
+				if (mc2.nWeightCls > 0) fprintf(fp, "%d;%f;%f;%f\n", i, sqrt(info.fPx * info.fPx + info.fPy * info.fPy + info.fPz * info.fPz), mc2.pt, info.fPz);
+			}
+			fclose(fp);
+		}
 		printf("Wrote %s, %d out of %lu clusters attached (%6.2f%%)\n", fname, clustersAttached, clusterInfo.size(), 100.f * clustersAttached / clusterInfo.size());
 	} 
 }
