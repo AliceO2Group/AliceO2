@@ -53,7 +53,7 @@ public:
   
   GPUd() int PropagateToXAlpha( float posX, float posAlpha, bool inFlyDirection );
 
-  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
+  //  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
 
   GPUd() int Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, bool rejectChi2 );  
 
@@ -90,7 +90,7 @@ private:
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
 : fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
-  fUseMeanMomentum(0), fContinuousTracking(0), fFitInProjections(1), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
+  fUseMeanMomentum(0), fContinuousTracking(0), fFitInProjections(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
 {
 }
 
