@@ -56,7 +56,7 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-: AliHLTProcessor(), fVersion(1), fGlobalMergerVersion0( 0 ), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fNWays(1), fBenchmark("GlobalMerger")
+: AliHLTProcessor(), fVersion(1), fGlobalMergerVersion0( 0 ), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fNWays(1), fNWaysOuter(0), fBenchmark("GlobalMerger")
 {
   // see header file for class documentation
 }
@@ -86,15 +86,21 @@ void AliHLTTPCCAGlobalMergerComponent::GetInputDataTypes( AliHLTComponentDataTyp
   // see header file for class documentation
   list.clear();
   list.push_back( AliHLTTPCCADefinitions::fgkTrackletsDataType );
-  //list.push_back( AliHLTTPCDefinitions::fgkTrackSegmentsDataType );
-  //list.push_back( AliHLTTPCDefinitions::fgkVertexDataType );
 }
 
 AliHLTComponentDataType AliHLTTPCCAGlobalMergerComponent::GetOutputDataType()
 {
   // see header file for class documentation
-  //return AliHLTTPCDefinitions::fgkTracksDataType; // old
-  return kAliHLTDataTypeTrack|kAliHLTDataOriginTPC;
+  return kAliHLTMultipleDataType;
+}
+
+int AliHLTTPCCAGlobalMergerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList) { 
+  // see header file for class documentation
+
+  tgtList.clear();
+  tgtList.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC );
+  tgtList.push_back( AliHLTTPCDefinitions::TracksDataType() | kAliHLTDataOriginTPC );
+  return tgtList.size();
 }
 
 void AliHLTTPCCAGlobalMergerComponent::GetOutputDataSize( unsigned long &constBase, double &inputMultiplier )
@@ -123,6 +129,7 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   fClusterErrorCorrectionZ = 1.1;
   fHighQPtForward = 1.e10;
   fNWays = 1;
+  fNWaysOuter = 0;
   fBenchmark.Reset();
   fBenchmark.SetTimer(0,"total");
   fBenchmark.SetTimer(1,"reco");    
@@ -183,8 +190,14 @@ int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* argu
 
     if ( argument.CompareTo( "-nways" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fHighQPtForward = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      fNWays = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
       HLTInfo( "nways set to: %d", fNWays );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-nwaysouter" ) == 0 ) {
+      fNWaysOuter = 1;
+      HLTInfo( "nwaysouter enabled" );
       continue;
     }
 
@@ -304,6 +317,7 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
     delete[] rowX;
     param.SetHighQPtForward(fHighQPtForward);
 	param.SetNWays(fNWays);
+    param.SetNWaysOuter(fNWaysOuter);
   }
 
 
@@ -471,7 +485,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 	  currOutTrack->fLastZ = tpEnd.GetZ();
 	}
 	currOutTrack->fq1Pt = tp.GetSigned1Pt();
-	currOutTrack->fSinPsi = tp.GetSnp();
+	currOutTrack->fSinPhi = tp.GetSnp();
 	currOutTrack->fTgl = tp.GetTgl();
 	for( int i=0; i<15; i++ ) currOutTrack->fC[i] = tp.GetCovariance()[i];
 	currOutTrack->fTrackID = itr;
@@ -539,7 +553,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 	currOutTrack->fLastZ = track.LastZ();
       
 	currOutTrack->fq1Pt = tp.GetSigned1Pt();
-	currOutTrack->fSinPsi = tp.GetSnp();
+	currOutTrack->fSinPhi = tp.GetSnp();
 	currOutTrack->fTgl = tp.GetTgl();
 	for( int i=0; i<15; i++ ) currOutTrack->fC[i] = tp.GetCovariance()[i];
 	currOutTrack->fTrackID = itr;
@@ -557,6 +571,66 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       resultData.fOffset = 0;
       resultData.fSize = mySize;
       resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginTPC;
+      resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
+      outputBlocks.push_back( resultData );
+      fBenchmark.AddOutput(resultData.fSize);
+      
+      size = resultData.fSize;
+    }
+    
+    if (fNWays > 1 && fNWaysOuter)
+    {
+      unsigned int newSize = 0;
+      AliHLTTracksData* outPtr = ( AliHLTTracksData* )( outputPtr + size );
+      AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
+      newSize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( outputPtr + size );
+      outPtr->fCount = 0;   
+      int nTracks = fGlobalMerger->NOutputTracks();
+
+      for ( int itr = 0; itr < nTracks; itr++ ) {
+        const AliHLTTPCGMMergedTrack &track = fGlobalMerger->OutputTracks()[ itr ];
+        if( !track.OK() ) continue;
+        unsigned int dSize = sizeof( AliHLTExternalTrackParam );
+        
+        if ( mySize + newSize + dSize > maxBufferSize ) {
+          HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", maxBufferSize, mySize + newSize + dSize, nTracks - itr + 1 );
+          iResult = -ENOSPC;
+          break;
+        }
+
+        // first convert to AliExternalTrackParam
+
+        AliExternalTrackParam tp;
+        track.GetParam().GetExtParam( tp,  track.GetAlpha() );
+            
+        // normalize the angle to +-Pi
+              
+        currOutTrack->fAlpha = track.GetParam().OuterParam().fAlpha - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
+        currOutTrack->fX = track.GetParam().OuterParam().fX;
+        currOutTrack->fY = track.GetParam().OuterParam().fP[0];
+        currOutTrack->fZ = track.GetParam().OuterParam().fP[1];
+        currOutTrack->fLastX = track.LastX();
+        currOutTrack->fLastY = track.LastY();
+        currOutTrack->fLastZ = track.LastZ();
+            
+        currOutTrack->fq1Pt = track.GetParam().OuterParam().fP[4];
+        currOutTrack->fSinPhi = track.GetParam().OuterParam().fP[2];
+        currOutTrack->fTgl = track.GetParam().OuterParam().fP[3];
+        for( int i=0; i<15; i++ ) currOutTrack->fC[i] = track.GetParam().OuterParam().fC[i];
+        currOutTrack->fTrackID = itr;
+        currOutTrack->fFlags = 0;
+        currOutTrack->fNPoints = 0;
+        
+        currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+        newSize += dSize;
+        outPtr->fCount++;
+      }
+  
+      AliHLTComponentBlockData resultData;
+      FillBlockData( resultData );
+      resultData.fOffset = mySize;
+      resultData.fSize = newSize;
+      resultData.fDataType = AliHLTTPCDefinitions::TracksDataType() | kAliHLTDataOriginTPC;
       resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
       outputBlocks.push_back( resultData );
       fBenchmark.AddOutput(resultData.fSize);

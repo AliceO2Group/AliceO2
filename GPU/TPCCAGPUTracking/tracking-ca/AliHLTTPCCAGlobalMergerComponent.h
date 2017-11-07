@@ -54,6 +54,7 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
      * @copydoc AliHLTComponent::GetInputDataTypes
      */
     void GetInputDataTypes( AliHLTComponentDataTypeList &list );
+    int GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
 
     /**
      * @copydoc AliHLTComponent::GetOutputDataType
@@ -124,6 +125,7 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     double fClusterErrorCorrectionZ; // correction for the cluster error during pre-fit
 	float fHighQPtForward; //Setting for TPCCAMerger
 	int fNWays; //Setting for merger
+    bool fNWaysOuter;
     AliHLTComponentBenchmark fBenchmark;// benchmark
 
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )

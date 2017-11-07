@@ -53,6 +53,7 @@ AddOption(qa, bool, false, "qa", 'q', "Enable tracking QA", message("Running QA:
 AddOption(resetids, bool, false, "enumerateClusterIDs", 0, "Enumerate cluster IDs when loading clusters overwriting predefined IDs")
 AddOption(lowpt, bool, false, "lowPt", 'l', "Special treatment of low-Pt tracks")
 AddOption(nways, int, 1, "3Way", 0, "Use 3-way track-fit", set(3), min(1))
+AddOption(nwaysouter, bool, false, "OuterParam", 0, "Create OuterParam")
 AddOption(dzdr, float, 2.5f, "DzDr", 0, "Use dZ/dR search window instead of vertex window")
 AddOption(cont, bool, false, "continuous", 0, "Process continuous timeframe data")
 AddOption(outputcontrolmem, unsigned long long int, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ull), message("Using %lld bytes as output memory"))

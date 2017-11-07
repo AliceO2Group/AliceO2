@@ -112,6 +112,13 @@ public:
   }
   
   GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param);
+  
+  struct AliHLTTPCCAOuterParam {
+      float fX, fAlpha;
+      float fP[5];
+      float fC[15];
+  };
+  GPUd() const AliHLTTPCCAOuterParam& OuterParam() const {return fOuterParam;}
 
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
   bool GetExtParam( AliExternalTrackParam &T, double alpha ) const;
@@ -125,6 +132,7 @@ public:
     float fC[15];  // the covariance matrix for Y,Z,SinPhi,..
     float fChi2;   // the chi^2 value
     int   fNDF;    // the Number of Degrees of Freedom
+    AliHLTTPCCAOuterParam fOuterParam;
 };
 
 GPUd() inline void AliHLTTPCGMTrackParam::ResetCovariance()
