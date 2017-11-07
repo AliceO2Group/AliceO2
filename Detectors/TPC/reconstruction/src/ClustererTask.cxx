@@ -86,7 +86,7 @@ InitStatus ClustererTask::Init()
   if (mBoxClustererEnable) {
 
     // Create and register output container
-    mClustersArray = new std::vector<o2::TPC::BoxCluster>;
+    mClustersArray = new std::vector<o2::TPC::Cluster>;
     mgr->RegisterAny("TPCCluster", mClustersArray, kTRUE);
 
     mgr->Register("TPCClusterMCTruth", "TPC", &mClustersMCTruthArray, kTRUE);

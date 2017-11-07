@@ -80,7 +80,7 @@ class ClustererTask : public FairTask{
     std::vector<o2::TPC::Digit> const  *mDigitsArray;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> const *mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
     // produced data containers
-    std::vector<o2::TPC::BoxCluster>  *mClustersArray;
+    std::vector<o2::TPC::Cluster>  *mClustersArray;
     std::vector<o2::TPC::HwCluster>  *mHwClustersArray;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mClustersArrays
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mHwClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mHwClustersArrays

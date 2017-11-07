@@ -93,7 +93,6 @@
 #include "TPCReconstruction/BoxClusterer.h"
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/ClusterContainer.h"
-#include "TPCReconstruction/BoxCluster.h"
 
 #include "FairLogger.h"
 #include "TMath.h"
@@ -104,7 +103,7 @@ ClassImp(o2::TPC::BoxClusterer)
 using namespace o2::TPC;
 
 //________________________________________________________________________
-BoxClusterer::BoxClusterer(std::vector<o2::TPC::BoxCluster> *output):
+BoxClusterer::BoxClusterer(std::vector<o2::TPC::Cluster> *output):
   Clusterer(),
   mClusterArray(output),
   mAllBins(nullptr),
@@ -352,8 +351,7 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 	Short_t nPad = maxP-minP+1;
 	Short_t nTimeBins = maxT-minT+1;
 	Short_t size = 10*nPad+nTimeBins;
-	BoxCluster* cluster = ClusterContainer::AddCluster<BoxCluster>(mClusterArray, iCRU, iRow, qTot, qMax, meanP, meanT,sigmaP, sigmaT);
-	cluster->setBoxParameters(pad, timebin, size);
+	Cluster* cluster = ClusterContainer::AddCluster<Cluster>(mClusterArray, iCRU, iRow, qTot, qMax, meanP, meanT,sigmaP, sigmaT);
 
 //    if ((iCRU == 179)) {// && iRow == 5)){// && (int)meanP == 103 && (int)meanT == 170) || 
 ////        (iCRU == 256 && iRow == 10 && (int)meanP == 27 && (int)meanT == 181) ) {

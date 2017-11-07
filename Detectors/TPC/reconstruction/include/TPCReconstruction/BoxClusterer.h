@@ -18,29 +18,29 @@
 
 #include "Rtypes.h"
 #include "TPCReconstruction/Clusterer.h"
-#include "TPCReconstruction/BoxCluster.h"
+#include "TPCReconstruction/Cluster.h"
 #include "TPCBase/CalDet.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2{
-  
+
   namespace TPC {
-    
+
     class ClusterContainer;
-    
+
     class BoxClusterer : public Clusterer {
     public:
-      BoxClusterer(std::vector<o2::TPC::BoxCluster> *output);
-      
+      BoxClusterer(std::vector<o2::TPC::Cluster> *output);
+
       /// Destructor
       ~BoxClusterer() override;
-      
+
       // Should this really be a public member?
       // Maybe better to just call by process
       void Init() override;
-      
+
       /// Steer conversion of points to digits
       /// @param digits Container with TPC digits
       /// @param mcDigitTruth MC Digit Truth container
@@ -48,7 +48,7 @@ namespace o2{
       /// @return Container with clusters
       void Process(std::vector<o2::TPC::Digit> const & digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) override;
       void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) override;
-      
+
       /// Set a pedestal object
       void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
 
@@ -56,21 +56,21 @@ namespace o2{
       // To be done
       /* BoxClusterer(const BoxClusterer &); */
       /* BoxClusterer &operator=(const BoxClusterer &); */
-      
+
       void FindLocalMaxima(const Int_t iCRU);
       void CleanArrays();
       void GetPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin);
-      Int_t Update(const Int_t iCRU, const Int_t iRow, const Int_t iPad, 
+      Int_t Update(const Int_t iCRU, const Int_t iRow, const Int_t iPad,
 		   const Int_t iTimeBin, Float_t signal);
       Float_t GetQ(const Float_t* adcArray, const Short_t pad,
-           const Short_t time, Short_t& timeMin, Short_t& timeMax, 
+           const Short_t time, Short_t& timeMin, Short_t& timeMax,
 		   Short_t& padMin, Short_t& padMax) const;
-      Bool_t UpdateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime, 
-			   Float_t& qTotal, Double_t& meanPad, 
-			   Double_t& sigmaPad, Double_t& meanTime, 
+      Bool_t UpdateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime,
+			   Float_t& qTotal, Double_t& meanPad,
+			   Double_t& sigmaPad, Double_t& meanTime,
 			   Double_t& sigmaTime);
-      
-      
+
+
       //
       //  Expand buffer
       //
@@ -79,12 +79,12 @@ namespace o2{
       Int_t*    mAllNSigBins;  //!<! Array with number of signals in each row
       CalPad*   mPedestals;    //!<! Pedestal data
 
-      std::vector<o2::TPC::BoxCluster>* mClusterArray; ///< Internal cluster storage
-      
+      std::vector<o2::TPC::Cluster>* mClusterArray; ///< Internal cluster storage
+
       ClassDefNV(BoxClusterer, 1);
     };
   }
 }
 
 
-#endif 
+#endif

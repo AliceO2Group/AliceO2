@@ -144,7 +144,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
 
   // ===| output file and container |===========================================
   std::vector<o2::TPC::HwCluster> arrCluster;
-  std::vector<o2::TPC::BoxCluster> *arrClusterBox = nullptr;
+  std::vector<o2::TPC::Cluster> *arrClusterBox = nullptr;
   float cherenkovValue = 0.;
   int runNumber = 0;
 
