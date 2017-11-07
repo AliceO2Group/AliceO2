@@ -20,7 +20,7 @@ struct AliHLTTRDTrackDataRecord
   AliHLTFloat32_t fX;      // x: radial distance
   AliHLTFloat32_t fY;      // local Y-coordinate of a track (cm)
   AliHLTFloat32_t fZ;      // local Z-coordinate of a track (cm)
-  AliHLTFloat32_t fSinPsi; // local sine of the track momentum azimuthal angle
+  AliHLTFloat32_t fSinPhi; // local sine of the track momentum azimuthal angle
   AliHLTFloat32_t fTgl;    // tangent of the track momentum dip angle
   AliHLTFloat32_t fq1Pt;   // 1/pt (1/(GeV/c))
   AliHLTFloat32_t fC[15];  // covariance matrix
