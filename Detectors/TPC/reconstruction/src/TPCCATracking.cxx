@@ -22,7 +22,6 @@
 #include "TPCBase/Sector.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "TPCReconstruction/Cluster.h"
-#include "TPCReconstruction/HwCluster.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
@@ -64,7 +63,7 @@ void TPCCATracking::deinitialize() {
   mClusterData = nullptr;
 }
 
-int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2::TPC::HwCluster>* inputClustersArray, std::vector<TrackTPC>* outputTracks) {
+int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2::TPC::Cluster>* inputClustersArray, std::vector<TrackTPC>* outputTracks) {
   if (mTrackingCAO2Interface == nullptr) return (1);
   if (inputClustersChain && inputClustersArray) {
     LOG(FATAL) << "Internal error, must not pass in both TChain and TClonesArray of clusters\n";

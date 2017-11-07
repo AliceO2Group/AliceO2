@@ -22,7 +22,7 @@
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
-#include "TPCSimulation/HwCluster.h"
+#include "TPCSimulation/Cluster.h"
 #include "TPCBase/Mapper.h"
 #endif
 
@@ -44,7 +44,7 @@ void testTracks(int checkEvent = 0,
   TFile *clusFile = TFile::Open(clusterFile.data());
   TTree *clusterTree = (TTree *)gDirectory->Get("cbmsim");
 
-  std::vector<o2::TPC::HwCluster> *clusters=nullptr;
+  std::vector<o2::TPC::Cluster> *clusters=nullptr;
   clusterTree->SetBranchAddress("TPCClusterHW",&clusters);
 
   TGraph *grClusters   = new TGraph();

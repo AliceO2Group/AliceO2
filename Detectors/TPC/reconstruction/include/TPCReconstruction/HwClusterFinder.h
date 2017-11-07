@@ -20,7 +20,7 @@
 namespace o2{
 namespace TPC {
 
-class HwCluster;
+class Cluster;
     
 /// \class HwClusterFinder
 /// \brief Class for TPC HW cluster finder
@@ -88,10 +88,10 @@ class HwClusterFinder {
     bool  getRequirePositiveCharge() const        { return mRequirePositiveCharge; }
     bool  getRequireNeighbouringPad() const       { return mRequireNeighbouringPad; }
     bool  getRequireNeighbouringTimebin() const   { return mRequireNeighbouringTimebin; }
-    bool  getAutoProcessing() const                { return mAutoProcessing; } 
+    bool  getAutoProcessing() const               { return mAutoProcessing; } 
     bool  getmAssignChargeUnique() const          { return mAssignChargeUnique; }
-    HwClusterFinder*          getNextCF() const     { return mNextCF; }
-    std::vector<HwCluster>*   getClusterContainer() { return &clusterContainer; }
+    HwClusterFinder* getNextCF() const            { return mNextCF; }
+    std::vector<Cluster>* getClusterContainer()   { return &clusterContainer; }
 
     // Setter functions
     void  setTimebinsAfterLastProcessing(int val)       { mTimebinsAfterLastProcessing = val; };
@@ -131,7 +131,7 @@ class HwClusterFinder {
     void printCluster(short time, short pad);
 
     // local variables
-    std::vector<HwCluster> clusterContainer;
+    std::vector<o2::TPC::Cluster> clusterContainer;
     int mTimebinsAfterLastProcessing;
     float** mData;
     float** tmpCluster;

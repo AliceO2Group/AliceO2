@@ -53,10 +53,10 @@ class HwCluster : public Cluster {
     /// \param other HwCluster to be copied
     HwCluster(const HwCluster& other);
 
-    short getPad() const { return mPad; }
-    short getTime() const { return mTime; }
-    short getSizeP() const { return mSizeP; }
-    short getSizeT() const { return mSizeT; }
+//    short getPad() const { return mPad; }
+//    short getTime() const { return mTime; }
+//    short getSizeP() const { return mSizeP; }
+//    short getSizeT() const { return mSizeT; }
 
     /// Set all cluster data
     /// \param cru CRU

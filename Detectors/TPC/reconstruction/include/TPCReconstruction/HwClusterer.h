@@ -15,7 +15,7 @@
 #define ALICEO2_TPC_HWClusterer_H_
 
 #include "TPCReconstruction/Clusterer.h"
-#include "TPCReconstruction/HwCluster.h"
+#include "TPCReconstruction/Cluster.h"
 #include "TPCBase/CalDet.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -27,10 +27,8 @@
 namespace o2{
 namespace TPC {
 
-class ClusterContainer;
 class ClustererTask;
 class HwClusterFinder;
-class HwCluster;
 class Digit;
 
 /// \class HwClusterer
@@ -53,8 +51,8 @@ class HwClusterer : public Clusterer {
     /// \param timebinsPerCF Timebins per cluster finder
     /// \param cfPerRow Number of cluster finder in each row
     HwClusterer(
-	std::vector<o2::TPC::HwCluster> *output,
-	Processing processingType = Processing::Parallel,
+        std::vector<o2::TPC::Cluster> *output,
+        Processing processingType = Processing::Parallel,
         int globalTime = 0,
         int cruMin = 0,
         int cruMax = 360,
@@ -114,7 +112,7 @@ class HwClusterer : public Clusterer {
     static void processDigits(
         const std::vector<std::vector<std::pair<Digit const*, gsl::span<const o2::MCCompLabel>>>>& digits,
         const std::vector<std::vector<HwClusterFinder*>>& clusterFinder,
-              std::vector<HwCluster>& cluster,
+              std::vector<Cluster>& cluster,
               CfConfig config);
 
     void ProcessTimeBins(int iTimeBinMin, int iTimeBinMax);
@@ -122,7 +120,7 @@ class HwClusterer : public Clusterer {
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
     std::vector<std::vector<std::vector<std::pair<Digit const*, gsl::span<const o2::MCCompLabel>>>>> mDigitContainer;
 
-    std::vector<std::vector<HwCluster>> mClusterStorage;
+    std::vector<std::vector<Cluster>> mClusterStorage;
 
     Processing    mProcessingType;
 
@@ -139,7 +137,7 @@ class HwClusterer : public Clusterer {
     int     mCfPerRow;
     int     mLastTimebin;
 
-    std::vector<o2::TPC::HwCluster>* mClusterArray;    ///< Internal cluster storage
+    std::vector<o2::TPC::Cluster>* mClusterArray;    ///< Internal cluster storage
 
     CalDet<float>* mNoiseObject;
     CalDet<float>* mPedestalObject;

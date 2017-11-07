@@ -98,7 +98,7 @@ InitStatus ClustererTask::Init()
 
   if (mHwClustererEnable) {
     // Register output container
-    mHwClustersArray = new std::vector<o2::TPC::HwCluster>;
+    mHwClustersArray = new std::vector<o2::TPC::Cluster>;
     mgr->RegisterAny("TPCClusterHW", mHwClustersArray, kTRUE);
 
     mgr->Register("TPCClusterHWMCTruth", "TPC", &mHwClustersMCTruthArray, kTRUE);

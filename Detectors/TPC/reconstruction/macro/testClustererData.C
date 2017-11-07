@@ -42,7 +42,7 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   int mTimeBinsPerCall=500;
 
   // ===| output file and container |===========================================
-  std::vector<o2::TPC::HwCluster> arrCluster;
+  std::vector<o2::TPC::Cluster> arrCluster;
   TFile fout(outputFileName,"recreate");
   TTree t("clusters","clusters");
   t.Branch("cl", &arrCluster);

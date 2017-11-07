@@ -58,7 +58,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString chere
   float cherenkovValue = 0.;
   int runNumber = 0;
 
-  std::vector<o2::TPC::HwCluster> *clusters=nullptr;
+  std::vector<o2::TPC::Cluster> *clusters=nullptr;
   c.SetBranchAddress("TPCClusterHW", &clusters);
   //c.SetBranchAddress("TPC_Cluster", &clusters);
   c.SetBranchAddress("cherenkovValue", &cherenkovValue);

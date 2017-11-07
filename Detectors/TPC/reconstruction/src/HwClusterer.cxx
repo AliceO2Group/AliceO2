@@ -11,10 +11,8 @@
 /// \file AliTPCUpgradeHwClusterer.cxx
 /// \brief Hwclusterer for the TPC
 
-#include "TPCReconstruction/HwCluster.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCReconstruction/HwClusterFinder.h"
-#include "TPCReconstruction/ClusterContainer.h"
 #include "TPCBase/Digit.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CRU.h"
@@ -33,7 +31,7 @@ std::mutex g_display_mutex;
 using namespace o2::TPC;
 
 //________________________________________________________________________
-HwClusterer::HwClusterer(std::vector<o2::TPC::HwCluster> *output, Processing processingType, int globalTime, int cruMin, int cruMax, float minQDiff,
+HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *output, Processing processingType, int globalTime, int cruMin, int cruMax, float minQDiff,
     bool assignChargeUnique, bool enableNoiseSim, bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF, int cfPerRow)
   : Clusterer()
   , mClusterArray(output)
@@ -125,7 +123,7 @@ void HwClusterer::Init()
 void HwClusterer::processDigits(
     const std::vector<std::vector<std::pair<Digit const*, gsl::span<const o2::MCCompLabel>>>>& digits,
     const std::vector<std::vector<HwClusterFinder*>>& clusterFinder,
-          std::vector<HwCluster>& cluster,
+          std::vector<Cluster>& cluster,
     const CfConfig config)
 {
   int timeDiff = (config.iMaxTimeBin+1) - config.iMinTimeBin;
@@ -232,8 +230,8 @@ void HwClusterer::processDigits(
      * collect found cluster
      */
     for (std::vector<HwClusterFinder*>::const_reverse_iterator &cf_it : cfWithCluster) {
-      std::vector<HwCluster>* cc = (*cf_it)->getClusterContainer();
-      for (HwCluster& c : *cc){
+      std::vector<Cluster>* cc = (*cf_it)->getClusterContainer();
+      for (Cluster& c : *cc){
         cluster.push_back(c);
       }
       (*cf_it)->clearClusterContainer();
@@ -389,9 +387,8 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
    */
   for (auto& cc : mClusterStorage) {
     if (cc.size() != 0) {
-      for (auto& c : cc){
-	ClusterContainer::AddCluster<HwCluster>(mClusterArray, c.getCRU(),c.getRow(),c.getQ(),c.getQmax(),
-            c.getPadMean(),c.getTimeMean(),c.getPadSigma(),c.getTimeSigma());
+      for (auto& c : cc) {
+        mClusterArray->emplace_back(c);
       }
     }
   }

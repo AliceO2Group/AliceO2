@@ -14,7 +14,7 @@
 
 #include "TPCReconstruction/HwClusterFinder.h"
 #include "TPCReconstruction/ClusterContainer.h"
-#include "TPCReconstruction/HwCluster.h"
+#include "TPCReconstruction/Cluster.h"
 
 #include "FairLogger.h"
 
@@ -25,7 +25,7 @@ using namespace o2::TPC;
 //________________________________________________________________________
 HwClusterFinder::HwClusterFinder(
     short cru, short row, short id,
-    short padOffset, short pads, short timebins, 
+    short padOffset, short pads, short timebins,
     float diffThreshold, float chargeThreshold,
     bool requirePositiveCharge)
   : mGlobalTimeOfLast(0)
@@ -50,7 +50,7 @@ HwClusterFinder::HwClusterFinder(
   , mZeroTimebin(nullptr)
   , mNextCF(nullptr)
 {
-  if (mPads < mClusterSizePads) { 
+  if (mPads < mClusterSizePads) {
     LOG(ERROR) << "Given width in pad direction is smaller than cluster size in pad direction."
       << " width in pad direction was increased to cluster size." << FairLogger::endl;
     mPads = mClusterSizePads;
@@ -68,7 +68,7 @@ HwClusterFinder::HwClusterFinder(
   short t,p;
   mData = new float*[mTimebins];
   for (t = 0; t < mTimebins; ++t){
-    mData[t] = new float[mPads]; 
+    mData[t] = new float[mPads];
     for (p = 0; p < mPads; ++p){
       mData[t][p] = 0;
     }
@@ -105,7 +105,7 @@ HwClusterFinder::HwClusterFinder(const HwClusterFinder& other)
   short t,p;
   mData = new float*[mTimebins];
   for (t = 0; t < mTimebins; ++t){
-    mData[t] = new float[mPads]; 
+    mData[t] = new float[mPads];
     for (p = 0; p < mPads; ++p){
       mData[t][p] = other.mData[t][p];
     }
@@ -189,9 +189,9 @@ bool HwClusterFinder::findCluster()
   //    o o|o_o_o_o|o o  <- tMin
   //    o o o o o o o o
   //    o o o o o o o o  <- 0
-  //      
   //
-  
+  //
+
   //
   // In time direction
   //
@@ -208,6 +208,15 @@ bool HwClusterFinder::findCluster()
   short delPm = -2;
   short delPp = 2;
 
+  double qMax;
+  double qTot;
+  double charge;
+  double meanP, meanT;
+  double sigmaP, sigmaT;
+  short minP, minT;
+  short maxP, maxT;
+  short deltaP, deltaT;
+  short clusterSize;
   //
   // peak finding
   //
@@ -245,11 +254,11 @@ bool HwClusterFinder::findCluster()
 //      printf("## cluster found at t=%d, p=%d (in CF %d in row %d of CRU %d)\n",t,p,mId,mRow,mCRU);
 //      printf("##\n");
 //      printCluster(t,p);
-        
+
       //
       // cluster was found!!
       //
-      
+
       // prepare temp storage
       for (tt=0; tt<mClusterSizeTime; ++tt) {
         for (pp=0; pp<mClusterSizePads; ++pp){
@@ -261,7 +270,6 @@ bool HwClusterFinder::findCluster()
       // Cluster peak (C) and surrounding inner 3x3 matrix (i) is always
       // used taken for the found cluster
       //
-      float charge;
       for (tt=1; tt<4; ++tt) {
         for (pp=1; pp<4; ++pp) {
           charge = mData[t+(tt-2)][p+(pp-2)];
@@ -270,37 +278,37 @@ bool HwClusterFinder::findCluster()
 //          mData[t+(tt-2)][p+(pp-2)] = 0;
         }
       }
-        
+
       //
       // The outer cells of the 5x5 matrix (o) are taken only if the
       // neighboring inner cell (i) has a signal above threshold.
       //
-      
+
       //
       // The cells of the "inner cross" have here only 1 neighbour.
-      // [t]                  
-      //  0         o          
-      //  1         i          
-      //  2     o i C i o      
-      //  3         i          
-      //  4         o          
+      // [t]
+      //  0         o
+      //  1         i
+      //  2     o i C i o
+      //  3         i
+      //  4         o
       //
       //    [p] 0 1 2 3 4
-      
+
     //tmpCluster[t][p]
       tmpCluster[0][2] = chargeForCluster(&mData[t-2][p  ],&mData[t-1][p  ]);   // t-X -> older
       tmpCluster[4][2] = chargeForCluster(&mData[t+2][p  ],&mData[t+1][p  ]);   // t+X -> newer
       tmpCluster[2][0] = chargeForCluster(&mData[t  ][p-2],&mData[t  ][p-1]);
       tmpCluster[2][4] = chargeForCluster(&mData[t  ][p+2],&mData[t  ][p+1]);
-      
-      
+
+
       // The cells of the corners have 3 neighbours.
       //    o o   o o
       //    o i   i o
-      //        C    
+      //        C
       //    o i   i o
       //    o o   o o
-      
+
       // bottom left
       tmpCluster[3][0] = chargeForCluster(&mData[t+1][p-2],&mData[t+1][p-1]);
       tmpCluster[4][0] = chargeForCluster(&mData[t+2][p-2],&mData[t+1][p-1]);
@@ -318,21 +326,70 @@ bool HwClusterFinder::findCluster()
       tmpCluster[0][0] = chargeForCluster(&mData[t-2][p-2],&mData[t-1][p-1]);
       tmpCluster[1][0] = chargeForCluster(&mData[t-1][p-2],&mData[t-1][p-1]);
 
-//      if ((mCRU == 179 && mRow == 1 && p+mPadOffset == 103 && mGlobalTimeOfLast-(mTimebins-1)+t == 170)/* ||
-//          (mCRU == 256 && mRow == 10 &&  p+mPadOffset == 27 && mGlobalTimeOfLast-(mTimebins-1)+t == 181)*/ ) {
-//        PrintLocalStorage();
-//      }
+      //
+      // calculate cluster Properties
+      //
+
+      qMax = tmpCluster[2][2];
+      qTot = 0;
+      meanP = 0;
+      meanT = 0;
+      sigmaP = 0;
+      sigmaT = 0;
+      minP = mClusterSizePads;
+      minT = mClusterSizeTime;
+      maxP = 0;
+      maxT = 0;
+      clusterSize = 0;
+      for (tt = 0; tt < mClusterSizeTime; ++tt) {
+        deltaT = tt - mClusterSizeTime/2;
+        for (pp = 0; pp < mClusterSizePads; ++pp) {
+          deltaP = pp - mClusterSizePads/2;
+
+          charge = tmpCluster[tt][pp];
+
+          qTot += charge;
+
+          meanP += charge * deltaP;
+          meanT += charge * deltaT;
+
+          sigmaP += charge * deltaP*deltaP;
+          sigmaT += charge * deltaT*deltaT;
+
+          if (charge > 0) {
+            minP = std::min(minP,pp); maxP = std::max(maxP,pp);
+            minT = std::min(minT,tt); maxT = std::max(maxT,tt);
+          }
+
+        }
+      }
+
+      clusterSize = (maxP-minP+1)*10 + (maxT-minT+1);
+
+      if (qTot > 0) {
+        meanP  /= qTot;
+        meanT  /= qTot;
+        sigmaP /= qTot;
+        sigmaT /= qTot;
+
+        sigmaP = std::sqrt(sigmaP - (meanP*meanP));
+        sigmaT = std::sqrt(sigmaT - (meanT*meanT));
+
+        meanP += p+mPadOffset;
+        meanT += mGlobalTimeOfLast-(mTimebins-1)+t;
+      }
 
       ++foundNclusters;
-      clusterContainer.emplace_back(mCRU, mRow, mClusterSizePads, mClusterSizeTime, tmpCluster,p+mPadOffset,mGlobalTimeOfLast-(mTimebins-1)+t);
+//      clusterContainer.emplace_back(mCRU, mRow, mClusterSizePads, mClusterSizeTime, tmpCluster,p+mPadOffset,mGlobalTimeOfLast-(mTimebins-1)+t);
+      clusterContainer.emplace_back(mCRU, mRow, qTot, qMax, meanP, sigmaP, meanT, sigmaT);
 
       if (mAssignChargeUnique) {
-        if (p < (pMin+4)) { 
+        if (p < (pMin+4)) {
           // If the cluster peak is in one of the 6 leftmost pads, the Cluster Finder
           // on the left has to know about it to ignore the already used pads.
           if (mNextCF != nullptr) mNextCF->clusterAlreadyUsed(t,p+mPadOffset,tmpCluster);
         }
-        
+
 
         //
         // subtract found cluster from storage
@@ -395,7 +452,7 @@ void HwClusterFinder::clusterAlreadyUsed(short time, short pad, float** cluster)
     if (t < 0 || t >= mTimebins) continue;
     for (p=localPad-2; p<=localPad+2; ++p){
       if (p < 0 || p >= mPads) continue;
-        
+
       mData[t][p] -= cluster[t-time+2][p-localPad+2];
     }
   }
