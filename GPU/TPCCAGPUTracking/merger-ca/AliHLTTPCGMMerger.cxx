@@ -278,7 +278,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
   for( int i=0; i<fgkNSlices; i++)
   {
       firstGlobalTracks[i] = 0;
-      if (fkSlices[i]->NLocalTracks() > maxSliceTracks) maxSliceTracks = fkSlices[i]->NLocalTracks();
+      if (fkSlices[i] && fkSlices[i]->NLocalTracks() > maxSliceTracks) maxSliceTracks = fkSlices[i]->NLocalTracks();
   }
 
   int* TrackIds = new int[maxSliceTracks * fgkNSlices];
