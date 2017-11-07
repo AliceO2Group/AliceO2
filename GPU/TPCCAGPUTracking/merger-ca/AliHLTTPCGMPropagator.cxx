@@ -355,22 +355,58 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   // propagate track and cov matrix with derivatives for (0,0,Bz) field
 
   float dS =  dLp*t0e.Pt();
-  float dL =  fabs(dLp*t0e.P());   
+  float dL =  fabs(dLp*t0e.P());
 
   if( inFlyDirection ) dL = -dL;
+
+  float ey = fT0.SinPhi();
+  float ex = fT0.CosPhi();
+  float exi = fT0.SecPhi();
+  float ey1 = t0e.SinPhi();
+  float ex1 = t0e.CosPhi();
+  float ex1i= t0e.SecPhi();
   
-  float bz = B[2];             
+  float bz = B[2];
   float k  = -fT0.QPt()*bz;
   float dx = posX - fT0.X();
-  float kdx = k*dx; 
-  float dxcci = dx / (fT0.CosPhi() + t0e.CosPhi());            
-      
-  float hh = dxcci*t0e.SecPhi()*(2.f+0.5f*kdx*kdx); 
-  float h02 = fT0.SecPhi()*hh;
-  float h04 = -bz*dxcci*hh;
-  float h13 = dS;  
-  float h24 = -dx*bz;
+  float kdx = k*dx;
+  float ss = ey + ey1;
+  float cc = ex + ex1;
+  float cci = 1.f/cc;
 
+  float tg = ss*cci;
+  float dxcci = dx * cci;
+
+  float xx = 1.f - 0.25f*kdx*kdx*( 1.f + tg*tg );
+
+  if( xx<1.e-8 ) return -1;
+    
+  xx = CAMath::Sqrt(xx);
+  float yy = CAMath::Sqrt(ss*ss+cc*cc);
+  
+  float hh = dxcci*ex1i*(1.f + ex*ex1 + ey*ey1 );
+  
+  float j02 = exi*hh;
+  float j04 = -bz*dxcci*hh;
+
+  float j12 = dx*fT0.DzDs()*tg*(2.f+tg*(ey*exi+ey1*ex1i))/(xx*yy);
+  float j13 = dS;
+  float j14 = 0;
+  if( CAMath::Abs(fT0.QPt())>1.e-6 ){
+    j14 = (2.f*xx*ex1i*dx/yy-dS)*fT0.DzDs()/fT0.QPt();    
+  } else {
+    j14 = -fT0.DzDs()*bz*dx*dx*exi*exi*exi
+      *( 0.5*ey + (1.f/3.f)*kdx*(1+2.f*ey*ey)*exi*exi
+	);
+  }
+  
+  float j24 = -dx*bz;
+
+  if( fFitInProjections ){
+    j12 = 0;
+    j14 = 0;    
+  }
+  
   float *p = fT->Par();
 
   float d0 = p[0] - fT0.Y();
@@ -379,60 +415,76 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   float d3 = p[3] - fT0.DzDs();
   float d4 = p[4] - fT0.QPt();
   
-  float newSinPhi = t0e.SinPhi() +  d2           + h24*d4;;
+  float newSinPhi = t0e.SinPhi() + d2 + j24*d4;
   if (fT->NDF() >= 15 && fabs(newSinPhi) > HLTCA_MAX_SIN_PHI) return(-4);
-  
+
   fT0 = t0e;
 
   fT->X() = t0e.X();
-  p[0] = t0e.Y() + d0    + h02*d2         + h04*d4;
-  p[1] = t0e.Z() + d1    + h13*d3;
+  p[0] = t0e.Y() + d0    + j02*d2         + j04*d4;
+  p[1] = t0e.Z() + d1    + j12*d2 + j13*d3 + j14*d4;
   p[2] = newSinPhi;
   p[3] = t0e.DzDs() + d3;
   p[4] = t0e.QPt() + d4;
 
   float *c = fT->Cov();
+  float c00 = c[ 0];
+
+  float c10 = c[ 1];
+  float c11 = c[ 2];
+
   float c20 = c[ 3];
   float c21 = c[ 4];
   float c22 = c[ 5];
+
   float c30 = c[ 6];
   float c31 = c[ 7];
   float c32 = c[ 8];
   float c33 = c[ 9];
+
   float c40 = c[10];
   float c41 = c[11];
   float c42 = c[12];
   float c43 = c[13];
   float c44 = c[14];
-  
-  float c20ph04c42 =  c20 + h04*c42;
-  float h02c22 = h02*c22;
-  float h04c44 = h04*c44;
-  
-  float n6 = c30 + h02*c32 + h04*c43;
-  float n7 = c31 + h13*c33;
-  float n10 = c40 + h02*c42 + h04c44;
-  float n11 = c41 + h13*c43;
-  float n12 = c42 + h24*c44;
+
+  float h00 = c00 + c20*j02 + c40*j04;
+  //float h01 = c10 + c21*j02 + c41*j04;
+  float h02 = c20 + c22*j02 + c42*j04;
+  //float h03 = c30 + c32*j02 + c43*j04;
+  float h04 = c40 + c42*j02 + c44*j04;
+
+  float h10 = c10 + c20*j12 + c30*j13 + c40*j14;
+  float h11 = c11 + c21*j12 + c31*j13 + c41*j14;
+  float h12 = c21 + c22*j12 + c32*j13 + c42*j14;
+  float h13 = c31 + c32*j12 + c33*j13 + c43*j14;
+  float h14 = c41 + c42*j12 + c43*j13 + c44*j14;
+
+  float h20 = c20 + c40*j24;
+  float h21 = c21 + c41*j24;
+  float h22 = c22 + c42*j24;
+  float h23 = c32 + c43*j24;
+  float h24 = c42 + c44*j24;
       
-  c[8] = c32 + h24*c43;
-  
-  c[0]+= h02*h02c22 + h04*h04c44 + float(2.f)*( h02*c20ph04c42  + h04*c40 );
-  
-  c[1]+= h02*c21 + h04*c41 + h13*n6;
-  c[6] = n6;
-  
-  c[2]+= h13*(c31 + n7);
-  c[7] = n7; 
-  
-  c[3] = c20ph04c42 + h02c22  + h24*n10;
-  c[10] = n10;
-  
-  c[4] = c21 + h13*c32 + h24*n11;
-  c[11] = n11;
-      
-  c[5] = c22 + h24*( c42 + n12 );
-  c[12] = n12;
+  c[ 0] = h00 + h02*j02 + h04*j04;
+
+  c[ 1] = h10 + h12*j02 + h14*j04;
+  c[ 2] = h11 + h12*j12 + h13*j13 + h14*j14;
+
+  c[ 3] = h20 + h22*j02 + h24*j04;
+  c[ 4] = h21 + h22*j12 + h23*j13 + h24*j14;
+  c[ 5] = h22 + h24*j24;
+
+  c[ 6] = c30 + c32*j02 + c43*j04;
+  c[ 7] = c31 + c32*j12 + c33*j13 + c43*j14;
+  c[ 8] = c32 + c43*j24;
+  //c[ 9] = c33;
+
+  c[10] = c40 + c42*j02 + c44*j04;
+  c[11] = c41 + c42*j12 + c43*j13 + c44*j14;
+  c[12] = c42 + c44*j24;
+  //c[13] = c43;
+  //c[14] = c44;
 
   // Energy Loss
   
@@ -475,6 +527,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   return 0;
 }
 
+/*
 GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection)
 {
   
@@ -613,6 +666,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   
   return 0;
 }
+*/
 
 GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow)
 {
