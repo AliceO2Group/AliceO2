@@ -245,7 +245,7 @@ void DrawSeeds(AliHLTTPCCATracker &tracker)
 		const AliHLTTPCCAHitId &hit = tracker.TrackletStartHit(i);
 		glBegin(GL_LINE_STRIP);
 		int ir = hit.RowIndex();
-		int ih = hit.HitIndex();
+		calink ih = hit.HitIndex();
 		do
 		{
 			const AliHLTTPCCARow &row = tracker.Data().Row(ir);
@@ -253,7 +253,7 @@ void DrawSeeds(AliHLTTPCCATracker &tracker)
 			drawPointLinestrip(cid, 3);
 			ir += 2;
 			ih = tracker.Data().HitLinkUpData(row, ih);
-		} while (ih != -1);
+		} while (ih != CALINK_INVAL);
 		glEnd();
 	}
 }
@@ -269,11 +269,11 @@ void DrawTracklets(AliHLTTPCCATracker &tracker)
 		for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++)
 		{
 #ifdef EXTERN_ROW_HITS
-			const int rowHit = tracker.TrackletRowHits()[j * *tracker.NTracklets() + i];
+			const calink rowHit = tracker.TrackletRowHits()[j * *tracker.NTracklets() + i];
 #else
-			const int rowHit = tracklet.RowHit(j);
+			const calink rowHit = tracklet.RowHit(j);
 #endif
-			if (rowHit != -1)
+			if (rowHit != CALINK_INVAL)
 			{
 				const AliHLTTPCCARow &row = tracker.Data().Row(j);
 				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, rowHit));

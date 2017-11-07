@@ -283,8 +283,8 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 	memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(AliHLTTPCCAHitId));
 	memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(AliHLTTPCCATracklet));
 #ifdef EXTERN_ROW_HITS
-	int* tmpHits = new int[nTracklets * Param().NRows()];
-	memcpy(tmpHits, TrackletRowHits(), nTracklets * Param().NRows() * sizeof(int));
+	calink* tmpHits = new calink[nTracklets * Param().NRows()];
+	memcpy(tmpHits, TrackletRowHits(), nTracklets * Param().NRows() * sizeof(calink));
 #endif
 	qsort(TrackletStartHits(), nTracklets, sizeof(AliHLTTPCCAHitId), StarthitSortComparison);
 	for (int i = 0;i < nTracklets; i++ ){
@@ -324,7 +324,7 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
 			for (int i = 0;i < Param().NRows();i++)
 			{
-				//if (Tracklets()[j].RowHit(i) != -1)
+				//if (Tracklets()[j].RowHit(i) != CALINK_INVAL)
 #ifdef EXTERN_ROW_HITS
 				out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
 #else
