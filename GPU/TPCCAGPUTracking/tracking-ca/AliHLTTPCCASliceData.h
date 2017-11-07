@@ -170,7 +170,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
     void CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset );
-    void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
+    int PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 #endif
 
     int fIsGpuSliceData;       //Slice Data for GPU Tracker?

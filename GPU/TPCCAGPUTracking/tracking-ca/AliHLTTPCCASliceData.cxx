@@ -75,12 +75,12 @@ inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const float2*
                      CAMath::Max( dz * norm, 2.f ) );
 }
 
-inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const AliHLTArray<AliHLTTPCCAHit> &binSortedHits )
+inline int AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const AliHLTArray<AliHLTTPCCAHit> &binSortedHits )
 {
   // hit data packing
 
   static const float maxVal = (((long long int) 1 << AliHLTTPCCAMath::Min(24, sizeof(cahit) * 8)) - 1); //Stay within float precision in any case!
-  static const float packingConstant = 1.f / maxVal;
+  static const float packingConstant = 1.f / (maxVal - 1.);
   const float y0 = row->fGrid.YMin();
   const float z0 = row->fGrid.ZMin();
   const float stepY = ( row->fGrid.YMax() - y0 ) * packingConstant;
@@ -102,12 +102,14 @@ inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const 
     const float xx = ( ( hh.Y() - y0 ) * stepYi ) + .5 ;
     const float yy = ( ( hh.Z() - z0 ) * stepZi ) + .5 ;
     if ( xx < 0 || yy < 0 || xx > maxVal  || yy > maxVal ) {
-      std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
+      std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " (" << maxVal << ")" << std::endl;
+      return 1;
     }
     // HitData is bin sorted
     fHitData[globalHitIndex].x = (cahit) xx;
     fHitData[globalHitIndex].y = (cahit) yy;
   }
+  return 0;
 }
 
 void AliHLTTPCCASliceData::Clear()
@@ -339,6 +341,8 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
     if ((long long int) numberOfBins >= ((long long int) 1 << (sizeof(calink) * 8)))
     {
       printf("Too many bins in row %d for grid (%d >= %lld), indexing insufficient\n", rowIndex, numberOfBins, ((long long int) 1 << (sizeof(calink) * 8)));
+      delete[] YZData;
+      delete[] tmpHitIndex;
       return(1);
     }
 
@@ -383,7 +387,12 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
       binSortedHits[ind].SetZ( YZData[globalHitIndex].y );
     }
 
-    PackHitData( &row, binSortedHits );
+    if (PackHitData( &row, binSortedHits ))
+    {
+      delete[] YZData;
+      delete[] tmpHitIndex;
+      return(1);
+    }
 
     for ( int i = 0; i < numberOfBins; ++i ) {
       fFirstHitInBin[row.fFirstHitInBinOffset + i] = c[i]; // global bin-sorted hit index
