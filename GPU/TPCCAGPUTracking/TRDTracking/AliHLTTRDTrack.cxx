@@ -123,7 +123,7 @@ void AliHLTTRDTrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
   t.fY = GetY();
   t.fZ = GetZ();
   t.fq1Pt = GetSigned1Pt();
-  t.fSinPsi = GetSnp();
+  t.fSinPhi = GetSnp();
   t.fTgl = GetTgl();
   for( int i=0; i<15; i++ ) t.fC[i] = GetCovariance()[i];
   t.fTPCTrackID = GetTPCtrackId();
