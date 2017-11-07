@@ -161,6 +161,7 @@ int main(int argc, char** argv)
 	hlt.SetSettings(configStandalone.solenoidBz);
 	if (configStandalone.lowpt) hlt.SetHighQPtForward(1./0.1);
 	hlt.SetNWays(configStandalone.nways);
+	hlt.SetNWaysOuter(configStandalone.nwaysouter);
 	if (configStandalone.cont) hlt.SetContinuousTracking(configStandalone.cont);
 	if (configStandalone.dzdr != 0.) hlt.SetSearchWindowDZDR(configStandalone.dzdr);
 	hlt.UpdateGPUSliceParam();

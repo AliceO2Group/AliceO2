@@ -59,6 +59,13 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   int ihitStart = 0;
   for (int iWay = 0;iWay < nWays;iWay++)
   {
+    if (iWay && param.GetNWaysOuter() && iWay == nWays - 1)
+    {
+        for (int i = 0;i < 5;i++) fOuterParam.fP[i] = fP[i];
+        for (int i = 0;i < 15;i++) fOuterParam.fC[i] = fC[i];
+        fOuterParam.fX = fX;
+        fOuterParam.fAlpha = prop.GetAlpha();
+    }
     if (DEBUG) printf("Fitting track %d way %d\n", nTracks, iWay);
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));

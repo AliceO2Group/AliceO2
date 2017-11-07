@@ -314,7 +314,7 @@ int AliHLTTPCCATrackerOutputConverter::DoEvent( const AliHLTComponentEventData &
       currOutTrack->fY = tp.GetY();
       currOutTrack->fZ = tp.GetZ();      
       currOutTrack->fq1Pt = tp.GetSigned1Pt();
-      currOutTrack->fSinPsi = tp.GetSnp();
+      currOutTrack->fSinPhi = tp.GetSnp();
       currOutTrack->fTgl = tp.GetTgl();
       for( int i=0; i<15; i++ ) currOutTrack->fC[i] = tp.GetCovariance()[i];
       currOutTrack->fTrackID = itr;
