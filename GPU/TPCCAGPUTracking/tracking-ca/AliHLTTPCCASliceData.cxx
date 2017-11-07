@@ -79,11 +79,12 @@ inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const 
 {
   // hit data packing
 
-  static const float shortPackingConstant = 1.f / 65535.f;
+  static const float maxVal = (((long long int) 1 << AliHLTTPCCAMath::Min(24, sizeof(cahit) * 8)) - 1); //Stay within float precision in any case!
+  static const float packingConstant = 1.f / maxVal;
   const float y0 = row->fGrid.YMin();
   const float z0 = row->fGrid.ZMin();
-  const float stepY = ( row->fGrid.YMax() - y0 ) * shortPackingConstant;
-  const float stepZ = ( row->fGrid.ZMax() - z0 ) * shortPackingConstant;
+  const float stepY = ( row->fGrid.YMax() - y0 ) * packingConstant;
+  const float stepZ = ( row->fGrid.ZMax() - z0 ) * packingConstant;
   const float stepYi = 1.f / stepY;
   const float stepZi = 1.f / stepZ;
 
@@ -100,7 +101,7 @@ inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const 
     const AliHLTTPCCAHit &hh = binSortedHits[hitIndex];
     const float xx = ( ( hh.Y() - y0 ) * stepYi ) + .5 ;
     const float yy = ( ( hh.Z() - z0 ) * stepZi ) + .5 ;
-    if ( xx < 0 || yy < 0 || xx >= 65536  || yy >= 65536 ) {
+    if ( xx < 0 || yy < 0 || xx > maxVal  || yy > maxVal ) {
       std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
     }
     // HitData is bin sorted
@@ -234,9 +235,9 @@ int AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &dat
   int tmpOffset = 0;
   for (int i = fFirstRow;i <= fLastRow;i++)
   {
-      if ((long long int) NumberOfClustersInRow[i] >= ((long long int) 1 << (sizeof(*fLinkUpData) * 8)))
+      if ((long long int) NumberOfClustersInRow[i] >= ((long long int) 1 << (sizeof(calink) * 8)))
       {
-        printf("Too many clusters in row %d for row indexing (%d >= %lld), indexing insufficient\n", i, NumberOfClustersInRow[i], ((long long int) 1 << (sizeof(*fLinkUpData) * 8)));
+        printf("Too many clusters in row %d for row indexing (%d >= %lld), indexing insufficient\n", i, NumberOfClustersInRow[i], ((long long int) 1 << (sizeof(calink) * 8)));
         return(1);
       }
       if (NumberOfClustersInRow[i] >= (1 << 24))
