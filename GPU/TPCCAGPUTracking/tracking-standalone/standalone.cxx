@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <omp.h>
+#include <chrono>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -175,7 +176,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (configStandalone.seed != -1) srand(configStandalone.seed);
+	if (configStandalone.seed == -1) srand((int) (std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()));
+	else srand(configStandalone.seed);
 	
 	int trainDist = 0;
 	float collisionProbability = 0.;
