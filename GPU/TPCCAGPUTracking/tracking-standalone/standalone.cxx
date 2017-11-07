@@ -202,7 +202,7 @@ int main(int argc, char** argv)
 			return(1);
 		}
 		trainDist = maxBunches / configStandalone.configTF.bunchTrainCount;
-		collisionProbability = (float) configStandalone.configTF.interactionRate / (float) orbitRate / (float) (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount);
+		collisionProbability = (float) configStandalone.configTF.interactionRate / (float) (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount) * (float) (maxBunchesFull * configStandalone.configTF.bunchSpacing) / 1e9f;
 		printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, collision probability %f, mixing %d events\n",
 			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, collisionProbability, nEventsInDirectory);
 	}
