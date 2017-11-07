@@ -349,7 +349,11 @@ void handle_sigchld(int sig) {
   errno = saved_errno;
   for (auto &pid : pids) {
     printf("Child exited: %d\n", pid);
-    gDeviceInfos[pid].active = false;
+    for (auto &info : gDeviceInfos) {
+      if (info.pid == pid) {
+        info.active = false;
+      }
+    }
     fflush(stdout);
   }
 }
