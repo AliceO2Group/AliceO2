@@ -208,11 +208,6 @@ class Detector : public o2::Base::DetImpl<Detector>
       ;
     }
 
-    /// Returns the pointer to the TParticle for the particle that created
-    /// this hit. From the TParticle all kinds of information about this
-    /// particle can be found. See the TParticle class.
-    virtual TParticle *GetParticle() const;
-
     /// Prints out the content of this class in ASCII format
     /// \param ostream *os The output stream
     void Print(std::ostream *os) const;
