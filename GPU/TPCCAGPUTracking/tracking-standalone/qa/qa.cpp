@@ -78,8 +78,6 @@ TLegend* legendncl;
 #define DEBUG 0
 #define TIMING 0
 
-#define SORT_NLABELS 1
-
 bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b) {return(a.fMCID > b.fMCID);}
 
 #define Y_MAX 100
@@ -343,7 +341,6 @@ void RunQA()
 			
 			AliHLTTPCClusterMCWeight maxLabel;
 			AliHLTTPCClusterMCWeight cur = labels[0];
-			if (SORT_NLABELS) cur.fWeight = 1;
 			float sumweight = 0.f;
 			int curcount = 1, maxcount = 0;
 			if (DEBUG >= 2 && track.OK()) for (unsigned int k = 0;k < labels.size();k++) printf("\t%d %f\n", labels[k].fMCID, labels[k].fWeight);
@@ -352,22 +349,20 @@ void RunQA()
 				if (k == labels.size() || labels[k].fMCID != cur.fMCID)
 				{
 					sumweight += cur.fWeight;
-					if (cur.fWeight > maxLabel.fWeight)
+					if (curcount > maxcount)
 					{
-						if (maxcount >= config.recThreshold * nClusters) recTracks[maxLabel.fMCID]++;
 						maxLabel = cur;
 						maxcount = curcount;
 					}
 					if (k < labels.size())
 					{
 						cur = labels[k];
-						if (SORT_NLABELS) cur.fWeight = 1;
 						curcount = 1;
 					}
 				}
 				else
 				{
-					cur.fWeight += SORT_NLABELS ? 1 : labels[k].fWeight;
+					cur.fWeight += labels[k].fWeight;
 					curcount++;
 				}
 			}
