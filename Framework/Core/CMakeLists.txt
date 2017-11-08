@@ -37,6 +37,7 @@ set(SRCS
     src/LocalRootFileService.cxx
     src/SimpleMetricsService.cxx
     src/TextControlService.cxx
+    src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
     ${GUI_SOURCES}
    )
@@ -70,6 +71,8 @@ set(TEST_SRCS
       test/test_Graphviz.cxx
       test/test_Services.cxx
       test/test_SingleDataSource.cxx
+      test/test_Graphviz.cxx
+      test/test_ParallelProducer.cxx
       test/test_SuppressionGenerator.cxx
       test/test_Variants.cxx
    )

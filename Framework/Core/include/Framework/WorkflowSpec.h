@@ -14,10 +14,27 @@
 #include "Framework/AlgorithmSpec.h"
 
 #include <vector>
+#include <functional>
+#include <cstddef>
 
 namespace o2 {
 namespace framework {
 using WorkflowSpec = std::vector<DataProcessorSpec>;
+
+/// The purpose of this helper is to duplicate a DataProcessorSpec @a
+/// original as many times as specified in maxIndex and to amend each
+/// instance by invoking amendCallback on them with their own @a id.
+WorkflowSpec parallel(DataProcessorSpec original,
+                      size_t maxIndex,
+                      std::function<void(DataProcessorSpec&, size_t id)> amendCallback);
+
+/// The purpose of this helper is to duplicate an InputSpec @a original
+/// as many times as specified in maxIndex and to amend each instance
+/// by invoking amendCallback on them with their own @a id. This can be
+/// used to programmatically create mergers.
+Inputs mergeInputs(InputSpec original,
+                   size_t maxIndex,
+                   std::function<void(InputSpec&, size_t)> amendCallback);
 }
 }
 

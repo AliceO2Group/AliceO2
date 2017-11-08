@@ -73,6 +73,7 @@ Similarly the `requiredServices` vector would define which services are required
 The `algorithm` property, of `AlgorithmSpec` is instead used to specify the actual computation. Notice that the same `DataProcessorSpec` can used different `AlgorithmSpec`. The rationale for this is that while inputs and outputs might be the same, you might want to compare different versions of your algorithm. The `AlgorithmSpec` resembles the following:
 
 
+
     struct AlgorithmSpec {
       using ProcessCallback = std::function<void(const std::vector<DataRef>, ServiceRegistry&, DataAllocator&)>;
       using InitCallback = std::function<ProcessCallback(const ConfigParamRegistry &, ServiceRegistry &)>;
@@ -95,8 +96,8 @@ The `onProcess` function is to be used for stateless computations. It’s a free
 
     AlgorithmSpec{
       InitiCallBack{[](const ConfigParamRegistry &, ServiceRegistry &){
-          auto statefulGeo = std::make_unique<TGeo>();
-          return [geo = std::move(statefulGeo)](const std::vector<DataRef>, ServiceRegistry&, DataAllocator&) {
+          auto statefulGeo = std::make_shared<TGeo>();
+          return [geo = statefulGeo](const std::vector<DataRef>, ServiceRegistry&, DataAllocator&) {
             // do something with geo
           };
         }
@@ -182,12 +183,21 @@ Data flow parallelism is simply expressed by tuning the data flow, adding explic
 
     DataProcessorSpec{
       "tpc_processor_1",
-      {InputSpec{"TPC", "CLUSTERS", SubSpec(1)}},
+      Inputs{},
+      Outputs{{"TPC", "CLUSTERS", SubSpec(0)}},
       ...
     },
     DataProcessorSpec{
       "tpc_processor_2",
-      InputSpec{"TPC", "CLUSTERS", SubSpec(2)},
+      Inputs{},
+      Outputs{{"TPC", "CLUSTERS", SubSpec(1)}},
+      ...
+    }
+    ...
+    DataProcessorSpec{
+      "tpc_processor_18",
+      Inputs{},
+      Outputs{{"TPC", "CLUSTERS", SubSpec(17)}},
       ...
     }
 
@@ -199,11 +209,40 @@ or alternatively the parallel workflows part could be generated programmatically
         "tpc_processor",
         {InputSpec{"TPC", "CLUSTERS"}}
       },
-      ParallelInput{"TPC", "CLUSTERS"},  // For each InputSpec matching the signature
-      [](){return {SubSpec(1), SubSpec(2)}} // Replace it with two copies, where subspecification is SubSpec(1) and SubSpec(2) respectively.
+      18,
+      [](DataProcessorSpec &spec, size_t idx) {
+        spec.outputs[0].subSpec = idx; // Each of the 18 DataProcessorSpecs should have a different subSpec
+      }
     )
 
+Similarly this can be done for a component that merges inputs from multiple parallel devices, this time by modifying programmatically the `Inputs`:
 
+
+    ...
+    DataProcessorSpec{
+      "merger",
+      mergeInputs({"TST", "A", InputSpec::Timeframe},
+                  4,
+                  [](InputSpec &input, size_t index) {
+                     input.subSpec = index;
+                  }
+              ),
+      {},
+      AlgorithmSpec{[](const ConfigParamRegistry &params, ServiceRegistry &registry) {
+         return [](const std::vector<DataRef> inputs,
+                   ServiceRegistry& services,
+                   DataAllocator& allocator) {
+      // Create a single output.
+        LOG(DEBUG) << "Invoked" << std::endl;
+      };
+    }
+    ...
+
+When you declare a parallel set of devices you can retrieve the rank (i.e. parallel id) or the number of parallel devices by using the `ParalleContext`, which can be retrieved from the `ServiceRegistry` (see also the `Services`  section below), e.g.:
+
+
+    size_t whoAmI = services.get<ParallelContext>().index1D();
+    size_t howManyAreWe = services.get<ParallelContext>().index1DSize();
 # Services
 
 Services are utility classes which `DataProcessor`s can access to request out-of-bound, deployment dependent, functionalities. For example a service could be used to post metrics to the monitoring system or to get a GPU context. The former would be dependent on whether you are running on your laptop (where monitoring could simply mean print out metrics on the command line) or in a large cluster (where monitoring probably means to send metrics to an aggregator device which then pushes them to the backend.
@@ -285,6 +324,9 @@ however, no API is provided to explicitly send it. All the created DataChunks ar
   - CPUTimer
   - File Reader
   - File Writer
+  - Monitoring
+  - Logging
+  - ParallelContext
 - Thorsten: how do we express data parallelism?
 - Thorsten: should configuration come always from the ccdb?
 - Thorsten: should allow to specify that certain things are processed with the same CCDB conditions.
@@ -299,4 +341,6 @@ however, no API is provided to explicitly send it. All the created DataChunks ar
 - Comment from David / Ruben: sometimes the input data depends on whether or not a detector is active during data taking. We would therefore need a mechanism to mask out inputs (and maybe modules) from the dataflow, based on run control. If only part of the data is available, it might make sense that we offer “fallback” callbacks which can work only on part of the data.
 - Comment from Ruben: most likely people will want to also query the CCDB directly. Does it make sense to offer CCDB querying as a service so that we can intercept (and eventually optimise) multiple queries from the same workflow?
 - Are options scoped? I.e. do we want to have that if two devices, `deviceA` and `deviceB` defining the same option (e.g. `mcEngine`) they will require / support using `--``deviceA-mcEngine` and `--``deviceB-mcEngine`?
-- Mikolaj pointed out that capture by move is possible in `C++14` lambdas, so we should use that for the stateful init.
+- ~~Mikolaj pointed out that capture by move is possible in~~ `~~C++14~~` ~~lambdas, so we should use that for the stateful init~~. Actually this is not working out as expected?
+
+
