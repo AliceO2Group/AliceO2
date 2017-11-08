@@ -8,6 +8,7 @@
 #include <string.h>
 #include <omp.h>
 #include <chrono>
+#include <tuple>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -167,14 +168,10 @@ int main(int argc, char** argv)
 	hlt.UpdateGPUSliceParam();
 	hlt.SetGPUTrackerOption("GlobalTracking", 1);
 	
-	for(int i = 0;i < argc;i++)
+	for (int i = 0;i < configStandalone.gpuOptions.size();i++)
 	{
-		if ( !strcmp( argv[i], "-GPUOPT" ) && argc >= i + 1 ) 
-		{
-			int tmpOption = atoi(argv[i + 2]);
-			printf("Setting GPU Option %s to %d\n", argv[i + 1], tmpOption);
-			hlt.SetGPUTrackerOption(argv[i + 1], tmpOption);
-		}
+		printf("Setting GPU Option %s to %d\n", std::get<0>(configStandalone.gpuOptions[i]), std::get<1>(configStandalone.gpuOptions[i]));
+		hlt.SetGPUTrackerOption(std::get<0>(configStandalone.gpuOptions[i]), std::get<1>(configStandalone.gpuOptions[i]));
 	}
 
 	if (configStandalone.seed == -1) srand((int) (std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()));
