@@ -86,7 +86,6 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
   tracklet.SetNHits( r.fNHits );
 
   if ( r.fNHits > 0 ) {
-    if (r.fStartRow < r.fFirstRow) r.fFirstRow = r.fStartRow;
     tracklet.SetFirstRow( r.fFirstRow );
     tracklet.SetLastRow( r.fLastRow );
     tracklet.SetParam( tParam.GetParam() );
@@ -229,14 +228,12 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	  r.fLastY = tParam.Y(); //Store last spatial position here to start inward following from here
 	  r.fLastZ = tParam.Z();
       if ( CAMath::Abs( tParam.SinPhi() ) > .999 ) {
-        r.fNHits = 0; r.fGo = 0;
-      } else {
-        //tParam.SetCosPhi( CAMath::Sqrt(1-tParam.SinPhi()*tParam.SinPhi()) );
+        r.fGo = 0;
       }
     }
   } else { // forward/backward searching part
     do {
-      if ( r.fStage == 2 && iRow >= r.fEndRow ) break;
+      if ( r.fStage == 2 && iRow > r.fEndRow ) break;
       if ( r.fNMissed > TRACKLET_CONSTRUCTOR_MAX_ROW_GAP )
       {
           r.fGo = 0;
@@ -312,7 +309,11 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       float z = z0 + hh.y * stepZ;
       
       calink oldHit = (r.fStage == 2 && iRow >= r.fStartRow) ? GETRowHit(iRow) : CALINK_INVAL;
-      if (oldHit != best && !tParam.Filter( y, z, err2Y, err2Z, .99, oldHit != CALINK_INVAL)) break;
+      if (oldHit != best && !tParam.Filter( y, z, err2Y, err2Z, .99, oldHit != CALINK_INVAL))
+      {
+          if (oldHit != CALINK_INVAL) SETRowHit(iRow, CALINK_INVAL);
+          break;
+      }
       SETRowHit(iRow, best);
       r.fNHits++;
       r.fNMissed = 0;
@@ -357,7 +358,6 @@ GPUdi() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTA
 				SETRowHit(iRow, CALINK_INVAL);
 			}
 		}
-
 		if (r.fStage == 2)
 		{
 			StoreTracklet( 0, 0, 0, 0, s, r, tracker, tParam );
