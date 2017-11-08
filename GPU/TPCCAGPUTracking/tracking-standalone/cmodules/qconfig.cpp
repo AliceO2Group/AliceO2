@@ -5,6 +5,7 @@
 #include <vector>
 #include <functional>
 #include <iostream>
+#include <tuple>
 #include "qconfig.h"
 
 //Create config instances
@@ -34,9 +35,16 @@ QCONFIG_SETTING_TEMPLATE(max)
 QCONFIG_SETTING_TEMPLATE(set)
 QCONFIG_SETTING_TEMPLATE(def)
 
+static inline const char* getOptName(const char** argv, int i)
+{
+	while (i > 1 && argv[i][0] != '-') i--;
+	return(argv[i]);
+}
+
 template <typename T> struct qConfigSettings
 {
-	qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(0), max(0), set(0), message(nullptr), allowEmpty(false) {}
+	qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(0), max(0), set(0), message(nullptr), allowEmpty(false) {};
+	template <typename S> qConfigSettings(const qConfigSettings<S> v) : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(0), max(0), set(0), message(v.message), allowEmpty(v.allowEmpty) {};
 	bool checkMin, checkMax;
 	bool doSet, doDefault;
 	T min, max;
@@ -45,9 +53,62 @@ template <typename T> struct qConfigSettings
 	bool allowEmpty;
 };
 
-template <typename T> int qAddOptionType(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def);
-template <typename T> void qAddOptionMessage(qConfigSettings<T>& settings, T& ref);
-template <typename T> int qAddOptionMinMax(qConfigSettings<T>& settings, T& ref, const char* arg);
+template <typename T> static int qAddOptionType(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def);
+template <typename T> static void qAddOptionMessage(qConfigSettings<T>& settings, T& ref);
+template <typename T> static int qAddOptionMinMax(qConfigSettings<T>& settings, T& ref, const char* arg);
+
+template <typename T> struct qSettingsType {typedef T settingsType;};
+template <typename... X> struct qSettingsType<std::tuple<X...>> {typedef int settingsType;};
+
+template <typename T> struct qConfigTypeSpecialized
+{
+	static inline int qAddOptionMain(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def);
+};
+template <typename... X> struct qConfigTypeSpecialized<std::tuple<X...>>
+{
+	static inline int qAddOptionMain(qConfigSettings<typename qSettingsType<std::tuple<X...>>::settingsType>& settings, std::tuple<X...>& ref, int& i, const char** argv, const int argc, std::tuple<X...>& def);
+};
+
+//Main processing function for arguments
+template <class T> inline int qConfigTypeSpecialized<T>::qAddOptionMain(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def)
+{
+	int retVal = 0;
+	int iOrg = i;
+	if (settings.doSet) ref = settings.set;
+	else if ((retVal = qAddOptionType<T>(settings, ref, i, argv, argc, def))) return(retVal);
+	if ((retVal = qAddOptionMinMax<T>(settings, ref, iOrg < argc ? argv[iOrg] : ""))) return(retVal);
+	qAddOptionMessage<T>(settings, ref);
+	return(0);
+}
+template <typename T> static inline int qAddOptionMainTupleElem(qConfigSettings<typename qSettingsType<T>::settingsType> settingsTup, T& ref, int& i, const char** argv, const int argc)
+{
+	T def = T();
+	qConfigSettings<T> settings = settingsTup;
+	return(qAddOptionType<T>(settings, ref, i, argv, argc, def));
+}
+template <typename T, int index = 0, int left = std::tuple_size<T>::value> struct qAddOptionMainTupleStruct
+{
+	static inline int qAddOptionMainTuple(qConfigSettings<typename qSettingsType<T>::settingsType> settings, T& tup, int& i, const char** argv, const int argc)
+	{
+		auto& ref = std::get<index>(tup);
+		int retVal = qAddOptionMainTupleElem(settings, ref, i, argv, argc);
+		if (retVal)
+		{
+			if (retVal == qcrArgMissing && index != 0)
+			{
+				printf("Invalid number of arguments for option %s\n", getOptName(argv, i));
+				retVal = qcrArgIncomplete;
+			}
+			return(retVal);
+		}
+		return(qAddOptionMainTupleStruct<T, index + 1, left - 1>::qAddOptionMainTuple(settings, tup, i, argv, argc));
+	}
+};
+template <typename T, int index> struct qAddOptionMainTupleStruct<T, index, 0> {static inline int qAddOptionMainTuple(qConfigSettings<typename qSettingsType<T>::settingsType> settings, T& tup, int& i, const char** argv, const int argc) {return 0;}};
+template <typename... X> inline int qConfigTypeSpecialized<std::tuple<X...>>::qAddOptionMain(qConfigSettings<typename qSettingsType<std::tuple<X...>>::settingsType>& settings, std::tuple<X...>& ref, int& i, const char** argv, const int argc, std::tuple<X...>& def)
+{
+	return(qAddOptionMainTupleStruct<std::tuple<X...>>::qAddOptionMainTuple(settings, ref, i, argv, argc));
+}
 
 template <typename T> struct qConfigType
 {
@@ -86,38 +147,23 @@ template <typename T> struct qConfigType
 		qAddOptionSettings(settings, args...);
 	}
 	
-	//Main processing function for arguments
-	static inline int qAddOptionMain(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def)
-	{
-		int retVal = 0;
-		int iOrg = i;
-		if (settings.doSet) ref = settings.set;
-		else if ((retVal = qAddOptionType<T>(settings, ref, i, argv, argc, def))) return(retVal);
-		if ((retVal = qAddOptionMinMax<T>(settings, ref, iOrg < argc ? argv[iOrg] : ""))) return(retVal);
-		qAddOptionMessage<T>(settings, ref);
-		return(0);
-	}
-	
 	template <typename... Args> static inline int qAddOption(T& ref, int& i, const char** argv, const int argc, T def, const char* help, Args&&... args)
 	{
-		qConfigSettings<T> settings;
-		qAddOptionSettings(settings, args...);
-		return qAddOptionMain(settings, ref, i, argv, argc, def);
+		auto settings = qConfigGetSettings(args...);
+		return qConfigTypeSpecialized<T>::qAddOptionMain(settings, ref, i, argv, argc, def);
 	}
 	
 	template <typename... Args> static inline int qAddOptionVec(std::vector<T>& ref, int& i, const char** argv, const int argc, const char* help, Args&&... args)
 	{
-		qConfigSettings<T> settings;
-		qAddOptionSettings(settings, args...);
+		auto settings = qConfigGetSettings(args...);
 		int iFirst = i, iLast;
 		do
 		{
 			iLast = i;
-			T tmp = 0;
-			T def = 0;
+			T tmp = T(), def = T();
 			settings.allowEmpty = (i != iFirst);
-			int retVal = qAddOptionMain(settings, tmp, i, argv, argc, def);
-			if (retVal) return(i == iFirst ? retVal : 0);
+			int retVal = qConfigTypeSpecialized<T>::qAddOptionMain(settings, tmp, i, argv, argc, def);
+			if (retVal) return(retVal != qcrArgMissing || i == iFirst ? retVal : 0);
 			if (i == iFirst || i != iLast) ref.push_back(tmp);
 		} while (i != iLast);
 		return(0);
@@ -125,8 +171,7 @@ template <typename T> struct qConfigType
 	
 	template <typename... Args> static inline void qConfigHelpOption(const char* name, const char* type, const char* def, const char* optname, char optnameshort, const char* preopt, char preoptshort, int optionType, const char* help, Args&&... args)
 	{
-		qConfigSettings<T> settings;
-		qAddOptionSettings(settings, args...);
+		auto settings = qConfigGetSettings(args...);
 		const bool boolType = optionType != 1 && std::is_same<T, bool>::value;
 		const char* arguments = settings.doSet ? " (" : (settings.doDefault || optionType == 1 || boolType) ? " [arg] (" : optionType == 2 ? " [...] (" : " arg (";
 		std::cout << "\t" << name << ": " << (optnameshort == 0 || preoptshort == 0 ? "" : "-") << (char) (optnameshort == 0 ? 0 : preoptshort == 0 ? '-' : preoptshort) << (char) (optnameshort == 0 ? 0 : optnameshort) <<
@@ -142,15 +187,22 @@ template <typename T> struct qConfigType
 		if (optionType == 2) std::cout << "\t\tCan be set multiple times, accepts multiple arguments.\n";
 		std::cout << "\n";
 	}
+	
+	template <typename... Args> static inline auto qConfigGetSettings(Args&... args)
+	{
+		qConfigSettings<typename qSettingsType<T>::settingsType> settings;
+		qConfigType<typename qSettingsType<T>::settingsType>::qAddOptionSettings(settings, args...);
+		return(settings);
+	}
 };
 
-inline const char* getArg(int& i, const char** argv, const int argc, bool allowOption = false)
+static inline const char* getArg(int& i, const char** argv, const int argc, bool allowOption = false)
 {
 	if (i + 1 < argc && argv[i + 1][0] && ((allowOption && argv[i + 1][0] != '-' && argv[i + 1][1] != '-') || argv[i + 1][0] != '-')) return(argv[++i]);
 	return(nullptr);
 }
 
-template <class T> inline int qAddOptionGeneric(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def, std::function<T(const char*)> func, bool allowDefault = false)
+template <class T> static inline int qAddOptionGeneric(qConfigSettings<T>& settings, T& ref, int& i, const char** argv, const int argc, T def, std::function<T(const char*)> func, bool allowDefault = false)
 {
 	const char* arg = getArg(i, argv, argc, !allowDefault);
 	if (arg)
@@ -163,7 +215,10 @@ template <class T> inline int qAddOptionGeneric(qConfigSettings<T>& settings, T&
 		ref = def;
 		return(0);
 	}
-	if (!settings.allowEmpty) printf("Argument missing for option %s!\n", argv[i]);
+	if (!settings.allowEmpty)
+	{
+		printf("Argument missing for option %s!\n", getOptName(argv, i));
+	}
 	return(qcrArgMissing);
 }
 
@@ -202,7 +257,7 @@ template <> inline int qAddOptionType<const char*>(qConfigSettings<const char*>&
 }
 
 //Checks and messages for additional settings
-template <typename T> inline int qAddOptionMinMax(qConfigSettings<T>& settings, T& ref, const char* arg)
+template <typename T> static inline int qAddOptionMinMax(qConfigSettings<T>& settings, T& ref, const char* arg)
 {
 	if (settings.checkMin && ref < settings.min)
 	{
@@ -230,7 +285,7 @@ template <> inline void qAddOptionMessage<bool>(qConfigSettings<bool>& settings,
 	if (settings.message) {printf(settings.message, ref ? "ON" : "OFF"); printf("\n");}
 }
 
-void qConfigHelp(const char* subConfig = NULL, int followSub = 0)
+static inline void qConfigHelp(const char* subConfig = NULL, int followSub = 0)
 {
 	if (followSub < 2) printf("Usage Info:");
 #define QCONFIG_HELP
@@ -239,7 +294,7 @@ void qConfigHelp(const char* subConfig = NULL, int followSub = 0)
 }
 
 //Create parser for configuration
-inline int qConfigParse(int argc, const char** argv, const char* filename)
+static inline int qConfigParse(int argc, const char** argv, const char* filename)
 {
 	for (int i = 1;i < argc;i++)
 	{

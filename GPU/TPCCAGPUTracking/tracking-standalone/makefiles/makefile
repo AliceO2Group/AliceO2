@@ -82,6 +82,10 @@ ifeq ($(CONFIG_CPP11), 1)
 GCCFLAGSCOMMON						+= -std=c++11
 CLANGFLAGSCOMMON					+= -std=c++11
 endif
+ifneq ($(CONFIG_CPP), )
+GCCFLAGSCOMMON						+= -std=$(CONFIG_CPP)
+CLANGFLAGSCOMMON					+= -std=$(CONFIG_CPP)
+endif
 ifeq ($(CONFIG_OPENMP), 1)
 GCCFLAGSCOMMON						+= -fopenmp
 CLANGFLAGSCOMMON					+= -fopenmp
