@@ -1,3 +1,5 @@
+typedef std::tuple<const char*, int> tupleGpuOpt;
+
 BeginSubConfig(structConfigTF, configTF, configStandalone, "TF", 't', "Timeframe settings")
 AddOption(nMerge, int, 0, "merge", 0, "Merge n events in a timeframe", min(0))
 AddOption(averageDistance, float, 50., "mergeDist", 0, "Average distance of events merged into timeframe", min(0.f))
@@ -61,6 +63,7 @@ AddOption(affinity, int, -1, "cpuAffinity", 0, "Pin CPU affinity to this CPU cor
 AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", message("Setting FIFO scheduler: %s"))
 AddOption(fpe, bool, true, "fpe", 0, "Trap on floating point exceptions")
 AddOption(solenoidBz, float, -5.00668f, "solenoidBz", 0, "Field strength of solenoid Bz in kGaus")
+AddOptionVec(gpuOptions, tupleGpuOpt, "gpuOpt", 0, "Options for GPU tracker")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(structConfigTF, configTF)
