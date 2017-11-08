@@ -1131,21 +1131,6 @@ Hit *Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
   return &(mHits->back());
 }
 
-TParticle *Detector::GetParticle() const
-{
-  // Returns the pointer to the TParticle for the particle that created
-  // this hit. From the TParticle all kinds of information about this
-  // particle can be found. See the TParticle class.
-  // Inputs:
-  //   none.
-  // Outputs:
-  //   none.
-  // Return:
-  //   The TParticle of the track that created this hit.
-  int trc = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-  return ((o2::Data::Stack *) TVirtualMC::GetMC()->GetStack())->GetParticle(trc);
-}
-
 void Detector::Print(std::ostream *os) const
 {
 // Standard output format for this class.
