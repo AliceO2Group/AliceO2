@@ -122,7 +122,7 @@
 #define EndConfig()
 #undef QCONFIG_EXTERNS
 extern int qConfigParse(int argc, const char** argv, const char* filename = NULL);
-namespace qConfig {enum qConfigRetVal {qcrOK = 0, qcrError = 1, qcrMinFailure = 2, qcrMaxFailure = 3, qcrHelp = 4, qcrCmd = 5, qcrArgMissing = 6};}
+namespace qConfig {enum qConfigRetVal {qcrOK = 0, qcrError = 1, qcrMinFailure = 2, qcrMaxFailure = 3, qcrHelp = 4, qcrCmd = 5, qcrArgMissing = 6, qcrArgIncomplete = 7};}
 #else
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
