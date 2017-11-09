@@ -23,15 +23,14 @@ O2_GENERATE_LIBRARY()
 
 # check correct functioning of the logger
 if (HAVESIMULATION)
-  add_test(NAME mcloggertest COMMAND ${CMAKE_BINARY_DIR}/bin/tpc-run-sim -n 1 -e TGeant3)
+  add_test(NAME mcloggertest COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 1 -e TGeant3)
   # tests if the logger was active
   set_tests_properties(mcloggertest PROPERTIES PASS_REGULAR_EXPRESSION "VolName.*COUNT")
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(PRELOAD "DYLD_INSERT_LIBRARIES")
-else()
-  set(PRELOAD "LD_PRELOAD")
+  if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(PRELOAD "DYLD_INSERT_LIBRARIES")
+  else()
+    set(PRELOAD "LD_PRELOAD")
+  endif()
+    set_tests_properties(mcloggertest PROPERTIES ENVIRONMENT ${PRELOAD}=${CMAKE_BINARY_DIR}/lib/libMCStepLogger${CMAKE_SHARED_LIBRARY_SUFFIX})
+    set_property(TEST mcloggertest APPEND PROPERTY ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})
 endif()
-  set_tests_properties(mcloggertest PROPERTIES ENVIRONMENT ${PRELOAD}=${CMAKE_BINARY_DIR}/lib/libMCStepLogger${CMAKE_SHARED_LIBRARY_SUFFIX})
-  set_property(TEST mcloggertest APPEND PROPERTY ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})
-endif()
-

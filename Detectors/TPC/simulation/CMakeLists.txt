@@ -96,9 +96,9 @@ O2_GENERATE_TESTS(
 
 # add the TPC run sim as a unit test (if simulation was enabled)
 if (HAVESIMULATION)
-  add_test(NAME tpcsim_G4 COMMAND ${CMAKE_BINARY_DIR}/bin/tpc-run-sim -n 2 -e  TGeant4)
+  add_test(NAME tpcsim_G4 COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 2 -e  TGeant4)
   set_tests_properties(tpcsim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
-  add_test(NAME tpcsim_G3 COMMAND ${CMAKE_BINARY_DIR}/bin/tpc-run-sim -n 2 -e  TGeant3)
+  add_test(NAME tpcsim_G3 COMMAND ${CMAKE_BINARY_DIR}/bin/runTPC -n 2 -e  TGeant3)
   set_tests_properties(tpcsim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
   # sets the necessary environment
   set_tests_properties(tpcsim_G3 tpcsim_G4  PROPERTIES ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})
