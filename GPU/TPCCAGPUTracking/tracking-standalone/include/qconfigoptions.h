@@ -11,7 +11,7 @@ AddOption(bunchSpacing, int, 50, "bunchSpacing", 0, "Spacing between benches in 
 AddOption(bunchTrainCount, int, 48, "bunchTrainCount", 0, "Number of bunch trains")
 AddOption(abortGapTime, int, (3000), "abortGap", 0, "Length of abort gap in ns")
 AddOption(interactionRate, int, 50000, "rate", 0, "Instantaneous interaction rate")
-AddOption(timeFrameLen, int, (1000000000 / 44), "len", 'l', "Timeframe len in ns")
+AddOption(timeFrameLen, long long int, (1000000000 / 44), "len", 'l', "Timeframe len in ns")
 AddOption(noEventRepeat, int, 0, "noEventRepeat", 0, "0: Place random events, 1: Place events in timeframe one after another, 2: Place random events but do not repat", def(1))
 AddHelp("help", 'h')
 EndConfig()
