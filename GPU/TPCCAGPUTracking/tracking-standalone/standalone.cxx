@@ -168,14 +168,18 @@ int main(int argc, char** argv)
 	hlt.UpdateGPUSliceParam();
 	hlt.SetGPUTrackerOption("GlobalTracking", 1);
 	
-	for (int i = 0;i < configStandalone.gpuOptions.size();i++)
+	for (unsigned int i = 0;i < configStandalone.gpuOptions.size();i++)
 	{
 		printf("Setting GPU Option %s to %d\n", std::get<0>(configStandalone.gpuOptions[i]), std::get<1>(configStandalone.gpuOptions[i]));
 		hlt.SetGPUTrackerOption(std::get<0>(configStandalone.gpuOptions[i]), std::get<1>(configStandalone.gpuOptions[i]));
 	}
 
-	if (configStandalone.seed == -1) srand((int) (std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()));
-	else srand(configStandalone.seed);
+	if (configStandalone.seed == -1)
+	{
+		configStandalone.seed = (int) (std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+		printf("Using seed %d\n", configStandalone.seed);
+	}
+	srand(configStandalone.seed);
 	
 	int trainDist = 0;
 	float collisionProbability = 0.;
@@ -202,9 +206,9 @@ int main(int argc, char** argv)
 			return(1);
 		}
 		trainDist = maxBunches / configStandalone.configTF.bunchTrainCount;
-		collisionProbability = (float) configStandalone.configTF.interactionRate / (float) (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount) * (float) (maxBunchesFull * configStandalone.configTF.bunchSpacing) / 1e9f;
-		printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, collision probability %f, mixing %d events\n",
-			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, collisionProbability, nEventsInDirectory);
+		collisionProbability = (float) configStandalone.configTF.interactionRate * (float) (maxBunchesFull * configStandalone.configTF.bunchSpacing / 1e9f) / (float) (configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount);
+		printf("Timeframe settings: %d trains of %d bunches, bunch spacing: %d, train spacing: %dx%d, filled bunches %d / %d (%d), collision probability %f, mixing %d events\n",
+			configStandalone.configTF.bunchTrainCount, configStandalone.configTF.bunchCount, configStandalone.configTF.bunchSpacing, trainDist, configStandalone.configTF.bunchSpacing, configStandalone.configTF.bunchCount * configStandalone.configTF.bunchTrainCount, maxBunches, maxBunchesFull, collisionProbability, nEventsInDirectory);
 	}
 	
 	#ifdef BUILD_QA
@@ -233,9 +237,9 @@ int main(int argc, char** argv)
 			if (configStandalone.configTF.bunchSim)
 			{
 				hlt.StartDataReading(0);
-				int nBunch = -driftTime / configStandalone.configTF.bunchSpacing;
-				int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
-				int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
+				long long int nBunch = -driftTime / configStandalone.configTF.bunchSpacing;
+				long long int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
+				long long int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
 				int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
 				int nTrain = 0;
 				int mcMin = -1, mcMax = -1;
@@ -249,7 +253,10 @@ int main(int argc, char** argv)
 							if (mcMin == -1 && nBunch >= 0) mcMin = hlt.GetNMCInfo();
 							if (mcMax == -1 && nBunch >= lastTFBunch) mcMax = hlt.GetNMCInfo();
 							int nInBunchPileUp = 0;
-							while ((float) rand() / (float) RAND_MAX < collisionProbability / (nInBunchPileUp + 1) * (nInBunchPileUp ? 1. : exp(-collisionProbability)))
+							float randVal = (float) rand() / (float) RAND_MAX;
+							float p = exp(-collisionProbability);
+							float p2 = p;
+							while (randVal > p)
 							{
 								if (nCollisionsInTrain >= nEventsInDirectory)
 								{
@@ -275,6 +282,8 @@ int main(int argc, char** argv)
 								in.close();
 								nInBunchPileUp++;
 								nCollisionsInTrain++;
+								p2 *= collisionProbability / nInBunchPileUp;
+								p += p2;
 								if (configStandalone.configTF.noEventRepeat && simBunchNoRepeatEvent >= nEventsInDirectory) nBunch = lastBunch;
 							}
 							if (nInBunchPileUp > 1) nMultipleCollisions++;
