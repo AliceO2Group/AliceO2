@@ -66,17 +66,17 @@ HwClusterFinder::HwClusterFinder(
   }
 
   short t,p;
-  mData = new float*[mTimebins];
+  mData = new MiniDigit*[mTimebins];
   for (t = 0; t < mTimebins; ++t){
-    mData[t] = new float[mPads];
-    for (p = 0; p < mPads; ++p){
-      mData[t][p] = 0;
-    }
+    mData[t] = new MiniDigit[mPads];
+//    for (p = 0; p < mPads; ++p){
+//      mData[t][p] = MiniDigit();
+//    }
   }
 
-  tmpCluster = new float*[mClusterSizeTime];
+  tmpCluster = new MiniDigit*[mClusterSizeTime];
   for (t=0; t<mClusterSizeTime; ++t) {
-    tmpCluster[t] = new float[mClusterSizePads];
+    tmpCluster[t] = new MiniDigit[mClusterSizePads];
   }
 }
 
@@ -100,19 +100,20 @@ HwClusterFinder::HwClusterFinder(const HwClusterFinder& other)
   , mAutoProcessing(other.mAutoProcessing)
   , mAssignChargeUnique(other.mAssignChargeUnique)
   , clusterContainer(other.clusterContainer)
+  , clusterDigitIndices(other.clusterDigitIndices)
   , mNextCF(other.mNextCF)
 {
   short t,p;
-  mData = new float*[mTimebins];
+  mData = new MiniDigit*[mTimebins];
   for (t = 0; t < mTimebins; ++t){
-    mData[t] = new float[mPads];
+    mData[t] = new MiniDigit[mPads];
     for (p = 0; p < mPads; ++p){
       mData[t][p] = other.mData[t][p];
     }
   }
 
   for (t=0; t<mClusterSizeTime; ++t) {
-    tmpCluster[t] = new float[mClusterSizePads];
+    tmpCluster[t] = new MiniDigit[mClusterSizePads];
     for (p=0; p<mClusterSizePads; ++p){
       tmpCluster[t][p] = other.tmpCluster[t][p];
     }
@@ -136,21 +137,21 @@ HwClusterFinder::~HwClusterFinder()
 }
 
 //________________________________________________________________________
-bool HwClusterFinder::AddTimebins(int nBins, float** timebins, unsigned globalTimeOfLast, int length)
-{
-  bool ret = false;
-  for(short n=0; n<nBins; ++n){
-    ret = ret | !(AddTimebin(timebins[n],globalTimeOfLast,length));
-  }
-  return !ret;
-}
+//bool HwClusterFinder::AddTimebins(int nBins, float** timebins, unsigned globalTimeOfLast, int length)
+//{
+//  bool ret = false;
+//  for(short n=0; n<nBins; ++n){
+//    ret = ret | !(AddTimebin(timebins[n],globalTimeOfLast,length));
+//  }
+//  return !ret;
+//}
 
 //________________________________________________________________________
 void HwClusterFinder::AddZeroTimebin(unsigned globalTime, int length)
 {
   if (mZeroTimebin == nullptr) {
-    mZeroTimebin = new float[length];
-    for (short i = 0; i < length; ++i) mZeroTimebin[i] = 0;
+    mZeroTimebin = new MiniDigit[length];
+    for (short i = 0; i < length; ++i) mZeroTimebin[i] = MiniDigit();
   }
   bool ret = AddTimebin(mZeroTimebin,globalTime,length);
 }
@@ -234,22 +235,22 @@ bool HwClusterFinder::findCluster()
       //    o i i i o
       //    o o o o o
       //
-      if (mData[t  ][p  ] < mChargeThreshold) continue;
+      if (mData[t  ][p  ].charge < mChargeThreshold) continue;
 
       // Require at least one neighboring time bin with signal
-      if (mRequireNeighbouringTimebin   && (mData[t-1][p  ] + mData[t+1][p  ] <= 0)) continue;
+      if (mRequireNeighbouringTimebin   && (mData[t-1][p  ].charge + mData[t+1][p  ].charge <= 0)) continue;
       // Require at least one neighboring pad with signal
-      if (mRequireNeighbouringPad       && (mData[t  ][p-1] + mData[t  ][p+1] <= 0)) continue;
+      if (mRequireNeighbouringPad       && (mData[t  ][p-1].charge + mData[t  ][p+1].charge <= 0)) continue;
 
       // check for local maximum
-      if (mData[t-1][p  ] >=  mData[t][p]) continue;
-      if (mData[t+1][p  ] >   mData[t][p]) continue;
-      if (mData[t  ][p-1] >=  mData[t][p]) continue;
-      if (mData[t  ][p+1] >   mData[t][p]) continue;
-      if (mData[t-1][p-1] >=  mData[t][p]) continue;
-      if (mData[t+1][p+1] >   mData[t][p]) continue;
-      if (mData[t+1][p-1] >   mData[t][p]) continue;
-      if (mData[t-1][p+1] >=  mData[t][p]) continue;
+      if (mData[t-1][p  ].charge >=  mData[t][p].charge) continue;
+      if (mData[t+1][p  ].charge >   mData[t][p].charge) continue;
+      if (mData[t  ][p-1].charge >=  mData[t][p].charge) continue;
+      if (mData[t  ][p+1].charge >   mData[t][p].charge) continue;
+      if (mData[t-1][p-1].charge >=  mData[t][p].charge) continue;
+      if (mData[t+1][p+1].charge >   mData[t][p].charge) continue;
+      if (mData[t+1][p-1].charge >   mData[t][p].charge) continue;
+      if (mData[t-1][p+1].charge >=  mData[t][p].charge) continue;
 //      printf("##\n");
 //      printf("## cluster found at t=%d, p=%d (in CF %d in row %d of CRU %d)\n",t,p,mId,mRow,mCRU);
 //      printf("##\n");
@@ -262,7 +263,7 @@ bool HwClusterFinder::findCluster()
       // prepare temp storage
       for (tt=0; tt<mClusterSizeTime; ++tt) {
         for (pp=0; pp<mClusterSizePads; ++pp){
-          tmpCluster[tt][pp] = 0;
+          tmpCluster[tt][pp] = MiniDigit();
         }
       }
 
@@ -272,9 +273,8 @@ bool HwClusterFinder::findCluster()
       //
       for (tt=1; tt<4; ++tt) {
         for (pp=1; pp<4; ++pp) {
-          charge = mData[t+(tt-2)][p+(pp-2)];
-          if ( mRequirePositiveCharge && charge < 0) continue;
-          tmpCluster[tt][pp] = charge;
+          if ( mRequirePositiveCharge && mData[t+(tt-2)][p+(pp-2)].charge < 0) continue;
+          tmpCluster[tt][pp] = mData[t+(tt-2)][p+(pp-2)];
 //          mData[t+(tt-2)][p+(pp-2)] = 0;
         }
       }
@@ -330,7 +330,7 @@ bool HwClusterFinder::findCluster()
       // calculate cluster Properties
       //
 
-      qMax = tmpCluster[2][2];
+      qMax = tmpCluster[2][2].charge;
       qTot = 0;
       meanP = 0;
       meanT = 0;
@@ -341,12 +341,15 @@ bool HwClusterFinder::findCluster()
       maxP = 0;
       maxT = 0;
       clusterSize = 0;
+      clusterDigitIndices.emplace_back();
       for (tt = 0; tt < mClusterSizeTime; ++tt) {
         deltaT = tt - mClusterSizeTime/2;
         for (pp = 0; pp < mClusterSizePads; ++pp) {
           deltaP = pp - mClusterSizePads/2;
 
-          charge = tmpCluster[tt][pp];
+          charge = tmpCluster[tt][pp].charge;
+          if (charge > 0 || tmpCluster[tt][pp].event >= 0)
+            clusterDigitIndices.back().emplace_back(std::make_pair(tmpCluster[tt][pp].index, tmpCluster[tt][pp].event));
 
           qTot += charge;
 
@@ -360,7 +363,6 @@ bool HwClusterFinder::findCluster()
             minP = std::min(minP,pp); maxP = std::max(maxP,pp);
             minT = std::min(minT,tt); maxT = std::max(maxT,tt);
           }
-
         }
       }
 
@@ -394,9 +396,11 @@ bool HwClusterFinder::findCluster()
         //
         // subtract found cluster from storage
         //
+        // TODO: really nexessary?? or just set to 0
         for (tt=0; tt<5; ++tt) {
           for (pp=0; pp<5; ++pp) {
-            mData[t+(tt-2)][p+(pp-2)] -= tmpCluster[tt][pp];
+            //mData[t+(tt-2)][p+(pp-2)].charge -= tmpCluster[tt][pp];
+            mData[t+(tt-2)][p+(pp-2)].clear();// = MiniDigit();
           }
         }
       }
@@ -408,16 +412,16 @@ bool HwClusterFinder::findCluster()
 }
 
 //________________________________________________________________________
-float HwClusterFinder::chargeForCluster(float* charge, float* toCompare)
+HwClusterFinder::MiniDigit HwClusterFinder::chargeForCluster(MiniDigit* charge, MiniDigit* toCompare)
 {
   //printf("%.2f - %.2f = %.f compared to %.2f)?\n",toCompare,*charge,toCompare-*charge,-mDiffThreshold);
-  if ((mRequirePositiveCharge && (*charge > 0)) &
-      (*toCompare > mDiffThreshold)) {//mChargeThreshold)) {
+  if ((mRequirePositiveCharge && (charge->charge > 0)) &
+      (toCompare->charge > mDiffThreshold)) {//mChargeThreshold)) {
     //printf("\tyes\n");
     return *charge;
   } else {
     //printf("\tno\n");
-    return 0;
+    return MiniDigit();
   }
 }
 
@@ -443,7 +447,8 @@ void HwClusterFinder::setNextCF(HwClusterFinder* nextCF)
 }
 
 //________________________________________________________________________
-void HwClusterFinder::clusterAlreadyUsed(short time, short pad, float** cluster)
+// TODO: really nexessary?? or just set to 0
+void HwClusterFinder::clusterAlreadyUsed(short time, short pad, MiniDigit** cluster)
 {
   short localPad = pad - mPadOffset;
 
@@ -453,7 +458,8 @@ void HwClusterFinder::clusterAlreadyUsed(short time, short pad, float** cluster)
     for (p=localPad-2; p<=localPad+2; ++p){
       if (p < 0 || p >= mPads) continue;
 
-      mData[t][p] -= cluster[t-time+2][p-localPad+2];
+      //mData[t][p].charge -= cluster[t-time+2][p-localPad+2].charge;
+      mData[t][p].clear();// = MiniDigit();
     }
   }
 }
@@ -464,7 +470,7 @@ void HwClusterFinder::reset(unsigned globalTimeAfterReset)
   short t,p;
   for (t = 0; t < mTimebins; ++t){
     for (p = 0; p < mPads; ++p){
-      mData[t][p] = 0;
+      mData[t][p].clear();// = MiniDigit();
     }
   }
 
@@ -478,7 +484,7 @@ void HwClusterFinder::printCluster(short time, short pad)
   for (t = time-2; t <= time+2; ++t) {
     printf("%d\t\t",t);
     for (p = pad-2; p <= pad+2; ++p) {
-      printf("%.2f\t", mData[t][p]);
+      printf("%.2f\t", mData[t][p].charge);
     }
     printf("\n");
   }

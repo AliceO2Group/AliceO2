@@ -111,23 +111,6 @@ BoxClusterer::BoxClusterer(std::vector<o2::TPC::Cluster> *output):
   mAllNSigBins(nullptr),
   mPedestals(nullptr)
 {
-}
-
-//________________________________________________________________________
-BoxClusterer::~BoxClusterer()
-{
-  for (Int_t iRow = 0; iRow < mRowsMax; iRow++) {
-    delete [] mAllBins[iRow];
-    delete [] mAllSigBins[iRow];
-  }
-  delete [] mAllBins;
-  delete [] mAllSigBins;
-  delete [] mAllNSigBins;
-}
-
-//________________________________________________________________________
-void BoxClusterer::Init()
-{
   mAllBins = new Float_t*[mRowsMax];
   mAllSigBins = new Int_t*[mRowsMax];
   mAllNSigBins = new Int_t[mRowsMax];
@@ -144,7 +127,19 @@ void BoxClusterer::Init()
 }
 
 //________________________________________________________________________
-void BoxClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth)
+BoxClusterer::~BoxClusterer()
+{
+  for (Int_t iRow = 0; iRow < mRowsMax; iRow++) {
+    delete [] mAllBins[iRow];
+    delete [] mAllSigBins[iRow];
+  }
+  delete [] mAllBins;
+  delete [] mAllSigBins;
+  delete [] mAllNSigBins;
+}
+
+//________________________________________________________________________
+void BoxClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear(); // check this
 
@@ -180,7 +175,7 @@ void BoxClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabel co
 }
 
 //________________________________________________________________________
-void BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth)
+void BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear();
 

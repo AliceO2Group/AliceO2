@@ -6,7 +6,6 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
    src/AdcClockMonitor.cxx
-
    src/BoxClusterer.cxx
    src/Cluster.cxx
    src/Clusterer.cxx

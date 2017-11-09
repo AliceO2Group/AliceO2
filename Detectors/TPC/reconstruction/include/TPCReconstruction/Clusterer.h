@@ -17,8 +17,6 @@
 #include <vector>
 #include <memory>
 
-#include "TPCReconstruction/ClusterContainer.h"
-
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -31,12 +29,12 @@ class Digit;
 /// \brief Base Class for TPC clusterer
 class Clusterer {
   protected:
-    using MCLabel = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
   public:
 
     /// Default Constructor
-    Clusterer();
+    Clusterer() : Clusterer(18, 138, 1024, 5, true, true) {};
 
     /// Constructor
     /// \param rowsMax Max number of rows to process
@@ -51,16 +49,13 @@ class Clusterer {
     /// Destructor
     virtual ~Clusterer() = default;
 
-    /// Initialization function for clusterer
-    virtual void Init() = 0;
-
     /// Processing all digits
     /// \param digits Container with TPC digits
-    /// @param mcDigitTruth MC Digit Truth container
-    /// @param mcClusterTruth MC Cluster Truth container
+    /// \param mcDigitTruth MC Digit Truth container
+    /// \param eventCount event counter
     /// \return Container with clusters
-    virtual void Process(std::vector<o2::TPC::Digit> const &digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) = 0;
-    virtual void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) = 0;
+    virtual void Process(std::vector<o2::TPC::Digit> const &digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
+    virtual void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
 
     void setRowsMax(int val)                    { mRowsMax = val; };
     void setPadsMax(int val)                    { mPadsMax = val; };
@@ -85,7 +80,19 @@ class Clusterer {
     bool    mRequirePositiveCharge;         ///< If true, require charge > 0
     bool    mRequireNeighbouringPad;        ///< If true, require 2+ pads minimum
 
-  };
+};
+
+//________________________________________________________________________
+inline Clusterer::Clusterer(int rowsMax, int padsMax, int timeBinsMax, int minQMax,
+    bool requirePositiveCharge, bool requireNeighbouringPad)
+  : mRowsMax(rowsMax)
+  , mPadsMax(padsMax)
+  , mTimeBinsMax(timeBinsMax)
+  , mMinQMax(minQMax)
+  , mRequirePositiveCharge(requirePositiveCharge)
+  , mRequireNeighbouringPad(requireNeighbouringPad)
+{}
+
 }
 }
 

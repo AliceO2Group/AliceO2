@@ -17,7 +17,7 @@
 //
 
 #include "TPCReconstruction/ClustererTask.h"
-#include "TPCReconstruction/ClusterContainer.h"  // for ClusterContainer
+#include "TPCReconstruction/Cluster.h"
 #include "TPCBase/Digit.h"
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager
@@ -32,14 +32,15 @@ ClustererTask::ClustererTask()
   , mBoxClustererEnable(false)
   , mHwClustererEnable(false)
   , mIsContinuousReadout(true)
+  , mEventCount(0)
   , mBoxClusterer(nullptr)
   , mHwClusterer(nullptr)
   , mDigitsArray(nullptr)
   , mDigitMCTruthArray(nullptr)
   , mClustersArray(nullptr)
   , mHwClustersArray(nullptr)
-  , mClustersMCTruthArray()
-  , mHwClustersMCTruthArray()
+  , mClustersMCTruthArray(nullptr)
+  , mHwClustersMCTruthArray(nullptr)
 {
 }
 
@@ -48,13 +49,11 @@ ClustererTask::~ClustererTask()
 {
   LOG(DEBUG) << "Enter Destructor of ClustererTask" << FairLogger::endl;
 
-  if (mBoxClustererEnable)  delete mBoxClusterer;
-  if (mHwClustererEnable)   delete mHwClusterer;
-
   if (mClustersArray)
     delete mClustersArray;
   if (mHwClustersArray)
     delete mHwClustersArray;
+
 }
 
 //_____________________________________________________________________
@@ -79,7 +78,7 @@ InitStatus ClustererTask::Init()
 
   mDigitMCTruthArray = mgr->InitObjectAs<decltype(mDigitMCTruthArray)>("TPCDigitMCTruth");
   if( !mDigitMCTruthArray ) {
-    LOG(ERROR) << "TPC MC truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
@@ -89,11 +88,12 @@ InitStatus ClustererTask::Init()
     mClustersArray = new std::vector<o2::TPC::Cluster>;
     mgr->RegisterAny("TPCCluster", mClustersArray, kTRUE);
 
-    mgr->Register("TPCClusterMCTruth", "TPC", &mClustersMCTruthArray, kTRUE);
+    // Register MC Truth output container
+    mClustersMCTruthArray = std::make_unique<MCLabelContainer>();
+    mgr->Register("TPCClusterMCTruth", "TPC", mClustersMCTruthArray.get(), kTRUE);
 
     // create clusterer and pass output pointer
-    mBoxClusterer = new BoxClusterer(mClustersArray);
-    mBoxClusterer->Init();
+    mBoxClusterer = std::make_unique<BoxClusterer>(mClustersArray);
   }
 
   if (mHwClustererEnable) {
@@ -101,12 +101,13 @@ InitStatus ClustererTask::Init()
     mHwClustersArray = new std::vector<o2::TPC::Cluster>;
     mgr->RegisterAny("TPCClusterHW", mHwClustersArray, kTRUE);
 
-    mgr->Register("TPCClusterHWMCTruth", "TPC", &mHwClustersMCTruthArray, kTRUE);
+    // Register MC Truth output container
+    mHwClustersMCTruthArray = std::make_unique<MCLabelContainer>();
+    mgr->Register("TPCClusterHWMCTruth", "TPC", mHwClustersMCTruthArray.get(), kTRUE);
 
      // create clusterer and pass output pointer
-    mHwClusterer = new HwClusterer(mHwClustersArray);
+    mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray,mHwClustersMCTruthArray);//,HwClusterer::Processing::Parallel,0,359);
     mHwClusterer->setContinuousReadout(mIsContinuousReadout);
-    mHwClusterer->Init();
 // TODO: implement noise/pedestal objecta
 //    mHwClusterer->setNoiseObject();
 //    mHwClusterer->setPedestalObject();
@@ -122,13 +123,16 @@ void ClustererTask::Exec(Option_t *option)
 
   if (mBoxClustererEnable) {
     mClustersArray->clear();
-    mBoxClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mClustersMCTruthArray);
+    if(mClustersMCTruthArray) mClustersMCTruthArray->clear();
+    mBoxClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mEventCount);
+    LOG(DEBUG) << "Box clusterer found " << mClustersArray->size() << " clusters" << FairLogger::endl;
   }
 
   if (mHwClustererEnable) {
-    mHwClustersArray->clear();
-    mHwClustersMCTruthArray.clear();
-    mHwClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mHwClustersMCTruthArray);
+    if(mHwClustersArray) mHwClustersArray->clear();
+    if(mHwClustersMCTruthArray) mHwClustersMCTruthArray->clear();
+    mHwClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mEventCount);
     LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl;
   }
+  ++mEventCount;
 }

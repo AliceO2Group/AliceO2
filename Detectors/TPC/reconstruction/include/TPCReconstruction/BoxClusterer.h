@@ -37,17 +37,13 @@ namespace o2{
       /// Destructor
       ~BoxClusterer() override;
 
-      // Should this really be a public member?
-      // Maybe better to just call by process
-      void Init() override;
-
       /// Steer conversion of points to digits
       /// @param digits Container with TPC digits
       /// @param mcDigitTruth MC Digit Truth container
-      /// @param mcClusterTruth MC Cluster Truth container
+      /// @param eventCount event counter 
       /// @return Container with clusters
-      void Process(std::vector<o2::TPC::Digit> const & digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) override;
-      void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabel const* mcDigitTruth, MCLabel& mcClusterTruth) override;
+      void Process(std::vector<o2::TPC::Digit> const & digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
+      void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
 
       /// Set a pedestal object
       void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }

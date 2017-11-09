@@ -14,18 +14,32 @@
 #ifndef ALICEO2_TPC_HWClusterFinder_H_
 #define ALICEO2_TPC_HWClusterFinder_H_
 
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+
 #include <vector>
+#include <utility>
 #include <cstring>
 
 namespace o2{
 namespace TPC {
 
 class Cluster;
-    
+
 /// \class HwClusterFinder
 /// \brief Class for TPC HW cluster finder
 class HwClusterFinder {
   public:
+    struct MiniDigit {
+      float charge;
+      int event;
+      int index;
+
+      MiniDigit() : charge(0), event(-1), index(-1) {};
+      MiniDigit(const MiniDigit& other) : charge(other.charge), event(other.event), index(other.index) {};
+      void clear() { charge = 0; event = -1; index = -1; };
+    };
+
     /// Default Constructor
     /// \param cru CRU of this cluster finder
     /// \param row Row of this cluster finder
@@ -36,7 +50,7 @@ class HwClusterFinder {
     /// \param diffThreshold Minimum charge difference at neighboring pads
     /// \param chargeThreshold Minimum charge of cluster peak
     /// \param requirePositiveCharge Charge >0 required
-    HwClusterFinder(short cru, short row, short id, 
+    HwClusterFinder(short cru, short row, short id,
         short padOffset, short pads=8, short timebins=8,
         float diffThreshold=0, float chargeThreshold=5, bool requirePositiveCharge=true);
 
@@ -50,14 +64,14 @@ class HwClusterFinder {
     /// \param timebin Array of size "length" with new charges
     /// \param globalTime Global time of this timebin
     /// \param length Size of array "timebin"
-    bool AddTimebin(float* timebin, unsigned globalTime, int length = 8);
+    bool AddTimebin(MiniDigit* timebin, unsigned globalTime, int length = 8);
 
-    /// Add multiple timebins at once
-    /// \param nBins Number of timebins
-    /// \param timebins 2D array with new charges
-    /// \param globalTime Global time of this timebin
-    /// \param length Size of array "timebin"
-    bool AddTimebins(int nBins, float** timebins, unsigned globalTimeOfLast, int length = 8);
+//    /// Add multiple timebins at once
+//    /// \param nBins Number of timebins
+//    /// \param timebins 2D array with new charges
+//    /// \param globalTime Global time of this timebin
+//    /// \param length Size of array "timebin"
+//    bool AddTimebins(int nBins, float** timebins, unsigned globalTimeOfLast, int length = 8);
 
     /// Add a timebin with charges of 0
     /// \param globalTime Global time of this timebin
@@ -71,7 +85,7 @@ class HwClusterFinder {
     /// \param globalTimeAfterReset Global time of the first timebin after reset
     void reset(unsigned globalTimeAfterReset);
 
-    
+
     // Getter functions
     int   getGlobalTimeOfLast() const             { return mGlobalTimeOfLast; }
     int   getTimebinsAfterLastProcessing() const  { return mTimebinsAfterLastProcessing; };
@@ -88,10 +102,11 @@ class HwClusterFinder {
     bool  getRequirePositiveCharge() const        { return mRequirePositiveCharge; }
     bool  getRequireNeighbouringPad() const       { return mRequireNeighbouringPad; }
     bool  getRequireNeighbouringTimebin() const   { return mRequireNeighbouringTimebin; }
-    bool  getAutoProcessing() const               { return mAutoProcessing; } 
+    bool  getAutoProcessing() const               { return mAutoProcessing; }
     bool  getmAssignChargeUnique() const          { return mAssignChargeUnique; }
     HwClusterFinder* getNextCF() const            { return mNextCF; }
     std::vector<Cluster>* getClusterContainer()   { return &clusterContainer; }
+    std::vector<std::vector<std::pair<int,int>>>* getClusterDigitIndices()    { return &clusterDigitIndices; }
 
     // Setter functions
     void  setTimebinsAfterLastProcessing(int val)       { mTimebinsAfterLastProcessing = val; };
@@ -114,7 +129,7 @@ class HwClusterFinder {
 
 
     /// Clears the local cluster storage
-    void clearClusterContainer()        { clusterContainer.clear(); }
+    void clearClusterContainer() { clusterContainer.clear(); clusterDigitIndices.clear(); }
 
     /// Process the cluster finding
     bool findCluster();
@@ -123,19 +138,20 @@ class HwClusterFinder {
     /// \param time Time bin of found cluster peak
     /// \param pad Pad of found cluster peak
     /// \param cluster Cluster charges
-    void clusterAlreadyUsed(short time, short pad, float** cluster);
+    void clusterAlreadyUsed(short time, short pad, MiniDigit** cluster);
 
   private:
 
-    float chargeForCluster(float* charge, float* toCompare);
+    MiniDigit chargeForCluster(MiniDigit* charge, MiniDigit* toCompare);
     void printCluster(short time, short pad);
 
     // local variables
     std::vector<o2::TPC::Cluster> clusterContainer;
+    std::vector<std::vector<std::pair<int,int>>> clusterDigitIndices;
     int mTimebinsAfterLastProcessing;
-    float** mData;
-    float** tmpCluster;
-    float*  mZeroTimebin;
+    MiniDigit** mData;
+    MiniDigit** tmpCluster;
+    MiniDigit*  mZeroTimebin;
 
 
     // configuration
@@ -161,7 +177,7 @@ class HwClusterFinder {
 };
 
 //________________________________________________________________________
-inline bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int length)
+inline bool HwClusterFinder::AddTimebin(MiniDigit* timebin, unsigned globalTime, int length)
 {
   mGlobalTimeOfLast = globalTime;
   ++mTimebinsAfterLastProcessing;
@@ -169,7 +185,7 @@ inline bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int
   //
   // reordering of the local arrays
   //
-  float* data0 = mData[0];
+  MiniDigit* data0 = mData[0];
   std::memmove(mData,mData+1,(mTimebins-1)*sizeof(mData[0]));
   mData[mTimebins-1] = data0;
   if (length < mPads) {
@@ -187,4 +203,4 @@ inline bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int
 }
 
 
-#endif 
+#endif
