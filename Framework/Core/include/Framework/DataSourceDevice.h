@@ -45,6 +45,8 @@ private:
   RootObjectContext mRootContext;
   DataAllocator mAllocator;
   size_t mCurrentTimeslice;
+  float mRate;
+  size_t mLastTime;
 };
 
 }

@@ -16,9 +16,11 @@ namespace framework {
 struct InputSpec;
 
 struct DataRef {
-  const InputSpec *const spec;
-  const char *const header;
-  const char *const payload;
+  // FIXME: had to remove the second 'const' in const T* const
+  // to allow assignment
+  const InputSpec * spec;
+  const char * header;
+  const char * payload;
 };
 
 }

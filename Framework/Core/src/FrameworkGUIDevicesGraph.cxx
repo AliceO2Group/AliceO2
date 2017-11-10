@@ -62,7 +62,7 @@ void showTopologyNodeGraph(bool* opened,
     static bool show_grid = true;
     static int node_selected = -1;
 
-    auto prepareChannelView = [&specs](ImVector<Node> &nodes) {
+    auto prepareChannelView = [&specs](ImVector<Node> &nodeList) {
       std::map<std::string, std::pair<int, int>> linkToIndex;
       for (int si = 0; si < specs.size(); ++si) {
         int oi = 0;
@@ -74,7 +74,7 @@ void showTopologyNodeGraph(bool* opened,
       for (int si = 0; si < specs.size(); ++si) {
         auto &spec = specs[si];
         // FIXME: display nodes using topological sort
-        nodes.push_back(Node(si, spec.id.c_str(),  ImVec2(40+120*si,50 + (120 * si) % 500), 0.5f,
+        nodeList.push_back(Node(si, spec.id.c_str(),  ImVec2(40+120*si,50 + (120 * si) % 500), 0.5f,
                         ImColor(255,100,100),
                         spec.inputChannels.size(),
                         spec.outputChannels.size()));

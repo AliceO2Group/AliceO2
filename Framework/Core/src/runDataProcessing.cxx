@@ -42,7 +42,6 @@
 #include <set>
 #include <string>
 
-#include <getopt.h>
 #include <csignal>
 #include <sys/resource.h>
 #include <sys/select.h>
@@ -50,6 +49,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <boost/program_options.hpp>
 
 
 #include <fairmq/DeviceRunner.h>
@@ -333,6 +333,8 @@ void handle_sigchld(int sig) {
   }
 }
 
+namespace bpo = boost::program_options;
+
 // This is a toy executor for the workflow spec
 // What it needs to do is:
 //
@@ -343,55 +345,62 @@ void handle_sigchld(int sig) {
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
 int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
-  static struct option longopts[] = {
-    {"quiet",     no_argument,  nullptr, 'q' },
-    {"stop",   no_argument,  nullptr, 's' },
-    {"batch", no_argument, nullptr, 'b'},
-    {"graphviz", no_argument, nullptr, 'g'},
-    {"dds", no_argument, nullptr, 'D'},
-    {"id", required_argument, nullptr, 'i'},
-    { nullptr,         0,            nullptr, 0 }
-  };
+  bpo::options_description executorOptions("Executor options");
+  executorOptions.add_options()
+    ((std::string("help") + ",h").c_str(),
+     "print this help")
+    ((std::string("quiet") + ",g").c_str(),
+     bpo::value<bool>()->zero_tokens()->default_value(false),
+     "quiet operation")
+    ((std::string("stop") + ",s").c_str(),
+     bpo::value<bool>()->zero_tokens()->default_value(false),
+     "stop before device start")
+    ((std::string("batch") + ",b").c_str(),
+     bpo::value<bool>()->zero_tokens()->default_value(false),
+     "batch processing mode")
+    ((std::string("graphviz") + ",g").c_str(),
+     bpo::value<bool>()->zero_tokens()->default_value(false),
+     "produce graph output")
+    ((std::string("dds") + ",D").c_str(),
+     bpo::value<bool>()->zero_tokens()->default_value(false),
+     "create DDS configuration");
 
-  bool defaultQuiet = false;
-  bool defaultStopped = false;
-  bool noGui = false;
-  bool graphViz = false;
-  bool generateDDS = false;
+  // FIXME: acquire those options from the code generating the child options
+  bpo::options_description hiddenOptions("Hidden child options");
+  hiddenOptions.add_options()
+    ((std::string("id") + ",i").c_str(),
+     bpo::value<std::string>(),
+     "device id for child spawning")
+    ("channel-config",
+     "channel configuration")
+    ("control",
+     "control plugin")
+    ("log-color",
+     "logging color scheme");
+
+  bpo::options_description visibleOptions;
+  visibleOptions.add(executorOptions);
+  visibleOptions.add(prepareOptionDescriptions(specs));
+
+  bpo::options_description od;
+  od.add(visibleOptions);
+  od.add(hiddenOptions);
+
+  // FIXME: decide about the policy for handling unrecognized arguments
+  // command_line_parser with option allow_unregistered() can be used
+  bpo::variables_map varmap;
+  bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
+
+  bool defaultQuiet = varmap["quiet"].as<bool>();
+  bool defaultStopped = varmap["stop"].as<bool>();
+  bool noGui = varmap["batch"].as<bool>();
+  bool graphViz = varmap["graphviz"].as<bool>();
+  bool generateDDS = varmap["dds"].as<bool>();
   std::string frameworkId;
-
-  int opt;
-  size_t safeArgsSize = sizeof(char**)*argc+1;
-  char **safeArgv = reinterpret_cast<char**>(malloc(safeArgsSize));
-  memcpy(safeArgv, argv, safeArgsSize);
-
-  while ((opt = getopt_long(argc, argv, "qsbgDi",longopts, nullptr)) != -1) {
-    switch (opt) {
-    case 'q':
-        defaultQuiet = true;
-        break;
-    case 's':
-        defaultStopped = true;
-        break;
-    case 'b':
-        noGui = true;
-        break;
-    case 'g':
-        graphViz = true;
-        break;
-    case 'D':
-        generateDDS = true;
-        break;
-    case 'i':
-        frameworkId = optarg;
-        break;
-    case ':':
-    case '?':
-    default: /* '?' */
-        // By default we ignore all the other options: we assume they will be
-        // need by on of the underlying devices.
-        break;
-    }
+  if (varmap.count("id")) frameworkId = varmap["id"].as<std::string>();
+  if (varmap.count("help")) {
+    std::cout << visibleOptions << std::endl;
+    exit(0);
   }
 
   std::vector<DeviceSpec> deviceSpecs;
@@ -410,10 +419,10 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   if (frameworkId.empty() == false) {
     for (auto &spec : deviceSpecs) {
       if (spec.id == frameworkId) {
-        return doChild(argc, safeArgv, spec);
+        return doChild(argc, argv, spec);
       }
     }
-    LOG(ERROR) << "Unable to find component with id" << frameworkId;
+    LOG(ERROR) << "Unable to find component with id " << frameworkId;
   }
 
   assert(frameworkId.empty());

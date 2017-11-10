@@ -14,12 +14,16 @@
 #include "Framework/ChannelMatching.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/OutputRoute.h"
+#include "Framework/ConfigParamsHelper.h"
 #include <vector>
 #include <algorithm>
 #include <unordered_set>
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <boost/program_options.hpp>
+
+namespace bpo = boost::program_options;
 
 using namespace o2::framework;
 
@@ -514,23 +518,40 @@ DeviceSpecHelpers::prepareArguments(int argc,
     };
 
     // Do filtering. Since we should only have few options,
-    // FIXME: finish here...
-    for (size_t ai = 0; ai < argc; ++ai) {
-      for (size_t oi = 0; oi < spec.options.size(); ++oi) {
-        char *currentOpt = argv[ai];
-        LOG(DEBUG) << "Checking if " << currentOpt << " is needed by " << spec.id;
-        if (ai + 1 > argc) {
-          std::cerr << "Missing value for " << currentOpt;
-          exit(1);
-        }
-        char *currentOptValue = argv[ai+1];
-        const std::string &validOption = "--" + spec.options[oi].name;
-        if (strncmp(currentOpt, validOption.c_str(), validOption.size()) == 0) {
-          tmpArgs.emplace_back(strdup(validOption.c_str()));
-          tmpArgs.emplace_back(strdup(currentOptValue));
-          control.options.insert(std::make_pair(spec.options[oi].name,
-                                                currentOptValue));
-          break;
+    bpo::options_description od;
+    if (prepareOptionsDescription(spec.options, od)) {
+      // spec contains options
+      bpo::command_line_parser parser{argc, argv};
+      parser.options(od).allow_unregistered();
+      bpo::parsed_options parsed_options = parser.run();
+
+      bpo::variables_map varmap;
+      bpo::store(parsed_options, varmap);
+
+      for (const auto varit : varmap) {
+        // find the option belonging to key, add if the option has been parsed
+        // and is not defaulted
+        const auto * description = od.find_nothrow(varit.first, false);
+        if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
+          tmpArgs.emplace_back("--");
+          tmpArgs.back() += varit.first;
+          // check the semantics of the value
+          auto semantic = description->semantic();
+          const char* optarg = "";
+          if (semantic) {
+            // the value semantics allows different properties like
+            // multitoken, zero_token and composing
+            // currently only the simple case is supported
+            assert(semantic->min_tokens() <= 1);
+            assert(semantic->max_tokens() && semantic->min_tokens());
+            if (semantic->min_tokens() > 0 ) {
+              // add the token
+              tmpArgs.emplace_back(varit.second.as<std::string>());
+              optarg = tmpArgs.back().c_str();
+            }
+          }
+          control.options.insert(std::make_pair(varit.first,
+                                                optarg));
         }
       }
     }
@@ -563,7 +584,6 @@ DeviceSpecHelpers::prepareArguments(int argc,
                << spec.id << ":" << str.str();
   }
 }
-
 
 } // namespace framework
 } // namespace o2

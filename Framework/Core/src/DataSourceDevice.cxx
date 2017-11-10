@@ -14,6 +14,9 @@
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/DataProcessingHeader.h"
 #include <cassert>
+#include <chrono>
+#include <thread> // this_thread::sleep_for
+using TimeScale = std::chrono::microseconds;
 
 using namespace o2::framework;
 
@@ -28,7 +31,9 @@ DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &regi
   mConfigRegistry{nullptr},
   mAllocator{this,&mContext, &mRootContext, spec.outputs},
   mServiceRegistry{registry},
-  mCurrentTimeslice{0}
+  mCurrentTimeslice{0},
+  mRate{0.},
+  mLastTime{0}
 {
 }
 
@@ -46,6 +51,17 @@ void DataSourceDevice::Init() {
 }
 
 bool DataSourceDevice::ConditionalRun() {
+  static const auto reftime = std::chrono::system_clock::now();
+  if (mRate > 0.001) {
+    auto timeSinceRef = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - reftime);
+    auto timespan = timeSinceRef.count() - mLastTime;
+    TimeScale::rep period = (float)TimeScale::period::den / mRate;
+    if (timespan < period) {
+      TimeScale sleepfor(period - timespan);
+      std::this_thread::sleep_for(sleepfor);
+    }
+    mLastTime = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - reftime).count();
+  }
   LOG(DEBUG) << "DataSourceDevice::Processing::START";
   LOG(DEBUG) << "ConditionalRun thread" << pthread_self();
   // This is dummy because a source does not really have inputs.

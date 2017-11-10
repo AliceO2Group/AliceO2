@@ -63,6 +63,34 @@ template <> struct variant_trait<bool> {
   static VariantType type() { return VariantType::Bool; }
 };
 
+template<VariantType type>
+struct variant_type {
+};
+
+template <> struct variant_type<VariantType::Int> {
+  using type = int;
+};
+
+template <> struct variant_type<VariantType::Int64> {
+  using type = int64_t;
+};
+
+template <> struct variant_type<VariantType::Float> {
+  using type = float;
+};
+
+template <> struct variant_type<VariantType::Double> {
+  using type = double;
+};
+
+template <> struct variant_type<VariantType::String> {
+  using type = const char*;
+};
+
+template <> struct variant_type<VariantType::Bool> {
+  using type = bool;
+};
+
 template <typename S, typename T>
 struct variant_helper {
   static void set(S*store, T value)
