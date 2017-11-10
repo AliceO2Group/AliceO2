@@ -16,6 +16,7 @@
 #include "ITSSimulation/V3Layer.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
+#include "ITSMFTSimulation/AlpideChip.h"
 
 #include "FairLogger.h"           // for LOG
 
@@ -39,6 +40,7 @@ class TGeoMedium;
 
 using namespace TMath;
 using namespace o2::ITS;
+using AlpideChip = o2::ITSMFT::AlpideChip;
 
 // General Parameters
 const Int_t V3Layer::sNumberOfInnerLayers = 3;
@@ -524,11 +526,23 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
 {
   Double_t xtot, ytot, ztot, zchip;
   Double_t xpos, ypos, zpos;
-  char volumeName[30];
+  Bool_t dummyChip;
+  char chipName[30], sensName[30], volumeName[30];
+
+  // For material budget studies
+  if (mBuildLevel < 6)
+    dummyChip = kFALSE;  // will be made of Si
+  else
+    dummyChip = kTRUE;   // will be made of Air
 
   // First create the single chip
+  snprintf(chipName, 30, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
+  snprintf(sensName, 30, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
+
   zchip = zmod / sIBChipsPerRow;
-  TGeoVolume *chipVol = createChip(xmod, ymod, zchip);
+  TGeoVolume *chipVol = AlpideChip::createChip(xmod, ymod, zchip,
+					       mSensorThickness/2, chipName,
+					       sensName, dummyChip);
 
   // Then create the Glue, the Kapton and the two Aluminum cables
   xtot = xmod + (sIBFPCWiderXPlus + sIBFPCWiderXNeg)/2;
@@ -775,61 +789,62 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
   Double_t topFilTheta = sIBTopFilamentAlpha*TMath::DegToRad();
   Double_t topFilLProj = xstave/TMath::Sin(topFilTheta); // Top filament length projected on stave XZ plane
   Double_t topFilYLen = xstave/TMath::Tan(topFilTheta); // Filament length on Y
-  Int_t  nFilaments = (Int_t)(zstave/topFilYLen);
   // Question: would it be better to fix the number of filaments and
   // compute the angle alpha from it, or leave as it is now, i.e. fix the
   // filament inclination angle alpha and compute their number ?
 
   const Int_t nv = 6;
   Double_t xv[nv], yv[nv]; // The stave container Xtru
-  Double_t xlen, ylen, zlen;
+  Double_t xlen, ylen, zlen, ztot;
   Double_t xpos, ypos, zpos, ylay;
   Double_t beta, gamma, theta;
 
 
   // First create all needed shapes
-  TGeoBBox *glue     = new TGeoBBox(xstave, sIBGlueThick/2, zstave);
+  ztot = zstave + (sIBChipsPerRow-1)*sIBChipZGap/2;
 
-  TGeoBBox *fleecbot = new TGeoBBox(xstave, sIBCarbonFleeceThick/2, zstave);
+  TGeoBBox *glue     = new TGeoBBox(xstave, sIBGlueThick/2, ztot);
 
-  TGeoBBox *cfplate  = new TGeoBBox(xstave, sIBK13D2UThick/2, zstave);
+  TGeoBBox *fleecbot = new TGeoBBox(xstave, sIBCarbonFleeceThick/2, ztot);
 
-  TGeoTube *pipe     = new TGeoTube(rPipeMin, rPipeMax, zstave);
+  TGeoBBox *cfplate  = new TGeoBBox(xstave, sIBK13D2UThick/2, ztot);
 
-  TGeoTube *water    = new TGeoTube(0., rPipeMin, zstave);
+  TGeoTube *pipe     = new TGeoTube(rPipeMin, rPipeMax, ztot);
+
+  TGeoTube *water    = new TGeoTube(0., rPipeMin, ztot);
 
   TGeoTubeSeg *cpaptub  = new TGeoTubeSeg(rPipeMax,
 					  rPipeMax + sIBCarbonPaperThick,
-					  zstave, 0, 180);
+					  ztot, 0, 180);
 
   TGeoBBox *cpapvert = new TGeoBBox(sIBCarbonPaperThick/2,
-				    pipe->GetRmax()/2, zstave);
+				    pipe->GetRmax()/2, ztot);
 
   xlen = sIBCoolPipeXDist/2 - pipe->GetRmax() - sIBCarbonPaperThick;
-  TGeoBBox *cpapmid  = new TGeoBBox(xlen, sIBCarbonPaperThick/2, zstave);
+  TGeoBBox *cpapmid  = new TGeoBBox(xlen, sIBCarbonPaperThick/2, ztot);
 
   xlen = xstave -sIBCoolPipeXDist/2 -pipe->GetRmax() - sIBCarbonPaperThick;
-  TGeoBBox *cpaplr   = new TGeoBBox(xlen/2, sIBCarbonPaperThick/2, zstave);
+  TGeoBBox *cpaplr   = new TGeoBBox(xlen/2, sIBCarbonPaperThick/2, ztot);
 
   TGeoTubeSeg *fleecpipe = new TGeoTubeSeg(cpaptub->GetRmax(),
 			       cpaptub->GetRmax() + sIBCarbonFleeceThick,
-					   zstave, 0, 180); 
+					   ztot, 0, 180); 
 
   TGeoBBox *fleecvert = new TGeoBBox(sIBCarbonFleeceThick/2,
 			 	     (pipe->GetRmax() - sIBCarbonPaperThick)/2,
-				     zstave);
+				     ztot);
 
   xlen = sIBCoolPipeXDist/2 - pipe->GetRmax() - sIBCarbonPaperThick
        - sIBCarbonFleeceThick;
-  TGeoBBox *fleecmid  = new TGeoBBox(xlen, sIBCarbonFleeceThick/2, zstave);
+  TGeoBBox *fleecmid  = new TGeoBBox(xlen, sIBCarbonFleeceThick/2, ztot);
 
   xlen = xstave - sIBCoolPipeXDist/2 - pipe->GetRmax()
        - sIBCarbonPaperThick - sIBCarbonFleeceThick;
-  TGeoBBox *fleeclr   = new TGeoBBox(xlen/2, sIBCarbonFleeceThick/2, zstave);
+  TGeoBBox *fleeclr   = new TGeoBBox(xlen/2, sIBCarbonFleeceThick/2, ztot);
 
   // The spaceframe structure
   TGeoTrd1 *topv  = new TGeoTrd1(sIBTopVertexWidth1/2,
-				 sIBTopVertexWidth2/2, zstave,
+				 sIBTopVertexWidth2/2, ztot,
 				 sIBTopVertexHeight/2);
 
   xv[0] = 0;
@@ -841,8 +856,8 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
 
   TGeoXtru *sidev = new TGeoXtru(2);
   sidev->DefinePolygon(3, xv, yv);
-  sidev->DefineSection(0,-zstave);
-  sidev->DefineSection(1, zstave);
+  sidev->DefineSection(0,-ztot);
+  sidev->DefineSection(1, ztot);
 
   TGeoBBox *topfil = new TGeoBBox(sIBTopFilamentLength/2,
 				  sIBTopFilamentSide/2,
@@ -866,8 +881,8 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
   TGeoXtru *mechStruct = new TGeoXtru(2);
   mechStruct->DefinePolygon(nv, xv, yv);
   mechStruct->SetName("mechStruct");
-  mechStruct->DefineSection(0,-zstave);
-  mechStruct->DefineSection(1, zstave);
+  mechStruct->DefineSection(0,-ztot);
+  mechStruct->DefineSection(1, ztot);
 
   // The connectors' containers
   zlen = sIBConnectBlockZLen - sIBConnTailZLen + sIBConnectAFitZOut;
@@ -880,13 +895,13 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
 
   // The StaveStruct container, a Composite Shape
   ypos = connAside->GetDY() - sIBConnTailYShift + layerHeight;
-  zpos = zstave + connAside->GetDZ();
+  zpos = ztot + connAside->GetDZ();
   TGeoTranslation *transAside = new TGeoTranslation("transAsideIB",
 						    0, ypos, zpos);
   transAside->RegisterYourself();
 
   ypos = connCside->GetDY() - sIBConnTailYShift + layerHeight;
-  zpos = zstave + connCside->GetDZ();
+  zpos = ztot + connCside->GetDZ();
   TGeoTranslation *transCside = new TGeoTranslation("transCsideIB",
 						    0, ypos,-zpos);
   transCside->RegisterYourself();
@@ -1078,11 +1093,12 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
     xpos = xstave/2 + topfil->GetDZ();
     ypos = ( layerHeight + sIBStaveHeight )/2 +
 	   sIBSideVertexWidth/TMath::Sin(gamma*TMath::DegToRad())/2 ;
+    Int_t nFilaments = (Int_t)(ztot/topFilYLen);
     for(int i=0; i<nFilaments; i++){ // i<28 (?)
       // 1) Front Left Top Filament
 //      zpos = -zstave + (i*2*topFilYLen) + topFilLProj/4; // ?????
 //      zpos = -zstave + (i*2*topFilYLen) + topFilLProj/2;
-      zpos = -zstave + (i*2*topFilYLen) + topFilLProj/4 + topfil->GetDY();
+      zpos = -ztot + (i*2*topFilYLen) + topFilLProj/4 + topfil->GetDY();
       mechStavVol->AddNode(topfilVol, i*4+1,
 			 new TGeoCombiTrans( xpos, ypos, zpos,
 			      new TGeoRotation("", 90, theta, gamma)));
@@ -1118,11 +1134,11 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
 
   ypos = ((TGeoBBox*)connectorASide->GetShape())->GetDY()
        - sIBConnTailYShift + ylay;
-  zpos = zstave +
+  zpos = ztot +
         (sIBConnectBlockZLen - sIBConnTailZLen + sIBConnectAFitZOut)/2;
   mechStavVol->AddNode(connectorASide, 1, new TGeoTranslation(0, ypos, zpos));
 
-  zpos = zstave + (sIBConnectBlockZLen - sIBConnTailZLen)/2;
+  zpos = ztot + (sIBConnectBlockZLen - sIBConnTailZLen)/2;
   mechStavVol->AddNode(connectorCSide, 1, new TGeoCombiTrans(0, ypos,-zpos,
 					     new TGeoRotation("",90,180,-90)));
 
@@ -3168,78 +3184,6 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager *mgr){
   return;
 }
 
-TGeoVolume *V3Layer::createChip(const Double_t xchip, const Double_t ychip,
-				const Double_t zchip, const TGeoManager *mgr)
-{
-  char volumeName[30];
-  Double_t xlen, ylen, zlen;
-  Double_t xpos, ypos, zpos;
-
-  // First create all needed shapes
-
-  // The chip
-  TGeoBBox *chip = new TGeoBBox(xchip, ychip, zchip);
-
-  // The sensor
-  xlen = chip->GetDX();
-  ylen = 0.5 * mSensorThickness;
-  zlen = chip->GetDZ();
-  TGeoBBox *sensor = new TGeoBBox(xlen, ylen, zlen);
-
-  // The metal layer
-  xlen = chip->GetDX();
-  ylen = 0.5 * sMetalLayerThick;
-  zlen = chip->GetDZ();
-  TGeoBBox *metallay = new TGeoBBox(xlen, ylen, zlen);
-
-  // We have all shapes: now create the real volumes
-  TGeoMedium *medSi    = mgr->GetMedium("ITS_SI$");
-  TGeoMedium *medAir   = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium *medMetal = mgr->GetMedium("ITS_METALSTACK$");
-  TGeoMedium *medChip;
-
-  if ( (mLayerNumber <  sNumberOfInnerLayers & mBuildLevel < 6) ||
-       (mLayerNumber >= sNumberOfInnerLayers & mBuildLevel < 7) )
-    medChip = medSi;
-  else
-    medChip = medAir;
-
-  snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
-  TGeoVolume *chipVol = new TGeoVolume(volumeName, chip, medSi);
-  chipVol->SetVisibility(kTRUE);
-  chipVol->SetLineColor(1);
-
-  snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
-  TGeoVolume *sensVol = new TGeoVolume(volumeName, sensor, medSi);
-  sensVol->SetVisibility(kTRUE);
-  sensVol->SetLineColor(8);
-  sensVol->SetLineWidth(1);
-  sensVol->SetFillColor(sensVol->GetLineColor());
-  sensVol->SetFillStyle(4000); // 0% transparent
-
-  snprintf(volumeName, 30, "%s%d", "MetalStack", mLayerNumber);
-  TGeoVolume *metalVol = new TGeoVolume(volumeName, metallay, medMetal);
-  metalVol->SetVisibility(kTRUE);
-  metalVol->SetLineColor(1);
-  metalVol->SetLineWidth(1);
-  metalVol->SetFillColor(metalVol->GetLineColor());
-  metalVol->SetFillStyle(4000); // 0% transparent
-
-  // Now build up the chip
-  xpos = 0.;
-  ypos = -chip->GetDY() + metallay->GetDY();
-  zpos = 0.;
-
-  chipVol->AddNode(metalVol, 1, new TGeoTranslation(xpos, ypos, zpos));
-
-  ypos += (metallay->GetDY() + sensor->GetDY());
-
-  chipVol->AddNode(sensVol, 1, new TGeoTranslation(xpos, ypos, zpos));
-
-  // Done, return the chip
-  return chipVol;
-}
-
 TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
 {
 //
@@ -3261,7 +3205,7 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
 //
 
 
-  char volname[30];
+  char chipName[30], sensName[30], volName[30];
 
   Double_t xGap  = sOBChipXGap;
   Double_t zGap  = sOBChipZGap;
@@ -3270,14 +3214,27 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
   Double_t xlen, ylen, zlen;
   Double_t xpos, ypos, zpos;
   
+  Bool_t dummyChip;
+
   // First create all needed shapes
 
+  // For material budget studies
+  if (mBuildLevel < 7)
+    dummyChip = kFALSE;  // will be made of Si
+  else
+    dummyChip = kTRUE;   // will be made of Air
+
   // The chip (the same as for IB)
+  snprintf(chipName, 30, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
+  snprintf(sensName, 30, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
+
   xlen = (sOBHalfStaveWidth/2-xGap/2)/sOBNChipRows;
   ylen = 0.5*sOBChipThickness;
   zlen = (sOBModuleZLength - (sOBChipsPerRow-1)*zGap)/(2*sOBChipsPerRow);
 
-  TGeoVolume *chipVol = createChip(xlen, ylen, zlen);
+  TGeoVolume *chipVol = AlpideChip::createChip(xlen, ylen, zlen,
+					       mSensorThickness/2, chipName,
+					       sensName, dummyChip);
 
   xchip = ((TGeoBBox*)chipVol->GetShape())->GetDX();
   ychip = ((TGeoBBox*)chipVol->GetShape())->GetDY();
@@ -3339,8 +3296,8 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
   flexKapVol->SetFillColor(flexKapVol->GetLineColor());
   flexKapVol->SetFillStyle(4000); // 0% transparent
 
-  snprintf(volname, 30, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
-  TGeoVolume *modVol = new TGeoVolume(volname, module, medAir);
+  snprintf(volName, 30, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  TGeoVolume *modVol = new TGeoVolume(volName, module, medAir);
   modVol->SetVisibility(kTRUE);
   
 
