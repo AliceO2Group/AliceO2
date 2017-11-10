@@ -328,13 +328,34 @@ parallel devices, this time by modifying programmatically the `Inputs`:
     }
     ...
 
-When you  declare a parallel  set of devices you  can retrieve the  rank (i.e.
-parallel id) or the number of  parallel devices by using the `ParalleContext`,
-which can  be retrieved  from the `ServiceRegistry`  (see also  the `Services`
+When one declares a parallel set of devices you can retrieve the rank (i.e.
+parallel id) or the number of parallel devices by using the `ParalleContext`,
+which can be retrieved from the `ServiceRegistry` (see also the `Services`
 section below), e.g.:
 
     size_t whoAmI = services.get<ParallelContext>().index1D();
     size_t howManyAreWe = services.get<ParallelContext>().index1DSize();
+
+A second type of parallelism is time based pipelining. This assumes that the
+data can be subdivided in subsequent "time periods" that are independent one
+from the other and which are each identified by some timestamp entity. In this
+particular case it could result handy that some part of the workflow are
+actually processing different time periods. This can be expressed via the
+`timePipeline`, directive, e.g.:
+
+    ...
+    timePipeline(DataProcessorSpec{
+      "processor",
+      {InputSpec{"a", "TST", "A"}},
+      {OutputSpec{"TST", "B"}},
+      AlgorithmSpec{[](ProcessingContext &ctx) {
+        };
+      }
+    }, 2);
+    ...
+
+which will result in two devices, one for even time periods, the other one for
+odd timeperiods.
 
 # Services
 
