@@ -1129,3 +1129,13 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
 )
+
+o2_define_bucket(
+    NAME
+    CommonTypes_bucket
+
+    DEPENDENCIES
+    common_boost_bucket
+
+    INCLUDE_DIRECTORIES
+)
