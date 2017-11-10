@@ -240,11 +240,6 @@ class V3Layer : public V11Geometry
     /// \param mgr The GeoManager (used only to get the proper material)
     TGeoVolume *createStave(const TGeoManager *mgr = gGeoManager);
 
-    /// Creates the actual Chip
-    /// \param xchip,ychip,zchip The chip half dimensions
-    /// \param mgr The GeoManager (used only to get the proper material)
-    TGeoVolume *createChip(Double_t x, Double_t y, Double_t z, const TGeoManager *mgr = gGeoManager);
-
     /// Creates the IB Module: (only the chips for the time being)
     /// Returns the module as a TGeoVolume
     /// \param xmod, ymod, zmod X, Y, Z module half lengths
