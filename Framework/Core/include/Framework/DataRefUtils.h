@@ -22,7 +22,7 @@ struct DataRefUtils {
   template <typename T>
   static Collection<T> as(const DataRef &ref) {
     using DataHeader = o2::Header::DataHeader;
-    auto header = reinterpret_cast<const DataHeader*const>(ref.header);
+    auto header = o2::Header::get<const DataHeader>(ref.header);
     assert((header->payloadSize % sizeof(T)) == 0);
     //FIXME: provide a const collection
     return Collection<T>(reinterpret_cast<void *>(const_cast<char *>(ref.payload)), header->payloadSize/sizeof(T));

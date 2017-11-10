@@ -56,6 +56,7 @@ DataAllocator::newChunk(const OutputSpec &spec, size_t size) {
   dh.dataOrigin = spec.origin;
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
+  dh.payloadSize = size;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
@@ -89,6 +90,7 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
   dh.dataOrigin = spec.origin;
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
+  dh.payloadSize = size;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
@@ -121,6 +123,8 @@ DataAllocator::newTClonesArray(const OutputSpec &spec, const char *className, si
   dh.dataOrigin = spec.origin;
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
+  // the correct payload size is st later when sending the
+  // RootObjectContext, see DataProcessor::doSend
   dh.payloadSize = 0;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};

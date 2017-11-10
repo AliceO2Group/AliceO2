@@ -23,7 +23,28 @@ void populateBoostProgramOptions(
     boost::program_options::options_description &options,
     const std::vector<ConfigParamSpec> &specs
   );
+
+/// populate boost program options making all options of type string
+/// this is used for filtering the command line argument
+bool
+prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
+                          boost::program_options::options_description& options);
+
+/// populate boost program options for a complete workflow
+template<typename ContainerType>
+boost::program_options::options_description
+prepareOptionDescriptions(const ContainerType &workflow)
+{
+  boost::program_options::options_description specOptions("Spec options");
+  for (const auto & spec : workflow) {
+    boost::program_options::options_description options(spec.name.c_str());
+    if (prepareOptionsDescription(spec.options, options)) {
+      specOptions.add(options);
+    }
+  }
+  return specOptions;
 }
 
+}
 }
 #endif // FRAMEWORK_CONFIGPARAMSHELPER_H

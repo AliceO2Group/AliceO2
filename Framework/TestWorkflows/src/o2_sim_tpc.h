@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef WORKFLOWS_O2_SIM_ITS_ALP3
-#define WORKFLOWS_O2_SIM_ITS_ALP3
+#ifndef WORKFLOWS_O2_SIM_TPC
+#define WORKFLOWS_O2_SIM_TPC
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -19,4 +19,4 @@ namespace workflows{
 }
 }
 
-#endif // WORKFLOWS_O2_SIM_ITS_ALP3
+#endif // WORKFLOWS_O2_SIM_TPC

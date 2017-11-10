@@ -15,6 +15,7 @@
 
 #include <fairmq/FairMQMessage.h>
 
+#include <iterator>
 #include <string>
 #include <vector>
 #include <cstring>
@@ -64,8 +65,78 @@ public:
     return *reinterpret_cast<T const *>(get(name).payload);
   }
 
-  size_t size() {
+  size_t size() const {
     return mCache.size()/2;
+  }
+
+  template<typename T>
+  using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
+
+  template<typename ParentT, typename T>
+  class Iterator : public IteratorBase<T> {
+  public:
+    using ParentType = ParentT;
+    using SelfType = Iterator;
+    using value_type = typename IteratorBase<T>::value_type;
+    using reference = typename IteratorBase<T>::reference;
+    using pointer = typename IteratorBase<T>::pointer;
+    using ElementType = typename std::remove_const<value_type>::type;
+
+    Iterator() = delete;
+
+  Iterator(ParentType const * parent, size_t position = 0, size_t size = 0)
+      : mParent(parent)
+      , mPosition(position)
+      , mSize(size > position? size : position)
+      , mElement{nullptr, nullptr, nullptr}
+    {
+      if (mPosition < mSize) {
+        mElement = mParent->getByPos(mPosition);
+      }
+    }
+
+    ~Iterator() = default;
+
+    // prefix increment
+    SelfType& operator++() {
+      if (mPosition < mSize && ++mPosition < mSize) {
+        mElement = mParent->getByPos(mPosition);
+      }
+      return *this;
+    }
+    // postfix increment
+    SelfType operator++(int /*unused*/) {
+      SelfType copy(*this); operator++(); return copy;
+    }
+    // return reference
+    reference operator*() {
+      return mElement;
+    }
+    // comparison
+    bool operator==(const SelfType& rh) {
+      return mPosition == rh.mPosition;
+    }
+    // comparison
+    bool operator!=(const SelfType& rh) {
+      return mPosition != rh.mPosition;
+    }
+
+  private:
+    size_t mPosition;
+    size_t mSize;
+    ParentType const * mParent;
+    ElementType mElement;
+  };
+
+  using iterator = Iterator<InputRecord, DataRef>;
+  using const_iterator = Iterator<InputRecord, const DataRef>;
+
+  const_iterator begin() const {
+    return const_iterator(this, 0, size());
+  }
+
+  const_iterator end() const {
+    return const_iterator(this, size());
   }
 
 private:
