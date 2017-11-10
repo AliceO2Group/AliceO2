@@ -627,6 +627,18 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    QC_workflow_bucket
+
+    DEPENDENCIES
+    QCProducer
+    QCMerger
+    Framework
+
+    INCLUDE_DIRECTORIES
+   )
+
+o2_define_bucket(
+    NAME
     QC_test_bucket
 
     DEPENDENCIES
