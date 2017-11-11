@@ -215,6 +215,12 @@ bool o2::Header::DataHeader::operator==(const DataHeader& that) const
 }
 
 //__________________________________________________________________________________________________
+void o2::Header::printDataDescription::operator()(const char* str) const
+{
+  printf("Data description  : %s\n", str);
+}
+
+//__________________________________________________________________________________________________
 void o2::Header::printDataOrigin::operator()(const char* str) const
 {
   printf("Data origin  : %s\n", str);
