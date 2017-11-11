@@ -31,8 +31,6 @@
 #define ALICEO2_BASE_DATA_HEADER_
 
 #include <cstdint>
-#include <cstdio>
-#include <iostream>
 #include <memory>
 #include <cassert>
 #include <cstring> //needed for memcmp
@@ -576,7 +574,7 @@ const uint32_t NameHeader<N>::sVersion = 1;
 //__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
 struct printDataDescription {
-  void operator()(const char* str) const { printf("Data origin  : %s\n", str); }
+  void operator()(const char* str) const;
 };
 
 using DataDescription = Descriptor<gSizeDataDescriptionString, printDataDescription>;
