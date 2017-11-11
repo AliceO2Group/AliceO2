@@ -13,6 +13,7 @@
 #include <Rtypes.h>
 
 #include "Producer.h"
+#include <string>
 
 namespace o2
 {
@@ -25,8 +26,8 @@ class TH2Producer : public Producer
   TObject* produceData() const override;
 
  private:
-  const char* mHistogramName;
-  const char* mHistogramTitle;
+  std::string mHistogramName;
+  std::string mHistogramTitle;
 
   const Int_t mNbinsx;
   const Int_t mNbinsy;

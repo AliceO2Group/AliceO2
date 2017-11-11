@@ -32,7 +32,7 @@ TObject* THnProducer::produceData() const
   const Int_t valuesNumber = 1000;
   auto* values = new Double_t[valuesNumber];
 
-  auto* histogram = new THnF(mHistogramName, mHistogramTitle, dim, bins, xmin, xmax);
+  auto* histogram = new THnF(mHistogramName.c_str(), mHistogramTitle.c_str(), dim, bins, xmin, xmax);
 
   for (int i = 0; i < dim; ++i) {
     for (int j = 0; j < valuesNumber; ++j) {
