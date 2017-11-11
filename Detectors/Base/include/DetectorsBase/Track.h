@@ -18,10 +18,10 @@
 #include <Rtypes.h>
 #include <algorithm>
 #include <array>
+#include <cfloat>
+#include <cmath>
 #include <cstring>
 #include <iostream>
-#include <cmath>
-#include <cfloat>
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 
@@ -65,76 +65,74 @@ constexpr float kCY2max = 100 * 100, // SigmaY<=100cm
   kC1Pt2max = 100 * 100,             // Sigma1/Pt<=100 1/GeV
   kCalcdEdxAuto = -999.f;            // value indicating request for dedx calculation
 
-constexpr float HugeF = 1e33;       // large float as dummy value
- 
+constexpr float HugeF = 1e33; // large float as dummy value
+
 // helper function
 float BetheBlochSolid(float bg, float rho = 2.33f, float kp1 = 0.20f, float kp2 = 3.00f, float meanI = 173e-9f,
                       float meanZA = 0.49848f);
 void g3helx3(float qfield, float step, std::array<float, 7>& vect);
 
-class TrackParBase
-{ // track parameterization, kinematics only. This base class cannot be instantiated
+class TrackPar
+{ // track parameterization, kinematics only.
  public:
-  const float* GetParam() const { return mP; }
-  float GetX() const { return mX; }
-  float GetAlpha() const { return mAlpha; }
-  float GetY() const { return mP[kY]; }
-  float GetZ() const { return mP[kZ]; }
-  float GetSnp() const { return mP[kSnp]; }
-  float GetTgl() const { return mP[kTgl]; }
-  float GetQ2Pt() const { return mP[kQ2Pt]; }
+  TrackPar() = default;
+  TrackPar(float x, float alpha, const std::array<float, kNParams>& par);
+  TrackPar(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz, int sign, bool sectorAlpha = true);
+  TrackPar(const TrackPar&) = default;
+  TrackPar& operator=(const TrackPar& src) = default;
+  ~TrackPar() = default;
+
+  const float* getParam() const { return mP; }
+  float getX() const { return mX; }
+  float getAlpha() const { return mAlpha; }
+  float getY() const { return mP[kY]; }
+  float getZ() const { return mP[kZ]; }
+  float getSnp() const { return mP[kSnp]; }
+  float getTgl() const { return mP[kTgl]; }
+  float getQ2Pt() const { return mP[kQ2Pt]; }
   // derived getters
-  float GetCurvature(float b) const { return mP[kQ2Pt] * b * Constants::kB2C; }
-  float GetSign() const { return mP[kQ2Pt] > 0 ? 1.f : -1.f; }
-  float GetPhi() const { return asinf(GetSnp()) + GetAlpha(); }
-  float GetPhiPos() const;
+  float getCurvature(float b) const { return mP[kQ2Pt] * b * Constants::kB2C; }
+  float getSign() const { return mP[kQ2Pt] > 0 ? 1.f : -1.f; }
+  float getPhi() const { return asinf(getSnp()) + getAlpha(); }
+  float getPhiPos() const;
 
-  float GetP() const;
-  float GetPt() const;
+  float getP() const;
+  float getPt() const;
 
-  Point3D<float> GetXYZGlo() const;
-  void GetXYZGlo(std::array<float, 3>& xyz) const;
-  bool GetPxPyPzGlo(std::array<float, 3>& pxyz) const;
-  bool GetPosDirGlo(std::array<float, 9>& posdirp) const;
+  Point3D<float> getXYZGlo() const;
+  void getXYZGlo(std::array<float, 3>& xyz) const;
+  bool getPxPyPzGlo(std::array<float, 3>& pxyz) const;
+  bool getPosDirGlo(std::array<float, 9>& posdirp) const;
 
   // methods for track params estimate at other point
-  bool GetYZAt(float xk, float b, float& y, float& z) const;
-  Point3D<float> GetXYZGloAt(float xk, float b, bool& ok) const;
+  bool getYZAt(float xk, float b, float& y, float& z) const;
+  Point3D<float> getXYZGloAt(float xk, float b, bool& ok) const;
 
   // parameters manipulation
-  bool RotateParam(float alpha);
-  bool PropagateParamTo(float xk, float b);
-  bool PropagateParamTo(float xk, const std::array<float, 3>& b);
-  void InvertParam();
+  bool rotateParam(float alpha);
+  bool propagateParamTo(float xk, float b);
+  bool propagateParamTo(float xk, const std::array<float, 3>& b);
+  void invertParam();
 
   void PrintParam() const;
 
  protected:
-  // to keep this class non-virtual but derivable the c-tors and d-tor are protected
-  TrackParBase() : mX{ 0. }, mAlpha{ 0. } {}
-  TrackParBase(float x, float alpha, const std::array<float, kNParams>& par);
-  TrackParBase(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz, int sign, bool sectorAlpha = true);
-  TrackParBase(const TrackParBase&) = default;
-  TrackParBase(TrackParBase&&) = default;
-  TrackParBase& operator=(const TrackParBase& src) = default;
-  ~TrackParBase() = default;
   //
-  float mX;                     /// X of track evaluation
-  float mAlpha;                 /// track frame angle
+  float mX = 0.f;               /// X of track evaluation
+  float mAlpha = 0.f;           /// track frame angle
   float mP[kNParams] = { 0.f }; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
 
-  ClassDefNV(TrackParBase, 1);
+  ClassDefNV(TrackPar, 1);
 };
 
-// rootcint does not swallow final keyword here
-class TrackParCov final : public TrackParBase
+class TrackParCov : public TrackPar
 { // track+error parameterization
 
   using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
   using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams>>;
-  
+
  public:
-  TrackParCov() : TrackParBase{} {}
+  TrackParCov() : TrackPar{} {}
   TrackParCov(float x, float alpha, const std::array<float, kNParams>& par, const std::array<float, kCovMatSize>& cov);
   TrackParCov(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz,
               const std::array<float, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true);
@@ -142,66 +140,67 @@ class TrackParCov final : public TrackParBase
   TrackParCov& operator=(const TrackParCov& src) = default;
   ~TrackParCov() = default;
 
-  /// const float* GetCov()                const { return mC; }
-  float GetSigmaY2() const { return mC[kSigY2]; }
-  float GetSigmaZY() const { return mC[kSigZY]; }
-  float GetSigmaZ2() const { return mC[kSigZ2]; }
-  float GetSigmaSnpY() const { return mC[kSigSnpY]; }
-  float GetSigmaSnpZ() const { return mC[kSigSnpZ]; }
-  float GetSigmaSnp2() const { return mC[kSigSnp2]; }
-  float GetSigmaTglY() const { return mC[kSigTglY]; }
-  float GetSigmaTglZ() const { return mC[kSigTglZ]; }
-  float GetSigmaTglSnp() const { return mC[kSigTglSnp]; }
-  float GetSigmaTgl2() const { return mC[kSigTgl2]; }
-  float GetSigma1PtY() const { return mC[kSigQ2PtY]; }
-  float GetSigma1PtZ() const { return mC[kSigQ2PtZ]; }
-  float GetSigma1PtSnp() const { return mC[kSigQ2PtSnp]; }
-  float GetSigma1PtTgl() const { return mC[kSigQ2PtTgl]; }
-  float GetSigma1Pt2() const { return mC[kSigQ2Pt2]; }
+  const float* getCov() const { return mC; }
+  float getSigmaY2() const { return mC[kSigY2]; }
+  float getSigmaZY() const { return mC[kSigZY]; }
+  float getSigmaZ2() const { return mC[kSigZ2]; }
+  float getSigmaSnpY() const { return mC[kSigSnpY]; }
+  float getSigmaSnpZ() const { return mC[kSigSnpZ]; }
+  float getSigmaSnp2() const { return mC[kSigSnp2]; }
+  float getSigmaTglY() const { return mC[kSigTglY]; }
+  float getSigmaTglZ() const { return mC[kSigTglZ]; }
+  float getSigmaTglSnp() const { return mC[kSigTglSnp]; }
+  float getSigmaTgl2() const { return mC[kSigTgl2]; }
+  float getSigma1PtY() const { return mC[kSigQ2PtY]; }
+  float getSigma1PtZ() const { return mC[kSigQ2PtZ]; }
+  float getSigma1PtSnp() const { return mC[kSigQ2PtSnp]; }
+  float getSigma1PtTgl() const { return mC[kSigQ2PtTgl]; }
+  float getSigma1Pt2() const { return mC[kSigQ2Pt2]; }
   void Print() const;
 
   // parameters + covmat manipulation
-  bool Rotate(float alpha);
-  bool PropagateTo(float xk, float b);
-  bool PropagateTo(float xk, const std::array<float, 3>& b);
-  void Invert();
+  bool rotate(float alpha);
+  bool propagateTo(float xk, float b);
+  bool propagateTo(float xk, const std::array<float, 3>& b);
+  void invert();
 
-  float GetPredictedChi2(const std::array<float, 2>& p, const std::array<float, 3>& cov) const;
+  float getPredictedChi2(const std::array<float, 2>& p, const std::array<float, 3>& cov) const;
 
   template <typename T>
-  float GetPredictedChi2(const BaseCluster<T>& p) const
+  float getPredictedChi2(const BaseCluster<T>& p) const
   {
     const std::array<float, 2> pyz = { p.getY(), p.getZ() };
     const std::array<float, 3> cov = { p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2() };
-    return GetPredictedChi2(pyz, cov);
+    return getPredictedChi2(pyz, cov);
   }
 
-  float GetPredictedChi2(const TrackParCov& rhs) const {
+  float getPredictedChi2(const TrackParCov& rhs) const
+  {
     MatrixDSym5 cov; // perform matrix operations in double!
-    return GetPredictedChi2(rhs, cov);
+    return getPredictedChi2(rhs, cov);
   }
 
-  float GetPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const;
+  float getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const;
 
-  void BuildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5 &cov) const;
-  
-  bool Update(const std::array<float, 2>& p, const std::array<float, 3>& cov);
+  void buildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5& cov) const;
+
+  bool update(const std::array<float, 2>& p, const std::array<float, 3>& cov);
 
   template <typename T>
-  bool Update(const BaseCluster<T>& p)
+  bool update(const BaseCluster<T>& p)
   {
     const std::array<float, 2> pyz{ p.getY(), p.getZ() };
     const std::array<float, 3> cov{ p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2() };
-    return Update(pyz, cov);
+    return update(pyz, cov);
   }
 
-  bool Update(const TrackParCov& rhs, const MatrixDSym5 &covInv);  
-  bool Update(const TrackParCov& rhs);
-  
-  bool CorrectForMaterial(float x2x0, float xrho, float mass, bool anglecorr = false, float dedx = kCalcdEdxAuto);
+  bool update(const TrackParCov& rhs, const MatrixDSym5& covInv);
+  bool update(const TrackParCov& rhs);
 
-  void ResetCovariance(float s2 = 0);
-  void CheckCovariance();
+  bool correctForMaterial(float x2x0, float xrho, float mass, bool anglecorr = false, float dedx = kCalcdEdxAuto);
+
+  void resetCovariance(float s2 = 0);
+  void checkCovariance();
 
  protected:
   float mC[kCovMatSize] = { 0.f }; // 15 covariance matrix elements
@@ -209,76 +208,61 @@ class TrackParCov final : public TrackParBase
   ClassDefNV(TrackParCov, 1);
 };
 
-class TrackPar final : public TrackParBase
-{ // track parameterization only
- public:
-  TrackPar() {}
-  TrackPar(float x, float alpha, const std::array<float, kNParams>& par) : TrackParBase{ x, alpha, par } {}
-  TrackPar(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz, int sign, bool sectorAlpha = true);
-  TrackPar(const TrackPar& src) = default;
-  TrackPar& operator=(const TrackPar& src) = default;
-  ~TrackPar() = default;
-  //
-  void Print() const { PrintParam(); }
-  ClassDefNV(TrackPar, 1);
-};
-
 //____________________________________________________________
-inline TrackParBase::TrackParBase(float x, float alpha, const std::array<float, kNParams>& par)
-  : mX{ x }, mAlpha{ alpha }
+inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams>& par) : mX{ x }, mAlpha{ alpha }
 {
   // explicit constructor
   std::copy(par.begin(), par.end(), mP);
 }
 
 //_______________________________________________________
-inline void TrackParBase::GetXYZGlo(std::array<float, 3>& xyz) const
+inline void TrackPar::getXYZGlo(std::array<float, 3>& xyz) const
 {
   // track coordinates in lab frame
-  xyz[0] = GetX();
-  xyz[1] = GetY();
-  xyz[2] = GetZ();
-  Utils::RotateZ(xyz, GetAlpha());
+  xyz[0] = getX();
+  xyz[1] = getY();
+  xyz[2] = getZ();
+  Utils::RotateZ(xyz, getAlpha());
 }
 
 //_______________________________________________________
-inline Point3D<float> TrackParBase::GetXYZGlo() const
+inline Point3D<float> TrackPar::getXYZGlo() const
 {
-  return Rotation2D(GetAlpha())(Point3D<float>(GetX(), GetY(), GetZ()));
+  return Rotation2D(getAlpha())(Point3D<float>(getX(), getY(), getZ()));
 }
 
 //_______________________________________________________
-inline Point3D<float> TrackParBase::GetXYZGloAt(float xk, float b, bool& ok) const
+inline Point3D<float> TrackPar::getXYZGloAt(float xk, float b, bool& ok) const
 {
   //----------------------------------------------------------------
   // estimate global X,Y,Z in global frame at given X
   //----------------------------------------------------------------
   float y = 0.f, z = 0.f;
-  ok = GetYZAt(xk, b, y, z);
-  return ok ? Rotation2D(GetAlpha())(Point3D<float>(xk, y, z)) : Point3D<float>();
+  ok = getYZAt(xk, b, y, z);
+  return ok ? Rotation2D(getAlpha())(Point3D<float>(xk, y, z)) : Point3D<float>();
 }
 
 //_______________________________________________________
-inline float TrackParBase::GetPhiPos() const
+inline float TrackPar::getPhiPos() const
 {
   // angle of track position
-  float xy[2] = { GetX(), GetY() };
+  float xy[2] = { getX(), getY() };
   return atan2(xy[1], xy[0]);
 }
 
 //____________________________________________________________
-inline float TrackParBase::GetP() const
+inline float TrackPar::getP() const
 {
   // return the track momentum
-  float ptI = fabs(GetQ2Pt());
-  return (ptI > Constants::kAlmost0) ? sqrtf(1.f + GetTgl() * GetTgl()) / ptI : Constants::kVeryBig;
+  float ptI = fabs(getQ2Pt());
+  return (ptI > Constants::kAlmost0) ? sqrtf(1.f + getTgl() * getTgl()) / ptI : Constants::kVeryBig;
 }
 
 //____________________________________________________________
-inline float TrackParBase::GetPt() const
+inline float TrackPar::getPt() const
 {
   // return the track transverse momentum
-  float ptI = fabs(GetQ2Pt());
+  float ptI = fabs(getQ2Pt());
   return (ptI > Constants::kAlmost0) ? 1.f / ptI : Constants::kVeryBig;
 }
 
@@ -287,20 +271,10 @@ inline float TrackParBase::GetPt() const
 //____________________________________________________________
 inline TrackParCov::TrackParCov(float x, float alpha, const std::array<float, kNParams>& par,
                                 const std::array<float, kCovMatSize>& cov)
-  : TrackParBase{ x, alpha, par }
+  : TrackPar{ x, alpha, par }
 {
   // explicit constructor
   std::copy(cov.begin(), cov.end(), mC);
-}
-
-//============================================================
-
-//____________________________________________________________
-inline TrackPar::TrackPar(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz, int sign,
-                          bool sectorAlpha)
-  : TrackParBase{ xyz, pxpypz, sign, sectorAlpha }
-{
-  // explicit constructor
 }
 }
 }

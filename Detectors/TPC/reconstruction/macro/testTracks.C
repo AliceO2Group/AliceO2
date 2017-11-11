@@ -143,7 +143,7 @@ void testTracks(int checkEvent = 0,
         GlobalPosition3D clusGlob = Mapper::LocalToGlobal(clusLoc, cru.sector());
 
         // Track parameters are in local coordinate system - propagate to pad row of the cluster
-        trackObject.propagateParamTo(clusLoc.X(), bField);
+        trackObject.propagateTo(clusLoc.X(), bField);
 
         LocalPosition3D trackLoc(trackObject.getX(), trackObject.getY(), trackObject.getZ());
         /// \todo sector hardcoded for the time  being

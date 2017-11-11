@@ -36,33 +36,31 @@ bool Cell::Combine(Cell &neigh, int idd) {
 }
 
 Track::Track(float x, float a, array<float,Base::Track::kNParams> p, array<float,Base::Track::kCovMatSize> c, int *cl) :
-  mT{x,a,p,c},
-  mCl{},
-  mLabel{-1},
-  mChi2{0.f} {
+  Track{x,a,p,c}
+ {
     for (int i = 0; i < 7; ++i) mCl[i] = cl[i];
-  }
+ }
 
 bool Track::Update(const Cluster &cl) {
   array<float,2> p{cl.y,cl.z};
-  const float dChi2 = mT.GetPredictedChi2(p,cl.cov);
-  if (!mT.Update(p,cl.cov)) return false;
+  const float dChi2 = getPredictedChi2(p,cl.cov);
+  if (!update(p,cl.cov)) return false;
   else mChi2 += dChi2;
   return true;
 }
 
 bool Track::GetPhiZat(float r, float bfield,float &phi, float &z) const {
-  float rp4=mT.GetCurvature(bfield);
+  float rp4=getCurvature(bfield);
 
-  float xt=mT.GetY(), yt=mT.GetY();
+  float xt=getY(), yt=getY();
   float x = 0.f, y = 0.f;
-  float sn=sin(mT.GetAlpha()), cs=cos(mT.GetAlpha());
+  float sn=sin(getAlpha()), cs=cos(getAlpha());
   float a = x*cs + y*sn;
   y = -x*sn + y*cs; x=a;
   xt-=x; yt-=y;
 
-  sn=rp4*xt - mT.GetSnp(); cs=rp4*yt + sqrt((1.- mT.GetSnp())*(1.+mT.GetSnp()));
-  a=2*(xt*mT.GetSnp() - yt*sqrt((1.-mT.GetSnp())*(1.+mT.GetSnp())))-rp4*(xt*xt + yt*yt);
+  sn=rp4*xt - getSnp(); cs=rp4*yt + sqrt((1.- getSnp())*(1.+getSnp()));
+  a=2*(xt*getSnp() - yt*sqrt((1.-getSnp())*(1.+getSnp())))-rp4*(xt*xt + yt*yt);
   float d =  -a/(1 + sqrt(sn*sn + cs*cs));
 
   if (fabs(d) > r) {
@@ -70,10 +68,10 @@ bool Track::GetPhiZat(float r, float bfield,float &phi, float &z) const {
     r = fabs(d);
   }
 
-  float rcurr=sqrt(mT.GetX()*mT.GetX() + mT.GetY()*mT.GetY());
-  float phicurr=mT.GetPhi();
+  float rcurr=sqrt(getX()*getX() + getY()*getY());
+  float phicurr=getPhi();
 
-  if (mT.GetX()>=0.) {
+  if (getX()>=0.) {
     phi=phicurr+asin(d/r)-asin(d/rcurr);
   } else {
     phi=phicurr+asin(d/r)+asin(d/rcurr)-kPI;
@@ -82,7 +80,7 @@ bool Track::GetPhiZat(float r, float bfield,float &phi, float &z) const {
   //return a phi in [0,2pi
   if (phi<0.) phi+=2.*kPI;
   else if (phi>=2.*kPI) phi-=2.*kPI;
-  z=mT.GetZ()+mT.GetTgl()*(sqrt((r-d)*(r+d))-sqrt((rcurr-d)*(rcurr+d)));
+  z=getZ()+getTgl()*(sqrt((r-d)*(r+d))-sqrt((rcurr-d)*(rcurr+d)));
 
   return true;
 }

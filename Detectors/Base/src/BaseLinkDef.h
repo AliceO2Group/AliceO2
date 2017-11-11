@@ -15,9 +15,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 #pragma link C++ enum o2::Base::TransformType;
-
+ 
 #pragma link C++ class o2::Base::Detector+;
-#pragma link C++ class o2::Base::Track::TrackParBase+;
 #pragma link C++ class o2::Base::Track::TrackPar+;
 #pragma link C++ class o2::Base::Track::TrackParCov+;
 #pragma link C++ class o2::Base::TrackReference+;

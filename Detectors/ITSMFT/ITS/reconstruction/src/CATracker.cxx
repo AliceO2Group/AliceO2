@@ -496,10 +496,9 @@ bool Tracker::RefitAt(float xx, Track *track) {
 
   const int nLayers = 7;
   int* index = track->Clusters();
-  TrackPC* t = &(track->Param());
 
   int from, to, step;
-  if (xx > t->GetX()) {
+  if (xx > track->getX()) {
     from = 0;
     to = nLayers;
     step = +1;
@@ -514,7 +513,7 @@ bool Tracker::RefitAt(float xx, Track *track) {
     if (idx >= 0) {
       const Cluster &cl = (*mLayer[i])[idx];
       float xr = cl.x, ar = mLayer[i]->GetDetInfo(cl.detid).phiTF;
-      if (!t->Rotate(ar) || !t->PropagateTo(xr, mBz)) {
+      if (!track->rotate(ar) || !track->propagateTo(xr, mBz)) {
         return false;
       }
       track->Update(cl);
@@ -524,7 +523,7 @@ bool Tracker::RefitAt(float xx, Track *track) {
       if (!track->GetPhiZat(r,mBz,phi,z)) {
         return false;
       }
-      if (!t->Rotate(phi) || !t->PropagateTo(r, mBz)) {
+      if (!track->rotate(phi) || !track->propagateTo(r, mBz)) {
         return false;
       }
     }
@@ -532,10 +531,10 @@ bool Tracker::RefitAt(float xx, Track *track) {
     float x0  = 9.36; // Radiation length of Si [cm]
     float rho = 2.33; // Density of Si [g/cm^3]
     float mass = 1.39569997787475586e-01; // pion mass
-    t->CorrectForMaterial(xx0, - step * xx0 * x0 * rho, mass, true);
+    track->correctForMaterial(xx0, - step * xx0 * x0 * rho, mass, true);
   }
 
-  if (!t->PropagateTo(xx,mBz)) return false;
+  if (!track->propagateTo(xx,mBz)) return false;
   return true;
 }
 

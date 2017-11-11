@@ -48,7 +48,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
 
   
   Int_t nev=mcTree->GetEntries();
-  for (Int_t n=0; n<nev; n++) {
+  for (Int_t n=0;n<nev;n++) {
     std::cout<<"Event "<<n<<'/'<<nev<<std::endl;
     Int_t nGen=0, nGoo=0;
     mcTree->GetEvent(n);
@@ -58,40 +58,40 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
     while(nmc--) {
       const auto& mcTrack = (*mcArr)[nmc];
       Int_t mID = mcTrack.getMotherTrackId();
-      if (mID >= 0) continue; // Select primary particles 
+      if (mID >= 0) continue;// Select primary particles 
       Int_t pdg = mcTrack.GetPdgCode();
-      if (TMath::Abs(pdg) != 211) continue;  // Select pions
+      if (TMath::Abs(pdg) != 211) continue; // Select pions
 
-      nGen++; // Generated tracks for the efficiency calculation 
+      nGen++;// Generated tracks for the efficiency calculation 
       
-      Double_t mcPx = mcTrack.GetStartVertexMomentumX();
-      Double_t mcPy = mcTrack.GetStartVertexMomentumY();
-      Double_t mcPz = mcTrack.GetStartVertexMomentumZ();
-      Double_t mcPt = mcTrack.GetPt();
-      Double_t mcPhi= TMath::ATan2(mcPy,mcPx);
-      Double_t mcLam= TMath::ATan2(mcPz,mcPt);
-      Double_t recPhi=-1.; 
-      Double_t recLam=-1.; 
-      Double_t recPt=-1.; 
-      Double_t ip[2]{0.,0.}; 
-      Double_t label=-123456789.; 
+      Float_t mcPx = mcTrack.GetStartVertexMomentumX();
+      Float_t mcPy = mcTrack.GetStartVertexMomentumY();
+      Float_t mcPz = mcTrack.GetStartVertexMomentumZ();
+      Float_t mcPt = mcTrack.GetPt();
+      Float_t mcPhi= TMath::ATan2(mcPy,mcPx);
+      Float_t mcLam= TMath::ATan2(mcPz,mcPt);
+      Float_t recPhi=-1.;
+      Float_t recLam=-1.;
+      Float_t recPt=-1.;
+      Float_t ip[2]{0.,0.};
+      Float_t label=-123456789.;
       
-      for (Int_t i=0; i<nrec; i++) {
+      for (Int_t i=0;i<nrec;i++) {
 	 const CookedTrack &recTrack = (*recArr)[i];
 	 auto mclab = (trkLabArr->getLabels(i))[0];
 	 Int_t lab = mclab.getTrackID();
 	 if (TMath::Abs(lab) != nmc) continue;
 	 std::array<float,3> p;
-	 recTrack.getPxPyPz(p);
+	 recTrack.getPxPyPzGlo(p);
 	 recPt = recTrack.getPt();
          recPhi = TMath::ATan2(p[1],p[0]);
 	 recLam = TMath::ATan2(p[2],recPt);
-	 Double_t vx=0., vy=0., vz=0.;  // Assumed primary vertex
-	 Double_t bz=5.;                // Assumed magnetic field 
+	 Float_t vx=0., vy=0., vz=0.; // Assumed primary vertex
+	 Float_t bz=5.;               // Assumed magnetic field 
          recTrack.getImpactParams(vx, vy, vz, bz, ip);
          label = lab;
 	 
-	 if (label>0) nGoo++; // Good found tracks for the efficiency calculation
+	 if (label>0) nGoo++;// Good found tracks for the efficiency calculation
       }
 
       nt->Fill(mcPhi,mcLam,mcPt,recPhi,recLam,recPt,ip[0],ip[1],label);
@@ -103,9 +103,9 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   
   // "recPt>0" means "found tracks only"  
   // "label>0" means "found good tracks only"  
-  new TCanvas; nt->Draw("ipD","recPt>0 && label>0");
-  new TCanvas; nt->Draw("mcLam-recLam","recPt>0 && label>0");
-  new TCanvas; nt->Draw("mcPt-recPt","recPt>0 && label>0");
+  new TCanvas;nt->Draw("ipD","recPt>0 && label>0");
+  new TCanvas;nt->Draw("mcLam-recLam","recPt>0 && label>0");
+  new TCanvas;nt->Draw("mcPt-recPt","recPt>0 && label>0");
   f->Write();
   f->Close();
 }
