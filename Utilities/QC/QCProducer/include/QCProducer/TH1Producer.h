@@ -11,6 +11,7 @@
 #pragma once
 
 #include "Producer.h"
+#include <string>
 
 namespace o2
 {
@@ -23,8 +24,8 @@ class TH1Producer : public Producer
   TObject* produceData() const override;
 
  private:
-  const char* mHistogramName;
-  const char* mHistogramTitle;
+  std::string mHistogramName;
+  std::string mHistogramTitle;
 
   const int mBeansNumber;
   const double mXLow{ -10 };

@@ -13,6 +13,7 @@
 #include <Rtypes.h>
 
 #include "Producer.h"
+#include <string>
 
 namespace o2
 {
@@ -26,8 +27,8 @@ class THnProducer : public Producer
 
  private:
   const int mBins;
-  const char* mHistogramName;
-  const char* mHistogramTitle;
+  std::string mHistogramName;
+  std::string mHistogramTitle;
 };
 }
 }

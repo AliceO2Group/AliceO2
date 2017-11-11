@@ -33,7 +33,7 @@ TreeProducer::TreeProducer(const char* treeName, const char* treeTitle, const in
 
 TObject* TreeProducer::produceData() const
 {
-  auto* tree = new TTree(mTreeName, mTreeTitle);
+  auto* tree = new TTree(mTreeName.c_str(), mTreeTitle.c_str());
 
   for (int i = 0; i < mNumberOfBranches; ++i) {
     createBranch(tree, i);

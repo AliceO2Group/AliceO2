@@ -13,6 +13,7 @@
 #include <TTree.h>
 
 #include "QCProducer/Producer.h"
+#include <string>
 
 namespace o2
 {
@@ -26,8 +27,8 @@ class TreeProducer : public Producer
   TObject* produceData() const override;
 
  private:
-  const char* mTreeName;
-  const char* mTreeTitle;
+  std::string mTreeName;
+  std::string mTreeTitle;
   const int mNumberOfBranches;
   const int mNumberOfEntriesInEachBranch;
 
