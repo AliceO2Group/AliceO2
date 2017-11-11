@@ -12,17 +12,15 @@
 #include <FairLogger.h>
 
 using std::array;
-using o2::Base::Track::TrackParBase;
 using o2::Base::Track::TrackPar;
 using o2::Base::Track::TrackParCov;
 using namespace o2::Base::Constants;
 
-ClassImp(o2::Base::Track::TrackParBase);
 ClassImp(o2::Base::Track::TrackParCov);
 ClassImp(o2::Base::Track::TrackPar);
 
 //______________________________________________________________
-TrackParBase::TrackParBase(const array<float, 3>& xyz, const array<float, 3>& pxpypz, int charge, bool sectorAlpha)
+TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, int charge, bool sectorAlpha)
   : mX{ 0.f }, mAlpha{ 0.f }, mP{ 0.f }
 {
   // construct track param from kinematics
@@ -63,7 +61,7 @@ TrackParBase::TrackParBase(const array<float, 3>& xyz, const array<float, 3>& px
     }
     Utils::sincosf(alp, sn, cs);
   }
-  // Get the vertex of origin and the momentum
+  // get the vertex of origin and the momentum
   array<float, 3> ver{ xyz[0], xyz[1], xyz[2] };
   array<float, 3> mom{ pxpypz[0], pxpypz[1], pxpypz[2] };
   //
@@ -80,69 +78,69 @@ TrackParBase::TrackParBase(const array<float, 3>& xyz, const array<float, 3>& px
   mP[kTgl] = mom[2] * ptI;
   mP[kQ2Pt] = ptI * charge;
   //
-  if (fabs(1 - GetSnp()) < kSafe) {
+  if (fabs(1 - getSnp()) < kSafe) {
     mP[kSnp] = 1. - kSafe; // Protection
-  } else if (fabs(-1 - GetSnp()) < kSafe) {
+  } else if (fabs(-1 - getSnp()) < kSafe) {
     mP[kSnp] = -1. + kSafe; // Protection
   }
   //
 }
 
 //_______________________________________________________
-bool TrackParBase::GetPxPyPzGlo(array<float, 3>& pxyz) const
+bool TrackPar::getPxPyPzGlo(array<float, 3>& pxyz) const
 {
   // track momentum
-  if (fabs(GetQ2Pt()) < kAlmost0 || fabs(GetSnp()) > kAlmost1) {
+  if (fabs(getQ2Pt()) < kAlmost0 || fabs(getSnp()) > kAlmost1) {
     return false;
   }
-  float cs, sn, pt = fabs(1.f / GetQ2Pt());
-  float r = sqrtf((1.f - GetSnp()) * (1.f + GetSnp()));
-  Utils::sincosf(GetAlpha(), sn, cs);
-  pxyz[0] = pt * (r * cs - GetSnp() * sn);
-  pxyz[1] = pt * (GetSnp() * cs + r * sn);
-  pxyz[2] = pt * GetTgl();
+  float cs, sn, pt = fabs(1.f / getQ2Pt());
+  float r = sqrtf((1.f - getSnp()) * (1.f + getSnp()));
+  Utils::sincosf(getAlpha(), sn, cs);
+  pxyz[0] = pt * (r * cs - getSnp() * sn);
+  pxyz[1] = pt * (getSnp() * cs + r * sn);
+  pxyz[2] = pt * getTgl();
   return true;
 }
 
 //____________________________________________________
-bool TrackParBase::GetPosDirGlo(array<float, 9>& posdirp) const
+bool TrackPar::getPosDirGlo(array<float, 9>& posdirp) const
 {
   // fill vector with lab x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha
-  float ptI = fabs(GetQ2Pt());
-  float snp = GetSnp();
+  float ptI = fabs(getQ2Pt());
+  float snp = getSnp();
   if (ptI < kAlmost0 || fabs(snp) > kAlmost1) {
     return false;
   }
   float &sn = posdirp[7], &cs = posdirp[8];
   float csp = sqrtf((1.f - snp) * (1.f + snp));
-  float cstht = sqrtf(1.f + GetTgl() * GetTgl());
+  float cstht = sqrtf(1.f + getTgl() * getTgl());
   float csthti = 1.f / cstht;
-  Utils::sincosf(GetAlpha(), sn, cs);
-  posdirp[0] = GetX() * cs - GetY() * sn;
-  posdirp[1] = GetX() * sn + GetY() * cs;
-  posdirp[2] = GetZ();
+  Utils::sincosf(getAlpha(), sn, cs);
+  posdirp[0] = getX() * cs - getY() * sn;
+  posdirp[1] = getX() * sn + getY() * cs;
+  posdirp[2] = getZ();
   posdirp[3] = (csp * cs - snp * sn) * csthti; // px/p
   posdirp[4] = (snp * cs + csp * sn) * csthti; // py/p
-  posdirp[5] = GetTgl() * csthti;              // pz/p
+  posdirp[5] = getTgl() * csthti;              // pz/p
   posdirp[6] = cstht / ptI;                    // p
   return true;
 }
 
 //______________________________________________________________
-bool TrackParBase::RotateParam(float alpha)
+bool TrackPar::rotateParam(float alpha)
 {
   // rotate to alpha frame
-  if (fabs(GetSnp()) > kAlmost1) {
+  if (fabs(getSnp()) > kAlmost1) {
     // FairLogger::GetLogger()->Error(MESSAGE_ORIGIN,
-    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", GetSnp());
+    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
     return false;
   }
   //
   Utils::BringToPMPi(alpha);
   //
   float ca = 0, sa = 0;
-  Utils::sincosf(alpha - GetAlpha(), sa, ca);
-  float snp = GetSnp(), csp = sqrtf((1.f - snp) * (1.f + snp)); // Improve precision
+  Utils::sincosf(alpha - getAlpha(), sa, ca);
+  float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
@@ -157,7 +155,7 @@ bool TrackParBase::RotateParam(float alpha)
     printf("Rotation failed: new snp %.2f\n", tmp);
     return false;
   }
-  float xold = GetX(), yold = GetY();
+  float xold = getX(), yold = getY();
   mAlpha = alpha;
   mX = xold * ca + yold * sa;
   mP[kY] = -xold * sa + yold * ca;
@@ -166,7 +164,7 @@ bool TrackParBase::RotateParam(float alpha)
 }
 
 //____________________________________________________________
-bool TrackParBase::PropagateParamTo(float xk, const array<float, 3>& b)
+bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
 {
   //----------------------------------------------------------------
   // Extrapolate this track params (w/o cov matrix) to the plane X=xk in the field b[].
@@ -175,23 +173,23 @@ bool TrackParBase::PropagateParamTo(float xk, const array<float, 3>& b)
   // b[]={Bx,By,Bz} [kG] is in the Global coordidate system.
   //----------------------------------------------------------------
 
-  float dx = xk - GetX();
+  float dx = xk - getX();
   if (fabs(dx) < kAlmost0) {
     return true;
   }
   // Do not propagate tracks outside the ALICE detector
-  if (fabs(dx) > 1e5 || fabs(GetY()) > 1e5 || fabs(GetZ()) > 1e5) {
+  if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
     printf("Anomalous track, target X:%f\n", xk);
     //    Print();
     return false;
   }
-  float crv = (fabs(b[2]) < kAlmost0) ? 0.f : GetCurvature(b[2]);
+  float crv = (fabs(b[2]) < kAlmost0) ? 0.f : getCurvature(b[2]);
   float x2r = crv * dx;
-  float f1 = GetSnp(), f2 = f1 + x2r;
+  float f1 = getSnp(), f2 = f1 + x2r;
   if (fabs(f1) > kAlmost1 || fabs(f2) > kAlmost1) {
     return false;
   }
-  if (fabs(GetQ2Pt()) < kAlmost0) {
+  if (fabs(getQ2Pt()) < kAlmost0) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
@@ -205,15 +203,15 @@ bool TrackParBase::PropagateParamTo(float xk, const array<float, 3>& b)
   float dy2dx = (f1 + f2) / (r1 + r2);
   float step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                       // chord
                                    : 2.f * asinf(0.5f * dx * sqrtf(1.f + dy2dx * dy2dx) * crv) / crv; // arc
-  step *= sqrtf(1.f + GetTgl() * GetTgl());
+  step *= sqrtf(1.f + getTgl() * getTgl());
   //
-  // Get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
+  // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
   array<float, 9> vecLab{ 0.f };
-  if (!GetPosDirGlo(vecLab)) {
+  if (!getPosDirGlo(vecLab)) {
     return false;
   }
 
-  // Rotate to the system where Bx=By=0.
+  // rotate to the system where Bx=By=0.
   float bxy2 = b[0] * b[0] + b[1] * b[1];
   float bt = sqrtf(bxy2);
   float cosphi = 1.f, sinphi = 0.f;
@@ -236,10 +234,10 @@ bool TrackParBase::PropagateParamTo(float xk, const array<float, 3>& b)
                         vecLab[6] };
 
   // Do the helix step
-  float sgn = GetSign();
+  float sgn = getSign();
   g3helx3(sgn * bb, step, vect);
 
-  // Rotate back to the Global System
+  // rotate back to the Global System
   vecLab[0] = cosphi * costet * vect[0] - sinphi * vect[1] + cosphi * sintet * vect[2];
   vecLab[1] = sinphi * costet * vect[0] + cosphi * vect[1] + sinphi * sintet * vect[2];
   vecLab[2] = -sintet * vect[0] + costet * vect[2];
@@ -248,7 +246,7 @@ bool TrackParBase::PropagateParamTo(float xk, const array<float, 3>& b)
   vecLab[4] = sinphi * costet * vect[3] + cosphi * vect[4] + sinphi * sintet * vect[5];
   vecLab[5] = -sintet * vect[3] + costet * vect[5];
 
-  // Rotate back to the Tracking System
+  // rotate back to the Tracking System
   float sinalp = -vecLab[7], cosalp = vecLab[8];
   float t = cosalp * vecLab[0] - sinalp * vecLab[1];
   vecLab[1] = sinalp * vecLab[0] + cosalp * vecLab[1];
@@ -282,21 +280,21 @@ bool TrackParBase::PropagateParamTo(float xk, const array<float, 3>& b)
 }
 
 //____________________________________________________________
-bool TrackParBase::PropagateParamTo(float xk, float b)
+bool TrackPar::propagateParamTo(float xk, float b)
 {
   //----------------------------------------------------------------
-  // Propagate this track to the plane X=xk (cm) in the field "b" (kG)
+  // propagate this track to the plane X=xk (cm) in the field "b" (kG)
   // Only parameters are propagated, not the matrix. To be used for small
   // distances only (<mm, i.e. misalignment)
   //----------------------------------------------------------------
-  float dx = xk - GetX();
+  float dx = xk - getX();
   if (fabs(dx) < kAlmost0) {
     return true;
   }
-  float crv = (fabs(b) < kAlmost0) ? 0.f : GetCurvature(b);
+  float crv = (fabs(b) < kAlmost0) ? 0.f : getCurvature(b);
   float x2r = crv * dx;
-  float f1 = GetSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > kAlmost1) || (fabs(f2) > kAlmost1) || (fabs(GetQ2Pt()) < kAlmost0)) {
+  float f1 = getSnp(), f2 = f1 + x2r;
+  if ((fabs(f1) > kAlmost1) || (fabs(f2) > kAlmost1) || (fabs(getQ2Pt()) < kAlmost0)) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
@@ -312,7 +310,7 @@ bool TrackParBase::PropagateParamTo(float xk, float b)
   mP[kY] += dx * dy2dx;
   mP[kSnp] += x2r;
   if (fabs(x2r) < 0.05f) {
-    mP[kZ] += dx * (r2 + f2 * dy2dx) * GetTgl();
+    mP[kZ] += dx * (r2 + f2 * dy2dx) * getTgl();
   } else {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
     // but at large dx/R the error is very large and leads to incorrect Z propagation
@@ -330,28 +328,28 @@ bool TrackParBase::PropagateParamTo(float xk, float b)
         rot = -kPI - rot;
       }
     }
-    mP[kZ] += GetTgl() / crv * rot;
+    mP[kZ] += getTgl() / crv * rot;
   }
   return true;
 }
 
 //____________________________________________________________
-bool TrackParBase::GetYZAt(float xk, float b, float& y, float& z) const
+bool TrackPar::getYZAt(float xk, float b, float& y, float& z) const
 {
   //----------------------------------------------------------------
   // estimate Y,Z in tracking frame at given X
   //----------------------------------------------------------------
-  float dx = xk - GetX();
+  float dx = xk - getX();
   if (fabs(dx) < kAlmost0) {
     return true;
   }
-  float crv = (fabs(b) < kAlmost0) ? 0.f : GetCurvature(b);
+  float crv = (fabs(b) < kAlmost0) ? 0.f : getCurvature(b);
   float x2r = crv * dx;
-  float f1 = GetSnp(), f2 = f1 + x2r;
+  float f1 = getSnp(), f2 = f1 + x2r;
   if ((fabs(f1) > kAlmost1) || (fabs(f2) > kAlmost1)) {
     return false;
   }
-  if (fabs(GetQ2Pt()) < kAlmost0) {
+  if (fabs(getQ2Pt()) < kAlmost0) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
@@ -366,7 +364,7 @@ bool TrackParBase::GetYZAt(float xk, float b, float& y, float& z) const
   y = mP[kY] + dx * dy2dx;
   z = mP[kZ];
   if (fabs(x2r) < 0.05f) {
-    z += dx * (r2 + f2 * dy2dx) * GetTgl();
+    z += dx * (r2 + f2 * dy2dx) * getTgl();
   } else {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
     // but at large dx/R the error is very large and leads to incorrect Z propagation
@@ -384,13 +382,13 @@ bool TrackParBase::GetYZAt(float xk, float b, float& y, float& z) const
         rot = -kPI - rot;
       }
     }
-    z += GetTgl() / crv * rot;
+    z += getTgl() / crv * rot;
   }
   return true;
 }
 
 //______________________________________________________________
-void TrackParBase::InvertParam()
+void TrackPar::invertParam()
 {
   // Transform this track to the local coord. system rotated by 180 deg.
   mX = -mX;
@@ -404,17 +402,17 @@ void TrackParBase::InvertParam()
 }
 
 //______________________________________________________________
-void TrackParBase::PrintParam() const
+void TrackPar::PrintParam() const
 {
   // print parameters
-  printf("X:%+e Alp:%+e Par: %+e %+e %+e %+e %+e\n", GetX(), GetAlpha(), GetY(), GetZ(), GetSnp(), GetTgl(), GetQ2Pt());
+  printf("X:%+e Alp:%+e Par: %+e %+e %+e %+e %+e\n", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt());
 }
 
 //______________________________________________________________
-void TrackParCov::Invert()
+void TrackParCov::invert()
 {
   // Transform this track to the local coord. system rotated by 180 deg.
-  InvertParam();
+  invertParam();
   // since the fP1 and fP2 are not inverted, their covariances with others change sign
   mC[kSigZY] = -mC[kSigZY];
   mC[kSigSnpY] = -mC[kSigSnpY];
@@ -425,19 +423,19 @@ void TrackParCov::Invert()
 }
 
 //______________________________________________________________
-bool TrackParCov::PropagateTo(float xk, float b)
+bool TrackParCov::propagateTo(float xk, float b)
 {
   //----------------------------------------------------------------
-  // Propagate this track to the plane X=xk (cm) in the field "b" (kG)
+  // propagate this track to the plane X=xk (cm) in the field "b" (kG)
   //----------------------------------------------------------------
-  float dx = xk - GetX();
+  float dx = xk - getX();
   if (fabs(dx) < kAlmost0) {
     return true;
   }
-  float crv = (fabs(b) < kAlmost0) ? 0.f : GetCurvature(b);
+  float crv = (fabs(b) < kAlmost0) ? 0.f : getCurvature(b);
   float x2r = crv * dx;
-  float f1 = GetSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > kAlmost1) || (fabs(f2) > kAlmost1) || (fabs(GetQ2Pt()) < kAlmost0)) {
+  float f1 = getSnp(), f2 = f1 + x2r;
+  if ((fabs(f1) > kAlmost1) || (fabs(f2) > kAlmost1) || (fabs(getQ2Pt()) < kAlmost0)) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
@@ -453,7 +451,7 @@ bool TrackParCov::PropagateTo(float xk, float b)
   mP[kY] += dx * dy2dx;
   mP[kSnp] += x2r;
   if (fabs(x2r) < 0.05f) {
-    mP[kZ] += dx * (r2 + f2 * dy2dx) * GetTgl();
+    mP[kZ] += dx * (r2 + f2 * dy2dx) * getTgl();
   } else {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
     // but at large dx/R the error is very large and leads to incorrect Z propagation
@@ -471,7 +469,7 @@ bool TrackParCov::PropagateTo(float xk, float b)
         rot = -kPI - rot;
       }
     }
-    mP[kZ] += GetTgl() / crv * rot;
+    mP[kZ] += getTgl() / crv * rot;
   }
 
   float &c00 = mC[kSigY2], &c10 = mC[kSigZY], &c11 = mC[kSigZ2], &c20 = mC[kSigSnpY], &c21 = mC[kSigSnpZ],
@@ -485,8 +483,8 @@ bool TrackParCov::PropagateTo(float xk, float b)
   double f24 = dx * b * kB2C; // x2r/mP[kQ2Pt];
   double f02 = dx * r3inv;
   double f04 = 0.5 * f24 * f02;
-  double f12 = f02 * GetTgl() * f1;
-  double f14 = 0.5 * f24 * f12; // 0.5*f24*f02*GetTgl()*f1;
+  double f12 = f02 * getTgl() * f1;
+  double f14 = 0.5 * f24 * f12; // 0.5*f24*f02*getTgl()*f1;
   double f13 = dx * rinv;
 
   // b = C*ft
@@ -520,18 +518,18 @@ bool TrackParCov::PropagateTo(float xk, float b)
   c32 += b32;
   c42 += b42;
 
-  CheckCovariance();
+  checkCovariance();
 
   return true;
 }
 
 //______________________________________________________________
-bool TrackParCov::Rotate(float alpha)
+bool TrackParCov::rotate(float alpha)
 {
   // rotate to alpha frame
-  if (fabs(GetSnp()) > kAlmost1) {
+  if (fabs(getSnp()) > kAlmost1) {
     // FairLogger::GetLogger()->Error(MESSAGE_ORIGIN,
-    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", GetSnp());
+    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
     return false;
   }
   //
@@ -539,7 +537,7 @@ bool TrackParCov::Rotate(float alpha)
   //
   float ca = 0, sa = 0;
   Utils::sincosf(alpha - mAlpha, sa, ca);
-  float snp = GetSnp(), csp = sqrtf((1.f - snp) * (1.f + snp)); // Improve precision
+  float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
@@ -554,7 +552,7 @@ bool TrackParCov::Rotate(float alpha)
     printf("Rotation failed: new snp %.2f\n", tmp);
     return false;
   }
-  float xold = GetX(), yold = GetY();
+  float xold = getX(), yold = getY();
   mAlpha = alpha;
   mX = xold * ca + yold * sa;
   mP[kY] = -xold * sa + yold * ca;
@@ -577,7 +575,7 @@ bool TrackParCov::Rotate(float alpha)
   mC[kSigQ2PtY] *= ca;
   mC[kSigQ2PtSnp] *= rr;
 
-  CheckCovariance();
+  checkCovariance();
   return true;
 }
 
@@ -623,7 +621,7 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
     }
     Utils::sincosf(alp, sn, cs);
   }
-  // Get the vertex of origin and the momentum
+  // get the vertex of origin and the momentum
   array<float, 3> ver{ xyz[0], xyz[1], xyz[2] };
   array<float, 3> mom{ pxpypz[0], pxpypz[1], pxpypz[2] };
   //
@@ -641,9 +639,9 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
   mP[kTgl] = mom[2] * ptI; // tg(lambda)
   mP[kQ2Pt] = ptI * charge;
   //
-  if (fabs(1.f - GetSnp()) < kSafe) {
+  if (fabs(1.f - getSnp()) < kSafe) {
     mP[kSnp] = 1.f - kSafe; // Protection
-  } else if (fabs(-1.f - GetSnp()) < kSafe) {
+  } else if (fabs(-1.f - getSnp()) < kSafe) {
     mP[kSnp] = -1.f + kSafe; // Protection
   }
   //
@@ -652,7 +650,7 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
   float cv34 = sqrtf(cv[3] * cv[3] + cv[4] * cv[4]);
   //
   int special = 0;
-  float sgcheck = r * sn + GetSnp() * cs;
+  float sgcheck = r * sn + getSnp() * cs;
   if (fabs(sgcheck) > 1 - kSafe) { // special case: lab phi is +-pi/2
     special = 1;
     sgcheck = sgcheck < 0 ? -1.f : 1.f;
@@ -666,28 +664,28 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
   mC[kSigZ2] = cv[5];
   //
   float ptI2 = ptI * ptI;
-  float tgl2 = GetTgl() * GetTgl();
+  float tgl2 = getTgl() * getTgl();
   if (special == 1) {
     mC[kSigSnpY] = cv[6] * ptI;
     mC[kSigSnpZ] = -sgcheck * cv[8] * r * ptI;
     mC[kSigSnp2] = fabs(cv[9] * r * r * ptI2);
-    mC[kSigTglY] = (cv[10] * GetTgl() - sgcheck * cv[15]) * ptI / r;
-    mC[kSigTglZ] = (cv[17] - sgcheck * cv[12] * GetTgl()) * ptI;
-    mC[kSigTglSnp] = (-sgcheck * cv[18] + cv[13] * GetTgl()) * r * ptI2;
+    mC[kSigTglY] = (cv[10] * getTgl() - sgcheck * cv[15]) * ptI / r;
+    mC[kSigTglZ] = (cv[17] - sgcheck * cv[12] * getTgl()) * ptI;
+    mC[kSigTglSnp] = (-sgcheck * cv[18] + cv[13] * getTgl()) * r * ptI2;
     mC[kSigTgl2] = fabs(cv[20] - 2 * sgcheck * cv[19] * mC[4] + cv[14] * tgl2) * ptI2;
     mC[kSigQ2PtY] = cv[10] * ptI2 / r * charge;
     mC[kSigQ2PtZ] = -sgcheck * cv[12] * ptI2 * charge;
     mC[kSigQ2PtSnp] = cv[13] * r * ptI * ptI2 * charge;
-    mC[kSigQ2PtTgl] = (-sgcheck * cv[19] + cv[14] * GetTgl()) * r * ptI2 * ptI;
+    mC[kSigQ2PtTgl] = (-sgcheck * cv[19] + cv[14] * getTgl()) * r * ptI2 * ptI;
     mC[kSigQ2Pt2] = fabs(cv[14] * ptI2 * ptI2);
   } else if (special == 2) {
     mC[kSigSnpY] = -cv[10] * ptI * cs / sn;
     mC[kSigSnpZ] = cv[12] * cs * ptI;
     mC[kSigSnp2] = fabs(cv[14] * cs * cs * ptI2);
-    mC[kSigTglY] = (sgcheck * cv[6] * GetTgl() - cv[15]) * ptI / sn;
-    mC[kSigTglZ] = (cv[17] - sgcheck * cv[8] * GetTgl()) * ptI;
-    mC[kSigTglSnp] = (cv[19] - sgcheck * cv[13] * GetTgl()) * cs * ptI2;
-    mC[kSigTgl2] = fabs(cv[20] - 2 * sgcheck * cv[18] * GetTgl() + cv[9] * tgl2) * ptI2;
+    mC[kSigTglY] = (sgcheck * cv[6] * getTgl() - cv[15]) * ptI / sn;
+    mC[kSigTglZ] = (cv[17] - sgcheck * cv[8] * getTgl()) * ptI;
+    mC[kSigTglSnp] = (cv[19] - sgcheck * cv[13] * getTgl()) * cs * ptI2;
+    mC[kSigTgl2] = fabs(cv[20] - 2 * sgcheck * cv[18] * getTgl() + cv[9] * tgl2) * ptI2;
     mC[kSigQ2PtY] = sgcheck * cv[6] * ptI2 / sn * charge;
     mC[kSigQ2PtZ] = -sgcheck * cv[8] * ptI2 * charge;
     mC[kSigQ2PtSnp] = -sgcheck * cv[13] * cs * ptI * ptI2 * charge;
@@ -695,9 +693,9 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
     mC[kSigQ2Pt2] = fabs(cv[9] * ptI2 * ptI2);
   } else {
     double m00 = -sn; // m10=cs;
-    double m23 = -pt * (sn + GetSnp() * cs / r), m43 = -pt * pt * (r * cs - GetSnp() * sn);
-    double m24 = pt * (cs - GetSnp() * sn / r), m44 = -pt * pt * (r * sn + GetSnp() * cs);
-    double m35 = pt, m45 = -pt * pt * GetTgl();
+    double m23 = -pt * (sn + getSnp() * cs / r), m43 = -pt * pt * (r * cs - getSnp() * sn);
+    double m24 = pt * (cs - getSnp() * sn / r), m44 = -pt * pt * (r * sn + getSnp() * cs);
+    double m35 = pt, m45 = -pt * pt * getTgl();
     //
     m43 *= charge;
     m44 *= charge;
@@ -729,11 +727,11 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
     mC[kSigQ2PtTgl] = b1 / b3 - b2 * mC[kSigTglSnp] / b3;
     mC[kSigTgl2] = fabs((cv[20] - mC[kSigQ2Pt2] * (m45 * m45) - mC[kSigQ2PtTgl] * 2. * m35 * m45) / (m35 * m35));
   }
-  CheckCovariance();
+  checkCovariance();
 }
 
 //____________________________________________________________
-bool TrackParCov::PropagateTo(float xk, const array<float, 3>& b)
+bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
 {
   //----------------------------------------------------------------
   // Extrapolate this track to the plane X=xk in the field b[].
@@ -742,20 +740,20 @@ bool TrackParCov::PropagateTo(float xk, const array<float, 3>& b)
   // b[]={Bx,By,Bz} [kG] is in the Global coordidate system.
   //----------------------------------------------------------------
 
-  float dx = xk - GetX();
+  float dx = xk - getX();
   if (fabs(dx) < kAlmost0) {
     return true;
   }
   // Do not propagate tracks outside the ALICE detector
-  if (fabs(dx) > 1e5 || fabs(GetY()) > 1e5 || fabs(GetZ()) > 1e5) {
+  if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
     printf("Anomalous track, target X:%f\n", xk);
     //    Print();
     return false;
   }
-  float crv = (fabs(b[2]) < kAlmost0) ? 0.f : GetCurvature(b[2]);
+  float crv = (fabs(b[2]) < kAlmost0) ? 0.f : getCurvature(b[2]);
   float x2r = crv * dx;
-  float f1 = GetSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > kAlmost1) || (fabs(f2) > kAlmost1) || (fabs(GetQ2Pt()) < kAlmost0)) {
+  float f1 = getSnp(), f2 = f1 + x2r;
+  if ((fabs(f1) > kAlmost1) || (fabs(f2) > kAlmost1) || (fabs(getQ2Pt()) < kAlmost0)) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
@@ -770,11 +768,11 @@ bool TrackParCov::PropagateTo(float xk, const array<float, 3>& b)
   float dy2dx = (f1 + f2) / (r1 + r2);
   float step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                       // chord
                                    : 2.f * asinf(0.5f * dx * sqrtf(1.f + dy2dx * dy2dx) * crv) / crv; // arc
-  step *= sqrtf(1.f + GetTgl() * GetTgl());
+  step *= sqrtf(1.f + getTgl() * getTgl());
   //
-  // Get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
+  // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
   array<float, 9> vecLab{ 0.f };
-  if (!GetPosDirGlo(vecLab)) {
+  if (!getPosDirGlo(vecLab)) {
     return false;
   }
   //
@@ -789,8 +787,8 @@ bool TrackParCov::PropagateTo(float xk, const array<float, 3>& b)
   double f24 = dx * b[2] * kB2C; // x2r/track[kQ2Pt];
   double f02 = dx * r3inv;
   double f04 = 0.5 * f24 * f02;
-  double f12 = f02 * GetTgl() * f1;
-  double f14 = 0.5 * f24 * f12; // 0.5*f24*f02*GetTgl()*f1;
+  double f12 = f02 * getTgl() * f1;
+  double f14 = 0.5 * f24 * f12; // 0.5*f24*f02*getTgl()*f1;
   double f13 = dx * rinv;
 
   // b = C*ft
@@ -824,7 +822,7 @@ bool TrackParCov::PropagateTo(float xk, const array<float, 3>& b)
   c32 += b32;
   c42 += b42;
 
-  CheckCovariance();
+  checkCovariance();
 
   // Rotate to the system where Bx=By=0.
   float bxy2 = b[0] * b[0] + b[1] * b[1];
@@ -849,7 +847,7 @@ bool TrackParCov::PropagateTo(float xk, const array<float, 3>& b)
                         vecLab[6] };
 
   // Do the helix step
-  float sgn = GetSign();
+  float sgn = getSign();
   g3helx3(sgn * bb, step, vect);
 
   // Rotate back to the Global System
@@ -895,7 +893,7 @@ bool TrackParCov::PropagateTo(float xk, const array<float, 3>& b)
 }
 
 //______________________________________________
-void TrackParCov::CheckCovariance()
+void TrackParCov::checkCovariance()
 {
   // This function forces the diagonal elements of the covariance matrix to be positive.
   // In case the diagonal element is bigger than the maximal allowed value, it is set to
@@ -949,16 +947,16 @@ void TrackParCov::CheckCovariance()
 }
 
 //______________________________________________
-void TrackParCov::ResetCovariance(float s2)
+void TrackParCov::resetCovariance(float s2)
 {
   // Reset the covarince matrix to "something big"
   double d0(kCY2max), d1(kCZ2max), d2(kCSnp2max), d3(kCTgl2max), d4(kC1Pt2max);
   if (s2 > kAlmost0) {
-    d0 = GetSigmaY2() * s2;
-    d1 = GetSigmaZ2() * s2;
-    d2 = GetSigmaSnp2() * s2;
-    d3 = GetSigmaTgl2() * s2;
-    d4 = GetSigma1Pt2() * s2;
+    d0 = getSigmaY2() * s2;
+    d1 = getSigmaZ2() * s2;
+    d2 = getSigmaSnp2() * s2;
+    d3 = getSigmaTgl2() * s2;
+    d4 = getSigma1Pt2() * s2;
     if (d0 > kCY2max) {
       d0 = kCY2max;
     }
@@ -984,159 +982,159 @@ void TrackParCov::ResetCovariance(float s2)
 }
 
 //______________________________________________
-float TrackParCov::GetPredictedChi2(const array<float, 2>& p, const array<float, 3>& cov) const
+float TrackParCov::getPredictedChi2(const array<float, 2>& p, const array<float, 3>& cov) const
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
-  float sdd = GetSigmaY2() + cov[0];
-  float sdz = GetSigmaZY() + cov[1];
-  float szz = GetSigmaZ2() + cov[2];
+  float sdd = getSigmaY2() + cov[0];
+  float sdz = getSigmaZY() + cov[1];
+  float szz = getSigmaZ2() + cov[2];
   float det = sdd * szz - sdz * sdz;
 
   if (fabs(det) < kAlmost0) {
     return kVeryBig;
   }
 
-  float d = GetY() - p[0];
-  float z = GetZ() - p[1];
+  float d = getY() - p[0];
+  float z = getZ() - p[1];
 
   return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
 }
 
 //______________________________________________
-void TrackParCov::BuildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5 &cov) const
+void TrackParCov::buildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5& cov) const
 {
   // fill combined cov.matrix (NOT inverted)
-  cov(kY,kY) = GetSigmaY2() + rhs.GetSigmaY2();
-  cov(kZ,kY) = GetSigmaZY() + rhs.GetSigmaZY();
-  cov(kZ,kZ) = GetSigmaZ2() + rhs.GetSigmaZ2();
-  cov(kSnp,kY) = GetSigmaSnpY() + rhs.GetSigmaSnpY();
-  cov(kSnp,kZ) = GetSigmaSnpZ() + rhs.GetSigmaSnpZ();
-  cov(kSnp,kSnp) = GetSigmaSnp2() + rhs.GetSigmaSnp2();
-  cov(kTgl,kY) = GetSigmaTglY() + rhs.GetSigmaTglY();
-  cov(kTgl,kZ) = GetSigmaTglZ() + rhs.GetSigmaTglZ();
-  cov(kTgl,kSnp) = GetSigmaTglSnp() + rhs.GetSigmaTglSnp();
-  cov(kTgl,kTgl) = GetSigmaTgl2() + rhs.GetSigmaTgl2();
-  cov(kQ2Pt,kY) = GetSigma1PtY() + rhs.GetSigma1PtY();
-  cov(kQ2Pt,kZ) = GetSigma1PtZ() + rhs.GetSigma1PtZ();
-  cov(kQ2Pt,kSnp) = GetSigma1PtSnp() + rhs.GetSigma1PtSnp();
-  cov(kQ2Pt,kTgl) = GetSigma1PtTgl() + rhs.GetSigma1PtTgl();
-  cov(kQ2Pt,kQ2Pt) = GetSigma1Pt2() + rhs.GetSigma1Pt2();
+  cov(kY, kY) = getSigmaY2() + rhs.getSigmaY2();
+  cov(kZ, kY) = getSigmaZY() + rhs.getSigmaZY();
+  cov(kZ, kZ) = getSigmaZ2() + rhs.getSigmaZ2();
+  cov(kSnp, kY) = getSigmaSnpY() + rhs.getSigmaSnpY();
+  cov(kSnp, kZ) = getSigmaSnpZ() + rhs.getSigmaSnpZ();
+  cov(kSnp, kSnp) = getSigmaSnp2() + rhs.getSigmaSnp2();
+  cov(kTgl, kY) = getSigmaTglY() + rhs.getSigmaTglY();
+  cov(kTgl, kZ) = getSigmaTglZ() + rhs.getSigmaTglZ();
+  cov(kTgl, kSnp) = getSigmaTglSnp() + rhs.getSigmaTglSnp();
+  cov(kTgl, kTgl) = getSigmaTgl2() + rhs.getSigmaTgl2();
+  cov(kQ2Pt, kY) = getSigma1PtY() + rhs.getSigma1PtY();
+  cov(kQ2Pt, kZ) = getSigma1PtZ() + rhs.getSigma1PtZ();
+  cov(kQ2Pt, kSnp) = getSigma1PtSnp() + rhs.getSigma1PtSnp();
+  cov(kQ2Pt, kTgl) = getSigma1PtTgl() + rhs.getSigma1PtTgl();
+  cov(kQ2Pt, kQ2Pt) = getSigma1Pt2() + rhs.getSigma1Pt2();
 }
 
 //______________________________________________
-float TrackParCov::GetPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const
+float TrackParCov::getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSet) const
 {
   // get chi2 wrt other track, which must be defined at the same parameters X,alpha
   // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
-  
-  if (std::abs(mAlpha-rhs.mAlpha)>FLT_EPSILON) {
+
+  if (std::abs(mAlpha - rhs.mAlpha) > FLT_EPSILON) {
     LOG(ERROR) << "The reference Alpha of the tracks differ: " << mAlpha << " : " << rhs.mAlpha << FairLogger::endl;
-    return 2.*HugeF;
+    return 2. * HugeF;
   }
-  if (std::abs(mX-rhs.mX)>FLT_EPSILON) {
+  if (std::abs(mX - rhs.mX) > FLT_EPSILON) {
     LOG(ERROR) << "The reference X of the tracks differ: " << mX << " : " << rhs.mX << FairLogger::endl;
-    return 2.*HugeF;
+    return 2. * HugeF;
   }
-  BuildCombinedCovMatrix(rhs, covToSet);
+  buildCombinedCovMatrix(rhs, covToSet);
   if (!covToSet.Invert()) {
     LOG(ERROR) << "Cov.matrix inversion failed: " << covToSet << FairLogger::endl;
-    return 2.*HugeF;
+    return 2. * HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
-  for (int i=kNParams;i--;) {
+  for (int i = kNParams; i--;) {
     diff[i] = mP[i] - rhs.mP[i];
-    chi2diag += diff[i]*diff[i]*covToSet(i,i);
+    chi2diag += diff[i] * diff[i] * covToSet(i, i);
   }
-  for (int i=kNParams;i--;) {
-    for (int j=i;j--;) {
-      chi2ndiag += diff[i]*diff[j]*covToSet(i,j);
+  for (int i = kNParams; i--;) {
+    for (int j = i; j--;) {
+      chi2ndiag += diff[i] * diff[j] * covToSet(i, j);
     }
   }
-  return chi2diag + 2.*chi2ndiag;
+  return chi2diag + 2. * chi2ndiag;
 }
 
 //______________________________________________
-bool TrackParCov::Update(const TrackParCov& rhs, const MatrixDSym5 &covInv) 
+bool TrackParCov::update(const TrackParCov& rhs, const MatrixDSym5& covInv)
 {
   // update track with other track, the inverted combined cov matrix should be supplied
 
   // consider skipping this check, since it is usually already done upstream
-  if (std::abs(mAlpha-rhs.mAlpha)>FLT_EPSILON) {
+  if (std::abs(mAlpha - rhs.mAlpha) > FLT_EPSILON) {
     LOG(ERROR) << "The reference Alpha of the tracks differ: " << mAlpha << " : " << rhs.mAlpha << FairLogger::endl;
     return false;
   }
-  if (std::abs(mX-rhs.mX)>FLT_EPSILON) {
+  if (std::abs(mX - rhs.mX) > FLT_EPSILON) {
     LOG(ERROR) << "The reference X of the tracks differ: " << mX << " : " << rhs.mX << FairLogger::endl;
     return false;
   }
-  
+
   // gain matrix K = Cov0*H*(Cov0+Cov0)^-1 (for measurement matrix H=I)
   MatrixDSym5 matC0;
-  matC0(kY,kY) = GetSigmaY2();
-  matC0(kZ,kY) = GetSigmaZY();
-  matC0(kZ,kZ) = GetSigmaZ2();
-  matC0(kSnp,kY) = GetSigmaSnpY();
-  matC0(kSnp,kZ) = GetSigmaSnpZ();
-  matC0(kSnp,kSnp) = GetSigmaSnp2();
-  matC0(kTgl,kY) = GetSigmaTglY();
-  matC0(kTgl,kZ) = GetSigmaTglZ();
-  matC0(kTgl,kSnp) = GetSigmaTglSnp();
-  matC0(kTgl,kTgl) = GetSigmaTgl2();
-  matC0(kQ2Pt,kY) = GetSigma1PtY();
-  matC0(kQ2Pt,kZ) = GetSigma1PtZ();
-  matC0(kQ2Pt,kSnp) = GetSigma1PtSnp();
-  matC0(kQ2Pt,kTgl) = GetSigma1PtTgl();
-  matC0(kQ2Pt,kQ2Pt) = GetSigma1Pt2();
-  MatrixD5 matK = matC0*covInv;
+  matC0(kY, kY) = getSigmaY2();
+  matC0(kZ, kY) = getSigmaZY();
+  matC0(kZ, kZ) = getSigmaZ2();
+  matC0(kSnp, kY) = getSigmaSnpY();
+  matC0(kSnp, kZ) = getSigmaSnpZ();
+  matC0(kSnp, kSnp) = getSigmaSnp2();
+  matC0(kTgl, kY) = getSigmaTglY();
+  matC0(kTgl, kZ) = getSigmaTglZ();
+  matC0(kTgl, kSnp) = getSigmaTglSnp();
+  matC0(kTgl, kTgl) = getSigmaTgl2();
+  matC0(kQ2Pt, kY) = getSigma1PtY();
+  matC0(kQ2Pt, kZ) = getSigma1PtZ();
+  matC0(kQ2Pt, kSnp) = getSigma1PtSnp();
+  matC0(kQ2Pt, kTgl) = getSigma1PtTgl();
+  matC0(kQ2Pt, kQ2Pt) = getSigma1Pt2();
+  MatrixD5 matK = matC0 * covInv;
 
   // updated state vector: x = K*(x1-x0)
   // RS: why SMatix, SVector does not provide multiplication operators ???
   double diff[kNParams];
-  for (int i=kNParams;i--;) {
+  for (int i = kNParams; i--;) {
     diff[i] = rhs.mP[i] - mP[i];
   }
-  for (int i=kNParams;i--;) {
-    for (int j=kNParams;j--;) {
-      mP[i] += matK(i,j)*diff[j];
+  for (int i = kNParams; i--;) {
+    for (int j = kNParams; j--;) {
+      mP[i] += matK(i, j) * diff[j];
     }
   }
-  
+
   // updated covariance: Cov0 = Cov0 - K*Cov0
   matK *= ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams>>(matC0);
-  mC[kSigY2] -= matK(kY,kY);
-  mC[kSigZY] -= matK(kZ,kY);
-  mC[kSigZ2] -= matK(kZ,kZ);
-  mC[kSigSnpY] -= matK(kSnp,kY);
-  mC[kSigSnpZ] -= matK(kSnp,kZ);
-  mC[kSigSnp2] -= matK(kSnp,kSnp);  
-  mC[kSigTglY] -= matK(kTgl,kY);
-  mC[kSigTglZ] -= matK(kTgl,kZ);
-  mC[kSigTglSnp] -= matK(kTgl,kSnp);
-  mC[kSigTgl2] -= matK(kTgl,kTgl);
-  mC[kSigQ2PtY] -= matK(kQ2Pt,kY);
-  mC[kSigQ2PtZ] -= matK(kQ2Pt,kZ);
-  mC[kSigQ2PtSnp] -= matK(kQ2Pt,kSnp);
-  mC[kSigQ2PtTgl] -= matK(kQ2Pt,kTgl);
-  mC[kSigQ2Pt2] -= matK(kQ2Pt,kQ2Pt);
+  mC[kSigY2] -= matK(kY, kY);
+  mC[kSigZY] -= matK(kZ, kY);
+  mC[kSigZ2] -= matK(kZ, kZ);
+  mC[kSigSnpY] -= matK(kSnp, kY);
+  mC[kSigSnpZ] -= matK(kSnp, kZ);
+  mC[kSigSnp2] -= matK(kSnp, kSnp);
+  mC[kSigTglY] -= matK(kTgl, kY);
+  mC[kSigTglZ] -= matK(kTgl, kZ);
+  mC[kSigTglSnp] -= matK(kTgl, kSnp);
+  mC[kSigTgl2] -= matK(kTgl, kTgl);
+  mC[kSigQ2PtY] -= matK(kQ2Pt, kY);
+  mC[kSigQ2PtZ] -= matK(kQ2Pt, kZ);
+  mC[kSigQ2PtSnp] -= matK(kQ2Pt, kSnp);
+  mC[kSigQ2PtTgl] -= matK(kQ2Pt, kTgl);
+  mC[kSigQ2Pt2] -= matK(kQ2Pt, kQ2Pt);
 
   return true;
 }
 
 //______________________________________________
-bool TrackParCov::Update(const TrackParCov& rhs)
+bool TrackParCov::update(const TrackParCov& rhs)
 {
   // update track with other track
   MatrixDSym5 covI; // perform matrix operations in double!
-  BuildCombinedCovMatrix(rhs,covI);
+  buildCombinedCovMatrix(rhs, covI);
   if (!covI.Invert()) {
     LOG(ERROR) << "Cov.matrix inversion failed: " << covI << FairLogger::endl;
     return false;
   }
-  return Update(rhs, covI);
+  return update(rhs, covI);
 }
-  
+
 //______________________________________________
-bool TrackParCov::Update(const array<float, 2>& p, const array<float, 3>& cov)
+bool TrackParCov::update(const array<float, 2>& p, const array<float, 3>& cov)
 {
   // Update the track parameters with the space point "p" having
   // the covariance matrix "cov"
@@ -1165,8 +1163,8 @@ bool TrackParCov::Update(const array<float, 2>& p, const array<float, 3>& cov)
   double k30 = cm30 * r00 + cm31 * r01, k31 = cm30 * r01 + cm31 * r11;
   double k40 = cm40 * r00 + cm41 * r01, k41 = cm40 * r01 + cm41 * r11;
 
-  double dy = p[kY] - GetY(), dz = p[kZ] - GetZ();
-  double sf = GetSnp() + k20 * dy + k21 * dz;
+  double dy = p[kY] - getY(), dz = p[kZ] - getZ();
+  double sf = getSnp() + k20 * dy + k21 * dz;
   if (fabs(sf) > kAlmost1) {
     return false;
   }
@@ -1200,13 +1198,13 @@ bool TrackParCov::Update(const array<float, 2>& p, const array<float, 3>& cov)
 
   cm44 -= k40 * c04 + k41 * c14;
 
-  CheckCovariance();
+  checkCovariance();
 
   return true;
 }
 
 //______________________________________________
-bool TrackParCov::CorrectForMaterial(float x2x0, float xrho, float mass, bool anglecorr, float dedx)
+bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool anglecorr, float dedx)
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the crossed material.
@@ -1239,7 +1237,7 @@ bool TrackParCov::CorrectForMaterial(float x2x0, float xrho, float mass, bool an
     xrho *= angle;
   }
 
-  float p = GetP();
+  float p = getP();
   if (mass < 0) {
     p += p; // q=2 particle
   }
@@ -1305,7 +1303,7 @@ bool TrackParCov::CorrectForMaterial(float x2x0, float xrho, float mass, bool an
   fC44 += cC44;
   fP4 *= cP4;
 
-  CheckCovariance();
+  checkCovariance();
 
   return true;
 }

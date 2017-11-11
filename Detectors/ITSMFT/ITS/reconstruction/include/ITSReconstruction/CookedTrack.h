@@ -29,56 +29,45 @@ class Cluster;
 namespace ITS
 {
 
-class CookedTrack
+class CookedTrack : public o2::Base::Track::TrackParCov
 {
   using Cluster = o2::ITSMFT::Cluster;
-  
-public:
-  CookedTrack();
-  CookedTrack(float x, float alpha, const std::array<float,o2::Base::Track::kNParams> &par, const std::array<float,o2::Base::Track::kCovMatSize> &cov);
-  CookedTrack(const CookedTrack& t);
-  CookedTrack& operator=(const CookedTrack& tr);
+
+ public:
+
+  using o2::Base::Track::TrackParCov::TrackParCov; // inherit base constructors
+  static constexpr int MaxClusters = 7;
+
+  CookedTrack() = default;
+  CookedTrack(const CookedTrack& t) = default;
+  CookedTrack& operator=(const CookedTrack& tr) = default;
   ~CookedTrack()=default;
 
   // These functions must be provided
-  Double_t getPredictedChi2(const Cluster* c) const;
-  Bool_t propagate(Double_t alpha, Double_t x, Double_t bz);
-  Bool_t correctForMeanMaterial(Double_t x2x0, Double_t xrho, Bool_t anglecorr = kTRUE);
-  Bool_t update(const Cluster* c, Double_t chi2, Int_t idx);
+  Bool_t propagate(Float_t alpha, Float_t x, Float_t bz);
+  Bool_t update(const Cluster& c, Float_t chi2, Int_t idx);
 
   // Other functions
   Int_t getChi2() const { return mChi2; }
-  Int_t getNumberOfClusters() const { return mIndex.size(); }
+  Int_t getNumberOfClusters() const { return mNClusters; }
   Int_t getClusterIndex(Int_t i) const { return mIndex[i]; }
   bool operator<(const CookedTrack& o) const;
-  void getImpactParams(Double_t x, Double_t y, Double_t z, Double_t bz, Double_t ip[2]) const;
-  // Bool_t getPhiZat(Double_t r,Double_t &phi,Double_t &z) const;
+  void getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Float_t ip[2]) const;
+  // Bool_t getPhiZat(Float_t r,Float_t &phi,Float_t &z) const;
 
   void setClusterIndex(Int_t layer, Int_t index);
   void setExternalClusterIndex(Int_t layer, Int_t idx);
   void resetClusters();
 
-  Bool_t isBetter(const CookedTrack& best, Double_t maxChi2) const;
-
-  Double_t getCurvature(Double_t bz) const { return mTrack.GetCurvature(float(bz)); }
-  Double_t getAlpha() const { return mTrack.GetAlpha(); }
-  Double_t getX() const { return mTrack.GetX(); }
-  Double_t getY() const { return mTrack.GetY(); }
-  Double_t getZ() const { return mTrack.GetZ(); }
-  Double_t getSnp() const { return mTrack.GetSnp(); }
-  Double_t getTgl() const { return mTrack.GetTgl(); }
-  Double_t getPt() const { return mTrack.GetPt(); }
-  Bool_t getPxPyPz(std::array<float,3> &pxyz) const { return mTrack.GetPxPyPzGlo(pxyz); }
-  void resetCovariance(Double_t s2 = 0.) { mTrack.ResetCovariance(float(s2)); }
-
-  const o2::Base::Track::TrackParCov&  getBaseTrack() const {return mTrack;}
+  Bool_t isBetter(const CookedTrack& best, Float_t maxChi2) const;
   
  private:
-  o2::Base::Track::TrackParCov mTrack; ///< Base track
-  Double_t mMass;            ///< Assumed mass for this track
-  Double_t mChi2;            ///< Chi2 for this track
-  std::vector<Int_t> mIndex; ///< Indices of associated clusters
 
+  short mNClusters = 0;
+  float mMass = 0.14;            ///< Assumed mass for this track
+  float mChi2 = 0.;            ///< Chi2 for this track
+  std::array<Int_t,MaxClusters> mIndex; ///< Indices of associated clusters
+  
   ClassDef(CookedTrack, 1)
 };
 }

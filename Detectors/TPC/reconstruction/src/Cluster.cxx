@@ -13,7 +13,8 @@
 
 #include "TPCReconstruction/Cluster.h"
 
-ClassImp(o2::TPC::Cluster)
+ClassImp(o2::TPC::ClusterTimeStamp);
+ClassImp(o2::TPC::Cluster);
 
 using namespace o2::TPC;
 

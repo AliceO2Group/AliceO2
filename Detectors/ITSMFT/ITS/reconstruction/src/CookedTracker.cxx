@@ -346,7 +346,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
 
 	CookedTrack seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
-	Double_t ip[2];
+	float ip[2];
         seed.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
         if (TMath::Abs(ip[0]) > kmaxDCAxy) continue;
         if (TMath::Abs(ip[1]) > kmaxDCAz ) continue;
@@ -354,7 +354,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
 	  Double_t xx0 = 0.008; // Rough layer thickness
 	  Double_t radl = 9.36; // Radiation length of Si [cm]
 	  Double_t rho = 2.33;  // Density of Si [g/cm^3]
-	  if (!seed.correctForMeanMaterial(xx0, xx0 * radl * rho, kTRUE)) continue;
+	  if (!seed.correctForMaterial(xx0, xx0 * radl * rho, kTRUE)) continue;
 	}
         seed.setClusterIndex(kSeedingLayer1, n1);
         seed.setClusterIndex(kSeedingLayer3, n3);
@@ -868,18 +868,18 @@ Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrac
       return kFALSE;
   }
 
-  Double_t chi2 = t.getPredictedChi2(c);
+  Double_t chi2 = t.getPredictedChi2(*c);
 
   if (chi2 > kmaxChi2PerCluster)
     return kFALSE;
 
-  if (!t.update(c, chi2, (nl << 28) + ci))
+  if (!t.update(*c, chi2, (nl << 28) + ci))
     return kFALSE;
 
   Double_t xx0 = (nl > 2) ? 0.008 : 0.003; // Rough layer thickness
   Double_t x0 = 9.36;                      // Radiation length of Si [cm]
   Double_t rho = 2.33;                     // Density of Si [g/cm^3]
-  t.correctForMeanMaterial(xx0, xx0 * x0 * rho, kTRUE);
+  t.correctForMaterial(xx0, xx0 * x0 * rho, kTRUE);
   return kTRUE;
 }
 

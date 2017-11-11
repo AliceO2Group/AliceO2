@@ -98,12 +98,12 @@ namespace o2 {
       };
       typedef struct Cluster ClsInfo_t;
 
-      class Track {
+      class Track : public o2::Base::Track::TrackParCov {
         public:
+          using o2::Base::Track::TrackParCov::TrackParCov;
           Track(float x, float a, std::array<float,Base::Track::kNParams> p, std::array<float,Base::Track::kCovMatSize> c, int *cl);
 
           int* Clusters() { return mCl; }
-          Base::Track::TrackParCov& Param() { return mT; }
 
           int GetLabel() const { return mLabel; }
           float GetChi2() const { return mChi2; }
@@ -114,10 +114,9 @@ namespace o2 {
           bool Update(const Cluster& cl);
           bool GetPhiZat(float r, float bfield,float &phi, float &z) const;
         private:
-          Base::Track::TrackParCov mT;
-          int mCl[7];
-          int mLabel;
-          float mChi2;
+          int mCl[7] = {0};
+          int mLabel = -1;
+          float mChi2 = 0.f;
       };
 
       class Doublets {
