@@ -15,6 +15,8 @@ namespace o2
 namespace ITSMFT
 {
 
+class BuildTopologyDictionary;
+
 struct GroupStruct{
   unsigned long hash;
   float errX;
@@ -28,6 +30,7 @@ class TopologyDictionary{
     void WriteBinaryFile(string outputFile);
     void ReadFile(string fileName);
     void ReadBinaryFile(string fileName);
+    friend BuildTopologyDictionary;
   private:
     unordered_map<unsigned long, int> mFinalMap; //<hash,groupID> just for topologies over threshold
     vector<GroupStruct> mVectorOfGroupIDs;
