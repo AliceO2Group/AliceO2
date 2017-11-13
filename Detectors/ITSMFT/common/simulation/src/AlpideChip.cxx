@@ -110,10 +110,10 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
 
 
   // Now build up the chip
-  ypos = -chip->GetDY() + metallay->GetDY();
+  ypos = chip->GetDY() - metallay->GetDY();
   chipVol->AddNode(metalVol, 1, new TGeoTranslation(0., ypos, 0.));
 
-  ypos += (metallay->GetDY() + sensor->GetDY());
+  ypos -= (metallay->GetDY() + sensor->GetDY());
   chipVol->AddNode(sensVol, 1, new TGeoTranslation(0., ypos, 0.));
 
   // Done, return the chip
