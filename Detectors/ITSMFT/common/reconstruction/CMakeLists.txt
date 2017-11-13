@@ -7,12 +7,14 @@ set(SRCS
   src/PixelReader.cxx
   src/Clusterer.cxx
   src/ClusterTopology.cxx
+  src/TopologyDictionary.cxx
 )
 set(HEADERS
   include/${MODULE_NAME}/Cluster.h
   include/${MODULE_NAME}/PixelReader.h
   include/${MODULE_NAME}/Clusterer.h
   include/${MODULE_NAME}/ClusterTopology.h
+  include/${MODULE_NAME}/TopologyDictionary.h
 )
 Set(LINKDEF src/ITSMFTReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})

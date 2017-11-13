@@ -1,8 +1,4 @@
 #include "ITSMFTReconstruction/ClusterTopology.h"
-//#include <stdlib.h>
-//#include <stdio.h>
-
-//using namespace o2::ITSMFT;
 
 namespace o2
 {
