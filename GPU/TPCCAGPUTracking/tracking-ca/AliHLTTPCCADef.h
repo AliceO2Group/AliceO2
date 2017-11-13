@@ -315,4 +315,10 @@ namespace
 #define CALINK_INVAL ((calink) -1)
 struct cahit2{cahit x, y;};
 
+#ifdef HLTCA_FULL_CLUSTERDATA
+#define HLTCA_EVDUMP_FILE "event_full"
+#else
+#define HLTCA_EVDUMP_FILE "event"
+#endif
+
 #endif //ALIHLTTPCCADEF_H

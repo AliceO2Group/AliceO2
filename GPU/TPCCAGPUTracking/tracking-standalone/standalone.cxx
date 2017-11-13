@@ -195,7 +195,7 @@ int main(int argc, char** argv)
 		{
 			std::ifstream in;
 			char filename[256];
-			sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, nEventsInDirectory);
+			sprintf(filename, "events%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
 			in.open(filename, std::ifstream::binary);
 			if (in.fail()) break;
 			in.close();
@@ -273,12 +273,12 @@ int main(int argc, char** argv)
 								eventUsed[useEvent] = 1;
 								std::ifstream in;
 								char filename[256];
-								sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, useEvent);
+								sprintf(filename, "events%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
 								in.open(filename, std::ifstream::binary);
 								if (in.fail()) {printf("Unexpected error\n");return(1);}
 								float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
 								int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (float) configStandalone.configTF.timeFrameLen * TPCZ / driftTime, true);
-								printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %dns) %s(collisions %4d, bunch %6d, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * configStandalone.configTF.bunchSpacing), nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
+								printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %dns) %s(collisions %4d, bunch %6lld, train %3d) (%10d clusters, %10d MC labels, %10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * configStandalone.configTF.bunchSpacing), nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
 								in.close();
 								nInBunchPileUp++;
 								nCollisionsInTrain++;
@@ -305,7 +305,7 @@ int main(int argc, char** argv)
 			{
 				std::ifstream in;
 				char filename[256];
-				sprintf(filename, "events%s/event.%d.dump", configStandalone.EventsDir, i);
+				sprintf(filename, "events%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 				in.open(filename, std::ifstream::binary);
 				if (in.fail())
 				{
