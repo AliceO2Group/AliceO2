@@ -43,7 +43,7 @@ GCCPROF							=
 MULTITHREAD						= /MT
 MULTITHREADLIBS					= /nodefaultlib:libc.lib
 
-NVCCFLAGSOPT					= --use_fast_math --maxrregcount $(CUDAREGS) -O4 -Xptxas -v -Xptxas -O4 -m$(ARCHBITS) $(NVCCARCHS)
+NVCCFLAGSOPT					= --use_fast_math --maxrregcount $(CUDAREGS) -O4 -Xptxas -v -Xptxas -O4 -Xcompiler -O4 -m$(ARCHBITS) $(NVCCARCHS)
 NVCCFLAGSDBG					= --maxrregcount $(CUDAREGS) -Xptxas -v -Xptxas -O0 -O0 -m$(ARCHBITS) $(NVCCARCHS)
 
 TARGETTYPE						= EXECUTABLE
@@ -70,7 +70,7 @@ CLANGFLAGSUSE					= $(CLANGFLAGSOPT)
 NVCCFLAGSUSE					= $(NVCCFLAGSOPT)
 endif
 ifeq ($(GCCCUDA), )
-GCCCUDA						= $(GCC)
+GCCCUDA						= $(GCC3264)
 endif
 
 MKDIR							= $(HIDEECHOB) mkdir -p `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'` `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'`
