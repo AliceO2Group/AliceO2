@@ -424,8 +424,8 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
       else if (d > 3) d = 3;
       if (DEBUG) {printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);} printf(" - "); for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);} printf(" - D %8.3f\n", d);}
       range1[itr].fId = itr;
-      range1[itr].fMin = b.Par()[1] - d;
-      range1[itr].fMax = b.Par()[1] + d;
+      range1[itr].fMin = b.Par()[1] + b.ZOffset() - d;
+      range1[itr].fMax = b.Par()[1] + b.ZOffset() + d;
     }
     std::sort(range1,range1+N1,AliHLTTPCGMBorderTrack::Range::CompMin);
     if( sameSlice ){
@@ -441,8 +441,8 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
         else if (d > 3) d = 3;
         if (DEBUG) {printf("  Input Slice 2 %d Track %d: ", iSlice2, itr);for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Par()[i]);}printf(" - ");for (int i = 0;i < 5;i++) {printf("%8.3f ", b.Cov()[i]);}printf(" - D %8.3f\n", d);}
         range2[itr].fId = itr;
-        range2[itr].fMin = b.Par()[1] - d;
-        range2[itr].fMax = b.Par()[1] + d;
+        range2[itr].fMin = b.Par()[1] + b.ZOffset() - d;
+        range2[itr].fMax = b.Par()[1] + b.ZOffset() + d;
       }        
       std::sort(range2,range2+N2,AliHLTTPCGMBorderTrack::Range::CompMax);
     }
@@ -805,6 +805,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 		  p1.Z() = p2.Z();
 		  p1.SinPhi() = p2.SinPhi();
 	  }
+      p1.ZOffset() = p2.ZOffset();
 	  p1.DzDs()  = p2.DzDs();
 	  p1.QPt()  = p2.QPt();
       mergedTrack.SetAlpha( p2.Alpha() );

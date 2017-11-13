@@ -46,14 +46,46 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   static int nTracks = 0;
   if (PRINT_TRACKS || DEBUG) nTracks++;
 
-
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
   prop.SetPolynomialField( field );  
   prop.SetUseMeanMomentum( UseMeanPt );
   prop.SetContinuousTracking( param.GetContinuousTracking() );
   prop.SetMaxSinPhi( maxSinPhi );
-  
+
+  if (param.GetContinuousTracking())
+  {  
+    fP[1] += fZOffset;
+    
+    const float cosPhi = AliHLTTPCCAMath::Sqrt(1 - fP[2] * fP[2]);
+    const float dxf = -AliHLTTPCCAMath::Abs(fP[2]);
+    const float dyf = cosPhi * (fP[2] > 0 ? 1. : -1.);
+    const float r = 1./fabs(fP[4] * field->GetNominalBz());
+    float xp = fX + dxf * r;
+    float yp = fP[0] + dyf * r;
+    //printf("\nX %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r, xp, yp);
+    const float r2 = (r + AliHLTTPCCAMath::Sqrt(xp * xp + yp * yp)) / 2.; //Improve the radius by taking into acount both points we know (00 and xy).
+    xp = fX + dxf * r2;
+    yp = fP[0] + dyf * r2;
+    //printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r2, xp, yp);
+    float atana = AliHLTTPCCAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
+    float atanb = AliHLTTPCCAMath::ATan2(CAMath::Abs(fX - xp), CAMath::Abs(fP[0] - yp));
+    //printf("Tan %f %f (%f %f)\n", atana, atanb, fX - xp, fP[0] - yp);
+    const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
+    float dz = dS * fP[3];
+    //printf("Track Z %f, Z0 %f (dS %f, dZds %f)             - Direction %f to %f: %f\n", fP[1], dz, dS, fP[3], clusters[0].fZ, clusters[N - 1].fZ, clusters[0].fZ - clusters[N - 1].fZ);
+    if (dz * fP[1] < 0)
+    {
+      fZOffset = clusters[N - 1].fZ;
+    }
+    else
+    {
+      if (CAMath::Abs(dz) > 250.) dz = dz > 0 ? 250. : -250.;
+      fZOffset = fP[1] - dz; 
+    }
+    fP[1] -= fZOffset;
+  }
+
   int nWays = param.GetNWays();
   int maxN = N;
   int ihitStart = 0;
@@ -62,6 +94,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     if (iWay && param.GetNWaysOuter() && iWay == nWays - 1)
     {
         for (int i = 0;i < 5;i++) fOuterParam.fP[i] = fP[i];
+        fP[1] += fZOffset;
         for (int i = 0;i < 15;i++) fOuterParam.fC[i] = fC[i];
         fOuterParam.fX = fX;
         fOuterParam.fAlpha = prop.GetAlpha();
@@ -90,7 +123,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       
       float xx = clusters[ihit].fX;
       float yy = clusters[ihit].fY;
-      float zz = clusters[ihit].fZ;
+      float zz = clusters[ihit].fZ - fZOffset;
       if (DOUBLE && ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
       {
           float count = 1.;
@@ -101,7 +134,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               if (DEBUG) printf("\t\tMerging hit row %d X %f Y %f Z %f\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);
               xx += clusters[ihit].fX;
               yy += clusters[ihit].fY;
-              zz += clusters[ihit].fZ;
+              zz += clusters[ihit].fZ - fZOffset;
               count += 1.;
           } while (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow);
           xx /= count;
@@ -306,6 +339,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	if( 1 ){//SG!!!
 	  track.SetNClustersFitted( nTrackHits );
 	  track.Param() = t;
+	  track.Param().Z() += track.Param().ZOffset();
 	  track.Alpha() = Alpha;
 	}
 
@@ -314,7 +348,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	  float alphaa = param.Alpha(clusters[ind].fSlice);
 	  float xx = clusters[ind].fX;
 	  float yy = clusters[ind].fY;
-	  float zz = clusters[ind].fZ;
+	  float zz = clusters[ind].fZ - track.Param().GetZOffset();
 	  float sinA = AliHLTTPCCAMath::Sin( alphaa - track.Alpha());
 	  float cosA = AliHLTTPCCAMath::Cos( alphaa - track.Alpha());
 	  track.SetLastX( xx*cosA - yy*sinA );

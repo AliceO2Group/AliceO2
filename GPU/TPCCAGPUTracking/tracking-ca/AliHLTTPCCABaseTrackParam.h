@@ -31,6 +31,7 @@ MEM_CLASS_PRE() class AliHLTTPCCABaseTrackParam
     GPUd() float SinPhi() const { return fP[2]; }
     GPUd() float DzDs()   const { return fP[3]; }
     GPUd() float QPt()    const { return fP[4]; }
+    GPUd() float ZOffset() const{ return fZOffset; }
 
     GPUhd() float GetX()      const { return fX; }
     GPUhd() float GetY()      const { return fP[0]; }
@@ -38,6 +39,7 @@ MEM_CLASS_PRE() class AliHLTTPCCABaseTrackParam
     GPUhd() float GetSinPhi() const { return fP[2]; }
     GPUhd() float GetDzDs()   const { return fP[3]; }
     GPUhd() float GetQPt()    const { return fP[4]; }
+    GPUhd() float GetZOffset() const{ return fZOffset; }
 
     GPUd() float GetKappa( float Bz ) const { return -fP[4]*Bz; }
 
@@ -53,12 +55,14 @@ MEM_CLASS_PRE() class AliHLTTPCCABaseTrackParam
     GPUd() void SetSinPhi( float v ) {  fP[2] = v; }
     GPUd() void SetDzDs( float v )  {  fP[3] = v; }
     GPUd() void SetQPt( float v )   {  fP[4] = v; }
+    GPUd() void SetZOffset(float v) {fZOffset = v;}
 
   private:
 	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
 	//This is neccessary for performance reasons!!!
 	//Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
     float fX;      // x position
+    float fZOffset;
     float fP[5];   // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
 };
 

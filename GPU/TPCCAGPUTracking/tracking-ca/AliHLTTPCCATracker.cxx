@@ -333,7 +333,7 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			}
 #endif
 		}
-		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() > Tracklets()[j].FirstRow())
+		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() >= Tracklets()[j].FirstRow())
 		{
 			int nHits = 0;;
 			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
@@ -355,7 +355,8 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			}
 			if (nHits != Tracklets()[j].NHits())
 			{
-				out << std::endl << "Wrong NHits!: Expected " << Tracklets()[j].NHits() << ", fount " << nHits;
+				std::cout << std::endl << "Wrong NHits!: Expected " << Tracklets()[j].NHits() << ", found " << nHits;
+				out << std::endl << "Wrong NHits!: Expected " << Tracklets()[j].NHits() << ", found " << nHits;
 			}
 		}
 		out << std::endl;

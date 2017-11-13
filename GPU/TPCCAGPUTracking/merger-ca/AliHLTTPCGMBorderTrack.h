@@ -35,12 +35,14 @@ class AliHLTTPCGMBorderTrack
   int   TrackID()                    const { return fTrackID;   }
   int   NClusters()                  const { return fNClusters; }  
   const float *Par() const { return fP; }
+  const float ZOffset() const { return fZOffset;}
   const float *Cov() const { return fC; }
   const float *CovD() const { return fD; }
 
   void SetTrackID   ( int v )                        { fTrackID   = v; }
   void SetNClusters ( int v )                        { fNClusters = v; }
   void SetPar( int i, float x ) { fP[i] = x; }
+  void SetZOffset(float v) {fZOffset = v;}
   void SetCov( int i, float x ) { fC[i] = x; }
   void SetCovD( int i, float x ) { fD[i] = x; }
  
@@ -64,7 +66,7 @@ class AliHLTTPCGMBorderTrack
   }
 
   bool CheckChi2Z( const AliHLTTPCGMBorderTrack &t, float chi2cut ) const {
-    float d = fP[1]-t.fP[1];
+    float d = fP[1]-t.fP[1] + (fZOffset - t.fZOffset);
     return ( d*d < chi2cut *(fC[1] + t.fC[1]) );
   }
 
@@ -80,7 +82,7 @@ class AliHLTTPCGMBorderTrack
  
   bool CheckChi2ZT( const AliHLTTPCGMBorderTrack &t, float chi2cut ) const {
     return  CheckChi2(   fP[1],   fP[3],   fC[1],   fD[1], fC[3],
-		       t.fP[1], t.fP[3], t.fC[1], t.fD[1], t.fC[3], chi2cut );
+		       t.fP[1] + (t.fZOffset - fZOffset), t.fP[3], t.fC[1], t.fD[1], t.fC[3], chi2cut );
     
   }
 
@@ -89,6 +91,7 @@ class AliHLTTPCGMBorderTrack
   int   fTrackID;              // track index
   int   fNClusters;            // n clusters
   float fP[5];
+  float fZOffset;
   float fC[5];
   float fD[2];
 };
