@@ -18,6 +18,8 @@
 
 #include "TNamed.h"
 
+class TGeoHMatrix;
+
 namespace o2 { namespace MFT { class GeometryBuilder; } }
 namespace o2 { namespace MFT { class Segmentation;    } }
 
@@ -34,7 +36,8 @@ class Geometry : public TNamed {
   static const Double_t sSensorHeight;        ///< \brief CMOS Sensor Height
   static const Double_t sSensorActiveHeight;  ///< \brief CMOS Sensor Active height
   static const Double_t sSensorActiveWidth;   ///< \brief CMOS Sensor Active width
-  static const Double_t sSensorThickness;     ///< \brief CMOS Sensor Thickness
+  static const Double_t sSensorThickness;     ///< \brief CMOS sensor part thickness
+  static const Double_t sChipThickness;       ///< \brief CMOS chip thickness
   static const Double_t sXPixelPitch;         ///< \brief Pixel pitch along X
   static const Double_t sYPixelPitch;         ///< \brief Pixel pitch along Y
   static const Int_t sNPixelX = 1024;         ///< \brief Number of Pixel along X
@@ -73,6 +76,8 @@ class Geometry : public TNamed {
   static const Double_t sShiftDDGNDline;
   static const Double_t sShiftline;
   static const Double_t sRohacell;
+
+  static TGeoHMatrix sTransMFT2ITS;        ///< transformation due to the different conventions
 
   static Geometry* instance();
 

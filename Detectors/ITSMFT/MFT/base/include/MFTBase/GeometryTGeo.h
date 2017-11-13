@@ -12,8 +12,8 @@
 /// \brief Definition of the GeometryTGeo class
 /// \author bogdan.vulpescu@clermont.in2p3.fr - adapted from ITS, 21.09.2017
 
-#ifndef ALICEO2_MFT_GEOMETRYTGEO_H
-#define ALICEO2_MFT_GEOMETRYTGEO_H
+#ifndef ALICEO2_MFT_GEOMETRYTGEO_H_
+#define ALICEO2_MFT_GEOMETRYTGEO_H_
 
 #include <vector>
 #include <array>
@@ -78,17 +78,16 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   void Build(int loadTrans=0) override;
 
   static const Char_t* getMFTVolPattern()       { return sVolumeName.c_str(); }
-  static const Char_t* getMFTHalfPattern()      { return sHalfName.c_str(); }
-  static const Char_t* getMFTDiskPattern()      { return sDiskName.c_str(); }
+  static const Char_t* getMFTHalfPattern()      { return sHalfName.c_str();   }
+  static const Char_t* getMFTDiskPattern()      { return sDiskName.c_str();   }
   static const Char_t* getMFTLadderPattern()    { return sLadderName.c_str(); }
+  static const Char_t* getMFTChipPattern()      { return sChipName.c_str();   }
   static const Char_t* getMFTSensorPattern()    { return sSensorName.c_str(); }
 
   /// This routine computes the sensor index (as it is used in the list of 
   /// transformations) from the detector half, disk, ladder and position 
   /// of the sensor in the ladder
   Int_t getSensorIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const; 
-
-  TGeoHMatrix* getTransMFT2ITS() const { return mTransMFT2ITS; }
 
  protected:
   /// Determines the number of detector halves in the Geometry
@@ -160,10 +159,9 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static std::string sHalfName;            ///< 
   static std::string sDiskName;            ///< 
   static std::string sLadderName;          ///< 
+  static std::string sChipName;            ///< 
   static std::string sSensorName;          ///< 
  
-  TGeoHMatrix* mTransMFT2ITS;        ///< transformation due to the different conventions
-
  private:
   static std::unique_ptr<o2::MFT::GeometryTGeo> sInstance;   ///< singleton instance 
   

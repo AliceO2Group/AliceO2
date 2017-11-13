@@ -21,21 +21,23 @@
 
 #include "FairLogger.h"
 
+#include "ITSMFTSimulation/AlpideChip.h"
+
 #include "MFTBase/Constants.h"
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 #include "MFTBase/Flex.h"
-#include "MFTBase/Chip.h"
 #include "MFTBase/Ladder.h"
 #include "MFTBase/Geometry.h"
 
 using namespace o2::MFT;
+using AlpideChip = o2::ITSMFT::AlpideChip;
 
 ClassImp(o2::MFT::Ladder)
 
 // Units are cm
 const Double_t Ladder::sLadderDeltaY = Geometry::sSensorHeight + 2.*Geometry::sSensorTopOffset;
-const Double_t Ladder::sLadderDeltaZ = Geometry::sFlexThickness + Geometry::sSensorThickness; // TODO: Adjust that value when adding glue layer
+const Double_t Ladder::sLadderDeltaZ = Geometry::sFlexThickness + Geometry::sChipThickness; // TODO: Adjust that value when adding glue layer
 
 /// \brief Default constructor
 
@@ -100,74 +102,50 @@ TGeoVolume * Ladder::createVolume()
 void Ladder::createSensors() 
 {
 
+  Geometry * mftGeom = Geometry::instance();
+    
   // Create Shapes
   
-  // The sensor part
-  auto *sensor = new TGeoBBox(Geometry::sSensorLength/2., Geometry::sSensorActiveHeight/2., Geometry::sSensorThickness/2.);
+  // sensor = sensitive volume
+  TString namePrefixS = "MFTSensor";
+
+  // chip = sensor + readout
+  TString namePrefixC = Form("MFT_C_%d_%d_%d",
+			mftGeom->getHalfID(mSegmentation->GetUniqueID()),
+			mftGeom->getDiskID(mSegmentation->GetUniqueID()),
+			mftGeom->getLadderID(mSegmentation->GetUniqueID()));
+
+  // the MFT glue
+  TString namePrefixG = Form("MFT_G_%d_%d_%d",
+			mftGeom->getHalfID(mSegmentation->GetUniqueID()),
+			mftGeom->getDiskID(mSegmentation->GetUniqueID()),
+			mftGeom->getLadderID(mSegmentation->GetUniqueID()));
   
-  // The readout part
-  auto *readout = new TGeoBBox(Geometry::sSensorLength/2.,(Geometry::sSensorHeight-Geometry::sSensorActiveHeight)/2.,  Geometry::sSensorThickness/2.);
-  
-  // Get Mediums
-  TGeoMedium *medSensorSi  = gGeoManager->GetMedium("MFT_Si$");
-  TGeoMedium *medReadoutSi = gGeoManager->GetMedium("MFT_Readout$");
-  TGeoMedium *medAir  = gGeoManager->GetMedium("MFT_Air$");
-  //TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_Epoxy$"); 
   TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_SE4445$"); 
-  
-  Geometry * mftGeom = Geometry::instance();
-  
-  TString namePrefix = Form("MFT_S_%d_%d_%d",
-	  mftGeom->getHalfID(mSegmentation->GetUniqueID()),
-	  mftGeom->getDiskID(mSegmentation->GetUniqueID()),
-	  mftGeom->getLadderID(mSegmentation->GetUniqueID()) );
-  
-  TGeoVolume * chipVol = gGeoManager->MakeBox(namePrefix.Data(), medAir,Geometry::sSensorLength/2.,Geometry::sSensorHeight/2., Geometry::sSensorThickness/2.);
-  TGeoVolume * glue = gGeoManager->MakeBox(namePrefix.Data(), kMedGlue, (Geometry::sSensorLength-Geometry::sGlueEdge)/2., (Geometry::sSensorHeight-Geometry::sGlueEdge)/2., Geometry::sGlueThickness/2.);
+
+  TGeoVolume * glue = gGeoManager->MakeBox(namePrefixG.Data(), kMedGlue, (Geometry::sSensorLength-Geometry::sGlueEdge)/2., (Geometry::sSensorHeight-Geometry::sGlueEdge)/2., Geometry::sGlueThickness/2.);
   glue->SetVisibility(kTRUE);
   glue->SetLineColor(kRed-10);
   glue->SetLineWidth(1);
   glue->SetFillColor(glue->GetLineColor());
   glue->SetFillStyle(4000); // 0% transparent
 
-  // Create Volumes
-  // Chip Volume
-  chipVol->SetVisibility(kTRUE);
+  // common with ITS
+  TGeoVolume* chipVol = AlpideChip::createChip(Geometry::sChipThickness/2.,Geometry::sSensorThickness/2.,namePrefixC,namePrefixS,kFALSE);
 
-  // The sensor Volume
-  auto *sensorVol = new TGeoVolume("MFTSensor", sensor, medSensorSi);
-  sensorVol->SetVisibility(kTRUE);
-  
-  sensorVol->SetLineColor(kGreen+1);
-  sensorVol->SetLineWidth(1);
-  sensorVol->SetFillColor(sensorVol->GetLineColor());
-  sensorVol->SetFillStyle(4000); // 0% transparent
-  
-  if(!mftGeom->getSensorVolumeID()){
-    mftGeom->setSensorVolumeID(sensorVol->GetNumber());
-  } else if (mftGeom->getSensorVolumeID() != sensorVol->GetNumber()){
-    Fatal("CreateSensors",Form("Different Sensor VOLUME ID in TGeo !!!!"),0,0);
-  }
-  
-  // The Readout Volume
-  auto *readoutVol = new TGeoVolume("Readout", readout, medReadoutSi);
-  readoutVol->SetVisibility(kTRUE);
-  readoutVol->SetLineColor(kRed-6);
-  readoutVol->SetLineWidth(1);
-  readoutVol->SetFillColor(readoutVol->GetLineColor());
-  readoutVol->SetFillStyle(4000); // 0% transparent
-
-  // Building up the chip
-  chipVol->AddNode(readoutVol, 1, new TGeoTranslation(0.,-Geometry::sSensorHeight/2.+readout->GetDY(),  0.));
-  chipVol->AddNode(sensorVol, 1, new TGeoTranslation( 0., Geometry::sSensorHeight/2.-sensor->GetDY(),0.));
+  //chipVol->Print();
 
   for (int ichip = 0; ichip < mSegmentation->getNSensors(); ichip++) {
-    ChipSegmentation * chipSeg = mSegmentation->getSensor(ichip);
-    TGeoCombiTrans * chipPos = chipSeg->getTransformation();
-    TGeoCombiTrans * chipPosGlue = chipSeg->getTransformation();
+
+    ChipSegmentation* chipSeg     = mSegmentation->getSensor(ichip);
+    TGeoCombiTrans*   chipPos     = chipSeg->getTransformation();
+    TGeoCombiTrans*   chipPosGlue = chipSeg->getTransformation();
+
     // Position of the center on the chip in the chip coordinate system
-    Double_t pos[3] ={Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sSensorThickness/2. - Geometry::sGlueThickness - Geometry::sRohacell};
-    Double_t posglue[3] ={Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sGlueThickness/2-Geometry::sSensorThickness-Geometry::sRohacell};
+    Double_t pos[3] = {Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sChipThickness/2. - Geometry::sGlueThickness - Geometry::sRohacell};
+
+    Double_t posglue[3] = {Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sGlueThickness/2-Geometry::sChipThickness-Geometry::sRohacell};
+
     Double_t master[3];
     Double_t masterglue[3];
     chipPos->LocalToMaster(pos, master);
@@ -182,8 +160,12 @@ void Ladder::createSensors()
     masterglue[1] -= shape->GetDY();
     masterglue[2] -= shape->GetDZ();
 
-    LOG(DEBUG1) << "CreateSensors " << Form("adding chip %s_%d ",namePrefix.Data(),ichip) << FairLogger::endl;
-    mLadderVolume->AddNode(chipVol, ichip, new TGeoTranslation(master[0],master[1],master[2]));
+    LOG(DEBUG1) << "CreateSensors " << Form("adding chip %s_%d ",namePrefixS.Data(),ichip) << FairLogger::endl;
+    //chipPos->Print();
+
+    TGeoTranslation* trans = new TGeoTranslation(master[0],master[1],master[2]);
+    TGeoHMatrix* final = new TGeoHMatrix((*trans)*(Geometry::sTransMFT2ITS).Inverse());
+    mLadderVolume->AddNode(chipVol, ichip, final);
     mLadderVolume->AddNode(glue, ichip, new TGeoTranslation(masterglue[0],masterglue[1],masterglue[2]));
 
   }

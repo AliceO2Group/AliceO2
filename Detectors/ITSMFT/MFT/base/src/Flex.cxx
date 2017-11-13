@@ -20,6 +20,7 @@
 #include "TGeoTube.h"
 #include "TGeoCompositeShape.h"
 #include "TGeoBoolNode.h"
+#include "TMath.h"
 
 #include "FairLogger.h"
 
@@ -27,10 +28,8 @@
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 #include "MFTBase/Flex.h"
-#include "MFTBase/Chip.h"
 #include "MFTBase/Ladder.h"
 #include "MFTBase/Geometry.h"
-#include "MFTBase/Plane.h"
 
 using namespace o2::MFT;
 

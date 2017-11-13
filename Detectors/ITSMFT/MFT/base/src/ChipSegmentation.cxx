@@ -14,7 +14,6 @@
 
 #include "FairLogger.h"
 
-#include "MFTBase/Constants.h"
 #include "MFTBase/ChipSegmentation.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -32,7 +31,6 @@ ChipSegmentation::ChipSegmentation():
 }
 
 /// Constructor
-
 //_____________________________________________________________________________
 ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
   VSegmentation()
@@ -42,7 +40,7 @@ ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
 
   SetUniqueID(uniqueID);
 
-  SetName(Form("%s_%d_%d_%d_%d",GeometryTGeo::getMFTSensorPattern(),
+  SetName(Form("%s_%d_%d_%d_%d",GeometryTGeo::getMFTChipPattern(),
                mftGeom->getHalfID(GetUniqueID()),
                mftGeom->getDiskID(GetUniqueID()),
                mftGeom->getLadderID(GetUniqueID()),
@@ -56,36 +54,7 @@ ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
   
 }
 
-/// Returns the pixel ID corresponding to a hit at (x,y) in the Sensor  frame
-///
-/// \param [in] xHit Double_t : x Position of the Hit
-/// \param [in] yHit Double_t : y Position of the Hit
-///
-/// \param [out] xPixel Int_t : x position of the pixel hit on the sensor matrix
-/// \param [out] yPixel Int_t : y position of the pixel hit on the sensor matrix
-/// \retval <kTRUE> if hit into the active part of the sensor
-/// \retval <kFALSE> if hit outside the active part
-//
-
-//_____________________________________________________________________________
-Bool_t ChipSegmentation::hitToPixelID(Double_t xHit, Double_t yHit, Int_t &xPixel, Int_t &yPixel) {
-  // TODO Need to work on the Misalignment
-  
-  Double_t xHitLocal = xHit-Geometry::sSensorMargin;
-  Double_t yHitLocal = yHit-(Geometry::sSensorMargin + Geometry::sSensorHeight - Geometry::sSensorActiveHeight);
-
-  if (xHitLocal<0. || xHitLocal>Geometry::sSensorActiveWidth) return kFALSE;
-  if (yHitLocal<0. || yHitLocal>Geometry::sSensorActiveHeight) return kFALSE;
-
-  xPixel = Int_t( xHitLocal / Geometry::sXPixelPitch );
-  yPixel = Int_t( yHitLocal / Geometry::sYPixelPitch );
-
-  return kTRUE;
-
-}
-
 /// \brief Print out Sensor information (Name, ID, position, orientation)
-
 //_____________________________________________________________________________
 void ChipSegmentation::print(Option_t* /*option*/){
   
