@@ -15,10 +15,8 @@ set(SRCS
   src/ChipSegmentation.cxx
   src/HalfDetector.cxx
   src/HalfDisk.cxx
-  src/Plane.cxx
   src/Ladder.cxx
   src/Flex.cxx
-  src/Chip.cxx
   src/Support.cxx
   src/HeatExchanger.cxx
   src/HalfCone.cxx
@@ -37,10 +35,8 @@ set(HEADERS
   include/${MODULE_NAME}/ChipSegmentation.h
   include/${MODULE_NAME}/HalfDetector.h
   include/${MODULE_NAME}/HalfDisk.h
-  include/${MODULE_NAME}/Plane.h
   include/${MODULE_NAME}/Ladder.h
   include/${MODULE_NAME}/Flex.h
-  include/${MODULE_NAME}/Chip.h
   include/${MODULE_NAME}/Support.h
   include/${MODULE_NAME}/HeatExchanger.h
   include/${MODULE_NAME}/HalfCone.h

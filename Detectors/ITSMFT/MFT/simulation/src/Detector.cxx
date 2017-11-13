@@ -17,9 +17,6 @@
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
-#include "MFTBase/HalfSegmentation.h"
-#include "MFTBase/HalfDiskSegmentation.h"
-#include "MFTBase/LadderSegmentation.h"
 
 #include "MFTSimulation/Detector.h"
 
@@ -423,7 +420,7 @@ void Detector::createMaterials()
 void Detector::createGeometry()
 {
 
-  Geometry *mftGeom = Geometry::instance();
+  Geometry* mftGeom = Geometry::instance();
   mftGeom->build();
 
 }
@@ -443,8 +440,19 @@ void Detector::defineSensitiveVolumes()
 {
 
   TGeoVolume* vol;
+  Geometry* mftGeom = Geometry::instance();
+
   vol = gGeoManager->GetVolume("MFTSensor");
-  AddSensitiveVolume(vol);
+  if (!vol) {
+    LOG(FATAL) << "can't find volume MFTSensor" << FairLogger::endl;
+  } else {
+    AddSensitiveVolume(vol);
+    if(!mftGeom->getSensorVolumeID()) {
+      mftGeom->setSensorVolumeID(vol->GetNumber());
+    } else if (mftGeom->getSensorVolumeID() != vol->GetNumber()) {
+      LOG(FATAL) << "CreateSensors: different Sensor volume ID !!!!" << FairLogger::endl;
+    }
+  }
 
 }
 

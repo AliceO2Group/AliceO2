@@ -45,6 +45,8 @@ public:
   
   Bool_t hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t half, Int_t disk, Int_t ladder, Int_t sensor, Int_t &xPixel, Int_t &yPixel);
 
+  static constexpr Int_t sNHalves = 2;   ///< \brief Number of detector halves
+
 private:
 
   TClonesArray *mHalves; ///< \brief Array of pointer to HalfSegmentation

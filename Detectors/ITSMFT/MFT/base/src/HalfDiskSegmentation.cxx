@@ -169,7 +169,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
     
     pos[0] = -Geometry::sSensorSideOffset;
     pos[1] = -Geometry::sSensorTopOffset - Geometry::sSensorHeight;
-    pos[2] = -Geometry::sFlexThickness - Geometry::sSensorThickness;
+    pos[2] = -Geometry::sFlexThickness - Geometry::sChipThickness;
     Double_t master[3];
     ladder->getTransformation()->LocalToMaster(pos, master);
     ladder->setPosition(master);

@@ -813,6 +813,7 @@ o2_define_bucket(
     DEPENDENCIES
     itsmft_base_bucket
     ITSMFTBase
+    ITSMFTSimulation
     DetectorsBase
     Graf
     Gpad
