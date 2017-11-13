@@ -39,17 +39,19 @@ class AlpideChip
 
   /// Creates the AlpideChip
   /// Returns the chip as a TGeoVolume
-  /// \param xc, yc, zc X, Y, Z chip half lengths
+  /// \param yc Y chip half lengths
   /// \param ys sensor half thickness
   /// \param chipName sensName default volume names
   /// \param dummy if true creates a dummy air volume (for material budget studies)
   /// \param mgr The GeoManager (used only to get the proper material)
-  static TGeoVolume* createChip(Double_t xc, Double_t yc, Double_t zc, Double_t ys,
+  static TGeoVolume* createChip(Double_t yc, Double_t ys,
 				char const *chipName="AlpideChip", char const *sensName="AlpideSensor",
 				Bool_t dummy=kFALSE, const TGeoManager *mgr=gGeoManager);
 
  private:
-  static const Double_t sMetalLayerThick;    ///< Metal layer thickness
+  static constexpr Double_t sChipXWidth      =  1.5;   ///< Chip X width (cm)
+  static constexpr Double_t sChipZLength     =  3.0;   ///< Chip Z length (cm)
+  static constexpr Double_t sMetalLayerThick = 15.0*1.0E-4;  ///< Metal layer thickness (um)
 
   ClassDef(AlpideChip, 0) // AlpideChip geometry
 };
