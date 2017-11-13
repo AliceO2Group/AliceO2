@@ -17,6 +17,8 @@
 #ifndef ALIHLTTPCCACLUSTERDATA_H
 #define ALIHLTTPCCACLUSTERDATA_H
 
+#include "AliHLTTPCCADef.h"
+
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
 #include <iostream>
 #include <vector>
@@ -40,6 +42,14 @@ class AliHLTTPCCAClusterData
       float fY;
       float fZ;
       float fAmp;
+#ifdef HLTCA_FULL_CLUSTERDATA
+      float fPad;
+      float fTime;
+      float fAmpMax;
+      float fSigmaPad2;
+      float fSigmaTime2;
+      unsigned char fFlags;
+#endif
     };
 
     /**

@@ -85,6 +85,7 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fGPUStuckProtection(0),
   fAsync(0),
   fDumpEvent(0),
+  fDumpEventNClsCut(0),
   fSearchWindowDZDR(0.),
   fAsyncProcessor()
 {
@@ -122,6 +123,7 @@ AliHLTProcessor(),
   fGPUStuckProtection(0),
   fAsync(0),
   fDumpEvent(0),
+  fDumpEventNClsCut(0),
   fSearchWindowDZDR(0.),
   fAsyncProcessor()
 {
@@ -287,6 +289,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
     if (argument.CompareTo( "-DumpEvent" ) == 0) {
       fDumpEvent = 1;
       HLTImportant( "Dumping Events for Debugging" );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-DumpEventNClsCut" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fDumpEventNClsCut = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Dump Event NCls cut set to: %d", fDumpEventNClsCut );
       continue;
     }
 
@@ -712,6 +721,14 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
             pCluster->fZ = c.GetZ();
             pCluster->fRow = firstRow + cRaw.GetPadRow();
             pCluster->fAmp = cRaw.GetCharge();
+#ifdef HLTCA_FULL_CLUSTERDATA
+            pCluster->fPad = cRaw.GetPad();
+            pCluster->fTime = cRaw.GetTime();
+            pCluster->fAmpMax = cRaw.GetQMax();
+            pCluster->fSigmaPad2 = cRaw.GetSigmaPad2();
+            pCluster->fSigmaTime2 = cRaw.GetSigmaTime2();
+            pCluster->fFlags = cRaw.GetFlags();
+#endif
             pCluster++;
           }
         }
@@ -722,12 +739,12 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
     }
   }
   
-  if (fDumpEvent && nClustersTotal && fSliceCount == 36)
+  if (fDumpEvent && nClustersTotal > fDumpEventNClsCut && fSliceCount == 36)
   {
     static int nEvent = 0;
     std::ofstream out;
     char filename[256];
-    sprintf(filename, "event.%d.dump", nEvent++);
+    sprintf(filename, HLTCA_EVDUMP_FILE ".%d.dump", nEvent++);
     out.open(filename, std::ofstream::binary);
     if (!out.fail())
     {
