@@ -38,6 +38,7 @@ public:
   GPUd() float& SinPhi() { return fP[2]; }
   GPUd() float& DzDs()   { return fP[3]; }
   GPUd() float& QPt()    { return fP[4]; }
+  GPUd() float& ZOffset() {return fZOffset;}
   
   GPUhd() float GetX()      const { return fX; }
   GPUhd() float GetY()      const { return fP[0]; }
@@ -45,6 +46,7 @@ public:
   GPUd() float GetSinPhi() const { return fP[2]; }
   GPUd() float GetDzDs()   const { return fP[3]; }
   GPUd() float GetQPt()    const { return fP[4]; }
+  GPUd() float GetZOffset() const {return fZOffset;}
 
   GPUd() float GetKappa( float Bz ) const { return -fP[4]*Bz; }
 
@@ -128,6 +130,7 @@ public:
   private:
   
     float fX;      // x position
+    float fZOffset;
     float fP[5];   // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
     float fC[15];  // the covariance matrix for Y,Z,SinPhi,..
     float fChi2;   // the chi^2 value

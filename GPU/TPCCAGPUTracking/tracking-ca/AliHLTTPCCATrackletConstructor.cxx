@@ -115,7 +115,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
   float y0 = row.Grid().YMin();
   float stepY = row.HstepY();
-  float z0 = row.Grid().ZMin();
+  float z0 = row.Grid().ZMin() - tParam.ZOffset();
   float stepZ = row.HstepZ();
 
   if ( r.fStage == 0 ) { // fitting part
@@ -140,9 +140,16 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       if ( iRow == r.fStartRow ) {
         tParam.SetX( x );
         tParam.SetY( y );
-        tParam.SetZ( z );
         r.fLastY = y;
-        r.fLastZ = z;
+        if (tracker.Param().GetContinuousTracking()) {
+          tParam.SetZ( 0.f );
+          r.fLastZ = 0.f;
+          tParam.SetZOffset( z );
+        } else {
+          tParam.SetZ( z );
+          r.fLastZ = z;
+          tParam.SetZOffset( 0.f );
+        }
       } else {
 
         float err2Y, err2Z;
@@ -271,7 +278,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         if ( sz2 > 2. ) sz2 = 2.;
                                 
         int bin, ny, nz;
-        row.Grid().GetBinArea(fY, fZ, 1.5, 1.5, bin, ny, nz);
+        row.Grid().GetBinArea(fY, fZ + tParam.ZOffset(), 1.5, 1.5, bin, ny, nz);
         float ds = 1e6;
 
         for (int k = 0;k <= nz;k++)

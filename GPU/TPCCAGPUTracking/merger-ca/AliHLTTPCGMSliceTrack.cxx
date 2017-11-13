@@ -257,6 +257,7 @@ bool AliHLTTPCGMSliceTrack::TransportToX( float x, float Bz, AliHLTTPCGMBorderTr
   b.SetPar(2, ey1 );
   b.SetPar(3, fDzDs);
   b.SetPar(4, fQPt);
+  b.SetZOffset(fZOffset);
 
   if (!doCov) return(1);
 
@@ -401,6 +402,7 @@ bool AliHLTTPCGMSliceTrack::TransportToXAlpha( float newX, float sinAlpha, float
   b.SetPar(2, ey1 );
   b.SetPar(3, dzds);
   b.SetPar(4, qpt);
+  b.SetZOffset(fZOffset);
   
   b.SetCov(0, c00 + h2*h2c22 + h4*h4c44 + 2.f*( h2*c20ph4c42  + h4*c40 ));
   b.SetCov(1, c11 + dS*(c31 + n7) );

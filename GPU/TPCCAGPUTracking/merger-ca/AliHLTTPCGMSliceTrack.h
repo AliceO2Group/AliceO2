@@ -40,6 +40,7 @@ class AliHLTTPCGMSliceTrack
   float SecPhi()                     const { return fSecPhi; }
   float DzDs()                       const { return fDzDs;   }
   float QPt()                        const { return fQPt;    }
+  float ZOffset()                    const { return fZOffset;}
 
   int  LocalTrackId()             const { return fLocalTrackId; }
   void SetLocalTrackId( int v )         { fLocalTrackId = v; }
@@ -60,6 +61,7 @@ class AliHLTTPCGMSliceTrack
     fSecPhi = 1.f / fCosPhi;
     fAlpha = alpha;
     fSlice = slice;
+    fZOffset = t.GetZOffset();
     fNClusters = sliceTr->NClusters();
   }
   
@@ -99,6 +101,7 @@ class AliHLTTPCGMSliceTrack
 
   const AliHLTTPCCASliceOutTrack *fOrigTrack; // pointer to original slice track
   float fX, fY, fZ, fSinPhi, fDzDs, fQPt, fCosPhi, fSecPhi; // parameters
+  float fZOffset;
   float fC0, fC2, fC3, fC5, fC7, fC9, fC10, fC12, fC14; // covariances
   float fAlpha;           // alpha angle 
   int fSlice;             // slice of this track segment
