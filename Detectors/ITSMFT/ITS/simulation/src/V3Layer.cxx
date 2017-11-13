@@ -539,10 +539,8 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   snprintf(chipName, 30, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
   snprintf(sensName, 30, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
 
-  zchip = zmod / sIBChipsPerRow;
-  TGeoVolume *chipVol = AlpideChip::createChip(xmod, ymod, zchip,
-					       mSensorThickness/2, chipName,
-					       sensName, dummyChip);
+  TGeoVolume *chipVol = AlpideChip::createChip(ymod, mSensorThickness/2,
+					       chipName, sensName, dummyChip);
 
   // Then create the Glue, the Kapton and the two Aluminum cables
   xtot = xmod + (sIBFPCWiderXPlus + sIBFPCWiderXNeg)/2;
@@ -584,6 +582,7 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   // Build up the module
   xpos = -xtot + ((TGeoBBox*)chipVol->GetShape())->GetDX() + sIBFPCWiderXNeg;
   ypos = -ytot + ymod; // = 0 if not kIBModel4
+  zchip = ((TGeoBBox*)chipVol->GetShape())->GetDZ();
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -ztot + j*(2*zchip + sIBChipZGap) + zchip;
     modVol->AddNode(chipVol, j, new TGeoTranslation(xpos, ypos, zpos));
@@ -3228,13 +3227,10 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
   snprintf(chipName, 30, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
   snprintf(sensName, 30, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
 
-  xlen = (sOBHalfStaveWidth/2-xGap/2)/sOBNChipRows;
   ylen = 0.5*sOBChipThickness;
-  zlen = (sOBModuleZLength - (sOBChipsPerRow-1)*zGap)/(2*sOBChipsPerRow);
 
-  TGeoVolume *chipVol = AlpideChip::createChip(xlen, ylen, zlen,
-					       mSensorThickness/2, chipName,
-					       sensName, dummyChip);
+  TGeoVolume *chipVol = AlpideChip::createChip(ylen, mSensorThickness/2,
+					       chipName, sensName, dummyChip);
 
   xchip = ((TGeoBBox*)chipVol->GetShape())->GetDX();
   ychip = ((TGeoBBox*)chipVol->GetShape())->GetDY();

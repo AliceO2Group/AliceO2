@@ -23,14 +23,10 @@
 
 using namespace o2::ITSMFT;
 
-const Double_t AlpideChip::sMetalLayerThick =  15.0 *1.0E-4; // sMicron
-
 ClassImp(AlpideChip)
 
 //________________________________________________________________________
-TGeoVolume* AlpideChip::createChip(const Double_t xchip,
-				   const Double_t ychip,   
-				   const Double_t zchip,
+TGeoVolume* AlpideChip::createChip(const Double_t ychip,
 				   const Double_t ysens,
 				   const char* chipName,
 				   const char* sensName,
@@ -41,7 +37,7 @@ TGeoVolume* AlpideChip::createChip(const Double_t xchip,
 // Caller should then use TGeoVolume::SetName to proper set the volume name
 //
 // Input:
-//         xchip,ychip,zchip : the chip half dimensions
+//         ychip : the chip Y half dimensions
 //         ysens : the sensor half thickness
 //         chipName,sensName : default volume names (if not passed by caller)
 //         dummy : if true, creates a dummy air volume
@@ -55,8 +51,11 @@ TGeoVolume* AlpideChip::createChip(const Double_t xchip,
 // Created:      20 Oct 2017  Mario Sitta  Ported from V3layer
 //
 
+  Double_t xchip, zchip;
   Double_t ylen, ypos;
 
+  xchip = 0.5*sChipXWidth;
+  zchip = 0.5*sChipZLength;
 
   // First create all needed shapes
   ylen = ysens;
