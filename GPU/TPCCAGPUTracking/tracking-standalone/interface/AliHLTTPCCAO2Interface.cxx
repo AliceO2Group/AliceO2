@@ -118,7 +118,7 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 	fHLT->ProcessEvent();
 	outputTracks = fHLT->Merger().OutputTracks();
 	nOutputTracks = fHLT->Merger().NOutputTracks();
-	outputTrackClusterIDs = fHLT->Merger().OutputClusterIds();
+	outputTrackClusterIDs = NULL;//fHLT->Merger().OutputClusterIds();
 	nEvent++;
 	return(0);
 }

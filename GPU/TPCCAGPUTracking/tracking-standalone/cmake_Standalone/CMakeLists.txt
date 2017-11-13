@@ -6,6 +6,8 @@ install(FILES
         ../code/AliHLTTPCCAClusterData.h
         ../code/AliHLTTPCCAMath.h
         ../code/AliHLTTPCCADef.h
+        ../code/AliHLTTPCCASettings.h
         ../merger-ca/AliHLTTPCGMMergedTrack.h
+        ../merger-ca/AliHLTTPCGMMergedTrackHit.h
         ../merger-ca/AliHLTTPCGMTrackParam.h
 DESTINATION include)
