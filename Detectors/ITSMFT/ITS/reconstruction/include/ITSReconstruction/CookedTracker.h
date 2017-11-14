@@ -78,6 +78,7 @@ public:
   
   // These functions must be implemented
   void process(const std::vector<Cluster> &clusters, std::vector<CookedTrack> &tracks);
+  void processFrame(std::vector<CookedTrack> &tracks);
   // Int_t propagateBack(std::vector<CookedTrack> *event);
   // Int_t RefitInward(std::vector<CookedTrack> *event);
   // Bool_t refitAt(Double_t x, CookedTrack *seed, const CookedTrack *t);
@@ -89,6 +90,10 @@ public:
     mClsLabels=clsLabels;
     mTrkLabels=trkLabels;
   }
+
+  void setContinuousMode(bool mode) { mContinuousMode = mode; }
+  bool getContinuousMode() { return mContinuousMode; }
+
   
   // internal helper classes
   class ThreadData;
@@ -96,7 +101,7 @@ public:
 
  protected:
   static constexpr int kNLayers = 7;
-  void loadClusters(const std::vector<Cluster> &clusters);
+  int loadClusters(const std::vector<Cluster> &clusters);
   void unloadClusters();
   
   std::vector<CookedTrack> trackInThread(Int_t first, Int_t last);
@@ -107,10 +112,13 @@ public:
 
  private:
 
+  bool mContinuousMode = true; ///< triggered or cont. mode
   const o2::ITS::GeometryTGeo* mGeom = nullptr; /// interface to geometry
   const
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels = nullptr; /// Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mTrkLabels = nullptr; /// Track MC labels
+
+  std::uint32_t mROFrame=0;  ///< last frame processed
   
   Int_t mNumOfThreads; ///< Number of tracking threads
   
