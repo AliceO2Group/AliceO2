@@ -100,10 +100,12 @@ Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
   std::array<Int_t, Cluster::maxLabels*CookedTracker::kNLayers > mx;
 
   int nLabels = 0;
+
   for (int i=noc; i--;) {
     Int_t index = t.getClusterIndex(i);
     const Cluster *c = getCluster(index);
     auto labels = mClsLabels->getLabels(c->GetUniqueID());
+    
     for (auto lab : labels) { // check all labels of the cluster
       if ( lab.isEmpty() ) break; // all following labels will be empty also
       // was this label already accounted for ?
@@ -122,7 +124,6 @@ Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
       }
     }
   }
-  
   Label lab;
   Int_t maxL = 0; // find most encountered label
   for (int i=nLabels; i--;) {
@@ -486,35 +487,71 @@ void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<Co
   //--------------------------------------------------------------------
   // This is the main tracking function
   //--------------------------------------------------------------------
-  LOG(INFO)<<"CookedTracker::process(), number of threads: "<<mNumOfThreads<<FairLogger::endl;
+  static int entry = 0;
+
+  LOG(INFO)<< FairLogger::endl;
+  LOG(INFO)<<"CookedTracker::process() entry " << entry++
+	   << ", number of threads: "<<mNumOfThreads<<FairLogger::endl;
+  
+  int nClFrame = 0;
+  Int_t numOfClustersLeft = clusters.size(); // total number of clusters
+  if (numOfClustersLeft == 0) {
+    LOG(WARNING) << "No clusters to to process !" << FairLogger::endl;
+    return;
+  }
 
   auto start = std::chrono::system_clock::now();
+  
+  while( numOfClustersLeft>0 ) {
+    
+    nClFrame = loadClusters(clusters);
+    if (!nClFrame) {
+      LOG(FATAL)<<"Failed to select any cluster out of " <<  numOfClustersLeft
+		<< " check if cont/trig mode is correct" <<  FairLogger::endl;
+    }
+    numOfClustersLeft -= nClFrame;    
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> diff = end-start;   
+    LOG(INFO)<<"Loading clusters: " << nClFrame   << " in single frame " << mROFrame << " : "
+	     << diff.count() <<" s" << FairLogger::endl;
 
-  loadClusters(clusters);
+    start = end;
 
-  // Seeding with the triggered primary vertex
+    processFrame(tracks);
+    unloadClusters();
+    end = std::chrono::system_clock::now();
+    diff = end-start;
+    LOG(INFO)<<"Processing time for single frame " << mROFrame << " : "
+	     <<diff.count() <<" s" << FairLogger::endl;
+
+    start = end;
+    if (mContinuousMode) mROFrame++; // expect incremented frame in following clusters
+  }   
+}
+
+void CookedTracker::processFrame(std::vector<CookedTrack> &tracks)
+{
+  //--------------------------------------------------------------------
+  // This is the main tracking function for single frame, it is assumed that only clusters
+  // which may contribute to this frame is loaded
+  //--------------------------------------------------------------------
+  LOG(INFO)<<"CookedTracker::process(), number of threads: "<<mNumOfThreads<<FairLogger::endl;
+
   Double_t xyz[3]{ 0, 0, 0 }; // FIXME
   setVertex(xyz);
   //mSeeds = makeSeeds(0, sLayers[kSeedingLayer1].getNumberOfClusters());
-
   // Seeding with the pileup primary vertices
   /* FIXME
-  TClonesArray *verticesSPD=tracks->GetPileupVerticesSPD();
-  Int_t nfoundSPD=verticesSPD->GetEntries();
-  for (Int_t v=0; v<nfoundSPD; v++) {
-      vtx=(AliESDVertex *)verticesSPD->UncheckedAt(v);
-      if (!vtx->GetStatus()) continue;
-      xyz[0]=vtx->getX(); xyz[1]=vtx->getY(); xyz[2]=vtx->getZ();
-      setVertex(xyz);
-      makeSeeds();
-  }
+     TClonesArray *verticesSPD=tracks->GetPileupVerticesSPD();
+     Int_t nfoundSPD=verticesSPD->GetEntries();
+     for (Int_t v=0; v<nfoundSPD; v++) {
+     vtx=(AliESDVertex *)verticesSPD->UncheckedAt(v);
+     if (!vtx->GetStatus()) continue;
+     xyz[0]=vtx->getX(); xyz[1]=vtx->getY(); xyz[2]=vtx->getZ();
+     setVertex(xyz);
+     makeSeeds();
+     }
   */
-
-  auto end = std::chrono::system_clock::now();
-  std::chrono::duration<double> diff = end-start;
-  LOG(INFO)<<"Loading time: "<<diff.count()<<" s"<<FairLogger::endl;
-
-
   std::vector<std::future<std::vector<CookedTrack>>> futures(mNumOfThreads);
   std::vector<std::vector<CookedTrack>> seedArray(mNumOfThreads);
   
@@ -525,7 +562,6 @@ void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<Co
     futures[t] = std::async(std::launch::async, &CookedTracker::trackInThread, this, first, last);
     first = last;
   }
-  
   Int_t nSeeds = 0, ngood=0;
   for (Int_t t=0; t<mNumOfThreads; t++) {
     seedArray[t] = futures[t].get();
@@ -533,28 +569,22 @@ void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<Co
     for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
       if (mTrkLabels) {
-         Label label = cookLabel(track, 0.); // For comparison only
-         if (label.getTrackID() >= 0) ngood++;
-         Int_t idx=tracks.size();
-	 mTrkLabels->addElement(idx,label);
+	Label label = cookLabel(track, 0.); // For comparison only
+	if (label.getTrackID() >= 0) ngood++;
+	Int_t idx=tracks.size();
+	mTrkLabels->addElement(idx,label);
       }
       setExternalIndices(track);
       tracks.push_back(track);
     }
   }
-
-  end = std::chrono::system_clock::now();
-  diff = end-start;
-  LOG(INFO)<<"Processing time: "<<diff.count()<<" s"<<FairLogger::endl;
-
-  if (nSeeds)
-    LOG(INFO)<<"CookedTracker::process(), good_tracks:/seeds: "<< ngood << '/' << nSeeds
-	     << "-> " <<Float_t(ngood)/nSeeds<<'\n'<<FairLogger::endl;
-
-  unloadClusters();
   
+  if (nSeeds) {
+    LOG(INFO)<<"CookedTracker::process(), good_tracks:/seeds: "<< ngood << '/' << nSeeds
+	     << "-> " << Float_t(ngood)/nSeeds << FairLogger::endl;
+  }
 }
-
+  
 /*
 Int_t CookedTracker::propagateBack(std::vector<CookedTrack> *tracks) {
   //--------------------------------------------------------------------
@@ -690,38 +720,49 @@ Int_t CookedTracker::RefitInward(std::vector<CookedTrack> *tracks) {
 }
 */
 
-void CookedTracker::loadClusters(const std::vector<Cluster> &clusters)
+int CookedTracker::loadClusters(const std::vector<Cluster> &clusters)
 {
   //--------------------------------------------------------------------
   // This function reads the ITSU clusters from the tree,
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
   Int_t numOfClusters = clusters.size();
-  if (numOfClusters == 0) {
-    LOG(WARNING) << "No clusters to load !" << FairLogger::endl;
-    return;
-  }
+  int nLoaded = 0;
 
-  for (auto &c : clusters) {
-    //    c->goToFrameTrk(); // RS now clusters are always in tracking frame
-
-    Int_t layer = mGeom->getLayer(c.getSensorID());
-    //    if ((layer == kSeedingLayer1) || (layer == kSeedingLayer2) || (layer == kSeedingLayer3))
-    //      c->goToFrameGlo();
-
-    if (!sLayers[layer].insertCluster(&c))
-      continue;
-  }
-
-  std::vector<std::future<void>> fut;
-  for (Int_t l = 0; l < kNLayers; l+=mNumOfThreads) {
-    for (Int_t t = 0; t < mNumOfThreads; t++) {
-      if (l+t >= kNLayers) break;
-      auto f=std::async(std::launch::async, &CookedTracker::Layer::init, sLayers+(l+t));
-      fut.push_back(std::move(f));
+  if (mContinuousMode) { // check the ROFrame in cont. mode
+    for (auto &c : clusters) {
+      if (c.getROFrame()!=mROFrame) {
+	continue;
+      }
+      nLoaded++;
+      Int_t layer = mGeom->getLayer(c.getSensorID());
+      if (!sLayers[layer].insertCluster(&c)) {
+	continue;
+      }
     }
-    for (Int_t t = 0; t < fut.size(); t++) fut[t].wait();
   }
+  else {  // do not check the ROFrame in triggered mode
+    for (auto &c : clusters) {
+      nLoaded++;
+      Int_t layer = mGeom->getLayer(c.getSensorID());
+      if (!sLayers[layer].insertCluster(&c)) {
+	continue;
+      }
+    }    
+  }
+  
+  if (nLoaded) {
+    std::vector<std::future<void>> fut;
+    for (Int_t l = 0; l < kNLayers; l+=mNumOfThreads) {
+      for (Int_t t = 0; t < mNumOfThreads; t++) {
+	if (l+t >= kNLayers) break;
+	auto f=std::async(std::launch::async, &CookedTracker::Layer::init, sLayers+(l+t));
+	fut.push_back(std::move(f));
+      }
+      for (Int_t t = 0; t < fut.size(); t++) fut[t].wait();
+    }
+  }
+  return nLoaded;
 }
 
 void CookedTracker::unloadClusters()

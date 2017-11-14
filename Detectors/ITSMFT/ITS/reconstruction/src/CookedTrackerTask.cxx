@@ -83,6 +83,7 @@ InitStatus CookedTrackerTask::Init()
   geom->fillMatrixCache( bit2Mask(TransformType::T2GRot) ); // make sure T2GRot matrices are loaded
   mTracker.setGeometry(geom);
   mTracker.setMCTruthContainers(mClsLabels, mTrkLabels);
+  mTracker.setContinuousMode(mContinuousMode);
   
   return kSUCCESS;
 }

@@ -93,7 +93,7 @@ class TrackPar
   // derived getters
   float getCurvature(float b) const { return mP[kQ2Pt] * b * Constants::kB2C; }
   float getSign() const { return mP[kQ2Pt] > 0 ? 1.f : -1.f; }
-  float getPhi() const { return asinf(getSnp()) + getAlpha(); }
+  float getPhi() const;
   float getPhiPos() const;
 
   float getP() const;
@@ -226,6 +226,14 @@ inline void TrackPar::getXYZGlo(std::array<float, 3>& xyz) const
 }
 
 //_______________________________________________________
+inline float TrackPar::getPhi() const
+{
+  float phi = asinf(getSnp()) + getAlpha();
+  Utils::BringToPMPi(phi);
+  return phi;
+}
+ 
+//_______________________________________________________
 inline Point3D<float> TrackPar::getXYZGlo() const
 {
   return Rotation2D(getAlpha())(Point3D<float>(getX(), getY(), getZ()));
@@ -246,8 +254,7 @@ inline Point3D<float> TrackPar::getXYZGloAt(float xk, float b, bool& ok) const
 inline float TrackPar::getPhiPos() const
 {
   // angle of track position
-  float xy[2] = { getX(), getY() };
-  return atan2(xy[1], xy[0]);
+  return atan2f(getY(),getX());
 }
 
 //____________________________________________________________

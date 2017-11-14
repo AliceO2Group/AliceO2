@@ -14,7 +14,8 @@
 #include "ITSReconstruction/CookedTrackerTask.h"
 #endif
 
-void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
+void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3",
+		  float rate = 0.){
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
         logger->SetLogVerbosityLevel("LOW");
@@ -45,7 +46,8 @@ void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         Int_t n=1;            // Number of threads
         Bool_t mcTruth=kTRUE; // kFALSE if no comparison with MC is needed
         o2::ITS::CookedTrackerTask *trac = new o2::ITS::CookedTrackerTask(n,mcTruth);
-
+	trac->setContinuousMode(rate>0.);
+	
         fRun->AddTask(trac);
 
         fRun->Init();

@@ -41,7 +41,11 @@ class CookedTrackerTask : public FairTask
   void Exec(Option_t* option) override;
   void setBz(Double_t bz) { mTracker.setBz(bz); }
 
+  void setContinuousMode(bool mode) { mContinuousMode = mode; }
+  bool getContinuousMode() { return mContinuousMode; }
+  
  private:
+  bool mContinuousMode = true; ///< triggered or cont. mode
   CookedTracker mTracker; ///< Track finder
 
   const
