@@ -35,8 +35,12 @@ template<typename ContainerType>
 boost::program_options::options_description
 prepareOptionDescriptions(const ContainerType &workflow)
 {
-  boost::program_options::options_description specOptions("Spec options");
+  boost::program_options::options_description specOptions("Spec groups");
   for (const auto & spec : workflow) {
+    std::string help = "Usage: --" + spec.name + R"( "spec options")";
+    specOptions.add_options()(spec.name.c_str(),
+                              boost::program_options::value<std::string>(),
+                              help.c_str());
     boost::program_options::options_description options(spec.name.c_str());
     if (prepareOptionsDescription(spec.options, options)) {
       specOptions.add(options);

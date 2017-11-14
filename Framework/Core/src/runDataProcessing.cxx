@@ -365,6 +365,9 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
      bpo::value<bool>()->zero_tokens()->default_value(false),
      "create DDS configuration");
 
+  // some of the options must be forwarded by default to the device
+  executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
+
   // FIXME: acquire those options from the code generating the child options
   bpo::options_description hiddenOptions("Hidden child options");
   hiddenOptions.add_options()
