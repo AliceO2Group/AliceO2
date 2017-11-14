@@ -9,6 +9,7 @@ set(SRCS
   src/ClusterTopology.cxx
   src/TopologyDictionary.cxx
   src/BuildTopologyDictionary.cxx
+  src/LookUp.cxx
 )
 set(HEADERS
   include/${MODULE_NAME}/Cluster.h
@@ -17,6 +18,7 @@ set(HEADERS
   include/${MODULE_NAME}/ClusterTopology.h
   include/${MODULE_NAME}/TopologyDictionary.h
   include/${MODULE_NAME}/BuildTopologyDictionary.h
+  include/${MODULE_NAME}/LookUp.h
 )
 Set(LINKDEF src/ITSMFTReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
