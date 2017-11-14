@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
 #include "WorkflowHelpers.h"
+#include <boost/program_options.hpp>
 
 #include <vector>
 #include <string>
@@ -77,6 +78,10 @@ struct DeviceSpecHelpers {
         const WorkflowSpec &workflow,
         const std::vector<LogicalForwardInfo> &availableForwardsInfo
   );
+
+  /// return a description of all options to be forwarded to the device
+  /// by default
+  static boost::program_options::options_description getForwardedDeviceOptions();
 };
 
 }

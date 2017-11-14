@@ -31,6 +31,7 @@ namespace framework {
 /// Concrete description of the device which will actually run 
 /// a DataProcessor.
 struct DeviceSpec {
+  std::string name;
   std::string id;
   std::vector<InputChannelSpec> inputChannels;
   std::vector<OutputChannelSpec> outputChannels;

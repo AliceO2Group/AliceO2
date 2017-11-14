@@ -22,6 +22,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <boost/program_options.hpp>
+#include <wordexp.h>
 
 namespace bpo = boost::program_options;
 
@@ -89,6 +90,7 @@ DeviceSpecHelpers::processOutEdgeActions(
     }
     auto processor = workflow[edge.producer];
     DeviceSpec device;
+    device.name = processor.name;
     device.id = processor.name;
     if (processor.maxInputTimeslices != 1) {
       device.id = processor.name + "_t" + std::to_string(edge.producerTimeIndex);
@@ -279,6 +281,7 @@ DeviceSpecHelpers::processInEdgeActions(
     auto &edge = logicalEdges[ei];
     auto &processor = workflow[edge.consumer];
     DeviceSpec device;
+    device.name = processor.name;
     device.id = processor.name;
     if (processor.maxInputTimeslices != 1) {
       device.id += "_t" + std::to_string(edge.timeIndex);
@@ -517,21 +520,47 @@ DeviceSpecHelpers::prepareArguments(int argc,
       "0"
     };
 
-    // Do filtering. Since we should only have few options,
+    // do the filtering of options, forward options belonging to this specific
+    // DeviceSpec, and some global options from getForwardedDeviceOptions
+    const char* name = spec.name.c_str();
     bpo::options_description od;
-    if (prepareOptionsDescription(spec.options, od)) {
+    prepareOptionsDescription(spec.options, od);
+    od.add(getForwardedDeviceOptions());
+    od.add_options()(name, bpo::value<std::string>());
+
+    using FilterFunctionT = std::function<void (decltype(argc), decltype(argv),
+                                                decltype(od))>;
+
+    FilterFunctionT filterArgsFct = [&] (int largc, char **largv,
+                                         const bpo::options_description &odesc) {
       // spec contains options
-      bpo::command_line_parser parser{argc, argv};
-      parser.options(od).allow_unregistered();
+      bpo::command_line_parser parser{largc, largv};
+      parser.options(odesc).allow_unregistered();
       bpo::parsed_options parsed_options = parser.run();
 
       bpo::variables_map varmap;
       bpo::store(parsed_options, varmap);
 
+      // options can be grouped per processor spec, the group is entered by
+      // the option created from the actual processor spec name
+      // if specified, the following string is interpreted as a sequence
+      // of arguments
+      if (varmap.count(name) > 0) {
+        // strangely enough, the first argument of the group argument string
+        // is marked as defaulted by the parser and is thus ignored. not fully
+        // understood but adding a dummy argument in front cures this
+        auto arguments = "--unused " + varmap[name].as<std::string>();
+        wordexp_t expansions;
+        wordexp(arguments.c_str(), &expansions, 0);
+        filterArgsFct(expansions.we_wordc, expansions.we_wordv, odesc);
+        wordfree(&expansions);
+        return;
+      }
+
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
-        const auto * description = od.find_nothrow(varit.first, false);
+        const auto * description = odesc.find_nothrow(varit.first, false);
         if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
           tmpArgs.emplace_back("--");
           tmpArgs.back() += varit.first;
@@ -554,7 +583,9 @@ DeviceSpecHelpers::prepareArguments(int argc,
                                                 optarg));
         }
       }
-    }
+    };
+
+    filterArgsFct(argc, argv, od);
 
     // Add the channel configuration
     for (auto &channel : spec.outputChannels) {
@@ -583,6 +614,17 @@ DeviceSpecHelpers::prepareArguments(int argc,
     LOG(DEBUG) << "The following options are being forwarded to "
                << spec.id << ":" << str.str();
   }
+}
+
+boost::program_options::options_description DeviceSpecHelpers::getForwardedDeviceOptions()
+{
+  bpo::options_description forwardedDeviceOptions;
+  forwardedDeviceOptions.add_options()
+    ("rate",
+     bpo::value<std::string>(),
+     "rate for a data source device (Hz)");
+
+  return forwardedDeviceOptions;
 }
 
 } // namespace framework
