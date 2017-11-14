@@ -199,6 +199,7 @@ class DetImpl : public o2::Base::Detector
       }
     }
   }
+  ClassDefOverride(DetImpl, 0)
 };
 }
 }
