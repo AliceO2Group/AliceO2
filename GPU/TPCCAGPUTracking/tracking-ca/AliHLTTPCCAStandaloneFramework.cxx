@@ -380,7 +380,7 @@ void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const
   }
 }
 
-int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, bool addData, float shift, float minZ, float maxZ, bool silent )
+int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, bool addData, float shift, float minZ, float maxZ, bool silent, bool doQA )
 {
   //* Read event from file
   int nClusters = 0, nCurrentClusters = 0;
@@ -413,9 +413,12 @@ int AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds, 
   }
   if (nClusters)
   {
-    fMCLabels.resize(nCurrentClusters + nClusters);
-    in.read((char*) (fMCLabels.data() + nCurrentClusters), nClusters * sizeof(fMCLabels[0]));
-    if (!in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
+    if (doQA)
+    {
+      fMCLabels.resize(nCurrentClusters + nClusters);
+      in.read((char*) (fMCLabels.data() + nCurrentClusters), nClusters * sizeof(fMCLabels[0]));
+    }
+    if (!doQA || !in || in.gcount() != nClusters * (int) sizeof(fMCLabels[0]))
     {
       fMCLabels.clear();
       fMCInfo.clear();
