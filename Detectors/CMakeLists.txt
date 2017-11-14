@@ -26,5 +26,8 @@ add_subdirectory(FIT)
 add_subdirectory(PHOS)
 add_subdirectory(MUON)
 add_subdirectory(GlobalTracking)
+IF (HAVESIMULATION)
+  add_subdirectory(gconfig)
+ENDIF (HAVESIMULATION)
 
 Install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)

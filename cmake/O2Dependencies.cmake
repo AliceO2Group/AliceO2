@@ -7,8 +7,10 @@ find_package(Pythia8)
 find_package(Pythia6)
 if (ALICEO2_MODULAR_BUILD)
   # Geant3, Geant4 installed via cmake
-  find_package(Geant3)
-  find_package(Geant4)
+  find_package(Geant3 NO_MODULE)
+  find_package(Geant4 NO_MODULE)
+  find_package(Geant4VMC NO_MODULE)
+  find_package(VGM NO_MODULE)
 else (ALICEO2_MODULAR_BUILD)
   # For old versions of VMC packages (to be removed)
   find_package(GEANT3)
@@ -1325,6 +1327,7 @@ o2_define_bucket(
 
     #-- precise modules follow
     SimConfig
+    SimSetup
     DetectorsPassive
     TPCSimulation
     TPCReconstruction
@@ -1724,3 +1727,29 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Tracking/src
 )
+
+
+o2_define_bucket(
+    NAME
+    simulation_setup_bucket
+
+    DEPENDENCIES
+    pythia6 # this is needed by Geant3
+    EGPythia6 # this is needed by Geant4 (TPythia6Decayer)
+    ${Geant3_LIBRARIES}
+    ${Geant4_LIBRARIES}
+    ${Geant4VMC_LIBRARIES}
+    ${VGM_LIBRARIES}
+    fairroot_geom
+    SimulationDataFormat
+    DetectorsPassive
+
+    INCLUDE_DIRECTORIES
+    ${Geant4VMC_INCLUDE_DIRS}
+    ${Geant4_INCLUDE_DIRS}
+    ${Geant3_INCLUDE_DIRS}
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+)
+
+
