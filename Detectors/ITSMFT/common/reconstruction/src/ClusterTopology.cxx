@@ -1,52 +1,44 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file ClusterTopology.cxx
+/// \brief Implementation of the ClusterTopology class.
+///
+/// \author Luca Barioglio, University and INFN of Torino
+
 #include "ITSMFTReconstruction/ClusterTopology.h"
+
+ClassImp(o2::ITSMFT::ClusterTopology)
 
 namespace o2
 {
-namespace ITSMFT{
-void convertCluster2String(const Cluster &cluster, std::string &str)
+namespace ITSMFT
 {
-  int rowSpan = cluster.getPatternRowSpan();
-  int columnSpan = cluster.getPatternColSpan();
-  int nBytes = (rowSpan*columnSpan)>>3;
-  if(((rowSpan*columnSpan)%8)!=0) nBytes++;
-  str.resize(nBytes+2,0);
-  str[0]=rowSpan;
-  str[1]=columnSpan;
-  cluster.getPattern(&str[2],nBytes);
-}
 
-ClusterTopology::ClusterTopology() : mPattern(), mHash(0)
+ClusterTopology::ClusterTopology() : mPattern{0}, mHash{0}, mNbytes{0}
 {
 }
 
-ClusterTopology::ClusterTopology(const std::string &str) : mHash(0)
+ClusterTopology::ClusterTopology(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]) : mHash{0}
 {
-  setPattern(str);
+  setPattern(nRow,nCol,patt);
 }
 
-void ClusterTopology::setPattern(const std::string &str)
+void ClusterTopology::setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
 {
-  int nBytes = (int)str.size();
-  mPattern.resize(nBytes,0);
-  memcpy(&mPattern[0],&str[0],nBytes);
-  nBytes-=2;
-  mHash = ((unsigned long)(hashFunction(mPattern.data(),mPattern.length())))<<32;
-  if(nBytes>=4){
-    mHash += ((((unsigned long)mPattern[2])<<24) + (((unsigned long)mPattern[3])<<16) + (((unsigned long)mPattern[4])<<8) + ((unsigned long)mPattern[5]));
-  }
-  else if(nBytes==3){
-    mHash += ((((unsigned long)mPattern[2])<<24) + (((unsigned long)mPattern[3])<<16) + (((unsigned long)mPattern[4])<<8));
-  }
-  else if(nBytes==2){
-    mHash += ((((unsigned long)mPattern[2])<<24) + (((unsigned long)mPattern[3])<<16));
-  }
-  else if(nBytes==1){
-    mHash += ((((unsigned long)mPattern[2])<<24));
-  }
-  else{
-    std::cout << "ERROR: no fired pixels\n";
-    exit(1);
-  }
+  mPattern[0]=(unsigned char)nRow;
+  mPattern[1]=(unsigned char)nCol;
+  mNbytes = nRow*nCol/8;
+  if(((nRow*nCol)%8)!=0) mNbytes++;
+  memcpy(&mPattern[2],patt,mNbytes);
+  mHash = getCompleteHash(*this);
 }
 
 unsigned int ClusterTopology::hashFunction(const void* key, int len)
@@ -87,27 +79,84 @@ unsigned int ClusterTopology::hashFunction(const void* key, int len)
   return h;
 }
 
+unsigned long ClusterTopology::getCompleteHash(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed)
+{
+  unsigned long extended_pattern[Cluster::kMaxPatternBytes+2]={0};
+  extended_pattern[0]=(unsigned char)nRow;
+  extended_pattern[1]=(unsigned char)nCol;
+  memcpy(&extended_pattern[2],patt,nBytesUsed);
+
+  unsigned long partialHash = (unsigned long)hashFunction(extended_pattern,nBytesUsed);
+  // The first four bytes are directly taken from partialHash
+  unsigned long completeHash = partialHash<<32;
+  // The last four bytes of the hash are the first 32 pixels of the topology.
+  // The bits reserved for the pattern that are not used are set to 0.
+  if(nBytesUsed==1){
+    completeHash += ((((unsigned long)extended_pattern[2])<<24));
+  }
+  else if(nBytesUsed==2){
+    completeHash += ((((unsigned long)extended_pattern[2])<<24) + (((unsigned long)extended_pattern[3])<<16));
+  }
+  else if(nBytesUsed==3){
+    completeHash += ((((unsigned long)extended_pattern[2])<<24) + (((unsigned long)extended_pattern[3])<<16) + (((unsigned long)extended_pattern[4])<<8));
+  }
+  else if(nBytesUsed>=4){
+    completeHash += ((((unsigned long)extended_pattern[2])<<24) + (((unsigned long)extended_pattern[3])<<16) + (((unsigned long)extended_pattern[4])<<8) + ((unsigned long)extended_pattern[5]));
+  }
+  else{
+    std::cout << "ERROR: no fired pixels\n";
+    exit(1);
+  }
+  return completeHash;
+}
+
+unsigned long ClusterTopology::getCompleteHash(const ClusterTopology& topology)
+{
+  std::array<unsigned char,Cluster::kMaxPatternBytes+2> patt = topology.getPattern();
+  int nBytesUsed = topology.getUsedBytes();
+  unsigned long partialHash = (unsigned long)hashFunction(patt.data(),nBytesUsed);
+  // The first four bytes are directly taken from partialHash
+  unsigned long completeHash = partialHash<<32;
+  // The last four bytes of the hash are the first 32 pixels of the topology.
+  // The bits reserved for the pattern that are not used are set to 0.
+  if(nBytesUsed==1){
+    completeHash += ((((unsigned long)patt[2])<<24));
+  }
+  else if(nBytesUsed==2){
+    completeHash += ((((unsigned long)patt[2])<<24) + (((unsigned long)patt[3])<<16));
+  }
+  else if(nBytesUsed==3){
+    completeHash += ((((unsigned long)patt[2])<<24) + (((unsigned long)patt[3])<<16) + (((unsigned long)patt[4])<<8));
+  }
+  else if(nBytesUsed>=4){
+    completeHash += ((((unsigned long)patt[2])<<24) + (((unsigned long)patt[3])<<16) + (((unsigned long)patt[4])<<8) + ((unsigned long)patt[5]));
+  }
+  else{
+    std::cout << "ERROR: no fired pixels\n";
+    exit(1);
+  }
+  return completeHash;
+}
+
 std::ostream& operator<<(std::ostream& os, const ClusterTopology& topology)
 {
-  int rowSpan = topology.mPattern[0];
-  int columnSpan = topology.mPattern[1];
-  os << "rowSpan: " << rowSpan << " columnSpan: " << columnSpan << " #bytes: " << topology.mPattern.length() << std::endl;
+  os << "rowSpan: " << topology.getRowSpan() << " columnSpan: " << topology.getColumnSpan() << " #bytes: " << topology.getUsedBytes() << std::endl;
   unsigned char tempChar = 0;
   int s=0;
   int ic = 0;
-  for (unsigned int i=2; i<topology.mPattern.length(); i++){
+  for (unsigned int i=2; i<topology.getUsedBytes()+2; i++){
     tempChar = topology.mPattern[i];
     s=128; //0b10000000
     while(s>0){
-      if(ic%columnSpan==0) os << "|";
+      if(ic%topology.getColumnSpan()==0) os << "|";
       ic++;
       if((tempChar&s)!=0) os << '+';
       else os << ' ';
       s/=2;
-      if(ic%columnSpan==0) os << "|" << std::endl;
-      if(ic==(rowSpan*columnSpan)) break;
+      if(ic%topology.getColumnSpan()==0) os << "|" << std::endl;
+      if(ic==(topology.getRowSpan()*topology.getColumnSpan())) break;
     }
-    if(ic==(rowSpan*columnSpan)) break;
+    if(ic==(topology.getRowSpan()*topology.getColumnSpan())) break;
   }
   os<< std::endl;
   return os;

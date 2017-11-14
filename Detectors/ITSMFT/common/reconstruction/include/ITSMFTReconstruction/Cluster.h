@@ -102,7 +102,7 @@ class Cluster : public o2::BaseCluster<float>
   int getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
   int getPatternColSpan() const { return mPatternNCols & kSpanMask; }
   bool isPatternRowsTruncated() const { return mPatternNRows & kTruncateMask; }
-  bool isPatternColsTruncated() const { return mPatternNRows & kTruncateMask; }
+  bool isPatternColsTruncated() const { return mPatternNCols & kTruncateMask; }
   bool isPatternTruncated() const { return isPatternRowsTruncated() || isPatternColsTruncated(); }
   void setPatternRowSpan(UShort_t nr, bool truncated);
   void setPatternColSpan(UShort_t nc, bool truncated);

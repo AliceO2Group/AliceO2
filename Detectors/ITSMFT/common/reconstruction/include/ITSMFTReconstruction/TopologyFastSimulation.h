@@ -8,39 +8,39 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LookUp.h
-/// \brief Definition of the LookUp class.
+/// \file TopologyFastSimulation.h
+/// \brief Definition of the TopologyFastSimulation class.
 ///
 /// \author Luca Barioglio, University and INFN of Torino
 ///
-/// Short LookUp descritpion
+/// Short TopologyFastSimulation descritpion
 ///
-/// This class is for the association of the cluster topology with the corresponding
-/// entry in the dictionary
+/// This class is used for the generation of a distribution of topologies according to
+/// to the frequencies of the entries in the dictionary
 ///
 
-#ifndef ALICEO2_ITSMFT_LOOKUP_H
-#define ALICEO2_ITSMFT_LOOKUP_H
+
+#ifndef ALICEO2_ITSMFT_TOPOLOGYFASTSIMULATION_H
+#define ALICEO2_ITSMFT_TOPOLOGYFASTSIMULATION_H
 #include "ITSMFTReconstruction/TopologyDictionary.h"
-#include "ITSMFTReconstruction/ClusterTopology.h"
-#include <array>
+#include <random>
 
 namespace o2
 {
 namespace ITSMFT
 {
-class LookUp{
+class TopologyFastSimulation{
 
   public:
-    LookUp(std::string fileName);
-    int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed);
-    int getTopologiesOverThreshold() {return mTopologiesOverThreshold;}
+    TopologyFastSimulation(std::string fileName, unsigned seed=0xdeadbeef);
+    int getRandom();
 
   private:
     TopologyDictionary mDictionary;
-    int mTopologiesOverThreshold;
+    std::mt19937 mGenerator;
+    std::uniform_real_distribution<double> mDistribution;
 
-  ClassDefNV(LookUp,1);
+  ClassDefNV(TopologyFastSimulation,1);
 };
 }
 }
