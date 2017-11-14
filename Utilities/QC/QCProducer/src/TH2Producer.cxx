@@ -26,7 +26,7 @@ TH2Producer::TH2Producer(const char* histogramName, const char* histogramTitle, 
 
 TObject* TH2Producer::produceData() const
 {
-  auto* histogram = new TH2F(mHistogramName, mHistogramTitle, mNbinsx, mXlow, mXup, mNbinsy, mYlow, mYup);
+  auto* histogram = new TH2F(mHistogramName.c_str(), mHistogramTitle.c_str(), mNbinsx, mXlow, mXup, mNbinsy, mYlow, mYup);
 
   for (int i = 0; i < mNbinsx; ++i) {
     for (int j = 0; j < mNbinsy; ++j) {

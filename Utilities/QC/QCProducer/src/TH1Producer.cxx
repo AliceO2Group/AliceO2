@@ -25,7 +25,7 @@ TH1Producer::TH1Producer(const char* histogramName, const char* histogramTitle, 
 
 TObject* TH1Producer::produceData() const
 {
-  auto* histogram = new TH1F(mHistogramName, mHistogramTitle, mBeansNumber, mXLow, mXUp);
+  auto* histogram = new TH1F(mHistogramName.c_str(), mHistogramTitle.c_str(), mBeansNumber, mXLow, mXUp);
   histogram->FillRandom("gaus", 1000);
 
   return histogram;

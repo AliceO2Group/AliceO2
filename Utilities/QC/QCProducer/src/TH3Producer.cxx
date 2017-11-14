@@ -27,7 +27,7 @@ TH3Producer::TH3Producer(const char* histogramName, const char* histogramTitle, 
 TObject* TH3Producer::produceData() const
 {
   auto* histogram =
-    new TH3F(mHistogramName, mHistogramTitle, mNbinsx, mXlow, mXup, mNbinsy, mYlow, mYup, mNbinsz, mZlow, mZup);
+    new TH3F(mHistogramName.c_str(), mHistogramTitle.c_str(), mNbinsx, mXlow, mXup, mNbinsy, mYlow, mYup, mNbinsz, mZlow, mZup);
 
   Double_t x, y, z;
 
