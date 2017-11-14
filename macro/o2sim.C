@@ -22,7 +22,7 @@
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
 #include "TVirtualMC.h"
-
+#include <SimSetup/SimSetup.h>
 #endif
 
 void o2sim()
@@ -32,6 +32,7 @@ void o2sim()
 
   auto run = new FairRunSim();
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
+  run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
   std::string outputfilename = confref.getOutPrefix() + ".root";
   run->SetOutputFile(outputfilename.c_str());  // Output file
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
