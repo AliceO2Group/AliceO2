@@ -13,6 +13,7 @@ AddOption(abortGapTime, int, (3000), "abortGap", 0, "Length of abort gap in ns")
 AddOption(interactionRate, int, 50000, "rate", 0, "Instantaneous interaction rate")
 AddOption(timeFrameLen, long long int, (1000000000 / 44), "len", 'l', "Timeframe len in ns")
 AddOption(noEventRepeat, int, 0, "noEventRepeat", 0, "0: Place random events, 1: Place events in timeframe one after another, 2: Place random events but do not repat", def(1))
+AddOption(dumpO2, bool, false, "dumpO2", 0, "Dump time frame for O2 in ClusterHardware format")
 AddHelp("help", 'h')
 EndConfig()
 

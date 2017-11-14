@@ -56,3 +56,8 @@ HLTCA_STANDALONE_CXXFILES		= code/AliHLTTPCCATrack.cxx \
                                           code/AliHLTTPCCAMCPoint.cxx
 
 CONFIG_CPP				= gnu++14
+
+ifneq (${CONFIG_O2DIR}, )
+DEFINES					+= HAVE_O2HEADERS
+INCLUDEPATHSSYSTEM			+= ${CONFIG_O2DIR}/Detectors/TPC/base/include ${CONFIG_O2DIR}/Detectors/TPC/reconstruction/include ${CONFIG_O2DIR}/Common/MathUtils/include
+endif
