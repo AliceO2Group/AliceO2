@@ -36,15 +36,14 @@ void Config()
 /// When more than one options are selected, they should be separated with '+'
 /// character: eg. stepLimit+specialCuts.
 
-   // Geant4 VMC 2.x
-   // TG4RunConfiguration* runConfiguration
-   //         = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts+specialControls+stackPopper");
-
    //Geant4 VMC 3.x
    Bool_t mtMode = false;
+   Bool_t specialStacking = true; // leads to default stack behaviour in which new primaries are only started if the previous
+                                  // one and all of its secondaries have been transported
+                                  // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp
    TG4RunConfiguration* runConfiguration
     = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts",
-                              false, mtMode);
+                              specialStacking, mtMode);
 
 /// Create the G4 VMC
    TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
