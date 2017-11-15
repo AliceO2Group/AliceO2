@@ -33,6 +33,7 @@ set(HEADERS
    include/TPCBase/ContainerFactory.h
    include/TPCBase/CRU.h
 #    include/TPCBase/Defs.h
+#    include/TPCBase/Constants.h
    include/TPCBase/Digit.h
    include/TPCBase/DigitPos.h
    include/TPCBase/FECInfo.h
