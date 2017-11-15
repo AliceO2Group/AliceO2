@@ -15,6 +15,7 @@
 #define ALICEO2_TPC_HARDWARECLUSTERDECODER_H_
 
 #include <vector>
+#include "TPCReconstruction/DigitalCurrentClusterIntegrator.h"
 
 namespace o2 { namespace DataFormat { namespace TPC {
 class ClusterHardwareContainer;
@@ -23,6 +24,7 @@ class ClusterNativeContainer;
 
 namespace o2 { namespace TPC {
 
+//Class to convert a list of input buffers containing TPC clusters of type ClusterHardware to type ClusterNative.
 class HardwareClusterDecoder
 {
 public:
@@ -32,6 +34,7 @@ public:
   int decodeClusters(std::vector<std::pair<const o2::DataFormat::TPC::ClusterHardwareContainer*, std::size_t>>& inputClusters, std::vector<o2::DataFormat::TPC::ClusterNativeContainer>& outputClusters);
 
 private:
+  DigitalCurrentClusterIntegrator mIntegrator;
 };
 
 }}
