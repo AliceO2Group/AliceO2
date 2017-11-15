@@ -295,7 +295,7 @@ public:
     }
   }
 
-  const unsigned short getNumberOfPads(const ROC roc) const {
+  unsigned short getNumberOfPads(const ROC roc) const {
     if (roc.rocType() == RocType::IROC) {
       return getPadsInIROC();
     }
