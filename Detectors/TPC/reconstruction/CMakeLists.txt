@@ -25,6 +25,7 @@ set(SRCS
    src/SyncPatternMonitor.cxx
    src/TrackTPC.cxx
    src/TPCCATracking.cxx
+   src/HardwareClusterDecoder.cxx
 )
 
 set(HEADERS
@@ -47,6 +48,7 @@ set(HEADERS
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TrackTPC.h
    include/${MODULE_NAME}/TPCCATracking.h
+   include/${MODULE_NAME}/HardwareClusterDecoder.h
 )
 set(LINKDEF src/TPCReconstructionLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})

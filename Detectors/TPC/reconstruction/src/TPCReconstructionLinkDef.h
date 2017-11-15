@@ -23,6 +23,7 @@
 #pragma link C++ class o2::TPC::SyncPatternMonitor;
 #pragma link C++ class o2::TPC::TrackTPC+;
 #pragma link C++ class o2::TPC::TPCCATracking;
+#pragma link C++ class o2::TPC::HardwareClusterDecoder;
 
 #pragma link C++ class o2::TPC::BoxCluster+;
 #pragma link C++ class o2::TPC::BoxClusterer+;
