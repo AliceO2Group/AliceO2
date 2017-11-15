@@ -125,14 +125,14 @@ void ClustererTask::Exec(Option_t *option)
     mClustersArray->clear();
     if(mClustersMCTruthArray) mClustersMCTruthArray->clear();
     mBoxClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mEventCount);
-    LOG(DEBUG) << "Box clusterer found " << mClustersArray->size() << " clusters" << FairLogger::endl;
+    LOG(DEBUG) << "Box clusterer found " << mClustersArray->size() << " clusters" << FairLogger::endl << FairLogger::endl;
   }
 
   if (mHwClustererEnable) {
     if(mHwClustersArray) mHwClustersArray->clear();
     if(mHwClustersMCTruthArray) mHwClustersMCTruthArray->clear();
     mHwClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mEventCount);
-    LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl;
+    LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl << FairLogger::endl;
   }
   ++mEventCount;
 }

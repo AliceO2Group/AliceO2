@@ -32,7 +32,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isConti
   TStopwatch timer;
 
   // Setup FairRoot analysis manager
-  FairRunAna * run = new FairRunAna;
+  FairRunAna * run = new FairRunAna();
   FairFileSource *fFileSource = new FairFileSource(inputfile.str().c_str());
   run->SetSource(fFileSource);
   run->SetOutputFile(outputfile.str().c_str());
@@ -46,7 +46,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isConti
   TGeoManager::Import("geofile_full.root");
 
   // Setup clusterer
-  o2::TPC::ClustererTask *clustTPC = new o2::TPC::ClustererTask;
+  o2::TPC::ClustererTask *clustTPC = new o2::TPC::ClustererTask();
   clustTPC->setContinuousReadout(isContinuous);
   clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::Box,false);
   clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::HW,true);

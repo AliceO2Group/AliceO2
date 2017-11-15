@@ -128,7 +128,7 @@ class HwClusterer : public Clusterer {
     /// \param config Configuration for the cluster finding
     static void processDigits(
         const std::vector<std::vector<std::vector<std::tuple<Digit const*, int, int>>>>& digits,
-        const std::vector<std::vector<std::vector<std::unique_ptr<HwClusterFinder>>>>& clusterFinder,
+        const std::vector<std::vector<std::vector<std::shared_ptr<HwClusterFinder>>>>& clusterFinder,
               std::vector<std::vector<Cluster>>& cluster,
               std::vector<std::vector<std::vector<std::pair<int,int>>>>& label,
               CfConfig config);
@@ -156,7 +156,7 @@ class HwClusterer : public Clusterer {
     unsigned mNumThreads;                   ///< Number of parallel processing threads
     float mMinQDiff;                        ///< Minimum charge difference between neighboring pads / time bins
 
-    std::vector<std::vector<std::vector<std::unique_ptr<HwClusterFinder>>>> mClusterFinder;     ///< Cluster finder container for each row in each CRU
+    std::vector<std::vector<std::vector<std::shared_ptr<HwClusterFinder>>>> mClusterFinder;     ///< Cluster finder container for each row in each CRU
     std::vector<std::vector<std::vector<std::tuple<Digit const*, int, int>>>> mDigitContainer;  ///< Sorted digit container for each row in each CRU. Tuple consists of pointer to digit, original digit index and event count
 
     std::vector<std::vector<Cluster>> mClusterStorage;                                          ///< Cluster storage for each CRU

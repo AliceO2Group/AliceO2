@@ -68,7 +68,7 @@ HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
       mClusterFinder[iCRU][iRow].resize(iCfPerRow);
       for (int iCF = 0; iCF < iCfPerRow; iCF++){
         int padOffset = iCF*(mPadsPerCF-2-2)-2;
-        mClusterFinder[iCRU][iRow][iCF] = std::make_unique<HwClusterFinder>(iCRU,iRow,iCF,padOffset,mPadsPerCF,mTimebinsPerCF,mMinQDiff,mMinQMax,mRequirePositiveCharge);
+        mClusterFinder[iCRU][iRow][iCF] = std::make_shared<HwClusterFinder>(iCRU,iRow,padOffset,mPadsPerCF,mTimebinsPerCF,mMinQDiff,mMinQMax,mRequirePositiveCharge);
         mClusterFinder[iCRU][iRow][iCF]->setAssignChargeUnique(mAssignChargeUnique);
 
 
@@ -78,7 +78,7 @@ HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
          * already used for a cluster.
          */
         if (iCF != 0) {
-          mClusterFinder[iCRU][iRow][iCF]->setNextCF(mClusterFinder[iCRU][iRow][iCF-1].get());
+          mClusterFinder[iCRU][iRow][iCF]->setNextCF(mClusterFinder[iCRU][iRow][iCF-1]);
         }
       }
     }
@@ -115,7 +115,7 @@ HwClusterer::~HwClusterer()
 //________________________________________________________________________
 void HwClusterer::processDigits(
     const std::vector<std::vector<std::vector<std::tuple<Digit const*, int, int>>>>& digits,
-    const std::vector<std::vector<std::vector<std::unique_ptr<HwClusterFinder>>>>& clusterFinder,
+    const std::vector<std::vector<std::vector<std::shared_ptr<HwClusterFinder>>>>& clusterFinder,
           std::vector<std::vector<Cluster>>& cluster,
           std::vector<std::vector<std::vector<std::pair<int,int>>>>& label,
     const CfConfig config)
@@ -128,7 +128,7 @@ void HwClusterer::processDigits(
   int timeDiff = (config.iMaxTimeBin+1) - config.iMinTimeBin;
   if (timeDiff < 0) return;
   const Mapper& mapper = Mapper::instance();
-  HwClusterFinder::MiniDigit iAllBins[timeDiff][config.iMaxPads];
+  std::vector<std::vector<HwClusterFinder::MiniDigit>> iAllBins(timeDiff,std::vector<HwClusterFinder::MiniDigit>(config.iMaxPads));
 
   for (int iCRU = config.iCRUMin; iCRU <= config.iCRUMax; ++iCRU) {
     if (iCRU % config.iThreadMax != config.iThreadID) continue;
@@ -149,7 +149,8 @@ void HwClusterer::processDigits(
           }
         }
       } else {
-        std::fill(&iAllBins[0][0], &iAllBins[0][0]+timeDiff*config.iMaxPads, HwClusterFinder::MiniDigit());
+        for (auto &bins : iAllBins) std::fill(bins.begin(),bins.end(),HwClusterFinder::MiniDigit());
+//        std::fill(&iAllBins[0][0], &iAllBins[0][0]+timeDiff*config.iMaxPads, HwClusterFinder::MiniDigit());
       }
 
       /*
@@ -176,12 +177,12 @@ void HwClusterer::processDigits(
        */
       const Short_t iPadsPerCF = clusterFinder[iCRU][iRow][0]->getNpads();
       const Short_t iTimebinsPerCF = clusterFinder[iCRU][iRow][0]->getNtimebins();
-      std::vector<std::vector<std::unique_ptr<HwClusterFinder>>::const_reverse_iterator> cfWithCluster;
+      std::vector<std::vector<std::shared_ptr<HwClusterFinder>>::const_reverse_iterator> cfWithCluster;
       unsigned time,pad;
       for (time = 0; time < timeDiff; ++time){    // ordering important!!
         for (pad = 0; pad < config.iMaxPads; pad = pad + (iPadsPerCF -2 -2 )) {
           const Short_t cf = pad / (iPadsPerCF-2-2);
-          clusterFinder[iCRU][iRow][cf]->AddTimebin(&iAllBins[time][pad],time+config.iMinTimeBin,(config.iMaxPads-pad)>=iPadsPerCF?iPadsPerCF:(config.iMaxPads-pad));
+          clusterFinder[iCRU][iRow][cf]->addTimebin(iAllBins[time].begin()+pad,time+config.iMinTimeBin,(config.iMaxPads-pad)>=iPadsPerCF?iPadsPerCF:(config.iMaxPads-pad));
         }
 
         /*
@@ -206,7 +207,7 @@ void HwClusterer::processDigits(
         // +2 so that for sure all data is processed
         for (time = 0; time < clusterFinder[iCRU][iRow][0]->getNtimebins()+2; ++time){
           for (auto rit = clusterFinder[iCRU][iRow].crbegin(); rit != clusterFinder[iCRU][iRow].crend(); ++rit) {
-            (*rit)->AddZeroTimebin(time+timeDiff+config.iMinTimeBin,iPadsPerCF);
+            (*rit)->addZeroTimebin(time+timeDiff+config.iMinTimeBin,iPadsPerCF);
           }
 
           /*
@@ -315,6 +316,8 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelCont
   ProcessTimeBins(iTimeBinMin, iTimeBinMax, mcDigitTruth, eventCount);
 
   mLastMcDigitTruth.erase(eventCount-mTimebinsPerCF);
+
+  LOG(DEBUG) << "Event ranged from time bin " << iTimeBinMin << " to " << iTimeBinMax << "." << FairLogger::endl;
 }
 
 //________________________________________________________________________
@@ -381,6 +384,7 @@ void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelCo
 
   mLastMcDigitTruth.erase(eventCount-mTimebinsPerCF);
 
+  LOG(DEBUG) << "Event ranged from time bin " << iTimeBinMin << " to " << iTimeBinMax << "." << FairLogger::endl;
 }
 
 void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax, MCLabelContainer const* mcDigitTruth, int eventCount)
