@@ -69,15 +69,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 		}
 	}
 
-	/*hlt.ExitGPU(); //Possible additional options, not used now
-	hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
-	hlt.SetEventDisplay(eventDisplay);
-	hlt.SetRunMerger(merger);
-	hlt.InitGPU(sliceCount, cudaDevice)
-	hlt.SetGPUTracker(RUNGPU);
-	hlt.SetHighQPtForward(1./0.1);
-	hlt.SetNWays(nways);*/
-
+	fHLT->SetNWays(3);
 	fHLT->SetSettings(solenoidBz);
 	fHLT->SetGPUTrackerOption("HelperThreads", 0);
 	fHLT->SetGPUTrackerOption("GlobalTracking", 1);
@@ -101,7 +93,7 @@ void AliHLTTPCCAO2Interface::Deinitialize()
 	fInitialized = false;
 }
 
-int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const unsigned int* &outputTrackClusterIDs)
+int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters)
 {
 	if (!fInitialized) return(1);
 	static int nEvent = 0;
@@ -118,7 +110,7 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 	fHLT->ProcessEvent();
 	outputTracks = fHLT->Merger().OutputTracks();
 	nOutputTracks = fHLT->Merger().NOutputTracks();
-	outputTrackClusterIDs = NULL;//fHLT->Merger().OutputClusterIds();
+	outputTrackClusters = fHLT->Merger().Clusters();
 	nEvent++;
 	return(0);
 }
