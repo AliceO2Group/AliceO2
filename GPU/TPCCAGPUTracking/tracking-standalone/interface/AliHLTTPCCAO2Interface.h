@@ -12,6 +12,7 @@
 class AliHLTTPCCAStandaloneFramework;
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCGMMergedTrack.h"
+#include "AliHLTTPCGMMergedTrackHit.h"
 
 class AliHLTTPCCAO2Interface
 {
@@ -22,7 +23,7 @@ public:
 	int Initialize(const char* options = NULL);
 	void Deinitialize();
 	
-	int RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const unsigned int* &outputTrackClusterIDs);
+	int RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const AliHLTTPCGMMergedTrackHit* &outputTrackClusters);
 	void Cleanup();
 	
 	bool GetParamContinuous() {return(fContinuous);}
