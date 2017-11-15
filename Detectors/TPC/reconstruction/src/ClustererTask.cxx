@@ -106,7 +106,7 @@ InitStatus ClustererTask::Init()
     mgr->Register("TPCClusterHWMCTruth", "TPC", mHwClustersMCTruthArray.get(), kTRUE);
 
      // create clusterer and pass output pointer
-    mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray,mHwClustersMCTruthArray);//,HwClusterer::Processing::Parallel,0,359);
+    mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray,mHwClustersMCTruthArray);//,0,359);
     mHwClusterer->setContinuousReadout(mIsContinuousReadout);
 // TODO: implement noise/pedestal objecta
 //    mHwClusterer->setNoiseObject();

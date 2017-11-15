@@ -41,12 +41,10 @@ class HwClusterer : public Clusterer {
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
   public:
-    enum class Processing : int { Sequential, Parallel};
 
     /// Constructor
     /// \param clusterOutput is pointer to vector to be filled with clusters
     /// \param labelOutput is reference to storage to be filled with MC labels
-    /// \param processingType parallel or sequential
     /// \param cru Number of CRUs to process
     /// \param minQDiff Min charge difference
     /// \param assignChargeUnique Avoid using same charge for multiple nearby clusters
@@ -57,7 +55,6 @@ class HwClusterer : public Clusterer {
     HwClusterer(
         std::vector<o2::TPC::Cluster> *clusterOutput,
         std::unique_ptr<MCLabelContainer> &labelOutput,
-        Processing processingType = Processing::Parallel,
         int cruMin = 0,
         int cruMax = 359,
         float minQDiff = 0,
@@ -80,10 +77,6 @@ class HwClusterer : public Clusterer {
     void Process(std::vector<std::unique_ptr<Digit>>& digits,
         MCLabelContainer const* mcDigitTruth, int eventCount) override;
 
-    /// Switch processing type between parallel and sequential
-    /// \param type Type to be used
-    void setProcessingType(Processing type) { mProcessingType = type; };
-
     /// Setter for noise object, noise will be added before cluster finding
     /// \param noiseObject CalDet object, containing noise simulation
     void setNoiseObject(std::shared_ptr<CalDet<float>> noiseObject) { mNoiseObject = noiseObject; };
@@ -97,9 +90,13 @@ class HwClusterer : public Clusterer {
     void setContinuousReadout(bool isContinuous) { mIsContinuousReadout = isContinuous; };
 
     /// Setters for CRU range to be processed
-    /// param cru ID of min/max CRU to be processed
+    /// \param cru ID of min/max CRU to be processed
     void setCRUMin(int cru) { mCRUMin = cru; };
     void setCRUMax(int cru) { mCRUMax = cru; };
+
+    /// Set number of parallel threads
+    /// \param threads Number to be set, if 0 hardware default value is used
+    void setNumThreads(unsigned threads);
 
   private:
 
@@ -109,8 +106,10 @@ class HwClusterer : public Clusterer {
 
     /// Configuration struct for the processDigits function
     struct CfConfig {
-      int iCRU;                         ///< CRU ID
-      int iMaxRows;                     ///< Maximum row number to be processed
+      unsigned iThreadID;               ///< Index of thread
+      unsigned iThreadMax;              ///< Total number of started threads
+      unsigned iCRUMin;                 ///< Minimum CRU number to process
+      unsigned iCRUMax;                 ///< Maximum CRU number to process
       int iMaxPads;                     ///< Maximum number of pads per row
       int iMinTimeBin;                  ///< Minumum digit time bin
       int iMaxTimeBin;                  ///< Maximum digit time bin
@@ -128,10 +127,10 @@ class HwClusterer : public Clusterer {
     /// \param label Reference to container for MC labels of found clusters
     /// \param config Configuration for the cluster finding
     static void processDigits(
-        const std::vector<std::vector<std::tuple<Digit const*, int, int>>>& digits,
-        const std::vector<std::vector<std::unique_ptr<HwClusterFinder>>>& clusterFinder,
-              std::vector<Cluster>& cluster,
-              std::vector<std::vector<std::pair<int,int>>>& label,
+        const std::vector<std::vector<std::vector<std::tuple<Digit const*, int, int>>>>& digits,
+        const std::vector<std::vector<std::vector<std::unique_ptr<HwClusterFinder>>>>& clusterFinder,
+              std::vector<std::vector<Cluster>>& cluster,
+              std::vector<std::vector<std::vector<std::pair<int,int>>>>& label,
               CfConfig config);
 
     /// Handling of the parallel cluster finder threads
@@ -145,16 +144,16 @@ class HwClusterer : public Clusterer {
     /*
      * class members
      */
-    Processing    mProcessingType;          ///< Processing type for cluster finding
     bool mAssignChargeUnique;               ///< Setting for CF to use charge only for one cluster
     bool mEnableNoiseSim;                   ///< Switch for noise simulation
     bool mEnablePedestalSubtraction;        ///< Switch for pedestal subtraction
     bool mIsContinuousReadout;              ///< Switch for continuous readout
-    int mCRUMin;                            ///< Minimum CRU ID to be processed
-    int mCRUMax;                            ///< Maximum CRU ID to be processed
-    int mPadsPerCF;                         ///< Number of pads per cluster finder instance
-    int mTimebinsPerCF;                     ///< Number of time bins per cluster finder instance
     int mLastTimebin;                       ///< Last time bin of previous event
+    unsigned mCRUMin;                       ///< Minimum CRU ID to be processed
+    unsigned mCRUMax;                       ///< Maximum CRU ID to be processed
+    unsigned mPadsPerCF;                    ///< Number of pads per cluster finder instance
+    unsigned mTimebinsPerCF;                ///< Number of time bins per cluster finder instance
+    unsigned mNumThreads;                   ///< Number of parallel processing threads
     float mMinQDiff;                        ///< Minimum charge difference between neighboring pads / time bins
 
     std::vector<std::vector<std::vector<std::unique_ptr<HwClusterFinder>>>> mClusterFinder;     ///< Cluster finder container for each row in each CRU
@@ -169,7 +168,7 @@ class HwClusterer : public Clusterer {
     std::shared_ptr<CalDet<float>> mNoiseObject;                ///< Pointer to the CalDet object for noise simulation
     std::shared_ptr<CalDet<float>> mPedestalObject;             ///< Pointer to the CalDet object for the pedestal subtraction
 
-    std::map<int, std::unique_ptr<MCLabelContainer>> mLastMcDigitTruth;
+    std::map<int, std::unique_ptr<MCLabelContainer>> mLastMcDigitTruth; ///< Buffer for digit MC truth information
   };
 }
 }
