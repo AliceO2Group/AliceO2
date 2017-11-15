@@ -198,6 +198,17 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    DataFormatsTPC_bucket
+    
+    DEPENDENCIES
+    tpc_base_bucket
+    
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
+)
+
+o2_define_bucket(
+    NAME
     TimeFrame_bucket
 
     DEPENDENCIES
