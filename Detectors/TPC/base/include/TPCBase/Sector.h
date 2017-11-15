@@ -26,6 +26,7 @@
 #ifndef AliceO2_TPC_Sector_H
 #define AliceO2_TPC_Sector_H
 
+#include "TPCBase/Constants.h"
 #include "TPCBase/Defs.h"
 //using namespace AliceO2::TPC;
 
@@ -37,7 +38,7 @@ class Sector
 {
   public:
     // the number of sectors
-    static constexpr int MAXSECTOR=36;
+    static constexpr int MAXSECTOR=Constants::MAXSECTOR;
 
     /// constructor
     Sector() {}
