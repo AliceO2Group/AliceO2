@@ -25,7 +25,7 @@
 #include "TF1.h"
 #include "TFile.h"
 #include "TStyle.h"
-#include "Riostream.h"
+#include <sys/stat.h>
 
 #include "../cmodules/qconfig.h"
 #include "../cmodules/timer.h"
@@ -278,6 +278,8 @@ void InitQA()
 		double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
 		tracks = new TH1F(name, name, axis_bins[4], binsPt);
 	}
+	
+	mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 
 void RunQA()
@@ -863,8 +865,8 @@ int DrawQAHistograms()
 			}
 		}
 		legendeff[ii]->Draw();
-		sprintf(fname, "eff_vs_%s.pdf", VSParameterNames[ii]);
-		ceff[ii]->Print(fname);		
+		sprintf(fname, "plots/eff_vs_%s.pdf", VSParameterNames[ii]);
+		ceff[ii]->Print(fname);
 	}
 
 	//Process / Draw Resolution Histograms
@@ -1024,7 +1026,7 @@ int DrawQAHistograms()
 		ChangePadTitleSize(pres[ii][4], 0.056);
 		legendres[ii]->Draw();
 
-		sprintf(fname, "res_vs_%s.pdf", VSParameterNames[ii]);
+		sprintf(fname, "plots/res_vs_%s.pdf", VSParameterNames[ii]);
 		cres[ii]->Print(fname);
 	}
 	
@@ -1062,7 +1064,7 @@ int DrawQAHistograms()
 			}
 			cres[6]->cd();
 		}
-		cres[6]->Print("res_integral.pdf");
+		cres[6]->Print("plots/res_integral.pdf");
 		if (!config.inputHistogramsOnly) for (int j = 0;j < 5;j++) delete resIntegral[j];
 	}
 	
@@ -1151,7 +1153,7 @@ int DrawQAHistograms()
 			}
 			legendclust[i]->Draw();
 			cclust[i]->cd();
-			cclust[i]->Print(i == 2 ? "clusters_integral.pdf" : i == 1 ? "clusters_relative.pdf" : "clusters.pdf");
+			cclust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
 		}
 	}
 	
@@ -1187,7 +1189,7 @@ int DrawQAHistograms()
 		}
 		legendtracks->Draw();
 		ctracks->cd();
-		ctracks->Print("tracks.pdf");
+		ctracks->Print("plots/tracks.pdf");
 		tmpMax = 0.;
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
@@ -1217,7 +1219,7 @@ int DrawQAHistograms()
 		}
 		legendncl->Draw();
 		cncl->cd();
-		cncl->Print("nClusters.pdf");
+		cncl->Print("plots/nClusters.pdf");
 	}
 
 	if (tout)

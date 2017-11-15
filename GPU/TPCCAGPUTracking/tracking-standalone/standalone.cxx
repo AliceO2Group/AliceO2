@@ -308,8 +308,8 @@ int main(int argc, char** argv)
 #endif
 				if (configStandalone.configTF.dumpO2)
 				{
-#ifndef HAVE_O2HEADERS
-					printf("Error, must be compiled with O2 headers to dump O2 clusters\n");
+#if !defined(HAVE_O2HEADERS) | !defined(HLTCA_FULL_CLUSTERDATA)
+					printf("Error, must be compiled with O2 headers and HLTCA_FULL_CLUSTERDATA to dump O2 clusters\n");
 					return(1);
 #else
 					const int o2rowoffsets[11] = {0, 17, 32, 48, 63, 81, 97, 113, 127, 140, 152};
