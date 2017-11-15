@@ -51,17 +51,21 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
           int& nCls = nRowClusters[sector][padRowGlobal];
           if (loop == 1)
           {
+            //Fill cluster in the respective output buffer
             const ClusterHardware& cIn = cont.mClusters[k];
             ClusterNative& cOut = containerRowCluster[sector][padRowGlobal]->mClusters[nCls];
-            cOut.setPad(cIn.getPad());
+            float pad = cIn.getPad();
+            cOut.setPad(pad);
             cOut.setTimeFlags(cIn.getTimeLocal() + cont.mTimeBinOffset, cIn.mFlags);
             cOut.setSigmaPad2(cIn.getSigmaPad2());
             cOut.setSigmaTime2(cIn.getSigmaTime2());
             cOut.mQMax = cIn.mQMax;
             cOut.mQTot = cIn.mQTot;
+            mIntegrator.integrateCluster(sector, padRowGlobal, pad, cIn.mQTot);
           }
           else
           {
+            //Count how many output buffers we need (and how large they are below)
             if (nCls == 0) numberOfOutputContainers++;
           }
           nCls++;
@@ -70,6 +74,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
     }
     if (loop == 1)
     {
+      //We are done with filling the buffers, sort all output buffers
       for (int i = 0;i < outputClusters.size();i++)
       {
         auto& cl = outputClusters[i].mClusters;
@@ -81,6 +86,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
     }
     else
     {
+      //Now we know the size of all output buffers, allocate them
       outputClusters.resize(numberOfOutputContainers);
       numberOfOutputContainers = 0;
       for (int i = 0;i < Constants::MAXSECTOR;i++)
@@ -92,6 +98,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
           outputClusters[numberOfOutputContainers].mSector = i;
           outputClusters[numberOfOutputContainers].mGlobalPadRow = j;
           containerRowCluster[i][j] = &outputClusters[numberOfOutputContainers++];
+          mIntegrator.initRow(i, j);
         }
       }
       memset(nRowClusters, 0, sizeof(nRowClusters));

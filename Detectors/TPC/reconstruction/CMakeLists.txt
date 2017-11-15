@@ -26,6 +26,7 @@ set(SRCS
    src/TrackTPC.cxx
    src/TPCCATracking.cxx
    src/HardwareClusterDecoder.cxx
+   src/DigitalCurrentClusterIntegrator.cxx
 )
 
 set(HEADERS
@@ -49,6 +50,7 @@ set(HEADERS
    include/${MODULE_NAME}/TrackTPC.h
    include/${MODULE_NAME}/TPCCATracking.h
    include/${MODULE_NAME}/HardwareClusterDecoder.h
+   include/${MODULE_NAME}/DigitalCurrentClusterIntegrator.h
 )
 set(LINKDEF src/TPCReconstructionLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})
