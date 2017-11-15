@@ -201,7 +201,7 @@ int main(int argc, char** argv)
 		{
 			std::ifstream in;
 			char filename[256];
-			sprintf(filename, "events%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
+			sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, nEventsInDirectory);
 			in.open(filename, std::ifstream::binary);
 			if (in.fail()) break;
 			in.close();
@@ -279,7 +279,7 @@ int main(int argc, char** argv)
 								eventUsed[useEvent] = 1;
 								std::ifstream in;
 								char filename[256];
-								sprintf(filename, "events%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
+								sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
 								in.open(filename, std::ifstream::binary);
 								if (in.fail()) {printf("Unexpected error\n");return(1);}
 								float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
@@ -391,7 +391,7 @@ int main(int argc, char** argv)
 			{
 				std::ifstream in;
 				char filename[256];
-				sprintf(filename, "events%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+				sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 				in.open(filename, std::ifstream::binary);
 				if (in.fail())
 				{
