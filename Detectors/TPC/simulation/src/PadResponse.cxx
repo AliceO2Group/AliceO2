@@ -30,9 +30,9 @@ PadResponse::PadResponse()
     mOROC12(),
     mOROC3()
 {
-  mIROC   = std::unique_ptr<TGraph2D> (new TGraph2D());
-  mOROC12 = std::unique_ptr<TGraph2D> (new TGraph2D());
-  mOROC3  = std::unique_ptr<TGraph2D> (new TGraph2D());
+  mIROC   = std::make_unique<TGraph2D>();
+  mOROC12 = std::make_unique<TGraph2D>();
+  mOROC3  = std::make_unique<TGraph2D>();
   
   importPRF("PRF_IROC.dat", mIROC);
   importPRF("PRF_OROC1-2.dat", mOROC12);

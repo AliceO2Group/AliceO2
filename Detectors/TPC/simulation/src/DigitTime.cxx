@@ -27,7 +27,7 @@ void DigitTime::setDigit(size_t hitID, int cru, int row, int pad, float charge)
   }
   else{
     const Mapper& mapper = Mapper::instance();
-    mRows[row] = std::unique_ptr<DigitRow> (new DigitRow(row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row)));
+    mRows[row] = std::make_unique<DigitRow> (row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row));
     mRows[row]->setDigit(hitID, pad, charge);
   }
   mTotalChargeTimeBin+=charge;

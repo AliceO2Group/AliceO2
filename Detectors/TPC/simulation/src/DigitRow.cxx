@@ -25,7 +25,7 @@ void DigitRow::setDigit(size_t hitID, int pad, float charge)
     mPads[pad]->setDigit(hitID, charge);
   }
   else{
-    mPads[pad] = std::unique_ptr<DigitPad> (new DigitPad(pad));
+    mPads[pad] = std::make_unique<DigitPad> (pad);
     mPads[pad]->setDigit(hitID, charge);
   }
 }
