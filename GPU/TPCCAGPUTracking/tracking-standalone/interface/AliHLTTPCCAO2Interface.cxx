@@ -36,6 +36,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	fHLT = &AliHLTTPCCAStandaloneFramework::Instance(-1);
 	if (fHLT == NULL) return(1);
 	float solenoidBz = -5.00668;
+	float refX = 1000.;
 
 	if (options && *options)
 	{
@@ -61,6 +62,11 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 				sscanf(optPtr + 3, "%f", &solenoidBz);
 				printf("Using solenoid field %f\n", solenoidBz);
 			}
+			else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0)
+			{
+				sscanf(optPtr + 5, "%f", &refX);
+				printf("Propagating to reference X %f\n", refX);
+			}
 			else
 			{
 				printf("Unknown option: %s\n", optPtr);
@@ -75,6 +81,7 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 	fHLT->SetGPUTrackerOption("GlobalTracking", 1);
 	fHLT->SetSearchWindowDZDR(2.5f);
 	fHLT->SetContinuousTracking(fContinuous);
+	fHLT->SetTrackReferenceX(refX);
 	fHLT->UpdateGPUSliceParam();
 
 	fInitialized = true;
