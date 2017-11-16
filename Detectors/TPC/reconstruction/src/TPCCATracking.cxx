@@ -74,10 +74,6 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2:
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterElectronics &elParam = ParameterElectronics::defaultInstance();
   
-  const AliHLTTPCGMMergedTrack* tracks;
-  int nTracks;
-  const unsigned int* trackClusterIDs;
-  
   std::vector<Cluster> clusterCache;
 
   int nClusters[Sector::MAXSECTOR] = {};
@@ -157,12 +153,28 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2:
     LOG(INFO) << "Passed " << nClustersConverted << " (out of " << nClustersTotal << ") clusters to CA tracker\n";
   }
 
-  retVal = mTrackingCAO2Interface->RunTracking(mClusterData, tracks, nTracks, trackClusterIDs);
+  const AliHLTTPCGMMergedTrack* tracks;
+  int nTracks;
+  const AliHLTTPCGMMergedTrackHit* trackClusters;
+  retVal = mTrackingCAO2Interface->RunTracking(mClusterData, tracks, nTracks, trackClusters);
   if (retVal == 0)
   {
-    for (int i = 0; i < nTracks; i++) {
-      if (!tracks[i].OK()) continue;
-      TrackTPC trackTPC(
+    std::vector<std::pair<int, float>> trackSort(nTracks);
+    int tmp = 0;
+    for (int i = 0;i < nTracks;i++)
+    {
+      if (tracks[i].OK()) trackSort[tmp++] = {i, tracks[i].GetParam().GetZOffset()};
+    }
+    nTracks = tmp;
+    std::sort(trackSort.data(), trackSort.data() + nTracks, [](const auto& a, const auto& b) {
+      return(a.second > b.second);
+    });
+    
+    outputTracks->resize(nTracks);
+    for (int iTmp = 0; iTmp < nTracks; iTmp++) {
+      auto& oTrack = (*outputTracks)[iTmp];
+      const int i = trackSort[iTmp].first;
+      oTrack = TrackTPC(
         tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
         { tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), tracks[i].GetParam().GetSinPhi(),
           tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt() },
@@ -171,15 +183,15 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2:
           tracks[i].GetParam().GetCov(6), tracks[i].GetParam().GetCov(7), tracks[i].GetParam().GetCov(8),
           tracks[i].GetParam().GetCov(9), tracks[i].GetParam().GetCov(10), tracks[i].GetParam().GetCov(11),
           tracks[i].GetParam().GetCov(12), tracks[i].GetParam().GetCov(13), tracks[i].GetParam().GetCov(14) });
+      oTrack.setTime0(tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth()*gasParam.getVdrift()));
+      oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ - tracks[i].GetParam().GetZOffset());
       for (int j = 0; j < tracks[i].NClusters(); j++) {
         if (inputClustersChain) {
-          trackTPC.addCluster(clusterCache[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
+          oTrack.addCluster(clusterCache[trackClusters[tracks[i].FirstClusterRef() + j].fId]);
         } else {
-          //trackTPC.addCluster(*(static_cast<Cluster*>(inputClustersArray->At(trackClusterIDs[tracks[i].FirstClusterRef() + j]))));
-          trackTPC.addCluster((*inputClustersArray)[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
+          oTrack.addCluster((*inputClustersArray)[trackClusters[tracks[i].FirstClusterRef() + j].fId]);
         }
       }
-      outputTracks->push_back(trackTPC);
     }
   }
   mTrackingCAO2Interface->Cleanup();

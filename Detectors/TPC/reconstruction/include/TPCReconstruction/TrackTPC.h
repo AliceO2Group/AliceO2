@@ -54,10 +54,16 @@ class TrackTPC :public o2::Base::Track::TrackParCov {
     /// \param nclPID pass any pointer to have the number of used clusters written to it
     /// \return mean energy loss
     float getTruncatedMean(float low=0.05, float high=0.7, int type=1, int removeRows=0, int *nclPID=nullptr) const;
+    
+    float getTime0() const {return mTime0;}
+    float getLastClusterZ() const {return mLastClusterZ;}
+    void setTime0(float v) {mTime0 = v;}
+    void setLastClusterZ(float v) {mLastClusterZ = v;}
 
   private:
     std::vector<Cluster> mClusterVector;
-
+    float mTime0; //Reference time of the track, z position is obtained after subtracting this time from the time of the clusters
+    float mLastClusterZ; //Z position of last cluster
 };
 
 inline
