@@ -18,6 +18,7 @@
 #include <boost/test/unit_test.hpp>
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCBase/ParameterGas.h"
+#include "TPCBase/ParameterDetector.h"
 
 #include "TH1D.h"
 #include "TF1.h"
@@ -34,7 +35,8 @@ namespace TPC {
   BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
   {
     const static ParameterGas &gasParam = ParameterGas::defaultInstance();
-    const GlobalPosition3D posEle(10.f, 10.f, 250.f);
+    const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
+    const GlobalPosition3D posEle(10.f, 10.f, 10.f);
     TH1D hTestDiffX("hTestDiffX", "", 500, posEle.X()-10., posEle.X()+10.);
     TH1D hTestDiffY("hTestDiffY", "", 500, posEle.Y()-10., posEle.Y()+10.);
     TH1D hTestDiffZ("hTestDiffZ", "", 500, posEle.Z()-10., posEle.Z()+10.);
@@ -62,8 +64,8 @@ namespace TPC {
     BOOST_CHECK_CLOSE(gausZ.GetParameter(1), posEle.Z(), 0.5);
     
     // check whether the width of the distribution matches the expected one
-    const float sigT = std::sqrt(posEle.Z()) * gasParam.getDiffT();
-    const float sigL = std::sqrt(posEle.Z()) * gasParam.getDiffL();
+    const float sigT = std::sqrt(detParam.getTPClength()-posEle.Z()) * gasParam.getDiffT();
+    const float sigL = std::sqrt(detParam.getTPClength()-posEle.Z()) * gasParam.getDiffL();
         
     BOOST_CHECK_CLOSE(gausX.GetParameter(2), sigT, 0.5);
     BOOST_CHECK_CLOSE(gausY.GetParameter(2), sigT, 0.5);
@@ -79,7 +81,8 @@ namespace TPC {
   BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
   {
     const static ParameterGas &gasParam = ParameterGas::defaultInstance();
-    const GlobalPosition3D posEle(1.f, 1.f, 1.f);
+    const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
+    const GlobalPosition3D posEle(1.f, 1.f, detParam.getTPClength()-1.f);
     TH1D hTestDiffX("hTestDiffX", "", 500, posEle.X()-1., posEle.X()+1.);
     TH1D hTestDiffY("hTestDiffY", "", 500, posEle.Y()-1., posEle.Y()+1.);
     TH1D hTestDiffZ("hTestDiffZ", "", 500, posEle.Z()-1., posEle.Z()+1.);
