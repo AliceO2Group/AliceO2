@@ -71,7 +71,7 @@ class Digitizer {
     /// Steer conversion of points to digits
     /// \param points Container with TPC points
     /// \return digits container
-    DigitContainer* Process(const std::vector<o2::TPC::HitGroup>& hits);
+    DigitContainer* Process(const std::vector<o2::TPC::HitGroup>& hits, float eventTime);
 
     DigitContainer *getDigitContainer() const { return mDigitContainer; }
 
@@ -137,7 +137,7 @@ int Digitizer::getTimeBin(float zPos)
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
   const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
-  float timeBin = (detParam.getTPClength()-std::fabs(zPos))/(gasParam.getVdrift()*eleParam.getZBinWidth());
+  float timeBin = (detParam.getTPClength()-std::abs(zPos))/(gasParam.getVdrift()*eleParam.getZBinWidth());
   return static_cast<int>(timeBin);
 }
 
@@ -173,7 +173,7 @@ float Digitizer::getTime(float zPos)
 {
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
-  float time = (detParam.getTPClength()-std::fabs(zPos))/gasParam.getVdrift();
+  float time = (detParam.getTPClength()-std::abs(zPos))/gasParam.getVdrift();
   return time;
 }
 
