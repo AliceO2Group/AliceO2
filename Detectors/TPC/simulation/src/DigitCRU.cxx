@@ -40,7 +40,7 @@ void DigitCRU::setDigit(size_t hitID, int timeBin, int row, int pad, float charg
   }
   else {
     const Mapper& mapper = Mapper::instance();
-    mTimeBins[mEffectiveTimeBin] = std::unique_ptr<DigitTime> (new DigitTime(timeBin, mapper.getPadRegionInfo(CRU(mCRU).region()).getNumberOfPadRows()));
+    mTimeBins[mEffectiveTimeBin] = std::make_unique<DigitTime> (timeBin, mapper.getPadRegionInfo(CRU(mCRU).region()).getNumberOfPadRows());
     mTimeBins[mEffectiveTimeBin]->setDigit(hitID, mCRU, row, pad, charge);
   }
 }
