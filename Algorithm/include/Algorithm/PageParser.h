@@ -26,6 +26,62 @@ namespace o2 {
 
 namespace algorithm {
 
+namespace pageparser {
+// a function to extract the number of elements from the group type
+// this is the version for all but integral types
+template<typename T>
+typename std::enable_if<std::is_void<T>::value, size_t>::type
+extractNElements(T* v) { return 0;}
+
+// the specialization for integral types
+template<typename T>
+typename std::enable_if<std::is_integral<T>::value, T>::type
+extractNElements(T* v) {return *v;}
+
+template<typename GroupT>
+using DefaultGetNElementsFctT = size_t(*)(const GroupT *);
+
+// the default function to extract the number of elements in a group
+// where the group header is a single integral type holding number of
+// elements
+auto defaultGetNElementsFct = [] (const auto* groupdata)
+{
+  using ReturnType = size_t;
+  using T = typename std::remove_pointer<decltype(groupdata)>::type;
+  // this default function is only for integral types
+  static_assert(std::is_integral<T>::value || std::is_void<T>::value,
+                "A function for extracting the number of elements from the "
+                "group header must be specified for non-trivial types");
+  // the default function for trivial integral types means there
+  // is exactly one number holding the size
+  return static_cast<ReturnType>(extractNElements(groupdata));
+};
+
+template<typename T>
+T* alloc() {return new T;}
+
+template<>
+void* alloc<void>() {return nullptr;}
+
+template<typename T>
+void free(T* ptr) {if (ptr) delete ptr;}
+
+template<>
+void free<void>(void*) {}
+
+template<typename T>
+size_t sizeofGroupHeader() {return sizeof(T);}
+
+template<>
+size_t sizeofGroupHeader<void>() {return 0;}
+
+template<typename T>
+void set(T* h, size_t v) { *h = v;}
+
+template<>
+void set<void>(void*, size_t) {}
+}
+
 /**
  * @class PageParser
  * Parser for a set of data objects in consecutive memory pages.
@@ -38,8 +94,29 @@ namespace algorithm {
  * The class iterator can be used to iterate over the data objects
  * transparently.
  *
- * Usage:
+ * In addition data elements can be grouped. In that case a group
+ * header comes immediately after the first page header. The header
+ * has to store the number of elements which follow, a getter function
+ * has to be provided to retrieve the number from the header.
+ *
+ * In the most simple case, the group header consists of just one
+ * element of arbitrary integral type, the parser implements a default
+ * getter function to retrieve that number. The parser can be invoked
+ * by simply specifying an integral type as GroupT template parameter.
+ *
+ * Multiple blocks of grouped data elements can be in the group, a block
+ * can wrap over page boundery. A new block of grouped elements can
+ * however only start in a new page right after the page header.
+ *
+ * Usage: ungrouped elements
  *   RawParser<PageHeaderType, N, ElementType> RawParser;
+ *   RawParser parser(ptr, size);
+ *   for (auto element : parser) {
+ *     // do something with element
+ *   }
+ *
+ * Usage: grouped elements
+ *   RawParser<PageHeaderType, N, ElementType, int> RawParser;
  *   RawParser parser(ptr, size);
  *   for (auto element : parser) {
  *     // do something with element
@@ -48,7 +125,8 @@ namespace algorithm {
 template<typename PageHeaderT,
          size_t PageSize,
          typename ElementT,
-         typename GroupT = int // later extension to groups of elements
+         typename GroupT = void,
+         typename GetNElementsFctT = pageparser::DefaultGetNElementsFctT<GroupT>
          >
 class PageParser {
 public:
@@ -56,7 +134,7 @@ public:
   using BufferType = unsigned char;
   using value_type = ElementT;
   using GroupType = GroupT;
-  using GetNElements = std::function<size_t(const GroupType&)>;
+  using GetNElements = GetNElementsFctT;
   static const size_t page_size = PageSize;
 
   // at the moment an object can only be split among two pages
@@ -67,16 +145,18 @@ public:
   using TargetInPageBuffer = std::true_type;
   using SourceInPageBuffer = std::false_type;
 
+
   PageParser() = delete;
   template<typename T>
   PageParser(T* buffer, size_t size,
-             GetNElements getNElementsFct = [] (const GroupType&) {return 0;}
+             GetNElements getNElementsFct = pageparser::defaultGetNElementsFct
              )
     : mBuffer(nullptr)
     , mBufferIsConst(std::is_const<T>::value)
     , mSize(size)
     , mGetNElementsFct(getNElementsFct)
     , mNPages(size>0?((size-1)/page_size)+1:0)
+    , mGroupHeader(pageparser::alloc<GroupType>())
   {
     static_assert(sizeof(T) == sizeof(BufferType),
                   "buffer required to be byte-type");
@@ -85,7 +165,9 @@ public:
     // that iterator write works only for non-const buffers
     mBuffer = const_cast<BufferType*>(buffer);
   }
-  ~PageParser() = default;
+  ~PageParser() {
+    pageparser::free(mGroupHeader);
+  }
 
   template<typename T>
   using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
@@ -107,7 +189,12 @@ public:
       : mParent(parent)
     {
       mPosition = position;
-      mNextPosition = mParent->getElement(mPosition, mElement);
+      size_t argument = mPosition;
+      if (!mParent->getElement(argument, mElement)) {
+        // eof, both mPosition and mNextPosition point to buffer end
+        mPosition = argument;
+      }
+      mNextPosition = argument;
       backup();
     }
     ~Iterator()
@@ -119,7 +206,12 @@ public:
     SelfType& operator++() {
       sync();
       mPosition = mNextPosition;
-      mNextPosition = mParent->getElement(mPosition, mElement);
+      size_t argument = mPosition;
+      if (!mParent->getElement(argument, mElement)) {
+        // eof, both mPosition and mNextPosition point to buffer end
+        mPosition = argument;
+      }
+      mNextPosition = argument;
       backup();
       return *this;
     }
@@ -138,6 +230,10 @@ public:
     // comparison
     bool operator!=(const SelfType& rh) {
       return mPosition != rh.mPosition;
+    }
+
+    const GroupType* getGroupHeader() const {
+      return mParent->getGroupHeader();
     }
 
   private:
@@ -173,6 +269,8 @@ public:
 
   /// set an object at position
   size_t setElement(size_t position, const value_type& element) const {
+    // write functionality not yet implemented for grouped elements
+    assert(std::is_void<GroupType>::value);
     // check if we are at the end
     if (position >= mSize) {
       assert(position == mSize);
@@ -190,23 +288,78 @@ public:
     return position + copy<TargetInPageBuffer>(source, target, page_size - (position % page_size));
   }
 
+  template<typename T>
+  size_t readGroupHeader(size_t position, T * groupHeader) const {
+    assert((position % page_size) == sizeof(PageHeaderType));
+    if (std::is_void<T>::value) return 0;
+
+    memcpy(groupHeader, mBuffer + position, pageparser::sizeofGroupHeader<T>());
+    return mGetNElementsFct(groupHeader);
+  }
+
   /// retrieve an object at position
-  size_t getElement(size_t position, value_type& element) const {
+  bool getElement(size_t& position, value_type& element) const {
     // check if we are at the end
     if (position >= mSize) {
       assert(position == mSize);
-      return mSize;
+      position = mSize;
+      return false;
+    }
+
+    // handle group if defined
+    if (!std::is_void<GroupType>::value) {
+      if (mNGroupElements == 0) {
+        // new group has to be read from the buffer
+        do {
+          if ((position % page_size) == 0) {
+            position += sizeof(PageHeaderType);
+          }
+          if ((position % page_size) != sizeof(PageHeaderType)) {
+            // forward to the next page
+            position += page_size - (position % page_size) + sizeof(PageHeaderType);
+            if (position > mSize) {
+              //this is probably a valid condition as the group header can just
+              //indicate zero clusters
+              //throw std::runtime_error("");
+              position = mSize;
+              return false;
+            }
+          }
+          const_cast<PageParser*>(this)->mNGroupElements = readGroupHeader(position, mGroupHeader);
+          position += pageparser::sizeofGroupHeader<GroupType>();
+        } while (mNGroupElements == 0);
+
+        size_t nPages = 0;
+        size_t required = pageparser::sizeofGroupHeader<GroupType>() + mNGroupElements * sizeof(value_type);
+        do {
+          // the block of elements can go beyond the current page, find out
+          // how many additional pages are required
+          required += sizeof(PageHeaderType);
+          ++nPages;
+        } while (required > nPages * page_size);
+        required -= sizeof(PageHeaderType) + pageparser::sizeofGroupHeader<GroupType>();
+        if (position + required > mSize) {
+          throw std::runtime_error("format error: the number of group elements "
+                                   "does not fit into the remaining buffer");
+        }
+      }
+      // now we will read one element
+      const_cast<PageParser*>(this)->mNGroupElements -= 1;;
     }
 
     // check if there is space for one element
     if (position + sizeof(value_type) > mSize) {
-      // format error, probably throw exception
-      return mSize;
+      // FIXME: not sure if this is considered an error condition if
+      // no groups are used, i.e. the buffer should have the correct size
+      // and no extra space after the last element
+      position = mSize;
+      return false;
     }
 
     auto source = mBuffer + position;
     auto target = reinterpret_cast<BufferType*>(&element);
-    return position + copy<SourceInPageBuffer>(source, target, page_size - (position % page_size));
+    position += copy<SourceInPageBuffer>(source, target, page_size - (position % page_size));
+    return true;
   }
 
   // copy data, depending on compile time switch, either source or target
@@ -248,6 +401,10 @@ public:
     return position;
   }
 
+  const GroupType getGroupHeader() const {
+    return mGroupHeader;
+  }
+
   using iterator = Iterator<value_type>;
   using const_iterator = Iterator<const value_type>;
 
@@ -277,8 +434,10 @@ private:
   BufferType* mBuffer = nullptr;
   bool mBufferIsConst = false;
   size_t mSize = 0;
-  GetNElements mGetNElementsFct;
+  GetNElements mGetNElementsFct = nullptr;
   size_t mNPages = 0;
+  GroupType* mGroupHeader = nullptr;
+  size_t mNGroupElements = 0;
 };
 
 }
