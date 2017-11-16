@@ -240,6 +240,8 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       else break; // bad chi2 for the whole track, stop the fit
     }
   }
+  
+  if (param.GetTrackReferenceX() <= 500) prop.PropagateToXAlpha(param.GetTrackReferenceX(), prop.GetAlpha(), 0 );
   Alpha = prop.GetAlpha();
 }
 

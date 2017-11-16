@@ -85,6 +85,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() int GetNWaysOuter() const { return fNWaysOuter; }
     GPUd() float GetSearchWindowDZDR() const { return fSearchWindowDZDR; }
     GPUd() bool GetContinuousTracking() const { return fContinuousTracking; }
+    GPUd() float GetTrackReferenceX() const { return fTrackReferenceX;}
 
     GPUhd() void SetISlice( int v ) {  fISlice = v;}
     GPUhd() void SetNRows( int v ) {  fNRows = v;}
@@ -120,6 +121,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() void SetNWaysOuter( bool v ){ fNWaysOuter = v; }
     GPUd() void SetSearchWindowDZDR( float v ){ fSearchWindowDZDR = v; }
     GPUd() void SetContinuousTracking( bool v ){ fContinuousTracking = v; }
+    GPUd() void SetTrackReferenceX( float v) { fTrackReferenceX = v; }
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
@@ -176,6 +178,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     bool fNWaysOuter;    //Store outer param
     float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
     bool fContinuousTracking; //Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+    float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)
 
     float fRowX[200];// X-coordinate of rows
     float fParamS0Par[2][3][7];    // cluster error parameterization coeficients (OLD)
