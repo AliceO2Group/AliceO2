@@ -20,6 +20,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <cmath>
 #include "FairLogger.h"
 
 using namespace o2::TPC;
@@ -74,8 +75,8 @@ float PadResponse::getPadResponse(GlobalPosition3D posEle, DigitPos digiPadPos) 
   ///std::cout << padCentrePos.X() << " " << posEle.X() << " " << padCentrePos.Y() << " " << posEle.Y() << "\n";
 
   const int gemStack = int(cru.gemStack());
-  const float offsetX = std::fabs(posEle.X() - padCentre.X())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
-  const float offsetY = std::fabs(posEle.Y() - padCentre.Y())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetX = std::abs(posEle.X() - padCentre.X())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetY = std::abs(posEle.Y() - padCentre.Y())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
   float normalizedPadResponse = 0;
   if(gemStack == 0) {
     normalizedPadResponse = mIROC->Interpolate(offsetX, offsetY);

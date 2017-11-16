@@ -64,6 +64,11 @@ class DigitizerTask : public FairTask{
       
     void FinishTask() override;
 
+    /// Temporary stuff for bunch train simulation
+    ///
+    /// Initialise the event times using a bunch train structure
+    /// \param numberOfEvents number of event times to simulate
+    void initBunchTrainStructure(const size_t numberOfEvents);
   private:
     Digitizer           *mDigitizer;    ///< Digitization process
     DigitContainer      *mDigitContainer;
@@ -78,6 +83,10 @@ class DigitizerTask : public FairTask{
     int                 mHitSector=-1; ///< which sector to treat
 
     const std::vector<o2::TPC::HitGroup> *mSectorHitsArray[Sector::MAXSECTOR];
+
+    // Temporary stuff for bunch train structure simulation
+    std::vector<float> mEventTimes; ///< Simulated event times in us
+    int                mCurrentEvent = 0; ///< Current event
 
     ClassDefOverride(DigitizerTask, 1);
 };

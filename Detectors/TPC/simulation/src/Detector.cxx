@@ -205,6 +205,15 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   const double rnd = refMC->GetRandom()->Rndm();
   refMC->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
   
+  // ===| check active sector |=================================================
+  //
+  // Get the sector ID and check if the sector is active
+  static TLorentzVector position;
+  refMC->TrackPosition(position);
+  const int sectorID = static_cast<int>(Sector::ToSector(position.X(), position.Y(), position.Z()));
+  // TODO: Temporary hack to process only one sector
+  //if (sectorID != 0) return kFALSE;
+
   // ===| CONVERT THE ENERGY LOSS TO IONIZATION ELECTRONS |=====================
   //
   // The energy loss is implemented directly below and taken GEANT3,
@@ -267,12 +276,9 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     return kFALSE;
   
   // ADD HIT
-  static TLorentzVector position;
-  refMC->TrackPosition(position);
   const float time   = refMC->TrackTime() * 1.0e9;
   const int trackID  = refMC->GetStack()->GetCurrentTrackNumber();
   const int detID    = vol->getMCid();
-  const int sectorID = static_cast<int>(Sector::ToSector(position.X(), position.Y(), position.Z()));
 
   static int oldTrackId = trackID;
   static int oldDetId = detID;

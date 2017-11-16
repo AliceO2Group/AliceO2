@@ -31,7 +31,7 @@ class DigitTime{
     /// Constructor
     /// \param mTimeBin time bin
     /// \param npads Number of pads in the row
-    DigitTime(int mTimeBin, int nrows);
+    DigitTime(int timeBin, int nrows);
 
     /// Destructor
     ~DigitTime() = default;
@@ -79,7 +79,7 @@ class DigitTime{
 
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
-    unsigned short          mTimeBin;                   ///< Time bin of that ADC value
+    int                     mTimeBin;                   ///< Time bin of that ADC value
     std::vector <std::unique_ptr<DigitRow>> mRows;      ///< Row Container for the ADC value
 };
 

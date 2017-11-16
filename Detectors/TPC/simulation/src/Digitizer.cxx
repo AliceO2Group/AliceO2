@@ -50,7 +50,7 @@ void Digitizer::init()
 //  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
 }
 
-DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits)
+DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, float eventTime)
 {
 //  mDigitContainer->reset();
   const static Mapper& mapper = Mapper::instance();
@@ -58,7 +58,9 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits)
   const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
   FairRootManager *mgr = FairRootManager::Instance();
 
-  const float eventTime = ( mIsContinuous) ? mgr->GetEventTime() * 0.001 : 0.f; /// transform in us
+  // TODO: temporary hack
+  //const float eventTime = ( mIsContinuous) ? mgr->GetEventTime() * 0.001 : 0.f; /// transform in us
+  if (!mIsContinuous) eventTime = 0.f; /// transform in us
 
   /// \todo static_thread for thread savety?
   static GEMAmplification gemAmplification;
@@ -98,7 +100,7 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits)
 
         /// Remove electrons that end up outside the active volume
         /// \todo should go to mapper?
-        if(fabs(posEleDiff.Z()) > detParam.getTPClength()) continue;
+        if(std::abs(posEleDiff.Z()) > detParam.getTPClength()) continue;
 
         const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
         if(!digiPadPos.isValid()) continue;
