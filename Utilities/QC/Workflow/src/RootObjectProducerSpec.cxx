@@ -113,17 +113,17 @@ DataProcessorSpec getRootObjectProducerSpec() {
     AlgorithmSpec{
       [](InitContext &ic) {
         // get the option from the init context
-        Producer* producer = nullptr;
+        std::shared_ptr<Producer> producer;
         auto type = ic.options().get<std::string>("objectType");
         auto name = ic.options().get<std::string>("objectName");
         auto title = ic.options().get<std::string>("objectTitle");
         if (type != "TTree") {
           auto nBins = ic.options().get<int>("nBins");
-          producer = createProducer(type.c_str(), name.c_str(), title.c_str(), nBins);
+          producer.reset(createProducer(type.c_str(), name.c_str(), title.c_str(), nBins));
         } else {
           auto nBranches = ic.options().get<int>("nBranches");
           auto nTreeEntries = ic.options().get<int>("nTreeEntries");
-          producer = createProducer(type.c_str(), name.c_str(), title.c_str(), nBranches, nTreeEntries);
+          producer.reset(createProducer(type.c_str(), name.c_str(), title.c_str(), nBranches, nTreeEntries));
         }
 
         if (!producer) {
@@ -131,10 +131,9 @@ DataProcessorSpec getRootObjectProducerSpec() {
         }
 
         // set up the processing function
-        // using by-copy capture of the worker instance pointer; the actual variable
-        // in this function will come out of scope => no by-reference capture
-        // FIXME: the object is not cleaned up in the end, framework functionality
-        // going to be added soon
+        // using by-copy capture of the worker instance shared pointer
+        // the shared pointer makes sure to clean up the instance when the processing
+        // function gets out of scope
         auto processingFct = [producer] (ProcessingContext &pc) {
           // get a new object
           auto dataobject = std::unique_ptr<TObject>(producer->produceData());
