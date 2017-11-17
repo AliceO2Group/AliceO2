@@ -44,17 +44,13 @@ namespace qc {
 /// processor is interfacing the common merger of the QC module
 /// as actual worker class
 DataProcessorSpec getRootObjectMergerSpec() {
-  using DataHeader = o2::Header::DataHeader;
-
-  // merger instance to be used in the processing function
-  auto merger = new Merger(10);
-
   // set up the processing function
-  // using by-copy capture of the worker instance pointer; the actual variable
-  // in this function will come out of scope => no by-reference capture
-  // FIXME: the object is not cleaned up in the end, framework functionality
-  // going to be added soon
-  auto processingFct = [merger] (ProcessingContext &pc) {
+  // creating the shared pointer of worker instance directly in variable capture
+  // this does not take any options into account but sets up a fixed object
+  // the shared pointer makes sure to clean up the instance when the processing
+  // function gets out of scope
+  auto processingFct = [merger = std::make_shared<Merger>(10)] (ProcessingContext &pc) {
+    using DataHeader = o2::Header::DataHeader;
     for (auto & input : pc.inputs()) {
       auto dh = o2::Header::get<const DataHeader>(input.header);
       std::cout << dh->dataOrigin.str
