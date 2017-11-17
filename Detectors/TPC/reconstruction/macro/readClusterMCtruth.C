@@ -12,8 +12,16 @@
 /// \brief This macro demonstrates how to extract the MC truth information from
 /// the clusters
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
-#include <vector>
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TFile.h"
+#include "TTree.h"
 
+#include "TPCReconstruction/Cluster.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+
+#include <vector>
+#endif
 void readClusterMCtruth(std::string filename)
 {
   TFile *clusterFile = TFile::Open(filename.data());

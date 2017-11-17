@@ -433,18 +433,36 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax, MCLabelConta
   /*
    * collect clusters from individual cluster finder
    */
+
+  // map to count unique MC labels
+  std::map<MCCompLabel,int> labelCount;
+
+  // multiset to sort labels according to occurrence
+  auto mcComp = [](const std::pair<MCCompLabel, int>& a, const std::pair<MCCompLabel, int>& b) { return a.second > b.second;};
+  std::multiset<std::pair<MCCompLabel,int>,decltype(mcComp)> labelSort(mcComp);
+
+  // for each CRU
   for (unsigned cru = 0; cru < mClusterStorage.size(); ++cru) {
     std::vector<Cluster>* clustersFromCRU = &mClusterStorage[cru];
     std::vector<std::vector<std::pair<int,int>>>* labelsFromCRU = &mClusterDigitIndexStorage[cru];
 
+    // for each found cluster
     for(unsigned c = 0; c < clustersFromCRU->size(); ++c) {
       const auto clusterPos = mClusterArray->size();
       mClusterArray->emplace_back(clustersFromCRU->at(c));
+      labelCount.clear();
+      labelSort.clear();
+
+      // for each used digit
       for (auto &digitIndex : labelsFromCRU->at(c)) {
         if (digitIndex.first < 0) continue;
-        for (auto &l : mLastMcDigitTruth[digitIndex.second]->getLabels(digitIndex.first))
-          mClusterMcLabelArray->addElement(clusterPos,l);
+        for (auto &l : mLastMcDigitTruth[digitIndex.second]->getLabels(digitIndex.first)) {
+          try { labelCount.at(l) = labelCount.at(l)+1;}         // increment counter
+          catch (std::out_of_range &e) { labelCount[l] = 1;}    // label didn't exist yet, set to 1
+        }
       }
+      for (auto &l : labelCount) labelSort.insert(l);
+      for (auto &l : labelSort) mClusterMcLabelArray->addElement(clusterPos,l.first);
     }
   }
 
