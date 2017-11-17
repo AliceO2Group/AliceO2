@@ -38,10 +38,11 @@ constexpr float FloatMinThreshold { 1e-20f };
 
 namespace ITS {
 constexpr int LayersNumber { 7 };
+constexpr int LayersNumberVertexer { 3 };
 constexpr int TrackletsPerRoad { 6 };
 constexpr int CellsPerRoad { LayersNumber - 2 };
 constexpr int UnusedIndex { -1 };
-constexpr float Resolution{ 0.0005f };
+constexpr float Resolution { 0.0005f };
 
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersZCoordinate()
 {

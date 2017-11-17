@@ -340,17 +340,11 @@ void Tracker<IsGPU>::findRoads()
       const int levelCellsNum { static_cast<int>(mPrimaryVertexContext.getCells()[iLayer].size()) };
 
       for (int iCell { 0 }; iCell < levelCellsNum; ++iCell) {
-<<<<<<< HEAD
 
         Cell& currentCell { mPrimaryVertexContext.getCells()[iLayer][iCell] };
 
         if (currentCell.getLevel() != iLevel) {
 
-=======
-        Cell& currentCell { mPrimaryVertexContext.getCells()[iLayer][iCell] };
-
-        if (currentCell.getLevel() != iLevel) {
->>>>>>> [WIP] Add tracking-itsu repository content
           continue;
         }
 
@@ -366,24 +360,15 @@ void Tracker<IsGPU>::findRoads()
           const Cell& neighbourCell = mPrimaryVertexContext.getCells()[iLayer - 1][neighbourCellId];
 
           if (iLevel - 1 != neighbourCell.getLevel()) {
-<<<<<<< HEAD
-
-=======
->>>>>>> [WIP] Add tracking-itsu repository content
             continue;
           }
 
           if (isFirstValidNeighbour) {
-<<<<<<< HEAD
 
             isFirstValidNeighbour = false;
 
           } else {
 
-=======
-            isFirstValidNeighbour = false;
-          } else {
->>>>>>> [WIP] Add tracking-itsu repository content
             mPrimaryVertexContext.getRoads().emplace_back(iLayer, iCell);
           }
 
@@ -398,22 +383,14 @@ void Tracker<IsGPU>::findRoads()
 }
 
 template<bool IsGPU>
-<<<<<<< HEAD
 void Tracker<IsGPU>::findTracks(const Event& event)
-=======
-void Tracker<IsGPU>::findTracks()
->>>>>>> [WIP] Add tracking-itsu repository content
 {
   mPrimaryVertexContext.getTracks().reserve(mPrimaryVertexContext.getRoads().size());
   std::vector<Track> tracks;
   tracks.reserve(mPrimaryVertexContext.getRoads().size());
   for (auto& road : mPrimaryVertexContext.getRoads()) {
     std::array<int, 7> clusters {Constants::ITS::UnusedIndex};
-<<<<<<< HEAD
     int lastCellLevel = Constants::ITS::UnusedIndex;
-=======
-    int lastCellLevel = -1;
->>>>>>> [WIP] Add tracking-itsu repository content
     for (int iCell{0}; iCell < Constants::ITS::CellsPerRoad; ++iCell) {
       const int cellIndex = road[iCell];
       if (cellIndex == Constants::ITS::UnusedIndex) {
@@ -425,7 +402,6 @@ void Tracker<IsGPU>::findTracks()
         lastCellLevel = iCell;
       }
     }
-<<<<<<< HEAD
     if (lastCellLevel == Constants::ITS::UnusedIndex)
       continue;
 
@@ -443,36 +419,17 @@ void Tracker<IsGPU>::findTracks()
     const auto& cluster3_tf = event.getLayer(lastCellLevel).getTrackingFrameInfo(clusters[lastCellLevel]);
 
     Track temporaryTrack {
-=======
-
-    /// From primary vertex context index to event index (== the one used as input of the tracking code)
-    for (int iC{0}; iC < clusters.size(); iC++) {
-      clusters[iC] = mEvent.getLayer(iC).getCluster(clusters[iC]).clusterId;
-    }
-    /// Track seed preparation. Clusters are numbered progressively from the outermost to the innermost.
-    const auto& cluster1_glo = mEvent.getLayer(lastCellLevel + 2).getCluster(clusters[lastCellLevel + 2]);
-    const auto& cluster2_glo = mEvent.getLayer(lastCellLevel + 1).getCluster(clusters[lastCellLevel + 1]);
-    const auto& cluster3_glo = mEvent.getLayer(lastCellLevel).getCluster(clusters[lastCellLevel]);
-
-    const auto& cluster3_tf = mEvent.getLayer(lastCellLevel).getTrackingFrameInfo(clusters[lastCellLevel]);
-    
-    Track temporaryTrack{
->>>>>>> [WIP] Add tracking-itsu repository content
       buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf),
       0.f,
       clusters
     };
-<<<<<<< HEAD
     temporaryTrack.mMClabel = road.getLabel();
-=======
->>>>>>> [WIP] Add tracking-itsu repository content
 
     bool fitSuccess = true;
     for (int iCluster{Constants::ITS::LayersNumber-3}; iCluster--; ) {
       if (temporaryTrack.mClusters[iCluster] == Constants::ITS::UnusedIndex) {
         continue;
       }
-<<<<<<< HEAD
       const TrackingFrameInfo& trackingHit = event.getLayer(iCluster).getTrackingFrameInfo(temporaryTrack.mClusters[iCluster]);
       fitSuccess = temporaryTrack.mParam.rotate(trackingHit.alphaTrackingFrame);
       if (!fitSuccess) {
@@ -491,39 +448,10 @@ void Tracker<IsGPU>::findTracks()
       constexpr float radiationLength = 9.36f; // Radiation length of Si [cm]
       constexpr float density = 2.33f;         // Density of Si [g/cm^3]
       fitSuccess = temporaryTrack.mParam.correctForMaterial(xx0, xx0 * radiationLength * density, true);
-=======
-
-      const TrackingFrameInfo& trackingHit = mEvent.getLayer(iCluster).getTrackingFrameInfo(temporaryTrack.mClusters[iCluster]);
-
-      fitSuccess = temporaryTrack.mParam.Rotate(trackingHit.alphaTrackingFrame);
-      if (!fitSuccess) {
-        break;
-      }
-
-      fitSuccess = temporaryTrack.mParam.PropagateTo(trackingHit.xTrackingFrame, mEvent.getBz());
-      if (!fitSuccess) {
-        break;
-      }
-
-      temporaryTrack.mChi2 += temporaryTrack.mParam.GetPredictedChi2(trackingHit.positionTrackingFrame,trackingHit.covarianceTrackingFrame);
-      fitSuccess = temporaryTrack.mParam.Update(trackingHit.positionTrackingFrame,trackingHit.covarianceTrackingFrame);
-      if (!fitSuccess) {
-        break;
-      }
-
-      const float xx0 = (iCluster > 2) ? 0.008f : 0.003f;            // Rough layer thickness
-      constexpr float radiationLength = 9.36f; // Radiation length of Si [cm]
-      constexpr float density = 2.33f;         // Density of Si [g/cm^3]
-      fitSuccess = temporaryTrack.mParam.CorrectForMaterial(xx0, xx0 * radiationLength * density, true);
->>>>>>> [WIP] Add tracking-itsu repository content
       if (!fitSuccess) {
         break;
       }
     }
-<<<<<<< HEAD
-=======
-
->>>>>>> [WIP] Add tracking-itsu repository content
     if (!fitSuccess) {
       continue;
     }
@@ -536,7 +464,6 @@ void Tracker<IsGPU>::findTracks()
 
   for (auto& track : tracks) {
     bool sharingCluster = false;
-<<<<<<< HEAD
     for (int iLayer{0}; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
       if (track.mClusters[iLayer] == Constants::ITS::UnusedIndex) {
         continue;
@@ -551,23 +478,6 @@ void Tracker<IsGPU>::findTracks()
         continue;
       }
       mPrimaryVertexContext.markUsedCluster(iLayer,track.mClusters[iLayer]);
-=======
-    for (int iCluster{0}; iCluster < Constants::ITS::LayersNumber; ++iCluster) {
-      if (track.mClusters[iCluster] == Constants::ITS::UnusedIndex) {
-        continue;
-      }
-      sharingCluster |= mPrimaryVertexContext.getUsedClusters()[iCluster][track.mClusters[iCluster]];
-    }
-
-    if (sharingCluster) {
-      continue;
-    }
-    for (int iCluster{0}; iCluster < Constants::ITS::LayersNumber; ++iCluster) {
-      if (track.mClusters[iCluster] == Constants::ITS::UnusedIndex) {
-        continue;
-      }
-      mPrimaryVertexContext.getUsedClusters()[iCluster][track.mClusters[iCluster]] = true;
->>>>>>> [WIP] Add tracking-itsu repository content
     }
     mPrimaryVertexContext.getTracks().emplace_back(track);
   }
@@ -612,7 +522,6 @@ void Tracker<IsGPU>::traverseCellsTree(const int currentCellId, const int curren
 }
 
 template<bool IsGPU>
-<<<<<<< HEAD
 void Tracker<IsGPU>::computeMontecarloLabels(const Event& event)
 {
 /// Moore’s Voting Algorithm
@@ -689,82 +598,6 @@ void Tracker<IsGPU>::computeMontecarloLabels(const Event& event)
 /// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return a TrackParCov
 template<bool IsGPU>
 track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3) {
-=======
-void Tracker<IsGPU>::computeMontecarloLabels()
-{
-/// Moore’s Voting Algorithm
-
-  int trackssNum {static_cast<int>(mPrimaryVertexContext.getTracks().size())};
-
-  for (int iTrack {0}; iTrack < trackssNum; ++iTrack) {
-
-    Track& track { mPrimaryVertexContext.getTracks()[iTrack] };
-    int maxOccurrencesValue { Constants::ITS::UnusedIndex };
-    int count{1};
-    bool isFake{false};
-    bool isFirstRoadCell{true};
-
-    bool isFirstCluster{true};
-    for (int iLayer = 0; iLayer < track.mClusters.size(); ++iLayer) {
-      if (track.mClusters[iLayer] == Constants::ITS::UnusedIndex) {
-        continue;
-      }
-      int currentLabel = mEvent.getClusterMClabel(iLayer,track.mClusters[iLayer]);
-      if (isFirstCluster) {
-        isFirstCluster = false;
-        maxOccurrencesValue = currentLabel;
-      } else {
-        if (currentLabel != maxOccurrencesValue) {
-          isFake = true;
-          if (count == 1) {
-            maxOccurrencesValue = currentLabel;
-          } else {
-            count--;
-          }
-        } else {
-          count++;
-        }
-      }
-    }
-    mPrimaryVertexContext.setTrackMClabel(iTrack, isFake ? -currentLabel : currentLabel);
-  }
-}
-
-template<bool IsGPU>
-void Tracker<IsGPU>::evaluateTask(void (Tracker<IsGPU>::*task)(void), const char *taskName)
-{
-  evaluateTask(task, taskName, std::cout);
-}
-
-template<bool IsGPU>
-void Tracker<IsGPU>::evaluateTask(void (Tracker<IsGPU>::*task)(void), const char *taskName,
-    std::ostream& ostream)
-{
-  clock_t t1, t2;
-  float diff;
-
-  t1 = clock();
-
-  (this->*task)();
-
-  t2 = clock();
-  diff = ((float) t2 - (float) t1) / (CLOCKS_PER_SEC / 1000);
-
-  if (taskName == nullptr) {
-
-    ostream << diff << "\t";
-
-  } else {
-
-    ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << "ms" << std::endl;
-  }
-}
-
-/// Clusters are given from outside inward (cluster1 is the outermost). The innermost cluster is given in the tracking frame coordinates
-/// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return a TrackParCov
-template<bool IsGPU>
-Base::Track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3) {
->>>>>>> [WIP] Add tracking-itsu repository content
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
   const float x1 =  cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
   const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
@@ -784,7 +617,6 @@ Base::Track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1,
   const float fy = 1. / (cluster2.rCoordinate - cluster3.rCoordinate);
   const float& tz = fy;
   const float cy = (TrackingUtils::computeCurvature(x1, y1, x2, y2 + Constants::ITS::Resolution, x3, y3) - crv) / \
-<<<<<<< HEAD
     (Constants::ITS::Resolution * getBz() * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
   constexpr float s2 = Constants::ITS::Resolution * Constants::ITS::Resolution;
 
@@ -792,15 +624,6 @@ Base::Track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1,
     tf3.xTrackingFrame,
     tf3.alphaTrackingFrame,
     {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23), std::abs(getBz()) < constants::math::Almost0 ? constants::math::Almost0 : crv / (getBz() * constants::math::B2C)},
-=======
-    (Constants::ITS::Resolution * mEvent.getBz() * Base::Constants::kB2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
-  constexpr float s2 = Constants::ITS::Resolution * Constants::ITS::Resolution;
-
-  return Base::Track::TrackParCov(
-    tf3.xTrackingFrame,
-    tf3.alphaTrackingFrame,
-    {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23), std::abs(mEvent.getBz()) < Base::Constants::kAlmost0 ? Base::Constants::kAlmost0 : crv / (mEvent.getBz() * Base::Constants::kB2C)},
->>>>>>> [WIP] Add tracking-itsu repository content
     {
       s2,
       0.f,     s2,

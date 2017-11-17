@@ -7,6 +7,7 @@ set(SRCS
     src/ClustererTask.cxx
     src/CookedTrackerTask.cxx
     src/CA/TrackerTask.cxx
+    src/CA/vertexer/VertexerTask.cxx
     )
 
 set(NO_DICT_SRCS # sources not for the dictionary
@@ -22,8 +23,10 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/CA/PrimaryVertexContext.cxx
     src/CA/Road.cxx
     src/CA/Tracker.cxx
+    src/CA/vertexer/ClusterLines.cxx
     src/CA/TrackingUtils.cxx
     src/CA/Tracklet.cxx
+    src/CA/vertexer/Vertexer.cxx
     )
 
 # Headers from sources

@@ -15,10 +15,6 @@
 #include "ITSReconstruction/CA/Event.h"
 
 #include <iostream>
-<<<<<<< HEAD
-=======
-#include <utility>
->>>>>>> [WIP] Add tracking-itsu repository content
 
 namespace o2
 {
@@ -27,14 +23,8 @@ namespace ITS
 namespace CA
 {
 
-<<<<<<< HEAD
 Event::Event(const int eventId)
     : mEventId { eventId }
-=======
-Event::Event(const int eventId, const float bz) :
-    mEventId { eventId },
-    mBz{bz}
->>>>>>> [WIP] Add tracking-itsu repository content
 {
   for (int iLayer { 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
@@ -59,15 +49,6 @@ void Event::printPrimaryVertices() const
   }
 }
 
-<<<<<<< HEAD
-=======
-void Event::pushClusterToLayer(const int layerIndex, const int clusterId, const float xCoordinate,
-    const float yCoordinate, const float zCoordinate, const float aplhaAngle, const int monteCarlo)
-{
-  mLayers[layerIndex].addCluster(clusterId, xCoordinate, yCoordinate, zCoordinate, aplhaAngle, monteCarlo);
-}
-
->>>>>>> [WIP] Add tracking-itsu repository content
 int Event::getTotalClusters() const
 {
   int totalClusters { 0 };
@@ -80,17 +61,6 @@ int Event::getTotalClusters() const
   return totalClusters;
 }
 
-<<<<<<< HEAD
-=======
-void Event::clear()
-{
-  mPrimaryVertices.clear();
-  for (auto& layer : mLayers) {
-    layer.clear();
-  }
-}
-
->>>>>>> [WIP] Add tracking-itsu repository content
 }
 }
 }

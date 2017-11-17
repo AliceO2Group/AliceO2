@@ -45,6 +45,7 @@ class Event
       const Layer& getLayer(const int) const;
       int getPrimaryVerticesNum() const;
       void addPrimaryVertex(const float, const float, const float);
+      void addPrimaryReconstructedVertex(const float, const float, const float);
       void printPrimaryVertices() const;
       int getTotalClusters() const;
 
