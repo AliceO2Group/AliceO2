@@ -68,7 +68,7 @@ GPU_HOST_DEVICE inline int IndexTableUtils::countRowSelectedBins(
   const int firstBinIndex { getBinIndex(minZBinIndex, phiBinIndex) };
   const int maxBinIndex { firstBinIndex + maxZBinIndex - minZBinIndex + 1 };
 
-  return indexTable[maxBinIndex] - indexTable[firstBinIndex] + 1;
+  return indexTable[maxBinIndex] - indexTable[firstBinIndex];
 }
 
 }

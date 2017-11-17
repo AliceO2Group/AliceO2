@@ -29,9 +29,9 @@ Tracklet::Tracklet()
   // Nothing to do
 }
 
-GPU_DEVICE Tracklet::Tracklet(const int firstClusterIndex, const int secondClusterIndex,
+GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
     const Cluster& firstCluster, const Cluster& secondCluster)
-    : firstClusterIndex { firstClusterIndex }, secondClusterIndex { secondClusterIndex }, tanLambda {
+    : firstClusterIndex { firstClusterOrderingIndex }, secondClusterIndex { secondClusterOrderingIndex }, tanLambda {
         (firstCluster.zCoordinate - secondCluster.zCoordinate) / (firstCluster.rCoordinate - secondCluster.rCoordinate) }, phiCoordinate {
     MATH_ATAN2(firstCluster.yCoordinate - secondCluster.yCoordinate,
         firstCluster.xCoordinate - secondCluster.xCoordinate) }

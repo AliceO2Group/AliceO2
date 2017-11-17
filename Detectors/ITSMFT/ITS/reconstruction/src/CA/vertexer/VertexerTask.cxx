@@ -8,13 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Layer.cxx
+/// \file Tracker.cxx
 /// \brief 
 ///
 
-#include "ITSReconstruction/CA/Layer.h"
 
-#include "ITSReconstruction/CA/Constants.h"
+#include "ITSReconstruction/CA/vertexer/VertexerTask.h"
+#include <iostream>
+#include "FairLogger.h"      // for LOG
+#include "FairRootManager.h" // for FairRootManager
+
+ClassImp(o2::ITS::CA::VertexerTask)
 
 namespace o2
 {
@@ -22,17 +26,24 @@ namespace ITS
 {
 namespace CA
 {
-
-Layer::Layer()
-    : mLayerIndex { Constants::ITS::UnusedIndex }
+VertexerTask::VertexerTask()
 {
-  //Nothing to do
+  std::cout<<"Monte Carlo666!!"<<std::endl;
+};
+VertexerTask::~VertexerTask()
+{
+  std::cout<<"Distruggere!"<<std::endl;
+};
+
+InitStatus VertexerTask::Init()
+{
+  std::cout<<"Init Function!!"<<std::endl;
+  return kSUCCESS;
 }
 
-Layer::Layer(const int layerIndex)
-    : mLayerIndex { layerIndex }
+void VertexerTask::Exec(Option_t* option)
 {
-  //Nothing to do
+  std::cout<<"Exec Function!!"<<std::endl;
 }
 
 }

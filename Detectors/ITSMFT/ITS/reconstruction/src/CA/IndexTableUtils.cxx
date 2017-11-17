@@ -30,7 +30,6 @@ const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
   int phiBinsNum { selectedBinsRect[3] - selectedBinsRect[1] + 1 };
 
   if (phiBinsNum < 0) {
-
     phiBinsNum += Constants::IndexTable::PhiBins;
   }
 

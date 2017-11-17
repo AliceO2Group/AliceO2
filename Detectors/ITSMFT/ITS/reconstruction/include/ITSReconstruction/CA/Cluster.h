@@ -33,6 +33,7 @@ struct Cluster
     final
     {
       Cluster(const float x, const float y, const float z, const int idx);
+      Cluster(const int, const Cluster&);
       Cluster(const int, const float3&, const Cluster&);
 
       float xCoordinate;
