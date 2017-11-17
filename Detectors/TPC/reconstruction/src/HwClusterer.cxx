@@ -458,8 +458,7 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax, MCLabelConta
       for (auto &digitIndex : labelsFromCRU->at(c)) {
         if (digitIndex.first < 0) continue;
         for (auto &l : mLastMcDigitTruth[digitIndex.second]->getLabels(digitIndex.first)) {
-          try { labelCount.at(l) = labelCount.at(l)+1;}         // increment counter
-          catch (std::out_of_range &e) { labelCount[l] = 1;}    // label didn't exist yet, set to 1
+          labelCount[l]++;
         }
       }
       for (auto &l : labelCount) labelSort.insert(l);

@@ -68,15 +68,9 @@ inline
 void RawReaderEventSync::addEventOffset(int event, long time) {
 
   // set time offset to next multiple of mFrames (+ mFrames)
-  long iTimeOffset = time + (mFrames - (time%mFrames)) + mFrames;
+  const long iTimeOffset = time + (mFrames - (time%mFrames)) + mFrames;
 
-  try {
-    // using at() function to provoke std::out_of_range exception if "event" does not yet exist in map
-    mMaxOffset.at(event) = std::max(mMaxOffset.at(event),iTimeOffset);
-  } catch (const std::out_of_range& e) {
-    // using [] operator to insert new element
-    mMaxOffset[event] = iTimeOffset; // First element, therefore has to be the maximum and use it
-  }
+  mMaxOffset[event] = std::max(mMaxOffset[event],iTimeOffset);
 }
 
 }
