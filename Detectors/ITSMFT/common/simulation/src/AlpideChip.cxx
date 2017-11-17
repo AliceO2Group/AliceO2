@@ -13,12 +13,12 @@
 /// \author Mario.Sitta@cern.ch - 24 oct 2017
 
 #include "ITSMFTSimulation/AlpideChip.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 #include <TGeoBBox.h>         // for TGeoBBox
 #include <TGeoManager.h>      // for gGeoManager, TGeoManager
 #include "TGeoVolume.h"       // for TGeoVolume
 #include "TGeoMatrix.h"       // for TGeoMatrix
-
 #include "FairLogger.h" // for LOG
 
 using namespace o2::ITSMFT;
@@ -54,8 +54,8 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
   Double_t xchip, zchip;
   Double_t ylen, ypos;
 
-  xchip = 0.5*sChipXWidth;
-  zchip = 0.5*sChipZLength;
+  xchip = 0.5*SegmentationAlpide::SensorSizeRows;
+  zchip = 0.5*SegmentationAlpide::SensorSizeCols;
 
   // First create all needed shapes
   ylen = ysens;

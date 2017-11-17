@@ -22,6 +22,7 @@
 #include "FairLogger.h"
 
 #include "ITSMFTSimulation/AlpideChip.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 #include "MFTBase/Constants.h"
 #include "MFTBase/LadderSegmentation.h"
@@ -30,13 +31,14 @@
 #include "MFTBase/Ladder.h"
 #include "MFTBase/Geometry.h"
 
+using namespace o2::ITSMFT;
 using namespace o2::MFT;
 using AlpideChip = o2::ITSMFT::AlpideChip;
 
 ClassImp(o2::MFT::Ladder)
 
 // Units are cm
-const Double_t Ladder::sLadderDeltaY = Geometry::sSensorHeight + 2.*Geometry::sSensorTopOffset;
+const Double_t Ladder::sLadderDeltaY = SegmentationAlpide::SensorSizeRows + 2.*Geometry::sSensorTopOffset;
 const Double_t Ladder::sLadderDeltaZ = Geometry::sFlexThickness + Geometry::sChipThickness; // TODO: Adjust that value when adding glue layer
 
 /// \brief Default constructor
@@ -83,11 +85,13 @@ TGeoVolume * Ladder::createVolume()
   Int_t nChips = mSegmentation->getNSensors();
   
   // Create the flex
-  mFlex = new Flex(mSegmentation);     
-  Double_t flexLength = nChips*(Geometry::sSensorLength+Geometry::sSensorInterspace)+Geometry::sLadderOffsetToEnd + Geometry::sSensorSideOffset;
-  Double_t shiftY = 2*Geometry::sSensorTopOffset+Geometry::sSensorHeight-Geometry::sFlexHeight/2; // strange
+  mFlex = new Flex(mSegmentation);
+  Double_t flexLength = nChips*(SegmentationAlpide::SensorSizeCols+Geometry::sSensorInterspace) +
+    Geometry::sLadderOffsetToEnd + Geometry::sSensorSideOffset;
+  Double_t shiftY = 2*Geometry::sSensorTopOffset+SegmentationAlpide::SensorSizeRows-Geometry::sFlexHeight/2; // strange
   TGeoVolumeAssembly * flexVol = mFlex->makeFlex(mSegmentation->getNSensors(), flexLength);                               
-  mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength/2+Geometry::sSensorSideOffset/2, shiftY, Geometry::sFlexThickness/2-Geometry::sRohacell));     
+  mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength/2+Geometry::sSensorSideOffset/2, shiftY,
+							 Geometry::sFlexThickness/2-Geometry::sRohacell));     
   
   // Create the CMOS Sensors
   createSensors();
@@ -123,7 +127,10 @@ void Ladder::createSensors()
   
   TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_SE4445$"); 
 
-  TGeoVolume * glue = gGeoManager->MakeBox(namePrefixG.Data(), kMedGlue, (Geometry::sSensorLength-Geometry::sGlueEdge)/2., (Geometry::sSensorHeight-Geometry::sGlueEdge)/2., Geometry::sGlueThickness/2.);
+  TGeoVolume * glue = gGeoManager->MakeBox(namePrefixG.Data(), kMedGlue,
+					   (SegmentationAlpide::SensorSizeCols-Geometry::sGlueEdge)/2.,
+					   (SegmentationAlpide::SensorSizeRows-Geometry::sGlueEdge)/2.,
+					   Geometry::sGlueThickness/2.);
   glue->SetVisibility(kTRUE);
   glue->SetLineColor(kRed-10);
   glue->SetLineWidth(1);
@@ -131,7 +138,8 @@ void Ladder::createSensors()
   glue->SetFillStyle(4000); // 0% transparent
 
   // common with ITS
-  TGeoVolume* chipVol = AlpideChip::createChip(Geometry::sChipThickness/2.,Geometry::sSensorThickness/2.,namePrefixC,namePrefixS,kFALSE);
+  TGeoVolume* chipVol = AlpideChip::createChip(Geometry::sChipThickness/2.,
+					       Geometry::sSensorThickness/2.,namePrefixC,namePrefixS,kFALSE);
 
   //chipVol->Print();
 
@@ -142,9 +150,11 @@ void Ladder::createSensors()
     TGeoCombiTrans*   chipPosGlue = chipSeg->getTransformation();
 
     // Position of the center on the chip in the chip coordinate system
-    Double_t pos[3] = {Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sChipThickness/2. - Geometry::sGlueThickness - Geometry::sRohacell};
+    Double_t pos[3] = {SegmentationAlpide::SensorSizeCols/2., SegmentationAlpide::SensorSizeRows/2.,
+		       Geometry::sChipThickness/2. - Geometry::sGlueThickness - Geometry::sRohacell};
 
-    Double_t posglue[3] = {Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sGlueThickness/2-Geometry::sChipThickness-Geometry::sRohacell};
+    Double_t posglue[3] = {SegmentationAlpide::SensorSizeCols/2., SegmentationAlpide::SensorSizeRows/2.,
+			   Geometry::sGlueThickness/2-Geometry::sChipThickness-Geometry::sRohacell};
 
     Double_t master[3];
     Double_t masterglue[3];

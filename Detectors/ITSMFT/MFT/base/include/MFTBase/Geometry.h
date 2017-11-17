@@ -32,24 +32,13 @@ class Geometry : public TNamed {
 
   static const Int_t sNDisks = 5;             ///< \brief Number of Disk
 
-  static const Double_t sSensorLength;        ///< \brief CMOS Sensor Length
-  static const Double_t sSensorHeight;        ///< \brief CMOS Sensor Height
-  static const Double_t sSensorActiveHeight;  ///< \brief CMOS Sensor Active height
-  static const Double_t sSensorActiveWidth;   ///< \brief CMOS Sensor Active width
   static const Double_t sSensorThickness;     ///< \brief CMOS sensor part thickness
   static const Double_t sChipThickness;       ///< \brief CMOS chip thickness
-  static const Double_t sXPixelPitch;         ///< \brief Pixel pitch along X
-  static const Double_t sYPixelPitch;         ///< \brief Pixel pitch along Y
-  static const Int_t sNPixelX = 1024;         ///< \brief Number of Pixel along X
-  static const Int_t sNPixelY = 512;          ///< \brief Number of Pixel along Y
-  static const Double_t sSensorMargin;        ///< \brief Inactive margin around active area
 
   static const Double_t sSensorInterspace;    ///< \brief Interspace between 2 sensors on a ladder
   static const Double_t sSensorSideOffset;    ///< \brief Offset of sensor compare to ladder edge (close to the beam pipe)
   static const Double_t sSensorTopOffset;     ///< \brief Offset of sensor compare to ladder top edge
   static const Double_t sLadderOffsetToEnd;   ///< \brief Offset of sensor compare to ladder connector edge
-  static const Double_t sHeightActive;   ///< height of the active elements
-  static const Double_t sHeightReadout;  ///< height of the readout elements attached to the active ones
 
   static const Double_t sFlexHeight;          ///< \brief Flex Height 
   static const Double_t sLineWidth; 

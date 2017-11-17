@@ -48,9 +48,6 @@ class AlpideChip
 				char const *chipName="AlpideChip", char const *sensName="AlpideSensor",
 				Bool_t dummy=kFALSE, const TGeoManager *mgr=gGeoManager);
 
- private:
-  static constexpr Double_t sChipXWidth      =  1.5;   ///< Chip X width (cm)
-  static constexpr Double_t sChipZLength     =  3.0;   ///< Chip Z length (cm)
   static constexpr Double_t sMetalLayerThick = 15.0*1.0E-4;  ///< Metal layer thickness (um)
 
   ClassDef(AlpideChip, 0) // AlpideChip geometry
