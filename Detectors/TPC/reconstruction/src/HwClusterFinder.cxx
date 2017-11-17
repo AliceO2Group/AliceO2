@@ -24,8 +24,8 @@ using namespace o2::TPC;
 
 //________________________________________________________________________
 HwClusterFinder::HwClusterFinder(
-    short cru, short row,
-    short padOffset, short pads, short timebins,
+    unsigned short cru, unsigned short row,
+    unsigned short padOffset, unsigned short pads, unsigned short timebins,
     float diffThreshold, float chargeThreshold,
     bool requirePositiveCharge)
   : mRequirePositiveCharge(requirePositiveCharge)
@@ -111,16 +111,12 @@ bool HwClusterFinder::findCluster()
   //
   short tMax = (mTimebins-1) - 2;
   short tMin = 2;
-  short delTm = -2;
-  short delTp = 2;
 
   //
   // In pad direction
   //
   int pMin = 2;
   int pMax = (mPads-1)-2;
-  short delPm = -2;
-  short delPp = 2;
 
   float qMax;
   float qTot;
@@ -130,7 +126,6 @@ bool HwClusterFinder::findCluster()
   short minP, minT;
   short maxP, maxT;
   short deltaP, deltaT;
-  short clusterSize;
   //
   // peak finding
   //
@@ -253,7 +248,6 @@ bool HwClusterFinder::findCluster()
       minT = mClusterSizeTime;
       maxP = 0;
       maxT = 0;
-      clusterSize = 0;
       mClusterDigitIndices.emplace_back();
       for (tt = 0; tt < mClusterSizeTime; ++tt) {
         deltaT = tt - mClusterSizeTime/2;
@@ -278,8 +272,6 @@ bool HwClusterFinder::findCluster()
           }
         }
       }
-
-      clusterSize = (maxP-minP+1)*10 + (maxT-minT+1);
 
       if (qTot > 0) {
         meanP  /= qTot;

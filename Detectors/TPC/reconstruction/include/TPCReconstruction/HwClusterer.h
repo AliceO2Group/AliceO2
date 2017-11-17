@@ -110,7 +110,7 @@ class HwClusterer : public Clusterer {
       unsigned iThreadMax;              ///< Total number of started threads
       unsigned iCRUMin;                 ///< Minimum CRU number to process
       unsigned iCRUMax;                 ///< Maximum CRU number to process
-      int iMaxPads;                     ///< Maximum number of pads per row
+      unsigned iMaxPads;                ///< Maximum number of pads per row
       int iMinTimeBin;                  ///< Minumum digit time bin
       int iMaxTimeBin;                  ///< Maximum digit time bin
       bool iEnableNoiseSim;             ///< Noise simulation enable switch

@@ -59,14 +59,14 @@ HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
   /*
    * initialize all cluster finder
    */
-  int iCfPerRow = (int)ceil((double)(mPadsMax+2+2)/(mPadsPerCF-2-2));
+  unsigned iCfPerRow = (unsigned)ceil((double)(mPadsMax+2+2)/(mPadsPerCF-2-2));
   mClusterFinder.resize(mCRUMax+1);
   const Mapper& mapper = Mapper::instance();
-  for (int iCRU = mCRUMin; iCRU <= mCRUMax; iCRU++){
+  for (unsigned iCRU = mCRUMin; iCRU <= mCRUMax; ++iCRU){
     mClusterFinder[iCRU].resize(mapper.getNumberOfRowsPartition(iCRU));
-    for (int iRow = 0; iRow < mapper.getNumberOfRowsPartition(iCRU); iRow++){
+    for (int iRow = 0; iRow < mapper.getNumberOfRowsPartition(iCRU); ++iRow){
       mClusterFinder[iCRU][iRow].resize(iCfPerRow);
-      for (int iCF = 0; iCF < iCfPerRow; iCF++){
+      for (unsigned iCF = 0; iCF < iCfPerRow; ++iCF){
         int padOffset = iCF*(mPadsPerCF-2-2)-2;
         mClusterFinder[iCRU][iRow][iCF] = std::make_shared<HwClusterFinder>(iCRU,iRow,padOffset,mPadsPerCF,mTimebinsPerCF,mMinQDiff,mMinQMax,mRequirePositiveCharge);
         mClusterFinder[iCRU][iRow][iCF]->setAssignChargeUnique(mAssignChargeUnique);
@@ -99,7 +99,7 @@ HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
    * CRU (thread)
    */
   mDigitContainer.resize(mCRUMax+1);
-  for (int iCRU = mCRUMin; iCRU <= mCRUMax; iCRU++)
+  for (unsigned iCRU = mCRUMin; iCRU <= mCRUMax; ++iCRU)
     mDigitContainer[iCRU].resize(mapper.getNumberOfRowsPartition(iCRU));
 
 }
@@ -130,7 +130,7 @@ void HwClusterer::processDigits(
   const Mapper& mapper = Mapper::instance();
   std::vector<std::vector<HwClusterFinder::MiniDigit>> iAllBins(timeDiff,std::vector<HwClusterFinder::MiniDigit>(config.iMaxPads));
 
-  for (int iCRU = config.iCRUMin; iCRU <= config.iCRUMax; ++iCRU) {
+  for (unsigned iCRU = config.iCRUMin; iCRU <= config.iCRUMax; ++iCRU) {
     if (iCRU % config.iThreadMax != config.iThreadID) continue;
 
     for (int iRow = 0; iRow < mapper.getNumberOfRowsPartition(iCRU); iRow++){
@@ -139,7 +139,6 @@ void HwClusterer::processDigits(
        * prepare local storage
        */
       short t,p;
-      float noise;
       if (config.iEnableNoiseSim && config.iNoiseObject != nullptr) {
         for (t=timeDiff; t--;) {
           for (p=config.iMaxPads; p--;) {
@@ -175,10 +174,11 @@ void HwClusterer::processDigits(
       /*
        * copy data to cluster finders
        */
-      const Short_t iPadsPerCF = clusterFinder[iCRU][iRow][0]->getNpads();
-      const Short_t iTimebinsPerCF = clusterFinder[iCRU][iRow][0]->getNtimebins();
+      const unsigned iPadsPerCF = static_cast<const unsigned>(clusterFinder[iCRU][iRow][0]->getNpads());
+      const unsigned iTimebinsPerCF = static_cast<const unsigned>(clusterFinder[iCRU][iRow][0]->getNtimebins());
       std::vector<std::vector<std::shared_ptr<HwClusterFinder>>::const_reverse_iterator> cfWithCluster;
-      unsigned time,pad;
+      int time;
+      unsigned pad;
       for (time = 0; time < timeDiff; ++time){    // ordering important!!
         for (pad = 0; pad < config.iMaxPads; pad = pad + (iPadsPerCF -2 -2 )) {
           const Short_t cf = pad / (iPadsPerCF-2-2);
@@ -287,7 +287,7 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelCont
      */
 
     iTimeBin = digit.getTimeStamp();
-    if (digit.getCRU() < mCRUMin || digit.getCRU() > mCRUMax) {
+    if (digit.getCRU() < static_cast<int>(mCRUMin) || digit.getCRU() > static_cast<int>(mCRUMax)) {
       LOG(DEBUG) << "Digit [" << digitIndex << "] is out of CRU range (" << digit.getCRU() << " < " << mCRUMin << " or > " << mCRUMax << ")" << FairLogger::endl;
       // Necessary because MCTruthContainer requires continuous indexing
       if (mcDigitTruth != nullptr) mLastMcDigitTruth[eventCount]->addElement(digitIndex,o2::MCCompLabel(-1,-1,-1));
@@ -354,7 +354,7 @@ void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelCo
      * add current digit to storage
      */
     iTimeBin = digit->getTimeStamp();
-    if (digit->getCRU() < mCRUMin || digit->getCRU() > mCRUMax) {
+    if (digit->getCRU() < static_cast<int>(mCRUMin) || digit->getCRU() > static_cast<int>(mCRUMax)) {
       LOG(DEBUG) << "Digit [" << digitIndex << "] is out of CRU range (" << digit->getCRU() << " < " << mCRUMin << " or > " << mCRUMax << ")" << FairLogger::endl;
       // Necessary because MCTruthContainer requires continuous indexing
       if (mcDigitTruth != nullptr) mLastMcDigitTruth[eventCount]->addElement(digitIndex,o2::MCCompLabel(-1,-1,-1));
@@ -403,7 +403,7 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax, MCLabelConta
       mNumThreads,
       mCRUMin,
       mCRUMax,
-      mPadsMax+2+2,
+      static_cast<unsigned>(mPadsMax)+2+2,
       iTimeBinMin,
       iTimeBinMax,
       mEnableNoiseSim,
@@ -433,11 +433,11 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax, MCLabelConta
   /*
    * collect clusters from individual cluster finder
    */
-  for (int cru = 0; cru < mClusterStorage.size(); ++cru) {
+  for (unsigned cru = 0; cru < mClusterStorage.size(); ++cru) {
     std::vector<Cluster>* clustersFromCRU = &mClusterStorage[cru];
     std::vector<std::vector<std::pair<int,int>>>* labelsFromCRU = &mClusterDigitIndexStorage[cru];
 
-    for(int c = 0; c < clustersFromCRU->size(); ++c) {
+    for(unsigned c = 0; c < clustersFromCRU->size(); ++c) {
       const auto clusterPos = mClusterArray->size();
       mClusterArray->emplace_back(clustersFromCRU->at(c));
       for (auto &digitIndex : labelsFromCRU->at(c)) {

@@ -50,8 +50,8 @@ class HwClusterFinder {
     /// \param diffThreshold Minimum charge difference at neighboring pads
     /// \param chargeThreshold Minimum charge of cluster peak
     /// \param requirePositiveCharge Charge >0 required
-    HwClusterFinder(short cru, short row,
-        short padOffset, short pads=8, short timebins=8,
+    HwClusterFinder(unsigned short cru, unsigned short row,
+        unsigned short padOffset, unsigned short pads=8, unsigned short timebins=8,
         float diffThreshold=0, float chargeThreshold=5, bool requirePositiveCharge=true);
 
     /// Destructor
@@ -87,23 +87,23 @@ class HwClusterFinder {
 
     /// Getter function
     /// \return Configured CRU number
-    short getCRU() const { return mCRU; }
+    unsigned short getCRU() const { return mCRU; }
 
     /// Getter function
     /// \return Configured row number
-    short getRow() const { return mRow; }
+    unsigned short getRow() const { return mRow; }
 
     /// Getter function
     /// \return Configured pad offset of this CF
-    short getPadOffset() const { return mPadOffset; }
+    unsigned short getPadOffset() const { return mPadOffset; }
 
     /// Getter function
     /// \return Width of CF in pad direction
-    short getNpads() const { return mPads; }
+    unsigned short getNpads() const { return mPads; }
 
     /// Getter function
     /// \return Width of CF in time direction
-    short getNtimebins() const { return mTimebins; }
+    unsigned short getNtimebins() const { return mTimebins; }
 
     /// Getter function
     /// \return Pointer to cluster container with all found clusters
@@ -158,13 +158,13 @@ class HwClusterFinder {
     bool mRequireNeighbouringPad;           ///< Switch if at least one neighboring pad needs charge > 0
     bool mRequireNeighbouringTimebin;       ///< Switch if at least one neighboring time bin needs charge > 0
     bool mAssignChargeUnique;               ///< Switch for "charge splitting", TODO: not yet properly implemented
-    short mCRU;                             ///< CRU number
-    short mRow;                             ///< Row number
-    short mPadOffset;                       ///< Pad number in row of leftmost pad
-    short mPads;                            ///< Size of CF in pad direction
-    short mTimebins;                        ///< Size of CF in time direction
-    short mClusterSizePads;                 ///< Size of cluster in pad direction
-    short mClusterSizeTime;                 ///< Size of cluster in time direction
+    unsigned short mCRU;                    ///< CRU number
+    unsigned short mRow;                    ///< Row number
+    unsigned short mPadOffset;              ///< Pad number in row of leftmost pad
+    unsigned short mPads;                   ///< Size of CF in pad direction
+    unsigned short mTimebins;               ///< Size of CF in time direction
+    unsigned short mClusterSizePads;        ///< Size of cluster in pad direction
+    unsigned short mClusterSizeTime;        ///< Size of cluster in time direction
     float mDiffThreshold;                   ///< Charge difference threshold, not yet used
     float mChargeThreshold;                 ///< Charge threshold
     unsigned mGlobalTimeOfLast;             ///< Global time of last added time bin
