@@ -14,11 +14,13 @@
 
 #include "FairLogger.h"
 
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "MFTBase/ChipSegmentation.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
 using namespace o2::MFT;
+using namespace o2::ITSMFT;
 
 ClassImp(ChipSegmentation);
 
@@ -47,7 +49,8 @@ ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
                mftGeom->getSensorID(GetUniqueID()) ));
 
   Double_t pos[3];
-  pos[0] = mftGeom->getSensorID(GetUniqueID())*(Geometry::sSensorLength + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
+  pos[0] = mftGeom->getSensorID(GetUniqueID())*
+    (SegmentationAlpide::SensorSizeCols + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
   pos[1] = Geometry::sSensorTopOffset;
   pos[2] = Geometry::sFlexThickness;
   setPosition(pos);

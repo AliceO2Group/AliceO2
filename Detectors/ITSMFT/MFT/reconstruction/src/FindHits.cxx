@@ -14,6 +14,7 @@
 /// \date 10/10/2016
 
 #include "ITSMFTSimulation/Point.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 #include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
@@ -28,6 +29,7 @@
 #include "FairMCEventHeader.h"
 
 using namespace o2::MFT;
+using namespace o2::ITSMFT;
 
 ClassImp(o2::MFT::FindHits)
 
@@ -124,8 +126,8 @@ void FindHits::Exec(Option_t* /*opt*/)
   o2::ITSMFT::Point *point;
   TVector3 pos, dpos;
   Int_t detID, trackID;
-  Double_t dx = Geometry::sXPixelPitch/TMath::Sqrt(12);
-  Double_t dy = Geometry::sYPixelPitch/TMath::Sqrt(12);
+  Double_t dx = SegmentationAlpide::PitchRow/TMath::Sqrt(12);
+  Double_t dy = SegmentationAlpide::PitchCol/TMath::Sqrt(12);
   Double_t dz = 0.;
 
   // Loop over fPoints
