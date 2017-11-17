@@ -44,7 +44,7 @@ class HwClusterer : public Clusterer {
 
     /// Constructor
     /// \param clusterOutput is pointer to vector to be filled with clusters
-    /// \param labelOutput is reference to storage to be filled with MC labels
+    /// \param labelOutput is pointer to storage to be filled with MC labels
     /// \param cru Number of CRUs to process
     /// \param minQDiff Min charge difference
     /// \param assignChargeUnique Avoid using same charge for multiple nearby clusters
@@ -54,7 +54,7 @@ class HwClusterer : public Clusterer {
     /// \param timebinsPerCF Time bins per cluster finder
     HwClusterer(
         std::vector<o2::TPC::Cluster> *clusterOutput,
-        std::unique_ptr<MCLabelContainer> &labelOutput,
+        MCLabelContainer *labelOutput,
         int cruMin = 0,
         int cruMax = 359,
         float minQDiff = 0,
@@ -84,6 +84,10 @@ class HwClusterer : public Clusterer {
     /// Setter for pedestal object, pedestal value will be subtracted before cluster finding
     /// \param pedestalObject CalDet object, containing pedestals for each pad
     void setPedestalObject(std::shared_ptr<CalDet<float>> pedestalObject) { mPedestalObject = pedestalObject; };
+    void setPedestalObject(CalDet<float>* pedestalObject) { 
+      LOG(DEBUG) << "Consider using std::shared_ptr for the pedestal object." << FairLogger::endl; 
+      mPedestalObject = std::shared_ptr<CalDet<float>>(pedestalObject); 
+    };
 
     /// Switch for triggered / continuous readout
     /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -162,8 +166,8 @@ class HwClusterer : public Clusterer {
     std::vector<std::vector<Cluster>> mClusterStorage;                                          ///< Cluster storage for each CRU
     std::vector<std::vector<std::vector<std::pair<int,int>>>> mClusterDigitIndexStorage;        ///< Container for digit indices, used in found clusters. Pair consists of original digit index and event count
 
-    std::vector<Cluster>* mClusterArray;                        ///< Pointer to output cluster storage
-    std::unique_ptr<MCLabelContainer>& mClusterMcLabelArray;    ///< Internal MC Label storage
+    std::vector<Cluster>* mClusterArray;        ///< Pointer to output cluster storage
+    MCLabelContainer* mClusterMcLabelArray;     ///< Pointer to MC Label storage
 
     std::shared_ptr<CalDet<float>> mNoiseObject;                ///< Pointer to the CalDet object for noise simulation
     std::shared_ptr<CalDet<float>> mPedestalObject;             ///< Pointer to the CalDet object for the pedestal subtraction

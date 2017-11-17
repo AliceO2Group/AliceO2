@@ -29,13 +29,13 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
-#include "TPCSimulation/HwClusterer.h"
-#include "TPCSimulation/BoxClusterer.h"
-#include "TPCSimulation/ClusterContainer.h"
+#include "TPCReconstruction/HwClusterer.h"
+#include "TPCReconstruction/BoxClusterer.h"
+#include "TPCReconstruction/ClusterContainer.h"
 #include "TPCBase/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCReconstruction/TrackTPC.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 
 #include "TCanvas.h"
 #endif
@@ -176,7 +176,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   // HW cluster finder
   std::unique_ptr<Clusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer *hwCl = new HwClusterer(&arrCluster, 0, 3);
+    HwClusterer *hwCl = new HwClusterer(&arrCluster, nullptr, 0, 3);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<Clusterer>(hwCl);
@@ -191,7 +191,6 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   }
     
   //cl->setRequirePositiveCharge(false);
-  cl->Init();
 
   // Box cluster finder
   
@@ -212,7 +211,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     if (!arr.size()) {++events; continue;}
     //printf("Converted digits: %zu %f\n", arr.size(), arr.at(0)->getChargeFloat());
 
-    cl->Process(arr);
+    cl->Process(arr,nullptr,events);
 
     // ---| set cherenkov value|---------------------------------------------
     if (istr.is_open()) {

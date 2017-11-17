@@ -30,7 +30,6 @@
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCReconstruction/Cluster.h"
-#include "TPCReconstruction/HwCluster.h"
 #include "TPCBase/Mapper.h"
 #endif
 
@@ -156,7 +155,7 @@ void testHitsDigitsClusters(int iEv=0,
   TFile *clusterFile = TFile::Open(clusFile.data());
   TTree *clusterTree = (TTree *)gDirectory->Get("o2sim");
 
-  std::vector<o2::TPC::HwCluster>  *clustersArray = nullptr;
+  std::vector<o2::TPC::Cluster>  *clustersArray = nullptr;
   clusterTree->SetBranchAddress("TPCClusterHW", &clustersArray);
 
   TGraph *grClustersA = new TGraph();

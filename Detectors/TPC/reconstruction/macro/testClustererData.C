@@ -17,8 +17,8 @@
 #include "TClonesArray.h"
 #include "TString.h"
 
-#include "TPCSimulation/HwClusterer.h"
-#include "TPCSimulation/ClusterContainer.h"
+#include "TPCReconstruction/HwClusterer.h"
+#include "TPCReconstruction/ClusterContainer.h"
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/GBTFrameContainer.h"
 #endif
@@ -48,9 +48,8 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   t.Branch("cl", &arrCluster);
 
   // ===| cluster finder |======================================================
-  HwClusterer cl(&arrCluster);
+  HwClusterer cl(&arrCluster, nullptr);
   cl.setPedestalObject(pedestal);
-  cl.Init();
 
   // ===| loop over all data |==================================================
   int events = 0;
@@ -84,7 +83,7 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
     //}
     //printf("\n");
 
-    cl.Process(arr);
+    cl.Process(arr,nullptr,events);
     t.Fill();
 
     printf("Found clusters: %lu\n", arrCluster.size());

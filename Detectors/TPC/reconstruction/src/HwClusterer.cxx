@@ -31,7 +31,7 @@ using namespace o2::TPC;
 
 //________________________________________________________________________
 HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
-    std::unique_ptr<MCLabelContainer> &labelOutput, int cruMin, int cruMax,
+    MCLabelContainer *labelOutput, int cruMin, int cruMax,
     float minQDiff, bool assignChargeUnique, bool enableNoiseSim,
     bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF)
   : Clusterer()
@@ -256,7 +256,7 @@ void HwClusterer::processDigits(
 void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear();
-  mClusterMcLabelArray->clear();
+  if(mClusterMcLabelArray) mClusterMcLabelArray->clear();
 
 
   /*
@@ -324,7 +324,7 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelCont
 void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear();
-  mClusterMcLabelArray->clear();
+  if(mClusterMcLabelArray) mClusterMcLabelArray->clear();
 
   /*
    * clear old storages
@@ -450,6 +450,7 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax, MCLabelConta
     for(unsigned c = 0; c < clustersFromCRU->size(); ++c) {
       const auto clusterPos = mClusterArray->size();
       mClusterArray->emplace_back(clustersFromCRU->at(c));
+      if (mClusterMcLabelArray == nullptr) continue;
       labelCount.clear();
       labelSort.clear();
 

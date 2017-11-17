@@ -21,8 +21,7 @@
 #include "TPCSimulation/Digitizer.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
-#include "TPCSimulation/Cluster.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 #include "TPCBase/Mapper.h"
 #endif
 

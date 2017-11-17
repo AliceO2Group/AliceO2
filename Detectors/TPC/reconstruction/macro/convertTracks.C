@@ -22,7 +22,7 @@
 
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 #endif
 
 using namespace o2::TPC;
