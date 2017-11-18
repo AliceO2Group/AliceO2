@@ -1,6 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id: AliHLTTPCGMPolynomialField.h 39008 2010-02-18 17:33:32Z sgorbuno $
-// ************************************************************************
+//*************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
@@ -11,86 +10,95 @@
 #ifndef AliHLTTPCGMPolynomialField_H
 #define AliHLTTPCGMPolynomialField_H
 
-#include "AliHLTTPCCADef.h"
-
 /**
  * @class AliHLTTPCGMPolynomialField
  *
  */
 
+
 class AliHLTTPCGMPolynomialField
 {
 public:
 
-  AliHLTTPCGMPolynomialField(): fNominalBzkG(.001) {
-    Init(fNominalBzkG);
+  AliHLTTPCGMPolynomialField() : fNominalBz(0.) {
+    Reset();
   }
-  
-  void Init( float NominalBzkG );  
-  
-  float GetNominalBzkG() const { return fNominalBzkG;}
-  
-  GPUd() void GetField( float x, float y, float z, float B[] ) const;
-  GPUd() float GetFieldBz( float x, float y, float z ) const;
 
-  void DumpField( const char *fileName="field.root" ) const;
+  void Reset();
+
+  void Set( float nominalBz, const float *Bx, const float *By, const float *Bz );
+
+  float GetNominalBz() const { return fNominalBz; }
+
+  void  GetField( float x, float y, float z, float B[3] ) const;
+
+  float GetFieldBz( float x, float y, float z ) const;
+
+  void Print() const;
+
+  static const int fkM = 10; // number of coefficients
+
+  static void GetPolynoms( float x, float y, float z, float f[fkM] );
 
 private:
 
-  static const int fkM = 10;
-
-  float fNominalBzkG; // Bz field constant in kGaus  
-  float fBx[fkM];
+  float fNominalBz; // nominal constant field value in [kG * 2.99792458E-4 GeV/c/cm]
+  float fBx[fkM]; // polynomial coefficients
   float fBy[fkM];
   float fBz[fkM];
 };
 
-inline void AliHLTTPCGMPolynomialField::Init( float NominalBzkG )
+
+inline void AliHLTTPCGMPolynomialField::Reset()
 {
-  const float cBx[fkM] = { -2.58322252193e-05,
-			    2.25564940592e-06, -4.14718357433e-08, -2.75251750281e-06,
-			   -8.72029382037e-09,  1.72417402577e-09,  3.19352068345e-07, -3.28086002810e-09,  5.64790381130e-10,  8.92192542068e-09 };
-
-  const float cBy[fkM] = {  6.37950097371e-06,
-			   -4.46194050596e-08,  9.01212274584e-07,  8.26001087262e-06,
-			    7.99017740860e-10, -7.45108241773e-09,  4.81764572680e-10,  8.35443714209e-10,  3.14677095048e-07, -1.18421328299e-09 };
-  
-  const float cBz[fkM] = {  9.99663949013e-01, -3.54553162651e-06,  7.73496958573e-06, -2.90551361104e-06,
-			    1.69738939348e-07,  5.00871899511e-10,  2.10037196524e-08,  1.66827078374e-07, -2.64136179595e-09, -3.02637317873e-07 };
-
-  const double kCLight = 0.000299792458;
-
-  fNominalBzkG = NominalBzkG; 
-
-  double constBz = fNominalBzkG * kCLight;
-  
-  for( int i=0; i<fkM; i++ ) fBx[i] = constBz*cBx[i];
-  for( int i=0; i<fkM; i++ ) fBy[i] = constBz*cBy[i];
-  for( int i=0; i<fkM; i++ ) fBz[i] = constBz*cBz[i];
+  fNominalBz = 0.f;
+  for( int i=0; i<fkM; i++){
+    fBx[i] = 0.f;
+    fBy[i] = 0.f;
+    fBz[i] = 0.f;
+  }
 }
 
-GPUd() inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, float B[] ) const
+inline void AliHLTTPCGMPolynomialField::Set( float nominalBz, const float *Bx, const float *By, const float *Bz )
 {
-  const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+  if( !Bx || !By || !Bz ){ Reset(); return; }
+  fNominalBz = nominalBz;  
+  for( int i=0; i<fkM; i++){
+    fBx[i] = Bx[i];
+    fBy[i] = By[i];
+    fBz[i] = Bz[i];
+  }
+}
+
+inline void AliHLTTPCGMPolynomialField::GetPolynoms( float x, float y, float z, float f[fkM] )
+{
+  f[0]=1.f;
+  f[1]=x;   f[2]=y;   f[3]=z;
+  f[4]=x*x; f[5]=x*y; f[6]=x*z; f[7]=y*y; f[8]=y*z; f[9]=z*z;
+}
+
+inline void AliHLTTPCGMPolynomialField::GetField( float x, float y, float z, float B[3] ) const
+{
+  const float f[fkM] = { 1.f, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bx = 0.f, by = 0.f, bz = 0.f;
   for( int i=0; i<fkM; i++){
-    bx+= fBx[i]*f[i];
-    by+= fBy[i]*f[i];
-    bz+= fBz[i]*f[i];
+    bx += fBx[i]*f[i];
+    by += fBy[i]*f[i];
+    bz += fBz[i]*f[i];
   }
   B[0] = bx;
   B[1] = by;
   B[2] = bz;
 }
 
-GPUd() inline float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, float z ) const
+inline float AliHLTTPCGMPolynomialField::GetFieldBz( float x, float y, float z ) const
 {
-  const float f[fkM] = { 1, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
+  const float f[fkM] = { 1.f, x, y, z, x*x, x*y, x*z, y*y, y*z, z*z };
   float bz = 0.f;
   for( int i=0; i<fkM; i++){
-    bz+= fBz[i]*f[i];
+    bz += fBz[i]*f[i];
   }
   return bz;
 }
 
-#endif 
+#endif

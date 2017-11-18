@@ -1,9 +1,9 @@
-// $Id: AliHLTTPCGMPolynomialField.cxx 41769 2010-06-16 13:58:00Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
-// Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
+// Primary Authors: Vito Nordloh <vito.nordloh@vitonordloh.de>              *
+//                  Sergey Gorbunov <sergey.gorbunov@fias.uni-frankfurt.de> *
 //                  for The ALICE HLT Project.                              *
 //                                                                          *
 // Permission to use, copy, modify and distribute this software and its     *
@@ -17,82 +17,50 @@
 //***************************************************************************
 
 #include "AliHLTTPCGMPolynomialField.h"
-#include <cmath>
 
 
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
 
-#include "AliTracker.h"
-#include "AliHLTTPCGeometry.h"
-#include "TFile.h"
-#include "TMath.h"
-#include "TNtuple.h"
-#include "Riostream.h"
+#include <iostream>
+#include <iomanip>
+#include <limits>
 
-void AliHLTTPCGMPolynomialField::DumpField( const char *fileName ) const
+using namespace std;
+
+void AliHLTTPCGMPolynomialField::Print() const
 {
-
-  const double sectorAngleShift = 10./180.*TMath::Pi();
-  const double sectorAngle = 20./180.*TMath::Pi();
-  const int nRows = AliHLTTPCGeometry::GetNRows();
+  const double kCLight = 0.000299792458;
+  typedef std::numeric_limits< float > flt;  
+  cout<<std::scientific;
+  cout<<std::setprecision( flt::max_digits10+2 );
+  cout<<" nominal field "<< fNominalBz <<" [kG * (2.99792458E-4 GeV/c/kG/cm)]"
+      <<" == "<<fNominalBz/kCLight<<" [kG]"<<endl;
   
-  double xMin = AliHLTTPCGeometry::Row2X(0);
-  double xMax = AliHLTTPCGeometry::Row2X(nRows-1);
-  double rMin = xMin;
-  double rMax = xMax/TMath::Cos(sectorAngle/2.);  
-  double dA = 1./rMax; // angular step == 1 cm at outer radius
-  int nSectorParticles = (int) (sectorAngle/dA);
-  dA = sectorAngle/nSectorParticles;
-    
-  double zMin = -AliHLTTPCGeometry::GetZLength();
-  double zMax =  AliHLTTPCGeometry::GetZLength();
-
-  double alMin = -sectorAngle/2.;
-  double alMax =  sectorAngle/2. - 0.5*dA;
-     
-  Double_t solenoidBz = AliTracker::GetBz();
-  
-  cout<<"solenoidBz "<<solenoidBz<<endl;
-
-  TFile *file = new TFile(fileName,"RECREATE");
-  file->cd();
-  TNtuple *nt = new TNtuple("field","field","x:y:z:Bx:By:Bz");
-     
-  for( int sector=0; sector<18; sector++){
-    double asec = sectorAngleShift + sector*sectorAngle;
-    double cs = TMath::Cos(asec);
-    double ss = TMath::Sin(asec);
-    for( double al=alMin; al<alMax; al+=dA ){
-      double tg = TMath::Tan(al);
-      for( int row=0; row<AliHLTTPCGeometry::GetNRows(); row++){
-	double xl = AliHLTTPCGeometry::Row2X(row);
-	double yl = xl*tg;
-	double x = xl*cs - yl*ss;
-	double y = xl*ss + yl*cs;
-	cout<<"sector = "<<sector<<" al = "<<al/TMath::Pi()*180.<<" xl "<<xl<<" yl "<<yl<<endl;
-	
-	for( double z=zMin; z<=zMax; z+=1. ){ // 1 cm step in Z
-	  Double_t xyz[3] = {x,y,z};
-	  Double_t B[3];
-	  AliTracker::GetBxByBz(xyz,B);	  
-	  B[0]/=solenoidBz;
-	  B[1]/=solenoidBz;
-	  B[2]/=solenoidBz;	  
-	  nt->Fill(x,y,z,B[0],B[1],B[2]);
-	}
-      }
-    }
+  cout<<" Bx[fkM] = { ";
+  for( int i=0; i<fkM; i++){
+    cout<<fBx[i];
+    if( i<fkM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
   }
-  nt->Write();
-  file->Write();
-  file->Close();
-  delete file;
-  //delete nt;  
+
+  cout<<" By[fkM] = { ";
+  for( int i=0; i<fkM; i++){
+    cout<<fBy[i];
+    if( i<fkM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
+
+  cout<<" Bz[fkM] = { ";
+  for( int i=0; i<fkM; i++){
+    cout<<fBz[i];
+    if( i<fkM-1 ) cout<<", ";
+    else cout<<" };"<<endl;
+  }
 }
- 
+
 #else
 
-void AliHLTTPCGMPolynomialField::DumpField( const char *) const
+void AliHLTTPCGMPolynomialField::Print() const
 {
   // do nothing
 }

@@ -39,7 +39,7 @@ public:
   AliHLTTPCGMMerger();
   ~AliHLTTPCGMMerger();
   
-  void SetSliceParam( const AliHLTTPCCAParam &v ) { fSliceParam = v; }
+  void SetSliceParam( const AliHLTTPCCAParam &v );
   
   void Clear();
   void SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData );
