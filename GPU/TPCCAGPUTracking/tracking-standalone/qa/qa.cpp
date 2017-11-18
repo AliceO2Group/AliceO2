@@ -25,6 +25,7 @@
 #include "TF1.h"
 #include "TFile.h"
 #include "TStyle.h"
+#include "Riostream.h"
 
 #include "../cmodules/qconfig.h"
 #include "../cmodules/timer.h"
@@ -495,7 +496,7 @@ void RunQA()
 		const float kRadLen = 29.532;//28.94;
 		prop.SetMaxSinPhi( .999 );
 		prop.SetMaterial( kRadLen, kRho );
-		prop.SetPolynomialField( merger.pField() );
+		prop.SetPolynomialField( merger.pField() );		
 		prop.SetUseMeanMomentum(kFALSE );
 		prop.SetContinuousTracking( kFALSE );
 		
@@ -868,7 +869,7 @@ int DrawQAHistograms()
 		}
 		legendeff[ii]->Draw();
 		sprintf(fname, "eff_vs_%s.pdf", VSParameterNames[ii]);
-		ceff[ii]->Print(fname);
+		ceff[ii]->Print(fname);		
 	}
 
 	//Process / Draw Resolution Histograms

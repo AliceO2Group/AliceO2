@@ -45,6 +45,7 @@ HLTCA_MERGER_CXXFILES			= merger-ca/AliHLTTPCGMMerger.cxx \
                                           merger-ca/AliHLTTPCGMSliceTrack.cxx \
                                           merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx \
                                           merger-ca/AliHLTTPCGMPolynomialField.cxx \
+                                          merger-ca/AliHLTTPCGMPolynomialFieldCreator.cxx \
                                           merger-ca/AliHLTTPCGMPropagator.cxx \
                                           merger-ca/AliHLTTPCGMTrackParam.cxx
 

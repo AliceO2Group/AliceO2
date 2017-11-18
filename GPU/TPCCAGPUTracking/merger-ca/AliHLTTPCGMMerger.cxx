@@ -22,6 +22,8 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCGMCluster.h"
+#include "AliHLTTPCGMPolynomialField.h"
+#include "AliHLTTPCGMPolynomialFieldCreator.h"
 
 #include "AliHLTTPCGMMerger.h"
 
@@ -74,7 +76,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fPrevSliceInd[ 0 ] = mid;  fNextSliceInd[ last ] = fgkNSlices / 2;
   fPrevSliceInd[ fgkNSlices/2 ] = last;
 
-  fField.Init(0.001); // set very wrong initial value in order to see if the field was not properly initialised    
+  fField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised    
   
   Clear();
 }
@@ -100,7 +102,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
     fNextSliceInd[iSlice] = 0;
     fPrevSliceInd[iSlice] = 0;
   }
-  fField.Init(0.001);
+  fField.Reset();
 
   Clear();
 }
@@ -115,6 +117,12 @@ AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
 {
   //* destructor
   ClearMemory();
+}
+
+void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v )
+{
+  fSliceParam = v;
+  AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( v.BzkG(), fField );
 }
 
 void AliHLTTPCGMMerger::Clear()
@@ -157,8 +165,6 @@ bool AliHLTTPCGMMerger::Reconstruct()
   //* main merging routine
 
   //fSliceParam.LoadClusterErrors();
-  
-  fField.Init( fSliceParam.BzkG() );  
   
   int nIter = 1;
 #ifdef HLTCA_STANDALONE
@@ -375,7 +381,7 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
 
     if( track.Used() ) continue;
     AliHLTTPCGMBorderTrack &b = B[nB];
-    
+
     if(  track.TransportToXAlpha( x0, sinAlpha, cosAlpha, fieldBz, b, maxSin)){
       b.SetTrackID( itr );
       b.SetNClusters( track.NClusters() );
