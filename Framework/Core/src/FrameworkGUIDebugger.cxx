@@ -236,8 +236,7 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
   ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - 300), 0);
   ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 300), 0);
 
-  // Calculate the unique set of metrics, as available in the metrics
-  // service
+  // Calculate the unique set of metrics, as available in the metrics service
   std::set<std::string> allMetricsNames;
   for (const auto &metricsInfo : metricsInfos) {
     for (const auto &labelsPairs : metricsInfo.metricLabelsIdx) {

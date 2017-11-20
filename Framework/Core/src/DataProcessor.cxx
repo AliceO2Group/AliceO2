@@ -12,7 +12,6 @@
 #include "Framework/MessageContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Headers/DataHeader.h"
-#include <TClonesArray.h>
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
 
@@ -35,20 +34,20 @@ void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
 }
 
 void DataProcessor::doSend(FairMQDevice &device, RootObjectContext &context) {
-  for (auto &message : context) {
-    assert(message.payload.get());
+  for (auto &messageRef : context) {
+    assert(messageRef.payload.get());
     FairMQParts parts;
     FairMQMessagePtr payload(device.NewMessage());
-    TClonesArray *a = reinterpret_cast<TClonesArray*>(message.payload.get());
+    auto a = messageRef.payload.get();
     device.Serialize<TMessageSerializer>(*payload, a);
-    const DataHeader *cdh = o2::Header::get<DataHeader>(message.header->GetData());
+    const DataHeader *cdh = o2::Header::get<DataHeader>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
     DataHeader *dh = const_cast<DataHeader *>(cdh);
     dh->payloadSize = payload->GetSize();
-    parts.AddPart(std::move(message.header));
+    parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    device.Send(parts, message.channel, 0);
+    device.Send(parts, messageRef.channel, 0);
   }
 }
 
