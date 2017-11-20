@@ -15,7 +15,7 @@ AlgorithmSpec simplePipe(o2::Header::DataDescription what) {
   return AlgorithmSpec{
     [what](ProcessingContext &ctx)
       {
-        auto bData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", what, 0}, 1);
+        auto bData = ctx.allocator().make<int>(OutputSpec{"TST", what, 0}, 1);
       }
     };
 }
@@ -33,8 +33,8 @@ void defineDataProcessing(WorkflowSpec &specs) {
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
-       auto bData = ctx.allocator().newCollectionChunk<int>(OutputSpec{"TST", "A2", 0}, 1);
+       auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "A1", 0}, 1);
+       auto bData = ctx.allocator().make<int>(OutputSpec{"TST", "A2", 0}, 1);
       }
     }
   },

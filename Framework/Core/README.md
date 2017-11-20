@@ -442,20 +442,14 @@ that only  messages for declared  outputs can be created.  The `DataAllocator`
 provides methods  to create and adopt  data in a number  of formats. Currently
 supported formats are:
 
-- Vanilla `char *` buffers with associated size
-- TClonesArray (which gets serialised to a TMessage for exchange)
-- PoD collection, as  defined in `Framework/Collection.h` .  The available API
-  is the following:
-
-
-    class DataAllocator {
-    public:
-      ...
-      DataChunk newChunk(const OutputSpec &, size_t);
-      DataChunk adoptChunk(const OutputSpec &, char *, size_t, fairmq_free_fn*, void *);
-      TClonesArray &newTClonesArray(const OutputSpec &, const char *, size_t);
-      template <class T>  Collection<T> newCollectionChunk(const OutputSpec &spec, size_t nElements);
-    };
+- Vanilla `char *` buffers with associated size. This is the actual contents of
+  the FairMQ message.
+- POD types. These get directly mapped on the message exchanged by FairMQ and 
+  are therefore "zerocopy" for what the DataProcessingLayer is concerned.
+- POD collections, as defined in `Framework/Collection.h`
+- TObject derived classes. These are actually serialised via a TMessage
+  and therefore are only suitable for the cases in which the cost of such a 
+  serialization is not an issue.
 
 The DataChunk object resembles a `iovec`:
 

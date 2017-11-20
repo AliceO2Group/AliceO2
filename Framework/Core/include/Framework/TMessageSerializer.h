@@ -10,6 +10,8 @@
 #ifndef FRAMEWORK_TMESSAGESERIALIZER_H
 #define FRAMEWORK_TMESSAGESERIALIZER_H
 
+#include <fairmq/FairMQMessage.h>
+
 #include <TMessage.h>
 #include <TClonesArray.h>
 
@@ -34,17 +36,17 @@ static void free_tmessage(void* /*data*/, void* hint)
 
 struct TMessageSerializer
 {
-  void Serialize(FairMQMessage& msg, TClonesArray* input)
+  void Serialize(FairMQMessage& msg, TObject* input)
   {
     TMessage* tm = new TMessage(kMESS_OBJECT);
     tm->WriteObject(static_cast<TObject *>(input));
     msg.Rebuild(tm->Buffer(), tm->BufferSize(), free_tmessage, tm);
   }
 
-  void Deserialize(FairMQMessage& msg, TClonesArray*& output)
+  void Deserialize(FairMQMessage& msg, TObject*& output)
   {
     FairTMessage tm(msg.GetData(), msg.GetSize());
-    output = reinterpret_cast<TClonesArray*>(tm.ReadObject(tm.GetClass()));
+    output = reinterpret_cast<TObject*>(tm.ReadObject(tm.GetClass()));
   }
 };
 

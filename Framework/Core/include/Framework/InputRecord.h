@@ -11,9 +11,13 @@
 #define FRAMEWORK_INPUTRECORD_H
 
 #include "Framework/DataRef.h"
+#include "Framework/DataRefUtils.h"
 #include "Framework/InputRoute.h"
 
 #include <fairmq/FairMQMessage.h>
+#include <Framework/TMessageSerializer.h>
+
+#include <TClass.h>
 
 #include <iterator>
 #include <string>
@@ -22,6 +26,7 @@
 #include <cassert>
 #include <exception>
 #include <memory>
+#include <type_traits>
 
 namespace o2 {
 namespace framework {
@@ -32,19 +37,19 @@ struct InputSpec;
 /// they are  being processed.  The user can  get an instance  for it  via the
 /// ProcessingContext and can use it to retrieve the inputs, either by name or
 /// by index.  A few utility  methods are  provided to automatically  cast the
-/// inputs to  known types. The user  is also allowed to  override the `getAs`
+/// inputs to  known types. The user is also allowed to  override the `get`
 /// template and provide his own serialization mechanism.
 class InputRecord {
 public:
   InputRecord(std::vector<InputRoute> const &inputs,
-                 std::vector<std::unique_ptr<FairMQMessage>> const &cache);
+              std::vector<std::unique_ptr<FairMQMessage>> const &cache);
 
   int getPos(const char *name) const;
   int getPos(const std::string &name) const;
 
   DataRef getByPos(int pos) const {
     if (pos*2 >= mCache.size() || pos < 0) {
-      throw std::runtime_error("Unknown argument requested");
+      throw std::runtime_error("Unknown argument requested at position " + std::to_string(pos));
     }
     assert(pos >= 0);
     return DataRef{&mInputsSchema[pos].matcher,
@@ -52,17 +57,69 @@ public:
                    static_cast<char const*>(mCache[pos*2+1]->GetData())};
   }
 
-  DataRef get(const char *name) const {
-    return getByPos(getPos(name));
+  // Generic function to automatically cast the contents of 
+  // a payload bound by @a binding to a known type. This will
+  // not be used if the type is a TObject as extra deserialization
+  // needs to happen.
+  template <typename T>
+  typename std::enable_if<std::is_pod<T>::value && std::is_same<T, DataRef>::value == false, T>::type const&
+  get(char const *binding) const {
+    return *reinterpret_cast<T const *>(get<DataRef>(binding).payload);
   }
 
-  DataRef get(std::string const &name) const {
-    return getByPos(getPos(name));
+  // If we ask for a char const *, we simply point to the payload. Notice this
+  // is meant for C-style strings. If you want to actually get hold of the buffer,
+  // use get<DataRef> (or simply get) as that will give you the size as well.
+  // FIXME: check that the string is null terminated.
+  template <typename T>
+  typename std::enable_if<std::is_same<T, char const *>::value, T>::type
+  get(char const *binding) const {
+    return reinterpret_cast<char const *>(get<DataRef>(binding).payload);
   }
 
+  // If we ask for a string, we need to duplicate it because we do not want
+  // the buffer to be deleted when it goes out of scope.
+  // FIXME: check that the string is null terminated.
+  template <typename T>
+  typename std::enable_if<std::is_same<T, std::string>::value, T>::type
+  get(char const *binding) const {
+    return std::string(get<DataRef>(binding).payload);
+  }
+
+  // DataRef is special. Since there is no point in storing one in a payload,
+  // what it actually does is to return the DataRef used to hold the 
+  // (header, payload) pair.
+  template <typename T = DataRef>
+  typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
+  get(const char *binding) const {
+    try {
+      return getByPos(getPos(binding));
+    } catch(...) {
+      throw std::runtime_error("Unknown argument requested" + std::string(binding));
+    }
+  }
+
+  // DataRef is special. Since there is no point in storing one in a payload,
+  // what it actually does is to return the DataRef used to hold the 
+  // (header, payload) pair.
+  template <class T = DataRef>
+  typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
+  get(std::string const &binding) const {
+    return getByPos(getPos(binding));
+  }
+
+  // Notice that this will return a copy of the actual contents of
+  // the buffer, because the buffer is actually serialised, for this
+  // reason we return a unique_ptr<T>.
+  // FIXME: does it make more sense to keep ownership of all the deserialised 
+  // objects in a single place so that we can avoid duplicate deserializations?
   template <class T>
-  T const &getAs(char const *name) const {
-    return *reinterpret_cast<T const *>(get(name).payload);
+  typename std::unique_ptr<typename std::enable_if<std::is_base_of<TObject, T>::value == true, T>::type>
+  get(char const *binding) const {
+    using DataHeader = o2::Header::DataHeader;
+
+    auto ref = this->get(binding);
+    return std::move(DataRefUtils::as<T>(ref));
   }
 
   size_t size() const {

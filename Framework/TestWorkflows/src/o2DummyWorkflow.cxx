@@ -43,7 +43,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
        sleep(1);
        // Creates a new message of size 1000 which
        // has "TPC" as data origin and "CLUSTERS" as data description.
-       auto tpcClusters = ctx.allocator().newCollectionChunk<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
+       auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
        int i = 0;
 
        for (auto &cluster : tpcClusters) {
@@ -55,7 +55,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
          i++;
        }
 
-       auto itsClusters = ctx.allocator().newCollectionChunk<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
+       auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
        i = 0;
        for (auto &cluster : itsClusters) {
          assert(i < 1000);
@@ -81,7 +81,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     AlgorithmSpec{
     [](ProcessingContext &ctx)
       {
-        auto tpcSummary = ctx.allocator().newCollectionChunk<Summary>(OutputSpec{"TPC", "SUMMARY", 0}, 1);
+        auto tpcSummary = ctx.allocator().make<Summary>(OutputSpec{"TPC", "SUMMARY", 0}, 1);
         tpcSummary.at(0).inputCount = ctx.inputs().size();
       }
     },
@@ -103,7 +103,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
-        auto itsSummary = ctx.allocator().newCollectionChunk<Summary>(OutputSpec{"ITS", "SUMMARY", 0}, 1);
+        auto itsSummary = ctx.allocator().make<Summary>(OutputSpec{"ITS", "SUMMARY", 0}, 1);
         itsSummary.at(0).inputCount = ctx.inputs().size();
       }
     },

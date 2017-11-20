@@ -17,8 +17,9 @@
 namespace o2 {
 namespace framework {
 
-using DataHeader= o2::Header::DataHeader;
-using DataProcessingHeader= o2::framework::DataProcessingHeader;
+using DataHeader = o2::Header::DataHeader;
+using DataDescription = o2::Header::DataDescription;
+using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 DataAllocator::DataAllocator(FairMQDevice *device,
                              MessageContext *context,
@@ -115,10 +116,10 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
   return DataChunk{reinterpret_cast<char *>(dataPtr), dataSize};
 }
 
-TClonesArray&
-DataAllocator::newTClonesArray(const OutputSpec &spec, const char *className, size_t nElements) {
-  std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-
+FairMQMessagePtr
+DataAllocator::headerMessageFromSpec(OutputSpec const &spec,
+                                     std::string const &channel,
+                                     o2::Header::SerializationMethod method) {
   DataHeader dh;
   dh.dataOrigin = spec.origin;
   dh.dataDescription = spec.description;
@@ -126,6 +127,7 @@ DataAllocator::newTClonesArray(const OutputSpec &spec, const char *className, si
   // the correct payload size is st later when sending the
   // RootObjectContext, see DataProcessor::doSend
   dh.payloadSize = 0;
+  dh.payloadSerializationMethod = method;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
@@ -136,13 +138,16 @@ DataAllocator::newTClonesArray(const OutputSpec &spec, const char *className, si
                                                           &o2::Header::Stack::freefn,
                                                           headerStack.buffer.get());
   headerStack.buffer.release();
+  return std::move(headerMessage);
+}
 
-  auto payload = std::make_unique<TClonesArray>(className, nElements);
-  payload->SetOwner(kTRUE);
-  auto &result = *payload.get();
-  mRootContext->addObject(std::move(headerMessage), std::move(payload), channel);
+void
+DataAllocator::adopt(const OutputSpec &spec, TObject*ptr) {
+  std::unique_ptr<TObject> payload(ptr);
+  std::string channel = matchDataHeader(spec, mRootContext->timeslice());
+  auto header = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
+  mRootContext->addObject(std::move(header), std::move(payload), channel);
   assert(payload.get() == nullptr);
-  return result;
 }
 
 }

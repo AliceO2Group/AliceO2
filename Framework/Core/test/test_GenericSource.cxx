@@ -25,7 +25,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
          ServiceRegistry& services,
          DataAllocator& allocator) {
        sleep(1);
-       auto aData = allocator.newCollectionChunk<int>(OutputSpec{"TST", "A1", 0}, 1);
+       auto aData = allocator.make<int>(OutputSpec{"TST", "A1", 0}, 1);
       }
     },
     Options{{"test-option", VariantType::String, "test", "A test option"}},
