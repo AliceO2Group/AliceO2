@@ -236,7 +236,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto errorHandling = [&errorCallback,
                         &metricsService,
                         &serviceRegistry](std::exception &e, InputRecord &record) {
-    LOG(DEBUG) << "Exception caught" << e.what() << std::endl;
+    LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
       metricsService.post("error", 1);
       ErrorContext errorContext{record, serviceRegistry, e};
