@@ -34,7 +34,7 @@ class Clusterer {
   public:
 
     /// Default Constructor
-    Clusterer() : Clusterer(18, 138, 1024, 5, true, true) {};
+    Clusterer() = delete;
 
     /// Constructor
     /// \param rowsMax Max number of rows to process
@@ -43,8 +43,13 @@ class Clusterer {
     /// \param minQMax Minimum peak charge for cluster
     /// \param requirePositiveCharge Positive charge is required
     /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
-    Clusterer(int rowsMax, int padsMax, int timeBinsMax, int minQMax,
-        bool requirePositiveCharge, bool requireNeighbouringPad);
+    Clusterer(
+        int rowsMax = 18,
+        int padsMax = 138,
+        int timeBinsMax = 1024,
+        int minQMax = 5,
+        bool requirePositiveCharge = true,
+        bool requireNeighbouringPad = true);
 
     /// Destructor
     virtual ~Clusterer() = default;

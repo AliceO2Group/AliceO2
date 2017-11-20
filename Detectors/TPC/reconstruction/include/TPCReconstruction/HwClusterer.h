@@ -52,17 +52,29 @@ class HwClusterer : public Clusterer {
     /// \param enablePedestalSubtraction Enables the Pedestal subtraction (pedestal object has to be set)
     /// \param padsPerCF Pads per cluster finder
     /// \param timebinsPerCF Time bins per cluster finder
+    /// \param rowsMax Max number of rows to process
+    /// \param padsMax Max number of pads to process
+    /// \param timeBinsMax Max number of timebins to process
+    /// \param minQMax Minimum peak charge for cluster
+    /// \param requirePositiveCharge Positive charge is required
+    /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
     HwClusterer(
         std::vector<o2::TPC::Cluster> *clusterOutput,
         MCLabelContainer *labelOutput,
         int cruMin = 0,
         int cruMax = 359,
         float minQDiff = 0,
-        bool assignChargeUnique = false,
+        bool assignChargeUnique = true,//false,
         bool enableNoiseSim = true,
         bool enablePedestalSubtraction = true,
         int padsPerCF = 8,
-        int timebinsPerCF = 8);
+        int timebinsPerCF = 8,
+        int rowsMax = 18,
+        int padsMax = 138,
+        int timeBinsMax = 1024,
+        int minQMax = 5,
+        bool requirePositiveCharge = true,
+        bool requireNeighbouringPad = true);
 
     /// Destructor
     ~HwClusterer() override;

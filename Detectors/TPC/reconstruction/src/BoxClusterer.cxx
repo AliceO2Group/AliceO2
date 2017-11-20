@@ -103,8 +103,10 @@ ClassImp(o2::TPC::BoxClusterer)
 using namespace o2::TPC;
 
 //________________________________________________________________________
-BoxClusterer::BoxClusterer(std::vector<o2::TPC::Cluster> *output):
-  Clusterer(),
+BoxClusterer::BoxClusterer(std::vector<o2::TPC::Cluster> *output,
+    int rowsMax, int padsMax, int timeBinsMax, int minQMax,
+    bool requirePositiveCharge, bool requireNeighbouringPad):
+  Clusterer(rowsMax,padsMax,timeBinsMax,minQMax,requirePositiveCharge,requireNeighbouringPad),
   mClusterArray(output),
   mAllBins(nullptr),
   mAllSigBins(nullptr),

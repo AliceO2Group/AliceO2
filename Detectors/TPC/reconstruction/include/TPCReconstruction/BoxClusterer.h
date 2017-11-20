@@ -32,7 +32,22 @@ namespace o2{
 
     class BoxClusterer : public Clusterer {
     public:
-      BoxClusterer(std::vector<o2::TPC::Cluster> *output);
+
+    /// Constructor
+    /// \param output is pointer to vector to be filled with clusters
+    /// \param rowsMax Max number of rows to process
+    /// \param padsMax Max number of pads to process
+    /// \param timeBinsMax Max number of timebins to process
+    /// \param minQMax Minimum peak charge for cluster
+    /// \param requirePositiveCharge Positive charge is required
+    /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
+      BoxClusterer(std::vector<o2::TPC::Cluster> *output,
+        int rowsMax = 18,
+        int padsMax = 138,
+        int timeBinsMax = 1024,
+        int minQMax = 5,
+        bool requirePositiveCharge = true,
+        bool requireNeighbouringPad = true);
 
       /// Destructor
       ~BoxClusterer() override;

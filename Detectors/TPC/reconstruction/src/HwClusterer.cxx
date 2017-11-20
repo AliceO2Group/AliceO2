@@ -33,8 +33,10 @@ using namespace o2::TPC;
 HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
     MCLabelContainer *labelOutput, int cruMin, int cruMax,
     float minQDiff, bool assignChargeUnique, bool enableNoiseSim,
-    bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF)
-  : Clusterer()
+    bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF,
+    int rowsMax, int padsMax, int timeBinsMax, int minQMax,
+    bool requirePositiveCharge, bool requireNeighbouringPad)
+  : Clusterer(rowsMax,padsMax,timeBinsMax,minQMax,requirePositiveCharge,requireNeighbouringPad)
   , mAssignChargeUnique(assignChargeUnique)
   , mEnableNoiseSim(enableNoiseSim)
   , mEnablePedestalSubtraction(enablePedestalSubtraction)
@@ -59,7 +61,7 @@ HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
   /*
    * initialize all cluster finder
    */
-  unsigned iCfPerRow = (unsigned)ceil((double)(mPadsMax+2+2)/(mPadsPerCF-2-2));
+  unsigned iCfPerRow = (unsigned)ceil((double)(mPadsMax+2+2)/(static_cast<int>(mPadsPerCF)-2-2));
   mClusterFinder.resize(mCRUMax+1);
   const Mapper& mapper = Mapper::instance();
   for (unsigned iCRU = mCRUMin; iCRU <= mCRUMax; ++iCRU){
@@ -67,7 +69,7 @@ HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
     for (int iRow = 0; iRow < mapper.getNumberOfRowsPartition(iCRU); ++iRow){
       mClusterFinder[iCRU][iRow].resize(iCfPerRow);
       for (unsigned iCF = 0; iCF < iCfPerRow; ++iCF){
-        int padOffset = iCF*(mPadsPerCF-2-2)-2;
+        int padOffset = iCF*(static_cast<int>(mPadsPerCF)-2-2)-2;
         mClusterFinder[iCRU][iRow][iCF] = std::make_shared<HwClusterFinder>(iCRU,iRow,padOffset,mPadsPerCF,mTimebinsPerCF,mMinQDiff,mMinQMax,mRequirePositiveCharge);
         mClusterFinder[iCRU][iRow][iCF]->setAssignChargeUnique(mAssignChargeUnique);
 

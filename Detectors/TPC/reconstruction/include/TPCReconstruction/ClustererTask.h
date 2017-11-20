@@ -78,7 +78,7 @@ class ClustererTask : public FairTask{
     /// \return  Pointer to Clusterer, nullptr if Clusterer was not enabled during Init()
     BoxClusterer* getBoxClusterer()   const { return mBoxClusterer.get(); };
     
-    /// Returns pointer to Box Clusterer
+    /// Returns pointer to Hw Clusterer
     /// \return  Pointer to Clusterer, nullptr if Clusterer was not enabled during Init()
     HwClusterer* getHwClusterer()     const { return mHwClusterer.get(); };
 

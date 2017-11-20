@@ -51,7 +51,7 @@ class HwClusterFinder {
     /// \param chargeThreshold Minimum charge of cluster peak
     /// \param requirePositiveCharge Charge >0 required
     HwClusterFinder(unsigned short cru, unsigned short row,
-        unsigned short padOffset, unsigned short pads=8, unsigned short timebins=8,
+        short padOffset, unsigned short pads=8, unsigned short timebins=8,
         float diffThreshold=0, float chargeThreshold=5, bool requirePositiveCharge=true);
 
     /// Destructor
@@ -95,7 +95,7 @@ class HwClusterFinder {
 
     /// Getter function
     /// \return Configured pad offset of this CF
-    unsigned short getPadOffset() const { return mPadOffset; }
+    short getPadOffset() const { return mPadOffset; }
 
     /// Getter function
     /// \return Width of CF in pad direction
@@ -158,9 +158,9 @@ class HwClusterFinder {
     bool mRequireNeighbouringPad;           ///< Switch if at least one neighboring pad needs charge > 0
     bool mRequireNeighbouringTimebin;       ///< Switch if at least one neighboring time bin needs charge > 0
     bool mAssignChargeUnique;               ///< Switch for "charge splitting", TODO: not yet properly implemented
+    short mPadOffset;                       ///< Pad number in row of leftmost pad (can be negative for leftmost CF)
     unsigned short mCRU;                    ///< CRU number
     unsigned short mRow;                    ///< Row number
-    unsigned short mPadOffset;              ///< Pad number in row of leftmost pad
     unsigned short mPads;                   ///< Size of CF in pad direction
     unsigned short mTimebins;               ///< Size of CF in time direction
     unsigned short mClusterSizePads;        ///< Size of cluster in pad direction

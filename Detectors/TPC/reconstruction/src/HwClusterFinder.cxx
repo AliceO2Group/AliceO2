@@ -25,16 +25,16 @@ using namespace o2::TPC;
 //________________________________________________________________________
 HwClusterFinder::HwClusterFinder(
     unsigned short cru, unsigned short row,
-    unsigned short padOffset, unsigned short pads, unsigned short timebins,
+    short padOffset, unsigned short pads, unsigned short timebins,
     float diffThreshold, float chargeThreshold,
     bool requirePositiveCharge)
   : mRequirePositiveCharge(requirePositiveCharge)
   , mRequireNeighbouringPad(false)//true)
   , mRequireNeighbouringTimebin(true)
   , mAssignChargeUnique(false)//true)
+  , mPadOffset(padOffset)
   , mCRU(cru)
   , mRow(row)
-  , mPadOffset(padOffset)
   , mPads(pads)
   , mTimebins(timebins)
   , mClusterSizePads(5)
