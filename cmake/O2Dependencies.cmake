@@ -343,7 +343,8 @@ o2_define_bucket(
     fairroot_geom
 
     DEPENDENCIES
-    Base GeoBase ParBase Geom Core VMC
+    FairTools
+    Base GeoBase ParBase Geom Core VMC Tree
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
@@ -357,6 +358,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     root_base_bucket
+    fairroot_geom
     Base
     FairTools
     FairRoot::FairMQ
@@ -394,6 +396,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${MS_GSL_INCLUDE_DIR}
 )
 
@@ -694,6 +697,7 @@ o2_define_bucket(
     Gen
     Base
     TreePlayer
+    Steer
     #   Core
     #    root_base_bucket
     #    fairroot_geom
