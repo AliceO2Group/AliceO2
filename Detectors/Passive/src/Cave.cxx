@@ -26,6 +26,7 @@
 #include "FairGeoLoader.h"     // for FairGeoLoader
 #include "include/DetectorsPassive/GeoCave.h"
 #include "TString.h"           // for TString
+#include "FairLogger.h"
 #include <cstddef>            // for NULL
 
 using namespace o2::Passive;
@@ -46,14 +47,14 @@ void Cave::ConstructGeometry()
 
 }
 Cave::Cave()
-:FairModule()
+:FairDetector()
 {
 }
 
 Cave::~Cave()
 = default;
 Cave::Cave(const char* name,  const char* Title)
-  : FairModule(name ,Title)
+  : FairDetector(name ,Title)
 {
   mWorld[0] = 0;
   mWorld[1] = 0;
@@ -61,7 +62,7 @@ Cave::Cave(const char* name,  const char* Title)
 }
 
 Cave::Cave(const Cave& rhs)
-  : FairModule(rhs)
+  : FairDetector(rhs)
 {
   mWorld[0] = rhs.mWorld[0];
   mWorld[1] = rhs.mWorld[1];
@@ -87,4 +88,16 @@ Cave& Cave::operator=(const Cave& rhs)
 FairModule* Cave::CloneModule() const
 {
   return new Cave(*this);
+}
+
+void Cave::FinishPrimary() {
+  LOG(DEBUG) << "CAVE: Primary finished" << FairLogger::endl;
+  for(auto& f : mFinishPrimaryHooks){
+    f();
+  }
+}
+
+bool Cave::ProcessHits(FairVolume*) {
+  LOG(FATAL) << "CAVE ProcessHits called; should never happen" << FairLogger::endl;
+  return false;
 }
