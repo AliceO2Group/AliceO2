@@ -15,6 +15,7 @@
 
 #include "RootObjectMergerSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
 #include "Headers/DataHeader.h"
 #include "QCCommon/TMessageWrapper.h"
 #include "QCMerger/Merger.h"
@@ -57,11 +58,10 @@ DataProcessorSpec getRootObjectMergerSpec() {
       << " " << dh->dataDescription.str
       << " " << dh->payloadSize
       << std::endl;
-      auto message = std::make_unique<TMessageWrapper>(const_cast<char*>(input.payload),
-                                                       dh->payloadSize);
-      auto object = reinterpret_cast<TObject*>(message->ReadObject(message->GetClass()));
-      if (!object) continue;
-      auto merged = merger->mergeObject(object);
+      auto obj = framework::DataRefUtils::as<TObject>(input);
+      // FIXME: mergeObject should probably use either a shared_ptr
+      // or a unique_ptr to indicate ownership.
+      auto merged = merger->mergeObject(obj.release());
       if (!merged) continue;
       std::cout << "Merger: got merged object " << merged->GetTitle() << std::endl;
       merged->Print();

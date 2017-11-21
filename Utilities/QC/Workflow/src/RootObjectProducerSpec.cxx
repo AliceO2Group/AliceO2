@@ -87,7 +87,8 @@ Producer* createProducer(const char* type, Args&&... args) {
     using ProducerType = typename impl::conditional<TreeProducer, 4, Args...>::type;
     return impl::createProducer<ProducerType>(type, std::forward<Args>(args)...);
   }
-  LOG(ERROR) << "Unknown type of producer: " << type;
+  LOG(ERROR) << "Unknown type of producer: " << type
+             << ". Possible types are TH1F,TH2F,TH3F,THnF,TTree.";
   return nullptr;
 }
 
@@ -135,18 +136,8 @@ DataProcessorSpec getRootObjectProducerSpec() {
         // the shared pointer makes sure to clean up the instance when the processing
         // function gets out of scope
         auto processingFct = [producer] (ProcessingContext &pc) {
-          // get a new object
-          auto dataobject = std::unique_ptr<TObject>(producer->produceData());
-          // serialize the object using TMessage
-          auto serialized = std::make_unique<TMessage>(kMESS_OBJECT);
-          serialized->WriteObject(dataobject.get());
-
-          // allocate the target and copy the data
-          auto tgt = pc.allocator().newChunk(OutputSpec{"QC", "ROOTOBJECT", 0, OutputSpec::QA},
-                                             serialized->BufferSize());
-          // FIXME: didn't check if TMessage supports move semantics nowadays
-          // NOTE: framework functionality going to be developed for ROOT objects
-          memcpy(tgt.data, serialized->Buffer(), tgt.size);
+          pc.allocator().adopt(OutputSpec{"QC", "ROOTOBJECT", 0, OutputSpec::QA},
+                               producer->produceData());
         };
 
         // return the actual processing function as a lambda function using variables
