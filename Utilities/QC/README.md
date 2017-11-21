@@ -1,20 +1,21 @@
-QC
+QC 
 =======
 
-Quality Control prototype for ALICE O2.
+__This is not the Quality Control.__ The Quality Control code is in
+[this repository](https://github.com/AliceO2Group/QualityControl).
 
-# Prerequisites
-0. Installed AliceO2 and DDS software.
-1. Set the environment variable SIMPATH to your FairSoft installation directory.
-2. Set the environment variable FAIRROOTPATH to your FairRoot installation directory.
+This is a merging prototype for AliceO2 project. 
+It is under the QC directory for historical reasons but 
+will be renamed to _DataMerger_ when the code is clean and general.
 
-It is a good practice to run config.sh script from AliceO2 build directory to set all others variables such as PATH etc.
+# Architecture
+This project consists of four modules that described below :
+- Producer
+- Merger
+- Viewer
+- MetricsExtractor 
 
-# Overview
-This is a merging prototype for AliceO2 project. It uses FairMQ framework to provide distributed environment.
-
-Project consists of four modules:
-## Producer - produces Quality Control objects
+### Producer - produces Quality Control objects
 Required arguments:
 
 	- TH1F: DDS topology property id, device id, TH1F option, object name, object title, buffer capacity, number of bins
@@ -44,7 +45,7 @@ Run example for histogram:
 runQCProducerDevice mergerAddr deviceID TH1F histogramName histogramTitle 100 1000
 ```
 
-## Merger - merges received objects.
+### Merger - merges received objects.
 Required arguments:
 
 	- DDS topology property id: id of the topology property holding merger address (e.g. mergerAddr)
@@ -58,7 +59,7 @@ Run example:
 ```bash
 runQCMergerDevice mergerAddr deviceID 100 5016 500000 tcp://login01.pro.cyfronet.pl:5004
 ```
-## Viewer - provides visualization of merged objects.
+### Viewer - provides visualization of merged objects.
 Optional arguments:
 
 	- drawing option: drawing option passed to Draw function of a QC object (e.g. branchtoDrawName)
@@ -67,7 +68,7 @@ Run example:
 ```bash
 runQCViewerDevice branchToDrawName
 ```
-## MetricsExtractor - used for metrics extraction from nodes.
+### MetricsExtractor - used for metrics extraction from nodes.
 Sends DDS custom commands to all of the nodes in a topology. It accepts responses as a json structures with valid custom command name.
 
 Required arguments:
@@ -79,17 +80,29 @@ Run example:
 runQCMetricsExtractor metricSuffix
 ```
 
-# Compile software
-1. Go to build folder of AliceO2 software
-2. cmake ../
-3. cd Utilities/QA
-4. make all
+# Build 
 
-# Unit tests
+### Prerequisites
+0. Install AliceO2 and DDS software.
+1. Set the environment variable SIMPATH to your FairSoft installation directory.
+2. Set the environment variable FAIRROOTPATH to your FairRoot installation directory.
+
+It is a good practice to run config.sh script from AliceO2 build directory to 
+set all others variables such as PATH etc.
+
+### Compilation
+Go to build folder of AliceO2 software
+``` 
+cmake ../
+cd Utilities/QA
+make all 
+```
+
+# Test
 All modules are provided with unit tests written in BOOST test framework. Each module has tests in "Tests" subdirectory.
-To run all unit tests type ```ctest ```
+To run all unit tests type `ctest`
 
-# Run system
+# Run
 See this page: http://dds.gsi.de/doc/nightly/RMS-plugins.html#slurm-plugin to execute system with DDS SLURM plug-in.
 
 Mergers and Producers have to be run with DDS topology. MetricsExtractor and Viewer should be run with bash shell.
