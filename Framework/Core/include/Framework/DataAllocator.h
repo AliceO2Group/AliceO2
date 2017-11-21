@@ -91,6 +91,10 @@ public:
   void
   adopt(const OutputSpec &spec, TObject*obj);
 
+  /// Serialize a snapshot of a TObject and send it
+  /// framework does not take ownership og the object
+  void serializeSnapshot(const OutputSpec &spec, TObject* const object);
+
 private:
   std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
