@@ -53,6 +53,9 @@ void o2sim()
     primGen->AddGenerator(extGen);
     std::cout << "using external kinematics\n";
   }
+  else {
+    LOG(FATAL) << "Invalid generator" << FairLogger::endl;
+  }
   run->SetGenerator(primGen);
 
   // Timer
