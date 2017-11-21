@@ -23,8 +23,12 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::Data::Stack+;
+#pragma link C++ class o2::MCTrackT<double>+;
+#pragma link C++ class o2::MCTrackT<float>+;
 #pragma link C++ class o2::MCTrack+;
 #pragma link C++ class std::vector<o2::MCTrack>+;
+#pragma link C++ class std::vector<o2::MCTrackT<double>>+;
+#pragma link C++ class std::vector<o2::MCTrackT<float>>+;
 #pragma link C++ class o2::MCCompLabel+;
 
 #pragma link C++ class o2::BaseHit+;

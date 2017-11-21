@@ -10,10 +10,12 @@
 //
 // Configuration macro for Geant3 VirtualMC
 
+#include "commonConfig.C"
+
 void Config()
 {
-  FairRunSim* fRun = FairRunSim::Instance();
-  TString* gModel = fRun->GetGeoModel();
+  FairRunSim* run = FairRunSim::Instance();
+  TString* gModel = run->GetGeoModel();
   TGeant3* geant3 = nullptr;
   if (strncmp(gModel->Data(), "TGeo", 4) == 0) {
     geant3 = new TGeant3TGeo("C++ Interface to Geant3");
@@ -22,11 +24,7 @@ void Config()
     geant3 = new TGeant3("C++ Interface to Geant3");
     cout << "-I- G3Config: Geant3 native has been created." << endl;
   }
-  // create Fair Specific Stack
-  o2::Data::Stack* st = new o2::Data::Stack();
-  st->setMinHits(1);
-  st->StoreSecondaries(kTRUE);
-  geant3->SetStack(st);
+  stackSetup(geant3, run);
 
   // ******* GEANT3  specific configuration for simulated Runs  *******
   geant3->SetTRIG(1); // Number of events to be processed

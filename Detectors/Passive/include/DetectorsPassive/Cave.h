@@ -25,12 +25,22 @@
 #ifndef ALICEO2_PASSIVE_Cave_H
 #define ALICEO2_PASSIVE_Cave_H
 
-#include "FairModule.h"                 // for FairModule
+#include "FairDetector.h"               // for FairModule
 #include "Rtypes.h"                     // for ClassDef, etc
+#include <functional>                   // for std::function
+#include <vector>
 namespace o2 {
 namespace Passive {
 
-class Cave : public FairModule
+// This class represents the mother container
+// holding all the detector (passive and active) modules
+
+// The Cave is a FairDetector rather than a FairModule
+// in order to be able to receive notifications about
+// BeginPrimary/FinishPrimary/etc from the FairMCApplication and 
+// eventually dispatch to further O2 specific observers. This special role
+// is justifiable since the Cave instance necessarily always exists.
+class Cave : public FairDetector
 {
   public:
     Cave(const char* name, const char* Title="Exp Cave");
@@ -41,11 +51,23 @@ class Cave : public FairModule
     /// Clone this object (used in MT mode only)
     FairModule* CloneModule() const override;
 
+    // the following methods are required for FairDetector but are not actually
+    // implemented
+    Bool_t ProcessHits(FairVolume* v = nullptr) override; // should never be actually called
+    void   Register() override {}
+    TClonesArray* GetCollection(Int_t iColl) const override { return nullptr; }
+    void   Reset() override {}
+
+    void   FinishPrimary() override;
+    void   addFinishPrimaryHook(std::function<void()>&& hook) { mFinishPrimaryHooks.emplace_back(hook); } 
+
   private:
     Cave(const Cave& orig);
     Cave& operator=(const Cave&);
 
-    Double_t mWorld[3];
+    Double_t mWorld[3]; 
+    std::vector<std::function<void()>> mFinishPrimaryHooks; //!
+
     ClassDefOverride(o2::Passive::Cave,1) //
 };
 }

@@ -6,6 +6,8 @@
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 
+#include "commonConfig.C"
+
 // Configuration macro for Geant4 VirtualMC
 void Config()
 {
@@ -49,15 +51,13 @@ void Config()
    TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
    cout << "Geant4 has been created." << endl;
 
-/// create the Specific stack
-   o2::Data::Stack *stack = new o2::Data::Stack(1000);
-   stack->StoreSecondaries(kTRUE);
-   stack->setMinHits(0);
-   geant4->SetStack(stack);
+   // setup the stack
+   stackSetup(geant4, FairRunSim::Instance());
 
+   // setup decayer
    if(FairRunSim::Instance()->IsExtDecayer()){
-      TVirtualMCDecayer* decayer = TPythia6Decayer::Instance();
-      geant4->SetExternalDecayer(decayer);
+     TVirtualMCDecayer* decayer = TPythia6Decayer::Instance();
+     geant4->SetExternalDecayer(decayer);
    }
 
 /// Customise Geant4 setting

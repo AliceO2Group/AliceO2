@@ -26,6 +26,7 @@ set(TEST_SRCS
   test/testBasicHits.cxx
   test/testMCTruthContainer.cxx
   test/testMCCompLabel.cxx
+  test/MCTrack.cxx
 )
 
 O2_GENERATE_TESTS(
