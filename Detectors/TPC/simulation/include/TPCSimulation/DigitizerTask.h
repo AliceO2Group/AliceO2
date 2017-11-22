@@ -74,7 +74,7 @@ class DigitizerTask : public FairTask{
     DigitContainer      *mDigitContainer;
       
     std::vector<o2::TPC::Digit> *mDigitsArray = nullptr;  ///< Array of the Digits, passed from the digitization
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray = nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
     std::vector<o2::TPC::DigitMCMetaData> *mDigitsDebugArray = nullptr;  ///< Array of the Digits, for debugging purposes only, passed from the digitization
     
     int                 mTimeBinMax;   ///< Maximum time bin to be written out

@@ -30,11 +30,8 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   // container.addElement(0,TruthElement(0));
 
   // check header/index information
-  BOOST_CHECK(container.getMCTruthHeader(0).size == 2);
   BOOST_CHECK(container.getMCTruthHeader(0).index == 0);
-  BOOST_CHECK(container.getMCTruthHeader(1).size == 1);
   BOOST_CHECK(container.getMCTruthHeader(1).index == 2);
-  BOOST_CHECK(container.getMCTruthHeader(2).size == 1);
   BOOST_CHECK(container.getMCTruthHeader(2).index == 3);
 
   // check MC truth information
@@ -61,6 +58,12 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   // try to get something invalid
   view = container.getLabels(10);
   BOOST_CHECK(view.size() == 0);
+
+  // test assignment/copy
+  auto copy = container;
+  view = copy.getLabels(2);
+  BOOST_CHECK(view.size() == 1);
+  BOOST_CHECK(view[0] == 10);
 }
 
 } // end namespace

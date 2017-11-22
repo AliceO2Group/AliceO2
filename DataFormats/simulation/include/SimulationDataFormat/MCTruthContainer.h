@@ -29,34 +29,44 @@ namespace dataformats
 struct MCTruthHeaderElement {
   MCTruthHeaderElement() = default; // for ROOT IO
 
-  MCTruthHeaderElement(ushort s, uint i) : size(s), index(i) {}
-  ushort size = 0; // the number of entries
+  MCTruthHeaderElement(uint i) : index(i) {}
   uint index = 0;  // the index into the actual MC track storage
   ClassDefNV(MCTruthHeaderElement, 1);
 };
 
-// a container to hold and manage MC truth information
-// the actual MCtruth type is a generic template type and can be supplied by the user
+// A container to hold and manage MC truth information/labels.
+// The actual MCtruth type is a generic template type and can be supplied by the user
 // It is meant to manage associations from one "dataobject" identified by an index into an array
 // to multiple TruthElements
 
-// note that we inherit from TObject just to be able to register this thing with the FairRootManager
-// (which might not be necessary in the future)
 template <typename TruthElement>
-class MCTruthContainer : public TNamed
+class MCTruthContainer
 {
  private:
   std::vector<MCTruthHeaderElement>
     mHeaderArray;                        // the header structure array serves as an index into the actual storage
   std::vector<TruthElement> mTruthArray; // the buffer containing the actual truth information
 
+  size_t getSize(int dataindex) const
+  {
+    // calculate size / number of labels from a difference in pointed indices
+    const auto size = (dataindex < mHeaderArray.size() - 1)
+                        ? mHeaderArray[dataindex + 1].index - mHeaderArray[dataindex].index
+                        : mTruthArray.size() - mHeaderArray[dataindex].index;
+    return size;
+  }
+
  public:
   // constructor
   MCTruthContainer() = default;
+  // destructor
+  ~MCTruthContainer() = default;
+  // copy constructor
+  MCTruthContainer(const MCTruthContainer& other) = default;
+  // assignment operator
+  MCTruthContainer& operator=(const MCTruthContainer &other) = default;
 
-  ~MCTruthContainer() final = default;
-
-  // access
+    // access
   MCTruthHeaderElement getMCTruthHeader(uint dataindex) const { return mHeaderArray[dataindex]; }
   // access the element directly (can be encapsulated better away)... needs proper element index
   // which can be obtained from the MCTruthHeader startposition and size
@@ -70,14 +80,14 @@ class MCTruthContainer : public TNamed
   // the caller can do modifications on this view (such as sorting)
   gsl::span<TruthElement> getLabels(int dataindex) {
     if(dataindex >= getIndexedSize()) return gsl::span<TruthElement>();
-    return gsl::span<TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], mHeaderArray[dataindex].size);
+    return gsl::span<TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], getSize(dataindex));
   }
 
   // get individual const "view" container for a given data index
   // the caller can't do modifications on this view
   gsl::span<const TruthElement> getLabels(int dataindex) const {
     if(dataindex >= getIndexedSize()) return gsl::span<const TruthElement>();
-    return gsl::span<const TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], mHeaderArray[dataindex].size);
+    return gsl::span<const TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], getSize(dataindex));
   }
 
   void clear()
@@ -99,15 +109,15 @@ class MCTruthContainer : public TNamed
     } else {
       assert(dataindex == mHeaderArray.size());
       // add a new one
-      mHeaderArray.emplace_back(0, mTruthArray.size());
+      mHeaderArray.emplace_back(mTruthArray.size());
     }
     auto& header = mHeaderArray[dataindex];
-    header.size++;
     mTruthArray.emplace_back(element);
   }
 
-  ClassDefOverride(MCTruthContainer, 1);
+  ClassDefNV(MCTruthContainer, 1);
 }; // end class
+
 }
 }
 
