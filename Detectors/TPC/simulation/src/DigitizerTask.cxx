@@ -40,7 +40,7 @@ DigitizerTask::DigitizerTask(int sectorid)
     mDigitizer(nullptr),
     mDigitContainer(nullptr),
     mDigitsArray(nullptr),
-    mMCTruthArray(),
+    mMCTruthArray(nullptr),
     mDigitsDebugArray(nullptr),
     mTimeBinMax(1000000),
     mIsContinuousReadout(true),
@@ -94,7 +94,8 @@ InitStatus DigitizerTask::Init()
   mgr->RegisterAny("TPCDigit", mDigitsArray, kTRUE);
 
   // Register MC Truth container
-  mgr->Register("TPCDigitMCTruth", "TPC", &mMCTruthArray, kTRUE);
+  mMCTruthArray = new typename std::remove_pointer<decltype(mMCTruthArray)>::type;
+  mgr->RegisterAny("TPCDigitMCTruth", mMCTruthArray, kTRUE);
 
   // Register additional (optional) debug output
   if(mDigitDebugOutput) {
@@ -121,7 +122,7 @@ void DigitizerTask::Exec(Option_t *option)
 
   LOG(DEBUG) << "Running digitization on new event at time " << eventTime << " us in time bin " << eventTimeBin << FairLogger::endl;
   mDigitsArray->clear();
-  mMCTruthArray.clear();
+  mMCTruthArray->clear();
   if(mDigitDebugOutput) {
     mDigitsDebugArray->clear();
   }
@@ -137,7 +138,7 @@ void DigitizerTask::Exec(Option_t *option)
     // treat only chosen sector
     mDigitContainer = mDigitizer->Process(*mSectorHitsArray[mHitSector], eventTime);
   }
-  mDigitContainer->fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, eventTimeBin, mIsContinuousReadout);
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin, mIsContinuousReadout);
 }
 
 void DigitizerTask::FinishTask()
@@ -146,11 +147,11 @@ void DigitizerTask::FinishTask()
   FairRootManager *mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   mDigitsArray->clear();
-  mMCTruthArray.clear();
+  mMCTruthArray->clear();
   if(mDigitDebugOutput) {
     mDigitsDebugArray->clear();
   }
-  mDigitContainer->fillOutputContainer(mDigitsArray, mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
 }
 
 void DigitizerTask::initBunchTrainStructure(const size_t numberOfEvents)

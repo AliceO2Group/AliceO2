@@ -32,7 +32,7 @@ void readClusterMCtruth(std::string filename)
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mcTruthArray(&mMCTruthArray);
-  clusterTree->SetBranchAddress("TPCClusterHWMCTruth.", &mcTruthArray);
+  clusterTree->SetBranchAddress("TPCClusterHWMCTruth", &mcTruthArray);
 
   for(int iEvent=0; iEvent<clusterTree->GetEntriesFast(); ++iEvent) {
     int cluster = 0;
