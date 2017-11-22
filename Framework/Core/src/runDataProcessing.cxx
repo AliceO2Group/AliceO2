@@ -372,6 +372,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
      bpo::value<std::string>(),
      "device id for child spawning")
     ("channel-config",
+     bpo::value<std::vector<std::string>>(),
      "channel configuration")
     ("control",
      "control plugin")
