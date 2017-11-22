@@ -55,7 +55,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
     mcTree->GetEvent(n);
     Int_t nmc=mcArr->size();
 
-    while (n > lastEventID) { // Cache a new reconstructed TF
+    while ((n>lastEventID) && (tf<recTree->GetEntries())) { // Cache a new reconstructed TF
        recTree->GetEvent(tf);
        nrec=recArr->size();
        for (int i=0; i<nrec; i++) { // Find the last MC event within this reconstructed TF
