@@ -275,9 +275,6 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelCont
   //int iTimeBinMin = mLastTimebin + 1;
   int iTimeBinMax = mLastTimebin;
 
-  if (mLastMcDigitTruth.find(eventCount) == mLastMcDigitTruth.end())
-    mLastMcDigitTruth[eventCount] = std::make_unique<MCLabelContainer>();
-  gsl::span<const o2::MCCompLabel> mcArray;
   /*
    * Loop over digits
    */
@@ -292,14 +289,12 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelCont
     if (digit.getCRU() < static_cast<int>(mCRUMin) || digit.getCRU() > static_cast<int>(mCRUMax)) {
       LOG(DEBUG) << "Digit [" << digitIndex << "] is out of CRU range (" << digit.getCRU() << " < " << mCRUMin << " or > " << mCRUMax << ")" << FairLogger::endl;
       // Necessary because MCTruthContainer requires continuous indexing
-      if (mcDigitTruth != nullptr) mLastMcDigitTruth[eventCount]->addElement(digitIndex,o2::MCCompLabel(-1,-1,-1));
       ++digitIndex;
       continue;
     }
     if (iTimeBin < iTimeBinMin) {
       LOG(DEBUG) << "Digit [" << digitIndex << "] time stamp too small (" << iTimeBin << " < " << iTimeBinMin << ")" << FairLogger::endl;
       // Necessary because MCTruthContainer requires continuous indexing
-      if (mcDigitTruth != nullptr) mLastMcDigitTruth[eventCount]->addElement(digitIndex,o2::MCCompLabel(-1,-1,-1));
       ++digitIndex;
       continue;
     }
@@ -309,13 +304,14 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelCont
       mDigitContainer[digit.getCRU()][digit.getRow()].emplace_back(std::make_tuple(&digit,-1,eventCount));
     else {
       mDigitContainer[digit.getCRU()][digit.getRow()].emplace_back(std::make_tuple(&digit,digitIndex,eventCount));
-      mcArray = mcDigitTruth->getLabels(digitIndex);
-      for (auto &l : mcArray) mLastMcDigitTruth[eventCount]->addElement(digitIndex,l);
     }
     ++digitIndex;
   }
 
-  ProcessTimeBins(iTimeBinMin, iTimeBinMax, mcDigitTruth, eventCount);
+  if (mcDigitTruth != nullptr && mClusterMcLabelArray != nullptr )
+    mLastMcDigitTruth[eventCount] = std::make_unique<MCLabelContainer>(*mcDigitTruth);
+
+  ProcessTimeBins(iTimeBinMin, iTimeBinMax);
 
   mLastMcDigitTruth.erase(eventCount-mTimebinsPerCF);
 
@@ -341,10 +337,6 @@ void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelCo
   int iTimeBinMin = (mIsContinuousReadout)?mLastTimebin + 1 : 0;
   int iTimeBinMax = mLastTimebin;
 
-  if (mLastMcDigitTruth.find(eventCount) == mLastMcDigitTruth.end())
-    mLastMcDigitTruth[eventCount] = std::make_unique<MCLabelContainer>();
-  gsl::span<const o2::MCCompLabel> mcArray;
-
   /*
    * Loop over digits
    */
@@ -359,14 +351,12 @@ void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelCo
     if (digit->getCRU() < static_cast<int>(mCRUMin) || digit->getCRU() > static_cast<int>(mCRUMax)) {
       LOG(DEBUG) << "Digit [" << digitIndex << "] is out of CRU range (" << digit->getCRU() << " < " << mCRUMin << " or > " << mCRUMax << ")" << FairLogger::endl;
       // Necessary because MCTruthContainer requires continuous indexing
-      if (mcDigitTruth != nullptr) mLastMcDigitTruth[eventCount]->addElement(digitIndex,o2::MCCompLabel(-1,-1,-1));
       ++digitIndex;
       continue;
     }
     if (iTimeBin < iTimeBinMin) {
       LOG(DEBUG) << "Digit [" << digitIndex << "] time stamp too small (" << iTimeBin << " < " << iTimeBinMin << ")" << FairLogger::endl;
       // Necessary because MCTruthContainer requires continuous indexing
-      if (mcDigitTruth != nullptr) mLastMcDigitTruth[eventCount]->addElement(digitIndex,o2::MCCompLabel(-1,-1,-1));
       ++digitIndex;
       continue;
     }
@@ -376,20 +366,21 @@ void HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelCo
       mDigitContainer[digit->getCRU()][digit->getRow()].emplace_back(std::make_tuple(digit,-1,eventCount));
     else {
       mDigitContainer[digit->getCRU()][digit->getRow()].emplace_back(std::make_tuple(digit,digitIndex,eventCount));
-      mcArray = mcDigitTruth->getLabels(digitIndex);
-      for (auto &l : mcArray) mLastMcDigitTruth[eventCount]->addElement(digitIndex,l);
     }
     ++digitIndex;
   }
 
-  ProcessTimeBins(iTimeBinMin, iTimeBinMax, mcDigitTruth, eventCount);
+  if (mcDigitTruth != nullptr && mClusterMcLabelArray != nullptr )
+    mLastMcDigitTruth[eventCount] = std::make_unique<MCLabelContainer>(*mcDigitTruth);
+
+  ProcessTimeBins(iTimeBinMin, iTimeBinMax);
 
   mLastMcDigitTruth.erase(eventCount-mTimebinsPerCF);
 
   LOG(DEBUG) << "Event ranged from time bin " << iTimeBinMin << " to " << iTimeBinMax << "." << FairLogger::endl;
 }
 
-void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax, MCLabelContainer const* mcDigitTruth, int eventCount)
+void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
 {
 
    /*
