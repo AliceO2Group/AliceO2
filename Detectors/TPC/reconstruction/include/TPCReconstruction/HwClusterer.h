@@ -60,7 +60,7 @@ class HwClusterer : public Clusterer {
     /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
     HwClusterer(
         std::vector<o2::TPC::Cluster> *clusterOutput,
-        MCLabelContainer *labelOutput,
+        MCLabelContainer *labelOutput = nullptr,
         int cruMin = 0,
         int cruMax = 359,
         float minQDiff = 0,
@@ -152,10 +152,7 @@ class HwClusterer : public Clusterer {
     /// Handling of the parallel cluster finder threads
     /// \param iTimeBinMin Minimum time bin to be processed
     /// \param iTimeBinMax Maximum time bin to be processed
-    /// \param mcDigitTruth MC Truth information associated with the digits
-    /// \param eventCount Event counter
-    void ProcessTimeBins(int iTimeBinMin, int iTimeBinMax,
-        MCLabelContainer const* mcDigitTruth, int eventCount);
+    void ProcessTimeBins(int iTimeBinMin, int iTimeBinMax);
 
     /*
      * class members
