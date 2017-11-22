@@ -326,7 +326,6 @@ static void handle_sigint(int signum) {
 
 void handle_sigchld(int sig) {
   int saved_errno = errno;
-  pid_t exited = -1;
   std::vector<pid_t> pids;
   while (true) {
     pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);

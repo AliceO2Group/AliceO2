@@ -26,9 +26,9 @@ DataAllocator::DataAllocator(FairMQDevice *device,
                              RootObjectContext *rootContext,
                              const AllowedOutputsMap &outputs)
 : mDevice{device},
+  mAllowedOutputs{outputs},
   mContext{context},
-  mRootContext{rootContext},
-  mAllowedOutputs{outputs}
+  mRootContext{rootContext}
 {
 }
 

@@ -38,10 +38,10 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
   mStatelessProcess{spec.algorithm.onProcess},
   mError{spec.algorithm.onError},
   mConfigRegistry{nullptr},
-  mInputChannels{spec.inputChannels},
-  mOutputChannels{spec.outputChannels},
   mAllocator{this, &mContext, &mRootContext, spec.outputs},
   mRelayer{spec.inputs, spec.forwards, registry.get<MetricsService>()},
+  mInputChannels{spec.inputChannels},
+  mOutputChannels{spec.outputChannels},
   mInputs{spec.inputs},
   mForwards{spec.forwards},
   mServiceRegistry{registry},
@@ -120,7 +120,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     metricsService.post("inputs/parts/total", (int)parts.Size());
 
     for (size_t i = 0; i < parts.Size() ; ++i) {
-      LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << "bytes";
+      LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << " bytes";
     }
     if (parts.Size() % 2) {
       return false;
@@ -130,6 +130,10 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
       auto dh = o2::Header::get<DataHeader>(parts.At(pi)->GetData());
       if (!dh) {
         LOG(ERROR) << "Header is not a DataHeader?";
+        return false;
+      }
+      if (dh->payloadSize != parts.At(pi+1)->GetSize()) {
+        LOG(ERROR) << "DataHeader payloadSize mismatch";
         return false;
       }
       auto dph = o2::Header::get<DataProcessingHeader>(parts.At(pi)->GetData());

@@ -152,7 +152,6 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
       auto &output = constOutputs[outputInfo.outputGlobalIndex];
       return matchDataSpec2Channel(input, outputSpec2LogicalChannel(output));
     };
-    auto oie = availableOutputsInfo.end();
     oif = availableOutputsInfo.erase(oif);
     oif = std::find_if(oif, availableOutputsInfo.end(), matcher);
     return oif;

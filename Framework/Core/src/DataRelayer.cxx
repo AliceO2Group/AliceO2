@@ -108,7 +108,6 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     }
     size_t timesliceId = dph->startTime;
     assert(timeslices.size());
-    size_t slotIndex = timesliceId % timeslices.size();
     return timesliceId;
   };
 
@@ -133,11 +132,9 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // hence the first if.
   auto pruneCacheSlotFor = [&cache,&inputs,&timeslices](int64_t timeslice) {
     size_t slotIndex = timeslice % timeslices.size();
-    auto &current = timeslices[slotIndex];
     // Prune old stuff from the cache, hopefully deleting it...
     // We set the current slot to the timeslice value, so that old stuff
     // will be ignored.
-    // assert(current.value < timeslice || current.value == INVALID_TIMESLICE);
     assert(inputs.size() * slotIndex < cache.size());
     timeslices[slotIndex].value = timeslice;
     for (size_t ai = slotIndex*inputs.size(), ae = ai + inputs.size(); ai != ae ; ++ai) {
