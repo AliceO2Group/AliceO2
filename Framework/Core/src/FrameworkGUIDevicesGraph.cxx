@@ -244,29 +244,6 @@ void showTopologyNodeGraph(bool* opened,
             node_selected = node_hovered_in_scene;
     }
 
-    // Draw context menu
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
-    if (ImGui::BeginPopup("context_menu"))
-    {
-        Node* node = node_selected != -1 ? &nodes[node_selected] : NULL;
-        ImVec2 scene_pos = ImGui::GetMousePosOnOpeningCurrentPopup() - offset;
-        if (node)
-        {
-      //      ImGui::Text("Node '%s'", node->Name);
-      //      ImGui::Separator();
-      //      if (ImGui::MenuItem("Rename..", NULL, false, false)) {}
-      //      if (ImGui::MenuItem("Delete", NULL, false, false)) {}
-      //      if (ImGui::MenuItem("Copy", NULL, false, false)) {}
-        }
-        else
-        {
-     //       if (ImGui::MenuItem("Add")) { nodes.push_back(Node(nodes.Size, "New node", scene_pos, 0.5f, ImColor(100,100,200), 2, 2)); }
-     //       if (ImGui::MenuItem("Paste", NULL, false, false)) {}
-        }
-        ImGui::EndPopup();
-    }
-    ImGui::PopStyleVar();
-
     // Scrolling
     if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() && ImGui::IsMouseDragging(2, 0.0f))
         scrolling = scrolling - ImGui::GetIO().MouseDelta;
