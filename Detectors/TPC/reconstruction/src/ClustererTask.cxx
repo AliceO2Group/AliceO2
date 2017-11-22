@@ -90,7 +90,7 @@ InitStatus ClustererTask::Init()
 
     // Register MC Truth output container
     mClustersMCTruthArray = std::make_unique<MCLabelContainer>();
-    mgr->Register("TPCClusterMCTruth", "TPC", mClustersMCTruthArray.get(), kTRUE);
+    mgr->Register("TPCClusterMCTruth.", "TPC", mClustersMCTruthArray.get(), kTRUE);
 
     // create clusterer and pass output pointer
     mBoxClusterer = std::make_unique<BoxClusterer>(mClustersArray);
@@ -103,7 +103,7 @@ InitStatus ClustererTask::Init()
 
     // Register MC Truth output container
     mHwClustersMCTruthArray = std::make_unique<MCLabelContainer>();
-    mgr->Register("TPCClusterHWMCTruth", "TPC", mHwClustersMCTruthArray.get(), kTRUE);
+    mgr->Register("TPCClusterHWMCTruth.", "TPC", mHwClustersMCTruthArray.get(), kTRUE);
 
      // create clusterer and pass output pointer
     mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray,mHwClustersMCTruthArray.get());//,0,359);

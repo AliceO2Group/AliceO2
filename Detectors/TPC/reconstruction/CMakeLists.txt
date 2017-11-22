@@ -8,7 +8,6 @@ set(SRCS
    src/AdcClockMonitor.cxx
    src/BoxClusterer.cxx
    src/Cluster.cxx
-   src/Clusterer.cxx
    src/ClusterContainer.cxx
    src/ClustererTask.cxx
    src/GBTFrame.cxx
