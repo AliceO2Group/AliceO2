@@ -220,6 +220,8 @@ void doParent(fd_set *in_fdset,
                 for (auto &deviceInfo : infos) {
                   deviceInfo.readyToQuit = true;
                 }
+              } else if (validFor == "ME") {
+                info.readyToQuit = true;
               }
             }
           } else if (!control.quiet
@@ -391,7 +393,7 @@ int killChildren(std::vector<DeviceInfo> &infos) {
     if (!info.active) {
       continue;
     }
-    kill(info.pid, SIGKILL);
+    kill(info.pid, SIGTERM);
     int status;
     waitpid(info.pid, &status, 0);
   }

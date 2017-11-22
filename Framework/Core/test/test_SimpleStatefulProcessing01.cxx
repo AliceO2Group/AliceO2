@@ -37,10 +37,10 @@ void defineDataProcessing(WorkflowSpec &specs) {
       AlgorithmSpec{[](InitContext &setup) {
         static int foo = 0;
         return [](ProcessingContext &ctx) {
-            sleep(1);
             auto out = ctx.allocator().newChunk({"TES", "STATEFUL", 0}, sizeof(int));
             auto outI = reinterpret_cast<int *>(out.data);
             outI[0] = foo++;
+            services.get<ControlService>().readyToQuit(false);
           };
         }
       }
@@ -60,6 +60,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
               LOG(ERROR) << "Expecting " << expected << " found " << *in;
             } else {
               LOG(INFO) << "Everything OK for " << expected << std::endl;
+              sleep(2);
               services.get<ControlService>().readyToQuit(true);
             }
           };
