@@ -27,13 +27,13 @@
 using namespace o2::TPC;
 
 RawReader::RawReader(int region, int link, int run)
-  : mRegion(region)
+  : mUseRawInMode3(true)
+  , mApplyChannelMask(false)
+  , mCheckAdcClock(false)
+  , mRegion(region)
   , mLink(link)
   , mRun(run)
   , mLastEvent(-1)
-  , mUseRawInMode3(true)
-  , mApplyChannelMask(false)
-  , mCheckAdcClock(false)
   , mTimestampOfFirstData({0,0,0,0,0})
   , mEvents()
   , mData()

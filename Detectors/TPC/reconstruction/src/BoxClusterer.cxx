@@ -93,7 +93,6 @@
 #include "TPCReconstruction/BoxClusterer.h"
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/ClusterContainer.h"
-#include "TPCReconstruction/BoxCluster.h"
 
 #include "FairLogger.h"
 #include "TMath.h"
@@ -104,30 +103,15 @@ ClassImp(o2::TPC::BoxClusterer)
 using namespace o2::TPC;
 
 //________________________________________________________________________
-BoxClusterer::BoxClusterer(std::vector<o2::TPC::BoxCluster> *output):
-  Clusterer(),
+BoxClusterer::BoxClusterer(std::vector<o2::TPC::Cluster> *output,
+    int rowsMax, int padsMax, int timeBinsMax, int minQMax,
+    bool requirePositiveCharge, bool requireNeighbouringPad):
+  Clusterer(rowsMax,padsMax,timeBinsMax,minQMax,requirePositiveCharge,requireNeighbouringPad),
   mClusterArray(output),
   mAllBins(nullptr),
   mAllSigBins(nullptr),
   mAllNSigBins(nullptr),
   mPedestals(nullptr)
-{
-}
-
-//________________________________________________________________________
-BoxClusterer::~BoxClusterer()
-{
-  for (Int_t iRow = 0; iRow < mRowsMax; iRow++) {
-    delete [] mAllBins[iRow];
-    delete [] mAllSigBins[iRow];
-  }
-  delete [] mAllBins;
-  delete [] mAllSigBins;
-  delete [] mAllNSigBins;
-}
-
-//________________________________________________________________________
-void BoxClusterer::Init()
 {
   mAllBins = new Float_t*[mRowsMax];
   mAllSigBins = new Int_t*[mRowsMax];
@@ -145,7 +129,19 @@ void BoxClusterer::Init()
 }
 
 //________________________________________________________________________
-void BoxClusterer::Process(std::vector<o2::TPC::Digit> const &digits)
+BoxClusterer::~BoxClusterer()
+{
+  for (Int_t iRow = 0; iRow < mRowsMax; iRow++) {
+    delete [] mAllBins[iRow];
+    delete [] mAllSigBins[iRow];
+  }
+  delete [] mAllBins;
+  delete [] mAllSigBins;
+  delete [] mAllNSigBins;
+}
+
+//________________________________________________________________________
+void BoxClusterer::Process(std::vector<o2::TPC::Digit> const &digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear(); // check this
 
@@ -181,7 +177,7 @@ void BoxClusterer::Process(std::vector<o2::TPC::Digit> const &digits)
 }
 
 //________________________________________________________________________
-void BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
+void BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear();
 
@@ -352,8 +348,7 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 	Short_t nPad = maxP-minP+1;
 	Short_t nTimeBins = maxT-minT+1;
 	Short_t size = 10*nPad+nTimeBins;
-	BoxCluster* cluster = ClusterContainer::AddCluster<BoxCluster>(mClusterArray, iCRU, iRow, qTot, qMax, meanP, meanT,sigmaP, sigmaT);
-	cluster->setBoxParameters(pad, timebin, size);
+	Cluster* cluster = ClusterContainer::AddCluster<Cluster>(mClusterArray, iCRU, iRow, qTot, qMax, meanP, meanT,sigmaP, sigmaT);
 
 //    if ((iCRU == 179)) {// && iRow == 5)){// && (int)meanP == 103 && (int)meanT == 170) || 
 ////        (iCRU == 256 && iRow == 10 && (int)meanP == 27 && (int)meanT == 181) ) {

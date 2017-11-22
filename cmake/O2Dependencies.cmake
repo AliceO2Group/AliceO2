@@ -740,6 +740,8 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Passive/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${MS_GSL_INCLUDE_DIR}
 )
 
 o2_define_bucket(

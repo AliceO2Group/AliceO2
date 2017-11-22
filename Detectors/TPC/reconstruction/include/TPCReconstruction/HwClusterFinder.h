@@ -15,106 +15,120 @@
 #define ALICEO2_TPC_HWClusterFinder_H_
 
 #include <vector>
+#include <algorithm>
+#include <utility>
+#include <memory>
 #include <cstring>
 
 namespace o2{
 namespace TPC {
 
-class HwCluster;
-    
+class Cluster;
+
 /// \class HwClusterFinder
 /// \brief Class for TPC HW cluster finder
 class HwClusterFinder {
   public:
+    /// Mini digit struct, consisting of charge, event number and digit index.
+    /// The last two are needed to retrieve MC truth information.
+    struct MiniDigit {
+      float charge;
+      int event;
+      int index;
+
+      MiniDigit() : charge(0), event(-1), index(-1) {};
+      MiniDigit(const MiniDigit& other) : charge(other.charge), event(other.event), index(other.index) {};
+      void clear() { charge = 0; event = -1; index = -1; };
+    };
+
     /// Default Constructor
     /// \param cru CRU of this cluster finder
     /// \param row Row of this cluster finder
-    /// \param id ID for the cluster finder
     /// \param padOffset Offset in pad direction of the cluster finder
     /// \param pad Number of pads
-    /// \param timebins Number of timebins
+    /// \param timebins Number of time bins
     /// \param diffThreshold Minimum charge difference at neighboring pads
     /// \param chargeThreshold Minimum charge of cluster peak
     /// \param requirePositiveCharge Charge >0 required
-    HwClusterFinder(short cru, short row, short id, 
-        short padOffset, short pads=8, short timebins=8,
+    HwClusterFinder(unsigned short cru, unsigned short row,
+        short padOffset, unsigned short pads=8, unsigned short timebins=8,
         float diffThreshold=0, float chargeThreshold=5, bool requirePositiveCharge=true);
 
     /// Destructor
-    ~HwClusterFinder();
+    ~HwClusterFinder() = default;
 
-    /// Copy constructor
-    HwClusterFinder(const HwClusterFinder& other);
-
-    /// Add a new timebin to cluster finder
-    /// \param timebin Array of size "length" with new charges
-    /// \param globalTime Global time of this timebin
-    /// \param length Size of array "timebin"
-    bool AddTimebin(float* timebin, unsigned globalTime, int length = 8);
-
-    /// Add multiple timebins at once
-    /// \param nBins Number of timebins
-    /// \param timebins 2D array with new charges
-    /// \param globalTime Global time of this timebin
-    /// \param length Size of array "timebin"
-    bool AddTimebins(int nBins, float** timebins, unsigned globalTimeOfLast, int length = 8);
+    /// Add a new time bin to cluster finder
+    /// \param timebin Iterator to a vector with data
+    /// \param globalTime Global time of this time bin
+    /// \param length Number of pads to be used after iterator starts
+    /// \param zeroBin Switch to fill timebin with zero's instead
+    void addTimebin(std::vector<MiniDigit>::iterator timebin, unsigned globalTime, int length = 8, bool zeroBin = false);
 
     /// Add a timebin with charges of 0
     /// \param globalTime Global time of this timebin
     /// \param length Size of array "timebin"
-    void AddZeroTimebin(unsigned globalTime = 0, int lengt = 8);
+    void addZeroTimebin(unsigned globalTime = 0, int lengt = 8);
 
-    /// Print the local storagae of charges
-    void PrintLocalStorage();
+    /// Print the local storage of charges
+    void printLocalStorage();
 
     /// Resets the local storage to zeros
-    /// \param globalTimeAfterReset Global time of the first timebin after reset
+    /// \param globalTimeAfterReset Global time of the first time bin after reset
     void reset(unsigned globalTimeAfterReset);
 
-    
-    // Getter functions
-    int   getGlobalTimeOfLast() const             { return mGlobalTimeOfLast; }
-    int   getTimebinsAfterLastProcessing() const  { return mTimebinsAfterLastProcessing; };
-    short getCRU() const                          { return mCRU; }
-    short getRow() const                          { return mRow; }
-    short getId() const                           { return mId; }
-    short getPadOffset() const                    { return mPadOffset; }
-    short getNpads() const                        { return mPads; }
-    short getNtimebins() const                    { return mTimebins; }
-    short getClusterSizeP() const                 { return mClusterSizePads; }
-    short getClusterSizeT() const                 { return mClusterSizeTime; }
-    float getDiffThreshold() const                { return mDiffThreshold; }
-    float getChargeThreshold() const              { return mChargeThreshold; }
-    bool  getRequirePositiveCharge() const        { return mRequirePositiveCharge; }
-    bool  getRequireNeighbouringPad() const       { return mRequireNeighbouringPad; }
-    bool  getRequireNeighbouringTimebin() const   { return mRequireNeighbouringTimebin; }
-    bool  getAutoProcessing() const                { return mAutoProcessing; } 
-    bool  getmAssignChargeUnique() const          { return mAssignChargeUnique; }
-    HwClusterFinder*          getNextCF() const     { return mNextCF; }
-    std::vector<HwCluster>*   getClusterContainer() { return &clusterContainer; }
 
-    // Setter functions
-    void  setTimebinsAfterLastProcessing(int val)       { mTimebinsAfterLastProcessing = val; };
-    void  setCRU(short val)                             { mCRU = val; }
-    void  setRow(short val)                             { mRow = val; }
-    void  setId(short val)                              { mId = val; }
-    void  setPadOffset(short val)                       { mPadOffset = val; }
-    void  setNpads(short val)                           { mPads = val; }
-    void  setNtimebins(short val)                       { mTimebins = val; }
-    void  setClusterSizeP(short val)                    { mClusterSizePads = val; }
-    void  setClusterSizeT(short val)                    { mClusterSizeTime = val; }
-    void  setDiffThreshold(float val)                   { mDiffThreshold = val; }
-    void  setChargeThreshold(float val)                 { mChargeThreshold = val; }
-    void  setRequirePositiveCharge(bool val)            { mRequirePositiveCharge = val; }
-    void  setRequireNeighbouringPad(bool val)           { mRequireNeighbouringPad = val; }
-    void  setRequireNeighbouringTimebin(bool val)       { mRequireNeighbouringTimebin = val; }
-    void  setAutoProcessing(bool val)                   { mAutoProcessing = val; }
-    void  setAssignChargeUnique(bool val)               { mAssignChargeUnique = val; }
-    void  setNextCF(HwClusterFinder* nextCF);
+    /// Getter function
+    /// \return Time of last inserted time bin
+    unsigned getGlobalTimeOfLast() const { return mGlobalTimeOfLast; }
+
+    /// Getter function
+    /// \return Number of inserted time bins since last processing
+    unsigned getTimebinsAfterLastProcessing() const { return mTimebinsAfterLastProcessing; };
+
+    /// Getter function
+    /// \return Configured CRU number
+    unsigned short getCRU() const { return mCRU; }
+
+    /// Getter function
+    /// \return Configured row number
+    unsigned short getRow() const { return mRow; }
+
+    /// Getter function
+    /// \return Configured pad offset of this CF
+    short getPadOffset() const { return mPadOffset; }
+
+    /// Getter function
+    /// \return Width of CF in pad direction
+    unsigned short getNpads() const { return mPads; }
+
+    /// Getter function
+    /// \return Width of CF in time direction
+    unsigned short getNtimebins() const { return mTimebins; }
+
+    /// Getter function
+    /// \return Pointer to cluster container with all found clusters
+    std::vector<Cluster>* getClusterContainer() { return &mClusterContainer; }
+
+    /// Getter function
+    /// \return Pointer to container with digits indices used for the clusters
+    std::vector<std::vector<std::pair<int,int>>>* getClusterDigitIndices() { return &mClusterDigitIndices; }
+
+
+    /// Setter function
+    /// \param val Number of time bins since last processing
+    void setTimebinsAfterLastProcessing(unsigned val) { mTimebinsAfterLastProcessing = val; };
+
+    /// Setter function
+    /// \param val Switch whether charge should be used only for one cluster ("charge splitting", TODO: not yet properly implemented)
+    void setAssignChargeUnique(bool val) {  mAssignChargeUnique = val; }
+
+    /// Setter function
+    /// \param nextCF Pointer to neighboring CF instance (on the "left" side)
+    void setNextCF(std::shared_ptr<HwClusterFinder> nextCF) { mNextCF = nextCF; };
 
 
     /// Clears the local cluster storage
-    void clearClusterContainer()        { clusterContainer.clear(); }
+    void clearClusterContainer() { mClusterContainer.clear(); mClusterDigitIndices.clear(); }
 
     /// Process the cluster finding
     bool findCluster();
@@ -122,69 +136,72 @@ class HwClusterFinder {
     /// Neighboring cluster finder can inform about already used charges
     /// \param time Time bin of found cluster peak
     /// \param pad Pad of found cluster peak
-    /// \param cluster Cluster charges
-    void clusterAlreadyUsed(short time, short pad, float** cluster);
+    void clusterAlreadyUsed(short time, short pad);
 
   private:
 
-    float chargeForCluster(float* charge, float* toCompare);
+    /// Comparator helper function for two MiniDigits. Checks if outerCharge is positiv (if required) and if innerCharge is above threshold
+    /// \param outerCharge Charge of the "outer" pad
+    /// \param innerCharge Charge of the "inner" pad
+    /// \return MiniDigit to be used for cluster. Will be outerCharge, if requirements fulfilled, otherwise "0-MiniDigit"
+    bool chargeForCluster(float outerCharge, float innerCharge);
+
+    /// Prints 5x5 matrix of internal storage around given parameters
+    /// \param time relative time bin of center
+    /// \param pad relative pad number of center
     void printCluster(short time, short pad);
 
-    // local variables
-    std::vector<HwCluster> clusterContainer;
-    int mTimebinsAfterLastProcessing;
-    float** mData;
-    float** tmpCluster;
-    float*  mZeroTimebin;
+    /*
+     * Class members
+     */
+    bool mRequirePositiveCharge;            ///< Switch if positive charge is required for individual pad
+    bool mRequireNeighbouringPad;           ///< Switch if at least one neighboring pad needs charge > 0
+    bool mRequireNeighbouringTimebin;       ///< Switch if at least one neighboring time bin needs charge > 0
+    bool mAssignChargeUnique;               ///< Switch for "charge splitting", TODO: not yet properly implemented
+    short mPadOffset;                       ///< Pad number in row of leftmost pad (can be negative for leftmost CF)
+    unsigned short mCRU;                    ///< CRU number
+    unsigned short mRow;                    ///< Row number
+    unsigned short mPads;                   ///< Size of CF in pad direction
+    unsigned short mTimebins;               ///< Size of CF in time direction
+    unsigned short mClusterSizePads;        ///< Size of cluster in pad direction
+    unsigned short mClusterSizeTime;        ///< Size of cluster in time direction
+    float mDiffThreshold;                   ///< Charge difference threshold, not yet used
+    float mChargeThreshold;                 ///< Charge threshold
+    unsigned mGlobalTimeOfLast;             ///< Global time of last added time bin
+    unsigned mTimebinsAfterLastProcessing;  ///< Number of time bins added after last processing
+    std::weak_ptr<HwClusterFinder> mNextCF; ///< Not owning pointer to neighboring cluster finder (on the "left" side)
 
-
-    // configuration
-    int mGlobalTimeOfLast;
-    short mCRU;
-    short mRow;
-    short mId;
-    short mPadOffset;
-    short mPads;
-    short mTimebins;
-    short mClusterSizePads;
-    short mClusterSizeTime;
-    float mDiffThreshold;
-    float mChargeThreshold;
-    bool mRequirePositiveCharge;
-    bool mRequireNeighbouringPad;
-    bool mRequireNeighbouringTimebin;
-    bool mAutoProcessing;
-    bool mAssignChargeUnique;
-
-    HwClusterFinder* mNextCF;
+    std::vector<std::unique_ptr<std::vector<MiniDigit>>> mData;         ///< local data storage
+    std::vector<std::vector<MiniDigit>> mTmpCluster;                    ///< local temporary cluster data storage
+    std::vector<o2::TPC::Cluster> mClusterContainer;                    ///< Container for found clusters
+    std::vector<std::vector<std::pair<int,int>>> mClusterDigitIndices;  ///< Container for digit indices associated with found clusters
 
 };
 
 //________________________________________________________________________
-inline bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int length)
+inline void HwClusterFinder::addTimebin(std::vector<MiniDigit>::iterator timebin, unsigned globalTime, int length, bool zeroBin)
 {
   mGlobalTimeOfLast = globalTime;
   ++mTimebinsAfterLastProcessing;
 
   //
-  // reordering of the local arrays
+  // reordering of the local array
   //
-  float* data0 = mData[0];
-  std::memmove(mData,mData+1,(mTimebins-1)*sizeof(mData[0]));
-  mData[mTimebins-1] = data0;
-  if (length < mPads) {
-    std::memset(*(mData+mTimebins-1)+length,0 ,(mPads-length)*sizeof(mData[mTimebins-1][0]));
-    std::memcpy(*(mData+mTimebins-1),timebin,length*sizeof(timebin[0]));
+  std::rotate(mData.begin(), mData.begin() + 1, mData.end());
+
+  //
+  // fillin with data
+  // 
+  if (zeroBin) {
+    for (auto &digi : *mData.back()) digi.clear();
   } else {
-    std::memcpy(*(mData+mTimebins-1),timebin,mPads*sizeof(timebin[0]));
+    std::copy(timebin,timebin+length,mData.back()->begin());
+    mData.back()->resize(mPads,MiniDigit());
   }
-
-  if (mAutoProcessing & (mTimebinsAfterLastProcessing >= (mTimebins -2 -2))) findCluster();
-  return true;
 }
 
 }
 }
 
 
-#endif 
+#endif

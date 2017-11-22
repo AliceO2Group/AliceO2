@@ -18,26 +18,35 @@
 #ifndef __ALICEO2__ClustererTask__
 #define __ALICEO2__ClustererTask__
 
-#include <cstdio>
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
-#include "TPCReconstruction/Clusterer.h"       // for Clusterer
-#include "TPCReconstruction/BoxClusterer.h"       // for Clusterer
-#include "TPCReconstruction/HwClusterer.h"       // for Clusterer
+#include "TPCReconstruction/Clusterer.h"        // for Clusterer
+#include "TPCReconstruction/BoxClusterer.h"     // for Clusterer
+#include "TPCReconstruction/HwClusterer.h"      // for Clusterer
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include <vector>
+#include <memory>
 
 namespace o2 {
 namespace TPC{
-  
+
 class ClustererTask : public FairTask{
+
+  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+
   public:
     ClustererTask();
     ~ClustererTask() override;
-    
+
     InitStatus Init() override;
     void Exec(Option_t *option) override;
 
     enum class ClustererType : int { HW, Box};
+
+    /// Switch to enable individual clusterer
+    /// \param type - Clusterer type, HW or Box
+    /// \param val - Enable set to true or false
     void setClustererEnable(ClustererType type, bool val) {
       switch (type) {
         case ClustererType::HW:   mHwClustererEnable = val; break;
@@ -45,41 +54,57 @@ class ClustererTask : public FairTask{
       };
     };
 
-    bool isClustererEnable(ClustererType type) const { 
+    /// Returns status of Cluster enable
+    /// \param type - Clusterer type, HW or Box
+    /// \return Enable status 
+    bool isClustererEnable(ClustererType type) const {
       switch (type) {
         case ClustererType::HW:   return mHwClustererEnable;
         case ClustererType::Box:  return mBoxClustererEnable;
       };
     };
 
-    Clusterer* getClusterer(ClustererType type) { 
+    /// Returns pointer to requested Clusterer type
+    /// \param type - Clusterer type, HW or Box
+    /// \return  Pointer to Clusterer, nullptr if Clusterer was not enabled during Init()
+    Clusterer* getClusterer(ClustererType type) {
       switch (type) {
-        case ClustererType::HW:   return mHwClusterer;
-        case ClustererType::Box:  return mBoxClusterer;
+        case ClustererType::HW:   return mHwClusterer.get();
+        case ClustererType::Box:  return mBoxClusterer.get();
       };
     };
+
+    /// Returns pointer to Box Clusterer
+    /// \return  Pointer to Clusterer, nullptr if Clusterer was not enabled during Init()
+    BoxClusterer* getBoxClusterer()   const { return mBoxClusterer.get(); };
     
-    BoxClusterer* getBoxClusterer()   const { return mBoxClusterer; };
-    HwClusterer* getHwClusterer()     const { return mHwClusterer; };
-    //             Clusterer *GetClusterer() const { return fClusterer; }
-    
+    /// Returns pointer to Hw Clusterer
+    /// \return  Pointer to Clusterer, nullptr if Clusterer was not enabled during Init()
+    HwClusterer* getHwClusterer()     const { return mHwClusterer.get(); };
+
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
   void setContinuousReadout(bool isContinuous);
 
   private:
-    bool          mBoxClustererEnable;
-    bool          mHwClustererEnable;
-    bool          mIsContinuousReadout; ///< Switch for continuous readout
+    bool mBoxClustererEnable;   ///< Switch to enable Box Clusterfinder
+    bool mHwClustererEnable;    ///< Switch to enable Hw Clusterfinder
+    bool mIsContinuousReadout;  ///< Switch for continuous readout
+    int mEventCount;            ///< Event counter
 
-    BoxClusterer        *mBoxClusterer;
-    HwClusterer         *mHwClusterer;
-    
-    std::vector<o2::TPC::Digit> const  *mDigitsArray;
-    // produced data containers
-    std::vector<o2::TPC::BoxCluster>  *mClustersArray;
-    std::vector<o2::TPC::HwCluster>  *mHwClustersArray;
-    
+    std::unique_ptr<BoxClusterer> mBoxClusterer;    ///< Box Clusterfinder instance
+    std::unique_ptr<HwClusterer> mHwClusterer;      ///< Hw Clusterfinder instance
+
+    // Digit arrays
+    std::vector<o2::TPC::Digit> const *mDigitsArray;    ///< Array of TPC digits
+    MCLabelContainer const *mDigitMCTruthArray;         ///< Array for MCTruth information associated to digits in mDigitsArrray
+
+    // Cluster arrays
+    std::vector<o2::TPC::Cluster> *mClustersArray;              ///< Array of clusters found by Box Clusterfinder
+    std::vector<o2::TPC::Cluster> *mHwClustersArray;            ///< Array of clusters found by Hw Clusterfinder
+    std::unique_ptr<MCLabelContainer> mClustersMCTruthArray;      ///< Array for MCTruth information associated to cluster in mClustersArrays
+    std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray;    ///< Array for MCTruth information associated to cluster in mHwClustersArrays
+
     ClassDefOverride(ClustererTask, 1)
 };
 

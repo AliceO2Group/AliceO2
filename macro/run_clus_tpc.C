@@ -15,7 +15,7 @@
 
   #include "TPCReconstruction/ClustererTask.h"
 #endif
-void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isContinuous=true)
+void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isContinuous=true, unsigned threads = 0)
 {
   // Initialize logger
   FairLogger *logger = FairLogger::GetLogger();
@@ -32,7 +32,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isConti
   TStopwatch timer;
 
   // Setup FairRoot analysis manager
-  FairRunAna * run = new FairRunAna;
+  FairRunAna * run = new FairRunAna();
   FairFileSource *fFileSource = new FairFileSource(inputfile.str().c_str());
   run->SetSource(fFileSource);
   run->SetOutputFile(outputfile.str().c_str());
@@ -46,7 +46,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isConti
   TGeoManager::Import("geofile_full.root");
 
   // Setup clusterer
-  o2::TPC::ClustererTask *clustTPC = new o2::TPC::ClustererTask;
+  o2::TPC::ClustererTask *clustTPC = new o2::TPC::ClustererTask();
   clustTPC->setContinuousReadout(isContinuous);
   clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::Box,false);
   clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::HW,true);
@@ -56,8 +56,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isConti
   // Initialize everything
   run->Init();
 
-//  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Parallel);
-  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Sequential);
+  clustTPC->getHwClusterer()->setNumThreads(threads);
 
   // Start simulation
   timer.Start();

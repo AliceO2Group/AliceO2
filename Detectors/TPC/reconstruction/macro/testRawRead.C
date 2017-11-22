@@ -8,6 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TCanvas.h"
+
+#include "TPCReconstruction/GBTFrameContainer.h"
+#endif
+
 using namespace o2::TPC;
 void testRawRead(std::string filename)
 {

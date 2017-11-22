@@ -21,7 +21,6 @@
 #include "TClonesArray.h"
 
 #include "TPCReconstruction/Cluster.h"
-#include "TPCReconstruction/HwCluster.h"
 #include "TPCReconstruction/TPCCATracking.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
@@ -60,7 +59,7 @@ void runCATracking(TString filename, TString outputFile, TString options="", boo
     }
     tout.Fill();
   } else {
-    std::vector<o2::TPC::HwCluster>* clusters=nullptr;
+    std::vector<o2::TPC::Cluster>* clusters=nullptr;
     c.SetBranchAddress("TPCClusterHW", &clusters);
 
     // ===| event ranges |========================================================

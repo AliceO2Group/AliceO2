@@ -23,7 +23,7 @@
 #include "TPCBase/Sector.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
-#include "TPCSimulation/Cluster.h"
+#include "TPCReconstruction/Cluster.h"
 #include "TPCSimulation/Constants.h"
 
 /*
