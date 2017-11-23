@@ -26,6 +26,7 @@ set(TEST_SRCS
   test/testDataHeader.cxx
   test/testTimeStamp.cxx
   test/test_HeartbeatFrame.cxx
+  test/test_RAWDataHeader.cxx
 )
 
 O2_GENERATE_TESTS(
