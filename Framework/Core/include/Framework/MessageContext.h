@@ -13,6 +13,7 @@
 #include <fairmq/FairMQParts.h>
 #include <vector>
 #include <cassert>
+#include <string>
 
 namespace o2 {
 namespace framework {

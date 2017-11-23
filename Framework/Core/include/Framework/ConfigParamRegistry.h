@@ -12,6 +12,7 @@
 
 #include "Framework/ParamRetriever.h"
 #include <memory>
+#include <string>
 
 namespace o2 {
 namespace framework {

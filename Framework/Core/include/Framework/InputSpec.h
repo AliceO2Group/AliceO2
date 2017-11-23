@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_INPUTSPEC_H
 #define FRAMEWORK_INPUTSPEC_H
 
+#include <string>
 #include "Headers/DataHeader.h"
 
 namespace o2 {

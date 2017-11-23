@@ -12,6 +12,7 @@
 
 #include "Framework/InputSpec.h"
 #include <cstddef>
+#include <string>
 
 namespace o2 {
 namespace framework {
