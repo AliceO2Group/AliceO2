@@ -34,14 +34,19 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   using o2::ITSMFT::Cluster;
 
   char filename[100];
+  TFile *f=nullptr;
 
-  TEveManager::Create();
+  if (gEve == nullptr) {
+     TEveManager::Create();
+  }
 
-  // Full geometry
-  sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
-  TFile *f = TFile::Open(filename);
-  f->Get("FairGeoParSet");
-  f->Close();
+  // Load geometry
+  if (gGeoManager == nullptr) {
+     sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
+     f = TFile::Open(filename);
+     f->Get("FairGeoParSet");
+     f->Close();
+  }
   
   gGeoManager->GetVolume("obSuppCyl")->SetInvisible();
   gGeoManager->GetVolume("ibSuppCyl")->SetInvisible();
@@ -83,7 +88,9 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   f = TFile::Open(filename);
   TTree *tree = (TTree *)gDirectory->Get("o2sim");
 
-  string s{"hits"};
+  string s{"event"};
+  s+=std::to_string(event);
+  s+="_hits";
   s+=std::to_string(track);
   TEvePointSet* points = new TEvePointSet(s.data());
   points->SetMarkerColor(kBlue);
@@ -112,7 +119,9 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   f = TFile::Open(filename);
   tree = (TTree *)gDirectory->Get("o2sim");
 
-  s="clusters";
+  s="event";
+  s+=std::to_string(event);
+  s+="_clusters";
   s+=std::to_string(track);
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kMagenta);
@@ -129,8 +138,21 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *clsLabArr=nullptr;
   tree->SetBranchAddress("ITSClusterMCTruth",&clsLabArr);
 
-  tree->GetEvent(event);
+  int tf=0;
+  int lastTF=tree->GetEntries();
+  for (; tf<lastTF; ++tf) {
+     tree->GetEvent(tf);
+     int nc=clusArr->size();
+     for (int i=0; i<nc; i++) { // Find the TF containing this MC event
+	 auto mclab = (clsLabArr->getLabels(i))[0];
+	 auto id = mclab.getEventID();
+	 if (id == event) goto found;
+     }
+  }
+  std::cout<<"Time Frame containing the MC event "<<event<<" was not found"<<std::endl;
 
+found:
+  std::cout<<"MC event "<<event<<" found in the Time Frame #"<<tf<<std::endl;
   o2::ITS::GeometryTGeo *gman = GeometryTGeo::Instance();
   gman->fillMatrixCache( Utils::bit2Mask(TransformType::T2GRot) ); // request cached transforms
 
@@ -139,6 +161,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
       Cluster &c=(*clusArr)[nc];
       auto lab=(clsLabArr->getLabels(nc))[0];
       auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
+      if (lab.getEventID() != event) continue;
       if (lab.getTrackID() == track) {
          points->SetNextPoint(gloC.X(),gloC.Y(),gloC.Z());
          n++;
@@ -154,7 +177,9 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   f = TFile::Open(filename);
   tree = (TTree *)gDirectory->Get("o2sim");
 
-  s="track";
+  s="event";
+  s+=std::to_string(event);
+  s+="_track";
   s+=std::to_string(track);
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kGreen);
@@ -165,12 +190,13 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabArr=nullptr;
   tree->SetBranchAddress("ITSTrackMCTruth",&trkLabArr);
 
-  tree->GetEvent(event);
+  tree->GetEvent(tf);
 
   Int_t nt=trkArr->size(); n=0;
   while(nt--) {
       const CookedTrack &t=(*trkArr)[nt];
       auto lab=(trkLabArr->getLabels(nt))[0];
+      if (TMath::Abs(lab.getEventID()) != event) continue;
       if (TMath::Abs(lab.getTrackID()) != track) continue;
       Int_t nc=t.getNumberOfClusters();
       while (n<nc) {

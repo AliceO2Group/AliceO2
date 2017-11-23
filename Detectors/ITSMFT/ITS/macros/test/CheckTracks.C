@@ -46,15 +46,28 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabArr=nullptr;
   recTree->SetBranchAddress("ITSTrackMCTruth",&trkLabArr);
 
-  
+  Int_t tf=0, nrec=0;
+  Int_t lastEventID=-1;
   Int_t nev=mcTree->GetEntries();
   for (Int_t n=0;n<nev;n++) {
-    std::cout<<"Event "<<n<<'/'<<nev<<std::endl;
+    std::cout<<"\nMC event "<<n<<'/'<<nev<<std::endl;
     Int_t nGen=0, nGoo=0;
     mcTree->GetEvent(n);
     Int_t nmc=mcArr->size();
-    recTree->GetEvent(n);
-    Int_t nrec=recArr->size();
+
+    while ((n>lastEventID) && (tf<recTree->GetEntries())) { // Cache a new reconstructed TF
+       recTree->GetEvent(tf);
+       nrec=recArr->size();
+       for (int i=0; i<nrec; i++) { // Find the last MC event within this reconstructed TF
+	 auto mclab = (trkLabArr->getLabels(i))[0];
+	 auto id = mclab.getEventID();
+	 if (id>lastEventID) lastEventID=id;
+       }
+       if (nrec>0)
+	 std::cout<<"Caching TF #"<<tf<<", with the last event ID="<<lastEventID<<std::endl;
+       tf++;
+    }
+
     while(nmc--) {
       const auto& mcTrack = (*mcArr)[nmc];
       Int_t mID = mcTrack.getMotherTrackId();
@@ -79,6 +92,8 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       for (Int_t i=0;i<nrec;i++) {
 	 const CookedTrack &recTrack = (*recArr)[i];
 	 auto mclab = (trkLabArr->getLabels(i))[0];
+         auto id = mclab.getEventID();
+         if (id != n) continue;
 	 Int_t lab = mclab.getTrackID();
 	 if (TMath::Abs(lab) != nmc) continue;
 	 std::array<float,3> p;
