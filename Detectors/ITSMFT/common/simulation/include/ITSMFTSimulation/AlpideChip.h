@@ -45,12 +45,12 @@ class AlpideChip
   /// \param dummy if true creates a dummy air volume (for material budget studies)
   /// \param mgr The GeoManager (used only to get the proper material)
   static TGeoVolume* createChip(Double_t yc, Double_t ys,
-				char const *chipName="AlpideChip", char const *sensName="AlpideSensor",
-				Bool_t dummy=kFALSE, const TGeoManager *mgr=gGeoManager);
+                                char const *chipName="AlpideChip", char const *sensName="AlpideSensor",
+                                Bool_t dummy=kFALSE, const TGeoManager *mgr=gGeoManager);
 
   static constexpr Double_t sMetalLayerThick = 15.0*1.0E-4;  ///< Metal layer thickness (um)
 
-  ClassDef(AlpideChip, 0) // AlpideChip geometry
+  ClassDefNV(AlpideChip, 0) // AlpideChip geometry
 };
 
 }
