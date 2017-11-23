@@ -32,6 +32,7 @@
 #include <options/FairMQProgOptions.h>
 #include <FairMQLogger.h>
 #include "Headers/DataHeader.h"
+#include "Headers/NameHeader.h"
 
 using namespace std;
 using namespace o2::Header;

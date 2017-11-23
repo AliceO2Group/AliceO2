@@ -7,12 +7,14 @@ O2_SETUP(NAME ${MODULE_NAME})
 # Define the source and header files
 set(SRCS
   src/DataHeader.cxx
+  src/NameHeader.cxx
   src/HeartbeatFrame.cxx
   src/TimeStamp.cxx
 )
 
 set(HEADERS
   include/${MODULE_NAME}/DataHeader.h
+  include/${MODULE_NAME}/NameHeader.h
   include/${MODULE_NAME}/HeartbeatFrame.h
   include/${MODULE_NAME}/TimeStamp.h
 )

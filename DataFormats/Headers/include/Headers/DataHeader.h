@@ -520,58 +520,6 @@ private:
 };
 
 //__________________________________________________________________________________________________
-/// @struct NameHeader
-/// @brief an example data header containing a name of an object as a null terminated char arr.
-/// this is a template! at instantiation the template parameter determines the
-/// size of the held string array.
-/// a caveat with decoding is you have to use Header::get<NameHeader<0>>(buffer)
-/// to get it out of a buffer. May improve in the future if enough people complain.
-/// @ingroup aliceo2_dataformats_dataheader
-template <size_t N>
-struct NameHeader : public BaseHeader {
-  static const uint32_t sVersion;
-  static const o2::Header::HeaderType sHeaderType;
-  static const o2::Header::SerializationMethod sSerializationMethod;
-  NameHeader()
-  : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
-  , name()
-  {
-    memset(&name[0],'\0',N);
-  }
-
-  NameHeader(std::string in)
-  : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
-  , name()
-  {
-    //std::copy(in.begin(), in.begin()+N, name);
-    // here we actually wnat a null terminated string
-    strncpy(name,in.c_str(),N);
-    name[N-1] = '\0';
-  }
-
-  NameHeader& operator=(const std::string string) {
-    std::copy(string.begin(), string.begin()+N, name);
-    return *this;
-  }
-private:
-  char name[N];
-};
-
-template <size_t N>
-const o2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
-
-// dirty trick to always have access to the headertypeID of a templated header type
-// TODO: find out if this can be done in a nicer way + is this realy necessary?
-template <>
-const o2::Header::HeaderType NameHeader<0>::sHeaderType;
-
-template <size_t N>
-const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
-
-template <size_t N>
-const uint32_t NameHeader<N>::sVersion = 1;
-
-//__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
 struct printDataDescription {
   void operator()(const char* str) const;
