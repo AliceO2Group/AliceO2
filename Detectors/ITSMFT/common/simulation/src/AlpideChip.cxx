@@ -27,11 +27,11 @@ ClassImp(AlpideChip)
 
 //________________________________________________________________________
 TGeoVolume* AlpideChip::createChip(const Double_t ychip,
-				   const Double_t ysens,
-				   const char* chipName,
-				   const char* sensName,
-				   const Bool_t dummy,
-				   const TGeoManager *mgr){
+                                   const Double_t ysens,
+                                   const char* chipName,
+                                   const char* sensName,
+                                   const Bool_t dummy,
+                                   const TGeoManager *mgr){
 //
 // Creates the Alpide Chip
 // Caller should then use TGeoVolume::SetName to proper set the volume name
@@ -61,8 +61,8 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
   ylen = ysens;
   if (ysens > ychip) {
     LOG(WARNING) << "Sensor half thickness (" << ysens
-		 << ") greater than chip half thickness (" << ychip
-		 << "), setting equal" << FairLogger::endl;
+                 << ") greater than chip half thickness (" << ychip
+                 << "), setting equal" << FairLogger::endl;
     ylen = ychip;
   }
 
