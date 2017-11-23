@@ -358,7 +358,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   executorOptions.add_options()
     ((std::string("help") + ",h").c_str(),
      "print this help")
-    ((std::string("quiet") + ",g").c_str(),
+    ((std::string("quiet") + ",q").c_str(),
      bpo::value<bool>()->zero_tokens()->default_value(false),
      "quiet operation")
     ((std::string("stop") + ",s").c_str(),
