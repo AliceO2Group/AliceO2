@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <cstring> // memcmp
 #include "Headers/DataHeader.h" // hexdump
+#include "Headers/NameHeader.h"
 #include "../include/Algorithm/HeaderStack.h"
 
 using DataHeader = o2::Header::DataHeader;
