@@ -15,6 +15,7 @@
 
 #include <string>
 #include <vector>
+#include <string>
 
 namespace o2 {
 namespace framework {

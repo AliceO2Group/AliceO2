@@ -14,6 +14,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 #include <vector>
+#include <string>
 
 namespace o2 {
 namespace framework {

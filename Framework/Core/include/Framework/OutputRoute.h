@@ -12,6 +12,7 @@
 
 #include "Framework/OutputSpec.h"
 #include <cstddef>
+#include <string>
 
 namespace o2 {
 namespace framework {

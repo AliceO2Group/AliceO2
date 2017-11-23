@@ -10,6 +10,8 @@
 #ifndef FRAMEWORK_CHANNELSPEC_H
 #define FRAMEWORK_CHANNELSPEC_H
 
+#include <string>
+
 namespace o2 {
 namespace framework {
 
