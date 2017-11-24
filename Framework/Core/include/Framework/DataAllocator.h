@@ -58,7 +58,7 @@ public:
   typename std::enable_if<std::is_pod<T>::value == true, T &>::type
   make(const OutputSpec &spec) {
     DataChunk chunk = newChunk(spec, sizeof(T));
-    return *reinterpret_cast<T>(chunk.data);
+    return *reinterpret_cast<T*>(chunk.data);
   }
 
   // In case an extra argument is provided, we consider this an array / 
