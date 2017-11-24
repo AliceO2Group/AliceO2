@@ -39,6 +39,19 @@ this reason  cannot be  part of  FairMQ itself) and  exploits it  to validate,
 optimise  and correctly  schedule a  computation on  a user  specified set  of
 inputs.
 
+The Data Processing Layer in particular requires:
+
+- That the inputs of each computation are provided upfront.
+- That the outputs of each computation are provided upfront.
+- That a time identifier can be associated to inputs
+
+and given these premises it actually guarantees:
+
+- That no computation is performed before all the inputs for a given time
+  identifier are available
+- That no message passing happens during the performing of the computation,
+  but uniquely at the end.
+
 ## Describing a computation
 
 The description  of the  computation in such  a layer would  be defined  via a
@@ -492,7 +505,6 @@ which was sent is still owned and modifiable by the creator.
   - Monitoring
   - Logging
   - ParallelContext
-- Thorsten: how do we express data parallelism?
 - Thorsten: should configuration come always from the ccdb?
 - Thorsten: should allow to specify that certain things are processed with the
             same CCDB conditions.
