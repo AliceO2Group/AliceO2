@@ -106,13 +106,22 @@ int doParent(fd_set *in_fdset,
              std::vector<DeviceSpec> specs,
              std::vector<DeviceControl> controls,
              std::vector<DeviceMetricsInfo> metricsInfos,
-             std::map<int,size_t> &socket2Info) {
-  void *window = initGUI("O2 Framework debug GUI");
+             std::map<int,size_t> &socket2Info,
+             bool batch) {
+  void *window = nullptr;
+  decltype(getGUIDebugger(infos, specs, metricsInfos, controls)) debugGUICallback;
+
+  if (batch == false) {
+    window = initGUI("O2 Framework debug GUI");
+    debugGUICallback = getGUIDebugger(infos, specs, metricsInfos, controls);
+  }
+  if (batch == false && window == nullptr) {
+    LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
+    batch = true;
+  }
   // FIXME: I should really have some way of exiting the
   // parent..
-  auto debugGUICallback = getGUIDebugger(infos, specs, metricsInfos, controls);
-
-  while (pollGUI(window, debugGUICallback)) {
+  while (batch || pollGUI(window, debugGUICallback)) {
     // Exit this loop if all the children say they want to quit.
     bool allReadyToQuit = true;
     for (auto &info : infos) {
@@ -397,7 +406,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
 
   bool defaultQuiet = varmap["quiet"].as<bool>();
   bool defaultStopped = varmap["stop"].as<bool>();
-  bool noGui = varmap["batch"].as<bool>();
+  bool batch = varmap["batch"].as<bool>();
   bool graphViz = varmap["graphviz"].as<bool>();
   bool generateDDS = varmap["dds"].as<bool>();
   std::string frameworkId;
@@ -540,7 +549,8 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
                            deviceSpecs,
                            gDeviceControls,
                            gDeviceMetricsInfos,
-                           socket2DeviceInfo);
+                           socket2DeviceInfo,
+                           batch);
   killChildren(gDeviceInfos);
   return exitCode;
 }
