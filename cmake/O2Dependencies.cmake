@@ -30,6 +30,7 @@ find_package(AliRoot)
 find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(Configuration REQUIRED)
 
 find_package(GLFW)
 
@@ -197,6 +198,18 @@ o2_define_bucket(
     O2FrameworkCore_bucket
     Framework
     Hist
+)
+
+o2_define_bucket(
+    NAME
+    FrameworkDataSamplingApplication_bucket
+
+    DEPENDENCIES
+    O2FrameworkCore_bucket
+    ${Configuration_LIBRARIES}
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${Configuration_INCLUDE_DIRS}
 )
 
 o2_define_bucket(
