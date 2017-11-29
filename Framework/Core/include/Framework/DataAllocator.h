@@ -91,6 +91,12 @@ public:
   void
   adopt(const OutputSpec &spec, TObject*obj);
 
+  /// Serialize a snapshot of a TObject when called, which will then
+  /// sent once the computation ends.
+  /// Framework does not take ownership of the @a object. Changes to @a object
+  /// after the call will not be sent.
+  void serializeSnapshot(const OutputSpec &spec, TObject* const object);
+
 private:
   std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
