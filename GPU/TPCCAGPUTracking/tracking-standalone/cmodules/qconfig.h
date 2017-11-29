@@ -111,7 +111,7 @@
 	#define AddOptionVec(name, type, optname, optnameshort, ...) 
 	#define AddSubConfig(name, instance)
 	#define BeginConfig(name, instance) { name& tmp = instance;
-	#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) { name& tmp = instance;
+	#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) { name& tmp = parent.instance;
 	#define EndConfig() }
 
 #elif defined(QCONFIG_INSTANCE)
