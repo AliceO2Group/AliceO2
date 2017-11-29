@@ -33,8 +33,8 @@
 #include "cmodules/qconfig.h"
 
 #ifdef HAVE_O2HEADERS
-#include "TPCReconstruction/ClusterNative.h"
-#include "TPCReconstruction/ClusterHardware.h"
+#include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterHardware.h"
 #endif
 
 //#define BROKEN_EVENTS
