@@ -32,6 +32,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 BeginSubConfig(structConfigEG, configEG, configStandalone, "EG", 0, "Event generator settings")
+AddOption(numberOfTracks, int, 1, "numberOfTracks", 0, "Number of tracks per generated event")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -68,7 +69,8 @@ AddOption(outputcontrolmem, unsigned long long int, 0, "outputMemory", 0, "Use p
 AddOption(affinity, int, -1, "cpuAffinity", 0, "Pin CPU affinity to this CPU core", min(-1), message("Setting affinity to restrict on CPU %d"))
 AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", message("Setting FIFO scheduler: %s"))
 AddOption(fpe, bool, true, "fpe", 0, "Trap on floating point exceptions")
-AddOption(solenoidBz, float, -5.00668f, "solenoidBz", 0, "Field strength of solenoid Bz in kGaus")
+AddOption(solenoidBz, float, -1e6f, "solenoidBz", 0, "Field strength of solenoid Bz in kGaus")
+AddOption(constBz, bool, false, "constBz", 0, "Force constand Bz")
 AddOptionVec(gpuOptions, tupleGpuOpt, "gpuOpt", 0, "Options for GPU tracker")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')

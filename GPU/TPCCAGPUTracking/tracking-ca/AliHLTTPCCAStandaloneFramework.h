@@ -79,7 +79,7 @@ class AliHLTTPCCAStandaloneFramework
     double StatTime( int iTimer ) const { return fStatTime[iTimer]; }
     int StatNEvents() const { return fStatNEvents; }
 
-    void SetSettings(float solenoidBz = -5.00668);
+    void SetSettings(float solenoidBz = -5.00668, bool constBz = false);
     void WriteEvent( std::ostream &out ) const;
     int ReadEvent( std::istream &in, bool ResetIds = false, bool addData = false, float shift = 0., float minZ = -1e6, float maxZ = -1e6, bool silent = false, bool doQA = true );
 
