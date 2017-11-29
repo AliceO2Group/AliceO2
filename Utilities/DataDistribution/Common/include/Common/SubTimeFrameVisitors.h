@@ -32,9 +32,7 @@ public:
   InterleavedHdrDataSerializer() = default;
   void serialize(O2SubTimeFrame& pStf, O2Device& pDevice, const std::string& pChan, const int pChanId);
 
-  void visit(O2SubTimeFrameLinkData& pStfLinkData) override;
-  void visit(O2SubTimeFrameCruData& pStfCruData) override;
-  void visit(O2SubTimeFrameRawData& pStfRawData) override;
+  void visit(SubTimeFrameDataSource& pStf) override;
   void visit(O2SubTimeFrame& pStf) override;
 
   std::vector<FairMQMessagePtr> mMessages;
@@ -51,12 +49,10 @@ public:
   {
   }
 
-  void visit(O2SubTimeFrameLinkData& pStfLinkData) override;
-  void visit(O2SubTimeFrameCruData& pStfCruData) override;
-  void visit(O2SubTimeFrameRawData& pStfRawData) override;
-  void visit(O2SubTimeFrame& pStf) override;
-
   bool deserialize(O2SubTimeFrame&);
+
+  void visit(SubTimeFrameDataSource& pStf) override;
+  void visit(O2SubTimeFrame& pStf) override;
 
   std::vector<FairMQMessagePtr> mMessages;
 
@@ -75,9 +71,7 @@ public:
   HdrDataSerializer() = default;
   void serialize(O2SubTimeFrame& pStf, O2Device& pDevice, const std::string& pChan, const int pChanId);
 
-  void visit(O2SubTimeFrameLinkData& pStfLinkData) override;
-  void visit(O2SubTimeFrameCruData& pStfCruData) override;
-  void visit(O2SubTimeFrameRawData& pStfRawData) override;
+  void visit(SubTimeFrameDataSource& pStf) override;
   void visit(O2SubTimeFrame& pStf) override;
 
   std::vector<FairMQMessagePtr> mHeaderMessages;
@@ -95,9 +89,7 @@ public:
   {
   }
 
-  void visit(O2SubTimeFrameLinkData& pStfLinkData) override;
-  void visit(O2SubTimeFrameCruData& pStfCruData) override;
-  void visit(O2SubTimeFrameRawData& pStfRawData) override;
+  void visit(SubTimeFrameDataSource& pStf) override;
   void visit(O2SubTimeFrame& pStf) override;
 
   bool deserialize(O2SubTimeFrame&);

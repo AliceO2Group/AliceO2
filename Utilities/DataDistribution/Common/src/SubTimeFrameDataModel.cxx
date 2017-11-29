@@ -17,87 +17,42 @@
 namespace o2 {
 namespace DataDistribution {
 
-////////////////////////////////////////////////////////////////////////////////
-/// CRU
-////////////////////////////////////////////////////////////////////////////////
 
-void O2SubTimeFrameCruData::accept(class ISubTimeFrameVisitor& v)
+////////////////////////////////////////////////////////////////////////////////
+/// SubTimeFrameDataSource
+////////////////////////////////////////////////////////////////////////////////
+void SubTimeFrameDataSource::accept(ISubTimeFrameVisitor& v)
 {
   v.visit(*this);
 }
 
-std::uint64_t O2SubTimeFrameCruData::getRawDataSize() const
+void SubTimeFrameDataSource::addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkData)
 {
-  std::uint64_t lDataSize = 0;
+  if (mHBFrames.empty()) {
+    // take over the header message
+    assert(!mStfDataSourceHeader);
+    mStfDataSourceHeader = make_channel_ptr<StfDataSourceHeader>(pChannelId);
 
-  for (const auto& lIdLink : mLinkData) {
-    const O2SubTimeFrameLinkData& lLinkData = lIdLink.second;
-    lDataSize += lLinkData.getRawDataSize();
-  }
+    // TODO: initialize the header properly (slicing)
+    memcpy(mStfDataSourceHeader, pLinkData.mCruLinkHeader, sizeof (DataHeader));
 
-  return lDataSize;
-}
-
-void O2SubTimeFrameCruData::addCruLinkData(int pChannelId, O2SubTimeFrameLinkData&& pLinkData)
-{
-  const auto lCruId = pLinkData.mCruLinkHeader->mCruId;
-  const auto lCruLinkId = pLinkData.mCruLinkHeader->mCruLinkId;
-
-  if (mLinkData.count(lCruLinkId) == 0) {
-    O2SubTimeFrameLinkData& lCruLink = mLinkData[lCruLinkId];
-
-    lCruLink.mCruLinkHeader = std::move(pLinkData.mCruLinkHeader);
-    lCruLink.mLinkDataChunks = std::move(pLinkData.mLinkDataChunks);
+    mHBFrames = std::move(pLinkData.mLinkDataChunks);
   } else {
+    assert(pLinkData.mCruLinkHeader);
+    assert(pLinkData.mCruLinkHeader->dataOrigin == mStfDataSourceHeader->dataOrigin);
+    assert(pLinkData.mCruLinkHeader->dataDescription == mStfDataSourceHeader->dataDescription);
+    assert(pLinkData.mCruLinkHeader->subSpecification == mStfDataSourceHeader->subSpecification);
+
     // just add chunks to the link vector
-    O2SubTimeFrameLinkData& lCruLink = mLinkData[lCruLinkId];
     std::move(std::begin(pLinkData.mLinkDataChunks), std::end(pLinkData.mLinkDataChunks),
-              std::back_inserter(lCruLink.mLinkDataChunks));
+              std::back_inserter(mHBFrames));
     pLinkData.mLinkDataChunks.clear();
   }
 
-  // Update payload counts
-  {
-    O2SubTimeFrameLinkData& lCruLink = mLinkData[lCruLinkId];
-    lCruLink.mCruLinkHeader->payloadSize = lCruLink.mLinkDataChunks.size();
-    mCruHeader->payloadSize = mLinkData.size();
-  }
+  // Update payload count
+  mStfDataSourceHeader->payloadSize = mHBFrames.size();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-/// SubTimeFrame Raw data
-////////////////////////////////////////////////////////////////////////////////
-
-void O2SubTimeFrameRawData::accept(class ISubTimeFrameVisitor& v)
-{
-  v.visit(*this);
-}
-
-void O2SubTimeFrameRawData::addCruLinkData(int pChannelId, O2SubTimeFrameLinkData&& pLinkData)
-{
-  const auto lCruId = pLinkData.mCruLinkHeader->mCruId;
-  const auto lCruLinkId = pLinkData.mCruLinkHeader->mCruLinkId;
-
-  if (!mRawDataHeader)
-    mRawDataHeader = make_channel_ptr<O2StfRawDataHeader>(pChannelId);
-
-  if (mCruData.count(lCruId) == 0) {
-    O2SubTimeFrameCruData& lCru = mCruData[lCruId];
-    lCru.mCruHeader = make_channel_ptr<O2CruHeader>(pChannelId);
-
-    lCru.mCruHeader->headerSize = sizeof(O2CruHeader);
-    lCru.mCruHeader->dataDescription = o2::Header::gDataDescriptionCruData;
-    lCru.mCruHeader->dataOrigin = o2::Header::gDataOriginTPC;                           // TODO: others
-    lCru.mCruHeader->payloadSerializationMethod = o2::Header::gSerializationMethodNone; // Stf serialization?
-    lCru.mCruHeader->payloadSize = 0;                                                   // to hold # of CRUs Links
-    lCru.mCruHeader->mCruId = lCruId;
-
-    // update payload
-    mRawDataHeader->payloadSize += 1;
-  }
-
-  mCruData[lCruId].addCruLinkData(pChannelId, std::move(pLinkData));
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// SubTimeFrame
@@ -120,44 +75,43 @@ O2SubTimeFrame::O2SubTimeFrame(int pChannelId, uint64_t pStfId)
   mStfHeader->mStfId = pStfId;
 }
 
-void O2SubTimeFrame::addCruLinkData(int pChannelId, O2SubTimeFrameLinkData&& pLinkData)
+void O2SubTimeFrame::addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkData)
 {
-  mRawData.addCruLinkData(pChannelId, std::move(pLinkData));
+  // retrieve or add
+  mStfReadoutData[pLinkData.mCruLinkHeader->getDataIdentifier()].addHBFrames(pChannelId, std::move(pLinkData));
+
+  // update the count
+  mStfHeader->payloadSize = mStfReadoutData.size();
 }
 
+
+// TODO: remove when callbacks are in
 void O2SubTimeFrame::getShmRegionMessages(std::map<unsigned, std::vector<FairMQMessagePtr>>& pMessages)
 {
   // this feels intrusive...
-  for (auto& lIdCru : mRawData.mCruData) {
+  for (auto& lReadoutDataKey : mStfReadoutData) {
+    auto &lHBFrameData = lReadoutDataKey.second;
+    std::move(std::begin(lHBFrameData.mHBFrames), std::end(lHBFrameData.mHBFrames),
+                std::back_inserter(pMessages[0]));
 
-    unsigned lCruId = lIdCru.first; // used to send to the correct freeing channel
-
-    O2SubTimeFrameCruData& lCruData = lIdCru.second;
-
-    for (auto& lIdChan : lCruData.mLinkData) {
-      O2SubTimeFrameLinkData& lLinkData = lIdChan.second;
-
-      std::move(std::begin(lLinkData.mLinkDataChunks), std::end(lLinkData.mLinkDataChunks),
-                std::back_inserter(pMessages[lCruId]));
-
-      // clean zombie owners
-      lLinkData.mLinkDataChunks.clear();
-    }
-    lCruData.mLinkData.clear();
+    assert(lHBFrameData.mStfDataSourceHeader);
+    lHBFrameData.mStfDataSourceHeader->payloadSize = 0;
+    lHBFrameData.mHBFrames.clear();
   }
-  mRawData.mCruData.clear();
 }
 
 std::uint64_t O2SubTimeFrame::getRawDataSize() const
 {
   std::uint64_t lDataSize = 0;
 
-  for (const auto& lIdCru : mRawData.mCruData) {
-    const O2SubTimeFrameCruData& lCruData = lIdCru.second;
-    lDataSize += lCruData.getRawDataSize();
+  for (auto& lReadoutDataKey : mStfReadoutData) {
+    auto &lHBFrameData = lReadoutDataKey.second;
+    for (const auto& lHBFrame : lHBFrameData.mHBFrames)
+      lDataSize += lHBFrame->GetSize();
   }
 
   return lDataSize;
 }
+
 }
 } /* o2::DataDistribution */

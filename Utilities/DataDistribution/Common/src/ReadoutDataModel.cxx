@@ -48,17 +48,17 @@ bool ReadoutStfBuilderObjectInfo::receive(O2Device& pDevice, const std::string& 
 /// CRU Link
 ////////////////////////////////////////////////////////////////////////////////
 
-void O2SubTimeFrameLinkData::accept(ISubTimeFrameVisitor& v)
-{
-  v.visit(*this);
-}
+// void O2SubTimeFrameLinkData::accept(ISubTimeFrameVisitor& v)
+// {
+//   v.visit(*this);
+// }
 
 bool O2SubTimeFrameLinkData::send(O2Device& pDevice, const std::string& pChan, const int pChanId)
 {
   assert(mCruLinkHeader->payloadSize == mLinkDataChunks.size());
 
   // send the header
-  auto lMsg = std::move(mCruLinkHeader.get_message());
+  auto lMsg = std::move(mCruLinkHeader.getMessage());
   if (pDevice.Send(lMsg, pChan, pChanId) < 0)
     return false;
 

@@ -1,6 +1,6 @@
 # Cleanup when API stabilizes
 add_definitions(-DSHM_MULTIPART=1)
-add_definitions(-DSTF_SERIALIZATION=2)
+add_definitions(-DSTF_SERIALIZATION=1)
 
 add_subdirectory (Common)
 add_subdirectory (ReadoutEmulator)

@@ -78,7 +78,7 @@ void CruLinkEmulator::linkReadoutThread()
         ReadoutLinkO2Data linkO2Data;
 
         // this is only a minimum of O2 DataHeader information for the STF builder
-        linkO2Data.mLinkDataHeader.headerSize = sizeof(O2DataHeader);
+        linkO2Data.mLinkDataHeader.headerSize = sizeof(DataHeader);
         linkO2Data.mLinkDataHeader.flags = 0;
         linkO2Data.mLinkDataHeader.dataDescription = o2::Header::gDataDescriptionRawData;
         linkO2Data.mLinkDataHeader.dataOrigin = o2::Header::gDataOriginTPC;

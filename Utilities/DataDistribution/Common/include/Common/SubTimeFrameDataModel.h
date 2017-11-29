@@ -24,81 +24,44 @@
 namespace o2 {
 namespace DataDistribution {
 
-using O2DataHeader = o2::Header::DataHeader;
 using namespace o2::Base;
 using namespace o2::Header;
 
 ////////////////////////////////////////////////////////////////////////////////
-/// CRU
+/// SubTimeFrameDataSource
 ////////////////////////////////////////////////////////////////////////////////
-
-struct O2CruHeader : public O2DataHeader {
-  unsigned mCruId; // keeps track where to return data chunks
+struct StfDataSourceHeader : public DataHeader {
+  //
 };
 
-class O2SubTimeFrameCruData : public IDataModelObject {
+class SubTimeFrameDataSource : public IDataModelObject {
 public:
-  O2SubTimeFrameCruData() = default;
-  ~O2SubTimeFrameCruData() = default;
+  SubTimeFrameDataSource() = default;
+  ~SubTimeFrameDataSource() = default;
   // no copy
-  O2SubTimeFrameCruData(const O2SubTimeFrameCruData&) = delete;
-  O2SubTimeFrameCruData& operator=(const O2SubTimeFrameCruData&) = delete;
+  SubTimeFrameDataSource(const SubTimeFrameDataSource&) = delete;
+  SubTimeFrameDataSource& operator=(const SubTimeFrameDataSource&) = delete;
   // default move
-  O2SubTimeFrameCruData(O2SubTimeFrameCruData&& a) = default;
-  O2SubTimeFrameCruData& operator=(O2SubTimeFrameCruData&& a) = default;
+  SubTimeFrameDataSource(SubTimeFrameDataSource&& a) = default;
+  SubTimeFrameDataSource& operator=(SubTimeFrameDataSource&& a) = default;
+
+  // SubTimeFrameDataSource(uint64_t pStfId, cosnt DataIdentifier &pDataIdent, const DataHeader::SubSpecificationType &pDataSubSpec);
 
   void accept(ISubTimeFrameVisitor&) override;
 
-  void addCruLinkData(int pChannelId, O2SubTimeFrameLinkData&& pLinkData);
-  std::uint64_t getRawDataSize() const;
+  void addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkData);
 
-  ChannelPtr<O2CruHeader> mCruHeader;
-
-  /// map <CRU LINK ID, CRU Link Data>
-  std::map<unsigned, O2SubTimeFrameLinkData> mLinkData;
+  ChannelPtr<StfDataSourceHeader> mStfDataSourceHeader;
+  std::vector<FairMQMessagePtr>   mHBFrames;
 };
 
-////////////////////////////////////////////////////////////////////////////////
-/// SubTimeFrame Raw data
-////////////////////////////////////////////////////////////////////////////////
-
-struct O2StfRawDataHeader : public O2DataHeader {
-};
-
-class O2SubTimeFrameRawData : public IDataModelObject {
-public:
-  O2SubTimeFrameRawData() = default;
-  explicit O2SubTimeFrameRawData(int pChannelId) : mRawDataHeader{ make_channel_ptr<O2StfRawDataHeader>(pChannelId) }
-  {
-  }
-  ~O2SubTimeFrameRawData() = default;
-  // no copy
-  O2SubTimeFrameRawData(const O2SubTimeFrameRawData&) = delete;
-  O2SubTimeFrameRawData& operator=(const O2SubTimeFrameRawData&) = delete;
-  // default move
-  O2SubTimeFrameRawData(O2SubTimeFrameRawData&& a) = default;
-  O2SubTimeFrameRawData& operator=(O2SubTimeFrameRawData&& a) = default;
-
-  void accept(ISubTimeFrameVisitor&) override;
-
-  void addCruLinkData(int pChannelId, O2SubTimeFrameLinkData&& pLinkData);
-
-  const O2StfRawDataHeader Header() const
-  {
-    return *mRawDataHeader;
-  }
-
-  ChannelPtr<O2StfRawDataHeader> mRawDataHeader;
-  /// map <CRU ID, CRU Data>
-  std::map<unsigned, O2SubTimeFrameCruData> mCruData;
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 /// SubTimeFrame
 ////////////////////////////////////////////////////////////////////////////////
 
-struct O2StfHeader : public O2DataHeader {
-  std::uint64_t mStfId; // keeps track where to return data chunks
+struct O2StfHeader : public DataHeader {
+  std::uint64_t mStfId;
 };
 
 class O2SubTimeFrame : public IDataModelObject {
@@ -116,7 +79,7 @@ public:
 
   void accept(ISubTimeFrameVisitor&) override;
 
-  void addCruLinkData(int pChannelId, O2SubTimeFrameLinkData&& pLinkData);
+  void addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkData);
 
   void getShmRegionMessages(std::map<unsigned, std::vector<FairMQMessagePtr>>& pMessages);
   std::uint64_t getRawDataSize() const;
@@ -127,8 +90,12 @@ public:
   }
 
   ChannelPtr<O2StfHeader> mStfHeader;
-  O2SubTimeFrameRawData mRawData;
+
+  // 1. map: DataIdentifier -> Data (e.g. (TPC, CLUSTERS) => (All cluster data) )
+  // 2. map: SubSpecification -> DataSubset (e.g. (TPC, CLUSTERS, clFinder1000) -> (data from that one source)
+  std::map<DataIdentifier, SubTimeFrameDataSource> mStfReadoutData;
 };
+
 }
 } /* o2::DataDistribution */
 

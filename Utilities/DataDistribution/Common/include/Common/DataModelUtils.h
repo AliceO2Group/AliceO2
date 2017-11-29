@@ -20,14 +20,14 @@ namespace DataDistribution {
 class O2SubTimeFrameLinkData;
 class O2SubTimeFrameCruData;
 class O2SubTimeFrameRawData;
+
+class SubTimeFrameDataSource;
 class O2SubTimeFrame;
 
 class ISubTimeFrameVisitor {
 public:
   virtual void visit(O2SubTimeFrame&) = 0;
-  virtual void visit(O2SubTimeFrameRawData&) = 0;
-  virtual void visit(O2SubTimeFrameCruData&) = 0;
-  virtual void visit(O2SubTimeFrameLinkData&) = 0;
+  virtual void visit(SubTimeFrameDataSource&) = 0;
 };
 
 class IDataModelObject {

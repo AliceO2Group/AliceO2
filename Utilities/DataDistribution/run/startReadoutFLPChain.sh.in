@@ -2,16 +2,16 @@
 
 shmmonitor --cleanup
 
-NUM_CRUS=2
+NUM_CRUS=1
 DMA_STREAMS_PER_CRU=4
 
 # ThroughputPer of input streams (or CRU links). Specified in Gbits / s !
 # Max physical limit should ~5Gbit/s for TPC input link (~333 MB/STF/CRU)
 # This works as long as DMA_CHUNK_SIZE is set to 0 (see below)
-DMA_STREAM_BITS_PER_S=$((4 * 1000 * 1000 * 1000))
+DMA_STREAM_BITS_PER_S=$((6 * 1000 * 1000 * 1000))
 
 DATA_REGION_SIZE=$((2 * 1024 * 1024 * 1024))
-SUPERPAGE_SIZE=$((1 * 1024 * 1024))
+SUPERPAGE_SIZE=$((2 * 1024 * 1024))
 
 # Value 0 ignores DMA Chunk size and the whole system works with HBFrame data unit
 # (estimated from the Link speed)

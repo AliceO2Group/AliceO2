@@ -26,42 +26,29 @@ namespace DataDistribution {
 /// InterleavedHdrDataSerializer
 ////////////////////////////////////////////////////////////////////////////////
 
-void InterleavedHdrDataSerializer::visit(O2SubTimeFrameLinkData& pStfLinkData)
+void InterleavedHdrDataSerializer::visit(SubTimeFrameDataSource& pStfDataSource)
 {
   // header
-  mMessages.emplace_back(std::move(pStfLinkData.mCruLinkHeader.get_message()));
+  mMessages.emplace_back(std::move(pStfDataSource.mStfDataSourceHeader.getMessage()));
 
   // iterate all Hbfs
-  std::move(std::begin(pStfLinkData.mLinkDataChunks), std::end(pStfLinkData.mLinkDataChunks),
+  std::move(std::begin(pStfDataSource.mHBFrames), std::end(pStfDataSource.mHBFrames),
             std::back_inserter(mMessages));
-}
 
-void InterleavedHdrDataSerializer::visit(O2SubTimeFrameCruData& pStfCruData)
-{
-  // header
-  mMessages.emplace_back(std::move(pStfCruData.mCruHeader.get_message()));
-
-  // std::map<unsigned, O2SubTimeFrameLinkData>
-  for (auto& lLinkIdData : pStfCruData.mLinkData)
-    lLinkIdData.second.accept(*this);
-}
-
-void InterleavedHdrDataSerializer::visit(O2SubTimeFrameRawData& pStfRawData)
-{
-  // header
-  mMessages.emplace_back(std::move(pStfRawData.mRawDataHeader.get_message()));
-
-  // std::map<unsigned, O2SubTimeFrameCruData>
-  for (auto& lIdCru : pStfRawData.mCruData)
-    lIdCru.second.accept(*this);
+  // clean the object
+  assert(!pStfDataSource.mStfDataSourceHeader);
+  pStfDataSource.mHBFrames.clear();
 }
 
 void InterleavedHdrDataSerializer::visit(O2SubTimeFrame& pStf)
 {
   // header
-  mMessages.emplace_back(std::move(pStf.mStfHeader.get_message()));
+  mMessages.emplace_back(std::move(pStf.mStfHeader.getMessage()));
 
-  pStf.mRawData.accept(*this);
+  for (auto& lDataSourceKey : pStf.mStfReadoutData) {
+    auto &lDataSource = lDataSourceKey.second;
+    lDataSource.accept(*this);
+  }
 }
 
 void InterleavedHdrDataSerializer::serialize(O2SubTimeFrame& pStf, O2Device& pDevice, const std::string& pChan,
@@ -77,7 +64,7 @@ void InterleavedHdrDataSerializer::serialize(O2SubTimeFrame& pStf, O2Device& pDe
 /// InterleavedHdrDataDeserializer
 ////////////////////////////////////////////////////////////////////////////////
 
-void InterleavedHdrDataDeserializer::visit(O2SubTimeFrameLinkData& pStfLinkData)
+void InterleavedHdrDataDeserializer::visit(SubTimeFrameDataSource& pStfDataSource)
 {
   int ret;
   // header
@@ -85,61 +72,16 @@ void InterleavedHdrDataDeserializer::visit(O2SubTimeFrameLinkData& pStfLinkData)
   if ((ret = mDevice.Receive(lHdrMsg, mChan, mChanId)) < 0)
     throw std::runtime_error("LinkDataHeader receive failed (err = " + std::to_string(ret) + ")");
 
-  pStfLinkData.mCruLinkHeader = std::move(lHdrMsg);
+  pStfDataSource.mStfDataSourceHeader = std::move(lHdrMsg);
 
   // iterate all HBFrames
-  for (size_t i = 0; i < pStfLinkData.mCruLinkHeader->payloadSize; i++) {
+  for (size_t i = 0; i < pStfDataSource.mStfDataSourceHeader->payloadSize; i++) {
     FairMQMessagePtr lHbfMsg(mDevice.NewMessageFor(mChan, mChanId));
 
     if ((ret = mDevice.Receive(lHbfMsg, mChan, mChanId)) < 0)
       throw std::runtime_error("STFrame receive failed (err = " + std::to_string(ret) + ")");
 
-    pStfLinkData.mLinkDataChunks.emplace_back(std::move(lHbfMsg));
-  }
-}
-
-void InterleavedHdrDataDeserializer::visit(O2SubTimeFrameCruData& pStfCruData)
-{
-  int ret;
-  // header
-  FairMQMessagePtr lHdrMsg(mDevice.NewMessageFor(mChan, mChanId));
-  if ((ret = mDevice.Receive(lHdrMsg, mChan, mChanId)) < 0)
-    throw std::runtime_error("CruHeader receive failed (err = " + std::to_string(ret) + ")");
-
-  pStfCruData.mCruHeader = std::move(lHdrMsg);
-
-  // receive all CRU Link data
-  // std::map<unsigned, O2SubTimeFrameLinkData>
-  for (size_t i = 0; i < pStfCruData.mCruHeader->payloadSize; i++) {
-    O2SubTimeFrameLinkData lLinkObj;
-
-    lLinkObj.accept(*this);
-
-    assert(pStfCruData.mLinkData.count(lLinkObj.mCruLinkHeader->mCruLinkId) == 0);
-    pStfCruData.mLinkData.insert(std::make_pair(lLinkObj.mCruLinkHeader->mCruLinkId, std::move(lLinkObj)));
-  }
-}
-
-void InterleavedHdrDataDeserializer::visit(O2SubTimeFrameRawData& pStfRawData)
-{
-  int ret;
-  // header
-  FairMQMessagePtr lHdrMsg(mDevice.NewMessageFor(mChan, mChanId));
-  if ((ret = mDevice.Receive(lHdrMsg, mChan, mChanId)) < 0)
-    throw std::runtime_error("RawDataHeader receive failed (err = " + std::to_string(ret) + ")");
-
-  pStfRawData.mRawDataHeader = std::move(lHdrMsg);
-
-  // receive all data chunks
-  // std::map<unsigned, O2SubTimeFrameCruData>
-  for (size_t c = 0; c < pStfRawData.Header().payloadSize; c++) {
-    O2SubTimeFrameCruData lCruData;
-
-    // descend into CruData Object
-    lCruData.accept(*this);
-
-    assert(0 == pStfRawData.mCruData.count(lCruData.mCruHeader->mCruId));
-    pStfRawData.mCruData.insert(std::make_pair(lCruData.mCruHeader->mCruId, std::move(lCruData)));
+    pStfDataSource.mHBFrames.emplace_back(std::move(lHbfMsg));
   }
 }
 
@@ -153,8 +95,13 @@ void InterleavedHdrDataDeserializer::visit(O2SubTimeFrame& pStf)
 
   pStf.mStfHeader = std::move(lHdrMsg);
 
-  // descend into sub objects
-  pStf.mRawData.accept(*this);
+  // iterate over all incoming HBFrame data sources
+  for (size_t i = 0; i < pStf.mStfHeader->payloadSize; i++) {
+    SubTimeFrameDataSource lDataSource;
+    lDataSource.accept(*this);
+
+    pStf.mStfReadoutData[lDataSource.mStfDataSourceHeader->getDataIdentifier()] = std::move(lDataSource);
+  }
 }
 
 bool InterleavedHdrDataDeserializer::deserialize(O2SubTimeFrame& pStf)
@@ -181,42 +128,27 @@ bool InterleavedHdrDataDeserializer::deserialize(O2SubTimeFrame& pStf)
 /// HdrDataSerializer
 ////////////////////////////////////////////////////////////////////////////////
 
-void HdrDataSerializer::visit(O2SubTimeFrameLinkData& pStfLinkData)
+void HdrDataSerializer::visit(SubTimeFrameDataSource& pStfDataSource)
 {
   // header
-  mHeaderMessages.emplace_back(std::move(pStfLinkData.mCruLinkHeader.get_message()));
+  mHeaderMessages.emplace_back(std::move(pStfDataSource.mStfDataSourceHeader.getMessage()));
 
   // iterate all Hbfs
-  std::move(std::begin(pStfLinkData.mLinkDataChunks), std::end(pStfLinkData.mLinkDataChunks),
+  std::move(std::begin(pStfDataSource.mHBFrames), std::end(pStfDataSource.mHBFrames),
             std::back_inserter(mDataMessages));
 
-  pStfLinkData.mLinkDataChunks.clear();
-}
-
-void HdrDataSerializer::visit(O2SubTimeFrameCruData& pStfCruData)
-{
-  // header
-  mHeaderMessages.push_back(std::move(pStfCruData.mCruHeader.get_message()));
-
-  // std::map<unsigned, O2SubTimeFrameLinkData>
-  for (auto& lLinkIdData : pStfCruData.mLinkData)
-    lLinkIdData.second.accept(*this);
-}
-
-void HdrDataSerializer::visit(O2SubTimeFrameRawData& pStfRawData)
-{
-  // header
-  mHeaderMessages.push_back(std::move(pStfRawData.mRawDataHeader.get_message()));
-  // std::map<unsigned, O2SubTimeFrameCruData>
-  for (auto& lIdCru : pStfRawData.mCruData)
-    lIdCru.second.accept(*this);
+  assert(!pStfDataSource.mStfDataSourceHeader);
+  pStfDataSource.mHBFrames.clear();
 }
 
 void HdrDataSerializer::visit(O2SubTimeFrame& pStf)
 {
-  mHeaderMessages.push_back(std::move(pStf.mStfHeader.get_message()));
+  mHeaderMessages.emplace_back(std::move(pStf.mStfHeader.getMessage()));
 
-  pStf.mRawData.accept(*this);
+  for (auto& lDataSourceKey : pStf.mStfReadoutData) {
+    auto &lDataSource = lDataSourceKey.second;
+    lDataSource.accept(*this);
+  }
 }
 
 void HdrDataSerializer::serialize(O2SubTimeFrame& pStf, O2Device& pDevice, const std::string& pChan, const int pChanId)
@@ -252,50 +184,19 @@ void HdrDataSerializer::serialize(O2SubTimeFrame& pStf, O2Device& pDevice, const
 /// HdrDataVisitor
 ////////////////////////////////////////////////////////////////////////////////
 
-void HdrDataDeserializer::visit(O2SubTimeFrameLinkData& pStfLinkData)
+void HdrDataDeserializer::visit(SubTimeFrameDataSource& pStfDataSource)
 {
-  pStfLinkData.mCruLinkHeader = std::move(mHeaderMessages.front());
+  pStfDataSource.mStfDataSourceHeader = std::move(mHeaderMessages.front());
   mHeaderMessages.pop_front();
+
+  const auto lHBFramesCnt = pStfDataSource.mStfDataSourceHeader->payloadSize;
 
   // iterate all HBFrames
-  std::move(std::begin(mDataMessages), std::begin(mDataMessages) + pStfLinkData.mCruLinkHeader->payloadSize,
-            std::back_inserter(pStfLinkData.mLinkDataChunks));
-  mDataMessages.erase(std::begin(mDataMessages), std::begin(mDataMessages) + pStfLinkData.mCruLinkHeader->payloadSize);
-}
+  std::move(std::begin(mDataMessages),
+            std::begin(mDataMessages) + lHBFramesCnt,
+            std::back_inserter(pStfDataSource.mHBFrames));
 
-void HdrDataDeserializer::visit(O2SubTimeFrameCruData& pStfCruData)
-{
-  pStfCruData.mCruHeader = std::move(mHeaderMessages.front());
-  mHeaderMessages.pop_front();
-
-  // receive all CRU Link data
-  // std::map<unsigned, O2SubTimeFrameLinkData>
-  for (size_t i = 0; i < pStfCruData.mCruHeader->payloadSize; i++) {
-    O2SubTimeFrameLinkData lLinkObj;
-
-    lLinkObj.accept(*this);
-
-    assert(pStfCruData.mLinkData.count(lLinkObj.mCruLinkHeader->mCruLinkId) == 0);
-    pStfCruData.mLinkData.insert(std::make_pair(lLinkObj.mCruLinkHeader->mCruLinkId, std::move(lLinkObj)));
-  }
-}
-
-void HdrDataDeserializer::visit(O2SubTimeFrameRawData& pStfRawData)
-{
-  pStfRawData.mRawDataHeader = std::move(mHeaderMessages.front());
-  mHeaderMessages.pop_front();
-
-  // receive all data chunks
-  // std::map<unsigned, O2SubTimeFrameCruData>
-  for (size_t c = 0; c < pStfRawData.mRawDataHeader->payloadSize; c++) {
-    O2SubTimeFrameCruData lCruData;
-
-    // descend into CruData Object
-    lCruData.accept(*this);
-
-    assert(0 == pStfRawData.mCruData.count(lCruData.mCruHeader->mCruId));
-    pStfRawData.mCruData.insert(std::make_pair(lCruData.mCruHeader->mCruId, std::move(lCruData)));
-  }
+  mDataMessages.erase(std::begin(mDataMessages), std::begin(mDataMessages) + lHBFramesCnt);
 }
 
 void HdrDataDeserializer::visit(O2SubTimeFrame& pStf)
@@ -303,7 +204,13 @@ void HdrDataDeserializer::visit(O2SubTimeFrame& pStf)
   pStf.mStfHeader = std::move(mHeaderMessages.front());
   mHeaderMessages.pop_front();
 
-  pStf.mRawData.accept(*this);
+  // iterate over all incoming HBFrame data sources
+  for (size_t i = 0; i < pStf.mStfHeader->payloadSize; i++) {
+    SubTimeFrameDataSource lDataSource;
+    lDataSource.accept(*this);
+
+    pStf.mStfReadoutData[lDataSource.mStfDataSourceHeader->getDataIdentifier()] = std::move(lDataSource);
+  }
 }
 
 bool HdrDataDeserializer::deserialize(O2SubTimeFrame& pStf)

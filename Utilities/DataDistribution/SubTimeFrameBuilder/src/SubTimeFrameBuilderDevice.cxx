@@ -113,12 +113,12 @@ bool StfBuilderDevice::ConditionalRun()
       // queue the data chunk into the next STF
       assert(sStfInBuilding.size() == 0);
       sStfInBuilding.emplace(O2SubTimeFrame{ gStfOutputChanId, lLinkData.mCruLinkHeader->mStfId });
-      sStfInBuilding.front().addCruLinkData(gStfOutputChanId, std::move(lLinkData));
+      sStfInBuilding.front().addHBFrames(gStfOutputChanId, std::move(lLinkData));
       return true; // TODO: move into a real thread to avoid this strangeness
     }
 
     // add the data to the current STF
-    lCurrentStf.addCruLinkData(gStfOutputChanId, std::move(lLinkData));
+    lCurrentStf.addHBFrames(gStfOutputChanId, std::move(lLinkData));
   }
 
   return false;

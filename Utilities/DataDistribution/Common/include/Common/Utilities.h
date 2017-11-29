@@ -85,9 +85,14 @@ public:
     return mMessage != nullptr;
   }
 
-  FairMQMessagePtr get_message()
+  operator void*() const noexcept
   {
-    return std::move(mMessage);
+    return reinterpret_cast<void*>(get());
+  }
+
+  FairMQMessagePtr getMessage()
+  {
+    return std::exchange(mMessage, nullptr);
   }
 
 private:

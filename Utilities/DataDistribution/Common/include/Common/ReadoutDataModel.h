@@ -24,7 +24,6 @@
 namespace o2 {
 namespace DataDistribution {
 
-using O2DataHeader = o2::Header::DataHeader;
 using namespace o2::Base;
 using namespace o2::Header;
 
@@ -37,8 +36,8 @@ enum ReadoutStfBuilderObjectType {
   eReadoutData // an O2SubTimeFrameLinkData follows
 };
 
-struct ReadoutStfBuilderObjectInfo : public O2DataHeader {
-  ReadoutStfBuilderObjectInfo() : O2DataHeader()
+struct ReadoutStfBuilderObjectInfo : public DataHeader {
+  ReadoutStfBuilderObjectInfo() : DataHeader()
   {
     headerSize = sizeof(ReadoutStfBuilderObjectInfo);
     dataDescription = gDataDescriptionInfo;
@@ -66,7 +65,7 @@ struct ReadoutStfBuilderObjectInfo : public O2DataHeader {
 ////////////////////////////////////////////////////////////////////////////////
 
 // This data struct is transmitted 'atomically' by the Readout
-struct O2CruLinkHeader : public O2DataHeader {
+struct O2CruLinkHeader : public DataHeader {
   unsigned mCruId; // keeps track where to return data chunks
   unsigned mCruLinkId;
   std::uint64_t mStfId; // TODO: move to interface
@@ -90,7 +89,7 @@ public:
       throw std::runtime_error("receive error");
   }
 
-  void accept(ISubTimeFrameVisitor&) override;
+  void accept(ISubTimeFrameVisitor&) override {};
 
   std::uint64_t getRawDataSize() const;
 
