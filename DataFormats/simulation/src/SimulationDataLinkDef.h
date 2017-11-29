@@ -30,6 +30,7 @@
 #pragma link C++ class std::vector<o2::MCTrackT<double>>+;
 #pragma link C++ class std::vector<o2::MCTrackT<float>>+;
 #pragma link C++ class o2::MCCompLabel+;
+#pragma link C++ class o2::MCInteractionRecord+;
 
 #pragma link C++ class o2::BaseHit+;
 #pragma link C++ class o2::BasicXYZEHit<float,float>+;

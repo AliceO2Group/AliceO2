@@ -15,5 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::steer::O2RunAna;
+#pragma link C++ class o2::steer::InteractionSampler+;
 
 #endif
