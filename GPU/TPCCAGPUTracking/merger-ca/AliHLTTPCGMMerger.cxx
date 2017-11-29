@@ -122,7 +122,8 @@ AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
 void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v )
 {
   fSliceParam = v;
-  AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( v.BzkG(), fField );
+  if (fSliceParam.AssumeConstantBz()) AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( AliHLTTPCGMPolynomialFieldCreator::kUniform, v.BzkG(), fField );
+  else AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( v.BzkG(), fField );
 }
 
 void AliHLTTPCGMMerger::Clear()

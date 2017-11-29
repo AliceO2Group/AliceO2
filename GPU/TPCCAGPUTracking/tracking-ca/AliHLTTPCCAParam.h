@@ -69,6 +69,8 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float ErrY() const { return fErrY;}
     GPUd() float BzkG() const { return fBzkG;}
     GPUd() float ConstBz() const { return fConstBz;}
+    GPUd() bool AssumeConstantBz() const { return fAssumeConstantBz; }
+    GPUd() void SetAssumeConstantBz(bool v) { fAssumeConstantBz = v; }
 
     GPUd() float NeighboursSearchArea() const { return fNeighboursSearchArea; }
     GPUd() float TrackConnectionFactor() const { return fTrackConnectionFactor; }
@@ -176,8 +178,9 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fHighQPtForward; //Try to forward low Pt tracks with Q/Pt larger than this
     int fNWays;          //Do N fit passes in final fit of merger
     bool fNWaysOuter;    //Store outer param
-    float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
+    bool fAssumeConstantBz; //Assume a constant magnetic field
     bool fContinuousTracking; //Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+    float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
     float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)
 
     float fRowX[200];// X-coordinate of rows

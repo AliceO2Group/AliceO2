@@ -56,7 +56,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
 	out.write((const char*) labels.data(), labels.size() * sizeof(labels[0]));
 	labels.clear();
     
-	int nTracks = 100; //Number of MC tracks, must be at least as large as the largest fMCID assigned above
+	int nTracks = configStandalone.configEG.numberOfTracks; //Number of MC tracks, must be at least as large as the largest fMCID assigned above
 	std::vector<AliHLTTPCCAMCInfo> mcInfo(nTracks);
 	memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
             

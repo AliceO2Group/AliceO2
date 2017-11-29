@@ -28,6 +28,7 @@
 #include "AliHLTTPCGMMergedTrack.h"
 #include "interface/outputtrack.h"
 #include "include.h"
+#include "standaloneSettings.h"
 #include <vector>
 #include <xmmintrin.h>
 
@@ -45,6 +46,7 @@ int main(int argc, char** argv)
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	int iEventInTimeframe = 0, nEventsInDirectory = 0;
+	hltca_event_dump_settings eventSettings;
 	
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV //Flush and load denormals to zero in any case
 	fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
@@ -147,6 +149,23 @@ int main(int argc, char** argv)
 			exit(1);
 		}
 	}
+	
+	eventSettings.setDefaults();
+	if (!configStandalone.eventGenerator)
+	{
+		char filename[256];
+		sprintf(filename, "events/%s/config.dump", configStandalone.EventsDir);
+		FILE* fp = fopen(filename, "rb");
+		if (fp)
+		{
+			int n = fread(&eventSettings, sizeof(eventSettings), 1, fp);
+			printf("Read event settings from file %s (%d bytes, solenoidBz: %f, constBz %d)\n", filename, n, eventSettings.solenoidBz, (int) eventSettings.constBz);
+			fclose(fp);
+		}
+	}
+	if (configStandalone.solenoidBz != -1e6f) eventSettings.solenoidBz = configStandalone.solenoidBz;
+	if (configStandalone.constBz) eventSettings.constBz = true;
+	
 	hlt.SetGPUDebugLevel(configStandalone.DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(configStandalone.eventDisplay);
 	hlt.SetRunQA(configStandalone.qa);
@@ -166,7 +185,7 @@ int main(int argc, char** argv)
 	configStandalone.sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(configStandalone.runGPU);
 
-	hlt.SetSettings(configStandalone.solenoidBz);
+	hlt.SetSettings(eventSettings.solenoidBz, eventSettings.constBz);
 	if (configStandalone.lowpt) hlt.SetHighQPtForward(1./0.1);
 	hlt.SetNWays(configStandalone.nways);
 	hlt.SetNWaysOuter(configStandalone.nwaysouter);
@@ -231,6 +250,14 @@ int main(int argc, char** argv)
 		char filename[256];
 		sprintf(filename, "events/%s/", configStandalone.EventsDir);
 		mkdir(filename, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		sprintf(filename, "events/%s/config.dump", configStandalone.EventsDir);
+		FILE* fp = fopen(filename, "w+b");
+		if (fp)
+		{
+			fwrite(&eventSettings, sizeof(eventSettings), 1, fp);
+			fclose(fp);
+		}
+		
 		for (int i = 0;i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);i++)
 		{
 			

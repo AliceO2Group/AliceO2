@@ -57,6 +57,8 @@
 using namespace std;
 #endif
 
+#include "../tracking-standalone/include/standaloneSettings.h"
+
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer( "CATRACKL", kAliHLTDataOriginTPC );
 
 /** ROOT macro for the implementation of ROOT specific class methods */
@@ -744,6 +746,19 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
     static int nEvent = 0;
     std::ofstream out;
     char filename[256];
+
+    if (nEvent == 0)
+    {
+        sprintf(filename, "config.dump");
+        out.open(filename, std::ofstream::binary);
+        hltca_event_dump_settings eventSettings;
+        eventSettings.setDefaults();
+        eventSettings.solenoidBz = fTracker->Param(0).BzkG();
+        eventSettings.constBz = false;
+        out.write((char*) &eventSettings, sizeof(eventSettings));
+        out.close();
+    }
+
     sprintf(filename, HLTCA_EVDUMP_FILE ".%d.dump", nEvent++);
     out.open(filename, std::ofstream::binary);
     if (!out.fail())

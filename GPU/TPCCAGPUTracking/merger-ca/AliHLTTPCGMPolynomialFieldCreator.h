@@ -22,6 +22,8 @@ class AliHLTTPCGMPolynomialFieldCreator
 {
 public:
 
+  enum StoredField_t  {kUnknown, kUniform, k2kG, k5kG }; // known fitted polynomial fields, stored in constants
+
   AliHLTTPCGMPolynomialFieldCreator(){}
   
   /* Get appropriate pre-calculated polynomial field for the given field value nominalFieldkG
@@ -40,10 +42,6 @@ public:
   static int FitField( AliMagF* fld, AliHLTTPCGMPolynomialField &field ); 
 
 #endif
-  
-private:
-
-  enum StoredField_t  {kUnknown, kUniform, k2kG, k5kG }; // known fitted polynomial fields, stored in constants
   
   /* Get pre-calculated polynomial field of type "type", scaled with respect to nominalFieldkG
    */

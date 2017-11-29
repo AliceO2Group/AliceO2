@@ -32,9 +32,9 @@ public:
 
   GPUd() float GetNominalBz() const { return fNominalBz; }
 
-  void  GetField( float x, float y, float z, float B[3] ) const;
+  GPUd() void  GetField( float x, float y, float z, float B[3] ) const;
 
-  float GetFieldBz( float x, float y, float z ) const;
+  GPUd() float GetFieldBz( float x, float y, float z ) const;
 
   void Print() const;
 
