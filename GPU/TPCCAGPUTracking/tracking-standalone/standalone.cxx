@@ -72,6 +72,8 @@ int main(int argc, char** argv)
 		if (qcRet != qConfig::qcrHelp) printf("Error parsing command line parameters\n");
 		return(1);
 	}
+	if (configStandalone.printSettings) qConfigPrint();
+	
 	if (configStandalone.runGPU && hlt.GetGPUStatus() == 0) {printf("Cannot enable GPU\n"); configStandalone.runGPU = 0;}
 	if (configStandalone.runGPU == 0 || configStandalone.eventDisplay) hlt.ExitGPU();
 #ifndef _WIN32
