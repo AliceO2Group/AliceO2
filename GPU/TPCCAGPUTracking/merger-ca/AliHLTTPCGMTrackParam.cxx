@@ -74,13 +74,14 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
     float dz = dS * fP[3];
     //printf("Track Z %f, Z0 %f (dS %f, dZds %f)             - Direction %f to %f: %f\n", fP[1], dz, dS, fP[3], clusters[0].fZ, clusters[N - 1].fZ, clusters[0].fZ - clusters[N - 1].fZ);
-    if (dz * fP[1] < 0)
+    if (CAMath::Abs(dz) > 250.) dz = dz > 0 ? 250. : -250.;
+    if (fP[1] * (fP[1] - dz) < 0)
     {
       fZOffset = clusters[N - 1].fZ;
     }
     else
     {
-      if (CAMath::Abs(dz) > 250.) dz = dz > 0 ? 250. : -250.;
+      
       fZOffset = fP[1] - dz; 
     }
     fP[1] -= fZOffset;
