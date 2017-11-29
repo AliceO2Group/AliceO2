@@ -198,7 +198,7 @@ template <typename T> struct qConfigType
 
 static inline const char* getArg(int& i, const char** argv, const int argc, bool allowOption = false)
 {
-	if (i + 1 < argc && argv[i + 1][0] && ((allowOption && argv[i + 1][0] != '-' && argv[i + 1][1] != '-') || argv[i + 1][0] != '-')) return(argv[++i]);
+	if (i + 1 < argc && argv[i + 1][0] && ((allowOption && argv[i + 1][0] == '-' && argv[i + 1][1] != '-') || argv[i + 1][0] != '-')) return(argv[++i]);
 	return(nullptr);
 }
 

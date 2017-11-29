@@ -260,7 +260,7 @@ int main(int argc, char** argv)
 		
 		for (int i = 0;i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);i++)
 		{
-			
+			printf("Generating event %d/%d\n", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
 			sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
 			GenerateEvent(hlt.Param(), filename);
 		}
