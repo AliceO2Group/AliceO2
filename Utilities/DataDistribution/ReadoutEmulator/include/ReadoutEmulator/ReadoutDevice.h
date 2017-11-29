@@ -32,10 +32,8 @@ namespace DataDistribution {
 class ReadoutDevice : public Base::O2Device {
 public:
   static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
-  static constexpr const char* OptionKeyFreeShmChannelName = "free-shm-channel-name";
 
   static constexpr const char* OptionKeyReadoutDataRegionSize = "data-shm-region-size";
-  static constexpr const char* OptionKeyReadoutDescRegionSize = "desc-shm-region-size";
 
   static constexpr const char* OptionKeyCruId = "cru-id";
 
@@ -58,18 +56,14 @@ protected:
   void PreRun() final;
   void PostRun() final;
 
-  void FreeShmThread();
   void GuiThread();
 
   // data and Descriptor regions
   // must be here because NewUnmanagedRegionFor() is a method of FairMQDevice...
   FairMQUnmanagedRegionPtr mDataRegion;
-  FairMQUnmanagedRegionPtr mDescRegion;
 
   std::string mOutChannelName;
-  std::string mFreeShmChannelName;
   std::size_t mDataRegionSize;
-  std::size_t mDescRegionSize;
 
   std::size_t mCruId;
 
@@ -81,7 +75,6 @@ protected:
   std::shared_ptr<CruMemoryHandler> mCruMemoryHandler;
 
   std::vector<std::unique_ptr<CruLinkEmulator>> mCruLinks;
-  std::thread mFreeShmThread;
 
   /// Observables
   bool mBuildHistograms = true;

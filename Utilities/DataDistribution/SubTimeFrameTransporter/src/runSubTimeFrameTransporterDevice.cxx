@@ -18,9 +18,7 @@ namespace bpo = boost::program_options;
 void addCustomOptions(bpo::options_description& options)
 {
   options.add_options()(o2::DataDistribution::StfHandlerDevice::OptionKeyInputChannelName,
-                        bpo::value<std::string>()->default_value("stf-channel"), "Name of the stf channel (input)")(
-    o2::DataDistribution::StfHandlerDevice::OptionKeyFreeShmChannelName,
-    bpo::value<std::string>()->default_value("free-shm"), "Name of the free shm chunks channel");
+                        bpo::value<std::string>()->default_value("stf-channel"), "Name of the stf channel (input)");
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)

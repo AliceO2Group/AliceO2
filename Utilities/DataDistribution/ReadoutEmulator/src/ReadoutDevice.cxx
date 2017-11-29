@@ -37,12 +37,8 @@ ReadoutDevice::~ReadoutDevice()
 
 void ReadoutDevice::InitTask()
 {
-  auto oldmDataRegionSize = mDataRegionSize;
-  auto oldmDescRegionSize = mDescRegionSize;
   mOutChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
-  mFreeShmChannelName = GetConfig()->GetValue<std::string>(OptionKeyFreeShmChannelName);
   mDataRegionSize = GetConfig()->GetValue<std::size_t>(OptionKeyReadoutDataRegionSize);
-  mDescRegionSize = GetConfig()->GetValue<std::size_t>(OptionKeyReadoutDescRegionSize);
 
   mCruId = GetConfig()->GetValue<std::size_t>(OptionKeyCruId);
 
@@ -65,25 +61,18 @@ void ReadoutDevice::InitTask()
   }
 
   mDataRegion.reset();
-  mDescRegion.reset();
-
-  const auto lMinDescRegionSize =
-    (mDataRegionSize / mSuperpageSize) * (mSuperpageSize / mDmaChunkSize) * sizeof(RawDmaChunkDesc);
-
-  if (mDescRegionSize < lMinDescRegionSize) {
-    LOG(WARN) << "Descriptor segment too small (" << mDescRegionSize << "). Should be: " << lMinDescRegionSize
-              << " bytes.";
-    LOG(WARN) << "Setting to " << lMinDescRegionSize * 2; /* just in case... */
-    mDescRegionSize = lMinDescRegionSize * 2;
-  }
 
   // Open SHM regions (segments)
-  mDataRegion = NewUnmanagedRegionFor(mOutChannelName, 0, mDataRegionSize);
-  mDescRegion = NewUnmanagedRegionFor(mOutChannelName, 0, mDescRegionSize);
+  mDataRegion = NewUnmanagedRegionFor(
+    mOutChannelName, 0, mDataRegionSize,
+    [this](void* data, size_t size) { // callback to be called when message buffers no longer needed by transport
+      // LOG(INFO) << "Returning message ";
+      mCruMemoryHandler->put_data_buffer(static_cast<char*>(data), size);
+    });
 
   LOG(INFO) << "Memory regions created";
 
-  mCruMemoryHandler->init(mDataRegion.get(), mDescRegion.get(), mSuperpageSize, mDmaChunkSize);
+  mCruMemoryHandler->init(mDataRegion.get(), mSuperpageSize, mDmaChunkSize);
 
   mCruLinks.clear();
   for (auto e = 0; e < mCruLinkCount; e++)
@@ -92,8 +81,6 @@ void ReadoutDevice::InitTask()
 
 void ReadoutDevice::PreRun()
 {
-  mFreeShmThread = std::thread(&ReadoutDevice::FreeShmThread, this);
-
   // start all cru link emulators
   for (auto& e : mCruLinks)
     e->start();
@@ -104,7 +91,6 @@ void ReadoutDevice::PreRun()
 
 void ReadoutDevice::PostRun()
 {
-  mFreeShmThread.join();
   // stop all cru link emulators
   for (auto& e : mCruLinks)
     e->stop();
@@ -196,34 +182,6 @@ bool ReadoutDevice::ConditionalRun()
   }
 
   return true;
-}
-
-void ReadoutDevice::FreeShmThread()
-{
-  while (CheckCurrentState(RUNNING)) {
-
-#if defined(SHM_MULTIPART)
-    FairMQParts lMpart;
-    if (Receive(lMpart, mFreeShmChannelName, 0) < 0)
-      break;
-
-    for (auto& lMsg : lMpart.fParts)
-      mCruMemoryHandler->put_data_buffer(static_cast<char*>(lMsg->GetData()), lMsg->GetSize());
-
-#else
-    FairMQMessagePtr msg(NewMessageFor(mFreeShmChannelName, 0));
-
-    if (Receive(msg, mFreeShmChannelName) < 0)
-      break;
-
-    char* address = static_cast<char*>(msg->GetData());
-    size_t len = msg->GetSize();
-
-    mCruMemoryHandler->put_data_buffer(address, len);
-#endif
-  }
-
-  LOG(INFO) << "Readout-FreeSHM: Thread exiting";
 }
 
 void ReadoutDevice::GuiThread()

@@ -32,21 +32,18 @@ void CruMemoryHandler::teardown()
   mUsedSuperPages.clear();
 }
 
-void CruMemoryHandler::init(FairMQUnmanagedRegion* pDataRegion, FairMQUnmanagedRegion* pDescRegion,
-                            std::size_t pSuperPageSize, std::size_t pDmaChunkSize)
+void CruMemoryHandler::init(FairMQUnmanagedRegion* pDataRegion, std::size_t pSuperPageSize, std::size_t pDmaChunkSize)
 {
   teardown();
 
   mSuperpageSize = pSuperPageSize;
   mDataRegion = pDataRegion;
-  mDescRegion = pDescRegion;
 
   const auto lCntSuperpages = getDataRegionSize() / mSuperpageSize;
 
   LOG(INFO) << "Initializing the segment memory. Can take a while...";
   // make sure the memory is allocated properly
   std::memset(getDataRegionPtr(), 0xDA, getDataRegionSize());
-  std::memset(getDescRegionPtr(), 0xDE, getDescRegionSize());
 
   // lock and initialize the empty page queue
   std::lock_guard<std::mutex> lock(mLock);
@@ -56,10 +53,7 @@ void CruMemoryHandler::init(FairMQUnmanagedRegion* pDataRegion, FairMQUnmanagedR
   mUsedSuperPages.clear();
 
   for (size_t i = 0; i < lCntSuperpages; i++) {
-    const CRUSuperpage sp{
-      getDataRegionPtr() + (i * mSuperpageSize),                                           nullptr,
-      getDescRegionPtr() + (i * mSuperpageSize / pDmaChunkSize * sizeof(RawDmaChunkDesc)), nullptr
-    };
+    const CRUSuperpage sp{ getDataRegionPtr() + (i * mSuperpageSize), nullptr };
 
     // stack of free superpages to feed the CRU
     mSuperpages.push(sp);

@@ -66,13 +66,6 @@ void CruLinkEmulator::linkReadoutThread()
       CRUSuperpage sp;
       if (mMemHandler->getSuperpage(sp)) {
 
-        RawDmaChunkDesc* const desc = reinterpret_cast<RawDmaChunkDesc*>(sp.mDescVirtualAddress);
-        // Real-world scenario: CRU marks some of the DMA packet slots as invalid.
-        // Simulate this by making ~1% of them invalid.
-        for (unsigned d = 0; d < cNumDmaChunkPerSuperpage; d++) {
-          desc[d].mValidHBF = (rand() % 100 > 1) ? true : false;
-        }
-
         // Enumerate valid data and create work-item for STFBuilder
         // Each channel is reported separately to the O2
         ReadoutLinkO2Data linkO2Data;
@@ -81,21 +74,22 @@ void CruLinkEmulator::linkReadoutThread()
         linkO2Data.mLinkDataHeader.headerSize = sizeof(DataHeader);
         linkO2Data.mLinkDataHeader.flags = 0;
         linkO2Data.mLinkDataHeader.dataDescription = o2::Header::gDataDescriptionRawData;
-        linkO2Data.mLinkDataHeader.dataOrigin = o2::Header::gDataOriginTPC;
+        linkO2Data.mLinkDataHeader.dataOrigin = (rand() % 100 < 70) ? o2::Header::gDataOriginTPC : o2::Header::gDataOriginITS;
         linkO2Data.mLinkDataHeader.payloadSerializationMethod = o2::Header::gSerializationMethodNone;
         linkO2Data.mLinkDataHeader.subSpecification = mLinkID;
 
         for (unsigned d = 0; d < cNumDmaChunkPerSuperpage; d++) {
-          if (!desc[d].mValidHBF)
+
+          // Real-world scenario: CRU marks some of the DMA packet slots as invalid.
+          // Simulate this by making ~2% of them invalid.
+          if ((rand() % 100 <= 2))
             continue;
 
-          linkO2Data.mLinkRawData.emplace_back(
-            CruDmaPacket{ mMemHandler->getDataRegion(),
-                          sp.mDataVirtualAddress +
-                            (d * mDmaChunkSize), // Valid data DMA Chunk <superpage offset + length>
-                          mDmaChunkSize,         // This should be taken from desc->mRawDataSize (filled by the CRU)
-                          mMemHandler->getDescRegion(),
-                          reinterpret_cast<char* const>(&desc[d]), sizeof(RawDmaChunkDesc) });
+          linkO2Data.mLinkRawData.emplace_back(CruDmaPacket{
+            mMemHandler->getDataRegion(),
+            sp.mDataVirtualAddress + (d * mDmaChunkSize), // Valid data DMA Chunk <superpage offset + length>
+            mDmaChunkSize // This should be taken from desc->mRawDataSize (filled by the CRU)
+          });
         }
 
         // record how many chunks are there in a superpage

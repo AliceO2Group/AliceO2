@@ -27,6 +27,13 @@ namespace DataDistribution {
 using namespace o2::Base;
 using namespace o2::Header;
 
+#define DECLARE_STF_FRIENDS                         \
+  friend class InterleavedHdrDataSerializer;        \
+  friend class InterleavedHdrDataDeserializer;      \
+  friend class HdrDataSerializer;                   \
+  friend class HdrDataDeserializer;                 \
+  friend class DataIdentifierSplitter;
+
 ////////////////////////////////////////////////////////////////////////////////
 /// SubTimeFrameDataSource
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,6 +42,7 @@ struct StfDataSourceHeader : public DataHeader {
 };
 
 class SubTimeFrameDataSource : public IDataModelObject {
+  DECLARE_STF_FRIENDS
 public:
   SubTimeFrameDataSource() = default;
   ~SubTimeFrameDataSource() = default;
@@ -45,26 +53,27 @@ public:
   SubTimeFrameDataSource(SubTimeFrameDataSource&& a) = default;
   SubTimeFrameDataSource& operator=(SubTimeFrameDataSource&& a) = default;
 
-  // SubTimeFrameDataSource(uint64_t pStfId, cosnt DataIdentifier &pDataIdent, const DataHeader::SubSpecificationType &pDataSubSpec);
-
-  void accept(ISubTimeFrameVisitor&) override;
+  void accept(ISubTimeFrameVisitor& v) override { v.visit(*this); };
 
   void addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkData);
+  std::uint64_t getDataSize() const;
 
+  const StfDataSourceHeader& Header() const { return *mStfDataSourceHeader; }
+
+private:
   ChannelPtr<StfDataSourceHeader> mStfDataSourceHeader;
-  std::vector<FairMQMessagePtr>   mHBFrames;
+  std::vector<FairMQMessagePtr> mHBFrames;
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////
 /// SubTimeFrame
 ////////////////////////////////////////////////////////////////////////////////
-
 struct O2StfHeader : public DataHeader {
   std::uint64_t mStfId;
 };
 
 class O2SubTimeFrame : public IDataModelObject {
+  DECLARE_STF_FRIENDS
 public:
   O2SubTimeFrame() = default;
   ~O2SubTimeFrame() = default;
@@ -77,17 +86,14 @@ public:
 
   O2SubTimeFrame(int pChannelId, uint64_t pStfId);
 
-  void accept(ISubTimeFrameVisitor&) override;
+  void accept(ISubTimeFrameVisitor& v) override { v.visit(*this); };
 
   void addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkData);
+  std::uint64_t getDataSize() const;
 
-  void getShmRegionMessages(std::map<unsigned, std::vector<FairMQMessagePtr>>& pMessages);
-  std::uint64_t getRawDataSize() const;
+  const O2StfHeader& Header() const { return *mStfHeader; }
 
-  const O2StfHeader& Header() const
-  {
-    return *mStfHeader;
-  }
+private:
 
   ChannelPtr<O2StfHeader> mStfHeader;
 
@@ -95,7 +101,6 @@ public:
   // 2. map: SubSpecification -> DataSubset (e.g. (TPC, CLUSTERS, clFinder1000) -> (data from that one source)
   std::map<DataIdentifier, SubTimeFrameDataSource> mStfReadoutData;
 };
-
 }
 } /* o2::DataDistribution */
 

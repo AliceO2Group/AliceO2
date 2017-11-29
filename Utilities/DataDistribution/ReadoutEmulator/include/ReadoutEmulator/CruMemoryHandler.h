@@ -32,19 +32,12 @@ namespace DataDistribution {
 struct CRUSuperpage {
   char* mDataVirtualAddress;
   char* mDataBusAddress;
-
-  char* mDescVirtualAddress;
-  char* mDescBusAddress;
 };
 
 struct CruDmaPacket {
   FairMQUnmanagedRegion* mDataSHMRegion = nullptr;
   char* mDataPtr = nullptr;
   size_t mDataSize = size_t(0);
-
-  FairMQUnmanagedRegion* mDescSHMRegion = nullptr;
-  char* mDescPtr = nullptr;
-  size_t mDescSize = size_t(0);
 };
 
 struct ReadoutLinkO2Data {
@@ -61,8 +54,7 @@ public:
     teardown();
   }
 
-  void init(FairMQUnmanagedRegion* pDataRegion, FairMQUnmanagedRegion* pDescRegion, std::size_t pSuperPageSize,
-            std::size_t pDmaChunkSize);
+  void init(FairMQUnmanagedRegion* pDataRegion, std::size_t pSuperPageSize, std::size_t pDmaChunkSize);
   void teardown();
 
   std::size_t getSuperpageSize() const
@@ -85,27 +77,15 @@ public:
   {
     return mDataRegion;
   }
-  auto getDescRegion() const
-  {
-    return mDescRegion;
-  }
 
   char* getDataRegionPtr() const
   {
     return static_cast<char*>(mDataRegion->GetData());
   }
-  char* getDescRegionPtr() const
-  {
-    return static_cast<char*>(mDescRegion->GetData());
-  }
 
   auto getDataRegionSize() const
   {
     return mDataRegion->GetSize();
-  }
-  auto getDescRegionSize() const
-  {
-    return mDescRegion->GetSize();
   }
 
   // fifo of filled ReadoutLinkO2Data updates to be sent to STFBuilder (thread safe)
@@ -121,7 +101,6 @@ public:
 
 private:
   FairMQUnmanagedRegion* mDataRegion;
-  FairMQUnmanagedRegion* mDescRegion;
 
   std::size_t mSuperpageSize;
 

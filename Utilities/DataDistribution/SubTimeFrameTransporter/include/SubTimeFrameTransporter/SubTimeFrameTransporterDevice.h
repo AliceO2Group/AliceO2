@@ -39,11 +39,8 @@ protected:
   bool ConditionalRun() final;
 
   std::string mInputChannelName;
-  std::string mFreeShmChannelName;
 
   std::uint64_t mDelayUs = 1000;
-
-  std::vector<FairMQMessagePtr> mMessages;
 };
 }
 } /* namespace o2::DataDistribution */

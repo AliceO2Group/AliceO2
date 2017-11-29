@@ -13,16 +13,6 @@
                                 "address": "ipc:///tmp/readout-pipe-0"
                             }
                         ]
-                    },
-                    {
-                        "name": "free-shm",
-                        "sockets": [
-                            {
-                                "type": "pair",
-                                "method": "connect",
-                                "address": "ipc:///tmp/readout-pipe-free-0"
-                            }
-                        ]
                     }
                 ]
             },
@@ -36,16 +26,6 @@
                                 "type": "pair",
                                 "method": "bind",
                                 "address": "ipc:///tmp/readout-pipe-1"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "free-shm",
-                        "sockets": [
-                            {
-                                "type": "pair",
-                                "method": "connect",
-                                "address": "ipc:///tmp/readout-pipe-free-1"
                             }
                         ]
                     }
@@ -91,21 +71,6 @@
                                 "type": "pair",
                                 "method": "bind",
                                 "address": "ipc:///tmp/stf-pipe-0"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "free-shm",
-                        "sockets": [
-                            {
-                                "type": "pair",
-                                "method": "bind",
-                                "address": "ipc:///tmp/readout-pipe-free-0"
-                            },
-                            {
-                                "type": "pair",
-                                "method": "bind",
-                                "address": "ipc:///tmp/readout-pipe-free-1"
                             }
                         ]
                     }

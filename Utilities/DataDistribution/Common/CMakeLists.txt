@@ -10,6 +10,7 @@ set(SRCS
     src/ReadoutDataModel.cxx
     src/SubTimeFrameDataModel.cxx
     src/SubTimeFrameVisitors.cxx
+    src/SubTimeFrameUtils.cxx
   )
 
 set(LIBRARY_NAME ${MODULE_NAME})

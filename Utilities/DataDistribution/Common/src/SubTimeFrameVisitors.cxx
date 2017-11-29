@@ -32,8 +32,7 @@ void InterleavedHdrDataSerializer::visit(SubTimeFrameDataSource& pStfDataSource)
   mMessages.emplace_back(std::move(pStfDataSource.mStfDataSourceHeader.getMessage()));
 
   // iterate all Hbfs
-  std::move(std::begin(pStfDataSource.mHBFrames), std::end(pStfDataSource.mHBFrames),
-            std::back_inserter(mMessages));
+  std::move(std::begin(pStfDataSource.mHBFrames), std::end(pStfDataSource.mHBFrames), std::back_inserter(mMessages));
 
   // clean the object
   assert(!pStfDataSource.mStfDataSourceHeader);
@@ -46,7 +45,7 @@ void InterleavedHdrDataSerializer::visit(O2SubTimeFrame& pStf)
   mMessages.emplace_back(std::move(pStf.mStfHeader.getMessage()));
 
   for (auto& lDataSourceKey : pStf.mStfReadoutData) {
-    auto &lDataSource = lDataSourceKey.second;
+    auto& lDataSource = lDataSourceKey.second;
     lDataSource.accept(*this);
   }
 }
@@ -54,10 +53,14 @@ void InterleavedHdrDataSerializer::visit(O2SubTimeFrame& pStf)
 void InterleavedHdrDataSerializer::serialize(O2SubTimeFrame& pStf, O2Device& pDevice, const std::string& pChan,
                                              const int pChanId)
 {
+  mMessages.clear();
+
   pStf.accept(*this);
 
   for (auto& lMsg : mMessages)
     pDevice.Send(lMsg, pChan, pChanId);
+
+  mMessages.clear();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -146,7 +149,7 @@ void HdrDataSerializer::visit(O2SubTimeFrame& pStf)
   mHeaderMessages.emplace_back(std::move(pStf.mStfHeader.getMessage()));
 
   for (auto& lDataSourceKey : pStf.mStfReadoutData) {
-    auto &lDataSource = lDataSourceKey.second;
+    auto& lDataSource = lDataSourceKey.second;
     lDataSource.accept(*this);
   }
 }
@@ -192,8 +195,7 @@ void HdrDataDeserializer::visit(SubTimeFrameDataSource& pStfDataSource)
   const auto lHBFramesCnt = pStfDataSource.mStfDataSourceHeader->payloadSize;
 
   // iterate all HBFrames
-  std::move(std::begin(mDataMessages),
-            std::begin(mDataMessages) + lHBFramesCnt,
+  std::move(std::begin(mDataMessages), std::begin(mDataMessages) + lHBFramesCnt,
             std::back_inserter(pStfDataSource.mHBFrames));
 
   mDataMessages.erase(std::begin(mDataMessages), std::begin(mDataMessages) + lHBFramesCnt);

@@ -10,6 +10,7 @@
 
 #include "SubTimeFrameBuilder/SubTimeFrameBuilderDevice.h"
 
+#include "Common/SubTimeFrameUtils.h"
 #include "Common/SubTimeFrameVisitors.h"
 #include "Common/ReadoutDataModel.h"
 #include "Common/SubTimeFrameDataModel.h"
@@ -105,7 +106,7 @@ bool StfBuilderDevice::ConditionalRun()
       // assert(lCurrentStfId == lLinkData.Header().mStfId - 1);
 
       if (mBuildHistograms)
-        mStfSizeSamples.Fill(lCurrentStf.getRawDataSize());
+        mStfSizeSamples.Fill(lCurrentStf.getDataSize());
 
       mStfQueue.push(std::move(lCurrentStf));
       sStfInBuilding.pop();
@@ -134,16 +135,33 @@ void StfBuilderDevice::StfOutputThread()
       return;
     }
 
+    // EXAMPLE:
+    // split one SubTimeFrame into per detector SubTimeFrames (this is unlikely situation for a STF
+    // but still... The TimeFrame structure should be similar)
+    static const DataIdentifier cTPCDataIdentifier(gDataDescriptionAny, gDataOriginTPC);
+    static const DataIdentifier cITSDataIdentifier(gDataDescriptionAny, gDataOriginITS);
+
+    DataIdentifierSplitter lStfDetectorSplitter;
+    O2SubTimeFrame lStfTPC = lStfDetectorSplitter.split(lStf, cTPCDataIdentifier, gStfOutputChanId);
+    O2SubTimeFrame lStfITS = lStfDetectorSplitter.split(lStf, cITSDataIdentifier, gStfOutputChanId);
+
+    if (mBuildHistograms) {
+      mStfSizeSamples.Fill(lStfTPC.getDataSize());
+      mStfSizeSamples.Fill(lStfITS.getDataSize());
+    }
+
     const auto lStartTime = std::chrono::high_resolution_clock::now();
 
 #if STF_SERIALIZATION == 1
     InterleavedHdrDataSerializer lStfSerializer;
-    lStfSerializer.serialize(lStf, *this, mOutputChannelName, 0);
+    lStfSerializer.serialize(lStfTPC, *this, mOutputChannelName, 0);
+    lStfSerializer.serialize(lStfITS, *this, mOutputChannelName, 0);
 #elif STF_SERIALIZATION == 2
     HdrDataSerializer lStfSerializer;
-    lStfSerializer.serialize(lStf, *this, mOutputChannelName, 0);
+    lStfSerializer.serialize(lStfTPC, *this, mOutputChannelName, 0);
+    lStfSerializer.serialize(lStfITS, *this, mOutputChannelName, 0);
 #else
-    #error "Unknown STF_SERIALIZATION type"
+#error "Unknown STF_SERIALIZATION type"
 #endif
 
     double lTimeMs =
@@ -211,7 +229,7 @@ void StfBuilderDevice::GuiThread()
   while (CheckCurrentState(RUNNING)) {
     LOG(INFO) << "Updating histograms...";
 
-    TH1F lStfSizeHist("StfSizeH", "Readout data size per STF", 64, 0.0, 700e+6);
+    TH1F lStfSizeHist("StfSizeH", "Readout data size per STF", 64, 0.0, 400e+6);
     lStfSizeHist.GetXaxis()->SetTitle("Size [B]");
     for (const auto v : mStfSizeSamples)
       lStfSizeHist.Fill(v);

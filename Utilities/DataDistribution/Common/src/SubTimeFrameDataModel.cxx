@@ -17,15 +17,9 @@
 namespace o2 {
 namespace DataDistribution {
 
-
 ////////////////////////////////////////////////////////////////////////////////
 /// SubTimeFrameDataSource
 ////////////////////////////////////////////////////////////////////////////////
-void SubTimeFrameDataSource::accept(ISubTimeFrameVisitor& v)
-{
-  v.visit(*this);
-}
-
 void SubTimeFrameDataSource::addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkData)
 {
   if (mHBFrames.empty()) {
@@ -34,7 +28,7 @@ void SubTimeFrameDataSource::addHBFrames(int pChannelId, O2SubTimeFrameLinkData&
     mStfDataSourceHeader = make_channel_ptr<StfDataSourceHeader>(pChannelId);
 
     // TODO: initialize the header properly (slicing)
-    memcpy(mStfDataSourceHeader, pLinkData.mCruLinkHeader, sizeof (DataHeader));
+    memcpy(mStfDataSourceHeader, pLinkData.mCruLinkHeader, sizeof(DataHeader));
 
     mHBFrames = std::move(pLinkData.mLinkDataChunks);
   } else {
@@ -53,16 +47,18 @@ void SubTimeFrameDataSource::addHBFrames(int pChannelId, O2SubTimeFrameLinkData&
   mStfDataSourceHeader->payloadSize = mHBFrames.size();
 }
 
-
+std::uint64_t SubTimeFrameDataSource::getDataSize() const
+{
+  std::uint64_t lDataSize = 0;
+  for (const auto& lHBFrame : mHBFrames) {
+    lDataSize += lHBFrame->GetSize();
+    lHBFrame->GetData();
+  }
+  return lDataSize;
+}
 ////////////////////////////////////////////////////////////////////////////////
 /// SubTimeFrame
 ////////////////////////////////////////////////////////////////////////////////
-
-void O2SubTimeFrame::accept(class ISubTimeFrameVisitor& v)
-{
-  v.visit(*this);
-}
-
 O2SubTimeFrame::O2SubTimeFrame(int pChannelId, uint64_t pStfId)
 {
   mStfHeader = make_channel_ptr<O2StfHeader>(pChannelId);
@@ -84,34 +80,16 @@ void O2SubTimeFrame::addHBFrames(int pChannelId, O2SubTimeFrameLinkData&& pLinkD
   mStfHeader->payloadSize = mStfReadoutData.size();
 }
 
-
-// TODO: remove when callbacks are in
-void O2SubTimeFrame::getShmRegionMessages(std::map<unsigned, std::vector<FairMQMessagePtr>>& pMessages)
-{
-  // this feels intrusive...
-  for (auto& lReadoutDataKey : mStfReadoutData) {
-    auto &lHBFrameData = lReadoutDataKey.second;
-    std::move(std::begin(lHBFrameData.mHBFrames), std::end(lHBFrameData.mHBFrames),
-                std::back_inserter(pMessages[0]));
-
-    assert(lHBFrameData.mStfDataSourceHeader);
-    lHBFrameData.mStfDataSourceHeader->payloadSize = 0;
-    lHBFrameData.mHBFrames.clear();
-  }
-}
-
-std::uint64_t O2SubTimeFrame::getRawDataSize() const
+std::uint64_t O2SubTimeFrame::getDataSize() const
 {
   std::uint64_t lDataSize = 0;
 
   for (auto& lReadoutDataKey : mStfReadoutData) {
-    auto &lHBFrameData = lReadoutDataKey.second;
-    for (const auto& lHBFrame : lHBFrameData.mHBFrames)
-      lDataSize += lHBFrame->GetSize();
+    auto& lHBFrameData = lReadoutDataKey.second;
+    lDataSize += lHBFrameData.getDataSize();
   }
 
   return lDataSize;
 }
-
 }
 } /* o2::DataDistribution */

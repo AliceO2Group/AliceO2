@@ -89,7 +89,7 @@ public:
       throw std::runtime_error("receive error");
   }
 
-  void accept(ISubTimeFrameVisitor&) override {};
+  void accept(ISubTimeFrameVisitor&) override{};
 
   std::uint64_t getRawDataSize() const;
 

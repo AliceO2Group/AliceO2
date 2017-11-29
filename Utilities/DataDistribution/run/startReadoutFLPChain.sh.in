@@ -2,13 +2,13 @@
 
 shmmonitor --cleanup
 
-NUM_CRUS=1
-DMA_STREAMS_PER_CRU=4
+NUM_CRUS=2
+DMA_STREAMS_PER_CRU=2
 
 # ThroughputPer of input streams (or CRU links). Specified in Gbits / s !
 # Max physical limit should ~5Gbit/s for TPC input link (~333 MB/STF/CRU)
 # This works as long as DMA_CHUNK_SIZE is set to 0 (see below)
-DMA_STREAM_BITS_PER_S=$((6 * 1000 * 1000 * 1000))
+DMA_STREAM_BITS_PER_S=$((15 * 1000 * 1000 * 1000))
 
 DATA_REGION_SIZE=$((2 * 1024 * 1024 * 1024))
 SUPERPAGE_SIZE=$((2 * 1024 * 1024))
@@ -20,6 +20,7 @@ DMA_CHUNK_SIZE=$((0 * 1024))
 readoutMockupConfig="@CMAKE_BINARY_DIR@/bin/config/readout-flp-chain.json"
 
 IO_THREADS=2
+
 READOUT="ReadoutEmulatorDevice"
 READOUT+=" --transport shmem"
 READOUT+=" --mq-config $readoutMockupConfig"

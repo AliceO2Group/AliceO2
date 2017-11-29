@@ -32,7 +32,6 @@ StfHandlerDevice::~StfHandlerDevice()
 void StfHandlerDevice::InitTask()
 {
   mInputChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
-  mFreeShmChannelName = GetConfig()->GetValue<std::string>(OptionKeyFreeShmChannelName);
 }
 
 bool StfHandlerDevice::ConditionalRun()
@@ -53,33 +52,14 @@ bool StfHandlerDevice::ConditionalRun()
     return false;
   }
 #else
-  #error "Unknown STF_SERIALIZATION type"
+#error "Unknown STF_SERIALIZATION type"
 #endif
 
-  // free region chunks for reuse
-  std::map<unsigned, std::vector<FairMQMessagePtr>> lMessagesToReturn;
-  lStf.getShmRegionMessages(lMessagesToReturn);
+  // Do something with the STF
 
-  for (auto& lCruIdMessages : lMessagesToReturn) {
-    const unsigned lCruChanId = lCruIdMessages.first;
-
-#if defined(SHM_MULTIPART)
-    FairMQParts lMpart;
-    lMpart.fParts = std::move(lCruIdMessages.second);
-    if (Send(lMpart, mFreeShmChannelName, lCruChanId) < 0) {
-      LOG(WARN) << "Returning of region chunks failed. Exiting...";
-      return false;
-    }
-#else
-    // TODO: these should be sent interleaved to avoid overloading one channel
-    for (auto& lMsg : lCruIdMessages.second) {
-      if (Send(lMsg, mFreeShmChannelName, lCruChanId) < 0) {
-        LOG(WARN) << "Returning of region chunks failed. Exiting...";
-        return false;
-      }
-    }
-#endif
-  }
+  // Stf Readout messages will be returned when lStf goes of the scope!
+  // TODO: remove getsize when fix for region mapping lands
+  lStf.getDataSize();
 
   return true;
 }
