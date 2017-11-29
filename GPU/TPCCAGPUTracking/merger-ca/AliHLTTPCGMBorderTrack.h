@@ -35,7 +35,7 @@ class AliHLTTPCGMBorderTrack
   int   TrackID()                    const { return fTrackID;   }
   int   NClusters()                  const { return fNClusters; }  
   const float *Par() const { return fP; }
-  const float ZOffset() const { return fZOffset;}
+  float ZOffset() const { return fZOffset;}
   const float *Cov() const { return fC; }
   const float *CovD() const { return fD; }
 
