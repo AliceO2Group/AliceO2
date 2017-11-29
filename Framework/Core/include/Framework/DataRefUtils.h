@@ -11,13 +11,13 @@
 #define FRAMEWORK_DATAREFUTILS_H
 
 #include "Framework/DataRef.h"
-#include "Framework/Collection.h"
 #include "Headers/DataHeader.h"
 #include "Framework/TMessageSerializer.h"
 #include <TClass.h>
 #include <stdexcept>
 #include <sstream>
 #include <type_traits>
+#include <gsl/gsl>
 
 namespace o2 {
 namespace framework {
@@ -28,13 +28,13 @@ struct DataRefUtils {
   // a POD, this is to distinguish it from the alternative below,
   // which works for TObject (which are serialised).
   template <typename T>
-  static typename std::enable_if<std::is_pod<T>::value == true, Collection<T>>::type
+  static typename std::enable_if<std::is_pod<T>::value == true, gsl::span<T>>::type
   as(DataRef const &ref) {
     using DataHeader = o2::Header::DataHeader;
     auto header = o2::Header::get<const DataHeader>(ref.header);
     assert((header->payloadSize % sizeof(T)) == 0);
     //FIXME: provide a const collection
-    return Collection<T>(reinterpret_cast<void *>(const_cast<char *>(ref.payload)), header->payloadSize/sizeof(T));
+    return gsl::span<T>(reinterpret_cast<T *>(const_cast<char *>(ref.payload)), header->payloadSize/sizeof(T));
   }
 
   // See above. SFINAE allows us to use this to extract a TObject with 

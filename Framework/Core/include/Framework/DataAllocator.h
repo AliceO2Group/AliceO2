@@ -14,10 +14,11 @@
 #include "Headers/DataHeader.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
-#include "Framework/Collection.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
 #include "Framework/TMessageSerializer.h"
+#include "Framework/TypeTraits.h"
+
 #include "fairmq/FairMQMessage.h"
 
 #include <vector>
@@ -25,6 +26,7 @@
 #include <string>
 #include <utility>
 #include <type_traits>
+#include <gsl/span>
 
 #include <TClass.h>
 
@@ -39,6 +41,7 @@ class DataAllocator
 {
 public:
   using AllowedOutputsMap = std::vector<OutputRoute>;
+  using DataHeader = o2::Header::DataHeader;
   using DataOrigin = o2::Header::DataOrigin;
   using DataDescription = o2::Header::DataDescription;
   using SubSpecificationType = o2::Header::DataHeader::SubSpecificationType;
@@ -64,11 +67,11 @@ public:
   // In case an extra argument is provided, we consider this an array / 
   // collection elements of that type
   template <typename T>
-  typename std::enable_if<std::is_pod<T>::value == true, Collection<T>>::type
+  typename std::enable_if<std::is_pod<T>::value == true, gsl::span<T>>::type
   make(const OutputSpec &spec, size_t nElements) {
     auto size = nElements*sizeof(T);
     DataChunk chunk = newChunk(spec, size);
-    return Collection<T>(chunk.data, nElements);
+    return gsl::span<T>(reinterpret_cast<T*>(chunk.data), nElements);
   }
 
   /// Use this in case you want to leave the creation
@@ -91,12 +94,82 @@ public:
   void
   adopt(const OutputSpec &spec, TObject*obj);
 
-  /// Serialize a snapshot of a TObject when called, which will then
+  /// Serialize a snapshot of a TObject when called, which will then be
   /// sent once the computation ends.
   /// Framework does not take ownership of the @a object. Changes to @a object
   /// after the call will not be sent.
-  void serializeSnapshot(const OutputSpec &spec, TObject* const object);
+  template <typename T>
+  typename std::enable_if<std::is_base_of<TObject, T>::value == true, void>::type
+  serializeSnapshot(const OutputSpec &spec, T *const object) {
+    std::string channel = matchDataHeader(spec, mRootContext->timeslice());
+    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
 
+    FairMQParts parts;
+
+    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    mDevice->Serialize<TMessageSerializer>(*payloadMessage, object);
+    // FIXME: this is kind of ugly, we know that we can change the content of the
+    // header message because we have just created it, but the API declares it const
+    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
+    DataHeader *dh = const_cast<DataHeader *>(cdh);
+    dh->payloadSize = payloadMessage->GetSize();
+    parts.AddPart(std::move(headerMessage));
+    parts.AddPart(std::move(payloadMessage));
+    mContext->addPart(std::move(parts), channel);
+  }
+
+  /// Serialize a snapshot of a POD type, which will then be sent
+  /// once the computation ends.
+  /// Framework does not take ownership of @param object. Changes to @param object
+  /// after the call will not be sent.
+  template <typename T>
+  typename std::enable_if<std::is_pod<T>::value == true, void>::type
+  serializeSnapshot(const OutputSpec &spec, T const &object) {
+    std::string channel = matchDataHeader(spec, mRootContext->timeslice());
+    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
+
+    FairMQParts parts;
+
+    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
+    memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(&object), sizeof(T));
+
+    // FIXME: this is kind of ugly, we know that we can change the content of the
+    // header message because we have just created it, but the API declares it const
+    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
+    DataHeader *dh = const_cast<DataHeader *>(cdh);
+    dh->payloadSize = payloadMessage->GetSize();
+    parts.AddPart(std::move(headerMessage));
+    parts.AddPart(std::move(payloadMessage));
+    mContext->addPart(std::move(parts), channel);
+  }
+
+  /// Serialize a snapshot of a std::vector, which will then be sent
+  /// once the computation ends.
+  /// Framework does not take ownership of @param object. Changes to @param object
+  /// after the call will not be sent.
+  template <typename C>
+  typename std::enable_if<is_specialization<C, std::vector>::value == true>::type
+  serializeSnapshot(const OutputSpec &spec, C const &v) {
+    std::string channel = matchDataHeader(spec, mRootContext->timeslice());
+    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
+
+    FairMQParts parts;
+
+    auto sizeInBytes = sizeof(typename C::value_type) * v.size();
+    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
+
+    typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
+    memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
+
+    // FIXME: this is kind of ugly, we know that we can change the content of the
+    // header message because we have just created it, but the API declares it const
+    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
+    DataHeader *dh = const_cast<DataHeader *>(cdh);
+    dh->payloadSize = payloadMessage->GetSize();
+    parts.AddPart(std::move(headerMessage));
+    parts.AddPart(std::move(payloadMessage));
+    mContext->addPart(std::move(parts), channel);
+  }
 private:
   std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,

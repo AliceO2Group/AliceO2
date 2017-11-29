@@ -460,19 +460,25 @@ sector explicitly).
 
 ## DataAllocator API
 
-In order  to prevent  algorithms to create  data they do  are not  supposed to
+In order to prevent algorithms to create data they do are not supposed to
 create, a special `DataAllocator` object is passed to the process callback, so
-that only  messages for declared  outputs can be created.  The `DataAllocator`
-provides methods  to create and adopt  data in a number  of formats. Currently
-supported formats are:
+that only messages for declared outputs can be created. 
+A `DataAllocator` can create Framework owned resources via the `make<T>` method. In
+case you ask the framework to create a collection of objects, the result will be a
+`gsl::span` wrapper around the collection.
+A `DataAllocator` can adopt externally created resources via the `adopt` method.
+A `DataAllocator` can create a copy of an externally owned resource via the
+`serializeSnapshot` method.
+
+Currently supported data types are:
 
 - Vanilla `char *` buffers with associated size. This is the actual contents of
   the FairMQ message.
 - POD types. These get directly mapped on the message exchanged by FairMQ and 
   are therefore "zerocopy" for what the DataProcessingLayer is concerned.
-- POD collections, as defined in `Framework/Collection.h`
+- POD collections, which are exposed to the user as `gsl::span`.
 - TObject derived classes. These are actually serialised via a TMessage
-  and therefore are only suitable for the cases in which the cost of such a 
+  and therefore are only suitable for the cases in which the cost of such a
   serialization is not an issue.
 
 The DataChunk object resembles a `iovec`:
@@ -482,12 +488,10 @@ The DataChunk object resembles a `iovec`:
       size_t size;
     };
 
-however, no API is provided to  explicitly send it. All the created DataChunks
+however, no API is provided to explicitly send it. All the created DataChunks
 are  sent (potentially  using scatter  / gather)  when the  `process` function
 returns. This  is to avoid  the “modified after  send” issues where  a message
 which was sent is still owned and modifiable by the creator.
-
-[ ] Describe the Collection based API for `DataAllocator`
 
 ## General notes
 
