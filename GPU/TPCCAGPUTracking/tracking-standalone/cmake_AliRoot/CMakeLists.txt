@@ -27,6 +27,7 @@ add_library(${MODULE} SHARED
         ../merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx
         ../merger-ca/AliHLTTPCGMPropagator.cxx
         ../merger-ca/AliHLTTPCGMPolynomialField.cxx
+        ../merger-ca/AliHLTTPCGMPolynomialFieldCreator.cxx
         ../interface/AliHLTTPCCAO2Interface.cxx
         ../interface/AliHLTLogging.cxx
         ../cmodules/timer.cpp)
