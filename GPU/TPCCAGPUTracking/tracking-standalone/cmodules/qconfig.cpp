@@ -321,3 +321,11 @@ int qConfigParse(int argc, const char** argv, const char* filename)
 {
 	return(qConfig::qConfigParse(argc, argv, filename));
 }
+
+//Print current config settings
+void qConfigPrint()
+{
+	#define QCONFIG_PRINT
+	#include "qconfig.h"
+	#undef QCONFIG_PRINT
+}
