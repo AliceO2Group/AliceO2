@@ -81,6 +81,7 @@ set(TEST_SRCS
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
       test/test_TimeParallelPipelining.cxx
+      test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
    )
