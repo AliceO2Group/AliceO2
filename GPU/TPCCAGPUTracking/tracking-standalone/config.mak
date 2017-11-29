@@ -30,7 +30,7 @@ DEFINES						+= BUILD_EVENT_DISPLAY
 endif
 
 ifeq ($(BUILD_QA), 1)
-CPPFILES					+= qa/qa.cpp
+CPPFILES					+= qa/qa.cpp qa/genEvents.cpp
 DEFINES						+= BUILD_QA
 INCLUDEPATHSSYSTEM				+= $(shell root-config --incdir)
 LIBSUSE						+= $(shell root-config --libs)

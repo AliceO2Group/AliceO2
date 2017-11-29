@@ -44,6 +44,7 @@ class AliHLTTPCCAStandaloneFramework
     static AliHLTTPCCAStandaloneFramework &Instance(int allowGPU = 1, const char* GPULibrary = NULL);
 
 	const AliHLTTPCCAParam &Param ( int iSlice ) const { return(fTracker.Param(iSlice)); }
+	const AliHLTTPCCAParam &Param () const { return(fMerger.SliceParam()); }
 	const AliHLTTPCCARow &Row ( int iSlice, int iRow ) const { return(fTracker.Row(iSlice, iRow)); }
     const AliHLTTPCCASliceOutput &Output( int iSlice ) const { return *fSliceOutput[iSlice]; }
     AliHLTTPCGMMerger  &Merger()  { return fMerger; }
