@@ -143,10 +143,9 @@ o2::header::DataIdentifier::DataIdentifier()
 
 //__________________________________________________________________________________________________
 bool o2::header::DataIdentifier::operator==(const DataIdentifier& other) const {
-  if (other.dataOrigin != gDataOriginAny && dataOrigin != other.dataOrigin) return false;
-  if (other.dataDescription != gDataDescriptionAny &&
-      dataDescription != other.dataDescription) return false;
-  return true;
+  if (dataOrigin == other.dataOrigin && dataDescription == other.dataDescription)
+    return true;
+  return false;
 }
 
 //__________________________________________________________________________________________________

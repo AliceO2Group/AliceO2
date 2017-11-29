@@ -37,6 +37,7 @@
 #include <algorithm> // std::min
 #include <stdexcept>
 #include <string>
+#include <functional> // std::hash
 // FIXME: for o2::byte. Use std::byte as soon as we move to C++17..
 #include "MemoryResources/Types.h"
 
@@ -500,6 +501,46 @@ struct printDataOrigin {
 };
 using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
 
+
+//__________________________________________________________________________________________________
+/// @struct DataIdentifier
+/// @brief Helper struct to encode origin and description of data.
+///
+/// The DataHeader stores origin and description of data in adedicted fields,
+/// DataIdentifier structure is used for assignment and comparison
+///
+/// @ingroup aliceo2_dataformats_dataheader
+struct DataIdentifier
+{
+  //a full data identifier combining origin and description
+  DataDescription dataDescription;
+  DataOrigin dataOrigin;
+  DataIdentifier();
+  DataIdentifier(const DataIdentifier&) = default;
+  DataIdentifier(const DataDescription &pDataDesc, const DataOrigin &pDataOrigin)
+    : dataDescription{pDataDesc}, dataOrigin{pDataOrigin}
+  {
+  }
+  template<std::size_t N, std::size_t M>
+  DataIdentifier(const char (&desc)[N], const char (&origin)[M])
+    : dataDescription(desc), dataOrigin(origin)
+  {
+  }
+
+  bool operator<(const DataIdentifier& other) const
+  {
+    if (dataDescription < other.dataDescription)
+      return true;
+    if (dataOrigin < other.dataOrigin)
+      return true;
+    return false;
+  }
+
+  bool operator==(const DataIdentifier&) const;
+  void print() const;
+};
+
+
 //__________________________________________________________________________________________________
 /// @struct DataHeader
 /// @brief the main header struct
@@ -569,10 +610,17 @@ struct DataHeader : public BaseHeader
   bool operator==(const SerializationMethod&) const; //comparison
   void print() const; ///pretty print the contents
 
+  DataIdentifier getDataIdentifier() const noexcept
+  {
+    return DataIdentifier(this->dataDescription, this->dataOrigin);
+  }
+
   static const DataHeader* Get(const BaseHeader* baseHeader) {
     return (baseHeader->description==DataHeader::sHeaderType)?
     static_cast<const DataHeader*>(baseHeader):nullptr;
   }
+
+
 };
 
 //__________________________________________________________________________________________________
@@ -610,32 +658,9 @@ constexpr o2::header::DataDescription gDataDescriptionTracks{ "TRACKS" };
 constexpr o2::header::DataDescription gDataDescriptionConfig{ "CONFIGURATION" };
 constexpr o2::header::DataDescription gDataDescriptionInfo{ "INFORMATION" };
 constexpr o2::header::DataDescription gDataDescriptionROOTStreamers{ "ROOT STREAMERS" };
+
 /// @} // end of doxygen group
 
-//__________________________________________________________________________________________________
-/// @struct DataIdentifier
-/// @brief Helper struct to encode origin and description of data.
-///
-/// The DataHeader stores origin and description of data in adedicted fields,
-/// DataIdentifier structure is used for assignment and comparison
-///
-/// @ingroup aliceo2_dataformats_dataheader
-struct DataIdentifier
-{
-  //a full data identifier combining origin and description
-  DataDescription dataDescription;
-  DataOrigin dataOrigin;
-  DataIdentifier();
-  DataIdentifier(const DataIdentifier&);
-  template<std::size_t N, std::size_t M>
-  DataIdentifier(const char (&desc)[N], const char (&origin)[M])
-    : dataDescription(desc), dataOrigin(origin)
-  {
-  }
-
-  bool operator==(const DataIdentifier&) const;
-  void print() const;
-};
 
 //__________________________________________________________________________________________________
 ///compile time checks for the basic structures
@@ -658,5 +683,57 @@ static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicString
 } //namespace header
 
 } //namespace o2
+
+///
+/// specialized hash functions
+namespace std {
+
+template<>
+struct hash<o2::header::DataDescription>
+{
+  typedef o2::header::DataDescription argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const &a) const noexcept {
+
+    static_assert(sizeof(o2::header::DataDescription::ItgType) == sizeof(uint64_t) &&
+                  sizeof(o2::header::DataDescription) == 16,
+                  "DataDescription must be 16B long (uint64_t itg[2])");
+
+    return std::hash<o2::header::DataDescription::ItgType>{}(a.itg[0]) ^
+      (std::hash<o2::header::DataDescription::ItgType>{}(a.itg[1]) << 1);
+  }
+};
+
+template<>
+struct hash<o2::header::DataOrigin>
+{
+  typedef o2::header::DataOrigin argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const &a) const noexcept {
+
+    static_assert(sizeof(o2::header::DataOrigin::ItgType) == sizeof(uint32_t) &&
+                  sizeof(o2::header::DataOrigin) == 4,
+                  "DataOrigin must be 4B long (uint32_t itg[1])");
+
+    return std::hash<o2::header::DataOrigin::ItgType>{}(a.itg[0]);
+  }
+};
+
+template<>
+struct hash<o2::header::DataIdentifier>
+{
+  typedef o2::header::DataIdentifier argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const &a) const noexcept {
+
+    return std::hash<o2::header::DataDescription>{}(a.dataDescription) ^
+      (std::hash<o2::header::DataOrigin>{}(a.dataOrigin) << 1);
+  }
+};
+
+} //namespace std
 
 #endif
