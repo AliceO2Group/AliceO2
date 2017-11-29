@@ -7,7 +7,6 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCGMMergedTrack.h"
-//#include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMPropagator.h"
 #include "include.h"
 #include <algorithm>
@@ -590,6 +589,10 @@ void RunQA()
 		}
 		if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
+	}
+	else if (!configStandalone.configQA.inputHistogramsOnly)
+	{
+		printf("No MC information available, cannot run QA!\n");
 	}
 	
 	//Fill other histograms
