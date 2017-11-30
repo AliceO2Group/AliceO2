@@ -386,10 +386,21 @@ can  retrieve  the service  by  the  type of  its  interface  class. E.g.  for
 monitoring you can do:
 
     #include "Framework/MetricsService.h"
-    ... // In the DataProcessor lambda...
-    auto service = serviceRegistry.get<MetricsService>();
-    service.post("my/metric", 1);
     ...
+    auto service = ctx.services().get<MetricsService>(); // In the DataProcessor lambda...
+    service.post("my/metric", 1); ...
+
+Currently available services are described below.
+
+## ControlService
+
+The control service allow DataProcessors to modify their state or the one of
+their peers in the topology. For example if you want to quit the whole data
+processing topology, you can use:
+
+    #include "Framework/ControlService.h"
+    ...
+    auto ctx.services().get<ControlService>().readyToQuit(true) // In the DataProcessor lambda
 
 # Demonstrator (WIP)
 
