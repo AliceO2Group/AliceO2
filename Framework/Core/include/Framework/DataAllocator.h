@@ -126,7 +126,7 @@ public:
   typename std::enable_if<std::is_pod<T>::value == true, void>::type
   serializeSnapshot(const OutputSpec &spec, T const &object) {
     std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
+    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodNone);
 
     FairMQParts parts;
 
@@ -151,7 +151,7 @@ public:
   typename std::enable_if<is_specialization<C, std::vector>::value == true>::type
   serializeSnapshot(const OutputSpec &spec, C const &v) {
     std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
+    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodNone);
 
     FairMQParts parts;
 
