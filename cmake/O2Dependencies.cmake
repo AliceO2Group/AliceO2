@@ -176,6 +176,10 @@ o2_define_bucket(
     Core
     Net
     ${GUI_LIBRARIES}
+    ${Configuration_LIBRARIES}
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${Configuration_INCLUDE_DIRS}
 )
 
 o2_define_bucket(
