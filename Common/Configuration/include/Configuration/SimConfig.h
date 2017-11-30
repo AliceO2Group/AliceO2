@@ -53,7 +53,8 @@ class SimConfig
 
   std::string getExtKinematicsFileName() const { return mExtKinFileName; }
   unsigned int getStartEvent() const { return mStartEvent; }
-
+  float getBMax() const { return mBMax; }
+  
  private:
   std::vector<std::string> mActiveDetectors; //!< list active detectord
   std::string mMCEngine;                     //!< chosen VMC engine
@@ -61,7 +62,8 @@ class SimConfig
   unsigned int mNEvents;                     //!< number of events to be simulated
   std::string mExtKinFileName;               //!< file name of external kinematics file (needed for ext kinematics generator)
   unsigned int mStartEvent;                  //!< index of first event to be taken
-
+  float mBMax;                               //!< maximum for impact parameter sampling
+  
   ClassDefNV(SimConfig, 1);
 };
 }
