@@ -31,6 +31,7 @@ set(SRCS
     src/DataProcessingHeader.cxx
     src/DataProcessor.cxx
     src/DataRelayer.cxx
+    src/DataSampling.cxx
     src/DataSourceDevice.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
@@ -146,6 +147,20 @@ O2_GENERATE_EXECUTABLE(
   SOURCES "test/test_SimpleDataProcessingDevice01.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+        EXE_NAME "test_DataSampling"
+        SOURCES "test/test_DataSampling.cxx"
+        MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+        BUCKET_NAME FrameworkDataSamplingApplication_bucket
+)
+
+O2_GENERATE_EXECUTABLE(
+        EXE_NAME "test_DataSamplerGenerator"
+        SOURCES "test/test_DataSamplerGenerator.cxx"
+        MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+        BUCKET_NAME FrameworkDataSamplingApplication_bucket
 )
 
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
