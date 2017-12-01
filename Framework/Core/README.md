@@ -468,7 +468,7 @@ case you ask the framework to create a collection of objects, the result will be
 `gsl::span` wrapper around the collection.
 A `DataAllocator` can adopt externally created resources via the `adopt` method.
 A `DataAllocator` can create a copy of an externally owned resource via the
-`serializeSnapshot` method.
+`snapshot` method.
 
 Currently supported data types are:
 

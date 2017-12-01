@@ -47,7 +47,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           std::vector<XYZ> v{1000};
           v[0] = XYZ{1,2,3};
           v[999] = XYZ{1,2,3};
-          ctx.allocator().serializeSnapshot(OutputSpec{"TST", "VECTOR"}, v);
+          ctx.allocator().snapshot(OutputSpec{"TST", "VECTOR"}, v);
           v[999] = XYZ{2,3,4};
         }
       }
