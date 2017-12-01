@@ -32,7 +32,9 @@ void AliHLTTPCGMPolynomialField::Print() const
   const double kCLight = 0.000299792458;
   typedef std::numeric_limits< float > flt;  
   cout<<std::scientific;
+#if __cplusplus >= 201103L  
   cout<<std::setprecision( flt::max_digits10+2 );
+#endif
   cout<<" nominal field "<< fNominalBz <<" [kG * (2.99792458E-4 GeV/c/kG/cm)]"
       <<" == "<<fNominalBz/kCLight<<" [kG]"<<endl;
   
