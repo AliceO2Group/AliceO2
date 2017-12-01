@@ -194,8 +194,9 @@ void AliHLTTPCCAParam::LoadClusterErrors()
   }
   typedef std::numeric_limits< float > flt;
   cout<<std::scientific;
+#if __cplusplus >= 201103L  
   cout<<std::setprecision( flt::max_digits10+2 );
-
+#endif
   cout<<"fParamRMS0[2][3][4]="<<endl;
   cout<<" { "<<endl;
   for( int i=0; i<2; i++ ){
