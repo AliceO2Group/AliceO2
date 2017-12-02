@@ -83,7 +83,10 @@ class AliHLTTPCGMPhysicalTrackModel
   GPUd() void Print() const;
 
   GPUd() float GetMirroredY( float Bz ) const ;
-  
+
+  GPUd() void Rotate( float alpha );
+  GPUd() void RotateLight( float alpha );
+
  private:
 
   // physical parameters of the trajectory
@@ -174,6 +177,26 @@ GPUd() inline float AliHLTTPCGMPhysicalTrackModel::GetMirroredY( float Bz ) cons
   // get Y of the point which has the same X, but located on the other side of trajectory
   if( fabs(Bz)<1.e-8 ) Bz = 1.e-8;
   return fY - 2.f*fQ*fPx/Bz;
+}
+
+GPUd() inline void AliHLTTPCGMPhysicalTrackModel::RotateLight( float alpha )
+{
+  //* Rotate the coordinate system in XY on the angle alpha
+
+  float cA = CAMath::Cos( alpha );
+  float sA = CAMath::Sin( alpha );
+  float x = fX, y = fY, px = fPx, py = fPy;    
+  fX  =  x*cA + y*sA;
+  fY  = -x*sA + y*cA;
+  fPx =  px*cA + py*sA;
+  fPy = -px*sA + py*cA;
+}
+
+GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Rotate( float alpha )
+{
+  //* Rotate the coordinate system in XY on the angle alpha
+  RotateLight(alpha);
+  UpdateValues();  
 }
 
 #endif
