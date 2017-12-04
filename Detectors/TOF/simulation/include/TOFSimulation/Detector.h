@@ -53,6 +53,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override = default;
 
+  FairModule* CloneModule() const override;
+
   void Initialize() final;
 
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
@@ -80,6 +82,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   virtual void MaterialMixer(Float_t* p, const Float_t* const a, const Float_t* const m, Int_t n) const final;
 
  private:
+  /// copy constructor (used in MT)
+  Detector(const Detector& rhs);
+
   void createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t xFLT, Float_t yFLT, Float_t zFLTA) const;
   void makeStripsInModules(Float_t ytof, Float_t zlenA) const;
   void createModuleCovers(Float_t xtof, Float_t zlenA) const;

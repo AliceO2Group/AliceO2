@@ -9,6 +9,7 @@ void stackSetup(T* vmc, R* run) {
   st->StoreSecondaries(kTRUE);
   vmc->SetStack(st);
 
+/*
   // register the stack as an observer on FinishPrimary events (managed by Cave)
   bool foundCave = false;
   auto modules = run->GetListOfModules();
@@ -29,4 +30,5 @@ void stackSetup(T* vmc, R* run) {
       LOG(FATAL) << "Cave volume not found; Could not attach observers" << FairLogger::endl;
     }
   }
+*/
 }

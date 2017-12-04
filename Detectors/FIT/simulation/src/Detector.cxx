@@ -41,7 +41,18 @@ Detector::Detector(Bool_t Active)
   //  TString gn(geo->GetName());
 }
 
-void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+void Detector::Initialize()
+{
+  // FIXME: we need to register the sensitive volumes with FairRoot
+  TGeoVolume* v = gGeoManager->GetVolume("0REG");
+  if (v == nullptr)
+    printf("Sensitive volume 0REG not found!!!!!!!!");
+  else {
+    AddSensitiveVolume(v);
+  }
+
+  o2::Base::Detector::Initialize();
+}
 
 void Detector::ConstructGeometry()
 {
@@ -180,14 +191,6 @@ void Detector::ConstructGeometry()
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
-
-  // FIXME: we need to register the sensitive volumes with FairRoot
-  TGeoVolume* v = gGeoManager->GetVolume("0REG");
-  if (v == nullptr)
-    printf("Sensitive volume 0REG not found!!!!!!!!");
-  else {
-    AddSensitiveVolume(v);
-  }
 }
 
 //_________________________________________

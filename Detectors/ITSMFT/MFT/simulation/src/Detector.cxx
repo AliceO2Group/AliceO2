@@ -32,6 +32,7 @@
 #include "FairLogger.h"
 #include "FairRootManager.h"
 #include "FairVolume.h"
+#include "FairRootManager.h"
 
 using o2::ITSMFT::Hit;
 using namespace o2::MFT;
@@ -101,7 +102,6 @@ void Detector::Initialize()
   defineSensitiveVolumes();
 
   FairDetector::Initialize();
-
 }
 
 //_____________________________________________________________________________

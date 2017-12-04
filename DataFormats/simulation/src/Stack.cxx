@@ -77,8 +77,9 @@ Stack::Stack(const Stack& rhs)
     mEnergyCut(rhs.mEnergyCut),
     mIsG4Like(rhs.mIsG4Like)
 {
-  LOG(FATAL) << "copy constructor called" << FairLogger::endl;
-  mTracks = new std::vector<MCTrack>(rhs.mTracks->size());
+  LOG(DEBUG) << "copy constructor called" << FairLogger::endl;
+  mTracks = new std::vector<MCTrack>();
+  // LOG(INFO) << "Stack::Stack(rhs) " << this << " mTracks " << mTracks << std::endl;
 }
 
 Stack::~Stack()
@@ -331,6 +332,13 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
   LOG(DEBUG) << "Stack::UpdateTrackIndex: ...stack and " << nColl << " collections updated.";
 }
 
+void Stack::FinishPrimary()
+{
+  if ( mIsG4Like ) {
+    notifyFinishPrimary();
+  }
+}
+
 void Stack::Reset()
 {
   mIndex = 0;
@@ -350,6 +358,7 @@ void Stack::Reset()
 }
 
 void Stack::Register() { FairRootManager::Instance()->RegisterAny("MCTrack", mTracks, kTRUE); }
+
 void Stack::Print(Int_t iVerbose) const
 {
   cout << "-I- Stack: Number of primaries        = " << mNumberOfPrimaryParticles << endl;
