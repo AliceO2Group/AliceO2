@@ -66,7 +66,44 @@ Detector::Detector(Bool_t active)
     mSampleWidth += 2. * geo->GetTrd1BondPaperThick();
 }
 
-void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+Detector::Detector(const Detector& rhs)
+  : o2::Base::DetImpl<Detector>(rhs),
+    mBirkC0(rhs.mBirkC0),
+    mBirkC1(rhs.mBirkC1),
+    mBirkC2(rhs.mBirkC2),
+    mHits(new std::vector<Hit>),
+    mGeometry(rhs.mGeometry),
+    mCurrentTrackID(-1),
+    mCurrentCellID(-1),
+    mCurrentHit(nullptr),
+    mSampleWidth(rhs.mSampleWidth),
+    mSmodPar0(rhs.mSmodPar0),
+    mSmodPar1(rhs.mSmodPar1),
+    mSmodPar2(rhs.mSmodPar2),
+    mInnerEdge(rhs.mInnerEdge)
+
+{
+  for ( int i=0; i<5; ++i) {
+    mParEMOD[i] = rhs.mParEMOD[i];
+  }
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
+void Detector::Initialize()
+{
+  // Define sensitive volume
+  TGeoVolume* vsense = gGeoManager->GetVolume("SCMX");
+  if (vsense)
+    AddSensitiveVolume(vsense);
+  else
+    LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!\n";
+
+  o2::Base::Detector::Initialize();
+}
 
 void Detector::EndOfEvent() { Reset(); }
 
@@ -92,13 +129,6 @@ void Detector::ConstructGeometry()
   CreateShiskebabGeometry();
 
   gGeoManager->CheckGeometry();
-
-  // Define sensitive volume
-  TGeoVolume* vsense = gGeoManager->GetVolume("SCMX");
-  if (vsense)
-    AddSensitiveVolume(vsense);
-  else
-    LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!\n";
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)

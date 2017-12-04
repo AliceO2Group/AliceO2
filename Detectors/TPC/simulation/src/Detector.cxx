@@ -27,6 +27,7 @@
 #include "FairRun.h"
 #include "FairRuntimeDb.h"
 #include "FairLogger.h"
+#include "FairRootManager.h"
 
 #include "TSystem.h"
 #include "TVirtualMC.h"
@@ -58,11 +59,9 @@ using std::ios_base;
 using std::ifstream;
 using namespace o2::TPC;
 
-
 Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("TPC", active),
-    mGeoFileName(),
-    mEventNr(0)
+    mGeoFileName()
 {
   for(int i=0;i<Sector::MAXSECTOR;++i){
     mHitsPerSectorCollection[i]=new std::vector<o2::TPC::HitGroup>;
@@ -71,6 +70,18 @@ Detector::Detector(Bool_t active)
 
 // forward default constructor
 Detector::Detector() : o2::TPC::Detector(kTRUE) {}
+
+Detector::Detector(const Detector &rhs)
+  : o2::Base::DetImpl<Detector>(rhs),
+    mHitCounter(0),
+    mElectronCounter(0),
+    mStepCounter(0),
+    mGeoFileName(rhs.mGeoFileName)
+{
+  for(int i=0;i<Sector::MAXSECTOR;++i){
+    mHitsPerSectorCollection[i]=new std::vector<o2::TPC::HitGroup>;
+  }
+}
 
 Detector::~Detector()
 {
@@ -83,8 +94,17 @@ Detector::~Detector()
   std::cout << "Stepping called " << mStepCounter << "\n";
 }
 
+FairModule *Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
 void Detector::Initialize()
 {
+  // Define the list of sensitive volumes
+  DefineSensitiveVolumes();
+
+  // Register defined detectors in FairRoot maps
   o2::Base::Detector::Initialize();
   //     LOG(INFO) << "Initialize" << FairLogger::endl;
   
@@ -180,7 +200,7 @@ void Detector::SetSpecialPhysicsCuts()
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  static auto *refMC = TVirtualMC::GetMC();
+  static thread_local auto *refMC = TVirtualMC::GetMC();
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
@@ -207,7 +227,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // ===| check active sector |=================================================
   //
   // Get the sector ID and check if the sector is active
-  static TLorentzVector position;
+  static thread_local TLorentzVector position;
   refMC->TrackPosition(position);
   const int sectorID = static_cast<int>(Sector::ToSector(position.X(), position.Y(), position.Z()));
   // TODO: Temporary hack to process only one sector
@@ -221,12 +241,13 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // TODO: Add discussion about drawback
 
   Int_t numberOfElectrons=0;
+  // I.H. - the type expected in addHit is short
 
   // ---| Stepsize in cm |---
   const double stepSize = refMC->TrackStep();
 
   // ---| momentum and beta gamma |---
-  static TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
+  static thread_local TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
   refMC->TrackMomentum(momentum);
   double betaGamma = momentum.P()/refMC->TrackMass();
   betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
@@ -279,13 +300,13 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   const int trackID  = refMC->GetStack()->GetCurrentTrackNumber();
   const int detID    = vol->getMCid();
 
-  static int oldTrackId = trackID;
-  static int oldDetId = detID;
-  static int groupCounter = 0;
-  static int oldSectorId = sectorID;
+  static thread_local int oldTrackId = trackID;
+  static thread_local int oldDetId = detID;
+  static thread_local int groupCounter = 0;
+  static thread_local int oldSectorId = sectorID;
 
   //  a new group is starting -> put it into the container
-  static HitGroup *currentgroup = nullptr;
+  static thread_local HitGroup *currentgroup = nullptr;
   if (groupCounter == 0) {
     mHitsPerSectorCollection[sectorID]->emplace_back(trackID);
     currentgroup = &(mHitsPerSectorCollection[sectorID]->back());
@@ -309,7 +330,8 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
   //<< " Time: "<<  time <<", Len: " << length << ", Nelectrons: " <<
   //numberOfElectrons << FairLogger::endl;
-  
+  // I.H. - the code above does not compile if uncommented
+
   // Increment number of Detector det points in TParticle
   o2::Data::Stack* stack = (o2::Data::Stack*)refMC->GetStack();
   stack->addHit(GetDetId());
@@ -322,7 +344,6 @@ void Detector::EndOfEvent()
   for(int i=0;i<Sector::MAXSECTOR;++i) {
     mHitsPerSectorCollection[i]->clear();
   }
-  ++mEventNr;
 }
 
 void Detector::Register()
@@ -332,6 +353,7 @@ void Detector::Register()
       this collection will not be written to the file, it will exist
       only during the simulation.
   */
+
   auto *mgr=FairRootManager::Instance();
   for (int i=0;i<Sector::MAXSECTOR;++i) {
     TString name;
@@ -343,6 +365,7 @@ void Detector::Register()
 void Detector::Reset()
 {
   for(int i=0;i<Sector::MAXSECTOR;++i) {
+    // cout << "CLEARED (reset) hitsCollection " << i << " " << mHitsPerSectorCollection[i] << endl;
     mHitsPerSectorCollection[i]->clear();
   }
 }
@@ -355,9 +378,6 @@ void Detector::ConstructGeometry()
   // Load geometry
 //   LoadGeometryFromFile();
   ConstructTPCGeometry();
-
-  // Define the list of sensitive volumes
-  DefineSensitiveVolumes();
 
   // GeantHack
   //GeantHack();
@@ -3074,11 +3094,11 @@ void Detector::DefineSensitiveVolumes()
 
 Double_t Detector::Gamma(Double_t k)
 {
-  static Double_t n=0;
-  static Double_t c1=0;
-  static Double_t c2=0;
-  static Double_t b1=0;
-  static Double_t b2=0;
+  static thread_local Double_t n=0;
+  static thread_local Double_t c1=0;
+  static thread_local Double_t c2=0;
+  static thread_local Double_t b1=0;
+  static thread_local Double_t b2=0;
   if (k > 0) {
     if (k < 0.4) 
       n = 1./k;

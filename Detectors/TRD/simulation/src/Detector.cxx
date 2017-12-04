@@ -12,8 +12,8 @@
 #include <TGeoManager.h>
 #include <TVirtualMC.h>
 #include <vector>
-#include "FairRootManager.h"
 #include "FairVolume.h"
+#include "FairRootManager.h"
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
 #include "SimulationDataFormat/Stack.h"
@@ -27,7 +27,28 @@ Detector::Detector(Bool_t active)
 {
 }
 
-void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+Detector::Detector(const Detector& rhs)
+  : o2::Base::DetImpl<Detector>(rhs),
+    mHits(new std::vector<HitType>),
+    mFoilDensity(rhs.mFoilDensity),
+    mGasNobleFraction(rhs.mGasNobleFraction),
+    mGasDensity(rhs.mGasDensity),
+    mGeom(rhs.mGeom)
+{
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
+void Detector::Initialize()
+{
+  // register the sensitive volumes with FairRoot
+  defineSensitiveVolumes();
+
+  o2::Base::Detector::Initialize();
+}
 
 bool Detector::ProcessHits(FairVolume* v)
 {
@@ -35,7 +56,7 @@ bool Detector::ProcessHits(FairVolume* v)
   // TODO: needs upgrade to the level of AliROOT
 
   // TODO: reference to vmc --> put this as member of detector
-  static auto vmc = TVirtualMC::GetMC();
+  static thread_local auto vmc = TVirtualMC::GetMC();
 
   // If not charged track or already stopped or disappeared, just return.
   if ((!vmc->TrackCharge()) || vmc->IsTrackDisappeared()) {
@@ -279,9 +300,6 @@ void Detector::ConstructGeometry()
 
   mGeom = new TRDGeometry();
   mGeom->CreateGeometry(medmapping);
-
-  // register the sensitive volumes with FairRoot
-  defineSensitiveVolumes();
 }
 
 void Detector::defineSensitiveVolumes()

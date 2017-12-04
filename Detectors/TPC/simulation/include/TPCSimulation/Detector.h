@@ -40,6 +40,9 @@ class Detector: public o2::Base::DetImpl<Detector> {
     /**       destructor     */
     ~Detector() override;
 
+    /**      Clone this object (used in MT mode only)    */
+    FairModule *CloneModule() const override;
+
     /**      Initialization of the detector is done here    */
     void   Initialize() override;
 
@@ -136,10 +139,11 @@ class Detector: public o2::Base::DetImpl<Detector> {
     std::vector<HitGroup>*  mHitsPerSectorCollection[Sector::MAXSECTOR]; //! container that keeps track-grouped hits per sector
 
     TString mGeoFileName;                  ///< Name of the file containing the TPC geometry
-    size_t mEventNr;                       //!< current event number
+    // size_t mEventNr;                       //!< current event number
+    // Events are not successive in MT mode
 
-
-    Detector(const Detector&);
+    /// copy constructor (used in MT)
+    Detector(const Detector& rhs);
     Detector& operator=(const Detector&);
 
     ClassDefOverride(Detector,1)

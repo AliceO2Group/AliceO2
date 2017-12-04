@@ -28,6 +28,7 @@
 #include "FairRun.h"                // for FairRun
 #include "FairRuntimeDb.h"          // for FairRuntimeDb
 #include "FairVolume.h"             // for FairVolume
+#include "FairRootManager.h"
 
 #include "TGeoManager.h"            // for TGeoManager, gGeoManager
 #include "TGeoTube.h"               // for TGeoTube
@@ -276,6 +277,9 @@ Detector &Detector::operator=(const Detector &rhs)
 
 void Detector::Initialize()
 {
+  // Define the list of sensitive volumes
+  defineSensitiveVolumes();
+
   for (int i = 0; i < sNumberLayers; i++) {
     mLayerID[i] = gMC ? TVirtualMC::GetMC()->VolId(mLayerName[i]) : 0;
   }
@@ -589,7 +593,6 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  // FIXME: fix MT interface
   if (FairRootManager::Instance()) {
     FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
   }
@@ -770,9 +773,6 @@ void Detector::ConstructGeometry()
 
   // Construct the detector geometry
   constructDetectorGeometry();
-
-  // Define the list of sensitive volumes
-  defineSensitiveVolumes();
 }
 
 void Detector::constructDetectorGeometry()

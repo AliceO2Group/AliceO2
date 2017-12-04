@@ -9,13 +9,12 @@
 // or submit itself to any jurisdiction.
 
 #include "TGeoManager.h" // for TGeoManager
-#include "TLorentzVector.h"
 #include "TMath.h"
 #include "TString.h"
 
 #include "FairLogger.h"
-#include "FairRootManager.h"
 #include "FairVolume.h"
+#include "FairRootManager.h"
 
 #include "TOFSimulation/Detector.h"
 
@@ -34,12 +33,40 @@ Detector::Detector(Bool_t active)
     mTOFSectors[i] = 1;
 }
 
-void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+Detector::Detector(const Detector& rhs)
+  : o2::Base::DetImpl<Detector>(rhs),
+    mEventNr(0),
+    mTOFHoles(rhs.mTOFHoles),
+    mHits(new std::vector<HitType>)
+{
+  for (Int_t i = 0; i < Geo::NSECTORS; i++)
+    mTOFSectors[i] = rhs.mTOFSectors[i];
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
+void Detector::Initialize()
+{
+  TGeoVolume* v = gGeoManager->GetVolume("FPAD");
+  if (v == nullptr)
+    printf("Sensitive volume FSEN not found!!!!!!!!");
+  else {
+    AddSensitiveVolume(v);
+  }
+
+  o2::Base::Detector::Initialize();
+}
+
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  static auto* refMC = TVirtualMC::GetMC();
+  static thread_local auto* refMC = TVirtualMC::GetMC();
 
-  static TLorentzVector position2;
+  static thread_local TLorentzVector position2;
+  refMC->TrackPosition(position2);
+
   refMC->TrackPosition(position2);
   Float_t radius = TMath::Sqrt(position2.X() * position2.X() + position2.Y() * position2.Y());
   LOG(DEBUG) << "Process hit in TOF volume ar R=" << radius << " - Z=" << position2.Z() << FairLogger::endl;
@@ -56,7 +83,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     return kFALSE; // wo se need a threshold?
 
   // ADD HIT
-  static TLorentzVector position;
+  static thread_local TLorentzVector position;
   refMC->TrackPosition(position);
   float time = refMC->TrackTime() * 1.0e09;
   auto stack = static_cast<o2::Data::Stack*>(refMC->GetStack());
@@ -84,8 +111,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 void Detector::Register()
 {
-  auto* mgr = FairRootManager::Instance();
-  mgr->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
 }
 
 void Detector::Reset()
@@ -281,13 +307,6 @@ void Detector::ConstructGeometry()
   DefineGeometry(xTof, yTof, zTof);
 
   LOG(INFO) << "Loaded TOF geometry" << FairLogger::endl;
-
-  TGeoVolume* v = gGeoManager->GetVolume("FPAD");
-  if (v == nullptr)
-    printf("Sensitive volume FSEN not found!!!!!!!!");
-  else {
-    AddSensitiveVolume(v);
-  }
 }
 
 void Detector::EndOfEvent() { Reset(); }
