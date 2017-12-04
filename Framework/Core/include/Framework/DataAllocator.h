@@ -101,21 +101,10 @@ public:
   template <typename T>
   typename std::enable_if<std::is_base_of<TObject, T>::value == true, void>::type
   snapshot(const OutputSpec &spec, T *const object) {
-    std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
-
-    FairMQParts parts;
-
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
     mDevice->Serialize<TMessageSerializer>(*payloadMessage, object);
-    // FIXME: this is kind of ugly, we know that we can change the content of the
-    // header message because we have just created it, but the API declares it const
-    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
-    DataHeader *dh = const_cast<DataHeader *>(cdh);
-    dh->payloadSize = payloadMessage->GetSize();
-    parts.AddPart(std::move(headerMessage));
-    parts.AddPart(std::move(payloadMessage));
-    mContext->addPart(std::move(parts), channel);
+
+    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodROOT);
   }
 
   /// Serialize a snapshot of a POD type, which will then be sent
@@ -125,56 +114,66 @@ public:
   template <typename T>
   typename std::enable_if<std::is_pod<T>::value == true, void>::type
   snapshot(const OutputSpec &spec, T const &object) {
-    std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodNone);
-
-    FairMQParts parts;
-
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(&object), sizeof(T));
 
-    // FIXME: this is kind of ugly, we know that we can change the content of the
-    // header message because we have just created it, but the API declares it const
-    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
-    DataHeader *dh = const_cast<DataHeader *>(cdh);
-    dh->payloadSize = payloadMessage->GetSize();
-    parts.AddPart(std::move(headerMessage));
-    parts.AddPart(std::move(payloadMessage));
-    mContext->addPart(std::move(parts), channel);
+    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
   }
 
-  /// Serialize a snapshot of a std::vector, which will then be sent
-  /// once the computation ends.
+  /// Serialize a snapshot of a std::vector of trivially copyable elements,
+  /// which will then be sent once the computation ends.
   /// Framework does not take ownership of @param object. Changes to @param object
   /// after the call will not be sent.
   template <typename C>
-  typename std::enable_if<is_specialization<C, std::vector>::value == true>::type
+  typename std::enable_if<
+    is_specialization<C, std::vector>::value == true
+    && std::is_pointer<typename C::value_type>::value == false
+    && std::is_trivially_copyable<typename C::value_type>::value == true
+    >::type
   snapshot(const OutputSpec &spec, C const &v) {
-    std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-    auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodNone);
-
-    FairMQParts parts;
-
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
 
     typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
 
-    // FIXME: this is kind of ugly, we know that we can change the content of the
-    // header message because we have just created it, but the API declares it const
-    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
-    DataHeader *dh = const_cast<DataHeader *>(cdh);
-    dh->payloadSize = payloadMessage->GetSize();
-    parts.AddPart(std::move(headerMessage));
-    parts.AddPart(std::move(payloadMessage));
-    mContext->addPart(std::move(parts), channel);
+    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
   }
+
+  /// Serialize a snapshot of a std::vector of pointers to trivially copyable
+  /// elements, which will then be sent once the computation ends.
+  /// Framework does not take ownership of @param object. Changes to @param object
+  /// after the call will not be sent.
+  template <typename C>
+  typename std::enable_if<
+    is_specialization<C, std::vector>::value == true
+    && std::is_pointer<typename C::value_type>::value == true
+    && std::is_trivially_copyable<typename std::remove_pointer<typename C::value_type>::type>::value == true
+    >::type
+  snapshot(const OutputSpec &spec, C const &v) {
+    using ElementType = typename std::remove_pointer<typename C::value_type>::type;
+    constexpr auto elementSizeInBytes = sizeof(ElementType);
+    auto sizeInBytes = elementSizeInBytes * v.size();
+    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
+
+    auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
+    for (auto const & pointer : v) {
+      memcpy(target, pointer, elementSizeInBytes);
+      target += elementSizeInBytes;
+    }
+
+    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
+  }
+
 private:
   std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
                                          std::string const &channel,
                                          o2::Header::SerializationMethod serializationMethod);
+
+  void addPartToContext(FairMQMessagePtr&& payload,
+                        const OutputSpec &spec,
+                        o2::Header::SerializationMethod serializationMethod);
 
   FairMQDevice *mDevice;
   AllowedOutputsMap mAllowedOutputs;

@@ -267,7 +267,7 @@ to the contents of the message by passing it as template argument, e.g.:
 
 ### Creating outputs - the DataAllocator API
 
-In order  to prevent  algorithms to create  data they do  are not  supposed to
+In order  to prevent  algorithms  to  create  data they  are  not  supposed to
 create, a special `DataAllocator` object is passed to the process callback, so
 that only messages for declared outputs  can be created. A `DataAllocator` can
 create Framework owned resources via the `make<T>` method. In case you ask the
@@ -286,6 +286,15 @@ Currently supported data types are:
 - TObject derived classes. These are actually serialised via a TMessage
   and therefore are only suitable for the cases in which the cost of such a
   serialization is not an issue.
+
+Currently supported data types for snapshot functionality, the state at time of
+calling snapshot is captured in a copy:
+- POD types
+- TObject derived classes, serialized
+- std::vector of POD type, at the receiver side the collection is exposed
+  as gsl::span
+- std::vector pointer to POD type, the objects are linearized in the message
+  and exposed as gsl::span on the receiver side
 
 The DataChunk object resembles a `iovec`:
 
