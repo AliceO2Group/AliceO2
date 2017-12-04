@@ -68,7 +68,6 @@ target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit
 set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
-      test/test_Collections.cxx
       test/test_DataRelayer.cxx
       test/test_DataRefUtils.cxx
       test/test_DeviceMetricsInfo.cxx
