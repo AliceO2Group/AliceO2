@@ -30,7 +30,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
         OutputSpec{"TST", "HISTO"},
         OutputSpec{"TST", "POINT"},
         OutputSpec{"TST", "POINTS"},
-        OutputSpec{"TST", "VECTOR"}
+        OutputSpec{"TST", "VECTOR"},
+        OutputSpec{"TST", "LINEARIZED"}
       },
       AlgorithmSpec{
         [](ProcessingContext &ctx) {
@@ -49,6 +50,14 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           v[999] = XYZ{1,2,3};
           ctx.allocator().snapshot(OutputSpec{"TST", "VECTOR"}, v);
           v[999] = XYZ{2,3,4};
+
+          // A snapshot for an std::vector of pointers to objects
+          // simply make a vector of pointers, snapshot will include the latest
+          // change, but not the one which is done after taking the snapshot
+          std::vector<XYZ*> p;
+          for (auto & i : v) p.push_back(&i);
+          ctx.allocator().snapshot(OutputSpec{"TST", "LINEARIZED"}, p);
+          v[999] = XYZ{3,4,5};
         }
       }
     },
@@ -59,6 +68,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
         InputSpec{"points", "TST", "POINTS"},
         InputSpec{"histo", "TST", "HISTO"},
         InputSpec{"vector", "TST", "VECTOR"},
+        InputSpec{"linearized", "TST", "LINEARIZED"},
       },
       {},
       AlgorithmSpec{
@@ -84,6 +94,14 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           assert(c2[999].x == 1);
           assert(c2[999].y == 2);
           assert(c2[999].z == 3);
+          auto ref3 = ctx.inputs().get("linearized");
+          gsl::span<XYZ> c3 = DataRefUtils::as<XYZ>(ref3);
+          assert(c3[0].x == 1);
+          assert(c3[0].y == 2);
+          assert(c3[0].z == 3);
+          assert(c3[999].x == 2);
+          assert(c3[999].y == 3);
+          assert(c3[999].z == 4);
           ctx.services().get<ControlService>().readyToQuit(true);
         }
       }
