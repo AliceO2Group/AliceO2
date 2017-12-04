@@ -58,6 +58,7 @@ DataAllocator::newChunk(const OutputSpec &spec, size_t size) {
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = size;
+  dh.payloadSerializationMethod = o2::Header::gSerializationMethodNone;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
@@ -92,6 +93,7 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = size;
+  dh.payloadSerializationMethod = o2::Header::gSerializationMethodNone;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
