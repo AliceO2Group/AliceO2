@@ -89,6 +89,49 @@ public:
     return *obj;
   }
 
+  /// catching unsupported type for case without additional arguments
+  /// have to add three specializations because of the different role of
+  /// the arguments and the different return types
+  template <typename T>
+  typename std::enable_if<
+    std::is_base_of<TObject, T>::value == false &&
+    std::is_pod<T>::value == false,
+    T&>::type
+  make(const OutputSpec &) {
+    static_assert(std::is_pod<T>::value == true ||
+                  std::is_base_of<TObject, T>::value == true,
+                  "data type T not supported by API, \n specializations available for"
+                  "\n - POD structures and arrays of those"
+                  "\n - TObject with additional constructor arguments");
+  }
+
+  /// catching unsupported type for case of span of objects
+  template <typename T>
+  typename std::enable_if<
+    std::is_base_of<TObject, T>::value == false &&
+    std::is_pod<T>::value == false,
+    gsl::span<T>>::type
+  make(const OutputSpec &, size_t) {
+    static_assert(std::is_pod<T>::value == true,
+                  "data type T not supported by API, \n specializations available for"
+                  "\n - POD structures and arrays of those"
+                  "\n - TObject with additional constructor arguments");
+  }
+
+  /// catching unsupported type for case of at least two additional arguments
+  template <typename T, typename U, typename V, typename... Args>
+  typename std::enable_if<
+    std::is_base_of<TObject, T>::value == false &&
+    std::is_pod<T>::value == false,
+    T&>::type
+  make(const OutputSpec &, U, V, Args...) {
+    static_assert(std::is_pod<T>::value == true ||
+                  std::is_base_of<TObject, T>::value == true,
+                  "data type T not supported by API, \n specializations available for"
+                  "\n - POD structures and arrays of those"
+                  "\n - TObject with additional constructor arguments");
+  }
+
   /// Adopt a TObject in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   void
@@ -163,6 +206,42 @@ public:
     }
 
     addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
+  }
+
+  /// specialization to catch unsupported types and throw a detailed compiler error
+  template <typename T>
+  typename std::enable_if<
+    std::is_base_of<TObject, T>::value == false &&
+    std::is_pod<T>::value == false &&
+    is_specialization<T, std::vector>::value == false
+    >::type
+  snapshot(const OutputSpec &spec, T const &) {
+    static_assert(std::is_base_of<TObject, T>::value == true ||
+                  std::is_pod<T>::value == true ||
+                  is_specialization<T, std::vector>::value == true,
+                  "data type T not supported by API, \n specializations available for"
+                  "\n - POD structures"
+                  "\n - TObject"
+                  "\n - std::vector of POD or pointer to POD");
+  }
+
+  /// specialization to catch unsupported types, check value_type of std::vector
+  /// and throw a detailed compiler error
+  template <typename T>
+  typename std::enable_if<
+    is_specialization<T, std::vector>::value == true &&
+    std::is_trivially_copyable<
+      typename std::remove_pointer<typename T::value_type>::type
+      >::value == false
+    >::type
+  snapshot(const OutputSpec &spec, T const &) {
+    static_assert(std::is_trivially_copyable<
+                  typename std::remove_pointer<typename T::value_type>::type
+                  >::value == true,
+                  "data type T not supported by API, \n specializations available for"
+                  "\n - POD structures"
+                  "\n - TObject"
+                  "\n - std::vector of POD or pointer to POD");
   }
 
 private:
