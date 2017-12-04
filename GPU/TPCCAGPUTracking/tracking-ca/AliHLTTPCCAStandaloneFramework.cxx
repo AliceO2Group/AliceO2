@@ -299,7 +299,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 }
 
 
-void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz, bool constBz)
+void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz, bool homemadeEvents, bool constBz)
 {
     for (int slice = 0;slice < fgkNSlices;slice++)
     {
@@ -362,6 +362,7 @@ void AliHLTTPCCAStandaloneFramework::SetSettings(float solenoidBz, bool constBz)
 	  param.Initialize( iSec, nRows, rowX, alpha, dalpha,
 						inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, solenoidBz );
 	  param.SetAssumeConstantBz(constBz);
+	  param.SetHomemadeEventsFlag( homemadeEvents );
 	  param.SetClusterError2CorrectionZ( 1.1 );
 	  param.Update();
 
