@@ -78,10 +78,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
       for (int i = 0;i < outputClusters.size();i++)
       {
         auto& cl = outputClusters[i].mClusters;
-        std::sort(cl.data(), cl.data() + cl.size(), [](const auto& a, const auto& b) {
-          if (a.getTimePacked() != b.getTimePacked()) return(a.getTimePacked() < b.getTimePacked());
-          return(a.mPadPacked < b.mPadPacked);
-        });
+        std::sort(cl.data(), cl.data() + cl.size(), ClusterNativeContainer::sortComparison);
       }
     }
     else

@@ -51,6 +51,8 @@ struct ClusterNative {
 
 struct ClusterNativeContainer
 {
+  static bool sortComparison(const ClusterNative& a, const ClusterNative& b) {if (a.getTimePacked() != b.getTimePacked()) return(a.getTimePacked() < b.getTimePacked()); else return(a.mPadPacked < b.mPadPacked);}
+
   uint8_t mSector;
   uint8_t mGlobalPadRow;
   std::vector<ClusterNative> mClusters;

@@ -122,6 +122,11 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
       }
     }
   }
+  for (int i = 0;i < Sector::MAXSECTOR;i++) {
+    for (int j = 0;j < Constants::MAXGLOBALPADROW;j++) {
+      std::sort(outputClusters.mClusters[i][j], outputClusters.mClusters[i][j] + outputClusters.mNClusters[i][j], ClusterNativeContainer::sortComparison);
+    }
+  }
 
   return(0);
 }
