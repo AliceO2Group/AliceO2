@@ -18,7 +18,6 @@
 #include "TCanvas.h"
 #include "TPad.h"
 #include "TLegend.h"
-#include "TMath.h"
 #include "TColor.h"
 #include "TPaveText.h"
 #include "TF1.h"
@@ -136,23 +135,23 @@ static void SetLegend(TLegend* l)
 	l->SetFillColor(0);
 }
 
-static double* CreateLogAxis(int nbins, double xmin, double xmax)
+static double* CreateLogAxis(int nbins, float xmin, float xmax)
 {
-	double logxmin = TMath::Log10(xmin);
-	double logxmax = TMath::Log10(xmax);
-	double binwidth = (logxmax-logxmin)/nbins;
+	float logxmin = std::log10(xmin);
+	float logxmax = std::log10(xmax);
+	float binwidth = (logxmax-logxmin)/nbins;
 
 	double *xbins =  new double[nbins+1];
 
 	xbins[0] = xmin;
 	for (int i=1;i<=nbins;i++)
 	{
-		xbins[i] = TMath::Power(10,logxmin+i*binwidth);
+		xbins[i] = std::pow(10,logxmin+i*binwidth);
 	}
 	return xbins;
 }
 
-static void ChangePadTitleSize(TPad* p, double size)
+static void ChangePadTitleSize(TPad* p, float size)
 {
 	p->Update();
 	TPaveText *pt = (TPaveText*)(p->GetPrimitive("title")); 
@@ -434,10 +433,10 @@ void RunQA()
 		{
 			const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
 			additionalMCParameters& mc2 = mcParam[i];
-			mc2.pt = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
-			mc2.phi = TMath::Pi() + TMath::ATan2(-info.fPy,-info.fPx);
-			mc2.theta = info.fPz ==0 ? (TMath::Pi() / 2) : (TMath::ACos(info.fPz / TMath::Sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
-			mc2.eta = -TMath::Log(TMath::Tan(0.5 * mc2.theta));
+			mc2.pt = std::sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
+			mc2.phi = M_PI + std::atan2(-info.fPy,-info.fPx);
+			mc2.theta = info.fPz ==0 ? (M_PI / 2) : (std::acos(info.fPz / std::sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
+			mc2.eta = -std::log(std::tan(0.5 * mc2.theta));
 		}
 		
 		//Compute MC Track Parameters for MC Tracks
@@ -523,8 +522,8 @@ void RunQA()
 			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
 			
 			float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
-			float c = TMath::Cos(track.GetAlpha());
-			float s = TMath::Sin(track.GetAlpha());
+			float c = std::cos(track.GetAlpha());
+			float s = std::sin(track.GetAlpha());
 			float x = mc1.fX;
 			float y = mc1.fY;
 			mclocal[0] = x*c + y*s;
@@ -549,8 +548,8 @@ void RunQA()
 			
 			float deltaY = param.GetY() - mclocal[1];
 			float deltaZ = param.GetZ() - mc1.fZ;
-			float deltaPhi = TMath::ASin(param.GetSinPhi()) - TMath::ATan2(mclocal[3], mclocal[2]);
-			float deltaLambda = TMath::ATan(param.GetDzDs()) - TMath::ATan2(mc1.fPz, mc2.pt);
+			float deltaPhi = std::asin(param.GetSinPhi()) - std::atan2(mclocal[3], mclocal[2]);
+			float deltaLambda = std::atan(param.GetDzDs()) - std::atan2(mc1.fPz, mc2.pt);
 			float deltaPt = (fabs(1. / param.GetQPt()) - mc2.pt) / mc2.pt;
 			
 			float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
@@ -672,7 +671,7 @@ void RunQA()
 							if (pt > maxPt)
 							{
 								maxPt = pt;
-								p = TMath::Sqrt(info.fPx * info.fPx + info.fPy * info.fPy + info.fPz * info.fPz);
+								p = std::sqrt(info.fPx * info.fPx + info.fPy * info.fPy + info.fPz * info.fPz);
 							}
 						}
 					}
@@ -740,7 +739,7 @@ int DrawQAHistograms()
 	TFile* tout = NULL;
 	if (config.output) tout = new TFile(config.output, "RECREATE");
 	
-	double legendSpacingString = 0.025;
+	float legendSpacingString = 0.025;
 	for (int i = 0;i < ConfigNumInputs;i++)
 	{
 		GetName(fname, i);
@@ -989,7 +988,7 @@ int DrawQAHistograms()
 				}
 			}
 
-			double tmpSpan;
+			float tmpSpan;
 			tmpSpan = tmpMax - tmpMin;
 			tmpMax += tmpSpan * .02;
 			tmpMin -= tmpSpan * .02;
