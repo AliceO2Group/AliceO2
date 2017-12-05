@@ -143,9 +143,9 @@ public:
   /// after the call will not be sent.
   template <typename T>
   typename std::enable_if<std::is_base_of<TObject, T>::value == true, void>::type
-  snapshot(const OutputSpec &spec, T *const object) {
+  snapshot(const OutputSpec &spec, T & object) {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
-    mDevice->Serialize<TMessageSerializer>(*payloadMessage, object);
+    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object);
 
     addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodROOT);
   }
@@ -158,7 +158,7 @@ public:
   typename std::enable_if<std::is_pod<T>::value == true, void>::type
   snapshot(const OutputSpec &spec, T const &object) {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
-    memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(&object), sizeof(T));
+    memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
     addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
   }

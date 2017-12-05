@@ -11,6 +11,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/ControlService.h"
 #include <TH1F.h>
+#include <TNamed.h>
 #include <gsl/gsl>
 
 using namespace o2::framework;
@@ -31,7 +32,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
         OutputSpec{"TST", "POINT"},
         OutputSpec{"TST", "POINTS"},
         OutputSpec{"TST", "VECTOR"},
-        OutputSpec{"TST", "LINEARIZED"}
+        OutputSpec{"TST", "LINEARIZED"},
+        OutputSpec{"TST", "OBJECT"}
       },
       AlgorithmSpec{
         [](ProcessingContext &ctx) {
@@ -58,6 +60,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           for (auto & i : v) p.push_back(&i);
           ctx.allocator().snapshot(OutputSpec{"TST", "LINEARIZED"}, p);
           v[999] = XYZ{3,4,5};
+
+          TNamed named("named", "a named test object");
+          ctx.allocator().snapshot(OutputSpec{"TST", "OBJECT"}, named);
         }
       }
     },
@@ -69,6 +74,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
         InputSpec{"histo", "TST", "HISTO"},
         InputSpec{"vector", "TST", "VECTOR"},
         InputSpec{"linearized", "TST", "LINEARIZED"},
+        InputSpec{"object", "TST", "OBJECT"},
       },
       {},
       AlgorithmSpec{
@@ -103,6 +109,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           assert(c3[999].y == 3);
           assert(c3[999].z == 4);
           ctx.services().get<ControlService>().readyToQuit(true);
+          auto o = ctx.inputs().get<TNamed>("object");
+          assert(strcmp(o->GetName(), "named") == 0 &&
+                 strcmp(o->GetTitle(), "a named test object") == 0);
         }
       }
     }
