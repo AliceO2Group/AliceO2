@@ -571,6 +571,8 @@ void RunQA()
 			if (mc1.fCharge == 0.f) continue;
 			if (mc1.fPID < 0) continue;
 			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
+			if (configStandalone.configQA.resPrimaries == 1 && (!mc1.fPrim || mc1.fPrimDaughters)) continue;
+			else if (configStandalone.configQA.resPrimaries == 2 && (mc1.fPrim || mc1.fPrimDaughters)) continue;
 			
 			float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
 			float c = std::cos(track.GetAlpha());
@@ -588,6 +590,7 @@ void RunQA()
 			
 			if (mclocal[0] < 80) continue;
 			if (mclocal[0] > param.GetX() + 20) continue;
+			if (param.GetX() > configStandalone.configQA.maxResX) continue;
 
 			float alpha = track.GetAlpha();		
 			prop.SetTrack(&param, alpha);	
