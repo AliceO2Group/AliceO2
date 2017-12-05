@@ -27,8 +27,8 @@ struct ClusterNative {
     
   uint32_t mTimeFlagsPacked;    //< Contains the time in the lower 24 bits in a packed format, contains the flags in the upper 8 bits
   uint16_t mPadPacked;          //< Contains the pad in a packed format
-  uint8_t mSigmaTime2Packed;    //< Sigma of the time in packed format
-  uint8_t mSigmaPad2Packed;     //< Sigma of the pad in packed format
+  uint8_t mSigmaTimePacked;    //< Sigma of the time in packed format
+  uint8_t mSigmaPadPacked;     //< Sigma of the pad in packed format
   uint16_t mQMax;               //< QMax of the cluster
   uint16_t mQTot;               //< Total charge of the cluster
   
@@ -43,10 +43,10 @@ struct ClusterNative {
   void setTimeFlags(float time, uint8_t flags) {mTimeFlagsPacked = (((uint32_t) (time * mScaleTimePacked + 0.5)) & 0xFFFFFF) | ((uint32_t) flags << 24);}
   float getPad() const {return mPadPacked / mScalePadPacked;}
   void setPad(float pad) {mPadPacked = (uint16_t) (pad * mScalePadPacked + 0.5);}
-  float getSigmaTime2() const {return mSigmaTime2Packed / mScaleSigmaTimePacked;}
-  void setSigmaTime2(float sigmaTime2) {uint32_t tmp = sigmaTime2 * mScaleSigmaTimePacked + 0.5; if (tmp > 0xFF) tmp = 0xFF; mSigmaTime2Packed = tmp;}
-  float getSigmaPad2() const {return mSigmaPad2Packed / mScaleSigmaPadPacked;}
-  void setSigmaPad2(float sigmaPad2) {uint32_t tmp = sigmaPad2 * mScaleSigmaPadPacked + 0.5; if (tmp > 0xFF) tmp = 0xFF; mSigmaPad2Packed = tmp;}
+  float getSigmaTime() const {return mSigmaTimePacked / mScaleSigmaTimePacked;}
+  void setSigmaTime(float sigmaTime) {uint32_t tmp = sigmaTime * mScaleSigmaTimePacked + 0.5; if (tmp > 0xFF) tmp = 0xFF; mSigmaTimePacked = tmp;}
+  float getSigmaPad() const {return mSigmaPadPacked / mScaleSigmaPadPacked;}
+  void setSigmaPad(float sigmaPad) {uint32_t tmp = sigmaPad * mScaleSigmaPadPacked + 0.5; if (tmp > 0xFF) tmp = 0xFF; mSigmaPadPacked = tmp;}
 };
 
 struct ClusterNativeContainer
@@ -56,11 +56,11 @@ struct ClusterNativeContainer
   std::vector<ClusterNative> mClusters;
 };
 
+//This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but jus point to the data inside a buffer.
 struct ClusterNativeAccessFullTPC
 {
   ClusterNative* clusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
 };
 
 }}}
-
 #endif

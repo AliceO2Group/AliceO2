@@ -57,8 +57,8 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             float pad = cIn.getPad();
             cOut.setPad(pad);
             cOut.setTimeFlags(cIn.getTimeLocal() + cont.mTimeBinOffset, cIn.mFlags);
-            cOut.setSigmaPad2(cIn.getSigmaPad2());
-            cOut.setSigmaTime2(cIn.getSigmaTime2());
+            cOut.setSigmaPad(std::sqrt(cIn.getSigmaPad2()));
+            cOut.setSigmaTime(std::sqrt(cIn.getSigmaTime2()));
             cOut.mQMax = cIn.mQMax;
             cOut.mQTot = cIn.mQTot;
             mIntegrator.integrateCluster(sector, padRowGlobal, pad, cIn.mQTot);
