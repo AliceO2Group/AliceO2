@@ -18,6 +18,7 @@
 
 #include "AliHLTTPCCAO2Interface.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
+#include "standaloneSettings.h"
 #include <iostream>
 #include <fstream>
 
@@ -113,6 +114,15 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 		out.open(fname, std::ofstream::binary);
 		fHLT->WriteEvent(out);
 		out.close();
+		if (nEvent == 0)
+		{
+			out.open("settings.dump", std::ofstream::binary);
+			hltca_event_dump_settings settings;
+			settings.setDefaults();
+			settings.solenoidBz = fHLT->Param().BzkG();
+			out.write((char*) &settings, sizeof(settings));
+			out.close();
+		}
 	}
 	fHLT->ProcessEvent();
 	outputTracks = fHLT->Merger().OutputTracks();

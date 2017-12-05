@@ -27,8 +27,13 @@
 
 #define REPRODUCIBLE_CLUSTER_SORTING
 
+#ifdef HLTCA_BUILD_O2_LIB
+typedef unsigned int calink;
+typedef unsigned int cahit;
+#else
 typedef unsigned short calink;
 typedef unsigned short cahit;
+#endif
 
 #ifdef HLTCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
