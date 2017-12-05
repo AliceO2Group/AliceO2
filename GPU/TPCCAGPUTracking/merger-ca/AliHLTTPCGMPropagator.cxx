@@ -486,8 +486,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   //c[13] = c43;
   //c[14] = c44;
 
-  // Energy Loss
-  
+
   float &fC22 = c[5];
   float &fC33 = c[9];
   float &fC40 = c[10];
@@ -500,30 +499,39 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
   if( maskMS ) dLmask = dL;
   float dLabs = fabs( dLmask); 
-  float corr = float(1.f) - fMaterial.fEP2* dLmask ;
 
-  float corrInv = 1.f/corr;
-  fT0.Px()*=corrInv;
-  fT0.Py()*=corrInv;
-  fT0.Pz()*=corrInv;
-  fT0.Pt()*=corrInv;
-  fT0.P()*=corrInv;
-  fT0.QPt()*=corr;
+  // Energy Loss
 
-  p[4]*= corr;
-  
-  fC40 *= corr;
-  fC41 *= corr;
-  fC42 *= corr;
-  fC43 *= corr;
-  fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2;
-  
+  if( !fHomemadeEvents ){   
+    //std::cout<<"APPLY ENERGY LOSS!!!"<<std::endl;
+    float corr = float(1.f) - fMaterial.fEP2* dLmask ;
+    float corrInv = 1.f/corr;
+    fT0.Px()*=corrInv;
+    fT0.Py()*=corrInv;
+    fT0.Pz()*=corrInv;
+    fT0.Pt()*=corrInv;
+    fT0.P()*=corrInv;
+    fT0.QPt()*=corr;
+
+    p[4]*= corr;
+    
+    fC40 *= corr;
+    fC41 *= corr;
+    fC42 *= corr;
+    fC43 *= corr;
+    fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2;
+  } else {
+    // std::cout<<"DONT APPLY ENERGY LOSS!!!"<<std::endl;
+  }
+
   //  Multiple Scattering
   
-  fC22 += dLabs * fMaterial.fK22 * fT0.CosPhi()*fT0.CosPhi();
-  fC33 += dLabs * fMaterial.fK33;
-  fC43 += dLabs * fMaterial.fK43;
-  
+  if( !fHomemadeEvents ){ 
+    fC22 += dLabs * fMaterial.fK22 * fT0.CosPhi()*fT0.CosPhi();
+    fC33 += dLabs * fMaterial.fK33;
+    fC43 += dLabs * fMaterial.fK43;
+  }
+
   return 0;
 }
 
@@ -966,37 +974,44 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
   c[11] = -c[11];
 
   // Energy Loss
-
-  float dL =  fabs(dS*fT0.GetDlDs());
-
-  if( inFlyDirection ) dL = -dL;
-
-  float &fC40 = c[10];
-  float &fC41 = c[11];
-  float &fC42 = c[12];
-  float &fC43 = c[13];
-  float &fC44 = c[14];
-
-  float dLmask = 0.f;
-  bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
-  if( maskMS ) dLmask = dL;
-  float dLabs = fabs( dLmask); 
-  float corr = float(1.f) - fMaterial.fEP2* dLmask ;
-
-  float corrInv = 1.f/corr;
-  fT0.Px()*=corrInv;
-  fT0.Py()*=corrInv;
-  fT0.Pz()*=corrInv;
-  fT0.Pt()*=corrInv;
-  fT0.P()*=corrInv;
-  fT0.QPt()*=corr;
-
-  fT->QPt()*= corr;
   
-  fC40 *= corr;
-  fC41 *= corr;
-  fC42 *= corr;
-  fC43 *= corr;
-  fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2;
-   
+  if( !fHomemadeEvents ){
+ 
+    // std::cout<<"MIRROR: APPLY ENERGY LOSS!!!"<<std::endl;
+  
+    float dL =  fabs(dS*fT0.GetDlDs());
+    
+    if( inFlyDirection ) dL = -dL;
+    
+    float &fC40 = c[10];
+    float &fC41 = c[11];
+    float &fC42 = c[12];
+    float &fC43 = c[13];
+    float &fC44 = c[14];
+    
+    float dLmask = 0.f;
+    bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
+    if( maskMS ) dLmask = dL;
+    float dLabs = fabs( dLmask); 
+    float corr = float(1.f) - fMaterial.fEP2* dLmask ;
+    
+    float corrInv = 1.f/corr;
+    fT0.Px()*=corrInv;
+    fT0.Py()*=corrInv;
+    fT0.Pz()*=corrInv;
+    fT0.Pt()*=corrInv;
+    fT0.P()*=corrInv;
+    fT0.QPt()*=corr;
+
+    fT->QPt()*= corr;
+  
+    fC40 *= corr;
+    fC41 *= corr;
+    fC42 *= corr;
+    fC43 *= corr;
+    fC44  = fC44*corr*corr + dLabs*fMaterial.fSigmadE2; 
+  } else {
+    // std::cout<<"MIRROR: DONT APPLY ENERGY LOSS!!!"<<std::endl;
+  }
+
 }
