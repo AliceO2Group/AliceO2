@@ -116,7 +116,8 @@ static int ConfigDashedMarkers = 0;
 
 static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0., -ETA_MAX, PT_MIN};
 static const float axes_max[5] = {Y_MAX2, Z_MAX, 2. *  M_PI, ETA_MAX, PT_MAX};
-static const int axis_bins[5] = {50, 50, 144, 30, 50};
+static const int axis_bins[5] = {51, 51, 144, 31, 50};
+static const int res_axis_bins = 101;
 static const float res_axes[5] = {1., 1., 0.03, 0.03, 0.2};
 
 static void SetAxisSize(TH1F* e)
@@ -246,12 +247,12 @@ void InitQA()
 			if (j == 4)
 			{
 				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
-				res2[i][j] = new TH2F(name, name, 100, -res_axes[i], res_axes[i], axis_bins[j], binsPt);
+				res2[i][j] = new TH2F(name, name, res_axis_bins, -res_axes[i], res_axes[i], axis_bins[j], binsPt);
 				delete[] binsPt;
 			}
 			else
 			{
-				res2[i][j] = new TH2F(name, name, 100, -res_axes[i], res_axes[i], axis_bins[j], axes_min[j], axes_max[j]);
+				res2[i][j] = new TH2F(name, name, res_axis_bins, -res_axes[i], res_axes[i], axis_bins[j], axes_min[j], axes_max[j]);
 			}
 		}
 	}
@@ -305,9 +306,9 @@ void RunQA()
 		//Assign Track MC Labels
 		timer.Start();
 		bool ompError = false;
-	#if DEBUG == 0
-	#pragma omp parallel for
-	#endif
+#if DEBUG == 0
+#pragma omp parallel for
+#endif
 		for (int i = 0; i < merger.NOutputTracks(); i++)
 		{
 			if (ompError) continue;
@@ -428,7 +429,7 @@ void RunQA()
 		if (TIMING) printf("QA Time: Compute cluster label weights:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 		
-	#pragma omp parallel for
+#pragma omp parallel for
 		for (int i = 0;i < hlt.GetNMCInfo();i++)
 		{
 			const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
