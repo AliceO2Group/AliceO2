@@ -160,11 +160,12 @@ int main(int argc, char** argv)
 		FILE* fp = fopen(filename, "rb");
 		if (fp)
 		{
-			int n = fread(&eventSettings, sizeof(eventSettings), 1, fp);
-			printf("Read event settings from file %s (%d bytes, solenoidBz: %f, constBz %d)\n", filename, n, eventSettings.solenoidBz, (int) eventSettings.constBz);
+			int n = fread(&eventSettings, 1, sizeof(eventSettings), fp);
+			printf("Read event settings from file %s (%d bytes, solenoidBz: %f, home-made events %d, constBz %d)\n", filename, n, eventSettings.solenoidBz, (int) eventSettings.homemadeEvents, (int) eventSettings.constBz);
 			fclose(fp);
 		}
-	}
+	} 
+	if (configStandalone.eventGenerator) eventSettings.homemadeEvents = true;
 	if (configStandalone.solenoidBz != -1e6f) eventSettings.solenoidBz = configStandalone.solenoidBz;
 	if (configStandalone.constBz) eventSettings.constBz = true;
 	
