@@ -558,7 +558,8 @@ void RunQA()
 		prop.SetPolynomialField( merger.pField() );		
 		prop.SetUseMeanMomentum(kFALSE );
 		prop.SetContinuousTracking( kFALSE );
-		
+		prop.SetHomemadeEvents( merger.SliceParam().HomemadeEventsFlag());
+
 		for (int i = 0; i < merger.NOutputTracks(); i++)
 		{
 			if (trackMCLabels[i] < 0) continue;

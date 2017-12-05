@@ -48,6 +48,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   prop.SetUseMeanMomentum( UseMeanPt );
   prop.SetContinuousTracking( param.GetContinuousTracking() );
   prop.SetMaxSinPhi( maxSinPhi );
+  prop.SetHomemadeEvents( param.HomemadeEventsFlag());
+
 
   if (param.GetContinuousTracking())
   {  

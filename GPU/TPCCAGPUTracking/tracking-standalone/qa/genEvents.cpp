@@ -31,7 +31,9 @@ const double kSliceAngleOffset = kSliceDAngle/2;
 int GetSlice( double GlobalPhi )
 {
   double phi = GlobalPhi;
-  if( phi > kTwoPi ) phi -= kTwoPi;
+  //  std::cout<<" GetSlice: phi = "<<phi<<std::endl;
+
+  if( phi >= kTwoPi ) phi -= kTwoPi;
   if( phi < 0 ) phi+= kTwoPi; 
   return (int) ( phi / kSliceDAngle );
 }
@@ -49,13 +51,12 @@ double GetSliceAngle( int iSlice )
 int RecalculateSlice( AliHLTTPCGMPhysicalTrackModel &t, int &iSlice )
 {
   double phi = atan2( t.GetY(), t.GetX() );
-  phi += kSliceAngleOffset;
-  if( phi >= kTwoPi ) phi -= kTwoPi;
-  int dSlice = (int) ( phi / kSliceDAngle );
+  //  std::cout<<" recalculate: phi = "<<phi<<std::endl;
+  int dSlice = GetDSlice( phi );
 
   if( dSlice == 0 ) return 0; // nothing to do
 
-  std::cout<<" dSlice = "<<dSlice<<std::endl;
+  //  std::cout<<" dSlice = "<<dSlice<<std::endl;
   double dAlpha = dSlice*kSliceDAngle;
   // rotate track on angle dAlpha
 
@@ -113,6 +114,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     double q = 1.;
     int iSlice = GetSlice( phi );
     phi = phi - GetSliceAngle( iSlice );
+    std::cout<<"phi = "<<phi<<std::endl;
     double x0 = cos(phi);
     double y0 = sin(phi);
     double z0 = tan(theta);
@@ -120,7 +122,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
 
     if( RecalculateSlice(t,iSlice) !=0 ){
       std::cout<<"Initial slice wrong!!!"<<std::endl;
-      exit(0);
+      //exit(0);
     }
     
     for( int iRow=0; iRow<sliceParam.NRows(); iRow++ ){
