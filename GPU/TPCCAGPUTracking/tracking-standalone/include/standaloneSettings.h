@@ -10,6 +10,7 @@ struct hltca_event_dump_settings
 		homemadeEvents = false;
 	}
 	
+	//New members should always go to the end, the packed attribute and the reading will make sure new members are initialized to defaults when reading old files
 	float solenoidBz;
 	bool constBz;
 	bool homemadeEvents;
