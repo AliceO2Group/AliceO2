@@ -238,6 +238,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       else
         oTrack.setTime0(continuousTFReferenceLength - tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth()*gasParam.getVdrift()));
       oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ - tracks[i].GetParam().GetZOffset());
+      oTrack.resetClusterReferences(tracks[i].NClusters());
       for (int j = 0; j < tracks[i].NClusters(); j++) {
         int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].fId;
         Sector sector = clusterId >> 24;
@@ -247,6 +248,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) regionNumber++;
         CRU cru(sector, regionNumber);
         oTrack.addCluster(Cluster(cru, globalRow - mapper.getGlobalRowOffsetRegion(regionNumber), cl.mQTot, cl.mQMax, cl.getPad(), cl.getSigmaPad(), cl.getTime(), cl.getSigmaTime()));
+        oTrack.setClusterReference(j, sector, globalRow, clusterId);
       }
     }
   }

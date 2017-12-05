@@ -15,7 +15,7 @@
 
 #include "TPCBase/Defs.h"
 #include "TPCReconstruction/Cluster.h"
-
+#include "DataFormatsTPC/ClusterNative.h"
 
 namespace o2 {
 namespace TPC {
@@ -59,11 +59,33 @@ class TrackTPC :public o2::Base::Track::TrackParCov {
     float getLastClusterZ() const {return mLastClusterZ;}
     void setTime0(float v) {mTime0 = v;}
     void setLastClusterZ(float v) {mLastClusterZ = v;}
+    
+    void resetClusterReferences(int nClusters);
+    void setClusterReference(int nCluster, uint8_t sectorIndex, uint8_t rowIndex, uint32_t clusterIndex) {
+      mClusterReferences[nCluster] = clusterIndex;
+      reinterpret_cast<uint8_t*>(mClusterReferences.data())[4 * mNClusters + nCluster] = sectorIndex;
+      reinterpret_cast<uint8_t*>(mClusterReferences.data())[5 * mNClusters + nCluster] = rowIndex;
+    }
+    void getClusterReference(int nCluster, uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const {
+      clusterIndex = mClusterReferences[nCluster];
+      sectorIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[4 * mNClusters + nCluster];
+      rowIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[5 * mNClusters + nCluster];
+    }
+    const o2::DataFormat::TPC::ClusterNative& getCluster(int nCluster, const o2::DataFormat::TPC::ClusterNativeAccessFullTPC& clusters) const {
+      uint32_t clusterIndex;
+      uint8_t sectorIndex, rowIndex;
+      getClusterReference(nCluster, sectorIndex, rowIndex, clusterIndex);
+      return(clusters.mClusters[sectorIndex][rowIndex][clusterIndex]);
+    }
 
   private:
     std::vector<Cluster> mClusterVector;
-    float mTime0; //Reference time of the track, z position is obtained after subtracting this time from the time of the clusters
-    float mLastClusterZ; //Z position of last cluster
+    float mTime0 = 0.f; //Reference time of the track, z position is obtained after subtracting this time from the time of the clusters
+    float mLastClusterZ = 0.f; //Z position of last cluster
+    
+    //New structure to store cluster references
+    int mNClusters = 0;
+    std::vector<uint32_t> mClusterReferences;
 };
 
 inline
