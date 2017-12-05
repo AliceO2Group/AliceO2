@@ -58,6 +58,13 @@ static TCanvas *cres[7];
 static TPad* pres[7][5];
 static TLegend* legendres[6];
 
+static TH1F* pull[5][5][2]; //y,z,phi,lambda,pt,ptlog res - param - res,mean
+static TH2F* pull2[5][5];
+static TCanvas *cpull[7];
+static TPad* ppull[7][5];
+static TLegend* legendpull[6];
+
+
 static TH1F* clusters[11]; //attached, fakeAttached, tracks, all, attachedRel, fakeAttachedRel, treaksRel, attachedInt, fakeAttachedInt, treaksInt, AllInt
 static TCanvas* cclust[3];
 static TPad* pclust[3];
@@ -105,6 +112,7 @@ static const char* EfficiencyTitles[4] = {"Efficiency (Primary Tracks, Findable)
 static const double Scale[5] = {10., 10., 1000., 1000., 100.};
 static const char* XAxisTitles[5] = {"y_{mc} [cm]", "z_{mc} [cm]", "#Phi_{mc} [rad]", "#eta_{mc}", "p_{Tmc} [Gev/c]"};
 static const char* AxisTitles[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "#phi-#phi_{mc} [mrad] (Resolution)", "#lambda-#lambda_{mc} [mrad] (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} [%] (Resolution)"};
+static const char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "#lambda-#lambda_{mc}/#sigma_{#lambda} (Pull)", "(p_{T} - p_{Tmc})/#sigma{p_{T}} (Pull)"};
 static const char* ClustersNames[4] = {"Correctly attached clusters", "Fake attached clusters", "Clusters of reconstructed tracks", "All clusters"};
 static const char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
 static const char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "All"};
@@ -113,11 +121,13 @@ static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19
 
 static int ConfigDashedMarkers = 0;
 
-static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0., -ETA_MAX, PT_MIN};
-static const float axes_max[5] = {Y_MAX2, Z_MAX, 2. *  M_PI, ETA_MAX, PT_MAX};
+static constexpr float kPi = M_PI;
+static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
+static const float axes_max[5] = {Y_MAX2, Z_MAX, 2.f *  kPi, ETA_MAX, PT_MAX};
 static const int axis_bins[5] = {51, 51, 144, 31, 50};
 static const int res_axis_bins = 101;
 static const float res_axes[5] = {1., 1., 0.03, 0.03, 0.2};
+static const float pull_axis = 10.f;
 
 static void SetAxisSize(TH1F* e)
 {
@@ -252,6 +262,39 @@ void InitQA()
 			else
 			{
 				res2[i][j] = new TH2F(name, name, res_axis_bins, -res_axes[i], res_axes[i], axis_bins[j], axes_min[j], axes_max[j]);
+			}
+		}
+	}
+
+	//Create Pull Histograms
+	for (int i = 0;i < 5;i++)
+	{
+		for (int j = 0;j < 5;j++)
+		{
+			sprintf(name, "pull_rms_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+			sprintf(fname, "pull_mean_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+			if (j == 4)
+			{
+				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
+				pull[i][j][0] = new TH1F(name, name, axis_bins[j], binsPt);
+				pull[i][j][1] = new TH1F(fname, fname, axis_bins[j], binsPt);
+				delete[] binsPt;
+			}
+			else
+			{
+				pull[i][j][0] = new TH1F(name, name, axis_bins[j], axes_min[j], axes_max[j]);
+				pull[i][j][1] = new TH1F(fname, fname, axis_bins[j], axes_min[j], axes_max[j]);
+			}
+			sprintf(name, "pull_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
+			if (j == 4)
+			{
+				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
+				pull2[i][j] = new TH2F(name, name, res_axis_bins, -pull_axis, pull_axis, axis_bins[j], binsPt);
+				delete[] binsPt;
+			}
+			else
+			{
+				pull2[i][j] = new TH2F(name, name, res_axis_bins, -pull_axis, pull_axis, axis_bins[j], axes_min[j], axes_max[j]);
 			}
 		}
 	}
@@ -434,9 +477,17 @@ void RunQA()
 			const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
 			additionalMCParameters& mc2 = mcParam[i];
 			mc2.pt = std::sqrt(info.fPx * info.fPx + info.fPy * info.fPy);
-			mc2.phi = M_PI + std::atan2(-info.fPy,-info.fPx);
-			mc2.theta = info.fPz ==0 ? (M_PI / 2) : (std::acos(info.fPz / std::sqrt(info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz)));
-			mc2.eta = -std::log(std::tan(0.5 * mc2.theta));
+			mc2.phi = kPi + std::atan2(-info.fPy,-info.fPx);
+			float p = info.fPx*info.fPx+info.fPy*info.fPy+info.fPz*info.fPz;
+			if (p < 1e-18)
+			{
+				mc2.theta = mc2.eta = 0.f;
+			}
+			else
+			{
+				mc2.theta = info.fPz == 0 ? (kPi / 2) : (std::acos(info.fPz / std::sqrt(p)));
+				mc2.eta = -std::log(std::tan(0.5 * mc2.theta));
+			}
 		}
 		
 		//Compute MC Track Parameters for MC Tracks
@@ -446,7 +497,7 @@ void RunQA()
 			if ((mcTrackMin != -1 && i < mcTrackMin) || (mcTrackMax != -1 && i >= mcTrackMax)) continue;
 			const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
 			const additionalMCParameters& mc2 = mcParam[i];
-			if (mc2.nWeightCls == 0.) continue;
+			if (mc2.nWeightCls == 0.f) continue;
 			const float& mcpt = mc2.pt;
 			const float& mcphi = mc2.phi;
 			const float& mceta = mc2.eta;
@@ -455,15 +506,15 @@ void RunQA()
 			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
 			int findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
 			if (info.fPID < 0) continue;
-			if (info.fCharge == 0.) continue;
+			if (info.fCharge == 0.f) continue;
 			
 			if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
 			
 			float alpha = std::atan2(info.fY, info.fX);
-			alpha /= M_PI / 9.f;
+			alpha /= kPi / 9.f;
 			alpha = std::floor(alpha);
-			alpha *= M_PI / 9.f;
-			alpha += M_PI / 18.f;
+			alpha *= kPi / 9.f;
+			alpha += kPi / 18.f;
 			
 			float c = std::cos(alpha);
 			float s = std::sin(alpha);
@@ -484,7 +535,7 @@ void RunQA()
 					{
 						if (info.fPrim && mcpt < PT_MIN_PRIM) continue;
 						if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
-						if (l < 4 && mcpt < 1. / config.qpt) continue;
+						if (l < 4 && mcpt < 1.f / config.qpt) continue;
 						
 						float pos = l == 0 ? localY : l == 1 ? info.fZ : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
 
@@ -517,7 +568,7 @@ void RunQA()
 			
 			if (!track.OK()) continue;
 			if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
-			if (mc1.fCharge == 0.) continue;
+			if (mc1.fCharge == 0.f) continue;
 			if (mc1.fPID < 0) continue;
 			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
 			
@@ -544,24 +595,29 @@ void RunQA()
 			if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() - mc1.fZ) * (param.Z() - mc1.fZ) > 25) continue;
 			
 			if (prop.PropagateToXAlpha( mclocal[0], alpha, inFlyDirection ) ) continue;
-			if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1. : 4.) || fabs(param.Z() - mc1.fZ) > (config.strict ? 1. : 4.)) continue;
+			if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1.f : 4.f) || fabs(param.Z() - mc1.fZ) > (config.strict ? 1.f : 4.f)) continue;
 			
 			float deltaY = param.GetY() - mclocal[1];
 			float deltaZ = param.GetZ() - mc1.fZ;
 			float deltaPhi = std::asin(param.GetSinPhi()) - std::atan2(mclocal[3], mclocal[2]);
 			float deltaLambda = std::atan(param.GetDzDs()) - std::atan2(mc1.fPz, mc2.pt);
-			float deltaPt = (fabs(1. / param.GetQPt()) - mc2.pt) / mc2.pt;
+			float deltaPt = (fabs(1.f / param.GetQPt()) - mc2.pt) / mc2.pt;
 			
 			float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
 			float resval[5] = {deltaY, deltaZ, deltaPhi, deltaLambda, deltaPt};
+			float pullval[5] = {deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()),
+				(param.GetSinPhi() - mclocal[3] / std::sqrt(mclocal[2] * mclocal[2] + mclocal[3] * mclocal[3])) / std::sqrt(param.GetErr2SinPhi()),
+				(param.GetDzDs() - mc1.fPz / mc2.pt) / std::sqrt(param.GetErr2DzDs()),
+				(param.GetQPt() - 1.f / mc2.pt) / std::sqrt(param.GetErr2QPt())};
 			
 			for (int j = 0;j < 5;j++)
 			{
 				for (int k = 0;k < 5;k++)
 				{
 					if (k != 3 && fabs(mc2.eta) > ETA_MAX2) continue;
-					if (k < 4 && mc2.pt < 1. / config.qpt) continue;
+					if (k < 4 && mc2.pt < 1.f / config.qpt) continue;
 					res2[j][k]->Fill(resval[j], paramval[k]);
+					pull2[j][k]->Fill(pullval[j], paramval[k]);
 				}
 			}
 		}
@@ -676,7 +732,7 @@ void RunQA()
 						}
 					}
 				}
-				if (clusterInfo[cid] > 0.) clustersAttached++;
+				if (clusterInfo[cid] > 0.f) clustersAttached++;
 				int labels[3] = {};
 				if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
 					for (int i = 0;i < 3;i++)
@@ -782,6 +838,26 @@ int DrawQAHistograms()
 		if (ii < 6) {legendres[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendres[ii]);}
 	}
 	
+	//Create Canvas / Pads for Pull Histograms
+	for (int ii = 0;ii < 7;ii++)
+	{
+		int i = ii == 5 ? 4 : ii;
+		sprintf(fname, "cpull_%d", ii);
+		if (ii == 6) sprintf(name, "Integral Pull");
+		else sprintf(name, "Pull versus %s", ParameterNames[i]);
+		cpull[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
+		cpull[ii]->cd();
+		gStyle->SetOptFit(1);
+
+		float dy = 1. / 2.;
+		ppull[ii][3] = new TPad( "p0","",0.0,dy*0,0.5,dy*1); ppull[ii][3]->Draw();ppull[ii][3]->SetRightMargin(0.04);
+		ppull[ii][4] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); ppull[ii][4]->Draw();ppull[ii][4]->SetRightMargin(0.04);
+		ppull[ii][0] = new TPad( "p2","",0.0,dy*1,1./3.,dy*2-.001); ppull[ii][0]->Draw();ppull[ii][0]->SetRightMargin(0.04);ppull[ii][0]->SetLeftMargin(0.15);
+		ppull[ii][1] = new TPad( "p3","",1./3.,dy*1,2./3.,dy*2-.001); ppull[ii][1]->Draw();ppull[ii][1]->SetRightMargin(0.04);ppull[ii][1]->SetLeftMargin(0.135);
+		ppull[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); ppull[ii][2]->Draw();ppull[ii][2]->SetRightMargin(0.06);ppull[ii][2]->SetLeftMargin(0.135);
+		if (ii < 6) {legendpull[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendpull[ii]);}
+	}
+
 	//Create Canvas for Cluster Histos
 	for (int i = 0;i < 3;i++)
 	{
@@ -883,175 +959,191 @@ int DrawQAHistograms()
 	}
 
 	//Process / Draw Resolution Histograms
-	TH1D* resIntegral[5] = {};
-	for (int ii = 0;ii < 6;ii++)
+	TH1D *resIntegral[5] = {}, *pullIntegral[5] = {};
+	for (int p = 0;p < 2;p++)
 	{
-		int i = ii == 5 ? 4 : ii;
-		for (int j = 0;j < 5;j++)
+		for (int ii = 0;ii < 6;ii++)
 		{
-			if (!config.inputHistogramsOnly && ii != 5)
+			TCanvas* can = p ? cpull[ii] : cres[ii];
+			TLegend* leg = p ? legendpull[ii] : legendres[ii];
+			int i = ii == 5 ? 4 : ii;
+			for (int j = 0;j < 5;j++)
 			{
-				TCanvas cfit;
-				cfit.cd();
-				TAxis* axis = res2[j][i]->GetYaxis();
-				int nBins = axis->GetNbins();
-				int integ = 1;
-				for (int bin = 1;bin <= nBins;bin++)
+				TH2F* src = p ? pull2[j][i] : res2[j][i];
+				TH1F** dst = p ? pull[j][i] : res[j][i];
+				TH1D* &dstIntegral = p ? pullIntegral[j] : resIntegral[j];
+				TPad* pad = p ? ppull[ii][j] : pres[ii][j];
+
+				if (!config.inputHistogramsOnly && ii != 5)
 				{
-					int bin0 = std::max(bin - integ, 0);
-					int bin1 = std::min(bin + integ, nBins);
-					TH1D* proj = res2[j][i]->ProjectionX("proj", bin0, bin1);
-					if (proj->GetEntries())
+					TCanvas cfit;
+					cfit.cd();
+					
+					TAxis* axis = src->GetYaxis();
+					int nBins = axis->GetNbins();
+					int integ = 1;
+					for (int bin = 1;bin <= nBins;bin++)
 					{
-						if (proj->GetEntries() < 20 || proj->GetRMS() < 0.00001)
+						int bin0 = std::max(bin - integ, 0);
+						int bin1 = std::min(bin + integ, nBins);
+						TH1D* proj = src->ProjectionX("proj", bin0, bin1);
+						if (proj->GetEntries())
 						{
-							res[j][i][0]->SetBinContent(bin, proj->GetRMS());
-							res[j][i][0]->SetBinError(bin, sqrt(proj->GetRMS()));
-							res[j][i][1]->SetBinContent(bin, proj->GetMean());
-							res[j][i][1]->SetBinError(bin, sqrt(proj->GetRMS()));
-						}
-						else
-						{
-							proj->Fit("gaus", proj->GetMaximum() < 20 ? "sQl" : "sQ");
-							TF1* fitFunc = proj->GetFunction("gaus");
-							float sigma = fabs(fitFunc->GetParameter(2));
-							if (sigma > 0.)
+							if (proj->GetEntries() < 20 || proj->GetRMS() < 0.00001)
 							{
-								res[j][i][0]->SetBinContent(bin, fabs(fitFunc->GetParameter(2)));
-								res[j][i][1]->SetBinContent(bin, fitFunc->GetParameter(1));
+								dst[0]->SetBinContent(bin, proj->GetRMS());
+								dst[0]->SetBinError(bin, sqrt(proj->GetRMS()));
+								dst[1]->SetBinContent(bin, proj->GetMean());
+								dst[1]->SetBinError(bin, sqrt(proj->GetRMS()));
 							}
 							else
 							{
-								res[j][i][0]->SetBinContent(bin, 0);
-								res[j][i][1]->SetBinContent(bin, 0);
-							}
-							res[j][i][0]->SetBinError(bin, fitFunc->GetParError(2));
-							res[j][i][1]->SetBinError(bin, fitFunc->GetParError(1));
+								proj->Fit("gaus", proj->GetMaximum() < 20 ? "sQl" : "sQ");
+								TF1* fitFunc = proj->GetFunction("gaus");
+								float sigma = fabs(fitFunc->GetParameter(2));
+								if (sigma > 0.f)
+								{
+									dst[0]->SetBinContent(bin, fabs(fitFunc->GetParameter(2)));
+									dst[1]->SetBinContent(bin, fitFunc->GetParameter(1));
+								}
+								else
+								{
+									dst[0]->SetBinContent(bin, 0);
+									dst[1]->SetBinContent(bin, 0);
+								}
+								dst[0]->SetBinError(bin, fitFunc->GetParError(2));
+								dst[1]->SetBinError(bin, fitFunc->GetParError(1));
 
-							bool fail = fabs(proj->GetMean() - res[j][i][1]->GetBinContent(bin)) > res_axes[j] || res[j][i][0]->GetBinError(bin) > 1 || res[j][i][1]->GetBinError(bin) > 1;
-							if (fail)
-							{
-								res[j][i][0]->SetBinContent(bin, proj->GetMean());
-								res[j][i][1]->SetBinContent(bin, proj->GetRMS());
-								res[j][i][0]->SetBinError(bin, sqrt(proj->GetRMS()));
-								res[j][i][1]->SetBinError(bin, sqrt(proj->GetRMS()));
+								bool fail = fabs(proj->GetMean() - dst[1]->GetBinContent(bin)) > res_axes[j] || dst[0]->GetBinError(bin) > 1 || dst[1]->GetBinError(bin) > 1;
+								if (fail)
+								{
+									dst[0]->SetBinContent(bin, proj->GetMean());
+									dst[1]->SetBinContent(bin, proj->GetRMS());
+									dst[0]->SetBinError(bin, sqrt(proj->GetRMS()));
+									dst[1]->SetBinError(bin, sqrt(proj->GetRMS()));
+								}
 							}
 						}
+						else
+						{
+							dst[0]->SetBinContent(bin, 0.f);
+							dst[0]->SetBinError(bin, 0.f);
+							dst[1]->SetBinContent(bin, 0.f);
+							dst[1]->SetBinError(bin, 0.f);
+						}
+						delete proj;
 					}
-					else
+					if (ii == 0)
 					{
-						res[j][i][0]->SetBinContent(bin, 0.);
-						res[j][i][0]->SetBinError(bin, 0.);
-						res[j][i][1]->SetBinContent(bin, 0.);
-						res[j][i][1]->SetBinError(bin, 0.);
+						dstIntegral = src->ProjectionX(ParameterNames[j], 0, nBins + 1);
 					}
-					delete proj;
 				}
 				if (ii == 0)
 				{
-					resIntegral[j] = res2[j][0]->ProjectionX(ParameterNames[j], 0, nBins + 1);
+					if (config.inputHistogramsOnly) dstIntegral = new TH1D;
+					sprintf(fname, p ? "IntPull%s" : "IntRes%s", ParameterNames[j]);
+					sprintf(name, p ? "%s Pull" : "%s Resolution", ParameterNames[j]);
+					dstIntegral->SetName(fname);
+					dstIntegral->SetTitle(name);
 				}
-			}
-			if (ii == 0)
-			{
-				if (config.inputHistogramsOnly) resIntegral[j] = new TH1D;
-				sprintf(fname, "IntRes%s", ParameterNames[j]);
-				sprintf(name, "%s Resolution", ParameterNames[j]);
-				resIntegral[j]->SetName(fname);
-				resIntegral[j]->SetTitle(name);
-			}
-			pres[ii][j]->cd();
+				pad->cd();
 
-			int numColor = 0;
-			float tmpMax = -1000.;
-			float tmpMin = 1000.;
-			
-			for (int l = 0;l < 2;l++)
-			{
-				for (int k = 0;k < ConfigNumInputs;k++)
-				{
-					TH1F* e = res[j][i][l];
-					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
-					if (nNewInput && k == 0 && ii != 5)
-					{
-						e->Scale(Scale[j]);
-						e->GetYaxis()->SetTitle(AxisTitles[j]);
-						e->GetXaxis()->SetTitle(XAxisTitles[i]);
-					}
-					if (ii == 4) e->GetXaxis()->SetRangeUser(0.2, PT_MAX);
-					else if (ii == 5) e->GetXaxis()->SetRange(1, 0);
-					e->SetMinimum(-1111);
-					e->SetMaximum(-1111);
-					
-					if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
-					if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
-				}
-			}
-
-			float tmpSpan;
-			tmpSpan = tmpMax - tmpMin;
-			tmpMax += tmpSpan * .02;
-			tmpMin -= tmpSpan * .02;
-			if (j == 2 && i < 3) tmpMax += tmpSpan * 0.13 * ConfigNumInputs;
-
-			for (int k = 0;k < ConfigNumInputs;k++)
-			{
+				int numColor = 0;
+				float tmpMax = -1000.;
+				float tmpMin = 1000.;
+				
 				for (int l = 0;l < 2;l++)
 				{
-					TH1F* e = res[j][i][l];
-					if (!config.inputHistogramsOnly && k == 0)
+					for (int k = 0;k < ConfigNumInputs;k++)
 					{
-						sprintf(name, "%s Resolution", ParameterNames[j]);
-						e->SetTitle(name);
-						e->SetStats(kFALSE);
-						if (tout)
+						TH1F* e = dst[l];
+						if (GetHist(e, tin, k, nNewInput) == NULL) continue;
+						if (nNewInput && k == 0 && ii != 5)
 						{
-							if (l == 0)
-							{
-								res2[j][i]->SetOption("colz");
-								res2[j][i]->Write();
-							}
-							e->Write();
+							if (p == 0) e->Scale(Scale[j]);
+							e->GetYaxis()->SetTitle(p ? AxisTitlesPull[j] : AxisTitles[j]);
+							e->GetXaxis()->SetTitle(XAxisTitles[i]);
 						}
-					}
-					else if (GetHist(e, tin, k, nNewInput) == NULL) continue;
-					e->SetMaximum(tmpMax);
-					e->SetMinimum(tmpMin);
-					e->SetMarkerColor(kBlack);
-					e->SetLineWidth(1);
-					e->SetLineColor(colorNums[numColor++ % ColorCount]);
-					e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
-					SetAxisSize(e);
-					if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
-					else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
-					e->Draw(k || l ? "same" : "");
-					if (j == 0)
-					{
-						GetName(fname, k);
-						sprintf(name, "%s%s", fname, l ? "Mean Resolution" : "Resolution");
-						legendres[ii]->AddEntry(e, name, "l");
+						if (ii == 4) e->GetXaxis()->SetRangeUser(0.2, PT_MAX);
+						else if (ii == 5) e->GetXaxis()->SetRange(1, 0);
+						e->SetMinimum(-1111);
+						e->SetMaximum(-1111);
+						
+						if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
+						if (e->GetMinimum() < tmpMin) tmpMin = e->GetMinimum();
 					}
 				}
-			}
-			if (ii == 5) pres[ii][j]->SetLogx();
-			cres[ii]->cd();
-		}
-		ChangePadTitleSize(pres[ii][4], 0.056);
-		legendres[ii]->Draw();
 
-		sprintf(fname, "plots/res_vs_%s.pdf", VSParameterNames[ii]);
-		cres[ii]->Print(fname);
+				float tmpSpan;
+				tmpSpan = tmpMax - tmpMin;
+				tmpMax += tmpSpan * .02;
+				tmpMin -= tmpSpan * .02;
+				if (j == 2 && i < 3) tmpMax += tmpSpan * 0.13 * ConfigNumInputs;
+
+				for (int k = 0;k < ConfigNumInputs;k++)
+				{
+					for (int l = 0;l < 2;l++)
+					{
+						TH1F* e = dst[l];
+						if (!config.inputHistogramsOnly && k == 0)
+						{
+							sprintf(name, p ? "%s Pull" : "%s Resolution", ParameterNames[j]);
+							e->SetTitle(name);
+							e->SetStats(kFALSE);
+							if (tout)
+							{
+								if (l == 0)
+								{
+									res2[j][i]->SetOption("colz");
+									res2[j][i]->Write();
+								}
+								e->Write();
+							}
+						}
+						else if (GetHist(e, tin, k, nNewInput) == NULL) continue;
+						e->SetMaximum(tmpMax);
+						e->SetMinimum(tmpMin);
+						e->SetMarkerColor(kBlack);
+						e->SetLineWidth(1);
+						e->SetLineColor(colorNums[numColor++ % ColorCount]);
+						e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
+						SetAxisSize(e);
+						if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
+						else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
+						e->Draw(k || l ? "same" : "");
+						if (j == 0)
+						{
+							GetName(fname, k);
+							if (p) sprintf(name, "%s%s", fname, l ? "Mean Pull" : "Pull");
+							else sprintf(name, "%s%s", fname, l ? "Mean Resolution" : "Resolution");
+							leg->AddEntry(e, name, "l");
+						}
+					}
+				}
+				if (ii == 5) pad->SetLogx();
+				can->cd();
+				if (j == 4) ChangePadTitleSize(pad, 0.056);
+			}
+			leg->Draw();
+
+			sprintf(fname, p ? "plots/pull_vs_%s.pdf" : "plots/res_vs_%s.pdf", VSParameterNames[ii]);
+			can->Print(fname);
+		}
 	}
 	
 	//Process Integral Resolution Histogreams
+	for (int p = 0;p < 2;p++)
 	{
+		TCanvas* can = p ? cpull[6] : cres[6];
 		for (int i = 0;i < 5;i++)
 		{
+			TPad* pad = p ? ppull[6][i] : pres[6][i];
+			TH1D* hist = p ? pullIntegral[i] : resIntegral[i];
 			int numColor = 0;
-			pres[6][i]->cd();
+			pad->cd();
 			if (!config.inputHistogramsOnly)
 			{
-				TH1D* e = resIntegral[i];
+				TH1D* e = hist;
 				e->GetEntries();
 				e->Fit("gaus","sQ");
 			}
@@ -1059,7 +1151,7 @@ int DrawQAHistograms()
 			float tmpMax = 0;
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
-				TH1D* e = resIntegral[i];
+				TH1D* e = hist;
 				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 				e->SetMaximum(-1111);
 				if (e->GetMaximum() > tmpMax) tmpMax = e->GetMaximum();
@@ -1067,7 +1159,7 @@ int DrawQAHistograms()
 			
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{
-				TH1D* e = resIntegral[i];
+				TH1D* e = hist;
 				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 				e->SetMaximum(tmpMax * 1.02);
 				e->SetMinimum(tmpMax * -0.02);
@@ -1075,10 +1167,10 @@ int DrawQAHistograms()
 				if (tout && !config.inputHistogramsOnly && k == 0) e->Write();
 				e->Draw(k == 0 ? "" : "same");
 			}
-			cres[6]->cd();
+			can->cd();
 		}
-		cres[6]->Print("plots/res_integral.pdf");
-		if (!config.inputHistogramsOnly) for (int j = 0;j < 5;j++) delete resIntegral[j];
+		can->Print(p ? "plots/pull_integral.pdf" : "plots/res_integral.pdf");
+		if (!config.inputHistogramsOnly) for (int i = 0;i < 5;i++) delete (p ? pullIntegral : resIntegral)[i];
 	}
 	
 	//Process Cluster Histograms
