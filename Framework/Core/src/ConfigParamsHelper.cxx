@@ -22,10 +22,13 @@ namespace framework {
 /// taking the VariantType into account
 void populateBoostProgramOptions(
     bpo::options_description &options,
-    const std::vector<ConfigParamSpec> &specs
+    const std::vector<ConfigParamSpec> &specs,
+    bpo::options_description vetos
   ) {
   auto proxy = options.add_options();
   for (auto & spec : specs) {
+    // skip everything found in the veto definition
+    if (vetos.find_nothrow(spec.name, false)) continue;
     const char *name = spec.name.c_str();
     const char *help = spec.help.c_str();
 
@@ -60,10 +63,14 @@ void populateBoostProgramOptions(
 /// this is used for filtering the command line argument
 bool
 prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
-                          boost::program_options::options_description& options)
+                          boost::program_options::options_description& options,
+                          boost::program_options::options_description vetos
+			  )
 {
   bool haveOption = false;
   for (const auto & configSpec : spec) {
+    // skip everything found in the veto definition
+    if (vetos.find_nothrow(configSpec.name, false)) continue;
     haveOption = true;
     std::stringstream defaultValue;
     defaultValue << configSpec.defaultValue;
