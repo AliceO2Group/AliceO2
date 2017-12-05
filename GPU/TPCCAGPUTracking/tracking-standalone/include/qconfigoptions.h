@@ -27,6 +27,8 @@ AddOption(strict, bool, true, "strict", 0, "Strict QA mode: Only consider resolu
 AddOption(qpt, float, 10.f, "qpt", 0, "Set cut for Q/Pt", set(2.f))
 AddOption(recThreshold, float, 0.9f, "recThreshold", 0, "Compute the efficiency including impure tracks with fake contamination")
 AddOption(csvDump, bool, false, "csvDump", 0, "Dump all clusters and Pt information into csv file")
+AddOption(maxResX, float, 1e6f, "maxResX", 0, "Maxmimum X (~radius) for reconstructed track position to take into accound for resolution QA in cm")
+AddOption(resPrimaries, int, 0, "resPrimaries", 0, "0: Resolution for all tracks, 1: only for primary tracks, 2: only for non-primaries", def(1))
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAonly")
 AddHelp("help", 'h')
 EndConfig()
