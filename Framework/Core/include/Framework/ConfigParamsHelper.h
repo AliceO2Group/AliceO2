@@ -20,21 +20,29 @@
 namespace o2 {
 namespace framework {
 
+using options_description = boost::program_options::options_description;
+
 void populateBoostProgramOptions(
-    boost::program_options::options_description &options,
-    const std::vector<ConfigParamSpec> &specs
+    options_description &options,
+    const std::vector<ConfigParamSpec> &specs,
+    options_description vetos = options_description()
   );
 
 /// populate boost program options making all options of type string
 /// this is used for filtering the command line argument
+/// all options which are found in the vetos are skipped
 bool
 prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
-                          boost::program_options::options_description& options);
+                          options_description& options,
+                          options_description vetos = options_description()
+                          );
 
 /// populate boost program options for a complete workflow
 template<typename ContainerType>
 boost::program_options::options_description
-prepareOptionDescriptions(const ContainerType &workflow)
+prepareOptionDescriptions(const ContainerType &workflow,
+                          options_description vetos = options_description()
+                          )
 {
   boost::program_options::options_description specOptions("Spec groups");
   for (const auto & spec : workflow) {
@@ -43,7 +51,7 @@ prepareOptionDescriptions(const ContainerType &workflow)
                               boost::program_options::value<std::string>(),
                               help.c_str());
     boost::program_options::options_description options(spec.name.c_str());
-    if (prepareOptionsDescription(spec.options, options)) {
+    if (prepareOptionsDescription(spec.options, options, vetos)) {
       specOptions.add(options);
     }
   }
