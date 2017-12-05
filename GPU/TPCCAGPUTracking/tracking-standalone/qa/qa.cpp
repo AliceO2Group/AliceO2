@@ -460,6 +460,16 @@ void RunQA()
 			
 			if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
 			
+			float alpha = std::atan2(info.fY, info.fX);
+			alpha /= M_PI / 9.f;
+			alpha = std::floor(alpha);
+			alpha *= M_PI / 9.f;
+			alpha += M_PI / 18.f;
+			
+			float c = std::cos(alpha);
+			float s = std::sin(alpha);
+			float localY = -info.fX * s + info.fY * c;
+			
 			for (int j = 0;j < 4;j++)
 			{
 				for (int k = 0;k < 2;k++)
@@ -477,7 +487,7 @@ void RunQA()
 						if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
 						if (l < 4 && mcpt < 1. / config.qpt) continue;
 						
-						float pos = l == 0 ? info.fY : l == 1 ? info.fZ : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
+						float pos = l == 0 ? localY : l == 1 ? info.fZ : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
 
 						eff[j][k][!info.fPrim][l][0]->Fill(pos, val);
 					}
