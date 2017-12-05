@@ -477,7 +477,7 @@ void RunQA()
 						if (l != 3 && fabs(mceta) > ETA_MAX2) continue;
 						if (l < 4 && mcpt < 1. / config.qpt) continue;
 						
-						float pos = l == 0 ? info.fX : l == 1 ? info.fY : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
+						float pos = l == 0 ? info.fY : l == 1 ? info.fZ : l == 2 ? mcphi : l == 3 ? mceta : mcpt;
 
 						eff[j][k][!info.fPrim][l][0]->Fill(pos, val);
 					}
