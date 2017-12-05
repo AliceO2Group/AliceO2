@@ -59,7 +59,8 @@ struct ClusterNativeContainer
 //This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but jus point to the data inside a buffer.
 struct ClusterNativeAccessFullTPC
 {
-  ClusterNative* clusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
+  ClusterNative* mClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
+  unsigned int mNClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
 };
 
 }}}
