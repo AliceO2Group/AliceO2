@@ -95,7 +95,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     if (iWay && param.GetNWaysOuter() && iWay == nWays - 1)
     {
         for (int i = 0;i < 5;i++) fOuterParam.fP[i] = fP[i];
-        fP[1] += fZOffset;
+        fOuterParam.fP[1] += fZOffset;
         for (int i = 0;i < 15;i++) fOuterParam.fC[i] = fC[i];
         fOuterParam.fX = fX;
         fOuterParam.fAlpha = prop.GetAlpha();
