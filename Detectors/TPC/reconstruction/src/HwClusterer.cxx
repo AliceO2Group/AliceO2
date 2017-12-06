@@ -62,7 +62,7 @@ HwClusterer::HwClusterer(std::vector<o2::TPC::Cluster> *clusterOutput,
   /*
    * initialize all cluster finder
    */
-  unsigned iCfPerRow = (unsigned)ceil((double)(mPadsMax+2+2)/(static_cast<int>(mPadsPerCF)-2-2));
+  unsigned iCfPerRow = (unsigned)ceil(static_cast<double>(mPadsMax+2+2)/(static_cast<int>(mPadsPerCF)-2));
   mClusterFinder.resize(mCRUMax+1);
   const Mapper& mapper = Mapper::instance();
   for (unsigned iCRU = mCRUMin; iCRU <= mCRUMax; ++iCRU){
@@ -183,8 +183,8 @@ void HwClusterer::processDigits(
       int time;
       unsigned pad;
       for (time = 0; time < timeDiff; ++time){    // ordering important!!
-        for (pad = 0; pad < config.iMaxPads; pad = pad + (iPadsPerCF -2 -2 )) {
-          const Short_t cf = pad / (iPadsPerCF-2-2);
+        for (short cf = 0; cf < clusterFinder[iCRU][iRow].size(); ++cf) {
+          pad = cf*(iPadsPerCF - 2);
           clusterFinder[iCRU][iRow][cf]->addTimebin(iAllBins[time].begin()+pad,time+config.iMinTimeBin,(config.iMaxPads-pad)>=iPadsPerCF?iPadsPerCF:(config.iMaxPads-pad));
         }
 

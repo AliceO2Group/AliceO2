@@ -96,9 +96,9 @@ class HwClusterer : public Clusterer {
     /// Setter for pedestal object, pedestal value will be subtracted before cluster finding
     /// \param pedestalObject CalDet object, containing pedestals for each pad
     void setPedestalObject(std::shared_ptr<CalDet<float>> pedestalObject) { mPedestalObject = pedestalObject; };
-    void setPedestalObject(CalDet<float>* pedestalObject) { 
-      LOG(DEBUG) << "Consider using std::shared_ptr for the pedestal object." << FairLogger::endl; 
-      mPedestalObject = std::shared_ptr<CalDet<float>>(pedestalObject); 
+    void setPedestalObject(CalDet<float>* pedestalObject) {
+      LOG(DEBUG) << "Consider using std::shared_ptr for the pedestal object." << FairLogger::endl;
+      mPedestalObject = std::shared_ptr<CalDet<float>>(pedestalObject);
     };
 
     /// Switch for triggered / continuous readout

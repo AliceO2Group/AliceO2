@@ -143,22 +143,22 @@ bool HwClusterFinder::findCluster()
       //    o i i i o
       //    o o o o o
       //
-      if (mData[t  ]->at(p).charge < mChargeThreshold) continue;
+      if ((*mData[t  ])[p].charge < mChargeThreshold) continue;
 
       // Require at least one neighboring time bin with signal
-      if (mRequireNeighbouringTimebin   && (mData[t-1]->at(p  ).charge <= 0 && mData[t+1]->at(p  ).charge <= 0)) continue;
+      if (mRequireNeighbouringTimebin   && ((*mData[t-1])[p  ].charge <= 0 && (*mData[t+1])[p  ].charge <= 0)) continue;
       // Require at least one neighboring pad with signal
-      if (mRequireNeighbouringPad       && (mData[t  ]->at(p-1).charge <= 0 && mData[t  ]->at(p+1).charge <= 0)) continue;
+      if (mRequireNeighbouringPad       && ((*mData[t  ])[p-1].charge <= 0 && (*mData[t  ])[p+1].charge <= 0)) continue;
 
       // check for local maximum
-      if (mData[t-1]->at(p  ).charge >=  mData[t]->at(p).charge) continue;
-      if (mData[t+1]->at(p  ).charge >   mData[t]->at(p).charge) continue;
-      if (mData[t  ]->at(p-1).charge >=  mData[t]->at(p).charge) continue;
-      if (mData[t  ]->at(p+1).charge >   mData[t]->at(p).charge) continue;
-      if (mData[t-1]->at(p-1).charge >=  mData[t]->at(p).charge) continue;
-      if (mData[t+1]->at(p+1).charge >   mData[t]->at(p).charge) continue;
-      if (mData[t+1]->at(p-1).charge >   mData[t]->at(p).charge) continue;
-      if (mData[t-1]->at(p+1).charge >=  mData[t]->at(p).charge) continue;
+      if ((*mData[t-1])[p  ].charge >=  (*mData[t])[p].charge) continue;
+      if ((*mData[t+1])[p  ].charge >   (*mData[t])[p].charge) continue;
+      if ((*mData[t  ])[p-1].charge >=  (*mData[t])[p].charge) continue;
+      if ((*mData[t  ])[p+1].charge >   (*mData[t])[p].charge) continue;
+      if ((*mData[t-1])[p-1].charge >=  (*mData[t])[p].charge) continue;
+      if ((*mData[t+1])[p+1].charge >   (*mData[t])[p].charge) continue;
+      if ((*mData[t+1])[p-1].charge >   (*mData[t])[p].charge) continue;
+      if ((*mData[t-1])[p+1].charge >=  (*mData[t])[p].charge) continue;
 //      printf("##\n");
 //      printf("## cluster found at t=%d, p=%d (in row %d of CRU %d)\n",t,p,mRow,mCRU);
 //      printf("##\n");
@@ -181,8 +181,8 @@ bool HwClusterFinder::findCluster()
       //
       for (tt=1; tt<4; ++tt) {
         for (pp=1; pp<4; ++pp) {
-          if ( mRequirePositiveCharge && mData[t+(tt-2)]->at(p+(pp-2)).charge < 0) continue;
-          mTmpCluster[tt][pp] = mData[t+(tt-2)]->at(p+(pp-2));
+          if ( mRequirePositiveCharge && (*mData[t+(tt-2)])[p+(pp-2)].charge < 0) continue;
+          mTmpCluster[tt][pp] = (*mData[t+(tt-2)])[p+(pp-2)];
 //          mData[t+(tt-2)][p+(pp-2)] = 0;
         }
       }
@@ -204,10 +204,10 @@ bool HwClusterFinder::findCluster()
       //    [p] 0 1 2 3 4
 
       //                  o                       i                                mTmpCluster[t][p]
-      if(chargeForCluster(mData[t-2]->at(p  ).charge, mData[t-1]->at(p  ).charge)) mTmpCluster[0][2] = mData[t-2]->at(p  );   // t-X -> older
-      if(chargeForCluster(mData[t+2]->at(p  ).charge, mData[t+1]->at(p  ).charge)) mTmpCluster[4][2] = mData[t+2]->at(p  );   // t+X -> newer
-      if(chargeForCluster(mData[t  ]->at(p-2).charge, mData[t  ]->at(p-1).charge)) mTmpCluster[2][0] = mData[t  ]->at(p-2);
-      if(chargeForCluster(mData[t  ]->at(p+2).charge, mData[t  ]->at(p+1).charge)) mTmpCluster[2][4] = mData[t  ]->at(p+2);
+      if(chargeForCluster((*mData[t-2])[p  ].charge, (*mData[t-1])[p  ].charge)) mTmpCluster[0][2] = (*mData[t-2])[p  ];   // t-X -> older
+      if(chargeForCluster((*mData[t+2])[p  ].charge, (*mData[t+1])[p  ].charge)) mTmpCluster[4][2] = (*mData[t+2])[p  ];   // t+X -> newer
+      if(chargeForCluster((*mData[t  ])[p-2].charge, (*mData[t  ])[p-1].charge)) mTmpCluster[2][0] = (*mData[t  ])[p-2];
+      if(chargeForCluster((*mData[t  ])[p+2].charge, (*mData[t  ])[p+1].charge)) mTmpCluster[2][4] = (*mData[t  ])[p+2];
 
 
       // The cells of the corners have 3 neighbours.
@@ -218,21 +218,21 @@ bool HwClusterFinder::findCluster()
       //    o o   o o
 
       // bottom left
-      if(chargeForCluster(mData[t+1]->at(p-2).charge,mData[t+1]->at(p-1).charge)) mTmpCluster[3][0] = mData[t+1]->at(p-2);
-      if(chargeForCluster(mData[t+2]->at(p-2).charge,mData[t+1]->at(p-1).charge)) mTmpCluster[4][0] = mData[t+2]->at(p-2);
-      if(chargeForCluster(mData[t+2]->at(p-1).charge,mData[t+1]->at(p-1).charge)) mTmpCluster[4][1] = mData[t+2]->at(p-1);
+      if(chargeForCluster((*mData[t+1])[p-2].charge,(*mData[t+1])[p-1].charge)) mTmpCluster[3][0] = (*mData[t+1])[p-2];
+      if(chargeForCluster((*mData[t+2])[p-2].charge,(*mData[t+1])[p-1].charge)) mTmpCluster[4][0] = (*mData[t+2])[p-2];
+      if(chargeForCluster((*mData[t+2])[p-1].charge,(*mData[t+1])[p-1].charge)) mTmpCluster[4][1] = (*mData[t+2])[p-1];
       // bottom right
-      if(chargeForCluster(mData[t+2]->at(p+1).charge,mData[t+1]->at(p+1).charge)) mTmpCluster[4][3] = mData[t+2]->at(p+1);
-      if(chargeForCluster(mData[t+2]->at(p+2).charge,mData[t+1]->at(p+1).charge)) mTmpCluster[4][4] = mData[t+2]->at(p+2);
-      if(chargeForCluster(mData[t+1]->at(p+2).charge,mData[t+1]->at(p+1).charge)) mTmpCluster[3][4] = mData[t+1]->at(p+2);
+      if(chargeForCluster((*mData[t+2])[p+1].charge,(*mData[t+1])[p+1].charge)) mTmpCluster[4][3] = (*mData[t+2])[p+1];
+      if(chargeForCluster((*mData[t+2])[p+2].charge,(*mData[t+1])[p+1].charge)) mTmpCluster[4][4] = (*mData[t+2])[p+2];
+      if(chargeForCluster((*mData[t+1])[p+2].charge,(*mData[t+1])[p+1].charge)) mTmpCluster[3][4] = (*mData[t+1])[p+2];
       // top right
-      if(chargeForCluster(mData[t-1]->at(p+2).charge,mData[t-1]->at(p+1).charge)) mTmpCluster[1][4] = mData[t-1]->at(p+2);
-      if(chargeForCluster(mData[t-2]->at(p+2).charge,mData[t-1]->at(p+1).charge)) mTmpCluster[0][4] = mData[t-2]->at(p+2);
-      if(chargeForCluster(mData[t-2]->at(p+1).charge,mData[t-1]->at(p+1).charge)) mTmpCluster[0][3] = mData[t-2]->at(p+1);
+      if(chargeForCluster((*mData[t-1])[p+2].charge,(*mData[t-1])[p+1].charge)) mTmpCluster[1][4] = (*mData[t-1])[p+2];
+      if(chargeForCluster((*mData[t-2])[p+2].charge,(*mData[t-1])[p+1].charge)) mTmpCluster[0][4] = (*mData[t-2])[p+2];
+      if(chargeForCluster((*mData[t-2])[p+1].charge,(*mData[t-1])[p+1].charge)) mTmpCluster[0][3] = (*mData[t-2])[p+1];
       // top left
-      if(chargeForCluster(mData[t-2]->at(p-1).charge,mData[t-1]->at(p-1).charge)) mTmpCluster[0][1] = mData[t-2]->at(p-1);
-      if(chargeForCluster(mData[t-2]->at(p-2).charge,mData[t-1]->at(p-1).charge)) mTmpCluster[0][0] = mData[t-2]->at(p-2);
-      if(chargeForCluster(mData[t-1]->at(p-2).charge,mData[t-1]->at(p-1).charge)) mTmpCluster[1][0] = mData[t-1]->at(p-2);
+      if(chargeForCluster((*mData[t-2])[p-1].charge,(*mData[t-1])[p-1].charge)) mTmpCluster[0][1] = (*mData[t-2])[p-1];
+      if(chargeForCluster((*mData[t-2])[p-2].charge,(*mData[t-1])[p-1].charge)) mTmpCluster[0][0] = (*mData[t-2])[p-2];
+      if(chargeForCluster((*mData[t-1])[p-2].charge,(*mData[t-1])[p-1].charge)) mTmpCluster[1][0] = (*mData[t-1])[p-2];
 
       //
       // calculate cluster Properties
@@ -306,7 +306,7 @@ bool HwClusterFinder::findCluster()
         for (tt=0; tt<5; ++tt) {
           for (pp=0; pp<5; ++pp) {
             //mData[t+(tt-2)][p+(pp-2)].charge -= mTmpCluster[tt][pp];
-            mData[t+(tt-2)]->at(p+(pp-2)).clear();
+            (*mData[t+(tt-2)])[p+(pp-2)].clear();
           }
         }
       }
@@ -341,7 +341,7 @@ void HwClusterFinder::clusterAlreadyUsed(short time, short pad)
       if (p < 0 || p >= mPads) continue;
 
       //mData[t][p].charge -= cluster[t-time+2][p-localPad+2].charge;
-      mData[t]->at(p).clear();
+      (*mData[t])[p].clear();
     }
   }
 }
@@ -362,7 +362,7 @@ void HwClusterFinder::printCluster(short time, short pad)
   for (t = time-2; t <= time+2; ++t) {
     LOG(DEBUG) << "t " << t << ":\t";
     for (p = pad-2; p <= pad+2; ++p) {
-      LOG(DEBUG) << mData[t]->at(p).charge << "\t";
+      LOG(DEBUG) << (*mData[t])[p].charge << "\t";
     }
     LOG(DEBUG) << FairLogger::endl;
   }

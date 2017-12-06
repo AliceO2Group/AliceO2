@@ -191,7 +191,7 @@ inline void HwClusterFinder::addTimebin(std::vector<MiniDigit>::iterator timebin
 
   //
   // fillin with data
-  // 
+  //
   if (zeroBin) {
     for (auto &digi : *mData.back()) digi.clear();
   } else {
