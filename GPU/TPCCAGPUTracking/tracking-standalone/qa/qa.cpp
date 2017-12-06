@@ -85,8 +85,7 @@ TLegend* legendncl;
 
 bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b) {return(a.fMCID > b.fMCID);}
 
-#define Y_MAX 100
-#define Y_MAX2 40
+#define Y_MAX 40
 #define Z_MAX 100
 #define PT_MIN MIN_TRACK_PT_DEFAULT
 #define PT_MIN2 0.1
@@ -106,13 +105,16 @@ static const char* EffTypes[4] = {"Rec", "Clone", "Fake", "All"};
 static const char* FindableNames[2] = {"", "Findable"};
 static const char* PrimNames[2] = {"Prim", "Sec"};
 static const char* ParameterNames[5] = {"Y", "Z", "#Phi", "#lambda", "Relative p_{T}"};
+static const char* ParameterNamesNative[5] = {"Y", "Z", "sin(#Phi)", "tan(#lambda)", "q/p_{T} (curvature)"};
 static const char* VSParameterNames[6] = {"Y", "Z", "Phi", "Eta", "Pt", "Pt_log"};
 static const char* EffNames[3] = {"Efficiency", "Clone Rate", "Fake Rate"};
 static const char* EfficiencyTitles[4] = {"Efficiency (Primary Tracks, Findable)", "Efficiency (Secondary Tracks, Findable)", "Efficiency (Primary Tracks)", "Efficiency (Secondary Tracks)"};
 static const double Scale[5] = {10., 10., 1000., 1000., 100.};
+static const double ScaleNative[5] = {10., 10., 1000., 1000., 1.};
 static const char* XAxisTitles[5] = {"y_{mc} [cm]", "z_{mc} [cm]", "#Phi_{mc} [rad]", "#eta_{mc}", "p_{Tmc} [Gev/c]"};
 static const char* AxisTitles[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "#phi-#phi_{mc} [mrad] (Resolution)", "#lambda-#lambda_{mc} [mrad] (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} [%] (Resolution)"};
-static const char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "#lambda-#lambda_{mc}/#sigma_{#lambda} (Pull)", "(p_{T} - p_{Tmc})/#sigma{p_{T}} (Pull)"};
+static const char* AxisTitlesNative[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "(q/p_{T} - q/p_{Tmc}) (Resolution)"};
+static const char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)", "(q/p_{T} - q/p_{Tmc})/#sigma{q/p_{T}} (Pull)"};
 static const char* ClustersNames[4] = {"Correctly attached clusters", "Fake attached clusters", "Clusters of reconstructed tracks", "All clusters"};
 static const char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
 static const char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "All"};
@@ -122,11 +124,11 @@ static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19
 static int ConfigDashedMarkers = 0;
 
 static constexpr float kPi = M_PI;
-static const float axes_min[5] = {-Y_MAX2, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
-static const float axes_max[5] = {Y_MAX2, Z_MAX, 2.f *  kPi, ETA_MAX, PT_MAX};
+static const float axes_min[5] = {-Y_MAX, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
+static const float axes_max[5] = {Y_MAX, Z_MAX, 2.f *  kPi, ETA_MAX, PT_MAX};
 static const int axis_bins[5] = {51, 51, 144, 31, 50};
-static const int res_axis_bins = 101;
-static const float res_axes[5] = {1., 1., 0.03, 0.03, 0.2};
+static const int res_axis_bins = 1001;
+static const float res_axes[5] = {1., 1., 0.03, 0.03, 1.0};
 static const float pull_axis = 10.f;
 
 static void SetAxisSize(TH1F* e)
@@ -571,8 +573,8 @@ void RunQA()
 			if (mc1.fCharge == 0.f) continue;
 			if (mc1.fPID < 0) continue;
 			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
-			if (configStandalone.configQA.resPrimaries == 1 && (!mc1.fPrim || mc1.fPrimDaughters)) continue;
-			else if (configStandalone.configQA.resPrimaries == 2 && (mc1.fPrim || mc1.fPrimDaughters)) continue;
+			if (config.resPrimaries == 1 && (!mc1.fPrim || mc1.fPrimDaughters)) continue;
+			else if (config.resPrimaries == 2 && (mc1.fPrim || mc1.fPrimDaughters)) continue;
 			
 			float mclocal[4]; //Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
 			float c = std::cos(track.GetAlpha());
@@ -590,7 +592,7 @@ void RunQA()
 			
 			if (mclocal[0] < 80) continue;
 			if (mclocal[0] > param.GetX() + 20) continue;
-			if (param.GetX() > configStandalone.configQA.maxResX) continue;
+			if (param.GetX() > config.maxResX) continue;
 
 			float alpha = track.GetAlpha();		
 			prop.SetTrack(&param, alpha);	
@@ -602,16 +604,16 @@ void RunQA()
 			
 			float deltaY = param.GetY() - mclocal[1];
 			float deltaZ = param.GetZ() - mc1.fZ;
+			float deltaPhiNative = param.GetSinPhi() - mclocal[3] / mc2.pt;
 			float deltaPhi = std::asin(param.GetSinPhi()) - std::atan2(mclocal[3], mclocal[2]);
+			float deltaLambdaNative = param.GetDzDs() - mc1.fPz / mc2.pt;
 			float deltaLambda = std::atan(param.GetDzDs()) - std::atan2(mc1.fPz, mc2.pt);
+			float deltaPtNative = param.GetQPt() - (mc1.fCharge / 3.f) / mc2.pt;
 			float deltaPt = (fabs(1.f / param.GetQPt()) - mc2.pt) / mc2.pt;
 			
 			float paramval[5] = {mclocal[1], mc1.fZ, mc2.phi, mc2.eta, mc2.pt};
-			float resval[5] = {deltaY, deltaZ, deltaPhi, deltaLambda, deltaPt};
-			float pullval[5] = {deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()),
-				(param.GetSinPhi() - mclocal[3] / std::sqrt(mclocal[2] * mclocal[2] + mclocal[3] * mclocal[3])) / std::sqrt(param.GetErr2SinPhi()),
-				(param.GetDzDs() - mc1.fPz / mc2.pt) / std::sqrt(param.GetErr2DzDs()),
-				(param.GetQPt() - 1.f / mc2.pt) / std::sqrt(param.GetErr2QPt())};
+			float resval[5] = {deltaY, deltaZ, config.nativeFitResolutions ? deltaPhiNative : deltaPhi, config.nativeFitResolutions ? deltaLambdaNative : deltaLambda, config.nativeFitResolutions ? deltaPtNative : deltaPt};
+			float pullval[5] = {deltaY / std::sqrt(param.GetErr2Y()), deltaZ / std::sqrt(param.GetErr2Z()), deltaPhiNative / std::sqrt(param.GetErr2SinPhi()), deltaLambdaNative / std::sqrt(param.GetErr2DzDs()), deltaPtNative / std::sqrt(param.GetErr2QPt())};
 			
 			for (int j = 0;j < 5;j++)
 			{
@@ -659,7 +661,7 @@ void RunQA()
 		if (TIMING) printf("QA Time: Fill cluster histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 	}
-	else if (!configStandalone.configQA.inputHistogramsOnly)
+	else if (!config.inputHistogramsOnly)
 	{
 		printf("No MC information available, cannot run QA!\n");
 	}
@@ -810,7 +812,7 @@ int DrawQAHistograms()
 	{
 		int i = ii == 5 ? 4 : ii;
 		sprintf(fname, "ceff_%d", ii);
-		sprintf(name, "Efficiency versus %s", ParameterNames[i]);
+		sprintf(name, "Efficiency versus %s", VSParameterNames[i]);
 		ceff[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
 		ceff[ii]->cd();
 		float dy = 1. / 2.;
@@ -827,7 +829,7 @@ int DrawQAHistograms()
 		int i = ii == 5 ? 4 : ii;
 		sprintf(fname, "cres_%d", ii);
 		if (ii == 6) sprintf(name, "Integral Resolution");
-		else sprintf(name, "Resolution versus %s", ParameterNames[i]);
+		else sprintf(name, "Resolution versus %s", VSParameterNames[i]);
 		cres[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
 		cres[ii]->cd();
 		gStyle->SetOptFit(1);
@@ -847,7 +849,7 @@ int DrawQAHistograms()
 		int i = ii == 5 ? 4 : ii;
 		sprintf(fname, "cpull_%d", ii);
 		if (ii == 6) sprintf(name, "Integral Pull");
-		else sprintf(name, "Pull versus %s", ParameterNames[i]);
+		else sprintf(name, "Pull versus %s", VSParameterNames[i]);
 		cpull[ii] = new TCanvas(fname,name,0,0,700,700.*2./3.);
 		cpull[ii]->cd();
 		gStyle->SetOptFit(1);
@@ -1038,14 +1040,14 @@ int DrawQAHistograms()
 					}
 					if (ii == 0)
 					{
-						dstIntegral = src->ProjectionX(ParameterNames[j], 0, nBins + 1);
+						dstIntegral = src->ProjectionX(config.nativeFitResolutions ? ParameterNamesNative[j] : ParameterNames[j], 0, nBins + 1);
 					}
 				}
 				if (ii == 0)
 				{
 					if (config.inputHistogramsOnly) dstIntegral = new TH1D;
-					sprintf(fname, p ? "IntPull%s" : "IntRes%s", ParameterNames[j]);
-					sprintf(name, p ? "%s Pull" : "%s Resolution", ParameterNames[j]);
+					sprintf(fname, p ? "IntPull%s" : "IntRes%s", VSParameterNames[j]);
+					sprintf(name, p ? "%s Pull" : "%s Resolution", config.nativeFitResolutions ? ParameterNamesNative[j] : ParameterNames[j]);
 					dstIntegral->SetName(fname);
 					dstIntegral->SetTitle(name);
 				}
@@ -1063,8 +1065,8 @@ int DrawQAHistograms()
 						if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 						if (nNewInput && k == 0 && ii != 5)
 						{
-							if (p == 0) e->Scale(Scale[j]);
-							e->GetYaxis()->SetTitle(p ? AxisTitlesPull[j] : AxisTitles[j]);
+							if (p == 0) e->Scale(config.nativeFitResolutions ? ScaleNative[j] : Scale[j]);
+							e->GetYaxis()->SetTitle(p ? AxisTitlesPull[j] : config.nativeFitResolutions ? AxisTitlesNative[j] : AxisTitles[j]);
 							e->GetXaxis()->SetTitle(XAxisTitles[i]);
 						}
 						if (ii == 4) e->GetXaxis()->SetRangeUser(0.2, PT_MAX);
@@ -1090,7 +1092,7 @@ int DrawQAHistograms()
 						TH1F* e = dst[l];
 						if (!config.inputHistogramsOnly && k == 0)
 						{
-							sprintf(name, p ? "%s Pull" : "%s Resolution", ParameterNames[j]);
+							sprintf(name, p ? "%s Pull" : "%s Resolution", config.nativeFitResolutions ? ParameterNamesNative[j] : ParameterNames[j]);
 							e->SetTitle(name);
 							e->SetStats(kFALSE);
 							if (tout)
