@@ -146,12 +146,12 @@ DataProcessorSpec getRootObjectProducerSpec() {
       }
     },
     Options{
-      {"objectType", VariantType::String, "", "Type of the produced histogram"},
-      {"objectName", VariantType::String, "", "Name of the produced histogram"},
-      {"objectTitle", VariantType::String, "", "Title of the produced histogram"},
-      {"nBins", VariantType::Int, -1, "Number of bins in histogram"},
-      {"nBranches", VariantType::Int, -1, "Number of branches in tree"},
-      {"nTreeEntries", VariantType::Int, -1, "Number of entries in tree"},
+      {"objectType", VariantType::String, "", {"Type of the produced histogram"}},
+      {"objectName", VariantType::String, "", {"Name of the produced histogram"}},
+      {"objectTitle", VariantType::String, "", {"Title of the produced histogram"}},
+      {"nBins", VariantType::Int, -1, {"Number of bins in histogram"}},
+      {"nBranches", VariantType::Int, -1, {"Number of branches in tree"}},
+      {"nTreeEntries", VariantType::Int, -1, {"Number of entries in tree"}},
     }
   };
 }

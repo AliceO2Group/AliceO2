@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ConfigParamsHelper.h"
 #include "Framework/ConfigParamSpec.h"
 #include <boost/program_options.hpp>
 
@@ -37,23 +38,22 @@ void populateBoostProgramOptions(
       // FIXME: We should probably raise an error if the type is unknown
       case VariantType::Int:
       case VariantType::Int64:
-        proxy = proxy(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
+        addConfigSpecOption<VariantType::Int>(spec, options);
         break;
       case VariantType::Float:
-        proxy = proxy(name, bpo::value<float>()->default_value(spec.defaultValue.get<float>()), help);
+        addConfigSpecOption<VariantType::Float>(spec, options);
         break;
       case VariantType::Double:
-        proxy = proxy(name, bpo::value<double>()->default_value(spec.defaultValue.get<double>()), help);
+        addConfigSpecOption<VariantType::Double>(spec, options);
         break;
       case VariantType::String:
-        proxy = proxy(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char *>()), help);
+        addConfigSpecOption<VariantType::String>(spec, options);
         break;
       case VariantType::Bool:
-        // for bool values we also support the zero_token option to make
-        // the option usable as a single switch
-        proxy = proxy(name, bpo::value<bool>()->zero_tokens()->default_value(spec.defaultValue.get<bool>()), help);
+        addConfigSpecOption<VariantType::Bool>(spec, options);
         break;
       case VariantType::Unknown:
+      case VariantType::Empty:
         break;
     };
   }

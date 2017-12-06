@@ -371,7 +371,8 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
     if (validNames.find(spec.name) != validNames.end())
       throw std::runtime_error("Name " + spec.name + " is used twice.");
     for (auto &option : spec.options) {
-      if (option.type != option.defaultValue.type()) {
+      if (option.defaultValue.type() != VariantType::Empty &&
+          option.type != option.defaultValue.type()) {
         ss << "Mismatch between declared option type and default value type"
            << " for " << option.name << " in DataProcessorSpec of "
            << spec.name;

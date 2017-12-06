@@ -28,6 +28,7 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs
   for (auto & spec : specs) {
     const char *name = spec.name.c_str();
     const char *help = spec.help.c_str();
+    // FIXME: propagate default value?
     switch(spec.type) {
       case VariantType::Int:
       case VariantType::Int64:
@@ -46,6 +47,7 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs
         options = options(name, bpo::value<bool>(), help);
         break;
       case VariantType::Unknown:
+      case VariantType::Empty:
         break;
     };
   }

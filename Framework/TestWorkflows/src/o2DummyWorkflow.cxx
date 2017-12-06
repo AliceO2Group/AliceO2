@@ -86,7 +86,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       }
     },
     {
-      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f}
+      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}
     },
     {
       "CPUTimer"
@@ -108,7 +108,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       }
     },
     {
-      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f}
+      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}
     },
     {
       "CPUTimer"
