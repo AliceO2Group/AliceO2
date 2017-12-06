@@ -24,7 +24,7 @@ AddOption(name, const char*, NULL, "name", 0, "Legend entry for new data from cu
 AddOption(output, const char*, NULL, "histOut", 0, "Store histograms in output root file", def("histograms.root"))
 AddOption(inputHistogramsOnly, bool, false, "only", 0, "Do not run tracking, but just create PDFs from input root files")
 AddOption(strict, bool, true, "strict", 0, "Strict QA mode: Only consider resolution of tracks where the fit ended within 5 cm of the reference, and remove outliers.")
-AddOption(qpt, float, 10.f, "qpt", 0, "Set cut for Q/Pt", set(2.f))
+AddOption(qpt, float, 10.f, "qpt", 0, "Set cut for Q/Pt", def(2.f))
 AddOption(recThreshold, float, 0.9f, "recThreshold", 0, "Compute the efficiency including impure tracks with fake contamination")
 AddOption(csvDump, bool, false, "csvDump", 0, "Dump all clusters and Pt information into csv file")
 AddOption(maxResX, float, 1e6f, "maxResX", 0, "Maxmimum X (~radius) for reconstructed track position to take into accound for resolution QA in cm")
