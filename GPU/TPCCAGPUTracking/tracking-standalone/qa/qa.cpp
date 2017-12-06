@@ -127,7 +127,7 @@ static constexpr float kPi = M_PI;
 static const float axes_min[5] = {-Y_MAX, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
 static const float axes_max[5] = {Y_MAX, Z_MAX, 2.f *  kPi, ETA_MAX, PT_MAX};
 static const int axis_bins[5] = {51, 51, 144, 31, 50};
-static const int res_axis_bins = 1001;
+static const int res_axis_bins[] = {1017, 113}; //Consecutive bin sizes, histograms are binned down until the maximum entry is 50, each bin size should evenly divide its predecessor.
 static const float res_axes[5] = {1., 1., 0.03, 0.03, 1.0};
 static const float pull_axis = 10.f;
 
@@ -258,12 +258,12 @@ void InitQA()
 			if (j == 4)
 			{
 				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
-				res2[i][j] = new TH2F(name, name, res_axis_bins, -res_axes[i], res_axes[i], axis_bins[j], binsPt);
+				res2[i][j] = new TH2F(name, name, res_axis_bins[0], -res_axes[i], res_axes[i], axis_bins[j], binsPt);
 				delete[] binsPt;
 			}
 			else
 			{
-				res2[i][j] = new TH2F(name, name, res_axis_bins, -res_axes[i], res_axes[i], axis_bins[j], axes_min[j], axes_max[j]);
+				res2[i][j] = new TH2F(name, name, res_axis_bins[0], -res_axes[i], res_axes[i], axis_bins[j], axes_min[j], axes_max[j]);
 			}
 		}
 	}
@@ -291,12 +291,12 @@ void InitQA()
 			if (j == 4)
 			{
 				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
-				pull2[i][j] = new TH2F(name, name, res_axis_bins, -pull_axis, pull_axis, axis_bins[j], binsPt);
+				pull2[i][j] = new TH2F(name, name, res_axis_bins[0], -pull_axis, pull_axis, axis_bins[j], binsPt);
 				delete[] binsPt;
 			}
 			else
 			{
-				pull2[i][j] = new TH2F(name, name, res_axis_bins, -pull_axis, pull_axis, axis_bins[j], axes_min[j], axes_max[j]);
+				pull2[i][j] = new TH2F(name, name, res_axis_bins[0], -pull_axis, pull_axis, axis_bins[j], axes_min[j], axes_max[j]);
 			}
 		}
 	}
@@ -994,6 +994,13 @@ int DrawQAHistograms()
 						TH1D* proj = src->ProjectionX("proj", bin0, bin1);
 						if (proj->GetEntries())
 						{
+							unsigned int rebin = 1;
+							while (proj->GetMaximum() < 50 && rebin < sizeof(res_axis_bins) / sizeof(res_axis_bins[0]))
+							{
+								proj->Rebin(res_axis_bins[rebin - 1]/res_axis_bins[rebin]);
+								rebin++;
+							}
+							
 							if (proj->GetEntries() < 20 || proj->GetRMS() < 0.00001)
 							{
 								dst[0]->SetBinContent(bin, proj->GetRMS());
@@ -1041,6 +1048,13 @@ int DrawQAHistograms()
 					if (ii == 0)
 					{
 						dstIntegral = src->ProjectionX(config.nativeFitResolutions ? ParameterNamesNative[j] : ParameterNames[j], 0, nBins + 1);
+						unsigned int rebin = 1;
+						while (dstIntegral->GetMaximum() < 50 && rebin < sizeof(res_axis_bins) / sizeof(res_axis_bins[0]))
+						{
+							dstIntegral->Rebin(res_axis_bins[rebin - 1]/res_axis_bins[rebin]);
+							rebin++;
+						}
+
 					}
 				}
 				if (ii == 0)
@@ -1182,8 +1196,7 @@ int DrawQAHistograms()
 	{
 		if (config.inputHistogramsOnly == 0)
 		{
-			for (int i = 0;i < 11;i++) clusters[i]->Sumw2();
-			
+			for (int i = 4;i < 11;i++) clusters[i]->Sumw2(true);
 			double totalVal = 0;
 			for (int j = 0;j < clusters[3]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[3]->GetBinContent(j);
 			if (totalVal == 0.) totalVal = 1.;
