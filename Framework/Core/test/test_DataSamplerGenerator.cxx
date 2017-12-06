@@ -120,16 +120,13 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   specs.push_back(sink);
   specs.push_back(qcTaskTpc);
 
-  //todo: get qcTasks list -> alfa.json?
+  //todo: get qcTasks list
 
   std::vector<std::string> taskNames = {"simpleQcTask"};
+  //todo: get path as argument?
   std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/Core/test/exampleDataSamplerConfig.ini";
 
-  auto dataSamplers = DataSampling::GenerateDataSamplers(configurationSource, taskNames);
-
-  for(auto& dataSampler : dataSamplers){
-    specs.push_back(dataSampler);
-  }
+  DataSampling::GenerateDataSamplers(specs, configurationSource, taskNames);
 }
 
 
