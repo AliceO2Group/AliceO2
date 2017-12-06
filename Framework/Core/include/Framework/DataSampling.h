@@ -55,7 +55,6 @@ void processCallback(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenera
 
 } //namespace DataSampling
 
-
 } //namespace framework
 } //namespace o2
 

@@ -81,8 +81,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   };
 
 
-  DataProcessorSpec qcTaskTpc{
-    "qcTaskTpc",
+  DataProcessorSpec simpleQcTask{
+    "simpleQcTask",
     Inputs{
       {"TPC_CLUSTERS_S", "TPC", "CLUSTERS_S", 0, InputSpec::Timeframe},
       {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
@@ -114,7 +114,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   specs.push_back(dataProducer);
   specs.push_back(processingStage);
   specs.push_back(sink);
-  specs.push_back(qcTaskTpc);
+  specs.push_back(simpleQcTask);
 
   //todo: get qcTasks list
   std::vector<std::string> taskNames = {"simpleQcTask"};
@@ -127,8 +127,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 
 void someDataProducerAlgorithm(ProcessingContext &ctx)
 {
-//  size_t index = 0;
-  ctx.services().get<ParallelContext>().index1D();
+  size_t index = ctx.services().get<ParallelContext>().index1D();
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
@@ -148,7 +147,6 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
 
 void someProcessingStageAlgorithm (ProcessingContext &ctx)
 {
-//  size_t index = 0;
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC").payload);

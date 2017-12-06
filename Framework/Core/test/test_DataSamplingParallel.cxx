@@ -150,7 +150,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   specs.push_back(sink);
   specs.push_back(qcTaskTpc);
 
-  //todo: get qcTasks list -> alfa.json?
+  //todo: get qcTasks list
 
   std::vector<std::string> taskNames = {"simpleQcTask"};
   //todo: get path as argument?

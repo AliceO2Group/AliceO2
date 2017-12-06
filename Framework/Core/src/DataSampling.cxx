@@ -45,7 +45,6 @@ void processCallback(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenera
     for(auto& input : inputs){
 
       const InputSpec* inputSpec = input.spec;
-      //todo: make sure it is a deep copy
       o2::Header::DataDescription outputDescription = inputSpec->description;
 
       //todo: better sampled data flagging
@@ -150,11 +149,9 @@ void GenerateDataSamplers(WorkflowSpec& workflow, const std::string& configurati
       dataSampler.outputs.push_back(output);
     }
 
-    //todo: make sure it is 'static' for every DataProcessor separately
-    //todo: make sure bernoulliGenerator copy properly exists after GenerateDataSamplers returns
     BernoulliGenerator bernoulliGenerator(fractionOfDataToSample);
 
-    dataSampler.name = "DataSampler for " + taskName;
+    dataSampler.name = "Dispatcher for " + taskName;
     dataSampler.algorithm = AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) [bernoulliGenerator](ProcessingContext &ctx) mutable {
 //        bernoulliGenerator.fractionOfDataToSample = 1;
