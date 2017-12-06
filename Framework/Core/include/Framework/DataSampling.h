@@ -14,10 +14,12 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <random>
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/DataChunk.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/WorkflowSpec.h"
 
 
 namespace o2 {
@@ -30,16 +32,26 @@ namespace DataSampling {
 //wip: and returns DataProcessorSpec vector of DataSamplers.
 //wip: It may have different versions of DataSamplers topology, for test purposes.
 
-std::vector<DataProcessorSpec> GenerateDataSamplers(const std::string& configurationSource, const std::vector<std::string>& taskNames);
+void GenerateDataSamplers(WorkflowSpec& workflow, const std::string& configurationSource, const std::vector<std::string>& taskNames);
 
 
-struct DataSamplerConfiguration {
-    double fractionOfDataToSample; //between 0 and 1
-    std::function<bool(o2::framework::InputRecord&)> filteringFunction;
+struct BernoulliGenerator {
+  std::default_random_engine generator;
+  std::bernoulli_distribution distribution;
+//  double probabilityOfTrue; //between 0 and 1
+
+  BernoulliGenerator(double probabiltyOfTrue) :
+      generator(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())),
+      distribution(probabiltyOfTrue)
+  {};
+
+  bool drawLots() {
+    return distribution(generator);
+  }
 };
 
 AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
-void processCallback(ProcessingContext& ctx, const DataSamplerConfiguration& conf);
+void processCallback(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenerator);
 
 } //namespace DataSampling
 

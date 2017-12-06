@@ -28,9 +28,8 @@ namespace DataSampling {
 
 AlgorithmSpec::ProcessCallback initCallback(InitContext &ctx)
 {
-  DataSamplerConfiguration conf;
-  conf.fractionOfDataToSample = 1;
-  return [conf](o2::framework::ProcessingContext& pCtx) {
+  BernoulliGenerator conf(0);
+  return [conf](o2::framework::ProcessingContext& pCtx) mutable {
     o2::framework::DataSampling::processCallback(pCtx, conf);
   };
 }
@@ -38,17 +37,11 @@ AlgorithmSpec::ProcessCallback initCallback(InitContext &ctx)
 //todo: root objects support
 //todo: parallel sources support
 //todo: optimisation
-void processCallback(ProcessingContext& ctx, const DataSamplerConfiguration& conf)
+void processCallback(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenerator)
 {
   InputRecord& inputs = ctx.inputs();
 
-  //todo: do random generator static for every processor ('static' word is not a solution, since variable would become
-  //todo: shared among all DataProcessors)
-  unsigned seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-  std::default_random_engine generator(seed);
-  std::bernoulli_distribution distribution(conf.fractionOfDataToSample);
-
-  if ( distribution(generator) ){
+  if (bernoulliGenerator.drawLots()){
     for(auto& input : inputs){
 
       const InputSpec* inputSpec = input.spec;
@@ -64,8 +57,10 @@ void processCallback(ProcessingContext& ctx, const DataSamplerConfiguration& con
 
       OutputSpec outputSpec{inputSpec->origin,
                             outputDescription,
-                            inputSpec->subSpec,
+                            0,
                             static_cast<OutputSpec::Lifetime>(inputSpec->lifetime)};
+
+      LOG(DEBUG) << "DataSampler sends data from subspec " << inputSpec->subSpec;
 
       const auto *inputHeader = o2::Header::get<o2::Header::DataHeader>(input.header);
       auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
@@ -79,33 +74,38 @@ void processCallback(ProcessingContext& ctx, const DataSamplerConfiguration& con
   }
 }
 
-std::vector<DataProcessorSpec> GenerateDataSamplers(const std::string& configurationSource, const std::vector<std::string>& taskNames)
+
+//todo: improve readability
+void GenerateDataSamplers(WorkflowSpec& workflow, const std::string& configurationSource, const std::vector<std::string>& taskNames)
 {
-  std::vector<DataProcessorSpec> dataSamplers;
   auto configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
   for (auto&& taskName : taskNames) {
-
-    DataSamplerConfiguration algorithmConfig;
+    DataProcessorSpec dataSampler;
     std::string taskInputsNames;
+    double fractionOfDataToSample = 0;
 
     try {
       std::string simpleQcTaskDefinition = configFile->getString(taskName + "/taskDefinition").value();
       taskInputsNames = configFile->getString(simpleQcTaskDefinition + "/inputs").value();
-      algorithmConfig.fractionOfDataToSample = configFile->getFloat(simpleQcTaskDefinition + "/fraction").value();
-      //todo: should I check if 0 < fraction < 1 ?
+      fractionOfDataToSample = configFile->getFloat(simpleQcTaskDefinition + "/fraction").value();
+
+      if ( fractionOfDataToSample <= 0 || fractionOfDataToSample > 1 ) {
+        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
+                   << simpleQcTaskDefinition + "/fraction" << " is not in range (0,1]. Setting value to 0.";
+        fractionOfDataToSample = 0;
+      }
 
     } catch (const boost::bad_optional_access &) {
-      //todo: warning or error?
+      LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
+                 << ", missing value or values for task " << taskName;
       continue;
     }
 
     std::vector<std::string> taskInputsSplit;
     boost::split(taskInputsSplit, taskInputsNames, boost::is_any_of(","));
 
-    Inputs inputs;
     for (auto &&input : taskInputsSplit) {
-      std::cout << input << std::endl;
       InputSpec inputSpec{std::string(), 0, 0, 0, InputSpec::Timeframe};
 
       try {
@@ -118,48 +118,52 @@ std::vector<DataProcessorSpec> GenerateDataSamplers(const std::string& configura
         description.copy(inputSpec.description.str, (size_t) inputSpec.description.size);
 
       } catch (const boost::bad_optional_access &) {
-        //todo: warning or error?
+        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
+                   << " input " << input << " has missing values";
         continue;
       }
 
-      inputs.push_back(inputSpec);
-    }
+      for (auto&& dataProcessor : workflow) {
+        for (auto && output : dataProcessor.outputs) {
+          if (output.origin == inputSpec.origin && output.description == inputSpec.description) {
+            inputSpec.subSpec = output.subSpec;
+            dataSampler.inputs.push_back(inputSpec);
+          }
+        }
+      }
 
-    //prepare outputs
-    //todo: initialize size, no pushback
-    Outputs outputs;
-    for (auto &&input : inputs) {
       OutputSpec output{
-        input.origin,
-        input.description,
-        input.subSpec,
-        OutputSpec::Timeframe
+        inputSpec.origin,
+        inputSpec.description,
+        0,
+        static_cast<OutputSpec::Lifetime>(inputSpec.lifetime)
       };
 
       //todo: find better way of flagging sampled data
+      //todo: case - two qcTasks have the same input, but with different % sampled
       size_t len = strlen(output.description.str);
-      if (len < output.description.size-2){
+      if (len < output.description.size-2) {
         output.description.str[len] = '_';
         output.description.str[len+1] = 'S';
       }
 
-      outputs.push_back(output);
+      dataSampler.outputs.push_back(output);
     }
 
-    DataProcessorSpec dataSampler;
-    dataSampler.inputs = inputs;
-    dataSampler.outputs = outputs;
+    //todo: make sure it is 'static' for every DataProcessor separately
+    //todo: make sure bernoulliGenerator copy properly exists after GenerateDataSamplers returns
+    BernoulliGenerator bernoulliGenerator(fractionOfDataToSample);
+
+    dataSampler.name = "DataSampler for " + taskName;
     dataSampler.algorithm = AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [algorithmConfig](ProcessingContext &ctx) {
-        DataSampling::processCallback(ctx, algorithmConfig);
+      (AlgorithmSpec::ProcessCallback) [bernoulliGenerator](ProcessingContext &ctx) mutable {
+//        bernoulliGenerator.fractionOfDataToSample = 1;
+        DataSampling::processCallback(ctx, bernoulliGenerator);
       }
     };
-    dataSampler.name = "DataSampler for " + taskName;
 
-    dataSamplers.push_back(dataSampler);
+    workflow.push_back(dataSampler);
   }
-
-  return dataSamplers;
 }
 
 } //namespace DataSampling
