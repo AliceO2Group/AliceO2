@@ -150,17 +150,31 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
-        EXE_NAME "test_DataSampling"
-        SOURCES "test/test_DataSampling.cxx"
-        MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-        BUCKET_NAME FrameworkDataSamplingApplication_bucket
+  EXE_NAME "test_DataSampling"
+  SOURCES "test/test_DataSampling.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME FrameworkDataSamplingApplication_bucket
 )
 
 O2_GENERATE_EXECUTABLE(
-        EXE_NAME "test_DataSamplerGenerator"
-        SOURCES "test/test_DataSamplerGenerator.cxx"
-        MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-        BUCKET_NAME FrameworkDataSamplingApplication_bucket
+  EXE_NAME "test_DataSamplerGenerator"
+  SOURCES "test/test_DataSamplerGenerator.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME FrameworkDataSamplingApplication_bucket
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_DataSamplingParallel"
+  SOURCES "test/test_DataSamplingParallel.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME FrameworkDataSamplingApplication_bucket
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_DataSamplingTimePipeline"
+  SOURCES "test/test_DataSamplingTimePipeline.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME FrameworkDataSamplingApplication_bucket
 )
 
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
