@@ -26,11 +26,11 @@ BOOST_AUTO_TEST_CASE(ConfigParamsHelper) {
   namespace bpo = boost::program_options;
 
   auto specs = std::vector<ConfigParamSpec>{
-    {"someInt", VariantType::Int, 2, "some int option"},
-    {"someBool", VariantType::Bool, false,"some bool option"},
-    {"someFloat", VariantType::Float, 2.0f, "some float option"},
-    {"someDouble", VariantType::Double, 2.0, "some double option"},
-    {"someString", VariantType::String, strdup("barfoo"), "some string option"}
+    {"someInt", VariantType::Int, 2, {"some int option"}},
+    {"someBool", VariantType::Bool, false,{"some bool option"}},
+    {"someFloat", VariantType::Float, 2.0f, {"some float option"}},
+    {"someDouble", VariantType::Double, 2.0, {"some double option"}},
+    {"someString", VariantType::String, strdup("barfoo"), {"some string option"}}
   };
   const char* args[] = {
     "test",

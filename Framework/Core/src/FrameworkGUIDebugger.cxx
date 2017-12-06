@@ -60,6 +60,8 @@ optionsTable(const DeviceSpec &spec, const DeviceControl &control) {
           case VariantType::Double:
             ImGui::Text("%f (default)", option.defaultValue.get<double>());
             break;
+          case VariantType::Empty:
+            ImGui::TextUnformatted(""); // no default value
           default:
             ImGui::TextUnformatted("unknown");
         }

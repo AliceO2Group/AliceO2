@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <string>
+#include <type_traits>
 
 namespace o2 {
 namespace framework {
@@ -56,6 +57,28 @@ prepareOptionDescriptions(const ContainerType &workflow,
     }
   }
   return specOptions;
+}
+
+template<VariantType V>
+void
+addConfigSpecOption(const ConfigParamSpec & spec,
+                   boost::program_options::options_description& options)
+{
+  const char *name = spec.name.c_str();
+  const char *help = spec.help.c_str();
+  using Type = typename variant_type<V>::type;
+  using BoostType = typename std::conditional<V == VariantType::String, std::string, Type>::type;
+  auto value = boost::program_options::value<BoostType>();
+  if (spec.defaultValue.type() != VariantType::Empty) {
+    // set the default value if provided in the config spec
+    value = value->default_value(spec.defaultValue.get<Type>());
+  }
+  if (V == VariantType::Bool) {
+    // for bool values we also support the zero_token option to make
+    // the option usable as a single switch
+    value = value->zero_tokens();
+  }
+  options.add_options()(name, value, help);
 }
 
 }

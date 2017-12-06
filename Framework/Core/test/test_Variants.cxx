@@ -42,9 +42,9 @@ BOOST_AUTO_TEST_CASE(VariantTest) {
   BOOST_CHECK(ss.str() == "1010.110.2foo");
   // Spotted valgrind error while deleting a vector of variants.
   std::vector<Variant> vector{1, 1.2, 1.1f, "foo"};
-  Variant sa{"foo"};
-  Variant sb{sa}; // Copy constructor
-  Variant sc{std::move(sa)}; // Move constructor
+  Variant sa("foo");
+  Variant sb(sa); // Copy constructor
+  Variant sc(std::move(sa)); // Move constructor
   Variant sd = sc; // Copy operator
 
   BOOST_CHECK(std::string(sb.get<const char *>()) == "foo");
