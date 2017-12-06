@@ -17,8 +17,11 @@
 #pragma link C++ class o2::DataFormat::TPC::ClusterHardware+;
 #pragma link C++ class o2::DataFormat::TPC::ClusterHardwareContainer+;
 #pragma link C++ class o2::DataFormat::TPC::ClusterNative+;
-#pragma link C++ class std::vector<o2::DataFormat::TPC::ClusterNative>+;
+#pragma link C++ class o2::DataFormat::TPC::ClusterHardwareContainer8kb+;
+#pragma link C++ class o2::DataFormat::TPC::ClusterHardwareContainerFixedSize<8192>+;
 #pragma link C++ class o2::DataFormat::TPC::ClusterNativeContainer+;
+#pragma link C++ class std::vector<o2::DataFormat::TPC::ClusterNative>+;
 #pragma link C++ class std::vector<o2::DataFormat::TPC::ClusterNativeContainer>+;
+#pragma link C++ class std::vector<o2::DataFormat::TPC::ClusterHardwareContainer8kb>+;
 
 #endif

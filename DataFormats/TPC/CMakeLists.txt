@@ -9,11 +9,13 @@ O2_SETUP(NAME ${MODULE_NAME})
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
+   src/Helpers.cxx
 )
 
 set(HEADERS
    include/${MODULE_NAME}/ClusterNative.h
    include/${MODULE_NAME}/ClusterHardware.h
+   include/${MODULE_NAME}/Helpers.h
 )
 
 set(LINKDEF src/DataFormatsTPCLinkDef.h)
