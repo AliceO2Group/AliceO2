@@ -31,8 +31,15 @@
 #endif
 
 
-GPUd() inline void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const
+GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const
 {
+
+  if( fHomemadeEvents ){ // special treatment for toy monte carlo
+    B[0] = 0;
+    B[1] = 1;
+    B[2] = fField->GetNominalBz();
+    return;
+  }
 
   if( fContinuousTracking ) Z =  ( Z > 0 ? 125. : -125.);
 
@@ -98,7 +105,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   // Rotate the track coordinate system in XY to the angle newAlpha
   // return value is error code (0==no error)
   //
-  
+
   float cc = CAMath::Cos( newAlpha - fAlpha );
   float ss = CAMath::Sin( newAlpha - fAlpha );
 
@@ -344,12 +351,18 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 
   float B[3];
   GetBxByBz( fAlpha, fT0.X(), fT0.Y(), fT0.Z(), B );
-
+ 
   // propagate fT0 to t0e
   
   AliHLTTPCGMPhysicalTrackModel t0e(fT0);
   float dLp = 0;
-  if (t0e.PropagateToXBxByBz( posX, B[0], B[1], B[2], dLp )) return(1);
+  if( fHomemadeEvents ){ // special treatment for toy monte carlo  
+    if (t0e.PropagateToXBzLight(  posX, B[2], dLp )) return 1;
+    t0e.UpdateValues();
+  } else {
+    if (t0e.PropagateToXBxByBz( posX, B[0], B[1], B[2], dLp )) return(1);
+  }
+
   if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -3;
 
   // propagate track and cov matrix with derivatives for (0,0,Bz) field
@@ -678,6 +691,12 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
 
 GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow)
 {
+  if( fHomemadeEvents ){
+    const float sigma = 0.1; 
+    err2Y = sigma*sigma;
+    err2Z = sigma*sigma;
+    return;
+  }
   param.GetClusterErrors2( iRow,  fContinuousTracking ? 125.:posZ, fT0.GetSinPhi(),fT0.GetCosPhi(),fT0.DzDs(), err2Y, err2Z );  
 }
 
