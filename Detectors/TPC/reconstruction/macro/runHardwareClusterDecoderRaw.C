@@ -29,7 +29,7 @@ using namespace o2::TPC;
 using namespace o2::DataFormat::TPC;
 using namespace std;
 
-void runHardwareClusterDecoder(int tf = 0) {
+void runHardwareClusterDecoderRaw(int tf = 0) {
   gSystem->Load("libTPCReconstruction.so");
   HardwareClusterDecoder decoder;
 
