@@ -38,7 +38,7 @@ add_library(${MODULE} SHARED
 
 add_definitions(-DHLTCA_STANDALONE -DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 
-include_directories(../include ../code ../base ../merger-ca ../cagpubuild)
+include_directories(../include ../code ../merger-ca ../cagpubuild)
 
 install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
