@@ -96,8 +96,6 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 
         const auto *header = o2::Header::get<DataHeader>(ctx.inputs().get("TPC_CLUSTERS_S").header);
 
-//        LOG(INFO) << "qcTaskTPC, data payloadSize: " << header->payloadSize << " data count: " << header->payloadSize / sizeof(FakeCluster);
-
         bool dataGood = true;
         for (int j = 0; j < header->payloadSize/sizeof(FakeCluster) ; ++j) {
           float diff = std::abs(-inputDataTpc[j].x - inputDataTpcProcessed[j].x) +
