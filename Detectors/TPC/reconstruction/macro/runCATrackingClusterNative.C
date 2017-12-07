@@ -71,6 +71,33 @@ void runCATrackingClusterNative(TString inputFile, TString outputFile, TString o
   } else {
     printf("\tError during tracking\n");
   }
+  
+  float artificialVDrift = tracker.getPseudoVDrift();
+  float tfReferenceLength = tracker.getTFReferenceLength();
+  unsigned int nTracksASide = tracker.getNTracksASide();
+  for (unsigned int i = 0;i < tracks.size();i++)
+  {
+    bool isASide = i < nTracksASide;
+    if (isASide != (tracks[i].getSide() == Side::A)) printf("Incorrect sorting\n");
+    //Loop over clusters
+    for (int j = tracks[i].getNClusterReferences() - 1;j >= 0;j--)
+    {
+      //Get cluster references
+      uint8_t sector, row;
+      uint32_t clusterIndexInRow;
+      tracks[i].getClusterReference(j, sector, row, clusterIndexInRow);
+      const ClusterNative& cl = tracks[i].getCluster(j, *clusters, sector, row);
+      const ClusterNative& clLast = tracks[i].getCluster(0, *clusters);
+      float sideFactor = tracks[i].getSide() == Side::A ? -1.f : 1.f;
+      
+      printf("Track %d: Side %c Estimated timeVertex: %f, num clusters %d, innermost cluster: sector %d, row %d, ClusterTime %f, TrackParam X %f Z %f --> T %f, LastClusterZ %f --> T %f (T from cluster itself %f)\n",
+        i, tracks[i].getSide() == Side::A ? 'A' : 'C', tracks[i].getTime0(), tracks[i].getNClusterReferences(), (int) sector, (int) row, cl.getTime(), tracks[i].getX(),
+        tracks[i].getZ(), tracks[i].getTime0() - sideFactor * tracks[i].getZ() / artificialVDrift,
+        tracks[i].getLastClusterZ(), tracks[i].getTime0() - sideFactor * tracks[i].getLastClusterZ() / artificialVDrift, clLast.getTime());
+      break; //Reduce output in this example code
+    }
+  }
+  
   tout.Fill();
   fout.Write();
   fout.Close();

@@ -136,8 +136,6 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterElectronics &elParam = ParameterElectronics::defaultInstance();
   
-  static const float continuousTFReferenceLength = 0.023 * 5e6;
-  
   int nClusters[Sector::MAXSECTOR] = {};
   int nClustersConverted = 0;
   int nClustersTotal = 0;
@@ -173,11 +171,11 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         const PadCentre& padCentre = mapper.padCentre(pad);
         const float localY = padCentre.Y() - (padY - padNumber - 0.5) * region.getPadWidth();
         const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-        float zPositionAbs = cluster.getTime()*elParam.getZBinWidth()*gasParam.getVdrift();
+        float zPositionAbs = cluster.getTime()*elParam.getZBinWidth() * gasParam.getVdrift();
         if (!mTrackingCAO2Interface->GetParamContinuous())
           zPositionAbs = detParam.getTPClength() - zPositionAbs;
         else
-          zPositionAbs = continuousTFReferenceLength * elParam.getZBinWidth()*gasParam.getVdrift() - zPositionAbs;
+          zPositionAbs = sContinuousTFReferenceLength * elParam.getZBinWidth() * gasParam.getVdrift() - zPositionAbs;
 
         // sanity checks
         if (zPositionAbs < 0 || (!mTrackingCAO2Interface->GetParamContinuous() && zPositionAbs > detParam.getTPClength())) {
@@ -209,15 +207,20 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   if (retVal == 0)
   {
     std::vector<std::pair<int, float>> trackSort(nTracks);
-    int tmp = 0;
-    for (int i = 0;i < nTracks;i++)
+    int tmp = 0, tmp2 = 0;
+    for (char side = 0;side < 2;side++)
     {
-      if (tracks[i].OK()) trackSort[tmp++] = {i, tracks[i].GetParam().GetZOffset()};
+      for (int i = 0;i < nTracks;i++)
+      {
+        if (tracks[i].OK() && tracks[i].Side() == side) trackSort[tmp++] = {i, (side == 0 ? -1.f : 1.f) * tracks[i].GetParam().GetZOffset()};
+      }
+      std::sort(trackSort.data() + tmp2, trackSort.data() + tmp, [](const auto& a, const auto& b) {
+        return(a.second > b.second);
+      });
+      tmp2 = tmp;
+      if (side == 0) mNTracksASide = tmp;
     }
     nTracks = tmp;
-    std::sort(trackSort.data(), trackSort.data() + nTracks, [](const auto& a, const auto& b) {
-      return(a.second > b.second);
-    });
     
     outputTracks->resize(nTracks);
     for (int iTmp = 0; iTmp < nTracks; iTmp++) {
@@ -236,20 +239,23 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       if (!mTrackingCAO2Interface->GetParamContinuous())
         oTrack.setTime0(0);
       else
-        oTrack.setTime0(continuousTFReferenceLength - tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth()*gasParam.getVdrift()));
-      oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ - tracks[i].GetParam().GetZOffset());
+        oTrack.setTime0(sContinuousTFReferenceLength - (tracks[i].Side() ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth() * gasParam.getVdrift()));
+      oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset());
       oTrack.resetClusterReferences(tracks[i].NClusters());
       for (int j = 0; j < tracks[i].NClusters(); j++) {
         int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].fId;
         Sector sector = clusterId >> 24;
         int globalRow = (clusterId >> 16) & 0xFF;
-        const ClusterNative& cl = clusters.mClusters[sector][globalRow][clusterId & 0xFFFF];
+        clusterId &= 0xFFFF;
+        const ClusterNative& cl = clusters.mClusters[sector][globalRow][clusterId];
         int regionNumber = 0;
         while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) regionNumber++;
         CRU cru(sector, regionNumber);
         oTrack.addCluster(Cluster(cru, globalRow - mapper.getGlobalRowOffsetRegion(regionNumber), cl.mQTot, cl.mQMax, cl.getPad(), cl.getSigmaPad(), cl.getTime(), cl.getSigmaTime()));
         oTrack.setClusterReference(j, sector, globalRow, clusterId);
       }
+      int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24;
+      oTrack.setSide((Side) tracks[i].Side());
     }
   }
   mTrackingCAO2Interface->Cleanup();
@@ -271,5 +277,5 @@ float TPCCATracking::getPseudoVDrift()
 {
     const static ParameterGas &gasParam = ParameterGas::defaultInstance();
     const static ParameterElectronics &elParam = ParameterElectronics::defaultInstance();
-    return(elParam.getZBinWidth()*gasParam.getVdrift());
+    return(elParam.getZBinWidth() * gasParam.getVdrift());
 }

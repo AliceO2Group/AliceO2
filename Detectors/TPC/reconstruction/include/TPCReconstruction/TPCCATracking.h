@@ -51,7 +51,9 @@ public:
   int convertClusters(const std::vector<Cluster>* inputClusters, o2::DataFormat::TPC::ClusterNativeAccessFullTPC& outputClusters, std::unique_ptr<o2::DataFormat::TPC::ClusterNative[]>& clusterMemory) {return convertClusters(nullptr, inputClusters, outputClusters, clusterMemory);}
   int convertClusters(TChain* inputClusters, o2::DataFormat::TPC::ClusterNativeAccessFullTPC& outputClusters, std::unique_ptr<o2::DataFormat::TPC::ClusterNative[]>& clusterMemory) {return convertClusters(inputClusters, nullptr, outputClusters, clusterMemory);}
   
-  float getPseudoVDrift();                                 //Return artificial VDrift used to convert time to Z
+  float getPseudoVDrift();                                            //Return artificial VDrift used to convert time to Z
+  float getTFReferenceLength() {return sContinuousTFReferenceLength;} //Return reference time frame length used to obtain Z from T in continuous data
+  int getNTracksASide() {return mNTracksASide;}
 
 private:
   int runTracking(TChain* inputClustersChain, const std::vector<Cluster>* inputClustersArray, std::vector<TrackTPC>* outputTracks);
@@ -65,6 +67,9 @@ private:
 
   TPCCATracking(const TPCCATracking&) = delete;            // Disable copy
   TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment
+  
+  static constexpr float sContinuousTFReferenceLength = 0.023 * 5e6;
+  int mNTracksASide = 0;
 };
 
 }
