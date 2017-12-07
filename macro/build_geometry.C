@@ -30,7 +30,7 @@
 #include <FITSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
-#include <Configuration/SimConfig.h>
+#include <SimConfig/SimConfig.h>
 #include "FairRunSim.h"
 #include <algorithm>
 #endif
