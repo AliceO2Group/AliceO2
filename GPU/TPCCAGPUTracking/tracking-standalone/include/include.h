@@ -19,4 +19,6 @@ extern int DrawQAHistograms();
 extern void SetMCTrackRange(int min, int max);
 
 //QA - Event Generator
+extern void InitEventGenerator();
 extern int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename);
+extern void FinishEventGenerator();

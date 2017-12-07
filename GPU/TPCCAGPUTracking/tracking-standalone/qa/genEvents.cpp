@@ -2,16 +2,23 @@
 #include <fstream>
 #include <string.h>
 
+#include "Rtypes.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAMCInfo.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMPropagator.h"
-
+#include "AliHLTTPCCAStandaloneFramework.h"
+#include "AliHLTTPCGMMerger.h"
+ 
 #include "../cmodules/qconfig.h"
 #include "TRandom.h"
 #include "TMath.h"
+#include "TH1F.h"
+#include "TFile.h"
+#include "TCanvas.h"
+#include "TPad.h"
 
 #include "include.h"
 
@@ -85,6 +92,52 @@ double GetGaus( double sigma )
   return x;
 }
 
+static TH1F* hClusterError[3][2]={{0,0},{0,0},{0,0}};
+
+void InitEventGenerator()
+{
+  const char* rows[3] = {"0-63","128-159","64-127"};
+  for( int i=0; i<3; i++){
+    for( int j=0; j<2; j++){
+      char name[1024], title[1024];
+ 
+      sprintf(name, "clError%s%d", (j==0 ?"Y" :"Z"), i);
+
+      sprintf(title, "Cluster %s Error for rows %s",(j==0 ?"Y" :"Z"), rows[i]);
+
+      hClusterError[i][j] = new TH1F(name, title, 1000, 0., .7 );
+      hClusterError[i][j]->GetXaxis()->SetTitle("Cluster Error [cm]");
+    }
+  }
+}
+
+void FinishEventGenerator()
+{
+  TFile* tout = new TFile("generator.root", "RECREATE");
+  TCanvas *c = new TCanvas("ClusterErrors","Cluste rErrors",0,0,700,700.*2./3.);
+  c->Divide(3,2);
+  int ipad=1;
+  for( int j=0; j<2; j++){
+    for( int i=0; i<3; i++){  
+      c->cd(ipad++);
+      int k=i;
+      if( i==1 ) k=2;
+      if( i==2 ) k = 1;
+      if( tout ) hClusterError[k][j]->Write();
+      gPad->SetLogy();
+      hClusterError[k][j]->Draw();
+      //delete hClusterError[i][j];
+      //hClusterError[i][j]=0;
+    }
+  }
+  c->Print("plots/clusterErrors.pdf");
+  delete c;
+  if (tout){
+    tout->Close();
+    delete tout;
+  }
+}
+
 int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
 {
   static int iEvent = -1;
@@ -110,7 +163,14 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
   double Bz = sliceParam.ConstBz();
   std::cout<<"Bz[kG] = "<<sliceParam.BzkG()<<std::endl;
 
-
+  AliHLTTPCGMPropagator prop;
+  {
+    prop.SetHomemadeEvents( kTRUE );
+    AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
+    const AliHLTTPCGMMerger &merger = hlt.Merger();
+    prop.SetPolynomialField( merger.pField() );	  
+  }
+  
   //  const double kCLight = 0.000299792458;
   //Bz*=kCLight;
 
@@ -142,7 +202,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     double theta = 2*TMath::ATan(1./TMath::Exp(eta));
     double lambda = theta-TMath::Pi()/2;
     //double theta = gRandom->Uniform(-60,60)*TMath::Pi()/180.;
-    double pt = .1*std::pow(10,gRandom->Uniform(0,2.2));
+    double pt = .8*std::pow(10,gRandom->Uniform(0,2.2));
     
     double q = 1.;
     int iSlice = GetSlice( phi );
@@ -160,18 +220,21 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     }
     
     for( int iRow=0; iRow<sliceParam.NRows(); iRow++ ){
+      //if( iRow>=50 ) break; //SG!!!
       float xRow = sliceParam.RowX( iRow );	
       // transport to row
       int err = 0;
       for( int itry=0; itry<1; itry++ ){ 
-	float tmp=0;
-	err = t.PropagateToXBzLight( xRow, Bz, tmp );
+	float B[3];
+	prop.GetBxByBz( GetSliceAngle( iSlice ), t.GetX(), t.GetY(), t.GetZ(), B );
+	float dLp=0;
+	err = t.PropagateToXBxByBz( xRow, B[0], B[1], B[2], dLp );
 	if( err ){
 	  std::cout<<"Can not propagate to x = "<<xRow<<std::endl;
 	  t.Print();	  
 	  break;
 	}
-	if( fabs(t.GetZ())>=250. ){
+	if( fabs(t.GetZ())>=250. ){ 
 	  std::cout<<"Can not propagate to x = "<<xRow<<": Z outside the volume"<<std::endl;
 	  t.Print();	  
 	  err = -1;
@@ -195,6 +258,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
 	tg.RotateLight( - GetSliceAngle( iSlice ));
 
 	mcInfo[itr].fPID = 2; // pion
+	mcInfo[itr].fCharge = 3*q;
 	mcInfo[itr].fX = tg.GetX(); //Position of MC track at entry of TPC / first hit in the TPC
 	mcInfo[itr].fY = tg.GetY();
 	mcInfo[itr].fZ = tg.GetZ();	
@@ -205,14 +269,25 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       }
       
       // create cluster
-      GenCluster c;	
-      const float sigma = 0.1;
+      GenCluster c;
+      float sigmaY = 0.3; 
+      float sigmaZ = 0.5; 
+      const int rowType = iRow < 64 ? 0 : iRow < 128 ? 2 : 1;
+      //sliceParam.GetClusterErrors2v1( rowType, t.GetZ(), t.GetSinPhi(), t.GetCosPhi(), t.GetDzDs(), sigmaY, sigmaZ );  
+      sliceParam.GetClusterErrors2( rowType, t.GetZ(), t.GetSinPhi(), t.GetCosPhi(), t.GetDzDs(), sigmaY, sigmaZ );
+      sigmaY = sqrt(sigmaY);
+      sigmaZ = sqrt(sigmaZ);
+      hClusterError[rowType][0]->Fill(sigmaY);
+      hClusterError[rowType][1]->Fill(sigmaZ);
+      //std::cout<<sigmaY<<" "<<sigmaY<<std::endl;
+      //if( sigmaY > 0.5 ) sigmaY = 0.5;
+      //if( sigmaZ > 0.5 ) sigmaZ = 0.5;
       c.fSector = (t.GetZ()>=0.) ?iSlice :iSlice+18;
       c.fRow = iRow; 
       c.fMCID = itr;
       c.fX = t.GetX();
-      c.fY = t.GetY() + GetGaus(sigma);
-      c.fZ = t.GetZ() + GetGaus(sigma);
+      c.fY = t.GetY() + GetGaus(sigmaY);
+      c.fZ = t.GetZ() + GetGaus(sigmaZ);
       c.fId = clusterId++;
       vClusters.push_back(c);
     } // iRow

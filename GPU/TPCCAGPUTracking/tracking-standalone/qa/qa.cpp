@@ -95,7 +95,8 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 #define ETA_MAX 1.5
 #define ETA_MAX2 0.9
 
-#define MIN_WEIGHT_CLS 40
+#define MIN_WEIGHT_CLS 40 // SG!!! 40
+
 #define FINDABLE_WEIGHT_CLS 70
 
 static const int ColorCount = 12;
