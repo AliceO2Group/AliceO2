@@ -340,6 +340,13 @@ processing topology, you can use:
     ...
     auto ctx.services().get<ControlService>().readyToQuit(true) // In the DataProcessor lambda
 
+#### RawDeviceService
+
+This service allows you to get an hold of the `FairMQDevice` running the
+DataProcessor computation from with the computation itself. While in general
+this should not be used, it is handy in case you want to integrate with a
+pre-existing `FairMQDevice` which potentially does not even follow the O2 Data
+Model.
 
 ## Miscellaneous topics
 
