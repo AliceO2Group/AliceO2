@@ -597,13 +597,13 @@ void RunQA()
 			float alpha = track.GetAlpha();		
 			prop.SetTrack(&param, alpha);	
 			bool inFlyDirection = 0;
-			if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() - mc1.fZ) * (param.Z() - mc1.fZ) > 25) continue;
+			if (config.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.ZOffset() - mc1.fZ) * (param.Z() + param.ZOffset() - mc1.fZ) > 25) continue;
 			
 			if (prop.PropagateToXAlpha( mclocal[0], alpha, inFlyDirection ) ) continue;
-			if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1.f : 4.f) || fabs(param.Z() - mc1.fZ) > (config.strict ? 1.f : 4.f)) continue;
+			if (fabs(param.Y() - mclocal[1]) > (config.strict ? 1.f : 4.f) || fabs(param.Z() + param.ZOffset() - mc1.fZ) > (config.strict ? 1.f : 4.f)) continue;
 			
 			float deltaY = param.GetY() - mclocal[1];
-			float deltaZ = param.GetZ() - mc1.fZ;
+			float deltaZ = param.GetZ() + param.ZOffset() - mc1.fZ;
 			float deltaPhiNative = param.GetSinPhi() - mclocal[3] / mc2.pt;
 			float deltaPhi = std::asin(param.GetSinPhi()) - std::atan2(mclocal[3], mclocal[2]);
 			float deltaLambdaNative = param.GetDzDs() - mc1.fPz / mc2.pt;
