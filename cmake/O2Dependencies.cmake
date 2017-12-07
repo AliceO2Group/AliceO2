@@ -1074,7 +1074,7 @@ o2_define_bucket(
     fairroot_base_bucket
 
     #-- precise modules follow
-    Configuration
+    SimConfig
     DetectorsPassive
     TPCSimulation
     TPCReconstruction
