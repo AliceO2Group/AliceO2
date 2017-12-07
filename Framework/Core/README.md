@@ -527,6 +527,14 @@ In this particular case we use the `o2DMAdaptor()` helper to create such an
 translation function since we know that our input is already respecting the O2
 Data Model and most of the heavylifing can be done automatically.
 
+Sending out the results of a computation can be done in a similar manner. Use
+
+    ConfigParamSpec{"channel-config", VariantType::String, "<channel-configuration>", "Out-of-band channel config"}
+
+to create an out-of-band channel as specified in `channel-configuration` and
+then use the `RawDeviceService` to get the raw FairMQDevice and send data
+through such a channel.
+
 [rawDeviceSource]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/include/Framework/RawDeviceSource.h
 [rawDeviceInjectorExample]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/test_RawDeviceInjector.cxx
 
