@@ -73,8 +73,6 @@ math(EXPR _length ${_length}-1)
 foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lists and not 1
   list(GET Exe_Names ${_file} _name)
   list(GET Exe_Source ${_file} _src)
-#  Set(EXE_NAME ${_name})
-#  Set(SRCS ${_src})
 #  Set(DEPENDENCIES CCDB)
   O2_GENERATE_EXECUTABLE(
       EXE_NAME ${_name}

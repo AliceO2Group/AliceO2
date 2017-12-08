@@ -25,11 +25,3 @@ foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lis
       BUCKET_NAME ${BUCKET_NAME}
   )
 endforeach (_file RANGE 0 ${_length})
-
-#O2_GENERATE_EXECUTABLE(
-  #EXE_NAME ${Exe_Names}
-  #SOURCES ${Exe_Source}
-  #MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  #BUCKET_NAME ${BUCKET_NAME}
-#)
-

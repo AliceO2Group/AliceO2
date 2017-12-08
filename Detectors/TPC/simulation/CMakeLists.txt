@@ -52,12 +52,6 @@ install(
   DESTINATION share/Detectors/TPC/
 )
 
-#Set(Exe_Names
-#)
-
-#Set(Exe_Source
-#)
-
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
 set(BUCKET_NAME tpc_simulation_bucket)
 set(LIBRARY_NAME ${MODULE_NAME})
@@ -68,8 +62,7 @@ set(LIBRARY_NAME ${MODULE_NAME})
 #foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lists and not 1
   #list(GET Exe_Names ${_file} _name)
   #list(GET Exe_Source ${_file} _src)
-##  Set(EXE_NAME ${_name})
-##  Set(SRCS ${_src})
+  ## FIXME: propably a copy paste remnant, remove?
 ##  Set(DEPENDENCIES CCDB)
   #O2_GENERATE_EXECUTABLE(
       #EXE_NAME ${_name}
