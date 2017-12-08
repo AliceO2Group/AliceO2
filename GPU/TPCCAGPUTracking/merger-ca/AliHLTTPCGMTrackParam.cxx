@@ -48,7 +48,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   prop.SetUseMeanMomentum( UseMeanPt );
   prop.SetContinuousTracking( param.GetContinuousTracking() );
   prop.SetMaxSinPhi( maxSinPhi );
-  prop.SetHomemadeEvents( param.HomemadeEventsFlag());
+  prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
 
 
   if (param.GetContinuousTracking())
@@ -400,71 +400,6 @@ GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, const AliHL
 }
 
 #endif
-
-
-GPUd() bool AliHLTTPCGMTrackParam::Rotate( float alpha, AliHLTTPCGMPhysicalTrackModel &t0, float maxSinPhi )
-{
-  //* Rotate the coordinate system in XY on the angle alpha
-
-  float cA = CAMath::Cos( alpha );
-  float sA = CAMath::Sin( alpha );
-  float x0 = t0.X(), y0 = t0.Y(), sinPhi0 = t0.SinPhi(), cosPhi0 = t0.CosPhi();
-  float cosPhi =  cosPhi0 * cA + sinPhi0 * sA;
-  float sinPhi = -cosPhi0 * sA + sinPhi0 * cA;
-
-  if ( CAMath::Abs( sinPhi ) > maxSinPhi || CAMath::Abs( cosPhi ) < 1.e-2 || CAMath::Abs( cosPhi0 ) < 1.e-2  ) return 0;
-
-  //float J[5][5] = { { j0, 0, 0,  0,  0 }, // Y
-  //                    {  0, 1, 0,  0,  0 }, // Z
-  //                    {  0, 0, j2, 0,  0 }, // SinPhi
-  //                  {  0, 0, 0,  1,  0 }, // DzDs
-  //                  {  0, 0, 0,  0,  1 } }; // Kappa
-
-  float j0 = cosPhi0 / cosPhi;
-  float j2 = cosPhi / cosPhi0;
-  float d[2] = {Y() - y0, SinPhi() - sinPhi0};
-
-  {
-    float px = t0.Px();
-    float py = t0.Py();
-    
-    t0.X()  =  x0*cA + y0*sA;
-    t0.Y()  = -x0*sA + y0*cA;
-    t0.Px() =  px*cA + py*sA;
-    t0.Py() = -px*sA + py*cA;
-    t0.UpdateValues();
-  }
-  
-  X() = t0.X();
-  Y() = t0.Y() + j0*d[0];
-
-  SinPhi() = sinPhi + j2*d[1] ;
-
-  fC[0] *= j0 * j0;
-  fC[1] *= j0;
-  fC[3] *= j0;
-  fC[6] *= j0;
-  fC[10] *= j0;
-
-  fC[3] *= j2;
-  fC[4] *= j2;
-  fC[5] *= j2 * j2;
-  fC[8] *= j2;
-  fC[12] *= j2;
-  if( cosPhi <0 ){ // change direction ( t0 direction is already changed in t0.UpdateValues(); )
-    SinPhi() = -SinPhi();
-    DzDs() = -DzDs();
-    QPt() = -QPt();
-    fC[3] = -fC[3];
-    fC[4] = -fC[4];
-    fC[6] = -fC[6];
-    fC[7] = -fC[7];
-    fC[10] = -fC[10];
-    fC[11] = -fC[11];
-  }
-  
-  return true;
-}
 
 GPUd() bool AliHLTTPCGMTrackParam::Rotate( float alpha )
 {

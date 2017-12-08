@@ -44,7 +44,7 @@ public:
   GPUd() void SetUseMeanMomentum( bool Flag ){ fUseMeanMomentum = Flag; CalculateMaterialCorrection(); }
   GPUd() void SetContinuousTracking( bool Flag ){ fContinuousTracking = Flag; }
   GPUd() void SetFitInProjections( bool Flag ){ fFitInProjections = Flag; }
-  GPUd() void SetHomemadeEvents( bool Flag ){ fHomemadeEvents = Flag; }
+  GPUd() void SetToyMCEventsFlag( bool Flag ){ fToyMCEvents = Flag; }
 
   GPUd() void SetMaxSinPhi( float maxSinPhi ){ fMaxSinPhi = maxSinPhi; }
   
@@ -87,13 +87,13 @@ private:
   bool fUseMeanMomentum;//
   bool fContinuousTracking; // take field at the mean TPC Z
   bool fFitInProjections; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
-  bool fHomemadeEvents; // events are simulated with simple home-made simulation
+  bool fToyMCEvents; // events are simulated with simple home-made simulation
   float fMaxSinPhi;
 };
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
 : fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
-  fUseMeanMomentum(0), fContinuousTracking(0), fFitInProjections(0), fHomemadeEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
+  fUseMeanMomentum(0), fContinuousTracking(0), fFitInProjections(0), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
 {
 }
 

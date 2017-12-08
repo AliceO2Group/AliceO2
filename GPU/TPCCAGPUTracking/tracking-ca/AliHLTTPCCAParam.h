@@ -71,8 +71,8 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float ConstBz() const { return fConstBz;}
     GPUd() bool AssumeConstantBz() const { return fAssumeConstantBz; }
     GPUd() void SetAssumeConstantBz(bool v) { fAssumeConstantBz = v; }
-    GPUd() bool HomemadeEventsFlag() const { return fHomemadeEventsFlag; }
-    GPUd() void SetHomemadeEventsFlag(bool v) { fHomemadeEventsFlag = v; }
+    GPUd() bool ToyMCEventsFlag() const { return fToyMCEventsFlag; }
+    GPUd() void SetToyMCEventsFlag(bool v) { fToyMCEventsFlag = v; }
 
     GPUd() float NeighboursSearchArea() const { return fNeighboursSearchArea; }
     GPUd() float TrackConnectionFactor() const { return fTrackConnectionFactor; }
@@ -175,7 +175,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     int fNWays;          //Do N fit passes in final fit of merger
     bool fNWaysOuter;    //Store outer param
     bool fAssumeConstantBz; //Assume a constant magnetic field
-    bool fHomemadeEventsFlag; //events were build with home-made event generator
+    bool fToyMCEventsFlag; //events were build with home-made event generator
     bool fContinuousTracking; //Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
     float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
     float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)

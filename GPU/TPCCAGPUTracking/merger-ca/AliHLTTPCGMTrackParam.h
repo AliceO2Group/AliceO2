@@ -102,7 +102,6 @@ public:
    float maxSinPhi = HLTCA_MAX_SIN_PHI
    );
   
-  GPUd() bool Rotate( float alpha, AliHLTTPCGMPhysicalTrackModel &t0, float maxSinPhi = HLTCA_MAX_SIN_PHI );
   GPUd() bool Rotate( float alpha );
 
   GPUd() static float Reciprocal( float x ){ return 1./x; }
