@@ -236,6 +236,35 @@ InputSpec.
 
 This chapter describes how to actually implement an `AlgorithmSpec`.
 
+### Using inputs - the `InputRecord` API
+
+Inputs   to   your   computation   will   be   provided   to   you   via   the
+[`InputRecord`][InputRecord] API. An instance of  such a class is hanging from
+the `ProcessingContext`  your computation  lambda is  passed and  contains one
+value for each of the `InputSpec` you specified. E.g.:
+
+    InputRecord &args = ctx.inputs();
+
+From the `InputRecord` instance you can get the arguments either via their positional
+index:
+
+    DataRef ref = args.getByPos(0);
+
+or using the mnemonics-label which was used as first argument in the associated
+`InputSpec`.
+
+    DataRef ref = args.get("points");
+
+You can then use the `DataRef` `header` and `payload` raw pointers to access
+the data in the messages.
+
+If the message is of a known type, you can automatically get a casted reference
+to the contents of the message by passing it as template argument, e.g.:
+
+    XYZ &p = args.get<XYZ>("points");
+
+[InputRecord]: https://github.com/AliceO2Group/AliceO2/blob/HEAD/Framework/Core/include/Framework/InputRecord.h
+
 ### Creating outputs - the DataAllocator API
 
 In order  to prevent  algorithms to create  data they do  are not  supposed to
