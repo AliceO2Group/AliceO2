@@ -559,7 +559,7 @@ void RunQA()
 		prop.SetPolynomialField( merger.pField() );		
 		prop.SetUseMeanMomentum(kFALSE );
 		prop.SetContinuousTracking( kFALSE );
-		prop.SetHomemadeEvents( merger.SliceParam().HomemadeEventsFlag());
+		prop.SetToyMCEventsFlag( merger.SliceParam().ToyMCEventsFlag());
 
 		for (int i = 0; i < merger.NOutputTracks(); i++)
 		{

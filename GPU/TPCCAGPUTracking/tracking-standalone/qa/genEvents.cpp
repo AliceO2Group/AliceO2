@@ -160,12 +160,12 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
   std::vector<AliHLTTPCCAMCInfo> mcInfo(nTracks);
   memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
 
-  double Bz = sliceParam.ConstBz();
-  std::cout<<"Bz[kG] = "<<sliceParam.BzkG()<<std::endl;
+  //double Bz = sliceParam.ConstBz();
+  //std::cout<<"Bz[kG] = "<<sliceParam.BzkG()<<std::endl;
 
   AliHLTTPCGMPropagator prop;
   {
-    prop.SetHomemadeEvents( kTRUE );
+    prop.SetToyMCEventsFlag( kTRUE );
     AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
     const AliHLTTPCGMMerger &merger = hlt.Merger();
     prop.SetPolynomialField( merger.pField() );	  
@@ -255,7 +255,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
 	//std::cout<<std::setprecision( 20 );
 	//std::cout<<"track "<<itr<<": x "<<t.X()<<" y "<<t.Y()<<" z "<<t.Z()<<std::endl;
 	AliHLTTPCGMPhysicalTrackModel tg(t); // global coordinates	
-	tg.RotateLight( - GetSliceAngle( iSlice ));
+	tg.Rotate( - GetSliceAngle( iSlice ));
 
 	mcInfo[itr].fPID = 2; // pion
 	mcInfo[itr].fCharge = 3*q;
@@ -273,6 +273,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       float sigmaY = 0.3; 
       float sigmaZ = 0.5; 
       const int rowType = iRow < 64 ? 0 : iRow < 128 ? 2 : 1;
+      t.UpdateValues();
       //sliceParam.GetClusterErrors2v1( rowType, t.GetZ(), t.GetSinPhi(), t.GetCosPhi(), t.GetDzDs(), sigmaY, sigmaZ );  
       sliceParam.GetClusterErrors2( rowType, t.GetZ(), t.GetSinPhi(), t.GetCosPhi(), t.GetDzDs(), sigmaY, sigmaZ );
       sigmaY = sqrt(sigmaY);

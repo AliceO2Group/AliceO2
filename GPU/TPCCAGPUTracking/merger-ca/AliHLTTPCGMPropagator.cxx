@@ -70,7 +70,7 @@ GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, fl
   B[2] =  bb[2] ;
   //const double kCLight = 0.000299792458;
  //std::cout<<"field "<<fField->GetNominalBz()/kCLight<<std::endl;
-  if( fHomemadeEvents ){ // special treatment for toy monte carlo
+  if( fToyMCEvents ){ // special treatment for toy monte carlo
     //B[0] = 0;
     //B[1] = 0;
     //B[2] = fField->GetNominalBz();
@@ -80,13 +80,19 @@ GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, fl
 
 GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, float Z ) const
 {
+  if( fToyMCEvents ){ // special treatment for toy monte carlo
+    float B[3];
+    GetBxByBz(Alpha,X,Y,Z,B);
+    return B[2];
+  }
+
 
   if( fContinuousTracking ) Z =  ( Z > 0 ? 125. : -125.);
 
   // get global coordinates
 
   float cs = AliHLTTPCCAMath::Cos(Alpha);
-  float sn = AliHLTTPCCAMath::Sin(Alpha);
+  float sn = AliHLTTPCCAMath::Sin(Alpha);  
 
 #if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
   const double kCLight = 0.000299792458;
@@ -130,7 +136,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
     t0.Y()  = -x0*ss + y0*cc;
     t0.Px() =  px1;
     t0.Py() =  py1;
-    t0.UpdateValues(); // if px1<0, t0 direction is changed here: t0.GetPx()==-px1, etc.
+    t0.UpdateValues(); 
   }
 
   if ( CAMath::Abs( py1 ) > fMaxSinPhi*fT0.GetPt() || CAMath::Abs( px1 ) < 1.e-2  ) return -1;
@@ -202,7 +208,8 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
     c[ 8] *= j1;
   }
   
-  if( px1 <0 ){ // change direction ( t0 direction is already changed in t0.UpdateValues(); )
+  if( px1 <0 ){ // change direction 
+    t0.SetDirectionAlongX(); 
     fT->SinPhi() = -fT->SinPhi();
     fT->DzDs()   = -fT->DzDs();
     fT->QPt()    = -fT->QPt();    
@@ -511,7 +518,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 
   // Energy Loss
 
-  if( 1||!fHomemadeEvents ){  
+  if( 1||!fToyMCEvents ){  
     //std::cout<<"APPLY ENERGY LOSS!!!"<<std::endl;
     float corr = float(1.f) - fMaterial.fEP2* dLmask ;
     float corrInv = 1.f/corr;
@@ -535,7 +542,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 
   //  Multiple Scattering
   
-  if( 1||!fHomemadeEvents ){ 
+  if( !fToyMCEvents ){ 
     fC22 += dLabs * fMaterial.fK22 * fT0.CosPhi()*fT0.CosPhi();
     fC33 += dLabs * fMaterial.fK33;
     fC43 += dLabs * fMaterial.fK43;
@@ -962,11 +969,12 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
   fT0.X() = fT0.X();
   fT0.Y() = fT0.Y() + dy;
   fT0.Z() = fT0.Z() + fT0.DzDs()*dS;
-  fT0.Px() = fT0.Px();
+  fT0.Px() = fT0.Px(); // should be positive
   fT0.Py() = -fT0.Py();
   fT0.Pz() = -fT0.Pz();
   fT0.Q()  = -fT0.Q();
   fT0.UpdateValues();
+  fT0.SetDirectionAlongX(); // not needed
 
   fT->X() = fT0.X();
   fT->Y() = fT->Y()+dy;
@@ -986,7 +994,7 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
 
   // Energy Loss
   
-  if( 1||!fHomemadeEvents ){
+  if( 1||!fToyMCEvents ){
  
     // std::cout<<"MIRROR: APPLY ENERGY LOSS!!!"<<std::endl;
   

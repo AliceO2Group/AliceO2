@@ -35,7 +35,7 @@ GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
     fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( -5.00668 ),
     fConstBz( -5.00668*0.000299792458 ), fHitPickUpFactor( 1. ),
       fMaxTrackMatchDRow( 4 ), fNeighboursSearchArea(3.), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 ), fClusterError2CorrectionY(1.), fClusterError2CorrectionZ(1.),
-  fMinNTrackClusters( -1 ), fMaxTrackQPt(1./MIN_TRACK_PT_DEFAULT), fHighQPtForward(1.e10), fNWays(1), fNWaysOuter(0), fAssumeConstantBz(false), fHomemadeEventsFlag(false), fContinuousTracking(false), fSearchWindowDZDR(0.), fTrackReferenceX(1000.)
+  fMinNTrackClusters( -1 ), fMaxTrackQPt(1./MIN_TRACK_PT_DEFAULT), fHighQPtForward(1.e10), fNWays(1), fNWaysOuter(0), fAssumeConstantBz(false), fToyMCEventsFlag(false), fContinuousTracking(false), fSearchWindowDZDR(0.), fTrackReferenceX(1000.)
 {
   // constructor
 

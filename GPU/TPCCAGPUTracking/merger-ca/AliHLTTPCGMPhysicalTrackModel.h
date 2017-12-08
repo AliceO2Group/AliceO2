@@ -78,6 +78,8 @@ class AliHLTTPCGMPhysicalTrackModel
   
   GPUd() int PropagateToLpBz( float Lp, float Bz );
 
+  GPUd() bool SetDirectionAlongX();
+
   GPUd() void UpdateValues();
 
   GPUd() void Print() const;
@@ -154,23 +156,36 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( float X, float Y, float Z
 
 GPUd() inline void AliHLTTPCGMPhysicalTrackModel::UpdateValues()
 {
-  if( fPx<0.f ){ // should not happen, change direction of the movenment
-    fPx = -fPx;
-    fPy = -fPy;
-    fPz = -fPz;
-    fQ = -fQ;
-  }
-  if( fPx<1.e-8f ) fPx = 1.e-8f;  
-  fPt = sqrt( fPx*fPx + fPy*fPy );
+  float px = fPx;
+  if( fabs(px) < 1.e-4f ) px = copysign(1.e-4f,px);
+
+  fPt = sqrt( px*px + fPy*fPy );
   float pti = 1.f/fPt;
-  fP = sqrt(fPx*fPx + fPy*fPy + fPz*fPz );
+  fP = sqrt( px*px + fPy*fPy + fPz*fPz );
   fSinPhi = fPy*pti;
-  fCosPhi = fPx*pti;
-  fSecPhi = 1.f/fCosPhi;
+  fCosPhi = px*pti;
+  fSecPhi = fPt/px;
   fDzDs = fPz*pti;
   fDlDs = fP*pti;
   fQPt = fQ*pti;
 }
+
+GPUd() inline bool AliHLTTPCGMPhysicalTrackModel::SetDirectionAlongX()
+{
+  //
+  // set direction of movenment collinear to X axis
+  // return value is true when direction has been changed
+  //
+  if( fPx >= 0 ) return 0;
+
+  fPx = -fPx;
+  fPy = -fPy;
+  fPz = -fPz;
+  fQ = -fQ;  
+  UpdateValues();
+  return 1;
+}
+
 
 GPUd() inline float AliHLTTPCGMPhysicalTrackModel::GetMirroredY( float Bz ) const
 {
