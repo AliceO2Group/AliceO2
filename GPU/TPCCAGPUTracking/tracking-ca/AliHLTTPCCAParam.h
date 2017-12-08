@@ -127,21 +127,17 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
-    GPUd() void GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
-
-    GPUd() float GetClusterError2New( int yz, int type, float z, float angle2 ) const;
-    GPUd() void GetClusterErrors2New( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
     void WriteSettings( std::ostream &out ) const;
     void ReadSettings( std::istream &in );
 #endif
 
-    GPUd() void SetParamS0Par( int i, int j, int k, float val ) {
-      fParamS0Par[i][j][k] = val;
+    GPUd() void SetParamRMS0( int i, int j, int k, float val ) {
+      fParamRMS0[i][j][k] = val;
     }
   
-    GPUd() const MakeType(float*) GetParamS0Par(int i, int j) const { return fParamS0Par[i][j]; }
+    GPUd() const MakeType(float*) GetParamRMS0(int i, int j) const { return fParamRMS0[i][j]; }
  
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
@@ -182,9 +178,8 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
     float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)
 
-    float fRowX[200];// X-coordinate of rows
-    float fParamS0Par[2][3][7];    // cluster error parameterization coeficients (OLD)
-    float fParamRMS0[2][3][4]; // cluster error parameterization coeficients (NEW)
+    float fRowX[200];// X-coordinate of rows    
+    float fParamRMS0[2][3][4]; // cluster error parameterization coeficients 
     float fPolinomialFieldBz[6];   // field coefficients
 };
 
