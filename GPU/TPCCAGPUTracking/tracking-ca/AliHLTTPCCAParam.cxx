@@ -259,10 +259,9 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::Global2Slice( float X, fl
 MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz, int type, float z, float angle2 ) const
 {
   //* recalculate the cluster error wih respect to the track slope
-  
-  MakeType(const float*) c = fParamS0Par[yz][type];
-  float v = c[0] + z * ( c[1] + c[3] * z ) + angle2 * ( c[2] + angle2 * c[4] + c[5] * z );
-  return CAMath::Abs( v );  
+  //SG!!!
+  //return 0.5*0.5;
+  return GetClusterError2New( yz, type, z, angle2 );
 }
 
 
