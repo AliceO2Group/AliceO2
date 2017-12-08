@@ -790,6 +790,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       mergedTrack.SetFirstClusterRef( nOutTrackClusters );
       AliHLTTPCGMTrackParam &p1 = mergedTrack.Param();
       const AliHLTTPCGMSliceTrack &p2 = *trackParts[firstTrackIndex];
+      mergedTrack.SetSide(p2.Slice() < 18);
 	  
 	  AliHLTTPCGMBorderTrack b;
 	  if (p2.TransportToX(cl[0].fX, fSliceParam.ConstBz(), b, 0.999, false))
