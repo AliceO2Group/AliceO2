@@ -101,13 +101,6 @@ void AliHLTTPCCAParam::Update()
   const double kCLight = 0.000299792458;
   fConstBz = fBzkG * kCLight;
 
-  fPolinomialFieldBz[0] = fConstBz * (  0.999286   );
-  fPolinomialFieldBz[1] = fConstBz * ( -4.54386e-7 );
-  fPolinomialFieldBz[2] = fConstBz * (  2.32950e-5 );
-  fPolinomialFieldBz[3] = fConstBz * ( -2.99912e-7 );
-  fPolinomialFieldBz[4] = fConstBz * ( -2.03442e-8 );
-  fPolinomialFieldBz[5] = fConstBz * (  9.71402e-8 );
-
   fCosAlpha = CAMath::Cos( fAlpha );
   fSinAlpha = CAMath::Sin( fAlpha );
   fAngleMin = fAlpha - fDAlpha / 2.f;
