@@ -312,7 +312,29 @@ processing topology, you can use:
     auto ctx.services().get<ControlService>().readyToQuit(true) // In the DataProcessor lambda
 
 
-## Advanced topics
+## Miscellaneous topics
+
+### Debugging on your laptop
+
+The way the DPL currently works is that the driver executable you launch,
+will then take care of spawning one device per `DataProcessorSpec` in
+a separate process. This means that in order to debug your code you need to
+make sure gdb / lldb are actually debugging the right child process.
+
+For `gdb` you can use the `follow-fork-mode` setting. See
+[here](https://sourceware.org/gdb/onlinedocs/gdb/Forks.html) for the full
+documentation. This is unfortunately not available in
+[lldb](https://bugs.llvm.org/show_bug.cgi?id=17972).
+
+Alternatively you can start your driver executable with the `-s` / `--stop`
+command line option which will immediately stop execution of the children after
+the fork, allowing you to attach to them, e.g. for gdb using:
+
+  attach <pid>
+
+or the `lldb` equivalent:
+
+  attach -pid <pid>
 
 ### Expressing parallelism
 
