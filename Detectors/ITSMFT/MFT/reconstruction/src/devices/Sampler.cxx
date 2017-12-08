@@ -24,13 +24,6 @@ using namespace o2::MFT;
 using namespace std;
 
 //_____________________________________________________________________________
-// helper function to clean up the object holding the data after it is transported.
-void free_tmessage2(void* /*data*/, void *hint)
-{
-    delete (TMessage*)hint;
-}
-
-//_____________________________________________________________________________
 Sampler::Sampler()
   : FairMQDevice()
   , mOutputChannelName("data-out")

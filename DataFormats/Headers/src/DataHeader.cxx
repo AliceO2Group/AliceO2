@@ -63,6 +63,7 @@ const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS
 const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS");
 const o2::Header::DataDescription o2::Header::gDataDescriptionConfig  ("CONFIGURATION");
 const o2::Header::DataDescription o2::Header::gDataDescriptionInfo    ("INFORMATION");
+const o2::Header::DataDescription o2::Header::gDataDescriptionROOTStreamers("ROOT STREAMERS");
 
 //definitions for Stack statics
 std::default_delete<byte[]> o2::Header::Stack::sDeleter;

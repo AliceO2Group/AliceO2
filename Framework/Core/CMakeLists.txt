@@ -42,6 +42,7 @@ set(SRCS
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
+    src/TMessageSerializer.cxx
     ${GUI_SOURCES}
    )
 
