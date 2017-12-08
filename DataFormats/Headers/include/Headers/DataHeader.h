@@ -649,6 +649,7 @@ extern const o2::Header::DataDescription gDataDescriptionClusters;
 extern const o2::Header::DataDescription gDataDescriptionTracks;
 extern const o2::Header::DataDescription gDataDescriptionConfig;
 extern const o2::Header::DataDescription gDataDescriptionInfo;
+extern const o2::Header::DataDescription gDataDescriptionROOTStreamers;
 /// @} // end of doxygen group
 
 //__________________________________________________________________________________________________
