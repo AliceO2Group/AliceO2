@@ -141,8 +141,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
  
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
-    GPUd() float GetBz( float x, float y, float z ) const;
-    MEM_CLASS_PRE2() GPUd() float GetBz( const MEM_LG2(AliHLTTPCCATrackParam) &t ) const {return GetBz( t.X(), t.Y(), t.Z() );}
+
   protected:
     int fISlice; // slice number
     int fNRows; // number of rows
@@ -180,17 +179,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
 
     float fRowX[200];// X-coordinate of rows    
     float fParamRMS0[2][3][4]; // cluster error parameterization coeficients 
-    float fPolinomialFieldBz[6];   // field coefficients
 };
 
-
-
-MEM_CLASS_PRE() GPUd() inline float MEM_LG(AliHLTTPCCAParam)::GetBz( float x, float y, float z ) const
-{
-  float r2 = x * x + y * y;
-  float r  = CAMath::Sqrt( r2 );
-  const float *c = fPolinomialFieldBz;
-  return ( c[0] + c[1]*z  + c[2]*r  + c[3]*z*z + c[4]*z*r + c[5]*r2 );
-}
 
 #endif //ALIHLTTPCCAPARAM_H
