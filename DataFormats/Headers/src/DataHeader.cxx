@@ -105,10 +105,10 @@ o2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
 //__________________________________________________________________________________________________
 o2::Header::DataHeader::DataHeader()
   : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
+  , dataDescription(gDataDescriptionInvalid)
   , dataOrigin(gDataOriginInvalid)
   , reserved(gInvalidToken32)
   , payloadSerializationMethod(gSerializationMethodInvalid)
-  , dataDescription(gDataDescriptionInvalid)
   , subSpecification(0)
   , payloadSize(0)
 {
@@ -121,10 +121,10 @@ o2::Header::DataHeader::DataHeader(DataDescription desc,
                                    uint64_t size
                                    )
   : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
+  , dataDescription(desc)
   , dataOrigin(origin)
   , reserved(gInvalidToken32)
   , payloadSerializationMethod(gSerializationMethodInvalid)
-  , dataDescription(desc)
   , subSpecification(subspec)
   , payloadSize(size)
 {

@@ -22,7 +22,7 @@ namespace framework {
 // This is a metrics service which sends metrics
 // to a separate MetricsDevice which funnels them
 // to the appropriate backend
-class RemoteMetricsService : public MetricService {
+class RemoteMetricsService : public MetricsService {
 public:
   void post(const char *label, float value) final;
   void post(const char *label, int value) final;
