@@ -38,7 +38,7 @@
 /*#include "TFile.h"
 #include "TNtuple.h"*/
 
-GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, bool UseMeanPt, float maxSinPhi)
+GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, bool UseMeanPt, float maxSinPhi)
 {
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
@@ -241,9 +241,12 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       else break; // bad chi2 for the whole track, stop the fit
     }
   }
-  
+
+  bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality();
+
   if (param.GetTrackReferenceX() <= 500) prop.PropagateToXAlpha(param.GetTrackReferenceX(), prop.GetAlpha(), 0 );
   Alpha = prop.GetAlpha();
+  return(ok);
 }
 
 GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
@@ -319,31 +322,22 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	   
 	AliHLTTPCGMTrackParam t = track.Param();
 	float Alpha = track.Alpha();  
-	//int nTrackHitsOld = nTrackHits;
-	//float ptOld = t.QPt();
-	t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha );      
+	/*int nTrackHitsOld = nTrackHits;
+	float ptOld = t.QPt();*/
+	bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha );
 	
 	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
-	bool okhits = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(t.QPt());
-	bool okqual = t.CheckNumericalQuality();
-			
-	bool ok = okhits && okqual;
 
-	//printf("Track %d OUTPUT hits %d -> %d, QPt %f -> %f, ok %d (%d %d %d) chi2 %f chi2ndf %f\n", blanum,  nTrackHitsOld, nTrackHits, ptOld, t.QPt(), (int) ok, (int) okhits, (int) okqual, (int) okphi, t.Chi2(), t.Chi2() / max(1,nTrackHits);
+	//printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
 		ok = 1;
 		for (int k = 0;k < track.NClusters();k++) if (clusters[k].fState < 0) clusters[k].fState = -clusters[k].fState - 1;
 	}
 	track.SetOK(ok);
-	if (!ok) return;
-
-	if( 1 ){//SG!!!
-	  track.SetNClustersFitted( nTrackHits );
-	  track.Param() = t;
-	  track.Param().Z();
-	  track.Alpha() = Alpha;
-	}
+	track.SetNClustersFitted( nTrackHits );
+	track.Param() = t;
+	track.Alpha() = Alpha;
 
 	{
 	  int ind = track.FirstClusterRef();

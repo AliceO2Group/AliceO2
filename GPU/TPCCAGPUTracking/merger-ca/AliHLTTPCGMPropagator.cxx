@@ -349,8 +349,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   
   AliHLTTPCGMPhysicalTrackModel t0e(fT0);
   float dLp = 0;
-  int err = t0e.PropagateToXBxByBz( posX, B[0], B[1], B[2], dLp );
-  if( err ) return 1;
+  if (t0e.PropagateToXBxByBz( posX, B[0], B[1], B[2], dLp )) return(1);
   if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -3;
 
   // propagate track and cov matrix with derivatives for (0,0,Bz) field

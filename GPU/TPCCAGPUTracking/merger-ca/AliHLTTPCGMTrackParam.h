@@ -93,7 +93,7 @@ public:
 
   GPUd() bool CheckNumericalQuality() const ;
 
-  GPUd() void Fit
+  GPUd() bool Fit
   (
    const AliHLTTPCGMPolynomialField* field,
    AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param,

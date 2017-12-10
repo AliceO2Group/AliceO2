@@ -194,6 +194,7 @@ int main(int argc, char** argv)
 	hlt.SetNWaysOuter(configStandalone.nwaysouter);
 	if (configStandalone.cont) hlt.SetContinuousTracking(configStandalone.cont);
 	if (configStandalone.dzdr != 0.) hlt.SetSearchWindowDZDR(configStandalone.dzdr);
+	if (configStandalone.referenceX < 500.) hlt.SetTrackReferenceX(configStandalone.referenceX);
 	hlt.UpdateGPUSliceParam();
 	hlt.SetGPUTrackerOption("GlobalTracking", 1);
 	
