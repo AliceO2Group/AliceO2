@@ -25,6 +25,11 @@
 
 #define HLTCA_TIMING_SUM 1
 
+#define HLTCA_MAX_SIN_PHI_LOW 0.99f						//Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
+#define HLTCA_MAX_SIN_PHI 0.999f
+
+#define HLTCA_ROW_COUNT 159
+
 #define REPRODUCIBLE_CLUSTER_SORTING
 
 #ifdef HLTCA_BUILD_O2_LIB

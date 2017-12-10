@@ -58,9 +58,6 @@
 #define HLTCA_GPU_MERGER								//Use GPU Merger
 #endif
 
-//Detector Parameters
-#define HLTCA_ROW_COUNT 159
-
 #define HLTCA_GPU_ROWALIGNMENT uint4					//Align Row Hits and Grid
 #define HLTCA_GPU_ROWCOPY int							//must not be bigger than row alignment!!!
 

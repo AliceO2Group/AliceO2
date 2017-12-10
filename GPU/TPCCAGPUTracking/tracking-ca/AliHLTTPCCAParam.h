@@ -146,8 +146,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
     GPUd() float GetBz( float x, float y, float z ) const;
-	MEM_CLASS_PRE2() GPUd() float GetBz( const MEM_LG2(AliHLTTPCCATrackParam) &t ) const {return GetBz( t.X(), t.Y(), t.Z() );}
-
+    MEM_CLASS_PRE2() GPUd() float GetBz( const MEM_LG2(AliHLTTPCCATrackParam) &t ) const {return GetBz( t.X(), t.Y(), t.Z() );}
   protected:
     int fISlice; // slice number
     int fNRows; // number of rows
@@ -166,7 +165,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
 
     int   fMaxTrackMatchDRow;// maximal jump in TPC row for connecting track segments
 
-  float fNeighboursSearchArea; // area in cm for the search of neighbours
+    float fNeighboursSearchArea; // area in cm for the search of neighbours
 
     float fTrackConnectionFactor; // allowed distance in Chi^2/3.5 for neighbouring tracks
     float fTrackChiCut; // cut for track Sqrt(Chi2/NDF);
@@ -187,7 +186,6 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fParamS0Par[2][3][7];    // cluster error parameterization coeficients (OLD)
     float fParamRMS0[2][3][4]; // cluster error parameterization coeficients (NEW)
     float fPolinomialFieldBz[6];   // field coefficients
-
 };
 
 

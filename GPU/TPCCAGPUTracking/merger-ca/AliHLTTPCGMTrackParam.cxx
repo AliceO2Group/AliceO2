@@ -259,7 +259,7 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
        //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. ) 
        ) ok = 0;
 
-  if ( fabs( fP[2] ) > .999 ) ok = 0;
+  if ( fabs( fP[2] ) > HLTCA_MAX_SIN_PHI ) ok = 0;
   if( ok ){
     ok = ok 
       && ( c[1]*c[1]<=c[2]*c[0] )
@@ -288,8 +288,8 @@ bool AliHLTTPCGMTrackParam::GetExtParam( AliExternalTrackParam &T, double alpha 
   for ( int i = 0; i < 5; i++ ) par[i] = fP[i];
   for ( int i = 0; i < 15; i++ ) cov[i] = fC[i];
 
-  if ( par[2] > .99 ) par[2] = .99;
-  if ( par[2] < -.99 ) par[2] = -.99;
+  if ( par[2] > HLTCA_MAX_SIN_PHI ) par[2] = HLTCA_MAX_SIN_PHI;
+  if ( par[2] < -HLTCA_MAX_SIN_PHI ) par[2] = -HLTCA_MAX_SIN_PHI;
 
   if ( fabs( par[4] ) < 1.e-5 ) par[4] = 1.e-5; // some other software will crash if q/Pt==0
   if ( fabs( par[4] ) > 1./0.08 ) ok = 0; // some other software will crash if q/Pt is too big
@@ -305,8 +305,8 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
   for ( int i = 0; i < 5; i++ ) fP[i] = T.GetParameter()[i];
   for ( int i = 0; i < 15; i++ ) fC[i] = T.GetCovariance()[i];
   fX = T.GetX();
-  if ( fP[2] > .999 ) fP[2] = .999;
-  if ( fP[2] < -.999 ) fP[2] = -.999;
+  if ( fP[2] > HLTCA_MAX_SIN_PHI ) fP[2] = HLTCA_MAX_SIN_PHI;
+  if ( fP[2] < -HLTCA_MAX_SIN_PHI ) fP[2] = -HLTCA_MAX_SIN_PHI;
 }
 #endif
 
@@ -325,9 +325,8 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 	bool okhits = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt());
 	bool okqual = t.CheckNumericalQuality();
-	bool okphi = fabs( t.SinPhi() ) <= .999;
 			
-	bool ok = okhits && okqual && okphi;
+	bool ok = okhits && okqual;
 
 	//printf("Track %d OUTPUT hits %d -> %d, QPt %f -> %f, ok %d (%d %d %d) chi2 %f chi2ndf %f\n", blanum,  nTrackHitsOld, nTrackHits, ptOld, t.QPt(), (int) ok, (int) okhits, (int) okqual, (int) okphi, t.Chi2(), t.Chi2() / max(1,nTrackHits);
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))

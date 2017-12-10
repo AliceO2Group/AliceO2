@@ -702,7 +702,7 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::CheckNumericalQualit
        //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. ) 
        ) ok = 0;
 
-  if ( CAMath::Abs( SinPhi() ) > .99 ) ok = 0;
+  if ( CAMath::Abs( SinPhi() ) > HLTCA_MAX_SIN_PHI ) ok = 0;
   if ( CAMath::Abs( QPt() ) > 1. / 0.05 ) ok = 0;
   if( ok ){
     ok = ok 

@@ -329,7 +329,7 @@ bool AliHLTTPCGMSliceTrack::TransportToXAlpha( float newX, float sinAlpha, float
     cosPhi =  cP * cosAlpha + sP * sinAlpha;
     sinPhi = -cP * sinAlpha + sP * cosAlpha;
     
-    if ( CAMath::Abs( sinPhi ) > .999 || CAMath::Abs( cP ) < 1.e-2  ) return 0;
+    if ( CAMath::Abs( sinPhi ) > HLTCA_MAX_SIN_PHI || CAMath::Abs( cP ) < 1.e-2  ) return 0;
     
     secPhi = 1./cosPhi;
     float j0 = cP *secPhi;

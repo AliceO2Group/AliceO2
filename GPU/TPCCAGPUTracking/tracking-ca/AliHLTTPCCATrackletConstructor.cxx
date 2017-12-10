@@ -180,7 +180,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           tParam.SetCov( 2, err2Z );
         }
         float sinPhi, cosPhi;
-        if (r.fNHits >= 10 && CAMath::Abs( tParam.SinPhi() ) < .99 ) {
+        if (r.fNHits >= 10 && CAMath::Abs( tParam.SinPhi() ) < HLTCA_MAX_SIN_PHI_LOW ) {
           sinPhi = tParam.SinPhi();
           cosPhi = CAMath::Sqrt( 1 - sinPhi * sinPhi );
         } else {
@@ -213,7 +213,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           }
         }
 
-        if ( !tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
+        if ( !tParam.Filter( y, z, err2Y, err2Z, HLTCA_MAX_SIN_PHI_LOW ) ) {
           SETRowHit(iRow, CALINK_INVAL);
           break;
         }
@@ -234,7 +234,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       r.fStage = 1;
 	  r.fLastY = tParam.Y(); //Store last spatial position here to start inward following from here
 	  r.fLastZ = tParam.Z();
-      if ( CAMath::Abs( tParam.SinPhi() ) > .999 ) {
+      if ( CAMath::Abs( tParam.SinPhi() ) > HLTCA_MAX_SIN_PHI ) {
         r.fGo = 0;
       }
     }
@@ -251,7 +251,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
       float x = row.X();
       float err2Y, err2Z;
-      if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz(), .99 ) ) {
+      if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz(), HLTCA_MAX_SIN_PHI_LOW ) ) {
         r.fGo = 0;
         SETRowHit(iRow, CALINK_INVAL);
         break;
@@ -316,7 +316,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       float z = z0 + hh.y * stepZ;
       
       calink oldHit = (r.fStage == 2 && iRow >= r.fStartRow) ? GETRowHit(iRow) : CALINK_INVAL;
-      if (oldHit != best && !tParam.Filter( y, z, err2Y, err2Z, .99, oldHit != CALINK_INVAL))
+      if (oldHit != best && !tParam.Filter( y, z, err2Y, err2Z, HLTCA_MAX_SIN_PHI_LOW, oldHit != CALINK_INVAL))
       {
           if (oldHit != CALINK_INVAL) SETRowHit(iRow, CALINK_INVAL);
           break;
@@ -372,7 +372,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTA
 		else
 		{
 			r.fNMissed = 0;
-			if ((r.fGo = (tParam.TransportToX( tracker.Row( r.fEndRow ).X(), tracker.Param().ConstBz(), .999) && tParam.Filter( r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., .99, true))))
+			if ((r.fGo = (tParam.TransportToX( tracker.Row( r.fEndRow ).X(), tracker.Param().ConstBz(), HLTCA_MAX_SIN_PHI) && tParam.Filter( r.fLastY, r.fLastZ, tParam.Err2Y() / 2, tParam.Err2Z() / 2., HLTCA_MAX_SIN_PHI_LOW, true))))
             {
     			float err2Y, err2Z;
     			tracker.GetErrors2( r.fEndRow, tParam, err2Y, err2Z );
