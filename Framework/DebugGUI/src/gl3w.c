@@ -28,7 +28,7 @@
 
 */
 
-#include <GL/gl3w.h>
+#include "GL/gl3w.h"
 #include <stdlib.h>
 
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
