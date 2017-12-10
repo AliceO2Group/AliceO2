@@ -120,8 +120,8 @@ GPUd() inline void AliHLTTPCGMPhysicalTrackModel::Set( const AliHLTTPCGMTrackPar
   
   fPt = 1./pti;  
   fSinPhi = t.GetSinPhi();
-  if( fSinPhi >  .999f ) fSinPhi = .999f;
-  if( fSinPhi < -.999f ) fSinPhi = -.999f;
+  if( fSinPhi >  HLTCA_MAX_SIN_PHI ) fSinPhi = HLTCA_MAX_SIN_PHI;
+  if( fSinPhi < -HLTCA_MAX_SIN_PHI ) fSinPhi = -HLTCA_MAX_SIN_PHI;
   fCosPhi = sqrt( (1. - fSinPhi)*(1.+fSinPhi) );  
   fSecPhi = 1./fCosPhi;
   fDzDs = t.GetDzDs();

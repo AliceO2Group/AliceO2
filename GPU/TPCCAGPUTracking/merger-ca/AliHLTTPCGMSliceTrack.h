@@ -91,7 +91,7 @@ class AliHLTTPCGMSliceTrack
     fAlpha = t.fAlpha;
   }
 
-  bool FilterErrors( AliHLTTPCCAParam &param, float maxSinPhi =.999 );
+  bool FilterErrors( AliHLTTPCCAParam &param, float maxSinPhi = HLTCA_MAX_SIN_PHI );
 
   bool TransportToX( float x, float Bz, AliHLTTPCGMBorderTrack &b, float maxSinPhi, bool doCov = true ) const ;
 

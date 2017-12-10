@@ -301,7 +301,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
     for ( int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack() ) {
       AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
       track.Set( sliceTr, alpha, iSlice );
-      if( !track.FilterErrors( fSliceParam, .999 ) ) continue;
+      if( !track.FilterErrors( fSliceParam, HLTCA_MAX_SIN_PHI ) ) continue;
       if (DEBUG) printf("Slice %d, Track %d, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs());
       track.SetPrevNeighbour( -1 );
       track.SetNextNeighbour( -1 );
@@ -793,7 +793,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       mergedTrack.SetSide(p2.Slice() < 18);
 	  
 	  AliHLTTPCGMBorderTrack b;
-	  if (p2.TransportToX(cl[0].fX, fSliceParam.ConstBz(), b, 0.999, false))
+	  if (p2.TransportToX(cl[0].fX, fSliceParam.ConstBz(), b, HLTCA_MAX_SIN_PHI, false))
 	  {
 		  p1.X() = cl[0].fX;
 		  p1.Y() = b.Par()[0];

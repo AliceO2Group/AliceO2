@@ -90,7 +90,7 @@ private:
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
 : fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
-  fUseMeanMomentum(0), fContinuousTracking(0), fFitInProjections(1), fMaxSinPhi(.999)
+  fUseMeanMomentum(0), fContinuousTracking(0), fFitInProjections(1), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
 {
 }
 

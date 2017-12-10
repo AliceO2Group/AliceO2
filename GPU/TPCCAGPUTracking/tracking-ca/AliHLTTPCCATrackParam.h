@@ -102,20 +102,20 @@ MEM_CLASS_PRE() class AliHLTTPCCATrackParam
     GPUd() void GetDCAPoint( float x, float y, float z,
                              float &px, float &py, float &pz, float Bz  ) const;
 
-    GPUd() bool TransportToX( float x, float Bz, float maxSinPhi = .999 );
-    GPUd() bool TransportToXWithMaterial( float x, float Bz, float maxSinPhi = .999 );
+    GPUd() bool TransportToX( float x, float Bz, float maxSinPhi = HLTCA_MAX_SIN_PHI );
+    GPUd() bool TransportToXWithMaterial( float x, float Bz, float maxSinPhi = HLTCA_MAX_SIN_PHI );
 
     GPUd() bool  TransportToX( float x, AliHLTTPCCATrackLinearisation &t0,
-                               float Bz,  float maxSinPhi = .999, float *DL = 0 );
+                               float Bz,  float maxSinPhi = HLTCA_MAX_SIN_PHI, float *DL = 0 );
 
-    GPUd() bool  TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi = .999 );
+    GPUd() bool  TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi = HLTCA_MAX_SIN_PHI );
 
 
     GPUd() bool  TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &t0,
-                                           AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
+                                           AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = HLTCA_MAX_SIN_PHI );
 
     GPUd() bool  TransportToXWithMaterial( float x,
-                                           AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
+                                           AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = HLTCA_MAX_SIN_PHI );
 
     GPUd() static float ApproximateBetheBloch( float beta2 );
     GPUd() static float BetheBlochGeant( float bg,
@@ -131,9 +131,9 @@ MEM_CLASS_PRE() class AliHLTTPCCATrackParam
     GPUd() void CalculateFitParameters( AliHLTTPCCATrackFitParam &par, float mass = 0.13957 );
     GPUd() bool CorrectForMeanMaterial( float xOverX0,  float xTimesRho, const AliHLTTPCCATrackFitParam &par );
 
-    GPUd() bool Rotate( float alpha, float maxSinPhi = .999 );
-    GPUd() bool Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi = .999 );
-    GPUd() bool Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi = .999, bool paramOnly = false );
+    GPUd() bool Rotate( float alpha, float maxSinPhi = HLTCA_MAX_SIN_PHI );
+    GPUd() bool Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi = HLTCA_MAX_SIN_PHI );
+    GPUd() bool Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi = HLTCA_MAX_SIN_PHI, bool paramOnly = false );
 
     GPUd() bool CheckNumericalQuality() const;
 
