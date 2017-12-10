@@ -74,6 +74,7 @@ AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", 
 AddOption(fpe, bool, true, "fpe", 0, "Trap on floating point exceptions")
 AddOption(solenoidBz, float, -1e6f, "solenoidBz", 0, "Field strength of solenoid Bz in kGaus")
 AddOption(constBz, bool, false, "constBz", 0, "Force constand Bz")
+AddOption(referenceX, float, 500.f, "referenceX", 0, "Reference X position to transport track to after fit")
 AddOptionVec(gpuOptions, tupleGpuOpt, "gpuOpt", 0, "Options for GPU tracker")
 AddOption(printSettings, bool, false, "printSettings", 0, "Print all settings")
 AddHelp("help", 'h')
