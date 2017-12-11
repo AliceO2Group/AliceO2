@@ -47,7 +47,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       Inputs{},
       {
         OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
-        OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
+//        OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm
@@ -56,7 +56,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     parallelSize,
     [](DataProcessorSpec &spec, size_t index) {
       spec.outputs[0].subSpec = index;
-      spec.outputs[1].subSpec = index;
+//      spec.outputs[1].subSpec = index;
     }
   );
 
@@ -65,11 +65,11 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       "processingStage",
       Inputs{
         {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe},
-        {"dataITS", "ITS", "CLUSTERS", InputSpec::Timeframe}
+//        {"dataITS", "ITS", "CLUSTERS", InputSpec::Timeframe}
       },
       Outputs{
         {"TPC", "CLUSTERS_P", OutputSpec::Timeframe},
-        {"ITS", "CLUSTERS_P", OutputSpec::Timeframe}
+//        {"ITS", "CLUSTERS_P", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
         //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
@@ -79,9 +79,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     parallelSize,
     [](DataProcessorSpec &spec, size_t index) {
       spec.inputs[0].subSpec = index;
-      spec.inputs[1].subSpec = index;
+//      spec.inputs[1].subSpec = index;
       spec.outputs[0].subSpec = index;
-      spec.outputs[1].subSpec = index;
+//      spec.outputs[1].subSpec = index;
     }
   );
 
@@ -94,15 +94,15 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     }
   );
 
-  auto itsInputsSink = mergeInputs(
-    {"dataITS-proc", "ITS", "CLUSTERS_P", InputSpec::Timeframe},
-    parallelSize,
-    [](InputSpec &input, size_t index) {
-      input.subSpec = index;
-    }
-  );
-
-  inputsSink.insert(std::end(inputsSink), std::begin(itsInputsSink), std::end(itsInputsSink));
+//  auto itsInputsSink = mergeInputs(
+//    {"dataITS-proc", "ITS", "CLUSTERS_P", InputSpec::Timeframe},
+//    parallelSize,
+//    [](InputSpec &input, size_t index) {
+//      input.subSpec = index;
+//    }
+//  );
+//
+//  inputsSink.insert(std::end(inputsSink), std::begin(itsInputsSink), std::end(itsInputsSink));
 
   DataProcessorSpec sink{
     "sink",
@@ -114,8 +114,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   };
 
 
-  DataProcessorSpec qcTaskTpc{
-    "qcTaskTpc",
+  DataProcessorSpec simpleQcTask{
+    "simpleQcTask",
     Inputs{
       {"TPC_CLUSTERS_S", "TPC", "CLUSTERS_S", 0, InputSpec::Timeframe},
       {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
@@ -140,7 +140,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
           }
         }
 
-        LOG(INFO) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
+        LOG(INFO) << "simpleQcTask - received data is " << (dataGood ? "correct" : "wrong");
       }
     }
   };
@@ -148,7 +148,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   specs.swap(dataProducers);
   specs.insert(std::end(specs), std::begin(processingStages), std::end(processingStages));
   specs.push_back(sink);
-  specs.push_back(qcTaskTpc);
+  specs.push_back(simpleQcTask);
 
   //todo: get qcTasks list
 
@@ -178,16 +178,16 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
     i++;
   }
 
-  auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", index}, collectionChunkSize);
-  i = 0;
-  for (auto &cluster : itsClusters) {
-    assert(i < collectionChunkSize);
-    cluster.x = index;
-    cluster.y = i;
-    cluster.z = i;
-    cluster.q = rand() % 10;
-    i++;
-  }
+//  auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", index}, collectionChunkSize);
+//  i = 0;
+//  for (auto &cluster : itsClusters) {
+//    assert(i < collectionChunkSize);
+//    cluster.x = index;
+//    cluster.y = i;
+//    cluster.z = i;
+//    cluster.q = rand() % 10;
+//    i++;
+//  }
 }
 
 
@@ -196,10 +196,10 @@ void someProcessingStageAlgorithm (ProcessingContext &ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC").payload);
-  const FakeCluster *inputDataIts = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataITS").payload);
+//  const FakeCluster *inputDataIts = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataITS").payload);
 
   auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index}, collectionChunkSize);
-  auto processedItsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS_P", index}, collectionChunkSize);
+//  auto processedItsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS_P", index}, collectionChunkSize);
 
   int i = 0;
   for(auto& cluster : processedTpcClusters){
@@ -211,15 +211,15 @@ void someProcessingStageAlgorithm (ProcessingContext &ctx)
     i++;
   }
 
-  i = 0;
-  for(auto& cluster : processedItsClusters){
-    assert( i < collectionChunkSize);
-    cluster.x = -inputDataIts[i].x;
-    cluster.y = 2*inputDataIts[i].y;
-    cluster.z = inputDataIts[i].z * inputDataIts[i].q;
-    cluster.q = inputDataIts[i].q;
-    i++;
-  }
+//  i = 0;
+//  for(auto& cluster : processedItsClusters){
+//    assert( i < collectionChunkSize);
+//    cluster.x = -inputDataIts[i].x;
+//    cluster.y = 2*inputDataIts[i].y;
+//    cluster.z = inputDataIts[i].z * inputDataIts[i].q;
+//    cluster.q = inputDataIts[i].q;
+//    i++;
+//  }
 
 };
 
