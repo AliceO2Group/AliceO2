@@ -516,14 +516,14 @@ The `rawDeviceSource` takes four arguments:
     rawDeviceSource("foreign-source",
                     {outspec},
                     "type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
-                    o2DMAdaptor(outspec, 0, 1)
+                    o2DataModelAdaptor(outspec, 0, 1)
                    ),
 
 the first one is the usual `DataProcessorSpec` name, the second one is a list
 of outputs which we will create from the non-DPL device, the third one is a
 string to connect to the existing topology and a the fourth one is a function
 of the kind `o2::framework::InjectorFunction` which does the actual conversion.
-In this particular case we use the `o2DMAdaptor()` helper to create such an
+In this particular case we use the `o2DataModelAdaptor()` helper to create such an
 translation function since we know that our input is already respecting the O2
 Data Model and most of the heavylifing can be done automatically.
 

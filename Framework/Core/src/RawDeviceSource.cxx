@@ -51,19 +51,17 @@ void broadcastMessage(FairMQDevice &device, o2::Header::Stack &&headerStack, Fai
 }
 
 // FIXME: should I filter out only the output specs which match?
-InjectorFunction o2DMAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step) {
+InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step) {
   auto timesliceId = std::make_shared<size_t>(startTime);
   return [timesliceId, step](FairMQDevice &device, FairMQParts &parts, int index) {
     for (size_t i = 0; i < parts.Size()/2; ++i) {
       auto dh = o2::Header::get<DataHeader>(parts.At(i*2)->GetData());
 
-      LOG(DEBUG) << "timesliceId: " << *timesliceId;
       DataProcessingHeader dph{*timesliceId, 0};
       o2::Header::Stack headerStack{*dh, dph};
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(i*2+1)), index);
       auto oldTimesliceId = *timesliceId;
       *timesliceId += 1;
-      assert(*timesliceId == oldTimesliceId +1);
     }
   };
 }

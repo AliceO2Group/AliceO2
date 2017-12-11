@@ -30,7 +30,7 @@ namespace framework {
   /// (header, payload) structure for their output. At the moment what this /
   /// does is to add a DataProcessingHeader. In the future, it will hopefully not
   /// be required.
-  InjectorFunction o2DMAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step);
+  InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step);
 
   /// The default connection method for the custom source
   static char const* gDefaultCustomChannelConfig = "type=sub,method=connect,address=tcp://localhost:10000,rateLogging=1";
