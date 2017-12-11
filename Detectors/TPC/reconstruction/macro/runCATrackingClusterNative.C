@@ -20,6 +20,8 @@
 #include "TChain.h"
 #include "TClonesArray.h"
 
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/TPCCATracking.h"
@@ -30,20 +32,26 @@
 
 using namespace o2::TPC;
 using namespace o2::DataFormat::TPC;
+using namespace o2;
+using namespace o2::dataformats;
 using namespace std;
+
+using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 //This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg TClonesArray of clusters.
 //It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
 void runCATrackingClusterNative(TString inputFile, TString outputFile, TString options="") {
   gSystem->Load("libTPCReconstruction.so");
   TPCCATracking tracker;
-  vector<TrackTPC> tracks;
+  
   if (tracker.initialize(options.Data())) {
     printf("Error initializing tracker\n");
     return;
   }
 
   std::vector<ClusterNativeContainer> cont;
+  std::vector<MCLabelContainer> contMC;
+  bool doMC = true;
 
   TFile fin(inputFile);
   for (int i = 0;i < Constants::MAXSECTOR;i++)
@@ -52,21 +60,35 @@ void runCATrackingClusterNative(TString inputFile, TString outputFile, TString o
     {
       TString contName = Form("clusters_sector_%d_row_%d", i, j);
       TObject* tmp = fin.FindObjectAny(contName);
-      if (tmp == nullptr) printf("Error reading clusters %s\n", contName.Data());
-      else cont.push_back(*(ClusterNativeContainer*) tmp);
+      if (tmp == nullptr) {
+        printf("Error reading clusters %s\n", contName.Data());
+      } else {
+        cont.emplace_back(std::move(*(ClusterNativeContainer*) tmp));
+        tmp = fin.FindObjectAny(Form("clustersMCTruth_sector_%d_row_%d", i, j));
+
+        if (tmp == nullptr) {
+          printf("Error, clustersMCTruth missing or clusters and clustersMCtruth out of sync! Disabling MC data\n");
+          doMC = false;
+        } else {
+          contMC.emplace_back(std::move(*(MCLabelContainer*) tmp));
+        }
+      }
     }
   }
   fin.Close();
 
-  std::unique_ptr<ClusterNativeAccessFullTPC> clusters = TPCClusterFormatHelper::accessNativeContainerArray(cont);
+  std::unique_ptr<ClusterNativeAccessFullTPC> clusters = TPCClusterFormatHelper::accessNativeContainerArray(cont, doMC ? &contMC : nullptr);
+
+  vector<TrackTPC> tracks;
+  MCLabelContainer tracksMC;
 
   TFile fout(outputFile, "recreate");
   TTree tout("events","events");
   tout.Branch("Tracks", &tracks);
+  tout.Branch("TracksMCTruth", &tracksMC);
 
-  tracks.clear();
   printf("Processing time frame\n");
-  if (tracker.runTracking(*clusters, &tracks) == 0)     {
+  if (tracker.runTracking(*clusters, &tracks, doMC ? &tracksMC : nullptr) == 0)     {
     printf("\tFound %d tracks\n", (int) tracks.size());
   } else {
     printf("\tError during tracking\n");

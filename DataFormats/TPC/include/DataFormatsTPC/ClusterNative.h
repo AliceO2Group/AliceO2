@@ -17,6 +17,8 @@
 #include <vector>
 #include "TPCBase/Constants.h"
 
+namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
+
 namespace o2 { namespace DataFormat { namespace TPC {
 
 struct ClusterNative {
@@ -63,6 +65,7 @@ struct ClusterNativeAccessFullTPC
 {
   ClusterNative* mClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
   unsigned int mNClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClustersMCTruth[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
 };
 
 }}}

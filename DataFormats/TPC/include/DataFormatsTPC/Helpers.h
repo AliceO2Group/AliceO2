@@ -18,6 +18,8 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include <memory>
 
+namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
+
 namespace o2 { namespace DataFormat { namespace TPC{
 
 class TPCClusterFormatHelper
@@ -25,7 +27,7 @@ class TPCClusterFormatHelper
 public:
   //Helper function to create a ClusterNativeAccessFullTPC structure from a std::vector of ClusterNative containers
   //This is not contained in the ClusterNative class itself to reduce the dependencies of the class
-  static std::unique_ptr<ClusterNativeAccessFullTPC> accessNativeContainerArray(std::vector<ClusterNativeContainer>& clusters);
+  static std::unique_ptr<ClusterNativeAccessFullTPC> accessNativeContainerArray(std::vector<ClusterNativeContainer>& clusters, std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcTruth = nullptr);
     
 };
 

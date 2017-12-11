@@ -18,6 +18,8 @@
 #include "TFile.h"
 #include "TString.h"
 
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/Cluster.h"
@@ -27,7 +29,11 @@
 
 using namespace o2::TPC;
 using namespace o2::DataFormat::TPC;
+using namespace o2;
+using namespace o2::dataformats;
 using namespace std;
+
+using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 void convertClusterToClusterHardware(TString infile = "o2clus.root", TString outfile = "clusterHardware.root") {
   gSystem->Load("libTPCReconstruction.so");
@@ -35,17 +41,21 @@ void convertClusterToClusterHardware(TString infile = "o2clus.root", TString out
   ClusterHardwareContainer8kb clusterContainerMemory;
   int maxClustersPerContainer = clusterContainerMemory.getMaxNumberOfClusters();
   ClusterHardwareContainer& clusterContainer = *clusterContainerMemory.getContainer();
+  MCLabelContainer outMCLabels;
 
   TChain c("o2sim");
   c.AddFile(infile);
   std::vector<o2::TPC::Cluster>* inClusters = nullptr;
   c.SetBranchAddress("TPCClusterHW", &inClusters);
+  MCLabelContainer* inMCLabels = nullptr;
+  c.SetBranchAddress("TPCClusterHWMCTruth", &inMCLabels);
 
   TFile fout(outfile, "recreate");
   TTree tout("clustersHardware","clustersHardware");
   tout.Branch("clusters", &clusterContainerMemory);
+  tout.Branch("clustersMCTruth", &outMCLabels);
 
-  int nClusters = 0, nContainers = 0;
+  int nClusters = 0, nContainers = 0, nMCLabels = 0;
 
   const int nentries = c.GetEntries();
   for (int iEvent=0;iEvent < nentries;iEvent++) {
@@ -64,6 +74,7 @@ void convertClusterToClusterHardware(TString infile = "o2clus.root", TString out
         if ((*inClusters)[icluster].getTimeMean() < clusterContainer.mTimeBinOffset) clusterContainer.mTimeBinOffset = (*inClusters)[icluster].getTimeMean();
       }
       
+      outMCLabels.clear();
       for (unsigned int icluster = 0;icluster < clusterContainer.mNumberOfClusters;icluster++) {
         const auto& cluster = (*inClusters)[iCurrentCluster + icluster];
         
@@ -84,6 +95,11 @@ void convertClusterToClusterHardware(TString infile = "o2clus.root", TString out
         oCluster.mSigmaTime2Pre = cluster.getTimeSigma() * cluster.getTimeSigma() * oCluster.mQTot * oCluster.mQTot + oCluster.mTimePre * oCluster.mTimePre;
         oCluster.mRow = cluster.getRow();
         oCluster.mFlags = 0;
+        gsl::span<const MCCompLabel> mcArray = inMCLabels->getLabels(iCurrentCluster + icluster);
+        for (int k = 0;k < mcArray.size();k++) {
+          outMCLabels.addElement(icluster, mcArray[k]);
+          nMCLabels++;
+        }
       }
       iCurrentCluster += clusterContainer.mNumberOfClusters;
       nClusters += clusterContainer.mNumberOfClusters;
@@ -94,5 +110,5 @@ void convertClusterToClusterHardware(TString infile = "o2clus.root", TString out
   tout.Write();
   fout.Close();
   
-  printf("Wrote %d clusters, %d containers\n", nClusters, nContainers);
+  printf("Wrote %d clusters, %d containers, %d MC labels\n", nClusters, nContainers, nMCLabels);
 }

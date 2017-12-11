@@ -26,6 +26,8 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/Sector.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 //The AliHLTTPCCAO2Interface.h needs certain macro definitions.
 //The AliHLTTPCCAO2Interface will only be included once here, all O2 TPC tracking will run through this TPCCATracking class.
@@ -38,6 +40,10 @@
 
 using namespace o2::TPC;
 using namespace o2::DataFormat::TPC;
+using namespace o2;
+using namespace o2::dataformats;
+
+using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 TPCCATracking::TPCCATracking() : mTrackingCAO2Interface(), mClusterData_UPTR(), mClusterData(nullptr) {
 }
@@ -131,7 +137,7 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
   return(0);
 }
 
-int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks) {
+int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks, MCLabelContainer* outputTracksMCTruth) {
   const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterElectronics &elParam = ParameterElectronics::defaultInstance();
@@ -242,6 +248,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         oTrack.setTime0(sContinuousTFReferenceLength - (tracks[i].Side() ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth() * gasParam.getVdrift()));
       oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset());
       oTrack.resetClusterReferences(tracks[i].NClusters());
+      std::vector<std::pair<MCCompLabel, unsigned int>> labels;
       for (int j = 0; j < tracks[i].NClusters(); j++) {
         int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].fId;
         Sector sector = clusterId >> 24;
@@ -253,6 +260,34 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         CRU cru(sector, regionNumber);
         oTrack.addCluster(Cluster(cru, globalRow - mapper.getGlobalRowOffsetRegion(regionNumber), cl.mQTot, cl.mQMax, cl.getPad(), cl.getSigmaPad(), cl.getTime(), cl.getSigmaTime()));
         oTrack.setClusterReference(j, sector, globalRow, clusterId);
+        if (outputTracksMCTruth) {
+          gsl::span<const MCCompLabel> mcArray = clusters.mClustersMCTruth[sector][globalRow]->getLabels(clusterId);
+          for (int k = 0;k < mcArray.size();k++) {
+            bool found = false;
+            for (int l = 0;l < labels.size();l++) {
+              if (labels[l].first == mcArray[k]) {
+                labels[l].second++;
+                found = true;
+                break;
+              }
+            }
+            if (!found) labels.emplace_back(mcArray[k], 1);
+          }
+        }
+      }
+      if (outputTracksMCTruth)
+      {
+        int bestLabelNum = 0, bestLabelCount = 0;
+        for (int j = 0;j < labels.size();j++) {
+          if (labels[j].second > bestLabelCount)
+          {
+            bestLabelNum = j;
+            bestLabelCount = labels[j].second;
+          }
+        }
+        MCCompLabel& bestLabel = labels[bestLabelNum].first;
+        if (bestLabelCount < sTrackMCMaxFake * tracks[i].NClusters()) bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
+        outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
       int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24;
       oTrack.setSide((Side) tracks[i].Side());

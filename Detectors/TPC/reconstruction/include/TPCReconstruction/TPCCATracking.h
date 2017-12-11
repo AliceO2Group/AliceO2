@@ -22,6 +22,8 @@ class TChain;
 class AliHLTTPCCAO2Interface;
 class AliHLTTPCCAClusterData;
 
+namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
+
 namespace o2 { namespace DataFormat { namespace TPC {
   class ClusterNative;
   class ClusterNativeAccessFullTPC;
@@ -46,7 +48,9 @@ public:
   int runTracking(const std::vector<Cluster>* inputClusters, std::vector<TrackTPC>* outputTracks) {return runTracking(nullptr, inputClusters, outputTracks);}
   int runTracking(TChain* inputClusters, std::vector<TrackTPC>* outputTracks) {return runTracking(inputClusters, nullptr, outputTracks);}
   
-  int runTracking(const o2::DataFormat::TPC::ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks);
+  
+  //Input: cluster structure, possibly including MC labels, pointers to std::vectors for tracks and track MC labels. outputTracksMCTruth may be nullptr to indicate missing cluster MC labels. Otherwise, cluster MC labels are assumed to be present.
+  int runTracking(const o2::DataFormat::TPC::ClusterNativeAccessFullTPC& clusters, std::vector<TrackTPC>* outputTracks, o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr);
   
   int convertClusters(const std::vector<Cluster>* inputClusters, o2::DataFormat::TPC::ClusterNativeAccessFullTPC& outputClusters, std::unique_ptr<o2::DataFormat::TPC::ClusterNative[]>& clusterMemory) {return convertClusters(nullptr, inputClusters, outputClusters, clusterMemory);}
   int convertClusters(TChain* inputClusters, o2::DataFormat::TPC::ClusterNativeAccessFullTPC& outputClusters, std::unique_ptr<o2::DataFormat::TPC::ClusterNative[]>& clusterMemory) {return convertClusters(inputClusters, nullptr, outputClusters, clusterMemory);}
@@ -69,6 +73,7 @@ private:
   TPCCATracking& operator=(const TPCCATracking&) = delete; // Disable assignment
   
   static constexpr float sContinuousTFReferenceLength = 0.023 * 5e6;
+  static constexpr float sTrackMCMaxFake = 0.1;
   int mNTracksASide = 0;
 };
 
