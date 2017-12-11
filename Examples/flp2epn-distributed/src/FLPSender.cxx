@@ -105,7 +105,7 @@ void FLPSender::Run()
 
     if (mTestMode > 0) {
       // test-mode: initialize and store data part in the buffer.
-      parts.At(1)->Copy(baseMsg);
+      parts.At(1)->Copy(*baseMsg);
       mSTFBuffer.push(move(parts));
     } else {
       // regular mode: receive data part from input
