@@ -1634,3 +1634,11 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/src
 )
+
+o2_define_bucket(
+    NAME
+    mid_testingSimTools_bucket
+
+    DEPENDENCIES
+    MIDBase
+)
