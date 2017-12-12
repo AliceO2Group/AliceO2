@@ -113,7 +113,7 @@ DataProcessorSpec rawDeviceSource(char const *name,
       };
 
       device->OnData(channel, handler);
-      return [](ProcessingContext &ctx) {};
+      return [](ProcessingContext &) {};
     }
   };
   /// Because of the way FairMQ works, the only hook to create the custom channel
