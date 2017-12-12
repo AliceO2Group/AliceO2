@@ -26,14 +26,13 @@
 #endif
 
 using namespace o2::TPC;
-using namespace o2::DataFormat::TPC;
 using namespace std;
 
-void runHardwareClusterDecoderRaw(int tf = 0) {
-  gSystem->Load("libTPCReconstruction.so");
+int runHardwareClusterDecoderRaw(TString outfile = "", int tf = 0) {
+  if (outfile.EqualTo("")) {printf("Filename missing\n");return(1);}
   HardwareClusterDecoder decoder;
 
-  TFile file("clustersNative.root", "recreate");
+  TFile file(outfile, "recreate");
   int nClustersTotal = 0;
   for (int iCRU = 0;iCRU < CRU::MaxCRU;iCRU++)
   {

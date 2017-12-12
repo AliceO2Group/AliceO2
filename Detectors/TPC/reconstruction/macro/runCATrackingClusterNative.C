@@ -30,9 +30,9 @@
 #include "TPCBase/Constants.h" 
 #endif
 
-using namespace o2::TPC;
-using namespace o2::DataFormat::TPC;
 using namespace o2;
+using namespace o2::DataFormat::TPC;
+using namespace o2::TPC;
 using namespace o2::dataformats;
 using namespace std;
 
@@ -40,13 +40,13 @@ using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 //This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg TClonesArray of clusters.
 //It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
-void runCATrackingClusterNative(TString inputFile, TString outputFile, TString options="") {
-  gSystem->Load("libTPCReconstruction.so");
+int runCATrackingClusterNative(TString inputFile="", TString outputFile="", TString options="") {
+  if (inputFile.EqualTo("") || outputFile.EqualTo("")) {printf("Filename missing\n");return(1);}
   TPCCATracking tracker;
   
   if (tracker.initialize(options.Data())) {
     printf("Error initializing tracker\n");
-    return;
+    return(0);
   }
 
   std::vector<ClusterNativeContainer> cont;
@@ -125,4 +125,5 @@ void runCATrackingClusterNative(TString inputFile, TString outputFile, TString o
   fout.Close();
   
   tracker.deinitialize();
+  return(0);
 }

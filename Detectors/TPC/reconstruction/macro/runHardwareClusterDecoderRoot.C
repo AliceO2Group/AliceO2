@@ -29,16 +29,16 @@
 #include "TPCBase/CRU.h"
 #endif
 
-using namespace o2::TPC;
-using namespace o2::DataFormat::TPC;
 using namespace o2;
+using namespace o2::DataFormat::TPC;
+using namespace o2::TPC;
 using namespace o2::dataformats;
 using namespace std;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-void runHardwareClusterDecoderRoot(TString infile = "clusterHardware.root", TString outfile = "clusterNative.root") {
-  gSystem->Load("libTPCReconstruction.so");
+int runHardwareClusterDecoderRoot(TString infile = "", TString outfile = "") {
+  if (infile.EqualTo("") || outfile.EqualTo("")) {printf("Filename missing\n");return(1);}
   HardwareClusterDecoder decoder;
 
   ClusterHardwareContainer8kb* clusterContainerMemory = nullptr;
@@ -51,7 +51,7 @@ void runHardwareClusterDecoderRoot(TString infile = "clusterHardware.root", TStr
 
   TFile fin(infile);
   TTree* tin = (TTree*) fin.FindObjectAny("clustersHardware");
-  if (tin == NULL) {printf("Error reading input\n"); return;}
+  if (tin == NULL) {printf("Error reading input\n"); return(1);}
   tin->SetBranchAddress("clusters", &clusterContainerMemory);
   tin->SetBranchAddress("clustersMCTruth", &inMCLabels);
   
@@ -82,4 +82,5 @@ void runHardwareClusterDecoderRoot(TString infile = "clusterHardware.root", TStr
 
   printf("Total clusters: %d\n", nClustersTotal);
   fout.Close();
+  return(0);
 }

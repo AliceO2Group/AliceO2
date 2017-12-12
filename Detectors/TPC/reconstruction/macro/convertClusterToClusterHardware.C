@@ -27,17 +27,16 @@
 #include "TPCBase/CRU.h"
 #endif
 
-using namespace o2::TPC;
-using namespace o2::DataFormat::TPC;
 using namespace o2;
+using namespace o2::DataFormat::TPC;
+using namespace o2::TPC;
 using namespace o2::dataformats;
 using namespace std;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-void convertClusterToClusterHardware(TString infile = "o2clus.root", TString outfile = "clusterHardware.root") {
-  gSystem->Load("libTPCReconstruction.so");
-  
+int convertClusterToClusterHardware(TString infile = "", TString outfile = "") {
+  if (infile.EqualTo("") || outfile.EqualTo("")) {printf("Filename missing\n");return(1);}
   ClusterHardwareContainer8kb clusterContainerMemory;
   int maxClustersPerContainer = clusterContainerMemory.getMaxNumberOfClusters();
   ClusterHardwareContainer& clusterContainer = *clusterContainerMemory.getContainer();
@@ -111,4 +110,5 @@ void convertClusterToClusterHardware(TString infile = "o2clus.root", TString out
   fout.Close();
   
   printf("Wrote %d clusters, %d containers, %d MC labels\n", nClusters, nContainers, nMCLabels);
+  return(0);
 }
