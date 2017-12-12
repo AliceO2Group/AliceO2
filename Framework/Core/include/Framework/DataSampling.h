@@ -25,35 +25,34 @@
 namespace o2 {
 namespace framework {
 
-namespace DataSampling {
+class DataSampling {
+  public:
+    DataSampling() = delete;
 
+    static void GenerateInfrastructure(WorkflowSpec &workflow,
+                                       const std::string &configurationSource,
+                                       const std::vector<std::string> &taskNames);
 
-//wip: Function that takes DataProcessorSpec (or different specification) of QC Tasks, filtering function, % of data
-//wip: and returns DataProcessorSpec vector of DataSamplers.
-//wip: It may have different versions of DataSamplers topology, for test purposes.
+  private:
+    struct BernoulliGenerator {
+        std::default_random_engine generator;
+        std::bernoulli_distribution distribution;
 
-void GenerateDataSamplers(WorkflowSpec& workflow, const std::string& configurationSource, const std::vector<std::string>& taskNames);
+        BernoulliGenerator(double probabilityOfTrue) :
+          generator(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())),
+          distribution(probabilityOfTrue)
+        {};
+        bool drawLots() {
+          return distribution(generator);
+        }
+    };
 
+    static AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
+    static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
 
-struct BernoulliGenerator {
-  std::default_random_engine generator;
-  std::bernoulli_distribution distribution;
-//  double probabilityOfTrue; //between 0 and 1
-
-  BernoulliGenerator(double probabiltyOfTrue) :
-      generator(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())),
-      distribution(probabiltyOfTrue)
-  {};
-
-  bool drawLots() {
-    return distribution(generator);
-  }
+    static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);
 };
 
-AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
-void processCallback(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenerator);
-
-} //namespace DataSampling
 
 } //namespace framework
 } //namespace o2

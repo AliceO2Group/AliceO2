@@ -24,63 +24,16 @@ using namespace AliceO2::Configuration;
 namespace o2 {
 namespace framework {
 
-namespace DataSampling {
-
-AlgorithmSpec::ProcessCallback initCallback(InitContext &ctx)
-{
-  BernoulliGenerator conf(0);
-  return [conf](o2::framework::ProcessingContext& pCtx) mutable {
-    o2::framework::DataSampling::processCallback(pCtx, conf);
-  };
-}
-
-//todo: root objects support
-//todo: parallel sources support
-//todo: optimisation
-void processCallback(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenerator)
-{
-  InputRecord& inputs = ctx.inputs();
-
-  if (bernoulliGenerator.drawLots()){
-    for(auto& input : inputs){
-
-      const InputSpec* inputSpec = input.spec;
-      o2::Header::DataDescription outputDescription = inputSpec->description;
-
-      //todo: better sampled data flagging
-      size_t len = strlen(outputDescription.str);
-      if (len < outputDescription.size-2){
-        outputDescription.str[len] = '_';
-        outputDescription.str[len+1] = 'S';
-      }
-
-      OutputSpec outputSpec{inputSpec->origin,
-                            outputDescription,
-                            0,
-                            static_cast<OutputSpec::Lifetime>(inputSpec->lifetime)};
-
-      LOG(DEBUG) << "DataSampler sends data from subspec " << inputSpec->subSpec;
-
-      const auto *inputHeader = o2::Header::get<o2::Header::DataHeader>(input.header);
-      auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
-
-      //todo: use some std function or adopt(), when it is available for POD data
-      const char* input_ptr = input.payload;
-      for (char &it : output) {
-        it = *input_ptr++;
-      }
-    }
-  }
-}
-
 
 //todo: improve readability
-void GenerateDataSamplers(WorkflowSpec& workflow, const std::string& configurationSource, const std::vector<std::string>& taskNames)
+void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
+                                          const std::string &configurationSource,
+                                          const std::vector<std::string> &taskNames)
 {
   auto configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
   for (auto&& taskName : taskNames) {
-    DataProcessorSpec dataSampler;
+    DataProcessorSpec dispatcher;
     std::string taskInputsNames;
     double fractionOfDataToSample = 0;
 
@@ -105,16 +58,16 @@ void GenerateDataSamplers(WorkflowSpec& workflow, const std::string& configurati
     boost::split(taskInputsSplit, taskInputsNames, boost::is_any_of(","));
 
     for (auto &&input : taskInputsSplit) {
-      InputSpec inputSpec{std::string(), 0, 0, 0, InputSpec::Timeframe};
 
+      InputSpec dispatcherInput;
       try {
-        inputSpec.binding = configFile->getString(input + "/inputName").value();
+        dispatcherInput.binding = configFile->getString(input + "/inputName").value();
 
         std::string origin = configFile->getString(input + "/dataOrigin").value();
-        origin.copy(inputSpec.origin.str, (size_t) inputSpec.origin.size);
+        origin.copy(dispatcherInput.origin.str, (size_t) dispatcherInput.origin.size);
 
         std::string description = configFile->getString(input + "/dataDescription").value();
-        description.copy(inputSpec.description.str, (size_t) inputSpec.description.size);
+        description.copy(dispatcherInput.description.str, (size_t) dispatcherInput.description.size);
 
       } catch (const boost::bad_optional_access &) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
@@ -123,47 +76,83 @@ void GenerateDataSamplers(WorkflowSpec& workflow, const std::string& configurati
       }
 
       for (auto&& dataProcessor : workflow) {
-        for (auto && output : dataProcessor.outputs) {
-          if (output.origin == inputSpec.origin && output.description == inputSpec.description) {
-            inputSpec.subSpec = output.subSpec;
-            dataSampler.inputs.push_back(inputSpec);
+        for (auto && externalOutput : dataProcessor.outputs) {
+          if (externalOutput.origin == dispatcherInput.origin &&
+              externalOutput.description == dispatcherInput.description) {
+            dispatcherInput.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
+            dispatcherInput.subSpec = externalOutput.subSpec;
+            dispatcher.inputs.push_back(dispatcherInput);
           }
         }
       }
 
-      OutputSpec output{
-        inputSpec.origin,
-        inputSpec.description,
-        0,
-        static_cast<OutputSpec::Lifetime>(inputSpec.lifetime)
-      };
-
-      //todo: find better way of flagging sampled data
-      //todo: case - two qcTasks have the same input, but with different % sampled
-      size_t len = strlen(output.description.str);
-      if (len < output.description.size-2) {
-        output.description.str[len] = '_';
-        output.description.str[len+1] = 'S';
-      }
-
-      dataSampler.outputs.push_back(output);
+      dispatcher.outputs.emplace_back(createDispatcherOutputSpec(dispatcherInput));
     }
 
     BernoulliGenerator bernoulliGenerator(fractionOfDataToSample);
 
-    dataSampler.name = "Dispatcher for " + taskName;
-    dataSampler.algorithm = AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [bernoulliGenerator](ProcessingContext &ctx) mutable {
-//        bernoulliGenerator.fractionOfDataToSample = 1;
-        DataSampling::processCallback(ctx, bernoulliGenerator);
+    dispatcher.name = "Dispatcher_for_" + taskName;
+    dispatcher.algorithm = AlgorithmSpec{
+      (AlgorithmSpec::ProcessCallback) [bernoulliGenerator](ProcessingContext& ctx) mutable {
+        DataSampling::dispatcherCallback(ctx, bernoulliGenerator);
       }
     };
 
-    workflow.push_back(dataSampler);
+    workflow.push_back(dispatcher);
   }
 }
 
-} //namespace DataSampling
+AlgorithmSpec::ProcessCallback DataSampling::initCallback(InitContext &ctx)
+{
+  BernoulliGenerator generator(0);
+  return [generator](o2::framework::ProcessingContext& pCtx) mutable {
+    o2::framework::DataSampling::dispatcherCallback(pCtx, generator);
+  };
+}
+
+
+//todo: root objects support
+//todo: parallel sources support
+//todo: optimisation
+void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator)
+{
+  InputRecord& inputs = ctx.inputs();
+
+  if (bernoulliGenerator.drawLots()){
+    for(auto& input : inputs){
+
+      OutputSpec outputSpec = createDispatcherOutputSpec(*input.spec);
+
+      //todo: pass input to output instead of copying
+      const auto *inputHeader = o2::Header::get<o2::Header::DataHeader>(input.header);
+      auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
+      const char* input_ptr = input.payload;
+      for (char &it : output) {
+        it = *input_ptr++;
+      }
+
+      LOG(DEBUG) << "DataSampler sends data from subspec " << input.spec->subSpec;
+    }
+  }
+}
+
+OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherInput)
+{
+  OutputSpec dispatcherOutput{
+        dispatcherInput.origin,
+        dispatcherInput.description,
+        0,
+        static_cast<OutputSpec::Lifetime>(dispatcherInput.lifetime)
+      };
+
+  size_t len = strlen(dispatcherOutput.description.str);
+  if (len < dispatcherOutput.description.size-2) {
+        dispatcherOutput.description.str[len] = '_';
+        dispatcherOutput.description.str[len+1] = 'S';
+      }
+
+  return dispatcherOutput;
+}
 
 } //namespace framework
 } //namespace o2
