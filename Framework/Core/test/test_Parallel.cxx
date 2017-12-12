@@ -81,17 +81,14 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       input.subSpec = index;
     }
   );
-
-  auto itsInputsSink = mergeInputs(
-    {"dataITS-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
+  auto inputsTpcProc = mergeInputs(
+    {"dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
     parallelSize,
     [](InputSpec &input, size_t index) {
       input.subSpec = index;
     }
   );
-
-  inputsDataSampler.insert(std::end(inputsDataSampler), std::begin(itsInputsSink), std::end(itsInputsSink));
-
+  inputsDataSampler.insert(std::end(inputsDataSampler), std::begin(inputsTpcProc), std::end(inputsTpcProc));
 
   auto dataSampler = DataProcessorSpec{
     "dataSampler",
