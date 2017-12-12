@@ -121,7 +121,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   //todo: get path as argument?
   std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/Core/test/exampleDataSamplerConfig.ini";
 
-  DataSampling::GenerateDataSamplers(specs, configurationSource, taskNames);
+  DataSampling::GenerateInfrastructure(specs, configurationSource, taskNames);
 }
 
 
