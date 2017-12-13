@@ -508,12 +508,12 @@ help of  a "proxy" data processor which  connects to the foreign  device, receiv
 inputs, optionally converts them to a format understood by the Data Processing
 Layer, and then pumps them to the right Data Processor Specs. In order to have
 such a device in your workflow, you can use the
-[`rawDeviceSource`][specifyExternalFairMQDeviceProxy] helper to instanciate it.
+[`specifyExternalFairMQDeviceProxy`][specifyExternalFairMQDeviceProxy] helper to instanciate it.
 For an example of how to use it you can look at
 [`Framework/TestWorkflows/src/test_RawDeviceInjector.cxx`][rawDeviceInjectorExample].
-The `rawDeviceSource` takes four arguments:
+The `specifyExternalFairMQDeviceProxy` takes four arguments:
 
-    rawDeviceSource("foreign-source",
+    specifyExternalFairMQDeviceProxy("foreign-source",
                     {outspec},
                     "type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
                     o2DataModelAdaptor(outspec, 0, 1)
