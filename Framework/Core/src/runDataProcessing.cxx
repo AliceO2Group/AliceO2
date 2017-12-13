@@ -25,6 +25,8 @@
 #include "Framework/LocalRootFileService.h"
 #include "Framework/TextControlService.h"
 #include "Framework/ParallelContext.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/SimpleRawDeviceService.h"
 
 #include "GraphvizHelpers.h"
 #include "DDSConfigHelpers.h"
@@ -254,6 +256,8 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
     serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
 
     std::unique_ptr<FairMQDevice> device;
+    serviceRegistry.registerService<RawDeviceService>(new SimpleRawDeviceService(nullptr));
+
     if (spec.inputs.empty()) {
       LOG(DEBUG) << spec.id << " is a source\n";
       device.reset(new DataSourceDevice(spec, serviceRegistry));
@@ -261,6 +265,8 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
       LOG(DEBUG) << spec.id << " is a processor\n";
       device.reset(new DataProcessingDevice(spec, serviceRegistry));
     }
+
+    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r){
       r.fDevice = std::shared_ptr<FairMQDevice>{std::move(device)};

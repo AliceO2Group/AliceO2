@@ -340,6 +340,13 @@ processing topology, you can use:
     ...
     auto ctx.services().get<ControlService>().readyToQuit(true) // In the DataProcessor lambda
 
+#### RawDeviceService
+
+This service allows you to get an hold of the `FairMQDevice` running the
+DataProcessor computation from with the computation itself. While in general
+this should not be used, it is handy in case you want to integrate with a
+pre-existing `FairMQDevice` which potentially does not even follow the O2 Data
+Model.
 
 ## Miscellaneous topics
 
@@ -487,6 +494,49 @@ The GUI provides the following facilities:
 - One log window  per DataProcessor, allowing filtering and  triggering on log
   messages
 - Metrics inspector
+
+### Integrating with pre-existing devices
+
+Given the Data Processing Layer comes somewhat later in the design of O2, it's
+possible that  you already  have some  topology of devices  which you  want to
+integrate, without having to port them  to the DPL itself. Alternatively, your
+devices might  not satisfy the requirements  of the Data Processing  Layer and
+therefore  require a  "raw" `FairMQDevice`,  fully customised  to your  needs.
+This  is fully  supported  and we  provide means  to  ingest foreign,  non-DPL
+FairMQDevices produced,  messages into a  DPL workflow.  This is done  via the
+help of  a "proxy" data processor which  connects to the foreign  device, receives its
+inputs, optionally converts them to a format understood by the Data Processing
+Layer, and then pumps them to the right Data Processor Specs. In order to have
+such a device in your workflow, you can use the
+[`specifyExternalFairMQDeviceProxy`][specifyExternalFairMQDeviceProxy] helper to instanciate it.
+For an example of how to use it you can look at
+[`Framework/TestWorkflows/src/test_RawDeviceInjector.cxx`][rawDeviceInjectorExample].
+The `specifyExternalFairMQDeviceProxy` takes four arguments:
+
+    specifyExternalFairMQDeviceProxy("foreign-source",
+                    {outspec},
+                    "type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
+                    o2DataModelAdaptor(outspec, 0, 1)
+                   ),
+
+the first one is the usual `DataProcessorSpec` name, the second one is a list
+of outputs which we will create from the non-DPL device, the third one is a
+string to connect to the existing topology and a the fourth one is a function
+of the kind `o2::framework::InjectorFunction` which does the actual conversion.
+In this particular case we use the `o2DataModelAdaptor()` helper to create such an
+translation function since we know that our input is already respecting the O2
+Data Model and most of the heavylifing can be done automatically.
+
+Sending out the results of a computation can be done in a similar manner. Use
+
+    ConfigParamSpec{"channel-config", VariantType::String, "<channel-configuration>", "Out-of-band channel config"}
+
+to create an out-of-band channel as specified in `channel-configuration` and
+then use the `RawDeviceService` to get the raw FairMQDevice and send data
+through such a channel.
+
+[specifyExternalFairMQDeviceProxy]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/include/Framework/ExternalFairMQDeviceProxy.h
+[rawDeviceInjectorExample]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/test_RawDeviceInjector.cxx
 
 ## Current Demonstrator (WIP)
 
