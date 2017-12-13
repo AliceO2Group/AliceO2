@@ -41,7 +41,10 @@ void fakePayload(std::vector<byte> &buffer, std::function<void(T&,int)> filler, 
   }
 }
 
-o2::Utilities::DataPublisherDevice::DataPublisherDevice()
+namespace o2 {
+namespace utilities {
+
+DataPublisherDevice::DataPublisherDevice()
   : O2Device()
   , mInputChannelName("input")
   , mOutputChannelName("output")
@@ -53,10 +56,10 @@ o2::Utilities::DataPublisherDevice::DataPublisherDevice()
 {
 }
 
-o2::Utilities::DataPublisherDevice::~DataPublisherDevice()
+DataPublisherDevice::~DataPublisherDevice()
 = default;
 
-void o2::Utilities::DataPublisherDevice::InitTask()
+void DataPublisherDevice::InitTask()
 {
   mInputChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
   mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
@@ -87,7 +90,7 @@ void o2::Utilities::DataPublisherDevice::InitTask()
   mSubSpecification = GetConfig()->GetValue<SubSpecificationT>(OptionKeySubspecification);
   mFileName = GetConfig()->GetValue<std::string>(OptionKeyFileName);
 
-  OnData(mInputChannelName.c_str(), &o2::Utilities::DataPublisherDevice::HandleData);
+  OnData(mInputChannelName.c_str(), &DataPublisherDevice::HandleData);
 
   // reserve space for the HBH at the beginning
   mFileBuffer.resize(sizeof(o2::Header::HeartbeatHeader));
@@ -117,17 +120,17 @@ void o2::Utilities::DataPublisherDevice::InitTask()
   *hbtOut = o2::Header::HeartbeatTrailer();
 }
 
-bool o2::Utilities::DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
+bool DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
 {
   ForEach(msgParts, &DataPublisherDevice::HandleO2LogicalBlock);
 
   return true;
 }
 
-bool o2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
-                                                                   size_t headerBufferSize,
-                                                                   const byte* dataBuffer,
-                                                                   size_t dataBufferSize)
+bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
+                                               size_t headerBufferSize,
+                                               const byte* dataBuffer,
+                                               size_t dataBufferSize)
 {
   //  AliceO2::Header::hexDump("data buffer", dataBuffer, dataBufferSize);
   const auto* dataHeader = o2::Header::get<o2::Header::DataHeader>(headerBuffer);
@@ -198,7 +201,7 @@ bool o2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* header
   return true;
 }
 
-bool o2::Utilities::DataPublisherDevice::AppendFile(const char* name, std::vector<byte>& buffer)
+bool DataPublisherDevice::AppendFile(const char* name, std::vector<byte>& buffer)
 {
   bool result = true;
   std::ifstream ifile(name, std::ifstream::binary);
@@ -223,3 +226,6 @@ bool o2::Utilities::DataPublisherDevice::AppendFile(const char* name, std::vecto
 
   return result;
 }
+
+} // namespace utilities
+} // namespace o2

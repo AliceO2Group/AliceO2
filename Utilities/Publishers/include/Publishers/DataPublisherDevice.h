@@ -27,7 +27,7 @@
 class FairMQParts;
 
 namespace o2 {
-namespace Utilities {
+namespace utilities {
 
 /// @class DataPublisherDevice
 /// Utility device for data publishing
