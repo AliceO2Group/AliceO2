@@ -18,7 +18,7 @@ addons:
 deploy:
   provider: pages
   skip_cleanup: true
-  github_token: $GITHUB_API_KEY # Set in travis-ci.org dashboard
+  github_token: $GITHUB_API_TOKEN # Set in travis-ci.org dashboard
   local_dir: doc/html
   on:
     branch: dev
