@@ -83,9 +83,9 @@ mRadius4fifth()
 
 //_____________________________________________________________________________
 HeatExchanger::HeatExchanger(Double_t rWater,
-			     Double_t dRPipe,
-			     Double_t heatExchangerThickness,
-			     Double_t carbonThickness) : 
+                             Double_t dRPipe,
+                             Double_t heatExchangerThickness,
+                             Double_t carbonThickness) : 
 TNamed(), 
 mHalfDisk(nullptr),
 mHalfDiskRotation(nullptr),
@@ -130,7 +130,7 @@ mRadius4fifth()
 //_____________________________________________________________________________
 TGeoVolumeAssembly* HeatExchanger::create(Int_t half, Int_t disk) 
 {
-	
+        
   Info("Create",Form("Creating HeatExchanger_%d_%d", disk, half),0,0);
   
   mHalfDisk = new TGeoVolumeAssembly(Form("HeatExchanger_%d_%d", disk, half));
@@ -464,7 +464,7 @@ void HeatExchanger::createHalfDisk0(Int_t half) {
 
 //_____________________________________________________________________________
 void HeatExchanger::createHalfDisk1(Int_t half) {
-	
+        
   Int_t disk = 1;
   
   if      (half == Top)    printf("Creating MFT heat exchanger for disk1 top\n");
@@ -982,7 +982,7 @@ void HeatExchanger::createHalfDisk2(Int_t half) {
 //  }
   
     createManyfold(disk);
-	
+        
 }
 
 //_____________________________________________________________________________
@@ -1141,17 +1141,17 @@ void HeatExchanger::createHalfDisk3(Int_t half)  {
                       radius3fourth[2]*TMath::Cos(TMath::Pi()/2 - alpha3fourthrad[3]))/(TMath::Sin(alpha3fourthrad[3]));
   
   Double_t translation3x[4] = { mXPosition3[3] + radius3fourth[0]*(TMath::Cos(beta3fourthrad[0])),
-				mXPosition3[3] + radius3fourth[0]*((TMath::Cos(beta3fourthrad[0])) - TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) -
-				radius3fourth[1]*(TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])),
-				mXPosition3[3] + radius3fourth[0]*((TMath::Cos(beta3fourthrad[0])) - TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) -
-				radius3fourth[1]*(TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) +
-				radius3fourth[1]*(TMath::Sin(TMath::Pi()/2. - alpha3fourthrad[1] + alpha3fourthrad[0] + beta3fourthrad[0])) +
-				radius3fourth[2]*(TMath::Cos(alpha3fourthrad[1] - alpha3fourthrad[0] - beta3fourthrad[0])),
-				mXPosition3[3] + radius3fourth[0]*((TMath::Cos(beta3fourthrad[0])) - TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) -
-				radius3fourth[1]*(TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) +
-				radius3fourth[1]*(TMath::Sin(TMath::Pi()/2. - alpha3fourthrad[1] + alpha3fourthrad[0] + beta3fourthrad[0])) +
-				radius3fourth[2]*(TMath::Cos(alpha3fourthrad[1] - alpha3fourthrad[0] - beta3fourthrad[0])) -
-				radius3fourth[2]*(TMath::Sin((TMath::Pi()/2.) - alpha3fourthrad[3])) - radius3fourth[3]*(TMath::Cos(alpha3fourthrad[3]))};
+                                mXPosition3[3] + radius3fourth[0]*((TMath::Cos(beta3fourthrad[0])) - TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) -
+                                radius3fourth[1]*(TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])),
+                                mXPosition3[3] + radius3fourth[0]*((TMath::Cos(beta3fourthrad[0])) - TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) -
+                                radius3fourth[1]*(TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) +
+                                radius3fourth[1]*(TMath::Sin(TMath::Pi()/2. - alpha3fourthrad[1] + alpha3fourthrad[0] + beta3fourthrad[0])) +
+                                radius3fourth[2]*(TMath::Cos(alpha3fourthrad[1] - alpha3fourthrad[0] - beta3fourthrad[0])),
+                                mXPosition3[3] + radius3fourth[0]*((TMath::Cos(beta3fourthrad[0])) - TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) -
+                                radius3fourth[1]*(TMath::Cos(beta3fourthrad[0] + alpha3fourthrad[0])) +
+                                radius3fourth[1]*(TMath::Sin(TMath::Pi()/2. - alpha3fourthrad[1] + alpha3fourthrad[0] + beta3fourthrad[0])) +
+                                radius3fourth[2]*(TMath::Cos(alpha3fourthrad[1] - alpha3fourthrad[0] - beta3fourthrad[0])) -
+                                radius3fourth[2]*(TMath::Sin((TMath::Pi()/2.) - alpha3fourthrad[3])) - radius3fourth[3]*(TMath::Cos(alpha3fourthrad[3]))};
   
   Double_t translation3y[3] = {0., 0., 0.};
   
@@ -1310,7 +1310,7 @@ void HeatExchanger::createHalfDisk3(Int_t half)  {
     transformation = new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz/2. + mCarbonThickness + mRWater + mDRPipe, rotation);
     mHalfDisk->AddNode(cooling, 4, transformation);
 //  }
-	
+        
   // **************************************** Carbon Plates ****************************************
   
   auto *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D3_H%d",half));
@@ -1361,7 +1361,7 @@ void HeatExchanger::createHalfDisk3(Int_t half)  {
     transformation = new TGeoCombiTrans(0., 0., -deltaz/2., rotation);
     mHalfDisk->AddNode(carbonPlate, 4, transformation);
 //  }
-	
+        
 
   // **************************************** Rohacell Plate ****************************************
   
@@ -1408,7 +1408,7 @@ void HeatExchanger::createHalfDisk3(Int_t half)  {
     transformation = new TGeoCombiTrans(0., 0., 0., rotation);
     mHalfDisk->AddNode(rohacellPlate, 2, transformation);
 //  }
-	
+        
   
     createManyfold(disk);
   
@@ -1576,19 +1576,19 @@ void HeatExchanger::createHalfDisk4(Int_t half) {
     beta4fourthrad[i] = (TMath::Pi())*(beta4fourth[i])/180.;
   }
   Double_t translation4x[4] = { mXPosition4[4] + mRadius4fifth[0]*(TMath::Cos(beta4fourthrad[0])),
-				mXPosition4[4] + mRadius4fifth[0]*((TMath::Cos(beta4fourthrad[0])) - TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) -
-				mRadius4fifth[1]*(TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])),
-				
-				mXPosition4[4] + mRadius4fifth[0]*((TMath::Cos(beta4fourthrad[0])) - TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) -
-				mRadius4fifth[1]*(TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) +
-				mRadius4fifth[1]*(TMath::Sin(TMath::Pi()/2. - angle4fifthrad[1] + angle4fifthrad[0] + beta4fourthrad[0])) +
-				mRadius4fifth[2]*(TMath::Cos(angle4fifthrad[1] - angle4fifthrad[0] - beta4fourthrad[0])),
+                                mXPosition4[4] + mRadius4fifth[0]*((TMath::Cos(beta4fourthrad[0])) - TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) -
+                                mRadius4fifth[1]*(TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])),
+                                
+                                mXPosition4[4] + mRadius4fifth[0]*((TMath::Cos(beta4fourthrad[0])) - TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) -
+                                mRadius4fifth[1]*(TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) +
+                                mRadius4fifth[1]*(TMath::Sin(TMath::Pi()/2. - angle4fifthrad[1] + angle4fifthrad[0] + beta4fourthrad[0])) +
+                                mRadius4fifth[2]*(TMath::Cos(angle4fifthrad[1] - angle4fifthrad[0] - beta4fourthrad[0])),
     
-				mXPosition4[4] + mRadius4fifth[0]*((TMath::Cos(beta4fourthrad[0])) - TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) -
-				mRadius4fifth[1]*(TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) +
-				mRadius4fifth[1]*(TMath::Sin(TMath::Pi()/2. - angle4fifthrad[1] + angle4fifthrad[0] + beta4fourthrad[0])) +
-				mRadius4fifth[2]*(TMath::Cos(angle4fifthrad[1] - angle4fifthrad[0] - beta4fourthrad[0])) -
-				mRadius4fifth[2]*(TMath::Sin((TMath::Pi()/2.) - angle4fifthrad[3])) - mRadius4fifth[3]*(TMath::Cos(angle4fifthrad[3]))};
+                                mXPosition4[4] + mRadius4fifth[0]*((TMath::Cos(beta4fourthrad[0])) - TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) -
+                                mRadius4fifth[1]*(TMath::Cos(beta4fourthrad[0] + angle4fifthrad[0])) +
+                                mRadius4fifth[1]*(TMath::Sin(TMath::Pi()/2. - angle4fifthrad[1] + angle4fifthrad[0] + beta4fourthrad[0])) +
+                                mRadius4fifth[2]*(TMath::Cos(angle4fifthrad[1] - angle4fifthrad[0] - beta4fourthrad[0])) -
+                                mRadius4fifth[2]*(TMath::Sin((TMath::Pi()/2.) - angle4fifthrad[3])) - mRadius4fifth[3]*(TMath::Cos(angle4fifthrad[3]))};
   
   Double_t translation4y[4] = {0., 0., 0., 0.};
   
@@ -1782,7 +1782,7 @@ void HeatExchanger::createHalfDisk4(Int_t half) {
     transformation = new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz/2. + mCarbonThickness + mRWater + mDRPipe, rotation);
     mHalfDisk->AddNode(cooling, 4, transformation);
 //  }
-	
+        
   // **************************************** Carbon Plates ****************************************
   
   auto *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D4_H%d",half));
@@ -1833,7 +1833,7 @@ void HeatExchanger::createHalfDisk4(Int_t half) {
     mHalfDisk->AddNode(carbonPlate, 4, transformation);
 //  }
 
-	
+        
   // **************************************** Rohacell Plate ****************************************
   
   auto *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D4_H%d",half));
@@ -1878,9 +1878,9 @@ void HeatExchanger::createHalfDisk4(Int_t half) {
     transformation = new TGeoCombiTrans(0., 0., 0., rotation);
     mHalfDisk->AddNode(rohacellPlate, 2, transformation);
 //  }
-	
+        
     createManyfold(disk);
-	
+        
 }
 
 //_____________________________________________________________________________

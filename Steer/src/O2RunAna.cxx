@@ -121,7 +121,7 @@ void O2RunAna::SetGeomFile(const char* GeoFileName)
 {
   if (mIsInitialized) {
     LOG(FATAL) << "Geometry file has to be set before Run::Init !"
-	       << FairLogger::endl;
+               << FairLogger::endl;
     exit(-1);
   } else {
 
@@ -129,11 +129,11 @@ void O2RunAna::SetGeomFile(const char* GeoFileName)
     mInputGeoFile= TFile::Open(GeoFileName);
     if (mInputGeoFile->IsZombie()) {
       LOG(ERROR) << "Error opening Geometry Input file"
-		 << FairLogger::endl;
+                 << FairLogger::endl;
       mInputGeoFile=nullptr;
     }
     LOG(INFO) << "Opening Geometry input file: " << GeoFileName
-	      << FairLogger::endl;
+              << FairLogger::endl;
     mLoadGeo=kTRUE;
     gFile=CurrentFile;
   }
@@ -244,7 +244,7 @@ void O2RunAna::Init()
   else
   { 
     LOG(INFO) << "Initializing without input file or Mixed input"
-	      << FairLogger::endl;
+              << FairLogger::endl;
     FairEventHeader* evt = GetEventHeader();
     evt->Register(mStoreEventHeader);
     FairRunIdGenerator genid;
@@ -425,23 +425,23 @@ void O2RunAna::RunEventReco(Int_t Ev_start, Int_t Ev_end)
   if ( MaxAllowed != -1 ) {
     if (Ev_end==0) {
       if (Ev_start==0) {
-	Ev_end=MaxAllowed;
+        Ev_end=MaxAllowed;
       } else {
-	Ev_end =  Ev_start;
-	if ( Ev_end > MaxAllowed ) {
-	  Ev_end = MaxAllowed;
-	}
-	Ev_start=0;
+        Ev_end =  Ev_start;
+        if ( Ev_end > MaxAllowed ) {
+          Ev_end = MaxAllowed;
+        }
+        Ev_start=0;
       }
     } else {
       if (Ev_end > MaxAllowed) {
-	cout << "-------------------Warning---------------------------" << endl;
-	cout << " -W O2RunAna : File has less events than requested!!" << endl;
-	cout << " File contains : " << MaxAllowed  << " Events" << endl;
-	cout << " Requested number of events = " <<  Ev_end <<  " Events"<< endl;
-	cout << " The number of events is set to " << MaxAllowed << " Events"<< endl;
-	cout << "-----------------------------------------------------" << endl;
-	Ev_end = MaxAllowed;
+        cout << "-------------------Warning---------------------------" << endl;
+        cout << " -W O2RunAna : File has less events than requested!!" << endl;
+        cout << " File contains : " << MaxAllowed  << " Events" << endl;
+        cout << " Requested number of events = " <<  Ev_end <<  " Events"<< endl;
+        cout << " The number of events is set to " << MaxAllowed << " Events"<< endl;
+        cout << "-----------------------------------------------------" << endl;
+        Ev_end = MaxAllowed;
       }
     }
     LOG(INFO) << "O2RunAna::Run() After checking, the run will run from event " << Ev_start << " to " << Ev_end << "." << FairLogger::endl;

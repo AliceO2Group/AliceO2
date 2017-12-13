@@ -131,7 +131,7 @@ int Component::init(int argc, char** argv)
       break;
     case OptionKeyOCDB:
       if (getenv("ALIHLT_HCDBDIR") != nullptr) {
-	LOG(WARN) << "overriding value of ALICEHLT_HCDBDIR by --ocdb command option";
+        LOG(WARN) << "overriding value of ALICEHLT_HCDBDIR by --ocdb command option";
       }
       setenv("ALIHLT_HCDBDIR", varmap[OptionKeys[option]].as<string>().c_str(), 1);
       break;

@@ -79,9 +79,9 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
     {
       fPythia.next();
       for(int i=0; i<fPythia.event.size(); i++)
-	{
-	  if(fPythia.event[i].isFinal())
-	    {
+        {
+          if(fPythia.event[i].isFinal())
+            {
 // only send HNL decay products to G4
               if (fHNL != 0){
                 Int_t im = fPythia.event[i].mother1();
@@ -96,9 +96,9 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
                  }
                }
               }
-	      else {npart++;}
-	    };
-	};
+              else {npart++;}
+            };
+        };
 // happens if a charm particle being produced which does decay without producing a HNL. Try another event.
 //       if (npart == 0){ fPythia.event.list();}
     };
@@ -118,8 +118,8 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
           Double_t pz = fPythia.event[ii].pz();
           Double_t px = fPythia.event[ii].px();
           Double_t py = fPythia.event[ii].py();
-	  cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z,
-		      (Int_t)fPythia.event[ii].mother1(),wanttracking);
+          cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z,
+                      (Int_t)fPythia.event[ii].mother1(),wanttracking);
           // cout<<"debug p8->geant4 "<< wanttracking << " "<< ii <<  " " << fPythia.event[ii].id()<< " "<< fPythia.event[ii].mother1()<<" "<<x<<" "<< y<<" "<< z <<endl;
         }
 //    virtual void AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t pz,
@@ -133,8 +133,8 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
          Double_t pz = fPythia.event[ii].pz();
          Double_t px = fPythia.event[ii].px();
          Double_t py = fPythia.event[ii].py();
-	 cpg->AddTrack((Int_t)fPythia.event[im].id(),px,py,pz,x,y,z,0,false);
-	 cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z, im,false);
+         cpg->AddTrack((Int_t)fPythia.event[im].id(),px,py,pz,x,y,z,0,false);
+         cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z, im,false);
          //cout<<"debug p8->geant4 "<< 0 << " "<< ii <<  " " << fake<< " "<< fPythia.event[ii].mother1()<<endl;
       };
   }

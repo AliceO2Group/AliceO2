@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(DetID_test)
   for (DetID::ID id=DetID::First; id<=DetID::Last; id++) {
     DetID det(id);
     std::cout << "#" << id << " Detector " << det.getName()
-	      << " ID=" << det << " mask: " << det.getMask() <<std::endl;
+              << " ID=" << det << " mask: " << det.getMask() <<std::endl;
     BOOST_CHECK(id == det);
 
     // test that all names are initialized

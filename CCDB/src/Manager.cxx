@@ -1279,9 +1279,9 @@ TList *Manager::getAllObjects(const ConditionId &query)
 {
   // get multiple  Condition objects from the database
   // Warning: this method works correctly only for queries of the type "Detector/*"
-  // 		and not for more specific queries e.g. "Detector/Calib/*" !
+  //            and not for more specific queries e.g. "Detector/Calib/*" !
   // Warning #2: Entries are cached, but getAllObjects will keep on retrieving objects from OCDB!
-  // 		To get an object from cache use getObject() function
+  //            To get an object from cache use getObject() function
 
   if (!mDefaultStorage) {
     LOG(ERROR) << "No storage set!" << FairLogger::endl;
@@ -1697,7 +1697,7 @@ void Manager::queryStorages()
   if (mDefaultStorage->getStorageType() == "alien" || mDefaultStorage->getStorageType() == "local") {
     mDefaultStorage->queryStorages(mRun);
     //} else {
-    //	LOG(DEBUG) << "Skipping query for valid files, it used only in grid..." << FairLogger::endl;
+    //  LOG(DEBUG) << "Skipping query for valid files, it used only in grid..." << FairLogger::endl;
   }
 
   TIter iter(&mSpecificStorages);

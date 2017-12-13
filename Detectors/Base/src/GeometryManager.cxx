@@ -238,7 +238,7 @@ void GeometryManager::MatBudget::accountMaterial(const TGeoMaterial* material)
 
 //_____________________________________________________________________________________
 GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y0, float z0,
-							       float x1, float y1, float z1)
+                                                               float x1, float y1, float z1)
 {
   //
   // Calculate mean material budget and material properties between

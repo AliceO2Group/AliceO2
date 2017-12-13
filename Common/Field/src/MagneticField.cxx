@@ -92,7 +92,7 @@ MagneticField::MagneticField()
 
 MagneticField::MagneticField(const char *name, const char *title, Double_t factorSol, Double_t factorDip,
                              MagFieldParam::BMap_t maptype, MagFieldParam::BeamType_t bt,
-			     Double_t be, Int_t integ, Double_t fmax,const std::string path)
+                             Double_t be, Int_t integ, Double_t fmax,const std::string path)
   : FairField(name,title),
     mMeasuredMap(nullptr),
     mFastField(nullptr),
@@ -163,7 +163,7 @@ void MagneticField::CreateField()
   // does real creation of the field
   if (mDefaultIntegration < 0 || mDefaultIntegration > 2) {
     mLogger->Warning(MESSAGE_ORIGIN, "Invalid magnetic field flag: %5d; Helix tracking chosen instead",
-		     mDefaultIntegration);
+                     mDefaultIntegration);
     mDefaultIntegration = 2;
   }
   if (mDefaultIntegration == 0) mPrecisionInteg = 0;
@@ -616,7 +616,7 @@ void MagneticField::Print(Option_t *opt) const
   mLogger->Info(MESSAGE_ORIGIN, "%s:%s", GetName(), GetTitle());
   mLogger->Info(MESSAGE_ORIGIN, "Solenoid (%+.2f*)%.0f kG, Dipole %s (%+.2f) %s", getFactorSolenoid(),
                 (mMapType == MagFieldParam::k5kG || mMapType == MagFieldParam::k5kGUniform) ? 5. : 2.,
-		mDipoleOnOffFlag ? "OFF" : "ON",
+                mDipoleOnOffFlag ? "OFF" : "ON",
                 getFactorDipole(), mMapType == MagFieldParam::k5kGUniform ? " |Constant Field!" : "");
   if (opts.Contains("a")) {
     mLogger->Info(MESSAGE_ORIGIN, "Machine B fields for %s beam (%.0f GeV): QGrad: %.4f Dipole: %.4f",
@@ -640,7 +640,7 @@ void MagneticField::AllowFastField(bool v)
 {
   if (v) {
     if (!mFastField) mFastField = std::make_unique<MagFieldFast>
-		       (getFactorSolenoid(),mMapType==MagFieldParam::k2kG ? 2:5);
+                       (getFactorSolenoid(),mMapType==MagFieldParam::k2kG ? 2:5);
   }
   else {
     mFastField.reset(nullptr);

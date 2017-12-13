@@ -258,8 +258,8 @@ Int_t Geo::getIndex(const Int_t * detId)
 
   Int_t idet = ((2*(NSTRIPC+NSTRIPB)+NSTRIPA)*NPADZ*NPADX)*isector +
                (stripOffset*NPADZ*NPADX)+
-	       (NPADX)*ipadz+
-	        ipadx;
+               (NPADX)*ipadz+
+                ipadx;
   return idet;
 }
 
@@ -274,14 +274,14 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
   Int_t index = -1;
 
   Bool_t check = (
-		  (iplate<0 || iplate>=NPLATES)
-		  ||
-		  (
-		   (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
-		   ||
-		   (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
-		   )
-		  );
+                  (iplate<0 || iplate>=NPLATES)
+                  ||
+                  (
+                   (iplate==2 && (istrip<0 || istrip>=NSTRIPA))
+                   ||
+                   (iplate!=2 && (istrip<0 || istrip>=NSTRIPC))
+                   )
+                  );
 
   if (iplate<0 || iplate>=NPLATES)
     LOG(ERROR) << "getStripNumberPerSM : " << "Wrong plate number in TOF (" << iplate << ")!\n";

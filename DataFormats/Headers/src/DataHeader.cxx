@@ -178,9 +178,9 @@ bool o2::Header::DataHeader::operator==(const DataOrigin& that) const
 bool o2::Header::DataHeader::operator==(const DataDescription& that) const
 {
   return ((that.itg[0] == gDataDescriptionAny.itg[0] &&
-	   that.itg[1] == gDataDescriptionAny.itg[1]) ||
+           that.itg[1] == gDataDescriptionAny.itg[1]) ||
           (that.itg[0] == dataDescription.itg[0] &&
-	   that.itg[1] == dataDescription.itg[1] ));
+           that.itg[1] == dataDescription.itg[1] ));
 }
 
 //__________________________________________________________________________________________________

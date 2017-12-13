@@ -59,8 +59,8 @@ void Digitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* digits
   double hTime0 = mEventTime - mParams.getTimeOffset();
   if (hTime0 > UINT_MAX) {
     LOG(WARNING) << "min Hit RO Frame undefined: time: " << hTime0 << " is in far future: "
-		 << " EventTime: " << mEventTime << " TimeOffset: "
-		 << mParams.getTimeOffset() << FairLogger::endl;
+                 << " EventTime: " << mEventTime << " TimeOffset: "
+                 << mParams.getTimeOffset() << FairLogger::endl;
     return;
   }
 
@@ -68,9 +68,9 @@ void Digitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* digits
   UInt_t minNewROFrame = static_cast<UInt_t>(hTime0/mParams.getROFrameLenght());
 
   LOG(INFO) << "Digitizing ITS event at time " << mEventTime
-	    << " (TOffset= " << mParams.getTimeOffset() << " ROFrame= " << minNewROFrame << ")"
-	    << " cont.mode: " << isContinuous() << " current Min/Max RO Frames "
-	    << mROFrameMin << "/" << mROFrameMax << FairLogger::endl ;
+            << " (TOffset= " << mParams.getTimeOffset() << " ROFrame= " << minNewROFrame << ")"
+            << " cont.mode: " << isContinuous() << " current Min/Max RO Frames "
+            << mROFrameMin << "/" << mROFrameMax << FairLogger::endl ;
   
   if (mParams.isContinuous() && minNewROFrame>mROFrameMin) {
     // if there are already digits cached for previous RO Frames AND the new event
@@ -156,7 +156,7 @@ void Digitizer::setCurrSrcID(int v)
   // set current MC source ID
   if ( v > MCCompLabel::maxSourceID() ) {
     LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label "
-	       << MCCompLabel::maxSourceID() << FairLogger::endl;
+               << MCCompLabel::maxSourceID() << FairLogger::endl;
   }
   mCurrSrcID = v;
 }
@@ -167,7 +167,7 @@ void Digitizer::setCurrEvID(int v)
   // set current MC event ID
   if ( v > MCCompLabel::maxEventID() ) {
     LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label "
-	       << MCCompLabel::maxEventID() << FairLogger::endl;
+               << MCCompLabel::maxEventID() << FairLogger::endl;
   }
   mCurrEvID = v;
 }

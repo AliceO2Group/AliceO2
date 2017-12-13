@@ -177,11 +177,11 @@ void Sampler::listenForAcks()
     for (Long64_t eventNr = 0; eventNr < mMaxIndex ; ++eventNr) {
       unique_ptr<FairMQMessage> ack(NewMessage());
       if (Receive(ack,mAckChannelName.data())) {
-	// do not need to do anything
+        // do not need to do anything
       }
 
       if (!CheckCurrentState(RUNNING)) {
-	break;
+        break;
       }
     }
 

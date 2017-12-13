@@ -46,7 +46,7 @@ void DigitCRU::setDigit(size_t hitID, int timeBin, int row, int pad, float charg
 }
 
 void DigitCRU::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-        			   std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int eventTime, bool isContinuous)
+                                   std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int eventTime, bool isContinuous)
 {
   int nProcessedTimeBins = 0;
   for(auto &aTime : mTimeBins) {

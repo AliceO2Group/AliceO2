@@ -160,7 +160,7 @@ static void configITS(Detector *its) {
       turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
       its->defineLayerTurbo(idLr, phi0, rLr, nChipsPerStaveLr * Segmentation::SensorSizeCols, nStaveLr,
                             nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo, kSiThickIB,
-			    Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
+                            Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
     }
   }
 
@@ -500,9 +500,9 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
     
     Hit *p = addHit(vmc->GetStack()->GetCurrentTrackNumber(), chipindex,
-		      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
-		      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
-		      mTrackData.mTrkStatusStart,status);
+                      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
+                      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
+                      mTrackData.mTrkStatusStart,status);
     //p->SetTotalEnergy(vmc->Etot());
 
     // RS: not sure this is needed
@@ -639,7 +639,7 @@ void Detector::createMaterials()
   // Carbon prepreg woven
   o2::Base::Detector::Material(18, "F6151B05M$", 12.0107, 6, 2.133, 999, 999);
   o2::Base::Detector::Medium(18, "F6151B05M$", 18, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
-			          deemaxSi,epsilSi,stminSi);
+                                  deemaxSi,epsilSi,stminSi);
   // Impregnated thread
   o2::Base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
   o2::Base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
@@ -664,7 +664,7 @@ void Detector::createMaterials()
   // PEEK CF30
   o2::Base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
   o2::Base::Detector::Medium(19,"PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
-			          deemaxSi,epsilSi,stminSi);
+                                  deemaxSi,epsilSi,stminSi);
 
   // Flex cable
   Float_t aFCm[5] = {12.0107, 1.00794, 14.0067, 15.9994, 26.981538};
@@ -692,17 +692,17 @@ void Detector::createMaterials()
 
   o2::Base::Detector::Mixture(20, "TUNGCARB$", aWC, zWC, dWC, 2, wWC);
   o2::Base::Detector::Medium(20, "TUNGCARB$", 20, 0, ifield, fieldm, tmaxfd, stemax,
-			          deemaxSi,epsilSi,stminSi);
+                                  deemaxSi,epsilSi,stminSi);
 
   wInox304[3] = 1. - wInox304[0] - wInox304[1] - wInox304[2];
   o2::Base::Detector::Mixture(21, "INOX304$", aInox304, zInox304, dInox304, 4, wInox304);
   o2::Base::Detector::Medium(21, "INOX304$", 21, 0, ifield, fieldm, tmaxfd, stemax,
-			          deemaxSi,epsilSi,stminSi);
+                                  deemaxSi,epsilSi,stminSi);
 
   //Tungsten (for gamma converter rods)
   o2::Base::Detector::Material(28, "TUNGSTEN$", 183.84, 74, 19.25, 999, 999);
   o2::Base::Detector::Medium(28, "TUNGSTEN$", 28,0, ifield, fieldm, tmaxfdSi, stemaxSi,
-			          deemaxSi,epsilSi,stminSi);
+                                  deemaxSi,epsilSi,stminSi);
 }
 
 void Detector::EndOfEvent()
@@ -1125,7 +1125,7 @@ void Detector::defineSensitiveVolumes()
 }
 
 Hit *Detector::addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos, const TVector3& startMom, double startE,
-			double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
+                        double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
   mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
