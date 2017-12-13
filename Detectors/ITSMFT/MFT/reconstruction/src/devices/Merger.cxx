@@ -108,31 +108,31 @@ bool Merger::mergeData(FairMQParts& parts, int index)
       MultiMapDef::iterator it3;
       it3 = mObjectMap.find(mEvRIPartTrio);
       if (it3 != mObjectMap.end()) {
-	
-	LOG(INFO) << "Merger::mergeData >>>>> shouldn't happen, already got objects for part " << mEvRIPartTrio.second 
-		  << ", event " << mEvRIPair.first << ", run " << mEvRIPair.second << ". Skipping this message!!!";
-	
-	nofReceivedParts = -1;
-	break; // break the for(ipart) loop, as nothing else is left to do
-	
+        
+        LOG(INFO) << "Merger::mergeData >>>>> shouldn't happen, already got objects for part " << mEvRIPartTrio.second 
+                  << ", event " << mEvRIPair.first << ", run " << mEvRIPair.second << ". Skipping this message!!!";
+        
+        nofReceivedParts = -1;
+        break; // break the for(ipart) loop, as nothing else is left to do
+        
       }
                   
       std::map<std::pair<int,int>,int>::iterator it2;
       it2 = mNofPartsPerEventMap.find(mEvRIPair);
       if (it2 == mNofPartsPerEventMap.end()) {
-	
-	LOG(INFO) << "Merger::mergeData >>>>> First part of event " << mEvRIPair.first;
-	
-	mNofPartsPerEventMap[mEvRIPair] = 1;
-	nofReceivedParts = 1;
-	
+        
+        LOG(INFO) << "Merger::mergeData >>>>> First part of event " << mEvRIPair.first;
+        
+        mNofPartsPerEventMap[mEvRIPair] = 1;
+        nofReceivedParts = 1;
+        
       } else {
-	
-	LOG(INFO) << "Merger::mergeData >>>>> Second part of event " << mEvRIPair.first;
-	
-	it2->second += 1;
-	nofReceivedParts = it2->second;
-	
+        
+        LOG(INFO) << "Merger::mergeData >>>>> Second part of event " << mEvRIPair.first;
+        
+        it2->second += 1;
+        nofReceivedParts = it2->second;
+        
       }
       
       LOG(INFO) << "Merger::mergeData >>>>> got " << nofReceivedParts << " parts of event " << mEvRIPair.first;
@@ -172,7 +172,7 @@ bool Merger::mergeData(FairMQParts& parts, int index)
       LOG(INFO) << "Merger::mergeData::printInfo >>>>> [" << mEventHeader->GetRunId() << "][" << mEventHeader->GetMCEntryNumber() << "][" << mEventHeader->getPartNo() << "] Received: " << mNofReceivedMessages << " // Buffered: " << mObjectMap.size() << " // Sent: " << mNofSentMessages << " <<";
 
   } else { 
-	
+        
     int currentEventPart = mEventHeader->getPartNo();
     for (int iarray = 0 ; iarray < nofArrays; iarray++) {
       
@@ -181,24 +181,24 @@ bool Merger::mergeData(FairMQParts& parts, int index)
       TClonesArray* arrayToAdd;
       
       for (int ieventpart = 0; ieventpart < mNofParts; ieventpart++) {
-	
-	if ( ieventpart == currentEventPart ) continue;
-	
-	mEvRIPartTrio.second = ieventpart;
-	mRet = mObjectMap.equal_range(mEvRIPartTrio);
-	
-	for (auto it = mRet.first; it != mRet.second; ++it) {
-	  
-	  if (strcmp(tempArrays[iarray]->GetName(),it->second->GetName()) == 0) {
-	    
-	    arrayToAdd = (TClonesArray*)it->second;
-	    tempArrays[iarray]->AbsorbObjects(arrayToAdd);
-	    LOG(INFO) << "Merger::mergeData::printInfo >>>>> found one!, TCA has now " << tempArrays[iarray]->GetEntries() << " entries.";
-	    
-	  }
-	  
-	}
-	
+        
+        if ( ieventpart == currentEventPart ) continue;
+        
+        mEvRIPartTrio.second = ieventpart;
+        mRet = mObjectMap.equal_range(mEvRIPartTrio);
+        
+        for (auto it = mRet.first; it != mRet.second; ++it) {
+          
+          if (strcmp(tempArrays[iarray]->GetName(),it->second->GetName()) == 0) {
+            
+            arrayToAdd = (TClonesArray*)it->second;
+            tempArrays[iarray]->AbsorbObjects(arrayToAdd);
+            LOG(INFO) << "Merger::mergeData::printInfo >>>>> found one!, TCA has now " << tempArrays[iarray]->GetEntries() << " entries.";
+            
+          }
+          
+        }
+        
       }
       
     }
@@ -219,16 +219,16 @@ bool Merger::mergeData(FairMQParts& parts, int index)
     messageFEH = new TMessage(kMESS_OBJECT);
     messageFEH->WriteObject(mEventHeader);
     partsOut.AddPart(NewMessage(messageFEH->Buffer(), 
-				messageFEH->BufferSize(), 
-				[](void* /*data*/, void* hint) { delete (TMessage*)hint;},messageFEH));
+                                messageFEH->BufferSize(), 
+                                [](void* /*data*/, void* hint) { delete (TMessage*)hint;},messageFEH));
 
     for (int iarray = 0; iarray < nofArrays; iarray++) {
       
       messageTCA[iarray] = new TMessage(kMESS_OBJECT);
       messageTCA[iarray]->WriteObject(tempArrays[iarray]);
       partsOut.AddPart(NewMessage(messageTCA[iarray]->Buffer(), 
-				  messageTCA[iarray]->BufferSize(), 
-				  [](void* /*data*/, void* hint) { delete (TMessage*)hint;},messageTCA[iarray]));
+                                  messageTCA[iarray]->BufferSize(), 
+                                  [](void* /*data*/, void* hint) { delete (TMessage*)hint;},messageTCA[iarray]));
       
     }
     

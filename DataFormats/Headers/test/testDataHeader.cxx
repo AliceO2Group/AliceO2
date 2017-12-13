@@ -158,10 +158,10 @@ namespace o2 {
       auto refTime = system_clock::now();
       const int nrolls = 1000000;
       for (auto count = 0; count < nrolls; ++count) {
-	if (a == b) {
-	  ++a.itg[0];
-	  ++b.itg[0];
-	}
+        if (a == b) {
+          ++a.itg[0];
+          ++b.itg[0];
+        }
       }
       auto duration = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - refTime);
       std::cout << nrolls << " operation(s): " << duration.count() << " ns" << std::endl;

@@ -106,7 +106,7 @@ void Cluster::print() const
 {
   // print itself
   printf("Sensor %5d, nRow:%3d nCol:%3d n:%d |Err^2:%.3e %.3e %+.3e |",getSensorID(),getNx(),getNz(),
-	 getNPix(),getSigmaY2(),getSigmaZ2(),getSigmaYZ());
+         getNPix(),getSigmaY2(),getSigmaZ2(),getSigmaYZ());
   printf("XYZ: %+.4e %+.4e %+.4e\n",getX(),getY(),getZ());
   //
  #ifdef _ClusterTopology_

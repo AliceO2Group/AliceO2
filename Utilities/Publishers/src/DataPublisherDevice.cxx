@@ -125,9 +125,9 @@ bool o2::Utilities::DataPublisherDevice::HandleData(FairMQParts& msgParts, int i
 }
 
 bool o2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
-								   size_t headerBufferSize,
-								   const byte* dataBuffer,
-								   size_t dataBufferSize)
+                                                                   size_t headerBufferSize,
+                                                                   const byte* dataBuffer,
+                                                                   size_t dataBufferSize)
 {
   //  AliceO2::Header::hexDump("data buffer", dataBuffer, dataBufferSize);
   const auto* dataHeader = o2::Header::get<o2::Header::DataHeader>(headerBuffer);

@@ -1878,7 +1878,7 @@ void Detector::addAlignableVolumes() const
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
         printf("Alignable entry %s not set\n", symName.Data());
-      //	AliError(Form("Alignable entry %s not set",symName.Data()));
+      //        AliError(Form("Alignable entry %s not set",symName.Data()));
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);

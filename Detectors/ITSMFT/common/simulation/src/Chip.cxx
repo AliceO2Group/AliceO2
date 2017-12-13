@@ -99,9 +99,9 @@ void Chip::Clear()
 
 //_______________________________________________________________________
 Bool_t Chip::LineSegmentLocal(const Hit* hit,
-			      Double_t &xstart, Double_t &xpoint,
-			      Double_t &ystart, Double_t &ypoint,
-			      Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
+                              Double_t &xstart, Double_t &xpoint,
+                              Double_t &ystart, Double_t &ypoint,
+                              Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
 {
   if (hit->IsEntering()) return kFALSE;
 
@@ -205,7 +205,7 @@ Digit* Chip::addDigit(UInt_t roframe, UShort_t row, UShort_t col, float charge, 
   }
   else {
     auto digIter= mDigits.emplace(std::make_pair
-				  (key,Digit(static_cast<UShort_t>(mChipIndex),roframe, row, col, charge, timestamp)));
+                                  (key,Digit(static_cast<UShort_t>(mChipIndex),roframe, row, col, charge, timestamp)));
     auto pair = digIter.first;
     dig = &(pair->second);
     dig->setLabel(0, lbl);

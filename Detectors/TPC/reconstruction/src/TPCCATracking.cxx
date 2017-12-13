@@ -176,7 +176,7 @@ int TPCCATracking::runTracking(TChain* inputClustersChain, const std::vector<o2:
           trackTPC.addCluster(clusterCache[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
         } else {
           //trackTPC.addCluster(*(static_cast<Cluster*>(inputClustersArray->At(trackClusterIDs[tracks[i].FirstClusterRef() + j]))));
-	  trackTPC.addCluster((*inputClustersArray)[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
+          trackTPC.addCluster((*inputClustersArray)[trackClusterIDs[tracks[i].FirstClusterRef() + j]]);
         }
       }
       outputTracks->push_back(trackTPC);

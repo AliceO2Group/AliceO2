@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(MagneticField_test)
   double sF = swFast.CpuTime()/(ntst*repFactor);
   double rat = sF > 0. ? sS/sF : -1;
   LOG(INFO) << "Timing: Exact param: " << sS << " Fast param: " << sF
-	    << "s/call -> factor " << rat << FairLogger::endl;
+            << "s/call -> factor " << rat << FairLogger::endl;
 
   // compare slow/fast param precision
   double mean[3]={0.},rms[3]={0.};
@@ -92,9 +92,9 @@ BOOST_AUTO_TEST_CASE(MagneticField_test)
     rms[i] -= mean[i]*mean[i];
     rms[i] = TMath::Sqrt(rms[i]);
     LOG(INFO) << "deltaB" << comp[i] << ": "
-	      << " mean=" << mean[i] << "(" << mean[i]/nomBz*100. << "%)"
-	      << " RMS =" << rms[i]  << "(" << rms[i]/nomBz*100.  << "%)"
-	      <<FairLogger::endl;
+              << " mean=" << mean[i] << "(" << mean[i]/nomBz*100. << "%)"
+              << " RMS =" << rms[i]  << "(" << rms[i]/nomBz*100.  << "%)"
+              <<FairLogger::endl;
     BOOST_CHECK( TMath::Abs(mean[i]/nomBz) < 1.e-3);
     BOOST_CHECK( TMath::Abs(rms[i]/nomBz) < 1.e-3);
   }

@@ -144,8 +144,8 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
                     if(!attrName.CompareTo("psi")) {
                       ang[2] = attrVal.Atof();
                     } else{
-		      LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
-		    }      
+                      LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+                    }      
       attr = xml->GetNextAttr(attr);
     }
     

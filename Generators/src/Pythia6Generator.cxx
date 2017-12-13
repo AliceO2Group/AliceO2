@@ -94,11 +94,11 @@ Bool_t Pythia6Generator::ReadEvent(FairPrimaryGenerator* primGen) {
 
     for (Int_t ll=0; ll<ntracks; ll++)
       {
-	ncols = fscanf(fInputFile,"%d %d %d %d %d %d %f %f %f %f %f %f %f %f %f", &nLev, &pdgID, &nM1, &nM2, &nDF, &nDL, &fPx, &fPy, &fPz, &fE, &fM, &fVx, &fVy, &fVz, &fT);
-	if (fVerbose>0) cout << nLev << "\t" << pdgID << "\t" << nM1 << "\t" << nM2 << "\t" << nDF << "\t" << nDL <<
-	  "\t" << fPx << "\t" << fPy << "\t" << fPz << "\t" << fE << "\t" << fM << "\t" << fVx << "\t" << fVy << "\t" << fVz << "\t" << fT <<  endl;
-	if (nLev==1)
-	  primGen->AddTrack(pdgID, fPx, fPy, fPz, fVx, fVy, fVz);
+        ncols = fscanf(fInputFile,"%d %d %d %d %d %d %f %f %f %f %f %f %f %f %f", &nLev, &pdgID, &nM1, &nM2, &nDF, &nDL, &fPx, &fPy, &fPz, &fE, &fM, &fVx, &fVy, &fVz, &fT);
+        if (fVerbose>0) cout << nLev << "\t" << pdgID << "\t" << nM1 << "\t" << nM2 << "\t" << nDF << "\t" << nDL <<
+          "\t" << fPx << "\t" << fPy << "\t" << fPz << "\t" << fE << "\t" << fM << "\t" << fVx << "\t" << fVy << "\t" << fVz << "\t" << fT <<  endl;
+        if (nLev==1)
+          primGen->AddTrack(pdgID, fPx, fPy, fPz, fVx, fVy, fVz);
       }
   }
   else {
@@ -133,7 +133,7 @@ void Pythia6Generator::CloseInput() {
     //if ( fInputFile->is_open() ) {
     {
       cout << "-I Pythia6Generator: Closing input file "
-	   << fFileName << endl;
+           << fFileName << endl;
       //  fInputFile->close();
 
       fclose(fInputFile);

@@ -58,7 +58,7 @@ GEMAmplification::GEMAmplification()
       }
       else {
         polyaDistribution = (o2::Base::CachingTF1*)outfile->Get(TString::Format("func%d",i).Data());
-	// FIXME: verify that distribution corresponds to the parameters used here
+        // FIXME: verify that distribution corresponds to the parameters used here
       }
     mGain[i].initialize(*polyaDistribution);
   

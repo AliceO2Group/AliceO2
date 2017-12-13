@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//  Set of data describing the object  				   //
-//  but not used to identify the object 			   //
+//  Set of data describing the object                              //
+//  but not used to identify the object                            //
 #include "CCDB/ConditionMetaData.h"
 #include <TObjString.h>   // for TObjString
 #include <TTimeStamp.h>   // for TTimeStamp
@@ -96,19 +96,19 @@ void ConditionMetaData::printConditionMetaData()
 
   TString message;
   if (mObjectClassName != "") {
-    message += TString::Format("\tObject's class name:	%s\n", mObjectClassName.Data());
+    message += TString::Format("\tObject's class name:  %s\n", mObjectClassName.Data());
   }
   if (mResponsible != "") {
-    message += TString::Format("\tResponsible:		%s\n", mResponsible.Data());
+    message += TString::Format("\tResponsible:          %s\n", mResponsible.Data());
   }
   if (mBeamPeriod != 0) {
-    message += TString::Format("\tBeam period:		%d\n", mBeamPeriod);
+    message += TString::Format("\tBeam period:          %d\n", mBeamPeriod);
   }
   if (mAliRootVersion != "") {
-    message += TString::Format("\tAliRoot version:	%s\n", mAliRootVersion.Data());
+    message += TString::Format("\tAliRoot version:      %s\n", mAliRootVersion.Data());
   }
   if (mComment != "") {
-    message += TString::Format("\tComment:		%s\n", mComment.Data());
+    message += TString::Format("\tComment:              %s\n", mComment.Data());
   }
   if (mProperties.GetEntries() > 0) {
     message += "\tProperties key names:";

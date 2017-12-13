@@ -111,15 +111,15 @@ Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
       // was this label already accounted for ?
       bool add = true;
       for (int j=nLabels; j--;) {
-	if ( lb[j] == lab ) {
-	  add = false;
-	  mx[j]++; // just increment counter
-	  break;
-	}
+        if ( lb[j] == lab ) {
+          add = false;
+          mx[j]++; // just increment counter
+          break;
+        }
       }
       if (add) {
-	lb[nLabels] = lab;
-	mx[nLabels] = 1;
+        lb[nLabels] = lab;
+        mx[nLabels] = 1;
         nLabels++;
       }
     }
@@ -331,7 +331,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
         // if (c3->getLabel(0)!=lab) continue;
         //
         Double_t z3 = c3->getZ();
-	if (z3 > (zr3 + dz))
+        if (z3 > (zr3 + dz))
           break; // check in Z
 
         Double_t r3 = c3->getX();
@@ -340,23 +340,23 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
         if (TMath::Abs(phir3 - phi3) > kpWin / 100)
           continue; // check in Phi
 
-	Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
-	//	txyz2.SetX(layer2.getXRef(n2));  // The clusters are already in the tracking frame
+        Point3Df txyz2 = c2->getXYZ(); // tracking coordinates
+        //      txyz2.SetX(layer2.getXRef(n2));  // The clusters are already in the tracking frame
 
-	auto xyz3 = c3->getXYZGloRot(*mGeom);
+        auto xyz3 = c3->getXYZGloRot(*mGeom);
 
-	CookedTrack seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
+        CookedTrack seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
-	float ip[2];
+        float ip[2];
         seed.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
         if (TMath::Abs(ip[0]) > kmaxDCAxy) continue;
         if (TMath::Abs(ip[1]) > kmaxDCAz ) continue;
-	{
-	  Double_t xx0 = 0.008; // Rough layer thickness
-	  Double_t radl = 9.36; // Radiation length of Si [cm]
-	  Double_t rho = 2.33;  // Density of Si [g/cm^3]
-	  if (!seed.correctForMaterial(xx0, xx0 * radl * rho, kTRUE)) continue;
-	}
+        {
+          Double_t xx0 = 0.008; // Rough layer thickness
+          Double_t radl = 9.36; // Radiation length of Si [cm]
+          Double_t rho = 2.33;  // Density of Si [g/cm^3]
+          if (!seed.correctForMaterial(xx0, xx0 * radl * rho, kTRUE)) continue;
+        }
         seed.setClusterIndex(kSeedingLayer1, n1);
         seed.setClusterIndex(kSeedingLayer3, n3);
         seed.setClusterIndex(kSeedingLayer2, n2);
@@ -429,19 +429,19 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
 
       CookedTrack t2(t3);
       for ( auto &ci2 : selec[2] ) {
-	if (used[2][ci2]) continue;
+        if (used[2][ci2]) continue;
         if (!attachCluster(volID, 2, ci2, t2, t3))
           continue;
 
         CookedTrack t1(t2);
         for ( auto &ci1 : selec[1] ) {
-	  if (used[1][ci1]) continue;
+          if (used[1][ci1]) continue;
           if (!attachCluster(volID, 1, ci1, t1, t2))
             continue;
 
           CookedTrack t0(t1);
           for ( auto &ci0 : selec[0] ) {
-	    if (used[0][ci0]) continue;
+            if (used[0][ci0]) continue;
             if (!attachCluster(volID, 0, ci0, t0, t1))
               continue;
             if (t0.isBetter(best, kmaxChi2PerTrack)) {
@@ -491,7 +491,7 @@ void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<Co
 
   LOG(INFO)<< FairLogger::endl;
   LOG(INFO)<<"CookedTracker::process() entry " << entry++
-	   << ", number of threads: "<<mNumOfThreads<<FairLogger::endl;
+           << ", number of threads: "<<mNumOfThreads<<FairLogger::endl;
   
   int nClFrame = 0;
   Int_t numOfClustersLeft = clusters.size(); // total number of clusters
@@ -507,13 +507,13 @@ void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<Co
     nClFrame = loadClusters(clusters);
     if (!nClFrame) {
       LOG(FATAL)<<"Failed to select any cluster out of " <<  numOfClustersLeft
-		<< " check if cont/trig mode is correct" <<  FairLogger::endl;
+                << " check if cont/trig mode is correct" <<  FairLogger::endl;
     }
     numOfClustersLeft -= nClFrame;    
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> diff = end-start;   
     LOG(INFO)<<"Loading clusters: " << nClFrame   << " in single frame " << mROFrame << " : "
-	     << diff.count() <<" s" << FairLogger::endl;
+             << diff.count() <<" s" << FairLogger::endl;
 
     start = end;
 
@@ -522,7 +522,7 @@ void CookedTracker::process(const std::vector<Cluster> &clusters, std::vector<Co
     end = std::chrono::system_clock::now();
     diff = end-start;
     LOG(INFO)<<"Processing time for single frame " << mROFrame << " : "
-	     <<diff.count() <<" s" << FairLogger::endl;
+             <<diff.count() <<" s" << FairLogger::endl;
 
     start = end;
     if (mContinuousMode) mROFrame++; // expect incremented frame in following clusters
@@ -569,10 +569,10 @@ void CookedTracker::processFrame(std::vector<CookedTrack> &tracks)
     for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
       if (mTrkLabels) {
-	Label label = cookLabel(track, 0.); // For comparison only
-	if (label.getTrackID() >= 0) ngood++;
-	Int_t idx=tracks.size();
-	mTrkLabels->addElement(idx,label);
+        Label label = cookLabel(track, 0.); // For comparison only
+        if (label.getTrackID() >= 0) ngood++;
+        Int_t idx=tracks.size();
+        mTrkLabels->addElement(idx,label);
       }
       setExternalIndices(track);
       tracks.push_back(track);
@@ -581,7 +581,7 @@ void CookedTracker::processFrame(std::vector<CookedTrack> &tracks)
   
   if (nSeeds) {
     LOG(INFO)<<"CookedTracker::process(), good_tracks:/seeds: "<< ngood << '/' << nSeeds
-	     << "-> " << Float_t(ngood)/nSeeds << FairLogger::endl;
+             << "-> " << Float_t(ngood)/nSeeds << FairLogger::endl;
   }
 }
   
@@ -732,12 +732,12 @@ int CookedTracker::loadClusters(const std::vector<Cluster> &clusters)
   if (mContinuousMode) { // check the ROFrame in cont. mode
     for (auto &c : clusters) {
       if (c.getROFrame()!=mROFrame) {
-	continue;
+        continue;
       }
       nLoaded++;
       Int_t layer = mGeom->getLayer(c.getSensorID());
       if (!sLayers[layer].insertCluster(&c)) {
-	continue;
+        continue;
       }
     }
   }
@@ -746,7 +746,7 @@ int CookedTracker::loadClusters(const std::vector<Cluster> &clusters)
       nLoaded++;
       Int_t layer = mGeom->getLayer(c.getSensorID());
       if (!sLayers[layer].insertCluster(&c)) {
-	continue;
+        continue;
       }
     }    
   }
@@ -755,9 +755,9 @@ int CookedTracker::loadClusters(const std::vector<Cluster> &clusters)
     std::vector<std::future<void>> fut;
     for (Int_t l = 0; l < kNLayers; l+=mNumOfThreads) {
       for (Int_t t = 0; t < mNumOfThreads; t++) {
-	if (l+t >= kNLayers) break;
-	auto f=std::async(std::launch::async, &CookedTracker::Layer::init, sLayers+(l+t));
-	fut.push_back(std::move(f));
+        if (l+t >= kNLayers) break;
+        auto f=std::async(std::launch::async, &CookedTracker::Layer::init, sLayers+(l+t));
+        fut.push_back(std::move(f));
       }
       for (Int_t t = 0; t < fut.size(); t++) fut[t].wait();
     }

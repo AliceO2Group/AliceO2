@@ -46,7 +46,7 @@ void Clusterer::process(PixelReader &reader, std::vector<Cluster> &clusters)
 
   while (reader.getNextChipData(mChipData)) {
     LOG(DEBUG) <<"ITSClusterer got Chip " << mChipData.chipID << " ROFrame " << mChipData.roFrame
-	       << " Nhits " << mChipData.pixels.size() << FairLogger::endl;
+               << " Nhits " << mChipData.pixels.size() << FairLogger::endl;
     initChip();
     for (int ip=1;ip<mChipData.pixels.size();ip++) updateChip(ip);
     finishChip(clusters);
@@ -95,14 +95,14 @@ void Clusterer::updateChip(int ip)
      auto &ci = mPreClusterIndices[pci];
      if (attached) {
         auto &newci = mPreClusterIndices[mCurr[row]];
-	if (ci < newci) newci = ci;
-	else ci = newci;
+        if (ci < newci) newci = ci;
+        else ci = newci;
      } else {
        auto &firstIndex = mPreClusterHeads[ci];
         mPixels.emplace_back(firstIndex, pix);
         firstIndex = mPixels.size() - 1;
-	mCurr[row] = pci;
-	attached = true;
+        mCurr[row] = pci;
+        attached = true;
      }
   }
   
@@ -155,24 +155,24 @@ void Clusterer::finishChip(std::vector<Cluster> &clusters)
       next = mPreClusterHeads[i2];
       while (next >= 0) {
         const auto &dig = mPixels[next];
-	const auto pix = dig.second; // PixelReader.PixelData*
-	x += pix->row;
-	z += pix->col;
-	if (pix->row < rowMin) rowMin = pix->row;
-	if (pix->row > rowMax) rowMax = pix->row;
-	if (pix->col < colMin) colMin = pix->col;
-	if (pix->col > colMax) colMax = pix->col;
-	if (npix<pixArr.size()) pixArr[npix] = pix;  // needed for cluster topology
-	// add labels
-	fetchMCLabels(pix, labels, nlab);   
+        const auto pix = dig.second; // PixelReader.PixelData*
+        x += pix->row;
+        z += pix->col;
+        if (pix->row < rowMin) rowMin = pix->row;
+        if (pix->row > rowMax) rowMax = pix->row;
+        if (pix->col < colMin) colMin = pix->col;
+        if (pix->col > colMax) colMax = pix->col;
+        if (npix<pixArr.size()) pixArr[npix] = pix;  // needed for cluster topology
+        // add labels
+        fetchMCLabels(pix, labels, nlab);   
         npix++;
-	next = dig.first;
+        next = dig.first;
       }
       mPreClusterIndices[i2] = -1;
     }    
 
     Point3D<float> xyzLoc( Segmentation::getFirstRowCoordinate() + x*Segmentation::PitchRow/npix, 0.f,
-			   Segmentation::getFirstColCoordinate() + z*Segmentation::PitchCol/npix );
+                           Segmentation::getFirstColCoordinate() + z*Segmentation::PitchCol/npix );
     auto xyzTra = mGeometry->getMatrixT2L(mChipData.chipID)^(xyzLoc); // inverse transform from Local to Tracking frame
 
     clusters.emplace_back();
@@ -193,16 +193,16 @@ void Clusterer::finishChip(std::vector<Cluster> &clusters)
     if (colSpan*rowSpan>Cluster::kMaxPatternBits) { // need to store partial info
       // will curtail largest dimension
       if (colSpan>rowSpan) {
-	if ( (colSpanW=Cluster::kMaxPatternBits/rowSpan)==0 ) {
-	  colSpanW = 1;
-	  rowSpanW = Cluster::kMaxPatternBits;
-	}
+        if ( (colSpanW=Cluster::kMaxPatternBits/rowSpan)==0 ) {
+          colSpanW = 1;
+          rowSpanW = Cluster::kMaxPatternBits;
+        }
       }
       else {
-	if ( (rowSpanW=Cluster::kMaxPatternBits/colSpan)==0 ) {
-	  rowSpanW = 1;
-	  colSpanW = Cluster::kMaxPatternBits;
-	}
+        if ( (rowSpanW=Cluster::kMaxPatternBits/colSpan)==0 ) {
+          rowSpanW = 1;
+          colSpanW = Cluster::kMaxPatternBits;
+        }
       }
     }
     c.setPatternRowSpan(rowSpanW,rowSpanW<rowSpan);
@@ -222,8 +222,8 @@ void Clusterer::finishChip(std::vector<Cluster> &clusters)
 
 //__________________________________________________
 void Clusterer::fetchMCLabels(const PixelReader::PixelData* pix,
-			      std::array<Label,Cluster::maxLabels> &labels,
-			      int &nfilled) const
+                              std::array<Label,Cluster::maxLabels> &labels,
+                              int &nfilled) const
 {
   // transfer MC labels to cluster
   if (nfilled>=Cluster::maxLabels) return;

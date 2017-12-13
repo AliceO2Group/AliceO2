@@ -153,10 +153,10 @@ void SpaceFrame::CreateGeometry()
     "subSetCross", air, mBeginRadius - 1, mBeginRadius + 2 * mCrossBottomRadThick + 2 * mCrossTopRadThick + 0.15,
     mCrossBottomWidth, mBeginPhi, mEndPhi); // Cross Beam Containers
   subSetCross->SetVisibility(kFALSE);
-  /*						// Obsolete for now
+  /*                                            // Obsolete for now
    TGeoVolume *subSetCrossTop =
    gGeoManager->MakeTubs("SubSetCrossTop", air, mBeginRadius+2*mCrossBottomRadThick-1,
-   mBeginRadius+2*mCrossBottomRadThick+ 2*mCrossTopRadThick+1, mCrossTopWidth, mBeginPhi, mEndPhi);	// Cross
+   mBeginRadius+2*mCrossBottomRadThick+ 2*mCrossTopRadThick+1, mCrossTopWidth, mBeginPhi, mEndPhi);     // Cross
    subSetCrossTop->SetVisibility(kFALSE);
    */
   TGeoVolume* crossBottomBeams = gGeoManager->MakeBox("crossBottom", steel, mCrossBottomRadThick, mCrossBottomHeight,
@@ -246,7 +246,7 @@ void SpaceFrame::CreateGeometry()
   calHalfFrameMO->AddNode(subSetCross, 1, origin1);
   calHalfFrameMO->AddNode(subSetCross, 2, origin2);
   calHalfFrameMO->AddNode(subSetCross, 3, origin3);
-  /*					// Obsolete for now
+  /*                                    // Obsolete for now
    calHalfFrameMO->AddNode(subSetCrossTop, 1, origin1);
    calHalfFrameMO->AddNode(subSetCrossTop, 2, origin2);
    calHalfFrameMO->AddNode(subSetCrossTop, 3, origin3);

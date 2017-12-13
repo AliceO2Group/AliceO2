@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//  defines the run validity range of the object:		   //
-//  [mFirstRun, mLastRun] 					   //
+//  defines the run validity range of the object:                  //
+//  [mFirstRun, mLastRun]                                          //
 #include "CCDB/IdRunRange.h"
 #include <FairLogger.h>  // for LOG
 

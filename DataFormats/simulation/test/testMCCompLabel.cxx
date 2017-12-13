@@ -28,12 +28,12 @@ BOOST_AUTO_TEST_CASE(MCCompLabel_test)
   for (int tr=-100;tr<200;tr+=150) {
     MCCompLabel lb(tr, ev, src);
     std::cout << "Input:   [" << src << '/' << ev << '/'
-	      << std::setw(6) << tr << ']' << std::endl;
+              << std::setw(6) << tr << ']' << std::endl;
     std::cout << "Encoded: " << lb << " (packed: " << ULong_t(lb) << ")" << std::endl;
     int trE, evE, srcE;
     lb.get(trE, evE, srcE);
     std::cout << "Decoded: [" << srcE << '/' << evE << '/'
-	      << std::setw(6) << trE << ']' << std::endl;
+              << std::setw(6) << trE << ']' << std::endl;
 
     BOOST_CHECK(tr == trE && ev == evE && src == srcE);
   }
