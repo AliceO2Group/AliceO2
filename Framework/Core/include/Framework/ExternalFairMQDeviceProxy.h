@@ -33,7 +33,6 @@ namespace framework {
   InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, uint64_t step);
 
   /// The default connection method for the custom source
-  static char const* gDefaultCustomChannelConfig = "type=sub,method=connect,address=tcp://localhost:10000,rateLogging=1";
   static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST",0}, 0, 1);
 
   /// Create a DataProcessorSpec which can be used to inject 
@@ -46,10 +45,10 @@ namespace framework {
   ///        messages of the DPL. By default @a incrementalConverter is used
   ///        which attaches to each @input FairMQPart a DataProcessingHeader
   ///        with an incremental number as start time.
-  DataProcessorSpec rawDeviceSource(char const *label = "rawSource",
-                                    std::vector<OutputSpec> const &outputs = {},
-                                    const char *channelConfig = gDefaultCustomChannelConfig,
-                                    InjectorFunction converter = gDefaultConverter);
+  DataProcessorSpec specifyExternalFairMQDeviceProxy(char const *label,
+                                    std::vector<OutputSpec> const &outputs,
+                                    const char *channelConfig,
+                                    InjectorFunction converter);
 } // namespace framework
 } // namespace o2
 

@@ -7,19 +7,20 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework RawDeviceSourceTest
+#define BOOST_TEST_MODULE Test Framework ExternalFairMQDeviceProxy
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "Framework/RawDeviceSource.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
 #include <string>
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(RawDeviceSource) {
+BOOST_AUTO_TEST_CASE(ExternalFairMQDeviceProxy) {
   InjectorFunction f;
-  DataProcessorSpec spec = rawDeviceSource("testSource", {}, gDefaultCustomChannelConfig, f);
+  DataProcessorSpec spec = specifyExternalFairMQDeviceProxy("testSource",
+                            {}, "type=sub,method=connect,address=tcp://localhost:10000,rateLogging=1", f);
   BOOST_CHECK_EQUAL(spec.name, "testSource");
   BOOST_CHECK_EQUAL(spec.inputs.size(), 0);
   BOOST_REQUIRE_EQUAL(spec.options.size(), 1);

@@ -37,7 +37,7 @@ set(SRCS
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/LocalRootFileService.cxx
-    src/RawDeviceSource.cxx
+    src/ExternalFairMQDeviceProxy.cxx
     src/SimpleMetricsService.cxx
     src/TextControlService.cxx
     src/WorkflowHelpers.cxx
@@ -77,7 +77,7 @@ set(TEST_SRCS
       test/test_Graphviz.cxx
       test/test_InputRecord.cxx
       test/test_ParallelProducer.cxx
-      test/test_RawDeviceSource.cxx
+      test/test_ExternalFairMQDeviceProxy.cxx
       test/test_Services.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx

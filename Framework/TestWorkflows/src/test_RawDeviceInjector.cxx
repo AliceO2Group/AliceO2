@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
-#include "Framework/RawDeviceSource.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
 #include "FairMQLogger.h"
 #include "Headers/HeartbeatFrame.h"
 
@@ -29,7 +29,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
                           o2::Header::gDataDescriptionHeartbeatFrame,
                           InputSpec::Timeframe};
   WorkflowSpec workflow = {
-    rawDeviceSource("foreign-source",
+    specifyExternalFairMQDeviceProxy("foreign-source",
                     {outspec},
                     "type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
                     o2DataModelAdaptor(outspec, 0, 1)

@@ -7,7 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/RawDeviceSource.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/InitContext.h"
@@ -89,7 +89,7 @@ InjectorFunction incrementalConverter(OutputSpec const &spec, uint64_t startTime
   };
 }
 
-DataProcessorSpec rawDeviceSource(char const *name,
+DataProcessorSpec specifyExternalFairMQDeviceProxy(char const *name,
                                   std::vector<OutputSpec> const &outputs,
                                   char const *channelConfig,
                                   std::function<void(FairMQDevice &device,
@@ -116,11 +116,9 @@ DataProcessorSpec rawDeviceSource(char const *name,
       return [](ProcessingContext &) {};
     }
   };
-  /// Because of the way FairMQ works, the only hook to create the custom channel
-  /// source is the program options.
   const char *d = strdup((std::string("name=") + name + "," + channelConfig).c_str());
   spec.options = {
-    ConfigParamSpec{"channel-config", VariantType::String, d, "Out-of-band channel config"}
+    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}}
   };
   return spec;
 }

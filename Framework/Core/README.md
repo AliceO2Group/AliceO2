@@ -508,8 +508,8 @@ help of  a "proxy" data processor which  connects to the foreign  device, receiv
 inputs, optionally converts them to a format understood by the Data Processing
 Layer, and then pumps them to the right Data Processor Specs. In order to have
 such a device in your workflow, you can use the
-[`rawDeviceSource`][rawDeviceSource] helper to instanciate it. For an example
-of how to use it you can look at
+[`rawDeviceSource`][specifyExternalFairMQDeviceProxy] helper to instanciate it.
+For an example of how to use it you can look at
 [`Framework/TestWorkflows/src/test_RawDeviceInjector.cxx`][rawDeviceInjectorExample].
 The `rawDeviceSource` takes four arguments:
 
@@ -535,7 +535,7 @@ to create an out-of-band channel as specified in `channel-configuration` and
 then use the `RawDeviceService` to get the raw FairMQDevice and send data
 through such a channel.
 
-[rawDeviceSource]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/include/Framework/RawDeviceSource.h
+[specifyExternalFairMQDeviceProxy]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/include/Framework/ExternalFairMQDeviceProxy.h
 [rawDeviceInjectorExample]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/test_RawDeviceInjector.cxx
 
 ## Current Demonstrator (WIP)
