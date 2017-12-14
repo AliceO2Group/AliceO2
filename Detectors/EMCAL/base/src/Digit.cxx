@@ -8,30 +8,33 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <iostream>
 #include "EMCALBase/Digit.h"
+#include <iostream>
 
 using namespace o2::EMCAL;
 
 ClassImp(Digit)
 
-Digit::Digit(Int_t module, Int_t tower, Double_t amplitude, Double_t time):
-FairTimeStamp(time),
-mModule(module),
-mTower(tower),
-mAmplitude(amplitude)
+  Digit::Digit(Int_t tower, Double_t amplitude, Double_t time)
+  : DigitBase(time), mTower(tower), mAmplitude(amplitude)
 {
 }
 
-bool Digit::operator<(const Digit &other) const {
-  return GetTimeStamp() < other.GetTimeStamp();
+Digit& Digit::operator+=(const Digit& other)
+{
+  if (canAdd(other))
+    mAmplitude += other.GetAmplitude();
+  // Does nothing if the digits are in different towers.
+  return *this;
 }
 
-void Digit::PrintStream(std::ostream &stream) const {
-  stream << "EMCAL Digit: Module " << mModule <<", Tower " << mTower << ", Time " << GetTimeStamp() << " wiht amplitude " << mAmplitude;
+void Digit::PrintStream(std::ostream& stream) const
+{
+  stream << "EMCAL Digit: Tower " << mTower << ", Time " << getTimeStamp() << " with amplitude " << mAmplitude;
 }
 
-std::ostream& operator<<(std::ostream &stream, const Digit &digi){
+std::ostream& operator<<(std::ostream& stream, const Digit& digi)
+{
   digi.PrintStream(stream);
   return stream;
 }
