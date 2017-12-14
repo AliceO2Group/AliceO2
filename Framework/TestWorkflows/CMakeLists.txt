@@ -59,10 +59,24 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
-  EXE_NAME "test_RawDeviceInjector"
-  SOURCES src/test_RawDeviceInjector.cxx
+  EXE_NAME "dataSamplingPodAndRoot"
+  SOURCES "src/dataSamplingPodAndRoot.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "dataSamplingParallel"
+  SOURCES "src/dataSamplingParallel.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME FrameworkDataSamplingApplication_bucket
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "dataSamplingTimePipeline"
+  SOURCES "src/dataSamplingTimePipeline.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME FrameworkDataSamplingApplication_bucket
 )
 
 # These should be enabled only if one uses the full O2 default
