@@ -123,12 +123,23 @@ void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator
 
       OutputSpec outputSpec = createDispatcherOutputSpec(*input.spec);
 
-      //todo: pass input to output instead of copying
       const auto *inputHeader = o2::Header::get<o2::Header::DataHeader>(input.header);
-      auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
-      const char* input_ptr = input.payload;
-      for (char &it : output) {
-        it = *input_ptr++;
+
+      if (inputHeader->payloadSerializationMethod == o2::Header::gSerializationMethodInvalid){
+        LOG(ERROR) << "DataSampling::dispatcherCallback: input of origin'" << inputHeader->dataOrigin.str
+                   << "', description '" << inputHeader->dataDescription.str
+                   << "' has gSerializationMethodInvalid.";
+      }
+      else if (inputHeader->payloadSerializationMethod == o2::Header::gSerializationMethodROOT){
+        ctx.allocator().adopt(outputSpec, DataRefUtils::as<TObject>(input).release());
+      }
+      else{ //POD
+        //todo: pass input to output instead of copying
+        auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
+        const char* input_ptr = input.payload;
+        for (char &it : output) {
+          it = *input_ptr++;
+        }
       }
 
       LOG(DEBUG) << "DataSampler sends data from subspec " << input.spec->subSpec;
