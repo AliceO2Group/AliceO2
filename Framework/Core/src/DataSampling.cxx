@@ -110,8 +110,6 @@ AlgorithmSpec::ProcessCallback DataSampling::initCallback(InitContext &ctx)
   };
 }
 
-
-//todo: root objects support
 //todo: parallel sources support
 //todo: optimisation
 void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator)
@@ -134,12 +132,9 @@ void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator
         ctx.allocator().adopt(outputSpec, DataRefUtils::as<TObject>(input).release());
       }
       else{ //POD
-        //todo: pass input to output instead of copying
-        auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
-        const char* input_ptr = input.payload;
-        for (char &it : output) {
-          it = *input_ptr++;
-        }
+        //todo: use API for that when it is available
+        ctx.allocator().adoptChunk(outputSpec, const_cast<char*>(input.payload), inputHeader->size(),
+                                   &o2::Header::Stack::freefn, nullptr);
       }
 
       LOG(DEBUG) << "DataSampler sends data from subspec " << input.spec->subSpec;
