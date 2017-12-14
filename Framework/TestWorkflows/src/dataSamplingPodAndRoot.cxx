@@ -19,7 +19,11 @@
 #include <Framework/DataProcessorSpec.h>
 #include <Framework/DataSampling.h>
 #include "Framework/runDataProcessing.h"
-
+#include "Framework/TMessageSerializer.h"
+#include "FairMQLogger.h"
+#include <TClonesArray.h>
+#include <TH1F.h>
+#include <TString.h>
 
 using namespace o2::framework;
 
@@ -40,8 +44,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 {
 
 
-  DataProcessorSpec dataProducer{
-    "dataProducer",
+  DataProcessorSpec podDataProducer{
+    "podDataProducer",
     Inputs{},
     {
       OutputSpec{"TPC", "CLUSTERS", 0, OutputSpec::Timeframe},
@@ -69,8 +73,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   };
 
 
-  DataProcessorSpec sink{
-    "sink",
+  DataProcessorSpec podSink{
+    "podSink",
     Inputs{
       {"dataTPC-proc", "TPC", "CLUSTERS_P", 0, InputSpec::Timeframe},
       {"dataITS-proc", "ITS","CLUSTERS_P", 0, InputSpec::Timeframe}
@@ -80,7 +84,6 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       (AlgorithmSpec::ProcessCallback)someSinkAlgorithm
     }
   };
-
 
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
@@ -113,15 +116,100 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     }
   };
 
-  specs.push_back(dataProducer);
+  DataProcessorSpec rootDataProducer{
+    "rootDataProducer",
+    {},
+    {
+      OutputSpec{"TST", "HISTOS", OutputSpec::Timeframe},
+      OutputSpec{"TST", "STRING", OutputSpec::Timeframe}
+    },
+    AlgorithmSpec{
+      [](ProcessingContext &ctx) {
+        sleep(1);
+        // Create an histogram
+        auto &singleHisto = ctx.allocator().make<TH1F>(OutputSpec{"TST", "HISTOS", 0},
+                                                       "h1", "test", 100, -10., 10.);
+        auto &aString = ctx.allocator().make<TObjString>(OutputSpec{"TST", "STRING", 0}, "foo");
+        singleHisto.FillRandom("gaus", 1000);
+        Double_t stats[4];
+        singleHisto.GetStats(stats);
+        LOG(INFO) << "sumw" << stats[0] << "\n"
+                  << "sumw2" << stats[1] << "\n"
+                  << "sumwx" << stats[2] << "\n"
+                  << "sumwx2" << stats[3] << "\n";
+      }
+    }
+  };
+
+  DataProcessorSpec rootSink{
+    "rootSink",
+    {
+      InputSpec{"histos", "TST", "HISTOS", InputSpec::Timeframe},
+      InputSpec{"string", "TST", "STRING", InputSpec::Timeframe},
+    },
+    {},
+    AlgorithmSpec{
+      [](ProcessingContext &ctx) {
+        // FIXME: for the moment we need to do the deserialization ourselves.
+        //        this should probably be encoded in the serialization field
+        //        of the DataHeader and done automatically by the framework
+        auto h = ctx.inputs().get<TH1F>("histos");
+        if (h.get() == nullptr) {
+          throw std::runtime_error("Missing output");
+        }
+        Double_t stats[4];
+        h->GetStats(stats);
+        LOG(INFO) << "sumw" << stats[0] << "\n"
+                  << "sumw2" << stats[1] << "\n"
+                  << "sumwx" << stats[2] << "\n"
+                  << "sumwx2" << stats[3] << "\n";
+        auto s = ctx.inputs().get<TObjString>("string");
+
+        LOG(INFO) << "String is " << s->GetString().Data();
+      }
+    }
+  };
+
+  DataProcessorSpec rootQcTask{
+    "rootQcTask",
+    {
+      InputSpec{"TST_HISTOS_S", "TST", "HISTOS_S", InputSpec::Timeframe},
+      InputSpec{"TST_STRING_S", "TST", "STRING_S", InputSpec::Timeframe},
+    },
+    Outputs{},
+    AlgorithmSpec{
+      (AlgorithmSpec::ProcessCallback)[](ProcessingContext& ctx){
+        auto h = ctx.inputs().get<TH1F>("TST_HISTOS_S");
+        if (h.get() == nullptr) {
+          throw std::runtime_error("Missing TST_HISTOS_S");
+        }
+        Double_t stats[4];
+        h->GetStats(stats);
+        LOG(INFO) << "sumw" << stats[0] << "\n"
+                  << "sumw2" << stats[1] << "\n"
+                  << "sumwx" << stats[2] << "\n"
+                  << "sumwx2" << stats[3] << "\n";
+        auto s = ctx.inputs().get<TObjString>("TST_STRING_S");
+
+        LOG(INFO) << "qcTaskTst: TObjString is " << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong" );
+      }
+    }
+  };
+
+  specs.push_back(podDataProducer);
   specs.push_back(processingStage);
-  specs.push_back(sink);
+  specs.push_back(podSink);
   specs.push_back(qcTaskTpc);
 
+  specs.push_back(rootDataProducer);
+  specs.push_back(rootSink);
+  specs.push_back(rootQcTask);
+
+
   //todo: get qcTasks list
-  std::vector<std::string> taskNames = {"simpleQcTask"};
+  std::vector<std::string> taskNames = {"simpleQcTask", "rootQcTask"};
   //todo: get path as argument?
-  std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/Core/test/exampleDataSamplerConfig.ini";
+  std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
 
   DataSampling::GenerateInfrastructure(specs, configurationSource, taskNames);
 }
