@@ -119,7 +119,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   //todo: get qcTasks list
   std::vector<std::string> taskNames = {"simpleQcTask"};
   //todo: get path as argument?
-  std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/Core/test/exampleDataSamplerConfig.ini";
+  std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
 
   DataSampling::GenerateInfrastructure(specs, configurationSource, taskNames);
 }

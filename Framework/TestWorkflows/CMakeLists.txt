@@ -69,14 +69,14 @@ O2_GENERATE_EXECUTABLE(
   EXE_NAME "dataSamplingParallel"
   SOURCES "src/dataSamplingParallel.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME FrameworkDataSamplingApplication_bucket
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 O2_GENERATE_EXECUTABLE(
   EXE_NAME "dataSamplingTimePipeline"
   SOURCES "src/dataSamplingTimePipeline.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME FrameworkDataSamplingApplication_bucket
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 # These should be enabled only if one uses the full O2 default

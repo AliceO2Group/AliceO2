@@ -194,18 +194,6 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    FrameworkDataSamplingApplication_bucket
-
-    DEPENDENCIES
-    O2FrameworkCore_bucket
-    ${Configuration_LIBRARIES}
-
-    SYSTEMINCLUDE_DIRECTORIES
-    ${Configuration_INCLUDE_DIRS}
-)
-
-o2_define_bucket(
-    NAME
     O2MessageMonitor_bucket
 
     DEPENDENCIES
