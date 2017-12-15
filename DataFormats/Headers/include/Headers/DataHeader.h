@@ -293,6 +293,8 @@ struct Descriptor {
   bool operator==(const Descriptor& other) const {return DescriptorCompareTraits<arraySize>::compare(*this,other, N);}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
 
+  bool operator<(const Descriptor& other) const {return std::memcmp(str, other.str, N) < 0;}
+
   // explicitly forbid comparison with e.g. const char* strings
   // use: value == Descriptor<N>("DESC") for the appropriate
   // template instantiation instead
@@ -534,6 +536,46 @@ struct printDataOrigin {
 };
 using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
 
+
+//__________________________________________________________________________________________________
+/// @struct DataIdentifier
+/// @brief Helper struct to encode origin and description of data.
+///
+/// The DataHeader stores origin and description of data in adedicted fields,
+/// DataIdentifier structure is used for assignment and comparison
+///
+/// @ingroup aliceo2_dataformats_dataheader
+struct DataIdentifier
+{
+  //a full data identifier combining origin and description
+  DataDescription dataDescription;
+  DataOrigin dataOrigin;
+  DataIdentifier();
+  DataIdentifier(const DataIdentifier&) = default;
+  DataIdentifier(const DataDescription &pDataDesc, const DataOrigin &pDataOrigin)
+    : dataDescription{pDataDesc}, dataOrigin{pDataOrigin}
+  {
+  }
+  template<std::size_t N, std::size_t M>
+  DataIdentifier(const char (&desc)[N], const char (&origin)[M])
+    : dataDescription(desc), dataOrigin(origin)
+  {
+  }
+
+  bool operator<(const DataIdentifier& other) const
+  {
+    if (dataDescription < other.dataDescription)
+      return true;
+    if (dataOrigin < other.dataOrigin)
+      return true;
+    return false;
+  }
+
+  bool operator==(const DataIdentifier&) const;
+  void print() const;
+};
+
+
 //__________________________________________________________________________________________________
 /// @struct DataHeader
 /// @brief the main header struct
@@ -609,10 +651,18 @@ struct DataHeader : public BaseHeader
   bool operator==(const SerializationMethod&) const; //comparison
   void print() const; ///pretty print the contents
 
+  // TODO: make the identifier a field instead of desc and origin?
+  DataIdentifier getDataIdentifier() const noexcept
+  {
+    return DataIdentifier(this->dataDescription, this->dataOrigin);
+  }
+
   static const DataHeader* Get(const BaseHeader* baseHeader) {
     return (baseHeader->description==DataHeader::sHeaderType)?
     static_cast<const DataHeader*>(baseHeader):nullptr;
   }
+
+
 };
 
 //__________________________________________________________________________________________________
@@ -649,32 +699,12 @@ extern const o2::Header::DataDescription gDataDescriptionClusters;
 extern const o2::Header::DataDescription gDataDescriptionTracks;
 extern const o2::Header::DataDescription gDataDescriptionConfig;
 extern const o2::Header::DataDescription gDataDescriptionInfo;
+extern const o2::Header::DataDescription gDataDescriptionSubTimeFrame;
+extern const o2::Header::DataDescription gDataDescriptionCruData;
+extern const o2::Header::DataDescription gDataDescriptionCruLinkData;
+extern const o2::Header::DataDescription gDataDescriptionBHFrame;
 /// @} // end of doxygen group
 
-//__________________________________________________________________________________________________
-/// @struct DataIdentifier
-/// @brief Helper struct to encode origin and description of data.
-///
-/// The DataHeader stores origin and description of data in adedicted fields,
-/// DataIdentifier structure is used for assignment and comparison
-///
-/// @ingroup aliceo2_dataformats_dataheader
-struct DataIdentifier
-{
-  //a full data identifier combining origin and description
-  DataDescription dataDescription;
-  DataOrigin dataOrigin;
-  DataIdentifier();
-  DataIdentifier(const DataIdentifier&);
-  template<std::size_t N, std::size_t M>
-  DataIdentifier(const char (&desc)[N], const char (&origin)[M])
-    : dataDescription(desc), dataOrigin(origin)
-  {
-  }
-
-  bool operator==(const DataIdentifier&) const;
-  void print() const;
-};
 
 //__________________________________________________________________________________________________
 ///compile time checks for the basic structures

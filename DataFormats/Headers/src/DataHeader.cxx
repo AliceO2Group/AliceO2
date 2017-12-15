@@ -63,6 +63,10 @@ const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS
 const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS");
 const o2::Header::DataDescription o2::Header::gDataDescriptionConfig  ("CONFIGURATION");
 const o2::Header::DataDescription o2::Header::gDataDescriptionInfo    ("INFORMATION");
+const o2::Header::DataDescription o2::Header::gDataDescriptionSubTimeFrame("SUBTIMEFRAME");
+const o2::Header::DataDescription o2::Header::gDataDescriptionCruData("CRUDATA");
+const o2::Header::DataDescription o2::Header::gDataDescriptionCruLinkData("CRULINKDATA");
+const o2::Header::DataDescription o2::Header::gDataDescriptionBHFrame("HBFRAME");
 
 //definitions for Stack statics
 std::default_delete<byte[]> o2::Header::Stack::sDeleter;
