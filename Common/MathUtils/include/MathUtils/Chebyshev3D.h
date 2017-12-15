@@ -233,7 +233,7 @@ class Chebyshev3D : public TNamed
       return x / mBoundaryMappingScale[d] + mBoundaryMappingOffset[d];
     } // map from [-1:1] to x
 
-  protected:
+  private:
     Int_t mOutputArrayDimension;       ///< dimension of the ouput array
     Float_t mPrecision;                ///< requested precision
     Float_t mMinBoundaries[3];         ///< min boundaries in each dimension

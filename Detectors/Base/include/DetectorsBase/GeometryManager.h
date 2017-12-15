@@ -101,7 +101,7 @@ class GeometryManager : public TObject
 
   static TGeoManager* sGeometry;
 
- protected:
+ private:
   /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 16; /// detector identifier will start from this bit
   static constexpr UInt_t sSensorMask =

@@ -82,7 +82,8 @@ class TrackPar
   TrackPar& operator=(const TrackPar& src) = default;
   ~TrackPar() = default;
 
-  const float* getParam() const { return mP; }
+  const float* getParams() const { return mP; }
+  float getParam(int i) const {return mP[i];}
   float getX() const { return mX; }
   float getAlpha() const { return mAlpha; }
   float getY() const { return mP[kY]; }
@@ -117,6 +118,26 @@ class TrackPar
   void PrintParam() const;
 
  protected:
+
+  void updateParam(float delta, int i) { mP[i] += delta; }
+  void updateParams(const float delta[kNParams]) {
+    for (int i=kNParams;i--;) {
+      mP[i] += delta[i];
+    }
+  }
+  
+  void setX(float v) { mX = v; }
+  void setParam(float v, int i) { mP[i] = v;}
+  void setAlpha(float v) { mAlpha = v; }
+  void setY(float v) { mP[kY] = v; }
+  void setZ(float v) { mP[kZ] = v; }
+  void setSnp(float v) { mP[kSnp] = v; }
+  void setTgl(float v) { mP[kTgl] = v; }
+  void setQ2Pt(float v) { mP[kQ2Pt] = v; }
+  // derived getters
+  
+  
+ private:
   //
   float mX = 0.f;               /// X of track evaluation
   float mAlpha = 0.f;           /// track frame angle
@@ -202,6 +223,13 @@ class TrackParCov : public TrackPar
   void resetCovariance(float s2 = 0);
   void checkCovariance();
 
+ protected:
+  void setCov(float v, int i) { mC[i] = v;}
+  void updateCov(const float delta[kCovMatSize]) {
+    for (int i=kCovMatSize;i--;) mC[i] += delta[i];
+  }
+
+  
  protected:
   float mC[kCovMatSize] = { 0.f }; // 15 covariance matrix elements
 

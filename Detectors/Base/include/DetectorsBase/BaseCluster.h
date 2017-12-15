@@ -32,7 +32,7 @@ namespace Base
 template <typename T>
 class BaseCluster : public TObject // temprarily derive from TObject
 {
- protected:
+ private:
   
   Point3D<T> mPos;        // cartesian position
   T mSigmaY2;             // error in Y direction (usually rphi)

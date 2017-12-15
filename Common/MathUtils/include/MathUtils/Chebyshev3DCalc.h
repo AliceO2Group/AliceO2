@@ -168,7 +168,7 @@ class Chebyshev3DCalc : public TNamed
 
     Double_t Eval(const Double_t *par) const;
 
-  protected:
+  private:
     Int_t mNumberOfCoefficients;    ///< total number of coeeficients
     Int_t mNumberOfRows;            ///< number of significant rows in the 3D coeffs matrix
     Int_t mNumberOfColumns;         ///< max number of significant cols in the 3D coeffs matrix
