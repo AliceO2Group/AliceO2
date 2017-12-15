@@ -259,7 +259,7 @@ class MagneticField : public FairField
       mBeamEnergy = energy;
     }
 
-  protected:
+  private:
     std::unique_ptr<MagneticWrapperChebyshev> mMeasuredMap; //! Measured part of the field map
     std::unique_ptr<MagFieldFast>             mFastField; // ! optional fast parametrization
     MagFieldParam::BMap_t mMapType;         ///< field map type
@@ -287,7 +287,6 @@ class MagneticField : public FairField
 
     FairLogger *mLogger;
 
-   private:
     MagneticField(const MagneticField &src);
 
 

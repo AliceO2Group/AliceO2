@@ -150,7 +150,7 @@ class Detector : public FairDetector
 
     Detector &operator=(const Detector &);
 
-
+  private:
     /// Mapping of the ALICE internal material number to the one
     /// automatically assigned by geant/TGeo.
     /// This is required to easily being able to copy the geometry setup

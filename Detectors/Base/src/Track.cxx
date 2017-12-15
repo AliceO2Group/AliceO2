@@ -446,12 +446,13 @@ bool TrackParCov::propagateTo(float xk, float b)
   if (fabs(r2) < kAlmost0) {
     return false;
   }
-  mX = xk;
+  setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
-  mP[kY] += dx * dy2dx;
-  mP[kSnp] += x2r;
+  float dP[kNParams];
+  dP[kY] = dx * dy2dx;
+  dP[kSnp] = x2r;
   if (fabs(x2r) < 0.05f) {
-    mP[kZ] += dx * (r2 + f2 * dy2dx) * getTgl();
+    dP[kZ] = dx * (r2 + f2 * dy2dx) * getTgl();
   } else {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
     // but at large dx/R the error is very large and leads to incorrect Z propagation
@@ -469,9 +470,11 @@ bool TrackParCov::propagateTo(float xk, float b)
         rot = -kPI - rot;
       }
     }
-    mP[kZ] += getTgl() / crv * rot;
+    dP[kZ] += getTgl() / crv * rot;
   }
 
+  updateParams(dP); // apply corrections
+  
   float &c00 = mC[kSigY2], &c10 = mC[kSigZY], &c11 = mC[kSigZ2], &c20 = mC[kSigSnpY], &c21 = mC[kSigSnpZ],
         &c22 = mC[kSigSnp2], &c30 = mC[kSigTglY], &c31 = mC[kSigTglZ], &c32 = mC[kSigTglSnp], &c33 = mC[kSigTgl2],
         &c40 = mC[kSigQ2PtY], &c41 = mC[kSigQ2PtZ], &c42 = mC[kSigQ2PtSnp], &c43 = mC[kSigQ2PtTgl],
@@ -536,7 +539,7 @@ bool TrackParCov::rotate(float alpha)
   Utils::BringToPMPi(alpha);
   //
   float ca = 0, sa = 0;
-  Utils::sincosf(alpha - mAlpha, sa, ca);
+  Utils::sincosf(alpha - getAlpha(), sa, ca);
   float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
@@ -546,17 +549,18 @@ bool TrackParCov::rotate(float alpha)
     return false;
   }
   //
-  float tmp = snp * ca - csp * sa;
-  if (fabs(tmp) > kAlmost1) {
+  
+  float updSnp = snp * ca - csp * sa;
+  if (fabs(updSnp) > kAlmost1) {
     // FairLogger::GetLogger()->Warning(MESSAGE_ORIGIN,
-    printf("Rotation failed: new snp %.2f\n", tmp);
+    printf("Rotation failed: new snp %.2f\n", updSnp);
     return false;
   }
   float xold = getX(), yold = getY();
-  mAlpha = alpha;
-  mX = xold * ca + yold * sa;
-  mP[kY] = -xold * sa + yold * ca;
-  mP[kSnp] = tmp;
+  setAlpha(alpha);
+  setX(xold * ca + yold * sa);
+  setY(-xold * sa + yold * ca);
+  setSnp(updSnp);
 
   if (fabs(csp) < kAlmost0) {
     printf("Too small cosine value %f\n", csp);
@@ -631,18 +635,18 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
   //
   float pt = sqrt(mom[0] * mom[0] + mom[1] * mom[1]);
   float ptI = 1.f / pt;
-  mX = ver[0];
-  mAlpha = alp;
-  mP[kY] = ver[1];
-  mP[kZ] = ver[2];
-  mP[kSnp] = mom[1] * ptI; // cos(phi)
-  mP[kTgl] = mom[2] * ptI; // tg(lambda)
-  mP[kQ2Pt] = ptI * charge;
+  setX(ver[0]);
+  setAlpha(alp);
+  setY(ver[1]);
+  setZ(ver[2]);
+  setSnp(mom[1] * ptI); // cos(phi)
+  setTgl(mom[2] * ptI); // tg(lambda)
+  setQ2Pt(ptI * charge);
   //
   if (fabs(1.f - getSnp()) < kSafe) {
-    mP[kSnp] = 1.f - kSafe; // Protection
+    setSnp(1.f - kSafe); // Protection
   } else if (fabs(-1.f - getSnp()) < kSafe) {
-    mP[kSnp] = -1.f + kSafe; // Protection
+    setSnp(-1.f + kSafe); // Protection
   }
   //
   // Covariance matrix (formulas to be simplified)
@@ -689,7 +693,7 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
     mC[kSigQ2PtY] = sgcheck * cv[6] * ptI2 / sn * charge;
     mC[kSigQ2PtZ] = -sgcheck * cv[8] * ptI2 * charge;
     mC[kSigQ2PtSnp] = -sgcheck * cv[13] * cs * ptI * ptI2 * charge;
-    mC[kSigQ2PtTgl] = (-sgcheck * cv[18] + cv[9] * mP[kTgl]) * ptI2 * ptI * charge;
+    mC[kSigQ2PtTgl] = (-sgcheck * cv[18] + cv[9] * getTgl()) * ptI2 * ptI * charge;
     mC[kSigQ2Pt2] = fabs(cv[9] * ptI2 * ptI2);
   } else {
     double m00 = -sn; // m10=cs;
@@ -882,12 +886,12 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
 
   // Calculate the track parameters
   t = 1.f / sqrtf(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
-  mX = x;
-  mP[kY] = y;
-  mP[kZ] = z;
-  mP[kSnp] = vecLab[4] * t;
-  mP[kTgl] = vecLab[5] * t;
-  mP[kQ2Pt] = sgn * t / vecLab[6];
+  setX(x);
+  setY(y);
+  setZ(z);
+  setSnp(vecLab[4] * t);
+  setTgl(vecLab[5] * t);
+  setQ2Pt(sgn * t / vecLab[6]);
 
   return true;
 }
@@ -1027,12 +1031,12 @@ float TrackParCov::getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSe
   // get chi2 wrt other track, which must be defined at the same parameters X,alpha
   // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
 
-  if (std::abs(mAlpha - rhs.mAlpha) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << mAlpha << " : " << rhs.mAlpha << FairLogger::endl;
+  if (std::abs(getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha() << FairLogger::endl;
     return 2. * HugeF;
   }
-  if (std::abs(mX - rhs.mX) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference X of the tracks differ: " << mX << " : " << rhs.mX << FairLogger::endl;
+  if (std::abs(getX() - rhs.getX()) > FLT_EPSILON) {
+    LOG(ERROR) << "The reference X of the tracks differ: " << getX() << " : " << rhs.getX() << FairLogger::endl;
     return 2. * HugeF;
   }
   buildCombinedCovMatrix(rhs, covToSet);
@@ -1042,7 +1046,7 @@ float TrackParCov::getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSe
   }
   double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
   for (int i = kNParams; i--;) {
-    diff[i] = mP[i] - rhs.mP[i];
+    diff[i] = getParam(i) - rhs.getParam(i);
     chi2diag += diff[i] * diff[i] * covToSet(i, i);
   }
   for (int i = kNParams; i--;) {
@@ -1059,12 +1063,12 @@ bool TrackParCov::update(const TrackParCov& rhs, const MatrixDSym5& covInv)
   // update track with other track, the inverted combined cov matrix should be supplied
 
   // consider skipping this check, since it is usually already done upstream
-  if (std::abs(mAlpha - rhs.mAlpha) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << mAlpha << " : " << rhs.mAlpha << FairLogger::endl;
+  if (std::abs(getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha() << FairLogger::endl;
     return false;
   }
-  if (std::abs(mX - rhs.mX) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference X of the tracks differ: " << mX << " : " << rhs.mX << FairLogger::endl;
+  if (std::abs(getX() - rhs.getX()) > FLT_EPSILON) {
+    LOG(ERROR) << "The reference X of the tracks differ: " << getX() << " : " << rhs.getX() << FairLogger::endl;
     return false;
   }
 
@@ -1091,11 +1095,11 @@ bool TrackParCov::update(const TrackParCov& rhs, const MatrixDSym5& covInv)
   // RS: why SMatix, SVector does not provide multiplication operators ???
   double diff[kNParams];
   for (int i = kNParams; i--;) {
-    diff[i] = rhs.mP[i] - mP[i];
+    diff[i] = rhs.getParam(i) - getParam(i);
   }
   for (int i = kNParams; i--;) {
     for (int j = kNParams; j--;) {
-      mP[i] += matK(i, j) * diff[j];
+      updateParam( matK(i, j) * diff[j], i );
     }
   }
 
@@ -1163,17 +1167,18 @@ bool TrackParCov::update(const array<float, 2>& p, const array<float, 3>& cov)
   double k30 = cm30 * r00 + cm31 * r01, k31 = cm30 * r01 + cm31 * r11;
   double k40 = cm40 * r00 + cm41 * r01, k41 = cm40 * r01 + cm41 * r11;
 
-  double dy = p[kY] - getY(), dz = p[kZ] - getZ();
-  double sf = getSnp() + k20 * dy + k21 * dz;
+  float dy = p[kY] - getY(), dz = p[kZ] - getZ();
+  float sf = getSnp() + k20 * dy + k21 * dz;
   if (fabs(sf) > kAlmost1) {
     return false;
   }
 
-  mP[kY] += k00 * dy + k01 * dz;
-  mP[kZ] += k10 * dy + k11 * dz;
-  mP[kSnp] = sf;
-  mP[kTgl] += k30 * dy + k31 * dz;
-  mP[kQ2Pt] += k40 * dy + k41 * dz;
+  float dP[kNParams] = {float(k00*dy + k01*dz),
+			float(k10*dy+k11*dz),
+			sf,
+			float(k30 * dy + k31 * dz),
+			float(k40 * dy + k41 * dz)};
+  updateParams(dP);
 
   double c01 = cm10, c02 = cm20, c03 = cm30, c04 = cm40;
   double c12 = cm21, c13 = cm31, c14 = cm41;
@@ -1219,17 +1224,14 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   constexpr float kMSConst2 = 0.0136f * 0.0136f;
   constexpr float kMaxELossFrac = 0.3f; // max allowed fractional eloss
   constexpr float kMinP = 0.01f;        // kill below this momentum
-  float& fP2 = mP[kSnp];
-  float& fP3 = mP[kTgl];
-  float& fP4 = mP[kQ2Pt];
 
   float& fC22 = mC[kSigSnp2];
   float& fC33 = mC[kSigTgl2];
   float& fC43 = mC[kSigQ2PtTgl];
   float& fC44 = mC[kSigQ2Pt2];
   //
-  float csp2 = (1.f - fP2) * (1.f + fP2); // cos(phi)^2
-  float cst2I = (1.f + fP3 * fP3);        // 1/cos(lambda)^2
+  float csp2 = (1.f - getSnp()) * (1.f + getSnp()); // cos(phi)^2
+  float cst2I = (1.f + getTgl() * getTgl());        // 1/cos(lambda)^2
   // Apply angle correction, if requested
   if (anglecorr) {
     float angle = sqrtf(cst2I / (csp2));
@@ -1255,17 +1257,17 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
     if (theta2 > kPI * kPI) {
       return false;
     }
-    float fp34 = fP3 * fP4;
+    float fp34 = getTgl() * getQ2Pt();
     float t2c2I = theta2 * cst2I;
     cC22 = t2c2I * csp2;
     cC33 = t2c2I * cst2I;
     cC43 = t2c2I * fp34;
     cC44 = theta2 * fp34 * fp34;
     // optimes this
-    //    cC22 = theta2*((1.-fP2)*(1.+fP2))*(1. + fP3*fP3);
-    //    cC33 = theta2*(1. + fP3*fP3)*(1. + fP3*fP3);
-    //    cC43 = theta2*fP3*fP4*(1. + fP3*fP3);
-    //    cC44 = theta2*fP3*fP4*fP3*fP4;
+    //    cC22 = theta2*((1.-getSnp())*(1.+getSnp()))*(1. + getTgl()*getTgl());
+    //    cC33 = theta2*(1. + getTgl()*getTgl())*(1. + getTgl()*getTgl());
+    //    cC43 = theta2*getTgl()*getQ2Pt()*(1. + getTgl()*getTgl());
+    //    cC44 = theta2*getTgl()*getQ2Pt()*getTgl()*getQ2Pt();
   }
 
   // Calculating the energy loss corrections************************
@@ -1292,7 +1294,7 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
     //
     // Approximate energy loss fluctuation (M.Ivanov)
     constexpr float knst = 0.07f; // To be tuned.
-    float sigmadE = knst * sqrtf(fabs(dE)) * e / p2 * fP4;
+    float sigmadE = knst * sqrtf(fabs(dE)) * e / p2 * getQ2Pt();
     cC44 += sigmadE * sigmadE;
   }
 
@@ -1301,7 +1303,7 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   fC33 += cC33;
   fC43 += cC43;
   fC44 += cC44;
-  fP4 *= cP4;
+  setQ2Pt( getQ2Pt()*cP4 );
 
   checkCovariance();
 

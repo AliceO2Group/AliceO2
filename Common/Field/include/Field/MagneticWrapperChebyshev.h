@@ -324,7 +324,7 @@ class MagneticWrapperChebyshev : public TNamed
     /// note: if the point is outside the volume it gets the field in closest parameterized point
     Double_t fieldCylindricalSolenoidBz(const Double_t *rphiz) const;
 
-  protected:
+  private:
     Int_t mNumberOfParameterizationSolenoid;  ///< Total number of parameterization pieces for solenoid
     Int_t mNumberOfDistinctZSegmentsSolenoid; ///< number of distinct Z segments in Solenoid
     Int_t mNumberOfDistinctPSegmentsSolenoid; ///< number of distinct P segments in Solenoid

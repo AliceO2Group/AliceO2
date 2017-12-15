@@ -236,7 +236,7 @@ class TrackReference : public TObject
 
     void Print(Option_t *opt = "") const override;
 
-  protected:
+  private:
     Int_t mTrackNumber;          ///< Track number
     Float_t mReferencePositionX; ///< X reference position of the track
     Float_t mReferencePositionY; ///< Y reference position of the track

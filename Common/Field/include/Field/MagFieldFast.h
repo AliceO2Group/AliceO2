@@ -66,6 +66,7 @@ class MagFieldFast
 
   float CalcPol(const float* cf, float x, float y, float z) const;
 
+ private:
   float mFactorSol; // scaling factor
   SolParam mSolPar[kNSolRRanges][kNSolZRanges][kNQuadrants];
 

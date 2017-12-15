@@ -54,7 +54,7 @@ class MagFieldParam : public FairParGenericSet
     void   putParams(FairParamList* list) override;
     Bool_t getParams(FairParamList* list) override;
     
-  protected:
+  private:
     BMap_t     mMapType;  ///< map type ID
     BeamType_t mBeamType; ///< beam type ID
     Int_t    mDefaultIntegration;        ///< field integration type for MC
