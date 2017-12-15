@@ -33,7 +33,7 @@ DataProcessorSpec templateProducer() {
           size_t index = ctx.services().get<ParallelContext>().index1D();
           sleep(1);
           auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "A", index}, 1);
-//          ctx.services().get<ControlService>().readyToQuit(true);
+          ctx.services().get<ControlService>().readyToQuit(true);
         };
       }
     }
@@ -60,34 +60,15 @@ void defineDataProcessing(o2::framework::WorkflowSpec &specs) {
                      input.subSpec = index;
                   }
                  ),
-      {
-        OutputSpec{"TST", "B", OutputSpec::Timeframe}
-      },
+      {},
       AlgorithmSpec{[](InitContext &setup) {
         return [](ProcessingContext &ctx) {
-            // Create a single output.
-          LOG(DEBUG) << "Invoked" << std::endl;
-          auto bData = ctx.allocator().make<int>(OutputSpec{"TST", "B", 0}, 1);
-          };
-        }
-      }
-  });
-
-  workflow.push_back(DataProcessorSpec{
-    "sink",
-    {
-      InputSpec{"y", "TST", "B", InputSpec::Timeframe}
-    },
-    {},
-    AlgorithmSpec{[](InitContext &setup) {
-          return [](ProcessingContext &ctx) {
             // Create a single output.
             LOG(DEBUG) << "Invoked" << std::endl;
           };
         }
       }
-    }
-  );
+  });
 
   specs.swap(workflow);
 }
