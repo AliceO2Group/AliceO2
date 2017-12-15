@@ -16,7 +16,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define GMPropagatorUseFullField
+// #define GMPropagatorUseFullField
 
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCCAMath.h"

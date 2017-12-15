@@ -202,7 +202,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     double theta = 2*TMath::ATan(1./TMath::Exp(eta));
     double lambda = theta-TMath::Pi()/2;
     //double theta = gRandom->Uniform(-60,60)*TMath::Pi()/180.;
-    double pt = .8*std::pow(10,gRandom->Uniform(0,2.2));
+    double pt = .08*std::pow(10,gRandom->Uniform(0,2.2));
     
     double q = 1.;
     int iSlice = GetSlice( phi );
