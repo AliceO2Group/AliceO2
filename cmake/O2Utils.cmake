@@ -242,6 +242,9 @@ macro(O2_GENERATE_LIBRARY)
 
   ############### build the dictionary #####################
   if (LINKDEF)
+    if(NOT HEADERS)
+      message(FATAL_ERROR "GENERATE_LIBRARY(\"${LIBRARY_NAME}\") : HEADERS variable must set if LINKDEF is provided.")
+    endif()
     if (IS_ABSOLUTE ${LINKDEF})
       Set(LINKDEF ${LINKDEF})
     else (IS_ABSOLUTE ${LINKDEF})

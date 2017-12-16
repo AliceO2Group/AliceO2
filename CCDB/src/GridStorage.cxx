@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// access class to a DataBase in an AliEn storage  			                       //
+// access class to a DataBase in an AliEn storage                                              //
 
 #include "CCDB/GridStorage.h"
 #include <FairLogger.h>         // for LOG
@@ -1200,18 +1200,18 @@ void GridStorage::makeQueryFilter(Int_t firstRun, Int_t lastRun, const Condition
 
   result = Form("CDB:first_run<=%d and CDB:last_run>=%d", firstRun, lastRun);
 
-  //	if(version >= 0) {
-  //		result += Form(" and CDB:version=%d", version);
-  //	}
-  //	if(pathFilter.getLevel0() != "*") {
-  //		result += Form(" and CDB:path_level_0=\"%s\"", pathFilter.getLevel0().Data());
-  //	}
-  //	if(pathFilter.getLevel1() != "*") {
-  //		result += Form(" and CDB:path_level_1=\"%s\"", pathFilter.getLevel1().Data());
-  //	}
-  //	if(pathFilter.getLevel2() != "*") {
-  //		result += Form(" and CDB:path_level_2=\"%s\"", pathFilter.getLevel2().Data());
-  //	}
+  //    if(version >= 0) {
+  //            result += Form(" and CDB:version=%d", version);
+  //    }
+  //    if(pathFilter.getLevel0() != "*") {
+  //            result += Form(" and CDB:path_level_0=\"%s\"", pathFilter.getLevel0().Data());
+  //    }
+  //    if(pathFilter.getLevel1() != "*") {
+  //            result += Form(" and CDB:path_level_1=\"%s\"", pathFilter.getLevel1().Data());
+  //    }
+  //    if(pathFilter.getLevel2() != "*") {
+  //            result += Form(" and CDB:path_level_2=\"%s\"", pathFilter.getLevel2().Data());
+  //    }
 
   if (md) {
     if (md->getObjectClassName()[0] != '\0') {
@@ -1235,7 +1235,7 @@ void GridStorage::makeQueryFilter(Int_t firstRun, Int_t lastRun, const Condition
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                             //
-//  GridStorage factory  			                                                       //
+//  GridStorage factory                                                                                //
 //                                                                                             //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1335,10 +1335,10 @@ StorageParameters *GridStorageFactory::createStorageParameter(const char *gridSt
   delete arr;
   arr = nullptr;
 
-  LOG(DEBUG) << "gridUrl:	" << gridUrl.Data() << FairLogger::endl;
-  LOG(DEBUG) << "user:	" << user.Data() << FairLogger::endl;
-  LOG(DEBUG) << "dbFolder:	" << dbFolder.Data() << FairLogger::endl;
-  LOG(DEBUG) << "s.e.:	" << se.Data() << FairLogger::endl;
+  LOG(DEBUG) << "gridUrl:       " << gridUrl.Data() << FairLogger::endl;
+  LOG(DEBUG) << "user:  " << user.Data() << FairLogger::endl;
+  LOG(DEBUG) << "dbFolder:      " << dbFolder.Data() << FairLogger::endl;
+  LOG(DEBUG) << "s.e.:  " << se.Data() << FairLogger::endl;
   LOG(DEBUG) << "local cache folder: " << cacheFolder.Data() << FairLogger::endl;
   LOG(DEBUG) << "local cache operate disconnected: " << operateDisconnected << FairLogger::endl;
   LOG(DEBUG) << "local cache size: " << cacheSize << "" << FairLogger::endl;

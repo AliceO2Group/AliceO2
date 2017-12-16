@@ -11,8 +11,8 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
@@ -220,12 +220,12 @@ int SystemInterface::processEvent(AliHLTComponentHandle handle,
                                   const AliHLTComponentEventData* evtData, const AliHLTComponentBlockData* blocks,
                                   AliHLTComponentTriggerData* trigData,
                                   AliHLTUInt8_t* outputPtr, AliHLTUInt32_t* size,
-                                  AliHLTUInt32_t* outputBlockCnt,	AliHLTComponentBlockData** outputBlocks,
+                                  AliHLTUInt32_t* outputBlockCnt,       AliHLTComponentBlockData** outputBlocks,
                                   AliHLTComponentEventDoneData** edd )
 {
   if (!mpAliHLTExtFctProcessEvent) return -ENOSYS;
   return (*mpAliHLTExtFctProcessEvent)(handle, evtData, blocks, trigData,
-				       outputPtr, size, outputBlockCnt, outputBlocks, edd);
+                                       outputPtr, size, outputBlockCnt, outputBlocks, edd);
 }
 
 int SystemInterface::getOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType)

@@ -25,6 +25,8 @@
 #include "Framework/LocalRootFileService.h"
 #include "Framework/TextControlService.h"
 #include "Framework/ParallelContext.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/SimpleRawDeviceService.h"
 
 #include "GraphvizHelpers.h"
 #include "DDSConfigHelpers.h"
@@ -60,6 +62,13 @@ std::vector<DeviceInfo> gDeviceInfos;
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 std::vector<DeviceControl> gDeviceControls;
 std::vector<DeviceExecution> gDeviceExecutions;
+
+namespace bpo = boost::program_options;
+
+// FIXME: probably find a better place
+// these are the device options added by the framework, but they can be
+// overloaded in the config spec
+bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
 // Read from a given fd and print it.
 // return true if we can still read from it,
@@ -234,7 +243,7 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
     // declared in the workflow definition are allowed.
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r){
       boost::program_options::options_description optsDesc;
-      populateBoostProgramOptions(optsDesc, spec.options);
+      populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
 
@@ -247,6 +256,8 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
     serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
 
     std::unique_ptr<FairMQDevice> device;
+    serviceRegistry.registerService<RawDeviceService>(new SimpleRawDeviceService(nullptr));
+
     if (spec.inputs.empty()) {
       LOG(DEBUG) << spec.id << " is a source\n";
       device.reset(new DataSourceDevice(spec, serviceRegistry));
@@ -254,6 +265,8 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
       LOG(DEBUG) << spec.id << " is a processor\n";
       device.reset(new DataProcessingDevice(spec, serviceRegistry));
     }
+
+    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r){
       r.fDevice = std::shared_ptr<FairMQDevice>{std::move(device)};
@@ -319,7 +332,6 @@ static void handle_sigint(int signum) {
 
 void handle_sigchld(int sig) {
   int saved_errno = errno;
-  pid_t exited = -1;
   std::vector<pid_t> pids;
   while (true) {
     pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);
@@ -341,8 +353,6 @@ void handle_sigchld(int sig) {
     fflush(stdout);
   }
 }
-
-namespace bpo = boost::program_options;
 
 // This is a toy executor for the workflow spec
 // What it needs to do is:
@@ -377,9 +387,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
-  // FIXME: acquire those options from the code generating the child options
-  bpo::options_description hiddenOptions("Hidden child options");
-  hiddenOptions.add_options()
+  gHiddenDeviceOptions.add_options()
     ((std::string("id") + ",i").c_str(),
      bpo::value<std::string>(),
      "device id for child spawning")
@@ -393,11 +401,14 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
 
   bpo::options_description visibleOptions;
   visibleOptions.add(executorOptions);
-  visibleOptions.add(prepareOptionDescriptions(specs));
+  // Use the hidden options as veto, all config specs matching a definition
+  // in the hidden options are skipped in order to avoid duplicate definitions
+  // in the main parser. Note: all config specs are forwarded to devices
+  visibleOptions.add(prepareOptionDescriptions(specs, gHiddenDeviceOptions));
 
   bpo::options_description od;
   od.add(visibleOptions);
-  od.add(hiddenOptions);
+  od.add(gHiddenDeviceOptions);
 
   // FIXME: decide about the policy for handling unrecognized arguments
   // command_line_parser with option allow_unregistered() can be used
@@ -412,7 +423,11 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   std::string frameworkId;
   if (varmap.count("id")) frameworkId = varmap["id"].as<std::string>();
   if (varmap.count("help")) {
-    std::cout << visibleOptions << std::endl;
+    bpo::options_description helpOptions;
+    helpOptions.add(executorOptions);
+    // this time no veto is applied, so all the options are added for printout
+    helpOptions.add(prepareOptionDescriptions(specs));
+    std::cout << helpOptions << std::endl;
     exit(0);
   }
 

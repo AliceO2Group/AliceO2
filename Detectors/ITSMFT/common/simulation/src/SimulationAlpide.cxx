@@ -61,8 +61,8 @@ void SimulationAlpide::Hits2Digits(Double_t eventTime, UInt_t &minFr, UInt_t &ma
     double hTime0 = hit->GetTime()*sec2ns + eventTime - mParams->getTimeOffset(); // time from the RO start, in ns
     if (hTime0 > UINT_MAX) {
       LOG(WARNING) << "Hit RO Frame undefined: time: " << hTime0 << " is in far future: hitTime: "
-		   << hit->GetTime() << " EventTime: " << eventTime << " ChipOffset: "
-		   << mParams->getTimeOffset() << FairLogger::endl;
+                   << hit->GetTime() << " EventTime: " << eventTime << " ChipOffset: "
+                   << mParams->getTimeOffset() << FairLogger::endl;
       return;
     }
 
@@ -156,7 +156,7 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
     // note that response needs coordinates along column row (locX) (locZ) then depth (locY)
     auto rspmat = resp->getResponse(xyzLocS.X()-cRowPix, xyzLocS.Z()-cColPix, xyzLocS.Y(), flipRow, flipCol);
     //printf("#%d Lx:%e Lz:%e Ly:%e r:%d c:%d | dZ:%e dX:%e | %p\n",iStep,xyzLocS.X(), xyzLocS.Z(),xyzLocS.Y(),row,col,
-    //	   xyzLocS.Z()-cColPix, xyzLocS.X()-cRowPix, rspmat);
+    //     xyzLocS.Z()-cColPix, xyzLocS.X()-cRowPix, rspmat);
 
     xyzLocS += step;
     if (!rspmat) continue;
@@ -165,10 +165,10 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
       int rowDest = row+irow-AlpideRespSimMat::NPix/2 - rowS; // destination row in the respMatrix
       if (rowDest<0 || rowDest>=rowSpan) continue;
       for (int icol=AlpideRespSimMat::NPix; icol--;) {
-	int colDest = col+icol-AlpideRespSimMat::NPix/2 - colS; // destination column in the respMatrix
-	if (colDest<0 || colDest>=colSpan) continue;
-	
-	respMatrix[rowDest][colDest] += rspmat->getValue(irow,icol,flipRow,flipCol);
+        int colDest = col+icol-AlpideRespSimMat::NPix/2 - colS; // destination column in the respMatrix
+        if (colDest<0 || colDest>=colSpan) continue;
+        
+        respMatrix[rowDest][colDest] += rspmat->getValue(irow,icol,flipRow,flipCol);
       }
     }
   }
@@ -181,7 +181,7 @@ void SimulationAlpide::Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double e
       float nEleResp = respMatrix[irow][icol];
       if (!nEleResp) continue;
       int nEle = gRandom->Poisson(nElectrons*nEleResp);
-      if (nEle)	addDigit(roFrame, irow+rowS, icol+colS, nEle, hit->getCombLabel(), hTime);
+      if (nEle) addDigit(roFrame, irow+rowS, icol+colS, nEle, hit->getCombLabel(), hTime);
     }
   }
       
@@ -192,8 +192,8 @@ void SimulationAlpide::Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double e
 {
   // convert single hit to digits with 1 to 1 mapping
   Point3D<float> glo( 0.5*(hit->GetX() + hit->GetStartX()),
-		      0.5*(hit->GetY() + hit->GetStartY()),
-		      0.5*(hit->GetZ() + hit->GetStartZ()) );
+                      0.5*(hit->GetY() + hit->GetStartY()),
+                      0.5*(hit->GetZ() + hit->GetStartZ()) );
   auto loc = (*mMat)^( glo );
 
   int ix, iz;

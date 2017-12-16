@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// access class to a DataBase in a local storage  			                       //
+// access class to a DataBase in a local storage                                               //
 
 #include "CCDB/LocalStorage.h"
 #include <FairLogger.h>         // for LOG
@@ -1054,7 +1054,7 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                             //
-//  LocalStorage factory  			                                               //
+//  LocalStorage factory                                                                       //
 //                                                                                             //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1126,7 +1126,7 @@ void LocalStorage::setRetry(Int_t /* nretry */, Int_t /* initsec */)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                             //
-//  LocalStorage Parameter class  			                                       // //
+//  LocalStorage Parameter class                                                               // //
 //                                                                                             //
 /////////////////////////////////////////////////////////////////////////////////////////////////
 

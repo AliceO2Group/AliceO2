@@ -114,27 +114,27 @@ void GeometryTGeo::Build(Int_t loadTrans)
       // loop over disks
       for (Int_t j = 0; j < mNumberOfDisks[i]; j++) {
 
-	mNumberOfLadders[j].resize(MaxSensorsPerLadder);
-	Int_t numberOfLadders = 0;
-	for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
+        mNumberOfLadders[j].resize(MaxSensorsPerLadder);
+        Int_t numberOfLadders = 0;
+        for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
 
-	  mNumberOfLadders[j][nSensor] = extractNumberOfLadders(i,j,nSensor);
-	  //LOG(INFO) << "Number of ladders with " << nSensor << " sensors is " << mNumberOfLadders[j][nSensor] << " in disk " << j << FairLogger::endl;
+          mNumberOfLadders[j][nSensor] = extractNumberOfLadders(i,j,nSensor);
+          //LOG(INFO) << "Number of ladders with " << nSensor << " sensors is " << mNumberOfLadders[j][nSensor] << " in disk " << j << FairLogger::endl;
 
-	  numberOfLadders += mNumberOfLadders[j][nSensor];
-	  mTotalNumberOfSensors += mNumberOfLadders[j][nSensor]*nSensor;
-	    
-	} // nSensor
-	mLastSensorIndex[j] = mTotalNumberOfSensors - 1;
-	mNumberOfLaddersPerDisk[j] = numberOfLadders;
+          numberOfLadders += mNumberOfLadders[j][nSensor];
+          mTotalNumberOfSensors += mNumberOfLadders[j][nSensor]*nSensor;
+            
+        } // nSensor
+        mLastSensorIndex[j] = mTotalNumberOfSensors - 1;
+        mNumberOfLaddersPerDisk[j] = numberOfLadders;
 
-	mLadderIndex2Id[j].resize(numberOfLadders);
-	mLadderId2Index[j].resize(numberOfLadders);
-	Int_t nL = 0;
-	for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
-	  if (mNumberOfLadders[j][nSensor] == 0) continue;
-	  Int_t n = extractNumberOfLadders(i,j,nSensor,nL);
-	} // nSensor
+        mLadderIndex2Id[j].resize(numberOfLadders);
+        mLadderId2Index[j].resize(numberOfLadders);
+        Int_t nL = 0;
+        for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
+          if (mNumberOfLadders[j][nSensor] == 0) continue;
+          Int_t n = extractNumberOfLadders(i,j,nSensor,nL);
+        } // nSensor
     
       } // disk
 
@@ -163,12 +163,12 @@ void GeometryTGeo::Build(Int_t loadTrans)
   for (Int_t iH = 0; iH < mNumberOfHalves; iH++) {
     for (Int_t iD = 0; iD < mNumberOfDisks[iH]; iD++) {
       for (Int_t iL = 0; iL < mNumberOfLaddersPerDisk[iD]; iL++) {
-	Int_t ladder = mLadderId2Index[iD][iL];
-	Int_t nS = extractNumberOfSensorsPerLadder(iH,iD,iL);
-	for (Int_t iS = 0; iS < nS; iS++) {
-	  index = getSensorIndex(iH,iD,iL,iS);
-	  LOG(INFO) << "Half " << iH << " disk " << iD << " ladder " << ladder << " ladderID " << iL << " sensor " << iS << " index " << index << FairLogger::endl;
-	} // sensor
+        Int_t ladder = mLadderId2Index[iD][iL];
+        Int_t nS = extractNumberOfSensorsPerLadder(iH,iD,iL);
+        for (Int_t iS = 0; iS < nS; iS++) {
+          index = getSensorIndex(iH,iD,iL,iS);
+          LOG(INFO) << "Half " << iH << " disk " << iD << " ladder " << ladder << " ladderID " << iL << " sensor " << iS << " index " << index << FairLogger::endl;
+        } // sensor
       } // ladder
     } // disk
   } // half
@@ -220,7 +220,7 @@ Int_t GeometryTGeo::extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensor
     if (strstr(name, getMFTLadderPattern())) {
       ladderID = extractVolumeCopy(name, Form("%s_%d_%d",getMFTLadderPattern(),half,disk));
       if (nsensor == extractNumberOfSensorsPerLadder(half,disk,ladderID)) { 
-	numberOfLadders++;
+        numberOfLadders++;
       }
     }
   }
@@ -250,13 +250,13 @@ Int_t GeometryTGeo::extractNumberOfLadders(Int_t half, Int_t disk, Int_t nsensor
     if (strstr(name, getMFTLadderPattern())) {
       ladderID = extractVolumeCopy(name, Form("%s_%d_%d",getMFTLadderPattern(),half,disk));
       if (nsensor == extractNumberOfSensorsPerLadder(half,disk,ladderID)) { 
-	// map the new index with the one from the geometry
-	mLadderIndex2Id[disk][nL] = ladderID;     
-	mLadderId2Index[disk][ladderID] = nL;     
-	//LOG(INFO) << "In disk " << disk << " ladder with " << nsensor << " sensors has matrix index " << nL << " and geometry index " << mLadderIndex2Id[disk][nL] << FairLogger::endl;
-	nL++;
-	//
-	numberOfLadders++;
+        // map the new index with the one from the geometry
+        mLadderIndex2Id[disk][nL] = ladderID;     
+        mLadderId2Index[disk][ladderID] = nL;     
+        //LOG(INFO) << "In disk " << disk << " ladder with " << nsensor << " sensors has matrix index " << nL << " and geometry index " << mLadderIndex2Id[disk][nL] << FairLogger::endl;
+        nL++;
+        //
+        numberOfLadders++;
       }
     }
   }
@@ -351,11 +351,11 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(Int_t index) const
 
   TString path = Form("/cave_1/%s_0/", getMFTVolPattern());
   path += Form("%s_%d_%d/%s_%d_%d_%d/%s_%d_%d_%d_%d/%s_%d_%d_%d_%d/%s_1",
-	       getMFTHalfPattern(),half,half,
-	       getMFTDiskPattern(),half,disk,disk,
-	       getMFTLadderPattern(),half,disk,ladderID,ladderID,
-	       getMFTChipPattern(),half,disk,ladderID,sensor,
-	       getMFTSensorPattern());
+               getMFTHalfPattern(),half,half,
+               getMFTDiskPattern(),half,disk,disk,
+               getMFTLadderPattern(),half,disk,ladderID,ladderID,
+               getMFTChipPattern(),half,disk,ladderID,sensor,
+               getMFTSensorPattern());
   //LOG(INFO) << "Volume path is " << path.Data() << FairLogger::endl;
 
   static TGeoHMatrix matTmp;

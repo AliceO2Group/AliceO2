@@ -71,9 +71,9 @@ BOOST_AUTO_TEST_CASE(test_dc_primitives)
   constexpr uint16_t lowerelement = 0;
   constexpr uint16_t upperelement = 10;
   std::cout << "Number of elements in range [" 
-	    << lowerelement << "," << upperelement << "]: "
-	    << getnofelements<uint16_t, lowerelement, upperelement >::value
-	    << std::endl;
+            << lowerelement << "," << upperelement << "]: "
+            << getnofelements<uint16_t, lowerelement, upperelement >::value
+            << std::endl;
 
   // test the upperbinarybound compile time evaluation
   std::cout << std::endl << "Testing upperbinarybound meta program ..." << std::endl;

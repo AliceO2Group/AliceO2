@@ -83,8 +83,8 @@ FileSink::~FileSink()
   if (mOutFile)
     {
       if (mOutFile->IsOpen()) {
-	LOG(INFO) << "FileSink::~FileSink >>>>> close output file" << "";	
-	mOutFile->Close();
+        LOG(INFO) << "FileSink::~FileSink >>>>> close output file" << "";       
+        mOutFile->Close();
       }
       delete mOutFile;
     }
@@ -173,7 +173,7 @@ bool FileSink::storeData(FairMQParts& parts, int index)
     tempObjects[ipart] = (TObject*)tm.ReadObject(tm.GetClass());
 
     for (unsigned int ibr = 0; ibr < mBranchNames.size(); ibr++) { 
-	  
+          
       LOG(INFO) << "FileSink::storeData >>>>> branch " << ibr << "   " << mBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
 
       // !!! force ???
@@ -181,13 +181,13 @@ bool FileSink::storeData(FairMQParts& parts, int index)
 
       if ((strcmp(tempObjects[ipart]->GetName(),mBranchNames[ibr].c_str()) == 0) || (strncmp(mBranchNames[ibr].c_str(),"MFT",3) == 0 && strncmp(tempObjects[ipart]->GetName(),"AliceO2",7) == 0)) {
 
-	mOutputObjects[ibr] = tempObjects[ipart];
+        mOutputObjects[ibr] = tempObjects[ipart];
 
-	LOG(INFO) << "FileSink::storeData >>>>> branch selected for output " << ibr << "   " << mBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
+        LOG(INFO) << "FileSink::storeData >>>>> branch selected for output " << ibr << "   " << mBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
 
-	//fOutputObjects[ibr]->Dump();
-	mTree->SetBranchAddress(mBranchNames[ibr].c_str(),&mOutputObjects[ibr]);
-	
+        //fOutputObjects[ibr]->Dump();
+        mTree->SetBranchAddress(mBranchNames[ibr].c_str(),&mOutputObjects[ibr]);
+        
       }
     }
   }

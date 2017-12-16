@@ -264,7 +264,8 @@ V3Layer::~V3Layer()
 
 void V3Layer::createLayer(TGeoVolume *motherVolume)
 {
-  char volumeName[30];
+  const Int_t nameLen = 30;
+  char volumeName[nameLen];
   Double_t xpos, ypos, zpos;
   Double_t alpha;
 
@@ -318,7 +319,7 @@ void V3Layer::createLayer(TGeoVolume *motherVolume)
 
   //  mStaveWidth = mLayerRadius*Tan(alpha);
 
-  snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
   TGeoVolume *layerVolume = new TGeoVolumeAssembly(volumeName);
   layerVolume->SetUniqueID(mChipTypeID);
 
@@ -330,7 +331,7 @@ void V3Layer::createLayer(TGeoVolume *motherVolume)
 
   // Now build up the layer
   alpha = 360. / mNumberOfStaves;
-  Double_t r = mLayerRadius + ((TGeoBBox *) stavVol->GetShape())->GetDY();
+  Double_t r = mLayerRadius + (static_cast<TGeoBBox*>(stavVol->GetShape()))->GetDY();
   for (Int_t j = 0; j < mNumberOfStaves; j++) {
     Double_t phi = j * alpha + mPhi0;
     xpos = r * cosD(phi); // r*sinD(-phi);
@@ -350,7 +351,8 @@ void V3Layer::createLayer(TGeoVolume *motherVolume)
 
 void V3Layer::createLayerTurbo(TGeoVolume *motherVolume)
 {
-  char volumeName[30];
+  const Int_t nameLen = 30;
+  char volumeName[nameLen];
   Double_t xpos, ypos, zpos;
   Double_t alpha;
 
@@ -364,7 +366,7 @@ void V3Layer::createLayerTurbo(TGeoVolume *motherVolume)
                  << FairLogger::endl;
   }
 
-  snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
   TGeoVolume *layerVolume = new TGeoVolumeAssembly(volumeName);
   layerVolume->SetUniqueID(mChipTypeID);
   layerVolume->SetVisibility(kTRUE);
@@ -411,7 +413,8 @@ TGeoVolume *V3Layer::createStave(const TGeoManager * /*mgr*/)
 // Updated:      03 Mar 2015  Mario Sitta  Fix chip position
 // Updated:      16 Mar 2017  Mario Sitta  AliceO2 version
 //
-  char volumeName[30];
+  const Int_t nameLen = 30;
+  char volumeName[nameLen];
 
   Double_t xlen, ylen, zlen;
   Double_t xpos, ypos;
@@ -438,7 +441,7 @@ TGeoVolume *V3Layer::createStave(const TGeoManager * /*mgr*/)
 
   // We have all shapes: now create the real volumes
 
-  snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSStavePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSStavePattern(), mLayerNumber);
   //  TGeoVolume *staveVol = new TGeoVolume(volumeName, stave, medAir);
   TGeoVolume *staveVol = new TGeoVolumeAssembly(volumeName);
 
@@ -450,16 +453,16 @@ TGeoVolume *V3Layer::createStave(const TGeoManager * /*mgr*/)
   // Now build up the stave
   if (mLayerNumber < sNumberOfInnerLayers) {
     TGeoVolume *modVol = createStaveInnerB(xlen, ylen, zlen);
-    ypos = ((TGeoBBox*)(modVol->GetShape()))->GetDY() - mChipThickness; // = 0 if not kIBModel4
+    ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - mChipThickness; // = 0 if not kIBModel4
     staveVol->AddNode(modVol, 0, new TGeoTranslation(0, ypos, 0));
     mHierarchy[kHalfStave] = 1;
 
     // Mechanical stave structure
     mechStaveVol = createStaveStructInnerB(xlen, zlen);
     if (mechStaveVol) {
-      ypos = ((TGeoBBox*)(modVol->GetShape()))->GetDY() - ypos;
+      ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - ypos;
       if (mStaveModel != Detector::kIBModel4)
-        ypos += ((TGeoBBox*)(mechStaveVol->GetShape()))->GetDY();
+        ypos += (static_cast<TGeoBBox*>(mechStaveVol->GetShape()))->GetDY();
       staveVol->AddNode(mechStaveVol, 1,
                         new TGeoCombiTrans(0, -ypos, 0, new TGeoRotation("", 0, 0, 180)));
     }
@@ -469,7 +472,7 @@ TGeoVolume *V3Layer::createStave(const TGeoManager * /*mgr*/)
       staveVol->AddNode(hstaveVol, 0);
       mHierarchy[kHalfStave] = 1;
     } else { // (if mStaveModel) Create new stave struct as in TDR
-      xpos = ((TGeoBBox *) (hstaveVol->GetShape()))->GetDX() - sOBHalfStaveXOverlap / 2;
+      xpos = (static_cast<TGeoBBox*>(hstaveVol->GetShape()))->GetDX() - sOBHalfStaveXOverlap / 2;
       // ypos is now a parameter to avoid HS displacement wrt nominal radii
       ypos = sOBHalfStaveYPos;
       staveVol->AddNode(hstaveVol, 0, new TGeoTranslation(-xpos, ypos, 0));
@@ -496,21 +499,22 @@ TGeoVolume *V3Layer::createStaveInnerB(const Double_t xsta, const Double_t ysta,
                                               const Double_t zsta, const TGeoManager *mgr)
 {
   Double_t xmod, ymod, zmod;
-  char volumeName[30];
+  const Int_t nameLen = 30;
+  char volumeName[nameLen];
 
   // First we create the module (i.e. the HIC with 9 chips)
   TGeoVolume *moduleVol = createModuleInnerB(xsta, ysta, zsta);
 
   // Then we create the fake halfstave and the actual stave
-  xmod = ((TGeoBBox *) (moduleVol->GetShape()))->GetDX();
-  ymod = ((TGeoBBox *) (moduleVol->GetShape()))->GetDY();
-  zmod = ((TGeoBBox *) (moduleVol->GetShape()))->GetDZ();
+  xmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDX();
+  ymod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDY();
+  zmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDZ();
 
   TGeoBBox *hstave = new TGeoBBox(xmod, ymod, zmod);
 
   TGeoMedium *medAir = mgr->GetMedium("ITS_AIR$");
 
-  snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   TGeoVolume *hstaveVol = new TGeoVolume(volumeName, hstave, medAir);
 
   // Finally build it up
@@ -527,7 +531,8 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   Double_t xtot, ytot, ztot, zchip;
   Double_t xpos, ypos, zpos;
   Bool_t dummyChip;
-  char chipName[30], sensName[30], volumeName[30];
+  const Int_t nameLen = 30;
+  char chipName[nameLen], sensName[nameLen], volumeName[nameLen];
 
   // For material budget studies
   if (mBuildLevel < 6)
@@ -536,8 +541,8 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
     dummyChip = kTRUE;   // will be made of Air
 
   // First create the single chip
-  snprintf(chipName, 30, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
-  snprintf(sensName, 30, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
+  snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
+  snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
 
   TGeoVolume *chipVol = AlpideChip::createChip(ymod, mSensorThickness/2,
                                                chipName, sensName, dummyChip);
@@ -554,8 +559,8 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
 
   // Finally create the module and populate it with the chips
   // (and the FPC Kapton and Aluminum in the most recent IB model)
-  Double_t ygnd = ((TGeoBBox*)aluGndCableVol->GetShape())->GetDY();
-  Double_t yano = ((TGeoBBox*)aluAnodeCableVol->GetShape())->GetDY();
+  Double_t ygnd = (static_cast<TGeoBBox*>(aluGndCableVol->GetShape()))->GetDY();
+  Double_t yano = (static_cast<TGeoBBox*>(aluAnodeCableVol->GetShape()))->GetDY();
 
   ytot = ymod;
   if (mStaveModel == Detector::kIBModel4)
@@ -568,7 +573,7 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   TGeoMedium *medKapton   = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
   TGeoMedium *medGlue     = mgr->GetMedium("ITS_GLUE_IBFPC$");
 
-  snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
   TGeoVolume *modVol = new TGeoVolume(volumeName, module, medAir);
 
   TGeoVolume *glueVol = new TGeoVolume("FPCGlue", glue, medGlue);
@@ -580,9 +585,9 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   kapCableVol->SetFillColor(kBlue);
 
   // Build up the module
-  xpos = -xtot + ((TGeoBBox*)chipVol->GetShape())->GetDX() + sIBFPCWiderXNeg;
+  xpos = -xtot + (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX() + sIBFPCWiderXNeg;
   ypos = -ytot + ymod; // = 0 if not kIBModel4
-  zchip = ((TGeoBBox*)chipVol->GetShape())->GetDZ();
+  zchip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDZ();
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -ztot + j*(2*zchip + sIBChipZGap) + zchip;
     modVol->AddNode(chipVol, j, new TGeoTranslation(xpos, ypos, zpos));
@@ -922,8 +927,9 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
   TGeoMedium *medCarbonFleece = mgr->GetMedium("ITS_CarbonFleece$"); 
 
 
-  char volname[30];
-  snprintf(volname, 30, "%s%d_StaveStruct",
+  const Int_t nameLen = 30;
+  char volname[nameLen];
+  snprintf(volname, nameLen, "%s%d_StaveStruct",
            GeometryTGeo::getITSStavePattern(), mLayerNumber);
   TGeoVolume *mechStavVol = new TGeoVolume(volname, mechStavSh, medAir);
   mechStavVol->SetLineColor(12);
@@ -1131,7 +1137,7 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
   }
   connectorCSide = mgr->GetVolume("IBConnectorCSide");
 
-  ypos = ((TGeoBBox*)connectorASide->GetShape())->GetDY()
+  ypos = (static_cast<TGeoBBox*>(connectorASide->GetShape()))->GetDY()
        - sIBConnTailYShift + ylay;
   zpos = ztot +
         (sIBConnectBlockZLen - sIBConnTailZLen + sIBConnectAFitZOut)/2;
@@ -1173,7 +1179,6 @@ void V3Layer::createIBConnectorsASide(const TGeoManager *mgr)
   Double_t xv[nv], yv[nv];
   Double_t xlen, ylen, zlen;
   Double_t xpos, ypos, zpos;
-  char volname[30];
 
 
   // Gather all material pointers
@@ -1413,7 +1418,6 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager *mgr)
   Double_t xv[nv], yv[nv];
   Double_t xlen, ylen, zlen;
   Double_t xpos, ypos, zpos;
-  char volname[30];
 
 
   // Gather all material pointers
@@ -1722,7 +1726,8 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
   Double_t xtru[12], ytru[12];
   Double_t xpos, ypos, ypos1, zpos/*, zpos5cm*/;
   Double_t xlen, ylen, zlen;
-  char volname[30];
+  const Int_t nameLen = 30;
+  char volname[nameLen];
 
   Double_t rCoolMin, rCoolMax;
   rCoolMin = sOBCoolTubeInnerD/2;
@@ -1736,8 +1741,8 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
 
   TGeoVolume *moduleVol = createModuleOuterB();
   moduleVol->SetVisibility(kTRUE);
-  ymod = ((TGeoBBox*)(moduleVol->GetShape()))->GetDY();
-  zmod = ((TGeoBBox*)(moduleVol->GetShape()))->GetDZ();
+  ymod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDY();
+  zmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDZ();
 
   TGeoBBox *busAl  = new TGeoBBox("BusAl",  xHalfSt, sOBBusCableAlThick/2,
                                             zlen);
@@ -1818,7 +1823,7 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
   halfStaveCent->DefinePolygon(12, xtru, ytru);
   halfStaveCent->DefineSection(0,-mZLength/2);
   halfStaveCent->DefineSection(1, mZLength/2);
-  snprintf(volname, 30, "staveCentral%d", mLayerNumber);
+  snprintf(volname, nameLen, "staveCentral%d", mLayerNumber);
   halfStaveCent->SetName(volname);
 
   // The connectors' containers
@@ -1835,12 +1840,12 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
     yHalfSt -= mGammaConvDiam;
   ypos = 2*yHalfSt + connAside->GetDY() - sOBCPConnHollowYHei;
   zpos = zlen + connAside->GetDZ() - sOBCPConnHollowZLen;
-  snprintf(volname, 30, "transAsideOB%d", mLayerNumber);
+  snprintf(volname, nameLen, "transAsideOB%d", mLayerNumber);
   TGeoTranslation *transAside = new TGeoTranslation(volname, 0,-ypos, zpos);
   transAside->RegisterYourself();
 
   zpos = zlen + connCside->GetDZ() - sOBCPConnHollowZLen;
-  snprintf(volname, 30, "transCsideOB%d", mLayerNumber);
+  snprintf(volname, nameLen, "transCsideOB%d", mLayerNumber);
   TGeoTranslation *transCside = new TGeoTranslation(volname, 0,-ypos,-zpos);
   transCside->RegisterYourself();
 
@@ -1961,7 +1966,7 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
     gammaConvRodVol->SetFillStyle(4000); // 0% transparent
   }
 
-  snprintf(volname, 30, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
+  snprintf(volname, nameLen, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   TGeoVolume *halfStaveVol  = new TGeoVolume(volname, halfStave, medAir);
 //   halfStaveVol->SetLineColor(12);
 //   halfStaveVol->SetFillColor(12); 
@@ -2091,14 +2096,14 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
   }
   connectorCSide = mgr->GetVolume("OBColdPlateConnectorCSide");
 
-  ypos = 2*yHalfSt + ((TGeoBBox*)connectorASide->GetShape())->GetDY()
+  ypos = 2*yHalfSt + (static_cast<TGeoBBox*>(connectorASide->GetShape()))->GetDY()
        - sOBCPConnHollowYHei;
-  zpos = zlen + ((TGeoBBox*)connectorASide->GetShape())->GetDZ()
+  zpos = zlen + (static_cast<TGeoBBox*>(connectorASide->GetShape()))->GetDZ()
        - sOBCPConnHollowZLen;
   halfStaveVol->AddNode(connectorASide, 1, new TGeoCombiTrans(0,-ypos, zpos,
                                               new TGeoRotation("",180,0,0)));
 
-  zpos = zlen + ((TGeoBBox*)connectorCSide->GetShape())->GetDZ()
+  zpos = zlen + (static_cast<TGeoBBox*>(connectorCSide->GetShape()))->GetDZ()
        - sOBCPConnHollowZLen;
   halfStaveVol->AddNode(connectorCSide, 1, new TGeoCombiTrans(0,-ypos,-zpos,
                                               new TGeoRotation("",180,0,0)));
@@ -2149,7 +2154,6 @@ void V3Layer::createOBColdPlateConnectorsASide(){
   Double_t xv[nv], yv[nv];
   Double_t xlen, ylen, zlen;
   Double_t xpos, ypos, zpos;
-  char volname[30];
 
 
   // Gather all material pointers
@@ -2376,7 +2380,6 @@ void V3Layer::createOBColdPlateConnectorsCSide(){
   Double_t xv[nv], yv[nv];
   Double_t xlen, ylen, zlen;
   Double_t xpos, ypos, zpos;
-  char volname[30];
 
 
   // Gather all material pointers
@@ -2627,7 +2630,8 @@ TGeoVolume *V3Layer::createSpaceFrameOuterB2(const TGeoManager *mgr)
   Double_t *xtru, *ytru;
   Double_t zlen, zpos;
   Int_t nPoints;
-  char volname[30];
+  const Int_t nameLen = 30;
+  char volname[nameLen];
 
 
   // Check whether we have already all pieces
@@ -2649,7 +2653,7 @@ TGeoVolume *V3Layer::createSpaceFrameOuterB2(const TGeoManager *mgr)
 
   // Get the shape of the units
   // and create a similar shape for the Space Frame container
-  TGeoXtru *volShape = (TGeoXtru*)(unitVol[0]->GetShape());
+  TGeoXtru *volShape = static_cast<TGeoXtru*>(unitVol[0]->GetShape());
 
   nPoints = volShape->GetNvert();
   xtru = new Double_t[nPoints];
@@ -2667,15 +2671,15 @@ TGeoVolume *V3Layer::createSpaceFrameOuterB2(const TGeoManager *mgr)
   spaceFrameCentral->DefinePolygon(nPoints, xtru, ytru);
   spaceFrameCentral->DefineSection(0,-zlen/2);
   spaceFrameCentral->DefineSection(1, zlen/2);
-  snprintf(volname, 30, "sframecentral%d", mLayerNumber);
+  snprintf(volname, nameLen, "sframecentral%d", mLayerNumber);
   spaceFrameCentral->SetName(volname);
 
   zpos = zlen/2 + sOBSpaceFrameUnitLen/2;
-  snprintf(volname, 30, "endUnit0Trans%d", mLayerNumber);
+  snprintf(volname, nameLen, "endUnit0Trans%d", mLayerNumber);
   TGeoTranslation *endUnit0Trans = new TGeoTranslation(volname,
                                                        0, 0,-zpos);
   endUnit0Trans->RegisterYourself();
-  snprintf(volname, 30, "endUnit1Trans%d", mLayerNumber);
+  snprintf(volname, nameLen, "endUnit1Trans%d", mLayerNumber);
   TGeoTranslation *endUnit1Trans = new TGeoTranslation(volname,
                                                        0, 0, zpos);
   endUnit1Trans->RegisterYourself();
@@ -2691,14 +2695,14 @@ TGeoVolume *V3Layer::createSpaceFrameOuterB2(const TGeoManager *mgr)
   TGeoCompositeShape *spaceFrame = new TGeoCompositeShape(componame);
 
 
-  snprintf(volname, 30, "SpaceFrameVolumeLay%d", mLayerNumber);
+  snprintf(volname, nameLen, "SpaceFrameVolumeLay%d", mLayerNumber);
   TGeoVolume *spaceFrameVol = new TGeoVolume(volname, spaceFrame, medAir);
   spaceFrameVol->SetVisibility(kFALSE);
 
 
   // Finally build up the space frame
-  TGeoXtru *frameUnit = (TGeoXtru*)(unitVol[0]->GetShape());
-  TGeoXtru *endUnit   = (TGeoXtru*)( endVol[0]->GetShape());
+  TGeoXtru *frameUnit = static_cast<TGeoXtru*>(unitVol[0]->GetShape());
+  TGeoXtru *endUnit   = static_cast<TGeoXtru*>( endVol[0]->GetShape());
 
   zpos = -spaceFrame->GetDZ() + endUnit->GetDZ();
 //  zpos = -sOBSpaceFrameZLen[fLayerNumber/5]/2 + endUnit->GetDZ();
@@ -2785,7 +2789,6 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager *mgr){
   Double_t xpos, ypos, zpos;
   Double_t unitlen;
   Double_t xtru[22], ytru[22];
-  char volname[30];
 
 
   unitlen = sOBSpaceFrameUnitLen;
@@ -3204,7 +3207,8 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
 //
 
 
-  char chipName[30], sensName[30], volName[30];
+  const Int_t nameLen = 30;
+  char chipName[nameLen], sensName[nameLen], volName[nameLen];
 
   Double_t xGap  = sOBChipXGap;
   Double_t zGap  = sOBChipZGap;
@@ -3224,17 +3228,17 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
     dummyChip = kTRUE;   // will be made of Air
 
   // The chip (the same as for IB)
-  snprintf(chipName, 30, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
-  snprintf(sensName, 30, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
+  snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
+  snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
 
   ylen = 0.5*sOBChipThickness;
 
   TGeoVolume *chipVol = AlpideChip::createChip(ylen, mSensorThickness/2,
                                                chipName, sensName, dummyChip);
 
-  xchip = ((TGeoBBox*)chipVol->GetShape())->GetDX();
-  ychip = ((TGeoBBox*)chipVol->GetShape())->GetDY();
-  zchip = ((TGeoBBox*)chipVol->GetShape())->GetDZ();
+  xchip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX();
+  ychip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDY();
+  zchip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDZ();
 
   // The module carbon plate
   xlen = sOBHalfStaveWidth/2;
@@ -3292,7 +3296,7 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
   flexKapVol->SetFillColor(flexKapVol->GetLineColor());
   flexKapVol->SetFillStyle(4000); // 0% transparent
 
-  snprintf(volName, 30, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  snprintf(volName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
   TGeoVolume *modVol = new TGeoVolume(volName, module, medAir);
   modVol->SetVisibility(kTRUE);
   

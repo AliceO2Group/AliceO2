@@ -161,7 +161,7 @@ void showTopologyNodeGraph(bool* opened,
         Node* node_inp = &nodes[link->InputIdx];
         Node* node_out = &nodes[link->OutputIdx];
         ImVec2 p1 = offset + node_inp->GetOutputSlotPos(link->InputSlot);
-        ImVec2 p2 = offset + node_out->GetInputSlotPos(link->OutputSlot);
+        ImVec2 p2 = ImVec2(-3*NODE_SLOT_RADIUS, 0) + offset + node_out->GetInputSlotPos(link->OutputSlot);
         draw_list->AddBezierCurve(p1, p1+ImVec2(+50,0), p2+ImVec2(-50,0), p2, ImColor(200,200,100), 3.0f);
     }
 
@@ -213,8 +213,15 @@ void showTopologyNodeGraph(bool* opened,
 
         draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f);
         draw_list->AddRect(node_rect_min, node_rect_max, ImColor(100,100,100), 4.0f);
-        for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++)
-            draw_list->AddCircleFilled(offset + node->GetInputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150,150,150,150));
+        for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
+          auto color = ImColor(200,200,100);
+          ImVec2 p1(-3*NODE_SLOT_RADIUS,NODE_SLOT_RADIUS), p2(-3*NODE_SLOT_RADIUS,-NODE_SLOT_RADIUS), p3(0,0);
+          auto pp1 = p1 + offset + node->GetInputSlotPos(slot_idx);
+          auto pp2 = p2 + offset + node->GetInputSlotPos(slot_idx);
+          auto pp3 = p3 + offset + node->GetInputSlotPos(slot_idx);
+          draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
+          draw_list->AddCircleFilled(offset + node->GetInputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150,150,150,150));
+        }
         for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++)
             draw_list->AddCircleFilled(offset + node->GetOutputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150,150,150,150));
 
@@ -236,29 +243,6 @@ void showTopologyNodeGraph(bool* opened,
         if (node_hovered_in_scene != -1)
             node_selected = node_hovered_in_scene;
     }
-
-    // Draw context menu
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
-    if (ImGui::BeginPopup("context_menu"))
-    {
-        Node* node = node_selected != -1 ? &nodes[node_selected] : NULL;
-        ImVec2 scene_pos = ImGui::GetMousePosOnOpeningCurrentPopup() - offset;
-        if (node)
-        {
-      //      ImGui::Text("Node '%s'", node->Name);
-      //      ImGui::Separator();
-      //      if (ImGui::MenuItem("Rename..", NULL, false, false)) {}
-      //      if (ImGui::MenuItem("Delete", NULL, false, false)) {}
-      //      if (ImGui::MenuItem("Copy", NULL, false, false)) {}
-        }
-        else
-        {
-     //       if (ImGui::MenuItem("Add")) { nodes.push_back(Node(nodes.Size, "New node", scene_pos, 0.5f, ImColor(100,100,200), 2, 2)); }
-     //       if (ImGui::MenuItem("Paste", NULL, false, false)) {}
-        }
-        ImGui::EndPopup();
-    }
-    ImGui::PopStyleVar();
 
     // Scrolling
     if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() && ImGui::IsMouseDragging(2, 0.0f))

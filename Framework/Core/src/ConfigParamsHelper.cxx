@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ConfigParamsHelper.h"
 #include "Framework/ConfigParamSpec.h"
 #include <boost/program_options.hpp>
 
@@ -22,10 +23,13 @@ namespace framework {
 /// taking the VariantType into account
 void populateBoostProgramOptions(
     bpo::options_description &options,
-    const std::vector<ConfigParamSpec> &specs
+    const std::vector<ConfigParamSpec> &specs,
+    bpo::options_description vetos
   ) {
   auto proxy = options.add_options();
   for (auto & spec : specs) {
+    // skip everything found in the veto definition
+    if (vetos.find_nothrow(spec.name, false)) continue;
     const char *name = spec.name.c_str();
     const char *help = spec.help.c_str();
 
@@ -34,23 +38,22 @@ void populateBoostProgramOptions(
       // FIXME: We should probably raise an error if the type is unknown
       case VariantType::Int:
       case VariantType::Int64:
-        proxy = proxy(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
+        addConfigSpecOption<VariantType::Int>(spec, options);
         break;
       case VariantType::Float:
-        proxy = proxy(name, bpo::value<float>()->default_value(spec.defaultValue.get<float>()), help);
+        addConfigSpecOption<VariantType::Float>(spec, options);
         break;
       case VariantType::Double:
-        proxy = proxy(name, bpo::value<double>()->default_value(spec.defaultValue.get<double>()), help);
+        addConfigSpecOption<VariantType::Double>(spec, options);
         break;
       case VariantType::String:
-        proxy = proxy(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char *>()), help);
+        addConfigSpecOption<VariantType::String>(spec, options);
         break;
       case VariantType::Bool:
-        // for bool values we also support the zero_token option to make
-        // the option usable as a single switch
-        proxy = proxy(name, bpo::value<bool>()->zero_tokens()->default_value(spec.defaultValue.get<bool>()), help);
+        addConfigSpecOption<VariantType::Bool>(spec, options);
         break;
       case VariantType::Unknown:
+      case VariantType::Empty:
         break;
     };
   }
@@ -60,10 +63,14 @@ void populateBoostProgramOptions(
 /// this is used for filtering the command line argument
 bool
 prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
-                          boost::program_options::options_description& options)
+                          boost::program_options::options_description& options,
+                          boost::program_options::options_description vetos
+			  )
 {
   bool haveOption = false;
   for (const auto & configSpec : spec) {
+    // skip everything found in the veto definition
+    if (vetos.find_nothrow(configSpec.name, false)) continue;
     haveOption = true;
     std::stringstream defaultValue;
     defaultValue << configSpec.defaultValue;

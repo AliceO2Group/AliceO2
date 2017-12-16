@@ -146,10 +146,10 @@ DataProcessorSpec sim_tpc() {
         }
       },
     Options{
-      {"mcEngine", VariantType::String, "TGeant3", "Engine to use"},
-      {"nEvents", VariantType::Int, 10, "Events to process"},
-      {"extKinFile", VariantType::String, "Kinematics.root", "name of kinematics file for event generator from file (when applicable)"},
-      {"startEvent", VariantType::Int, 2, "Events to skip"}
+      {"mcEngine", VariantType::String, "TGeant3", {"Engine to use"}},
+      {"nEvents", VariantType::Int, 10, {"Events to process"}},
+      {"extKinFile", VariantType::String, "Kinematics.root", {"name of kinematics file for event generator from file (when applicable)"}},
+      {"startEvent", VariantType::Int, 2, {"Events to skip"}}
     }
     };
   };

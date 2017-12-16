@@ -47,7 +47,7 @@ mHalfDisks(nullptr)
   
   if (source.mHalfDisks) mHalfDisks = new TClonesArray(*(source.mHalfDisks));
 
-	
+        
 }
 
 /// Constructor
@@ -138,29 +138,29 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
           LOG(FATAL) << "Wrong disk number : " << idisk << FairLogger::endl;
         }
       } else
-	if(!attrName.CompareTo("nladder")) {
-	  nladder = attrVal.Atoi();
-	} else
-	  if(!attrName.CompareTo("xpos")) {
-	    pos[0] = attrVal.Atof();
-	  } else
-	    if(!attrName.CompareTo("ypos")) {
-	      pos[1] = attrVal.Atof();
-	    } else
-	      if(!attrName.CompareTo("zpos")) {
-		pos[2] = attrVal.Atof();
-	      } else
-		if(!attrName.CompareTo("phi")) {
-		  ang[0] = attrVal.Atof();
-		} else
-		  if(!attrName.CompareTo("theta")) {
-		    ang[1] = attrVal.Atof();
-		  } else
-		    if(!attrName.CompareTo("psi")) {
-		      ang[2] = attrVal.Atof();
-		    } else{
-		      LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
-		    }      
+        if(!attrName.CompareTo("nladder")) {
+          nladder = attrVal.Atoi();
+        } else
+          if(!attrName.CompareTo("xpos")) {
+            pos[0] = attrVal.Atof();
+          } else
+            if(!attrName.CompareTo("ypos")) {
+              pos[1] = attrVal.Atof();
+            } else
+              if(!attrName.CompareTo("zpos")) {
+                pos[2] = attrVal.Atof();
+              } else
+                if(!attrName.CompareTo("phi")) {
+                  ang[0] = attrVal.Atof();
+                } else
+                  if(!attrName.CompareTo("theta")) {
+                    ang[1] = attrVal.Atof();
+                  } else
+                    if(!attrName.CompareTo("psi")) {
+                      ang[2] = attrVal.Atof();
+                    } else{
+                      LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+                    }      
       attr = xml->GetNextAttr(attr);
     }
     
@@ -236,7 +236,7 @@ void HalfSegmentation::findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
                     if(!attrName.CompareTo("psi")){
                       ang[2] = attrVal.Atof();
                     } else{
-		      LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+                      LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
               }
       
       attr = xml->GetNextAttr(attr);

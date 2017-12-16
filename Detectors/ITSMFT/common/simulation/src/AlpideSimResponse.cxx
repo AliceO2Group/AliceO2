@@ -106,7 +106,7 @@ void AlpideSimResponse::initData()
         mData.reserve(dataSize); // reserve space for data
       } else if (nz != mNBinDpt) {
         LOG(FATAL) << "Mismatch in Nz slices of bin X(col): " << ix << " Y(row): " << iy
-		   << " wrt bin 0,0. File " << inpfname << FairLogger::endl;
+                   << " wrt bin 0,0. File " << inpfname << FairLogger::endl;
       }
 
       // load data
@@ -123,12 +123,12 @@ void AlpideSimResponse::initData()
 
         if (inpGrid.bad()) {
           LOG(FATAL) << "Failed reading data for depth(Z) slice " << iz << " from "
-		     << inpfname << FairLogger::endl;
+                     << inpfname << FairLogger::endl;
         }
         if (!nele) {
           LOG(FATAL) << "Wrong normalization Nele=" << nele << "for  depth(Z) slice "
-		     << iz << " from " << inpfname
-		     << FairLogger::endl;
+                     << iz << " from " << inpfname
+                     << FairLogger::endl;
         }
 
         if (mDptMax < -1e9) mDptMax = gz;
@@ -148,7 +148,7 @@ void AlpideSimResponse::initData()
   // final check
   if (dataSize != mData.size()) {
     LOG(FATAL) << "Mismatch between expected " << dataSize << " and loaded " << mData.size()
-	       << " number of bins" << FairLogger::endl;
+               << " number of bins" << FairLogger::endl;
   }
 
   // normalize Dpt boundaries
@@ -172,7 +172,7 @@ void AlpideSimResponse::print() const
    * print itself
    */
   printf("Alpide response object of %zu matrices to map chagre in xyz to %dx%d pixels\n",
-	 mData.size(), getNPix(),getNPix());
+         mData.size(), getNPix(),getNPix());
   printf("X(col) range: %+e : %+e | step: %e | Nbins: %d\n", 0.f, mColMax, 1.f / mStepInvCol, mNBinCol);
   printf("Y(row) range: %+e : %+e | step: %e | Nbins: %d\n", 0.f, mRowMax, 1.f / mStepInvRow, mNBinRow);
   printf("Z(dpt) range: %+e : %+e | step: %e | Nbins: %d\n", mDptMin, mDptMax, 1.f / mStepInvDpt, mNBinDpt);
@@ -220,8 +220,8 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
   if (bin >= mData.size()) {
     // this should not happen
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol) 
-	       << ":" << getDepthBin(vDepth) << ")" <<">= maxBin " << mData.size()
-	       << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
+               << ":" << getDepthBin(vDepth) << ")" <<">= maxBin " << mData.size()
+               << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
   }
   // printf("bin %d %d %d\n",getColBin(vCol),getRowBin(vRow),getDepthBin(vDepth));
   //  return &mData[bin];
@@ -261,8 +261,8 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
   if (bin >= mData.size()) {
     // this should not happen
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol) 
-	       << ":" << getDepthBin(vDepth) << ")" <<">= maxBin " << mData.size()
-	       << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
+               << ":" << getDepthBin(vDepth) << ")" <<">= maxBin " << mData.size()
+               << " for X(row)=" << vRow << " Z(col)=" << vCol << " Y(depth)=" << vDepth << FairLogger::endl;
   }
   return &mData[bin];
 

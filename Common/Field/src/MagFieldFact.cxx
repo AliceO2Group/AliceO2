@@ -32,7 +32,7 @@ MagFieldFact::MagFieldFact()
    mFieldPar(nullptr),
    mField()
 {
-	fCreator=this;
+        fCreator=this;
 }
 
 MagFieldFact::~MagFieldFact()

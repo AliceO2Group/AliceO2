@@ -48,9 +48,9 @@ TrivialClusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>
     (*clusters)[noc].SetUniqueID(noc); // Save the index within the cluster array
     if (mClsLabels) {
       for (int i=0; i<Digit::maxLabels; i++) {
-	Label lab = d.getLabel(i);
-	if (lab.isEmpty()) break;
-       	mClsLabels->addElement(noc,lab);
+        Label lab = d.getLabel(i);
+        if (lab.isEmpty()) break;
+        mClsLabels->addElement(noc,lab);
       }
     }
   }

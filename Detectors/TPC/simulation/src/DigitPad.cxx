@@ -28,7 +28,7 @@
 using namespace o2::TPC;
 
 void DigitPad::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-				   std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, int row, int pad, float commonMode)
+                                   std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, int row, int pad, float commonMode)
 {
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise, pedestals and saturation of the SAMPA

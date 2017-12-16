@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//  Path string identifying the object:  			   //
-//  (example: "ZDC/Calib/Pedestals") 		         	   //
+//  Path string identifying the object:                            //
+//  (example: "ZDC/Calib/Pedestals")                               //
 #include "CCDB/IdPath.h"
 #include <FairLogger.h>  // for LOG
 #include <TObjArray.h>   // for TObjArray

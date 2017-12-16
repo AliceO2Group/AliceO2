@@ -37,6 +37,7 @@ set(SRCS
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/LocalRootFileService.cxx
+    src/ExternalFairMQDeviceProxy.cxx
     src/SimpleMetricsService.cxx
     src/TextControlService.cxx
     src/WorkflowHelpers.cxx
@@ -68,7 +69,6 @@ target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit
 set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
-      test/test_Collections.cxx
       test/test_DataRelayer.cxx
       test/test_DataRefUtils.cxx
       test/test_DeviceMetricsInfo.cxx
@@ -77,6 +77,7 @@ set(TEST_SRCS
       test/test_Graphviz.cxx
       test/test_InputRecord.cxx
       test/test_ParallelProducer.cxx
+      test/test_ExternalFairMQDeviceProxy.cxx
       test/test_Services.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
@@ -84,6 +85,7 @@ set(TEST_SRCS
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
+      test/test_WorkflowOptions.cxx
    )
 
 O2_GENERATE_TESTS(

@@ -60,6 +60,8 @@ optionsTable(const DeviceSpec &spec, const DeviceControl &control) {
           case VariantType::Double:
             ImGui::Text("%f (default)", option.defaultValue.get<double>());
             break;
+          case VariantType::Empty:
+            ImGui::TextUnformatted(""); // no default value
           default:
             ImGui::TextUnformatted("unknown");
         }
@@ -81,8 +83,6 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
 
   int triggerStartPos = startPos + 1 % historySize;
   int triggerStopPos = startPos % historySize;
-  bool triggerStart = false;
-  bool triggerStop = false;
 
   int j = startPos;
   // We look for a stop trigger, so that we know where to stop the search for
@@ -292,7 +292,6 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
   for (size_t i = 0; i < gState.devices.size(); ++i) {
     DeviceGUIState &guiState = gState.devices[i];
     const DeviceSpec &spec = devices[i];
-    const DeviceInfo &info = infos[i];
     const DeviceMetricsInfo &metricsInfo = metricsInfos[i];
 
     historyBar(guiState, spec, metricsInfo);
@@ -334,9 +333,7 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
   gState.devices.resize(infos.size());
   for (size_t i = 0; i < gState.devices.size(); ++i) {
     DeviceGUIState &state = gState.devices[i];
-    const DeviceSpec &spec = devices[i];
-    const DeviceInfo &info = infos[i];
-    state.label = devices[i].id + "(" + std::to_string(info.pid) + ")";
+    state.label = devices[i].id + "(" + std::to_string(infos[i].pid) + ")";
   }
 
   return [&infos, &devices, &controls, &metricsInfos]() {

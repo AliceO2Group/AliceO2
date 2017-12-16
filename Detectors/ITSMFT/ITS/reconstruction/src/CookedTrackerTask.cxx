@@ -74,7 +74,7 @@ InitStatus CookedTrackerTask::Init()
      mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *>("ITSClusterMCTruth");
      if (!mClsLabels) {
         LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..."
-		   << FairLogger::endl;
+                   << FairLogger::endl;
         return kERROR;
      }
   }

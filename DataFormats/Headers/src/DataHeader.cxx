@@ -80,17 +80,6 @@ const o2::Header::SerializationMethod o2::Header::DataHeader::sSerializationMeth
 using namespace o2::Header;
 
 //__________________________________________________________________________________________________
-o2::Header::BaseHeader::BaseHeader()
-  : magicStringInt(sMagicString)
-  , headerSize(sizeof(BaseHeader))
-  , flags(0)
-  , headerVersion(gInvalidToken32)
-  , description(gInvalidToken64)
-  , serialization(gInvalidToken64)
-{
-}
-
-//__________________________________________________________________________________________________
 o2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
                                         SerializationMethod ser, uint32_t version)
   : magicStringInt(sMagicString)
@@ -105,10 +94,10 @@ o2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
 //__________________________________________________________________________________________________
 o2::Header::DataHeader::DataHeader()
   : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
+  , dataDescription(gDataDescriptionInvalid)
   , dataOrigin(gDataOriginInvalid)
   , reserved(gInvalidToken32)
   , payloadSerializationMethod(gSerializationMethodInvalid)
-  , dataDescription(gDataDescriptionInvalid)
   , subSpecification(0)
   , payloadSize(0)
 {
@@ -121,10 +110,10 @@ o2::Header::DataHeader::DataHeader(DataDescription desc,
                                    uint64_t size
                                    )
   : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
+  , dataDescription(desc)
   , dataOrigin(origin)
   , reserved(gInvalidToken32)
   , payloadSerializationMethod(gSerializationMethodInvalid)
-  , dataDescription(desc)
   , subSpecification(subspec)
   , payloadSize(size)
 {
@@ -189,9 +178,9 @@ bool o2::Header::DataHeader::operator==(const DataOrigin& that) const
 bool o2::Header::DataHeader::operator==(const DataDescription& that) const
 {
   return ((that.itg[0] == gDataDescriptionAny.itg[0] &&
-	   that.itg[1] == gDataDescriptionAny.itg[1]) ||
+           that.itg[1] == gDataDescriptionAny.itg[1]) ||
           (that.itg[0] == dataDescription.itg[0] &&
-	   that.itg[1] == dataDescription.itg[1] ));
+           that.itg[1] == dataDescription.itg[1] ));
 }
 
 //__________________________________________________________________________________________________

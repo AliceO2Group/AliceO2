@@ -1,4 +1,4 @@
-set(MODULE_NAME "Configuration")
+set(MODULE_NAME "SimConfig")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
@@ -10,7 +10,7 @@ set(HEADERS
     include/${MODULE_NAME}/SimConfig.h
    )
 
-set(LINKDEF src/ConfigurationLinkDef.h)
+set(LINKDEF src/SimConfigLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME configuration_bucket)
 

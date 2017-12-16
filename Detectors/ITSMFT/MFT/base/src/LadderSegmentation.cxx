@@ -70,7 +70,7 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder):
   else mChips = new TClonesArray("o2::MFT::ChipSegmentation",mNSensors);
 
   mChips->SetOwner(kTRUE);
-	
+        
 }
 
 /// Creates the Sensors Segmentation array on the Ladder
@@ -87,11 +87,11 @@ void LadderSegmentation::createSensors() {
 
   for (Int_t iSensor=0; iSensor<mNSensors; iSensor++) {
     UInt_t sensorUniqueID = mftGeom->getObjectID(Geometry::SensorType,
-			   mftGeom->getHalfID(GetUniqueID()),
-			   mftGeom->getDiskID(GetUniqueID()),
-			   mftGeom->getPlaneID(GetUniqueID()),
-			   mftGeom->getLadderID(GetUniqueID()),
-			   iSensor);
+                           mftGeom->getHalfID(GetUniqueID()),
+                           mftGeom->getDiskID(GetUniqueID()),
+                           mftGeom->getPlaneID(GetUniqueID()),
+                           mftGeom->getLadderID(GetUniqueID()),
+                           iSensor);
     
     auto *chip = new ChipSegmentation(sensorUniqueID);
 

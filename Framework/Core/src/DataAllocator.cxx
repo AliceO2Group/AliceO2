@@ -26,9 +26,9 @@ DataAllocator::DataAllocator(FairMQDevice *device,
                              RootObjectContext *rootContext,
                              const AllowedOutputsMap &outputs)
 : mDevice{device},
+  mAllowedOutputs{outputs},
   mContext{context},
-  mRootContext{rootContext},
-  mAllowedOutputs{outputs}
+  mRootContext{rootContext}
 {
 }
 
@@ -58,6 +58,7 @@ DataAllocator::newChunk(const OutputSpec &spec, size_t size) {
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = size;
+  dh.payloadSerializationMethod = o2::Header::gSerializationMethodNone;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
@@ -92,6 +93,7 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = size;
+  dh.payloadSerializationMethod = o2::Header::gSerializationMethodNone;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
@@ -142,32 +144,32 @@ DataAllocator::headerMessageFromSpec(OutputSpec const &spec,
 }
 
 void
+DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage,
+                                const OutputSpec &spec,
+                                o2::Header::SerializationMethod serializationMethod)
+{
+    std::string channel = matchDataHeader(spec, mRootContext->timeslice());
+    auto headerMessage = headerMessageFromSpec(spec, channel, serializationMethod);
+
+    FairMQParts parts;
+
+    // FIXME: this is kind of ugly, we know that we can change the content of the
+    // header message because we have just created it, but the API declares it const
+    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
+    DataHeader *dh = const_cast<DataHeader *>(cdh);
+    dh->payloadSize = payloadMessage->GetSize();
+    parts.AddPart(std::move(headerMessage));
+    parts.AddPart(std::move(payloadMessage));
+    mContext->addPart(std::move(parts), channel);
+}
+
+void
 DataAllocator::adopt(const OutputSpec &spec, TObject*ptr) {
   std::unique_ptr<TObject> payload(ptr);
   std::string channel = matchDataHeader(spec, mRootContext->timeslice());
   auto header = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
   mRootContext->addObject(std::move(header), std::move(payload), channel);
   assert(payload.get() == nullptr);
-}
-
-void
-DataAllocator::serializeSnapshot(const OutputSpec &spec, TObject* const object)
-{
-  std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-  auto headerMessage = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
-
-  FairMQParts parts;
-
-  FairMQMessagePtr payloadMessage(mDevice->NewMessage());
-  mDevice->Serialize<TMessageSerializer>(*payloadMessage, object);
-  // FIXME: this is kind of ugly, we know that we can change the content of the
-  // header message because we have just created it, but the API declares it const
-  const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
-  DataHeader *dh = const_cast<DataHeader *>(cdh);
-  dh->payloadSize = payloadMessage->GetSize();
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  mContext->addPart(std::move(parts), channel);
 }
 
 }

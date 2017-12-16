@@ -78,11 +78,11 @@ TGeoVolumeAssembly* Flex::makeFlex(Int_t nbsensors, Double_t length)
 
   // Defining one single layer for the strips and the AVDD and DVDD
   TGeoVolume* lines = makeLines(nbsensors,length-Geometry::sClearance,
-				Geometry::sFlexHeight - Geometry::sClearance, Geometry::sAluThickness);
+                                Geometry::sFlexHeight - Geometry::sClearance, Geometry::sAluThickness);
 
   // AGND and DGND layers
   TGeoVolume* agnd_dgnd = makeAGNDandDGND(length-Geometry::sClearance,
-					  Geometry::sFlexHeight-Geometry::sClearance, Geometry::sAluThickness);
+                                          Geometry::sFlexHeight-Geometry::sClearance, Geometry::sAluThickness);
 
   // The others layers
   TGeoVolume* kaptonlayer     = makeKapton(length, Geometry::sFlexHeight, Geometry::sKaptonThickness);
@@ -128,9 +128,9 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Do
   auto *rotation = new TGeoRotation ("rotation", 90., 0., 0.);
   auto *rotationpi = new TGeoRotation ("rotationpi", 180., 0., 0.);
   auto *transformation0 = new TGeoCombiTrans(length/2 - 0.1, Geometry::sFlexHeight/2-0.2, 
-						      zvarnish-Geometry::sVarnishThickness/2-Geometry::sCapacitorDz/2, rotation);
+                                                      zvarnish-Geometry::sVarnishThickness/2-Geometry::sCapacitorDz/2, rotation);
   auto *transformation1 = new TGeoCombiTrans(length/2 - 0.1, Geometry::sFlexHeight/2-0.6, 
-						      zvarnish-Geometry::sVarnishThickness/2-Geometry::sCapacitorDz/2, rotation);
+                                                      zvarnish-Geometry::sVarnishThickness/2-Geometry::sCapacitorDz/2, rotation);
 
   for(Int_t id=0; id < 2; id++) {
     electric[id] = makeElectricComponent(Geometry::sCapacitorDy, Geometry::sCapacitorDx, Geometry::sCapacitorDz, id);
@@ -142,15 +142,15 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Do
    // 2 lines of electric components along the FPC in the middle (4 per sensor)
   for(Int_t id=0; id < 4*nbsensors; id++) {
     electric[id+total] = makeElectricComponent(Geometry::sCapacitorDy, Geometry::sCapacitorDx, 
-					       Geometry::sCapacitorDz, id+total);
+                                               Geometry::sCapacitorDz, id+total);
   }
   for(Int_t id=0; id < 2*nbsensors; id++) {
     flex->AddNode(electric[id+total], id+1000,
-		  new TGeoTranslation(-length/2 + (id+0.5)*SegmentationAlpide::SensorSizeCols/2, Geometry::sFlexHeight/2 - 0.35, 
-				      zvarnish - Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
+                  new TGeoTranslation(-length/2 + (id+0.5)*SegmentationAlpide::SensorSizeCols/2, Geometry::sFlexHeight/2 - 0.35, 
+                                      zvarnish - Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
     flex->AddNode(electric[id+total+2*nbsensors], id+2000,
-		  new TGeoTranslation(-length/2 + (id+0.5)*SegmentationAlpide::SensorSizeCols/2, 0., 
-				      zvarnish - Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
+                  new TGeoTranslation(-length/2 + (id+0.5)*SegmentationAlpide::SensorSizeCols/2, 0., 
+                                      zvarnish - Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
   }
   total=total+4*nbsensors;
 
@@ -160,8 +160,8 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Do
   }
   for(Int_t id=0 ; id < 3; id++) {
     flex->AddNode(electric[id+total], id+3000,
-		  new TGeoTranslation(-length/2+SegmentationAlpide::SensorSizeCols+(id+1)*0.3-0.6, -Geometry::sFlexHeight/2 + 0.2, 
-				      zvarnish-Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
+                  new TGeoTranslation(-length/2+SegmentationAlpide::SensorSizeCols+(id+1)*0.3-0.6, -Geometry::sFlexHeight/2 + 0.2, 
+                                      zvarnish-Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
   }
   total=total+3;
 
@@ -169,12 +169,12 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Do
   /*
   // The connector of the FPC
   for(Int_t id=0; id < 74; id++)electric[id+total] = makeElectricComponent(Geometry::sConnectorLength, Geometry::sConnectorWidth, 
-									    Geometry::sConnectorThickness, id+total);
+                                                                            Geometry::sConnectorThickness, id+total);
   for(Int_t id=0; id < 37; id++){
     flex->AddNode(electric[id+total], id+100, new TGeoTranslation(length/2+0.15-Geometry::sConnectorOffset, id*0.04-Geometry::sFlexHeight/2 + 0.1, 
-								  zvarnish-Geometry::sVarnishThickness/2-Geometry::sCapacitorDz/2));
+                                                                  zvarnish-Geometry::sVarnishThickness/2-Geometry::sCapacitorDz/2));
     flex->AddNode(electric[id+total+37], id+200, new TGeoTranslation(length/2-0.15-Geometry::sConnectorOffset, id*0.04-Geometry::sFlexHeight/2 + 0.1, 
-								     zvarnish - Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
+                                                                     zvarnish - Geometry::sVarnishThickness/2 - Geometry::sCapacitorDz/2));
   }
   total=total+74;
   */
@@ -187,7 +187,7 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Do
 
   auto *connect = new TGeoBBox("connect", Geometry::sConnectorLength/2, Geometry::sConnectorWidth/2, Geometry::sConnectorHeight/2);
   auto *remov = new TGeoBBox("remov", Geometry::sConnectorLength/2, Geometry::sConnectorWidth/2+Geometry::sEpsilon, 
-				 Geometry::sConnectorHeight/2+Geometry::sEpsilon);
+                                 Geometry::sConnectorHeight/2+Geometry::sEpsilon);
 
   auto    *t1= new TGeoTranslation ("t1", Geometry::sConnectorThickness, 0., -0.01);
   auto    *connecto = new TGeoSubtraction(connect, remov, nullptr, t1);
@@ -203,25 +203,25 @@ void Flex::makeElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Do
   Double_t step = 0.04;      // interspace between each pad inside the connector
   for(Int_t id=0; id < 37; id++) {
     flex->AddNode(connectord,id+total,new TGeoTranslation(length/2+interspace/2+Geometry::sConnectorLength/2-Geometry::sConnectorOffset, 
-							  id*step-Geometry::sFlexHeight/2 + 0.1, zvarnish - Geometry::sVarnishThickness/2 
-							  - Geometry::sConnectorHeight/2));
+                                                          id*step-Geometry::sFlexHeight/2 + 0.1, zvarnish - Geometry::sVarnishThickness/2 
+                                                          - Geometry::sConnectorHeight/2));
     auto *transformationpi = new TGeoCombiTrans(length/2-interspace/2-Geometry::sConnectorLength/2-Geometry::sConnectorOffset, 
-							  id*step-Geometry::sFlexHeight/2 + 0.1, zvarnish - Geometry::sVarnishThickness/2 - 
-							  Geometry::sConnectorHeight/2, rotationpi);
+                                                          id*step-Geometry::sFlexHeight/2 + 0.1, zvarnish - Geometry::sVarnishThickness/2 - 
+                                                          Geometry::sConnectorHeight/2, rotationpi);
   flex->AddNode(connectord,id+total+37, transformationpi);
   }
   
 
   Double_t boxthickness = 0.05;
   auto *boxconnect = new TGeoBBox("boxconnect", (2*Geometry::sConnectorThickness+interspace+boxthickness)/2, Geometry::sFlexHeight/2-0.04, 
-				      Geometry::sConnectorHeight/2);
+                                      Geometry::sConnectorHeight/2);
   auto *boxremov = new TGeoBBox("boxremov", (2*Geometry::sConnectorThickness+interspace)/2, (Geometry::sFlexHeight-0.1-step)/2, 
-				    Geometry::sConnectorHeight/2+0.001);
+                                    Geometry::sConnectorHeight/2+0.001);
   auto *boxconnecto = new TGeoSubtraction(boxconnect, boxremov, nullptr, nullptr);
   auto *boxconnector = new TGeoCompositeShape("boxconnector", boxconnecto);
   auto *boxconnectord = new TGeoVolume("boxconnectord", boxconnector, kMedPeek);
   flex->AddNode(boxconnectord,1,new TGeoTranslation(length/2-Geometry::sConnectorOffset, -step/2, zvarnish-Geometry::sVarnishThickness/2
-						    -Geometry::sConnectorHeight/2-Geometry::sConnectorThickness));
+                                                    -Geometry::sConnectorHeight/2-Geometry::sConnectorThickness));
   
 }
 
@@ -324,16 +324,16 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
   // ----------- two lines along the FPC digital side --------------
   t[0] = new TGeoTranslation ("t0", SegmentationAlpide::SensorSizeCols/2-Geometry::sConnectorOffset/2, -widthflex/2 + 2*Geometry::sLineWidth, 0.);    
   line[0]  = new TGeoBBox("line0",  length/2 - Geometry::sConnectorOffset/2 - SegmentationAlpide::SensorSizeCols/2, Geometry::sLineWidth/2, 
-			  thickness/2 + Geometry::sEpsilon);
+                          thickness/2 + Geometry::sEpsilon);
   layerl[0] = new TGeoSubtraction(layer, line[0], nullptr, t[0]);
   layern[0] = new TGeoCompositeShape(Form("layer%d",0), layerl[0]);
 
   istart = 1; istop = 6;
   for (int iline = istart; iline < istop; iline++){
     t[iline] = new TGeoTranslation (Form("t%d",iline), SegmentationAlpide::SensorSizeCols/2 - Geometry::sConnectorOffset/2, 
-				    -widthflex/2 + 2*(iline+1)*Geometry::sLineWidth, 0.);
+                                    -widthflex/2 + 2*(iline+1)*Geometry::sLineWidth, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline),  length/2 - Geometry::sConnectorOffset/2 - SegmentationAlpide::SensorSizeCols/2,
-				Geometry::sLineWidth/2, thickness/2 + Geometry::sEpsilon);
+                                Geometry::sLineWidth/2, thickness/2 + Geometry::sEpsilon);
     layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, t[iline]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
     kTotalLinesNb++;
@@ -345,7 +345,7 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
     length_line=length - Geometry::sConnectorOffset - TMath::Nint((iline-6)/3)*SegmentationAlpide::SensorSizeCols
       - SegmentationAlpide::SensorSizeCols/2;
     ts[iline] = new TGeoTranslation (Form("t%d",iline), length/2-length_line/2-Geometry::sConnectorOffset,
-				     -2*(iline-6)*Geometry::sLineWidth+0.5-widthflex/2, 0.);
+                                     -2*(iline-6)*Geometry::sLineWidth+0.5-widthflex/2, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline), length_line/2, Geometry::sLineWidth/2, thickness/2 + Geometry::sEpsilon);
     layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, ts[iline]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
@@ -365,7 +365,7 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
   for (int iline = istart; iline < istop; iline++){
     length_line=length - Geometry::sConnectorOffset;
     tl[iline-istart] = new TGeoTranslation (Form("tl%d",iline), length/2-length_line/2-Geometry::sConnectorOffset, 
-					    widthflex/2-Geometry::sShiftline-2.*(iline-istart)*Geometry::sLineWidth, 0.);
+                                            widthflex/2-Geometry::sShiftline-2.*(iline-istart)*Geometry::sLineWidth, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline), length_line/2, Geometry::sLineWidth/2, thickness/2 + Geometry::sEpsilon);
     layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, tl[iline-istart]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
@@ -419,16 +419,16 @@ TGeoVolume* Flex::makeAGNDandDGND(Double_t length, Double_t widthflex,  Double_t
   layern[0] = new TGeoCompositeShape(Form("layer%d",0), layerl[0]);
 
   t[1] = new TGeoTranslation("t1", length/2-length_line/2-Geometry::sConnectorOffset, 
-			     widthflex/2 - Geometry::sShiftline - 2*Geometry::sLineWidth, 0.);
+                             widthflex/2 - Geometry::sShiftline - 2*Geometry::sLineWidth, 0.);
   line[1]  = new TGeoBBox("line1",  length/2 - Geometry::sConnectorOffset/2, Geometry::sLineWidth/2, 
-			  thickness/2 + Geometry::sEpsilon);
+                          thickness/2 + Geometry::sEpsilon);
   layerl[1] = new TGeoSubtraction(layern[0], line[1], nullptr, t[1]);
   layern[1] = new TGeoCompositeShape(Form("layer%d",1), layerl[1]);
 
   // Now the interspace to separate the AGND et DGND --> same interspace compare the AVDD et DVDD
   t[2] = new TGeoTranslation("t2", length/2-length_line/2, widthflex/2 - Geometry::sShiftDDGNDline, 0.);
   line[2]  = new TGeoBBox("line2",  length/2 - Geometry::sConnectorOffset/2, Geometry::sLineWidth, 
-			  thickness/2 + Geometry::sEpsilon);
+                          thickness/2 + Geometry::sEpsilon);
   layerl[2] = new TGeoSubtraction(layern[1], line[2], nullptr, t[2]);
   layern[2] = new TGeoCompositeShape(Form("layer%d",2), layerl[2]);
 

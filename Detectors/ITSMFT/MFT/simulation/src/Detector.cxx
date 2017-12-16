@@ -170,14 +170,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
     Hit *p = addHit(trackID,
                     sensorIndex,
-		    mTrackData.mPositionStart.Vect(),
-		    positionStop.Vect(),
-		    mTrackData.mMomentumStart.Vect(),
-		    mTrackData.mMomentumStart.E(),
-		    positionStop.T(),
-		    mTrackData.mEnergyLoss, 
-		    mTrackData.mTrkStatusStart,
-		    status);
+                    mTrackData.mPositionStart.Vect(),
+                    positionStop.Vect(),
+                    mTrackData.mMomentumStart.Vect(),
+                    mTrackData.mMomentumStart.E(),
+                    positionStop.T(),
+                    mTrackData.mEnergyLoss, 
+                    mTrackData.mTrkStatusStart,
+                    status);
     
     o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
     stack->addHit(GetDetId());
@@ -305,8 +305,8 @@ void Detector::createMaterials()
   
   Int_t   matId  = 0;                        // tmp material id number
   Int_t   unsens = 0, sens=1;                // sensitive or unsensitive medium
-  Int_t   itgfld = 3;			     // type of field intergration 0 no field -1 user in guswim 1 Runge Kutta 2 helix 3 const field along z
-  Float_t maxfld = 5.; 		             // max field value
+  Int_t   itgfld = 3;                        // type of field intergration 0 no field -1 user in guswim 1 Runge Kutta 2 helix 3 const field along z
+  Float_t maxfld = 5.;                       // max field value
   
   Float_t tmaxfd = -10.0;                    // max deflection angle due to magnetic field in one step
   Float_t stemax =  0.001;                   // max step allowed [cm]
@@ -392,7 +392,7 @@ void Detector::createMaterials()
   
   o2::Base::Detector::Mixture(++matId,  "Polyimide", aPolyimide, zPolyimide, dPolyimide, nPolyimide, wPolyimide);
   o2::Base::Detector::Medium(Polyimide, "Polyimide", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
-	
+        
   o2::Base::Detector::Mixture(++matId, "PEEK$", aPEEK, zPEEK, dPEEK, nPEEK, wPEEK);
   o2::Base::Detector::Medium(PEEK,    "PEEK$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   

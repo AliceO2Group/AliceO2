@@ -201,8 +201,8 @@ TGeoVolumeAssembly* Support::createPCB_00_01(Int_t half, Int_t disk){
   Double_t Tub01_X=14.0,     Tub01_Y=-9.5;  // hole01.
   Double_t Tub02_R0=0.0,      Tub02_R = .35/2;  
   Double_t Tub02_X=11.2,     Tub02_Y=-9.5;  // hole02.
-  Double_t Tub0dh_X=.3/2,     Tub0dh_Y=0.0;  					  // double hole.
-  Double_t Tub0dhp_X=-14.0,    Tub0dhp_Y=-9.5;  				  // double hole position.
+  Double_t Tub0dh_X=.3/2,     Tub0dh_Y=0.0;                                       // double hole.
+  Double_t Tub0dhp_X=-14.0,    Tub0dhp_Y=-9.5;                                    // double hole position.
   //--------------------- translations ------------------------------
   auto *tr_Tub01= new TGeoTranslation ("PCB0tr_Tub01",Tub01_X,Tub01_Y,0.0);    tr_Tub01-> RegisterYourself();
   auto *tr_Tub02l= new TGeoTranslation ("PCB0tr_Tub02l",-Tub02_X,Tub02_Y,0.0); tr_Tub02l-> RegisterYourself();
@@ -540,38 +540,38 @@ auto *box_hi02= new TGeoCompositeShape ("box_hi02", "Box2h_PCB_02:PCB0tr_box2h+B
 // ---------------------------------------------- holes ------------------------------
 
 
-Double_t Tubh02_XA=-19.5,	Tubh02_YA=-10.0	;		//=.3 A
-Double_t Tubh02_XB=-16.,	Tubh02_YB=-10.	;			//=.35 B
-Double_t Tubh02_XC=-19.391,	Tubh02_YC=-15.114;	//=.25
-Double_t Tubh02_XD=-18.726, 	Tubh02_YD=-15.779;	//=.25
-Double_t Tubh02_XE=-16.387,	Tubh02_YE=-12.775;	//=.25
-Double_t Tubh02_XF=-18.12,	Tubh02_YF=-16.385;	//=.25
-Double_t Tubh02_XG=-17.455,	Tubh02_YG=-17.049;	//=.25
-Double_t Tubh02_XH=-15.116,	Tubh02_YH=-14.045;	//=.25
-Double_t Tubh02_XI=-16.849,	Tubh02_YI=-17.655;	//=.25
-Double_t Tubh02_XJ=-16.185,	Tubh02_YJ=-18.32;	//=.25
-Double_t Tubh02_XK=-13.846,	Tubh02_YK=-15.316;	//=.25
-Double_t Tubh02_XL=-15.579,	Tubh02_YL=-18.926;	//=.25
-Double_t Tubh02_XM=-14.914,	Tubh02_YM=-19.591;	//=.25
-Double_t Tubh02_XN=-12.575,	Tubh02_YN=-16.587;	//=.25
-Double_t Tubh02_XO=-11.,	Tubh02_YO=-22.	;			//=.35 O
-Double_t Tubh02_XP=11.,		Tubh02_YP=-22.	;			//=.35 P
-Double_t Tubh02_XQ=11.304,	Tubh02_YQ=-17.857;	//=.25
-Double_t Tubh02_XR=13.643,	Tubh02_YR=-20.861;	//=.25
-Double_t Tubh02_XS=14.308,	Tubh02_YS=-20.197;	//=.25
-Double_t Tubh02_XT=12.575,	Tubh02_YT=-16.587;	//=.25
-Double_t Tubh02_XU=14.914,	Tubh02_YU=-19.591;	//=.25
-Double_t Tubh02_XV=15.579,	Tubh02_YV=-18.926;	//=.25
-Double_t Tubh02_XW=13.846,	Tubh02_YW=-15.316;	//=.25
-Double_t Tubh02_XX=16.185,	Tubh02_YX=-18.32;	//=.25
-Double_t Tubh02_XY=16.849,	Tubh02_YY=-17.655;	//=.25
-Double_t Tubh02_XZ=15.116,	Tubh02_YZ=-14.045;	//=.25
-Double_t Tubh02_XAA=17.455,	Tubh02_YAA=-17.049;	//=.25
-Double_t Tubh02_XBB=18.12,	Tubh02_YBB=-16.385;	//=.25
-Double_t Tubh02_XCC=16.387,	Tubh02_YCC=-12.775;	//=.25
-Double_t Tubh02_XDD=18.726,	Tubh02_YDD=-15.779;	//=.25
-Double_t Tubh02_XEE=19.391,	Tubh02_YEE=-15.114;	//=.25
-Double_t Tubh02_XFF=16.,	Tubh02_YFF=-10.	;			//=.35 FF
+Double_t Tubh02_XA=-19.5,       Tubh02_YA=-10.0 ;               //=.3 A
+Double_t Tubh02_XB=-16.,        Tubh02_YB=-10.  ;                       //=.35 B
+Double_t Tubh02_XC=-19.391,     Tubh02_YC=-15.114;      //=.25
+Double_t Tubh02_XD=-18.726,     Tubh02_YD=-15.779;      //=.25
+Double_t Tubh02_XE=-16.387,     Tubh02_YE=-12.775;      //=.25
+Double_t Tubh02_XF=-18.12,      Tubh02_YF=-16.385;      //=.25
+Double_t Tubh02_XG=-17.455,     Tubh02_YG=-17.049;      //=.25
+Double_t Tubh02_XH=-15.116,     Tubh02_YH=-14.045;      //=.25
+Double_t Tubh02_XI=-16.849,     Tubh02_YI=-17.655;      //=.25
+Double_t Tubh02_XJ=-16.185,     Tubh02_YJ=-18.32;       //=.25
+Double_t Tubh02_XK=-13.846,     Tubh02_YK=-15.316;      //=.25
+Double_t Tubh02_XL=-15.579,     Tubh02_YL=-18.926;      //=.25
+Double_t Tubh02_XM=-14.914,     Tubh02_YM=-19.591;      //=.25
+Double_t Tubh02_XN=-12.575,     Tubh02_YN=-16.587;      //=.25
+Double_t Tubh02_XO=-11.,        Tubh02_YO=-22.  ;                       //=.35 O
+Double_t Tubh02_XP=11.,         Tubh02_YP=-22.  ;                       //=.35 P
+Double_t Tubh02_XQ=11.304,      Tubh02_YQ=-17.857;      //=.25
+Double_t Tubh02_XR=13.643,      Tubh02_YR=-20.861;      //=.25
+Double_t Tubh02_XS=14.308,      Tubh02_YS=-20.197;      //=.25
+Double_t Tubh02_XT=12.575,      Tubh02_YT=-16.587;      //=.25
+Double_t Tubh02_XU=14.914,      Tubh02_YU=-19.591;      //=.25
+Double_t Tubh02_XV=15.579,      Tubh02_YV=-18.926;      //=.25
+Double_t Tubh02_XW=13.846,      Tubh02_YW=-15.316;      //=.25
+Double_t Tubh02_XX=16.185,      Tubh02_YX=-18.32;       //=.25
+Double_t Tubh02_XY=16.849,      Tubh02_YY=-17.655;      //=.25
+Double_t Tubh02_XZ=15.116,      Tubh02_YZ=-14.045;      //=.25
+Double_t Tubh02_XAA=17.455,     Tubh02_YAA=-17.049;     //=.25
+Double_t Tubh02_XBB=18.12,      Tubh02_YBB=-16.385;     //=.25
+Double_t Tubh02_XCC=16.387,     Tubh02_YCC=-12.775;     //=.25
+Double_t Tubh02_XDD=18.726,     Tubh02_YDD=-15.779;     //=.25
+Double_t Tubh02_XEE=19.391,     Tubh02_YEE=-15.114;     //=.25
+Double_t Tubh02_XFF=16.,        Tubh02_YFF=-10. ;                       //=.35 FF
 
 // ------------------------------------
 Double_t hole102_R=.3/2.; Double_t hole202_R=.35/2.; Double_t hole302_R=.25/2.;
@@ -966,81 +966,81 @@ TGeoVolumeAssembly* Support::createPCB_PSU(Int_t half, Int_t disk){
 
   // ================= holes ===============
 
-  Double_t Tubh04A_X=-21.749,	Tubh04A_Y=-9.623;
-  Double_t Tubh04B_X=-21.352,	Tubh04B_Y=-10.475;
-  Double_t Tubh04C_X=-18.126,	Tubh04C_Y=-8.452;
-  Double_t Tubh04D_X=-20.827,	Tubh04D_Y=-11.482;
-  Double_t Tubh04E_X=-20.357,	Tubh04E_Y=-12.296;
-  Double_t Tubh04F_X=-17.321,	Tubh04F_Y=-10.0;
-  Double_t Tubh04G_X=-19.747,	Tubh04G_Y=-13.253;
-  Double_t Tubh04H_X=-19.208,	Tubh04H_Y=-14.024;
-  Double_t Tubh04I_X=-16.383,	Tubh04I_Y=-11.472;
-  Double_t Tubh04J_X=-18.517,	Tubh04J_Y=-14.924;
-  Double_t Tubh04K_X=-17.913,	Tubh04K_Y=-15.644;
-  Double_t Tubh04L_X=-15.321,	Tubh04L_Y=-12.856;
-  Double_t Tubh04M_X=-17.146,	Tubh04M_Y=-16.481;
-  Double_t Tubh04N_X=-16.481,	Tubh04N_Y=-17.146;
-  Double_t Tubh04O_X=-14.142,	Tubh04O_Y=-14.142;
-  Double_t Tubh04P_X=-15.644,	Tubh04P_Y=-17.913;
-  Double_t Tubh04Q_X=-14.924,	Tubh04Q_Y=-18.517;
-  Double_t Tubh04R_X=-12.856,	Tubh04R_Y=-15.321;
-  Double_t Tubh04S_X=-14.024,	Tubh04S_Y=-19.208;
-  Double_t Tubh04T_X=-13.253,	Tubh04T_Y=-19.747;
-  Double_t Tubh04U_X=-11.472,	Tubh04U_Y=-16.383;
-  Double_t Tubh04V_X=-12.296,	Tubh04V_Y=-20.357;
-  Double_t Tubh04W_X=-11.482,	Tubh04W_Y=-20.827;
-  Double_t Tubh04X_X=-10.0,	Tubh04X_Y=-17.321;
-  Double_t Tubh04Y_X=-7.646,	Tubh04Y_Y=-21.878;
-  Double_t Tubh04Z_X=-6.706,	Tubh04Z_Y=-21.878;
-  Double_t Tubh04AA_X=-7.176,	Tubh04AA_Y=-1.81;
-  Double_t Tubh04BB_X=-5.852,	Tubh04BB_Y=-21.878;
-  Double_t Tubh04CC_X=-4.912,	Tubh04CC_Y=-21.878;
-  Double_t Tubh04DD_X=-5.382,	Tubh04DD_Y=-18.1;
-  Double_t Tubh04EE_X=-4.058,	Tubh04EE_Y=-21.878;
-  Double_t Tubh04FF_X=-3.118,	Tubh04FF_Y=-21.878;
-  Double_t Tubh04GG_X=-3.588,	Tubh04GG_Y=-18.1;
-  Double_t Tubh04HH_X=-2.264,	Tubh04HH_Y=-21.878;
-  Double_t Tubh04II_X=-1.324,	Tubh04II_Y=-21.878;
-  Double_t Tubh04JJ_X=-1.794,	Tubh04JJ_Y=-18.1;
-  Double_t Tubh04KK_X=-.47,	Tubh04KK_Y=-21.878;
-  Double_t Tubh04LL_X=.47	,	Tubh04LL_Y=-21.878;
-  Double_t Tubh04MM_X=0.	,	Tubh04MM_Y=-18.1;
-  Double_t Tubh04NN_X=1.324,	Tubh04NN_Y=-21.878;
-  Double_t Tubh04OO_X=2.264,	Tubh04OO_Y=-21.878;
-  Double_t Tubh04PP_X=1.794,	Tubh04PP_Y=-18.1;
-  Double_t Tubh04QQ_X=3.118,	Tubh04QQ_Y=-21.878;
-  Double_t Tubh04RR_X=4.058,	Tubh04RR_Y=-21.878;
-  Double_t Tubh04SS_X=3.588,	Tubh04SS_Y=-18.1;
-  Double_t Tubh04TT_X=4.912,	Tubh04TT_Y=-21.878;
-  Double_t Tubh04UU_X=5.852,	Tubh04UU_Y=-21.878;
-  Double_t Tubh04VV_X=5.382,	Tubh04VV_Y=-18.1;
-  Double_t Tubh04WW_X=6.706,	Tubh04WW_Y=-21.878;
-  Double_t Tubh04XX_X=7.646,	Tubh04XX_Y=-21.878;
-  Double_t Tubh04YY_X=7.176,	Tubh04YY_Y=-18.1;
-  Double_t Tubh04ZZ_X=11.482,	Tubh04ZZ_Y=-20.827;
-  Double_t Tubh04AAA_X=12.296,	Tubh04AAA_Y=-20.357;
-  Double_t Tubh04BBB_X=10.0,	Tubh04BBB_Y=-17.321;
-  Double_t Tubh04CCC_X=13.253,	Tubh04CCC_Y=-19.747;
-  Double_t Tubh04DDD_X=14.024,	Tubh04DDD_Y=-19.208;
-  Double_t Tubh04EEE_X=11.472,	Tubh04EEE_Y=-16.383;
-  Double_t Tubh04FFF_X=14.924,	Tubh04FFF_Y=-18.517;
-  Double_t Tubh04GGG_X=15.644,	Tubh04GGG_Y=-17.913;
-  Double_t Tubh04HHH_X=12.856,	Tubh04HHH_Y=-15.321;
-  Double_t Tubh04III_X=16.481,	Tubh04III_Y=-17.146;
-  Double_t Tubh04JJJ_X=17.146,	Tubh04JJJ_Y=-16.481;
-  Double_t Tubh04KKK_X=14.142,	Tubh04KKK_Y=-14.142;
-  Double_t Tubh04LLL_X=17.913,	Tubh04LLL_Y=-15.644;
-  Double_t Tubh04MMM_X=18.517,	Tubh04MMM_Y=-14.924;
-  Double_t Tubh04NNN_X=15.321,	Tubh04NNN_Y=-12.856;
-  Double_t Tubh04OOO_X=19.208,	Tubh04OOO_Y=-14.024;
-  Double_t Tubh04PPP_X=19.747,	Tubh04PPP_Y=-13.253;
-  Double_t Tubh04QQQ_X=16.383,	Tubh04QQQ_Y=-11.472;
-  Double_t Tubh04RRR_X=20.357,	Tubh04RRR_Y=-12.296;
-  Double_t Tubh04SSS_X=20.827,	Tubh04SSS_Y=-11.482;
-  Double_t Tubh04TTT_X=17.321,	Tubh04TTT_Y=-10.0;
-  Double_t Tubh04UUU_X=21.352,	Tubh04UUU_Y=-10.475;
-  Double_t Tubh04VVV_X=21.749,	Tubh04VVV_Y=-9.623;
-  Double_t Tubh04WWW_X=18.126,	Tubh04WWW_Y=-8.452;
+  Double_t Tubh04A_X=-21.749,   Tubh04A_Y=-9.623;
+  Double_t Tubh04B_X=-21.352,   Tubh04B_Y=-10.475;
+  Double_t Tubh04C_X=-18.126,   Tubh04C_Y=-8.452;
+  Double_t Tubh04D_X=-20.827,   Tubh04D_Y=-11.482;
+  Double_t Tubh04E_X=-20.357,   Tubh04E_Y=-12.296;
+  Double_t Tubh04F_X=-17.321,   Tubh04F_Y=-10.0;
+  Double_t Tubh04G_X=-19.747,   Tubh04G_Y=-13.253;
+  Double_t Tubh04H_X=-19.208,   Tubh04H_Y=-14.024;
+  Double_t Tubh04I_X=-16.383,   Tubh04I_Y=-11.472;
+  Double_t Tubh04J_X=-18.517,   Tubh04J_Y=-14.924;
+  Double_t Tubh04K_X=-17.913,   Tubh04K_Y=-15.644;
+  Double_t Tubh04L_X=-15.321,   Tubh04L_Y=-12.856;
+  Double_t Tubh04M_X=-17.146,   Tubh04M_Y=-16.481;
+  Double_t Tubh04N_X=-16.481,   Tubh04N_Y=-17.146;
+  Double_t Tubh04O_X=-14.142,   Tubh04O_Y=-14.142;
+  Double_t Tubh04P_X=-15.644,   Tubh04P_Y=-17.913;
+  Double_t Tubh04Q_X=-14.924,   Tubh04Q_Y=-18.517;
+  Double_t Tubh04R_X=-12.856,   Tubh04R_Y=-15.321;
+  Double_t Tubh04S_X=-14.024,   Tubh04S_Y=-19.208;
+  Double_t Tubh04T_X=-13.253,   Tubh04T_Y=-19.747;
+  Double_t Tubh04U_X=-11.472,   Tubh04U_Y=-16.383;
+  Double_t Tubh04V_X=-12.296,   Tubh04V_Y=-20.357;
+  Double_t Tubh04W_X=-11.482,   Tubh04W_Y=-20.827;
+  Double_t Tubh04X_X=-10.0,     Tubh04X_Y=-17.321;
+  Double_t Tubh04Y_X=-7.646,    Tubh04Y_Y=-21.878;
+  Double_t Tubh04Z_X=-6.706,    Tubh04Z_Y=-21.878;
+  Double_t Tubh04AA_X=-7.176,   Tubh04AA_Y=-1.81;
+  Double_t Tubh04BB_X=-5.852,   Tubh04BB_Y=-21.878;
+  Double_t Tubh04CC_X=-4.912,   Tubh04CC_Y=-21.878;
+  Double_t Tubh04DD_X=-5.382,   Tubh04DD_Y=-18.1;
+  Double_t Tubh04EE_X=-4.058,   Tubh04EE_Y=-21.878;
+  Double_t Tubh04FF_X=-3.118,   Tubh04FF_Y=-21.878;
+  Double_t Tubh04GG_X=-3.588,   Tubh04GG_Y=-18.1;
+  Double_t Tubh04HH_X=-2.264,   Tubh04HH_Y=-21.878;
+  Double_t Tubh04II_X=-1.324,   Tubh04II_Y=-21.878;
+  Double_t Tubh04JJ_X=-1.794,   Tubh04JJ_Y=-18.1;
+  Double_t Tubh04KK_X=-.47,     Tubh04KK_Y=-21.878;
+  Double_t Tubh04LL_X=.47       ,       Tubh04LL_Y=-21.878;
+  Double_t Tubh04MM_X=0.        ,       Tubh04MM_Y=-18.1;
+  Double_t Tubh04NN_X=1.324,    Tubh04NN_Y=-21.878;
+  Double_t Tubh04OO_X=2.264,    Tubh04OO_Y=-21.878;
+  Double_t Tubh04PP_X=1.794,    Tubh04PP_Y=-18.1;
+  Double_t Tubh04QQ_X=3.118,    Tubh04QQ_Y=-21.878;
+  Double_t Tubh04RR_X=4.058,    Tubh04RR_Y=-21.878;
+  Double_t Tubh04SS_X=3.588,    Tubh04SS_Y=-18.1;
+  Double_t Tubh04TT_X=4.912,    Tubh04TT_Y=-21.878;
+  Double_t Tubh04UU_X=5.852,    Tubh04UU_Y=-21.878;
+  Double_t Tubh04VV_X=5.382,    Tubh04VV_Y=-18.1;
+  Double_t Tubh04WW_X=6.706,    Tubh04WW_Y=-21.878;
+  Double_t Tubh04XX_X=7.646,    Tubh04XX_Y=-21.878;
+  Double_t Tubh04YY_X=7.176,    Tubh04YY_Y=-18.1;
+  Double_t Tubh04ZZ_X=11.482,   Tubh04ZZ_Y=-20.827;
+  Double_t Tubh04AAA_X=12.296,  Tubh04AAA_Y=-20.357;
+  Double_t Tubh04BBB_X=10.0,    Tubh04BBB_Y=-17.321;
+  Double_t Tubh04CCC_X=13.253,  Tubh04CCC_Y=-19.747;
+  Double_t Tubh04DDD_X=14.024,  Tubh04DDD_Y=-19.208;
+  Double_t Tubh04EEE_X=11.472,  Tubh04EEE_Y=-16.383;
+  Double_t Tubh04FFF_X=14.924,  Tubh04FFF_Y=-18.517;
+  Double_t Tubh04GGG_X=15.644,  Tubh04GGG_Y=-17.913;
+  Double_t Tubh04HHH_X=12.856,  Tubh04HHH_Y=-15.321;
+  Double_t Tubh04III_X=16.481,  Tubh04III_Y=-17.146;
+  Double_t Tubh04JJJ_X=17.146,  Tubh04JJJ_Y=-16.481;
+  Double_t Tubh04KKK_X=14.142,  Tubh04KKK_Y=-14.142;
+  Double_t Tubh04LLL_X=17.913,  Tubh04LLL_Y=-15.644;
+  Double_t Tubh04MMM_X=18.517,  Tubh04MMM_Y=-14.924;
+  Double_t Tubh04NNN_X=15.321,  Tubh04NNN_Y=-12.856;
+  Double_t Tubh04OOO_X=19.208,  Tubh04OOO_Y=-14.024;
+  Double_t Tubh04PPP_X=19.747,  Tubh04PPP_Y=-13.253;
+  Double_t Tubh04QQQ_X=16.383,  Tubh04QQQ_Y=-11.472;
+  Double_t Tubh04RRR_X=20.357,  Tubh04RRR_Y=-12.296;
+  Double_t Tubh04SSS_X=20.827,  Tubh04SSS_Y=-11.482;
+  Double_t Tubh04TTT_X=17.321,  Tubh04TTT_Y=-10.0;
+  Double_t Tubh04UUU_X=21.352,  Tubh04UUU_Y=-10.475;
+  Double_t Tubh04VVV_X=21.749,  Tubh04VVV_Y=-9.623;
+  Double_t Tubh04WWW_X=18.126,  Tubh04WWW_Y=-8.452;
 
   // ------------------ translations ---------------
 
@@ -1281,7 +1281,7 @@ TGeoVolume* Support::createDisk_Support_00 (){
   tr_ssbox5-> RegisterYourself();
 
   auto *ssboxes = new TGeoCompositeShape ("D0ssboxes",
-					  "D0ssbox1:D0tr_ssbox1+D0ssbox2:D0tr_ssbox2+D0ssbox3:D0tr_ssbox3+D0ssbox4:D0tr_ssbox4+D0ssbox5:D0tr_ssbox5");
+                                          "D0ssbox1:D0tr_ssbox1+D0ssbox2:D0tr_ssbox2+D0ssbox3:D0tr_ssbox3+D0ssbox4:D0tr_ssbox4+D0ssbox5:D0tr_ssbox5");
 
   //Screwholes Area #1
   Double_t AX=8.75, AY=7.41;
@@ -1610,7 +1610,7 @@ TGeoVolume* Support::createDisk_Support_01 (){  // a copy of the Disc support 0
   tr_ssbox5-> RegisterYourself();
 
   auto *ssboxes = new TGeoCompositeShape ("D1ssboxes",
-					  "D1ssbox1:D1tr_ssbox1+D1ssbox2:D1tr_ssbox2+D1ssbox3:D1tr_ssbox3+D1ssbox4:D1tr_ssbox4+D1ssbox5:D1tr_ssbox5");
+                                          "D1ssbox1:D1tr_ssbox1+D1ssbox2:D1tr_ssbox2+D1ssbox3:D1tr_ssbox3+D1ssbox4:D1tr_ssbox4+D1ssbox5:D1tr_ssbox5");
 
   //Screwholes Area #1
   Double_t AX=8.75, AY=7.41;
@@ -1940,7 +1940,7 @@ TGeoVolume* Support::createDisk_Support_02 (){  // a copy of the Disc support 0
   tr_ssbox5-> RegisterYourself();
 
   auto *ssboxes = new TGeoCompositeShape ("D2ssboxes",
-							"D2ssbox1:D2tr_ssbox1+D2ssbox2:D2tr_ssbox2+D2ssbox3:D2tr_ssbox3+D2ssbox4:D2tr_ssbox4+D2ssbox5:D2tr_ssbox5");
+                                                        "D2ssbox1:D2tr_ssbox1+D2ssbox2:D2tr_ssbox2+D2ssbox3:D2tr_ssbox3+D2ssbox4:D2tr_ssbox4+D2ssbox5:D2tr_ssbox5");
 
   //Screwholes Area #1
   Double_t AX=8.75, AY=7.41;
@@ -2292,7 +2292,7 @@ TGeoVolume* Support::createDisk_Support_03 (){
   auto *d3det001tube001 = new TGeoTube("d3det001tube001",0,0.3,0.2/2);
   auto *rotd3det001tube001 = new TGeoRotation("d3rotdet001tube001",90.,90,0.);
   rotd3det001tube001->RegisterYourself();
- 	auto *ctd3det001tube001 = new TGeoCombiTrans("ctd3det001tube001", detailbox1_X,1.7,0., rotd3det001tube001);
+        auto *ctd3det001tube001 = new TGeoCombiTrans("ctd3det001tube001", detailbox1_X,1.7,0., rotd3det001tube001);
   ctd3det001tube001->RegisterYourself();
 
   auto *ctd3det001tube001b = new TGeoCombiTrans("ctd3det001tube001b", -detailbox1_X,1.7,0., rotd3det001tube001);

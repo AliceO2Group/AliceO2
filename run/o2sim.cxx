@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "../macro/o2sim.C"
-#include <Configuration/SimConfig.h>
+#include <SimConfig/SimConfig.h>
 
 int main(int argc, char* argv[])
 {

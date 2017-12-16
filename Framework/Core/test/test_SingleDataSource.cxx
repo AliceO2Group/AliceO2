@@ -29,7 +29,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
        ctx.services().get<ControlService>().readyToQuit(true);
       }
     },
-    Options{{"test-option", VariantType::String, "test", "A test option"}},
+    Options{{"test-option", VariantType::String, "test", {"A test option"}}},
   }
   };
   specs.swap(workflow);

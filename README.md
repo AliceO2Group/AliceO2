@@ -7,7 +7,8 @@ The ALICE O2 software repository contains the framework, as well as the detector
 Other repositories in AliceO2Group contain a number of large common modules, for instance for Monitoring or Configuration.
 
 ### Website
-The main entry point for O2 information is [here](https://alice-o2.web.cern.ch/).
+The main entry point for O2 information is [here](http://alice-o2.web.cern.ch/).
+A quickstart page can be found under [https://aliceo2group.github.io/](https://aliceo2group.github.io/).
 
 ### Installation
 In order to install with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
@@ -20,6 +21,8 @@ The Coding Guidelines are [here](https://github.com/AliceO2Group/CodingGuideline
 See [below](###Formatting) how to format your code accordingly.
 
 ### Doxygen
+Documentation pages: [https://aliceo2group.github.io/AliceO2/](https://aliceo2group.github.io/AliceO2/).
+
 `make doc` will generate the doxygen documentation.
 To access the resulting documentation, open doc/html/index.html in your
 build directory. To install the documentation when calling `make install`

@@ -16,7 +16,7 @@
 #include <memory>
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
-#include <Configuration/SimConfig.h>
+#include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/Pythia8Generator.h>
 #endif

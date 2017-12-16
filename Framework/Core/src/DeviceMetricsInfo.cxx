@@ -75,17 +75,17 @@ bool processMetric(const std::smatch &match,
     switch(metricType) {
       case MetricType::Int:
         metricInfo.storeIdx = info.intMetrics.size();
-        info.intMetrics.emplace_back(std::array<int, 1024>{0});
+        info.intMetrics.emplace_back(std::array<int, 1024>{});
         break;
       case MetricType::Float:
         metricInfo.storeIdx = info.floatMetrics.size();
-        info.floatMetrics.emplace_back(std::array<float, 1024>{0});
+        info.floatMetrics.emplace_back(std::array<float, 1024>{});
         break;
       default:
         return false;
     };
     // Add the timestamp buffer for it
-    info.timestamps.emplace_back(std::array<size_t, 1024>{0});
+    info.timestamps.emplace_back(std::array<size_t, 1024>{});
 
     // Add the index by name in the correct position
     // this will require moving the tail of the index,

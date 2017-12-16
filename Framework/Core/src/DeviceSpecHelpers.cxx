@@ -561,7 +561,7 @@ DeviceSpecHelpers::prepareArguments(int argc,
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
         const auto * description = odesc.find_nothrow(varit.first, false);
-        if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
+        if (description && varmap.count(varit.first)) {
           tmpArgs.emplace_back("--");
           tmpArgs.back() += varit.first;
           // check the semantics of the value
