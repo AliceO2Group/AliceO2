@@ -122,8 +122,8 @@ void SpaceFrame::CreateGeometry()
 
   //////////////////////////////////////Setup/////////////////////////////////////////
   TGeoVolume* top = gGeoManager->GetVolume("cave");
-  TGeoMedium* steel = gGeoManager->GetMedium("EMCAL_S steel$");
-  TGeoMedium* air = gGeoManager->GetMedium("EMCAL_Air$");
+  TGeoMedium* steel = gGeoManager->GetMedium("EMC_S steel$");
+  TGeoMedium* air = gGeoManager->GetMedium("EMC_Air$");
 
   //////////////////////////////////// Volumes ///////////////////////////////////////
   TGeoVolume* calFrameMO = gGeoManager->MakeTubs("CalFrame", air, mBeginRadius - 2.1, mEndRadius, mTotalHalfWidth * 3,
