@@ -11,6 +11,7 @@
 #define FRAMEWORK_DEVICEINFO_H
 
 #include "Framework/Variant.h"
+#include "Framework/LogParsingHelpers.h"
 
 #include <vector>
 #include <string>
@@ -23,12 +24,25 @@ namespace o2 {
 namespace framework {
 
 struct DeviceInfo {
+  /// The pid of the device associated to this device
   pid_t pid;
+  /// The position inside the history circular buffer of this device
   size_t historyPos;
+  /// The size of the history circular buffer
   size_t historySize;
+  /// The maximum log level ever seen by this device
+  LogParsingHelpers::LogLevel maxLogLevel;
+  /// A circular buffer for the history of logs entries received
+  /// by this device
   std::vector<std::string> history;
+  /// A circular buffer for the severity of each of the entries
+  /// in the circular buffer associated to the device.
+  std::vector<LogParsingHelpers::LogLevel> historyLevel;
+  /// An unterminated string which is not ready to be printed yet
   std::string unprinted;
+  /// Whether the device is active (running) or not.
   bool active;
+  /// Whether the device is ready to quit.
   bool readyToQuit;
 };
 

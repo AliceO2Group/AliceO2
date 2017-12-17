@@ -10,6 +10,8 @@
 #include "Framework/FrameworkGUIDevicesGraph.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/LogParsingHelpers.h"
+#include "Framework/PaletteHelpers.h"
 #include "DebugGUI/imgui.h"
 #include <cmath>
 #include <vector>
@@ -20,6 +22,42 @@ static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return Im
 
 namespace o2 {
 namespace framework {
+
+struct NodeColor {
+  ImVec4 normal;
+  ImVec4 hovered;
+};
+
+using LogLevel = LogParsingHelpers::LogLevel;
+
+NodeColor
+decideColorForNode(const DeviceInfo &info) {
+  NodeColor result;
+  if (info.active == false) {
+    result.normal = PaletteHelpers::RED;
+    result.hovered = PaletteHelpers::SHADED_RED;
+    return result;
+  }
+  switch(info.maxLogLevel) {
+    case LogParsingHelpers::LogLevel::Error:
+      result.normal = PaletteHelpers::SHADED_RED;
+      result.hovered = PaletteHelpers::RED;
+      break;
+    case LogLevel::Warning:
+      result.normal = PaletteHelpers::SHADED_YELLOW;
+      result.hovered = PaletteHelpers::YELLOW;
+      break;
+    case LogLevel::Info:
+      result.normal = PaletteHelpers::SHADED_GREEN;
+      result.hovered = PaletteHelpers::GREEN;
+      break;
+    default:
+      result.normal = PaletteHelpers::GRAY;
+      result.hovered = PaletteHelpers::LIGHT_GRAY;
+      break;
+  }
+  return result;
+}
 
 void showTopologyNodeGraph(bool* opened,
                            const std::vector<DeviceInfo> &infos,
@@ -202,14 +240,10 @@ void showTopologyNodeGraph(bool* opened,
         if (node_moving_active && ImGui::IsMouseDragging(0))
             node->Pos = node->Pos + ImGui::GetIO().MouseDelta;
 
-        ImColor active_normal_color = ImColor(60,60,60);
-        ImColor active_hovered_color = ImColor(75,75,75);
-        if (!info.active) {
-          active_normal_color = ImColor(60, 0, 0);
-          active_hovered_color = ImColor(75, 0, 0);
-        }
+        auto nodeBg = decideColorForNode(info);
 
-        ImU32 node_bg_color = (node_hovered_in_list == node->ID || node_hovered_in_scene == node->ID || (node_hovered_in_list == -1 && node_selected == node->ID)) ? active_hovered_color : active_normal_color;
+        ImVec4 nodeBgColor = (node_hovered_in_list == node->ID || node_hovered_in_scene == node->ID || (node_hovered_in_list == -1 && node_selected == node->ID)) ? nodeBg.hovered : nodeBg.normal;
+        ImU32 node_bg_color = ImGui::ColorConvertFloat4ToU32(nodeBgColor);
 
         draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f);
         draw_list->AddRect(node_rect_min, node_rect_max, ImColor(100,100,100), 4.0f);

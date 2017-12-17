@@ -12,21 +12,32 @@
 
 #include <map>
 #include <string>
+#include "Framework/LogParsingHelpers.h"
 
 namespace o2 {
 namespace framework {
 
-// Controller state for the Device. This is useful for both GUI and
-// batch operations of the system. Whenever something external to the
-// device wants to modify it, it should be registered here and it will
-// be acted on in the subsequent state update.
+constexpr int MAX_USER_FILTER_SIZE = 256;
+
+/// Controller state for the Device. This is useful for both GUI and batch
+/// operations of the system. Whenever something external to the device wants
+/// to modify it, it should be registered here and it will be acted on in the
+/// subsequent state update.
 struct DeviceControl {
-  bool stopped; // whether the device should start in STOP
-  bool quiet; // wether we should be capturing device output.
-  char logFilter[256] = {0};  // Lines in the log should match this to be displayed
-  char logStartTrigger[256] = {0}; // Start printing log with the last occurence of this
-  char logStopTrigger[256] = {0}; // Stop producing log with the first occurrence of this after the start
-  std::map<std::string, std::string> options; // Where the GUI should store the options it wants.
+  // whether the device should start in STOP
+  bool stopped = false;
+  /// wether we should be capturing device output.
+  bool quiet = false;
+  /// Minimum log level for messages to appear
+  LogParsingHelpers::LogLevel logLevel = LogParsingHelpers::LogLevel::Info;
+  /// Lines in the log should match this to be displayed
+  char logFilter[MAX_USER_FILTER_SIZE] = {0};
+  /// Start printing log with the last occurence of this
+  char logStartTrigger[MAX_USER_FILTER_SIZE] = {0};
+  /// Stop producing log with the first occurrence of this after the start
+  char logStopTrigger[MAX_USER_FILTER_SIZE] = {0};
+  /// Where the GUI should store the options it wants.
+  std::map<std::string, std::string> options;
 };
 
 } // namespace framework

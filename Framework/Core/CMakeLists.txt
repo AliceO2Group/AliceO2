@@ -15,7 +15,8 @@ set(MODULE_BUCKET_NAME O2FrameworkCore_bucket)
 O2_SETUP(NAME ${MODULE_NAME})
 if (GLFW_FOUND)
   set(GUI_SOURCES src/FrameworkGUIDebugger.cxx
-                  src/FrameworkGUIDevicesGraph.cxx)
+                  src/FrameworkGUIDevicesGraph.cxx
+                  src/PaletteHelpers.cxx)
 else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx src/DummyDebugGUI.cxx)
 endif()
@@ -37,6 +38,7 @@ set(SRCS
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/LocalRootFileService.cxx
+    src/LogParsingHelpers.cxx
     src/ExternalFairMQDeviceProxy.cxx
     src/SimpleMetricsService.cxx
     src/TextControlService.cxx
@@ -78,6 +80,7 @@ set(TEST_SRCS
       test/test_Graphviz.cxx
       test/test_InputRecord.cxx
       test/test_ParallelProducer.cxx
+      test/test_LogParsingHelpers.cxx
       test/test_ExternalFairMQDeviceProxy.cxx
       test/test_Services.cxx
       test/test_SingleDataSource.cxx
