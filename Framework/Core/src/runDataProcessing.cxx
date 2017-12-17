@@ -23,6 +23,7 @@
 #include "Framework/SimpleMetricsService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/LocalRootFileService.h"
+#include "Framework/LogParsingHelpers.h"
 #include "Framework/TextControlService.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
@@ -109,7 +110,7 @@ bool getChildData(int infd, DeviceInfo &outinfo) {
 // - TODO: allow single child view?
 // - TODO: allow last line per child mode?
 // - TODO: allow last error per child mode?
-int doParent(fd_set *in_fdset,
+void doParent(fd_set *in_fdset,
              int maxFd,
              std::vector<DeviceInfo> infos,
              std::vector<DeviceSpec> specs,
@@ -191,9 +192,12 @@ int doParent(fd_set *in_fdset,
       auto s = info.unprinted;
       size_t pos = 0;
       info.history.resize(info.historySize);
+      info.historyLevel.resize(info.historySize);
 
       while ((pos = s.find(delimiter)) != std::string::npos) {
           token = s.substr(0, pos);
+          auto logLevel = LogParsingHelpers::parseTokenLevel(token);
+
           // Check if the token is a metric from SimpleMetricsService
           // if yes, we do not print it out and simply store it to be displayed
           // in the GUI.
@@ -207,6 +211,7 @@ int doParent(fd_set *in_fdset,
             auto command = match[1];
             auto validFor = match[2];
             LOG(INFO) << "Found control command " << command
+                      << " from pid " << info.pid
                       << " valid for " << validFor;
             if (command == "QUIT") {
               if (validFor == "ALL") {
@@ -215,12 +220,21 @@ int doParent(fd_set *in_fdset,
                 }
               }
             }
-          } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != nullptr)) {
+          } else if (!control.quiet
+                     && (strstr(token.c_str(), control.logFilter) != nullptr)
+                     && logLevel >= control.logLevel ) {
             assert(info.historyPos >= 0);
             assert(info.historyPos < info.history.size());
             info.history[info.historyPos] = token;
+            info.historyLevel[info.historyPos] = logLevel;
             info.historyPos = (info.historyPos + 1) % info.history.size();
             std::cout << "[" << info.pid << "]: " << token << std::endl;
+          }
+          // We keep track of the maximum log error a
+          // device has seen.
+          if (logLevel > info.maxLogLevel
+              && logLevel > LogParsingHelpers::LogLevel::Info) {
+            info.maxLogLevel = logLevel;
           }
           s.erase(0, pos + delimiter.length());
       }
@@ -230,12 +244,13 @@ int doParent(fd_set *in_fdset,
     //        run the loop more often and update whenever enough time has
     //        passed.
   }
-  return 0;
 }
 
 int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
-  std::cout << "Spawing new device " << spec.id
-            << " in process with pid " << getpid() << std::endl;
+  fair::mq::logger::ReinitLogger(false);
+
+  LOG(INFO) << "Spawing new device " << spec.id
+            << " in process with pid " << getpid();
   try {
     fair::mq::DeviceRunner runner{argc, argv};
 
@@ -311,9 +326,17 @@ int createPipes(int maxFd, int *pipes) {
     return maxFd;
 }
 
-// Kill all the active children
-void killChildren(std::vector<DeviceInfo> &infos) {
+// Kill all the active children. Exit code
+// is != 0 if any of the children had an error.
+int killChildren(std::vector<DeviceInfo> &infos) {
+  int exitCode = 0;
   for (auto &info : infos) {
+    if (exitCode == 0
+        && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error){
+      LOG(ERROR) << "Child " << info.pid << " had at least one "
+                 << "message above severity ERROR";
+      exitCode = 1;
+    }
     if (!info.active) {
       continue;
     }
@@ -321,10 +344,16 @@ void killChildren(std::vector<DeviceInfo> &infos) {
     int status;
     waitpid(info.pid, &status, 0);
   }
+  return exitCode;
 }
 
+// FIXME: I should really do this gracefully, by doing the following:
+// - Kill all the children
+// - Set a sig_atomic_t to say we did.
+// - Wait for all the children to exit
+// - Return gracefully.
 static void handle_sigint(int signum) {
-  killChildren(gDeviceInfos);
+  auto exitCode = killChildren(gDeviceInfos);
   // We kill ourself after having killed all our children (SPOOKY!)
   signal(SIGINT, SIG_DFL);
   kill(getpid(), SIGINT);
@@ -545,6 +574,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
     info.readyToQuit = false;
     info.historySize = 1000;
     info.historyPos = 0;
+    info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
 
     socket2DeviceInfo.insert(std::make_pair(childstdout[0], gDeviceInfos.size()));
     socket2DeviceInfo.insert(std::make_pair(childstderr[0], gDeviceInfos.size()));
@@ -558,14 +588,13 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
     FD_SET(childstderr[0], &childFdset);
   }
   maxFd += 1;
-  auto exitCode = doParent(&childFdset,
-                           maxFd,
-                           gDeviceInfos,
-                           deviceSpecs,
-                           gDeviceControls,
-                           gDeviceMetricsInfos,
-                           socket2DeviceInfo,
-                           batch);
-  killChildren(gDeviceInfos);
-  return exitCode;
+  doParent(&childFdset,
+           maxFd,
+           gDeviceInfos,
+           deviceSpecs,
+           gDeviceControls,
+           gDeviceMetricsInfos,
+           socket2DeviceInfo,
+           batch);
+  return killChildren(gDeviceInfos);
 }

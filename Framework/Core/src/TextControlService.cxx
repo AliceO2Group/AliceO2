@@ -18,6 +18,10 @@ namespace framework {
 
 // All we do is to printout
 void TextControlService::readyToQuit(bool all) {
+  if (mOnce == true) {
+    return;
+  }
+  mOnce = true;
   std::cout << "CONTROL_ACTION: READY_TO_QUIT";
   if (all) {
     std::cout << "_ALL";

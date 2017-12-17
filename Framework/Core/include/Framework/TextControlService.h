@@ -17,11 +17,26 @@
 namespace o2 {
 namespace framework {
 
-// A service that data processors can use to talk to control and ask for
-// their own state change or others.
+/// A service that data processors can use to talk to control and ask for
+/// their own state change or others.
 class TextControlService : public ControlService {
 public:
-  void readyToQuit(bool all = false) final; // Tell the control that I am ready to quit
+  /// Tell the control that I am ready to quit. This will be
+  /// done by printing (only once)
+  ///
+  /// CONTROL_ACTION: READY_TO_QUIT_ME
+  ///
+  /// or
+  ///
+  /// CONTROL_ACTION: READY_TO_QUIT_ALL
+  ///
+  /// depending on the value of \param all.
+  ///
+  /// It's up to the driver to actually react on that and terminate the
+  /// child.
+  void readyToQuit(bool all = false) final;
+private:
+  bool mOnce = false;
 };
 
 bool parseControl(const std::string &s, std::smatch &match);

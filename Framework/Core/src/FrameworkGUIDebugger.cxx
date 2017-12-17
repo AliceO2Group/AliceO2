@@ -9,9 +9,11 @@
 // or submit itself to any jurisdiction.
 #include "Framework/FrameworkGUIDebugger.h"
 #include "Framework/FrameworkGUIDevicesGraph.h"
+#include "Framework/PaletteHelpers.h"
 #include "DebugGUI/imgui.h"
 #include <set>
 #include <algorithm>
+#include <iostream>
 
 namespace o2 {
 namespace framework {
@@ -74,6 +76,24 @@ optionsTable(const DeviceSpec &spec, const DeviceControl &control) {
   ImGui::Columns(1);
 }
 
+ImVec4
+colorForLogLevel(LogParsingHelpers::LogLevel logLevel) {
+  switch (logLevel) {
+    case LogParsingHelpers::LogLevel::Info:
+      return PaletteHelpers::GREEN;
+    case LogParsingHelpers::LogLevel::Debug:
+      return ImVec4(153./255, 61./255, 61./255, 255./255);
+    case LogParsingHelpers::LogLevel::Warning:
+      return PaletteHelpers::DARK_YELLOW;
+    case LogParsingHelpers::LogLevel::Error:
+      return PaletteHelpers::RED;
+    case LogParsingHelpers::LogLevel::Unknown:
+      return ImVec4(153./255, 61./255, 61./255, 255./255);
+    default:
+      return PaletteHelpers::WHITE;
+  };
+}
+
 void displayHistory(const DeviceInfo &info, DeviceControl &control) {
   if (info.history.empty()) {
     return;
@@ -128,6 +148,8 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
     assert(historySize == 1000);
     assert(ji < historySize);
     auto &line = info.history[ji];
+    auto logLevel = info.historyLevel[ji];
+
     // Skip empty lines
     if (line.empty()) {
       ji = (ji + 1) % historySize;
@@ -135,7 +157,13 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
     }
     // Print matching lines
     if (strstr(line.c_str(), control.logFilter) != 0) {
-      ImGui::TextUnformatted(line.c_str(), line.c_str() + line.size());
+      auto color = colorForLogLevel(logLevel);
+      // We filter twice, once on input, to reduce the 
+      // stream, a second time at display time, to avoid
+      // showing unrelevant messages from past.
+      if (logLevel >= control.logLevel) {
+        ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
+      }
     }
     ji = (ji + 1) % historySize;
   }
@@ -320,6 +348,45 @@ struct ChannelsTableHelper {
   }
 };
 
+void
+pushWindowColorDueToStatus(const DeviceInfo &info) {
+  using LogLevel = LogParsingHelpers::LogLevel;
+
+  if (info.active == false) {
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::DARK_RED);
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
+    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::RED);
+    return;
+  }
+  switch (info.maxLogLevel) {
+    case LogLevel::Error:
+      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_RED);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_RED);
+      break;
+    case LogLevel::Warning:
+      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_YELLOW);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::YELLOW);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_YELLOW);
+      break;
+    case LogLevel::Info:
+      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_GREEN);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::GREEN);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_GREEN);
+      break;
+    default:
+      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_BLUE);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::BLUE);
+      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_BLUE);
+      break;
+  }
+}
+
+void
+popWindowColorDueToStatus() {
+  ImGui::PopStyleColor(3);
+}
+
 // FIXME: return empty function in case we were not built
 // with GLFW support.
 std::function<void(void)>
@@ -350,11 +417,9 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
       DeviceControl &control = controls[i];
       ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x/3*2, i*windowPosStepping), ImGuiSetCond_Once);
       ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x/3, ImGui::GetIO().DisplaySize.y - 300), ImGuiSetCond_Once);
-      if (!info.active) {
-        ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.9,0,0,1));
-        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(1,0,0,1));
-        ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(1,0,0,1));
-      }
+
+      pushWindowColorDueToStatus(info);
+
       ImGui::Begin(state.label.c_str());
       if (ImGui::CollapsingHeader("Channels")) {
         ImGui::Text("# channels: %lu", spec.inputChannels.size() + spec.outputChannels.size());
@@ -365,10 +430,11 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
       if (ImGui::CollapsingHeader("Logs", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Checkbox("Stop logging", &control.quiet);
         ImGui::InputText("Log filter", control.logFilter, sizeof(control.logFilter));
-        assert(sizeof(control.logStartTrigger) == 256);
-        assert(sizeof(control.logStopTrigger) == 256);
         ImGui::InputText("Log start trigger", control.logStartTrigger, sizeof(control.logStartTrigger));
         ImGui::InputText("Log stop trigger", control.logStopTrigger, sizeof(control.logStopTrigger));
+        ImGui::Combo("Log level", reinterpret_cast<int*>(&control.logLevel),
+            LogParsingHelpers::LOG_LEVELS, (int)LogParsingHelpers::LogLevel::Size,
+            5);
 
         ImGui::Separator();
         ImGui::BeginChild("ScrollingRegion", ImVec2(0,-ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -376,9 +442,7 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
         ImGui::EndChild();
       }
       ImGui::End();
-      if (!info.active) {
-        ImGui::PopStyleColor(3);
-      }
+      popWindowColorDueToStatus();
     }
   };
 }
