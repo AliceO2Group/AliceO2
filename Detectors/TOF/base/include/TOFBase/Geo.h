@@ -41,6 +41,8 @@ class Geo
   static Float_t getAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t getHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
   static Float_t getDistances(Int_t iplate, Int_t istrip) { return DISTANCES[iplate][istrip]; }
+  static  void getPadDxDyDz(const Float_t * pos,Int_t * det,Float_t * DeltaPos); 
+
   static constexpr Int_t NPADX = 48;
   static constexpr Int_t NPADZ = 2;
   static constexpr Int_t NSTRIPA = 15;
