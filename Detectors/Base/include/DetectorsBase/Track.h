@@ -28,6 +28,7 @@
 #include "DetectorsBase/BaseCluster.h"
 #include "DetectorsBase/Constants.h"
 #include "DetectorsBase/Utils.h"
+#include "DetectorsBase/Vertex.h"
 #include "MathUtils/Cartesian3D.h"
 
 namespace o2
@@ -137,7 +138,7 @@ class TrackPar
       mP[i] += delta[i];
     }
   }
-  
+
   void setX(float v) { mX = v; }
   void setParam(float v, int i) { mP[i] = v;}
   void setAlpha(float v) { mAlpha = v; }
@@ -147,8 +148,8 @@ class TrackPar
   void setTgl(float v) { mP[kTgl] = v; }
   void setQ2Pt(float v) { mP[kQ2Pt] = v; }
   // derived getters
-  
-  
+
+
  private:
   //
   float mX = 0.f;               /// X of track evaluation
@@ -198,6 +199,7 @@ class TrackParCov : public TrackPar
   bool rotate(float alpha);
   bool propagateTo(float xk, float b);
   bool propagateTo(float xk, const std::array<float, 3>& b);
+  bool propagateToDCA(const Vertex vtx, float b, float maxd, float dz[2], float covar[3]);
   void invert();
 
   float getPredictedChi2(const std::array<float, 2>& p, const std::array<float, 3>& cov) const;
@@ -244,7 +246,7 @@ class TrackParCov : public TrackPar
     for (int i=kCovMatSize;i--;) mC[i] += delta[i];
   }
 
-  
+
  protected:
   float mC[kCovMatSize] = { 0.f }; // 15 covariance matrix elements
 

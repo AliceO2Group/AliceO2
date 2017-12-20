@@ -896,6 +896,65 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   return true;
 }
 
+bool TrackParCov::propagateToDCA(const Vertex vtx, float b, float maxd, float dz[2], float covar[3]) {
+  //
+  // Propagate this track to the DCA to vertex "vtx",
+  // if the (rough) transverse impact parameter is not bigger then "maxd".
+  //            Magnetic field is "b" (kG).
+  //
+  // a) The track gets extapolated to the DCA to the vertex.
+  // b) The impact parameters and their covariance matrix are calculated.
+  //
+  //    In the case of success, the returned value is kTRUE
+  //    (otherwise, it's kFALSE)
+  //
+  double alpha=getAlpha();
+  double sn=std::sin(alpha), cs=std::cos(alpha);
+  double x=getX(), y=getParam(0), snp=getParam(2);
+  double xv= vtx.position.x()*cs + vtx.position.y()*sn;
+  double yv=-vtx.position.x()*sn + vtx.position.y()*cs, zv=vtx.position.z();
+  x-=xv; y-=yv;
+
+  //Estimate the impact parameter neglecting the track curvature
+  double d = std::abs(x*snp - y*std::sqrt((1.-snp)*(1.+snp)));
+  if (d > maxd)
+    return false;
+
+  //Propagate to the DCA
+  double crv=getCurvature(b);
+  if (std::abs(b) < kAlmost0) crv=0.;
+
+  double tgfv=-(crv*x - snp)/(crv*y + std::sqrt((1.-snp)*(1.+snp)));
+  sn=tgfv/std::sqrt(1.+ tgfv*tgfv); cs=std::sqrt((1.-sn)*(1.+sn));
+  if (std::abs(tgfv) > 0.) cs = sn/tgfv;
+  else cs=1.;
+
+  x = xv*cs + yv*sn;
+  yv=-xv*sn + yv*cs; xv=x;
+
+  if (!this->rotate(alpha + std::asin(sn)))
+    return false;
+  if (!this->propagateTo(xv,b))
+    return false;
+
+  if (dz == 0) return true;
+  dz[0] = getParam(0) - yv;
+  dz[1] = getParam(1) - zv;
+
+  if (covar==0) return true;
+  const auto& cov = vtx.covariance;
+
+  alpha=getAlpha();
+  sn=std::sin(alpha);
+  cs=std::cos(alpha);
+  double s2ylocvtx = cov[0]*sn*sn + cov[2]*cs*cs - 2.*cov[1]*cs*sn;
+  covar[0] = getCov()[0] + s2ylocvtx;   // neglecting correlations
+  covar[1] = getCov()[1];               // between (x,y) and z
+  covar[2] = getCov()[2] + cov[5];      // in vertex's covariance matrix
+
+  return true;
+}
+
 //______________________________________________
 void TrackParCov::checkCovariance()
 {

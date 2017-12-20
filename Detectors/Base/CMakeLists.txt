@@ -26,6 +26,7 @@ Set(HEADERS
   include/${MODULE_NAME}/DetMatrixCache.h
   include/${MODULE_NAME}/MaterialManager.h
   include/${MODULE_NAME}/Propagator.h
+  include/${MODULE_NAME}/Vertex.h
 )
 
 Set(LINKDEF src/BaseLinkDef.h)
