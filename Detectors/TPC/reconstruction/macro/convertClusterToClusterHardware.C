@@ -25,6 +25,9 @@
 #include "TPCReconstruction/Cluster.h"
 #include "TPCBase/Constants.h"
 #include "TPCBase/CRU.h"
+#else
+#pragma cling load("libTPCReconstruction")
+#pragma cling load("libDataFormatsTPC")
 #endif
 
 using namespace o2;
@@ -64,17 +67,17 @@ int convertClusterToClusterHardware(TString infile = "", TString outfile = "") {
     unsigned int iCurrentCluster = 0;
     while (iCurrentCluster < inClusters->size())
     {
-      clusterContainer.mCRU = (*inClusters)[iCurrentCluster].getCRU();
-      clusterContainer.mNumberOfClusters = 0;
-      clusterContainer.mTimeBinOffset = 0xFFFFFFFF;
-      for (unsigned int icluster = iCurrentCluster;icluster < inClusters->size() && clusterContainer.mNumberOfClusters < maxClustersPerContainer && (*inClusters)[icluster].getCRU() == clusterContainer.mCRU;icluster++)
+      clusterContainer.CRU = (*inClusters)[iCurrentCluster].getCRU();
+      clusterContainer.numberOfClusters = 0;
+      clusterContainer.timeBinOffset = 0xFFFFFFFF;
+      for (unsigned int icluster = iCurrentCluster;icluster < inClusters->size() && clusterContainer.numberOfClusters < maxClustersPerContainer && (*inClusters)[icluster].getCRU() == clusterContainer.CRU;icluster++)
       {
-        clusterContainer.mNumberOfClusters++;
-        if ((*inClusters)[icluster].getTimeMean() < clusterContainer.mTimeBinOffset) clusterContainer.mTimeBinOffset = (*inClusters)[icluster].getTimeMean();
+        clusterContainer.numberOfClusters++;
+        if ((*inClusters)[icluster].getTimeMean() < clusterContainer.timeBinOffset) clusterContainer.timeBinOffset = (*inClusters)[icluster].getTimeMean();
       }
       
       outMCLabels.clear();
-      for (unsigned int icluster = 0;icluster < clusterContainer.mNumberOfClusters;icluster++) {
+      for (unsigned int icluster = 0;icluster < clusterContainer.numberOfClusters;icluster++) {
         const auto& cluster = (*inClusters)[iCurrentCluster + icluster];
         
         float mPadPre;                //< Quantity needed to compute the pad
@@ -85,23 +88,22 @@ int convertClusterToClusterHardware(TString infile = "", TString outfile = "") {
         uint16_t mQTot;               //< Total charge of the cluster
         uint8_t mRow;                 //< Row of the cluster (local, needs to add PadRegionInfo::getGlobalRowOffset
         uint8_t mFlags;               //< Flags of the cluster
-        ClusterHardware& oCluster = clusterContainer.mClusters[icluster];
-        oCluster.mQMax = cluster.getQmax() + 0.5;
-        oCluster.mQTot = cluster.getQ() + 0.5;
-        oCluster.mPadPre = cluster.getPadMean() * oCluster.mQTot;
-        oCluster.mTimePre = (cluster.getTimeMean() - clusterContainer.mTimeBinOffset) * oCluster.mQTot;
-        oCluster.mSigmaPad2Pre = cluster.getPadSigma() * cluster.getPadSigma() * oCluster.mQTot * oCluster.mQTot + oCluster.mPadPre * oCluster.mPadPre;
-        oCluster.mSigmaTime2Pre = cluster.getTimeSigma() * cluster.getTimeSigma() * oCluster.mQTot * oCluster.mQTot + oCluster.mTimePre * oCluster.mTimePre;
-        oCluster.mRow = cluster.getRow();
-        oCluster.mFlags = 0;
-        gsl::span<const MCCompLabel> mcArray = inMCLabels->getLabels(iCurrentCluster + icluster);
-        for (int k = 0;k < mcArray.size();k++) {
-          outMCLabels.addElement(icluster, mcArray[k]);
+        ClusterHardware& oCluster = clusterContainer.clusters[icluster];
+        oCluster.qMax = cluster.getQmax() + 0.5;
+        oCluster.qTot = cluster.getQ() + 0.5;
+        oCluster.padPre = cluster.getPadMean() * oCluster.qTot;
+        oCluster.timePre = (cluster.getTimeMean() - clusterContainer.timeBinOffset) * oCluster.qTot;
+        oCluster.sigmaPad2Pre = cluster.getPadSigma() * cluster.getPadSigma() * oCluster.qTot * oCluster.qTot + oCluster.padPre * oCluster.padPre;
+        oCluster.sigmaTime2Pre = cluster.getTimeSigma() * cluster.getTimeSigma() * oCluster.qTot * oCluster.qTot + oCluster.timePre * oCluster.timePre;
+        oCluster.row = cluster.getRow();
+        oCluster.flags = 0;
+        for (const auto& element : inMCLabels->getLabels(iCurrentCluster + icluster)) {
+          outMCLabels.addElement(icluster, element);
           nMCLabels++;
         }
       }
-      iCurrentCluster += clusterContainer.mNumberOfClusters;
-      nClusters += clusterContainer.mNumberOfClusters;
+      iCurrentCluster += clusterContainer.numberOfClusters;
+      nClusters += clusterContainer.numberOfClusters;
       nContainers++;
       tout.Fill();
     }

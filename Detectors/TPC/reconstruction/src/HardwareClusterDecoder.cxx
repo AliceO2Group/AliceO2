@@ -54,35 +54,34 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
         const char* tmpPtr = reinterpret_cast<const char*> (inputClusters[i].first);
         tmpPtr += j * 8192; //TODO: FIXME: Compute correct offset based on the size of the actual packet in the RDH
         const ClusterHardwareContainer& cont = *(reinterpret_cast<const ClusterHardwareContainer*> (tmpPtr));
-        const CRU cru(cont.mCRU);
+        const CRU cru(cont.CRU);
         const Sector sector = cru.sector();
         const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
         const int rowOffset = region.getGlobalRowOffset();
 
-        for (int k = 0;k < cont.mNumberOfClusters;k++)
+        for (int k = 0;k < cont.numberOfClusters;k++)
         {
-          const int padRowGlobal = rowOffset + cont.mClusters[k].mRow;
+          const int padRowGlobal = rowOffset + cont.clusters[k].row;
           int& nCls = nRowClusters[sector][padRowGlobal];
           if (loop == 1)
           {
             //Fill cluster in the respective output buffer
-            const ClusterHardware& cIn = cont.mClusters[k];
-            ClusterNative& cOut = outputClusters[containerRowCluster[sector][padRowGlobal]].mClusters[nCls];
+            const ClusterHardware& cIn = cont.clusters[k];
+            ClusterNative& cOut = outputClusters[containerRowCluster[sector][padRowGlobal]].clusters[nCls];
             MCLabelContainer& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
             float pad = cIn.getPad();
             cOut.setPad(pad);
-            cOut.setTimeFlags(cIn.getTimeLocal() + cont.mTimeBinOffset, cIn.mFlags);
+            cOut.setTimeFlags(cIn.getTimeLocal() + cont.timeBinOffset, cIn.flags);
             cOut.setSigmaPad(std::sqrt(cIn.getSigmaPad2()));
             cOut.setSigmaTime(std::sqrt(cIn.getSigmaTime2()));
-            cOut.mQMax = cIn.mQMax;
-            cOut.mQTot = cIn.mQTot;
-            mIntegrator.integrateCluster(sector, padRowGlobal, pad, cIn.mQTot);
+            cOut.qMax = cIn.qMax;
+            cOut.qTot = cIn.qTot;
+            mIntegrator.integrateCluster(sector, padRowGlobal, pad, cIn.qTot);
             if (outMCLabels)
             {
-                gsl::span<const MCCompLabel> mcArray = (*inMCLabels)[i].getLabels(k);
-                for (int l = 0;l < mcArray.size();l++) {
-                  mcOut.addElement(nCls, mcArray[l]);
-                }
+              for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
+                mcOut.addElement(nCls, element);
+              }
             }
           }
           else
@@ -100,9 +99,9 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
       for (int i = 0;i < outputClusters.size();i++)
       {
         if (outMCLabels) {
-          sortClustersAndMC(outputClusters[i].mClusters, (*outMCLabels)[i]);
+          sortClustersAndMC(outputClusters[i].clusters, (*outMCLabels)[i]);
         } else {
-          auto& cl = outputClusters[i].mClusters;
+          auto& cl = outputClusters[i].clusters;
           std::sort(cl.data(), cl.data() + cl.size(), ClusterNativeContainer::sortComparison);
         }
       }
@@ -118,9 +117,9 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
         for (int j = 0;j < Constants::MAXGLOBALPADROW;j++)
         {
           if (nRowClusters[i][j] == 0) continue;
-          outputClusters[numberOfOutputContainers].mClusters.resize(nRowClusters[i][j]);
-          outputClusters[numberOfOutputContainers].mSector = i;
-          outputClusters[numberOfOutputContainers].mGlobalPadRow = j;
+          outputClusters[numberOfOutputContainers].clusters.resize(nRowClusters[i][j]);
+          outputClusters[numberOfOutputContainers].sector = i;
+          outputClusters[numberOfOutputContainers].globalPadRow = j;
           containerRowCluster[i][j] = numberOfOutputContainers++;
           mIntegrator.initRow(i, j);
         }

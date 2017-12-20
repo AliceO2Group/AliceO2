@@ -28,11 +28,14 @@
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCBase/Constants.h" 
+#else
+#pragma cling load("libTPCReconstruction")
+#pragma cling load("libDataFormatsTPC")
 #endif
 
 using namespace o2;
-using namespace o2::DataFormat::TPC;
 using namespace o2::TPC;
+using namespace o2::DataFormat::TPC;
 using namespace o2::dataformats;
 using namespace std;
 
@@ -40,7 +43,7 @@ using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 //This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg TClonesArray of clusters.
 //It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
-int runCATrackingClusterNative(TString inputFile="", TString outputFile="", TString options="") {
+int runCATrackingClusterNative(TString inputFile, TString outputFile, TString options="") {
   if (inputFile.EqualTo("") || outputFile.EqualTo("")) {printf("Filename missing\n");return(1);}
   TPCCATracking tracker;
   
@@ -63,14 +66,14 @@ int runCATrackingClusterNative(TString inputFile="", TString outputFile="", TStr
       if (tmp == nullptr) {
         printf("Error reading clusters %s\n", contName.Data());
       } else {
-        cont.emplace_back(std::move(*(ClusterNativeContainer*) tmp));
+        cont.emplace_back(std::move(*reinterpret_cast<ClusterNativeContainer*>(tmp)));
         tmp = fin.FindObjectAny(Form("clustersMCTruth_sector_%d_row_%d", i, j));
 
         if (tmp == nullptr) {
           printf("Error, clustersMCTruth missing or clusters and clustersMCtruth out of sync! Disabling MC data\n");
           doMC = false;
         } else {
-          contMC.emplace_back(std::move(*(MCLabelContainer*) tmp));
+          contMC.emplace_back(std::move(*reinterpret_cast<MCLabelContainer*>(tmp)));
         }
       }
     }

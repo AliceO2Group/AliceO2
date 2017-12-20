@@ -23,9 +23,13 @@
 #include "TPCReconstruction/HardwareClusterDecoder.h"
 #include "TPCBase/Constants.h"
 #include "TPCBase/CRU.h"
+#else
+#pragma cling load("libTPCReconstruction")
+#pragma cling load("libDataFormatsTPC")
 #endif
 
 using namespace o2::TPC;
+using namespace o2::DataFormat::TPC;
 using namespace std;
 
 int runHardwareClusterDecoderRaw(TString outfile = "", int tf = 0) {
@@ -54,12 +58,13 @@ int runHardwareClusterDecoderRaw(TString outfile = "", int tf = 0) {
     decoder.decodeClusters(inputList, cont);
     for (unsigned int i = 0;i < cont.size();i++)
     {
-      nClustersTotal += cont[i].mClusters.size();
-      fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].mSector, (int) cont[i].mGlobalPadRow, (int) cont[i].mClusters.size());
-      TString contName = Form("clusters_sector_%d_row_%d", (int) cont[i].mSector, (int) cont[i].mGlobalPadRow);
+      nClustersTotal += cont[i].clusters.size();
+      fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].sector, (int) cont[i].globalPadRow, (int) cont[i].clusters.size());
+      TString contName = Form("clusters_sector_%d_row_%d", (int) cont[i].sector, (int) cont[i].globalPadRow);
       file.WriteObject(&cont[i], contName);
     }
   }
   printf("Total clusters: %d\n", nClustersTotal);
   file.Close();
+  return(0);
 }

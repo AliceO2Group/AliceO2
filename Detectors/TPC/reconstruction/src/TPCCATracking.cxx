@@ -87,7 +87,7 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
   {
     for (int i = 0;i < Sector::MAXSECTOR;i++) {
       for (int j = 0;j < Constants::MAXGLOBALPADROW;j++) {
-        outputClusters.mNClusters[i][j] = 0;
+        outputClusters.nClusters[i][j] = 0;
       }
     }
 
@@ -104,15 +104,15 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
         const int rowInSector = cluster.getRow() + region.getGlobalRowOffset();
 
         if (iter == 1) {
-          ClusterNative& oCluster = outputClusters.mClusters[sector][rowInSector][outputClusters.mNClusters[sector][rowInSector]];
+          ClusterNative& oCluster = outputClusters.clusters[sector][rowInSector][outputClusters.nClusters[sector][rowInSector]];
           oCluster.setTimeFlags(cluster.getTimeMean(), 0);
           oCluster.setPad(cluster.getPadMean());
           oCluster.setSigmaTime(cluster.getTimeSigma());
           oCluster.setSigmaPad(cluster.getPadSigma());
-          oCluster.mQTot = cluster.getQmax();
-          oCluster.mQMax = cluster.getQ();
+          oCluster.qTot = cluster.getQmax();
+          oCluster.qMax = cluster.getQ();
         }
-        outputClusters.mNClusters[sector][rowInSector]++;
+        outputClusters.nClusters[sector][rowInSector]++;
       }
       nClusters += inputClustersArray->size();
     }
@@ -122,15 +122,15 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
       unsigned int pos = 0;
       for (int i = 0;i < Sector::MAXSECTOR;i++) {
         for (int j = 0;j < Constants::MAXGLOBALPADROW;j++) {
-          outputClusters.mClusters[i][j] = &clusterMemory[pos];
-          pos += outputClusters.mNClusters[i][j];
+          outputClusters.clusters[i][j] = &clusterMemory[pos];
+          pos += outputClusters.nClusters[i][j];
         }
       }
     }
   }
   for (int i = 0;i < Sector::MAXSECTOR;i++) {
     for (int j = 0;j < Constants::MAXGLOBALPADROW;j++) {
-      std::sort(outputClusters.mClusters[i][j], outputClusters.mClusters[i][j] + outputClusters.mNClusters[i][j], ClusterNativeContainer::sortComparison);
+      std::sort(outputClusters.clusters[i][j], outputClusters.clusters[i][j] + outputClusters.nClusters[i][j], ClusterNativeContainer::sortComparison);
     }
   }
 
@@ -150,11 +150,11 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   Mapper& mapper = Mapper::instance();
   for (int i = 0; i< Sector::MAXSECTOR;i++) {
     for (int j = 0;j < Constants::MAXGLOBALPADROW;j++) {
-      if (clusters.mNClusters[i][j] > 0xFFFF) {
+      if (clusters.nClusters[i][j] > 0xFFFF) {
         LOG(ERROR) << "Number of clusters in sector " << i << " row " << j << " exceeds 0xFFFF, which is currently a hard limit of the wrapper for the tracking!\n";
         return(1);
       }
-      nClusters[i] += clusters.mNClusters[i][j];
+      nClusters[i] += clusters.nClusters[i][j];
     }
     nClustersTotal += nClusters[i];
 
@@ -166,8 +166,8 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       while (j > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) regionNumber++;
       CRU cru(sector, regionNumber);
       const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
-      for (int k = 0;k < clusters.mNClusters[i][j];k++) {
-        const ClusterNative& cluster = clusters.mClusters[i][j][k];
+      for (int k = 0;k < clusters.nClusters[i][j];k++) {
+        const ClusterNative& cluster = clusters.clusters[i][j][k];
         AliHLTTPCCAClusterData& cd = mClusterData[i];
         AliHLTTPCCAClusterData::Data& hltCluster = cd.Clusters()[cd.NumberOfClusters()];
 
@@ -193,7 +193,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         hltCluster.fY = localY * (localYfactor);
         hltCluster.fZ = zPositionAbs * (-localYfactor);
         hltCluster.fRow = j;
-        hltCluster.fAmp = cluster.mQMax;
+        hltCluster.fAmp = cluster.qMax;
         hltCluster.fId = (i << 24) | (j << 16) | (k);
 
         cd.SetNumberOfClusters(cd.NumberOfClusters() + 1);
@@ -254,24 +254,23 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         Sector sector = clusterId >> 24;
         int globalRow = (clusterId >> 16) & 0xFF;
         clusterId &= 0xFFFF;
-        const ClusterNative& cl = clusters.mClusters[sector][globalRow][clusterId];
+        const ClusterNative& cl = clusters.clusters[sector][globalRow][clusterId];
         int regionNumber = 0;
         while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) regionNumber++;
         CRU cru(sector, regionNumber);
-        oTrack.addCluster(Cluster(cru, globalRow - mapper.getGlobalRowOffsetRegion(regionNumber), cl.mQTot, cl.mQMax, cl.getPad(), cl.getSigmaPad(), cl.getTime(), cl.getSigmaTime()));
+        oTrack.addCluster(Cluster(cru, globalRow - mapper.getGlobalRowOffsetRegion(regionNumber), cl.qTot, cl.qMax, cl.getPad(), cl.getSigmaPad(), cl.getTime(), cl.getSigmaTime()));
         oTrack.setClusterReference(j, sector, globalRow, clusterId);
         if (outputTracksMCTruth) {
-          gsl::span<const MCCompLabel> mcArray = clusters.mClustersMCTruth[sector][globalRow]->getLabels(clusterId);
-          for (int k = 0;k < mcArray.size();k++) {
+          for (const auto& element : clusters.clustersMCTruth[sector][globalRow]->getLabels(clusterId)) {
             bool found = false;
             for (int l = 0;l < labels.size();l++) {
-              if (labels[l].first == mcArray[k]) {
+              if (labels[l].first == element) {
                 labels[l].second++;
                 found = true;
                 break;
               }
             }
-            if (!found) labels.emplace_back(mcArray[k], 1);
+            if (!found) labels.emplace_back(element, 1);
           }
         }
       }

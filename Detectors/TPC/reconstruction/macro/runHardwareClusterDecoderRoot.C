@@ -27,6 +27,9 @@
 #include "TPCReconstruction/HardwareClusterDecoder.h"
 #include "TPCBase/Constants.h"
 #include "TPCBase/CRU.h"
+#else
+#pragma cling load("libTPCReconstruction")
+#pragma cling load("libDataFormatsTPC")
 #endif
 
 using namespace o2;
@@ -74,10 +77,10 @@ int runHardwareClusterDecoderRoot(TString infile = "", TString outfile = "") {
   int nClustersTotal = 0;
   for (unsigned int i = 0;i < cont.size();i++)
   {
-    nClustersTotal += cont[i].mClusters.size();
-    fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].mSector, (int) cont[i].mGlobalPadRow, (int) cont[i].mClusters.size());
-    fout.WriteObject(&cont[i], Form("clusters_sector_%d_row_%d", (int) cont[i].mSector, (int) cont[i].mGlobalPadRow));
-    if (inMCLabels) fout.WriteObject(&outMCLabels[i], Form("clustersMCTruth_sector_%d_row_%d", (int) cont[i].mSector, (int) cont[i].mGlobalPadRow));
+    nClustersTotal += cont[i].clusters.size();
+    fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].sector, (int) cont[i].globalPadRow, (int) cont[i].clusters.size());
+    fout.WriteObject(&cont[i], Form("clusters_sector_%d_row_%d", (int) cont[i].sector, (int) cont[i].globalPadRow));
+    if (inMCLabels) fout.WriteObject(&outMCLabels[i], Form("clustersMCTruth_sector_%d_row_%d", (int) cont[i].sector, (int) cont[i].globalPadRow));
   }
 
   printf("Total clusters: %d\n", nClustersTotal);

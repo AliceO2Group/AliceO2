@@ -22,20 +22,12 @@ using namespace o2::TPC;
 std::unique_ptr<ClusterNativeAccessFullTPC> TPCClusterFormatHelper::accessNativeContainerArray(std::vector<ClusterNativeContainer>& clusters, std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcTruth)
 {
   std::unique_ptr<ClusterNativeAccessFullTPC> retVal(new ClusterNativeAccessFullTPC);
-  for (int i = 0;i < Constants::MAXSECTOR;i++)
-  {
-    for (int j = 0;j < Constants::MAXGLOBALPADROW;j++)
-    {
-      retVal->mClusters[i][j] = nullptr;
-      retVal->mNClusters[i][j] = 0;
-      retVal->mClustersMCTruth[i][j] = nullptr;
-    }
-  }  
+  memset(retVal.get(), 0, sizeof(*retVal));
   for (int i = 0;i < clusters.size();i++)
   {
-    retVal->mClusters[clusters[i].mSector][clusters[i].mGlobalPadRow] = clusters[i].mClusters.data();
-    retVal->mNClusters[clusters[i].mSector][clusters[i].mGlobalPadRow] = clusters[i].mClusters.size();
-    if (mcTruth) retVal->mClustersMCTruth[clusters[i].mSector][clusters[i].mGlobalPadRow] = &(*mcTruth)[i];
+    retVal->clusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.data();
+    retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.size();
+    if (mcTruth) retVal->clustersMCTruth[clusters[i].sector][clusters[i].globalPadRow] = &(*mcTruth)[i];
   }
   return(std::move(retVal));
 }

@@ -77,7 +77,7 @@ class TrackTPC :public o2::Base::Track::TrackParCov {
     const o2::DataFormat::TPC::ClusterNative& getCluster(int nCluster, const o2::DataFormat::TPC::ClusterNativeAccessFullTPC& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const {
         uint32_t clusterIndex;
         getClusterReference(nCluster, sectorIndex, rowIndex, clusterIndex);
-        return(clusters.mClusters[sectorIndex][rowIndex][clusterIndex]);
+        return(clusters.clusters[sectorIndex][rowIndex][clusterIndex]);
     }
     const o2::DataFormat::TPC::ClusterNative& getCluster(int nCluster, const o2::DataFormat::TPC::ClusterNativeAccessFullTPC& clusters) const {
       uint8_t sectorIndex, rowIndex;

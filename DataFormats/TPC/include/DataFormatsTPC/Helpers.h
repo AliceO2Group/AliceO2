@@ -41,12 +41,9 @@ public:
     
 private:
   uint8_t mFixSize[size];
-  
-  void checkSize()
-  {
-    static_assert(size < 8192, "Size must be below 8 kb");
-    static_assert(size >= sizeof(ClusterHardwareContainer), "Size must be below 8 kb");
-  }
+
+  static_assert(size <= 8192, "Size must be below 8 kb");
+  static_assert(size >= sizeof(ClusterHardwareContainer), "Size must be at least sizeof(ClusterHardwareContainer)");
 };
 typedef ClusterHardwareContainerFixedSize<8192> ClusterHardwareContainer8kb;
 

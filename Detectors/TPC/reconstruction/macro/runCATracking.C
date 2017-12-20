@@ -26,8 +26,8 @@
 #include "DetectorsBase/Track.h"
 #endif
 
-using namespace o2::TPC;
 using namespace std;
+using namespace o2::TPC;
 
 //This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg TClonesArray of clusters.
 //It wraps the TPCCATracking class, forwwarding all parameters, which are passed as options.
