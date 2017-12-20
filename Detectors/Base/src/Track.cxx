@@ -448,7 +448,7 @@ bool TrackParCov::propagateTo(float xk, float b)
   }
   setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
-  float dP[kNParams];
+  float dP[kNParams] = {0.f};
   dP[kY] = dx * dy2dx;
   dP[kSnp] = x2r;
   if (fabs(x2r) < 0.05f) {
@@ -470,7 +470,7 @@ bool TrackParCov::propagateTo(float xk, float b)
         rot = -kPI - rot;
       }
     }
-    dP[kZ] += getTgl() / crv * rot;
+    dP[kZ] = getTgl() / crv * rot;
   }
 
   updateParams(dP); // apply corrections
@@ -1168,14 +1168,14 @@ bool TrackParCov::update(const array<float, 2>& p, const array<float, 3>& cov)
   double k40 = cm40 * r00 + cm41 * r01, k41 = cm40 * r01 + cm41 * r11;
 
   float dy = p[kY] - getY(), dz = p[kZ] - getZ();
-  float sf = getSnp() + k20 * dy + k21 * dz;
-  if (fabs(sf) > kAlmost1) {
+  float dsnp = k20 * dy + k21 * dz;
+  if (fabs(getSnp() + dsnp) > kAlmost1) {
     return false;
   }
 
   float dP[kNParams] = {float(k00*dy + k01*dz),
 			float(k10*dy+k11*dz),
-			sf,
+			dsnp,
 			float(k30 * dy + k31 * dz),
 			float(k40 * dy + k41 * dz)};
   updateParams(dP);
