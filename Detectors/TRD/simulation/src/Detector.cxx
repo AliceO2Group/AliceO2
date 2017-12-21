@@ -55,11 +55,8 @@ bool Detector::ProcessHits(FairVolume* v)
   // very rudimentatary hit creation
   // TODO: needs upgrade to the level of AliROOT
 
-  // TODO: reference to vmc --> put this as member of detector
-  static thread_local auto vmc = TVirtualMC::GetMC();
-
   // If not charged track or already stopped or disappeared, just return.
-  if ((!vmc->TrackCharge()) || vmc->IsTrackDisappeared()) {
+  if ((!fMC->TrackCharge()) || fMC->IsTrackDisappeared()) {
     return false;
   }
 
@@ -68,8 +65,8 @@ bool Detector::ProcessHits(FairVolume* v)
   float x, y, z;
   vmc->TrackPosition(x, y, z);
 
-  float enDep = vmc->Edep();
-  float time = vmc->TrackTime() * 1.0e09;
+  float enDep = fMC->Edep();
+  float time = fMC->TrackTime() * 1.0e09;
   auto stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
   auto trackID = stack->GetCurrentTrackNumber();
   auto sensID = v->getMCid();
