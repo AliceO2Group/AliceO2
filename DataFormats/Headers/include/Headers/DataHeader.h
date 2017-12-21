@@ -88,7 +88,7 @@ struct DataIdentifier;
 //__________________________________________________________________________________________________
 // internal implementations
 /// @ingroup aliceo2_dataformat_tools
-namespace Internal {
+namespace internal {
 // terminating initializer implementation
 template <typename T>
 constexpr T String2__()
@@ -140,13 +140,6 @@ struct defaultPrinter {
   void operator()(const char* str) const {}
 };
 
-/// helper wrapper to define a type from an integer, which can than
-/// be used as template argument
-template <int N>
-struct intWrapper {
-  static const int value = N;
-};
-
 /// compile time evaluation of a string length, which is either N - 1 or
 /// shorter if one character in the array has been set to 0.
 template <int N>
@@ -167,10 +160,10 @@ constexpr T String2(char c, Targs... Fargs)
   // be smaller than the size of the type and just pad with 0 like in the case
   // of a char array argument?
   static_assert(sizeof...(Targs) == sizeof(T) + 1 ||
-		sizeof...(Targs) == sizeof(T),
-		"number of arguments does not match the uint type width"
-		);
-  return Internal::String2__<T>(c, Fargs...);
+                sizeof...(Targs) == sizeof(T),
+                "number of arguments does not match the uint type width"
+                );
+  return internal::String2__<T>(c, Fargs...);
 }
 
 /// constexpr intializer, evaluated at compile time
@@ -183,8 +176,8 @@ constexpr T String2(const char (&str)[N])
   static_assert(std::is_integral<T>::value, "Non integral types not compatible with String2<type>");
   static_assert(N >= pos, "Position is larger than the length of string");
   static_assert(suppressAssert || N - pos <= sizeof(T) + 1,
-		"String parameter is longer than the size of the data type"
-		);
+                "String parameter is longer than the size of the data type"
+                );
   return((T) str[0+pos] |
          (str[0+pos] && sizeof(T) >= 2 ? ((T) str[1+pos] << (sizeof(T) >= 2 ? 8  : 0) |
          (str[1+pos] && sizeof(T) >= 4 ? ((T) str[2+pos] << (sizeof(T) >= 4 ? 16 : 0) |
@@ -229,15 +222,15 @@ struct DescriptorCompareTraits<2> {
 /// solution is working also for multiples of 64 bit, but then the itg member needs
 /// to be an array for all. This has not been enabled yet, first the implications
 /// have to be studied.
-template <std::size_t N, typename PrinterPolicy = Internal::defaultPrinter>
+template <std::size_t N, typename PrinterPolicy = internal::defaultPrinter>
 struct Descriptor {
-  static_assert(Internal::NumberOfActiveBits<N>::value == 1,
-		"Descriptor size is required to be a power of 2");
+  static_assert(internal::NumberOfActiveBits<N>::value == 1,
+                "Descriptor size is required to be a power of 2");
   using self_type = Descriptor<N>;
   static int const size = N;
   static int const bitcount = size*8;
-  static constexpr int arraySize = Internal::ArraySize<uint64_t, size>();
-  using ItgType = typename Internal::TraitsIntType<N>::Type;
+  static constexpr int arraySize = internal::ArraySize<uint64_t, size>();
+  using ItgType = typename internal::TraitsIntType<N>::Type;
 
   union {
     char     str[N];
@@ -691,9 +684,9 @@ static_assert(sizeof(DataOrigin) == 4,
 static_assert(sizeof(DataHeader) == 80,
               "DataHeader struct must be of size 80");
 static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
-	      "Size mismatch in magic string union");
+              "Size mismatch in magic string union");
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),
-	      "Inconsitent size of global magic identifier");
+              "Inconsitent size of global magic identifier");
 
 //__________________________________________________________________________________________________
 ///helper function to print a hex/ASCII dump of some memory
