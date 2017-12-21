@@ -20,6 +20,7 @@
 #include "Headers/DataHeader.h"
 #include <chrono>
 #include <cassert>
+#include <type_traits> // for std::integral_constant
 
 namespace o2 {
 namespace header {
@@ -40,8 +41,8 @@ namespace LHCClockParameter {
   const int gBunchSpacingNanoSec = 25;
   const int gOrbitTimeNanoSec = std::ratio<gNumberOfBunches*gBunchSpacingNanoSec>::num;
 
-  typedef o2::header::Internal::intWrapper<0> OrbitPrecision;
-  typedef o2::header::Internal::intWrapper<1> BunchPrecision;
+  using OrbitPrecision = std::integral_constant<int, 0>;
+  using BunchPrecision = std::integral_constant<int, 1>;
 
   // the type of the clock tick depends on whether to use also the bunches
   // as substructure of the orbit.
@@ -53,17 +54,17 @@ namespace LHCClockParameter {
   };
   template <>
   struct Property<OrbitPrecision> {
-    typedef uint32_t rep;
+    using rep = uint32_t;
     // avoid rounding errors by using the integral numbers in the std::ratio
     // template to define the period
-    typedef std::ratio_multiply<std::ratio<gOrbitTimeNanoSec>, std::nano> period;
+    using period = std::ratio_multiply<std::ratio<gOrbitTimeNanoSec>, std::nano>;
   };
   template <>
   struct Property<BunchPrecision> {
-    typedef uint64_t rep;
+    using rep = uint64_t;
     // this is effectively the LHC clock and the ratio is the
     // bunch spacing
-    typedef std::ratio_multiply<std::ratio<gBunchSpacingNanoSec>, std::nano> period;
+    using period = std::ratio_multiply<std::ratio<gBunchSpacingNanoSec>, std::nano>;
   };
 };
 
@@ -82,10 +83,10 @@ public:
   LHCClock(const LHCClock&) = default;
   LHCClock& operator=(const LHCClock&) = default;
 
-  typedef typename LHCClockParameter::Property<Precision>::rep    rep;
-  typedef typename LHCClockParameter::Property<Precision>::period period;
-  typedef std::chrono::duration<rep, period> duration;
-  typedef std::chrono::time_point<LHCClock>  time_point;
+  using rep = typename LHCClockParameter::Property<Precision>::rep;
+  using period = typename LHCClockParameter::Property<Precision>::period;
+  using duration = std::chrono::duration<rep, period>;
+  using time_point = std::chrono::time_point<LHCClock>;
   // this follows the naming convention of std chrono
   static const bool is_steady =              true;
 
@@ -103,14 +104,14 @@ private:
 };
 
 // TODO: is it correct to define this types always relative to the system clock?
-typedef LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::OrbitPrecision> LHCOrbitClock;
-typedef LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::BunchPrecision> LHCBunchClock;
+using LHCOrbitClock = LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::OrbitPrecision>;
+using LHCBunchClock = LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::BunchPrecision>;
 
 class TimeStamp
 {
  public:
-  typedef o2::header::Descriptor<2> TimeUnitID;
-  // TODO: typedefs for the types of ticks and subticks
+  using TimeUnitID = o2::header::Descriptor<2>;
+  // TODO: type aliases for the types of ticks and subticks
 
   TimeStamp() = default;
   TimeStamp(uint64_t ts) : mTimeStamp64(ts) {}
@@ -125,7 +126,7 @@ class TimeStamp
 
   template<class Clock>
   typename Clock::duration get() const {
-    typedef typename Clock::duration duration;
+    using duration = typename Clock::duration;
     if (mUnit == sClockLHC) {
       // cast each part individually, if the precision of the return type
       // is smaller the values are simply truncated
