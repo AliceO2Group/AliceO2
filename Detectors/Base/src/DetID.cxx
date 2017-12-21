@@ -13,19 +13,19 @@
 /// @brief  detector ids, masks, names class implementation
 
 #include "DetectorsBase/DetID.h"
-#include "FairLogger.h"
 #include <cassert>
+#include "FairLogger.h"
 
 using namespace o2::Base;
 
 ClassImp(o2::Base::DetID);
 
-constexpr const char* DetID::sDetNames[DetID::nDetectors+1];
-constexpr std::array<std::int32_t, DetID::nDetectors> DetID::sMasks;
+constexpr const char* DetID::sDetNames[DetID::nDetectors + 1];
+constexpr std::array<DetID::mask_t, DetID::nDetectors> DetID::sMasks;
 
 //_______________________________
-DetID::DetID(const char* name) :  mID(nameToID(name, First))
+DetID::DetID(const char* name) : mID(nameToID(name, First))
 {
   // construct from the name
-  assert(mID<nDetectors);
+  assert(mID < nDetectors);
 }

@@ -19,6 +19,9 @@
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/Pythia8Generator.h>
+#include "TVirtualMC.h"
+#include "DataFormatsParameters/GRPObject.h"
+
 #endif
 
 void o2sim()
@@ -90,6 +93,39 @@ void o2sim()
   run->Init();
   gGeoManager->Export("O2geometry.root");
 
+
+  {
+    // store GRPobject
+    o2::parameters::GRPObject grp;
+    grp.setRun(run->GetRunId());  
+    TObjArray* modArr = run->GetListOfModules();
+    TIter next(modArr);
+    FairModule* module = nullptr;
+    while ( (module=(FairModule*)next()) ) {
+      if (module->GetModId()<o2::Base::DetID::First) {
+	continue; // passive
+      }
+      if (module->GetModId()>o2::Base::DetID::Last) {
+	continue; // passive
+      }
+      grp.addDetReadOut( o2::Base::DetID(module->GetModId()) );    
+    }
+    grp.print();
+    printf("VMC: %p\n",TVirtualMC::GetMC());
+    auto field = dynamic_cast<o2::field::MagneticField*>(run->GetField());
+    if (field) {
+      o2::units::Current_t currDip = field->getCurrentDipole();
+      o2::units::Current_t currL3  = field->getCurrentSolenoid();
+      grp.setL3Current( currL3 );
+      grp.setDipoleCurrent( currDip );
+    }
+    // todo: save beam information in the grp
+
+    // save
+    TFile grpF("o2sim_grp.root","recreate");
+    grpF.WriteObjectAny(&grp,grp.Class(),"GRP");    
+  }
+  
   // runtime database
   bool kParameterMerged = true;
   auto rtdb = run->GetRuntimeDb();
