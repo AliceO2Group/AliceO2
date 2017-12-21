@@ -47,10 +47,21 @@ class DataSampling {
         }
     };
 
+    struct QcTaskConfiguration{
+        std::string name;
+        std::vector<InputSpec> desiredDataSpecs;
+        double fractionOfDataToSample;
+    };
+    using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
+
     static AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
     static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
 
     static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);
+    static void readQcTasksConfiguration(const std::string &configurationSource,
+                                         const std::vector<std::string> &taskNames,
+                                         std::vector<QcTaskConfiguration>& tasks);
+
 };
 
 
