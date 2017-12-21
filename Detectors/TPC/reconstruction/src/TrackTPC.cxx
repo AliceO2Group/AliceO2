@@ -47,3 +47,9 @@ float TrackTPC::getTruncatedMean(float low, float high, int type, int removeRows
 
   return dEdx;
 }
+
+void TrackTPC::resetClusterReferences(int nClusters)
+{
+  mNClusters = nClusters;
+  mClusterReferences.resize(nClusters + (nClusters + 1) / 2);
+}

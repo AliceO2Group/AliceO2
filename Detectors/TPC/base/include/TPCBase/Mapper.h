@@ -205,6 +205,7 @@ public:
   int getNumberOfRows()                       const { return mNumberOfPadRowsIROC + mNumberOfPadRowsOROC; }
   int getNumberOfRowsROC(ROC roc)             const { return (roc.rocType() == RocType::IROC) ? mNumberOfPadRowsIROC : mNumberOfPadRowsOROC; }
   int getNumberOfRowsRegion(int region)       const { return mMapPadRegionInfo[region % getNumberOfPadRegions()].getNumberOfPadRows(); }
+  int getGlobalRowOffsetRegion(int region)    const { return mMapPadRegionInfo[region % getNumberOfPadRegions()].getGlobalRowOffset(); }
   int getNumberOfRowsPartition(CRU cru)       const { return mMapPartitionInfo[cru % getNumberOfPartitions()].getNumberOfPadRows(); }
   int getNumberOfPadRows(PadSubset padSubset, int position) const {
     switch (padSubset) {

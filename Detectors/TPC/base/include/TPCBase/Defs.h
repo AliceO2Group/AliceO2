@@ -27,7 +27,7 @@ namespace o2 {
 namespace TPC {
 
 /// TPC readout sidE
-enum Side {A=0, C=1};
+enum Side {A=0, C=1, UNDEFINED = 2};
 //   enum class Side {A=0, C=1};
 //  Problem with root cint. does not seem to support enum class ...
 constexpr unsigned char SECTORSPERSIDE=18;
