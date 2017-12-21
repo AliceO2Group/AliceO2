@@ -16,29 +16,29 @@
   Example of class usage:
   using namespace o2::Base;
   DetID det[3] = {DetID(DetID::ITS), DetID(DetID::TPC), DetID(DetID::TRD)};
-  int mskTot = 0;
+  DetID::mask_t mskTot;
   for (int i=0;i<3;i++) {
-    printf("detID: %2d %10s 0x%x\n",det[i].getID(),det[i].getName(),det[i].getMask());
+    printf("detID: %2d %10s 0x%lx\n",det[i].getID(),det[i].getName(),det[i].getMask().to_ulong());
     mskTot |= det[i].getMask();
   }
-  printf("joint mask: 0x%x\n",mskTot);
+  printf("joint mask: 0x%lx\n",mskTot.to_ulong());
  */
 
 #ifndef O2_BASE_DETID_
 #define O2_BASE_DETID_
 
-#include <cstdint>
-#include <array>
-#include <type_traits>
 #include <Rtypes.h>
-#include "DetectorsBase/Utils.h"
+#include <array>
+#include <bitset>
 #include <cassert>
+#include <cstdint>
+#include <type_traits>
+#include "DetectorsBase/Utils.h"
 
 namespace o2
 {
 namespace Base
 {
- 
 /// Static class with identifiers, bitmasks and names for ALICE detectors
 class DetID
 {
@@ -61,64 +61,54 @@ class DetID
   static constexpr ID FIT = 12;
   static constexpr ID ACO = 13;
   static constexpr ID First = ITS;
-  static constexpr ID Last  = ACO;  ///< if extra detectors added, update this !!!
+  static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
 
-  static constexpr int nDetectors = Last+1; ///< number of defined detectors
-  
-  DetID(ID id) :mID(id) {}
+  static constexpr int nDetectors = Last + 1; ///< number of defined detectors
+
+  typedef std::bitset<nDetectors> mask_t;
+
+  DetID(ID id) : mID(id) {}
   DetID(const char* name);
-  
+
   /// get derector id
   ID getID() const { return mID; }
-
   /// get detector mask
-  std::int32_t getMask() const { return getMask(mID); }
-
+  mask_t getMask() const { return getMask(mID); }
   /// get detector name
   const char* getName() const { return getName(mID); }
-
   /// conversion operator to int
   operator int() const { return static_cast<int>(mID); }
-
   //  ---------------- general static methods -----------------
   /// get number of defined detectors
   static constexpr int getNDetectors() { return nDetectors; }
-
   /// names of defined detectors
-  static  constexpr const char* getName(ID id) { return sDetNames[id]; }
-
+  static constexpr const char* getName(ID id) { return sDetNames[id]; }
   // detector ID to mask conversion
-  static constexpr std::int32_t getMask(ID id) { return sMasks[id]; }
-
+  static constexpr mask_t getMask(ID id) { return sMasks[id]; }
   // we need default c-tor only for root persistency, code must use c-tor with argument
   DetID() : mID(First) {}
-
  private:
-
   // are 2 strings equal ? (trick from Giulio)
-  inline static constexpr bool sameStr(char const *x, char const *y) {
-    return !*x && !*y     ? true
-      : /* default */    (*x == *y && sameStr(x+1, y+1));
-  }
-  
-  inline static constexpr int nameToID(char const *name, int id) {
-    return id>Last ? id :
-      sameStr(name, sDetNames[id]) ? id : nameToID(name, id+1);
+  inline static constexpr bool sameStr(char const* x, char const* y)
+  {
+    return !*x && !*y ? true : /* default */ (*x == *y && sameStr(x + 1, y + 1));
   }
 
-  
+  inline static constexpr int nameToID(char const* name, int id)
+  {
+    return id > Last ? id : sameStr(name, sDetNames[id]) ? id : nameToID(name, id + 1);
+  }
+
   ID mID = First; ///< detector ID
-  
-  static constexpr const char* sDetNames[nDetectors+1] =      ///< defined detector names
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FIT","ACO", nullptr};
+
+  static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
+    { "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FIT", "ACO", nullptr };
 
   // detector names, will be defined in DataSources
-  static constexpr std::array<std::int32_t, nDetectors> sMasks =  ///< detectot masks for bitvectors
-    { Utils::bit2Mask(ITS), Utils::bit2Mask(TPC), Utils::bit2Mask(TRD),
-      Utils::bit2Mask(TOF), Utils::bit2Mask(PHS), Utils::bit2Mask(CPV),
-      Utils::bit2Mask(EMC), Utils::bit2Mask(HMP), Utils::bit2Mask(MFT),
-      Utils::bit2Mask(MCH), Utils::bit2Mask(MID), Utils::bit2Mask(ZDC),
-      Utils::bit2Mask(FIT) };
+  static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
+    { Utils::bit2Mask(ITS), Utils::bit2Mask(TPC), Utils::bit2Mask(TRD), Utils::bit2Mask(TOF), Utils::bit2Mask(PHS),
+      Utils::bit2Mask(CPV), Utils::bit2Mask(EMC), Utils::bit2Mask(HMP), Utils::bit2Mask(MFT), Utils::bit2Mask(MCH),
+      Utils::bit2Mask(MID), Utils::bit2Mask(ZDC), Utils::bit2Mask(FIT), Utils::bit2Mask(ACO) };
 
   ClassDefNV(DetID, 1);
 };

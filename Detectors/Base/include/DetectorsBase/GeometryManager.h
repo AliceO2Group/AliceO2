@@ -53,7 +53,7 @@ class GeometryManager : public TObject
   static int getSensID(DetID detid, int sensid)
   {
     /// compose combined detector+sensor ID for sensitive volumes
-    return (detid.getMask() << sDetOffset) | (sensid & sSensorMask);
+    return (detid.getMask().to_ulong() << sDetOffset) | (sensid & sSensorMask);
   }
 
   /// Default destructor
@@ -109,7 +109,6 @@ class GeometryManager : public TObject
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
 };
-
 }
 }
 

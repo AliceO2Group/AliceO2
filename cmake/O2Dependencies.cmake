@@ -76,7 +76,7 @@ o2_define_bucket(
 
   INCLUDE_DIRECTORIES
   ${GLFW_INCLUDE_DIR}
-  )
+)
 
 o2_define_bucket(
     NAME
@@ -1088,6 +1088,7 @@ o2_define_bucket(
     FITSimulation
     Field
     Generators
+    DataFormatsParameters
 )
 
 o2_define_bucket(
@@ -1163,4 +1164,20 @@ o2_define_bucket(
     Headers
 
     INCLUDE_DIRECTORIES
+)
+
+o2_define_bucket(
+  NAME
+  data_parameters_bucket
+
+  DEPENDENCIES
+  Core
+  detectors_base_bucket
+  DetectorsBase
+  
+  INCLUDE_DIRECTORIES
+  ${ROOT_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+  ${CMAKE_SOURCE_DIR}/Common/Constants/include
+  ${CMAKE_SOURCE_DIR}/Common/Types/include
 )
