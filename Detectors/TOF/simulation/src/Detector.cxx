@@ -62,31 +62,29 @@ void Detector::Initialize()
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  static thread_local auto* refMC = TVirtualMC::GetMC();
-
   static thread_local TLorentzVector position2;
-  refMC->TrackPosition(position2);
+  fMC->TrackPosition(position2);
 
-  refMC->TrackPosition(position2);
+  fMC->TrackPosition(position2);
   Float_t radius = TMath::Sqrt(position2.X() * position2.X() + position2.Y() * position2.Y());
   LOG(DEBUG) << "Process hit in TOF volume ar R=" << radius << " - Z=" << position2.Z() << FairLogger::endl;
 
   // This method is called from the MC stepping for the sensitive volume only
 
-  if (static_cast<int>(refMC->TrackCharge()) == 0) {
+  if (static_cast<int>(fMC->TrackCharge()) == 0) {
     // set a very large step size for neutral particles
     return kFALSE; // take only charged particles
   }
 
-  Float_t enDep = refMC->Edep();
+  Float_t enDep = fMC->Edep();
   if (enDep < 1E-8)
     return kFALSE; // wo se need a threshold?
 
   // ADD HIT
   static thread_local TLorentzVector position;
-  refMC->TrackPosition(position);
-  float time = refMC->TrackTime() * 1.0e09;
-  auto stack = static_cast<o2::Data::Stack*>(refMC->GetStack());
+  fMC->TrackPosition(position);
+  float time = fMC->TrackTime() * 1.0e09;
+  auto stack = static_cast<o2::Data::Stack*>(fMC->GetStack());
   int trackID = stack->GetCurrentTrackNumber();
   int sensID = v->getMCid();
   Int_t det[5];

@@ -200,16 +200,15 @@ void Detector::SetSpecialPhysicsCuts()
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  static thread_local auto *refMC = TVirtualMC::GetMC();
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
-  const double trackCharge = refMC->TrackCharge();
+  const double trackCharge = fMC->TrackCharge();
   if(static_cast<int>(trackCharge) == 0) {
     
     // set a very large step size for neutral particles
-    refMC->SetMaxStep(1.e10);
+    fMC->SetMaxStep(1.e10);
     return kFALSE; // take only charged particles
   }
 
@@ -221,14 +220,14 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // random shift to avoid binning effects), which was tuned for GEANT4, see
   // https://indico.cern.ch/event/316891/contributions/732168/
 
-  const double rnd = refMC->GetRandom()->Rndm();
-  refMC->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
+  const double rnd = fMC->GetRandom()->Rndm();
+  fMC->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
   
   // ===| check active sector |=================================================
   //
   // Get the sector ID and check if the sector is active
   static thread_local TLorentzVector position;
-  refMC->TrackPosition(position);
+  fMC->TrackPosition(position);
   const int sectorID = static_cast<int>(Sector::ToSector(position.X(), position.Y(), position.Z()));
   // TODO: Temporary hack to process only one sector
   //if (sectorID != 0) return kFALSE;
@@ -244,12 +243,12 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // I.H. - the type expected in addHit is short
 
   // ---| Stepsize in cm |---
-  const double stepSize = refMC->TrackStep();
+  const double stepSize = fMC->TrackStep();
 
   // ---| momentum and beta gamma |---
   static thread_local TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
-  refMC->TrackMomentum(momentum);
-  double betaGamma = momentum.P()/refMC->TrackMass();
+  fMC->TrackMomentum(momentum);
+  double betaGamma = momentum.P()/fMC->TrackMass();
   betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
 
   // ---| number of primary ionisations per cm |---
@@ -265,7 +264,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
 
   // ---| mean number of collisions and random for this event |---
   const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
-  const int nColl = static_cast<int>(refMC->GetRandom()->Poisson(meanNcoll));
+  const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
   // Variables needed to generate random powerlaw distributed energy loss
   const double alpha_p1 = 1. - gasParam.getExp(); // NA49/G3 value
@@ -281,7 +280,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     // P(eDep) ~ k * edep^-gasParam.getExp()
     // eMin(~I) < eDep < eMax(300 electrons)
     // k fixed so that Int_Emin^EMax P(Edep) = 1.
-    const double rndm = refMC->GetRandom()->Rndm();
+    const double rndm = fMC->GetRandom()->Rndm();
     const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
     int nel_step = static_cast<int>(((eDep-eMin)/wIon) + 1);
     nel_step = TMath::Min(nel_step,300); // 300 electrons corresponds to 10 keV
@@ -289,15 +288,15 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   }
   
   //LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "Eloss: " 
-                //<< refMC->Edep() << ", Nelectrons: "
+                //<< fMC->Edep() << ", Nelectrons: "
                 //<< numberOfElectrons << FairLogger::endl;
 
   if(numberOfElectrons <= 0) // Could maybe be smaller than 0 due to the Gamma function
     return kFALSE;
   
   // ADD HIT
-  const float time   = refMC->TrackTime() * 1.0e9;
-  const int trackID  = refMC->GetStack()->GetCurrentTrackNumber();
+  const float time   = fMC->TrackTime() * 1.0e9;
+  const int trackID  = fMC->GetStack()->GetCurrentTrackNumber();
   const int detID    = vol->getMCid();
 
   static thread_local int oldTrackId = trackID;
@@ -333,7 +332,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // I.H. - the code above does not compile if uncommented
 
   // Increment number of Detector det points in TParticle
-  o2::Data::Stack* stack = (o2::Data::Stack*)refMC->GetStack();
+  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
   stack->addHit(GetDetId());
   
   return kTRUE;
