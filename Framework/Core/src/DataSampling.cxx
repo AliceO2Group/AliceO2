@@ -25,73 +25,33 @@ namespace o2 {
 namespace framework {
 
 
-//todo: improve readability
+
 void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
                                           const std::string &configurationSource,
                                           const std::vector<std::string> &taskNames)
 {
-  auto configFile = ConfigurationFactory::getConfiguration(configurationSource);
+  QcTaskConfigurations tasks;
+  readQcTasksConfiguration(configurationSource, taskNames, tasks);
 
-  for (auto&& taskName : taskNames) {
+  for (auto&& task : tasks) {
     DataProcessorSpec dispatcher;
-    std::string taskInputsNames;
-    double fractionOfDataToSample = 0;
 
-    try {
-      std::string simpleQcTaskDefinition = configFile->getString(taskName + "/taskDefinition").value();
-      taskInputsNames = configFile->getString(simpleQcTaskDefinition + "/inputs").value();
-      fractionOfDataToSample = configFile->getFloat(simpleQcTaskDefinition + "/fraction").value();
-
-      if ( fractionOfDataToSample <= 0 || fractionOfDataToSample > 1 ) {
-        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
-                   << simpleQcTaskDefinition + "/fraction" << " is not in range (0,1]. Setting value to 0.";
-        fractionOfDataToSample = 0;
-      }
-
-    } catch (const boost::bad_optional_access &) {
-      LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
-                 << ", missing value or values for task " << taskName;
-      continue;
-    }
-
-    std::vector<std::string> taskInputsSplit;
-    boost::split(taskInputsSplit, taskInputsNames, boost::is_any_of(","));
-
-    for (auto &&input : taskInputsSplit) {
-
-      InputSpec dispatcherInput;
-      try {
-        dispatcherInput.binding = configFile->getString(input + "/inputName").value();
-
-        std::string origin = configFile->getString(input + "/dataOrigin").value();
-        origin.copy(dispatcherInput.origin.str, (size_t) dispatcherInput.origin.size);
-
-        std::string description = configFile->getString(input + "/dataDescription").value();
-        description.copy(dispatcherInput.description.str, (size_t) dispatcherInput.description.size);
-
-      } catch (const boost::bad_optional_access &) {
-        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
-                   << " input " << input << " has missing values";
-        continue;
-      }
-
+    for (auto desiredData : task.desiredDataSpecs) {
       for (auto&& dataProcessor : workflow) {
-        for (auto && externalOutput : dataProcessor.outputs) {
-          if (externalOutput.origin == dispatcherInput.origin &&
-              externalOutput.description == dispatcherInput.description) {
-            dispatcherInput.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
-            dispatcherInput.subSpec = externalOutput.subSpec;
-            dispatcher.inputs.push_back(dispatcherInput);
+        for (auto&& externalOutput : dataProcessor.outputs) {
+          if (externalOutput.origin == desiredData.origin &&
+              externalOutput.description == desiredData.description) {
+            desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
+            desiredData.subSpec = externalOutput.subSpec;
+            dispatcher.inputs.push_back(desiredData);
           }
         }
       }
-
-      dispatcher.outputs.emplace_back(createDispatcherOutputSpec(dispatcherInput));
+      dispatcher.outputs.emplace_back(createDispatcherOutputSpec(desiredData));
     }
+    BernoulliGenerator bernoulliGenerator(task.fractionOfDataToSample);
 
-    BernoulliGenerator bernoulliGenerator(fractionOfDataToSample);
-
-    dispatcher.name = "Dispatcher_for_" + taskName;
+    dispatcher.name = "Dispatcher_for_" + task.name;
     dispatcher.algorithm = AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) [bernoulliGenerator](ProcessingContext& ctx) mutable {
         DataSampling::dispatcherCallback(ctx, bernoulliGenerator);
@@ -159,6 +119,68 @@ OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherI
 
   return dispatcherOutput;
 }
+
+void DataSampling::readQcTasksConfiguration(const std::string &configurationSource,
+                                     const std::vector<std::string> &taskNames,
+                                     std::vector<QcTaskConfiguration>& tasks)
+{
+  std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
+
+  for (auto&& taskName : taskNames) {
+
+    QcTaskConfiguration task;
+    task.name = taskName;
+
+    std::string taskInputsNames;
+    try {
+      std::string simpleQcTaskDefinition = configFile->getString(taskName + "/taskDefinition").value();
+      taskInputsNames = configFile->getString(simpleQcTaskDefinition + "/inputs").value();
+      task.fractionOfDataToSample = configFile->getFloat(simpleQcTaskDefinition + "/fraction").value();
+
+      if ( task.fractionOfDataToSample <= 0 || task.fractionOfDataToSample > 1 ) {
+        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
+                   << simpleQcTaskDefinition + "/fraction" << " is not in range (0,1]. Setting value to 0.";
+        task.fractionOfDataToSample = 0;
+      }
+
+    } catch (const boost::bad_optional_access &) {
+      LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
+                 << ", missing value or values for task " << taskName;
+      continue;
+    }
+
+    std::vector<std::string> taskInputsSplit;
+    boost::split(taskInputsSplit, taskInputsNames, boost::is_any_of(","));
+
+    for (auto&& input : taskInputsSplit) {
+
+      InputSpec desiredData;
+      try {
+        desiredData.binding = configFile->getString(input + "/inputName").value();
+
+        std::string origin = configFile->getString(input + "/dataOrigin").value();
+        origin.copy(desiredData.origin.str, (size_t) desiredData.origin.size);
+
+        std::string description = configFile->getString(input + "/dataDescription").value();
+        description.copy(desiredData.description.str, (size_t) desiredData.description.size);
+
+      } catch (const boost::bad_optional_access &) {
+        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
+                   << " input " << input << " has missing values";
+        continue;
+      }
+      task.desiredDataSpecs.push_back(desiredData);
+    }
+
+    if (task.desiredDataSpecs.empty()) {
+      LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
+                 << " task " << taskName << " has no valid inputs";
+      continue;
+    }
+    tasks.push_back(task);
+  }
+}
+
 
 } //namespace framework
 } //namespace o2
