@@ -23,8 +23,8 @@
 #include "fairmq/FairMQParts.h"
 
 using SubframeId = o2::dataflow::SubframeId;
-using HeartbeatHeader = o2::Header::HeartbeatHeader;
-using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+using HeartbeatHeader = o2::header::HeartbeatHeader;
+using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 
 SubframeId fakeAddition(o2::dataflow::PayloadMerger<SubframeId> &merger,
                   std::shared_ptr<FairMQTransportFactory> &transport,
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(PayloadMergerTest) {
 
   // Id is given by the orbit, 2 orbits per timeframe
   auto makeId = [](std::unique_ptr<FairMQMessage> &msg) {
-    auto header = reinterpret_cast<o2::Header::HeartbeatHeader const*>(msg->GetData());
+    auto header = reinterpret_cast<o2::header::HeartbeatHeader const*>(msg->GetData());
     return o2::dataflow::makeIdFromHeartbeatHeader(*header, 0, 2);
   };
 

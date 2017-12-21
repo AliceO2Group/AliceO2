@@ -97,7 +97,7 @@ void EPNReceiverDevice::Run()
 
     assert(subtimeframeParts.Size() >= 2);
 
-    Header::DataHeader* dh = reinterpret_cast<Header::DataHeader*>(subtimeframeParts.At(0)->GetData());
+    const auto* dh = o2::header::get<header::DataHeader>(subtimeframeParts.At(0)->GetData());
     assert(strncmp(dh->dataDescription.str, "SUBTIMEFRAMEMD", 16) == 0);
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());
     id = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
@@ -123,7 +123,7 @@ void EPNReceiverDevice::Run()
       {
         if (i % 2 == 0)
         {
-          auto adh = reinterpret_cast<Header::DataHeader*>(subtimeframeParts.At(i)->GetData());
+          const auto * adh = o2::header::get<header::DataHeader>(subtimeframeParts.At(i)->GetData());
           auto ie = std::make_pair(*adh, index.count(id)*2);
           index.insert(std::make_pair(id, ie));
         }
@@ -138,11 +138,11 @@ void EPNReceiverDevice::Run()
 
     if (flpIds.count(id) == mNumFLPs) {
       LOG(INFO) << "Timeframe " << id << " complete. Publishing.\n";
-      o2::Header::DataHeader tih;
+      o2::header::DataHeader tih;
       std::vector<IndexElement> flattenedIndex;
 
-      tih.dataDescription = o2::Header::DataDescription("TIMEFRAMEINDEX");
-      tih.dataOrigin = o2::Header::DataOrigin("EPN");
+      tih.dataDescription = o2::header::DataDescription("TIMEFRAMEINDEX");
+      tih.dataOrigin = o2::header::DataOrigin("EPN");
       tih.subSpecification = 0;
       tih.payloadSize = index.count(id) * sizeof(flattenedIndex.front());
       void *indexData = malloc(tih.payloadSize);

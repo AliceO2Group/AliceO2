@@ -26,25 +26,25 @@ BOOST_AUTO_TEST_CASE(SubframeUtils01) {
   BOOST_CHECK(a < b);
   char *buf = new char[1000];
   memset(buf, 126, 1000);
-  for (size_t i = sizeof(o2::Header::HeartbeatHeader); i < 1000 - sizeof(o2::Header::HeartbeatHeader); ++i)
+  for (size_t i = sizeof(o2::header::HeartbeatHeader); i < 1000 - sizeof(o2::header::HeartbeatHeader); ++i)
   {
     buf[i] = 0;
   }
   BOOST_CHECK(buf[0] == 126);
-  BOOST_CHECK(buf[sizeof(o2::Header::HeartbeatHeader)] == 0);
-  BOOST_CHECK(buf[sizeof(o2::Header::HeartbeatHeader)-1] == 126);
+  BOOST_CHECK(buf[sizeof(o2::header::HeartbeatHeader)] == 0);
+  BOOST_CHECK(buf[sizeof(o2::header::HeartbeatHeader)-1] == 126);
   char *realPayload = nullptr;
   size_t realSize = o2::dataflow::extractDetectorPayloadStrip(&realPayload, buf, 1000);
   BOOST_CHECK(realPayload != nullptr);
-  BOOST_CHECK(realSize == 1000 - sizeof(o2::Header::HeartbeatHeader) - sizeof(o2::Header::HeartbeatTrailer));
-  BOOST_CHECK(realPayload == buf + sizeof(o2::Header::HeartbeatHeader));
+  BOOST_CHECK(realSize == 1000 - sizeof(o2::header::HeartbeatHeader) - sizeof(o2::header::HeartbeatTrailer));
+  BOOST_CHECK(realPayload == buf + sizeof(o2::header::HeartbeatHeader));
   BOOST_CHECK(realPayload[0] == 0);
 
-  o2::Header::HeartbeatHeader header1;
+  o2::header::HeartbeatHeader header1;
   header1.orbit = 0;
-  o2::Header::HeartbeatHeader header2;
+  o2::header::HeartbeatHeader header2;
   header2.orbit = 255;
-  o2::Header::HeartbeatHeader header3;
+  o2::header::HeartbeatHeader header3;
   header3.orbit = 256;
 
   auto id1 = o2::dataflow::makeIdFromHeartbeatHeader(header1, 1, 256);

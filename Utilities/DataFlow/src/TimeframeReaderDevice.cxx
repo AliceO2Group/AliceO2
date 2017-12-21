@@ -16,7 +16,7 @@
 #include "Headers/DataHeader.h"
 #include <options/FairMQProgOptions.h>
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
 namespace o2 { namespace DataFlow {
 

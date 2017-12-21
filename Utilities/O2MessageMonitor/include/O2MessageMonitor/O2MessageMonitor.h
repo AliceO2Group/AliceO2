@@ -52,7 +52,7 @@ protected:
       const byte* dataBuffer,   size_t dataBufferSize);
 
 private:
-  o2::Header::DataHeader mDataHeader;
+  o2::header::DataHeader mDataHeader;
   std::string mPayload;
   std::string mName;
   long long mDelay;

@@ -21,8 +21,8 @@
 #include <cstring>
 
 using namespace o2::framework;
-using DataHeader = o2::Header::DataHeader;
-using Stack = o2::Header::Stack;
+using DataHeader = o2::header::DataHeader;
+using Stack = o2::header::Stack;
 
 
 // A simple test where an input is provided

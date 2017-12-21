@@ -15,7 +15,7 @@
 #include "Framework/InputRecord.h"
 #include "fairmq/FairMQLogger.h"
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 constexpr size_t MAX_PARALLEL_TIMESLICES = 256;
@@ -46,7 +46,7 @@ size_t
 assignInputSpecId(void *data, std::vector<InputRoute> const &routes) {
   for (size_t ri = 0, re = routes.size(); ri < re; ++ri) {
     auto &route = routes[ri];
-    const DataHeader *h = o2::Header::get<DataHeader>(data);
+    const DataHeader *h = o2::header::get<DataHeader>(data);
     if (h == nullptr) {
       return re;
     }
@@ -102,7 +102,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // we do have data which comes without a timestamp, although I am personally
   // not sure what that would be.
   auto getTimeslice = [&header,&timeslices]() -> int64_t {
-    const DataProcessingHeader *dph = o2::Header::get<DataProcessingHeader>(header->GetData());
+    const DataProcessingHeader *dph = o2::header::get<DataProcessingHeader>(header->GetData());
     if (dph == nullptr) {
       return -1;
     }

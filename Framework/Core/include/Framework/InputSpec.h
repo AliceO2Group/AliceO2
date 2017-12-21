@@ -29,9 +29,9 @@ struct InputSpec {
   };
 
   std::string binding;
-  Header::DataOrigin origin;
-  Header::DataDescription description;
-  Header::DataHeader::SubSpecificationType subSpec;
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType subSpec;
   enum Lifetime lifetime;
 };
 

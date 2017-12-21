@@ -17,9 +17,9 @@
 #include "Headers/DataHeader.h"
 #include "Headers/HeartbeatFrame.h"
 
-using DataHeader = o2::Header::DataHeader;
-using HeartbeatHeader = o2::Header::HeartbeatHeader;
-using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+using DataHeader = o2::header::DataHeader;
+using HeartbeatHeader = o2::header::HeartbeatHeader;
+using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 
 /**
  * Helper struct to define a composite element from a header, some payload
@@ -114,9 +114,9 @@ BOOST_AUTO_TEST_CASE(test_parser)
                FrameT({0x1100000000000001}, "test", {0x5100000000000005}),
                FrameT({0x1100000000000003}, "dummydata", {0x510000000000000a})
                );
-  o2::Header::hexDump("Test frame", tf.buffer.get(), tf.length);
+  o2::header::hexDump("Test frame", tf.buffer.get(), tf.length);
 
-  using ParserT = o2::Header::ReverseParser<typename FrameT::HeaderType,
+  using ParserT = o2::header::ReverseParser<typename FrameT::HeaderType,
                                             typename FrameT::TrailerType>;
   ParserT parser;
   parser.parse(tf.buffer.get(), tf.length,
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(test_parser)
                  return trailer.dataLength + ParserT::envelopeLength;
                },
                [](typename ParserT::FrameEntry entry) {
-                 o2::Header::hexDump("Entry", entry.payload, entry.length);
+                 o2::header::hexDump("Entry", entry.payload, entry.length);
                  return true;
                }
                );
@@ -145,14 +145,14 @@ BOOST_AUTO_TEST_CASE(test_heartbeat_sequence)
                 FrameT({0x1100000000000003}, "frame2c", {0x5100000000000008})
                 );
 
-  o2::Header::HeartbeatFrameSequence<o2::Header::DataHeader> seqHandler;
+  o2::header::HeartbeatFrameSequence<o2::header::DataHeader> seqHandler;
 
   //check iterators of the empty handler
   BOOST_CHECK(seqHandler.begin() == seqHandler.end());
 
-  o2::Header::DataHeader dh;
-  dh.dataDescription = o2::Header::DataDescription("FIRSTSLOT");
-  dh.dataOrigin = o2::Header::DataOrigin("TST");
+  o2::header::DataHeader dh;
+  dh.dataDescription = o2::header::DataDescription("FIRSTSLOT");
+  dh.dataOrigin = o2::header::DataOrigin("TST");
   dh.subSpecification = 0;
   dh.payloadSize = 0;
 
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(test_heartbeat_sequence)
        columnIt != end; ++columnIt) {
     std::cout << "---------------------------------------" << std::endl;
     for (auto row : columnIt) {
-      o2::Header::hexDump("Entry", row.buffer, row.size);
+      o2::header::hexDump("Entry", row.buffer, row.size);
     }
   }
 }

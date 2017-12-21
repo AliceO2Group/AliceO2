@@ -27,9 +27,9 @@ struct OutputSpec {
     Transient
   };
 
-  Header::DataOrigin origin;
-  Header::DataDescription description;
-  Header::DataHeader::SubSpecificationType subSpec;
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType subSpec;
   enum Lifetime lifetime;
 };
 

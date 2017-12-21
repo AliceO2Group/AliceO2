@@ -25,8 +25,8 @@ BOOST_AUTO_TEST_CASE(TestRootSerialization) {
   TMessage* tm = new TMessage(kMESS_OBJECT);
   auto sOrig = std::make_unique<TObjString>("test");
   tm->WriteObject(sOrig.get());
-  o2::Header::DataHeader dh;
-  dh.payloadSerializationMethod = o2::Header::gSerializationMethodROOT;
+  o2::header::DataHeader dh;
+  dh.payloadSerializationMethod = o2::header::gSerializationMethodROOT;
   ref.payload = tm->Buffer();
   dh.payloadSize = tm->BufferSize();
   ref.header = reinterpret_cast<char const*>(&dh);

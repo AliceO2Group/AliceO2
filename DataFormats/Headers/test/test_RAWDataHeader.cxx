@@ -15,7 +15,7 @@
 #include <array>
 #include "Headers/RAWDataHeader.h"
 
-using RDH = o2::Header::RAWDataHeader;
+using RDH = o2::header::RAWDataHeader;
 
 BOOST_AUTO_TEST_CASE(test_rdh)
 {

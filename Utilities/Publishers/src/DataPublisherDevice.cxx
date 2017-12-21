@@ -19,13 +19,13 @@
 #include "Headers/SubframeMetadata.h"
 #include <options/FairMQProgOptions.h>
 
-using HeartbeatHeader = o2::Header::HeartbeatHeader;
-using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+using HeartbeatHeader = o2::header::HeartbeatHeader;
+using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 using TPCTestCluster = o2::DataFlow::TPCTestCluster;
 using ITSRawData = o2::DataFlow::ITSRawData;
 
-using DataDescription = o2::Header::DataDescription;
-using DataOrigin = o2::Header::DataOrigin;
+using DataDescription = o2::header::DataDescription;
+using DataOrigin = o2::header::DataOrigin;
 
 template <typename T>
 void fakePayload(std::vector<byte> &buffer, std::function<void(T&,int)> filler, int numOfElements) {
@@ -93,7 +93,7 @@ void DataPublisherDevice::InitTask()
   OnData(mInputChannelName.c_str(), &DataPublisherDevice::HandleData);
 
   // reserve space for the HBH at the beginning
-  mFileBuffer.resize(sizeof(o2::Header::HeartbeatHeader));
+  mFileBuffer.resize(sizeof(o2::header::HeartbeatHeader));
 
   if (!mFileName.empty()) {
     AppendFile(mFileName.c_str(), mFileBuffer);
@@ -113,11 +113,11 @@ void DataPublisherDevice::InitTask()
     fakePayload<ITSRawData>(mFileBuffer, f, 500);
   }
 
-  mFileBuffer.resize(mFileBuffer.size() + sizeof(o2::Header::HeartbeatTrailer));
-  auto* hbhOut = reinterpret_cast<o2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
-  auto* hbtOut = reinterpret_cast<o2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(o2::Header::HeartbeatTrailer)]);
-  *hbhOut = o2::Header::HeartbeatHeader();
-  *hbtOut = o2::Header::HeartbeatTrailer();
+  mFileBuffer.resize(mFileBuffer.size() + sizeof(o2::header::HeartbeatTrailer));
+  auto* hbhOut = reinterpret_cast<o2::header::HeartbeatHeader*>(&mFileBuffer[0]);
+  auto* hbtOut = reinterpret_cast<o2::header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(o2::header::HeartbeatTrailer)]);
+  *hbhOut = o2::header::HeartbeatHeader();
+  *hbtOut = o2::header::HeartbeatTrailer();
 }
 
 bool DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
@@ -132,15 +132,15 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
                                                const byte* dataBuffer,
                                                size_t dataBufferSize)
 {
-  //  AliceO2::Header::hexDump("data buffer", dataBuffer, dataBufferSize);
-  const auto* dataHeader = o2::Header::get<o2::Header::DataHeader>(headerBuffer);
-  const auto* hbfEnvelope = o2::Header::get<o2::Header::HeartbeatFrameEnvelope>(headerBuffer);
+  //  AliceO2::header::hexDump("data buffer", dataBuffer, dataBufferSize);
+  const auto* dataHeader = o2::header::get<o2::header::DataHeader>(headerBuffer);
+  const auto* hbfEnvelope = o2::header::get<o2::header::HeartbeatFrameEnvelope>(headerBuffer);
 
   // TODO: not sure what the return value is supposed to indicate, it's
   // not handled in O2Device::ForEach at the moment
   // indicate that the block has not been processed by a 'false'
   if (!dataHeader ||
-      (dataHeader->dataDescription) != o2::Header::gDataDescriptionHeartbeatFrame) return false;
+      (dataHeader->dataDescription) != o2::header::gDataDescriptionHeartbeatFrame) return false;
 
   if (!hbfEnvelope) {
     LOG(ERROR) << "no heartbeat frame envelope header found";
@@ -160,19 +160,19 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
 
   // assume everything valid
   // write the HBH and HBT as envelop to the buffer of the file data
-  auto* hbhOut = reinterpret_cast<o2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
-  auto* hbtOut = reinterpret_cast<o2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(o2::Header::HeartbeatTrailer)]);
+  auto* hbhOut = reinterpret_cast<o2::header::HeartbeatHeader*>(&mFileBuffer[0]);
+  auto* hbtOut = reinterpret_cast<o2::header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(o2::header::HeartbeatTrailer)]);
 
   // copy HBH and HBT, but set the length explicitely to 1
   // TODO: handle all kinds of corner cases, or add an assert
   *hbhOut = hbfEnvelope->header;
   hbhOut->headerLength = 1;
   *hbtOut = hbfEnvelope->trailer;
-  hbtOut->dataLength = mFileBuffer.size() - sizeof(o2::Header::HeartbeatFrameEnvelope);
+  hbtOut->dataLength = mFileBuffer.size() - sizeof(o2::header::HeartbeatFrameEnvelope);
 
   // top level subframe header, the DataHeader is going to be used with
   // configured description, origin and sub specification
-  o2::Header::DataHeader dh;
+  o2::header::DataHeader dh;
   dh.dataDescription = mDataDescription;
   dh.dataOrigin = mDataOrigin;
   dh.subSpecification = mSubSpecification;

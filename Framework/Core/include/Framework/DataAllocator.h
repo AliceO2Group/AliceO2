@@ -41,10 +41,10 @@ class DataAllocator
 {
 public:
   using AllowedOutputsMap = std::vector<OutputRoute>;
-  using DataHeader = o2::Header::DataHeader;
-  using DataOrigin = o2::Header::DataOrigin;
-  using DataDescription = o2::Header::DataDescription;
-  using SubSpecificationType = o2::Header::DataHeader::SubSpecificationType;
+  using DataHeader = o2::header::DataHeader;
+  using DataOrigin = o2::header::DataOrigin;
+  using DataDescription = o2::header::DataDescription;
+  using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
   DataAllocator(FairMQDevice *device,
                 MessageContext *context,
@@ -147,7 +147,7 @@ public:
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
     mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object);
 
-    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodROOT);
+    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
   /// Serialize a snapshot of a POD type, which will then be sent
@@ -160,7 +160,7 @@ public:
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
-    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
+    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
   }
 
   /// Serialize a snapshot of a std::vector of trivially copyable elements,
@@ -180,7 +180,7 @@ public:
     typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
 
-    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
+    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
   }
 
   /// Serialize a snapshot of a std::vector of pointers to trivially copyable
@@ -205,7 +205,7 @@ public:
       target += elementSizeInBytes;
     }
 
-    addPartToContext(std::move(payloadMessage), spec, o2::Header::gSerializationMethodNone);
+    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
   }
 
   /// specialization to catch unsupported types and throw a detailed compiler error
@@ -248,11 +248,11 @@ private:
   std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
                                          std::string const &channel,
-                                         o2::Header::SerializationMethod serializationMethod);
+                                         o2::header::SerializationMethod serializationMethod);
 
   void addPartToContext(FairMQMessagePtr&& payload,
                         const OutputSpec &spec,
-                        o2::Header::SerializationMethod serializationMethod);
+                        o2::header::SerializationMethod serializationMethod);
 
   FairMQDevice *mDevice;
   AllowedOutputsMap mAllowedOutputs;

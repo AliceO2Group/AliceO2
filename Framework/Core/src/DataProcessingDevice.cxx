@@ -26,7 +26,7 @@
 
 using namespace o2::framework;
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
 namespace o2 {
 namespace framework {
@@ -127,7 +127,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     }
     for (size_t hi = 0; hi < parts.Size()/2; ++hi) {
       auto pi = hi*2;
-      auto dh = o2::Header::get<DataHeader>(parts.At(pi)->GetData());
+      auto dh = o2::header::get<DataHeader>(parts.At(pi)->GetData());
       if (!dh) {
         LOG(ERROR) << "Header is not a DataHeader?";
         return false;
@@ -136,7 +136,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
         LOG(ERROR) << "DataHeader payloadSize mismatch";
         return false;
       }
-      auto dph = o2::Header::get<DataProcessingHeader>(parts.At(pi)->GetData());
+      auto dph = o2::header::get<DataProcessingHeader>(parts.At(pi)->GetData());
       if (!dph) {
         LOG(ERROR) << "Header stack does not contain DataProcessingHeader";
         return false;
@@ -270,12 +270,12 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     for (size_t ii = 0, ie = record.size(); ii != ie; ++ii) {
       DataRef input = record.getByPos(ii);
       assert(input.header);
-      auto dh = o2::Header::get<DataHeader>(input.header);
+      auto dh = o2::header::get<DataHeader>(input.header);
       if (!dh) {
         reportError("Header is not a DataHeader?");
         continue;
       }
-      auto dph = o2::Header::get<DataProcessingHeader>(input.header);
+      auto dph = o2::header::get<DataProcessingHeader>(input.header);
       if (!dph) {
         reportError("Header stack does not contain DataProcessingHeader");
         continue;
@@ -297,12 +297,12 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
             LOG(ERROR) << "Missing header!";
             continue;
           }
-          auto fdph = o2::Header::get<DataProcessingHeader>(header.get()->GetData());
+          auto fdph = o2::header::get<DataProcessingHeader>(header.get()->GetData());
           if (fdph == nullptr) {
             LOG(ERROR) << "Forwarded data does not have a DataProcessingHeader";
             continue;
           }
-          auto fdh = o2::Header::get<DataHeader>(header.get()->GetData());
+          auto fdh = o2::header::get<DataHeader>(header.get()->GetData());
           if (fdh == nullptr) {
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
@@ -314,8 +314,8 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
           forwardedParts.AddPart(std::move(header));
           forwardedParts.AddPart(std::move(payload));
           assert(forwardedParts.Size() == 2);
-          assert(o2::Header::get<DataProcessingHeader>(forwardedParts.At(0)->GetData()));
-          LOG(DEBUG) << o2::Header::get<DataProcessingHeader>(forwardedParts.At(0)->GetData())->startTime;
+          assert(o2::header::get<DataProcessingHeader>(forwardedParts.At(0)->GetData()));
+          LOG(DEBUG) << o2::header::get<DataProcessingHeader>(forwardedParts.At(0)->GetData())->startTime;
           LOG(DEBUG) << forwardedParts.At(0)->GetSize();
           // FIXME: this should use a correct subchannel
           device.Send(forwardedParts, forward.channel, 0);

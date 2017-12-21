@@ -16,11 +16,11 @@
 /// @since  2017-09-19
 /// @brief  Utilities for the O2 header stack
 
-// the implemented functionality relies on o2::Header::get defined in
+// the implemented functionality relies on o2::header::get defined in
 // DataHeader.h; all O2 headers inherit from BaseHeader, this is required
 // to check the consistency of the header stack, also the next-header-flag
 // is part of the BaseHeader
-#include "Headers/DataHeader.h" // for o2::Header::get
+#include "Headers/DataHeader.h" // for o2::header::get
 
 namespace o2 {
 
@@ -67,7 +67,7 @@ void dispatchHeaderStackCallback(PtrType ptr,
                                  HeaderType /*dummy*/,
                                  HeaderCallbackType onHeader)
 {
-  const HeaderType* h = o2::Header::get<HeaderType>(ptr, size);
+  const HeaderType* h = o2::header::get<HeaderType>(ptr, size);
   if (h) {
     onHeader(*h);
   }
@@ -134,7 +134,7 @@ void parseHeaderStack(PtrType ptr,
                       SizeType size,
                       HeaderType & header)
 {
-  const HeaderType* h = o2::Header::get<HeaderType>(ptr, size);
+  const HeaderType* h = o2::header::get<HeaderType>(ptr, size);
   if (h) {
     header = *h;
   }

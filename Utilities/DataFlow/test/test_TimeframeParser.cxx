@@ -23,7 +23,7 @@ struct OneShotReadBuf : public std::streambuf
     }
 };
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
 int
 main(int argc, char **argv) {

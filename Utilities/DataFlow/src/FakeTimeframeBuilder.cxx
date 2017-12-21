@@ -16,36 +16,36 @@
 #include <functional>
 #include <cstring>
 
-using DataHeader = o2::Header::DataHeader;
-using DataDescription = o2::Header::DataDescription;
-using DataOrigin = o2::Header::DataOrigin;
+using DataHeader = o2::header::DataHeader;
+using DataDescription = o2::header::DataDescription;
+using DataOrigin = o2::header::DataOrigin;
 using IndexElement = o2::DataFormat::IndexElement;
 
 namespace {
-  o2::Header::DataDescription lookupDataDescription(const char *key) {
+  o2::header::DataDescription lookupDataDescription(const char *key) {
     if (strcmp(key, "RAWDATA") == 0)
-      return o2::Header::gDataDescriptionRawData;
+      return o2::header::gDataDescriptionRawData;
     else if (strcmp(key, "CLUSTERS") == 0)
-      return o2::Header::gDataDescriptionClusters;
+      return o2::header::gDataDescriptionClusters;
     else if (strcmp(key, "TRACKS") == 0)
-      return o2::Header::gDataDescriptionTracks;
+      return o2::header::gDataDescriptionTracks;
     else if (strcmp(key, "CONFIG") == 0)
-      return o2::Header::gDataDescriptionConfig;
+      return o2::header::gDataDescriptionConfig;
     else if (strcmp(key, "INFO") == 0)
-      return o2::Header::gDataDescriptionInfo;
-    return o2::Header::gDataDescriptionInvalid;
+      return o2::header::gDataDescriptionInfo;
+    return o2::header::gDataDescriptionInvalid;
   }
 
-  o2::Header::DataOrigin lookupDataOrigin(const char *key) {
+  o2::header::DataOrigin lookupDataOrigin(const char *key) {
     if (strcmp(key, "TPC") == 0)
-      return o2::Header::gDataOriginTPC;
+      return o2::header::gDataOriginTPC;
     if (strcmp(key, "TRD") == 0)
-      return o2::Header::gDataOriginTRD;
+      return o2::header::gDataOriginTRD;
     if (strcmp(key, "TOF") == 0)
-      return o2::Header::gDataOriginTOF;
+      return o2::header::gDataOriginTOF;
     if (strcmp(key, "ITS") == 0)
-      return o2::Header::gDataOriginITS;
-    return o2::Header::gDataOriginInvalid;
+      return o2::header::gDataOriginITS;
+    return o2::header::gDataOriginInvalid;
   }
 
 

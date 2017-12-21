@@ -28,7 +28,7 @@
 
 using namespace o2::framework;
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
 using Inputs = std::vector<InputSpec>;
 using Outputs = std::vector<OutputSpec>;

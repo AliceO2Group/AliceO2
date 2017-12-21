@@ -30,18 +30,18 @@ bool o2::DataFlow::HeartbeatSampler::ConditionalRun()
 {
   std::this_thread::sleep_for(std::chrono::nanoseconds(mPeriod));
 
-  o2::Header::HeartbeatStatistics hbfPayload;
+  o2::header::HeartbeatStatistics hbfPayload;
 
-  o2::Header::DataHeader dh;
-  dh.dataDescription = o2::Header::gDataDescriptionHeartbeatFrame;
-  dh.dataOrigin = o2::Header::DataOrigin("SMPL");
+  o2::header::DataHeader dh;
+  dh.dataDescription = o2::header::gDataDescriptionHeartbeatFrame;
+  dh.dataOrigin = o2::header::DataOrigin("SMPL");
   dh.subSpecification = 0;
   dh.payloadSize = sizeof(hbfPayload);
 
   // Note: the block type of both header an trailer members of the envelope
   // structure are autmatically initialized to the appropriate block type
   // and size '1' (i.e. only one 64bit word)
-  o2::Header::HeartbeatFrameEnvelope specificHeader;
+  o2::header::HeartbeatFrameEnvelope specificHeader;
   specificHeader.header.orbit = mCount;
   specificHeader.trailer.hbAccept = 1;
 

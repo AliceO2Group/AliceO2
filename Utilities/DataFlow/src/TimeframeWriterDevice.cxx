@@ -25,7 +25,7 @@
 #include <boost/filesystem.hpp>
 
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 using IndexElement = o2::DataFormat::IndexElement;
 
 namespace o2 { namespace DataFlow {

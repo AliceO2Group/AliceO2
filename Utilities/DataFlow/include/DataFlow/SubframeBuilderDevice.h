@@ -114,14 +114,14 @@ private:
   template <typename T>
   size_t fakeHBHPayloadHBT(char **buffer, std::function<void(T&,int)> filler, int numOfElements) {
     // LOG(INFO) << "SENDING TPC PAYLOAD\n";
-    auto payloadSize = sizeof(Header::HeartbeatHeader)+sizeof(T)*numOfElements+sizeof(Header::HeartbeatTrailer);
+    auto payloadSize = sizeof(header::HeartbeatHeader)+sizeof(T)*numOfElements+sizeof(header::HeartbeatTrailer);
     *buffer = new char[payloadSize];
-    auto *hbh = reinterpret_cast<Header::HeartbeatHeader*>(*buffer);
+    auto *hbh = reinterpret_cast<header::HeartbeatHeader*>(*buffer);
     assert(payloadSize > 0);
-    assert(payloadSize - sizeof(Header::HeartbeatTrailer) > 0);
-    auto *hbt = reinterpret_cast<Header::HeartbeatTrailer*>(payloadSize - sizeof(Header::HeartbeatTrailer));
+    assert(payloadSize - sizeof(header::HeartbeatTrailer) > 0);
+    auto *hbt = reinterpret_cast<header::HeartbeatTrailer*>(payloadSize - sizeof(header::HeartbeatTrailer));
 
-    T *payload = reinterpret_cast<T*>(*buffer + sizeof(Header::HeartbeatHeader));
+    T *payload = reinterpret_cast<T*>(*buffer + sizeof(header::HeartbeatHeader));
     for (int i = 0; i < numOfElements; ++i) {
       new (payload + i) T;
       // put some random toy time stamp to each cluster

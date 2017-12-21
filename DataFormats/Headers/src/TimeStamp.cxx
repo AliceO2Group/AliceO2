@@ -15,7 +15,7 @@
 
 #include "Headers/TimeStamp.h"
 
-using namespace o2::Header;
+using namespace o2::header;
 
 // the only reason for the cxx file is the implementation of the
 // constants

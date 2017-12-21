@@ -30,9 +30,9 @@ struct DataRefUtils {
   template <typename T>
   static typename std::enable_if<std::is_pod<T>::value == true, gsl::span<T>>::type
   as(DataRef const &ref) {
-    using DataHeader = o2::Header::DataHeader;
-    auto header = o2::Header::get<const DataHeader>(ref.header);
-    if (header->payloadSerializationMethod != o2::Header::gSerializationMethodNone) {
+    using DataHeader = o2::header::DataHeader;
+    auto header = o2::header::get<const DataHeader>(ref.header);
+    if (header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
       throw std::runtime_error("Attempt to extract a POD from a wrong message kind");
     }
     if ((header->payloadSize % sizeof(T)) != 0) {
@@ -47,9 +47,9 @@ struct DataRefUtils {
   template <typename T>
   static typename std::enable_if<std::is_base_of<TObject, T>::value == true, std::unique_ptr<T>>::type
   as(DataRef const &ref) {
-    using DataHeader = o2::Header::DataHeader;
-    auto header = o2::Header::get<const DataHeader>(ref.header);
-    if (header->payloadSerializationMethod != o2::Header::gSerializationMethodROOT) {
+    using DataHeader = o2::header::DataHeader;
+    auto header = o2::header::get<const DataHeader>(ref.header);
+    if (header->payloadSerializationMethod != o2::header::gSerializationMethodROOT) {
       throw std::runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
     }
 

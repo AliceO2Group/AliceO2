@@ -19,25 +19,25 @@ namespace framework {
 
 struct DataSpecUtils {
   static bool match(const InputSpec &spec,
-                    const o2::Header::DataOrigin &origin,
-                    const o2::Header::DataDescription &description,
-                    const o2::Header::DataHeader::SubSpecificationType &subSpec) {
+                    const o2::header::DataOrigin &origin,
+                    const o2::header::DataDescription &description,
+                    const o2::header::DataHeader::SubSpecificationType &subSpec) {
     return spec.origin == origin &&
            spec.description == description &&
            spec.subSpec == subSpec;
   }
 
   static bool match(const OutputSpec &spec,
-                    const o2::Header::DataOrigin &origin,
-                    const o2::Header::DataDescription &description,
-                    const o2::Header::DataHeader::SubSpecificationType &subSpec) {
+                    const o2::header::DataOrigin &origin,
+                    const o2::header::DataDescription &description,
+                    const o2::header::DataHeader::SubSpecificationType &subSpec) {
     return spec.origin == origin &&
            spec.description == description &&
            spec.subSpec == subSpec;
   }
 
   template <typename T>
-  static bool match(const T&spec, const o2::Header::DataHeader &header) {
+  static bool match(const T&spec, const o2::header::DataHeader &header) {
     return DataSpecUtils::match(spec,
                                 header.dataOrigin,
                                 header.dataDescription,

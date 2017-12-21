@@ -22,10 +22,10 @@ namespace o2 {
 namespace alice_hlt {
   template<typename... Targs>
   void hexDump(Targs... Fargs) {
-    //o2::Header::hexDump(Fargs...);
+    //o2::header::hexDump(Fargs...);
   }
 
-  using DataHeader = o2::Header::DataHeader;
+  using DataHeader = o2::header::DataHeader;
 
   BOOST_AUTO_TEST_CASE(test_createMessagesModeMultiPart)
   {
@@ -178,10 +178,10 @@ namespace alice_hlt {
 
   BOOST_AUTO_TEST_CASE(test_createHeartbeatFrame)
   {
-    using HeartbeatFrameEnvelope = o2::Header::HeartbeatFrameEnvelope;
-    using HeartbeatHeader = o2::Header::HeartbeatHeader;
-    using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
-    using HeartbeatStatistics = o2::Header::HeartbeatStatistics;
+    using HeartbeatFrameEnvelope = o2::header::HeartbeatFrameEnvelope;
+    using HeartbeatHeader = o2::header::HeartbeatHeader;
+    using HeartbeatTrailer = o2::header::HeartbeatTrailer;
+    using HeartbeatStatistics = o2::header::HeartbeatStatistics;
     std::cout << "Testing HearbeatFrame propagation" << std::endl;
     MessageFormat handler;
     handler.setOutputMode(MessageFormat::kOutputModeO2);
@@ -191,14 +191,14 @@ namespace alice_hlt {
     // header stack
     HeartbeatStatistics hbfPayload;
     DataHeader dh;
-    dh.dataDescription = o2::Header::gDataDescriptionHeartbeatFrame;
-    dh.dataOrigin = o2::Header::DataOrigin("TEST");
+    dh.dataDescription = o2::header::gDataDescriptionHeartbeatFrame;
+    dh.dataOrigin = o2::header::DataOrigin("TEST");
     dh.subSpecification = 0;
     dh.payloadSize = sizeof(hbfPayload);
 
     // create incoming header stack
     HeartbeatFrameEnvelope hbfHeader;
-    o2::Header::Stack headerMessage(dh, hbfHeader);
+    o2::header::Stack headerMessage(dh, hbfHeader);
 
     std::vector<MessageFormat::BufferDesc_t> incomingMessages;
     incomingMessages.emplace_back((MessageFormat::BufferDesc_t::PtrT)headerMessage.data(), headerMessage.size());
@@ -236,7 +236,7 @@ namespace alice_hlt {
     for (auto & output : outputs) {
       if (dataidx % 2 == 0) {
         hexDump("Header block", output.mP, output.mSize);
-        BOOST_CHECK(output.mSize >= sizeof(o2::Header::DataHeader));
+        BOOST_CHECK(output.mSize >= sizeof(o2::header::DataHeader));
       } else {
         hexDump("Payload block", output.mP, output.mSize);
         hexDump("  Data string", dataFields[datafieldidx].c_str(), dataFields[datafieldidx].size() + 1);

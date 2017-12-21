@@ -26,8 +26,8 @@ struct Summary {
   int clustersCount;
 };
 
-using DataHeader = o2::Header::DataHeader;
-using DataOrigin = o2::Header::DataOrigin;
+using DataHeader = o2::header::DataHeader;
+using DataOrigin = o2::header::DataOrigin;
 
 // This is how you can define your processing in a declarative way
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
@@ -126,21 +126,21 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
         // We verify we got inputs in the correct order
-        auto h0 = o2::Header::get<DataHeader>(ctx.inputs().get("clusters").header);
-        auto h1 = o2::Header::get<DataHeader>(ctx.inputs().get("summary").header);
-        auto h2 = o2::Header::get<DataHeader>(ctx.inputs().get("other_summary").header);
+        auto h0 = o2::header::get<DataHeader>(ctx.inputs().get("clusters").header);
+        auto h1 = o2::header::get<DataHeader>(ctx.inputs().get("summary").header);
+        auto h2 = o2::header::get<DataHeader>(ctx.inputs().get("other_summary").header);
         // This should always be the case, since the 
         // test for an actual DataHeader should happen in the device itself.
         assert(h0 && h1 && h2);
-        if (h0->dataOrigin != o2::Header::DataOrigin("TPC")) {
+        if (h0->dataOrigin != o2::header::DataOrigin("TPC")) {
           throw std::runtime_error("Unexpected data origin" + std::string(h0->dataOrigin.str));
         }
 
-        if (h1->dataOrigin != o2::Header::DataOrigin("TPC")) {
+        if (h1->dataOrigin != o2::header::DataOrigin("TPC")) {
           throw std::runtime_error("Unexpected data origin" + std::string(h1->dataOrigin.str));
         }
 
-        if (h2->dataOrigin != o2::Header::DataOrigin("ITS")) {
+        if (h2->dataOrigin != o2::header::DataOrigin("ITS")) {
           throw std::runtime_error("Unexpected data origin" + std::string(h2->dataOrigin.str));
         }
 

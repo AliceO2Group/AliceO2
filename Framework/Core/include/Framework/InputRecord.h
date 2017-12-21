@@ -116,7 +116,7 @@ public:
   template <class T>
   typename std::unique_ptr<typename std::enable_if<std::is_base_of<TObject, T>::value == true, T>::type>
   get(char const *binding) const {
-    using DataHeader = o2::Header::DataHeader;
+    using DataHeader = o2::header::DataHeader;
 
     auto ref = this->get(binding);
     return std::move(DataRefUtils::as<T>(ref));

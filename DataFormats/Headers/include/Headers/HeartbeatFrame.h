@@ -24,7 +24,7 @@
 #include <vector>
 
 namespace o2 {
-namespace Header {
+namespace header {
 
 // The Heartbeat frame layout is specified in
 // http://svnweb.cern.ch/world/wsvn/alicetdrrun3/Notes/Run34SystemNote/detector-read-alice/ALICErun34_readout.pdf
@@ -43,7 +43,7 @@ namespace Header {
 // check if this is the correct term, we probably won't send what is referred to be
 // the heartbeat frame (composition of HBH - detector payload - HBT); instead, the
 // HBH and HBT can be added to the header stack
-extern const o2::Header::DataDescription gDataDescriptionHeartbeatFrame;
+extern const o2::header::DataDescription gDataDescriptionHeartbeatFrame;
 
 struct HeartbeatHeader
 {
@@ -115,8 +115,8 @@ struct HeartbeatFrameEnvelope : public BaseHeader
 {
   //static data for this header type/version
   static const uint32_t sVersion;
-  static const o2::Header::HeaderType sHeaderType;
-  static const o2::Header::SerializationMethod sSerializationMethod;
+  static const o2::header::HeaderType sHeaderType;
+  static const o2::header::SerializationMethod sSerializationMethod;
 
   HeartbeatHeader header;
   HeartbeatTrailer trailer;
@@ -265,7 +265,7 @@ public:
     unsigned nFrames = mFrames.size();
     unsigned currentSlot = mSlotData.size();
     mSlotData.emplace_back(slotData);
-    using ParserT = o2::Header::ReverseParser<HeartbeatHeader, HeartbeatTrailer>;
+    using ParserT = o2::header::ReverseParser<HeartbeatHeader, HeartbeatTrailer>;
     ParserT p;
     p.parse(seqData, seqSize,
             [](const typename ParserT::HeaderType* h) {return (*h);},

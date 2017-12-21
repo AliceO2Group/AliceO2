@@ -22,7 +22,7 @@ using system_clock = std::chrono::system_clock;
 using TimeScale = std::chrono::nanoseconds;
 
 namespace o2 {
-  namespace Header {
+  namespace header {
 
     BOOST_AUTO_TEST_CASE(Descriptor_test)
     {

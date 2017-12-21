@@ -39,7 +39,7 @@
 using byte = unsigned char;
 
 namespace o2 {
-namespace Header {
+namespace header {
 
 //__________________________________________________________________________________________________
 /// @defgroup aliceo2_dataformat_primitives Primitive data format definitions for ALICE O2
@@ -318,11 +318,11 @@ using HeaderType = Descriptor<gSizeHeaderDescriptionString>;
 using SerializationMethod = Descriptor<gSizeSerializationMethodString>;
 
 //possible serialization types
-extern const o2::Header::SerializationMethod gSerializationMethodAny;
-extern const o2::Header::SerializationMethod gSerializationMethodInvalid;
-extern const o2::Header::SerializationMethod gSerializationMethodNone;
-extern const o2::Header::SerializationMethod gSerializationMethodROOT;
-extern const o2::Header::SerializationMethod gSerializationMethodFlatBuf;
+extern const o2::header::SerializationMethod gSerializationMethodAny;
+extern const o2::header::SerializationMethod gSerializationMethodInvalid;
+extern const o2::header::SerializationMethod gSerializationMethodNone;
+extern const o2::header::SerializationMethod gSerializationMethodROOT;
+extern const o2::header::SerializationMethod gSerializationMethodFlatBuf;
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
@@ -348,8 +348,8 @@ struct BaseHeader
   static const uint32_t sMagicString;
 
   static const uint32_t sVersion;
-  static const o2::Header::HeaderType sHeaderType;
-  static const o2::Header::SerializationMethod sSerializationMethod;
+  static const o2::header::HeaderType sHeaderType;
+  static const o2::header::SerializationMethod sSerializationMethod;
 
   //__the data layout:
 
@@ -376,10 +376,10 @@ struct BaseHeader
   uint32_t    headerVersion;
 
   /// header type description, set by derived header
-  o2::Header::HeaderType description;
+  o2::header::HeaderType description;
 
   /// header serialization method, set by derived header
-  o2::Header::SerializationMethod serialization;
+  o2::header::SerializationMethod serialization;
 
   //___the functions:
 
@@ -553,8 +553,8 @@ struct DataHeader : public BaseHeader
 
   //static data for this header type/version
   static const uint32_t sVersion;
-  static const o2::Header::HeaderType sHeaderType;
-  static const o2::Header::SerializationMethod sSerializationMethod;
+  static const o2::header::HeaderType sHeaderType;
+  static const o2::header::SerializationMethod sSerializationMethod;
 
   ///
   /// data type descriptor
@@ -622,34 +622,34 @@ struct DataHeader : public BaseHeader
 
 //__________________________________________________________________________________________________
 //possible data origins
-extern const o2::Header::DataOrigin gDataOriginAny;
-extern const o2::Header::DataOrigin gDataOriginInvalid;
-extern const o2::Header::DataOrigin gDataOriginFLP;
-extern const o2::Header::DataOrigin gDataOriginACO;
-extern const o2::Header::DataOrigin gDataOriginCPV;
-extern const o2::Header::DataOrigin gDataOriginCTP;
-extern const o2::Header::DataOrigin gDataOriginEMC;
-extern const o2::Header::DataOrigin gDataOriginFIT;
-extern const o2::Header::DataOrigin gDataOriginHMP;
-extern const o2::Header::DataOrigin gDataOriginITS;
-extern const o2::Header::DataOrigin gDataOriginMCH;
-extern const o2::Header::DataOrigin gDataOriginMFT;
-extern const o2::Header::DataOrigin gDataOriginMID;
-extern const o2::Header::DataOrigin gDataOriginPHS;
-extern const o2::Header::DataOrigin gDataOriginTOF;
-extern const o2::Header::DataOrigin gDataOriginTPC;
-extern const o2::Header::DataOrigin gDataOriginTRD;
-extern const o2::Header::DataOrigin gDataOriginZDC;
+extern const o2::header::DataOrigin gDataOriginAny;
+extern const o2::header::DataOrigin gDataOriginInvalid;
+extern const o2::header::DataOrigin gDataOriginFLP;
+extern const o2::header::DataOrigin gDataOriginACO;
+extern const o2::header::DataOrigin gDataOriginCPV;
+extern const o2::header::DataOrigin gDataOriginCTP;
+extern const o2::header::DataOrigin gDataOriginEMC;
+extern const o2::header::DataOrigin gDataOriginFIT;
+extern const o2::header::DataOrigin gDataOriginHMP;
+extern const o2::header::DataOrigin gDataOriginITS;
+extern const o2::header::DataOrigin gDataOriginMCH;
+extern const o2::header::DataOrigin gDataOriginMFT;
+extern const o2::header::DataOrigin gDataOriginMID;
+extern const o2::header::DataOrigin gDataOriginPHS;
+extern const o2::header::DataOrigin gDataOriginTOF;
+extern const o2::header::DataOrigin gDataOriginTPC;
+extern const o2::header::DataOrigin gDataOriginTRD;
+extern const o2::header::DataOrigin gDataOriginZDC;
 
 //possible data types
-extern const o2::Header::DataDescription gDataDescriptionAny;
-extern const o2::Header::DataDescription gDataDescriptionInvalid;
-extern const o2::Header::DataDescription gDataDescriptionRawData;
-extern const o2::Header::DataDescription gDataDescriptionClusters;
-extern const o2::Header::DataDescription gDataDescriptionTracks;
-extern const o2::Header::DataDescription gDataDescriptionConfig;
-extern const o2::Header::DataDescription gDataDescriptionInfo;
-extern const o2::Header::DataDescription gDataDescriptionROOTStreamers;
+extern const o2::header::DataDescription gDataDescriptionAny;
+extern const o2::header::DataDescription gDataDescriptionInvalid;
+extern const o2::header::DataDescription gDataDescriptionRawData;
+extern const o2::header::DataDescription gDataDescriptionClusters;
+extern const o2::header::DataDescription gDataDescriptionTracks;
+extern const o2::header::DataDescription gDataDescriptionConfig;
+extern const o2::header::DataDescription gDataDescriptionInfo;
+extern const o2::header::DataDescription gDataDescriptionROOTStreamers;
 /// @} // end of doxygen group
 
 //__________________________________________________________________________________________________
@@ -699,7 +699,11 @@ static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicString
 ///helper function to print a hex/ASCII dump of some memory
 void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
 
-} //namespace Header
+} //namespace header
+
+// 2017-12-21: keep an alias for a short while after renaming the namespace
+// to lower case, supports pull request currently open
+namespace Header = header;
 } //namespace o2
 
 #endif

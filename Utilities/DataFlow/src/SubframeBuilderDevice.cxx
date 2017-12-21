@@ -24,9 +24,9 @@
 #include "Headers/DataHeader.h"
 #include <options/FairMQProgOptions.h>
 
-using HeartbeatHeader = o2::Header::HeartbeatHeader;
-using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
-using DataHeader = o2::Header::DataHeader;
+using HeartbeatHeader = o2::header::HeartbeatHeader;
+using HeartbeatTrailer = o2::header::HeartbeatTrailer;
+using DataHeader = o2::header::DataHeader;
 using SubframeId = o2::dataflow::SubframeId;
 
 o2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice()
@@ -96,13 +96,13 @@ bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts
   // this should be defined in a common place, and also the origin
   // the origin can probably name a detector identifier, but not sure if
   // all CRUs of a FLP in all cases serve a single detector
-  o2::Header::DataHeader dh;
-  dh.dataDescription = o2::Header::DataDescription("SUBTIMEFRAMEMD");
-  dh.dataOrigin = o2::Header::DataOrigin("FLP");
+  o2::header::DataHeader dh;
+  dh.dataDescription = o2::header::DataDescription("SUBTIMEFRAMEMD");
+  dh.dataOrigin = o2::header::DataOrigin("FLP");
   dh.subSpecification = mFLPId;
   dh.payloadSize = sizeof(SubframeMetadata);
 
-  DataHeader payloadheader(*o2::Header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
+  DataHeader payloadheader(*o2::header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
 
   // subframe meta information as payload
   SubframeMetadata md;
