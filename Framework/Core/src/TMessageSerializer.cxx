@@ -8,18 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <Framework/TMessageSerializer.h>
-#include <memory>
 #include <algorithm>
+#include <memory>
 
 using namespace o2::framework;
 
 TMessageSerializer::StreamerList TMessageSerializer::sStreamers{};
 std::mutex TMessageSerializer::sStreamersLock{};
 
-void TMessageSerializer::loadSchema(const FairMQMessage& msg)
+void TMessageSerializer::loadSchema(gsl::span<byte> buffer)
 {
-  std::unique_ptr<TObject> obj{};
-  Deserialize(msg, obj);
+  std::unique_ptr<TObject> obj = deserialize(buffer);
 
   TObjArray* pSchemas = dynamic_cast<TObjArray*>(obj.get());
   if (!pSchemas) {
@@ -58,23 +57,35 @@ void TMessageSerializer::loadSchema(const FairMQMessage& msg)
   }
 }
 
+void TMessageSerializer::fillSchema(FairTMessage& msg, const StreamerList& streamers)
+{
+  // TODO: this is a bit of a problem in general: non-owning ROOT containers should become
+  // owners at deserialize, otherwise there is a leak. Switch to a better container.
+  TObjArray infoArray{};
+  for (const auto& info : streamers) {
+    infoArray.Add(info);
+  }
+  serialize(msg, &infoArray);
+}
+
+void TMessageSerializer::loadSchema(const FairMQMessage& msg) { loadSchema(as_span(msg)); }
 void TMessageSerializer::fillSchema(FairMQMessage& msg, const StreamerList& streamers)
 {
   // TODO: this is a bit of a problem in general: non-owning ROOT containers should become
   // owners at deserialize, otherwise there is a leak. Switch to a better container.
   TObjArray infoArray{};
-  for (const auto& info:streamers) {
+  for (const auto& info : streamers) {
     infoArray.Add(info);
   }
-  Serialize(msg,&infoArray);
+  Serialize(msg, &infoArray);
 }
 
-void TMessageSerializer::updateStreamers(const TMessage& message, StreamerList& streamers)
+void TMessageSerializer::updateStreamers(const FairTMessage& message, StreamerList& streamers)
 {
   std::lock_guard<std::mutex> lock{ TMessageSerializer::sStreamersLock };
 
   TIter nextStreamer(message.GetStreamerInfos()); // unfortunately ROOT uses TList* here
-  //this looks like we could use std::map here.
+  // this looks like we could use std::map here.
   while (TVirtualStreamerInfo* in = static_cast<TVirtualStreamerInfo*>(nextStreamer())) {
     auto found = std::find_if(streamers.begin(), streamers.end(), [&](const auto& old) {
       return (old->GetName() == in->GetName() && old->GetClassVersion() == in->GetClassVersion());
@@ -83,4 +94,10 @@ void TMessageSerializer::updateStreamers(const TMessage& message, StreamerList& 
       streamers.push_back(in);
     }
   }
+}
+
+void TMessageSerializer::updateStreamers(const TObject* object)
+{
+  FairTMessage msg(kMESS_OBJECT);
+  serialize(msg, object, CacheStreamers::yes, CompressionLevel{0});
 }
