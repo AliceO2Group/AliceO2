@@ -23,9 +23,9 @@
 namespace o2 {
 namespace framework {
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
-void broadcastMessage(FairMQDevice &device, o2::Header::Stack &&headerStack, FairMQMessagePtr &&payloadMessage, int index) {
+void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, FairMQMessagePtr &&payloadMessage, int index) {
   for (auto &channelInfo : device.fChannels) {
     auto channel = channelInfo.first;
     assert(channelInfo.second.size() == 1);
@@ -40,7 +40,7 @@ void broadcastMessage(FairMQDevice &device, o2::Header::Stack &&headerStack, Fai
     FairMQMessagePtr headerMessage = device.NewMessageFor(channel, index,
                                                           headerStack.buffer.get(),
                                                           headerStack.bufferSize,
-                                                          &o2::Header::Stack::freefn,
+                                                          &o2::header::Stack::freefn,
                                                           headerStack.buffer.get());
     headerStack.buffer.release();
     FairMQParts out;
@@ -55,10 +55,10 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, 
   auto timesliceId = std::make_shared<size_t>(startTime);
   return [timesliceId, step](FairMQDevice &device, FairMQParts &parts, int index) {
     for (size_t i = 0; i < parts.Size()/2; ++i) {
-      auto dh = o2::Header::get<DataHeader>(parts.At(i*2)->GetData());
+      auto dh = o2::header::get<DataHeader>(parts.At(i*2)->GetData());
 
       DataProcessingHeader dph{*timesliceId, 0};
-      o2::Header::Stack headerStack{*dh, dph};
+      o2::header::Stack headerStack{*dh, dph};
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(i*2+1)), index);
       auto oldTimesliceId = *timesliceId;
       *timesliceId += 1;
@@ -82,7 +82,7 @@ InjectorFunction incrementalConverter(OutputSpec const &spec, uint64_t startTime
       DataProcessingHeader dph{*timesliceId, 0};
       *timesliceId += step;
       //we have to move the incoming data
-      o2::Header::Stack headerStack{dh, dph};
+      o2::header::Stack headerStack{dh, dph};
 
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(i)), index);
     }

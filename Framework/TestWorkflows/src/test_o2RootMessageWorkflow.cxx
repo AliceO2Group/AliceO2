@@ -21,9 +21,9 @@
 #include <TString.h>
 
 using namespace o2::framework;
-using DataHeader = o2::Header::DataHeader;
-using DataOrigin = o2::Header::DataOrigin;
-using DataDescription = o2::Header::DataDescription;
+using DataHeader = o2::header::DataHeader;
+using DataOrigin = o2::header::DataOrigin;
+using DataDescription = o2::header::DataDescription;
 
 // This is how you can define your processing in a declarative way
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {

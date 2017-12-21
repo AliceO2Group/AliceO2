@@ -51,9 +51,9 @@ DataProcessorSpec getRootObjectMergerSpec() {
   // the shared pointer makes sure to clean up the instance when the processing
   // function gets out of scope
   auto processingFct = [merger = std::make_shared<Merger>(10)] (ProcessingContext &pc) {
-    using DataHeader = o2::Header::DataHeader;
+    using DataHeader = o2::header::DataHeader;
     for (auto & input : pc.inputs()) {
-      auto dh = o2::Header::get<const DataHeader>(input.header);
+      auto dh = o2::header::get<const DataHeader>(input.header);
       std::cout << dh->dataOrigin.str
       << " " << dh->dataDescription.str
       << " " << dh->payloadSize

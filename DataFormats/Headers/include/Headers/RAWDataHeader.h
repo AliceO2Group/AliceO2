@@ -18,7 +18,7 @@
 #include <cstdint>
 
 namespace o2 {
-namespace Header {
+namespace header {
 
 /// The definition of the RAW Data Header v2 (RDH) is specified in
 /// https://docs.google.com/document/d/1IxCCa1ZRpI3J9j3KCmw2htcOLIRVVdEcO-DDPcLNFM0

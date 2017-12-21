@@ -22,7 +22,7 @@
 #include <cassert>
 
 namespace o2 {
-namespace Header {
+namespace header {
 
 // https://lhc-machine-outreach.web.cern.ch/lhc-machine-outreach/collisions.htm
 // https://www.lhc-closer.es/taking_a_closer_look_at_lhc/0.buckets_and_bunches
@@ -40,8 +40,8 @@ namespace LHCClockParameter {
   const int gBunchSpacingNanoSec = 25;
   const int gOrbitTimeNanoSec = std::ratio<gNumberOfBunches*gBunchSpacingNanoSec>::num;
 
-  typedef o2::Header::Internal::intWrapper<0> OrbitPrecision;
-  typedef o2::Header::Internal::intWrapper<1> BunchPrecision;
+  typedef o2::header::Internal::intWrapper<0> OrbitPrecision;
+  typedef o2::header::Internal::intWrapper<1> BunchPrecision;
 
   // the type of the clock tick depends on whether to use also the bunches
   // as substructure of the orbit.
@@ -109,7 +109,7 @@ typedef LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::Bunch
 class TimeStamp
 {
  public:
-  typedef o2::Header::Descriptor<2> TimeUnitID;
+  typedef o2::header::Descriptor<2> TimeUnitID;
   // TODO: typedefs for the types of ticks and subticks
 
   TimeStamp() = default;
@@ -168,7 +168,7 @@ class TimeStamp
     };
   };
 };
-} //namespace Header
+} //namespace header
 } //namespace AliceO2
 
 #endif

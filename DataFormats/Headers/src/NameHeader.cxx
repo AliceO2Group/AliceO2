@@ -12,4 +12,4 @@
 
 //storage for NameHeader static
 template <>
-const o2::Header::HeaderType o2::Header::NameHeader<0>::sHeaderType = "NameHead";
+const o2::header::HeaderType o2::header::NameHeader<0>::sHeaderType = "NameHead";

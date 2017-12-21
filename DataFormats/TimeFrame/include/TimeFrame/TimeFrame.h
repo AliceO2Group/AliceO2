@@ -21,7 +21,7 @@ namespace DataFormat
 {
 
 using PartPosition = int;
-typedef std::pair<o2::Header::DataHeader, PartPosition> IndexElement;
+typedef std::pair<o2::header::DataHeader, PartPosition> IndexElement;
 
 // helper struct so that we can
 // stream messages using ROOT
@@ -48,7 +48,7 @@ class TimeFrame
   }
 
   // return TimeStamp (starttime) of this TimeFrame
-  Header::TimeStamp const& GetTimeStamp() const { return mTimeStamp; }
+  o2::header::TimeStamp const& GetTimeStamp() const { return mTimeStamp; }
 
   // return duration of this TimeFrame
   // allow user to ask for specific unit (needs to be std::chrono unit)
@@ -74,7 +74,7 @@ class TimeFrame
 
 private:
   // FIXME: enable this when we have a dictionary for TimeStamp etc
-  Header::TimeStamp mTimeStamp; //! the TimeStamp for this TimeFrame
+  o2::header::TimeStamp mTimeStamp; //! the TimeStamp for this TimeFrame
 
   size_t mEpnId; // EPN origin of TimeFrame
   std::vector<MessageSizePair> mParts; // the message parts as accumulated by the EPN

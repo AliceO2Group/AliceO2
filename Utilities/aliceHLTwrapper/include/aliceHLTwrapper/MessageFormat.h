@@ -73,7 +73,7 @@ struct BlockDescriptor : public AliHLTComponentBlockData {
 
   BlockDescriptor(void* ptr,
                   AliHLTUInt32_t size,
-                  const o2::Header::DataHeader& o2dh)
+                  const o2::header::DataHeader& o2dh)
     : BlockDescriptor(0, ptr, size, AliHLTComponentDataTypeInitializer(o2dh.dataDescription.str, o2dh.dataOrigin.str), o2dh.subSpecification) {}
 };
 
@@ -93,10 +93,10 @@ public:
   /// destructor
   ~MessageFormat();
 
-  using DataHeader = o2::Header::DataHeader;
-  using HeartbeatFrameEnvelope = o2::Header::HeartbeatFrameEnvelope;
-  using HeartbeatHeader = o2::Header::HeartbeatHeader;
-  using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+  using DataHeader = o2::header::DataHeader;
+  using HeartbeatFrameEnvelope = o2::header::HeartbeatFrameEnvelope;
+  using HeartbeatHeader = o2::header::HeartbeatHeader;
+  using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 
   struct BufferDesc_t {
     using PtrT = unsigned char*;

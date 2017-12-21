@@ -176,14 +176,14 @@ void runParserTest(const DataSetT &dataset)
             << " group header(s)" << std::endl
             << " pagesize " << pagesize << std::endl;
   auto buffer = MakeBuffer<DataSetT, PageHeaderT, GroupHeaderT, GroupHeaderPerPage>(pagesize, PageHeaderT(0), dataset);
-  o2::Header::hexDump("pagebuffer", buffer.first.get(), buffer.second);
+  o2::header::hexDump("pagebuffer", buffer.first.get(), buffer.second);
 
   using RawParser = o2::algorithm::PageParser<PageHeader, pagesize, ClusterData, int>;
   const RawParser parser(buffer.first.get(), buffer.second);
 
   unsigned dataidx = 0;
   for (auto i : parser) {
-    o2::Header::hexDump("clusterdata", &i, sizeof(ClusterData));
+    o2::header::hexDump("clusterdata", &i, sizeof(ClusterData));
     BOOST_REQUIRE( i == dataset[dataidx++]);
   }
 }
@@ -194,14 +194,14 @@ BOOST_AUTO_TEST_CASE(test_pageparser)
   std::vector<ClusterData> dataset;
   FillData(dataset, 20);
   auto buffer = MakeBuffer(pagesize, PageHeader(0), dataset);
-  o2::Header::hexDump("pagebuffer", buffer.first.get(), buffer.second);
+  o2::header::hexDump("pagebuffer", buffer.first.get(), buffer.second);
 
   using RawParser = o2::algorithm::PageParser<PageHeader, pagesize, ClusterData>;
   const RawParser parser(buffer.first.get(), buffer.second);
 
   unsigned dataidx = 0;
   for (auto i : parser) {
-    o2::Header::hexDump("clusterdata", &i, sizeof(ClusterData));
+    o2::header::hexDump("clusterdata", &i, sizeof(ClusterData));
     BOOST_REQUIRE( i == dataset[dataidx++]);
   }
 
@@ -220,11 +220,11 @@ BOOST_AUTO_TEST_CASE(test_pageparser)
     xvalues.emplace_back(i.x, dataidx);
     ++dataidx;
   }
-  o2::Header::hexDump("changed buffer", buffer.first.get(), buffer.second);
+  o2::header::hexDump("changed buffer", buffer.first.get(), buffer.second);
 
   dataidx = 0;
   for (auto i : parser) {
-    o2::Header::hexDump("clusterdata", &i, sizeof(ClusterData));
+    o2::header::hexDump("clusterdata", &i, sizeof(ClusterData));
     BOOST_REQUIRE( i.x == xvalues[dataidx++].first);
   }
 }

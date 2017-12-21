@@ -141,7 +141,7 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
   bool tryO2format = true;
   for (auto & data : list) {
     if (tryO2format) {
-      if (o2::Header::get<o2::Header::DataHeader>(data.mP, data.mSize)) {
+      if (o2::header::get<o2::header::DataHeader>(data.mP, data.mSize)) {
         return readO2Format(list, mBlockDescriptors, mHeartbeatHeader, mHeartbeatTrailer);
       }
       tryO2format = false;
@@ -226,19 +226,19 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
 int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList, HeartbeatHeader& hbh, HeartbeatTrailer& hbt) const
 {
   int partNumber = 0;
-  const o2::Header::DataHeader* dh = nullptr;
+  const o2::header::DataHeader* dh = nullptr;
   for (auto part : list) {
     if (!dh) {
       // new header - payload pair, read DataHeader
-      dh = o2::Header::get<o2::Header::DataHeader>(part.mP, part.mSize);
+      dh = o2::header::get<o2::header::DataHeader>(part.mP, part.mSize);
       if (!dh) {
         cerr << "can not find DataHeader" << endl;
         return -ENOMSG;
       }
       // extract the heartbeat information if available and keep it to
       // envelope the data blocks in the output message
-      if (dh->dataDescription == o2::Header::gDataDescriptionHeartbeatFrame) {
-        const HeartbeatFrameEnvelope* hbf = o2::Header::get<HeartbeatFrameEnvelope>(part.mP, part.mSize);
+      if (dh->dataDescription == o2::header::gDataDescriptionHeartbeatFrame) {
+        const HeartbeatFrameEnvelope* hbf = o2::header::get<HeartbeatFrameEnvelope>(part.mP, part.mSize);
         if (hbf) {
           hbh = hbf->header;
           hbt = hbf->trailer;
@@ -247,7 +247,7 @@ int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<Bl
         }
       }
     } else {
-      if (dh->dataDescription == o2::Header::gDataDescriptionHeartbeatFrame) {
+      if (dh->dataDescription == o2::header::gDataDescriptionHeartbeatFrame) {
         // this is pure O2 information, do not forward to HLT component
         dh = nullptr;
         continue;
@@ -340,12 +340,12 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     const auto* pOutputBlock = pOutputBlocks;
     auto maxBufferSize = totalPayloadSize;
     if (mOutputMode == kOutputModeO2) {
-      maxBufferSize += count * sizeof(o2::Header::DataHeader);
+      maxBufferSize += count * sizeof(o2::header::DataHeader);
       if (mHeartbeatHeader) {
         // one extra header for the generated HB information
-        maxBufferSize += sizeof(o2::Header::DataHeader) + sizeof(HeartbeatFrameEnvelope);
+        maxBufferSize += sizeof(o2::header::DataHeader) + sizeof(HeartbeatFrameEnvelope);
         // the payload of the additional block
-        maxBufferSize += sizeof(o2::Header::HeartbeatStatistics);
+        maxBufferSize += sizeof(o2::header::HeartbeatStatistics);
         // one heartbeat header-trailer pair per data block
         maxBufferSize += count * (sizeof(mHeartbeatHeader) + sizeof(mHeartbeatTrailer));
       }
@@ -365,14 +365,14 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     if (mOutputMode == kOutputModeO2 && mHeartbeatHeader) {
       // add additional heartbeat envelope block at the beginning
       // data header
-      o2::Header::DataHeader dh;
-      o2::Header::HeartbeatStatistics hbfPayload;
-      dh.dataDescription = o2::Header::gDataDescriptionHeartbeatFrame;
-      dh.dataOrigin = o2::Header::gDataOriginAny;
+      o2::header::DataHeader dh;
+      o2::header::HeartbeatStatistics hbfPayload;
+      dh.dataDescription = o2::header::gDataDescriptionHeartbeatFrame;
+      dh.dataOrigin = o2::header::gDataOriginAny;
       dh.payloadSize = sizeof(hbfPayload);
       dh.subSpecification = 0;
       // make the stack
-      o2::Header::Stack headerMessage(dh, HeartbeatFrameEnvelope(mHeartbeatHeader, mHeartbeatTrailer));
+      o2::header::Stack headerMessage(dh, HeartbeatFrameEnvelope(mHeartbeatHeader, mHeartbeatTrailer));
 
       auto msgSize = headerMessage.size();
       pTarget = MakeTarget(msgSize, position, cbAllocate);
@@ -403,7 +403,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
         } else if (mOutputMode == kOutputModeSequence) {
           msgSize+=count*sizeof(AliHLTComponentBlockData) + totalPayloadSize;
         } else if (mOutputMode == kOutputModeO2 ) {
-          msgSize = sizeof(o2::Header::DataHeader);
+          msgSize = sizeof(o2::header::DataHeader);
         }
         pTarget = MakeTarget(msgSize, position, cbAllocate);
         offset = 0;
@@ -444,13 +444,13 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
           if (cbAllocate == nullptr) position+=offset;
           offset = 0;
         } else if (mOutputMode == kOutputModeO2) {
-          o2::Header::DataHeader dh;
+          o2::header::DataHeader dh;
           dh.dataDescription.runtimeInit(pOutputBlock->fDataType.fID, kAliHLTComponentDataTypefIDsize);
           dh.dataOrigin.runtimeInit(pOutputBlock->fDataType.fOrigin, kAliHLTComponentDataTypefOriginSize);
           dh.payloadSize = pOutputBlock->fSize;
           dh.subSpecification = pOutputBlock->fSpecification;
-          memcpy(pTarget, &dh, sizeof(o2::Header::DataHeader));
-          offset += sizeof(o2::Header::DataHeader);
+          memcpy(pTarget, &dh, sizeof(o2::header::DataHeader));
+          offset += sizeof(o2::header::DataHeader);
           mMessages.emplace_back(pTarget, offset);
           if (cbAllocate == nullptr) position+=offset;
           offset = 0;

@@ -22,20 +22,20 @@
 #include "Headers/DataHeader.h"
 
 namespace o2 {
-namespace Header {
+namespace header {
 
 /// @struct NameHeader
 /// @brief an example data header containing a name of an object as a null terminated char arr.
 /// this is a template! at instantiation the template parameter determines the
 /// size of the held string array.
-/// a caveat with decoding is you have to use Header::get<NameHeader<0>>(buffer)
+/// a caveat with decoding is you have to use header::get<NameHeader<0>>(buffer)
 /// to get it out of a buffer. May improve in the future if enough people complain.
 /// @ingroup aliceo2_dataformats_dataheader
 template <size_t N>
 struct NameHeader : public BaseHeader {
   static const uint32_t sVersion;
-  static const o2::Header::HeaderType sHeaderType;
-  static const o2::Header::SerializationMethod sSerializationMethod;
+  static const o2::header::HeaderType sHeaderType;
+  static const o2::header::SerializationMethod sSerializationMethod;
   NameHeader()
   : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
   , name()
@@ -61,12 +61,12 @@ private:
 };
 
 template <size_t N>
-const o2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
+const o2::header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
 
 // dirty trick to always have access to the headertypeID of a templated header type
 // TODO: find out if this can be done in a nicer way + is this realy necessary?
 template <>
-const o2::Header::HeaderType NameHeader<0>::sHeaderType;
+const o2::header::HeaderType NameHeader<0>::sHeaderType;
 
 template <size_t N>
 const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;

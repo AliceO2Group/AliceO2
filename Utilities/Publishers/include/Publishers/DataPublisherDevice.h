@@ -80,9 +80,9 @@ private:
   /// index of the previously handled data channel in HandleData
   int mLastIndex;
   /// the default data description
-  o2::Header::DataDescription mDataDescription;
+  o2::header::DataDescription mDataDescription;
   /// the default data description
-  o2::Header::DataOrigin mDataOrigin;
+  o2::header::DataOrigin mDataOrigin;
   /// the default data sub specification
   SubSpecificationT mSubSpecification;
   /// buffer for the file to read

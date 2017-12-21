@@ -26,7 +26,7 @@
 template<typename... Targs>
 void hexDump(Targs... Fargs) {
   // a simple redirect to enable/disable the hexdump printout
-  o2::Header::hexDump(Fargs...);
+  o2::header::hexDump(Fargs...);
 }
 
 BOOST_AUTO_TEST_CASE(test_o2formatparser)
@@ -36,20 +36,20 @@ BOOST_AUTO_TEST_CASE(test_o2formatparser)
     "reconstructed data"
   };
   unsigned dataidx = 0;
-  std::vector<o2::Header::DataHeader> dataheaders;
-  dataheaders.emplace_back(o2::Header::DataDescription("RAWDATA"),
-                           o2::Header::DataOrigin("DET"),
+  std::vector<o2::header::DataHeader> dataheaders;
+  dataheaders.emplace_back(o2::header::DataDescription("RAWDATA"),
+                           o2::header::DataOrigin("DET"),
                            0,
                            strlen(thedata[dataidx++]));
-  dataheaders.emplace_back(o2::Header::DataDescription("RECODATA"),
-                           o2::Header::DataOrigin("DET"),
+  dataheaders.emplace_back(o2::header::DataDescription("RECODATA"),
+                           o2::header::DataOrigin("DET"),
                            0,
                            strlen(thedata[dataidx++]));
 
   std::vector<std::pair<const char*, size_t>> messages;
   for (dataidx = 0; dataidx < thedata.size(); ++dataidx) {
     messages.emplace_back(reinterpret_cast<char*>(&dataheaders[dataidx]),
-                          sizeof(o2::Header::DataHeader));
+                          sizeof(o2::header::DataHeader));
     messages.emplace_back(thedata[dataidx],
                           dataheaders[dataidx].payloadSize);
   }

@@ -40,10 +40,10 @@ namespace framework {
 /// The information consists of two parts: start time id and duration
 ///
 /// @ingroup aliceo2_dataformats_dataheader
-struct DataProcessingHeader : public Header::BaseHeader
+struct DataProcessingHeader : public header::BaseHeader
 {
   // Required to do the lookup
-  static const o2::Header::HeaderType sHeaderType;
+  static const o2::header::HeaderType sHeaderType;
   static const uint32_t sVersion = 1;
 
   // allows DataHeader::SubSpecificationType to be used as generic type in the code
@@ -75,7 +75,7 @@ struct DataProcessingHeader : public Header::BaseHeader
   }
 
   DataProcessingHeader(StartTime s, Duration d)
-  : BaseHeader(sizeof(DataProcessingHeader),sHeaderType,Header::gSerializationMethodNone,sVersion),
+  : BaseHeader(sizeof(DataProcessingHeader), sHeaderType, header::gSerializationMethodNone,sVersion),
     startTime(s),
     duration(d)
   {

@@ -18,7 +18,7 @@
 #include <options/FairMQProgOptions.h>
 #include <vector>
 
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
 namespace {
 struct OneShotReadBuf : public std::streambuf

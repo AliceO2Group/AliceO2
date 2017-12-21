@@ -382,8 +382,8 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
     for (size_t ii = 0; ii < spec.inputs.size(); ++ii) {
       InputSpec const &input = spec.inputs[ii];
       if (input.binding.empty()
-          || input.description == o2::Header::DataDescription("")
-          || input.origin == o2::Header::DataOrigin("")) {
+          || input.description == o2::header::DataDescription("")
+          || input.origin == o2::header::DataOrigin("")) {
         ss << "In spec " << spec.name << " input specification " 
            << ii << " requires binding, description and origin"
            " to be fully specified";

@@ -17,8 +17,8 @@
 namespace o2 { namespace dataflow {
 
 int64_t extractDetectorPayloadStrip(char **payload, char *buffer, size_t bufferSize) {
-  *payload = buffer + sizeof(o2::Header::HeartbeatHeader);
-  return bufferSize - sizeof(o2::Header::HeartbeatHeader) - sizeof(o2::Header::HeartbeatTrailer);
+  *payload = buffer + sizeof(o2::header::HeartbeatHeader);
+  return bufferSize - sizeof(o2::header::HeartbeatHeader) - sizeof(o2::header::HeartbeatTrailer);
 }
 
 
@@ -32,7 +32,7 @@ struct SubframeId {
   }
 };
 
-SubframeId makeIdFromHeartbeatHeader(const Header::HeartbeatHeader &header, size_t socketId, size_t orbitsPerTimeframe) {
+SubframeId makeIdFromHeartbeatHeader(const header::HeartbeatHeader &header, size_t socketId, size_t orbitsPerTimeframe) {
   SubframeId id = {
     .timeframeId = header.orbit / orbitsPerTimeframe,
     .socketId = socketId

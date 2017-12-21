@@ -17,8 +17,8 @@
 namespace o2 {
 namespace framework {
 
-using DataHeader = o2::Header::DataHeader;
-using DataDescription = o2::Header::DataDescription;
+using DataHeader = o2::header::DataHeader;
+using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 DataAllocator::DataAllocator(FairMQDevice *device,
@@ -58,15 +58,15 @@ DataAllocator::newChunk(const OutputSpec &spec, size_t size) {
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = size;
-  dh.payloadSerializationMethod = o2::Header::gSerializationMethodNone;
+  dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
-  o2::Header::Stack headerStack{dh, dph};
+  o2::header::Stack headerStack{dh, dph};
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
                                                           headerStack.buffer.get(),
                                                           headerStack.bufferSize,
-                                                          &o2::Header::Stack::freefn,
+                                                          &o2::header::Stack::freefn,
                                                           headerStack.buffer.get());
   headerStack.buffer.release();
   FairMQMessagePtr payloadMessage = mDevice->NewMessageFor(channel, 0, size);
@@ -93,15 +93,15 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
   dh.dataDescription = spec.description;
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = size;
-  dh.payloadSerializationMethod = o2::Header::gSerializationMethodNone;
+  dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
-  o2::Header::Stack headerStack{dh, dph};
+  o2::header::Stack headerStack{dh, dph};
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
                                                           headerStack.buffer.get(),
                                                           headerStack.bufferSize,
-                                                          &o2::Header::Stack::freefn,
+                                                          &o2::header::Stack::freefn,
                                                           headerStack.buffer.get());
   headerStack.buffer.release();
 
@@ -121,7 +121,7 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
 FairMQMessagePtr
 DataAllocator::headerMessageFromSpec(OutputSpec const &spec,
                                      std::string const &channel,
-                                     o2::Header::SerializationMethod method) {
+                                     o2::header::SerializationMethod method) {
   DataHeader dh;
   dh.dataOrigin = spec.origin;
   dh.dataDescription = spec.description;
@@ -133,11 +133,11 @@ DataAllocator::headerMessageFromSpec(OutputSpec const &spec,
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
   //we have to move the incoming data
-  o2::Header::Stack headerStack{dh, dph};
+  o2::header::Stack headerStack{dh, dph};
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
                                                           headerStack.buffer.get(),
                                                           headerStack.bufferSize,
-                                                          &o2::Header::Stack::freefn,
+                                                          &o2::header::Stack::freefn,
                                                           headerStack.buffer.get());
   headerStack.buffer.release();
   return std::move(headerMessage);
@@ -146,7 +146,7 @@ DataAllocator::headerMessageFromSpec(OutputSpec const &spec,
 void
 DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage,
                                 const OutputSpec &spec,
-                                o2::Header::SerializationMethod serializationMethod)
+                                o2::header::SerializationMethod serializationMethod)
 {
     std::string channel = matchDataHeader(spec, mRootContext->timeslice());
     auto headerMessage = headerMessageFromSpec(spec, channel, serializationMethod);
@@ -155,7 +155,7 @@ DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage,
 
     // FIXME: this is kind of ugly, we know that we can change the content of the
     // header message because we have just created it, but the API declares it const
-    const DataHeader *cdh = o2::Header::get<DataHeader>(headerMessage->GetData());
+    const DataHeader *cdh = o2::header::get<DataHeader>(headerMessage->GetData());
     DataHeader *dh = const_cast<DataHeader *>(cdh);
     dh->payloadSize = payloadMessage->GetSize();
     parts.AddPart(std::move(headerMessage));
@@ -167,7 +167,7 @@ void
 DataAllocator::adopt(const OutputSpec &spec, TObject*ptr) {
   std::unique_ptr<TObject> payload(ptr);
   std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-  auto header = headerMessageFromSpec(spec, channel, o2::Header::gSerializationMethodROOT);
+  auto header = headerMessageFromSpec(spec, channel, o2::header::gSerializationMethodROOT);
   mRootContext->addObject(std::move(header), std::move(payload), channel);
   assert(payload.get() == nullptr);
 }

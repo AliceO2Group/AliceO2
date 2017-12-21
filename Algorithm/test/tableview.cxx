@@ -26,14 +26,14 @@
 #include "../include/Algorithm/Parser.h"
 #include "StaticSequenceAllocator.h"
 
-using DataHeader = o2::Header::DataHeader;
-using HeartbeatHeader = o2::Header::HeartbeatHeader;
-using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+using DataHeader = o2::header::DataHeader;
+using HeartbeatHeader = o2::header::HeartbeatHeader;
+using HeartbeatTrailer = o2::header::HeartbeatTrailer;
 
 template<typename... Targs>
 void hexDump(Targs... Fargs) {
   // a simple redirect to enable/disable the hexdump printout
-  o2::Header::hexDump(Fargs...);
+  o2::header::hexDump(Fargs...);
 }
 
 BOOST_AUTO_TEST_CASE(test_tableview_reverse)
@@ -62,20 +62,20 @@ BOOST_AUTO_TEST_CASE(test_tableview_reverse)
 
   // define the view type for DataHeader as row descriptor,
   // HeartbeatHeader as column descriptor and the reverse parser
-  using ViewType = o2::algorithm::TableView<o2::Header::DataHeader,
-                                            o2::Header::HeartbeatHeader,
+  using ViewType = o2::algorithm::TableView<o2::header::DataHeader,
+                                            o2::header::HeartbeatHeader,
                                             ParserT>;
   ViewType heartbeatview;
 
-  o2::Header::DataHeader dh1;
-  dh1.dataDescription = o2::Header::DataDescription("FIRSTROW");
-  dh1.dataOrigin = o2::Header::DataOrigin("TST");
+  o2::header::DataHeader dh1;
+  dh1.dataDescription = o2::header::DataDescription("FIRSTROW");
+  dh1.dataOrigin = o2::header::DataOrigin("TST");
   dh1.subSpecification = 0;
   dh1.payloadSize = 0;
 
-  o2::Header::DataHeader dh2;
-  dh2.dataDescription = o2::Header::DataDescription("SECONDROW");
-  dh2.dataOrigin = o2::Header::DataOrigin("TST");
+  o2::header::DataHeader dh2;
+  dh2.dataDescription = o2::header::DataDescription("SECONDROW");
+  dh2.dataOrigin = o2::header::DataOrigin("TST");
   dh2.subSpecification = 0xdeadbeef;
   dh2.payloadSize = 0;
 

@@ -16,7 +16,7 @@
 #include "Headers/TimeStamp.h"
 
 namespace o2 {
-  namespace Header {
+  namespace header {
 
     BOOST_AUTO_TEST_CASE(LHCClock_test)
     {

@@ -25,63 +25,63 @@
 #include <cstring> // strncpy
 
 //the answer to life and everything
-const uint32_t o2::Header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
+const uint32_t o2::header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
 
 //possible serialization types
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodAny    ("*******");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodInvalid("INVALID");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodNone   ("NONE");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodROOT   ("ROOT");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodFlatBuf("FLATBUF");
+const o2::header::SerializationMethod o2::header::gSerializationMethodAny    ("*******");
+const o2::header::SerializationMethod o2::header::gSerializationMethodInvalid("INVALID");
+const o2::header::SerializationMethod o2::header::gSerializationMethodNone   ("NONE");
+const o2::header::SerializationMethod o2::header::gSerializationMethodROOT   ("ROOT");
+const o2::header::SerializationMethod o2::header::gSerializationMethodFlatBuf("FLATBUF");
 
 //__________________________________________________________________________________________________
 //possible data origins
-const o2::Header::DataOrigin o2::Header::gDataOriginAny    ("***");
-const o2::Header::DataOrigin o2::Header::gDataOriginInvalid("NIL");
-const o2::Header::DataOrigin o2::Header::gDataOriginFLP    ("FLP");
-const o2::Header::DataOrigin o2::Header::gDataOriginACO    ("ACO");
-const o2::Header::DataOrigin o2::Header::gDataOriginCPV    ("CPV");
-const o2::Header::DataOrigin o2::Header::gDataOriginCTP    ("CTP");
-const o2::Header::DataOrigin o2::Header::gDataOriginEMC    ("EMC");
-const o2::Header::DataOrigin o2::Header::gDataOriginFIT    ("FIT");
-const o2::Header::DataOrigin o2::Header::gDataOriginHMP    ("HMP");
-const o2::Header::DataOrigin o2::Header::gDataOriginITS    ("ITS");
-const o2::Header::DataOrigin o2::Header::gDataOriginMCH    ("MCH");
-const o2::Header::DataOrigin o2::Header::gDataOriginMFT    ("MFT");
-const o2::Header::DataOrigin o2::Header::gDataOriginMID    ("MID");
-const o2::Header::DataOrigin o2::Header::gDataOriginPHS    ("PHS");
-const o2::Header::DataOrigin o2::Header::gDataOriginTOF    ("TOF");
-const o2::Header::DataOrigin o2::Header::gDataOriginTPC    ("TPC");
-const o2::Header::DataOrigin o2::Header::gDataOriginTRD    ("TRD");
-const o2::Header::DataOrigin o2::Header::gDataOriginZDC    ("ZDC");
+const o2::header::DataOrigin o2::header::gDataOriginAny    ("***");
+const o2::header::DataOrigin o2::header::gDataOriginInvalid("NIL");
+const o2::header::DataOrigin o2::header::gDataOriginFLP    ("FLP");
+const o2::header::DataOrigin o2::header::gDataOriginACO    ("ACO");
+const o2::header::DataOrigin o2::header::gDataOriginCPV    ("CPV");
+const o2::header::DataOrigin o2::header::gDataOriginCTP    ("CTP");
+const o2::header::DataOrigin o2::header::gDataOriginEMC    ("EMC");
+const o2::header::DataOrigin o2::header::gDataOriginFIT    ("FIT");
+const o2::header::DataOrigin o2::header::gDataOriginHMP    ("HMP");
+const o2::header::DataOrigin o2::header::gDataOriginITS    ("ITS");
+const o2::header::DataOrigin o2::header::gDataOriginMCH    ("MCH");
+const o2::header::DataOrigin o2::header::gDataOriginMFT    ("MFT");
+const o2::header::DataOrigin o2::header::gDataOriginMID    ("MID");
+const o2::header::DataOrigin o2::header::gDataOriginPHS    ("PHS");
+const o2::header::DataOrigin o2::header::gDataOriginTOF    ("TOF");
+const o2::header::DataOrigin o2::header::gDataOriginTPC    ("TPC");
+const o2::header::DataOrigin o2::header::gDataOriginTRD    ("TRD");
+const o2::header::DataOrigin o2::header::gDataOriginZDC    ("ZDC");
 
 //possible data types
-const o2::Header::DataDescription o2::Header::gDataDescriptionAny     ("***************");
-const o2::Header::DataDescription o2::Header::gDataDescriptionInvalid ("INVALID_DESC");
-const o2::Header::DataDescription o2::Header::gDataDescriptionRawData ("RAWDATA");
-const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS");
-const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS");
-const o2::Header::DataDescription o2::Header::gDataDescriptionConfig  ("CONFIGURATION");
-const o2::Header::DataDescription o2::Header::gDataDescriptionInfo    ("INFORMATION");
-const o2::Header::DataDescription o2::Header::gDataDescriptionROOTStreamers("ROOT STREAMERS");
+const o2::header::DataDescription o2::header::gDataDescriptionAny     ("***************");
+const o2::header::DataDescription o2::header::gDataDescriptionInvalid ("INVALID_DESC");
+const o2::header::DataDescription o2::header::gDataDescriptionRawData ("RAWDATA");
+const o2::header::DataDescription o2::header::gDataDescriptionClusters("CLUSTERS");
+const o2::header::DataDescription o2::header::gDataDescriptionTracks  ("TRACKS");
+const o2::header::DataDescription o2::header::gDataDescriptionConfig  ("CONFIGURATION");
+const o2::header::DataDescription o2::header::gDataDescriptionInfo    ("INFORMATION");
+const o2::header::DataDescription o2::header::gDataDescriptionROOTStreamers("ROOT STREAMERS");
 
 //definitions for Stack statics
-std::default_delete<byte[]> o2::Header::Stack::sDeleter;
+std::default_delete<byte[]> o2::header::Stack::sDeleter;
 
 //storage for BaseHeader static members, all invalid
-const uint32_t o2::Header::BaseHeader::sVersion = o2::Header::gInvalidToken32;
-const o2::Header::HeaderType o2::Header::BaseHeader::sHeaderType = o2::Header::gInvalidToken64;
-const o2::Header::SerializationMethod o2::Header::BaseHeader::sSerializationMethod = o2::Header::gInvalidToken64;
+const uint32_t o2::header::BaseHeader::sVersion = o2::header::gInvalidToken32;
+const o2::header::HeaderType o2::header::BaseHeader::sHeaderType = o2::header::gInvalidToken64;
+const o2::header::SerializationMethod o2::header::BaseHeader::sSerializationMethod = o2::header::gInvalidToken64;
 
 //storage for DataHeader static members
-const uint32_t o2::Header::DataHeader::sVersion = 1;
-const o2::Header::HeaderType o2::Header::DataHeader::sHeaderType = String2<uint64_t>("DataHead");
-const o2::Header::SerializationMethod o2::Header::DataHeader::sSerializationMethod = o2::Header::gSerializationMethodNone;
+const uint32_t o2::header::DataHeader::sVersion = 1;
+const o2::header::HeaderType o2::header::DataHeader::sHeaderType = String2<uint64_t>("DataHead");
+const o2::header::SerializationMethod o2::header::DataHeader::sSerializationMethod = o2::header::gSerializationMethodNone;
 
-using namespace o2::Header;
+using namespace o2::header;
 
 //__________________________________________________________________________________________________
-o2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
+o2::header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
                                         SerializationMethod ser, uint32_t version)
   : magicStringInt(sMagicString)
   , headerSize(mySize)
@@ -93,7 +93,7 @@ o2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
 }
 
 //__________________________________________________________________________________________________
-o2::Header::DataHeader::DataHeader()
+o2::header::DataHeader::DataHeader()
   : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
   , dataDescription(gDataDescriptionInvalid)
   , dataOrigin(gDataOriginInvalid)
@@ -105,7 +105,7 @@ o2::Header::DataHeader::DataHeader()
 }
 
 //__________________________________________________________________________________________________
-o2::Header::DataHeader::DataHeader(DataDescription desc,
+o2::header::DataHeader::DataHeader(DataDescription desc,
                                    DataOrigin origin,
                                    SubSpecificationType subspec,
                                    uint64_t size
@@ -121,7 +121,7 @@ o2::Header::DataHeader::DataHeader(DataDescription desc,
 }
 
 //__________________________________________________________________________________________________
-void o2::Header::DataHeader::print() const
+void o2::header::DataHeader::print() const
 {
   printf("Data header version %i, flags: %i\n",headerVersion, flags);
   printf("  origin       : %s\n", dataOrigin.str);
@@ -133,7 +133,7 @@ void o2::Header::DataHeader::print() const
 }
 
 //__________________________________________________________________________________________________
-DataHeader& o2::Header::DataHeader::operator=(const DataHeader& that)
+DataHeader& o2::header::DataHeader::operator=(const DataHeader& that)
 {
   magicStringInt = that.magicStringInt;
   dataOrigin = that.dataOrigin;
@@ -148,35 +148,35 @@ DataHeader& o2::Header::DataHeader::operator=(const DataHeader& that)
 }
 
 //__________________________________________________________________________________________________
-DataHeader& o2::Header::DataHeader::operator=(const DataOrigin& that)
+DataHeader& o2::header::DataHeader::operator=(const DataOrigin& that)
 {
   dataOrigin = that;
   return *this;
 }
 
 //__________________________________________________________________________________________________
-DataHeader& o2::Header::DataHeader::operator=(const DataDescription& that)
+DataHeader& o2::header::DataHeader::operator=(const DataDescription& that)
 {
   dataDescription = that;
   return *this;
 }
 
 //__________________________________________________________________________________________________
-DataHeader& o2::Header::DataHeader::operator=(const SerializationMethod& that)
+DataHeader& o2::header::DataHeader::operator=(const SerializationMethod& that)
 {
   payloadSerializationMethod = that;
   return *this;
 }
 
 //__________________________________________________________________________________________________
-bool o2::Header::DataHeader::operator==(const DataOrigin& that) const
+bool o2::header::DataHeader::operator==(const DataOrigin& that) const
 {
   return (that == gDataOriginAny||
           that == dataOrigin );
 }
 
 //__________________________________________________________________________________________________
-bool o2::Header::DataHeader::operator==(const DataDescription& that) const
+bool o2::header::DataHeader::operator==(const DataDescription& that) const
 {
   return ((that.itg[0] == gDataDescriptionAny.itg[0] &&
            that.itg[1] == gDataDescriptionAny.itg[1]) ||
@@ -185,14 +185,14 @@ bool o2::Header::DataHeader::operator==(const DataDescription& that) const
 }
 
 //__________________________________________________________________________________________________
-bool o2::Header::DataHeader::operator==(const SerializationMethod& that) const
+bool o2::header::DataHeader::operator==(const SerializationMethod& that) const
 {
   return (that == gSerializationMethodAny||
           that == payloadSerializationMethod );
 }
 
 //__________________________________________________________________________________________________
-bool o2::Header::DataHeader::operator==(const DataHeader& that) const
+bool o2::header::DataHeader::operator==(const DataHeader& that) const
 {
   return( magicStringInt == that.magicStringInt &&
           dataOrigin == that.dataOrigin &&
@@ -201,25 +201,25 @@ bool o2::Header::DataHeader::operator==(const DataHeader& that) const
 }
 
 //__________________________________________________________________________________________________
-void o2::Header::printDataDescription::operator()(const char* str) const
+void o2::header::printDataDescription::operator()(const char* str) const
 {
   printf("Data description  : %s\n", str);
 }
 
 //__________________________________________________________________________________________________
-void o2::Header::printDataOrigin::operator()(const char* str) const
+void o2::header::printDataOrigin::operator()(const char* str) const
 {
   printf("Data origin  : %s\n", str);
 }
 
 //__________________________________________________________________________________________________
-o2::Header::DataIdentifier::DataIdentifier()
+o2::header::DataIdentifier::DataIdentifier()
   : dataDescription(), dataOrigin()
 {
 }
 
 //__________________________________________________________________________________________________
-bool o2::Header::DataIdentifier::operator==(const DataIdentifier& other) const {
+bool o2::header::DataIdentifier::operator==(const DataIdentifier& other) const {
   if (other.dataOrigin != gDataOriginAny && dataOrigin != other.dataOrigin) return false;
   if (other.dataDescription != gDataDescriptionAny &&
       dataDescription != other.dataDescription) return false;
@@ -227,14 +227,14 @@ bool o2::Header::DataIdentifier::operator==(const DataIdentifier& other) const {
 }
 
 //__________________________________________________________________________________________________
-void o2::Header::DataIdentifier::print() const
+void o2::header::DataIdentifier::print() const
 {
   dataOrigin.print();
   dataDescription.print();
 }
 
 //__________________________________________________________________________________________________
-void o2::Header::hexDump (const char* desc, const void* voidaddr, size_t len, size_t max)
+void o2::header::hexDump (const char* desc, const void* voidaddr, size_t len, size_t max)
 {
   size_t i;
   unsigned char buff[17];       // stores the ASCII data

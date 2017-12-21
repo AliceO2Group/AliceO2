@@ -23,9 +23,9 @@
 
 #include <options/FairMQProgOptions.h>
 
-using DataHeader = o2::Header::DataHeader;
-using DataOrigin = o2::Header::DataOrigin;
-using DataDescription = o2::Header::DataDescription;
+using DataHeader = o2::header::DataHeader;
+using DataOrigin = o2::header::DataOrigin;
+using DataDescription = o2::header::DataDescription;
 using IndexElement = o2::DataFormat::IndexElement;
 
 o2::DataFlow::TimeframeValidatorDevice::TimeframeValidatorDevice()
@@ -49,7 +49,7 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
     if (timeframeParts.Size() < 2)
       LOG(ERROR) << "Expecting at least 2 parts\n";
 
-    auto indexHeader = o2::Header::get<Header::DataHeader>(timeframeParts.At(timeframeParts.Size() - 2)->GetData());
+    auto indexHeader = o2::header::get<header::DataHeader>(timeframeParts.At(timeframeParts.Size() - 2)->GetData());
     // FIXME: Provide iterator pair API for the index
     //        Index should really be something which provides an
     //        iterator pair API so that we can sort / find / lower_bound
@@ -78,12 +78,12 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
       assert(ie.second >= 0);
       LOG(DEBUG) << ie.first.dataDescription.str << " "
                  << ie.first.dataOrigin.str << std::endl;
-      if ((ie.first.dataOrigin == Header::gDataOriginTPC)
-          && (ie.first.dataDescription == Header::gDataDescriptionClusters)) {
+      if ((ie.first.dataOrigin == header::gDataOriginTPC)
+          && (ie.first.dataDescription == header::gDataDescriptionClusters)) {
         tpcIndex = ie.second;
       }
-      if ((ie.first.dataOrigin == Header::gDataOriginITS)
-          && (ie.first.dataDescription == Header::gDataDescriptionClusters)) {
+      if ((ie.first.dataOrigin == header::gDataOriginITS)
+          && (ie.first.dataDescription == header::gDataDescriptionClusters)) {
         itsIndex = ie.second;
       }
     }
@@ -103,8 +103,8 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
 
     // Data header it at position - 1
     auto tpcHeader = reinterpret_cast<DataHeader *>(timeframeParts.At(tpcIndex)->GetData());
-    if ((tpcHeader->dataDescription != Header::gDataDescriptionClusters) ||
-        (tpcHeader->dataOrigin != Header::gDataOriginTPC))
+    if ((tpcHeader->dataDescription != header::gDataDescriptionClusters) ||
+        (tpcHeader->dataOrigin != header::gDataOriginTPC))
     {
       LOG(ERROR) << "Wrong data description. Expecting TPC - CLUSTERS, found "
                  << tpcHeader->dataOrigin.str << " - "
@@ -132,8 +132,8 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
 
     // Data header it at position - 1
     auto itsHeader = reinterpret_cast<DataHeader *>(timeframeParts.At(itsIndex)->GetData());
-    if ((itsHeader->dataDescription != Header::gDataDescriptionClusters)
-        || (itsHeader->dataOrigin != Header::gDataOriginITS))
+    if ((itsHeader->dataDescription != header::gDataDescriptionClusters)
+        || (itsHeader->dataOrigin != header::gDataOriginITS))
     {
       LOG(ERROR) << "Wrong data description. Expecting ITS - CLUSTERS, found "
                  << itsHeader->dataOrigin.str << " - " << itsHeader->dataDescription.str << "\n";

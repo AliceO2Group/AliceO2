@@ -16,8 +16,8 @@
 #include "Headers/HeartbeatFrame.h"
 
 // define the description with a terminating '0' (meaning 15 characters)
-const o2::Header::DataDescription o2::Header::gDataDescriptionHeartbeatFrame("HEARTBEATFRAME");
+const o2::header::DataDescription o2::header::gDataDescriptionHeartbeatFrame("HEARTBEATFRAME");
 
-const uint32_t o2::Header::HeartbeatFrameEnvelope::sVersion = 1;
-const o2::Header::HeaderType o2::Header::HeartbeatFrameEnvelope::sHeaderType= String2<uint64_t>("HBFEnvel");
-const o2::Header::SerializationMethod o2::Header::HeartbeatFrameEnvelope::sSerializationMethod = o2::Header::gSerializationMethodNone;
+const uint32_t o2::header::HeartbeatFrameEnvelope::sVersion = 1;
+const o2::header::HeaderType o2::header::HeartbeatFrameEnvelope::sHeaderType= String2<uint64_t>("HBFEnvel");
+const o2::header::SerializationMethod o2::header::HeartbeatFrameEnvelope::sSerializationMethod = o2::header::gSerializationMethodNone;

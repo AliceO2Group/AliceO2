@@ -24,7 +24,7 @@
 
 using namespace o2::framework;
 
-AlgorithmSpec simplePipe(o2::Header::DataDescription what) {
+AlgorithmSpec simplePipe(o2::header::DataDescription what) {
   return AlgorithmSpec{
     [what](ProcessingContext &ctx)
       {
@@ -55,13 +55,13 @@ WorkflowSpec defineDataProcessing() {
     "B",
     {InputSpec{"x", "TST", "A1", InputSpec::Timeframe}},
     Outputs{OutputSpec{"TST", "B1", OutputSpec::Timeframe}},
-    simplePipe(o2::Header::DataDescription{"B1"})
+    simplePipe(o2::header::DataDescription{"B1"})
   },
   {
     "C",
     {InputSpec{"y", "TST", "A2", InputSpec::Timeframe}},
     Outputs{OutputSpec{"TST", "C1", OutputSpec::Timeframe}},
-    simplePipe(o2::Header::DataDescription{"C1"})
+    simplePipe(o2::header::DataDescription{"C1"})
   },
   {
     "D",

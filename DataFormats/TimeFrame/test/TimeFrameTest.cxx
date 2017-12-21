@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TimeFrame_test)
   BOOST_CHECK(zmq);
   messages.AddPart(zmq->CreateMessage(1000));
 
-  o2::Header::DataHeader dh;
+  o2::header::DataHeader dh;
   messages.AddPart(NewSimpleMessage(*zmq, dh));
 
   TimeFrame frame(messages);

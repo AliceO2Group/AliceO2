@@ -24,44 +24,44 @@
 #include "Headers/NameHeader.h"
 #include "../include/Algorithm/HeaderStack.h"
 
-using DataHeader = o2::Header::DataHeader;
-using HeaderStack = o2::Header::Stack;
+using DataHeader = o2::header::DataHeader;
+using HeaderStack = o2::header::Stack;
 
 BOOST_AUTO_TEST_CASE(test_headerstack)
 {
   // make a header stack consisting of two O2 headers and extract them
   // via function calls using dispatchHeaderStackCallback, and through object
   // references using parseHeaderStack
-  o2::Header::DataHeader dh;
-  dh.dataDescription = o2::Header::DataDescription("SOMEDATA");
-  dh.dataOrigin = o2::Header::DataOrigin("TST");
+  o2::header::DataHeader dh;
+  dh.dataDescription = o2::header::DataDescription("SOMEDATA");
+  dh.dataOrigin = o2::header::DataOrigin("TST");
   dh.subSpecification = 0;
   dh.payloadSize = 0;
 
-  using Name8Header = o2::Header::NameHeader<8>;
+  using Name8Header = o2::header::NameHeader<8>;
   Name8Header nh("NAMEDHDR");
 
-  o2::Header::Stack stack(dh, nh);
+  o2::header::Stack stack(dh, nh);
 
   // check that the call without any other arguments is compiling
   o2::algorithm::dispatchHeaderStackCallback(stack.buffer.get(), stack.bufferSize);
 
   // lambda functor given as argument for dispatchHeaderStackCallback
   auto checkDataHeader = [&dh] (const auto & header) {
-    o2::Header::hexDump("Extracted DataHeader", &header, sizeof(header));
+    o2::header::hexDump("Extracted DataHeader", &header, sizeof(header));
     BOOST_CHECK(header == dh);
   };
 
   // lambda functor given as argument for dispatchHeaderStackCallback
   auto checkNameHeader = [&nh] (const auto & header) {
-    o2::Header::hexDump("Extracted NameHeader", &header, sizeof(header));
+    o2::header::hexDump("Extracted NameHeader", &header, sizeof(header));
     // have to compare on byte level, no operator==
     BOOST_CHECK(memcmp(&header, &nh, sizeof(header)) == 0);
   };
 
   // check extraction of headers via callbacks
   o2::algorithm::dispatchHeaderStackCallback(stack.buffer.get(), stack.bufferSize,
-                                             o2::Header::DataHeader(),
+                                             o2::header::DataHeader(),
                                              checkDataHeader,
                                              Name8Header(),
                                              checkNameHeader
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
   o2::algorithm::parseHeaderStack(stack.buffer.get(), stack.bufferSize);
 
   // check extraction of headers via object references
-  o2::Header::DataHeader targetDataHeader;
+  o2::header::DataHeader targetDataHeader;
   Name8Header targetNameHeader;
   o2::algorithm::parseHeaderStack(stack.buffer.get(), stack.bufferSize,
                                   targetDataHeader,

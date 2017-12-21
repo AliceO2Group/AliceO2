@@ -50,16 +50,16 @@ public:
   /// @param[] incomingStack header block must be MOVED in (rvalue ref)
   /// @param[] dataMessage the data message must be MOVED in (unique_ptr by value)
   bool AddMessage(O2Message& parts,
-                  o2::Header::Stack&& incomingStack,
+                  o2::header::Stack&& incomingStack,
                   FairMQMessagePtr incomingDataMessage) {
 
     //we have to move the incoming data
-    o2::Header::Stack headerStack{std::move(incomingStack)};
+    o2::header::Stack headerStack{std::move(incomingStack)};
     FairMQMessagePtr dataMessage{std::move(incomingDataMessage)};
 
     FairMQMessagePtr headerMessage = NewMessage(headerStack.buffer.get(),
                                                 headerStack.bufferSize,
-                                                &o2::Header::Stack::freefn,
+                                                &o2::header::Stack::freefn,
                                                 headerStack.buffer.get());
     headerStack.buffer.release();
 
