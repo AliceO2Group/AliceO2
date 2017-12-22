@@ -30,7 +30,7 @@
 #include "TGeoManager.h"
 
 #include "FairLogger.h"
-#include "FairGenericRootManager.h"
+#include "FairRootManager.h"
 #include "FairVolume.h"
 
 using o2::ITSMFT::Hit;
@@ -471,8 +471,8 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  if (FairRootManager::Instance()) {
+    FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
   }
 
 }

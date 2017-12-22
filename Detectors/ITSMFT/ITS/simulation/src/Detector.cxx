@@ -24,7 +24,7 @@
 //FairRoot includes
 #include "FairDetector.h"           // for FairDetector
 #include "FairLogger.h"             // for LOG, LOG_IF
-#include "FairGenericRootManager.h"        // for FairGenericRootManager
+#include "FairRootManager.h"        // for FairRootManager
 #include "FairRun.h"                // for FairRun
 #include "FairRuntimeDb.h"          // for FairRuntimeDb
 #include "FairVolume.h"             // for FairVolume
@@ -593,8 +593,8 @@ void Detector::Register()
   // it will exist only during the simulation
 
   // FIXME: fix MT interface
-  if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  if (FairRootManager::Instance()) {
+    FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
   }
 }
 
