@@ -49,6 +49,9 @@ Bool_t Pythia8Generator::Init()
 
   fPythia.setRndmEnginePtr(fRandomEngine);
 
+  /** commenting these lines  
+      as they would override external settings **/
+  /**
   cout<<"Beam Momentum "<<fMom<<endl;
   // Set arguments in Settings database.
   fPythia.settings.mode("Beams:idA",  fId);
@@ -60,6 +63,7 @@ Bool_t Pythia8Generator::Init()
   fPythia.settings.parm("Beams:pxB",    0.);
   fPythia.settings.parm("Beams:pyB",    0.);
   fPythia.settings.parm("Beams:pzB",    0.);
+  **/
   fPythia.init();
   return kTRUE;
 }
@@ -146,7 +150,7 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
   return kTRUE;
 }
 // -------------------------------------------------------------------------
-void Pythia8Generator::SetParameters(char* par)
+void Pythia8Generator::SetParameters(const char* par)
 {
   // Set Parameters
     fPythia.readString(par);

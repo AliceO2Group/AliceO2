@@ -18,6 +18,7 @@
 #include "FairSystemInfo.h"
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
+#include <Generators/Pythia8Generator.h>
 #endif
 
 void o2sim()
@@ -52,6 +53,29 @@ void o2sim()
     extGen->SetStartEvent(confref.getStartEvent());
     primGen->AddGenerator(extGen);
     std::cout << "using external kinematics\n";
+  } else if (genconfig.compare("pythia8") == 0) {
+    // pythia8 pp
+    // configures pythia for min.bias pp collisions at 14 TeV
+    // TODO: make this configurable
+    auto py8Gen = new Pythia8Generator();
+    py8Gen->SetParameters("Beams:idA 2212"); // p
+    py8Gen->SetParameters("Beams:idB 2212"); // p
+    py8Gen->SetParameters("Beams:eCM 14000."); // [GeV]
+    py8Gen->SetParameters("SoftQCD:inelastic on"); // all inelastic processes
+    primGen->AddGenerator(py8Gen);
+  }else if (genconfig.compare("pythia8hi") == 0) {
+    // pythia8 heavy-ion
+    // exploits pythia8 heavy-ion machinery (available from v8.230)
+    // configures pythia for min.bias Pb-Pb collisions at 5.52 TeV
+    // TODO: make this configurable
+    auto py8Gen = new Pythia8Generator();
+    py8Gen->SetParameters("Beams:idA 1000822080"); // Pb ion
+    py8Gen->SetParameters("Beams:idB 1000822080"); // Pb ion
+    py8Gen->SetParameters("Beams:eCM 5520.0"); // [GeV]
+    py8Gen->SetParameters("HeavyIon:SigFitNGen 0"); // valid for Pb-Pb 5520 only
+    py8Gen->SetParameters("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
+    py8Gen->SetParameters(("HeavyIon:bWidth " + std::to_string(confref.getBMax())).c_str()); // impact parameter from 0-x [fm]
+    primGen->AddGenerator(py8Gen);
   }
   else {
     LOG(FATAL) << "Invalid generator" << FairLogger::endl;

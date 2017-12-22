@@ -80,7 +80,7 @@ class Pythia8Generator : public FairGenerator
 
   /** public method ReadEvent **/
   Bool_t ReadEvent(FairPrimaryGenerator*) override;
-  void SetParameters(char*);
+  void SetParameters(const char*);
   void Print(); //!
 
   Bool_t Init() override; //!
