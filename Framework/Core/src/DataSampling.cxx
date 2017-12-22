@@ -24,7 +24,11 @@ using namespace AliceO2::Configuration;
 namespace o2 {
 namespace framework {
 
-
+// todo: configuration of GenerateInfrastructure()
+// options: ?
+// - enable proxy (local vs global?)
+// - enable time pipelining
+// - one dispatcher per parallel flow vs one dispatcher per whole flow
 
 void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
                                           const std::string &configurationSource,
@@ -34,8 +38,17 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
   readQcTasksConfiguration(configurationSource, taskNames, tasks);
 
   for (auto&& task : tasks) {
-    DataProcessorSpec dispatcher;
+    DataProcessorSpec dispatcher{
+      "Dispatcher_for_" + task.name,
+      Inputs{}, Outputs{},
+      AlgorithmSpec{
+        [gen=BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext &ctx) mutable {
+          DataSampling::dispatcherCallback(ctx, gen);
+        }
+      }
+    };
 
+    //find all available outputs in workflow that match desired data, and add them as dispatcher inputs
     for (auto desiredData : task.desiredDataSpecs) {
       for (auto&& dataProcessor : workflow) {
         for (auto&& externalOutput : dataProcessor.outputs) {
@@ -49,14 +62,101 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
       }
       dispatcher.outputs.emplace_back(createDispatcherOutputSpec(desiredData));
     }
-    BernoulliGenerator bernoulliGenerator(task.fractionOfDataToSample);
 
-    dispatcher.name = "Dispatcher_for_" + task.name;
-    dispatcher.algorithm = AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [bernoulliGenerator](ProcessingContext& ctx) mutable {
-        DataSampling::dispatcherCallback(ctx, bernoulliGenerator);
+    workflow.push_back(dispatcher);
+  }
+}
+
+void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow,
+                                          const std::string &configurationSource,
+                                          const std::vector<std::string> &taskNames)
+{
+  QcTaskConfigurations tasks;
+  readQcTasksConfiguration(configurationSource, taskNames, tasks);
+
+  for (auto&& task : tasks) {
+    std::unordered_map<Header::DataHeader::SubSpecificationType, DataProcessorSpec> dispatchers;
+
+    //find all desired data outputs in workflow and create separate dispatcher for each parallel flow
+    for (auto&& dataProcessor : workflow) {
+      for (auto&& externalOutput : dataProcessor.outputs) {
+        for (auto desiredData : task.desiredDataSpecs) {
+          //if some output in workflow matches desired data
+          if (externalOutput.origin == desiredData.origin &&
+              externalOutput.description == desiredData.description) {
+
+            desiredData.subSpec = externalOutput.subSpec;
+            desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
+
+            //find if there is already a dispatcher for this parallel flow
+            auto res = dispatchers.find(externalOutput.subSpec);
+            if (res != dispatchers.end()){
+              //add input to existing dispatcher
+              res->second.inputs.push_back(desiredData);
+              res->second.outputs.push_back(createDispatcherOutputSpec(desiredData));
+            }
+            else {
+              //create a new dispatcher for this parallel flow
+              dispatchers[externalOutput.subSpec] = DataProcessorSpec{
+                "Dispatcher" + std::to_string(externalOutput.subSpec) + "_for_" + task.name,
+                Inputs{
+                  desiredData
+                },
+                Outputs{
+                  createDispatcherOutputSpec(desiredData)
+                },
+                AlgorithmSpec{
+                  [gen=BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext& ctx) mutable {
+                    DataSampling::dispatcherCallback(ctx, gen);
+                  }
+                }
+              };
+            }
+          }
+        }
+      }
+    }
+
+    for (auto& dispatcher : dispatchers) {
+      workflow.push_back(std::move(dispatcher.second));
+    }
+  }
+}
+
+void DataSampling::GenerateInfrastructureTimePipelining(WorkflowSpec &workflow,
+                                          const std::string &configurationSource,
+                                          const std::vector<std::string> &taskNames)
+{
+  QcTaskConfigurations tasks;
+  readQcTasksConfiguration(configurationSource, taskNames, tasks);
+
+  for (auto&& task : tasks) {
+    DataProcessorSpec dispatcher{
+      "Dispatcher_for_" + task.name,
+      Inputs{}, Outputs{},
+      AlgorithmSpec{
+        [gen=BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext &ctx) mutable {
+          DataSampling::dispatcherCallback(ctx, gen);
+        }
       }
     };
+
+    size_t maxTimeParallelism = 1;
+    for (auto desiredData : task.desiredDataSpecs) {
+      for (auto&& dataProcessor : workflow) {
+        for (auto&& externalOutput : dataProcessor.outputs) {
+          if (externalOutput.origin == desiredData.origin &&
+              externalOutput.description == desiredData.description) {
+            desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
+            desiredData.subSpec = externalOutput.subSpec;
+            dispatcher.inputs.push_back(desiredData);
+            maxTimeParallelism = std::max(maxTimeParallelism, dataProcessor.maxInputTimeslices);
+          }
+        }
+      }
+      dispatcher.outputs.emplace_back(createDispatcherOutputSpec(desiredData));
+    }
+    dispatcher.maxInputTimeslices = maxTimeParallelism;
 
     workflow.push_back(dispatcher);
   }
@@ -70,8 +170,6 @@ AlgorithmSpec::ProcessCallback DataSampling::initCallback(InitContext &ctx)
   };
 }
 
-//todo: parallel sources support
-//todo: optimisation
 void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator)
 {
   InputRecord& inputs = ctx.inputs();
