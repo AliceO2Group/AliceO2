@@ -10,3 +10,5 @@
 /*.pdf
 /*.root
 /test-*/
+/tmp
+/plots
