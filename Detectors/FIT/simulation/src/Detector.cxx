@@ -17,7 +17,7 @@
 #include "TSystem.h"
 #include "TVirtualMC.h"
 
-#include "FairGenericRootManager.h" // for FairGenericRootManager
+#include "FairRootManager.h" // for FairRootManager
 #include "FairLogger.h"
 #include "FairVolume.h"
 
@@ -302,8 +302,8 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->GetFairRootManager()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  if (FairRootManager::Instance()) {
+    FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
   }
 }
 

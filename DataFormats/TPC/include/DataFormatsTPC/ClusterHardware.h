@@ -16,7 +16,7 @@
 
 #include <cstdint>
 
-namespace o2 { namespace DataFormat { namespace TPC{
+namespace o2 { namespace DataFormat { namespace TPC{ 
 
 struct ClusterHardware { //Temporary draft of hardware clusters. The ...Pre members are yet to be defined, and will most likely either be floats or fixed point integers.
   float padPre;                //< Quantity needed to compute the pad

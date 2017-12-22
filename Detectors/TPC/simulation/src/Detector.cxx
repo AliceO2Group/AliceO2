@@ -20,7 +20,6 @@
 
 #include <cstddef>             // for NULL
 
-#include "FairGenericRootManager.h"
 #include "FairGeoVolume.h"
 #include "FairGeoNode.h"
 #include "FairGeoLoader.h"
