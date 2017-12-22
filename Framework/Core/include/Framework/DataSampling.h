@@ -32,6 +32,12 @@ class DataSampling {
     static void GenerateInfrastructure(WorkflowSpec &workflow,
                                        const std::string &configurationSource,
                                        const std::vector<std::string> &taskNames);
+    static void GenerateInfrastructureParallel(WorkflowSpec &workflow,
+                                       const std::string &configurationSource,
+                                       const std::vector<std::string> &taskNames);
+    static void GenerateInfrastructureTimePipelining(WorkflowSpec &workflow,
+                                       const std::string &configurationSource,
+                                       const std::vector<std::string> &taskNames);
 
   private:
     struct BernoulliGenerator {
