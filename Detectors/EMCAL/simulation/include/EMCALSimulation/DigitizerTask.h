@@ -24,11 +24,10 @@ namespace o2
   {
     class DigitizerTask : public FairTask
     {
-      using Digitizer = o2::EMCAL::Digitizer;
 
     public:
 
-      DigitizerTask(Bool_t useAlpide = kFALSE);
+      DigitizerTask();
       ~DigitizerTask() override;
 
       InitStatus Init() override;
@@ -37,24 +36,18 @@ namespace o2
       void FinishTask() override;
 
       Digitizer& getDigitizer() { return mDigitizer; }
-      void setContinuous(bool v) { mContinuous = v; }
-      bool isContinuous() const { return mContinuous; }
-      void setUseAlpideSim(bool v) { mUseAlpideSim = v; }
-      bool getUseAlpideSim() const { return mUseAlpideSim; }
+
       void setFairTimeUnitInNS(double tinNS) { mFairTimeUnitInNS = tinNS < 1. ? 1. : tinNS; }
       double getFairTimeUnitInNS() const { return mFairTimeUnitInNS; }
 
     private:
 
-      Bool_t mUseAlpideSim;         ///< ALPIDE simulation activation flag
-      Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
-      double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
-
+      double mFairTimeUnitInNS = 1;         ///< Fair time unit in ns
       Int_t mSourceID = 0;                  ///< current source
       Int_t mEventID = 0;                   ///< current event id from the source
       Digitizer mDigitizer;                 ///< Digitizer
-      const std::vector<o2::EMCAL::Hit>* mHitsArray = nullptr;   ///< Array of MC hits
-      std::vector<o2::EMCAL::Digit> *mDigitsArray = nullptr; ///< Array of digits
+      const std::vector<Hit>* mHitsArray = nullptr;   ///< Array of MC hits
+      std::vector<Digit>* mDigitsArray = nullptr;     ///< Array of digits
 
       ClassDefOverride(DigitizerTask, 1);
     };

@@ -58,12 +58,11 @@ namespace o2
 
       void setGeometry(const o2::EMCAL::Geometry* gm) { mGeometry = gm; }
 
-      o2::EMCAL::Digit HitToDigit(Hit hit);
+      Digit HitToDigit(Hit hit);
       
     private:
 
-      const o2::EMCAL::Geometry* mGeometry = nullptr;    // EMCAL geometry
-      //std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
+      const Geometry* mGeometry = nullptr;       // EMCAL geometry
       double mEventTime = 0;                     ///< global event time
       double mCoeffToNanoSecond = 1.0;           ///< coefficient to convert event time (Fair) to ns
       bool   mContinuous = false;                ///< flag for continuous simulation
@@ -71,8 +70,6 @@ namespace o2
       UInt_t mROFrameMax = 0;                    ///< highest RO frame of current digits
       int    mCurrSrcID = 0;                     ///< current MC source from the manager
       int    mCurrEvID = 0;                      ///< current event ID from the manager
-
-      //std::unique_ptr<o2::ITSMFT::AlpideSimResponse> mAlpSimResp; // simulated response 
       
       ClassDefOverride(Digitizer, 1);
     };
