@@ -36,6 +36,7 @@ namespace o2
       Digitizer& operator=(const Digitizer&) = delete;
 
       void init();
+      void finish();
 
       /// Steer conversion of hits to digits
       void   process(const std::vector<Hit>* hits, std::vector<Digit>* digits);
@@ -45,7 +46,7 @@ namespace o2
 
       void   setContinuous(bool v) { mContinuous = v; }
       bool   isContinuous() const { return mContinuous; }
-      void   fillOutputContainer(std::vector<Digit>* digits, UInt_t maxFrame=0xffffffff);
+      void   fillOutputContainer(std::vector<Digit>* digits);
 
       void   setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
       double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
@@ -70,6 +71,8 @@ namespace o2
       UInt_t mROFrameMax = 0;                    ///< highest RO frame of current digits
       int    mCurrSrcID = 0;                     ///< current MC source from the manager
       int    mCurrEvID = 0;                      ///< current event ID from the manager
+
+      std::vector<Digit>* mDigits[17664];        ///< used to sort digits by tower
       
       ClassDefOverride(Digitizer, 1);
     };
