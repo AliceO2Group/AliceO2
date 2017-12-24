@@ -19,6 +19,7 @@
 #include "FairLogger.h"   // for LOG
 #include <TRandom.h>
 #include <TVector3.h>
+#include <forward_list>
 #include <climits>
 
 ClassImp(o2::EMCAL::Digitizer);
@@ -32,6 +33,7 @@ using namespace o2::EMCAL;
 //_______________________________________________________________________
 void Digitizer::init()
 {
+  for (Int_t tower=0; tower<mGeometry->GetNCells(); tower++) mDigits[tower]=new std::vector<Digit>;
   /*
   const Int_t numOfChips = mGeometry->getNumberOfChips();
 
@@ -48,26 +50,38 @@ void Digitizer::init()
 }
 
 //_______________________________________________________________________
+void Digitizer::finish()
+{
+  for(Int_t tower=0; tower<mGeometry->GetNCells(); tower++) delete mDigits[tower];
+}
+
+//_______________________________________________________________________
 void Digitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* digits)
 {
-  digits->clear();
+  Int_t tower;
 
-  std::vector<Digit>::reverse_iterator it;
+  digits->clear();
+  for(tower=0; tower<mGeometry->GetNCells(); tower++) mDigits[tower]->clear();
+
+  std::vector<Digit>::reverse_iterator rit;
   bool flag;
   
   for(auto hit : *hits) {
     Digit digit = HitToDigit(hit);
+    tower = digit.GetTower();
 
     flag=false;
-    for(it=digits->rbegin(); it!=digits->rend(); ++it){
-      if(it->CanAdd(digit)) {
-	(*it) += digit;
+    for(rit=mDigits[tower]->rbegin(); rit!=mDigits[tower]->rend(); ++rit){
+      if(rit->CanAdd(digit)) {
+	(*rit) += digit;
 	flag = true;
 	break;
       }
     }
-    if(!flag) digits->push_back(digit);
+    if(!flag) mDigits[tower]->push_back(digit);
   }
+
+  fillOutputContainer(digits);
 
   /*
   // digitize single event
@@ -160,27 +174,18 @@ void Digitizer::setEventTime(double t)
 }
 
 //_______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<Digit>* digits, UInt_t maxFrame)
+void Digitizer::fillOutputContainer(std::vector<Digit>* digits)
 {
-  /*
-  // fill output with digits ready to be stored, generating the noise beforehand
-  if (maxFrame>mROFrameMax) maxFrame = mROFrameMax;
+  std::forward_list<Digit> l;
+  std::vector<Digit>::reverse_iterator vit;
 
-  LOG(INFO) << "Filling ITS digits output for RO frames " << mROFrameMin << ":" << maxFrame << FairLogger::endl ;
-
-  for (auto &simulation : mSimulations) {
-    // add the random noise to all ROFrame being stored
-    simulation.addNoise(mROFrameMin,maxFrame);
+  for(Int_t tower=mGeometry->GetNCells()-1; tower>=0; tower--) {
+    for(vit=mDigits[tower]->rbegin(); vit!=mDigits[tower]->rend(); ++vit) l.push_front(*vit);
   }
 
-  // we have to write chips in RO increasing order, therefore have to loop over the frames here
-  for (auto rof=mROFrameMin;rof<=maxFrame;rof++) {
-    for (auto &simulation : mSimulations) {
-      simulation.fillOutputContainer(digits,rof);
-    }
-  }
-  mROFrameMin = maxFrame+1;
-  */
+  l.sort();
+
+  for(std::forward_list<Digit>::iterator lit=l.begin(); lit!=l.end(); ++lit) digits->push_back(*lit);
 }
 
 //_______________________________________________________________________
