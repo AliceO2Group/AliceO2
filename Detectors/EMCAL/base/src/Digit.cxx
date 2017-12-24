@@ -27,14 +27,17 @@ bool Digit::operator<(const Digit &other) const {
   return GetTimeStamp() < other.GetTimeStamp();
 }
 
-const Digit Digit::operator+(const Digit& other) {
-  Digit result(*this);
-  result += other;
-  return result;
+bool Digit::operator>(const Digit &other) const {
+  return GetTimeStamp() > other.GetTimeStamp();
+}
+
+bool Digit::CanAdd(const Digit other) {
+  return (mTower==other.GetTower() && TMath::Abs(GetTimeStamp()-other.GetTimeStamp())<=25);
 }
 
 Digit& Digit::operator+=(const Digit& other) {
-  if(mTower==other.GetTower() && TMath::Abs(GetTimeStamp()-other.GetTimeStamp())<=100) mAmplitude += other.GetAmplitude();
+  //if(mTower==other.GetTower() && TMath::Abs(GetTimeStamp()-other.GetTimeStamp())<=25) mAmplitude += other.GetAmplitude();
+  if(CanAdd(other)) mAmplitude += other.GetAmplitude();
   // Does nothing if the digits are in different towers.
   return *this;
 }
