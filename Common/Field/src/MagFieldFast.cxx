@@ -108,14 +108,14 @@ bool MagFieldFast::LoadData(const string inpFName)
 bool MagFieldFast::Field(const double xyz[3], double bxyz[3]) const
 {
   // get field
-  const float fxyz[3] = { float(xyz[0]), float(xyz[1]), float(xyz[2]) };
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(fxyz, zSeg, rSeg, quadrant))
+  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
+  }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
-  bxyz[kX] = CalcPol(par->parBxyz[kX], fxyz[kX], fxyz[kY], fxyz[kZ]) * mFactorSol;
-  bxyz[kY] = CalcPol(par->parBxyz[kY], fxyz[kX], fxyz[kY], fxyz[kZ]) * mFactorSol;
-  bxyz[kZ] = CalcPol(par->parBxyz[kZ], fxyz[kX], fxyz[kY], fxyz[kZ]) * mFactorSol;
+  bxyz[kX] = CalcPol(par->parBxyz[kX], xyz[kX], xyz[kY], xyz[kZ]) * mFactorSol;
+  bxyz[kY] = CalcPol(par->parBxyz[kY], xyz[kX], xyz[kY], xyz[kZ]) * mFactorSol;
+  bxyz[kZ] = CalcPol(par->parBxyz[kZ], xyz[kX], xyz[kY], xyz[kZ]) * mFactorSol;
   //
   return true;
 }
@@ -124,12 +124,40 @@ bool MagFieldFast::Field(const double xyz[3], double bxyz[3]) const
 bool MagFieldFast::GetBcomp(EDim comp, const double xyz[3], double& b) const
 {
   // get field
-  const float fxyz[3] = { float(xyz[0]), float(xyz[1]), float(xyz[2]) };
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(fxyz, zSeg, rSeg, quadrant))
+  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
+  }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
-  b = CalcPol(par->parBxyz[comp], fxyz[kX], fxyz[kY], fxyz[kZ]) * mFactorSol;
+  b = CalcPol(par->parBxyz[comp], xyz[kX], xyz[kY], xyz[kZ]) * mFactorSol;
+  //
+  return true;
+}
+
+//_______________________________________________________________________
+bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) const
+{
+  // get field
+  int zSeg, rSeg, quadrant;
+  if (!GetSegment(xyz.X(),xyz.Y(),xyz.Z(), zSeg, rSeg, quadrant)) {
+    return false;
+  }
+  const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
+  b = CalcPol(par->parBxyz[comp], xyz.X(),xyz.Y(),xyz.Z()) * mFactorSol;
+  //
+  return true;
+}
+
+//_______________________________________________________________________
+bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, float& b) const
+{
+  // get field
+  int zSeg, rSeg, quadrant;
+  if (!GetSegment(xyz.X(),xyz.Y(),xyz.Z(), zSeg, rSeg, quadrant)) {
+    return false;
+  }
+  const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
+  b = CalcPol(par->parBxyz[comp], xyz.X(),xyz.Y(),xyz.Z()) * mFactorSol;
   //
   return true;
 }
@@ -139,8 +167,9 @@ bool MagFieldFast::GetBcomp(EDim comp, const float xyz[3], float& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz, zSeg, rSeg, quadrant))
+  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
+  }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
   b = CalcPol(par->parBxyz[comp], xyz[kX], xyz[kY], xyz[kZ]) * mFactorSol;
   //
@@ -152,8 +181,9 @@ bool MagFieldFast::Field(const float xyz[3], float bxyz[3]) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz, zSeg, rSeg, quadrant))
+  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
+  }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
   bxyz[kX] = CalcPol(par->parBxyz[kX], xyz[kX], xyz[kY], xyz[kZ]) * mFactorSol;
   bxyz[kY] = CalcPol(par->parBxyz[kY], xyz[kX], xyz[kY], xyz[kZ]) * mFactorSol;
@@ -163,10 +193,25 @@ bool MagFieldFast::Field(const float xyz[3], float bxyz[3]) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetSegment(const float xyz[3], int& zSeg, int& rSeg, int& quadrant) const
+bool MagFieldFast::Field(const Point3D<float> xyz, float bxyz[3]) const
+{
+  // get field
+  int zSeg, rSeg, quadrant;
+  if (!GetSegment(xyz.X(),xyz.Y(),xyz.Z(), zSeg, rSeg, quadrant)) {
+    return false;
+  }
+  const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
+  bxyz[kX] = CalcPol(par->parBxyz[kX], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
+  bxyz[kY] = CalcPol(par->parBxyz[kY], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
+  bxyz[kZ] = CalcPol(par->parBxyz[kZ], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
+  //
+  return true;
+}
+
+//_______________________________________________________________________
+bool MagFieldFast::GetSegment(float x, float y, float z, int& zSeg, int& rSeg, int& quadrant) const
 {
   // get segment of point location
-  const float &x = xyz[kX], &y = xyz[kY], &z = xyz[kZ];
   const float zGridSpaceInv = 1.f / (kSolZMax * 2 / kNSolZRanges);
   zSeg = -1;
   if (z < kSolZMax) {

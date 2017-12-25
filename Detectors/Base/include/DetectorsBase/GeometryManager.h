@@ -99,8 +99,6 @@ class GeometryManager : public TObject
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
 
-  static TGeoManager* sGeometry;
-
  private:
   /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 16; /// detector identifier will start from this bit

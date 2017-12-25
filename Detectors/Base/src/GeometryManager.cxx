@@ -27,8 +27,6 @@ using namespace o2::Base;
 ClassImp(o2::Base::GeometryManager);
 ClassImp(o2::Base::GeometryManager::MatBudget);
 
-TGeoManager* GeometryManager::sGeometry = nullptr;
-
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
 /// collects several static methods
@@ -48,24 +46,24 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
 
-  if (!sGeometry || !sGeometry->IsClosed()) {
+  if (!gGeoManager || !gGeoManager->IsClosed()) {
     LOG(ERROR) << "No active geometry or geometry not yet closed!" << FairLogger::endl;
     return kFALSE;
   }
 
-  if (!sGeometry->GetListOfPhysicalNodes()) {
+  if (!gGeoManager->GetListOfPhysicalNodes()) {
     LOG(WARNING) << "gGeoManager doesn't contain any aligned nodes!" << FairLogger::endl;
 
-    if (!sGeometry->cd(symname)) {
+    if (!gGeoManager->cd(symname)) {
       LOG(ERROR) << "Volume path " << symname << " not valid!" << FairLogger::endl;
       return kFALSE;
     } else {
-      m = *sGeometry->GetCurrentMatrix();
+      m = *gGeoManager->GetCurrentMatrix();
       return kTRUE;
     }
   }
 
-  TGeoPNEntry* pne = sGeometry->GetAlignableEntry(symname);
+  TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
   const char* path = nullptr;
 
   if (pne) {
@@ -85,24 +83,24 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
 {
   m.Clear();
 
-  if (!sGeometry || !sGeometry->IsClosed()) {
+  if (!gGeoManager || !gGeoManager->IsClosed()) {
     LOG(ERROR) << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!"
                << FairLogger::endl;
     return kFALSE;
   }
 
-  if (!sGeometry->CheckPath(path)) {
+  if (!gGeoManager->CheckPath(path)) {
     LOG(ERROR) << "Volume path " << path << " not valid!" << FairLogger::endl;
     return kFALSE;
   }
 
-  TIter next(sGeometry->GetListOfPhysicalNodes());
-  sGeometry->cd(path);
+  TIter next(gGeoManager->GetListOfPhysicalNodes());
+  gGeoManager->cd(path);
 
-  while (sGeometry->GetLevel()) {
+  while (gGeoManager->GetLevel()) {
     TGeoPhysicalNode* physNode = nullptr;
     next.Reset();
-    TGeoNode* node = sGeometry->GetCurrentNode();
+    TGeoNode* node = gGeoManager->GetCurrentNode();
 
     while ((physNode = (TGeoPhysicalNode*)next())) {
       if (physNode->GetNode() == node) {
@@ -122,7 +120,7 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
 
     m.MultiplyLeft(lm);
 
-    sGeometry->CdUp();
+    gGeoManager->CdUp();
   }
   return kTRUE;
 }

@@ -416,6 +416,7 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Common/Field/include
+    ${CMAKE_SOURCE_DIR}/Common/Constants/include
 )
 
 o2_define_bucket(

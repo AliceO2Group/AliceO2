@@ -11,6 +11,7 @@ set(SRCS
   src/BaseCluster.cxx
   src/DetMatrixCache.cxx
   src/MaterialManager.cxx
+  src/Propagator.cxx
 )
 
 Set(HEADERS
@@ -24,6 +25,7 @@ Set(HEADERS
   include/${MODULE_NAME}/BaseCluster.h
   include/${MODULE_NAME}/DetMatrixCache.h
   include/${MODULE_NAME}/MaterialManager.h
+  include/${MODULE_NAME}/Propagator.h
 )
 
 Set(LINKDEF src/BaseLinkDef.h)
