@@ -60,15 +60,17 @@ namespace o2 {
       }
 
       inline int Angle2Sector(float phi) {
-        // convert angle to sector ID
-        int sect = (phi*Constants::kRad2Deg)/Constants::kSectorSpan;
-        sect %= Constants::kNSectors;
-        return (sect<0) ? sect+Constants::kNSectors-1 : sect;
+        // convert angle to sector ID, phi can be either in 0:2pi or -pi:pi convention 
+        int sect = (phi*Constants::kRad2Deg)/Constants::kSectorSpanDeg;
+	if (phi<0) sect += Constants::kNSectors-1;
+	return sect;
       }
 
       inline float Sector2Angle(int sect) {
-        // convert sector to its angle center
-        return Constants::kSectorSpan/2.f + (sect%Constants::kNSectors)*Constants::kSectorSpan;
+        // convert sector to its angle center, in -pi:pi convention
+	float ang = Constants::kSectorSpanRad*(0.5f + sect);
+	BringToPMPi(ang);
+	return ang;
       }
 
       inline float Angle2Alpha(float phi) {

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackP
+/// \file Track.h
 /// \brief Base track model for the Barrel, params only, w/o covariance
 /// \author ruben.shahoyan@cern.ch
 
@@ -65,6 +65,18 @@ constexpr float kCY2max = 100 * 100, // SigmaY<=100cm
   kC1Pt2max = 100 * 100,             // Sigma1/Pt<=100 1/GeV
   kCalcdEdxAuto = -999.f;            // value indicating request for dedx calculation
 
+// access to covariance matrix by row and column 
+constexpr int CovarMap[kNParams][kNParams] = {
+   {0 ,1 ,3 ,6 ,10},
+   {1 ,2 ,4 ,7 ,11},
+   {3 ,4 ,5 ,8 ,12},
+   {6 ,7 ,8 ,9 ,13},
+   {10,11,12,13,14}
+ };
+
+// access to covariance matrix diagonal elements
+constexpr int DiagMap[kNParams] = {0 ,2 ,5 ,9 ,14};
+ 
 constexpr float HugeF = 1e33; // large float as dummy value
 
 // helper function
@@ -177,6 +189,9 @@ class TrackParCov : public TrackPar
   float getSigma1PtSnp() const { return mC[kSigQ2PtSnp]; }
   float getSigma1PtTgl() const { return mC[kSigQ2PtTgl]; }
   float getSigma1Pt2() const { return mC[kSigQ2Pt2]; }
+  float getCovarElem(int i,int j) const {return mC[CovarMap[i][j]];}
+  float getDiarError2(int i) const {return mC[DiagMap[i]];}
+  
   void Print() const;
 
   // parameters + covmat manipulation
@@ -282,7 +297,9 @@ inline Point3D<float> TrackPar::getXYZGloAt(float xk, float b, bool& ok) const
 inline float TrackPar::getPhiPos() const
 {
   // angle of track position
-  return atan2f(getY(),getX());
+  float phi = atan2f(getY(),getX()) + getAlpha();
+  Utils::BringToPMPi(phi);
+  return phi;
 }
 
 //____________________________________________________________

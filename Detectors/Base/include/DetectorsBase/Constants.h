@@ -30,7 +30,8 @@ namespace o2 {
       constexpr float kDeg2Rad = kPI/180.f;
 
       constexpr int   kNSectors   = 18;
-      constexpr float kSectorSpan = 360./kNSectors;
+      constexpr float kSectorSpanDeg = 360./kNSectors;
+      constexpr float kSectorSpanRad = kSectorSpanDeg*kDeg2Rad;
 
       // conversion from B(kGaus) to curvature for 1GeV pt
       constexpr float kB2C     = -0.299792458e-3;
