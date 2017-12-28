@@ -110,6 +110,9 @@ public:
 
   Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const;
 
+  void makeBackPropParam(std::vector<CookedTrack> &seeds) const;
+  bool makeBackPropParam(CookedTrack& track) const;
+  
  private:
 
   bool mContinuousMode = true; ///< triggered or cont. mode

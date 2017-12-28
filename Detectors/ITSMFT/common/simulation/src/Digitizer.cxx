@@ -115,10 +115,10 @@ void Digitizer::setEventTime(double t)
     LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")" << FairLogger::endl;
   }
   mEventTime = t;
-  // to limit the range of RO Frame IDs we subtract the meaningless offset
+  // to randomize the RO phase wrt the event time we use a random offset
   if (mParams.isContinuous()) { // in continuous mode we set the offset only in the very beginning
     if (!mParams.isTimeOffsetSet()) { // offset is initially at -inf
-      mParams.setTimeOffset(mEventTime + mParams.getROFrameLenght()*(gRandom->Rndm()-0.5));
+      mParams.setTimeOffset(/*mEventTime + */mParams.getROFrameLenght()*(gRandom->Rndm()-0.5));
     }
   }
   else { // in the triggered mode we start from 0 ROFrame in every event
