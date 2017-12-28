@@ -126,14 +126,12 @@ void TrackerTraits<false>::computeLayerCells(PrimaryVertexContext& primaryVertex
     const int currentLayerTrackletsNum { static_cast<int>(primaryVertexContext.getTracklets()[iLayer].size()) };
 
     for (int iTracklet { 0 }; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
-
       const Tracklet& currentTracklet { primaryVertexContext.getTracklets()[iLayer][iTracklet] };
       const int nextLayerClusterIndex { currentTracklet.secondClusterIndex };
       const int nextLayerFirstTrackletIndex {
           primaryVertexContext.getTrackletsLookupTable()[iLayer][nextLayerClusterIndex] };
 
       if (nextLayerFirstTrackletIndex == Constants::ITS::UnusedIndex) {
-
         continue;
       }
 
@@ -280,26 +278,27 @@ std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksVerbose()
     std::cout << std::setw(2) << " - Context initialized in: " << diff << "ms" << std::endl;
 
     evaluateTask(&Tracker<IsGPU>::computeTracklets, "Tracklets Finding");
-    std::cout << "Number of found tracklets: ";
+    std::cout << " - Number of found tracklets: ";
     for (auto& trk : mPrimaryVertexContext.getTracklets()) std::cout << trk.size() << " ";
-    std::endl;
+    std::cout << std::endl;
 
     evaluateTask(&Tracker<IsGPU>::computeCells, "Cells Finding");
-    std::cout << "Number of found cells: ";
+    std::cout << " - Number of found cells: ";
     for (auto& trk : mPrimaryVertexContext.getCells()) std::cout << trk.size() << " ";
-    std::endl;
+    std::cout << std::endl;
 
     evaluateTask(&Tracker<IsGPU>::findCellsNeighbours, "Neighbours Finding");
     evaluateTask(&Tracker<IsGPU>::findRoads, "Roads Finding");
-    std::cout << "Number of found roads: " << mPrimaryVertexContext.getRoads().size() << std::endl;
+    std::cout << " - Number of found roads: " << mPrimaryVertexContext.getRoads().size() << std::endl;
 
     evaluateTask(&Tracker<IsGPU>::computeMontecarloLabels, "Computing Montecarlo Labels");
     evaluateTask(&Tracker<IsGPU>::findTracks, "Tracks Finding");
+    std::cout << " - Number of found tracks: " << mPrimaryVertexContext.getTracks().size() << std::endl;
 
     t2 = clock();
     diff = ((float) t2 - (float) t1) / (CLOCKS_PER_SEC / 1000);
     std::cout << std::setw(2) << " - Vertex " << iVertex + 1 << " completed in: " << diff << "ms" << std::endl;
-
+    std::cout << std::endl;
   }
 
   return roads;

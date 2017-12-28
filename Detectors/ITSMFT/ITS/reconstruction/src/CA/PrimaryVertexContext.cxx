@@ -83,6 +83,7 @@ void PrimaryVertexContext::initialize(const Event& event, const int primaryVerte
   }
 
   mRoads.clear();
+  mTracks.clear();
 
 #if TRACKINGITSU_GPU_MODE
   mGPUContextDevicePointer = mGPUContext.initialize(mPrimaryVertex, mClusters, mCells, mCellsLookupTable);
