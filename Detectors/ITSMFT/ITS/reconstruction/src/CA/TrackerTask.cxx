@@ -105,7 +105,7 @@ void TrackerTask::Exec(Option_t* option)
     xyz.GetCoordinates(globalXYZ);
     mEvent.addCluster(layerId,iCluster - offset,globalXYZ[0],globalXYZ[1],globalXYZ[2],layerId);
   }
-  mTracker.clustersToTracksVerbose();
+  *mTracksArray = mTracker.clustersToTracksVerbose().back();
   mEvent.clear();
 }
 

@@ -64,10 +64,10 @@ class Tracker: private TrackerTraits<IsGPU>
     Tracker &operator=(const Tracker&) = delete;
     void setTrackMCTruthContainer(dataformats::MCTruthContainer<MCCompLabel> *trk);
 
-    std::vector<std::vector<Road>> clustersToTracks();
-    std::vector<std::vector<Road>> clustersToTracksVerbose();
-    std::vector<std::vector<Road>> clustersToTracksMemoryBenchmark(std::ofstream&);
-    std::vector<std::vector<Road>> clustersToTracksTimeBenchmark(std::ostream&);
+    std::vector<std::vector<Track>> clustersToTracks();
+    std::vector<std::vector<Track>> clustersToTracksVerbose();
+    std::vector<std::vector<Track>> clustersToTracksMemoryBenchmark(std::ofstream&);
+    std::vector<std::vector<Track>> clustersToTracksTimeBenchmark(std::ostream&);
 
   private:
     void computeTracklets();

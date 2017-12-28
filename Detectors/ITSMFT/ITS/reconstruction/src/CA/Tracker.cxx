@@ -236,11 +236,11 @@ Tracker<IsGPU>::Tracker(const Event &event) :
 }
 
 template<bool IsGPU>
-std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracks()
+std::vector<std::vector<Track>> Tracker<IsGPU>::clustersToTracks()
 {
   const int verticesNum { mEvent.getPrimaryVerticesNum() };
-  std::vector<std::vector<Road>> roads { };
-  roads.reserve(verticesNum);
+  std::vector<std::vector<Track>> tracks { };
+  tracks.reserve(verticesNum);
 
   for (int iVertex { 0 }; iVertex < verticesNum; ++iVertex) {
 
@@ -252,17 +252,18 @@ std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracks()
     findRoads();
     findTracks();
     computeMontecarloLabels();
+    tracks.emplace_back(mPrimaryVertexContext.getTracks());
   }
 
-  return roads;
+  return tracks;
 }
 
 template<bool IsGPU>
-std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksVerbose()
+std::vector<std::vector<Track>> Tracker<IsGPU>::clustersToTracksVerbose()
 {
   const int verticesNum { mEvent.getPrimaryVerticesNum() };
-  std::vector<std::vector<Road>> roads { };
-  roads.reserve(verticesNum);
+  std::vector<std::vector<Track>> tracks { };
+  tracks.reserve(verticesNum);
 
   for (int iVertex { 0 }; iVertex < verticesNum; ++iVertex) {
 
@@ -289,11 +290,12 @@ std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksVerbose()
 
     evaluateTask(&Tracker<IsGPU>::findCellsNeighbours, "Neighbours Finding");
     evaluateTask(&Tracker<IsGPU>::findRoads, "Roads Finding");
-    std::cout << " - Number of found roads: " << mPrimaryVertexContext.getRoads().size() << std::endl;
+    std::cout << " - Number of found tracks: " << mPrimaryVertexContext.getRoads().size() << std::endl;
 
     evaluateTask(&Tracker<IsGPU>::computeMontecarloLabels, "Computing Montecarlo Labels");
     evaluateTask(&Tracker<IsGPU>::findTracks, "Tracks Finding");
     std::cout << " - Number of found tracks: " << mPrimaryVertexContext.getTracks().size() << std::endl;
+    tracks.emplace_back(mPrimaryVertexContext.getTracks());
 
     t2 = clock();
     diff = ((float) t2 - (float) t1) / (CLOCKS_PER_SEC / 1000);
@@ -301,15 +303,15 @@ std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksVerbose()
     std::cout << std::endl;
   }
 
-  return roads;
+  return tracks;
 }
 
 template<bool IsGPU>
-std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksMemoryBenchmark(std::ofstream & memoryBenchmarkOutputStream)
+std::vector<std::vector<Track>> Tracker<IsGPU>::clustersToTracksMemoryBenchmark(std::ofstream & memoryBenchmarkOutputStream)
 {
   const int verticesNum { mEvent.getPrimaryVerticesNum() };
-  std::vector<std::vector<Road>> roads { };
-  roads.reserve(verticesNum);
+  std::vector<std::vector<Track>> tracks { };
+  tracks.reserve(verticesNum);
 
   for (int iVertex { 0 }; iVertex < verticesNum; ++iVertex) {
 
@@ -361,17 +363,18 @@ std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksMemoryBenchmark(s
     findTracks();
     computeMontecarloLabels();
     memoryBenchmarkOutputStream << mPrimaryVertexContext.getRoads().size() << std::endl;
+    tracks.emplace_back(mPrimaryVertexContext.getTracks());
   }
 
-  return roads;
+  return tracks;
 }
 
 template<bool IsGPU>
-std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksTimeBenchmark(std::ostream& timeBenchmarkOutputStream)
+std::vector<std::vector<Track>> Tracker<IsGPU>::clustersToTracksTimeBenchmark(std::ostream& timeBenchmarkOutputStream)
 {
   const int verticesNum = mEvent.getPrimaryVerticesNum();
-  std::vector<std::vector<Road>> roads;
-  roads.reserve(verticesNum);
+  std::vector<std::vector<Track>> tracks;
+  tracks.reserve(verticesNum);
 
   for (int iVertex = 0; iVertex < verticesNum; ++iVertex) {
     clock_t t1, t2;
@@ -390,9 +393,10 @@ std::vector<std::vector<Road>> Tracker<IsGPU>::clustersToTracksTimeBenchmark(std
     t2 = clock();
     diff = ((float) t2 - (float) t1) / (CLOCKS_PER_SEC / 1000);
     timeBenchmarkOutputStream << diff << std::endl;
+    tracks.emplace_back(mPrimaryVertexContext.getTracks());
   }
 
-  return roads;
+  return tracks;
 }
 
 template<bool IsGPU>
