@@ -136,7 +136,7 @@ void PrimaryVertexContext::initialize(const Event& event, const int primaryVerte
 
       mTrackletsLookupTable[iLayer].clear();
       mTrackletsLookupTable[iLayer].resize(
-         event.getLayer(iLayer + 1).getClustersSize(), Constants::ITS::UnusedIndex);
+        mClusters[iLayer + 1].size(), Constants::ITS::UnusedIndex);
     }
   }
 #endif

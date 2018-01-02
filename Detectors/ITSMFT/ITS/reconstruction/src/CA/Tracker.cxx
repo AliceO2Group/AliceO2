@@ -49,7 +49,7 @@ void TrackerTraits<false>::computeLayerTracklets(PrimaryVertexContext& primaryVe
   for (int iLayer { 0 }; iLayer < Constants::ITS::TrackletsPerRoad; ++iLayer) {
 
     if (primaryVertexContext.getClusters()[iLayer].empty() || primaryVertexContext.getClusters()[iLayer + 1].empty()) {
-      return;
+      continue;
     }
 
     const float3 &primaryVertex = primaryVertexContext.getPrimaryVertex();
