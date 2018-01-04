@@ -11,6 +11,7 @@
 #ifndef ALICEO2_EMCAL_DIGITIZER_H
 #define ALICEO2_EMCAL_DIGITIZER_H
 
+#include <array>
 #include <vector>
 #include <memory>
 
@@ -72,7 +73,7 @@ namespace o2
       int    mCurrSrcID = 0;                     ///< current MC source from the manager
       int    mCurrEvID = 0;                      ///< current event ID from the manager
 
-      std::vector<Digit>* mDigits[17664];        ///< used to sort digits by tower
+      std::array< std::unique_ptr< std::vector<Digit> > , 17664 > mDigits; ///< used to sort digits by tower
       
       ClassDefOverride(Digitizer, 1);
     };
