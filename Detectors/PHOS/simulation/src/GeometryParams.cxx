@@ -21,12 +21,11 @@ GeometryParams* GeometryParams::sGeomParam = nullptr;
 GeometryParams::GeometryParams(const std::string_view name):
 // Set zeros to the variables: most of them should be calculated
 // and it is more clear to set them in the text
-  mNModules(0),
+  mNModules(4),
   mAngle(0.),
   mIPtoUpperCPVsurface(0.),
   mCrystalShift(0.),
   mCryCellShift(0.),
-
   mAirGapLed(0.),
   mStripWallWidthOut(0.),
   mStripWallWidthIn(0.),
@@ -365,7 +364,7 @@ GeometryParams::GeometryParams(const std::string_view name):
   mFEEAirPosition[1] = 0 ;
   mFEEAirPosition[2] = mWarmThermoHalfSize[2] - mWarmBottomThickness - mFEEAirHalfSize[2] ;
 
-  // --- Calculate the oveol dimentions of the EMC module
+  // --- Calculate the overol dimentions of the EMC module
   
   mEMCParams[3] = mAlCoverParams[3] + mWarmAlCoverHalfSize[2] ; //Size out of beam
   mEMCParams[0] = mAlCoverParams[0] ; //Upper size across the beam
@@ -395,7 +394,55 @@ GeometryParams::GeometryParams(const std::string_view name):
   mCPVBoxSize[1]         = mCPVFrameSize[1] * mNumberOfCPVLayers + 0.1;
   mCPVBoxSize[2]         = mCPVActiveSize[1] + 2 * mCPVFrameSize[2];
 
+
+
+
+    
+  mPHOSParams[0] =  TMath::Max((Double_t)mCPVBoxSize[0]/2.,(Double_t)(mEMCParams[0] - (mEMCParams[1]-mEMCParams[0])*
+            mCPVBoxSize[1]/2/mEMCParams[3]));
+  mPHOSParams[1] = mEMCParams[1] ;
+  mPHOSParams[2] = TMath::Max((Double_t)mEMCParams[2], (Double_t)mCPVBoxSize[2]/2.);
+  mPHOSParams[3] = mEMCParams[3] + mCPVBoxSize[1]/2. ;
+  
+  mIPtoUpperCPVsurface = mIPtoOuterCoverDistance - mCPVBoxSize[1] ;
+
+  //calculate offset to crystal surface
+  mCrystalShift=-mInnerThermoHalfSize[1]+mStripHalfSize[1]+mSupportPlateHalfSize[1]
+                +mCrystalHalfSize[1]-mAirGapLed/2.+mPinDiodeHalfSize[1]+mPreampHalfSize[1] ;
+  mCryCellShift=mCrystalHalfSize[1]-(mAirGapLed-2*mPinDiodeHalfSize[1]-2*mPreampHalfSize[1])/2;
+ 
+  
+  
+  Double_t const kRADDEG = 180.0 / TMath::Pi() ;
+  mAngle        = 20;
+  for( Int_t i = 1; i <= mNModules ; i++ ) {
+    Float_t angle = mAngle * ( i - 3 ) ;
+    mPHOSAngle[i-1] = -  angle ;
+  } 
+
+  Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3] - mCPVBoxSize[1] ;
+  for (Int_t iModule=0; iModule<mNModules; iModule++) {
+    mModuleCenter[iModule][0] = r * TMath::Sin(mPHOSAngle[iModule] / kRADDEG );
+    mModuleCenter[iModule][1] =-r * TMath::Cos(mPHOSAngle[iModule] / kRADDEG );
+    mModuleCenter[iModule][2] = 0.;
+    
+    mModuleAngle[iModule][0][0] =  90;
+    mModuleAngle[iModule][0][1] = mPHOSAngle[iModule];
+    mModuleAngle[iModule][1][0] =   0;
+    mModuleAngle[iModule][1][1] =   0;
+    mModuleAngle[iModule][2][0] =  90;
+    mModuleAngle[iModule][2][1] = 270 + mPHOSAngle[iModule];
+  }
+
+printf("mNModules=%d, modCenter=(%f,%f,%f) \n",mNModules,mModuleCenter[2][0],mModuleCenter[2][1],mModuleCenter[2][2]) ;
+
+
    //Support geometry  
+  mRailLength=1200.0;
+  mDistanceBetwRails =420.0 ;
+  mRailsDistanceFromIP = 590.;
+  mCradleWallThickness = 2.0 ;
+
   mRailPart1[0] =   28.0;
   mRailPart1[1] =    3.0;
   mRailPart1[2] = mRailLength;

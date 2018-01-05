@@ -34,7 +34,7 @@ using namespace o2::PHOS;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("PHOS", active)
+  : o2::Base::DetImpl<Detector>("PHS", active)
 {
 //  using boost::algorithm::contains;
 //  memset(mParEMOD, 0, sizeof(Double_t) * 5);
@@ -59,10 +59,32 @@ void Detector::ConstructGeometry()
   using boost::algorithm::contains;
   LOG(DEBUG) << "Creating PHOS geometry\n";
 
-  PHOS::GeometryParams * geom = PHOS::GeometryParams::GetInstance("Run2");
+  PHOS::GeometryParams * geom = PHOS::GeometryParams::GetInstance("Run2"); 
+printf("PHOS Params = (%f,%f,%f) \n",geom->GetPHOSParams()[0],geom->GetPHOSParams()[1],geom->GetPHOSParams()[2]) ;
+
   if (! geom) {
     LOG(ERROR) << "ConstructGeometry: PHOS Geometry class has not been set up.\n";
   }
+
+  //Configure geometry So far we have onny one: Run2
+  {
+      mCreateCPV=kTRUE ;
+      mCreateHalfMod=kTRUE;
+      mActiveModule[0]=kFALSE ;
+      mActiveModule[1]=kTRUE ;
+      mActiveModule[2]=kTRUE ;
+      mActiveModule[3]=kTRUE ;
+      mActiveModule[4]=kTRUE ;
+      mActiveModule[5]=kFALSE ;
+      mActiveCPV[0]=kFALSE ;
+      mActiveCPV[1]=kFALSE ;
+      mActiveCPV[2]=kFALSE ;
+      mActiveCPV[3]=kTRUE ;
+      mActiveCPV[4]=kFALSE ;
+      mActiveCPV[5]=kFALSE ;
+  }
+
+
 
   //First create necessary materials
   CreateMaterials();
@@ -88,7 +110,7 @@ void Detector::ConstructGeometry()
   ConstructSupportGeometry() ; 
   
   // --- Position  PHOS modules in ALICE setup ---
-  Int_t idrotm[99] ;
+  Int_t idrotm[5] ;
   Int_t iXYZ,iAngle;
   char im[5] ;
   for (Int_t iModule = 0; iModule < 5 ; iModule++ ) {
@@ -106,22 +128,24 @@ void Detector::ConstructGeometry()
     Float_t pos[3];
     for (iXYZ=0; iXYZ<3; iXYZ++)
       pos[iXYZ] = geom->GetModuleCenter(iModule,iXYZ);
+
+printf("Module %d, (%f,%f,%f), id=%d \n",iModule,pos[0],pos[1], pos[2],idrotm[iModule]) ;    
     if(iModule==3){ //special 1/2 module
-          TVirtualMC::GetMC()->Gspos("PHOH", iModule+1, "ALIC", pos[0], pos[1], pos[2],
+          TVirtualMC::GetMC()->Gspos("PHOH", iModule+1, "cave", pos[0], pos[1], pos[2],
                                      idrotm[iModule], "ONLY") ;
     }
     else{
       if(mActiveCPV[iModule+1]){ //use module with CPV
-            TVirtualMC::GetMC()->Gspos("PHOC", iModule+1, "ALIC", pos[0], pos[1], pos[2],
+            TVirtualMC::GetMC()->Gspos("PHOC", iModule+1, "cave", pos[0], pos[1], pos[2],
                                        idrotm[iModule], "ONLY") ;
       }
       else{ //module wihtout CPV
-            TVirtualMC::GetMC()->Gspos("PHOS", iModule+1, "ALIC", pos[0], pos[1], pos[2],
+            TVirtualMC::GetMC()->Gspos("PHOS", iModule+1, "cave", pos[0], pos[1], pos[2],
                                        idrotm[iModule], "ONLY") ;
       }
     }
   }
-
+printf("Posted PHOS moduels \n") ;
 
   gGeoManager->CheckGeometry();
 
@@ -364,7 +388,7 @@ void Detector::ConstructEMCGeometry(){
   //   2. In Strip the same: X along longer side, Y out of beam, Z along shorter side (along beam)
 
 
-  PHOS::GeometryParams * geom = PHOS::GeometryParams::GetInstance("Run2");
+  PHOS::GeometryParams * geom = PHOS::GeometryParams::GetInstance();
 
  
   Float_t par[4]={0};
@@ -417,15 +441,19 @@ void Detector::ConstructEMCGeometry(){
       icel += 2, lev += 2) {
     Float_t x = (2*(lev / 2) - 1 - geom->GetNCellsXInStrip())* acel[0] ;
     Float_t z = acel[2];
+   printf("PCEL: (%f,%f,%f) \n",x,y,z) ;
+   
     TVirtualMC::GetMC()->Gspos("PCEL", icel, "PSTR", x, y, +z, 0, "ONLY") ;
     TVirtualMC::GetMC()->Gspos("PCEL", icel + 1, "PSTR", x, y, -z, 0, "ONLY") ;
   }
 
   // --- define the support plate, hole in it and position it in strip ----
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetSupportPlateHalfSize() + ipar);
+printf("PSUP: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PSUP", "BOX ", getMediumID(ID_AL), par, 3) ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetSupportPlateInHalfSize() + ipar);
+printf("PSHO: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PSHO", "BOX ", getMediumID(ID_AIR), par, 3) ;
   Float_t z = geom->GetSupportPlateThickness()/2 ;
   TVirtualMC::GetMC()->Gspos("PSHO", 1, "PSUP", 0.0, 0.0, z, 0, "ONLY") ;
@@ -436,6 +464,7 @@ void Detector::ConstructEMCGeometry(){
   
   // ========== Fill module with strips and put them into inner thermoinsulation=============
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetInnerThermoHalfSize() + ipar);
+printf("PTII: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PTII", "BOX ", getMediumID(ID_THERMOINS), par, 3) ;     
   
   if(mCreateHalfMod)
@@ -472,6 +501,7 @@ void Detector::ConstructEMCGeometry(){
   
   // ------- define the air gap between thermoinsulation and cooler
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetAirGapHalfSize() + ipar);
+printf("PAGA: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PAGA", "BOX ", getMediumID(ID_AIR), par, 3) ;   
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PAGH", "BOX ", getMediumID(ID_AIR), par, 3) ;   
@@ -485,6 +515,7 @@ void Detector::ConstructEMCGeometry(){
 
   // ------- define the Al passive cooler 
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetCoolerHalfSize() + ipar);
+printf("PCOR: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PCOR", "BOX ", getMediumID(ID_AL), par, 3) ;   
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PCOH", "BOX ", getMediumID(ID_AL), par, 3) ;   
@@ -498,23 +529,25 @@ void Detector::ConstructEMCGeometry(){
   
   // ------- define the outer thermoinsulating cover
   for (ipar=0; ipar<4; ipar++) par[ipar] = *(geom->GetOuterThermoParams() + ipar);
-  TVirtualMC::GetMC()->Gsvolu("PTIO", "TRD1", getMediumID(ID_THERMOINS), par, 4) ;        
+ printf("PTIO: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
+ TVirtualMC::GetMC()->Gsvolu("PTIO", "TRD1", getMediumID(ID_THERMOINS), par, 4) ;        
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PIOH", "TRD1", getMediumID(ID_THERMOINS), par, 4) ;        
   const Float_t * outparams = geom->GetOuterThermoParams() ; 
   
-  Int_t idrotm[99] ;
-  Matrix(idrotm[1], 90.0, 0.0, 0.0, 0.0, 90.0, 270.0) ;
+  Int_t idrotm=-1 ;
+  Matrix(idrotm, 90.0, 0.0, 0.0, 0.0, 90.0, 270.0) ;
   // Frame in outer thermoinsulation and so on: z out of beam, y along beam, x across beam
   
   z = outparams[3] - cooler[1] ;
-  TVirtualMC::GetMC()->Gspos("PCOR", 1, "PTIO", 0., 0.0, z, idrotm[1], "ONLY") ;
+  TVirtualMC::GetMC()->Gspos("PCOR", 1, "PTIO", 0., 0.0, z, idrotm, "ONLY") ;
   if(mCreateHalfMod)
-    TVirtualMC::GetMC()->Gspos("PCOH", 1, "PIOH", 0., 0.0, z, idrotm[1], "ONLY") ;
+    TVirtualMC::GetMC()->Gspos("PCOH", 1, "PIOH", 0., 0.0, z, idrotm, "ONLY") ;
   
   // -------- Define the outer Aluminium cover -----
   for (ipar=0; ipar<4; ipar++) par[ipar] = *(geom->GetAlCoverParams() + ipar);
-  TVirtualMC::GetMC()->Gsvolu("PCOL", "TRD1", getMediumID(ID_AL), par, 4) ;        
+ printf("PCOL: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
+ TVirtualMC::GetMC()->Gsvolu("PCOL", "TRD1", getMediumID(ID_AL), par, 4) ;        
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PCLH", "TRD1", getMediumID(ID_AL), par, 4) ;        
 
@@ -526,6 +559,7 @@ void Detector::ConstructEMCGeometry(){
 
   // --------- Define front fiberglass cover -----------
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetFiberGlassHalfSize() + ipar);
+printf("PFGC: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PFGC", "BOX ", getMediumID(ID_FIBERGLASS), par, 3) ;  
   z = - outparams[3] ;
   TVirtualMC::GetMC()->Gspos("PFGC", 1, "PCOL", 0., 0.0, z, 0, "ONLY") ;
@@ -537,11 +571,13 @@ void Detector::ConstructEMCGeometry(){
 
   //------ Warm Section --------------
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetWarmAlCoverHalfSize() + ipar);
+ printf("PWAR: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PWAR", "BOX ", getMediumID(ID_AL), par, 3) ; 
   const Float_t * warmcov = geom->GetWarmAlCoverHalfSize() ;
   
   // --- Define the outer thermoinsulation ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetWarmThermoHalfSize() + ipar);
+printf("PWTI: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PWTI", "BOX ", getMediumID(ID_THERMOINS), par, 3) ; 
   const Float_t * warmthermo = geom->GetWarmThermoHalfSize() ;
   z = -warmcov[2] + warmthermo[2] ;
@@ -550,10 +586,12 @@ void Detector::ConstructEMCGeometry(){
   
   // --- Define cables area and put in it T-supports ---- 
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTCables1HalfSize() + ipar);
+printf("PCA1: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PCA1", "BOX ", getMediumID(ID_CABLES), par, 3) ; 
   const Float_t * cbox = geom->GetTCables1HalfSize() ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTSupport1HalfSize() + ipar);
+printf("PBE1: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PBE1", "BOX ", getMediumID(ID_AL), par, 3) ;
   const Float_t * beams = geom->GetTSupport1HalfSize() ;
   Int_t isup ;
@@ -566,10 +604,12 @@ void Detector::ConstructEMCGeometry(){
   TVirtualMC::GetMC()->Gspos("PCA1", 1, "PWTI", 0.0, 0.0, z, 0, "ONLY") ;     
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTCables2HalfSize() + ipar);
+printf("PCA2: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PCA2", "BOX ", getMediumID(ID_CABLES), par, 3) ; 
   const Float_t * cbox2 = geom->GetTCables2HalfSize() ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTSupport2HalfSize() + ipar);
+printf("PBE2: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PBE2", "BOX ", getMediumID(ID_AL), par, 3) ;
   for(isup = 0; isup < geom->GetNTSuppots(); isup++){
     Float_t x = -cbox[0] + beams[0] + (2*beams[0]+geom->GetTSupportDist())*isup ;
@@ -581,12 +621,14 @@ void Detector::ConstructEMCGeometry(){
   
   // --- Define frame ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetFrameXHalfSize() + ipar);
+printf("PFRX: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PFRX", "BOX ", getMediumID(ID_FE), par, 3) ; 
   const Float_t * posit1 = geom->GetFrameXPosition() ;
   TVirtualMC::GetMC()->Gspos("PFRX", 1, "PWTI", posit1[0],  posit1[1], posit1[2], 0, "ONLY") ;
   TVirtualMC::GetMC()->Gspos("PFRX", 2, "PWTI", posit1[0], -posit1[1], posit1[2], 0, "ONLY") ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetFrameZHalfSize() + ipar);
+printf("PFRZ: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PFRZ", "BOX ", getMediumID(ID_FE), par, 3) ; 
   const Float_t * posit2 = geom->GetFrameZPosition() ;
   TVirtualMC::GetMC()->Gspos("PFRZ", 1, "PWTI",  posit2[0], posit2[1], posit2[2], 0, "ONLY") ;
@@ -624,6 +666,7 @@ void Detector::ConstructEMCGeometry(){
   
   // Define the EMC module volume and combine Cool and Warm sections  
   for (ipar=0; ipar<4; ipar++) par[ipar] = *(geom->GetEMCParams() + ipar);
+printf("PEMC: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PEMC", "TRD1", getMediumID(ID_AIR), par, 4) ;        
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PEMH", "TRD1", getMediumID(ID_AIR), par, 4) ;        
@@ -647,7 +690,7 @@ void Detector::ConstructEMCGeometry(){
   if(mCreateHalfMod) //half of PHOS module
     TVirtualMC::GetMC()->Gspos("PEMH", 1, "PHOH", 0., 0., z, 0, "ONLY") ; 
 
-
+printf("EMC done \n") ;
 }
 //-----------------------------------------
 void Detector::ConstructCPVGeometry(){
@@ -778,7 +821,7 @@ void Detector::ConstructSupportGeometry(){
   TVirtualMC::GetMC()->Gsvolu("PRRD", "BOX ", getMediumID(ID_AIR), par, 3) ;
 
   y0     = -(geom->GetRailsDistanceFromIP() - geom->GetRailRoadSize(1) / 2.0) ;
-  TVirtualMC::GetMC()->Gspos("PRRD", 1, "ALIC", 0.0, y0, 0.0, 0, "ONLY") ; 
+  TVirtualMC::GetMC()->Gspos("PRRD", 1, "cave", 0.0, y0, 0.0, 0, "ONLY") ; 
 
   // --- Dummy box containing one rail
 
@@ -838,12 +881,12 @@ void Detector::ConstructSupportGeometry(){
   par[0] +=  geom->GetCradleWallThickness() ;
   par[1] -=  geom->GetCradleWallThickness() ;
   par[2] -=  geom->GetCradleWallThickness() ;
-  TVirtualMC::GetMC()->Gsvolu("PCRE", "TUBS", getMediumID(ID_AIR), par, 5) ;
+  TVirtualMC::GetMC()->Gsvolu("PCRE", "TUBS", getMediumID(ID_FE), par, 5) ;
   TVirtualMC::GetMC()->Gspos ("PCRE", 1, "PCRA", 0.0, 0.0, 0.0, 0, "ONLY") ; 
 
   for (i=0; i<2; i++) {
     z0 = (2*i-1) * (geom->GetOuterBoxSize(2) + geom->GetCradleWall(2) )/ 2.0  ;
-        TVirtualMC::GetMC()->Gspos("PCRA", i, "ALIC", 0.0, 0.0, z0, 0, "ONLY") ; 
+        TVirtualMC::GetMC()->Gspos("PCRA", i, "cave", 0.0, 0.0, z0, 0, "ONLY") ; 
   }
 
   // --- The "wheels" of the cradle
@@ -861,7 +904,7 @@ void Detector::ConstructSupportGeometry(){
     for (j=0; j<2; j++) {
       copy = 2*i + j;
       x0 = (2*j-1) * geom->GetDistanceBetwRails()  / 2.0 ;
-      TVirtualMC::GetMC()->Gspos("PWHE", copy, "ALIC", x0, y0, z0, 0, "ONLY") ; 
+      TVirtualMC::GetMC()->Gspos("PWHE", copy, "cave", x0, y0, z0, 0, "ONLY") ; 
     }
   }
 

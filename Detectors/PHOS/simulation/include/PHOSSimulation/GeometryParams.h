@@ -25,10 +25,10 @@ class GeometryParams : public TNamed
  public:
  
   /// Default constructor
-  GeometryParams() = default;
+  GeometryParams(){}
 
   /// Destructor
-  ~GeometryParams() override = default ;
+  ~GeometryParams() {} 
 
   /// Get singleton (create if necessary)
   static GeometryParams * GetInstance(const std::string_view name="Run2"){ if(!sGeomParam) 
@@ -164,12 +164,11 @@ private:
   //General PHOS modules parameters
   Int_t       mNModules;        // Number of PHOS modules	
   Float_t     mAngle ;          // Position angles between modules
-  Float_t    *mPHOSAngle ;      //[fNModules] Position angles of modules
+  Float_t     mPHOSAngle[4] ;   // Position angles of modules
   Float_t     mPHOSParams[4] ;  // Half-sizes of PHOS trapecoid
   Float_t     mIPtoUpperCPVsurface; // Minimal distance from IP to PHOS
   Float_t     mCrystalShift ;   //Distance from crystal center to front surface
   Float_t     mCryCellShift ;   //Distance from crystal center to front surface
-  TObjArray  *mRotMatrixArray ; // Liste of rotation matrices (one per phos module)
   Float_t     mModuleCenter[5][3];   // xyz-position of the module center
   Float_t     mModuleAngle[5][3][2]; // polar and azymuth angles for 3 axes of modules
 
