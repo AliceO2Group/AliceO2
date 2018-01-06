@@ -33,6 +33,9 @@ using namespace o2::EMCAL;
 //_______________________________________________________________________
 void Digitizer::init()
 {
+  for (auto tower=mDigits.begin(); tower!=mDigits.end(); ++tower){
+    *tower = std::make_unique< std::vector<Digit> >();
+  }
 }
 
 //_______________________________________________________________________
@@ -44,26 +47,31 @@ void Digitizer::finish()
 void Digitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* digits)
 {
   digits->clear();
-  mDigits.clear();
+  for (auto tower=mDigits.begin(); tower!=mDigits.end(); ++tower){
+    (*tower)->clear();
+  }
 
   for(auto hit : *hits) {
     Digit digit = HitToDigit(hit);
     Int_t id = digit.GetTower();
 
-    if(id<0 || id>mGeometry->GetNCells()){
+    try {
+      mDigits.at(id);
+    }
+    catch (const std::out_of_range& oor) {
       LOG(WARNING) << "tower index out of range: " << id << FairLogger::endl;
       continue;
     }
 
     Bool_t flag=false;
-    for(auto rit=mDigits[id].rbegin(); rit!=mDigits[id].rend(); ++rit){
+    for(auto rit=(mDigits.at(id))->rbegin(); rit!=(mDigits.at(id))->rend(); ++rit){
       if(rit->CanAdd(digit)) {
 	(*rit) += digit;
 	flag = true;
 	break;
       }
     }
-    if(!flag) mDigits[id].push_back(digit);
+    if(!flag) (mDigits.at(id))->push_back(digit);
   }
 
   fillOutputContainer(digits);
@@ -97,8 +105,9 @@ void Digitizer::fillOutputContainer(std::vector<Digit>* digits)
 {
   std::forward_list<Digit> l;
 
-  for (auto tower : mDigits){
-    for(auto it=tower.second.rbegin(); it!=tower.second.rend(); ++it) l.push_front(*it);
+  for (auto tower=mDigits.rbegin(); tower!=mDigits.rend(); ++tower){
+    std::vector<Digit> v = *(*tower);
+    for(auto vit=v.rbegin(); vit!=v.rend(); ++vit) l.push_front(*vit);
   }
 
   l.sort();
