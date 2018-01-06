@@ -101,6 +101,8 @@ void Digitizer::fillOutputContainer(std::vector<Digit>* digits)
     for(auto it=tower.second.rbegin(); it!=tower.second.rend(); ++it) l.push_front(*it);
   }
 
+  //testing
+
   l.sort();
 
   for(auto digit : l) digits->push_back(digit);
