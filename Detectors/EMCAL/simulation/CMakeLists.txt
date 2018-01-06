@@ -4,15 +4,11 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Detector.cxx
-  src/Digitizer.cxx
-  src/DigitizerTask.cxx
   src/SpaceFrame.cxx
 )
 
 set(HEADERS
   include/EMCALSimulation/Detector.h
-  include/EMCALSimulation/Digitizer.h
-  include/EMCALSimulation/DigitizerTask.h
   include/EMCALSimulation/SpaceFrame.h
 )
 
