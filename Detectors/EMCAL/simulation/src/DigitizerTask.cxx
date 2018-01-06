@@ -27,8 +27,8 @@ using o2::EMCAL::Digitizer;
 
 using namespace o2::EMCAL;
 
-DigitizerTask::DigitizerTask()
-  : FairTask("EMCALDigitizerTask"), mDigitizer()
+DigitizerTask::DigitizerTask(Bool_t useAlpide)
+  : FairTask("EMCALDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer()
 {
 }
 
@@ -93,6 +93,7 @@ void DigitizerTask::Exec(Option_t* option)
 void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
+  if(!mContinuous) return;
   FairRootManager *mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   if (mDigitsArray) mDigitsArray->clear();

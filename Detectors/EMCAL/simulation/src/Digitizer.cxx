@@ -51,22 +51,10 @@ void Digitizer::init()
 void Digitizer::process(const std::vector<Hit>* hits, std::vector<Digit>* digits)
 {
   digits->clear();
-
-  std::vector<Digit>::reverse_iterator it;
-  bool flag;
   
   for(auto hit : *hits) {
     Digit digit = HitToDigit(hit);
-
-    flag=false;
-    for(it=digits->rbegin(); it!=digits->rend(); ++it){
-      if(it->CanAdd(digit)) {
-	(*it) += digit;
-	flag = true;
-	break;
-      }
-    }
-    if(!flag) digits->push_back(digit);
+    digits->push_back(digit);
   }
 
   /*
