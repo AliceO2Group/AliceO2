@@ -31,20 +31,17 @@ namespace o2 {
       ~Digit() override = default;
 
       bool operator<(const Digit &ref) const;
-      bool operator>(const Digit &ref) const;
 
-      bool CanAdd(const Digit other);
+      const Digit operator+(const Digit& other);// Adds energy of two digits.
+
       Digit& operator+=(const Digit& other); // Adds energy of other digits to this digit.
-      friend Digit operator+(Digit lhs, const Digit& rhs)// Adds energy of two digits.
-      {
-        lhs += rhs;
-	return lhs;
-      }
 
       Int_t GetTower() const { return mTower; }
-      void SetTower(Int_t tower) { mTower = tower; }
 
       Double_t GetAmplitude() const { return mAmplitude; }
+
+      void SetTower(Int_t tower) { mTower = tower; }
+
       void SetAmplitude(Double_t amplitude) { mAmplitude = amplitude; }
 
       void PrintStream(std::ostream &stream) const;
