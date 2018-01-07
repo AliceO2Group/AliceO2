@@ -33,7 +33,6 @@ class AliHLTTPCGMMergedTrack
   GPUd() float LastY()                        const { return fLastY; }
   GPUd() float LastZ()                        const { return fLastZ; }
   GPUd() bool OK() const { return fOK; }
-  GPUd() char Side() const { return fCSide ^ 1; }
   GPUd() char CSide() const { return fCSide; }
 
   GPUd() void SetNClusters      ( int v )                { fNClusters = v;       }
