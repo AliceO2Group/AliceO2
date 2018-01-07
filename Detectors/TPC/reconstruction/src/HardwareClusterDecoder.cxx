@@ -35,6 +35,7 @@ using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>>& inputClusters, std::vector<ClusterNativeContainer>& outputClusters, const std::vector<MCLabelContainer>* inMCLabels, std::vector<MCLabelContainer>* outMCLabels)
 {
+  if (mIntegrator == nullptr) mIntegrator.reset(new DigitalCurrentClusterIntegrator);
   if (!inMCLabels) outMCLabels = nullptr;
   int nRowClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
   int containerRowCluster[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] =  {0};
@@ -76,7 +77,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             cOut.setSigmaTime(std::sqrt(cIn.getSigmaTime2()));
             cOut.qMax = cIn.qMax;
             cOut.qTot = cIn.qTot;
-            mIntegrator.integrateCluster(sector, padRowGlobal, pad, cIn.qTot);
+            mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.qTot);
             if (outMCLabels)
             {
               for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
@@ -121,7 +122,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
           outputClusters[numberOfOutputContainers].sector = i;
           outputClusters[numberOfOutputContainers].globalPadRow = j;
           containerRowCluster[i][j] = numberOfOutputContainers++;
-          mIntegrator.initRow(i, j);
+          mIntegrator->initRow(i, j);
         }
       }
       memset(nRowClusters, 0, sizeof(nRowClusters));
