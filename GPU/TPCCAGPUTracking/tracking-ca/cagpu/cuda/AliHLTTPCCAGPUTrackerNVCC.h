@@ -18,6 +18,10 @@
 #ifndef ALIHLTTPCCAGPUTRACKERNVCC_H
 #define ALIHLTTPCCAGPUTRACKERNVCC_H
 
+#ifdef __CLING__
+typedef int cudaError_t;
+#endif
+
 #include "AliHLTTPCCAGPUTrackerBase.h"
 
 class AliHLTTPCCAGPUTrackerNVCC : public AliHLTTPCCAGPUTrackerBase
