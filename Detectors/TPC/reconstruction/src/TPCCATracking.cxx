@@ -214,17 +214,17 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   {
     std::vector<std::pair<int, float>> trackSort(nTracks);
     int tmp = 0, tmp2 = 0;
-    for (char side = 0;side < 2;side++)
+    for (char cside = 0;cside < 2;cside++)
     {
       for (int i = 0;i < nTracks;i++)
       {
-        if (tracks[i].OK() && tracks[i].Side() == side) trackSort[tmp++] = {i, (side == 0 ? -1.f : 1.f) * tracks[i].GetParam().GetZOffset()};
+        if (tracks[i].OK() && tracks[i].CSide() == cside) trackSort[tmp++] = {i, (cside == 0 ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset()};
       }
       std::sort(trackSort.data() + tmp2, trackSort.data() + tmp, [](const auto& a, const auto& b) {
         return(a.second > b.second);
       });
       tmp2 = tmp;
-      if (side == 0) mNTracksASide = tmp;
+      if (cside == 0) mNTracksASide = tmp;
     }
     nTracks = tmp;
     
@@ -245,7 +245,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       if (!mTrackingCAO2Interface->GetParamContinuous())
         oTrack.setTime0(0);
       else
-        oTrack.setTime0(sContinuousTFReferenceLength - (tracks[i].Side() ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth() * gasParam.getVdrift()));
+        oTrack.setTime0(sContinuousTFReferenceLength - (tracks[i].CSide() ? -1.f : 1.f) * tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth() * gasParam.getVdrift()));
       oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset());
       oTrack.resetClusterReferences(tracks[i].NClusters());
       std::vector<std::pair<MCCompLabel, unsigned int>> labels;
@@ -289,7 +289,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
       int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24;
-      oTrack.setSide((Side) tracks[i].Side());
+      oTrack.setSide((Side) tracks[i].CSide());
     }
   }
   mTrackingCAO2Interface->Cleanup();
