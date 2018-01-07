@@ -38,7 +38,7 @@ public:
   static void sortClustersAndMC(std::vector<o2::DataFormat::TPC::ClusterNative> clusters, o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcTruth);
 
 private:
-  DigitalCurrentClusterIntegrator mIntegrator;
+  std::unique_ptr<DigitalCurrentClusterIntegrator> mIntegrator;
 };
 
 }}
