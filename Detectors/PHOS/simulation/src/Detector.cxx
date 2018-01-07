@@ -361,9 +361,6 @@ void Detector::CreateMaterials(){
   
   Mixture(ID_PRINTCIRC, "G10", aG10, zG10, dG10, -4, wG10);
 
-  // --- Lead ---                                                                     
-  Material(ID_PB, "Pb", 207.2, 82, 11.35, 0.56, 0., 0, 0) ;
-
  // --- The gas mixture ---                                                                
  // Co2
   Float_t aCO[2] = {12.0, 16.0} ; 
@@ -467,10 +464,6 @@ void Detector::CreateMaterials(){
   Medium(ID_PRINTCIRC, "G10", ID_PRINTCIRC, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
 
-  // The Lead                                                                       -> idtmed[712]
-  Medium(ID_PB, "Lead", ID_PB, 1,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
-
   // The gas mixture: ArCo2                                                         -> idtmed[715]
   Medium(ID_CO2, "ArCo2", ID_CO2, 1,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
@@ -530,8 +523,7 @@ void Detector::ConstructEMCGeometry(){
     
   // --- Define crystal and put it into wrapped crystall ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetCrystalHalfSize() + ipar);
-//  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
-  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PB), par, 3) ;
+  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
   TVirtualMC::GetMC()->Gspos("PXTL", 1, "PWRA", 0.0, 0.0, 0.0, 0, "ONLY") ;
   
   // --- define APD/PIN preamp and put it into AirCell

@@ -42,8 +42,8 @@ class Detector : public o2::Base::DetImpl<Detector>
  public:
   //PHOS materials/media
   enum { ID_PWO = 0, ID_CPVSC = 1, ID_AL = 2, ID_TYVEK = 3, ID_POLYFOAM = 4, ID_TITAN = 5, ID_APD = 6,ID_THERMOINS = 7,
-         ID_TEXTOLIT = 8,     ID_CUPPER = 10, ID_PRINTCIRC = 11, ID_PB = 12, ID_CO2 = 13, ID_FE = 17, ID_FIBERGLASS = 18,
-         ID_CABLES = 19, ID_AIR=20 };
+         ID_TEXTOLIT = 8,     ID_CUPPER = 10, ID_PRINTCIRC = 11, ID_CO2 = 12, ID_FE = 13, ID_FIBERGLASS = 14,
+         ID_CABLES = 15, ID_AIR=16 };
 
   ///
   /// Default constructor
