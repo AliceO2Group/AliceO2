@@ -132,20 +132,6 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 	return(0);
 }
 
-int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClusters, const AliHLTTPCGMMergedTrack* &outputTracks, int &nOutputTracks, const unsigned int* &outputTrackClusterIDs)
-{
-	const AliHLTTPCGMMergedTrackHit* outputTrackClusters;
-	int retVal = RunTracking(inputClusters, outputTracks, nOutputTracks, outputTrackClusters);
-	if (retVal) return(retVal);
-	fOutputTrackClusterBuffer.resize(fHLT->Merger().NOutputTrackClusters());
-	for (int i = 0;i < fHLT->Merger().NOutputTrackClusters();i++)
-	{
-		fOutputTrackClusterBuffer[i] = outputTrackClusters[i].fId;
-	}
-	outputTrackClusterIDs = fOutputTrackClusterBuffer.data();
-	return(0);
-}
-
 void AliHLTTPCCAO2Interface::Cleanup()
 {
 	
