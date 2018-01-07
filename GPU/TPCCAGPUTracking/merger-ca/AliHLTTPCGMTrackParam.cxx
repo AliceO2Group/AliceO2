@@ -324,7 +324,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha );      
 	
 	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
-	bool okhits = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt());
+	bool okhits = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(t.QPt());
 	bool okqual = t.CheckNumericalQuality();
 			
 	bool ok = okhits && okqual;
