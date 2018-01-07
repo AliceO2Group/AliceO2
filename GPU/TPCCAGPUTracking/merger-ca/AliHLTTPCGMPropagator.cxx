@@ -381,8 +381,8 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   float d4 = p[4] - fT0.QPt();
   
   float newSinPhi = t0e.SinPhi() +  d2           + h24*d4;;
-  if (fabs(newSinPhi) > HLTCA_MAX_SIN_PHI) return(-3);
-	  
+  if (fT->NDF() >= 15 && fabs(newSinPhi) > HLTCA_MAX_SIN_PHI) return(-4);
+  
   fT0 = t0e;
 
   fT->X() = t0e.X();
@@ -480,7 +480,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
 {
   
   if ( fabs( posAlpha - fAlpha) > 1.e-4 ) {
-    if( RotateToAlpha( posAlpha )!=0 ) return -1;
+    if( RotateToAlpha( posAlpha )!=0 ) return -2;
   }
 
   float Bz = GetBz( fAlpha, fT0.X(), fT0.Y(), fT0.Z() );
@@ -492,7 +492,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   int err = t0e.PropagateToXBzLight( posX, Bz, dLp );
   if( err ) return 1;
   t0e.UpdateValues();
-  if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -1;
+  if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -3;
 
   // propagate track and cov matrix with derivatives for (0,0,Bz) field
 
@@ -520,14 +520,17 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   float d3 = p[3] - fT0.DzDs();
   float d4 = p[4] - fT0.QPt();
 	  
+  float newSinPhi = t0e.SinPhi() +  d2           + h24*d4;
+  if (fT->NDF() >= 15 && fabs(newSinPhi) > HLTCA_MAX_SIN_PHI) return(-4);
+
   fT0 = t0e;
 
   fT->X() = t0e.X();
   p[0] = t0e.Y() + d0    + h02*d2         + h04*d4;
   p[1] = t0e.Z() + d1    + h13*d3;
-  p[2] = t0e.SinPhi() +  d2           + h24*d4;    
+  p[2] = newSinPhi;
   p[3] = t0e.DzDs() + d3;
-  p[4] = t0e.QPt() + d4;  
+  p[4] = t0e.QPt() + d4;
 
   float *c = fT->Cov();
   float c20 = c[ 3];

@@ -206,15 +206,16 @@ GPUd() void AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
           }
       }
 
-      if ( err || CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate )
+      const int err2 = CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate;
+      if ( err || err2 )
       {
         if (markNonFittedClusters)
         {
           if (fNDF > 0 && (fabs(yy - fP[0]) > 3 || fabs(zz - fP[1]) > 3)) clusters[ihit].fState = -2;
-          else if (err) clusters[ihit].fState = -1;
+          else if (err && err >= -3) clusters[ihit].fState = -1;
         }
         
-        if (DEBUG) printf(" --- break\n");
+        if (DEBUG) printf(" --- break (%d, %d)\n", err, err2);
         continue;
       }
       if (DEBUG) printf("\n");
