@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <map>
 #include <algorithm>
 #include <iomanip>
 
@@ -34,7 +35,12 @@ using namespace o2::PHOS;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("PHS", active)
+  : o2::Base::DetImpl<Detector>("PHS", active),
+  mHits(new std::vector<Hit>),
+  mCurrentTrackID(-1),    
+  mCurrentCellID(-1),
+  mCurentSuperParent(-1),   
+  mCurrentHit(nullptr)          
 {
 //  using boost::algorithm::contains;
 //  memset(mParEMOD, 0, sizeof(Double_t) * 5);
@@ -48,9 +54,121 @@ Detector::Detector(Bool_t active)
 
 }
 
-void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+void Detector::Initialize() { 
+  o2::Base::Detector::Initialize(); 
+  Reset(); 
+}
 
-void Detector::EndOfEvent() { Reset(); }
+void Detector::EndOfEvent() { 
+  // Sort Hits
+  // Add duplicates if any
+  // Apply Poisson spearing of light production
+
+
+
+  Reset(); 
+}
+void Detector::Reset(){
+  mSuperParents.clear(); 
+//  mHits.clear();   
+  mCurrentTrackID=-1 ;    
+  mCurrentCellID=-1 ; 
+  mCurentSuperParent=-1 ;   
+  mCurrentHit=nullptr ;          
+}
+
+void Detector::Register(){
+  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+}
+Bool_t Detector::ProcessHits(FairVolume* v)
+{
+ //1. Remember all particles first entered PHOS (active medium)
+ //2. Collect all energy depositions in Cell by all secondaries from particle first entered PHOS  
+
+  auto* mcapp = TVirtualMC::GetMC();
+
+  // Check if this is first entered PHOS particle ("SuperParent")
+  TVirtualMCStack * stack = mcapp->GetStack();
+  const Int_t partID=stack->GetCurrentTrackNumber() ;
+  Int_t superParent=-1; 
+  if(partID != mCurrentTrackID){ //not same track as before, check: same SuperParent or new one?
+    auto itTr=mSuperParents.find(partID) ;
+    if(itTr==mSuperParents.end()){
+      //Search parent
+      Int_t parentID = stack->GetCurrentTrack()->GetMother(0) ;
+      itTr=mSuperParents.find(parentID) ;
+      if(itTr==mSuperParents.end()){ //Neither track or its parent found: new SuperParent
+        mSuperParents[partID]=partID ;
+        superParent=partID ;
+      }
+      else{ //parent found, this track - not
+        superParent=itTr->second ;
+        mSuperParents[partID]=superParent ;
+      }
+    }
+    else{
+      superParent=itTr->second ;      
+    }
+  }
+  else{
+    superParent=mCurentSuperParent ;
+  }
+
+
+  Double_t lostenergy = mcapp->Edep();
+  if (lostenergy < DBL_EPSILON)
+    return false; // do not create hits with zero energy deposition
+
+  if(!mGeom)
+    mGeom = Geometry::GetInstance();
+
+//  if(strcmp(mcapp->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
+//    return false ; //  We are not inside a PBWO crystal
+
+  Int_t  moduleNumber ;   
+  mcapp->CurrentVolOffID(10, moduleNumber) ; // get the PHOS module number ;
+  Int_t strip ;
+  mcapp->CurrentVolOffID(3, strip);
+  Int_t cell ;
+  mcapp->CurrentVolOffID(2, cell);
+  Int_t detID = mGeom->RelToAbsId(moduleNumber,strip,cell);
+
+  if(superParent==mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
+    //continue with current hit
+    mCurrentHit->AddEnergyLoss(lostenergy);
+    return true ;
+  }
+
+  //Create new Hit
+  Double_t posX, posY, posZ, momX, momY, momZ, energy;
+  mcapp->TrackPosition(posX, posY, posZ);
+  mcapp->TrackMomentum(momX, momY, momZ, energy);
+  Double_t estart = 0.;
+  if(partID==superParent) //Store energy only if this is superParent, 
+                          //if this is daughter entered new volume, we can not access true superparent energy/momentum 
+     mcapp->Etot();
+  Double_t time = mcapp->TrackTime() * 1.e+9; // time in ns?? To be consistent with EMCAL
+   
+  mCurrentHit = AddHit(superParent, detID, Point3D<float>(float(posX), float(posY), float(posZ)),
+                       Vector3D<float>(float(momX), float(momY), float(momZ)),estart, time, lostenergy);
+  mCurentSuperParent=superParent ;
+  mCurrentTrackID = partID ;
+  return true;
+     
+}
+
+
+Hit* Detector::AddHit(Int_t trackID, Int_t detID,
+                      const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE, Double_t time, Double_t eLoss)
+{
+  LOG(DEBUG4) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", "
+              << pos.Y() << ", " << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z()
+              << ")  with energy " << totE << " loosing " << eLoss << std::endl;
+  mHits->emplace_back(trackID, detID, pos, mom, totE, time, eLoss);
+  return &(mHits->back());
+}
+
+
 
 void Detector::ConstructGeometry()
 {
@@ -60,7 +178,6 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating PHOS geometry\n";
 
   PHOS::GeometryParams * geom = PHOS::GeometryParams::GetInstance("Run2"); 
-printf("PHOS Params = (%f,%f,%f) \n",geom->GetPHOSParams()[0],geom->GetPHOSParams()[1],geom->GetPHOSParams()[2]) ;
 
   if (! geom) {
     LOG(ERROR) << "ConstructGeometry: PHOS Geometry class has not been set up.\n";
@@ -129,7 +246,6 @@ printf("PHOS Params = (%f,%f,%f) \n",geom->GetPHOSParams()[0],geom->GetPHOSParam
     for (iXYZ=0; iXYZ<3; iXYZ++)
       pos[iXYZ] = geom->GetModuleCenter(iModule,iXYZ);
 
-printf("Module %d, (%f,%f,%f), id=%d \n",iModule,pos[0],pos[1], pos[2],idrotm[iModule]) ;    
     if(iModule==3){ //special 1/2 module
           TVirtualMC::GetMC()->Gspos("PHOH", iModule+1, "cave", pos[0], pos[1], pos[2],
                                      idrotm[iModule], "ONLY") ;
@@ -145,7 +261,6 @@ printf("Module %d, (%f,%f,%f), id=%d \n",iModule,pos[0],pos[1], pos[2],idrotm[iM
       }
     }
   }
-printf("Posted PHOS moduels \n") ;
 
   gGeoManager->CheckGeometry();
 
@@ -168,7 +283,7 @@ void Detector::CreateMaterials(){
   Float_t wX[3] = {1.0, 1.0, 4.0} ;
   Float_t dX = 8.28 ;
 
-  Mixture(ID_PWO, "PbWO4$", aX, zX, dX, -3, wX) ;
+  Mixture(ID_PWO, "PbWO4", aX, zX, dX, -3, wX) ;
 
 
   // --- The polysterene scintillator (CH) ---
@@ -177,10 +292,10 @@ void Detector::CreateMaterials(){
   Float_t wP[2] = {1.0, 1.0} ;
   Float_t dP = 1.032 ;
 
-  Mixture(ID_CPVSC, "Polystyrene$", aP, zP, dP, -2, wP) ;
+  Mixture(ID_CPVSC, "Polystyrene", aP, zP, dP, -2, wP) ;
 
   // --- Aluminium ---
-  Material(ID_AL, "Al$", 26.98, 13., 2.7, 8.9, 999., 0, 0) ;
+  Material(ID_AL, "Al", 26.98, 13., 2.7, 8.9, 999., 0, 0) ;
   // ---          Absorption length is ignored ^
 
  // --- Tyvek (CnH2n) ---
@@ -189,7 +304,7 @@ void Detector::CreateMaterials(){
   Float_t wT[2] = {1.0, 2.0} ;
   Float_t dT = 0.331 ;
 
-  Mixture(ID_TYVEK, "Tyvek$", aT, zT, dT, -2, wT) ;
+  Mixture(ID_TYVEK, "Tyvek", aT, zT, dT, -2, wT) ;
 
   // --- Polystyrene foam ---
   Float_t aF[2] = {12.011, 1.00794} ;
@@ -197,7 +312,7 @@ void Detector::CreateMaterials(){
   Float_t wF[2] = {1.0, 1.0} ;
   Float_t dF = 0.12 ;
 
-  Mixture(ID_POLYFOAM, "Foam$", aF, zF, dF, -2, wF) ;
+  Mixture(ID_POLYFOAM, "Foam", aF, zF, dF, -2, wF) ;
 
  // --- Titanium ---
   Float_t aTIT[3] = {47.88, 26.98, 54.94} ;
@@ -205,10 +320,10 @@ void Detector::CreateMaterials(){
   Float_t wTIT[3] = {69.0, 6.0, 1.0} ;
   Float_t dTIT = 4.5 ;
 
-  Mixture(ID_TITAN, "Titanium$", aTIT, zTIT, dTIT, -3, wTIT);
+  Mixture(ID_TITAN, "Titanium", aTIT, zTIT, dTIT, -3, wTIT);
 
  // --- Silicon ---
-  Material(ID_APD, "Si$", 28.0855, 14., 2.33, 9.36, 42.3, 0, 0) ;
+  Material(ID_APD, "Si", 28.0855, 14., 2.33, 9.36, 42.3, 0, 0) ;
 
   // --- Foam thermo insulation ---
   Float_t aTI[2] = {12.011, 1.00794} ;
@@ -216,7 +331,7 @@ void Detector::CreateMaterials(){
   Float_t wTI[2] = {1.0, 1.0} ;
   Float_t dTI = 0.04 ;
 
-  Mixture(ID_THERMOINS, "Thermo Insul.$", aTI, zTI, dTI, -2, wTI) ;
+  Mixture(ID_THERMOINS, "Thermo Insul.", aTI, zTI, dTI, -2, wTI) ;
 
   // --- Textolith ---
   Float_t aTX[4] = {16.0, 28.09, 12.011, 1.00794} ;
@@ -224,7 +339,7 @@ void Detector::CreateMaterials(){
   Float_t wTX[4] = {292.0, 68.0, 462.0, 736.0} ;
   Float_t dTX    = 1.75 ;
 
-  Mixture(ID_TEXTOLIT, "Textolit$", aTX, zTX, dTX, -4, wTX) ;
+  Mixture(ID_TEXTOLIT, "Textolit", aTX, zTX, dTX, -4, wTX) ;
 
   //--- FR4  ---
   Float_t aFR[4] = {16.0, 28.09, 12.011, 1.00794} ;
@@ -232,10 +347,10 @@ void Detector::CreateMaterials(){
   Float_t wFR[4] = {292.0, 68.0, 462.0, 736.0} ;
   Float_t dFR = 1.8 ; 
 
-  Mixture(9, "FR4$", aFR, zFR, dFR, -4, wFR) ;
+  Mixture(9, "FR4", aFR, zFR, dFR, -4, wFR) ;
 
   // --- Copper ---                                                                    
-  Material(ID_CUPPER, "Cu$", 63.546, 29, 8.96, 1.43, 14.8, 0, 0) ;
+  Material(ID_CUPPER, "Cu", 63.546, 29, 8.96, 1.43, 14.8, 0, 0) ;
  
   // --- G10 : Printed Circuit Materiall ---                                                  
   Float_t aG10[4] = { 12., 1., 16., 28.} ;
@@ -244,10 +359,10 @@ void Detector::CreateMaterials(){
   Float_t dG10  = 1.7 ; 
 
   
-  Mixture(ID_PRINTCIRC, "G10$", aG10, zG10, dG10, -4, wG10);
+  Mixture(ID_PRINTCIRC, "G10", aG10, zG10, dG10, -4, wG10);
 
   // --- Lead ---                                                                     
-  Material(ID_PB, "Pb$", 207.2, 82, 11.35, 0.56, 0., 0, 0) ;
+  Material(ID_PB, "Pb", 207.2, 82, 11.35, 0.56, 0., 0, 0) ;
 
  // --- The gas mixture ---                                                                
  // Co2
@@ -256,10 +371,10 @@ void Detector::CreateMaterials(){
   Float_t wCO[2] = {1.0, 2.0} ; 
   Float_t dCO = 0.001977 ; 
 
-  Mixture(ID_CO2, "CO2$", aCO, zCO, dCO, -2, wCO);
+  Mixture(ID_CO2, "CO2", aCO, zCO, dCO, -2, wCO);
 
   // --- Stainless steel (let it be pure iron) ---
-  Material(ID_FE, "Steel$", 55.845, 26, 7.87, 1.76, 0., 0, 0) ;
+  Material(ID_FE, "Steel", 55.845, 26, 7.87, 1.76, 0., 0, 0) ;
 
   // --- Fiberglass ---
   Float_t aFG[4] = {16.0, 28.09, 12.011, 1.00794} ;
@@ -267,7 +382,7 @@ void Detector::CreateMaterials(){
   Float_t wFG[4] = {292.0, 68.0, 462.0, 736.0} ;
   Float_t dFG    = 1.9 ;
 
-  Mixture(ID_FIBERGLASS, "Fibergla$", aFG, zFG, dFG, -4, wFG) ;
+  Mixture(ID_FIBERGLASS, "Fiberglas", aFG, zFG, dFG, -4, wFG) ;
 
   // --- Cables in Air box  ---
   // SERVICES
@@ -277,7 +392,7 @@ void Detector::CreateMaterials(){
   Float_t wCA[4] = { .014,.086,.42,.48 };
   Float_t dCA    = 0.8 ;  //this density is raw estimation, if you know better - correct
 
-  Mixture(ID_CABLES, "Cables  $", aCA, zCA, dCA, -4, wCA) ;
+  Mixture(ID_CABLES, "Cables", aCA, zCA, dCA, -4, wCA) ;
 
 
   // --- Air ---
@@ -286,7 +401,7 @@ void Detector::CreateMaterials(){
   Float_t wAir[4]={0.000124,0.755267,0.231781,0.012827};
   Float_t dAir = 1.20479E-3;
  
-  Mixture(ID_AIR, "Air$", aAir, zAir, dAir, 4, wAir) ;
+  Mixture(ID_AIR, "Air", aAir, zAir, dAir, 4, wAir) ;
 
   // DEFINITION OF THE TRACKING MEDIA
 
@@ -300,39 +415,39 @@ void Detector::CreateMaterials(){
   // void Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm,
 
   // The scintillator of the calorimeter made of PBW04                              -> idtmed[699]
-  Medium(ID_PWO, "PHOS Xtal    $", ID_PWO, 1,
+  Medium(ID_PWO, "PHOS Crystal", ID_PWO, 1,
       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
   // The scintillator of the CPV made of Polystyrene scintillator                   -> idtmed[700]
-  Medium(ID_CPVSC, "CPV scint.   $", ID_CPVSC, 1,
+  Medium(ID_CPVSC, "CPV scint.", ID_CPVSC, 1,
       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
-  // Various Aluminium parts made of Al                                             -> getMediumID(ID_AL)
-  Medium(ID_AL, "Al parts     $", ID_AL, 0,
+  // Various Aluminium parts made of Al                                             -> idtmed[701]
+  Medium(ID_AL, "Al parts", ID_AL, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, 0, 0) ;
 
   // The Tywek which wraps the calorimeter crystals                                 -> idtmed[702]
-  Medium(ID_TYVEK, "Tyvek wrapper$", ID_TYVEK, 0,
+  Medium(ID_TYVEK, "Tyvek wrapper", ID_TYVEK, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, 0, 0) ;
 
   // The Polystyrene foam around the calorimeter module                             -> idtmed[703]
-  Medium(ID_POLYFOAM, "Polyst. foam $", ID_POLYFOAM, 0,
+  Medium(ID_POLYFOAM, "Polyst. foam", ID_POLYFOAM, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
   // The Titanium around the calorimeter crystal                                    -> idtmed[704]
-  Medium(ID_TITAN, "Titan. cover $", ID_TITAN, 0,
+  Medium(ID_TITAN, "Titan. cover", ID_TITAN, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.0001, 0.0001, 0, 0) ;
 
   // The Silicon of the APD diode to read out the calorimeter crystal               -> idtmed[705] 
-  Medium(ID_APD, "Si APD       $", ID_APD, 0,
+  Medium(ID_APD, "Si APD", ID_APD, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.01, 0.01, 0, 0) ;
 
   // The thermo insulating material of the box which contains the calorimeter module -> getMediumID(ID_THERMOINS)
-  Medium(ID_THERMOINS, "Thermo Insul.$", ID_THERMOINS, 0,
+  Medium(ID_THERMOINS, "Thermo Insul.", ID_THERMOINS, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
   // The Textolit which makes up the box which contains the calorimeter module      -> idtmed[707]
-  Medium(ID_TEXTOLIT, "Textolit     $", ID_TEXTOLIT, 0,
+  Medium(ID_TEXTOLIT, "Textolit", ID_TEXTOLIT, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
  // // FR4: The Plastic which makes up the frame of micromegas                        -> idtmed[708]
@@ -345,35 +460,35 @@ void Detector::CreateMaterials(){
 //       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
   // Copper                                                                         -> idtmed[710]
-  Medium(ID_CUPPER, "Copper     $", ID_CUPPER, 0,
+  Medium(ID_CUPPER, "Copper", ID_CUPPER, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0) ;
 
   // G10: Printed Circuit material                                                  -> idtmed[711]
-  Medium(ID_PRINTCIRC, "G10        $", ID_PRINTCIRC, 0,
+  Medium(ID_PRINTCIRC, "G10", ID_PRINTCIRC, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
 
   // The Lead                                                                       -> idtmed[712]
-  Medium(ID_PB, "Lead      $", ID_PB, 0,
+  Medium(ID_PB, "Lead", ID_PB, 1,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
   // The gas mixture: ArCo2                                                         -> idtmed[715]
-  Medium(ID_CO2, "ArCo2      $", ID_CO2, 1,
+  Medium(ID_CO2, "ArCo2", ID_CO2, 1,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
  
   // Stainless steel                                                                -> idtmed[716]
-  Medium(ID_FE, "Steel     $", ID_FE, 0,
+  Medium(ID_FE, "Steel", ID_FE, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0) ;
 
   // Fibergalss                                                                     -> getMediumID(ID_FIBERGLASS)
-  Medium(ID_FIBERGLASS, "Fiberglass$", ID_FIBERGLASS, 0,
+  Medium(ID_FIBERGLASS, "Fiberglass", ID_FIBERGLASS, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
   // Cables in air                                                                  -> idtmed[718]
-  Medium(ID_CABLES, "Cables    $", ID_CABLES, 0,
+  Medium(ID_CABLES, "Cables", ID_CABLES, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
 
   // Air                                                                            -> idtmed[798] 
-  Medium(ID_AIR, "Air          $", ID_AIR, 0,
+  Medium(ID_AIR, "Air", ID_AIR, 0,
        isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, 0, 0) ;
 
 
@@ -415,7 +530,8 @@ void Detector::ConstructEMCGeometry(){
     
   // --- Define crystal and put it into wrapped crystall ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetCrystalHalfSize() + ipar);
-  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
+//  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
+  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PB), par, 3) ;
   TVirtualMC::GetMC()->Gspos("PXTL", 1, "PWRA", 0.0, 0.0, 0.0, 0, "ONLY") ;
   
   // --- define APD/PIN preamp and put it into AirCell
@@ -441,7 +557,6 @@ void Detector::ConstructEMCGeometry(){
       icel += 2, lev += 2) {
     Float_t x = (2*(lev / 2) - 1 - geom->GetNCellsXInStrip())* acel[0] ;
     Float_t z = acel[2];
-   printf("PCEL: (%f,%f,%f) \n",x,y,z) ;
    
     TVirtualMC::GetMC()->Gspos("PCEL", icel, "PSTR", x, y, +z, 0, "ONLY") ;
     TVirtualMC::GetMC()->Gspos("PCEL", icel + 1, "PSTR", x, y, -z, 0, "ONLY") ;
@@ -449,11 +564,9 @@ void Detector::ConstructEMCGeometry(){
 
   // --- define the support plate, hole in it and position it in strip ----
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetSupportPlateHalfSize() + ipar);
-printf("PSUP: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PSUP", "BOX ", getMediumID(ID_AL), par, 3) ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetSupportPlateInHalfSize() + ipar);
-printf("PSHO: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PSHO", "BOX ", getMediumID(ID_AIR), par, 3) ;
   Float_t z = geom->GetSupportPlateThickness()/2 ;
   TVirtualMC::GetMC()->Gspos("PSHO", 1, "PSUP", 0.0, 0.0, z, 0, "ONLY") ;
@@ -464,7 +577,6 @@ printf("PSHO: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   
   // ========== Fill module with strips and put them into inner thermoinsulation=============
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetInnerThermoHalfSize() + ipar);
-printf("PTII: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PTII", "BOX ", getMediumID(ID_THERMOINS), par, 3) ;     
   
   if(mCreateHalfMod)
@@ -501,7 +613,6 @@ printf("PTII: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   
   // ------- define the air gap between thermoinsulation and cooler
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetAirGapHalfSize() + ipar);
-printf("PAGA: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PAGA", "BOX ", getMediumID(ID_AIR), par, 3) ;   
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PAGH", "BOX ", getMediumID(ID_AIR), par, 3) ;   
@@ -515,7 +626,6 @@ printf("PAGA: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
 
   // ------- define the Al passive cooler 
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetCoolerHalfSize() + ipar);
-printf("PCOR: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PCOR", "BOX ", getMediumID(ID_AL), par, 3) ;   
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PCOH", "BOX ", getMediumID(ID_AL), par, 3) ;   
@@ -529,8 +639,7 @@ printf("PCOR: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   
   // ------- define the outer thermoinsulating cover
   for (ipar=0; ipar<4; ipar++) par[ipar] = *(geom->GetOuterThermoParams() + ipar);
- printf("PTIO: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
- TVirtualMC::GetMC()->Gsvolu("PTIO", "TRD1", getMediumID(ID_THERMOINS), par, 4) ;        
+  TVirtualMC::GetMC()->Gsvolu("PTIO", "TRD1", getMediumID(ID_THERMOINS), par, 4) ;        
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PIOH", "TRD1", getMediumID(ID_THERMOINS), par, 4) ;        
   const Float_t * outparams = geom->GetOuterThermoParams() ; 
@@ -546,8 +655,7 @@ printf("PCOR: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   
   // -------- Define the outer Aluminium cover -----
   for (ipar=0; ipar<4; ipar++) par[ipar] = *(geom->GetAlCoverParams() + ipar);
- printf("PCOL: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
- TVirtualMC::GetMC()->Gsvolu("PCOL", "TRD1", getMediumID(ID_AL), par, 4) ;        
+  TVirtualMC::GetMC()->Gsvolu("PCOL", "TRD1", getMediumID(ID_AL), par, 4) ;        
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PCLH", "TRD1", getMediumID(ID_AL), par, 4) ;        
 
@@ -559,7 +667,6 @@ printf("PCOR: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
 
   // --------- Define front fiberglass cover -----------
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetFiberGlassHalfSize() + ipar);
-printf("PFGC: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PFGC", "BOX ", getMediumID(ID_FIBERGLASS), par, 3) ;  
   z = - outparams[3] ;
   TVirtualMC::GetMC()->Gspos("PFGC", 1, "PCOL", 0., 0.0, z, 0, "ONLY") ;
@@ -571,13 +678,11 @@ printf("PFGC: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
 
   //------ Warm Section --------------
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetWarmAlCoverHalfSize() + ipar);
- printf("PWAR: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PWAR", "BOX ", getMediumID(ID_AL), par, 3) ; 
   const Float_t * warmcov = geom->GetWarmAlCoverHalfSize() ;
   
   // --- Define the outer thermoinsulation ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetWarmThermoHalfSize() + ipar);
-printf("PWTI: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PWTI", "BOX ", getMediumID(ID_THERMOINS), par, 3) ; 
   const Float_t * warmthermo = geom->GetWarmThermoHalfSize() ;
   z = -warmcov[2] + warmthermo[2] ;
@@ -586,12 +691,10 @@ printf("PWTI: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   
   // --- Define cables area and put in it T-supports ---- 
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTCables1HalfSize() + ipar);
-printf("PCA1: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PCA1", "BOX ", getMediumID(ID_CABLES), par, 3) ; 
   const Float_t * cbox = geom->GetTCables1HalfSize() ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTSupport1HalfSize() + ipar);
-printf("PBE1: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PBE1", "BOX ", getMediumID(ID_AL), par, 3) ;
   const Float_t * beams = geom->GetTSupport1HalfSize() ;
   Int_t isup ;
@@ -604,12 +707,10 @@ printf("PBE1: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gspos("PCA1", 1, "PWTI", 0.0, 0.0, z, 0, "ONLY") ;     
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTCables2HalfSize() + ipar);
-printf("PCA2: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PCA2", "BOX ", getMediumID(ID_CABLES), par, 3) ; 
   const Float_t * cbox2 = geom->GetTCables2HalfSize() ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetTSupport2HalfSize() + ipar);
-printf("PBE2: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PBE2", "BOX ", getMediumID(ID_AL), par, 3) ;
   for(isup = 0; isup < geom->GetNTSuppots(); isup++){
     Float_t x = -cbox[0] + beams[0] + (2*beams[0]+geom->GetTSupportDist())*isup ;
@@ -621,14 +722,12 @@ printf("PBE2: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   
   // --- Define frame ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetFrameXHalfSize() + ipar);
-printf("PFRX: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PFRX", "BOX ", getMediumID(ID_FE), par, 3) ; 
   const Float_t * posit1 = geom->GetFrameXPosition() ;
   TVirtualMC::GetMC()->Gspos("PFRX", 1, "PWTI", posit1[0],  posit1[1], posit1[2], 0, "ONLY") ;
   TVirtualMC::GetMC()->Gspos("PFRX", 2, "PWTI", posit1[0], -posit1[1], posit1[2], 0, "ONLY") ;
   
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetFrameZHalfSize() + ipar);
-printf("PFRZ: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PFRZ", "BOX ", getMediumID(ID_FE), par, 3) ; 
   const Float_t * posit2 = geom->GetFrameZPosition() ;
   TVirtualMC::GetMC()->Gspos("PFRZ", 1, "PWTI",  posit2[0], posit2[1], posit2[2], 0, "ONLY") ;
@@ -666,7 +765,6 @@ printf("PFRZ: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   
   // Define the EMC module volume and combine Cool and Warm sections  
   for (ipar=0; ipar<4; ipar++) par[ipar] = *(geom->GetEMCParams() + ipar);
-printf("PEMC: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   TVirtualMC::GetMC()->Gsvolu("PEMC", "TRD1", getMediumID(ID_AIR), par, 4) ;        
   if(mCreateHalfMod)
     TVirtualMC::GetMC()->Gsvolu("PEMH", "TRD1", getMediumID(ID_AIR), par, 4) ;        
@@ -690,7 +788,6 @@ printf("PEMC: (%f,%f,%f) \n",par[0],par[1],par[2]) ;
   if(mCreateHalfMod) //half of PHOS module
     TVirtualMC::GetMC()->Gspos("PEMH", 1, "PHOH", 0., 0., z, 0, "ONLY") ; 
 
-printf("EMC done \n") ;
 }
 //-----------------------------------------
 void Detector::ConstructCPVGeometry(){

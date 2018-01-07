@@ -18,6 +18,7 @@
 #include "Rtypes.h"
 
 #include <vector>
+#include <map>
 
 class FairVolume;
 
@@ -69,46 +70,41 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// Processing hit creation in the PHOS crystalls
   ///
   /// \param[in] v Current sensitive volume
-  Bool_t ProcessHits(FairVolume* v = nullptr) final { return true;};
+  Bool_t ProcessHits(FairVolume* v = nullptr) final ;
 
   ///
-  /// Add EMCAL hit
+  /// Add PHOS hit
   /// Internally adding hits coming from the same track
   ///
-  /// \param[in] trackID Index of the track in the MC stack
-  /// \param[in] parentID Index of the parent particle (entering the EMCAL) in the MC stack
-  /// \param[in] primary Index of the primary particle in the MC stack
-  /// \param[in] initialEnergy Energy of the particle entering the EMCAL
+  /// \param[in] trackID Index of the track in the MC stack first entered PHOS
   /// \param[in] detID Index of the detector (cell) for which the hit is created
-  /// \param[in] pos Position vector of the particle at the hit
-  /// \param[in] mom Momentum vector of the particle at the hit
+  /// \param[in] pos Position vector of the particle first entered PHOS
+  /// \param[in] mom Momentum vector of the particle first entered PHOS
+  /// \param[in] totE Total energy of the particle entered PHOS
   /// \param[in] time Time of the hit
-  /// \param[in] energyloss Energy deposit in EMCAL
+  /// \param[in] energyloss Energy deposited in this step
   ///
-  //Hit* AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
-  //            const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t energyloss);
+  Hit* AddHit(Int_t trackID, Int_t detID,
+                      const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE, Double_t time, Double_t eLoss) ;
 
   ///
   /// Register TClonesArray with hits
   ///
-  void Register() override {};
+  void Register() override ;
 
   ///
   /// Get access to the hits
   ///
-  std::vector<Hit>* getHits(Int_t iColl) const
+  std::vector<Hit>* getHits(Int_t /* iColl */) const
   {
- //   if (iColl == 0) {
- //     return mHits;
-  //  }
-   return nullptr;
+     return mHits;
   }
 
   ///
   /// Reset
   /// Clean point collection
   ///
-  void Reset() final {};
+  void Reset() final;
 
   ///
   /// Steps to be carried out at the end of the event
@@ -122,6 +118,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \return Access to the PHOS Geometry description
   ///
   Geometry* GetGeometry();
+
+  void updateHitTrackIndices(std::map<int, int> const& indexmapping) override {} ;
 
  protected:
   ///
@@ -156,10 +154,22 @@ class Detector : public o2::Base::DetImpl<Detector>
   Double_t CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const;
 */
  private:
+
+
+  //Geometry parameters
   Bool_t mCreateCPV ;         //Should we create module with CPV
   Bool_t mCreateHalfMod ;     //Should we create  1/2 filled module 
   Bool_t mActiveModule[6] ;   //list of modules to create
   Bool_t mActiveCPV[6] ;      //list of modules with CPV
+
+  //Simulation
+  Geometry * mGeom ;              //!
+  std::map<int,int> mSuperParents; //! List of tracks entered PHOS active volumes
+  std::vector<Hit>* mHits;        //! Collection of EMCAL hits
+  Int_t   mCurrentTrackID ;       //! current track Id
+  Int_t   mCurrentCellID ;        //! current cell Id 
+  Int_t   mCurentSuperParent ;    //! current particle entered PHOS
+  Hit *   mCurrentHit ;           //! current Hit
 
 
   ClassDefOverride(Detector, 1)

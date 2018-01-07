@@ -81,6 +81,9 @@ class Geometry
                                const std::string_view mctitle = ""){return sGeom ;}
 
 
+  Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell){return 0 ; }
+
+
   const std::string& GetName() const { return mGeoName; }
 
  private: 

@@ -17,26 +17,27 @@ using namespace o2::PHOS;
 void Hit::PrintStream(std::ostream &stream) const {
   stream  << "PHOS point: Track " << GetTrackID() << " in detector segment " << GetDetectorID()
           << " at position (" << GetX() << "|" << GetY() << "|" << GetZ() << "), energy loss " << GetEnergyLoss()
-          << ", parent " << mParent << " with energy " << mInitialEnergy;
+          << " total energy " << mInitialEnergy;
 }
 
 Bool_t Hit::operator<(const Hit &rhs) const {
-  if(mParent != rhs.mParent) return mParent < rhs.mParent;
+  if(GetDetectorID() == rhs.GetDetectorID())
+    return  GetTrackID() < rhs.GetTrackID() ;
   return GetDetectorID() < rhs.GetDetectorID();
 }
 
 Bool_t Hit::operator==(const Hit &rhs) const {
-  return (GetDetectorID() == GetDetectorID()) && (mParent == rhs.mParent);
+  return (GetDetectorID() == GetDetectorID()) && (GetTrackID() == rhs.GetTrackID());
 }
 
 Hit &Hit::operator+=(const Hit &rhs) {
-  SetEnergyLoss(GetEnergyLoss() + rhs.GetEnergyLoss());
+  AddEnergyLoss(rhs.GetEnergyLoss());
   return *this;
 }
 
 Hit Hit::operator+(const Hit &rhs) const {
   Hit result(*this);
-  result.SetEnergyLoss(result.GetEnergyLoss() + rhs.GetEnergyLoss());
+  result.AddEnergyLoss(rhs.GetEnergyLoss());
   return *this;
 }
 
