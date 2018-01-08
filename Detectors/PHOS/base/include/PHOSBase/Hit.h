@@ -63,6 +63,8 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \return New EMAL point base on this point
   Hit operator+(const Hit& rhs) const;
 
+  static bool CompareAndAdd(Hit &a, const Hit &b){ if(a==b){a+=b; return true ;} else return false ; }
+
   /// \brief Destructor
   ~Hit() = default;
 

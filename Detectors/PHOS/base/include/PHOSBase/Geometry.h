@@ -18,7 +18,7 @@
 
 #include <RStringView.h>
 //#include <TGeoMatrix.h>
-//#include <TNamed.h>
+#include <TMath.h>
 //#include <TParticle.h>
 //#include <TVector3.h>
 
@@ -81,7 +81,7 @@ class Geometry
                                const std::string_view mctitle = ""){return sGeom ;}
 
 
-  Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell){return 0 ; }
+  Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell);
 
 
   const std::string& GetName() const { return mGeoName; }

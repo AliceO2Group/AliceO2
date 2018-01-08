@@ -25,3 +25,21 @@ using namespace o2::PHOS;
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;
+
+
+Int_t Geometry::RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell){
+  //calculates absolute cell Id from moduleNumber, strip (number) and cell (number)
+  //PHOS layout parameters:
+  const Int_t nStrpZ = 28 ;       //Number of strips along z-axis 
+  const Int_t nCrystalsInModule = 56*64; //Total number of crystals in module 
+  const Int_t nCellsXInStrip =  8 ;       //Number of crystals in strip unit along x-axis
+  const Int_t nZ = 56;                   //nStripZ * nCellsZInStrip
+
+  Int_t row = nStrpZ - (strip - 1) % nStrpZ ;
+  Int_t col = (Int_t) TMath::Ceil((Double_t) strip/(nStrpZ)) -1 ;
+
+  return (moduleNumber-1)*nCrystalsInModule +  row * 2 + (col*nCellsXInStrip + (cell - 1) / 2)*nZ - (cell & 1 ? 1 : 0);
+
+}
+
+

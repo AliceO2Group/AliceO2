@@ -61,12 +61,20 @@ void Detector::Initialize() {
 
 void Detector::EndOfEvent() { 
   // Sort Hits
-  // Add duplicates if any
-  // Apply Poisson spearing of light production
+  // Add duplicates if any and remove them
+  // TODO: Apply Poisson smearing of light production
 
+  std::sort(mHits->begin(),mHits->end()) ;
+  auto last =std::unique(mHits->begin(),mHits->end(),PHOS::Hit::CompareAndAdd) ; //method compares two Hits and add content of the second to first one
+  mHits->erase(last, mHits->end()); 
 
-
-  Reset(); 
+/*
+    std::ostream stream(nullptr); 
+    stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
+  for (int i = 0; i < mHits->size(); i++) {
+     mHits->at(i).PrintStream(stream); 
+    }
+*/
 }
 void Detector::Reset(){
   mSuperParents.clear(); 
@@ -91,6 +99,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   TVirtualMCStack * stack = mcapp->GetStack();
   const Int_t partID=stack->GetCurrentTrackNumber() ;
   Int_t superParent=-1; 
+  Bool_t isNewPartile = false ;  //Create Hit even if zero energy deposition
   if(partID != mCurrentTrackID){ //not same track as before, check: same SuperParent or new one?
     auto itTr=mSuperParents.find(partID) ;
     if(itTr==mSuperParents.end()){
@@ -100,6 +109,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       if(itTr==mSuperParents.end()){ //Neither track or its parent found: new SuperParent
         mSuperParents[partID]=partID ;
         superParent=partID ;
+        isNewPartile=true ;
       }
       else{ //parent found, this track - not
         superParent=itTr->second ;
@@ -116,7 +126,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 
   Double_t lostenergy = mcapp->Edep();
-  if (lostenergy < DBL_EPSILON)
+  if (lostenergy < DBL_EPSILON && !isNewPartile)
     return false; // do not create hits with zero energy deposition
 
   if(!mGeom)
@@ -139,20 +149,35 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     return true ;
   }
 
+  //try to find existing Hit
+  if(!isNewPartile){
+    for(Int_t itr=mHits->size()-1; itr>=0; itr--){
+      Hit *h = &(mHits->at(itr)) ;
+      if(h->GetTrackID()!=superParent) //switched to another SuperParent, do not search further
+        break ;
+      if(h->GetDetectorID() == detID){ //found correct hit
+        h->AddEnergyLoss(lostenergy);
+        mCurentSuperParent=superParent ;
+        mCurrentTrackID = partID ;
+        mCurrentCellID = detID ;
+        mCurrentHit = h;
+        return true ;
+      }
+    }
+
+  }
   //Create new Hit
   Double_t posX, posY, posZ, momX, momY, momZ, energy;
   mcapp->TrackPosition(posX, posY, posZ);
   mcapp->TrackMomentum(momX, momY, momZ, energy);
-  Double_t estart = 0.;
-  if(partID==superParent) //Store energy only if this is superParent, 
-                          //if this is daughter entered new volume, we can not access true superparent energy/momentum 
-     mcapp->Etot();
+  Double_t estart = mcapp->Etot();
   Double_t time = mcapp->TrackTime() * 1.e+9; // time in ns?? To be consistent with EMCAL
    
   mCurrentHit = AddHit(superParent, detID, Point3D<float>(float(posX), float(posY), float(posZ)),
                        Vector3D<float>(float(momX), float(momY), float(momZ)),estart, time, lostenergy);
   mCurentSuperParent=superParent ;
   mCurrentTrackID = partID ;
+  mCurrentCellID = detID ;
   return true;
      
 }
@@ -469,7 +494,7 @@ void Detector::CreateMaterials(){
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
  
   // Stainless steel                                                                -> idtmed[716]
-  Medium(ID_FE, "Steel", ID_FE, 0,
+  Medium(ID_FE, "Steel", ID_FE, 1,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0) ;
 
   // Fibergalss                                                                     -> getMediumID(ID_FIBERGLASS)
@@ -523,7 +548,8 @@ void Detector::ConstructEMCGeometry(){
     
   // --- Define crystal and put it into wrapped crystall ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetCrystalHalfSize() + ipar);
-  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
+//  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
+  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_FE), par, 3) ;
   TVirtualMC::GetMC()->Gspos("PXTL", 1, "PWRA", 0.0, 0.0, 0.0, 0, "ONLY") ;
   
   // --- define APD/PIN preamp and put it into AirCell

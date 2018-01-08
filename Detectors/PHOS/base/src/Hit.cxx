@@ -17,7 +17,7 @@ using namespace o2::PHOS;
 void Hit::PrintStream(std::ostream &stream) const {
   stream  << "PHOS point: Track " << GetTrackID() << " in detector segment " << GetDetectorID()
           << " at position (" << GetX() << "|" << GetY() << "|" << GetZ() << "), energy loss " << GetEnergyLoss()
-          << " total energy " << mInitialEnergy;
+          << " total energy " << mInitialEnergy << std::endl;
 }
 
 Bool_t Hit::operator<(const Hit &rhs) const {
@@ -27,7 +27,7 @@ Bool_t Hit::operator<(const Hit &rhs) const {
 }
 
 Bool_t Hit::operator==(const Hit &rhs) const {
-  return (GetDetectorID() == GetDetectorID()) && (GetTrackID() == rhs.GetTrackID());
+  return (GetDetectorID() == rhs.GetDetectorID()) && (GetTrackID() == rhs.GetTrackID());
 }
 
 Hit &Hit::operator+=(const Hit &rhs) {
