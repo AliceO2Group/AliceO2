@@ -255,17 +255,17 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
 {
   //* Check that the track parameters and covariance matrix are reasonable
   bool ok = AliHLTTPCCAMath::Finite(fX) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
-
+  if (DEBUG) {printf("OK %d - ", (int) ok); for (int i = 0;i < 5;i++) printf("%f ", fP[i]); printf(" - "); for (int i = 0;i < 15;i++) printf("%f ", fC[i]); printf("\n");}
   const float *c = fC;
   for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
+  if (DEBUG) printf("OK1 %d\n", (int) ok);
   for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
-  
+  if (DEBUG) printf("OK2 %d\n", (int) ok);
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
-  if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2. 
-       //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. ) 
-       ) ok = 0;
-
+  if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2. ) ok = 0;
+  if (DEBUG) printf("OK3 %d\n", (int) ok);
   if ( fabs( fP[2] ) > HLTCA_MAX_SIN_PHI ) ok = 0;
+  if (DEBUG) printf("OK4 %d\n", (int) ok);
   if( ok ){
     ok = ok 
       && ( c[1]*c[1]<=c[2]*c[0] )
@@ -279,6 +279,7 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
       && ( c[12]*c[12]<=c[14]*c[5] )
       && ( c[13]*c[13]<=c[14]*c[9] );      
   }
+  if (DEBUG) printf("OK5 %d\n", (int) ok);
   return ok;
 }
 
@@ -324,13 +325,17 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	   
 	AliHLTTPCGMTrackParam t = track.Param();
 	float Alpha = track.Alpha();  
-	/*int nTrackHitsOld = nTrackHits;
-	float ptOld = t.QPt();*/
+#if DEBUG == 1
+	int nTrackHitsOld = nTrackHits;
+	float ptOld = t.QPt();
+#endif
 	bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha );
 	
 	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 
-	//printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));
+#if DEBUG == 1
+	printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));
+#endif
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
 		ok = 1;
