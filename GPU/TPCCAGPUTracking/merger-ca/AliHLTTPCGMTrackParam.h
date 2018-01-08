@@ -91,7 +91,7 @@ public:
 
   GPUd() void ResetCovariance();
 
-  GPUd() bool CheckNumericalQuality() const ;
+  GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.) const ;
 
   GPUd() bool Fit
   (
