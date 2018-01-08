@@ -89,6 +89,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   int nWays = param.GetNWays();
   int maxN = N;
   int ihitStart = 0;
+  float covYYUpd = 0.;
   for (int iWay = 0;iWay < nWays;iWay++)
   {
     if (iWay && param.GetNWaysOuter() && iWay == nWays - 1)
@@ -150,6 +151,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       int err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
       {
+          if (DEBUG) printf("REROTATE\n");
           if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), inFlyDirection ) == 0)
             err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
       }
@@ -224,6 +226,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       if (DEBUG) printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], retVal);
       if (retVal == 0) // track is updated
       {
+        covYYUpd = fC[0];
         ihitStart = ihit;
         N++;
         float dy = fP[0] - prop.Model().Y();
@@ -244,14 +247,14 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     else if (fP[2] < -HLTCA_MAX_SIN_PHI) fP[2] = -HLTCA_MAX_SIN_PHI;
   }
 
-  bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality();
+  bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
 
   if (param.GetTrackReferenceX() <= 500) prop.PropagateToXAlpha(param.GetTrackReferenceX(), prop.GetAlpha(), 0 );
   Alpha = prop.GetAlpha();
   return(ok);
 }
 
-GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
+GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
 {
   //* Check that the track parameters and covariance matrix are reasonable
   bool ok = AliHLTTPCCAMath::Finite(fX) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
@@ -262,7 +265,7 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
   for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
   if (DEBUG) printf("OK2 %d\n", (int) ok);
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
-  if ( c[0] > 4.*4. || c[2] > 4.*4. || c[5] > 2.*2. || c[9] > 2.*2. ) ok = 0;
+  if ( (overrideCovYY > 0 ? overrideCovYY : c[0]) > 4.*4. || c[2] > 4.*4. || c[5] > 2.*2. || c[9] > 2.*2. ) ok = 0;
   if (DEBUG) printf("OK3 %d\n", (int) ok);
   if ( fabs( fP[2] ) > HLTCA_MAX_SIN_PHI ) ok = 0;
   if (DEBUG) printf("OK4 %d\n", (int) ok);
@@ -322,7 +325,6 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	if( !track.OK() ) return;    
 
 	int nTrackHits = track.NClusters();
-	   
 	AliHLTTPCGMTrackParam t = track.Param();
 	float Alpha = track.Alpha();  
 #if DEBUG == 1
