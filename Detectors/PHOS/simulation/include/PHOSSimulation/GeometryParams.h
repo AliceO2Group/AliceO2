@@ -28,7 +28,7 @@ class GeometryParams : public TNamed
   GeometryParams(){}
 
   /// Destructor
-  ~GeometryParams() {} 
+  ~GeometryParams() final {} 
 
   /// Get singleton (create if necessary)
   static GeometryParams * GetInstance(const std::string_view name="Run2"){ if(!sGeomParam) 
@@ -39,15 +39,15 @@ class GeometryParams : public TNamed
   Float_t  GetIPtoCrystalSurface()           const { return mIPtoCrystalSurface ;   }
   Float_t  GetIPtoOuterCoverDistance()       const { return mIPtoOuterCoverDistance;}
   Float_t  GetCrystalSize(Int_t index)       const { return 2.*mCrystalHalfSize[index] ; }
-  Int_t    GetNPhi(void)                     const { return mNPhi;}
-  Int_t    GetNZ(void)                       const { return mNz;}
-  Int_t    GetNCristalsInModule(void)        const { return mNPhi * mNz ; }
-  Int_t    GetNModules(void)                 const { return mNModules ; }
+  Int_t    GetNPhi()                         const { return mNPhi;}
+  Int_t    GetNZ()                           const { return mNz;}
+  Int_t    GetNCristalsInModule()            const { return mNPhi * mNz ; }
+  Int_t    GetNModules()                     const { return mNModules ; }
   Float_t  GetPHOSAngle(Int_t index)         const { return mPHOSAngle[index-1] ; }
-  Float_t* GetPHOSParams(void)                     { return mPHOSParams;}  //Half-sizes of PHOS trapecoid
-  Float_t  GetIPtoUpperCPVsurface(void)      const { return mIPtoUpperCPVsurface ; }
+  Float_t* GetPHOSParams()                         { return mPHOSParams;}  //Half-sizes of PHOS trapecoid
+  Float_t  GetIPtoUpperCPVsurface()          const { return mIPtoUpperCPVsurface ; }
   Float_t  GetOuterBoxSize(Int_t index)      const { return 2.*mPHOSParams[index]; }
-  Float_t  GetCellStep(void)                 const { return 2.*mAirCellHalfSize[0];}
+  Float_t  GetCellStep()                     const { return 2.*mAirCellHalfSize[0];}
 
   Float_t GetModuleCenter(Int_t module, Int_t axis) const {
     return mModuleCenter[module][axis];}
@@ -57,26 +57,26 @@ class GeometryParams : public TNamed
 
 
   // Return ideal CPV geometry parameters
-  virtual Int_t   GetNumberOfCPVLayers(void)        const { return mNumberOfCPVLayers;        }
-  virtual Int_t   GetNumberOfCPVPadsPhi(void)       const { return mNumberOfCPVPadsPhi ;      }
-  virtual Int_t   GetNumberOfCPVPadsZ(void)         const { return mNumberOfCPVPadsZ ;        }
-  virtual Float_t GetCPVPadSizePhi(void)            const { return mCPVPadSizePhi;            }
-  virtual Float_t GetCPVPadSizeZ(void)              const { return mCPVPadSizeZ;              }
-  virtual Float_t GetCPVBoxSize(Int_t index)        const { return mCPVBoxSize[index];        }
-  virtual Float_t GetCPVActiveSize(Int_t index)     const { return mCPVActiveSize[index];     }
-  virtual Int_t   GetNumberOfCPVChipsPhi(void)      const { return mNumberOfCPVChipsPhi;      }
-  virtual Int_t   GetNumberOfCPVChipsZ(void)        const { return mNumberOfCPVChipsZ;        }
+  virtual Int_t   GetNumberOfCPVLayers()        const { return mNumberOfCPVLayers;        }
+  virtual Int_t   GetNumberOfCPVPadsPhi()       const { return mNumberOfCPVPadsPhi ;      }
+  virtual Int_t   GetNumberOfCPVPadsZ()         const { return mNumberOfCPVPadsZ ;        }
+  virtual Float_t GetCPVPadSizePhi()            const { return mCPVPadSizePhi;            }
+  virtual Float_t GetCPVPadSizeZ()              const { return mCPVPadSizeZ;              }
+  virtual Float_t GetCPVBoxSize(Int_t index)    const { return mCPVBoxSize[index];        }
+  virtual Float_t GetCPVActiveSize(Int_t index) const { return mCPVActiveSize[index];     }
+  virtual Int_t   GetNumberOfCPVChipsPhi()      const { return mNumberOfCPVChipsPhi;      }
+  virtual Int_t   GetNumberOfCPVChipsZ()        const { return mNumberOfCPVChipsZ;        }
   virtual Float_t GetGassiplexChipSize(Int_t index) const { return mGassiplexChipSize[index]; }
-  virtual Float_t GetCPVGasThickness(void)          const { return mCPVGasThickness;          }
-  virtual Float_t GetCPVTextoliteThickness(void)    const { return mCPVTextoliteThickness;    }
-  virtual Float_t GetCPVCuNiFoilThickness(void)     const { return mCPVCuNiFoilThickness;     }
-  virtual Float_t GetFTPosition(Int_t index)        const { return mFTPosition[index];        }
-  virtual Float_t GetCPVFrameSize(Int_t index)      const { return mCPVFrameSize[index];      }
+  virtual Float_t GetCPVGasThickness()          const { return mCPVGasThickness;          }
+  virtual Float_t GetCPVTextoliteThickness()    const { return mCPVTextoliteThickness;    }
+  virtual Float_t GetCPVCuNiFoilThickness()     const { return mCPVCuNiFoilThickness;     }
+  virtual Float_t GetFTPosition(Int_t index)    const { return mFTPosition[index];        }
+  virtual Float_t GetCPVFrameSize(Int_t index)  const { return mCPVFrameSize[index];      }
 
 
- // Float_t GetPadSizePhi(void)                  const { return mGeometryCPV->GetCPVPadSizePhi();           }
- // Float_t GetPadSizeZ(void)                    const { return mGeometryCPV->GetCPVPadSizeZ();             }
-  Float_t GetIPtoCPVDistance(void)             const { return  GetIPtoOuterCoverDistance() - 
+ // Float_t GetPadSizePhi()                  const { return mGeometryCPV->GetCPVPadSizePhi();           }
+ // Float_t GetPadSizeZ()                    const { return mGeometryCPV->GetCPVPadSizeZ();             }
+  Float_t GetIPtoCPVDistance()             const { return  GetIPtoOuterCoverDistance() - 
 							                                   GetCPVBoxSize(1) - 1.0; }
 
 

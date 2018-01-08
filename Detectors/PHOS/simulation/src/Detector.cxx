@@ -320,7 +320,7 @@ void Detector::CreateMaterials(){
   Mixture(ID_CPVSC, "Polystyrene", aP, zP, dP, -2, wP) ;
 
   // --- Aluminium ---
-  Material(ID_AL, "Al", 26.98, 13., 2.7, 8.9, 999., 0, 0) ;
+  Material(ID_AL, "Al", 26.98, 13., 2.7, 8.9, 999., nullptr, 0) ;
   // ---          Absorption length is ignored ^
 
  // --- Tyvek (CnH2n) ---
@@ -348,7 +348,7 @@ void Detector::CreateMaterials(){
   Mixture(ID_TITAN, "Titanium", aTIT, zTIT, dTIT, -3, wTIT);
 
  // --- Silicon ---
-  Material(ID_APD, "Si", 28.0855, 14., 2.33, 9.36, 42.3, 0, 0) ;
+  Material(ID_APD, "Si", 28.0855, 14., 2.33, 9.36, 42.3, nullptr, 0) ;
 
   // --- Foam thermo insulation ---
   Float_t aTI[2] = {12.011, 1.00794} ;
@@ -375,7 +375,7 @@ void Detector::CreateMaterials(){
   Mixture(9, "FR4", aFR, zFR, dFR, -4, wFR) ;
 
   // --- Copper ---                                                                    
-  Material(ID_CUPPER, "Cu", 63.546, 29, 8.96, 1.43, 14.8, 0, 0) ;
+  Material(ID_CUPPER, "Cu", 63.546, 29, 8.96, 1.43, 14.8, nullptr, 0) ;
  
   // --- G10 : Printed Circuit Materiall ---                                                  
   Float_t aG10[4] = { 12., 1., 16., 28.} ;
@@ -396,7 +396,7 @@ void Detector::CreateMaterials(){
   Mixture(ID_CO2, "CO2", aCO, zCO, dCO, -2, wCO);
 
   // --- Stainless steel (let it be pure iron) ---
-  Material(ID_FE, "Steel", 55.845, 26, 7.87, 1.76, 0., 0, 0) ;
+  Material(ID_FE, "Steel", 55.845, 26, 7.87, 1.76, 0., nullptr, 0) ;
 
   // --- Fiberglass ---
   Float_t aFG[4] = {16.0, 28.09, 12.011, 1.00794} ;
@@ -438,39 +438,39 @@ void Detector::CreateMaterials(){
 
   // The scintillator of the calorimeter made of PBW04                              -> idtmed[699]
   Medium(ID_PWO, "PHOS Crystal", ID_PWO, 1,
-      isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
+      isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0) ;
 
   // The scintillator of the CPV made of Polystyrene scintillator                   -> idtmed[700]
   Medium(ID_CPVSC, "CPV scint.", ID_CPVSC, 1,
-      isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
+      isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0) ;
 
   // Various Aluminium parts made of Al                                             -> idtmed[701]
   Medium(ID_AL, "Al parts", ID_AL, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0) ;
 
   // The Tywek which wraps the calorimeter crystals                                 -> idtmed[702]
   Medium(ID_TYVEK, "Tyvek wrapper", ID_TYVEK, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0) ;
 
   // The Polystyrene foam around the calorimeter module                             -> idtmed[703]
   Medium(ID_POLYFOAM, "Polyst. foam", ID_POLYFOAM, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0) ;
 
   // The Titanium around the calorimeter crystal                                    -> idtmed[704]
   Medium(ID_TITAN, "Titan. cover", ID_TITAN, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.0001, 0.0001, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.0001, 0.0001, nullptr, 0) ;
 
   // The Silicon of the APD diode to read out the calorimeter crystal               -> idtmed[705] 
   Medium(ID_APD, "Si APD", ID_APD, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.01, 0.01, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.01, 0.01, nullptr, 0) ;
 
   // The thermo insulating material of the box which contains the calorimeter module -> getMediumID(ID_THERMOINS)
   Medium(ID_THERMOINS, "Thermo Insul.", ID_THERMOINS, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0) ;
 
   // The Textolit which makes up the box which contains the calorimeter module      -> idtmed[707]
   Medium(ID_TEXTOLIT, "Textolit", ID_TEXTOLIT, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0) ;
 
  // // FR4: The Plastic which makes up the frame of micromegas                        -> idtmed[708]
  // Medium(9, "FR4 $", 9, 0,
@@ -483,31 +483,31 @@ void Detector::CreateMaterials(){
 
   // Copper                                                                         -> idtmed[710]
   Medium(ID_CUPPER, "Copper", ID_CUPPER, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, nullptr, 0) ;
 
   // G10: Printed Circuit material                                                  -> idtmed[711]
   Medium(ID_PRINTCIRC, "G10", ID_PRINTCIRC, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, nullptr, 0) ;
 
   // The gas mixture: ArCo2                                                         -> idtmed[715]
   Medium(ID_CO2, "ArCo2", ID_CO2, 1,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, nullptr, 0) ;
  
   // Stainless steel                                                                -> idtmed[716]
   Medium(ID_FE, "Steel", ID_FE, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, nullptr, 0) ;
 
   // Fibergalss                                                                     -> getMediumID(ID_FIBERGLASS)
   Medium(ID_FIBERGLASS, "Fiberglass", ID_FIBERGLASS, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0) ;
 
   // Cables in air                                                                  -> idtmed[718]
   Medium(ID_CABLES, "Cables", ID_CABLES, 0,
-       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0) ;
 
   // Air                                                                            -> idtmed[798] 
   Medium(ID_AIR, "Air", ID_AIR, 0,
-       isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, 0, 0) ;
+       isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, nullptr, 0) ;
 
 
 }
