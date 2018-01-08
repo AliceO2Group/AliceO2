@@ -34,7 +34,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x,  float B
   float pye = fPy - dx*b; // extrapolated py
   float pxe2 = pt2 - pye*pye;
 
-  if( fPx<1.e-3f || pxe2<1.e-6f ) return -1; // can not transport to x=x  
+  if( fPx<(1.f - HLTCA_MAX_SIN_PHI) || pxe2<(1.f - HLTCA_MAX_SIN_PHI)*(1.f - HLTCA_MAX_SIN_PHI) ) return -1; // can not transport to x=x  
   
   float pxe = AliHLTTPCCAMath::Sqrt( pxe2 ); // extrapolated px
   float pti = 1.f/AliHLTTPCCAMath::Sqrt(pt2);
@@ -141,6 +141,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
 
   // transport in rotated coordinate system to X''=xe:
 
+  if (t.Px() < (1.f - HLTCA_MAX_SIN_PHI)) t.Px() = 1.f - HLTCA_MAX_SIN_PHI;
   if( t.PropagateToXBzLight( xe, bb, dLp )!=0 ) return -1;
 
   // rotate coordinate system back to the original R{-1}==R{T}
@@ -159,6 +160,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
   // a small (hopefully) additional step to X=x. Perhaps it may be replaced by linear extrapolation.
 
   float ddLp = 0;
+  if (t.Px() < (1.f - HLTCA_MAX_SIN_PHI)) t.Px() = 1.f - HLTCA_MAX_SIN_PHI;
   if( t.PropagateToXBzLight( x, Bz, ddLp ) !=0 ) return -1;
   
   dLp+=ddLp;
