@@ -68,13 +68,13 @@ void Detector::EndOfEvent() {
   auto last =std::unique(mHits->begin(),mHits->end(),PHOS::Hit::CompareAndAdd) ; //method compares two Hits and add content of the second to first one
   mHits->erase(last, mHits->end()); 
 
-/*
+
     std::ostream stream(nullptr); 
     stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
   for (int i = 0; i < mHits->size(); i++) {
      mHits->at(i).PrintStream(stream); 
     }
-*/
+
 }
 void Detector::Reset(){
   mSuperParents.clear(); 
@@ -494,7 +494,7 @@ void Detector::CreateMaterials(){
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, 0, 0) ;
  
   // Stainless steel                                                                -> idtmed[716]
-  Medium(ID_FE, "Steel", ID_FE, 1,
+  Medium(ID_FE, "Steel", ID_FE, 0,
        isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0) ;
 
   // Fibergalss                                                                     -> getMediumID(ID_FIBERGLASS)
@@ -548,8 +548,8 @@ void Detector::ConstructEMCGeometry(){
     
   // --- Define crystal and put it into wrapped crystall ---
   for (ipar=0; ipar<3; ipar++) par[ipar] = *(geom->GetCrystalHalfSize() + ipar);
-//  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
-  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_FE), par, 3) ;
+  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3) ;
+//  TVirtualMC::GetMC()->Gsvolu("PXTL", "BOX ", getMediumID(ID_FE), par, 3) ;
   TVirtualMC::GetMC()->Gspos("PXTL", 1, "PWRA", 0.0, 0.0, 0.0, 0, "ONLY") ;
   
   // --- define APD/PIN preamp and put it into AirCell
