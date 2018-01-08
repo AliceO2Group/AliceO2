@@ -262,7 +262,7 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
   for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
   if (DEBUG) printf("OK2 %d\n", (int) ok);
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
-  if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2. ) ok = 0;
+  if ( c[0] > 4.*4. || c[2] > 4.*4. || c[5] > 2.*2. || c[9] > 2.*2. ) ok = 0;
   if (DEBUG) printf("OK3 %d\n", (int) ok);
   if ( fabs( fP[2] ) > HLTCA_MAX_SIN_PHI ) ok = 0;
   if (DEBUG) printf("OK4 %d\n", (int) ok);
