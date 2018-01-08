@@ -3,6 +3,11 @@ script: |
     cat > CMakeLists.txt <<\EOF
     add_subdirectory(doc)
     EOF
+    # This is required because of differences between doxygen and github
+    # markdown syntax for code blocks. The committed code should use
+    # the github flavour and we generate the doxygen one on the fly.
+    git grep -l '^```[a-zA-Z]' | xargs sed -i .old -e 's|```\([a-zA-Z][a-zA-Z]*\)|\n```{.\1}\n|g;s|[.]bash|.sh|g;s|```|~~~~~~~|g'
+    find . -name "*.old" -delete
     cmake .
     make doc
 # Install dependencies
