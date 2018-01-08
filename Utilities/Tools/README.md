@@ -3,8 +3,10 @@
 You can run the code checker and have it fix the errors it reports
 (whenever possible) by doing:
 
-    aliBuild init O2@dev                      # In case you have not a local checkout already
-    O2_CHECKER_FIX=true aliBuild build o2checkcode --defaults o2-daq --debug
+```bash
+aliBuild init O2@dev                      # In case you have not a local checkout already
+O2_CHECKER_FIX=true aliBuild build o2checkcode --defaults o2-daq --debug
+```
 
 At the end of which the sources in the O2 checkout directory should be
 modified with the requested changes. You can modify which clang-tidy
@@ -19,7 +21,7 @@ Often, only a few files are changed in the repository and running the codechecke
 on the whole repository would be a considerable overhead. It is now possible to only check
 files which were modified or are influenced by a modification by saying
 
-```
+```bash
 ALIBUILD_BASE_HASH=commit_id aliBuild build o2checkcode --defaults o2-daq --debug
 ```
 
