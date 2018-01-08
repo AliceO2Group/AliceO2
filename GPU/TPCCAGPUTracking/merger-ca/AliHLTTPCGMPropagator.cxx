@@ -488,8 +488,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   
   AliHLTTPCGMPhysicalTrackModel t0e(fT0);
   float dLp = 0;
-  int err = t0e.PropagateToXBzLight( posX, Bz, dLp );
-  if( err ) return 1;
+  if (t0e.PropagateToXBzLight( posX, Bz, dLp )) return 1;
   t0e.UpdateValues();
   if( fabs( t0e.SinPhi() ) >= fMaxSinPhi ) return -3;
 
@@ -625,7 +624,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
 {
   float *fC = fT->Cov();
   float *fP = fT->Par();
-  if (fT->NDF() > 0 && (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3)) return 2; 
+  if (fT->NDF() > 5 && (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3)) return 2;
   float 
     c00 = fC[ 0],
     c11 = fC[ 2],

@@ -206,7 +206,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
           }
       }
 
-      const int err2 = CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate;
+      const int err2 = fNDF > 0 && CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate;
       if ( err || err2 )
       {
         if (markNonFittedClusters)
