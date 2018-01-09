@@ -330,7 +330,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       calink oldHit = (r.fStage == 2 && iRow >= r.fStartRow) ? GETRowHit(iRow) : CALINK_INVAL;
       if (oldHit != best && !tParam.Filter( y, z, err2Y, err2Z, HLTCA_MAX_SIN_PHI_LOW, oldHit != CALINK_INVAL))
       {
-          if (oldHit != CALINK_INVAL) SETRowHit(iRow, CALINK_INVAL);
+          SETRowHit(iRow, CALINK_INVAL);
           break;
       }
       SETRowHit(iRow, best);

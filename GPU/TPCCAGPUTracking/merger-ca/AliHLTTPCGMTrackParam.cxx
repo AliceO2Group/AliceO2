@@ -36,8 +36,6 @@
 #define PRINT_TRACKS 0
 #define MIRROR 1
 #define DOUBLE 1
-//#define DEBUG(...) __VA_ARGS__
-#define DEBUG(...)
 
 GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, bool UseMeanPt, float maxSinPhi)
 {
