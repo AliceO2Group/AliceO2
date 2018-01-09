@@ -198,8 +198,6 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
   {
     fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
-    Err2Y*=fParam.ClusterError2CorrectionY();
-    Err2Z*=fParam.ClusterError2CorrectionZ();
   }
   
   void SetupCommonMemory();
