@@ -272,6 +272,8 @@ MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2New( int
   // new parameterisation
   MakeType(const float*) c = fParamRMS0[yz][type];
   float v = c[0] + c[1]*z + c[2]*angle2;
+  v *= yz ? fClusterError2CorrectionZ : fClusterError2CorrectionY;
+
   return CAMath::Abs( v );
 }
 
