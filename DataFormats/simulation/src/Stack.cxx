@@ -20,7 +20,6 @@
 #include "FairDetector.h"     // for FairDetector
 #include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger
 #include "SimulationDataFormat/BaseHits.h"
-#include "FairGenericRootManager.h"  // for FairGenericRootManager
 #include "FairRootManager.h"
 
 #include "TLorentzVector.h"   // for TLorentzVector
@@ -368,10 +367,6 @@ void Stack::Reset()
 
 void Stack::Register()
 {
-  // LOG(INFO) << this << " register in "
-  //   << FairGenericRootManager::Instance() << " mTracks: " <<  mTracks << std::endl;
-
-  //  FairGenericRootManager::Instance()->Register("MCTrack", "Stack", mTracks, kTRUE);
   FairRootManager::Instance()->RegisterAny("MCTrack", mTracks, kTRUE);
 }
 
