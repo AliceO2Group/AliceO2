@@ -191,12 +191,15 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 
 #endif  
   
-  MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliHLTTPCCATrackParam) &t, float &Err2Y, float &Err2Z ) const {fParam.GetClusterErrors2( iRow, fParam.GetSearchWindowDZDR() != 0. ? 125. : t.Z(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );}
+  MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliHLTTPCCATrackParam) &t, float &Err2Y, float &Err2Z ) const
+  {
+    fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );
+  }
   GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
   {
-	fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
-	Err2Y*=fParam.ClusterError2CorrectionY();
-	Err2Z*=fParam.ClusterError2CorrectionZ();
+    fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
+    Err2Y*=fParam.ClusterError2CorrectionY();
+    Err2Z*=fParam.ClusterError2CorrectionZ();
   }
   
   void SetupCommonMemory();
