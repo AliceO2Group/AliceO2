@@ -31,20 +31,20 @@
 #include <cmath>
 #include <stdlib.h>
 
-#define DEBUG 0
+//#define DEBUG(...) __VA_ARGS__
+#define DEBUG(...)
 #define PRINT_TRACKS 0
 #define MIRROR 1
 #define DOUBLE 1
-/*#include "TFile.h"
-#include "TNtuple.h"*/
+//#define DEBUG(...) __VA_ARGS__
+#define DEBUG(...)
 
 GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, bool UseMeanPt, float maxSinPhi)
 {
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
   
-  static int nTracks = 0;
-  if (PRINT_TRACKS || DEBUG) nTracks++;
+  DEBUG(static int nTracks = 0;nTracks++;)
 
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
@@ -100,7 +100,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         fOuterParam.fX = fX;
         fOuterParam.fAlpha = prop.GetAlpha();
     }
-    if (DEBUG) printf("Fitting track %d way %d\n", nTracks, iWay);
+    DEBUG(printf("Fitting track %d way %d\n", nTracks, iWay);)
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
     const bool rejectChi2ThisRound = ( nWays == 1 || iWay == 1 );
@@ -120,7 +120,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     {
       if (clusters[ihit].fState < 0) continue; // hit is excluded from fit
       const int rowType = clusters[ihit].fRow < 64 ? 0 : clusters[ihit].fRow < 128 ? 2 : 1;
-      if (DEBUG) printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, maxN, clusters[ihit].fRow, param.Alpha(clusters[ihit].fSlice), clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);
+      DEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, maxN, clusters[ihit].fRow, param.Alpha(clusters[ihit].fSlice), clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);)
       
       float xx = clusters[ihit].fX;
       float yy = clusters[ihit].fY;
@@ -132,7 +132,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
           {
               if (clusters[ihit].fSlice != clusters[ihit + wayDirection].fSlice || clusters[ihit].fLeg != clusters[ihit + wayDirection].fLeg || fabs(clusters[ihit].fY - clusters[ihit + wayDirection].fY) > 4. || fabs(clusters[ihit].fZ - clusters[ihit + wayDirection].fZ) > 4.) break;
               ihit += wayDirection;
-              if (DEBUG) printf("\t\tMerging hit row %d X %f Y %f Z %f\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);
+              DEBUG(printf("\t\tMerging hit row %d X %f Y %f Z %f\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);)
               xx += clusters[ihit].fX;
               yy += clusters[ihit].fY;
               zz += clusters[ihit].fZ - fZOffset;
@@ -141,17 +141,16 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
           xx /= count;
           yy /= count;
           zz /= count;
-          if (DEBUG) printf("\t\tDouble row (%d hits)\n", (int) count);
+          DEBUG(printf("\t\tDouble row (%d hits)\n", (int) count);)
       }
       
       bool changeDirection = (clusters[ihit].fLeg - lastLeg) & 1;
-      if (DEBUG && changeDirection) printf("\t\tChange direction\n");
-      if (DEBUG) printf("\tLeg %3d%14sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n",
-        (int) clusters[ihit].fLeg, "", prop.GetAlpha(), (fabs(prop.GetAlpha() - param.Alpha(clusters[ihit].fSlice)) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
+      DEBUG(if(changeDirection) printf("\t\tChange direction\n");)
+      DEBUG(printf("\tLeg %3d%14sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", (int) clusters[ihit].fLeg, "", prop.GetAlpha(), (fabs(prop.GetAlpha() - param.Alpha(clusters[ihit].fSlice)) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);)
       int err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
       {
-          if (DEBUG) printf("REROTATE\n");
+          DEBUG(printf("REROTATE\n");)
           if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), inFlyDirection ) == 0)
             err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
       }
@@ -178,15 +177,15 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
           }
       }*/
     
-      if (DEBUG) printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);
+      DEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);)
       const float Bz = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
       if (MIRROR && err == 0 && changeDirection && fP[2] * fP[4] * Bz < 0)
       {
           const float mirrordY = prop.GetMirroredYTrack();
-          if (DEBUG) printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);
+          DEBUG(printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);)
           if (fabs(yy - fP[0]) > fabs(yy - mirrordY))
           {
-              if (DEBUG) printf(" - Mirroring!!!");
+              DEBUG(printf(" - Mirroring!!!");)
               prop.Mirror(inFlyDirection);
               float err2Y, err2Z;
               prop.GetErr2(err2Y, err2Z, param, zz, rowType);
@@ -202,8 +201,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               lastLeg = clusters[ihit].fLeg;
               N++;
               resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
-              if (DEBUG) printf("\n");
-              if (DEBUG) printf("\t%21sMirror  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);
+              DEBUG(printf("\n");)
+              DEBUG(printf("\t%21sMirror  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);)
               continue;
           }
       }
@@ -217,13 +216,13 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
           else if (err && err >= -3) clusters[ihit].fState = -1;
         }
         
-        if (DEBUG) printf(" --- break (%d, %d)\n", err, err2);
+        DEBUG(printf(" --- break (%d, %d)\n", err, err2);)
         continue;
       }
-      if (DEBUG) printf("\n");
+      DEBUG(printf("\n");)
       
       int retVal = prop.Update( yy, zz, rowType, param, rejectChi2ThisRound);
-      if (DEBUG) printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], retVal);
+      DEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], retVal);)
       if (retVal == 0) // track is updated
       {
         covYYUpd = fC[0];
@@ -233,7 +232,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         float dz = fP[1] - prop.Model().Z();
         if (AliHLTTPCCAMath::Abs(fP[4]) > 10 && --resetT0 <= 0 && AliHLTTPCCAMath::Abs(fP[2]) < 0.15 && dy*dy+dz*dz>1)
         {
-            if (DEBUG) printf("Reinit linearization\n");
+            DEBUG(printf("Reinit linearization\n");)
             prop.SetTrack(this, prop.GetAlpha());
         }
       }
@@ -258,17 +257,17 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) co
 {
   //* Check that the track parameters and covariance matrix are reasonable
   bool ok = AliHLTTPCCAMath::Finite(fX) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
-  if (DEBUG) {printf("OK %d - ", (int) ok); for (int i = 0;i < 5;i++) printf("%f ", fP[i]); printf(" - "); for (int i = 0;i < 15;i++) printf("%f ", fC[i]); printf("\n");}
+  DEBUG(printf("OK %d - ", (int) ok); for (int i = 0;i < 5;i++) printf("%f ", fP[i]); printf(" - "); for (int i = 0;i < 15;i++) printf("%f ", fC[i]); printf("\n");)
   const float *c = fC;
   for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
-  if (DEBUG) printf("OK1 %d\n", (int) ok);
+  DEBUG(printf("OK1 %d\n", (int) ok);)
   for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
-  if (DEBUG) printf("OK2 %d\n", (int) ok);
+  DEBUG(printf("OK2 %d\n", (int) ok);)
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
   if ( (overrideCovYY > 0 ? overrideCovYY : c[0]) > 4.*4. || c[2] > 4.*4. || c[5] > 2.*2. || c[9] > 2.*2. ) ok = 0;
-  if (DEBUG) printf("OK3 %d\n", (int) ok);
+  DEBUG(printf("OK3 %d\n", (int) ok);)
   if ( fabs( fP[2] ) > HLTCA_MAX_SIN_PHI ) ok = 0;
-  if (DEBUG) printf("OK4 %d\n", (int) ok);
+  DEBUG(printf("OK4 %d\n", (int) ok);)
   if( ok ){
     ok = ok 
       && ( c[1]*c[1]<=c[2]*c[0] )
@@ -282,7 +281,7 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) co
       && ( c[12]*c[12]<=c[14]*c[5] )
       && ( c[13]*c[13]<=c[14]*c[9] );      
   }
-  if (DEBUG) printf("OK5 %d\n", (int) ok);
+  DEBUG(printf("OK5 %d\n", (int) ok);)
   return ok;
 }
 
@@ -327,17 +326,12 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	int nTrackHits = track.NClusters();
 	AliHLTTPCGMTrackParam t = track.Param();
 	float Alpha = track.Alpha();  
-#if DEBUG == 1
-	int nTrackHitsOld = nTrackHits;
-	float ptOld = t.QPt();
-#endif
+	DEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt();)
 	bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha );
 	
 	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 
-#if DEBUG == 1
-	printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));
-#endif
+	DEBUG(printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));)
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
 		ok = 1;
