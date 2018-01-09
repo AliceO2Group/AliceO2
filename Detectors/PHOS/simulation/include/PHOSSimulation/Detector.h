@@ -12,19 +12,19 @@
 #define ALICEO2_PHOS_DETECTOR_H_
 
 #include "DetectorsBase/Detector.h"
-#include "PHOSBase/Hit.h"
 #include "MathUtils/Cartesian3D.h"
+#include "PHOSBase/Hit.h"
 #include "RStringView.h"
 #include "Rtypes.h"
 
-#include <vector>
 #include <map>
+#include <vector>
 
 class FairVolume;
 
 namespace o2
 {
-namespace PHOS
+namespace phos
 {
 class Hit;
 class Geometry;
@@ -40,10 +40,25 @@ class GeometryParams;
 class Detector : public o2::Base::DetImpl<Detector>
 {
  public:
-  //PHOS materials/media
-  enum { ID_PWO = 0, ID_CPVSC = 1, ID_AL = 2, ID_TYVEK = 3, ID_POLYFOAM = 4, ID_TITAN = 5, ID_APD = 6,ID_THERMOINS = 7,
-         ID_TEXTOLIT = 8,     ID_CUPPER = 10, ID_PRINTCIRC = 11, ID_CO2 = 12, ID_FE = 13, ID_FIBERGLASS = 14,
-         ID_CABLES = 15, ID_AIR=16 };
+  // PHOS materials/media
+  enum {
+    ID_PWO = 0,
+    ID_CPVSC = 1,
+    ID_AL = 2,
+    ID_TYVEK = 3,
+    ID_POLYFOAM = 4,
+    ID_TITAN = 5,
+    ID_APD = 6,
+    ID_THERMOINS = 7,
+    ID_TEXTOLIT = 8,
+    ID_CUPPER = 10,
+    ID_PRINTCIRC = 11,
+    ID_CO2 = 12,
+    ID_FE = 13,
+    ID_FIBERGLASS = 14,
+    ID_CABLES = 15,
+    ID_AIR = 16
+  };
 
   ///
   /// Default constructor
@@ -70,7 +85,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// Processing hit creation in the PHOS crystalls
   ///
   /// \param[in] v Current sensitive volume
-  Bool_t ProcessHits(FairVolume* v = nullptr) final ;
+  Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
   ///
   /// Add PHOS hit
@@ -84,25 +99,22 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param[in] time Time of the hit
   /// \param[in] energyloss Energy deposited in this step
   ///
-  Hit* AddHit(Int_t trackID, Int_t detID,
-                      const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE, Double_t time, Double_t eLoss) ;
+  Hit* AddHit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE,
+              Double_t time, Double_t eLoss);
 
   ///
-  /// Register TClonesArray with hits
+  /// Register vector with hits
   ///
-  void Register() override ;
+  void Register() override;
 
   ///
   /// Get access to the hits
   ///
-  std::vector<Hit>* getHits(Int_t /* iColl */) const
-  {
-     return mHits;
-  }
+  std::vector<Hit>* getHits(Int_t /* iColl */) const { return mHits; }
 
   ///
   /// Reset
-  /// Clean point collection
+  /// Clean Hits collection
   ///
   void Reset() final;
 
@@ -119,8 +131,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   Geometry* GetGeometry();
 
-  void updateHitTrackIndices(std::map<int, int> const& indexmapping) override {} ;
-
  protected:
   ///
   /// Creating detector materials for the PHOS detector and space frame
@@ -133,47 +143,44 @@ class Detector : public o2::Base::DetImpl<Detector>
   void ConstructGeometry() override;
 
   /// Creating PHOS/support description for Geant
-  void ConstructSupportGeometry() ;
+  void ConstructSupportGeometry();
 
   /// Creating PHOS/calorimeter part description for Geant
-  void ConstructEMCGeometry() ;
+  void ConstructEMCGeometry();
 
   /// Creating PHOS/CPV description for Geant
-  void ConstructCPVGeometry() ;
+  void ConstructCPVGeometry();
 
-/*
- 
-  ///
-  /// Calculate the amount of light seen by the APD for a given track segment (charged particles only)
-  /// Calculation done according to Bricks law
-  ///
-  /// \param[in] energydeposit Energy deposited by a charged particle in the track segment
-  /// \param[in] tracklength Length of the track segment
-  /// \param[in] charge Track charge (in units of elementary charge)
-  ///
-  Double_t CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const;
-*/
+  /*
+
+    ///
+    /// TODO: Calculate the amount of light seen by the APD for a given track segment (charged particles only)
+    /// Calculation done according to Bricks law
+    ///
+    /// \param[in] energydeposit Energy deposited by a charged particle in the track segment
+    /// \param[in] tracklength Length of the track segment
+    /// \param[in] charge Track charge (in units of elementary charge)
+    ///
+    Double_t CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const;
+  */
  private:
+  // Geometry parameters
+  Bool_t mCreateCPV;       // Should we create module with CPV
+  Bool_t mCreateHalfMod;   // Should we create  1/2 filled module
+  Bool_t mActiveModule[6]; // list of modules to create
+  Bool_t mActiveCPV[6];    // list of modules with CPV
 
-
-  //Geometry parameters
-  Bool_t mCreateCPV ;         //Should we create module with CPV
-  Bool_t mCreateHalfMod ;     //Should we create  1/2 filled module 
-  Bool_t mActiveModule[6] ;   //list of modules to create
-  Bool_t mActiveCPV[6] ;      //list of modules with CPV
-
-  //Simulation
-  Geometry * mGeom ;              //!
-  std::map<int,int> mSuperParents; //! List of tracks entered PHOS active volumes
-  std::vector<Hit>* mHits;        //! Collection of EMCAL hits
-  Int_t   mCurrentTrackID ;       //! current track Id
-  Int_t   mCurrentCellID ;        //! current cell Id 
-  Int_t   mCurentSuperParent ;    //! current particle entered PHOS
-  Hit *   mCurrentHit ;           //! current Hit
-
+  // Simulation
+  Geometry* mGeom;                  //!
+  std::map<int, int> mSuperParents; //! map of current tracks to SuperParents: entered PHOS active volumes particles
+  std::vector<Hit>* mHits;          //! Collection of PHOS hits
+  Int_t mCurrentTrackID;            //! current track Id
+  Int_t mCurrentCellID;             //! current cell Id
+  Int_t mCurentSuperParent;         //! current SuperParent ID: particle entered PHOS
+  Hit* mCurrentHit;                 //! current Hit
 
   ClassDefOverride(Detector, 1)
 };
 }
 }
-#endif
+#endif // Detector.h

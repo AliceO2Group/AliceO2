@@ -11,26 +11,15 @@
 #ifndef ALICEO2_PHOS_GEOMETRY_H_
 #define ALICEO2_PHOS_GEOMETRY_H_
 
-//#include <exception>
 #include <string>
-//#include <tuple>
-//#include <vector>
 
 #include <RStringView.h>
-//#include <TGeoMatrix.h>
 #include <TMath.h>
-//#include <TParticle.h>
-//#include <TVector3.h>
-
-//#include "EMCALBase/Constants.h"
-//#include "EMCALBase/GeometryBase.h"
-//#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
-namespace PHOS
+namespace phos
 {
-
 class Geometry
 {
  public:
@@ -44,7 +33,7 @@ class Geometry
   /// Constructor for normal use.
   ///
   /// \param name: geometry name: PHOS (see main class description for definition)
-  /// \param title \param mcname: Geant3/4, Flukla, needed for settings of transport (check) 
+  /// \param title \param mcname: Geant3/4, Flukla, needed for settings of transport (check)
   /// \param mctitle: Geant4 physics list (check)
   ///
   Geometry(const std::string_view name, const std::string_view mcname = "", const std::string_view mctitle = "");
@@ -57,7 +46,7 @@ class Geometry
   ///
   /// Destructor.
   ///
-  ~Geometry(){}
+  ~Geometry() {}
 
   ///
   /// Assign operator.
@@ -68,32 +57,38 @@ class Geometry
   /// \return the pointer of the _existing_ unique instance of the geometry
   /// It should have been set before with GetInstance(name) method
   ///
-  static Geometry* GetInstance(){return sGeom ;}
+  static Geometry* GetInstance() { return sGeom; }
 
   ///
   /// \return (newly created) pointer of the unique instance of the geometry. Previous instance is destroied.
   ///
-  /// \param name: geometry name: PHOS (see main class description for definition) 
-  /// \param title 
-  //  \param mcname: Geant3/4, Fluka, needed for settings of transport (check) \param mctitle: Geant4 physics list (check)
+  /// \param name: geometry name: PHOS (see main class description for definition)
+  /// \param title
+  //  \param mcname: Geant3/4, Fluka, needed for settings of transport (check) \param mctitle: Geant4 physics list
+  //  (check)
   ///
   static Geometry* GetInstance(const std::string_view name, const std::string_view mcname = "TGeant3",
-                               const std::string_view mctitle = ""){return sGeom ;}
+                               const std::string_view mctitle = "")
+  {
+    return sGeom;
+  }
 
-
+  ///
+  /// \return AbsId index of the PHOS cell
+  ///
+  /// \param moduleNumber: module number
+  /// \param strip: strip number
+  //  \param cell: cell in strip number
+  ///
   Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell);
-
 
   const std::string& GetName() const { return mGeoName; }
 
- private: 
+ private:
   static Geometry* sGeom; ///< Pointer to the unique instance of the singleton
 
-  std::string mGeoName;       ///< Geometry name string
-
-
-
+  std::string mGeoName; ///< Geometry name string
 };
-} //namespace PHOS
-} //namespace o2
+} // namespace phos
+} // namespace o2
 #endif
