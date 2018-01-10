@@ -196,6 +196,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               prop.SetTrack(this, prop.GetAlpha());
 
               fNDF = -3;
+              fChi2 = 0;
               lastLeg = clusters[ihit].fLeg;
               N++;
               resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
@@ -244,9 +245,36 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   }
   
   bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
-
-  if (param.GetTrackReferenceX() <= 500) prop.PropagateToXAlpha(param.GetTrackReferenceX(), prop.GetAlpha(), 0 );
+  if (!ok) return(false);
+  
+  const float kDeg2Rad = 3.1415926535897 / 180.f;
+  const float kSectAngle = 2*3.1415926535897 / 18.f;
   Alpha = prop.GetAlpha();
+  if (param.GetTrackReferenceX() <= 500)
+  {
+      for (int k = 0;k < 3;k++) //max 3 attempts
+      {
+          int err = prop.PropagateToXAlpha(param.GetTrackReferenceX(), Alpha, 0);
+          ConstrainSinPhi();
+          if (fabs(fP[0]) <= fX * tan(kSectAngle / 2.f)) break;
+          float dAngle = floor(atan2(fP[0], fX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
+          Alpha += dAngle;
+          if (err || k == 2)
+          {
+              Rotate(dAngle);
+              break;
+          }
+      }
+      
+  }
+  else if (fabs(fP[0]) > fX * tan(kSectAngle / 2.f))
+  {
+      float dAngle = floor(atan2(fP[0], fX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
+      Rotate(dAngle);
+      Alpha += dAngle;
+  }
+  if (fabs(fP[0]) > fX*tan(kSectAngle / 2.f)) {printf("OUT OF SECTOR BOUNDS Y %f > Max %f - X %f\n", fP[0], fX * tan(kSectAngle / 2.f), fX);}
+  
   return(ok);
 }
 
