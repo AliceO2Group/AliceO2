@@ -176,8 +176,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }*/
     
       DEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);)
-      const float Bz = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
-      if (MIRROR && err == 0 && changeDirection && fP[2] * fP[4] * Bz < 0)
+
+      if (MIRROR && err == 0 && changeDirection)
       {
           const float mirrordY = prop.GetMirroredYTrack();
           DEBUG(printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);)
