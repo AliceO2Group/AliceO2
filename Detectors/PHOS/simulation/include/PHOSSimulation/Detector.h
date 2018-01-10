@@ -110,7 +110,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   /// Get access to the hits
   ///
-  std::vector<Hit>* getHits(Int_t /* iColl */) const { return mHits; }
+  std::vector<Hit>* getHits(Int_t  iColl ) const { if(iColl==0) return mHits; else return nullptr ; }
 
   ///
   /// Reset
@@ -131,9 +131,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   Geometry* GetGeometry();
 
-
-  //TODO: This function hungs for the test purposes override it
-  void updateHitTrackIndices(std::map<int, int> const& indexmapping) override {} ;
 
  protected:
   ///

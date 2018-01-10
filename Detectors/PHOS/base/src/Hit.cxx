@@ -10,9 +10,9 @@
 
 #include "PHOSBase/Hit.h"
 
-ClassImp(o2::phos::Hit)
+using namespace o2::phos;
 
-  using namespace o2::phos;
+ClassImp(o2::phos::Hit) ;
 
 void Hit::PrintStream(std::ostream& stream) const
 {
