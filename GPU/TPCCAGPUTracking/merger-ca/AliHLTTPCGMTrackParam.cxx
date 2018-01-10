@@ -428,5 +428,43 @@ GPUd() bool AliHLTTPCGMTrackParam::Rotate( float alpha, AliHLTTPCGMPhysicalTrack
     fC[11] = -fC[11];
   }
   
-  return 1;
+  return true;
+}
+
+GPUd() bool AliHLTTPCGMTrackParam::Rotate( float alpha )
+{
+    float cA = CAMath::Cos( alpha );
+    float sA = CAMath::Sin( alpha );
+    float x0 = fX;
+    float sinPhi0 = fP[2], cosPhi0 = CAMath::Sqrt(1 - fP[2] * fP[2]);
+    float cosPhi =  cosPhi0 * cA + sinPhi0 * sA;
+    float sinPhi = -cosPhi0 * sA + sinPhi0 * cA;
+    float j0 = cosPhi0 / cosPhi;
+    float j2 = cosPhi / cosPhi0;
+    fX = x0 * cA + fP[0] * sA;
+    fP[0] = -x0 * sA + fP[0] * cA;
+    fP[2] = sinPhi + j2;
+    fC[0] *= j0 * j0;
+    fC[1] *= j0;
+    fC[3] *= j0;
+    fC[6] *= j0;
+    fC[10] *= j0;
+
+    fC[3] *= j2;
+    fC[4] *= j2;
+    fC[5] *= j2 * j2;
+    fC[8] *= j2;
+    fC[12] *= j2;
+    if( cosPhi <0 ){ // change direction ( t0 direction is already changed in t0.UpdateValues(); )
+        SinPhi() = -SinPhi();
+        DzDs() = -DzDs();
+        QPt() = -QPt();
+        fC[3] = -fC[3];
+        fC[4] = -fC[4];
+        fC[6] = -fC[6];
+        fC[7] = -fC[7];
+        fC[10] = -fC[10];
+        fC[11] = -fC[11];
+    }
+    return true;    
 }
