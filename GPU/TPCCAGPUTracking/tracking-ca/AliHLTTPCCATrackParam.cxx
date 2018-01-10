@@ -691,7 +691,7 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::CheckNumericalQualit
 {
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = AliHLTTPCCAMath::Finite( GetX() ) && AliHLTTPCCAMath::Finite( fSignCosPhi ) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
+  bool ok = AliHLTTPCCAMath::Finite( GetX() ) && AliHLTTPCCAMath::Finite( fSignCosPhi ) && AliHLTTPCCAMath::Finite( fChi2 );
 
   const float *c = Cov();
   for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
