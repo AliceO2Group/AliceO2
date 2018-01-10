@@ -624,7 +624,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
 {
   float *fC = fT->Cov();
   float *fP = fT->Par();
-  if (fT->NDF() > 5 && (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3)) return 2;
+  
   float 
     c00 = fC[ 0],
     c11 = fC[ 2],
