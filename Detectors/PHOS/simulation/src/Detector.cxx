@@ -193,6 +193,9 @@ void Detector::ConstructGeometry()
     LOG(ERROR) << "ConstructGeometry: PHOS Geometry class has not been set up.\n";
   }
 
+  if(!fMC)
+    fMC = TVirtualMC::GetMC() ;
+
   // Configure geometry So far we have onny one: Run2
   {
     mCreateCPV = kTRUE;

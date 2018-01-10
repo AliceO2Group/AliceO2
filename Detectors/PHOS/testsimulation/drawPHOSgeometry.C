@@ -41,7 +41,7 @@ void drawPHOSgeometry()
   o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
   run->AddModule(frame);
 
-  o2::PHOS::Detector* phos = new o2::PHOS::Detector(kTRUE);
+  o2::phos::Detector* phos = new o2::phos::Detector(kTRUE);
   run->AddModule(phos);
 
   run->Init();

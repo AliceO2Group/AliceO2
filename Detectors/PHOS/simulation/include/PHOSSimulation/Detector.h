@@ -131,6 +131,10 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   Geometry* GetGeometry();
 
+
+  //TODO: This function hungs for the test purposes override it
+  void updateHitTrackIndices(std::map<int, int> const& indexmapping) override {} ;
+
  protected:
   ///
   /// Creating detector materials for the PHOS detector and space frame

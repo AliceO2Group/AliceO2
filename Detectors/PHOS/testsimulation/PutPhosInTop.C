@@ -32,7 +32,7 @@ void PutPhosInTop() {
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::PHOS::Detector *phosdet = new o2::PHOS::Detector(kTRUE);
+  o2::phos::Detector *phosdet = new o2::phos::Detector(kTRUE);
   run->AddModule(phosdet);
 
   run->Init();

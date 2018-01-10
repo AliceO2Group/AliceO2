@@ -75,7 +75,7 @@ void run_sim_phos(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetField(magField);
 
   // ===| Add PHOS |============================================================
-  o2::PHOS::Detector* phos = new o2::PHOS::Detector(kTRUE);
+  o2::phos::Detector* phos = new o2::phos::Detector(kTRUE);
   run->AddModule(phos);
 
   // Create PrimaryGenerator
