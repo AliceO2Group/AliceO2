@@ -36,7 +36,7 @@ INCLUDEPATHSSYSTEM				+= $(shell root-config --incdir)
 LIBSUSE						+= $(shell root-config --libs)
 endif
 
-ALLDEP						+= config_common.mak
+ALLDEP						+= config_common.mak config_options.mak
 
 o2:
 						make CONFIGFILE=config_o2.mak -f makefile
