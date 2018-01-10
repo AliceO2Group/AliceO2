@@ -240,10 +240,9 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
-    if (fP[2] > HLTCA_MAX_SIN_PHI) fP[2] = HLTCA_MAX_SIN_PHI;
-    else if (fP[2] < -HLTCA_MAX_SIN_PHI) fP[2] = -HLTCA_MAX_SIN_PHI;
+    ConstrainSinPhi();
   }
-
+  
   bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
 
   if (param.GetTrackReferenceX() <= 500) prop.PropagateToXAlpha(param.GetTrackReferenceX(), prop.GetAlpha(), 0 );
