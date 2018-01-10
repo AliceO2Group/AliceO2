@@ -177,7 +177,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATrackParam
   SetCov( 11, 0 );
   SetCov( 12, 0 );
   SetCov( 13, 0 );
-  SetCov( 14, 10. );
+  SetCov( 14, 1000. );
   SetZOffset( 0 );
 }
 
