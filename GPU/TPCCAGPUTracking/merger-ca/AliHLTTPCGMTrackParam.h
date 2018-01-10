@@ -129,6 +129,12 @@ public:
 #endif
 
   private:
+      
+    GPUd() void ConstrainSinPhi()
+    {
+        if (fP[2] > HLTCA_MAX_SIN_PHI) fP[2] = HLTCA_MAX_SIN_PHI;
+        else if (fP[2] < -HLTCA_MAX_SIN_PHI) fP[2] = -HLTCA_MAX_SIN_PHI;
+    }
   
     float fX;      // x position
     float fZOffset;
