@@ -88,6 +88,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   int maxN = N;
   int ihitStart = 0;
   float covYYUpd = 0.;
+  float lastUpdateX = -1.;
+  
   for (int iWay = 0;iWay < nWays;iWay++)
   {
     if (iWay && param.GetNWaysOuter() && iWay == nWays - 1)
@@ -101,7 +103,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     DEBUG(printf("Fitting track %d way %d\n", nTracks, iWay);)
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
-    const bool rejectChi2ThisRound = ( nWays == 1 || iWay == 1 );
+    const bool rejectChi2ThisRound = ( nWays == 1 || iWay >= 1 );
     const bool markNonFittedClusters = rejectChi2ThisRound && !(param.HighQPtForward() < fabs(fP[4]));
     const double kDeg2Rad = 3.14159265358979323846/180.;
     const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
@@ -110,6 +112,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     prop.SetTrack( this, iWay ? prop.GetAlpha() : Alpha);
 
     N = 0;
+    lastUpdateX = -1;
     const bool inFlyDirection = iWay & 1;
     unsigned char lastLeg = clusters[ihitStart].fLeg;
     const int wayDirection = (iWay & 1) ? -1 : 1;
@@ -189,6 +192,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               prop.GetErr2(err2Y, err2Z, param, zz, rowType);
               prop.Model().Y() = fP[0] = yy;
               prop.Model().Z() = fP[1] = zz;
+              lastUpdateX = fX;
               if (fC[0] < err2Y) fC[0] = err2Y;
               if (fC[2] < err2Z) fC[2] = err2Z;
               if (fabs(fC[5]) < 0.1) fC[5] = fC[5] > 0 ? 0.1 : -0.1;
@@ -220,10 +224,15 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       DEBUG(printf("\n");)
       
-      int retVal = prop.Update( yy, zz, rowType, param, rejectChi2ThisRound);
+      int retVal;
+      float threshold = 3. + (lastUpdateX >= 0 ? (fabs(fX - lastUpdateX) / 2) : 0.);
+      if (fNDF > 5 && (fabs(yy - fP[0]) > threshold || fabs(zz - fP[1]) > threshold)) retVal = 2;
+      else retVal = prop.Update( yy, zz, rowType, param, rejectChi2ThisRound);
       DEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], retVal);)
+
       if (retVal == 0) // track is updated
       {
+        lastUpdateX = fX;
         covYYUpd = fC[0];
         ihitStart = ihit;
         N++;
