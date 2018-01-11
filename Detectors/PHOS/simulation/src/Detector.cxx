@@ -101,8 +101,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // 1. Remember all particles first entered PHOS (active medium)
   // 2. Collect all energy depositions in Cell by all secondaries from particle first entered PHOS
 
-  auto* mcapp = fMC;
-
   // Check if this is first entered PHOS particle ("SuperParent")
   TVirtualMCStack* stack = fMC->GetStack();
   const Int_t partID = stack->GetCurrentTrackNumber();
