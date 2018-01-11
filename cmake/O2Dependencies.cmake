@@ -1023,6 +1023,53 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    phos_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    MathCore
+    Matrix
+    Physics
+    ParBase
+    VMC
+    Geom
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
+o2_define_bucket(
+    NAME
+    phos_simulation_bucket
+
+    DEPENDENCIES
+    phos_base_bucket
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    PHOSBase
+    DetectorsBase
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
+o2_define_bucket(
+    NAME
     event_visualisation_base_bucket
 
     DEPENDENCIES
