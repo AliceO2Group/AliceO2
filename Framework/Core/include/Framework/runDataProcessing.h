@@ -12,6 +12,7 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/ChannelConfigurationPolicy.h"
 #include <vector>
 #include <unistd.h>
 
@@ -32,13 +33,65 @@ using Options = std::vector<ConfigParamSpec>;
 /// scripting language itself.
 void  defineDataProcessing(o2::framework::WorkflowSpec &specs);
 
+// This template magic allow users to customize the behavior of the process
+// by (optionally) implementing a `configure` method which modifies one of the
+// objects in question.
+// 
+// For example it can be optionally implemented by the user to specify the
+// channel policies for your setup. Use this if you want to customize the way
+// your devices communicate between themself, e.g. if you want to use REQ/REP
+// in place of PUB/SUB.
+//
+// The advantage of this approach is that we do not need to expose the
+// configurability / configuration object to the user, unless he really wants to
+// modify it. The drawback is that we need to declare the `customize` method
+// before include this file.
+
+// By default we leave the channel policies unchanged. Notice that the default still include
+// a "match all" policy which uses pub / sub
+// FIXME: add a debug statement saying that the default policy was used?
+void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy> &channelPolicies) {
+}
+
+struct UserCustomizationsHelper {
+  template <typename T>
+  static auto userDefinedCustomization(T& something, int preferUser) -> decltype(customize(something), void())
+  {
+    customize(something);
+  }
+
+  template <typename T>
+  static auto userDefinedCustomization(T& something, long preferUser)
+    -> decltype(defaultConfiguration(something), void())
+  {
+    defaultConfiguration(something);
+  }
+};
+
+
 // This comes from the framework itself. This way we avoid code duplication.
-int doMain(int argc, char **argv, const o2::framework::WorkflowSpec &specs);
+int doMain(int argc, char **argv,
+           o2::framework::WorkflowSpec const &specs,
+           std::vector<o2::framework::ChannelConfigurationPolicy> const &channelPolicies);
 
 int main(int argc, char**argv) {
-  o2::framework::WorkflowSpec specs;
+  using namespace o2::framework;
+
+  WorkflowSpec specs;
   defineDataProcessing(specs);
-  auto result = doMain(argc, argv, specs);
+
+  // The default policy is a catch all pub/sub setup to be consistent with the past.
+  std::vector<ChannelConfigurationPolicy> channelPolicies;
+  auto defaultPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  channelPolicies.insert(std::end(channelPolicies),
+                         std::begin(defaultPolicies),
+                         std::end(defaultPolicies));
+
+  // The 0 here is an int, therefore having the template matching in the
+  // SFINAE expression above fit better the version which invokes user code over
+  // the default one.
+  UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
+  auto result = doMain(argc, argv, specs, channelPolicies);
   std::cout << "Process " << getpid() << " is exiting." << std::endl;
   return result;
 }

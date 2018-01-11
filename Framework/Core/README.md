@@ -592,6 +592,27 @@ through such a channel.
 [specifyExternalFairMQDeviceProxy]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/include/Framework/ExternalFairMQDeviceProxy.h
 [rawDeviceInjectorExample]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/test_RawDeviceInjector.cxx
 
+## Customizing deployment configuration (WIP)
+
+By default every device instanciated by the Data Processing Layer connects to
+the others using the PUB/SUB paradigm. This might or might not be desiderable
+for some or even all of the connections. For this reason there is now a way to
+customise the connections based on the ids of the devices being instanciated.
+
+In order to do so, one needs to implement the function
+
+    customize(std::vector<o2::framework::ChannelConfigurationPolicy> &policies)
+
+**before** including `Framework/runDataProcessing.h` (this will most likely
+change in the future). You can then extend the policies vector with your own 
+`ChannelConfigurationPolicy`. For each device to device edge, the system will
+invoke the `ChannelConfigurationPolicy::match` callback with the ids of the
+producer and of the consumer as arguments. If the callback returns `true`,
+the `ChannelConfigurationPolicy::modifyInput` and
+`ChannelConfigurationPolicy::modifyOutput` will be invoked passing the input and 
+output channel associated to the two devices, giving the opportunity to modify 
+the matching channels.
+
 ## Current Demonstrator (WIP)
 
 An demonstrator illustrating a possible implementation of the design described

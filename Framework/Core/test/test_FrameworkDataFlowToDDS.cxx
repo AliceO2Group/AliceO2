@@ -81,8 +81,9 @@ WorkflowSpec defineDataProcessing() {
 BOOST_AUTO_TEST_CASE(TestGraphviz) {
   auto workflow = defineDataProcessing();
   std::ostringstream ss{""};
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, devices);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices);
   char *fakeArgv[] = {strdup("foo"), nullptr};
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;

@@ -113,7 +113,8 @@ BOOST_AUTO_TEST_CASE(TestGraphviz) {
   for (auto &device : devices) {
     BOOST_CHECK(device.id != "");
   }
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, devices);
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {
@@ -147,7 +148,8 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline) {
   for (auto &device : devices) {
     BOOST_CHECK(device.id != "");
   }
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, devices);
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {

@@ -15,19 +15,23 @@
 namespace o2 {
 namespace framework {
 
+/// These map to zeromq connection
+/// methods.
 enum ChannelMethod {
   Bind,
   Connect
 };
 
+/// These map to zeromq types for the channels.
 enum ChannelType {
   Pub,
-  Sub
+  Sub,
+  Push,
+  Pull,
 };
 
 /// This describes an input channel. Since they are point to 
 /// point connections, there is not much to say about them.
-/// Notice that their name is always of the kind in_<output-channel name>
 struct InputChannelSpec {
   std::string name;
   enum ChannelType type;

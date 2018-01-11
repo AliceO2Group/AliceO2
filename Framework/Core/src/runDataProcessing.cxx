@@ -12,6 +12,7 @@
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSourceDevice.h"
+#include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/DebugGUI.h"
 #include "Framework/DeviceControl.h"
@@ -443,7 +444,9 @@ void handle_sigchld(int sig) {
 //     killing them all on ctrl-c).
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
-int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
+int doMain(int argc, char **argv,
+           const o2::framework::WorkflowSpec & specs,
+           std::vector<ChannelConfigurationPolicy> const &channelPolicies) {
   bpo::options_description executorOptions("Executor options");
   executorOptions.add_options()
     ((std::string("help") + ",h").c_str(),
@@ -516,7 +519,7 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
   std::vector<DeviceSpec> deviceSpecs;
 
   try {
-    DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(specs, deviceSpecs);
+    DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(specs, channelPolicies, deviceSpecs);
     // This should expand nodes so that we can build a consistent DAG.
   } catch (std::runtime_error &e) {
     std::cerr << "Invalid workflow: " << e.what() << std::endl;

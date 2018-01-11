@@ -11,6 +11,7 @@
 #define FRAMEWORK_DEVICESPECHELPERS_H
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/DeviceControl.h"
@@ -34,7 +35,9 @@ struct DeviceSpecHelpers {
   /// to an actual set of devices which will have to run.
   static void dataProcessorSpecs2DeviceSpecs(
       const WorkflowSpec &workflow,
-      std::vector<DeviceSpec> &devices);
+      std::vector<ChannelConfigurationPolicy> const &channelPolicies,
+      std::vector<DeviceSpec> &devices
+      );
 
   /// Helper to prepare the arguments which will be used to 
   /// start the various devices.
@@ -60,7 +63,8 @@ struct DeviceSpecHelpers {
       const std::vector<DeviceConnectionEdge> &logicalEdges,
       const std::vector<EdgeAction> &actions,
       const WorkflowSpec &workflow,
-      const std::vector<OutputSpec> &outputs
+      const std::vector<OutputSpec> &outputs,
+      std::vector<ChannelConfigurationPolicy> const &channelPolicies
   );
 
   /// This takes the list of preprocessed edges of a graph
@@ -76,7 +80,8 @@ struct DeviceSpecHelpers {
         const std::vector<DeviceConnectionEdge> &logicalEdges,
         const std::vector<EdgeAction> &actions,
         const WorkflowSpec &workflow,
-        const std::vector<LogicalForwardInfo> &availableForwardsInfo
+        const std::vector<LogicalForwardInfo> &availableForwardsInfo,
+        std::vector<ChannelConfigurationPolicy> const &channelPolicies
   );
 
   /// return a description of all options to be forwarded to the device
