@@ -63,6 +63,8 @@ void Detector::EndOfEvent()
   
   first = mHits->begin() ;
   last = mHits->end() ;
+  
+  // this is copy of std::unique() method with addition: adding identical Hits
   auto itr = first ;
   while (++first != last) {
     if (*itr == *first) {
