@@ -81,10 +81,10 @@ class Detector : public FairDetector
     /// Books arrays for wrapper volumes
     virtual void setNumberOfWrapperVolumes(Int_t n);
 
-    virtual void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+    virtual void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod,
                              Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
 
-    virtual void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+    virtual void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod,
                                   Double_t width, Double_t tilt, Double_t lthick = 0., Double_t dthick = 0.,
                                   UInt_t detType = 0, Int_t buildFlag = 0);
 

@@ -130,13 +130,11 @@ static void configITS(Detector *its) {
     nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
     if (idLr >= kNLrInner) {
-      double modlen = nChipsPerModule*Segmentation::SensorSizeCols + (nChipsPerModule-1)*zChipGap;
-      double zlen = nModPerStaveLr*modlen + (nModPerStaveLr-1)*zModuleGap;
-      its->defineLayer(idLr, phi0, rLr, zlen, nStaveLr, nModPerStaveLr,
+      its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr,
                        kSiThickOB, Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
     } else {
       turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
-      its->defineLayerTurbo(idLr, phi0, rLr, nChipsPerStaveLr * Segmentation::SensorSizeCols, nStaveLr,
+      its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr,
                             nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo, kSiThickIB,
                             Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
     }
@@ -178,7 +176,6 @@ Detector::Detector(Bool_t active)
     for (Int_t j = 0; j < sNumberLayers; j++) {
       mLayerPhi0[j] = 0;
       mLayerRadii[j] = 0.;
-      mLayerZLength[j] = 0.;
       mStavePerLayer[j] = 0;
       mUnitPerStave[j] = 0;
       mChipThickness[j] = 0.;
@@ -617,8 +614,8 @@ void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax,
   mWrapperZSpan[id] = zspan;
 }
 
-void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
-                           Int_t nstav, Int_t nunit, Double_t lthick, Double_t dthick,
+void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Int_t nstav,
+                           Int_t nunit, Double_t lthick, Double_t dthick,
                            UInt_t dettypeID, Int_t buildLevel)
 {
   //     Sets the layer parameters
@@ -626,7 +623,6 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
   //          nlay    layer number
   //          phi0    layer phi0
   //          r       layer radius
-  //          zlen    layer length
   //          nstav   number of staves
   //          nunit   IB: number of chips per stave
   //                  OB: number of modules per half stave
@@ -639,7 +635,7 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
   // Return:
   //   none.
 
-  LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " DZ:" << zlen << " Nst:" << nstav
+  LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " Nst:" << nstav
             << " Nunit:" << nunit << " Lthick:" << lthick << " Dthick:" << dthick
             << " DetID:" << dettypeID << " B:" << buildLevel << FairLogger::endl;
 
@@ -651,7 +647,6 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
   mTurboLayer[nlay] = kFALSE;
   mLayerPhi0[nlay] = phi0;
   mLayerRadii[nlay] = r;
-  mLayerZLength[nlay] = zlen;
   mStavePerLayer[nlay] = nstav;
   mUnitPerStave[nlay] = nunit;
   mChipThickness[nlay] = lthick;
@@ -660,7 +655,7 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
   mBuildLevel[nlay] = buildLevel;
 }
 
-void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen,
+void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r,
                                 Int_t nstav, Int_t nunit, Double_t width,
                                 Double_t tilt, Double_t lthick, Double_t dthick,
                                 UInt_t dettypeID, Int_t buildLevel)
@@ -671,7 +666,6 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
   //          nlay    layer number
   //          phi0    phi of 1st stave
   //          r       layer radius
-  //          zlen    layer length
   //          nstav   number of staves
   //          nunit   IB: number of chips per stave
   //                  OB: number of modules per half stave
@@ -686,7 +680,7 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
   // Return:
   //   none.
 
-  LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " DZ:" << zlen << " Nst:" << nstav
+  LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " Nst:" << nstav
             << " Nunit:" << nunit << " W:" << width << " Tilt:" << tilt << " Lthick:" << lthick
             << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel
             << FairLogger::endl;
@@ -699,7 +693,6 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
   mTurboLayer[nlay] = kTRUE;
   mLayerPhi0[nlay] = phi0;
   mLayerRadii[nlay] = r;
-  mLayerZLength[nlay] = zlen;
   mStavePerLayer[nlay] = nstav;
   mUnitPerStave[nlay] = nunit;
   mChipThickness[nlay] = lthick;
@@ -711,8 +704,8 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
 }
 
 void Detector::getLayerParameters(Int_t nlay, Double_t &phi0, Double_t &r,
-                                  Double_t &zlen, Int_t &nstav, Int_t &nmod,
-                                  Double_t &width, Double_t &tilt, Double_t &lthick,
+                                  Int_t &nstav, Int_t &nmod, Double_t &width,
+                                  Double_t &tilt, Double_t &lthick,
                                   Double_t &dthick, UInt_t &dettype) const
 {
   //     Gets the layer parameters
@@ -721,7 +714,6 @@ void Detector::getLayerParameters(Int_t nlay, Double_t &phi0, Double_t &r,
   // Outputs:
   //          phi0    phi of 1st stave
   //          r       layer radius
-  //          zlen    layer length
   //          nstav   number of staves
   //          nmod    IB: number of chips per stave
   //                  OB: number of modules per half stave
@@ -740,7 +732,6 @@ void Detector::getLayerParameters(Int_t nlay, Double_t &phi0, Double_t &r,
 
   phi0 = mLayerPhi0[nlay];
   r = mLayerRadii[nlay];
-  zlen = mLayerZLength[nlay];
   nstav = mStavePerLayer[nlay];
   nmod = mUnitPerStave[nlay];
   width = mStaveWidth[nlay];
@@ -809,10 +800,6 @@ void Detector::constructDetectorGeometry()
       LOG(FATAL) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")"
                  << FairLogger::endl;
     }
-    if (mLayerZLength[j] <= 0) {
-      LOG(FATAL) << "Wrong layer length for layer " << j << "(" << mLayerZLength[j] << ")"
-                 << FairLogger::endl;
-    }
     if (mStavePerLayer[j] <= 0) {
       LOG(FATAL) << "Wrong number of staves for layer " << j << "(" << mStavePerLayer[j] << ")"
                  << FairLogger::endl;
@@ -877,7 +864,6 @@ void Detector::constructDetectorGeometry()
 
     mGeometry[j]->setPhi0(mLayerPhi0[j]);
     mGeometry[j]->setRadius(mLayerRadii[j]);
-    mGeometry[j]->setZLength(mLayerZLength[j]);
     mGeometry[j]->setNumberOfStaves(mStavePerLayer[j]);
     mGeometry[j]->setNumberOfUnits(mUnitPerStave[j]);
     mGeometry[j]->setChipType(mChipTypeID[j]);
@@ -901,12 +887,6 @@ void Detector::constructDetectorGeometry()
     for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
       if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
         LOG(INFO) << "Will embed layer " << j << " in wrapper volume " << iw << FairLogger::endl;
-
-        if (mLayerZLength[j] >= mWrapperZSpan[iw]) {
-          LOG(FATAL) << "ZSpan " << mWrapperZSpan[iw] << " of wrapper volume " << iw
-                     << " is less than ZSpan " << mLayerZLength[j] << " of layer " << j
-                     << FairLogger::endl;
-        }
 
         dest = wrapVols[iw];
         mWrapperLayerId[j] = iw;

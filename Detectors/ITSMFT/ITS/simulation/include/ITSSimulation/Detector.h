@@ -117,7 +117,6 @@ class Detector : public o2::Base::DetImpl<Detector>
     /// \param nlay layer number
     /// \param phi0 layer phi0
     /// \param r layer radius
-    /// \param zlen layer length
     /// \param nstav number of staves
     /// \param nunit IB: number of chips per stave
     /// \param OB: number of modules per half stave
@@ -125,7 +124,7 @@ class Detector : public o2::Base::DetImpl<Detector>
     /// \param dthick detector thickness (if omitted, defaults to 0)
     /// \param dettypeID ??
     /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-    void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+    void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod,
                              Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
 
     /// Sets the layer parameters for a "turbo" layer
@@ -133,7 +132,6 @@ class Detector : public o2::Base::DetImpl<Detector>
     /// \param nlay layer number
     /// \param phi0 phi of 1st stave
     /// \param r layer radius
-    /// \param zlen layer length
     /// \param nstav number of staves
     /// \param nunit IB: number of chips per stave
     /// \param OB: number of modules per half stave
@@ -143,7 +141,7 @@ class Detector : public o2::Base::DetImpl<Detector>
     /// \param dthick detector thickness (if omitted, defaults to 0)
     /// \param dettypeID ??
     /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-    void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+    void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod,
                                   Double_t width, Double_t tilt, Double_t lthick = 0., Double_t dthick = 0.,
                                   UInt_t detType = 0, Int_t buildFlag = 0) override;
 
@@ -151,7 +149,6 @@ class Detector : public o2::Base::DetImpl<Detector>
     /// \param nlay layer number
     /// \param phi0 phi of 1st stave
     /// \param r layer radius
-    /// \param zlen layer length
     /// \param nstav number of staves
     /// \param nmod IB: number of chips per stave
     /// \param OB: number of modules per half stave
@@ -160,7 +157,7 @@ class Detector : public o2::Base::DetImpl<Detector>
     /// \param lthick stave thickness
     /// \param dthick detector thickness
     /// \param dettype detector type
-    virtual void getLayerParameters(Int_t nlay, Double_t &phi0, Double_t &r, Double_t &zlen, Int_t &nladd, Int_t &nmod,
+    virtual void getLayerParameters(Int_t nlay, Double_t &phi0, Double_t &r, Int_t &nladd, Int_t &nmod,
                                     Double_t &width, Double_t &tilt, Double_t &lthick, Double_t &mthick,
                                     UInt_t &dettype) const;
 
@@ -280,7 +277,6 @@ class Detector : public o2::Base::DetImpl<Detector>
     Bool_t mTurboLayer[sNumberLayers];     //! True for "turbo" layers
     Double_t mLayerPhi0[sNumberLayers];    //! Vector of layer's 1st stave phi in lab
     Double_t mLayerRadii[sNumberLayers];   //! Vector of layer radii
-    Double_t mLayerZLength[sNumberLayers]; //! Vector of layer length along Z
     Int_t mStavePerLayer[sNumberLayers];   //! Vector of number of staves per layer
     Int_t mUnitPerStave[sNumberLayers];    //! Vector of number of "units" per stave
     Double_t mChipThickness[sNumberLayers];//! Vector of chip thicknesses

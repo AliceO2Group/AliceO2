@@ -54,6 +54,7 @@ const Int_t V3Layer::sIBChipsPerRow = 9;
 const Int_t V3Layer::sIBNChipRows = 1;
 const Double_t V3Layer::sIBChipZGap            =  0.01 *sCm;
 
+const Double_t V3Layer::sIBModuleZLength      =  27.08 *sCm;
 const Double_t V3Layer::sIBFPCWiderXPlus      = 850.0  *sMicron;
 const Double_t V3Layer::sIBFPCWiderXNeg       = 300.0  *sMicron;
 const Double_t V3Layer::sIBFlexCableAlThick   =  50.0  *sMicron;
@@ -211,7 +212,6 @@ V3Layer::V3Layer()
     mLayerNumber(0),
     mPhi0(0),
     mLayerRadius(0),
-    mZLength(0),
     mSensorThickness(0),
     mChipThickness(0),
     mStaveWidth(0),
@@ -225,7 +225,9 @@ V3Layer::V3Layer()
     mStaveModel(Detector::kIBModelDummy),
     mAddGammaConv(kFALSE),
     mGammaConvDiam(0),
-    mGammaConvXPos(0)
+    mGammaConvXPos(0),
+    mIBModuleZLength(0),
+    mOBModuleZLength(0)
 {
   for (int i = kNHLevels; i--;) {
     mHierarchy[i] = 0;
@@ -237,7 +239,6 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
     mLayerNumber(lay),
     mPhi0(0),
     mLayerRadius(0),
-    mZLength(0),
     mSensorThickness(0),
     mChipThickness(0),
     mStaveWidth(0),
@@ -251,7 +252,9 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
     mStaveModel(Detector::kIBModelDummy),
     mAddGammaConv(kFALSE),
     mGammaConvDiam(0),
-    mGammaConvXPos(0)
+    mGammaConvXPos(0),
+    mIBModuleZLength(0),
+    mOBModuleZLength(0)
 {
   for (int i = kNHLevels; i--;) {
     mHierarchy[i] = 0;
@@ -272,10 +275,6 @@ void V3Layer::createLayer(TGeoVolume *motherVolume)
   // Check if the user set the proper parameters
   if (mLayerRadius <= 0) {
     LOG(FATAL) << "Wrong layer radius " << mLayerRadius << FairLogger::endl;
-  }
-
-  if (mZLength <= 0) {
-    LOG(FATAL) << "Wrong layer length " << mZLength << FairLogger::endl;
   }
 
   if (mNumberOfStaves <= 0) {
@@ -412,53 +411,42 @@ TGeoVolume *V3Layer::createStave(const TGeoManager * /*mgr*/)
 //                             spoiling their position in space)
 // Updated:      03 Mar 2015  Mario Sitta  Fix chip position
 // Updated:      16 Mar 2017  Mario Sitta  AliceO2 version
+// Updated:      10 Jan 2018  Mario Sitta  Compute all dimensions using
+//                                         AlpideChip as basis
 //
+
   const Int_t nameLen = 30;
   char volumeName[nameLen];
 
-  Double_t xlen, ylen, zlen;
+  Double_t xlen;
   Double_t xpos, ypos;
   Double_t alpha;
 
   // First create all needed shapes
   alpha = (360. / (2 * mNumberOfStaves)) * DegToRad();
 
-  // The stave
   xlen = mLayerRadius * Tan(alpha);
   if (mIsTurbo) {
     xlen = 0.5 * mStaveWidth;
   }
-  ylen = 0.5 * mChipThickness;
-  zlen = 0.5 * mZLength;
 
-  Double_t yplus = 0.46;
-  TGeoXtru *stave = new TGeoXtru(2); // z sections
-  Double_t xv[5] = {xlen, xlen, 0, -xlen, -xlen};
-  Double_t yv[5] = {ylen + 0.09, -0.15, -yplus - mSensorThickness, -0.15, ylen + 0.09};
-  stave->DefinePolygon(5, xv, yv);
-  stave->DefineSection(0, -zlen, 0, 0, 1.);
-  stave->DefineSection(1, +zlen, 0, 0, 1.);
-
-  // We have all shapes: now create the real volumes
-
+  // The stave
   snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSStavePattern(), mLayerNumber);
-  //  TGeoVolume *staveVol = new TGeoVolume(volumeName, stave, medAir);
   TGeoVolume *staveVol = new TGeoVolumeAssembly(volumeName);
-
-  //  staveVol->SetVisibility(kFALSE);
   staveVol->SetVisibility(kTRUE);
   staveVol->SetLineColor(2);
+
   TGeoVolume *mechStaveVol = nullptr;
 
   // Now build up the stave
   if (mLayerNumber < sNumberOfInnerLayers) {
-    TGeoVolume *modVol = createStaveInnerB(xlen, ylen, zlen);
+  TGeoVolume *modVol = createStaveInnerB();
     ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - mChipThickness; // = 0 if not kIBModel4
     staveVol->AddNode(modVol, 0, new TGeoTranslation(0, ypos, 0));
     mHierarchy[kHalfStave] = 1;
 
     // Mechanical stave structure
-    mechStaveVol = createStaveStructInnerB(xlen, zlen);
+    mechStaveVol = createStaveStructInnerB(xlen);
     if (mechStaveVol) {
       ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - ypos;
       if (mStaveModel != Detector::kIBModel4)
@@ -495,15 +483,14 @@ TGeoVolume *V3Layer::createStave(const TGeoManager * /*mgr*/)
   return staveVol;
 }
 
-TGeoVolume *V3Layer::createStaveInnerB(const Double_t xsta, const Double_t ysta,
-                                              const Double_t zsta, const TGeoManager *mgr)
+TGeoVolume *V3Layer::createStaveInnerB(const TGeoManager *mgr)
 {
   Double_t xmod, ymod, zmod;
   const Int_t nameLen = 30;
   char volumeName[nameLen];
 
   // First we create the module (i.e. the HIC with 9 chips)
-  TGeoVolume *moduleVol = createModuleInnerB(xsta, ysta, zsta);
+  TGeoVolume *moduleVol = createModuleInnerB();
 
   // Then we create the fake halfstave and the actual stave
   xmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDX();
@@ -525,10 +512,9 @@ TGeoVolume *V3Layer::createStaveInnerB(const Double_t xsta, const Double_t ysta,
   return hstaveVol;
 }
 
-TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t zmod,
-                                               const TGeoManager *mgr)
+TGeoVolume *V3Layer::createModuleInnerB(const TGeoManager *mgr)
 {
-  Double_t xtot, ytot, ztot, zchip;
+  Double_t xtot, ytot, ztot, xchip, zchip, ymod;
   Double_t xpos, ypos, zpos;
   Bool_t dummyChip;
   const Int_t nameLen = 30;
@@ -544,14 +530,21 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
   snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
 
+  ymod = 0.5*mChipThickness;
+
   TGeoVolume *chipVol = AlpideChip::createChip(ymod, mSensorThickness/2,
                                                chipName, sensName, dummyChip);
 
-  // Then create the Glue, the Kapton and the two Aluminum cables
-  xtot = xmod + (sIBFPCWiderXPlus + sIBFPCWiderXNeg)/2;
-  ztot = zmod + (sIBChipsPerRow-1)*sIBChipZGap/2;
+  xchip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX();
+  zchip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDZ();
 
-  TGeoBBox *glue = new TGeoBBox(xmod, sIBGlueThick/2, ztot);
+  mIBModuleZLength = 2*zchip*sIBChipsPerRow + (sIBChipsPerRow-1)*sIBChipZGap;
+
+  // Then create the Glue, the Kapton and the two Aluminum cables
+  xtot = xchip + (sIBFPCWiderXPlus + sIBFPCWiderXNeg)/2;
+  ztot = mIBModuleZLength/2;
+
+  TGeoBBox *glue = new TGeoBBox(xchip, sIBGlueThick/2, ztot);
   TGeoBBox *kapCable = new TGeoBBox(xtot, sIBFlexCableKapThick/2, ztot);
 
   TGeoVolume *aluGndCableVol   = createIBFPCAlGnd(xtot, ztot);
@@ -587,7 +580,6 @@ TGeoVolume *V3Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   // Build up the module
   xpos = -xtot + (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX() + sIBFPCWiderXNeg;
   ypos = -ytot + ymod; // = 0 if not kIBModel4
-  zchip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDZ();
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -ztot + j*(2*zchip + sIBChipZGap) + zchip;
     modVol->AddNode(chipVol, j, new TGeoTranslation(xpos, ypos, zpos));
@@ -708,7 +700,6 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable,
 }
 
 TGeoVolume *V3Layer::createStaveStructInnerB(const Double_t xsta,
-                                             const Double_t zsta,
                                              const TGeoManager *mgr)
 {
 //
@@ -723,7 +714,7 @@ TGeoVolume *V3Layer::createStaveStructInnerB(const Double_t xsta,
 
   switch (mStaveModel) {
     case Detector::kIBModelDummy:
-      mechStavVol = createStaveModelInnerBDummy(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerBDummy(xsta, mgr);
       break;
     case Detector::kIBModel0:
     case Detector::kIBModel1:
@@ -733,7 +724,7 @@ TGeoVolume *V3Layer::createStaveStructInnerB(const Double_t xsta,
       LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported" << FairLogger::endl;
       break;
     case Detector::kIBModel4:
-      mechStavVol = createStaveModelInnerB4(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerB4(xsta, mgr);
       break;
     default:
       LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
@@ -743,7 +734,6 @@ TGeoVolume *V3Layer::createStaveStructInnerB(const Double_t xsta,
 }
 
 TGeoVolume *V3Layer::createStaveModelInnerBDummy(const Double_t,
-                                                 const Double_t,
                                                  const TGeoManager *) const
 {
 //
@@ -761,7 +751,6 @@ TGeoVolume *V3Layer::createStaveModelInnerBDummy(const Double_t,
 // model4
 //________________________________________________________________________
 TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
-                                             const Double_t zstave,
                                              const TGeoManager *mgr)
 {
 //
@@ -769,7 +758,6 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
 //
 // Input:
 //         xstave : stave X half length
-//         zstave : stave Z half length
 //         mgr    : the GeoManager (used only to get the proper material)
 //
 // Output:
@@ -805,7 +793,9 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const Double_t xstave,
 
 
   // First create all needed shapes
-  ztot = zstave + (sIBChipsPerRow-1)*sIBChipZGap/2;
+  if (mIBModuleZLength == 0.)  // Use default if undefined (should never happen)
+    mIBModuleZLength = sIBModuleZLength;
+  ztot = mIBModuleZLength/2;
 
   TGeoBBox *glue     = new TGeoBBox(xstave, sIBGlueThick/2, ztot);
 
@@ -1734,15 +1724,17 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
 
   rCoolMax = rCoolMin + sOBCoolTubeThick;
 
-  zlen = (mNumberOfModules*sOBModuleZLength + (mNumberOfModules-1)*sOBModuleGap)/2;
-
-
   // First create all needed shapes
 
   TGeoVolume *moduleVol = createModuleOuterB();
   moduleVol->SetVisibility(kTRUE);
   ymod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDY();
   zmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDZ();
+
+  if (mOBModuleZLength == 0.)  // Use default if undefined (should never happen)
+    mOBModuleZLength = sOBModuleZLength;
+
+  zlen = (mNumberOfModules*mOBModuleZLength + (mNumberOfModules-1)*sOBModuleGap)/2;
 
   TGeoBBox *busAl  = new TGeoBBox("BusAl",  xHalfSt, sOBBusCableAlThick/2,
                                             zlen);
@@ -1821,8 +1813,8 @@ TGeoVolume *V3Layer::createStaveModelOuterB2(const TGeoManager *mgr)
   }
   TGeoXtru *halfStaveCent = new TGeoXtru(2);
   halfStaveCent->DefinePolygon(12, xtru, ytru);
-  halfStaveCent->DefineSection(0,-mZLength/2);
-  halfStaveCent->DefineSection(1, mZLength/2);
+  halfStaveCent->DefineSection(0,-zlen);
+  halfStaveCent->DefineSection(1, zlen);
   snprintf(volname, nameLen, "staveCentral%d", mLayerNumber);
   halfStaveCent->SetName(volname);
 
@@ -3240,10 +3232,12 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
   ychip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDY();
   zchip = (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDZ();
 
+  mOBModuleZLength = 2*zchip*sOBChipsPerRow + (sOBChipsPerRow-1)*sOBChipZGap;
+
   // The module carbon plate
   xlen = sOBHalfStaveWidth/2;
   ylen = sOBCarbonPlateThick/2;
-  zlen = sOBModuleZLength/2;
+  zlen = mOBModuleZLength/2;
   TGeoBBox *modPlate = new TGeoBBox("CarbonPlate", xlen, ylen, zlen);
 
   // The glue
@@ -3261,7 +3255,7 @@ TGeoVolume *V3Layer::createModuleOuterB(const TGeoManager *mgr)
   // The module
   xlen = sOBHalfStaveWidth/2;
   ylen = ychip + flexMetal->GetDY() + flexKap->GetDY();
-  zlen = sOBModuleZLength/2;
+  zlen = mOBModuleZLength/2;
   TGeoBBox *module = new TGeoBBox("OBModule", xlen,  ylen, zlen);
 
 
