@@ -30,7 +30,8 @@ Bool_t Hit::operator<(const Hit& rhs) const
 
 Bool_t Hit::operator==(const Hit& rhs) const
 {
-  return (GetDetectorID() == rhs.GetDetectorID()) && (GetTrackID() == rhs.GetTrackID());
+  return ((GetDetectorID() == rhs.GetDetectorID()) && 
+          (GetTrackID() == rhs.GetTrackID()));
 }
 
 Hit& Hit::operator+=(const Hit& rhs)

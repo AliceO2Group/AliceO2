@@ -56,19 +56,33 @@ void Detector::EndOfEvent()
   // Add duplicates if any and remove them
   // TODO: Apply Poisson smearing of light production
 
-  std::sort(mHits->begin(), mHits->end());
-  auto last =
-    std::unique(mHits->begin(), mHits->end(),
-                phos::Hit::CompareAndAdd); // method compares two Hits and add content of the second to first one
-  mHits->erase(last, mHits->end());
+  auto first = mHits->begin() ;
+  auto last = mHits->end() ;
 
-  /*
+  std::sort(first, last);
+  
+  first = mHits->begin() ;
+  last = mHits->end() ;
+  auto itr = first ;
+  while (++first != last) {
+    if (*itr == *first) {
+      *itr += *first ;
+    }else{
+      *(++itr) = *first;
+    }
+  }
+  ++itr;
+
+  mHits->erase(itr, mHits->end());
+
+/*  
       std::ostream stream(nullptr);
       stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
+//      stream.rdbuf(LOG(DEBUG2));
     for (int i = 0; i < mHits->size(); i++) {
        mHits->at(i).PrintStream(stream);
       }
-  */
+*/  
 }
 void Detector::Reset()
 {
@@ -90,7 +104,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   auto* mcapp = fMC;
 
   // Check if this is first entered PHOS particle ("SuperParent")
-  TVirtualMCStack* stack = mcapp->GetStack();
+  TVirtualMCStack* stack = fMC->GetStack();
   const Int_t partID = stack->GetCurrentTrackNumber();
   Int_t superParent = -1;
   Bool_t isNewPartile = false;     // Create Hit even if zero energy deposition
@@ -100,37 +114,39 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       // Search parent
       Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
       itTr = mSuperParents.find(parentID);
-      if (itTr == mSuperParents.end()) { // Neither track or its parent found: new SuperParent
+      if (itTr == mSuperParents.end()) { // Neither track or its parent found: new SuperParent       
         mSuperParents[partID] = partID;
         superParent = partID;
         isNewPartile = true;
       } else { // parent found, this track - not
         superParent = itTr->second;
         mSuperParents[partID] = superParent;
+        mCurrentTrackID = partID;
       }
     } else {
       superParent = itTr->second;
+      mCurrentTrackID = partID;      
     }
   } else {
     superParent = mCurentSuperParent;
   }
 
-  Double_t lostenergy = mcapp->Edep();
+  Double_t lostenergy = fMC->Edep();
   if (lostenergy < DBL_EPSILON && !isNewPartile)
     return false; // do not create hits with zero energy deposition
 
   if (!mGeom)
     mGeom = Geometry::GetInstance();
 
-  //  if(strcmp(mcapp->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
+  //  if(strcmp(mc->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
   //    return false ; //  We are not inside a PBWO crystal
 
   Int_t moduleNumber;
-  mcapp->CurrentVolOffID(10, moduleNumber); // get the PHOS module number ;
+  fMC->CurrentVolOffID(10, moduleNumber); // get the PHOS module number ;
   Int_t strip;
-  mcapp->CurrentVolOffID(3, strip);
+  fMC->CurrentVolOffID(3, strip);
   Int_t cell;
-  mcapp->CurrentVolOffID(2, cell);
+  fMC->CurrentVolOffID(2, cell);
   Int_t detID = mGeom->RelToAbsId(moduleNumber, strip, cell);
 
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
@@ -157,10 +173,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   }
   // Create new Hit
   Double_t posX = 0., posY = 0., posZ = 0., momX = 0, momY = 0., momZ = 0., energy = 0.;
-  mcapp->TrackPosition(posX, posY, posZ);
-  mcapp->TrackMomentum(momX, momY, momZ, energy);
-  Double_t estart = mcapp->Etot();
-  Double_t time = mcapp->TrackTime() * 1.e+9; // time in ns?? To be consistent with EMCAL
+  fMC->TrackPosition(posX, posY, posZ);
+  fMC->TrackMomentum(momX, momY, momZ, energy);
+  Double_t estart = fMC->Etot();
+  Double_t time = fMC->TrackTime() * 1.e+9; // time in ns?? To be consistent with EMCAL
 
   mCurrentHit = AddHit(superParent, detID, Point3D<float>(posX, posY, posZ), Vector3D<float>(momX, momY, momZ), estart,
                        time, lostenergy);
@@ -268,11 +284,13 @@ void Detector::ConstructGeometry()
   gGeoManager->CheckGeometry();
 
   // Define sensitive volume
-  TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
-  if (vsense)
-    AddSensitiveVolume(vsense);
-  else
-    LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
+  if(fActive) {
+    TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
+    if (vsense)
+      AddSensitiveVolume(vsense);
+    else
+      LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
+  }
 }
 //-----------------------------------------
 void Detector::CreateMaterials()
@@ -409,30 +427,35 @@ void Detector::CreateMaterials()
   o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // void Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm,
+  //              Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t *ubuf = nullptr,
+  //              Int_t nbuf = 0);
 
   // The scintillator of the calorimeter made of PBW04                              -> idtmed[699]
-  Medium(ID_PWO, "PHOS Crystal", ID_PWO, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
+  if(fActive)
+    Medium(ID_PWO, "Crystal", ID_PWO, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
+  else
+    Medium(ID_PWO, "Crystal", ID_PWO, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   // The scintillator of the CPV made of Polystyrene scintillator                   -> idtmed[700]
-  Medium(ID_CPVSC, "CPV scint.", ID_CPVSC, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
+  Medium(ID_CPVSC, "CPVscint.", ID_CPVSC, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   // Various Aluminium parts made of Al                                             -> idtmed[701]
-  Medium(ID_AL, "Al parts", ID_AL, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
+  Medium(ID_AL, "Alparts", ID_AL, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
 
   // The Tywek which wraps the calorimeter crystals                                 -> idtmed[702]
-  Medium(ID_TYVEK, "Tyvek wrapper", ID_TYVEK, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
+  Medium(ID_TYVEK, "Tyvek", ID_TYVEK, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
 
   // The Polystyrene foam around the calorimeter module                             -> idtmed[703]
-  Medium(ID_POLYFOAM, "Polyst. foam", ID_POLYFOAM, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
+  Medium(ID_POLYFOAM, "Polyst.foam", ID_POLYFOAM, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   // The Titanium around the calorimeter crystal                                    -> idtmed[704]
-  Medium(ID_TITAN, "Titan. cover", ID_TITAN, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.0001, 0.0001, nullptr, 0);
+  Medium(ID_TITAN, "Titan.cover", ID_TITAN, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.0001, 0.0001, nullptr, 0);
 
   // The Silicon of the APD diode to read out the calorimeter crystal               -> idtmed[705]
-  Medium(ID_APD, "Si APD", ID_APD, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.01, 0.01, nullptr, 0);
+  Medium(ID_APD, "SiAPD", ID_APD, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.01, 0.01, nullptr, 0);
 
   // The thermo insulating material of the box which contains the calorimeter module -> getMediumID(ID_THERMOINS)
-  Medium(ID_THERMOINS, "Thermo Insul.", ID_THERMOINS, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
+  Medium(ID_THERMOINS, "ThermoInsul.", ID_THERMOINS, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   // The Textolit which makes up the box which contains the calorimeter module      -> idtmed[707]
   Medium(ID_TEXTOLIT, "Textolit", ID_TEXTOLIT, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
@@ -504,9 +527,11 @@ void Detector::ConstructEMCGeometry()
   // --- Define crystal and put it into wrapped crystall ---
   for (ipar = 0; ipar < 3; ipar++)
     par[ipar] = *(geom->GetCrystalHalfSize() + ipar);
+
   fMC->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3);
-  //  fMC->Gsvolu("PXTL", "BOX ", getMediumID(ID_FE), par, 3) ;
+//  fMC->Gsvolu("PXTL", "BOX ", 1, par, 3) ;
   fMC->Gspos("PXTL", 1, "PWRA", 0.0, 0.0, 0.0, 0, "ONLY");
+
 
   // --- define APD/PIN preamp and put it into AirCell
   for (ipar = 0; ipar < 3; ipar++)

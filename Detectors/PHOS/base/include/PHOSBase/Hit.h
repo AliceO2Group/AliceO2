@@ -37,7 +37,7 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \param initialEnergy Energy of the primary particle enering the EMCAL
   /// \param tof Time of the hit
   /// \param length Length of the segment
-  Hit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Float_t totE, Float_t tof,
+  Hit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE, Double_t tof,
       Double_t eLoss)
     : o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.Z(), tof, eLoss, trackID, detID),
       mPvector(mom),
@@ -62,18 +62,6 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \param
   /// \return New Hit based on this Hit
   Hit operator+(const Hit& rhs) const;
-
-  /// \brief Compared two hits and if equal, adds energy deposition of the second one to the first one.
-  /// \param phos::Hits a,b
-  /// \return true if hits are equal: same cell, same SuperParent.
-  static bool CompareAndAdd(Hit& a, const Hit& b)
-  {
-    if (a == b) {
-      a += b;
-      return true;
-    } else
-      return false;
-  }
 
   /// \brief Destructor
   ~Hit() = default;
