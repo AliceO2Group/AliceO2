@@ -17,7 +17,6 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TPCSimulation/SAMPAProcessing.h"
-#include "TPCBase/ParameterElectronics.h"
 
 #include <fstream>
 #include <iostream>
@@ -93,6 +92,31 @@ namespace TPC {
       float currentADC = adcValue[i];
       BOOST_CHECK_CLOSE(currentSignal, currentADC, 1E-3);
     }
+  }
+
+  /// \brief Test of the conversion functions
+  BOOST_AUTO_TEST_CASE(SAMPA_Conversion_test)
+  {
+      const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
+      const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
+    BOOST_CHECK(SAMPAProcessing::getTimeBin(detParam.getTPClength()) == 0);
+    BOOST_CHECK_CLOSE(SAMPAProcessing::getZfromTimeBin(0, Side::A), detParam.getTPClength(), 1E-6);
+
+    const float driftTime = SAMPAProcessing::getDriftTime(0);
+    const int timeBin = SAMPAProcessing::getTimeBinFromTime(driftTime);
+    std::cout << driftTime << " " << timeBin << " " << SAMPAProcessing::getTimeBinTime(driftTime) << "\n";
+
+
+    std::cout << SAMPAProcessing::getTimeBinFromTime(SAMPAProcessing::getDriftTime(detParam.getTPClength())) << "\n";
+
+
+    for(int i=0; i<100; ++i) {
+      const float randomTime = gRandom->Rndm() * 500.f;
+      const int randomTimeBin = SAMPAProcessing::getTimeBinFromTime(driftTime);
+      BOOST_CHECK(randomTime - SAMPAProcessing::getTimeBinTime(randomTime) < eleParam.getZBinWidth());
+      std::cout << randomTime - SAMPAProcessing::getTimeBinTime(randomTime) << " " << eleParam.getZBinWidth() << "\n";
+    }
+
   }
 }
 }

@@ -16,9 +16,8 @@
 #ifndef ALICEO2_TPC_DigitPad_H_
 #define ALICEO2_TPC_DigitPad_H_
 
-#include <map>
+#include "TTree.h" // needed for TTree delete operator
 
-#include "FairRootManager.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -55,9 +54,10 @@ class DigitPad {
     float getChargePad() const {return mChargePad;}
 
     /// Add digit to the time bin container
+    /// \param eventID MC Event ID
     /// \param hitID MC Hit ID
     /// \param charge Charge of the digit
-    void setDigit(size_t hitID, float charge);
+    void setDigit(int eventID, size_t hitID, float charge);
 
     /// Fill output vector
     /// \param output Output container
@@ -100,11 +100,10 @@ DigitPad::DigitPad(int pad)
 {}
 
 inline 
-void DigitPad::setDigit(size_t trackID, float charge)
+void DigitPad::setDigit(int eventID, size_t trackID, float charge)
 {
-  static FairRootManager *mgr = FairRootManager::Instance();
   bool isKnown = false;
-  MCCompLabel tempLabel(trackID, mgr->GetEntryNr());
+  MCCompLabel tempLabel(trackID, eventID);
   for(auto &mcLabel : mMClabel) {
     if(compareMClabels(tempLabel, mcLabel.first)) {
       ++mcLabel.second;

@@ -18,7 +18,7 @@
 #include "TGraph.h"
 #include "TLine.h"
 #include "TMath.h"
-#include "TPCSimulation/Digitizer.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCReconstruction/Cluster.h"
@@ -84,7 +84,7 @@ void testTracks(int checkEvent = 0,
     const GlobalPadNumber pad   = mapper.globalPadNumber(PadPos(rowInSector, inputcluster->getPadMean()));
     const PadCentre& padCentre  = mapper.padCentre(pad);
     const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
-          float zPosition       = Digitizer::getZfromTimeBin(inputcluster->getTimeMean(), cru.side());
+          float zPosition       = SAMPAProcessing::getZfromTimeBin(inputcluster->getTimeMean(), cru.side());
 
     LocalPosition3D posLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
@@ -136,7 +136,7 @@ void testTracks(int checkEvent = 0,
         const GlobalPadNumber pad   = mapper.globalPadNumber(PadPos(rowInSector, clusterObject.getPadMean()));
         const PadCentre& padCentre  = mapper.padCentre(pad);
         const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
-              float zPosition       = Digitizer::getZfromTimeBin(clusterObject.getTimeMean(), cru.side());
+              float zPosition       = SAMPAProcessing::getZfromTimeBin(clusterObject.getTimeMean(), cru.side());
 
         LocalPosition3D clusLoc(padCentre.X(), localYfactor*padCentre.Y(), zPosition);
         GlobalPosition3D clusGlob = Mapper::LocalToGlobal(clusLoc, cru.sector());

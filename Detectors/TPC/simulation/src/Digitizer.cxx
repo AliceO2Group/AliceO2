@@ -18,6 +18,9 @@
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCBase/ParameterDetector.h"
+#include "TPCBase/ParameterElectronics.h"
+#include "TPCBase/ParameterGas.h"
 
 #include "TPCBase/Mapper.h"
 
@@ -50,16 +53,13 @@ void Digitizer::init()
 //  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
 }
 
-DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, float eventTime)
+DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, int eventID, float eventTime)
 {
 //  mDigitContainer->reset();
   const static Mapper& mapper = Mapper::instance();
   const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
   const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
-  FairRootManager *mgr = FairRootManager::Instance();
 
-  // TODO: temporary hack
-  //const float eventTime = ( mIsContinuous) ? mgr->GetEventTime() * 0.001 : 0.f; /// transform in us
   if (!mIsContinuous) eventTime = 0.f; /// transform in us
 
   /// \todo static_thread for thread savety?
@@ -92,7 +92,7 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, f
         const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle);
 
         /// \todo Time management in continuous mode (adding the time of the event?)
-        const float driftTime = getTime(posEleDiff.Z()) + eh.GetTime() * 0.001; /// in us
+        const float driftTime = SAMPAProcessing::getDriftTime(posEleDiff.Z()) + eh.GetTime() * 0.001; /// in us
         const float absoluteTime = driftTime + eventTime;
 
         /// Attachment
@@ -141,7 +141,7 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, f
         SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
         for(float i=0; i<nShapedPoints; ++i) {
           const float time = absoluteTime + i * eleParam.getZBinWidth();
-          mDigitContainer->addDigit(MCTrackID, digiPos.getCRU().number(), getTimeBinFromTime(time), row, pad, signalArray[i]);
+          mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU().number(), SAMPAProcessing::getTimeBinFromTime(time), row, pad, signalArray[i]);
         }
 
       // }

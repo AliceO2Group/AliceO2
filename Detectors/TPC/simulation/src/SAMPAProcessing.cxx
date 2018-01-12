@@ -13,7 +13,6 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/SAMPAProcessing.h"
-#include "TPCSimulation/Digitizer.h"
 
 #include <fstream>
 #include <iostream>
@@ -68,7 +67,7 @@ bool SAMPAProcessing::importSaturationCurve(std::string file)
 void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float> &signalArray)
 {
   const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
-  float timeBinTime = Digitizer::getTimeBinTime(driftTime);
+  float timeBinTime = getTimeBinTime(driftTime);
   float offset = driftTime - timeBinTime;
   for (float bin = 0; bin < eleParam.getNShapedPoints(); bin += Vc::float_v::Size) {
     Vc::float_v binvector;

@@ -50,13 +50,14 @@ class DigitContainer{
     int getNentries() const;
 
     /// Add digit to the container
+    /// \param eventID MC Event ID
     /// \param hitID MC Hit ID
     /// \param cru CRU of the digit
     /// \param row Pad row of digit
     /// \param pad Pad of digit
     /// \param timeBin Time bin of the digit
     /// \param charge Charge of the digit
-    void addDigit(size_t hitID, int cru, int timeBin, int row, int pad, float charge);
+    void addDigit(int eventID, size_t hitID, int cru, int timeBin, int row, int pad, float charge);
 
     /// Fill output vector
     /// \param output Output container

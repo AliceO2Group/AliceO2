@@ -58,12 +58,13 @@ class DigitCRU{
     int getCRUID() const {return mCRU;}
 
     /// Add digit to the row container
+    /// \param eventID MC Event ID
     /// \param hitID MC Hit ID
     /// \param timeBin Time bin of the digit
     /// \param row Pad row of digit
     /// \param pad Pad of digit
     /// \param charge Charge of the digit
-    void setDigit(size_t hitID, int timeBin, int row, int pad, float charge);
+    void setDigit(int eventID, size_t hitID, int timeBin, int row, int pad, float charge);
 
     /// Fill output vector
     /// \param output Output container

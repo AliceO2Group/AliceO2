@@ -60,10 +60,11 @@ class DigitRow {
     int getRow() const {return mRow;}
 
     /// Add digit to the pad container
+    /// \param eventID MC Event ID
     /// \param hitID MC Hit ID
     /// \param pad Pad of the digit
     /// \param charge Charge of the digit
-    void setDigit(size_t hitID, int pad, float charge);
+    void setDigit(int eventID, size_t hitID, int pad, float charge);
 
     /// Fill output vector
     /// \param output Output container

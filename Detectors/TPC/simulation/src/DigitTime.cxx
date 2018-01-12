@@ -18,17 +18,17 @@
 
 using namespace o2::TPC;
 
-void DigitTime::setDigit(size_t hitID, int cru, int row, int pad, float charge)
+void DigitTime::setDigit(int eventID, size_t hitID, int cru, int row, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry
   DigitRow *result = mRows[row].get();
   if(result != nullptr) {
-    mRows[row]->setDigit(hitID, pad, charge);
+    mRows[row]->setDigit(eventID, hitID, pad, charge);
   }
   else{
     const Mapper& mapper = Mapper::instance();
     mRows[row] = std::make_unique<DigitRow> (row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row));
-    mRows[row]->setDigit(hitID, pad, charge);
+    mRows[row]->setDigit(eventID, hitID, pad, charge);
   }
   mTotalChargeTimeBin+=charge;
 }

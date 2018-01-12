@@ -60,12 +60,13 @@ class DigitTime{
     float getTotalChargeTimeBin() const {return mTotalChargeTimeBin;}
 
     /// Add digit to the row container
+    /// \param eventID MC Event ID
     /// \param hitID MC Hit ID
     /// \param cru CRU of the digit
     /// \param row Pad row of digit
     /// \param pad Pad of digit
     /// \param charge Charge of the digit
-    void setDigit(size_t hitID, int cru, int row, int pad, float charge);
+    void setDigit(int eventID, size_t hitID, int cru, int row, int pad, float charge);
 
     /// Fill output vector
     /// \param output Output container
