@@ -93,11 +93,25 @@ void o2sim()
   run->Init();
   gGeoManager->Export("O2geometry.root");
 
+  std::time_t runStart = std::time(nullptr);
+    
+  // runtime database
+  bool kParameterMerged = true;
+  auto rtdb = run->GetRuntimeDb();
+  auto parOut = new FairParRootFileIo(kParameterMerged);
+  parOut->open("o2sim_par.root");
+  rtdb->setOutput(parOut);
+  rtdb->saveOutput();
+  rtdb->print();
+
+  run->Run(confref.getNEvents());
 
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
-    grp.setRun(run->GetRunId());  
+    grp.setRun(run->GetRunId());
+    grp.setTimeStart( runStart );
+    grp.setTimeEnd( std::time(nullptr) );
     TObjArray* modArr = run->GetListOfModules();
     TIter next(modArr);
     FairModule* module = nullptr;
@@ -126,17 +140,6 @@ void o2sim()
     grpF.WriteObjectAny(&grp,grp.Class(),"GRP");    
   }
   
-  // runtime database
-  bool kParameterMerged = true;
-  auto rtdb = run->GetRuntimeDb();
-  auto parOut = new FairParRootFileIo(kParameterMerged);
-  parOut->open("o2sim_par.root");
-  rtdb->setOutput(parOut);
-  rtdb->saveOutput();
-  rtdb->print();
-
-  run->Run(confref.getNEvents());
-
   // needed ... otherwise nothing flushed?
   delete run;
 

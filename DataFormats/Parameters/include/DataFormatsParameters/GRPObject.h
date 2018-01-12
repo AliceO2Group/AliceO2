@@ -16,8 +16,8 @@
 #define ALICEO2_DATA_GRPOBJECT_H_
 
 #include <Rtypes.h>
-#include <chrono>
 #include <cstdint>
+#include <ctime>
 #include "CommonConstants/LHCConstants.h"
 #include "CommonTypes/Units.h"
 #include "DetectorsBase/DetID.h"
@@ -36,7 +36,7 @@ class GRPObject
   using beamDirection = o2::constants::lhc::BeamDirection;
 
  public:
-  using timePoint = std::chrono::system_clock::time_point;
+  using timePoint = std::time_t;
 
   GRPObject() = default;
   ~GRPObject() = default;
@@ -100,8 +100,8 @@ class GRPObject
   void print() const;
 
  private:
-  timePoint mTimeStart; ///< DAQ_time_start entry from DAQ logbook
-  timePoint mTimeEnd;   ///< DAQ_time_end entry from DAQ logbook
+  timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
+  timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
 
   o2::Base::DetID::mask_t mDetsReadout; ///< mask of detectors which are read out
   o2::Base::DetID::mask_t mDetsTrigger; ///< mask of detectors which provide trigger

@@ -14,13 +14,11 @@
 
 #include "DataFormatsParameters/GRPObject.h"
 #include <cmath>
-#include <ctime>
 #include "CommonConstants/PhysicsConstants.h"
 
 using namespace o2::parameters;
 using namespace o2::constants::physics;
 using namespace o2::constants::lhc;
-using namespace std::chrono;
 using o2::Base::DetID;
 
 //_______________________________________________
@@ -46,9 +44,9 @@ void GRPObject::print() const
   // print itself
   printf("Run: %8d\nFill: %6d\nPeriod: %s\n", getRun(), getFill(), getDataPeriod().data());
   printf("LHC State: %s\n", getLHCState().data());
-  std::time_t t = system_clock::to_time_t(mTimeStart);
+  std::time_t t = mTimeStart; //system_clock::to_time_t(mTimeStart);
   printf("Start: %s", std::ctime(&t));
-  t = system_clock::to_time_t(mTimeEnd);
+  t = mTimeEnd; //system_clock::to_time_t(mTimeEnd);
   printf("End  : %s", std::ctime(&t));
   printf("Beam0: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamClockWise), getBeamA(BeamClockWise),
          getBeamEnergyPerNucleon(BeamClockWise));
