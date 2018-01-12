@@ -23,8 +23,10 @@ ParameterElectronics::ParameterElectronics()
     mADCdynamicRange(0.f),
     mADCsaturation(0.f),
     mZbinWidth(0.f),
-    mElectronCharge(0.f)
-{}
+    mElectronCharge(0.f),
+    mDigitizationMode(DigitzationMode::FullMode)
+{
+}
 
 void ParameterElectronics::setDefaultValues()
 {
@@ -33,6 +35,7 @@ void ParameterElectronics::setDefaultValues()
   mChipGain = 20.f;
   mADCdynamicRange = 2200.f;
   mADCsaturation = 1024.f;
-  mZbinWidth = 0.19379844961f;
+  mZbinWidth = 0.2f;
   mElectronCharge = 1.602e-19f;
+  mDigitizationMode = DigitzationMode::FullMode;
 }

@@ -17,24 +17,26 @@
 
 using namespace o2::TPC;
 
-void DigitRow::setDigit(size_t hitID, int pad, float charge)
+void DigitRow::setDigit(int eventID, size_t hitID, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry
-  DigitPad *result =  mPads[pad].get();
-  if(result != nullptr) {
-    mPads[pad]->setDigit(hitID, charge);
-  }
-  else{
-    mPads[pad] = std::make_unique<DigitPad> (pad);
-    mPads[pad]->setDigit(hitID, charge);
+  DigitPad* result = mPads[pad].get();
+  if (result != nullptr) {
+    mPads[pad]->setDigit(eventID, hitID, charge);
+  } else {
+    mPads[pad] = std::make_unique<DigitPad>(pad);
+    mPads[pad]->setDigit(eventID, hitID, charge);
   }
 }
 
-void DigitRow::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-                                   std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, int row, float commonMode)
+void DigitRow::fillOutputContainer(std::vector<o2::TPC::Digit>* output,
+                                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth,
+                                   std::vector<o2::TPC::DigitMCMetaData>* debug, int cru, int timeBin, int row,
+                                   float commonMode)
 {
-  for(auto &aPad : mPads) {
-    if(aPad == nullptr) continue;
+  for (auto& aPad : mPads) {
+    if (aPad == nullptr)
+      continue;
     aPad->fillOutputContainer(output, mcTruth, debug, cru, timeBin, row, aPad->getPad(), commonMode);
   }
 }
