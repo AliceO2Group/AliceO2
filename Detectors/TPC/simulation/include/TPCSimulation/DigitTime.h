@@ -17,101 +17,100 @@
 
 #include "TPCSimulation/DigitRow.h"
 
-namespace o2 {
-namespace TPC {
-    
+namespace o2
+{
+namespace TPC
+{
+
 /// \class DigitTime
-/// This is the third class of the intermediate Digit Containers, in which all incoming electrons from the hits are sorted into after amplification
+/// This is the third class of the intermediate Digit Containers, in which all incoming electrons from the hits are
+/// sorted into after amplification
 /// The structure assures proper sorting of the Digits when later on written out for further processing.
 /// This class holds the individual Pad Row containers and is contained within the CRU Container.
-    
-class DigitTime{
-  public:
-    
-    /// Constructor
-    /// \param mTimeBin time bin
-    /// \param npads Number of pads in the row
-    DigitTime(int timeBin, int nrows);
 
-    /// Destructor
-    ~DigitTime() = default;
+class DigitTime
+{
+ public:
+  /// Constructor
+  /// \param mTimeBin time bin
+  /// \param npads Number of pads in the row
+  DigitTime(int timeBin, int nrows);
 
-    /// Resets the container            
-    void reset();
+  /// Destructor
+  ~DigitTime() = default;
 
-    /// Get the size of the container
-    /// \return Size of the Row container
-    size_t getSize() const {return mRows.size();}
+  /// Resets the container
+  void reset();
 
-    /// Get the container
-    /// \return container
-    const std::vector<std::unique_ptr<DigitRow>>& getRowContainer() const { return mRows; }
+  /// Get the size of the container
+  /// \return Size of the Row container
+  size_t getSize() const { return mRows.size(); }
 
-    /// Get the number of entries in the container
-    /// \return Number of entries in the Row container
-    int getNentries() const;
+  /// Get the container
+  /// \return container
+  const std::vector<std::unique_ptr<DigitRow>>& getRowContainer() const { return mRows; }
 
-    /// Get the time bin
-    /// \return time bin
-    int getTimeBin() const {return mTimeBin;}
+  /// Get the number of entries in the container
+  /// \return Number of entries in the Row container
+  int getNentries() const;
 
-    /// Get the accumulated charge in one time bin
-    /// \return Accumulated charge in one time bin
-    float getTotalChargeTimeBin() const {return mTotalChargeTimeBin;}
+  /// Get the time bin
+  /// \return time bin
+  int getTimeBin() const { return mTimeBin; }
 
-    /// Add digit to the row container
-    /// \param hitID MC Hit ID
-    /// \param cru CRU of the digit
-    /// \param row Pad row of digit
-    /// \param pad Pad of digit
-    /// \param charge Charge of the digit
-    void setDigit(size_t hitID, int cru, int row, int pad, float charge);
+  /// Get the accumulated charge in one time bin
+  /// \return Accumulated charge in one time bin
+  float getTotalChargeTimeBin() const { return mTotalChargeTimeBin; }
 
-    /// Fill output vector
-    /// \param output Output container
-    /// \param mcTruth MC Truth container
-    /// \param debug Optional debug output container
-    /// \param cru CRU ID
-    /// \param timeBin Time bin
-    /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-			     std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, float commonMode = 0.f);
+  /// Add digit to the row container
+  /// \param eventID MC Event ID
+  /// \param hitID MC Hit ID
+  /// \param cru CRU of the digit
+  /// \param row Pad row of digit
+  /// \param pad Pad of digit
+  /// \param charge Charge of the digit
+  void setDigit(int eventID, size_t hitID, int cru, int row, int pad, float charge);
 
-  private:
-    float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
-    int                     mTimeBin;                   ///< Time bin of that ADC value
-    std::vector <std::unique_ptr<DigitRow>> mRows;      ///< Row Container for the ADC value
+  /// Fill output vector
+  /// \param output Output container
+  /// \param mcTruth MC Truth container
+  /// \param debug Optional debug output container
+  /// \param cru CRU ID
+  /// \param timeBin Time bin
+  /// \param commonMode Common mode value of that specific ROC
+  void fillOutputContainer(std::vector<o2::TPC::Digit>* output,
+                           o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth,
+                           std::vector<o2::TPC::DigitMCMetaData>* debug, int cru, int timeBin, float commonMode = 0.f);
+
+ private:
+  float mTotalChargeTimeBin;                    ///< Total accumulated charge in that time bin
+  int mTimeBin;                                 ///< Time bin of that ADC value
+  std::vector<std::unique_ptr<DigitRow>> mRows; ///< Row Container for the ADC value
 };
 
-inline
-DigitTime::DigitTime(int timeBin, int nrows)
-  : mTotalChargeTimeBin(0.),
-    mTimeBin(timeBin),
-    mRows(nrows)
-{}
+inline DigitTime::DigitTime(int timeBin, int nrows) : mTotalChargeTimeBin(0.), mTimeBin(timeBin), mRows(nrows) {}
 
-inline
-void DigitTime::reset()
-{  
-  for(auto &aRow : mRows) {
-    if(aRow == nullptr) continue;
+inline void DigitTime::reset()
+{
+  for (auto& aRow : mRows) {
+    if (aRow == nullptr)
+      continue;
     aRow->reset();
   }
-  mTotalChargeTimeBin=0.;
+  mTotalChargeTimeBin = 0.;
   mRows.clear();
 }
 
-inline    
-int DigitTime::getNentries() const
+inline int DigitTime::getNentries() const
 {
   int counter = 0;
-  for(auto &aRow : mRows) {
-    if(aRow == nullptr) continue;
-    ++ counter;
+  for (auto& aRow : mRows) {
+    if (aRow == nullptr)
+      continue;
+    ++counter;
   }
   return counter;
 }
-
 }
 }
 

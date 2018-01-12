@@ -17,97 +17,114 @@
 
 #include <array>
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
+
+enum class DigitzationMode : char {
+  FullMode = 0,         ///< Apply noise, pedestal and saturation
+  SubtractPedestal = 1, ///< Apply noise, pedestal and saturation and then from that subtract the pedestal
+  NoSaturation = 2,     ///< Apply only noise and pedestal
+  PropagateADC = 3      ///< Just propagate the bare ADC value
+};
 
 /// \class ParameterElectronics
 
-class ParameterElectronics{
-  public:
-    static ParameterElectronics& defaultInstance() {
-      static ParameterElectronics param;
-      param.setDefaultValues();
-      return param;
-    }
+class ParameterElectronics
+{
+ public:
+  static ParameterElectronics& defaultInstance()
+  {
+    static ParameterElectronics param;
+    param.setDefaultValues();
+    return param;
+  }
 
-    /// Constructor
-    ParameterElectronics();
+  /// Constructor
+  ParameterElectronics();
 
-    /// Destructor
-    ~ParameterElectronics() = default;
+  /// Destructor
+  ~ParameterElectronics() = default;
 
-    /// Set the default values
-    void setDefaultValues();
+  /// Set the default values
+  void setDefaultValues();
 
-    /// Set number of ADC samples with which are taken into account for a given, shaped signal
-    /// \param nShaped Number of shaped ADC samples
-    void setNShapedPoints(int nShaped) { mNShapedPoints = nShaped; }
+  /// Set number of ADC samples with which are taken into account for a given, shaped signal
+  /// \param nShaped Number of shaped ADC samples
+  void setNShapedPoints(int nShaped) { mNShapedPoints = nShaped; }
 
-    /// Set SAMPA peaking time
-    /// \param peakingTime SAMPA peaking time [us]
-    void setPeakingTime(float peakingTime) { mPeakingTime = peakingTime; }
+  /// Set SAMPA peaking time
+  /// \param peakingTime SAMPA peaking time [us]
+  void setPeakingTime(float peakingTime) { mPeakingTime = peakingTime; }
 
-    /// Set SAMPA chip gain
-    /// \param chipGain SAMPA chip gain [mV/fC]
-    void setChipGain(float chipGain) { mChipGain = chipGain; }
+  /// Set SAMPA chip gain
+  /// \param chipGain SAMPA chip gain [mV/fC]
+  void setChipGain(float chipGain) { mChipGain = chipGain; }
 
-    /// Set ADC dynamic range
-    /// \param dynRange ADC dynamic range [mV]
-    void setADCDynamicRange(float dynRange) { mADCdynamicRange = dynRange; }
+  /// Set ADC dynamic range
+  /// \param dynRange ADC dynamic range [mV]
+  void setADCDynamicRange(float dynRange) { mADCdynamicRange = dynRange; }
 
-    /// Set ADC saturation
-    /// \param adcSat ADC saturation [ADC counts]
-    void setADCSaturation(float adcSat) { mADCsaturation = adcSat; }
+  /// Set ADC saturation
+  /// \param adcSat ADC saturation [ADC counts]
+  void setADCSaturation(float adcSat) { mADCsaturation = adcSat; }
 
-    /// Set z-bin width
-    /// \param zbin z-bin width [us]
-    void setZBinWidth(float zbin) { mZbinWidth = zbin; }
+  /// Set z-bin width
+  /// \param zbin z-bin width [us]
+  void setZBinWidth(float zbin) { mZbinWidth = zbin; }
 
-    /// Set electron charge
-    /// \param qel Electron charge [C]
-    void setElectronCharge(float qel) { mElectronCharge = qel; }
+  /// Set electron charge
+  /// \param qel Electron charge [C]
+  void setElectronCharge(float qel) { mElectronCharge = qel; }
 
+  /// Set digitization mode
+  /// \param mode Digitization mode
+  void setDigitizationMode(DigitzationMode mode) { mDigitizationMode = mode; }
 
-    /// Get number of ADC samples which are taken into account for a given, shaped signal
-    /// \return Number of shaped ADC samples
-    int getNShapedPoints() const { return mNShapedPoints; }
+  /// Get number of ADC samples which are taken into account for a given, shaped signal
+  /// \return Number of shaped ADC samples
+  int getNShapedPoints() const { return mNShapedPoints; }
 
-    /// Get SAMPA peaking time
-    /// \return SAMPA peaking time [us]
-    float getPeakingTime() const { return mPeakingTime; }
+  /// Get SAMPA peaking time
+  /// \return SAMPA peaking time [us]
+  float getPeakingTime() const { return mPeakingTime; }
 
-    /// Get SAMPA chip gain
-    /// \return SAMPA chip gain [mV/fC]
-    float getChipGain() const { return mChipGain; }
+  /// Get SAMPA chip gain
+  /// \return SAMPA chip gain [mV/fC]
+  float getChipGain() const { return mChipGain; }
 
-    /// Get ADC dynamic range
-    /// \return ADC dynamic range [mV]
-    float getADCDynamicRange() const { return mADCdynamicRange; }
+  /// Get ADC dynamic range
+  /// \return ADC dynamic range [mV]
+  float getADCDynamicRange() const { return mADCdynamicRange; }
 
-    /// Get ADC saturation
-    /// \return ADC saturation [ADC counts]
-    float getADCSaturation() const { return mADCsaturation; }
+  /// Get ADC saturation
+  /// \return ADC saturation [ADC counts]
+  float getADCSaturation() const { return mADCsaturation; }
 
-    /// Get z-bin width
-    /// \return z-bin width [us]
-    float getZBinWidth() const { return mZbinWidth; }
+  /// Get z-bin width
+  /// \return z-bin width [us]
+  float getZBinWidth() const { return mZbinWidth; }
 
-    /// Get electron charge
-    /// \return Electron charge [C]
-    float getElectronCharge() const { return mElectronCharge; }
+  /// Get electron charge
+  /// \return Electron charge [C]
+  float getElectronCharge() const { return mElectronCharge; }
 
+  /// Get digitization mode
+  /// \return Digitization mode
+  DigitzationMode getDigitizationMode() const { return mDigitizationMode; }
 
-  private:
-
-    int mNShapedPoints;                    ///< Number of ADC samples which are taken into account for a given, shaped signal (should fit into SSE registers)
-    float mPeakingTime;                    ///< Peaking time of the SAMPA [us]
-    float mChipGain;                       ///< Gain of the SAMPA [mV/fC] - may be either 20 or 30
-    float mADCdynamicRange;                ///< Dynamic range of the ADC [mV]
-    float mADCsaturation;                  ///< ADC saturation [ADC counts]
-    float mZbinWidth;                      ///< Width of a z bin [us]
-    float mElectronCharge;                 ///< Electron charge [C]
-  };
-
+ private:
+  int mNShapedPoints;     ///< Number of ADC samples which are taken into account for a given, shaped signal (should fit
+                          /// into SSE registers)
+  float mPeakingTime;     ///< Peaking time of the SAMPA [us]
+  float mChipGain;        ///< Gain of the SAMPA [mV/fC] - may be either 20 or 30
+  float mADCdynamicRange; ///< Dynamic range of the ADC [mV]
+  float mADCsaturation;   ///< ADC saturation [ADC counts]
+  float mZbinWidth;       ///< Width of a z bin [us]
+  float mElectronCharge;  ///< Electron charge [C]
+  DigitzationMode mDigitizationMode; ///< Digitization mode [full / ... ]
+};
 }
 }
 

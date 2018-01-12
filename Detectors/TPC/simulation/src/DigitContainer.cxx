@@ -13,35 +13,35 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitContainer.h"
-#include "TPCBase/Mapper.h"
 #include <iostream>
+#include "TPCBase/Mapper.h"
 
 using namespace o2::TPC;
 
-void DigitContainer::addDigit(size_t hitID, int cru, int timeBin, int row, int pad, float charge)
+void DigitContainer::addDigit(int eventID, size_t hitID, int cru, int timeBin, int row, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry
-  DigitCRU *result = mCRU[cru].get();
-  if(result != nullptr){
-    mCRU[cru]->setDigit(hitID, timeBin, row, pad, charge);
-  }
-  else{
+  DigitCRU* result = mCRU[cru].get();
+  if (result != nullptr) {
+    mCRU[cru]->setDigit(eventID, hitID, timeBin, row, pad, charge);
+  } else {
     const Mapper& mapper = Mapper::instance();
     mCRU[cru] = std::make_unique<DigitCRU>(cru, mCommonModeContainer);
-    mCRU[cru]->setDigit(hitID, timeBin, row, pad, charge);
+    mCRU[cru]->setDigit(eventID, hitID, timeBin, row, pad, charge);
   }
   /// Take care of the common mode
   mCommonModeContainer.addDigit(cru, timeBin, charge);
 }
 
-
-void DigitContainer::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-                                         std::vector<o2::TPC::DigitMCMetaData> *debug, int eventTime, bool isContinuous)
+void DigitContainer::fillOutputContainer(std::vector<o2::TPC::Digit>* output,
+                                         o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth,
+                                         std::vector<o2::TPC::DigitMCMetaData>* debug, int eventTime, bool isContinuous)
 {
-  for(auto &aCRU : mCRU) {
-    if(aCRU == nullptr) continue;
+  for (auto& aCRU : mCRU) {
+    if (aCRU == nullptr)
+      continue;
     aCRU->fillOutputContainer(output, mcTruth, debug, aCRU->getCRUID(), eventTime, isContinuous);
-    if(!isContinuous) {
+    if (!isContinuous) {
       aCRU->reset();
     }
   }

@@ -16,10 +16,7 @@
 
 using namespace o2::TPC;
 
-ParameterDetector::ParameterDetector()
-  : mTPClength(0.f),
-    mPadCapacitance(0.f)
-{}
+ParameterDetector::ParameterDetector() : mTPClength(0.f), mPadCapacitance(0.f) {}
 
 void ParameterDetector::setDefaultValues()
 {

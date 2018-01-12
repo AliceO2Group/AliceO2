@@ -13,7 +13,6 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/SAMPAProcessing.h"
-#include "TPCSimulation/Digitizer.h"
 
 #include <fstream>
 #include <iostream>
@@ -23,31 +22,27 @@
 
 using namespace o2::TPC;
 
-SAMPAProcessing::SAMPAProcessing()
-  : mSaturationSpline()
-{
-  importSaturationCurve("SAMPA_saturation.dat");
-}
+SAMPAProcessing::SAMPAProcessing() : mSaturationSpline() { importSaturationCurve("SAMPA_saturation.dat"); }
 
-SAMPAProcessing::~SAMPAProcessing()
-= default;
+SAMPAProcessing::~SAMPAProcessing() = default;
 
 bool SAMPAProcessing::importSaturationCurve(std::string file)
 {
   std::string inputDir;
   const char* aliceO2env = std::getenv("O2_ROOT");
-  if(aliceO2env) {
+  if (aliceO2env) {
     inputDir = aliceO2env;
   }
   inputDir += "/share/Detectors/TPC/files/";
 
   std::ifstream saturationFile(inputDir + file, std::ifstream::in);
   if (!saturationFile) {
-    LOG(FATAL) << "TPC::SAMPAProcessing - Input file '" << inputDir + file << "' does not exist! No SAMPA saturation curve loaded!" << FairLogger::endl;
+    LOG(FATAL) << "TPC::SAMPAProcessing - Input file '" << inputDir + file
+               << "' does not exist! No SAMPA saturation curve loaded!" << FairLogger::endl;
     return false;
   }
   std::vector<std::pair<float, float>> saturation;
-  for(std::string line; std::getline(saturationFile, line);) {
+  for (std::string line; std::getline(saturationFile, line);) {
     float x, y;
     std::istringstream is(line);
     while (is >> x >> y) {
@@ -65,10 +60,10 @@ bool SAMPAProcessing::importSaturationCurve(std::string file)
   return true;
 }
 
-void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float> &signalArray)
+void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray)
 {
-  const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
-  float timeBinTime = Digitizer::getTimeBinTime(driftTime);
+  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
+  float timeBinTime = getTimeBinTime(driftTime);
   float offset = driftTime - timeBinTime;
   for (float bin = 0; bin < eleParam.getNShapedPoints(); bin += Vc::float_v::Size) {
     Vc::float_v binvector;
@@ -76,9 +71,9 @@ void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vec
       binvector[i] = bin + i;
     }
     Vc::float_v time = timeBinTime + binvector * eleParam.getZBinWidth();
-    Vc::float_v signal = getGamma4(time, Vc::float_v(timeBinTime+offset), Vc::float_v(ADCsignal));
+    Vc::float_v signal = getGamma4(time, Vc::float_v(timeBinTime + offset), Vc::float_v(ADCsignal));
     for (int i = 0; i < Vc::float_v::Size; ++i) {
-      signalArray[bin+i] = signal[i];
+      signalArray[bin + i] = signal[i];
     }
   }
 }
