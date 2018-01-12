@@ -1133,6 +1133,7 @@ o2_define_bucket(
     EMCALSimulation
     TOFSimulation
     FITSimulation
+    PHOSSimulation
     Field
     Generators
     DataFormatsParameters
