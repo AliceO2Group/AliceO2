@@ -28,6 +28,7 @@
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
 #include <FITSimulation/Detector.h>
+#include <PHOSSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -155,6 +156,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("EMC")){
     // emcal
     run->AddModule(new o2::EMCAL::Detector(true));
+  }
+
+  if (isActivated("PHS")){
+    // phos
+    run->AddModule(new o2::phos::Detector(true));
   }
 
   if (isActivated("FIT")) {
