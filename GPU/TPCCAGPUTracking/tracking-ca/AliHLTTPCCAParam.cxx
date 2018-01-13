@@ -190,7 +190,7 @@ MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2( int iR
 {
   // Calibrated cluster error from OCDB for Y and Z
 
-  int    rowType = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );  
+  int    rowType = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
 
   z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );  
   float s2 = sinPhi*sinPhi;

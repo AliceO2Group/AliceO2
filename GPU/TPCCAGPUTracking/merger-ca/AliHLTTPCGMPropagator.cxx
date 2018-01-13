@@ -614,13 +614,12 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   return 0;
 }
 
-GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int rowType)
+GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow)
 {
-  param.GetClusterErrors2v1( rowType,  fContinuousTracking ? 125.:posZ, fT0.GetSinPhi(),fT0.GetCosPhi(),fT0.DzDs(), err2Y, err2Z );  
-  //param.GetClusterErrors2New( rowType,  fContinuousTracking ? 125.:posZ, fT0.GetSinPhi(),fT0.GetCosPhi(),fT0.DzDs(), err2Y, err2Z );
+  param.GetClusterErrors2( iRow,  fContinuousTracking ? 125.:posZ, fT0.GetSinPhi(),fT0.GetCosPhi(),fT0.DzDs(), err2Y, err2Z );  
 }
 
-GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, const AliHLTTPCCAParam &param, bool rejectChi2 )
+GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, bool rejectChi2 )
 {
   float *fC = fT->Cov();
   float *fP = fT->Par();
@@ -633,7 +632,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int rowType, c
     c40 = fC[10];
 
   float err2Y, err2Z;
-  GetErr2(err2Y, err2Z, param, posZ, rowType);
+  GetErr2(err2Y, err2Z, param, posZ, iRow);
   
   if ( fT->NDF()==-5 ) { // first measurement: no need to filter, as the result is known in advance. just set it. 
     fT->ResetCovariance();
