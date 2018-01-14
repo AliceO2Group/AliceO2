@@ -1230,3 +1230,16 @@ o2_define_bucket(
   ${CMAKE_SOURCE_DIR}/Common/Constants/include
   ${CMAKE_SOURCE_DIR}/Common/Types/include
 )
+
+o2_define_bucket(
+  NAME
+  common_utils_bucket
+
+  DEPENDENCIES
+  Core Tree
+  DetectorsBase # for test dependency only
+  
+  INCLUDE_DIRECTORIES
+  ${ROOT_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+)
