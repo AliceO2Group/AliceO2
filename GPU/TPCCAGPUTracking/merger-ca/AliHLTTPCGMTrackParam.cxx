@@ -109,6 +109,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
   
     ResetCovariance();
+    prop.SetFitInProjections(iWay != 0);
     prop.SetTrack( this, iWay ? prop.GetAlpha() : Alpha);
 
     N = 0;
