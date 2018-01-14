@@ -38,8 +38,8 @@ void drawPHOSgeometry()
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
-  run->AddModule(frame);
+ // o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
+ // run->AddModule(frame);
 
   o2::phos::Detector* phos = new o2::phos::Detector(kTRUE);
   run->AddModule(phos);
@@ -56,7 +56,7 @@ void drawPHOSgeometry()
       gGeoManager->GetVolume(name->GetName())->SetVisibility(kFALSE);
 
     TString ToShow =
-      "PHOS PHOH PHOC PSTR PCEL PWRA PXTL PPIN PREA PSUP PSHO PTII PTIH PAGA PAGH PCOR PCOH PTIO PIOH PCOL PCLH PFGC PWAR PWTI PCA1 PBE1 PCA2 PBE2 PFRX PFRZ PFG1 PFG2 PFG3 PFG4 PAFE PEMC PEMH PCPV PCPC PCPD PCPF PCPG PCPQ PCP1 PCF1 PCF2";
+      "PHOS PHOH PHOC"; // PSTR PCEL PWRA PXTL PPIN PREA PSUP PSHO PTII PTIH PAGA PAGH PCOR PCOH PTIO PIOH PCOL PCLH PFGC PWAR PWTI PCA1 PBE1 PCA2 PBE2 PFRX PFRZ PFG1 PFG2 PFG3 PFG4 PAFE PEMC PEMH PCPV PCPC PCPD PCPF PCPG PCPQ PCP1 PCF1 PCF2";
     //Support geometry
 //   TString ToShow =
 //      "PSTR PCEL PWRA PXTL PPIN PREA PSUP PSHO PTII PTIH PAGA PAGH PCOR PCOH PTIO PIOH PCOL PCLH PFGC PWAR PWTI PCA1 PBE1 PCA2 PBE2 PFRX PFRZ PFG1 PFG2 PFG3 PFG4 PAFE PEMC PEMH PCPV PCPC PCPD PCPF PCPG PCPQ PCP1 PCF1 PCF2 PCRA PCRE PWHE";
@@ -86,8 +86,8 @@ void drawPHOSgeometry()
 
   gGeoManager->GetListOfVolumes()->ls();
   gGeoManager->CloseGeometry();
-//gGeoManager->SetVisLevel(0); // (default) TGeo сам решает, сколько уровней геометрии рисовать
-gGeoManager->SetVisLevel(5); // ты сам решает, что нужно нарисовать геометрию с глубиной только до 5 уровней
+gGeoManager->SetVisLevel(0); // (default) TGeo сам решает, сколько уровней геометрии рисовать
+//gGeoManager->SetVisLevel(5); // ты сам решает, что нужно нарисовать геометрию с глубиной только до 5 уровней
 //gGeoManager->SetVisLevel(1); // (default) - не рисуются материнские объемы детекторов - только внутренности
 
   gGeoManager->GetTopVolume()->Draw("ogl");

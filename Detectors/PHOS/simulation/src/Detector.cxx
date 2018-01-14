@@ -142,7 +142,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   //    return false ; //  We are not inside a PBWO crystal
 
   Int_t moduleNumber;
-  fMC->CurrentVolOffID(10, moduleNumber); // get the PHOS module number ;
+  fMC->CurrentVolOffID(11, moduleNumber); // get the PHOS module number ;
   Int_t strip;
   fMC->CurrentVolOffID(3, strip);
   Int_t cell;
@@ -214,7 +214,6 @@ void Detector::ConstructGeometry()
 
   // Configure geometry So far we have onny one: Run2
   {
-    mCreateCPV = kTRUE;
     mCreateHalfMod = kTRUE;
     mActiveModule[0] = kFALSE;
     mActiveModule[1] = kTRUE;
@@ -222,12 +221,6 @@ void Detector::ConstructGeometry()
     mActiveModule[3] = kTRUE;
     mActiveModule[4] = kTRUE;
     mActiveModule[5] = kFALSE;
-    mActiveCPV[0] = kFALSE;
-    mActiveCPV[1] = kFALSE;
-    mActiveCPV[2] = kFALSE;
-    mActiveCPV[3] = kTRUE;
-    mActiveCPV[4] = kFALSE;
-    mActiveCPV[5] = kFALSE;
   }
 
   // First create necessary materials
@@ -235,21 +228,15 @@ void Detector::ConstructGeometry()
 
   // Create a PHOS modules-containers which will be filled with the stuff later.
   // Depending on configuration we should prepare containers for normal PHOS module "PHOS"
-  // PHOS module with CPV in front "PHOSC" and half-module "PHOH"
-  fMC->Gsvolu("PHOS", "TRD1", getMediumID(ID_AIR), geom->GetPHOSParams(), 4);
+  // and half-module "PHOH"
+  // This is still air tight box around PHOS
+  fMC->Gsvolu("PHOS", "TRD1", getMediumID(ID_FE), geom->GetPHOSParams(), 4);
   if (mCreateHalfMod) {
-    fMC->Gsvolu("PHOH", "TRD1", getMediumID(ID_AIR), geom->GetPHOSParams(), 4);
-  }
-  if (mCreateCPV) {
-    fMC->Gsvolu("PHOC", "TRD1", getMediumID(ID_AIR), geom->GetPHOSParams(), 4);
+    fMC->Gsvolu("PHOH", "TRD1", getMediumID(ID_FE), geom->GetPHOSParams(), 4);
   }
 
   // Fill prepared containers PHOS,PHOH,PHOC
   ConstructEMCGeometry();
-
-  // Create CPV part
-  if (mCreateCPV)
-    ConstructCPVGeometry();
 
   ConstructSupportGeometry();
 
@@ -260,24 +247,17 @@ void Detector::ConstructGeometry()
   for (Int_t iModule = 0; iModule < 5; iModule++) {
     if (!mActiveModule[iModule + 1])
       continue;
-    Float_t angle[3][2];
-    for (iXYZ = 0; iXYZ < 3; iXYZ++)
-      for (iAngle = 0; iAngle < 2; iAngle++)
-        angle[iXYZ][iAngle] = geom->GetModuleAngle(iModule, iXYZ, iAngle);
+    Float_t angle[3][2] = {0};
+    geom->GetModuleAngle(iModule, angle);
     Matrix(idrotm[iModule], angle[0][0], angle[0][1], angle[1][0], angle[1][1], angle[2][0], angle[2][1]);
 
-    Float_t pos[3];
-    for (iXYZ = 0; iXYZ < 3; iXYZ++)
-      pos[iXYZ] = geom->GetModuleCenter(iModule, iXYZ);
+    Float_t pos[3]={0} ;
+    geom->GetModuleCenter(iModule, pos);
 
     if (iModule == 3) { // special 1/2 module
       fMC->Gspos("PHOH", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
     } else {
-      if (mActiveCPV[iModule + 1]) { // use module with CPV
-        fMC->Gspos("PHOC", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
-      } else { // module wihtout CPV
-        fMC->Gspos("PHOS", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
-      }
+      fMC->Gspos("PHOS", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
     }
   }
 
@@ -795,120 +775,20 @@ void Detector::ConstructEMCGeometry()
 
   // Put created EMC geometry into PHOS volume
 
-  z = geom->GetCPVBoxSize(1) / 2.;
-  // normal PHOS module
-  fMC->Gspos("PEMC", 1, "PHOS", 0., 0., z, 0, "ONLY");
-  if (mCreateCPV) // Module with CPV
-    fMC->Gspos("PEMC", 1, "PHOC", 0., 0., z, 0, "ONLY");
+  z = geom->GetDistATBtoModule()-geom->GetPHOSATBParams()[3]+geom->GetEMCParams()[3];
+  
+  //PHOS AirTightBox
+  fMC->Gsvolu("PATB", "TRD1", getMediumID(ID_AIR), geom->GetPHOSATBParams(), 4);
   if (mCreateHalfMod) // half of PHOS module
-    fMC->Gspos("PEMH", 1, "PHOH", 0., 0., z, 0, "ONLY");
-}
-//-----------------------------------------
-void Detector::ConstructCPVGeometry()
-{
-  // Create the PHOS-CPV geometry for GEANT
-  // Author: Yuri Kharlov 11 September 2000
-  // Adopted for O2 project 2017
+    fMC->Gsvolu("PATH", "TRD1", getMediumID(ID_AIR), geom->GetPHOSATBParams(), 4);
 
-  phos::GeometryParams* geom = phos::GeometryParams::GetInstance();
+  fMC->Gspos("PEMC", 1, "PATB", 0., 0., z, 0, "ONLY");
+  if (mCreateHalfMod) // half of PHOS module
+     fMC->Gspos("PEMH", 1, "PATH", 0., 0., z, 0, "ONLY");
 
-  Float_t par[3] = { 0 }, x = 0., y = 0., z = 0.;
-
-  // The box containing all CPV for one PHOS module filled with air
-  par[0] = geom->GetCPVBoxSize(0) / 2.0;
-  par[1] = geom->GetCPVBoxSize(1) / 2.0;
-  par[2] = geom->GetCPVBoxSize(2) / 2.0;
-  fMC->Gsvolu("PCPV", "BOX ", getMediumID(ID_AIR), par, 3);
-
-  const Float_t* emcParams = geom->GetEMCParams();
-  z = -emcParams[3];
-  Int_t rotm;
-  Matrix(rotm, 90., 0., 0., 0., 90., 90.);
-
-  fMC->Gspos("PCPV", 1, "PHOC", 0.0, 0.0, z, rotm, "ONLY");
-
-  // Gassiplex board
-
-  par[0] = geom->GetGassiplexChipSize(0) / 2.;
-  par[1] = geom->GetGassiplexChipSize(1) / 2.;
-  par[2] = geom->GetGassiplexChipSize(2) / 2.;
-  fMC->Gsvolu("PCPC", "BOX ", getMediumID(ID_TEXTOLIT), par, 3);
-
-  // Cu+Ni foil covers Gassiplex board
-
-  par[1] = geom->GetCPVCuNiFoilThickness() / 2;
-  fMC->Gsvolu("PCPD", "BOX ", getMediumID(ID_CUPPER), par, 3);
-  y = -(geom->GetGassiplexChipSize(1) / 2 - par[1]);
-  fMC->Gspos("PCPD", 1, "PCPC", 0, y, 0, 0, "ONLY");
-
-  // Position of the chip inside CPV
-
-  Float_t xStep = geom->GetCPVActiveSize(0) / (geom->GetNumberOfCPVChipsPhi() + 1);
-  Float_t zStep = geom->GetCPVActiveSize(1) / (geom->GetNumberOfCPVChipsZ() + 1);
-  Int_t copy = 0;
-  y = geom->GetCPVFrameSize(1) / 2 - geom->GetFTPosition(0) + geom->GetCPVTextoliteThickness() / 2 +
-      geom->GetGassiplexChipSize(1) / 2 + 0.1;
-  for (Int_t ix = 0; ix < geom->GetNumberOfCPVChipsPhi(); ix++) {
-    x = xStep * (ix + 1) - geom->GetCPVActiveSize(0) / 2;
-    for (Int_t iz = 0; iz < geom->GetNumberOfCPVChipsZ(); iz++) {
-      copy++;
-      z = zStep * (iz + 1) - geom->GetCPVActiveSize(1) / 2;
-      fMC->Gspos("PCPC", copy, "PCPV", x, y, z, 0, "ONLY");
-    }
-  }
-
-  // Foiled textolite (1 mm of textolite + 50 mkm of Cu + 6 mkm of Ni)
-
-  par[0] = geom->GetCPVActiveSize(0) / 2;
-  par[1] = geom->GetCPVTextoliteThickness() / 2;
-  par[2] = geom->GetCPVActiveSize(1) / 2;
-  fMC->Gsvolu("PCPF", "BOX ", getMediumID(ID_TEXTOLIT), par, 3);
-
-  // Argon gas volume
-
-  par[1] = (geom->GetFTPosition(2) - geom->GetFTPosition(1) - geom->GetCPVTextoliteThickness()) / 2;
-  fMC->Gsvolu("PCPG", "BOX ", getMediumID(ID_CO2), par, 3);
-
-  for (Int_t i = 0; i < 4; i++) {
-    y = geom->GetCPVFrameSize(1) / 2 - geom->GetFTPosition(i) + geom->GetCPVTextoliteThickness() / 2;
-    fMC->Gspos("PCPF", i + 1, "PCPV", 0, y, 0, 0, "ONLY");
-    if (i == 1) {
-      y -= (geom->GetFTPosition(2) - geom->GetFTPosition(1)) / 2;
-      fMC->Gspos("PCPG", 1, "PCPV ", 0, y, 0, 0, "ONLY");
-    }
-  }
-
-  // Dummy sensitive plane in the middle of argone gas volume
-
-  par[1] = 0.001;
-  fMC->Gsvolu("PCPQ", "BOX ", getMediumID(ID_CO2), par, 3);
-  fMC->Gspos("PCPQ", 1, "PCPG", 0, 0, 0, 0, "ONLY");
-
-  // Cu+Ni foil covers textolite
-
-  par[1] = geom->GetCPVCuNiFoilThickness() / 2;
-  fMC->Gsvolu("PCP1", "BOX ", getMediumID(ID_CUPPER), par, 3);
-  y = geom->GetCPVTextoliteThickness() / 2 - par[1];
-  fMC->Gspos("PCP1", 1, "PCPF", 0, y, 0, 0, "ONLY");
-
-  // Aluminum frame around CPV
-
-  par[0] = geom->GetCPVFrameSize(0) / 2;
-  par[1] = geom->GetCPVFrameSize(1) / 2;
-  par[2] = geom->GetCPVBoxSize(2) / 2;
-  fMC->Gsvolu("PCF1", "BOX ", getMediumID(ID_AL), par, 3);
-
-  par[0] = geom->GetCPVBoxSize(0) / 2 - geom->GetCPVFrameSize(0);
-  par[1] = geom->GetCPVFrameSize(1) / 2;
-  par[2] = geom->GetCPVFrameSize(2) / 2;
-  fMC->Gsvolu("PCF2", "BOX ", getMediumID(ID_AL), par, 3);
-
-  for (Int_t j = 0; j <= 1; j++) {
-    x = TMath::Sign(1, 2 * j - 1) * (geom->GetCPVBoxSize(0) - geom->GetCPVFrameSize(0)) / 2;
-    fMC->Gspos("PCF1", j + 1, "PCPV", x, 0, 0, 0, "ONLY");
-    z = TMath::Sign(1, 2 * j - 1) * (geom->GetCPVBoxSize(2) - geom->GetCPVFrameSize(2)) / 2;
-    fMC->Gspos("PCF2", j + 1, "PCPV", 0, 0, z, 0, "ONLY");
-  }
+  fMC->Gspos("PATB", 1, "PHOS", 0., 0., 0, 0, "ONLY");
+  if (mCreateHalfMod) // half of PHOS module
+    fMC->Gspos("PATH", 1, "PHOH", 0., 0., 0, 0, "ONLY");
 }
 
 //-----------------------------------------
@@ -978,7 +858,7 @@ void Detector::ConstructSupportGeometry()
   // --- The wall of the cradle
   // --- The wall is empty: steel thin walls and air inside
 
-  par[1] = TMath::Sqrt(TMath::Power((geom->GetIPtoCPVDistance() + geom->GetOuterBoxSize(3)), 2) +
+  par[1] = TMath::Sqrt(TMath::Power((geom->GetIPtoOuterCoverDistance() + geom->GetOuterBoxSize(3)), 2) +
                        TMath::Power((geom->GetOuterBoxSize(1) / 2), 2)) +
            10.;
   par[0] = par[1] - geom->GetCradleWall(1);

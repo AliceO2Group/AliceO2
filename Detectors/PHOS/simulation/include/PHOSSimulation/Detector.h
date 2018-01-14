@@ -166,10 +166,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   */
  private:
   // Geometry parameters
-  Bool_t mCreateCPV;       // Should we create module with CPV
   Bool_t mCreateHalfMod;   // Should we create  1/2 filled module
   Bool_t mActiveModule[6]; // list of modules to create
-  Bool_t mActiveCPV[6];    // list of modules with CPV
 
   // Simulation
   Geometry* mGeom;                  //!
