@@ -68,14 +68,11 @@ GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, fl
   B[0] =  bb[0]*cs + bb[1]*sn ;
   B[1] = -bb[0]*sn + bb[1]*cs ;
   B[2] =  bb[2] ;
-  //const double kCLight = 0.000299792458;
- //std::cout<<"field "<<fField->GetNominalBz()/kCLight<<std::endl;
-  if( fToyMCEvents ){ // special treatment for toy monte carlo
-    //B[0] = 0;
-    //B[1] = 0;
-    //B[2] = fField->GetNominalBz();
-    return;
-  }
+  /*if( fToyMCEvents ){ // special treatment for toy monte carlo
+    B[0] = 0;
+    B[1] = 0;
+    B[2] = fField->GetNominalBz();
+}*/
 }
 
 GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, float Z ) const
@@ -85,7 +82,6 @@ GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, floa
     GetBxByBz(Alpha,X,Y,Z,B);
     return B[2];
   }
-
 
   if( fContinuousTracking ) Z =  ( Z > 0 ? 125. : -125.);
 
@@ -127,7 +123,6 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   if ( CAMath::Abs( fT->GetSinPhi() ) >= fMaxSinPhi  || CAMath::Abs( px0 ) < 1.e-2 ) return -1;
  
   // rotate t0 track
-
   float px1  =  px0*cc + py0*ss;
   float py1  = -px0*ss + py0*cc;
   
@@ -136,18 +131,15 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
     t0.Y()  = -x0*ss + y0*cc;
     t0.Px() =  px1;
     t0.Py() =  py1;
-    t0.UpdateValues(); 
+    t0.UpdateValues();
   }
 
   if ( CAMath::Abs( py1 ) > fMaxSinPhi*fT0.GetPt() || CAMath::Abs( px1 ) < 1.e-2  ) return -1;
 
   // calculate X of rotated track:
-
   float trackX = x0*cc + ss*fT->Y();
   
   // transport t0 to trackX
-
-  
   float B[3];
   GetBxByBz( newAlpha, t0.X(), t0.Y(), t0.Z(), B );
   float dLp = 0;
@@ -182,7 +174,6 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   fT->SinPhi() = -sqrt(1.f-fT->SinPhi()*fT->SinPhi())*ss + fT->SinPhi()*cc;
     
   // Rotate cov. matrix Cr = J0 x C x J0T. Cr has one more row+column for X:
-
   float *c = fT->Cov();
   
   float c15 = c[ 0]*j0*j2;  
@@ -191,7 +182,6 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   float c18 = c[ 6]*j2;
   float c19 = c[10]*j2;
   float c20 = c[ 0]*j2*j2;
-  
   
   c[ 0] *= j0 * j0;
   c[ 3] *= j0;
@@ -226,7 +216,6 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   
   // Now fix the X coordinate: so to say, transport track T to fixed X = fT->X().
   // only covariance changes. Use rotated and transported t0 for linearisation
-  
   float j3 = -t0.Py()/t0.Px();
   float j4 = -t0.Pz()/t0.Px();
   float j5 =  t0.QPt()*B[2];
@@ -271,85 +260,6 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   return 0;
 }
 
-
-/*
-// OLD
-GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
-{
-  //
-  // Rotate the track coordinate system in XY to the angle newAlpha
-  // return value is error (0==no error)
-  //
-  
-  float cc = CAMath::Cos( newAlpha - fAlpha );
-  float ss = CAMath::Sin( newAlpha - fAlpha );
-  float x0 = fT0.X();
-  float y0 = fT0.Y();
-  float px = fT0.Px();
-  float py = fT0.Py();    
-  float pxe  =  px*cc + py*ss;
-  float pye  = -px*ss + py*cc;
-
-  if ( CAMath::Abs( pye ) > fMaxSinPhi*fT0.GetPt() || CAMath::Abs( px ) < 1.e-2 || CAMath::Abs( pxe ) < 1.e-2  ) return -1;
-
-  //
-  // after rotation the track has to be moved to X=fT0.X()
-  //  
-  // Jacobian = { { j0, 0, 0,  0,  0 }, // Y
-  //              {  0, 1, 0,  0,  0 }, // Z
-  //              {  0, 0, j2, 0,  0 }, // SinPhi
-  //              {  0, 0, 0,  1,  0 }, // DzDs
-  //              {  0, 0, 0,  0,  1 } }; // Kappa
-
-  float j0 = px / pxe;
-  float j2 = pxe / px;
-  float d0 = fT->Y() - y0;
-  float d2 = fT->SinPhi() - fT0.SinPhi();
-
-  // rotate fT0 track
-  {
-    fT0.X()  =  x0*cc + y0*ss;
-    fT0.Y()  = -x0*ss + y0*cc;
-    fT0.Px() =  pxe;
-    fT0.Py() =  pye;
-    fT0.UpdateValues();
-  }
-  
-  fT->X() = fT0.X();
-  fT->Y() = fT0.Y() + j0*d0;
-  fT->SinPhi() = fT0.SinPhi() + j2*d2;
-
-  float *c = fT->Cov();
-  c[ 0] *= j0 * j0;
-  c[ 1] *= j0;
-  c[ 3] *= j0;
-  c[ 6] *= j0;
-  c[10] *= j0;
-
-  c[ 3] *= j2;
-  c[ 4] *= j2;
-  c[ 5] *= j2 * j2;
-  c[ 8] *= j2;
-  c[12] *= j2;
-
-  fAlpha = newAlpha;
-  
-  if( pxe <0 ){ // change direction ( fT0 direction is already changed in fT0.UpdateValues(); )
-    fT->SinPhi() = -fT->SinPhi();
-    fT->DzDs()   = -fT->DzDs();
-    fT->QPt()    = -fT->QPt();
-    c[3] = -c[3];
-    c[4] = -c[4];
-    c[6] = -c[6];
-    c[7] = -c[7];
-    c[10] = -c[10];
-    c[11] = -c[11];
-  }
-  
-  return 0;
-}
-*/
-
 GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection)
 {
   
@@ -386,43 +296,18 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   float k  = -fT0.QPt()*bz;
   float dx = posX - fT0.X();
   float kdx = k*dx;
-  float ss = ey + ey1;
   float cc = ex + ex1;
   float cci = 1.f/cc;
 
-  float tg = ss*cci;
   float dxcci = dx * cci;
-
-  float xx = 1.f - 0.25f*kdx*kdx*( 1.f + tg*tg );
-
-  if( xx<1.e-8 ) return -1;
-    
-  xx = CAMath::Sqrt(xx);
-  float yy = CAMath::Sqrt(ss*ss+cc*cc);
-  
   float hh = dxcci*ex1i*(1.f + ex*ex1 + ey*ey1 );
-  
+  //float hh = dxcci*ex1i*(2.f+0.5f*kdx*kdx);  //DR: Before was like this!
+
   float j02 = exi*hh;
   float j04 = -bz*dxcci*hh;
-
-  float j12 = dx*fT0.DzDs()*tg*(2.f+tg*(ey*exi+ey1*ex1i))/(xx*yy);
   float j13 = dS;
-  float j14 = 0;
-  if( CAMath::Abs(fT0.QPt())>1.e-6 ){
-    j14 = (2.f*xx*ex1i*dx/yy-dS)*fT0.DzDs()/fT0.QPt();    
-  } else {
-    j14 = -fT0.DzDs()*bz*dx*dx*exi*exi*exi
-      *( 0.5*ey + (1.f/3.f)*kdx*(1+2.f*ey*ey)*exi*exi
-	);
-  }
-  
   float j24 = -dx*bz;
 
-  if( fFitInProjections ){
-    j12 = 0;
-    j14 = 0;    
-  }
-  
   float *p = fT->Par();
 
   float d0 = p[0] - fT0.Y();
@@ -435,19 +320,14 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   if (fT->NDF() >= 15 && fabs(newSinPhi) > HLTCA_MAX_SIN_PHI) return(-4);
 
   fT0 = t0e;
-
   fT->X() = t0e.X();
   p[0] = t0e.Y() + d0    + j02*d2         + j04*d4;
-  p[1] = t0e.Z() + d1    + j12*d2 + j13*d3 + j14*d4;
+  p[1] = t0e.Z() + d1    + j13*d3;
   p[2] = newSinPhi;
   p[3] = t0e.DzDs() + d3;
   p[4] = t0e.QPt() + d4;
 
   float *c = fT->Cov();
-  float c00 = c[ 0];
-
-  float c10 = c[ 1];
-  float c11 = c[ 2];
 
   float c20 = c[ 3];
   float c21 = c[ 4];
@@ -463,45 +343,95 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   float c42 = c[12];
   float c43 = c[13];
   float c44 = c[14];
+  
+  if (fFitInProjections)
+  {
+    float c20ph04c42 =  c20 + j04*c42;
+    float j02c22 = j02*c22;
+    float j04c44 = j04*c44;
+    
+    float n6 = c30 + j02*c32 + j04*c43;
+    float n7 = c31 + j13*c33;
+    float n10 = c40 + j02*c42 + j04c44;
+    float n11 = c41 + j13*c43;
+    float n12 = c42 + j24*c44;
+        
+    c[0]+= j02*j02c22 + j04*j04c44 + float(2.f)*( j02*c20ph04c42  + j04*c40 );
+    c[1]+= j02*c21 + j04*c41 + j13*n6;
+    c[2]+= j13*(c31 + n7);
+    c[3] = c20ph04c42 + j02c22  + j24*n10;
+    c[4] = c21 + j13*c32 + j24*n11;
+    c[5] = c22 + j24*( c42 + n12 );
+    c[6] = n6;
+    c[7] = n7; 
+    c[8] = c32 + c43*j24;
+    c[10] = n10;
+    c[11] = n11;
+    c[12] = n12;
+  }
+  else
+  {
+    float c00 = c[ 0];
+    float c10 = c[ 1];
+    float c11 = c[ 2];
 
-  float h00 = c00 + c20*j02 + c40*j04;
-  //float h01 = c10 + c21*j02 + c41*j04;
-  float h02 = c20 + c22*j02 + c42*j04;
-  //float h03 = c30 + c32*j02 + c43*j04;
-  float h04 = c40 + c42*j02 + c44*j04;
+    float ss = ey + ey1;
+    float tg = ss*cci;
+    float xx = 1.f - 0.25f*kdx*kdx*( 1.f + tg*tg );
+    if( xx<1.e-8 ) return -1;
+    xx = CAMath::Sqrt(xx);
+    float yy = CAMath::Sqrt(ss*ss+cc*cc);
 
-  float h10 = c10 + c20*j12 + c30*j13 + c40*j14;
-  float h11 = c11 + c21*j12 + c31*j13 + c41*j14;
-  float h12 = c21 + c22*j12 + c32*j13 + c42*j14;
-  float h13 = c31 + c32*j12 + c33*j13 + c43*j14;
-  float h14 = c41 + c42*j12 + c43*j13 + c44*j14;
+    float j12 = dx*fT0.DzDs()*tg*(2.f+tg*(ey*exi+ey1*ex1i))/(xx*yy);
+    float j14 = 0;
+    if( CAMath::Abs(fT0.QPt())>1.e-6 ){
+      j14 = (2.f*xx*ex1i*dx/yy-dS)*fT0.DzDs()/fT0.QPt();    
+    } else {
+      j14 = -fT0.DzDs()*bz*dx*dx*exi*exi*exi
+        *( 0.5*ey + (1.f/3.f)*kdx*(1+2.f*ey*ey)*exi*exi
+      );
+    }
+    
+    p[1] += j12*d2 + j14*d4;
 
-  float h20 = c20 + c40*j24;
-  float h21 = c21 + c41*j24;
-  float h22 = c22 + c42*j24;
-  float h23 = c32 + c43*j24;
-  float h24 = c42 + c44*j24;
-      
-  c[ 0] = h00 + h02*j02 + h04*j04;
+    float h00 = c00 + c20*j02 + c40*j04;
+    //float h01 = c10 + c21*j02 + c41*j04;
+    float h02 = c20 + c22*j02 + c42*j04;
+    //float h03 = c30 + c32*j02 + c43*j04;
+    float h04 = c40 + c42*j02 + c44*j04;
 
-  c[ 1] = h10 + h12*j02 + h14*j04;
-  c[ 2] = h11 + h12*j12 + h13*j13 + h14*j14;
+    float h10 = c10 + c20*j12 + c30*j13 + c40*j14;
+    float h11 = c11 + c21*j12 + c31*j13 + c41*j14;
+    float h12 = c21 + c22*j12 + c32*j13 + c42*j14;
+    float h13 = c31 + c32*j12 + c33*j13 + c43*j14;
+    float h14 = c41 + c42*j12 + c43*j13 + c44*j14;
 
-  c[ 3] = h20 + h22*j02 + h24*j04;
-  c[ 4] = h21 + h22*j12 + h23*j13 + h24*j14;
-  c[ 5] = h22 + h24*j24;
+    float h20 = c20 + c40*j24;
+    float h21 = c21 + c41*j24;
+    float h22 = c22 + c42*j24;
+    float h23 = c32 + c43*j24;
+    float h24 = c42 + c44*j24;
+        
+    c[ 0] = h00 + h02*j02 + h04*j04;
 
-  c[ 6] = c30 + c32*j02 + c43*j04;
-  c[ 7] = c31 + c32*j12 + c33*j13 + c43*j14;
-  c[ 8] = c32 + c43*j24;
-  //c[ 9] = c33;
+    c[ 1] = h10 + h12*j02 + h14*j04;
+    c[ 2] = h11 + h12*j12 + h13*j13 + h14*j14;
 
-  c[10] = c40 + c42*j02 + c44*j04;
-  c[11] = c41 + c42*j12 + c43*j13 + c44*j14;
-  c[12] = c42 + c44*j24;
-  //c[13] = c43;
-  //c[14] = c44;
+    c[ 3] = h20 + h22*j02 + h24*j04;
+    c[ 4] = h21 + h22*j12 + h23*j13 + h24*j14;
+    c[ 5] = h22 + h24*j24;
 
+    c[ 6] = c30 + c32*j02 + c43*j04;
+    c[ 7] = c31 + c32*j12 + c33*j13 + c43*j14;
+    c[ 8] = c32 + c43*j24;
+    //c[ 9] = c33;
+
+    c[10] = c40 + c42*j02 + c44*j04;
+    c[11] = c41 + c42*j12 + c43*j13 + c44*j14;
+    c[12] = c42 + c44*j24;
+    //c[13] = c43;
+    //c[14] = c44;
+  }
 
   float &fC22 = c[5];
   float &fC33 = c[9];
@@ -717,150 +647,108 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
     return 0;
   }
         
-  float w0=fC[2]+err2Z,  w1=fC[1], w2=fC[0]+err2Y;
-  
-  { // Invert symmetric matrix
-    float det = w0*w2 - w1*w1;
-    if( CAMath::Abs(det)<1.e-10 ) return -1;
-    det = 1./det;    
-    w0 =  w0*det;
-    w1 = -w1*det;
-    w2 =  w2*det;
+  float d00= fC[ 0]; float d01= fC[ 1]; float d02= fC[ 3]; float d03= fC[ 6]; float d04= fC[10];
+  float d10= fC[ 1]; float d11= fC[ 2]; float d12= fC[ 4]; float d13= fC[ 7]; float d14= fC[11];
+
+  float z0 = posY - fP[0];
+  float z1 = posZ - fP[1];
+
+  float w0, w1, w2, dChi2;
+
+  if (fFitInProjections)
+  {
+    w0 = 1./(err2Y + d00);
+    w2 = 1./(err2Z + d11);
+    dChi2 = w0*z0*z0 + w2*z1*z1;
   }
-
-  float k00= fC[ 0]*w0 + fC[ 1]*w1;   float k01= fC[ 0]*w1 + fC[ 1]*w2;
-  float k10= fC[ 1]*w0 + fC[ 2]*w1;   float k11= fC[ 1]*w1 + fC[ 2]*w2;  
-  float k20= fC[ 3]*w0 + fC[ 4]*w1;   float k21= fC[ 3]*w1 + fC[ 4]*w2;
-  float k30= fC[ 6]*w0 + fC[ 7]*w1;   float k31= fC[ 6]*w1 + fC[ 7]*w2; 
-  float k40= fC[10]*w0 + fC[11]*w1;   float k41= fC[10]*w1 + fC[11]*w2;
-  
-  float z0= posY - fP[0];   float z1= posZ - fP[1];
-
-  float dChi2 = CAMath::Abs( (w0*z0 + w1*z1 )*z0 + (w1*z0 + w2*z1 )*z1 );
-
+  else
+  {
+    w0=fC[2]+err2Z,  w1=fC[1], w2=fC[0]+err2Y;
+    { // Invert symmetric matrix
+      float det = w0*w2 - w1*w1;
+      if( CAMath::Abs(det)<1.e-10 ) return -1;
+      det = 1./det;    
+      w0 =  w0*det;
+      w1 = -w1*det;
+      w2 =  w2*det;
+    }
+    dChi2 = CAMath::Abs( (w0*z0 + w1*z1 )*z0 + (w1*z0 + w2*z1 )*z1 );
+  }
   //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1, z0, z1);
   //float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 5 : 5; // change to fT0
   //if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;  
   //SG!!! if( fabs( fP[2] + z0*c20*mS0  ) > fMaxSinPhi ) return 1;
  
   fT->Chi2()+= dChi2;
-  fT->NDF() += 2;  
-  
-  fP[0]+= k00*z0 + k01*z1;
-  fP[1]+= k10*z0 + k11*z1;
-  fP[2]+= k20*z0 + k21*z1;
-  fP[3]+= k30*z0 + k31*z1;
-  fP[4]+= k40*z0 + k41*z1;
+  fT->NDF() += 2;
 
-  float d00= fC[ 0]; float d01= fC[ 1]; float d02= fC[ 3]; float d03= fC[ 6]; float d04= fC[10];
-  float d10= fC[ 1]; float d11= fC[ 2]; float d12= fC[ 4]; float d13= fC[ 7]; float d14= fC[11];
+  if (fFitInProjections)
+  {
+    float k00 = d00 * w0;
+    float k20 = d02 * w0;
+    float k40 = d04 * w0;
+    float k11 = d11 * w2;
+    float k31 = d13 * w2;
+    fP[0] += k00 * z0;
+    fP[1] += k11 * z1;
+    fP[2] += k20 * z0;
+    fP[3] += k31 * z1;
+    fP[4] += k40 * z0;
 
-  fC[0]-= k00*d00 + k01*d10;
-  
-  fC[2]-= k10*d01 + k11*d11;
-
-  fC[3]-= k20*d00 + k21*d10;
-  fC[5]-= k20*d02 + k21*d12;
-
-  fC[7]-= k30*d01 + k31*d11;
-  fC[9]-= k30*d03 + k31*d13;
-
-  fC[10]-= k40*d00 + k41*d10;
-  fC[12]-= k40*d02 + k41*d12;
-  fC[14]-= k40*d04 + k41*d14;
-
-  if( !fFitInProjections ){
-    
-    fC[1]-= k10*d00 + k11*d10;
-    
-    fC[4]-= k20*d01 + k21*d11;
-    
-    fC[6]-= k30*d00 + k31*d10;
-    fC[8]-= k30*d02 + k31*d12;
-    
-    
-    fC[11]-= k40*d01 + k41*d11;
-    fC[13]-= k40*d03 + k41*d13;
+    fC[ 0] -= k00 * d00 ;
+    fC[ 2] -= k11 * d11;
+    fC[ 3] -= k20 * d00 ;
+    fC[ 5] -= k20 * d02 ;
+    fC[ 7] -= k31 * d11;
+    fC[ 9] -= k31 * d13;
+    fC[10] -= k00 * d04 ;
+    fC[12] -= k40 * d02 ;
+    fC[14] -= k40 * d04 ;
   }
-  
+  else
+  {  
+    float k00= d00*w0 + d01*w1;   float k01= d00*w1 + d10*w2;
+    float k10= d01*w0 + d11*w1;   float k11= d01*w1 + d11*w2;  
+    float k20= d02*w0 + d12*w1;   float k21= d02*w1 + d12*w2;
+    float k30= d03*w0 + d13*w1;   float k31= d03*w1 + d13*w2; 
+    float k40= d04*w0 + d14*w1;   float k41= d04*w1 + d14*w2;
+    
+    fP[0]+= k00*z0 + k01*z1;
+    fP[1]+= k10*z0 + k11*z1;
+    fP[2]+= k20*z0 + k21*z1;
+    fP[3]+= k30*z0 + k31*z1;
+    fP[4]+= k40*z0 + k41*z1;
+
+    fC[0]-= k00*d00 + k01*d10;
+    
+    fC[2]-= k10*d01 + k11*d11;
+
+    fC[3]-= k20*d00 + k21*d10;
+    fC[5]-= k20*d02 + k21*d12;
+
+    fC[7]-= k30*d01 + k31*d11;
+    fC[9]-= k30*d03 + k31*d13;
+
+    fC[10]-= k40*d00 + k41*d10;
+    fC[12]-= k40*d02 + k41*d12;
+    fC[14]-= k40*d04 + k41*d14;
+
+    if( !fFitInProjections ){
+      
+      fC[1]-= k10*d00 + k11*d10;
+      
+      fC[4]-= k20*d01 + k21*d11;
+      
+      fC[6]-= k30*d00 + k31*d10;
+      fC[8]-= k30*d02 + k31*d12;
+      
+      
+      fC[11]-= k40*d01 + k41*d11;
+      fC[13]-= k40*d03 + k41*d13;
+    }
+  }
   return 0;
 }
-
-/* OLD
-
-GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, bool rejectChi2 )
-{
-  float *fC = fT->Cov();
-  float *fP = fT->Par();
-  
-  float 
-    c00 = fC[ 0],
-    c11 = fC[ 2],
-    c20 = fC[ 3],
-    c31 = fC[ 7],
-    c40 = fC[10];
-
-  float err2Y, err2Z;
-  GetErr2(err2Y, err2Z, param, posZ, iRow);
-  
-  if ( fT->NDF()==-5 ) { // first measurement: no need to filter, as the result is known in advance. just set it. 
-    fT->ResetCovariance();
-    fP[ 0] = posY;
-    fP[ 1] = posZ;
-    fC[ 0] = err2Y;
-    fC[ 2] = err2Z;
-    fT->NDF() = -3;   
-    return 0;
-  }  
-    
-  // Filter block
-    
-  float mS0 = 1./(err2Y + c00);    
-
-  float  z0 = posY - fP[0];
-  float  z1 = posZ - fP[1];
-  float mS2 = 1./(err2Z + c11);
-  
-  //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1, z0, z1);
-  //float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 25 : 25; // change to fT0
-  //if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;
-  fT->Chi2()  += mS0*z0*z0 + mS2*z1*z1;
-  //SG!!! if( fabs( fP[2] + z0*c20*mS0  ) > fMaxSinPhi ) return 1;
-    
-    
-  // K = CHtS
-     
-  float k00, k11, k20, k31, k40;
-  
-  k00 = c00 * mS0;
-  k20 = c20 * mS0;
-  k40 = c40 * mS0;
-  
-  
-  k11 = c11 * mS2;
-  k31 = c31 * mS2;
-  
-  fT->NDF()  += 2;
-  
-  fP[0] += k00 * z0;
-  fP[1] += k11 * z1;
-  fP[2] += k20 * z0;
-  fP[3] += k31 * z1;
-  fP[4] += k40 * z0;
-  
-  fC[ 0] -= k00 * c00 ;
-  fC[ 2] -= k11 * c11;
-  fC[ 3] -= k20 * c00 ;
-  fC[ 5] -= k20 * c20 ;
-  fC[ 7] -= k31 * c11;
-  fC[ 9] -= k31 * c31;
-  fC[10] -= k00 * c40 ;
-  fC[12] -= k40 * c20 ;
-  fC[14] -= k40 * c40 ;
-    
-  return 0;
-}
-*/
 
 //*
 //*  Multiple scattering and energy losses
