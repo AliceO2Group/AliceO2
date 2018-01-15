@@ -20,11 +20,14 @@
 
 #include "FairDetector.h"  // for FairDetector
 #include "FairRootManager.h"
+#include "DetectorsBase/MaterialManager.h"
 #include "Rtypes.h"        // for Float_t, Int_t, Double_t, Detector::Class, etc
 #include <cxxabi.h>
 #include <typeinfo>
 #include <type_traits>
 #include <string>
+
+#define NEWMAT 1
 
 namespace o2 {
 namespace Base {
@@ -91,26 +94,40 @@ class Detector : public FairDetector
     // returns global material ID given a "local" material ID for this detector
     // returns -1 in case local ID not found
     int getMaterialID(int imat) const {
+#ifdef NEWMAT
+      auto& mgr = o2::Base::MaterialManager::Instance();
+      return mgr.getMaterialID(GetName(), imat);
+#else
       auto iter = mMapMaterial.find(imat);
-      if (iter != mMapMaterial.end()){
+      if (iter != mMapMaterial.end()) {
         return iter->second;
       }
       return -1;
+#endif
     }
 
     // returns global medium ID given a "local" medium ID for this detector
     // returns -1 in case local ID not found
     int getMediumID(int imed) const {
+#ifdef NEWMAT
+      auto& mgr = o2::Base::MaterialManager::Instance();
+      return mgr.getMediumID(GetName(), imed);
+#else
       auto iter = mMapMedium.find(imed);
       if (iter != mMapMedium.end()){
         return iter->second;
       }
       return -1;
+#endif
     }
 
     // fill the medium index mapping into a standard vector
     // the vector gets sized properly and will be overridden
     void getMediumIDMappingAsVector(std::vector<int>& mapping) {
+#ifdef NEWMAT
+      auto& mgr = o2::Base::MaterialManager::Instance();
+      mgr.getMediumIDMappingAsVector(GetName(), mapping);
+#else
       mapping.clear();
       // get the biggest mapped value (maps are sorted in keys)
       auto maxkey = mMapMedium.rbegin()->first;
@@ -120,6 +137,7 @@ class Detector : public FairDetector
       for (auto& p : mMapMedium) {
         mapping[p.first] = p.second;
       }
+#endif
     }
 
     // return the name augmented by extention
