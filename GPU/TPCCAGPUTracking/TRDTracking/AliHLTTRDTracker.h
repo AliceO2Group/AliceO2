@@ -39,7 +39,7 @@ public:
     unsigned short fVolumeId; // basically derived from TRD chamber number
   };
 
-  enum Relation_t { kNoTracklet = 0, kNoMatch, kRelated, kEqual }; 
+  enum Relation_t { kNoTracklet = 0, kNoMatch, kRelated, kEqual };
 
   struct Hypothesis {
     double fChi2;
@@ -61,29 +61,32 @@ public:
   void Reset();
   void StartLoadTracklets(const int nTrklts);
   void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
-  void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPCLab, int nTPCTracks, int *tracksTPCnTrklts = 0x0);
+  void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0);
   bool CalculateSpacePoints();
-  bool FollowProlongation(AliHLTTRDTrack *t);
-  int GetDetectorNumber(const double zPos, double alpha, int layer);
-  bool AdjustSector(AliHLTTRDTrack *t, int layer);
-  int GetSector(double alpha);
-  void CountMatches(int trkLbl, std::vector<int> *matches);
-  bool FindChambersInRoad(AliHLTTRDTrack *t, float roadY, float roadZ, int iLayer, std::vector<int> &det, float zMax);
-  bool IsFindable(float y, float z, float alpha, int layer);
+  bool FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks);
+  int GetDetectorNumber(const double zPos, const double alpha, const int layer) const;
+  bool AdjustSector(AliHLTTRDTrack *t, const int layer) const;
+  int GetSector(double alpha) const;
+  float GetAlphaOfSector(const int sec) const;
+  void CountMatches(const int trkLbl, std::vector<int> *matches) const;
+  void FindChambersInRoad(const AliHLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax) const;
+  bool IsFindable(const AliHLTTRDTrack *t, const int layer) const;
 
   // settings
   void SetMCEvent(AliMCEvent* mc) {fMCEvent = mc;}
   void EnableDebugOutput() { fDebugOutput = true; }
   void SetPtThreshold(float minPt) { fMinPt = minPt; }
+  void SetMaxEta(float maxEta) { fMaxEta = maxEta; }
   void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
   void SetMaxMissingLayers(int ly) {fMaxMissingLy = ly; }
 
-  float GetPtThreshold() { return fMinPt; }
-  float GetChi2Threshold() { return fMaxChi2; }
-  int   GetMaxMissingLayers() { return fMaxMissingLy; }
+  float GetPtThreshold() const { return fMinPt; }
+  float GetMaxEta() const { return fMaxEta; }
+  float GetChi2Threshold() const { return fMaxChi2; }
+  int   GetMaxMissingLayers() const { return fMaxMissingLy; }
 
   // for testing
-  bool IsTrackletSortingOk();
+  bool IsTrackletSortingOk() const;
 
   AliHLTTRDTrack *Tracks() const { return fTracks;}
   int NTracks() const { return fNTracks;}
@@ -105,6 +108,7 @@ public:
 protected:
 
   static const double fgkX0[kNLayers];        // default values of anode wires
+  static const double fgkXshift;              // online tracklets evaluated above anode wire
 
   double fR[kNLayers];                        // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
@@ -122,6 +126,7 @@ protected:
   AliTRDgeometry *fGeo;                       // TRD geometry
   bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking
+  float fMaxEta;                              // TPC tracks with higher eta are ignored
   float fMaxChi2;                             // max chi2 for tracklets
   int fMaxMissingLy;                          // max number of missing layers per track
   double fChi2Penalty;                        // chi2 added to the track for no update

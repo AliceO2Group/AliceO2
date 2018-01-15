@@ -28,7 +28,7 @@ class AliHLTTRDTrack : public AliKalmanTrack
   Int_t GetNmissingConsecLayers() const { return fNmissingConsecLayers; }
   Bool_t GetIsStopped() const { return fIsStopped; }
 
-  void AddTracklet(int iLayer, int idx) { fAttachedTracklets[iLayer] = idx; }
+  void AddTracklet(int iLayer, int idx) { fAttachedTracklets[iLayer] = idx; fNtracklets++;}
   void SetTPCtrackId( Int_t v ){ fTPCtrackId = v;}
   void SetNtracklets( Int_t nTrklts) { fNtracklets = nTrklts; }
   void SetNlayers(Int_t nLayers) { fNlayers = nLayers; }
