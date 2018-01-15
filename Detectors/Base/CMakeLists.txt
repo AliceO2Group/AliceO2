@@ -10,6 +10,7 @@ set(SRCS
   src/GeometryManager.cxx
   src/BaseCluster.cxx
   src/DetMatrixCache.cxx
+  src/MaterialManager.cxx
 )
 
 Set(HEADERS
@@ -22,6 +23,7 @@ Set(HEADERS
   include/${MODULE_NAME}/GeometryManager.h
   include/${MODULE_NAME}/BaseCluster.h
   include/${MODULE_NAME}/DetMatrixCache.h
+  include/${MODULE_NAME}/MaterialManager.h
 )
 
 Set(LINKDEF src/BaseLinkDef.h)

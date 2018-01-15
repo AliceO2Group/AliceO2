@@ -47,6 +47,7 @@ class Cave : public FairDetector
     Cave();
     ~Cave() override;
     void ConstructGeometry() override;
+    void createMaterials();
 
     /// Clone this object (used in MT mode only)
     FairModule* CloneModule() const override;
@@ -65,7 +66,6 @@ class Cave : public FairDetector
     Cave(const Cave& orig);
     Cave& operator=(const Cave&);
 
-    Double_t mWorld[3]; 
     std::vector<std::function<void()>> mFinishPrimaryHooks; //!
 
     ClassDefOverride(o2::Passive::Cave,1) //
