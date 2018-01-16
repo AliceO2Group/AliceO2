@@ -98,6 +98,8 @@ void Detector::Initialize()
 
   mGeometryTGeo = GeometryTGeo::Instance();
 
+  defineSensitiveVolumes();
+
   FairDetector::Initialize();
 
 }
@@ -431,7 +433,6 @@ void Detector::ConstructGeometry()
 
   createMaterials();
   createGeometry();
-  defineSensitiveVolumes();
 
 }
 
