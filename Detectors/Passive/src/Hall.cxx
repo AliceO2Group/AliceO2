@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <DetectorsBase/Detector.h>
+#include <DetectorsBase/MaterialManager.h>
 #include <DetectorsPassive/Hall.h>
 #include <FairRunSim.h>
 #include <TGeoArb8.h> // for TGeoTrap
@@ -18,12 +19,6 @@
 #include <TGeoTrd1.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
-#include <TVirtualMC.h>
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
-#include <cassert>
-
 using namespace o2::passive;
 
 Hall::~Hall() = default;
@@ -48,37 +43,12 @@ namespace
 {
 constexpr double kDegrad = TMath::DegToRad();
 constexpr double kRaddeg = TMath::RadToDeg();
-  
-// only here temporarily, I would like to harmonize Material treatment (outside of base detector)
-int Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
-             Float_t* buf = nullptr, Int_t nwbuf = 0)
-{
-  int kmat = -1;
-  TVirtualMC::GetMC()->Material(kmat, name, a, z, dens, radl, absl, buf, nwbuf);
-  return kmat;
-}
-
-int Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat = nullptr)
-{
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Mixture(kmat, name, a, z, dens, nlmat, wmat);
-  return kmat;
-}
-
-int Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm, Float_t tmaxfd,
-           Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf = nullptr, Int_t nbuf = 0)
-{
-  // Check this!!!
-  int kmed = -1;
-  TVirtualMC::GetMC()->Medium(kmed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf,
-                              nbuf);
-  return kmed;
-}
 }
 
 void Hall::createMaterials()
 {
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+
   //
   // Create materials for the experimental hall
   //
@@ -116,28 +86,20 @@ void Hall::createMaterials()
   // only media needed for geometry are created
 
   //  Stainless Steel
-  {
-    auto matid = Mixture(50, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
-    Medium(50, "HALL_STST_C2", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("HALL", 50, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Medium("HALL", 50, "STST_C2", 50, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //  Air
-  {
-    auto matid = Mixture(55, "AIR2", aAir, zAir, dAir, 4, wAir);
-    Medium(55, "HALL_AIR_C2", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("HALL", 55, "AIR2", aAir, zAir, dAir, 4, wAir);
+  matmgr.Medium("HALL", 55, "AIR_C2", 55, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Concrete
-  {
-    auto matid = Mixture(57, "CONCRETE2", aconc, zconc, 2.35, 10, wconc);
-    Medium(57, "HALL_CC_C2", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("HALL", 57, "CONCRETE2", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Medium("HALL", 57, "CC_C2", 57, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //  Iron
-  {
-    auto matid = Material(52, "IRON", 55.85, 26., 7.87, 1.76, 17.1);
-    Medium(52, "HALL_FE_C2", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Material("HALL", 52, "IRON", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Medium("HALL", 52, "FE_C2", 52, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 void Hall::ConstructGeometry()
@@ -163,18 +125,12 @@ void Hall::ConstructGeometry()
   TGeoRotation* rot000 = new TGeoRotation("rot000", 90., 0., 180., 0., 90., 90.);
   TGeoRotation* rot001 = new TGeoRotation("rot001", 270., 0., 90., 90., 180., 0.);
 
-  auto GetMedium = [](const char* x) {
-    assert(gGeoManager);
-    auto med = gGeoManager->GetMedium(x);
-    assert(med);
-    return med;
-  };
-
   // Media
-  TGeoMedium* kMedCC = GetMedium("HALL_CC_C2");
-  TGeoMedium* kMedST = GetMedium("HALL_STST_C2");
-  TGeoMedium* kMedAir = GetMedium("HALL_AIR_C2");
-  TGeoMedium* kMedFe = GetMedium("HALL_FE_C2");
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+  TGeoMedium* kMedCC = matmgr.getTGeoMedium("HALL_CC_C2");
+  TGeoMedium* kMedST = matmgr.getTGeoMedium("HALL_STST_C2");
+  TGeoMedium* kMedAir = matmgr.getTGeoMedium("HALL_AIR_C2");
+  TGeoMedium* kMedFe = matmgr.getTGeoMedium("HALL_FE_C2");
 
   // Floor thickness
   Float_t dyFloor = 190.;

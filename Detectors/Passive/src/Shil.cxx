@@ -10,6 +10,7 @@
 
 #include <DetectorsBase/Detector.h>
 #include <DetectorsPassive/Shil.h>
+#include <DetectorsBase/MaterialManager.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoCone.h>
 #include <TGeoManager.h>
@@ -17,7 +18,6 @@
 #include <TGeoPcon.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
-#include <TVirtualMC.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -43,35 +43,6 @@ Shil& Shil::operator=(const Shil& rhs)
   FairModule::operator=(rhs);
 
   return *this;
-}
-
-namespace
-{
-// only here temporarily, I would like to harmonize Material treatment (outside of base detector)
-int Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
-             Float_t* buf = nullptr, Int_t nwbuf = 0)
-{
-  int kmat = -1;
-  TVirtualMC::GetMC()->Material(kmat, name, a, z, dens, radl, absl, buf, nwbuf);
-  return kmat;
-}
-
-int Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat = nullptr)
-{
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Mixture(kmat, name, a, z, dens, nlmat, wmat);
-  return kmat;
-}
-
-int Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm, Float_t tmaxfd,
-           Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf = nullptr, Int_t nbuf = 0)
-{
-  // Check this!!!
-  int kmed = -1;
-  TVirtualMC::GetMC()->Medium(kmed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf,
-                              nbuf);
-  return kmed;
 }
 
 void InvertPcon(TGeoPcon* pcon)
@@ -104,6 +75,7 @@ void InvertPcon(TGeoPcon* pcon)
   delete[] rmax;
 }
 
+namespace {
 TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drMax)
 {
   //
@@ -131,13 +103,6 @@ void Shil::ConstructGeometry()
   //
   TGeoVolume* top = gGeoManager->GetVolume("cave");
 
-  auto GetMedium = [](const char* x) {
-    assert(gGeoManager);
-    auto med = gGeoManager->GetMedium(x);
-    assert(med);
-    return med;
-  };
-
   Float_t dz, dr, z, rmax;
 
   //  Rotations
@@ -152,22 +117,23 @@ void Shil::ConstructGeometry()
   //
   // Media
   //
-  TGeoMedium* kMedNiW = GetMedium("SHIL_Ni/W0");
-  TGeoMedium* kMedNiWsh = GetMedium("SHIL_Ni/W3");
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto kMedNiW = matmgr.getTGeoMedium("SHIL_Ni/W0");
+  auto kMedNiWsh = matmgr.getTGeoMedium("SHIL_Ni/W3");
   //
-  TGeoMedium* kMedSteel = GetMedium("SHIL_ST_C0");
-  TGeoMedium* kMedSteelSh = GetMedium("SHIL_ST_C3");
+  auto kMedSteel = matmgr.getTGeoMedium("SHIL_ST_C0");
+  auto kMedSteelSh = matmgr.getTGeoMedium("SHIL_ST_C3");
   //
-  TGeoMedium* kMedAir = GetMedium("SHIL_AIR_C0");
-  TGeoMedium* kMedAirMu = GetMedium("SHIL_AIR_MUON");
+  auto kMedAir = matmgr.getTGeoMedium("SHIL_AIR_C0");
+  auto kMedAirMu = matmgr.getTGeoMedium("SHIL_AIR_MUON");
   //
-  TGeoMedium* kMedPb = GetMedium("SHIL_PB_C0");
-  TGeoMedium* kMedPbSh = GetMedium("SHIL_PB_C2");
+  auto kMedPb = matmgr.getTGeoMedium("SHIL_PB_C0");
+  auto kMedPbSh = matmgr.getTGeoMedium("SHIL_PB_C2");
   //
-  TGeoMedium* kMedConcSh = GetMedium("SHIL_CC_C2");
+  auto kMedConcSh = matmgr.getTGeoMedium("SHIL_CC_C2");
   //
-  TGeoMedium* kMedCastiron = GetMedium("SHIL_CAST_IRON0");
-  TGeoMedium* kMedCastironSh = GetMedium("SHIL_CAST_IRON2");
+  auto kMedCastiron = matmgr.getTGeoMedium("SHIL_CAST_IRON0");
+  auto kMedCastironSh = matmgr.getTGeoMedium("SHIL_CAST_IRON2");
   //
   const Float_t kDegRad = TMath::Pi() / 180.;
   const Float_t kAngle02 = TMath::Tan(2.00 * kDegRad);
@@ -1391,6 +1357,8 @@ void Shil::ConstructGeometry()
 
 void Shil::createMaterials()
 {
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+
   //
   // Defines materials for the muon shield
   //
@@ -1449,111 +1417,111 @@ void Shil::createMaterials()
   // ***************
 
   //    Aluminum
-  auto kalu0 = Material(9, "ALU1      ", 26.98, 13., 2.7, 8.9, 37.2);
-  auto kalu1 = Material(29, "ALU2      ", 26.98, 13., 2.7, 8.9, 37.2);
-  auto kalu2 = Material(49, "ALU3      ", 26.98, 13., 2.7, 8.9, 37.2);
-  Medium(9, "SHIL_ALU_C0          ", kalu0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(29, "SHIL_ALU_C1          ", kalu1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(49, "SHIL_ALU_C2          ", kalu2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("SHIL", 9, "ALU1      ", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Material("SHIL", 29, "ALU2      ", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Material("SHIL", 49, "ALU3      ", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Medium("SHIL", 9, "ALU_C0          ", 9, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 29, "ALU_C1          ", 29, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 49, "ALU_C2          ", 49, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Iron
-  auto kir0 = Material(10, "IRON1     ", 55.85, 26., 7.87, 1.76, 17.1);
-  auto kir1 = Material(30, "IRON2     ", 55.85, 26., 7.87, 1.76, 17.1);
-  auto kir2 = Material(50, "IRON3     ", 55.85, 26., 7.87, 1.76, 17.1);
-  Medium(10, "SHIL_FE_C0           ", kir0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(30, "SHIL_FE_C1           ", kir1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(50, "SHIL_FE_C2           ", kir2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("SHIL", 10, "IRON1     ", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Material("SHIL", 30, "IRON2     ", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Material("SHIL", 50, "IRON3     ", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Medium("SHIL", 10, "FE_C0           ", 10, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 30, "FE_C1           ", 30, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 50, "FE_C2           ", 50, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Copper
-  auto kCu0 = Material(11, "COPPER1   ", 63.55, 29., 8.96, 1.43, 15.1);
-  auto kCu1 = Material(31, "COPPER2   ", 63.55, 29., 8.96, 1.43, 15.1);
-  auto kCu2 = Material(51, "COPPER3   ", 63.55, 29., 8.96, 1.43, 15.1);
-  Medium(11, "SHIL_Cu_C0           ", kCu0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(31, "SHIL_Cu_C1           ", kCu1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(51, "SHIL_Cu_C2           ", kCu2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("SHIL", 11, "COPPER1   ", 63.55, 29., 8.96, 1.43, 15.1);
+  matmgr.Material("SHIL", 31, "COPPER2   ", 63.55, 29., 8.96, 1.43, 15.1);
+  matmgr.Material("SHIL", 51, "COPPER3   ", 63.55, 29., 8.96, 1.43, 15.1);
+  matmgr.Medium("SHIL", 11, "Cu_C0           ", 11, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 31, "Cu_C1           ", 31, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 51, "Cu_C2           ", 51, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Tungsten
-  auto ktung0 = Material(12, "TUNGSTEN1 ", 183.85, 74., 19.3, .35, 10.3);
-  auto ktung1 = Material(32, "TUNGSTEN2 ", 183.85, 74., 19.3, .35, 10.3);
-  auto ktung2 = Material(52, "TUNGSTEN3 ", 183.85, 74., 19.3, .35, 10.3);
-  Medium(12, "SHIL_W_C0            ", ktung0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(32, "SHIL_W_C1            ", ktung1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(52, "SHIL_W_C2            ", ktung2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("SHIL", 12, "TUNGSTEN1 ", 183.85, 74., 19.3, .35, 10.3);
+  matmgr.Material("SHIL", 32, "TUNGSTEN2 ", 183.85, 74., 19.3, .35, 10.3);
+  matmgr.Material("SHIL", 52, "TUNGSTEN3 ", 183.85, 74., 19.3, .35, 10.3);
+  matmgr.Medium("SHIL", 12, "W_C0            ", 12, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 32, "W_C1            ", 32, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 52, "W_C2            ", 52, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Lead
-  auto kPb0 = Material(13, "LEAD1     ", 207.19, 82., 11.35, .56, 18.5);
-  auto kPb1 = Material(33, "LEAD2     ", 207.19, 82., 11.35, .56, 18.5);
-  auto kPb2 = Material(53, "LEAD3     ", 207.19, 82., 11.35, .56, 18.5);
-  Medium(13, "SHIL_PB_C0           ", kPb0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(33, "SHIL_PB_C1           ", kPb1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(53, "SHIL_PB_C2           ", kPb2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("SHIL", 13, "LEAD1     ", 207.19, 82., 11.35, .56, 18.5);
+  matmgr.Material("SHIL", 33, "LEAD2     ", 207.19, 82., 11.35, .56, 18.5);
+  matmgr.Material("SHIL", 53, "LEAD3     ", 207.19, 82., 11.35, .56, 18.5);
+  matmgr.Medium("SHIL", 13, "PB_C0           ", 13, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 33, "PB_C1           ", 33, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 53, "PB_C2           ", 53, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Insulation Powder
-  auto kIns0 = Mixture(14, "INSULATION1", ains, zins, 0.41, 4, wins);
-  auto kIns1 = Mixture(34, "INSULATION2", ains, zins, 0.41, 4, wins);
-  auto kIns2 = Mixture(54, "INSULATION3", ains, zins, 0.41, 4, wins);
-  Medium(14, "SHIL_INS_C0          ", kIns0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(34, "SHIL_INS_C1          ", kIns1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(54, "SHIL_INS_C2          ", kIns2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 14, "INSULATION1", ains, zins, 0.41, 4, wins);
+  matmgr.Mixture("SHIL", 34, "INSULATION2", ains, zins, 0.41, 4, wins);
+  matmgr.Mixture("SHIL", 54, "INSULATION3", ains, zins, 0.41, 4, wins);
+  matmgr.Medium("SHIL", 14, "INS_C0          ", 14, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 34, "INS_C1          ", 34, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 54, "INS_C2          ", 54, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Air
-  auto kAir0 = Mixture(15, "AIR1      ", aAir, zAir, dAir, 4, wAir);
-  auto kAir1 = Mixture(35, "AIR2      ", aAir, zAir, dAir, 4, wAir);
-  auto kAir2 = Mixture(55, "AIR3      ", aAir, zAir, dAir, 4, wAir);
-  auto kAirM = Mixture(75, "AIR_MUON  ", aAir, zAir, dAir, 4, wAir);
-  Medium(15, "SHIL_AIR_C0          ", kAir0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(35, "SHIL_AIR_C1          ", kAir1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(55, "SHIL_AIR_C2          ", kAir2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(75, "SHIL_AIR_MUON        ", kAirM, 0, isxfld2, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 15, "AIR1      ", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("SHIL", 35, "AIR2      ", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("SHIL", 55, "AIR3      ", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("SHIL", 75, "AIR_MUON  ", aAir, zAir, dAir, 4, wAir);
+  matmgr.Medium("SHIL", 15, "AIR_C0          ", 15, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 35, "AIR_C1          ", 35, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 55, "AIR_C2          ", 55, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 75, "AIR_MUON        ", 75, 0, isxfld2, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Vacuum
-  auto kVac0 = Mixture(16, "VACUUM1 ", aAir, zAir, dAir1, 4, wAir);
-  auto kVac1 = Mixture(36, "VACUUM2 ", aAir, zAir, dAir1, 4, wAir);
-  auto kVac2 = Mixture(56, "VACUUM3 ", aAir, zAir, dAir1, 4, wAir);
-  Medium(16, "SHIL_VA_C0           ", kVac0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(36, "SHIL_VA_C1           ", kVac1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(56, "SHIL_VA_C2           ", kVac2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 16, "VACUUM1 ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("SHIL", 36, "VACUUM2 ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("SHIL", 56, "VACUUM3 ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Medium("SHIL", 16, "VA_C0           ", 16, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 36, "VA_C1           ", 36, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 56, "VA_C2           ", 56, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //     Stainless Steel
-  auto kSt0 = Mixture(19, "STAINLESS STEEL1", asteel, zsteel, 7.88, 4, wsteel);
-  auto kSt1 = Mixture(39, "STAINLESS STEEL2", asteel, zsteel, 7.88, 4, wsteel);
-  auto kSt2 = Mixture(59, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
-  Medium(19, "SHIL_ST_C0           ", kSt0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(39, "SHIL_ST_C1           ", kSt1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(59, "SHIL_ST_C3           ", kSt2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 19, "STAINLESS STEEL1", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("SHIL", 39, "STAINLESS STEEL2", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("SHIL", 59, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Medium("SHIL", 19, "ST_C0           ", 19, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 39, "ST_C1           ", 39, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 59, "ST_C3           ", 59, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Lead/Tungsten
-  auto kPbW0 = Mixture(20, "LEAD/TUNGSTEN1", apbw, zpbw, 15.325, 2, wpbw);
-  auto kPbW1 = Mixture(40, "LEAD/TUNGSTEN2", apbw, zpbw, 15.325, 2, wpbw);
-  auto kPbW2 = Mixture(60, "LEAD/TUNGSTEN3", apbw, zpbw, 15.325, 2, wpbw);
-  Medium(20, "SHIL_PB/W0           ", kPbW0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(40, "SHIL_PB/W1           ", kPbW1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(60, "SHIL_PB/W3           ", kPbW2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 20, "LEAD/TUNGSTEN1", apbw, zpbw, 15.325, 2, wpbw);
+  matmgr.Mixture("SHIL", 40, "LEAD/TUNGSTEN2", apbw, zpbw, 15.325, 2, wpbw);
+  matmgr.Mixture("SHIL", 60, "LEAD/TUNGSTEN3", apbw, zpbw, 15.325, 2, wpbw);
+  matmgr.Medium("SHIL", 20, "PB/W0           ", 20, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 40, "PB/W1           ", 40, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 60, "PB/W3           ", 60, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Ni/Tungsten
   //     Ni-W-Cu
-  auto kNuWCu1 = Mixture(21, "Ni-W-Cu1", aniwcu, zniwcu, 18.78, 3, wniwcu);
-  auto kNuWCu2 = Mixture(41, "Ni-W-Cu2", aniwcu, zniwcu, 18.78, 3, wniwcu);
-  auto kNuWCu3 = Mixture(61, "Ni-W-Cu3", aniwcu, zniwcu, 18.78, 3, wniwcu);
-  Medium(21, "SHIL_Ni/W0           ", kNuWCu1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(41, "SHIL_Ni/W1           ", kNuWCu2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(61, "SHIL_Ni/W3           ", kNuWCu3, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 21, "Ni-W-Cu1", aniwcu, zniwcu, 18.78, 3, wniwcu);
+  matmgr.Mixture("SHIL", 41, "Ni-W-Cu2", aniwcu, zniwcu, 18.78, 3, wniwcu);
+  matmgr.Mixture("SHIL", 61, "Ni-W-Cu3", aniwcu, zniwcu, 18.78, 3, wniwcu);
+  matmgr.Medium("SHIL", 21, "Ni/W0           ", 21, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 41, "Ni/W1           ", 41, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 61, "Ni/W3           ", 61, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Concrete
-  auto kCC0 = Mixture(17, "CONCRETE1", aconc, zconc, 2.35, 10, wconc);
-  auto kCC1 = Mixture(37, "CONCRETE2", aconc, zconc, 2.35, 10, wconc);
-  auto kCC2 = Mixture(57, "CONCRETE3", aconc, zconc, 2.35, 10, wconc);
-  Medium(17, "SHIL_CC_C0           ", kCC0, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(37, "SHIL_CC_C1           ", kCC1, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(57, "SHIL_CC_C2           ", kCC2, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 17, "CONCRETE1", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Mixture("SHIL", 37, "CONCRETE2", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Mixture("SHIL", 57, "CONCRETE3", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Medium("SHIL", 17, "CC_C0           ", 17, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 37, "CC_C1           ", 37, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 57, "CC_C2           ", 57, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Cast iron
-  auto kCast0 = Mixture(18, "CAST IRON1", acasti, zcasti, 7.2, 4, wcasti);
-  auto kCast1 = Mixture(38, "CAST IRON2", acasti, zcasti, 7.2, 4, wcasti);
-  auto kCast2 = Mixture(58, "CAST IRON3", acasti, zcasti, 7.2, 4, wcasti);
-  Medium(18, "SHIL_CAST_IRON0      ", kCast0, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(38, "SHIL_CAST_IRON1      ", kCast1, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(58, "SHIL_CAST_IRON2      ", kCast2, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("SHIL", 18, "CAST IRON1", acasti, zcasti, 7.2, 4, wcasti);
+  matmgr.Mixture("SHIL", 38, "CAST IRON2", acasti, zcasti, 7.2, 4, wcasti);
+  matmgr.Mixture("SHIL", 58, "CAST IRON3", acasti, zcasti, 7.2, 4, wcasti);
+  matmgr.Medium("SHIL", 18, "CAST_IRON0      ", 18, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 38, "CAST_IRON1      ", 38, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("SHIL", 58, "CAST_IRON2      ", 58, 0, isxfld1, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 FairModule* Shil::CloneModule() const { return new Shil(*this); }

@@ -11,6 +11,7 @@
 #include "Field/MagneticField.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "DetectorsBase/Detector.h"
+#include "DetectorsBase/MaterialManager.h"
 #include <TGeoArb8.h>
 #include <TGeoBBox.h>
 #include <TGeoBoolNode.h>
@@ -210,40 +211,9 @@ TGeoCompositeShape* FrameStructure::createTOFRail(float y)
   return btofS1;
 }
 
-namespace
-{
-// only here temporarily, I would like to harmonize Material treatment (outside of base detector)
-int Material(int imat, const char* name, float a, float z, float dens, float radl, float absl, float* buf = nullptr,
-             int nwbuf = 0)
-{
-  int kmat = -1;
-  auto vmc = TVirtualMC::GetMC();
-  vmc->Material(kmat, name, a, z, dens, radl, absl, buf, nwbuf);
-  return kmat;
-}
-
-int Mixture(int imat, const char* name, float* a, float* z, float dens, int nlmat, float* wmat = nullptr)
-{
-  // Check this!!!
-  int kmat = -1;
-  auto vmc = TVirtualMC::GetMC();
-  vmc->Mixture(kmat, name, a, z, dens, nlmat, wmat);
-  return kmat;
-}
-
-int Medium(int numed, const char* name, int nmat, int isvol, int ifield, float fieldm, float tmaxfd, float stemax,
-           float deemax, float epsil, float stmin, float* ubuf = nullptr, int nbuf = 0)
-{
-  // Check this!!!
-  int kmed = -1;
-  auto vmc = TVirtualMC::GetMC();
-  vmc->Medium(kmed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf, nbuf);
-  return kmed;
-}
-}
-
 void FrameStructure::createMaterials()
 {
+  auto& matmgr = o2::Base::MaterialManager::Instance();
   // Creates the materials
   float epsil, stemax, tmaxfd, deemax, stmin;
 
@@ -273,16 +243,20 @@ void FrameStructure::createMaterials()
   float zg10[4] = { 6., 1., 8., 14. };
   float wg10[4] = { 0.194, 0.023, 0.443, 0.340 };
 
-  auto kG10MatId = Mixture(22, "G10", ag10, zg10, 1.7, 4, wg10);
-  auto kSteelMatId = Mixture(65, "STEEL$", asteel, zsteel, 7.88, 4, wsteel);
-  auto kAirMatId = Mixture(5, "AIR$      ", aAir, zAir, dAir, 4, wAir);
-  auto kAluMatId = Material(9, "ALU      ", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Mixture("FRAME", 22, "G10", ag10, zg10, 1.7, 4, wg10);
+  matmgr.Mixture("FRAME", 65, "STEEL$", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("FRAME", 5, "AIR$      ", aAir, zAir, dAir, 4, wAir);
+  matmgr.Material("FRAME", 9, "ALU      ", 26.98, 13., 2.7, 8.9, 37.2);
 
-  mSteelMedID = Medium(65, "FRAME_Steel", kSteelMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  mAirMedID = Medium(5, "FRAME_Air", kAirMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  mAluMedID = Medium(9, "FRAME_Aluminum", kAluMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  mG10MedID = Medium(22, "FRAME_G10", kG10MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("FRAME", 65, "Steel", 65, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("FRAME", 5, "Air", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("FRAME", 9, "Aluminum", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("FRAME", 22, "G10", 22, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
+  mAirMedID = matmgr.getMediumID("FRAME", 5);
+  mSteelMedID = matmgr.getMediumID("FRAME", 65);
+  mAluMedID = matmgr.getMediumID("FRAME", 9);
+  mG10MedID = matmgr.getMediumID("FRAME", 22);
   // do a cross check
   assert(gGeoManager->GetMedium("FRAME_Air")->GetId() == mAirMedID);
   assert(gGeoManager->GetMedium("FRAME_Aluminum")->GetId() == mAluMedID);

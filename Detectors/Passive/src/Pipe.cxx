@@ -10,6 +10,7 @@
 
 #include "DetectorsPassive/Pipe.h"
 #include <DetectorsBase/Detector.h>
+#include <DetectorsBase/MaterialManager.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoCone.h>
 #include <TGeoPcon.h>
@@ -58,43 +59,6 @@ Pipe& Pipe::operator=(const Pipe& rhs)
   return *this;
 }
 
-namespace
-{
-// only here temporarily, I would like to harmonize Material treatment (outside of base detector)
-int Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
-             Float_t* buf = nullptr, Int_t nwbuf = 0)
-{
-  int kmat = -1;
-  TVirtualMC::GetMC()->Material(kmat, name, a, z, dens, radl, absl, buf, nwbuf);
-  return kmat;
-}
-
-int Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat = nullptr)
-{
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Mixture(kmat, name, a, z, dens, nlmat, wmat);
-  return kmat;
-}
-
-int Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm, Float_t tmaxfd,
-           Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf = nullptr, Int_t nbuf = 0)
-{
-  // Check this!!!
-  int kmed = -1;
-  TVirtualMC::GetMC()->Medium(kmed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf,
-                              nbuf);
-  return kmed;
-}
-
-auto GetMedium = [](const char* x) {
-  assert(gGeoManager);
-  auto med = gGeoManager->GetMedium(x);
-  assert(med);
-  return med;
-};
-}
-
 void Pipe::ConstructGeometry()
 {
   createMaterials();
@@ -111,18 +75,20 @@ void Pipe::ConstructGeometry()
   TGeoRotation* rotyz = new TGeoRotation("rotyz", 90., 180., 0., 180., 90., 90.);
   TGeoRotation* rotxz = new TGeoRotation("rotxz", 0., 0., 90., 90., 90., 180.);
   //
+
   // Media
-  const TGeoMedium* kMedAir = GetMedium("PIPE_AIR");
-  const TGeoMedium* kMedAirHigh = GetMedium("PIPE_AIR_HIGH");
-  const TGeoMedium* kMedVac = GetMedium("PIPE_VACUUM");
-  const TGeoMedium* kMedInsu = GetMedium("PIPE_INS_C0");
-  const TGeoMedium* kMedSteel = GetMedium("PIPE_INOX");
-  const TGeoMedium* kMedBe = GetMedium("PIPE_BE");
-  const TGeoMedium* kMedCu = GetMedium("PIPE_CU");
-  const TGeoMedium* kMedAlu2219 = GetMedium("PIPE_AA2219"); // fm
-  const TGeoMedium* kMedRohacell = GetMedium("PIPE_ROHACELL");
-  const TGeoMedium* kMedPolyimide = GetMedium("PIPE_POLYIMIDE");
-  const TGeoMedium* kMedCarbonFiber = GetMedium("PIPE_M55J6K");
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+  const TGeoMedium* kMedAir = matmgr.getTGeoMedium("PIPE_AIR");
+  const TGeoMedium* kMedAirHigh = matmgr.getTGeoMedium("PIPE_AIR_HIGH");
+  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
+  const TGeoMedium* kMedInsu = matmgr.getTGeoMedium("PIPE_INS_C0");
+  const TGeoMedium* kMedSteel = matmgr.getTGeoMedium("PIPE_INOX");
+  const TGeoMedium* kMedBe = matmgr.getTGeoMedium("PIPE_BE");
+  const TGeoMedium* kMedCu = matmgr.getTGeoMedium("PIPE_CU");
+  const TGeoMedium* kMedAlu2219 = matmgr.getTGeoMedium("PIPE_AA2219"); // fm
+  const TGeoMedium* kMedRohacell = matmgr.getTGeoMedium("PIPE_ROHACELL");
+  const TGeoMedium* kMedPolyimide = matmgr.getTGeoMedium("PIPE_POLYIMIDE");
+  const TGeoMedium* kMedCarbonFiber = matmgr.getTGeoMedium("PIPE_M55J6K");
 
   // Top volume
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -2596,71 +2562,55 @@ void Pipe::createMaterials()
   Float_t stmin = -.8;
   // ***************
   //
+
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+
   //    Beryllium
-  {
-    auto matid = Material(5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
-    Medium(5, "PIPE_BE", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Material("PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
+  matmgr.Medium("PIPE", 5, "BE", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Copper
-  {
-    auto matid = Material(10, "COPPER", 63.55, 29, 8.96, 1.43, 85.6 / 8.96);
-    Medium(10, "PIPE_CU", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Material("PIPE", 10, "COPPER", 63.55, 29, 8.96, 1.43, 85.6 / 8.96);
+  matmgr.Medium("PIPE", 10, "CU", 10, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Air
-  {
-    auto matid1 = Mixture(15, "AIR$      ", aAir, zAir, dAir, 4, wAir);
-    auto matid2 = Mixture(35, "AIR_HIGH$ ", aAir, zAir, dAir, 4, wAir);
-    Medium(15, "PIPE_AIR", matid1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-    Medium(35, "PIPE_AIR_HIGH", matid2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("PIPE", 15, "AIR$      ", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("PIPE", 35, "AIR_HIGH$ ", aAir, zAir, dAir, 4, wAir);
+  matmgr.Medium("PIPE", 15, "AIR", 15, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 35, "AIR_HIGH", 35, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
-  {
-    auto matid = Mixture(14, "INSULATION0$", ains, zins, 0.41, 4, wins);
-    Medium(14, "PIPE_INS_C0", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  //    Insulation
+  matmgr.Mixture("PIPE", 14, "INSULATION0$", ains, zins, 0.41, 4, wins);
+  matmgr.Medium("PIPE", 14, "INS_C0", 14, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Vacuum
-  {
-    auto matid = Mixture(16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
-    Medium(16, "PIPE_VACUUM", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Medium("PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Steel
-  {
-    auto matid = Mixture(19, "STAINLESS STEEL$", asteel, zsteel, 7.88, 4, wsteel);
-    Medium(19, "PIPE_INOX", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
-  //
+  matmgr.Mixture("PIPE", 19, "STAINLESS STEEL$", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Medium("PIPE", 19, "INOX", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //----------------- for the MFT ----------------------
-  {
-    auto matid1 = Mixture(63, "ALUMINIUM5083$", aALU5083, zALU5083, 2.66, 4, wALU5083); // from aubertduval.fr
-    auto matid2 = Mixture(64, "ALUMINIUM2219$", aALU2219, zALU2219, 2.84, 6, wALU2219); // from aubertduval.fr
-    Medium(63, "PIPE_AA5083", matid1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-    Medium(64, "PIPE_AA2219", matid2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("PIPE", 63, "ALUMINIUM5083$", aALU5083, zALU5083, 2.66, 4, wALU5083); // from aubertduval.fr
+  matmgr.Mixture("PIPE", 64, "ALUMINIUM2219$", aALU2219, zALU2219, 2.84, 6, wALU2219); // from aubertduval.fr
+  matmgr.Medium("PIPE", 63, "AA5083", 63, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 64, "AA2219", 64, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //----------------------------------------------------
-  {
-    auto matid = Mixture(65, "PI$", aPI, zPI, 1.42, -4, wPI);
-    Medium(65, "PIPE_POLYIMIDE", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("PIPE", 65, "PI$", aPI, zPI, 1.42, -4, wPI);
+  matmgr.Medium("PIPE", 65, "POLYIMIDE", 65, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //---------------------------------
   //     Carbon Fiber M55J
-  {
-    auto matid = Material(66, "M55J6K$", 12.0107, 6, 1.92, 999, 999);
-    Medium(66, "PIPE_M55J6K", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Material("PIPE", 66, "M55J6K$", 12.0107, 6, 1.92, 999, 999);
+  matmgr.Medium("PIPE", 66, "M55J6K", 66, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+
   // Rohacell
-  {
-    auto matid = Mixture(67, "Rohacell$", aRohacell, zRohacell, 0.03, -4, wRohacell);
-    Medium(67, "PIPE_ROHACELL", matid, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  }
+  matmgr.Mixture("PIPE", 67, "Rohacell$", aRohacell, zRohacell, 0.03, -4, wRohacell);
+  matmgr.Medium("PIPE", 67, "ROHACELL", 67, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t imax, Float_t r0, Int_t nz)
@@ -2722,8 +2672,9 @@ TGeoVolume* Pipe::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rM
   // dU     Undulation length
   // rPlie  Plie radius
   // dPlie  Plie thickness
-  const TGeoMedium* kMedVac = GetMedium("PIPE_VACUUM");
-  const TGeoMedium* kMedSteel = GetMedium("PIPE_INOX");
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
+  const TGeoMedium* kMedSteel = matmgr.getTGeoMedium("PIPE_INOX");
 
   char name[64], nameA[64], nameB[64], bools[64];
   snprintf(name, 64, "%sBellowUS", ext);
@@ -2793,8 +2744,9 @@ TGeoVolume* Pipe::MakeBellowCside(const char* ext, Int_t nc, Float_t rMin, Float
   // dU     Undulation length
   // rPlie  Plie radius
   // dPlie  Plie thickness
-  const TGeoMedium* kMedVac = GetMedium("PIPE_VACUUM");
-  const TGeoMedium* kMedAlu5083 = GetMedium("PIPE_AA5083"); // fm
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
+  const TGeoMedium* kMedAlu5083 = matmgr.getTGeoMedium("PIPE_AA5083"); // fm
 
   Float_t dU = nc * (4. * rPlie - 2. * dPlie);
 
