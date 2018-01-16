@@ -38,7 +38,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
                             float rMin, float rMax, float zMin, float zMax,
                             float padPitch, float zSigma, float bz );
     void Update();
-    void LoadClusterErrors();
+    void LoadClusterErrors( bool Print=0 );
 #endif //!HLTCA_GPUCODE
 
 	GPUd() void Slice2Global( float x, float y,  float z,
@@ -127,8 +127,10 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() void SetContinuousTracking( bool v ){ fContinuousTracking = v; }
     GPUd() void SetTrackReferenceX( float v) { fTrackReferenceX = v; }
 
-    GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
-    GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
+    GPUd() float GetClusterRMS( int yz, int type, float z, float angle2 ) const;
+
+    GPUd() float GetClusterError( int yz, int type, float z, float angle2 ) const;
+    GPUd() void GetClusterErrors( int row, float z, float sinPhi, float cosPhi, float DzDs, float &ErrY, float &ErrZ ) const;
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
     void WriteSettings( std::ostream &out ) const;
@@ -141,6 +143,12 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
   
     GPUd() const MakeType(float*) GetParamRMS0(int i, int j) const { return fParamRMS0[i][j]; }
  
+    GPUd() void SetParamS0Par( int i, int j, int k, float val ) {
+      fParamS0Par[i][j][k] = val;
+    }
+  
+    GPUd() const MakeType(float*) GetParamS0Par(int i, int j) const { return fParamS0Par[i][j]; }
+
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
 
@@ -181,7 +189,8 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)
 
     float fRowX[200];// X-coordinate of rows    
-    float fParamRMS0[2][3][4]; // cluster error parameterization coeficients 
+    float fParamRMS0[2][3][4]; // cluster shape parameterization coeficients 
+    float fParamS0Par[2][3][7]; // cluster error parameterization coeficients
 };
 
 

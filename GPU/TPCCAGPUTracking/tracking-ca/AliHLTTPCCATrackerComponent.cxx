@@ -469,6 +469,7 @@ void AliHLTTPCCATrackerComponent::ConfigureSlices()
     param.SetMinNTrackClusters( fMinNTrackClusters );
     param.SetMinTrackPt( fMinTrackPt );
     param.SetSearchWindowDZDR(fSearchWindowDZDR);
+    param.LoadClusterErrors();
 
     param.Update();
     fTracker->InitializeSliceParam( slice, param );
