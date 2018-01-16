@@ -16,7 +16,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define CADEBUG 0
+#define HLTCA_CADEBUG 0
 #define PRINT_TRACKS 0
 #define MIRROR 1
 #define DOUBLE 1
