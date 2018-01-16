@@ -13,6 +13,7 @@
 // -------------------------------------------------------------------------
 
 #include <DetectorsBase/Detector.h>
+#include <DetectorsBase/MaterialManager.h>
 #include <DetectorsPassive/Absorber.h>
 #include <TGeoArb8.h> // for TGeoTrap
 #include <TGeoCompositeShape.h>
@@ -23,7 +24,6 @@
 #include <TGeoPgon.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
-#include <TVirtualMC.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -49,38 +49,9 @@ Absorber& Absorber::operator=(const Absorber& rhs)
   return *this;
 }
 
-namespace
-{
-// only here temporarily, I would like to harmonize Material treatment (outside of base detector)
-int Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
-             Float_t* buf = nullptr, Int_t nwbuf = 0)
-{
-  int kmat = -1;
-  TVirtualMC::GetMC()->Material(kmat, name, a, z, dens, radl, absl, buf, nwbuf);
-  return kmat;
-}
-
-int Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat = nullptr)
-{
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Mixture(kmat, name, a, z, dens, nlmat, wmat);
-  return kmat;
-}
-
-int Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm, Float_t tmaxfd,
-           Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf = nullptr, Int_t nbuf = 0)
-{
-  // Check this!!!
-  int kmed = -1;
-  TVirtualMC::GetMC()->Medium(kmed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf,
-                              nbuf);
-  return kmed;
-}
-}
-
 void Absorber::createMaterials()
 {
+  auto& matmgr = o2::Base::MaterialManager::Instance();
   // Define materials for muon absorber
   //
   Int_t isxfld = 2.;
@@ -156,138 +127,139 @@ void Absorber::createMaterials()
 
   //    Carbon Material and Medium
   //
-  auto kC0 = Material(6, "CARBON0$", 12.01, 6., 1.75, 24.4, 49.9);
-  auto kC1 = Material(26, "CARBON1$", 12.01, 6., 1.75, 24.4, 49.9);
-  auto kC2 = Material(46, "CARBON2$", 12.01, 6., 1.75, 24.4, 49.9);
-  Medium(6, "ABSO_C_C0", kC0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(26, "ABSO_C_C1", kC1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(46, "ABSO_C_C2", kC2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ABSO", 6, "CARBON0$", 12.01, 6., 1.75, 24.4, 49.9);
+  matmgr.Material("ABSO", 26, "CARBON1$", 12.01, 6., 1.75, 24.4, 49.9);
+  matmgr.Material("ABSO", 46, "CARBON2$", 12.01, 6., 1.75, 24.4, 49.9);
+  matmgr.Medium("ABSO", 6, "C_C0", 6, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 26, "C_C1", 26, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 46, "C_C2", 46, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Aluminum Material and Medium
-  auto kAl0 = Material(9, "ALUMINIUM0$", 26.98, 13., 2.7, 8.9, 37.2);
-  auto kAl1 = Material(29, "ALUMINIUM1$", 26.98, 13., 2.7, 8.9, 37.2);
-  auto kAl2 = Material(49, "ALUMINIUM2$", 26.98, 13., 2.7, 8.9, 37.2);
-  Medium(9, "ABSO_ALU_C0", kAl0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(29, "ABSO_ALU_C1", kAl1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(49, "ABSO_ALU_C2", kAl2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ABSO", 9, "ALUMINIUM0$", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Material("ABSO", 29, "ALUMINIUM1$", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Material("ABSO", 49, "ALUMINIUM2$", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Medium("ABSO", 9, "ALU_C0", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 29, "ALU_C1", 29, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 49, "ALU_C2", 49, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Magnesium
-  auto kMAG = Material(7, "MAGNESIUM$", 24.31, 12., 1.74, 25.3, 46.0);
-  Medium(7, "ABSO_MG_C0", kMAG, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ABSO", 7, "MAGNESIUM$", 24.31, 12., 1.74, 25.3, 46.0);
+  matmgr.Medium("ABSO", 7, "MG_C0", 7, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Iron
-  auto kFe0 = Material(10, "IRON0$", 55.85, 26., 7.87, 1.76, 17.1);
-  auto kFe1 = Material(30, "IRON1$", 55.85, 26., 7.87, 1.76, 17.1);
-  auto kFe2 = Material(50, "IRON2$", 55.85, 26., 7.87, 1.76, 17.1);
-  Medium(10, "ABSO_FE_C0", kFe0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(30, "ABSO_FE_C1", kFe1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(50, "ABSO_FE_C2", kFe2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ABSO", 10, "IRON0$", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Material("ABSO", 30, "IRON1$", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Material("ABSO", 50, "IRON2$", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Medium("ABSO", 10, "FE_C0", 10, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 30, "FE_C1", 30, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 50, "FE_C2", 50, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Copper
-  auto kCu0 = Material(11, "COPPER0$", 63.55, 29., 8.96, 1.43, 15.1);
-  auto kCu1 = Material(31, "COPPER1$", 63.55, 29., 8.96, 1.43, 15.1);
-  auto kCu2 = Material(51, "COPPER2$", 63.55, 29., 8.96, 1.43, 15.1);
-  Medium(11, "ABSO_Cu_C0", kCu0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(31, "ABSO_Cu_C1", kCu1, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
-  Medium(51, "ABSO_Cu_C2", kCu2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ABSO", 11, "COPPER0$", 63.55, 29., 8.96, 1.43, 15.1);
+  matmgr.Material("ABSO", 31, "COPPER1$", 63.55, 29., 8.96, 1.43, 15.1);
+  matmgr.Material("ABSO", 51, "COPPER2$", 63.55, 29., 8.96, 1.43, 15.1);
+  matmgr.Medium("ABSO", 11, "Cu_C0", 11, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 31, "Cu_C1", 31, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 51, "Cu_C2", 51, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Tungsten
-  auto kW0 = Material(12, "TUNGSTEN0$ ", 183.85, 74., 19.3, .35, 10.3);
-  auto kW1 = Material(32, "TUNGSTEN1$ ", 183.85, 74., 19.3, .35, 10.3);
-  auto kW2 = Material(52, "TUNGSTEN2$ ", 183.85, 74., 19.3, .35, 10.3);
-  Medium(12, "ABSO_W_C0", kW0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(32, "ABSO_W_C1", kW1, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
-  Medium(52, "ABSO_W_C2", kW2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ABSO", 12, "TUNGSTEN0$ ", 183.85, 74., 19.3, .35, 10.3);
+  matmgr.Material("ABSO", 32, "TUNGSTEN1$ ", 183.85, 74., 19.3, .35, 10.3);
+  matmgr.Material("ABSO", 52, "TUNGSTEN2$ ", 183.85, 74., 19.3, .35, 10.3);
+  matmgr.Medium("ABSO", 12, "W_C0", 12, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 32, "W_C1", 32, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 52, "W_C2", 52, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //     Ni-W-Cu
-  auto k1 = Mixture(21, "Ni-W-Cu0$", aniwcu, zniwcu, 18.78, 3, wniwcu);
-  auto k2 = Mixture(41, "Ni-W-Cu1$", aniwcu, zniwcu, 18.78, 3, wniwcu);
-  auto k3 = Mixture(61, "Ni-W-Cu2$", aniwcu, zniwcu, 18.78, 3, wniwcu);
-  Medium(21, "ABSO_Ni/W0", k1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(41, "ABSO_Ni/W1", k2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(61, "ABSO_Ni/W3", k3, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 21, "Ni-W-Cu0$", aniwcu, zniwcu, 18.78, 3, wniwcu);
+  matmgr.Mixture("ABSO", 41, "Ni-W-Cu1$", aniwcu, zniwcu, 18.78, 3, wniwcu);
+  matmgr.Mixture("ABSO", 61, "Ni-W-Cu2$", aniwcu, zniwcu, 18.78, 3, wniwcu);
+  matmgr.Medium("ABSO", 21, "Ni/W0", 21, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 41, "Ni/W1", 41, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 61, "Ni/W3", 61, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Lead
-  auto kPb0 = Material(13, "LEAD0$", 207.19, 82., 11.35, .56, 18.5);
-  auto kPb1 = Material(33, "LEAD1$", 207.19, 82., 11.35, .56, 18.5);
-  auto kPb2 = Material(53, "LEAD2$", 207.19, 82., 11.35, .56, 18.5);
-  Medium(13, "ABSO_PB_C0", kPb0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(33, "ABSO_PB_C1", kPb1, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
-  Medium(53, "ABSO_PB_C2", kPb2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ABSO", 13, "LEAD0$", 207.19, 82., 11.35, .56, 18.5);
+  matmgr.Material("ABSO", 33, "LEAD1$", 207.19, 82., 11.35, .56, 18.5);
+  matmgr.Material("ABSO", 53, "LEAD2$", 207.19, 82., 11.35, .56, 18.5);
+  matmgr.Medium("ABSO", 13, "PB_C0", 13, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 33, "PB_C1", 33, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 53, "PB_C2", 53, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Insulation Powder
-  auto kINS0 = Mixture(14, "INSULATION0$", ains, zins, 0.41, 4, wins);
-  auto kINS1 = Mixture(34, "INSULATION1$", ains, zins, 0.41, 4, wins);
-  auto kINS2 = Mixture(54, "INSULATION2$", ains, zins, 0.41, 4, wins);
-  Medium(14, "ABSO_INS_C0", kINS0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(34, "ABSO_INS_C1", kINS1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(54, "ABSO_INS_C2", kINS2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 14, "INSULATION0$", ains, zins, 0.41, 4, wins);
+  matmgr.Mixture("ABSO", 34, "INSULATION1$", ains, zins, 0.41, 4, wins);
+  matmgr.Mixture("ABSO", 54, "INSULATION2$", ains, zins, 0.41, 4, wins);
+  matmgr.Medium("ABSO", 14, "INS_C0", 14, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 34, "INS_C1", 34, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 54, "INS_C2", 54, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Air
-  auto kAir0 = Mixture(15, "AIR0$", aAir, zAir, dAir, 4, wAir);
-  auto kAir1 = Mixture(35, "AIR1$", aAir, zAir, dAir, 4, wAir);
-  auto kAir2 = Mixture(55, "AIR2$", aAir, zAir, dAir, 4, wAir);
-  Medium(15, "ABSO_AIR_C0", kAir0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(35, "ABSO_AIR_C1", kAir1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(55, "ABSO_AIR_C2", kAir2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 15, "AIR0$", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("ABSO", 35, "AIR1$", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("ABSO", 55, "AIR2$", aAir, zAir, dAir, 4, wAir);
+  matmgr.Medium("ABSO", 15, "AIR_C0", 15, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 35, "AIR_C1", 35, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 55, "AIR_C2", 55, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Vacuum
-  auto kVA0 = Mixture(16, "VACUUM0$", aAir, zAir, dAir1, 4, wAir);
-  auto kVA1 = Mixture(36, "VACUUM1$", aAir, zAir, dAir1, 4, wAir);
-  auto kVA2 = Mixture(56, "VACUUM2$", aAir, zAir, dAir1, 4, wAir);
-  Medium(16, "ABSO_VA_C0", kVA0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(36, "ABSO_VA_C1", kVA1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(56, "ABSO_VA_C2", kVA2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 16, "VACUUM0$", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("ABSO", 36, "VACUUM1$", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("ABSO", 56, "VACUUM2$", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Medium("ABSO", 16, "VA_C0", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 36, "VA_C1", 36, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 56, "VA_C2", 56, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Concrete
-  auto kCC0 = Mixture(17, "CONCRETE0$", aconc, zconc, 2.35, 10, wconc);
-  auto kCC1 = Mixture(37, "CONCRETE1$", aconc, zconc, 2.35, 10, wconc);
-  auto kCC2 = Mixture(57, "CONCRETE2$", aconc, zconc, 2.35, 10, wconc);
-  Medium(17, "ABSO_CC_C0", kCC0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(37, "ABSO_CC_C1", kCC1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(57, "ABSO_CC_C2", kCC2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 17, "CONCRETE0$", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Mixture("ABSO", 37, "CONCRETE1$", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Mixture("ABSO", 57, "CONCRETE2$", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Medium("ABSO", 17, "CC_C0", 17, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 37, "CC_C1", 37, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 57, "CC_C2", 57, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Polyethilene CH2
-  auto kCH2_0 = Mixture(18, "POLYETHYLEN0$", apoly, zpoly, .95, -2, wpoly);
-  auto kCH2_1 = Mixture(38, "POLYETHYLEN1$", apoly, zpoly, .95, 2, wpoly);
-  auto kCH2_2 = Mixture(58, "POLYETHYLEN2$", apoly, zpoly, .95, 2, wpoly);
-  Medium(18, "ABSO_CH2_C0", kCH2_0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(38, "ABSO_CH2_C1", kCH2_1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(58, "ABSO_CH2_C2", kCH2_2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 18, "POLYETHYLEN0$", apoly, zpoly, .95, -2, wpoly);
+  matmgr.Mixture("ABSO", 38, "POLYETHYLEN1$", apoly, zpoly, .95, 2, wpoly);
+  matmgr.Mixture("ABSO", 58, "POLYETHYLEN2$", apoly, zpoly, .95, 2, wpoly);
+  matmgr.Medium("ABSO", 18, "CH2_C0", 18, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 38, "CH2_C1", 38, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 58, "CH2_C2", 58, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Steel
-  auto kST0 = Mixture(19, "STAINLESS STEEL0$", asteel, zsteel, 7.88, 4, wsteel);
-  auto kST1 = Mixture(39, "STAINLESS STEEL1$", asteel, zsteel, 7.88, 4, wsteel);
-  auto kST2 = Mixture(59, "STAINLESS STEEL2$", asteel, zsteel, 7.88, 4, wsteel);
-  Medium(19, "ABSO_ST_C0", kST0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(39, "ABSO_ST_C1", kST1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(59, "ABSO_ST_C3", kST2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 19, "STAINLESS STEEL0$", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("ABSO", 39, "STAINLESS STEEL1$", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("ABSO", 59, "STAINLESS STEEL2$", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Medium("ABSO", 19, "ST_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 39, "ST_C1", 39, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 59, "ST_C3", 59, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   // Polymer Concrete
-  auto kPolyC0 = Mixture(20, "Poly Concrete0$", aPolyCc, zPolyCc, 3.53, -9, wPolyCc);
-  auto kPolyC1 = Mixture(40, "Poly Concrete1$", aPolyCc, zPolyCc, 3.53, 9, wPolyCc);
-  auto kPolyC2 = Mixture(60, "Poly Concrete2$", aPolyCc, zPolyCc, 3.53, 9, wPolyCc);
-  Medium(20, "ABSO_PCc_C0", kPolyC0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(40, "ABSO_PCc_C1", kPolyC1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(60, "ABSO_PCc_C3", kPolyC2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ABSO", 20, "Poly Concrete0$", aPolyCc, zPolyCc, 3.53, -9, wPolyCc);
+  matmgr.Mixture("ABSO", 40, "Poly Concrete1$", aPolyCc, zPolyCc, 3.53, 9, wPolyCc);
+  matmgr.Mixture("ABSO", 60, "Poly Concrete2$", aPolyCc, zPolyCc, 3.53, 9, wPolyCc);
+  matmgr.Medium("ABSO", 20, "PCc_C0", 20, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 40, "PCc_C1", 40, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ABSO", 60, "PCc_C3", 60, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drMax)
 {
+
   //
   // Returns new shape based on a template changing
   // the inner radii by drMin and the outer radii by drMax.
@@ -309,43 +281,37 @@ void Absorber::ConstructGeometry()
   //
   //
 
+  auto& matmgr = o2::Base::MaterialManager::Instance();
   Float_t z, z0, dz;
   //
   // The top volume
   //
   TGeoVolume* top = gGeoManager->GetVolume("cave");
 
-  auto GetMedium = [](const char* x) {
-    assert(gGeoManager);
-    auto med = gGeoManager->GetMedium(x);
-    assert(med);
-    return med;
-  };
-
   //
   // Media
   //
-  TGeoMedium* kMedNiW = GetMedium("ABSO_Ni/W0");
-  TGeoMedium* kMedNiWsh = GetMedium("ABSO_Ni/W3");
+  auto kMedNiW = matmgr.getTGeoMedium("ABSO_Ni/W0");
+  auto kMedNiWsh = matmgr.getTGeoMedium("ABSO_Ni/W3");
   //
-  TGeoMedium* kMedSteel = GetMedium("ABSO_ST_C0");
-  TGeoMedium* kMedSteelSh = GetMedium("ABSO_ST_C3");
+  auto kMedSteel = matmgr.getTGeoMedium("ABSO_ST_C0");
+  auto kMedSteelSh = matmgr.getTGeoMedium("ABSO_ST_C3");
   //
-  TGeoMedium* kMedAir = GetMedium("ABSO_AIR_C0");
+  auto kMedAir = matmgr.getTGeoMedium("ABSO_AIR_C0");
   //
-  TGeoMedium* kMedPb = GetMedium("ABSO_PB_C0");
-  TGeoMedium* kMedPbSh = GetMedium("ABSO_PB_C2");
+  auto kMedPb = matmgr.getTGeoMedium("ABSO_PB_C0");
+  auto kMedPbSh = matmgr.getTGeoMedium("ABSO_PB_C2");
   //
-  TGeoMedium* kMedConcSh = GetMedium("ABSO_CC_C2");
+  auto kMedConcSh = matmgr.getTGeoMedium("ABSO_CC_C2");
   //
-  TGeoMedium* kMedCH2Sh = GetMedium("ABSO_CH2_C2");
+  auto kMedCH2Sh = matmgr.getTGeoMedium("ABSO_CH2_C2");
   //
-  TGeoMedium* kMedC = GetMedium("ABSO_C_C0");
-  TGeoMedium* kMedCsh = GetMedium("ABSO_C_C2");
+  auto kMedC = matmgr.getTGeoMedium("ABSO_C_C0");
+  auto kMedCsh = matmgr.getTGeoMedium("ABSO_C_C2");
   //
-  TGeoMedium* kMedAlu = GetMedium("ABSO_ALU_C0");
+  auto kMedAlu = matmgr.getTGeoMedium("ABSO_ALU_C0");
   //
-  TGeoMedium* kMedMg = GetMedium("ABSO_MG_C0");
+  auto kMedMg = matmgr.getTGeoMedium("ABSO_MG_C0");
   //
   const Float_t kDegRad = TMath::Pi() / 180.;
 

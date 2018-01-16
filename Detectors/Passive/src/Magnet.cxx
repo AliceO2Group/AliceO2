@@ -21,16 +21,15 @@
 // -------------------------------------------------------------------------
 
 #include <DetectorsBase/Detector.h>
+#include <DetectorsBase/MaterialManager.h>
 #include <DetectorsPassive/Magnet.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoManager.h>
-#include <TGeoMaterial.h>
 #include <TGeoMatrix.h>
 #include <TGeoMedium.h>
 #include <TGeoPgon.h>
 #include <TGeoVolume.h>
 #include <TGeoXtru.h>
-#include <TVirtualMC.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -56,38 +55,9 @@ Magnet& Magnet::operator=(const Magnet& rhs)
   return *this;
 }
 
-namespace
-{
-// only here temporarily, I would like to harmonize Material treatment (outside of base detector)
-int Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
-             Float_t* buf = nullptr, Int_t nwbuf = 0)
-{
-  int kmat = -1;
-  TVirtualMC::GetMC()->Material(kmat, name, a, z, dens, radl, absl, buf, nwbuf);
-  return kmat;
-}
-
-int Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat = nullptr)
-{
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Mixture(kmat, name, a, z, dens, nlmat, wmat);
-  return kmat;
-}
-
-int Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm, Float_t tmaxfd,
-           Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf = nullptr, Int_t nbuf = 0)
-{
-  // Check this!!!
-  int kmed = -1;
-  TVirtualMC::GetMC()->Medium(kmed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf,
-                              nbuf);
-  return kmed;
-}
-}
-
 void Magnet::createMaterials()
 {
+  auto& matmgr = o2::Base::MaterialManager::Instance();
   //
   // Create materials for L3 magnet
   //
@@ -110,24 +80,24 @@ void Magnet::createMaterials()
   Float_t wWater[2] = { 0.111894, 0.888106 };
 
   //     Aluminum
-  auto kAl0MatId = Material(9, "Al0$", 26.98, 13., 2.7, 8.9, 37.2);
-  auto kAl1MatId = Material(29, "Al1$", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Material("MAG", 9, "Al0$", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Material("MAG", 29, "Al1$", 26.98, 13., 2.7, 8.9, 37.2);
 
   //     Stainless Steel
-  auto kSteel1MatId = Mixture(19, "STAINLESS STEEL1", asteel, zsteel, 7.88, 4, wsteel);
-  auto kSteel2MatId = Mixture(39, "STAINLESS STEEL2", asteel, zsteel, 7.88, 4, wsteel);
-  auto kSteel3MatId = Mixture(59, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("MAG", 19, "STAINLESS STEEL1", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("MAG", 39, "STAINLESS STEEL2", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("MAG", 59, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
 
   //     Iron
-  auto kFe0MatId = Material(10, "Fe0$", 55.85, 26., 7.87, 1.76, 17.1);
-  auto kFe1MatId = Material(30, "Fe1$", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Material("MAG", 10, "Fe0$", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Material("MAG", 30, "Fe1$", 55.85, 26., 7.87, 1.76, 17.1);
 
   //     Air
-  auto kAir0MatId = Mixture(15, "AIR0$", aAir, zAir, dAir, 4, wAir);
-  auto kAir1MatId = Mixture(35, "AIR1$", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("MAG", 15, "AIR0$", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("MAG", 35, "AIR1$", aAir, zAir, dAir, 4, wAir);
 
   //     Water
-  auto kWaterMatId = Mixture(16, "WATER", aWater, zWater, 1., 2, wWater);
+  matmgr.Mixture("MAG", 16, "WATER", aWater, zWater, 1., 2, wWater);
 
   // ****************
   //     Defines tracking media parameters.
@@ -141,23 +111,23 @@ void Magnet::createMaterials()
   // ***************
 
   //    IRON
-  Medium(10, "MAG_FE_C0", kFe0MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(30, "MAG_FE_C1", kFe1MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 10, "FE_C0", 10, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 30, "FE_C1", 30, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //     ALUMINUM
-  Medium(9, "MAG_ALU_C0", kAl0MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(29, "MAG_ALU_C1", kAl1MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 9, "ALU_C0", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 29, "ALU_C1", 29, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //     AIR
-  Medium(15, "MAG_AIR_C0", kAir0MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(35, "MAG_AIR_C1", kAir1MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 15, "AIR_C0", 15, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 35, "AIR_C1", 35, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Steel
-  Medium(19, "MAG_ST_C0", kSteel1MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(39, "MAG_ST_C1", kSteel2MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  Medium(59, "MAG_ST_C3", kSteel3MatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 19, "ST_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 39, "ST_C1", 39, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 59, "ST_C3", 59, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   //    WATER
-  Medium(16, "MAG_WATER", kWaterMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("MAG", 16, "WATER", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 void Magnet::ConstructGeometry()
@@ -206,21 +176,12 @@ void Magnet::ConstructGeometry()
   assert(top);
 
   // Media
-  TGeoMedium* medAir = gGeoManager->GetMedium("MAG_AIR_C1");
-  assert(medAir);
-
-  TGeoMedium* medAlu = gGeoManager->GetMedium("MAG_ALU_C1");
-  assert(medAlu);
-
-  TGeoMedium* medAluI = gGeoManager->GetMedium("MAG_ALU_C0");
-  assert(medAluI);
-
-  TGeoMedium* medSteel = gGeoManager->GetMedium("MAG_ST_C1");
-  assert(medSteel);
-
-  TGeoMedium* medWater = gGeoManager->GetMedium("MAG_WATER");
-  assert(medWater);
-
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto medAir = matmgr.getTGeoMedium("MAG_AIR_C1");
+  auto medAlu = matmgr.getTGeoMedium("MAG_ALU_C1");
+  auto medAluI = matmgr.getTGeoMedium("MAG_ALU_C0");
+  auto medSteel = matmgr.getTGeoMedium("MAG_ST_C1");
+  auto medWater = matmgr.getTGeoMedium("MAG_WATER");
   //
   // Offset between LHC and LEP axis
   Float_t os = -30.;
