@@ -17,7 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define CADEBUG 0
+#define HLTCA_CADEBUG 0
 
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackParam.h"
@@ -86,7 +86,7 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
   GPUglobalref() MEM_GLOBAL(AliHLTTPCCATracklet) &tracklet = tracker.Tracklets()[r.fItr];
 
   tracklet.SetNHits( r.fNHits );
-  CADEBUG(printf("    DONE %d hits\n", r.fNHits);)
+  CADEBUG(printf("    DONE %d hits\n", r.fNHits))
 
   if ( r.fNHits > 0 ) {
     tracklet.SetFirstRow( r.fFirstRow );

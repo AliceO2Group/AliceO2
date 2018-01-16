@@ -321,14 +321,12 @@ struct cahit2{cahit x, y;};
 #define HLTCA_EVDUMP_FILE "event"
 #endif
 
-#ifdef CADEBUG
-#if CADEBUG == 1
-#undef CADEBUG
+#endif //ALIHLTTPCCADEF_H
+
+#if defined(HLTCA_CADEBUG) && !defined(CADEBUG)
+#if HLTCA_CADEBUG == 1
 #define CADEBUG(...) __VA_ARGS__
 #else
-#undef CADEBUG
 #define CADEBUG(...)
 #endif
 #endif
-
-#endif //ALIHLTTPCCADEF_H
