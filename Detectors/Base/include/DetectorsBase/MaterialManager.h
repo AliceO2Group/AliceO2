@@ -17,6 +17,8 @@
 #include "Rtypes.h"
 #include <map>
 
+class TGeoMedium;
+
 namespace o2
 {
 namespace Base
@@ -45,10 +47,13 @@ class MaterialManager
               Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf = nullptr,
               Int_t nbuf = 0);
 
+ private:
   // insert material name
   void insertMaterialName(const char* uniquename, int index);
   void insertMediumName(const char* uniquename, int index);
+  void insertTGeoMedium(std::string modname, int localindex);
 
+ public:
   // returns global material ID given a "local" material ID for this detector
   // returns -1 in case local ID not found
   int getMaterialID(const char* modname, int imat) const
@@ -82,6 +87,10 @@ class MaterialManager
     }
     return -1;
   }
+
+  // various methods to get the TGeoMedium instance
+  TGeoMedium* getTGeoMedium(const std::string& modname, int localid);
+  TGeoMedium* getTGeoMedium(const char* mediumname);
 
   // fill the medium index mapping into a standard vector
   // the vector gets sized properly and will be overridden
@@ -118,6 +127,12 @@ class MaterialManager
   std::map<std::string, std::map<int, int>>
     mMaterialMap; // map of name -> map of local index to global index for Materials
   std::map<std::string, std::map<int, int>> mMediumMap; // map of name -> map of local index to global index for Media
+
+  // a map allowing to lookup TGeoMedia from detector name and local medium index
+  std::map<std::pair<std::string, int>, TGeoMedium*> mTGeoMediumMap;
+
+  // finally, I would like to keep track of tracking parameters and processes activated per medium
+
 
   std::map<std::string, int> mMaterialNameToGlobalIndexMap; // map of unique material name to global index
   std::map<std::string, int> mMediumNameToGlobalIndexMap;

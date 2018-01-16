@@ -14,7 +14,12 @@
 #include "DetectorsBase/MaterialManager.h"
 #include <TVirtualMC.h>  // for TVirtualMC, gMC
 #include "TString.h"     // for TString
+#include <TGeoMedium.h>
+#include <TGeoManager.h>
+#include <TList.h>
 #include <iostream>
+#include <utility>
+#include <FairLogger.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -67,6 +72,7 @@ void MaterialManager::Medium(const char* modname, Int_t numed, const char* name,
                               stmin, ubuf, nbuf);
   mMediumMap[modname][numed] = kmed;
   insertMediumName(uniquename.Data(), kmed);
+  insertTGeoMedium(modname, numed);
 }
 
 void MaterialManager::printMaterials() const
@@ -98,10 +104,42 @@ void MaterialManager::insertMaterialName(const char* uniquename, int index)
   mMaterialNameToGlobalIndexMap[uniquename] = index;
 }
 
+// inserts the last
+void MaterialManager::insertTGeoMedium(std::string modname, int localindex)
+{
+  auto p = std::make_pair(modname, localindex);
+  assert(mTGeoMediumMap.find(p) == mTGeoMediumMap.end());
+  auto list = gGeoManager->GetListOfMedia();
+  mTGeoMediumMap[p] = (TGeoMedium*)list->At(list->GetEntries() - 1);
+
+  std::cerr << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName() << "\n";
+}
+
 void MaterialManager::insertMediumName(const char* uniquename, int index)
 {
   assert(mMediumNameToGlobalIndexMap.find(uniquename) == mMediumNameToGlobalIndexMap.end());
   mMediumNameToGlobalIndexMap[uniquename] = index;
+}
+
+// find TGeoMedium instance given a detector prefix and a local (vmc) medium index
+TGeoMedium* MaterialManager::getTGeoMedium(std::string const& modname, int localindex)
+{
+  auto p = std::make_pair(modname, localindex);
+  auto iter = mTGeoMediumMap.find(p);
+  if (iter == mTGeoMediumMap.end()) {
+    LOG(WARNING) << "No medium registered for " << modname << " index " << localindex << "\n";
+    return nullptr;
+  }
+  return iter->second;
+}
+
+// find TGeoMedium instance given the full medium name
+// mainly forwards directly to TGeoManager and raises a warning if medium is nullptr
+TGeoMedium* MaterialManager::getTGeoMedium(const char* mediumname)
+{
+  auto med = gGeoManager->GetMedium(mediumname);
+  assert(med != nullptr);
+  return med;
 }
 
 ClassImp(o2::Base::MaterialManager)
