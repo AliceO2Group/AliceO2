@@ -86,15 +86,36 @@ public:
   static const size_t tailOffset = typesize<TrailerType>::size;
   static const size_t totalOffset = headOffset + tailOffset;
 
+  // alias for callback checking the header, return true if the object
+  // is a valid header
   using CheckHeaderFct = std::function<bool(const HeaderType&)>;
-  using CheckTrailerFct = std::function<bool(const TrailerType&)>;
+
+  // alias for the argument type to be used in the CheckTrailer function
+  // have to forward to a valid type in case of void TrailerType in order
+  // to allow passing by reference
+  using CheckTrailerFctArgumentT = typename std::conditional<
+    !std::is_void<TrailerType>::value, TrailerType, int>::type;
+
+  // alias for callback checking the trailer, takes reference to trailer
+  // object if TrailerType is a valid type, no argument otherwise 
+  template <typename U>
+  using CheckTrailerFct = typename std::conditional<
+    !std::is_void<U>::value,
+    std::function<bool(const CheckTrailerFctArgumentT&)>,
+    std::function<bool()>>::type;
+
+  // alias for callback to get the complete frame size including header,
+  // trailer and the data
   using GetFrameSizeFct = std::function<size_t(const HeaderType& )>;
+
+  // function callback to insert/handle one frame into, sequentially called
+  // for all frames if the whole block has a valid format
   using InsertFct = std::function<bool(FrameInfo&)>;
 
   template<typename InputType>
   int parse(const InputType* buffer, size_t bufferSize,
             CheckHeaderFct checkHeader,
-            CheckTrailerFct checkTrailer,
+            CheckTrailerFct<TrailerType> checkTrailer,
             GetFrameSizeFct getFrameSize,
             InsertFct insert) {
     static_assert(sizeof(InputType) == 1,
@@ -126,7 +147,7 @@ public:
       } else {
         auto trailerStart = buffer + position + frameSize - tailOffset;
         entry.trailer = reinterpret_cast<const TrailerType*>(trailerStart);
-        if (!checkTrailer(*entry.trailer)) break;
+        if (!CheckTrailer(entry, checkTrailer)) break;
       }
 
       // store the extracted frame info and continue with remaining buffer
@@ -149,6 +170,29 @@ public:
     // format error detected
     // TODO: decide about error policy
     return -1;
+  }
+
+  template<typename InputType, typename U = TrailerType>
+  typename std::enable_if<std::is_void<U>::value, int>::type
+      parse(const InputType* buffer, size_t bufferSize,
+            CheckHeaderFct checkHeader,
+            GetFrameSizeFct getFrameSize,
+            InsertFct insert) {
+    auto checkTrailer = [] () {return true;};
+    return parse(buffer, bufferSize, checkHeader, checkTrailer, getFrameSize, insert);
+  }
+
+private:
+  template <typename U = TrailerType>
+  typename std::enable_if<!std::is_void<U>::value, bool>::type
+  CheckTrailer(const FrameInfo& entry, CheckTrailerFct<TrailerType>& checkTrailer) const {
+    return checkTrailer(*entry.trailer);
+  }
+
+  template <typename U = TrailerType>
+  typename std::enable_if<std::is_void<U>::value, bool>::type
+  CheckTrailer(const FrameInfo&, CheckTrailerFct<TrailerType>&) const {
+    return true;
   }
 };
 
@@ -198,9 +242,11 @@ public:
     PtrT payload = nullptr;
     size_t length = 0;
   };
-  // the length offset due to header and trailer
+  /// the length offset due to header
   static const size_t headOffset = typesize<HeaderType>::size;
+  /// the length offset due to trailer
   static const size_t tailOffset = typesize<TrailerType>::size;
+  /// total length offset due to header and trailer
   static const size_t totalOffset = headOffset + tailOffset;
 
   using CheckHeaderFct = std::function<bool(const HeaderType&)>;

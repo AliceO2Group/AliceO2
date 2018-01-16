@@ -68,6 +68,7 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
     return trailer.identifier == 0xaaffee00;
   };
   auto getFrameSize = [] (const typename ParserT::HeaderType& header) {
+    // frame size includes total offset from header and trailer
     return header.payloadSize + ParserT::totalOffset;
   };
 
@@ -93,7 +94,126 @@ BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)
   BOOST_CHECK(memcmp(frames[2].payload, "dummydata",       frames[2].length) == 0);
 }
 
-// TODO: make a test of a composite with header and payload
+BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_void_trailer)
+{
+  using FrameT = o2::algorithm::Composite<Header>;
+  // note: the length of the data is set in the header word
+  using TestFrame = o2::algorithm::StaticSequenceAllocator;
+  TestFrame tf(FrameT(16, "lotsofsillydata"),
+               FrameT(5,  "test"),
+               FrameT(10, "dummydata")
+               );
+
+  using ParserT = o2::algorithm::ForwardParser<typename FrameT::HeaderType,
+                                               typename FrameT::TrailerType>;
+
+  auto checkHeader = [] (const typename FrameT::HeaderType& header) {
+    return header.identifier == 0xdeadbeef;
+  };
+
+  auto getFrameSize = [] (const typename ParserT::HeaderType& header) {
+    // frame size includes total offset from header and trailer
+    return header.payloadSize + ParserT::totalOffset;
+  };
+
+  std::vector<typename ParserT::FrameInfo> frames;
+  auto insert = [&frames] (typename ParserT::FrameInfo& info) {
+    frames.emplace_back(info);
+    return true;
+  };
+
+  ParserT parser;
+  auto result = parser.parse(tf.buffer.get(), tf.size(),
+                             checkHeader,
+                             getFrameSize,
+                             insert
+                             );
+
+  BOOST_REQUIRE(result == 3);
+  BOOST_REQUIRE(frames.size() == 3);
+
+  BOOST_CHECK(memcmp(frames[0].payload, "lotsofsillydata", frames[0].length) == 0);
+  BOOST_CHECK(memcmp(frames[1].payload, "test",            frames[1].length) == 0);
+  BOOST_CHECK(memcmp(frames[2].payload, "dummydata",       frames[2].length) == 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_forwardparser_no_frames)
+{
+  using FrameT = o2::algorithm::Composite<Header>;
+  // note: the length of the data is set in the header word
+  using TestFrame = o2::algorithm::StaticSequenceAllocator;
+  TestFrame tf(FrameT(16, "lotsofsillydata"),
+               FrameT(5,  "test"),
+               FrameT(10, "dummydata")
+               );
+
+  using ParserT = o2::algorithm::ForwardParser<typename FrameT::HeaderType,
+                                               typename FrameT::TrailerType>;
+
+  auto checkHeader = [] (const typename FrameT::HeaderType& header) {
+    // simply indicate invalid header to read no frames
+    return false;
+  };
+
+  auto getFrameSize = [] (const typename ParserT::HeaderType& header) {
+    // frame size includes total offset from header and trailer
+    return header.payloadSize + ParserT::totalOffset;
+  };
+
+  std::vector<typename ParserT::FrameInfo> frames;
+  auto insert = [&frames] (typename ParserT::FrameInfo& info) {
+    frames.emplace_back(info);
+    return true;
+  };
+
+  ParserT parser;
+  auto result = parser.parse(tf.buffer.get(), tf.size(),
+                             checkHeader,
+                             getFrameSize,
+                             insert
+                             );
+
+  // check that there are really no frames found
+  BOOST_REQUIRE(result == 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_forwardparser_format_error)
+{
+  using FrameT = o2::algorithm::Composite<Header>;
+  // note: the length of the data is set in the header word
+  using TestFrame = o2::algorithm::StaticSequenceAllocator;
+  TestFrame tf(FrameT(16, "lotsofsillydata"),
+               FrameT(4,  "test"), // <- note wrong size
+               FrameT(10, "dummydata")
+               );
+
+  using ParserT = o2::algorithm::ForwardParser<typename FrameT::HeaderType,
+                                               typename FrameT::TrailerType>;
+
+  auto checkHeader = [] (const typename FrameT::HeaderType& header) {
+    return header.identifier == 0xdeadbeef;
+  };
+
+  auto getFrameSize = [] (const typename ParserT::HeaderType& header) {
+    // frame size includes total offset from header and trailer
+    return header.payloadSize + ParserT::totalOffset;
+  };
+
+  std::vector<typename ParserT::FrameInfo> frames;
+  auto insert = [&frames] (typename ParserT::FrameInfo& info) {
+    frames.emplace_back(info);
+    return true;
+  };
+
+  ParserT parser;
+  auto result = parser.parse(tf.buffer.get(), tf.size(),
+                             checkHeader,
+                             getFrameSize,
+                             insert
+                             );
+
+  BOOST_REQUIRE(result == -1);
+}
 
 BOOST_AUTO_TEST_CASE(test_reverseparser)
 {
