@@ -120,3 +120,37 @@ BOOST_AUTO_TEST_CASE(test_tableview_reverse)
     BOOST_CHECK(rowidx == requiredNofRowsInColumn[colidx]);
   }
 }
+
+BOOST_AUTO_TEST_CASE(test_tableview_formaterror)
+{
+  using FrameT = o2::algorithm::Composite<HeartbeatHeader, HeartbeatTrailer>;
+  using TestFrame = o2::algorithm::StaticSequenceAllocator;
+  // note: the length of the data is set in the trailer word
+  // specifying wrong length in the second entry, no frames should be added
+  TestFrame tf1(FrameT({0x1100000000000000}, "heartbeatdata", {0x510000000000000e}),
+                FrameT({0x1100000000000001}, "test", {0x5100000000000004}),
+                FrameT({0x1100000000000003}, "dummydata", {0x510000000000000a})
+                );
+
+  // the payload length is set in the trailer, so we need a reverse parser
+  using ParserT = o2::algorithm::ReverseParser<typename FrameT::HeaderType,
+                                               typename FrameT::TrailerType>;
+
+  // define the view type for DataHeader as row descriptor,
+  // HeartbeatHeader as column descriptor and the reverse parser
+  using ViewType = o2::algorithm::TableView<o2::header::DataHeader,
+                                            o2::header::HeartbeatHeader,
+                                            ParserT>;
+  ViewType heartbeatview;
+
+  o2::Header::DataHeader dh;
+  dh.dataDescription = o2::Header::DataDescription("FIRSTSLOT");
+  dh.dataOrigin = o2::Header::DataOrigin("TST");
+  dh.subSpecification = 0;
+  dh.payloadSize = 0;
+
+  heartbeatview.addRow(dh, tf1.buffer.get(), tf1.size());
+
+  BOOST_CHECK(heartbeatview.getNRows() == 0);
+  BOOST_CHECK(heartbeatview.getNColumns() == 0);
+}

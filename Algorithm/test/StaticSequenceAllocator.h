@@ -21,21 +21,38 @@ namespace algorithm {
  * and a trailer
  */
 template <typename HeaderT
-          , typename TrailerT>
+          , typename TrailerT = void>
 struct Composite {
   using HeaderType = HeaderT;
   using TrailerType = TrailerT;
   size_t compositeLength = 0;
+  size_t trailerLength = 0;
   size_t dataLength = 0;
 
-  template<size_t N>
-  constexpr Composite(const HeaderType& h, const char  (&d)[N], const TrailerType& t)
+  template<size_t N,
+	   typename U = TrailerType>
+  constexpr Composite(const HeaderType h, const char  (&d)[N],
+		      typename std::conditional<!std::is_void<U>::value, const TrailerType, int>::type t,
+		      typename std::enable_if<!std::is_void<U>::value>::type* = nullptr)
     : header(h)
     , data(d)
     , trailer(t)
   {
     dataLength = N;
-    compositeLength = sizeof(HeaderType) + dataLength + sizeof(TrailerType);
+    trailerLength = sizeof(TrailerType);
+    compositeLength = sizeof(HeaderType) + dataLength + trailerLength;
+  }
+
+  template<size_t N,
+	   typename U = TrailerType>
+  constexpr Composite(const HeaderType& h, const char  (&d)[N],
+		      typename std::enable_if<std::is_void<U>::value>::type* = nullptr)
+    : header(h)
+    , data(d)
+  {
+    dataLength = N;
+    trailerLength = 0;
+    compositeLength = sizeof(HeaderType) + dataLength + trailerLength;
   }
 
   constexpr size_t getLength() const noexcept {
@@ -54,14 +71,16 @@ struct Composite {
     length += sizeof(HeaderType);
     memcpy(buffer + length, data, dataLength);
     length += dataLength;
-    memcpy(buffer + length, &trailer, sizeof(TrailerType));
-    length += sizeof(TrailerType);
+    if (trailerLength > 0) {
+      memcpy(buffer + length, &trailer, trailerLength);
+      length += trailerLength;
+    }
     return length;
   }
 
-  const HeaderType& header;
+  const HeaderType header;
   const char* data = nullptr;
-  const TrailerType& trailer;
+  typename std::conditional<!std::is_void<TrailerType>::value, const TrailerType, int>::type trailer;
 };
 
 /// recursively calculate the length of the sequence
