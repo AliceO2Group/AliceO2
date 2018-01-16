@@ -309,6 +309,8 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
     param.SetNWaysOuter(fNWaysOuter);
   }
 
+  param.LoadClusterErrors( kTRUE );
+
   fGlobalMerger->SetSliceParam( param );
 
   return iResult1 ? iResult1 : ( iResult2 ? iResult2 : iResult3 );

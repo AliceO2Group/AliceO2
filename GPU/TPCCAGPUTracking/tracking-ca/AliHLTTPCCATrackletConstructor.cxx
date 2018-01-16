@@ -178,7 +178,9 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           tParam.SetSignCosPhi( dx );
           tParam.SetDzDs( dz*ri );
           //std::cout << "Init. errors... " << r.fItr << std::endl;
-          tracker.GetErrors2( iRow, tParam, err2Y, err2Z );
+          tracker.GetErrors( iRow, tParam, err2Y, err2Z );
+	  err2Y*=err2Y;
+	  err2Z*=err2Z;
           //std::cout << "Init. errors = " << err2Y << " " << err2Z << std::endl;
           tParam.SetCov( 0, err2Y );
           tParam.SetCov( 2, err2Z );
@@ -197,7 +199,9 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           break;
         }
         CADEBUG(printf("%15s hits %3d: FIT PROP  ROW %3d X %8.3f -", "", r.fNHits, iRow, tParam.X());for (int i = 0;i < 5;i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0;i < 15;i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
-        tracker.GetErrors2( iRow, tracker.Param().GetContinuousTracking() ? 125. : tParam.GetZ(), sinPhi, cosPhi, tParam.GetDzDs(), err2Y, err2Z );
+        tracker.GetErrors( iRow, tracker.Param().GetContinuousTracking() ? 125. : tParam.GetZ(), sinPhi, cosPhi, tParam.GetDzDs(), err2Y, err2Z );
+	err2Y*=err2Y;
+	err2Z*=err2Z;
 
         if (r.fNHits >= 10)
         {
@@ -279,7 +283,9 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       calink best = CALINK_INVAL;
 
       { // search for the closest hit
-        tracker.GetErrors2( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
+        tracker.GetErrors( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
+	err2Y*=err2Y;
+	err2Z*=err2Z;
         const float kFactor = tracker.Param().HitPickUpFactor() * tracker.Param().HitPickUpFactor() * 3.5 * 3.5;
         float sy2 = kFactor * ( tParam.GetErr2Y() +  err2Y );
         float sz2 = kFactor * ( tParam.GetErr2Z() +  err2Z );
@@ -388,7 +394,9 @@ GPUdi() void AliHLTTPCCATrackletConstructor::DoTracklet(GPUconstant() MEM_CONSTA
             {
                 CADEBUG(printf("%14s: SEA BACK  ROW %3d X %8.3f -", "", iRow, tParam.X());for (int i = 0;i < 5;i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0;i < 15;i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
     			float err2Y, err2Z;
-    			tracker.GetErrors2( r.fEndRow, tParam, err2Y, err2Z );
+    			tracker.GetErrors( r.fEndRow, tParam, err2Y, err2Z );
+			err2Y*=err2Y;
+			err2Z*=err2Z;
     			if (tParam.GetCov(0) < err2Y) tParam.SetCov(0, err2Y);
     			if (tParam.GetCov(2) < err2Z) tParam.SetCov(2, err2Z);
                 CADEBUG(printf("%14s: SEA ADJUS ROW %3d X %8.3f -", "", iRow, tParam.X());for (int i = 0;i < 5;i++) printf(" %8.3f", tParam.Par()[i]); printf(" -"); for (int i = 0;i < 15;i++) printf(" %8.3f", tParam.Cov()[i]); printf("\n");)
