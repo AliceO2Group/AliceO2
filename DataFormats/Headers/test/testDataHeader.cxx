@@ -147,6 +147,10 @@ namespace o2 {
       // DataHeader must have size 80
       static_assert(sizeof(DataHeader) == 80,
                     "DataHeader struct must be of size 80");
+
+      DataHeader dh2;
+      dh2 = DataOrigin("TPC");
+      BOOST_CHECK(dh2 == DataOrigin("TPC"));
     }
 
     BOOST_AUTO_TEST_CASE(Descriptor_benchmark)
