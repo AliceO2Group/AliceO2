@@ -23,27 +23,19 @@ using namespace o2::tof;
 
 ClassImp(Digitizer);
 
-void Digitizer::digitize()
-{
-  // loop over hits (to be added)
-
-  // HitType *hit = NULL;
-
-  // if(hit) processHit(hit);
-}
-
-void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* digits,Double_t event_time){
+void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* digits){
   // hits array of TOF hits for a given simulated event
+  digits->clear();
   mDigits = digits;
-  Int_t nhits = hits->size(); // it should have hits vector size
 
+  //TODO move this to the geo
   const Int_t timeframewindow = 1000; // to be set in Geo.h, now it is set to 1microsecond = 1000 ns
 
   for (auto& hit : *hits) {
     Int_t timeframe =
-      Int_t((event_time + hit.GetTime()) / timeframewindow); // to be replaced with uncalibrated time
+      Int_t((mEventTime + hit.GetTime()) / timeframewindow); // to be replaced with uncalibrated time
     if (timeframe == mTimeFrameCurrent) {
-      processHit(hit, event_time);
+      processHit(hit, mEventTime);
     }
   } // end loop over hits
 }
@@ -451,7 +443,7 @@ void Digitizer::test(const char* geo)
 
     hit->SetEnergyLoss(0.0001);
 
-    processHit(*hit);
+    processHit(*hit, mEventTime);
 
     h3->Fill(getNumDigitLastHit());
     hpadAll->Fill(xlocal, zlocal);
@@ -546,7 +538,7 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
 
       hit->SetEnergyLoss(t->GetLeaf("o2root.TOF.TOFHit.mELoss")->GetValue(j));
 
-      processHit(*hit);
+      processHit(*hit, mEventTime);
 
       h3->Fill(getNumDigitLastHit());
       for (Int_t k = 0; k < getNumDigitLastHit(); k++) {

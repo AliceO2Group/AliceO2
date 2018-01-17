@@ -19,18 +19,15 @@ namespace o2
 {
 namespace tof
 {
-class Digitizer : public TObject
+class Digitizer
 {
  public:
  Digitizer(Int_t mode = 0) : mMode(mode), mTimeFrameCurrent(0) { initParameters(); };
 
-  ~Digitizer() override = default;
+  ~Digitizer() = default;
 
-  void digitize();
+  void process(const std::vector<HitType>* hits,std::vector<Digit>* digits);
 
-  void process(const std::vector<HitType>* hits,std::vector<Digit>* digits,Double_t event_time=0); 
-
-  void processHit(const HitType &hit,Double_t event_time=0);
   void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired);
   Float_t getShowerTimeSmeared(Float_t time, Float_t charge);
   Float_t getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float_t charge);
@@ -88,7 +85,9 @@ class Digitizer : public TObject
   Int_t mXshift[6]; //! shift wrt central pad
   Int_t mZshift[6]; //! shift wrt central pad
 
-  ClassDefOverride(Digitizer, 2);
+  void processHit(const HitType &hit,Double_t event_time);
+
+  ClassDefNV(Digitizer, 1);
 };
 }
 }
