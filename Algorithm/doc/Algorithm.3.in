@@ -1,0 +1,12 @@
+.\" Alice O2 manpage for module Algorithm
+.TH "AliceO2" 3 "17 Jan 2017" "1.0" "Algorithm man page"
+
+.SH NAME
+AliceO2 - module
+.B Algorithm
+
+.SH DESCRIPTION
+A collection of generic algorithms for Alice O2
+
+.SH SEE ALSO
+algorithm_parser(3)
