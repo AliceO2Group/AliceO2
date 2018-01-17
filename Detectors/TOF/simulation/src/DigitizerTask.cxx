@@ -74,7 +74,7 @@ void DigitizerTask::Exec(Option_t* option)
   // mDigitizer.setCurrEvID( mEventID );
 
   LOG(INFO) << "Digitizing " << mHitsArray->size() << " hits \n";
-  mDigitizer.process(mHitsArray, mgr->GetEventTime());
+  mDigitizer.process(mHitsArray, mDigitsArray);
 
   mEventID++;
 }
