@@ -15,7 +15,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
  
-#pragma link C++ class o2::common::TreeStream+;
-#pragma link C++ class o2::common::TreeStreamRedirector+;
+#pragma link C++ class o2::utils::TreeStream+;
+#pragma link C++ class o2::utils::TreeStreamRedirector+;
 
 #endif
