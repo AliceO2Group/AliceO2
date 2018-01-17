@@ -21,6 +21,19 @@ namespace o2 { class MCCompLabel; namespace dataformats { template <class T> cla
 
 namespace o2 { namespace DataFormat { namespace TPC {
 
+/**
+ * \struct ClusterNative
+ * A transient data structure for clusters in TPC-native pad,
+ * and time format. To keep it as small as possible, row coordinate is
+ * kept outside in the meta information for a sequence of ClusterNative
+ * objects.
+ *
+ * Structure holds float values in a packed integral format, scaling
+ * factors are chosen according to TPC resolution. The 24-bit wide time
+ * field allows unique values within 512 TPC drift lengths.
+ *
+ * Not for permanent storage.
+ */
 struct ClusterNative {
   static constexpr int scaleTimePacked = 64; //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
   static constexpr int scalePadPacked = 64;  //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
@@ -40,17 +53,24 @@ struct ClusterNative {
   void setTimePacked(uint32_t timePacked) {timeFlagsPacked = (timePacked & 0xFFFFFF) | (timeFlagsPacked & 0xFF000000);}
   void setFlags(uint8_t flags) {timeFlagsPacked = (timeFlagsPacked & 0xFFFFFF) | ((uint32_t) flags << 24);}
   
-  float getTime() const {return (timeFlagsPacked & 0xFFFFFF) / scaleTimePacked;}
-  void setTime(float time) {timeFlagsPacked = (((uint32_t) (time * scaleTimePacked + 0.5)) & 0xFFFFFF) | (timeFlagsPacked & 0xFF000000);}
-  void setTimeFlags(float time, uint8_t flags) {timeFlagsPacked = (((uint32_t) (time * scaleTimePacked + 0.5)) & 0xFFFFFF) | ((uint32_t) flags << 24);}
-  float getPad() const {return padPacked / scalePadPacked;}
-  void setPad(float pad) {padPacked = (uint16_t) (pad * scalePadPacked + 0.5);}
-  float getSigmaTime() const {return sigmaTimePacked / scaleSigmaTimePacked;}
+  float getTime() const {return float(timeFlagsPacked & 0xFFFFFF) / scaleTimePacked;}
+  void setTime(float time) {timeFlagsPacked = (((decltype(timeFlagsPacked)) (time * scaleTimePacked + 0.5)) & 0xFFFFFF) | (timeFlagsPacked & 0xFF000000);}
+  void setTimeFlags(float time, uint8_t flags) {timeFlagsPacked = (((decltype(timeFlagsPacked)) (time * scaleTimePacked + 0.5)) & 0xFFFFFF) | ((decltype(timeFlagsPacked)) flags << 24);}
+  float getPad() const {return float(padPacked) / scalePadPacked;}
+  void setPad(float pad) {padPacked = (decltype(padPacked)) (pad * scalePadPacked + 0.5);}
+  float getSigmaTime() const {return float(sigmaTimePacked) / scaleSigmaTimePacked;}
   void setSigmaTime(float sigmaTime) {uint32_t tmp = sigmaTime * scaleSigmaTimePacked + 0.5; if (tmp > 0xFF) tmp = 0xFF; sigmaTimePacked = tmp;}
-  float getSigmaPad() const {return sigmaPadPacked / scaleSigmaPadPacked;}
+  float getSigmaPad() const {return float(sigmaPadPacked) / scaleSigmaPadPacked;}
   void setSigmaPad(float sigmaPad) {uint32_t tmp = sigmaPad * scaleSigmaPadPacked + 0.5; if (tmp > 0xFF) tmp = 0xFF; sigmaPadPacked = tmp;}
 };
 
+/**
+ * \struct ClusterNativeContainer
+ * A container class for a collection of ClusterNative object
+ * belonging to a row.
+ *
+ * Not for permanent storage.
+ */
 struct ClusterNativeContainer
 {
   static bool sortComparison(const ClusterNative& a, const ClusterNative& b) {if (a.getTimePacked() != b.getTimePacked()) return(a.getTimePacked() < b.getTimePacked()); else return(a.padPacked < b.padPacked);}
