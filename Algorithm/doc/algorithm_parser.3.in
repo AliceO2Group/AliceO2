@@ -1,0 +1,135 @@
+.\" Alice O2 manpage for parser algorithms
+.TH "AliceO2" 3 "17 Jan 2017" "1.0" "Algorithm Parser man page"
+
+.SH NAME
+AliceO2 - module
+.B Algorithm
+- data parsers
+
+.SH SYNOPSIS
+.B ForwardParser<
+.I SomeHeaderType
+,
+.I SomeTrailerType
+.B >
+
+.B ReverseParser<
+.I SomeHeaderType
+,
+.I SomeTrailerType
+.B >
+
+.SS Public types
+.TP 2
+// a compound of header, data, and trailer
+.B struct FrameInfo {
+  using PtrT = const PayloadType*;
+  const HeaderType* header = nullptr;
+  const TrailerType* trailer = nullptr;
+  PtrT payload = nullptr;
+  size_t length = 0;
+
+.B };
+
+.TP 2
+.B using CheckHeaderFct = std::function<bool(const HeaderType&)>;
+alias for callback checking the header, return true if the object is a valid header
+.TP 2
+.B using CheckTrailerFct = std::function<bool(const TrailerType&)>;
+alias for callback checking the trailer
+.TP 2
+.B using GetFrameSizeFct = std::function<size_t(const HeaderType& )>;
+alias for callback to get the complete frame size including header, trailer and the data
+.TP 2
+.B using InsertFct = std::function<bool(FrameInfo&)>;
+function callback to insert/handle one frame into, sequentially called for all frames if the whole block has a valid format
+
+.SS Public member functions
+.TP 2
+.B template<typename InputType>
+.B int parse(const InputType* \fIbuffer\fB, size_t \fIbufferSize\fB, CheckHeaderFct \fIcheckHeader\fB, CheckTrailerFct \fIcheckTrailer\fB, GetFrameSizeFct \fIgetFrameSize\fB, InsertFct \fIinsert\fB)
+
+.SS Public member variables
+.TP 2
+.B static const size_t headOffset = typesize<HeaderType>::size;
+the length offset due to header
+.TP 2
+.B static const size_t tailOffset = typesize<TrailerType>::size;
+the length offset due to trailer
+.TP 2
+.B static const size_t totalOffset = headOffset + tailOffset;
+total length offset due to header and trailer
+
+.SH DESCRIPTION
+Template utilities for parsing of data sequences. Each entry in the sequence consist of a header, variable payload, and optionally a trailer. The three parts are collected in the FrameInfo structure for every entry.
+
+Callback functions for checking header and trailer integrity, getting length of the current frame and handling of a frame.
+
+.SS ForwardParser
+The size is expected to be part of the header, parsing starts at beginning of buffer.
+Trailer type can be void, which is also the default template parameter. That
+allows to define a frame consisting of only header and data.
+
+.SS ReverseParser
+The size is expected to be part of the trailer, the parsing is thus in reverse direction. Also the insert callback is called with the entries starting form the end of the buffer.
+An easy extension can be to reverse the order of the inserts, meaning that the entries are read from the beginning.
+
+.SH EXAMPLES
+.SS ReverseParser example
+.EX
+using SomeParser = ReverseParser<SomeHeaderType, SomeTrailerType>;
+SomeParser parser;
+std::vector<typename SomeParser::FrameInfo> frames;
+parser.parse(ptr, size,
+             [] (const typename SomeParser::HeaderType& h) {
+               // check the header
+               return true;
+             },
+             [] (const typename SomeParser::TrailerType& t) {
+               // check the trailer
+               return true;
+             },
+             [] (const typename SomeParser::TrailerType& t) {
+               // get the size of the frame including payload
+               // and header and trailer size, e.g. payload size
+               // from a trailer member
+               return t.payloadSize + SomeParser::totalOffset;
+             },
+             [&frames] (typename SomeParser::FrameInfo& info) {
+               frames.emplace_back(info);
+               return true;
+             }
+             )
+.EE
+
+.SS ForwardParser example with frame consisting of header and payload
+.EX
+using SomeParser = ForwardParser<SomeHeaderType>;
+SomeParser parser;
+std::vector<typename SomeParser::FrameInfo> frames;
+parser.parse(ptr, size,
+             [] (const typename SomeParser::HeaderType& h) {
+               // check the header
+               return true;
+             },
+             [] (const typename SomeParser::HeaderType& h) {
+               // get the size of the frame including payload
+               // and header and trailer size, e.g. payload size
+               // from a header member
+               return h.payloadSize + SomeParser::totalOffset;
+             },
+             [&frames] (typename SomeParser::FrameInfo& info) {
+               frames.emplace_back(info);
+               return true;
+             }
+             )
+.EE
+
+.SH BUGS, CONTRIBUTIONS
+Please add an issue to
+.UR https://github.com/AliceO2Group/AliceO2/issues
+.UE
+
+.SH SEE ALSO
+.UR https://github.com/AliceO2Group/AliceO2/blob/dev/Algorithm/include/Algorithm/Parser.h
+.UE

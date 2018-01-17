@@ -23,11 +23,13 @@ namespace o2 {
 
 namespace algorithm {
 
-// TODO there is probably a standard way?
+/// helper function returning size of type with a specialization for
+/// void returning 0
 template<typename T>
 struct typesize {
   static const size_t size = sizeof(T);
 };
+// specialization for void
 template<>
 struct typesize<void> {
   static const size_t size = 0;
@@ -38,8 +40,12 @@ struct typesize<void> {
  * Parser for a sequence of frames with header, trailer and variable payload.
  * The size is expected to be part of the header.
  *
+ * Trailer type can be void, which is also the default template parameter. That
+ * allows to define a frame consisting of only header and data.
+ *
  * Usage:
- *   ForwardParser<SomeHeaderType, SomeTrailerType> SomeParser;
+ * <pre>
+ *   using SomeParser = ForwardParser<SomeHeaderType, SomeTrailerType>;
  *   SomeParser parser;
  *   std::vector<typename SomeParser::FrameInfo> frames;
  *   parser.parse(ptr, size,
@@ -62,6 +68,28 @@ struct typesize<void> {
  *                  return true;
  *                }
  *                )
+ *
+ *   // a reduced version without trailer check callback
+ *   using SomeParser = ForwardParser<SomeHeaderType>;
+ *   SomeParser parser;
+ *   std::vector<typename SomeParser::FrameInfo> frames;
+ *   parser.parse(ptr, size,
+ *                [] (const typename SomeParser::HeaderType& h) {
+ *                  // check the header
+ *                  return true;
+ *                },
+ *                [] (const typename SomeParser::HeaderType& h) {
+ *                  // get the size of the frame including payload
+ *                  // and header and trailer size, e.g. payload size
+ *                  // from a header member
+ *                  return h.payloadSize + SomeParser::totalOffset;
+ *                },
+ *                [&frames] (typename SomeParser::FrameInfo& info) {
+ *                  frames.emplace_back(info);
+ *                  return true;
+ *                }
+ *                )
+ * </pre>
  */
 template<typename HeaderT,
          typename TrailerT = void
@@ -72,6 +100,8 @@ public:
   using TrailerType = TrailerT;
   using PayloadType = unsigned char;
 
+  /// @struct FrameInfo
+  /// a compound of header, data, and trailer
   struct FrameInfo {
     using PtrT = const PayloadType*;
 
@@ -81,37 +111,42 @@ public:
     size_t length = 0;
   };
 
-  // the length offset due to header and trailer
+  /// the length offset due to header
   static const size_t headOffset = typesize<HeaderType>::size;
+  /// the length offset due to trailer
   static const size_t tailOffset = typesize<TrailerType>::size;
+  /// total length offset due to header and trailer
   static const size_t totalOffset = headOffset + tailOffset;
 
-  // alias for callback checking the header, return true if the object
-  // is a valid header
+  /// alias for callback checking the header, return true if the object
+  /// is a valid header
   using CheckHeaderFct = std::function<bool(const HeaderType&)>;
 
-  // alias for the argument type to be used in the CheckTrailer function
-  // have to forward to a valid type in case of void TrailerType in order
-  // to allow passing by reference
+  /// alias for the argument type to be used in the CheckTrailer function
+  /// have to forward to a valid type in case of void TrailerType in order
+  /// to allow passing by reference
   using CheckTrailerFctArgumentT = typename std::conditional<
     !std::is_void<TrailerType>::value, TrailerType, int>::type;
 
-  // alias for callback checking the trailer, takes reference to trailer
-  // object if TrailerType is a valid type, no argument otherwise 
+  /// alias for callback checking the trailer, takes reference to trailer
+  /// object if TrailerType is a valid type, no argument otherwise
   template <typename U>
   using CheckTrailerFct = typename std::conditional<
     !std::is_void<U>::value,
     std::function<bool(const CheckTrailerFctArgumentT&)>,
     std::function<bool()>>::type;
 
-  // alias for callback to get the complete frame size including header,
-  // trailer and the data
+  /// alias for callback to get the complete frame size including header,
+  /// trailer and the data
   using GetFrameSizeFct = std::function<size_t(const HeaderType& )>;
 
-  // function callback to insert/handle one frame into, sequentially called
-  // for all frames if the whole block has a valid format
+  /// function callback to insert/handle one frame into, sequentially called
+  /// for all frames if the whole block has a valid format
   using InsertFct = std::function<bool(FrameInfo&)>;
 
+  /// Parse buffer of size bufferSize, requires callbacks to check header
+  /// trailer, the frame size, and insert callback to handle a FrameInfo
+  /// object.
   template<typename InputType>
   int parse(const InputType* buffer, size_t bufferSize,
             CheckHeaderFct checkHeader,
@@ -172,6 +207,10 @@ public:
     return -1;
   }
 
+  /// Parse buffer of size bufferSize, specialization skipping the trailer
+  /// check, e.g. when its type is void, or when the integrity of the trailer
+  /// is not relevant. Requires callbacks to check header, frame size, and
+  /// insert callback to handle a FrameInfo object.
   template<typename InputType, typename U = TrailerType>
   typename std::enable_if<std::is_void<U>::value, int>::type
       parse(const InputType* buffer, size_t bufferSize,
@@ -183,6 +222,8 @@ public:
   }
 
 private:
+  /// internal function to check the trailer, distinguishes void and non-void
+  /// trailer type.
   template <typename U = TrailerType>
   typename std::enable_if<!std::is_void<U>::value, bool>::type
   CheckTrailer(const FrameInfo& entry, CheckTrailerFct<TrailerType>& checkTrailer) const {
@@ -200,10 +241,14 @@ private:
  * @class ReverseParser
  * Parser for a sequence of frames with header, trailer and variable payload.
  * The size is expected to be part of the trailer, the parsing is thus in
- * reverse direction.
+ * reverse direction. Also the insert callback is called with the entries
+ * starting form the end of the buffer.
+ * TODO: an easy extension can be to reverse the order of the inserts, meaning
+ * that the entries are read from the beginning.
  *
  * Usage:
- *   ReverseParser<SomeHeaderType, SomeTrailerType> SomeParser;
+ * <pre>
+ *   using SomeParser = ReverseParser<SomeHeaderType, SomeTrailerType>;
  *   SomeParser parser;
  *   std::vector<typename SomeParser::FrameInfo> frames;
  *   parser.parse(ptr, size,
@@ -226,6 +271,7 @@ private:
  *                  return true;
  *                }
  *                )
+ * </pre>
  */
 template<typename HeaderT, typename TrailerT>
 class ReverseParser {
@@ -234,6 +280,7 @@ public:
   using TrailerType = TrailerT;
   using PayloadType = unsigned char;
 
+  /// @struct FrameInfo a compound of header, data, and trailer
   struct FrameInfo {
     using PtrT = const PayloadType*;
 
@@ -249,11 +296,21 @@ public:
   /// total length offset due to header and trailer
   static const size_t totalOffset = headOffset + tailOffset;
 
+  /// alias for callback checking the header, return true if the object
+  /// is a valid header
   using CheckHeaderFct = std::function<bool(const HeaderType&)>;
+  /// alias for callback checking the trailer
   using CheckTrailerFct = std::function<bool(const TrailerType&)>;
+  /// alias for callback to get the complete frame size including header,
+  /// trailer and the data
   using GetFrameSizeFct = std::function<size_t(const TrailerType&)>;
+  /// function callback to insert/handle one frame into, sequentially called
+  /// for all frames if the whole block has a valid format
   using InsertFct = std::function<bool(const FrameInfo&)>;
 
+  /// Parse buffer of size bufferSize, requires callbacks to check header
+  /// trailer, the frame size, and insert callback to handle a FrameInfo
+  /// object.
   template<typename InputType>
   int parse(const InputType* buffer, size_t bufferSize,
             CheckHeaderFct checkHeader,
