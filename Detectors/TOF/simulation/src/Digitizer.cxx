@@ -39,12 +39,12 @@ void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* dig
 
   const Int_t timeframewindow = 1000; // to be set in Geo.h, now it is set to 1microsecond = 1000 ns
 
-  for(Int_t i=0; i< nhits;i++){ // loop over hits
-    HitType *current_hit;
-    Int_t timeframe = Int_t((event_time + current_hit->GetTime())/timeframewindow); // to be replaced with uncalibrated time
-    if(timeframe == mTimeFrameCurrent)
-      processHit(*current_hit,event_time);
-
+  for (auto& hit : *hits) {
+    Int_t timeframe =
+      Int_t((event_time + hit.GetTime()) / timeframewindow); // to be replaced with uncalibrated time
+    if (timeframe == mTimeFrameCurrent) {
+      processHit(hit, event_time);
+    }
   } // end loop over hits
 }
 
@@ -192,6 +192,8 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   mXshift[mNumDigit] = iX;
   mZshift[mNumDigit] = iZ;
   mNumDigit++;
+  // TODO: fix channel and put proper constant
+  mDigits->emplace_back(0, time/0.024 , time);
 }
 
 Float_t Digitizer::getShowerTimeSmeared(Float_t time, Float_t charge)
