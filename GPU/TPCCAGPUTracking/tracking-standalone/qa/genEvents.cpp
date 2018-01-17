@@ -275,9 +275,7 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
       const int rowType = iRow < 64 ? 0 : iRow < 128 ? 2 : 1;
       t.UpdateValues();
       //sliceParam.GetClusterErrors2v1( rowType, t.GetZ(), t.GetSinPhi(), t.GetCosPhi(), t.GetDzDs(), sigmaY, sigmaZ );  
-      sliceParam.GetClusterErrors2( rowType, t.GetZ(), t.GetSinPhi(), t.GetCosPhi(), t.GetDzDs(), sigmaY, sigmaZ );
-      sigmaY = sqrt(sigmaY);
-      sigmaZ = sqrt(sigmaZ);
+      sliceParam.GetClusterErrors( rowType, t.GetZ(), t.GetSinPhi(), t.GetCosPhi(), t.GetDzDs(), sigmaY, sigmaZ );
       hClusterError[rowType][0]->Fill(sigmaY);
       hClusterError[rowType][1]->Fill(sigmaZ);
       //std::cout<<sigmaY<<" "<<sigmaY<<std::endl;
