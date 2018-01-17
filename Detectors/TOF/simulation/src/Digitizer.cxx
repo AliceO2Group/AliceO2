@@ -25,7 +25,6 @@ ClassImp(Digitizer);
 
 void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* digits){
   // hits array of TOF hits for a given simulated event
-  digits->clear();
   mDigits = digits;
 
   //TODO move this to the geo
