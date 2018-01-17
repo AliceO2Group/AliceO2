@@ -971,7 +971,9 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
+    ${MS_GSL_INCLUDE_DIR}
 )
+
 o2_define_bucket(
     NAME
     fit_base_bucket

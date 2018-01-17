@@ -14,6 +14,8 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
 #include "TOFSimulation/Detector.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -22,13 +24,11 @@ namespace tof
 class Digitizer
 {
  public:
- Digitizer(Int_t mode = 0) : mMode(mode), mTimeFrameCurrent(0) { initParameters(); };
-
+  Digitizer(Int_t mode = 0) : mMode(mode), mTimeFrameCurrent(0) { initParameters(); };
   ~Digitizer() = default;
 
-  void process(const std::vector<HitType>* hits,std::vector<Digit>* digits);
+  void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
 
-  void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired);
   Float_t getShowerTimeSmeared(Float_t time, Float_t charge);
   Float_t getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float_t charge);
   Float_t getCharge(Float_t eDep);
@@ -37,16 +37,20 @@ class Digitizer
   Float_t getEffZ(Float_t z);
   Float_t getFractionOfCharge(Float_t x, Float_t z);
 
-  Int_t getCurrentTimeFrame() const {return mTimeFrameCurrent;}
-  void  setCurrentTimeFrame(Double_t value) {mTimeFrameCurrent = value;}
-
+  Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
+  void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
   Int_t getNumDigitLastHit() const { return mNumDigit; }
   Float_t getTimeLastHit(Int_t idigit) const { return mTime[idigit]; }
   Float_t getTotLastHit(Int_t idigit) const { return mTot[idigit]; }
   Int_t getXshift(Int_t idigit) const { return mXshift[idigit]; }
   Int_t getZshift(Int_t idigit) const { return mZshift[idigit]; }
-
-  void setEventTime(double value) {mEventTime=value;}
+  void setEventTime(double value) { mEventTime = value; }
+  void setEventID(Int_t id) { mEventID = id; }
+  void setSrcID(Int_t id) { mSrcID = id; }
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truthcontainer)
+  {
+    mMCTruthContainer = truthcontainer;
+  }
 
   void initParameters();
   void printParameters();
@@ -76,16 +80,23 @@ class Digitizer
   // info TOF timewindow
   Int_t mTimeFrameCurrent;
   Double_t mEventTime;
+  Int_t mEventID = 0;
+  Int_t mSrcID = 0;
 
   // digit info
   std::vector<Digit>* mDigits;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthContainer =
+    nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
+
   Int_t mNumDigit;  //! number of digits of last hit processed
   Float_t mTime[6]; //! time of digitis in the last hit processed
   Float_t mTot[6];  //! tot of digitis in the last hit processed
   Int_t mXshift[6]; //! shift wrt central pad
   Int_t mZshift[6]; //! shift wrt central pad
 
-  void processHit(const HitType &hit,Double_t event_time);
+  void processHit(const HitType& hit, Double_t event_time);
+  void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
+                Int_t trackID);
 
   ClassDefNV(Digitizer, 1);
 };

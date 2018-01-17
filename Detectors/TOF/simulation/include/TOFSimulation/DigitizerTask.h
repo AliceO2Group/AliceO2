@@ -20,6 +20,7 @@
 #include "TOFBase/Digit.h"
 #include "TOFSimulation/Detector.h" // for HitType
 #include "TOFSimulation/Digitizer.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -49,11 +50,13 @@ class DigitizerTask : public FairTask
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
 
-  Int_t mSourceID = 0;                  ///< current source
-  Int_t mEventID = 0;                   ///< current event id from the source
-  Digitizer mDigitizer;                 ///< Digitizer
+  Int_t mSourceID = 0;                                       ///< current source
+  Int_t mEventID = 0;                                        ///< current event id from the source
+  Digitizer mDigitizer;                                      ///< Digitizer
   const std::vector<o2::tof::HitType>* mHitsArray = nullptr; ///< Array of MC hits
   std::vector<o2::tof::Digit>* mDigitsArray = nullptr;       ///< Array of digits
+
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray = nullptr;
 
   ClassDefOverride(DigitizerTask, 1);
 };

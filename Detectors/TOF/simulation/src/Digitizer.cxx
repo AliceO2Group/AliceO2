@@ -33,9 +33,10 @@ void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* dig
   for (auto& hit : *hits) {
     Int_t timeframe =
       Int_t((mEventTime + hit.GetTime()) / timeframewindow); // to be replaced with uncalibrated time
-    if (timeframe == mTimeFrameCurrent) {
+    //TODO: put timeframe counting/selection
+    //if (timeframe == mTimeFrameCurrent) {
       processHit(hit, mEventTime);
-    }
+    //}
   } // end loop over hits
 }
 
@@ -68,6 +69,9 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
   Float_t xLocal = deltapos[0];
   Float_t zLocal = deltapos[2];
 
+  // extract trackID
+  auto trackID = hit.GetTrackID();
+
   //         PadId - Pad Identifier
   //                    E | F    -->   PadId = 5 | 6
   //                    A | B    -->   PadId = 1 | 2
@@ -75,7 +79,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
 
   // check the fired PAD 1 (A)
   if (isFired(xLocal, zLocal, charge))
-    addDigit(channel, time, xLocal, zLocal, charge, 0, 0, detInd[3]);
+    addDigit(channel, time, xLocal, zLocal, charge, 0, 0, detInd[3], trackID);
 
   // check PAD 2
   detIndOtherPad[3] = otherraw;
@@ -87,7 +91,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
   else
     zLocal = deltapos[2] + Geo::ZPAD;
   if (isFired(xLocal, zLocal, charge)) {
-    addDigit(channel, time, xLocal, zLocal, charge, 0, iZshift, detInd[3]);
+    addDigit(channel, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
   }
 
   // check PAD 3
@@ -98,7 +102,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     xLocal = deltapos[0] + Geo::XPAD; // recompute local coordinates
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, -1, 0, detInd[3]);
+      addDigit(channel, time, xLocal, zLocal, charge, -1, 0, detInd[3], trackID);
     }
   }
 
@@ -110,7 +114,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     xLocal = deltapos[0] - Geo::XPAD; // recompute local coordinates
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, 1, 0, detInd[3]);
+      addDigit(channel, time, xLocal, zLocal, charge, 1, 0, detInd[3], trackID);
     }
   }
 
@@ -125,7 +129,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     else
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, -1, iZshift, detInd[3]);
+      addDigit(channel, time, xLocal, zLocal, charge, -1, iZshift, detInd[3], trackID);
     }
   }
 
@@ -140,13 +144,13 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     else
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, 1, iZshift, detInd[3]);
+      addDigit(channel, time, xLocal, zLocal, charge, 1, iZshift, detInd[3], trackID);
     }
   }
 }
 
 void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ,
-                         Int_t padZfired)
+                         Int_t padZfired, Int_t trackID)
 {
   // TOF digit requires: channel, time and time-over-threshold
 
@@ -185,6 +189,12 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   mNumDigit++;
   // TODO: fix channel and put proper constant
   mDigits->emplace_back(0, time/0.024 , time);
+
+  if (mMCTruthContainer) {
+    auto digitindex = mDigits->size() - 1;
+    o2::MCCompLabel label(trackID, mEventID, mSrcID);
+    mMCTruthContainer->addElement(digitindex, label);
+  }
 }
 
 Float_t Digitizer::getShowerTimeSmeared(Float_t time, Float_t charge)
