@@ -18,12 +18,12 @@ ClassImp(o2::tof::Digit);
 Digit::Digit(Int_t channel, Int_t tdc, Double_t time)
     : FairTimeStamp(time), mChannel(channel), mTDC(tdc) {}
 
-void Digit::PrintStream(std::ostream &stream) const {
+void Digit::printStream(std::ostream &stream) const {
   stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << ", Time "
          << GetTimeStamp();
 }
 
 std::ostream &operator<<(std::ostream &stream, const Digit &digi) {
-  digi.PrintStream(stream);
+  digi.printStream(stream);
   return stream;
 }

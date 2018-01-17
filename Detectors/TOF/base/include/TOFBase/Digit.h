@@ -30,13 +30,13 @@ public:
   Digit(Int_t channel, Int_t tdc, Double_t time);
   ~Digit() override = default;
 
-  Int_t GetChannel() const { return mChannel; }
-  void SetChannel(Int_t channel) { mChannel = channel; }
+  Int_t getChannel() const { return mChannel; }
+  void setChannel(Int_t channel) { mChannel = channel; }
 
-  Int_t GetTDC() const { return mTDC; }
-  void SetTDC(Int_t tdc) { mTDC = tdc; }
+  Int_t getTDC() const { return mTDC; }
+  void setTDC(Int_t tdc) { mTDC = tdc; }
 
-  void PrintStream(std::ostream &stream) const;
+  void printStream(std::ostream &stream) const;
 
 private:
 #ifndef __CINT__
