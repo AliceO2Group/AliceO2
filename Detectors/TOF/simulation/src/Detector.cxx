@@ -1834,6 +1834,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
       modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
+      LOG(INFO)<<"modUID: "<<modUID<<"\n";
 
       if (mTOFSectors[isect] == -1)
         continue;
@@ -1861,27 +1862,28 @@ void Detector::addAlignableVolumes() const
       volPath += vpL4;
       volPath += istr;
 
-      volPath = "";
 
       symName = snSM;
       symName += Form("%02d", isect);
       symName += snSTRIP;
       symName += Form("%02d", istr);
 
-      // AliDebug(2,"--------------------------------------------");
-      // AliDebug(2,Form("Alignable object %d", imod));
-      // AliDebug(2,Form("volPath=%s\n",volPath.Data()));
-      // AliDebug(2,Form("symName=%s\n",symName.Data()));
-      // AliDebug(2,"--------------------------------------------");
+      LOG(INFO)<< "--------------------------------------------"<<"\n";
+      LOG(INFO)<< "Alignable object"<< imod<<"\n";
+      LOG(INFO)<< "volPath="<<volPath<<"\n";
+      LOG(INFO)<< "symName="<<symName<<"\n";
+      LOG(INFO)<< "--------------------------------------------"<<"\n";
 
-      printf("Check for alignable entry: %s\n", symName.Data());
+      LOG(INFO)<<"Check for alignable entry: "<<symName<<"\n";
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
-        printf("Alignable entry %s not set\n", symName.Data());
-      //        AliError(Form("Alignable entry %s not set",symName.Data()));
+        LOG(ERROR)<<"Alignable entry "<<symName<<" NOT set\n";
+        LOG(INFO)<<"Alignable entry "<<symName<<" set\n";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
+      LOG(INFO)<<"Got TGeoPNEntry "<<e<<"\n";
+      
       if (e) {
         TGeoHMatrix* globMatrix = e->GetGlobalOrig();
         Double_t phi = Geo::PHISEC * (isect % Geo::NSECTORS) + Geo::PHISEC * 0.5;
