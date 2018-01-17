@@ -1135,8 +1135,8 @@ int DrawQAHistograms()
 						if (j == 0)
 						{
 							GetName(fname, k);
-							if (p) sprintf(name, "%s%s", fname, l ? "Mean Pull" : "Pull");
-							else sprintf(name, "%s%s", fname, l ? "Mean Resolution" : "Resolution");
+							if (p) sprintf(name, "%s%s", fname, l ? "Mean" : "Pull");
+							else sprintf(name, "%s%s", fname, l ? "Mean" : "Resolution");
 							leg->AddEntry(e, name, "l");
 						}
 					}
