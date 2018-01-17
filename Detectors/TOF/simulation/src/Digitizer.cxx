@@ -215,9 +215,9 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
     mDigits->emplace_back(channel, time / 0.024, time);
 
     if (mMCTruthContainer) {
-      auto digitindex = mDigits->size() - 1;
+      auto ndigits = mDigits->size() - 1;
       o2::MCCompLabel label(trackID, mEventID, mSrcID);
-      mMCTruthContainer->addElement(digitindex, label);
+      mMCTruthContainer->addElement(ndigits, label);
     }
   }
 }
