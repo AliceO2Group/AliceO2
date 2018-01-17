@@ -39,11 +39,10 @@ class Digitizer
 
   Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
   void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
-  Int_t getNumDigitLastHit() const { return mNumDigit; }
-  Float_t getTimeLastHit(Int_t idigit) const { return mTime[idigit]; }
-  Float_t getTotLastHit(Int_t idigit) const { return mTot[idigit]; }
-  Int_t getXshift(Int_t idigit) const { return mXshift[idigit]; }
-  Int_t getZshift(Int_t idigit) const { return mZshift[idigit]; }
+  Float_t getTimeLastHit(Int_t idigit) const { return 0; }
+  Float_t getTotLastHit(Int_t idigit) const { return 0; }
+  Int_t getXshift(Int_t idigit) const { return 0; }
+  Int_t getZshift(Int_t idigit) const { return 0; }
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
@@ -88,13 +87,7 @@ class Digitizer
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthContainer =
     nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
 
-  Int_t mNumDigit;  //! number of digits of last hit processed
-  Float_t mTime[6]; //! time of digitis in the last hit processed
-  Float_t mTot[6];  //! tot of digitis in the last hit processed
-  Int_t mXshift[6]; //! shift wrt central pad
-  Int_t mZshift[6]; //! shift wrt central pad
-
-  void processHit(const HitType& hit, Double_t event_time);
+  Int_t processHit(const HitType& hit, Double_t event_time);
   void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
                 Int_t trackID);
 

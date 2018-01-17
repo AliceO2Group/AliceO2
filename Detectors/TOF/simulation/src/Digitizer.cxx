@@ -41,10 +41,8 @@ void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* dig
 }
 
 
-void Digitizer::processHit(const HitType &hit,Double_t event_time)
+Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
 {
-  mNumDigit = 0;
-
   Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   Float_t deltapos[3];
   Int_t detInd[5];
@@ -77,9 +75,13 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
   //                    A | B    -->   PadId = 1 | 2
   //                    C | D    -->   PadId = 3 | 4
 
+  Int_t ndigits = 0;//Number of digits added
+
   // check the fired PAD 1 (A)
-  if (isFired(xLocal, zLocal, charge))
+  if (isFired(xLocal, zLocal, charge)){
+    ndigits++;
     addDigit(channel, time, xLocal, zLocal, charge, 0, 0, detInd[3], trackID);
+  }
 
   // check PAD 2
   detIndOtherPad[3] = otherraw;
@@ -91,7 +93,8 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
   else
     zLocal = deltapos[2] + Geo::ZPAD;
   if (isFired(xLocal, zLocal, charge)) {
-    addDigit(channel, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
+      ndigits++;
+      addDigit(channel, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
   }
 
   // check PAD 3
@@ -102,6 +105,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     xLocal = deltapos[0] + Geo::XPAD; // recompute local coordinates
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
+      ndigits++;
       addDigit(channel, time, xLocal, zLocal, charge, -1, 0, detInd[3], trackID);
     }
   }
@@ -114,6 +118,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     xLocal = deltapos[0] - Geo::XPAD; // recompute local coordinates
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
+      ndigits++;
       addDigit(channel, time, xLocal, zLocal, charge, 1, 0, detInd[3], trackID);
     }
   }
@@ -129,6 +134,7 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     else
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
+      ndigits++;
       addDigit(channel, time, xLocal, zLocal, charge, -1, iZshift, detInd[3], trackID);
     }
   }
@@ -144,9 +150,12 @@ void Digitizer::processHit(const HitType &hit,Double_t event_time)
     else
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
+      ndigits++;
       addDigit(channel, time, xLocal, zLocal, charge, 1, iZshift, detInd[3], trackID);
     }
   }
+  return ndigits;
+
 }
 
 void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ,
@@ -179,14 +188,6 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
       time += mTimeDelay * border * border * border;
   }
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
-
-
-  // Fill digit
-  mTime[mNumDigit] = time;
-  mTot[mNumDigit] = tot;
-  mXshift[mNumDigit] = iX;
-  mZshift[mNumDigit] = iZ;
-  mNumDigit++;
 
   bool merged = false;
   Digit newdigit(channel, time/0.024, time);
@@ -476,11 +477,11 @@ void Digitizer::test(const char* geo)
 
     hit->SetEnergyLoss(0.0001);
 
-    processHit(*hit, mEventTime);
+    Int_t ndigits = processHit(*hit, mEventTime);
 
-    h3->Fill(getNumDigitLastHit());
+    h3->Fill(ndigits);
     hpadAll->Fill(xlocal, zlocal);
-    for (Int_t k = 0; k < getNumDigitLastHit(); k++) {
+    for (Int_t k = 0; k < ndigits; k++) {
       if (k == 0)
         h->Fill(getTimeLastHit(k));
       if (k == 0)
@@ -493,7 +494,7 @@ void Digitizer::test(const char* geo)
     }
 
     // check double digits case (time correlations)
-    if (getNumDigitLastHit() == 2) {
+    if (ndigits == 2) {
       h4->Fill(getTimeLastHit(0) - getTimeLastHit(1));
       h5->Fill((getTimeLastHit(0) + getTimeLastHit(1)) * 0.5);
     }
@@ -571,10 +572,10 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
 
       hit->SetEnergyLoss(t->GetLeaf("o2root.TOF.TOFHit.mELoss")->GetValue(j));
 
-      processHit(*hit, mEventTime);
+      Int_t ndigits = processHit(*hit, mEventTime);
 
-      h3->Fill(getNumDigitLastHit());
-      for (Int_t k = 0; k < getNumDigitLastHit(); k++) {
+      h3->Fill(ndigits);
+      for (Int_t k = 0; k < ndigits; k++) {
         h->Fill(getTimeLastHit(k));
         h2->Fill(getTotLastHit(k));
       }
