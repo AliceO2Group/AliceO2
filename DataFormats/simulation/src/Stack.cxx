@@ -18,7 +18,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 
 #include "FairDetector.h"     // for FairDetector
-#include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger
+#include "FairLogger.h"       // for FairLogger
 #include "SimulationDataFormat/BaseHits.h"
 #include "FairRootManager.h"
 
@@ -243,9 +243,9 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
   // Test for index
   if (iPrim < 0 || iPrim >= mNumberOfPrimaryParticles) {
     if (mLogger) {
-      mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Primary index out of range! %i ", iPrim);
+      LOG(FATAL) << "Stack::PopPrimaryForTracking: Stack: Primary index out of range! " << iPrim << " ";
     }
-    Fatal("Stack::PopPrimaryForTracking", "Index out of range");
+    LOG(FATAL) << "Stack::PopPrimaryForTracking: Index out of range";
     return nullptr;
   }
   // Return the iPrim-th TParticle from the fParticle array. This should be
@@ -311,7 +311,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
   }
 
   if (mLogger) {
-    mLogger->Debug(MESSAGE_ORIGIN, "Stack: Updating track indices...");
+    LOG(DEBUG) << "Stack::UpdateTrackIndex: Stack: Updating track indices...";
   } else {
     cout << "Stack: Updating track indices..." << endl;
   }
@@ -328,7 +328,8 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     auto iter = mIndexMap.find(iMotherOld);
     if (iter == mIndexMap.end()) {
       if (mLogger) {
-        mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Track index %i not found index map! ", iMotherOld);
+        LOG(FATAL) << "Stack::UpdateTrackIndex: Stack: Track index "
+                   << iMotherOld << " not found index map! ";
       }
       Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
     }
@@ -341,7 +342,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
   } // List of active detectors
 
   if (mLogger) {
-    mLogger->Debug(MESSAGE_ORIGIN, "...stack and  %i collections updated.", nColl);
+    LOG(DEBUG) << "Stack::UpdateTrackIndex: ...stack and " << nColl << " collections updated.";
   } else {
     cout << "...stack and  " << nColl << " collections updated." << endl;
   }

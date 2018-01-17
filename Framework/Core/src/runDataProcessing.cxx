@@ -44,6 +44,7 @@
 #include <regex>
 #include <set>
 #include <string>
+#include <type_traits>
 
 #include <csignal>
 #include <sys/resource.h>
@@ -246,11 +247,58 @@ void doParent(fd_set *in_fdset,
   }
 }
 
-int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
-  fair::mq::logger::ReinitLogger(false);
+// Magic to support both old and new FairRoot logger behavior
+// is_define<fair::Logger> only works if Logger is fully defined,
+// not forward declared.
+namespace fair {
+// This is required to be declared (but not defined) for the SFINAE below
+// to work
+class Logger; 
+namespace mq {
+namespace logger {
+  // This we can leave it empty, as the sole purpose is to 
+  // allow the using namespace below.
+}
+}
+}
 
+template <class, class, class = void>
+struct is_defined : std::false_type
+{
+};
+
+template <class S, class T>
+struct is_defined<S, T,
+    std::enable_if_t<std::is_object<T>::value &&
+                    !std::is_pointer<T>::value &&
+                    (sizeof(T) > 0)
+        >
+    > : std::true_type
+{
+  using logger = T;
+};
+
+using namespace fair::mq::logger;
+
+struct TurnOffColors {
+
+  template <typename T>
+  static auto apply(T value, int ) -> decltype(ReinitLogger(value), void()) {
+    ReinitLogger(value);
+  }
+  template <typename T>
+  static auto apply(T value, long) -> typename std::enable_if<is_defined<T, fair::Logger>::value == true, void>::type {
+    // By using is_defined<T, fair::Logger>::logger rather than fair::Logger
+    // directly, we avoid the error about using an incomplete type in a nested
+    // expression.
+    is_defined<T, fair::Logger>::logger::SetConsoleColor(value);
+  }
+};
+
+int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
   LOG(INFO) << "Spawing new device " << spec.id
             << " in process with pid " << getpid();
+  TurnOffColors::apply(false, 0);
   try {
     fair::mq::DeviceRunner runner{argc, argv};
 

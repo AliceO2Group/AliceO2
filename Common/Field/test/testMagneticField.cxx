@@ -16,7 +16,7 @@
 #include "Field/MagneticField.h"
 #include "Field/MagFieldFast.h"
 #include <memory>
-#include "FairLogger.h"                // for FairLogger, MESSAGE_ORIGIN
+#include "FairLogger.h"                // for FairLogger
 #include <TStopwatch.h>
 #include <TRandom.h>
 

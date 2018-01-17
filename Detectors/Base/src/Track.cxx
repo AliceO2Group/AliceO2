@@ -131,7 +131,6 @@ bool TrackPar::rotateParam(float alpha)
 {
   // rotate to alpha frame
   if (fabs(getSnp()) > kAlmost1) {
-    // FairLogger::GetLogger()->Error(MESSAGE_ORIGIN,
     printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
     return false;
   }
@@ -144,14 +143,12 @@ bool TrackPar::rotateParam(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    // FairLogger::GetLogger()->Warning(MESSAGE_ORIGIN,
     printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
     return false;
   }
   //
   float tmp = snp * ca - csp * sa;
   if (fabs(tmp) > kAlmost1) {
-    // FairLogger::GetLogger()->Warning(MESSAGE_ORIGIN,
     printf("Rotation failed: new snp %.2f\n", tmp);
     return false;
   }
@@ -531,7 +528,6 @@ bool TrackParCov::rotate(float alpha)
 {
   // rotate to alpha frame
   if (fabs(getSnp()) > kAlmost1) {
-    // FairLogger::GetLogger()->Error(MESSAGE_ORIGIN,
     printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
     return false;
   }
@@ -544,7 +540,6 @@ bool TrackParCov::rotate(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    // FairLogger::GetLogger()->Warning(MESSAGE_ORIGIN,
     printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
     return false;
   }
@@ -552,7 +547,6 @@ bool TrackParCov::rotate(float alpha)
   
   float updSnp = snp * ca - csp * sa;
   if (fabs(updSnp) > kAlmost1) {
-    // FairLogger::GetLogger()->Warning(MESSAGE_ORIGIN,
     printf("Rotation failed: new snp %.2f\n", updSnp);
     return false;
   }

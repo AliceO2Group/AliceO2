@@ -18,7 +18,7 @@
 #include <TSystem.h>     // for TSystem, gSystem
 #include <cstdio>       // for printf, fprintf, fclose, fopen, FILE
 #include <cstring>      // for memcpy
-#include "FairLogger.h"  // for FairLogger, MESSAGE_ORIGIN
+#include "FairLogger.h"  // for FairLogger
 #include "TMath.h"       // for BinarySearch, Sort
 #include "TMathBase.h"   // for Abs
 #include "TNamed.h"      // for TNamed
@@ -772,7 +772,7 @@ void MagneticWrapperChebyshev::getTPCIntegralCylindrical(const Double_t *rphiz, 
     return;
   }
   if (id >= mNumberOfParameterizationTPC) {
-    mLogger->Error(MESSAGE_ORIGIN, "Wrong TPCParam segment %d", id);
+    LOG(ERROR) << "MagneticWrapperChebyshev::getTPCIntegralCylindrical: Wrong TPCParam segment " << id;
     b[0] = b[1] = b[2] = 0;
     return;
   }
@@ -793,7 +793,7 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t *rphi
     return;
   }
   if (id >= mNumberOfParameterizationTPCRat) {
-    mLogger->Error(MESSAGE_ORIGIN, "Wrong TPCRatParam segment %d", id);
+    LOG(ERROR) << "MagneticWrapperChebyshev::getTPCRatIntegralCylindrical: Wrong TPCRatParam segment " << id;
     b[0] = b[1] = b[2] = 0;
     return;
   }
@@ -804,6 +804,14 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t *rphi
   }
   b[0] = b[1] = b[2] = 0;
   return;
+}
+
+void
+checkExpected(char const *expected, TString &buffs) {
+  if (!buffs.BeginsWith(expected)) {
+    LOG(ERROR) << R"(MagneticWrapperChebyshev::loadData: Expected: ")" << expected << R"( <name>", found ")" << buffs.Data() << "\"\nStop\n";
+    exit(1);
+  }
 }
 
 #ifdef _INC_CREATION_Chebyshev3D_
@@ -822,10 +830,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   TString buffs;
   Chebyshev3DCalc::readLine(buffs, stream);
 
-  if (!buffs.BeginsWith("START")) {
-    Error("LoadData", "Expected: \"START <name>\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("START", buffs);
 
   if (buffs.First(' ') > 0) {
     SetName(buffs.Data() + buffs.First(' ') + 1);
@@ -834,10 +839,8 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   // Solenoid part
   Chebyshev3DCalc::readLine(buffs, stream);
 
-  if (!buffs.BeginsWith("START SOLENOID")) {
-    Error("LoadData", "Expected: \"START SOLENOID\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("START SOLENOID", buffs);
+
   Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparSol = buffs.Atoi();
 
@@ -848,17 +851,12 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   Chebyshev3DCalc::readLine(buffs, stream);
-  if (!buffs.BeginsWith("END SOLENOID")) {
-    Error("LoadData", "Expected \"END SOLENOID\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("END SOLENOID", buffs);
 
   // TPCInt part
   Chebyshev3DCalc::readLine(buffs, stream);
-  if (!buffs.BeginsWith("START TPCINT")) {
-    Error("LoadData", "Expected: \"START TPCINT\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("START TPCINT", buffs);
+
   Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparTPCInt = buffs.Atoi();
 
@@ -869,19 +867,11 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   Chebyshev3DCalc::readLine(buffs, stream);
-
-  if (!buffs.BeginsWith("END TPCINT")) {
-    Error("LoadData", "Expected \"END TPCINT\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("END TPCINT", buffs);
 
   // TPCRatInt part
   Chebyshev3DCalc::readLine(buffs, stream);
-
-  if (!buffs.BeginsWith("START TPCRatINT")) {
-    Error("LoadData", "Expected: \"START TPCRatINT\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("START TPCRatINT", buffs);
 
   Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparTPCRatInt = buffs.Atoi();
@@ -893,19 +883,11 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   Chebyshev3DCalc::readLine(buffs, stream);
-
-  if (!buffs.BeginsWith("END TPCRatINT")) {
-    Error("LoadData", "Expected \"END TPCRatINT\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("END TPCRatINT", buffs);
 
   // Dipole part
   Chebyshev3DCalc::readLine(buffs, stream);
-
-  if (!buffs.BeginsWith("START DIPOLE")) {
-    Error("LoadData", "Expected: \"START DIPOLE\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("START DIPOLE", buffs);
 
   Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparDip = buffs.Atoi();
@@ -917,16 +899,13 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   Chebyshev3DCalc::readLine(buffs, stream);
-
-  if (!buffs.BeginsWith("END DIPOLE")) {
-    Error("LoadData", "Expected \"END DIPOLE\", found \"%s\"\nStop\n", buffs.Data());
-    exit(1);
-  }
+  checkExpected("END DIPOLE", buffs);
 
   Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("END ") && !buffs.Contains(GetName())) {
-    Error("LoadData", "Expected: \"END %s\", found \"%s\"\nStop\n", GetName(), buffs.Data());
+    LOG(ERROR) << R"(MagneticWrapperChebyshev::loadData: Expected: "END )"
+               << GetName() << R"( ", found ")" << buffs.Data() << "\"\nStop\n";
     exit(1);
   }
 

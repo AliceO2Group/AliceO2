@@ -16,7 +16,7 @@
 #include <TFile.h>                     // for TFile
 #include <TPRegexp.h>                  // for TPRegexp
 #include <TSystem.h>                   // for TSystem, gSystem
-#include "FairLogger.h"                // for FairLogger, MESSAGE_ORIGIN
+#include "FairLogger.h"                // for FairLogger
 #include "FairParamList.h"
 #include "FairRun.h"
 #include "FairRuntimeDb.h"
@@ -162,8 +162,7 @@ void MagneticField::CreateField()
 
   // does real creation of the field
   if (mDefaultIntegration < 0 || mDefaultIntegration > 2) {
-    mLogger->Warning(MESSAGE_ORIGIN, "Invalid magnetic field flag: %5d; Helix tracking chosen instead",
-                     mDefaultIntegration);
+    LOG(WARNING) << "MagneticField::CreateField: Invalid magnetic field flag: " << mDefaultIntegration << "; Helix tracking chosen instead";
     mDefaultIntegration = 2;
   }
   if (mDefaultIntegration == 0) mPrecisionInteg = 0;
@@ -174,7 +173,7 @@ void MagneticField::CreateField()
     else if (mBeamType == MagFieldParam::kBeamTypepA || mBeamType == MagFieldParam::kBeamTypeAp) 
       mBeamEnergy = 2760; // same rigitiy max PbPb energy
     //
-    FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Maximim possible beam energy for requested beam is assumed");
+    LOG(INFO) << "MagneticField::CreateField: Maximim possible beam energy for requested beam is assumed";
   }
 
   const char *parname = nullptr;
@@ -186,7 +185,7 @@ void MagneticField::CreateField()
   } else if (mMapType == MagFieldParam::k5kGUniform) {
     parname = "Sol30_Dip6_Uniform";
   } else {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Unknown field identifier %d is requested\n", mMapType);
+    LOG(FATAL) << "MagneticField::CreateField: Unknown field identifier " << mMapType << " is requested\n";
   }
 
   setParameterName(parname);
@@ -208,19 +207,19 @@ Bool_t MagneticField::loadParameterization()
    */
   
   if (mMeasuredMap) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Field data %s are already loaded from %s\n", getParameterName(), getDataFileName());
+    LOG(FATAL) << "MagneticField::loadParameterization: Field data " <<  getParameterName()  << " are already loaded from " << getDataFileName() << "\n";
   }
 
   char *fname = gSystem->ExpandPathName(getDataFileName());
   TFile *file = TFile::Open(fname);
   if (!file) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Failed to open magnetic field data file %s\n", fname);
+    LOG(FATAL) << "MagneticField::loadParameterization: Failed to open magnetic field data file " << fname << "\n";
   }
 
   mMeasuredMap = std::unique_ptr<MagneticWrapperChebyshev>
     (dynamic_cast<MagneticWrapperChebyshev *>(file->Get(getParameterName())));
   if (!mMeasuredMap) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Did not find field %s in %s\n", getParameterName(), fname);
+    LOG(FATAL) << "MagneticField::loadParameterization: Did not find field " << getParameterName() << " in " << fname << "%s\n";
   }
   file->Close();
   delete file;
@@ -518,7 +517,7 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
     if (diCur <= zero) {
       sclDip = 0.; // some small current.. -> Dipole OFF
     } else {
-      FairLogger::GetLogger()->Fatal(MESSAGE_ORIGIN, "Wrong dipole current (%f A)!", diCur);
+      LOG(FATAL) << "MagneticField::createFieldMap: Wrong dipole current (" << diCur << " A)!";
     }
   }
 
@@ -537,16 +536,16 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
       sclDip = 0;
       map = MagFieldParam::k5kGUniform;
     } else {
-      FairLogger::GetLogger()->Fatal(MESSAGE_ORIGIN, "Wrong L3 current (%f A)!", l3Cur);
+      LOG(FATAL) << "MagneticField::createFieldMap: Wrong L3 current (" << l3Cur << "  A)!";
     }
   }
 
   if (sclDip != 0 && map != MagFieldParam::k5kGUniform) {
     if ((l3Cur <= zero) ||
         ((convention == kConvLHC && l3Pol != diPol) || (convention == kConvDCS2008 && l3Pol == diPol))) {
-      FairLogger::GetLogger()->Fatal(MESSAGE_ORIGIN,
-                                     "Wrong combination for L3/Dipole polarities (%c/%c) for convention %d",
-                                     l3Pol > 0 ? '+' : '-', diPol > 0 ? '+' : '-', getPolarityConvention());
+      LOG(FATAL) << "MagneticField::createFieldMap: Wrong combination for L3/Dipole polarities ("
+                 << (l3Pol > 0 ? '+' : '-') << "/"
+                 << (diPol > 0 ? '+' : '-') << ") for convention " << getPolarityConvention();
     }
   }
 
@@ -573,7 +572,7 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
   } else if (btypestr.Contains(ionprotonBeam)) {
     btype = MagFieldParam::kBeamTypeAp;
   } else {
-    FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Assume no LHC magnet field for the beam type %s,", beamtype);
+    LOG(INFO) << "Assume no LHC magnet field for the beam type " << beamtype;
   }
   char ttl[80];
   snprintf(ttl, 79, "L3: %+5d Dip: %+4d kA; %s | Polarities in %s convention", (int) TMath::Sign(l3Cur, float(sclL3)),
@@ -613,15 +612,15 @@ void MagneticField::Print(Option_t *opt) const
 {
   TString opts = opt;
   opts.ToLower();
-  mLogger->Info(MESSAGE_ORIGIN, "%s:%s", GetName(), GetTitle());
-  mLogger->Info(MESSAGE_ORIGIN, "Solenoid (%+.2f*)%.0f kG, Dipole %s (%+.2f) %s", getFactorSolenoid(),
-                (mMapType == MagFieldParam::k5kG || mMapType == MagFieldParam::k5kGUniform) ? 5. : 2.,
-                mDipoleOnOffFlag ? "OFF" : "ON",
-                getFactorDipole(), mMapType == MagFieldParam::k5kGUniform ? " |Constant Field!" : "");
+  LOG(INFO) << "MagneticField::Print: " << GetName() << ":" << GetTitle();
+  LOG(INFO) << "MagneticField::Print: Solenoid (" << getFactorSolenoid() << "*)"
+            << ((mMapType == MagFieldParam::k5kG || mMapType == MagFieldParam::k5kGUniform) ? 5. : 2)
+            << " kG, Dipole " << (mDipoleOnOffFlag ? "OFF" : "ON")<< " (" << getFactorDipole() << ") "
+            << (mMapType == MagFieldParam::k5kGUniform ? " |Constant Field!" : "");
   if (opts.Contains("a")) {
-    mLogger->Info(MESSAGE_ORIGIN, "Machine B fields for %s beam (%.0f GeV): QGrad: %.4f Dipole: %.4f",
-                  getBeamTypeText(), mBeamEnergy, mQuadrupoleGradient, mDipoleField);
-    mLogger->Info(MESSAGE_ORIGIN, "Uses %s of %s", getParameterName(), getDataFileName());
+    LOG(INFO) << "MagneticField::Print: Machine B fields for " <<  getBeamTypeText()
+              << "  beam (" << mBeamEnergy << " GeV): QGrad: " << mQuadrupoleGradient << " Dipole: " << mDipoleField;
+    LOG(INFO) << "MagneticField::Print: Uses " << getParameterName() << "  of " << getDataFileName();
   }
 }
 

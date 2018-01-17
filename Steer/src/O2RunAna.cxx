@@ -16,7 +16,7 @@
 #include "FairField.h"                  // for FairField
 #include "FairFieldFactory.h"           // for FairFieldFactory
 #include "FairFileHeader.h"             // for FairFileHeader
-#include "FairLogger.h"                 // for FairLogger, MESSAGE_ORIGIN
+#include "FairLogger.h"                 // for FairLogger
 #include "FairParIo.h"                  // for FairParIo
 #include "FairParSet.h"                 // for FairParSet
 #include "FairRootManager.h"            // for FairRootManager
@@ -879,7 +879,7 @@ void O2RunAna::Fill()
 
 // void  O2RunAna::SetMixAllInputs(Bool_t Status)
 // {
-//    fLogger->Info(MESSAGE_ORIGIN, "Mixing for all input is choosed, in this mode one event per input file is read per step");
+//    LOG(INFO) << "O2RunAna::SetMixAllInputs: Mixing for all input is choosed, in this mode one event per input file is read per step";
 //    fRootManager->SetMixAllInputs(Status);
 // }
 //_____________________________________________________________________________

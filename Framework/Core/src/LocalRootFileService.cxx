@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <string>
-
+#include <climits>
 #include <cassert>
 
 namespace o2 {
