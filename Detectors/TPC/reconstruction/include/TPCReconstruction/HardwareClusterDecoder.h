@@ -16,11 +16,10 @@
 
 #include <vector>
 #include "TPCReconstruction/DigitalCurrentClusterIntegrator.h"
+#include "DataFormatsTPC/ClusterNative.h"
 
 namespace o2 { namespace DataFormat { namespace TPC {
-class ClusterNative;
 class ClusterHardwareContainer;
-class ClusterNativeContainer;
 }}}
 
 namespace o2 { namespace dataformats { template <typename TruthElement> class MCTruthContainer; } class MCCompLabel; }

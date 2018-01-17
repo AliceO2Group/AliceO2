@@ -24,11 +24,6 @@ class AliHLTTPCCAClusterData;
 
 namespace o2 { class MCCompLabel; namespace dataformats { template <class T> class MCTruthContainer; }}
 
-namespace o2 { namespace DataFormat { namespace TPC {
-  class ClusterNative;
-  class ClusterNativeAccessFullTPC;
-}}}
-
 namespace o2
 {
 namespace TPC
