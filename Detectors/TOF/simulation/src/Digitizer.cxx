@@ -32,10 +32,10 @@ void Digitizer::digitize()
   // if(hit) processHit(hit);
 }
 
-void Digitizer::process(const std::vector<HitType>* hits,Double_t event_time){
+void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* digits,Double_t event_time){
   // hits array of TOF hits for a given simulated event
-
-  Int_t nhits = 0; // it should have hits vector size
+  mDigits = digits;
+  Int_t nhits = hits->size(); // it should have hits vector size
 
   const Int_t timeframewindow = 1000; // to be set in Geo.h, now it is set to 1microsecond = 1000 ns
 

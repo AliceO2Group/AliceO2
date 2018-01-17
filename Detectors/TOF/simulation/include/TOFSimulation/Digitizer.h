@@ -12,6 +12,7 @@
 #define ALICEO2_TOF_DIGITIZER_H_
 
 #include "TOFBase/Geo.h"
+#include "TOFBase/Digit.h"
 #include "TOFSimulation/Detector.h"
 
 namespace o2
@@ -27,7 +28,7 @@ class Digitizer : public TObject
 
   void digitize();
 
-  void process(const std::vector<HitType>* hits,Double_t event_time=0); 
+  void process(const std::vector<HitType>* hits,std::vector<Digit>* digits,Double_t event_time=0); 
 
   void processHit(const HitType &hit,Double_t event_time=0);
   void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired);
@@ -48,7 +49,7 @@ class Digitizer : public TObject
   Int_t getXshift(Int_t idigit) const { return mXshift[idigit]; }
   Int_t getZshift(Int_t idigit) const { return mZshift[idigit]; }
 
-  void setEventTime(double) {};
+  void setEventTime(double value) {mEventTime=value};
 
   void initParameters();
   void printParameters();
@@ -77,8 +78,10 @@ class Digitizer : public TObject
 
   // info TOF timewindow
   Int_t mTimeFrameCurrent;
+  Double_t mEventTime;
 
-  // keep info of last digitization
+  // digit info
+  std::vector<Digit>* mDigits;
   Int_t mNumDigit;  //! number of digits of last hit processed
   Float_t mTime[6]; //! time of digitis in the last hit processed
   Float_t mTot[6];  //! tot of digitis in the last hit processed
