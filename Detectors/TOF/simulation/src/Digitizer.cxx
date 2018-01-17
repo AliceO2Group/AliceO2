@@ -187,13 +187,37 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   mXshift[mNumDigit] = iX;
   mZshift[mNumDigit] = iZ;
   mNumDigit++;
-  // TODO: fix channel and put proper constant
-  mDigits->emplace_back(0, time/0.024 , time);
 
-  if (mMCTruthContainer) {
-    auto digitindex = mDigits->size() - 1;
-    o2::MCCompLabel label(trackID, mEventID, mSrcID);
-    mMCTruthContainer->addElement(digitindex, label);
+  bool merged = false;
+  Digit newdigit(channel, time/0.024, time);
+  // check if such mergable digit already exists
+  int digitindex = 0;
+  for (auto& digit : *mDigits) {
+    if (isMergable(digit, newdigit)) {
+      LOG(INFO) << "MERGING DIGITS " << digitindex << "\n";
+      merged = true;
+      // merge it
+
+      // adjust truth information
+      if (mMCTruthContainer) {
+        o2::MCCompLabel label(trackID, mEventID, mSrcID);
+        // TODO: put version which does not require consecutive indices
+        // mMCTruthContainer->addElement(digitindex, label);
+      }
+      break;
+    }
+    digitindex++;
+  }
+
+  if (!merged) {
+    // TODO: fix channel and put proper constant
+    mDigits->emplace_back(channel, time / 0.024, time);
+
+    if (mMCTruthContainer) {
+      auto digitindex = mDigits->size() - 1;
+      o2::MCCompLabel label(trackID, mEventID, mSrcID);
+      mMCTruthContainer->addElement(digitindex, label);
+    }
   }
 }
 

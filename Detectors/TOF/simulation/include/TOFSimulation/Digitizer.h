@@ -98,6 +98,18 @@ class Digitizer
   void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
                 Int_t trackID);
 
+  bool isMergable(Digit digit1, Digit digit2)
+  {
+    if (digit1.getChannel() != digit2.getChannel()) {
+      return false;
+    }
+    // TODO: introduce constant for 400
+    if (std::abs(digit1.getTDC() - digit2.getTDC()) > 400) {
+      return false;
+    }
+    return true;
+  }
+
   ClassDefNV(Digitizer, 1);
 };
 }
