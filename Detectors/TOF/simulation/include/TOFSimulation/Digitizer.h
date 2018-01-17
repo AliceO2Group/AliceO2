@@ -21,12 +21,15 @@ namespace tof
 class Digitizer : public TObject
 {
  public:
-  Digitizer(Int_t mode = 0) : mMode(mode) { initParameters(); };
+ Digitizer(Int_t mode = 0) : mMode(mode), mTimeFrameCurrent(0) { initParameters(); };
 
   ~Digitizer() override = default;
 
   void digitize();
-  void processHit(HitType* hit);
+
+  void process(const std::vector<HitType>* hits,Double_t event_time=0); 
+
+  void processHit(const HitType &hit,Double_t event_time=0);
   void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired);
   Float_t getShowerTimeSmeared(Float_t time, Float_t charge);
   Float_t getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float_t charge);
@@ -35,6 +38,9 @@ class Digitizer : public TObject
   Float_t getEffX(Float_t x);
   Float_t getEffZ(Float_t z);
   Float_t getFractionOfCharge(Float_t x, Float_t z);
+
+  Int_t getCurrentTimeFrame() const {return mTimeFrameCurrent;}
+  void  setCurrentTimeFrame(Double_t value) {mTimeFrameCurrent = value;}
 
   Int_t getNumDigitLastHit() const { return mNumDigit; }
   Float_t getTimeLastHit(Int_t idigit) const { return mTime[idigit]; }
@@ -66,6 +72,9 @@ class Digitizer : public TObject
   Float_t mEffBoundary1;
   Float_t mEffBoundary2;
   Float_t mEffBoundary3;
+
+  // info TOF timewindow
+  Int_t mTimeFrameCurrent;
 
   // keep info of last digitization
   Int_t mNumDigit;  //! number of digits of last hit processed

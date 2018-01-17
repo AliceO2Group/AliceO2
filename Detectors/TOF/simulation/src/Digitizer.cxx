@@ -32,11 +32,28 @@ void Digitizer::digitize()
   // if(hit) processHit(hit);
 }
 
-void Digitizer::processHit(HitType* hit)
+void Digitizer::process(const std::vector<HitType>* hits,Double_t event_time){
+  // hits array of TOF hits for a given simulated event
+
+  Int_t nhits = 0; // it should have hits vector size
+
+  const Int_t timeframewindow = 1000; // to be set in Geo.h, now it is set to 1microsecond = 1000 ns
+
+  for(Int_t i=0; i< nhits;i++){ // loop over hits
+    HitType *current_hit;
+    Int_t timeframe = Int_t((event_time + current_hit->GetTime())/timeframewindow); // to be replaced with uncalibrated time
+    if(timeframe == mTimeFrameCurrent)
+      processHit(*current_hit,event_time);
+
+  } // end loop over hits
+}
+
+
+void Digitizer::processHit(const HitType &hit,Double_t event_time)
 {
   mNumDigit = 0;
 
-  Float_t pos[3] = { hit->GetX(), hit->GetY(), hit->GetZ() };
+  Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   Float_t deltapos[3];
   Int_t detInd[5];
   Int_t detIndOtherPad[5];
@@ -54,8 +71,8 @@ void Digitizer::processHit(HitType* hit)
 
   Int_t channel = Geo::getIndex(detInd);
 
-  Float_t charge = getCharge(hit->GetEnergyLoss());
-  Float_t time = getShowerTimeSmeared(hit->GetTime() * 1E3, charge); // in ps from now!
+  Float_t charge = getCharge(hit.GetEnergyLoss());
+  Float_t time = getShowerTimeSmeared(hit.GetTime() * 1E3, charge); // in ps from now!
 
   Float_t xLocal = deltapos[0];
   Float_t zLocal = deltapos[2];
@@ -168,6 +185,8 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   }
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
 
+
+  // Fill digit
   mTime[mNumDigit] = time;
   mTot[mNumDigit] = tot;
   mXshift[mNumDigit] = iX;
@@ -425,12 +444,12 @@ void Digitizer::test(const char* geo)
     Int_t detCur[5];
     o2::tof::Geo::getDetID(x, detCur);
 
-    hit->SetTime(0); // t->GetLeaf("cbmroot.TOF.TOFHit.mTime")->GetValue(j));
+    hit->SetTime(0); // t->GetLeaf("o2root.TOF.TOFHit.mTime")->GetValue(j));
     hit->SetXYZ(x[0], x[1], x[2]);
 
     hit->SetEnergyLoss(0.0001);
 
-    processHit(hit);
+    processHit(*hit);
 
     h3->Fill(getNumDigitLastHit());
     hpadAll->Fill(xlocal, zlocal);
@@ -502,7 +521,7 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
   TFile* fHit = new TFile(hits);
   fHit->ls();
 
-  TTree* t = (TTree*)fHit->Get("cbmsim");
+  TTree* t = (TTree*)fHit->Get("o2sim");
   Int_t nev = t->GetEntriesFast();
 
   o2::tof::HitType* hit = new o2::tof::HitType();
@@ -515,17 +534,17 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
 
   for (Int_t i = 0; i < nev; i++) {
     t->GetEvent(i);
-    Int_t nhit = t->GetLeaf("cbmroot.TOF.TOFHit_")->GetLen();
+    Int_t nhit = t->GetLeaf("o2root.TOF.TOFHit_")->GetLen();
 
     for (Int_t j = 0; j < nhit; j++) {
-      hit->SetTime(0); // t->GetLeaf("cbmroot.TOF.TOFHit.mTime")->GetValue(j));
-      hit->SetXYZ(t->GetLeaf("cbmroot.TOF.TOFHit.mPos.fCoordinates.fX")->GetValue(j),
-                  t->GetLeaf("cbmroot.TOF.TOFHit.mPos.fCoordinates.fY")->GetValue(j),
-                  t->GetLeaf("cbmroot.TOF.TOFHit.mPos.fCoordinates.fZ")->GetValue(j));
+      hit->SetTime(0); // t->GetLeaf("o2root.TOF.TOFHit.mTime")->GetValue(j));
+      hit->SetXYZ(t->GetLeaf("o2root.TOF.TOFHit.mPos.fCoordinates.fX")->GetValue(j),
+                  t->GetLeaf("o2root.TOF.TOFHit.mPos.fCoordinates.fY")->GetValue(j),
+                  t->GetLeaf("o2root.TOF.TOFHit.mPos.fCoordinates.fZ")->GetValue(j));
 
-      hit->SetEnergyLoss(t->GetLeaf("cbmroot.TOF.TOFHit.mELoss")->GetValue(j));
+      hit->SetEnergyLoss(t->GetLeaf("o2root.TOF.TOFHit.mELoss")->GetValue(j));
 
-      processHit(hit);
+      processHit(*hit);
 
       h3->Fill(getNumDigitLastHit());
       for (Int_t k = 0; k < getNumDigitLastHit(); k++) {
