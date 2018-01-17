@@ -10,12 +10,13 @@
 
 #include "DetectorsBase/Propagator.h"
 #include <FairLogger.h>
+#include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
 #include "DetectorsBase/GeometryManager.h"
 #include "Field/MagFieldFast.h"
 #include "Field/MagneticField.h"
+#include "DataFormatsParameters/GRPObject.h"
 
-using namespace o2::track;
 using namespace o2::Base;
 
 Propagator::Propagator()
@@ -27,17 +28,24 @@ Propagator::Propagator()
     LOG(FATAL) << "No active geometry!" << FairLogger::endl;
   }
 
-  o2::field::MagneticField* slow = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  if (!slow) {
+  o2::field::MagneticField* slowField = nullptr;
+  slowField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (!slowField) {
+    LOG(WARNING) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna" << FairLogger::endl;
+    slowField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
+  }
+  if (!slowField) {
     LOG(FATAL) << "Magnetic field is not initialized!" << FairLogger::endl;
   }
-  slow->AllowFastField(true);
-  mField = slow->getFastField();
+  if (!slowField->getFastField()) {
+    slowField->AllowFastField(true);
+  }
+  mField = slowField->getFastField();
 }
 
 //_______________________________________________________________________
-bool Propagator::PropagateToXBxByBz(TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
-                                    int matCorr, int signCorr)
+bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass,
+				    float maxSnp, float maxStep, int matCorr, int signCorr)
 {
   //----------------------------------------------------------------
   //
@@ -84,4 +92,53 @@ bool Propagator::PropagateToXBxByBz(TrackParCov& track, float xToGo, float mass,
     dx = xToGo - track.getX();
   }
   return true;
+}
+
+//____________________________________________________________
+int Propagator::initFieldFromGRP(const std::string grpFileName,std::string grpName)
+{
+  /// load grp and init magnetic field
+  LOG(INFO)<<"Loading field from GRP of "<<grpFileName<<FairLogger::endl;
+  TFile flGRP(grpFileName.data());
+  if ( flGRP.IsZombie() ) {
+    LOG(ERROR)<<"Failed to open "<<grpFileName<<FairLogger::endl;    
+    return -10;
+  }
+  auto grp = static_cast<o2::parameters::GRPObject*>
+    (flGRP.GetObjectChecked(grpName.data(),o2::parameters::GRPObject::Class()));
+  if (!grp) {
+    LOG(ERROR)<<"Did not find GRP object named "<<grpName<<FairLogger::endl;        
+    return -12;
+  }
+  grp->print();
+
+  return initFieldFromGRP(grp);
+
+}
+
+//____________________________________________________________
+int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp)
+{
+  /// init mag field from GRP data and attach it to TGeoGlobalMagField
+  
+  if ( TGeoGlobalMagField::Instance()->IsLocked() ) {
+    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
+      LOG(WARNING)<<"ExpertMode!!! GRP information will be ignored"<<FairLogger::endl;
+      LOG(WARNING)<<"ExpertMode!!! Running with the externally locked B field"<<FairLogger::endl;
+      return 0;
+    }
+    else {
+      LOG(INFO)<<"Destroying existing B field instance"<<FairLogger::endl;
+      delete TGeoGlobalMagField::Instance();
+    }
+  }
+  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
+  TGeoGlobalMagField::Instance()->SetField( fld );
+  TGeoGlobalMagField::Instance()->Lock();
+  LOG(INFO)<<"Running with the B field constructed out of GRP"<<FairLogger::endl;
+  LOG(INFO)<<"Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via"<<FairLogger::endl;
+  LOG(INFO)<<"auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )"
+	   <<FairLogger::endl;
+  
+  return 0;
 }

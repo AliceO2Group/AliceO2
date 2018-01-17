@@ -68,7 +68,7 @@ class TrackTPC :public o2::track::TrackParCov {
     void setOuterParam(o2::track::TrackParCov&& v) {mOuterParam = v;}
     
     void resetClusterReferences(int nClusters);
-    int getNClusterReferences() {return mNClusters;}
+    int getNClusterReferences() const {return mNClusters;}
     void setClusterReference(int nCluster, uint8_t sectorIndex, uint8_t rowIndex, uint32_t clusterIndex) {
       mClusterReferences[nCluster] = clusterIndex;
       reinterpret_cast<uint8_t*>(mClusterReferences.data())[4 * mNClusters + nCluster] = sectorIndex;
@@ -100,6 +100,8 @@ class TrackTPC :public o2::track::TrackParCov {
     //New structure to store cluster references
     int mNClusters = 0;
     std::vector<uint32_t> mClusterReferences;
+
+    ClassDefNV(TrackTPC,1);
 };
 
 inline

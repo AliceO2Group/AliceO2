@@ -446,6 +446,7 @@ o2_define_bucket(
     root_physics_bucket
     data_format_reconstruction_bucket
     ReconstructionDataFormats
+    DataFormatsParameters
     Field
     
     VMC # ROOT
@@ -456,6 +457,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Common/Constants/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Parameters/include
 )
 
 o2_define_bucket(

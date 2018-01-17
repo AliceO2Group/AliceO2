@@ -23,6 +23,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
+#include <string>
 
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
@@ -44,10 +45,15 @@ namespace Base
 class GeometryManager : public TObject
 {
  public:
-  /// Get the global transformation matrix (ideal geometry) for a given alignable volume
-  /// The alignable volume is identified by 'symname' which has to be either a valid symbolic
-  /// name, the query being performed after alignment, or a valid volume path if the query is
-  /// performed before alignment.
+
+  ///< load geometry from file
+  static void loadGeometry(std::string geomFileName="O2geometry.root",
+			   std::string geomName="FAIRGeom");
+  
+  ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
+  ///< The alignable volume is identified by 'symname' which has to be either a valid symbolic
+  ///< name, the query being performed after alignment, or a valid volume path if the query is
+  ///< performed before alignment.
   static Bool_t getOriginalMatrix(o2::detectors::DetID detid, int sensid, TGeoHMatrix& m);
   static Bool_t getOriginalMatrix(const char* symname, TGeoHMatrix& m);
   static const char* getSymbolicName(o2::detectors::DetID detid, int sensid);

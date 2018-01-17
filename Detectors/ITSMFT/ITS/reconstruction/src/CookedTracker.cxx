@@ -26,6 +26,7 @@
 
 #include "CommonConstants/MathConstants.h"
 #include "MathUtils/Utils.h"
+#include "DetectorsBase/Propagator.h"
 #include "Field/MagneticField.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSReconstruction/CookedTracker.h"
@@ -73,7 +74,8 @@ CookedTracker::Layer CookedTracker::sLayers[CookedTracker::kNLayers];
 
 CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
 {
-  //--------------------------------------------------------------------  // This default constructor needs to be provided
+  //--------------------------------------------------------------------
+  // This default constructor needs to be provided
   //--------------------------------------------------------------------
   const Double_t klRadius[7] = { 2.34, 3.15, 3.93, 19.61, 24.55, 34.39, 39.34 }; // tdr6
 
@@ -603,7 +605,9 @@ bool CookedTracker::makeBackPropParam(CookedTrack& track) const
   // refit in backward direction
   auto backProp = track.getParamOut();
   backProp = track;
-  backProp.resetCovariance(); 
+  backProp.resetCovariance();
+  auto propagator = o2::Base::Propagator::Instance();
+  
   Int_t noc = track.getNumberOfClusters();
   for (int ic=noc;ic--;) { // cluster indices are stored in inward direction
     Int_t index = track.getClusterIndex(ic);
@@ -612,7 +616,7 @@ bool CookedTracker::makeBackPropParam(CookedTrack& track) const
     if (!backProp.rotate(alpha)) {
       return false;
     }
-    if (!backProp.propagateTo(c->getX(), getBz())) {
+    if (!propagator->PropagateToXBxByBz(backProp,c->getX())) {
       return false;
     }
     if (!backProp.update(static_cast<const o2::BaseCluster<float>&>(*c))) {

@@ -48,7 +48,7 @@ class CookedTrack : public o2::track::TrackParCov
   Bool_t update(const Cluster& c, Float_t chi2, Int_t idx);
 
   // Other functions
-  Int_t getChi2() const { return mChi2; }
+  float getChi2() const { return mChi2; }
   Int_t getNumberOfClusters() const { return mNClusters; }
   Int_t getClusterIndex(Int_t i) const { return mIndex[i]; }
   bool operator<(const CookedTrack& o) const;

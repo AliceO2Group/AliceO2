@@ -983,10 +983,10 @@ void TrackParCov::resetCovariance(float s2)
 float TrackParCov::getPredictedChi2(const array<float, 2>& p, const array<float, 3>& cov) const
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
-  float sdd = getSigmaY2() + cov[0];
-  float sdz = getSigmaZY() + cov[1];
-  float szz = getSigmaZ2() + cov[2];
-  float det = sdd * szz - sdz * sdz;
+  auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
+  auto sdz = static_cast<double>(getSigmaZY()) + static_cast<double>(cov[1]);
+  auto szz = static_cast<double>(getSigmaZ2()) + static_cast<double>(cov[2]);
+  auto det = sdd * szz - sdz * sdz;
 
   if (fabs(det) < Almost0) {
     return VeryBig;
@@ -1002,21 +1002,21 @@ float TrackParCov::getPredictedChi2(const array<float, 2>& p, const array<float,
 void TrackParCov::buildCombinedCovMatrix(const TrackParCov& rhs, MatrixDSym5& cov) const
 {
   // fill combined cov.matrix (NOT inverted)
-  cov(kY, kY) = getSigmaY2() + rhs.getSigmaY2();
-  cov(kZ, kY) = getSigmaZY() + rhs.getSigmaZY();
-  cov(kZ, kZ) = getSigmaZ2() + rhs.getSigmaZ2();
-  cov(kSnp, kY) = getSigmaSnpY() + rhs.getSigmaSnpY();
-  cov(kSnp, kZ) = getSigmaSnpZ() + rhs.getSigmaSnpZ();
-  cov(kSnp, kSnp) = getSigmaSnp2() + rhs.getSigmaSnp2();
-  cov(kTgl, kY) = getSigmaTglY() + rhs.getSigmaTglY();
-  cov(kTgl, kZ) = getSigmaTglZ() + rhs.getSigmaTglZ();
-  cov(kTgl, kSnp) = getSigmaTglSnp() + rhs.getSigmaTglSnp();
-  cov(kTgl, kTgl) = getSigmaTgl2() + rhs.getSigmaTgl2();
-  cov(kQ2Pt, kY) = getSigma1PtY() + rhs.getSigma1PtY();
-  cov(kQ2Pt, kZ) = getSigma1PtZ() + rhs.getSigma1PtZ();
-  cov(kQ2Pt, kSnp) = getSigma1PtSnp() + rhs.getSigma1PtSnp();
-  cov(kQ2Pt, kTgl) = getSigma1PtTgl() + rhs.getSigma1PtTgl();
-  cov(kQ2Pt, kQ2Pt) = getSigma1Pt2() + rhs.getSigma1Pt2();
+  cov(kY, kY) = static_cast<double>(getSigmaY2()) + static_cast<double>(rhs.getSigmaY2());
+  cov(kZ, kY) = static_cast<double>(getSigmaZY()) + static_cast<double>(rhs.getSigmaZY());
+  cov(kZ, kZ) = static_cast<double>(getSigmaZ2()) + static_cast<double>(rhs.getSigmaZ2());
+  cov(kSnp, kY) = static_cast<double>(getSigmaSnpY()) + static_cast<double>(rhs.getSigmaSnpY());
+  cov(kSnp, kZ) = static_cast<double>(getSigmaSnpZ()) + static_cast<double>(rhs.getSigmaSnpZ());
+  cov(kSnp, kSnp) = static_cast<double>(getSigmaSnp2()) + static_cast<double>(rhs.getSigmaSnp2());
+  cov(kTgl, kY) = static_cast<double>(getSigmaTglY()) + static_cast<double>(rhs.getSigmaTglY());
+  cov(kTgl, kZ) = static_cast<double>(getSigmaTglZ()) + static_cast<double>(rhs.getSigmaTglZ());
+  cov(kTgl, kSnp) = static_cast<double>(getSigmaTglSnp()) + static_cast<double>(rhs.getSigmaTglSnp());
+  cov(kTgl, kTgl) = static_cast<double>(getSigmaTgl2()) + static_cast<double>(rhs.getSigmaTgl2());
+  cov(kQ2Pt, kY) = static_cast<double>(getSigma1PtY()) + static_cast<double>(rhs.getSigma1PtY());
+  cov(kQ2Pt, kZ) = static_cast<double>(getSigma1PtZ()) + static_cast<double>(rhs.getSigma1PtZ());
+  cov(kQ2Pt, kSnp) = static_cast<double>(getSigma1PtSnp()) + static_cast<double>(rhs.getSigma1PtSnp());
+  cov(kQ2Pt, kTgl) = static_cast<double>(getSigma1PtTgl()) + static_cast<double>(rhs.getSigma1PtTgl());
+  cov(kQ2Pt, kQ2Pt) = static_cast<double>(getSigma1Pt2()) + static_cast<double>(rhs.getSigma1Pt2());
 }
 
 //______________________________________________
@@ -1143,7 +1143,9 @@ bool TrackParCov::update(const array<float, 2>& p, const array<float, 3>& cov)
         &cm44 = mC[kSigQ2Pt2];
 
   // use double precision?
-  double r00 = cov[0] + cm00, r01 = cov[1] + cm10, r11 = cov[2] + cm11;
+  double r00 = static_cast<double>(cov[0]) + static_cast<double>(cm00);
+  double r01 = static_cast<double>(cov[1]) + static_cast<double>(cm10);
+  double r11 = static_cast<double>(cov[2]) + static_cast<double>(cm11);
   double det = r00 * r11 - r01 * r01;
 
   if (fabs(det) < Almost0) {

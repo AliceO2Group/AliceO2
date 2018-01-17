@@ -110,6 +110,9 @@ class TrackPar
   float getP() const;
   float getPt() const;
 
+  float getTheta() const {return constants::math::PIHalf - std::atan(mP[3]);}
+  float getEta() const {return -std::log(std::tan(0.5*getTheta()));}
+
   Point3D<float> getXYZGlo() const;
   void getXYZGlo(std::array<float, 3>& xyz) const;
   bool getPxPyPzGlo(std::array<float, 3>& pxyz) const;
@@ -188,7 +191,7 @@ class TrackParCov : public TrackPar
   float getSigma1PtTgl() const { return mC[kSigQ2PtTgl]; }
   float getSigma1Pt2() const { return mC[kSigQ2Pt2]; }
   float getCovarElem(int i,int j) const {return mC[CovarMap[i][j]];}
-  float getDiarError2(int i) const {return mC[DiagMap[i]];}
+  float getDiagError2(int i) const {return mC[DiagMap[i]];}
   
   void Print() const;
 
@@ -223,8 +226,8 @@ class TrackParCov : public TrackPar
   template <typename T>
   bool update(const BaseCluster<T>& p)
   {
-    const std::array<float, 2> pyz{ p.getY(), p.getZ() };
-    const std::array<float, 3> cov{ p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2() };
+    const std::array<float, 2> pyz = { p.getY(), p.getZ() };
+    const std::array<float, 3> cov = { p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2() };
     return update(pyz, cov);
   }
 
@@ -316,6 +319,7 @@ inline float TrackPar::getPt() const
   return (ptI > o2::constants::math::Almost0) ? 1.f / ptI : o2::constants::math::VeryBig;
 }
 
+ 
 //============================================================
 
 //____________________________________________________________

@@ -9,10 +9,11 @@
 // or submit itself to any jurisdiction.
 
 #include "Field/MagFieldFact.h"
+#include "FairField.h"
+#include "FairLogger.h"
+#include "FairRuntimeDb.h"
 #include "Field/MagFieldParam.h"
 #include "Field/MagneticField.h"
-#include "FairRuntimeDb.h"
-#include "FairField.h"
 
 #include <iostream>
 using std::cout;
@@ -21,27 +22,17 @@ using std::endl;
 
 using namespace o2::field;
 
-
 ClassImp(MagFieldFact)
 
+  static MagFieldFact gMagFieldFact;
 
-static MagFieldFact gMagFieldFact;
-
-MagFieldFact::MagFieldFact()
-  :FairFieldFactory(),
-   mFieldPar(nullptr),
-   mField()
-{
-        fCreator=this;
-}
-
-MagFieldFact::~MagFieldFact()
-= default;
+MagFieldFact::MagFieldFact() : FairFieldFactory(), mFieldPar(nullptr) { fCreator = this; }
+MagFieldFact::~MagFieldFact() = default;
 
 void MagFieldFact::SetParm()
 {
   auto RunDB = FairRuntimeDb::instance();
-  mFieldPar = (MagFieldParam*) RunDB->getContainer("MagFieldParam");
+  mFieldPar = (MagFieldParam*)RunDB->getContainer("MagFieldParam");
 }
 
 FairField* MagFieldFact::createFairField()
@@ -51,9 +42,8 @@ FairField* MagFieldFact::createFairField()
     return nullptr;
   }
   // since we have just 1 field class, we don't need to consider fFieldPar->GetType()
-  mField = std::make_unique<MagneticField>(*mFieldPar);
-  std::cerr << "creating the field\n";
-  return mField.get();
+  std::cerr << "creating the field as unmanaged pointer\n";
+  // we have to use naked "new" here since the FairRootAna or TGeoGlobalMagField expect
+  // bare pointer on the field which they eventually destroy
+  return new MagneticField(*mFieldPar);
 }
-
-

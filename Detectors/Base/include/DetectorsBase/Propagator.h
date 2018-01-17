@@ -17,9 +17,17 @@
 
 #include "CommonConstants/PhysicsConstants.h"
 #include "ReconstructionDataFormats/Track.h"
+#include <string>
+
 
 namespace o2
 {
+
+namespace parameters
+{
+class GRPObject;
+}
+  
 namespace field
 {
 class MagFieldFast;
@@ -45,11 +53,15 @@ class Propagator
   Propagator& operator=(Propagator const&) = delete;
   Propagator& operator=(Propagator&&) = delete;
 
+  static int initFieldFromGRP(const o2::parameters::GRPObject* grp);
+  static int initFieldFromGRP(const std::string grpFileName,std::string grpName="GRP");
+
+  
  private:
   Propagator();
   ~Propagator() = default;
 
-  const o2::field::MagFieldFast* mField = nullptr;
+  const o2::field::MagFieldFast* mField = nullptr;  ///< External fast field (barrel only for the moment)
 
   ClassDef(Propagator, 0);
 };

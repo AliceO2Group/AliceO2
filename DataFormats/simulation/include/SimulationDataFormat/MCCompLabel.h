@@ -29,7 +29,7 @@ class MCCompLabel
   
  public:
 
-  // number of bits reserved for MC track ID, DON'T modify this, sine the
+  // number of bits reserved for MC track ID, DON'T modify this, since the
   // track ID might be negative
   static constexpr int nbitsTrackID = sizeof(int)*8;
   static constexpr int nbitsEvID = 19;    // number of bits reserved for MC event ID
@@ -57,9 +57,26 @@ class MCCompLabel
 
   // check if label was assigned with non-negaive trackID
   bool isPosTrackID() const { return getTrackID() >= 0; }
-  
-  // conversion op-r
+
+  // return 1 if the tracks are the same and have labels>=0,
+  // 0 if the tracks are the same but at least one of them has label<0
+  // -1 otherwhise
+  int compare(const MCCompLabel& other) const {
+    if (getEventID()!=other.getEventID() || getSourceID()!=other.getSourceID()) {
+      return -1;
+    }
+    int tr1 = getTrackID(), tr2 = other.getTrackID();
+    return (tr1==tr2) ? 1 : ((tr1=-tr2) ? 0 : -1);
+  }
+	      
+  // conversion operator
   operator ULong64_t() const { return mLabel; }
+
+  // comparison operator, compares only label, not evential weight info
+  bool operator==(const MCCompLabel& other) const {
+    return (mLabel&maskFull)==(other.mLabel&maskFull);
+  }
+  
   // invalidate
   void unset() { mLabel = NotSet; }
   void set(int trackID, int evID, int srcID)
