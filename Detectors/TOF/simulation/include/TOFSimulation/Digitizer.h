@@ -48,6 +48,8 @@ class Digitizer : public TObject
   Int_t getXshift(Int_t idigit) const { return mXshift[idigit]; }
   Int_t getZshift(Int_t idigit) const { return mZshift[idigit]; }
 
+  void setEventTime(double) {};
+
   void initParameters();
   void printParameters();
 
