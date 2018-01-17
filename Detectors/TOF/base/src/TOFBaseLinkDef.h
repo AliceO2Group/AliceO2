@@ -16,5 +16,6 @@
 
 #pragma link C++ class o2::tof::Geo+;
 #pragma link C++ class o2::tof::Digit+;
+#pragma link C++ class vector<o2::tof::Digit>+;
 
 #endif
