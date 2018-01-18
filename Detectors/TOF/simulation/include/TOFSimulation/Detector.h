@@ -95,7 +95,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   void makeCoversInBTOFvolumes() const;
   void makeBackInBTOFvolumes(Float_t ytof) const;
 
-  void addAlignableVolumes() const;
+  void addAlignableVolumes() const override;
 
   Int_t mEventNr; // event count
   Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
