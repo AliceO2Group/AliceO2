@@ -31,11 +31,9 @@ namespace framework {
 // - one dispatcher per parallel flow vs one dispatcher per whole flow
 
 void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
-                                          const std::string &configurationSource,
-                                          const std::vector<std::string> &taskNames)
+                                          const std::string &configurationSource)
 {
-  QcTaskConfigurations tasks;
-  readQcTasksConfiguration(configurationSource, taskNames, tasks);
+  QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
 
   for (auto&& task : tasks) {
     DataProcessorSpec dispatcher{
@@ -68,11 +66,9 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
 }
 
 void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow,
-                                          const std::string &configurationSource,
-                                          const std::vector<std::string> &taskNames)
+                                          const std::string &configurationSource)
 {
-  QcTaskConfigurations tasks;
-  readQcTasksConfiguration(configurationSource, taskNames, tasks);
+  QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
 
   for (auto&& task : tasks) {
     std::unordered_map<Header::DataHeader::SubSpecificationType, DataProcessorSpec> dispatchers;
@@ -124,11 +120,9 @@ void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow,
 }
 
 void DataSampling::GenerateInfrastructureTimePipelining(WorkflowSpec &workflow,
-                                          const std::string &configurationSource,
-                                          const std::vector<std::string> &taskNames)
+                                          const std::string &configurationSource)
 {
-  QcTaskConfigurations tasks;
-  readQcTasksConfiguration(configurationSource, taskNames, tasks);
+  QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
 
   for (auto&& task : tasks) {
     DataProcessorSpec dispatcher{
@@ -203,26 +197,35 @@ void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator
 OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherInput)
 {
   OutputSpec dispatcherOutput{
-        dispatcherInput.origin,
-        dispatcherInput.description,
-        0,
-        static_cast<OutputSpec::Lifetime>(dispatcherInput.lifetime)
-      };
+    dispatcherInput.origin,
+    dispatcherInput.description,
+    0,
+    static_cast<OutputSpec::Lifetime>(dispatcherInput.lifetime)
+  };
 
   size_t len = strlen(dispatcherOutput.description.str);
   if (len < dispatcherOutput.description.size-2) {
-        dispatcherOutput.description.str[len] = '_';
-        dispatcherOutput.description.str[len+1] = 'S';
-      }
+    dispatcherOutput.description.str[len] = '_';
+    dispatcherOutput.description.str[len+1] = 'S';
+  }
 
   return dispatcherOutput;
 }
 
-void DataSampling::readQcTasksConfiguration(const std::string &configurationSource,
-                                     const std::vector<std::string> &taskNames,
-                                     std::vector<QcTaskConfiguration>& tasks)
+std::vector<QcTaskConfiguration> DataSampling::readQcTasksConfiguration(const std::string &configurationSource)
 {
+  std::vector<QcTaskConfiguration> tasks;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
+
+  std::vector<std::string> taskNames;
+  try {
+    std::string taskNamesString = configFile->getString("general/tasksList").value();
+    boost::split(taskNames, taskNamesString, boost::is_any_of(","));
+  } catch (const boost::bad_optional_access &) {
+    LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
+               << ", wrong or missing value general/tasksList";
+    return;
+  }
 
   for (auto&& taskName : taskNames) {
 
@@ -277,6 +280,8 @@ void DataSampling::readQcTasksConfiguration(const std::string &configurationSour
     }
     tasks.push_back(task);
   }
+
+  return tasks;
 }
 
 

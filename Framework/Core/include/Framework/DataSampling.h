@@ -30,14 +30,11 @@ class DataSampling {
     DataSampling() = delete;
 
     static void GenerateInfrastructure(WorkflowSpec &workflow,
-                                       const std::string &configurationSource,
-                                       const std::vector<std::string> &taskNames);
+                                       const std::string &configurationSource);
     static void GenerateInfrastructureParallel(WorkflowSpec &workflow,
-                                       const std::string &configurationSource,
-                                       const std::vector<std::string> &taskNames);
+                                       const std::string &configurationSource);
     static void GenerateInfrastructureTimePipelining(WorkflowSpec &workflow,
-                                       const std::string &configurationSource,
-                                       const std::vector<std::string> &taskNames);
+                                       const std::string &configurationSource);
 
   private:
     struct BernoulliGenerator {
@@ -64,9 +61,7 @@ class DataSampling {
     static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
 
     static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);
-    static void readQcTasksConfiguration(const std::string &configurationSource,
-                                         const std::vector<std::string> &taskNames,
-                                         std::vector<QcTaskConfiguration>& tasks);
+    static std::vector<QcTaskConfiguration> readQcTasksConfiguration(const std::string &configurationSource);
 
 };
 
