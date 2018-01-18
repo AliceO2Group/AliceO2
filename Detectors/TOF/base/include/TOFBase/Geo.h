@@ -44,7 +44,9 @@ class Geo
   static  void getPadDxDyDz(const Float_t * pos,Int_t * det,Float_t * DeltaPos); 
 
   static constexpr Float_t BC_TIME = 25;             // bunch crossing in ns
-  static constexpr Float_t BC_TIME_INV = 1./BC_TIME; // bunch crossing in ns
+  static constexpr Float_t BC_TIME_INV = 1./BC_TIME; // inv bunch crossing in ns
+  static constexpr Float_t BC_TIME_INPS = BC_TIME*1000; // bunch crossing in ps
+  static constexpr Float_t BC_TIME_INPS_INV = 1./BC_TIME_INPS; // inv bunch crossing in ps
 
   static constexpr Int_t NPADX = 48;
   static constexpr Int_t NPADZ = 2;
@@ -79,9 +81,9 @@ class Geo
   static constexpr Float_t PHISEC = 20; // sector Phi width (deg)
 
   static constexpr Float_t TDCBIN = 24.4;                    ///< TDC bin width [ps]
-  static constexpr Float_t NTDCBIN_IN_NS = 1000./TDCBIN;     ///< number of TDC bins in 1 ns
+  static constexpr Float_t NTDCBIN_PER_PS = 1./TDCBIN;       ///< number of TDC bins in 1 ns
   static constexpr Float_t TOTBIN = 48.8;                    // time-over-threshold bin width [ps]
-  static constexpr Float_t NTOTBIN_IN_NS = 1000./TOTBIN;                    // number of time-over-threshold bin in 1 ns
+  static constexpr Float_t NTOTBIN_PER_NS = 1000./TOTBIN;    // number of time-over-threshold bin in 1 ns
   static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
 
   static constexpr Float_t SLEWTOTMIN = 10.; // min TOT for slewing correction [ns]

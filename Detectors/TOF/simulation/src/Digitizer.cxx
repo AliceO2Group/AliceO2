@@ -61,7 +61,8 @@ Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
   Int_t channel = Geo::getIndex(detInd);
 
   Float_t charge = getCharge(hit.GetEnergyLoss());
-  Float_t time = getShowerTimeSmeared(hit.GetTime() * 1E3, charge); // in ps from now!
+  // NOTE: FROM NOW ON THE TIME IS IN PS ... AND NOT IN NS
+  Float_t time = getShowerTimeSmeared((event_time + hit.GetTime()) * 1E3, charge);
 
   Float_t xLocal = deltapos[0];
   Float_t zLocal = deltapos[2];
@@ -190,8 +191,8 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
 
   bool merged = false;
 
-  Int_t nbc = Int_t(time*Geo::BC_TIME_INV); // time elapsed in number of bunch crossing
-  Digit newdigit(time, channel, (time-Geo::BC_TIME*nbc)*Geo::NTDCBIN_IN_NS, tot*Geo::NTOTBIN_IN_NS,nbc);
+  Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
+  Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
 
   // check if such mergeable digit already exists
   int digitindex = 0;
@@ -209,13 +210,16 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
       }
       // adjust truth information
       if (mMCTruthContainer) {
-        o2::tof::MCLabel label(trackID, mEventID, mSrcID, digit.getTDC());
+        o2::tof::MCLabel label(trackID, mEventID, mSrcID, newdigit.getTDC());
         mMCTruthContainer->addElementRandomAccess(digitindex, label);
 
         // sort the labels according to increasing tdc value
         auto labels = mMCTruthContainer->getLabels(digitindex);
         std::sort(labels.begin(), labels.end(),
                   [](o2::tof::MCLabel a, o2::tof::MCLabel b) { return a.getTDC() < b.getTDC(); });
+        //for (auto& e : labels) {
+        //  LOG(INFO) << e.getEventID() << " " << e.getTrackID() << " " << e.getTDC() << "\n";
+        //}
         // assert(labels[0].getTDC() <= labels[1].getTDC());
       }
       break;
@@ -224,9 +228,9 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   }
 
   if (!merged) {
-    // TODO: fix channel and put proper constant
-    auto tdc = (time - Geo::BC_TIME * nbc) * Geo::NTDCBIN_IN_NS;
-    mDigits->emplace_back(time, channel, tdc, tot * Geo::NTOTBIN_IN_NS, nbc);
+    // note that tdc calculation is done in [ps]; whereas the tot is done in [ns]
+    auto tdc = (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS;
+    mDigits->emplace_back(time, channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc);
 
     if (mMCTruthContainer) {
       auto ndigits = mDigits->size() - 1;
