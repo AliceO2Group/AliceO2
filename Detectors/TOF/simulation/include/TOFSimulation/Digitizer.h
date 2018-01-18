@@ -96,6 +96,11 @@ class Digitizer
     if (digit1.getChannel() != digit2.getChannel()) {
       return false;
     }
+
+    if (digit1.getBC() != digit2.getBC()) {
+      return false;
+    }
+
     // TODO: introduce constant for 400
     if (std::abs(digit1.getTDC() - digit2.getTDC()) > 400) {
       return false;

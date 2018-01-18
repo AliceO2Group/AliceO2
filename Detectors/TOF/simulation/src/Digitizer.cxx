@@ -27,12 +27,9 @@ void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* dig
   // hits array of TOF hits for a given simulated event
   mDigits = digits;
 
-  //TODO move this to the geo
-  const Int_t timeframewindow = 1000; // to be set in Geo.h, now it is set to 1microsecond = 1000 ns
-
   for (auto& hit : *hits) {
     Int_t timeframe =
-      Int_t((mEventTime + hit.GetTime()) / timeframewindow); // to be replaced with uncalibrated time
+      Int_t((mEventTime + hit.GetTime()) * Geo::TIMEFRAMEWINDOW_INV); // to be replaced with uncalibrated time
     //TODO: put timeframe counting/selection
     //if (timeframe == mTimeFrameCurrent) {
       processHit(hit, mEventTime);
@@ -190,7 +187,10 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
 
   bool merged = false;
-  Digit newdigit(channel, time/0.024, time);
+
+  Int_t nbc = Int_t(time*Geo::BC_TIME_INV); // time elapsed in number of bunch crossing
+  Digit newdigit(time, channel, (time-Geo::BC_TIME*nbc)*Geo::NTDCBIN_IN_NS, tot*Geo::NTOTBIN_IN_NS,nbc);
+
   // check if such mergable digit already exists
   int digitindex = 0;
   for (auto& digit : *mDigits) {
@@ -198,7 +198,14 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
       LOG(INFO) << "MERGING DIGITS " << digitindex << "\n";
       merged = true;
       // merge it
-
+      if(newdigit.getTDC() < digit.getTDC()){
+	// adjust TOT
+	digit.setTDC(newdigit.getTDC());
+	digit.SetTimeStamp(newdigit.GetTimeStamp());
+      }
+      else{
+	// adjust TOT
+      }
       // adjust truth information
       if (mMCTruthContainer) {
         o2::MCCompLabel label(trackID, mEventID, mSrcID);
@@ -212,7 +219,7 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
 
   if (!merged) {
     // TODO: fix channel and put proper constant
-    mDigits->emplace_back(channel, time / 0.024, time);
+    mDigits->emplace_back(time, channel, (time-Geo::BC_TIME*nbc)*Geo::NTDCBIN_IN_NS, tot*Geo::NTOTBIN_IN_NS,nbc);
 
     if (mMCTruthContainer) {
       auto ndigits = mDigits->size() - 1;

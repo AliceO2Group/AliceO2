@@ -27,7 +27,7 @@ class Digit : public FairTimeStamp {
 public:
   Digit() = default;
 
-  Digit(Int_t channel, Int_t tdc, Double_t time);
+  Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc);
   ~Digit() override = default;
 
   Int_t getChannel() const { return mChannel; }
@@ -36,6 +36,12 @@ public:
   Int_t getTDC() const { return mTDC; }
   void setTDC(Int_t tdc) { mTDC = tdc; }
 
+  Int_t getTOT() const { return mTOT; }
+  void setTOT(Int_t tot) { mTOT = tot; }
+
+  Int_t getBC() const { return mBC; }
+  void setBC(Int_t bc) { mBC = bc; }
+
   void printStream(std::ostream &stream) const;
 
 private:
@@ -43,8 +49,10 @@ private:
   friend class boost::serialization::access;
 #endif
 
-  Int_t mChannel; ///< TOF channel index
-  Int_t mTDC;     ///< TDC bin number
+  Int_t mChannel;       ///< TOF channel index
+  Int_t mTDC;           ///< TDC bin number
+  Int_t mTOT;           ///< TOT bin number
+  Int_t mBC;            ///< Bunch Crossing
 
   ClassDefOverride(Digit, 1);
 };
