@@ -91,6 +91,7 @@ void o2sim()
 
   // run init
   run->Init();
+  finalize_geometry(run);
   gGeoManager->Export("O2geometry.root");
 
   std::time_t runStart = std::time(nullptr);
