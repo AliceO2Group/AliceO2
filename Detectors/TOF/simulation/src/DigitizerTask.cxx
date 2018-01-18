@@ -71,7 +71,9 @@ void DigitizerTask::Exec(Option_t* option)
   if (mMCTruthArray) {
     mMCTruthArray->clear();
   }
-  mDigitizer.setMCTruthContainer(mMCTruthArray);
+
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel> transientTruthContainer;
+  mDigitizer.setMCTruthContainer(&transientTruthContainer);
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
   LOG(DEBUG) << "Running digitization on new event " << mEventID
@@ -84,6 +86,18 @@ void DigitizerTask::Exec(Option_t* option)
 
   LOG(INFO) << "Digitizing " << mHitsArray->size() << " hits \n";
   mDigitizer.process(mHitsArray, mDigitsArray);
+
+  // copying the transient labels to the output labels (stripping the tdc information)
+  if (mMCTruthArray) {
+    // copy from transientTruthContainer to mMCTruthAray
+    // a brute force solution for the moment; should be handled by a dedicated API
+    for (int index = 0; index < transientTruthContainer.getIndexedSize(); ++index) {
+      auto labels = transientTruthContainer.getLabels(index);
+      for (auto& l : labels) {
+        mMCTruthArray->addElement(index, l);
+      }
+    }
+  }
 
   mEventID++;
 }

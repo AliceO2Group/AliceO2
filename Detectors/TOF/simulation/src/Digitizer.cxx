@@ -18,6 +18,8 @@
 #include "TMath.h"
 #include "TProfile2D.h"
 #include "TRandom.h"
+#include <algorithm>
+#include <cassert>
 
 using namespace o2::tof;
 
@@ -191,26 +193,30 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   Int_t nbc = Int_t(time*Geo::BC_TIME_INV); // time elapsed in number of bunch crossing
   Digit newdigit(time, channel, (time-Geo::BC_TIME*nbc)*Geo::NTDCBIN_IN_NS, tot*Geo::NTOTBIN_IN_NS,nbc);
 
-  // check if such mergable digit already exists
+  // check if such mergeable digit already exists
   int digitindex = 0;
   for (auto& digit : *mDigits) {
     if (isMergable(digit, newdigit)) {
       LOG(INFO) << "MERGING DIGITS " << digitindex << "\n";
       merged = true;
       // merge it
-      if(newdigit.getTDC() < digit.getTDC()){
+      if (newdigit.getTDC() < digit.getTDC()) {
         // adjust TOT
         digit.setTDC(newdigit.getTDC());
         digit.SetTimeStamp(newdigit.GetTimeStamp());
-      }
-      else{
+      } else {
         // adjust TOT
       }
       // adjust truth information
       if (mMCTruthContainer) {
-        o2::MCCompLabel label(trackID, mEventID, mSrcID);
-        // TODO: put version which does not require consecutive indices
+        o2::tof::MCLabel label(trackID, mEventID, mSrcID, digit.getTDC());
         mMCTruthContainer->addElementRandomAccess(digitindex, label);
+
+        // sort the labels according to increasing tdc value
+        auto labels = mMCTruthContainer->getLabels(digitindex);
+        std::sort(labels.begin(), labels.end(),
+                  [](o2::tof::MCLabel a, o2::tof::MCLabel b) { return a.getTDC() < b.getTDC(); });
+        // assert(labels[0].getTDC() <= labels[1].getTDC());
       }
       break;
     }
@@ -219,11 +225,12 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
 
   if (!merged) {
     // TODO: fix channel and put proper constant
-    mDigits->emplace_back(time, channel, (time-Geo::BC_TIME*nbc)*Geo::NTDCBIN_IN_NS, tot*Geo::NTOTBIN_IN_NS,nbc);
+    auto tdc = (time - Geo::BC_TIME * nbc) * Geo::NTDCBIN_IN_NS;
+    mDigits->emplace_back(time, channel, tdc, tot * Geo::NTOTBIN_IN_NS, nbc);
 
     if (mMCTruthContainer) {
       auto ndigits = mDigits->size() - 1;
-      o2::MCCompLabel label(trackID, mEventID, mSrcID);
+      o2::tof::MCLabel label(trackID, mEventID, mSrcID, tdc);
       mMCTruthContainer->addElement(ndigits, label);
     }
   }

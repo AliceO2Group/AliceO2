@@ -15,7 +15,7 @@
 #include "TOFBase/Digit.h"
 #include "TOFSimulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
+#include "TOFSimulation/MCLabel.h"
 
 namespace o2
 {
@@ -46,7 +46,7 @@ class Digitizer
   void setEventTime(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
-  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truthcontainer)
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* truthcontainer)
   {
     mMCTruthContainer = truthcontainer;
   }
@@ -84,7 +84,7 @@ class Digitizer
 
   // digit info
   std::vector<Digit>* mDigits;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthContainer =
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mMCTruthContainer =
     nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
 
   Int_t processHit(const HitType& hit, Double_t event_time);
