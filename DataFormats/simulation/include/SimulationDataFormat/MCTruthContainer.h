@@ -30,7 +30,7 @@ struct MCTruthHeaderElement {
   MCTruthHeaderElement() = default; // for ROOT IO
 
   MCTruthHeaderElement(uint i) : index(i) {}
-  uint index = 0;  // the index into the actual MC track storage
+  uint index = -1;  // the index into the actual MC track storage (-1 if invalid)
   ClassDefNV(MCTruthHeaderElement, 1);
 };
 
@@ -113,6 +113,54 @@ class MCTruthContainer
     }
     auto& header = mHeaderArray[dataindex];
     mTruthArray.emplace_back(element);
+  }
+
+  // Add element at last position or for a previous index
+  // (at random access position).
+  // This might be a slow process since data has to be moved internally
+  // so this function should be used with care.
+  void addElementRandomAccess(uint dataindex, TruthElement const& element)
+  {
+    if (dataindex >= mHeaderArray.size()) {
+      // a new dataindex -> push element at back
+
+      // we still forbid to leave holes
+      assert(dataindex == mHeaderArray.size());
+
+      mHeaderArray.resize(dataindex + 1);
+      mHeaderArray[dataindex] = mTruthArray.size();
+      mTruthArray.emplace_back(element);
+    } else {
+      // if appending at end use fast function
+      if (dataindex == mHeaderArray.size() - 1) {
+        addElement(dataindex, element);
+        return;
+      }
+
+      // existing dataindex
+      // have to:
+      // a) move data;
+      // b) insert new element;
+      // c) adjust indices of all headers right to this
+      auto currentindex = mHeaderArray[dataindex].index;
+      auto lastindex = currentindex + getSize(dataindex);
+      assert(currentindex >= 0);
+
+      // resize truth array
+      mTruthArray.resize(mTruthArray.size() + 1);
+      // move data (have to do from right to left)
+      for (int i = mTruthArray.size() - 1; i > lastindex; --i) {
+        mTruthArray[i] = mTruthArray[i - 1];
+      }
+      // insert new element
+      mTruthArray[lastindex] = element;
+
+      // fix headers
+      for (int i = dataindex + 1; i < mHeaderArray.size(); ++i) {
+        auto oldindex = mHeaderArray[i].index;
+        mHeaderArray[i].index = (oldindex != -1) ? oldindex + 1 : oldindex;
+      }
+    }
   }
 
   ClassDefNV(MCTruthContainer, 1);
