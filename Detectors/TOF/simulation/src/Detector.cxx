@@ -19,19 +19,16 @@
 
 #include "TOFSimulation/Detector.h"
 
+#include <TVirtualMC.h> // for TVirtualMC, gMC
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
-#include <TVirtualMC.h> // for TVirtualMC, gMC
 
 using namespace o2::tof;
 
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TOF", active),
-    mEventNr(0),
-    mTOFHoles(kTRUE),
-    mHits(new std::vector<HitType>)
+  : o2::Base::DetImpl<Detector>("TOF", active), mEventNr(0), mTOFHoles(kTRUE), mHits(new std::vector<HitType>)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
     mTOFSectors[i] = 1;
@@ -1834,7 +1831,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
       modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
-      LOG(INFO)<<"modUID: "<<modUID<<"\n";
+      LOG(INFO) << "modUID: " << modUID << "\n";
 
       if (mTOFSectors[isect] == -1)
         continue;
@@ -1862,28 +1859,29 @@ void Detector::addAlignableVolumes() const
       volPath += vpL4;
       volPath += istr;
 
-
       symName = snSM;
       symName += Form("%02d", isect);
       symName += snSTRIP;
       symName += Form("%02d", istr);
 
-      LOG(DEBUG)<< "--------------------------------------------"<<"\n";
-      LOG(DEBUG)<< "Alignable object"<< imod<<"\n";
-      LOG(DEBUG)<< "volPath="<<volPath<<"\n";
-      LOG(DEBUG)<< "symName="<<symName<<"\n";
-      LOG(DEBUG)<< "--------------------------------------------"<<"\n";
+      LOG(DEBUG) << "--------------------------------------------"
+                 << "\n";
+      LOG(DEBUG) << "Alignable object" << imod << "\n";
+      LOG(DEBUG) << "volPath=" << volPath << "\n";
+      LOG(DEBUG) << "symName=" << symName << "\n";
+      LOG(DEBUG) << "--------------------------------------------"
+                 << "\n";
 
-      LOG(INFO)<<"Check for alignable entry: "<<symName<<"\n";
+      LOG(INFO) << "Check for alignable entry: " << symName << "\n";
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
-        LOG(ERROR)<<"Alignable entry "<<symName<<" NOT set\n";
-        LOG(INFO)<<"Alignable entry "<<symName<<" set\n";
+        LOG(ERROR) << "Alignable entry " << symName << " NOT set\n";
+      LOG(INFO) << "Alignable entry " << symName << " set\n";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
-      LOG(INFO)<<"Got TGeoPNEntry "<<e<<"\n";
-      
+      LOG(INFO) << "Got TGeoPNEntry " << e << "\n";
+
       if (e) {
         TGeoHMatrix* globMatrix = e->GetGlobalOrig();
         Double_t phi = Geo::PHISEC * (isect % Geo::NSECTORS) + Geo::PHISEC * 0.5;
