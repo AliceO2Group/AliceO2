@@ -12,6 +12,7 @@ set(SRCS
   src/DetMatrixCache.cxx
   src/MaterialManager.cxx
   src/Propagator.cxx
+  src/AlignParam.cxx
 )
 
 Set(HEADERS
@@ -26,6 +27,7 @@ Set(HEADERS
   include/${MODULE_NAME}/DetMatrixCache.h
   include/${MODULE_NAME}/MaterialManager.h
   include/${MODULE_NAME}/Propagator.h
+  include/${MODULE_NAME}/AlignParam.h  
 )
 
 Set(LINKDEF src/BaseLinkDef.h)

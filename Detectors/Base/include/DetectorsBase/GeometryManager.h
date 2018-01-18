@@ -31,6 +31,8 @@ namespace o2
 {
 namespace Base
 {
+class AlignParam;
+
 /// Class for interfacing to the geometry; it also builds and manages the look-up tables for fast
 /// access to geometry and alignment information for sensitive alignable volumes:
 /// 1) the look-up table mapping unique volume ids to TGeoPNEntries. This allows to access
@@ -58,6 +60,9 @@ class GeometryManager : public TObject
 
   /// Default destructor
   ~GeometryManager() override = default;
+
+  /// misalign geometry with alignment objects from the array, optionaly check overlaps
+  static bool applyAlignment(TObjArray& alObjArray, bool ovlpcheck = false, double ovlToler = 1e-3);
 
   struct MatBudget {
     double meanRho = 0.;  // mean density: sum(x_i*rho_i)/sum(x_i) [g/cm3]

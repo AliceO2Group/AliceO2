@@ -30,5 +30,6 @@
 #pragma link C++ class o2::Base::MatrixCache<o2::Base::Rotation2D>+;
 #pragma link C++ class o2::Base::DetMatrixCache+;
 #pragma link C++ class o2::Base::MaterialManager+;
+#pragma link C++ class o2::Base::AlignParam+;
 
 #endif
