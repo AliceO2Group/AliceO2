@@ -101,8 +101,8 @@ class Digitizer
       return false;
     }
 
-    // TODO: introduce constant for 400
-    if (std::abs(digit1.getTDC() - digit2.getTDC()) > 400) {
+    // Check if the difference is larger than the TDC dead time
+    if (std::abs(digit1.getTDC() - digit2.getTDC()) > Geo::DEADTIMETDC) {
       return false;
     }
     return true;

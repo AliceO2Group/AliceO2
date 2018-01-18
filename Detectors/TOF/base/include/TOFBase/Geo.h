@@ -78,8 +78,8 @@ class Geo
 
   static constexpr Float_t PHISEC = 20; // sector Phi width (deg)
 
-  static constexpr Float_t TDCBIN = 24.4;                    // time-of-flight bin width [ps]
-  static constexpr Float_t NTDCBIN_IN_NS = 1000./TDCBIN;                    // number of time-of-flight bin in 1 ns
+  static constexpr Float_t TDCBIN = 24.4;                    ///< TDC bin width [ps]
+  static constexpr Float_t NTDCBIN_IN_NS = 1000./TDCBIN;     ///< number of TDC bins in 1 ns
   static constexpr Float_t TOTBIN = 48.8;                    // time-over-threshold bin width [ps]
   static constexpr Float_t NTOTBIN_IN_NS = 1000./TOTBIN;                    // number of time-over-threshold bin in 1 ns
   static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
@@ -88,6 +88,7 @@ class Geo
   static constexpr Float_t SLEWTOTMAX = 16.; // max TOT for slewing correction [ns]
 
   static constexpr Float_t DEADTIME = 25E+03;              // Single channel dead time (ps)
+  static constexpr Float_t DEADTIMETDC = DEADTIME/TDCBIN; ///< Single channel TDC dead time (ps)
   static constexpr Float_t MATCHINGWINDOW = TDCBIN * 8192; // Matching window  (ps) 2^13=8192
   static constexpr Float_t TIMEFRAMEWINDOW = 1000; // Time frame window (ns)
   static constexpr Float_t TIMEFRAMEWINDOW_INV = 1./TIMEFRAMEWINDOW; // Time frame window (ns)
