@@ -8,48 +8,44 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DigitPad.h
-/// \brief Definition of the Pad container
+/// \file DigitGlobalPad.h
+/// \brief Definition of the GlobalPad container
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
-/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
-#ifndef ALICEO2_TPC_DigitPad_H_
-#define ALICEO2_TPC_DigitPad_H_
+#ifndef ALICEO2_TPC_DigitGlobalPad_H_
+#define ALICEO2_TPC_DigitGlobalPad_H_
 
-#include "TTree.h" // needed for TTree delete operator
-
+#include "TPCBase/Digit.h"
+#include "TPCSimulation/DigitMCMetaData.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "TPCBase/Defs.h"
+#include "TPCBase/CRU.h"
+#include "TTree.h" // for TTree destructor
+
+#include <map>
 
 namespace o2 {
 namespace TPC {
 
-class Digit;
-class DigitMCMetaData;
-  
-/// \class DigitPad
+/// \class DigitGlobalPad
 /// This is the fifth and lowest class of the intermediate Digit Containers, in which all incoming electrons from the hits are sorted into after amplification
 /// The structure assures proper sorting of the Digits when later on written out for further processing.
-/// This class holds the individual pad containers and is contained within the Row Container.
+/// This class holds the individual GlobalPad containers and is contained within the Row Container.
 
-class DigitPad {
+class DigitGlobalPad {
   public:
 
     /// Constructor
-    /// \param mPad Pad ID
-    DigitPad(int mPad);
+    DigitGlobalPad();
 
     /// Destructor
-    ~DigitPad() = default;
+    ~DigitGlobalPad() = default;
 
     /// Resets the container
     void reset();
 
-    /// Get the Pad ID
-    /// \return Pad ID
-    int getPad() const {return mPad;}
-
-    /// Get the accumulated charge on that pad
+    /// Get the accumulated charge on that GlobalPad
     /// \return Accumulated charge
     float getChargePad() const {return mChargePad;}
 
@@ -57,7 +53,7 @@ class DigitPad {
     /// \param eventID MC Event ID
     /// \param hitID MC Hit ID
     /// \param charge Charge of the digit
-    void setDigit(int eventID, size_t hitID, float charge);
+    void setDigit(size_t eventID, size_t hitID, float charge);
 
     /// Fill output vector
     /// \param output Output container
@@ -66,10 +62,10 @@ class DigitPad {
     /// \param cru CRU ID
     /// \param timeBin Time bin
     /// \param row Row ID
-    /// \param pad pad ID
+    /// \param pad Pad ID
     /// \param commonMode Common mode value of that specific ROC
-    void fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-			     std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, int row, int pad, float commonMode = 0.f);
+    void fillOutputContainer(std::vector<Digit> *output, dataformats::MCTruthContainer<MCCompLabel> &mcTruth,
+                             std::vector<DigitMCMetaData> *debug, const CRU &cru, TimeBin timeBin, GlobalPadNumber globalPad, float commonMode = 0.f);
 
   private:
 
@@ -79,28 +75,18 @@ class DigitPad {
     /// \return true, if trackID, eventID and sourceID are the same
     bool compareMClabels(const MCCompLabel &label1, const MCCompLabel &label2) const;
 
-    float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
-    unsigned char          mPad;         ///< Pad of the ADC value
+    float                  mChargePad;      ///< Total accumulated charge on that GlobalPad for a given time bin
     std::vector<std::pair<MCCompLabel, int>> mMClabel; ///< vector to accumulate the MC labels
-
-    // TODO: optimize this treatment, for example by using a structure like this
-    // struct MCIDValue {
-    //   unsigned int eventId : 15; // 32k event Id possible
-    //   unsigned int trackId: 17; // 128K tracks possible
-    //   unsigned int occurences : 32; // 4G occurrences possible
-    // }
-    // std::vector<MCID> mMCID;
 };
 
 inline
-DigitPad::DigitPad(int pad)
+DigitGlobalPad::DigitGlobalPad()
   : mChargePad(0.),
-    mPad(pad),
     mMClabel()
 {}
 
-inline 
-void DigitPad::setDigit(int eventID, size_t trackID, float charge)
+inline
+void DigitGlobalPad::setDigit(size_t eventID, size_t trackID, float charge)
 {
   bool isKnown = false;
   MCCompLabel tempLabel(trackID, eventID);
@@ -115,20 +101,20 @@ void DigitPad::setDigit(int eventID, size_t trackID, float charge)
 }
 
 inline
-void DigitPad::reset()
+void DigitGlobalPad::reset()
 {
   mChargePad = 0;
   mMClabel.clear();
 }
 
 inline
-bool DigitPad::compareMClabels(const MCCompLabel &label1, const MCCompLabel &label2) const
+bool DigitGlobalPad::compareMClabels(const MCCompLabel &label1, const MCCompLabel &label2) const
 {
   return (label1.getEventID() == label2.getEventID() && label1.getTrackID() == label2.getTrackID() && label1.getSourceID() == label2.getSourceID());
 }
 
-  
+
 }
 }
 
-#endif // ALICEO2_TPC_DigitPad_H_
+#endif // ALICEO2_TPC_DigitGlobalPad_H_

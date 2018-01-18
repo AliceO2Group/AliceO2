@@ -13,37 +13,67 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitContainer.h"
-#include "TPCBase/Mapper.h"
 #include <iostream>
 
 using namespace o2::TPC;
 
-void DigitContainer::addDigit(int eventID, size_t hitID, int cru, int timeBin, int row, int pad, float charge)
+void DigitContainer::setUp(const short sector, const TimeBin timeBinEvent) {
+  mSectorID = sector;
+  mSector[getBufferPosition(sector)].init(sector, timeBinEvent);
+  mSector[getBufferPosition(getSectorRight(sector))].init(getSectorRight(sector), timeBinEvent);
+  mSector[getBufferPosition(getSectorLeft(sector))].init(getSectorLeft(sector), timeBinEvent);
+}
+
+unsigned short DigitContainer::getSectorLeft(const short sector) const
+ {
+   const int modulus = sector%18;
+   int offsetSector = static_cast<int>(sector/18) * 18;
+   if(modulus == 0) offsetSector += 18;
+   return offsetSector+modulus-1;
+ }
+
+unsigned short DigitContainer::getSectorRight(const short sector) const
+ {
+   const int modulus = sector%18;
+   int offsetSector = static_cast<int>(sector/18) * 18;
+   if(modulus == 17) offsetSector -= 18;
+   return offsetSector+modulus+1;
+ }
+
+bool DigitContainer::checkNeighboursProcessed(const short sector) const
 {
-  /// Check whether the container at this spot already contains an entry
-  DigitCRU *result = mCRU[cru].get();
-  if(result != nullptr){
-    mCRU[cru]->setDigit(eventID, hitID, timeBin, row, pad, charge);
+  return (mSectorProcessed[sector] && mSectorProcessed[getSectorRight(sector)] && mSectorProcessed[getSectorLeft(sector)]);
+}
+
+unsigned short DigitContainer::getBufferPosition(const short sector)
+{
+  if(mSectorMapping[sector] > -1) return mSectorMapping[sector];
+  else {
+    mSectorMapping[sector] = mNextFreePosition;
+    return mNextFreePosition++;
   }
-  else{
-    const Mapper& mapper = Mapper::instance();
-    mCRU[cru] = std::make_unique<DigitCRU>(cru, mCommonModeContainer);
-    mCRU[cru]->setDigit(eventID, hitID, timeBin, row, pad, charge);
-  }
-  /// Take care of the common mode
-  mCommonModeContainer.addDigit(cru, timeBin, charge);
+}
+
+void DigitContainer::addDigit(size_t eventID, size_t hitID, const CRU &cru, TimeBin timeBin, GlobalPadNumber globalPad, float charge)
+{
+  const int sector = cru.sector();
+  mSector[getBufferPosition(sector)].setDigit(eventID, hitID, cru, timeBin, globalPad, charge);
 }
 
 
-void DigitContainer::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-                                         std::vector<o2::TPC::DigitMCMetaData> *debug, int eventTime, bool isContinuous)
+void DigitContainer::fillOutputContainer(std::vector<Digit> *output, dataformats::MCTruthContainer<MCCompLabel> &mcTruth,
+                                         std::vector<DigitMCMetaData> *debug, TimeBin eventTime, bool isContinuous, bool isFinal)
 {
-  for(auto &aCRU : mCRU) {
-    if(aCRU == nullptr) continue;
-    aCRU->fillOutputContainer(output, mcTruth, debug, aCRU->getCRUID(), eventTime, isContinuous);
-    if(!isContinuous) {
-      aCRU->reset();
-    }
+  mSectorProcessed[mSectorID] = true;
+  for(int s=0; s<4; ++s) {
+    if(!checkNeighboursProcessed(s)) continue;
+    std::cout << "writing sector " << s << "\n";
+    /// \todo Use CRU here instead of the sector!
+    mSector[s].fillOutputContainer(output, mcTruth, debug, mSector[s].getSector(), eventTime, isContinuous);
+    mSectorMapping[mSector[s].getSector()] = -1;
+    mNextFreePosition = (s < mNextFreePosition) ? s : mNextFreePosition;
   }
-  mCommonModeContainer.cleanUp(eventTime, isContinuous);
 }
+
+
+

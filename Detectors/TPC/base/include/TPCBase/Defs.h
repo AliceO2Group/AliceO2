@@ -65,6 +65,9 @@ typedef Point3D<float> LocalPosition3D;
 /// global pad number
 typedef unsigned short GlobalPadNumber;
 
+/// global time bin
+typedef unsigned int TimeBin;
+
 // GlobalPosition3D LocalToGlobal(const LocalPosition3D pos, const float alpha)
 // {
 //   const double cs=cos(alpha), sn=sin(alpha);

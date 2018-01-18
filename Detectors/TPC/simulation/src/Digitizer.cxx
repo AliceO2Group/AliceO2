@@ -29,13 +29,10 @@
 ClassImp(o2::TPC::Digitizer)
 
 using namespace o2::TPC;
-
-bool o2::TPC::Digitizer::mDebugFlagPRF = false;
 bool o2::TPC::Digitizer::mIsContinuous = true;
 
 Digitizer::Digitizer()
-  : mDigitContainer(nullptr),
-    mDebugTreePRF(nullptr)
+  : mDigitContainer(nullptr)
 {}
 
 Digitizer::~Digitizer()
@@ -53,7 +50,7 @@ void Digitizer::init()
 //  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
 }
 
-DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, int eventID, float eventTime)
+DigitContainer* Digitizer::Process(const int sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID, float eventTime)
 {
 //  mDigitContainer->reset();
   const static Mapper& mapper = Mapper::instance();
@@ -70,6 +67,10 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, i
   const int nShapedPoints = eleParam.getNShapedPoints();
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
+
+  std::cout << SAMPAProcessing::getTimeBinFromTime(eventTime) << "\n";
+
+  mDigitContainer->setUp(sector, SAMPAProcessing::getTimeBinFromTime(eventTime));
 
   static size_t hitCounter=0;
   for(auto& inputgroup : hits) {
@@ -126,22 +127,15 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, i
         if (normalizedPadResponse <= 0) continue;
         const int pad = digiPos.getPadPos().getPad();
         const int row = digiPos.getPadPos().getRow();
-
-        if(mDebugFlagPRF) {
-          /// \todo Write out the debug output
-          GEMresponse.CRU = digiPos.getCRU().number();
-          GEMresponse.time = absoluteTime;
-          GEMresponse.row = row;
-          GEMresponse.pad = pad;
-          GEMresponse.nElectrons = nElectronsGEM * normalizedPadResponse;
-          //mDebugTreePRF->Fill();
-        }
+        const GlobalPadNumber globalPad = mapper.getPadNumberInROC(PadROCPos(digiPadPos.getCRU().roc(), PadPos(row, pad)));
 
         const float ADCsignal = SAMPAProcessing::getADCvalue(nElectronsGEM * normalizedPadResponse);
         SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
         for(float i=0; i<nShapedPoints; ++i) {
+          const float signal = signalArray[i];
+          if (signal == 0) continue;
           const float time = absoluteTime + i * eleParam.getZBinWidth();
-          mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU().number(), SAMPAProcessing::getTimeBinFromTime(time), row, pad, signalArray[i]);
+          mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU(), SAMPAProcessing::getTimeBinFromTime(time), globalPad, signal);
         }
 
       // }

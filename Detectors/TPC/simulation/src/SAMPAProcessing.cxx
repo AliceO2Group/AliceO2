@@ -67,8 +67,8 @@ bool SAMPAProcessing::importSaturationCurve(std::string file)
 void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float> &signalArray)
 {
   const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
-  float timeBinTime = getTimeBinTime(driftTime);
-  float offset = driftTime - timeBinTime;
+  const float timeBinTime = getTimeBinTime(driftTime);
+  const float offset = driftTime - timeBinTime;
   for (float bin = 0; bin < eleParam.getNShapedPoints(); bin += Vc::float_v::Size) {
     Vc::float_v binvector;
     for (int i = 0; i < Vc::float_v::Size; ++i) {

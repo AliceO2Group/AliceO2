@@ -77,23 +77,23 @@ class SAMPAProcessing
     /// Compute time bin from z position
     /// \param zPos z position of the charge
     /// \return Time bin of the charge
-    static int getTimeBin(float zPos);
+    static TimeBin getTimeBin(float zPos);
 
     /// Compute z position from time bin
     /// \param Time bin of the charge
-    /// \param
+    /// \param Side of the TPC
     /// \return zPos z position of the charge
     static float getZfromTimeBin(float timeBin, Side s);
 
     /// Compute time bin from time
     /// \param time time of the charge
     /// \return Time bin of the charge
-    static int getTimeBinFromTime(float time);
+    static TimeBin getTimeBinFromTime(float time);
 
     /// Compute time from time bin
     /// \param timeBin time bin of the charge
     /// \return Time of the charge
-    static float getTimeFromBin(int timeBin);
+    static float getTimeFromBin(TimeBin timeBin);
 
     /// Compute electron drift time from z position
     /// \param zPos z position of the charge
@@ -191,7 +191,7 @@ T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
 }
 
 inline
-int SAMPAProcessing::getTimeBin(float zPos)
+TimeBin SAMPAProcessing::getTimeBin(float zPos)
 {
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
   const static ParameterDetector &detParam = ParameterDetector::defaultInstance();
@@ -212,7 +212,7 @@ float SAMPAProcessing::getZfromTimeBin(float timeBin, Side s)
 }
 
 inline
-int SAMPAProcessing::getTimeBinFromTime(float time)
+TimeBin SAMPAProcessing::getTimeBinFromTime(float time)
 {
   const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
   float timeBin = time / eleParam.getZBinWidth();
@@ -220,7 +220,7 @@ int SAMPAProcessing::getTimeBinFromTime(float time)
 }
 
 inline
-float SAMPAProcessing::getTimeFromBin(int timeBin)
+float SAMPAProcessing::getTimeFromBin(TimeBin timeBin)
 {
   const static ParameterElectronics &eleParam = ParameterElectronics::defaultInstance();
   float time = static_cast<float>(timeBin)*eleParam.getZBinWidth();
@@ -239,7 +239,7 @@ float SAMPAProcessing::getDriftTime(float zPos)
 inline
 float SAMPAProcessing::getTimeBinTime(float time)
 {
-  int timeBin = getTimeBinFromTime(time);
+  TimeBin timeBin = getTimeBinFromTime(time);
   return getTimeFromBin(timeBin);
 }
 

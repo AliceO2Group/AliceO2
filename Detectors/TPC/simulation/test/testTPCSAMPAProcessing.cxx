@@ -103,7 +103,7 @@ namespace TPC {
     BOOST_CHECK_CLOSE(SAMPAProcessing::getZfromTimeBin(0, Side::A), detParam.getTPClength(), 1E-6);
 
     const float driftTime = SAMPAProcessing::getDriftTime(0);
-    const int timeBin = SAMPAProcessing::getTimeBinFromTime(driftTime);
+    const TimeBin timeBin = SAMPAProcessing::getTimeBinFromTime(driftTime);
     std::cout << driftTime << " " << timeBin << " " << SAMPAProcessing::getTimeBinTime(driftTime) << "\n";
 
 

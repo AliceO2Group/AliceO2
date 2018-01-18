@@ -72,11 +72,11 @@ class DigitizerTask : public FairTask{
   private:
     Digitizer           *mDigitizer;    ///< Digitization process
     DigitContainer      *mDigitContainer;
-      
+
     std::vector<o2::TPC::Digit> *mDigitsArray = nullptr;  ///< Array of the Digits, passed from the digitization
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray = nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
     std::vector<o2::TPC::DigitMCMetaData> *mDigitsDebugArray = nullptr;  ///< Array of the Digits, for debugging purposes only, passed from the digitization
-    
+
     int                 mTimeBinMax;   ///< Maximum time bin to be written out
     bool                mIsContinuousReadout; ///< Switch for continuous readout
     bool                mDigitDebugOutput;    ///< Switch for the debug output of the DigitMC
@@ -95,10 +95,6 @@ inline
 void DigitizerTask::setDebugOutput(TString debugString)
 {
   LOG(INFO) << "TPC - Debug output enabled for: ";
-  if (debugString.Contains("PRFdebug")) {
-    LOG(INFO) << "Pad response function, ";
-    o2::TPC::Digitizer::setPRFDebug();
-  }
   if (debugString.Contains("DigitMCDebug")) {
     LOG(INFO) << "DigitMC, ";
     mDigitDebugOutput = true;

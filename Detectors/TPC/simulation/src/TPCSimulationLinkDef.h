@@ -15,17 +15,15 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::TPC::Baseline+;
-#pragma link C++ class o2::TPC::CommonModeContainer+;
 #pragma link C++ class o2::TPC::Detector+;
 #pragma link C++ class o2::Base::DetImpl<o2::TPC::Detector>+;
 #pragma link C++ class o2::TPC::DigitMCMetaData+;
 #pragma link C++ class std::vector<o2::TPC::DigitMCMetaData>+;
 #pragma link C++ class o2::TPC::DigitContainer+;
-#pragma link C++ class o2::TPC::DigitCRU+;
 #pragma link C++ class o2::TPC::Digitizer+;
 #pragma link C++ class o2::TPC::DigitizerTask+;
-#pragma link C++ class o2::TPC::DigitPad+;
-#pragma link C++ class o2::TPC::DigitRow+;
+#pragma link C++ class o2::TPC::DigitGlobalPad+;
+#pragma link C++ class o2::TPC::DigitSector+;
 #pragma link C++ class o2::TPC::DigitTime+;
 #pragma link C++ class o2::TPC::ElectronTransport+;
 #pragma link C++ class o2::TPC::GEMAmplification+;
