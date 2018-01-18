@@ -175,7 +175,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         const int padNumber = int(padY);
         const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(j, padNumber));
         const PadCentre& padCentre = mapper.padCentre(pad);
-        const float localY = padCentre.Y() - (padY - padNumber - 0.5) * region.getPadWidth();
+        const float localY = padCentre.Y() - (padY - padNumber) * region.getPadWidth();
         const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
         float zPositionAbs = cluster.getTime()*elParam.getZBinWidth() * gasParam.getVdrift();
         if (!mTrackingCAO2Interface->GetParamContinuous())
