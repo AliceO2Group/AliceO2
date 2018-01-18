@@ -244,9 +244,17 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
           
       if (!mTrackingCAO2Interface->GetParamContinuous())
         oTrack.setTime0(0);
-      else
-        oTrack.setTime0(sContinuousTFReferenceLength - (tracks[i].CSide() ? -1.f : 1.f) * tracks[i].GetParam().GetZOffset() / (elParam.getZBinWidth() * gasParam.getVdrift()));
+      else {
+        float zoffset = tracks[i].CSide() ?  -tracks[i].GetParam().GetZOffset() : tracks[i].GetParam().GetZOffset();
+        oTrack.setTime0(sContinuousTFReferenceLength - zoffset / (elParam.getZBinWidth() * gasParam.getVdrift()));
+      }
       oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset());
+      oTrack.setChi2(tracks[i].GetParam().GetChi2());
+      auto& outerPar = tracks[i].GetParam().OuterParam();
+      oTrack.setOuterParam(o2::Base::Track::TrackParCov(outerPar.fX, outerPar.fAlpha,
+        {outerPar.fP[0], outerPar.fP[1], outerPar.fP[2], outerPar.fP[3], outerPar.fP[4]},
+        {outerPar.fC[0], outerPar.fC[1], outerPar.fC[2], outerPar.fC[3], outerPar.fC[4], outerPar.fC[5], outerPar.fC[6], outerPar.fC[7],
+        outerPar.fC[8], outerPar.fC[9], outerPar.fC[10], outerPar.fC[11], outerPar.fC[12], outerPar.fC[13], outerPar.fC[14]}));
       oTrack.resetClusterReferences(tracks[i].NClusters());
       std::vector<std::pair<MCCompLabel, unsigned int>> labels;
       for (int j = 0; j < tracks[i].NClusters(); j++) {
