@@ -55,12 +55,17 @@ class TrackTPC :public o2::Base::Track::TrackParCov {
     /// \return mean energy loss
     float getTruncatedMean(float low=0.05, float high=0.7, int type=1, int removeRows=0, int *nclPID=nullptr) const;
     
-    float getTime0() const {return mTime0;}
+    float getTime0() const {return mTime0;} //Reference time of the track, i.e. timebins of a primary track with eta=0.
+    float getTimeVertex(float vDrift) const; //Absolute time of the vertex assumed for the track, shifted by time0 by one drift time.
     float getLastClusterZ() const {return mLastClusterZ;}
     Side getSide() const {return (Side) mSide;}
+    float getChi2() const {return mChi2;}
+    const o2::Base::Track::TrackParCov& getOuterParam() const {return mOuterParam;}
     void setTime0(float v) {mTime0 = v;}
     void setLastClusterZ(float v) {mLastClusterZ = v;}
     void setSide(Side v) {mSide = v;}
+    void setChi2(float v) {mChi2 = v;}
+    void setOuterParam(o2::Base::Track::TrackParCov&& v) {mOuterParam = v;}
     
     void resetClusterReferences(int nClusters);
     int getNClusterReferences() {return mNClusters;}
@@ -88,7 +93,9 @@ class TrackTPC :public o2::Base::Track::TrackParCov {
     std::vector<Cluster> mClusterVector;
     float mTime0 = 0.f; //Reference Z of the track assumed for the vertex, scaled with pseudo VDrift and reference timeframe length.
     float mLastClusterZ = 0.f; //Z position of last cluster
-    char mSide = Side::UNDEFINED;
+    char mSide = Side::UNDEFINED; //TPC Side (A or C) where the track is located (seeding start of the track for those crossing the central electrode)
+    float mChi2 = 0.f; //Chi2 of the track
+    o2::Base::Track::TrackParCov mOuterParam; //Track parameters at outer end of TPC.
     
     //New structure to store cluster references
     int mNClusters = 0;
