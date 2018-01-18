@@ -199,18 +199,18 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
       merged = true;
       // merge it
       if(newdigit.getTDC() < digit.getTDC()){
-	// adjust TOT
-	digit.setTDC(newdigit.getTDC());
-	digit.SetTimeStamp(newdigit.GetTimeStamp());
+        // adjust TOT
+        digit.setTDC(newdigit.getTDC());
+        digit.SetTimeStamp(newdigit.GetTimeStamp());
       }
       else{
-	// adjust TOT
+        // adjust TOT
       }
       // adjust truth information
       if (mMCTruthContainer) {
         o2::MCCompLabel label(trackID, mEventID, mSrcID);
         // TODO: put version which does not require consecutive indices
-        // mMCTruthContainer->addElement(digitindex, label);
+        mMCTruthContainer->addElementRandomAccess(digitindex, label);
       }
       break;
     }
