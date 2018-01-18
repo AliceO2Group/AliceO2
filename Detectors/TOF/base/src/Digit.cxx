@@ -13,16 +13,20 @@
 using namespace o2::tof;
 
 ClassImp(o2::tof::Digit);
-// ClassImp(Digit)
 
 Digit::Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc)
-  : FairTimeStamp(time), mChannel(channel), mTDC(tdc) , mTOT(tot) , mBC(bc){}
-
-void Digit::printStream(std::ostream &stream) const {
-  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << " Time " << GetTimeStamp() << "Bunch Crossing index" << mBC << "\n";
+  : FairTimeStamp(time), mChannel(channel), mTDC(tdc), mTOT(tot), mBC(bc)
+{
 }
 
-std::ostream &operator<<(std::ostream &stream, const Digit &digi) {
+void Digit::printStream(std::ostream& stream) const
+{
+  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << " Time " << GetTimeStamp()
+         << "Bunch Crossing index" << mBC << "\n";
+}
+
+std::ostream& operator<<(std::ostream& stream, const Digit& digi)
+{
   digi.printStream(stream);
   return stream;
 }
