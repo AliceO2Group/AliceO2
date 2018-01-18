@@ -1868,11 +1868,11 @@ void Detector::addAlignableVolumes() const
       symName += snSTRIP;
       symName += Form("%02d", istr);
 
-      LOG(INFO)<< "--------------------------------------------"<<"\n";
-      LOG(INFO)<< "Alignable object"<< imod<<"\n";
-      LOG(INFO)<< "volPath="<<volPath<<"\n";
-      LOG(INFO)<< "symName="<<symName<<"\n";
-      LOG(INFO)<< "--------------------------------------------"<<"\n";
+      LOG(DEBUG)<< "--------------------------------------------"<<"\n";
+      LOG(DEBUG)<< "Alignable object"<< imod<<"\n";
+      LOG(DEBUG)<< "volPath="<<volPath<<"\n";
+      LOG(DEBUG)<< "symName="<<symName<<"\n";
+      LOG(DEBUG)<< "--------------------------------------------"<<"\n";
 
       LOG(INFO)<<"Check for alignable entry: "<<symName<<"\n";
 
