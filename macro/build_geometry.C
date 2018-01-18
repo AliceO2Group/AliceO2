@@ -33,8 +33,11 @@
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
 #include "FairRunSim.h"
+#include <FairLogger.h>
 #include <algorithm>
 #endif
+
+void finalize_geometry(FairRunSim* run);
 
 bool isActivated(std::string s) {
 // access user configuration for list of wanted modules
@@ -168,8 +171,35 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::fit::Detector(true));
   }
 
+    
   if (geomonly) {
     run->Init();
+    finalize_geometry(run);
     gGeoManager->Export("O2geometry.root");
+  }
+}
+
+void finalize_geometry(FairRunSim* run)
+{
+  // finalize geometry and declare alignable volumes
+  // this should be called geometry is fully built
+  
+  if (!gGeoManager) {
+    LOG(ERROR) << "gGeomManager is not available" << FairLogger::endl;
+    return;
+  }
+  
+  gGeoManager->CloseGeometry();
+  if (!run) {
+    LOG(ERROR) << "FairRunSim is not available" << FairLogger::endl;
+    return;
+  }
+  
+  const TObjArray* modArr = run->GetListOfModules();
+  TIter next(modArr);
+  FairModule* module = nullptr;
+  while ( (module=(FairModule*)next()) ) {
+    o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+    if (det) det->addAlignableVolumes();
   }
 }
