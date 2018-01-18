@@ -81,6 +81,10 @@
 #include "Rtypes.h"         // for Int_t, Pythia6Generator::Class, Bool_t, etc
 class FairPrimaryGenerator;  // lines 68-68
 
+namespace o2
+{
+namespace eventgen
+{
 
 class Pythia6Generator : public FairGenerator  
 {
@@ -129,4 +133,6 @@ class Pythia6Generator : public FairGenerator
 
 };
 
+} // namespace eventgen
+} // namespace o2
 #endif

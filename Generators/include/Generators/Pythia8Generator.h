@@ -40,6 +40,10 @@ class FairPrimaryGenerator;  // lines 22-22
 
 class FairPrimaryGenerator;
 using namespace Pythia8;
+namespace o2
+{
+namespace eventgen
+{
 
 class PyTr1Rng : public RndmEngine
 {
@@ -108,4 +112,6 @@ class Pythia8Generator : public FairGenerator
   ClassDefOverride(Pythia8Generator,1);
 };
 
+} // namespace eventgen
+} // namespace o2
 #endif /* !PNDP8GENERATOR_H */

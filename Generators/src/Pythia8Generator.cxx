@@ -30,6 +30,11 @@
 
 using namespace Pythia8;
 
+namespace o2
+{
+namespace eventgen
+{
+
 // -----   Default constructor   -------------------------------------------
 Pythia8Generator::Pythia8Generator()
 {
@@ -168,4 +173,7 @@ void Pythia8Generator::GetPythiaInstance(int arg){
 }
 // -------------------------------------------------------------------------
 
-ClassImp(Pythia8Generator)
+} // namespace eventgen
+} // namespace o2
+
+ClassImp(o2::eventgen::Pythia8Generator)

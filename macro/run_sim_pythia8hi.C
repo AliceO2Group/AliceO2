@@ -77,7 +77,7 @@ void run_sim_pythia8hi(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->AddModule(tpc);
 
   // Create TGenerator interface
-  auto gen = new Pythia8Generator();
+  auto gen = new o2::eventgen::Pythia8Generator();
   gen->SetParameters("Beams:idA 1000822080"); // Pb ion
   gen->SetParameters("Beams:idB 1000822080"); // Pb ion
   gen->SetParameters("Beams:eCM 5520.0"); // [GeV]

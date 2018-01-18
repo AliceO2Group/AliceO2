@@ -32,6 +32,10 @@
 using std::cout;
 using std::endl;
 using std::max;
+namespace o2
+{
+namespace eventgen
+{
 
 // -----   Default constructor   ------------------------------------------
 Pythia6Generator::Pythia6Generator() {}
@@ -144,6 +148,7 @@ void Pythia6Generator::CloseInput() {
 }
 // ------------------------------------------------------------------------
 
+} // namespace eventgen
+} // namespace o2
 
-ClassImp(Pythia6Generator)
-
+ClassImp(o2::eventgen::Pythia6Generator)
