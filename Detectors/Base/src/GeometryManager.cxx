@@ -11,16 +11,18 @@
 /// \file GeometryManager.cxx
 /// \brief Implementation of the GeometryManager class
 
-#include "DetectorsBase/GeometryManager.h"
-#include "TCollection.h"      // for TIter
-#include "TGeoMatrix.h"       // for TGeoHMatrix
-#include "TGeoNode.h"         // for TGeoNode
-#include "TGeoPhysicalNode.h" // for TGeoPhysicalNode, TGeoPNEntry
-#include "TObjArray.h"        // for TObjArray
-#include "TObject.h"          // for TObject
+#include <TCollection.h>      // for TIter
+#include <TGeoMatrix.h>       // for TGeoHMatrix
+#include <TGeoNode.h>         // for TGeoNode
+#include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
+#include <TObjArray.h>        // for TObjArray
+#include <TObject.h>          // for TObject
 
 #include <cassert>
 #include <cstddef> // for NULL
+
+#include "DetectorsBase/AlignParam.h"
+#include "DetectorsBase/GeometryManager.h"
 
 using namespace o2::Base;
 
@@ -200,6 +202,27 @@ Bool_t GeometryManager::getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& 
   return getOriginalMatrix(symname, m);
 }
 
+//______________________________________________________________________
+static bool applyAlignment(TObjArray& algParArray, bool ovlpcheck, double ovlToler)
+{
+  /// misalign geometry with alignment objects from the array, optionaly check overlaps
+
+  algParArray.Sort(); // sort to apply alignment in correct hierarchy
+
+  int nvols = algParArray.GetEntriesFast();
+  bool res = true;
+  for (int i = 0; i < nvols; i++) {
+    AlignParam* alg = dynamic_cast<AlignParam*>(algParArray[i]);
+    if (alg) {
+      if (!alg->applyToGeometry(ovlpcheck, ovlToler)) {
+        res = false;
+        LOG(ERROR) << "Error applying alignment object for volume" << alg->getSymName() << FairLogger::endl;
+      }
+    }
+  }
+  return res;
+}
+
 // ================= methods for nested MatBudget class ================
 
 //______________________________________________________________________
@@ -235,8 +258,8 @@ void GeometryManager::MatBudget::accountMaterial(const TGeoMaterial* material)
 }
 
 //_____________________________________________________________________________________
-GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y0, float z0,
-                                                               float x1, float y1, float z1)
+GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y0, float z0, float x1, float y1,
+                                                               float z1)
 {
   //
   // Calculate mean material budget and material properties between
@@ -267,7 +290,7 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
   for (int i = 3; i--;) {
     dir[i] *= invlen;
   }
-  
+
   // Initialize start point and direction
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
@@ -294,8 +317,7 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
   while (length > TGeoShape::Tolerance()) {
     if (step < 2. * TGeoShape::Tolerance()) {
       nzero++;
-    }
-    else {
+    } else {
       nzero = 0;
     }
     if (nzero > 3) {
