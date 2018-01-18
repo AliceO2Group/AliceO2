@@ -174,4 +174,9 @@ TClonesArray* Detector::GetCollection(int) const
   return nullptr;
 }
 
+void Detector::addAlignableVolumes() const
+{
+  LOG(WARNING) << "Alignable volumes are not yet defined for "<< GetName() << FairLogger::endl;
+}
+
 ClassImp(o2::Base::Detector)
