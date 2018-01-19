@@ -23,7 +23,6 @@ GeometryParams::GeometryParams(const std::string_view name)
     // and it is more clear to set them in the text
     mNModules(4),
     mAngle(0.),
-    mIPtoUpperCPVsurface(0.),
     mCrystalShift(0.),
     mCryCellShift(0.),
     mAirGapLed(0.),
@@ -193,9 +192,9 @@ GeometryParams::GeometryParams(const std::string_view name)
   mAlFrontCoverX = 6.0; // Width of Al strip around fiberglass window: across
   mAlFrontCoverZ = 6.0; // and along the beam
 
-  mzAirTightBoxToTopModuleDist = 1. ;//Distance between PHOS upper surface and inner part of Air Tight Box
+  mzAirTightBoxToTopModuleDist = 1.; // Distance between PHOS upper surface and inner part of Air Tight Box
 
-  mATBoxWall = 0.1; //width of the wall of air tight box
+  mATBoxWall = 0.1; // width of the wall of air tight box
 
   // Calculate distance from IP to upper cover
   mIPtoOuterCoverDistance = mIPtoCrystalSurface - mAirGapLed - mInnerThermoWidthY - mAirGapWidthY - mCoolerWidthY -
@@ -361,22 +360,15 @@ GeometryParams::GeometryParams(const std::string_view name)
   mNPhi = mNStripX * mNCellsXInStrip; // number of crystals across the beam
   mNz = mNStripZ * mNCellsZInStrip;   // number of crystals along the beam
 
- 
-//  mPHOSParams[0] =
-//    TMath::Max((Double_t)mCPVBoxSize[0] / 2.,
-//               (Double_t)(mEMCParams[0] - (mEMCParams[1] - mEMCParams[0]) * mCPVBoxSize[1] / 2 / mEMCParams[3]));
-//  mPHOSParams[1] = mEMCParams[1];
-//  mPHOSParams[2] = TMath::Max((Double_t)mEMCParams[2], (Double_t)mCPVBoxSize[2] / 2.);
-//  mPHOSParams[3] = mEMCParams[3] + mCPVBoxSize[1] / 2.;
+  // Half-sizes of PHOS air tight box taked from final drowings
+  mPHOSParams[0] = 78.924;
+  mPHOSParams[1] = 93.704;
+  mPHOSParams[2] = 80.01;
+  mPHOSParams[3] = 41.91;
 
-   mPHOSParams[0]=78.924;
-   mPHOSParams[1]=93.704;
-   mPHOSParams[2]=80.01;
-   mPHOSParams[3]=41.91;
-
-
-   for(Int_t i=0; i<4; i++)mPHOSATBParams[i]=mPHOSParams[i]-mATBoxWall ;
-
+  for (Int_t i = 0; i < 4; i++) {
+    mPHOSATBParams[i] = mPHOSParams[i] - mATBoxWall;
+  }
 
   // calculate offset to crystal surface
   mCrystalShift = -mInnerThermoHalfSize[1] + mStripHalfSize[1] + mSupportPlateHalfSize[1] + mCrystalHalfSize[1] -
@@ -390,8 +382,7 @@ GeometryParams::GeometryParams(const std::string_view name)
     mPHOSAngle[i - 1] = -angle;
   }
 
-//  Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3] - mCPVBoxSize[1];
-  Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3] ;
+  Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3];
   for (Int_t iModule = 0; iModule < mNModules; iModule++) {
     mModuleCenter[iModule][0] = r * TMath::Sin(mPHOSAngle[iModule] / kRADDEG);
     mModuleCenter[iModule][1] = -r * TMath::Cos(mPHOSAngle[iModule] / kRADDEG);
@@ -404,7 +395,6 @@ GeometryParams::GeometryParams(const std::string_view name)
     mModuleAngle[iModule][2][0] = 90;
     mModuleAngle[iModule][2][1] = 270 + mPHOSAngle[iModule];
   }
-
 
   // Support geometry
   mRailLength = 1200.0;

@@ -56,20 +56,20 @@ void Detector::EndOfEvent()
   // Add duplicates if any and remove them
   // TODO: Apply Poisson smearing of light production
 
-  auto first = mHits->begin() ;
-  auto last = mHits->end() ;
+  auto first = mHits->begin();
+  auto last = mHits->end();
 
   std::sort(first, last);
-  
-  first = mHits->begin() ;
-  last = mHits->end() ;
-  
+
+  first = mHits->begin();
+  last = mHits->end();
+
   // this is copy of std::unique() method with addition: adding identical Hits
-  auto itr = first ;
+  auto itr = first;
   while (++first != last) {
     if (*itr == *first) {
-      *itr += *first ;
-    }else{
+      *itr += *first;
+    } else {
       *(++itr) = *first;
     }
   }
@@ -77,14 +77,14 @@ void Detector::EndOfEvent()
 
   mHits->erase(itr, mHits->end());
 
-/*  
-      std::ostream stream(nullptr);
-      stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-//      stream.rdbuf(LOG(DEBUG2));
-    for (int i = 0; i < mHits->size(); i++) {
-       mHits->at(i).PrintStream(stream);
-      }
-*/  
+  /*
+        std::ostream stream(nullptr);
+        stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
+  //      stream.rdbuf(LOG(DEBUG2));
+      for (int i = 0; i < mHits->size(); i++) {
+         mHits->at(i).PrintStream(stream);
+        }
+  */
 }
 void Detector::Reset()
 {
@@ -114,7 +114,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       // Search parent
       Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
       itTr = mSuperParents.find(parentID);
-      if (itTr == mSuperParents.end()) { // Neither track or its parent found: new SuperParent       
+      if (itTr == mSuperParents.end()) { // Neither track or its parent found: new SuperParent
         mSuperParents[partID] = partID;
         superParent = partID;
         isNewPartile = true;
@@ -125,7 +125,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       }
     } else {
       superParent = itTr->second;
-      mCurrentTrackID = partID;      
+      mCurrentTrackID = partID;
     }
   } else {
     superParent = mCurentSuperParent;
@@ -142,11 +142,11 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   //    return false ; //  We are not inside a PBWO crystal
 
   Int_t moduleNumber;
-  fMC->CurrentVolOffID(11, moduleNumber); // get the PHOS module number ;
+  fMC->CurrentVolOffID(11, moduleNumber); //11: number of geom. levels between PXTL and PHOS module: get the PHOS module number ;
   Int_t strip;
-  fMC->CurrentVolOffID(3, strip);
+  fMC->CurrentVolOffID(3, strip); //3: number of geom levels between PXTL and strip: get strip number in PHOS module
   Int_t cell;
-  fMC->CurrentVolOffID(2, cell);
+  fMC->CurrentVolOffID(2, cell);  //2: number of geom levels between PXTL and cell: get sell in strip number.
   Int_t detID = mGeom->RelToAbsId(moduleNumber, strip, cell);
 
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
@@ -209,10 +209,11 @@ void Detector::ConstructGeometry()
     LOG(ERROR) << "ConstructGeometry: PHOS Geometry class has not been set up.\n";
   }
 
-  if(!fMC)
-    fMC = TVirtualMC::GetMC() ;
+  if (!fMC) {
+    fMC = TVirtualMC::GetMC();
+  }
 
-  // Configure geometry So far we have onny one: Run2
+  // Configure geometry So far we have only one: Run2
   {
     mCreateHalfMod = kTRUE;
     mActiveModule[0] = kFALSE;
@@ -245,13 +246,14 @@ void Detector::ConstructGeometry()
   Int_t iXYZ, iAngle;
   char im[5];
   for (Int_t iModule = 0; iModule < 5; iModule++) {
-    if (!mActiveModule[iModule + 1])
+    if (!mActiveModule[iModule + 1]) {
       continue;
-    Float_t angle[3][2] = {0};
+    }
+    Float_t angle[3][2] = { 0 };
     geom->GetModuleAngle(iModule, angle);
     Matrix(idrotm[iModule], angle[0][0], angle[0][1], angle[1][0], angle[1][1], angle[2][0], angle[2][1]);
 
-    Float_t pos[3]={0} ;
+    Float_t pos[3] = { 0 };
     geom->GetModuleCenter(iModule, pos);
 
     if (iModule == 3) { // special 1/2 module
@@ -264,12 +266,13 @@ void Detector::ConstructGeometry()
   gGeoManager->CheckGeometry();
 
   // Define sensitive volume
-  if(fActive) {
+  if (fActive) {
     TGeoVolume* vsense = gGeoManager->GetVolume("PXTL");
-    if (vsense)
+    if (vsense) {
       AddSensitiveVolume(vsense);
-    else
+    } else {
       LOG(ERROR) << "PHOS Sensitive volume PXTL not found ... No hit creation!\n";
+    }
   }
 }
 //-----------------------------------------
@@ -284,14 +287,6 @@ void Detector::CreateMaterials()
   Float_t dX = 8.28;
 
   Mixture(ID_PWO, "PbWO4", aX, zX, dX, -3, wX);
-
-  // --- The polysterene scintillator (CH) ---
-  Float_t aP[2] = { 12.011, 1.00794 };
-  Float_t zP[2] = { 6.0, 1.0 };
-  Float_t wP[2] = { 1.0, 1.0 };
-  Float_t dP = 1.032;
-
-  Mixture(ID_CPVSC, "Polystyrene", aP, zP, dP, -2, wP);
 
   // --- Aluminium ---
   Material(ID_AL, "Al", 26.98, 13., 2.7, 8.9, 999., nullptr, 0);
@@ -319,8 +314,6 @@ void Detector::CreateMaterials()
   Float_t wTIT[3] = { 69.0, 6.0, 1.0 };
   Float_t dTIT = 4.5;
 
-  Mixture(ID_TITAN, "Titanium", aTIT, zTIT, dTIT, -3, wTIT);
-
   // --- Silicon ---
   Material(ID_APD, "Si", 28.0855, 14., 2.33, 9.36, 42.3, nullptr, 0);
 
@@ -340,17 +333,6 @@ void Detector::CreateMaterials()
 
   Mixture(ID_TEXTOLIT, "Textolit", aTX, zTX, dTX, -4, wTX);
 
-  //--- FR4  ---
-  Float_t aFR[4] = { 16.0, 28.09, 12.011, 1.00794 };
-  Float_t zFR[4] = { 8.0, 14.0, 6.0, 1.0 };
-  Float_t wFR[4] = { 292.0, 68.0, 462.0, 736.0 };
-  Float_t dFR = 1.8;
-
-  Mixture(9, "FR4", aFR, zFR, dFR, -4, wFR);
-
-  // --- Copper ---
-  Material(ID_CUPPER, "Cu", 63.546, 29, 8.96, 1.43, 14.8, nullptr, 0);
-
   // --- G10 : Printed Circuit Materiall ---
   Float_t aG10[4] = { 12., 1., 16., 28. };
   Float_t zG10[4] = { 6., 1., 8., 14. };
@@ -358,15 +340,6 @@ void Detector::CreateMaterials()
   Float_t dG10 = 1.7;
 
   Mixture(ID_PRINTCIRC, "G10", aG10, zG10, dG10, -4, wG10);
-
-  // --- The gas mixture ---
-  // Co2
-  Float_t aCO[2] = { 12.0, 16.0 };
-  Float_t zCO[2] = { 6.0, 8.0 };
-  Float_t wCO[2] = { 1.0, 2.0 };
-  Float_t dCO = 0.001977;
-
-  Mixture(ID_CO2, "CO2", aCO, zCO, dCO, -2, wCO);
 
   // --- Stainless steel (let it be pure iron) ---
   Material(ID_FE, "Steel", 55.845, 26, 7.87, 1.76, 0., nullptr, 0);
@@ -411,13 +384,11 @@ void Detector::CreateMaterials()
   //              Int_t nbuf = 0);
 
   // The scintillator of the calorimeter made of PBW04                              -> idtmed[699]
-  if(fActive)
+  if (fActive) {
     Medium(ID_PWO, "Crystal", ID_PWO, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
-  else
+  } else {
     Medium(ID_PWO, "Crystal", ID_PWO, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
-
-  // The scintillator of the CPV made of Polystyrene scintillator                   -> idtmed[700]
-  Medium(ID_CPVSC, "CPVscint.", ID_CPVSC, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
+  }
 
   // Various Aluminium parts made of Al                                             -> idtmed[701]
   Medium(ID_AL, "Alparts", ID_AL, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
@@ -428,9 +399,6 @@ void Detector::CreateMaterials()
   // The Polystyrene foam around the calorimeter module                             -> idtmed[703]
   Medium(ID_POLYFOAM, "Polyst.foam", ID_POLYFOAM, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
-  // The Titanium around the calorimeter crystal                                    -> idtmed[704]
-  Medium(ID_TITAN, "Titan.cover", ID_TITAN, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.0001, 0.0001, nullptr, 0);
-
   // The Silicon of the APD diode to read out the calorimeter crystal               -> idtmed[705]
   Medium(ID_APD, "SiAPD", ID_APD, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.01, 0.01, nullptr, 0);
 
@@ -440,22 +408,8 @@ void Detector::CreateMaterials()
   // The Textolit which makes up the box which contains the calorimeter module      -> idtmed[707]
   Medium(ID_TEXTOLIT, "Textolit", ID_TEXTOLIT, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
-  // // FR4: The Plastic which makes up the frame of micromegas                        -> idtmed[708]
-  // Medium(9, "FR4 $", 9, 0,
-  //      isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, 0, 0) ;
-
-  //  // The Composite Material for  micromegas                                         -> idtmed[709]
-  //  Medium(10, "CompoMat   $", 10, 0,
-  //       isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
-
-  // Copper                                                                         -> idtmed[710]
-  Medium(ID_CUPPER, "Copper", ID_CUPPER, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, nullptr, 0);
-
   // G10: Printed Circuit material                                                  -> idtmed[711]
   Medium(ID_PRINTCIRC, "G10", ID_PRINTCIRC, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, nullptr, 0);
-
-  // The gas mixture: ArCo2                                                         -> idtmed[715]
-  Medium(ID_CO2, "ArCo2", ID_CO2, 1, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.01, nullptr, 0);
 
   // Stainless steel                                                                -> idtmed[716]
   Medium(ID_FE, "Steel", ID_FE, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.0001, nullptr, 0);
@@ -485,19 +439,22 @@ void Detector::ConstructEMCGeometry()
   Int_t ipar;
 
   // ======= Define the strip ===============
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetStripHalfSize() + ipar);
+  }
   // --- define steel volume (cell of the strip unit)
   fMC->Gsvolu("PSTR", "BOX ", getMediumID(ID_FE), par, 3); // Made of steel
 
   // --- define air cell in the steel strip
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetAirCellHalfSize() + ipar);
+  }
   fMC->Gsvolu("PCEL", "BOX ", getMediumID(ID_AIR), par, 3);
 
   // --- define wrapped crystal and put it into steel cell
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetWrappedHalfSize() + ipar);
+  }
   fMC->Gsvolu("PWRA", "BOX ", getMediumID(ID_TYVEK), par, 3);
   const Float_t* pin = geom->GetAPDHalfSize();
   const Float_t* preamp = geom->GetPreampHalfSize();
@@ -505,23 +462,25 @@ void Detector::ConstructEMCGeometry()
   fMC->Gspos("PWRA", 1, "PCEL", 0.0, y, 0.0, 0, "ONLY");
 
   // --- Define crystal and put it into wrapped crystall ---
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetCrystalHalfSize() + ipar);
+  }
 
   fMC->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3);
-//  fMC->Gsvolu("PXTL", "BOX ", 1, par, 3) ;
+  //  fMC->Gsvolu("PXTL", "BOX ", 1, par, 3) ;
   fMC->Gspos("PXTL", 1, "PWRA", 0.0, 0.0, 0.0, 0, "ONLY");
 
-
   // --- define APD/PIN preamp and put it into AirCell
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetAPDHalfSize() + ipar);
+  }
   fMC->Gsvolu("PPIN", "BOX ", getMediumID(ID_APD), par, 3);
   const Float_t* crystal = geom->GetCrystalHalfSize();
   y = crystal[1] + geom->GetAirGapLed() / 2 - preamp[1];
   fMC->Gspos("PPIN", 1, "PCEL", 0.0, y, 0.0, 0, "ONLY");
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetPreampHalfSize() + ipar);
+  }
   fMC->Gsvolu("PREA", "BOX ", getMediumID(ID_PRINTCIRC), par, 3); // Here I assumed preamp as a printed Circuit
   y = crystal[1] + geom->GetAirGapLed() / 2 + pin[1];             // May it should be changed
   fMC->Gspos("PREA", 1, "PCEL", 0.0, y, 0.0, 0, "ONLY");          // to ceramics?
@@ -541,12 +500,14 @@ void Detector::ConstructEMCGeometry()
   }
 
   // --- define the support plate, hole in it and position it in strip ----
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetSupportPlateHalfSize() + ipar);
+  }
   fMC->Gsvolu("PSUP", "BOX ", getMediumID(ID_AL), par, 3);
 
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetSupportPlateInHalfSize() + ipar);
+  }
   fMC->Gsvolu("PSHO", "BOX ", getMediumID(ID_AIR), par, 3);
   Float_t z = geom->GetSupportPlateThickness() / 2;
   fMC->Gspos("PSHO", 1, "PSUP", 0.0, 0.0, z, 0, "ONLY");
@@ -555,12 +516,14 @@ void Detector::ConstructEMCGeometry()
   fMC->Gspos("PSUP", 1, "PSTR", 0.0, y, 0.0, 0, "ONLY");
 
   // ========== Fill module with strips and put them into inner thermoinsulation=============
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetInnerThermoHalfSize() + ipar);
+  }
   fMC->Gsvolu("PTII", "BOX ", getMediumID(ID_THERMOINS), par, 3);
 
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gsvolu("PTIH", "BOX ", getMediumID(ID_THERMOINS), par, 3);
+  }
 
   const Float_t* inthermo = geom->GetInnerThermoHalfSize();
   const Float_t* strip = geom->GetStripHalfSize();
@@ -591,38 +554,46 @@ void Detector::ConstructEMCGeometry()
   }
 
   // ------- define the air gap between thermoinsulation and cooler
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetAirGapHalfSize() + ipar);
+  }
   fMC->Gsvolu("PAGA", "BOX ", getMediumID(ID_AIR), par, 3);
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gsvolu("PAGH", "BOX ", getMediumID(ID_AIR), par, 3);
+  }
   const Float_t* agap = geom->GetAirGapHalfSize();
   y = agap[1] - inthermo[1];
 
   fMC->Gspos("PTII", 1, "PAGA", 0.0, y, 0.0, 0, "ONLY");
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gspos("PTIH", 1, "PAGH", 0.0, y, 0.0, 0, "ONLY");
+  }
 
   // ------- define the Al passive cooler
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetCoolerHalfSize() + ipar);
+  }
   fMC->Gsvolu("PCOR", "BOX ", getMediumID(ID_AL), par, 3);
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gsvolu("PCOH", "BOX ", getMediumID(ID_AL), par, 3);
+  }
 
   const Float_t* cooler = geom->GetCoolerHalfSize();
   y = cooler[1] - agap[1];
 
   fMC->Gspos("PAGA", 1, "PCOR", 0.0, y, 0.0, 0, "ONLY");
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gspos("PAGH", 1, "PCOH", 0.0, y, 0.0, 0, "ONLY");
+  }
 
   // ------- define the outer thermoinsulating cover
-  for (ipar = 0; ipar < 4; ipar++)
+  for (ipar = 0; ipar < 4; ipar++) {
     par[ipar] = *(geom->GetOuterThermoParams() + ipar);
+  }
   fMC->Gsvolu("PTIO", "TRD1", getMediumID(ID_THERMOINS), par, 4);
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gsvolu("PIOH", "TRD1", getMediumID(ID_THERMOINS), par, 4);
+  }
   const Float_t* outparams = geom->GetOuterThermoParams();
 
   Int_t idrotm = -1;
@@ -631,42 +602,50 @@ void Detector::ConstructEMCGeometry()
 
   z = outparams[3] - cooler[1];
   fMC->Gspos("PCOR", 1, "PTIO", 0., 0.0, z, idrotm, "ONLY");
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gspos("PCOH", 1, "PIOH", 0., 0.0, z, idrotm, "ONLY");
+  }
 
   // -------- Define the outer Aluminium cover -----
-  for (ipar = 0; ipar < 4; ipar++)
+  for (ipar = 0; ipar < 4; ipar++) {
     par[ipar] = *(geom->GetAlCoverParams() + ipar);
+  }
   fMC->Gsvolu("PCOL", "TRD1", getMediumID(ID_AL), par, 4);
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gsvolu("PCLH", "TRD1", getMediumID(ID_AL), par, 4);
+  }
 
   const Float_t* covparams = geom->GetAlCoverParams();
   z = covparams[3] - outparams[3];
   fMC->Gspos("PTIO", 1, "PCOL", 0., 0.0, z, 0, "ONLY");
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gspos("PIOH", 1, "PCLH", 0., 0.0, z, 0, "ONLY");
+  }
 
   // --------- Define front fiberglass cover -----------
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFiberGlassHalfSize() + ipar);
+  }
   fMC->Gsvolu("PFGC", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
   z = -outparams[3];
   fMC->Gspos("PFGC", 1, "PCOL", 0., 0.0, z, 0, "ONLY");
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gspos("PFGC", 1, "PCLH", 0., 0.0, z, 0, "ONLY");
+  }
 
   //=============This is all with cold section==============
 
   //------ Warm Section --------------
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetWarmAlCoverHalfSize() + ipar);
+  }
   fMC->Gsvolu("PWAR", "BOX ", getMediumID(ID_AL), par, 3);
   const Float_t* warmcov = geom->GetWarmAlCoverHalfSize();
 
   // --- Define the outer thermoinsulation ---
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetWarmThermoHalfSize() + ipar);
+  }
   fMC->Gsvolu("PWTI", "BOX ", getMediumID(ID_THERMOINS), par, 3);
   const Float_t* warmthermo = geom->GetWarmThermoHalfSize();
   z = -warmcov[2] + warmthermo[2];
@@ -674,13 +653,15 @@ void Detector::ConstructEMCGeometry()
   fMC->Gspos("PWTI", 1, "PWAR", 0., 0.0, z, 0, "ONLY");
 
   // --- Define cables area and put in it T-supports ----
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetTCables1HalfSize() + ipar);
+  }
   fMC->Gsvolu("PCA1", "BOX ", getMediumID(ID_CABLES), par, 3);
   const Float_t* cbox = geom->GetTCables1HalfSize();
 
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetTSupport1HalfSize() + ipar);
+  }
   fMC->Gsvolu("PBE1", "BOX ", getMediumID(ID_AL), par, 3);
   const Float_t* beams = geom->GetTSupport1HalfSize();
   Int_t isup;
@@ -692,13 +673,15 @@ void Detector::ConstructEMCGeometry()
   z = -warmthermo[2] + cbox[2];
   fMC->Gspos("PCA1", 1, "PWTI", 0.0, 0.0, z, 0, "ONLY");
 
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetTCables2HalfSize() + ipar);
+  }
   fMC->Gsvolu("PCA2", "BOX ", getMediumID(ID_CABLES), par, 3);
   const Float_t* cbox2 = geom->GetTCables2HalfSize();
 
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetTSupport2HalfSize() + ipar);
+  }
   fMC->Gsvolu("PBE2", "BOX ", getMediumID(ID_AL), par, 3);
   for (isup = 0; isup < geom->GetNTSuppots(); isup++) {
     Float_t x = -cbox[0] + beams[0] + (2 * beams[0] + geom->GetTSupportDist()) * isup;
@@ -709,86 +692,100 @@ void Detector::ConstructEMCGeometry()
   fMC->Gspos("PCA2", 1, "PWTI", 0.0, 0.0, z, 0, "ONLY");
 
   // --- Define frame ---
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFrameXHalfSize() + ipar);
+  }
   fMC->Gsvolu("PFRX", "BOX ", getMediumID(ID_FE), par, 3);
   const Float_t* posit1 = geom->GetFrameXPosition();
   fMC->Gspos("PFRX", 1, "PWTI", posit1[0], posit1[1], posit1[2], 0, "ONLY");
   fMC->Gspos("PFRX", 2, "PWTI", posit1[0], -posit1[1], posit1[2], 0, "ONLY");
 
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFrameZHalfSize() + ipar);
+  }
   fMC->Gsvolu("PFRZ", "BOX ", getMediumID(ID_FE), par, 3);
   const Float_t* posit2 = geom->GetFrameZPosition();
   fMC->Gspos("PFRZ", 1, "PWTI", posit2[0], posit2[1], posit2[2], 0, "ONLY");
   fMC->Gspos("PFRZ", 2, "PWTI", -posit2[0], posit2[1], posit2[2], 0, "ONLY");
 
   // --- Define Fiber Glass support ---
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFGupXHalfSize() + ipar);
+  }
   fMC->Gsvolu("PFG1", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
   const Float_t* posit3 = geom->GetFGupXPosition();
   fMC->Gspos("PFG1", 1, "PWTI", posit3[0], posit3[1], posit3[2], 0, "ONLY");
   fMC->Gspos("PFG1", 2, "PWTI", posit3[0], -posit3[1], posit3[2], 0, "ONLY");
 
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFGupZHalfSize() + ipar);
+  }
   fMC->Gsvolu("PFG2", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
   const Float_t* posit4 = geom->GetFGupZPosition();
   fMC->Gspos("PFG2", 1, "PWTI", posit4[0], posit4[1], posit4[2], 0, "ONLY");
   fMC->Gspos("PFG2", 2, "PWTI", -posit4[0], posit4[1], posit4[2], 0, "ONLY");
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFGlowXHalfSize() + ipar);
+  }
   fMC->Gsvolu("PFG3", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
   const Float_t* posit5 = geom->GetFGlowXPosition();
   fMC->Gspos("PFG3", 1, "PWTI", posit5[0], posit5[1], posit5[2], 0, "ONLY");
   fMC->Gspos("PFG3", 2, "PWTI", posit5[0], -posit5[1], posit5[2], 0, "ONLY");
 
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFGlowZHalfSize() + ipar);
+  }
   fMC->Gsvolu("PFG4", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
   const Float_t* posit6 = geom->GetFGlowZPosition();
   fMC->Gspos("PFG4", 1, "PWTI", posit6[0], posit6[1], posit6[2], 0, "ONLY");
   fMC->Gspos("PFG4", 2, "PWTI", -posit6[0], posit6[1], posit6[2], 0, "ONLY");
 
   // --- Define Air Gap for FEE electronics -----
-  for (ipar = 0; ipar < 3; ipar++)
+  for (ipar = 0; ipar < 3; ipar++) {
     par[ipar] = *(geom->GetFEEAirHalfSize() + ipar);
+  }
   fMC->Gsvolu("PAFE", "BOX ", getMediumID(ID_AIR), par, 3);
   const Float_t* posit7 = geom->GetFEEAirPosition();
   fMC->Gspos("PAFE", 1, "PWTI", posit7[0], posit7[1], posit7[2], 0, "ONLY");
 
   // Define the EMC module volume and combine Cool and Warm sections
-  for (ipar = 0; ipar < 4; ipar++)
+  for (ipar = 0; ipar < 4; ipar++) {
     par[ipar] = *(geom->GetEMCParams() + ipar);
+  }
   fMC->Gsvolu("PEMC", "TRD1", getMediumID(ID_AIR), par, 4);
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gsvolu("PEMH", "TRD1", getMediumID(ID_AIR), par, 4);
+  }
   z = -warmcov[2];
   fMC->Gspos("PCOL", 1, "PEMC", 0., 0., z, 0, "ONLY");
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gspos("PCLH", 1, "PEMH", 0., 0., z, 0, "ONLY");
+  }
   z = covparams[3];
   fMC->Gspos("PWAR", 1, "PEMC", 0., 0., z, 0, "ONLY");
-  if (mCreateHalfMod)
+  if (mCreateHalfMod) {
     fMC->Gspos("PWAR", 1, "PEMH", 0., 0., z, 0, "ONLY");
+  }
 
   // Put created EMC geometry into PHOS volume
 
-  z = geom->GetDistATBtoModule()-geom->GetPHOSATBParams()[3]+geom->GetEMCParams()[3];
-  
-  //PHOS AirTightBox
+  z = geom->GetDistATBtoModule() - geom->GetPHOSATBParams()[3] + geom->GetEMCParams()[3];
+
+  // PHOS AirTightBox
   fMC->Gsvolu("PATB", "TRD1", getMediumID(ID_AIR), geom->GetPHOSATBParams(), 4);
-  if (mCreateHalfMod) // half of PHOS module
+  if (mCreateHalfMod) { // half of PHOS module
     fMC->Gsvolu("PATH", "TRD1", getMediumID(ID_AIR), geom->GetPHOSATBParams(), 4);
+  }
 
   fMC->Gspos("PEMC", 1, "PATB", 0., 0., z, 0, "ONLY");
-  if (mCreateHalfMod) // half of PHOS module
-     fMC->Gspos("PEMH", 1, "PATH", 0., 0., z, 0, "ONLY");
+  if (mCreateHalfMod) { // half of PHOS module
+    fMC->Gspos("PEMH", 1, "PATH", 0., 0., z, 0, "ONLY");
+  }
 
   fMC->Gspos("PATB", 1, "PHOS", 0., 0., 0, 0, "ONLY");
-  if (mCreateHalfMod) // half of PHOS module
+  if (mCreateHalfMod) { // half of PHOS module
     fMC->Gspos("PATH", 1, "PHOH", 0., 0., 0, 0, "ONLY");
+  }
 }
 
 //-----------------------------------------
