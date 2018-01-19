@@ -15,7 +15,7 @@
 
 #include <Framework/InputSpec.h>
 #include <Framework/DataProcessorSpec.h>
-#include <Framework/DataSampling.h>
+//#include <Framework/DataSampling.h>
 #include <Framework/ExternalFairMQDeviceProxy.h>
 #include <Framework/RawDeviceService.h>
 #include <Framework/SimpleRawDeviceService.h>
@@ -38,7 +38,12 @@ struct FakeCluster {
     float q;
 };
 
-//run 'readout.exe file:///home/pkonopka/alice/Readout/configDummy.cfg' to receive data
+// Run 'readout.exe file:///home/pkonopka/alice/Readout/configDummy.cfg' to inject data into DPL
+// Otherwise, you can run any other publisher on 5558 port
+//
+// Run 'runFairMqSink --id sink1 --mq-config /home/pkonopka/alice/O2/Utilities/FairMqSink/ex1-sampler-sink.json'
+// to receive data leaving DPL. Any other subscriber on 26525 port should be also fine.
+
 
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 {
@@ -95,7 +100,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   DataProcessorSpec dplOutput{
     "output",
     Inputs{
-      InputSpec{"its-raw", o2::Header::gDataOriginITS, o2::Header::gDataDescriptionRawData, 0, InputSpec::Timeframe}
+      InputSpec{"its-raw", o2::Header::gDataOriginITS, o2::Header::gDataDescriptionClusters, 0, InputSpec::Timeframe}
     },
     {},
     AlgorithmSpec{
@@ -116,22 +121,18 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
               [](void *data, void *hint) { delete[] reinterpret_cast<char *>(data); },
               p)
           );
-          int err = device->Send(msg, "dpl-out");
-//          LOG(DEBUG) << "device->Send(msg, \"dpl-out\"): " << err << " header->size(): " << header->size();
+          int packetsSent = device->Send(msg, "dpl-out");
         };
       }
     }, {
       ConfigParamSpec{
         "channel-config", VariantType::String,
-        "name=dpl-out,type=pub,method=connect,address=tcp://localhost:5450,rateLogging=1", {"Out-of-band channel config"}}
+        "name=dpl-out,type=pub,method=bind,address=tcp://127.0.0.1:26525,rateLogging=1", {"Out-of-band channel config"}}
     }
   };
-  specs.push_back(dplOutput);
-
-
   specs.push_back(readout);
   specs.push_back(processingStage);
   specs.push_back(sink);
-
+  specs.push_back(dplOutput);
 }
 
