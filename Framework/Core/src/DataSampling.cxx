@@ -30,11 +30,29 @@ namespace framework {
 // - enable time pipelining
 // - one dispatcher per parallel flow vs one dispatcher per whole flow
 
-void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
-                                          const std::string &configurationSource)
+
+
+void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource)
 {
   QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
 
+  InfrastructureConfig infrastructureCfg = readInfrastructureConfiguration(configurationSource);
+
+  //todo:
+  // proxy
+  // combining different choices
+
+  if (infrastructureCfg.enableParallelDispatchers) {
+    GenerateInfrastructureParallel(workflow, tasks);
+  } else if (infrastructureCfg.enableTimePipeliningDispatchers) {
+    GenerateInfrastructureTimePipelining(workflow, tasks);
+  } else {
+    GenerateInfrastructureSimple(workflow, tasks);
+  }
+}
+
+void DataSampling::GenerateInfrastructureSimple(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
+{
   for (auto&& task : tasks) {
     DataProcessorSpec dispatcher{
       "Dispatcher_for_" + task.name,
@@ -65,11 +83,8 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow,
   }
 }
 
-void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow,
-                                          const std::string &configurationSource)
+void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
 {
-  QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
-
   for (auto&& task : tasks) {
     std::unordered_map<Header::DataHeader::SubSpecificationType, DataProcessorSpec> dispatchers;
 
@@ -119,11 +134,8 @@ void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow,
   }
 }
 
-void DataSampling::GenerateInfrastructureTimePipelining(WorkflowSpec &workflow,
-                                          const std::string &configurationSource)
+void DataSampling::GenerateInfrastructureTimePipelining(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
 {
-  QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
-
   for (auto&& task : tasks) {
     DataProcessorSpec dispatcher{
       "Dispatcher_for_" + task.name,
@@ -212,19 +224,19 @@ OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherI
   return dispatcherOutput;
 }
 
-std::vector<QcTaskConfiguration> DataSampling::readQcTasksConfiguration(const std::string &configurationSource)
+DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string &configurationSource)
 {
   std::vector<QcTaskConfiguration> tasks;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
   std::vector<std::string> taskNames;
   try {
-    std::string taskNamesString = configFile->getString("general/tasksList").value();
+    std::string taskNamesString = configFile->getString("DataSampling/tasksList").value();
     boost::split(taskNames, taskNamesString, boost::is_any_of(","));
   } catch (const boost::bad_optional_access &) {
     LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
-               << ", wrong or missing value general/tasksList";
-    return;
+               << ", wrong or missing value DataSampling/tasksList";
+    return QcTaskConfigurations();
   }
 
   for (auto&& taskName : taskNames) {
@@ -282,6 +294,21 @@ std::vector<QcTaskConfiguration> DataSampling::readQcTasksConfiguration(const st
   }
 
   return tasks;
+}
+
+DataSampling::InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::string &configurationSource)
+{
+  InfrastructureConfig cfg;
+  std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
+
+  cfg.enableTimePipeliningDispatchers = static_cast<bool>(
+    configFile->getInt("DataSampling/enableTimePipeliningDispatchers").get_value_or(0));
+  cfg.enableParallelDispatchers= static_cast<bool>(
+    configFile->getInt("DataSampling/enableParallelDispatchers").get_value_or(0));
+  cfg.enableProxy = static_cast<bool>(
+    configFile->getInt("DataSampling/enableProxy").get_value_or(0));
+
+  return cfg;
 }
 
 
