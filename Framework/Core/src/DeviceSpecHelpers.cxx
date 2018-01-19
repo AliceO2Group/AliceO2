@@ -517,7 +517,9 @@ DeviceSpecHelpers::prepareArguments(int argc,
       "--control",
       "static",
       "--log-color",
-      "0"
+      "false",
+      "--color",
+      "false"
     };
 
     // do the filtering of options, forward options belonging to this specific

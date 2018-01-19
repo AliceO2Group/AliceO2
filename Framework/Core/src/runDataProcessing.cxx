@@ -57,6 +57,7 @@
 
 
 #include <fairmq/DeviceRunner.h>
+#include <fairmq/FairMQLogger.h>
 
 using namespace o2::framework;
 
@@ -296,9 +297,10 @@ struct TurnOffColors {
 };
 
 int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
+  TurnOffColors::apply(false, 0);
   LOG(INFO) << "Spawing new device " << spec.id
             << " in process with pid " << getpid();
-  TurnOffColors::apply(false, 0);
+
   try {
     fair::mq::DeviceRunner runner{argc, argv};
 
@@ -333,6 +335,7 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r){
       r.fDevice = std::shared_ptr<FairMQDevice>{std::move(device)};
+      TurnOffColors::apply(false, 0);
     });
 
     return runner.Run();
@@ -474,7 +477,9 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
     ("control",
      "control plugin")
     ("log-color",
-     "logging color scheme");
+     "logging color scheme")
+    ("color",
+          "logging color scheme");
 
   bpo::options_description visibleOptions;
   visibleOptions.add(executorOptions);
