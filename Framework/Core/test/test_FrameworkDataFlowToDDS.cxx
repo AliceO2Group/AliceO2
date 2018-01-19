@@ -93,16 +93,16 @@ BOOST_AUTO_TEST_CASE(TestGraphviz) {
   dumpDeviceSpec2DDS(ss, devices, executions);
   BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
    <decltask id="A">
-       <exe reachable="true">foo --id A --control static --log-color 0 </exe>
+       <exe reachable="true">foo --id A --control static --log-color false --color false </exe>
    </decltask>
    <decltask id="B">
-       <exe reachable="true">foo --id B --control static --log-color 0 </exe>
+       <exe reachable="true">foo --id B --control static --log-color false --color false </exe>
    </decltask>
    <decltask id="C">
-       <exe reachable="true">foo --id C --control static --log-color 0 </exe>
+       <exe reachable="true">foo --id C --control static --log-color false --color false </exe>
    </decltask>
    <decltask id="D">
-       <exe reachable="true">foo --id D --control static --log-color 0 </exe>
+       <exe reachable="true">foo --id D --control static --log-color false --color false </exe>
    </decltask>
 </topology>
 )EXPECTED");

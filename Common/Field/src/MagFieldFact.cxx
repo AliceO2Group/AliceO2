@@ -47,7 +47,7 @@ void MagFieldFact::SetParm()
 FairField* MagFieldFact::createFairField()
 { 
   if ( !mFieldPar ) {
-    FairLogger::GetLogger()->Error(MESSAGE_ORIGIN, "No field parameters available");
+    LOG(ERROR) << "MagFieldFact::createFairField: No field parameters available";
     return nullptr;
   }
   // since we have just 1 field class, we don't need to consider fFieldPar->GetType()

@@ -22,7 +22,7 @@
 #include <TSystem.h>          // for TSystem, gSystem
 #include <cstdio>            // for printf, fprintf, FILE, fclose, fflush, etc
 #include "MathUtils/Chebyshev3DCalc.h"  // for Chebyshev3DCalc, etc
-#include "FairLogger.h"       // for FairLogger, MESSAGE_ORIGIN
+#include "FairLogger.h"       // for FairLogger
 #include "TMathBase.h"        // for Max, Abs
 #include "TNamed.h"           // for TNamed
 #include "TObjArray.h"        // for TObjArray
@@ -141,7 +141,7 @@ Chebyshev3D::Chebyshev3D(const char* funName, int dimOut, const Float_t* bmin, c
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut < 1) {
-    Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
+    LOG(ERROR) << "Chebyshev3D: Requested output dimension is " << mOutputArrayDimension << "\nStop\n";
     exit(1);
   }
   for (int i = 3; i--;) {
@@ -172,7 +172,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut < 1) {
-    Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
+    LOG(ERROR) << "Chebyshev3D: Requested output dimension is " << mOutputArrayDimension << " \nStop\n";
     exit(1);
   }
   for (int i = 3; i--;) {
@@ -203,7 +203,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut < 1) {
-    Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
+    LOG(ERROR) << "Chebyshev3D: Requested output dimension is " << mOutputArrayDimension << "%d\nStop\n";
     exit(1);
   }
   for (int i = 3; i--;) {
@@ -239,11 +239,11 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut != 3) {
-    Error("Chebyshev3D", "This constructor works only for 3D fits, %dD fit was requested\n", mOutputArrayDimension);
+    LOG(ERROR) << "Chebyshev3D: This constructor works only for 3D fits, " << mOutputArrayDimension << "D fit was requested\n";
     exit(1);
   }
   if (dimOut < 1) {
-    Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
+    LOG(ERROR) << "Chebyshev3D: Requested output dimension is " << mOutputArrayDimension << "\nStop\n";
     exit(1);
   }
   for (int i = 3; i--;) {
@@ -340,8 +340,8 @@ void Chebyshev3D::prepareBoundaries(const Float_t *bmin, const Float_t *bmax)
     mMaxBoundaries[i] = bmax[i];
     mBoundaryMappingScale[i] = bmax[i] - bmin[i];
     if (mBoundaryMappingScale[i] <= 0) {
-      mLogger->Fatal(MESSAGE_ORIGIN, "Boundaries for %d-th dimension are not increasing: %+.4e %+.4e\nStop\n", i,
-                     mMinBoundaries[i], mMaxBoundaries[i]);
+      LOG(FATAL) << "Boundaries for " << i << "-th dimension are not increasing: "
+                 << mMinBoundaries[i] << " " << mMaxBoundaries[i] << "\nStop\n";
     }
     mBoundaryMappingOffset[i] = bmin[i] + mBoundaryMappingScale[i] / 2.0;
     mBoundaryMappingScale[i] = 2. / mBoundaryMappingScale[i];
@@ -379,7 +379,7 @@ void Chebyshev3D::setuserFunction(const char* name)
   tmpst += "+"; // prepare filename to compile
 
   if (gROOT->LoadMacro(tmpst.Data())) {
-    Error("SetUsrFunction", "Failed to load user function from %s\nStop\n", name);
+    LOG(ERROR) << "SetUsrFunction: Failed to load user function from " << name << " \nStop\n";
     exit(1);
   }
 
@@ -475,8 +475,7 @@ void Chebyshev3D::defineGrid(const Int_t* npoints)
   for (int id = 3; id--;) {
     mNumberOfPoints[id] = npoints[id];
     if (mNumberOfPoints[id] < kMinPoints) {
-      Error("DefineGrid", "at %d-th dimension %d point is requested, at least %d is needed\nStop\n", id,
-            mNumberOfPoints[id], kMinPoints);
+      LOG(ERROR) << "DefineGrid: at " << id << "-th dimension " << mNumberOfPoints[id] << " point is requested, at least " << kMinPoints << " is needed\nStop\n";
       exit(1);
     }
     ntot += mNumberOfPoints[id];
@@ -784,20 +783,20 @@ void Chebyshev3D::loadData(FILE *stream)
 {
   // load coefficients data from stream
   if (!stream) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "No stream provided.\nStop");
+    LOG(FATAL) << "No stream provided.\nStop";
   }
   TString buffs;
   Clear();
   Chebyshev3DCalc::readLine(buffs, stream);
   if (!buffs.BeginsWith("START")) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Expected: \"START <fit_name>\", found \"%s\"\nStop\n", buffs.Data());
+    LOG(FATAL) << R"(Expected: "START <fit_name>", found ")" << buffs.Data() << "\"\nStop\n";
   }
   SetName(buffs.Data() + buffs.First(' ') + 1);
 
   Chebyshev3DCalc::readLine(buffs, stream); // N output dimensions
   mOutputArrayDimension = buffs.Atoi();
   if (mOutputArrayDimension < 1) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Expected: '<number_of_output_dimensions>', found \"%s\"\nStop\n", buffs.Data());
+    LOG(FATAL) << R"(Expected: '<number_of_output_dimensions>', found ")" << buffs.Data() << "\"\nStop\n";
   }
 
   setDimOut(mOutputArrayDimension);
@@ -805,7 +804,7 @@ void Chebyshev3D::loadData(FILE *stream)
   Chebyshev3DCalc::readLine(buffs, stream); // Interpolation abs. precision
   mPrecision = buffs.Atof();
   if (mPrecision <= 0) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Expected: '<abs.precision>', found \"%s\"\nStop\n", buffs.Data());
+    LOG(FATAL) << R"(Expected: '<abs.precision>', found ")" << buffs.Data() << "\"\nStop\n";
   }
 
   for (int i = 0; i < 3; i++) { // Lower boundaries of interpolation region
@@ -827,7 +826,7 @@ void Chebyshev3D::loadData(FILE *stream)
   // check end_of_data record
   Chebyshev3DCalc::readLine(buffs, stream);
   if (!buffs.BeginsWith("END") || !buffs.Contains(GetName())) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Expected \"END %s\", found \"%s\".\nStop\n", GetName(), buffs.Data());
+    LOG(FATAL) << R"(Expected "END )" << GetName() << R"(", found ")" << buffs.Data() << "\".\nStop\n";
   }
 }
 

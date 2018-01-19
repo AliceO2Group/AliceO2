@@ -11,7 +11,7 @@
 #define BOOST_TEST_MODULE Test TOFIndex
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
-#include "FairLogger.h" // for FairLogger, MESSAGE_ORIGIN
+#include "FairLogger.h" // for FairLogger
 #include "TOFBase/Geo.h"
 #include <TRandom.h>
 #include <TStopwatch.h>
