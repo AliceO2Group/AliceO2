@@ -203,7 +203,7 @@ Bool_t GeometryManager::getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& 
 }
 
 //______________________________________________________________________
-static bool applyAlignment(TObjArray& algParArray, bool ovlpcheck, double ovlToler)
+bool GeometryManager::applyAlignment(TObjArray& algParArray, bool ovlpcheck, double ovlToler)
 {
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
 

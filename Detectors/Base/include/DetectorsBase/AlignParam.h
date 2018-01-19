@@ -107,6 +107,8 @@ class AlignParam : public TNamed
   int Compare(const TObject* obj) const override;
   int getLevel() const;
 
+  void Print(const Option_t* opt="") const override;
+  
  protected:
   bool matrixToAngles(const double* rot, double& psi, double& theta, double& phi);
   void setMatrixRotation(double psi, double theta, double phi, TGeoHMatrix& dest) const;
@@ -122,8 +124,6 @@ class AlignParam : public TNamed
   double mPsi = 0.;   ///< "pitch" : Euler angle of rotation around final X axis (radians)
   double mTheta = 0.; ///< "roll"  : Euler angle of rotation around Y axis after 1st rotation (radians)
   double mPhi = 0.;   ///< "yaw"   : Euler angle of rotation around Z axis (radians)
-
-  double mRotationDeg[3] = { 0. }; ///< Euler Roll-pitch-yaw angles (degrees!) of global delta
 
   ClassDefOverride(AlignParam, 1);
 };
