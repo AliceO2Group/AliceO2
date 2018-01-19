@@ -800,9 +800,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY());
 
 	float err2Y, err2Z;
-	GetErrors( rowIndex, *((MEM_LG2(AliHLTTPCCATrackParam)*) &tParam ), err2Y, err2Z );
-	err2Y*=err2Y;
-	err2Z*=err2Z;
+	GetErrors2( rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), err2Y, err2Z );
 	if (tParam.GetCov(0) < err2Y) tParam.SetCov(0, err2Y);
 	if (tParam.GetCov(2) < err2Z) tParam.SetCov(2, err2Z);
 
