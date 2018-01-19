@@ -29,12 +29,7 @@ class DataSampling {
   public:
     DataSampling() = delete;
 
-    static void GenerateInfrastructure(WorkflowSpec &workflow,
-                                       const std::string &configurationSource);
-    static void GenerateInfrastructureParallel(WorkflowSpec &workflow,
-                                       const std::string &configurationSource);
-    static void GenerateInfrastructureTimePipelining(WorkflowSpec &workflow,
-                                       const std::string &configurationSource);
+    static void GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource);
 
   private:
     struct BernoulliGenerator {
@@ -57,12 +52,28 @@ class DataSampling {
     };
     using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
 
+    struct InfrastructureConfig {
+
+        bool enableTimePipeliningDispatchers;
+        bool enableParallelDispatchers;
+        bool enableProxy;
+
+        InfrastructureConfig() :
+          enableTimePipeliningDispatchers(false),
+          enableParallelDispatchers(false),
+          enableProxy(false)
+        {};
+    };
+
+    static void GenerateInfrastructureSimple(WorkflowSpec &workflow, const QcTaskConfigurations &tasks);
+    static void GenerateInfrastructureParallel(WorkflowSpec &workflow, const QcTaskConfigurations &tasks);
+    static void GenerateInfrastructureTimePipelining(WorkflowSpec &workflow, const QcTaskConfigurations &tasks);
+
     static AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
     static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
-
     static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);
-    static std::vector<QcTaskConfiguration> readQcTasksConfiguration(const std::string &configurationSource);
-
+    static QcTaskConfigurations readQcTasksConfiguration(const std::string &configurationSource);
+    static InfrastructureConfig readInfrastructureConfiguration(const std::string &configurationSource);
 };
 
 

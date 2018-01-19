@@ -46,8 +46,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       "dataProducer",
       Inputs{},
       {
-        OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
-//        OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
+        OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm
@@ -64,12 +63,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe},
-//        {"dataITS", "ITS", "CLUSTERS", InputSpec::Timeframe}
+        {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe}
       },
       Outputs{
-        {"TPC", "CLUSTERS_P", OutputSpec::Timeframe},
-//        {"ITS", "CLUSTERS_P", OutputSpec::Timeframe}
+        {"TPC", "CLUSTERS_P", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
         //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
@@ -79,9 +76,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     parallelSize,
     [](DataProcessorSpec &spec, size_t index) {
       spec.inputs[0].subSpec = index;
-//      spec.inputs[1].subSpec = index;
       spec.outputs[0].subSpec = index;
-//      spec.outputs[1].subSpec = index;
     }
   );
 
@@ -93,16 +88,6 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       input.subSpec = index;
     }
   );
-
-//  auto itsInputsSink = mergeInputs(
-//    {"dataITS-proc", "ITS", "CLUSTERS_P", InputSpec::Timeframe},
-//    parallelSize,
-//    [](InputSpec &input, size_t index) {
-//      input.subSpec = index;
-//    }
-//  );
-//
-//  inputsSink.insert(std::end(inputsSink), std::begin(itsInputsSink), std::end(itsInputsSink));
 
   DataProcessorSpec sink{
     "sink",
@@ -153,7 +138,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   //todo: get path as argument?
   std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
 
-  DataSampling::GenerateInfrastructureParallel(specs, configurationSource);
+  DataSampling::GenerateInfrastructure(specs, configurationSource);
 }
 
 
@@ -174,17 +159,6 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
     cluster.q = rand() % 1000;
     i++;
   }
-
-//  auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", index}, collectionChunkSize);
-//  i = 0;
-//  for (auto &cluster : itsClusters) {
-//    assert(i < collectionChunkSize);
-//    cluster.x = index;
-//    cluster.y = i;
-//    cluster.z = i;
-//    cluster.q = rand() % 10;
-//    i++;
-//  }
 }
 
 
@@ -193,10 +167,7 @@ void someProcessingStageAlgorithm (ProcessingContext &ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC").payload);
-//  const FakeCluster *inputDataIts = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataITS").payload);
-
   auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index}, collectionChunkSize);
-//  auto processedItsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS_P", index}, collectionChunkSize);
 
   int i = 0;
   for(auto& cluster : processedTpcClusters){
@@ -207,21 +178,9 @@ void someProcessingStageAlgorithm (ProcessingContext &ctx)
     cluster.q = inputDataTpc[i].q;
     i++;
   }
-
-//  i = 0;
-//  for(auto& cluster : processedItsClusters){
-//    assert( i < collectionChunkSize);
-//    cluster.x = -inputDataIts[i].x;
-//    cluster.y = 2*inputDataIts[i].y;
-//    cluster.z = inputDataIts[i].z * inputDataIts[i].q;
-//    cluster.q = inputDataIts[i].q;
-//    i++;
-//  }
-
 };
 
 void someSinkAlgorithm( ProcessingContext &ctx)
 {
   const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC-proc").payload);
-//  const FakeCluster *inputDataIts = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataITS-proc").payload);
 }
