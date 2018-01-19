@@ -68,6 +68,16 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   view = copy.getLabels(2);
   BOOST_CHECK(view.size() == 1);
   BOOST_CHECK(view[0] == 10);
+
+  // add multiple labels
+  std::vector<TruthElement> newlabels = { 101, 102, 103 };
+  container.addElements(2, newlabels);
+  view = container.getLabels(2);
+  BOOST_CHECK(view.size() == 4);
+  BOOST_CHECK(view[0] == 10);
+  BOOST_CHECK(view[1] == 101);
+  BOOST_CHECK(view[2] == 102);
+  BOOST_CHECK(view[3] == 103);
 }
 
 BOOST_AUTO_TEST_CASE(MCTruth_RandomAccess)
