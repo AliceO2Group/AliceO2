@@ -23,7 +23,6 @@ GeometryParams::GeometryParams(const std::string_view name)
     // and it is more clear to set them in the text
     mNModules(4),
     mAngle(0.),
-    mIPtoUpperCPVsurface(0.),
     mCrystalShift(0.),
     mCryCellShift(0.),
     mAirGapLed(0.),
@@ -68,6 +67,8 @@ GeometryParams::GeometryParams(const std::string_view name)
     mIPtoOuterCoverDistance(0.f),
     mIPtoCrystalSurface(0.f),
     mSupportPlateThickness(0.f),
+    mzAirTightBoxToTopModuleDist(0.f),
+    mATBoxWall(0.f),
     mNCellsXInStrip(0),
     mNCellsZInStrip(0),
     mNStripX(0),
@@ -75,16 +76,6 @@ GeometryParams::GeometryParams(const std::string_view name)
     mNTSupports(0),
     mNPhi(0),
     mNz(0),
-    mNumberOfCPVLayers(0),
-    mNumberOfCPVPadsPhi(0),
-    mNumberOfCPVPadsZ(0),
-    mCPVPadSizePhi(0.),
-    mCPVPadSizeZ(0.),
-    mNumberOfCPVChipsPhi(0),
-    mNumberOfCPVChipsZ(0),
-    mCPVGasThickness(0.),
-    mCPVTextoliteThickness(0.),
-    mCPVCuNiFoilThickness(0.),
     mDistanceBetwRails(0.),
     mRailsDistanceFromIP(0.),
     mCradleWallThickness(0.)
@@ -201,9 +192,13 @@ GeometryParams::GeometryParams(const std::string_view name)
   mAlFrontCoverX = 6.0; // Width of Al strip around fiberglass window: across
   mAlFrontCoverZ = 6.0; // and along the beam
 
+  mzAirTightBoxToTopModuleDist = 1.; // Distance between PHOS upper surface and inner part of Air Tight Box
+
+  mATBoxWall = 0.1; // width of the wall of air tight box
+
   // Calculate distance from IP to upper cover
   mIPtoOuterCoverDistance = mIPtoCrystalSurface - mAirGapLed - mInnerThermoWidthY - mAirGapWidthY - mCoolerWidthY -
-                            mOuterThermoWidthY - mAlCoverThickness;
+                            mOuterThermoWidthY - mAlCoverThickness - mzAirTightBoxToTopModuleDist - mATBoxWall;
 
   Float_t tanA = mOuterThermoWidthXUp / (2. * mIPtoOuterCoverDistance);
   // tan(a) where A = angle between IP to center and IP to side across beam
@@ -365,32 +360,15 @@ GeometryParams::GeometryParams(const std::string_view name)
   mNPhi = mNStripX * mNCellsXInStrip; // number of crystals across the beam
   mNz = mNStripZ * mNCellsZInStrip;   // number of crystals along the beam
 
-  // CPV Geometry
-  mCPVFrameSize[0] = 2.5;
-  mCPVFrameSize[1] = 5.1;
-  mCPVFrameSize[2] = 2.5;
-  mGassiplexChipSize[0] = 4.2;
-  mGassiplexChipSize[1] = 0.1;
-  mGassiplexChipSize[2] = 6.0;
-  mFTPosition[0] = 0.7;
-  mFTPosition[1] = 2.2;
-  mFTPosition[2] = 3.6;
-  mFTPosition[3] = 5.1;
+  // Half-sizes of PHOS air tight box taked from final drowings
+  mPHOSParams[0] = 78.924;
+  mPHOSParams[1] = 93.704;
+  mPHOSParams[2] = 80.01;
+  mPHOSParams[3] = 41.91;
 
-  mCPVActiveSize[0] = mNumberOfCPVPadsPhi * mCPVPadSizePhi;
-  mCPVActiveSize[1] = mNumberOfCPVPadsZ * mCPVPadSizeZ;
-  mCPVBoxSize[0] = mCPVActiveSize[0] + 2 * mCPVFrameSize[0];
-  mCPVBoxSize[1] = mCPVFrameSize[1] * mNumberOfCPVLayers + 0.1;
-  mCPVBoxSize[2] = mCPVActiveSize[1] + 2 * mCPVFrameSize[2];
-
-  mPHOSParams[0] =
-    TMath::Max((Double_t)mCPVBoxSize[0] / 2.,
-               (Double_t)(mEMCParams[0] - (mEMCParams[1] - mEMCParams[0]) * mCPVBoxSize[1] / 2 / mEMCParams[3]));
-  mPHOSParams[1] = mEMCParams[1];
-  mPHOSParams[2] = TMath::Max((Double_t)mEMCParams[2], (Double_t)mCPVBoxSize[2] / 2.);
-  mPHOSParams[3] = mEMCParams[3] + mCPVBoxSize[1] / 2.;
-
-  mIPtoUpperCPVsurface = mIPtoOuterCoverDistance - mCPVBoxSize[1];
+  for (Int_t i = 0; i < 4; i++) {
+    mPHOSATBParams[i] = mPHOSParams[i] - mATBoxWall;
+  }
 
   // calculate offset to crystal surface
   mCrystalShift = -mInnerThermoHalfSize[1] + mStripHalfSize[1] + mSupportPlateHalfSize[1] + mCrystalHalfSize[1] -
@@ -404,7 +382,7 @@ GeometryParams::GeometryParams(const std::string_view name)
     mPHOSAngle[i - 1] = -angle;
   }
 
-  Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3] - mCPVBoxSize[1];
+  Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3];
   for (Int_t iModule = 0; iModule < mNModules; iModule++) {
     mModuleCenter[iModule][0] = r * TMath::Sin(mPHOSAngle[iModule] / kRADDEG);
     mModuleCenter[iModule][1] = -r * TMath::Cos(mPHOSAngle[iModule] / kRADDEG);
@@ -417,9 +395,6 @@ GeometryParams::GeometryParams(const std::string_view name)
     mModuleAngle[iModule][2][0] = 90;
     mModuleAngle[iModule][2][1] = 270 + mPHOSAngle[iModule];
   }
-
-  printf("mNModules=%d, modCenter=(%f,%f,%f) \n", mNModules, mModuleCenter[2][0], mModuleCenter[2][1],
-         mModuleCenter[2][2]);
 
   // Support geometry
   mRailLength = 1200.0;

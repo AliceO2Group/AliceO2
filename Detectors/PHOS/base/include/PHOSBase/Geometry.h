@@ -87,7 +87,7 @@ class Geometry
  private:
   static Geometry* sGeom; ///< Pointer to the unique instance of the singleton
 
-  std::string mGeoName; ///< Geometry name string
+  std::string mGeoName;   ///< Geometry name string
 };
 } // namespace phos
 } // namespace o2

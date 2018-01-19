@@ -38,8 +38,8 @@ void drawPHOSgeometry()
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
-  run->AddModule(frame);
+ // o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
+ // run->AddModule(frame);
 
   o2::phos::Detector* phos = new o2::phos::Detector(kTRUE);
   run->AddModule(phos);
@@ -86,11 +86,11 @@ void drawPHOSgeometry()
 
   gGeoManager->GetListOfVolumes()->ls();
   gGeoManager->CloseGeometry();
-//gGeoManager->SetVisLevel(0); // (default) TGeo сам решает, сколько уровней геометрии рисовать
-gGeoManager->SetVisLevel(5); // ты сам решает, что нужно нарисовать геометрию с глубиной только до 5 уровней
-//gGeoManager->SetVisLevel(1); // (default) - не рисуются материнские объемы детекторов - только внутренности
+gGeoManager->SetVisLevel(0); // (default) TGeo calculate number of levels to draw
+//gGeoManager->SetVisLevel(5); // User defines depth of levels to draw
+//gGeoManager->SetVisLevel(1); // (default) do not draw contained, inner parts only
 
-  gGeoManager->GetTopVolume()->Draw("ogl");
+ gGeoManager->GetTopVolume()->Draw("ogl");
 
 
  // gGeoManager->Export("PHOSgeometry.root");

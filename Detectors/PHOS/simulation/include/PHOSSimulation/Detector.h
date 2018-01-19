@@ -43,21 +43,17 @@ class Detector : public o2::Base::DetImpl<Detector>
   // PHOS materials/media
   enum {
     ID_PWO = 1,
-    ID_CPVSC = 2,
-    ID_AL = 3,
-    ID_TYVEK = 4,
-    ID_POLYFOAM = 5,
-    ID_TITAN = 6,
-    ID_APD = 7,
-    ID_THERMOINS = 8,
-    ID_TEXTOLIT = 9,
-    ID_CUPPER = 10,
-    ID_PRINTCIRC = 11,
-    ID_CO2 = 12,
-    ID_FE = 13,
-    ID_FIBERGLASS = 14,
-    ID_CABLES = 15,
-    ID_AIR = 16
+    ID_AL = 2,
+    ID_TYVEK = 3,
+    ID_POLYFOAM = 4,
+    ID_APD = 5,
+    ID_THERMOINS = 6,
+    ID_TEXTOLIT = 7,
+    ID_PRINTCIRC = 8,
+    ID_FE = 9,
+    ID_FIBERGLASS = 10,
+    ID_CABLES = 11,
+    ID_AIR = 12
   };
 
   ///
@@ -166,10 +162,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   */
  private:
   // Geometry parameters
-  Bool_t mCreateCPV;       // Should we create module with CPV
   Bool_t mCreateHalfMod;   // Should we create  1/2 filled module
   Bool_t mActiveModule[6]; // list of modules to create
-  Bool_t mActiveCPV[6];    // list of modules with CPV
 
   // Simulation
   Geometry* mGeom;                  //!

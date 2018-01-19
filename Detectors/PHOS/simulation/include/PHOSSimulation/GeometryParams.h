@@ -48,37 +48,13 @@ class GeometryParams : public TNamed
   Int_t GetNModules() const { return mNModules; }
   Float_t GetPHOSAngle(Int_t index) const { return mPHOSAngle[index - 1]; }
   Float_t* GetPHOSParams() { return mPHOSParams; } // Half-sizes of PHOS trapecoid
-  Float_t GetIPtoUpperCPVsurface() const { return mIPtoUpperCPVsurface; }
+  Float_t* GetPHOSATBParams() { return mPHOSATBParams; } // Half-sizes of PHOS trapecoid
   Float_t GetOuterBoxSize(Int_t index) const { return 2. * mPHOSParams[index]; }
   Float_t GetCellStep() const { return 2. * mAirCellHalfSize[0]; }
 
-  Float_t GetModuleCenter(Int_t module, Int_t axis) const { return mModuleCenter[module][axis]; }
-  Float_t GetModuleAngle(Int_t module, Int_t axis, Int_t angle) const { return mModuleAngle[module][axis][angle]; }
-
-  // Return ideal CPV geometry parameters
-  virtual Int_t GetNumberOfCPVLayers() const { return mNumberOfCPVLayers; }
-  virtual Int_t GetNumberOfCPVPadsPhi() const { return mNumberOfCPVPadsPhi; }
-  virtual Int_t GetNumberOfCPVPadsZ() const { return mNumberOfCPVPadsZ; }
-  virtual Float_t GetCPVPadSizePhi() const { return mCPVPadSizePhi; }
-  virtual Float_t GetCPVPadSizeZ() const { return mCPVPadSizeZ; }
-  virtual Float_t GetCPVBoxSize(Int_t index) const { return mCPVBoxSize[index]; }
-  virtual Float_t GetCPVActiveSize(Int_t index) const { return mCPVActiveSize[index]; }
-  virtual Int_t GetNumberOfCPVChipsPhi() const { return mNumberOfCPVChipsPhi; }
-  virtual Int_t GetNumberOfCPVChipsZ() const { return mNumberOfCPVChipsZ; }
-  virtual Float_t GetGassiplexChipSize(Int_t index) const { return mGassiplexChipSize[index]; }
-  virtual Float_t GetCPVGasThickness() const { return mCPVGasThickness; }
-  virtual Float_t GetCPVTextoliteThickness() const { return mCPVTextoliteThickness; }
-  virtual Float_t GetCPVCuNiFoilThickness() const { return mCPVCuNiFoilThickness; }
-  virtual Float_t GetFTPosition(Int_t index) const { return mFTPosition[index]; }
-  virtual Float_t GetCPVFrameSize(Int_t index) const { return mCPVFrameSize[index]; }
-
-  // Float_t GetPadSizePhi()                  const { return mGeometryCPV->GetCPVPadSizePhi();           }
-  // Float_t GetPadSizeZ()                    const { return mGeometryCPV->GetCPVPadSizeZ();             }
-  Float_t GetIPtoCPVDistance() const { return GetIPtoOuterCoverDistance() - GetCPVBoxSize(1) - 1.0; }
-
-  // Return real CPV geometry parameters
-  // void GetModuleCenter(TVector3& center, const char *det, Int_t module) const;
-
+  void GetModuleCenter(Int_t module, Float_t * pos) const { for(int i = 0; i < 3; i++) pos[i] = mModuleCenter[module][i]; }
+  void GetModuleAngle(Int_t module, Float_t angle[3][2]) const {for( int i = 0; i < 3; i++)
+                                                              for (int ian = 0; ian < 2; ian++)angle[i][ian]  = mModuleAngle[module][i][ian]; }
   // Return PHOS support geometry parameters
   Float_t GetRailOuterSize(Int_t index) const { return mRailOuterSize[index]; }
   Float_t GetRailPart1(Int_t index) const { return mRailPart1[index]; }
@@ -134,6 +110,9 @@ class GeometryParams : public TNamed
   const Float_t* GetFEEAirHalfSize() const { return mFEEAirHalfSize; }
   const Float_t* GetFEEAirPosition() const { return mFEEAirPosition; }
   const Float_t* GetEMCParams() const { return mEMCParams; }
+  const Float_t  GetDistATBtoModule() const { return mzAirTightBoxToTopModuleDist; }
+  const Float_t  GetATBWallWidth() const { return mATBoxWall ;} 
+
 
   Int_t GetNCellsXInStrip() const { return mNCellsXInStrip; }
   Int_t GetNCellsZInStrip() const { return mNCellsZInStrip; }
@@ -152,31 +131,31 @@ class GeometryParams : public TNamed
 
   // General PHOS modules parameters
   Int_t mNModules;               // Number of PHOS modules
-  Float_t mAngle;                // Position angles between modules
-  Float_t mPHOSAngle[4];         // Position angles of modules
-  Float_t mPHOSParams[4];        // Half-sizes of PHOS trapecoid
-  Float_t mIPtoUpperCPVsurface;  // Minimal distance from IP to PHOS
-  Float_t mCrystalShift;         // Distance from crystal center to front surface
-  Float_t mCryCellShift;         // Distance from crystal center to front surface
-  Float_t mModuleCenter[5][3];   // xyz-position of the module center
-  Float_t mModuleAngle[5][3][2]; // polar and azymuth angles for 3 axes of modules
+  Float_t mAngle;                ///< Position angles between modules
+  Float_t mPHOSAngle[4];         ///< Position angles of modules
+  Float_t mPHOSParams[4];        ///< Half-sizes of PHOS trapecoid
+  Float_t mPHOSATBParams[4];     ///< Half-sizes of (air-filled) inner part of PHOS air tight box
+  Float_t mCrystalShift;         ///< Distance from crystal center to front surface
+  Float_t mCryCellShift;         ///< Distance from crystal center to front surface
+  Float_t mModuleCenter[5][3];   ///< xyz-position of the module center
+  Float_t mModuleAngle[5][3][2]; ///< polar and azymuth angles for 3 axes of modules
 
   // EMC geometry parameters
 
-  Float_t mStripHalfSize[3];          // Strip unit size/2
-  Float_t mAirCellHalfSize[3];        // geometry parameter
-  Float_t mWrappedHalfSize[3];        // geometry parameter
-  Float_t mSupportPlateHalfSize[3];   // geometry parameter
-  Float_t mSupportPlateInHalfSize[3]; // geometry parameter
-  Float_t mCrystalHalfSize[3];        // crystal size/2
-  Float_t mAirGapLed;                 // geometry parameter
-  Float_t mStripWallWidthOut;         // Side to another strip
-  Float_t mStripWallWidthIn;          // geometry parameter
-  Float_t mTyvecThickness;            // geometry parameter
-  Float_t mTSupport1HalfSize[3];      // geometry parameter
-  Float_t mTSupport2HalfSize[3];      // geometry parameter
-  Float_t mPreampHalfSize[3];         // geometry parameter
-  Float_t mPinDiodeHalfSize[3];       // Size of the PIN Diode
+  Float_t mStripHalfSize[3];          ///< Strip unit size/2
+  Float_t mAirCellHalfSize[3];        ///< geometry parameter
+  Float_t mWrappedHalfSize[3];        ///< geometry parameter
+  Float_t mSupportPlateHalfSize[3];   ///< geometry parameter
+  Float_t mSupportPlateInHalfSize[3]; ///< geometry parameter
+  Float_t mCrystalHalfSize[3];        ///< crystal size/2
+  Float_t mAirGapLed;                 ///< geometry parameter
+  Float_t mStripWallWidthOut;         ///< Side to another strip
+  Float_t mStripWallWidthIn;          ///< geometry parameter
+  Float_t mTyvecThickness;            ///< geometry parameter
+  Float_t mTSupport1HalfSize[3];      ///< geometry parameter
+  Float_t mTSupport2HalfSize[3];      ///< geometry parameter
+  Float_t mPreampHalfSize[3];         ///< geometry parameter
+  Float_t mPinDiodeHalfSize[3];       ///< Size of the PIN Diode
 
   Float_t mOuterThermoParams[4];   // geometry parameter
   Float_t mCoolerHalfSize[3];      // geometry parameter
@@ -239,50 +218,35 @@ class GeometryParams : public TNamed
   Float_t mFEEAirHalfSize[3];      // geometry parameter
   Float_t mFEEAirPosition[3];      // geometry parameter
   Float_t mEMCParams[4];           // geometry parameter
-  Float_t mIPtoOuterCoverDistance; // Distances from interaction point to outer cover
-  Float_t mIPtoCrystalSurface;     // Distances from interaction point to Xtal surface
+  Float_t mIPtoOuterCoverDistance; ///< Distances from interaction point to outer cover
+  Float_t mIPtoCrystalSurface;     ///< Distances from interaction point to Xtal surface
 
-  Float_t mSupportPlateThickness; // Thickness of the Aluminium support plate for Strip
+  Float_t mSupportPlateThickness;  ///< Thickness of the Aluminium support plate for Strip
+  Float_t mzAirTightBoxToTopModuleDist; ///<Distance between PHOS upper surface and inner part of Air Tight Box
+  Float_t mATBoxWall ;             ///<width of the wall of air tight box
 
-  Int_t mNCellsXInStrip; // Number of cells in a strip unit in X
-  Int_t mNCellsZInStrip; // Number of cells in a strip unit in Z
-  Int_t mNStripX;        // Number of strip units in X
-  Int_t mNStripZ;        // Number of strip units in Z
-  Int_t mNTSupports;     // geometry parameter
-  Int_t mNPhi;           // Number of crystal units in X (phi) direction
-  Int_t mNz;             // Number of crystal units in Z direction
 
-  // CPV geometry parameters
-
-  Int_t mNumberOfCPVLayers;       // Number of CPV identical layers
-  Int_t mNumberOfCPVPadsPhi;      // Number of CPV pads in phi
-  Int_t mNumberOfCPVPadsZ;        // Number of CPV pads in z
-  Float_t mCPVPadSizePhi;         // CPV pad size in phi
-  Float_t mCPVPadSizeZ;           // CPV pad size in z
-  Float_t mCPVBoxSize[3];         // Outer size of CPV box
-  Float_t mCPVActiveSize[2];      // Active size of CPV box (x,z)
-  Int_t mNumberOfCPVChipsPhi;     // Number of CPV Gassiplex chips in phi
-  Int_t mNumberOfCPVChipsZ;       // Number of CPV Gassiplex chips in z
-  Float_t mGassiplexChipSize[3];  // Size of a Gassiplex chip (0 - in z, 1 - in phi, 2 - thickness (in ALICE radius))
-  Float_t mCPVGasThickness;       // Thickness of CPV gas volume
-  Float_t mCPVTextoliteThickness; // Thickness of CPV textolite PCB (without foil)
-  Float_t mCPVCuNiFoilThickness;  // Thickness of CPV Copper-Nickel foil of PCB
-  Float_t mFTPosition[4];         // Positions of the 4 PCB vs the CPV box center
-  Float_t mCPVFrameSize[3];       // CPV frame size (0 - in phi, 1 - in z, 2 - thickness (along ALICE radius))
+  Int_t mNCellsXInStrip; ///< Number of cells in a strip unit in X
+  Int_t mNCellsZInStrip; ///< Number of cells in a strip unit in Z
+  Int_t mNStripX;        ///< Number of strip units in X
+  Int_t mNStripZ;        ///< Number of strip units in Z
+  Int_t mNTSupports;     ///< geometry parameter
+  Int_t mNPhi;           ///< Number of crystal units in X (phi) direction
+  Int_t mNz;             ///< Number of crystal units in Z direction
 
   // Support geometry parameters
-  Float_t mRailOuterSize[3];    // Outer size of a rail                 +-------+
-  Float_t mRailPart1[3];        // Upper & bottom parts of the rail     |--+ +--|
-  Float_t mRailPart2[3];        // Vertical middle parts of the rail       | |
-  Float_t mRailPart3[3];        // Vertical upper parts of the rail        | |
-  Float_t mRailPos[3];          // Rail position vs. the ALICE center   |--+ +--|
-  Float_t mRailLength;          // Length of the rail under the support +-------+
-  Float_t mDistanceBetwRails;   // Distance between rails
-  Float_t mRailsDistanceFromIP; // Distance of rails from IP
-  Float_t mRailRoadSize[3];     // Outer size of the dummy box with rails
-  Float_t mCradleWallThickness; // PHOS cradle wall thickness
-  Float_t mCradleWall[5];       // Size of the wall of the PHOS cradle (shape TUBS)
-  Float_t mCradleWheel[3];      // "Wheels" by which the cradle rolls over the rails
+  Float_t mRailOuterSize[3];    ///< Outer size of a rail                 +-------+
+  Float_t mRailPart1[3];        ///< Upper & bottom parts of the rail     |--+ +--|
+  Float_t mRailPart2[3];        ///< Vertical middle parts of the rail       | |
+  Float_t mRailPart3[3];        ///< Vertical upper parts of the rail        | |
+  Float_t mRailPos[3];          ///< Rail position vs. the ALICE center   |--+ +--|
+  Float_t mRailLength;          ///< Length of the rail under the support +-------+
+  Float_t mDistanceBetwRails;   ///< Distance between rails
+  Float_t mRailsDistanceFromIP; ///< Distance of rails from IP
+  Float_t mRailRoadSize[3];     ///< Outer size of the dummy box with rails
+  Float_t mCradleWallThickness; ///< PHOS cradle wall thickness
+  Float_t mCradleWall[5];       ///< Size of the wall of the PHOS cradle (shape TUBS)
+  Float_t mCradleWheel[3];      ///< "Wheels" by which the cradle rolls over the rails
 
   ClassDefOverride(GeometryParams, 1)
 };
