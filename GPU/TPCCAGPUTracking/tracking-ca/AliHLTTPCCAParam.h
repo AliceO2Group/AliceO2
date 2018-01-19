@@ -129,8 +129,8 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
 
     GPUd() float GetClusterRMS( int yz, int type, float z, float angle2 ) const;
 
-    GPUd() float GetClusterError( int yz, int type, float z, float angle2 ) const;
-    GPUd() void GetClusterErrors( int row, float z, float sinPhi, float cosPhi, float DzDs, float &ErrY, float &ErrZ ) const;
+    GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
+    GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const;
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
     void WriteSettings( std::ostream &out ) const;
@@ -190,7 +190,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
 
     float fRowX[200];// X-coordinate of rows    
     float fParamRMS0[2][3][4]; // cluster shape parameterization coeficients 
-    float fParamS0Par[2][3][7]; // cluster error parameterization coeficients
+    float fParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };
 
 

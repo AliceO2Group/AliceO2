@@ -305,11 +305,10 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
     delete[] rowX;
     param.SetHighQPtForward(fHighQPtForward);
-	param.SetNWays(fNWays);
+    param.SetNWays(fNWays);
     param.SetNWaysOuter(fNWaysOuter);
+    param.LoadClusterErrors();
   }
-
-  param.LoadClusterErrors( kTRUE );
 
   fGlobalMerger->SetSliceParam( param );
 

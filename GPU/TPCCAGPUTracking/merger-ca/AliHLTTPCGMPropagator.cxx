@@ -626,10 +626,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
 
 GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow)
 {
-  float errY=0, errZ=0;
-  param.GetClusterErrors( iRow,  fContinuousTracking ? 125.:posZ, fT0.GetSinPhi(),fT0.GetCosPhi(),fT0.DzDs(), errY, errZ );
-  err2Y = errY*errY;
-  err2Z = errZ*errZ;
+  param.GetClusterErrors2( iRow, fContinuousTracking ? 125. : posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
 }
 
 GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, bool rejectChi2 )
