@@ -92,10 +92,7 @@ void DigitizerTask::Exec(Option_t* option)
     // copy from transientTruthContainer to mMCTruthAray
     // a brute force solution for the moment; should be handled by a dedicated API
     for (int index = 0; index < transientTruthContainer.getIndexedSize(); ++index) {
-      auto labels = transientTruthContainer.getLabels(index);
-      for (auto& l : labels) {
-        mMCTruthArray->addElement(index, l);
-      }
+      mMCTruthArray->addElements(index, transientTruthContainer.getLabels(index));
     }
   }
 

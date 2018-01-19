@@ -19,6 +19,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <gsl/gsl> // for guideline support library; array_view
+#include <type_traits>
 
 namespace o2
 {
@@ -113,6 +114,28 @@ class MCTruthContainer
     }
     auto& header = mHeaderArray[dataindex];
     mTruthArray.emplace_back(element);
+  }
+
+  // convenience interface to add multiple labels at once
+  // can use elements of any assignable type or sub-type
+  template <typename CompatibleLabel>
+  void addElements(uint dataindex, gsl::span<CompatibleLabel> elements)
+  {
+    static_assert(std::is_same<TruthElement, CompatibleLabel>::value ||
+                    std::is_assignable<TruthElement, CompatibleLabel>::value ||
+                    std::is_base_of<TruthElement, CompatibleLabel>::value,
+                  "Need to add compatible labels");
+    for (auto& e : elements) {
+      addElement(dataindex, e);
+    }
+  }
+
+  template <typename CompatibleLabel>
+  void addElements(uint dataindex, const std::vector<CompatibleLabel>& v)
+  {
+    using B = typename std::remove_const<CompatibleLabel>::type;
+    auto s = gsl::span<CompatibleLabel>(const_cast<B*>(&v[0]), v.size());
+    addElements(dataindex, s);
   }
 
   // Add element at last position or for a previous index
