@@ -22,13 +22,11 @@ void TextControlService::readyToQuit(bool all) {
     return;
   }
   mOnce = true;
-  std::cout << "CONTROL_ACTION: READY_TO_QUIT";
   if (all) {
-    std::cout << "_ALL";
+    LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ALL";
   } else {
-    std::cout << "_ME";
+    LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ME";
   }
-  std::cout << std::endl;
 }
 
 bool parseControl(const std::string &s, std::smatch &match) {
