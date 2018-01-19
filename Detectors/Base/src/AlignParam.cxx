@@ -351,3 +351,11 @@ int AlignParam::getLevel() const
   int lev = pathStr.CountChar('/');
   return (pathStr[0] != '/') ? ++lev : lev;
 }
+
+//_____________________________________________________________________________
+void AlignParam::Print(const Option_t*) const
+{
+  // print parameters
+  printf("%s : %6d | X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n",
+	 getSymName(),getAlignableID(),getX(),getY(),getZ(),getPsi(),getTheta(),getPhi() );
+}
