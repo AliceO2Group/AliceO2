@@ -235,6 +235,22 @@ MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterRMS( int yz, i
   return v;
 }
 
+MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterRMS2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
+{
+  int    rowType = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
+  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );  
+  float s2 = sinPhi*sinPhi;
+  if( s2>0.95f*0.95f ) s2 = 0.95f*0.95f;
+  float sec2 = 1.f/(1.f-s2);
+  float angleY2 = s2 * sec2; // dy/dx
+  float angleZ2 = DzDs * DzDs * sec2; // dz/dx
+  
+  ErrY2 = GetClusterRMS( 0, rowType, z, angleY2 );
+  ErrZ2 = GetClusterRMS( 1, rowType, z, angleZ2 );
+  ErrY2 *= ErrY2;
+  ErrZ2 *= ErrZ2;
+}
+
 MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz, int type, float z, float angle2 ) const
 {
   //* recalculate the cluster error wih respect to the track slope
@@ -251,9 +267,7 @@ MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz
 MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
 {
   // Calibrated cluster error from OCDB for Y and Z
-
   int    rowType = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
-
   z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );  
   float s2 = sinPhi*sinPhi;
   if( s2>0.95f*0.95f ) s2 = 0.95f*0.95f;

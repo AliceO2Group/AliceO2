@@ -38,7 +38,8 @@ bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinP
   float kdx205 = 2.f+kdx*kdx*0.5f;
 
   {
-    param.GetClusterErrors2( 0, fZ, fSinPhi, fDzDs, fC0, fC2 );
+    //param.GetClusterErrors2( 0, fZ, fSinPhi, fDzDs, fC0, fC2 );
+    param.GetClusterRMS2( 0, fZ, fSinPhi, fDzDs, fC0, fC2 );
 
     fC3 = 0;
     fC5 = 1;
@@ -82,7 +83,8 @@ bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinP
       float dz = dS * fDzDs;      
       float ex1i =1.f/ex1;
       {	
-	param.GetClusterErrors2( 0, fZ, fSinPhi, fDzDs, err2Y, err2Z );
+	//param.GetClusterErrors2( 0, fZ, fSinPhi, fDzDs, err2Y, err2Z );
+	param.GetClusterRMS2( 0, fZ, fSinPhi, fDzDs, err2Y, err2Z );
       }
 
       float hh = kdx205 * dxcci*ex1i; 
