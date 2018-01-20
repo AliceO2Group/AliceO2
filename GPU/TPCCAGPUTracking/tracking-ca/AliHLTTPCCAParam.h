@@ -128,6 +128,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() void SetTrackReferenceX( float v) { fTrackReferenceX = v; }
 
     GPUd() float GetClusterRMS( int yz, int type, float z, float angle2 ) const;
+    GPUd() void GetClusterRMS2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const;
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const;

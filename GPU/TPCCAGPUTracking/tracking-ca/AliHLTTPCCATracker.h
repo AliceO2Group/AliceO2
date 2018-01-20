@@ -193,11 +193,13 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   
   MEM_CLASS_PRE2() GPUd() void GetErrors2( int iRow,  const MEM_LG2(AliHLTTPCCATrackParam) &t, float &ErrY2, float &ErrZ2 ) const
   {
-    fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+    //fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+    fParam.GetClusterRMS2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
   }
   GPUd() void GetErrors2( int iRow, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
   {
-    fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+    //fParam.GetClusterErrors2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
+    fParam.GetClusterRMS2( iRow, fParam.GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
   }
   
   

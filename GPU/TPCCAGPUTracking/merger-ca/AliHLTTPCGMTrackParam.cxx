@@ -100,6 +100,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         fOuterParam.fX = fX;
         fOuterParam.fAlpha = prop.GetAlpha();
     }
+    if (iWay && fabs(fP[4]) < 1) prop.SetSpecialErrors(true);
     CADEBUG(printf("Fitting track %d way %d\n", nTracks, iWay);)
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
