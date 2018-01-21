@@ -284,7 +284,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       Alpha += dAngle;
   }
   if (Alpha > 3.1415926535897) Alpha -= 2*3.1415926535897;
-  else if (Alpha <= 3.1415926535897) Alpha += 2*3.1415926535897;
+  else if (Alpha <= -3.1415926535897) Alpha += 2*3.1415926535897;
   
   return(ok);
 }
