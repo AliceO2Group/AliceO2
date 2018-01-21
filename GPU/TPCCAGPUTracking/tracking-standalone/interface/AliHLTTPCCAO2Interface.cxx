@@ -76,9 +76,9 @@ int AliHLTTPCCAO2Interface::Initialize(const char* options)
 		}
 	}
 
+	fHLT->SetSettings(solenoidBz, false, false);
 	fHLT->SetNWays(3);
 	fHLT->SetNWaysOuter(true);
-	fHLT->SetSettings(solenoidBz, false, false);
 	fHLT->SetGPUTrackerOption("HelperThreads", 0);
 	fHLT->SetGPUTrackerOption("GlobalTracking", 1);
 	fHLT->SetSearchWindowDZDR(2.5f);
