@@ -283,7 +283,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       Rotate(dAngle);
       Alpha += dAngle;
   }
-  if (fabs(fP[0]) > fX*tan(kSectAngle / 2.f)) {printf("OUT OF SECTOR BOUNDS Y %f > Max %f - X %f\n", fP[0], fX * tan(kSectAngle / 2.f), fX);}
+  if (Alpha > 3.1415926535897) Alpha -= 2*3.1415926535897;
+  else if (Alpha <= 3.1415926535897) Alpha += 2*3.1415926535897;
   
   return(ok);
 }
