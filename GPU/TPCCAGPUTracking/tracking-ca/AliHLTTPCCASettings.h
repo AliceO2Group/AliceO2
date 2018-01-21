@@ -28,7 +28,11 @@
 #define HLTCA_MAX_SIN_PHI_LOW 0.99f						//Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
 #define HLTCA_MAX_SIN_PHI 0.999f
 
+#ifdef HLTCA_TPC_GEOMETRY_O2
+#define HLTCA_ROW_COUNT 152
+#else
 #define HLTCA_ROW_COUNT 159
+#endif
 
 #define REPRODUCIBLE_CLUSTER_SORTING
 

@@ -189,7 +189,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
     float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)
 
-    float fRowX[200];// X-coordinate of rows    
+    float fRowX[HLTCA_ROW_COUNT];// X-coordinate of rows    
     float fParamRMS0[2][3][4]; // cluster shape parameterization coeficients 
     float fParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };

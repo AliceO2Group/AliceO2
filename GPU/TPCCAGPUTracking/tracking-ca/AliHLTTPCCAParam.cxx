@@ -79,7 +79,7 @@ GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
     }
   }
 
-  for( int i=0; i<200; i++ ) fRowX[i] = 0;
+  for( int i=0; i<HLTCA_ROW_COUNT; i++ ) fRowX[i] = 0;
 
   Update();
 }
@@ -343,7 +343,7 @@ GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
   in >> fTrackChiCut;
   in >> fTrackChi2Cut;
 
-  if( fNRows<0 || fNRows > 200 ) fNRows = 0;
+  if( fNRows<0 || fNRows > HLTCA_ROW_COUNT ) fNRows = 0;
 
   for ( int iRow = 0; iRow < fNRows; iRow++ ) {
     in >> fRowX[iRow];

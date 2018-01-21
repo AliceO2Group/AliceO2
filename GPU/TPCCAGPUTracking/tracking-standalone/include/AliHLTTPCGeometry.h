@@ -1,6 +1,6 @@
 class AliHLTTPCGeometry
 {
-  static double fgX[159];
+  static double fgX[HLTCA_ROW_COUNT];
 
 public:
   static double Row2X(int row) {return(fgX[row]);}
@@ -8,7 +8,7 @@ public:
 
 #ifdef HLTCA_TPC_GEOMETRY_O2
 
-double AliHLTTPCGeometry::fgX[159] = { 85.225,
+double AliHLTTPCGeometry::fgX[HLTCA_ROW_COUNT] = { 85.225,
   85.975,
   86.725,
   87.475,
@@ -160,18 +160,11 @@ double AliHLTTPCGeometry::fgX[159] = { 85.225,
   242.65,
   244.15,
   245.65,
-  246.65, //DUMMY
-  247.65, //DUMMY
-  248.65, //DUMMY
-  249.65, //DUMMY
-  250.65, //DUMMY
-  251.65, //DUMMY
-  252.65  //DUMMY
 };
 
 #else
 
-double AliHLTTPCGeometry::fgX[159] = { 85.195,
+double AliHLTTPCGeometry::fgX[HLTCA_ROW_COUNT] = { 85.195,
 				     85.945,
 				     86.695,
 				     87.445,

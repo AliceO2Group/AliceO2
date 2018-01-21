@@ -39,7 +39,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 		}
 	} else if ( iSync == 1 ) {
 		int nHits, nFirstTrackHit;
-		AliHLTTPCCAHitId trackHits[160 - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
+		AliHLTTPCCAHitId trackHits[HLTCA_ROW_COUNT - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
 		for ( int itr = s.fItr0 + iThread; itr < s.fNTracklets; itr += s.fNThreadsTotal ) {
 
