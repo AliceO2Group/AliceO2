@@ -93,8 +93,7 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev()
     mSegmentIdDipole(nullptr),
     mMinDipoleZ(1.e6),
     mMaxDipoleZ(-1.e6),
-    mParameterizationDipole(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mParameterizationDipole(nullptr)
 {
 }
 
@@ -162,8 +161,7 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev(const MagneticWrapperChebyshe
     mSegmentIdDipole(nullptr),
     mMinDipoleZ(1.e6),
     mMaxDipoleZ(-1.e6),
-    mParameterizationDipole(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mParameterizationDipole(nullptr)
 {
   copyFrom(src);
 }

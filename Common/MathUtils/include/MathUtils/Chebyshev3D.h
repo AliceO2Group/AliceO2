@@ -22,7 +22,6 @@
 #include "Rtypes.h"           // for Float_t, Int_t, Double_t, Bool_t, etc
 #include "TString.h"          // for TString
 
-class FairLogger;  // lines 20-20
 class TH1;  // lines 15-15
 class TMethodCall;  // lines 16-16
 
@@ -250,7 +249,6 @@ class Chebyshev3D : public TNamed
     Int_t mTemporaryChebyshevGridOffs[3]; //! start of grid for each dimension
     TString mUserFunctionName; //! name of user macro containing the function of  "void (*fcn)(float*,float*)" format
     TMethodCall *mUserMacro;   //! Pointer to MethodCall for function from user macro
-    FairLogger *mLogger;       //!
 
     static const Float_t sMinimumPrecision; ///< minimum precision allowed
 

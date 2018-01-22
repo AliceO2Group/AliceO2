@@ -81,8 +81,7 @@ MagneticField::MagneticField()
     mCompensatorField2C(0),
     mCompensatorField1A(0),
     mCompensatorField2A(0),
-    mParameterNames("", ""),
-    mLogger(FairLogger::GetLogger())
+    mParameterNames("", "")
 {
   /*
    * Default constructor
@@ -111,8 +110,7 @@ MagneticField::MagneticField(const char *name, const char *title, Double_t facto
     mCompensatorField2C(0),
     mCompensatorField1A(0),
     mCompensatorField2A(0),
-    mParameterNames("", ""),
-    mLogger(FairLogger::GetLogger())
+    mParameterNames("", "")
 {
   /*
    * Constructor for human readable params
@@ -141,8 +139,7 @@ MagneticField::MagneticField(const MagFieldParam& param)
     mCompensatorField2C(0),
     mCompensatorField1A(0),
     mCompensatorField2A(0),
-    mParameterNames("", ""),
-    mLogger(FairLogger::GetLogger())
+    mParameterNames("", "")
 {
   /*
    * Constructor for FairParam derived params

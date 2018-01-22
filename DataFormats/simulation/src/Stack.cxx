@@ -49,8 +49,7 @@ Stack::Stack(Int_t size)
     mStoreMothers(kTRUE),
     mStoreSecondaries(kTRUE),
     mMinHits(1),
-    mEnergyCut(0.),
-    mLogger(FairLogger::GetLogger())
+    mEnergyCut(0.)
 {
   auto vmc = TVirtualMC::GetMC();
   if (!vmc) {
@@ -76,7 +75,6 @@ Stack::Stack(const Stack &rhs)
     mStoreSecondaries(rhs.mStoreSecondaries),
     mMinHits(rhs.mMinHits),
     mEnergyCut(rhs.mEnergyCut),
-    mLogger(FairLogger::GetLogger()),
     mIsG4Like(rhs.mIsG4Like)
 {
   LOG(FATAL) << "copy constructor called" << FairLogger::endl;
@@ -111,7 +109,6 @@ Stack &Stack::operator=(const Stack &rhs)
   mStoreSecondaries = rhs.mStoreSecondaries;
   mMinHits = rhs.mMinHits;
   mEnergyCut = rhs.mEnergyCut;
-  mLogger = nullptr;
   mIsG4Like = rhs.mIsG4Like;
 
   return *this;
@@ -242,10 +239,7 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
 
   // Test for index
   if (iPrim < 0 || iPrim >= mNumberOfPrimaryParticles) {
-    if (mLogger) {
-      LOG(FATAL) << "Stack::PopPrimaryForTracking: Stack: Primary index out of range! " << iPrim << " ";
-    }
-    LOG(FATAL) << "Stack::PopPrimaryForTracking: Index out of range";
+    LOG(FATAL) << "Stack::PopPrimaryForTracking: Stack: Primary index out of range! " << iPrim << " ";
     return nullptr;
   }
   // Return the iPrim-th TParticle from the fParticle array. This should be
@@ -310,11 +304,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     }
   }
 
-  if (mLogger) {
-    LOG(DEBUG) << "Stack::UpdateTrackIndex: Stack: Updating track indices...";
-  } else {
-    cout << "Stack: Updating track indices..." << endl;
-  }
+  LOG(DEBUG) << "Stack::UpdateTrackIndex: Stack: Updating track indices...";
   Int_t nColl = 0;
 
   // First update mother ID in MCTracks
@@ -327,11 +317,8 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     }
     auto iter = mIndexMap.find(iMotherOld);
     if (iter == mIndexMap.end()) {
-      if (mLogger) {
-        LOG(FATAL) << "Stack::UpdateTrackIndex: Stack: Track index "
-                   << iMotherOld << " not found index map! ";
-      }
-      Fatal("Stack::UpdateTrackIndex", "Track index not found in map");
+      LOG(FATAL) << "Stack::UpdateTrackIndex: Stack: Track index "
+                 << iMotherOld << " not found index map! ";
     }
     track.SetMotherTrackId(iter->second);
   }
@@ -341,11 +328,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     det->updateHitTrackIndices(mIndexMap);
   } // List of active detectors
 
-  if (mLogger) {
-    LOG(DEBUG) << "Stack::UpdateTrackIndex: ...stack and " << nColl << " collections updated.";
-  } else {
-    cout << "...stack and  " << nColl << " collections updated." << endl;
-  }
+  LOG(DEBUG) << "Stack::UpdateTrackIndex: ...stack and " << nColl << " collections updated.";
 }
 
 void Stack::Reset()
