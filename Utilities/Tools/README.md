@@ -51,3 +51,22 @@ While not 100% ok, the file `Utilities/Tools/google-c-style.el` closely matches
 our coding guidelines and can be used by emacs users as a template for their
 environment.
 
+# Code coverage
+
+Code coverage reports for the AliceO2 repository are provideda thanks to the
+courtesy of <https://codecov.io>.
+
+This includes reports for changes in pull requests and for the commits on the
+`dev` branch. PR reports will be posted automatically as part of the PR
+discussion, while commits on the dev branch can be seen from the codecov gui:
+
+https://codecov.io/gh/AliceO2Group/AliceO2
+
+Notice that the system is smart enough to provide delta reports between the
+base of a PR and its head.
+
+The code coverage is done by compiling AliceO2 with the recently added
+`-DCMAKE_BUILD_TYPE=COVERAGE` and by running the `ctest` suite afterwards. For
+this reason, if you want to increase code coverage of your code, you should
+make sure  you write a proper unit test for it (i.e. do not expect random
+macros / executables sitting in random directories to affect the reports).
