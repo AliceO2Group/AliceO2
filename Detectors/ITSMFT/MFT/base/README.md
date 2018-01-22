@@ -1,4 +1,4 @@
-# Base classes 
+# MFT base classes 
 
 Constants: static constants for the MFT
 
