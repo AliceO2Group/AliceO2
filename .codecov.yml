@@ -1,4 +1,4 @@
- codecov:
+codecov:
   branch: dev # the branch to show by default, inherited from your git repository settings
                        # ex. master, stable or release
                        # default: the default branch in git/mercurial
