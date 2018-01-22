@@ -1,3 +1,4 @@
+# Configuration file for https://codecov.io settings
 codecov:
   branch: dev # the branch to show by default, inherited from your git repository settings
                        # ex. master, stable or release
