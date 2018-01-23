@@ -25,34 +25,20 @@
 /// @since 2014-12-10
 /// @author M. Krzewicki <mkrzewic@cern.ch>
 
-#include <thread> // this_thread::sleep_for
 #include <chrono>
+#include <thread> // this_thread::sleep_for
 
-#include "O2MessageMonitor/O2MessageMonitor.h"
-#include <options/FairMQProgOptions.h>
 #include <FairMQLogger.h>
+#include <options/FairMQProgOptions.h>
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
+#include "O2MessageMonitor/O2MessageMonitor.h"
 
 using namespace std;
 using namespace o2::header;
 using namespace o2::Base;
 
-using NameHeader48 = NameHeader<48>; //header holding 16 characters
-
-//__________________________________________________________________________________________________
-O2MessageMonitor::O2MessageMonitor()
-  : mDataHeader()
-  , mPayload("I am the info payload")
-  , mName(R"(My name is "gDataDescriptionInfo")")
-  , mDelay(1000)
-  , mIterations(10)
-  , mLimitOutputCharacters(1024)
-{
-  mDataHeader = gDataOriginAny;
-  mDataHeader = gDataDescriptionInfo;
-  mDataHeader = gSerializationMethodNone;
-}
+using NameHeader48 = NameHeader<48>; // header holding 16 characters
 
 //__________________________________________________________________________________________________
 void O2MessageMonitor::InitTask()
@@ -61,62 +47,70 @@ void O2MessageMonitor::InitTask()
   mIterations = GetConfig()->GetValue<int>("n");
   mPayload = GetConfig()->GetValue<std::string>("payload");
   std::string tmp = GetConfig()->GetValue<std::string>("name");
-  if (!tmp.empty()) mName = tmp;
+  if (!tmp.empty())
+    mName = tmp;
   mLimitOutputCharacters = GetConfig()->GetValue<int>("limit");
 }
 
 //__________________________________________________________________________________________________
 void O2MessageMonitor::Run()
 {
-  //check socket type of data channel
+  // check socket type of data channel
   std::string type;
   std::vector<FairMQChannel> subChannels = fChannels["data"];
-  if (subChannels.size()>0) {
+  if (subChannels.size() > 0) {
     type = subChannels[0].GetType();
   }
 
-  while (CheckCurrentState(RUNNING) && (--mIterations)!=0) {
+  while (CheckCurrentState(RUNNING) && (--mIterations) != 0) {
     this_thread::sleep_for(chrono::milliseconds(mDelay));
 
     O2Message message;
-    NameHeader48 nameHeader;
+    NameHeader48 nameHeader{ mName };
 
-    //maybe send a request
-    nameHeader = mName;
-    AddMessage(message,{mDataHeader,nameHeader},NewSimpleMessage(mPayload));
+    // maybe send a request
+    AddMessage(message, { DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 },
+                          NameHeader48{ mName } },
+               NewSimpleMessage(mPayload));
     Send(message, "data");
     message.fParts.clear();
 
-    //message in;
+    // message in;
     Receive(message, "data");
     LOG(INFO) << "== New message=============================";
     ForEach(message, &O2MessageMonitor::HandleO2frame);
     message.fParts.clear();
 
-    //maybe a reply message
-    if (type=="rep") {
-      nameHeader = "My name is reply";
-      AddMessage(message,{mDataHeader,nameHeader},NewSimpleMessage("I am a reply"));
+    // maybe a reply message
+    if (type == "rep") {
+      AddMessage(message,
+                 { DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 },
+                   NameHeader48{ "My name is a reply" } },
+                 NewSimpleMessage("I am a reply"));
       Send(message, "data");
     }
   }
 }
 
 //__________________________________________________________________________________________________
-bool O2MessageMonitor::HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
-    const byte* dataBuffer,   size_t dataBufferSize)
+bool O2MessageMonitor::HandleO2frame(const byte* headerBuffer, size_t headerBufferSize, const byte* dataBuffer,
+                                     size_t dataBufferSize)
 {
-
   hexDump("headerBuffer", headerBuffer, headerBufferSize);
   hexDump("dataBuffer", dataBuffer, dataBufferSize, mLimitOutputCharacters);
 
   const DataHeader* dataHeader = get<DataHeader>(headerBuffer);
-  if (!dataHeader) { LOG(INFO) << "data header empty!"; return false; }
-  if ( (*dataHeader)==gDataDescriptionInfo ) {}
+  if (!dataHeader) {
+    LOG(INFO) << "data header empty!";
+    return false;
+  }
+  if ((*dataHeader) == gDataDescriptionInfo) {
+  }
 
   const NameHeader<0>* nameHeader = get<NameHeader<0>>(headerBuffer);
-  if (nameHeader) {size_t sizeNameHeader=nameHeader->size();}
+  if (nameHeader) {
+    size_t sizeNameHeader = nameHeader->size();
+  }
 
   return true;
 }
-

@@ -585,17 +585,11 @@ struct DataHeader : public BaseHeader
 
   //___the functions:
   DataHeader(); ///ctor
-  DataHeader(DataDescription desc,
-             DataOrigin origin,
-             SubSpecificationType subspec,
-             uint64_t size
-             ); /// ctor
+  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size); /// ctor
 
   DataHeader(const DataHeader&) = default;
-  DataHeader& operator=(const DataHeader&); //assignment
-  DataHeader& operator=(const DataOrigin&); //assignment
-  DataHeader& operator=(const DataDescription&); //assignment
-  DataHeader& operator=(const SerializationMethod&); //assignment
+  DataHeader& operator=(const DataHeader&) = default; //assignment
+
   bool operator==(const DataHeader&) const; //comparison
   bool operator==(const DataOrigin&) const; //comparison
   bool operator==(const DataDescription&) const; //comparison
