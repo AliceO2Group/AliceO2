@@ -204,7 +204,7 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
       if (newdigit.getTDC() < digit.getTDC()) {
         // adjust TOT
         digit.setTDC(newdigit.getTDC());
-        digit.SetTimeStamp(newdigit.GetTimeStamp());
+        digit.setTimeStamp(newdigit.getTimeStamp());
       } else {
         // adjust TOT
       }

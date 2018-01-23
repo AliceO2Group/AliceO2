@@ -16,27 +16,15 @@
 #ifndef __CINT__
 #include <boost/serialization/base_object.hpp>  // for base_object
 #endif
+#include <Rtypes.h>
+#include <SimulationDataFormat/TimeStamp.h>
 
-#include "FairTimeStamp.h"                      // for FairTimeStamp
 namespace boost { namespace serialization { class access; } }
 
 namespace o2{
 namespace TPC{
+using ClusterTimeStamp = o2::dataformats::TimeStampWithError<float, float>;
 
-class ClusterTimeStamp {
- public:
-  ClusterTimeStamp() {};
-  ClusterTimeStamp(float t, float te) : mTimeStamp(t), mTimeStampError(te) {}
-  float getTimeStamp() const {return mTimeStamp;}
-  float getTimeStampError() const {return mTimeStampError;}
-  void setTimeStamp(float t) {mTimeStamp = t;}
-  void setTimeStampError(float te) {mTimeStampError = te;}
- private:
-  float mTimeStamp = 0.f;
-  float mTimeStampError = 0.f;
-  ClassDefNV(ClusterTimeStamp, 1);
-};
-  
 /// \class Cluster
 /// \brief Cluster class for the TPC
 ///

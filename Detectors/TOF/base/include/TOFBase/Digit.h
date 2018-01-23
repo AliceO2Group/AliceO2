@@ -11,9 +11,9 @@
 #ifndef ALICEO2_TOF_DIGIT_H_
 #define ALICEO2_TOF_DIGIT_H_
 
-#include "FairTimeStamp.h"
-#include "Rtypes.h"
+#include <SimulationDataFormat/TimeStamp.h>
 #include <iosfwd>
+#include "Rtypes.h"
 
 #ifndef __CINT__
 #include <boost/serialization/base_object.hpp> // for base_object
@@ -23,12 +23,13 @@ namespace o2 {
 namespace tof {
 /// \class Digit
 /// \brief TOF digit implementation
-class Digit : public FairTimeStamp {
-public:
+class Digit : public o2::dataformats::TimeStamp<double>
+{
+ public:
   Digit() = default;
 
   Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc);
-  ~Digit() override = default;
+  ~Digit() = default;
 
   Int_t getChannel() const { return mChannel; }
   void setChannel(Int_t channel) { mChannel = channel; }
@@ -54,7 +55,7 @@ private:
   Int_t mTOT;           ///< TOT bin number
   Int_t mBC;            ///< Bunch Crossing
 
-  ClassDefOverride(Digit, 1);
+  ClassDefNV(Digit, 1);
 };
 
 std::ostream &operator<<(std::ostream &stream, const Digit &dig);

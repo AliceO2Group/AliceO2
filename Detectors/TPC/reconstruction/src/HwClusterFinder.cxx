@@ -11,10 +11,10 @@
 /// \file AliTPCUpgradeHwClusterFinder.cxx
 /// \brief HwClusterFinder for the TPC
 
-
 #include "TPCReconstruction/HwClusterFinder.h"
-#include "TPCReconstruction/ClusterContainer.h"
+#include <cmath>
 #include "TPCReconstruction/Cluster.h"
+#include "TPCReconstruction/ClusterContainer.h"
 
 #include "FairLogger.h"
 
