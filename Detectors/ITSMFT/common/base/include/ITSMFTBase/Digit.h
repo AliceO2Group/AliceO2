@@ -13,23 +13,9 @@
 #ifndef ALICEO2_ITSMFT_DIGIT_H
 #define ALICEO2_ITSMFT_DIGIT_H
 
-#ifndef __CLING__
-
-#include <boost/serialization/base_object.hpp> // for base_object
-
-#endif
-
+#include "Rtypes.h" // for Double_t, ULong_t, etc
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "FairTimeStamp.h" // for FairTimeStamp
-#include "Rtypes.h"        // for Double_t, ULong_t, etc
-
-namespace boost
-{
-namespace serialization
-{
-class access;
-}
-}
+#include "SimulationDataFormat/TimeStamp.h"
 
 namespace o2
 {
@@ -39,7 +25,9 @@ namespace ITSMFT
 /// \class Digit
 /// \brief Digit class for the ITS
 ///
-class Digit : public FairTimeStamp
+
+using DigitBase = o2::dataformats::TimeStamp<double>;
+class Digit : public DigitBase
 {
   using Label = o2::MCCompLabel;
 
@@ -58,7 +46,7 @@ class Digit : public FairTimeStamp
   Digit(UShort_t chipindex, UInt_t frame, UShort_t row, UShort_t col, Float_t charge, Double_t timestamp);
 
   /// Destructor
-  ~Digit() override;
+  ~Digit();
 
   /// Addition operator
   /// Adds the charge of 2 digits
@@ -144,18 +132,6 @@ class Digit : public FairTimeStamp
     return static_cast<UInt_t>(key>>(8*(sizeof(UInt_t)+ROFrameOverFlowBits)));
   }
   
-  bool equal(FairTimeStamp* other) override
-  {
-    Digit* mydigi = dynamic_cast<Digit*>(other);
-    if (mydigi) {
-      if (mChipIndex == mydigi->getChipIndex() && mCol == mydigi->getColumn() &&
-	  mRow == mydigi->getRow() && getROFrame() == mydigi->getROFrame()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /// Test if the current digit is lower than the other
   /// Comparison is done based on the chip index and pixel index. Two
   /// options are possible for true:
@@ -164,7 +140,6 @@ class Digit : public FairTimeStamp
   /// @param other The digit to compare with
   /// @return True if this digit has a lower total index, false otherwise
   //
-  using FairTimeStamp::operator<; // to avoid hiding
   virtual bool operator<(const Digit& other) const
   {
     /* if (mChipIndex < other.mChipIndex || */
@@ -190,27 +165,7 @@ class Digit : public FairTimeStamp
     return output;
   }
 
-  /// Serialization method of the Digit using boost serialization
-  /// @param ar Archive where digit is appended
-  /// @param version Unused
-  template <class Archive>
-  void serialize(Archive& ar, const unsigned int version)
-  {
-    ar& boost::serialization::base_object<FairTimeStamp>(*this);
-    ar& mChipIndex;
-    ar& mRow;
-    ar& mCol;
-    ar& mCharge;
-    ar& mROFrame;
-    ar& mLabels;
-  }
-
  private:
-#ifndef __CLING__
-
-  friend class boost::serialization::access;
-
-#endif
   UShort_t mChipIndex = 0; ///< Chip index
   UShort_t mRow = 0;       ///< Pixel index in X
   UShort_t mCol = 0;       ///< Pixel index in Z
@@ -221,8 +176,8 @@ class Digit : public FairTimeStamp
   static constexpr int    ROFrameOverFlowBits = 3;   ///< max bits occupied by ROFrame overflow record
   static constexpr UInt_t ROFrameOverFlowMask = (0x1<<ROFrameOverFlowBits)-1; //< mask for ROFrame overflow record
   static constexpr UInt_t ROFrameMask = ~ROFrameOverFlowMask; //< mask for ROFrame record
-  
-  ClassDefOverride(Digit, 3);
+
+  ClassDefNV(Digit, 3);
 };
 }
 }

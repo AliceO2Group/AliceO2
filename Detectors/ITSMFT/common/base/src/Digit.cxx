@@ -12,13 +12,14 @@
 /// \brief Implementation of the ITSMFT digit
 
 #include "ITSMFTBase/Digit.h"
+#include <iostream>
 
 ClassImp(o2::ITSMFT::Digit)
 
   using namespace o2::ITSMFT;
 
 Digit::Digit(UShort_t chipindex, UInt_t frame, UShort_t row, UShort_t col, Float_t charge, Double_t time)
-  : FairTimeStamp(time), mChipIndex(chipindex), mRow(row), mCol(col), mCharge(charge), mROFrame(0)
+  : DigitBase(time), mChipIndex(chipindex), mRow(row), mCol(col), mCharge(charge), mROFrame(0)
 {
   setROFrame(frame);
 }
@@ -52,8 +53,8 @@ const Digit Digit::operator+(const Digit& other)
 
 std::ostream& Digit::print(std::ostream& output) const
 {
-  output << "ITSMFTDigit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: "
-         << mCharge << "ROFrame " << getROFrame() << "(" << getNOverflowFrames() << ") time " << fTimeStamp;
+  output << "ITSMFTDigit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: " << mCharge << "ROFrame "
+         << getROFrame() << "(" << getNOverflowFrames() << ") time " << getTimeStamp();
   for (int i=0;i<maxLabels;i++) {
     if ( mLabels[i].isEmpty() ) break;
     output << " Lb" << i << ' ' << mLabels[i];

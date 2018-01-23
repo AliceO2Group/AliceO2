@@ -13,7 +13,6 @@
 #ifndef ALICEO2_ITSMFT_CLUSTER_H
 #define ALICEO2_ITSMFT_CLUSTER_H
 
-//#include "FairTimeStamp.h" // for FairTimeStamp
 #include "DetectorsBase/BaseCluster.h"
 
 // uncomment this to have cluster topology stored

@@ -8,11 +8,9 @@ set(SRCS
     src/V3Layer.cxx
     src/Detector.cxx
     src/DigitizerTask.cxx
-    src/DigitWriteoutBuffer.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/DigitWriteoutBuffer.h
     include/${MODULE_NAME}/DigitizerTask.h
     include/${MODULE_NAME}/V1Layer.h
     include/${MODULE_NAME}/V3Layer.h
