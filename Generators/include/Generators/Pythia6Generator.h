@@ -81,6 +81,10 @@
 #include "Rtypes.h"         // for Int_t, Pythia6Generator::Class, Bool_t, etc
 class FairPrimaryGenerator;  // lines 68-68
 
+namespace o2
+{
+namespace eventgen
+{
 
 class Pythia6Generator : public FairGenerator  
 {
@@ -107,14 +111,13 @@ class Pythia6Generator : public FairGenerator
    **/
   Bool_t ReadEvent(FairPrimaryGenerator* primGen) override;
 
-  void SetVerbose (Int_t verb) { fVerbose = verb; };
+  void SetVerbose (Int_t verb) { mVerbose = verb; };
 
  private:
 
-  //ifstream* fInputFile;               //! Input file stream
-  const Char_t * fFileName;           //! Input file Name
-  FILE *fInputFile;                   //! File
-  Int_t fVerbose;                     //! Verbose Level
+  const Char_t * mFileName;           //! Input file Name
+  FILE *mInputFile;                   //! File
+  Int_t mVerbose;                     //! Verbose Level
 
   /** Private method CloseInput. Just for convenience. Closes the 
    ** input file properly. Called from destructor and from ReadEvent. **/
@@ -123,10 +126,12 @@ class Pythia6Generator : public FairGenerator
 	
   /** PDG data base */
   
-//  TDatabasePDG *fPDG; //!
+//  TDatabasePDG *mPDG; //!
 
   ClassDefOverride(Pythia6Generator,1);
 
 };
 
+} // namespace eventgen
+} // namespace o2
 #endif

@@ -60,7 +60,7 @@ void o2sim()
     // pythia8 pp
     // configures pythia for min.bias pp collisions at 14 TeV
     // TODO: make this configurable
-    auto py8Gen = new Pythia8Generator();
+    auto py8Gen = new o2::eventgen::Pythia8Generator();
     py8Gen->SetParameters("Beams:idA 2212"); // p
     py8Gen->SetParameters("Beams:idB 2212"); // p
     py8Gen->SetParameters("Beams:eCM 14000."); // [GeV]
@@ -71,7 +71,7 @@ void o2sim()
     // exploits pythia8 heavy-ion machinery (available from v8.230)
     // configures pythia for min.bias Pb-Pb collisions at 5.52 TeV
     // TODO: make this configurable
-    auto py8Gen = new Pythia8Generator();
+    auto py8Gen = new o2::eventgen::Pythia8Generator();
     py8Gen->SetParameters("Beams:idA 1000822080"); // Pb ion
     py8Gen->SetParameters("Beams:idB 1000822080"); // Pb ion
     py8Gen->SetParameters("Beams:eCM 5520.0"); // [GeV]

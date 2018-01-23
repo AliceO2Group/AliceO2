@@ -40,6 +40,10 @@ class FairPrimaryGenerator;  // lines 22-22
 
 class FairPrimaryGenerator;
 using namespace Pythia8;
+namespace o2
+{
+namespace eventgen
+{
 
 class PyTr1Rng : public RndmEngine
 {
@@ -85,27 +89,29 @@ class Pythia8Generator : public FairGenerator
 
   Bool_t Init() override; //!
 
-  void SetMom(Double_t mom) { fMom = mom; };
-  void SetId(Double_t id) { fId  = id; };
-  void SetHNLId(Int_t id) { fHNL = id; };
-  void UseRandom1() { fUseRandom1 = kTRUE; fUseRandom3 = kFALSE; };
-  void UseRandom3() { fUseRandom1 = kFALSE; fUseRandom3 = kTRUE; };
+  void SetMom(Double_t mom) { mMom = mom; };
+  void SetId(Double_t id) { mId  = id; };
+  void SetHNLId(Int_t id) { mHNL = id; };
+  void UseRandom1() { mUseRandom1 = kTRUE; mUseRandom3 = kFALSE; };
+  void UseRandom3() { mUseRandom1 = kFALSE; mUseRandom3 = kTRUE; };
   void GetPythiaInstance(int);
 
  private:
 
-  Pythia fPythia;             //!
-  RndmEngine* fRandomEngine;  //!
+  Pythia mPythia;             //!
+  RndmEngine* mRandomEngine;  //!
 
  protected:
 
-  Double_t fMom;       // proton momentum
-  Int_t    fHNL;       // HNL ID
-  Int_t    fId;       // target type
-  Bool_t fUseRandom1;  // flag to use TRandom1
-  Bool_t fUseRandom3;  // flag to use TRandom3 (default)
+  Double_t mMom;       // proton momentum
+  Int_t    mHNL;       // HNL ID
+  Int_t    mId;       // target type
+  Bool_t mUseRandom1;  // flag to use TRandom1
+  Bool_t mUseRandom3;  // flag to use TRandom3 (default)
 
   ClassDefOverride(Pythia8Generator,1);
 };
 
+} // namespace eventgen
+} // namespace o2
 #endif /* !PNDP8GENERATOR_H */
