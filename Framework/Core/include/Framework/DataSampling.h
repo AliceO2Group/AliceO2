@@ -27,42 +27,44 @@ namespace framework {
 
 class DataSampling {
   public:
+    using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
+
     DataSampling() = delete;
 
     static void GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource);
 
   private:
     struct BernoulliGenerator {
-        std::default_random_engine generator;
-        std::bernoulli_distribution distribution;
+      std::default_random_engine generator;
+      std::bernoulli_distribution distribution;
 
-        BernoulliGenerator(double probabilityOfTrue) :
-          generator(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())),
-          distribution(probabilityOfTrue)
-        {};
-        bool drawLots() {
-          return distribution(generator);
-        }
+      BernoulliGenerator(double probabilityOfTrue) :
+        generator(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count())),
+        distribution(probabilityOfTrue)
+      {};
+      bool drawLots() {
+        return distribution(generator);
+      }
     };
 
     struct QcTaskConfiguration{
-        std::string name;
-        std::vector<InputSpec> desiredDataSpecs;
-        double fractionOfDataToSample;
+      std::string name;
+      std::vector<InputSpec> desiredDataSpecs;
+      header::DataHeader::SubSpecificationType subSpec;
+      double fractionOfDataToSample;
     };
     using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
 
     struct InfrastructureConfig {
+      bool enableTimePipeliningDispatchers;
+      bool enableParallelDispatchers;
+      bool enableProxy;
 
-        bool enableTimePipeliningDispatchers;
-        bool enableParallelDispatchers;
-        bool enableProxy;
-
-        InfrastructureConfig() :
-          enableTimePipeliningDispatchers(false),
-          enableParallelDispatchers(false),
-          enableProxy(false)
-        {};
+      InfrastructureConfig() :
+        enableTimePipeliningDispatchers(false),
+        enableParallelDispatchers(false),
+        enableProxy(false)
+      {};
     };
 
     static void GenerateInfrastructureSimple(WorkflowSpec &workflow, const QcTaskConfigurations &tasks);
@@ -72,6 +74,7 @@ class DataSampling {
     static AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
     static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
     static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);
+    static auto getEdgeMatcher(const SubSpecificationType &subSpec);
     static QcTaskConfigurations readQcTasksConfiguration(const std::string &configurationSource);
     static InfrastructureConfig readInfrastructureConfiguration(const std::string &configurationSource);
 };

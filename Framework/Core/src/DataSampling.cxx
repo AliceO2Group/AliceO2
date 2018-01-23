@@ -24,18 +24,12 @@ using namespace AliceO2::Configuration;
 namespace o2 {
 namespace framework {
 
-// todo: configuration of GenerateInfrastructure()
-// options: ?
-// - enable proxy (local vs global?)
-// - enable time pipelining
-// - one dispatcher per parallel flow vs one dispatcher per whole flow
-
-
+//make sure if it supports 'vectors' of data
+//how about not using dispatcher, when qc needs 100% data ? instead, connect it directly
 
 void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource)
 {
   QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
-
   InfrastructureConfig infrastructureCfg = readInfrastructureConfiguration(configurationSource);
 
   //todo:
@@ -51,9 +45,26 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::str
   }
 }
 
+auto DataSampling::getEdgeMatcher(const SubSpecificationType &subSpec)
+{
+  return subSpec == -1 ?
+         [](const OutputSpec& externalOutput, const InputSpec& desiredData, const DataSampling::SubSpecificationType&) {
+           return externalOutput.origin == desiredData.origin &&
+                  externalOutput.description == desiredData.description;
+         }
+                       :
+         [](const OutputSpec& externalOutput, const InputSpec& desiredData, const DataSampling::SubSpecificationType& desiredSubSpec) {
+           return externalOutput.origin == desiredData.origin &&
+                  externalOutput.description == desiredData.description &&
+                  externalOutput.subSpec == desiredSubSpec;
+         };
+}
+
 void DataSampling::GenerateInfrastructureSimple(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
 {
   for (auto&& task : tasks) {
+    auto areEdgesMatching = getEdgeMatcher(task.subSpec);
+
     DataProcessorSpec dispatcher{
       "Dispatcher_for_" + task.name,
       Inputs{}, Outputs{},
@@ -68,8 +79,7 @@ void DataSampling::GenerateInfrastructureSimple(WorkflowSpec &workflow, const Qc
     for (auto desiredData : task.desiredDataSpecs) {
       for (auto&& dataProcessor : workflow) {
         for (auto&& externalOutput : dataProcessor.outputs) {
-          if (externalOutput.origin == desiredData.origin &&
-              externalOutput.description == desiredData.description) {
+          if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
             desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
             desiredData.subSpec = externalOutput.subSpec;
             dispatcher.inputs.push_back(desiredData);
@@ -83,9 +93,12 @@ void DataSampling::GenerateInfrastructureSimple(WorkflowSpec &workflow, const Qc
   }
 }
 
+
 void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
 {
   for (auto&& task : tasks) {
+
+    auto areEdgesMatching = getEdgeMatcher(task.subSpec);
     std::unordered_map<Header::DataHeader::SubSpecificationType, DataProcessorSpec> dispatchers;
 
     //find all desired data outputs in workflow and create separate dispatcher for each parallel flow
@@ -93,8 +106,7 @@ void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow, const 
       for (auto&& externalOutput : dataProcessor.outputs) {
         for (auto desiredData : task.desiredDataSpecs) {
           //if some output in workflow matches desired data
-          if (externalOutput.origin == desiredData.origin &&
-              externalOutput.description == desiredData.description) {
+          if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
 
             desiredData.subSpec = externalOutput.subSpec;
             desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
@@ -137,6 +149,8 @@ void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow, const 
 void DataSampling::GenerateInfrastructureTimePipelining(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
 {
   for (auto&& task : tasks) {
+    auto areEdgesMatching = getEdgeMatcher(task.subSpec);
+
     DataProcessorSpec dispatcher{
       "Dispatcher_for_" + task.name,
       Inputs{}, Outputs{},
@@ -151,8 +165,7 @@ void DataSampling::GenerateInfrastructureTimePipelining(WorkflowSpec &workflow, 
     for (auto desiredData : task.desiredDataSpecs) {
       for (auto&& dataProcessor : workflow) {
         for (auto&& externalOutput : dataProcessor.outputs) {
-          if (externalOutput.origin == desiredData.origin &&
-              externalOutput.description == desiredData.description) {
+          if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
             desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
             desiredData.subSpec = externalOutput.subSpec;
             dispatcher.inputs.push_back(desiredData);
@@ -249,12 +262,14 @@ DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const 
       std::string simpleQcTaskDefinition = configFile->getString(taskName + "/taskDefinition").value();
       taskInputsNames = configFile->getString(simpleQcTaskDefinition + "/inputs").value();
       task.fractionOfDataToSample = configFile->getFloat(simpleQcTaskDefinition + "/fraction").value();
-
       if ( task.fractionOfDataToSample <= 0 || task.fractionOfDataToSample > 1 ) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
                    << simpleQcTaskDefinition + "/fraction" << " is not in range (0,1]. Setting value to 0.";
         task.fractionOfDataToSample = 0;
       }
+      //FIXME: I do not like '-1' meaning 'all' - not 100% sure if it's safe to compare with '-1' later
+      task.subSpec = static_cast<header::DataHeader::SubSpecificationType>(
+        configFile->getInt(simpleQcTaskDefinition + "/subSpec").value_or(-1));
 
     } catch (const boost::bad_optional_access &) {
       LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
