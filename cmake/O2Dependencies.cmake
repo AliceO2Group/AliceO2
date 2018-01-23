@@ -675,9 +675,11 @@ o2_define_bucket(
     ParBase
     MathUtils
     Core Hist Gpad
+    SimulationDataFormat
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
 )
 
 o2_define_bucket(

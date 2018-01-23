@@ -15,33 +15,17 @@
 #ifndef ALICEO2_TPC_DIGIT_H_
 #define ALICEO2_TPC_DIGIT_H_
 
+#include "SimulationDataFormat/TimeStamp.h"
 #include "TObject.h"
 
 namespace o2 {
-namespace TPC {
-
-// A minimal (temporary) TimeStamp class, introduced here for
-// reducing memory consumption to a minimum.
-// This can be used only when MCtruth is not done using FairLinks.
-class TimeStamp {
-public:
-  TimeStamp() {}
-  TimeStamp(int time) {
-    mTimeStamp = time;
-  }
-  int GetTimeStamp() const { return mTimeStamp; }
-private:
-  int mTimeStamp = 0;
-  ClassDefNV(TimeStamp, 1);
-};
-using DigitBase = TimeStamp;
-
-
+namespace TPC
+{
 /// \class Digit
 /// This is the definition of the common Digit object, which is the final entity after Digitization
 /// Its coordinates are defined by the CRU, the time bin, the pad row and the pad.
 /// It holds the ADC value of a given pad on the pad plane.
-
+using DigitBase = o2::dataformats::TimeStamp<int>;
 class Digit : public DigitBase {
   public:
 
@@ -78,11 +62,6 @@ class Digit : public DigitBase {
     /// Get the pad of the Digit
     /// \return pad of the Digit
     int getPad() const { return mPad; }
-
-    /// Get the timeBin of the Digit
-    /// \return timeBin of the Digit
-    int getTimeStamp() const { return static_cast<int>(DigitBase::GetTimeStamp()); }
-
 
   protected:
 

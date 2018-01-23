@@ -12,8 +12,9 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "SimulationDataFormat/BaseHits.h"
 #include "Math/GenVector/Transform3D.h"
+#include "SimulationDataFormat/BaseHits.h"
+#include "SimulationDataFormat/TimeStamp.h"
 #include "TFile.h"
 
 namespace o2
@@ -83,6 +84,14 @@ BOOST_AUTO_TEST_CASE(BasicXYZHit_ROOTIO)
     BOOST_CHECK(obj != nullptr);
     fin.Close();
   }
+}
+
+// basic TimeStamp tests
+BOOST_AUTO_TEST_CASE(TimeStamp)
+{
+  o2::dataformats::TimeStampWithError<float, float> aTimeStamp(10., 0.1);
+  BOOST_CHECK_CLOSE(aTimeStamp.getTimeStampError(), 0.1, 1E-4);
+  BOOST_CHECK_CLOSE(aTimeStamp.getTimeStamp(), 10, 1E-4);
 }
 
 } // end namespace AliceO2

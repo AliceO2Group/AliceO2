@@ -9,19 +9,20 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFBase/Digit.h"
+#include <iostream>
 
 using namespace o2::tof;
 
 ClassImp(o2::tof::Digit);
 
 Digit::Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc)
-  : FairTimeStamp(time), mChannel(channel), mTDC(tdc), mTOT(tot), mBC(bc)
+  : o2::dataformats::TimeStamp<double>(time), mChannel(channel), mTDC(tdc), mTOT(tot), mBC(bc)
 {
 }
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << " Time " << GetTimeStamp()
+  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << " Time " << getTimeStamp()
          << "Bunch Crossing index" << mBC << "\n";
 }
 
