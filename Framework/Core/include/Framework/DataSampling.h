@@ -67,10 +67,6 @@ class DataSampling {
       {};
     };
 
-    static void GenerateInfrastructureSimple(WorkflowSpec &workflow, const QcTaskConfigurations &tasks);
-    static void GenerateInfrastructureParallel(WorkflowSpec &workflow, const QcTaskConfigurations &tasks);
-    static void GenerateInfrastructureTimePipelining(WorkflowSpec &workflow, const QcTaskConfigurations &tasks);
-
     static AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
     static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
     static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);

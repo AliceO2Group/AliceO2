@@ -24,26 +24,10 @@ using namespace AliceO2::Configuration;
 namespace o2 {
 namespace framework {
 
+//ideas:
 //make sure if it supports 'vectors' of data
 //how about not using dispatcher, when qc needs 100% data ? instead, connect it directly
-
-void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource)
-{
-  QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
-  InfrastructureConfig infrastructureCfg = readInfrastructureConfiguration(configurationSource);
-
-  //todo:
-  // proxy
-  // combining different choices
-
-  if (infrastructureCfg.enableParallelDispatchers) {
-    GenerateInfrastructureParallel(workflow, tasks);
-  } else if (infrastructureCfg.enableTimePipeliningDispatchers) {
-    GenerateInfrastructureTimePipelining(workflow, tasks);
-  } else {
-    GenerateInfrastructureSimple(workflow, tasks);
-  }
-}
+//how about giving some information, if some desired outputs weren't found?
 
 auto DataSampling::getEdgeMatcher(const SubSpecificationType &subSpec)
 {
@@ -60,124 +44,73 @@ auto DataSampling::getEdgeMatcher(const SubSpecificationType &subSpec)
          };
 }
 
-void DataSampling::GenerateInfrastructureSimple(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
+void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource)
 {
+  //todo:
+  // proxy
+
+  QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
+  InfrastructureConfig infrastructureCfg = readInfrastructureConfiguration(configurationSource);
+
   for (auto&& task : tasks) {
+
+    std::unordered_map<SubSpecificationType, DataProcessorSpec> dispatchers;
     auto areEdgesMatching = getEdgeMatcher(task.subSpec);
 
-    DataProcessorSpec dispatcher{
-      "Dispatcher_for_" + task.name,
-      Inputs{}, Outputs{},
-      AlgorithmSpec{
-        [gen=BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext &ctx) mutable {
-          DataSampling::dispatcherCallback(ctx, gen);
-        }
-      }
-    };
-
-    //find all available outputs in workflow that match desired data, and add them as dispatcher inputs
-    for (auto desiredData : task.desiredDataSpecs) {
+    // Find all available outputs in workflow that match desired data. Create dispatchers that take them as inputs
+    // and provide them filtered as outputs.
+    for (auto&& desiredData : task.desiredDataSpecs) {
       for (auto&& dataProcessor : workflow) {
         for (auto&& externalOutput : dataProcessor.outputs) {
           if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
-            desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
-            desiredData.subSpec = externalOutput.subSpec;
-            dispatcher.inputs.push_back(desiredData);
-          }
-        }
-      }
-      dispatcher.outputs.emplace_back(createDispatcherOutputSpec(desiredData));
-    }
 
-    workflow.push_back(dispatcher);
-  }
-}
+            InputSpec newInput{
+              desiredData.binding,
+              desiredData.origin,
+              desiredData.description,
+              externalOutput.subSpec,
+              static_cast<InputSpec::Lifetime>(externalOutput.lifetime),
+            };
 
+            // if parallel dispatchers are not enabled, then edges will be added to the only one dispatcher.
+            // in other case, new dispatcher will be created for every parallel flow.
+            SubSpecificationType dispatcherSubSpec = infrastructureCfg.enableParallelDispatchers ?
+                                                     externalOutput.subSpec : 0;
 
-void DataSampling::GenerateInfrastructureParallel(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
-{
-  for (auto&& task : tasks) {
-
-    auto areEdgesMatching = getEdgeMatcher(task.subSpec);
-    std::unordered_map<Header::DataHeader::SubSpecificationType, DataProcessorSpec> dispatchers;
-
-    //find all desired data outputs in workflow and create separate dispatcher for each parallel flow
-    for (auto&& dataProcessor : workflow) {
-      for (auto&& externalOutput : dataProcessor.outputs) {
-        for (auto desiredData : task.desiredDataSpecs) {
-          //if some output in workflow matches desired data
-          if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
-
-            desiredData.subSpec = externalOutput.subSpec;
-            desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
-
-            //find if there is already a dispatcher for this parallel flow
-            auto res = dispatchers.find(externalOutput.subSpec);
-            if (res != dispatchers.end()){
-              //add input to existing dispatcher
-              res->second.inputs.push_back(desiredData);
-              res->second.outputs.push_back(createDispatcherOutputSpec(desiredData));
-            }
-            else {
-              //create a new dispatcher for this parallel flow
-              dispatchers[externalOutput.subSpec] = DataProcessorSpec{
-                "Dispatcher" + std::to_string(externalOutput.subSpec) + "_for_" + task.name,
+            auto res = dispatchers.find(dispatcherSubSpec);
+            if (res != dispatchers.end()) {
+              res->second.inputs.push_back(newInput);
+              res->second.outputs.push_back(createDispatcherOutputSpec(newInput));
+              if (infrastructureCfg.enableTimePipeliningDispatchers &&
+                  res->second.maxInputTimeslices < dataProcessor.maxInputTimeslices) {
+                res->second.maxInputTimeslices = dataProcessor.maxInputTimeslices;
+              }
+            } else {
+              dispatchers[dispatcherSubSpec] = DataProcessorSpec{
+                "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name,
                 Inputs{
-                  desiredData
+                  newInput
                 },
                 Outputs{
-                  createDispatcherOutputSpec(desiredData)
+                  createDispatcherOutputSpec(newInput)
                 },
                 AlgorithmSpec{
-                  [gen=BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext& ctx) mutable {
+                  [gen = BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext &ctx) mutable {
                     DataSampling::dispatcherCallback(ctx, gen);
                   }
                 }
               };
+              if (infrastructureCfg.enableTimePipeliningDispatchers) {
+                dispatchers[dispatcherSubSpec].maxInputTimeslices = dataProcessor.maxInputTimeslices;
+              }
             }
           }
         }
       }
     }
-
     for (auto& dispatcher : dispatchers) {
       workflow.push_back(std::move(dispatcher.second));
     }
-  }
-}
-
-void DataSampling::GenerateInfrastructureTimePipelining(WorkflowSpec &workflow, const QcTaskConfigurations &tasks)
-{
-  for (auto&& task : tasks) {
-    auto areEdgesMatching = getEdgeMatcher(task.subSpec);
-
-    DataProcessorSpec dispatcher{
-      "Dispatcher_for_" + task.name,
-      Inputs{}, Outputs{},
-      AlgorithmSpec{
-        [gen=BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext &ctx) mutable {
-          DataSampling::dispatcherCallback(ctx, gen);
-        }
-      }
-    };
-
-    size_t maxTimeParallelism = 1;
-    for (auto desiredData : task.desiredDataSpecs) {
-      for (auto&& dataProcessor : workflow) {
-        for (auto&& externalOutput : dataProcessor.outputs) {
-          if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
-            desiredData.lifetime = static_cast<InputSpec::Lifetime>(externalOutput.lifetime);
-            desiredData.subSpec = externalOutput.subSpec;
-            dispatcher.inputs.push_back(desiredData);
-            maxTimeParallelism = std::max(maxTimeParallelism, dataProcessor.maxInputTimeslices);
-          }
-        }
-      }
-      dispatcher.outputs.emplace_back(createDispatcherOutputSpec(desiredData));
-    }
-    dispatcher.maxInputTimeslices = maxTimeParallelism;
-
-    workflow.push_back(dispatcher);
   }
 }
 
