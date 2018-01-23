@@ -8,14 +8,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+// Declaration of a transient MC label class for TOF
 
-#pragma link C++ class o2::tof::Geo+;
-#pragma link C++ class o2::tof::Digit+;
-#pragma link C++ class vector<o2::tof::Digit>+;
+#ifndef ALICEO2_TOF_MCLABEL_H_
+#define ALICEO2_TOF_MCLABEL_H_
+
+#include "SimulationDataFormat/MCCompLabel.h"
+
+namespace o2
+{
+namespace tof
+{
+class MCLabel : public o2::MCCompLabel
+{
+ private:
+  Int_t mTDC = -1;
+
+ public:
+  MCLabel() = default;
+  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t tdc) : o2::MCCompLabel(trackID, eventID, srcID), mTDC(tdc) {}
+  Int_t getTDC() const { return mTDC; }
+};
+}
+}
 
 #endif

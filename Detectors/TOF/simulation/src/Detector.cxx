@@ -19,19 +19,16 @@
 
 #include "TOFSimulation/Detector.h"
 
+#include <TVirtualMC.h> // for TVirtualMC, gMC
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
-#include <TVirtualMC.h> // for TVirtualMC, gMC
 
 using namespace o2::tof;
 
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TOF", active),
-    mEventNr(0),
-    mTOFHoles(kTRUE),
-    mHits(new std::vector<HitType>)
+  : o2::Base::DetImpl<Detector>("TOF", active), mEventNr(0), mTOFHoles(kTRUE), mHits(new std::vector<HitType>)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
     mTOFSectors[i] = 1;
@@ -65,17 +62,25 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   auto stack = static_cast<o2::Data::Stack*>(refMC->GetStack());
   int trackID = stack->GetCurrentTrackNumber();
   int sensID = v->getMCid();
-
-  addHit(position.X(), position.Y(), position.Z(), time, enDep, trackID, sensID);
-  stack->addHit(GetDetId());
+  Int_t det[5];
+  Float_t pos[3] = { static_cast<Float_t>(position.X()), static_cast<Float_t>(position.Y()),
+                     static_cast<Float_t>(position.Z()) };
+  Float_t delta[3];
+  Geo::getPadDxDyDz(pos, det, delta);
+  auto channel  =  Geo::getIndex(det);
+  HitType newhit(position.X(),position.Y(), position.Z(), time, enDep, trackID, sensID);
+  if(channel != mLastChannelID || !isMergable(newhit, mHits->back())){
+    mHits->push_back(newhit);
+    stack->addHit(GetDetId());
+  }
+  else {
+    mHits->back().SetEnergyLoss(mHits->back().GetEnergyLoss() + newhit.GetEnergyLoss());
+    //LOG(INFO)<<"Merging hit "<<"\n";
+    //  <<mHits->back().GetId()<<"with new hit "<<newhit.GetId()<<"\n";
+  }
+  mLastChannelID = channel;
 
   return kTRUE;
-}
-
-HitType* Detector::addHit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId)
-{
-  mHits->emplace_back(x, y, z, time, energy, trackId, detId);
-  return &mHits->back();
 }
 
 void Detector::Register()
@@ -84,7 +89,7 @@ void Detector::Register()
   mgr->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
 }
 
-void Detector::Reset() { mHits->clear(); }
+void Detector::Reset() { mHits->clear(); mLastChannelID = -1;}
 void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;
@@ -1834,6 +1839,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
       modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
+      LOG(INFO) << "modUID: " << modUID << "\n";
 
       if (mTOFSectors[isect] == -1)
         continue;
@@ -1861,27 +1867,29 @@ void Detector::addAlignableVolumes() const
       volPath += vpL4;
       volPath += istr;
 
-      volPath = "";
-
       symName = snSM;
       symName += Form("%02d", isect);
       symName += snSTRIP;
       symName += Form("%02d", istr);
 
-      // AliDebug(2,"--------------------------------------------");
-      // AliDebug(2,Form("Alignable object %d", imod));
-      // AliDebug(2,Form("volPath=%s\n",volPath.Data()));
-      // AliDebug(2,Form("symName=%s\n",symName.Data()));
-      // AliDebug(2,"--------------------------------------------");
+      LOG(DEBUG) << "--------------------------------------------"
+                 << "\n";
+      LOG(DEBUG) << "Alignable object" << imod << "\n";
+      LOG(DEBUG) << "volPath=" << volPath << "\n";
+      LOG(DEBUG) << "symName=" << symName << "\n";
+      LOG(DEBUG) << "--------------------------------------------"
+                 << "\n";
 
-      printf("Check for alignable entry: %s\n", symName.Data());
+      LOG(INFO) << "Check for alignable entry: " << symName << "\n";
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
-        printf("Alignable entry %s not set\n", symName.Data());
-      //        AliError(Form("Alignable entry %s not set",symName.Data()));
+        LOG(ERROR) << "Alignable entry " << symName << " NOT set\n";
+      LOG(INFO) << "Alignable entry " << symName << " set\n";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
+      LOG(INFO) << "Got TGeoPNEntry " << e << "\n";
+
       if (e) {
         TGeoHMatrix* globMatrix = e->GetGlobalOrig();
         Double_t phi = Geo::PHISEC * (isect % Geo::NSECTORS) + Geo::PHISEC * 0.5;

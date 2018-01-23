@@ -12,22 +12,23 @@
 #define ALICEO2_TOF_DIGITIZER_H_
 
 #include "TOFBase/Geo.h"
+#include "TOFBase/Digit.h"
 #include "TOFSimulation/Detector.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "TOFSimulation/MCLabel.h"
 
 namespace o2
 {
 namespace tof
 {
-class Digitizer : public TObject
+class Digitizer
 {
  public:
-  Digitizer(Int_t mode = 0) : mMode(mode) { initParameters(); };
+  Digitizer(Int_t mode = 0) : mMode(mode), mTimeFrameCurrent(0) { initParameters(); };
+  ~Digitizer() = default;
 
-  ~Digitizer() override = default;
+  void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
 
-  void digitize();
-  void processHit(HitType* hit);
-  void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired);
   Float_t getShowerTimeSmeared(Float_t time, Float_t charge);
   Float_t getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float_t charge);
   Float_t getCharge(Float_t eDep);
@@ -36,11 +37,19 @@ class Digitizer : public TObject
   Float_t getEffZ(Float_t z);
   Float_t getFractionOfCharge(Float_t x, Float_t z);
 
-  Int_t getNumDigitLastHit() const { return mNumDigit; }
-  Float_t getTimeLastHit(Int_t idigit) const { return mTime[idigit]; }
-  Float_t getTotLastHit(Int_t idigit) const { return mTot[idigit]; }
-  Int_t getXshift(Int_t idigit) const { return mXshift[idigit]; }
-  Int_t getZshift(Int_t idigit) const { return mZshift[idigit]; }
+  Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
+  void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
+  Float_t getTimeLastHit(Int_t idigit) const { return 0; }
+  Float_t getTotLastHit(Int_t idigit) const { return 0; }
+  Int_t getXshift(Int_t idigit) const { return 0; }
+  Int_t getZshift(Int_t idigit) const { return 0; }
+  void setEventTime(double value) { mEventTime = value; }
+  void setEventID(Int_t id) { mEventID = id; }
+  void setSrcID(Int_t id) { mSrcID = id; }
+  void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* truthcontainer)
+  {
+    mMCTruthContainer = truthcontainer;
+  }
 
   void initParameters();
   void printParameters();
@@ -67,14 +76,39 @@ class Digitizer : public TObject
   Float_t mEffBoundary2;
   Float_t mEffBoundary3;
 
-  // keep info of last digitization
-  Int_t mNumDigit;  //! number of digits of last hit processed
-  Float_t mTime[6]; //! time of digitis in the last hit processed
-  Float_t mTot[6];  //! tot of digitis in the last hit processed
-  Int_t mXshift[6]; //! shift wrt central pad
-  Int_t mZshift[6]; //! shift wrt central pad
+  // info TOF timewindow
+  Int_t mTimeFrameCurrent;
+  Double_t mEventTime;
+  Int_t mEventID = 0;
+  Int_t mSrcID = 0;
 
-  ClassDefOverride(Digitizer, 2);
+  // digit info
+  std::vector<Digit>* mDigits;
+  o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mMCTruthContainer =
+    nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
+
+  Int_t processHit(const HitType& hit, Double_t event_time);
+  void addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
+                Int_t trackID);
+
+  bool isMergable(Digit digit1, Digit digit2)
+  {
+    if (digit1.getChannel() != digit2.getChannel()) {
+      return false;
+    }
+
+    if (digit1.getBC() != digit2.getBC()) {
+      return false;
+    }
+
+    // Check if the difference is larger than the TDC dead time
+    if (std::abs(digit1.getTDC() - digit2.getTDC()) > Geo::DEADTIMETDC) {
+      return false;
+    }
+    return true;
+  }
+
+  ClassDefNV(Digitizer, 1);
 };
 }
 }

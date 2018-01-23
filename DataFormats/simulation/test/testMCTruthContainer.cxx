@@ -49,6 +49,10 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   std::sort(view.begin(), view.end(), [](TruthElement a, TruthElement b){return a>b;});
   BOOST_CHECK(view[0] == 2);
   BOOST_CHECK(view[1] == 1);
+  // verify sorting took effect inside container
+  auto view2 = container.getLabels(0);
+  BOOST_CHECK(view2[0] == 2);
+  BOOST_CHECK(view2[1] == 1);
 
   // same for another data index
   view = container.getLabels(2);

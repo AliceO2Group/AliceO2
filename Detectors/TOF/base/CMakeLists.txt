@@ -4,10 +4,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Geo.cxx
+  src/Digit.cxx
 )
 
 set(HEADERS
   include/${MODULE_NAME}/Geo.h
+  include/${MODULE_NAME}/Digit.h
 )
 
 SET(LINKDEF src/TOFBaseLinkDef.h)

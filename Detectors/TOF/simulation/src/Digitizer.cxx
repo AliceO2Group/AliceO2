@@ -18,25 +18,31 @@
 #include "TMath.h"
 #include "TProfile2D.h"
 #include "TRandom.h"
+#include <algorithm>
+#include <cassert>
 
 using namespace o2::tof;
 
 ClassImp(Digitizer);
 
-void Digitizer::digitize()
-{
-  // loop over hits (to be added)
+void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* digits){
+  // hits array of TOF hits for a given simulated event
+  mDigits = digits;
 
-  // HitType *hit = NULL;
-
-  // if(hit) processHit(hit);
+  for (auto& hit : *hits) {
+    Int_t timeframe =
+      Int_t((mEventTime + hit.GetTime()) * Geo::TIMEFRAMEWINDOW_INV); // to be replaced with uncalibrated time
+    //TODO: put timeframe counting/selection
+    //if (timeframe == mTimeFrameCurrent) {
+      processHit(hit, mEventTime);
+    //}
+  } // end loop over hits
 }
 
-void Digitizer::processHit(HitType* hit)
-{
-  mNumDigit = 0;
 
-  Float_t pos[3] = { hit->GetX(), hit->GetY(), hit->GetZ() };
+Int_t Digitizer::processHit(const HitType &hit,Double_t event_time)
+{
+  Float_t pos[3] = { hit.GetX(), hit.GetY(), hit.GetZ() };
   Float_t deltapos[3];
   Int_t detInd[5];
   Int_t detIndOtherPad[5];
@@ -54,20 +60,28 @@ void Digitizer::processHit(HitType* hit)
 
   Int_t channel = Geo::getIndex(detInd);
 
-  Float_t charge = getCharge(hit->GetEnergyLoss());
-  Float_t time = getShowerTimeSmeared(hit->GetTime() * 1E3, charge); // in ps from now!
+  Float_t charge = getCharge(hit.GetEnergyLoss());
+  // NOTE: FROM NOW ON THE TIME IS IN PS ... AND NOT IN NS
+  Float_t time = getShowerTimeSmeared((event_time + hit.GetTime()) * 1E3, charge);
 
   Float_t xLocal = deltapos[0];
   Float_t zLocal = deltapos[2];
+
+  // extract trackID
+  auto trackID = hit.GetTrackID();
 
   //         PadId - Pad Identifier
   //                    E | F    -->   PadId = 5 | 6
   //                    A | B    -->   PadId = 1 | 2
   //                    C | D    -->   PadId = 3 | 4
 
+  Int_t ndigits = 0;//Number of digits added
+
   // check the fired PAD 1 (A)
-  if (isFired(xLocal, zLocal, charge))
-    addDigit(channel, time, xLocal, zLocal, charge, 0, 0, detInd[3]);
+  if (isFired(xLocal, zLocal, charge)){
+    ndigits++;
+    addDigit(channel, time, xLocal, zLocal, charge, 0, 0, detInd[3], trackID);
+  }
 
   // check PAD 2
   detIndOtherPad[3] = otherraw;
@@ -79,7 +93,8 @@ void Digitizer::processHit(HitType* hit)
   else
     zLocal = deltapos[2] + Geo::ZPAD;
   if (isFired(xLocal, zLocal, charge)) {
-    addDigit(channel, time, xLocal, zLocal, charge, 0, iZshift, detInd[3]);
+      ndigits++;
+      addDigit(channel, time, xLocal, zLocal, charge, 0, iZshift, detInd[3], trackID);
   }
 
   // check PAD 3
@@ -90,7 +105,8 @@ void Digitizer::processHit(HitType* hit)
     xLocal = deltapos[0] + Geo::XPAD; // recompute local coordinates
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, -1, 0, detInd[3]);
+      ndigits++;
+      addDigit(channel, time, xLocal, zLocal, charge, -1, 0, detInd[3], trackID);
     }
   }
 
@@ -102,7 +118,8 @@ void Digitizer::processHit(HitType* hit)
     xLocal = deltapos[0] - Geo::XPAD; // recompute local coordinates
     zLocal = deltapos[2];             // recompute local coordinates
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, 1, 0, detInd[3]);
+      ndigits++;
+      addDigit(channel, time, xLocal, zLocal, charge, 1, 0, detInd[3], trackID);
     }
   }
 
@@ -117,7 +134,8 @@ void Digitizer::processHit(HitType* hit)
     else
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, -1, iZshift, detInd[3]);
+      ndigits++;
+      addDigit(channel, time, xLocal, zLocal, charge, -1, iZshift, detInd[3], trackID);
     }
   }
 
@@ -132,13 +150,16 @@ void Digitizer::processHit(HitType* hit)
     else
       zLocal = deltapos[2] + Geo::ZPAD;
     if (isFired(xLocal, zLocal, charge)) {
-      addDigit(channel, time, xLocal, zLocal, charge, 1, iZshift, detInd[3]);
+      ndigits++;
+      addDigit(channel, time, xLocal, zLocal, charge, 1, iZshift, detInd[3], trackID);
     }
   }
+  return ndigits;
+
 }
 
 void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ,
-                         Int_t padZfired)
+                         Int_t padZfired, Int_t trackID)
 {
   // TOF digit requires: channel, time and time-over-threshold
 
@@ -168,11 +189,55 @@ void Digitizer::addDigit(Int_t channel, Float_t time, Float_t x, Float_t z, Floa
   }
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
 
-  mTime[mNumDigit] = time;
-  mTot[mNumDigit] = tot;
-  mXshift[mNumDigit] = iX;
-  mZshift[mNumDigit] = iZ;
-  mNumDigit++;
+  bool merged = false;
+
+  Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
+  Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
+
+  // check if such mergeable digit already exists
+  int digitindex = 0;
+  for (auto& digit : *mDigits) {
+    if (isMergable(digit, newdigit)) {
+      LOG(INFO) << "MERGING DIGITS " << digitindex << "\n";
+      merged = true;
+      // merge it
+      if (newdigit.getTDC() < digit.getTDC()) {
+        // adjust TOT
+        digit.setTDC(newdigit.getTDC());
+        digit.SetTimeStamp(newdigit.GetTimeStamp());
+      } else {
+        // adjust TOT
+      }
+      // adjust truth information
+      if (mMCTruthContainer) {
+        o2::tof::MCLabel label(trackID, mEventID, mSrcID, newdigit.getTDC());
+        mMCTruthContainer->addElementRandomAccess(digitindex, label);
+
+        // sort the labels according to increasing tdc value
+        auto labels = mMCTruthContainer->getLabels(digitindex);
+        std::sort(labels.begin(), labels.end(),
+                  [](o2::tof::MCLabel a, o2::tof::MCLabel b) { return a.getTDC() < b.getTDC(); });
+        //for (auto& e : labels) {
+        //  LOG(INFO) << e.getEventID() << " " << e.getTrackID() << " " << e.getTDC() << "\n";
+        //}
+        // assert(labels[0].getTDC() <= labels[1].getTDC());
+      }
+      break;
+    }
+    digitindex++;
+  }
+
+  if (!merged) {
+    // note that tdc calculation is done in [ps]; whereas the tot is done in [ns]
+    auto tdc = (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS;
+    mDigits->emplace_back(time, channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc);
+
+    if (mMCTruthContainer) {
+      auto ndigits = mDigits->size() - 1;
+      o2::tof::MCLabel label(trackID, mEventID, mSrcID, tdc);
+      mMCTruthContainer->addElement(ndigits, label);
+    }
+  }
 }
 
 Float_t Digitizer::getShowerTimeSmeared(Float_t time, Float_t charge)
@@ -425,16 +490,16 @@ void Digitizer::test(const char* geo)
     Int_t detCur[5];
     o2::tof::Geo::getDetID(x, detCur);
 
-    hit->SetTime(0); // t->GetLeaf("cbmroot.TOF.TOFHit.mTime")->GetValue(j));
+    hit->SetTime(0); // t->GetLeaf("o2root.TOF.TOFHit.mTime")->GetValue(j));
     hit->SetXYZ(x[0], x[1], x[2]);
 
     hit->SetEnergyLoss(0.0001);
 
-    processHit(hit);
+    Int_t ndigits = processHit(*hit, mEventTime);
 
-    h3->Fill(getNumDigitLastHit());
+    h3->Fill(ndigits);
     hpadAll->Fill(xlocal, zlocal);
-    for (Int_t k = 0; k < getNumDigitLastHit(); k++) {
+    for (Int_t k = 0; k < ndigits; k++) {
       if (k == 0)
         h->Fill(getTimeLastHit(k));
       if (k == 0)
@@ -447,7 +512,7 @@ void Digitizer::test(const char* geo)
     }
 
     // check double digits case (time correlations)
-    if (getNumDigitLastHit() == 2) {
+    if (ndigits == 2) {
       h4->Fill(getTimeLastHit(0) - getTimeLastHit(1));
       h5->Fill((getTimeLastHit(0) + getTimeLastHit(1)) * 0.5);
     }
@@ -502,7 +567,7 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
   TFile* fHit = new TFile(hits);
   fHit->ls();
 
-  TTree* t = (TTree*)fHit->Get("cbmsim");
+  TTree* t = (TTree*)fHit->Get("o2sim");
   Int_t nev = t->GetEntriesFast();
 
   o2::tof::HitType* hit = new o2::tof::HitType();
@@ -515,20 +580,20 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
 
   for (Int_t i = 0; i < nev; i++) {
     t->GetEvent(i);
-    Int_t nhit = t->GetLeaf("cbmroot.TOF.TOFHit_")->GetLen();
+    Int_t nhit = t->GetLeaf("o2root.TOF.TOFHit_")->GetLen();
 
     for (Int_t j = 0; j < nhit; j++) {
-      hit->SetTime(0); // t->GetLeaf("cbmroot.TOF.TOFHit.mTime")->GetValue(j));
-      hit->SetXYZ(t->GetLeaf("cbmroot.TOF.TOFHit.mPos.fCoordinates.fX")->GetValue(j),
-                  t->GetLeaf("cbmroot.TOF.TOFHit.mPos.fCoordinates.fY")->GetValue(j),
-                  t->GetLeaf("cbmroot.TOF.TOFHit.mPos.fCoordinates.fZ")->GetValue(j));
+      hit->SetTime(0); // t->GetLeaf("o2root.TOF.TOFHit.mTime")->GetValue(j));
+      hit->SetXYZ(t->GetLeaf("o2root.TOF.TOFHit.mPos.fCoordinates.fX")->GetValue(j),
+                  t->GetLeaf("o2root.TOF.TOFHit.mPos.fCoordinates.fY")->GetValue(j),
+                  t->GetLeaf("o2root.TOF.TOFHit.mPos.fCoordinates.fZ")->GetValue(j));
 
-      hit->SetEnergyLoss(t->GetLeaf("cbmroot.TOF.TOFHit.mELoss")->GetValue(j));
+      hit->SetEnergyLoss(t->GetLeaf("o2root.TOF.TOFHit.mELoss")->GetValue(j));
 
-      processHit(hit);
+      Int_t ndigits = processHit(*hit, mEventTime);
 
-      h3->Fill(getNumDigitLastHit());
-      for (Int_t k = 0; k < getNumDigitLastHit(); k++) {
+      h3->Fill(ndigits);
+      for (Int_t k = 0; k < ndigits; k++) {
         h->Fill(getTimeLastHit(k));
         h2->Fill(getTotLastHit(k));
       }

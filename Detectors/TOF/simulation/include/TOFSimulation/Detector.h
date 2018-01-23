@@ -72,10 +72,10 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   void CreateMaterials();
   void ConstructGeometry() final;
+  void addAlignableVolumes() const override;
 
   void setTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
  protected:
-  HitType* addHit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId);
   virtual void DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA) final;
   virtual void MaterialMixer(Float_t* p, const Float_t* const a, const Float_t* const m, Int_t n) const final;
 
@@ -95,11 +95,23 @@ class Detector : public o2::Base::DetImpl<Detector>
   void makeCoversInBTOFvolumes() const;
   void makeBackInBTOFvolumes(Float_t ytof) const;
 
-  void addAlignableVolumes() const override;
+  bool isMergable(HitType hit1, HitType hit2)
+  {
+    if (hit1.GetTrackID() != hit2.GetTrackID()) {
+      return false;
+    }
+
+    if (std::abs(hit1.GetTime() - hit2.GetTime()) > 1.0 /*1 ns*/) {
+      return false;
+    }
+
+    return true;
+  }
 
   Int_t mEventNr; // event count
   Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
   Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
+  Int_t mLastChannelID = -1;///< Last channel seen by the hit
 
   /// container for data points
   std::vector<HitType>* mHits; //!

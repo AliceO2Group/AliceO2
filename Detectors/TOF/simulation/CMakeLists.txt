@@ -5,11 +5,13 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/Detector.cxx
   src/Digitizer.cxx
+  src/DigitizerTask.cxx
 )
 
 set(HEADERS
   include/TOFSimulation/Detector.h
   include/TOFSimulation/Digitizer.h
+  include/TOFSimulation/DigitizerTask.h
 )
 
 SET(LINKDEF src/TOFSimulationLinkDef.h)
