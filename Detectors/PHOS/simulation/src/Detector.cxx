@@ -172,7 +172,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     }
   }
   // Create new Hit
-  Double_t posX = 0., posY = 0., posZ = 0., momX = 0, momY = 0., momZ = 0., energy = 0.;
+  Float_t posX = 0., posY = 0., posZ = 0., momX = 0, momY = 0., momZ = 0., energy = 0.;
   fMC->TrackPosition(posX, posY, posZ);
   fMC->TrackMomentum(momX, momY, momZ, energy);
   Double_t estart = fMC->Etot();

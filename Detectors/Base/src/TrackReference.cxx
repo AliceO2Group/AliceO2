@@ -87,7 +87,7 @@ TrackReference::TrackReference(Int_t label, Int_t id)
 
   //
 
-  Double_t vec[4];
+  Float_t vec[4];
 
   TVirtualMC::GetMC()->TrackPosition(vec[0], vec[1], vec[2]);
 
