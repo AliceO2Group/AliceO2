@@ -39,7 +39,7 @@ script: |
     if [[ $TOOL == "doxygen" ]]; then
       cat > CMakeLists.txt <<\EOF
       add_subdirectory(doc)
-      EOF
+    EOF
       # This is required because of differences between doxygen and github
       # markdown syntax for code blocks. The committed code should use
       # the github flavour and we generate the doxygen one on the fly.
