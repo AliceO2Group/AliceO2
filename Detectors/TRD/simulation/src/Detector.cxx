@@ -44,7 +44,7 @@ bool Detector::ProcessHits(FairVolume* v)
 
   // just record position and basic quantities for the moment
   // TODO: needs to be interpreted properly
-  double x, y, z;
+  float x, y, z;
   vmc->TrackPosition(x, y, z);
 
   float enDep = vmc->Edep();
@@ -52,7 +52,7 @@ bool Detector::ProcessHits(FairVolume* v)
   auto stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
   auto trackID = stack->GetCurrentTrackNumber();
   auto sensID = v->getMCid();
-  addHit((float)x, (float)y, (float)z, time, enDep, trackID, sensID);
+  addHit(x, y, z, time, enDep, trackID, sensID);
   stack->addHit(GetDetId());
 
   return true;
