@@ -52,10 +52,6 @@ struct NameHeader : public BaseHeader {
     name[N-1] = '\0';
   }
 
-  NameHeader& operator=(const std::string string) {
-    std::copy(string.begin(), string.begin()+N, name);
-    return *this;
-  }
 private:
   char name[N];
 };

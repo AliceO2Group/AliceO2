@@ -147,6 +147,14 @@ namespace o2 {
       // DataHeader must have size 80
       static_assert(sizeof(DataHeader) == 80,
                     "DataHeader struct must be of size 80");
+      DataHeader dh2;
+      BOOST_CHECK(dh==dh2);
+      DataHeader dh3{gDataDescriptionInvalid,gDataOriginInvalid,DataHeader::SubSpecificationType{0},0};
+      BOOST_CHECK(dh==dh3);
+      DataHeader dh4{gDataDescriptionAny,gDataOriginAny,DataHeader::SubSpecificationType{1},1};
+      BOOST_CHECK(!(dh4==dh));
+      dh4=dh;
+      BOOST_CHECK(dh4==dh);
     }
 
     BOOST_AUTO_TEST_CASE(Descriptor_benchmark)

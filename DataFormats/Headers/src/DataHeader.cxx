@@ -133,42 +133,6 @@ void o2::header::DataHeader::print() const
 }
 
 //__________________________________________________________________________________________________
-DataHeader& o2::header::DataHeader::operator=(const DataHeader& that)
-{
-  magicStringInt = that.magicStringInt;
-  dataOrigin = that.dataOrigin;
-  dataDescription = that.dataDescription;
-  payloadSerializationMethod= that.payloadSerializationMethod;
-  subSpecification = that.subSpecification;
-  flags = that.flags;
-  headerVersion = that.headerVersion;
-  headerSize = that.headerSize;
-  payloadSize = that.payloadSize;
-  return *this;
-}
-
-//__________________________________________________________________________________________________
-DataHeader& o2::header::DataHeader::operator=(const DataOrigin& that)
-{
-  dataOrigin = that;
-  return *this;
-}
-
-//__________________________________________________________________________________________________
-DataHeader& o2::header::DataHeader::operator=(const DataDescription& that)
-{
-  dataDescription = that;
-  return *this;
-}
-
-//__________________________________________________________________________________________________
-DataHeader& o2::header::DataHeader::operator=(const SerializationMethod& that)
-{
-  payloadSerializationMethod = that;
-  return *this;
-}
-
-//__________________________________________________________________________________________________
 bool o2::header::DataHeader::operator==(const DataOrigin& that) const
 {
   return (that == gDataOriginAny||

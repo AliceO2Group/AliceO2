@@ -28,8 +28,8 @@
 #ifndef O2MESSAGEMONITOR_H_
 #define O2MESSAGEMONITOR_H_
 
-#include "O2Device/O2Device.h"
 #include "Headers/DataHeader.h"
+#include "O2Device/O2Device.h"
 
 /// This is a simple FairMQ monitoring class
 /// assumption is the messages are O@ messages (constructed supported
@@ -40,24 +40,22 @@
 /// the header block and payload block.
 class O2MessageMonitor : public o2::Base::O2Device
 {
-public:
-  O2MessageMonitor();
+ public:
+  O2MessageMonitor() = default;
   ~O2MessageMonitor() override = default;
 
-protected:
+ protected:
   void Run() override;
   void InitTask() override;
   bool HandleData(o2::Base::O2Message& parts, int index);
-  bool HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
-      const byte* dataBuffer,   size_t dataBufferSize);
+  bool HandleO2frame(const byte* headerBuffer, size_t headerBufferSize, const byte* dataBuffer, size_t dataBufferSize);
 
-private:
-  o2::header::DataHeader mDataHeader;
-  std::string mPayload;
-  std::string mName;
-  long long mDelay;
-  long long mIterations;
-  long long mLimitOutputCharacters;
+ private:
+  std::string mPayload{ "I am the info payload" };
+  std::string mName{ R"(My name is "gDataDescriptionInfo")" };
+  long long mDelay{ 1000 };
+  long long mIterations{ 10 };
+  long long mLimitOutputCharacters{ 1024 };
 };
 
 #endif /* O2MESSAGEMONITOR_H_ */
