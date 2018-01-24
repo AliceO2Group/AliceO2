@@ -27,7 +27,7 @@ coverage:
                                # adjusted are covered at least X%.
       default:
         enabled: yes             # must be yes|true to enable this status
-        target: 80%              # specify the target "X%" coverage to hit
+        target: 60%              # specify the target "X%" coverage to hit
         branches: null           # -> see "branch patterns" below
         threshold: null          # allowed to drop X% and still result in a "success" commit status
         if_no_uploads: error     # will post commit status of "error" if no coverage reports we uploaded
@@ -37,7 +37,7 @@ coverage:
 
     changes:                   # if there are any unexpected changes in coverage
       default:
-        enabled: yes             # must be yes|true to enable this status
+        enabled: no             # must be yes|true to enable this status
         branches: null           # -> see "branch patterns" below
         if_no_uploads: error
         if_not_found: success
@@ -56,7 +56,7 @@ coverage:
 comment:
   layout: "header, diff, changes, sunburst, suggestions, tree"
   branches: null           # -> see "branch patterns" below
-  behavior: new # option: "default" posts once then update, posts new if delete
-                # option: "once"    post once then updates, if deleted do not post new
-                # option: "new"     delete old, post new
-                # option: "spammy"  post new 
+  behavior: once # option: "default" posts once then update, posts new if delete
+                 # option: "once"    post once then updates, if deleted do not post new
+                 # option: "new"     delete old, post new
+                 # option: "spammy"  post new 
