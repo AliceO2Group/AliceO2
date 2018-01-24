@@ -24,7 +24,6 @@
 #include "TNamed.h"            // for TNamed
 #include <memory>              // for str::unique_ptr
 
-class FairLogger;  // lines 14-14
 class FairParamList;
 
 namespace o2 { namespace field { class MagneticWrapperChebyshev; }}  // lines 19-19
@@ -284,8 +283,6 @@ class MagneticField : public FairField
 
     static const Double_t sSolenoidToDipoleZ;  ///< conventional Z of transition from L3 to Dipole field
     static const UShort_t sPolarityConvention; ///< convention for the mapping of the curr.sign on main component sign
-
-    FairLogger *mLogger;
 
     MagneticField(const MagneticField &src);
 

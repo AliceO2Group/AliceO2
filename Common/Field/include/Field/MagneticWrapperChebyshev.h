@@ -22,8 +22,6 @@
 #include "MathUtils/Chebyshev3DCalc.h"  // for _INC_CREATION_Chebyshev3D_
 #include "Rtypes.h"                     // for Double_t, Int_t, Float_t, etc
 
-class FairLogger;  // lines 16-16
-
 namespace o2 {
 namespace field {
 
@@ -413,7 +411,6 @@ class MagneticWrapperChebyshev : public TNamed
     Float_t mMaxDipoleZ;     ///< Max Z of Dipole parameterization
     TObjArray *mParameterizationDipole; ///< Parameterization pieces for Dipole field
 
-    FairLogger *mLogger; //!
     ClassDefOverride(o2::field::MagneticWrapperChebyshev,
     2) // Wrapper class for the set of Chebishev parameterizations of Alice mag.field
 };

@@ -29,7 +29,6 @@
 
 class TClonesArray;
 class TRefArray;
-class FairLogger;
 
 namespace o2 {
 
@@ -192,8 +191,6 @@ class Stack : public FairGenericStack
     void notifyFinishPrimary();
 
   private:
-    FairLogger *mLogger;
-
     /// STL stack (FILO) used to handle the TParticles for tracking
     /// stack entries refer to
     std::stack<TParticle> mStack; //!

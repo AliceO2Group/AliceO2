@@ -42,8 +42,7 @@ Chebyshev3D::Chebyshev3D()
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   // Default constructor
   for (int i = 3; i--;) {
@@ -63,8 +62,7 @@ Chebyshev3D::Chebyshev3D(const Chebyshev3D &src)
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(src.mUserFunctionName),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   // read coefs from text file
   for (int i = 3; i--;) {
@@ -92,8 +90,7 @@ Chebyshev3D::Chebyshev3D(const char *inpFile)
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   // read coefs from text file
   for (int i = 3; i--;) {
@@ -113,8 +110,7 @@ Chebyshev3D::Chebyshev3D(FILE *stream)
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   // read coefs from stream
   for (int i = 3; i--;) {
@@ -137,8 +133,7 @@ Chebyshev3D::Chebyshev3D(const char* funName, int dimOut, const Float_t* bmin, c
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   if (dimOut < 1) {
     LOG(ERROR) << "Chebyshev3D: Requested output dimension is " << mOutputArrayDimension << "\nStop\n";
@@ -168,8 +163,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   if (dimOut < 1) {
     LOG(ERROR) << "Chebyshev3D: Requested output dimension is " << mOutputArrayDimension << " \nStop\n";
@@ -199,8 +193,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   if (dimOut < 1) {
     LOG(ERROR) << "Chebyshev3D: Requested output dimension is " << mOutputArrayDimension << "%d\nStop\n";
@@ -235,8 +228,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mTemporaryUserResults(nullptr),
     mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(nullptr),
-    mLogger(FairLogger::GetLogger())
+    mUserMacro(nullptr)
 {
   if (dimOut != 3) {
     LOG(ERROR) << "Chebyshev3D: This constructor works only for 3D fits, " << mOutputArrayDimension << "D fit was requested\n";
