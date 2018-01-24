@@ -52,11 +52,11 @@ coverage:
   fixes:           # [advanced] in rare cases the report tree is invalid, specify adjustments here
     - "old_path::new_path"
 
-# comment: false  # to disable comments
-comment:
-  layout: "header, diff, changes, sunburst, suggestions, tree"
-  branches: null           # -> see "branch patterns" below
-  behavior: once # option: "default" posts once then update, posts new if delete
-                 # option: "once"    post once then updates, if deleted do not post new
-                 # option: "new"     delete old, post new
-                 # option: "spammy"  post new 
+comment: false  # to disable comments
+#comment:
+#  layout: "header, diff, changes, sunburst, suggestions, tree"
+#  branches: null           # -> see "branch patterns" below
+#  behavior: once # option: "default" posts once then update, posts new if delete
+#                 # option: "once"    post once then updates, if deleted do not post new
+#                 # option: "new"     delete old, post new
+#                 # option: "spammy"  post new 
