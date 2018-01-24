@@ -80,7 +80,11 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::str
             auto res = dispatchers.find(dispatcherSubSpec);
             if (res != dispatchers.end()) {
               res->second.inputs.push_back(newInput);
-              res->second.outputs.push_back(createDispatcherOutputSpec(newInput));
+              OutputSpec newOutput = createDispatcherOutputSpec(newInput);
+              if (infrastructureCfg.enableParallelDispatchers ||
+                  std::find(res->second.outputs.begin(), res->second.outputs.end(), newOutput) == res->second.outputs.end()){
+                res->second.outputs.push_back(newOutput);
+              }
               if (infrastructureCfg.enableTimePipeliningDispatchers &&
                   res->second.maxInputTimeslices < dataProcessor.maxInputTimeslices) {
                 res->second.maxInputTimeslices = dataProcessor.maxInputTimeslices;
