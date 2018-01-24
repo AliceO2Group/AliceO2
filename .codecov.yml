@@ -50,7 +50,7 @@ coverage:
     - "*/ROOT/*"
 
   fixes:           # [advanced] in rare cases the report tree is invalid, specify adjustments here
-    - "^[0-9]*/::" # Sometimes we get sources prefixed with the PR number. This should hopefully get rid of it.
+    - "^[0-9]+/::" # Sometimes we get sources prefixed with the PR number. This should hopefully get rid of it.
 
 # comment: false  # to disable comments
 comment:
