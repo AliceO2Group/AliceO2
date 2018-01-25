@@ -68,7 +68,8 @@ public:
   bool AdjustSector(AliHLTTRDTrack *t, const int layer) const;
   int GetSector(double alpha) const;
   float GetAlphaOfSector(const int sec) const;
-  void CountMatches(const int trkLbl, std::vector<int> *matches) const;
+  void CountMatches(const int trackID, std::vector<int> *matches) const;
+  void CheckTrackRefs(const int trackID, TVectorF &findableMC) const;
   void FindChambersInRoad(const AliHLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax) const;
   bool IsFindable(const AliHLTTRDTrack *t, const int layer) const;
 
