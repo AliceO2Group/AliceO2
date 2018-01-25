@@ -293,7 +293,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
           }
         }
         MCCompLabel& bestLabel = labels[bestLabelNum].first;
-        if (bestLabelCount < sTrackMCMaxFake * tracks[i].NClusters()) bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
+        if (bestLabelCount < (1.f - sTrackMCMaxFake) * tracks[i].NClusters()) bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
         outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
       int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24;
