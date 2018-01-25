@@ -33,7 +33,11 @@ void Config()
 
   geant3->SetRAYL(1);
   geant3->SetSTRA(0);
-  geant3->SetAUTO(0); // Select automatic STMIN etc... calc. (AUTO 1) or manual (AUTO 0)
+  
+  // NOTE: Please avoid changing this setting, unless justified as this might lead to very many steps
+  // performed by G3; AUTO(1) is the G3 default
+  geant3->SetAUTO(1); // Select automatic STMIN etc... calc. (AUTO 1) or manual (AUTO 0)
+
   geant3->SetABAN(0); // Restore 3.16 behaviour for abandoned tracks
   geant3->SetOPTI(2); // Select optimisation level for GEANT geometry searches (0,1,2)
   geant3->SetERAN(5.e-7);
