@@ -4,8 +4,10 @@
   #include "TSystem.h"
 
   #include "FairRunSim.h"
+  #include "FairLogger.h"
   #include "DetectorsPassive/Cave.h"
   #include "DetectorsPassive/FrameStructure.h"
+  #include "EMCALSimulation/Detector.h"
 #endif
 
 

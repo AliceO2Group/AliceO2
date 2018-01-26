@@ -3,9 +3,10 @@
 #include "DetectorsPassive/FrameStructure.h"
 #include "FairRunSim.h"
 #include "TGeoManager.h"
-#include "TOFSimulation/Detector.h"
+#include "EMCALSimulation/Detector.h"
 #include "TROOT.h"
-#include "TString.h"
+#include "TObjArray.h"
+#include "TObjString.h"
 #include "TString.h"
 #include "TSystem.h"
 
@@ -41,8 +42,8 @@ void drawEMCALgeometry()
   o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
   run->AddModule(frame);
 
-  o2::EMCAL::Detector* tof = new o2::EMCAL::Detector(kTRUE);
-  run->AddModule(tof);
+  o2::EMCAL::Detector* emcal = new o2::EMCAL::Detector(kTRUE);
+  run->AddModule(emcal);
 
   run->Init();
   {
@@ -65,12 +66,15 @@ void drawEMCALgeometry()
     while ((name = (TObjString*)iToShow->Next()))
       gGeoManager->GetVolume(name->GetName())->SetVisibility(kTRUE);
 
-    const TString ToTrans = "SCM0 SCMCX SCMY";
+    const TString ToTrans = "SCM0 SCMX SCMY";
 
     TObjArray* lToTrans = ToTrans.Tokenize(" ");
     TIter* iToTrans = new TIter(lToTrans);
-    while ((name = (TObjString*)iToTrans->Next()))
-      gGeoManager->GetVolume(name->GetName())->SetTransparency(50);
+    while ((name = (TObjString*)iToTrans->Next())){
+      auto v  = gGeoManager->GetVolume(name->GetName());
+      if(v) v->SetTransparency(50);
+      else printf("Volume %s not found ...\n", name->GetName());
+    }
   }
 
   gGeoManager->GetListOfVolumes()->ls();
