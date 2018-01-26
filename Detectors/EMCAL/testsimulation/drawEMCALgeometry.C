@@ -1,12 +1,12 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
+#include "EMCALSimulation/Detector.h"
 #include "FairRunSim.h"
 #include "TGeoManager.h"
-#include "EMCALSimulation/Detector.h"
-#include "TROOT.h"
 #include "TObjArray.h"
 #include "TObjString.h"
+#include "TROOT.h"
 #include "TString.h"
 #include "TSystem.h"
 
@@ -47,8 +47,7 @@ void drawEMCALgeometry()
 
   run->Init();
   {
-    const TString ToHide =
-      "cave";
+    const TString ToHide = "cave";
 
     TObjArray* lToHide = ToHide.Tokenize(" ");
     TIter* iToHide = new TIter(lToHide);
@@ -56,8 +55,7 @@ void drawEMCALgeometry()
     while ((name = (TObjString*)iToHide->Next()))
       gGeoManager->GetVolume(name->GetName())->SetVisibility(kFALSE);
 
-    TString ToShow =
-      "SMOD SM3rd DCSM DCEXT";
+    TString ToShow = "SMOD SM3rd DCSM DCEXT";
     // ToShow.ReplaceAll("FCOV", "");//Remove external cover but PHOS hole
     // ToShow.ReplaceAll("FLTA", "");//Remove internal cover but PHOS hole
 
@@ -70,10 +68,12 @@ void drawEMCALgeometry()
 
     TObjArray* lToTrans = ToTrans.Tokenize(" ");
     TIter* iToTrans = new TIter(lToTrans);
-    while ((name = (TObjString*)iToTrans->Next())){
-      auto v  = gGeoManager->GetVolume(name->GetName());
-      if(v) v->SetTransparency(50);
-      else printf("Volume %s not found ...\n", name->GetName());
+    while ((name = (TObjString*)iToTrans->Next())) {
+      auto v = gGeoManager->GetVolume(name->GetName());
+      if (v)
+        v->SetTransparency(50);
+      else
+        printf("Volume %s not found ...\n", name->GetName());
     }
   }
 
