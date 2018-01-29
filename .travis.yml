@@ -32,9 +32,6 @@ matrix:
         local_dir: doc/html
         on:
           branch: dev
-  allow_failures:
-    # a lot of code doesn't follow clang-format yet
-    - env: TOOL=clang-format
 script: |
     if [[ $TOOL == "doxygen" ]]; then
       cat > CMakeLists.txt <<\EOF
