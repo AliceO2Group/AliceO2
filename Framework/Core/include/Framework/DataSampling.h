@@ -50,10 +50,18 @@ class DataSampling {
       }
     };
 
+    //for temporary feature
+    struct FairMqInput {
+      OutputSpec outputSpec;
+      std::string channelConfig;
+      std::string converterType;
+    };
+
     struct QcTaskConfiguration{
       std::string name;
+      std::vector<FairMqInput> desiredFairMqData; //for temporary feature
       std::vector<InputSpec> desiredDataSpecs;
-      header::DataHeader::SubSpecificationType subSpec;
+      SubSpecificationType subSpec;
       double fractionOfDataToSample;
       std::string fairMqOutputChannelConfig;
     };
