@@ -36,9 +36,6 @@
 #pragma link C++ class o2::TPC::HitGroup+;
 #pragma link C++ class o2::TPC::SAMPAProcessing+;
 
-#pragma link C++ class std::vector<o2::TPC::Cluster>+;
-#pragma link C++ class std::vector<o2::TPC::BoxCluster>+;
-#pragma link C++ class std::vector<o2::TPC::HwCluster>+;
 #pragma link C++ class std::vector<o2::TPC::HitGroup>+;
 
 #endif
