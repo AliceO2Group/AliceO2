@@ -20,20 +20,23 @@
 #include "Framework/DataChunk.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
-
+#include <Framework/SimpleRawDeviceService.h>
+#include "FairMQDevice.h"
+#include "FairMQTransportFactory.h"
 
 namespace o2 {
 namespace framework {
 
 class DataSampling {
   public:
-    using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
     DataSampling() = delete;
 
     static void GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource);
 
   private:
+    using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
+
     struct BernoulliGenerator {
       std::default_random_engine generator;
       std::bernoulli_distribution distribution;
@@ -52,6 +55,7 @@ class DataSampling {
       std::vector<InputSpec> desiredDataSpecs;
       header::DataHeader::SubSpecificationType subSpec;
       double fractionOfDataToSample;
+      std::string fairMqOutputChannelConfig;
     };
     using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
 
@@ -69,8 +73,15 @@ class DataSampling {
 
     static AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
     static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
+    static AlgorithmSpec::ProcessCallback initDispatcherCallbackFairMQ(InitContext &ctx, const std::string &channel,
+                                                                       double fraction);
+    static void dispatcherCallbackFairMQ(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator,
+                                         FairMQDevice* device, const std::string &channel);
+
     static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);
-    static auto getEdgeMatcher(const SubSpecificationType &subSpec);
+    static auto getEdgeMatcher(const QcTaskConfiguration &taskCfg);
+    static auto getDispatcherCreator(const QcTaskConfiguration & taskCfg);
+    static auto getEdgeCreator(const QcTaskConfiguration & taskCfg, const InfrastructureConfig &infrastructureCfg);
     static QcTaskConfigurations readQcTasksConfiguration(const std::string &configurationSource);
     static InfrastructureConfig readInfrastructureConfiguration(const std::string &configurationSource);
 };
