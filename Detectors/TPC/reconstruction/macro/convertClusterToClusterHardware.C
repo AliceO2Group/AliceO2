@@ -17,6 +17,8 @@
 #include "TROOT.h"
 #include "TFile.h"
 #include "TString.h"
+#include "TChain.h"
+#include "TTree.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
