@@ -57,6 +57,7 @@ compile_commands.json
 .project
 .idea
 .settings
+.vscode
 .ycm_extra_conf.py
 
 # Datafiles
