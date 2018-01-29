@@ -47,16 +47,6 @@ struct FakeCluster {
 
 void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 {
-  OutputSpec readoutOutputSpec{o2::Header::gDataOriginITS, o2::Header::gDataDescriptionRawData, 0, OutputSpec::Timeframe};
-  DataProcessorSpec readout = specifyExternalFairMQDeviceProxy(
-    "readout",
-    Outputs{
-      readoutOutputSpec
-    },
-    "type=sub,method=connect,address=tcp://localhost:5558,rateLogging=1",
-    incrementalConverter(readoutOutputSpec, 0, 1)
-  );
-
   DataProcessorSpec processingStage{
     "processingStage",
     Inputs{
@@ -97,7 +87,6 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     }
   };
 
-  specs.push_back(readout);
   specs.push_back(processingStage);
   specs.push_back(sink);
 

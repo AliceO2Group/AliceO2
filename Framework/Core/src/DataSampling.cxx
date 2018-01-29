@@ -12,6 +12,7 @@
 #include <boost/optional.hpp>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
+#include <Framework/ExternalFairMQDeviceProxy.h>
 
 #include "Framework/DataSampling.h"
 #include "Framework/ProcessingContext.h"
@@ -115,17 +116,25 @@ auto DataSampling::getDispatcherCreator(const QcTaskConfiguration & taskCfg){
 
 void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource)
 {
-  //todo:
-  // proxy
-
   QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
   InfrastructureConfig infrastructureCfg = readInfrastructureConfiguration(configurationSource);
 
   for (auto&& task : tasks) {
+    // if necessary, create FairMQ -> DPL proxies and after that, look for their outputs in workflow.
+    // (it is surely not an optimal way to do that, but this is only a temporary feature)
+    for (auto&& fairMqProxy : task.desiredFairMqData) {
+      workflow.emplace_back(specifyExternalFairMQDeviceProxy(
+        ("FairMQ_proxy_for_" + task.name).c_str(),
+        Outputs{fairMqProxy.outputSpec},
+        fairMqProxy.channelConfig.c_str(),
+        fairMqProxy.converterType == "o2DataModelAdaptor" ? o2DataModelAdaptor(fairMqProxy.outputSpec, 0, 1)
+                                                          : incrementalConverter(fairMqProxy.outputSpec, 0, 1)
+      ));
+    }
 
     std::unordered_map<SubSpecificationType, DataProcessorSpec> dispatchers;
 
-    // some conditions checkers, to make the later code cleaner and hide its configuration
+    // some lambda functions to make the later code cleaner and hide its configuration
     auto areEdgesMatching = getEdgeMatcher(task);
     auto createDispatcherSpec = getDispatcherCreator(task);
     auto addEdgesToDispatcher = getEdgeCreator(task, infrastructureCfg);
@@ -352,6 +361,20 @@ DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const 
         continue;
       }
       task.desiredDataSpecs.push_back(desiredData);
+
+      // temporary feature
+      if (configFile->getInt(input + "/spawnConverter").value_or(0)){
+        FairMqInput fairMqInput{
+          OutputSpec{
+            desiredData.origin,
+            desiredData.description,
+            task.subSpec == -1 ? 0 : task.subSpec,
+          },
+          configFile->getString(input + "/channelConfig").value_or(""),
+          configFile->getString(input + "/converterType").value_or("incrementalConverter")
+        };
+        task.desiredFairMqData.push_back(fairMqInput);
+      }
     }
 
     if (task.desiredDataSpecs.empty()) {
