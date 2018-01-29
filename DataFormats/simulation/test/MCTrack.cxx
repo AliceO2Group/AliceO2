@@ -16,7 +16,7 @@
 #include <ios>
 #include <iostream>
 #include "SimulationDataFormat/MCTrack.h"
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "TParticle.h"
 #include "TFile.h"
 
@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(MCTrack_test)
   MCTrack track;
   // check properties on default constructed object
   BOOST_CHECK(track.getStore() == false);
-  for (auto i = o2::Base::DetID::First; i < o2::Base::DetID::nDetectors; ++i) {
+  for (auto i = o2::detectors::DetID::First; i < o2::detectors::DetID::nDetectors; ++i) {
     BOOST_CHECK(track.leftTrace(i) == false);
   }
   BOOST_CHECK(track.getNumDet() == 0);

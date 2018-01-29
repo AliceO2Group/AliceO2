@@ -13,7 +13,7 @@
 
 #include "DetectorsBase/Detector.h"
 #include "DetectorsBase/MaterialManager.h"
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
 #include <TVirtualMC.h>  // for TVirtualMC, gMC
 #include "TString.h"     // for TString
@@ -25,6 +25,7 @@ using std::ios;
 using std::ostream;
 
 using namespace o2::Base;
+using namespace o2::detectors;
 
 Float_t Detector::mDensityFactor = 1.0;
 

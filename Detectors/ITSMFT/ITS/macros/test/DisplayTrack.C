@@ -19,7 +19,7 @@
   #include "SimulationDataFormat/MCCompLabel.h"
   #include "SimulationDataFormat/MCTruthContainer.h"
   #include "ITSMFTSimulation/Hit.h"
-  #include "DetectorsBase/Utils.h"
+  #include "MathUtils/Utils.h"
   #include "MathUtils/Cartesian3D.h"
   #include "ITSBase/GeometryTGeo.h"
   #include "ITSMFTReconstruction/Cluster.h"
@@ -154,7 +154,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
 found:
   std::cout<<"MC event "<<event<<" found in the Time Frame #"<<tf<<std::endl;
   o2::ITS::GeometryTGeo *gman = GeometryTGeo::Instance();
-  gman->fillMatrixCache( Utils::bit2Mask(TransformType::T2GRot) ); // request cached transforms
+  gman->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::T2GRot) ); // request cached transforms
 
   nc=clusArr->size(); n=0;
   while(nc--) {

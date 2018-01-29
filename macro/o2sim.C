@@ -117,13 +117,13 @@ void o2sim()
     TIter next(modArr);
     FairModule* module = nullptr;
     while ( (module=(FairModule*)next()) ) {
-      if (module->GetModId()<o2::Base::DetID::First) {
+      if (module->GetModId()<o2::detectors::DetID::First) {
 	continue; // passive
       }
-      if (module->GetModId()>o2::Base::DetID::Last) {
+      if (module->GetModId()>o2::detectors::DetID::Last) {
 	continue; // passive
       }
-      grp.addDetReadOut( o2::Base::DetID(module->GetModId()) );    
+      grp.addDetReadOut( o2::detectors::DetID(module->GetModId()) );    
     }
     grp.print();
     printf("VMC: %p\n",TVirtualMC::GetMC());

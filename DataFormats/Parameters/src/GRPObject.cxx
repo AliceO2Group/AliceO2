@@ -19,7 +19,7 @@
 using namespace o2::parameters;
 using namespace o2::constants::physics;
 using namespace o2::constants::lhc;
-using o2::Base::DetID;
+using o2::detectors::DetID;
 
 //_______________________________________________
 float GRPObject::getSqrtS() const

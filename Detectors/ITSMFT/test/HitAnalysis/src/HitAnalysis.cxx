@@ -28,7 +28,7 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
-#include "DetectorsBase/Utils.h"
+#include "MathUtils/Utils.h"
 #include <vector>
 
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
@@ -37,7 +37,7 @@ using o2::ITSMFT::Hit;
 
 using namespace o2::ITS;
 using namespace o2::Base;
-using namespace o2::Base::Utils;
+using namespace o2::utils;
 
 HitAnalysis::HitAnalysis() :
   FairTask(),
@@ -89,7 +89,7 @@ InitStatus HitAnalysis::Init()
   // Create geometry, initialize chip array
   GeometryTGeo* geom = GeometryTGeo::Instance();
   if ( !geom->isBuilt() ) geom->Build(true);
-  geom->fillMatrixCache( bit2Mask(TransformType::L2G) ); // make sure T2L matrices are loaded
+  geom->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::L2G) ); // make sure T2L matrices are loaded
 
   mGeometry = geom;
 

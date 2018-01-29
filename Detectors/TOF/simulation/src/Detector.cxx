@@ -1813,7 +1813,7 @@ void Detector::addAlignableVolumes() const
   // eventual changes in the geometry.
   //
 
-  o2::Base::DetID::ID idTOF = o2::Base::DetID::TOF;
+  o2::detectors::DetID::ID idTOF = o2::detectors::DetID::TOF;
   Int_t modUID, modnum = 0;
 
   TString volPath;

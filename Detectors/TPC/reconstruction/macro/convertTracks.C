@@ -21,12 +21,12 @@
 #include "TClonesArray.h"
 
 #include "TPCReconstruction/TrackTPC.h"
-#include "DetectorsBase/Track.h"
+#include "ReconstructionDataFormats/Track.h"
 #include "TPCReconstruction/Cluster.h"
 #endif
 
 using namespace o2::TPC;
-using namespace o2::Base::Track;
+using namespace o2::track;
 
 struct OutputTrack
 {

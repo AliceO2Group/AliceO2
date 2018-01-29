@@ -19,7 +19,7 @@
 #include "TLorentzVector.h"
 
 #include "DetectorsBase/Detector.h"
-#include "DetectorsBase/DetID.h"   // for Detector
+#include "DetectorsCommonDataFormats/DetID.h"   // for Detector
 #include "ITSMFTSimulation/Hit.h"     // for Hit
 #include <vector>            // for vector
 

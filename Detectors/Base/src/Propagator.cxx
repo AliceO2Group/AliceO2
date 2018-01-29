@@ -15,7 +15,8 @@
 #include "Field/MagFieldFast.h"
 #include "Field/MagneticField.h"
 
-using namespace o2::Base::Track;
+using namespace o2::track;
+using namespace o2::Base;
 
 Propagator::Propagator()
 {

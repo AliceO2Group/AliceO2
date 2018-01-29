@@ -27,12 +27,11 @@
 #include "ITSMFTSimulation/DigiParams.h"
 
 using namespace o2::ITSMFT;
-using namespace o2::Base;
 
 ClassImp(o2::ITSMFT::Chip);
 
 //_______________________________________________________________________
-Chip::Chip(const DigiParams* par, Int_t chipindex, const o2::Base::Transform3D *mat) :
+Chip::Chip(const DigiParams* par, Int_t chipindex, const o2::Transform3D *mat) :
   mParams(par),
   mChipIndex(chipindex),
   mMat(mat)

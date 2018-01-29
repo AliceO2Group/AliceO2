@@ -17,9 +17,9 @@
 #include <TGeoOverlap.h>
 #include <TGeoPhysicalNode.h>
 
-#include "DetectorsBase/AlignParam.h"
+#include "DetectorsCommonDataFormats/AlignParam.h"
 
-using namespace o2::Base;
+using namespace o2::detectors;
 
 //___________________________________________________
 AlignParam::AlignParam(const char* symname, int algID,       // volume symbolic name and its alignable ID

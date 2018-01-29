@@ -16,7 +16,7 @@
 #include <iostream>
 #include "MathUtils/Cartesian3D.h"
 
-using namespace o2::Base;
+using namespace o2;
 
 BOOST_AUTO_TEST_CASE(Cartesian3D_test)
 {

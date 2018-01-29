@@ -13,7 +13,7 @@
 
 #include "ITSReconstruction/TrivialClustererTask.h"
 #include "MathUtils/Cartesian3D.h"
-#include "DetectorsBase/Utils.h"
+#include "MathUtils/Utils.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -26,7 +26,7 @@ ClassImp(o2::ITS::TrivialClustererTask)
 
 using namespace o2::ITS;
 using namespace o2::Base;
-using namespace o2::Base::Utils;
+using namespace o2::utils;
 
 //_____________________________________________________________________
 TrivialClustererTask::TrivialClustererTask(Bool_t useMC) : FairTask("ITSTrivialClustererTask") {
@@ -72,7 +72,7 @@ InitStatus TrivialClustererTask::Init()
   mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
+  geom->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::T2L) ); // make sure T2L matrices are loaded
   mGeometry = geom;
   mTrivialClusterer.setGeometry(geom);
   mTrivialClusterer.setMCTruthContainer(mClsLabels);

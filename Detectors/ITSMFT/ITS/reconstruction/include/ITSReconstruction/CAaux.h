@@ -14,8 +14,8 @@
 #include <vector>
 #include <array>
 #include <cmath>
-#include "DetectorsBase/Track.h"
-#include "DetectorsBase/Constants.h"
+#include "ReconstructionDataFormats/Track.h"
+#include "CommonConstants/MathConstants.h"
 
 namespace o2 {
   namespace ITS {
@@ -98,10 +98,10 @@ namespace o2 {
       };
       typedef struct Cluster ClsInfo_t;
 
-      class Track : public o2::Base::Track::TrackParCov {
+      class Track : public o2::track::TrackParCov {
         public:
-          using o2::Base::Track::TrackParCov::TrackParCov;
-          Track(float x, float a, std::array<float,Base::Track::kNParams> p, std::array<float,Base::Track::kCovMatSize> c, int *cl);
+          using o2::track::TrackParCov::TrackParCov;
+          Track(float x, float a, std::array<float,track::kNParams> p, std::array<float,track::kCovMatSize> c, int *cl);
 
           int* Clusters() { return mCl; }
 
@@ -168,7 +168,7 @@ namespace o2 {
 
       inline bool CompareAngles(float alpha, float beta, float tolerance) {
         const float delta = fabs(alpha - beta);
-        return (delta < tolerance || fabs(delta - o2::Base::Constants::k2PI) < tolerance);
+        return (delta < tolerance || fabs(delta - o2::constants::math::TwoPI) < tolerance);
       }
     } // namespace CA
   } // namespace ITS

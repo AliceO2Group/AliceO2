@@ -34,8 +34,6 @@ using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, RO
 
 namespace o2
 {
-namespace Base
-{
 
 /// predefined transformations: Tracking->Local, Tracking->Global, Local->Global etc 
 /// The IDs must be < 32
@@ -227,9 +225,8 @@ class Transform3D : public ROOT::Math::Transform3D
   ClassDefNV(Transform3D, 1)
 };
 }
-}
 
-std::ostream &operator<<(std::ostream &os, const o2::Base::Rotation2D &t);
+std::ostream &operator<<(std::ostream &os, const o2::Rotation2D &t);
 
 
 #endif

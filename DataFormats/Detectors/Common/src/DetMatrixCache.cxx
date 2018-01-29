@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsBase/DetMatrixCache.h"
-#include "DetectorsBase/Utils.h"
+#include "DetectorsCommonDataFormats/DetMatrixCache.h"
+#include "MathUtils/Utils.h"
 #include <TGeoMatrix.h>
 
-using namespace o2::Base;
-using namespace o2::Base::Utils;
+using namespace o2::detectors;
+using namespace o2::utils;
 
-ClassImp(o2::Base::MatrixCache<o2::Base::Transform3D>);
-ClassImp(o2::Base::MatrixCache<o2::Base::Rotation2D>);
-ClassImp(o2::Base::DetMatrixCache);
+ClassImp(o2::detectors::MatrixCache<o2::Transform3D>);
+ClassImp(o2::detectors::MatrixCache<o2::Rotation2D>);
+ClassImp(o2::detectors::DetMatrixCache);
 
 
 //_______________________________________________________

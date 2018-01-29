@@ -9,7 +9,7 @@
   #include <TCanvas.h>
   #include <TString.h>
 
-  #include "DetectorsBase/Utils.h"
+  #include "MathUtils/Utils.h"
   #include "ITSMFTBase/SegmentationAlpide.h"
   #include "ITSMFTBase/Digit.h"
   #include "ITSMFTSimulation/Hit.h"
@@ -36,7 +36,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   gFile->Get("FairGeoParSet");
   
   auto *gman = o2::ITS::GeometryTGeo::Instance();
-  gman->fillMatrixCache( Utils::bit2Mask(TransformType::L2G) );
+  gman->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::L2G) );
   
   SegmentationAlpide seg;
 

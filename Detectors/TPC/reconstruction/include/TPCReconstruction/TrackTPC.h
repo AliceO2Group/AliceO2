@@ -11,7 +11,7 @@
 #ifndef ALICEO2_TPC_TRACKTPC
 #define ALICEO2_TPC_TRACKTPC
 
-#include "DetectorsBase/Track.h"
+#include "ReconstructionDataFormats/Track.h"
 
 #include "TPCBase/Defs.h"
 #include "TPCReconstruction/Cluster.h"
@@ -24,10 +24,10 @@ namespace TPC {
 /// This is the definition of the TPC Track Object
 
 
-class TrackTPC :public o2::Base::Track::TrackParCov {
+class TrackTPC :public o2::track::TrackParCov {
   public:
 
-    using o2::Base::Track::TrackParCov::TrackParCov; // inherit
+    using o2::track::TrackParCov::TrackParCov; // inherit
 
     /// Default constructor
     TrackTPC() = default;
@@ -60,12 +60,12 @@ class TrackTPC :public o2::Base::Track::TrackParCov {
     float getLastClusterZ() const {return mLastClusterZ;}
     Side getSide() const {return (Side) mSide;}
     float getChi2() const {return mChi2;}
-    const o2::Base::Track::TrackParCov& getOuterParam() const {return mOuterParam;}
+    const o2::track::TrackParCov& getOuterParam() const {return mOuterParam;}
     void setTime0(float v) {mTime0 = v;}
     void setLastClusterZ(float v) {mLastClusterZ = v;}
     void setSide(Side v) {mSide = v;}
     void setChi2(float v) {mChi2 = v;}
-    void setOuterParam(o2::Base::Track::TrackParCov&& v) {mOuterParam = v;}
+    void setOuterParam(o2::track::TrackParCov&& v) {mOuterParam = v;}
     
     void resetClusterReferences(int nClusters);
     int getNClusterReferences() {return mNClusters;}
@@ -95,7 +95,7 @@ class TrackTPC :public o2::Base::Track::TrackParCov {
     float mLastClusterZ = 0.f; //Z position of last cluster
     char mSide = Side::UNDEFINED; //TPC Side (A or C) where the track is located (seeding start of the track for those crossing the central electrode)
     float mChi2 = 0.f; //Chi2 of the track
-    o2::Base::Track::TrackParCov mOuterParam; //Track parameters at outer end of TPC.
+    o2::track::TrackParCov mOuterParam; //Track parameters at outer end of TPC.
     
     //New structure to store cluster references
     int mNClusters = 0;

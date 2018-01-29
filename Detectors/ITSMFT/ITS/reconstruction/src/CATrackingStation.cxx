@@ -37,12 +37,12 @@
 
 #include "ITSMFTSimulation/Hit.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "DetectorsBase/Utils.h"
+#include "MathUtils/Utils.h"
 
 
 using namespace o2::ITS::CA;
-using o2::Base::Constants::k2PI;
-using o2::Base::Utils::BringTo02Pi;
+using o2::constants::math::TwoPI;
+using o2::utils::BringTo02Pi;
 using o2::ITSMFT::Hit;
 
 TrackingStation::TrackingStation() :
@@ -109,7 +109,7 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
   if (mNZBins < 1)   mNZBins = 2;
   if (mNPhiBins < 1) mNPhiBins = 1;
   mDZInv   = mNZBins / (mZMax - mZMin);
-  mDPhiInv = mNPhiBins / k2PI;
+  mDPhiInv = mNPhiBins / TwoPI;
   //
   mBins = new ClBinInfo_t[mNZBins * mNPhiBins];
   mOccBins = new int[mNZBins * mNPhiBins];

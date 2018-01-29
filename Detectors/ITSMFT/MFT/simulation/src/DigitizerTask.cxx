@@ -15,7 +15,7 @@
 
 #include "MFTSimulation/DigitizerTask.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "DetectorsBase/Utils.h"
+#include "MathUtils/Utils.h"
 #include "MFTBase/GeometryTGeo.h"
 
 #include "FairLogger.h"      // for LOG
@@ -24,8 +24,8 @@
 ClassImp(o2::MFT::DigitizerTask)
 
 using namespace o2::MFT;
-using namespace o2::Base;
-using namespace o2::Base::Utils;
+using namespace o2::detectors;
+using namespace o2::utils;
 
 using o2::ITSMFT::DigiParams;
 
@@ -78,7 +78,7 @@ InitStatus DigitizerTask::Init()
   mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
   
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache( bit2Mask(TransformType::L2G) ); // make sure L2G matrices are loaded
+  geom->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::L2G) ); // make sure L2G matrices are loaded
   mDigitizer.setGeometry(geom);
 
   mDigitizer.init();

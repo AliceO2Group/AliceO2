@@ -19,7 +19,7 @@
 #include "TLorentzVector.h"
 #include "TMath.h"
 #include "TVector3.h"
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "TDatabasePDG.h"
 #include "TParticle.h"
 #include "TParticlePDG.h"
@@ -142,7 +142,7 @@ class MCTrackT
     // set bit indicating that this track
     // left a hit in detector with id iDet
     void setHit(Int_t iDet) {
-      assert(0<=iDet && iDet < o2::Base::DetID::nDetectors);
+      assert(0<=iDet && iDet < o2::detectors::DetID::nDetectors);
       auto prop = ((PropEncoding)mProp);
       prop.hitmask |= 1 << iDet;
       mProp = prop.i;
@@ -157,7 +157,7 @@ class MCTrackT
     int getNumDet() const
     {
       int count = 0;
-      for (auto i = o2::Base::DetID::First; i < o2::Base::DetID::nDetectors; ++i) {
+      for (auto i = o2::detectors::DetID::First; i < o2::detectors::DetID::nDetectors; ++i) {
         if (leftTrace(i))
           count++;
       }

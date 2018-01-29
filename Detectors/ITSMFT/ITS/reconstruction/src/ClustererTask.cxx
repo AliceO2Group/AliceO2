@@ -12,7 +12,7 @@
 /// \brief Implementation of the ITS cluster finder task
 
 #include "ITSReconstruction/ClustererTask.h"
-#include "DetectorsBase/Utils.h"
+#include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -24,7 +24,7 @@ ClassImp(o2::ITS::ClustererTask)
 
 using namespace o2::ITS;
 using namespace o2::Base;
-using namespace o2::Base::Utils;
+using namespace o2::utils;
 
 //_____________________________________________________________________
 ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("ITSClustererTask") {
@@ -72,7 +72,7 @@ InitStatus ClustererTask::Init()
   mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
+  geom->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::T2L) ); // make sure T2L matrices are loaded
   mGeometry = geom;
   mClusterer.setGeometry(geom);
   mClusterer.setMCTruthContainer(mClsLabels);

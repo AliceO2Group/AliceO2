@@ -21,9 +21,10 @@
 #include <cassert>
 #include <cstddef> // for NULL
 
-#include "DetectorsBase/AlignParam.h"
+#include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
 
+using namespace o2::detectors;
 using namespace o2::Base;
 
 ClassImp(o2::Base::GeometryManager);

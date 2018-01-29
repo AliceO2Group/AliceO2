@@ -28,7 +28,7 @@ using o2::ITSMFT::Chip;
 using o2::ITSMFT::Digit;
 
 using namespace o2::ITSMFT;
-using namespace o2::Base;
+//using namespace o2::Base;
 
 
 //_______________________________________________________________________

@@ -14,22 +14,12 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
-#pragma link C++ enum o2::Base::TransformType;
  
 #pragma link C++ class o2::Base::Detector+;
-#pragma link C++ class o2::Base::Track::TrackPar+;
-#pragma link C++ class o2::Base::Track::TrackParCov+;
-#pragma link C++ class o2::Base::Track::Propagator+;
+#pragma link C++ class o2::Base::Propagator+;
 
-#pragma link C++ class o2::Base::TrackReference+;
-#pragma link C++ class o2::Base::DetID+;
 #pragma link C++ class o2::Base::GeometryManager+;
 #pragma link C++ class o2::Base::GeometryManager::MatBudget+;
-#pragma link C++ class o2::Base::BaseCluster<float>+;
-#pragma link C++ class o2::Base::MatrixCache<o2::Base::Transform3D>+;
-#pragma link C++ class o2::Base::MatrixCache<o2::Base::Rotation2D>+;
-#pragma link C++ class o2::Base::DetMatrixCache+;
 #pragma link C++ class o2::Base::MaterialManager+;
-#pragma link C++ class o2::Base::AlignParam+;
 
 #endif

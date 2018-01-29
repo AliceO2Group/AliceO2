@@ -13,7 +13,7 @@
 #include <vector>
 #include <array>
 #include "MathUtils/Cartesian3D.h"
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
 #include <FairLogger.h>
 
@@ -21,12 +21,12 @@ class TGeoHMatrix;
 
 namespace o2
 {
-namespace Base
+namespace detectors
 {
 
 /// MatrixCache is a vector of cached transform matrices (per sensor) for specific Transformation type
  
-template <typename T = o2::Base::Transform3D>
+template <typename T = o2::Transform3D>
 class MatrixCache {
   // matrices (per sensor) for specific transformation type
 
@@ -69,11 +69,11 @@ class DetMatrixCache
 {
   
  public:
-  typedef o2::Base::Transform3D Mat3D;
-  typedef o2::Base::Rotation2D Rot2D;
+  typedef o2::Transform3D Mat3D;
+  typedef o2::Rotation2D Rot2D;
 
   DetMatrixCache() = default;
-  DetMatrixCache(const o2::Base::DetID &id) : mDetID(id) {}
+  DetMatrixCache(const o2::detectors::DetID &id) : mDetID(id) {}
 
   /// this may serve as a base class for detector interface to geometry, make it virtual
   virtual ~DetMatrixCache() = default;
@@ -81,7 +81,7 @@ class DetMatrixCache
   DetMatrixCache(const DetMatrixCache& src) = delete;
   DetMatrixCache& operator=(const DetMatrixCache& geom) = delete;
   
-  const o2::Base::DetID& getDetID() const { return mDetID;}
+  const o2::detectors::DetID& getDetID() const { return mDetID;}
 
   const char* getName() const { return mDetID.getName(); }
 
@@ -103,7 +103,7 @@ class DetMatrixCache
   // detector derived class must define its implementation for the method to populate the matrix cache, as an
   // example, see ITS implementation GeometryTGeo.
   // The method can be called multiple times to init caches for different transformations, i.e.
-  // with differen mask as  o2::Base::Utils::bit2Mask(T2L), or bit2Mask(L2G,T2L), but for the consistency
+  // with differen mask as  o2::utils::bit2Mask(T2L), or bit2Mask(L2G,T2L), but for the consistency
   // check the nsens must be always the same.
   virtual void fillMatrixCache(int mask) = 0;
   
@@ -116,7 +116,7 @@ class DetMatrixCache
   MatrixCache<Mat3D> & getCacheL2G()  {return mL2G;}
   MatrixCache<Rot2D> & getCacheT2GRot()  {return mT2GRot;}
 
-  o2::Base::DetID mDetID;                      ///< detector ID
+  o2::detectors::DetID mDetID;                      ///< detector ID
   int mSize=0;                                 ///< prebooked number of sensors
 
   MatrixCache<Mat3D> mL2G;                     ///< Local to Global matrices

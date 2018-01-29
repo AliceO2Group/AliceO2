@@ -12,13 +12,13 @@
 /// @author Ruben Shahoyan
 /// @brief  detector ids, masks, names class implementation
 
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include <cassert>
 #include "FairLogger.h"
 
-using namespace o2::Base;
+using namespace o2::detectors;
 
-ClassImp(o2::Base::DetID);
+ClassImp(o2::detectors::DetID);
 
 constexpr const char* DetID::sDetNames[DetID::nDetectors + 1];
 constexpr std::array<DetID::mask_t, DetID::nDetectors> DetID::sMasks;

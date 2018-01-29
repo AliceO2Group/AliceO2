@@ -13,7 +13,7 @@
 
 #include "TPCReconstruction/TPCCATracking.h"
 
-#include "DetectorsBase/Track.h"
+#include "ReconstructionDataFormats/Track.h"
 #include "FairLogger.h"
 #include "TClonesArray.h"
 #include "TChain.h"
@@ -251,7 +251,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       oTrack.setLastClusterZ(trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset());
       oTrack.setChi2(tracks[i].GetParam().GetChi2());
       auto& outerPar = tracks[i].GetParam().OuterParam();
-      oTrack.setOuterParam(o2::Base::Track::TrackParCov(outerPar.fX, outerPar.fAlpha,
+      oTrack.setOuterParam(o2::track::TrackParCov(outerPar.fX, outerPar.fAlpha,
         {outerPar.fP[0], outerPar.fP[1], outerPar.fP[2], outerPar.fP[3], outerPar.fP[4]},
         {outerPar.fC[0], outerPar.fC[1], outerPar.fC[2], outerPar.fC[3], outerPar.fC[4], outerPar.fC[5], outerPar.fC[6], outerPar.fC[7],
         outerPar.fC[8], outerPar.fC[9], outerPar.fC[10], outerPar.fC[11], outerPar.fC[12], outerPar.fC[13], outerPar.fC[14]}));

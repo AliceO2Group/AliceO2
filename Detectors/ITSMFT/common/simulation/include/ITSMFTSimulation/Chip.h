@@ -104,7 +104,7 @@ class Chip
     /// Main constructor
     /// @param chipindex Index of the chip
     /// @param mat Transformation matrix
-    Chip(const DigiParams* par, Int_t index, const o2::Base::Transform3D *mat);
+    Chip(const DigiParams* par, Int_t index, const o2::Transform3D *mat);
 
     /// Copy constructor
     /// @param ref Reference for the copy
@@ -142,7 +142,7 @@ class Chip
     void SetChipIndex(Int_t index)
     { mChipIndex = index; }
 
-    void Init(Int_t index, const o2::Base::Transform3D *mat)
+    void Init(Int_t index, const o2::Transform3D *mat)
     { mChipIndex = index; mMat=mat; }
 
     /// Get the chip index
@@ -236,7 +236,7 @@ class Chip
     
     Int_t  mChipIndex = -1;     ///< Chip ID
     const DigiParams* mParams = nullptr;   ///< externally set digitization parameters   
-    const o2::Base::Transform3D *mMat = nullptr;     ///< Transformation matrix
+    const o2::Transform3D *mMat = nullptr;     ///< Transformation matrix
     std::vector<const Hit *>mHits;     ///< Hits connnected to the given chip
     std::map<ULong64_t, o2::ITSMFT::Digit> mDigits; ///< Map of fired pixels, possibly in multiple frames
 

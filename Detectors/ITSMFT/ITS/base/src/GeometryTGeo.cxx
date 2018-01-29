@@ -42,8 +42,8 @@
 
 using namespace TMath;
 using namespace o2::ITS;
-using namespace o2::Base;
-using namespace o2::Base::Utils;
+using namespace o2::detectors;
+using namespace o2::utils;
 
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
 
@@ -388,7 +388,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
   }
   
   // build matrices
-  if ( (mask & bit2Mask(TransformType::L2G)) && !getCacheL2G().isFilled() ) {
+  if ( (mask & o2::utils::bit2Mask(o2::TransformType::L2G)) && !getCacheL2G().isFilled() ) {
     // Matrices for Local (Sensor!!! rather than the full chip) to Global frame transformation
     LOG(INFO) << "Loading ITS L2G matrices from TGeo" <<  FairLogger::endl;
     auto& cacheL2G = getCacheL2G();
@@ -400,7 +400,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }
   } 
 
-  if ( (mask & bit2Mask(TransformType::T2L)) && !getCacheT2L().isFilled() ) {
+  if ( (mask & o2::utils::bit2Mask(o2::TransformType::T2L)) && !getCacheT2L().isFilled() ) {
     // matrices for Tracking to Local (Sensor!!! rather than the full chip) frame transformation
     LOG(INFO) << "Loading ITS T2L matrices from TGeo" <<  FairLogger::endl;
     auto& cacheT2L = getCacheT2L();
@@ -411,7 +411,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }
   }
 
-  if ( (mask & bit2Mask(TransformType::T2G)) && !getCacheT2G().isFilled() ) {
+  if ( (mask & o2::utils::bit2Mask(o2::TransformType::T2G)) && !getCacheT2G().isFilled() ) {
     LOG(WARNING) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices" <<  FairLogger::endl;
     // matrices for Tracking to Global frame transformation
     LOG(INFO) << "Loading ITS T2G matrices from TGeo" <<  FairLogger::endl;
@@ -425,7 +425,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }    
   }
 
-  if ( (mask & bit2Mask(TransformType::T2GRot)) && !getCacheT2GRot().isFilled() ) {
+  if ( (mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) && !getCacheT2GRot().isFilled() ) {
     // 2D rotation matrices for Tracking frame to Global rotations
     LOG(INFO) << "Loading ITS T2G rotation 2D matrices" <<  FairLogger::endl;
     auto& cacheT2Gr = getCacheT2GRot();

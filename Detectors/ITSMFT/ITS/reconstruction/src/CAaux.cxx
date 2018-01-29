@@ -9,10 +9,10 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSReconstruction/CAaux.h"
-#include "DetectorsBase/Constants.h"
+#include "CommonConstants/MathConstants.h"
 
 using namespace o2::ITS::CA;
-using o2::Base::Constants::kPI;
+using o2::constants::math::PI;
 using std::array;
 
 Cell::Cell(int xx,int yy, int zz, int dd0, int dd1, float curv, array<float,3> n)
@@ -35,7 +35,7 @@ bool Cell::Combine(Cell &neigh, int idd) {
   return false;
 }
 
-Track::Track(float x, float a, array<float,Base::Track::kNParams> p, array<float,Base::Track::kCovMatSize> c, int *cl) :
+Track::Track(float x, float a, array<float,track::kNParams> p, array<float,track::kCovMatSize> c, int *cl) :
   Track{x,a,p,c}
  {
     for (int i = 0; i < 7; ++i) mCl[i] = cl[i];
@@ -74,12 +74,12 @@ bool Track::GetPhiZat(float r, float bfield,float &phi, float &z) const {
   if (getX()>=0.) {
     phi=phicurr+asin(d/r)-asin(d/rcurr);
   } else {
-    phi=phicurr+asin(d/r)+asin(d/rcurr)-kPI;
+    phi=phicurr+asin(d/r)+asin(d/rcurr)-PI;
   }
 
   //return a phi in [0,2pi
-  if (phi<0.) phi+=2.*kPI;
-  else if (phi>=2.*kPI) phi-=2.*kPI;
+  if (phi<0.) phi+=2.*PI;
+  else if (phi>=2.*PI) phi-=2.*PI;
   z=getZ()+getTgl()*(sqrt((r-d)*(r+d))-sqrt((rcurr-d)*(rcurr+d)));
 
   return true;

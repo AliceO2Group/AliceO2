@@ -10,7 +10,7 @@
   #include <TString.h>
 
   #include "ITSMFTSimulation/Hit.h"
-  #include "DetectorsBase/Utils.h"
+  #include "MathUtils/Utils.h"
   #include "MathUtils/Cartesian3D.h"
   #include "ITSBase/GeometryTGeo.h"
   #include "ITSMFTReconstruction/Cluster.h"
@@ -36,7 +36,7 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   gFile->Get("FairGeoParSet");
   
   auto gman =  o2::ITS::GeometryTGeo::Instance();
-  gman->fillMatrixCache( Utils::bit2Mask(TransformType::T2L, TransformType::T2GRot, TransformType::L2G) ); // request cached transforms
+  gman->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot, o2::TransformType::L2G) ); // request cached transforms
   
   // Hits
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);

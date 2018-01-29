@@ -25,16 +25,14 @@
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 
-#include "DetectorsBase/BaseCluster.h"
-#include "DetectorsBase/Constants.h"
-#include "DetectorsBase/Utils.h"
+#include "ReconstructionDataFormats/BaseCluster.h"
+#include "CommonConstants/MathConstants.h"
+#include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
-namespace Base
-{
-namespace Track
+namespace track
 {
 // aliases for track elements
 enum ParLabels : int { kY, kZ, kSnp, kTgl, kQ2Pt };
@@ -104,7 +102,7 @@ class TrackPar
   float getTgl() const { return mP[kTgl]; }
   float getQ2Pt() const { return mP[kQ2Pt]; }
   // derived getters
-  float getCurvature(float b) const { return mP[kQ2Pt] * b * Constants::kB2C; }
+  float getCurvature(float b) const { return mP[kQ2Pt] * b * o2::constants::math::B2C; }
   float getSign() const { return mP[kQ2Pt] > 0 ? 1.f : -1.f; }
   float getPhi() const;
   float getPhiPos() const;
@@ -265,14 +263,14 @@ inline void TrackPar::getXYZGlo(std::array<float, 3>& xyz) const
   xyz[0] = getX();
   xyz[1] = getY();
   xyz[2] = getZ();
-  Utils::RotateZ(xyz, getAlpha());
+  utils::RotateZ(xyz, getAlpha());
 }
 
 //_______________________________________________________
 inline float TrackPar::getPhi() const
 {
   float phi = asinf(getSnp()) + getAlpha();
-  Utils::BringToPMPi(phi);
+  utils::BringToPMPi(phi);
   return phi;
 }
  
@@ -298,7 +296,7 @@ inline float TrackPar::getPhiPos() const
 {
   // angle of track position
   float phi = atan2f(getY(),getX()) + getAlpha();
-  Utils::BringToPMPi(phi);
+  utils::BringToPMPi(phi);
   return phi;
 }
 
@@ -307,7 +305,7 @@ inline float TrackPar::getP() const
 {
   // return the track momentum
   float ptI = fabs(getQ2Pt());
-  return (ptI > Constants::kAlmost0) ? sqrtf(1.f + getTgl() * getTgl()) / ptI : Constants::kVeryBig;
+  return (ptI > o2::constants::math::Almost0) ? sqrtf(1.f + getTgl() * getTgl()) / ptI : o2::constants::math::VeryBig;
 }
 
 //____________________________________________________________
@@ -315,7 +313,7 @@ inline float TrackPar::getPt() const
 {
   // return the track transverse momentum
   float ptI = fabs(getQ2Pt());
-  return (ptI > Constants::kAlmost0) ? 1.f / ptI : Constants::kVeryBig;
+  return (ptI > o2::constants::math::Almost0) ? 1.f / ptI : o2::constants::math::VeryBig;
 }
 
 //============================================================
@@ -327,7 +325,6 @@ inline TrackParCov::TrackParCov(float x, float alpha, const std::array<float, kN
 {
   // explicit constructor
   std::copy(cov.begin(), cov.end(), mC);
-}
 }
 }
 }

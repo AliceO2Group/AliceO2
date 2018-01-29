@@ -13,9 +13,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include <iostream>
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
-using namespace o2::Base;
+using namespace o2::detectors;
 
 BOOST_AUTO_TEST_CASE(DetID_test)
 {

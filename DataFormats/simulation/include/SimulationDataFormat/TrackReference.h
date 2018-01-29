@@ -20,7 +20,6 @@
 #include "TObject.h"     // for TObject
 
 namespace o2 {
-namespace Base {
 
 /// Track Reference object is created every time particle is
 /// crossing detector bounds. The object is created by Step Manager
@@ -250,7 +249,6 @@ class TrackReference : public TObject
     Int_t mDetectorId;           ///< Detector Id
   ClassDefOverride(TrackReference, 1)  // Base class for all Alice track references
 };
-}
 }
 
 #endif

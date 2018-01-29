@@ -13,6 +13,7 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
+#pragma link C++ enum o2::TransformType;
 
 #pragma link C++ class o2::mathUtils::Chebyshev3D+;
 #pragma link C++ class o2::mathUtils::Chebyshev3DCalc+;
@@ -26,8 +27,8 @@
 #pragma link C++ function o2::mathUtils::mathBase::getStatisticsData<double>;
 #pragma link C++ function o2::mathUtils::mathBase::getStatisticsData<short>;
 
-#pragma link C++ class o2::Base::Transform3D+;
-#pragma link C++ class o2::Base::Rotation2D+;
+#pragma link C++ class o2::Transform3D+;
+#pragma link C++ class o2::Rotation2D+;
 #pragma link C++ class o2::Base::CachingTF1+;
 
 #endif

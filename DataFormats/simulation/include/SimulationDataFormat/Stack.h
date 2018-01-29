@@ -17,7 +17,7 @@
 
 #include "FairGenericStack.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 #include "Rtypes.h"
 #include "TParticle.h"

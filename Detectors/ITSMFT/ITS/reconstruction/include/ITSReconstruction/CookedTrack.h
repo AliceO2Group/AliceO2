@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include "DetectorsBase/Track.h"
+#include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
@@ -29,13 +29,13 @@ class Cluster;
 namespace ITS
 {
 
-class CookedTrack : public o2::Base::Track::TrackParCov
+class CookedTrack : public o2::track::TrackParCov
 {
   using Cluster = o2::ITSMFT::Cluster;
 
  public:
 
-  using o2::Base::Track::TrackParCov::TrackParCov; // inherit base constructors
+  using o2::track::TrackParCov::TrackParCov; // inherit base constructors
   static constexpr int MaxClusters = 7;
 
   CookedTrack() = default;
@@ -64,8 +64,8 @@ class CookedTrack : public o2::Base::Track::TrackParCov
   
   Bool_t isBetter(const CookedTrack& best, Float_t maxChi2) const;
 
-  o2::Base::Track::TrackParCov &getParamOut() {return mParamOut;}
-  const o2::Base::Track::TrackParCov &getParamOut() const {return mParamOut;}
+  o2::track::TrackParCov &getParamOut() {return mParamOut;}
+  const o2::track::TrackParCov &getParamOut() const {return mParamOut;}
   
  private:
 
@@ -73,7 +73,7 @@ class CookedTrack : public o2::Base::Track::TrackParCov
   float mMass = 0.14;            ///< Assumed mass for this track
   float mChi2 = 0.;            ///< Chi2 for this track
   std::uint32_t mROFrame=0;    ///< RO Frame
-  o2::Base::Track::TrackParCov mParamOut; // parameter at largest radius
+  o2::track::TrackParCov mParamOut; // parameter at largest radius
   std::array<Int_t,MaxClusters> mIndex; ///< Indices of associated clusters
   
   ClassDef(CookedTrack, 2)

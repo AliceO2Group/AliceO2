@@ -20,8 +20,8 @@
 #include <string>
 #include <TGeoMatrix.h> // for TGeoHMatrix
 #include <TObject.h>    // for TObject
-#include "DetectorsBase/DetID.h"
-#include "DetectorsBase/Utils.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "MathUtils/Utils.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTBase/GeometryTGeo.h"
 #include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
@@ -38,7 +38,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 {
  public:
 
-  typedef o2::Base::Transform3D Mat3D;
+  typedef o2::Transform3D Mat3D;
   using DetMatrixCache::getMatrixT2L;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2G;
@@ -58,9 +58,9 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   // NEVER use it, it will throw exception if the class instance was already 
   // created. Use GeometryTGeo::Instance() instead
   GeometryTGeo(Bool_t build = kFALSE, Int_t loadTrans=0
-               /*o2::Base::Utils::bit2Mask(o2::Base::TransformType::T2L, // default transformations to load
-                                           o2::Base::TransformType::T2G,
-                                           o2::Base::TransformType::L2G)*/
+               /*o2::Base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
+                                           o2::TransformType::T2G,
+                                           o2::TransformType::L2G)*/
 	       );  
 
   

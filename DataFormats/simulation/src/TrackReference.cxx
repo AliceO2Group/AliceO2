@@ -12,16 +12,16 @@
 /// \brief Implementation of the TrackReference class
 /// \author Sylwester Radomski (S.Radomski@gsi.de) GSI, Jan 31, 2003
 
-#include "DetectorsBase/TrackReference.h"
+#include "SimulationDataFormat/TrackReference.h"
 #include "TVirtualMC.h"  // for TVirtualMC, gMC
 #include <Riostream.h>
 
 using std::endl;
 using std::cout;
 
-using namespace o2::Base;
+using namespace o2;
 
-ClassImp(o2::Base::TrackReference)
+ClassImp(o2::TrackReference)
 
 TrackReference::TrackReference()
   : TObject(),

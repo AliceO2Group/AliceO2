@@ -16,7 +16,7 @@
 #define ALICEO2_BASE_PROPAGATOR_
 
 #include "CommonConstants/PhysicsConstants.h"
-#include "DetectorsBase/Track.h"
+#include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
@@ -27,8 +27,6 @@ class MagFieldFast;
 
 namespace Base
 {
-namespace Track
-{
 class Propagator
 {
  public:
@@ -38,7 +36,7 @@ class Propagator
     return &instance;
   }
 
-  bool PropagateToXBxByBz(o2::Base::Track::TrackParCov& track, float x,
+  bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x,
                           float mass = o2::constants::physics::MassPionCharged, float maxSnp = 0.85,
                           float maxStep = 2.0, int matCorr = 1, int signCorr = 0);
 
@@ -55,7 +53,6 @@ class Propagator
 
   ClassDef(Propagator, 0);
 };
-}
 }
 }
 

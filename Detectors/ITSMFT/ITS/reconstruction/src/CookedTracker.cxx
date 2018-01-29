@@ -24,8 +24,8 @@
 
 #include "FairLogger.h"
 
-#include "DetectorsBase/Constants.h"
-#include "DetectorsBase/Utils.h"
+#include "CommonConstants/MathConstants.h"
+#include "MathUtils/Utils.h"
 #include "Field/MagneticField.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSReconstruction/CookedTracker.h"
@@ -34,8 +34,8 @@
 
 using namespace o2::ITS;
 using namespace o2::ITSMFT;
-using namespace o2::Base::Constants;
-using namespace o2::Base::Utils;
+using namespace o2::constants::math;
+using namespace o2::utils;
 using o2::field::MagneticField;
 using Label = o2::MCCompLabel;
 using Point3Df = Point3D<float>;
@@ -162,10 +162,10 @@ Double_t CookedTracker::getBz() const
   MagneticField* fld = (MagneticField*)TGeoGlobalMagField::Instance()->GetField();
   if (!fld) {
     LOG(FATAL) << "Field is not loaded !" << FairLogger::endl;
-    return kAlmost0;
+    return Almost0;
   }
   Double_t bz = fld->solenoidField();
-  return TMath::Sign(kAlmost0, bz) + bz;
+  return TMath::Sign(Almost0, bz) + bz;
   */
 }
 
@@ -235,7 +235,7 @@ static CookedTrack cookSeed
   par[2] = sf;
 
   par[3] = 0.5 * (tgl12 + tgl23);
-  par[4] = (TMath::Abs(bz) < kAlmost0) ? kAlmost0 : crv / (bz * kB2C);
+  par[4] = (TMath::Abs(bz) < Almost0) ? Almost0 : crv / (bz * B2C);
 
   std::array<float,15> cov;
   /*
@@ -249,7 +249,7 @@ static CookedTrack cookSeed
   const Double_t dlt = 0.0005;
   Double_t fy = 1. / (rad2 - rad3);
   Double_t tz = fy;
-  Double_t cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / dlt / bz / kB2C;
+  Double_t cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / dlt / bz / B2C;
   cy *= 20; // FIXME: MS contribution to the cov[14]
   Double_t s2 = kSigma2;
 
@@ -284,7 +284,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_
   Layer& layer2 = sLayers[kSeedingLayer2];
   Layer& layer3 = sLayers[kSeedingLayer3];
 
-  const Double_t maxC = TMath::Abs(getBz() * kB2C / kminPt);
+  const Double_t maxC = TMath::Abs(getBz() * B2C / kminPt);
   const Double_t kpWin = TMath::ASin(0.5 * maxC * layer1.getR()) - TMath::ASin(0.5 * maxC * layer2.getR());
 
   //Int_t nClusters1 = layer1.getNumberOfClusters();
@@ -615,7 +615,7 @@ bool CookedTracker::makeBackPropParam(CookedTrack& track) const
     if (!backProp.propagateTo(c->getX(), getBz())) {
       return false;
     }
-    if (!backProp.update(static_cast<const o2::Base::BaseCluster<float>&>(*c))) {
+    if (!backProp.update(static_cast<const o2::BaseCluster<float>&>(*c))) {
       return false;
     }
   }

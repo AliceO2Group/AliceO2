@@ -15,7 +15,7 @@
 #define ALICEO2_ITS_DETECTOR_H_
 
 #include "DetectorsBase/Detector.h"   // for Detector
-#include "DetectorsBase/DetID.h"   // for Detector
+#include "DetectorsCommonDataFormats/DetID.h"   // for Detector
 #include "ITSMFTSimulation/Hit.h"     // for Hit
 #include "Rtypes.h"          // for Int_t, Double_t, Float_t, Bool_t, etc
 #include "TArrayD.h"         // for TArrayD

@@ -33,11 +33,11 @@
 #include <cassert>
 #include <cstdint>
 #include <type_traits>
-#include "DetectorsBase/Utils.h"
+#include "MathUtils/Utils.h"
 
 namespace o2
 {
-namespace Base
+namespace detectors
 {
 /// Static class with identifiers, bitmasks and names for ALICE detectors
 class DetID
@@ -106,13 +106,12 @@ class DetID
 
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
-    { Utils::bit2Mask(ITS), Utils::bit2Mask(TPC), Utils::bit2Mask(TRD), Utils::bit2Mask(TOF), Utils::bit2Mask(PHS),
-      Utils::bit2Mask(CPV), Utils::bit2Mask(EMC), Utils::bit2Mask(HMP), Utils::bit2Mask(MFT), Utils::bit2Mask(MCH),
-      Utils::bit2Mask(MID), Utils::bit2Mask(ZDC), Utils::bit2Mask(FIT), Utils::bit2Mask(ACO) };
+    { utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
+      utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
+      utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FIT), utils::bit2Mask(ACO) };
 
   ClassDefNV(DetID, 1);
 };
 }
 }
-
 #endif

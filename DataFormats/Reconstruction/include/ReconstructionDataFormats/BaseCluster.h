@@ -17,10 +17,9 @@
 #include <ios>
 #include <iostream>
 #include "MathUtils/Cartesian3D.h"
-#include "DetectorsBase/DetMatrixCache.h"
+#include "DetectorsCommonDataFormats/DetMatrixCache.h"
+
 namespace o2
-{
-namespace Base 
 {
   
 // Basic cluster class with X,Y,Z position detector ID information + user fields
@@ -69,19 +68,19 @@ class BaseCluster : public TObject // temprarily derive from TObject
   Point3D<T>& getXYZ() { return mPos; }
 
   // position in local frame, no check for matrices cache validity 
-  Point3D<T> getXYZLoc(const DetMatrixCache& dm) const {
+  Point3D<T> getXYZLoc(const o2::detectors::DetMatrixCache& dm) const {
     return dm.getMatrixT2L(mSensorID)(mPos);
   }
 
   // position in global frame, no check for matrices cache validity 
-  Point3D<T> getXYZGlo(const DetMatrixCache& dm) const {
+  Point3D<T> getXYZGlo(const o2::detectors::DetMatrixCache& dm) const {
     return dm.getMatrixT2G(mSensorID)(mPos);
   }
 
   // position in global frame obtained as simple rotation from tracking one:
   // much faster for barrel detectors than using full 3D matrix.
   // no check for matrices cache validity 
-  Point3D<T> getXYZGloRot(const DetMatrixCache& dm) const {
+  Point3D<T> getXYZGloRot(const o2::detectors::DetMatrixCache& dm) const {
     return dm.getMatrixT2GRot(mSensorID)(mPos);
   }
   
@@ -142,7 +141,6 @@ std::ostream& operator<<(std::ostream& os, const BaseCluster<T>& c)
      << std::scientific << c.getY() << "," << std::scientific << c.getZ() << ") cnt:" << std::setw(4) << +c.getCount()
      << " bits:" << std::bitset<8>(c.getBits());
   return os;
-}
 }
 } // end namespace AliceO2
 #endif

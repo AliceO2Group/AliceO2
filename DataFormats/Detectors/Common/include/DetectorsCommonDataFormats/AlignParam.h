@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace Base
+namespace detectors
 {
 /// Base class for alignment parameters, containing global delta of rotation and translation
 /// For the detail of alignment framework check http://alice-offline.web.cern.ch/Activities/Alignment

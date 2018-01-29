@@ -12,7 +12,7 @@
 /// \brief Implementation of the Stack class
 /// \author M. Al-Turany, S. Wenzel - June 2014
 
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/Detector.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/MCTrack.h"

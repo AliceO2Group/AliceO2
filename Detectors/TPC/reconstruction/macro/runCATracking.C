@@ -23,7 +23,7 @@
 #include "TPCReconstruction/Cluster.h"
 #include "TPCReconstruction/TPCCATracking.h"
 #include "TPCReconstruction/TrackTPC.h"
-#include "DetectorsBase/Track.h"
+#include "ReconstructionDataFormats/Track.h"
 #endif
 
 using namespace std;

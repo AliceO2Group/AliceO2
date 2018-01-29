@@ -10,10 +10,10 @@
 
 #include "MathUtils/Cartesian3D.h"
 
-using namespace o2::Base;
+using namespace o2;
 
-ClassImp(o2::Base::Transform3D);
-ClassImp(o2::Base::Rotation2D);
+ClassImp(o2::Transform3D);
+ClassImp(o2::Rotation2D);
 
 //_________________________________________________
 Transform3D::Transform3D(const TGeoMatrix& m)
@@ -45,7 +45,7 @@ void Transform3D::print() const
 }
 
 //_________________________________________________
-std::ostream &operator<<(std::ostream &os, const o2::Base::Rotation2D &t)
+std::ostream &operator<<(std::ostream &os, const o2::Rotation2D &t)
 {
   float cs,sn;
   t.getComponents(cs,sn);

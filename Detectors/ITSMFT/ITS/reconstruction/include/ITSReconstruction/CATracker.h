@@ -24,12 +24,12 @@
 
 #include "ITSReconstruction/CAaux.h"
 #include "ITSReconstruction/CATrackingStation.h"
-#include "DetectorsBase/Track.h"
+#include "ReconstructionDataFormats/Track.h"
 
 namespace o2 {
   namespace ITS {
     namespace CA {
-      typedef o2::Base::Track::TrackParCov TrackPC;
+      typedef o2::track::TrackParCov TrackPC;
 
       class Tracker {
         public:

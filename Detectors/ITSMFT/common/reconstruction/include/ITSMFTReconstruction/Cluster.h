@@ -13,7 +13,7 @@
 #ifndef ALICEO2_ITSMFT_CLUSTER_H
 #define ALICEO2_ITSMFT_CLUSTER_H
 
-#include "DetectorsBase/BaseCluster.h"
+#include "ReconstructionDataFormats/BaseCluster.h"
 
 // uncomment this to have cluster topology stored
 #define _ClusterTopology_
@@ -29,7 +29,7 @@ namespace ITSMFT
 /// \brief Cluster class for the ITSMFT
 ///
 
-class Cluster : public o2::Base::BaseCluster<float>
+class Cluster : public o2::BaseCluster<float>
 {
  public:
   enum { // frame in which the track is currently defined
