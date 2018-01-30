@@ -84,7 +84,8 @@ class RawReader {
     /// @param region Region of the data
     /// @param link FEC of the data
     /// @param run RUN number of the data
-    RawReader(int region=-1, int link=-1, int run=-1);
+    /// @param sampaVersion Version of SAMPA chips, -1 is latest
+    RawReader(int region=-1, int link=-1, int run=-1, int sampaVersion=-1);
 
     /// Copy constructor
     RawReader(const RawReader& other) = default;
@@ -114,22 +115,23 @@ class RawReader {
     bool loadEvent(int64_t event);
 
     /// Add input file for decoding
-    /// @param infile Input file string in the format "path_to_file:#region:#fec", where #region/#fec is a number
+    /// @param infile Input file string in the format "path_to_file:#region:#fec[:sampaVersion]", where #region/#fec/sampaVersion is a number and sampaVersion optional
     /// @return True if string has correct format and file can be opened
     bool addInputFile(std::string infile);
 
     /// Add several input files for decoding
-    /// @param infiles vector of input file strings, each formatted as "path_to_file:#region:#fec"
+    /// @param infiles vector if input file strings, each formatted as "path_to_file:#region:#fec[:sampaVersion]", where #region/#fec/sampaVersion is a number and sampaVersion optional
     /// @return True if at least one string has correct format and file can be opened
     bool addInputFile(const std::vector<std::string>* infiles);
 
     /// Add input file for decoding
     /// @param region Region of the data
     /// @param link FEC of the data
+    /// @param sampaVersion Version of SAMPA chip
     /// @param path Path to data
     /// @param run Run number
     /// @return True file can be opened
-    bool addInputFile(int region, int link, std::string path, int run=-1);
+    bool addInputFile(int region, int link, int sampaVersion, std::string path, int run=-1);
 
     /// Get the first event
     /// @return Event number of first event in data
@@ -180,6 +182,10 @@ class RawReader {
     /// @param checkAdc Checks for a valid ADC clock in the data stream
     void setCheckAdcClock(bool checkAdc) { mCheckAdcClock = checkAdc; };
 
+    /// Set the SAMPA version
+    /// @param sampaVersion Version to be set
+    void setSampaVersion(int sampaVerson) { mSampaVersion = sampaVerson; };
+
     /// Returns some information about the event, e.g. the header
     /// @param event Event number
     /// @return shared pointer to vector with event informations
@@ -204,6 +210,7 @@ class RawReader {
     int mRegion;                        ///< Region of the data
     int mLink;                          ///< FEC of the data
     int mRun;                           ///< Run number
+    int mSampaVersion;                  ///< Version of SAMPA chip
     int64_t mLastEvent;                 ///< Number of last loaded event
     std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half SAMPA
     std::map<uint64_t, std::shared_ptr<std::vector<EventInfo>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
