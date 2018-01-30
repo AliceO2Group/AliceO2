@@ -21,43 +21,38 @@ namespace o2
 {
 namespace ITSMFT
 {
- 
-  
 /// \class PixelReader
 /// \brief PixelReader class for the ITSMFT
 ///
-class PixelReader {
-
+class PixelReader
+{
   using Label = o2::MCCompLabel;
 
-  public:
-
+ public:
   /// Transient data for single fired pixel
   struct PixelData {
     UShort_t row;
-    UShort_t col;  
+    UShort_t col;
     Label labels[Digit::maxLabels];
-    
-    PixelData(const Digit* dig) :
-    row(dig->getRow()), col(dig->getColumn())
+
+    PixelData(const Digit* dig) : row(dig->getRow()), col(dig->getColumn())
     {
-      for (int i=Digit::maxLabels;i--;) labels[i]=dig->getLabel(i);
+      for (int i = Digit::maxLabels; i--;)
+        labels[i] = dig->getLabel(i);
     }
     PixelData(UShort_t r, UShort_t c) : row(r), col(c) {}
   };
 
   /// Transient data for single chip fired pixeld
   struct ChipPixelData {
-    UShort_t chipID = 0;               // chip id within detector
-    UInt_t   roFrame = 0;              // readout frame ID
-    Double_t timeStamp = 0.;                 // Fair time ?
-    std::vector<PixelData> pixels;     // vector of pixeld
-    
-    void clear() {
-      pixels.clear();
-    }
+    UShort_t chipID = 0;           // chip id within detector
+    UInt_t roFrame = 0;            // readout frame ID
+    Double_t timeStamp = 0.;       // Fair time ?
+    std::vector<PixelData> pixels; // vector of pixeld
+
+    void clear() { pixels.clear(); }
   };
-  
+
   PixelReader() = default;
   PixelReader(const PixelReader& cluster) = delete;
   virtual ~PixelReader() = default;
@@ -65,51 +60,55 @@ class PixelReader {
   PixelReader& operator=(const PixelReader& src) = delete;
 
   virtual void init() = 0;
-  virtual Bool_t getNextChipData(ChipPixelData &chipData) = 0;
+  virtual Bool_t getNextChipData(ChipPixelData& chipData) = 0;
   //
  protected:
   //
-
 };
 
 /// \class DigitPixelReader
 /// \brief DigitPixelReader class for the ITS. Feeds the MC digits to the Cluster Finder
 ///
-class DigitPixelReader : public PixelReader {
-  
+class DigitPixelReader : public PixelReader
+{
  public:
   DigitPixelReader() = default;
-  void setDigitArray(const std::vector<o2::ITSMFT::Digit> *a) { mDigitArray=a; mIdx=0; }
+  void setDigitArray(const std::vector<o2::ITSMFT::Digit>* a)
+  {
+    mDigitArray = a;
+    mIdx = 0;
+  }
 
-  void init() override {
-    mIdx=0;
+  void init() override
+  {
+    mIdx = 0;
     mLastDigit = nullptr;
   }
-  
-  Bool_t getNextChipData(ChipPixelData &chipData) override;
+
+  Bool_t getNextChipData(ChipPixelData& chipData) override;
 
  private:
-
-  void addPixel(PixelReader::ChipPixelData &chipData, const Digit* dig) {
+  void addPixel(PixelReader::ChipPixelData& chipData, const Digit* dig)
+  {
     // add new fired pixel
     chipData.pixels.emplace_back(dig);
   }
-  
-  const std::vector<o2::ITSMFT::Digit> *mDigitArray = nullptr;
+
+  const std::vector<o2::ITSMFT::Digit>* mDigitArray = nullptr;
   const Digit* mLastDigit = nullptr;
-  Int_t        mIdx = 0;
+  Int_t mIdx = 0;
 };
- 
+
 /// \class RawPixelReader
 /// \brief RawPixelReader class for the ITS. Feeds raw data to the Cluster Finder
 ///
-class RawPixelReader : public PixelReader {
+class RawPixelReader : public PixelReader
+{
  public:
-  Bool_t getNextChipData(ChipPixelData &chipData) override;
+  Bool_t getNextChipData(ChipPixelData& chipData) override;
 };
 
-
-}
-}
+} // namespace ITSMFT
+} // namespace o2
 
 #endif /* ALICEO2_ITS_PIXELREADER_H */

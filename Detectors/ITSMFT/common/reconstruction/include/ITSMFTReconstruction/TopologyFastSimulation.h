@@ -19,30 +19,29 @@
 /// to the frequencies of the entries in the dictionary
 ///
 
-
 #ifndef ALICEO2_ITSMFT_TOPOLOGYFASTSIMULATION_H
 #define ALICEO2_ITSMFT_TOPOLOGYFASTSIMULATION_H
-#include "ITSMFTReconstruction/TopologyDictionary.h"
 #include <random>
+#include "ITSMFTReconstruction/TopologyDictionary.h"
 
 namespace o2
 {
 namespace ITSMFT
 {
-class TopologyFastSimulation{
+class TopologyFastSimulation
+{
+ public:
+  TopologyFastSimulation(std::string fileName, unsigned seed = 0xdeadbeef);
+  int getRandom();
 
-  public:
-    TopologyFastSimulation(std::string fileName, unsigned seed=0xdeadbeef);
-    int getRandom();
+ private:
+  TopologyDictionary mDictionary;
+  std::mt19937 mGenerator;
+  std::uniform_real_distribution<double> mDistribution;
 
-  private:
-    TopologyDictionary mDictionary;
-    std::mt19937 mGenerator;
-    std::uniform_real_distribution<double> mDistribution;
-
-  ClassDefNV(TopologyFastSimulation,1);
+  ClassDefNV(TopologyFastSimulation, 1);
 };
-}
-}
+} // namespace ITSMFT
+} // namespace o2
 
 #endif

@@ -23,8 +23,8 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   using namespace o2::Base;
   using namespace o2::ITS;
 
-  using o2::ITSMFT::Hit;
   using o2::ITSMFT::Cluster;
+  using o2::ITSMFT::Hit;
 
   TFile* f = TFile::Open("CheckClusters.root", "recreate");
   TNtuple* nt = new TNtuple("ntc", "cluster ntuple", "x:y:z:dx:dz:lab:rof:ev:hlx:hlz:clx:clz");

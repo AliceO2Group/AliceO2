@@ -14,12 +14,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ITSMFT::Cluster+;
-#pragma link C++ class o2::ITSMFT::Clusterer+;
-#pragma link C++ class o2::ITSMFT::ClusterTopology+;
-#pragma link C++ class o2::ITSMFT::TopologyDictionary+;
-#pragma link C++ class o2::ITSMFT::BuildTopologyDictionary+;
-#pragma link C++ class o2::ITSMFT::LookUp+;
-#pragma link C++ class o2::ITSMFT::TopologyFastSimulation+;
+#pragma link C++ class o2::ITSMFT::Cluster + ;
+#pragma link C++ class o2::ITSMFT::Clusterer + ;
+#pragma link C++ class o2::ITSMFT::ClusterTopology + ;
+#pragma link C++ class o2::ITSMFT::TopologyDictionary + ;
+#pragma link C++ class o2::ITSMFT::BuildTopologyDictionary + ;
+#pragma link C++ class o2::ITSMFT::LookUp + ;
+#pragma link C++ class o2::ITSMFT::TopologyFastSimulation + ;
 
 #endif

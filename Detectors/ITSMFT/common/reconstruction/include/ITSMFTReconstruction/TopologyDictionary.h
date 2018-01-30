@@ -27,60 +27,61 @@
 
 #ifndef ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
 #define ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
-#include <vector>
-#include <unordered_map>
-#include <string>
-#include <iostream>
-#include <fstream>
 #include <Rtypes.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace o2
 {
 namespace ITSMFT
 {
-
 class BuildTopologyDictionary;
 class LookUp;
 class TopologyFastSimulation;
 
 /// Structure containing the most relevant pieces of information of a topology
-struct GroupStruct{
+struct GroupStruct {
   unsigned long mHash; ///< Hashcode
-  float mErrX; ///< Error associated to the hit point in the x direction.
-  float mErrZ; ///< Error associated to the hit point in the z direction.
-  float mXCOG; ///< x position of te COG wrt the boottom left corner of the bounding box
-  float mZCOG; ///< z position of te COG wrt the boottom left corner of the bounding box
-  int mNpixels; ///< Number of fired pixels
-  double mFrequency; ///< Frequency of the topology
+  float mErrX;         ///< Error associated to the hit point in the x direction.
+  float mErrZ;         ///< Error associated to the hit point in the z direction.
+  float mXCOG;         ///< x position of te COG wrt the boottom left corner of the bounding box
+  float mZCOG;         ///< z position of te COG wrt the boottom left corner of the bounding box
+  int mNpixels;        ///< Number of fired pixels
+  double mFrequency;   ///< Frequency of the topology
 };
 
-class TopologyDictionary{
-  public:
-    /// constexpr for the definition of the groups of rare topologies
-    static constexpr int NumberOfRowClasses = 7; ///< Number of row classes for the groups of rare topologies
-    static constexpr int NumberOfColClasses = 7; ///< Number of column classes for the groups of rare topologies
-    static constexpr int RowClassSpan = 5; ///< Row span of the classes of rare topologies
-    static constexpr int ColClassSpan = 5; ///< Column span of the classes of rare topologies
-    static constexpr int MaxRowSpan = 32; ///< Maximum row span
-    static constexpr int MaxColSpan = 32; ///< Maximum column span
-    /// Prints the dictionary
-    friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
-    /// Prints the dictionary in a binary file
-    void WriteBinaryFile(std::string outputFile);
-    /// Reads the dictionary from a file
-    void ReadFile(std::string fileName);
-    /// Reads the dictionary from a binary file
-    void ReadBinaryFile(std::string fileName);
-    friend BuildTopologyDictionary;
-    friend LookUp;
-    friend TopologyFastSimulation;
-  private:
-    std::unordered_map<unsigned long, int> mFinalMap; ///< Map of pair <hash, position in mVectorOfGroupIDs>
-    std::vector<GroupStruct> mVectorOfGroupIDs; ///< Vector of topologies and groups
+class TopologyDictionary
+{
+ public:
+  /// constexpr for the definition of the groups of rare topologies
+  static constexpr int NumberOfRowClasses = 7; ///< Number of row classes for the groups of rare topologies
+  static constexpr int NumberOfColClasses = 7; ///< Number of column classes for the groups of rare topologies
+  static constexpr int RowClassSpan = 5;       ///< Row span of the classes of rare topologies
+  static constexpr int ColClassSpan = 5;       ///< Column span of the classes of rare topologies
+  static constexpr int MaxRowSpan = 32;        ///< Maximum row span
+  static constexpr int MaxColSpan = 32;        ///< Maximum column span
+  /// Prints the dictionary
+  friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
+  /// Prints the dictionary in a binary file
+  void WriteBinaryFile(std::string outputFile);
+  /// Reads the dictionary from a file
+  void ReadFile(std::string fileName);
+  /// Reads the dictionary from a binary file
+  void ReadBinaryFile(std::string fileName);
+  friend BuildTopologyDictionary;
+  friend LookUp;
+  friend TopologyFastSimulation;
 
-  ClassDefNV(TopologyDictionary,1);
+ private:
+  std::unordered_map<unsigned long, int> mFinalMap; ///< Map of pair <hash, position in mVectorOfGroupIDs>
+  std::vector<GroupStruct> mVectorOfGroupIDs;       ///< Vector of topologies and groups
+
+  ClassDefNV(TopologyDictionary, 1);
 };
-}
-}
+} // namespace ITSMFT
+} // namespace o2
 
 #endif

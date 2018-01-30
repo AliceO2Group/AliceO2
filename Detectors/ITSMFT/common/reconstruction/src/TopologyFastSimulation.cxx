@@ -18,20 +18,23 @@
 
 ClassImp(o2::ITSMFT::TopologyFastSimulation)
 
-namespace o2
+  namespace o2
 {
-namespace ITSMFT
-{
-TopologyFastSimulation::TopologyFastSimulation(std::string fileName,unsigned seed){
-  mDictionary.ReadBinaryFile(fileName);
-  mGenerator = std::mt19937(seed);
-  mDistribution = std::uniform_real_distribution<double>(0.0,1.0);
-}
+  namespace ITSMFT
+  {
+  TopologyFastSimulation::TopologyFastSimulation(std::string fileName, unsigned seed)
+  {
+    mDictionary.ReadBinaryFile(fileName);
+    mGenerator = std::mt19937(seed);
+    mDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
+  }
 
-int TopologyFastSimulation::getRandom(){
-  double rnd = mDistribution(mGenerator);
-  auto ind = std::upper_bound(mDictionary.mVectorOfGroupIDs.begin(),mDictionary.mVectorOfGroupIDs.end(),rnd, [] (const double &comp1, const GroupStruct &comp2) {return comp1<comp2.mFrequency;});
-  return std::distance(mDictionary.mVectorOfGroupIDs.begin(),ind);
-}
-}
+  int TopologyFastSimulation::getRandom()
+  {
+    double rnd = mDistribution(mGenerator);
+    auto ind = std::upper_bound(mDictionary.mVectorOfGroupIDs.begin(), mDictionary.mVectorOfGroupIDs.end(), rnd,
+                                [](const double& comp1, const GroupStruct& comp2) { return comp1 < comp2.mFrequency; });
+    return std::distance(mDictionary.mVectorOfGroupIDs.begin(), ind);
+  }
+  } // namespace ITSMFT
 }

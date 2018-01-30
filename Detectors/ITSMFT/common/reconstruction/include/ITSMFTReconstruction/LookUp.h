@@ -21,28 +21,28 @@
 
 #ifndef ALICEO2_ITSMFT_LOOKUP_H
 #define ALICEO2_ITSMFT_LOOKUP_H
-#include "ITSMFTReconstruction/TopologyDictionary.h"
-#include "ITSMFTReconstruction/ClusterTopology.h"
 #include <array>
+#include "ITSMFTReconstruction/ClusterTopology.h"
+#include "ITSMFTReconstruction/TopologyDictionary.h"
 
 namespace o2
 {
 namespace ITSMFT
 {
-class LookUp{
+class LookUp
+{
+ public:
+  LookUp(std::string fileName);
+  int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed);
+  int getTopologiesOverThreshold() { return mTopologiesOverThreshold; }
 
-  public:
-    LookUp(std::string fileName);
-    int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed);
-    int getTopologiesOverThreshold() {return mTopologiesOverThreshold;}
+ private:
+  TopologyDictionary mDictionary;
+  int mTopologiesOverThreshold;
 
-  private:
-    TopologyDictionary mDictionary;
-    int mTopologiesOverThreshold;
-
-  ClassDefNV(LookUp,1);
+  ClassDefNV(LookUp, 1);
 };
-}
-}
+} // namespace ITSMFT
+} // namespace o2
 
 #endif
