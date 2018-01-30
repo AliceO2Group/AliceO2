@@ -220,7 +220,7 @@ class GBTFrameContainer {
     std::array<AdcClockMonitor, 3> mAdcClock;       ///< ADC clock monitor for the 3 SAMPAs
     std::array<SyncPatternMonitor, 5> mSyncPattern; ///< Synchronization pattern monitor for the 5 half SAMPAs
     std::array<short, 10> mPositionForHalfSampa;    ///< Start position of data for all 5 half SAMPAs
-    std::array<std::queue<short>*, 5> mAdcValues;   ///< Vector to buffer the decoded ADC values, one deque per half SAMPA
+    std::array<std::queue<short>*, 5> mAdcValues; ///< Vector to buffer the decoded ADC values, one deque per half SAMPA
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
     bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
