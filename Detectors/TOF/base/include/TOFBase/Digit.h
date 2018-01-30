@@ -15,9 +15,7 @@
 #include <iosfwd>
 #include "Rtypes.h"
 
-#ifndef __CINT__
 #include <boost/serialization/base_object.hpp> // for base_object
-#endif
 
 namespace o2 {
 namespace tof {
@@ -46,9 +44,7 @@ class Digit : public o2::dataformats::TimeStamp<double>
   void printStream(std::ostream &stream) const;
 
 private:
-#ifndef __CINT__
   friend class boost::serialization::access;
-#endif
 
   Int_t mChannel;       ///< TOF channel index
   Int_t mTDC;           ///< TDC bin number
