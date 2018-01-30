@@ -27,22 +27,22 @@
 using namespace o2::TPC;
 
 RawReader::RawReader(int region, int link, int run, int sampaVersion)
-  : mUseRawInMode3(true)
-  , mApplyChannelMask(false)
-  , mCheckAdcClock(false)
-  , mRegion(region)
-  , mLink(link)
-  , mRun(run)
-  , mSampaVersion(sampaVersion)
-  , mLastEvent(-1)
-  , mTimestampOfFirstData({0,0,0,0,0})
-  , mEvents()
-  , mData()
-  , mDataIterator(mData.end())
-  , mSyncPos()
-  , mChannelMask(nullptr)
-  , mAdcError(std::make_shared<std::vector<std::tuple<short,short,short>>>())
-  , mEventSynchronizer(std::make_shared<RawReaderEventSync>())
+  : mUseRawInMode3(true),
+  mApplyChannelMask(false),
+  mCheckAdcClock(false),
+  mRegion(region),
+  mLink(link),
+  mRun(run),
+  mSampaVersion(sampaVersion),
+  mLastEvent(-1),
+  mTimestampOfFirstData({ 0, 0, 0, 0, 0}),
+  mEvents(),
+  mData(),
+  mDataIterator(mData.end()),
+  mSyncPos(),
+  mChannelMask(nullptr),
+  mAdcError(std::make_shared<std::vector<std::tuple<short,short,short>>>()),
+  mEventSynchronizer(std::make_shared<RawReaderEventSync>())
 {
   mSyncPos.fill(-1);
 }
@@ -73,7 +73,7 @@ bool RawReader::addInputFile(std::string infile) {
   try {
     ++it1;
     region = boost::lexical_cast<int>(*it1);
-  } catch(boost::bad_lexical_cast) {
+  } catch (boost::bad_lexical_cast) {
     LOG(ERROR) << "Please enter a region for " << path << FairLogger::endl;
     return false;
   }
@@ -81,7 +81,7 @@ bool RawReader::addInputFile(std::string infile) {
   try {
     ++it1;
     link = boost::lexical_cast<int>(*it1);
-  } catch(boost::bad_lexical_cast) {
+  } catch (boost::bad_lexical_cast) {
     LOG(ERROR) << "Please enter a link number for " << path << FairLogger::endl;
     return false;
   }
@@ -92,7 +92,7 @@ bool RawReader::addInputFile(std::string infile) {
   } else {
     try {
       sampaVersion = boost::lexical_cast<int>(*it1);
-    } catch(boost::bad_lexical_cast) {
+    } catch (boost::bad_lexical_cast) {
       LOG(ERROR) << "Please enter a valid SAMPA version for " << path << FairLogger::endl;
       return false;
     }
@@ -101,12 +101,17 @@ bool RawReader::addInputFile(std::string infile) {
   return addInputFile(region, link, sampaVersion, path, run);
 }
 
-bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string path, int run){
+bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string path, int run)
+{
 
-  if (mRun == -1) mRun = run;
-  if (mRegion == -1 ) mRegion = region;
-  if (mLink == -1) mLink = link;
-  if (mSampaVersion == -1) mSampaVersion = sampaVersion;
+  if (mRun == -1)
+    mRun = run;
+  if (mRegion == -1 )
+    mRegion = region;
+  if (mLink == -1)
+    mLink = link;
+  if (mSampaVersion == -1)
+    mSampaVersion = sampaVersion;
 
   if (run != mRun) {
     LOG(DEBUG) << "Run of RawReader is " << mRun << " and not " << run << FairLogger::endl;
@@ -472,11 +477,11 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
       }
 
       if (mSampaVersion == 1 || mSampaVersion == 2) {
-        adcValues[iHalfSampa].emplace_back( value1 ^ (1 << 9)); // Invert bit 9 vor SAMPA v1 and v2
-        adcValues[iHalfSampa].emplace_back( value2 ^ (1 << 9)); // Invert bit 9 vor SAMPA v1 and v2
+        adcValues[iHalfSampa].emplace_back(value1 ^ (1 << 9)); // Invert bit 9 vor SAMPA v1 and v2
+        adcValues[iHalfSampa].emplace_back(value2 ^ (1 << 9)); // Invert bit 9 vor SAMPA v1 and v2
       } else {
-        adcValues[iHalfSampa].emplace_back( value1 );
-        adcValues[iHalfSampa].emplace_back( value2 );
+        adcValues[iHalfSampa].emplace_back(value1);
+        adcValues[iHalfSampa].emplace_back(value2);
       }
     }
 

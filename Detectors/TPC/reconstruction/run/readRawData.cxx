@@ -34,10 +34,10 @@ int main(int argc, char *argv[])
 {
 
   // Arguments parsing
-  std::vector<std::string> infile(1,"NOFILE");
-  std::vector<unsigned> region(1,0);
-  std::vector<unsigned> link(1,0);
-  std::vector<int> sampaVersion(1,-1);
+  std::vector<std::string> infile(1, "NOFILE");
+  std::vector<unsigned> region(1, 0);
+  std::vector<unsigned> link(1, 0);
+  std::vector<int> sampaVersion(1, -1);
   int readEvents = -1;
   bool useRawInMode3 = true;
   std::string verbLevel = "LOW";
@@ -47,14 +47,14 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "Produce help message.")
-    ("infile,i",    bpo::value<std::vector<std::string>>(&infile),   "Input data files")
-    ("vl,",         bpo::value<std::string>(&verbLevel),"Fairlogger verbosity level (LOW, MED, HIGH)")
-    ("ll,",         bpo::value<std::string>(&logLevel), "Fairlogger screen log level (FATAL, ERROR, WARNING, INFO, DEBUG, DEBUG1, DEBUG2, DEBUG3, DEBUG4)")
-    ("region,r",    bpo::value<std::vector<unsigned>>(&region),      "Region for mapping")
-    ("link,l",      bpo::value<std::vector<unsigned>>(&link),        "Link for mapping")
-    ("sVersion,s",  bpo::value<std::vector<int>>(&sampaVersion),     "SAMPA version for decoding")
-    ("rawInMode3",  bpo::value<bool>(&useRawInMode3),   "Use Raw data in mode 3 instead of decoded one")
-    (",n",          bpo::value<int>(&readEvents),       "Events to read");
+    ("infile,i", bpo::value<std::vector<std::string>>(&infile), "Input data files")
+    ("vl,", bpo::value<std::string>(&verbLevel), "Fairlogger verbosity level (LOW, MED, HIGH)")
+    ("ll,", bpo::value<std::string>(&logLevel), "Fairlogger screen log level (FATAL, ERROR, WARNING, INFO, DEBUG, DEBUG1, DEBUG2, DEBUG3, DEBUG4)")
+    ("region,r", bpo::value<std::vector<unsigned>>(&region), "Region for mapping")
+    ("link,l", bpo::value<std::vector<unsigned>>(&link), "Link for mapping")
+    ("sVersion,s", bpo::value<std::vector<int>>(&sampaVersion), "SAMPA version for decoding")
+    ("rawInMode3", bpo::value<bool>(&useRawInMode3), "Use Raw data in mode 3 instead of decoded one")
+    (",n", bpo::value<int>(&readEvents), "Events to read");
 
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
@@ -80,11 +80,11 @@ int main(int argc, char *argv[])
     readers.emplace_back();
     readers[i].addEventSynchronizer(eventSync);
     if (region.size() != infile.size() && link.size() == infile.size())
-      readers[i].addInputFile(region[0],link[i],sampaVersion[i],infile[i]);
+      readers[i].addInputFile(region[0], link[i], sampaVersion[i], infile[i]);
     else if (region.size() == infile.size() && link.size() != infile.size())
-      readers[i].addInputFile(region[i],link[0],sampaVersion[i],infile[i]);
+      readers[i].addInputFile(region[i], link[0], sampaVersion[i], infile[i]);
     else
-      readers[i].addInputFile(region[i],link[i],sampaVersion[i],infile[i]);
+      readers[i].addInputFile(region[i], link[i], sampaVersion[i], infile[i]);
     readers[i].setUseRawInMode3(useRawInMode3);
     readers[i].setCheckAdcClock(false);
   }

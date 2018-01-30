@@ -49,9 +49,9 @@ void CalibRawBase::setupContainers(TString fileInfo)
       std::cout << "Found decoder type: " << rorcType << "\n";
       delete arrDataInfo;
       continue;
-    }
-    else if (arrDataInfo->GetEntriesFast() < 3) {
-      printf("Error, badly formatte input data string: %s, expected format is <filename:cru:link[:sampaVersion]>\n", data.Data());
+    } else if (arrDataInfo->GetEntriesFast() < 3) {
+      printf("Error, badly formatte input data string: %s, expected format is <filename:cru:link[:sampaVersion]>\n",
+             data.Data());
       delete arrDataInfo;
       continue;
     }
@@ -70,14 +70,15 @@ void CalibRawBase::setupContainers(TString fileInfo)
       if (arrDataInfo->GetEntriesFast() > 3)
         iSampaVersion = static_cast<TObjString*>(arrDataInfo->At(3))->String().Atoi();
 
-      auto cont = new GBTFrameContainer(iSize,iCRU,iLink,iSampaVersion);
+      auto cont = new GBTFrameContainer(iSize, iCRU, iLink, iSampaVersion);
 
       cont->setEnableAdcClockWarning(false);
       cont->setEnableSyncPatternWarning(false);
       cont->setEnableStoreGBTFrames(false);
       cont->setEnableCompileAdcValues(true);
 
-      std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << ", rorc type " << rorcType << ", SAMPA Version " << iSampaVersion << "...\n";
+      std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << ", rorc type "
+                << rorcType << ", SAMPA Version " << iSampaVersion << "...\n";
       cont->addGBTFramesFromBinaryFile(filename.Data(), rorcType.Data(), -1);
       std::cout << " ... done. Read " << cont->getSize() << "\n";
 

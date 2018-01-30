@@ -85,7 +85,7 @@ class RawReader {
     /// @param link FEC of the data
     /// @param run RUN number of the data
     /// @param sampaVersion Version of SAMPA chips, -1 is latest
-    RawReader(int region=-1, int link=-1, int run=-1, int sampaVersion=-1);
+    RawReader(int region = -1, int link = -1, int run = -1, int sampaVersion = -1);
 
     /// Copy constructor
     RawReader(const RawReader& other) = default;
@@ -115,12 +115,14 @@ class RawReader {
     bool loadEvent(int64_t event);
 
     /// Add input file for decoding
-    /// @param infile Input file string in the format "path_to_file:#region:#fec[:sampaVersion]", where #region/#fec/sampaVersion is a number and sampaVersion optional
+    /// @param infile Input file string in the format "path_to_file:#region:#fec[:sampaVersion]", where
+    //                #region/#fec/sampaVersion is a number and sampaVersion optional
     /// @return True if string has correct format and file can be opened
     bool addInputFile(std::string infile);
 
     /// Add several input files for decoding
-    /// @param infiles vector if input file strings, each formatted as "path_to_file:#region:#fec[:sampaVersion]", where #region/#fec/sampaVersion is a number and sampaVersion optional
+    /// @param infiles Vector of input file strings, each formatted as "path_to_file:#region:#fec[:sampaVersion]", where
+    //                 #region/#fec/sampaVersion is a number and sampaVersion optional
     /// @return True if at least one string has correct format and file can be opened
     bool addInputFile(const std::vector<std::string>* infiles);
 
@@ -131,7 +133,7 @@ class RawReader {
     /// @param path Path to data
     /// @param run Run number
     /// @return True file can be opened
-    bool addInputFile(int region, int link, int sampaVersion, std::string path, int run=-1);
+    bool addInputFile(int region, int link, int sampaVersion, std::string path, int run = -1);
 
     /// Get the first event
     /// @return Event number of first event in data

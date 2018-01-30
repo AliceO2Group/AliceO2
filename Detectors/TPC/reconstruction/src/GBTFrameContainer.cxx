@@ -16,37 +16,26 @@
 
 using namespace o2::TPC;
 
-GBTFrameContainer::GBTFrameContainer()
-  : GBTFrameContainer(0,0)
-{}
+GBTFrameContainer::GBTFrameContainer() : GBTFrameContainer(0,0) {}
 
-GBTFrameContainer::GBTFrameContainer(int cru, int link)
-  : GBTFrameContainer(0,cru,link,-1)
-{}
+GBTFrameContainer::GBTFrameContainer(int cru, int link) : GBTFrameContainer(0,cru,link,-1) {}
 
 GBTFrameContainer::GBTFrameContainer(int size, int cru, int link, int sampaVersion)
-  : mAdcMutex()
-  , mEnableAdcClockWarning(true)
-  , mEnableSyncPatternWarning(true)
-  , mEnableStoreGBTFrames(true)
-  , mEnableCompileAdcValues(true)
-  , mAdcClock({
-      AdcClockMonitor(0),
-      AdcClockMonitor(1),
-      AdcClockMonitor(2)})
-  , mSyncPattern({
-      SyncPatternMonitor(0,0),
-      SyncPatternMonitor(0,1),
-      SyncPatternMonitor(1,0),
-      SyncPatternMonitor(1,1),
-      SyncPatternMonitor(2,0)})
-  , mPositionForHalfSampa({-1,-1,-1,-1,-1,-1,-1,-1,-1,-1})
-  , mGBTFrames()
-  , mGBTFramesAnalyzed(0)
-  , mCRU(cru)
-  , mLink(link)
-  , mSampaVersion(sampaVersion)
-  , mTimebin(0)
+  : mAdcMutex(),
+  mEnableAdcClockWarning(true),
+  mEnableSyncPatternWarning(true),
+  mEnableStoreGBTFrames(true),
+  mEnableCompileAdcValues(true),
+  mAdcClock({AdcClockMonitor(0), AdcClockMonitor(1), AdcClockMonitor(2)}),
+  mSyncPattern({ SyncPatternMonitor(0, 0), SyncPatternMonitor(0, 1), SyncPatternMonitor(1, 0),
+                 SyncPatternMonitor(1, 1), SyncPatternMonitor(2, 0) }),
+  mPositionForHalfSampa({ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }),
+  mGBTFrames(),
+  mGBTFramesAnalyzed(0),
+  mCRU(cru),
+  mLink(link),
+  mSampaVersion(sampaVersion),
+  mTimebin(0)
 {
   mGBTFrames.reserve(size);
 
@@ -119,13 +108,13 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
       rawMarker = rawData & 0xFFFF0000;
       if ((rawMarker == 0xDEF10000) || (rawMarker == 0xDEF40000)) {
         file.read((char*)&words,3*sizeof(words[0]));
-        addGBTFrame(rawData,words[0],words[1],words[2]);
+        addGBTFrame(rawData, words[0], words[1], words[2]);
       }
     }
   } else if (type == "trorc") {
     while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
       file.read((char*)&words,4*sizeof(words[0]));
-      addGBTFrame(words[0],words[1],words[2],words[3]);
+      addGBTFrame(words[0], words[1], words[2], words[3]);
     }
   } else if (type == "trorc2") {
     //
@@ -156,7 +145,7 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
         case 1: {// raw GBT frames
           for (int i=0; i<(n_words-8); i= i+4) {
             file.read((char*)&words,4*sizeof(words[0]));
-            addGBTFrame(words[0],words[1],words[2],words[3]);
+            addGBTFrame(words[0], words[1], words[2], words[3]);
           }
           break;
           }
@@ -254,20 +243,20 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
           mAdcMutex.unlock();
           break;
           }
-//          for (int i=0; i<(n_words-8); i= i+8) {
-//            file.read((char*)&words,8*sizeof(words[0]));
-//            addGBTFrame(words[0],words[1],words[2],words[3]);
-//          }
-//          break;
+                //          for (int i=0; i<(n_words-8); i= i+8) {
+                //            file.read((char*)&words,8*sizeof(words[0]));
+                //            addGBTFrame(words[0],words[1],words[2],words[3]);
+                //          }
+                //          break;
 
         default:
-          break;
+                break;
       }
     }
-//    while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
-//      file.read((char*)&words,8*sizeof(words[0]));
-//      addGBTFrame(words[0],words[1],words[2],words[3]);
-//    }
+    //    while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
+    //      file.read((char*)&words,8*sizeof(words[0]));
+    //      addGBTFrame(words[0],words[1],words[2],words[3]);
+    //    }
   }
 }
 
@@ -298,9 +287,8 @@ void GBTFrameContainer::processAllFrames()
   mAdcMutex.lock();
   for (std::array<std::queue<short>*,5>::iterator it = mAdcValues.begin(); it != mAdcValues.end(); ++it) {
     if ((*it)->size() > 0) {
-      LOG(WARNING) << "There are already some ADC values for half SAMPA "
-        << std::distance(mAdcValues.begin(),it)
-        << " , maybe the frames were already processed." << FairLogger::endl;
+      LOG(WARNING) << "There are already some ADC values for half SAMPA " << std::distance(mAdcValues.begin(), it)
+                   << " , maybe the frames were already processed." << FairLogger::endl;
     }
   }
   mAdcMutex.unlock();
@@ -332,39 +320,31 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
 
     switch(mPositionForHalfSampa[iHalfSampa]) {
       case 0:
-        value1 =
-            (iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) |
-             iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
-        value2 =
-            (iFrame->getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) |
-             iFrame->getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
+        value1 = (iFrame->getHalfWord(iHalfSampa / 2, 1, iHalfSampa % 2) << 5) |
+                  iFrame->getHalfWord(iHalfSampa / 2, 0, iHalfSampa % 2);
+        value2 = (iFrame->getHalfWord(iHalfSampa / 2, 3, iHalfSampa % 2) << 5) |
+                  iFrame->getHalfWord(iHalfSampa / 2, 2, iHalfSampa % 2);
         break;
 
       case 1:
-        value1 =
-            ((iFrame-1)->getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) |
-             (iFrame-1)->getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
-        value2 =
-            (iFrame   ->getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
-            (iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
+        value1 = ((iFrame - 1)->getHalfWord(iHalfSampa / 2, 2, iHalfSampa % 2) << 5) |
+                  (iFrame - 1)->getHalfWord(iHalfSampa / 2, 1, iHalfSampa % 2);
+        value2 = (iFrame->getHalfWord(iHalfSampa / 2, 0, iHalfSampa % 2) << 5) |
+                 (iFrame - 1)->getHalfWord(iHalfSampa / 2, 3, iHalfSampa % 2);
         break;
 
       case 2:
-        value1 =
-            ((iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) |
-             (iFrame-1)->getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
-        value2 =
-            (iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) |
-             iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
+        value1 = ((iFrame - 1)->getHalfWord(iHalfSampa / 2, 3, iHalfSampa % 2) << 5) |
+                  (iFrame - 1)->getHalfWord(iHalfSampa / 2, 2, iHalfSampa % 2);
+        value2 = (iFrame->getHalfWord(iHalfSampa / 2, 1, iHalfSampa % 2) << 5) |
+                  iFrame->getHalfWord(iHalfSampa / 2, 0, iHalfSampa % 2);
         break;
 
       case 3:
-        value1 =
-            (iFrame   ->getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
-            (iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
-        value2 =
-            (iFrame->getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) |
-             iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
+        value1 = (iFrame->getHalfWord(iHalfSampa / 2, 0, iHalfSampa % 2) << 5) |
+                 (iFrame - 1)->getHalfWord(iHalfSampa / 2, 3, iHalfSampa % 2);
+        value2 = (iFrame->getHalfWord(iHalfSampa / 2, 2, iHalfSampa % 2) << 5) |
+                  iFrame->getHalfWord(iHalfSampa / 2, 1, iHalfSampa % 2);
         break;
 
       default:
@@ -373,15 +353,15 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
     }
 
     if (mSampaVersion == 1 || mSampaVersion == 2) {
-      mAdcValues[iHalfSampa]->emplace(value1 ^ (1 << 9));   // Invert bit 9 vor SAMPA v1 and v2
-      mAdcValues[iHalfSampa]->emplace(value2 ^ (1 << 9));   // Invert bit 9 vor SAMPA v1 and v2
+      mAdcValues[iHalfSampa]->emplace(value1 ^ (1 << 9)); // Invert bit 9 vor SAMPA v1 and v2
+      mAdcValues[iHalfSampa]->emplace(value2 ^ (1 << 9)); // Invert bit 9 vor SAMPA v1 and v2
     } else {
       mAdcValues[iHalfSampa]->emplace(value1);
       mAdcValues[iHalfSampa]->emplace(value2);
     }
-//  std::cout << iHalfSampa << " " << std::hex
-//     << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa]->rbegin()+1) << " "
-//     << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa]->rbegin()) << std::dec << std::endl;
+    //  std::cout << iHalfSampa << " " << std::hex
+    //     << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa]->rbegin()+1) << " "
+    //     << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa]->rbegin()) << std::dec << std::endl;
   }
   mAdcMutex.unlock();
 }
@@ -442,20 +422,21 @@ void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame
     mPositionForHalfSampa[4] = mSyncPattern[4].getPosition();
   }
 
-//  std::cout << mPositionForHalfSampa[0] << " " << mPositionForHalfSampa[1] << " " << mPositionForHalfSampa[2] << " " << mPositionForHalfSampa[3] << " " << mPositionForHalfSampa[4] << std::endl;
+  //  std::cout << mPositionForHalfSampa[0] << " " << mPositionForHalfSampa[1] << " " << mPositionForHalfSampa[2] << " " << mPositionForHalfSampa[3] << " " << mPositionForHalfSampa[4] << std::endl;
 
   if (mEnableSyncPatternWarning) {
     if (mPositionForHalfSampa[0] != mPositionForHalfSampa[1]) {
       LOG(WARNING) << "The two half words from SAMPA 0 don't start at the same position, lower bits start at "
-        << mPositionForHalfSampa[0] << ", higher bits at " << mPositionForHalfSampa[1] << FairLogger::endl;
+                   << mPositionForHalfSampa[0] << ", higher bits at " << mPositionForHalfSampa[1] << FairLogger::endl;
     }
     if (mPositionForHalfSampa[2] != mPositionForHalfSampa[3]) {
       LOG(WARNING) << "The two half words from SAMPA 1 don't start at the same position, lower bits start at "
-        << mPositionForHalfSampa[2] << ", higher bits at " << mPositionForHalfSampa[3] << FairLogger::endl;
+                   << mPositionForHalfSampa[2] << ", higher bits at " << mPositionForHalfSampa[3] << FairLogger::endl;
     }
     if (mPositionForHalfSampa[0] != mPositionForHalfSampa[2] || mPositionForHalfSampa[0] != mPositionForHalfSampa[4]) {
       LOG(WARNING) << "The three SAMPAs don't have the same position, SAMPA0 = " << mPositionForHalfSampa[0]
-        << ", SAMPA1 = " << mPositionForHalfSampa[2] << ", SAMPA2 = " << mPositionForHalfSampa[4] << FairLogger::endl;
+                   << ", SAMPA1 = " << mPositionForHalfSampa[2] << ", SAMPA2 = " << mPositionForHalfSampa[4]
+                   << FairLogger::endl;
     }
   }
 }
@@ -479,7 +460,7 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
   mAdcMutex.lock();
   for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
   {
-    if (mAdcValues[iHalfSampa]->size() < 16){
+    if (mAdcValues[iHalfSampa]->size() < 16) {
       mTmpData[iHalfSampa].fill(0);
       continue;
     }
@@ -503,9 +484,11 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
   int iPad;
   for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
   {
-    iSampaChannel = (iHalfSampa == 4) ?     // 5th half SAMPA corresponds to  SAMPA2
-        ((mCRU%2) ? 16 : 0) :                   // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
-        ((iHalfSampa%2) ? 16 : 0);              // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
+    iSampaChannel =
+      (iHalfSampa == 4) ? // 5th half SAMPA corresponds to  SAMPA2
+        ((mCRU%2) ? 16 : 0) // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+                        :
+        ((iHalfSampa%2) ? 16 : 0); // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
     iSampa =  (iHalfSampa == 4) ?
         2 :
         (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
@@ -519,7 +502,6 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
       iRow = padPos.getRow();
       iPad = padPos.getPad();
       iCharge = *it;
-//      std::cout << mCRU/2 << " " << mLink << " " << iSampa << " " << iSampaChannel << " " << iRow << " " << iPad << " " << iTimeBin << " " << iCharge << std::endl;
 
       container.emplace_back(mCRU, iCharge, iRow, iPad, iTimeBin);
       ++iSampaChannel;
@@ -571,11 +553,11 @@ bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>& container)
 //    iSampaChannel = (iHalfSampa == 4) ?         // 5th half SAMPA corresponds to  SAMPA2
 //        ((mCRU%2) ? 16 : 0) :                   // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
 //        ((iHalfSampa%2) ? 16 : 0);              // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
-    iSampa =  (iHalfSampa == 4) ?
+    iSampa = (iHalfSampa == 4) ?
         2 :
         (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
 
-    container.emplace_back(iSampa,!((bool)mCRU%2),mTmpData[iHalfSampa]);
+    container.emplace_back(iSampa, !((bool)mCRU % 2), mTmpData[iHalfSampa]);
 //    container.at(iHalfSampa).setID(iSampa);
 //    for (std::array<short,16>::iterator it = mTmpData[iHalfSampa].begin(); it != mTmpData[iHalfSampa].end(); ++it)
 //    {
