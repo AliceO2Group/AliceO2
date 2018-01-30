@@ -135,8 +135,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   specs.push_back(sink);
   specs.push_back(simpleQcTask);
 
-  //todo: get path as argument?
-  std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
+  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
+                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
 
   DataSampling::GenerateInfrastructure(specs, configurationSource);
 }
