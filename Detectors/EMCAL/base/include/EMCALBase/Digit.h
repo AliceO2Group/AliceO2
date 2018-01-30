@@ -15,9 +15,7 @@
 #include "Rtypes.h"
 #include <iosfwd>
 
-#ifndef __CINT__
 #include <boost/serialization/base_object.hpp>  // for base_object
-#endif
 
 
 namespace o2 {
@@ -49,9 +47,7 @@ namespace o2 {
       void PrintStream(std::ostream &stream) const;
       
     private:
-#ifndef __CINT__
       friend class boost::serialization::access;
-#endif
       
       Int_t             mModule;                ///< Supermodule index
       Int_t             mTower;                 ///< Tower index inside supermodule

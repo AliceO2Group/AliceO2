@@ -13,10 +13,8 @@
 
 #include "FairEventHeader.h"
 
-#ifndef __CINT__
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/base_object.hpp>
-#endif
 
 namespace o2 {
 namespace MFT {
@@ -42,9 +40,7 @@ class EventHeader : public FairEventHeader
 
   Int_t mPartNo;
   
-#ifndef __CINT__ // for BOOST serialization
   friend class boost::serialization::access;
-#endif // for BOOST serialization
   
   ClassDefOverride(EventHeader, 1);
 

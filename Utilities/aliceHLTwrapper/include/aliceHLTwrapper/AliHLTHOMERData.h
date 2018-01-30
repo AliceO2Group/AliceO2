@@ -59,7 +59,7 @@
 
 // Determine the sizes of the different integer type
 // homer_uint32, homer_uint64
-#if !defined(USE_ROOT) && !defined(__CINT__)
+#if !defined(USE_ROOT)
 // First homer_uint32
 #if USHRT_MAX==4294967295
 typedef unsigned short homer_uint32;
@@ -124,8 +124,7 @@ typedef unsigned long long homer_uint64;
 
 typedef unsigned char homer_uint8;
 
-#else // !USE_ROOT && !CINT
-
+#else // !USE_ROOT
 
 typedef UShort_t homer_uint16;
 typedef UInt_t homer_uint32;
