@@ -16,15 +16,15 @@
 
 using namespace o2::TPC;
 
-GBTFrameContainer::GBTFrameContainer() : GBTFrameContainer(0,0) {}
-GBTFrameContainer::GBTFrameContainer(int cru, int link) : GBTFrameContainer(0,cru,link,-1) {}
+GBTFrameContainer::GBTFrameContainer() : GBTFrameContainer(0, 0) {}
+GBTFrameContainer::GBTFrameContainer(int cru, int link) : GBTFrameContainer(0, cru, link, -1) {}
 GBTFrameContainer::GBTFrameContainer(int size, int cru, int link, int sampaVersion)
   : mAdcMutex(),
     mEnableAdcClockWarning(true),
     mEnableSyncPatternWarning(true),
     mEnableStoreGBTFrames(true),
     mEnableCompileAdcValues(true),
-    mAdcClock({AdcClockMonitor(0), AdcClockMonitor(1), AdcClockMonitor(2)}),
+    mAdcClock({ AdcClockMonitor(0), AdcClockMonitor(1), AdcClockMonitor(2) }),
     mSyncPattern({ SyncPatternMonitor(0, 0), SyncPatternMonitor(0, 1), SyncPatternMonitor(1, 0),
                    SyncPatternMonitor(1, 1), SyncPatternMonitor(2, 0) }),
     mPositionForHalfSampa({ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }),
@@ -482,8 +482,7 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
   {
     iSampaChannel =
       (iHalfSampa == 4)                // 5th half SAMPA corresponds to  SAMPA2
-        ?
-        ((mCRU % 2) ? 16 : 0)          // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+        ? ((mCRU % 2) ? 16 : 0)        // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
         : ((iHalfSampa % 2) ? 16 : 0); // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
     iSampa =  (iHalfSampa == 4) ?
         2 :

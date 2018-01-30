@@ -35,13 +35,13 @@ RawReader::RawReader(int region, int link, int run, int sampaVersion)
     mRun(run),
     mSampaVersion(sampaVersion),
     mLastEvent(-1),
-    mTimestampOfFirstData({ 0, 0, 0, 0, 0}),
+    mTimestampOfFirstData({ 0, 0, 0, 0, 0 }),
     mEvents(),
     mData(),
     mDataIterator(mData.end()),
     mSyncPos(),
     mChannelMask(nullptr),
-    mAdcError(std::make_shared<std::vector<std::tuple<short,short,short>>>()),
+    mAdcError(std::make_shared<std::vector<std::tuple<short, short, short>>>()),
     mEventSynchronizer(std::make_shared<RawReaderEventSync>())
 {
   mSyncPos.fill(-1);

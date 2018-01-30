@@ -45,8 +45,8 @@ int main(int argc, char *argv[])
 
   bpo::variables_map vm;
   bpo::options_description desc("Allowed options");
-  desc.add_options() ("help,h", "Produce help message.") ("infile,i", bpo::value<std::vector<std::string>>(&infile),
-                                                          "Input data files")(
+  desc.add_options()("help,h", "Produce help message.")("infile,i", bpo::value<std::vector<std::string>>(&infile),
+                                                        "Input data files")(
     "vl,", bpo::value<std::string>(&verbLevel), "Fairlogger verbosity level (LOW, MED, HIGH)")(
     "ll,", bpo::value<std::string>(&logLevel),
     "Fairlogger screen log level (FATAL, ERROR, WARNING, INFO, DEBUG, DEBUG1, DEBUG2, DEBUG3, DEBUG4)")(

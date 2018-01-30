@@ -216,11 +216,11 @@ class GBTFrameContainer {
 
     std::mutex mAdcMutex;
 
-    std::vector<GBTFrame> mGBTFrames; ///< GBT Frames container
-    std::array<AdcClockMonitor, 3> mAdcClock; ///< ADC clock monitor for the 3 SAMPAs
+    std::vector<GBTFrame> mGBTFrames;               ///< GBT Frames container
+    std::array<AdcClockMonitor, 3> mAdcClock;       ///< ADC clock monitor for the 3 SAMPAs
     std::array<SyncPatternMonitor, 5> mSyncPattern; ///< Synchronization pattern monitor for the 5 half SAMPAs
-    std::array<short, 10> mPositionForHalfSampa; ///< Start position of data for all 5 half SAMPAs
-    std::array<std::queue<short>*, 5> mAdcValues; ///< Vector to buffer the decoded ADC values, one deque per half SAMPA
+    std::array<short, 10> mPositionForHalfSampa;    ///< Start position of data for all 5 half SAMPAs
+    std::array<std::queue<short>*, 5> mAdcValues;   ///< Vector to buffer the decoded ADC values, one deque per half SAMPA
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
     bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
@@ -248,7 +248,8 @@ class GBTFrameContainer {
 //  processFrame(mGBTFrames.end()-1);
 //};
 
-inline void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0) {
+inline void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
+{
   if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
     mGBTFrames[0] = mGBTFrames[1];
     mGBTFrames[1].setData(word3, word2, word1, word0);
