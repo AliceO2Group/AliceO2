@@ -45,16 +45,16 @@ int main(int argc, char *argv[])
 
   bpo::variables_map vm;
   bpo::options_description desc("Allowed options");
-  desc.add_options()
-    ("help,h", "Produce help message.")
-    ("infile,i", bpo::value<std::vector<std::string>>(&infile), "Input data files")
-    ("vl,", bpo::value<std::string>(&verbLevel), "Fairlogger verbosity level (LOW, MED, HIGH)")
-    ("ll,", bpo::value<std::string>(&logLevel), "Fairlogger screen log level (FATAL, ERROR, WARNING, INFO, DEBUG, DEBUG1, DEBUG2, DEBUG3, DEBUG4)")
-    ("region,r", bpo::value<std::vector<unsigned>>(&region), "Region for mapping")
-    ("link,l", bpo::value<std::vector<unsigned>>(&link), "Link for mapping")
-    ("sVersion,s", bpo::value<std::vector<int>>(&sampaVersion), "SAMPA version for decoding")
-    ("rawInMode3", bpo::value<bool>(&useRawInMode3), "Use Raw data in mode 3 instead of decoded one")
-    (",n", bpo::value<int>(&readEvents), "Events to read");
+  desc.add_options() ("help,h", "Produce help message.") ("infile,i", bpo::value<std::vector<std::string>>(&infile),
+                                                          "Input data files")(
+    "vl,", bpo::value<std::string>(&verbLevel), "Fairlogger verbosity level (LOW, MED, HIGH)")(
+    "ll,", bpo::value<std::string>(&logLevel),
+    "Fairlogger screen log level (FATAL, ERROR, WARNING, INFO, DEBUG, DEBUG1, DEBUG2, DEBUG3, DEBUG4)")(
+    "region,r", bpo::value<std::vector<unsigned>>(&region), "Region for mapping")(
+    "link,l", bpo::value<std::vector<unsigned>>(&link), "Link for mapping")(
+    "sVersion,s", bpo::value<std::vector<int>>(&sampaVersion), "SAMPA version for decoding")(
+    "rawInMode3", bpo::value<bool>(&useRawInMode3), "Use Raw data in mode 3 instead of decoded one")(
+    ",n", bpo::value<int>(&readEvents), "Events to read");
 
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);

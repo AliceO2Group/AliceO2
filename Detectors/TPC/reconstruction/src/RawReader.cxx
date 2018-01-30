@@ -28,21 +28,21 @@ using namespace o2::TPC;
 
 RawReader::RawReader(int region, int link, int run, int sampaVersion)
   : mUseRawInMode3(true),
-  mApplyChannelMask(false),
-  mCheckAdcClock(false),
-  mRegion(region),
-  mLink(link),
-  mRun(run),
-  mSampaVersion(sampaVersion),
-  mLastEvent(-1),
-  mTimestampOfFirstData({ 0, 0, 0, 0, 0}),
-  mEvents(),
-  mData(),
-  mDataIterator(mData.end()),
-  mSyncPos(),
-  mChannelMask(nullptr),
-  mAdcError(std::make_shared<std::vector<std::tuple<short,short,short>>>()),
-  mEventSynchronizer(std::make_shared<RawReaderEventSync>())
+    mApplyChannelMask(false),
+    mCheckAdcClock(false),
+    mRegion(region),
+    mLink(link),
+    mRun(run),
+    mSampaVersion(sampaVersion),
+    mLastEvent(-1),
+    mTimestampOfFirstData({ 0, 0, 0, 0, 0}),
+    mEvents(),
+    mData(),
+    mDataIterator(mData.end()),
+    mSyncPos(),
+    mChannelMask(nullptr),
+    mAdcError(std::make_shared<std::vector<std::tuple<short,short,short>>>()),
+    mEventSynchronizer(std::make_shared<RawReaderEventSync>())
 {
   mSyncPos.fill(-1);
 }
@@ -103,10 +103,9 @@ bool RawReader::addInputFile(std::string infile) {
 
 bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string path, int run)
 {
-
   if (mRun == -1)
     mRun = run;
-  if (mRegion == -1 )
+  if (mRegion == -1)
     mRegion = region;
   if (mLink == -1)
     mLink = link;

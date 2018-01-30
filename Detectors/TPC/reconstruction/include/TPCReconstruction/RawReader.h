@@ -183,11 +183,9 @@ class RawReader {
     /// Does the ADC clock check
     /// @param checkAdc Checks for a valid ADC clock in the data stream
     void setCheckAdcClock(bool checkAdc) { mCheckAdcClock = checkAdc; };
-
     /// Set the SAMPA version
     /// @param sampaVersion Version to be set
     void setSampaVersion(int sampaVerson) { mSampaVersion = sampaVerson; };
-
     /// Returns some information about the event, e.g. the header
     /// @param event Event number
     /// @return shared pointer to vector with event informations
