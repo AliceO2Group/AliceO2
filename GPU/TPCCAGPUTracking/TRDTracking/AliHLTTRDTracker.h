@@ -111,7 +111,7 @@ protected:
   static const double fgkX0[kNLayers];        // default values of anode wires
   static const double fgkXshift;              // online tracklets evaluated above anode wire
 
-  double fR[kNLayers];                        // rough radial position of each TRD layer
+  double *fR;                                 // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
   AliHLTTRDTrack *fTracks;                    // array of trd-updated tracks
   int fNTracks;                               // number of TPC tracks to be matched
@@ -119,8 +119,8 @@ protected:
   AliHLTTRDTrackletWord *fTracklets;          // array of all tracklets, later sorted by HCId
   int fNtrackletsMax;                         // max number of tracklets
   int fNTracklets;                            // total number of tracklets in event
-  int fTrackletIndexArray[kNChambers][2];     // index of first tracklet of each detector [iDet][0]
-                                              // and number of tracklets in detector [iDet][1]
+  int *fNtrackletsInChamber;                  // number of tracklets in each chamber
+  int *fTrackletIndexArray;                   // index of first tracklet for each chamber
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
   AliHLTTRDTrack *fCandidates[2][kNcandidates];     // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
@@ -131,6 +131,7 @@ protected:
   float fMaxChi2;                             // max chi2 for tracklets
   int fMaxMissingLy;                          // max number of missing layers per track
   double fChi2Penalty;                        // chi2 added to the track for no update
+  double fZCorrCoefNRC;                       // tracklet z-position depends linearly on track dip angle
   int fNhypothesis;                           // number of track hypothesis per layer
   std::vector<int> fMaskedChambers;           // vector holding bad TRD chambers
   AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
