@@ -365,6 +365,7 @@ o2_define_bucket(
     FairRoot::FairMQ
     common_boost_bucket
     Boost::thread
+    Boost::serialization
     pthread
 
     INCLUDE_DIRECTORIES
