@@ -18,9 +18,9 @@
 #include <TVectorD.h>
 #include <boost/test/unit_test.hpp>
 #include <iostream>
-#include "ReconstructionDataFormats/Track.h"
 #include "CommonUtils/TreeStream.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "ReconstructionDataFormats/Track.h"
 
 using namespace o2::utils;
 
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     for (int i = 0; i < nent; i++) {
       tree->GetEntry(i);
       BOOST_CHECK(id == i);
-      printf("id: %d X: %e Track> ",id,x);
+      printf("id: %d X: %e Track> ", id, x);
       trc->PrintParam();
       BOOST_CHECK(std::abs(x - trc->getX()) < 1e-4);
     }

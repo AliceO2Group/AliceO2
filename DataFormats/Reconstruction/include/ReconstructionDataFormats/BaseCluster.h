@@ -16,12 +16,11 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
-#include "MathUtils/Cartesian3D.h"
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
+#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
-  
 // Basic cluster class with X,Y,Z position detector ID information + user fields
 // The position is ALWAYS stored in tracking frame and is misaligned (in opposite
 // to AliRoot). The errors are defined in *ideal* tracking frame
@@ -32,14 +31,13 @@ template <typename T>
 class BaseCluster : public TObject // temprarily derive from TObject
 {
  private:
-  
-  Point3D<T> mPos;        // cartesian position
-  T mSigmaY2;             // error in Y direction (usually rphi)
-  T mSigmaZ2;             // error in Z direction (usually Z)
-  T mSigmaYZ;             // non-diagonal term of error matrix
-  std::uint16_t mSensorID=0; // the sensor id
-  std::int8_t mCount = 0; // user field reserved for counting
-  std::uint8_t mBits = 0; // user field reserved for bit flags
+  Point3D<T> mPos;             // cartesian position
+  T mSigmaY2;                  // error in Y direction (usually rphi)
+  T mSigmaZ2;                  // error in Z direction (usually Z)
+  T mSigmaYZ;                  // non-diagonal term of error matrix
+  std::uint16_t mSensorID = 0; // the sensor id
+  std::int8_t mCount = 0;      // user field reserved for counting
+  std::uint8_t mBits = 0;      // user field reserved for bit flags
   enum masks_t : std::int32_t { kUserBitsMask = 0xff };
 
  public:
@@ -64,26 +62,16 @@ class BaseCluster : public TObject // temprarily derive from TObject
   T getSigmaY2() const { return mSigmaY2; }
   T getSigmaZ2() const { return mSigmaZ2; }
   T getSigmaYZ() const { return mSigmaYZ; }
-  Point3D<T>  getXYZ() const { return mPos; }
+  Point3D<T> getXYZ() const { return mPos; }
   Point3D<T>& getXYZ() { return mPos; }
-
-  // position in local frame, no check for matrices cache validity 
-  Point3D<T> getXYZLoc(const o2::detectors::DetMatrixCache& dm) const {
-    return dm.getMatrixT2L(mSensorID)(mPos);
-  }
-
-  // position in global frame, no check for matrices cache validity 
-  Point3D<T> getXYZGlo(const o2::detectors::DetMatrixCache& dm) const {
-    return dm.getMatrixT2G(mSensorID)(mPos);
-  }
-
+  // position in local frame, no check for matrices cache validity
+  Point3D<T> getXYZLoc(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2L(mSensorID)(mPos); }
+  // position in global frame, no check for matrices cache validity
+  Point3D<T> getXYZGlo(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2G(mSensorID)(mPos); }
   // position in global frame obtained as simple rotation from tracking one:
   // much faster for barrel detectors than using full 3D matrix.
-  // no check for matrices cache validity 
-  Point3D<T> getXYZGloRot(const o2::detectors::DetMatrixCache& dm) const {
-    return dm.getMatrixT2GRot(mSensorID)(mPos);
-  }
-  
+  // no check for matrices cache validity
+  Point3D<T> getXYZGloRot(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2GRot(mSensorID)(mPos); }
   // get sensor id
   std::int16_t getSensorID() const { return mSensorID; }
   // get count field
@@ -91,7 +79,6 @@ class BaseCluster : public TObject // temprarily derive from TObject
   // get bit field
   std::uint8_t getBits() const { return mBits; }
   bool isBitSet(int bit) const { return mBits & (0xff & (0x1 << bit)); }
-
   // cast to Point3D
   operator Point3D<T>&() { return mPos; }
   // modifiers
@@ -104,7 +91,6 @@ class BaseCluster : public TObject // temprarily derive from TObject
   void setBits(std::uint8_t b) { mBits = b; }
   void setBit(int bit) { mBits |= kUserBitsMask & (0x1 << bit); }
   void resetBit(int bit) { mBits &= ~(kUserBitsMask & (0x1 << bit)); }
-
   // set position and errors
   void setX(T x) { mPos.SetX(x); }
   void setY(T y) { mPos.SetY(y); }
@@ -128,7 +114,7 @@ class BaseCluster : public TObject // temprarily derive from TObject
 
  protected:
   ~BaseCluster() override = default;
-  
+
   //  ClassDefNV(BaseCluster, 1);
   ClassDefOverride(BaseCluster, 1); // temporarily
 };

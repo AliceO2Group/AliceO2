@@ -44,9 +44,9 @@ void GRPObject::print() const
   // print itself
   printf("Run: %8d\nFill: %6d\nPeriod: %s\n", getRun(), getFill(), getDataPeriod().data());
   printf("LHC State: %s\n", getLHCState().data());
-  std::time_t t = mTimeStart; //system_clock::to_time_t(mTimeStart);
+  std::time_t t = mTimeStart; // system_clock::to_time_t(mTimeStart);
   printf("Start: %s", std::ctime(&t));
-  t = mTimeEnd; //system_clock::to_time_t(mTimeEnd);
+  t = mTimeEnd; // system_clock::to_time_t(mTimeEnd);
   printf("End  : %s", std::ctime(&t));
   printf("Beam0: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamClockWise), getBeamA(BeamClockWise),
          getBeamEnergyPerNucleon(BeamClockWise));

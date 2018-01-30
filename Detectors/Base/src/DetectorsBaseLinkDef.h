@@ -8,18 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #ifdef __CLING__
 
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
- 
-#pragma link C++ class o2::Base::Detector+;
-#pragma link C++ class o2::Base::Propagator+;
 
-#pragma link C++ class o2::Base::GeometryManager+;
-#pragma link C++ class o2::Base::GeometryManager::MatBudget+;
-#pragma link C++ class o2::Base::MaterialManager+;
+#pragma link C++ class o2::Base::Detector + ;
+#pragma link C++ class o2::Base::Propagator + ;
+
+#pragma link C++ class o2::Base::GeometryManager + ;
+#pragma link C++ class o2::Base::GeometryManager::MatBudget + ;
+#pragma link C++ class o2::Base::MaterialManager + ;
 
 #endif

@@ -15,25 +15,27 @@
 #define BOOST_TEST_MODULE Test TPC DataFormats
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-#include <iostream>
-#include <iomanip>
 #include "../include/DataFormatsTPC/ClusterNative.h"
+#include <boost/test/unit_test.hpp>
+#include <iomanip>
+#include <iostream>
 
-namespace o2 {
-namespace DataFormat {
-namespace TPC {
-
+namespace o2
+{
+namespace DataFormat
+{
+namespace TPC
+{
 // check function for different versions of the cluster type, versions
 // can differ by internal members and scaling factors
-template<typename ClusterType>
+template <typename ClusterType>
 bool checkClusterType()
 {
   constexpr float step = 0.01;
-  constexpr auto padSeparation = 1./ClusterType::scalePadPacked;
-  constexpr auto timeSeparation = 1./ClusterType::scaleTimePacked;
-  constexpr auto sigmaPadSeparation = 1./ClusterType::scaleSigmaPadPacked;
-  constexpr auto sigmaTimeSeparation = 1./ClusterType::scaleSigmaTimePacked;
+  constexpr auto padSeparation = 1. / ClusterType::scalePadPacked;
+  constexpr auto timeSeparation = 1. / ClusterType::scaleTimePacked;
+  constexpr auto sigmaPadSeparation = 1. / ClusterType::scaleSigmaPadPacked;
+  constexpr auto sigmaTimeSeparation = 1. / ClusterType::scaleSigmaTimePacked;
 
   // the step size must be small then the achievable separation of values
   static_assert(step < padSeparation, "inconsistent step size");
@@ -63,7 +65,6 @@ bool checkClusterType()
     readback = somecluster.getSigmaTime();
     delta = sigmaTimeSeparation;
     BOOST_REQUIRE(readback > v - delta && readback < v + delta);
-
   }
 
   // currently a time frame is supposed to be 256 orbits at most, which is less
@@ -83,11 +84,7 @@ bool checkClusterType()
   return true;
 }
 
-BOOST_AUTO_TEST_CASE(test_tpc_clusternative)
-{
-  checkClusterType<ClusterNative>();
-}
-
+BOOST_AUTO_TEST_CASE(test_tpc_clusternative) { checkClusterType<ClusterNative>(); }
 } // namespace TPC
 } // namespace DataFormat
 } // namespace o2

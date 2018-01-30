@@ -20,22 +20,23 @@
 #include <TGeoShape.h>
 #include <TMath.h>
 #include <TObject.h> // for TObject
+#include <string>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
-#include <string>
 
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
 
 namespace o2
 {
-namespace detectors {class AlignParam;}
+namespace detectors
+{
+class AlignParam;
+}
 
 namespace Base
 {
-
-
 /// Class for interfacing to the geometry; it also builds and manages the look-up tables for fast
 /// access to geometry and alignment information for sensitive alignable volumes:
 /// 1) the look-up table mapping unique volume ids to TGeoPNEntries. This allows to access
@@ -45,11 +46,9 @@ namespace Base
 class GeometryManager : public TObject
 {
  public:
-
   ///< load geometry from file
-  static void loadGeometry(std::string geomFileName="O2geometry.root",
-			   std::string geomName="FAIRGeom");
-  
+  static void loadGeometry(std::string geomFileName = "O2geometry.root", std::string geomName = "FAIRGeom");
+
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
   ///< The alignable volume is identified by 'symname' which has to be either a valid symbolic
   ///< name, the query being performed after alignment, or a valid volume path if the query is

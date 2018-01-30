@@ -11,20 +11,20 @@
 /// \file GeometryManager.cxx
 /// \brief Implementation of the GeometryManager class
 
-#include <FairLogger.h> // for LOG
-#include <TCollection.h>      // for TIter
+#include <FairLogger.h>  // for LOG
+#include <TCollection.h> // for TIter
+#include <TFile.h>
 #include <TGeoMatrix.h>       // for TGeoHMatrix
 #include <TGeoNode.h>         // for TGeoNode
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
 #include <TObjArray.h>        // for TObjArray
 #include <TObject.h>          // for TObject
-#include <TFile.h>
 
 #include <cassert>
 #include <cstddef> // for NULL
 
-#include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/AlignParam.h"
 
 using namespace o2::detectors;
 using namespace o2::Base;
@@ -359,15 +359,15 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
 }
 
 //_________________________________
-void GeometryManager::loadGeometry(std::string geomFileName,std::string geomName)
+void GeometryManager::loadGeometry(std::string geomFileName, std::string geomName)
 {
   ///< load geometry from file
-  LOG(INFO)<<"Loading geometry "<<geomName<<" from "<<geomFileName<<FairLogger::endl;
+  LOG(INFO) << "Loading geometry " << geomName << " from " << geomFileName << FairLogger::endl;
   TFile flGeom(geomFileName.data());
-  if ( flGeom.IsZombie() ) {
-    LOG(FATAL)<<"Failed to open file "<<geomFileName<<FairLogger::endl;
+  if (flGeom.IsZombie()) {
+    LOG(FATAL) << "Failed to open file " << geomFileName << FairLogger::endl;
   }
-  if ( !flGeom.Get(geomName.data()) ) {
-    LOG(FATAL)<<"Did not find geometry named "<<geomName<<FairLogger::endl;
+  if (!flGeom.Get(geomName.data())) {
+    LOG(FATAL) << "Did not find geometry named " << geomName << FairLogger::endl;
   }
 }

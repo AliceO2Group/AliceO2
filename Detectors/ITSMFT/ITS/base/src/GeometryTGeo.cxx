@@ -15,9 +15,9 @@
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
 
-#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "MathUtils/Cartesian3D.h"
 
 #include "FairLogger.h" // for LOG
@@ -51,27 +51,25 @@ ClassImp(o2::ITS::GeometryTGeo);
 
 std::unique_ptr<o2::ITS::GeometryTGeo> GeometryTGeo::sInstance;
 
-std::string GeometryTGeo::sVolumeName        = "ITSV";           ///< Mother volume name
-std::string GeometryTGeo::sLayerName         = "ITSULayer";      ///< Layer name
-std::string GeometryTGeo::sStaveName         = "ITSUStave";      ///< Stave name
-std::string GeometryTGeo::sHalfStaveName     = "ITSUHalfStave";  ///< HalfStave name
-std::string GeometryTGeo::sModuleName        = "ITSUModule";     ///< Module name
-std::string GeometryTGeo::sChipName          = "ITSUChip";       ///< Chip name
-std::string GeometryTGeo::sSensorName        = "ITSUSensor";     ///< Sensor name
-std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol";    ///< Wrapper volume name
-
+std::string GeometryTGeo::sVolumeName = "ITSV";               ///< Mother volume name
+std::string GeometryTGeo::sLayerName = "ITSULayer";           ///< Layer name
+std::string GeometryTGeo::sStaveName = "ITSUStave";           ///< Stave name
+std::string GeometryTGeo::sHalfStaveName = "ITSUHalfStave";   ///< HalfStave name
+std::string GeometryTGeo::sModuleName = "ITSUModule";         ///< Module name
+std::string GeometryTGeo::sChipName = "ITSUChip";             ///< Chip name
+std::string GeometryTGeo::sSensorName = "ITSUSensor";         ///< Sensor name
+std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol"; ///< Wrapper volume name
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans)
-  : o2::ITSMFT::GeometryTGeo(DetID::ITS)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::ITSMFT::GeometryTGeo(DetID::ITS)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::ITS::GeometryTGeo instance exists" << FairLogger::endl; 
-    //throw std::runtime_error("Invalid use of public constructor: o2::ITS::GeometryTGeo instance exists");
+    LOG(FATAL) << "Invalid use of public constructor: o2::ITS::GeometryTGeo instance exists" << FairLogger::endl;
+    // throw std::runtime_error("Invalid use of public constructor: o2::ITS::GeometryTGeo instance exists");
   }
-  
+
   for (int i = MAXLAYERS; i--;) {
     mLayerToWrapper[i] = -1;
   }
@@ -81,11 +79,11 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans)
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::adopt(GeometryTGeo* raw) 
+void GeometryTGeo::adopt(GeometryTGeo* raw)
 {
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   if (sInstance) {
-    LOG(FATAL) << "No adoption: o2::ITS::GeometryTGeo instance exists" << FairLogger::endl; 
+    LOG(FATAL) << "No adoption: o2::ITS::GeometryTGeo instance exists" << FairLogger::endl;
   }
   sInstance = std::unique_ptr<o2::ITS::GeometryTGeo>(raw);
 }
@@ -322,21 +320,21 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   gGeoManager->PopPath();
 
   // account for the difference between sensitive layer and physical sensor ticknesses
-  static TGeoTranslation tra(0.,0.5*(Segmentation::SensorThickness-Segmentation::SensLayerThickness),0.);
+  static TGeoTranslation tra(0., 0.5 * (Segmentation::SensorThickness - Segmentation::SensLayerThickness), 0.);
 
   matTmp *= tra;
-  
+
   return &matTmp;
 }
 
 //__________________________________________________________________________
 void GeometryTGeo::Build(int loadTrans)
 {
-  if ( isBuilt() ) {
+  if (isBuilt()) {
     LOG(WARNING) << "Already built" << FairLogger::endl;
     return; // already initialized
   }
-  
+
   if (!gGeoManager) {
     // RSTODO: in future there will be a method to load matrices from the CDB
     LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
@@ -373,80 +371,78 @@ void GeometryTGeo::Build(int loadTrans)
   fillTrackingFramesCache();
   //
   fillMatrixCache(loadTrans);
-
 }
 
 //__________________________________________________________________________
 void GeometryTGeo::fillMatrixCache(int mask)
 {
   // populate matrix cache for requested transformations
-  //  
-  if (mSize<1) {    
+  //
+  if (mSize < 1) {
     LOG(WARNING) << "The method Build was not called yet" << FairLogger::endl;
     Build(mask);
     return;
   }
-  
+
   // build matrices
-  if ( (mask & o2::utils::bit2Mask(o2::TransformType::L2G)) && !getCacheL2G().isFilled() ) {
+  if ((mask & o2::utils::bit2Mask(o2::TransformType::L2G)) && !getCacheL2G().isFilled()) {
     // Matrices for Local (Sensor!!! rather than the full chip) to Global frame transformation
-    LOG(INFO) << "Loading ITS L2G matrices from TGeo" <<  FairLogger::endl;
+    LOG(INFO) << "Loading ITS L2G matrices from TGeo" << FairLogger::endl;
     auto& cacheL2G = getCacheL2G();
     cacheL2G.setSize(mSize);
 
-    for (int i=0;i<mSize;i++) {
-      TGeoHMatrix *hm = extractMatrixSensor(i);
-      cacheL2G.setMatrix( Mat3D( *hm ) , i);
+    for (int i = 0; i < mSize; i++) {
+      TGeoHMatrix* hm = extractMatrixSensor(i);
+      cacheL2G.setMatrix(Mat3D(*hm), i);
     }
-  } 
+  }
 
-  if ( (mask & o2::utils::bit2Mask(o2::TransformType::T2L)) && !getCacheT2L().isFilled() ) {
+  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2L)) && !getCacheT2L().isFilled()) {
     // matrices for Tracking to Local (Sensor!!! rather than the full chip) frame transformation
-    LOG(INFO) << "Loading ITS T2L matrices from TGeo" <<  FairLogger::endl;
+    LOG(INFO) << "Loading ITS T2L matrices from TGeo" << FairLogger::endl;
     auto& cacheT2L = getCacheT2L();
     cacheT2L.setSize(mSize);
-    for (int i=0;i<mSize;i++) {
+    for (int i = 0; i < mSize; i++) {
       TGeoHMatrix& hm = createT2LMatrix(i);
-      cacheT2L.setMatrix( Mat3D(hm) , i);
+      cacheT2L.setMatrix(Mat3D(hm), i);
     }
   }
 
-  if ( (mask & o2::utils::bit2Mask(o2::TransformType::T2G)) && !getCacheT2G().isFilled() ) {
-    LOG(WARNING) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices" <<  FairLogger::endl;
+  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2G)) && !getCacheT2G().isFilled()) {
+    LOG(WARNING) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices" << FairLogger::endl;
     // matrices for Tracking to Global frame transformation
-    LOG(INFO) << "Loading ITS T2G matrices from TGeo" <<  FairLogger::endl;
+    LOG(INFO) << "Loading ITS T2G matrices from TGeo" << FairLogger::endl;
     auto& cacheT2G = getCacheT2G();
     cacheT2G.setSize(mSize);
-    
-    for (int i=0;i<mSize;i++) {
-      TGeoHMatrix& mat = createT2LMatrix(i);
-      mat.MultiplyLeft( extractMatrixSensor(i) );
-      cacheT2G.setMatrix( Mat3D(mat), i);
-    }    
-  }
 
-  if ( (mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) && !getCacheT2GRot().isFilled() ) {
-    // 2D rotation matrices for Tracking frame to Global rotations
-    LOG(INFO) << "Loading ITS T2G rotation 2D matrices" <<  FairLogger::endl;
-    auto& cacheT2Gr = getCacheT2GRot();
-    cacheT2Gr.setSize(mSize);
-    for (int i=0;i<mSize;i++) {
-      cacheT2Gr.setMatrix( Rot2D(getSensorRefAlpha(i)) , i);
+    for (int i = 0; i < mSize; i++) {
+      TGeoHMatrix& mat = createT2LMatrix(i);
+      mat.MultiplyLeft(extractMatrixSensor(i));
+      cacheT2G.setMatrix(Mat3D(mat), i);
     }
   }
-    
+
+  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) && !getCacheT2GRot().isFilled()) {
+    // 2D rotation matrices for Tracking frame to Global rotations
+    LOG(INFO) << "Loading ITS T2G rotation 2D matrices" << FairLogger::endl;
+    auto& cacheT2Gr = getCacheT2GRot();
+    cacheT2Gr.setSize(mSize);
+    for (int i = 0; i < mSize; i++) {
+      cacheT2Gr.setMatrix(Rot2D(getSensorRefAlpha(i)), i);
+    }
+  }
 }
 
 //__________________________________________________________________________
 void GeometryTGeo::fillTrackingFramesCache()
 {
   // fill for every sensor its tracking frame parameteres
-  if ( !isTrackingFrameCached() ) {
+  if (!isTrackingFrameCached()) {
     // special cache for sensors tracking frame X and alpha params
     mCacheRefX.resize(mSize);
     mCacheRefAlpha.resize(mSize);
-    for (int i=0;i<mSize;i++) {
-      extractSensorXAlpha(i,mCacheRefX[i],mCacheRefAlpha[i]);      
+    for (int i = 0; i < mSize; i++) {
+      extractSensorXAlpha(i, mCacheRefX[i], mCacheRefAlpha[i]);
     }
   }
 }
@@ -686,49 +682,49 @@ int GeometryTGeo::extractLayerChipType(int lay) const
 void GeometryTGeo::Print(Option_t*) const
 {
   printf("NLayers:%d NChips:%d\n", mNumberOfLayers, getNumberOfChips());
-  if ( !isBuilt() ) return;
-  
+  if (!isBuilt())
+    return;
+
   for (int i = 0; i < mNumberOfLayers; i++) {
     printf(
       "Lr%2d\tNStav:%2d\tNChips:%2d "
       "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
       i, mNumberOfStaves[i], mNumberOfChipsPerModule[i], mNumberOfChipRowsPerModule[i],
       mNumberOfChipRowsPerModule[i] ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i] : 0,
-      mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], getFirstChipIndex(i),
-      getLastChipIndex(i), mLayerToWrapper[i]);
+      mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], getFirstChipIndex(i), getLastChipIndex(i),
+      mLayerToWrapper[i]);
   }
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::extractSensorXAlpha(int isn, float &x, float &alp)
+void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
 {
   // calculate r and phi of the impact of the normal on the sensor
   // (i.e. phi of the tracking frame alpha and X of the sensor in this frame)
-  double locA[3] = {-100.,0.,0.}, locB[3] = {100.,0.,0.}, gloA[3], gloB[3];
+  double locA[3] = { -100., 0., 0. }, locB[3] = { 100., 0., 0. }, gloA[3], gloB[3];
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
 
   matL2G->LocalToMaster(locA, gloA);
   matL2G->LocalToMaster(locB, gloB);
   double dx = gloB[0] - gloA[0], dy = gloB[1] - gloA[1];
   double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy);
-  double xp = gloB[0] - dx * t,  yp = gloB[1] - dy * t;
-  x = Sqrt(xp*xp+yp*yp);
-  alp = ATan2(yp,xp);
+  double xp = gloB[0] - dx * t, yp = gloB[1] - dy * t;
+  x = Sqrt(xp * xp + yp * yp);
+  alp = ATan2(yp, xp);
   BringTo02Pi(alp);
 }
-
 
 //__________________________________________________________________________
 TGeoHMatrix& GeometryTGeo::createT2LMatrix(int isn)
 {
   // create for sensor isn the TGeo matrix for Tracking to Local frame transformations
   static TGeoHMatrix t2l;
-  float x=0.f, alp=0.f;
-  extractSensorXAlpha(isn,x,alp);
+  float x = 0.f, alp = 0.f;
+  extractSensorXAlpha(isn, x, alp);
   t2l.Clear();
   t2l.RotateZ(alp * RadToDeg()); // rotate in direction of normal to the sensor plane
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
-  t2l.MultiplyLeft( &matL2G->Inverse() );
+  t2l.MultiplyLeft(&matL2G->Inverse());
   return t2l;
 }
 
@@ -745,4 +741,3 @@ int GeometryTGeo::extractVolumeCopy(const char* name, const char* prefix) const
   }
   return nms.Atoi();
 }
-

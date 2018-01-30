@@ -12,8 +12,8 @@
 /// \brief Implementation of the ITS cluster finder task
 
 #include "ITSReconstruction/ClustererTask.h"
-#include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -22,12 +22,13 @@
 
 ClassImp(o2::ITS::ClustererTask)
 
-using namespace o2::ITS;
+  using namespace o2::ITS;
 using namespace o2::Base;
 using namespace o2::utils;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("ITSClustererTask") {
+ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("ITSClustererTask")
+{
   if (useMCTruth)
     mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 }
@@ -56,35 +57,36 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  const std::vector<o2::ITSMFT::Digit> *arr =
-    mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit> *>("ITSDigit");
+  const std::vector<o2::ITSMFT::Digit>* arr = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
   if (!arr) {
-    LOG(ERROR)<<"ITS digits not registered in the FairRootManager. Exiting ..."<<FairLogger::endl;
+    LOG(ERROR) << "ITS digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
   mReader.setDigitArray(arr);
-  
+
   // Register output container
   mgr->RegisterAny("ITSCluster", mClustersArray, kTRUE);
 
   // Register MC Truth container
   if (mClsLabels)
-  mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
+    mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::T2L) ); // make sure T2L matrices are loaded
+  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L)); // make sure T2L matrices are loaded
   mGeometry = geom;
   mClusterer.setGeometry(geom);
   mClusterer.setMCTruthContainer(mClsLabels);
-  
+
   return kSUCCESS;
 }
 
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  if (mClustersArray) mClustersArray->clear();
-  if (mClsLabels)  mClsLabels->clear();
+  if (mClustersArray)
+    mClustersArray->clear();
+  if (mClsLabels)
+    mClsLabels->clear();
   LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
 
   mClusterer.process(mReader, *mClustersArray);

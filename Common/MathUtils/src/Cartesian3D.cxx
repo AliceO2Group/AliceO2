@@ -45,10 +45,10 @@ void Transform3D::print() const
 }
 
 //_________________________________________________
-std::ostream &operator<<(std::ostream &os, const o2::Rotation2D &t)
+std::ostream& operator<<(std::ostream& os, const o2::Rotation2D& t)
 {
-  float cs,sn;
-  t.getComponents(cs,sn);
-  os << "cos: " << cs << " sin: " << sn ;
+  float cs, sn;
+  t.getComponents(cs, sn);
+  os << "cos: " << cs << " sin: " << sn;
   return os;
 }

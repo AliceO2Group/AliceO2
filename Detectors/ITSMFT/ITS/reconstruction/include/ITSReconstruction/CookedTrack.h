@@ -21,27 +21,25 @@
 
 namespace o2
 {
-
-namespace ITSMFT {
+namespace ITSMFT
+{
 class Cluster;
 }
 
 namespace ITS
 {
-
 class CookedTrack : public o2::track::TrackParCov
 {
   using Cluster = o2::ITSMFT::Cluster;
 
  public:
-
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
   static constexpr int MaxClusters = 7;
 
   CookedTrack() = default;
   CookedTrack(const CookedTrack& t) = default;
   CookedTrack& operator=(const CookedTrack& tr) = default;
-  ~CookedTrack()=default;
+  ~CookedTrack() = default;
 
   // These functions must be provided
   Bool_t propagate(Float_t alpha, Float_t x, Float_t bz);
@@ -59,23 +57,20 @@ class CookedTrack : public o2::track::TrackParCov
   void setExternalClusterIndex(Int_t layer, Int_t idx);
   void resetClusters();
 
-  std::uint32_t getROFrame() const {return mROFrame;}
-  void setROFrame(std::uint32_t f) {mROFrame = f;}
-  
+  std::uint32_t getROFrame() const { return mROFrame; }
+  void setROFrame(std::uint32_t f) { mROFrame = f; }
   Bool_t isBetter(const CookedTrack& best, Float_t maxChi2) const;
 
-  o2::track::TrackParCov &getParamOut() {return mParamOut;}
-  const o2::track::TrackParCov &getParamOut() const {return mParamOut;}
-  
+  o2::track::TrackParCov& getParamOut() { return mParamOut; }
+  const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
  private:
-
   short mNClusters = 0;
-  float mMass = 0.14;            ///< Assumed mass for this track
-  float mChi2 = 0.;            ///< Chi2 for this track
-  std::uint32_t mROFrame=0;    ///< RO Frame
-  o2::track::TrackParCov mParamOut; // parameter at largest radius
-  std::array<Int_t,MaxClusters> mIndex; ///< Indices of associated clusters
-  
+  float mMass = 0.14;                    ///< Assumed mass for this track
+  float mChi2 = 0.;                      ///< Chi2 for this track
+  std::uint32_t mROFrame = 0;            ///< RO Frame
+  o2::track::TrackParCov mParamOut;      // parameter at largest radius
+  std::array<Int_t, MaxClusters> mIndex; ///< Indices of associated clusters
+
   ClassDef(CookedTrack, 2)
 };
 }

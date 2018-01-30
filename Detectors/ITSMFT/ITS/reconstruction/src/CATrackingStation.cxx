@@ -32,100 +32,106 @@
 
 #include <cmath>
 
-#include <TGeoMatrix.h>
 #include <TClonesArray.h>
+#include <TGeoMatrix.h>
 
-#include "ITSMFTSimulation/Hit.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Utils.h"
-
 
 using namespace o2::ITS::CA;
 using o2::constants::math::TwoPI;
 using o2::utils::BringTo02Pi;
 using o2::ITSMFT::Hit;
 
-TrackingStation::TrackingStation() :
-  mID(-1)
-  ,mVIDOffset(0)
-  ,mNClusters(0)
-  ,mZMin(0)
-  ,mZMax(0)
-  ,mDZInv(-1)
-  ,mDPhiInv(-1)
-  ,mNZBins(20)
-  ,mNPhiBins(20)
-  ,mQueryZBmin(-1)
-  ,mQueryZBmax(-1)
-  ,mQueryPhiBmin(-1)
-  ,mQueryPhiBmax(-1)
-  ,mBins(nullptr)
-  ,mOccBins(nullptr)
-  ,mNOccBins(0)
-  ,mNFoundClusters(0)
-  ,mFoundClusterIterator(0)
-  ,mFoundBinIterator(0)
-  ,mIndex()
-  ,mFoundBins(0)
-  ,mSortedClInfo(0)
-  ,mDetectors() {
-    // def. c-tor
-  }
+TrackingStation::TrackingStation()
+  : mID(-1),
+    mVIDOffset(0),
+    mNClusters(0),
+    mZMin(0),
+    mZMax(0),
+    mDZInv(-1),
+    mDPhiInv(-1),
+    mNZBins(20),
+    mNPhiBins(20),
+    mQueryZBmin(-1),
+    mQueryZBmax(-1),
+    mQueryPhiBmin(-1),
+    mQueryPhiBmax(-1),
+    mBins(nullptr),
+    mOccBins(nullptr),
+    mNOccBins(0),
+    mNFoundClusters(0),
+    mFoundClusterIterator(0),
+    mFoundBinIterator(0),
+    mIndex(),
+    mFoundBins(0),
+    mSortedClInfo(0),
+    mDetectors()
+{
+  // def. c-tor
+}
 
-  TrackingStation::TrackingStation(int id,float zMin, float zMax, int nzbins,int nphibins)
-  :mID(id)
-  ,mVIDOffset()
-  ,mNClusters(0)
-  ,mZMin(zMin)
-  ,mZMax(zMax)
-  ,mDZInv(-1)
-  ,mDPhiInv(-1)
-  ,mNZBins(nzbins)
-  ,mNPhiBins(nphibins)
-  ,mQueryZBmin(-1)
-  ,mQueryZBmax(-1)
-  ,mQueryPhiBmin(-1)
-  ,mQueryPhiBmax(-1)
-  ,mBins(nullptr)
-  ,mOccBins(nullptr)
-  ,mNOccBins(0)
-  ,mNFoundClusters(0)
-  ,mFoundClusterIterator(0)
-  ,mFoundBinIterator(0)
-  ,mIndex()
-  ,mFoundBins(0)
-   ,mSortedClInfo(0)
-   ,mDetectors() {
-     // c-tor
-   }
+TrackingStation::TrackingStation(int id, float zMin, float zMax, int nzbins, int nphibins)
+  : mID(id),
+    mVIDOffset(),
+    mNClusters(0),
+    mZMin(zMin),
+    mZMax(zMax),
+    mDZInv(-1),
+    mDPhiInv(-1),
+    mNZBins(nzbins),
+    mNPhiBins(nphibins),
+    mQueryZBmin(-1),
+    mQueryZBmax(-1),
+    mQueryPhiBmin(-1),
+    mQueryPhiBmax(-1),
+    mBins(nullptr),
+    mOccBins(nullptr),
+    mNOccBins(0),
+    mNFoundClusters(0),
+    mFoundClusterIterator(0),
+    mFoundBinIterator(0),
+    mIndex(),
+    mFoundBins(0),
+    mSortedClInfo(0),
+    mDetectors()
+{
+  // c-tor
+}
 
-TrackingStation::~TrackingStation() {
+TrackingStation::~TrackingStation()
+{
   // d-tor
   delete[] mBins;
   delete[] mOccBins;
 }
 
-void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
-  if (mNZBins < 1)   mNZBins = 2;
-  if (mNPhiBins < 1) mNPhiBins = 1;
-  mDZInv   = mNZBins / (mZMax - mZMin);
+void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo)
+{
+  if (mNZBins < 1)
+    mNZBins = 2;
+  if (mNPhiBins < 1)
+    mNPhiBins = 1;
+  mDZInv = mNZBins / (mZMax - mZMin);
   mDPhiInv = mNPhiBins / TwoPI;
   //
   mBins = new ClBinInfo_t[mNZBins * mNPhiBins];
   mOccBins = new int[mNZBins * mNPhiBins];
   mNClusters = points->GetEntriesFast();
-  if(mNClusters == 0) return;
+  if (mNClusters == 0)
+    return;
   mSortedClInfo.reserve(mNClusters);
   mVIDOffset = ((Hit*)points->UncheckedAt(0))->GetDetectorID();
   // prepare detectors info
   int detID = -1;
-  mIndex.resize(geo->getNumberOfChipsPerLayer(mID),-1);
+  mIndex.resize(geo->getNumberOfChipsPerLayer(mID), -1);
   mDetectors.reserve(geo->getNumberOfChipsPerLayer(mID));
   // prepare cluster info
   ClearSortedInfo();
   mSortedClInfo.reserve(mNClusters);
   ClsInfo_t cl;
-  for (int iCl = 0; iCl < points->GetEntriesFast(); ++iCl) { //Fill this layer with detectors
+  for (int iCl = 0; iCl < points->GetEntriesFast(); ++iCl) { // Fill this layer with detectors
     Hit* c = (Hit*)points->UncheckedAt(iCl);
     if (detID == c->GetDetectorID()) {
       continue;
@@ -147,7 +153,7 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
       m.LocalToMaster(txyz,xyz);
       det.xTF = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
     */
-    Point3D<float> loc(0.f,0.f,0.f);
+    Point3D<float> loc(0.f, 0.f, 0.f);
     auto glo = geo->getMatrixSensor(detID)(loc);
 
     det.xTF = det.xTF = glo.Rho();
@@ -169,11 +175,11 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
     mDetectors.push_back(det);
     */
     //
-    c->GetStartPosition(cl.x,cl.y,cl.z);
-    cl.r = sqrt(cl.x*cl.x + cl.y*cl.y);
-    cl.phi = atan2(cl.y,cl.x);
+    c->GetStartPosition(cl.x, cl.y, cl.z);
+    cl.r = sqrt(cl.x * cl.x + cl.y * cl.y);
+    cl.phi = atan2(cl.y, cl.x);
     BringTo02Pi(cl.phi);
-    cl.zphibin = GetBinIndex(GetZBin(cl.z),GetPhiBin(cl.phi));
+    cl.zphibin = GetBinIndex(GetZBin(cl.z), GetPhiBin(cl.phi));
     cl.detid = detID - mVIDOffset;
     //
     mSortedClInfo.push_back(cl);
@@ -181,12 +187,13 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
   } // end loop on detectors
 }
 
-void TrackingStation::SortClusters(const float vtx[3]) {
+void TrackingStation::SortClusters(const float vtx[3])
+{
   // sort clusters and build fast lookup table
   //
   //
   if (vtx) {
-    for (int icl = mNClusters;icl--;) {
+    for (int icl = mNClusters; icl--;) {
       mSortedClInfo[icl].x -= vtx[0];
       mSortedClInfo[icl].y -= vtx[1];
     }
@@ -195,8 +202,8 @@ void TrackingStation::SortClusters(const float vtx[3]) {
   //
   // fill cells in phi,z
   int currBin = -1;
-  for (int icl = 0;icl < mNClusters; ++icl) {
-    ClsInfo_t &t = mSortedClInfo[icl];
+  for (int icl = 0; icl < mNClusters; ++icl) {
+    ClsInfo_t& t = mSortedClInfo[icl];
     if (t.zphibin > currBin) { // register new occupied bin
       currBin = t.zphibin;
       mBins[currBin].first = icl;
@@ -207,7 +214,8 @@ void TrackingStation::SortClusters(const float vtx[3]) {
   }
 }
 
-void TrackingStation::Clear() {
+void TrackingStation::Clear()
+{
   // clear cluster info
   ClearSortedInfo();
   mIndex.clear();
@@ -215,11 +223,12 @@ void TrackingStation::Clear() {
   //
 }
 
-void TrackingStation::ClearSortedInfo() {
+void TrackingStation::ClearSortedInfo()
+{
   // clear cluster info
   mSortedClInfo.clear();
-  memset(mBins,0,mNZBins * mNPhiBins * sizeof(ClBinInfo_t));
-  memset(mOccBins,0,mNZBins * mNPhiBins * sizeof(int));
+  memset(mBins, 0, mNZBins * mNPhiBins * sizeof(ClBinInfo_t));
+  memset(mOccBins, 0, mNZBins * mNPhiBins * sizeof(int));
   mNOccBins = 0;
 }
 
@@ -253,57 +262,67 @@ mBins[mOccBins[i]].ncl,fBins[fOccBins[i]].first);
 //
 }*/
 
-int TrackingStation::SelectClusters(float zmin,float zmax,float phimin,float phimax) {
+int TrackingStation::SelectClusters(float zmin, float zmax, float phimin, float phimax)
+{
   // prepare occupied bins in the requested region
-  if (!mNOccBins) return 0;
-  if (zmax < mZMin || zmin > mZMax || zmin > zmax) return 0;
+  if (!mNOccBins)
+    return 0;
+  if (zmax < mZMin || zmin > mZMax || zmin > zmax)
+    return 0;
   mFoundBins.clear();
   mQueryZBmin = GetZBin(zmin);
-  if (mQueryZBmin < 0) mQueryZBmin = 0;
+  if (mQueryZBmin < 0)
+    mQueryZBmin = 0;
   mQueryZBmax = GetZBin(zmax);
-  if (mQueryZBmax >= mNZBins) mQueryZBmax = mNZBins - 1;
+  if (mQueryZBmax >= mNZBins)
+    mQueryZBmax = mNZBins - 1;
   BringTo02Pi(phimin);
   BringTo02Pi(phimax);
   mQueryPhiBmin = GetPhiBin(phimin);
   mQueryPhiBmax = GetPhiBin(phimax);
   int dbz = 0;
   mNFoundClusters = 0;
-  int nbcheck = mQueryPhiBmax - mQueryPhiBmin + 1; //TODO:(MP) check if a circular buffer is feasible
-  if (nbcheck > 0) { // no wrapping around 0-2pi, fast case
-    for (int ip = mQueryPhiBmin;ip <= mQueryPhiBmax;ip++) {
-      int binID = GetBinIndex(mQueryZBmin,ip);
-      if ( !(dbz = (mQueryZBmax-mQueryZBmin)) ) { // just one Z bin in the query range
+  int nbcheck = mQueryPhiBmax - mQueryPhiBmin + 1; // TODO:(MP) check if a circular buffer is feasible
+  if (nbcheck > 0) {                               // no wrapping around 0-2pi, fast case
+    for (int ip = mQueryPhiBmin; ip <= mQueryPhiBmax; ip++) {
+      int binID = GetBinIndex(mQueryZBmin, ip);
+      if (!(dbz = (mQueryZBmax - mQueryZBmin))) { // just one Z bin in the query range
         ClBinInfo_t& binInfo = mBins[binID];
-        if (!binInfo.ncl) continue;
+        if (!binInfo.ncl)
+          continue;
         mNFoundClusters += binInfo.ncl;
         mFoundBins.push_back(binID);
         continue;
       }
       int binMax = binID + dbz;
-      for ( ; binID <= binMax; binID++) {
+      for (; binID <= binMax; binID++) {
         ClBinInfo_t& binInfo = mBins[binID];
-        if (!binInfo.ncl) continue;
+        if (!binInfo.ncl)
+          continue;
         mNFoundClusters += binInfo.ncl;
         mFoundBins.push_back(binID);
       }
     }
-  } else {  // wrapping
+  } else { // wrapping
     nbcheck += mNPhiBins;
-    for (int ip0 = 0;ip0 <= nbcheck;ip0++) {
+    for (int ip0 = 0; ip0 <= nbcheck; ip0++) {
       int ip = mQueryPhiBmin + ip0;
-      if (ip >= mNPhiBins) ip -= mNPhiBins;
-      int binID = GetBinIndex(mQueryZBmin,ip);
-      if ( !(dbz = (mQueryZBmax - mQueryZBmin)) ) { // just one Z bin in the query range
+      if (ip >= mNPhiBins)
+        ip -= mNPhiBins;
+      int binID = GetBinIndex(mQueryZBmin, ip);
+      if (!(dbz = (mQueryZBmax - mQueryZBmin))) { // just one Z bin in the query range
         ClBinInfo_t& binInfo = mBins[binID];
-        if (!binInfo.ncl) continue;
+        if (!binInfo.ncl)
+          continue;
         mNFoundClusters += binInfo.ncl;
         mFoundBins.push_back(binID);
         continue;
       }
       int binMax = binID + dbz;
-      for (;binID <= binMax;binID++) {
+      for (; binID <= binMax; binID++) {
         ClBinInfo_t& binInfo = mBins[binID];
-        if (!binInfo.ncl) continue;
+        if (!binInfo.ncl)
+          continue;
         mNFoundClusters += binInfo.ncl;
         mFoundBins.push_back(binID);
       }
@@ -313,13 +332,15 @@ int TrackingStation::SelectClusters(float zmin,float zmax,float phimin,float phi
   return mNFoundClusters;
 }
 
-int TrackingStation::GetNextClusterInfoID() {
-  if (mFoundBinIterator < 0) return 0;
+int TrackingStation::GetNextClusterInfoID()
+{
+  if (mFoundBinIterator < 0)
+    return 0;
   int currBin = mFoundBins[mFoundBinIterator];
   if (mFoundClusterIterator < mBins[currBin].ncl) { // same bin
     return mBins[currBin].first + mFoundClusterIterator++;
   }
-  if (++mFoundBinIterator < int(mFoundBins.size())) {  // need to change bin
+  if (++mFoundBinIterator < int(mFoundBins.size())) { // need to change bin
     currBin = mFoundBins[mFoundBinIterator];
     mFoundClusterIterator = 1;
     return mBins[currBin].first;
@@ -328,8 +349,9 @@ int TrackingStation::GetNextClusterInfoID() {
   return -1;
 }
 
-void TrackingStation::ResetFoundIterator() {
+void TrackingStation::ResetFoundIterator()
+{
   // prepare for a new loop over found clusters
-  if (mNFoundClusters)  mFoundClusterIterator = mFoundBinIterator = 0;
+  if (mNFoundClusters)
+    mFoundClusterIterator = mFoundBinIterator = 0;
 }
-

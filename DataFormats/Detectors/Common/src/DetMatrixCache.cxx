@@ -9,8 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
-#include "MathUtils/Utils.h"
 #include <TGeoMatrix.h>
+#include "MathUtils/Utils.h"
 
 using namespace o2::detectors;
 using namespace o2::utils;
@@ -19,12 +19,11 @@ ClassImp(o2::detectors::MatrixCache<o2::Transform3D>);
 ClassImp(o2::detectors::MatrixCache<o2::Rotation2D>);
 ClassImp(o2::detectors::DetMatrixCache);
 
-
 //_______________________________________________________
 void DetMatrixCache::setSize(int s)
 {
   // set the size of the matrix cache, can be done only once
-  if (mSize!=0) {
+  if (mSize != 0) {
     LOG(FATAL) << "Cache size (N sensors) was already set to " << mSize << FairLogger::endl;
   }
   mSize = s;

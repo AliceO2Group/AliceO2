@@ -36,8 +36,8 @@ void MagFieldFact::SetParm()
 }
 
 FairField* MagFieldFact::createFairField()
-{ 
-  if ( !mFieldPar ) {
+{
+  if (!mFieldPar) {
     LOG(ERROR) << "MagFieldFact::createFairField: No field parameters available";
     return nullptr;
   }

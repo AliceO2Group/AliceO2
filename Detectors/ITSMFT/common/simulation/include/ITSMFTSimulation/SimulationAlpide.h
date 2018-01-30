@@ -23,41 +23,39 @@
 
 #include <TObject.h>
 
-#include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/AlpideSimResponse.h"
+#include "ITSMFTSimulation/Chip.h"
 
 class TLorentzVector;
 class TSeqCollection;
 
-namespace o2 {
-  namespace ITSMFT {
+namespace o2
+{
+namespace ITSMFT
+{
+//-------------------------------------------------------------------
 
-    //-------------------------------------------------------------------
+class SimulationAlpide : public Chip
+{
+ public:
+  SimulationAlpide() = default;
+  SimulationAlpide(const DigiParams* par, Int_t index, const o2::Transform3D* m) : Chip(par, index, m) {}
+  ~SimulationAlpide() = default;
 
-    class SimulationAlpide : public Chip {
-    public:
-      SimulationAlpide() = default;
-      SimulationAlpide(const DigiParams* par, Int_t index, const o2::Transform3D *m)
-	: Chip(par, index, m) {}
+  SimulationAlpide& operator=(const SimulationAlpide&) = delete;
 
-      ~SimulationAlpide() = default;
+  void Hits2Digits(double eventTime, UInt_t& minFr, UInt_t& maxFr);
 
-      SimulationAlpide& operator=(const SimulationAlpide&) = delete;
+  void addNoise(UInt_t rofMin, UInt_t rofMax);
 
-      void      Hits2Digits(double eventTime, UInt_t &minFr, UInt_t &maxFr);
+  void clearSimulation() { Chip::Clear(); }
+ private:
+  void Hit2DigitsCShape(const Hit* hit, UInt_t roFrame, double eventTime);
+  void Hit2DigitsSimple(const Hit* hit, UInt_t roFrame, double eventTime);
 
-      void      addNoise(UInt_t rofMin, UInt_t rofMax);
-
-      void      clearSimulation() { Chip::Clear(); }
-
-    private:
-
-      void      Hit2DigitsCShape(const Hit *hit, UInt_t roFrame, double eventTime);
-      void      Hit2DigitsSimple(const Hit *hit, UInt_t roFrame, double eventTime);
-
-
-      Double_t  computeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
-    };
-  }
+  Double_t computeIncidenceAngle(
+    TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
+};
+}
 }
 #endif

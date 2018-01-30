@@ -20,7 +20,7 @@
 
 ClassImp(o2::ITS::CookedTrack)
 
-using namespace o2::ITSMFT;
+  using namespace o2::ITSMFT;
 using namespace o2::ITS;
 using namespace o2::constants::math;
 using namespace o2::track;
@@ -91,9 +91,9 @@ void CookedTrack::setClusterIndex(Int_t l, Int_t i)
 void CookedTrack::setExternalClusterIndex(Int_t layer, Int_t idx)
 {
   //--------------------------------------------------------------------
-  // Set the cluster index within an external cluster array 
+  // Set the cluster index within an external cluster array
   //--------------------------------------------------------------------
-  mIndex[layer]=idx;
+  mIndex[layer] = idx;
 }
 
 Bool_t CookedTrack::propagate(Float_t alpha, Float_t x, Float_t bz)

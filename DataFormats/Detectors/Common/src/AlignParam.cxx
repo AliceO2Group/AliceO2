@@ -300,7 +300,7 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
     if (nOvlp) {
       LOG(INFO) << "Misalignment of node " << node->GetName() << " generated the following " << nOvlp
                 << "overlaps/extrusions:" << FairLogger::endl;
-      for (int i=0; i<nOvlp; i++) {
+      for (int i = 0; i < nOvlp; i++) {
         ((TGeoOverlap*)ovlpArray->UncheckedAt(i))->PrintInfo();
       }
     }
@@ -356,6 +356,6 @@ int AlignParam::getLevel() const
 void AlignParam::Print(const Option_t*) const
 {
   // print parameters
-  printf("%s : %6d | X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n",
-	 getSymName(),getAlignableID(),getX(),getY(),getZ(),getPsi(),getTheta(),getPhi() );
+  printf("%s : %6d | X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName(), getAlignableID(), getX(),
+         getY(), getZ(), getPsi(), getTheta(), getPhi());
 }

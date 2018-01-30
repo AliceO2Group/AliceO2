@@ -445,7 +445,7 @@ bool TrackParCov::propagateTo(float xk, float b)
   }
   setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
-  float dP[kNParams] = {0.f};
+  float dP[kNParams] = { 0.f };
   dP[kY] = dx * dy2dx;
   dP[kSnp] = x2r;
   if (fabs(x2r) < 0.05f) {
@@ -471,7 +471,7 @@ bool TrackParCov::propagateTo(float xk, float b)
   }
 
   updateParams(dP); // apply corrections
-  
+
   float &c00 = mC[kSigY2], &c10 = mC[kSigZY], &c11 = mC[kSigZ2], &c20 = mC[kSigSnpY], &c21 = mC[kSigSnpZ],
         &c22 = mC[kSigSnp2], &c30 = mC[kSigTglY], &c31 = mC[kSigTglZ], &c32 = mC[kSigTglSnp], &c33 = mC[kSigTgl2],
         &c40 = mC[kSigQ2PtY], &c41 = mC[kSigQ2PtZ], &c42 = mC[kSigQ2PtSnp], &c43 = mC[kSigQ2PtTgl],
@@ -544,7 +544,7 @@ bool TrackParCov::rotate(float alpha)
     return false;
   }
   //
-  
+
   float updSnp = snp * ca - csp * sa;
   if (fabs(updSnp) > Almost1) {
     printf("Rotation failed: new snp %.2f\n", updSnp);
@@ -1026,7 +1026,8 @@ float TrackParCov::getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSe
   // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
 
   if (std::abs(getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha() << FairLogger::endl;
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha()
+               << FairLogger::endl;
     return 2. * HugeF;
   }
   if (std::abs(getX() - rhs.getX()) > FLT_EPSILON) {
@@ -1058,7 +1059,8 @@ bool TrackParCov::update(const TrackParCov& rhs, const MatrixDSym5& covInv)
 
   // consider skipping this check, since it is usually already done upstream
   if (std::abs(getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
-    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha() << FairLogger::endl;
+    LOG(ERROR) << "The reference Alpha of the tracks differ: " << getAlpha() << " : " << rhs.getAlpha()
+               << FairLogger::endl;
     return false;
   }
   if (std::abs(getX() - rhs.getX()) > FLT_EPSILON) {
@@ -1093,7 +1095,7 @@ bool TrackParCov::update(const TrackParCov& rhs, const MatrixDSym5& covInv)
   }
   for (int i = kNParams; i--;) {
     for (int j = kNParams; j--;) {
-      updateParam( matK(i, j) * diff[j], i );
+      updateParam(matK(i, j) * diff[j], i);
     }
   }
 
@@ -1169,11 +1171,8 @@ bool TrackParCov::update(const array<float, 2>& p, const array<float, 3>& cov)
     return false;
   }
 
-  float dP[kNParams] = {float(k00*dy + k01*dz),
-			float(k10*dy+k11*dz),
-			dsnp,
-			float(k30 * dy + k31 * dz),
-			float(k40 * dy + k41 * dz)};
+  float dP[kNParams] = { float(k00 * dy + k01 * dz), float(k10 * dy + k11 * dz), dsnp, float(k30 * dy + k31 * dz),
+                         float(k40 * dy + k41 * dz) };
   updateParams(dP);
 
   double c01 = cm10, c02 = cm20, c03 = cm30, c04 = cm40;
@@ -1299,7 +1298,7 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   fC33 += cC33;
   fC43 += cC43;
   fC44 += cC44;
-  setQ2Pt( getQ2Pt()*cP4 );
+  setQ2Pt(getQ2Pt() * cP4);
 
   checkCovariance();
 

@@ -12,11 +12,11 @@
 /// \brief Implementation of the Detector class
 
 #include "DetectorsBase/Detector.h"
+#include <TVirtualMC.h> // for TVirtualMC, gMC
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
-#include <TVirtualMC.h>  // for TVirtualMC, gMC
-#include "TString.h"     // for TString
+#include "TString.h" // for TString
 
 using std::endl;
 using std::cout;
@@ -29,33 +29,24 @@ using namespace o2::detectors;
 
 Float_t Detector::mDensityFactor = 1.0;
 
-Detector::Detector()
-  : FairDetector(),
-    mMapMaterial(),
-    mMapMedium()
-{
-}
-
+Detector::Detector() : FairDetector(), mMapMaterial(), mMapMedium() {}
 Detector::Detector(const char* name, Bool_t Active)
-  : FairDetector(name, Active, DetID(name)),
-    mMapMaterial(),
-    mMapMedium()
+  : FairDetector(name, Active, DetID(name)), mMapMaterial(), mMapMedium()
 {
 }
 
-Detector::Detector(const Detector &rhs)
-  : FairDetector(rhs),
-    mMapMaterial(rhs.mMapMaterial),
-    mMapMedium(rhs.mMapMedium)
-{ }
+Detector::Detector(const Detector& rhs) : FairDetector(rhs), mMapMaterial(rhs.mMapMaterial), mMapMedium(rhs.mMapMedium)
+{
+}
 
-Detector::~Detector()
-= default;
+Detector::~Detector() = default;
 
-Detector &Detector::operator=(const Detector &rhs)
+Detector& Detector::operator=(const Detector& rhs)
 {
   // check assignment to self
-  if (this == &rhs) { return *this; }
+  if (this == &rhs) {
+    return *this;
+  }
 
   // base class assignment
   FairDetector::operator=(rhs);
@@ -100,16 +91,14 @@ void Detector::Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Flo
 #endif
 }
 
-void Detector::Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, Int_t ifield,
-                      Float_t fieldm, Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil,
-                      Float_t stmin, Float_t *ubuf, Int_t nbuf)
+void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm,
+                      Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf,
+                      Int_t nbuf)
 {
 #ifdef NEWMAT
   // new way
   auto& mgr = o2::Base::MaterialManager::Instance();
-  mgr.Medium(GetName(), numed, name, nmat, isvol, ifield,
-          fieldm, tmaxfd, stemax, deemax, epsil,
-          stmin, ubuf, nbuf);
+  mgr.Medium(GetName(), numed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf, nbuf);
 #else
   TString uniquename = GetName();
   uniquename.Append("_");
@@ -124,30 +113,21 @@ void Detector::Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, In
 #endif
 }
 
-void Detector::Matrix(Int_t &nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2,
-                      Float_t theta3, Float_t phi3) const
+void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2, Float_t theta3,
+                      Float_t phi3) const
 {
   TVirtualMC::GetMC()->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3);
 }
 
-void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan)
+void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan) {}
+void Detector::setNumberOfWrapperVolumes(Int_t n) {}
+void Detector::defineLayer(const Int_t nlay, const double phi0, const Double_t r, const Int_t nladd, const Int_t nmod,
+                           const Double_t lthick, const Double_t dthick, const UInt_t dettypeID, const Int_t buildLevel)
 {
 }
 
-void Detector::setNumberOfWrapperVolumes(Int_t n)
-{
-}
-
-void Detector::defineLayer(const Int_t nlay, const double phi0, const Double_t r,
-                           const Int_t nladd, const Int_t nmod,
-                           const Double_t lthick, const Double_t dthick, const UInt_t dettypeID,
-                           const Int_t buildLevel)
-{
-}
-
-void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd,
-                                Int_t nmod, Double_t width, Double_t tilt, Double_t lthick,
-                                Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
+void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod, Double_t width,
+                                Double_t tilt, Double_t lthick, Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
 {
 }
 
@@ -162,9 +142,9 @@ void Detector::initFieldTrackingParams(int& integration, float& maxfield)
   if (auto o2field = dynamic_cast<o2::field::MagneticField*>(field)) {
     integration = o2field->Integral(); // default integration method?
     maxfield = o2field->Max();
-  }
-  else {
-    LOG(INFO) << "No magnetic field found; using default tracking values " << integration << " " << maxfield << " to initialize media\n";
+  } else {
+    LOG(INFO) << "No magnetic field found; using default tracking values " << integration << " " << maxfield
+              << " to initialize media\n";
   }
 }
 
@@ -177,7 +157,7 @@ TClonesArray* Detector::GetCollection(int) const
 
 void Detector::addAlignableVolumes() const
 {
-  LOG(WARNING) << "Alignable volumes are not yet defined for "<< GetName() << FairLogger::endl;
+  LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName() << FairLogger::endl;
 }
 
 ClassImp(o2::Base::Detector)

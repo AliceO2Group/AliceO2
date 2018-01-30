@@ -25,10 +25,10 @@
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 
-#include "ReconstructionDataFormats/BaseCluster.h"
 #include "CommonConstants/MathConstants.h"
-#include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Utils.h"
+#include "ReconstructionDataFormats/BaseCluster.h"
 
 namespace o2
 {
@@ -63,18 +63,16 @@ constexpr float kCY2max = 100 * 100, // SigmaY<=100cm
   kC1Pt2max = 100 * 100,             // Sigma1/Pt<=100 1/GeV
   kCalcdEdxAuto = -999.f;            // value indicating request for dedx calculation
 
-// access to covariance matrix by row and column 
-constexpr int CovarMap[kNParams][kNParams] = {
-   {0 ,1 ,3 ,6 ,10},
-   {1 ,2 ,4 ,7 ,11},
-   {3 ,4 ,5 ,8 ,12},
-   {6 ,7 ,8 ,9 ,13},
-   {10,11,12,13,14}
- };
+// access to covariance matrix by row and column
+constexpr int CovarMap[kNParams][kNParams] = { { 0, 1, 3, 6, 10 },
+                                               { 1, 2, 4, 7, 11 },
+                                               { 3, 4, 5, 8, 12 },
+                                               { 6, 7, 8, 9, 13 },
+                                               { 10, 11, 12, 13, 14 } };
 
 // access to covariance matrix diagonal elements
-constexpr int DiagMap[kNParams] = {0 ,2 ,5 ,9 ,14};
- 
+constexpr int DiagMap[kNParams] = { 0, 2, 5, 9, 14 };
+
 constexpr float HugeF = 1e33; // large float as dummy value
 
 // helper function
@@ -93,7 +91,7 @@ class TrackPar
   ~TrackPar() = default;
 
   const float* getParams() const { return mP; }
-  float getParam(int i) const {return mP[i];}
+  float getParam(int i) const { return mP[i]; }
   float getX() const { return mX; }
   float getAlpha() const { return mAlpha; }
   float getY() const { return mP[kY]; }
@@ -110,9 +108,8 @@ class TrackPar
   float getP() const;
   float getPt() const;
 
-  float getTheta() const {return constants::math::PIHalf - std::atan(mP[3]);}
-  float getEta() const {return -std::log(std::tan(0.5*getTheta()));}
-
+  float getTheta() const { return constants::math::PIHalf - std::atan(mP[3]); }
+  float getEta() const { return -std::log(std::tan(0.5 * getTheta())); }
   Point3D<float> getXYZGlo() const;
   void getXYZGlo(std::array<float, 3>& xyz) const;
   bool getPxPyPzGlo(std::array<float, 3>& pxyz) const;
@@ -131,16 +128,16 @@ class TrackPar
   void PrintParam() const;
 
  protected:
-
   void updateParam(float delta, int i) { mP[i] += delta; }
-  void updateParams(const float delta[kNParams]) {
-    for (int i=kNParams;i--;) {
+  void updateParams(const float delta[kNParams])
+  {
+    for (int i = kNParams; i--;) {
       mP[i] += delta[i];
     }
   }
-  
+
   void setX(float v) { mX = v; }
-  void setParam(float v, int i) { mP[i] = v;}
+  void setParam(float v, int i) { mP[i] = v; }
   void setAlpha(float v) { mAlpha = v; }
   void setY(float v) { mP[kY] = v; }
   void setZ(float v) { mP[kZ] = v; }
@@ -148,8 +145,7 @@ class TrackPar
   void setTgl(float v) { mP[kTgl] = v; }
   void setQ2Pt(float v) { mP[kQ2Pt] = v; }
   // derived getters
-  
-  
+
  private:
   //
   float mX = 0.f;               /// X of track evaluation
@@ -190,9 +186,8 @@ class TrackParCov : public TrackPar
   float getSigma1PtSnp() const { return mC[kSigQ2PtSnp]; }
   float getSigma1PtTgl() const { return mC[kSigQ2PtTgl]; }
   float getSigma1Pt2() const { return mC[kSigQ2Pt2]; }
-  float getCovarElem(int i,int j) const {return mC[CovarMap[i][j]];}
-  float getDiagError2(int i) const {return mC[DiagMap[i]];}
-  
+  float getCovarElem(int i, int j) const { return mC[CovarMap[i][j]]; }
+  float getDiagError2(int i) const { return mC[DiagMap[i]]; }
   void Print() const;
 
   // parameters + covmat manipulation
@@ -240,12 +235,13 @@ class TrackParCov : public TrackPar
   void checkCovariance();
 
  protected:
-  void setCov(float v, int i) { mC[i] = v;}
-  void updateCov(const float delta[kCovMatSize]) {
-    for (int i=kCovMatSize;i--;) mC[i] += delta[i];
+  void setCov(float v, int i) { mC[i] = v; }
+  void updateCov(const float delta[kCovMatSize])
+  {
+    for (int i = kCovMatSize; i--;)
+      mC[i] += delta[i];
   }
 
-  
  protected:
   float mC[kCovMatSize] = { 0.f }; // 15 covariance matrix elements
 
@@ -276,7 +272,7 @@ inline float TrackPar::getPhi() const
   utils::BringToPMPi(phi);
   return phi;
 }
- 
+
 //_______________________________________________________
 inline Point3D<float> TrackPar::getXYZGlo() const
 {
@@ -298,7 +294,7 @@ inline Point3D<float> TrackPar::getXYZGloAt(float xk, float b, bool& ok) const
 inline float TrackPar::getPhiPos() const
 {
   // angle of track position
-  float phi = atan2f(getY(),getX()) + getAlpha();
+  float phi = atan2f(getY(), getX()) + getAlpha();
   utils::BringToPMPi(phi);
   return phi;
 }
@@ -319,7 +315,6 @@ inline float TrackPar::getPt() const
   return (ptI > o2::constants::math::Almost0) ? 1.f / ptI : o2::constants::math::VeryBig;
 }
 
- 
 //============================================================
 
 //____________________________________________________________

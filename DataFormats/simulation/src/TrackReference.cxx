@@ -13,8 +13,8 @@
 /// \author Sylwester Radomski (S.Radomski@gsi.de) GSI, Jan 31, 2003
 
 #include "SimulationDataFormat/TrackReference.h"
-#include "TVirtualMC.h"  // for TVirtualMC, gMC
 #include <Riostream.h>
+#include "TVirtualMC.h" // for TVirtualMC, gMC
 
 using std::endl;
 using std::cout;
@@ -23,7 +23,7 @@ using namespace o2;
 
 ClassImp(o2::TrackReference)
 
-TrackReference::TrackReference()
+  TrackReference::TrackReference()
   : TObject(),
     mTrackNumber(0),
     mReferencePositionX(0),
@@ -46,7 +46,7 @@ TrackReference::TrackReference()
   }
 }
 
-TrackReference::TrackReference(const TrackReference &tr)
+TrackReference::TrackReference(const TrackReference& tr)
   : TObject(tr),
     mTrackNumber(tr.mTrackNumber),
     mReferencePositionX(tr.mReferencePositionX),
@@ -146,10 +146,11 @@ TrackReference::TrackReference(Int_t label, Int_t id)
 //   return track;
 // }
 
-void TrackReference::Print(Option_t * /*opt*/) const
+void TrackReference::Print(Option_t* /*opt*/) const
 {
-  cout << Form("Label %d P=%7.2f (PX,PY,PZ)=(%7.2f,%7.2f,%7.2f) (X,Y,Z)=(%7.2f,%7.2f,%7.2f)"
-                 " Length=%7.2f Time=%7.2f UserId=%d",
-               Label(), P(), Px(), Py(), Pz(), X(), Y(), Z(), GetLength(), GetTime(), UserId())
-  << endl;
+  cout << Form(
+            "Label %d P=%7.2f (PX,PY,PZ)=(%7.2f,%7.2f,%7.2f) (X,Y,Z)=(%7.2f,%7.2f,%7.2f)"
+            " Length=%7.2f Time=%7.2f UserId=%d",
+            Label(), P(), Px(), Py(), Pz(), X(), Y(), Z(), GetLength(), GetTime(), UserId())
+       << endl;
 }

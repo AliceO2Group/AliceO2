@@ -11,14 +11,14 @@
 #define BOOST_TEST_MODULE Test MCTrack class
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
+#include "SimulationDataFormat/MCTrack.h"
 #include <boost/test/unit_test.hpp>
 #include <iomanip>
 #include <ios>
 #include <iostream>
-#include "SimulationDataFormat/MCTrack.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "TParticle.h"
 #include "TFile.h"
+#include "TParticle.h"
 
 using namespace o2;
 
@@ -41,7 +41,6 @@ BOOST_AUTO_TEST_CASE(MCTrack_test)
   track.setStore(true);
   BOOST_CHECK(track.getStore() == true);
 
-  
   // set hit for first detector
   BOOST_CHECK(track.leftTrace(1) == false);
   track.setHit(1);
@@ -50,14 +49,14 @@ BOOST_AUTO_TEST_CASE(MCTrack_test)
   BOOST_CHECK(track.getNumDet() == 1);
 
   {
-  // serialize it
-  TFile f("MCTrackOut.root", "RECREATE");
-  f.WriteObject(&track, "MCTrack");
-  f.Close();
+    // serialize it
+    TFile f("MCTrackOut.root", "RECREATE");
+    f.WriteObject(&track, "MCTrack");
+    f.Close();
   }
 
   {
-    MCTrack* intrack=nullptr;
+    MCTrack* intrack = nullptr;
     TFile f("MCTrackOut.root", "OPEN");
     f.GetObject("MCTrack", intrack);
     BOOST_CHECK(intrack->getStore() == true);

@@ -14,8 +14,8 @@
 
 #include "ITSReconstruction/CookedTrackerTask.h"
 #include "ITSMFTReconstruction/Cluster.h"
-#include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -24,13 +24,13 @@
 
 ClassImp(o2::ITS::CookedTrackerTask)
 
-using namespace o2::ITS;
+  using namespace o2::ITS;
 using namespace o2::Base;
 using namespace o2::utils;
 
 //_____________________________________________________________________
-CookedTrackerTask::CookedTrackerTask(Int_t n, Bool_t useMCTruth):FairTask("ITSCookedTrackerTask")
-  ,mTracker(n){
+CookedTrackerTask::CookedTrackerTask(Int_t n, Bool_t useMCTruth) : FairTask("ITSCookedTrackerTask"), mTracker(n)
+{
   if (useMCTruth)
     mTrkLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 }
@@ -59,7 +59,7 @@ InitStatus CookedTrackerTask::Init()
     return kERROR;
   }
 
-  mClustersArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Cluster> *>("ITSCluster");
+  mClustersArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Cluster>*>("ITSCluster");
   if (!mClustersArray) {
     LOG(ERROR) << "ITS clusters not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -70,29 +70,30 @@ InitStatus CookedTrackerTask::Init()
 
   // Register MC Truth container
   if (mTrkLabels) {
-     mgr->RegisterAny("ITSTrackMCTruth", mTrkLabels, kTRUE);
-     mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *>("ITSClusterMCTruth");
-     if (!mClsLabels) {
-        LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..."
-                   << FairLogger::endl;
-        return kERROR;
-     }
+    mgr->RegisterAny("ITSTrackMCTruth", mTrkLabels, kTRUE);
+    mClsLabels = mgr->InitObjectAs<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("ITSClusterMCTruth");
+    if (!mClsLabels) {
+      LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+      return kERROR;
+    }
   }
-  
+
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache( o2::utils::bit2Mask(o2::TransformType::T2GRot) ); // make sure T2GRot matrices are loaded
+  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // make sure T2GRot matrices are loaded
   mTracker.setGeometry(geom);
   mTracker.setMCTruthContainers(mClsLabels, mTrkLabels);
   mTracker.setContinuousMode(mContinuousMode);
-  
+
   return kSUCCESS;
 }
 
 //_____________________________________________________________________
 void CookedTrackerTask::Exec(Option_t* option)
 {
-  if (mTracksArray) mTracksArray->clear();
-  if (mTrkLabels) mTrkLabels->clear();
+  if (mTracksArray)
+    mTracksArray->clear();
+  if (mTrkLabels)
+    mTrkLabels->clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
   mTracker.process(*mClustersArray, *mTracksArray);

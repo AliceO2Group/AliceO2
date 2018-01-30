@@ -107,8 +107,8 @@ class AlignParam : public TNamed
   int Compare(const TObject* obj) const override;
   int getLevel() const;
 
-  void Print(const Option_t* opt="") const override;
-  
+  void Print(const Option_t* opt = "") const override;
+
  protected:
   bool matrixToAngles(const double* rot, double& psi, double& theta, double& phi);
   void setMatrixRotation(double psi, double theta, double phi, TGeoHMatrix& dest) const;

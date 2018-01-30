@@ -67,15 +67,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
                      static_cast<Float_t>(position.Z()) };
   Float_t delta[3];
   Geo::getPadDxDyDz(pos, det, delta);
-  auto channel  =  Geo::getIndex(det);
-  HitType newhit(position.X(),position.Y(), position.Z(), time, enDep, trackID, sensID);
-  if(channel != mLastChannelID || !isMergable(newhit, mHits->back())){
+  auto channel = Geo::getIndex(det);
+  HitType newhit(position.X(), position.Y(), position.Z(), time, enDep, trackID, sensID);
+  if (channel != mLastChannelID || !isMergable(newhit, mHits->back())) {
     mHits->push_back(newhit);
     stack->addHit(GetDetId());
-  }
-  else {
+  } else {
     mHits->back().SetEnergyLoss(mHits->back().GetEnergyLoss() + newhit.GetEnergyLoss());
-    //LOG(INFO)<<"Merging hit "<<"\n";
+    // LOG(INFO)<<"Merging hit "<<"\n";
     //  <<mHits->back().GetId()<<"with new hit "<<newhit.GetId()<<"\n";
   }
   mLastChannelID = channel;
@@ -89,7 +88,11 @@ void Detector::Register()
   mgr->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
 }
 
-void Detector::Reset() { mHits->clear(); mLastChannelID = -1;}
+void Detector::Reset()
+{
+  mHits->clear();
+  mLastChannelID = -1;
+}
 void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;

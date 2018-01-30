@@ -8,16 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #ifdef __CLING__
 
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
- 
-#pragma link C++ class o2::track::TrackPar+;
-#pragma link C++ class o2::track::TrackParCov+;
 
-#pragma link C++ class o2::BaseCluster<float>+;
+#pragma link C++ class o2::track::TrackPar + ;
+#pragma link C++ class o2::track::TrackParCov + ;
+
+#pragma link C++ class o2::BaseCluster < float > +;
 
 #endif

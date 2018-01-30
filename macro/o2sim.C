@@ -12,15 +12,15 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <FairBoxGenerator.h>
 #include <FairPrimaryGenerator.h>
-#include <TStopwatch.h>
-#include <memory>
-#include "FairParRootFileIo.h"
-#include "FairSystemInfo.h"
-#include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/Pythia8Generator.h>
-#include "TVirtualMC.h"
+#include <SimConfig/SimConfig.h>
+#include <TStopwatch.h>
+#include <memory>
 #include "DataFormatsParameters/GRPObject.h"
+#include "FairParRootFileIo.h"
+#include "FairSystemInfo.h"
+#include "TVirtualMC.h"
 
 #endif
 
@@ -52,7 +52,7 @@ void o2sim()
     // external kinematics
     // needs precense of a kinematics file "Kinematics.root"
     // TODO: make this configurable and check for presence
-    auto extGen =  new o2::eventgen::GeneratorFromFile(confref.getExtKinematicsFileName().c_str());
+    auto extGen = new o2::eventgen::GeneratorFromFile(confref.getExtKinematicsFileName().c_str());
     extGen->SetStartEvent(confref.getStartEvent());
     primGen->AddGenerator(extGen);
     std::cout << "using external kinematics\n";
@@ -61,26 +61,26 @@ void o2sim()
     // configures pythia for min.bias pp collisions at 14 TeV
     // TODO: make this configurable
     auto py8Gen = new o2::eventgen::Pythia8Generator();
-    py8Gen->SetParameters("Beams:idA 2212"); // p
-    py8Gen->SetParameters("Beams:idB 2212"); // p
-    py8Gen->SetParameters("Beams:eCM 14000."); // [GeV]
+    py8Gen->SetParameters("Beams:idA 2212");       // p
+    py8Gen->SetParameters("Beams:idB 2212");       // p
+    py8Gen->SetParameters("Beams:eCM 14000.");     // [GeV]
     py8Gen->SetParameters("SoftQCD:inelastic on"); // all inelastic processes
     primGen->AddGenerator(py8Gen);
-  }else if (genconfig.compare("pythia8hi") == 0) {
+  } else if (genconfig.compare("pythia8hi") == 0) {
     // pythia8 heavy-ion
     // exploits pythia8 heavy-ion machinery (available from v8.230)
     // configures pythia for min.bias Pb-Pb collisions at 5.52 TeV
     // TODO: make this configurable
     auto py8Gen = new o2::eventgen::Pythia8Generator();
-    py8Gen->SetParameters("Beams:idA 1000822080"); // Pb ion
-    py8Gen->SetParameters("Beams:idB 1000822080"); // Pb ion
-    py8Gen->SetParameters("Beams:eCM 5520.0"); // [GeV]
-    py8Gen->SetParameters("HeavyIon:SigFitNGen 0"); // valid for Pb-Pb 5520 only
+    py8Gen->SetParameters("Beams:idA 1000822080");                                      // Pb ion
+    py8Gen->SetParameters("Beams:idB 1000822080");                                      // Pb ion
+    py8Gen->SetParameters("Beams:eCM 5520.0");                                          // [GeV]
+    py8Gen->SetParameters("HeavyIon:SigFitNGen 0");                                     // valid for Pb-Pb 5520 only
     py8Gen->SetParameters("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
-    py8Gen->SetParameters(("HeavyIon:bWidth " + std::to_string(confref.getBMax())).c_str()); // impact parameter from 0-x [fm]
+    py8Gen->SetParameters(
+      ("HeavyIon:bWidth " + std::to_string(confref.getBMax())).c_str()); // impact parameter from 0-x [fm]
     primGen->AddGenerator(py8Gen);
-  }
-  else {
+  } else {
     LOG(FATAL) << "Invalid generator" << FairLogger::endl;
   }
   run->SetGenerator(primGen);
@@ -95,7 +95,7 @@ void o2sim()
   gGeoManager->Export("O2geometry.root");
 
   std::time_t runStart = std::time(nullptr);
-    
+
   // runtime database
   bool kParameterMerged = true;
   auto rtdb = run->GetRuntimeDb();
@@ -111,36 +111,36 @@ void o2sim()
     // store GRPobject
     o2::parameters::GRPObject grp;
     grp.setRun(run->GetRunId());
-    grp.setTimeStart( runStart );
-    grp.setTimeEnd( std::time(nullptr) );
+    grp.setTimeStart(runStart);
+    grp.setTimeEnd(std::time(nullptr));
     TObjArray* modArr = run->GetListOfModules();
     TIter next(modArr);
     FairModule* module = nullptr;
-    while ( (module=(FairModule*)next()) ) {
-      if (module->GetModId()<o2::detectors::DetID::First) {
-	continue; // passive
+    while ((module = (FairModule*)next())) {
+      if (module->GetModId() < o2::detectors::DetID::First) {
+        continue; // passive
       }
-      if (module->GetModId()>o2::detectors::DetID::Last) {
-	continue; // passive
+      if (module->GetModId() > o2::detectors::DetID::Last) {
+        continue; // passive
       }
-      grp.addDetReadOut( o2::detectors::DetID(module->GetModId()) );    
+      grp.addDetReadOut(o2::detectors::DetID(module->GetModId()));
     }
     grp.print();
-    printf("VMC: %p\n",TVirtualMC::GetMC());
+    printf("VMC: %p\n", TVirtualMC::GetMC());
     auto field = dynamic_cast<o2::field::MagneticField*>(run->GetField());
     if (field) {
       o2::units::Current_t currDip = field->getCurrentDipole();
-      o2::units::Current_t currL3  = field->getCurrentSolenoid();
-      grp.setL3Current( currL3 );
-      grp.setDipoleCurrent( currDip );
+      o2::units::Current_t currL3 = field->getCurrentSolenoid();
+      grp.setL3Current(currL3);
+      grp.setDipoleCurrent(currDip);
     }
     // todo: save beam information in the grp
 
     // save
-    TFile grpF("o2sim_grp.root","recreate");
-    grpF.WriteObjectAny(&grp,grp.Class(),"GRP");    
+    TFile grpF("o2sim_grp.root", "recreate");
+    grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
-  
+
   // needed ... otherwise nothing flushed?
   delete run;
 

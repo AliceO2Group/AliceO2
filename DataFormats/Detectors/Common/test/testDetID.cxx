@@ -20,10 +20,9 @@ using namespace o2::detectors;
 BOOST_AUTO_TEST_CASE(DetID_test)
 {
   // test for the templated Descriptor struct
-  for (DetID::ID id=DetID::First; id<=DetID::Last; id++) {
+  for (DetID::ID id = DetID::First; id <= DetID::Last; id++) {
     DetID det(id);
-    std::cout << "#" << id << " Detector " << det.getName()
-              << " ID=" << det << " mask: " << det.getMask() <<std::endl;
+    std::cout << "#" << id << " Detector " << det.getName() << " ID=" << det << " mask: " << det.getMask() << std::endl;
     BOOST_CHECK(id == det);
 
     // test that all names are initialized
@@ -33,6 +32,6 @@ BOOST_AUTO_TEST_CASE(DetID_test)
   {
     // test specific name access
     DetID det(DetID::ITS);
-    BOOST_CHECK(std::strcmp(det.getName(),"ITS") == 0);
+    BOOST_CHECK(std::strcmp(det.getName(), "ITS") == 0);
   }
 }

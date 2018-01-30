@@ -22,31 +22,31 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::Data::Stack+;
-#pragma link C++ class o2::MCTrackT<double>+;
-#pragma link C++ class o2::MCTrackT<float>+;
-#pragma link C++ class o2::MCTrack+;
-#pragma link C++ class std::vector<o2::MCTrack>+;
-#pragma link C++ class std::vector<o2::MCTrackT<double>>+;
-#pragma link C++ class std::vector<o2::MCTrackT<float>>+;
-#pragma link C++ class o2::MCCompLabel+;
-#pragma link C++ class o2::MCInteractionRecord+;
+#pragma link C++ class o2::Data::Stack + ;
+#pragma link C++ class o2::MCTrackT < double > +;
+#pragma link C++ class o2::MCTrackT < float > +;
+#pragma link C++ class o2::MCTrack + ;
+#pragma link C++ class std::vector < o2::MCTrack > +;
+#pragma link C++ class std::vector < o2::MCTrackT < double >> +;
+#pragma link C++ class std::vector < o2::MCTrackT < float >> +;
+#pragma link C++ class o2::MCCompLabel + ;
+#pragma link C++ class o2::MCInteractionRecord + ;
 
-#pragma link C++ class o2::BaseHit+;
-#pragma link C++ class o2::BasicXYZEHit<float,float>+;
-#pragma link C++ class o2::BasicXYZEHit<double,double>+;
-#pragma link C++ struct o2::dataformats::MCTruthHeaderElement+;
-#pragma link C++ class o2::dataformats::MCTruthContainer<long>+;
-#pragma link C++ class o2::dataformats::MCTruthContainer<o2::MCCompLabel>+;
-#pragma link C++ class std::vector<o2::MCCompLabel>+;
-#pragma link C++ class std::vector<o2::dataformats::MCTruthHeaderElement>+;
+#pragma link C++ class o2::BaseHit + ;
+#pragma link C++ class o2::BasicXYZEHit < float, float > +;
+#pragma link C++ class o2::BasicXYZEHit < double, double > +;
+#pragma link C++ struct o2::dataformats::MCTruthHeaderElement + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < long > +;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::MCCompLabel > +;
+#pragma link C++ class std::vector < o2::MCCompLabel > +;
+#pragma link C++ class std::vector < o2::dataformats::MCTruthHeaderElement > +;
 
-#pragma link C++ class o2::dataformats::TimeStamp<float>+;
-#pragma link C++ class o2::dataformats::TimeStamp<double>+;
-#pragma link C++ class o2::dataformats::TimeStamp<int>+;
-#pragma link C++ class o2::dataformats::TimeStampWithError<float, float>+;
-#pragma link C++ class o2::dataformats::TimeStampWithError<double, double>+;
-#pragma link C++ class o2::dataformats::TimeStampWithError<int, int>+;
-#pragma link C++ class o2::TrackReference+;
+#pragma link C++ class o2::dataformats::TimeStamp < float > +;
+#pragma link C++ class o2::dataformats::TimeStamp < double > +;
+#pragma link C++ class o2::dataformats::TimeStamp < int > +;
+#pragma link C++ class o2::dataformats::TimeStampWithError < float, float > +;
+#pragma link C++ class o2::dataformats::TimeStampWithError < double, double > +;
+#pragma link C++ class o2::dataformats::TimeStampWithError < int, int > +;
+#pragma link C++ class o2::TrackReference + ;
 
 #endif

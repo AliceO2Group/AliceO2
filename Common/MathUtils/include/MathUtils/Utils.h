@@ -21,8 +21,8 @@
 
 namespace o2
 {
-  //namespace common
-  //{
+// namespace common
+//{
 namespace utils
 {
 inline void BringTo02Pi(float& phi)
