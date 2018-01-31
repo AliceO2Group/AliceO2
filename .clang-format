@@ -27,6 +27,7 @@ IndentWidth:     2
 # It is broken on windows. Breaks all #include "header.h"
 Language:        Cpp
 MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: true
 NamespaceIndentation: None
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: false
