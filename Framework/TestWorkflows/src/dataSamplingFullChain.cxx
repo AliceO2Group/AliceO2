@@ -90,7 +90,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   specs.push_back(processingStage);
   specs.push_back(sink);
 
-  std::string configurationSource = "file:///home/pkonopka/alice/O2/Framework/TestWorkflows/dataSamplingFullChainConfig.ini";
+  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
+                                    + "/../../O2/Framework/TestWorkflows/dataSamplingFullChainConfig.ini";
   DataSampling::GenerateInfrastructure(specs, configurationSource);
 
 }
