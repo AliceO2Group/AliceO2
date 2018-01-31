@@ -40,8 +40,8 @@ class DigitContainer{
 
     void setUp(const short sector, const TimeBin timeBinEvent);
 
-    unsigned short getSectorLeft(const short sector) const;
-    unsigned short getSectorRight(const short sector) const;
+    static unsigned short getSectorLeft(const short sector);
+    static unsigned short getSectorRight(const short sector);
     bool checkNeighboursProcessed(const short sector) const;
     unsigned short getBufferPosition(const short sector);
 

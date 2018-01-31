@@ -23,13 +23,14 @@ void DigitSector::setDigit(size_t eventID, size_t hitID, const CRU &cru, TimeBin
   mEffectiveTimeBin = timeBin - mFirstTimeBin;
   if(mEffectiveTimeBin < 0.) {
     LOG(FATAL) << "TPC DigitSector buffer misaligned ";
-    LOG(DEBUG) << "for event " << eventID << " hit " << hitID << " CRU " <<cru << " TimeBin " << timeBin << " First TimeBin " << mFirstTimeBin << " Global Pad " << globalPad;
+    LOG(FATAL) << "for event " << eventID << " hit " << hitID << " CRU " <<cru << " TimeBin " << timeBin << " First TimeBin " << mFirstTimeBin << " Global Pad " << globalPad;
     LOG(FATAL) << FairLogger::endl;
     return;
   }
   /// If time bin outside specified range, the range of the vector is extended by one full drift time.
   while(getSize() <= mEffectiveTimeBin) {
-    mTimeBins.resize(getSize() + mNTimeBins);
+    LOG(INFO) << "resizing time bins\n";
+	mTimeBins.resize(getSize() + mNTimeBins);
   }
   mTimeBins[mEffectiveTimeBin].setDigit(eventID, hitID, cru, globalPad, charge);
 }

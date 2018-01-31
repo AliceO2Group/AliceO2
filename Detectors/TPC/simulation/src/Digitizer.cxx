@@ -50,6 +50,10 @@ void Digitizer::init()
 //  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
 }
 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 DigitContainer* Digitizer::Process(const int sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID, float eventTime)
 {
 //  mDigitContainer->reset();
@@ -90,7 +94,10 @@ DigitContainer* Digitizer::Process(const int sector, const std::vector<o2::TPC::
       for(int iEle=0; iEle < nPrimaryElectrons; ++iEle) {
 
         /// Drift and Diffusion
-        const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle);
+        GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle);
+        if (sgn(posEleDiff.Z()) != sgn(posEle.Z())) {
+          posEleDiff.SetZ(posEle.Z());
+        }
 
         /// \todo Time management in continuous mode (adding the time of the event?)
         const float driftTime = SAMPAProcessing::getDriftTime(posEleDiff.Z()) + eh.GetTime() * 0.001; /// in us
@@ -135,8 +142,16 @@ DigitContainer* Digitizer::Process(const int sector, const std::vector<o2::TPC::
           const float signal = signalArray[i];
           if (signal == 0) continue;
           const float time = absoluteTime + i * eleParam.getZBinWidth();
-          mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU(), SAMPAProcessing::getTimeBinFromTime(time), globalPad, signal);
-        }
+          const auto digisector = (int)digiPos.getCRU().sector();
+          if (digisector == sector || digisector == DigitContainer::getSectorLeft(sector) ||
+              digisector == DigitContainer::getSectorRight(sector)) {
+            mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU(), SAMPAProcessing::getTimeBinFromTime(time),
+                                      globalPad, signal);
+          } else {
+            LOG(INFO) << "WARNING: Digit in unexpected sector " << digisector
+            		<< " " << posEle.Z() << "\t" << posEleDiff.Z() << "\n";
+          }
+          }
 
       // }
       // }

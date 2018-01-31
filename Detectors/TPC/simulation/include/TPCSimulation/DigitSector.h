@@ -79,7 +79,7 @@ DigitSector::DigitSector()
     mFirstTimeBin(0),
     mEffectiveTimeBin(0),
     mNTimeBins(500),
-    mTimeBins()
+    mTimeBins(550)
 {}
 
 inline
