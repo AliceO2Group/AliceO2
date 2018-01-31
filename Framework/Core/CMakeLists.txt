@@ -74,6 +74,7 @@ set(TEST_SRCS
       test/test_BoostOptionsRetriever.cxx
       test/test_DataRelayer.cxx
       test/test_DataRefUtils.cxx
+      test/test_DataProcessorSpec.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
       test/test_FrameworkDataFlowToDDS.cxx

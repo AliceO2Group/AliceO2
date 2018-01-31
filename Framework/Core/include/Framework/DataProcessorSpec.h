@@ -16,6 +16,7 @@
 #include "Framework/DataRef.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/DataProcessorLabel.h"
 
 #include <vector>
 #include <string>
@@ -39,6 +40,14 @@ struct DataProcessorSpec {
   Options options;
   // FIXME: not used for now...
   std::vector<std::string> requiredServices;
+  /// Labels associated to the DataProcessor. These can
+  /// be used to group different DataProcessor together
+  /// and they can allow to filter different groups, e.g.
+  /// use push/pull rather than pub/sub for all the edges
+  /// which involve a DataProcessorSpec with a given label.
+  /// Examples labels could be "reco", "qc".
+  std::vector<DataProcessorLabel> labels;
+
   // FIXME: for the moment I put them here, but it's a hack
   //        since we do not want to expose this to users...
   //        Maybe we should have a ParallelGroup kind of node
