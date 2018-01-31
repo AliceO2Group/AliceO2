@@ -11,10 +11,10 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
-#include "Framework/WorkflowSpec.h"
-#include "Framework/DeviceSpec.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/WorkflowSpec.h"
 #include "Headers/DataHeader.h"
 
 #include <boost/test/unit_test.hpp>
@@ -23,7 +23,8 @@
 using namespace o2::framework;
 
 // because comparing the whole thing is a pain.
-void lineByLineComparision(const std::string &as, const std::string &bs) {
+void lineByLineComparision(const std::string& as, const std::string& bs)
+{
   std::istringstream a(as);
   std::istringstream b(bs);
 
@@ -33,70 +34,50 @@ void lineByLineComparision(const std::string &as, const std::string &bs) {
   while (a.good() && b.good()) {
     a.getline(bufferA, 1024);
     b.getline(bufferB, 1024);
-   BOOST_CHECK_EQUAL(std::string(bufferA), std::string(bufferB));
+    BOOST_CHECK_EQUAL(std::string(bufferA), std::string(bufferB));
   }
   BOOST_CHECK(a.eof());
   BOOST_CHECK(b.eof());
 }
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing() {
+WorkflowSpec defineDataProcessing()
+{
+  return { { "A", Inputs{},
+             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
+                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+           { "B",
+             { InputSpec{ "x", "TST", "A1", InputSpec::Timeframe } },
+             Outputs{ OutputSpec{ "TST", "B1", OutputSpec::Timeframe } } },
+           { "C", Inputs{ InputSpec{ "x", "TST", "A2", InputSpec::Timeframe } },
+             Outputs{ OutputSpec{ "TST", "C1", OutputSpec::Timeframe } } },
+           { "D",
+             Inputs{ InputSpec{ "i1", "TST", "B1", InputSpec::Timeframe },
+                     InputSpec{ "i2", "TST", "C1", InputSpec::Timeframe } },
+             Outputs{} } };
+}
+
+WorkflowSpec defineDataProcessing2()
+{
   return {
-  {
-    "A",
-    Inputs{},
-    Outputs{
-      OutputSpec{"TST", "A1", OutputSpec::Timeframe},
-      OutputSpec{"TST", "A2", OutputSpec::Timeframe}
-    }
-  },
-  {
-    "B",
-    {InputSpec{"x","TST", "A1", InputSpec::Timeframe}},
-    Outputs{
-      OutputSpec{"TST", "B1", OutputSpec::Timeframe}}
-  },
-  {
-    "C",
-    Inputs{InputSpec{"x", "TST", "A2", InputSpec::Timeframe}},
-    Outputs{
-      OutputSpec{"TST", "C1", OutputSpec::Timeframe}
-    }
-  },
-  {
-    "D",
-    Inputs{
-      InputSpec{"i1", "TST", "B1", InputSpec::Timeframe},
-      InputSpec{"i2", "TST", "C1", InputSpec::Timeframe}
-    },
-    Outputs{}
-  }
+    { "A",
+      {},
+      {
+        OutputSpec{ "TST", "A", OutputSpec::Timeframe },
+      } },
+    timePipeline({ "B",
+                   { InputSpec{ "a", "TST", "A", InputSpec::Timeframe } },
+                   { OutputSpec{ "TST", "B", OutputSpec::Timeframe } } },
+                 3),
+    timePipeline({ "C",
+                   { InputSpec{ "b", "TST", "B", InputSpec::Timeframe } },
+                   { OutputSpec{ "TST", "C", OutputSpec::Timeframe } } },
+                 2),
   };
 }
 
-WorkflowSpec defineDataProcessing2() {
-  return {
-  {
-    "A",
-    {},
-    {
-      OutputSpec{"TST", "A", OutputSpec::Timeframe},
-    }
-  },
-  timePipeline({
-    "B",
-    {InputSpec{"a", "TST", "A", InputSpec::Timeframe}},
-    {OutputSpec{"TST", "B", OutputSpec::Timeframe}}
-  }, 3),
-  timePipeline({
-    "C",
-    {InputSpec{"b", "TST", "B", InputSpec::Timeframe}},
-    {OutputSpec{"TST", "C", OutputSpec::Timeframe}}
-  }, 2),
-  };
-}
-
-BOOST_AUTO_TEST_CASE(TestGraphviz) {
+BOOST_AUTO_TEST_CASE(TestGraphviz)
+{
   auto workflow = defineDataProcessing();
   std::ostringstream str;
   auto expectedResult = R"EXPECTED(digraph structs {
@@ -110,7 +91,7 @@ BOOST_AUTO_TEST_CASE(TestGraphviz) {
   GraphvizHelpers::dumpDataProcessorSpec2Graphviz(str, workflow);
   lineByLineComparision(str.str(), expectedResult);
   std::vector<DeviceSpec> devices;
-  for (auto &device : devices) {
+  for (auto& device : devices) {
     BOOST_CHECK(device.id != "");
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
@@ -129,10 +110,10 @@ BOOST_AUTO_TEST_CASE(TestGraphviz) {
   C:from_C_to_D-> D:from_C_to_D [label="22003"]
 }
 )EXPECTED");
-
 }
 
-BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline) {
+BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline)
+{
   auto workflow = defineDataProcessing2();
   std::ostringstream str;
   auto expectedResult = R"EXPECTED(digraph structs {
@@ -145,7 +126,7 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline) {
   GraphvizHelpers::dumpDataProcessorSpec2Graphviz(str, workflow);
   lineByLineComparision(str.str(), expectedResult);
   std::vector<DeviceSpec> devices;
-  for (auto &device : devices) {
+  for (auto& device : devices) {
     BOOST_CHECK(device.id != "");
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();

@@ -7,34 +7,37 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "WorkflowHelpers.h"
 #include "DeviceSpecHelpers.h"
-#include "Framework/ChannelConfigurationPolicy.h"
-#include "Framework/DeviceSpec.h"
-#include "Framework/WorkflowSpec.h"
-#include "Framework/ChannelMatching.h"
-#include "Framework/DeviceControl.h"
-#include "Framework/OutputRoute.h"
-#include "Framework/ConfigParamsHelper.h"
-#include <vector>
-#include <algorithm>
-#include <unordered_set>
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <boost/program_options.hpp>
 #include <wordexp.h>
+#include <algorithm>
+#include <boost/program_options.hpp>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <unordered_set>
+#include <vector>
+#include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/ChannelMatching.h"
+#include "Framework/ConfigParamsHelper.h"
+#include "Framework/DeviceControl.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/OutputRoute.h"
+#include "Framework/WorkflowSpec.h"
+#include "WorkflowHelpers.h"
 
 namespace bpo = boost::program_options;
 
 using namespace o2::framework;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 using LogicalChannelsMap = std::map<LogicalChannel, size_t>;
 
-char const *channelTypeFromEnum(enum ChannelType type) {
+char const* channelTypeFromEnum(enum ChannelType type)
+{
   switch (type) {
     case Pub:
       return "pub";
@@ -49,7 +52,8 @@ char const *channelTypeFromEnum(enum ChannelType type) {
 
 /// This creates a string to configure channels of a FairMQDevice
 /// FIXME: support shared memory
-std::string inputChannel2String(const InputChannelSpec &channel) {
+std::string inputChannel2String(const InputChannelSpec& channel)
+{
   std::string result;
   char buffer[32];
   auto addressFormat = (channel.method == Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
@@ -57,12 +61,13 @@ std::string inputChannel2String(const InputChannelSpec &channel) {
   result += "name=" + channel.name + ",";
   result += std::string("type=") + channelTypeFromEnum(channel.type) + ",";
   result += std::string("method=") + (channel.method == Bind ? "bind" : "connect") + ",";
-  result += std::string("address=") + (snprintf(buffer,32,addressFormat, channel.port), buffer);
+  result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
 
   return result;
 }
 
-std::string outputChannel2String(const OutputChannelSpec &channel) {
+std::string outputChannel2String(const OutputChannelSpec& channel)
+{
   std::string result;
   char buffer[32];
   auto addressFormat = (channel.method == Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
@@ -70,24 +75,19 @@ std::string outputChannel2String(const OutputChannelSpec &channel) {
   result += "name=" + channel.name + ",";
   result += std::string("type=") + channelTypeFromEnum(channel.type) + ",";
   result += std::string("method=") + (channel.method == Bind ? "bind" : "connect") + ",";
-  result += std::string("address=") + (snprintf(buffer,32,addressFormat, channel.port), buffer);
+  result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
 
   return result;
 }
 
-void
-DeviceSpecHelpers::processOutEdgeActions(
-      std::vector<DeviceSpec> &devices,
-      std::vector<DeviceId> &deviceIndex,
-      std::vector<DeviceConnectionId> &connections,
-      unsigned short &nextPort,
-      const std::vector<size_t> &outEdgeIndex,
-      const std::vector<DeviceConnectionEdge> &logicalEdges,
-      const std::vector<EdgeAction> &actions,
-      const WorkflowSpec &workflow,
-      const std::vector<OutputSpec> &outputsMatchers,
-      const std::vector<ChannelConfigurationPolicy> &channelPolicies
-    ) {
+void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, std::vector<DeviceId>& deviceIndex,
+                                              std::vector<DeviceConnectionId>& connections, unsigned short& nextPort,
+                                              const std::vector<size_t>& outEdgeIndex,
+                                              const std::vector<DeviceConnectionEdge>& logicalEdges,
+                                              const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
+                                              const std::vector<OutputSpec>& outputsMatchers,
+                                              const std::vector<ChannelConfigurationPolicy>& channelPolicies)
+{
   // The topology cannot be empty or not connected. If that is the case, than
   // something before this went wrong.
   // FIXME: is that really true???
@@ -96,8 +96,8 @@ DeviceSpecHelpers::processOutEdgeActions(
   // Edges are navigated in order for each device, so the device associaited to
   // an edge is always the last one created.
   auto deviceForEdge = [&actions, &workflow, &devices, &logicalEdges](size_t ei) {
-    auto &edge = logicalEdges[ei];
-    auto &action = actions[ei];
+    auto& edge = logicalEdges[ei];
+    auto& action = actions[ei];
 
     if (action.requiresNewDevice == false) {
       assert(devices.empty() == false);
@@ -119,17 +119,17 @@ DeviceSpecHelpers::processOutEdgeActions(
     return devices.size() - 1;
   };
 
-  auto channelFromDeviceEdgeAndPort = [&workflow,&channelPolicies]
-    (const DeviceSpec &device, const DeviceConnectionEdge &edge, short port) {
+  auto channelFromDeviceEdgeAndPort = [&workflow, &channelPolicies](const DeviceSpec& device,
+                                                                    const DeviceConnectionEdge& edge, short port) {
     OutputChannelSpec channel;
-    auto &consumer = workflow[edge.consumer];
+    auto& consumer = workflow[edge.consumer];
     std::string consumerDeviceId = consumer.name;
     if (consumer.maxInputTimeslices != 1) {
       consumerDeviceId += "_t" + std::to_string(edge.timeIndex);
     }
     channel.name = "from_" + device.id + "_to_" + consumerDeviceId;
     channel.port = port;
-    for (auto &policy : channelPolicies) {
+    for (auto& policy : channelPolicies) {
       if (policy.match(device.id, consumerDeviceId)) {
         policy.modifyOutput(channel);
         break;
@@ -138,42 +138,29 @@ DeviceSpecHelpers::processOutEdgeActions(
     return std::move(channel);
   };
 
-  auto connectionIdFromEdgeAndPort = [&connections](const DeviceConnectionEdge &edge, size_t port) {
-    DeviceConnectionId id{
-      edge.producer,
-      edge.consumer,
-      edge.timeIndex,
-      edge.producerTimeIndex,
-      port
-    };
+  auto connectionIdFromEdgeAndPort = [&connections](const DeviceConnectionEdge& edge, size_t port) {
+    DeviceConnectionId id{ edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, port };
     connections.push_back(id);
     return connections.back();
   };
 
-  auto isDifferentDestinationDeviceReferredBy = [&actions](size_t ei) {
-    return actions[ei].requiresNewChannel;
-  };
+  auto isDifferentDestinationDeviceReferredBy = [&actions](size_t ei) { return actions[ei].requiresNewChannel; };
 
   // This creates a new channel for a given edge, if needed. Notice that we
   // navigate edges in a per device fashion (creating those if they are not
   // alredy there) and create a new channel only if it connects two new
   // devices. Whether or not this is the case was previously computed
   // in the action.requiresNewChannel field.
-  auto createChannelForDeviceEdge = [&devices,
-                                     &logicalEdges,
-                                     &nextPort,
-                                     &channelFromDeviceEdgeAndPort,
-                                     &connectionIdFromEdgeAndPort,
-                                     &outputsMatchers,
-                                     &deviceIndex,
+  auto createChannelForDeviceEdge = [&devices, &logicalEdges, &nextPort, &channelFromDeviceEdgeAndPort,
+                                     &connectionIdFromEdgeAndPort, &outputsMatchers, &deviceIndex,
                                      &workflow](size_t di, size_t ei) {
-    auto &device = devices[di];
-    auto &edge = logicalEdges[ei];
+    auto& device = devices[di];
+    auto& edge = logicalEdges[ei];
 
-    deviceIndex.emplace_back(DeviceId{edge.producer, edge.producerTimeIndex, di});
+    deviceIndex.emplace_back(DeviceId{ edge.producer, edge.producerTimeIndex, di });
 
     OutputChannelSpec channel = channelFromDeviceEdgeAndPort(device, edge, nextPort);
-    const DeviceConnectionId &id = connectionIdFromEdgeAndPort(edge, nextPort);
+    const DeviceConnectionId& id = connectionIdFromEdgeAndPort(edge, nextPort);
     nextPort++;
 
     device.outputChannels.push_back(channel);
@@ -184,16 +171,16 @@ DeviceSpecHelpers::processOutEdgeActions(
   // whether this is a real OutputRoute or if it's a forward from
   // a previous consumer device.
   // FIXME: where do I find the InputSpec for the forward?
-  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges]
-      (size_t ei, size_t di, size_t ci) {
+  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges](
+                                                  size_t ei, size_t di, size_t ci) {
     assert(ei < logicalEdges.size());
     assert(di < devices.size());
     assert(ci < devices[di].outputChannels.size());
-    auto &edge = logicalEdges[ei];
-    auto &device = devices[di];
+    auto& edge = logicalEdges[ei];
+    auto& device = devices[di];
     assert(edge.consumer < workflow.size());
-    auto &consumer = workflow[edge.consumer];
-    auto &channel = devices[di].outputChannels[ci];
+    auto& consumer = workflow[edge.consumer];
+    auto& channel = devices[di].outputChannels[ci];
     assert(edge.outputGlobalIndex < outputsMatchers.size());
 
     if (edge.isForward == false) {
@@ -211,9 +198,7 @@ DeviceSpecHelpers::processOutEdgeActions(
     }
   };
 
-  auto sortDeviceIndex = [&deviceIndex]() {
-    std::sort(deviceIndex.begin(), deviceIndex.end());
-  };
+  auto sortDeviceIndex = [&deviceIndex]() { std::sort(deviceIndex.begin(), deviceIndex.end()); };
 
   auto lastChannelFor = [&devices](size_t di) {
     assert(di < devices.size());
@@ -221,7 +206,7 @@ DeviceSpecHelpers::processOutEdgeActions(
     return devices[di].outputChannels.size() - 1;
   };
 
-  // 
+  //
   // OUTER LOOP
   //
   // We need to create all the channels going out of a device, and associate
@@ -244,31 +229,25 @@ DeviceSpecHelpers::processOutEdgeActions(
   sortDeviceIndex();
 }
 
-void
-DeviceSpecHelpers::processInEdgeActions(
-      std::vector<DeviceSpec> &devices,
-      std::vector<DeviceId> &deviceIndex,
-      unsigned short &nextPort,
-      const std::vector<DeviceConnectionId> &connections,
-      const std::vector<size_t> &inEdgeIndex,
-      const std::vector<DeviceConnectionEdge> &logicalEdges,
-      const std::vector<EdgeAction> &actions,
-      const WorkflowSpec &workflow,
-      std::vector<LogicalForwardInfo> const &availableForwardsInfo,
-      std::vector<ChannelConfigurationPolicy> const &channelPolicies
-    ) {
-  auto const &constDeviceIndex = deviceIndex;
+void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices, std::vector<DeviceId>& deviceIndex,
+                                             unsigned short& nextPort,
+                                             const std::vector<DeviceConnectionId>& connections,
+                                             const std::vector<size_t>& inEdgeIndex,
+                                             const std::vector<DeviceConnectionEdge>& logicalEdges,
+                                             const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
+                                             std::vector<LogicalForwardInfo> const& availableForwardsInfo,
+                                             std::vector<ChannelConfigurationPolicy> const& channelPolicies)
+{
+  auto const& constDeviceIndex = deviceIndex;
 
-  auto findProducerForEdge = [&logicalEdges,&constDeviceIndex](size_t ei) {
-    auto &edge = logicalEdges[ei];
+  auto findProducerForEdge = [&logicalEdges, &constDeviceIndex](size_t ei) {
+    auto& edge = logicalEdges[ei];
 
-    DeviceId pid{edge.producer, edge.producerTimeIndex, 0};
-    auto deviceIt = std::lower_bound(constDeviceIndex.cbegin(),
-                                     constDeviceIndex.cend(), pid);
+    DeviceId pid{ edge.producer, edge.producerTimeIndex, 0 };
+    auto deviceIt = std::lower_bound(constDeviceIndex.cbegin(), constDeviceIndex.cend(), pid);
     // By construction producer should always be there
     assert(deviceIt != constDeviceIndex.end());
-    assert(deviceIt->processorIndex == pid.processorIndex
-           && deviceIt->timeslice == pid.timeslice);
+    assert(deviceIt->processorIndex == pid.processorIndex && deviceIt->timeslice == pid.timeslice);
     return deviceIt->deviceIndex;
   };
 
@@ -276,18 +255,18 @@ DeviceSpecHelpers::processInEdgeActions(
   // producers, so we need to create one if it does not exist.  Given this is
   // stateful, we keep an eye on what edge was last searched to make sure we
   // are not screwing up.
-  // 
+  //
   // Notice this is not thread safe.
   decltype(deviceIndex.begin()) lastConsumerSearch;
   size_t lastConsumerSearchEdge;
-  auto hasConsumerForEdge = [&lastConsumerSearch, &lastConsumerSearchEdge, &deviceIndex, &logicalEdges]                            (size_t ei) -> int {
-    auto &edge = logicalEdges[ei];
-    DeviceId cid{edge.consumer, edge.timeIndex, 0};
+  auto hasConsumerForEdge = [&lastConsumerSearch, &lastConsumerSearchEdge, &deviceIndex,
+                             &logicalEdges](size_t ei) -> int {
+    auto& edge = logicalEdges[ei];
+    DeviceId cid{ edge.consumer, edge.timeIndex, 0 };
     lastConsumerSearchEdge = ei; // This will invalidate the cache
     lastConsumerSearch = std::lower_bound(deviceIndex.begin(), deviceIndex.end(), cid);
-    return lastConsumerSearch != deviceIndex.end()
-        && cid.processorIndex == lastConsumerSearch->processorIndex
-        && cid.timeslice == lastConsumerSearch->timeslice;
+    return lastConsumerSearch != deviceIndex.end() && cid.processorIndex == lastConsumerSearch->processorIndex &&
+           cid.timeslice == lastConsumerSearch->timeslice;
   };
 
   // The passed argument is there just to check. We do know that the last searched
@@ -297,9 +276,9 @@ DeviceSpecHelpers::processInEdgeActions(
     return lastConsumerSearch->deviceIndex;
   };
 
-  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices, &deviceIndex] (size_t ei) {
-    auto &edge = logicalEdges[ei];
-    auto &processor = workflow[edge.consumer];
+  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices, &deviceIndex](size_t ei) {
+    auto& edge = logicalEdges[ei];
+    auto& processor = workflow[edge.consumer];
     DeviceSpec device;
     device.name = processor.name;
     device.id = processor.name;
@@ -313,9 +292,7 @@ DeviceSpecHelpers::processInEdgeActions(
     device.inputTimesliceId = edge.timeIndex;
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
-    auto id = DeviceId{edge.consumer,
-                       edge.timeIndex,
-                       devices.size()};
+    auto id = DeviceId{ edge.consumer, edge.timeIndex, devices.size() };
     devices.push_back(device);
     deviceIndex.push_back(id);
     std::sort(deviceIndex.begin(), deviceIndex.end());
@@ -327,14 +304,8 @@ DeviceSpecHelpers::processInEdgeActions(
   // This has to exists, because we already created all the outgoing connections
   // so it's just a matter of looking it up.
   auto findMatchingOutgoingPortForEdge = [&logicalEdges, &connections](size_t ei) {
-    auto const &edge = logicalEdges[ei];
-    DeviceConnectionId connectionId{
-      edge.producer,
-      edge.consumer,
-      edge.timeIndex,
-      edge.producerTimeIndex,
-      0
-    };
+    auto const& edge = logicalEdges[ei];
+    DeviceConnectionId connectionId{ edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, 0 };
 
     auto it = std::lower_bound(connections.begin(), connections.end(), connectionId);
 
@@ -346,26 +317,22 @@ DeviceSpecHelpers::processInEdgeActions(
     return it->port;
   };
 
-  auto checkNoDuplicatesFor = [](std::vector<InputChannelSpec> const&channels, 
-                                 const std::string &name) {
-    for (auto const &channel : channels) {
+  auto checkNoDuplicatesFor = [](std::vector<InputChannelSpec> const& channels, const std::string& name) {
+    for (auto const& channel : channels) {
       if (channel.name == name) {
         return false;
       }
     }
     return true;
   };
-  auto appendInputChannelForConsumerDevice = [&devices,
-                                              &connections,
-                                              &checkNoDuplicatesFor,
-                                              &channelPolicies]
-        (size_t pi, size_t ci, int16_t port) {
-    auto const &producerDevice = devices[pi];
-    auto &consumerDevice = devices[ci];
+  auto appendInputChannelForConsumerDevice = [&devices, &connections, &checkNoDuplicatesFor, &channelPolicies](
+                                               size_t pi, size_t ci, int16_t port) {
+    auto const& producerDevice = devices[pi];
+    auto& consumerDevice = devices[ci];
     InputChannelSpec channel;
     channel.name = "from_" + producerDevice.id + "_to_" + consumerDevice.id;
     channel.port = port;
-    for (auto &policy : channelPolicies) {
+    for (auto& policy : channelPolicies) {
       if (policy.match(producerDevice.id, consumerDevice.id)) {
         policy.modifyInput(channel);
         break;
@@ -380,7 +347,7 @@ DeviceSpecHelpers::processInEdgeActions(
   // in case it's not actually the case, I should probably do an actual lookup
   // here.
   auto getChannelForEdge = [&devices](size_t pi, size_t ci) {
-    auto &consumerDevice = devices[ci];
+    auto& consumerDevice = devices[ci];
     return consumerDevice.inputChannels.size() - 1;
   };
 
@@ -388,11 +355,10 @@ DeviceSpecHelpers::processInEdgeActions(
   // to back. Notice also that this is the place where it makes sense to
   // assign the forwarding, given that the forwarded stuff comes from some
   // input.
-  auto appendInputRouteToDestDeviceChannel = [&devices,&logicalEdges,&workflow]
-      (size_t ei, size_t di, size_t ci) {
-    auto const &edge = logicalEdges[ei];
-    auto const &consumer = workflow[edge.consumer];
-    auto &consumerDevice = devices[di];
+  auto appendInputRouteToDestDeviceChannel = [&devices, &logicalEdges, &workflow](size_t ei, size_t di, size_t ci) {
+    auto const& edge = logicalEdges[ei];
+    auto const& consumer = workflow[edge.consumer];
+    auto& consumerDevice = devices[di];
     InputRoute route;
     route.matcher = consumer.inputs[edge.consumerInputIndex];
     route.sourceChannel = consumerDevice.inputChannels[ci].name;
@@ -404,7 +370,7 @@ DeviceSpecHelpers::processInEdgeActions(
   // New InputChannels need to refer to preexisting OutputChannels we create
   // previously.
   for (size_t edge : inEdgeIndex) {
-    auto &action = actions[edge];
+    auto& action = actions[edge];
 
     size_t consumerDevice;
 
@@ -429,36 +395,32 @@ DeviceSpecHelpers::processInEdgeActions(
 }
 
 // Construct the list of actual devices we want, given a workflow.
-// 
+//
 // FIXME: make start port configurable?
-void
-DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(
-    WorkflowSpec const &workflow,
-    std::vector<ChannelConfigurationPolicy> const &channelPolicies,
-    std::vector<DeviceSpec> &devices) {
+void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workflow,
+                                                       std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+                                                       std::vector<DeviceSpec>& devices)
+{
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<DeviceConnectionId> connections;
   std::vector<DeviceId> deviceIndex;
 
-  // This is a temporary store for inputs and outputs, 
+  // This is a temporary store for inputs and outputs,
   // including forwarded channels, so that we can construct
   // them before assigning to a device.
   std::vector<OutputSpec> outputs;
 
   WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::constructGraph(workflow,
-                                  logicalEdges,
-                                  outputs,
-                                  availableForwardsInfo);
+  WorkflowHelpers::constructGraph(workflow, logicalEdges, outputs, availableForwardsInfo);
 
   // We need to instanciate one device per (me, timeIndex) in the
   // DeviceConnectionEdge. For each device we need one new binding
   // server per (me, other) -> port Moreover for each (me, other,
   // outputGlobalIndex) we need to insert either an output or a
   // forward.
-  // 
+  //
   // We then sort by other. For each (other, me) we need to connect to
   // port (me, other) and add an input.
 
@@ -470,19 +432,8 @@ DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(
 
   std::vector<EdgeAction> actions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
 
-  DeviceSpecHelpers::processOutEdgeActions(
-      devices,
-      deviceIndex,
-      connections,
-      nextPort,
-      outEdgeIndex,
-      logicalEdges,
-      actions,
-      workflow,
-      outputs,
-      channelPolicies
-      );
-
+  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, nextPort, outEdgeIndex, logicalEdges,
+                                           actions, workflow, outputs, channelPolicies);
 
   // Crete the connections on the inverse map for all of them
   // lookup for port and add as input of the current device.
@@ -491,35 +442,21 @@ DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
 
-  processInEdgeActions(
-      devices,
-      deviceIndex,
-      nextPort,
-      connections,
-      inEdgeIndex,
-      logicalEdges,
-      inActions,
-      workflow,
-      availableForwardsInfo,
-      channelPolicies
-      );
+  processInEdgeActions(devices, deviceIndex, nextPort, connections, inEdgeIndex, logicalEdges, inActions, workflow,
+                       availableForwardsInfo, channelPolicies);
 }
 
-void
-DeviceSpecHelpers::prepareArguments(int argc,
-                 char **argv,
-                 bool defaultQuiet,
-                 bool defaultStopped,
-                 const std::vector<DeviceSpec> &deviceSpecs,
-                 std::vector<DeviceExecution> &deviceExecutions,
-                 std::vector<DeviceControl> &deviceControls)
+void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuiet, bool defaultStopped,
+                                         const std::vector<DeviceSpec>& deviceSpecs,
+                                         std::vector<DeviceExecution>& deviceExecutions,
+                                         std::vector<DeviceControl>& deviceControls)
 {
   assert(deviceSpecs.size() == deviceExecutions.size());
   assert(deviceControls.size() == deviceExecutions.size());
   for (size_t si = 0; si < deviceSpecs.size(); ++si) {
-    auto &spec = deviceSpecs[si];
-    auto &control = deviceControls[si];
-    auto &execution = deviceExecutions[si];
+    auto& spec = deviceSpecs[si];
+    auto& control = deviceControls[si];
+    auto& execution = deviceExecutions[si];
 
     control.quiet = defaultQuiet;
     control.stopped = defaultStopped;
@@ -540,17 +477,8 @@ DeviceSpecHelpers::prepareArguments(int argc,
     // FIXME: add some checksum in framework id. We could use this
     //        to avoid redeploys when only a portion of the workflow is changed.
     // FIXME: this should probably be done in one go with char *, but I am lazy.
-    std::vector<std::string> tmpArgs = {
-      argv[0],
-      "--id",
-      spec.id.c_str(),
-      "--control",
-      "static",
-      "--log-color",
-      "false",
-      "--color",
-      "false"
-    };
+    std::vector<std::string> tmpArgs = { argv[0],       "--id",  spec.id.c_str(), "--control", "static",
+                                         "--log-color", "false", "--color",       "false" };
 
     // do the filtering of options, forward options belonging to this specific
     // DeviceSpec, and some global options from getForwardedDeviceOptions
@@ -560,13 +488,11 @@ DeviceSpecHelpers::prepareArguments(int argc,
     od.add(getForwardedDeviceOptions());
     od.add_options()(name, bpo::value<std::string>());
 
-    using FilterFunctionT = std::function<void (decltype(argc), decltype(argv),
-                                                decltype(od))>;
+    using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;
 
-    FilterFunctionT filterArgsFct = [&] (int largc, char **largv,
-                                         const bpo::options_description &odesc) {
+    FilterFunctionT filterArgsFct = [&](int largc, char** largv, const bpo::options_description& odesc) {
       // spec contains options
-      bpo::command_line_parser parser{largc, largv};
+      bpo::command_line_parser parser{ largc, largv };
       parser.options(odesc).allow_unregistered();
       bpo::parsed_options parsed_options = parser.run();
 
@@ -592,7 +518,7 @@ DeviceSpecHelpers::prepareArguments(int argc,
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
-        const auto * description = odesc.find_nothrow(varit.first, false);
+        const auto* description = odesc.find_nothrow(varit.first, false);
         if (description && varmap.count(varit.first)) {
           tmpArgs.emplace_back("--");
           tmpArgs.back() += varit.first;
@@ -605,14 +531,13 @@ DeviceSpecHelpers::prepareArguments(int argc,
             // currently only the simple case is supported
             assert(semantic->min_tokens() <= 1);
             assert(semantic->max_tokens() && semantic->min_tokens());
-            if (semantic->min_tokens() > 0 ) {
+            if (semantic->min_tokens() > 0) {
               // add the token
               tmpArgs.emplace_back(varit.second.as<std::string>());
               optarg = tmpArgs.back().c_str();
             }
           }
-          control.options.insert(std::make_pair(varit.first,
-                                                optarg));
+          control.options.insert(std::make_pair(varit.first, optarg));
         }
       }
     };
@@ -620,41 +545,37 @@ DeviceSpecHelpers::prepareArguments(int argc,
     filterArgsFct(argc, argv, od);
 
     // Add the channel configuration
-    for (auto &channel : spec.outputChannels) {
+    for (auto& channel : spec.outputChannels) {
       tmpArgs.emplace_back(std::string("--channel-config"));
       tmpArgs.emplace_back(outputChannel2String(channel));
     }
-    for (auto &channel : spec.inputChannels) {
+    for (auto& channel : spec.inputChannels) {
       tmpArgs.emplace_back(std::string("--channel-config"));
       tmpArgs.emplace_back(inputChannel2String(channel));
     }
 
     // We create the final option list, depending on the channels
     // which are present in a device.
-    for (auto &arg : tmpArgs) {
+    for (auto& arg : tmpArgs) {
       execution.args.emplace_back(strdup(arg.c_str()));
     }
     // execvp wants a NULL terminated list.
     execution.args.push_back(nullptr);
 
-    //FIXME: this should probably be reflected in the GUI
+    // FIXME: this should probably be reflected in the GUI
     std::ostringstream str;
     for (size_t ai = 0; ai < execution.args.size() - 1; ai++) {
       assert(execution.args[ai]);
       str << " " << execution.args[ai];
     }
-    LOG(DEBUG) << "The following options are being forwarded to "
-               << spec.id << ":" << str.str();
+    LOG(DEBUG) << "The following options are being forwarded to " << spec.id << ":" << str.str();
   }
 }
 
 boost::program_options::options_description DeviceSpecHelpers::getForwardedDeviceOptions()
 {
   bpo::options_description forwardedDeviceOptions;
-  forwardedDeviceOptions.add_options()
-    ("rate",
-     bpo::value<std::string>(),
-     "rate for a data source device (Hz)");
+  forwardedDeviceOptions.add_options()("rate", bpo::value<std::string>(), "rate for a data source device (Hz)");
 
   return forwardedDeviceOptions;
 }

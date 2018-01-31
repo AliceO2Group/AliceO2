@@ -8,31 +8,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "FairMQDevice.h"
+#include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
+#include "Framework/ConfigParamsHelper.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSourceDevice.h"
-#include "Framework/ChannelConfigurationPolicy.h"
-#include "Framework/ConfigParamsHelper.h"
 #include "Framework/DebugGUI.h"
 #include "Framework/DeviceControl.h"
-#include "Framework/DeviceInfo.h"
 #include "Framework/DeviceExecution.h"
-#include "Framework/DeviceSpec.h"
+#include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/FrameworkGUIDebugger.h"
-#include "Framework/SimpleMetricsService.h"
-#include "Framework/WorkflowSpec.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
-#include "Framework/TextControlService.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/SimpleMetricsService.h"
 #include "Framework/SimpleRawDeviceService.h"
+#include "Framework/TextControlService.h"
+#include "Framework/WorkflowSpec.h"
 
-#include "GraphvizHelpers.h"
 #include "DDSConfigHelpers.h"
 #include "DeviceSpecHelpers.h"
+#include "GraphvizHelpers.h"
 #include "options/FairMQProgOptions.h"
 
 #include <cinttypes>
@@ -47,7 +47,6 @@
 #include <string>
 #include <type_traits>
 
-#include <csignal>
 #include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -55,7 +54,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <boost/program_options.hpp>
-
+#include <csignal>
 
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/FairMQLogger.h>
@@ -79,30 +78,30 @@ bpo::options_description gHiddenDeviceOptions("Hidden child options");
 // return false if we need to close the input pipe.
 //
 // FIXME: We should really print full lines.
-bool getChildData(int infd, DeviceInfo &outinfo) {
+bool getChildData(int infd, DeviceInfo& outinfo)
+{
   char buffer[1024];
   int bytes_read;
   // NOTE: do not quite understand read ends up blocking if I read more than
   //        once. Oh well... Good enough for now.
   // do {
-      bytes_read = read(infd, buffer, 1024);
-      if (bytes_read == 0) {
+  bytes_read = read(infd, buffer, 1024);
+  if (bytes_read == 0) {
+    return false;
+  }
+  if (bytes_read == -1) {
+    switch (errno) {
+      case EAGAIN:
+        return true;
+      default:
         return false;
-      }
-      if (bytes_read == -1) {
-        switch(errno) {
-          case EAGAIN:
-            return true;
-          default:
-            return false;
-        }
-      }
-      assert(bytes_read > 0);
-      outinfo.unprinted += std::string(buffer, bytes_read);
-//  } while (bytes_read != 0);
+    }
+  }
+  assert(bytes_read > 0);
+  outinfo.unprinted += std::string(buffer, bytes_read);
+  //  } while (bytes_read != 0);
   return true;
 }
-
 
 // This is the handler for the parent inner loop.
 // So far the only responsibility for it are:
@@ -113,15 +112,11 @@ bool getChildData(int infd, DeviceInfo &outinfo) {
 // - TODO: allow single child view?
 // - TODO: allow last line per child mode?
 // - TODO: allow last error per child mode?
-void doParent(fd_set *in_fdset,
-             int maxFd,
-             std::vector<DeviceInfo> infos,
-             std::vector<DeviceSpec> specs,
-             std::vector<DeviceControl> controls,
-             std::vector<DeviceMetricsInfo> metricsInfos,
-             std::map<int,size_t> &socket2Info,
-             bool batch) {
-  void *window = nullptr;
+void doParent(fd_set* in_fdset, int maxFd, std::vector<DeviceInfo> infos, std::vector<DeviceSpec> specs,
+              std::vector<DeviceControl> controls, std::vector<DeviceMetricsInfo> metricsInfos,
+              std::map<int, size_t>& socket2Info, bool batch)
+{
+  void* window = nullptr;
   decltype(getGUIDebugger(infos, specs, metricsInfos, controls)) debugGUICallback;
 
   if (batch == false) {
@@ -137,7 +132,7 @@ void doParent(fd_set *in_fdset,
   while (batch || pollGUI(window, debugGUICallback)) {
     // Exit this loop if all the children say they want to quit.
     bool allReadyToQuit = true;
-    for (auto &info : infos) {
+    for (auto& info : infos) {
       allReadyToQuit &= info.readyToQuit;
     }
     if (allReadyToQuit) {
@@ -146,7 +141,7 @@ void doParent(fd_set *in_fdset,
 
     // Wait for children to say something. When they do
     // print it.
-    fd_set *fdset = (fd_set *)malloc(sizeof(fd_set));
+    fd_set* fdset = (fd_set*)malloc(sizeof(fd_set));
     timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 16666; // This should be enough to allow 60 HZ redrawing.
@@ -158,7 +153,7 @@ void doParent(fd_set *in_fdset,
     for (int si = 0; si < maxFd; ++si) {
       if (FD_ISSET(si, fdset)) {
         assert(socket2Info.find(si) != socket2Info.end());
-        auto &info = infos[socket2Info[si]];
+        auto& info = infos[socket2Info[si]];
 
         bool fdActive = getChildData(si, info);
         // If the pipe was closed due to the process exiting, we
@@ -184,9 +179,9 @@ void doParent(fd_set *in_fdset,
     std::string token;
     const std::string delimiter("\n");
     for (size_t di = 0, de = infos.size(); di < de; ++di) {
-      DeviceInfo &info = infos[di];
-      DeviceControl &control = controls[di];
-      DeviceMetricsInfo &metrics = metricsInfos[di];
+      DeviceInfo& info = infos[di];
+      DeviceControl& control = controls[di];
+      DeviceMetricsInfo& metrics = metricsInfos[di];
 
       if (info.unprinted.empty()) {
         continue;
@@ -198,48 +193,43 @@ void doParent(fd_set *in_fdset,
       info.historyLevel.resize(info.historySize);
 
       while ((pos = s.find(delimiter)) != std::string::npos) {
-          token = s.substr(0, pos);
-          auto logLevel = LogParsingHelpers::parseTokenLevel(token);
+        token = s.substr(0, pos);
+        auto logLevel = LogParsingHelpers::parseTokenLevel(token);
 
-          // Check if the token is a metric from SimpleMetricsService
-          // if yes, we do not print it out and simply store it to be displayed
-          // in the GUI.
-          // Then we check if it is part of our Poor man control system
-          // if yes, we execute the associated command.
-          if (parseMetric(token, match)) {
-            LOG(INFO) << "Found metric with key " << match[2]
-                      << " and value " <<  match[4];
-            processMetric(match, metrics);
-          } else if (parseControl(token, match)) {
-            auto command = match[1];
-            auto validFor = match[2];
-            LOG(INFO) << "Found control command " << command
-                      << " from pid " << info.pid
-                      << " valid for " << validFor;
-            if (command == "QUIT") {
-              if (validFor == "ALL") {
-                for (auto &deviceInfo : infos) {
-                  deviceInfo.readyToQuit = true;
-                }
+        // Check if the token is a metric from SimpleMetricsService
+        // if yes, we do not print it out and simply store it to be displayed
+        // in the GUI.
+        // Then we check if it is part of our Poor man control system
+        // if yes, we execute the associated command.
+        if (parseMetric(token, match)) {
+          LOG(INFO) << "Found metric with key " << match[2] << " and value " << match[4];
+          processMetric(match, metrics);
+        } else if (parseControl(token, match)) {
+          auto command = match[1];
+          auto validFor = match[2];
+          LOG(INFO) << "Found control command " << command << " from pid " << info.pid << " valid for " << validFor;
+          if (command == "QUIT") {
+            if (validFor == "ALL") {
+              for (auto& deviceInfo : infos) {
+                deviceInfo.readyToQuit = true;
               }
             }
-          } else if (!control.quiet
-                     && (strstr(token.c_str(), control.logFilter) != nullptr)
-                     && logLevel >= control.logLevel ) {
-            assert(info.historyPos >= 0);
-            assert(info.historyPos < info.history.size());
-            info.history[info.historyPos] = token;
-            info.historyLevel[info.historyPos] = logLevel;
-            info.historyPos = (info.historyPos + 1) % info.history.size();
-            std::cout << "[" << info.pid << "]: " << token << std::endl;
           }
-          // We keep track of the maximum log error a
-          // device has seen.
-          if (logLevel > info.maxLogLevel
-              && logLevel > LogParsingHelpers::LogLevel::Info) {
-            info.maxLogLevel = logLevel;
-          }
-          s.erase(0, pos + delimiter.length());
+        } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != nullptr) &&
+                   logLevel >= control.logLevel) {
+          assert(info.historyPos >= 0);
+          assert(info.historyPos < info.history.size());
+          info.history[info.historyPos] = token;
+          info.historyLevel[info.historyPos] = logLevel;
+          info.historyPos = (info.historyPos + 1) % info.history.size();
+          std::cout << "[" << info.pid << "]: " << token << std::endl;
+        }
+        // We keep track of the maximum log error a
+        // device has seen.
+        if (logLevel > info.maxLogLevel && logLevel > LogParsingHelpers::LogLevel::Info) {
+          info.maxLogLevel = logLevel;
+        }
+        s.erase(0, pos + delimiter.length());
       }
       info.unprinted = s;
     }
@@ -252,31 +242,28 @@ void doParent(fd_set *in_fdset,
 // Magic to support both old and new FairRoot logger behavior
 // is_define<fair::Logger> only works if Logger is fully defined,
 // not forward declared.
-namespace fair {
+namespace fair
+{
 // This is required to be declared (but not defined) for the SFINAE below
 // to work
-class Logger; 
-namespace mq {
-namespace logger {
-  // This we can leave it empty, as the sole purpose is to 
-  // allow the using namespace below.
+class Logger;
+namespace mq
+{
+namespace logger
+{
+// This we can leave it empty, as the sole purpose is to
+// allow the using namespace below.
 }
-}
-}
+} // namespace mq
+} // namespace fair
 
 template <class, class, class = void>
-struct is_defined : std::false_type
-{
+struct is_defined : std::false_type {
 };
 
 template <class S, class T>
-struct is_defined<S, T,
-    std::enable_if_t<std::is_object<T>::value &&
-                    !std::is_pointer<T>::value &&
-                    (sizeof(T) > 0)
-        >
-    > : std::true_type
-{
+struct is_defined<S, T, std::enable_if_t<std::is_object<T>::value && !std::is_pointer<T>::value && (sizeof(T) > 0)>>
+  : std::true_type {
   using logger = T;
 };
 
@@ -285,11 +272,13 @@ using namespace fair::mq::logger;
 struct TurnOffColors {
 
   template <typename T>
-  static auto apply(T value, int ) -> decltype(ReinitLogger(value), void()) {
+  static auto apply(T value, int) -> decltype(ReinitLogger(value), void())
+  {
     ReinitLogger(value);
   }
   template <typename T>
-  static auto apply(T value, long) -> typename std::enable_if<is_defined<T, fair::Logger>::value == true, void>::type {
+  static auto apply(T value, long) -> typename std::enable_if<is_defined<T, fair::Logger>::value == true, void>::type
+  {
     // By using is_defined<T, fair::Logger>::logger rather than fair::Logger
     // directly, we avoid the error about using an incomplete type in a nested
     // expression.
@@ -297,17 +286,17 @@ struct TurnOffColors {
   }
 };
 
-int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
+int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
+{
   TurnOffColors::apply(false, 0);
-  LOG(INFO) << "Spawing new device " << spec.id
-            << " in process with pid " << getpid();
+  LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
 
   try {
-    fair::mq::DeviceRunner runner{argc, argv};
+    fair::mq::DeviceRunner runner{ argc, argv };
 
     // Populate options from the command line. Notice that only the options
     // declared in the workflow definition are allowed.
-    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r){
+    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
@@ -334,57 +323,56 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
 
     serviceRegistry.get<RawDeviceService>().setDevice(device.get());
 
-    runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r){
-      r.fDevice = std::shared_ptr<FairMQDevice>{std::move(device)};
+    runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
+      r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };
       TurnOffColors::apply(false, 0);
     });
 
     return runner.Run();
-  }
-  catch(std::exception &e) {
+  } catch (std::exception& e) {
     LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
     return 1;
-  }
-  catch(...) {
+  } catch (...) {
     LOG(ERROR) << "Unknown exception reached the top of main.\n";
     return 1;
   }
   return 0;
 }
 
-int createPipes(int maxFd, int *pipes) {
-    auto p = pipe(pipes);
-    maxFd = maxFd > pipes[0] ? maxFd : pipes[0];
-    maxFd = maxFd > pipes[1] ? maxFd : pipes[1];
+int createPipes(int maxFd, int* pipes)
+{
+  auto p = pipe(pipes);
+  maxFd = maxFd > pipes[0] ? maxFd : pipes[0];
+  maxFd = maxFd > pipes[1] ? maxFd : pipes[1];
 
-    if (p == -1) {
-      std::cerr << "Unable to create PIPE: ";
-      switch(errno) {
-        case EFAULT:
-          assert(false && "EFAULT while reading from pipe");
+  if (p == -1) {
+    std::cerr << "Unable to create PIPE: ";
+    switch (errno) {
+      case EFAULT:
+        assert(false && "EFAULT while reading from pipe");
         break;
-        case EMFILE:
-          std::cerr << "Too many active descriptors";
+      case EMFILE:
+        std::cerr << "Too many active descriptors";
         break;
-        case ENFILE:
-          std::cerr << "System file table is full";
+      case ENFILE:
+        std::cerr << "System file table is full";
         break;
-        default:
-          std::cerr << "Unknown PIPE" << std::endl;
-      };
-      // Kill immediately both the parent and all the children
-      kill(-1*getpid(), SIGKILL);
-    }
-    return maxFd;
+      default:
+        std::cerr << "Unknown PIPE" << std::endl;
+    };
+    // Kill immediately both the parent and all the children
+    kill(-1 * getpid(), SIGKILL);
+  }
+  return maxFd;
 }
 
 // Kill all the active children. Exit code
 // is != 0 if any of the children had an error.
-int killChildren(std::vector<DeviceInfo> &infos) {
+int killChildren(std::vector<DeviceInfo>& infos)
+{
   int exitCode = 0;
-  for (auto &info : infos) {
-    if (exitCode == 0
-        && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error){
+  for (auto& info : infos) {
+    if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
       LOG(ERROR) << "Child " << info.pid << " had at least one "
                  << "message above severity ERROR";
       exitCode = 1;
@@ -404,14 +392,16 @@ int killChildren(std::vector<DeviceInfo> &infos) {
 // - Set a sig_atomic_t to say we did.
 // - Wait for all the children to exit
 // - Return gracefully.
-static void handle_sigint(int signum) {
+static void handle_sigint(int signum)
+{
   auto exitCode = killChildren(gDeviceInfos);
   // We kill ourself after having killed all our children (SPOOKY!)
   signal(SIGINT, SIG_DFL);
   kill(getpid(), SIGINT);
 }
 
-void handle_sigchld(int sig) {
+void handle_sigchld(int sig)
+{
   int saved_errno = errno;
   std::vector<pid_t> pids;
   while (true) {
@@ -424,9 +414,9 @@ void handle_sigchld(int sig) {
     }
   }
   errno = saved_errno;
-  for (auto &pid : pids) {
+  for (auto& pid : pids) {
     printf("Child exited: %d\n", pid);
-    for (auto &info : gDeviceInfos) {
+    for (auto& info : gDeviceInfos) {
       if (info.pid == pid) {
         info.active = false;
       }
@@ -444,45 +434,26 @@ void handle_sigchld(int sig) {
 //     killing them all on ctrl-c).
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
-int doMain(int argc, char **argv,
-           const o2::framework::WorkflowSpec & specs,
-           std::vector<ChannelConfigurationPolicy> const &channelPolicies) {
+int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
+           std::vector<ChannelConfigurationPolicy> const& channelPolicies)
+{
   bpo::options_description executorOptions("Executor options");
-  executorOptions.add_options()
-    ((std::string("help") + ",h").c_str(),
-     "print this help")
-    ((std::string("quiet") + ",q").c_str(),
-     bpo::value<bool>()->zero_tokens()->default_value(false),
-     "quiet operation")
-    ((std::string("stop") + ",s").c_str(),
-     bpo::value<bool>()->zero_tokens()->default_value(false),
-     "stop before device start")
-    ((std::string("batch") + ",b").c_str(),
-     bpo::value<bool>()->zero_tokens()->default_value(false),
-     "batch processing mode")
-    ((std::string("graphviz") + ",g").c_str(),
-     bpo::value<bool>()->zero_tokens()->default_value(false),
-     "produce graph output")
-    ((std::string("dds") + ",D").c_str(),
-     bpo::value<bool>()->zero_tokens()->default_value(false),
-     "create DDS configuration");
+  executorOptions.add_options()((std::string("help") + ",h").c_str(), "print this help")(
+    (std::string("quiet") + ",q").c_str(), bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")(
+    (std::string("stop") + ",s").c_str(), bpo::value<bool>()->zero_tokens()->default_value(false),
+    "stop before device start")((std::string("batch") + ",b").c_str(),
+                                bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")(
+    (std::string("graphviz") + ",g").c_str(), bpo::value<bool>()->zero_tokens()->default_value(false),
+    "produce graph output")((std::string("dds") + ",D").c_str(),
+                            bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
 
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
-  gHiddenDeviceOptions.add_options()
-    ((std::string("id") + ",i").c_str(),
-     bpo::value<std::string>(),
-     "device id for child spawning")
-    ("channel-config",
-     bpo::value<std::vector<std::string>>(),
-     "channel configuration")
-    ("control",
-     "control plugin")
-    ("log-color",
-     "logging color scheme")
-    ("color",
-          "logging color scheme");
+  gHiddenDeviceOptions.add_options()((std::string("id") + ",i").c_str(), bpo::value<std::string>(),
+                                     "device id for child spawning")(
+    "channel-config", bpo::value<std::vector<std::string>>(), "channel configuration")("control", "control plugin")(
+    "log-color", "logging color scheme")("color", "logging color scheme");
 
   bpo::options_description visibleOptions;
   visibleOptions.add(executorOptions);
@@ -506,7 +477,8 @@ int doMain(int argc, char **argv,
   bool graphViz = varmap["graphviz"].as<bool>();
   bool generateDDS = varmap["dds"].as<bool>();
   std::string frameworkId;
-  if (varmap.count("id")) frameworkId = varmap["id"].as<std::string>();
+  if (varmap.count("id"))
+    frameworkId = varmap["id"].as<std::string>();
   if (varmap.count("help")) {
     bpo::options_description helpOptions;
     helpOptions.add(executorOptions);
@@ -521,7 +493,7 @@ int doMain(int argc, char **argv,
   try {
     DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(specs, channelPolicies, deviceSpecs);
     // This should expand nodes so that we can build a consistent DAG.
-  } catch (std::runtime_error &e) {
+  } catch (std::runtime_error& e) {
     std::cerr << "Invalid workflow: " << e.what() << std::endl;
     return 1;
   }
@@ -530,7 +502,7 @@ int doMain(int argc, char **argv,
   // distinguish between something which has a framework id (the children) and something
   // which does not, the parent.
   if (frameworkId.empty() == false) {
-    for (auto &spec : deviceSpecs) {
+    for (auto& spec : deviceSpecs) {
       if (spec.id == frameworkId) {
         return doChild(argc, argv, spec);
       }
@@ -543,9 +515,8 @@ int doMain(int argc, char **argv,
   gDeviceControls.resize(deviceSpecs.size());
   gDeviceExecutions.resize(deviceSpecs.size());
 
-  DeviceSpecHelpers::prepareArguments(
-      argc, argv, defaultQuiet,
-      defaultStopped, deviceSpecs, gDeviceExecutions, gDeviceControls);
+  DeviceSpecHelpers::prepareArguments(argc, argv, defaultQuiet, defaultStopped, deviceSpecs, gDeviceExecutions,
+                                      gDeviceControls);
 
   if (graphViz) {
     // Dump a graphviz representation of what I will do.
@@ -576,9 +547,9 @@ int doMain(int argc, char **argv,
   }
 
   for (size_t di = 0; di < deviceSpecs.size(); ++di) {
-    auto &spec = deviceSpecs[di];
-    auto &control = gDeviceControls[di];
-    auto &execution = gDeviceExecutions[di];
+    auto& spec = deviceSpecs[di];
+    auto& control = gDeviceControls[di];
+    auto& execution = gDeviceExecutions[di];
     int childstdout[2];
     int childstderr[2];
 
@@ -644,13 +615,7 @@ int doMain(int argc, char **argv,
     FD_SET(childstderr[0], &childFdset);
   }
   maxFd += 1;
-  doParent(&childFdset,
-           maxFd,
-           gDeviceInfos,
-           deviceSpecs,
-           gDeviceControls,
-           gDeviceMetricsInfos,
-           socket2DeviceInfo,
+  doParent(&childFdset, maxFd, gDeviceInfos, deviceSpecs, gDeviceControls, gDeviceMetricsInfos, socket2DeviceInfo,
            batch);
   return killChildren(gDeviceInfos);
 }
