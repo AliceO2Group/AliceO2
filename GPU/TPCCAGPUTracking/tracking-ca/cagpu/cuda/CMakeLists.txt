@@ -16,6 +16,8 @@
 # Module
 set(MODULE AliHLTTPCCAGPU)
 
+option(HLT_CUDA_GCCBIN   "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
+
 find_package(CUDA)
 if(NOT CUDA_FOUND)
     message( FATAL_ERROR "NVIDIA CUDA package not found. Please install or set HLT_CUDA=OFF" )
@@ -30,7 +32,10 @@ if(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
 endif(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
 
 #set nvcc flags
-set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_52,code=sm_52 -gencode arch=compute_61,code=sm_61 --compiler-bindir /usr/x86_64-pc-linux-gnu/gcc-bin/6.4.0/x86_64-pc-linux-gnu-gcc)
+set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_52,code=sm_52 -gencode arch=compute_61,code=sm_61)
+if(HLT_CUDA_GCCBIN)
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --compiler-bindir ${HLT_CUDA_GCCBIN})
+endif()
 
 #for convenience
 set(CAGPUDIR ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu)
