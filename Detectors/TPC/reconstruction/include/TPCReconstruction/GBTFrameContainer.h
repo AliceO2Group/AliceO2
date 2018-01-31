@@ -14,13 +14,12 @@
 #ifndef ALICEO2_TPC_GBTFRAMECONTAINER_H_
 #define ALICEO2_TPC_GBTFRAMECONTAINER_H_
 
-#include "TPCReconstruction/GBTFrame.h"
-#include "TPCReconstruction/AdcClockMonitor.h"
-#include "TPCReconstruction/SyncPatternMonitor.h"
-#include "TPCReconstruction/HalfSAMPAData.h"
 #include "TPCBase/Digit.h"
-#include "TPCBase/Mapper.h" 
-//#include <TClonesArray.h>  
+#include "TPCBase/Mapper.h"
+#include "TPCReconstruction/AdcClockMonitor.h"
+#include "TPCReconstruction/GBTFrame.h"
+#include "TPCReconstruction/HalfSAMPAData.h"
+#include "TPCReconstruction/SyncPatternMonitor.h"
 
 #include <iterator>
 #include <vector>
@@ -57,7 +56,8 @@ class GBTFrameContainer {
     /// @param size Size of GBT frame container to avoid unnecessary reallocation of memory
     /// @param cru CRU ID
     /// @param link Link ID
-    GBTFrameContainer(int size, int cru, int link);
+    /// @param sampaVersion SAMPA version
+    GBTFrameContainer(int size, int cru, int link, int sampaVersion = -1);
 
     /// Destructor
     ~GBTFrameContainer();
@@ -85,22 +85,22 @@ class GBTFrameContainer {
     void addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0);
 
     /// Add frame to the container
-    /// @param s0hw0l half-word 0 from SAMPA 0 low channel numbers 
-    /// @param s0hw1l half-word 1 from SAMPA 0 low channel numbers 
-    /// @param s0hw2l half-word 2 from SAMPA 0 low channel numbers 
-    /// @param s0hw3l half-word 3 from SAMPA 0 low channel numbers 
-    /// @param s0hw0h half-word 0 from SAMPA 0 high channel numbers 
-    /// @param s0hw1h half-word 1 from SAMPA 0 high channel numbers 
-    /// @param s0hw2h half-word 2 from SAMPA 0 high channel numbers 
-    /// @param s0hw3h half-word 3 from SAMPA 0 high channel numbers 
-    /// @param s1hw0l half-word 0 from SAMPA 1 low channel numbers 
-    /// @param s1hw1l half-word 1 from SAMPA 1 low channel numbers 
-    /// @param s1hw2l half-word 2 from SAMPA 1 low channel numbers 
-    /// @param s1hw3l half-word 3 from SAMPA 1 low channel numbers 
-    /// @param s1hw0h half-word 0 from SAMPA 1 high channel numbers 
-    /// @param s1hw1h half-word 1 from SAMPA 1 high channel numbers 
-    /// @param s1hw2h half-word 2 from SAMPA 1 high channel numbers 
-    /// @param s1hw3h half-word 3 from SAMPA 1 high channel numbers 
+    /// @param s0hw0l half-word 0 from SAMPA 0 low channel numbers
+    /// @param s0hw1l half-word 1 from SAMPA 0 low channel numbers
+    /// @param s0hw2l half-word 2 from SAMPA 0 low channel numbers
+    /// @param s0hw3l half-word 3 from SAMPA 0 low channel numbers
+    /// @param s0hw0h half-word 0 from SAMPA 0 high channel numbers
+    /// @param s0hw1h half-word 1 from SAMPA 0 high channel numbers
+    /// @param s0hw2h half-word 2 from SAMPA 0 high channel numbers
+    /// @param s0hw3h half-word 3 from SAMPA 0 high channel numbers
+    /// @param s1hw0l half-word 0 from SAMPA 1 low channel numbers
+    /// @param s1hw1l half-word 1 from SAMPA 1 low channel numbers
+    /// @param s1hw2l half-word 2 from SAMPA 1 low channel numbers
+    /// @param s1hw3l half-word 3 from SAMPA 1 low channel numbers
+    /// @param s1hw0h half-word 0 from SAMPA 1 high channel numbers
+    /// @param s1hw1h half-word 1 from SAMPA 1 high channel numbers
+    /// @param s1hw2h half-word 2 from SAMPA 1 high channel numbers
+    /// @param s1hw3h half-word 3 from SAMPA 1 high channel numbers
     /// @param s2hw0 half-word 0 from SAMPA 2
     /// @param s2hw1 half-word 1 from SAMPA 2
     /// @param s2hw2 half-word 2 from SAMPA 2
@@ -109,14 +109,10 @@ class GBTFrameContainer {
     /// @param s1adc ADC clock from SAMPA 1
     /// @param s2adc ADC clock from SAMPA 2
     /// @param marker additional 16 bit marker which is not part of the actual frame
-    void addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
-                     short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
-                     short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
-                     short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
-                     short s2hw0,  short s2hw1,  short s2hw2,  short s2hw3, 
-                     short s0adc,  short s1adc,  short s2adc,  unsigned marker = 0);
-
-//    template<typename... Args> void addGBTFrame(Args&&... args);
+    void addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l, short s0hw0h, short s0hw1h, short s0hw2h,
+                     short s0hw3h, short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l, short s1hw0h, short s1hw1h,
+                     short s1hw2h, short s1hw3h, short s2hw0, short s2hw1, short s2hw2, short s2hw3, short s0adc,
+                     short s1adc, short s2adc, unsigned marker = 0);
 
     /// Add all frames from file to conatiner
     /// @param fileName Path to file
@@ -220,11 +216,11 @@ class GBTFrameContainer {
 
     std::mutex mAdcMutex;
 
-    std::vector<GBTFrame> mGBTFrames;                ///< GBT Frames container
-    std::array<AdcClockMonitor,3> mAdcClock;        ///< ADC clock monitor for the 3 SAMPAs
-    std::array<SyncPatternMonitor,5> mSyncPattern;  ///< Synchronization pattern monitor for the 5 half SAMPAs
-    std::array<short,10> mPositionForHalfSampa;      ///< Start position of data for all 5 half SAMPAs
-    std::array<std::queue<short>*,5> mAdcValues;    ///< Vector to buffer the decoded ADC values, one deque per half SAMPA 
+    std::vector<GBTFrame> mGBTFrames;               ///< GBT Frames container
+    std::array<AdcClockMonitor, 3> mAdcClock;       ///< ADC clock monitor for the 3 SAMPAs
+    std::array<SyncPatternMonitor, 5> mSyncPattern; ///< Synchronization pattern monitor for the 5 half SAMPAs
+    std::array<short, 10> mPositionForHalfSampa;    ///< Start position of data for all 5 half SAMPAs
+    std::array<std::queue<short>*, 5> mAdcValues; ///< Vector to buffer the decoded ADC values, one deque per half SAMPA
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
     bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
@@ -232,10 +228,11 @@ class GBTFrameContainer {
     bool mEnableCompileAdcValues;                   ///<
     int mCRU;                                       ///< CRU ID of the GBT frames
     int mLink;                                      ///< Link ID of the GBT frames
-    int mTimebin;                                   ///< Timebin of last digits extraction 
-    int mGBTFramesAnalyzed;                         
+    int mSampaVersion;                              ///< Version of SAMPA chip
+    int mTimebin;                                   ///< Timebin of last digits extraction
+    int mGBTFramesAnalyzed;
 
-    std::array<std::array<short,16>,5> mTmpData; 
+    std::array<std::array<short, 16>, 5> mTmpData;
 };
 
 //template<typename... Args>
@@ -251,8 +248,8 @@ class GBTFrameContainer {
 //  processFrame(mGBTFrames.end()-1);
 //};
 
-inline
-void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0) {
+inline void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
+{
   if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
     mGBTFrames[0] = mGBTFrames[1];
     mGBTFrames[1].setData(word3, word2, word1, word0);
@@ -262,13 +259,12 @@ void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned wor
   processFrame(mGBTFrames.end()-1);
 };
 
-inline
-void GBTFrameContainer::addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
-                                    short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
-                                    short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
-                                    short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
-                                    short s2hw0,  short s2hw1,  short s2hw2,  short s2hw3, 
-                                    short s0adc,  short s1adc,  short s2adc,  unsigned marker) {
+inline void GBTFrameContainer::addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l, short s0hw0h,
+                                           short s0hw1h, short s0hw2h, short s0hw3h, short s1hw0l, short s1hw1l,
+                                           short s1hw2l, short s1hw3l, short s1hw0h, short s1hw1h, short s1hw2h,
+                                           short s1hw3h, short s2hw0, short s2hw1, short s2hw2, short s2hw3,
+                                           short s0adc, short s1adc, short s2adc, unsigned marker)
+{
   if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
     mGBTFrames[0] = mGBTFrames[1];
     mGBTFrames[1].setData(s0hw0l, s0hw1l, s0hw2l, s0hw3l, s0hw0h, s0hw1h, s0hw2h, s0hw3h,
@@ -282,8 +278,7 @@ void GBTFrameContainer::addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, sh
   processFrame(mGBTFrames.end()-1);
 };
 
-inline
-void GBTFrameContainer::addGBTFrame(GBTFrame& frame) 
+inline void GBTFrameContainer::addGBTFrame(GBTFrame& frame)
 {
   if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
     mGBTFrames[0] = mGBTFrames[1];
