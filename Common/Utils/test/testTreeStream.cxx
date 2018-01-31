@@ -18,9 +18,9 @@
 #include <TVectorD.h>
 #include <boost/test/unit_test.hpp>
 #include <iostream>
-#include "DetectorsBase/Track.h"
 #include "CommonUtils/TreeStream.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "ReconstructionDataFormats/Track.h"
 
 using namespace o2::utils;
 
@@ -38,11 +38,11 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     TreeStreamRedirector tstStream(outFName.Data(), "recreate");
     // write tree named TrackTree of int counter, float  and TrackParCov (using pointer)
     // and another similar tree but using reference of TrackParCov
-    std::array<float, o2::Base::Track::kNParams> par{};
+    std::array<float, o2::track::kNParams> par{};
     for (int i = 0; i < nit; i++) {
-      par[o2::Base::Track::kQ2Pt] = 0.5 + float(i) / nit;
+      par[o2::track::kQ2Pt] = 0.5 + float(i) / nit;
       float x = 10. + float(i) / nit * 200.;
-      o2::Base::Track::TrackPar trc(0., 0., par);
+      o2::track::TrackPar trc(0., 0., par);
       trc.propagateParamTo(x, 0.5);
       tstStream << "TrackTree"
                 << "id=" << i << "x=" << x << "track=" << &trc << "\n";
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     BOOST_CHECK(nent == nit);
     int id;
     float x;
-    o2::Base::Track::TrackPar* trc = nullptr;
+    o2::track::TrackPar* trc = nullptr;
     BOOST_CHECK(!tree->SetBranchAddress("id", &id));
     BOOST_CHECK(!tree->SetBranchAddress("x", &x));
     BOOST_CHECK(!tree->SetBranchAddress("track", &trc));
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     for (int i = 0; i < nent; i++) {
       tree->GetEntry(i);
       BOOST_CHECK(id == i);
-      printf("id: %d X: %e Track> ",id,x);
+      printf("id: %d X: %e Track> ", id, x);
       trc->PrintParam();
       BOOST_CHECK(std::abs(x - trc->getX()) < 1e-4);
     }

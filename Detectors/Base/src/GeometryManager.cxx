@@ -11,7 +11,9 @@
 /// \file GeometryManager.cxx
 /// \brief Implementation of the GeometryManager class
 
-#include <TCollection.h>      // for TIter
+#include <FairLogger.h>  // for LOG
+#include <TCollection.h> // for TIter
+#include <TFile.h>
 #include <TGeoMatrix.h>       // for TGeoHMatrix
 #include <TGeoNode.h>         // for TGeoNode
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
@@ -21,9 +23,10 @@
 #include <cassert>
 #include <cstddef> // for NULL
 
-#include "DetectorsBase/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/AlignParam.h"
 
+using namespace o2::detectors;
 using namespace o2::Base;
 
 ClassImp(o2::Base::GeometryManager);
@@ -353,4 +356,18 @@ GeometryManager::MatBudget GeometryManager::MeanMaterialBudget(float x0, float y
   }
   budTotal.normalize(stepTot);
   return MatBudget(budTotal);
+}
+
+//_________________________________
+void GeometryManager::loadGeometry(std::string geomFileName, std::string geomName)
+{
+  ///< load geometry from file
+  LOG(INFO) << "Loading geometry " << geomName << " from " << geomFileName << FairLogger::endl;
+  TFile flGeom(geomFileName.data());
+  if (flGeom.IsZombie()) {
+    LOG(FATAL) << "Failed to open file " << geomFileName << FairLogger::endl;
+  }
+  if (!flGeom.Get(geomName.data())) {
+    LOG(FATAL) << "Did not find geometry named " << geomName << FairLogger::endl;
+  }
 }

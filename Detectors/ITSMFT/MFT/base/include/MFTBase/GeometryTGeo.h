@@ -15,79 +15,76 @@
 #ifndef ALICEO2_MFT_GEOMETRYTGEO_H_
 #define ALICEO2_MFT_GEOMETRYTGEO_H_
 
-#include <vector>
-#include <array>
-#include <string>
 #include <TGeoMatrix.h> // for TGeoHMatrix
 #include <TObject.h>    // for TObject
-#include "DetectorsBase/DetID.h"
-#include "DetectorsBase/Utils.h"
+#include <array>
+#include <string>
+#include <vector>
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTBase/GeometryTGeo.h"
+#include "MathUtils/Utils.h"
 #include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
-class TGeoPNEntry; 
+class TGeoPNEntry;
 
 namespace o2
 {
-  
 namespace MFT
 {
-
 class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 {
  public:
-
-  typedef o2::Base::Transform3D Mat3D;
+  typedef o2::Transform3D Mat3D;
   using DetMatrixCache::getMatrixT2L;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2G;
 
-  static GeometryTGeo* Instance() {
+  static GeometryTGeo* Instance()
+  {
     // get (create if needed) a unique instance of the object
-    if (!sInstance) sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
+    if (!sInstance)
+      sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
     return sInstance.get();
   }
 
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
-  static void adopt(GeometryTGeo* raw); 
+  static void adopt(GeometryTGeo* raw);
 
   // constructor
-  // ATTENTION: this class is supposed to behave as a singleton, but to make it 
+  // ATTENTION: this class is supposed to behave as a singleton, but to make it
   // root-persistent we must define public default constructor.
-  // NEVER use it, it will throw exception if the class instance was already 
+  // NEVER use it, it will throw exception if the class instance was already
   // created. Use GeometryTGeo::Instance() instead
-  GeometryTGeo(Bool_t build = kFALSE, Int_t loadTrans=0
-               /*o2::Base::Utils::bit2Mask(o2::Base::TransformType::T2L, // default transformations to load
-                                           o2::Base::TransformType::T2G,
-                                           o2::Base::TransformType::L2G)*/
-	       );  
+  GeometryTGeo(Bool_t build = kFALSE, Int_t loadTrans = 0
+               /*o2::Base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
+                                           o2::TransformType::T2G,
+                                           o2::TransformType::L2G)*/
+               );
 
-  
   /// Default destructor
   ~GeometryTGeo() override = default;
-  
+
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
-  
+
   // implement filling of the matrix cache
   using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(Int_t mask) override;
 
   /// Exract MFT parameters from TGeo
-  void Build(int loadTrans=0) override;
+  void Build(int loadTrans = 0) override;
 
-  static const Char_t* getMFTVolPattern()       { return sVolumeName.c_str(); }
-  static const Char_t* getMFTHalfPattern()      { return sHalfName.c_str();   }
-  static const Char_t* getMFTDiskPattern()      { return sDiskName.c_str();   }
-  static const Char_t* getMFTLadderPattern()    { return sLadderName.c_str(); }
-  static const Char_t* getMFTChipPattern()      { return sChipName.c_str();   }
-  static const Char_t* getMFTSensorPattern()    { return sSensorName.c_str(); }
-
-  /// This routine computes the sensor index (as it is used in the list of 
-  /// transformations) from the detector half, disk, ladder and position 
+  static const Char_t* getMFTVolPattern() { return sVolumeName.c_str(); }
+  static const Char_t* getMFTHalfPattern() { return sHalfName.c_str(); }
+  static const Char_t* getMFTDiskPattern() { return sDiskName.c_str(); }
+  static const Char_t* getMFTLadderPattern() { return sLadderName.c_str(); }
+  static const Char_t* getMFTChipPattern() { return sChipName.c_str(); }
+  static const Char_t* getMFTSensorPattern() { return sSensorName.c_str(); }
+  /// This routine computes the sensor index (as it is used in the list of
+  /// transformations) from the detector half, disk, ladder and position
   /// of the sensor in the ladder
-  Int_t getSensorIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const; 
+  Int_t getSensorIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
 
  protected:
   /// Determines the number of detector halves in the Geometry
@@ -115,9 +112,9 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   // Create matrix for transformation from sensor local frame to global one
   TGeoHMatrix& createT2LMatrix(Int_t isn);
 
-  /// Get sensor tracking frame alpha and x (ITS), where the normal to the sensor 
+  /// Get sensor tracking frame alpha and x (ITS), where the normal to the sensor
   /// intersects the sensor surface
-  void extractSensorXAlpha(int index, float &x, float &alp);
+  void extractSensorXAlpha(int index, float& x, float& alp);
 
   /// This routine computes the half, disk, ladder and sensor number
   /// given the sensor index number
@@ -139,35 +136,33 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 
   /// In a disk start numbering the sensors from zero
   Int_t getFirstSensorIndex(Int_t disk) const { return (disk == 0) ? 0 : mLastSensorIndex[disk - 1] + 1; }
-
  protected:
   static constexpr Int_t MinSensorsPerLadder = 2;
   static constexpr Int_t MaxSensorsPerLadder = 5;
 
-  Int_t mTotalNumberOfSensors;                            ///< total number of sensors in the detector
-  Int_t mNumberOfHalves;                                  ///< number of detector halves
-  std::vector<Int_t> mNumberOfDisks;                      ///< disks/half
-  std::vector<std::vector<Int_t>> mNumberOfLadders;       ///< ladders[nsensor]/halfdisk
-  std::vector<Int_t> mNumberOfLaddersPerDisk;             ///< ladders/halfdisk
+  Int_t mTotalNumberOfSensors;                      ///< total number of sensors in the detector
+  Int_t mNumberOfHalves;                            ///< number of detector halves
+  std::vector<Int_t> mNumberOfDisks;                ///< disks/half
+  std::vector<std::vector<Int_t>> mNumberOfLadders; ///< ladders[nsensor]/halfdisk
+  std::vector<Int_t> mNumberOfLaddersPerDisk;       ///< ladders/halfdisk
 
-  std::vector<std::vector<Int_t>> mLadderIndex2Id;  ///< from matrix index to geometry index
-  std::vector<std::vector<Int_t>> mLadderId2Index;  ///< from to geometry index to matrix index
+  std::vector<std::vector<Int_t>> mLadderIndex2Id; ///< from matrix index to geometry index
+  std::vector<std::vector<Int_t>> mLadderId2Index; ///< from to geometry index to matrix index
 
-  std::vector<Int_t> mLastSensorIndex;   ///< last sensor index in a layer
+  std::vector<Int_t> mLastSensorIndex; ///< last sensor index in a layer
 
-  static std::string sVolumeName;          ///< 
-  static std::string sHalfName;            ///< 
-  static std::string sDiskName;            ///< 
-  static std::string sLadderName;          ///< 
-  static std::string sChipName;            ///< 
-  static std::string sSensorName;          ///< 
- 
+  static std::string sVolumeName; ///<
+  static std::string sHalfName;   ///<
+  static std::string sDiskName;   ///<
+  static std::string sLadderName; ///<
+  static std::string sChipName;   ///<
+  static std::string sSensorName; ///<
+
  private:
-  static std::unique_ptr<o2::MFT::GeometryTGeo> sInstance;   ///< singleton instance 
-  
+  static std::unique_ptr<o2::MFT::GeometryTGeo> sInstance; ///< singleton instance
+
   ClassDefOverride(GeometryTGeo, 1); // MFT geometry based on TGeo
 };
-
 }
 }
 

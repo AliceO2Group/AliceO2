@@ -16,39 +16,32 @@
 #ifndef ALICEO2_ITSMFT_GEOMETRYTGEO_H_
 #define ALICEO2_ITSMFT_GEOMETRYTGEO_H_
 
-#include "DetectorsBase/DetMatrixCache.h"
-#include <TObjArray.h>  // for TObjArray
+#include <TObjArray.h> // for TObjArray
 #include <string>
+#include "DetectorsCommonDataFormats/DetMatrixCache.h"
 
 namespace o2
 {
 namespace ITSMFT
 {
- 
-class GeometryTGeo : public o2::Base::DetMatrixCache
+class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
-  
-  using DetMatrixCache::fillMatrixCache;
+  using o2::detectors::DetMatrixCache::fillMatrixCache;
   GeometryTGeo() = default;
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
-  GeometryTGeo(const o2::Base::DetID& detid) : DetMatrixCache(detid) {}
-
+  GeometryTGeo(const o2::detectors::DetID& detid) : o2::detectors::DetMatrixCache(detid) {}
   ~GeometryTGeo() override = default;
 
   Int_t getNumberOfChips() const { return mSize; }
-  
   /// build detector layout data, must be overriden by detector
   virtual void Build(int loadTrans) = 0;
-  
- protected:
 
+ protected:
   ClassDefOverride(GeometryTGeo, 1); // ITSMFR geometry based on TGeo
 };
-
- 
 }
 }
 #endif

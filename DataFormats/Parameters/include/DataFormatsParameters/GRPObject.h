@@ -20,7 +20,7 @@
 #include <ctime>
 #include "CommonConstants/LHCConstants.h"
 #include "CommonTypes/Units.h"
-#include "DetectorsBase/DetID.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -79,23 +79,23 @@ class GRPObject
   void setFill(int f) { mFill = f; }
   int getFill() const { return mFill; }
   /// getter/setter for masks of detectors in the readout
-  o2::Base::DetID::mask_t getDetsReadOut() const { return mDetsReadout; }
-  void setDetsReadOut(o2::Base::DetID::mask_t mask) { mDetsReadout = mask; }
+  o2::detectors::DetID::mask_t getDetsReadOut() const { return mDetsReadout; }
+  void setDetsReadOut(o2::detectors::DetID::mask_t mask) { mDetsReadout = mask; }
   /// getter/setter for masks of detectors providing the trigger
-  o2::Base::DetID::mask_t getDetsTrigger() const { return mDetsTrigger; }
-  void setDetsTrigger(o2::Base::DetID::mask_t mask) { mDetsTrigger = mask; }
+  o2::detectors::DetID::mask_t getDetsTrigger() const { return mDetsTrigger; }
+  void setDetsTrigger(o2::detectors::DetID::mask_t mask) { mDetsTrigger = mask; }
   /// add specific detector to the list of readout detectors
-  void addDetReadOut(o2::Base::DetID id) { mDetsReadout |= id.getMask(); }
+  void addDetReadOut(o2::detectors::DetID id) { mDetsReadout |= id.getMask(); }
   /// remove specific detector from the list of readout detectors
-  void remDetReadOut(o2::Base::DetID id) { mDetsReadout &= ~id.getMask(); }
+  void remDetReadOut(o2::detectors::DetID id) { mDetsReadout &= ~id.getMask(); }
   /// add specific detector to the list of triggering detectors
-  void addDetTrigger(o2::Base::DetID id) { mDetsTrigger |= id.getMask(); }
+  void addDetTrigger(o2::detectors::DetID id) { mDetsTrigger |= id.getMask(); }
   /// remove specific detector from the list of triggering detectors
-  void remDetTrigger(o2::Base::DetID id) { mDetsTrigger &= ~id.getMask(); }
+  void remDetTrigger(o2::detectors::DetID id) { mDetsTrigger &= ~id.getMask(); }
   /// test if detector is read out
-  bool isDetReadOut(o2::Base::DetID id) const { return (mDetsReadout & id.getMask()) != 0; }
+  bool isDetReadOut(o2::detectors::DetID id) const { return (mDetsReadout & id.getMask()) != 0; }
   /// test if detector is triggering
-  bool isDetTriggers(o2::Base::DetID id) const { return (mDetsTrigger & id.getMask()) != 0; }
+  bool isDetTriggers(o2::detectors::DetID id) const { return (mDetsTrigger & id.getMask()) != 0; }
   /// print itself
   void print() const;
 
@@ -103,8 +103,8 @@ class GRPObject
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
   timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
 
-  o2::Base::DetID::mask_t mDetsReadout; ///< mask of detectors which are read out
-  o2::Base::DetID::mask_t mDetsTrigger; ///< mask of detectors which provide trigger
+  o2::detectors::DetID::mask_t mDetsReadout; ///< mask of detectors which are read out
+  o2::detectors::DetID::mask_t mDetsTrigger; ///< mask of detectors which provide trigger
 
   o2::units::AngleRad_t mCrossingAngle = 0.f; ///< crossing angle in radians (as deviation from pi)
   o2::units::Current_t mL3Current = 0.f;      ///< signed current in L3

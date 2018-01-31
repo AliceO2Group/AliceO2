@@ -13,7 +13,7 @@
 #ifndef ALICEO2_ITSMFT_CLUSTER_H
 #define ALICEO2_ITSMFT_CLUSTER_H
 
-#include "DetectorsBase/BaseCluster.h"
+#include "ReconstructionDataFormats/BaseCluster.h"
 
 // uncomment this to have cluster topology stored
 #define _ClusterTopology_
@@ -24,12 +24,12 @@ namespace o2
 {
 namespace ITSMFT
 {
-  class GeometryTGeo;
+class GeometryTGeo;
 /// \class Cluster
 /// \brief Cluster class for the ITSMFT
 ///
 
-class Cluster : public o2::Base::BaseCluster<float>
+class Cluster : public o2::BaseCluster<float>
 {
  public:
   enum { // frame in which the track is currently defined
@@ -49,24 +49,28 @@ class Cluster : public o2::Base::BaseCluster<float>
   };
   //
   // used for the cluster topology definition
-  enum { kMaxPatternBits = 32 * 16, kMaxPatternBytes = kMaxPatternBits / 8, kSpanMask = 0x7fff,
-         kTruncateMask = 0x8000 };
+  enum {
+    kMaxPatternBits = 32 * 16,
+    kMaxPatternBytes = kMaxPatternBits / 8,
+    kSpanMask = 0x7fff,
+    kTruncateMask = 0x8000
+  };
 
   using BaseCluster::BaseCluster;
 
  public:
-  static constexpr int maxLabels=3;
+  static constexpr int maxLabels = 3;
 
   ~Cluster() override = default;
 
   Cluster& operator=(const Cluster& cluster) = delete; // RS why?
 
   //****** Basic methods ******************
-  void setUsed()                { setBit(kUsed);}
-  void setShared()              { setBit(kShared);}
-  void increaseClusterUsage()   { isUsed() ? setBit(kShared) : setBit(kUsed); }
+  void setUsed() { setBit(kUsed); }
+  void setShared() { setBit(kShared); }
+  void increaseClusterUsage() { isUsed() ? setBit(kShared) : setBit(kUsed); }
   //
-  bool isUsed()   const { return isBitSet(kUsed); }
+  bool isUsed() const { return isBitSet(kUsed); }
   bool isShared() const { return isBitSet(kShared); }
   //
   void setNxNzN(UChar_t nx, UChar_t nz, UShort_t n)
@@ -86,16 +90,16 @@ class Cluster : public o2::Base::BaseCluster<float>
   int getNPix() const { return (mNxNzN >> kOffsNPix) & kMaskNPix; }
   int getClusterUsage() const { return (mNxNzN >> kOffsClUse) & kMaskClUse; }
   //
-  UInt_t getROFrame()         const {return mROFrame;}
-  void   setROFrame(UInt_t v)       {mROFrame = v;}
+  UInt_t getROFrame() const { return mROFrame; }
+  void setROFrame(UInt_t v) { mROFrame = v; }
   //
-  //bool hasCommonTrack(const Cluster* cl) const;
+  // bool hasCommonTrack(const Cluster* cl) const;
   //
   void print() const;
-  
+
 #ifdef _ClusterTopology_
-  int  getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
-  int  getPatternColSpan() const { return mPatternNCols & kSpanMask; }
+  int getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
+  int getPatternColSpan() const { return mPatternNCols & kSpanMask; }
   bool isPatternRowsTruncated() const { return mPatternNRows & kTruncateMask; }
   bool isPatternColsTruncated() const { return mPatternNRows & kTruncateMask; }
   bool isPatternTruncated() const { return isPatternRowsTruncated() || isPatternColsTruncated(); }
@@ -108,7 +112,7 @@ class Cluster : public o2::Base::BaseCluster<float>
   void setPixel(UShort_t row, UShort_t col, bool fired = kTRUE);
   void getPattern(UChar_t patt[kMaxPatternBytes])
   {
-    for (int i=kMaxPatternBytes; i--;)
+    for (int i = kMaxPatternBytes; i--;)
       patt[i] = mPattern[i];
   }
   int getPatternRowMin() const { return mPatternRowMin; }
@@ -117,17 +121,17 @@ class Cluster : public o2::Base::BaseCluster<float>
   //
  protected:
   //
-  UInt_t  mROFrame;   ///< RO Frame
-  Int_t mNxNzN=0;          ///< effective cluster size in X (1st byte) and Z (2nd byte) directions
-                           ///< and total Npix(next 9 bits).
-                           ///> The last 7 bits are used for clusters usage counter
+  UInt_t mROFrame;  ///< RO Frame
+  Int_t mNxNzN = 0; ///< effective cluster size in X (1st byte) and Z (2nd byte) directions
+                    ///< and total Npix(next 9 bits).
+                    ///> The last 7 bits are used for clusters usage counter
 
 #ifdef _ClusterTopology_
-  UShort_t mPatternNRows = 0;             ///< pattern span in rows
-  UShort_t mPatternNCols = 0;             ///< pattern span in columns
-  UShort_t mPatternRowMin = 0;            ///< pattern start row
-  UShort_t mPatternColMin = 0;            ///< pattern start column
-  UChar_t mPattern[kMaxPatternBytes] = {0}; ///< cluster topology
+  UShort_t mPatternNRows = 0;                 ///< pattern span in rows
+  UShort_t mPatternNCols = 0;                 ///< pattern span in columns
+  UShort_t mPatternRowMin = 0;                ///< pattern start row
+  UShort_t mPatternColMin = 0;                ///< pattern start column
+  UChar_t mPattern[kMaxPatternBytes] = { 0 }; ///< cluster topology
   //
   ClassDefOverride(Cluster, CLUSTER_VERSION + 1)
 #else
@@ -150,10 +154,11 @@ inline void Cluster::setClusterUsage(Int_t n)
   // set cluster usage counter
   mNxNzN &= ~(kMaskClUse << kOffsClUse);
   mNxNzN |= (n & kMaskClUse) << kOffsClUse;
-  if (n < 2) resetBit(kShared);
-  if (!n)    resetBit(kUsed);
+  if (n < 2)
+    resetBit(kShared);
+  if (!n)
+    resetBit(kUsed);
 }
- 
 }
 }
 

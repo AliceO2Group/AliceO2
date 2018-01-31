@@ -20,7 +20,8 @@
 #include <TGeoShape.h>
 #include <TMath.h>
 #include <TObject.h> // for TObject
-#include "DetectorsBase/DetID.h"
+#include <string>
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
 
@@ -29,10 +30,13 @@ class TGeoManager; // lines 9-9
 
 namespace o2
 {
-namespace Base
+namespace detectors
 {
 class AlignParam;
+}
 
+namespace Base
+{
 /// Class for interfacing to the geometry; it also builds and manages the look-up tables for fast
 /// access to geometry and alignment information for sensitive alignable volumes:
 /// 1) the look-up table mapping unique volume ids to TGeoPNEntries. This allows to access
@@ -42,17 +46,20 @@ class AlignParam;
 class GeometryManager : public TObject
 {
  public:
-  /// Get the global transformation matrix (ideal geometry) for a given alignable volume
-  /// The alignable volume is identified by 'symname' which has to be either a valid symbolic
-  /// name, the query being performed after alignment, or a valid volume path if the query is
-  /// performed before alignment.
-  static Bool_t getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& m);
-  static Bool_t getOriginalMatrix(const char* symname, TGeoHMatrix& m);
-  static const char* getSymbolicName(DetID detid, int sensid);
-  static TGeoPNEntry* getPNEntry(DetID detid, Int_t sensid);
-  static TGeoHMatrix* getMatrix(DetID detid, Int_t sensid);
+  ///< load geometry from file
+  static void loadGeometry(std::string geomFileName = "O2geometry.root", std::string geomName = "FAIRGeom");
 
-  static int getSensID(DetID detid, int sensid)
+  ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
+  ///< The alignable volume is identified by 'symname' which has to be either a valid symbolic
+  ///< name, the query being performed after alignment, or a valid volume path if the query is
+  ///< performed before alignment.
+  static Bool_t getOriginalMatrix(o2::detectors::DetID detid, int sensid, TGeoHMatrix& m);
+  static Bool_t getOriginalMatrix(const char* symname, TGeoHMatrix& m);
+  static const char* getSymbolicName(o2::detectors::DetID detid, int sensid);
+  static TGeoPNEntry* getPNEntry(o2::detectors::DetID detid, Int_t sensid);
+  static TGeoHMatrix* getMatrix(o2::detectors::DetID detid, Int_t sensid);
+
+  static int getSensID(o2::detectors::DetID detid, int sensid)
   {
     /// compose combined detector+sensor ID for sensitive volumes
     return (detid.getMask().to_ulong() << sDetOffset) | (sensid & sSensorMask);

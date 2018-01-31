@@ -12,39 +12,36 @@
 /// \brief Definition of the MagFieldFact: factory for ALIDE mag. field from MagFieldParam
 /// \author ruben.shahoyan@cern.ch
 
-
 #ifndef ALICEO2_FIELD_MAGFIELDFACT_H
 #define ALICEO2_FIELD_MAGFIELDFACT_H
 
 #include "FairFieldFactory.h"
 #include "Field/MagneticField.h"
-#include <memory>
+
 class FairField;
 
-namespace o2 {
-  namespace field {
-    
+namespace o2
+{
+namespace field
+{
 class MagFieldParam;
 
-class MagFieldFact : public FairFieldFactory 
+class MagFieldFact : public FairFieldFactory
 {
-
  public:
   MagFieldFact();
   ~MagFieldFact() override;
   FairField* createFairField() override;
   void SetParm() override;
-  
+
  private:
   MagFieldFact(const MagFieldFact&);
   MagFieldFact& operator=(const MagFieldFact&);
 
   MagFieldParam* mFieldPar;
-  std::unique_ptr<MagneticField> mField;  // the resource-owning handle to a field
 
-  ClassDefOverride(MagFieldFact,2)
+  ClassDefOverride(MagFieldFact, 2)
 };
-
 }
 }
 

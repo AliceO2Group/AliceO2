@@ -12,6 +12,7 @@ set(SRCS
 )
 
 set(HEADERS
+  include/${MODULE_NAME}/Utils.h
   include/${MODULE_NAME}/Chebyshev3D.h
   include/${MODULE_NAME}/Chebyshev3DCalc.h
   include/${MODULE_NAME}/MathBase.h

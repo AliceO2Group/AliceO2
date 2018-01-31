@@ -276,6 +276,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Common/Constants/include
 )
 
 o2_define_bucket(
@@ -391,15 +392,49 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     common_math_bucket
+    data_format_detectors_common_bucket
+    DetectorsCommonDataFormats
     detectors_base_bucket
     DetectorsBase
     RIO
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include/
     ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    data_format_reconstruction_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    root_physics_bucket
+    data_format_detectors_common_bucket
+    DetectorsCommonDataFormats
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include/
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include/
+    ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    data_format_detectors_common_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    root_physics_bucket
+    common_math_bucket
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include/
 )
 
 o2_define_bucket(
@@ -409,7 +444,11 @@ o2_define_bucket(
     DEPENDENCIES
     fairroot_base_bucket
     root_physics_bucket
+    data_format_reconstruction_bucket
+    ReconstructionDataFormats
+    DataFormatsParameters
     Field
+    
     VMC # ROOT
     Geom
 
@@ -418,6 +457,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Common/Constants/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Parameters/include
 )
 
 o2_define_bucket(
@@ -728,9 +768,12 @@ o2_define_bucket(
     DEPENDENCIES
     tpc_base_bucket
     DataFormatsTPC_bucket
-    DetectorsBase
+    data_format_detectors_common_bucket
+    DetectorsCommonDataFormats
+    DetectorsBase    
     TPCBase
     SimulationDataFormat
+    ReconstructionDataFormats
     Geom
     MathCore
     RIO
@@ -745,12 +788,14 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/DataFormats/TPC/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Passive/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
     ${MS_GSL_INCLUDE_DIR}
 )
 
@@ -1226,14 +1271,15 @@ o2_define_bucket(
 
   DEPENDENCIES
   Core
-  detectors_base_bucket
-  DetectorsBase
+  data_format_detectors_common_bucket
+  DetectorsCommonDataFormats
   
   INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/Detectors/Base/include
   ${CMAKE_SOURCE_DIR}/Common/Constants/include
   ${CMAKE_SOURCE_DIR}/Common/Types/include
+  ${CMAKE_SOURCE_DIR}/Detectors/Common/include/DetectorsCommonDataFormats
 )
 
 o2_define_bucket(
@@ -1242,9 +1288,9 @@ o2_define_bucket(
 
   DEPENDENCIES
   Core Tree
-  DetectorsBase # for test dependency only
+  ReconstructionDataFormats # for test dependency only
   
   INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+  ${CMAKE_SOURCE_DIR}/include/ReconstructionDataFormats # for test dependency only
 )

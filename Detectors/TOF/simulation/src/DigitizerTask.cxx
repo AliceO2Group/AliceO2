@@ -11,13 +11,11 @@
 /// \file DigitizerTask.cxx
 /// \brief Implementation of the TOF digitizer task
 
-
 #include "TOFSimulation/DigitizerTask.h"
-#include "DetectorsBase/Utils.h"
+#include "MathUtils/Utils.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
-
 
 ClassImp(o2::tof::DigitizerTask);
 
@@ -54,9 +52,9 @@ InitStatus DigitizerTask::Init()
   mMCTruthArray = new typename std::remove_pointer<decltype(mMCTruthArray)>::type;
   mgr->RegisterAny("TOFDigitMCTruth", mMCTruthArray, kTRUE);
 
-//  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
+  //  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
 
-//  mDigitizer.init();
+  //  mDigitizer.init();
   return kSUCCESS;
 }
 
@@ -65,7 +63,8 @@ void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
 
-  if (mDigitsArray) mDigitsArray->clear();
+  if (mDigitsArray)
+    mDigitsArray->clear();
   mDigitizer.setEventTime(mgr->GetEventTime());
 
   if (mMCTruthArray) {
@@ -76,8 +75,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setMCTruthContainer(&transientTruthContainer);
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event " << mEventID
-             << " from source " << mSourceID << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
 
   /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
   /// provided and identified.
@@ -103,15 +101,13 @@ void DigitizerTask::Exec(Option_t* option)
 void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-  if(!mContinuous) return;
-  FairRootManager *mgr = FairRootManager::Instance();
+  if (!mContinuous)
+    return;
+  FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  if (mDigitsArray) mDigitsArray->clear();
+  if (mDigitsArray)
+    mDigitsArray->clear();
 
   // TODO: reenable this
-  //mDigitizer.fillOutputContainer(mDigitsArray);
+  // mDigitizer.fillOutputContainer(mDigitsArray);
 }
-
-
-
-

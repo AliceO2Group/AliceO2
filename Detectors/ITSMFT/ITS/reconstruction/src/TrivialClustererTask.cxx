@@ -12,10 +12,10 @@
 /// \brief Implementation of the ITS cluster finder task
 
 #include "ITSReconstruction/TrivialClustererTask.h"
-#include "MathUtils/Cartesian3D.h"
-#include "DetectorsBase/Utils.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTReconstruction/Cluster.h"
+#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -24,12 +24,13 @@
 
 ClassImp(o2::ITS::TrivialClustererTask)
 
-using namespace o2::ITS;
+  using namespace o2::ITS;
 using namespace o2::Base;
-using namespace o2::Base::Utils;
+using namespace o2::utils;
 
 //_____________________________________________________________________
-TrivialClustererTask::TrivialClustererTask(Bool_t useMC) : FairTask("ITSTrivialClustererTask") {
+TrivialClustererTask::TrivialClustererTask(Bool_t useMC) : FairTask("ITSTrivialClustererTask")
+{
   if (useMC)
     mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 }
@@ -58,7 +59,7 @@ InitStatus TrivialClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit> *>("ITSDigit");
+  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
   if (!mDigitsArray) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -69,10 +70,10 @@ InitStatus TrivialClustererTask::Init()
 
   // Register MC Truth container
   if (mClsLabels)
-  mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
+    mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache( bit2Mask(TransformType::T2L) ); // make sure T2L matrices are loaded
+  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L)); // make sure T2L matrices are loaded
   mGeometry = geom;
   mTrivialClusterer.setGeometry(geom);
   mTrivialClusterer.setMCTruthContainer(mClsLabels);
@@ -83,8 +84,10 @@ InitStatus TrivialClustererTask::Init()
 //_____________________________________________________________________
 void TrivialClustererTask::Exec(Option_t* option)
 {
-  if (mClustersArray) mClustersArray->clear();
-  if (mClsLabels)  mClsLabels->clear();
+  if (mClustersArray)
+    mClustersArray->clear();
+  if (mClsLabels)
+    mClsLabels->clear();
   LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
 
   mTrivialClusterer.process(mDigitsArray, mClustersArray);

@@ -14,16 +14,16 @@
 
 #include <TMath.h>
 
-#include "DetectorsBase/Constants.h"
+#include "CommonConstants/MathConstants.h"
 #include "ITSMFTReconstruction/Cluster.h"
 #include "ITSReconstruction/CookedTrack.h"
 
 ClassImp(o2::ITS::CookedTrack)
 
-using namespace o2::ITSMFT;
+  using namespace o2::ITSMFT;
 using namespace o2::ITS;
-using namespace o2::Base::Constants;
-using namespace o2::Base::Track;
+using namespace o2::constants::math;
+using namespace o2::track;
 
 bool CookedTrack::operator<(const CookedTrack& o) const
 {
@@ -55,7 +55,7 @@ void CookedTrack::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, F
   yt -= y;
 
   Float_t rp4 = getCurvature(bz);
-  if ((TMath::Abs(bz) < kAlmost0) || (TMath::Abs(rp4) < kAlmost0)) {
+  if ((TMath::Abs(bz) < Almost0) || (TMath::Abs(rp4) < Almost0)) {
     ip[0] = -(xt * f1 - yt * r1);
     ip[1] = getZ() + (ip[0] * f1 - xt) / r1 * getTgl() - z;
     return;
@@ -91,9 +91,9 @@ void CookedTrack::setClusterIndex(Int_t l, Int_t i)
 void CookedTrack::setExternalClusterIndex(Int_t layer, Int_t idx)
 {
   //--------------------------------------------------------------------
-  // Set the cluster index within an external cluster array 
+  // Set the cluster index within an external cluster array
   //--------------------------------------------------------------------
-  mIndex[layer]=idx;
+  mIndex[layer] = idx;
 }
 
 Bool_t CookedTrack::propagate(Float_t alpha, Float_t x, Float_t bz)
@@ -110,7 +110,7 @@ Bool_t CookedTrack::update(const Cluster& c, Float_t chi2, Int_t idx)
   //--------------------------------------------------------------------
   // Update track params
   //--------------------------------------------------------------------
-  if (!o2::Base::Track::TrackParCov::update(static_cast<const o2::Base::BaseCluster<float>&>(c)))
+  if (!o2::track::TrackParCov::update(static_cast<const o2::BaseCluster<float>&>(c)))
     return kFALSE;
 
   mChi2 += chi2;
