@@ -10,19 +10,21 @@
 #ifndef FRAMEWORK_DATAPROCESSORSPEC_H
 #define FRAMEWORK_DATAPROCESSORSPEC_H
 
+#include "Framework/AlgorithmSpec.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/DataAllocator.h"
+#include "Framework/DataProcessorLabel.h"
+#include "Framework/DataRef.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/ConfigParamSpec.h"
-#include "Framework/DataRef.h"
-#include "Framework/DataAllocator.h"
-#include "Framework/AlgorithmSpec.h"
-#include "Framework/DataProcessorLabel.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 using Inputs = std::vector<InputSpec>;
 using Outputs = std::vector<OutputSpec>;
