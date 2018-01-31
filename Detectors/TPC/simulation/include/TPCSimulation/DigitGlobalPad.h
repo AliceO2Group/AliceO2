@@ -76,27 +76,27 @@ class DigitGlobalPad {
     bool compareMClabels(const MCCompLabel &label1, const MCCompLabel &label2) const;
 
     float                  mChargePad;      ///< Total accumulated charge on that GlobalPad for a given time bin
-    std::vector<std::pair<MCCompLabel, int>> mMClabel; ///< vector to accumulate the MC labels
+    // std::vector<std::pair<MCCompLabel, int>> mMClabel; ///< vector to accumulate the MC labels
 };
 
 inline
 DigitGlobalPad::DigitGlobalPad()
-  : mChargePad(0.),
-    mMClabel()
+  : mChargePad(0.)//,
+//    mMClabel()
 {}
 
 inline
 void DigitGlobalPad::setDigit(size_t eventID, size_t trackID, float charge)
 {
   bool isKnown = false;
-  MCCompLabel tempLabel(trackID, eventID);
-  for(auto &mcLabel : mMClabel) {
-    if(compareMClabels(tempLabel, mcLabel.first)) {
-      ++mcLabel.second;
-      isKnown=true;
-    }
-  }
-  if(!isKnown) mMClabel.emplace_back(tempLabel, 1);
+//  MCCompLabel tempLabel(trackID, eventID);
+//  for(auto &mcLabel : mMClabel) {
+//    if(compareMClabels(tempLabel, mcLabel.first)) {
+//      ++mcLabel.second;
+//      isKnown=true;
+//    }
+//  }
+//  if(!isKnown) mMClabel.emplace_back(tempLabel, 1);
   mChargePad += charge;
 }
 
@@ -104,7 +104,7 @@ inline
 void DigitGlobalPad::reset()
 {
   mChargePad = 0;
-  mMClabel.clear();
+ // mMClabel.clear();
 }
 
 inline
