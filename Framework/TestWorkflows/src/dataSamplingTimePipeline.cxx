@@ -62,7 +62,6 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
         {"TPC", "CLUSTERS_P", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
-        //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
         (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
       }
     },
