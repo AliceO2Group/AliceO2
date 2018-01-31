@@ -11,37 +11,30 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
-#include "test_HelperMacros.h"
-#include "Framework/WorkflowSpec.h"
-#include "Framework/DeviceSpec.h"
+#include <boost/test/unit_test.hpp>
+#include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
 #include "../src/WorkflowHelpers.h"
-#include "../src/DeviceSpecHelpers.h"
-#include <boost/test/unit_test.hpp>
-
+#include "Framework/DeviceSpec.h"
+#include "Framework/WorkflowSpec.h"
+#include "test_HelperMacros.h"
 
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing1() {
-  return {
-    {
-      "A",
-      Inputs{},
-      Outputs{
-        OutputSpec{"TST", "A1", OutputSpec::Timeframe},
-        OutputSpec{"TST", "A2", OutputSpec::Timeframe}
-      }
-    },
-    {
-      "B",
-      Inputs{InputSpec{"a", "TST", "A1", InputSpec::Timeframe}},
-    }
-  };
+WorkflowSpec defineDataProcessing1()
+{
+  return { { "A", Inputs{},
+             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
+                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+           {
+             "B",
+             Inputs{ InputSpec{ "a", "TST", "A1", InputSpec::Timeframe } },
+           } };
 }
 
-
-BOOST_AUTO_TEST_CASE(TestDeviceSpec1) {
+BOOST_AUTO_TEST_CASE(TestDeviceSpec1)
+{
   auto workflow = defineDataProcessing1();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
@@ -66,14 +59,15 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1) {
 }
 
 // Same as before, but using PUSH/PULL as policy
-BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull) {
+BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull)
+{
   auto workflow = defineDataProcessing1();
   ChannelConfigurationPolicy pushPullPolicy;
   pushPullPolicy.match = ChannelConfigurationPolicyHelpers::matchAny;
   pushPullPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput;
   pushPullPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput;
 
-  std::vector<ChannelConfigurationPolicy> channelPolicies = {pushPullPolicy};
+  std::vector<ChannelConfigurationPolicy> channelPolicies = { pushPullPolicy };
 
   BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
   std::vector<DeviceSpec> devices;
@@ -98,27 +92,22 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull) {
 
 // This should still define only one channel, since there is only
 // two devices to connect
-WorkflowSpec defineDataProcessing2() {
-  return {
-    {
-      "A",
-      Inputs{},
-      Outputs{
-        OutputSpec{"TST", "A1", OutputSpec::Timeframe},
-        OutputSpec{"TST", "A2", OutputSpec::Timeframe}
-      }
-    },
-    {
-      "B",
-      Inputs{
-        InputSpec{"a", "TST", "A1", InputSpec::Timeframe},
-        InputSpec{"b", "TST", "A2", InputSpec::Timeframe},
-      },
-    }
-  };
+WorkflowSpec defineDataProcessing2()
+{
+  return { { "A", Inputs{},
+             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
+                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+           {
+             "B",
+             Inputs{
+               InputSpec{ "a", "TST", "A1", InputSpec::Timeframe },
+               InputSpec{ "b", "TST", "A2", InputSpec::Timeframe },
+             },
+           } };
 }
 
-BOOST_AUTO_TEST_CASE(TestDeviceSpec2) {
+BOOST_AUTO_TEST_CASE(TestDeviceSpec2)
+{
   auto workflow = defineDataProcessing2();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
@@ -138,35 +127,26 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec2) {
   BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
 }
 
-
 // This should still define only one channel, since there is only
 // two devices to connect
-WorkflowSpec defineDataProcessing3() {
-  return {
-    {
-      "A",
-      Inputs{},
-      Outputs{
-        OutputSpec{"TST", "A1", OutputSpec::Timeframe},
-        OutputSpec{"TST", "A2", OutputSpec::Timeframe}
-      }
-    },
-    {
-      "B",
-      Inputs{
-        InputSpec{"a", "TST", "A1", InputSpec::Timeframe},
-      },
-    },
-    {
-      "C",
-      Inputs{
-        InputSpec{"a", "TST", "A2", InputSpec::Timeframe},
-      }
-    }
-  };
+WorkflowSpec defineDataProcessing3()
+{
+  return { { "A", Inputs{},
+             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
+                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+           {
+             "B",
+             Inputs{
+               InputSpec{ "a", "TST", "A1", InputSpec::Timeframe },
+             },
+           },
+           { "C", Inputs{
+                    InputSpec{ "a", "TST", "A2", InputSpec::Timeframe },
+                  } } };
 }
 
-BOOST_AUTO_TEST_CASE(TestDeviceSpec3) {
+BOOST_AUTO_TEST_CASE(TestDeviceSpec3)
+{
   auto workflow = defineDataProcessing3();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
@@ -197,45 +177,21 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec3) {
 }
 
 // Diamond shape.
-WorkflowSpec defineDataProcessing4() {
-  return {
-    {
-      "A",
-      Inputs{},
-      Outputs{
-        OutputSpec{"TST", "A1", OutputSpec::Timeframe},
-        OutputSpec{"TST", "A2", OutputSpec::Timeframe}
-      }
-    },
-    {
-      "B",
-      Inputs{
-        InputSpec{"input", "TST", "A1", InputSpec::Timeframe}
-      },
-      Outputs{
-        OutputSpec{"TST", "B1", OutputSpec::Timeframe}
-      }
-    },
-    {
-      "C",
-      Inputs{
-        InputSpec{"input", "TST", "A2", InputSpec::Timeframe}
-      },
-      Outputs{
-        OutputSpec{"TST", "C1", OutputSpec::Timeframe}
-      }
-    },
-    {
-      "D",
-      Inputs{
-        InputSpec{"a", "TST", "B1", InputSpec::Timeframe},
-        InputSpec{"b", "TST", "C1", InputSpec::Timeframe}
-      }
-    }
-  };
+WorkflowSpec defineDataProcessing4()
+{
+  return { { "A", Inputs{},
+             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
+                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+           { "B", Inputs{ InputSpec{ "input", "TST", "A1", InputSpec::Timeframe } },
+             Outputs{ OutputSpec{ "TST", "B1", OutputSpec::Timeframe } } },
+           { "C", Inputs{ InputSpec{ "input", "TST", "A2", InputSpec::Timeframe } },
+             Outputs{ OutputSpec{ "TST", "C1", OutputSpec::Timeframe } } },
+           { "D", Inputs{ InputSpec{ "a", "TST", "B1", InputSpec::Timeframe },
+                          InputSpec{ "b", "TST", "C1", InputSpec::Timeframe } } } };
 }
 
-BOOST_AUTO_TEST_CASE(TestDeviceSpec4) {
+BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
+{
   auto workflow = defineDataProcessing4();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
@@ -287,31 +243,21 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec4) {
 
 // This defines two consumers for the sameproduct, therefore we
 // need to forward (assuming we are in shared memory).
-WorkflowSpec defineDataProcessing5() {
-  return {
-    {
-      "A",
-      Inputs{},
-      Outputs{
-        OutputSpec{"TST", "A1", OutputSpec::Timeframe}
-      }
-    },
-    {
-      "B",
-      Inputs{
-        InputSpec{"x", "TST", "A1", InputSpec::Timeframe}
-      },
-    },
-    {
-      "C",
-      Inputs{
-        InputSpec{"y", "TST", "A1", InputSpec::Timeframe}
-      },
-    }
-  };
+WorkflowSpec defineDataProcessing5()
+{
+  return { { "A", Inputs{}, Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe } } },
+           {
+             "B",
+             Inputs{ InputSpec{ "x", "TST", "A1", InputSpec::Timeframe } },
+           },
+           {
+             "C",
+             Inputs{ InputSpec{ "y", "TST", "A1", InputSpec::Timeframe } },
+           } };
 }
 
-BOOST_AUTO_TEST_CASE(TestTopologyForwarding) {
+BOOST_AUTO_TEST_CASE(TestTopologyForwarding)
+{
   auto workflow = defineDataProcessing5();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
@@ -361,57 +307,32 @@ BOOST_AUTO_TEST_CASE(TestTopologyForwarding) {
 
 // This defines two consumers for the sameproduct, therefore we
 // need to forward (assuming we are in shared memory).
-WorkflowSpec defineDataProcessing6() {
-  return {
-    {
-      "A",
-      Inputs{},
-      Outputs{
-        OutputSpec{"TST", "A1", OutputSpec::Timeframe}
-      }
-    },
-    timePipeline({
-      "B",
-      Inputs{
-        InputSpec{"a", "TST", "A1", InputSpec::Timeframe}
-      }
-    }, 2)
-  };
+WorkflowSpec defineDataProcessing6()
+{
+  return { { "A", Inputs{}, Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe } } },
+           timePipeline({ "B", Inputs{ InputSpec{ "a", "TST", "A1", InputSpec::Timeframe } } }, 2) };
 }
 
-// This is three explicit layers, last two with 
+// This is three explicit layers, last two with
 // multiple (non commensurable) timeslice setups.
-WorkflowSpec defineDataProcessing7() {
-  return {
-    {
-      "A",
-      Inputs{},
-      {
-        OutputSpec{"TST", "A", OutputSpec::Timeframe}
-      }
-    },
-    timePipeline({
-      "B",
-      Inputs{
-        InputSpec{"x", "TST", "A", InputSpec::Timeframe}
-      },
-      Outputs{
-        OutputSpec{"TST", "B", OutputSpec::Timeframe}
-      },
-    }, 3),
-    timePipeline({
-      "C",
-      Inputs{
-        InputSpec{"x", "TST", "B", InputSpec::Timeframe}
-      }
-    }, 2)
-  };
+WorkflowSpec defineDataProcessing7()
+{
+  return { { "A", Inputs{}, { OutputSpec{ "TST", "A", OutputSpec::Timeframe } } },
+           timePipeline(
+             {
+               "B",
+               Inputs{ InputSpec{ "x", "TST", "A", InputSpec::Timeframe } },
+               Outputs{ OutputSpec{ "TST", "B", OutputSpec::Timeframe } },
+             },
+             3),
+           timePipeline({ "C", Inputs{ InputSpec{ "x", "TST", "B", InputSpec::Timeframe } } }, 2) };
 }
 
-BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers) {
+BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
+{
   // Logical edges for:
   //    b0---\
-  //   /  \___c0  
+  //   /  \___c0
   //  /   /\ /
   // a--b1  X
   //  \   \/_\c1
@@ -423,75 +344,42 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers) {
   std::vector<DeviceConnectionId> connections;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
-  std::vector<OutputSpec> globalOutputs = {
-    OutputSpec{"TST", "A", OutputSpec::Timeframe},
-    OutputSpec{"TST", "B", OutputSpec::Timeframe}
-  };
+  std::vector<OutputSpec> globalOutputs = { OutputSpec{ "TST", "A", OutputSpec::Timeframe },
+                                            OutputSpec{ "TST", "B", OutputSpec::Timeframe } };
 
   unsigned short nextPort = 22000;
-  std::vector<size_t> edgeOutIndex {
-    0,1,2,3,6,4,7,5,8
-  };
-  std::vector<DeviceConnectionEdge> logicalEdges =
-  {
-    {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
-    {0, 1, 1, 0, 0, 0, false, ConnectionKind::Out},
-    {0, 1, 2, 0, 0, 0, false, ConnectionKind::Out},
-    {1, 2, 0, 0, 1, 0, false, ConnectionKind::Out},
-    {1, 2, 0, 1, 1, 0, false, ConnectionKind::Out},
-    {1, 2, 0, 2, 1, 0, false, ConnectionKind::Out},
-    {1, 2, 1, 0, 1, 0, false, ConnectionKind::Out},
-    {1, 2, 1, 1, 1, 0, false, ConnectionKind::Out},
-    {1, 2, 1, 2, 1, 0, false, ConnectionKind::Out},
+  std::vector<size_t> edgeOutIndex{ 0, 1, 2, 3, 6, 4, 7, 5, 8 };
+  std::vector<DeviceConnectionEdge> logicalEdges = {
+    { 0, 1, 0, 0, 0, 0, false, ConnectionKind::Out }, { 0, 1, 1, 0, 0, 0, false, ConnectionKind::Out },
+    { 0, 1, 2, 0, 0, 0, false, ConnectionKind::Out }, { 1, 2, 0, 0, 1, 0, false, ConnectionKind::Out },
+    { 1, 2, 0, 1, 1, 0, false, ConnectionKind::Out }, { 1, 2, 0, 2, 1, 0, false, ConnectionKind::Out },
+    { 1, 2, 1, 0, 1, 0, false, ConnectionKind::Out }, { 1, 2, 1, 1, 1, 0, false, ConnectionKind::Out },
+    { 1, 2, 1, 2, 1, 0, false, ConnectionKind::Out },
   };
 
-  std::vector<EdgeAction> actions {
-    EdgeAction{true, true},
-    EdgeAction{false, true},
-    EdgeAction{false, true},
-    EdgeAction{true, true},
-    EdgeAction{true, true},
-    EdgeAction{true, true},
-    EdgeAction{false, true},
-    EdgeAction{false, true},
-    EdgeAction{false, true},
+  std::vector<EdgeAction> actions{
+    EdgeAction{ true, true },  EdgeAction{ false, true }, EdgeAction{ false, true },
+    EdgeAction{ true, true },  EdgeAction{ true, true },  EdgeAction{ true, true },
+    EdgeAction{ false, true }, EdgeAction{ false, true }, EdgeAction{ false, true },
   };
 
   WorkflowSpec workflow = defineDataProcessing7();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
 
-  DeviceSpecHelpers::processOutEdgeActions(
-      devices,
-      deviceIndex,
-      connections,
-      nextPort,
-      edgeOutIndex,
-      logicalEdges,
-      actions,
-      workflow,
-      globalOutputs,
-      channelPolicies);
+  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, nextPort, edgeOutIndex, logicalEdges,
+                                           actions, workflow, globalOutputs, channelPolicies);
 
-  std::vector<DeviceId> expectedDeviceIndex = {
-    {0,0,0},
-    {0,0,0},
-    {0,0,0},
-    {1,0,1},
-    {1,0,1},
-    {1,1,2},
-    {1,1,2},
-    {1,2,3},
-    {1,2,3}
-  };
+  std::vector<DeviceId> expectedDeviceIndex = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 1, 0, 1 }, { 1, 0, 1 },
+                                                { 1, 1, 2 }, { 1, 1, 2 }, { 1, 2, 3 }, { 1, 2, 3 } };
   BOOST_REQUIRE_EQUAL(devices.size(), 4); // For producers
   BOOST_REQUIRE_EQUAL(expectedDeviceIndex.size(), deviceIndex.size());
 
   for (size_t i = 0; i < expectedDeviceIndex.size(); ++i) {
-    DeviceId &expected = expectedDeviceIndex[i];
-    DeviceId &actual = deviceIndex[i];
+    DeviceId& expected = expectedDeviceIndex[i];
+    DeviceId& actual = deviceIndex[i];
     BOOST_CHECK_EQUAL_MESSAGE(expected.processorIndex, actual.processorIndex, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.timeslice,  actual.timeslice, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.deviceIndex, actual.deviceIndex,i );
+    BOOST_CHECK_EQUAL_MESSAGE(expected.timeslice, actual.timeslice, i);
+    BOOST_CHECK_EQUAL_MESSAGE(expected.deviceIndex, actual.deviceIndex, i);
   }
 
   // Check that all the required channels are there.
@@ -510,66 +398,36 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers) {
   BOOST_CHECK_EQUAL(nextPort, 22009);
 
   // Not sure this is correct, but lets assume that's the case..
-  std::vector<size_t> edgeInIndex {
-    0,1,2,3,4,5,6,7,8
-  };
+  std::vector<size_t> edgeInIndex{ 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 
-  std::vector<EdgeAction> inActions {
-    EdgeAction{true, true},
-    EdgeAction{true, true},
-    EdgeAction{true, true},
-    EdgeAction{true, true},
-    EdgeAction{false, true},
-    EdgeAction{false, true},
-    EdgeAction{true, true},
-    EdgeAction{false, true},
-    EdgeAction{false, true},
+  std::vector<EdgeAction> inActions{
+    EdgeAction{ true, true }, EdgeAction{ true, true },  EdgeAction{ true, true },
+    EdgeAction{ true, true }, EdgeAction{ false, true }, EdgeAction{ false, true },
+    EdgeAction{ true, true }, EdgeAction{ false, true }, EdgeAction{ false, true },
   };
 
   std::sort(connections.begin(), connections.end());
 
-  DeviceSpecHelpers::processInEdgeActions(
-    devices,
-    deviceIndex,
-    nextPort,
-    connections,
-    edgeInIndex,
-    logicalEdges,
-    inActions,
-    workflow,
-    availableForwardsInfo,
-    channelPolicies
-  );
-  // 
-  std::vector<DeviceId> expectedDeviceIndexFinal = {
-    {0,0,0},
-    {0,0,0},
-    {0,0,0},
-    {1,0,1},
-    {1,0,1},
-    {1,1,2},
-    {1,1,2},
-    {1,2,3},
-    {1,2,3},
-    {2,0,4},
-    {2,1,5}
-  };
+  DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, nextPort, connections, edgeInIndex, logicalEdges,
+                                          inActions, workflow, availableForwardsInfo, channelPolicies);
+  //
+  std::vector<DeviceId> expectedDeviceIndexFinal = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 1, 0, 1 },
+                                                     { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 2 }, { 1, 2, 3 },
+                                                     { 1, 2, 3 }, { 2, 0, 4 }, { 2, 1, 5 } };
   BOOST_REQUIRE_EQUAL(expectedDeviceIndexFinal.size(), deviceIndex.size());
 
   for (size_t i = 0; i < expectedDeviceIndexFinal.size(); ++i) {
-    DeviceId &expected = expectedDeviceIndexFinal[i];
-    DeviceId &actual = deviceIndex[i];
+    DeviceId& expected = expectedDeviceIndexFinal[i];
+    DeviceId& actual = deviceIndex[i];
     BOOST_CHECK_EQUAL_MESSAGE(expected.processorIndex, actual.processorIndex, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.timeslice,  actual.timeslice, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.deviceIndex, actual.deviceIndex,i );
+    BOOST_CHECK_EQUAL_MESSAGE(expected.timeslice, actual.timeslice, i);
+    BOOST_CHECK_EQUAL_MESSAGE(expected.deviceIndex, actual.deviceIndex, i);
   }
 
   // Iterating over the in edges should have created the final 2
   // devices.
   BOOST_CHECK_EQUAL(devices.size(), 6);
-  std::vector<std::string> expectedDeviceNames = {
-    "A", "B_t0", "B_t1", "B_t2", "C_t0", "C_t1"
-  };
+  std::vector<std::string> expectedDeviceNames = { "A", "B_t0", "B_t1", "B_t2", "C_t0", "C_t1" };
 
   for (size_t i = 0; i < devices.size(); ++i) {
     BOOST_CHECK_EQUAL(devices[i].id, expectedDeviceNames[i]);
@@ -594,31 +452,30 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers) {
   // Check that the output specs and the timeframe ids are correct
   std::vector<std::vector<OutputRoute>> expectedRoutes = {
     {
-      OutputRoute{0, 3, globalOutputs[0], "from_A_to_B_t0"},
-      OutputRoute{1, 3, globalOutputs[0], "from_A_to_B_t1"},
-      OutputRoute{2, 3, globalOutputs[0], "from_A_to_B_t2"},
+      OutputRoute{ 0, 3, globalOutputs[0], "from_A_to_B_t0" },
+      OutputRoute{ 1, 3, globalOutputs[0], "from_A_to_B_t1" },
+      OutputRoute{ 2, 3, globalOutputs[0], "from_A_to_B_t2" },
     },
     {
-      OutputRoute{0, 2, globalOutputs[1], "from_B_t0_to_C_t0"},
-      OutputRoute{1, 2, globalOutputs[1], "from_B_t0_to_C_t1"},
+      OutputRoute{ 0, 2, globalOutputs[1], "from_B_t0_to_C_t0" },
+      OutputRoute{ 1, 2, globalOutputs[1], "from_B_t0_to_C_t1" },
     },
     {
-      OutputRoute{0, 2, globalOutputs[1], "from_B_t1_to_C_t0"},
-      OutputRoute{1, 2, globalOutputs[1], "from_B_t1_to_C_t1"},
+      OutputRoute{ 0, 2, globalOutputs[1], "from_B_t1_to_C_t0" },
+      OutputRoute{ 1, 2, globalOutputs[1], "from_B_t1_to_C_t1" },
     },
     {
-      OutputRoute{0, 2, globalOutputs[1], "from_B_t2_to_C_t0"},
-      OutputRoute{1, 2, globalOutputs[1], "from_B_t2_to_C_t1"},
+      OutputRoute{ 0, 2, globalOutputs[1], "from_B_t2_to_C_t0" },
+      OutputRoute{ 1, 2, globalOutputs[1], "from_B_t2_to_C_t1" },
     },
   };
 
   for (size_t di = 0; di < expectedRoutes.size(); di++) {
-    auto &routes = expectedRoutes[di];
-    auto &device = devices[di];
+    auto& routes = expectedRoutes[di];
+    auto& device = devices[di];
     for (size_t ri = 0; ri < device.outputs.size(); ri++) {
       // FIXME: check that the matchers are the same
-      BOOST_CHECK_EQUAL(std::string(device.outputs[ri].matcher.origin.str),
-                        std::string(routes[ri].matcher.origin.str));
+      BOOST_CHECK_EQUAL(std::string(device.outputs[ri].matcher.origin.str), std::string(routes[ri].matcher.origin.str));
       BOOST_CHECK_EQUAL(device.outputs[ri].channel, routes[ri].channel);
       BOOST_CHECK_EQUAL(device.outputs[ri].timeslice, routes[ri].timeslice);
     }
@@ -653,7 +510,8 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers) {
   BOOST_CHECK_EQUAL(devices[5].inputs[2].sourceChannel, "from_B_t2_to_C_t1");
 }
 
-BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline) {
+BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline)
+{
   auto workflow = defineDataProcessing7();
   std::vector<DeviceSpec> devices;
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
@@ -756,4 +614,3 @@ BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline) {
   BOOST_CHECK_EQUAL(devices[5].inputChannels[2].port, 22008);
   BOOST_REQUIRE_EQUAL(devices[5].outputChannels.size(), 0);
 }
-
