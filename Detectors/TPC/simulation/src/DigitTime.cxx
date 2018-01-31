@@ -13,31 +13,28 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitTime.h"
-#include "TPCSimulation/DigitRow.h"
-#include "TPCBase/Mapper.h"
 
 using namespace o2::TPC;
 
-void DigitTime::setDigit(size_t hitID, int cru, int row, int pad, float charge)
+void DigitTime::setDigit(size_t eventID, size_t hitID, const CRU &cru, GlobalPadNumber globalPad, float charge)
 {
-  /// Check whether the container at this spot already contains an entry
-  DigitRow *result = mRows[row].get();
-  if(result != nullptr) {
-    mRows[row]->setDigit(hitID, pad, charge);
-  }
-  else{
-    const Mapper& mapper = Mapper::instance();
-    mRows[row] = std::make_unique<DigitRow> (row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row));
-    mRows[row]->setDigit(hitID, pad, charge);
-  }
-  mTotalChargeTimeBin+=charge;
+  mGlobalPads[globalPad].setDigit(eventID, hitID, charge);
+  const int gemStack = static_cast<int>(cru.gemStack());
+  mCommonMode[gemStack] += charge;
 }
 
-void DigitTime::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-                                    std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, float commonMode)
+void DigitTime::fillOutputContainer(std::vector<Digit> *output, dataformats::MCTruthContainer<MCCompLabel> &mcTruth,
+                                    std::vector<DigitMCMetaData> *debug, Sector sector, TimeBin timeBin)
 {
-  for(auto &aRow : mRows) {
-    if(aRow == nullptr) continue;
-    aRow->fillOutputContainer(output, mcTruth, debug, cru, timeBin, aRow->getRow(), commonMode);
+  const static Mapper &mapper = Mapper::instance();
+  GlobalPadNumber currentPad = 0;
+  for(auto &globalPad : mGlobalPads) {
+    /// Only actual signals are written to disk
+    if(globalPad.getChargePad() >0 ) {
+      /// \todo Obtain CRU from globalPadPos and Sector
+      const int cru = sector.getSector();
+      globalPad.fillOutputContainer(output, mcTruth, debug, cru, timeBin, currentPad, getCommonMode(cru));
+    }
+    ++currentPad;
   }
 }

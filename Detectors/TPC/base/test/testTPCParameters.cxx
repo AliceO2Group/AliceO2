@@ -54,7 +54,7 @@ namespace TPC {
     BOOST_CHECK_CLOSE(eleParam.getChipGain(), 20, 1e-3);
     BOOST_CHECK_CLOSE(eleParam.getADCDynamicRange(), 2200, 1e-3);
     BOOST_CHECK_CLOSE(eleParam.getADCSaturation(), 1024, 1e-3);
-    BOOST_CHECK_CLOSE(eleParam.getZBinWidth(), 0.19379844961f, 1e-3);
+    BOOST_CHECK_CLOSE(eleParam.getZBinWidth(), 0.2f, 1e-3);
     BOOST_CHECK_CLOSE(eleParam.getElectronCharge(), 1.602e-19, 1e-3);
   }
 

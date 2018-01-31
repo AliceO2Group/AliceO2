@@ -20,6 +20,13 @@
 namespace o2 {
 namespace TPC {
 
+enum class DigitzationMode : char {
+    FullMode = 0,               ///< Apply noise, pedestal and saturation
+    SubtractPedestal = 1,       ///< Apply noise, pedestal and saturation and then from that subtract the pedestal
+    NoSaturation = 2,           ///< Apply only noise and pedestal
+    PropagateADC = 3            ///< Just propagate the bare ADC value
+};
+
 /// \class ParameterElectronics
 
 class ParameterElectronics{
@@ -67,6 +74,10 @@ class ParameterElectronics{
     /// \param qel Electron charge [C]
     void setElectronCharge(float qel) { mElectronCharge = qel; }
 
+    /// Set digitization mode
+    /// \param mode Digitization mode
+    void setDigitizationMode(DigitzationMode mode) { mDigitizationMode = mode; }
+
 
     /// Get number of ADC samples which are taken into account for a given, shaped signal
     /// \return Number of shaped ADC samples
@@ -96,6 +107,10 @@ class ParameterElectronics{
     /// \return Electron charge [C]
     float getElectronCharge() const { return mElectronCharge; }
 
+    /// Get digitization mode
+    /// \return Digitization mode
+    DigitzationMode getDigitizationMode() const { return mDigitizationMode; }
+
 
   private:
 
@@ -106,6 +121,7 @@ class ParameterElectronics{
     float mADCsaturation;                  ///< ADC saturation [ADC counts]
     float mZbinWidth;                      ///< Width of a z bin [us]
     float mElectronCharge;                 ///< Electron charge [C]
+    DigitzationMode mDigitizationMode;     ///< Digitization mode [full / ... ]
   };
 
 }

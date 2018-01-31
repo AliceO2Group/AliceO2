@@ -42,6 +42,10 @@ class Digit : public DigitBase {
     /// Destructor
     ~Digit() = default;
 
+    // Add charge to an existing digit
+    /// \param charge Charge to be added to the digit
+    void addCharge(float charge) { mCharge += charge; }
+
     /// Get the accumulated charged of the Digit in ADC counts.
     /// The conversion is such that the decimals are simply stripped
     /// \return charge of the Digit

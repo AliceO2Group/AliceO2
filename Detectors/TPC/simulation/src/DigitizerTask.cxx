@@ -19,6 +19,7 @@
 #include "TPCSimulation/DigitizerTask.h"
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/Digitizer.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCSimulation/Point.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Digit.h"
@@ -57,6 +58,7 @@ DigitizerTask::~DigitizerTask()
   delete mDigitizer;
   delete mDigitsArray;
   delete mDigitsDebugArray;
+  delete mMCTruthArray;
 
   //CALLGRIND_STOP_INSTRUMENTATION;
   //CALLGRIND_DUMP_STATS;
@@ -88,7 +90,7 @@ InitStatus DigitizerTask::Init()
       mSectorHitsArray[s] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
     }
   }
-  
+
   // Register output container
   mDigitsArray = new std::vector<o2::TPC::Digit>;
   mgr->RegisterAny("TPCDigit", mDigitsArray, kTRUE);
@@ -118,7 +120,7 @@ void DigitizerTask::Exec(Option_t *option)
     eventTime = mEventTimes[mCurrentEvent++];
     LOG(DEBUG) << "Event time taken from bunch simulation";
   }
-  const int eventTimeBin = Digitizer::getTimeBinFromTime(eventTime);
+  const int eventTimeBin = SAMPAProcessing::getTimeBinFromTime(eventTime);
 
   LOG(DEBUG) << "Running digitization on new event at time " << eventTime << " us in time bin " << eventTimeBin << FairLogger::endl;
   mDigitsArray->clear();
@@ -131,14 +133,15 @@ void DigitizerTask::Exec(Option_t *option)
     // treat all sectors
     for (int s=0; s<Sector::MAXSECTOR; ++s){
       LOG(DEBUG) << "Processing sector " << s << "\n";
-      mDigitContainer = mDigitizer->Process(*mSectorHitsArray[s], eventTime);
+      mDigitContainer = mDigitizer->Process(s, *mSectorHitsArray[s], mgr->GetEntryNr(), eventTime);
+      mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin, mIsContinuousReadout);
     }
   }
   else {
     // treat only chosen sector
-    mDigitContainer = mDigitizer->Process(*mSectorHitsArray[mHitSector], eventTime);
+    mDigitContainer = mDigitizer->Process(mHitSector, *mSectorHitsArray[mHitSector], mgr->GetEntryNr(), eventTime);
+    mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout, true);
   }
-  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin, mIsContinuousReadout);
 }
 
 void DigitizerTask::FinishTask()
@@ -151,7 +154,8 @@ void DigitizerTask::FinishTask()
   if(mDigitDebugOutput) {
     mDigitsDebugArray->clear();
   }
-  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout, true);
+
 }
 
 void DigitizerTask::initBunchTrainStructure(const size_t numberOfEvents)

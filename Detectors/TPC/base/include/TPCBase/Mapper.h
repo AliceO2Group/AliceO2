@@ -268,12 +268,12 @@ public:
 
   static constexpr unsigned short getNumberOfIROCs() { return 36; }
   static constexpr unsigned short getNumberOfOROCs() { return 36; }
-  static unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
-  static unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
-  static unsigned short getPadsInOROC2 () { return mPadsInOROC2 ; }
-  static unsigned short getPadsInOROC3 () { return mPadsInOROC3 ; }
-  static unsigned short getPadsInOROC  () { return mPadsInOROC  ; }
-  static unsigned short getPadsInSector() { return mPadsInSector; }
+  static constexpr unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
+  static constexpr unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
+  static constexpr unsigned short getPadsInOROC2 () { return mPadsInOROC2 ; }
+  static constexpr unsigned short getPadsInOROC3 () { return mPadsInOROC3 ; }
+  static constexpr unsigned short getPadsInOROC  () { return mPadsInOROC  ; }
+  static constexpr unsigned short getPadsInSector() { return mPadsInSector; }
 
   unsigned short getNumberOfPads(const GEMstack gemStack) const {
     switch (gemStack) {
