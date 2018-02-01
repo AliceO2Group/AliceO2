@@ -101,7 +101,7 @@ class Cluster : public o2::BaseCluster<float>
   int getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
   int getPatternColSpan() const { return mPatternNCols & kSpanMask; }
   bool isPatternRowsTruncated() const { return mPatternNRows & kTruncateMask; }
-  bool isPatternColsTruncated() const { return mPatternNRows & kTruncateMask; }
+  bool isPatternColsTruncated() const { return mPatternNCols & kTruncateMask; }
   bool isPatternTruncated() const { return isPatternRowsTruncated() || isPatternColsTruncated(); }
   void setPatternRowSpan(UShort_t nr, bool truncated);
   void setPatternColSpan(UShort_t nc, bool truncated);
@@ -110,11 +110,7 @@ class Cluster : public o2::BaseCluster<float>
   void resetPattern();
   bool testPixel(UShort_t row, UShort_t col) const;
   void setPixel(UShort_t row, UShort_t col, bool fired = kTRUE);
-  void getPattern(UChar_t patt[kMaxPatternBytes])
-  {
-    for (int i = kMaxPatternBytes; i--;)
-      patt[i] = mPattern[i];
-  }
+  void getPattern(void* destination, int nbytes) const { memcpy(destination, mPattern, nbytes); }
   int getPatternRowMin() const { return mPatternRowMin; }
   int getPatternColMin() const { return mPatternColMin; }
 #endif
@@ -159,7 +155,7 @@ inline void Cluster::setClusterUsage(Int_t n)
   if (!n)
     resetBit(kUsed);
 }
-}
-}
+} // namespace ITSMFT
+} // namespace o2
 
 #endif /* ALICEO2_ITSMFT_CLUSTER_H */

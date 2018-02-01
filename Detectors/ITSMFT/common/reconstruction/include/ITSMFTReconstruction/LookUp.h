@@ -1,0 +1,48 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file LookUp.h
+/// \brief Definition of the LookUp class.
+///
+/// \author Luca Barioglio, University and INFN of Torino
+///
+/// Short LookUp descritpion
+///
+/// This class is for the association of the cluster topology with the corresponding
+/// entry in the dictionary
+///
+
+#ifndef ALICEO2_ITSMFT_LOOKUP_H
+#define ALICEO2_ITSMFT_LOOKUP_H
+#include <array>
+#include "ITSMFTReconstruction/ClusterTopology.h"
+#include "ITSMFTReconstruction/TopologyDictionary.h"
+
+namespace o2
+{
+namespace ITSMFT
+{
+class LookUp
+{
+ public:
+  LookUp(std::string fileName);
+  int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed);
+  int getTopologiesOverThreshold() { return mTopologiesOverThreshold; }
+
+ private:
+  TopologyDictionary mDictionary;
+  int mTopologiesOverThreshold;
+
+  ClassDefNV(LookUp, 1);
+};
+} // namespace ITSMFT
+} // namespace o2
+
+#endif

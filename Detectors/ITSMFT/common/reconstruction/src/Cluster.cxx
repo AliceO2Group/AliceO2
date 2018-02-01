@@ -24,8 +24,8 @@ using namespace o2::ITSMFT;
 ClassImp(o2::ITSMFT::Cluster)
 
 #ifdef _ClusterTopology_
-//______________________________________________________________________________
-void Cluster::resetPattern()
+  //______________________________________________________________________________
+  void Cluster::resetPattern()
 {
   // reset pixels pattern
   memset(mPattern, 0, kMaxPatternBytes * sizeof(UChar_t));
@@ -105,22 +105,24 @@ Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
 void Cluster::print() const
 {
   // print itself
-  printf("Sensor %5d, nRow:%3d nCol:%3d n:%d |Err^2:%.3e %.3e %+.3e |",getSensorID(),getNx(),getNz(),
-         getNPix(),getSigmaY2(),getSigmaZ2(),getSigmaYZ());
-  printf("XYZ: %+.4e %+.4e %+.4e\n",getX(),getY(),getZ());
+  printf("Sensor %5d, nRow:%3d nCol:%3d n:%d |Err^2:%.3e %.3e %+.3e |", getSensorID(), getNx(), getNz(), getNPix(),
+         getSigmaY2(), getSigmaZ2(), getSigmaYZ());
+  printf("XYZ: %+.4e %+.4e %+.4e\n", getX(), getY(), getZ());
   //
- #ifdef _ClusterTopology_
+#ifdef _ClusterTopology_
   int nr = getPatternRowSpan();
   int nc = getPatternColSpan();
-  printf("Pattern: %d rows from %d",nr,mPatternRowMin);
-  if (isPatternRowsTruncated()) printf("(truncated)");
-  printf(", %d cols from %d",nc,mPatternColMin);
-  if (isPatternColsTruncated()) printf("(truncated)");
+  printf("Pattern: %d rows from %d", nr, mPatternRowMin);
+  if (isPatternRowsTruncated())
+    printf("(truncated)");
+  printf(", %d cols from %d", nc, mPatternColMin);
+  if (isPatternColsTruncated())
+    printf("(truncated)");
   printf("\n");
-  for (int ir=0;ir<nr;ir++) {
-    for (int ic=0;ic<nc;ic++) printf("%c",testPixel(ir,ic) ? '+':'-');
+  for (int ir = 0; ir < nr; ir++) {
+    for (int ic = 0; ic < nc; ic++)
+      printf("%c", testPixel(ir, ic) ? '+' : '-');
     printf("\n");
   }
 #endif
-
 }

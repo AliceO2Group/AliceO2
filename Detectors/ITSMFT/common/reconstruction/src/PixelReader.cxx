@@ -17,7 +17,7 @@ using namespace o2::ITSMFT;
 using o2::ITSMFT::Digit;
 
 //______________________________________________________________________________
-Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData &chipData)
+Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData& chipData)
 {
   chipData.clear();
   if (!mLastDigit) {
@@ -26,25 +26,24 @@ Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData &chipData)
     }
     mLastDigit = &((*mDigitArray)[mIdx++]);
   }
-  chipData.chipID  = mLastDigit->getChipIndex();
+  chipData.chipID = mLastDigit->getChipIndex();
   chipData.roFrame = mLastDigit->getROFrame();
   chipData.timeStamp =
     mLastDigit->getTimeStamp(); // time difference within the same TFrame does not matter, take 1st one
   chipData.pixels.emplace_back(mLastDigit);
   mLastDigit = nullptr;
-  
+
   while (mIdx < mDigitArray->size()) {
     mLastDigit = &((*mDigitArray)[mIdx++]);
-    if (chipData.chipID  != mLastDigit->getChipIndex()) break;
-    if (chipData.roFrame != mLastDigit->getROFrame()) break;
+    if (chipData.chipID != mLastDigit->getChipIndex())
+      break;
+    if (chipData.roFrame != mLastDigit->getROFrame())
+      break;
     chipData.pixels.emplace_back(mLastDigit);
     mLastDigit = nullptr;
   }
   return kTRUE;
 }
-  
+
 //______________________________________________________________________________
-Bool_t RawPixelReader::getNextChipData(PixelReader::ChipPixelData &chipData)
-{
-  return kTRUE;
-}
+Bool_t RawPixelReader::getNextChipData(PixelReader::ChipPixelData& chipData) { return kTRUE; }

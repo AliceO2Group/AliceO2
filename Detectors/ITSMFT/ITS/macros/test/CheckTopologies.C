@@ -2,32 +2,39 @@
 /// \brief Simple macro to check ITSU clusters
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <TAxis.h>
 #include <TCanvas.h>
 #include <TFile.h>
+#include <TH1F.h>
 #include <TH2F.h>
 #include <TNtuple.h>
 #include <TString.h>
+#include <TStyle.h>
 #include <TTree.h>
+#include <fstream>
+#include <string>
 
+#include "DetectorsBase/Utils.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "ITSMFTReconstruction/Cluster.h"
+#include "ITSMFTReconstruction/ClusterTopology.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Cartesian3D.h"
-#include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+
 #endif
 
-void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void CheckTopologies(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   using namespace o2::Base;
   using namespace o2::ITS;
 
+  using o2::ITSMFT::BuildTopologyDictionary;
   using o2::ITSMFT::Cluster;
+  using o2::ITSMFT::ClusterTopology;
   using o2::ITSMFT::Hit;
-
-  TFile* f = TFile::Open("CheckClusters.root", "recreate");
-  TNtuple* nt = new TNtuple("ntc", "cluster ntuple", "x:y:z:dx:dz:lab:rof:ev:hlx:hlz:clx:clz");
 
   char filename[100];
 
@@ -67,6 +74,12 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   Int_t nevH = hitTree->GetEntries();   // hits are stored as one event per entry
   int ievC = 0, ievH = 0;
   int lastReadHitEv = -1;
+
+  // Topologies dictionaries: 1) all clusters 2) signal clusters only 3) noise clusters only
+  BuildTopologyDictionary completeDictionary;
+  BuildTopologyDictionary signalDictionary;
+  BuildTopologyDictionary noiseDictionary;
+
   for (ievC = 0; ievC < nevCl; ievC++) {
     clusTree->GetEvent(ievC);
     Int_t nc = clusArr->size();
@@ -79,6 +92,15 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
       const auto locC = c.getXYZLoc(*gman);    // convert from tracking to local frame
       const auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
       auto lab = (clusLabArr->getLabels(nc))[0];
+
+      int rowSpan = c.getPatternRowSpan();
+      int columnSpan = c.getPatternColSpan();
+      int nBytes = (rowSpan * columnSpan) >> 3;
+      if (((rowSpan * columnSpan) % 8) != 0)
+        nBytes++;
+      unsigned char patt[Cluster::kMaxPatternBytes];
+      c.getPattern(&patt[0], nBytes);
+      ClusterTopology topology(rowSpan, columnSpan, patt);
 
       float dx = 0, dz = 0;
       int trID = lab.getTrackID();
@@ -111,16 +133,61 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
           dx = locH.X() - locC.X();
           dz = locH.Z() - locC.Z();
         }
+        signalDictionary.accountTopology(topology, dx, dz);
+      } else {
+        noiseDictionary.accountTopology(topology, dx, dz);
       }
-      nt->Fill(gloC.X(), gloC.Y(), gloC.Z(), dx, dz, trID, c.getROFrame(), ievC, locH.X(), locH.Z(), locC.X(),
-               locC.Z());
+      completeDictionary.accountTopology(topology, dx, dz);
     }
   }
-  new TCanvas;
-  nt->Draw("y:x");
-  new TCanvas;
-  nt->Draw("dx:dz");
-  f->cd();
-  nt->Write();
-  f->Close();
+  completeDictionary.setThreshold(0.00001);
+  completeDictionary.groupRareTopologies();
+  completeDictionary.printDictionaryBinary("complete_dictionary.bin");
+  ofstream completeDictionaryOutput("complete_dictionary.txt");
+  completeDictionaryOutput << completeDictionary;
+  noiseDictionary.setThreshold(0.00001);
+  noiseDictionary.groupRareTopologies();
+  noiseDictionary.printDictionaryBinary("noise_dictionary.bin");
+  ofstream noiseDictionaryOutput("noise_dictionary.txt");
+  noiseDictionaryOutput << noiseDictionary;
+  signalDictionary.setThreshold(0.00001);
+  signalDictionary.groupRareTopologies();
+  signalDictionary.printDictionaryBinary("signal_dictionary.bin");
+  ofstream signalDictionaryOutput("signal_dictionary.txt");
+  signalDictionaryOutput << signalDictionary;
+
+  TFile histogramOutput("histograms.root", "recreate");
+  TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");
+  cComplete->cd();
+  cComplete->SetLogy();
+  TH1F* hComplete = (TH1F*)completeDictionary.mHdist.Clone("hComplete");
+  hComplete->SetDirectory(0);
+  hComplete->SetTitle("Topology distribution");
+  hComplete->GetXaxis()->SetTitle("Topology ID");
+  hComplete->SetFillColor(kRed);
+  hComplete->SetFillStyle(3005);
+  hComplete->Draw("hist");
+  cComplete->Write();
+  TCanvas* cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
+  cNoise->cd();
+  cNoise->SetLogy();
+  TH1F* hNoise = (TH1F*)noiseDictionary.mHdist.Clone("hNoise");
+  hNoise->SetDirectory(0);
+  hNoise->SetTitle("Topology distribution");
+  hNoise->GetXaxis()->SetTitle("Topology ID");
+  hNoise->SetFillColor(kRed);
+  hNoise->SetFillStyle(3005);
+  hNoise->Draw("hist");
+  cNoise->Write();
+  TCanvas* cProper = new TCanvas("cProper", "cProper");
+  cProper->cd();
+  cProper->SetLogy();
+  TH1F* hProper = (TH1F*)signalDictionary.mHdist.Clone("hProper");
+  hProper->SetDirectory(0);
+  hProper->SetTitle("Topology distribution");
+  hProper->GetXaxis()->SetTitle("Topology ID");
+  hProper->SetFillColor(kRed);
+  hProper->SetFillStyle(3005);
+  hProper->Draw("hist");
+  cProper->Write();
 }
