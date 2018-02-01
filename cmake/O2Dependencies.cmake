@@ -2431,3 +2431,18 @@ o2_define_bucket(
     mid_base_bucket
     MIDBase
 )
+
+o2_define_bucket(
+    NAME
+    mch_tracking_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    Field
+    MCHBase
+    Framework
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/Field/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
+)
