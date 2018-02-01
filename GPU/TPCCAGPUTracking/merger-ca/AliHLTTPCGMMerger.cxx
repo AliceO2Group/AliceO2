@@ -24,7 +24,6 @@
 #include "AliHLTTPCGMCluster.h"
 #include "AliHLTTPCGMPolynomialField.h"
 #include "AliHLTTPCGMPolynomialFieldCreator.h"
-
 #include "AliHLTTPCGMMerger.h"
 
 #include "AliHLTTPCCAMath.h"
@@ -47,6 +46,17 @@
 #include "MemoryAssignmentHelpers.h"
 
 #define DEBUG 0
+
+//#define OFFLINE_FITTER
+
+#if ( defined(HLTCA_STANDALONE) || defined(HLTCA_GPUCODE) )
+#undef OFFLINE_FITTER
+#endif
+
+#if ( defined(OFFLINE_FITTER) )
+#include "AliHLTTPCGMOfflineFitter.h"
+AliHLTTPCGMOfflineFitter gOfflineFitter;
+#endif
 
 AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   :
@@ -119,11 +129,15 @@ AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
   ClearMemory();
 }
 
-void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v )
+void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v, long int TimeStamp, bool isMC  )
 {
   fSliceParam = v;
   if (fSliceParam.AssumeConstantBz()) AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( AliHLTTPCGMPolynomialFieldCreator::kUniform, v.BzkG(), fField );
   else AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( v.BzkG(), fField );
+
+#if ( defined(OFFLINE_FITTER) )
+  gOfflineFitter.Initialize(  fSliceParam, TimeStamp, isMC );
+#endif
 }
 
 void AliHLTTPCGMMerger::Clear()
@@ -828,6 +842,9 @@ void AliHLTTPCGMMerger::Refit()
     for ( int itr = 0; itr < fNOutputTracks; itr++ )
     {
       AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], &fField, fClusters, fSliceParam);
+#if defined(OFFLINE_FITTER)
+      gOfflineFitter.RefitTrack(fOutputTracks[itr], &fField, fClusters);
+#endif
     }
   }
 }
