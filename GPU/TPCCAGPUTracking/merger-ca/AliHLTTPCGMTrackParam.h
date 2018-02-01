@@ -126,14 +126,14 @@ public:
   bool GetExtParam( AliExternalTrackParam &T, double alpha ) const;
   void SetExtParam( const AliExternalTrackParam &T );
 #endif
-
-  private:
       
     GPUd() void ConstrainSinPhi()
     {
         if (fP[2] > HLTCA_MAX_SIN_PHI) fP[2] = HLTCA_MAX_SIN_PHI;
         else if (fP[2] < -HLTCA_MAX_SIN_PHI) fP[2] = -HLTCA_MAX_SIN_PHI;
     }
+
+  private:
   
     float fX;      // x position
     float fZOffset;
