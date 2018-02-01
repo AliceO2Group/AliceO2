@@ -129,6 +129,9 @@ class Stack : public FairGenericStack
   /// Update the track index in the MCTracks and data produced by detectors
   void UpdateTrackIndex(TRefArray* detArray = nullptr) override;
 
+  /// Finish primary
+  void FinishPrimary() override;
+
   /// Resets arrays and stack and deletes particles and tracks
   void Reset() override;
 
@@ -222,7 +225,7 @@ class Stack : public FairGenericStack
   /// and all its secondaries where transported
   /// this allows applying selection criteria at a much finer granularity
   /// than donw with FillTrackArray which is only called once per event
-  void finishPrimary();
+  void finishCurrentPrimary();
 
   /// Increment number of hits for an arbitrary track in a given detector
   /// \param iDet    Detector unique identifier

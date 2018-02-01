@@ -63,7 +63,7 @@ bool Detector::ProcessHits(FairVolume* v)
   // just record position and basic quantities for the moment
   // TODO: needs to be interpreted properly
   float x, y, z;
-  vmc->TrackPosition(x, y, z);
+  fMC->TrackPosition(x, y, z);
 
   float enDep = fMC->Edep();
   float time = fMC->TrackTime() * 1.0e09;
