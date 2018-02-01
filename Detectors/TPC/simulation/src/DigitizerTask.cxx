@@ -72,10 +72,13 @@ InitStatus DigitizerTask::Init()
   }
 
   /// Fetch the hits for the sector which is to be processed
-  std::stringstream sectornamestr;
-  sectornamestr << "TPCHitsSector" << mHitSector;
-  LOG(INFO) << "FETCHING HITS FOR SECTOR " << mHitSector << "\n";
-  mSectorHitsArray[mHitSector] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
+  std::cout << "Processing sector " << mHitSector << "  - loading HitSector " << mHitSector << " and "
+            << int(Sector::getRight(Sector(mHitSector))) << "\n";
+  std::stringstream sectornamestrleft, sectornamestrright;
+  sectornamestrleft << "TPCHitsShiftedSector" << int(Sector::getLeft(Sector(mHitSector)));
+  sectornamestrright << "TPCHitsShiftedSector" << mHitSector;
+  mSectorHitsArrayLeft = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestrleft.str().c_str());
+  mSectorHitsArrayRight = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestrright.str().c_str());
 
   // Register output container
   mDigitsArray = new std::vector<Digit>;
@@ -118,8 +121,8 @@ void DigitizerTask::Exec(Option_t* option)
 
   // Treat the chosen sector
   mDigitContainer->setup(mHitSector);
-  mDigitContainer =
-    mDigitizer->Process(Sector(mHitSector), *mSectorHitsArray[mHitSector], mgr->GetEntryNr(), eventTime);
+  mDigitContainer = mDigitizer->Process(Sector(mHitSector), *mSectorHitsArrayLeft, mgr->GetEntryNr(), eventTime);
+  mDigitContainer = mDigitizer->Process(Sector(mHitSector), *mSectorHitsArrayRight, mgr->GetEntryNr(), eventTime);
   mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin,
                                        mIsContinuousReadout);
 }

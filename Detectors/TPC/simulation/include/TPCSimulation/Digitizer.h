@@ -65,6 +65,13 @@ class Digitizer
   DigitContainer* Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
                           float eventTime);
 
+  /// Process a single hit group
+  /// \param inputgroup Hit group to be processed
+  /// \param sector Sector to be processed
+  /// \param eventTime Time of the event to be processed
+  /// \param eventID ID of the event to be processed
+  void ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector, const float eventTime, const int eventID);
+
   DigitContainer* getDigitContainer() const { return mDigitContainer; }
 
   /// Switch for triggered / continuous readout

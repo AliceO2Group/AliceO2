@@ -41,15 +41,23 @@ void Digitizer::init() { mDigitContainer = new DigitContainer(); }
 DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
                                    float eventTime)
 {
+  if (!mIsContinuous) {
+    eventTime = 0.f;
+  }
+
+  for (auto& inputgroup : hits) {
+    ProcessHitGroup(inputgroup, sector, eventTime, eventID);
+  }
+  return mDigitContainer;
+}
+
+void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector, const float eventTime,
+                                const int eventID)
+{
   const static Mapper& mapper = Mapper::instance();
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
 
-  if (!mIsContinuous) {
-    eventTime = 0.f; /// transform in us
-  }
-
-  /// \todo static_thread for thread savety?
   static GEMAmplification gemAmplification;
   static ElectronTransport electronTransport;
   static PadResponse padResponse;
@@ -58,95 +66,66 @@ DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::T
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
 
-  for (auto& inputgroup : hits) {
-    //    auto *inputgroup = static_cast<HitGroup*>(pointObject);
-    const int MCTrackID = inputgroup.GetTrackID();
-    for (size_t hitindex = 0; hitindex < inputgroup.getSize(); ++hitindex) {
-      const auto& eh = inputgroup.getHit(hitindex);
+  const int MCTrackID = inputgroup.GetTrackID();
+  for (size_t hitindex = 0; hitindex < inputgroup.getSize(); ++hitindex) {
+    const auto& eh = inputgroup.getHit(hitindex);
 
-      const GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
+    const GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
 
-      // The energy loss stored is really nElectrons
-      const int nPrimaryElectrons = static_cast<int>(eh.GetEnergyLoss());
-
-      /// Loop over electrons
-      /// \todo can be vectorized?
-      /// \todo split transport and signal formation in two separate loops?
-      for (int iEle = 0; iEle < nPrimaryElectrons; ++iEle) {
-
-        /// Drift and Diffusion
-        float driftTime = 0.f;
-        const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
-        const float absoluteTime = driftTime + eventTime + eh.GetTime() * 0.001; /// in us
-
-        /// Attachment
-        if (electronTransport.isElectronAttachment(driftTime)) {
-          continue;
-        }
-
-        /// Remove electrons that end up outside the active volume
-        /// \todo should go to mapper?
-        if (std::abs(posEleDiff.Z()) > detParam.getTPClength()) {
-          continue;
-        }
-
-        const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
-        if (!digiPadPos.isValid()) {
-          continue;
-        }
-
-        /// Remove digits the end up outside the currently produced sector
-        if (digiPadPos.getCRU().sector() != sector) {
-          continue;
-        }
-
-        const int nElectronsGEM = gemAmplification.getStackAmplification();
-        if (nElectronsGEM == 0) {
-          continue;
-        }
-
-        /// Loop over all individual pads with signal due to pad response function
-        /// Currently the PRF is not applied yet due to some problems with the mapper
-        /// which results in most of the cases in a normalized pad response = 0
-        /// \todo Problems of the mapper to be fixed
-        /// \todo Mapper should provide a functionality which finds the adjacent pads of a given pad
-        // for(int ipad = -2; ipad<3; ++ipad) {
-        //   for(int irow = -2; irow<3; ++irow) {
-        //     PadPos padPos(digiPadPos.getPadPos().getRow() + irow, digiPadPos.getPadPos().getPad() + ipad);
-        //     DigitPos digiPos(digiPadPos.getCRU(), padPos);
-
-        DigitPos digiPos = digiPadPos;
-        if (!digiPos.isValid()) {
-          continue;
-        }
-        // const float normalizedPadResponse = padResponse.getPadResponse(posEleDiff, digiPos);
-
-        const float normalizedPadResponse = 1.f;
-        if (normalizedPadResponse <= 0) {
-          continue;
-        }
-
-        const int pad = digiPos.getPadPos().getPad();
-        const int row = digiPos.getPadPos().getRow();
-        const GlobalPadNumber globalPad =
-          mapper.getPadNumberInROC(PadROCPos(digiPadPos.getCRU().roc(), PadPos(row, pad)));
-
-        const float ADCsignal = SAMPAProcessing::getADCvalue(nElectronsGEM * normalizedPadResponse);
-        SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
-        for (float i = 0; i < nShapedPoints; ++i) {
-          const float time = absoluteTime + i * eleParam.getZBinWidth();
-          mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU(), SAMPAProcessing::getTimeBinFromTime(time),
-                                    globalPad, signalArray[i]);
-        }
-
-        // }
-        // }
-        /// end of loop over prf
-      }
-      /// end of loop over electrons
+    /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
+    /// boundary
+    if (electronTransport.isCompletelyOutOfSectorCourseElectronDrift(posEle, sector)) {
+      continue;
     }
-  }
-  /// end of loop over points
 
-  return mDigitContainer;
+    /// The energy loss stored corresponds to nElectrons
+    const int nPrimaryElectrons = static_cast<int>(eh.GetEnergyLoss());
+
+    /// Loop over electrons
+    for (int iEle = 0; iEle < nPrimaryElectrons; ++iEle) {
+
+      /// Drift and Diffusion
+      float driftTime = 0.f;
+      const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
+      const float absoluteTime = driftTime + eventTime + eh.GetTime() * 0.001; /// in us
+
+      /// Attachment
+      if (electronTransport.isElectronAttachment(driftTime)) {
+        continue;
+      }
+
+      /// Remove electrons that end up outside the active volume
+      if (std::abs(posEleDiff.Z()) > detParam.getTPClength()) {
+        continue;
+      }
+
+      /// Compute digit position and check for validity
+      const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
+      if (!digiPadPos.isValid()) {
+        continue;
+      }
+
+      /// Remove digits the end up outside the currently produced sector
+      if (digiPadPos.getCRU().sector() != sector) {
+        continue;
+      }
+
+      /// Electron amplification
+      const int nElectronsGEM = gemAmplification.getStackAmplification();
+      if (nElectronsGEM == 0) {
+        continue;
+      }
+
+      const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
+
+      const float ADCsignal = SAMPAProcessing::getADCvalue(static_cast<float>(nElectronsGEM));
+      SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
+      for (float i = 0; i < nShapedPoints; ++i) {
+        const float time = absoluteTime + i * eleParam.getZBinWidth();
+        mDigitContainer->addDigit(eventID, MCTrackID, digiPadPos.getCRU(), SAMPAProcessing::getTimeBinFromTime(time),
+                                  globalPad, signalArray[i]);
+      }
+    }
+    /// end of loop over electrons
+  }
 }
