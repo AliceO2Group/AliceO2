@@ -194,7 +194,7 @@ void Stack::notifyFinishPrimary()
   mCleanupCounter++;
   if (mCleanupCounter == mCleanupThreshold || mCleanupCounter == mPrimaryParticles.size() ||
       mPrimariesDone == mPrimaryParticles.size()) {
-    finishPrimary();
+    finishCurrentPrimary();
     mCleanupCounter = 0;
   }
 }
@@ -255,7 +255,7 @@ void Stack::FillTrackArray()
   LOG(INFO) << "Stack: " << mTracks->size() << " out of " << mNumberOfEntriesInParticles << " stored \n";
 }
 
-void Stack::finishPrimary()
+void Stack::finishCurrentPrimary()
 {
   // Here transport of a primary and all its secondaries is finished
   // we can do some cleanup of the memory structures

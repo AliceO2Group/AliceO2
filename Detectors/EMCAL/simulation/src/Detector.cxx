@@ -181,14 +181,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // - First track of the event
     // std::cout << "New track / cell started\n";
     Float_t posX, posY, posZ, momX, momY, momZ, energy;
-    mcapp->TrackPosition(posX, posY, posZ);
-    mcapp->TrackMomentum(momX, momY, momZ, energy);
-    Double_t estart = mcapp->Etot(), time = mcapp->TrackTime() * 1e9; // time in ns
+    fMC->TrackPosition(posX, posY, posZ);
+    fMC->TrackMomentum(momX, momY, momZ, energy);
+    Double_t estart = fMC->Etot(), time = fMC->TrackTime() * 1e9; // time in ns
 
     /// check handling of primary particles
     mCurrentHit = AddHit(partID, parent, 0, estart, detID, Point3D<float>(posX, posY, posZ),
                          Vector3D<float>(momX, momY, momZ), time, lightyield);
-    static_cast<o2::Data::Stack*>(mcapp->GetStack())->addHit(GetDetId());
+    static_cast<o2::Data::Stack*>(fMC->GetStack())->addHit(GetDetId());
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
     
