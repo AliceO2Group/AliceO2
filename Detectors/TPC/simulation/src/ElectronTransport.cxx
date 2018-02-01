@@ -59,3 +59,31 @@ GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle, fl
 
   return posEleDiffusion;
 }
+
+bool ElectronTransport::isCompletelyOutOfSectorCourseElectronDrift(GlobalPosition3D posEle, const Sector& sector)
+{
+  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
+  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
+  /// For drift lengths shorter than 1 mm, the drift length is set to that value
+  float driftl = detParam.getTPClength() - std::abs(posEle.Z());
+  if (driftl < 0.01) {
+    driftl = 0.01;
+  }
+  driftl = std::sqrt(driftl);
+
+  /// Three sigma of the expected average transverse diffusion
+  const float threeSigmaT = 3.f * driftl * gasParam.getDiffT();
+
+  int secRight = int(sector);
+  int secLeft = int(Sector::getLeft(sector));
+  const float dSectorBoundaryRight = -mSinsPerSector[secRight] * posEle.X() + mCosinsPerSector[secRight] * posEle.Y();
+  const float dSectorBoundaryLeft = -mSinsPerSector[secLeft] * posEle.X() + mCosinsPerSector[secLeft] * posEle.Y();
+
+  if ((dSectorBoundaryLeft > 0 && dSectorBoundaryRight < 0) || (dSectorBoundaryLeft < 0 && dSectorBoundaryRight > 0)) {
+    return false;
+  }
+  if (std::abs(dSectorBoundaryLeft) > threeSigmaT && std::abs(dSectorBoundaryRight) > threeSigmaT) {
+    return true;
+  }
+  return false;
+}

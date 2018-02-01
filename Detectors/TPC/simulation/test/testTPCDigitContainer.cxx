@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
 
   const std::vector<int> MCevent = { 1, 62, 1, 62, 62, 50, 62, 1, 1, 1 };
   const std::vector<int> MCtrack = { 22, 3, 22, 3, 3, 70, 3, 7, 7, 7 };
-  const std::vector<int> cru = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const std::vector<int> cru = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   const std::vector<int> Time = { 231, 231, 231, 231, 231, 231, 231, 231, 231, 231 };
   const std::vector<int> Row = { 12, 12, 12, 12, 12, 12, 12, 12, 12, 12 };
   const std::vector<int> Pad = { 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
