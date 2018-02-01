@@ -11,6 +11,11 @@
 #ifndef FRAMEWORK_DATASAMPLER_H
 #define FRAMEWORK_DATASAMPLER_H
 
+/// \file DataSampling.h
+/// \brief Definition of O2 Data Sampling, v0.1
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -27,16 +32,43 @@
 namespace o2 {
 namespace framework {
 
+
+/// A class responsible for providing data from main processing flow to QC tasks.
+///
+/// This class generates message-passing infrastructure to provide desired amount of data to Quality Control tasks.
+/// QC tasks input data should be declared in config file (e.g. O2/Framework/Core/test/exampleDataSamplerConfig.ini ).
+/// Data Sampling is based on Data Processing Layer, but supports also standard FairMQ devices by declaring external
+/// inputs/outputs in configuration file.
+///
+/// In-code usage:
+/// void defineDataProcessing(std::vector<DataProcessorSpec> &workflow)
+/// {
+///
+/// // <declaration of other DPL processors>
+///
+/// std::string configurationFilePath = <file path>;
+/// DataSampling::GenerateInfrastructure(workflow, configurationFilePath);
+///
+/// }
+
 class DataSampling {
   public:
 
+    /// Deleted default constructor. This class is stateless.
     DataSampling() = delete;
 
+    /// Generates data sampling infrastructure.
+    /// \param workflow              DPL workflow with already declared data processors which provide data desired by
+    ///                              QC tasks.
+    /// \param configurationSource   Path to configuration file.
     static void GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource);
 
   private:
     using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
+    /// Bernoulli distribution pseudo-random numbers generator. Used to decide, which data should be bypassed to
+    /// QC tasks, in order to achieve certain fraction of data passing through. For example, generator initialized with
+    /// value 0.1 returns true *approximately* once per 10 times.
     struct BernoulliGenerator {
       std::default_random_engine generator;
       std::bernoulli_distribution distribution;
@@ -50,13 +82,14 @@ class DataSampling {
       }
     };
 
-    //for temporary feature
+    /// Structure that holds requirements for external FairMQ data. Probably temporary.
     struct FairMqInput {
       OutputSpec outputSpec;
       std::string channelConfig;
       std::string converterType;
     };
 
+    /// Structure that holds QC task requirements for sampled data.
     struct QcTaskConfiguration{
       std::string name;
       std::vector<FairMqInput> desiredFairMqData; //for temporary feature
@@ -67,6 +100,7 @@ class DataSampling {
     };
     using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
 
+    /// Structure that holds general data sampling infrastructure configuration
     struct InfrastructureConfig {
       bool enableTimePipeliningDispatchers;
       bool enableParallelDispatchers;
@@ -79,13 +113,20 @@ class DataSampling {
       {};
     };
 
-    static AlgorithmSpec::ProcessCallback initCallback(InitContext& ctx);
+    // Callbacks of Data Processors to be invoked by Data Processing Layer
+    /// Dispatcher initialization callback
+    static AlgorithmSpec::ProcessCallback dispatcherInitCallback(InitContext &ctx);
+    /// Main dispatcher callback with DPL outputs
     static void dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator);
-    static AlgorithmSpec::ProcessCallback initDispatcherCallbackFairMQ(InitContext &ctx, const std::string &channel,
+
+    /// Dispatcher with FairMQ output initialization callback
+    static AlgorithmSpec::ProcessCallback dispatcherInitCallbackFairMQ(InitContext &ctx, const std::string &channel,
                                                                        double fraction);
+    /// Main dispatcher callback with FairMQ output
     static void dispatcherCallbackFairMQ(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator,
                                          FairMQDevice* device, const std::string &channel);
 
+    // Other internal functions, used by GenerateInfrastructure()
     static OutputSpec createDispatcherOutputSpec(const InputSpec &dispatcherInput);
     static auto getEdgeMatcher(const QcTaskConfiguration &taskCfg);
     static auto getDispatcherCreator(const QcTaskConfiguration & taskCfg);

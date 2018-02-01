@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file DataSampling.cxx
+/// \brief Implementation of O2 Data Sampling, v0.1
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include <random>
 #include <boost/optional.hpp>
 #include <Configuration/ConfigurationInterface.h>
@@ -30,8 +35,9 @@ namespace framework {
 //how about not using dispatcher, when qc needs 100% data ? instead, connect it directly
 //how about giving some information, if some desired outputs weren't found?
 
-auto DataSampling::getEdgeMatcher(const QcTaskConfiguration &taskCfg)
-{
+/// Returns appropriate comparator, dependent on whether all subSpecs are required or only one.
+auto DataSampling::getEdgeMatcher(const QcTaskConfiguration &taskCfg){
+
   return taskCfg.subSpec == -1 ?
          [](const OutputSpec& externalOutput, const InputSpec& desiredData, const SubSpecificationType&) {
            return externalOutput.origin == desiredData.origin &&
@@ -45,7 +51,9 @@ auto DataSampling::getEdgeMatcher(const QcTaskConfiguration &taskCfg)
          };
 }
 
+/// Returns appropriate dispatcher input/output creator, dependent on given configuration.
 auto DataSampling::getEdgeCreator(const QcTaskConfiguration & taskCfg, const InfrastructureConfig &infrastructureCfg){
+
   return taskCfg.fairMqOutputChannelConfig.empty() ?
            (infrastructureCfg.enableParallelDispatchers ?
              [](DataProcessorSpec &dispatcher, const InputSpec &newInput){
@@ -67,7 +75,9 @@ auto DataSampling::getEdgeCreator(const QcTaskConfiguration & taskCfg, const Inf
            };
 }
 
+/// Returns appropriate dispatcher initializer, dependent on whether dispatcher should send data to DPL or FairMQ device.
 auto DataSampling::getDispatcherCreator(const QcTaskConfiguration & taskCfg){
+
   return taskCfg.fairMqOutputChannelConfig.empty() ?
          // create dispatcher with DPL output
          [](const SubSpecificationType &dispatcherSubSpec, const QcTaskConfiguration &task, const InputSpec &input) {
@@ -103,7 +113,7 @@ auto DataSampling::getDispatcherCreator(const QcTaskConfiguration & taskCfg){
              Outputs{},
              AlgorithmSpec{
                [fraction=task.fractionOfDataToSample, channel](InitContext &ctx) {
-                 return initDispatcherCallbackFairMQ(ctx, channel, fraction);
+                 return dispatcherInitCallbackFairMQ(ctx, channel, fraction);
                }
              }, {
                ConfigParamSpec{
@@ -114,12 +124,13 @@ auto DataSampling::getDispatcherCreator(const QcTaskConfiguration & taskCfg){
          };
 }
 
-void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource)
-{
+void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::string &configurationSource) {
+
   QcTaskConfigurations tasks = readQcTasksConfiguration(configurationSource);
   InfrastructureConfig infrastructureCfg = readInfrastructureConfiguration(configurationSource);
 
   for (auto&& task : tasks) {
+
     // if necessary, create FairMQ -> DPL proxies and after that, look for their outputs in workflow.
     // (it is surely not an optimal way to do that, but this is only a temporary feature)
     for (auto&& fairMqProxy : task.desiredFairMqData) {
@@ -186,16 +197,16 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::str
   }
 }
 
-AlgorithmSpec::ProcessCallback DataSampling::initCallback(InitContext &ctx)
-{
+AlgorithmSpec::ProcessCallback DataSampling::dispatcherInitCallback(InitContext &ctx) {
+
   BernoulliGenerator generator(0);
   return [generator](o2::framework::ProcessingContext& pCtx) mutable {
     o2::framework::DataSampling::dispatcherCallback(pCtx, generator);
   };
 }
 
-void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator)
-{
+void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator) {
+
   InputRecord& inputs = ctx.inputs();
 
   if (bernoulliGenerator.drawLots()){
@@ -224,9 +235,8 @@ void DataSampling::dispatcherCallback(ProcessingContext &ctx, BernoulliGenerator
   }
 }
 
-AlgorithmSpec::ProcessCallback DataSampling::initDispatcherCallbackFairMQ(InitContext &ctx, const std::string &channel,
-                                                                          double fraction)
-{
+AlgorithmSpec::ProcessCallback DataSampling::dispatcherInitCallbackFairMQ(InitContext &ctx, const std::string &channel,
+                                                                          double fraction) {
   auto device = ctx.services().get<RawDeviceService>().device();
   auto gen = BernoulliGenerator(fraction);
 //  std::string channel = ctx.options().get<std::string>("name");
@@ -237,8 +247,8 @@ AlgorithmSpec::ProcessCallback DataSampling::initDispatcherCallbackFairMQ(InitCo
 }
 
 void DataSampling::dispatcherCallbackFairMQ(ProcessingContext &ctx, BernoulliGenerator &bernoulliGenerator,
-                                            FairMQDevice *device, const std::string &channel)
-{
+                                            FairMQDevice *device, const std::string &channel) {
+
   InputRecord& inputs = ctx.inputs();
 
   //FIXME: send all inputs inside one fairMQparts message?
@@ -278,9 +288,10 @@ void DataSampling::dispatcherCallbackFairMQ(ProcessingContext &ctx, BernoulliGen
   }
 }
 
+/// Creates dispatcher output specification basing on input specification of the same data. Basically, it adds '_S' at
+/// the end of description, which makes data stream distinctive from the main flow (which is not sampled).
+OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherInput) {
 
-OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherInput)
-{
   OutputSpec dispatcherOutput{
     dispatcherInput.origin,
     dispatcherInput.description,
@@ -297,8 +308,10 @@ OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherI
   return dispatcherOutput;
 }
 
-DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string &configurationSource)
-{
+/// Reads QC Tasks configuration from given filepath. Uses Configuration dependency and handles most of its exceptions.
+/// When some obligatory value is missing, it shows ERROR in logs, but continues to read another QC tasks.
+DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string &configurationSource) {
+
   std::vector<QcTaskConfiguration> tasks;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
@@ -362,7 +375,7 @@ DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const 
       }
       task.desiredDataSpecs.push_back(desiredData);
 
-      // temporary feature
+      // for temporary feature
       if (configFile->getInt(input + "/spawnConverter").value_or(0)){
         FairMqInput fairMqInput{
           OutputSpec{
@@ -388,8 +401,9 @@ DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const 
   return tasks;
 }
 
-DataSampling::InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::string &configurationSource)
-{
+/// Reads general Data Sampling infrastructure configuration.
+DataSampling::InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::string &configurationSource) {
+
   InfrastructureConfig cfg;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 

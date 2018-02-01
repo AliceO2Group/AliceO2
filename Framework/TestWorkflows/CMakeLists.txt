@@ -80,10 +80,10 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
-        EXE_NAME "dataSamplingFullChain"
-        SOURCES "src/dataSamplingFullChain.cxx"
-        MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-        BUCKET_NAME ${MODULE_BUCKET_NAME}
+  EXE_NAME "dataSamplingFullChain"
+  SOURCES "src/dataSamplingFullChain.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
 
