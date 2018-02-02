@@ -32,7 +32,6 @@
 namespace o2 {
 namespace framework {
 
-
 /// A class responsible for providing data from main processing flow to QC tasks.
 ///
 /// This class generates message-passing infrastructure to provide desired amount of data to Quality Control tasks.
