@@ -27,6 +27,8 @@
 #include "TRefArray.h"      // for TRefArray
 #include "TVirtualMC.h"     // for VMC
 
+#include <algorithm>
+#include <cassert>
 #include <cstddef> // for NULL
 
 using std::cout;
@@ -49,7 +51,8 @@ Stack::Stack(Int_t size)
     mStoreMothers(kTRUE),
     mStoreSecondaries(kTRUE),
     mMinHits(1),
-    mEnergyCut(0.)
+    mEnergyCut(0.),
+    mTrackRefs(new std::vector<o2::TrackReference>)
 {
   auto vmc = TVirtualMC::GetMC();
   if (!vmc) {
@@ -263,12 +266,29 @@ void Stack::finishCurrentPrimary()
   auto selected = selectTracks();
   // loop over current particle buffer
   int index = 0;
+  int indexoffset = mTracks->size();
+  int neglected = 0;
+  std::vector<int> indicesKept;
   for (const auto& particle : mParticles) {
     if (particle.getStore()) {
       // map the global track index to the new persistent index
       // FIXME: only fill the map for non-trivial mappings in which mTransportedIDs[index]!=mTracks->size();
       mIndexMap[mTransportedIDs[index]] = mTracks->size();
+      auto mother = particle.getMotherTrackId();
+      assert(mother < index);
       mTracks->emplace_back(particle);
+      indicesKept.emplace_back(index);
+      if (mother != -1) {
+        auto iter = std::find_if(indicesKept.begin(), indicesKept.end(), [mother](int x) { return x == mother; });
+        if (iter != indicesKept.end()) {
+          // complexity should be constant
+          auto newmother = std::distance(indicesKept.begin(), iter);
+          mTracks->back().SetMotherTrackId(newmother + indexoffset);
+        }
+      }
+      // LOG(INFO) << "Adding to map " << mTransportedIDs[index] << " to " << mIndexMap[mTransportedIDs[index]];
+    } else {
+      neglected++;
     }
     index++;
     mTracksDone++;
@@ -309,19 +329,52 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
   LOG(DEBUG) << "Stack::UpdateTrackIndex: Stack: Updating track indices...";
   Int_t nColl = 0;
 
-  // First update mother ID in MCTracks
-  for (Int_t i = 0; i < mNumberOfEntriesInTracks; i++) {
-    auto& track = (*mTracks)[i];
-    Int_t iMotherOld = track.getMotherTrackId();
-    if (iMotherOld == -1) {
-      // no need to lookup this case
-      continue;
-    }
-    auto iter = mIndexMap.find(iMotherOld);
+  //  // First update mother ID in MCTracks
+  //  //for (Int_t i = 0; i < mNumberOfEntriesInTracks; i++) {
+  //  for (Int_t i = 0; i < mTracks->size(); i++) {
+  //    auto& track = (*mTracks)[i];
+  //    Int_t iMotherOld = track.getMotherTrackId();
+  //    if (iMotherOld == -1) {
+  //      // no need to lookup this case
+  //      continue;
+  //    }
+  //    auto iter = mIndexMap.find(iMotherOld);
+  //    //if (iter == mIndexMap.end()) {
+  //    //  LOG(FATAL) << "Stack::UpdateTrackIndex: Stack: Track index "
+  //    //             << iMotherOld << " not found index map! ";
+  //    //}
+  //    //track.SetMotherTrackId(iter->second);
+  //    //LOG(INFO) << "Mapping mother " << iMotherOld << " to " << iter->second;
+  //  }
+
+  // update track references
+  // use some caching since repeated trackIDs
+  for (auto& ref : *mTrackRefs) {
+    const auto id = ref.getTrackID();
+    auto iter = mIndexMap.find(id);
     if (iter == mIndexMap.end()) {
-      LOG(FATAL) << "Stack::UpdateTrackIndex: Stack: Track index " << iMotherOld << " not found index map! ";
+      LOG(INFO) << "Invalid trackref ... needs to be removed\n";
+      ref.setTrackID(-1);
+    } else {
+      ref.setTrackID(iter->second);
     }
-    track.SetMotherTrackId(iter->second);
+  }
+
+  // sort trackrefs according to new track index
+  // then according to track length
+  std::sort(mTrackRefs->begin(), mTrackRefs->end(), [](const o2::TrackReference& a, const o2::TrackReference& b) {
+    if (a.getTrackID() == b.getTrackID()) {
+      return a.getLength() < b.getLength();
+    }
+    return a.getTrackID() < b.getTrackID();
+  });
+
+  // make final indexed container for track references
+  // fill empty
+  for (auto& ref : *mTrackRefs) {
+    if (ref.getTrackID() >= 0) {
+      mIndexedTrackRefs->addElement(ref.getTrackID(), ref);
+    }
   }
 
   for (auto det : mActiveDetectors) {
@@ -355,9 +408,17 @@ void Stack::Reset()
   }
   mPrimariesDone = 0;
   mPrimaryParticles.clear();
+  mTrackRefs->clear();
+  mIndexedTrackRefs->clear();
 }
 
-void Stack::Register() { FairRootManager::Instance()->RegisterAny("MCTrack", mTracks, kTRUE); }
+void Stack::Register()
+{
+  FairRootManager::Instance()->RegisterAny("MCTrack", mTracks, kTRUE);
+  FairRootManager::Instance()->RegisterAny("TrackRefs", mTrackRefs, kTRUE);
+  mIndexedTrackRefs = new typename std::remove_pointer<decltype(mIndexedTrackRefs)>::type;
+  FairRootManager::Instance()->RegisterAny("IndexedTrackRefs", mIndexedTrackRefs, kTRUE);
+}
 
 void Stack::Print(Int_t iVerbose) const
 {

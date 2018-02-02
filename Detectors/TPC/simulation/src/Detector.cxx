@@ -13,6 +13,7 @@
 #include "TPCBase/ParameterGas.h"
 
 #include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/TrackReference.h"
 
 #include "FairVolume.h"         // for FairVolume
 
@@ -232,6 +233,19 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // TODO: Temporary hack to process only one sector
   //if (sectorID != 0) return kFALSE;
 
+  // ---| momentum and beta gamma |---
+  static TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
+  fMC->TrackMomentum(momentum);
+
+  const float time = fMC->TrackTime() * 1.0e9;
+  const int trackID = fMC->GetStack()->GetCurrentTrackNumber();
+  const int detID = vol->getMCid();
+  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+  if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
+    stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
+                                                momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));
+  }
+
   // ===| CONVERT THE ENERGY LOSS TO IONIZATION ELECTRONS |=====================
   //
   // The energy loss is implemented directly below and taken GEANT3,
@@ -245,9 +259,6 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // ---| Stepsize in cm |---
   const double stepSize = fMC->TrackStep();
 
-  // ---| momentum and beta gamma |---
-  static thread_local TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
-  fMC->TrackMomentum(momentum);
   double betaGamma = momentum.P()/fMC->TrackMass();
   betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
 
@@ -295,10 +306,6 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     return kFALSE;
   
   // ADD HIT
-  const float time   = fMC->TrackTime() * 1.0e9;
-  const int trackID  = fMC->GetStack()->GetCurrentTrackNumber();
-  const int detID    = vol->getMCid();
-
   static thread_local int oldTrackId = trackID;
   static thread_local int oldDetId = detID;
   static thread_local int groupCounter = 0;
@@ -332,9 +339,8 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // I.H. - the code above does not compile if uncommented
 
   // Increment number of Detector det points in TParticle
-  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
   stack->addHit(GetDetId());
-  
+
   return kTRUE;
 }
   

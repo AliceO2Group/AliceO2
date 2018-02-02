@@ -8,152 +8,224 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackReference.h
-/// \brief Definition of the TrackReference class
-/// \author Sylwester Radomski (S.Radomski@gsi.de) GSI, Jan 31, 2003
-
 #ifndef ALICEO2_BASE_TRACKREFERENCE_H_
 #define ALICEO2_BASE_TRACKREFERENCE_H_
 
-#include "Rtypes.h"  // for TrackReference::Class, ClassDef, etc
-#include "TMath.h"   // for Pi, Sqrt, ATan2, Cos, Sin, ACos
-#include "TObject.h" // for TObject
+#include <TVirtualMC.h>
+#include <ostream>
+#include "Rtypes.h" // for TrackReference::Class, ClassDef, etc
+#include "TMath.h"  // for Pi, Sqrt, ATan2, Cos, Sin, ACos
 
 namespace o2
 {
+
+// class encoding sim track status
+struct SimTrackStatus {
+ public:
+  enum SimTrackStatus_Enum {
+    kTrackEntering = 0x1,
+    kTrackInside = 0x1 << 1,
+    kTrackExiting = 0x1 << 2,
+    kTrackOut = 0x1 << 3,
+    kTrackStopped = 0x1 << 4,
+    kTrackAlive = 0x1 << 5,
+    kTrackNew = 0x1 << 6
+  };
+  SimTrackStatus() = default;
+  SimTrackStatus(const TVirtualMC& vmc)
+  {
+    // This is quite annoying since every single call
+    // is virtual
+    if (vmc.IsTrackEntering()) {
+      mStatus |= kTrackEntering;
+    }
+    if (vmc.IsTrackExiting()) {
+      mStatus |= kTrackExiting;
+    }
+    if (vmc.IsTrackInside()) {
+      mStatus |= kTrackInside;
+    }
+    if (vmc.IsTrackOut()) {
+      mStatus |= kTrackOut;
+    }
+    if (vmc.IsTrackStop()) {
+      mStatus |= kTrackAlive;
+    }
+    if (vmc.IsNewTrack()) {
+      mStatus |= kTrackNew;
+    }
+  }
+  bool isEntering() const { return mStatus & kTrackEntering; }
+  bool isInside() const { return mStatus & kTrackInside; }
+  bool isExiting() const { return mStatus & kTrackExiting; }
+  bool isOut() const { return mStatus & kTrackOut; }
+  bool isStopped() const { return mStatus & kTrackStopped; }
+  bool isAlive() const { return mStatus & kTrackAlive; }
+  bool isNew() const { return mStatus & kTrackNew; }
+  unsigned char getStatusWord() const { return mStatus; }
+
+  friend std::ostream& operator<<(std::ostream&, const SimTrackStatus&);
+
+ private:
+  unsigned char mStatus = 0;
+  ClassDefNV(SimTrackStatus, 1)
+};
+
 /// Track Reference object is created every time particle is
-/// crossing detector bounds. The object is created by Step Manager
+/// crossing detector bounds.
+/// It is a snapshot of the track during propagation.
+
 /// The class stores the following informations:
 /// track label,
 /// track position: X,Y,X
 /// track momentum px, py, pz
 /// track length and time of fligth: both in cm
 /// status bits from Monte Carlo
-class TrackReference : public TObject
+
+// NOTE: This track shares a lot of functionality with MC track and other tracks
+// which should be factored into a common base class
+class TrackReference
 {
  public:
-  enum constants {
-    kDisappeared = -1,
-    kITS = 0,
-    kTPC = 1,
-    kFRAME = 2,
-    kTRD = 3,
-    kTOF = 4,
-    kMUON = 5,
-    kHMPID = 6,
-    kFIT = 7,
-    kEMCAL = 8,
-    kPMD = 10,
-    kFMD = 12,
-    kVZERO = 14,
-    kMFT = 16,
-    kHALL = 17
-  };
-
   /// Default Constructor
-  TrackReference();
+  TrackReference() = default;
 
-  TrackReference(Int_t label, Int_t id = -999);
-
-  TrackReference(const TrackReference& tr);
+  TrackReference(float x, float y, float z, float px, float py, float pz, float length, float tof, int trackID,
+                 int detlabel);
+  TrackReference(const TVirtualMC& vmc, int detlabel);
 
   /// Default Destructor
-  ~TrackReference() override = default;
+  ~TrackReference() = default;
 
-  // static AliExternalTrackParam * MakeTrack(const TrackReference *ref, Double_t mass);
-  virtual Int_t GetTrack() const { return mTrackNumber; }
-  virtual void SetTrack(Int_t track) { mTrackNumber = track; }
-  virtual void SetLength(Float_t length) { mTrackLength = length; }
-  virtual void SetTime(Float_t time) { mTof = time; }
-  virtual Float_t GetLength() const { return mTrackLength; }
-  virtual Float_t GetTime() const { return mTof; }
-  virtual Int_t Label() const { return mTrackNumber; }
-  virtual void SetLabel(Int_t track) { mTrackNumber = track; }
-  virtual Float_t R() const
+  Int_t getTrackID() const { return mTrackNumber; }
+  void setTrackID(Int_t track) { mTrackNumber = track; }
+  void setLength(float length) { mTrackLength = length; }
+  void setTime(float time) { mTof = time; }
+  float getLength() const { return mTrackLength; }
+  float getTime() const { return mTof; }
+  float R() const { return TMath::Sqrt(mX * mX + mY * mY); }
+
+  float Pt() const { return TMath::Sqrt(mPX * mPX + mPY * mPY); }
+  float Phi() const { return TMath::Pi() + TMath::ATan2(-mY, -mX); }
+  float Theta() const { return (mPZ == 0.) ? TMath::Pi() / 2 : TMath::ACos(mPZ / P()); }
+  float X() const { return mX; }
+  float Y() const { return mY; }
+  float Z() const { return mZ; }
+  float Px() const { return mX; }
+  float Py() const { return mY; }
+  float Pz() const { return mZ; }
+  float P() const { return TMath::Sqrt(mX * mX + mY * mY + mZ * mZ); }
+  Int_t getUserId() const { return mUserId; }
+  Int_t getDetectorId() const { return mDetectorId; }
+  void setDetectorId(Int_t id) { mDetectorId = id; }
+
+  void setPosition(float x, float y, float z)
   {
-    return TMath::Sqrt(mReferencePositionX * mReferencePositionX + mReferencePositionY * mReferencePositionY);
+    mX = x;
+    mY = y;
+    mZ = z;
   }
 
-  virtual Float_t Pt() const { return TMath::Sqrt(mMomentumX * mMomentumX + mMomentumY * mMomentumY); }
-  virtual Float_t Phi() const { return TMath::Pi() + TMath::ATan2(-mMomentumY, -mMomentumX); }
-  virtual Float_t Theta() const { return (mMomentumZ == 0) ? TMath::Pi() / 2 : TMath::ACos(mMomentumZ / P()); }
-  virtual Float_t X() const { return mReferencePositionX; }
-  virtual Float_t Y() const { return mReferencePositionY; }
-  virtual Float_t Z() const { return mReferencePositionZ; }
-  virtual Float_t Px() const { return mMomentumX; }
-  virtual Float_t Py() const { return mMomentumY; }
-  virtual Float_t Pz() const { return mMomentumZ; }
-  virtual Float_t P() const
+  void setMomentum(float px, float py, float pz)
   {
-    return TMath::Sqrt(mMomentumX * mMomentumX + mMomentumY * mMomentumY + mMomentumZ * mMomentumZ);
+    mPX = px;
+    mPY = py;
+    mPZ = pz;
   }
 
-  virtual Int_t UserId() const { return mUserId; }
-  virtual Int_t DetectorId() const { return mDetectorId; }
-  virtual void SetDetectorId(Int_t id) { mDetectorId = id; }
-  virtual void setPosition(Float_t x, Float_t y, Float_t z)
-  {
-    mReferencePositionX = x;
-    mReferencePositionY = y;
-    mReferencePositionZ = z;
-  }
+  void setUserId(Int_t userId) { mUserId = userId; }
 
-  virtual void SetMomentum(Float_t px, Float_t py, Float_t pz)
-  {
-    mMomentumX = px;
-    mMomentumY = py;
-    mMomentumZ = pz;
-  }
-
-  virtual void setUserId(Int_t userId) { mUserId = userId; }
   // Methods to get position of the track reference in
   // in the TPC/TRD/TOF Tracking coordinate system
+  float phiPosition() const { return TMath::Pi() + TMath::ATan2(-mY, -mX); }
 
-  virtual Float_t phiPosition() const { return TMath::Pi() + TMath::ATan2(-mReferencePositionY, -mReferencePositionX); }
-  virtual Float_t Alpha() const
+  float Alpha() const { return TMath::Pi() * (20 * ((((Int_t)(phiPosition() * 180 / TMath::Pi())) / 20)) + 10) / 180.; }
+
+  float LocalX() const
   {
-    return TMath::Pi() * (20 * ((((Int_t)(phiPosition() * 180 / TMath::Pi())) / 20)) + 10) / 180.;
+    auto alpha = Alpha();
+    return mX * TMath::Cos(-alpha) - mY * TMath::Sin(-alpha);
   }
 
-  virtual Float_t LocalX() const
+  float LocalY() const
   {
-    return mReferencePositionX * TMath::Cos(-Alpha()) - mReferencePositionY * TMath::Sin(-Alpha());
+    auto alpha = Alpha();
+    return mX * TMath::Sin(-alpha) + mY * TMath::Cos(-alpha);
   }
 
-  virtual Float_t LocalY() const
-  {
-    return mReferencePositionX * TMath::Sin(-Alpha()) + mReferencePositionY * TMath::Cos(-Alpha());
-  }
-
-  Bool_t isSortable() const { return kTRUE; }
-  Int_t Compare(const TObject* obj) const override
-  {
-    Int_t ll = ((TrackReference*)obj)->GetTrack();
-    if (ll < mTrackNumber) {
-      return 1;
-    }
-    if (ll > mTrackNumber) {
-      return -1;
-    }
-    return 0;
-  }
-
-  void Print(Option_t* opt = "") const override;
+  const SimTrackStatus& getTrackStatus() const { return mStatus; }
 
  private:
-  Int_t mTrackNumber;                 ///< Track number
-  Float_t mReferencePositionX;        ///< X reference position of the track
-  Float_t mReferencePositionY;        ///< Y reference position of the track
-  Float_t mReferencePositionZ;        ///< Z reference position of the track
-  Float_t mMomentumX;                 ///< momentum
-  Float_t mMomentumY;                 ///< momentum
-  Float_t mMomentumZ;                 ///< momentum
-  Float_t mTrackLength;               ///< track length from its origin in cm
-  Float_t mTof;                       ///< time of flight in cm
-  Int_t mUserId;                      ///< optional Id defined by user
-  Int_t mDetectorId;                  ///< Detector Id
-  ClassDefOverride(TrackReference, 1) // Base class for all Alice track references
+  Int_t mTrackNumber = 0; ///< Track number
+  float mX = 0;           ///< X reference position of the track
+  float mY = 0;           ///< Y reference position of the track
+  float mZ = 0;           ///< Z reference position of the track
+  float mPX = 0;          ///< momentum
+  float mPY = 0;          ///< momentum
+  float mPZ = 0;          ///< momentum
+  float mTrackLength = 0; ///< track length from its origin in cm
+  float mTof = 0;         ///< time of flight in cm
+  Int_t mUserId = 0;      ///< optional Id defined by user
+  Int_t mDetectorId = 0;  ///< Detector Id
+  SimTrackStatus mStatus; ///< encoding the track status
+
+  friend std::ostream& operator<<(std::ostream&, const TrackReference&);
+
+  ClassDefNV(TrackReference, 1) // Base class for all Alice track references
 };
+
+// this is the preferred constructor as it might reuse variables
+// already fetched from VMC
+inline TrackReference::TrackReference(float x, float y, float z, float px, float py, float pz, float l, float tof,
+                                      int trackID, int detlabel)
+  : mX(x),
+    mY(y),
+    mZ(z),
+    mPX(px),
+    mPY(py),
+    mPZ(pz),
+    mTrackLength(l),
+    mTof(tof),
+    mTrackNumber(trackID),
+    mDetectorId(detlabel)
+{
+}
+
+// constructor fetching everything from vmc instance
+// less performant than other constructor since
+// potentially duplicated virtual function calls (already used in the
+// stepping functions)
+inline TrackReference::TrackReference(TVirtualMC const& vmc, int detlabel) : mStatus(vmc)
+{
+  float x, y, z;
+  float px, py, pz, e;
+  vmc.TrackPosition(x, y, z);
+  vmc.TrackMomentum(px, py, pz, e);
+  mX = x;
+  mY = y;
+  mZ = z;
+  mPX = px;
+  mPY = py;
+  mPZ = pz;
+  mTrackLength = vmc.TrackLength();
+  mTof = vmc.TrackTime();
+  mDetectorId = detlabel;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const TrackReference& a)
+{
+  os << "TrackRef (" << a.mTrackNumber << "): X[" << a.mX << " , " << a.mY << " , " << a.mZ << "]"
+     << "; P[ " << a.mPX << " , " << a.mPY << " , " << a.mPZ << " ] "
+     << "; Length = " << a.mTrackLength << " ; TOF = " << a.mTof << " ; DetID = " << a.mDetectorId
+     << "; Status = " << a.mStatus;
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const SimTrackStatus& status)
+{
+  os << status.mStatus;
+  return os;
+}
 }
 
 #endif

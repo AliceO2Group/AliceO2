@@ -20,6 +20,7 @@
 #include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
 
 #include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/TrackReference.h"
 
 //FairRoot includes
 #include "FairDetector.h"           // for FairDetector
@@ -331,12 +332,13 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     ++lay;
   }
   if (notSens) return kFALSE; //RS: can this happen? This method must be called for sensors only?
-  
-  // FIXME: Is it needed to keep a track reference when the outer ITS volume is encountered?
-  // if(fMC->IsTrackExiting()) {
-  //  AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kITS);
-  // } // if Outer ITS mother Volume
-  bool startHit=false, stopHit=false;
+
+  // Is it needed to keep a track reference when the outer ITS volume is encountered?
+  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  if (fMC->IsTrackExiting()) {
+    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+  } // if Outer ITS mother Volume
+  bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) { status |= Hit::kTrackEntering; }
   if (fMC->IsTrackInside())   { status |= Hit::kTrackInside; }
@@ -374,16 +376,14 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     fMC->CurrentVolOffID(3, halfstave);
     fMC->CurrentVolOffID(4, stave);
     int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
-    
-    Hit *p = addHit(fMC->GetStack()->GetCurrentTrackNumber(), chipindex,
-                      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
-                      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
-                      mTrackData.mTrkStatusStart,status);
-    //p->SetTotalEnergy(fMC->Etot());
+
+    Hit* p = addHit(stack->GetCurrentTrackNumber(), chipindex, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+                    mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
+                    mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
+    // p->SetTotalEnergy(vmc->Etot());
 
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle
-    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
     stack->addHit(GetDetId());
   }
   
