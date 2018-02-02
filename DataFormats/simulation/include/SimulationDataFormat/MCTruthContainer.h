@@ -108,7 +108,14 @@ class MCTruthContainer
         throw std::runtime_error("MCTruthContainer: unsupported code path");
       }
     } else {
-      assert(dataindex == mHeaderArray.size());
+      // assert(dataindex == mHeaderArray.size());
+
+      // add empty holes
+      int holes = dataindex - mHeaderArray.size();
+      assert(holes >= 0);
+      for (int i = 0; i < holes; ++i) {
+        mHeaderArray.emplace_back(mTruthArray.size());
+      }
       // add a new one
       mHeaderArray.emplace_back(mTruthArray.size());
     }
