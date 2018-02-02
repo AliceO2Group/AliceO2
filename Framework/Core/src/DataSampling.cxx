@@ -251,45 +251,47 @@ void DataSampling::dispatcherCallbackFairMQ(ProcessingContext &ctx, BernoulliGen
 
   InputRecord& inputs = ctx.inputs();
 
-  //FIXME: send all inputs inside one fairMQparts message?
+  //todo: make sure this is expected way to send fairmq message
   if (bernoulliGenerator.drawLots()){
+
+    auto cleanupFcn = [](void *data, void *hint) { delete[] reinterpret_cast<char *>(data); };
     for(auto& input : inputs){
 
-      OutputSpec outputSpec = createDispatcherOutputSpec(*input.spec);
+      const auto *header = Header::get<header::DataHeader>(input.header);
 
-      const auto *inputHeader = Header::get<Header::DataHeader>(input.header);
+      char *headerCopy = new char[header->headerSize];
+      memcpy(headerCopy, header->data(), header->headerSize);
+      FairMQMessagePtr msgHeader(device->NewMessage(headerCopy, header->headerSize, cleanupFcn, headerCopy));
 
-//      if (inputHeader->payloadSerializationMethod == Header::gSerializationMethodInvalid){
-//        LOG(ERROR) << "DataSampling::dispatcherCallback: input of origin'" << inputHeader->dataOrigin.str
-//                   << "', description '" << inputHeader->dataDescription.str
-//                   << "' has gSerializationMethodInvalid.";
-//      }
-//      else if (inputHeader->payloadSerializationMethod == Header::gSerializationMethodROOT){
-////        ctx.allocator().adopt(outputSpec, DataRefUtils::as<TObject>(input).release());
-//        //todo: send root objects with fairmq
-//      }
-//      else{ //POD
+      char *payloadCopy = new char[header->payloadSize];
+      memcpy(payloadCopy, input.payload, header->payloadSize);
+      FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, header->payloadSize,cleanupFcn,payloadCopy));
 
-        //FIXME: how to describe what data is this? Header + message?
-        const auto *header = o2::Header::get<header::DataHeader>(input.header);
-
-        char *p = new char[header->payloadSize];
-        memcpy(p, input.payload, header->payloadSize);
-        FairMQMessagePtr msg(
-          device->NewMessage(
-            p, header->payloadSize,
-            [](void *data, void *hint) { delete[] reinterpret_cast<char *>(data); },
-            p)
-        );
-      int bytesSent = device->Send(msg, channel);
-      LOG(DEBUG) << "Bytes sent: " << bytesSent;
-//      }
+      int bytesSent = device->Send(msgHeader, channel);
+      LOG(DEBUG) << "Header bytes sent: " << bytesSent;
+      bytesSent = device->Send(msgPayload, channel);
+      LOG(DEBUG) << "Payload bytes sent: " << bytesSent;
     }
+
+    // from repo Common/DataBlock.h
+    struct DataBlockHeaderBase{
+      uint32_t blockType;
+      uint32_t headerSize;
+      uint32_t dataSize;
+      uint64_t id;
+      uint32_t linkId;
+    };
+
+    auto *endOfMessage = new DataBlockHeaderBase();
+    endOfMessage->blockType = 0xFF;
+    endOfMessage->headerSize = 0x60; // just the header eom -> 96 bits
+    FairMQMessagePtr msgEom(device->NewMessage((void *) endOfMessage, (endOfMessage->headerSize), cleanupFcn));
+    int ret = device->Send(msgEom, channel);
   }
 }
 
 /// Creates dispatcher output specification basing on input specification of the same data. Basically, it adds '_S' at
-/// the end of description, which makes data stream distinctive from the main flow (which is not sampled).
+/// the end of description, which makes data stream distinctive from the main flow (which is not sampled/filtered).
 OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec &dispatcherInput) {
 
   OutputSpec dispatcherOutput{
