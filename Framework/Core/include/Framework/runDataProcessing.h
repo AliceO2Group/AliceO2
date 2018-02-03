@@ -90,7 +90,7 @@ int main(int argc, char** argv)
   // the default one.
   UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
   auto result = doMain(argc, argv, specs, channelPolicies);
-  std::cout << "Process " << getpid() << " is exiting." << std::endl;
+  LOG(INFO) << "Process " << getpid() << " is exiting.";
   return result;
 }
 

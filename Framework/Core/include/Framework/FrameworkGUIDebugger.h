@@ -14,17 +14,24 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceControl.h"
+
 #include <functional>
 #include <vector>
 
 namespace o2 {
 namespace framework {
 
-std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo> &infos,
-                                         const std::vector<DeviceSpec> &specs,
-                                         const std::vector<DeviceMetricsInfo> &metricsInfos,
-                                         std::vector<DeviceControl> &controls);
+class DriverInfo;
+class DriverControl;
 
+std::function<void(void)>
+getGUIDebugger(const std::vector<DeviceInfo> &infos,
+               const std::vector<DeviceSpec> &devices,
+               const std::vector<DeviceMetricsInfo> &metricsInfos,
+               const DriverInfo &driverInfo,
+               std::vector<DeviceControl> &controls,
+               DriverControl &driverControl
+               );
 }
 }
 #endif // FRAMEWORK_FRAMEWORKGUIDEBUGGER_H

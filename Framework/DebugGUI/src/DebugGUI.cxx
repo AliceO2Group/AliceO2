@@ -49,9 +49,9 @@ void *initGUI(const char *name) {
 /// @return true if we do not need to exit, false if we do.
 bool pollGUI(void *context, std::function<void(void)> guiCallback) {
   GLFWwindow *window = reinterpret_cast<GLFWwindow *>(context);
-  if (glfwWindowShouldClose(window))
+  if (glfwWindowShouldClose(window)) {
     return false;
-
+  }
   glfwPollEvents();
   ImGui_ImplGlfwGL3_NewFrame();
 
