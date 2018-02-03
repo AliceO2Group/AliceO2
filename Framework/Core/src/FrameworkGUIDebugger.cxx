@@ -10,6 +10,8 @@
 #include "Framework/FrameworkGUIDebugger.h"
 #include "Framework/FrameworkGUIDevicesGraph.h"
 #include "Framework/PaletteHelpers.h"
+#include "DriverInfo.cxx"
+#include "DriverControl.cxx"
 #include "DebugGUI/imgui.h"
 #include <set>
 #include <algorithm>
@@ -387,13 +389,49 @@ popWindowColorDueToStatus() {
   ImGui::PopStyleColor(3);
 }
 
+struct DriverHelper {
+  static char const *stateToString(enum DriverState state) {
+    static const char *names[static_cast<int>(DriverState::LAST)] = {
+      "INIT",
+      "SCHEDULE",
+      "RUNNING",
+      "GUI",
+      "REDEPLOY_GUI",
+      "EXIT",
+      "UNKNOWN"
+    };
+    return names[static_cast<int>(state)];
+  }
+};
+
+/// Display information window about the driver
+/// and its state.
+void
+displayDriverInfo(DriverInfo const& driverInfo,
+                  DriverControl &driverControl) {
+  ImGui::Begin("Driver information");
+  ImGui::Text("Numer of running devices: %lu", driverInfo.socket2DeviceInfo.size() / 2);
+  ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
+
+  for (size_t i = 0; i < driverInfo.states.size(); ++i) {
+    DriverState const &state = driverInfo.states[i];
+    ImGui::Text("#%lu: %s",
+        i,
+        DriverHelper::stateToString(state));
+  }
+  ImGui::End();
+}
+
 // FIXME: return empty function in case we were not built
 // with GLFW support.
+/// 
 std::function<void(void)>
 getGUIDebugger(const std::vector<DeviceInfo> &infos,
                const std::vector<DeviceSpec> &devices,
                const std::vector<DeviceMetricsInfo> &metricsInfos,
-               std::vector<DeviceControl> &controls
+               const DriverInfo &driverInfo,
+               std::vector<DeviceControl> &controls,
+               DriverControl &driverControl
                ) {
   gState.selectedMetric = -1;
   // FIXME: this should probaly have a better mapping between our window state and
@@ -403,14 +441,19 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
     state.label = devices[i].id + "(" + std::to_string(infos[i].pid) + ")";
   }
 
-  return [&infos, &devices, &controls, &metricsInfos]() {
+  return [&infos, &devices, &controls, &metricsInfos, &driverInfo, &driverControl]() {
     ImGuiStyle &style = ImGui::GetStyle();
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
 
     displayDeviceHistograms(infos, devices, controls, metricsInfos);
+    displayDriverInfo(driverInfo, driverControl);
+
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / gState.devices.size();
+
     for (size_t i = 0; i < gState.devices.size(); ++i) {
       DeviceGUIState &state = gState.devices[i];
+      assert(i < infos.size());
+      assert(i < devices.size());
       const DeviceInfo &info = infos[i];
       const DeviceSpec &spec = devices[i];
 

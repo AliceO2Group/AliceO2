@@ -19,7 +19,9 @@ std::function<void(void)>
 getGUIDebugger(const std::vector<DeviceInfo> &infos,
                const std::vector<DeviceSpec> &devices,
                const std::vector<DeviceMetricsInfo> &metricsInfos,
-               std::vector<DeviceControl> &controls
+               const DriverInfo &driverInfo,
+               std::vector<DeviceControl> &controls,
+               DriverControl &driverControl
                )
 {
   return [](){};
