@@ -30,6 +30,8 @@ AddOption(csvDump, bool, false, "csvDump", 0, "Dump all clusters and Pt informat
 AddOption(maxResX, float, 1e6f, "maxResX", 0, "Maxmimum X (~radius) for reconstructed track position to take into accound for resolution QA in cm")
 AddOption(resPrimaries, int, 0, "resPrimaries", 0, "0: Resolution for all tracks, 1: only for primary tracks, 2: only for non-primaries", def(1))
 AddOption(nativeFitResolutions, bool, false, "nativeFitResolutions", 0, "Create resolution histograms in the native fit units (sin(phi), tan(lambda), Q/Pt)")
+AddOption(filterCharge, int, 0, "filterCharge", 0, "Filter for positive (+1) or negative (-1) charge")
+AddOption(filterPID, int, -1, "filterPID", 0, "Filter for Particle Type (0 Electron, 1 Muon, 2 Pion, 3 Kaon, 4 Proton)")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAonly")
 AddHelp("help", 'h')
 EndConfig()

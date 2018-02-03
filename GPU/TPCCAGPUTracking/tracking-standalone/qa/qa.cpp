@@ -514,6 +514,8 @@ void RunQA()
 			int findable = mc2.nWeightCls >= FINDABLE_WEIGHT_CLS;
 			if (info.fPID < 0) continue;
 			if (info.fCharge == 0.f) continue;
+			if (config.filterCharge && info.fCharge * config.filterCharge < 0) continue;
+			if (config.filterPID >= 0 && info.fPID != config.filterPID) continue;
 			
 			if (fabs(mceta) > ETA_MAX || mcpt < PT_MIN || mcpt > PT_MAX) continue;
 			
@@ -578,6 +580,8 @@ void RunQA()
 			if (fabs(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) continue;
 			if (mc1.fCharge == 0.f) continue;
 			if (mc1.fPID < 0) continue;
+			if (config.filterCharge && mc1.fCharge * config.filterCharge < 0) continue;
+			if (config.filterPID >= 0 && mc1.fPID != config.filterPID) continue;
 			if (mc2.nWeightCls < MIN_WEIGHT_CLS) continue;
 			if (config.resPrimaries == 1 && (!mc1.fPrim || mc1.fPrimDaughters)) continue;
 			else if (config.resPrimaries == 2 && (mc1.fPrim || mc1.fPrimDaughters)) continue;
