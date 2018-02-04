@@ -18,7 +18,7 @@ DEFINES						= HLTCA_STANDALONE
 CPPFILES				= cmodules/timer.cpp
 
 EXTRAFLAGSGCC				= -Weffc++ -Wno-unused-local-typedefs
-EXTRAFLAGSLINK				=
+EXTRAFLAGSLINK				= -rdynamic
 
 COMPILER_FLAGS				= OPT
 CONFIG_LTO					= 1
