@@ -702,12 +702,19 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 			return(1);
 		}
 		fSlaveTrackers[firstSlice + iSlice].StopTimer(7);
-		for (int k = iSlice;k < iSlice + runSlices;k++) streamMap[k] = useStream;
+		for (int k = iSlice;k < iSlice + runSlices;k++)
+		{
+			if (GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[useStream], ocl->mem_gpu, CL_FALSE, (char*) fGpuTracker[k].CommonMemory() - (char*) fGPUMemory, fGpuTracker[k].CommonMemorySize(),
+				fSlaveTrackers[firstSlice + k].CommonMemory(), 0, NULL, &ocl->selector_events[k]) RANDOM_ERROR))
+			{
+				HLTImportant("Error transferring tracks from GPU to host");
+				ResetHelperThreads(1);
+				ActivateThreadContext();
+				return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
+			}
+			streamMap[k] = useStream;
+		}
 		useStream++;
-	}
-	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
-	{
-		clEnqueueMarkerWithWaitList(ocl->command_queue[iSlice], 0, NULL, &ocl->selector_events[iSlice]);
 	}
 
 	char *tmpMemoryGlobalTracking = NULL;
@@ -715,18 +722,6 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 	
 	if (Reconstruct_Base_StartGlobal(pOutput, tmpMemoryGlobalTracking)) return(1);
 	
-	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
-	{
-		if (GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[iSlice], ocl->mem_gpu, CL_FALSE, (char*) fGpuTracker[iSlice].CommonMemory() - (char*) fGPUMemory, fGpuTracker[iSlice].CommonMemorySize(),
-			fSlaveTrackers[firstSlice + iSlice].CommonMemory(), 0, NULL, &ocl->selector_events[iSlice]) RANDOM_ERROR))
-		{
-			HLTImportant("Error transferring tracks from GPU to host");
-			ResetHelperThreads(1);
-			ActivateThreadContext();
-			return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
-		}
-	}
-
 	int tmpSlice = 0;
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
