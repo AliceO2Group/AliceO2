@@ -33,7 +33,6 @@ namespace framework {
 //ideas:
 //make sure if it supports 'vectors' of data
 //how about not using dispatcher, when qc needs 100% data ? instead, connect it directly
-//how about giving some information, if some desired outputs weren't found?
 
 /// Returns appropriate comparator, dependent on whether all subSpecs are required or only one.
 auto DataSampling::getEdgeMatcher(const QcTaskConfiguration &taskCfg){
@@ -153,10 +152,12 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::str
     // Find all available outputs in workflow that match desired data. Create dispatchers that take them as inputs
     // and provide them filtered as outputs.
     for (auto&& desiredData : task.desiredDataSpecs) {
+      bool wasDataFound = false;
       for (auto&& dataProcessor : workflow) {
         for (auto&& externalOutput : dataProcessor.outputs) {
           if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
 
+            wasDataFound = true;
             InputSpec newInput{
               desiredData.binding,
               desiredData.origin,
@@ -189,6 +190,9 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec &workflow, const std::str
             }
           }
         }
+      }
+      if (!wasDataFound){
+        LOG(ERROR) << "Data '" << desiredData.binding << "' for QC task '" << task.name << "' not found in given workflow";
       }
     }
     for (auto& dispatcher : dispatchers) {
