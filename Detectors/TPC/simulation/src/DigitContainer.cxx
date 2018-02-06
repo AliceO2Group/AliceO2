@@ -13,37 +13,56 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitContainer.h"
-#include <iostream>
+#include "FairLogger.h"
 #include "TPCBase/Mapper.h"
 
 using namespace o2::TPC;
 
-void DigitContainer::addDigit(int eventID, size_t hitID, int cru, int timeBin, int row, int pad, float charge)
+void DigitContainer::addDigit(size_t eventID, size_t trackID, const CRU& cru, TimeBin timeBin,
+                              GlobalPadNumber globalPad, float signal)
 {
-  /// Check whether the container at this spot already contains an entry
-  DigitCRU* result = mCRU[cru].get();
-  if (result != nullptr) {
-    mCRU[cru]->setDigit(eventID, hitID, timeBin, row, pad, charge);
-  } else {
-    const Mapper& mapper = Mapper::instance();
-    mCRU[cru] = std::make_unique<DigitCRU>(cru, mCommonModeContainer);
-    mCRU[cru]->setDigit(eventID, hitID, timeBin, row, pad, charge);
+  mEffectiveTimeBin = timeBin - mFirstTimeBin;
+  if (mEffectiveTimeBin < 0.) {
+    LOG(FATAL) << "TPC DigitCRU buffer misaligned ";
+    LOG(DEBUG) << "for hit " << trackID << " CRU " << cru << " TimeBin " << timeBin << " First TimeBin "
+               << mFirstTimeBin << " Global pad " << globalPad;
+    LOG(FATAL) << FairLogger::endl;
+    return;
   }
-  /// Take care of the common mode
-  mCommonModeContainer.addDigit(cru, timeBin, charge);
+  if (cru.sector() != mSector) {
+    LOG(FATAL) << "Digit for wrong sector " << cru.sector() << " added in sector " << mSector << FairLogger::endl;
+  }
+  /// If time bin outside specified range, the range of the vector is extended by one full drift time.
+  while (mTimeBins.size() <= mEffectiveTimeBin) {
+    mTimeBins.resize(mTimeBins.size() + 500);
+  }
+  mTimeBins[mEffectiveTimeBin].addDigit(eventID, trackID, cru, globalPad, signal);
 }
 
-void DigitContainer::fillOutputContainer(std::vector<o2::TPC::Digit>* output,
-                                         o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth,
-                                         std::vector<o2::TPC::DigitMCMetaData>* debug, int eventTime, bool isContinuous)
+void DigitContainer::fillOutputContainer(std::vector<Digit>* output,
+                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                                         std::vector<DigitMCMetaData>* debug, TimeBin eventTime, bool isContinuous)
 {
-  for (auto& aCRU : mCRU) {
-    if (aCRU == nullptr)
-      continue;
-    aCRU->fillOutputContainer(output, mcTruth, debug, aCRU->getCRUID(), eventTime, isContinuous);
-    if (!isContinuous) {
-      aCRU->reset();
+  int nProcessedTimeBins = 0;
+  TimeBin timeBin = mFirstTimeBin;
+  for (auto& time : mTimeBins) {
+    /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
+    /// OR the readout is triggered (i.e. not continuous) and we can dump everything in any case
+    if ((nProcessedTimeBins + mFirstTimeBin < eventTime) || !isContinuous) {
+      ++nProcessedTimeBins;
+      time.fillOutputContainer(output, mcTruth, debug, mSector, timeBin);
+    } else {
+      break;
+    }
+    timeBin++;
+  }
+  if (nProcessedTimeBins > 0) {
+    mFirstTimeBin += nProcessedTimeBins;
+    while (nProcessedTimeBins--) {
+      mTimeBins.pop_front();
     }
   }
-  mCommonModeContainer.cleanUp(eventTime, isContinuous);
+  if (!isContinuous) {
+    mFirstTimeBin = 0;
+  }
 }

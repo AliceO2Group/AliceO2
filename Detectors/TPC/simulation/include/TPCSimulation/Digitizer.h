@@ -34,16 +34,6 @@ namespace TPC
 
 class DigitContainer;
 
-/// Debug output
-typedef struct {
-  float CRU;
-  float time;
-  float row;
-  float pad;
-  float nElectrons;
-} GEMRESPONSE;
-static GEMRESPONSE GEMresponse;
-
 /// \class Digitizer
 /// This is the digitizer for the ALICE GEM TPC.
 /// It is the main class and steers all relevant physical processes for the signal formation in the detector.
@@ -72,13 +62,10 @@ class Digitizer
   /// Steer conversion of points to digits
   /// \param points Container with TPC points
   /// \return digits container
-  DigitContainer* Process(const std::vector<o2::TPC::HitGroup>& hits, int eventID, float eventTime);
+  DigitContainer* Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
+                          float eventTime);
 
   DigitContainer* getDigitContainer() const { return mDigitContainer; }
-
-  /// Enable the debug output after application of the PRF
-  /// Can be set via DigitizerTask::setDebugOutput("PRFdebug")
-  static void setPRFDebug() { mDebugFlagPRF = true; }
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -89,10 +76,7 @@ class Digitizer
   Digitizer& operator=(const Digitizer&);
 
   DigitContainer* mDigitContainer; ///< Container for the Digits
-
-  std::unique_ptr<TTree> mDebugTreePRF; ///< Output tree for the output after the PRF
-  static bool mDebugFlagPRF;            ///< Flag for debug output after the PRF
-  static bool mIsContinuous;            ///< Switch for continuous readout
+  static bool mIsContinuous;       ///< Switch for continuous readout
 
   ClassDefNV(Digitizer, 1);
 };

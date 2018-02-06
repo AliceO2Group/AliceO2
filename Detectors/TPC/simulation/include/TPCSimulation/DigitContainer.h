@@ -15,9 +15,10 @@
 #ifndef ALICEO2_TPC_DigitContainer_H_
 #define ALICEO2_TPC_DigitContainer_H_
 
+#include <deque>
 #include "TPCBase/CRU.h"
-#include "TPCSimulation/CommonModeContainer.h"
-#include "TPCSimulation/DigitCRU.h"
+#include "DataFormatsTPC/Defs.h"
+#include "TPCSimulation/DigitTime.h"
 
 namespace o2
 {
@@ -42,25 +43,22 @@ class DigitContainer
   /// Destructor
   ~DigitContainer() = default;
 
+  /// Set up the container
+  /// \param sector Sector to be processed
+  void setup(const Sector& sector);
+
+  /// Reset the container
   void reset();
-
-  /// Get the size of the container
-  /// \return Size of the CRU container
-  size_t getSize() const { return mCRU.size(); }
-
-  /// Get the number of entries in the container
-  /// \return Number of entries in the CRU container
-  int getNentries() const;
 
   /// Add digit to the container
   /// \param eventID MC Event ID
-  /// \param hitID MC Hit ID
+  /// \param trackID MC Track ID
   /// \param cru CRU of the digit
-  /// \param row Pad row of digit
-  /// \param pad Pad of digit
+  /// \param globalPad Global pad number of the digit
   /// \param timeBin Time bin of the digit
-  /// \param charge Charge of the digit
-  void addDigit(int eventID, size_t hitID, int cru, int timeBin, int row, int pad, float charge);
+  /// \param signal Charge of the digit in ADC counts
+  void addDigit(size_t eventID, size_t trackID, const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad,
+                float signal);
 
   /// Fill output vector
   /// \param output Output container
@@ -68,36 +66,25 @@ class DigitContainer
   /// \param debug Optional debug output container
   /// \param eventTime time stamp of the event
   /// \param isContinuous Switch for continuous readout
-  void fillOutputContainer(std::vector<o2::TPC::Digit>* output,
-                           o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth,
-                           std::vector<o2::TPC::DigitMCMetaData>* debug, int eventTime = 0, bool isContinuous = true);
+  void fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                           std::vector<DigitMCMetaData>* debug, TimeBin eventTime = 0, bool isContinuous = true);
 
  private:
-  std::array<std::unique_ptr<DigitCRU>, CRU::MaxCRU> mCRU; ///< CRU Container for the ADC value
-  CommonModeContainer mCommonModeContainer;                ///< Container for the common mode values
+  Sector mSector;                  ///< ID of the currently processed sector
+  TimeBin mFirstTimeBin;           ///< First time bin to consider
+  TimeBin mEffectiveTimeBin;       ///< Effective time bin of that digit
+  std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
 };
 
-inline DigitContainer::DigitContainer() : mCRU(), mCommonModeContainer() {}
+inline DigitContainer::DigitContainer() : mSector(-1), mFirstTimeBin(0), mEffectiveTimeBin(0), mTimeBins(500) {}
+
+inline void DigitContainer::setup(const Sector& sector) { mSector = sector; }
 
 inline void DigitContainer::reset()
 {
-  for (auto& aCRU : mCRU) {
-    if (aCRU == nullptr)
-      continue;
-    aCRU->reset();
+  for (auto& time : mTimeBins) {
+    time.reset();
   }
-  std::fill(mCRU.begin(), mCRU.end(), nullptr);
-}
-
-inline int DigitContainer::getNentries() const
-{
-  int counter = 0;
-  for (auto& aCRU : mCRU) {
-    if (aCRU == nullptr)
-      continue;
-    ++counter;
-  }
-  return counter;
 }
 }
 }

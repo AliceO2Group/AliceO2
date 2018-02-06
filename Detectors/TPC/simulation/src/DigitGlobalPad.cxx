@@ -8,16 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DigitPad.cxx
+/// \file DigitGlobalPad.cxx
 /// \brief Implementation of the Pad container
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
-#include "TPCSimulation/DigitPad.h"
-#include "TPCBase/CRU.h"
-#include "TPCBase/Digit.h"
-#include "TPCBase/PadPos.h"
-#include "TPCBase/PadSecPos.h"
-#include "TPCSimulation/DigitMCMetaData.h"
+#include "TPCSimulation/DigitGlobalPad.h"
+#include "TPCBase/Mapper.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 
 #include <boost/bind.hpp>
@@ -27,22 +23,24 @@
 
 using namespace o2::TPC;
 
-void DigitPad::fillOutputContainer(std::vector<o2::TPC::Digit>* output,
-                                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth,
-                                   std::vector<o2::TPC::DigitMCMetaData>* debug, int cru, int timeBin, int row, int pad,
-                                   float commonMode)
+void DigitGlobalPad::fillOutputContainer(std::vector<Digit>* output,
+                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                                         std::vector<DigitMCMetaData>* debug, const CRU& cru, TimeBin timeBin,
+                                         GlobalPadNumber globalPad, float commonMode)
 {
+  const static Mapper& mapper = Mapper::instance();
+  const PadPos pad = mapper.padPos(globalPad);
+
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is
   /// created in written out
   const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise,
                                                   // pedestals and saturation of the SAMPA
 
-  float noise = 0.f;
-  float pedestal = 0.f;
+  float noise, pedestal;
+  const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(cru.sector(), pad), pedestal, noise);
 
-  const float mADC =
-    SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)), pedestal, noise);
-  if (mADC > 0) {
+  /// only write out the data if there is actually charge on that pad
+  if (mADC > 0 && mChargePad > 0) {
 
     /// Sort the MC labels according to their occurrence
     using P = std::pair<MCCompLabel, int>;
@@ -50,7 +48,7 @@ void DigitPad::fillOutputContainer(std::vector<o2::TPC::Digit>* output,
 
     /// Write out the Digit
     const auto digiPos = output->size();
-    output->emplace_back(cru, mADC, row, pad, timeBin); /// create Digit and append to container
+    output->emplace_back(cru, mChargePad, pad.getRow(), pad.getPad(), timeBin); /// create Digit and append to container
 
     for (auto& mcLabel : mMClabel) {
       mcTruth.addElement(digiPos, mcLabel.first); /// add MCTruth output

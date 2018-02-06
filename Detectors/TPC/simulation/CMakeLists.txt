@@ -6,15 +6,12 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
    src/Baseline.cxx
-   src/CommonModeContainer.cxx
    src/Detector.cxx
    src/DigitMCMetaData.cxx
    src/DigitContainer.cxx
-   src/DigitCRU.cxx
+   src/DigitGlobalPad.cxx
    src/Digitizer.cxx
    src/DigitizerTask.cxx
-   src/DigitPad.cxx
-   src/DigitRow.cxx
    src/DigitTime.cxx
    src/ElectronTransport.cxx
    src/GEMAmplification.cxx
@@ -25,15 +22,12 @@ set(SRCS
 
 set(HEADERS
    include/${MODULE_NAME}/Baseline.h
-   include/${MODULE_NAME}/CommonModeContainer.h
    include/${MODULE_NAME}/Detector.h
    include/${MODULE_NAME}/DigitMCMetaData.h
    include/${MODULE_NAME}/DigitContainer.h
-   include/${MODULE_NAME}/DigitCRU.h
+   include/${MODULE_NAME}/DigitGlobalPad.h
    include/${MODULE_NAME}/Digitizer.h
    include/${MODULE_NAME}/DigitizerTask.h
-   include/${MODULE_NAME}/DigitPad.h
-   include/${MODULE_NAME}/DigitRow.h
    include/${MODULE_NAME}/DigitTime.h
    include/${MODULE_NAME}/ElectronTransport.h
    include/${MODULE_NAME}/GEMAmplification.h
@@ -73,7 +67,6 @@ set(LIBRARY_NAME ${MODULE_NAME})
 #endforeach (_file RANGE 0 ${_length})
 
 set(TEST_SRCS
-   test/testTPCCommonMode.cxx
    test/testTPCDigitContainer.cxx
    test/testTPCElectronTransport.cxx
    test/testTPCGEMAmplification.cxx
