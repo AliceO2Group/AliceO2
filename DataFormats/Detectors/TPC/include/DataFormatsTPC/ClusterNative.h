@@ -29,8 +29,6 @@ class MCTruthContainer;
 
 namespace o2
 {
-namespace DataFormat
-{
 namespace TPC
 {
 /**
@@ -134,7 +132,6 @@ struct ClusterNativeAccessFullTPC {
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::TPC::Constants::MAXSECTOR]
                                                                      [o2::TPC::Constants::MAXGLOBALPADROW];
 };
-}
 }
 }
 #endif

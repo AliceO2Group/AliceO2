@@ -40,7 +40,6 @@
 #include "AliHLTTPCCAO2Interface.h"
 
 using namespace o2::TPC;
-using namespace o2::DataFormat::TPC;
 using namespace o2;
 using namespace o2::dataformats;
 

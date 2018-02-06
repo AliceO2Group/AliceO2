@@ -16,7 +16,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCBase/Constants.h"
 
-using namespace o2::DataFormat::TPC;
 using namespace o2::TPC;
 
 std::unique_ptr<ClusterNativeAccessFullTPC> TPCClusterFormatHelper::accessNativeContainerArray(
