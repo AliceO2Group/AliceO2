@@ -45,6 +45,7 @@ enum RocType { IROC = 0, OROC = 1 };
 
 /// TPC GEM stack types
 enum GEMstack { IROCgem = 0, OROC1gem = 1, OROC2gem = 2, OROC3gem = 3 };
+constexpr unsigned short GEMSTACKSPERSECTOR = 4;
 
 /// Definition of the different pad subsets
 enum class PadSubset : char {
@@ -65,6 +66,9 @@ typedef Point3D<float> LocalPosition3D;
 
 /// global pad number
 typedef unsigned short GlobalPadNumber;
+
+/// global time bin
+typedef unsigned int TimeBin;
 
 // GlobalPosition3D LocalToGlobal(const LocalPosition3D pos, const float alpha)
 // {

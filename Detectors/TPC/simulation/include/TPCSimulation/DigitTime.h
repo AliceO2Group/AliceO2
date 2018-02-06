@@ -15,12 +15,16 @@
 #ifndef ALICEO2_TPC_DigitTime_H_
 #define ALICEO2_TPC_DigitTime_H_
 
-#include "TPCSimulation/DigitRow.h"
+#include "TPCBase/Mapper.h"
+#include "TPCSimulation/DigitGlobalPad.h"
 
 namespace o2
 {
 namespace TPC
 {
+
+class Digit;
+class DigitMCMetaData;
 
 /// \class DigitTime
 /// This is the third class of the intermediate Digit Containers, in which all incoming electrons from the hits are
@@ -32,9 +36,7 @@ class DigitTime
 {
  public:
   /// Constructor
-  /// \param mTimeBin time bin
-  /// \param npads Number of pads in the row
-  DigitTime(int timeBin, int nrows);
+  DigitTime();
 
   /// Destructor
   ~DigitTime() = default;
@@ -42,34 +44,18 @@ class DigitTime
   /// Resets the container
   void reset();
 
-  /// Get the size of the container
-  /// \return Size of the Row container
-  size_t getSize() const { return mRows.size(); }
-
-  /// Get the container
-  /// \return container
-  const std::vector<std::unique_ptr<DigitRow>>& getRowContainer() const { return mRows; }
-
-  /// Get the number of entries in the container
-  /// \return Number of entries in the Row container
-  int getNentries() const;
-
-  /// Get the time bin
-  /// \return time bin
-  int getTimeBin() const { return mTimeBin; }
-
-  /// Get the accumulated charge in one time bin
-  /// \return Accumulated charge in one time bin
-  float getTotalChargeTimeBin() const { return mTotalChargeTimeBin; }
+  /// Get common mode for a given GEM stack
+  /// \param CRU CRU of the digit
+  /// \return Common mode value in that time bin for a given GEM ROC
+  float getCommonMode(const CRU& cru) const;
 
   /// Add digit to the row container
   /// \param eventID MC Event ID
-  /// \param hitID MC Hit ID
+  /// \param trackID MC Track ID
   /// \param cru CRU of the digit
-  /// \param row Pad row of digit
-  /// \param pad Pad of digit
-  /// \param charge Charge of the digit
-  void setDigit(int eventID, size_t hitID, int cru, int row, int pad, float charge);
+  /// \param globalPad Global pad number of the digit
+  /// \param signal Charge of the digit in ADC counts
+  void addDigit(size_t eventID, size_t trackID, const CRU& cru, GlobalPadNumber globalPad, float signal);
 
   /// Fill output vector
   /// \param output Output container
@@ -78,38 +64,32 @@ class DigitTime
   /// \param cru CRU ID
   /// \param timeBin Time bin
   /// \param commonMode Common mode value of that specific ROC
-  void fillOutputContainer(std::vector<o2::TPC::Digit>* output,
-                           o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth,
-                           std::vector<o2::TPC::DigitMCMetaData>* debug, int cru, int timeBin, float commonMode = 0.f);
+  void fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                           std::vector<DigitMCMetaData>* debug, const Sector& sector, TimeBin timeBin,
+                           float commonMode = 0.f);
 
  private:
-  float mTotalChargeTimeBin;                    ///< Total accumulated charge in that time bin
-  int mTimeBin;                                 ///< Time bin of that ADC value
-  std::vector<std::unique_ptr<DigitRow>> mRows; ///< Row Container for the ADC value
+  std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
+  std::array<DigitGlobalPad, Mapper::getPadsInSector()> mGlobalPads; ///< Pad Container for the ADC value
 };
 
-inline DigitTime::DigitTime(int timeBin, int nrows) : mTotalChargeTimeBin(0.), mTimeBin(timeBin), mRows(nrows) {}
+inline DigitTime::DigitTime() : mCommonMode(), mGlobalPads() { mCommonMode.fill(0); }
 
 inline void DigitTime::reset()
 {
-  for (auto& aRow : mRows) {
-    if (aRow == nullptr)
-      continue;
-    aRow->reset();
+  for (auto& pad : mGlobalPads) {
+    pad.reset();
   }
-  mTotalChargeTimeBin = 0.;
-  mRows.clear();
+  mCommonMode.fill(0);
 }
 
-inline int DigitTime::getNentries() const
+inline float DigitTime::getCommonMode(const CRU& cru) const
 {
-  int counter = 0;
-  for (auto& aRow : mRows) {
-    if (aRow == nullptr)
-      continue;
-    ++counter;
-  }
-  return counter;
+  static const Mapper& mapper = Mapper::instance();
+  const auto gemStack = static_cast<int>(cru.gemStack());
+  const auto nPads = mapper.getNumberOfPads(gemStack);
+  return mCommonMode[gemStack] /
+         static_cast<float>(nPads); /// simple case when there is no external capacitance on the ROC;
 }
 }
 }

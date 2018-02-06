@@ -71,34 +71,24 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  // in case we are treating a specific sector
-  if (mHitSector != -1) {
-    std::stringstream sectornamestr;
-    sectornamestr << "TPCHitsSector" << mHitSector;
-    LOG(INFO) << "FETCHING HITS FOR SECTOR " << mHitSector << "\n";
-    mSectorHitsArray[mHitSector] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
-  } else {
-    // in case we are treating all sectors
-    for (int s = 0; s < Sector::MAXSECTOR; ++s) {
-      std::stringstream sectornamestr;
-      sectornamestr << "TPCHitsSector" << s;
-      LOG(INFO) << "FETCHING HITS FOR SECTOR " << s << "\n";
-      mSectorHitsArray[s] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
-    }
-  }
+  /// Fetch the hits for the sector which is to be processed
+  std::stringstream sectornamestr;
+  sectornamestr << "TPCHitsSector" << mHitSector;
+  LOG(INFO) << "FETCHING HITS FOR SECTOR " << mHitSector << "\n";
+  mSectorHitsArray[mHitSector] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
 
   // Register output container
-  mDigitsArray = new std::vector<o2::TPC::Digit>;
-  mgr->RegisterAny("TPCDigit", mDigitsArray, kTRUE);
+  mDigitsArray = new std::vector<Digit>;
+  mgr->RegisterAny(Form("TPCDigit%i", mHitSector), mDigitsArray, kTRUE);
 
   // Register MC Truth container
   mMCTruthArray = new typename std::remove_pointer<decltype(mMCTruthArray)>::type;
-  mgr->RegisterAny("TPCDigitMCTruth", mMCTruthArray, kTRUE);
+  mgr->RegisterAny(Form("TPCDigitMCTruth%i", mHitSector), mMCTruthArray, kTRUE);
 
   // Register additional (optional) debug output
   if (mDigitDebugOutput) {
-    mDigitsDebugArray = new std::vector<o2::TPC::DigitMCMetaData>;
-    mgr->RegisterAny("TPCDigitMCMetaData", mDigitsDebugArray, kTRUE);
+    mDigitsDebugArray = new std::vector<DigitMCMetaData>;
+    mgr->RegisterAny(Form("TPCDigitMCMetaData%i", mHitSector), mDigitsDebugArray, kTRUE);
   }
 
   mDigitizer->init();
@@ -118,24 +108,18 @@ void DigitizerTask::Exec(Option_t* option)
   }
   const int eventTimeBin = SAMPAProcessing::getTimeBinFromTime(eventTime);
 
-  LOG(DEBUG) << "Running digitization on new event at time " << eventTime << " us in time bin " << eventTimeBin
-             << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization for sector " << mHitSector << " on new event at time " << eventTime
+             << " us in time bin " << eventTimeBin << FairLogger::endl;
   mDigitsArray->clear();
   mMCTruthArray->clear();
   if (mDigitDebugOutput) {
     mDigitsDebugArray->clear();
   }
 
-  if (mHitSector == -1) {
-    // treat all sectors
-    for (int s = 0; s < Sector::MAXSECTOR; ++s) {
-      LOG(DEBUG) << "Processing sector " << s << "\n";
-      mDigitContainer = mDigitizer->Process(*mSectorHitsArray[s], mgr->GetEntryNr(), eventTime);
-    }
-  } else {
-    // treat only chosen sector
-    mDigitContainer = mDigitizer->Process(*mSectorHitsArray[mHitSector], mgr->GetEntryNr(), eventTime);
-  }
+  // Treat the chosen sector
+  mDigitContainer->setup(mHitSector);
+  mDigitContainer =
+    mDigitizer->Process(Sector(mHitSector), *mSectorHitsArray[mHitSector], mgr->GetEntryNr(), eventTime);
   mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin,
                                        mIsContinuousReadout);
 }

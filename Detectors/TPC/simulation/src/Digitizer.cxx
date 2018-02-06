@@ -30,32 +30,24 @@ ClassImp(o2::TPC::Digitizer)
 
   using namespace o2::TPC;
 
-bool o2::TPC::Digitizer::mDebugFlagPRF = false;
 bool o2::TPC::Digitizer::mIsContinuous = true;
 
-Digitizer::Digitizer() : mDigitContainer(nullptr), mDebugTreePRF(nullptr) {}
+Digitizer::Digitizer() : mDigitContainer(nullptr) {}
 
 Digitizer::~Digitizer() { delete mDigitContainer; }
 
-void Digitizer::init()
-{
-  /// Initialize the task and the output container
-  /// \todo get rid of new? check with Mohammad
-  mDigitContainer = new DigitContainer();
+void Digitizer::init() { mDigitContainer = new DigitContainer(); }
 
-  //  mDebugTreePRF = std::unique_ptr<TTree> (new TTree("PRFdebug", "PRFdebug"));
-  //  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
-}
-
-DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, int eventID, float eventTime)
+DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
+                                   float eventTime)
 {
-  //  mDigitContainer->reset();
   const static Mapper& mapper = Mapper::instance();
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
 
-  if (!mIsContinuous)
+  if (!mIsContinuous) {
     eventTime = 0.f; /// transform in us
+  }
 
   /// \todo static_thread for thread savety?
   static GEMAmplification gemAmplification;
@@ -66,7 +58,6 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, i
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
 
-  static size_t hitCounter = 0;
   for (auto& inputgroup : hits) {
     //    auto *inputgroup = static_cast<HitGroup*>(pointObject);
     const int MCTrackID = inputgroup.GetTrackID();
@@ -89,21 +80,30 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, i
         const float absoluteTime = driftTime + eventTime + eh.GetTime() * 0.001; /// in us
 
         /// Attachment
-        if (electronTransport.isElectronAttachment(driftTime))
+        if (electronTransport.isElectronAttachment(driftTime)) {
           continue;
+        }
 
         /// Remove electrons that end up outside the active volume
         /// \todo should go to mapper?
-        if (std::abs(posEleDiff.Z()) > detParam.getTPClength())
+        if (std::abs(posEleDiff.Z()) > detParam.getTPClength()) {
           continue;
+        }
 
         const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
-        if (!digiPadPos.isValid())
+        if (!digiPadPos.isValid()) {
           continue;
+        }
+
+        /// Remove digits the end up outside the currently produced sector
+        if (digiPadPos.getCRU().sector() != sector) {
+          continue;
+        }
 
         const int nElectronsGEM = gemAmplification.getStackAmplification();
-        if (nElectronsGEM == 0)
+        if (nElectronsGEM == 0) {
           continue;
+        }
 
         /// Loop over all individual pads with signal due to pad response function
         /// Currently the PRF is not applied yet due to some problems with the mapper
@@ -116,32 +116,27 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, i
         //     DigitPos digiPos(digiPadPos.getCRU(), padPos);
 
         DigitPos digiPos = digiPadPos;
-        if (!digiPos.isValid())
+        if (!digiPos.isValid()) {
           continue;
+        }
         // const float normalizedPadResponse = padResponse.getPadResponse(posEleDiff, digiPos);
 
         const float normalizedPadResponse = 1.f;
-        if (normalizedPadResponse <= 0)
+        if (normalizedPadResponse <= 0) {
           continue;
+        }
+
         const int pad = digiPos.getPadPos().getPad();
         const int row = digiPos.getPadPos().getRow();
-
-        if (mDebugFlagPRF) {
-          /// \todo Write out the debug output
-          GEMresponse.CRU = digiPos.getCRU().number();
-          GEMresponse.time = absoluteTime;
-          GEMresponse.row = row;
-          GEMresponse.pad = pad;
-          GEMresponse.nElectrons = nElectronsGEM * normalizedPadResponse;
-          // mDebugTreePRF->Fill();
-        }
+        const GlobalPadNumber globalPad =
+          mapper.getPadNumberInROC(PadROCPos(digiPadPos.getCRU().roc(), PadPos(row, pad)));
 
         const float ADCsignal = SAMPAProcessing::getADCvalue(nElectronsGEM * normalizedPadResponse);
         SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
         for (float i = 0; i < nShapedPoints; ++i) {
           const float time = absoluteTime + i * eleParam.getZBinWidth();
-          mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU().number(),
-                                    SAMPAProcessing::getTimeBinFromTime(time), row, pad, signalArray[i]);
+          mDigitContainer->addDigit(eventID, MCTrackID, digiPos.getCRU(), SAMPAProcessing::getTimeBinFromTime(time),
+                                    globalPad, signalArray[i]);
         }
 
         // }
@@ -149,7 +144,6 @@ DigitContainer* Digitizer::Process(const std::vector<o2::TPC::HitGroup>& hits, i
         /// end of loop over prf
       }
       /// end of loop over electrons
-      ++hitCounter;
     }
   }
   /// end of loop over points
