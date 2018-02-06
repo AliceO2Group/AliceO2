@@ -22,8 +22,6 @@
 
 namespace o2
 {
-namespace DataFormat
-{
 namespace TPC
 {
 // check function for different versions of the cluster type, versions
@@ -86,5 +84,4 @@ bool checkClusterType()
 
 BOOST_AUTO_TEST_CASE(test_tpc_clusternative) { checkClusterType<ClusterNative>(); }
 } // namespace TPC
-} // namespace DataFormat
 } // namespace o2

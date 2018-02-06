@@ -29,7 +29,6 @@
 #endif
 
 using namespace o2::TPC;
-using namespace o2::DataFormat::TPC;
 using namespace std;
 
 int runHardwareClusterDecoderRaw(TString outfile = "", int tf = 0) {

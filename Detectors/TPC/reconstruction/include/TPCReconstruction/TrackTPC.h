@@ -81,16 +81,16 @@ class TrackTPC : public o2::track::TrackParCov
     sectorIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[4 * mNClusters + nCluster];
     rowIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[5 * mNClusters + nCluster];
   }
-  const o2::DataFormat::TPC::ClusterNative& getCluster(int nCluster,
-                                                       const o2::DataFormat::TPC::ClusterNativeAccessFullTPC& clusters,
+  const o2::TPC::ClusterNative& getCluster(int nCluster,
+                                                       const o2::TPC::ClusterNativeAccessFullTPC& clusters,
                                                        uint8_t& sectorIndex, uint8_t& rowIndex) const
   {
     uint32_t clusterIndex;
     getClusterReference(nCluster, sectorIndex, rowIndex, clusterIndex);
     return (clusters.clusters[sectorIndex][rowIndex][clusterIndex]);
   }
-  const o2::DataFormat::TPC::ClusterNative& getCluster(
-    int nCluster, const o2::DataFormat::TPC::ClusterNativeAccessFullTPC& clusters) const
+  const o2::TPC::ClusterNative& getCluster(
+    int nCluster, const o2::TPC::ClusterNativeAccessFullTPC& clusters) const
   {
     uint8_t sectorIndex, rowIndex;
     return (getCluster(nCluster, clusters, sectorIndex, rowIndex));

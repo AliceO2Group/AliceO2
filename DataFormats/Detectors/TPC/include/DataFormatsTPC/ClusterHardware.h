@@ -19,8 +19,6 @@
 
 namespace o2
 {
-namespace DataFormat
-{
 namespace TPC
 {
 struct ClusterHardware { // Temporary draft of hardware clusters. The ...Pre members are yet to be defined, and will
@@ -53,7 +51,6 @@ struct ClusterHardwareContainer { // Temporary struct to hold a set of hardware 
   uint16_t CRU;                //< CRU of the cluster
   ClusterHardware clusters[0]; //< Clusters
 };
-}
 }
 }
 
