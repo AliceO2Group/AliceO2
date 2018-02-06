@@ -7,24 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/FrameworkGUIDebugger.h"
-#include <vector>
 #include <algorithm>
+#include <vector>
+#include "Framework/FrameworkGUIDebugger.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // Dummy function in case we want to build without debugger.
-std::function<void(void)>
-getGUIDebugger(const std::vector<DeviceInfo> &infos,
-               const std::vector<DeviceSpec> &devices,
-               const std::vector<DeviceMetricsInfo> &metricsInfos,
-               const DriverInfo &driverInfo,
-               std::vector<DeviceControl> &controls,
-               DriverControl &driverControl
-               )
+std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
+                                         const std::vector<DeviceMetricsInfo>& metricsInfos,
+                                         const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
+                                         DriverControl& driverControl)
 {
-  return [](){};
+  return []() {};
 }
 
 void showNodeGraph(bool* opened) {}

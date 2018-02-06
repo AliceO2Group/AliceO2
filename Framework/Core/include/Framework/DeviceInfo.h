@@ -10,18 +10,20 @@
 #ifndef FRAMEWORK_DEVICEINFO_H
 #define FRAMEWORK_DEVICEINFO_H
 
-#include "Framework/Variant.h"
 #include "Framework/LogParsingHelpers.h"
+#include "Framework/Variant.h"
 
-#include <vector>
-#include <string>
 #include <cstddef>
+#include <string>
+#include <vector>
 // For pid_t
 #include <unistd.h>
 #include <array>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct DeviceInfo {
   /// The pid of the device associated to this device
@@ -46,7 +48,6 @@ struct DeviceInfo {
   /// Whether the device is ready to quit.
   bool readyToQuit;
 };
-
 
 } // namespace framework
 } // namespace o2
