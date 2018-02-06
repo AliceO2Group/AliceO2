@@ -32,8 +32,8 @@
 
 #include "DDSConfigHelpers.h"
 #include "DeviceSpecHelpers.h"
-#include "DriverInfo.h"
 #include "DriverControl.h"
+#include "DriverInfo.h"
 #include "GraphvizHelpers.h"
 #include "options/FairMQProgOptions.h"
 
@@ -108,13 +108,14 @@ bool getChildData(int infd, DeviceInfo& outinfo)
 /// Return true if all the DeviceInfo in \a infos are
 /// ready to quit. false otherwise.
 /// FIXME: move to an helper class
-bool checkIfCanExit(std::vector<DeviceInfo> const& infos) {
+bool checkIfCanExit(std::vector<DeviceInfo> const& infos)
+{
   if (infos.empty()) {
     return false;
   }
   for (auto& info : infos) {
     if (info.readyToQuit == false) {
-       return false;
+      return false;
     }
   }
   return true;
@@ -183,12 +184,9 @@ static void handle_sigint(int signum)
 
 /// This will start a new device by forking and executing a
 /// new child
-void spawnDevice(DeviceSpec const& spec,
-                 std::map<int, size_t> &socket2DeviceInfo,
-                 DeviceControl &control,
-                 DeviceExecution &execution,
-                 std::vector<DeviceInfo> &deviceInfos,
-                 int &maxFd, fd_set &childFdset) {
+void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInfo, DeviceControl& control,
+                 DeviceExecution& execution, std::vector<DeviceInfo>& deviceInfos, int& maxFd, fd_set& childFdset)
+{
   int childstdout[2];
   int childstderr[2];
 
@@ -254,11 +252,9 @@ void spawnDevice(DeviceSpec const& spec,
   FD_SET(childstderr[0], &childFdset);
 }
 
-void doRunning(DriverInfo &driverInfo,
-               std::vector<DeviceInfo> &infos,
-               std::vector<DeviceSpec> const &specs,
-               std::vector<DeviceControl> &controls,
-               std::vector<DeviceMetricsInfo> &metricsInfos) {
+void doRunning(DriverInfo& driverInfo, std::vector<DeviceInfo>& infos, std::vector<DeviceSpec> const& specs,
+               std::vector<DeviceControl>& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
+{
   // Wait for children to say something. When they do
   // print it.
   fd_set fdset;
@@ -346,8 +342,8 @@ void doRunning(DriverInfo &driverInfo,
       }
       // We keep track of the maximum log error a
       // device has seen.
-      if (logLevel > info.maxLogLevel && logLevel > LogParsingHelpers::LogLevel::Info
-          && logLevel != LogParsingHelpers::LogLevel::Unknown) {
+      if (logLevel > info.maxLogLevel && logLevel > LogParsingHelpers::LogLevel::Info &&
+          logLevel != LogParsingHelpers::LogLevel::Unknown) {
         info.maxLogLevel = logLevel;
       }
       if (logLevel == LogParsingHelpers::LogLevel::Error) {
@@ -395,13 +391,9 @@ void handle_sigchld(int sig)
 // - TODO: allow single child view?
 // - TODO: allow last line per child mode?
 // - TODO: allow last error per child mode?
-void doParent(std::vector<DeviceInfo> &infos,
-              std::vector<DeviceSpec> &deviceSpecs,
-              std::vector<DeviceControl> &controls,
-              std::vector<DeviceMetricsInfo> &metricsInfos,
-              std::vector<DeviceExecution> &deviceExecutions,
-              std::vector<DriverState> const &startProgram,
-              bool batch)
+void doParent(std::vector<DeviceInfo>& infos, std::vector<DeviceSpec>& deviceSpecs,
+              std::vector<DeviceControl>& controls, std::vector<DeviceMetricsInfo>& metricsInfos,
+              std::vector<DeviceExecution>& deviceExecutions, std::vector<DriverState> const& startProgram, bool batch)
 {
   DriverInfo driverInfo;
   driverInfo.maxFd = 0;
@@ -430,7 +422,7 @@ void doParent(std::vector<DeviceInfo> &infos,
       current = DriverState::UNKNOWN;
     }
     driverInfo.states.pop_back();
-    switch(current) {
+    switch (current) {
       case DriverState::INIT:
         LOG(INFO) << "Initialising O2 Data Processing Layer";
 
@@ -450,32 +442,23 @@ void doParent(std::vector<DeviceInfo> &infos,
         /// resource offers from DDS or whatever resource manager we use.
         driverInfo.states.push_back(DriverState::RUNNING);
         driverInfo.states.push_back(DriverState::GUI);
-//        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
+        //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
         break;
       case DriverState::REDEPLOY_GUI:
         // The callback for the GUI needs to be recalculated every time
-        // the deployed configuration changes, e.g. a new device 
+        // the deployed configuration changes, e.g. a new device
         // has been added to the topology.
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
         if (window) {
-          debugGUICallback = getGUIDebugger(infos,
-              deviceSpecs,
-              metricsInfos,
-              driverInfo,
-              controls,
-              driverControl);
+          debugGUICallback = getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl);
         }
         break;
       case DriverState::SCHEDULE:
         LOG(INFO) << "Redeployment of configuration asked.";
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
-          spawnDevice(deviceSpecs[di],
-                      driverInfo.socket2DeviceInfo,
-                      controls[di],
-                      deviceExecutions[di],
-                      infos,
+          spawnDevice(deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
                       driverInfo.maxFd, driverInfo.childFdset);
         }
         driverInfo.maxFd += 1;
@@ -489,9 +472,7 @@ void doParent(std::vector<DeviceInfo> &infos,
       case DriverState::RUNNING:
         // Calculate what we should do next and eventually
         // show the GUI
-        if (batch
-            || guiQuitRequested
-            || (checkIfCanExit(infos) == true)) {
+        if (batch || guiQuitRequested || (checkIfCanExit(infos) == true)) {
           // Something requested to quit. Let's update the GUI
           // one more time and then EXIT.
           LOG(INFO) << "Quitting";
@@ -504,13 +485,11 @@ void doParent(std::vector<DeviceInfo> &infos,
           // further scheduling.
           driverInfo.states.push_back(DriverState::SCHEDULE);
           driverInfo.states.push_back(DriverState::GUI);
-        }
-        else if (deviceSpecs.size() == 0) {
+        } else if (deviceSpecs.size() == 0) {
           LOG(INFO) << "No device resulting from the workflow. Quitting.";
-          // If there are no deviceSpecs, we exit. 
+          // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
-        }
-        else {
+        } else {
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::GUI);
         }
@@ -530,7 +509,6 @@ void doParent(std::vector<DeviceInfo> &infos,
     }
   }
 }
-
 
 // Magic to support both old and new FairRoot logger behavior
 // is_define<fair::Logger> only works if Logger is fully defined,
@@ -735,11 +713,9 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
     exit(0);
   } else {
     // By default we simply start the main loop
-    startProgram = {DriverState::INIT};
+    startProgram = { DriverState::INIT };
   }
- 
-  doParent(gDeviceInfos, deviceSpecs, gDeviceControls, gDeviceMetricsInfos,
-           gDeviceExecutions,
-           startProgram, batch);
+
+  doParent(gDeviceInfos, deviceSpecs, gDeviceControls, gDeviceMetricsInfos, gDeviceExecutions, startProgram, batch);
   return killChildren(gDeviceInfos);
 }

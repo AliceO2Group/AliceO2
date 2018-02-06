@@ -8,17 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/FrameworkGUIDebugger.h"
-#include "Framework/FrameworkGUIDevicesGraph.h"
-#include "Framework/PaletteHelpers.h"
-#include "DriverInfo.cxx"
-#include "DriverControl.cxx"
-#include "DebugGUI/imgui.h"
-#include <set>
 #include <algorithm>
 #include <iostream>
+#include <set>
+#include "DebugGUI/imgui.h"
+#include "DriverControl.cxx"
+#include "DriverInfo.cxx"
+#include "Framework/FrameworkGUIDevicesGraph.h"
+#include "Framework/PaletteHelpers.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct DeviceGUIState {
   std::string label;
@@ -32,28 +34,28 @@ struct WorkspaceGUIState {
 
 static WorkspaceGUIState gState;
 
-void
-optionsTable(const DeviceSpec &spec, const DeviceControl &control) {
+void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
+{
   if (spec.options.empty()) {
     return;
   }
   if (ImGui::CollapsingHeader("Options:")) {
     ImGui::Columns(2);
-    auto labels = {"Name", "Value"};
-    for (auto &label : labels) {
+    auto labels = { "Name", "Value" };
+    for (auto& label : labels) {
       ImGui::TextUnformatted(label);
       ImGui::NextColumn();
     }
-    for (auto &option : spec.options) {
+    for (auto& option : spec.options) {
       ImGui::TextUnformatted(option.name.c_str());
       ImGui::NextColumn();
       auto currentValueIt = control.options.find(option.name);
 
       // Did not find the option
       if (currentValueIt == control.options.end()) {
-        switch(option.type) {
+        switch (option.type) {
           case VariantType::String:
-            ImGui::Text("\"%s\" (default)", option.defaultValue.get<const char *>());
+            ImGui::Text("\"%s\" (default)", option.defaultValue.get<const char*>());
             break;
           case VariantType::Int:
             ImGui::Text("%d (default)", option.defaultValue.get<int>());
@@ -78,25 +80,26 @@ optionsTable(const DeviceSpec &spec, const DeviceControl &control) {
   ImGui::Columns(1);
 }
 
-ImVec4
-colorForLogLevel(LogParsingHelpers::LogLevel logLevel) {
+ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
+{
   switch (logLevel) {
     case LogParsingHelpers::LogLevel::Info:
       return PaletteHelpers::GREEN;
     case LogParsingHelpers::LogLevel::Debug:
-      return ImVec4(153./255, 61./255, 61./255, 255./255);
+      return ImVec4(153. / 255, 61. / 255, 61. / 255, 255. / 255);
     case LogParsingHelpers::LogLevel::Warning:
       return PaletteHelpers::DARK_YELLOW;
     case LogParsingHelpers::LogLevel::Error:
       return PaletteHelpers::RED;
     case LogParsingHelpers::LogLevel::Unknown:
-      return ImVec4(153./255, 61./255, 61./255, 255./255);
+      return ImVec4(153. / 255, 61. / 255, 61. / 255, 255. / 255);
     default:
       return PaletteHelpers::WHITE;
   };
 }
 
-void displayHistory(const DeviceInfo &info, DeviceControl &control) {
+void displayHistory(const DeviceInfo& info, DeviceControl& control)
+{
   if (info.history.empty()) {
     return;
   }
@@ -110,10 +113,10 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
   // We look for a stop trigger, so that we know where to stop the search for
   // out start search. If no stop trigger is found, we search until the end
   if (control.logStopTrigger[0]) {
-    while((j % historySize) != ((startPos + 1) % historySize)) {
+    while ((j % historySize) != ((startPos + 1) % historySize)) {
       assert(j >= 0);
       assert(j < historySize);
-      auto &line = info.history[j];
+      auto& line = info.history[j];
       if (strstr(line.c_str(), control.logStopTrigger)) {
         triggerStopPos = (j + 1) % historySize;
         break;
@@ -127,10 +130,10 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
   // last stop trigger.
   j = startPos + 1;
   if (control.logStartTrigger[0]) {
-    while((j % historySize) != triggerStopPos) {
+    while ((j % historySize) != triggerStopPos) {
       assert(historySize > j);
       assert(historySize == 1000);
-      auto &line = info.history[j];
+      auto& line = info.history[j];
       if (strstr(line.c_str(), control.logStartTrigger)) {
         triggerStartPos = j;
       }
@@ -143,13 +146,12 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
   size_t ji = triggerStartPos % historySize;
   size_t je = triggerStopPos % historySize;
   size_t iterations = 0;
-  while (historySize
-         && ((ji % historySize) != je)) {
+  while (historySize && ((ji % historySize) != je)) {
     assert(iterations < historySize);
     iterations++;
     assert(historySize == 1000);
     assert(ji < historySize);
-    auto &line = info.history[ji];
+    auto& line = info.history[ji];
     auto logLevel = info.historyLevel[ji];
 
     // Skip empty lines
@@ -160,7 +162,7 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
     // Print matching lines
     if (strstr(line.c_str(), control.logFilter) != 0) {
       auto color = colorForLogLevel(logLevel);
-      // We filter twice, once on input, to reduce the 
+      // We filter twice, once on input, to reduce the
       // stream, a second time at display time, to avoid
       // showing unrelevant messages from past.
       if (logLevel >= control.logLevel) {
@@ -176,14 +178,11 @@ struct HistoData {
   int mod;
   size_t first;
   size_t size;
-  const T *points;
+  const T* points;
 };
 
-
-void
-historyBar(DeviceGUIState &state,
-           const DeviceSpec &spec,
-           const DeviceMetricsInfo &metricsInfo) {
+void historyBar(DeviceGUIState& state, const DeviceSpec& spec, const DeviceMetricsInfo& metricsInfo)
+{
   bool open = ImGui::TreeNode(state.label.c_str());
   if (open) {
     ImGui::Text("# channels: %lu", spec.outputChannels.size() + spec.inputChannels.size());
@@ -204,63 +203,51 @@ historyBar(DeviceGUIState &state,
     ImGui::NextColumn();
     return;
   }
-  auto &metric = metricsInfo.metrics[i];
+  auto& metric = metricsInfo.metrics[i];
 
-  switch(metric.type) {
-    case MetricType::Int:
-      {
-        HistoData<int> data;
-        data.mod = metricsInfo.timestamps[i].size();
-        data.first = metric.pos - data.mod;
-        data.size = metricsInfo.intMetrics[metric.storeIdx].size();
-        data.points = metricsInfo.intMetrics[metric.storeIdx].data();
+  switch (metric.type) {
+    case MetricType::Int: {
+      HistoData<int> data;
+      data.mod = metricsInfo.timestamps[i].size();
+      data.first = metric.pos - data.mod;
+      data.size = metricsInfo.intMetrics[metric.storeIdx].size();
+      data.points = metricsInfo.intMetrics[metric.storeIdx].data();
 
-        auto getter = [](void *hData, int idx) -> float {
-          auto histoData = reinterpret_cast<HistoData<int> *>(hData);
-          size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-          assert(pos >= 0 && pos < 1024);
-          return histoData->points[pos];
-        };
-        ImGui::PlotLines(currentMetricName.c_str(),
-                         getter,
-                         &data,
-                         data.size);
-        ImGui::NextColumn();
-      }
-    break;
-    case MetricType::Float:
-      {
-        HistoData<float> data;
-        data.mod = metricsInfo.timestamps[i].size();
-        data.first = metric.pos - data.mod;
-        data.size = metricsInfo.floatMetrics[metric.storeIdx].size();
-        data.points = metricsInfo.floatMetrics[metric.storeIdx].data();
+      auto getter = [](void* hData, int idx) -> float {
+        auto histoData = reinterpret_cast<HistoData<int>*>(hData);
+        size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+        assert(pos >= 0 && pos < 1024);
+        return histoData->points[pos];
+      };
+      ImGui::PlotLines(currentMetricName.c_str(), getter, &data, data.size);
+      ImGui::NextColumn();
+    } break;
+    case MetricType::Float: {
+      HistoData<float> data;
+      data.mod = metricsInfo.timestamps[i].size();
+      data.first = metric.pos - data.mod;
+      data.size = metricsInfo.floatMetrics[metric.storeIdx].size();
+      data.points = metricsInfo.floatMetrics[metric.storeIdx].data();
 
-        auto getter = [](void *hData, int idx) -> float {
-          auto histoData = reinterpret_cast<HistoData<float> *>(hData);
-          size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-          assert(pos >= 0 && pos < 1024);
-          return histoData->points[pos];
-        };
-        ImGui::PlotLines(currentMetricName.c_str(),
-                         getter,
-                         &data,
-                         data.size);
-        ImGui::NextColumn();
-      }
-    break;
+      auto getter = [](void* hData, int idx) -> float {
+        auto histoData = reinterpret_cast<HistoData<float>*>(hData);
+        size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+        assert(pos >= 0 && pos < 1024);
+        return histoData->points[pos];
+      };
+      ImGui::PlotLines(currentMetricName.c_str(), getter, &data, data.size);
+      ImGui::NextColumn();
+    } break;
     default:
       ImGui::NextColumn();
       return;
-    break;
+      break;
   }
 }
 
-void
-displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
-                        const std::vector<DeviceSpec> &devices,
-                        std::vector<DeviceControl> &controls,
-                        const std::vector<DeviceMetricsInfo> &metricsInfos) {
+void displayDeviceHistograms(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
+                             std::vector<DeviceControl>& controls, const std::vector<DeviceMetricsInfo>& metricsInfos)
+{
   bool graphNodes = true;
   showTopologyNodeGraph(&graphNodes, infos, devices);
   ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - 300), 0);
@@ -268,61 +255,56 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
 
   // Calculate the unique set of metrics, as available in the metrics service
   std::set<std::string> allMetricsNames;
-  for (const auto &metricsInfo : metricsInfos) {
-    for (const auto &labelsPairs : metricsInfo.metricLabelsIdx) {
+  for (const auto& metricsInfo : metricsInfos) {
+    for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
       allMetricsNames.insert(labelsPairs.first);
     }
   }
   using NamesIndex = std::vector<std::string>;
   gState.availableMetrics.clear();
-  std::copy(allMetricsNames.begin(),
-            allMetricsNames.end(),
-            std::back_inserter(gState.availableMetrics));
+  std::copy(allMetricsNames.begin(), allMetricsNames.end(), std::back_inserter(gState.availableMetrics));
 
   ImGui::Begin("Devices");
-  ImGui::Combo("Select metric",
-               &gState.selectedMetric,
-               [](void *data, int idx, const char **outText) -> bool {
-                 NamesIndex *v = reinterpret_cast<NamesIndex*>(data);
+  ImGui::Combo("Select metric", &gState.selectedMetric,
+               [](void* data, int idx, const char** outText) -> bool {
+                 NamesIndex* v = reinterpret_cast<NamesIndex*>(data);
                  if (idx >= v->size()) {
                    return false;
                  }
                  *outText = v->at(idx).c_str();
                  return true;
                },
-               &gState.availableMetrics,
-               gState.availableMetrics.size()
-  );
+               &gState.availableMetrics, gState.availableMetrics.size());
 
   // Calculate the full timestamp range for the selected metric
   if (gState.selectedMetric >= 0) {
     auto currentMetricName = gState.availableMetrics[gState.selectedMetric];
     size_t minTime = -1;
     size_t maxTime = 0;
-    for (auto &metricInfo : metricsInfos) {
+    for (auto& metricInfo : metricsInfos) {
       size_t mi = metricIdxByName(currentMetricName, metricInfo);
       if (mi == metricInfo.metricLabelsIdx.size()) {
         continue;
       }
-      auto &metric = metricInfo.metrics[mi];
+      auto& metric = metricInfo.metrics[mi];
       size_t minRangePos = metric.pos % metricInfo.timestamps.size();
       size_t maxRangePos = (size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
-      auto &timestamps = metricInfo.timestamps[mi];
+      auto& timestamps = metricInfo.timestamps[mi];
       size_t curMinTime = timestamps[minRangePos];
       size_t curMaxTime = timestamps[maxRangePos];
       minTime = minTime < curMinTime ? minTime : curMinTime;
       maxTime = maxTime > curMaxTime ? maxTime : curMaxTime;
     }
-    ImGui::Text("min timestamp: %zu, max timestamp: %zu",
-                minTime, maxTime);
+    ImGui::Text("min timestamp: %zu, max timestamp: %zu", minTime, maxTime);
   }
-  ImGui::BeginChild("ScrollingRegion", ImVec2(0,-ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+  ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false,
+                    ImGuiWindowFlags_HorizontalScrollbar);
   ImGui::Columns(2);
   ImGui::SetColumnOffset(1, 300);
   for (size_t i = 0; i < gState.devices.size(); ++i) {
-    DeviceGUIState &guiState = gState.devices[i];
-    const DeviceSpec &spec = devices[i];
-    const DeviceMetricsInfo &metricsInfo = metricsInfos[i];
+    DeviceGUIState& guiState = gState.devices[i];
+    const DeviceSpec& spec = devices[i];
+    const DeviceMetricsInfo& metricsInfo = metricsInfos[i];
 
     historyBar(guiState, spec, metricsInfo);
   }
@@ -333,7 +315,8 @@ displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
 
 struct ChannelsTableHelper {
   template <typename C>
-  static void channelsTable(const char *title, const C &channels) {
+  static void channelsTable(const char* title, const C& channels)
+  {
     ImGui::TextUnformatted(title);
     ImGui::Columns(2);
     ImGui::TextUnformatted("Name");
@@ -350,8 +333,8 @@ struct ChannelsTableHelper {
   }
 };
 
-void
-pushWindowColorDueToStatus(const DeviceInfo &info) {
+void pushWindowColorDueToStatus(const DeviceInfo& info)
+{
   using LogLevel = LogParsingHelpers::LogLevel;
 
   if (info.active == false) {
@@ -384,65 +367,50 @@ pushWindowColorDueToStatus(const DeviceInfo &info) {
   }
 }
 
-void
-popWindowColorDueToStatus() {
-  ImGui::PopStyleColor(3);
-}
+void popWindowColorDueToStatus() { ImGui::PopStyleColor(3); }
 
 struct DriverHelper {
-  static char const *stateToString(enum DriverState state) {
-    static const char *names[static_cast<int>(DriverState::LAST)] = {
-      "INIT",
-      "SCHEDULE",
-      "RUNNING",
-      "GUI",
-      "REDEPLOY_GUI",
-      "EXIT",
-      "UNKNOWN"
-    };
+  static char const* stateToString(enum DriverState state)
+  {
+    static const char* names[static_cast<int>(DriverState::LAST)] = { "INIT",         "SCHEDULE", "RUNNING", "GUI",
+                                                                      "REDEPLOY_GUI", "EXIT",     "UNKNOWN" };
     return names[static_cast<int>(state)];
   }
 };
 
 /// Display information window about the driver
 /// and its state.
-void
-displayDriverInfo(DriverInfo const& driverInfo,
-                  DriverControl &driverControl) {
+void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl)
+{
   ImGui::Begin("Driver information");
   ImGui::Text("Numer of running devices: %lu", driverInfo.socket2DeviceInfo.size() / 2);
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
-    DriverState const &state = driverInfo.states[i];
-    ImGui::Text("#%lu: %s",
-        i,
-        DriverHelper::stateToString(state));
+    DriverState const& state = driverInfo.states[i];
+    ImGui::Text("#%lu: %s", i, DriverHelper::stateToString(state));
   }
   ImGui::End();
 }
 
 // FIXME: return empty function in case we were not built
 // with GLFW support.
-/// 
-std::function<void(void)>
-getGUIDebugger(const std::vector<DeviceInfo> &infos,
-               const std::vector<DeviceSpec> &devices,
-               const std::vector<DeviceMetricsInfo> &metricsInfos,
-               const DriverInfo &driverInfo,
-               std::vector<DeviceControl> &controls,
-               DriverControl &driverControl
-               ) {
+///
+std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
+                                         const std::vector<DeviceMetricsInfo>& metricsInfos,
+                                         const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
+                                         DriverControl& driverControl)
+{
   gState.selectedMetric = -1;
   // FIXME: this should probaly have a better mapping between our window state and
   gState.devices.resize(infos.size());
   for (size_t i = 0; i < gState.devices.size(); ++i) {
-    DeviceGUIState &state = gState.devices[i];
+    DeviceGUIState& state = gState.devices[i];
     state.label = devices[i].id + "(" + std::to_string(infos[i].pid) + ")";
   }
 
   return [&infos, &devices, &controls, &metricsInfos, &driverInfo, &driverControl]() {
-    ImGuiStyle &style = ImGui::GetStyle();
+    ImGuiStyle& style = ImGui::GetStyle();
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
 
     displayDeviceHistograms(infos, devices, controls, metricsInfos);
@@ -451,15 +419,16 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / gState.devices.size();
 
     for (size_t i = 0; i < gState.devices.size(); ++i) {
-      DeviceGUIState &state = gState.devices[i];
+      DeviceGUIState& state = gState.devices[i];
       assert(i < infos.size());
       assert(i < devices.size());
-      const DeviceInfo &info = infos[i];
-      const DeviceSpec &spec = devices[i];
+      const DeviceInfo& info = infos[i];
+      const DeviceSpec& spec = devices[i];
 
-      DeviceControl &control = controls[i];
-      ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x/3*2, i*windowPosStepping), ImGuiSetCond_Once);
-      ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x/3, ImGui::GetIO().DisplaySize.y - 300), ImGuiSetCond_Once);
+      DeviceControl& control = controls[i];
+      ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x / 3 * 2, i * windowPosStepping), ImGuiSetCond_Once);
+      ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 3, ImGui::GetIO().DisplaySize.y - 300),
+                               ImGuiSetCond_Once);
 
       pushWindowColorDueToStatus(info);
 
@@ -475,12 +444,12 @@ getGUIDebugger(const std::vector<DeviceInfo> &infos,
         ImGui::InputText("Log filter", control.logFilter, sizeof(control.logFilter));
         ImGui::InputText("Log start trigger", control.logStartTrigger, sizeof(control.logStartTrigger));
         ImGui::InputText("Log stop trigger", control.logStopTrigger, sizeof(control.logStopTrigger));
-        ImGui::Combo("Log level", reinterpret_cast<int*>(&control.logLevel),
-            LogParsingHelpers::LOG_LEVELS, (int)LogParsingHelpers::LogLevel::Size,
-            5);
+        ImGui::Combo("Log level", reinterpret_cast<int*>(&control.logLevel), LogParsingHelpers::LOG_LEVELS,
+                     (int)LogParsingHelpers::LogLevel::Size, 5);
 
         ImGui::Separator();
-        ImGui::BeginChild("ScrollingRegion", ImVec2(0,-ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
         displayHistory(info, control);
         ImGui::EndChild();
       }

@@ -10,11 +10,13 @@
 #ifndef FRAMEWORK_DRIVERCONTROL_H
 #define FRAMEWORK_DRIVERCONTROL_H
 
-#include "DriverInfo.h"
 #include <vector>
+#include "DriverInfo.h"
 
-namespace o2 {
-namespace  framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
@@ -22,7 +24,7 @@ struct DriverControl {
   std::vector<DriverState> forcedTransitions;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif

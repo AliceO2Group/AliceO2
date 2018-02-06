@@ -10,28 +10,26 @@
 #ifndef FRAMEWORK_FRAMEWORKGUIDEBUGGER_H
 #define FRAMEWORK_FRAMEWORKGUIDEBUGGER_H
 
-#include "Framework/DeviceInfo.h"
-#include "Framework/DeviceSpec.h"
-#include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceControl.h"
+#include "Framework/DeviceInfo.h"
+#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceSpec.h"
 
 #include <functional>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 class DriverInfo;
 class DriverControl;
 
-std::function<void(void)>
-getGUIDebugger(const std::vector<DeviceInfo> &infos,
-               const std::vector<DeviceSpec> &devices,
-               const std::vector<DeviceMetricsInfo> &metricsInfos,
-               const DriverInfo &driverInfo,
-               std::vector<DeviceControl> &controls,
-               DriverControl &driverControl
-               );
-}
-}
+std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
+                                         const std::vector<DeviceMetricsInfo>& metricsInfos,
+                                         const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
+                                         DriverControl& driverControl);
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_FRAMEWORKGUIDEBUGGER_H

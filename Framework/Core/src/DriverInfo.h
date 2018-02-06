@@ -18,8 +18,10 @@
 #include <csignal>
 #include <sys/select.h>
 
-namespace o2 {
-namespace  framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Possible states for the DPL Driver application
 ///
@@ -39,7 +41,7 @@ namespace  framework {
 ///   SCHEDULE -> RUNNING
 ///   RUNNING -> RUNNING
 ///   RUNNING -> GUI
-///   GUI -> RUNNING 
+///   GUI -> RUNNING
 ///   RUNNING -> SCHEDULE
 ///   RUNNING -> EXIT
 /// ]"
@@ -71,7 +73,7 @@ struct DriverInfo {
   struct sigaction sa_handle_child;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif
