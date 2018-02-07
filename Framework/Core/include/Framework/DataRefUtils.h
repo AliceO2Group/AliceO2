@@ -13,6 +13,7 @@
 #include "Framework/DataRef.h"
 #include "Headers/DataHeader.h"
 #include "Framework/TMessageSerializer.h"
+#include "Framework/TypeTraits.h"
 #include <TClass.h>
 #include <stdexcept>
 #include <sstream>
@@ -25,11 +26,12 @@ namespace framework {
 // FIXME: Should enforce the fact that DataRefs are read only...
 struct DataRefUtils {
   // SFINAE makes this available only for the case we are using
-  // a POD, this is to distinguish it from the alternative below,
-  // which works for TObject (which are serialised).
+  // trivially copyable type, this is to distinguish it from the
+  // alternative below, which works for TObject (which are serialised).
   template <typename T>
-  static typename std::enable_if<std::is_pod<T>::value == true, gsl::span<T>>::type
-  as(DataRef const &ref) {
+  static typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
+  as(DataRef const& ref)
+  {
     using DataHeader = o2::header::DataHeader;
     auto header = o2::header::get<const DataHeader>(ref.header);
     if (header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
