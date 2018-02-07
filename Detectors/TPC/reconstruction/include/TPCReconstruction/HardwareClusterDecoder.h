@@ -18,9 +18,13 @@
 #include "TPCReconstruction/DigitalCurrentClusterIntegrator.h"
 #include "DataFormatsTPC/ClusterNative.h"
 
-namespace o2 { namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 class ClusterHardwareContainer;
-}}
+}
+}
 
 namespace o2 { namespace dataformats { template <typename TruthElement> class MCTruthContainer; } class MCCompLabel; }
 
@@ -32,12 +36,15 @@ class HardwareClusterDecoder
 public:
   HardwareClusterDecoder() = default;
   ~HardwareClusterDecoder() = default;
-  
-  int decodeClusters(std::vector<std::pair<const o2::TPC::ClusterHardwareContainer*, std::size_t>>& inputClusters, std::vector<o2::TPC::ClusterNativeContainer>& outputClusters,
-    const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels = nullptr, std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels = nullptr);
-  static void sortClustersAndMC(std::vector<o2::TPC::ClusterNative> clusters, o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcTruth);
 
-private:
+  int decodeClusters(std::vector<std::pair<const o2::TPC::ClusterHardwareContainer*, std::size_t>>& inputClusters,
+                     std::vector<o2::TPC::ClusterNativeContainer>& outputClusters,
+                     const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels = nullptr,
+                     std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels = nullptr);
+  static void sortClustersAndMC(std::vector<o2::TPC::ClusterNative> clusters,
+                                o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcTruth);
+
+ private:
   std::unique_ptr<DigitalCurrentClusterIntegrator> mIntegrator;
 };
 
