@@ -21,6 +21,21 @@ using Stack = o2::header::Stack;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
 
+
+#include <Configuration/ConfigurationInterface.h>
+#include <Configuration/ConfigurationFactory.h>
+using namespace AliceO2::Configuration;
+BOOST_AUTO_TEST_CASE(CheckConfiguration) {
+  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
+                                    + "/../../O2/Framework/Core/test/test_DataSampling.ini";
+  std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
+
+  std::string taskNames = configFile->getString("DataSampling/tasksList").value();
+  BOOST_CHECK_EQUAL(taskNames, "TpcQcTask,FairQcTask");
+
+}
+
+/*
 BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow) {
 
   WorkflowSpec workflow{
@@ -316,3 +331,5 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq){
                            });
   BOOST_REQUIRE(channelConfig != disp->options.end());
 }
+
+*/
