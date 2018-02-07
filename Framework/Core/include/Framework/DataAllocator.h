@@ -54,12 +54,13 @@ public:
   DataChunk newChunk(const OutputSpec &, size_t);
   DataChunk adoptChunk(const OutputSpec &, char *, size_t, fairmq_free_fn*, void *);
 
-  // In case no extra argument is provided and the passed type is a POD,
-  // the most likely wanted behavior is to create a message with that POD,
-  // and so we do.
+  // In case no extra argument is provided and the passed type is trivially
+  // copyable and non polymorphic, the most likely wanted behavior is to create
+  // a message with that type, and so we do.
   template <typename T>
-  typename std::enable_if<std::is_pod<T>::value == true, T &>::type
-  make(const OutputSpec &spec) {
+  typename std::enable_if<is_messageable<T>::value == true, T&>::type
+  make(const OutputSpec& spec)
+  {
     DataChunk chunk = newChunk(spec, sizeof(T));
     return *reinterpret_cast<T*>(chunk.data);
   }
@@ -67,8 +68,9 @@ public:
   // In case an extra argument is provided, we consider this an array / 
   // collection elements of that type
   template <typename T>
-  typename std::enable_if<std::is_pod<T>::value == true, gsl::span<T>>::type
-  make(const OutputSpec &spec, size_t nElements) {
+  typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
+  make(const OutputSpec& spec, size_t nElements)
+  {
     auto size = nElements*sizeof(T);
     DataChunk chunk = newChunk(spec, size);
     return gsl::span<T>(reinterpret_cast<T*>(chunk.data), nElements);
@@ -95,13 +97,15 @@ public:
   template <typename T>
   typename std::enable_if<
     std::is_base_of<TObject, T>::value == false &&
-    std::is_pod<T>::value == false,
+    is_messageable<T>::value == false,
     T&>::type
-  make(const OutputSpec &) {
-    static_assert(std::is_pod<T>::value == true ||
+  make(const OutputSpec&)
+  {
+    static_assert(is_messageable<T>::value == true ||
                   std::is_base_of<TObject, T>::value == true,
                   "data type T not supported by API, \n specializations available for"
-                  "\n - POD structures and arrays of those"
+                  "\n - trivially copyable, non-polymorphic structures"
+                  "\n - arrays of those"
                   "\n - TObject with additional constructor arguments");
   }
 
@@ -109,12 +113,14 @@ public:
   template <typename T>
   typename std::enable_if<
     std::is_base_of<TObject, T>::value == false &&
-    std::is_pod<T>::value == false,
+    is_messageable<T>::value == false,
     gsl::span<T>>::type
-  make(const OutputSpec &, size_t) {
-    static_assert(std::is_pod<T>::value == true,
+  make(const OutputSpec&, size_t)
+  {
+    static_assert(is_messageable<T>::value == true,
                   "data type T not supported by API, \n specializations available for"
-                  "\n - POD structures and arrays of those"
+                  "\n - trivially copyable, non-polymorphic structures"
+                  "\n - arrays of those"
                   "\n - TObject with additional constructor arguments");
   }
 
@@ -122,13 +128,14 @@ public:
   template <typename T, typename U, typename V, typename... Args>
   typename std::enable_if<
     std::is_base_of<TObject, T>::value == false &&
-    std::is_pod<T>::value == false,
+    is_messageable<T>::value == false,
     T&>::type
-  make(const OutputSpec &, U, V, Args...) {
-    static_assert(std::is_pod<T>::value == true ||
-                  std::is_base_of<TObject, T>::value == true,
+  make(const OutputSpec&, U, V, Args...)
+  {
+    static_assert(is_messageable<T>::value == true || std::is_base_of<TObject, T>::value == true,
                   "data type T not supported by API, \n specializations available for"
-                  "\n - POD structures and arrays of those"
+                  "\n - trivially copyable, non-polymorphic structures"
+                  "\n - arrays of those"
                   "\n - TObject with additional constructor arguments");
   }
 
@@ -150,30 +157,30 @@ public:
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
-  /// Serialize a snapshot of a POD type, which will then be sent
-  /// once the computation ends.
+  /// Serialize a snapshot of a trivially copyable, non-polymorphic type, which
+  /// will then be sent once the computation ends.
   /// Framework does not take ownership of @param object. Changes to @param object
   /// after the call will not be sent.
   template <typename T>
-  typename std::enable_if<std::is_pod<T>::value == true, void>::type
-  snapshot(const OutputSpec &spec, T const &object) {
+  typename std::enable_if<is_messageable<T>::value == true, void>::type
+  snapshot(const OutputSpec& spec, T const& object)
+  {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
   }
 
-  /// Serialize a snapshot of a std::vector of trivially copyable elements,
-  /// which will then be sent once the computation ends.
+  /// Serialize a snapshot of a std::vector of trivially copyable, non-polymorphic
+  /// elements, which will then be sent once the computation ends.
   /// Framework does not take ownership of @param object. Changes to @param object
   /// after the call will not be sent.
   template <typename C>
-  typename std::enable_if<
-    is_specialization<C, std::vector>::value == true
-    && std::is_pointer<typename C::value_type>::value == false
-    && std::is_trivially_copyable<typename C::value_type>::value == true
-    >::type
-  snapshot(const OutputSpec &spec, C const &v) {
+  typename std::enable_if<is_specialization<C, std::vector>::value == true &&
+                          std::is_pointer<typename C::value_type>::value == false &&
+                          is_messageable<typename C::value_type>::value == true>::type
+  snapshot(const OutputSpec& spec, C const& v)
+  {
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
 
@@ -183,17 +190,17 @@ public:
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
   }
 
-  /// Serialize a snapshot of a std::vector of pointers to trivially copyable
-  /// elements, which will then be sent once the computation ends.
+  /// Serialize a snapshot of a std::vector of pointers to trivially copyable,
+  /// non-polymorphic elements, which will then be sent once the computation ends.
   /// Framework does not take ownership of @param object. Changes to @param object
   /// after the call will not be sent.
   template <typename C>
   typename std::enable_if<
-    is_specialization<C, std::vector>::value == true
-    && std::is_pointer<typename C::value_type>::value == true
-    && std::is_trivially_copyable<typename std::remove_pointer<typename C::value_type>::type>::value == true
-    >::type
-  snapshot(const OutputSpec &spec, C const &v) {
+    is_specialization<C, std::vector>::value == true &&
+    std::is_pointer<typename C::value_type>::value == true &&
+    is_messageable<typename std::remove_pointer<typename C::value_type>::type>::value == true>::type
+  snapshot(const OutputSpec& spec, C const& v)
+  {
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
     auto sizeInBytes = elementSizeInBytes * v.size();
@@ -210,19 +217,17 @@ public:
 
   /// specialization to catch unsupported types and throw a detailed compiler error
   template <typename T>
-  typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false &&
-    std::is_pod<T>::value == false &&
-    is_specialization<T, std::vector>::value == false
-    >::type
-  snapshot(const OutputSpec &spec, T const &) {
-    static_assert(std::is_base_of<TObject, T>::value == true ||
-                  std::is_pod<T>::value == true ||
-                  is_specialization<T, std::vector>::value == true,
+  typename std::enable_if<std::is_base_of<TObject, T>::value == false &&
+                          is_messageable<T>::value == false &&
+                          is_specialization<T, std::vector>::value == false>::type
+  snapshot(const OutputSpec& spec, T const&)
+  {
+    static_assert(std::is_base_of<TObject, T>::value == true || is_messageable<T>::value == true ||
+                    is_specialization<T, std::vector>::value == true,
                   "data type T not supported by API, \n specializations available for"
-                  "\n - POD structures"
-                  "\n - TObject"
-                  "\n - std::vector of POD or pointer to POD");
+                  "\n - trivially copyable, non-polymorphic structures"
+                  "\n - std::vector of messageable structures or pointers to those"
+                  "\n - TObject by reference");
   }
 
   /// specialization to catch unsupported types, check value_type of std::vector
@@ -230,18 +235,17 @@ public:
   template <typename T>
   typename std::enable_if<
     is_specialization<T, std::vector>::value == true &&
-    std::is_trivially_copyable<
+    is_messageable<
       typename std::remove_pointer<typename T::value_type>::type
       >::value == false
     >::type
-  snapshot(const OutputSpec &spec, T const &) {
-    static_assert(std::is_trivially_copyable<
-                  typename std::remove_pointer<typename T::value_type>::type
-                  >::value == true,
+  snapshot(const OutputSpec& spec, T const&)
+  {
+    static_assert(is_messageable<typename std::remove_pointer<typename T::value_type>::type>::value == true,
                   "data type T not supported by API, \n specializations available for"
-                  "\n - POD structures"
-                  "\n - TObject"
-                  "\n - std::vector of POD or pointer to POD");
+                  "\n - trivially copyable, non-polymorphic structures"
+                  "\n - std::vector of messageable structures or pointers to those"
+                  "\n - TObject by reference");
   }
 
 private:
