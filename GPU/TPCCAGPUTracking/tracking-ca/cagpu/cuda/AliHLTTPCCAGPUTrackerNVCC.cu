@@ -524,7 +524,14 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	{
 		if (runSlices < HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
 		runSlices = CAMath::Min(runSlices, sliceCountLocal - iSlice);
-		if (HLTCA_GPU_NUM_STREAMS && useStream + 1== HLTCA_GPU_NUM_STREAMS) runSlices = sliceCountLocal - iSlice;
+		if (fSelectorBlockCount < runSlices) runSlices = fSelectorBlockCount;
+		if (HLTCA_GPU_NUM_STREAMS && useStream + 1 == HLTCA_GPU_NUM_STREAMS) runSlices = sliceCountLocal - iSlice;
+		if (fSelectorBlockCount < runSlices)
+		{
+			HLTError("Insufficient number of blocks for tracklet selector");
+			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			return(1);
+		}
 		
 		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Stream %d, Slice %d to %d)", useStream, iSlice, iSlice + runSlices);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(7);

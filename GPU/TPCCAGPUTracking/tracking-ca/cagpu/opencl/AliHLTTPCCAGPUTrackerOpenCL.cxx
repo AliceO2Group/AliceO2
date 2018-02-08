@@ -690,13 +690,21 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 	{
 		if (runSlices < HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
 		runSlices = CAMath::Min(runSlices, sliceCountLocal - iSlice);
+		if (fSelectorBlockCount < runSlices) runSlices = fSelectorBlockCount;
+		if (HLTCA_GPU_NUM_STREAMS && useStream + 1 == HLTCA_GPU_NUM_STREAMS) runSlices = sliceCountLocal - iSlice;
+		if (fSelectorBlockCount < runSlices)
+		{
+			HLTError("Insufficient number of blocks for tracklet selector");
+			SynchronizeGPU();
+			return(1);
+		}
 		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Slice %d to %d)", iSlice, iSlice + runSlices);
 		clSetKernelArgA(ocl->kernel_tracklet_selector, 0, ocl->mem_gpu);
 		clSetKernelArgA(ocl->kernel_tracklet_selector, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_tracklet_selector, 2, iSlice);
 		clSetKernelArgA(ocl->kernel_tracklet_selector, 3, runSlices);
 		fSlaveTrackers[firstSlice + iSlice].StartTimer(7);
-		clExecuteKernelA(ocl->command_queue[useStream], ocl->kernel_tracklet_selector, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, NULL);
+		clExecuteKernelA(ocl->command_queue[useStream], ocl->kernel_tracklet_selector, HLTCA_GPU_THREAD_COUNT_SELECTOR, HLTCA_GPU_THREAD_COUNT_SELECTOR * fSelectorBlockCount, NULL);
 		if (GPUSync("Tracklet Selector", iSlice, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			SynchronizeGPU();
