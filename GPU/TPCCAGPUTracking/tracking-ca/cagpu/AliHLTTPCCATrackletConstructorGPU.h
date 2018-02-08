@@ -73,7 +73,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 				GPUsync();
 			}
 
-			rMem.fGo = rMem.fItr < sMem.fNTracklets;
+			rMem.fGo = rMem.fItr >= 0 && rMem.fItr < sMem.fNTracklets;
 
 			DoTracklet(tracker, sMem, rMem);
 		}
