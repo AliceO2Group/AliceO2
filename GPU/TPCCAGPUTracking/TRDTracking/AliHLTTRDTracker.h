@@ -24,8 +24,7 @@ public:
     kNLayers = 6,
     kNStacks = 5,
     kNSectors = 18,
-    kNChambers = 540,
-    kNcandidates = 1
+    kNChambers = 540
   };
 
   // struct to hold the information on the space points
@@ -74,34 +73,40 @@ public:
   void CheckTrackRefs(const int trackID, TVectorF &findableMC, TVectorF &xPosMC, TVectorF &yPosMC, TVectorF &zPosMC, TVectorF &ptMC) const;
   void FindChambersInRoad(const AliHLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax) const;
   bool IsFindable(const AliHLTTRDTrack *t, const int layer) const;
-
-  // settings
-  void SetMCEvent(AliMCEvent* mc) {fMCEvent = mc;}
-  void EnableDebugOutput() { fDebugOutput = true; }
-  void SetPtThreshold(float minPt) { fMinPt = minPt; }
-  void SetMaxEta(float maxEta) { fMaxEta = maxEta; }
-  void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
-  void SetMaxMissingLayers(int ly) {fMaxMissingLy = ly; }
-
-  float GetPtThreshold() const { return fMinPt; }
-  float GetMaxEta() const { return fMaxEta; }
-  float GetChi2Threshold() const { return fMaxChi2; }
-  int   GetMaxMissingLayers() const { return fMaxMissingLy; }
-
-  // for testing
+  // for paranoia check
   bool IsTrackletSortingOk() const;
 
-  AliHLTTRDTrack *Tracks() const { return fTracks;}
-  int NTracks() const { return fNTracks;}
-  AliHLTTRDSpacePointInternal *SpacePoints() const { return fSpacePoints; }
+  // settings
+  void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
+  void EnableDebugOutput()              { fDebugOutput = true; }
+  void SetPtThreshold(float minPt)      { fMinPt = minPt; }
+  void SetMaxEta(float maxEta)          { fMaxEta = maxEta; }
+  void SetChi2Threshold(float chi2)     { fMaxChi2 = chi2; }
+  void SetChi2Penalty(float chi2)       { fChi2Penalty = chi2; }
+  void SetMaxMissingLayers(int ly)      { fMaxMissingLy = ly; }
+  void SetNCandidates(int n)            { if (!fIsInitialized) fNCandidates = n; else Error("SetNCandidates", "Cannot change fNCandidates after initialization"); }
+
+  AliMCEvent * GetMCEvent()   const { return fMCEvent; }
+  bool  GetIsDebugOutputOn()  const { return fDebugOutput; }
+  float GetPtThreshold()      const { return fMinPt; }
+  float GetMaxEta()           const { return fMaxEta; }
+  float GetChi2Threshold()    const { return fMaxChi2; }
+  float GetChi2Penalty()      const { return fChi2Penalty; }
+  int   GetMaxMissingLayers() const { return fMaxMissingLy; }
+  int   GetNCandidates()      const { return fNCandidates; }
+
+  // output
+  AliHLTTRDTrack *Tracks()                    const { return fTracks;}
+  int NTracks()                               const { return fNTracks;}
+  AliHLTTRDSpacePointInternal *SpacePoints()  const { return fSpacePoints; }
 
   //----- Functions to be overwritten from AliTracker -----
   Int_t Clusters2Tracks(AliESDEvent *event) { return 0; }
-  Int_t PropagateBack(AliESDEvent *event) { return 0; }
-  Int_t RefitInward(AliESDEvent *event) { return 0; }
-  Int_t LoadClusters(TTree *) { return 0; }
-  void UnloadClusters() { return; }
-  AliCluster *GetCluster(Int_t index) { return 0x0; }
+  Int_t PropagateBack(AliESDEvent *event)   { return 0; }
+  Int_t RefitInward(AliESDEvent *event)     { return 0; }
+  Int_t LoadClusters(TTree *)               { return 0; }
+  void UnloadClusters()                     { return; }
+  AliCluster *GetCluster(Int_t index)       { return 0x0; }
   AliCluster *GetCluster(Int_t index) const { return 0x0; }
 
 
@@ -113,9 +118,10 @@ protected:
   static const double fgkX0[kNLayers];        // default values of anode wires
   static const double fgkXshift;              // online tracklets evaluated above anode wire
 
-  double *fR;                                 // rough radial position of each TRD layer
+  float *fR;                                 // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
   AliHLTTRDTrack *fTracks;                    // array of trd-updated tracks
+  int fNCandidates;                           // max. track hypothesis per layer
   int fNTracks;                               // number of TPC tracks to be matched
   int fNEvents;                               // number of processed events
   AliHLTTRDTrackletWord *fTracklets;          // array of all tracklets, later sorted by HCId
@@ -124,7 +130,7 @@ protected:
   int *fNtrackletsInChamber;                  // number of tracklets in each chamber
   int *fTrackletIndexArray;                   // index of first tracklet for each chamber
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
-  AliHLTTRDTrack *fCandidates[2][kNcandidates];     // array of tracks for multiple hypothesis tracking
+  AliHLTTRDTrack *fCandidates;                // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
   AliTRDgeometry *fGeo;                       // TRD geometry
   bool fDebugOutput;                          // store debug output
@@ -132,8 +138,8 @@ protected:
   float fMaxEta;                              // TPC tracks with higher eta are ignored
   float fMaxChi2;                             // max chi2 for tracklets
   int fMaxMissingLy;                          // max number of missing layers per track
-  double fChi2Penalty;                        // chi2 added to the track for no update
-  double fZCorrCoefNRC;                       // tracklet z-position depends linearly on track dip angle
+  float fChi2Penalty;                        // chi2 added to the track for no update
+  float fZCorrCoefNRC;                       // tracklet z-position depends linearly on track dip angle
   int fNhypothesis;                           // number of track hypothesis per layer
   std::vector<int> fMaskedChambers;           // vector holding bad TRD chambers
   AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
