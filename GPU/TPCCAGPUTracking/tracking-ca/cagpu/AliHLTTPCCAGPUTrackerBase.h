@@ -153,7 +153,8 @@ protected:
 	int fSelfheal; //Reinitialize GPU on failure
 
 	int fConstructorBlockCount; //GPU blocks used in Tracklet Constructor
-	int selectorBlockCount; //GPU blocks used in Tracklet Selector
+	int fSelectorBlockCount; //GPU blocks used in Tracklet Selector
+	int fConstructorThreadCount;
 	
 #ifdef HLTCA_GPU_TIME_PROFILE
 	unsigned long long int fProfTimeC, fProfTimeD; //Timing
