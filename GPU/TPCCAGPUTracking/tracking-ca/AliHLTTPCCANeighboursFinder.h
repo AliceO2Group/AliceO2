@@ -48,8 +48,13 @@ class AliHLTTPCCANeighboursFinder
         int fIRowDn;// previous row number
         int fNRows; // number of rows
 #if ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if defined(HLTCA_GPUCODE)
         float2 fA[HLTCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
         calink fB[HLTCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+#else
+        float2 fA[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+        calink fB[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+#endif
 #endif //ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 		MEM_LG(AliHLTTPCCARow) fRow, fRowUp, fRowDown;
     };

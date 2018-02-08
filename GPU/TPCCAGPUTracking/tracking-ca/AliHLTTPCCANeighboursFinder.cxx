@@ -167,8 +167,13 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 #endif //HLTCA_GPU_TEXTURE_FETCH_NEIGHBORS
 
 #if ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if defined(HLTCA_GPUCODE)
       GPUsharedref() calink *neighUp = s.fB[iThread];
       GPUsharedref() float2 *yzUp = s.fA[iThread];
+#else
+      GPUsharedref() calink *neighUp = s.fB;
+      GPUsharedref() float2 *yzUp = s.fA;
+#endif
 #if defined(HLTCA_GPUCODE) & HLTCA_GPU_MAXN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP
 	  calink neighUp2[HLTCA_GPU_MAXN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
 	  float2 yzUp2[HLTCA_GPU_MAXN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
