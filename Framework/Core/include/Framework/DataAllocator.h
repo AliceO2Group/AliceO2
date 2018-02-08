@@ -157,6 +157,26 @@ public:
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
+  /// Serialize a snapshot of a TObject when called, which will then be
+  /// sent once the computation ends.
+  /// Framework does not take ownership of the @a object. Changes to @a object
+  /// after the call will not be sent.
+  template <typename T>
+  void snapshot(const OutputSpec& spec, T& object, o2::header::SerializationMethod method)
+  {
+    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    if (method != o2::header::gSerializationMethodROOT) {
+      throw std::runtime_error("unsupported serialization type");
+    }
+    auto* cl = TClass::GetClass(typeid(T));
+    if (cl == nullptr) {
+      throw std::runtime_error("can not serialize class without dictionary");
+    }
+    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object, cl);
+
+    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
+  }
+
   /// Serialize a snapshot of a trivially copyable, non-polymorphic type, which
   /// will then be sent once the computation ends.
   /// Framework does not take ownership of @param object. Changes to @param object
