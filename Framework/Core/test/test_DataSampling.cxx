@@ -21,6 +21,77 @@ using Stack = o2::header::Stack;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
 
+bool prepareConfigFile1(const std::string& path){
+
+  std::ofstream cfgFile;
+  cfgFile.open(path);
+  if (!cfgFile.good()){
+    return false;
+  }
+
+  cfgFile <<
+    "[DataSampling]\n"
+    "tasksList=TpcQcTask\n"
+    "enableTimePipeliningDispatchers=1\n"
+    "enableParallelDispatchers=1\n"
+    "enableProxy=0\n"
+    "\n"
+    "[TpcQcTask]\n"
+    "taskDefinition=TpcQcTaskDefinition\n"
+    "\n"
+    "[TpcQcTaskDefinition]\n"
+    "inputs=TpcClusters,TpcClustersProc\n"
+    "fraction=0.1\n"
+    "\n"
+    "[TpcClusters]\n"
+    "inputName=TPC_CLUSTERS_S\n"
+    "dataOrigin=TPC\n"
+    "dataDescription=CLUSTERS\n"
+    "\n"
+    "[TpcClustersProc]\n"
+    "inputName=TPC_CLUSTERS_P_S\n"
+    "dataOrigin=TPC\n"
+    "dataDescription=CLUSTERS_P\n";
+
+  cfgFile.close();
+  return true;
+}
+
+bool prepareConfigFile2(const std::string& path){
+
+  std::ofstream cfgFile;
+  cfgFile.open(path);
+  if (!cfgFile.good()){
+    return false;
+  }
+
+  cfgFile <<
+    "[DataSampling]\n"
+    "tasksList=FairQcTask\n"
+    "enableTimePipeliningDispatchers=1\n"
+    "enableParallelDispatchers=1\n"
+    "enableProxy=0\n"
+    "\n"
+    "[FairQcTask]\n"
+    "taskDefinition=FairQcTaskDefinition\n"
+    "\n"
+    "[FairQcTaskDefinition]\n"
+    "inputs=fairTpcRaw\n"
+    "fraction=0.2\n"
+    "channelConfig=name=fairTpcRawOut,type=pub,method=bind,address=tcp://127.0.0.1:26525,rateLogging=1\n"
+    "\n"
+    "[fairTpcRaw]\n"
+    "inputName=TPC_RAWDATA\n"
+    "dataOrigin=TPC\n"
+    "dataDescription=RAWDATA\n"
+    "spawnConverter=1\n"
+    "channelConfig=type=sub,method=connect,address=tcp://localhost:5558,rateLogging=1\n"
+    "converterType=incrementalConverter";
+
+  cfgFile.close();
+  return true;
+}
+
 BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow) {
 
   WorkflowSpec workflow{
@@ -59,10 +130,9 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow) {
     }
   };
 
-  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/Core/test/test_DataSampling.ini";
-
-  DataSampling::GenerateInfrastructure(workflow, configurationSource);
+  std::string configFilePath = "/tmp/test_dataSamplingSimpleFlow.ini";
+  BOOST_REQUIRE(prepareConfigFile1(configFilePath));
+  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d){
@@ -157,10 +227,9 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow) {
 
   workflow.insert(std::end(workflow), std::begin(processingStages), std::end(processingStages));
 
-  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/Core/test/test_DataSampling.ini";
-
-  DataSampling::GenerateInfrastructure(workflow, configurationSource);
+  std::string configFilePath = "/tmp/test_dataSamplingParallel.ini";
+  BOOST_REQUIRE(prepareConfigFile1(configFilePath));
+  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
 
 
   for(int i = 0; i < 3; ++i) {
@@ -253,10 +322,9 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow) {
     }
   };
 
-  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/Core/test/test_DataSampling.ini";
-
-  DataSampling::GenerateInfrastructure(workflow, configurationSource);
+  std::string configFilePath = "/tmp/test_dataSamplingTimePipeline.ini";
+  BOOST_REQUIRE(prepareConfigFile1(configFilePath));
+  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d){
@@ -273,9 +341,10 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow) {
 BOOST_AUTO_TEST_CASE(DataSamplingFairMq){
 
   WorkflowSpec workflow;
-  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/Core/test/test_DataSampling.ini";
-  DataSampling::GenerateInfrastructure(workflow, configurationSource);
+
+  std::string configFilePath = "/tmp/test_dataSamplingFairMq.ini";
+  BOOST_REQUIRE(prepareConfigFile2(configFilePath));
+  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
 
 
   auto fairMqProxy = std::find_if(workflow.begin(), workflow.end(),
@@ -316,3 +385,4 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq){
                            });
   BOOST_REQUIRE(channelConfig != disp->options.end());
 }
+
