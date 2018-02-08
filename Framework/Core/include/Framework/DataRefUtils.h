@@ -60,10 +60,37 @@ struct DataRefUtils {
     std::unique_ptr<T> result;
     result.reset(dynamic_cast<T*>(cobj));
     if (result.get() == nullptr) {
+      auto* cl = TClass::GetClass(typeid(T));
       std::ostringstream ss;
-      ss << "Attempting to extract a " << T::Class()->GetName()
+      ss << "Attempting to extract a " << (cl !=nullptr ? cl->GetName() : "unknown")
          << " but a " << cobj->ClassName()
          << " is actually stored which cannot be casted to the requested one.";
+      throw std::runtime_error(ss.str());
+    }
+    return std::move(result);
+  }
+
+  template <typename T>
+  static std::unique_ptr<T> extract(DataRef const &ref)
+  {
+    using DataHeader = o2::header::DataHeader;
+    auto header = o2::header::get<const DataHeader>(ref.header);
+    if (header->payloadSerializationMethod != o2::header::gSerializationMethodROOT) {
+      throw std::runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
+    }
+
+    o2::framework::FairTMessage ftm(const_cast<char *>(ref.payload), header->payloadSize);
+    auto * cl = ftm.GetClass();
+    std::unique_ptr<T> result;
+    result.reset(static_cast<T*>(ftm.ReadObjectAny(cl)));
+    if (result.get() == nullptr) {
+      std::ostringstream ss;
+      ss << "Unable to extract class ";
+      if (cl == nullptr) {
+	ss << "<not available>";
+      } else {
+	ss << cl->GetName();
+      }
       throw std::runtime_error(ss.str());
     }
     return std::move(result);
