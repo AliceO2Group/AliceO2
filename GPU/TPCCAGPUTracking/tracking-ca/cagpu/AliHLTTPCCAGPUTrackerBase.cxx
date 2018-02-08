@@ -985,10 +985,10 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUnSlices = sliceCountLocal;
 		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError = 0;
-		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fNextTracklet = (fConstructorBlockCount / sliceCountLocal + (fConstructorBlockCount % sliceCountLocal > iSlice)) * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR;
+		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fNextTracklet = ((fConstructorBlockCount + sliceCountLocal - 1 - iSlice) / sliceCountLocal) * fConstructorThreadCount;
 		fGpuTracker[iSlice].SetGPUTextureBase(fGpuTracker[0].Data().Memory());
 	}
-
+	
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
 		fHelperParams[i].CPUTracker = 0;
