@@ -363,9 +363,9 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
 	    continue;
     }
     AliTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
-    double tilt = TMath::Tan(TMath::DegToRad() * pp->GetTiltingAngle());
-    double t2 = tilt * tilt; // tan^2 (tilt)
-    double c2 = 1. / (1. + t2); // cos^2 (tilt)
+    //double tilt = TMath::Tan(TMath::DegToRad() * pp->GetTiltingAngle());
+    //double t2 = tilt * tilt; // tan^2 (tilt)
+    //double c2 = 1. / (1. + t2); // cos^2 (tilt)
     double sy2 = TMath::Power(0.10, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
     for (int iTrklt=0; iTrklt<nTracklets; ++iTrklt) {
@@ -385,9 +385,12 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
       for (int i=0; i<3; i++) {
         fSpacePoints[trkltIdx].fLabel[i] = fTracklets[trkltIdx].GetLabel(i);
       }
-      fSpacePoints[trkltIdx].fCov[0] = c2 * (sy2 + t2 * sz2);
-      fSpacePoints[trkltIdx].fCov[1] = c2 * tilt * (sz2 - sy2);
-      fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
+      fSpacePoints[trkltIdx].fCov[0] = sy2;
+      fSpacePoints[trkltIdx].fCov[1] = 0;
+      fSpacePoints[trkltIdx].fCov[2] = sz2;
+      //fSpacePoints[trkltIdx].fCov[0] = c2 * (sy2 + t2 * sz2);
+      //fSpacePoints[trkltIdx].fCov[1] = c2 * tilt * (sz2 - sy2);
+      //fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
       fSpacePoints[trkltIdx].fDy = 0.014 * fTracklets[trkltIdx].GetdY();
 
       AliGeomManager::ELayerID iLayer = AliGeomManager::ELayerID(AliGeomManager::kTRD1+fGeo->GetLayer(iDet));
@@ -423,12 +426,16 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   }
 
   double mass = t->GetMass();
-  double tilt = TMath::Tan(TMath::DegToRad() * 2.);
   AliTRDpadPlane *pad = 0x0;
 
   TVectorF findable(kNLayers);
   TVectorF findableMC(kNLayers);
   TVectorF update(kNLayers);
+
+  TVectorF xPosMC(kNLayers);
+  TVectorF yPosMC(kNLayers);
+  TVectorF zPosMC(kNLayers);
+  TVectorF ptMC(kNLayers);
 
   AliExternalTrackParam param[kNLayers];
   AliExternalTrackParam paramNoUp[kNLayers];
@@ -478,14 +485,13 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   TVectorF trackSecReal(kNLayers);
   TVectorF chi2Real(kNLayers);
 
-
   // look for matching tracklets via MC label
   int trackID = t->GetLabel();
 
   std::vector<int> matchAvailableAll[kNLayers]; // all available MC tracklet matches for this track
   if (fDebugOutput && trackID > 0) {
     CountMatches(trackID, matchAvailableAll);
-    CheckTrackRefs(trackID, findableMC);
+    CheckTrackRefs(trackID, findableMC, xPosMC, yPosMC, zPosMC, ptMC);
   }
 
   // the vector det holds the numbers of the detectors which are searched for tracklets
@@ -510,6 +516,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
     currIdx = iLayer % 2;
     nextIdx = (iLayer + 1) % 2;
     pad = fGeo->GetPadPlane(iLayer, 0);
+    double tilt = TMath::Tan(TMath::DegToRad() * pad->GetTiltingAngle()); // tilt is signed!
     const float zMaxTRD = pad->GetRowPos(0);
 
     for (int iCandidate=0; iCandidate<nCandidates; iCandidate++) {
@@ -556,7 +563,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
 
       // define search window
       roadY = 7. * TMath::Sqrt(fCandidates[currIdx][iCandidate]->GetSigmaY2() + TMath::Power(0.10, 2)) + 2; // add constant to the road for better efficiency
-      roadZ = 7. * TMath::Sqrt(fCandidates[currIdx][iCandidate]->GetSigmaZ2() + TMath::Power(9., 2) / 12.); // take longest pad length
+      //roadZ = 7. * TMath::Sqrt(fCandidates[currIdx][iCandidate]->GetSigmaZ2() + TMath::Power(9., 2) / 12.); // take longest pad length
+      roadZ = 18.; // simply twice the longest pad length -> efficiency 99.996%
       //
       if (TMath::Abs(fCandidates[currIdx][iCandidate]->GetZ()) - roadZ >= zMaxTRD ) {
         Info("FollowProlongation", "Track out of TRD acceptance with z=%f in layer %i (eta=%f)", fCandidates[currIdx][iCandidate]->GetZ(), iLayer, fCandidates[currIdx][iCandidate]->Eta());
@@ -575,7 +583,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         trackPt(iLayer) = fCandidates[currIdx][iCandidate]->Pt();
         trackYerr(iLayer) = fCandidates[currIdx][iCandidate]->GetSigmaY2();
         trackZerr(iLayer) = fCandidates[currIdx][iCandidate]->GetSigmaZ2();
-        trackPhi(iLayer) = TMath::ASin(fCandidates[currIdx][iCandidate]->GetSnp());
+        trackPhi(iLayer) = fCandidates[currIdx][iCandidate]->GetSnp();
         trackSec(iLayer) = GetSector(fCandidates[currIdx][iCandidate]->GetAlpha());
       //
 
@@ -607,12 +615,16 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
           double zPosCorr = fSpacePoints[trkltIdx].fX[1] + fZCorrCoefNRC * fCandidates[currIdx][iCandidate]->GetTgl();
           double deltaY = fSpacePoints[trkltIdx].fX[0] - fCandidates[currIdx][iCandidate]->GetY();
           double deltaZ = zPosCorr - fCandidates[currIdx][iCandidate]->GetZ();
-          double tiltCorr = tilt * (-1 + 2 * nextIdx) * deltaZ;
-          deltaY += tiltCorr;
-          double trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] + tiltCorr, zPosCorr };
+          double tiltCorr = tilt * deltaZ;
+          // tilt correction only makes sense if deltaZ < l_pad
+          if ( deltaZ < pad->GetRowSize(fTracklets[trkltIdx].GetZbin()) ) {
+            deltaY -= tiltCorr;
+          }
+          double trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] - tiltCorr, zPosCorr };
           if ( (TMath::Abs(deltaY) < roadY) && (TMath::Abs(deltaZ) < roadZ) )
           {
             //tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
+            RecalcTrkltCov(trkltIdx, tilt, fCandidates[currIdx][iCandidate]->GetSnp(), pad->GetRowSize(fTracklets[trkltIdx].GetZbin()));
             double chi2 = fCandidates[currIdx][iCandidate]->GetPredictedChi2(trkltPosTmpYZ, fSpacePoints[trkltIdx].fCov);
             if (chi2 < fMaxChi2) {
               if (nCurrHypothesis < fNhypothesis) {
@@ -680,11 +692,12 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         trackSecReal(iLayer) = GetSector(fCandidates[currIdx][0]->GetAlpha());
       }
       double zPosCorrReal = fSpacePoints[realTrkltId].fX[1] + fZCorrCoefNRC * fCandidates[currIdx][0]->GetTgl();
-      double yCorrReal = tilt * (-1 + 2 * nextIdx) * (zPosCorrReal - fCandidates[currIdx][0]->GetZ());
-      double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] + yCorrReal, zPosCorrReal };
+      double yCorrReal = tilt * (zPosCorrReal - fCandidates[currIdx][0]->GetZ());
+      double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - yCorrReal, zPosCorrReal };
+      RecalcTrkltCov(realTrkltId, tilt, fCandidates[currIdx][0]->GetSnp(), pad->GetRowSize(fTracklets[realTrkltId].GetZbin()));
       chi2Real(iLayer) = fCandidates[currIdx][0]->GetPredictedChi2(yzPosReal, fSpacePoints[realTrkltId].fCov);
       trackletXReal(iLayer) = fSpacePoints[realTrkltId].fR;
-      trackletYReal(iLayer) = fSpacePoints[realTrkltId].fX[0] + yCorrReal;
+      trackletYReal(iLayer) = fSpacePoints[realTrkltId].fX[0] - yCorrReal;
       trackletZReal(iLayer) = zPosCorrReal;
       trackletDetReal(iLayer) = fTracklets[realTrkltId].GetDetector();
       trackletSecReal(iLayer) = fGeo->GetSector(trackletDetReal(iLayer));
@@ -745,10 +758,11 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         }
         continue;
       }
+      RecalcTrkltCov(fHypothesis[iUpdate].fTrackletId, tilt, fCandidates[nextIdx][iUpdate]->GetSnp(), pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin()));
 
       double zPosCorrUpdate = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] + fZCorrCoefNRC * fCandidates[nextIdx][iUpdate]->GetTgl();
-      double yCorr = tilt * (-1 + 2 * nextIdx) * (zPosCorrUpdate - fCandidates[nextIdx][iUpdate]->GetZ());
-      double trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] + yCorr, zPosCorrUpdate };
+      double yCorr = tilt * (zPosCorrUpdate - fCandidates[nextIdx][iUpdate]->GetZ());
+      double trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
 
       trackNoUpdates->Rotate(GetAlphaOfSector(trkltSec));
       PropagateTrackToBxByBz(trackNoUpdates, fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, mass, 2.0, kFALSE, 0.8);
@@ -769,7 +783,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         trackPt(iLayer) = fCandidates[nextIdx][iUpdate]->Pt();
         trackYerr(iLayer) = fCandidates[nextIdx][iUpdate]->GetSigmaY2();
         trackZerr(iLayer) = fCandidates[nextIdx][iUpdate]->GetSigmaZ2();
-        trackPhi(iLayer) = TMath::ASin(fCandidates[nextIdx][iUpdate]->GetSnp());
+        trackPhi(iLayer) = fCandidates[nextIdx][iUpdate]->GetSnp();
         trackSec(iLayer) = GetSector(fCandidates[nextIdx][iUpdate]->GetAlpha());
         trackletX(iLayer) = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR;
         trackletY(iLayer) = trkltPosYZ[0];
@@ -901,6 +915,17 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   }
 
   if (fDebugOutput) {
+    double XvMC = 0, YvMC = 0, ZvMC = 0;
+    int pdgCode = 0;
+    if (fMCEvent) {
+      AliMCParticle *mcPartDbg = (AliMCParticle*) fMCEvent->GetTrack(trackID);
+      if (mcPartDbg) {
+        XvMC = mcPartDbg->Xv();
+        YvMC = mcPartDbg->Yv();
+        ZvMC = mcPartDbg->Zv();
+        pdgCode = mcPartDbg->PdgCode();
+      }
+    }
     double chi2Total = t->GetChi2();
     int nTracklets = t->GetNtracklets();
     int nLayers = t->GetNlayers();
@@ -974,6 +999,14 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       "trackSecReal.=" << &trackSecReal <<              // track sector if matching or related tracklet exists, otherwise -1
       "chi2Real.=" << &chi2Real <<                      // chi2 for update with matching or related tracklet, otherwise 0
       "chi2Update.=" << &chi2Update <<                  // chi2 for tracklet which was used for update (FIXME only safe for one candidate)
+      "XvMC=" << XvMC <<                                // MC production vertex x
+      "YvMC=" << YvMC <<                                // MC production vertex y
+      "ZvMC=" << ZvMC <<                                // MC production vertex z
+      "xPosMC.=" << &xPosMC <<                          // MC truth position when exiting chamber
+      "yPosMC.=" << &yPosMC <<                          // MC truth position when exiting chamber
+      "zPosMC.=" << &zPosMC <<                          // MC truth position when exiting chamber
+      "ptMC.=" << &ptMC <<                              // MC truth pt
+      "pdgCode=" << pdgCode <<                          // MC PID
       "\n";
   }
 
@@ -1045,6 +1078,20 @@ float AliHLTTRDTracker::GetAlphaOfSector(const int sec) const
   return (2.0 * TMath::Pi() / (float) kNSectors * ((float) sec + 0.5));
 }
 
+void AliHLTTRDTracker::RecalcTrkltCov(const int trkltIdx, const double tilt, const double snp, const double rowSize)
+{
+  //--------------------------------------------------------------------
+  // recalculate tracklet covariance taking track phi angle into account
+  //--------------------------------------------------------------------
+  double t2 = tilt * tilt; // tan^2 (tilt)
+  double c2 = 1. / (1. + t2); // cos^2 (tilt)
+  double sy2 = GetRPhiRes(snp);
+  double sz2 = rowSize * rowSize / 12.;
+  fSpacePoints[trkltIdx].fCov[0] = c2 * (sy2 + t2 * sz2);
+  fSpacePoints[trkltIdx].fCov[1] = c2 * tilt * (sz2 - sy2);
+  fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
+}
+
 void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches) const
 {
   //--------------------------------------------------------------------
@@ -1071,7 +1118,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
         if (!fMCEvent) {
           continue;
         }
-        continue; // FIXME short check for efficiency estimates -> compare CheckTrackRefs
+        //continue; //FIXME uncomment to count only exact matches
         AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lb);
         while (mcPart) {
           lb = mcPart->GetMother();
@@ -1090,7 +1137,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
   }
 }
 
-void AliHLTTRDTracker::CheckTrackRefs(const int trackID, TVectorF &findableMC) const
+void AliHLTTRDTracker::CheckTrackRefs(const int trackID, TVectorF &findableMC, TVectorF &xPosMC, TVectorF &yPosMC, TVectorF &zPosMC, TVectorF &ptMC) const
 {
   //--------------------------------------------------------------------
   // loop over all track references for the input trackID and store
@@ -1114,8 +1161,7 @@ void AliHLTTRDTracker::CheckTrackRefs(const int trackID, TVectorF &findableMC) c
     }
     nHitsTrd++;
     double xLoc = trackReference->LocalX();
-    if (!trackReference->TestBits(0x1 << 18)) {
-      // take only hits exiting the chamber into account
+    if (!((trackReference->TestBits(0x1 << 18)) || (trackReference->TestBits(0x1 << 17)))) {
       // bit 17 - entering; bit 18 - exiting
       continue;
     }
@@ -1143,11 +1189,10 @@ void AliHLTTRDTracker::CheckTrackRefs(const int trackID, TVectorF &findableMC) c
       printf("x=%f, y=%f, z=%f, layer=%i\n", xLoc, trackReference->LocalY(), trackReference->Z(), layer);
       continue;
     }
-    //int stack = fGeo->GetStack(trackReference->Z(), layer);
-    //if (stack < 0) {
-    //  // track ref in dead zone
-    //  continue;
-    //}
+    xPosMC(layer) = xLoc;
+    yPosMC(layer) = trackReference->LocalY();
+    zPosMC(layer) = trackReference->Z();
+    ptMC(layer) = trackReference->Pt();
     findableMC(layer) += 1;
   }
 }
@@ -1263,12 +1308,12 @@ bool AliHLTTRDTracker::IsFindable(const AliHLTTRDTrack *t, const int layer) cons
   float zMax = pp->GetRowPos(0);
   float zMin = pp->GetRowPos(rowIdx) - pp->GetRowSize(rowIdx);
 
-  // reject tracks closer than 5 cm to pad plane boundary
-  if (yMax - TMath::Abs(t->GetY()) < 5.) {
+  // reject tracks closer than 10 cm to pad plane boundary
+  if (yMax - TMath::Abs(t->GetY()) < 10.) {
     return false;
   }
-  // reject tracks closer than 4 cm to stack boundary
-  if ( (zMax - t->GetZ() < 4.) || (t->GetZ() - zMin < 4.) ) {
+  // reject tracks closer than 10 cm to stack boundary
+  if ( (zMax - t->GetZ() < 10.) || (t->GetZ() - zMin < 10.) ) {
     return false;
   }
 
