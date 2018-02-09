@@ -13,15 +13,12 @@
 #include <boost/algorithm/string.hpp>
 #include <memory>
 
-#include <Framework/InputSpec.h>
-#include <Framework/DataProcessorSpec.h>
-#include <Framework/DataSampling.h>
-#include <Framework/ExternalFairMQDeviceProxy.h>
-#include <Framework/RawDeviceService.h>
-#include <Framework/SimpleRawDeviceService.h>
-#include <Framework/ParallelContext.h>
+#include "Framework/InputSpec.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/DataSampling.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
-
 #include "FairMQDevice.h"
 #include "FairMQTransportFactory.h"
 
@@ -58,7 +55,7 @@
 
 using namespace o2::framework;
 
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
+void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 {
   std::string configFilePath = std::ifstream(std::string(getenv("PWD")) + "/dataSamplingFullChainConfig.ini").good() ?
                                std::string("file://") + getenv("PWD") + "/dataSamplingFullChainConfig.ini" :

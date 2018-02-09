@@ -12,28 +12,27 @@
 #include <iostream>
 #include <boost/algorithm/string.hpp>
 
-#include <Framework/InputSpec.h>
-#include <Framework/DataProcessorSpec.h>
-#include <Framework/ParallelContext.h>
-#include <Framework/runDataProcessing.h>
-
+#include "Framework/InputSpec.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/ParallelContext.h"
+#include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
 
 struct FakeCluster {
-    float x;
-    float y;
-    float z;
-    float q;
+  float x;
+  float y;
+  float z;
+  float q;
 };
 using DataHeader = o2::Header::DataHeader;
 
 size_t parallelSize = 4;
 size_t collectionChunkSize = 1000;
-void someDataProducerAlgorithm(ProcessingContext &ctx);
-void someProcessingStageAlgorithm (ProcessingContext &ctx);
+void someDataProducerAlgorithm(ProcessingContext& ctx);
+void someProcessingStageAlgorithm(ProcessingContext& ctx);
 
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
+void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 {
 
   DataProcessorSpec dataProducer{
@@ -43,7 +42,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       OutputSpec{"TPC", "CLUSTERS", 0, OutputSpec::Timeframe},
     },
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm
+      (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
     }
   };
 
@@ -71,11 +70,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)[](ProcessingContext &ctx){
+      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
       }
     }
   };
-
 
   specs.push_back(dataProducer);
   specs.push_back(processingStage);
@@ -83,7 +81,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 }
 
 
-void someDataProducerAlgorithm(ProcessingContext &ctx)
+void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
   sleep(1);
@@ -92,7 +90,7 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
   auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", index}, collectionChunkSize);
   int i = 0;
 
-  for (auto &cluster : tpcClusters) {
+  for (auto& cluster : tpcClusters) {
     assert(i < collectionChunkSize);
     cluster.x = index;
     cluster.y = i;
@@ -103,19 +101,20 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
 }
 
 
-void someProcessingStageAlgorithm (ProcessingContext &ctx)
+void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
-  const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC").payload);
+  const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index}, collectionChunkSize);
+  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index},
+                                                                collectionChunkSize);
 
   int i = 0;
-  for(auto& cluster : processedTpcClusters){
-    assert( i < collectionChunkSize);
+  for (auto& cluster : processedTpcClusters) {
+    assert(i < collectionChunkSize);
     cluster.x = -inputDataTpc[i].x;
-    cluster.y = 2*inputDataTpc[i].y;
+    cluster.y = 2 * inputDataTpc[i].y;
     cluster.z = inputDataTpc[i].z * inputDataTpc[i].q;
     cluster.q = inputDataTpc[i].q;
     i++;

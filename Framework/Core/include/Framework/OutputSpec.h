@@ -32,10 +32,9 @@ struct OutputSpec {
   header::DataHeader::SubSpecificationType subSpec;
   enum Lifetime lifetime;
 
-  bool operator==(const OutputSpec &that){
-    return origin == that.origin &&
-           description == that.description &&
-           subSpec == that.subSpec &&
+  bool operator==(const OutputSpec &that)
+  {
+    return origin == that.origin && description == that.description && subSpec == that.subSpec &&
            lifetime == that.lifetime;
   };
 };

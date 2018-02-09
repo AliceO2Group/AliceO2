@@ -12,30 +12,28 @@
 #include <iostream>
 #include <boost/algorithm/string.hpp>
 
-#include <Framework/InputSpec.h>
-#include <Framework/DataProcessorSpec.h>
-#include <Framework/ParallelContext.h>
+#include "Framework/InputSpec.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
-
 
 using namespace o2::framework;
 
 struct FakeCluster {
-    float x;
-    float y;
-    float z;
-    float q;
+  float x;
+  float y;
+  float z;
+  float q;
 };
 using DataHeader = o2::Header::DataHeader;
 
 size_t parallelSize = 4;
 size_t collectionChunkSize = 1000;
-void someDataProducerAlgorithm(ProcessingContext &ctx);
-void someProcessingStageAlgorithm (ProcessingContext &ctx);
+void someDataProducerAlgorithm(ProcessingContext& ctx);
+void someProcessingStageAlgorithm(ProcessingContext& ctx);
 
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
+void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 {
-
   auto dataProducers = parallel(
     DataProcessorSpec{
       "dataProducer",
@@ -44,11 +42,11 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
         OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm
+        (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
       }
     },
     parallelSize,
-    [](DataProcessorSpec &spec, size_t index) {
+    [](DataProcessorSpec& spec, size_t index) {
       spec.outputs[0].subSpec = index;
     }
   );
@@ -68,7 +66,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
       }
     },
     parallelSize,
-    [](DataProcessorSpec &spec, size_t index) {
+    [](DataProcessorSpec& spec, size_t index) {
       spec.inputs[0].subSpec = index;
       spec.outputs[0].subSpec = index;
     }
@@ -77,14 +75,14 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   auto inputsDataSampler = mergeInputs(
     {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe},
     parallelSize,
-    [](InputSpec &input, size_t index) {
+    [](InputSpec& input, size_t index) {
       input.subSpec = index;
     }
   );
   auto inputsTpcProc = mergeInputs(
     {"dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
     parallelSize,
-    [](InputSpec &input, size_t index) {
+    [](InputSpec& input, size_t index) {
       input.subSpec = index;
     }
   );
@@ -94,38 +92,40 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     "dataSampler",
     inputsDataSampler,
     Outputs{
-      {"TPC", "CLUSTERS_S", 0, OutputSpec::Timeframe},
+      {"TPC", "CLUSTERS_S",   0, OutputSpec::Timeframe},
       {"TPC", "CLUSTERS_P_S", 0, OutputSpec::Timeframe}
     },
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)[](ProcessingContext& ctx) {
+      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
         InputRecord& inputs = ctx.inputs();
 
-        for(auto& input : inputs){
+        for (auto& input : inputs) {
 
           const InputSpec* inputSpec = input.spec;
           o2::Header::DataDescription outputDescription = inputSpec->description;
 
           //todo: better sampled data flagging
           size_t len = strlen(outputDescription.str);
-          if (len < outputDescription.size-2){
+          if (len < outputDescription.size - 2) {
             outputDescription.str[len] = '_';
-            outputDescription.str[len+1] = 'S';
+            outputDescription.str[len + 1] = 'S';
           }
 
-          OutputSpec outputSpec{inputSpec->origin,
-                                outputDescription,
-                                0,
-                                static_cast<OutputSpec::Lifetime>(inputSpec->lifetime)};
+          OutputSpec outputSpec{
+            inputSpec->origin,
+            outputDescription,
+            0,
+            static_cast<OutputSpec::Lifetime>(inputSpec->lifetime)
+          };
 
           LOG(DEBUG) << "DataSampler sends data from subSpec: " << inputSpec->subSpec;
 
-          const auto *inputHeader = o2::Header::get<o2::Header::DataHeader>(input.header);
+          const auto* inputHeader = o2::Header::get<o2::Header::DataHeader>(input.header);
           auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
 
           //todo: use some std function or adopt(), when it is available for POD data
           const char* input_ptr = input.payload;
-          for (char &it : output) {
+          for (char& it : output) {
             it = *input_ptr++;
           }
         }
@@ -136,13 +136,14 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   DataProcessorSpec qcTask{
     "qcTask",
     Inputs{
-      {"dataTPC-sampled", "TPC", "CLUSTERS_S", 0, InputSpec::Timeframe},
+      {"dataTPC-sampled",      "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
       {"dataTPC-proc-sampled", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
     },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)[](ProcessingContext& ctx) {
-        const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC-sampled").payload);
+      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
+        const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
+          "dataTPC-sampled").payload);
         const InputSpec* inputSpec = ctx.inputs().get("dataTPC-sampled").spec;
         LOG(DEBUG) << "qcTask received data with subSpec: " << inputSpec->subSpec;
       }
@@ -154,14 +155,15 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     mergeInputs(
       {"dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
       parallelSize,
-      [](InputSpec &input, size_t index) {
+      [](InputSpec& input, size_t index) {
         input.subSpec = index;
       }
     ),
     Outputs{},
     AlgorithmSpec{
-      [](ProcessingContext &ctx){
-        const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC-proc").payload);
+      [](ProcessingContext& ctx) {
+        const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
+          "dataTPC-proc").payload);
       }
     }
   };
@@ -185,7 +187,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 }
 
 
-void someDataProducerAlgorithm(ProcessingContext &ctx)
+void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
   sleep(1);
@@ -194,7 +196,7 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
   auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", index}, collectionChunkSize);
   int i = 0;
 
-  for (auto &cluster : tpcClusters) {
+  for (auto& cluster : tpcClusters) {
     assert(i < collectionChunkSize);
     cluster.x = index;
     cluster.y = i;
@@ -205,19 +207,20 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
 }
 
 
-void someProcessingStageAlgorithm (ProcessingContext &ctx)
+void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
-  const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC").payload);
+  const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index}, collectionChunkSize);
+  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index},
+                                                                collectionChunkSize);
 
   int i = 0;
-  for(auto& cluster : processedTpcClusters){
-    assert( i < collectionChunkSize);
+  for (auto& cluster : processedTpcClusters) {
+    assert(i < collectionChunkSize);
     cluster.x = -inputDataTpc[i].x;
-    cluster.y = 2*inputDataTpc[i].y;
+    cluster.y = 2 * inputDataTpc[i].y;
     cluster.z = inputDataTpc[i].z * inputDataTpc[i].q;
     cluster.q = inputDataTpc[i].q;
     i++;
