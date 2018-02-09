@@ -343,7 +343,7 @@ private:
   GPUglobalref() AliHLTTPCCAClusterData *fClusterData; // ^
   MEM_LG(AliHLTTPCCASliceData) fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
   
-  bool fIsGPUTracker; // is it GPU tracker object
+  char fIsGPUTracker; // is it GPU tracker object
   int fGPUDebugLevel; // debug level
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)

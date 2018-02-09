@@ -42,7 +42,7 @@
     MEM_TEMPLATE() GPUhd() void SetParam( const MEM_TYPE(AliHLTTPCCABaseTrackParam) &v ) { fParam = v; }
 
   private:
-    bool fAlive;       // flag for mark tracks used by the track merger
+    char fAlive;       // flag for mark tracks used by the track merger
     int  fFirstHitID; // index of the first track cell in the track->cell pointer array
     int  fNHits;      // number of track cells
 	int  fLocalTrackId; //Id of local track this global track belongs to, index of this track itself if it is a local track

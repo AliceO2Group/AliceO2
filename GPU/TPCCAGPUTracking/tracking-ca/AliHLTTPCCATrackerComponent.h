@@ -109,10 +109,10 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     double fClusterErrorCorrectionZ;  // correction for the cluster errors
 
     AliHLTComponentBenchmark fBenchmark; // benchmarks
-    bool fAllowGPU;                   //* Allow this tracker to run on GPU
+    char fAllowGPU;                   //* Allow this tracker to run on GPU
     int fGPUHelperThreads;            // Number of helper threads for GPU tracker, set to -1 to use default number
     int fCPUTrackers;                 //Number of CPU trackers to run in addition to GPU tracker
-    bool fGlobalTracking;             //Activate global tracking feature
+    char fGlobalTracking;             //Activate global tracking feature
     int fGPUDeviceNum;				  //GPU Device to use, default -1 for auto detection
     TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
     int fGPUStuckProtection;		//Protect from stuck GPUs

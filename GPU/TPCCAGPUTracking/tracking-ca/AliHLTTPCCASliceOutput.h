@@ -45,7 +45,7 @@ class AliHLTTPCCASliceOutput
     outputControlStruct() :  fOutputPtr( NULL ), fOutputMaxSize ( 0 ), fEndOfSpace(0) {}
     char* volatile fOutputPtr;		//Pointer to Output Space, NULL to allocate output space
     volatile int fOutputMaxSize;		//Max Size of Output Data if Pointer to output space is given
-    bool fEndOfSpace; // end of space flag 
+    char fEndOfSpace; // end of space flag 
   };
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)

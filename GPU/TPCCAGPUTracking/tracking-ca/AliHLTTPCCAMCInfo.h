@@ -4,8 +4,8 @@
 struct AliHLTTPCCAMCInfo
 {
 	int fCharge;
-	bool fPrim;
-	bool fPrimDaughters;
+	char fPrim;
+	char fPrimDaughters;
 	int fPID;
 	float fX;
 	float fY;

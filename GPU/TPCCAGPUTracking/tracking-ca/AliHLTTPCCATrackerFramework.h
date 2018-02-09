@@ -61,9 +61,9 @@ public:
 private:
   static const int fgkNSlices = 36;       //* N slices
 
-  bool fGPULibAvailable;	//Is the Library with the GPU code available at all?
-  bool fGPUTrackerAvailable; // Is the GPU Tracker Available?
-  bool fUseGPUTracker; // use the GPU tracker 
+  char fGPULibAvailable;	//Is the Library with the GPU code available at all?
+  char fGPUTrackerAvailable; // Is the GPU Tracker Available?
+  char fUseGPUTracker; // use the GPU tracker 
   int fGPUDebugLevel;  // debug level for the GPU code
   AliHLTTPCCAGPUTracker* fGPUTracker;	//Pointer to GPU Tracker Object
   void* fGPULib;		//Pointer to GPU Library
@@ -73,8 +73,8 @@ private:
   AliHLTTPCCATracker fCPUTrackers[fgkNSlices];
   static const int fCPUSliceCount = 36;
 
-  bool fKeepData;		//Keep temporary data and do not free memory imediately, used for Standalone Debug Event Display
-  bool fGlobalTracking;	//Use global tracking
+  char fKeepData;		//Keep temporary data and do not free memory imediately, used for Standalone Debug Event Display
+  char fGlobalTracking;	//Use global tracking
 
   AliHLTTPCCATrackerFramework( const AliHLTTPCCATrackerFramework& );
   AliHLTTPCCATrackerFramework &operator=( const AliHLTTPCCATrackerFramework& );
