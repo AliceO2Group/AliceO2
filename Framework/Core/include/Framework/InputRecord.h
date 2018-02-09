@@ -13,6 +13,7 @@
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRoute.h"
+#include "Framework/TypeTraits.h"
 
 #include <fairmq/FairMQMessage.h>
 #include <Framework/TMessageSerializer.h>
@@ -62,7 +63,7 @@ public:
   // not be used if the type is a TObject as extra deserialization
   // needs to happen.
   template <typename T>
-  typename std::enable_if<std::is_pod<T>::value && std::is_same<T, DataRef>::value == false, T>::type const&
+  typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false, T>::type const&
   get(char const *binding) const {
     return *reinterpret_cast<T const *>(get<DataRef>(binding).payload);
   }
