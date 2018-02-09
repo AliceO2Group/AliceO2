@@ -55,6 +55,9 @@ void Detector::EndOfEvent()
   // Sort Hits
   // Add duplicates if any and remove them
   // TODO: Apply Poisson smearing of light production
+  if (!mHits || mHits->size() == 0) {
+    return;
+  }
 
   auto first = mHits->begin();
   auto last = mHits->end();
