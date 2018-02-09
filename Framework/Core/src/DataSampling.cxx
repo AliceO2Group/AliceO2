@@ -255,25 +255,17 @@ void DataSampling::dispatcherCallbackFairMQ(ProcessingContext &ctx, BernoulliGen
 
   InputRecord& inputs = ctx.inputs();
 
-  //todo: make sure this is expected way to send fairmq message
   if (bernoulliGenerator.drawLots()){
 
     auto cleanupFcn = [](void *data, void *hint) { delete[] reinterpret_cast<char *>(data); };
     for(auto& input : inputs){
-
       const auto *header = Header::get<header::DataHeader>(input.header);
-
-      char *headerCopy = new char[header->headerSize];
-      memcpy(headerCopy, header->data(), header->headerSize);
-      FairMQMessagePtr msgHeader(device->NewMessage(headerCopy, header->headerSize, cleanupFcn, headerCopy));
 
       char *payloadCopy = new char[header->payloadSize];
       memcpy(payloadCopy, input.payload, header->payloadSize);
       FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, header->payloadSize,cleanupFcn,payloadCopy));
 
-      int bytesSent = device->Send(msgHeader, channel);
-      LOG(DEBUG) << "Header bytes sent: " << bytesSent;
-      bytesSent = device->Send(msgPayload, channel);
+      int bytesSent = device->Send(msgPayload, channel);
       LOG(DEBUG) << "Payload bytes sent: " << bytesSent;
     }
 
