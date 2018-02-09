@@ -51,6 +51,7 @@ set(SRCS
     src/runDataProcessing.cxx
     src/TMessageSerializer.cxx
     ${GUI_SOURCES}
+    test/TestClasses.cxx
    )
 
 set(HEADERS
@@ -126,6 +127,12 @@ set(HEADERS
 
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
+
+# create dictionary for a test class to be serialized in unit test
+set(LINKDEF test/FrameworkCoreTestLinkDef.h)
+set(HEADERS
+     test/TestClasses.h
+   )
 
 O2_GENERATE_LIBRARY()
 
