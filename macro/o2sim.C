@@ -32,6 +32,7 @@ void o2sim()
   auto run = new FairRunSim();
   run->SetOutputFile("o2sim.root");            // Output file
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
+  run->SetIsMT(confref.getIsMT());             // MT mode
 
   // construct geometry / including magnetic field
   build_geometry(run);
