@@ -84,12 +84,12 @@ protected:
 		AliHLTTPCCASliceOutput** pOutput;
 		int fFirstSlice;
 		void* fMutex;
-		bool fTerminate;
+		char fTerminate;
 		int fPhase;
 		int CPUTracker;
 		volatile int fDone;
-		volatile bool fError;
-		volatile bool fReset;
+		volatile char fError;
+		volatile char fReset;
 	};
 
 	static void* RowMemory(void* const BaseMemory, int iSlice)       { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }

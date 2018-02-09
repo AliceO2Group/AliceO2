@@ -182,10 +182,10 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fMaxTrackQPt;    //* required max Q/Pt (==min Pt) of tracks
     float fHighQPtForward; //Try to forward low Pt tracks with Q/Pt larger than this
     int fNWays;          //Do N fit passes in final fit of merger
-    bool fNWaysOuter;    //Store outer param
-    bool fAssumeConstantBz; //Assume a constant magnetic field
-    bool fToyMCEventsFlag; //events were build with home-made event generator
-    bool fContinuousTracking; //Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+    char fNWaysOuter;    //Store outer param
+    char fAssumeConstantBz; //Assume a constant magnetic field
+    char fToyMCEventsFlag; //events were build with home-made event generator
+    char fContinuousTracking; //Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
     float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
     float fTrackReferenceX; //Transport all tracks to this X after tracking (disabled if > 500)
 
