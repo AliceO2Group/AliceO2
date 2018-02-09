@@ -144,43 +144,57 @@ public:
   void
   adopt(const OutputSpec &spec, TObject*obj);
 
-  /// Serialize a snapshot of a TObject when called, which will then be
-  /// sent once the computation ends.
+  /// Serialize a snapshot of an object with root dictionary when called,
+  /// will then be sent once the computation ends.
   /// Framework does not take ownership of the @a object. Changes to @a object
   /// after the call will not be sent.
+  /// Note: also messageable objects can have a dictionary, but serialization
+  /// method can not be deduced automatically. Messageable objects are sent
+  /// unserialized by default. Serialization method needs to be specified
+  /// explicitely otherwise by using RootSerialize wrapper type.
   template <typename T>
-  typename std::enable_if<std::is_base_of<TObject, T>::value == true, void>::type
-  snapshot(const OutputSpec &spec, T & object) {
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
-    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object);
-
-    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
-  }
-
-  /// Serialize a snapshot of a TObject when called, which will then be
-  /// sent once the computation ends.
-  /// Framework does not take ownership of the @a object. Changes to @a object
-  /// after the call will not be sent.
-  template <typename T>
-  void snapshot(const OutputSpec& spec, T& object, o2::header::SerializationMethod method)
+  typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
+  snapshot(const OutputSpec& spec, T& object)
   {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
-    if (method != o2::header::gSerializationMethodROOT) {
-      throw std::runtime_error("unsupported serialization type");
-    }
     auto* cl = TClass::GetClass(typeid(T));
-    if (cl == nullptr) {
-      throw std::runtime_error("can not serialize class without dictionary");
-    }
     mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object, cl);
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
-  /// Serialize a snapshot of a trivially copyable, non-polymorphic type, which
+  /// Serialize a snapshot of @a object with root dictionary when called,
   /// will then be sent once the computation ends.
+  /// Framework does not take ownership of the @a object. Changes to @a object
+  /// after the call will not be sent.
+  /// Currently, ROOT serialization and plain output are supported.
+  /// TODO: express serialization methods as types to be used in the template
+  /// specialization
+  /// DEPRECATED method, rewrite with type wrapper
+  template <typename T>
+  typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
+  snapshot(const OutputSpec& spec, T& object, o2::header::SerializationMethod method)
+  {
+    FairMQMessagePtr payloadMessage;
+    if (method == o2::header::gSerializationMethodROOT) {
+      payloadMessage = std::move(mDevice->NewMessage());
+      mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object, T::Class());
+      addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
+    } else if (method == o2::header::gSerializationMethodNone) {
+      payloadMessage = std::move(mDevice->NewMessage(sizeof(T)));
+      memcpy(payloadMessage->GetData(), &object, sizeof(T));
+      addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
+    } else {
+      throw std::runtime_error("unsupported serialization type");
+    }
+  }
+
+  /// Serialize a snapshot of a trivially copyable, non-polymorphic @a object,
+  /// referred to be 'messageable, will then be sent once the computation ends.
   /// Framework does not take ownership of @param object. Changes to @param object
   /// after the call will not be sent.
+  /// Note: also messageable objects with ROOT dictionary are preferably sent
+  /// unserialized. Use @a RootSerialize type wrapper to force ROOT serialization.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, void>::type
   snapshot(const OutputSpec& spec, T const& object)
@@ -237,17 +251,17 @@ public:
 
   /// specialization to catch unsupported types and throw a detailed compiler error
   template <typename T>
-  typename std::enable_if<std::is_base_of<TObject, T>::value == false &&
+  typename std::enable_if<has_root_dictionary<T>::value == false &&
                           is_messageable<T>::value == false &&
                           is_specialization<T, std::vector>::value == false>::type
   snapshot(const OutputSpec& spec, T const&)
   {
-    static_assert(std::is_base_of<TObject, T>::value == true || is_messageable<T>::value == true ||
+    static_assert(has_root_dictionary<T>::value == true || is_messageable<T>::value == true ||
                     is_specialization<T, std::vector>::value == true,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - std::vector of messageable structures or pointers to those"
-                  "\n - TObject by reference");
+                  "\n - object with dictionary by reference");
   }
 
   /// specialization to catch unsupported types, check value_type of std::vector
@@ -265,7 +279,7 @@ public:
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - std::vector of messageable structures or pointers to those"
-                  "\n - TObject by reference");
+                  "\n - object with dictionary by reference");
   }
 
 private:
