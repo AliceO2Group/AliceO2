@@ -12,35 +12,30 @@
 #include <iostream>
 #include <boost/algorithm/string.hpp>
 
-#include <Configuration/ConfigurationInterface.h>
-#include <Configuration/ConfigurationFactory.h>
-
-#include <Framework/InputSpec.h>
-#include <Framework/DataProcessorSpec.h>
-#include <Framework/DataSampling.h>
-#include <Framework/ParallelContext.h>
+#include "Framework/InputSpec.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/DataSampling.h"
+#include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
-
 
 using namespace o2::framework;
 
 struct FakeCluster {
-    float x;
-    float y;
-    float z;
-    float q;
+  float x;
+  float y;
+  float z;
+  float q;
 };
 using DataHeader = o2::Header::DataHeader;
 
 size_t parallelSize = 4;
 size_t collectionChunkSize = 1000;
-void someDataProducerAlgorithm(ProcessingContext &ctx);
-void someProcessingStageAlgorithm (ProcessingContext &ctx);
-void someSinkAlgorithm (ProcessingContext &ctx);
+void someDataProducerAlgorithm(ProcessingContext& ctx);
+void someProcessingStageAlgorithm(ProcessingContext& ctx);
+void someSinkAlgorithm(ProcessingContext& ctx);
 
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
+void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 {
-
   auto dataProducers = parallel(
     DataProcessorSpec{
       "dataProducer",
@@ -49,13 +44,12 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
         OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm
+        (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
       }
     },
     parallelSize,
-    [](DataProcessorSpec &spec, size_t index) {
+    [](DataProcessorSpec& spec, size_t index) {
       spec.outputs[0].subSpec = index;
-//      spec.outputs[1].subSpec = index;
     }
   );
 
@@ -69,12 +63,11 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
         {"TPC", "CLUSTERS_P", OutputSpec::Timeframe}
       },
       AlgorithmSpec{
-        //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
         (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
       }
     },
     parallelSize,
-    [](DataProcessorSpec &spec, size_t index) {
+    [](DataProcessorSpec& spec, size_t index) {
       spec.inputs[0].subSpec = index;
       spec.outputs[0].subSpec = index;
     }
@@ -84,7 +77,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   auto inputsSink = mergeInputs(
     {"dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
     parallelSize,
-    [](InputSpec &input, size_t index) {
+    [](InputSpec& input, size_t index) {
       input.subSpec = index;
     }
   );
@@ -94,7 +87,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
     inputsSink,
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm
+      (AlgorithmSpec::ProcessCallback) someSinkAlgorithm
     }
   };
 
@@ -102,24 +95,25 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
   DataProcessorSpec simpleQcTask{
     "simpleQcTask",
     Inputs{
-      {"TPC_CLUSTERS_S", "TPC", "CLUSTERS_S", 0, InputSpec::Timeframe},
+      {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
       {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
     },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)[](ProcessingContext& ctx){
-        auto inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("TPC_CLUSTERS_S").payload);
-        auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("TPC_CLUSTERS_P_S").payload);
+      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
+        auto inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("TPC_CLUSTERS_S").payload);
+        auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
+          "TPC_CLUSTERS_P_S").payload);
 
-        const auto *header = o2::Header::get<DataHeader>(ctx.inputs().get("TPC_CLUSTERS_S").header);
+        const auto* header = o2::Header::get<DataHeader>(ctx.inputs().get("TPC_CLUSTERS_S").header);
 
         bool dataGood = true;
-        for (int j = 0; j < header->payloadSize/sizeof(FakeCluster) ; ++j) {
+        for (int j = 0; j < header->payloadSize / sizeof(FakeCluster); ++j) {
           float diff = std::abs(-inputDataTpc[j].x - inputDataTpcProcessed[j].x) +
-                       std::abs(2*inputDataTpc[j].y - inputDataTpcProcessed[j].y) +
+                       std::abs(2 * inputDataTpc[j].y - inputDataTpcProcessed[j].y) +
                        std::abs(inputDataTpc[j].z * inputDataTpc[j].q - inputDataTpcProcessed[j].z) +
                        std::abs(inputDataTpc[j].q - inputDataTpcProcessed[j].q);
-          if ( diff > 1 ){
+          if (diff > 1) {
             dataGood = false;
             break;
           }
@@ -142,7 +136,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs)
 }
 
 
-void someDataProducerAlgorithm(ProcessingContext &ctx)
+void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
   sleep(1);
@@ -151,7 +145,7 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
   auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", index}, collectionChunkSize);
   int i = 0;
 
-  for (auto &cluster : tpcClusters) {
+  for (auto& cluster : tpcClusters) {
     assert(i < collectionChunkSize);
     cluster.x = index;
     cluster.y = i;
@@ -162,25 +156,26 @@ void someDataProducerAlgorithm(ProcessingContext &ctx)
 }
 
 
-void someProcessingStageAlgorithm (ProcessingContext &ctx)
+void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
-  const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC").payload);
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index}, collectionChunkSize);
+  const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
+  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index},
+                                                                collectionChunkSize);
 
   int i = 0;
-  for(auto& cluster : processedTpcClusters){
-    assert( i < collectionChunkSize);
+  for (auto& cluster : processedTpcClusters) {
+    assert(i < collectionChunkSize);
     cluster.x = -inputDataTpc[i].x;
-    cluster.y = 2*inputDataTpc[i].y;
+    cluster.y = 2 * inputDataTpc[i].y;
     cluster.z = inputDataTpc[i].z * inputDataTpc[i].q;
     cluster.q = inputDataTpc[i].q;
     i++;
   }
 };
 
-void someSinkAlgorithm( ProcessingContext &ctx)
+void someSinkAlgorithm(ProcessingContext& ctx)
 {
-  const FakeCluster *inputDataTpc = reinterpret_cast<const FakeCluster *>(ctx.inputs().get("dataTPC-proc").payload);
+  const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC-proc").payload);
 }
