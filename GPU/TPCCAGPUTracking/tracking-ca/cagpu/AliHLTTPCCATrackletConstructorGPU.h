@@ -73,9 +73,11 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 				GPUsync();
 			}
 
-			rMem.fGo = rMem.fItr >= 0 && rMem.fItr < sMem.fNTracklets;
-
-			DoTracklet(tracker, sMem, rMem);
+			if (rMem.fItr >= 0 && rMem.fItr < sMem.fNTracklets)
+			{
+				rMem.fGo = true;
+				DoTracklet(tracker, sMem, rMem);
+			}
 		}
 		if (++mySlice >= nSlices) mySlice = 0;
 	}
