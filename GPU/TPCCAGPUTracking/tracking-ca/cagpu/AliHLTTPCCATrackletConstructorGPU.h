@@ -35,7 +35,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 	int mySlice = get_group_id(0) % nSlices;
 	int currentSlice = -1;
 
-	if (get_local_id(0))
+	if (get_local_id(0) == 0)
 	{
 		sMem.fNextTrackletFirstRun = 1;
 	}
