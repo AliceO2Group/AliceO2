@@ -268,7 +268,7 @@ int AliHLTTPCCAGPUTrackerNVCC::GPUSync(const char* state, int stream, int slice)
 		HLTError("CUDA Error while synchronizing (%s) (Stream %d; %d/%d)", state, stream, slice, fgkNSlices);
 		return(1);
 	}
-	if (fDebugLevel >= 3) HLTInfo("CUDA Sync Done");
+	if (fDebugLevel >= 3) HLTInfo("GPU Sync Done");
 	return(0);
 }
 
@@ -507,6 +507,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			GPUFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemorySize(), cudaMemcpyDeviceToHost));
 			GPUFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].HitMemory(), fGpuTracker[iSlice].HitMemory(), fGpuTracker[iSlice].HitMemorySize(), cudaMemcpyDeviceToHost));
 			if (fDebugMask & 128) fSlaveTrackers[firstSlice + iSlice].DumpTrackletHits(*fOutFile);
+			delete[] fSlaveTrackers[firstSlice + iSlice].TrackletMemory();
 		}
 	}
 
@@ -600,11 +601,9 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (fDebugLevel >= 3) HLTInfo("Tracks Transfered: %d / %d", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
 
 		if (Reconstruct_Base_FinishSlices(pOutput, iSlice, firstSlice)) return(1);
-
 		if (fDebugLevel >= 4)
 		{
 			delete[] fSlaveTrackers[firstSlice + iSlice].HitMemory();
-			delete[] fSlaveTrackers[firstSlice + iSlice].TrackletMemory();
 		}
 	}
 
