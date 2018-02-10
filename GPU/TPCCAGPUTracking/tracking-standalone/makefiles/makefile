@@ -60,6 +60,7 @@ VSNETFLAGSUSE					= $(VSNETFLAGSDBG)
 GCCFLAGSUSE						= $(GCCFLAGSDBG)
 CLANGFLAGSUSE					= $(CLANGFLAGSDBG)
 NVCCFLAGSUSE					= $(NVCCFLAGSDBG)
+OPENCL_DEF_OPTIONS				= "-O0 -g"
 CONFIG_LTO						= 0
 endif
 ifeq ($(COMPILER_FLAGS), OPT)
@@ -68,6 +69,7 @@ VSNETFLAGSUSE					= $(VSNETFLAGSOPT)
 GCCFLAGSUSE						= $(GCCFLAGSOPT)
 CLANGFLAGSUSE					= $(CLANGFLAGSOPT)
 NVCCFLAGSUSE					= $(NVCCFLAGSOPT)
+OPENCL_DEF_OPTIONS				= "-O3"
 endif
 ifeq ($(GCCCUDA), )
 GCCCUDA						= $(GCC3264)
@@ -248,7 +250,7 @@ $(WORKPATH)/_makefiles_support_opencl.exe:	$(WORKPATH)/_makefiles_support_opencl
 								$(LINK) $(LIBPATHSUSE) $< $(LINKFLAGSUSE) $(LINKOUTPUT) $(LINKFLAGSARCH) $(OPENCLLIB)
 
 $(WORKPATH)/cl/%.clbin:			%.cl $(WORKPATH)/_makefiles_support_opencl.exe $(ALLDEP)
-								$(HIDEECHOA) $(OPENCL_ENVIRONMENT) ./$(WORKPATH)/_makefiles_support_opencl.exe -output-file $@ $< -- -I. $(GCCINCLUDEPATHS) $(GCCDEFINES) $(OPENCL_OPTIONS) > /dev/null
+								$(HIDEECHOA) $(OPENCL_ENVIRONMENT) ./$(WORKPATH)/_makefiles_support_opencl.exe -output-file $@ $< -- -I. $(GCCINCLUDEPATHS) $(GCCDEFINES) $(OPENCL_DEF_OPTIONS) $(OPENCL_OPTIONS) > /dev/null
 
 $(WORKPATH)/cl/%.$(OBJ):		$(WORKPATH)/cl/%.clbin $(ALLDEP)
 								@echo $<
