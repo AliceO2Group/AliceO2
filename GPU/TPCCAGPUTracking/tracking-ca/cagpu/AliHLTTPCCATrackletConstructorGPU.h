@@ -4,6 +4,7 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() MEM_CONS
 {
 	const int nativeslice = get_group_id(0) % tracker.GPUParametersConst()->fGPUnSlices;
 	const int nTracklets = *tracker.NTracklets();
+	GPUsync();
 	if (get_local_id(0) == 0)
 	{
 		if (sMem.fNextTrackletFirstRun == 1)
@@ -46,12 +47,11 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 
 		AliHLTTPCCAThreadMemory rMem;
 
-		int tmpTracklet;
-		while ((tmpTracklet = FetchTracklet(tracker, sMem)) != -2)
+		while ((rMem.fItr = FetchTracklet(tracker, sMem)) != -2)
 		{
-			if (tmpTracklet >= 0 && get_local_id(0) < HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR)
+			if (rMem.fItr >= 0 && get_local_id(0) < HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR)
 			{
-				rMem.fItr = tmpTracklet + get_local_id(0);
+				rMem.fItr += get_local_id(0);
 			}
 			else
 			{
@@ -69,8 +69,8 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 				{
 					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 				}
-				currentSlice = mySlice;
 				GPUsync();
+				currentSlice = mySlice;
 			}
 
 			if (rMem.fItr >= 0 && rMem.fItr < sMem.fNTracklets)
