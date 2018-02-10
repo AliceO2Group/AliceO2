@@ -506,13 +506,6 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			}
 			GPUFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemorySize(), cudaMemcpyDeviceToHost));
 			GPUFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].HitMemory(), fGpuTracker[iSlice].HitMemory(), fGpuTracker[iSlice].HitMemorySize(), cudaMemcpyDeviceToHost));
-			if (0 && fSlaveTrackers[firstSlice + iSlice].NTracklets() && fSlaveTrackers[firstSlice + iSlice].Tracklet(0).NHits() < 0)
-			{
-				cudaThreadSynchronize();
-				cuCtxPopCurrent((CUcontext*) fCudaContext);
-				printf("INTERNAL ERROR\n");
-				return(1);
-			}
 			if (fDebugMask & 128) fSlaveTrackers[firstSlice + iSlice].DumpTrackletHits(*fOutFile);
 		}
 	}

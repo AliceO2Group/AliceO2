@@ -296,7 +296,7 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 					for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++){
 						const int pos = k * nTracklets + j;
 						if (pos < 0 || pos >= HLTCA_GPU_MAX_TRACKLETS * fParam.NRows()){
-							printf("internal error\n");	      
+							printf("internal error: invalid tracklet position k=%d j=%d pos=%d\n", k, j, pos);
 						} else {
 							fTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
 						}
