@@ -72,9 +72,9 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
   GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_LG2(AliHLTTPCCATracker) &tracker, MEM_LG3(AliHLTTPCCATrackParam) &tParam )
 {
   // reconstruction of tracklets, tracklet store step
-  if ( r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ||
+  if ( r.fNHits && (r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ||
     !CheckCov(tParam) ||
-    AliHLTTPCCAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt() )
+    AliHLTTPCCAMath::Abs(tParam.GetQPt()) > tracker.Param().MaxTrackQPt() ))
   {
     r.fNHits = 0;
   }
