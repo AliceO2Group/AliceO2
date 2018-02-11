@@ -174,6 +174,7 @@ set(TEST_SRCS
       test/test_WorkflowHelpers.cxx
       test/test_WorkflowOptions.cxx
       test/test_TMessageSerializer.cxx
+      test/test_DataAllocator.cxx
    )
 
 O2_GENERATE_TESTS(
