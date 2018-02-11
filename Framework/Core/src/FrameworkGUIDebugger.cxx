@@ -372,8 +372,17 @@ void popWindowColorDueToStatus() { ImGui::PopStyleColor(3); }
 struct DriverHelper {
   static char const* stateToString(enum DriverState state)
   {
-    static const char* names[static_cast<int>(DriverState::LAST)] = { "INIT",         "SCHEDULE", "RUNNING", "GUI",
-                                                                      "REDEPLOY_GUI", "EXIT",     "UNKNOWN" };
+    static const char* names[static_cast<int>(DriverState::LAST)] = {
+      "INIT",            //
+      "SCHEDULE",        //
+      "RUNNING",         //
+      "GUI",             //
+      "REDEPLOY_GUI",    //
+      "QUIT_REQUESTED",  //
+      "HANDLE_CHILDREN", //
+      "EXIT",            //
+      "UNKNOWN"          //
+    };
     return names[static_cast<int>(state)];
   }
 };
@@ -384,12 +393,25 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
 {
   ImGui::Begin("Driver information");
   ImGui::Text("Numer of running devices: %lu", driverInfo.socket2DeviceInfo.size() / 2);
+
+  if (driverControl.state == DriverControlState::STEP) {
+    driverControl.state = DriverControlState::PAUSE;
+  }
+  auto state = reinterpret_cast<int*>(&driverControl.state);
+  ImGui::RadioButton("Play", state, static_cast<int>(DriverControlState::PLAY)); ImGui::SameLine();
+  ImGui::RadioButton("Pause", state, static_cast<int>(DriverControlState::PAUSE)); ImGui::SameLine();
+  ImGui::RadioButton("Step", state, static_cast<int>(DriverControlState::STEP));
+
+  if (driverControl.state == DriverControlState::PAUSE) {
+    driverControl.forcedTransitions.push_back(DriverState::GUI);
+  }
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
     DriverState const& state = driverInfo.states[i];
     ImGui::Text("#%lu: %s", i, DriverHelper::stateToString(state));
   }
+
   ImGui::End();
 }
 

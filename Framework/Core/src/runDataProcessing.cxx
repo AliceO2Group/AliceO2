@@ -123,8 +123,27 @@ bool checkIfCanExit(std::vector<DeviceInfo> const& infos)
 
 // Kill all the active children. Exit code
 // is != 0 if any of the children had an error.
-int killChildren(std::vector<DeviceInfo>& infos)
+void killChildren(std::vector<DeviceInfo>& infos, int sig)
 {
+  for (auto& info : infos) {
+    if (info.active == true) {
+      kill(info.pid, sig);
+    }
+  }
+}
+
+/// Check the state of the children
+bool areAllChildrenGone(std::vector<DeviceInfo>& infos) {
+  for (auto& info : infos) {
+    if (info.active) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/// Calculate exit code
+int calculateExitCode(std::vector<DeviceInfo>& infos) {
   int exitCode = 0;
   for (auto& info : infos) {
     if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
@@ -132,12 +151,6 @@ int killChildren(std::vector<DeviceInfo>& infos)
                  << "message above severity ERROR: " << info.lastError;
       exitCode = 1;
     }
-    if (!info.active) {
-      continue;
-    }
-    kill(info.pid, SIGKILL);
-    int status;
-    waitpid(info.pid, &status, 0);
   }
   return exitCode;
 }
@@ -169,17 +182,20 @@ int createPipes(int maxFd, int* pipes)
   return maxFd;
 }
 
-// FIXME: I should really do this gracefully, by doing the following:
-// - Kill all the children
-// - Set a sig_atomic_t to say we did.
-// - Wait for all the children to exit
-// - Return gracefully.
-static void handle_sigint(int signum)
+// We don't do anything in the signal handler but
+// we simply note down the fact a signal arrived.
+// All the processing is done by the state machine.
+volatile sig_atomic_t sigint_requested = false;
+volatile sig_atomic_t sigchld_requested = false;
+
+static void handle_sigint(int)
 {
-  auto exitCode = killChildren(gDeviceInfos);
-  // We kill ourself after having killed all our children (SPOOKY!)
-  signal(SIGINT, SIG_DFL);
-  kill(getpid(), SIGINT);
+  sigint_requested = true;
+}
+
+static void handle_sigchld(int)
+{
+  sigchld_requested = true;
 }
 
 /// This will start a new device by forking and executing a
@@ -252,7 +268,7 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   FD_SET(childstderr[0], &childFdset);
 }
 
-void doRunning(DriverInfo& driverInfo, std::vector<DeviceInfo>& infos, std::vector<DeviceSpec> const& specs,
+void processChildrenOutput(DriverInfo& driverInfo, std::vector<DeviceInfo>& infos, std::vector<DeviceSpec> const& specs,
                std::vector<DeviceControl>& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
   // Wait for children to say something. When they do
@@ -358,30 +374,33 @@ void doRunning(DriverInfo& driverInfo, std::vector<DeviceInfo>& infos, std::vect
   //        passed.
 }
 
-void handle_sigchld(int sig)
-{
-  int saved_errno = errno;
-  std::vector<pid_t> pids;
+
+// Process all the sigchld which are pending
+void processSigChild(std::vector<DeviceInfo> &infos) {
   while (true) {
     pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);
     if (pid > 0) {
-      pids.push_back(pid);
+      for (auto& info : infos) {
+        if (info.pid == pid) {
+          info.active = false;
+        }
+      }
       continue;
     } else {
       break;
     }
   }
-  errno = saved_errno;
-  for (auto& pid : pids) {
-    printf("Child exited: %d\n", pid);
-    for (auto& info : gDeviceInfos) {
-      if (info.pid == pid) {
-        info.active = false;
-      }
-    }
-    fflush(stdout);
+}
+
+/// Remove all the GUI states from the tail of
+/// the stack unless that's the only state on the stack.
+void pruneGUI(std::vector<DriverState> &states) {
+  while(states.size() > 1
+        && states.back() == DriverState::GUI) {
+    states.pop_back();
   }
 }
+
 // This is the handler for the parent inner loop.
 // So far the only responsibility for it are:
 //
@@ -391,15 +410,23 @@ void handle_sigchld(int sig)
 // - TODO: allow single child view?
 // - TODO: allow last line per child mode?
 // - TODO: allow last error per child mode?
-void doParent(std::vector<DeviceInfo>& infos, std::vector<DeviceSpec>& deviceSpecs,
-              std::vector<DeviceControl>& controls, std::vector<DeviceMetricsInfo>& metricsInfos,
-              std::vector<DeviceExecution>& deviceExecutions, std::vector<DriverState> const& startProgram, bool batch)
+int doParent(std::vector<DeviceInfo>& infos,
+             std::vector<DeviceSpec>& deviceSpecs,
+             std::vector<DeviceControl>& controls,
+             std::vector<DeviceMetricsInfo>& metricsInfos,
+             std::vector<DeviceExecution>& deviceExecutions,
+             std::vector<DriverState> const& startProgram,
+             bool batch,
+             bool singleStep)
 {
   DriverInfo driverInfo;
   driverInfo.maxFd = 0;
   driverInfo.states.reserve(10);
   driverInfo.states = startProgram;
+  driverInfo.sigintRequested = false;
+  driverInfo.sigchldRequested = false;
   DriverControl driverControl;
+  driverControl.state = singleStep ? DriverControlState::STEP : DriverControlState::PLAY;
 
   void* window = nullptr;
   decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
@@ -416,6 +443,28 @@ void doParent(std::vector<DeviceInfo>& infos, std::vector<DeviceSpec>& deviceSpe
   // parent..
   DriverState current;
   while (true) {
+    // If control forced some transition on us, we push it to the queue.
+    if (driverControl.forcedTransitions.empty() == false) {
+      for(auto transition : driverControl.forcedTransitions) {
+        driverInfo.states.push_back(transition);
+      }
+      driverControl.forcedTransitions.resize(0);
+    }
+    // Move to exit loop if sigint was sent we execute this only once.
+    if (sigint_requested == true && driverInfo.sigintRequested == false) {
+      driverInfo.sigintRequested = true;
+      driverInfo.states.resize(0);
+      driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
+      driverInfo.states.push_back(DriverState::GUI);
+    }
+    // If one of the children dies and sigint was not requested
+    // we should decide what to do.
+    if (sigchld_requested == true && driverInfo.sigchldRequested == false) {
+      driverInfo.sigchldRequested = true;
+      pruneGUI(driverInfo.states);
+      driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
+      driverInfo.states.push_back(DriverState::GUI);
+    }
     if (driverInfo.states.empty() == false) {
       current = driverInfo.states.back();
     } else {
@@ -467,6 +516,7 @@ void doParent(std::vector<DeviceInfo>& infos, std::vector<DeviceSpec>& deviceSpe
         driverInfo.states.push_back(DriverState::RUNNING);
         driverInfo.states.push_back(DriverState::GUI);
         driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
+        driverInfo.states.push_back(DriverState::GUI);
         LOG(INFO) << "Redeployment of configuration done.";
         break;
       case DriverState::RUNNING:
@@ -476,7 +526,7 @@ void doParent(std::vector<DeviceInfo>& infos, std::vector<DeviceSpec>& deviceSpe
           // Something requested to quit. Let's update the GUI
           // one more time and then EXIT.
           LOG(INFO) << "Quitting";
-          driverInfo.states.push_back(DriverState::EXIT);
+          driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
           driverInfo.states.push_back(DriverState::GUI);
         } else if (infos.size() != deviceSpecs.size()) {
           // If the number of deviceSpecs is different from
@@ -493,19 +543,46 @@ void doParent(std::vector<DeviceInfo>& infos, std::vector<DeviceSpec>& deviceSpe
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::GUI);
         }
-        // Update information about devices
-        doRunning(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+        processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
         break;
       case DriverState::GUI:
-        guiQuitRequested = (pollGUI(window, debugGUICallback) == false);
+        if (window) {
+          guiQuitRequested = (pollGUI(window, debugGUICallback) == false);
+        }
+        break;
+      case DriverState::QUIT_REQUESTED:
+        LOG(INFO) << "QUIT_REQUESTED" << std::endl;
+        guiQuitRequested = true;
+        killChildren(infos, SIGTERM);
+        driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
+        driverInfo.states.push_back(DriverState::GUI);
+        break;
+      case DriverState::HANDLE_CHILDREN:
+        // I allow queueing of more sigchld only when
+        // I process the previous call
+        sigchld_requested = false;
+        driverInfo.sigchldRequested = false;
+        processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+        processSigChild(infos);
+        if (areAllChildrenGone(infos) == true &&
+            (guiQuitRequested || (checkIfCanExit(infos) == true) || sigint_requested)) {
+          // We move to the exit, regardless of where we were
+          driverInfo.states.resize(0);
+          driverInfo.states.push_back(DriverState::EXIT);
+          driverInfo.states.push_back(DriverState::GUI);
+        } else if (areAllChildrenGone(infos) == false &&
+                   (guiQuitRequested || checkIfCanExit(infos) == true || sigint_requested)) {
+          driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
+          driverInfo.states.push_back(DriverState::GUI);
+        } else {
+          driverInfo.states.push_back(DriverState::GUI);
+        }
         break;
       case DriverState::EXIT:
-        killChildren(infos);
-        return;
+        return calculateExitCode(infos);
       default:
         LOG(ERROR) << "Driver transitioned in an unknown state. Shutting down.";
-        killChildren(infos);
-        return;
+        driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
     }
   }
 }
@@ -623,15 +700,14 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies)
 {
   bpo::options_description executorOptions("Executor options");
-  executorOptions.add_options()((std::string("help") + ",h").c_str(), "print this help")(
-    (std::string("quiet") + ",q").c_str(), bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")(
-    (std::string("stop") + ",s").c_str(), bpo::value<bool>()->zero_tokens()->default_value(false),
-    "stop before device start")((std::string("batch") + ",b").c_str(),
-                                bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")(
-    (std::string("graphviz") + ",g").c_str(), bpo::value<bool>()->zero_tokens()->default_value(false),
-    "produce graph output")((std::string("dds") + ",D").c_str(),
-                            bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
-
+  executorOptions.add_options()
+    ("help,h", "print this help")
+    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")
+    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")
+    ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")
+    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")
+    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
@@ -658,6 +734,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
 
   bool defaultQuiet = varmap["quiet"].as<bool>();
   bool defaultStopped = varmap["stop"].as<bool>();
+  bool defaultSingleStep = varmap["single-step"].as<bool>();
   bool batch = varmap["batch"].as<bool>();
   bool graphViz = varmap["graphviz"].as<bool>();
   bool generateDDS = varmap["dds"].as<bool>();
@@ -716,6 +793,8 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
     startProgram = { DriverState::INIT };
   }
 
-  doParent(gDeviceInfos, deviceSpecs, gDeviceControls, gDeviceMetricsInfos, gDeviceExecutions, startProgram, batch);
-  return killChildren(gDeviceInfos);
+  auto exitCode = doParent(gDeviceInfos, deviceSpecs, gDeviceControls,
+                           gDeviceMetricsInfos, gDeviceExecutions,
+                           startProgram, batch, defaultSingleStep);
+  return exitCode;
 }
