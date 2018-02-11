@@ -26,7 +26,7 @@
 
 ClassImp(o2::ITS::DigitizerTask)
 
-  using namespace o2::ITS;
+using namespace o2::ITS;
 using namespace o2::detectors;
 using namespace o2::utils;
 
@@ -64,6 +64,7 @@ InitStatus DigitizerTask::Init()
   DigiParams param; // RS: TODO: Eventually load this from the CCDB
 
   param.setContinuous(mContinuous);
+  param.setROFrameLenght(mAlpideROFramLength);
   param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
   mDigitizer.setDigiParams(param);
 

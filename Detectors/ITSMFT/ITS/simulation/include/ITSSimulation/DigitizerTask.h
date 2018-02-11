@@ -53,12 +53,15 @@ class DigitizerTask : public FairTask
   bool getUseAlpideSim() const { return mUseAlpideSim; }
   void setFairTimeUnitInNS(double tinNS) { mFairTimeUnitInNS = tinNS < 1. ? 1. : tinNS; }
   double getFairTimeUnitInNS() const { return mFairTimeUnitInNS; }
-
+  void setAlpideROFramLength(float l) { mAlpideROFramLength = l;}
+  float getAlpideROFramLength() const { return mAlpideROFramLength; }
+  
  private:
 
   Bool_t mUseAlpideSim;         ///< ALPIDE simulation activation flag
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
+  float mAlpideROFramLength = 10000.; ///< ALPIDE ROFrame in ns
 
   Int_t mSourceID = 0;                  ///< current source
   Int_t mEventID = 0;                   ///< current event id from the source

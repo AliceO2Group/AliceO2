@@ -44,10 +44,10 @@ namespace ITSMFT {
     void  setContinuous(bool v)           {mIsContinuous = v;}
     bool  isContinuous()            const {return mIsContinuous;}
 
-    void   setROFrameLenght(UInt_t l)     {mROFrameLenght = l;}
-    void   setROFrameDeadTime(UInt_t l)   {mROFrameDeadTime = l;}
-    UInt_t getROFrameLenght()       const {return mROFrameLenght;}
-    UInt_t getROFrameDeadTime()     const {return mROFrameDeadTime;}
+    void   setROFrameLenght(float l)      {mROFrameLenght = l;}
+    void   setROFrameDeadTime(float l)    {mROFrameDeadTime = l;}
+    float  getROFrameLenght()       const {return mROFrameLenght;}
+    float  getROFrameDeadTime()     const {return mROFrameDeadTime;}
 
     void   setTimeOffset(double t)        {mTimeOffset = t;}
     double getTimeOffset()          const {return mTimeOffset;}
