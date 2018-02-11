@@ -42,6 +42,9 @@ namespace framework
 ///   RUNNING -> RUNNING
 ///   RUNNING -> GUI
 ///   GUI -> RUNNING
+///   NONE -> QUIT_REQUESTED
+///   QUIT_REQUESTED -> HANDLE_CHILDREN
+///   RUNNING -> HANDLE_CHILDREN
 ///   RUNNING -> SCHEDULE
 ///   RUNNING -> EXIT
 /// ]"
@@ -52,6 +55,8 @@ enum struct DriverState {
   RUNNING,
   GUI,
   REDEPLOY_GUI,
+  QUIT_REQUESTED,
+  HANDLE_CHILDREN,
   EXIT,
   UNKNOWN,
   LAST
@@ -71,6 +76,8 @@ struct DriverInfo {
 
   // Signal handler for children
   struct sigaction sa_handle_child;
+  bool sigintRequested;
+  bool sigchldRequested;
 };
 
 } // namespace framework

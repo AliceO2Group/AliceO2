@@ -18,10 +18,19 @@ namespace o2
 namespace framework
 {
 
+/// These are the possible states for the driver controller
+/// and determine what should happen of state machine transitions.
+enum struct DriverControlState {
+  STEP,
+  PLAY,
+  PAUSE
+};
+
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
 struct DriverControl {
   std::vector<DriverState> forcedTransitions;
+  DriverControlState state;
 };
 
 } // namespace framework
