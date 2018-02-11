@@ -81,6 +81,9 @@ class GRPObject
   /// getter/setter for masks of detectors in the readout
   o2::detectors::DetID::mask_t getDetsReadOut() const { return mDetsReadout; }
   void setDetsReadOut(o2::detectors::DetID::mask_t mask) { mDetsReadout = mask; }
+  /// getter/setter for masks of detectors with continuos readout
+  o2::detectors::DetID::mask_t getDetsContinuousReadOut() const { return mDetsContinuousRO; }
+  void setDetsContinuousReadOut(o2::detectors::DetID::mask_t mask) { mDetsContinuousRO = mask; }
   /// getter/setter for masks of detectors providing the trigger
   o2::detectors::DetID::mask_t getDetsTrigger() const { return mDetsTrigger; }
   void setDetsTrigger(o2::detectors::DetID::mask_t mask) { mDetsTrigger = mask; }
@@ -88,12 +91,18 @@ class GRPObject
   void addDetReadOut(o2::detectors::DetID id) { mDetsReadout |= id.getMask(); }
   /// remove specific detector from the list of readout detectors
   void remDetReadOut(o2::detectors::DetID id) { mDetsReadout &= ~id.getMask(); }
+  /// add specific detector to the list of continuously readout detectors
+  void addDetContinuousReadOut(o2::detectors::DetID id) { mDetsContinuousRO |= id.getMask(); }
+  /// remove specific detector from the list of continuouslt readout detectors
+  void remDetContinuousReadOut(o2::detectors::DetID id) { mDetsContinuousRO &= ~id.getMask(); }
   /// add specific detector to the list of triggering detectors
   void addDetTrigger(o2::detectors::DetID id) { mDetsTrigger |= id.getMask(); }
   /// remove specific detector from the list of triggering detectors
   void remDetTrigger(o2::detectors::DetID id) { mDetsTrigger &= ~id.getMask(); }
   /// test if detector is read out
   bool isDetReadOut(o2::detectors::DetID id) const { return (mDetsReadout & id.getMask()) != 0; }
+  /// test if detector is read out
+  bool isDetContinuousReadOut(o2::detectors::DetID id) const { return (mDetsContinuousRO & id.getMask()) != 0; }
   /// test if detector is triggering
   bool isDetTriggers(o2::detectors::DetID id) const { return (mDetsTrigger & id.getMask()) != 0; }
   /// print itself
@@ -104,6 +113,7 @@ class GRPObject
   timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
 
   o2::detectors::DetID::mask_t mDetsReadout; ///< mask of detectors which are read out
+  o2::detectors::DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
   o2::detectors::DetID::mask_t mDetsTrigger; ///< mask of detectors which provide trigger
 
   o2::units::AngleRad_t mCrossingAngle = 0.f; ///< crossing angle in radians (as deviation from pi)
