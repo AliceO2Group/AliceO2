@@ -55,18 +55,14 @@ void GRPObject::print() const
   printf("sqrt[s]    = %.3f\n", getSqrtS());
   printf("crossing angle (radian) = %e\n", getCrossingAngle());
   printf("magnet currents (A) L3 = %.3f, Dipole = %.f\n", getL3Current(), getDipoleCurrent());
-  printf("Detectors in readout: ");
+  printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
-    if (isDetReadOut(DetID(i))) {
-      printf(" %s", DetID(i).getName());
+    if (!isDetReadOut(DetID(i))) {
+      continue;
     }
+    printf("%9s: ", DetID(i).getName());
+    printf("%7s ", isDetContinuousReadOut(DetID(i)) ? "   +   ":"   -   ");
+    printf("%7s ", isDetTriggers(DetID(i)) ? "   +   ":"   -   ");
+    printf("\n");
   }
-  printf("\n");
-  printf("Detectors in trigger: ");
-  for (auto i = DetID::First; i <= DetID::Last; i++) {
-    if (isDetTriggers(DetID(i))) {
-      printf(" %s", DetID(i).getName());
-    }
-  }
-  printf("\n");
 }
