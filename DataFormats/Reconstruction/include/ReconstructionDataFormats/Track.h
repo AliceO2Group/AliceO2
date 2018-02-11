@@ -99,6 +99,16 @@ class TrackPar
   float getSnp() const { return mP[kSnp]; }
   float getTgl() const { return mP[kTgl]; }
   float getQ2Pt() const { return mP[kQ2Pt]; }
+
+  void setX(float v) { mX = v; }
+  void setParam(float v, int i) { mP[i] = v; }
+  void setAlpha(float v) { mAlpha = v; }
+  void setY(float v) { mP[kY] = v; }
+  void setZ(float v) { mP[kZ] = v; }
+  void setSnp(float v) { mP[kSnp] = v; }
+  void setTgl(float v) { mP[kTgl] = v; }
+  void setQ2Pt(float v) { mP[kQ2Pt] = v; }
+
   // derived getters
   float getCurvature(float b) const { return mP[kQ2Pt] * b * o2::constants::math::B2C; }
   float getSign() const { return mP[kQ2Pt] > 0 ? 1.f : -1.f; }
@@ -117,6 +127,8 @@ class TrackPar
 
   // methods for track params estimate at other point
   bool getYZAt(float xk, float b, float& y, float& z) const;
+  float getZAt(float xk, float b) const;
+  float getYAt(float xk, float b) const;
   Point3D<float> getXYZGloAt(float xk, float b, bool& ok) const;
 
   // parameters manipulation
@@ -125,7 +137,7 @@ class TrackPar
   bool propagateParamTo(float xk, const std::array<float, 3>& b);
   void invertParam();
 
-  void PrintParam() const;
+  void printParam() const;
 
  protected:
   void updateParam(float delta, int i) { mP[i] += delta; }
@@ -135,15 +147,6 @@ class TrackPar
       mP[i] += delta[i];
     }
   }
-
-  void setX(float v) { mX = v; }
-  void setParam(float v, int i) { mP[i] = v; }
-  void setAlpha(float v) { mAlpha = v; }
-  void setY(float v) { mP[kY] = v; }
-  void setZ(float v) { mP[kZ] = v; }
-  void setSnp(float v) { mP[kSnp] = v; }
-  void setTgl(float v) { mP[kTgl] = v; }
-  void setQ2Pt(float v) { mP[kQ2Pt] = v; }
   // derived getters
 
  private:
@@ -188,7 +191,7 @@ class TrackParCov : public TrackPar
   float getSigma1Pt2() const { return mC[kSigQ2Pt2]; }
   float getCovarElem(int i, int j) const { return mC[CovarMap[i][j]]; }
   float getDiagError2(int i) const { return mC[DiagMap[i]]; }
-  void Print() const;
+  void print() const;
 
   // parameters + covmat manipulation
   bool rotate(float alpha);
