@@ -34,8 +34,8 @@
 #include "TPCReconstruction/ClusterContainer.h"
 #include "TPCBase/Digit.h"
 #include "TPCBase/Mapper.h"
-#include "TPCReconstruction/TrackTPC.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/Cluster.h"
 
 #include "TCanvas.h"
 #endif

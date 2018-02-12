@@ -6,7 +6,8 @@ set(SRCS
 )
 
 Set(HEADERS
-    include/${MODULE_NAME}/TimeStamp.h
+  include/${MODULE_NAME}/TimeStamp.h
+  include/${MODULE_NAME}/EvIndex.h
 )
 
 Set(LINKDEF src/CommonDataFormatLinkDef.h)

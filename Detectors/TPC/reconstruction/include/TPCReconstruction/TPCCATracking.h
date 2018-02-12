@@ -13,11 +13,12 @@
 /// \author David Rohr
 #ifndef ALICEO2_TPC_TPCCATRACKING_H_
 #define ALICEO2_TPC_TPCCATRACKING_H_
-
 #include <memory>
 #include <vector>
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/TrackTPC.h"
+
 class TChain;
 class AliHLTTPCCAO2Interface;
 class AliHLTTPCCAClusterData;
@@ -28,8 +29,6 @@ namespace o2
 {
 namespace TPC
 {
-
-class TrackTPC;
 
 class TPCCATracking
 {

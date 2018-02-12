@@ -24,7 +24,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCBase/Constants.h"
 #include "TPCBase/CRU.h"
 #else

@@ -5,11 +5,13 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/Track.cxx
   src/BaseCluster.cxx
+  src/TrackTPCITS.cxx
 )
 
 Set(HEADERS
   include/${MODULE_NAME}/Track.h
   include/${MODULE_NAME}/BaseCluster.h
+  include/${MODULE_NAME}/TrackTPCITS.h
 )
 
 Set(LINKDEF src/ReconstructionDataFormatsLinkDef.h)

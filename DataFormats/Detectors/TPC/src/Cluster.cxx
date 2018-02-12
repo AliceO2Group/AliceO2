@@ -11,7 +11,7 @@
 /// \file Cluster.cxx
 /// \brief Cluster structure for TPC clusters
 
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include <iostream>
 
 ClassImp(o2::TPC::ClusterTimeStamp);

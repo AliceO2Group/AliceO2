@@ -17,7 +17,7 @@
 //
 
 #include "TPCReconstruction/ClustererTask.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCBase/Digit.h"
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager

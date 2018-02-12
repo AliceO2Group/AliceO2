@@ -16,7 +16,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 

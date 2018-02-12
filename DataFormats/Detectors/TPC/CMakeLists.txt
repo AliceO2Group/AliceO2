@@ -10,12 +10,16 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
    src/Helpers.cxx
+   src/TrackTPC.cxx
+   src/Cluster.cxx
 )
 
 set(HEADERS
    include/${MODULE_NAME}/ClusterNative.h
    include/${MODULE_NAME}/ClusterHardware.h
    include/${MODULE_NAME}/Helpers.h
+   include/${MODULE_NAME}/TrackTPC.h
+   include/${MODULE_NAME}/Cluster.h
 )
 
 set(LINKDEF src/DataFormatsTPCLinkDef.h)

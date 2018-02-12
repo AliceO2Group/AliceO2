@@ -1,0 +1,74 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file TrackTPCITS.h
+/// \brief Result of refitting TPC-ITS matched track
+/// \author ruben.shahoyan@cern.ch
+
+#ifndef ALICEO2_TRACKTPCITS_H
+#define ALICEO2_TRACKTPCITS_H
+
+#include "ReconstructionDataFormats/Track.h"
+#include "CommonDataFormat/EvIndex.h"
+#include "CommonDataFormat/TimeStamp.h"
+
+namespace o2
+{
+namespace dataformats
+{
+
+class TrackTPCITS : public o2::track::TrackParCov
+{
+  using timeEst = o2::dataformats::TimeStampWithError<float, float>;
+  using evIdx = o2::dataformats::EvIndex<int, int>;
+
+ public:
+  TrackTPCITS() = default;
+  ~TrackTPCITS() = default;
+  TrackTPCITS(const TrackTPCITS& src) = default;
+  TrackTPCITS(const o2::track::TrackParCov& src) : o2::track::TrackParCov(src) {}
+
+  const evIdx& getRefTPC() const { return mRefTPC; }
+  const evIdx& getRefITS() const { return mRefITS; }
+  evIdx& getRefTPC() { return mRefTPC; }
+  evIdx& getRefITS() { return mRefITS; }
+  void setRefTPC(const evIdx& id) { mRefTPC = id; }
+  void setRefITS(const evIdx& id) { mRefITS = id; }
+
+  const timeEst& getTimeMUS() const { return mTimeMUS; }
+  timeEst& getTimeMUS() { return mTimeMUS; }
+  void setTimeMUS(const timeEst& t) { mTimeMUS = t; }
+  void setTimeMUS(float t, float te)
+  {
+    mTimeMUS.setTimeStamp(t);
+    mTimeMUS.setTimeStampError(te);
+  }
+
+  void setChi2Refit(float v) { mChi2Refit = v; }
+  float getChi2Refit() const { return mChi2Refit; }
+
+  void setChi2Match(float v) { mChi2Match = v; }
+  float getChi2Match() const { return mChi2Match; }
+
+  void print() const;
+
+ private:
+  evIdx mRefTPC;          ///< reference on ITS track entry
+  evIdx mRefITS;          ///< reference on TPC track entry
+  float mChi2Refit = 0.f; ///< chi2 of the refit
+  float mChi2Match = 0.f; ///< chi2 of the match
+  timeEst mTimeMUS;       ///< time estimate in ns
+
+  ClassDefNV(TrackTPCITS, 1);
+};
+}
+}
+
+#endif

@@ -77,7 +77,7 @@ int runHardwareClusterDecoderRoot(TString infile = "", TString outfile = "") {
   for (unsigned int i = 0;i < cont.size();i++)
   {
     nClustersTotal += cont[i].clusters.size();
-    fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].sector, (int) cont[i].globalPadRow, (int) cont[i].clusters.size());
+    //fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].sector, (int) cont[i].globalPadRow, (int) cont[i].clusters.size());
     fout.WriteObject(&cont[i], Form("clusters_sector_%d_row_%d", (int) cont[i].sector, (int) cont[i].globalPadRow));
     if (inMCLabels) fout.WriteObject(&outMCLabels[i], Form("clustersMCTruth_sector_%d_row_%d", (int) cont[i].sector, (int) cont[i].globalPadRow));
   }

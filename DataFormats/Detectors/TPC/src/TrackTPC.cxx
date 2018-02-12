@@ -12,20 +12,19 @@
 /// \brief Implementation of the TPC track
 /// \author Thomas Klemenz, TU Muenchen, thomas.klemenz@tum.de
 
-#include "TPCReconstruction/TrackTPC.h"
+#include "DataFormatsTPC/TrackTPC.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
 
 using namespace o2::TPC;
 
-
-float TrackTPC::getTruncatedMean(float low, float high, int type, int removeRows, int *nclPID) const
+float TrackTPC::getTruncatedMean(float low, float high, int type, int removeRows, int* nclPID) const
 {
   std::vector<float> values;
 
-  for (auto &clusterObject : mClusterVector) {
-    values.push_back((type == 0)?clusterObject.getQmax():clusterObject.getQ());
+  for (auto& clusterObject : mClusterVector) {
+    values.push_back((type == 0) ? clusterObject.getQmax() : clusterObject.getQ());
   }
 
   std::sort(values.begin(), values.end());
@@ -34,32 +33,36 @@ float TrackTPC::getTruncatedMean(float low, float high, int type, int removeRows
   int nClustersTrunc = 0;
   int nClustersUsed = static_cast<int>(values.size());
 
-  for (int icl=0; icl<nClustersUsed; ++icl) {
-    if (icl<std::round(low*nClustersUsed)) continue;
-    if (icl>std::round(high*nClustersUsed)) break;
+  for (int icl = 0; icl < nClustersUsed; ++icl) {
+    if (icl < std::round(low * nClustersUsed))
+      continue;
+    if (icl > std::round(high * nClustersUsed))
+      break;
 
-    dEdx+=values[icl];
+    dEdx += values[icl];
     ++nClustersTrunc;
   }
 
-  if (nClustersTrunc>0){
-    dEdx/=nClustersTrunc;
+  if (nClustersTrunc > 0) {
+    dEdx /= nClustersTrunc;
   }
 
-  if (nclPID) (*nclPID)=nClustersTrunc;
+  if (nclPID)
+    (*nclPID) = nClustersTrunc;
 
   return dEdx;
 }
 
 void TrackTPC::resetClusterReferences(int nClusters)
 {
-  mNClusters = nClusters;
+  mNClusters = short(nClusters);
   mClusterReferences.resize(nClusters + (nClusters + 1) / 2);
 }
 
 float TrackTPC::getTimeVertex(float vDrift) const
 {
-  //TODO: This is currently quite inefficient! Should be solved by making all these defaultInstance() functions constexpr or so. On could then also think about moving this into TrackTPC.h
-  //For the time, it provides the required functionality.
+  // TODO: This is currently quite inefficient! Should be solved by making all these defaultInstance() functions
+  // constexpr or so. On could then also think about moving this into TrackTPC.h
+  // For the time, it provides the required functionality.
   return mTime0 - ParameterDetector::defaultInstance().getTPClength() / vDrift;
 }
