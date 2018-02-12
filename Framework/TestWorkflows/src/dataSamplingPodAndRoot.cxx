@@ -43,8 +43,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "podDataProducer",
     Inputs{},
     {
-      OutputSpec{"TPC", "CLUSTERS", 0, OutputSpec::Timeframe},
-      OutputSpec{"ITS", "CLUSTERS", 0, OutputSpec::Timeframe}
+      OutputSpec{ "TPC", "CLUSTERS", 0, OutputSpec::Timeframe },
+      OutputSpec{ "ITS", "CLUSTERS", 0, OutputSpec::Timeframe }
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -54,12 +54,12 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec processingStage{
     "processingStage",
     Inputs{
-      {"dataTPC", "TPC", "CLUSTERS", 0, InputSpec::Timeframe},
-      {"dataITS", "ITS", "CLUSTERS", 0, InputSpec::Timeframe}
+      { "dataTPC", "TPC", "CLUSTERS", 0, InputSpec::Timeframe },
+      { "dataITS", "ITS", "CLUSTERS", 0, InputSpec::Timeframe }
     },
     Outputs{
-      {"TPC", "CLUSTERS_P", 0, OutputSpec::Timeframe},
-      {"ITS", "CLUSTERS_P", 0, OutputSpec::Timeframe}
+      { "TPC", "CLUSTERS_P", 0, OutputSpec::Timeframe },
+      { "ITS", "CLUSTERS_P", 0, OutputSpec::Timeframe }
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
@@ -70,8 +70,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec podSink{
     "podSink",
     Inputs{
-      {"dataTPC-proc", "TPC", "CLUSTERS_P", 0, InputSpec::Timeframe},
-      {"dataITS-proc", "ITS", "CLUSTERS_P", 0, InputSpec::Timeframe}
+      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, InputSpec::Timeframe },
+      { "dataITS-proc", "ITS", "CLUSTERS_P", 0, InputSpec::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
@@ -82,8 +82,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
     Inputs{
-      {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
-      {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
+      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe },
+      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
@@ -115,16 +115,16 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "rootDataProducer",
     {},
     {
-      OutputSpec{"TST", "HISTOS", OutputSpec::Timeframe},
-      OutputSpec{"TST", "STRING", OutputSpec::Timeframe}
+      OutputSpec{ "TST", "HISTOS", OutputSpec::Timeframe },
+      OutputSpec{ "TST", "STRING", OutputSpec::Timeframe }
     },
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
         sleep(1);
         // Create an histogram
-        auto& singleHisto = ctx.allocator().make<TH1F>(OutputSpec{"TST", "HISTOS", 0},
+        auto& singleHisto = ctx.allocator().make<TH1F>(OutputSpec{ "TST", "HISTOS", 0 },
                                                        "h1", "test", 100, -10., 10.);
-        auto& aString = ctx.allocator().make<TObjString>(OutputSpec{"TST", "STRING", 0}, "foo");
+        auto& aString = ctx.allocator().make<TObjString>(OutputSpec{ "TST", "STRING", 0 }, "foo");
         singleHisto.FillRandom("gaus", 1000);
         Double_t stats[4];
         singleHisto.GetStats(stats);
@@ -139,8 +139,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec rootSink{
     "rootSink",
     {
-      InputSpec{"histos", "TST", "HISTOS", InputSpec::Timeframe},
-      InputSpec{"string", "TST", "STRING", InputSpec::Timeframe},
+      InputSpec{ "histos", "TST", "HISTOS", InputSpec::Timeframe },
+      InputSpec{ "string", "TST", "STRING", InputSpec::Timeframe },
     },
     {},
     AlgorithmSpec{
@@ -165,8 +165,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec rootQcTask{
     "rootQcTask",
     {
-      InputSpec{"TST_HISTOS_S", "TST", "HISTOS_S", InputSpec::Timeframe},
-      InputSpec{"TST_STRING_S", "TST", "STRING_S", InputSpec::Timeframe},
+      InputSpec{ "TST_HISTOS_S", "TST", "HISTOS_S", InputSpec::Timeframe },
+      InputSpec{ "TST_STRING_S", "TST", "STRING_S", InputSpec::Timeframe },
     },
     Outputs{},
     AlgorithmSpec{
@@ -209,7 +209,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, collectionChunkSize);
+  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -221,7 +221,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     i++;
   }
 
-  auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, collectionChunkSize);
+  auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS", 0 }, collectionChunkSize);
   i = 0;
   for (auto& cluster : itsClusters) {
     assert(i < collectionChunkSize);
@@ -239,9 +239,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
   const FakeCluster* inputDataIts = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataITS").payload);
 
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", 0},
+  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", 0 },
                                                                 collectionChunkSize);
-  auto processedItsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS_P", 0},
+  auto processedItsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS_P", 0 },
                                                                 collectionChunkSize);
 
   int i = 0;

@@ -8,19 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
-#include <iostream>
 #include <boost/algorithm/string.hpp>
+#include <iostream>
 #include <memory>
 
-#include "Framework/InputSpec.h"
+#include "FairMQDevice.h"
+#include "FairMQTransportFactory.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSampling.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/InputSpec.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
-#include "FairMQDevice.h"
-#include "FairMQTransportFactory.h"
 
 /// This is an example of using Data Sampling with both FairMQ inputs and outputs and no processing inside DPL workflow.
 /// It is configurable by config file. At first, it looks for 'dataSamplingFullChainConfig.ini' in current working
@@ -52,19 +51,16 @@
 ///                     in config file). More information on running Quality Control can be found here:
 ///                     https://github.com/AliceO2Group/QualityControl
 
-
 using namespace o2::framework;
 
 void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 {
-  std::string configFilePath = std::ifstream(std::string(getenv("PWD")) + "/dataSamplingFullChainConfig.ini").good() ?
-                               std::string("file://") + getenv("PWD") + "/dataSamplingFullChainConfig.ini" :
-                               std::string("file://") + getenv("BASEDIR")
-                               + "/../../O2/Framework/TestWorkflows/dataSamplingFullChainConfig.ini";
+  std::string configFilePath = std::ifstream(std::string(getenv("PWD")) + "/dataSamplingFullChainConfig.ini").good()
+                                 ? std::string("file://") + getenv("PWD") + "/dataSamplingFullChainConfig.ini"
+                                 : std::string("file://") + getenv("BASEDIR") +
+                                     "/../../O2/Framework/TestWorkflows/dataSamplingFullChainConfig.ini";
 
   LOG(INFO) << "Using config file '" << configFilePath << "'";
 
   DataSampling::GenerateInfrastructure(specs, configFilePath);
-
 }
-

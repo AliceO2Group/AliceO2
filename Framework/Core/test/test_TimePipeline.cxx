@@ -39,7 +39,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "dataProducer",
     Inputs{},
     {
-      OutputSpec{"TPC", "CLUSTERS", 0, OutputSpec::Timeframe},
+      OutputSpec{ "TPC", "CLUSTERS", 0, OutputSpec::Timeframe },
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -50,13 +50,12 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe}
+        { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe }
       },
       Outputs{
-        {"TPC", "CLUSTERS_P", OutputSpec::Timeframe}
+        { "TPC", "CLUSTERS_P", OutputSpec::Timeframe }
       },
       AlgorithmSpec{
-        //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
         (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
       }
     },
@@ -66,7 +65,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec dataSampler{
     "dataSampler",
     Inputs{
-      {"dataTPC-sampled", "TPC", "CLUSTERS", 0, InputSpec::Timeframe},
+      { "dataTPC-sampled", "TPC", "CLUSTERS", 0, InputSpec::Timeframe },
     },
     Outputs{},
     AlgorithmSpec{
@@ -87,7 +86,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", index}, collectionChunkSize);
+  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", index }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -107,7 +106,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index},
+  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index },
                                                                 collectionChunkSize);
 
   int i = 0;
