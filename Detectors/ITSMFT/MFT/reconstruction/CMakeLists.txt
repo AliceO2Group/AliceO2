@@ -4,13 +4,9 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/ClustererTask.cxx
-  src/Track.cxx
-  src/FindTracks.cxx
 )
 set(HEADERS
   include/${MODULE_NAME}/ClustererTask.h
-  include/${MODULE_NAME}/Track.h
-  include/${MODULE_NAME}/FindTracks.h
 )
 
 
