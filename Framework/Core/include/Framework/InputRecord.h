@@ -29,10 +29,77 @@
 #include <memory>
 #include <type_traits>
 
+template<typename T>
+using default_delete = std::default_delete<T>;
+
 namespace o2 {
 namespace framework {
 
 struct InputSpec;
+
+/// A deleter type to be used with unique_ptr, which can be marked that
+/// it does not own the underlying resource and thus should not delete it.
+/// The resource ownership property controls the behavior and can only be
+/// set at construction of the deleter in the unique_ptr. Falls back to
+/// default_delete if not initialized to 'NotOwning'.
+/// Usage: unique_ptr<T, Deleter<T>> ptr(..., Deleter<T>(false))
+///
+/// By contract, the underlying, not owned resource is supposed to be
+/// available during the lifetime of the object, which is the case in the
+/// InputRecord and DPL processing APIs. The Deleter can be extended
+/// to support a callback to call a resource management outside.
+template<typename T>
+class Deleter : public default_delete<T>
+{
+ public:
+  enum class OwnershipProperty : short
+  {
+    Unknown = -1,
+    NotOwning = 0, /// don't delete the underlying buffer
+    Owning = 1     /// normal behavior, falling back to default deleter
+  };
+
+  using base =  default_delete<T>;
+  using self_type = Deleter<T>;
+  //using pointer = typename base::pointer;
+
+  constexpr Deleter() = default;
+  constexpr Deleter(bool isOwning)
+    : base::default_delete()
+    , mProperty(isOwning ? OwnershipProperty::Owning : OwnershipProperty::NotOwning)
+  {
+  }
+
+  // copy constructor is needed in the setup of unique_ptr
+  // check that assignments happen only to uninitialized instances
+  constexpr Deleter(const self_type& other)
+  {
+    if (mProperty == OwnershipProperty::Unknown) {
+      mProperty = other.mProperty;
+    } else if (mProperty != other.mProperty) {
+      throw std::runtime_error("Attemp to change resource control");
+    }
+  }
+
+  // copy constructor for the default delete which simply sets the
+  // resource ownership control to 'Owning'
+  constexpr Deleter(const base& other)
+  {
+    mProperty = OwnershipProperty::Owning;
+  }
+
+  // forbid assignment operator to prohibid changing the Deleter
+  // resource control property once used in the unique_ptr
+  self_type& operator=(const self_type&) = delete;
+
+  void operator()(T* ptr) const
+  {
+    if (mProperty == OwnershipProperty::NotOwning) return;
+    base::operator()(ptr);
+  }
+ private:
+  OwnershipProperty mProperty = OwnershipProperty::Unknown;
+};
 
 /// This class holds the inputs which  are being processed by the system while
 /// they are  being processed.  The user can  get an instance  for it  via the
