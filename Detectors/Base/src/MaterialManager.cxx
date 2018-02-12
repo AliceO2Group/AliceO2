@@ -39,7 +39,6 @@ void MaterialManager::Material(const char* modname, Int_t imat, const char* name
   TVirtualMC::GetMC()->Material(kmat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
   mMaterialMap[modname][imat] = kmat;
   insertMaterialName(uniquename.Data(), kmat);
-  printMaterials();
 }
 
 void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens,
@@ -54,7 +53,6 @@ void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name,
   TVirtualMC::GetMC()->Mixture(kmat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
   mMaterialMap[modname][imat] = kmat;
   insertMaterialName(uniquename.Data(), kmat);
-  printMaterials();
 }
 
 void MaterialManager::Medium(const char* modname, Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield,
@@ -112,7 +110,7 @@ void MaterialManager::insertTGeoMedium(std::string modname, int localindex)
   auto list = gGeoManager->GetListOfMedia();
   mTGeoMediumMap[p] = (TGeoMedium*)list->At(list->GetEntries() - 1);
 
-  std::cerr << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName() << "\n";
+  LOG(DEBUG) << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName();
 }
 
 void MaterialManager::insertMediumName(const char* uniquename, int index)
