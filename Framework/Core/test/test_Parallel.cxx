@@ -39,7 +39,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
       "dataProducer",
       Inputs{},
       {
-        OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe}
+        OutputSpec{ "TPC", "CLUSTERS", OutputSpec::Timeframe }
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -55,10 +55,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe}
+        { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe }
       },
       Outputs{
-        {"TPC", "CLUSTERS_P", OutputSpec::Timeframe}
+        { "TPC", "CLUSTERS_P", OutputSpec::Timeframe }
       },
       AlgorithmSpec{
         //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
@@ -73,14 +73,14 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   );
 
   auto inputsDataSampler = mergeInputs(
-    {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe},
+    { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe },
     parallelSize,
     [](InputSpec& input, size_t index) {
       input.subSpec = index;
     }
   );
   auto inputsTpcProc = mergeInputs(
-    {"dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
+    { "dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe },
     parallelSize,
     [](InputSpec& input, size_t index) {
       input.subSpec = index;
@@ -92,8 +92,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "dataSampler",
     inputsDataSampler,
     Outputs{
-      {"TPC", "CLUSTERS_S",   0, OutputSpec::Timeframe},
-      {"TPC", "CLUSTERS_P_S", 0, OutputSpec::Timeframe}
+      { "TPC", "CLUSTERS_S",   0, OutputSpec::Timeframe },
+      { "TPC", "CLUSTERS_P_S", 0, OutputSpec::Timeframe }
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
@@ -136,8 +136,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec qcTask{
     "qcTask",
     Inputs{
-      {"dataTPC-sampled",      "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
-      {"dataTPC-proc-sampled", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
+      { "dataTPC-sampled",      "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe },
+      { "dataTPC-proc-sampled", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
@@ -153,7 +153,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec sink{
     "sink",
     mergeInputs(
-      {"dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
+      { "dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe },
       parallelSize,
       [](InputSpec& input, size_t index) {
         input.subSpec = index;
@@ -177,7 +177,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   specs.push_back(qcTask);
 
 
-  //no error:
+  // no error:
 //  specs.swap(dataProducers);
 //  specs.insert(std::end(specs), std::begin(processingStages), std::end(processingStages));
 //  specs.push_back(dataSampler);
@@ -193,7 +193,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", index}, collectionChunkSize);
+  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", index }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -213,7 +213,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index},
+  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index },
                                                                 collectionChunkSize);
 
   int i = 0;

@@ -41,7 +41,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
       "dataProducer",
       Inputs{},
       {
-        OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe}
+        OutputSpec{ "TPC", "CLUSTERS", OutputSpec::Timeframe }
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -57,10 +57,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe}
+        { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe }
       },
       Outputs{
-        {"TPC", "CLUSTERS_P", OutputSpec::Timeframe}
+        { "TPC", "CLUSTERS_P", OutputSpec::Timeframe }
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
@@ -75,7 +75,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 
 
   auto inputsSink = mergeInputs(
-    {"dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe},
+    { "dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe },
     parallelSize,
     [](InputSpec& input, size_t index) {
       input.subSpec = index;
@@ -95,8 +95,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec simpleQcTask{
     "simpleQcTask",
     Inputs{
-      {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
-      {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
+      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe },
+      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
@@ -142,7 +142,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", index}, collectionChunkSize);
+  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", index }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -161,7 +161,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS_P", index},
+  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index },
                                                                 collectionChunkSize);
 
   int i = 0;

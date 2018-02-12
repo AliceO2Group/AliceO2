@@ -27,10 +27,8 @@
 using namespace o2::framework;
 using namespace AliceO2::Configuration;
 
-namespace o2
-{
-namespace framework
-{
+namespace o2 {
+namespace framework {
 
 // ideas:
 // make sure if it supports 'vectors' of data
@@ -415,5 +413,5 @@ DataSampling::InfrastructureConfig DataSampling::readInfrastructureConfiguration
 }
 
 
-} //namespace framework
-} //namespace o2
+} // namespace framework
+} // namespace o2

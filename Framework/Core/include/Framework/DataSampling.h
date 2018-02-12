@@ -17,17 +17,17 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include <functional>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
+#include "FairMQDevice.h"
+#include "FairMQTransportFactory.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/DataChunk.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/SimpleRawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
-#include <Framework/SimpleRawDeviceService.h>
-#include "FairMQDevice.h"
-#include "FairMQTransportFactory.h"
 
 namespace o2
 {
@@ -90,7 +90,7 @@ class DataSampling
   /// Structure that holds QC task requirements for sampled data.
   struct QcTaskConfiguration {
     std::string name;
-    std::vector<FairMqInput> desiredFairMqData; //for temporary feature
+    std::vector<FairMqInput> desiredFairMqData; // for temporary feature
     std::vector<InputSpec> desiredDataSpecs;
     SubSpecificationType subSpec;
     double fractionOfDataToSample;
@@ -118,6 +118,7 @@ class DataSampling
   static AlgorithmSpec::ProcessCallback dispatcherInitCallbackFairMQ(InitContext& ctx, const std::string& channel,
                                                                      double fraction);
   /// Main dispatcher callback with FairMQ output
+  
   static void dispatcherCallbackFairMQ(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenerator,
                                        FairMQDevice* device, const std::string& channel);
 
@@ -130,8 +131,7 @@ class DataSampling
   static InfrastructureConfig readInfrastructureConfiguration(const std::string& configurationSource);
 };
 
-
 } // namespace framework
 } // namespace o2
 
-#endif //FRAMEWORK_DATASAMPLER_H
+#endif // FRAMEWORK_DATASAMPLER_H
