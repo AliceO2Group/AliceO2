@@ -54,7 +54,7 @@ class SimConfig
   std::string getExtKinematicsFileName() const { return mExtKinFileName; }
   unsigned int getStartEvent() const { return mStartEvent; }
   float getBMax() const { return mBMax; }
-  double getIsMT() const { return mIsMT; }
+  bool getIsMT() const { return mIsMT; }
   
  private:
   std::vector<std::string> mActiveDetectors; //!< list active detectord
