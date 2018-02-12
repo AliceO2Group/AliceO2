@@ -9,9 +9,9 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCBase/Mapper.h"
-#include "TPCReconstruction/TrackTPC.h"
+#include "DataFormatsTPC/TrackTPC.h"
 #include "TPCBase/CRU.h"
 
 #include "TH1.h"

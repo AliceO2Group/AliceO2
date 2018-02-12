@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCReconstruction/ClusterContainer.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 
 #include "FairLogger.h"
 #include <cassert>

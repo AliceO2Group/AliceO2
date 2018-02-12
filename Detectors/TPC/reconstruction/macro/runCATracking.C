@@ -21,9 +21,9 @@
 #include "TTree.h"
 
 #include "ReconstructionDataFormats/Track.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCReconstruction/TPCCATracking.h"
-#include "TPCReconstruction/TrackTPC.h"
+#include "DataFormatsTPC/TrackTPC.h"
 #endif
 
 using namespace std;

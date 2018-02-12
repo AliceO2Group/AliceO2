@@ -21,8 +21,8 @@
 #include "TTree.h"
 
 #include "ReconstructionDataFormats/Track.h"
-#include "TPCReconstruction/Cluster.h"
-#include "TPCReconstruction/TrackTPC.h"
+#include "DataFormatsTPC/Cluster.h"
+#include "DataFormatsTPC/TrackTPC.h"
 #endif
 
 using namespace o2::TPC;

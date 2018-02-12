@@ -202,6 +202,7 @@ o2_define_bucket(
     
     DEPENDENCIES
     tpc_base_bucket
+    TPCBase # this is not good, DataFormats are supposed to be more primary than TPCBase
     
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
@@ -415,11 +416,13 @@ o2_define_bucket(
     root_physics_bucket
     data_format_detectors_common_bucket
     DetectorsCommonDataFormats
+    CommonDataFormat
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include/
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include/
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include/
     ${MS_GSL_INCLUDE_DIR}
 )
 
@@ -776,6 +779,7 @@ o2_define_bucket(
     DetectorsCommonDataFormats
     DetectorsBase    
     TPCBase
+    DataFormatsTPC
     SimulationDataFormat
     CommonDataFormat
     ReconstructionDataFormats
