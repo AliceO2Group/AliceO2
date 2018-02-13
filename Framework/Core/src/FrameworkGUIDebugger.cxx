@@ -398,8 +398,10 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     driverControl.state = DriverControlState::PAUSE;
   }
   auto state = reinterpret_cast<int*>(&driverControl.state);
-  ImGui::RadioButton("Play", state, static_cast<int>(DriverControlState::PLAY)); ImGui::SameLine();
-  ImGui::RadioButton("Pause", state, static_cast<int>(DriverControlState::PAUSE)); ImGui::SameLine();
+  ImGui::RadioButton("Play", state, static_cast<int>(DriverControlState::PLAY));
+  ImGui::SameLine();
+  ImGui::RadioButton("Pause", state, static_cast<int>(DriverControlState::PAUSE));
+  ImGui::SameLine();
   ImGui::RadioButton("Step", state, static_cast<int>(DriverControlState::STEP));
 
   if (driverControl.state == DriverControlState::PAUSE) {

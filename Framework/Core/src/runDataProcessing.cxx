@@ -133,7 +133,8 @@ void killChildren(std::vector<DeviceInfo>& infos, int sig)
 }
 
 /// Check the state of the children
-bool areAllChildrenGone(std::vector<DeviceInfo>& infos) {
+bool areAllChildrenGone(std::vector<DeviceInfo>& infos)
+{
   for (auto& info : infos) {
     if (info.active) {
       return false;
@@ -143,7 +144,8 @@ bool areAllChildrenGone(std::vector<DeviceInfo>& infos) {
 }
 
 /// Calculate exit code
-int calculateExitCode(std::vector<DeviceInfo>& infos) {
+int calculateExitCode(std::vector<DeviceInfo>& infos)
+{
   int exitCode = 0;
   for (auto& info : infos) {
     if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
@@ -269,7 +271,7 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
 }
 
 void processChildrenOutput(DriverInfo& driverInfo, std::vector<DeviceInfo>& infos, std::vector<DeviceSpec> const& specs,
-               std::vector<DeviceControl>& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
+                           std::vector<DeviceControl>& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
   // Wait for children to say something. When they do
   // print it.
@@ -374,9 +376,9 @@ void processChildrenOutput(DriverInfo& driverInfo, std::vector<DeviceInfo>& info
   //        passed.
 }
 
-
 // Process all the sigchld which are pending
-void processSigChild(std::vector<DeviceInfo> &infos) {
+void processSigChild(std::vector<DeviceInfo>& infos)
+{
   while (true) {
     pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);
     if (pid > 0) {
@@ -394,9 +396,9 @@ void processSigChild(std::vector<DeviceInfo> &infos) {
 
 /// Remove all the GUI states from the tail of
 /// the stack unless that's the only state on the stack.
-void pruneGUI(std::vector<DriverState> &states) {
-  while(states.size() > 1
-        && states.back() == DriverState::GUI) {
+void pruneGUI(std::vector<DriverState>& states)
+{
+  while (states.size() > 1 && states.back() == DriverState::GUI) {
     states.pop_back();
   }
 }
@@ -445,7 +447,7 @@ int doParent(std::vector<DeviceInfo>& infos,
   while (true) {
     // If control forced some transition on us, we push it to the queue.
     if (driverControl.forcedTransitions.empty() == false) {
-      for(auto transition : driverControl.forcedTransitions) {
+      for (auto transition : driverControl.forcedTransitions) {
         driverInfo.states.push_back(transition);
       }
       driverControl.forcedTransitions.resize(0);
