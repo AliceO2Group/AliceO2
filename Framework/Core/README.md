@@ -343,6 +343,11 @@ is  caught  by  the  `DataProcessorManager`  and  a  message  is  printed  (if
 is given). Users can provide themselves an error handler by specifying via the
 `onError` callback specified in `DataProcessorSpec`.
 
+Notice that whenever the driver process spots an error message, i.e. an error 
+printed via `LOG(ERROR)` facility, when the driver process quits, it will exit 
+with a exit code of 1. This includes any exception reported by the default 
+exception handler.  
+
 ### Services
 
 Services  are utility  classes which  `DataProcessor`s can  access to  request
