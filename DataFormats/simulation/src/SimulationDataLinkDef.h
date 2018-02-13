@@ -41,12 +41,6 @@
 #pragma link C++ class std::vector < o2::MCCompLabel > +;
 #pragma link C++ class std::vector < o2::dataformats::MCTruthHeaderElement > +;
 
-#pragma link C++ class o2::dataformats::TimeStamp < float > +;
-#pragma link C++ class o2::dataformats::TimeStamp < double > +;
-#pragma link C++ class o2::dataformats::TimeStamp < int > +;
-#pragma link C++ class o2::dataformats::TimeStampWithError < float, float > +;
-#pragma link C++ class o2::dataformats::TimeStampWithError < double, double > +;
-#pragma link C++ class o2::dataformats::TimeStampWithError < int, int > +;
 #pragma link C++ class o2::SimTrackStatus+;
 #pragma link C++ class o2::TrackReference+;
 #pragma link C++ class std::vector<o2::TrackReference>+;
