@@ -11,7 +11,6 @@
 #ifndef ALICEO2_TPC_CALDET_H_
 #define ALICEO2_TPC_CALDET_H_
 
-#include <Vc/Vc>
 #include <memory>
 #include <vector>
 #include <string>
