@@ -130,8 +130,11 @@ public:
   // not be used if the type is a TObject as extra deserialization
   // needs to happen.
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false, T>::type const&
-  get(char const *binding) const {
+  typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false && has_root_dictionary<T>::value == false, T>::type const&
+  get(char const* binding) const
+  {
+    // TODO: check the serialization type, the cast makes only sense for
+    // unserialized objects
     return *reinterpret_cast<T const *>(get<DataRef>(binding).payload);
   }
 
@@ -182,12 +185,35 @@ public:
   // FIXME: does it make more sense to keep ownership of all the deserialised 
   // objects in a single place so that we can avoid duplicate deserializations?
   template <class T>
-  typename std::unique_ptr<typename std::enable_if<std::is_base_of<TObject, T>::value == true, T>::type>
+  typename std::unique_ptr<typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, T>::type const>
   get(char const *binding) const {
     using DataHeader = o2::header::DataHeader;
 
     auto ref = this->get(binding);
     return std::move(DataRefUtils::as<T>(ref));
+  }
+
+  // substitution for messageable objects with dictionary
+  // the operation depends on the transmitted serialization method
+  template <typename T>
+  typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false && has_root_dictionary<T>::value, std::unique_ptr<T const, Deleter<T const>>>::type
+  get(char const* binding) const
+  {
+    using DataHeader = o2::header::DataHeader;
+
+    auto ref = this->get(binding);
+    auto header = o2::header::get<const DataHeader>(ref.header);
+    auto method = header->payloadSerializationMethod;
+    if (method == o2::header::gSerializationMethodNone) {
+      auto const* ptr = reinterpret_cast<T const *>(ref.payload);
+      std::unique_ptr<T const, Deleter<T const>> result(ptr, Deleter<T const>(false));
+      return std::move(result);
+    } else if (method == o2::header::gSerializationMethodROOT) {
+      std::unique_ptr<T const, Deleter<T const>> result(DataRefUtils::extract<T>(ref).release());
+      return std::move(result);
+    } else {
+      throw std::runtime_error("Attempt to extract message with unsupported serializayion type");
+    }
   }
 
   size_t size() const {
