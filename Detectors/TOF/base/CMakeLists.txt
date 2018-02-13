@@ -14,7 +14,7 @@ set(HEADERS
 
 SET(LINKDEF src/TOFBaseLinkDef.h)
 SET(LIBRARY_NAME ${MODULE_NAME})
-SET(BUCKET_NAME emcal_base_bucket)
+SET(BUCKET_NAME tof_base_bucket)
 
 O2_GENERATE_LIBRARY()
 
