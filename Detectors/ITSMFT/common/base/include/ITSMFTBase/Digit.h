@@ -15,7 +15,7 @@
 
 #include "Rtypes.h" // for Double_t, ULong_t, etc
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/TimeStamp.h"
+#include "CommonDataFormat/TimeStamp.h"
 
 namespace o2
 {
