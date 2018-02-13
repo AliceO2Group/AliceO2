@@ -391,7 +391,7 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
 
   LOG(DEBUG) << "Starting " << mNumThreads << " threads, hardware supports " << std::thread::hardware_concurrency() << " parallel threads." << FairLogger::endl;
 
-  for (unsigned threadId = 0; threadId < std::min(mNumThreads,mCRUMax); ++threadId) {
+  for (unsigned threadId = 0; threadId < std::min(mNumThreads, mCRUMax + 1); ++threadId) {
     struct CfConfig cfConfig = {
       threadId,
       mNumThreads,
@@ -466,4 +466,3 @@ void HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
 void HwClusterer::setNumThreads(unsigned threads) {
   mNumThreads = (threads == 0) ? std::thread::hardware_concurrency() : threads;
 }
-
