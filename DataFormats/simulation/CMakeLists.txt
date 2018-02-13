@@ -15,7 +15,6 @@ Set(HEADERS
     include/${MODULE_NAME}/MCTruthContainer.h
     include/${MODULE_NAME}/MCCompLabel.h
     include/${MODULE_NAME}/MCInteractionRecord.h
-    include/${MODULE_NAME}/TimeStamp.h
     include/${MODULE_NAME}/TrackReference.h
 )
 
