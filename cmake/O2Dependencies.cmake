@@ -947,6 +947,54 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    tof_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    MathCore
+    Matrix
+    Physics
+    ParBase
+    VMC
+    Geom
+    SimulationDataFormat
+    CommonDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
+o2_define_bucket(
+    NAME
+    trd_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    MathCore
+    Matrix
+    Physics
+    ParBase
+    VMC
+    Geom
+    SimulationDataFormat
+    CommonDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
+o2_define_bucket(
+    NAME
     emcal_base_bucket
 
     DEPENDENCIES
@@ -1011,7 +1059,7 @@ o2_define_bucket(
     tof_simulation_bucket
 
     DEPENDENCIES
-    emcal_base_bucket
+    tof_base_bucket
     root_base_bucket
     fairroot_geom
     RIO
@@ -1153,7 +1201,7 @@ o2_define_bucket(
     trd_simulation_bucket
 
     DEPENDENCIES
-    emcal_base_bucket
+    trd_base_bucket
     root_base_bucket
     fairroot_geom
     RIO
