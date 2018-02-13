@@ -13,8 +13,8 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 03/05/2017
 
-#ifndef ALICEO2_MFT_CLUSTERERTASK_H
-#define ALICEO2_MFT_CLUSTERERTASK_H
+#ifndef ALICEO2_MFT_CLUSTERERTASK_H_
+#define ALICEO2_MFT_CLUSTERERTASK_H_
 
 #include "FairTask.h"
 
@@ -27,23 +27,23 @@ class TClonesArray;
 namespace o2 
 {
 class MCCompLabel;
+  
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template<typename T>
+class MCTruthContainer;
 }
-
+  
 namespace MFT 
 {
-  class EventHeader; 
-  class ClustererTask : public FairTask
-  {
-    using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
-    using Clusterer        = o2::ITSMFT::Clusterer;
-    using Cluster          = o2::ITSMFT::Cluster;
-    
-  public:
-    
+class EventHeader; 
+class ClustererTask : public FairTask
+{
+  using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
+  using Clusterer        = o2::ITSMFT::Clusterer;
+  using Cluster          = o2::ITSMFT::Cluster;
+  
+  public:    
     ClustererTask(Bool_t useMCTruth=kTRUE);
     ~ClustererTask() override;
     
@@ -51,7 +51,6 @@ namespace MFT
     void Exec(Option_t* opt) override;
     
   private:
-    
     const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
     DigitPixelReader mReader;                               ///< Pixel reader
     Clusterer mClusterer;                                   ///< Cluster finder
@@ -60,8 +59,8 @@ namespace MFT
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< MC labels
     
     ClassDefOverride(ClustererTask,1);
-    
-  };    
+};    
+
 }
 }
 

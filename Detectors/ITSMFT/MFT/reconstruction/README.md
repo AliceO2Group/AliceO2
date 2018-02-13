@@ -1,8 +1,6 @@
 MFT simple track reconstruction
 ===============================
 
-(obsolete)
-
 The executable "devices" are built in the directory:
 
 ```bash
@@ -41,7 +39,7 @@ Simple reconstruction:
 root.exe -b -q run_reco_mft.C
 ```
 
-Reconstruction with MQ devices:
+Reconstruction with MQ devices (obsolete):
 
 * "points" to "hits"
 
