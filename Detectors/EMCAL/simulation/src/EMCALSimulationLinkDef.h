@@ -16,5 +16,7 @@
 
 #pragma link C++ class o2::EMCAL::Detector+;
 #pragma link C++ class o2::Base::DetImpl<o2::EMCAL::Detector>+;
+#pragma link C++ class o2::EMCAL::Digitizer+;
+#pragma link C++ class o2::EMCAL::DigitizerTask+;
 
 #endif
