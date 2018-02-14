@@ -82,13 +82,14 @@ int main(int argc, char** argv)
 
   // The default policy is a catch all pub/sub setup to be consistent with the past.
   std::vector<ChannelConfigurationPolicy> channelPolicies;
-  auto defaultPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultPolicies), std::end(defaultPolicies));
 
   // The 0 here is an int, therefore having the template matching in the
   // SFINAE expression above fit better the version which invokes user code over
   // the default one.
   UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
+  auto defaultPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultPolicies), std::end(defaultPolicies));
+
   auto result = doMain(argc, argv, specs, channelPolicies);
   LOG(INFO) << "Process " << getpid() << " is exiting.";
   return result;

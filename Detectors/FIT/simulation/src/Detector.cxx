@@ -41,7 +41,18 @@ Detector::Detector(Bool_t Active)
   //  TString gn(geo->GetName());
 }
 
-void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+void Detector::Initialize()
+{
+  // FIXME: we need to register the sensitive volumes with FairRoot
+  TGeoVolume* v = gGeoManager->GetVolume("0REG");
+  if (v == nullptr)
+    printf("Sensitive volume 0REG not found!!!!!!!!");
+  else {
+    AddSensitiveVolume(v);
+  }
+
+  o2::Base::Detector::Initialize();
+}
 
 void Detector::ConstructGeometry()
 {
@@ -180,14 +191,6 @@ void Detector::ConstructGeometry()
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
-
-  // FIXME: we need to register the sensitive volumes with FairRoot
-  TGeoVolume* v = gGeoManager->GetVolume("0REG");
-  if (v == nullptr)
-    printf("Sensitive volume 0REG not found!!!!!!!!");
-  else {
-    AddSensitiveVolume(v);
-  }
 }
 
 //_________________________________________
@@ -266,19 +269,18 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 {
 
   TLorentzVector position;
-  static auto* refMC = TVirtualMC::GetMC();
-  if (refMC->IsTrackEntering()) {
-    refMC->TrackPosition(position);
+  if (fMC->IsTrackEntering()) {
+    fMC->TrackPosition(position);
     float x = position.X();
     float y = position.Y();
     float z = position.Z();
 
-    float time = refMC->TrackTime() * 1.0e12;
-    int trackID = refMC->GetStack()->GetCurrentTrackNumber();
+    float time = fMC->TrackTime() * 1.0e12;
+    int trackID = fMC->GetStack()->GetCurrentTrackNumber();
     int detID = v->getMCid();
-    float etot = refMC->Etot();
-    int iPart = refMC->TrackPid();
-    float enDep = refMC->Edep();
+    float etot = fMC->Etot();
+    int iPart = fMC->TrackPid();
+    float enDep = fMC->Edep();
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {

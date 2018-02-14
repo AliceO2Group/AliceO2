@@ -66,7 +66,44 @@ Detector::Detector(Bool_t active)
     mSampleWidth += 2. * geo->GetTrd1BondPaperThick();
 }
 
-void Detector::Initialize() { o2::Base::Detector::Initialize(); }
+Detector::Detector(const Detector& rhs)
+  : o2::Base::DetImpl<Detector>(rhs),
+    mBirkC0(rhs.mBirkC0),
+    mBirkC1(rhs.mBirkC1),
+    mBirkC2(rhs.mBirkC2),
+    mHits(new std::vector<Hit>),
+    mGeometry(rhs.mGeometry),
+    mCurrentTrackID(-1),
+    mCurrentCellID(-1),
+    mCurrentHit(nullptr),
+    mSampleWidth(rhs.mSampleWidth),
+    mSmodPar0(rhs.mSmodPar0),
+    mSmodPar1(rhs.mSmodPar1),
+    mSmodPar2(rhs.mSmodPar2),
+    mInnerEdge(rhs.mInnerEdge)
+
+{
+  for ( int i=0; i<5; ++i) {
+    mParEMOD[i] = rhs.mParEMOD[i];
+  }
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
+void Detector::Initialize()
+{
+  // Define sensitive volume
+  TGeoVolume* vsense = gGeoManager->GetVolume("SCMX");
+  if (vsense)
+    AddSensitiveVolume(vsense);
+  else
+    LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!\n";
+
+  o2::Base::Detector::Initialize();
+}
 
 void Detector::EndOfEvent() { Reset(); }
 
@@ -92,20 +129,12 @@ void Detector::ConstructGeometry()
   CreateShiskebabGeometry();
 
   gGeoManager->CheckGeometry();
-
-  // Define sensitive volume
-  TGeoVolume* vsense = gGeoManager->GetVolume("SCMX");
-  if (vsense)
-    AddSensitiveVolume(vsense);
-  else
-    LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!\n";
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // TODO Implement handling of parents and primary particle
-  auto* mcapp = TVirtualMC::GetMC();
-  Double_t eloss = mcapp->Edep();
+  Double_t eloss = fMC->Edep();
   if (eloss < DBL_EPSILON)
     return false; // only process hits which actually deposit some energy in the EMCAL
   Geometry* geom = GetGeometry();
@@ -116,12 +145,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // volume Additional care needs to be taken for the supermodule index: The copy is connected to a certain supermodule
   // type, which differs for various parts of the detector
   Int_t copyEta, copyPhi, copyMod, copySmod;
-  mcapp->CurrentVolID(copyEta);       // Tower in module - x-direction
-  mcapp->CurrentVolOffID(1, copyPhi); // Tower in module - y-direction
-  mcapp->CurrentVolOffID(3, copyMod); // Module in supermodule
-  mcapp->CurrentVolOffID(
+  fMC->CurrentVolID(copyEta);       // Tower in module - x-direction
+  fMC->CurrentVolOffID(1, copyPhi); // Tower in module - y-direction
+  fMC->CurrentVolOffID(3, copyMod); // Module in supermodule
+  fMC->CurrentVolOffID(
     4, copySmod); // Supermodule in EMCAL - attention, with respect to a given supermodule type (offsets needed)
-  std::string smtype(mcapp->CurrentVolOffName(4));
+  std::string smtype(fMC->CurrentVolOffName(4));
   int offset(0);
   if (smtype == "SM3rd") {
     offset = 10;
@@ -132,17 +161,17 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   }
   LOG(DEBUG3) << "Supermodule copy " << copySmod << ", module copy " << copyMod << ", y-dir " << copyPhi << ", x-dir "
               << copyEta << ", supermodule ID " << copySmod + offset - 1 << std::endl;
-  LOG(DEBUG3) << "path " << mcapp->CurrentVolPath() << std::endl;
-  LOG(DEBUG3) << "Name of the supermodule type " << mcapp->CurrentVolOffName(4) << ", Module name "
-              << mcapp->CurrentVolOffName(3) << std::endl;
+  LOG(DEBUG3) << "path " << fMC->CurrentVolPath() << std::endl;
+  LOG(DEBUG3) << "Name of the supermodule type " << fMC->CurrentVolOffName(4) << ", Module name "
+              << fMC->CurrentVolOffName(3) << std::endl;
 
-  Int_t partID = mcapp->GetStack()->GetCurrentTrackNumber(),
-        parent = mcapp->GetStack()->GetCurrentTrack()->GetMother(0),
+  Int_t partID = fMC->GetStack()->GetCurrentTrackNumber(),
+        parent = fMC->GetStack()->GetCurrentTrack()->GetMother(0),
         detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
 
   Double_t lightyield(eloss);
-  if (mcapp->TrackCharge())
-    lightyield = CalculateLightYield(eloss, mcapp->TrackStep(), mcapp->TrackCharge());
+  if (fMC->TrackCharge())
+    lightyield = CalculateLightYield(eloss, fMC->TrackStep(), fMC->TrackCharge());
   lightyield /= geom->GetSampling();
 
   if (partID != mCurrentTrackID || detID != mCurrentCellID || !mCurrentHit) {
@@ -152,14 +181,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // - First track of the event
     // std::cout << "New track / cell started\n";
     Float_t posX, posY, posZ, momX, momY, momZ, energy;
-    mcapp->TrackPosition(posX, posY, posZ);
-    mcapp->TrackMomentum(momX, momY, momZ, energy);
-    Double_t estart = mcapp->Etot(), time = mcapp->TrackTime() * 1e9; // time in ns
+    fMC->TrackPosition(posX, posY, posZ);
+    fMC->TrackMomentum(momX, momY, momZ, energy);
+    Double_t estart = fMC->Etot(), time = fMC->TrackTime() * 1e9; // time in ns
 
     /// check handling of primary particles
     mCurrentHit = AddHit(partID, parent, 0, estart, detID, Point3D<float>(posX, posY, posZ),
                          Vector3D<float>(momX, momY, momZ), time, lightyield);
-    static_cast<o2::Data::Stack*>(mcapp->GetStack())->addHit(GetDetId());
+    static_cast<o2::Data::Stack*>(fMC->GetStack())->addHit(GetDetId());
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
     

@@ -1,6 +1,8 @@
 MFT simple track reconstruction
 ===============================
 
+(obsolete)
+
 The executable "devices" are built in the directory:
 
 ```bash

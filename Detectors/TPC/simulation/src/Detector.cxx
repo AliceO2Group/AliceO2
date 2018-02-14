@@ -13,6 +13,7 @@
 #include "TPCBase/ParameterGas.h"
 
 #include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/TrackReference.h"
 
 #include "FairVolume.h"         // for FairVolume
 
@@ -27,6 +28,7 @@
 #include "FairRun.h"
 #include "FairRuntimeDb.h"
 #include "FairLogger.h"
+#include "FairRootManager.h"
 
 #include "TSystem.h"
 #include "TVirtualMC.h"
@@ -58,11 +60,9 @@ using std::ios_base;
 using std::ifstream;
 using namespace o2::TPC;
 
-
 Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("TPC", active),
-    mGeoFileName(),
-    mEventNr(0)
+    mGeoFileName()
 {
   for(int i=0;i<Sector::MAXSECTOR;++i){
     mHitsPerSectorCollection[i]=new std::vector<o2::TPC::HitGroup>;
@@ -71,6 +71,18 @@ Detector::Detector(Bool_t active)
 
 // forward default constructor
 Detector::Detector() : o2::TPC::Detector(kTRUE) {}
+
+Detector::Detector(const Detector &rhs)
+  : o2::Base::DetImpl<Detector>(rhs),
+    mHitCounter(0),
+    mElectronCounter(0),
+    mStepCounter(0),
+    mGeoFileName(rhs.mGeoFileName)
+{
+  for(int i=0;i<Sector::MAXSECTOR;++i){
+    mHitsPerSectorCollection[i]=new std::vector<o2::TPC::HitGroup>;
+  }
+}
 
 Detector::~Detector()
 {
@@ -83,8 +95,17 @@ Detector::~Detector()
   std::cout << "Stepping called " << mStepCounter << "\n";
 }
 
+FairModule *Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
 void Detector::Initialize()
 {
+  // Define the list of sensitive volumes
+  DefineSensitiveVolumes();
+
+  // Register defined detectors in FairRoot maps
   o2::Base::Detector::Initialize();
   //     LOG(INFO) << "Initialize" << FairLogger::endl;
   
@@ -180,16 +201,15 @@ void Detector::SetSpecialPhysicsCuts()
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  static auto *refMC = TVirtualMC::GetMC();
   const static ParameterGas &gasParam = ParameterGas::defaultInstance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
-  const double trackCharge = refMC->TrackCharge();
+  const double trackCharge = fMC->TrackCharge();
   if(static_cast<int>(trackCharge) == 0) {
     
     // set a very large step size for neutral particles
-    refMC->SetMaxStep(1.e10);
+    fMC->SetMaxStep(1.e10);
     return kFALSE; // take only charged particles
   }
 
@@ -201,17 +221,30 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // random shift to avoid binning effects), which was tuned for GEANT4, see
   // https://indico.cern.ch/event/316891/contributions/732168/
 
-  const double rnd = refMC->GetRandom()->Rndm();
-  refMC->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
+  const double rnd = fMC->GetRandom()->Rndm();
+  fMC->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
   
   // ===| check active sector |=================================================
   //
   // Get the sector ID and check if the sector is active
-  static TLorentzVector position;
-  refMC->TrackPosition(position);
+  static thread_local TLorentzVector position;
+  fMC->TrackPosition(position);
   const int sectorID = static_cast<int>(Sector::ToSector(position.X(), position.Y(), position.Z()));
   // TODO: Temporary hack to process only one sector
   //if (sectorID != 0) return kFALSE;
+
+  // ---| momentum and beta gamma |---
+  static TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
+  fMC->TrackMomentum(momentum);
+
+  const float time = fMC->TrackTime() * 1.0e9;
+  const int trackID = fMC->GetStack()->GetCurrentTrackNumber();
+  const int detID = vol->getMCid();
+  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+  if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
+    stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
+                                                momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));
+  }
 
   // ===| CONVERT THE ENERGY LOSS TO IONIZATION ELECTRONS |=====================
   //
@@ -221,14 +254,12 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // TODO: Add discussion about drawback
 
   Int_t numberOfElectrons=0;
+  // I.H. - the type expected in addHit is short
 
   // ---| Stepsize in cm |---
-  const double stepSize = refMC->TrackStep();
+  const double stepSize = fMC->TrackStep();
 
-  // ---| momentum and beta gamma |---
-  static TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
-  refMC->TrackMomentum(momentum);
-  double betaGamma = momentum.P()/refMC->TrackMass();
+  double betaGamma = momentum.P()/fMC->TrackMass();
   betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
 
   // ---| number of primary ionisations per cm |---
@@ -244,7 +275,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
 
   // ---| mean number of collisions and random for this event |---
   const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
-  const int nColl = static_cast<int>(refMC->GetRandom()->Poisson(meanNcoll));
+  const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
   // Variables needed to generate random powerlaw distributed energy loss
   const double alpha_p1 = 1. - gasParam.getExp(); // NA49/G3 value
@@ -260,7 +291,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     // P(eDep) ~ k * edep^-gasParam.getExp()
     // eMin(~I) < eDep < eMax(300 electrons)
     // k fixed so that Int_Emin^EMax P(Edep) = 1.
-    const double rndm = refMC->GetRandom()->Rndm();
+    const double rndm = fMC->GetRandom()->Rndm();
     const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
     int nel_step = static_cast<int>(((eDep-eMin)/wIon) + 1);
     nel_step = TMath::Min(nel_step,300); // 300 electrons corresponds to 10 keV
@@ -268,24 +299,20 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   }
   
   //LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "Eloss: " 
-                //<< refMC->Edep() << ", Nelectrons: "
+                //<< fMC->Edep() << ", Nelectrons: "
                 //<< numberOfElectrons << FairLogger::endl;
 
   if(numberOfElectrons <= 0) // Could maybe be smaller than 0 due to the Gamma function
     return kFALSE;
   
   // ADD HIT
-  const float time   = refMC->TrackTime() * 1.0e9;
-  const int trackID  = refMC->GetStack()->GetCurrentTrackNumber();
-  const int detID    = vol->getMCid();
-
-  static int oldTrackId = trackID;
-  static int oldDetId = detID;
-  static int groupCounter = 0;
-  static int oldSectorId = sectorID;
+  static thread_local int oldTrackId = trackID;
+  static thread_local int oldDetId = detID;
+  static thread_local int groupCounter = 0;
+  static thread_local int oldSectorId = sectorID;
 
   //  a new group is starting -> put it into the container
-  static HitGroup *currentgroup = nullptr;
+  static thread_local HitGroup *currentgroup = nullptr;
   if (groupCounter == 0) {
     mHitsPerSectorCollection[sectorID]->emplace_back(trackID);
     currentgroup = &(mHitsPerSectorCollection[sectorID]->back());
@@ -309,11 +336,11 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
   //<< " Time: "<<  time <<", Len: " << length << ", Nelectrons: " <<
   //numberOfElectrons << FairLogger::endl;
-  
+  // I.H. - the code above does not compile if uncommented
+
   // Increment number of Detector det points in TParticle
-  o2::Data::Stack* stack = (o2::Data::Stack*)refMC->GetStack();
   stack->addHit(GetDetId());
-  
+
   return kTRUE;
 }
   
@@ -322,7 +349,6 @@ void Detector::EndOfEvent()
   for(int i=0;i<Sector::MAXSECTOR;++i) {
     mHitsPerSectorCollection[i]->clear();
   }
-  ++mEventNr;
 }
 
 void Detector::Register()
@@ -332,6 +358,7 @@ void Detector::Register()
       this collection will not be written to the file, it will exist
       only during the simulation.
   */
+
   auto *mgr=FairRootManager::Instance();
   for (int i=0;i<Sector::MAXSECTOR;++i) {
     TString name;
@@ -343,6 +370,7 @@ void Detector::Register()
 void Detector::Reset()
 {
   for(int i=0;i<Sector::MAXSECTOR;++i) {
+    // cout << "CLEARED (reset) hitsCollection " << i << " " << mHitsPerSectorCollection[i] << endl;
     mHitsPerSectorCollection[i]->clear();
   }
 }
@@ -355,9 +383,6 @@ void Detector::ConstructGeometry()
   // Load geometry
 //   LoadGeometryFromFile();
   ConstructTPCGeometry();
-
-  // Define the list of sensitive volumes
-  DefineSensitiveVolumes();
 
   // GeantHack
   //GeantHack();
@@ -3074,11 +3099,11 @@ void Detector::DefineSensitiveVolumes()
 
 Double_t Detector::Gamma(Double_t k)
 {
-  static Double_t n=0;
-  static Double_t c1=0;
-  static Double_t c2=0;
-  static Double_t b1=0;
-  static Double_t b2=0;
+  static thread_local Double_t n=0;
+  static thread_local Double_t c1=0;
+  static thread_local Double_t c2=0;
+  static thread_local Double_t b1=0;
+  static thread_local Double_t b2=0;
   if (k > 0) {
     if (k < 0.4) 
       n = 1./k;

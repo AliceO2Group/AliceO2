@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_SIM_TIMESTAMP_H
-#define ALICEO2_SIM_TIMESTAMP_H
+#ifndef ALICEO2_COMMON_TIMESTAMP_H
+#define ALICEO2_COMMON_TIMESTAMP_H
 
 #include "Rtypes.h"
 
@@ -47,4 +47,4 @@ class TimeStampWithError : public TimeStamp<T>
 }
 }
 
-#endif /* ALICEO2_SIM_TIMESTAMP_H */
+#endif /* ALICEO2_COMMON_TIMESTAMP_H */

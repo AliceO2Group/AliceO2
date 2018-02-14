@@ -478,11 +478,13 @@ o2_define_bucket(
     ParBase
     Field
     SimulationDataFormat
+    CommonDataFormat
     detectors_base_bucket
     DetectorsBase
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/Base/include
 )
@@ -722,10 +724,12 @@ o2_define_bucket(
     MathUtils
     Core Hist Gpad
     SimulationDataFormat
+    CommonDataFormat
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
 )
 
 o2_define_bucket(
@@ -778,6 +782,7 @@ o2_define_bucket(
     DetectorsBase    
     TPCBase
     SimulationDataFormat
+    CommonDataFormat
     ReconstructionDataFormats
     Geom
     MathCore
@@ -798,6 +803,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
@@ -946,6 +952,54 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    tof_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    MathCore
+    Matrix
+    Physics
+    ParBase
+    VMC
+    Geom
+    SimulationDataFormat
+    CommonDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
+o2_define_bucket(
+    NAME
+    trd_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    Geom
+    MathCore
+    Matrix
+    Physics
+    ParBase
+    VMC
+    Geom
+    SimulationDataFormat
+    CommonDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
+o2_define_bucket(
+    NAME
     emcal_base_bucket
 
     DEPENDENCIES
@@ -959,10 +1013,12 @@ o2_define_bucket(
     VMC
     Geom
     SimulationDataFormat
+    CommonDataFormat
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
@@ -1008,7 +1064,7 @@ o2_define_bucket(
     tof_simulation_bucket
 
     DEPENDENCIES
-    emcal_base_bucket
+    tof_base_bucket
     root_base_bucket
     fairroot_geom
     RIO
@@ -1150,7 +1206,7 @@ o2_define_bucket(
     trd_simulation_bucket
 
     DEPENDENCIES
-    emcal_base_bucket
+    trd_base_bucket
     root_base_bucket
     fairroot_geom
     RIO
@@ -1298,4 +1354,17 @@ o2_define_bucket(
   INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/include/ReconstructionDataFormats # for test dependency only
+)
+
+
+o2_define_bucket(
+    NAME
+    data_format_common_bucket
+
+    DEPENDENCIES
+    Core RIO
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
 )

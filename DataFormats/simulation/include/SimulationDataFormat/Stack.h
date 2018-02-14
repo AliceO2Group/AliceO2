@@ -18,6 +18,8 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairGenericStack.h"
 #include "SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/TrackReference.h"
 
 #include "Rtypes.h"
 #include "TParticle.h"
@@ -129,6 +131,9 @@ class Stack : public FairGenericStack
   /// Update the track index in the MCTracks and data produced by detectors
   void UpdateTrackIndex(TRefArray* detArray = nullptr) override;
 
+  /// Finish primary
+  void FinishPrimary() override;
+
   /// Resets arrays and stack and deletes particles and tracks
   void Reset() override;
 
@@ -160,6 +165,9 @@ class Stack : public FairGenericStack
 
   // receive notification that primary is finished
   void notifyFinishPrimary();
+
+  // methods concerning track references
+  void addTrackReference(const o2::TrackReference& p);
 
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
@@ -209,6 +217,11 @@ class Stack : public FairGenericStack
 
   bool mIsG4Like = false; //! flag indicating if the stack is used in a manner done by Geant4
 
+  // storage for track references
+  std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!
+
+  o2::dataformats::MCTruthContainer<o2::TrackReference>* mIndexedTrackRefs = nullptr; //!
+
   /// Mark tracks for output using selection criteria
   /// returns true if all available tracks are selected
   /// returns false if some tracks are discarded
@@ -222,7 +235,7 @@ class Stack : public FairGenericStack
   /// and all its secondaries where transported
   /// this allows applying selection criteria at a much finer granularity
   /// than donw with FillTrackArray which is only called once per event
-  void finishPrimary();
+  void finishCurrentPrimary();
 
   /// Increment number of hits for an arbitrary track in a given detector
   /// \param iDet    Detector unique identifier
@@ -231,6 +244,8 @@ class Stack : public FairGenericStack
 
   ClassDefOverride(Stack, 1)
 };
+
+inline void Stack::addTrackReference(const o2::TrackReference& ref) { mTrackRefs->push_back(ref); }
 }
 }
 

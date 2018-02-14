@@ -20,6 +20,7 @@
 #include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
 
 #include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/TrackReference.h"
 
 //FairRoot includes
 #include "FairDetector.h"           // for FairDetector
@@ -28,6 +29,7 @@
 #include "FairRun.h"                // for FairRun
 #include "FairRuntimeDb.h"          // for FairRuntimeDb
 #include "FairVolume.h"             // for FairVolume
+#include "FairRootManager.h"
 
 #include "TGeoManager.h"            // for TGeoManager, gGeoManager
 #include "TGeoTube.h"               // for TGeoTube
@@ -276,6 +278,9 @@ Detector &Detector::operator=(const Detector &rhs)
 
 void Detector::Initialize()
 {
+  // Define the list of sensitive volumes
+  defineSensitiveVolumes();
+
   for (int i = 0; i < sNumberLayers; i++) {
     mLayerID[i] = gMC ? TVirtualMC::GetMC()->VolId(mLayerName[i]) : 0;
   }
@@ -314,9 +319,8 @@ void Detector::setParameterContainers()
 
 Bool_t Detector::ProcessHits(FairVolume *vol)
 {
-  auto vmc = TVirtualMC::GetMC();
   // This method is called from the MC stepping
-  if (!(vmc->TrackCharge())) {
+  if (!(fMC->TrackCharge())) {
     return kFALSE;
   }
 
@@ -328,19 +332,20 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     ++lay;
   }
   if (notSens) return kFALSE; //RS: can this happen? This method must be called for sensors only?
-  
-  // FIXME: Is it needed to keep a track reference when the outer ITS volume is encountered?
-  // if(vmc->IsTrackExiting()) {
-  //  AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kITS);
-  // } // if Outer ITS mother Volume
-  bool startHit=false, stopHit=false;
+
+  // Is it needed to keep a track reference when the outer ITS volume is encountered?
+  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  if (fMC->IsTrackExiting()) {
+    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+  } // if Outer ITS mother Volume
+  bool startHit = false, stopHit = false;
   unsigned char status = 0;
-  if (vmc->IsTrackEntering()) { status |= Hit::kTrackEntering; }
-  if (vmc->IsTrackInside())   { status |= Hit::kTrackInside; }
-  if (vmc->IsTrackExiting())  { status |= Hit::kTrackExiting; }
-  if (vmc->IsTrackOut())      { status |= Hit::kTrackOut; }
-  if (vmc->IsTrackStop())     { status |= Hit::kTrackStopped; }
-  if (vmc->IsTrackAlive())    { status |= Hit::kTrackAlive; }
+  if (fMC->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (fMC->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (fMC->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (fMC->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (fMC->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (fMC->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
   if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
@@ -351,36 +356,34 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit) mTrackData.mEnergyLoss += vmc->Edep();
+  if (!startHit) mTrackData.mEnergyLoss += fMC->Edep();
   if (!(startHit|stopHit)) return kFALSE; // do noting
 
   if (startHit) {
     mTrackData.mEnergyLoss = 0.;
-    vmc->TrackMomentum(mTrackData.mMomentumStart);
-    vmc->TrackPosition(mTrackData.mPositionStart);
+    fMC->TrackMomentum(mTrackData.mMomentumStart);
+    fMC->TrackPosition(mTrackData.mPositionStart);
     mTrackData.mTrkStatusStart = status;
     mTrackData.mHitStarted = true;
   }
   if (stopHit) {
     TLorentzVector positionStop;
-    vmc->TrackPosition(positionStop);
+    fMC->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
     int stave(0), halfstave(0), chipinmodule(0), module;
-    vmc->CurrentVolOffID(1, chipinmodule);
-    vmc->CurrentVolOffID(2, module);
-    vmc->CurrentVolOffID(3, halfstave);
-    vmc->CurrentVolOffID(4, stave);
+    fMC->CurrentVolOffID(1, chipinmodule);
+    fMC->CurrentVolOffID(2, module);
+    fMC->CurrentVolOffID(3, halfstave);
+    fMC->CurrentVolOffID(4, stave);
     int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
-    
-    Hit *p = addHit(vmc->GetStack()->GetCurrentTrackNumber(), chipindex,
-                      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
-                      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
-                      mTrackData.mTrkStatusStart,status);
-    //p->SetTotalEnergy(vmc->Etot());
+
+    Hit* p = addHit(stack->GetCurrentTrackNumber(), chipindex, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+                    mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
+                    mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
+    // p->SetTotalEnergy(vmc->Etot());
 
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle
-    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
     stack->addHit(GetDetId());
   }
   
@@ -589,7 +592,6 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  // FIXME: fix MT interface
   if (FairRootManager::Instance()) {
     FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
   }
@@ -770,9 +772,6 @@ void Detector::ConstructGeometry()
 
   // Construct the detector geometry
   constructDetectorGeometry();
-
-  // Define the list of sensitive volumes
-  defineSensitiveVolumes();
 }
 
 void Detector::constructDetectorGeometry()

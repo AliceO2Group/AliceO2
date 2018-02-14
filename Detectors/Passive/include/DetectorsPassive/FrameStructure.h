@@ -37,6 +37,9 @@ class FrameStructure : public FairModule
   /**  destructor     */
   ~FrameStructure() override = default;
 
+  /**  Clone this object (used in MT mode only)  */
+  FairModule* CloneModule() const override;
+
   /**  Create the module geometry  */
   void ConstructGeometry() override;
 
@@ -45,6 +48,9 @@ class FrameStructure : public FairModule
   // set if to be constructed with/without holes
   void setHoles(bool flag) { mWithHoles = true; }
  private:
+  /**  copy constructor (used in MT mode only)   */
+  FrameStructure(const FrameStructure& rhs);
+
   void makeHeatScreen(const char* name, float dyP, int rot1, int rot2);
   void createWebFrame(const char* name, float dHz, float theta0, float phi0);
   void createMaterials();

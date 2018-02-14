@@ -11,7 +11,7 @@
 #ifndef ALICEO2_TOF_DIGIT_H_
 #define ALICEO2_TOF_DIGIT_H_
 
-#include <SimulationDataFormat/TimeStamp.h>
+#include <CommonDataFormat/TimeStamp.h>
 #include <iosfwd>
 #include "Rtypes.h"
 

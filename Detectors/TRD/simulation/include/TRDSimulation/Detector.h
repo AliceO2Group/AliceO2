@@ -34,6 +34,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override = default;
 
+  FairModule* CloneModule() const override;
+
   void Initialize() override;
 
   bool ProcessHits(FairVolume* v = nullptr) override;
@@ -55,6 +57,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   void ConstructGeometry() override;
 
  private:
+  /// copy constructor (used in MT)
+  Detector(const Detector& rhs);
+
   // defines/sets-up the sensitive volumes
   void defineSensitiveVolumes();
 

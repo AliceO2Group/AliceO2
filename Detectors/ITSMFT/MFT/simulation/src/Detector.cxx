@@ -32,6 +32,7 @@
 #include "FairLogger.h"
 #include "FairRootManager.h"
 #include "FairVolume.h"
+#include "FairRootManager.h"
 
 using o2::ITSMFT::Hit;
 using namespace o2::MFT;
@@ -101,7 +102,6 @@ void Detector::Initialize()
   defineSensitiveVolumes();
 
   FairDetector::Initialize();
-
 }
 
 //_____________________________________________________________________________
@@ -110,7 +110,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // This method is called from the MC stepping
 
   // do not track neutral particles
-  if (!(TVirtualMC::GetMC()->TrackCharge())) {
+  if (!(fMC->TrackCharge())) {
     return kFALSE;
   }
 
@@ -118,14 +118,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   Int_t copy;
   // Check if hit is into a MFT sensor volume
-  if(TVirtualMC::GetMC()->CurrentVolID(copy) != mftGeo->getSensorVolumeID() ) return kFALSE;
+  if(fMC->CurrentVolID(copy) != mftGeo->getSensorVolumeID() ) return kFALSE;
 
   // Get The Sensor Unique ID
   Int_t sensorID = -1, ladderID = -1, diskID = -1, halfID = -1, level = 0;
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,sensorID);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,ladderID);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,diskID);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,halfID);
+  fMC->CurrentVolOffID(++level,sensorID);
+  fMC->CurrentVolOffID(++level,ladderID);
+  fMC->CurrentVolOffID(++level,diskID);
+  fMC->CurrentVolOffID(++level,halfID);
   
   Int_t sensorIndex = mGeometryTGeo->getSensorIndex(halfID,diskID,ladderID,sensorID);
 
@@ -133,12 +133,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Hit::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Hit::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Hit::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Hit::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Hit::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Hit::kTrackAlive; }
+  if (fMC->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (fMC->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (fMC->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (fMC->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (fMC->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (fMC->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
   if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
@@ -149,14 +149,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit) mTrackData.mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  if (!startHit) mTrackData.mEnergyLoss += fMC->Edep();
   if (!(startHit|stopHit)) return kFALSE; // do noting
 
   if (startHit) {
 
     mTrackData.mEnergyLoss = 0.;
-    TVirtualMC::GetMC()->TrackMomentum(mTrackData.mMomentumStart);
-    TVirtualMC::GetMC()->TrackPosition(mTrackData.mPositionStart);
+    fMC->TrackMomentum(mTrackData.mMomentumStart);
+    fMC->TrackPosition(mTrackData.mPositionStart);
     mTrackData.mTrkStatusStart = status;
     mTrackData.mHitStarted = true;
 
@@ -165,9 +165,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (stopHit) {
 
     TLorentzVector positionStop;
-    TVirtualMC::GetMC()->TrackPosition(positionStop);
+    fMC->TrackPosition(positionStop);
 
-    Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+    Int_t trackID  = fMC->GetStack()->GetCurrentTrackNumber();
     //Int_t detID = vol->getMCid();
 
     Hit *p = addHit(trackID,
@@ -181,7 +181,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
                     mTrackData.mTrkStatusStart,
                     status);
     
-    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+    o2::Data::Stack *stack = (o2::Data::Stack *) fMC->GetStack();
     stack->addHit(GetDetId());
     
   }

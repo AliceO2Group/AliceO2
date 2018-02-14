@@ -24,6 +24,30 @@ struct Foo {
   int y;
 };
 
+// TODO: extend this by a struct with pointer member
+class TriviallyCopyable
+{
+ public:
+  int mX;
+  int mY;
+
+ private:
+  int mP;
+};
+
+class Base
+{
+ public:
+  virtual void f() {}
+};
+
+class Polymorphic : Base
+{
+ public:
+ private:
+  int mMember;
+};
+
 // Simple test to do root deserialization.
 BOOST_AUTO_TEST_CASE(TestIsSpecialization) {
   std::vector<int> a;
@@ -43,4 +67,19 @@ BOOST_AUTO_TEST_CASE(TestIsSpecialization) {
   BOOST_REQUIRE_EQUAL(test4, true);
   BOOST_REQUIRE_EQUAL(test5, false);
   BOOST_REQUIRE_EQUAL(test6, false);
+}
+
+BOOST_AUTO_TEST_CASE(TestIsMessageable)
+{
+  int a;
+  Foo b;
+  std::vector<int> c;
+  TriviallyCopyable d;
+  Polymorphic e;
+
+  BOOST_REQUIRE_EQUAL(is_messageable<decltype(a)>::value, true);
+  BOOST_REQUIRE_EQUAL(is_messageable<decltype(b)>::value, true);
+  BOOST_REQUIRE_EQUAL(is_messageable<decltype(c)>::value, false);
+  BOOST_REQUIRE_EQUAL(is_messageable<decltype(d)>::value, true);
+  BOOST_REQUIRE_EQUAL(is_messageable<decltype(e)>::value, false);
 }

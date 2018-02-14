@@ -7,6 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef FRAMEWORK_TYPETRAITS_H
+#define FRAMEWORK_TYPETRAITS_H
 
 #include <type_traits>
 
@@ -22,5 +24,11 @@ struct is_specialization : std::false_type {};
 template<template<typename...> class Ref, typename... Args>
 struct is_specialization<Ref<Args...>, Ref>: std::true_type {};
 
+// TODO: extend this to exclude structs with pointer data members
+// see e.g. https://stackoverflow.com/questions/32880990/how-to-check-if-class-has-pointers-in-c14
+template <typename T>
+struct is_messageable : std::conditional<std::is_trivially_copyable<T>::value && !std::is_polymorphic<T>::value,
+                                         std::true_type, std::false_type>::type {};
 }
 }
+#endif // FRAMEWORK_TYPETRAITS_H
