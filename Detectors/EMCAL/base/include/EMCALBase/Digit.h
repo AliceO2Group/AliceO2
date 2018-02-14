@@ -14,7 +14,7 @@
 #include <iosfwd>
 #include <cmath>
 #include "Rtypes.h"
-#include "SimulationDataFormat/TimeStamp.h"
+#include "CommonDataFormat/TimeStamp.h"
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
