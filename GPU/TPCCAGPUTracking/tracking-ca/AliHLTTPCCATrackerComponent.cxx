@@ -600,7 +600,11 @@ int AliHLTTPCCATrackerComponent::DoEvent
   tmpPar.fOutputBlocks = &outputBlocks;
   
   static int trackerTimeout = 0;
-  if (trackerTimeout) return(-ENODEV);
+  if (trackerTimeout)
+  {
+    size = 0;
+    return(0);
+  }
   
   int retVal;
   if (fAsync)
@@ -610,6 +614,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     {
       HLTError( "Tracking timed out, disabling this tracker instance" );
       trackerTimeout = 1;
+      size = 0;
       return(-ENODEV);
     }
     else
