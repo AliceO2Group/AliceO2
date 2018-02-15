@@ -408,8 +408,7 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
-    DriverState const& state = driverInfo.states[i];
-    ImGui::Text("#%lu: %s", i, DriverHelper::stateToString(state));
+    ImGui::Text("#%lu: %s", i, DriverHelper::stateToString(driverInfo.states[i]));
   }
 
   ImGui::End();
