@@ -18,6 +18,7 @@
 #include "Framework/RootObjectContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
+#include "Framework/SerializationMethods.h"
 
 #include "fairmq/FairMQMessage.h"
 
@@ -151,7 +152,7 @@ public:
   /// Note: also messageable objects can have a dictionary, but serialization
   /// method can not be deduced automatically. Messageable objects are sent
   /// unserialized by default. Serialization method needs to be specified
-  /// explicitely otherwise by using RootSerialize wrapper type.
+  /// explicitely otherwise by using ROOTSerialized wrapper type.
   template <typename T>
   typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
   snapshot(const OutputSpec& spec, T& object)
@@ -163,30 +164,25 @@ public:
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
-  /// Serialize a snapshot of @a object with root dictionary when called,
-  /// will then be sent once the computation ends.
+  /// Explicitely ROOT serialize a snapshot of @a object when called,
+  /// will then be sent once the computation ends. The @a object is wrapped
+  /// into type ROOTSerialized to explicitely mark this serialization method,
+  /// and is expected to have a ROOT dictionary. Availability can not be checked
+  /// at compile time for all cases.
   /// Framework does not take ownership of the @a object. Changes to @a object
   /// after the call will not be sent.
-  /// Currently, ROOT serialization and plain output are supported.
-  /// TODO: express serialization methods as types to be used in the template
-  /// specialization
-  /// DEPRECATED method, rewrite with type wrapper
-  template <typename T>
-  typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
-  snapshot(const OutputSpec& spec, T& object, o2::header::SerializationMethod method)
+  template <typename W>
+  typename std::enable_if<is_specialization<W, ROOTSerialized>::value == true, void>::type
+  snapshot(const OutputSpec& spec, W wrapper)
   {
-    FairMQMessagePtr payloadMessage;
-    if (method == o2::header::gSerializationMethodROOT) {
-      payloadMessage = std::move(mDevice->NewMessage());
-      mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object, T::Class());
-      addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
-    } else if (method == o2::header::gSerializationMethodNone) {
-      payloadMessage = std::move(mDevice->NewMessage(sizeof(T)));
-      memcpy(payloadMessage->GetData(), &object, sizeof(T));
-      addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
-    } else {
-      throw std::runtime_error("unsupported serialization type");
+    using T = typename W::wrapped_type;
+    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    auto* cl = TClass::GetClass(typeid(T));
+    if (has_root_dictionary<T>::value == false && cl == nullptr) {
+      throw std::runtime_error("ROOT serialization not supported, dictionary not found for data type");
     }
+    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &wrapper(), cl);
+    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
   /// Serialize a snapshot of a trivially copyable, non-polymorphic @a object,
@@ -194,7 +190,7 @@ public:
   /// Framework does not take ownership of @param object. Changes to @param object
   /// after the call will not be sent.
   /// Note: also messageable objects with ROOT dictionary are preferably sent
-  /// unserialized. Use @a RootSerialize type wrapper to force ROOT serialization.
+  /// unserialized. Use @a ROOTSerialized type wrapper to force ROOT serialization.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, void>::type
   snapshot(const OutputSpec& spec, T const& object)
@@ -252,12 +248,15 @@ public:
   /// specialization to catch unsupported types and throw a detailed compiler error
   template <typename T>
   typename std::enable_if<has_root_dictionary<T>::value == false &&
+                          is_specialization<T, ROOTSerialized>::value == false &&
                           is_messageable<T>::value == false &&
                           is_specialization<T, std::vector>::value == false>::type
   snapshot(const OutputSpec& spec, T const&)
   {
-    static_assert(has_root_dictionary<T>::value == true || is_messageable<T>::value == true ||
-                    is_specialization<T, std::vector>::value == true,
+    static_assert(has_root_dictionary<T>::value == true ||
+                  is_specialization<T, ROOTSerialized>::value == true ||
+                  is_messageable<T>::value == true ||
+                  is_specialization<T, std::vector>::value == true,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - std::vector of messageable structures or pointers to those"
