@@ -16,7 +16,7 @@
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 ///
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 
 class TH1;
 class TH2;

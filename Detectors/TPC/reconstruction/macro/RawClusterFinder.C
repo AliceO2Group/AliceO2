@@ -25,7 +25,7 @@
 #include "TGraph.h"
 #include "TLinearFitter.h"
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"

@@ -22,7 +22,7 @@
 #ifndef ALICEO2_ITSMFT_TOPOLOGYFASTSIMULATION_H
 #define ALICEO2_ITSMFT_TOPOLOGYFASTSIMULATION_H
 #include <random>
-#include "ITSMFTReconstruction/TopologyDictionary.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 namespace o2
 {

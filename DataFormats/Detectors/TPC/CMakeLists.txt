@@ -2,7 +2,7 @@
 # @brief  TPC data formats
 
 set(MODULE_NAME "DataFormatsTPC")
-set(MODULE_BUCKET_NAME DataFormatsTPC_bucket)
+set(MODULE_BUCKET_NAME data_format_TPC_bucket)
 
 O2_SETUP(NAME ${MODULE_NAME})
 
@@ -20,6 +20,8 @@ set(HEADERS
    include/${MODULE_NAME}/Helpers.h
    include/${MODULE_NAME}/TrackTPC.h
    include/${MODULE_NAME}/Cluster.h
+   include/${MODULE_NAME}/Constants.h
+   include/${MODULE_NAME}/Defs.h
 )
 
 set(LINKDEF src/DataFormatsTPCLinkDef.h)

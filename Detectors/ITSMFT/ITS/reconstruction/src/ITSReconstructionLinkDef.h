@@ -16,7 +16,6 @@
 
 #pragma link C++ class o2::ITS::TrivialClustererTask+;
 #pragma link C++ class o2::ITS::ClustererTask+;
-#pragma link C++ class o2::ITS::CookedTrack+;
 #pragma link C++ class o2::ITS::CookedTrackerTask+;
 
 #endif

@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 #include "ITSMFTBase/GeometryTGeo.h"
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 
 #include "Rtypes.h"

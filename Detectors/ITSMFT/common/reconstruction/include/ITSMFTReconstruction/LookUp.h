@@ -22,8 +22,8 @@
 #ifndef ALICEO2_ITSMFT_LOOKUP_H
 #define ALICEO2_ITSMFT_LOOKUP_H
 #include <array>
-#include "ITSMFTReconstruction/ClusterTopology.h"
-#include "ITSMFTReconstruction/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ClusterTopology.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 namespace o2
 {

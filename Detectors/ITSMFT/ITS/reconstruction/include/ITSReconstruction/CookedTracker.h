@@ -23,7 +23,7 @@
 #include <vector>
 #include "ITSBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
-#include "ITSReconstruction/CookedTrack.h"
+#include "DataFormatsITS/TrackITS.h"
 
 namespace o2
 {
@@ -68,8 +68,8 @@ public:
   Double_t getSigmaX() const { return mSigmaX; }
   Double_t getSigmaY() const { return mSigmaY; }
   Double_t getSigmaZ() const { return mSigmaZ; }
-  o2::MCCompLabel cookLabel(CookedTrack& t, Float_t wrong) const;
-  void setExternalIndices(CookedTrack& t) const;
+  o2::MCCompLabel cookLabel(TrackITS& t, Float_t wrong) const;
+  void setExternalIndices(TrackITS& t) const;
   Double_t getBz() const;
   void setBz(Double_t bz) { mBz = bz; }
 
@@ -77,11 +77,11 @@ public:
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
   
   // These functions must be implemented
-  void process(const std::vector<Cluster> &clusters, std::vector<CookedTrack> &tracks);
-  void processFrame(std::vector<CookedTrack> &tracks);
-  // Int_t propagateBack(std::vector<CookedTrack> *event);
-  // Int_t RefitInward(std::vector<CookedTrack> *event);
-  // Bool_t refitAt(Double_t x, CookedTrack *seed, const CookedTrack *t);
+  void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks);
+  void processFrame(std::vector<TrackITS>& tracks);
+  // Int_t propagateBack(std::vector<TrackITS> *event);
+  // Int_t RefitInward(std::vector<TrackITS> *event);
+  // Bool_t refitAt(Double_t x, TrackITS *seed, const TrackITS *t);
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::ITS::GeometryTGeo* geom);
@@ -103,16 +103,16 @@ public:
   static constexpr int kNLayers = 7;
   int loadClusters(const std::vector<Cluster> &clusters);
   void unloadClusters();
-  
-  std::vector<CookedTrack> trackInThread(Int_t first, Int_t last);
-  void makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_t last);
-  void trackSeeds(std::vector<CookedTrack> &seeds);
 
-  Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const;
+  std::vector<TrackITS> trackInThread(Int_t first, Int_t last);
+  void makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t last);
+  void trackSeeds(std::vector<TrackITS>& seeds);
 
-  void makeBackPropParam(std::vector<CookedTrack> &seeds) const;
-  bool makeBackPropParam(CookedTrack& track) const;
-  
+  Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITS& t, const TrackITS& o) const;
+
+  void makeBackPropParam(std::vector<TrackITS>& seeds) const;
+  bool makeBackPropParam(TrackITS& track) const;
+
  private:
 
   bool mContinuousMode = true; ///< triggered or cont. mode
@@ -135,7 +135,7 @@ public:
   Double_t mSigmaZ; ///< error of the primary vertex position in Z
 
   static Layer sLayers[kNLayers];  ///< Layers filled with clusters
-  std::vector<CookedTrack> mSeeds; ///< Track seeds
+  std::vector<TrackITS> mSeeds;    ///< Track seeds
 };
 
 class CookedTracker::Layer

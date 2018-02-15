@@ -8,24 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CookedTrack.cxx
+/// \file TrackITS.cxx
 /// \brief Implementation of the ITS cooked track
 /// \author iouri.belikov@cern.ch
 
 #include <TMath.h>
 
 #include "CommonConstants/MathConstants.h"
-#include "ITSMFTReconstruction/Cluster.h"
-#include "ITSReconstruction/CookedTrack.h"
+#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITS/TrackITS.h"
 
-ClassImp(o2::ITS::CookedTrack)
+ClassImp(o2::ITS::TrackITS)
 
   using namespace o2::ITSMFT;
 using namespace o2::ITS;
 using namespace o2::constants::math;
 using namespace o2::track;
 
-bool CookedTrack::operator<(const CookedTrack& o) const
+bool TrackITS::operator<(const TrackITS& o) const
 {
   //-----------------------------------------------------------------
   // This function compares tracks according to the their curvature
@@ -38,7 +38,7 @@ bool CookedTrack::operator<(const CookedTrack& o) const
   return (c > co);
 }
 
-void CookedTrack::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Float_t ip[2]) const
+void TrackITS::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Float_t ip[2]) const
 {
   //------------------------------------------------------------------
   // This function calculates the transverse and longitudinal impact parameters
@@ -70,7 +70,7 @@ void CookedTrack::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, F
   ip[1] = getZ() + getTgl() / rp4 * TMath::ASin(f2 * r1 - f1 * r2) - z;
 }
 
-void CookedTrack::resetClusters()
+void TrackITS::resetClusters()
 {
   //------------------------------------------------------------------
   // Reset the array of attached clusters.
@@ -79,7 +79,7 @@ void CookedTrack::resetClusters()
   mNClusters = 0;
 }
 
-void CookedTrack::setClusterIndex(Int_t l, Int_t i)
+void TrackITS::setClusterIndex(Int_t l, Int_t i)
 {
   //--------------------------------------------------------------------
   // Set the cluster index
@@ -88,7 +88,7 @@ void CookedTrack::setClusterIndex(Int_t l, Int_t i)
   mIndex[mNClusters++] = idx;
 }
 
-void CookedTrack::setExternalClusterIndex(Int_t layer, Int_t idx)
+void TrackITS::setExternalClusterIndex(Int_t layer, Int_t idx)
 {
   //--------------------------------------------------------------------
   // Set the cluster index within an external cluster array
@@ -96,7 +96,7 @@ void CookedTrack::setExternalClusterIndex(Int_t layer, Int_t idx)
   mIndex[layer] = idx;
 }
 
-Bool_t CookedTrack::propagate(Float_t alpha, Float_t x, Float_t bz)
+Bool_t TrackITS::propagate(Float_t alpha, Float_t x, Float_t bz)
 {
   if (rotate(alpha))
     if (propagateTo(x, bz))
@@ -105,7 +105,7 @@ Bool_t CookedTrack::propagate(Float_t alpha, Float_t x, Float_t bz)
   return kFALSE;
 }
 
-Bool_t CookedTrack::update(const Cluster& c, Float_t chi2, Int_t idx)
+Bool_t TrackITS::update(const Cluster& c, Float_t chi2, Int_t idx)
 {
   //--------------------------------------------------------------------
   // Update track params
@@ -120,7 +120,7 @@ Bool_t CookedTrack::update(const Cluster& c, Float_t chi2, Int_t idx)
 }
 
 /*
-Bool_t CookedTrack::getPhiZat(Float_t r, Float_t &phi, Float_t &z) const
+Bool_t TrackITS::getPhiZat(Float_t r, Float_t &phi, Float_t &z) const
 {
   //------------------------------------------------------------------
   // This function returns the global cylindrical (phi,z) of the track
@@ -153,7 +153,7 @@ Bool_t CookedTrack::getPhiZat(Float_t r, Float_t &phi, Float_t &z) const
 }
 */
 
-Bool_t CookedTrack::isBetter(const CookedTrack& best, Float_t maxChi2) const
+Bool_t TrackITS::isBetter(const TrackITS& best, Float_t maxChi2) const
 {
   Int_t ncl = getNumberOfClusters();
   Int_t nclb = best.getNumberOfClusters();

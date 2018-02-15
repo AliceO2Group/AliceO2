@@ -145,8 +145,8 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
   int nClustersConverted = 0;
   int nClustersTotal = 0;
   float vzbin = (elParam.getZBinWidth() * gasParam.getVdrift());
-  float vzbinInv = 1.f/vzbin;
-  
+  float vzbinInv = 1.f / vzbin;
+
   Mapper& mapper = Mapper::instance();
   for (int i = 0; i < Sector::MAXSECTOR; i++) {
     for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
@@ -238,51 +238,47 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
       float zTrack = tracks[i].GetParam().GetZ();
 
-      float zHigh=0,zLow=0;
-      if ( mTrackingCAO2Interface->GetParamContinuous() ) {
+      float zHigh = 0, zLow = 0;
+      if (mTrackingCAO2Interface->GetParamContinuous()) {
         float zoffset = tracks[i].CSide() ? -tracks[i].GetParam().GetZOffset() : tracks[i].GetParam().GetZOffset();
-	time0 = sContinuousTFReferenceLength - zoffset*vzbinInv;
-	
-	// estimate max/min time increments which still keep track in the physical limits of the TPC 
-	zHigh = trackClusters[tracks[i].FirstClusterRef()].fZ
-	  - tracks[i].GetParam().GetZOffset(); // high R cluster
-	zLow = trackClusters[tracks[i].FirstClusterRef()+ tracks[i].NClusters() - 1].fZ
-	  - tracks[i].GetParam().GetZOffset(); // low R cluster
-	
-	bool sideHighA = (trackClusters[tracks[i].FirstClusterRef() ].fId >> 24)
-	  < Sector::MAXSECTOR/2;
-	bool sideLowA = (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24)
-	  < Sector::MAXSECTOR/2;
-	
-	// check if Z of edge clusters don't appear on the wrong side of the TPC
-	if (sideHighA==sideLowA) {
-	  if ( (sideHighA && zHigh<0) || (!sideHighA && zHigh>0) ) {
-	    // need to add shift to bring track to the side corresponding to clusters
-	    float dz = sideHighA ? -std::min(zLow,zHigh) : -std::max(zLow,zHigh); // = -max(|zLow|,|zAbs|)
-	    zTrack += dz;
-	    time0 += dz*vzbinInv;
-	    zLow += dz;
-	    zHigh += dz;
-	  }
-	} 
-	else {
-	  // at the moment we don't have tracks with clusters on different sides
-	}
-	// calculate time bracket
-	float zLowAbs  = zLow<0.f ? -zLow : zLow;
-	float zHighAbs = zHigh<0.f ? -zHigh : zHigh;
-	//
-	// tFwd = (Lmax - max(|zLow|,|zAbs|))/vzbin  = drift time from cluster current Z till endcap
-	// tBwd = min(|zLow|,|zAbs|))/vzbin          = drift time from CE till cluster current Z
-	//
-	if (zLowAbs<zHighAbs) {
-	  tFwd = (detParam.getTPClength() - zHighAbs)*vzbinInv;
-	  tBwd = zLowAbs*vzbinInv;
-	}
-	else {
-	  tFwd = (detParam.getTPClength() - zLowAbs)*vzbinInv;
-	  tBwd = zHighAbs*vzbinInv;
-	}
+        time0 = sContinuousTFReferenceLength - zoffset * vzbinInv;
+
+        // estimate max/min time increments which still keep track in the physical limits of the TPC
+        zHigh = trackClusters[tracks[i].FirstClusterRef()].fZ - tracks[i].GetParam().GetZOffset(); // high R cluster
+        zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ -
+               tracks[i].GetParam().GetZOffset(); // low R cluster
+
+        bool sideHighA = (trackClusters[tracks[i].FirstClusterRef()].fId >> 24) < Sector::MAXSECTOR / 2;
+        bool sideLowA =
+          (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24) < Sector::MAXSECTOR / 2;
+
+        // check if Z of edge clusters don't appear on the wrong side of the TPC
+        if (sideHighA == sideLowA) {
+          if ((sideHighA && zHigh < 0) || (!sideHighA && zHigh > 0)) {
+            // need to add shift to bring track to the side corresponding to clusters
+            float dz = sideHighA ? -std::min(zLow, zHigh) : -std::max(zLow, zHigh); // = -max(|zLow|,|zAbs|)
+            zTrack += dz;
+            time0 += dz * vzbinInv;
+            zLow += dz;
+            zHigh += dz;
+          }
+        } else {
+          // at the moment we don't have tracks with clusters on different sides
+        }
+        // calculate time bracket
+        float zLowAbs = zLow < 0.f ? -zLow : zLow;
+        float zHighAbs = zHigh < 0.f ? -zHigh : zHigh;
+        //
+        // tFwd = (Lmax - max(|zLow|,|zAbs|))/vzbin  = drift time from cluster current Z till endcap
+        // tBwd = min(|zLow|,|zAbs|))/vzbin          = drift time from CE till cluster current Z
+        //
+        if (zLowAbs < zHighAbs) {
+          tFwd = (detParam.getTPClength() - zHighAbs) * vzbinInv;
+          tBwd = zLowAbs * vzbinInv;
+        } else {
+          tFwd = (detParam.getTPClength() - zLowAbs) * vzbinInv;
+          tBwd = zHighAbs * vzbinInv;
+        }
       }
 
       oTrack =
@@ -297,14 +293,13 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       oTrack.setTime0(time0);
       oTrack.setDeltaTBwd(tBwd);
       oTrack.setDeltaTFwd(tFwd);
-      //RS: TODO: once the A/C merging will be implemented, both A and C side must be flagged for meged track 
-      if ( tracks[i].CSide() ) {
-	oTrack.setHasCSideClusters();
+      // RS: TODO: once the A/C merging will be implemented, both A and C side must be flagged for meged track
+      if (tracks[i].CSide()) {
+        oTrack.setHasCSideClusters();
+      } else {
+        oTrack.setHasASideClusters();
       }
-      else {
-	oTrack.setHasASideClusters();
-      }
-      
+
       oTrack.setChi2(tracks[i].GetParam().GetChi2());
       auto& outerPar = tracks[i].GetParam().OuterParam();
       oTrack.setOuterParam(o2::track::TrackParCov(

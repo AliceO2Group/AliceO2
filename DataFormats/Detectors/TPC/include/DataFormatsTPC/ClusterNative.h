@@ -15,7 +15,7 @@
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #include <cstdint>
 #include <vector>
-#include "TPCBase/Constants.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2
 {

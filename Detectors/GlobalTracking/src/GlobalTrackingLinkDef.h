@@ -8,26 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// @file   Constants.h
-/// @author David Rohr
-///
+#ifdef __CLING__
 
-#ifndef AliceO2_TPC_Constants_H
-#define AliceO2_TPC_Constants_H
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-namespace o2 { namespace TPC {
-
-class Constants
-{
-  public:
-    // the number of sectors
-    static constexpr int MAXSECTOR=36;
-
-    // the number of global pad rows
-    static constexpr int MAXGLOBALPADROW=152;
-};
-
-}}
+#pragma link C++ class o2::globaltracking::MatchTPCITS + ;
+#pragma link C++ class o2::globaltracking::timeBracket + ;
+#pragma link C++ class o2::globaltracking::TrackLocTPC + ;
+#pragma link C++ class o2::globaltracking::TrackLocITS + ;
 
 #endif

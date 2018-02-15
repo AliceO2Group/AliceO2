@@ -30,7 +30,7 @@
 #ifndef AliceO2_TPC_ROC_H
 #define AliceO2_TPC_ROC_H
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
 
 namespace o2 {

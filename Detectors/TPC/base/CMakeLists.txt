@@ -32,8 +32,6 @@ set(HEADERS
    include/TPCBase/CalDet.h
    include/TPCBase/ContainerFactory.h
    include/TPCBase/CRU.h
-#    include/TPCBase/Defs.h
-#    include/TPCBase/Constants.h
    include/TPCBase/Digit.h
    include/TPCBase/DigitPos.h
    include/TPCBase/FECInfo.h
@@ -51,7 +49,6 @@ set(HEADERS
    include/TPCBase/PartitionInfo.h
    include/TPCBase/RandomRing.h
    include/TPCBase/ROC.h
-   include/TPCBase/Defs.h
    include/TPCBase/Sector.h
 )
 

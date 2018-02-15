@@ -19,7 +19,7 @@
 
 #include "TH2S.h"
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/PadROCPos.h"

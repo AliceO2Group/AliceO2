@@ -5,13 +5,11 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/TrivialClustererTask.cxx
     src/ClustererTask.cxx
-    src/CookedTrack.cxx
     src/CookedTrackerTask.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/TrivialClustererTask.h
     include/${MODULE_NAME}/ClustererTask.h
-    include/${MODULE_NAME}/CookedTrack.h
     include/${MODULE_NAME}/CookedTrackerTask.h
     )
 set(NO_DICT_SRCS # sources not for the dictionary

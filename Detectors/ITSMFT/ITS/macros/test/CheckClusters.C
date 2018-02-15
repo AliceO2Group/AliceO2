@@ -10,7 +10,7 @@
 #include <TTree.h>
 
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"

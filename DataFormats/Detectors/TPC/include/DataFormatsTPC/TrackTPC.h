@@ -14,7 +14,7 @@
 #include "ReconstructionDataFormats/Track.h"
 
 #include "DataFormatsTPC/ClusterNative.h"
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/Cluster.h"
 
 namespace o2
@@ -74,7 +74,6 @@ class TrackTPC : public o2::track::TrackParCov
   void setHasCSideClusters() { mFlags |= HasCSideClusters; }
 
   float getTime0() const { return mTime0; } ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
-  float getTimeVertex(float vDrift) const;  ///< Abs time of the vertex assumed for the track: time0-drift time.
   short getDeltaTBwd() const { return mDeltaTBwd; } ///< max possible decrement to getTimeVertex
   short getDeltaTFwd() const { return mDeltaTFwd; } ///< max possible increment to getTimeVertex
   void setDeltaTBwd(short t) { mDeltaTBwd = t; }    ///< set max possible decrement to getTimeVertex

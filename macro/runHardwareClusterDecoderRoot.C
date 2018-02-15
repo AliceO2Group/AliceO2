@@ -25,7 +25,7 @@
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/HardwareClusterDecoder.h"
-#include "TPCBase/Constants.h"
+#include "DataFormatsTPC/Constants.h"
 #include "TPCBase/CRU.h"
 #else
 #pragma cling load("libTPCReconstruction")
@@ -39,8 +39,12 @@ using namespace std;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-int runHardwareClusterDecoderRoot(TString infile = "", TString outfile = "") {
-  if (infile.EqualTo("") || outfile.EqualTo("")) {printf("Filename missing\n");return(1);}
+int runHardwareClusterDecoderRoot(TString infile = "", TString outfile = "")
+{
+  if (infile.EqualTo("") || outfile.EqualTo("")) {
+    printf("Filename missing\n");
+    return (1);
+  }
   HardwareClusterDecoder decoder;
 
   ClusterHardwareContainer8kb* clusterContainerMemory = nullptr;
@@ -48,41 +52,47 @@ int runHardwareClusterDecoderRoot(TString infile = "", TString outfile = "") {
   std::vector<ClusterHardwareContainer8kb> inputBuffer;
   MCLabelContainer* inMCLabels = nullptr;
   std::vector<MCLabelContainer> inputBufferMC;
-  
+
   std::vector<MCLabelContainer> outMCLabels;
 
   TFile fin(infile);
-  TTree* tin = (TTree*) fin.FindObjectAny("clustersHardware");
-  if (tin == NULL) {printf("Error reading input\n"); return(1);}
+  TTree* tin = (TTree*)fin.FindObjectAny("clustersHardware");
+  if (tin == NULL) {
+    printf("Error reading input\n");
+    return (1);
+  }
   tin->SetBranchAddress("clusters", &clusterContainerMemory);
   tin->SetBranchAddress("clustersMCTruth", &inMCLabels);
-  
+
   inputBuffer.reserve(tin->GetEntries());
   inputList.reserve(tin->GetEntries());
-  if (inMCLabels) inputBufferMC.reserve(tin->GetEntries());
-  for (int i = 0;i < tin->GetEntries();i++)
-  {
+  if (inMCLabels)
+    inputBufferMC.reserve(tin->GetEntries());
+  for (int i = 0; i < tin->GetEntries(); i++) {
     tin->GetEntry(i);
     inputBuffer.push_back(*clusterContainerMemory);
     inputList.emplace_back(inputBuffer[i].getContainer(), 1);
-    if (inMCLabels) inputBufferMC.emplace_back(std::move(*inMCLabels));
+    if (inMCLabels)
+      inputBufferMC.emplace_back(std::move(*inMCLabels));
   }
   fin.Close();
 
   std::vector<ClusterNativeContainer> cont;
   decoder.decodeClusters(inputList, cont, inMCLabels ? &inputBufferMC : nullptr, &outMCLabels);
-  
+
   TFile fout(outfile, "recreate");
   int nClustersTotal = 0;
-  for (unsigned int i = 0;i < cont.size();i++)
-  {
+  for (unsigned int i = 0; i < cont.size(); i++) {
     nClustersTotal += cont[i].clusters.size();
-    //fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].sector, (int) cont[i].globalPadRow, (int) cont[i].clusters.size());
-    fout.WriteObject(&cont[i], Form("clusters_sector_%d_row_%d", (int) cont[i].sector, (int) cont[i].globalPadRow));
-    if (inMCLabels) fout.WriteObject(&outMCLabels[i], Form("clustersMCTruth_sector_%d_row_%d", (int) cont[i].sector, (int) cont[i].globalPadRow));
+    // fprintf(stderr, "\tSector %d, Row %d, Clusters %d\n", (int) cont[i].sector, (int) cont[i].globalPadRow, (int)
+    // cont[i].clusters.size());
+    fout.WriteObject(&cont[i], Form("clusters_sector_%d_row_%d", (int)cont[i].sector, (int)cont[i].globalPadRow));
+    if (inMCLabels)
+      fout.WriteObject(&outMCLabels[i],
+                       Form("clustersMCTruth_sector_%d_row_%d", (int)cont[i].sector, (int)cont[i].globalPadRow));
   }
 
   printf("Total clusters: %d\n", nClustersTotal);
   fout.Close();
-  return(0);
+  return (0);
 }

@@ -16,7 +16,7 @@
 #include "TROOT.h"
 #include "TString.h"
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CalArray.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CRU.h"

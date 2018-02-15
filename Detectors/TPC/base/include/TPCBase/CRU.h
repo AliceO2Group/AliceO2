@@ -11,7 +11,7 @@
 #ifndef AliceO2_TPC_CRU_H
 #define AliceO2_TPC_CRU_H
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/ROC.h"
 

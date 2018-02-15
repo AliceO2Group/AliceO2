@@ -14,7 +14,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "TPCBase/Constants.h"
+#include "DataFormatsTPC/Constants.h"
 
 using namespace o2::TPC;
 

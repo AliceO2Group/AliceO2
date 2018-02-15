@@ -23,29 +23,29 @@ namespace dataformats
 {
 // Composed Label to encode object origin in the tree or other segmented input
 
-template <typename E=int, typename I=int>
+template <typename E = int, typename I = int>
 class EvIndex
 {
  public:
-
   EvIndex(E ev, I idx) { set(ev, idx); }
-  EvIndex(const EvIndex<E,I> & src) = default;
+  EvIndex(const EvIndex<E, I>& src) = default;
   EvIndex() = default;
   ~EvIndex() = default;
-  void set(E ev, I idx) {
+  void set(E ev, I idx)
+  {
     mEvent = ev;
-    mIndex   = idx;
+    mIndex = idx;
   }
- E getEvent() const { return mEvent; }
- I getIndex() const { return mIndex; }
- void setEvent(E ev) { mEvent = ev; }
- void setIndex(I ind) { mIndex = ind; }
- 
- private:
-  E mEvent = 0;  ///< ID of event or chunk or message containing referred object
-  I mIndex = 0;  ///< index in the event
+  E getEvent() const { return mEvent; }
+  I getIndex() const { return mIndex; }
+  void setEvent(E ev) { mEvent = ev; }
+  void setIndex(I ind) { mIndex = ind; }
 
- ClassDefNV(EvIndex,1);
+ private:
+  E mEvent = 0; ///< ID of event or chunk or message containing referred object
+  I mIndex = 0; ///< index in the event
+
+  ClassDefNV(EvIndex, 1);
 };
 }
 }

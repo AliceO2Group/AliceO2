@@ -21,7 +21,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "TPCReconstruction/HardwareClusterDecoder.h"
-#include "TPCBase/Constants.h"
+#include "DataFormatsTPC/Constants.h"
 #include "TPCBase/CRU.h"
 #else
 #pragma cling load("libTPCReconstruction")

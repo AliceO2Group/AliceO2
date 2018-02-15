@@ -13,7 +13,7 @@
 ///
 /// \author Luca Barioglio, University and INFN of Torino
 
-#include "ITSMFTReconstruction/TopologyDictionary.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 using std::cout;
 using std::endl;

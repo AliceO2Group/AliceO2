@@ -25,7 +25,7 @@
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/Cluster.h"
-#include "TPCBase/Constants.h"
+#include "DataFormatsTPC/Constants.h"
 #include "TPCBase/CRU.h"
 #else
 #pragma cling load("libTPCReconstruction")
@@ -39,8 +39,12 @@ using namespace std;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-int convertClusterToClusterHardware(TString infile = "", TString outfile = "") {
-  if (infile.EqualTo("") || outfile.EqualTo("")) {printf("Filename missing\n");return(1);}
+int convertClusterToClusterHardware(TString infile = "", TString outfile = "")
+{
+  if (infile.EqualTo("") || outfile.EqualTo("")) {
+    printf("Filename missing\n");
+    return (1);
+  }
   ClusterHardwareContainer8kb clusterContainerMemory;
   int maxClustersPerContainer = clusterContainerMemory.getMaxNumberOfClusters();
   ClusterHardwareContainer& clusterContainer = *clusterContainerMemory.getContainer();
@@ -54,48 +58,53 @@ int convertClusterToClusterHardware(TString infile = "", TString outfile = "") {
   c.SetBranchAddress("TPCClusterHWMCTruth", &inMCLabels);
 
   TFile fout(outfile, "recreate");
-  TTree tout("clustersHardware","clustersHardware");
+  TTree tout("clustersHardware", "clustersHardware");
   tout.Branch("clusters", &clusterContainerMemory);
   tout.Branch("clustersMCTruth", &outMCLabels);
 
   int nClusters = 0, nContainers = 0, nMCLabels = 0;
 
   const int nentries = c.GetEntries();
-  for (int iEvent=0;iEvent < nentries;iEvent++) {
+  for (int iEvent = 0; iEvent < nentries; iEvent++) {
     c.GetEntry(iEvent);
-    if (!inClusters->size()) continue;
+    if (!inClusters->size())
+      continue;
 
     unsigned int iCurrentCluster = 0;
-    while (iCurrentCluster < inClusters->size())
-    {
+    while (iCurrentCluster < inClusters->size()) {
       clusterContainer.CRU = (*inClusters)[iCurrentCluster].getCRU();
       clusterContainer.numberOfClusters = 0;
       clusterContainer.timeBinOffset = 0xFFFFFFFF;
-      for (unsigned int icluster = iCurrentCluster;icluster < inClusters->size() && clusterContainer.numberOfClusters < maxClustersPerContainer && (*inClusters)[icluster].getCRU() == clusterContainer.CRU;icluster++)
-      {
+      for (unsigned int icluster = iCurrentCluster;
+           icluster < inClusters->size() && clusterContainer.numberOfClusters < maxClustersPerContainer &&
+           (*inClusters)[icluster].getCRU() == clusterContainer.CRU;
+           icluster++) {
         clusterContainer.numberOfClusters++;
-        if ((*inClusters)[icluster].getTimeMean() < clusterContainer.timeBinOffset) clusterContainer.timeBinOffset = (*inClusters)[icluster].getTimeMean();
+        if ((*inClusters)[icluster].getTimeMean() < clusterContainer.timeBinOffset)
+          clusterContainer.timeBinOffset = (*inClusters)[icluster].getTimeMean();
       }
-      
+
       outMCLabels.clear();
-      for (unsigned int icluster = 0;icluster < clusterContainer.numberOfClusters;icluster++) {
+      for (unsigned int icluster = 0; icluster < clusterContainer.numberOfClusters; icluster++) {
         const auto& cluster = (*inClusters)[iCurrentCluster + icluster];
-        
-        float mPadPre;                //< Quantity needed to compute the pad
-        float mTimePre;               //< Quantity needed to compute the time
-        float mSigmaPad2Pre;          //< Quantity needed to compute the sigma^2 of the pad
-        float mSigmaTime2Pre;         //< Quantity needed to compute the sigma^2 of the time
-        uint16_t mQMax;               //< QMax of the cluster
-        uint16_t mQTot;               //< Total charge of the cluster
-        uint8_t mRow;                 //< Row of the cluster (local, needs to add PadRegionInfo::getGlobalRowOffset
-        uint8_t mFlags;               //< Flags of the cluster
+
+        float mPadPre;        //< Quantity needed to compute the pad
+        float mTimePre;       //< Quantity needed to compute the time
+        float mSigmaPad2Pre;  //< Quantity needed to compute the sigma^2 of the pad
+        float mSigmaTime2Pre; //< Quantity needed to compute the sigma^2 of the time
+        uint16_t mQMax;       //< QMax of the cluster
+        uint16_t mQTot;       //< Total charge of the cluster
+        uint8_t mRow;         //< Row of the cluster (local, needs to add PadRegionInfo::getGlobalRowOffset
+        uint8_t mFlags;       //< Flags of the cluster
         ClusterHardware& oCluster = clusterContainer.clusters[icluster];
         oCluster.qMax = cluster.getQmax() + 0.5;
         oCluster.qTot = cluster.getQ() + 0.5;
         oCluster.padPre = cluster.getPadMean() * oCluster.qTot;
         oCluster.timePre = (cluster.getTimeMean() - clusterContainer.timeBinOffset) * oCluster.qTot;
-        oCluster.sigmaPad2Pre = cluster.getPadSigma() * cluster.getPadSigma() * oCluster.qTot * oCluster.qTot + oCluster.padPre * oCluster.padPre;
-        oCluster.sigmaTime2Pre = cluster.getTimeSigma() * cluster.getTimeSigma() * oCluster.qTot * oCluster.qTot + oCluster.timePre * oCluster.timePre;
+        oCluster.sigmaPad2Pre = cluster.getPadSigma() * cluster.getPadSigma() * oCluster.qTot * oCluster.qTot +
+                                oCluster.padPre * oCluster.padPre;
+        oCluster.sigmaTime2Pre = cluster.getTimeSigma() * cluster.getTimeSigma() * oCluster.qTot * oCluster.qTot +
+                                 oCluster.timePre * oCluster.timePre;
         oCluster.row = cluster.getRow();
         oCluster.flags = 0;
         for (const auto& element : inMCLabels->getLabels(iCurrentCluster + icluster)) {
@@ -111,7 +120,7 @@ int convertClusterToClusterHardware(TString infile = "", TString outfile = "") {
   }
   tout.Write();
   fout.Close();
-  
+
   printf("Wrote %d clusters, %d containers, %d MC labels\n", nClusters, nContainers, nMCLabels);
-  return(0);
+  return (0);
 }

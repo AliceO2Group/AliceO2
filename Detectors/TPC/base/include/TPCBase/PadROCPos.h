@@ -14,7 +14,7 @@
 #ifndef ALICEO2_TPC_PADROCPOS_H_
 #define ALICEO2_TPC_PADROCPOS_H_
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/PadPos.h"
 

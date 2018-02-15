@@ -16,8 +16,8 @@
   #include "SimulationDataFormat/MCTrack.h"
   #include "SimulationDataFormat/MCCompLabel.h"
   #include "SimulationDataFormat/MCTruthContainer.h"
-  #include "ITSMFTReconstruction/Cluster.h"
-  #include "ITSReconstruction/CookedTrack.h"
+#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITS/TrackITS.h"
 #endif
 
 void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
@@ -40,7 +40,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *recTree=(TTree*)gFile->Get("o2sim");
-  std::vector<CookedTrack> *recArr=nullptr;
+  std::vector<TrackITS>* recArr = nullptr;
   recTree->SetBranchAddress("ITSTrack",&recArr);
   // Track MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *trkLabArr=nullptr;
@@ -90,23 +90,26 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       Float_t label=-123456789.;
       
       for (Int_t i=0;i<nrec;i++) {
-	 const CookedTrack &recTrack = (*recArr)[i];
-	 auto mclab = (trkLabArr->getLabels(i))[0];
-         auto id = mclab.getEventID();
-         if (id != n) continue;
-	 Int_t lab = mclab.getTrackID();
-	 if (TMath::Abs(lab) != nmc) continue;
-	 std::array<float,3> p;
-	 recTrack.getPxPyPzGlo(p);
-	 recPt = recTrack.getPt();
-         recPhi = TMath::ATan2(p[1],p[0]);
-	 recLam = TMath::ATan2(p[2],recPt);
-	 Float_t vx=0., vy=0., vz=0.; // Assumed primary vertex
-	 Float_t bz=5.;               // Assumed magnetic field 
-         recTrack.getImpactParams(vx, vy, vz, bz, ip);
-         label = lab;
-	 
-	 if (label>0) nGoo++;// Good found tracks for the efficiency calculation
+        const TrackITS& recTrack = (*recArr)[i];
+        auto mclab = (trkLabArr->getLabels(i))[0];
+        auto id = mclab.getEventID();
+        if (id != n)
+          continue;
+        Int_t lab = mclab.getTrackID();
+        if (TMath::Abs(lab) != nmc)
+          continue;
+        std::array<float, 3> p;
+        recTrack.getPxPyPzGlo(p);
+        recPt = recTrack.getPt();
+        recPhi = TMath::ATan2(p[1], p[0]);
+        recLam = TMath::ATan2(p[2], recPt);
+        Float_t vx = 0., vy = 0., vz = 0.; // Assumed primary vertex
+        Float_t bz = 5.;                   // Assumed magnetic field
+        recTrack.getImpactParams(vx, vy, vz, bz, ip);
+        label = lab;
+
+        if (label > 0)
+          nGoo++; // Good found tracks for the efficiency calculation
       }
 
       nt->Fill(mcPhi,mcLam,mcPt,recPhi,recLam,recPt,ip[0],ip[1],label);

@@ -17,7 +17,7 @@
 #include <string>
 #include <cmath>
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/PadSecPos.h"
 #include "TPCBase/PadROCPos.h"
