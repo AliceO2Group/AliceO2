@@ -53,7 +53,7 @@ class CookedTrackerTask : public FairTask
   const
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< Cluster MC labels
 
-  std::vector<CookedTrack> *mTracksArray=nullptr; ///< Array of tracks
+  std::vector<TrackITS>* mTracksArray = nullptr;                          ///< Array of tracks
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mTrkLabels=nullptr; ///< Track MC labels
 
   ClassDefOverride(CookedTrackerTask, 1)

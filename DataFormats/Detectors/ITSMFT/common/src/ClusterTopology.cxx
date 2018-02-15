@@ -13,7 +13,7 @@
 ///
 /// \author Luca Barioglio, University and INFN of Torino
 
-#include "ITSMFTReconstruction/ClusterTopology.h"
+#include "DataFormatsITSMFT/ClusterTopology.h"
 
 ClassImp(o2::ITSMFT::ClusterTopology)
 

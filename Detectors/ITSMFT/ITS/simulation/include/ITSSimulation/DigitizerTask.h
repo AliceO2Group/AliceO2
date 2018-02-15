@@ -53,9 +53,9 @@ class DigitizerTask : public FairTask
   bool getUseAlpideSim() const { return mUseAlpideSim; }
   void setFairTimeUnitInNS(double tinNS) { mFairTimeUnitInNS = tinNS < 1. ? 1. : tinNS; }
   double getFairTimeUnitInNS() const { return mFairTimeUnitInNS; }
-  void setAlpideROFramLength(float l) { mAlpideROFramLength = l;}
+  void setAlpideROFramLength(float l) { mAlpideROFramLength = l; }
   float getAlpideROFramLength() const { return mAlpideROFramLength; }
-  
+
  private:
 
   Bool_t mUseAlpideSim;         ///< ALPIDE simulation activation flag

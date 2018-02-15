@@ -17,9 +17,9 @@
 #include <TTree.h>
 
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "ITSReconstruction/CookedTrack.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -187,7 +187,7 @@ found:
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kGreen);
 
-  std::vector<CookedTrack>* trkArr = nullptr;
+  std::vector<TrackITS>* trkArr = nullptr;
   tree->SetBranchAddress("ITSTrack", &trkArr);
   // Track MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
@@ -198,7 +198,7 @@ found:
   Int_t nt = trkArr->size();
   n = 0;
   while (nt--) {
-    const CookedTrack& t = (*trkArr)[nt];
+    const TrackITS& t = (*trkArr)[nt];
     auto lab = (trkLabArr->getLabels(nt))[0];
     if (TMath::Abs(lab.getEventID()) != event)
       continue;

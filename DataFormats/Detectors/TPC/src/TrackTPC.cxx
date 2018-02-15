@@ -13,9 +13,6 @@
 /// \author Thomas Klemenz, TU Muenchen, thomas.klemenz@tum.de
 
 #include "DataFormatsTPC/TrackTPC.h"
-#include "TPCBase/ParameterDetector.h"
-#include "TPCBase/ParameterGas.h"
-#include "TPCBase/ParameterElectronics.h"
 
 using namespace o2::TPC;
 
@@ -57,12 +54,4 @@ void TrackTPC::resetClusterReferences(int nClusters)
 {
   mNClusters = short(nClusters);
   mClusterReferences.resize(nClusters + (nClusters + 1) / 2);
-}
-
-float TrackTPC::getTimeVertex(float vDrift) const
-{
-  // TODO: This is currently quite inefficient! Should be solved by making all these defaultInstance() functions
-  // constexpr or so. On could then also think about moving this into TrackTPC.h
-  // For the time, it provides the required functionality.
-  return mTime0 - ParameterDetector::defaultInstance().getTPClength() / vDrift;
 }

@@ -198,15 +198,16 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    DataFormatsTPC_bucket
+    data_format_TPC_bucket
     
     DEPENDENCIES
-    tpc_base_bucket
-    TPCBase # this is not good, DataFormats are supposed to be more primary than TPCBase
-    
+    data_format_reconstruction_bucket
+    ReconstructionDataFormats
+
     INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
 )
 
 o2_define_bucket(
@@ -527,14 +528,18 @@ o2_define_bucket(
 
     DEPENDENCIES
     itsmft_base_bucket
+    data_format_itsmft_bucket
+    #
     Graf
     Gpad
     DetectorsBase
+    DataFormatsITSMFT
     ITSMFTBase
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
 )
 
 o2_define_bucket(
@@ -580,11 +585,15 @@ o2_define_bucket(
 
     DEPENDENCIES
     its_base_bucket
+    data_format_itsmft_bucket
+    data_format_its_bucket
+    #
     ITSMFTBase
     ITSMFTReconstruction
     ITSBase
     ITSSimulation
     DetectorsBase
+    DataFormatsITS
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
@@ -592,6 +601,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
 )
 
 o2_define_bucket(
@@ -718,16 +728,19 @@ o2_define_bucket(
     fairroot_base_bucket
     common_vc_bucket
     common_math_bucket
+    data_format_TPC_bucket
     ParBase
     MathUtils
     Core Hist Gpad
     SimulationDataFormat
     CommonDataFormat
+    DataFormatsTPC
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
 )
 
 o2_define_bucket(
@@ -736,11 +749,13 @@ o2_define_bucket(
 
     DEPENDENCIES
     tpc_base_bucket
+    data_format_TPC_bucket
     Field
     DetectorsBase
     Generators
     TPCBase
     SimulationDataFormat
+    DataFormatsTPC
     Geom
     MathCore
     MathUtils
@@ -764,6 +779,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${MS_GSL_INCLUDE_DIR}
 )
 
@@ -774,7 +790,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     tpc_base_bucket
-    DataFormatsTPC_bucket
+    data_format_TPC_bucket
     data_format_detectors_common_bucket
     DetectorsCommonDataFormats
     DetectorsBase    
@@ -815,8 +831,10 @@ o2_define_bucket(
 
     DEPENDENCIES
     tpc_base_bucket
+    data_format_TPC_bucket
     tpc_reconstruction_bucket
     DetectorsBase
+    DataFormatsTPC
     TPCBase
     TPCReconstruction
     MathUtils
@@ -825,6 +843,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
 )
 
 o2_define_bucket(
@@ -931,17 +950,20 @@ o2_define_bucket(
 
     DEPENDENCIES
     mft_base_bucket
+    itsmft_reconstruction_bucket
     ITSMFTBase
     ITSMFTReconstruction
     MFTBase
     MFTSimulation
     DetectorsBase
+    DataFormatsITSMFT
     O2Device_bucket
     Tree
     Net
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/include
@@ -1391,3 +1413,86 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
 )
 
+o2_define_bucket(
+    NAME
+   data_format_itsmft_bucket
+
+    DEPENDENCIES
+    data_format_reconstruction_bucket
+    #
+    ReconstructionDataFormats
+    
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+)
+  
+o2_define_bucket(
+    NAME
+    data_format_its_bucket
+
+    DEPENDENCIES
+    data_format_reconstruction_bucket
+    #
+    ReconstructionDataFormats
+    
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Common/Constants/include
+)
+
+
+o2_define_bucket(
+    NAME
+    global_tracking_bucket
+
+    DEPENDENCIES
+    data_format_simulation_bucket
+    data_format_reconstruction_bucket
+    data_format_common_bucket
+    data_format_TPC_bucket
+    its_reconstruction_bucket
+    data_format_itsmft_bucket
+    common_field_bucket
+    detectors_base_bucket
+    its_base_bucket
+    tpc_base_bucket
+    data_parameters_bucket
+    common_utils_bucket
+    common_math_bucket
+    #
+    SimulationDataFormat
+    ReconstructionDataFormats
+    CommonDataFormat
+    ITSReconstruction
+    DataFormatsITSMFT
+    DetectorsBase
+    DataFormatsTPC
+    DataFormatsParameters
+    ITSBase
+    TPCBase
+    CommonUtils
+    MathUtils
+    Field
+    RIO
+    Core
+    Geom
+   
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/Field/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Common/Constants/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Parameters/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+)

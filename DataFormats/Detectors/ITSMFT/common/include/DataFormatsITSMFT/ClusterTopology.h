@@ -26,7 +26,7 @@
 #include <array>
 #include <iostream>
 #include <string>
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 
 namespace o2
 {

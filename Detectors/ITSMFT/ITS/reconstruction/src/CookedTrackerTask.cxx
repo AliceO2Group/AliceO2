@@ -13,7 +13,7 @@
 /// \author iouri.belikov@cern.ch
 
 #include "ITSReconstruction/CookedTrackerTask.h"
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"

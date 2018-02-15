@@ -25,4 +25,6 @@ add_subdirectory(FIT)
 add_subdirectory(PHOS)
 add_subdirectory(MUON)
 
+add_subdirectory(GlobalTracking)
+
 Install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)

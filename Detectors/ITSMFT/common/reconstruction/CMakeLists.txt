@@ -3,21 +3,15 @@ set(MODULE_NAME "ITSMFTReconstruction")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  src/Cluster.cxx
   src/PixelReader.cxx
   src/Clusterer.cxx
-  src/ClusterTopology.cxx
-  src/TopologyDictionary.cxx
   src/BuildTopologyDictionary.cxx
   src/LookUp.cxx
   src/TopologyFastSimulation.cxx
 )
 set(HEADERS
-  include/${MODULE_NAME}/Cluster.h
   include/${MODULE_NAME}/PixelReader.h
   include/${MODULE_NAME}/Clusterer.h
-  include/${MODULE_NAME}/ClusterTopology.h
-  include/${MODULE_NAME}/TopologyDictionary.h
   include/${MODULE_NAME}/BuildTopologyDictionary.h
   include/${MODULE_NAME}/LookUp.h
   include/${MODULE_NAME}/TopologyFastSimulation.h

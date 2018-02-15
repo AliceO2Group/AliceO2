@@ -26,8 +26,8 @@
 #ifndef AliceO2_TPC_Sector_H
 #define AliceO2_TPC_Sector_H
 
-#include "TPCBase/Constants.h"
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Constants.h"
+#include "DataFormatsTPC/Defs.h"
 //using namespace AliceO2::TPC;
 
 namespace o2 {

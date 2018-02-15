@@ -11,7 +11,7 @@
 #ifndef AliceO2_TPC_DigitPos_H
 #define AliceO2_TPC_DigitPos_H
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/PadSecPos.h"

@@ -18,7 +18,7 @@
 #include <memory>
 
 #include "DataFormatsTPC/ClusterNative.h"
-#include "TPCBase/Constants.h"
+#include "DataFormatsTPC/Constants.h"
 #include "TPCBase/Mapper.h"
 
 namespace o2 { namespace TPC {

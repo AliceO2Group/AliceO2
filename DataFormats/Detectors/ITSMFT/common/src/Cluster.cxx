@@ -11,7 +11,7 @@
 /// \file Cluster.cxx
 /// \brief Implementation of the ITSMFT cluster
 
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "FairLogger.h"
 
 #include <TMath.h>
@@ -108,7 +108,7 @@ void Cluster::print() const
   printf("Sensor %5d, nRow:%3d nCol:%3d n:%d |Err^2:%.3e %.3e %+.3e |", getSensorID(), getNx(), getNz(), getNPix(),
          getSigmaY2(), getSigmaZ2(), getSigmaYZ());
   printf("XYZ: %+.4e %+.4e %+.4e\n", getX(), getY(), getZ());
-  //
+//
 #ifdef _ClusterTopology_
   int nr = getPatternRowSpan();
   int nc = getPatternColSpan();

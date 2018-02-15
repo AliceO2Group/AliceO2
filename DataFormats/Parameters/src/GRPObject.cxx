@@ -61,8 +61,8 @@ void GRPObject::print() const
       continue;
     }
     printf("%9s: ", DetID(i).getName());
-    printf("%7s ", isDetContinuousReadOut(DetID(i)) ? "   +   ":"   -   ");
-    printf("%7s ", isDetTriggers(DetID(i)) ? "   +   ":"   -   ");
+    printf("%7s ", isDetContinuousReadOut(DetID(i)) ? "   +   " : "   -   ");
+    printf("%7s ", isDetTriggers(DetID(i)) ? "   +   " : "   -   ");
     printf("\n");
   }
 }

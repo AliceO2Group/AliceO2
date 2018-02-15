@@ -19,7 +19,7 @@
 
 #include "FairLogger.h"
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/CalArray.h"

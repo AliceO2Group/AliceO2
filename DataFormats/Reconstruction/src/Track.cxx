@@ -402,16 +402,16 @@ void TrackPar::invertParam()
 float TrackPar::getZAt(float xk, float b) const
 {
   ///< this method is just an alias for obtaining Z @ X in the tree->Draw()
-  float y,z;
-  return getYZAt(xk,b,y,z) ? z : -9999.;
+  float y, z;
+  return getYZAt(xk, b, y, z) ? z : -9999.;
 }
 
 //______________________________________________________________
 float TrackPar::getYAt(float xk, float b) const
 {
   ///< this method is just an alias for obtaining Z @ X in the tree->Draw()
-  float y,z;
-  return getYZAt(xk,b,y,z) ? y : -9999.;
+  float y, z;
+  return getYZAt(xk, b, y, z) ? y : -9999.;
 }
 
 //______________________________________________________________

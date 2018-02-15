@@ -26,7 +26,7 @@
 
 ClassImp(o2::ITS::DigitizerTask)
 
-using namespace o2::ITS;
+  using namespace o2::ITS;
 using namespace o2::detectors;
 using namespace o2::utils;
 
