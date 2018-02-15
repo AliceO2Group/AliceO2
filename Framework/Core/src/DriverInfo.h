@@ -59,6 +59,7 @@ enum struct DriverState {
   HANDLE_CHILDREN,
   EXIT,
   UNKNOWN,
+  PERFORM_CALLBACKS,
   LAST
 };
 
