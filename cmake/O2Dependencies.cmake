@@ -106,30 +106,6 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    ExampleModule1_bucket
-
-    DEPENDENCIES # library names and other buckets
-    common_boost_bucket
-
-    INCLUDE_DIRECTORIES
-)
-
-o2_define_bucket(
-    NAME
-    ExampleModule2_bucket
-
-    DEPENDENCIES # library names
-    ExampleModule1 # another module
-    ExampleModule1_bucket # another bucket
-    Core Hist # ROOT
-
-    INCLUDE_DIRECTORIES
-    ${ROOT_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/Examples/ExampleModule1/include # another module's include dir
-)
-
-o2_define_bucket(
-    NAME
     O2Device_bucket
 
     DEPENDENCIES
