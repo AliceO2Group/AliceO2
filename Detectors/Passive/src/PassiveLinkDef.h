@@ -33,7 +33,6 @@
 #pragma link C++ class  o2::Passive::Cave+;
 #pragma link C++ class  o2::Passive::PassiveContFact+;
 #pragma link C++ class  o2::passive::Pipe+;
-#pragma link C++ class  o2::Passive::FrameStructure+;
 #pragma link C++ class  o2::passive::FrameStructure+;
 #pragma link C++ class  o2::passive::Shil+;
 #pragma link C++ class  o2::passive::Hall+;

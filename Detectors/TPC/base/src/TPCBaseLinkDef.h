@@ -43,10 +43,8 @@
 #pragma link C++ class o2::TPC::ParameterGas;
 #pragma link C++ class o2::TPC::ParameterGEM;
 #pragma link C++ class o2::TPC::PartitionInfo;
-//#pragma link C++ class o2::TPC::RandomRing;
 #pragma link C++ class o2::TPC::ROC;
 #pragma link C++ class o2::TPC::Sector;
-#pragma link C++ class o2::TPC::TimeStamp+;
 
 #pragma link C++ namespace o2::TPC::Painter;
 #pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalArray<float>);
