@@ -13,6 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/TypeTraits.h"
+#include "Framework/SerializationMethods.h"
 #include "TestClasses.h"
 #include <boost/test/unit_test.hpp>
 #include <vector>
@@ -44,6 +45,10 @@ BOOST_AUTO_TEST_CASE(TestIsSpecialization) {
   BOOST_REQUIRE_EQUAL(test4, true);
   BOOST_REQUIRE_EQUAL(test5, false);
   BOOST_REQUIRE_EQUAL(test6, false);
+
+  ROOTSerialized<decltype(d)> e(d);
+  bool test7 = is_specialization<decltype(e), ROOTSerialized>::value;
+  BOOST_REQUIRE_EQUAL(test7, true);
 }
 
 BOOST_AUTO_TEST_CASE(TestForceNonMessageable)
@@ -82,6 +87,7 @@ BOOST_AUTO_TEST_CASE(TestIsMessageable)
   BOOST_REQUIRE_EQUAL(is_messageable<decltype(c)>::value, false);
   BOOST_REQUIRE_EQUAL(is_messageable<decltype(d)>::value, true);
   BOOST_REQUIRE_EQUAL(is_messageable<decltype(e)>::value, false);
+  BOOST_REQUIRE_EQUAL(is_messageable<ROOTSerialized<decltype(e)>>::value, false);
 }
 
 BOOST_AUTO_TEST_CASE(TestIsStlContainer)
