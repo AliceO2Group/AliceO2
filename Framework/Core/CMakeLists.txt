@@ -70,6 +70,20 @@ O2_GENERATE_EXECUTABLE(
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
 
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_Parallel"
+  SOURCES "test/test_Parallel.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_TimePipeline"
+  SOURCES "test/test_TimePipeline.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
 target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
 
