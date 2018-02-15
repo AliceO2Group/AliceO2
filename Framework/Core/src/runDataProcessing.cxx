@@ -418,6 +418,7 @@ int doParent(std::vector<DeviceInfo>& infos,
              std::vector<DeviceMetricsInfo>& metricsInfos,
              std::vector<DeviceExecution>& deviceExecutions,
              std::vector<DriverState> const& startProgram,
+             std::vector<DriverControl::Callback>& startCallbacks,
              bool batch,
              bool singleStep)
 {
@@ -429,6 +430,7 @@ int doParent(std::vector<DeviceInfo>& infos,
   driverInfo.sigchldRequested = false;
   DriverControl driverControl;
   driverControl.state = singleStep ? DriverControlState::STEP : DriverControlState::PLAY;
+  driverControl.callbacks = startCallbacks;
 
   void* window = nullptr;
   decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
@@ -582,6 +584,13 @@ int doParent(std::vector<DeviceInfo>& infos,
         break;
       case DriverState::EXIT:
         return calculateExitCode(infos);
+      case DriverState::PERFORM_CALLBACKS:
+        for (auto &callback : driverControl.callbacks) {
+          callback(deviceSpecs, deviceExecutions);
+        }
+        driverControl.callbacks.clear();
+        driverInfo.states.push_back(DriverState::GUI);
+        break;
       default:
         LOG(ERROR) << "Driver transitioned in an unknown state. Shutting down.";
         driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
@@ -783,13 +792,30 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
                                       gDeviceControls);
 
   std::vector<DriverState> startProgram;
+  std::vector<DriverControl::Callback> startCallbacks;
+
   if (graphViz) {
     // Dump a graphviz representation of what I will do.
-    GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, deviceSpecs);
-    exit(0);
+    startCallbacks = {[](std::vector<DeviceSpec> const& specs,
+                         std::vector<DeviceExecution> const &executions) {
+        GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
+      }
+    };
+    startProgram = {
+      DriverState::EXIT,
+      DriverState::PERFORM_CALLBACKS
+    };
   } else if (generateDDS) {
-    dumpDeviceSpec2DDS(std::cout, deviceSpecs, gDeviceExecutions);
-    exit(0);
+    // Dump a graphviz representation of what I will do.
+    startCallbacks = {[](std::vector<DeviceSpec> const& specs,
+                         std::vector<DeviceExecution> const &executions) {
+        dumpDeviceSpec2DDS(std::cout, specs, executions);
+      }
+    };
+    startProgram = {
+      DriverState::EXIT,
+      DriverState::PERFORM_CALLBACKS
+    };
   } else {
     // By default we simply start the main loop
     startProgram = { DriverState::INIT };
@@ -797,6 +823,9 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
 
   auto exitCode = doParent(gDeviceInfos, deviceSpecs, gDeviceControls,
                            gDeviceMetricsInfos, gDeviceExecutions,
-                           startProgram, batch, defaultSingleStep);
+                           startProgram,
+                           startCallbacks,
+                           batch,
+                           defaultSingleStep);
   return exitCode;
 }

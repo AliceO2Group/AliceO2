@@ -373,15 +373,16 @@ struct DriverHelper {
   static char const* stateToString(enum DriverState state)
   {
     static const char* names[static_cast<int>(DriverState::LAST)] = {
-      "INIT",            //
-      "SCHEDULE",        //
-      "RUNNING",         //
-      "GUI",             //
-      "REDEPLOY_GUI",    //
-      "QUIT_REQUESTED",  //
-      "HANDLE_CHILDREN", //
-      "EXIT",            //
-      "UNKNOWN"          //
+      "INIT",             //
+      "SCHEDULE",         //
+      "RUNNING",          //
+      "GUI",              //
+      "REDEPLOY_GUI",     //
+      "QUIT_REQUESTED",   //
+      "HANDLE_CHILDREN",  //
+      "EXIT",             //
+      "UNKNOWN"           //
+      "PERFORM_CALLBACKS" //
     };
     return names[static_cast<int>(state)];
   }
