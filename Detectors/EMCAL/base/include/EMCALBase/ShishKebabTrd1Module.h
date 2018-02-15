@@ -24,7 +24,6 @@ namespace o2
 {
 namespace EMCAL
 {
-class EMCGeometry;
 
 //_________________________________________________________________________
 /// \class ShishKebabTrd1Module

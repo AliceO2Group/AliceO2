@@ -116,7 +116,6 @@ class Geometry
   static const std::string& GetDefaultGeometryName() { return DEFAULT_GEOMETRY; }
 
   static Bool_t IsInitialized() { return Geometry::sGeom != nullptr; }
-  // static const Char_t* GetDefaultGeometryName() {return EMCGeometry::fgkDefaultGeometryName;}
 
   ///
   /// Generate the list of Trd1 modules
