@@ -38,7 +38,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fMaxChi2(15.0),
   fMaxMissingLy(6),
   fChi2Penalty(10.0),
-  fZCorrCoefNRC(1.4),
+  fZCorrCoefNRC(0.0),
   fNhypothesis(100),
   fMaskedChambers(0x0),
   fMCEvent(0x0),
@@ -354,15 +354,15 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
 	    continue;
     }
     AliTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
-    //double tilt = TMath::Tan(TMath::DegToRad() * pp->GetTiltingAngle());
-    //double t2 = tilt * tilt; // tan^2 (tilt)
-    //double c2 = 1. / (1. + t2); // cos^2 (tilt)
+    double tilt = TMath::Tan(TMath::DegToRad() * pp->GetTiltingAngle());
+    double t2 = tilt * tilt; // tan^2 (tilt)
+    double c2 = 1. / (1. + t2); // cos^2 (tilt)
     double sy2 = TMath::Power(0.10, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
     for (int iTrklt=0; iTrklt<nTracklets; ++iTrklt) {
       int trkltIdx = fTrackletIndexArray[iDet] + iTrklt;
       int trkltZbin = fTracklets[trkltIdx].GetZbin();
-      double sz2 = TMath::Power(pp->GetRowSize(trkltZbin), 2);// / 12.; // sigma_z = l_pad/sqrt(12) TODO trying a larger z error
+      double sz2 = TMath::Power(pp->GetRowSize(trkltZbin), 2) / 12.; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
       double xTrkltDet[3] = { 0. }; // trklt position in chamber coordinates
       double xTrkltSec[3] = { 0. }; // trklt position in sector coordinates
       xTrkltDet[0] = fGeo->AnodePos() + fgkXshift;
@@ -376,12 +376,9 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
       for (int i=0; i<3; i++) {
         fSpacePoints[trkltIdx].fLabel[i] = fTracklets[trkltIdx].GetLabel(i);
       }
-      fSpacePoints[trkltIdx].fCov[0] = sy2;
-      fSpacePoints[trkltIdx].fCov[1] = 0;
-      fSpacePoints[trkltIdx].fCov[2] = sz2;
-      //fSpacePoints[trkltIdx].fCov[0] = c2 * (sy2 + t2 * sz2);
-      //fSpacePoints[trkltIdx].fCov[1] = c2 * tilt * (sz2 - sy2);
-      //fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
+      fSpacePoints[trkltIdx].fCov[0] = c2 * (sy2 + t2 * sz2);
+      fSpacePoints[trkltIdx].fCov[1] = c2 * tilt * (sz2 - sy2);
+      fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
       fSpacePoints[trkltIdx].fDy = 0.014 * fTracklets[trkltIdx].GetdY();
 
       AliGeomManager::ELayerID iLayer = AliGeomManager::ELayerID(AliGeomManager::kTRD1+fGeo->GetLayer(iDet));
@@ -428,8 +425,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   TVectorF zPosMC(kNLayers);
   TVectorF ptMC(kNLayers);
 
-  AliExternalTrackParam param[kNLayers];
-  AliExternalTrackParam paramNoUp[kNLayers];
+  //AliExternalTrackParam param[kNLayers];
+  //AliExternalTrackParam paramNoUp[kNLayers];
   AliExternalTrackParam paramOneUp;
   // track properties (for debugging)
   AliHLTTRDTrack *trackNoUpdates = new AliHLTTRDTrack();
@@ -448,11 +445,14 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   TVectorF trackYerr(kNLayers);
   TVectorF trackZerr(kNLayers);
   TVectorF trackPhi(kNLayers);
+  TVectorF trackLambda(kNLayers);
   TVectorF trackSec(kNLayers);
   // tracklet properties (used for update)
   TVectorF trackletX(kNLayers);
   TVectorF trackletY(kNLayers);
   TVectorF trackletZ(kNLayers);
+  TVectorF trackletYRaw(kNLayers);
+  TVectorF trackletZRaw(kNLayers);
   TVectorF trackletDy(kNLayers);
   TVectorF trackletDet(kNLayers);
   TVectorF trackletYerr(kNLayers);
@@ -468,6 +468,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   TVectorF trackletXReal(kNLayers);
   TVectorF trackletYReal(kNLayers);
   TVectorF trackletZReal(kNLayers);
+  TVectorF trackletYRawReal(kNLayers);
+  TVectorF trackletZRawReal(kNLayers);
   TVectorF trackletDetReal(kNLayers);
   TVectorF trackletSecReal(kNLayers);
   TVectorF trackXReal(kNLayers);
@@ -480,7 +482,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   int trackID = t->GetLabel();
 
   std::vector<int> matchAvailableAll[kNLayers]; // all available MC tracklet matches for this track
-  if (fDebugOutput && trackID > 0) {
+  if (fDebugOutput && trackID > 0 && fMCEvent) {
     CountMatches(trackID, matchAvailableAll);
     CheckTrackRefs(trackID, findableMC, xPosMC, yPosMC, zPosMC, ptMC);
   }
@@ -564,7 +566,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       FindChambersInRoad(&fCandidates[2*iCandidate+currIdx], roadY, roadZ, iLayer, det, zMaxTRD);
 
       // track debug information to be stored in case no matching tracklet can be found
-        param[iLayer] = fCandidates[2*iCandidate+currIdx];
+        //param[iLayer] = fCandidates[2*iCandidate+currIdx];
+        //paramNoUp[iLayer] = *trackNoUpdates;
         trackX(iLayer) = fCandidates[2*iCandidate+currIdx].GetX();
         trackY(iLayer) = fCandidates[2*iCandidate+currIdx].GetY();
         trackZ(iLayer) = fCandidates[2*iCandidate+currIdx].GetZ();
@@ -572,6 +575,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         trackYerr(iLayer) = fCandidates[2*iCandidate+currIdx].GetSigmaY2();
         trackZerr(iLayer) = fCandidates[2*iCandidate+currIdx].GetSigmaZ2();
         trackPhi(iLayer) = fCandidates[2*iCandidate+currIdx].GetSnp();
+        trackLambda(iLayer) = fCandidates[2*iCandidate+currIdx].GetTgl();
         trackSec(iLayer) = GetSector(fCandidates[2*iCandidate+currIdx].GetAlpha());
       //
 
@@ -604,8 +608,9 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
           double deltaY = fSpacePoints[trkltIdx].fX[0] - fCandidates[2*iCandidate+currIdx].GetY();
           double deltaZ = zPosCorr - fCandidates[2*iCandidate+currIdx].GetZ();
           double tiltCorr = tilt * deltaZ;
-          // tilt correction only makes sense if deltaZ < l_pad
-          if ( deltaZ < pad->GetRowSize(fTracklets[trkltIdx].GetZbin()) ) {
+          // tilt correction only makes sense if deltaZ < l_pad && track z err << l_pad
+          float l_pad = pad->GetRowSize(fTracklets[trkltIdx].GetZbin());
+          if ( (TMath::Abs(deltaZ) <  l_pad) && (TMath::Sqrt(fCandidates[2*iCandidate+currIdx].GetSigmaZ2()) < (l_pad/TMath::Sqrt(12))) ) {
             deltaY -= tiltCorr;
           }
           double trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] - tiltCorr, zPosCorr };
@@ -680,13 +685,20 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         trackSecReal(iLayer) = GetSector(fCandidates[currIdx].GetAlpha());
       }
       double zPosCorrReal = fSpacePoints[realTrkltId].fX[1] + fZCorrCoefNRC * fCandidates[currIdx].GetTgl();
-      double yCorrReal = tilt * (zPosCorrReal - fCandidates[currIdx].GetZ());
-      double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - yCorrReal, zPosCorrReal };
+      double deltaZReal = zPosCorrReal - fCandidates[currIdx].GetZ();
+      double tiltCorrReal = tilt * deltaZReal;
+      float l_padReal = pad->GetRowSize(fTracklets[realTrkltId].GetZbin());
+      if ( (TMath::Sqrt(fCandidates[currIdx].GetSigmaZ2()) >= (l_padReal/TMath::Sqrt(12))) || (TMath::Abs(deltaZReal) >= l_padReal) ) {
+        tiltCorrReal = 0;
+      }
+      double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - tiltCorrReal, zPosCorrReal };
       RecalcTrkltCov(realTrkltId, tilt, fCandidates[currIdx].GetSnp(), pad->GetRowSize(fTracklets[realTrkltId].GetZbin()));
       chi2Real(iLayer) = fCandidates[currIdx].GetPredictedChi2(yzPosReal, fSpacePoints[realTrkltId].fCov);
       trackletXReal(iLayer) = fSpacePoints[realTrkltId].fR;
-      trackletYReal(iLayer) = fSpacePoints[realTrkltId].fX[0] - yCorrReal;
-      trackletZReal(iLayer) = zPosCorrReal;
+      trackletYReal(iLayer) = yzPosReal[0];
+      trackletZReal(iLayer) = yzPosReal[1];
+      trackletYRawReal(iLayer) = fSpacePoints[realTrkltId].fX[0];
+      trackletZRawReal(iLayer) = fSpacePoints[realTrkltId].fX[1];
       trackletDetReal(iLayer) = fTracklets[realTrkltId].GetDetector();
       trackletSecReal(iLayer) = fGeo->GetSector(trackletDetReal(iLayer));
     }
@@ -749,15 +761,20 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       RecalcTrkltCov(fHypothesis[iUpdate].fTrackletId, tilt, fCandidates[2*iUpdate+nextIdx].GetSnp(), pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin()));
 
       double zPosCorrUpdate = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] + fZCorrCoefNRC * fCandidates[2*iUpdate+nextIdx].GetTgl();
-      double yCorr = tilt * (zPosCorrUpdate - fCandidates[2*iUpdate+nextIdx].GetZ());
+      double deltaZup = zPosCorrUpdate - fCandidates[2*iUpdate+nextIdx].GetZ();
+      double yCorr = 0;
+      float l_padTrklt = pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin());
+      if ( (TMath::Sqrt(fCandidates[2*iUpdate+nextIdx].GetSigmaZ2()) < (l_padTrklt/TMath::Sqrt(12))) && (TMath::Abs(deltaZ) < l_padTrklt) ) {
+        yCorr = tilt * deltaZup;
+      }
       double trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
 
       trackNoUpdates->Rotate(GetAlphaOfSector(trkltSec));
       PropagateTrackToBxByBz(trackNoUpdates, fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, mass, 2.0, kFALSE, 0.8);
 
       if (!wasTrackStored) {
-        param[iLayer] = fCandidates[2*iUpdate+nextIdx];
-        paramNoUp[iLayer] = *trackNoUpdates;
+        //param[iLayer] = fCandidates[2*iUpdate+nextIdx];
+        //paramNoUp[iLayer] = *trackNoUpdates;
         trackNoUpX(iLayer) = trackNoUpdates->GetX();
         trackNoUpY(iLayer) = trackNoUpdates->GetY();
         trackNoUpZ(iLayer) = trackNoUpdates->GetZ();
@@ -772,10 +789,13 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         trackYerr(iLayer) = fCandidates[2*iUpdate+nextIdx].GetSigmaY2();
         trackZerr(iLayer) = fCandidates[2*iUpdate+nextIdx].GetSigmaZ2();
         trackPhi(iLayer) = fCandidates[2*iUpdate+nextIdx].GetSnp();
+        trackLambda(iLayer) = fCandidates[2*iUpdate+nextIdx].GetTgl();
         trackSec(iLayer) = GetSector(fCandidates[2*iUpdate+nextIdx].GetAlpha());
         trackletX(iLayer) = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR;
         trackletY(iLayer) = trkltPosYZ[0];
         trackletZ(iLayer) = trkltPosYZ[1];
+        trackletYRaw(iLayer) = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0];
+        trackletZRaw(iLayer) = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1];
         trackletYerr(iLayer) = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fCov[0];
         trackletYZerr(iLayer) = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fCov[1];
         trackletZerr(iLayer) = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fCov[2];
@@ -946,11 +966,14 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       "trackPt.=" << &trackPt <<                        // track pT
       "trackYerr.=" << &trackYerr <<                    // sigma_y^2 for track
       "trackZerr.=" << &trackZerr <<                    // sigma_z^2 for track
-      "trackPhi.=" << &trackPhi <<                      // phi angle of track (TMath::Asin(track.fP[2]))
+      "trackPhi.=" << &trackPhi <<                      // phi angle of track (track.fP[2])
+      "trackLambda.=" << &trackLambda <<                // lambda angle of track (track.fP[3])
       "trackSec.=" << &trackSec <<                      // sector of track
       "trackletX.=" << &trackletX <<                    // x position of tracklet used for update (sector coords)
-      "trackletY.=" << &trackletY <<                    // y position of tracklet used for update (sector coords)
-      "trackletZ.=" << &trackletZ <<                    // z position of tracklet used for update (sector coords)
+      "trackletY.=" << &trackletY <<                    // y position of tracklet used for update (sector coords, tilt corrected position)
+      "trackletZ.=" << &trackletZ <<                    // z position of tracklet used for update (sector coords, tilt corrected position)
+      "trackletYRaw.=" << &trackletYRaw <<              // y position of tracklet used for update (sector coords)
+      "trackletZRaw.=" << &trackletZRaw <<              // z position of tracklet used for update (sector coords)
       "trackletYerr.=" << &trackletYerr <<              // sigma_y^2 for tracklet
       "trackletYZerr.=" << &trackletYZerr <<            // sigma_yz for tracklet
       "trackletZerr.=" << &trackletZerr <<              // sigma_z^2 for tracklet
@@ -960,25 +983,27 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       "roadZ.=" << &roadTrkZ <<                         // search road Z (only valid for 1 candidate!)
       "findable.=" << &findable <<                      // 0 - not findable, 1 - findable
       "findableMC.=" << &findableMC <<                  // number of MC hits in given layer
-      "trackL0.=" << &param[0] <<                       // track parameters of track in layer 0
-      "trackL1.=" << &param[1] <<                       // track parameters of track in layer 1
-      "trackL2.=" << &param[2] <<                       // track parameters of track in layer 2
-      "trackL3.=" << &param[3] <<                       // track parameters of track in layer 3
-      "trackL4.=" << &param[4] <<                       // track parameters of track in layer 4
-      "trackL5.=" << &param[5] <<                       // track parameters of track in layer 5
-      "trackNoUpL0.=" << &paramNoUp[0] <<               // track parameters of track w/o updates in layer 0
-      "trackNoUpL1.=" << &paramNoUp[1] <<               // track parameters of track w/o updates in layer 1
-      "trackNoUpL2.=" << &paramNoUp[2] <<               // track parameters of track w/o updates in layer 2
-      "trackNoUpL3.=" << &paramNoUp[3] <<               // track parameters of track w/o updates in layer 3
-      "trackNoUpL4.=" << &paramNoUp[4] <<               // track parameters of track w/o updates in layer 4
-      "trackNoUpL5.=" << &paramNoUp[5] <<               // track parameters of track w/o updates in layer 5
+      //"trackL0.=" << &param[0] <<                       // track parameters of track in layer 0
+      //"trackL1.=" << &param[1] <<                       // track parameters of track in layer 1
+      //"trackL2.=" << &param[2] <<                       // track parameters of track in layer 2
+      //"trackL3.=" << &param[3] <<                       // track parameters of track in layer 3
+      //"trackL4.=" << &param[4] <<                       // track parameters of track in layer 4
+      //"trackL5.=" << &param[5] <<                       // track parameters of track in layer 5
+      //"trackNoUpL0.=" << &paramNoUp[0] <<               // track parameters of track w/o updates in layer 0
+      //"trackNoUpL1.=" << &paramNoUp[1] <<               // track parameters of track w/o updates in layer 1
+      //"trackNoUpL2.=" << &paramNoUp[2] <<               // track parameters of track w/o updates in layer 2
+      //"trackNoUpL3.=" << &paramNoUp[3] <<               // track parameters of track w/o updates in layer 3
+      //"trackNoUpL4.=" << &paramNoUp[4] <<               // track parameters of track w/o updates in layer 4
+      //"trackNoUpL5.=" << &paramNoUp[5] <<               // track parameters of track w/o updates in layer 5
       "trackAngle.=" << &trackAngle <<                  // track angle for track w/ single update
       "track.=" << &parameterFinal <<                   // track parameters of final track
       "trackNoUp.=" << &parameterNoUpdates <<           // track parameters of track without any updates
       "nMatchingTracklets.=" << &nMatchingTracklets <<  // number of matching + related tracklets for this track in each layer
       "trackletXReal.=" << &trackletXReal <<            // x position (sector coords) for matching or related tracklet if available, otherwise 0
-      "trackletYReal.=" << &trackletYReal <<            // y position (sector coords) for matching or related tracklet if available, otherwise 0
-      "trackletZReal.=" << &trackletZReal <<            // z position (sector coords) for matching or related tracklet if available, otherwise 0
+      "trackletYReal.=" << &trackletYReal <<            // y position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
+      "trackletZReal.=" << &trackletZReal <<            // z position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
+      "trackletYRawReal.=" << &trackletYRawReal <<      // y position (sector coords) for matching or related tracklet if available, otherwise 0
+      "trackletZRawReal.=" << &trackletZRawReal <<      // z position (sector coords) for matching or related tracklet if available, otherwise 0
       "trackletSecReal.=" << &trackletSecReal <<        // sector number for matching or related tracklet if available, otherwise -1
       "trackletDetReal.=" << &trackletDetReal <<        // detector number for matching or related tracklet if available, otherwise -1
       "trackXReal.=" << &trackXReal <<                  // track x position at tracklet x if matching or related tracklet available, otherwise 0

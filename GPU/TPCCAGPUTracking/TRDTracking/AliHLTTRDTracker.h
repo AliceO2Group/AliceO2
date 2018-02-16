@@ -67,7 +67,9 @@ public:
   bool AdjustSector(AliHLTTRDTrack *t, const int layer) const;
   int GetSector(double alpha) const;
   float GetAlphaOfSector(const int sec) const;
-  double GetRPhiRes(double snp) const { return (TMath::Abs(snp) < 0.3) ? 0.0666*0.0666+0.278*0.278*(snp-0.137)*(snp-0.137) : 0.025; }
+  // fitDy = sqrt( [0]^2 + [2]^2 * (x - [1])^2 )
+  double GetRPhiRes(double snp) const { return (0.0642*0.0642+0.297*0.297*(snp-0.132)*(snp-0.132)); }
+  //double GetRPhiRes(double snp) const { return (TMath::Abs(snp) < 0.3) ? 0.0642*0.0642+0.297*0.297*(snp-0.132)*(snp-0.132) : 0.025; }
   void RecalcTrkltCov(const int trkltIdx, const double tilt, const double snp, const double rowSize);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
   void CheckTrackRefs(const int trackID, TVectorF &findableMC, TVectorF &xPosMC, TVectorF &yPosMC, TVectorF &zPosMC, TVectorF &ptMC) const;
@@ -118,7 +120,7 @@ protected:
   static const double fgkX0[kNLayers];        // default values of anode wires
   static const double fgkXshift;              // online tracklets evaluated above anode wire
 
-  float *fR;                                 // rough radial position of each TRD layer
+  float *fR;                                  // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
   AliHLTTRDTrack *fTracks;                    // array of trd-updated tracks
   int fNCandidates;                           // max. track hypothesis per layer
@@ -138,8 +140,8 @@ protected:
   float fMaxEta;                              // TPC tracks with higher eta are ignored
   float fMaxChi2;                             // max chi2 for tracklets
   int fMaxMissingLy;                          // max number of missing layers per track
-  float fChi2Penalty;                        // chi2 added to the track for no update
-  float fZCorrCoefNRC;                       // tracklet z-position depends linearly on track dip angle
+  float fChi2Penalty;                         // chi2 added to the track for no update
+  float fZCorrCoefNRC;                        // tracklet z-position depends linearly on track dip angle
   int fNhypothesis;                           // number of track hypothesis per layer
   std::vector<int> fMaskedChambers;           // vector holding bad TRD chambers
   AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
