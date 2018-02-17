@@ -54,6 +54,7 @@ class SimConfig
   std::string getExtKinematicsFileName() const { return mExtKinFileName; }
   unsigned int getStartEvent() const { return mStartEvent; }
   float getBMax() const { return mBMax; }
+  bool getIsMT() const { return mIsMT; }
   
  private:
   std::vector<std::string> mActiveDetectors; //!< list active detectord
@@ -63,6 +64,7 @@ class SimConfig
   std::string mExtKinFileName;               //!< file name of external kinematics file (needed for ext kinematics generator)
   unsigned int mStartEvent;                  //!< index of first event to be taken
   float mBMax;                               //!< maximum for impact parameter sampling
+  bool mIsMT;                                //!< chosen MT mode (Geant4 only)
   
   ClassDefNV(SimConfig, 1);
 };

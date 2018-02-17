@@ -39,7 +39,7 @@ void Config()
 /// character: eg. stepLimit+specialCuts.
 
    //Geant4 VMC 3.x
-   Bool_t mtMode = false;
+   Bool_t mtMode = FairRunSim::Instance()->IsMT();
    Bool_t specialStacking = true; // leads to default stack behaviour in which new primaries are only started if the previous
                                   // one and all of its secondaries have been transported
                                   // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp

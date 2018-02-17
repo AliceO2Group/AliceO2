@@ -30,7 +30,8 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
     ("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")
     ("startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")
     ("extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"), "name of kinematics file for event generator from file (when applicable)")
-    ("bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)");
+    ("bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")
+    ("isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only");
 
   try {
     bpo::store(parse_command_line(argc, argv, desc), vm);
@@ -53,6 +54,7 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
   mExtKinFileName = vm["extKinFile"].as<std::string>();
   mStartEvent = vm["startEvent"].as<unsigned int>();
   mBMax = vm["bMax"].as<float>();
+  mIsMT = vm["isMT"].as<bool>();
   
   return true;
 }
