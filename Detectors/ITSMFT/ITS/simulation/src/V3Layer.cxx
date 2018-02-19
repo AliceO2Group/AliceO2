@@ -52,8 +52,6 @@ const Double_t V3Layer::sMetalLayerThick    = 15 * sMicron;
 // Inner Barrel Parameters
 const Int_t V3Layer::sIBChipsPerRow = 9;
 const Int_t V3Layer::sIBNChipRows = 1;
-const Double_t V3Layer::sIBChipZGap = 150.0 * sMicron;
-
 const Double_t V3Layer::sIBChipZGap           = 150.0  *sMicron;
 
 const Double_t V3Layer::sIBModuleZLength      =  27.12 *sCm;
