@@ -106,15 +106,16 @@ class TrackReference
   float R() const { return TMath::Sqrt(mX * mX + mY * mY); }
 
   float Pt() const { return TMath::Sqrt(mPX * mPX + mPY * mPY); }
-  float Phi() const { return TMath::Pi() + TMath::ATan2(-mY, -mX); }
-  float Theta() const { return (mPZ == 0.) ? TMath::Pi() / 2 : TMath::ACos(mPZ / P()); }
+  float PhiPos() const { return TMath::ATan2(mY, mX); }
+  float Phi() const { return TMath::ATan2(mPY, mPX); }
+  float Theta() const { return TMath::ACos(mPZ / P()); }
   float X() const { return mX; }
   float Y() const { return mY; }
   float Z() const { return mZ; }
   float Px() const { return mX; }
   float Py() const { return mY; }
   float Pz() const { return mZ; }
-  float P() const { return TMath::Sqrt(mX * mX + mY * mY + mZ * mZ); }
+  float P() const { return TMath::Sqrt(mPX * mPX + mPY * mPY + mPZ * mPZ); }
   Int_t getUserId() const { return mUserId; }
   Int_t getDetectorId() const { return mDetectorId; }
   void setDetectorId(Int_t id) { mDetectorId = id; }
