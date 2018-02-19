@@ -457,6 +457,12 @@ void Detector::createMaterials()
   Float_t wInox304[4]={0.0003,0.18,0.10,0}; // [3] will be computed
   Float_t dInox304   = 7.85;
 
+  // Ceramic (for IB capacitors) (BaTiO3)
+  Float_t aCeramic[3]={137.327, 47.867, 15.999};
+  Float_t zCeramic[3]={56, 22, 8}; // Ba, Ti, O
+  Float_t wCeramic[3]={1, 1, 3}; // Molecular composition
+  Float_t dCeramic   = 6.02;
+
 
   o2::Base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::Base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir,
@@ -502,6 +508,11 @@ void Detector::createMaterials()
   // empty spaces (160 glue spots/chip , diam. 1 spot = 1 mm)
   o2::Base::Detector::Material(30, "GLUE_IBFPC$", 12.011, 6, 1.05*0.3, 999,999);
   o2::Base::Detector::Medium(30, "GLUE_IBFPC$", 30, 0, ifield, fieldm, tmaxfd, stemax,
+                                  deemax,epsil,stmin);
+
+  // Ceramic for IB capacitors (nmat < 0 => wmat contains number of atoms)
+  o2::Base::Detector::Mixture(31, "CERAMIC$", aCeramic, zCeramic, dCeramic,-3, wCeramic);
+  o2::Base::Detector::Medium(31, "CERAMIC$", 31, 0, ifield, fieldm, tmaxfd, stemax,
                                   deemax,epsil,stmin);
 
   // All types of carbon

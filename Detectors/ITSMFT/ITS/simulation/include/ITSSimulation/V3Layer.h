@@ -262,6 +262,13 @@ class V3Layer : public V11Geometry
     /// \param mgr The GeoManager (used only to get the proper material)
     TGeoVolume* createIBFPCAlAnode(Double_t x, Double_t z, const TGeoManager *mgr=gGeoManager);
 
+    /// Creates the IB FPC capacitors
+    /// \param modvol The IB module mother volume
+    /// \param zchip The chip half Z length
+    /// \param yzero The Y base position of capacitors
+    /// \param mgr The GeoManager (used only to get the proper material)
+    void createIBCapacitors(TGeoVolume *modvol, Double_t zchip, Double_t yzero, const TGeoManager *mgr=gGeoManager);
+
 
     /// Create the chip stave for the Inner Barrel(Here we fake the halfstave volume to have the
     /// same formal geometry hierarchy as for the Outer Barrel)
@@ -269,22 +276,16 @@ class V3Layer : public V11Geometry
     TGeoVolume *createStaveInnerB(const TGeoManager *mgr = gGeoManager);
 
     /// Create the mechanical stave structure
-    /// \param xsta X length
-    /// \param zsta Z length
     /// \param mgr  The GeoManager (used only to get the proper material)
-    TGeoVolume *createStaveStructInnerB(Double_t x, const TGeoManager *mgr = gGeoManager);
+    TGeoVolume *createStaveStructInnerB(const TGeoManager *mgr = gGeoManager);
 
     /// Create a dummy stave
-    /// \param xsta X length
-    /// \param zsta Z length
     /// \param mgr The GeoManager (used only to get the proper material)
-    TGeoVolume *createStaveModelInnerBDummy(Double_t x, const TGeoManager *mgr = gGeoManager) const;
+    TGeoVolume *createStaveModelInnerBDummy(const TGeoManager *mgr = gGeoManager) const;
 
     /// Create the mechanical stave structure for Model 4 of TDR
-    /// \param xsta X length
-    /// \param zsta Z length
     /// \param mgr The GeoManager (used only to get the proper material)
-    TGeoVolume *createStaveModelInnerB4(Double_t x, const TGeoManager *mgr = gGeoManager);
+    TGeoVolume *createStaveModelInnerB4(const TGeoManager *mgr = gGeoManager);
 
     /// Create the Inner Barrel End Stave connectors
     /// \param mgr The GeoManager (used only to get the proper material)
@@ -413,23 +414,34 @@ class V3Layer : public V11Geometry
     static const Double_t sIBFPCAlAnodeWidth2; ///< Width of FPC Al Anode
     static const Double_t sIBFlexCableKapThick;///< Thickness of FPC Kapton
     static const Double_t sIBFlexCablePolyThick;///< Thickness of FPC Coverlay
+    static const Double_t sIBFlexCapacitorXWid;///< IB capaictor X width
+    static const Double_t sIBFlexCapacitorYHi; ///< IB capaictor Y height
+    static const Double_t sIBFlexCapacitorZLen;///< IB capaictor Z length
+    static const Double_t sIBColdPlateWidth;   ///< IB cold plate X width
+    static const Double_t sIBColdPlateZLen;    ///< IB cold plate Z length
     static const Double_t sIBGlueThick;        ///< IB glue thickness
     static const Double_t sIBCarbonFleeceThick;///< IB carbon fleece thickness
     static const Double_t sIBCarbonPaperThick; ///< IB Carbon Paper Thickness
+    static const Double_t sIBCarbonPaperWidth; ///< IB Carbon Paper X Width
+    static const Double_t sIBCarbonPaperZLen;  ///< IB Carbon Paper Z Length
     static const Double_t sIBK13D2UThick;      ///< IB k13d2u prepreg thickness
     static const Double_t sIBCoolPipeInnerD;   ///< IB cooling inner diameter
     static const Double_t sIBCoolPipeThick;    ///< IB cooling pipe thickness
     static const Double_t sIBCoolPipeXDist;    ///< IB cooling pipe separation
+    static const Double_t sIBCoolPipeZLen;     ///< IB cooling pipe length
     static const Double_t sIBTopVertexWidth1;  ///< IB TopVertex width
     static const Double_t sIBTopVertexWidth2;  ///< IB TopVertex width
     static const Double_t sIBTopVertexHeight;  ///< IB TopVertex height
     static const Double_t sIBTopVertexAngle ;  ///< IB TopVertex aperture angle
     static const Double_t sIBSideVertexWidth;  ///< IB SideVertex width
     static const Double_t sIBSideVertexHeight; ///< IB SideVertex height
-    static const Double_t sIBTopFilamentLength;///< IB TopFilament length
     static const Double_t sIBTopFilamentSide;  ///< IB TopFilament side
     static const Double_t sIBTopFilamentAlpha; ///< IB TopFilament angle
-    static const Double_t sIBTopFilamentGamma; ///< IB TopFilament angle
+    static const Double_t sIBTopFilamentInterZ;///< IB TopFilament Z interdist
+    static const Double_t sIBEndSupportThick;  ///< IB end support thickness
+    static const Double_t sIBEndSupportZLen;   ///< IB end support length
+    static const Double_t sIBEndSupportXUp;    ///< IB end support X up wide
+    static const Double_t sIBEndSupportOpenPhi;///< IB end support opening phi
 
     static const Double_t sIBConnectorXWidth;  ///< IB Connectors Width
     static const Double_t sIBConnectorYTot;    ///< IB Connectors total height
@@ -448,22 +460,30 @@ class V3Layer : public V11Geometry
     static const Double_t sIBConnInsertHoleZPos;///< IB Connector Insert Z pos
     static const Double_t sIBConnTubeHole1D;   ///< IB Connector Tube1 diam
     static const Double_t sIBConnTubeHole1ZLen;///< IB Connector Tube1 Z len
+    static const Double_t sIBConnTubeHole1ZLen2;///< IB Conn Tube1 Z len 2'side
     static const Double_t sIBConnTubeHole2D;   ///< IB Connector Tube2 diam
     static const Double_t sIBConnTubeHole3XPos;///< IB Connector Tube3 X pos
     static const Double_t sIBConnTubeHole3ZPos;///< IB Connector Tube3 Z pos
     static const Double_t sIBConnTubesXDist;   ///< IB Connector Tubes X dist
     static const Double_t sIBConnTubesYPos;    ///< IB Connector Tubes Y pos
-    static const Double_t sIBConnInsertInnerX; ///< IB Connector Insert X in
-    static const Double_t sIBConnInsertZThick; ///< IB Connector Insert Z thick
     static const Double_t sIBConnInsertD;      ///< IB Connector Insert diam
     static const Double_t sIBConnInsertHeight; ///< IB Connector Insert height
+    static const Double_t sIBConnSideHole1D;   ///< IB Conn Side 1st hole D
+    static const Double_t sIBConnSideHole1YPos;///< IB Conn Side 1st hole Y pos
+    static const Double_t sIBConnSideHole1ZPos;///< IB Conn Side 1st hole Z pos
+    static const Double_t sIBConnSideHole1XWid;///< IB Conn Side 1st hole X wid
+    static const Double_t sIBConnSideHole2YPos;///< IB Conn Side 2nd hole Y pos
+    static const Double_t sIBConnSideHole2ZPos;///< IB Conn Side 2nd hole Z pos
+    static const Double_t sIBConnSideHole2XWid;///< IB Conn Side 2nd hole X wid
+    static const Double_t sIBConnSideHole2YWid;///< IB Conn Side 2nd hole Y wid
+    static const Double_t sIBConnSideHole2ZWid;///< IB Conn Side 2nd hole Z wid
     static const Double_t sIBConnectAFitExtD;  ///< IB ConnectorA Fitting ext D
     static const Double_t sIBConnectAFitIntD;  ///< IB ConnectorA Fitting int D
     static const Double_t sIBConnectAFitZLen;  ///< IB ConnectorA Fitting Z len
     static const Double_t sIBConnectAFitZOut;  ///< IB ConnectorA Fitting Z Out
     static const Double_t sIBConnPlugInnerD;   ///< IB Connector Plug int diam
-    static const Double_t sIBConnPlugTotLen;   ///< IB Connector Plug tot le
-    static const Double_t sIBConnPlugThick;    ///< IB Connector Plug thickness
+    static const Double_t sIBConnPlugTotLen;   ///< IB Connector Plug tot len
+    static const Double_t sIBConnPlugInnerLen; ///< IB Connector Plug int len
 
     static const Double_t sIBStaveHeight;      ///< IB Stave Total Y Height
 
