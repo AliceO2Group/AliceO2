@@ -326,11 +326,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (notSens)
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
 
-  // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::Data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting()) {
-    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
-  } // if Outer ITS mother Volume
+  if (fMC->IsTrackExiting() && (lay==0 || lay==6))  {
+    // Keep the track refs for the innermost and outermost layers only 
+    o2::TrackReference tr(*fMC, GetDetId());
+    tr.setTrackID(stack->GetCurrentTrackNumber());
+    tr.setUserId(lay);
+    stack->addTrackReference(tr);
+  }
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
