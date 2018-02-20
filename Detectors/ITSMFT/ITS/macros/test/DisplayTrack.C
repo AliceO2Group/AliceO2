@@ -127,13 +127,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   points->SetMarkerColor(kMagenta);
 
   std::vector<Cluster>* clusArr = nullptr;
-  // tree->SetBranchAddress("ITSCluster",&clusArr); // Why this does not work ???
-  auto* branch = tree->GetBranch("ITSCluster");
-  if (!branch) {
-    std::cout << "No clusters !" << std::endl;
-    return;
-  }
-  branch->SetAddress(&clusArr);
+  tree->SetBranchAddress("ITSCluster",&clusArr);
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabArr = nullptr;
   tree->SetBranchAddress("ITSClusterMCTruth", &clsLabArr);
