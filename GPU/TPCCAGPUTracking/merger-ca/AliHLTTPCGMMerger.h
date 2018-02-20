@@ -43,7 +43,7 @@ public:
   
   void Clear();
   void SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData );
-  bool Reconstruct();
+  bool Reconstruct(bool resetTimers = false);
   
   Int_t NOutputTracks() const { return fNOutputTracks; }
   const AliHLTTPCGMMergedTrack * OutputTracks() const { return fOutputTracks; }
@@ -77,7 +77,7 @@ private:
   void MergeWithingSlices();
   void MergeSlices();
   void CollectMergedTracks();
-  void Refit();
+  void Refit(bool resetTimers);
   
   static const int fgkNSlices = 36;       //* N slices
   int fNextSliceInd[fgkNSlices];

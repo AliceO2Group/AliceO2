@@ -41,7 +41,7 @@ public:
 	virtual const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const;
 	virtual int GetSliceCount() const;
 
-	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
+	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers);
 	virtual char* MergerHostMemory();
 	virtual int GPUMergerAvailable();
 

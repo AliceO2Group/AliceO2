@@ -34,6 +34,6 @@ double AliHLTTPCCAGPUTracker::GetTimer(int /*iSlice*/, unsigned int /*i*/) {retu
 void AliHLTTPCCAGPUTracker::ResetTimer(int /*iSlice*/, unsigned int /*i*/) {};
 const AliHLTTPCCASliceOutput::outputControlStruct* AliHLTTPCCAGPUTracker::OutputControl() const { return NULL; }
 int AliHLTTPCCAGPUTracker::GetSliceCount() const { return(0); }
-int AliHLTTPCCAGPUTracker::RefitMergedTracks(AliHLTTPCGMMerger* /*Merger*/) { return(0); }
+int AliHLTTPCCAGPUTracker::RefitMergedTracks(AliHLTTPCGMMerger* /*Merger*/, bool /*resetTimers*/) { return(0); }
 char* AliHLTTPCCAGPUTracker::MergerHostMemory() {return(NULL);}
 int AliHLTTPCCAGPUTracker::GPUMergerAvailable() {return(0);}
