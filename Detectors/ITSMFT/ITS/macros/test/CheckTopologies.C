@@ -59,13 +59,7 @@ void CheckTopologies(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   TFile* file1 = TFile::Open(filename);
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
   std::vector<Cluster>* clusArr = nullptr;
-  // clusTree->SetBranchAddress("ITSCluster",&clusArr); // Why this does not work ???
-  auto* branch = clusTree->GetBranch("ITSCluster");
-  if (!branch) {
-    std::cout << "No clusters !" << std::endl;
-    return;
-  }
-  branch->SetAddress(&clusArr);
+  clusTree->SetBranchAddress("ITSCluster",&clusArr);
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
