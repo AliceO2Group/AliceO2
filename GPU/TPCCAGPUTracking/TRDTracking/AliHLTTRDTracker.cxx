@@ -764,7 +764,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       double deltaZup = zPosCorrUpdate - fCandidates[2*iUpdate+nextIdx].GetZ();
       double yCorr = 0;
       float l_padTrklt = pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin());
-      if ( (TMath::Sqrt(fCandidates[2*iUpdate+nextIdx].GetSigmaZ2()) < (l_padTrklt/TMath::Sqrt(12))) && (TMath::Abs(deltaZ) < l_padTrklt) ) {
+      if ( (TMath::Sqrt(fCandidates[2*iUpdate+nextIdx].GetSigmaZ2()) < (l_padTrklt/TMath::Sqrt(12))) && (TMath::Abs(deltaZup) < l_padTrklt) ) {
         yCorr = tilt * deltaZup;
       }
       double trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
