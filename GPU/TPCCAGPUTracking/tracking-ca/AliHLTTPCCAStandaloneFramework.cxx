@@ -166,7 +166,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 #ifdef HLTCA_GPU_MERGER
 	  if (fTracker.GetGPUTracker()->GPUMergerAvailable()) fMerger.SetGPUTracker(fTracker.GetGPUTracker());
 #endif
-	  fMerger.Reconstruct();
+	  fMerger.Reconstruct(resetTimers);
 #ifdef HLTCA_STANDALONE
       timerMerger.Stop();
 #endif
@@ -253,7 +253,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 
   nCount++;
 #ifndef HLTCA_BUILD_O2_LIB
-  printf("Tracking Time: %1.0f us\n", 1000000 * timerTracking.GetElapsedTime() / nCount);
+  char nAverageInfo[16] = "";
+  if (nCount > 1) sprintf(nAverageInfo, " (%d)", nCount);
+  printf("Tracking Time: %1.0f us%s\n", 1000000 * timerTracking.GetElapsedTime() / nCount, nAverageInfo);
   if (fRunMerger) printf("Merging and Refit Time: %1.0f us\n", 1000000 * timerMerger.GetElapsedTime() / nCount);
   if (fRunQA) printf("QA Time: %1.0f us\n", 1000000 * timerQA.GetElapsedTime() / nCount);
 #endif

@@ -175,7 +175,7 @@ void AliHLTTPCGMMerger::SetSliceData( int index, const AliHLTTPCCASliceOutput *s
   fkSlices[index] = sliceData;
 }
 
-bool AliHLTTPCGMMerger::Reconstruct()
+bool AliHLTTPCGMMerger::Reconstruct(bool resetTimers)
 {
   //* main merging routine
 
@@ -186,6 +186,11 @@ bool AliHLTTPCGMMerger::Reconstruct()
   HighResTimer timer;
   static double times[5] = {};
   static int nCount = 0;
+  if (resetTimers)
+  {
+    for (unsigned int k = 0;k < sizeof(times) / sizeof(times[0]);k++) times[k] = 0;
+    nCount = 0;
+  }
 #endif
   //cout<<"Merger..."<<endl;
   for( int iter=0; iter<nIter; iter++ ){
@@ -209,7 +214,7 @@ bool AliHLTTPCGMMerger::Reconstruct()
 #ifdef HLTCA_STANDALONE
     times[3] += timer.GetCurrentElapsedTime(true);
 #endif
-    Refit();
+    Refit(resetTimers);
 #ifdef HLTCA_STANDALONE
     times[4] += timer.GetCurrentElapsedTime();
     nCount++;
@@ -825,13 +830,13 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   fNOutputTrackClusters = nOutTrackClusters;
 }
 
-void AliHLTTPCGMMerger::Refit()
+void AliHLTTPCGMMerger::Refit(bool resetTimers)
 {
   //* final refit
 #ifdef HLTCA_GPU_MERGER
   if (fGPUTracker && fGPUTracker->IsInitialized())
   {
-    fGPUTracker->RefitMergedTracks(this);
+    fGPUTracker->RefitMergedTracks(this, resetTimers);
   }
   else
 #endif

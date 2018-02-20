@@ -745,7 +745,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU_Runtime()
 	return(0);
 }
 
-int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
+int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers)
 {
 #ifndef HLTCA_GPU_MERGER
 	HLTError("HLTCA_GPU_MERGER compile flag not set");
@@ -758,8 +758,13 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 	}
 
 	HighResTimer timer;
-	static double times[3];
+	static double times[3] = {};
 	static int nCount = 0;
+	if (resetTimers)
+	{
+		for (unsigned int k = 0;k < sizeof(times) / sizeof(times[0]);k++) times[k] = 0;
+		nCount = 0;
+	}
 	char* gpumem = (char*) fGPUMergerMemory;
 	AliHLTTPCGMMergedTrackHit *clusters;
 	AliHLTTPCGMMergedTrack* tracks;

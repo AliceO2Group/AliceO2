@@ -66,7 +66,7 @@ public:
 	virtual const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const;
 	virtual int GetSliceCount() const;
 
-	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger) = 0;
+	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers) = 0;
 	virtual char* MergerHostMemory() {return((char*) fGPUMergerHostMemory);}
 
 protected:

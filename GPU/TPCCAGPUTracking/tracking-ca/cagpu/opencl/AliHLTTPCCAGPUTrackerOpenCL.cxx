@@ -848,7 +848,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::ExitGPU_Runtime()
 	return(0);
 }
 
-int AliHLTTPCCAGPUTrackerOpenCL::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
+int AliHLTTPCCAGPUTrackerOpenCL::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool resetTimers)
 {
 	HLTFatal("Not implemented in OpenCL (Merger)");
 	return(1);
