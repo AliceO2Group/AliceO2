@@ -45,6 +45,8 @@ struct DriverControl {
   /// Callbacks to be performed by the driver next time it
   /// goes in the "PERFORM_CALLBACK" state.
   std::vector<Callback> callbacks;
+  bool defaultQuiet;
+  bool defaultStopped;
 };
 
 } // namespace framework

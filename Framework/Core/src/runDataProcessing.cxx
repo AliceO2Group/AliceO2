@@ -63,10 +63,7 @@
 
 using namespace o2::framework;
 
-std::vector<DeviceInfo> gDeviceInfos;
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
-std::vector<DeviceControl> gDeviceControls;
-std::vector<DeviceExecution> gDeviceExecutions;
 
 namespace bpo = boost::program_options;
 
@@ -394,6 +391,108 @@ void processSigChild(std::vector<DeviceInfo>& infos)
   }
 }
 
+// Magic to support both old and new FairRoot logger behavior
+// is_define<fair::Logger> only works if Logger is fully defined,
+// not forward declared.
+namespace fair
+{
+// This is required to be declared (but not defined) for the SFINAE below
+// to work
+class Logger;
+namespace mq
+{
+namespace logger
+{
+// This we can leave it empty, as the sole purpose is to
+// allow the using namespace below.
+}
+} // namespace mq
+} // namespace fair
+
+template <class, class, class = void>
+struct is_defined : std::false_type {
+};
+
+template <class S, class T>
+struct is_defined<S, T, std::enable_if_t<std::is_object<T>::value && !std::is_pointer<T>::value && (sizeof(T) > 0)>>
+  : std::true_type {
+  using logger = T;
+};
+
+using namespace fair::mq::logger;
+
+struct TurnOffColors {
+
+  template <typename T>
+  static auto apply(T value, int) -> decltype(ReinitLogger(value), void())
+  {
+    ReinitLogger(value);
+  }
+  template <typename T>
+  static auto apply(T value, long) -> typename std::enable_if<is_defined<T, fair::Logger>::value == true, void>::type
+  {
+    // By using is_defined<T, fair::Logger>::logger rather than fair::Logger
+    // directly, we avoid the error about using an incomplete type in a nested
+    // expression.
+    is_defined<T, fair::Logger>::logger::SetConsoleColor(value);
+  }
+};
+
+
+
+int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
+{
+  TurnOffColors::apply(false, 0);
+  LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
+
+  try {
+    fair::mq::DeviceRunner runner{ argc, argv };
+
+    // Populate options from the command line. Notice that only the options
+    // declared in the workflow definition are allowed.
+    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
+      boost::program_options::options_description optsDesc;
+      populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+      r.fConfig.AddToCmdLineOptions(optsDesc, true);
+    });
+
+    // We initialise this in the driver, because different drivers might have
+    // different versions of the service
+    ServiceRegistry serviceRegistry;
+    serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
+    serviceRegistry.registerService<RootFileService>(new LocalRootFileService());
+    serviceRegistry.registerService<ControlService>(new TextControlService());
+    serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
+
+    std::unique_ptr<FairMQDevice> device;
+    serviceRegistry.registerService<RawDeviceService>(new SimpleRawDeviceService(nullptr));
+
+    if (spec.inputs.empty()) {
+      LOG(DEBUG) << spec.id << " is a source\n";
+      device.reset(new DataSourceDevice(spec, serviceRegistry));
+    } else {
+      LOG(DEBUG) << spec.id << " is a processor\n";
+      device.reset(new DataProcessingDevice(spec, serviceRegistry));
+    }
+
+    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+
+    runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
+      r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };
+      TurnOffColors::apply(false, 0);
+    });
+
+    return runner.Run();
+  } catch (std::exception& e) {
+    LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
+    return 1;
+  } catch (...) {
+    LOG(ERROR) << "Unknown exception reached the top of main.\n";
+    return 1;
+  }
+  return 0;
+}
+
 /// Remove all the GUI states from the tail of
 /// the stack unless that's the only state on the stack.
 void pruneGUI(std::vector<DriverState>& states)
@@ -404,43 +503,26 @@ void pruneGUI(std::vector<DriverState>& states)
 }
 
 // This is the handler for the parent inner loop.
-// So far the only responsibility for it are:
-//
-// - Echo children output in a sensible manner
-//
-//
-// - TODO: allow single child view?
-// - TODO: allow last line per child mode?
-// - TODO: allow last error per child mode?
-int doParent(std::vector<DeviceInfo>& infos,
-             std::vector<DeviceSpec>& deviceSpecs,
-             std::vector<DeviceControl>& controls,
-             std::vector<DeviceMetricsInfo>& metricsInfos,
-             std::vector<DeviceExecution>& deviceExecutions,
-             std::vector<DriverState> const& startProgram,
-             std::vector<DriverControl::Callback>& startCallbacks,
-             bool batch,
-             bool singleStep)
+int runStateMachine(std::vector<DataProcessorSpec> const &workflow,
+                    DriverControl &driverControl,
+                    DriverInfo &driverInfo,
+                    std::vector<DeviceMetricsInfo>& metricsInfos,
+                    std::string frameworkId)
 {
-  DriverInfo driverInfo;
-  driverInfo.maxFd = 0;
-  driverInfo.states.reserve(10);
-  driverInfo.states = startProgram;
-  driverInfo.sigintRequested = false;
-  driverInfo.sigchldRequested = false;
-  DriverControl driverControl;
-  driverControl.state = singleStep ? DriverControlState::STEP : DriverControlState::PLAY;
-  driverControl.callbacks = startCallbacks;
+  std::vector<DeviceSpec> deviceSpecs;
+  std::vector<DeviceInfo> infos;
+  std::vector<DeviceControl> controls;
+  std::vector<DeviceExecution> deviceExecutions;
 
   void* window = nullptr;
   decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
-  if (batch == false) {
+  if (driverInfo.batch == false) {
     window = initGUI("O2 Framework debug GUI");
   }
-  if (batch == false && window == nullptr) {
+  if (driverInfo.batch == false && window == nullptr) {
     LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
-    batch = true;
+    driverInfo.batch = true;
   }
   bool guiQuitRequested = false;
   // FIXME: I should really have some way of exiting the
@@ -498,6 +580,23 @@ int doParent(std::vector<DeviceInfo>& infos,
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
         break;
+      case DriverState::MATERIALISE_WORKFLOW:
+        try {
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, deviceSpecs);
+          // This should expand nodes so that we can build a consistent DAG.
+        } catch (std::runtime_error& e) {
+          std::cerr << "Invalid workflow: " << e.what() << std::endl;
+          return 1;
+        }
+        break;
+      case DriverState::DO_CHILD:
+        for (auto& spec : deviceSpecs) {
+          if (spec.id == frameworkId) {
+            return doChild(driverInfo.argc, driverInfo.argv, spec);
+          }
+        }
+        LOG(ERROR) << "Unable to find component with id " << frameworkId;
+        break;
       case DriverState::REDEPLOY_GUI:
         // The callback for the GUI needs to be recalculated every time
         // the deployed configuration changes, e.g. a new device
@@ -509,24 +608,32 @@ int doParent(std::vector<DeviceInfo>& infos,
         }
         break;
       case DriverState::SCHEDULE:
+        // FIXME: for the moment modifying the topology means we rebuild completely 
+        //        all the devices and we restart them. This is also what DDS does at
+        //        a larger scale. In principle one could try to do a delta and only 
+        //        restart the data processors which need to be restarted.
         LOG(INFO) << "Redeployment of configuration asked.";
+        controls.resize(deviceSpecs.size());
+        deviceExecutions.resize(deviceSpecs.size());
+
+        DeviceSpecHelpers::prepareArguments(driverInfo.argc, driverInfo.argv,
+                                            driverControl.defaultQuiet,
+                                            driverControl.defaultStopped,
+                                            deviceSpecs,
+                                            deviceExecutions,
+                                            controls);
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           spawnDevice(deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
                       driverInfo.maxFd, driverInfo.childFdset);
         }
         driverInfo.maxFd += 1;
         assert(infos.empty() == false);
-        // Go to RUNNING next.
-        driverInfo.states.push_back(DriverState::RUNNING);
-        driverInfo.states.push_back(DriverState::GUI);
-        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
-        driverInfo.states.push_back(DriverState::GUI);
         LOG(INFO) << "Redeployment of configuration done.";
         break;
       case DriverState::RUNNING:
         // Calculate what we should do next and eventually
         // show the GUI
-        if (batch || guiQuitRequested || (checkIfCanExit(infos) == true)) {
+        if (driverInfo.batch || guiQuitRequested || (checkIfCanExit(infos) == true)) {
           // Something requested to quit. Let's update the GUI
           // one more time and then EXIT.
           LOG(INFO) << "Quitting";
@@ -537,6 +644,10 @@ int doParent(std::vector<DeviceInfo>& infos,
           // the DeviceInfos it means the speicification
           // does not match what is running, so we need to do
           // further scheduling.
+          driverInfo.states.push_back(DriverState::RUNNING);
+          driverInfo.states.push_back(DriverState::GUI);
+          driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
+          driverInfo.states.push_back(DriverState::GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
           driverInfo.states.push_back(DriverState::GUI);
         } else if (deviceSpecs.size() == 0) {
@@ -598,104 +709,66 @@ int doParent(std::vector<DeviceInfo>& infos,
   }
 }
 
-// Magic to support both old and new FairRoot logger behavior
-// is_define<fair::Logger> only works if Logger is fully defined,
-// not forward declared.
-namespace fair
-{
-// This is required to be declared (but not defined) for the SFINAE below
-// to work
-class Logger;
-namespace mq
-{
-namespace logger
-{
-// This we can leave it empty, as the sole purpose is to
-// allow the using namespace below.
-}
-} // namespace mq
-} // namespace fair
+/// Helper function to initialise the controller from the command line options.
+void initialiseDriverControl(bpo::variables_map const &varmap,
+                             DriverControl &control) {
+  // Control is initialised outside the main loop because
+  // command line options are really affecting control.
+  control.defaultQuiet = varmap["quiet"].as<bool>();
+  control.defaultStopped = varmap["stop"].as<bool>();
 
-template <class, class, class = void>
-struct is_defined : std::false_type {
-};
-
-template <class S, class T>
-struct is_defined<S, T, std::enable_if_t<std::is_object<T>::value && !std::is_pointer<T>::value && (sizeof(T) > 0)>>
-  : std::true_type {
-  using logger = T;
-};
-
-using namespace fair::mq::logger;
-
-struct TurnOffColors {
-
-  template <typename T>
-  static auto apply(T value, int) -> decltype(ReinitLogger(value), void())
-  {
-    ReinitLogger(value);
+  if (varmap["single-step"].as<bool>()) {
+    control.state = DriverControlState::STEP;
+  } else {
+    control.state = DriverControlState::PLAY;
   }
-  template <typename T>
-  static auto apply(T value, long) -> typename std::enable_if<is_defined<T, fair::Logger>::value == true, void>::type
-  {
-    // By using is_defined<T, fair::Logger>::logger rather than fair::Logger
-    // directly, we avoid the error about using an incomplete type in a nested
-    // expression.
-    is_defined<T, fair::Logger>::logger::SetConsoleColor(value);
+
+  if (varmap["graphviz"].as<bool>()) {
+    // Dump a graphviz representation of what I will do.
+    control.callbacks = {
+      [](std::vector<DeviceSpec> const& specs,
+         std::vector<DeviceExecution> const &) {
+        GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
+      }
+    };
+    control.forcedTransitions = {
+      DriverState::EXIT,
+      DriverState::PERFORM_CALLBACKS,
+      DriverState::MATERIALISE_WORKFLOW
+    };
+  } else if (varmap["dds"].as<bool>()) {
+    // Dump a DDS representation of what I will do.
+    // Notice that compared to DDS we need to schedule things,
+    // because DDS needs to be able to have actual Executions in
+    // order to provide a correct configuration.
+    control.callbacks = {
+      [](std::vector<DeviceSpec> const& specs,
+         std::vector<DeviceExecution> const &executions) {
+        dumpDeviceSpec2DDS(std::cout, specs, executions);
+      }
+    };
+    control.forcedTransitions = {
+      DriverState::EXIT,
+      DriverState::PERFORM_CALLBACKS,
+      DriverState::SCHEDULE,
+      DriverState::MATERIALISE_WORKFLOW
+    };
+  } else if (varmap.count("id")) {
+    // FIXME: for the time being each child needs to recalculate the workflow,
+    //        so that it can understand what it needs to do. This is obviously 
+    //        a bad idea. In the future we should have the client be pushed 
+    //        it's own configuration by the driver.
+    control.forcedTransitions = {
+      DriverState::DO_CHILD,              //
+      DriverState::MATERIALISE_WORKFLOW   //
+    };
+  } else {
+    // By default we simply start the main loop of the driver.
+    control.forcedTransitions = {
+      DriverState::INIT,                 //
+      DriverState::MATERIALISE_WORKFLOW  //
+    };
   }
-};
-
-int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
-{
-  TurnOffColors::apply(false, 0);
-  LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
-
-  try {
-    fair::mq::DeviceRunner runner{ argc, argv };
-
-    // Populate options from the command line. Notice that only the options
-    // declared in the workflow definition are allowed.
-    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
-      boost::program_options::options_description optsDesc;
-      populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      r.fConfig.AddToCmdLineOptions(optsDesc, true);
-    });
-
-    // We initialise this in the driver, because different drivers might have
-    // different versions of the service
-    ServiceRegistry serviceRegistry;
-    serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
-    serviceRegistry.registerService<RootFileService>(new LocalRootFileService());
-    serviceRegistry.registerService<ControlService>(new TextControlService());
-    serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
-
-    std::unique_ptr<FairMQDevice> device;
-    serviceRegistry.registerService<RawDeviceService>(new SimpleRawDeviceService(nullptr));
-
-    if (spec.inputs.empty()) {
-      LOG(DEBUG) << spec.id << " is a source\n";
-      device.reset(new DataSourceDevice(spec, serviceRegistry));
-    } else {
-      LOG(DEBUG) << spec.id << " is a processor\n";
-      device.reset(new DataProcessingDevice(spec, serviceRegistry));
-    }
-
-    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
-
-    runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
-      r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };
-      TurnOffColors::apply(false, 0);
-    });
-
-    return runner.Run();
-  } catch (std::exception& e) {
-    LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
-    return 1;
-  } catch (...) {
-    LOG(ERROR) << "Unknown exception reached the top of main.\n";
-    return 1;
-  }
-  return 0;
 }
 
 // This is a toy executor for the workflow spec
@@ -707,7 +780,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 //     killing them all on ctrl-c).
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
-int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
+int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies)
 {
   bpo::options_description executorOptions("Executor options");
@@ -732,7 +805,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
   // in the main parser. Note: all config specs are forwarded to devices
-  visibleOptions.add(prepareOptionDescriptions(specs, gHiddenDeviceOptions));
+  visibleOptions.add(prepareOptionDescriptions(workflow, gHiddenDeviceOptions));
 
   bpo::options_description od;
   od.add(visibleOptions);
@@ -743,89 +816,36 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& specs,
   bpo::variables_map varmap;
   bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
 
-  bool defaultQuiet = varmap["quiet"].as<bool>();
-  bool defaultStopped = varmap["stop"].as<bool>();
-  bool defaultSingleStep = varmap["single-step"].as<bool>();
-  bool batch = varmap["batch"].as<bool>();
-  bool graphViz = varmap["graphviz"].as<bool>();
-  bool generateDDS = varmap["dds"].as<bool>();
-  std::string frameworkId;
-  if (varmap.count("id"))
-    frameworkId = varmap["id"].as<std::string>();
   if (varmap.count("help")) {
     bpo::options_description helpOptions;
     helpOptions.add(executorOptions);
     // this time no veto is applied, so all the options are added for printout
-    helpOptions.add(prepareOptionDescriptions(specs));
+    helpOptions.add(prepareOptionDescriptions(workflow));
     std::cout << helpOptions << std::endl;
     exit(0);
   }
 
-  std::vector<DeviceSpec> deviceSpecs;
+  DriverControl driverControl;
+  initialiseDriverControl(varmap, driverControl);
 
-  try {
-    DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(specs, channelPolicies, deviceSpecs);
-    // This should expand nodes so that we can build a consistent DAG.
-  } catch (std::runtime_error& e) {
-    std::cerr << "Invalid workflow: " << e.what() << std::endl;
-    return 1;
+  DriverInfo driverInfo;
+  driverInfo.maxFd = 0;
+  driverInfo.states.reserve(10);
+  driverInfo.sigintRequested = false;
+  driverInfo.sigchldRequested = false;
+  driverInfo.channelPolicies = channelPolicies;
+  driverInfo.argc = argc;
+  driverInfo.argv = argv;
+  driverInfo.batch = varmap["batch"].as<bool>();
+
+  std::string frameworkId;
+  if (varmap.count("id")) {
+    frameworkId = varmap["id"].as<std::string>();
   }
-
-  // Up to here, parent and child need to do exactly the same thing. After, we
-  // distinguish between something which has a framework id (the children) and something
-  // which does not, the parent.
-  if (frameworkId.empty() == false) {
-    for (auto& spec : deviceSpecs) {
-      if (spec.id == frameworkId) {
-        return doChild(argc, argv, spec);
-      }
-    }
-    LOG(ERROR) << "Unable to find component with id " << frameworkId;
-  }
-
-  assert(frameworkId.empty());
-
-  gDeviceControls.resize(deviceSpecs.size());
-  gDeviceExecutions.resize(deviceSpecs.size());
-
-  DeviceSpecHelpers::prepareArguments(argc, argv, defaultQuiet, defaultStopped, deviceSpecs, gDeviceExecutions,
-                                      gDeviceControls);
-
-  std::vector<DriverState> startProgram;
-  std::vector<DriverControl::Callback> startCallbacks;
-
-  if (graphViz) {
-    // Dump a graphviz representation of what I will do.
-    startCallbacks = {[](std::vector<DeviceSpec> const& specs,
-                         std::vector<DeviceExecution> const &executions) {
-        GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
-      }
-    };
-    startProgram = {
-      DriverState::EXIT,
-      DriverState::PERFORM_CALLBACKS
-    };
-  } else if (generateDDS) {
-    // Dump a graphviz representation of what I will do.
-    startCallbacks = {[](std::vector<DeviceSpec> const& specs,
-                         std::vector<DeviceExecution> const &executions) {
-        dumpDeviceSpec2DDS(std::cout, specs, executions);
-      }
-    };
-    startProgram = {
-      DriverState::EXIT,
-      DriverState::PERFORM_CALLBACKS
-    };
-  } else {
-    // By default we simply start the main loop
-    startProgram = { DriverState::INIT };
-  }
-
-  auto exitCode = doParent(gDeviceInfos, deviceSpecs, gDeviceControls,
-                           gDeviceMetricsInfos, gDeviceExecutions,
-                           startProgram,
-                           startCallbacks,
-                           batch,
-                           defaultSingleStep);
-  return exitCode;
+  return runStateMachine(workflow,
+                         driverControl,
+                         driverInfo,
+                         gDeviceMetricsInfos,
+                         frameworkId
+                         );
 }

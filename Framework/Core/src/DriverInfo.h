@@ -18,6 +18,8 @@
 #include <csignal>
 #include <sys/select.h>
 
+#include "Framework/ChannelConfigurationPolicy.h"
+
 namespace o2
 {
 namespace framework
@@ -60,6 +62,8 @@ enum struct DriverState {
   EXIT,
   UNKNOWN,
   PERFORM_CALLBACKS,
+  MATERIALISE_WORKFLOW,
+  DO_CHILD,
   LAST
 };
 
@@ -79,6 +83,16 @@ struct DriverInfo {
   struct sigaction sa_handle_child;
   bool sigintRequested;
   bool sigchldRequested;
+  /// These are the configuration policies for the channel creation.
+  /// Since they are decided by the toplevel configuration, they belong
+  /// to the driver process.
+  std::vector<ChannelConfigurationPolicy> channelPolicies;
+  /// The argc with which the driver was started.
+  int argc;
+  /// The argv with which the driver was started.
+  char **argv;
+  /// Whether the driver was started in batch mode or not.
+  bool batch;
 };
 
 } // namespace framework
