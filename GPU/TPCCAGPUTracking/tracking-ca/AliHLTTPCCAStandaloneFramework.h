@@ -56,13 +56,6 @@ class AliHLTTPCCAStandaloneFramework
     void StartDataReading( int guessForNumberOfClusters = 256 );
 
     /**
-     *  read next cluster
-     */
-    void ReadCluster( int id, int iSlice, int iRow, float X, float Y, float Z, float Amp ) {
-      fClusterData[iSlice].ReadCluster( id, iRow, X, Y, Z, Amp );
-    }
-
-    /**
      * finish reading of the event
      */
     void FinishDataReading();

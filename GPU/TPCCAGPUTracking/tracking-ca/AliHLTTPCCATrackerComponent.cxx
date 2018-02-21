@@ -51,6 +51,7 @@
 #include "AliMCParticle.h"
 #include "AliTrackReference.h"
 #include "AliHLTTPCCAMCInfo.h"
+#include "AliHLTTPCGMMergedTrackHit.h"
 #include "TPDGCode.h"
 #if __GNUC__>= 3
 using namespace std;
@@ -722,6 +723,8 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
             pCluster->fY = c.GetY();
             pCluster->fZ = c.GetZ();
             pCluster->fRow = firstRow + cRaw.GetPadRow();
+            pCluster->fFlags = cRaw.GetFlags();
+            if (cRaw.GetSigmaPad2() < kAlmost0 || cRaw.GetSigmaTime2() < kAlmost0) pCluster->fFlags |= AliHLTTPCGMMergedTrackHit::flagSingle;
             pCluster->fAmp = cRaw.GetCharge();
 #ifdef HLTCA_FULL_CLUSTERDATA
             pCluster->fPad = cRaw.GetPad();
@@ -729,7 +732,6 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
             pCluster->fAmpMax = cRaw.GetQMax();
             pCluster->fSigmaPad2 = cRaw.GetSigmaPad2();
             pCluster->fSigmaTime2 = cRaw.GetSigmaTime2();
-            pCluster->fFlags = cRaw.GetFlags();
 #endif
             pCluster++;
           }

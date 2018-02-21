@@ -788,7 +788,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
           cl[i].fZ = trackClusters[i].GetZ();
           cl[i].fRow = trackClusters[i].GetRow();
           cl[i].fId = trackClusters[i].GetId();
-          cl[i].fState = 0;
+          cl[i].fState = trackClusters[i].GetFlags() & AliHLTTPCGMMergedTrackHit::hwcfFlags; //Only allow edge and deconvoluted flags
           cl[i].fSlice = clA[i].x;
           cl[i].fLeg = clA[i].y;
       }

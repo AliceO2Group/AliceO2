@@ -705,8 +705,9 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 			float origY = fClusterData->Y( clusterIndex );
 			float origZ = fClusterData->Z( clusterIndex );      
 			int id = fClusterData->Id( clusterIndex );
+			short flags = fClusterData->Flags( clusterIndex );
 			AliHLTTPCCASliceOutCluster c;
-			c.Set( id, iRow, origX, origY, origZ );
+			c.Set( id, iRow, flags, origX, origY, origZ );
 			out->SetCluster( nClu, c );
 			nClu++;
 		}
