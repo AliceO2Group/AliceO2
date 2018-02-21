@@ -33,6 +33,7 @@ find_package(Protobuf REQUIRED)
 
 find_package(GLFW)
 
+
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
   add_definitions(-DDDS_FOUND)
@@ -1508,3 +1509,87 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Parameters/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
 )
+
+find_package(benchmark QUIET)
+
+o2_define_bucket(
+  NAME
+  mch_contour_bucket
+
+  INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Contour/include
+)
+
+o2_define_bucket(
+  NAME
+  mch_mapping_interface_bucket
+
+  INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Mapping/Interface/include
+)
+
+o2_define_bucket(
+  NAME
+  mch_mapping_impl3_bucket
+
+  DEPENDENCIES
+  mch_mapping_interface_bucket
+
+  INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Mapping/Impl3/src
+  ${CMAKE_BINARY_DIR}/Detectors/MUON/MCH/Mapping/Impl3 # for the mchmappingimpl3_export.h generated file
+
+  SYSTEMINCLUDE_DIRECTORIES
+  ${Boost_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+  NAME
+  mch_mapping_segcontour_bucket
+
+  DEPENDENCIES
+  mch_contour_bucket
+  mch_mapping_impl3_bucket
+  Boost::program_options
+  MCHMappingImpl3
+
+  INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Mapping/SegContour/include
+
+  SYSTEMINCLUDE_DIRECTORIES
+  ${Boost_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+  NAME
+  mch_mapping_test_bucket
+
+  DEPENDENCIES
+  $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
+  mch_mapping_segcontour_bucket
+  MCHMappingSegContour3
+)
+
+o2_define_bucket(
+  NAME
+  mch_base_bucket
+
+  DEPENDENCIES
+  root_base_bucket
+  fairroot_base_bucket
+)
+
+o2_define_bucket(
+  NAME
+  mch_preclustering_bucket
+
+  DEPENDENCIES
+  fairroot_base_bucket
+  aliceHLTwrapper
+  MCHBase
+
+  INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/Utilities/aliceHLTwrapper/include
+  ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
+)
+
