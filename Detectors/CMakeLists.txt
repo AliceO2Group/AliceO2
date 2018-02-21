@@ -23,5 +23,6 @@ add_subdirectory(TOF)
 add_subdirectory(TRD)
 add_subdirectory(FIT)
 add_subdirectory(PHOS)
+add_subdirectory(MUON)
 
 Install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)
