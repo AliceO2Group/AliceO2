@@ -20,7 +20,7 @@
 #pragma link C++ class o2::ITSMFT::LookUp + ;
 #pragma link C++ class o2::ITSMFT::TopologyFastSimulation + ;
 
-#pragma link C++ class std::unordered_map<unsigned long, std::pair<o2::ITSMFT::ClusterTopology, unsigned long>> + ;
+#pragma link C++ class std::map<unsigned long, std::pair<o2::ITSMFT::ClusterTopology, unsigned long>> + ;
 
 
 
