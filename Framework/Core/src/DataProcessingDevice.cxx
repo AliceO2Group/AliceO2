@@ -24,6 +24,9 @@
 #include <vector>
 #include <memory>
 
+#include <Monitoring/Monitoring.h>
+using Monitoring = o2::monitoring::Monitoring;
+
 using namespace o2::framework;
 
 using DataHeader = o2::header::DataHeader;
@@ -88,6 +91,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // does not need to know about the whole class state, but I can 
   // fine grain control what is exposed at each state.
   auto &metricsService = mServiceRegistry.get<MetricsService>();
+  auto &monitoringService = mServiceRegistry.get<Monitoring>();
   auto &statefulProcess = mStatefulProcess;
   auto &statelessProcess = mStatelessProcess;
   auto &errorCallback = mError;
@@ -116,8 +120,9 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto isValidInput = [&metricsService, &parts]() -> bool {
-    metricsService.post("inputs/parts/total", (int)parts.Size());
+  auto isValidInput = [&monitoringService, &parts]() -> bool {
+    // metricsService.post("inputs/parts/total", (int)parts.Size());
+    monitoringService.send((int)parts.Size(), "inputs/parts/total");
 
     for (size_t i = 0; i < parts.Size() ; ++i) {
       LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << " bytes";

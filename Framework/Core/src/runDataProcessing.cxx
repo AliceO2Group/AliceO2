@@ -61,6 +61,9 @@
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/FairMQLogger.h>
 
+#include <Monitoring/MonitoringFactory.h>
+using namespace o2::monitoring;
+
 using namespace o2::framework;
 
 std::vector<DeviceInfo> gDeviceInfos;
@@ -653,6 +656,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // We initialise this in the driver, because different drivers might have
     // different versions of the service
     ServiceRegistry serviceRegistry;
+    serviceRegistry.registerService<Monitoring>(MonitoringFactory::Get("infologger://").get());
     serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
     serviceRegistry.registerService<RootFileService>(new LocalRootFileService());
     serviceRegistry.registerService<ControlService>(new TextControlService());

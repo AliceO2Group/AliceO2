@@ -30,6 +30,7 @@ find_package(AliRoot)
 find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(Monitoring REQUIRED)
 
 find_package(GLFW)
 
@@ -175,6 +176,9 @@ o2_define_bucket(
     Core
     Net
     ${GUI_LIBRARIES}
+    ${Monitoring_LIBRARIES}
+    INCLUDE_DIRECTORIES
+    ${Monitoring_INCLUDE_DIRS}
 )
 
 o2_define_bucket(
