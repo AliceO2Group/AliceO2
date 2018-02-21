@@ -37,7 +37,8 @@ class AliHLTTPCCAClusterData
 
     struct Data {
       int fId;
-      int fRow;
+      short fRow;
+      short fFlags;
       float fX;
       float fY;
       float fZ;
@@ -48,7 +49,6 @@ class AliHLTTPCCAClusterData
       float fAmpMax;
       float fSigmaPad2;
       float fSigmaTime2;
-      unsigned char fFlags;
 #endif
     };
 
@@ -56,15 +56,6 @@ class AliHLTTPCCAClusterData
      * prepare for the reading of event
      */
     void StartReading( int sliceIndex, int guessForNumberOfClusters = 256 );
-
-    /**
-     *  read next cluster
-     */
-    void ReadCluster( int id, int iRow, float x, float y, float z, float amp ) {
-      if (fNumberOfClusters >= fAllocated) Allocate(fNumberOfClusters + 64);
-      Data d = { id, iRow, x, y, z, amp};
-      fData[fNumberOfClusters++] = d;
-    }
 
     Data* Clusters() { return(fData); }
     void SetNumberOfClusters(int number) {fNumberOfClusters = number;}
@@ -122,6 +113,7 @@ class AliHLTTPCCAClusterData
     /**
      * Return the row number/index of the given cluster.
      */
+    short Flags( int index ) const { return fData[index].fFlags; }
     int RowNumber( int index ) const { return fData[index].fRow; }
 
     Data *GetClusterData( int index ) { return &( fData[index] ); }

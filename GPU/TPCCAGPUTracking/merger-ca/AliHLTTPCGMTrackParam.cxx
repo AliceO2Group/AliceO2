@@ -121,7 +121,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     int ihit = ihitStart;
     for(;ihit >= 0 && ihit<maxN;ihit += wayDirection)
     {
-      if (clusters[ihit].fState < 0) continue; // hit is excluded from fit
+      if (clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue; // hit is excluded from fit
       CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, maxN, clusters[ihit].fRow, param.Alpha(clusters[ihit].fSlice), clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);)
       
       float xx = clusters[ihit].fX;
@@ -216,8 +216,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       {
         if (markNonFittedClusters)
         {
-          if (fNDF > 0 && (fabs(yy - fP[0]) > 3 || fabs(zz - fP[1]) > 3)) clusters[ihit].fState = -2;
-          else if (err && err >= -3) clusters[ihit].fState = -1;
+          if (fNDF > 0 && (fabs(yy - fP[0]) > 3 || fabs(zz - fP[1]) > 3)) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectDistance;
+          else if (err && err >= -3) clusters[ihit].fState = AliHLTTPCGMMergedTrackHit::flagRejectErr;
         }
         
         CADEBUG(printf(" --- break (%d, %d)\n", err, err2);)
@@ -247,7 +247,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else if (retVal == 2) // cluster far away form the track
       {
-        if (markNonFittedClusters) clusters[ihit].fState = -2;
+        if (markNonFittedClusters) clusters[ihit].fState = AliHLTTPCGMMergedTrackHit::flagRejectDistance;
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
@@ -371,7 +371,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
 		ok = 1;
-		for (int k = 0;k < track.NClusters();k++) if (clusters[k].fState < 0) clusters[k].fState = -clusters[k].fState - 1;
+		for (int k = 0;k < track.NClusters();k++) clusters[k].fState &= AliHLTTPCGMMergedTrackHit::hwcfFlags;
 	}
 	track.SetOK(ok);
 	track.SetNClustersFitted( nTrackHits );

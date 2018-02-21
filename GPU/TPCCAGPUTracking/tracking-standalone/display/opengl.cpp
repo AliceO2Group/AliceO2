@@ -327,7 +327,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			float smallest = 1e20;
 			for (int k = 0; k < track.NClusters(); k++)
 			{
-				if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
+				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
 				int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
 				float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
 				if (dist < smallest)
@@ -357,7 +357,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 				for (int k = 0; k < track.NClusters(); k++)
 				{
 					if (clusterused[k]) continue;
-					if (merger.Clusters()[track.FirstClusterRef() + k].fState < 0) continue;
+					if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
 					int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
 					float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
 					             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
@@ -372,7 +372,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			}
 			else
 			{
-				if (merger.Clusters()[track.FirstClusterRef() + j].fState < 0) continue;
+				if (merger.Clusters()[track.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
 				bestcid = merger.Clusters()[track.FirstClusterRef() + j].fId;
 			}
 			if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
