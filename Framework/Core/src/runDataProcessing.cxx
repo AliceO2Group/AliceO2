@@ -62,10 +62,14 @@
 #include <fairmq/FairMQLogger.h>
 
 using namespace o2::framework;
+namespace bpo = boost::program_options;
+using DeviceExecutions = std::vector<DeviceExecution>;
+using DeviceSpecs = std::vector<DeviceSpec>;
+using DeviceInfos = std::vector<DeviceInfo>;
+using DeviceControls = std::vector<DeviceControl>;
+using DataProcessorSpecs = std::vector<DataProcessorSpec>;
 
 std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
-
-namespace bpo = boost::program_options;
 
 // FIXME: probably find a better place
 // these are the device options added by the framework, but they can be
@@ -187,15 +191,9 @@ int createPipes(int maxFd, int* pipes)
 volatile sig_atomic_t sigint_requested = false;
 volatile sig_atomic_t sigchld_requested = false;
 
-static void handle_sigint(int)
-{
-  sigint_requested = true;
-}
+static void handle_sigint(int) { sigint_requested = true; }
 
-static void handle_sigchld(int)
-{
-  sigchld_requested = true;
-}
+static void handle_sigchld(int) { sigchld_requested = true; }
 
 /// This will start a new device by forking and executing a
 /// new child
@@ -267,8 +265,8 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   FD_SET(childstderr[0], &childFdset);
 }
 
-void processChildrenOutput(DriverInfo& driverInfo, std::vector<DeviceInfo>& infos, std::vector<DeviceSpec> const& specs,
-                           std::vector<DeviceControl>& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
+void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
+                           DeviceControls& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
   // Wait for children to say something. When they do
   // print it.
@@ -374,7 +372,7 @@ void processChildrenOutput(DriverInfo& driverInfo, std::vector<DeviceInfo>& info
 }
 
 // Process all the sigchld which are pending
-void processSigChild(std::vector<DeviceInfo>& infos)
+void processSigChild(DeviceInfos& infos)
 {
   while (true) {
     pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);
@@ -437,8 +435,6 @@ struct TurnOffColors {
     is_defined<T, fair::Logger>::logger::SetConsoleColor(value);
   }
 };
-
-
 
 int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 {
@@ -503,16 +499,13 @@ void pruneGUI(std::vector<DriverState>& states)
 }
 
 // This is the handler for the parent inner loop.
-int runStateMachine(std::vector<DataProcessorSpec> const &workflow,
-                    DriverControl &driverControl,
-                    DriverInfo &driverInfo,
-                    std::vector<DeviceMetricsInfo>& metricsInfos,
-                    std::string frameworkId)
+int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverControl, DriverInfo& driverInfo,
+                    std::vector<DeviceMetricsInfo>& metricsInfos, std::string frameworkId)
 {
-  std::vector<DeviceSpec> deviceSpecs;
-  std::vector<DeviceInfo> infos;
-  std::vector<DeviceControl> controls;
-  std::vector<DeviceExecution> deviceExecutions;
+  DeviceSpecs deviceSpecs;
+  DeviceInfos infos;
+  DeviceControls controls;
+  DeviceExecutions deviceExecutions;
 
   void* window = nullptr;
   decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
@@ -608,20 +601,16 @@ int runStateMachine(std::vector<DataProcessorSpec> const &workflow,
         }
         break;
       case DriverState::SCHEDULE:
-        // FIXME: for the moment modifying the topology means we rebuild completely 
+        // FIXME: for the moment modifying the topology means we rebuild completely
         //        all the devices and we restart them. This is also what DDS does at
-        //        a larger scale. In principle one could try to do a delta and only 
+        //        a larger scale. In principle one could try to do a delta and only
         //        restart the data processors which need to be restarted.
         LOG(INFO) << "Redeployment of configuration asked.";
         controls.resize(deviceSpecs.size());
         deviceExecutions.resize(deviceSpecs.size());
 
-        DeviceSpecHelpers::prepareArguments(driverInfo.argc, driverInfo.argv,
-                                            driverControl.defaultQuiet,
-                                            driverControl.defaultStopped,
-                                            deviceSpecs,
-                                            deviceExecutions,
-                                            controls);
+        DeviceSpecHelpers::prepareArguments(driverInfo.argc, driverInfo.argv, driverControl.defaultQuiet,
+                                            driverControl.defaultStopped, deviceSpecs, deviceExecutions, controls);
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           spawnDevice(deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
                       driverInfo.maxFd, driverInfo.childFdset);
@@ -696,7 +685,7 @@ int runStateMachine(std::vector<DataProcessorSpec> const &workflow,
       case DriverState::EXIT:
         return calculateExitCode(infos);
       case DriverState::PERFORM_CALLBACKS:
-        for (auto &callback : driverControl.callbacks) {
+        for (auto& callback : driverControl.callbacks) {
           callback(deviceSpecs, deviceExecutions);
         }
         driverControl.callbacks.clear();
@@ -710,8 +699,8 @@ int runStateMachine(std::vector<DataProcessorSpec> const &workflow,
 }
 
 /// Helper function to initialise the controller from the command line options.
-void initialiseDriverControl(bpo::variables_map const &varmap,
-                             DriverControl &control) {
+void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& control)
+{
   // Control is initialised outside the main loop because
   // command line options are really affecting control.
   control.defaultQuiet = varmap["quiet"].as<bool>();
@@ -725,48 +714,42 @@ void initialiseDriverControl(bpo::variables_map const &varmap,
 
   if (varmap["graphviz"].as<bool>()) {
     // Dump a graphviz representation of what I will do.
-    control.callbacks = {
-      [](std::vector<DeviceSpec> const& specs,
-         std::vector<DeviceExecution> const &) {
-        GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
-      }
-    };
+    control.callbacks = { [](DeviceSpecs const& specs, DeviceExecutions const&) {
+      GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
+    } };
     control.forcedTransitions = {
-      DriverState::EXIT,
-      DriverState::PERFORM_CALLBACKS,
-      DriverState::MATERIALISE_WORKFLOW
+      DriverState::EXIT,                //
+      DriverState::PERFORM_CALLBACKS,   //
+      DriverState::MATERIALISE_WORKFLOW //
     };
   } else if (varmap["dds"].as<bool>()) {
     // Dump a DDS representation of what I will do.
     // Notice that compared to DDS we need to schedule things,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
-    control.callbacks = {
-      [](std::vector<DeviceSpec> const& specs,
-         std::vector<DeviceExecution> const &executions) {
-        dumpDeviceSpec2DDS(std::cout, specs, executions);
-      }
-    };
+    control.callbacks = { [](DeviceSpecs const& specs, DeviceExecutions const& executions) {
+      dumpDeviceSpec2DDS(std::cout, specs, executions);
+    } };
     control.forcedTransitions = {
-      DriverState::EXIT,
-      DriverState::PERFORM_CALLBACKS,
-      DriverState::SCHEDULE,
-      DriverState::MATERIALISE_WORKFLOW
+      DriverState::EXIT,                //
+      DriverState::PERFORM_CALLBACKS,   //
+      DriverState::SCHEDULE,            //
+      DriverState::MATERIALISE_WORKFLOW //
     };
   } else if (varmap.count("id")) {
     // FIXME: for the time being each child needs to recalculate the workflow,
-    //        so that it can understand what it needs to do. This is obviously 
-    //        a bad idea. In the future we should have the client be pushed 
+    //        so that it can understand what it needs to do. This is obviously
+    //        a bad idea. In the future we should have the client be pushed
     //        it's own configuration by the driver.
     control.forcedTransitions = {
-      DriverState::DO_CHILD,              //
-      DriverState::MATERIALISE_WORKFLOW   //
+      DriverState::DO_CHILD,            //
+      DriverState::MATERIALISE_WORKFLOW //
     };
   } else {
     // By default we simply start the main loop of the driver.
     control.forcedTransitions = {
-      DriverState::INIT,                 //
-      DriverState::MATERIALISE_WORKFLOW  //
+      DriverState::INIT,                //
+      DriverState::MATERIALISE_WORKFLOW //
     };
   }
 }
@@ -784,13 +767,13 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies)
 {
   bpo::options_description executorOptions("Executor options");
-  executorOptions.add_options()
-    ("help,h", "print this help")
-    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")
-    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")
-    ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")
-    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")
+  executorOptions.add_options()                                                                             //
+    ("help,h", "print this help")                                                                           //
+    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                 //
+    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
+    ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode") //
+    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
@@ -842,10 +825,5 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   if (varmap.count("id")) {
     frameworkId = varmap["id"].as<std::string>();
   }
-  return runStateMachine(workflow,
-                         driverControl,
-                         driverInfo,
-                         gDeviceMetricsInfos,
-                         frameworkId
-                         );
+  return runStateMachine(workflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
 }
