@@ -46,10 +46,7 @@ struct DigitStruct {
   uint16_t index; // Digit index in the new mapping (produced internally)
   uint16_t adc;   // ADC value of signal
 
-  bool operator==(const DigitStruct& that) const
-  {
-    return (uid == that.uid && index == that.index && adc == that.adc);
-  }
+  bool operator==(const DigitStruct& that) const { return (uid == that.uid && index == that.index && adc == that.adc); }
 
   bool operator!=(const DigitStruct& that) const { return not this->operator==(that); }
 };
