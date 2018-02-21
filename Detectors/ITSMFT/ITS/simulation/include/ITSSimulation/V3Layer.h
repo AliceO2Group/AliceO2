@@ -27,17 +27,14 @@ class TGeoCombiTrans;
 
 class TGeoVolume; // lines 15-15
 
-namespace o2
-{
-namespace ITS
-{
+namespace o2 {
+namespace ITS {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
 /// to study different configurations during the development of the new ITS structure
-class V3Layer : public V11Geometry
-{
+class V3Layer : public V11Geometry {
 
- public:
+public:
   enum {
     kStave,
     kHalfStave,
@@ -226,7 +223,7 @@ class V3Layer : public V11Geometry
   /// \param motherVolume the TGeoVolume owing the volume structure
   virtual void createLayer(TGeoVolume* motherVolume);
 
- private:
+private:
   /// Creates the actual Layer and places inside its mother volume
   /// A so-called "turbo" layer is a layer where staves overlap in phi
   /// User can set width and tilt angle, no check is performed here

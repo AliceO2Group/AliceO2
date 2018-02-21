@@ -46,181 +46,180 @@ using AlpideChip = o2::ITSMFT::AlpideChip;
 const Int_t V3Layer::sNumberOfInnerLayers = 3;
 
 const Double_t V3Layer::sDefaultSensorThick = 18 * sMicron;
-const Double_t V3Layer::sDefaultChipThick   = 50 * sMicron;
-const Double_t V3Layer::sMetalLayerThick    = 15 * sMicron;
+const Double_t V3Layer::sDefaultChipThick = 50 * sMicron;
+const Double_t V3Layer::sMetalLayerThick = 15 * sMicron;
 
 // Inner Barrel Parameters
 const Int_t V3Layer::sIBChipsPerRow = 9;
 const Int_t V3Layer::sIBNChipRows = 1;
-const Double_t V3Layer::sIBChipZGap           = 150.0  *sMicron;
+const Double_t V3Layer::sIBChipZGap = 150.0 * sMicron;
 
-const Double_t V3Layer::sIBModuleZLength      =  27.12 *sCm;
-const Double_t V3Layer::sIBFPCWiderXPlus      = 850.0  *sMicron;
-const Double_t V3Layer::sIBFPCWiderXNeg       = 300.0  *sMicron;
-const Double_t V3Layer::sIBFlexCableAlThick   =  25.0  *sMicron;
-const Double_t V3Layer::sIBFPCAlGNDWidth      = (4.1+11.15)*sMm;
-const Double_t V3Layer::sIBFPCAlAnodeWidth1   =  13.0  *sMm;
-const Double_t V3Layer::sIBFPCAlAnodeWidth2   =  14.7  *sMm;
-const Double_t V3Layer::sIBFlexCableKapThick  = 125.0  *sMicron;
-const Double_t V3Layer::sIBFlexCablePolyThick =  20.0  *sMicron;
-const Double_t V3Layer::sIBFlexCapacitorXWid  =   0.2  *sMm;
-const Double_t V3Layer::sIBFlexCapacitorYHi   =   0.2  *sMm;
-const Double_t V3Layer::sIBFlexCapacitorZLen  =   0.4  *sMm;
-const Double_t V3Layer::sIBColdPlateWidth     =  15.4  *sMm;
-const Double_t V3Layer::sIBColdPlateZLen      = 290.0  *sMm;
-const Double_t V3Layer::sIBGlueThick          =  50.0  *sMicron;
-const Double_t V3Layer::sIBCarbonFleeceThick  =  20.0  *sMicron;
-const Double_t V3Layer::sIBCarbonPaperThick   =  30.0  *sMicron;
-const Double_t V3Layer::sIBCarbonPaperWidth   =  12.5  *sMm;
-const Double_t V3Layer::sIBCarbonPaperZLen    = 280.0  *sMm;
-const Double_t V3Layer::sIBK13D2UThick        =  70.0  *sMicron;
-const Double_t V3Layer::sIBCoolPipeInnerD     =   1.024*sMm;
-const Double_t V3Layer::sIBCoolPipeThick      =  25.4  *sMicron;
-const Double_t V3Layer::sIBCoolPipeXDist      =   5.0  *sMm;
-const Double_t V3Layer::sIBCoolPipeZLen       = 302.0  *sMm;
-const Double_t V3Layer::sIBTopVertexWidth1    =   0.258*sMm;
-const Double_t V3Layer::sIBTopVertexWidth2    =   0.072*sCm;
-const Double_t V3Layer::sIBTopVertexHeight    =   0.04 *sCm;
-const Double_t V3Layer::sIBTopVertexAngle     =  60.0; // Deg
-const Double_t V3Layer::sIBSideVertexWidth    =   0.05 *sCm;
-const Double_t V3Layer::sIBSideVertexHeight   =   0.074*sCm;
-const Double_t V3Layer::sIBTopFilamentSide    =   0.04 *sCm;
-const Double_t V3Layer::sIBTopFilamentAlpha   = 109.8; // Deg
-const Double_t V3Layer::sIBTopFilamentInterZ  =  15.0  *sMm;
-const Double_t V3Layer::sIBEndSupportThick    =   0.149*sMm;
-const Double_t V3Layer::sIBEndSupportZLen     =   2.5  *sMm;
-const Double_t V3Layer::sIBEndSupportXUp      =   1.0  *sMm;
-const Double_t V3Layer::sIBEndSupportOpenPhi  = 120.0; // Deg
+const Double_t V3Layer::sIBModuleZLength = 27.12 * sCm;
+const Double_t V3Layer::sIBFPCWiderXPlus = 850.0 * sMicron;
+const Double_t V3Layer::sIBFPCWiderXNeg = 300.0 * sMicron;
+const Double_t V3Layer::sIBFlexCableAlThick = 25.0 * sMicron;
+const Double_t V3Layer::sIBFPCAlGNDWidth = (4.1 + 11.15) * sMm;
+const Double_t V3Layer::sIBFPCAlAnodeWidth1 = 13.0 * sMm;
+const Double_t V3Layer::sIBFPCAlAnodeWidth2 = 14.7 * sMm;
+const Double_t V3Layer::sIBFlexCableKapThick = 125.0 * sMicron;
+const Double_t V3Layer::sIBFlexCablePolyThick = 20.0 * sMicron;
+const Double_t V3Layer::sIBFlexCapacitorXWid = 0.2 * sMm;
+const Double_t V3Layer::sIBFlexCapacitorYHi = 0.2 * sMm;
+const Double_t V3Layer::sIBFlexCapacitorZLen = 0.4 * sMm;
+const Double_t V3Layer::sIBColdPlateWidth = 15.4 * sMm;
+const Double_t V3Layer::sIBColdPlateZLen = 290.0 * sMm;
+const Double_t V3Layer::sIBGlueThick = 50.0 * sMicron;
+const Double_t V3Layer::sIBCarbonFleeceThick = 20.0 * sMicron;
+const Double_t V3Layer::sIBCarbonPaperThick = 30.0 * sMicron;
+const Double_t V3Layer::sIBCarbonPaperWidth = 12.5 * sMm;
+const Double_t V3Layer::sIBCarbonPaperZLen = 280.0 * sMm;
+const Double_t V3Layer::sIBK13D2UThick = 70.0 * sMicron;
+const Double_t V3Layer::sIBCoolPipeInnerD = 1.024 * sMm;
+const Double_t V3Layer::sIBCoolPipeThick = 25.4 * sMicron;
+const Double_t V3Layer::sIBCoolPipeXDist = 5.0 * sMm;
+const Double_t V3Layer::sIBCoolPipeZLen = 302.0 * sMm;
+const Double_t V3Layer::sIBTopVertexWidth1 = 0.258 * sMm;
+const Double_t V3Layer::sIBTopVertexWidth2 = 0.072 * sCm;
+const Double_t V3Layer::sIBTopVertexHeight = 0.04 * sCm;
+const Double_t V3Layer::sIBTopVertexAngle = 60.0; // Deg
+const Double_t V3Layer::sIBSideVertexWidth = 0.05 * sCm;
+const Double_t V3Layer::sIBSideVertexHeight = 0.074 * sCm;
+const Double_t V3Layer::sIBTopFilamentSide = 0.04 * sCm;
+const Double_t V3Layer::sIBTopFilamentAlpha = 109.8; // Deg
+const Double_t V3Layer::sIBTopFilamentInterZ = 15.0 * sMm;
+const Double_t V3Layer::sIBEndSupportThick = 0.149 * sMm;
+const Double_t V3Layer::sIBEndSupportZLen = 2.5 * sMm;
+const Double_t V3Layer::sIBEndSupportXUp = 1.0 * sMm;
+const Double_t V3Layer::sIBEndSupportOpenPhi = 120.0; // Deg
 
-const Double_t V3Layer::sIBConnectorXWidth    =  10.0  *sMm;
-const Double_t V3Layer::sIBConnectorYTot      =   4.7  *sMm;
-const Double_t V3Layer::sIBConnectBlockZLen   =  16.5  *sMm;
-const Double_t V3Layer::sIBConnBodyYHeight    =   2.5  *sMm;
-const Double_t V3Layer::sIBConnTailYShift     =   0.9  *sMm;
-const Double_t V3Layer::sIBConnTailYMid       =   2.5  *sMm;
-const Double_t V3Layer::sIBConnTailZLen       =   2.5  *sMm;
-const Double_t V3Layer::sIBConnTailOpenPhi    = 120.0; // Deg
-const Double_t V3Layer::sIBConnRoundHoleD     =   2.0  *sMm;
-const Double_t V3Layer::sIBConnRoundHoleZ     =(9.0-4.0)*sMm;
-const Double_t V3Layer::sIBConnSquareHoleX    =   2.0  *sMm;
-const Double_t V3Layer::sIBConnSquareHoleZ    =   2.8  *sMm;
-const Double_t V3Layer::sIBConnSquareHoleZPos =   9.0  *sMm;
-const Double_t V3Layer::sIBConnInsertHoleD    =   2.0  *sMm;
-const Double_t V3Layer::sIBConnInsertHoleZPos =   9.0  *sMm;
-const Double_t V3Layer::sIBConnTubeHole1D     =   1.6  *sMm;
-const Double_t V3Layer::sIBConnTubeHole1ZLen  =   3.0  *sMm;
-const Double_t V3Layer::sIBConnTubeHole1ZLen2 =   2.7  *sMm;
-const Double_t V3Layer::sIBConnTubeHole2D     =   1.2  *sMm;
-const Double_t V3Layer::sIBConnTubeHole3XPos  =   1.0  *sMm;
-const Double_t V3Layer::sIBConnTubeHole3ZPos  =  14.5  *sMm;
-const Double_t V3Layer::sIBConnTubesXDist     =   5.0  *sMm;
-const Double_t V3Layer::sIBConnTubesYPos      =   1.25 *sMm;
-const Double_t V3Layer::sIBConnInsertD        =   2.0  *sMm;
-const Double_t V3Layer::sIBConnInsertHeight   =   2.3  *sMm;
-const Double_t V3Layer::sIBConnSideHole1D     =   1.0  *sMm;
-const Double_t V3Layer::sIBConnSideHole1YPos  =   1.25 *sMm;
-const Double_t V3Layer::sIBConnSideHole1ZPos  =  11.5  *sMm;
-const Double_t V3Layer::sIBConnSideHole1XWid  =   1.0  *sMm;
-const Double_t V3Layer::sIBConnSideHole2YPos  =   1.25 *sMm;
-const Double_t V3Layer::sIBConnSideHole2ZPos  =  11.0  *sMm;
-const Double_t V3Layer::sIBConnSideHole2XWid  =   1.0  *sMm;
-const Double_t V3Layer::sIBConnSideHole2YWid  =   1.0  *sMm;
-const Double_t V3Layer::sIBConnSideHole2ZWid  =   1.0  *sMm;
-const Double_t V3Layer::sIBConnectAFitExtD    =   1.65 *sMm;
-const Double_t V3Layer::sIBConnectAFitIntD    =   1.19 *sMm;
-const Double_t V3Layer::sIBConnectAFitZLen    =  12.5  *sMm;
-const Double_t V3Layer::sIBConnectAFitZOut    =  10.0  *sMm;
-const Double_t V3Layer::sIBConnPlugInnerD     =   0.8  *sMm;
-const Double_t V3Layer::sIBConnPlugTotLen     =   1.7  *sMm;
-const Double_t V3Layer::sIBConnPlugInnerLen   =   1.0  *sMm;
+const Double_t V3Layer::sIBConnectorXWidth = 10.0 * sMm;
+const Double_t V3Layer::sIBConnectorYTot = 4.7 * sMm;
+const Double_t V3Layer::sIBConnectBlockZLen = 16.5 * sMm;
+const Double_t V3Layer::sIBConnBodyYHeight = 2.5 * sMm;
+const Double_t V3Layer::sIBConnTailYShift = 0.9 * sMm;
+const Double_t V3Layer::sIBConnTailYMid = 2.5 * sMm;
+const Double_t V3Layer::sIBConnTailZLen = 2.5 * sMm;
+const Double_t V3Layer::sIBConnTailOpenPhi = 120.0; // Deg
+const Double_t V3Layer::sIBConnRoundHoleD = 2.0 * sMm;
+const Double_t V3Layer::sIBConnRoundHoleZ = (9.0 - 4.0) * sMm;
+const Double_t V3Layer::sIBConnSquareHoleX = 2.0 * sMm;
+const Double_t V3Layer::sIBConnSquareHoleZ = 2.8 * sMm;
+const Double_t V3Layer::sIBConnSquareHoleZPos = 9.0 * sMm;
+const Double_t V3Layer::sIBConnInsertHoleD = 2.0 * sMm;
+const Double_t V3Layer::sIBConnInsertHoleZPos = 9.0 * sMm;
+const Double_t V3Layer::sIBConnTubeHole1D = 1.6 * sMm;
+const Double_t V3Layer::sIBConnTubeHole1ZLen = 3.0 * sMm;
+const Double_t V3Layer::sIBConnTubeHole1ZLen2 = 2.7 * sMm;
+const Double_t V3Layer::sIBConnTubeHole2D = 1.2 * sMm;
+const Double_t V3Layer::sIBConnTubeHole3XPos = 1.0 * sMm;
+const Double_t V3Layer::sIBConnTubeHole3ZPos = 14.5 * sMm;
+const Double_t V3Layer::sIBConnTubesXDist = 5.0 * sMm;
+const Double_t V3Layer::sIBConnTubesYPos = 1.25 * sMm;
+const Double_t V3Layer::sIBConnInsertD = 2.0 * sMm;
+const Double_t V3Layer::sIBConnInsertHeight = 2.3 * sMm;
+const Double_t V3Layer::sIBConnSideHole1D = 1.0 * sMm;
+const Double_t V3Layer::sIBConnSideHole1YPos = 1.25 * sMm;
+const Double_t V3Layer::sIBConnSideHole1ZPos = 11.5 * sMm;
+const Double_t V3Layer::sIBConnSideHole1XWid = 1.0 * sMm;
+const Double_t V3Layer::sIBConnSideHole2YPos = 1.25 * sMm;
+const Double_t V3Layer::sIBConnSideHole2ZPos = 11.0 * sMm;
+const Double_t V3Layer::sIBConnSideHole2XWid = 1.0 * sMm;
+const Double_t V3Layer::sIBConnSideHole2YWid = 1.0 * sMm;
+const Double_t V3Layer::sIBConnSideHole2ZWid = 1.0 * sMm;
+const Double_t V3Layer::sIBConnectAFitExtD = 1.65 * sMm;
+const Double_t V3Layer::sIBConnectAFitIntD = 1.19 * sMm;
+const Double_t V3Layer::sIBConnectAFitZLen = 12.5 * sMm;
+const Double_t V3Layer::sIBConnectAFitZOut = 10.0 * sMm;
+const Double_t V3Layer::sIBConnPlugInnerD = 0.8 * sMm;
+const Double_t V3Layer::sIBConnPlugTotLen = 1.7 * sMm;
+const Double_t V3Layer::sIBConnPlugInnerLen = 1.0 * sMm;
 
-const Double_t V3Layer::sIBStaveHeight        =   0.5  *sCm;
+const Double_t V3Layer::sIBStaveHeight = 0.5 * sCm;
 
 // Outer Barrel Parameters
 const Int_t V3Layer::sOBChipsPerRow = 7;
 const Int_t V3Layer::sOBNChipRows = 2;
 
-const Double_t V3Layer::sOBChipThickness      = 100.0  *sMicron;
+const Double_t V3Layer::sOBChipThickness = 100.0 * sMicron;
 
-const Double_t V3Layer::sOBHalfStaveWidth     =   3.01 *sCm;
-const Double_t V3Layer::sOBModuleWidth        = sOBHalfStaveWidth;
-const Double_t V3Layer::sOBModuleGap          =   0.01 *sCm;
-const Double_t V3Layer::sOBChipXGap           =   0.01 *sCm;
-const Double_t V3Layer::sOBChipZGap           =   0.01 *sCm;
-const Double_t V3Layer::sOBFlexCableAlThick   =   0.005*sCm;
-const Double_t V3Layer::sOBFlexCableCuThick   =   0.004*sCm;
-const Double_t V3Layer::sOBFlexCableKapThick  = 125.0  *sMicron;
-const Double_t V3Layer::sOBBusCableAlThick    =   0.02 *sCm;
-const Double_t V3Layer::sOBBusCableKapThick   =   0.02 *sCm;
-const Double_t V3Layer::sOBColdPlateThick     =   0.012*sCm;
-const Double_t V3Layer::sOBCarbonPlateThick   =   0.012*sCm;
-const Double_t V3Layer::sOBGlueThickM1        =   0.03 *sCm;
-const Double_t V3Layer::sOBGlueThick          =   0.01 *sCm;
-const Double_t V3Layer::sOBModuleZLength      =  21.06 *sCm;
-const Double_t V3Layer::sOBHalfStaveYPos      =   2.067*sCm;
-const Double_t V3Layer::sOBHalfStaveYTrans    =   1.76 *sMm;
-const Double_t V3Layer::sOBHalfStaveXOverlap  =   4.3  *sMm;
-const Double_t V3Layer::sOBGraphiteFoilThick  =  30.0  *sMicron;
-const Double_t V3Layer::sOBCarbonFleeceThick  =  20.0  *sMicron;
-const Double_t V3Layer::sOBCoolTubeInnerDM1   =   2.052*sMm;
-const Double_t V3Layer::sOBCoolTubeInnerD     =   2.05 *sMm;
-const Double_t V3Layer::sOBCoolTubeThick      =  32.0  *sMicron;
-const Double_t V3Layer::sOBCoolTubeXDist      =  10.0  *sMm;
+const Double_t V3Layer::sOBHalfStaveWidth = 3.01 * sCm;
+const Double_t V3Layer::sOBModuleWidth = sOBHalfStaveWidth;
+const Double_t V3Layer::sOBModuleGap = 0.01 * sCm;
+const Double_t V3Layer::sOBChipXGap = 0.01 * sCm;
+const Double_t V3Layer::sOBChipZGap = 0.01 * sCm;
+const Double_t V3Layer::sOBFlexCableAlThick = 0.005 * sCm;
+const Double_t V3Layer::sOBFlexCableCuThick = 0.004 * sCm;
+const Double_t V3Layer::sOBFlexCableKapThick = 125.0 * sMicron;
+const Double_t V3Layer::sOBBusCableAlThick = 0.02 * sCm;
+const Double_t V3Layer::sOBBusCableKapThick = 0.02 * sCm;
+const Double_t V3Layer::sOBColdPlateThick = 0.012 * sCm;
+const Double_t V3Layer::sOBCarbonPlateThick = 0.012 * sCm;
+const Double_t V3Layer::sOBGlueThickM1 = 0.03 * sCm;
+const Double_t V3Layer::sOBGlueThick = 0.01 * sCm;
+const Double_t V3Layer::sOBModuleZLength = 21.06 * sCm;
+const Double_t V3Layer::sOBHalfStaveYPos = 2.067 * sCm;
+const Double_t V3Layer::sOBHalfStaveYTrans = 1.76 * sMm;
+const Double_t V3Layer::sOBHalfStaveXOverlap = 4.3 * sMm;
+const Double_t V3Layer::sOBGraphiteFoilThick = 30.0 * sMicron;
+const Double_t V3Layer::sOBCarbonFleeceThick = 20.0 * sMicron;
+const Double_t V3Layer::sOBCoolTubeInnerDM1 = 2.052 * sMm;
+const Double_t V3Layer::sOBCoolTubeInnerD = 2.05 * sMm;
+const Double_t V3Layer::sOBCoolTubeThick = 32.0 * sMicron;
+const Double_t V3Layer::sOBCoolTubeXDist = 10.0 * sMm;
 
-const Double_t V3Layer::sOBCPConnectorXWidth  =  16.0  *sMm;
-const Double_t V3Layer::sOBCPConnBlockZLen    =  15.0  *sMm;
-const Double_t V3Layer::sOBCPConnBlockYHei    =   3.6  *sMm;
-const Double_t V3Layer::sOBCPConnHollowZLen   =   3.0  *sMm;
-const Double_t V3Layer::sOBCPConnHollowYHei   =   0.9  *sMm;
-const Double_t V3Layer::sOBCPConnSquareHoleX  =   6.0  *sMm;
-const Double_t V3Layer::sOBCPConnSquareHoleZ  =   6.0  *sMm;
-const Double_t V3Layer::sOBCPConnSqrHoleZPos  =   4.0  *sMm;
-const Double_t V3Layer::sOBCPConnSqrInsertRZ  =   3.5  *sMm;
-const Double_t V3Layer::sOBCPConnRoundHoleD   =   6.0  *sMm;
-const Double_t V3Layer::sOBCPConnRndHoleZPos  =   4.0  *sMm;
-const Double_t V3Layer::sOBCPConnTubesXDist   =  10.0  *sMm;
-const Double_t V3Layer::sOBCPConnTubesYPos    =   1.8  *sMm;
-const Double_t V3Layer::sOBCPConnTubeHole1D   =   2.6  *sMm;
-const Double_t V3Layer::sOBCPConnTubeHole1Z   =   3.5  *sMm;
-const Double_t V3Layer::sOBCPConnTubeHole2D   =   2.2  *sMm;
-const Double_t V3Layer::sOBCPConnFitHoleD     =   2.8  *sMm;
-const Double_t V3Layer::sOBCPConnTubeHole3XP  =   1.0  *sMm;
-const Double_t V3Layer::sOBCPConnTubeHole3ZP  =   2.0  *sMm;
-const Double_t V3Layer::sOBCPConnInstInnerX   =   4.0  *sMm;
-const Double_t V3Layer::sOBCPConnInstInnerR   =   1.5  *sMm;
-const Double_t V3Layer::sOBCPConnInstZThick   =   1.0  *sMm;
-const Double_t V3Layer::sOBCPConnInsertYHei   =   3.4  *sMm;
-const Double_t V3Layer::sOBCPConnInsertD      =   4.0  *sMm;
-const Double_t V3Layer::sOBCPConnAFitExtD     =   2.77 *sMm;
-const Double_t V3Layer::sOBCPConnAFitThick    =   0.3  *sMm;
-const Double_t V3Layer::sOBCPConnAFitZLen     =  25.0  *sMm;
-const Double_t V3Layer::sOBCPConnAFitZOut     =  22.0  *sMm;
-const Double_t V3Layer::sOBCPConnPlugInnerD   =   0.8  *sMm;
-const Double_t V3Layer::sOBCPConnPlugTotLen   =   1.7  *sMm;
-const Double_t V3Layer::sOBCPConnPlugThick    =   0.5  *sMm;
+const Double_t V3Layer::sOBCPConnectorXWidth = 16.0 * sMm;
+const Double_t V3Layer::sOBCPConnBlockZLen = 15.0 * sMm;
+const Double_t V3Layer::sOBCPConnBlockYHei = 3.6 * sMm;
+const Double_t V3Layer::sOBCPConnHollowZLen = 3.0 * sMm;
+const Double_t V3Layer::sOBCPConnHollowYHei = 0.9 * sMm;
+const Double_t V3Layer::sOBCPConnSquareHoleX = 6.0 * sMm;
+const Double_t V3Layer::sOBCPConnSquareHoleZ = 6.0 * sMm;
+const Double_t V3Layer::sOBCPConnSqrHoleZPos = 4.0 * sMm;
+const Double_t V3Layer::sOBCPConnSqrInsertRZ = 3.5 * sMm;
+const Double_t V3Layer::sOBCPConnRoundHoleD = 6.0 * sMm;
+const Double_t V3Layer::sOBCPConnRndHoleZPos = 4.0 * sMm;
+const Double_t V3Layer::sOBCPConnTubesXDist = 10.0 * sMm;
+const Double_t V3Layer::sOBCPConnTubesYPos = 1.8 * sMm;
+const Double_t V3Layer::sOBCPConnTubeHole1D = 2.6 * sMm;
+const Double_t V3Layer::sOBCPConnTubeHole1Z = 3.5 * sMm;
+const Double_t V3Layer::sOBCPConnTubeHole2D = 2.2 * sMm;
+const Double_t V3Layer::sOBCPConnFitHoleD = 2.8 * sMm;
+const Double_t V3Layer::sOBCPConnTubeHole3XP = 1.0 * sMm;
+const Double_t V3Layer::sOBCPConnTubeHole3ZP = 2.0 * sMm;
+const Double_t V3Layer::sOBCPConnInstInnerX = 4.0 * sMm;
+const Double_t V3Layer::sOBCPConnInstInnerR = 1.5 * sMm;
+const Double_t V3Layer::sOBCPConnInstZThick = 1.0 * sMm;
+const Double_t V3Layer::sOBCPConnInsertYHei = 3.4 * sMm;
+const Double_t V3Layer::sOBCPConnInsertD = 4.0 * sMm;
+const Double_t V3Layer::sOBCPConnAFitExtD = 2.77 * sMm;
+const Double_t V3Layer::sOBCPConnAFitThick = 0.3 * sMm;
+const Double_t V3Layer::sOBCPConnAFitZLen = 25.0 * sMm;
+const Double_t V3Layer::sOBCPConnAFitZOut = 22.0 * sMm;
+const Double_t V3Layer::sOBCPConnPlugInnerD = 0.8 * sMm;
+const Double_t V3Layer::sOBCPConnPlugTotLen = 1.7 * sMm;
+const Double_t V3Layer::sOBCPConnPlugThick = 0.5 * sMm;
 
-const Double_t V3Layer::sOBSpaceFrameZLen[2]  = { 900.0*sMm,
-                                                         1526.0*sMm};
-const Int_t    V3Layer::sOBSpaceFrameNUnits[2]= { 23, 39};
-const Double_t V3Layer::sOBSpaceFrameUnitLen  =  39.1  *sMm;
-const Double_t V3Layer::sOBSpaceFrameWidth    =  42.44 *sMm;
-const Double_t V3Layer::sOBSpaceFrameHeight   =  36.45 *sMm;
-const Double_t V3Layer::sOBSpaceFrameTopVL    =   4.0  *sMm;
-const Double_t V3Layer::sOBSpaceFrameTopVH    =   0.35 *sMm;
-const Double_t V3Layer::sOBSpaceFrameSideVL   =   4.5  *sMm;
-const Double_t V3Layer::sOBSpaceFrameSideVH   =   0.35 *sMm;
-const Double_t V3Layer::sOBSpaceFrameVAlpha   =  60.0; // deg
-const Double_t V3Layer::sOBSpaceFrameVBeta    =  68.0; // deg
-const Double_t V3Layer::sOBSFrameBaseRibDiam  =   1.33 *sMm;
-const Double_t V3Layer::sOBSFrameBaseRibPhi   =  54.0; // deg
-const Double_t V3Layer::sOBSFrameSideRibDiam  =   1.25 *sMm;
-const Double_t V3Layer::sOBSFrameSideRibPhi   =  70.0; // deg
-const Double_t V3Layer::sOBSFrameULegLen      =  14.2  *sMm;
-const Double_t V3Layer::sOBSFrameULegWidth    =   1.5  *sMm;
-const Double_t V3Layer::sOBSFrameULegHeight1  =   2.7  *sMm;
-const Double_t V3Layer::sOBSFrameULegHeight2  =   5.0  *sMm;
-const Double_t V3Layer::sOBSFrameULegThick    =   0.3  *sMm;
-const Double_t V3Layer::sOBSFrameULegXPos     =  12.9  *sMm;
+const Double_t V3Layer::sOBSpaceFrameZLen[2] = { 900.0 * sMm, 1526.0 * sMm };
+const Int_t V3Layer::sOBSpaceFrameNUnits[2] = { 23, 39 };
+const Double_t V3Layer::sOBSpaceFrameUnitLen = 39.1 * sMm;
+const Double_t V3Layer::sOBSpaceFrameWidth = 42.44 * sMm;
+const Double_t V3Layer::sOBSpaceFrameHeight = 36.45 * sMm;
+const Double_t V3Layer::sOBSpaceFrameTopVL = 4.0 * sMm;
+const Double_t V3Layer::sOBSpaceFrameTopVH = 0.35 * sMm;
+const Double_t V3Layer::sOBSpaceFrameSideVL = 4.5 * sMm;
+const Double_t V3Layer::sOBSpaceFrameSideVH = 0.35 * sMm;
+const Double_t V3Layer::sOBSpaceFrameVAlpha = 60.0; // deg
+const Double_t V3Layer::sOBSpaceFrameVBeta = 68.0;  // deg
+const Double_t V3Layer::sOBSFrameBaseRibDiam = 1.33 * sMm;
+const Double_t V3Layer::sOBSFrameBaseRibPhi = 54.0; // deg
+const Double_t V3Layer::sOBSFrameSideRibDiam = 1.25 * sMm;
+const Double_t V3Layer::sOBSFrameSideRibPhi = 70.0; // deg
+const Double_t V3Layer::sOBSFrameULegLen = 14.2 * sMm;
+const Double_t V3Layer::sOBSFrameULegWidth = 1.5 * sMm;
+const Double_t V3Layer::sOBSFrameULegHeight1 = 2.7 * sMm;
+const Double_t V3Layer::sOBSFrameULegHeight2 = 5.0 * sMm;
+const Double_t V3Layer::sOBSFrameULegThick = 0.3 * sMm;
+const Double_t V3Layer::sOBSFrameULegXPos = 12.9 * sMm;
 
 ClassImp(V3Layer)
 
@@ -356,9 +355,7 @@ void V3Layer::createLayer(TGeoVolume* motherVolume)
     ypos = r * sinD(phi); // r*cosD(-phi);
     zpos = 0.;
     phi += 90;
-    layerVolume->AddNode(stavVol, j,
-                         new TGeoCombiTrans(xpos, ypos, zpos,
-                                            new TGeoRotation("", phi, 0, 0)));
+    layerVolume->AddNode(stavVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phi, 0, 0)));
   }
 
   // Finally put everything in the mother volume
@@ -556,7 +553,7 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   TGeoBBox* glue = new TGeoBBox(xchip, sIBGlueThick / 2, ztot);
   TGeoBBox* kapCable = new TGeoBBox(xtot, sIBFlexCableKapThick / 2, ztot);
 
-  TGeoVolume* aluGndCableVol   = createIBFPCAlGnd(xtot, ztot);
+  TGeoVolume* aluGndCableVol = createIBFPCAlGnd(xtot, ztot);
   TGeoVolume* aluAnodeCableVol = createIBFPCAlAnode(xtot, ztot);
 
   // Finally create the module and populate it with the chips
@@ -571,9 +568,9 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   TGeoBBox* module = new TGeoBBox(xtot, ytot, ztot);
 
   // Now the volumes
-  TGeoMedium* medAir    = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
   TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue   = mgr->GetMedium("ITS_GLUE_IBFPC$");
+  TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE_IBFPC$");
 
   snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
@@ -633,28 +630,24 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   // Position of the various capacitors (A.Junique private communication
   // where: X_capacitor = Z_module , Y_capacitor = X_module)
   // Capacitors (different groups)
-  const Double_t xGroup1A    =   4265.9*sMicron;
-  const Double_t zGroup1A[2] = {-7142.9*sMicron,  7594.1*sMicron};
-  const Double_t xGroup1B    =    690.9*sMicron;
-  const Double_t zGroup1B    =  -7142.9*sMicron;
-  const Double_t xGroup2     =   6300.0*sMicron;
-  const Double_t zGroup2     =  15075.0*sMicron;
-  const Double_t xGroup3     =   5575.0*sMicron;
-  const Double_t zGroup3     = 131900.0*sMicron;
-  const Double_t xGroup4[2]  = { 5600.0*sMicron,  5575.0*sMicron};
-  const Double_t zGroup4[sIBChipsPerRow] = {       275.0*sMicron,
-                                  250.0*sMicron,   275.0*sMicron,
-                                  250.0*sMicron,   250.0*sMicron,
-                                  300.0*sMicron,   250.0*sMicron,
-                                  300.0*sMicron,   250.0*sMicron};
+  const Double_t xGroup1A = 4265.9 * sMicron;
+  const Double_t zGroup1A[2] = { -7142.9 * sMicron, 7594.1 * sMicron };
+  const Double_t xGroup1B = 690.9 * sMicron;
+  const Double_t zGroup1B = -7142.9 * sMicron;
+  const Double_t xGroup2 = 6300.0 * sMicron;
+  const Double_t zGroup2 = 15075.0 * sMicron;
+  const Double_t xGroup3 = 5575.0 * sMicron;
+  const Double_t zGroup3 = 131900.0 * sMicron;
+  const Double_t xGroup4[2] = { 5600.0 * sMicron, 5575.0 * sMicron };
+  const Double_t zGroup4[sIBChipsPerRow] = { 275.0 * sMicron, 250.0 * sMicron, 275.0 * sMicron,
+                                             250.0 * sMicron, 250.0 * sMicron, 300.0 * sMicron,
+                                             250.0 * sMicron, 300.0 * sMicron, 250.0 * sMicron };
   const Int_t nGroup5A = 5, nGroup5B = 4;
-  const Double_t xGroup5A[2] = { 1400.0*sMicron,  1350.0*sMicron};
-  const Double_t zGroup5A[nGroup5A] = {        -112957.5*sMicron,
-                               -82854.5*sMicron,  7595.5*sMicron,
-                                37745.5*sMicron,128194.1*sMicron};
-  const Double_t xGroup5B    =   1100.0*sMicron;
-  const Double_t zGroup5B[nGroup5B] = {-51525.0*sMicron, -21375.0*sMicron,
-                                        69075.0*sMicron,  99225.0*sMicron};
+  const Double_t xGroup5A[2] = { 1400.0 * sMicron, 1350.0 * sMicron };
+  const Double_t zGroup5A[nGroup5A] = { -112957.5 * sMicron, -82854.5 * sMicron, 7595.5 * sMicron,
+                                        37745.5 * sMicron,   128194.1 * sMicron };
+  const Double_t xGroup5B = 1100.0 * sMicron;
+  const Double_t zGroup5B[nGroup5B] = { -51525.0 * sMicron, -21375.0 * sMicron, 69075.0 * sMicron, 99225.0 * sMicron };
   // Resistors
   const Int_t nResist = 2;
   const Double_t xResist = -7975.0 * sMicron;
@@ -671,9 +664,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   capacitor = mgr->GetVolume("IBFPCCapacitor");
 
   if (!capacitor) {
-    TGeoBBox* capsh = new TGeoBBox(sIBFlexCapacitorXWid / 2,
-                                   sIBFlexCapacitorYHi  / 2,
-                                   sIBFlexCapacitorZLen / 2);
+    TGeoBBox* capsh = new TGeoBBox(sIBFlexCapacitorXWid / 2, sIBFlexCapacitorYHi / 2, sIBFlexCapacitorZLen / 2);
 
     TGeoMedium* medCeramic = mgr->GetMedium("ITS_CERAMIC$");
 
@@ -682,7 +673,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
     capacitor->SetFillColor(kBlack);
 
     TGeoBBox* ressh = new TGeoBBox(sIBFlexCapacitorXWid / 2,  // Resistors have
-                                   sIBFlexCapacitorYHi  / 2,  // the same dim's
+                                   sIBFlexCapacitorYHi / 2,   // the same dim's
                                    sIBFlexCapacitorZLen / 2); // as capacitors
 
     resistor = new TGeoVolume("IBFPCResistor", ressh, medCeramic);
@@ -758,9 +749,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   }
 }
 
-TGeoVolume* V3Layer::createIBFPCAlGnd(const Double_t xcable,
-                                      const Double_t zcable,
-                                      const TGeoManager* mgr)
+TGeoVolume* V3Layer::createIBFPCAlGnd(const Double_t xcable, const Double_t zcable, const TGeoManager* mgr)
 {
   //
   // Create the IB FPC Aluminum Ground cable
@@ -776,7 +765,7 @@ TGeoVolume* V3Layer::createIBFPCAlGnd(const Double_t xcable,
   TGeoBBox* aluminum = new TGeoBBox(xcable, sIBFlexCableAlThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton   = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
+  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
   TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
 
   TGeoVolume* coverlayVol = new TGeoVolume("FPCCoverlayGround", coverlay, medKapton);
@@ -794,9 +783,7 @@ TGeoVolume* V3Layer::createIBFPCAlGnd(const Double_t xcable,
   return coverlayVol;
 }
 
-TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable,
-                                        const Double_t zcable,
-                                        const TGeoManager* mgr)
+TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zcable, const TGeoManager* mgr)
 {
   //
   // Create the IB FPC Aluminum Anode cable
@@ -828,7 +815,7 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable,
   aluminum->DefineSection(1, sIBFlexCableAlThick / 2);
 
   // Then the volumes
-  TGeoMedium* medKapton   = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
+  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
   TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
 
   TGeoVolume* coverlayVol = new TGeoVolume("FPCCoverlayAnode", coverlay, medKapton);
@@ -1008,8 +995,7 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
   endsupp->DefineSection(0, -sIBEndSupportZLen / 2);
   endsupp->DefineSection(1, sIBEndSupportZLen / 2);
 
-  xlen = TMath::Sqrt((yv[7] - yv[6]) * (yv[7] - yv[6]) +
-                     (xv[7] - xv[6]) * (xv[7] - xv[6]) +
+  xlen = TMath::Sqrt((yv[7] - yv[6]) * (yv[7] - yv[6]) + (xv[7] - xv[6]) * (xv[7] - xv[6]) +
                      sIBTopFilamentInterZ * sIBTopFilamentInterZ / 4);
   theta = TMath::ATan((yv[7] - yv[6]) / (xv[7] - xv[6])) * TMath::RadToDeg();
   TGeoBBox* topfil = new TGeoBBox(xlen / 2, sIBTopFilamentSide / 2, sIBTopFilamentSide / 2);
@@ -1057,14 +1043,14 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAir          = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medWater        = mgr->GetMedium("ITS_WATER$");
-  TGeoMedium* medM55J6K       = mgr->GetMedium("ITS_M55J6K$");
-  TGeoMedium* medM60J3K       = mgr->GetMedium("ITS_M60J3K$");
-  TGeoMedium* medKapton       = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue         = mgr->GetMedium("ITS_GLUE$");
-  TGeoMedium* medK13D2U2k     = mgr->GetMedium("ITS_K13D2U2k$");
-  TGeoMedium* medFGS003       = mgr->GetMedium("ITS_FGS003$");
+  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium* medWater = mgr->GetMedium("ITS_WATER$");
+  TGeoMedium* medM55J6K = mgr->GetMedium("ITS_M55J6K$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("ITS_M60J3K$");
+  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE$");
+  TGeoMedium* medK13D2U2k = mgr->GetMedium("ITS_K13D2U2k$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("ITS_FGS003$");
   TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS_CarbonFleece$");
 
   const Int_t nameLen = 30;
@@ -1304,8 +1290,8 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir     = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medPEEK    = mgr->GetMedium("ITS_PEEKCF30$");
+  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
   TGeoMedium* medInox304 = mgr->GetMedium("ITS_INOX304$");
 
   // First create all elements
@@ -1365,8 +1351,8 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   zlen = sIBConnSideHole1XWid / 1.5;
   TGeoTube* sideHole1 = new TGeoTube("sideHole1A", 0, sIBConnSideHole1D / 2, zlen);
 
-  xpos =  connBody->GetDX() - sIBConnSideHole1XWid + sideHole1->GetDz();
-  ypos =  connBody->GetDY() - sIBConnSideHole1YPos;
+  xpos = connBody->GetDX() - sIBConnSideHole1XWid + sideHole1->GetDz();
+  ypos = connBody->GetDY() - sIBConnSideHole1YPos;
   zpos = -connBody->GetDZ() + (sIBConnSideHole1ZPos - sIBConnTailZLen);
   TGeoCombiTrans* connSideHole1Trans =
     new TGeoCombiTrans("sideHole1TransA", xpos, ypos, zpos, new TGeoRotation("", 90, 90, 0));
@@ -1376,7 +1362,7 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
     new TGeoBBox("sideHole2AB", sIBConnSideHole2XWid, sIBConnSideHole2YWid / 2, sIBConnSideHole2ZWid / 2);
 
   xpos = -connBody->GetDX();
-  ypos =  connBody->GetDY() - sIBConnSideHole2YPos;
+  ypos = connBody->GetDY() - sIBConnSideHole2YPos;
   zpos = -connBody->GetDZ() + (sIBConnSideHole2ZPos - sIBConnTailZLen) + sideHole2Box->GetDZ();
   TGeoTranslation* sideHole2BTrans = new TGeoTranslation("sideHole2TransBA", xpos, ypos, zpos);
   sideHole2BTrans->RegisterYourself();
@@ -1394,11 +1380,11 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
     new TGeoCombiTrans("sideHole2TSTrans2A", xpos, ypos, zpos, new TGeoRotation("", 90, 90, 0));
   sideHole2TSTrans2->RegisterYourself();
 
-  TGeoCompositeShape* connBodySh = new TGeoCompositeShape(
-    "connBodyA-connRoundHoleA:roundHoleTransA-connSquareHoleA:squareHoleTransA-tube2HoleA:tubes2Trans1A-tube2HoleA:"
-    "tubes2Trans2A-fitHoleA:fitTrans1A-fitHoleA:fitTrans2A-tube3HoleA:tubes3Trans1A-tube3HoleA:tubes3Trans2A-"
-    "sideHole1A:sideHole1TransA-sideHole2AB:sideHole2TransBA-sideHole2ATS:sideHole2TSTrans1A-sideHole2ATS:"
-    "sideHole2TSTrans2A");
+  TGeoCompositeShape* connBodySh =
+    new TGeoCompositeShape("connBodyA-connRoundHoleA:roundHoleTransA-connSquareHoleA:squareHoleTransA-tube2HoleA:"
+                           "tubes2Trans1A-tube2HoleA:tubes2Trans2A-fitHoleA:fitTrans1A-fitHoleA:fitTrans2A-tube3HoleA:"
+                           "tubes3Trans1A-tube3HoleA:tubes3Trans2A-sideHole1A:sideHole1TransA-sideHole2AB:"
+                           "sideHole2TransBA-sideHole2ATS:sideHole2TSTrans1A-sideHole2ATS:sideHole2TSTrans2A");
 
   TGeoVolume* connBlockBody = new TGeoVolume("IBConnectorBlockBodyASide", connBodySh, medPEEK);
   connBlockBody->SetFillColor(42); // Brownish shade
@@ -1476,9 +1462,9 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   TGeoTranslation* connTubes2Trans2Body = new TGeoTranslation("tubes2Trans2BA", xpos, ypos, zpos);
   connTubes2Trans2Body->RegisterYourself();
 
-  TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
-    "connBoxA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-tubeHollowA:tubeHollTrans1A-"
-    "tubeHollowA:tubeHollTrans2A");
+  TGeoCompositeShape* connBoxSh =
+    new TGeoCompositeShape("connBoxA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-"
+                           "tubeHollowA:tubeHollTrans1A-tubeHollowA:tubeHollTrans2A");
 
   TGeoVolume* connBoxASide = new TGeoVolume("IBConnectorASide", connBoxSh, medAir);
 
@@ -1494,7 +1480,7 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
 
   xpos = sIBConnTubesXDist / 2;
   ypos = -connBox->GetDY() + sIBConnTubesYPos;
-  zpos =  connBox->GetDZ() - connFitSh->GetDz();
+  zpos = connBox->GetDZ() - connFitSh->GetDz();
   connBoxASide->AddNode(connFit, 1, new TGeoTranslation(xpos, ypos, zpos));
   connBoxASide->AddNode(connFit, 2, new TGeoTranslation(-xpos, ypos, zpos));
 }
@@ -1516,7 +1502,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir  = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
   TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
 
   // First create all elements
@@ -1576,7 +1562,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   TGeoTube* sideHole1 = new TGeoTube("sideHole1C", 0, sIBConnSideHole1D / 2, zlen);
 
   xpos = -connBody->GetDX() + sIBConnSideHole1XWid - sideHole1->GetDz();
-  ypos =  connBody->GetDY() - sIBConnSideHole1YPos;
+  ypos = connBody->GetDY() - sIBConnSideHole1YPos;
   zpos = -connBody->GetDZ() + (sIBConnSideHole1ZPos - sIBConnTailZLen);
   TGeoCombiTrans* connSideHole1Trans =
     new TGeoCombiTrans("sideHole1TransC", xpos, ypos, zpos, new TGeoRotation("", 90, 90, 0));
@@ -1585,8 +1571,8 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   TGeoBBox* sideHole2Box =
     new TGeoBBox("sideHole2CB", sIBConnSideHole2XWid, sIBConnSideHole2YWid / 2, sIBConnSideHole2ZWid / 2);
 
-  xpos =  connBody->GetDX();
-  ypos =  connBody->GetDY() - sIBConnSideHole2YPos;
+  xpos = connBody->GetDX();
+  ypos = connBody->GetDY() - sIBConnSideHole2YPos;
   zpos = -connBody->GetDZ() + (sIBConnSideHole2ZPos - sIBConnTailZLen) + sideHole2Box->GetDZ();
   TGeoTranslation* sideHole2BTrans = new TGeoTranslation("sideHole2TransBC", xpos, ypos, zpos);
   sideHole2BTrans->RegisterYourself();
@@ -1690,9 +1676,9 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   TGeoTranslation* connTubes2Trans2Body = new TGeoTranslation("tubes2Trans2BC", xpos, ypos, -zpos);
   connTubes2Trans2Body->RegisterYourself();
 
-  TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
-    "connBoxC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-tubeHollowC:tubeHollTrans1C-"
-    "tubeHollowC:tubeHollTrans2C");
+  TGeoCompositeShape* connBoxSh =
+    new TGeoCompositeShape("connBoxC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-"
+                           "tubeHollowC:tubeHollTrans1C-tubeHollowC:tubeHollTrans2C");
 
   TGeoVolume* connBoxCSide = new TGeoVolume("IBConnectorCSide", connBoxSh, medAir);
 
@@ -2275,10 +2261,10 @@ void V3Layer::createOBColdPlateConnectorsASide()
   TGeoTranslation* trans2FitAHole = new TGeoTranslation("trans2FitAHole", xpos, ypos, zpos);
   trans2FitAHole->RegisterYourself();
 
-  TGeoCompositeShape* connBlockSh = new TGeoCompositeShape(
-    "connBlockA-connBlockHollA:transBlockHollA-connASquareHole:transASquareHole-tube1AHole:trans1Tube1AHole-tube1AHole:"
-    "trans2Tube1AHole-tube2AHole:trans1Tube2AHole-tube2AHole:trans2Tube2AHole-fitAHole:trans1FitAHole-fitAHole:"
-    "trans2FitAHole");
+  TGeoCompositeShape* connBlockSh =
+    new TGeoCompositeShape("connBlockA-connBlockHollA:transBlockHollA-connASquareHole:transASquareHole-tube1AHole:"
+                           "trans1Tube1AHole-tube1AHole:trans2Tube1AHole-tube2AHole:trans1Tube2AHole-tube2AHole:"
+                           "trans2Tube2AHole-fitAHole:trans1FitAHole-fitAHole:trans2FitAHole");
 
   TGeoVolume* connBlockA = new TGeoVolume("OBColdPlateConnectorBlockASide", connBlockSh, medPEEK);
   connBlockA->SetFillColor(42); // Brownish shade
