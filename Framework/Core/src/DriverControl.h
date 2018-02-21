@@ -24,19 +24,14 @@ namespace framework
 
 /// These are the possible states for the driver controller
 /// and determine what should happen of state machine transitions.
-enum struct DriverControlState {
-  STEP,
-  PLAY,
-  PAUSE
-};
+enum struct DriverControlState { STEP, PLAY, PAUSE };
 
 /// Controller for the driver process (i.e. / the one which calculates the
 /// topology and actually spawns the devices ). Any operation to be done by
 /// the driver process should be recorded in an instance of this, so that the
 /// changes can be applied at the correct moment / state.
 struct DriverControl {
-  using Callback = std::function<void(std::vector<DeviceSpec> const&,
-                                      std::vector<DeviceExecution> const&)>;
+  using Callback = std::function<void(std::vector<DeviceSpec> const&, std::vector<DeviceExecution> const&)>;
   /// States to be added to the stack on next iteration
   /// of the state machine processing.
   std::vector<DriverState> forcedTransitions;

@@ -90,7 +90,7 @@ struct DriverInfo {
   /// The argc with which the driver was started.
   int argc;
   /// The argv with which the driver was started.
-  char **argv;
+  char** argv;
   /// Whether the driver was started in batch mode or not.
   bool batch;
 };
