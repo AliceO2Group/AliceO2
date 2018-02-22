@@ -95,20 +95,11 @@ static void configITS(Detector* its)
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
 
-  enum {
-    kRmn,
-    kRmd,
-    kRmx,
-    kNModPerStave,
-    kPhi0,
-    kNStave,
-    kNPar
-  };
+  enum { kRmn, kRmd, kRmx, kNModPerStave, kPhi0, kNStave, kNPar };
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
   const double tdr5dat[kNLr][kNPar] = {
     { 2.24, 2.34, 2.67, 9., 16.42, 12 }, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
-    { 3.01, 3.15, 3.46, 9., 12.18, 16 },
-    { 3.78, 3.93, 4.21, 9., 9.55, 20 },
+    { 3.01, 3.15, 3.46, 9., 12.18, 16 }, { 3.78, 3.93, 4.21, 9., 9.55, 20 },
     { -1, 19.6, -1, 4., 0., 24 },  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
     { -1, 24.55, -1, 4., 0., 30 }, // 30 was 61
     { -1, 34.39, -1, 7., 0., 42 }, // 42 was 88
@@ -578,10 +569,7 @@ void Detector::createMaterials()
   o2::Base::Detector::Medium(28, "TUNGSTEN$", 28, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
-void Detector::EndOfEvent()
-{
-  Reset();
-}
+void Detector::EndOfEvent() { Reset(); }
 
 void Detector::Register()
 {
@@ -594,10 +582,7 @@ void Detector::Register()
   }
 }
 
-void Detector::Reset()
-{
-  mHits->clear();
-}
+void Detector::Reset() { mHits->clear(); }
 
 void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan)
 {
@@ -822,7 +807,7 @@ void Detector::constructDetectorGeometry()
   TGeoVolume** wrapVols = nullptr;
 
   if (sNumberOfWrapperVolumes) {
-    wrapVols = new TGeoVolume* [sNumberOfWrapperVolumes];
+    wrapVols = new TGeoVolume*[sNumberOfWrapperVolumes];
     for (int id = 0; id < sNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
       vITSV->AddNode(wrapVols[id], 1, nullptr);
@@ -989,10 +974,7 @@ void Detector::Read(std::istream* is)
   return;
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
+FairModule* Detector::CloneModule() const { return new Detector(*this); }
 
 std::ostream& operator<<(std::ostream& os, Detector& p)
 {

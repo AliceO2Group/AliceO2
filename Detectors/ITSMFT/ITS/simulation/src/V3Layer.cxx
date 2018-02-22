@@ -225,7 +225,7 @@ ClassImp(V3Layer)
 
 #define SQ(A) (A) * (A)
 
-V3Layer::V3Layer()
+  V3Layer::V3Layer()
   : V11Geometry(),
     mLayerNumber(0),
     mPhi0(0),
@@ -279,9 +279,7 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
   }
 }
 
-V3Layer::~V3Layer()
-{
-}
+V3Layer::~V3Layer() {}
 
 void V3Layer::createLayer(TGeoVolume* motherVolume)
 {
@@ -644,8 +642,8 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
                                              250.0 * sMicron, 300.0 * sMicron, 250.0 * sMicron };
   const Int_t nGroup5A = 5, nGroup5B = 4;
   const Double_t xGroup5A[2] = { 1400.0 * sMicron, 1350.0 * sMicron };
-  const Double_t zGroup5A[nGroup5A] = { -112957.5 * sMicron, -82854.5 * sMicron, 7595.5 * sMicron,
-                                        37745.5 * sMicron,   128194.1 * sMicron };
+  const Double_t zGroup5A[nGroup5A] = { -112957.5 * sMicron, -82854.5 * sMicron, 7595.5 * sMicron, 37745.5 * sMicron,
+                                        128194.1 * sMicron };
   const Double_t xGroup5B = 1100.0 * sMicron;
   const Double_t zGroup5B[nGroup5B] = { -51525.0 * sMicron, -21375.0 * sMicron, 69075.0 * sMicron, 99225.0 * sMicron };
   // Resistors
@@ -656,7 +654,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   Double_t xpos, ypos, zpos;
   Int_t nCapacitors;
 
-  TGeoVolume* capacitor, *resistor;
+  TGeoVolume *capacitor, *resistor;
 
   // Check whether we already have the volume, otherwise create it
   // (so as to avoid creating multiple copies of the very same volume
@@ -1236,7 +1234,7 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
   }
 
   // Add the end-stave connectors
-  TGeoVolume* connectorASide, *connectorCSide;
+  TGeoVolume *connectorASide, *connectorCSide;
 
   // Check whether we have already all pieces
   // Otherwise create them
@@ -1380,11 +1378,11 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
     new TGeoCombiTrans("sideHole2TSTrans2A", xpos, ypos, zpos, new TGeoRotation("", 90, 90, 0));
   sideHole2TSTrans2->RegisterYourself();
 
-  TGeoCompositeShape* connBodySh =
-    new TGeoCompositeShape("connBodyA-connRoundHoleA:roundHoleTransA-connSquareHoleA:squareHoleTransA-tube2HoleA:"
-                           "tubes2Trans1A-tube2HoleA:tubes2Trans2A-fitHoleA:fitTrans1A-fitHoleA:fitTrans2A-tube3HoleA:"
-                           "tubes3Trans1A-tube3HoleA:tubes3Trans2A-sideHole1A:sideHole1TransA-sideHole2AB:"
-                           "sideHole2TransBA-sideHole2ATS:sideHole2TSTrans1A-sideHole2ATS:sideHole2TSTrans2A");
+  TGeoCompositeShape* connBodySh = new TGeoCompositeShape(
+    "connBodyA-connRoundHoleA:roundHoleTransA-connSquareHoleA:squareHoleTransA-tube2HoleA:tubes2Trans1A-tube2HoleA:"
+    "tubes2Trans2A-fitHoleA:fitTrans1A-fitHoleA:fitTrans2A-tube3HoleA:tubes3Trans1A-tube3HoleA:tubes3Trans2A-"
+    "sideHole1A:sideHole1TransA-sideHole2AB:sideHole2TransBA-sideHole2ATS:sideHole2TSTrans1A-sideHole2ATS:"
+    "sideHole2TSTrans2A");
 
   TGeoVolume* connBlockBody = new TGeoVolume("IBConnectorBlockBodyASide", connBodySh, medPEEK);
   connBlockBody->SetFillColor(42); // Brownish shade
@@ -1462,9 +1460,9 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   TGeoTranslation* connTubes2Trans2Body = new TGeoTranslation("tubes2Trans2BA", xpos, ypos, zpos);
   connTubes2Trans2Body->RegisterYourself();
 
-  TGeoCompositeShape* connBoxSh =
-    new TGeoCompositeShape("connBoxA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-"
-                           "tubeHollowA:tubeHollTrans1A-tubeHollowA:tubeHollTrans2A");
+  TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
+    "connBoxA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-tubeHollowA:tubeHollTrans1A-"
+    "tubeHollowA:tubeHollTrans2A");
 
   TGeoVolume* connBoxASide = new TGeoVolume("IBConnectorASide", connBoxSh, medAir);
 
@@ -1676,9 +1674,9 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   TGeoTranslation* connTubes2Trans2Body = new TGeoTranslation("tubes2Trans2BC", xpos, ypos, -zpos);
   connTubes2Trans2Body->RegisterYourself();
 
-  TGeoCompositeShape* connBoxSh =
-    new TGeoCompositeShape("connBoxC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-"
-                           "tubeHollowC:tubeHollTrans1C-tubeHollowC:tubeHollTrans2C");
+  TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
+    "connBoxC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-tubeHollowC:tubeHollTrans1C-"
+    "tubeHollowC:tubeHollTrans2C");
 
   TGeoVolume* connBoxCSide = new TGeoVolume("IBConnectorCSide", connBoxSh, medAir);
 
@@ -2115,7 +2113,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   }
 
   // Add the end-stave connectors
-  TGeoVolume* connectorASide, *connectorCSide;
+  TGeoVolume *connectorASide, *connectorCSide;
 
   // Check whether we have already all pieces
   // Otherwise create them
@@ -2261,10 +2259,10 @@ void V3Layer::createOBColdPlateConnectorsASide()
   TGeoTranslation* trans2FitAHole = new TGeoTranslation("trans2FitAHole", xpos, ypos, zpos);
   trans2FitAHole->RegisterYourself();
 
-  TGeoCompositeShape* connBlockSh =
-    new TGeoCompositeShape("connBlockA-connBlockHollA:transBlockHollA-connASquareHole:transASquareHole-tube1AHole:"
-                           "trans1Tube1AHole-tube1AHole:trans2Tube1AHole-tube2AHole:trans1Tube2AHole-tube2AHole:"
-                           "trans2Tube2AHole-fitAHole:trans1FitAHole-fitAHole:trans2FitAHole");
+  TGeoCompositeShape* connBlockSh = new TGeoCompositeShape(
+    "connBlockA-connBlockHollA:transBlockHollA-connASquareHole:transASquareHole-tube1AHole:trans1Tube1AHole-tube1AHole:"
+    "trans2Tube1AHole-tube2AHole:trans1Tube2AHole-tube2AHole:trans2Tube2AHole-fitAHole:trans1FitAHole-fitAHole:"
+    "trans2FitAHole");
 
   TGeoVolume* connBlockA = new TGeoVolume("OBColdPlateConnectorBlockASide", connBlockSh, medPEEK);
   connBlockA->SetFillColor(42); // Brownish shade
@@ -2568,8 +2566,8 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
 
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
 
-  TGeoVolume* unitVol[2], *next2EndVol[2], *endVol[2];
-  Double_t* xtru, *ytru;
+  TGeoVolume *unitVol[2], *next2EndVol[2], *endVol[2];
+  Double_t *xtru, *ytru;
   Double_t zlen, zpos;
   Int_t nPoints;
   const Int_t nameLen = 30;

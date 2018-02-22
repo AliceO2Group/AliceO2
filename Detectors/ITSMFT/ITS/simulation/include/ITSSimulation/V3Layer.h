@@ -27,21 +27,18 @@ class TGeoCombiTrans;
 
 class TGeoVolume; // lines 15-15
 
-namespace o2 {
-namespace ITS {
+namespace o2
+{
+namespace ITS
+{
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
 /// to study different configurations during the development of the new ITS structure
-class V3Layer : public V11Geometry {
+class V3Layer : public V11Geometry
+{
 
-public:
-  enum {
-    kStave,
-    kHalfStave,
-    kModule,
-    kChip,
-    kNHLevels
-  };
+ public:
+  enum { kStave, kHalfStave, kModule, kChip, kNHLevels };
 
   // Default constructor
   V3Layer();
@@ -59,105 +56,45 @@ public:
   /// Default destructor
   ~V3Layer() override;
 
-  Bool_t hasGammaConversionRods() const
-  {
-    return mAddGammaConv;
-  };
+  Bool_t hasGammaConversionRods() const { return mAddGammaConv; };
 
-  Bool_t isTurbo() const
-  {
-    return mIsTurbo;
-  };
+  Bool_t isTurbo() const { return mIsTurbo; };
 
-  Double_t getChipThick() const
-  {
-    return mChipThickness;
-  };
+  Double_t getChipThick() const { return mChipThickness; };
 
-  Double_t getStaveTilt() const
-  {
-    return mStaveTilt;
-  };
+  Double_t getStaveTilt() const { return mStaveTilt; };
 
-  Double_t getStaveWidth() const
-  {
-    return mStaveWidth;
-  };
+  Double_t getStaveWidth() const { return mStaveWidth; };
 
-  Double_t getSensorThick() const
-  {
-    return mSensorThickness;
-  };
+  Double_t getSensorThick() const { return mSensorThickness; };
 
-  Double_t getNumberOfStaves() const
-  {
-    return mNumberOfStaves;
-  };
+  Double_t getNumberOfStaves() const { return mNumberOfStaves; };
 
-  Double_t getNumberOfChips() const
-  {
-    return mNumberOfChips;
-  };
+  Double_t getNumberOfChips() const { return mNumberOfChips; };
 
-  Double_t getRadius() const
-  {
-    return mLayerRadius;
-  };
+  Double_t getRadius() const { return mLayerRadius; };
 
-  Double_t getPhi0() const
-  {
-    return mPhi0;
-  };
+  Double_t getPhi0() const { return mPhi0; };
 
-  Double_t getIBModuleZLength() const
-  {
-    return mIBModuleZLength;
-  };
+  Double_t getIBModuleZLength() const { return mIBModuleZLength; };
 
-  Double_t getOBModuleZLength() const
-  {
-    return mOBModuleZLength;
-  };
+  Double_t getOBModuleZLength() const { return mOBModuleZLength; };
 
-  Int_t getChipType() const
-  {
-    return mChipTypeID;
-  }
+  Int_t getChipType() const { return mChipTypeID; }
 
-  Int_t getNumberOfStavesPerParent() const
-  {
-    return mHierarchy[kStave];
-  }
+  Int_t getNumberOfStavesPerParent() const { return mHierarchy[kStave]; }
 
-  Int_t getNumberOfHalfStavesPerParent() const
-  {
-    return mHierarchy[kHalfStave];
-  }
+  Int_t getNumberOfHalfStavesPerParent() const { return mHierarchy[kHalfStave]; }
 
-  Int_t getNumberOfModulesPerParent() const
-  {
-    return mHierarchy[kModule];
-  }
+  Int_t getNumberOfModulesPerParent() const { return mHierarchy[kModule]; }
 
-  Int_t getNumberOfChipsPerParent() const
-  {
-    return mHierarchy[kChip];
-  }
+  Int_t getNumberOfChipsPerParent() const { return mHierarchy[kChip]; }
 
-  Int_t getBuildLevel() const
-  {
-    return mBuildLevel;
-  }
+  Int_t getBuildLevel() const { return mBuildLevel; }
 
-  Detector::Model getStaveModel() const
-  {
-    return mStaveModel;
-  }
+  Detector::Model getStaveModel() const { return mStaveModel; }
 
-  void setChipThick(Double_t t)
-  {
-    mChipThickness = t;
-  };
+  void setChipThick(Double_t t) { mChipThickness = t; };
 
   /// Gets the Gamma Conversion Rod diameter
   Double_t getGammaConversionRodDiam();
@@ -173,15 +110,9 @@ public:
   /// \param w The stave width
   void setStaveWidth(Double_t w);
 
-  void setSensorThick(Double_t t)
-  {
-    mSensorThickness = t;
-  };
+  void setSensorThick(Double_t t) { mSensorThickness = t; };
 
-  void setNumberOfStaves(Int_t n)
-  {
-    mHierarchy[kStave] = mNumberOfStaves = n;
-  };
+  void setNumberOfStaves(Int_t n) { mHierarchy[kStave] = mNumberOfStaves = n; };
 
   /// Sets the number of units in a stave:
   ///      for the Inner Barrel: the number of chips per stave
@@ -189,30 +120,15 @@ public:
   /// \param u the number of units
   void setNumberOfUnits(Int_t u);
 
-  void setRadius(Double_t r)
-  {
-    mLayerRadius = r;
-  };
+  void setRadius(Double_t r) { mLayerRadius = r; };
 
-  void setPhi0(Double_t phi)
-  {
-    mPhi0 = phi;
-  }
+  void setPhi0(Double_t phi) { mPhi0 = phi; }
 
-  void setChipType(Int_t tp)
-  {
-    mChipTypeID = tp;
-  }
+  void setChipType(Int_t tp) { mChipTypeID = tp; }
 
-  void setBuildLevel(Int_t buildLevel)
-  {
-    mBuildLevel = buildLevel;
-  }
+  void setBuildLevel(Int_t buildLevel) { mBuildLevel = buildLevel; }
 
-  void setStaveModel(o2::ITS::Detector::Model model)
-  {
-    mStaveModel = model;
-  }
+  void setStaveModel(o2::ITS::Detector::Model model) { mStaveModel = model; }
 
   /// Adds the Gamma Conversion Rods to the geometry
   /// \param diam the diameter of each rod
@@ -223,7 +139,7 @@ public:
   /// \param motherVolume the TGeoVolume owing the volume structure
   virtual void createLayer(TGeoVolume* motherVolume);
 
-private:
+ private:
   /// Creates the actual Layer and places inside its mother volume
   /// A so-called "turbo" layer is a layer where staves overlap in phi
   /// User can set width and tilt angle, no check is performed here
