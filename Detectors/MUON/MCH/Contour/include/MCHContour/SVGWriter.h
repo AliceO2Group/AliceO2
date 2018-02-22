@@ -3,7 +3,7 @@
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See https://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -53,7 +53,7 @@ class SVGWriter
 
     void svgGroupStart(const std::string &classname)
     {
-      mSVGBuffer << "<g class=\"" << classname << "\">\n";
+      mSVGBuffer << R"(<g class=")" << classname << R"(">)" << "\n";
     }
 
     void svgGroupEnd()
@@ -75,13 +75,13 @@ class SVGWriter
     template<typename T>
     void polygon(const o2::mch::contour::Polygon<T> &p)
     {
-      mSVGBuffer << "<polygon points=\"";
+      mSVGBuffer << R"(<polygon points=")";
       auto vertices = getVertices(p);
       for (auto j = 0; j < vertices.size(); ++j) {
         auto v = vertices[j];
         mSVGBuffer << v.x << "," << v.y << ' ';
       }
-      mSVGBuffer << "\"/>\n";
+      mSVGBuffer << R"("/>)" << "\n";
     }
 
     template<typename T>
