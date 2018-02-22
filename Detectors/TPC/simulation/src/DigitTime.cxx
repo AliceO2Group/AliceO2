@@ -19,7 +19,6 @@ using namespace o2::TPC;
 
 void DigitTime::addDigit(size_t eventID, size_t trackID, const CRU& cru, GlobalPadNumber globalPad, float signal)
 {
-  /// Check whether the container at this spot already contains an entry
   mGlobalPads[globalPad].addDigit(eventID, trackID, signal);
   mCommonMode[cru.gemStack()] += signal;
 }
