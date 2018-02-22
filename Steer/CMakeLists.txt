@@ -10,6 +10,7 @@ set(SRCS
 set(HEADERS
   include/${MODULE_NAME}/O2RunAna.h
   include/${MODULE_NAME}/InteractionSampler.h
+  include/${MODULE_NAME}/HitProcessingManager.h
 )
 
 set(LINKDEF src/SteerLinkDef.h)

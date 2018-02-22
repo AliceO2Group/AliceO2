@@ -24,6 +24,8 @@ struct MCInteractionRecord {
   int orbit = 0;      ///< LHC orbit
   int period = 0;     ///< LHC period since beginning of run (if >0 -> time precision loss)
 
+  MCInteractionRecord() = default;
+
   MCInteractionRecord(double tNS, int bcr = 0, int orb = 0, int per = 0) : timeNS(tNS), bc(bcr), orbit(orb), period(per)
   {
   }
