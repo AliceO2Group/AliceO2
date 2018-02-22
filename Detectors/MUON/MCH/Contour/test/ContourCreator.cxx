@@ -3,7 +3,7 @@
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See https://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -27,14 +27,15 @@ using namespace o2::mch::contour::impl;
 struct ContourCreatorPolygons
 {
     ContourCreatorPolygons()
-    {
-      testPads.push_back({{{0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}, {0.0, 0.0}}});
-      testPads.push_back({{{1.0, 3.0}, {2.0, 3.0}, {2.0, 4.0}, {1.0, 4.0}, {1.0, 3.0}}});
-      testPads.push_back({{{1.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}}});
-      testPads.push_back({{{0.0, 1.0}, {1.0, 1.0}, {1.0, 2.0}, {0.0, 2.0}, {0.0, 1.0}}});
-      testPads.push_back({{{1.0, 1.0}, {2.0, 1.0}, {2.0, 2.0}, {1.0, 2.0}, {1.0, 1.0}}});
-      testPads.push_back({{{1.0, 2.0}, {2.0, 2.0}, {2.0, 3.0}, {1.0, 3.0}, {1.0, 2.0}}});
+      : testPads{
+      {{{0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}, {0.0, 0.0}}},
+      {{{1.0, 3.0}, {2.0, 3.0}, {2.0, 4.0}, {1.0, 4.0}, {1.0, 3.0}}},
+      {{{1.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}}},
+      {{{0.0, 1.0}, {1.0, 1.0}, {1.0, 2.0}, {0.0, 2.0}, {0.0, 1.0}}},
+      {{{1.0, 1.0}, {2.0, 1.0}, {2.0, 2.0}, {1.0, 2.0}, {1.0, 1.0}}},
+      {{{1.0, 2.0}, {2.0, 2.0}, {2.0, 3.0}, {1.0, 3.0}, {1.0, 2.0}}}
     }
+    {}
 
     std::vector<Polygon<double>> testPads;
     Polygon<double> polygon;
@@ -80,10 +81,10 @@ BOOST_AUTO_TEST_CASE(ContourCreationReturnsInputIfInputIsASinglePolygon)
 {
   std::vector<Polygon<double>> list;
   Polygon<double> onePolygon{{0, 0},
-                          {1, 0},
-                          {1, 1},
-                          {0, 1},
-                          {0, 0}};
+                             {1, 0},
+                             {1, 1},
+                             {0, 1},
+                             {0, 0}};
   list.push_back(onePolygon);
   auto contour = createContour(list);
   BOOST_REQUIRE(contour.size() == 1);
@@ -142,16 +143,16 @@ BOOST_AUTO_TEST_CASE(GetVertexFromVertical)
 {
   VerticalEdge<int> e{12, 20, 100};
 
-  BOOST_CHECK_EQUAL(e.begin(), (Vertex<int>{ 12, 20 }));
-  BOOST_CHECK_EQUAL(e.end(), (Vertex<int>{ 12, 100 }));
+  BOOST_CHECK_EQUAL(e.begin(), (Vertex<int>{12, 20}));
+  BOOST_CHECK_EQUAL(e.end(), (Vertex<int>{12, 100}));
 }
 
 BOOST_AUTO_TEST_CASE(GetVertexFromHorizontal)
 {
   HorizontalEdge<int> e{12, 20, 100};
 
-  BOOST_CHECK_EQUAL(e.begin(), (Vertex<int>{ 20, 12 }));
-  BOOST_CHECK_EQUAL(e.end(), (Vertex<int>{ 100, 12 }));
+  BOOST_CHECK_EQUAL(e.begin(), (Vertex<int>{20, 12}));
+  BOOST_CHECK_EQUAL(e.end(), (Vertex<int>{100, 12}));
 }
 
 BOOST_AUTO_TEST_CASE(FinalizeContourThrowsIfNumberOfVerticalsDifferFromNumberOfHorizontals)

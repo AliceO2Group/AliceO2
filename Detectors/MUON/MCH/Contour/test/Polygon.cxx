@@ -3,7 +3,7 @@
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See https://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -26,14 +26,15 @@ using namespace o2::mch::contour;
 struct POLYGONS
 {
     POLYGONS()
-    {
-      testPads.push_back({{{0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}, {0.0, 0.0}}});
-      testPads.push_back({{{1.0, 3.0}, {2.0, 3.0}, {2.0, 4.0}, {1.0, 4.0}, {1.0, 3.0}}});
-      testPads.push_back({{{1.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}}});
-      testPads.push_back({{{0.0, 1.0}, {1.0, 1.0}, {1.0, 2.0}, {0.0, 2.0}, {0.0, 1.0}}});
-      testPads.push_back({{{1.0, 1.0}, {2.0, 1.0}, {2.0, 2.0}, {1.0, 2.0}, {1.0, 1.0}}});
-      testPads.push_back({{{1.0, 2.0}, {2.0, 2.0}, {2.0, 3.0}, {1.0, 3.0}, {1.0, 2.0}}});
+      : testPads{
+      {{{0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}, {0.0, 0.0}}},
+      {{{1.0, 3.0}, {2.0, 3.0}, {2.0, 4.0}, {1.0, 4.0}, {1.0, 3.0}}},
+      {{{1.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}}},
+      {{{0.0, 1.0}, {1.0, 1.0}, {1.0, 2.0}, {0.0, 2.0}, {0.0, 1.0}}},
+      {{{1.0, 1.0}, {2.0, 1.0}, {2.0, 2.0}, {1.0, 2.0}, {1.0, 1.0}}},
+      {{{1.0, 2.0}, {2.0, 2.0}, {2.0, 3.0}, {1.0, 3.0}, {1.0, 2.0}}}
     }
+    {}
 
     std::vector<Polygon<double>> testPads;
     Polygon<double> polygon;
@@ -215,8 +216,8 @@ BOOST_AUTO_TEST_CASE(PolygonCenter)
 
   auto box = getBBox(p);
   std::cout << box << "\n";
-  BOOST_CHECK_EQUAL(box.xcenter(),-75.0);
-  BOOST_CHECK_EQUAL(box.ycenter(),-19.75);
+  BOOST_CHECK_EQUAL(box.xcenter(), -75.0);
+  BOOST_CHECK_EQUAL(box.ycenter(), -19.75);
 }
 
 
@@ -237,14 +238,14 @@ BOOST_AUTO_TEST_CASE(ConstructionByVectorIterators)
 
 BOOST_AUTO_TEST_CASE(PointOutsidePolygonDistanceToPolygonClosestToOneSegment)
 {
-  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{-1.0,-6.0},testPolygon2),1.0);
-  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{3.0,-14.0},testPolygon2),16.0);
+  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{-1.0, -6.0}, testPolygon2), 1.0);
+  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{3.0, -14.0}, testPolygon2), 16.0);
 }
 
 BOOST_AUTO_TEST_CASE(PointOutsidePolygonDistanceToPolygonClosestToOneSegmentEndPoint)
 {
-  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{-1.0,-14.0},testPolygon2),17.0);
-  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{7.0,-14.0},testPolygon2),20.0);
+  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{-1.0, -14.0}, testPolygon2), 17.0);
+  BOOST_CHECK_EQUAL(squaredDistancePointToPolygon(Vertex<double>{7.0, -14.0}, testPolygon2), 20.0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
