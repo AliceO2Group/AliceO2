@@ -805,6 +805,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/Field/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
+    ${CMAKE_SOURCE_DIR}/Steer/include
     ${MS_GSL_INCLUDE_DIR}
 )
 

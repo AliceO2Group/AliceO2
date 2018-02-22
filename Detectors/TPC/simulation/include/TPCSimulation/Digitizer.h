@@ -20,6 +20,7 @@
 #include "TPCSimulation/Point.h"
 
 #include "TPCBase/Mapper.h"
+#include "Steer/HitProcessingManager.h"
 
 #include <cmath>
 
@@ -60,10 +61,22 @@ class Digitizer
   void init();
 
   /// Steer conversion of points to digits
-  /// \param points Container with TPC points
+  /// \param sector Sector to be processed
+  /// \param hits Container with TPC hit groups
+  /// \param eventID ID of the processed event
+  /// \param eventTime Time of the bunch crossing of the processed event
   /// \return digits container
   DigitContainer* Process(const Sector& sector, const std::vector<o2::TPC::HitGroup>& hits, int eventID,
                           float eventTime);
+
+  /// Steer conversion of points to digits
+  /// \param sector Sector to be processed
+  /// \param hits Container with sorted TPC hit groups
+  /// \param hitids Container with additional information which hit groups to process
+  /// \param context Container with event information
+  /// \return digits container
+  DigitContainer* Process2(const Sector& sector, const std::vector<std::vector<o2::TPC::HitGroup>*>& hits,
+                           const std::vector<o2::TPC::TPCHitGroupID>& hitids, const o2::steer::RunContext& context);
 
   /// Process a single hit group
   /// \param inputgroup Hit group to be processed

@@ -51,6 +51,22 @@ DigitContainer* Digitizer::Process(const Sector& sector, const std::vector<o2::T
   return mDigitContainer;
 }
 
+DigitContainer* Digitizer::Process2(const Sector& sector, const std::vector<std::vector<o2::TPC::HitGroup>*>& hits,
+                                    const std::vector<o2::TPC::TPCHitGroupID>& hitids,
+                                    const o2::steer::RunContext& context)
+{
+  const auto& interactRecords = context.getEventRecords();
+
+  for (auto& id : hitids) {
+    auto entryvector = hits[id.entry];
+    auto& group = (*entryvector)[id.groupID];
+    auto& MCrecord = interactRecords[id.entry];
+    ProcessHitGroup(group, sector, MCrecord.timeNS * 0.001f, id.entry);
+  }
+
+  return mDigitContainer;
+}
+
 void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector, const float eventTime,
                                 const int eventID)
 {
@@ -117,7 +133,6 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
       }
 
       const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
-
       const float ADCsignal = SAMPAProcessing::getADCvalue(static_cast<float>(nElectronsGEM));
       SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
       for (float i = 0; i < nShapedPoints; ++i) {

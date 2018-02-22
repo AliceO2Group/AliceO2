@@ -29,7 +29,6 @@
 #include "FairRootManager.h"
 
 #include <sstream>
-//#include "valgrind/callgrind.h"
 
 ClassImp(o2::TPC::DigitizerTask)
 
@@ -43,13 +42,14 @@ DigitizerTask::DigitizerTask(int sectorid)
     mMCTruthArray(nullptr),
     mDigitsDebugArray(nullptr),
     mTimeBinMax(1000000),
+    mProcessTimeChunks(false),
     mIsContinuousReadout(true),
     mDigitDebugOutput(false),
-    mHitSector(sectorid)
+    mHitSector(sectorid),
+    mStartTime(-1),
+    mEndTime(-1)
 {
-  /// \todo get rid of new
   mDigitizer = new Digitizer;
-  // CALLGRIND_START_INSTRUMENTATION;
 }
 
 DigitizerTask::~DigitizerTask()
@@ -57,9 +57,6 @@ DigitizerTask::~DigitizerTask()
   delete mDigitizer;
   delete mDigitsArray;
   delete mDigitsDebugArray;
-
-  // CALLGRIND_STOP_INSTRUMENTATION;
-  // CALLGRIND_DUMP_STATS;
 }
 
 InitStatus DigitizerTask::Init()
@@ -72,8 +69,8 @@ InitStatus DigitizerTask::Init()
   }
 
   /// Fetch the hits for the sector which is to be processed
-  std::cout << "Processing sector " << mHitSector << "  - loading HitSector "
-            << int(Sector::getLeft(Sector(mHitSector))) << " and " << mHitSector << "\n";
+  LOG(DEBUG) << "Processing sector " << mHitSector << "  - loading HitSector "
+             << int(Sector::getLeft(Sector(mHitSector))) << " and " << mHitSector << "\n";
   std::stringstream sectornamestrleft, sectornamestrright;
   sectornamestrleft << "TPCHitsShiftedSector" << int(Sector::getLeft(Sector(mHitSector)));
   sectornamestrright << "TPCHitsShiftedSector" << mHitSector;
@@ -94,6 +91,14 @@ InitStatus DigitizerTask::Init()
     mgr->RegisterAny(Form("TPCDigitMCMetaData%i", mHitSector), mDigitsDebugArray, kTRUE);
   }
 
+  mDigitizer->init();
+  mDigitContainer = mDigitizer->getDigitContainer();
+  mDigitContainer->setup(mHitSector);
+  return kSUCCESS;
+}
+
+InitStatus DigitizerTask::Init2()
+{
   mDigitizer->init();
   mDigitContainer = mDigitizer->getDigitContainer();
   return kSUCCESS;
@@ -120,10 +125,28 @@ void DigitizerTask::Exec(Option_t* option)
   }
 
   // Treat the chosen sector
-  mDigitContainer->setup(mHitSector);
   mDigitContainer = mDigitizer->Process(Sector(mHitSector), *mSectorHitsArrayLeft, mgr->GetEntryNr(), eventTime);
   mDigitContainer = mDigitizer->Process(Sector(mHitSector), *mSectorHitsArrayRight, mgr->GetEntryNr(), eventTime);
   mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin,
+                                       mIsContinuousReadout);
+}
+
+void DigitizerTask::Exec2(Option_t* option)
+{
+  mDigitsArray->clear();
+  mMCTruthArray->clear();
+  if (mDigitDebugOutput) {
+    mDigitsDebugArray->clear();
+  }
+
+  const auto sec = Sector(mHitSector);
+  const int endTimeBin = SAMPAProcessing::getTimeBinFromTime(mEndTime * 0.001f);
+  if (mProcessTimeChunks) {
+    mDigitContainer->setFirstTimeBin(SAMPAProcessing::getTimeBinFromTime(mStartTime * 0.001f));
+  }
+  mDigitContainer = mDigitizer->Process2(sec, *mAllSectorHitsLeft, *mHitIdsLeft, *mRunContext);
+  mDigitContainer = mDigitizer->Process2(sec, *mAllSectorHitsRight, *mHitIdsRight, *mRunContext);
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, endTimeBin,
                                        mIsContinuousReadout);
 }
 
@@ -138,6 +161,14 @@ void DigitizerTask::FinishTask()
   if (mDigitDebugOutput) {
     mDigitsDebugArray->clear();
   }
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax,
+                                       mIsContinuousReadout);
+}
+
+void DigitizerTask::FinishTask2()
+{
+  if (!mIsContinuousReadout)
+    return;
   mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax,
                                        mIsContinuousReadout);
 }

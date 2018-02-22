@@ -50,6 +50,10 @@ class DigitContainer
   /// Reset the container
   void reset();
 
+  /// Set the first time bin for computing mEffectiveTimeBin
+  /// \param firstTB First time bin to be processed
+  void setFirstTimeBin(TimeBin firstTB) { mFirstTimeBin = firstTB; }
+
   /// Add digit to the container
   /// \param eventID MC Event ID
   /// \param trackID MC Track ID
@@ -78,10 +82,16 @@ class DigitContainer
 
 inline DigitContainer::DigitContainer() : mSector(-1), mFirstTimeBin(0), mEffectiveTimeBin(0), mTimeBins(500) {}
 
-inline void DigitContainer::setup(const Sector& sector) { mSector = sector; }
+inline void DigitContainer::setup(const Sector& sector)
+{
+  reset();
+  mSector = sector;
+}
 
 inline void DigitContainer::reset()
 {
+  mFirstTimeBin = 0;
+  mEffectiveTimeBin = 0;
   for (auto& time : mTimeBins) {
     time.reset();
   }

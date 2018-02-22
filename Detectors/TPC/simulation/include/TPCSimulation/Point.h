@@ -45,6 +45,14 @@ class ElementalHit {
   ClassDefNV(ElementalHit,1);
 };
 
+// an index to uniquely identify a single hit of TPC
+struct TPCHitGroupID {
+  TPCHitGroupID() = default;
+  TPCHitGroupID(int e, int gid) : entry{ e }, groupID{ gid } {}
+  int entry = -1;
+  int groupID = -1;
+};
+
 // a higher order hit class encapsulating
 // a set of elemental hits belonging to the same trackid (and sector)
 // construct used to do less MC truth linking and to save memory
@@ -134,13 +142,13 @@ public:
 #ifdef HIT_AOS
   std::vector<o2::TPC::ElementalHit> mHits; // the hits for this group
 #else
-  std::vector<float> mHitsXVctr; 
-  std::vector<float> mHitsYVctr; 
-  std::vector<float> mHitsZVctr; 
-  std::vector<float> mHitsTVctr;
-  std::vector<short> mHitsEVctr;
-  float mZAbsMin = 1E10; // minimal abs z position of all hits in this group
-  float mZAbsMax = 0.;   // maximal z position of all hits in this group
+ std::vector<float> mHitsXVctr;
+ std::vector<float> mHitsYVctr;
+ std::vector<float> mHitsZVctr;
+ std::vector<float> mHitsTVctr;
+ std::vector<short> mHitsEVctr;
+ float mZAbsMin = 1E10; // minimal abs z position of all hits in this group
+ float mZAbsMax = 0.;   // maximal z position of all hits in this group
 #endif
   ClassDefNV(HitGroup, 1);
 };
