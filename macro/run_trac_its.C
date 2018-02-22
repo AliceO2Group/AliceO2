@@ -11,11 +11,13 @@
 #include "FairSystemInfo.h"
 #include "Field/MagneticField.h"
 
+#include "ITSReconstruction/TrivialVertexer.h"
 #include "ITSReconstruction/CookedTrackerTask.h"
 #endif
 
-void run_trac_its(float rate = 0., std::string outputfile = "o2track_its.root", std::string inputfile = "o2clus.root",
-                  std::string paramfile = "o2sim_par.root");
+static std::stringstream mcfile;
+
+void run_trac_its(float rate = 0., std::string outputfile = "o2track_its.root", std::string inputfile = "o2clus.root", std::string paramfile = "o2sim_par.root");
 
 void run_trac_its(Int_t nEvents, TString mcEngine = "TGeant3", float rate = 0.)
 {
@@ -26,6 +28,7 @@ void run_trac_its(Int_t nEvents, TString mcEngine = "TGeant3", float rate = 0.)
   inputfile << "AliceO2_" << mcEngine << ".clus_" << nEvents << "_event.root";
   paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
   outputfile << "AliceO2_" << mcEngine << ".trac_" << nEvents << "_event.root";
+  mcfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
   run_trac_its(rate, outputfile.str(), inputfile.str(), paramfile.str());
 }
 
@@ -56,6 +59,9 @@ void run_trac_its(float rate, std::string outputfile, std::string inputfile, std
   Bool_t mcTruth = kTRUE; // kFALSE if no comparison with MC is needed
   o2::ITS::CookedTrackerTask* trac = new o2::ITS::CookedTrackerTask(n, mcTruth);
   trac->setContinuousMode(rate > 0.);
+
+  o2::ITS::TrivialVertexer& vertexer = trac->getVertexer();
+  vertexer.openInputFile(mcfile.str().c_str());
 
   fRun->AddTask(trac);
 

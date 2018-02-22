@@ -14,6 +14,7 @@ set(HEADERS
     )
 set(NO_DICT_SRCS # sources not for the dictionary
     src/TrivialClusterer.cxx
+    src/TrivialVertexer.cxx
     src/CAaux.cxx
     src/CATracker.cxx
     src/CATrackingStation.cxx
@@ -21,6 +22,7 @@ set(NO_DICT_SRCS # sources not for the dictionary
     )
 set(NO_DICT_HEADERS # sources not for the dictionary
     include/${MODULE_NAME}/TrivialClusterer.h
+    include/${MODULE_NAME}/TrivialVertexer.h
     include/${MODULE_NAME}/CAaux.h
     include/${MODULE_NAME}/CATracker.h
     include/${MODULE_NAME}/CATrackingStation.h
