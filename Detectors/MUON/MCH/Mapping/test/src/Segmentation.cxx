@@ -322,7 +322,6 @@ BOOST_AUTO_TEST_CASE(HasPadByPosition)
 
 BOOST_AUTO_TEST_CASE(CheckPositionOfOnePadInDE100Bending)
 {
-  Segmentation seg(100, true);
   BOOST_CHECK_EQUAL(seg.findPadByFEE(76, 9), seg.findPadByPosition(1.575, 18.69));
 }
 
