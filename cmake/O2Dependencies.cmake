@@ -594,9 +594,11 @@ o2_define_bucket(
     ITSBase
     DetectorsBase
     SimulationDataFormat
+    Steer
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Steer/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include

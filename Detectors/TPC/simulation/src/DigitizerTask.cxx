@@ -72,8 +72,8 @@ InitStatus DigitizerTask::Init()
   }
 
   /// Fetch the hits for the sector which is to be processed
-  std::cout << "Processing sector " << mHitSector << "  - loading HitSector " << mHitSector << " and "
-            << int(Sector::getRight(Sector(mHitSector))) << "\n";
+  std::cout << "Processing sector " << mHitSector << "  - loading HitSector "
+            << int(Sector::getLeft(Sector(mHitSector))) << " and " << mHitSector << "\n";
   std::stringstream sectornamestrleft, sectornamestrright;
   sectornamestrleft << "TPCHitsShiftedSector" << int(Sector::getLeft(Sector(mHitSector)));
   sectornamestrright << "TPCHitsShiftedSector" << mHitSector;
