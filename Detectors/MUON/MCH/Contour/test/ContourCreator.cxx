@@ -79,15 +79,15 @@ BOOST_AUTO_TEST_CASE(ContourCreationThrowsIfInputPolygonsAreNotCounterClockwiseO
 BOOST_AUTO_TEST_CASE(ContourCreationReturnsInputIfInputIsASinglePolygon)
 {
   std::vector<Polygon<double>> list;
-  Polygon<double> polygon{{0, 0},
+  Polygon<double> onePolygon{{0, 0},
                           {1, 0},
                           {1, 1},
                           {0, 1},
                           {0, 0}};
-  list.push_back(polygon);
+  list.push_back(onePolygon);
   auto contour = createContour(list);
   BOOST_REQUIRE(contour.size() == 1);
-  BOOST_CHECK_EQUAL(contour[0], polygon);
+  BOOST_CHECK_EQUAL(contour[0], onePolygon);
 }
 
 BOOST_AUTO_TEST_CASE(VerticalEdgeSortingMustSortSameAbcissaPointsLeftEdgeFirst)
