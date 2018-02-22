@@ -210,22 +210,10 @@ IF (IWYU_FOUND)
       )
 ENDIF ()
 
-Install(FILES ${CMAKE_BINARY_DIR}/check_system.sh
-        DESTINATION bin
-       )
-
 SET(VMCWORKDIR ${CMAKE_SOURCE_DIR})
-
-WRITE_CONFIG_FILE(config.sh)
 
 SET(VMCWORKDIR ${CMAKE_INSTALL_PREFIX}/share)
 SET(ROOT_INCLUDE_PATH ${CMAKE_INSTALL_PREFIX}/include)
-WRITE_CONFIG_FILE(config.sh_install)
-
-Install(FILES ${CMAKE_BINARY_DIR}/config.sh_install
-        DESTINATION bin
-        RENAME O2Config.sh
-       )
 
 # Place the CTestCustom.cmake in the build dir
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
