@@ -219,9 +219,9 @@ void Segmentation::forEachPadInArea(double xmin, double ymin, double xmax, doubl
 template<typename CALLABLE>
 void Segmentation::forEachNeighbouringPad(int paduid, CALLABLE &&func) const
 {
-  auto callback = [](void *data, int paduid) {
+  auto callback = [](void *data, int puid) {
     auto fn = static_cast<decltype(&func)>(data);
-    (*fn)(paduid);
+    (*fn)(puid);
   };
   mchSegmentationForEachNeighbouringPad(mImpl, paduid, callback, &func);
 }

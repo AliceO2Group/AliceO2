@@ -73,10 +73,10 @@ class SVGWriter
     }
 
     template<typename T>
-    void polygon(const o2::mch::contour::Polygon<T> &polygon)
+    void polygon(const o2::mch::contour::Polygon<T> &p)
     {
       mSVGBuffer << "<polygon points=\"";
-      auto vertices = getVertices(polygon);
+      auto vertices = getVertices(p);
       for (auto j = 0; j < vertices.size(); ++j) {
         auto v = vertices[j];
         mSVGBuffer << v.x << "," << v.y << ' ';
@@ -85,16 +85,16 @@ class SVGWriter
     }
 
     template<typename T>
-    void contour(const o2::mch::contour::Contour<T> &contour)
+    void contour(const o2::mch::contour::Contour<T> &c)
     {
-      for (auto &p: contour.getPolygons()) {
+      for (auto &p: c.getPolygons()) {
         polygon(p);
       }
     }
 
-    void points(const std::vector<std::pair<double, double>> &points, double radius=0.05)
+    void points(const std::vector<std::pair<double, double>> &pts, double radius=0.05)
     {
-      for (auto &p: points) {
+      for (auto &p: pts) {
         mSVGBuffer << boost::format(R"(<circle cx="%f" cy="%f" r="%f"/>)") % p.first % p.second % radius << "\n";
       }
     }
