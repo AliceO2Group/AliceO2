@@ -76,6 +76,7 @@ InitStatus CookedTrackerTask::Init()
       LOG(ERROR) << "ITS cluster labels not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
       return kERROR;
     }
+    mVertexer.setMCTruthContainer(mClsLabels);
   }
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -96,5 +97,9 @@ void CookedTrackerTask::Exec(Option_t* option)
     mTrkLabels->clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
+  std::vector<std::array<Double_t,3>> vertices;
+  mVertexer.process(*mClustersArray, vertices);
+
+  mTracker.setVertices(vertices);
   mTracker.process(*mClustersArray, *mTracksArray);
 }

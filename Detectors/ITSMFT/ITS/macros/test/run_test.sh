@@ -24,5 +24,5 @@ root.exe -b -q $O2_ROOT/share/macro/run_trac_its.C+\($nEvents,$mcEngine,$rate\) 
 
 root.exe -b -q CheckTracks.C+\($nEvents,$mcEngine\) >& CheckTracks.log
 
-root.exe DisplayTrack.C +\($nEvents,$mcEngine\)
+root.exe DisplayTrack.C+\($nEvents,$mcEngine\)
 

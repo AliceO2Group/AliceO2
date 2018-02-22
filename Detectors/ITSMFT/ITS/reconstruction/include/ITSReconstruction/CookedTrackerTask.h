@@ -18,6 +18,7 @@
 #include "FairTask.h" 
 
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSReconstruction/TrivialVertexer.h"
 #include "ITSReconstruction/CookedTracker.h"
 
 namespace o2
@@ -43,10 +44,13 @@ class CookedTrackerTask : public FairTask
 
   void setContinuousMode(bool mode) { mContinuousMode = mode; }
   bool getContinuousMode() { return mContinuousMode; }
+
+  TrivialVertexer &getVertexer() { return mVertexer; }
   
  private:
   bool mContinuousMode = true; ///< triggered or cont. mode
-  CookedTracker mTracker; ///< Track finder
+  CookedTracker mTracker;    ///< Track finder
+  TrivialVertexer mVertexer; ///< Vertex finder
 
   const
   std::vector<o2::ITSMFT::Cluster>* mClustersArray=nullptr;   ///< Array of clusters
@@ -56,7 +60,7 @@ class CookedTrackerTask : public FairTask
   std::vector<TrackITS>* mTracksArray = nullptr;                          ///< Array of tracks
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mTrkLabels=nullptr; ///< Track MC labels
 
-  ClassDefOverride(CookedTrackerTask, 1)
+  ClassDefOverride(CookedTrackerTask, 2)
 };
 }
 }

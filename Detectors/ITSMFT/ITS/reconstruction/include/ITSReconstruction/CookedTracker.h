@@ -51,17 +51,11 @@ public:
   CookedTracker& operator=(const CookedTracker& tr) = delete;
   ~CookedTracker() = default;
 
-  void setVertex(const Double_t* xyz, const Double_t* ers = nullptr)
+  void setVertices(std::vector<std::array<Double_t,3>> &vertices)
   {
-    mX = xyz[0];
-    mY = xyz[1];
-    mZ = xyz[2];
-    if (ers) {
-      mSigmaX = ers[0];
-      mSigmaY = ers[1];
-      mSigmaZ = ers[2];
-    }
+    mVertices = std::move(vertices);
   }
+  
   Double_t getX() const { return mX; }
   Double_t getY() const { return mY; }
   Double_t getZ() const { return mZ; }
@@ -126,13 +120,15 @@ public:
   Int_t mNumOfThreads; ///< Number of tracking threads
   
   Double_t mBz;///< Effective Z-component of the magnetic field (kG)
-  Double_t mX; ///< X-coordinate of the primary vertex
-  Double_t mY; ///< Y-coordinate of the primary vertex
-  Double_t mZ; ///< Z-coordinate of the primary vertex
 
-  Double_t mSigmaX; ///< error of the primary vertex position in X
-  Double_t mSigmaY; ///< error of the primary vertex position in Y
-  Double_t mSigmaZ; ///< error of the primary vertex position in Z
+  std::vector<std::array<Double_t,3>> mVertices;
+  Double_t mX = 0.; ///< X-coordinate of the primary vertex
+  Double_t mY = 0.; ///< Y-coordinate of the primary vertex
+  Double_t mZ = 0.; ///< Z-coordinate of the primary vertex
+
+  Double_t mSigmaX = 2.; ///< error of the primary vertex position in X
+  Double_t mSigmaY = 2.; ///< error of the primary vertex position in Y
+  Double_t mSigmaZ = 2.; ///< error of the primary vertex position in Z
 
   static Layer sLayers[kNLayers];  ///< Layers filled with clusters
   std::vector<TrackITS> mSeeds;    ///< Track seeds

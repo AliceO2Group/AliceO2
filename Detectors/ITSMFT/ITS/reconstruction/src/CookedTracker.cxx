@@ -82,11 +82,6 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
   for (Int_t i = 0; i < kNLayers; i++)
     sLayers[i].setR(klRadius[i]);
 
-  // Some default primary vertex
-  Double_t xyz[] = { 0., 0., 0. };
-  Double_t ers[] = { 2., 2., 2. };
-
-  setVertex(xyz, ers);
 }
 
 //__________________________________________________________________________
@@ -482,7 +477,13 @@ std::vector<TrackITS> CookedTracker::trackInThread(Int_t first, Int_t last)
   std::vector<TrackITS> seeds;
   seeds.reserve(last - first + 1);
 
-  makeSeeds(seeds, first, last);
+  for (auto &vtx : mVertices) {
+    mX = vtx[0];
+    mY = vtx[1];
+    mZ = vtx[2];
+    makeSeeds(seeds, first, last);
+  }
+
   std::sort(seeds.begin(), seeds.end());
 
   trackSeeds(seeds);
@@ -546,21 +547,6 @@ void CookedTracker::processFrame(std::vector<TrackITS>& tracks)
   //--------------------------------------------------------------------
   LOG(INFO) << "CookedTracker::process(), number of threads: " << mNumOfThreads << FairLogger::endl;
 
-  Double_t xyz[3]{ 0, 0, 0 }; // FIXME
-  setVertex(xyz);
-  // mSeeds = makeSeeds(0, sLayers[kSeedingLayer1].getNumberOfClusters());
-  // Seeding with the pileup primary vertices
-  /* FIXME
-     TClonesArray *verticesSPD=tracks->GetPileupVerticesSPD();
-     Int_t nfoundSPD=verticesSPD->GetEntries();
-     for (Int_t v=0; v<nfoundSPD; v++) {
-     vtx=(AliESDVertex *)verticesSPD->UncheckedAt(v);
-     if (!vtx->GetStatus()) continue;
-     xyz[0]=vtx->getX(); xyz[1]=vtx->getY(); xyz[2]=vtx->getZ();
-     setVertex(xyz);
-     makeSeeds();
-     }
-  */
   std::vector<std::future<std::vector<TrackITS>>> futures(mNumOfThreads);
   std::vector<std::vector<TrackITS>> seedArray(mNumOfThreads);
 
