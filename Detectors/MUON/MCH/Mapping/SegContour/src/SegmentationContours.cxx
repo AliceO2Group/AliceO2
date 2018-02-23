@@ -4,12 +4,12 @@
 //
 // See http://alice-o2.web.cern.ch/license for full licensing information.
 //
-// In apying this license CERN does not waive the privileges and immunities
+// In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
 ///
-/// @author  Laurent Apaduidecetche
+/// @author  Laurent Aphecetche
 
 #include "MCHMappingSegContour/SegmentationContours.h"
 #include "MCHContour/ContourCreator.h"
