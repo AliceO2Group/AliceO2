@@ -17,21 +17,21 @@
 
 using namespace o2::mch::contour;
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-
-BBox<double> getBBox(const Segmentation &seg)
+namespace o2
 {
-  return getBBox(getEnvelop(seg));
-}
+namespace mch
+{
+namespace mapping
+{
 
-Contour<double> getEnvelop(const Segmentation &seg)
+BBox<double> getBBox(const Segmentation& seg) { return getBBox(getEnvelop(seg)); }
+
+Contour<double> getEnvelop(const Segmentation& seg)
 {
   std::vector<Polygon<double>> polygons;
 
-  for (auto &contour: getDualSampaContours(seg)) {
-    for (auto &p : contour.getPolygons()) {
+  for (auto& contour : getDualSampaContours(seg)) {
+    for (auto& p : contour.getPolygons()) {
       polygons.push_back(p);
     }
   }
@@ -39,7 +39,7 @@ Contour<double> getEnvelop(const Segmentation &seg)
   return o2::mch::contour::createContour(polygons);
 }
 
-std::vector<std::vector<int>> getPadChannels(const Segmentation &seg)
+std::vector<std::vector<int>> getPadChannels(const Segmentation& seg)
 {
   std::vector<std::vector<int>> dualSampaPads;
 
@@ -59,7 +59,7 @@ std::vector<std::vector<int>> getPadChannels(const Segmentation &seg)
   return dualSampaPads;
 }
 
-std::vector<std::vector<Polygon<double>>> getPadPolygons(const Segmentation &seg)
+std::vector<std::vector<Polygon<double>>> getPadPolygons(const Segmentation& seg)
 {
   std::vector<std::vector<Polygon<double>>> dualSampaPads;
 
@@ -71,11 +71,8 @@ std::vector<std::vector<Polygon<double>>> getPadPolygons(const Segmentation &seg
       double dx = seg.padSizeX(paduid) / 2.0;
       double dy = seg.padSizeY(paduid) / 2.0;
 
-      pads.emplace_back(Polygon<double> {{x - dx, y - dy},
-                                         {x + dx, y - dy},
-                                         {x + dx, y + dy},
-                                         {x - dx, y + dy},
-                                         {x - dx, y - dy}});
+      pads.emplace_back(Polygon<double>{
+        { x - dx, y - dy }, { x + dx, y - dy }, { x + dx, y + dy }, { x - dx, y + dy }, { x - dx, y - dy } });
     });
     dualSampaPads.push_back(pads);
   }
@@ -83,17 +80,17 @@ std::vector<std::vector<Polygon<double>>> getPadPolygons(const Segmentation &seg
   return dualSampaPads;
 }
 
-std::vector<o2::mch::contour::Contour<double>> getDualSampaContours(const Segmentation &seg)
+std::vector<o2::mch::contour::Contour<double>> getDualSampaContours(const Segmentation& seg)
 {
   std::vector<o2::mch::contour::Contour<double>> contours;
   auto padPolygons = getPadPolygons(seg);
 
-  for (auto &vpads: padPolygons) {
+  for (auto& vpads : padPolygons) {
     contours.push_back(o2::mch::contour::createContour(vpads));
   }
   return contours;
 }
 
-}
-}
-}
+} // namespace mapping
+} // namespace mch
+} // namespace o2

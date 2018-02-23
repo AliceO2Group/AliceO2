@@ -12,36 +12,37 @@
 ///
 /// @author  Laurent Aphecetche
 
-
 #ifndef O2_MCH_MAPPING_impl3_PADGROUP_H
 #define O2_MCH_MAPPING_impl3_PADGROUP_H
 
 #include <ostream>
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-namespace impl3 {
-
-struct PadGroup
+namespace o2
 {
-    friend std::ostream &operator<<(std::ostream &os, const PadGroup &group)
-    {
-      os << "mFECId: " << group.mFECId << " mPadGroupTypeId: " << group.mPadGroupTypeId << " mPadSizeId: "
-         << group.mPadSizeId << " mX: " << group.mX << " mY: " << group.mY;
-      return os;
-    }
+namespace mch
+{
+namespace mapping
+{
+namespace impl3
+{
 
-    int mFECId;
-    int mPadGroupTypeId;
-    int mPadSizeId;
-    double mX;
-    double mY;
+struct PadGroup {
+  friend std::ostream& operator<<(std::ostream& os, const PadGroup& group)
+  {
+    os << "mFECId: " << group.mFECId << " mPadGroupTypeId: " << group.mPadGroupTypeId
+       << " mPadSizeId: " << group.mPadSizeId << " mX: " << group.mX << " mY: " << group.mY;
+    return os;
+  }
+
+  int mFECId;
+  int mPadGroupTypeId;
+  int mPadSizeId;
+  double mX;
+  double mY;
 };
 
-
-}
-}
-}
-}
+} // namespace impl3
+} // namespace mapping
+} // namespace mch
+} // namespace o2
 #endif

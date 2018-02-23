@@ -15,10 +15,14 @@
 #include <iostream>
 #include <map>
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-namespace impl3 {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
+namespace impl3
+{
 
 std::map<int, SegmentationCreator>& Creators()
 {
@@ -28,21 +32,15 @@ std::map<int, SegmentationCreator>& Creators()
 
 void registerSegmentationCreator(int segType, SegmentationCreator func)
 {
-  if (Creators().find(segType)!=Creators().end())
-  {
-    std::cerr << "WARNING: there is already a creator registered for segType=" << segType
-                                                                               << ". Will override it\n";
+  if (Creators().find(segType) != Creators().end()) {
+    std::cerr << "WARNING: there is already a creator registered for segType=" << segType << ". Will override it\n";
   }
   Creators()[segType] = func;
 }
 
+SegmentationCreator getSegmentationCreator(int segType) { return Creators()[segType]; }
 
-SegmentationCreator getSegmentationCreator(int segType)
-{
-  return Creators()[segType];
-}
-
-}
-}
-}
-}
+} // namespace impl3
+} // namespace mapping
+} // namespace mch
+} // namespace o2

@@ -113,8 +113,8 @@ BOOST_AUTO_TEST_CASE(NofNonBendingPads)
 
 BOOST_AUTO_TEST_CASE(TotalNofBendingFECInSegTypes)
 {
-  int nb{0};
-  int nnb{0};
+  int nb{ 0 };
+  int nnb{ 0 };
   forOneDetectionElementOfEachSegmentationType([&](int detElemId) {
     nb += Segmentation(detElemId, true).nofDualSampas();
     nnb += Segmentation(detElemId, false).nofDualSampas();
@@ -175,10 +175,10 @@ BOOST_AUTO_TEST_CASE(NofNonBendingFEC)
 
 BOOST_AUTO_TEST_CASE(CountPadsInSegmentations)
 {
-  int n{0};
+  int n{ 0 };
   forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
-    for (auto plane : {true, false}) {
-      Segmentation seg{detElemId, plane};
+    for (auto plane : { true, false }) {
+      Segmentation seg{ detElemId, plane };
       n += seg.nofPads();
     }
   });
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(CountPadsInSegmentations)
 
 BOOST_AUTO_TEST_CASE(LoopOnSegmentations)
 {
-  int n{0};
+  int n{ 0 };
   forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
     n += 2; // two planes (bending, non-bending)
   });
@@ -198,13 +198,11 @@ BOOST_AUTO_TEST_CASE(DualSampasWithLessThan64Pads)
 {
   std::map<int, int> non64;
   forOneDetectionElementOfEachSegmentationType([&non64](int detElemId) {
-    for (auto plane : {true, false}) {
-      Segmentation seg{detElemId, plane};
+    for (auto plane : { true, false }) {
+      Segmentation seg{ detElemId, plane };
       for (int i = 0; i < seg.nofDualSampas(); ++i) {
-        int n{0};
-        seg.forEachPadInDualSampa(seg.dualSampaId(i), [&n](int /*paduid*/) {
-          ++n;
-        });
+        int n{ 0 };
+        seg.forEachPadInDualSampa(seg.dualSampaId(i), [&n](int /*paduid*/) { ++n; });
         if (n != 64) {
           non64[n]++;
         }
@@ -231,15 +229,15 @@ BOOST_AUTO_TEST_CASE(DualSampasWithLessThan64Pads)
   BOOST_CHECK_EQUAL(non64[62], 4);
   BOOST_CHECK_EQUAL(non64[63], 7);
 
-  int n{0};
-  for (auto p: non64) {
+  int n{ 0 };
+  for (auto p : non64) {
     n += p.second;
   }
 
   BOOST_CHECK_EQUAL(n, 166);
 }
 
-void dumpToFile(std::string fileName, const Segmentation &seg, const std::vector<Point> &points)
+void dumpToFile(std::string fileName, const Segmentation& seg, const std::vector<Point>& points)
 {
   std::ofstream out(fileName);
   o2::mch::contour::SVGWriter w(getBBox(seg));
@@ -256,20 +254,20 @@ void dumpToFile(std::string fileName, const Segmentation &seg, const std::vector
 
 /// Check that for all points within the segmentation contour
 /// the findPadByPosition actually returns a valid pad
-std::vector<Point> checkGaps(const Segmentation &seg, double xstep = 1.0, double ystep = 1.0)
+std::vector<Point> checkGaps(const Segmentation& seg, double xstep = 1.0, double ystep = 1.0)
 {
   std::vector<Point> gaps;
   auto bbox = o2::mch::mapping::getBBox(seg);
   auto env = o2::mch::mapping::getEnvelop(seg);
 
-  if (env.size()!=1) {
+  if (env.size() != 1) {
     throw std::runtime_error("assumption env contour = one polygon is not verified");
   }
 
   for (double x = bbox.xmin() - xstep; x <= bbox.xmax() + xstep; x += xstep) {
     for (double y = bbox.ymin() - ystep; y <= bbox.ymax() + ystep; y += ystep) {
-      double distanceToEnveloppe = std::sqrt(o2::mch::contour::squaredDistancePointToPolygon({x, y}, env[0]));
-      bool withinEnveloppe = env.contains(x,y) && (distanceToEnveloppe > 1E-5);
+      double distanceToEnveloppe = std::sqrt(o2::mch::contour::squaredDistancePointToPolygon({ x, y }, env[0]));
+      bool withinEnveloppe = env.contains(x, y) && (distanceToEnveloppe > 1E-5);
       if (withinEnveloppe && !seg.isValid(seg.findPadByPosition(x, y))) {
         gaps.push_back(std::make_pair(x, y));
       }
@@ -278,12 +276,13 @@ std::vector<Point> checkGaps(const Segmentation &seg, double xstep = 1.0, double
   return gaps;
 }
 
-
 BOOST_DATA_TEST_CASE(NoGapWithinPads,
-                     boost::unit_test::data::make({100, 300, 500, 501, 502, 503, 504, 600, 601, 602, 700, 701, 702, 703, 704, 705, 706, 902, 903, 904, 905}) * boost::unit_test::data::make({true,false}),
+                     boost::unit_test::data::make({ 100, 300, 500, 501, 502, 503, 504, 600, 601, 602, 700,
+                                                    701, 702, 703, 704, 705, 706, 902, 903, 904, 905 }) *
+                       boost::unit_test::data::make({ true, false }),
                      detElemId, isBendingPlane)
 {
-  Segmentation seg{detElemId, isBendingPlane};
+  Segmentation seg{ detElemId, isBendingPlane };
   auto g = checkGaps(seg);
 
   if (!g.empty()) {
@@ -292,9 +291,8 @@ BOOST_DATA_TEST_CASE(NoGapWithinPads,
   BOOST_TEST(g.empty());
 }
 
-struct SEG
-{
-    Segmentation seg{100, true};
+struct SEG {
+  Segmentation seg{ 100, true };
 };
 
 BOOST_FIXTURE_TEST_SUITE(HasPadBy, SEG)
@@ -305,20 +303,14 @@ BOOST_AUTO_TEST_CASE(ThrowsIfDualSampaChannelIsNotBetween0And63)
   BOOST_CHECK_THROW(seg.findPadByFEE(102, 64), std::out_of_range);
 }
 
-BOOST_AUTO_TEST_CASE(ReturnsTrueIfPadIsConnected)
-{
-  BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(102, 3)), true);
-}
+BOOST_AUTO_TEST_CASE(ReturnsTrueIfPadIsConnected) { BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(102, 3)), true); }
 
 BOOST_AUTO_TEST_CASE(ReturnsFalseIfPadIsNotConnected)
 {
   BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(214, 14)), false);
 }
 
-BOOST_AUTO_TEST_CASE(HasPadByPosition)
-{
-  BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByPosition(40.0, 30.0)), true);
-}
+BOOST_AUTO_TEST_CASE(HasPadByPosition) { BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByPosition(40.0, 30.0)), true); }
 
 BOOST_AUTO_TEST_CASE(CheckPositionOfOnePadInDE100Bending)
 {

@@ -12,25 +12,27 @@
 ///
 /// @author  Laurent Aphecetche
 
-
 #ifndef O2_MCH_MAPPING_SEGMENTATIONSVGWRITER_H
 #define O2_MCH_MAPPING_SEGMENTATIONSVGWRITER_H
 
 #include <string>
 #include "MCHContour/SVGWriter.h"
 
-namespace o2 {
-namespace mch {
-namespace mapping {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
 
 class Segmentation;
 
 std::string svgSegmentationDefaultStyle();
 
-void svgSegmentation(const Segmentation &seg, o2::mch::contour::SVGWriter &writer, bool showdes, bool showdualsampas,
+void svgSegmentation(const Segmentation& seg, o2::mch::contour::SVGWriter& writer, bool showdes, bool showdualsampas,
                      bool showpads, bool showpadchannels);
-}
-}
-}
+} // namespace mapping
+} // namespace mch
+} // namespace o2
 
 #endif

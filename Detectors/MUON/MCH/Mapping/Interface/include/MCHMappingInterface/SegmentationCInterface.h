@@ -25,17 +25,16 @@
 #define O2_MCH_SEGMENTATIONCINTERFACE_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-typedef struct MchSegmentation *MchSegmentationHandle;
+typedef struct MchSegmentation* MchSegmentationHandle;
 
-typedef void (*MchDetectionElementHandler)(void *clientData, int detElemId);
+typedef void (*MchDetectionElementHandler)(void* clientData, int detElemId);
 
-typedef void (*MchDualSampaHandler)(void *clientData, int dualSampaId);
+typedef void (*MchDualSampaHandler)(void* clientData, int dualSampaId);
 
-typedef void (*MchPadHandler)(void *clientData, int paduid);
+typedef void (*MchPadHandler)(void* clientData, int paduid);
 
 /** @name Creation and destruction of the segmentation handle.
  *
@@ -80,8 +79,8 @@ int mchSegmentationFindPadByFEE(MchSegmentationHandle segHandle, int dualSampaId
 ///@}
 
 /** @name Pad information retrieval.
-* Given a _valid_ paduid those methods return information
-* (position, size, front-end electronics) about that pad.
+ * Given a _valid_ paduid those methods return information
+ * (position, size, front-end electronics) about that pad.
  *
  * Positions and sizes are in centimetres.
  *
@@ -105,22 +104,20 @@ int mchSegmentationPadDualSampaChannel(MchSegmentationHandle segHandle, int padu
  * Functions to loop over some items : detection elements, dual sampas, and pads.
  */
 ///@{
-void mchSegmentationForEachDetectionElement(MchDetectionElementHandler handler, void *clientData);
+void mchSegmentationForEachDetectionElement(MchDetectionElementHandler handler, void* clientData);
 
-void mchSegmentationForOneDetectionElementOfEachSegmentationType(MchDetectionElementHandler handler, void *clientData);
+void mchSegmentationForOneDetectionElementOfEachSegmentationType(MchDetectionElementHandler handler, void* clientData);
 
-void mchSegmentationForEachDualSampa(MchSegmentationHandle segHandle, MchDualSampaHandler handler, void *clientData);
+void mchSegmentationForEachDualSampa(MchSegmentationHandle segHandle, MchDualSampaHandler handler, void* clientData);
 
 void mchSegmentationForEachPadInDualSampa(MchSegmentationHandle segHandle, int dualSampaId, MchPadHandler handler,
-                                          void *clientData);
+                                          void* clientData);
 
-void
-mchSegmentationForEachPadInArea(MchSegmentationHandle segHandle, double xmin, double ymin, double xmax, double ymax,
-                                MchPadHandler handler, void *clientData);
+void mchSegmentationForEachPadInArea(MchSegmentationHandle segHandle, double xmin, double ymin, double xmax,
+                                     double ymax, MchPadHandler handler, void* clientData);
 
-void
-mchSegmentationForEachNeighbouringPad(MchSegmentationHandle segHandle, int paduid, MchPadHandler handler,
-                                      void *userData);
+void mchSegmentationForEachNeighbouringPad(MchSegmentationHandle segHandle, int paduid, MchPadHandler handler,
+                                           void* userData);
 ///@}
 
 #ifdef __cplusplus
