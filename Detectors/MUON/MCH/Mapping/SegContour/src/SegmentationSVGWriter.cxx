@@ -20,9 +20,12 @@
 
 using namespace o2::mch::contour;
 
-namespace o2 {
-namespace mch {
-namespace mapping {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
 
 std::string svgSegmentationDefaultStyle()
 {
@@ -57,8 +60,7 @@ std::string svgSegmentationDefaultStyle()
 )";
 }
 
-void svgSegmentation(const Segmentation &seg, SVGWriter &w,
-                     bool showdes, bool showdualsampas, bool showpads,
+void svgSegmentation(const Segmentation& seg, SVGWriter& w, bool showdes, bool showdualsampas, bool showpads,
                      bool showpadchannels)
 {
   std::vector<Contour<double>> dualSampaContours = getDualSampaContours(seg);
@@ -74,19 +76,19 @@ void svgSegmentation(const Segmentation &seg, SVGWriter &w,
 
   if (showpads) {
     w.svgGroupStart("pads");
-    for (auto &dsp: dualSampaPads) {
-      for (auto &p: dsp) {
+    for (auto& dsp : dualSampaPads) {
+      for (auto& p : dsp) {
         w.polygon(p);
       }
     }
     w.svgGroupEnd();
   }
- 
+
   if (showpadchannels) {
     w.svgGroupStart("padchannels");
     for (auto i = 0; i < dualSampaPads.size(); ++i) {
-      auto &dsp = dualSampaPads[i];
-      auto &dspch = dualSampaPadChannels[i];
+      auto& dsp = dualSampaPads[i];
+      auto& dspch = dualSampaPadChannels[i];
       for (auto j = 0; j < dsp.size(); j++) {
         auto bbox = getBBox(dsp[j]);
         w.text(std::to_string(dspch[j]), bbox.xcenter(),
@@ -98,7 +100,7 @@ void svgSegmentation(const Segmentation &seg, SVGWriter &w,
 
   if (showdualsampas) {
     w.svgGroupStart("dualsampas");
-    for (auto &dsp: dualSampaContours) {
+    for (auto& dsp : dualSampaContours) {
       w.contour(dsp);
     }
     w.svgGroupEnd();
@@ -108,10 +110,8 @@ void svgSegmentation(const Segmentation &seg, SVGWriter &w,
     w.svgGroupStart("detectionelements");
     w.contour(deContour);
   }
-
 }
 
-}
-}
-}
-
+} // namespace mapping
+} // namespace mch
+} // namespace o2

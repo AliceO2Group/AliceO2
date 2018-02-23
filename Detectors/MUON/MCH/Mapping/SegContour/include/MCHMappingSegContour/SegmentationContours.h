@@ -12,7 +12,6 @@
 ///
 /// @author  Laurent Aphecetche
 
-
 #ifndef O2_MCH_MAPPING_SEGMENTATIONCONTOURS_H
 #define O2_MCH_MAPPING_SEGMENTATIONCONTOURS_H
 
@@ -22,21 +21,24 @@
 #include "MCHContour/BBox.h"
 #include "MCHMappingInterface/Segmentation.h"
 
-namespace o2 {
-namespace mch {
-namespace mapping {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
 
-std::vector<std::vector<o2::mch::contour::Polygon<double>>> getPadPolygons(const Segmentation &seg);
+std::vector<std::vector<o2::mch::contour::Polygon<double>>> getPadPolygons(const Segmentation& seg);
 
-std::vector<std::vector<int>> getPadChannels(const Segmentation &seg);
+std::vector<std::vector<int>> getPadChannels(const Segmentation& seg);
 
-std::vector<o2::mch::contour::Contour<double>> getDualSampaContours(const Segmentation &seg);
+std::vector<o2::mch::contour::Contour<double>> getDualSampaContours(const Segmentation& seg);
 
-o2::mch::contour::Contour<double> getEnvelop(const Segmentation &seg);
+o2::mch::contour::Contour<double> getEnvelop(const Segmentation& seg);
 
-o2::mch::contour::BBox<double> getBBox(const Segmentation &seg);
-}
-}
-}
+o2::mch::contour::BBox<double> getBBox(const Segmentation& seg);
+} // namespace mapping
+} // namespace mch
+} // namespace o2
 
 #endif

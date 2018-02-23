@@ -24,54 +24,57 @@
 #include "SegmentTree.h"
 #include <algorithm>
 
-namespace o2 {
-namespace mch {
-namespace contour {
-namespace impl {
-
-template<typename T>
-void sortVerticalEdges(std::vector<VerticalEdge<T>> &edges)
+namespace o2
 {
-// sort vertical edges in ascending x order
-// if same x, insure that left edges are before right edges
-// within same x, order by increasing bottommost y
-// Mind your steps ! This sorting is critical to the contour merging algorithm !
+namespace mch
+{
+namespace contour
+{
+namespace impl
+{
 
-  std::sort(edges.begin(), edges.end(),
-            [](const VerticalEdge<T> &e1, const VerticalEdge<T> &e2) {
+template <typename T>
+void sortVerticalEdges(std::vector<VerticalEdge<T>>& edges)
+{
+  // sort vertical edges in ascending x order
+  // if same x, insure that left edges are before right edges
+  // within same x, order by increasing bottommost y
+  // Mind your steps ! This sorting is critical to the contour merging algorithm !
 
-              auto x1 = e1.begin().x;
-              auto x2 = e2.begin().x;
+  std::sort(edges.begin(), edges.end(), [](const VerticalEdge<T>& e1, const VerticalEdge<T>& e2) {
 
-              auto y1 = bottom(e1);
-              auto y2 = bottom(e2);
+    auto x1 = e1.begin().x;
+    auto x2 = e2.begin().x;
 
-              if (areEqual(x1, x2)) {
-                if (isLeftEdge(e1) && isRightEdge(e2)) {
-                  return true;
-                }
-                if (isRightEdge(e1) && isLeftEdge(e2)) {
-                  return false;
-                }
-                return y1 < y2;
-              } else if (x1 < x2) {
-                return true;
-              } else {
-                return false;
-              }
-            });
+    auto y1 = bottom(e1);
+    auto y2 = bottom(e2);
+
+    if (areEqual(x1, x2)) {
+      if (isLeftEdge(e1) && isRightEdge(e2)) {
+        return true;
+      }
+      if (isRightEdge(e1) && isLeftEdge(e2)) {
+        return false;
+      }
+      return y1 < y2;
+    } else if (x1 < x2) {
+      return true;
+    } else {
+      return false;
+    }
+  });
 }
 
-template<typename T>
-Interval<T> interval(const VerticalEdge<T> &edge)
+template <typename T>
+Interval<T> interval(const VerticalEdge<T>& edge)
 {
   auto y1 = edge.begin().y;
   auto y2 = edge.end().y;
   return y2 > y1 ? Interval<T>(y1, y2) : Interval<T>(y2, y1);
 }
 
-template<typename T>
-std::vector<VerticalEdge<T>> getVerticalEdges(const Polygon<T> &polygon)
+template <typename T>
+std::vector<VerticalEdge<T>> getVerticalEdges(const Polygon<T>& polygon)
 {
   /// Return the vertical edges of the input polygon
   std::vector<VerticalEdge<T>> edges;
@@ -79,40 +82,40 @@ std::vector<VerticalEdge<T>> getVerticalEdges(const Polygon<T> &polygon)
     auto current = polygon[i];
     auto next = polygon[i + 1];
     if (current.x == next.x) {
-      edges.push_back({current.x, current.y, next.y});
+      edges.push_back({ current.x, current.y, next.y });
     }
   }
   return edges;
 }
 
-template<typename T>
-std::vector<VerticalEdge<T>> getVerticalEdges(const std::vector<Polygon<T>> &polygons)
+template <typename T>
+std::vector<VerticalEdge<T>> getVerticalEdges(const std::vector<Polygon<T>>& polygons)
 {
   std::vector<VerticalEdge<T>> edges;
-  for (const auto &p:polygons) {
+  for (const auto& p : polygons) {
     auto e = getVerticalEdges(p);
     edges.insert(edges.end(), e.begin(), e.end());
   }
   return edges;
 }
 
-template<typename T>
-T getX(const Vertex<T> &v)
+template <typename T>
+T getX(const Vertex<T>& v)
 {
   return v.x;
 }
 
-template<typename T>
-T getY(const Vertex<T> &v)
+template <typename T>
+T getY(const Vertex<T>& v)
 {
   return v.y;
 }
 
-template<typename T>
-using GetVertexPosFunc = T(*)(const Vertex<T> &);
+template <typename T>
+using GetVertexPosFunc = T (*)(const Vertex<T>&);
 
-template<typename T>
-std::vector<T> getPositions(const std::vector<Polygon<T>> &polygons, GetVertexPosFunc<T> func)
+template <typename T>
+std::vector<T> getPositions(const std::vector<Polygon<T>>& polygons, GetVertexPosFunc<T> func)
 {
   std::vector<T> ypos;
   for (auto i = 0; i < polygons.size(); ++i) {
@@ -121,26 +124,25 @@ std::vector<T> getPositions(const std::vector<Polygon<T>> &polygons, GetVertexPo
     }
   }
   std::sort(ypos.begin(), ypos.end());
-  auto last = std::unique(ypos.begin(), ypos.end(),
-                          [](const T &a, const T &b) { return areEqual(a, b); });
+  auto last = std::unique(ypos.begin(), ypos.end(), [](const T& a, const T& b) { return areEqual(a, b); });
   ypos.erase(last, ypos.end());
   return ypos;
 }
 
-template<typename T>
-std::vector<T> getYPositions(const std::vector<Polygon<T>> &polygons)
+template <typename T>
+std::vector<T> getYPositions(const std::vector<Polygon<T>>& polygons)
 {
   return getPositions(polygons, getY);
 }
 
-template<typename T>
-std::vector<T> getXPositions(const std::vector<Polygon<T>> &polygons)
+template <typename T>
+std::vector<T> getXPositions(const std::vector<Polygon<T>>& polygons)
 {
   return getPositions(polygons, getX);
 }
 
-template<typename T>
-std::vector<VerticalEdge<T>> sweep(Node<T> *segmentTree, const std::vector<VerticalEdge<T>> &polygonVerticalEdges)
+template <typename T>
+std::vector<VerticalEdge<T>> sweep(Node<T>* segmentTree, const std::vector<VerticalEdge<T>>& polygonVerticalEdges)
 {
   std::vector<VerticalEdge<T>> contourVerticalEdges;
 
@@ -148,7 +150,7 @@ std::vector<VerticalEdge<T>> sweep(Node<T> *segmentTree, const std::vector<Verti
 
   for (auto i = 0; i < polygonVerticalEdges.size(); ++i) {
 
-    const auto &edge = polygonVerticalEdges[i];
+    const auto& edge = polygonVerticalEdges[i];
     auto ival = interval(edge);
 
     if (isLeftEdge(edge)) {
@@ -159,19 +161,17 @@ std::vector<VerticalEdge<T>> sweep(Node<T> *segmentTree, const std::vector<Verti
       segmentTree->contribution(ival, edgeStack);
     }
 
-    auto e1{edge};
+    auto e1{ edge };
 
     if (i < polygonVerticalEdges.size() - 1) {
       e1 = polygonVerticalEdges[i + 1];
     }
 
-    if ((isLeftEdge(edge) != isLeftEdge(e1)) ||
-        (!areEqual(edge.begin().x, e1.begin().x)) ||
+    if ((isLeftEdge(edge) != isLeftEdge(e1)) || (!areEqual(edge.begin().x, e1.begin().x)) ||
         (i == polygonVerticalEdges.size() - 1)) {
-      for (auto es :edgeStack) {
-        contourVerticalEdges.push_back(isRightEdge(edge)
-                                       ? VerticalEdge<T>{edge.begin().x, es.begin(), es.end()} :
-                                       VerticalEdge<T>{edge.begin().x, es.end(), es.begin()});
+      for (auto es : edgeStack) {
+        contourVerticalEdges.push_back(isRightEdge(edge) ? VerticalEdge<T>{ edge.begin().x, es.begin(), es.end() }
+                                                         : VerticalEdge<T>{ edge.begin().x, es.end(), es.begin() });
       }
       edgeStack.clear();
     }
@@ -188,8 +188,8 @@ std::vector<VerticalEdge<T>> sweep(Node<T> *segmentTree, const std::vector<Verti
  * @param verticals
  * @return the horizontals, in the relevant order
  */
-template<typename T>
-std::vector<HorizontalEdge<T>> verticalsToHorizontals(const std::vector<VerticalEdge<T>> &verticals)
+template <typename T>
+std::vector<HorizontalEdge<T>> verticalsToHorizontals(const std::vector<VerticalEdge<T>>& verticals)
 {
   std::vector<HorizontalEdge<T>> horizontals(verticals.size());
 
@@ -197,30 +197,26 @@ std::vector<HorizontalEdge<T>> verticalsToHorizontals(const std::vector<Vertical
   std::vector<VertexWithRef> vertices;
 
   for (auto i = 0; i < verticals.size(); ++i) {
-    const auto &edge = verticals[i];
-    vertices.push_back({edge.begin(), i});
-    vertices.push_back({edge.end(), i});
+    const auto& edge = verticals[i];
+    vertices.push_back({ edge.begin(), i });
+    vertices.push_back({ edge.end(), i });
   }
 
   std::sort(vertices.begin(), vertices.end(),
-            [](const VertexWithRef &v1, const VertexWithRef &v2) {
-              return v1.first < v2.first;
-            });
+            [](const VertexWithRef& v1, const VertexWithRef& v2) { return v1.first < v2.first; });
 
   for (auto i = 0; i < vertices.size() / 2; ++i) {
-    const auto &p1 = vertices[2 * i];
-    const auto &p2 = vertices[2 * i + 1];
-    const VerticalEdge<T> &refEdge = verticals[p1.second];
+    const auto& p1 = vertices[2 * i];
+    const auto& p2 = vertices[2 * i + 1];
+    const VerticalEdge<T>& refEdge = verticals[p1.second];
     auto e = p1.first.x;
     auto b = p2.first.x;
-    if ((areEqual(p1.first.y, bottom(refEdge)) &&
-         isLeftEdge(refEdge)) ||
-        (areEqual(p1.first.y, top(refEdge)) &&
-         isRightEdge(refEdge))) {
+    if ((areEqual(p1.first.y, bottom(refEdge)) && isLeftEdge(refEdge)) ||
+        (areEqual(p1.first.y, top(refEdge)) && isRightEdge(refEdge))) {
       std::swap(b, e);
     }
-    HorizontalEdge<T> h{p1.first.y, b, e};
-// which vertical edge is preceding this horizontal ?
+    HorizontalEdge<T> h{ p1.first.y, b, e };
+    // which vertical edge is preceding this horizontal ?
     int preceding = p1.second;
     int next = p2.second;
     if (b > e) {
@@ -231,9 +227,9 @@ std::vector<HorizontalEdge<T>> verticalsToHorizontals(const std::vector<Vertical
   return horizontals;
 }
 
-template<typename T>
-Contour<T> finalizeContour(const std::vector<VerticalEdge<T>> &verticals,
-                           const std::vector<HorizontalEdge<T>> &horizontals)
+template <typename T>
+Contour<T> finalizeContour(const std::vector<VerticalEdge<T>>& verticals,
+                           const std::vector<HorizontalEdge<T>>& horizontals)
 {
   if (verticals.size() != horizontals.size()) {
     throw std::invalid_argument("should get the same number of verticals and horizontals");
@@ -257,14 +253,14 @@ Contour<T> finalizeContour(const std::vector<VerticalEdge<T>> &verticals,
   std::vector<bool> alreadyAdded(all.size(), false);
   std::vector<int> inorder;
 
-  int nofUsed{0};
-  int iCurrent{0};
+  int nofUsed{ 0 };
+  int iCurrent{ 0 };
 
-  ManhattanEdge<T> startSegment{all[iCurrent]};
+  ManhattanEdge<T> startSegment{ all[iCurrent] };
 
   while (nofUsed < all.size()) {
 
-    const ManhattanEdge<T> &currentSegment{all[iCurrent]};
+    const ManhattanEdge<T>& currentSegment{ all[iCurrent] };
     inorder.push_back(iCurrent);
     alreadyAdded[iCurrent] = true;
     ++nofUsed;
@@ -274,7 +270,9 @@ Contour<T> finalizeContour(const std::vector<VerticalEdge<T>> &verticals,
       }
       std::vector<Vertex<T>> vertices;
       vertices.reserve(inorder.size());
-      for (auto i:inorder) { vertices.push_back(all[i].begin()); }
+      for (auto i : inorder) {
+        vertices.push_back(all[i].begin());
+      }
       Polygon<T> polygon(vertices.begin(), vertices.end());
       contour.addPolygon(close(polygon));
       iCurrent = std::distance(alreadyAdded.begin(), std::find_if(alreadyAdded.begin(), alreadyAdded.end(),
@@ -296,10 +294,9 @@ Contour<T> finalizeContour(const std::vector<VerticalEdge<T>> &verticals,
   return contour;
 }
 
+} // namespace impl
+} // namespace contour
+} // namespace mch
+} // namespace o2
 
-}
-}
-}
-}
-
-#endif //ALO_CONTOURCREATOR_INL
+#endif // ALO_CONTOURCREATOR_INL

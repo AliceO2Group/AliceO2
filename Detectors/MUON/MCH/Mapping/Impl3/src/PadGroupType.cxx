@@ -12,7 +12,6 @@
 ///
 /// @author  Laurent Aphecetche
 
-
 #include "PadGroupType.h"
 #include "boost/format.hpp"
 #include <stdexcept>
@@ -20,18 +19,23 @@
 #include <algorithm>
 #include <iterator>
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-namespace impl3 {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
+namespace impl3
+{
 
-namespace {
-int extent(const std::vector<int> &v)
+namespace
+{
+int extent(const std::vector<int>& v)
 {
   auto result = std::minmax_element(begin(v), end(v));
   return 1 + *result.second - *result.first;
 }
-}
+} // namespace
 
 std::vector<int> validIndices(const std::vector<int>& ids)
 {
@@ -45,12 +49,11 @@ std::vector<int> validIndices(const std::vector<int>& ids)
 }
 
 PadGroupType::PadGroupType(int nofPadsX, int nofPadsY, std::vector<int> ids)
-  :
-  mFastId{std::move(ids)},
-  mFastIndices{validIndices(mFastId)},
-  mNofPads{static_cast<int>(std::count_if(begin(mFastId), end(mFastId), [](int i) { return i >= 0; }))},
-  mNofPadsX{nofPadsX},
-  mNofPadsY{nofPadsY}
+  : mFastId{ std::move(ids) },
+    mFastIndices{ validIndices(mFastId) },
+    mNofPads{ static_cast<int>(std::count_if(begin(mFastId), end(mFastId), [](int i) { return i >= 0; })) },
+    mNofPadsX{ nofPadsX },
+    mNofPadsY{ nofPadsY }
 {
 }
 
@@ -67,24 +70,24 @@ bool PadGroupType::hasPadById(int id) const
   return id != -1 && std::find(begin(mFastId), end(mFastId), id) != end(mFastId);
 }
 
-void dump(std::ostream &os, std::string msg, const std::vector<int> &v)
+void dump(std::ostream& os, std::string msg, const std::vector<int>& v)
 {
   os << boost::format("%4s ") % msg;
-  for (auto value: v) {
+  for (auto value : v) {
     os << boost::format("%2d ") % value;
   }
   os << "\n";
 }
 
-std::ostream &operator<<(std::ostream &os, const PadGroupType &pgt)
+std::ostream& operator<<(std::ostream& os, const PadGroupType& pgt)
 {
   os << "n=" << pgt.getNofPads() << " nx=" << pgt.getNofPadsX() << " ny=" << pgt.getNofPadsY() << "\n";
   dump(os, "index", pgt.mFastId);
   return os;
 }
 
-}
-}
-}
+} // namespace impl3
+} // namespace mapping
+} // namespace mch
 
-}
+} // namespace o2

@@ -12,14 +12,17 @@
 ///
 /// @author  Laurent Aphecetche
 
-
 #ifndef O2_MCH_MAPPING_impl3_PADSIZE_H
 #define O2_MCH_MAPPING_impl3_PADSIZE_H
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-namespace impl3 {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
+namespace impl3
+{
 
 double padSizeX(int i);
 

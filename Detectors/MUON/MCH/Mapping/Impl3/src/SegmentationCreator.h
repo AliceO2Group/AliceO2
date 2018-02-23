@@ -17,22 +17,24 @@
 
 #include "SegmentationImpl3.h"
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-namespace impl3 {
+namespace o2
+{
+namespace mch
+{
+namespace mapping
+{
+namespace impl3
+{
 
-using SegmentationCreator = Segmentation *(*)(bool);
+using SegmentationCreator = Segmentation* (*)(bool);
 
 void registerSegmentationCreator(int segType, SegmentationCreator func);
 
 SegmentationCreator getSegmentationCreator(int segType);
 
-}
-}
-}
-}
+} // namespace impl3
+} // namespace mapping
+} // namespace mch
+} // namespace o2
 
 #endif
-
-

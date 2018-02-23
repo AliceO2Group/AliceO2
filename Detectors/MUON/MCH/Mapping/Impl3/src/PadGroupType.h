@@ -12,80 +12,63 @@
 ///
 /// @author  Laurent Aphecetche
 
-
 #ifndef O2_MCH_MAPPING_PADGROUPTYPE_H
 #define O2_MCH_MAPPING_PADGROUPTYPE_H
 
 #include <vector>
 #include <ostream>
 
-namespace o2 {
-namespace mch {
-namespace mapping {
-namespace impl3 {
-
-struct PadGroupType
+namespace o2
 {
-    PadGroupType(int nofPadsX, int nofPadsY, std::vector<int> ids);
+namespace mch
+{
+namespace mapping
+{
+namespace impl3
+{
 
-    int getNofPads() const
-    { return mNofPads; }
+struct PadGroupType {
+  PadGroupType(int nofPadsX, int nofPadsY, std::vector<int> ids);
 
-    int getNofPadsX() const
-    {
-      return mNofPadsX;
-    }
+  int getNofPads() const { return mNofPads; }
 
-    int getNofPadsY() const
-    {
-      return mNofPadsY;
-    }
+  int getNofPadsX() const { return mNofPadsX; }
 
-    int fastIndex(int ix, int iy) const
-    {
-      return ix + iy * mNofPadsX;
-    }
+  int getNofPadsY() const { return mNofPadsY; }
 
-    int id(int fastIndex) const;
+  int fastIndex(int ix, int iy) const { return ix + iy * mNofPadsX; }
 
-    /// Return the index of the pad with indices = (ix,iy)
-    /// or -1 if not found
-    int id(int ix, int iy) const
-    {
-      return id(fastIndex(ix, iy));
-    }
+  int id(int fastIndex) const;
 
-    int iy(int fastIndex) const {
-      return fastIndex/mNofPadsX;
-    }
+  /// Return the index of the pad with indices = (ix,iy)
+  /// or -1 if not found
+  int id(int ix, int iy) const { return id(fastIndex(ix, iy)); }
 
-    int ix(int fastIndex) const {
-      return fastIndex - iy(fastIndex)*mNofPadsX;
-    }
+  int iy(int fastIndex) const { return fastIndex / mNofPadsX; }
 
-    std::vector<int> fastIndices() const {
-      return mFastIndices;
-    }
+  int ix(int fastIndex) const { return fastIndex - iy(fastIndex) * mNofPadsX; }
 
-    /// Whether pad with given id exists
-    bool hasPadById(int id) const;
+  std::vector<int> fastIndices() const { return mFastIndices; }
 
-    friend std::ostream &operator<<(std::ostream &os, const PadGroupType &type);
+  /// Whether pad with given id exists
+  bool hasPadById(int id) const;
 
-    int getIndex(int ix, int iy) const;
+  friend std::ostream& operator<<(std::ostream& os, const PadGroupType& type);
 
-    std::vector<int> mFastId;
-    std::vector<int> mFastIndices;
-    int mNofPads;
-    int mNofPadsX;
-    int mNofPadsY;
+  int getIndex(int ix, int iy) const;
+
+  std::vector<int> mFastId;
+  std::vector<int> mFastIndices;
+  int mNofPads;
+  int mNofPadsX;
+  int mNofPadsY;
 };
 
 PadGroupType getPadGroupType(int i);
 
-}
-}
-}
-}
+} // namespace impl3
+} // namespace mapping
+} // namespace mch
+} // namespace o2
 
 #endif
