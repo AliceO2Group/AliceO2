@@ -1422,3 +1422,27 @@ o2_define_bucket(
         mch_mapping_segcontour_bucket
         MCHMappingSegContour3
 )
+
+o2_define_bucket(
+    NAME
+    mch_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+)
+
+o2_define_bucket(
+    NAME
+    mch_preclustering_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    aliceHLTwrapper
+    MCHBase
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Utilities/aliceHLTwrapper/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
+)
+

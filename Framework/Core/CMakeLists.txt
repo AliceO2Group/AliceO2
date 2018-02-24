@@ -53,6 +53,77 @@ set(SRCS
     ${GUI_SOURCES}
    )
 
+set(HEADERS
+      include/Framework
+      include/Framework/DataProcessor.h
+      include/Framework/DataSpecUtils.h
+      include/Framework/FrameworkGUIDevicesGraph.h
+      include/Framework/DeviceMetricsInfo.h
+      include/Framework/DeviceSpec.h
+      include/Framework/DeviceControl.h
+      include/Framework/InitContext.h
+      include/Framework/ServiceRegistry.h
+      include/Framework/DeviceExecution.h
+      include/Framework/DebugGUI.h
+      include/Framework/TypeTraits.h
+      include/Framework/PaletteHelpers.h
+      include/Framework/SimpleMetricsService.h
+      include/Framework/ConfigParamSpec.h
+      include/Framework/TMessageSerializer.h
+      include/Framework/DataProcessorLabel.h
+      include/Framework/MetricsService.h
+      include/Framework/LogParsingHelpers.h
+      include/Framework/InputSpec.h
+      include/Framework/DeviceInfo.h
+      include/Framework/BoostOptionsRetriever.h
+      include/Framework/DataChunk.h
+      include/Framework/FrameworkGUIDebugger.h
+      include/Framework/runDataProcessing.h
+      include/Framework/AlgorithmSpec.h
+      include/Framework/ParamRetriever.h
+      include/Framework/ErrorContext.h
+      include/Framework/InputRecord.h
+      include/Framework/DataProcessorSpec.h
+      include/Framework/ConfigParamsHelper.h
+      include/Framework/InputRoute.h
+      include/Framework/ChannelConfigurationPolicyHelpers.h
+      include/Framework/ForwardRoute.h
+      include/Framework/MessageContext.h
+      include/Framework/ChannelMatching.h
+      include/Framework/RawDeviceService.h
+      include/Framework/TextControlService.h
+      include/Framework/DataAllocator.h
+      include/Framework/ConfigParamRegistry.h
+      include/Framework/DataRef.h
+      include/Framework/WorkflowSpec.h
+      include/Framework/LocalRootFileService.h
+      include/Framework/RemoteMetricsService.h
+      include/Framework/OutputSpec.h
+      include/Framework/ChannelSpec.h
+      include/Framework/ChannelConfigurationPolicy.h
+      include/Framework/DataSourceDevice.h
+      include/Framework/SimpleRawDeviceService.h
+      include/Framework/ExternalFairMQDeviceProxy.h
+      include/Framework/ControlService.h
+      include/Framework/DataRelayer.h
+      include/Framework/DataRefUtils.h
+      include/Framework/RootFileService.h
+      include/Framework/OutputRoute.h
+      include/Framework/DataProcessingHeader.h
+      include/Framework/ProcessingContext.h
+      include/Framework/FairOptionsRetriever.h
+      include/Framework/ParallelContext.h
+      include/Framework/RootObjectContext.h
+      include/Framework/DataProcessingDevice.h
+      include/Framework/Variant.h
+      src/DDSConfigHelpers.h
+      src/DeviceSpecHelpers.h
+      src/DriverControl.h
+      src/DriverInfo.h
+      src/GraphvizHelpers.h
+      src/WorkflowHelpers.h
+  )
+
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 

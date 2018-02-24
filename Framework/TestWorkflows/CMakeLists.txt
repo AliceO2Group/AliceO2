@@ -16,6 +16,11 @@ set(SRCS
     src/dummy.cxx
    )
 
+set(HEADERS
+    src/o2_sim_its_ALP3.h
+    src/o2_sim_tpc.h
+  )
+
 ## TODO: feature of macro, it deletes the variables we pass to it, set them again
 ## this has to be fixed in the macro implementation
 set(LIBRARY_NAME ${MODULE_NAME})

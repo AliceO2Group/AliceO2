@@ -22,6 +22,10 @@ set(SRCS
       src/DebugGUI.cxx
    )
 
+set(HEADERS
+    include/DebugGUI/imconfig.h
+    include/DebugGUI/imgui.h)
+
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
