@@ -48,6 +48,7 @@
 #include <set>
 #include <string>
 #include <type_traits>
+#include <chrono>
 
 #include <sys/resource.h>
 #include <sys/select.h>
@@ -188,10 +189,10 @@ int createPipes(int maxFd, int* pipes)
 // We don't do anything in the signal handler but
 // we simply note down the fact a signal arrived.
 // All the processing is done by the state machine.
-volatile sig_atomic_t sigint_requested = false;
+volatile sig_atomic_t graceful_exit = false;
 volatile sig_atomic_t sigchld_requested = false;
 
-static void handle_sigint(int) { sigint_requested = true; }
+static void handle_sigint(int) { graceful_exit = true; }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
@@ -518,6 +519,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
     driverInfo.batch = true;
   }
   bool guiQuitRequested = false;
+
   // FIXME: I should really have some way of exiting the
   // parent..
   DriverState current;
@@ -529,8 +531,18 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       }
       driverControl.forcedTransitions.resize(0);
     }
+    // In case a timeout was requested, we check if we are running
+    // for more than the timeout duration and exit in case that's the case.
+    {
+      auto currentTime = std::chrono::steady_clock::now();
+      std::chrono::duration<double> diff = currentTime - driverInfo.startTime;
+      if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff.count() > driverInfo.timeout)) {
+        LOG(INFO) << "Timout ellapsed. Requesting to quit.";
+        graceful_exit = true;
+      }
+    }
     // Move to exit loop if sigint was sent we execute this only once.
-    if (sigint_requested == true && driverInfo.sigintRequested == false) {
+    if (graceful_exit == true && driverInfo.sigintRequested == false) {
       driverInfo.sigintRequested = true;
       driverInfo.states.resize(0);
       driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
@@ -669,13 +681,13 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
         processSigChild(infos);
         if (areAllChildrenGone(infos) == true &&
-            (guiQuitRequested || (checkIfCanExit(infos) == true) || sigint_requested)) {
+            (guiQuitRequested || (checkIfCanExit(infos) == true) || graceful_exit)) {
           // We move to the exit, regardless of where we were
           driverInfo.states.resize(0);
           driverInfo.states.push_back(DriverState::EXIT);
           driverInfo.states.push_back(DriverState::GUI);
         } else if (areAllChildrenGone(infos) == false &&
-                   (guiQuitRequested || checkIfCanExit(infos) == true || sigint_requested)) {
+                   (guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
           driverInfo.states.push_back(DriverState::GUI);
         } else {
@@ -774,6 +786,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode") //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
+    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
@@ -820,6 +833,8 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();
+  driverInfo.startTime = std::chrono::steady_clock::now();
+  driverInfo.timeout = varmap["timeout"].as<double>();
 
   std::string frameworkId;
   if (varmap.count("id")) {
