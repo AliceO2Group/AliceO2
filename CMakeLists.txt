@@ -14,6 +14,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
 FOREACH (p
     CMP0025 # CMake 3.0
     CMP0042 # CMake 3.0
+    CMP0028
     )
   IF (POLICY ${p})
     cmake_policy(SET ${p} NEW)
