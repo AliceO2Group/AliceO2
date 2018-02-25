@@ -11,6 +11,7 @@
 #ifndef FRAMEWORK_DRIVER_INFO_H
 #define FRAMEWORK_DRIVER_INFO_H
 
+#include <chrono>
 #include <cstddef>
 #include <map>
 #include <vector>
@@ -93,6 +94,11 @@ struct DriverInfo {
   char** argv;
   /// Whether the driver was started in batch mode or not.
   bool batch;
+  /// The offset at which the process was started.
+  std::chrono::time_point<std::chrono::steady_clock> startTime;
+  /// The optional timeout after which the driver will request
+  /// all the children to quit.
+  double timeout;
 };
 
 } // namespace framework
