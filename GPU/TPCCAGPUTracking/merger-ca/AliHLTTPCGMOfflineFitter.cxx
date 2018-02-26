@@ -74,8 +74,8 @@ void AliHLTTPCGMOfflineFitter::Initialize( const AliHLTTPCCAParam& hltParam, Lon
   AliTPCReconstructor *tpcRec = new AliTPCReconstructor();
   tpcRec->SetRecoParam( AliTPCcalibDB::Instance()->GetTransform()->GetCurrentRecoParam() );
 
-  (this)->~AliTPCtracker();   //call the destructor explicitly
-  new (this) AliTPCtracker(param); // call the constructor 
+  //(this)->~AliTPCtracker();   //call the destructor explicitly
+  //new (this) AliTPCtracker(param); // call the constructor 
 
   AliTPCtracker::fSectors = AliTPCtracker::fInnerSec; 
   // AliTPCReconstructor::ParseOptions(tracker);  : not important, it only set useHLTClusters flag
