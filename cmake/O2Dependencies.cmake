@@ -1595,3 +1595,26 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
+
+o2_define_bucket(
+    NAME
+    mid_clustering_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    MIDBase
+)
+
+o2_define_bucket(
+    NAME
+    mid_clustering_test_bucket
+
+    DEPENDENCIES
+    Boost::unit_test_framework
+    $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
+    mid_clustering_bucket
+    MIDClustering
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/src
+)

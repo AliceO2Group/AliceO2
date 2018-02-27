@@ -1,0 +1,37 @@
+{
+    "fairMQOptions": {
+        "devices": [
+            {
+                "key": "MIDclusterizer",
+                "channels": [
+                    {
+                        "name": "data-in",
+                        "sockets": [
+                            {
+                                "type": "pull",
+                                "method": "connect",
+                                "address": "tcp://localhost:45000",
+                                "sndBufSize": 1000,
+                                "rcvBufSize": 1000,
+                                "rateLogging": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "data-out",
+                        "sockets": [
+                            {
+                                "type": "push",
+                                "method": "bind",
+                                "address": "tcp://*:46000",
+                                "sndBufSize": 1000,
+                                "rcvBufSize": 1000,
+                                "rateLogging": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
