@@ -13,7 +13,7 @@ struct AliHLTTPCCAMCInfo
 	float fPx;
 	float fPy;
 	float fPz;
-	float fNWeightCls;
+	float fGenRadius;
 };
 
 #endif
