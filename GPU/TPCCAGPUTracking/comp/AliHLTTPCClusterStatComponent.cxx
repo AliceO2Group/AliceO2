@@ -634,8 +634,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 				if (ip != 0)
 				{				       
-				  //ftrack.UpdateTrack(xyz[1], xyz[2], rowType, *fSliceParam, ft0, .999, false);
-				  prop.Update(xyz[1], xyz[2], rowType, *fSliceParam, false );
+				  prop.Update(xyz[1], xyz[2], rowType, *fSliceParam, 0, false );
 				}
 			}
 			if (hitsUsed)
