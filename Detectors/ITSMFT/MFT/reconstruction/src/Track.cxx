@@ -9,41 +9,19 @@
 // or submit itself to any jurisdiction.
 
 /// \file Track.cxx
-/// \brief Implementation of the Track class
-/// \author bogdan.vulpescu@cern.ch 
-/// \date 11/10/2016
+/// \brief Implementation of the MFT track
+/// \author bogdan.vulpescu@cern.ch
+/// \date Feb. 8, 2018
 
 #include "MFTReconstruction/Track.h"
-
-using namespace o2::MFT;
+#include "CommonConstants/MathConstants.h"
+#include "ITSMFTReconstruction/Cluster.h"
 
 ClassImp(o2::MFT::Track)
 
-//_____________________________________________________________________________
-Track::Track() : 
-FairTrackParam()
-{
-
-}
+using namespace o2::MFT;
+using namespace o2::ITSMFT;
+using namespace o2::constants::math;
+using namespace o2::track;
 
 //_____________________________________________________________________________
-Track::~Track()
-= default;
-
-//_____________________________________________________________________________
-Track::Track(const Track& track) :
-  FairTrackParam(track)
-{
-
-  *this = track;
-
-}
-
-//_____________________________________________________________________________
-Track& Track::operator=(const Track& track) 
-{
-
-  return *this;
-
-}
-

@@ -15,5 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::MFT::ClustererTask+;
+#pragma link C++ class o2::MFT::TrackerTask+;
+#pragma link C++ class o2::MFT::Track+;
 
 #endif

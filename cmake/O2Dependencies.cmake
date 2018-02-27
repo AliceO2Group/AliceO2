@@ -932,9 +932,6 @@ o2_define_bucket(
     MFTBase
     MFTSimulation
     DetectorsBase
-    O2Device_bucket
-    Tree
-    Net
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include

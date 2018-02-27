@@ -17,6 +17,8 @@
 #include "MFTBase/GeometryTGeo.h"
 #include "MFTSimulation/Detector.h"
 
+#include "ITSSimulation/Detector.h"
+
 #endif
 
 extern TSystem *gSystem;
@@ -71,6 +73,10 @@ void run_simu(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGeant3
 
   o2::field::MagneticField field("field","field +5kG");
   run->SetField(&field);
+
+  // add the ITS for the materials used in the common AlpideChip
+  o2::ITS::Detector* its = new o2::ITS::Detector(kTRUE);
+  run->AddModule(its);
   
   o2::MFT::Detector* mft = new o2::MFT::Detector();
   run->AddModule(mft);

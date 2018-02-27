@@ -104,6 +104,7 @@ void GeometryTGeo::Build(Int_t loadTrans)
     if (i == 0) {
       mNumberOfLadders.resize(mNumberOfDisks[i]);
       mNumberOfLaddersPerDisk.resize(mNumberOfDisks[i]);
+      mNumberOfSensorsPerDisk.resize(mNumberOfDisks[i]);
       mLastSensorIndex.resize(mNumberOfDisks[i]);
       mLadderIndex2Id.resize(mNumberOfDisks[i]);
       mLadderId2Index.resize(mNumberOfDisks[i]);
@@ -119,7 +120,8 @@ void GeometryTGeo::Build(Int_t loadTrans)
 
           numberOfLadders += mNumberOfLadders[j][nSensor];
           mTotalNumberOfSensors += mNumberOfLadders[j][nSensor] * nSensor;
-
+	  mNumberOfSensorsPerDisk[j] += nSensor*mNumberOfLadders[j][nSensor];
+	  
         } // nSensor
         mLastSensorIndex[j] = mTotalNumberOfSensors - 1;
         mNumberOfLaddersPerDisk[j] = numberOfLadders;
@@ -133,6 +135,8 @@ void GeometryTGeo::Build(Int_t loadTrans)
           Int_t n = extractNumberOfLadders(i, j, nSensor, nL);
         } // nSensor
 
+	LOG(INFO) << "Disk " << j << " has " << mNumberOfSensorsPerDisk[j] << " sensors " << FairLogger::endl;
+	
       } // disk
 
     } // half = 0
@@ -140,8 +144,37 @@ void GeometryTGeo::Build(Int_t loadTrans)
   } // halves
 
   mTotalNumberOfSensors *= mNumberOfHalves;
-  LOG(INFO) << "Total number of sensors " << mTotalNumberOfSensors << " in " << mNumberOfHalves << " detector halves"
-            << FairLogger::endl;
+  LOG(INFO) << "Total number of sensors " << mTotalNumberOfSensors << " in " << mNumberOfHalves << " detector halves" << FairLogger::endl;
+
+  mSensorIndexToLayer.resize(mTotalNumberOfSensors);
+  mLayerMedianZ.resize(mNumberOfDisks[0]);
+  Double_t zLay1[mNumberOfDisks[0]], zLay0[mNumberOfDisks[0]];
+  for (Int_t j = 0; j < mNumberOfDisks[0]; j++) {
+    zLay1[j] = +9999.;
+    zLay0[j] = -9999.;
+  }
+  for (Int_t i = 0; i < mTotalNumberOfSensors; i++) {
+    TGeoHMatrix* hm = extractMatrixSensor(i);
+    Double_t* trans = hm->GetTranslation();
+    Int_t disk = getDisk(i);
+    zLay1[disk] = std::min(zLay1[disk],trans[2]);
+    zLay0[disk] = std::max(zLay0[disk],trans[2]);
+  }
+  for (Int_t j = 0; j < mNumberOfDisks[0]; j++) {
+    mLayerMedianZ[j] = 0.5*(zLay0[j]+zLay1[j]);
+    //LOG(INFO) << "Disk " << j << " has median z " << mLayerMedianZ[j] << FairLogger::endl;
+  }
+  for (Int_t i = 0; i < mTotalNumberOfSensors; i++) {
+    TGeoHMatrix* hm = extractMatrixSensor(i);
+    Double_t* trans = hm->GetTranslation();
+    Int_t disk = getDisk(i);
+    if (trans[2] > mLayerMedianZ[disk]) {
+      mSensorIndexToLayer[i] = 2*disk;
+    } else {
+      mSensorIndexToLayer[i] = 2*disk+1;
+    }
+    //LOG(INFO) << "Sensor " << i << " is in layer " << mSensorIndexToLayer[i] << " translation z " << trans[2] << FairLogger::endl;
+  }
   /*
   // checks
   for (Int_t i = 0; i < mTotalNumberOfSensors; i++) {
@@ -433,7 +466,10 @@ TGeoHMatrix& GeometryTGeo::createT2LMatrix(Int_t index)
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::extractSensorXAlpha(int index, float& x, float& alpha) {}
+void GeometryTGeo::extractSensorXAlpha(int index, float& x, float& alpha)
+{
+}
+
 //__________________________________________________________________________
 Bool_t GeometryTGeo::getSensorID(Int_t index, Int_t& half, Int_t& disk, Int_t& ladder, Int_t& sensor) const
 {
@@ -526,4 +562,13 @@ Int_t GeometryTGeo::getSensorIndex(Int_t halfID, Int_t diskID, Int_t ladderID, I
   index += halfID * mTotalNumberOfSensors / 2;
 
   return index;
+
+}
+
+//__________________________________________________________________________
+Int_t GeometryTGeo::getLayer(Int_t index) const
+{
+
+  return mSensorIndexToLayer[index];
+  
 }
