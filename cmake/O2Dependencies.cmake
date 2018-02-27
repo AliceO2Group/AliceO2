@@ -106,6 +106,18 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    arrow_bucket
+
+    DEPENDENCIES
+    common_boost_bucket
+    ${ARROW_SHARED_LIB}
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${ARROW_INCLUDE_DIR}
+  )
+
+o2_define_bucket(
+    NAME
     ExampleModule1_bucket
 
     DEPENDENCIES # library names and other buckets
