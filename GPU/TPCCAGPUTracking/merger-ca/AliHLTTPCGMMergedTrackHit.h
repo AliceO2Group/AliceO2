@@ -17,7 +17,7 @@ struct AliHLTTPCGMMergedTrackHit
   unsigned char fSlice, fRow, fLeg;
   char fState;
   
-  enum hitState { flagSplitPad = 0x1, flagSplitTime = 0x2, flagSplit = 0x3, flagEdge = 0x4, flagSingle = 0x8, hwcfFlags = 0xF, flagRejectDistance = 0x10, flagRejectErr = 0x20, flagReject = 0x30 };
+  enum hitState { flagSplitPad = 0x1, flagSplitTime = 0x2, flagSplit = 0x3, flagEdge = 0x4, flagSingle = 0x8, flagShared = 0x10, hwcfFlags = 0x1F, flagRejectDistance = 0x20, flagRejectErr = 0x40, flagReject = 0x60 };
 };
 
 #endif 
