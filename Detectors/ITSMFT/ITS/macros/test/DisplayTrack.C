@@ -31,8 +31,8 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   using namespace o2::Base;
   using namespace o2::ITS;
 
-  using o2::ITSMFT::Hit;
   using o2::ITSMFT::Cluster;
+  using o2::ITSMFT::Hit;
 
   char filename[100];
   TFile* f = nullptr;
@@ -127,7 +127,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   points->SetMarkerColor(kMagenta);
 
   std::vector<Cluster>* clusArr = nullptr;
-  tree->SetBranchAddress("ITSCluster",&clusArr);
+  tree->SetBranchAddress("ITSCluster", &clusArr);
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabArr = nullptr;
   tree->SetBranchAddress("ITSClusterMCTruth", &clsLabArr);

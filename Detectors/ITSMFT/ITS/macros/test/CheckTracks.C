@@ -21,7 +21,8 @@
 #include "DataFormatsITS/TrackITS.h"
 #endif
 
-void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
+void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+{
   using namespace o2::ITSMFT;
   using namespace o2::ITS;
 
@@ -79,21 +80,22 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
     std::cout << "\nMC event " << n << '/' << nev << std::endl;
     Int_t nGen = 0, nGoo = 0;
     mcTree->GetEvent(n);
-    Int_t nmc=mcArr->size();
-    Int_t nmcrefs=mcTrackRefs->size();
+    Int_t nmc = mcArr->size();
+    Int_t nmcrefs = mcTrackRefs->size();
 
-    while ((n>lastEventID) && (tf<recTree->GetEntries())) { // Cache a new reconstructed TF
-       clusTree->GetEvent(tf);
-       recTree->GetEvent(tf);
-       nrec=recArr->size();
-       for (int i=0; i<nrec; i++) { // Find the last MC event within this reconstructed TF
-	 auto mclab = (trkLabArr->getLabels(i))[0];
-	 auto id = mclab.getEventID();
-	 if (id>lastEventID) lastEventID=id;
-       }
-       if (nrec>0)
-	 std::cout<<"Caching TF #"<<tf<<", with the last event ID="<<lastEventID<<std::endl;
-       tf++;
+    while ((n > lastEventID) && (tf < recTree->GetEntries())) { // Cache a new reconstructed TF
+      clusTree->GetEvent(tf);
+      recTree->GetEvent(tf);
+      nrec = recArr->size();
+      for (int i = 0; i < nrec; i++) { // Find the last MC event within this reconstructed TF
+        auto mclab = (trkLabArr->getLabels(i))[0];
+        auto id = mclab.getEventID();
+        if (id > lastEventID)
+          lastEventID = id;
+      }
+      if (nrec > 0)
+        std::cout << "Caching TF #" << tf << ", with the last event ID=" << lastEventID << std::endl;
+      tf++;
     }
 
     while (nmc--) {
@@ -102,32 +104,43 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       if (mID >= 0)
         continue; // Select primary particles
       Int_t pdg = mcTrack.GetPdgCode();
-      if (TMath::Abs(pdg) != 211) continue; // Select pions
+      if (TMath::Abs(pdg) != 211)
+        continue; // Select pions
 
-      int ok=0;
-      //Check the availability of clusters
-      for (int i=0; i < clusArr->size(); i++) {
-	const Cluster &c = (*clusArr)[i];
-	auto lab = (clusLabArr->getLabels(i))[0];
-	if (lab.getEventID() != n) continue;
-	if (lab.getTrackID() != nmc) continue;
-	auto r= c.getX();
-	if (TMath::Abs(r-2.2) <0.5) ok |= 0b1;
-	if (TMath::Abs(r-3.0) <0.5) ok |= 0b10;
-	if (TMath::Abs(r-3.8) <0.5) ok |= 0b100;
-	if (TMath::Abs(r-19.5)<0.5) ok |= 0b1000;
-	if (TMath::Abs(r-24.5)<0.5) ok |= 0b10000;
-	if (TMath::Abs(r-34.5)<0.5) ok |= 0b100000;
-	if (TMath::Abs(r-39.5)<0.5) ok |= 0b1000000;
+      int ok = 0;
+      // Check the availability of clusters
+      for (int i = 0; i < clusArr->size(); i++) {
+        const Cluster& c = (*clusArr)[i];
+        auto lab = (clusLabArr->getLabels(i))[0];
+        if (lab.getEventID() != n)
+          continue;
+        if (lab.getTrackID() != nmc)
+          continue;
+        auto r = c.getX();
+        if (TMath::Abs(r - 2.2) < 0.5)
+          ok |= 0b1;
+        if (TMath::Abs(r - 3.0) < 0.5)
+          ok |= 0b10;
+        if (TMath::Abs(r - 3.8) < 0.5)
+          ok |= 0b100;
+        if (TMath::Abs(r - 19.5) < 0.5)
+          ok |= 0b1000;
+        if (TMath::Abs(r - 24.5) < 0.5)
+          ok |= 0b10000;
+        if (TMath::Abs(r - 34.5) < 0.5)
+          ok |= 0b100000;
+        if (TMath::Abs(r - 39.5) < 0.5)
+          ok |= 0b1000000;
       }
-      if (ok != 0b1111111) continue;
+      if (ok != 0b1111111)
+        continue;
 
-      nGen++;// Generated tracks for the efficiency calculation 
-      
-      //Float_t mcYOut=-1., recYOut=-1.;
-      Float_t mcZOut=-1., recZOut=-1.;
-      Float_t mcPhiOut=-1., recPhiOut=-1.;
-      Float_t mcThetaOut=-1., recThetaOut=-1.;
+      nGen++; // Generated tracks for the efficiency calculation
+
+      // Float_t mcYOut=-1., recYOut=-1.;
+      Float_t mcZOut = -1., recZOut = -1.;
+      Float_t mcPhiOut = -1., recPhiOut = -1.;
+      Float_t mcThetaOut = -1., recThetaOut = -1.;
       Float_t mcPx = mcTrack.GetStartVertexMomentumX();
       Float_t mcPy = mcTrack.GetStartVertexMomentumY();
       Float_t mcPz = mcTrack.GetStartVertexMomentumZ();

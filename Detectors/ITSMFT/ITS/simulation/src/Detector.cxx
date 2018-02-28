@@ -327,8 +327,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
 
   auto stack = (o2::Data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay==0 || lay==6))  {
-    // Keep the track refs for the innermost and outermost layers only 
+  if (fMC->IsTrackExiting() && (lay == 0 || lay == 6)) {
+    // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
     tr.setUserId(lay);
