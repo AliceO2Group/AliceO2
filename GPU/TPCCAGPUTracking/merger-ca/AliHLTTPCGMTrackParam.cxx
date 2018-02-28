@@ -17,9 +17,6 @@
 //***************************************************************************
 
 #define HLTCA_CADEBUG 0
-#define PRINT_TRACKS 0
-#define MIRROR 1
-#define DOUBLE 1
 
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCAMath.h"
@@ -32,6 +29,8 @@
 #include "AliExternalTrackParam.h"
 #endif
 #include "AliHLTTPCCAParam.h"
+#include "AliHLTTPCCAClusterErrorStat.h"
+
 #include <cmath>
 #include <stdlib.h>
 
@@ -41,6 +40,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   const float kRadLen = 29.532;//28.94;
   
   CADEBUG(static int nTracks = 0;nTracks++;)
+  AliHLTTPCCAClusterErrorStat errorStat(N);
 
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
@@ -49,7 +49,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   prop.SetContinuousTracking( param.GetContinuousTracking() );
   prop.SetMaxSinPhi( maxSinPhi );
   prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
-
 
   if (param.GetContinuousTracking())
   {  
@@ -126,7 +125,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       float xx = clusters[ihit].fX;
       float yy = clusters[ihit].fY;
       float zz = clusters[ihit].fZ - fZOffset;
-      if (DOUBLE && ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
+      if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
       {
           float count = 1.;
           do
@@ -156,31 +155,9 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
             err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
       }
       
-      /*if (PRINT_TRACKS)
-      {
-          float ac = cos(alpha[ihit]), as = sin(alpha[ihit]);
-          static int init = 0;
-          static TFile *file;
-          static TNtuple *nt;
-          if (init == 0)
-          {
-            file = new TFile("tracksout.root","RECREATE");
-            file->cd();
-            nt = new TNtuple("field","field","track:cx:cy:cz:tx:ty:tz:mx:my:mz");      
-            init = 1;
-          }
-          nt->Fill((float) nTracks, ac * xx - as * yy, as * xx + ac * yy, zz, ac * fX - as * fP[0], as * fX + ac * fP[0], fP[1], ac * prop.Model().X() - as * prop.Model().Y(), as * prop.Model().X() + ac * prop.Model().Y(), prop.Model().Z());
-          if (nTracks == 29) {
-            nt->Write();
-            file->Write();
-            file->Close();
-            exit(0);
-          }
-      }*/
-    
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);)
 
-      if (MIRROR && err == 0 && changeDirection)
+      if (err == 0 && changeDirection)
       {
           const float mirrordY = prop.GetMirroredYTrack();
           CADEBUG(printf(" -- MiroredY: %f --> %f", fP[0], mirrordY);)
@@ -223,6 +200,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         continue;
       }
       CADEBUG(printf("\n");)
+      errorStat.Fill(xx, yy, zz, prop.GetAlpha(), fX, fP, fC, ihit, iWay);
       
       int retVal;
       float threshold = 3. + (lastUpdateX >= 0 ? (fabs(fX - lastUpdateX) / 2) : 0.);
