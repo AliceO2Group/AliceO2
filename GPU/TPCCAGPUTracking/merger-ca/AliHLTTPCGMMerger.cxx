@@ -827,6 +827,25 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       nOutTrackClusters += nHits;
     }
   }
+  
+  unsigned int maxId = 0;
+  for (int k = 0;k < nOutTrackClusters;k++)
+  {
+    if (fClusters[k].fId > maxId) maxId = fClusters[k].fId;
+  }
+  maxId++;
+  unsigned char* sharedCount = new unsigned char[maxId];
+  for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
+  for (int k = 0;k < nOutTrackClusters;k++)
+  {
+    if (sharedCount[fClusters[k].fId] < 255) sharedCount[fClusters[k].fId]++;
+  }
+  for (int k = 0;k < nOutTrackClusters;k++)
+  {
+    if (sharedCount[fClusters[k].fId] >= 2) fClusters[k].fState |= AliHLTTPCGMMergedTrackHit::flagShared;
+  }
+  delete[] sharedCount;
+  
   fNOutputTrackClusters = nOutTrackClusters;
 }
 
