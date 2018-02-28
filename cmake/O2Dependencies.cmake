@@ -33,6 +33,7 @@ find_package(Protobuf REQUIRED)
 
 find_package(GLFW)
 
+find_package(benchmark QUIET)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
@@ -1510,7 +1511,6 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
 )
 
-find_package(benchmark QUIET)
 
 o2_define_bucket(
   NAME
@@ -1568,28 +1568,5 @@ o2_define_bucket(
   $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
   mch_mapping_segcontour_bucket
   MCHMappingSegContour3
-)
-
-o2_define_bucket(
-  NAME
-  mch_base_bucket
-
-  DEPENDENCIES
-  root_base_bucket
-  fairroot_base_bucket
-)
-
-o2_define_bucket(
-  NAME
-  mch_preclustering_bucket
-
-  DEPENDENCIES
-  fairroot_base_bucket
-  aliceHLTwrapper
-  MCHBase
-
-  INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Utilities/aliceHLTwrapper/include
-  ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
 )
 
