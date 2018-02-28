@@ -100,14 +100,13 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         fOuterParam.fX = fX;
         fOuterParam.fAlpha = prop.GetAlpha();
     }
-    if (iWay && fabs(fP[4]) < 1) prop.SetSpecialErrors(true);
     CADEBUG(printf("Fitting track %d way %d\n", nTracks, iWay);)
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
     const bool rejectChi2ThisRound = ( nWays == 1 || iWay >= 1 );
-    const bool markNonFittedClusters = rejectChi2ThisRound && !(param.HighQPtForward() < fabs(fP[4]));
     const double kDeg2Rad = 3.14159265358979323846/180.;
     const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
+    if (rejectChi2ThisRound) prop.SetSpecialErrors(true);
   
     ResetCovariance();
     prop.SetFitInProjections(iWay != 0);
@@ -214,7 +213,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       const int err2 = fNDF > 0 && CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate;
       if ( err || err2 )
       {
-        if (markNonFittedClusters)
+        if (rejectChi2ThisRound)
         {
           if (fNDF > 0 && (fabs(yy - fP[0]) > 3 || fabs(zz - fP[1]) > 3)) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectDistance;
           else if (err && err >= -3) clusters[ihit].fState = AliHLTTPCGMMergedTrackHit::flagRejectErr;
@@ -247,7 +246,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else if (retVal == 2) // cluster far away form the track
       {
-        if (markNonFittedClusters) clusters[ihit].fState = AliHLTTPCGMMergedTrackHit::flagRejectDistance;
+        if (rejectChi2ThisRound) clusters[ihit].fState = AliHLTTPCGMMergedTrackHit::flagRejectDistance;
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
