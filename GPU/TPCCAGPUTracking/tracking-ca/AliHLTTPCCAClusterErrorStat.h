@@ -49,8 +49,8 @@ long long int AliHLTTPCCAClusterErrorStat::fCount = 0;
 #else
 struct AliHLTTPCCAClusterErrorStat
 {
-	AliHLTTPCCAClusterErrorStat(int maxN) {}
-	void Fill(float x, float y, float z, float alpha, float trkX, float *fP, float *fC, int ihit, int iWay) {}
+	GPUd() AliHLTTPCCAClusterErrorStat(int maxN) {}
+	GPUd() void Fill(float x, float y, float z, float alpha, float trkX, float *fP, float *fC, int ihit, int iWay) {}
 };
 
 #endif
