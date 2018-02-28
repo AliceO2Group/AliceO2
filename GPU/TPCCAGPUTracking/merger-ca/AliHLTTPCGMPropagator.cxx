@@ -660,17 +660,20 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   float z0 = posY - fP[0];
   float z1 = posZ - fP[1];
 
-  float w0, w1, w2, dChi2;
+  float w0, w1, w2, chiY, chiZ, dChi2;
 
   if (fFitInProjections)
   {
     w0 = 1./(err2Y + d00);
+    w1 = 0;
     w2 = 1./(err2Z + d11);
-    dChi2 = w0*z0*z0 + w2*z1*z1;
+    chiY = w0*z0*z0;
+    chiZ = w2*z1*z1;
+    dChi2 = chiY + chiZ;
   }
   else
   {
-    w0=fC[2]+err2Z,  w1=fC[1], w2=fC[0]+err2Y;
+    w0 = d11 + err2Z, w1 = d10, w2 = d00 + err2Y;
     { // Invert symmetric matrix
       float det = w0*w2 - w1*w1;
       if( CAMath::Abs(det)<1.e-10 ) return -1;
@@ -679,14 +682,22 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
       w1 = -w1*det;
       w2 =  w2*det;
     }
-    dChi2 = CAMath::Abs( (w0*z0 + w1*z1 )*z0 + (w1*z0 + w2*z1 )*z1 );
+    chiY = CAMath::Abs( (w0*z0 + w1*z1 ) * z0 );
+    chiZ = CAMath::Abs( (w1*z0 + w2*z1 ) * z1 );
+    dChi2 = chiY + chiZ;
   }
-  //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1, z0, z1);
-  //float tmpCut = param.HighQPtForward() < fabs(fT0.GetQPt()) ? 5 : 5; // change to fT0
-  //if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;  
+  //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, chiY, chiZ, z0, z1);
+  if (fSpecialErrors && rejectChi2)
+  {
+    if (dChi2 > 32.f) return 2;
+    if (chiY > 9.f || chiZ > 9.f) return 2;
+    if ((chiY > 6.25f || chiZ > 6.25f) && (clusterState & (AliHLTTPCGMMergedTrackHit::flagSplit | AliHLTTPCGMMergedTrackHit::flagShared))) return 2;
+    if ((chiY > 1.f || chiZ > 6.25f) && (clusterState & (AliHLTTPCGMMergedTrackHit::flagEdge | AliHLTTPCGMMergedTrackHit::flagSingle))) return 2;
+  }
+  
   //SG!!! if( fabs( fP[2] + z0*c20*mS0  ) > fMaxSinPhi ) return 1;
  
-  fT->Chi2()+= dChi2;
+  fT->Chi2() += dChi2;
   fT->NDF() += 2;
 
   if (fFitInProjections)
