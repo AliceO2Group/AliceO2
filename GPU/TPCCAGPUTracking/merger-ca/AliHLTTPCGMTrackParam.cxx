@@ -127,21 +127,26 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       float zz = clusters[ihit].fZ - fZOffset;
       if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
       {
-          float count = 1.;
+          CADEBUG(int ihitOld = ihit;)
+          float count = clusters[ihit].fAmp;
+          xx *= count;
+          yy *= count;
+          zz *= count;
           do
           {
               if (clusters[ihit].fSlice != clusters[ihit + wayDirection].fSlice || clusters[ihit].fLeg != clusters[ihit + wayDirection].fLeg || fabs(clusters[ihit].fY - clusters[ihit + wayDirection].fY) > 4. || fabs(clusters[ihit].fZ - clusters[ihit + wayDirection].fZ) > 4.) break;
               ihit += wayDirection;
               CADEBUG(printf("\t\tMerging hit row %d X %f Y %f Z %f\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);)
-              xx += clusters[ihit].fX;
-              yy += clusters[ihit].fY;
-              zz += clusters[ihit].fZ - fZOffset;
-              count += 1.;
+              const float amp = clusters[ihit].fAmp;
+              xx += clusters[ihit].fX * amp;
+              yy += clusters[ihit].fY * amp;
+              zz += (clusters[ihit].fZ - fZOffset) * amp;
+              count += amp;
           } while (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow);
           xx /= count;
           yy /= count;
           zz /= count;
-          CADEBUG(printf("\t\tDouble row (%d hits)\n", (int) count);)
+          CADEBUG(printf("\t\tDouble row (%f tot charge, %d -> %d)\n", count, ihitOld, ihit);)
       }
       
       bool changeDirection = (clusters[ihit].fLeg - lastLeg) & 1;
