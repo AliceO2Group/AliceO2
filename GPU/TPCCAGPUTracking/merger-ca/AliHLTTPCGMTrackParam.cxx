@@ -34,7 +34,7 @@
 #include <cmath>
 #include <stdlib.h>
 
-GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, float maxSinPhi)
+GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, int attempt, float maxSinPhi)
 {
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
@@ -104,7 +104,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     const bool rejectChi2ThisRound = ( nWays == 1 || iWay >= 1 );
     const double kDeg2Rad = 3.14159265358979323846/180.;
     const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
-    if (rejectChi2ThisRound) prop.SetSpecialErrors(true);
+    if (rejectChi2ThisRound && attempt == 0) prop.SetSpecialErrors(true);
   
     ResetCovariance();
     prop.SetFitInProjections(iWay != 0);
@@ -340,19 +340,32 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 {
 	if( !track.OK() ) return;    
 
-	int nTrackHits = track.NClusters();
-	AliHLTTPCGMTrackParam t = track.Param();
-	float Alpha = track.Alpha();  
-	CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt();)
-	bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha );
-	
-	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
+	const int nAttempts = 2;
+	for (int attempt = 0;;)
+	{
+		int nTrackHits = track.NClusters();
+		AliHLTTPCGMTrackParam t = track.Param();
+		float Alpha = track.Alpha();  
+		CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt();)
+		bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha, attempt );
+		
+		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 
-	CADEBUG(printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));)
-	track.SetOK(ok);
-	track.SetNClustersFitted( nTrackHits );
-	track.Param() = t;
-	track.Alpha() = Alpha;
+		CADEBUG(printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));)
+		
+		if (!ok && ++attempt < nAttempts)
+		{
+			for (int i = 0;i < track.NClusters();i++) clusters[track.FirstClusterRef() + i].fState &= AliHLTTPCGMMergedTrackHit::hwcfFlags;
+			CADEBUG(printf("Track rejected, running refit\n");)
+			continue;
+		}
+		
+		track.SetOK(ok);
+		track.SetNClustersFitted( nTrackHits );
+		track.Param() = t;
+		track.Alpha() = Alpha;
+		break;
+	}
 
 	{
 	  int ind = track.FirstClusterRef();
