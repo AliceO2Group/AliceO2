@@ -3,7 +3,7 @@
 
 //#define EXTRACT_RESIDUALS
 
-#ifdef EXTRACT_RESIDUALS
+#if (!defined(HLTCA_STANDALONE) || defined(BUILD_QA)) && !defined(HLTCA_GPUCODE) && defined(EXTRACT_RESIDUALS)
 #include "cagpu/AliHLTTPCCAGPURootDump.h"
 
 struct AliHLTTPCCAClusterErrorStat
@@ -34,7 +34,7 @@ struct AliHLTTPCCAClusterErrorStat
 				fC[5] * fTupBuf[ihit][7] / (fC[5] + fTupBuf[ihit][7]),
 				fC[9] * fTupBuf[ihit][8] / (fC[9] + fTupBuf[ihit][8]),
 				fC[14] * fTupBuf[ihit][9] / (fC[14] + fTupBuf[ihit][9]));
-			if (++fCount == 671689)
+			if (++fCount == 2000000)
 			{
 				printf("Reached %lld clusters in error stat, exiting\n", fCount);
 				fTup.~AliHLTTPCCAGPURootDump<TNtuple>();
