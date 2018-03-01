@@ -81,7 +81,6 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
 
   for (Int_t i = 0; i < kNLayers; i++)
     sLayers[i].setR(klRadius[i]);
-
 }
 
 //__________________________________________________________________________
@@ -477,7 +476,7 @@ std::vector<TrackITS> CookedTracker::trackInThread(Int_t first, Int_t last)
   std::vector<TrackITS> seeds;
   seeds.reserve(last - first + 1);
 
-  for (auto &vtx : mVertices) {
+  for (auto& vtx : mVertices) {
     mX = vtx[0];
     mY = vtx[1];
     mZ = vtx[2];

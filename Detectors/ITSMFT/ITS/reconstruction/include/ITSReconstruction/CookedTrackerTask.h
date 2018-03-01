@@ -15,7 +15,7 @@
 #ifndef ALICEO2_ITS_COOKEDTRACKERTASK_H
 #define ALICEO2_ITS_COOKEDTRACKERTASK_H
 
-#include "FairTask.h" 
+#include "FairTask.h"
 
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/TrivialVertexer.h"
@@ -26,16 +26,16 @@ namespace o2
 class MCCompLabel;
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template <typename T>
+class MCTruthContainer;
 }
- 
+
 namespace ITS
 {
 class CookedTrackerTask : public FairTask
 {
  public:
-  CookedTrackerTask(Int_t nThreads=1, Bool_t useMCTruth=kTRUE);
+  CookedTrackerTask(Int_t nThreads = 1, Bool_t useMCTruth = kTRUE);
   ~CookedTrackerTask() override;
 
   InitStatus Init() override;
@@ -45,24 +45,22 @@ class CookedTrackerTask : public FairTask
   void setContinuousMode(bool mode) { mContinuousMode = mode; }
   bool getContinuousMode() { return mContinuousMode; }
 
-  TrivialVertexer &getVertexer() { return mVertexer; }
-  
+  TrivialVertexer& getVertexer() { return mVertexer; }
+
  private:
   bool mContinuousMode = true; ///< triggered or cont. mode
-  CookedTracker mTracker;    ///< Track finder
-  TrivialVertexer mVertexer; ///< Vertex finder
+  CookedTracker mTracker;      ///< Track finder
+  TrivialVertexer mVertexer;   ///< Vertex finder
 
-  const
-  std::vector<o2::ITSMFT::Cluster>* mClustersArray=nullptr;   ///< Array of clusters
-  const
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< Cluster MC labels
+  const std::vector<o2::ITSMFT::Cluster>* mClustersArray = nullptr;               ///< Array of clusters
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; ///< Cluster MC labels
 
-  std::vector<TrackITS>* mTracksArray = nullptr;                          ///< Array of tracks
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mTrkLabels=nullptr; ///< Track MC labels
+  std::vector<TrackITS>* mTracksArray = nullptr;                            ///< Array of tracks
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr; ///< Track MC labels
 
   ClassDefOverride(CookedTrackerTask, 2)
 };
-}
-}
+} // namespace ITS
+} // namespace o2
 
 #endif /* ALICEO2_ITS_COOKEDTRACKERTASK */
