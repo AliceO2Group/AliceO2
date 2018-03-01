@@ -216,18 +216,18 @@ void DataSampling::dispatcherCallback(ProcessingContext& ctx, BernoulliGenerator
 
       OutputSpec outputSpec = createDispatcherOutputSpec(*input.spec);
 
-      const auto* inputHeader = Header::get<Header::DataHeader>(input.header);
+      const auto* inputHeader = header::get<header::DataHeader>(input.header);
 
-      if (inputHeader->payloadSerializationMethod == Header::gSerializationMethodInvalid) {
+      /*if (inputHeader->payloadSerializationMethod == header::gSerializationMethodInvalid) {
         LOG(ERROR) << "DataSampling::dispatcherCallback: input of origin'" << inputHeader->dataOrigin.str
                    << "', description '" << inputHeader->dataDescription.str
                    << "' has gSerializationMethodInvalid.";
-      } else if (inputHeader->payloadSerializationMethod == Header::gSerializationMethodROOT) {
+      } else*/ if (inputHeader->payloadSerializationMethod == header::gSerializationMethodROOT) {
         ctx.allocator().adopt(outputSpec, DataRefUtils::as<TObject>(input).release());
       } else { //POD
         //todo: use API for that when it is available
         ctx.allocator().adoptChunk(outputSpec, const_cast<char*>(input.payload), inputHeader->size(),
-                                   &Header::Stack::freefn, nullptr);
+                                   &header::Stack::freefn, nullptr);
       }
 
       LOG(DEBUG) << "DataSampler sends data from subspec " << input.spec->subSpec;
@@ -255,7 +255,7 @@ void DataSampling::dispatcherCallbackFairMQ(ProcessingContext& ctx, BernoulliGen
 
     auto cleanupFcn = [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); };
     for (auto& input : inputs) {
-      const auto* header = Header::get<header::DataHeader>(input.header);
+      const auto* header = header::get<header::DataHeader>(input.header);
 
       char* payloadCopy = new char[header->payloadSize];
       memcpy(payloadCopy, input.payload, header->payloadSize);
