@@ -25,7 +25,7 @@ struct FakeCluster {
   float z;
   float q;
 };
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
 size_t parallelSize = 4;
 size_t collectionChunkSize = 1000;

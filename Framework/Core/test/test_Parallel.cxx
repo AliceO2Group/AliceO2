@@ -25,7 +25,7 @@ struct FakeCluster {
   float z;
   float q;
 };
-using DataHeader = o2::Header::DataHeader;
+using DataHeader = o2::header::DataHeader;
 
 size_t parallelSize = 4;
 size_t collectionChunkSize = 1000;
@@ -102,7 +102,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
         for (auto& input : inputs) {
 
           const InputSpec* inputSpec = input.spec;
-          o2::Header::DataDescription outputDescription = inputSpec->description;
+          o2::header::DataDescription outputDescription = inputSpec->description;
 
           //todo: better sampled data flagging
           size_t len = strlen(outputDescription.str);
@@ -120,7 +120,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 
           LOG(DEBUG) << "DataSampler sends data from subSpec: " << inputSpec->subSpec;
 
-          const auto* inputHeader = o2::Header::get<o2::Header::DataHeader>(input.header);
+          const auto* inputHeader = o2::header::get<o2::header::DataHeader>(input.header);
           auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
 
           //todo: use some std function or adopt(), when it is available for POD data
