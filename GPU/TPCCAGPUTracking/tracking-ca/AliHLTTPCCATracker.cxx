@@ -580,6 +580,7 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	StartTimer(6);
 	RunTrackletConstructor();
 	StopTimer(6);
+	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracklets: %d\n", fParam.ISlice(), *NTracklets());
 
 	if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
@@ -591,6 +592,7 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	StartTimer(7);
 	RunTrackletSelector();
 	StopTimer(7);
+	if (fGPUDebugLevel >= 3) printf("Slice %d, Number of tracks: %d\n", fParam.ISlice(), *NTracks());
 
 	//std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
@@ -723,6 +725,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	useOutput->SetNTracks( nStoredTracks );
 	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
+	if (fGPUDebugLevel >= 3) printf("Slice %d, Output: Tracks %d, local tracks %d, hits %d\n", fParam.ISlice(), nStoredTracks, nStoredLocalTracks, nStoredHits);
 
 	StopTimer(9);
 }

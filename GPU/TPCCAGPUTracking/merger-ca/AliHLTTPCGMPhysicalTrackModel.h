@@ -70,6 +70,7 @@ class AliHLTTPCGMPhysicalTrackModel
   GPUd() float GetP() const { return fP; }
   GPUd() float GetPt() const { return fPt; }
 
+  GPUd() int PropagateToXBzLightNoUpdate( float x, float Bz, float &dLp );
   GPUd() int PropagateToXBzLight( float x, float Bz, float &dLp );
   
   GPUd() int PropagateToXBxByBz( float x,
