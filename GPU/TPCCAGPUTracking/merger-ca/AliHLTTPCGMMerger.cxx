@@ -319,8 +319,8 @@ void AliHLTTPCGMMerger::UnpackSlices()
     for ( int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack() ) {
       AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
       track.Set( sliceTr, alpha, iSlice );
-      if( !track.FilterErrors( fSliceParam, HLTCA_MAX_SIN_PHI ) ) continue;
-      if (DEBUG) printf("Slice %d, Track %d, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs());
+      if( !track.FilterErrors( fSliceParam, HLTCA_MAX_SIN_PHI, 0.1f ) ) continue;
+      if (DEBUG) printf("INPUT Slice %d, Track %d, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs());
       track.SetPrevNeighbour( -1 );
       track.SetNextNeighbour( -1 );
       track.SetSliceNeighbour( -1 );

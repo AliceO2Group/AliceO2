@@ -38,6 +38,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
 {
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
+  const float kDeg2Rad = 3.1415926535897 / 180.f;
+  const float kSectAngle = 2*3.1415926535897 / 18.f;
   
   CADEBUG(static int nTracks = 0;nTracks++;)
   AliHLTTPCCAClusterErrorStat errorStat(N);
@@ -88,6 +90,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   float covYYUpd = 0.;
   float lastUpdateX = -1.;
   
+  ConstrainSinPhi();
   for (int iWay = 0;iWay < nWays;iWay++)
   {
     if (iWay && param.GetNWaysOuter() && iWay == nWays - 1)
@@ -98,7 +101,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         fOuterParam.fX = fX;
         fOuterParam.fAlpha = prop.GetAlpha();
     }
-    CADEBUG(printf("Fitting track %d way %d\n", nTracks, iWay);)
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
     const bool rejectChi2ThisRound = ( nWays == 1 || iWay >= 1 );
@@ -109,6 +111,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     ResetCovariance();
     prop.SetFitInProjections(iWay != 0);
     prop.SetTrack( this, iWay ? prop.GetAlpha() : Alpha);
+    CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", nTracks, iWay, (int) (prop.GetAlpha() / kSectAngle + 0.5) + (fP[1] < 0 ? 18 : 0), prop.GetAlpha());)
+
 
     N = 0;
     lastUpdateX = -1;
@@ -238,8 +242,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
   if (!ok) return(false);
   
-  const float kDeg2Rad = 3.1415926535897 / 180.f;
-  const float kSectAngle = 2*3.1415926535897 / 18.f;
   Alpha = prop.GetAlpha();
   if (param.GetTrackReferenceX() <= 500)
   {

@@ -19,7 +19,18 @@
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCCAMath.h"
 
-GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x,  float Bz, float &dLp )
+GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLight( float x, float Bz, float &dLp )
+{
+    AliHLTTPCGMPhysicalTrackModel t = *this;
+    if( fabs(x-t.X())<1.e-8f ) return 0;
+    int err = t.PropagateToXBzLightNoUpdate(x, Bz, dLp);
+    if (err) return(err);
+    t.UpdateValues(); 
+    *this = t;
+    return 0;
+}
+
+GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate( float x, float Bz, float &dLp )
 {
   //
   // transport the track to X=x in magnetic field B = ( 0, 0, Bz[kG*0.000299792458] )
@@ -84,18 +95,13 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
   // the method returns error code (0 == no error)
   //
   
+  if(0){ // simple transport in Bz for test proposes
+    return PropagateToXBzLight( x, Bz, dLp );
+  }
   dLp = 0.;
 
   AliHLTTPCGMPhysicalTrackModel t = *this;
 
-  if(0){ // simple transport in Bz for test proposes
-    if( fabs(x-t.X())<1.e-8f ) return 0;
-    if( t.PropagateToXBzLight( x, Bz, dLp ) !=0 ) return -1;
-    t.UpdateValues(); 
-    *this = t;
-    return 0;
-  }
-  
   // Rotate to the system where Bx=By=0.
 
   float bt = AliHLTTPCCAMath::Sqrt(Bz*Bz + By*By);
@@ -142,7 +148,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
   // transport in rotated coordinate system to X''=xe:
 
   if (t.Px() < (1.f - HLTCA_MAX_SIN_PHI)) t.Px() = 1.f - HLTCA_MAX_SIN_PHI;
-  if( t.PropagateToXBzLight( xe, bb, dLp )!=0 ) return -1;
+  if( t.PropagateToXBzLightNoUpdate( xe, bb, dLp )!=0 ) return -1;
 
   // rotate coordinate system back to the original R{-1}==R{T}
   {  
@@ -161,7 +167,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBxByBz( float x,
 
   float ddLp = 0;
   if (t.Px() < (1.f - HLTCA_MAX_SIN_PHI)) t.Px() = 1.f - HLTCA_MAX_SIN_PHI;
-  if( t.PropagateToXBzLight( x, Bz, ddLp ) !=0 ) return -1;
+  if( t.PropagateToXBzLightNoUpdate( x, Bz, ddLp ) !=0 ) return -1;
   
   dLp+=ddLp;
 

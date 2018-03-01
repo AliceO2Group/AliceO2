@@ -22,7 +22,7 @@
 #include "AliHLTTPCCAParam.h"
 #include <cmath>
 
-bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinPhi )
+bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinPhi, float sinPhiMargin )
 {
   float lastX = fOrigTrack->Cluster(fOrigTrack->NClusters()-1 ).GetX();
 
@@ -58,7 +58,12 @@ bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinP
       float ex = fCosPhi; 
       float ey = fSinPhi;
       float ey1 = kdx + ey;
-      if( fabs( ey1 ) > maxSinPhi ) return 0;
+      if( fabs( ey1 ) > maxSinPhi )
+      {
+        if (ey1 > maxSinPhi && ey1 < maxSinPhi + sinPhiMargin) ey1 = maxSinPhi - 0.01;
+        else if (ey1 > -maxSinPhi - sinPhiMargin) ey1 = -maxSinPhi + 0.01;
+        else return 0;
+      }
 
       float ss = ey + ey1;      
       float ex1 = sqrt(1.f - ey1*ey1);
