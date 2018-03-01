@@ -19,7 +19,6 @@
 #include "AliHLTTPCGMSliceTrack.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMBorderTrack.h"
-#include "AliHLTTPCGMTrackLinearisation.h"
 #include "AliHLTTPCCAParam.h"
 #include <cmath>
 
