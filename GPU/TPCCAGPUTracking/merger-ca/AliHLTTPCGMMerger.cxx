@@ -35,7 +35,6 @@
 #include "AliHLTTPCCATrackLinearisation.h"
 
 #include "AliHLTTPCGMTrackParam.h"
-#include "AliHLTTPCGMTrackLinearisation.h"
 #include "AliHLTTPCGMSliceTrack.h"
 #include "AliHLTTPCGMBorderTrack.h"
 #include <cmath>
