@@ -660,8 +660,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   float z0 = posY - fP[0];
   float z1 = posZ - fP[1];
 
-  float w0, w1, w2, chiY, chiZ, dChi2;
-
+  float w0, w1, w2, chiY, chiZ;
   if (fFitInProjections)
   {
     w0 = 1./(err2Y + d00);
@@ -669,7 +668,6 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
     w2 = 1./(err2Z + d11);
     chiY = w0*z0*z0;
     chiZ = w2*z1*z1;
-    dChi2 = chiY + chiZ;
   }
   else
   {
@@ -684,18 +682,10 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
     }
     chiY = CAMath::Abs( (w0*z0 + w1*z1 ) * z0 );
     chiZ = CAMath::Abs( (w1*z0 + w2*z1 ) * z1 );
-    dChi2 = chiY + chiZ;
   }
+  float dChi2 = chiY + chiZ;
   //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, chiY, chiZ, z0, z1);
-  if (fSpecialErrors && rejectChi2)
-  {
-    if (dChi2 > 32.f) return 2;
-    if (chiY > 9.f || chiZ > 9.f) return 2;
-    if ((chiY > 6.25f || chiZ > 6.25f) && (clusterState & (AliHLTTPCGMMergedTrackHit::flagSplit | AliHLTTPCGMMergedTrackHit::flagShared))) return 2;
-    if ((chiY > 1.f || chiZ > 6.25f) && (clusterState & (AliHLTTPCGMMergedTrackHit::flagEdge | AliHLTTPCGMMergedTrackHit::flagSingle))) return 2;
-  }
-  
-  //SG!!! if( fabs( fP[2] + z0*c20*mS0  ) > fMaxSinPhi ) return 1;
+  if (fSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) return 2;
  
   fT->Chi2() += dChi2;
   fT->NDF() += 2;

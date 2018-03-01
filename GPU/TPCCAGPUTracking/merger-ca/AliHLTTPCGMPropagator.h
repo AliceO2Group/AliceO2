@@ -58,6 +58,14 @@ public:
   //  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
 
   GPUd() int Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2 );  
+  GPUd() int RejectCluster(float chiY, float chiZ, unsigned char clusterState)
+  {
+    if (chiY > 9.f || chiZ > 9.f) return 2;
+    if ((chiY > 6.25f || chiZ > 6.25f) && (clusterState & (AliHLTTPCGMMergedTrackHit::flagSplit | AliHLTTPCGMMergedTrackHit::flagShared))) return 2;
+    if ((chiY > 1.f || chiZ > 6.25f) && (clusterState & (AliHLTTPCGMMergedTrackHit::flagEdge | AliHLTTPCGMMergedTrackHit::flagSingle))) return 2;
+    return 0;
+  }
+      
 
   GPUd() float GetBz( float Alpha, float X, float Y, float Z ) const;
   GPUd() void  GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const;
