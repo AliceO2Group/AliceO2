@@ -93,14 +93,7 @@ public:
 
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.) const ;
 
-  GPUd() bool Fit
-  (
-   const AliHLTTPCGMPolynomialField* field,
-   AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param,
-   int &N, float &Alpha, 
-   bool UseMeanPt = 0,
-   float maxSinPhi = HLTCA_MAX_SIN_PHI
-   );
+  GPUd() bool Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, float maxSinPhi = HLTCA_MAX_SIN_PHI);
   
   GPUd() bool Rotate( float alpha );
 

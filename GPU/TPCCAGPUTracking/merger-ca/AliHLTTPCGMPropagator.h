@@ -41,7 +41,6 @@ public:
 
   GPUd() void SetPolynomialField( const AliHLTTPCGMPolynomialField* field ){ fField = field; }
 
-  GPUd() void SetUseMeanMomentum( bool Flag ){ fUseMeanMomentum = Flag; CalculateMaterialCorrection(); }
   GPUd() void SetContinuousTracking( bool Flag ){ fContinuousTracking = Flag; }
   GPUd() void SetFitInProjections( bool Flag ){ fFitInProjections = Flag; }
   GPUd() void SetToyMCEventsFlag( bool Flag ){ fToyMCEvents = Flag; }
@@ -85,7 +84,6 @@ private:
   float fAlpha; // rotation angle of the track coordinate system
   AliHLTTPCGMPhysicalTrackModel fT0;
   MaterialCorrection fMaterial;
-  bool fUseMeanMomentum;//
   bool fSpecialErrors;
   bool fContinuousTracking; // take field at the mean TPC Z
   bool fFitInProjections; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
@@ -95,7 +93,7 @@ private:
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
 : fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
-  fUseMeanMomentum(0), fSpecialErrors(0), fContinuousTracking(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
+  fSpecialErrors(0), fContinuousTracking(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
 {
 }
 
