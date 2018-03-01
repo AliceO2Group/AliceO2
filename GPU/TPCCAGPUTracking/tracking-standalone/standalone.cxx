@@ -189,7 +189,6 @@ int main(int argc, char** argv)
 	hlt.SetGPUTracker(configStandalone.runGPU);
 
 	hlt.SetSettings(eventSettings.solenoidBz, eventSettings.homemadeEvents, eventSettings.constBz);
-	if (configStandalone.lowpt) hlt.SetHighQPtForward(1./0.1);
 	hlt.SetNWays(configStandalone.nways);
 	hlt.SetNWaysOuter(configStandalone.nwaysouter);
 	if (configStandalone.cont) hlt.SetContinuousTracking(configStandalone.cont);
