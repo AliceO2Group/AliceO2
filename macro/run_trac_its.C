@@ -17,7 +17,8 @@
 
 static std::stringstream mcfile;
 
-void run_trac_its(float rate = 0., std::string outputfile = "o2track_its.root", std::string inputfile = "o2clus.root", std::string paramfile = "o2sim_par.root");
+void run_trac_its(float rate = 0., std::string outputfile = "o2track_its.root", std::string inputfile = "o2clus.root",
+                  std::string paramfile = "o2sim_par.root");
 
 void run_trac_its(Int_t nEvents, TString mcEngine = "TGeant3", float rate = 0.)
 {

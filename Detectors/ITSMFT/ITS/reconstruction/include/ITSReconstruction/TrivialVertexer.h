@@ -15,32 +15,35 @@
 
 #include <array>
 
-#include "Rtypes.h"  // for TrivialVertexer::Class, Double_t, ClassDef, etc
+#include "Rtypes.h" // for TrivialVertexer::Class, Double_t, ClassDef, etc
 
 class TFile;
 class TTree;
 class FairMCEventHeader;
 
-namespace o2 {
-  namespace ITSMFT {
-    class Cluster;
-  }
+namespace o2
+{
+namespace ITSMFT
+{
+class Cluster;
 }
+} // namespace o2
 
 namespace o2
 {
 class MCCompLabel;
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template <typename T>
+class MCTruthContainer;
 }
 namespace ITS
 {
-  class TrivialVertexer
+class TrivialVertexer
 {
   using Cluster = o2::ITSMFT::Cluster;
   using Label = o2::MCCompLabel;
+
  public:
   TrivialVertexer();
   ~TrivialVertexer();
@@ -48,21 +51,19 @@ namespace ITS
   TrivialVertexer(const TrivialVertexer&) = delete;
   TrivialVertexer& operator=(const TrivialVertexer&) = delete;
 
-  Bool_t openInputFile(const Char_t *);
-  
-  void process(const std::vector<Cluster>& clusters, std::vector<std::array<Double_t,3>>& vertices);
-  void setMCTruthContainer(const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *truth) {
-    mClsLabels = truth;
-  }
+  Bool_t openInputFile(const Char_t*);
+
+  void process(const std::vector<Cluster>& clusters, std::vector<std::array<Double_t, 3>>& vertices);
+  void setMCTruthContainer(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truth) { mClsLabels = truth; }
 
  private:
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; //Cluster MC labels
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; // Cluster MC labels
 
-  TFile *mFile = nullptr;
-  TTree *mTree = nullptr;
-  FairMCEventHeader *mHeader = nullptr;
+  TFile* mFile = nullptr;
+  TTree* mTree = nullptr;
+  FairMCEventHeader* mHeader = nullptr;
 };
-}
-}
+} // namespace ITS
+} // namespace o2
 
 #endif /* ALICEO2_ITS_TRIVIALVERTEXER_H */
