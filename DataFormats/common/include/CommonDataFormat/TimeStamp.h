@@ -27,6 +27,8 @@ class TimeStamp
   TimeStamp(T time) { mTimeStamp = time; }
   T getTimeStamp() const { return mTimeStamp; }
   void setTimeStamp(T t) { mTimeStamp = t; }
+  bool operator==(const TimeStamp<T>& t) const { return mTimeStamp == t.mTimeStamp; }
+
  private:
   T mTimeStamp = 0;
   ClassDefNV(TimeStamp, 1);
@@ -44,6 +46,22 @@ class TimeStampWithError : public TimeStamp<T>
   E mTimeStampError = 0;
   ClassDefNV(TimeStampWithError, 1);
 };
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const TimeStamp<T>& t)
+{
+  // stream itself
+  os << t.getTimeStamp();
+  return os;
+}
+
+template <typename T, typename E>
+std::ostream& operator<<(std::ostream& os, const TimeStampWithError<T, E>& t)
+{
+  // stream itself
+  os << t.getTimeStamp() << " +/- " << t.getTimeStampError();
+  return os;
+}
 }
 }
 
