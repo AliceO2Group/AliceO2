@@ -350,11 +350,6 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 
 	CADEBUG(printf("OUTPUT hits %d -> %d, QPt %f -> %f, SinPhi %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));)
-	if (param.HighQPtForward() < fabs(track.Param().QPt()))
-	{
-		ok = 1;
-		for (int k = 0;k < track.NClusters();k++) clusters[k].fState &= AliHLTTPCGMMergedTrackHit::hwcfFlags;
-	}
 	track.SetOK(ok);
 	track.SetNClustersFitted( nTrackHits );
 	track.Param() = t;

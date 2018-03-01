@@ -83,7 +83,6 @@ class AliHLTTPCCAStandaloneFramework
 	int SetGPUTracker(bool enable) { return(fTracker.SetGPUTracker(enable)); }
 	int GetGPUStatus() const { return(fTracker.GetGPUStatus()); }
 	int GetGPUMaxSliceCount() const { return(fTracker.MaxSliceCount()); }
-	void SetHighQPtForward(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetHighQPtForward(v); fMerger.SetSliceParam(param);}
 	void SetNWays(int v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetNWays(v); fMerger.SetSliceParam(param);}
 	void SetNWaysOuter(bool v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetNWaysOuter(v); fMerger.SetSliceParam(param);}
 	void SetSearchWindowDZDR(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetSearchWindowDZDR(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetSearchWindowDZDR(v);}

@@ -84,7 +84,6 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float ClusterError2CorrectionZ() const { return fClusterError2CorrectionZ; }
     GPUd() int MinNTrackClusters() const { return fMinNTrackClusters; }
     GPUd() float MaxTrackQPt() const { return fMaxTrackQPt; }
-    GPUd() float HighQPtForward() const { return fHighQPtForward; }
     GPUd() int GetNWays() const { return fNWays; }
     GPUd() int GetNWaysOuter() const { return fNWaysOuter; }
     GPUd() float GetSearchWindowDZDR() const { return fSearchWindowDZDR; }
@@ -120,7 +119,6 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
 
     GPUd() void SetMinNTrackClusters( int v ){ fMinNTrackClusters = v; }
     GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = CAMath::Abs(v)>0.001 ?1./CAMath::Abs(v) :1./0.001; }
-    GPUd() void SetHighQPtForward( float v ){ fHighQPtForward = v; }
     GPUd() void SetNWays( int v ){ fNWays = v; }
     GPUd() void SetNWaysOuter( bool v ){ fNWaysOuter = v; }
     GPUd() void SetSearchWindowDZDR( float v ){ fSearchWindowDZDR = v; }
@@ -180,7 +178,6 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fClusterError2CorrectionZ; // correction for the squared cluster error during tracking
     int fMinNTrackClusters; //* required min number of clusters on the track
     float fMaxTrackQPt;    //* required max Q/Pt (==min Pt) of tracks
-    float fHighQPtForward; //Try to forward low Pt tracks with Q/Pt larger than this
     int fNWays;          //Do N fit passes in final fit of merger
     char fNWaysOuter;    //Store outer param
     char fAssumeConstantBz; //Assume a constant magnetic field

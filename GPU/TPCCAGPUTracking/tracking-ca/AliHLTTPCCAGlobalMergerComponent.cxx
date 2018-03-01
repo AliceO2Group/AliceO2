@@ -53,12 +53,12 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-: AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fNWays(1), fNWaysOuter(0), fBenchmark("GlobalMerger")
+: AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fBenchmark("GlobalMerger")
 {
   // see header file for class documentation
 }
 
-AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent( const AliHLTTPCCAGlobalMergerComponent & ):AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fNWays(1), fBenchmark("GlobalMerger")
+AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent( const AliHLTTPCCAGlobalMergerComponent & ):AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fBenchmark("GlobalMerger")
 {
 // dummy
 }
@@ -123,7 +123,6 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   fSolenoidBz = -5.00668;
   fClusterErrorCorrectionY = 0;
   fClusterErrorCorrectionZ = 1.1;
-  fHighQPtForward = 1.e10;
   fNWays = 1;
   fNWaysOuter = 0;
   fBenchmark.Reset();
@@ -167,13 +166,6 @@ int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* argu
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fClusterErrorCorrectionZ = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
       HLTInfo( "Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ );
-      continue;
-    }
-
-    if ( argument.CompareTo( "-highQPtForward" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fHighQPtForward = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "highQPtForward set to: %f", fHighQPtForward );
       continue;
     }
 
@@ -304,7 +296,6 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
     param.Update();
 
     delete[] rowX;
-    param.SetHighQPtForward(fHighQPtForward);
     param.SetNWays(fNWays);
     param.SetNWaysOuter(fNWaysOuter);
     param.LoadClusterErrors();
