@@ -481,7 +481,6 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	    return -1;
 	  }
 	  prop.SetPolynomialField( &field );
-	  prop.SetUseMeanMomentum(kFALSE );
 	  prop.SetContinuousTracking( kFALSE );
 	  for (unsigned i = 0; i < tracks->fCount; i++)
 		{

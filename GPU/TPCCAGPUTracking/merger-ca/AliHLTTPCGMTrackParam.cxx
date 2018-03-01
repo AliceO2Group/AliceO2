@@ -34,7 +34,7 @@
 #include <cmath>
 #include <stdlib.h>
 
-GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, bool UseMeanPt, float maxSinPhi)
+GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, float maxSinPhi)
 {
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
@@ -45,7 +45,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
   prop.SetPolynomialField( field );  
-  prop.SetUseMeanMomentum( UseMeanPt );
   prop.SetContinuousTracking( param.GetContinuousTracking() );
   prop.SetMaxSinPhi( maxSinPhi );
   prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
