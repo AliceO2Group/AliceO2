@@ -19,36 +19,40 @@
 #include "TNamed.h"
 #include "TGeoVolume.h"
 
-namespace o2 { namespace MFT { class HalfSegmentation; } }
+namespace o2
+{
+namespace MFT
+{
+class HalfSegmentation;
+}
+}
 
-namespace o2 {
-namespace MFT {
+namespace o2
+{
+namespace MFT
+{
 
-class HalfDetector : public TNamed {
-  
-public:
-  
+class HalfDetector : public TNamed
+{
+
+ public:
   HalfDetector();
-  HalfDetector(HalfSegmentation *segmentation);
-  
+  HalfDetector(HalfSegmentation* segmentation);
+
   ~HalfDetector() override;
-  
+
   /// \brief Returns the Volume holding the Half-MFT
-  TGeoVolumeAssembly * getVolume() {return mHalfVolume;};
-  
-protected:
+  TGeoVolumeAssembly* getVolume() { return mHalfVolume; };
 
-  TGeoVolumeAssembly * mHalfVolume;
+ protected:
+  TGeoVolumeAssembly* mHalfVolume;
 
-private:
-
-  HalfSegmentation * mSegmentation; ///< \brief Pointer to the half-MFT segmentation
+ private:
+  HalfSegmentation* mSegmentation; ///< \brief Pointer to the half-MFT segmentation
   void createHalfDisks();
-  
+
   ClassDefOverride(HalfDetector, 1);
-
 };
-
 }
 }
 

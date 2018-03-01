@@ -18,28 +18,26 @@
 
 #include "MFTBase/VSegmentation.h"
 
-namespace o2 {
-namespace MFT {
+namespace o2
+{
+namespace MFT
+{
 
-class ChipSegmentation : public VSegmentation {
+class ChipSegmentation : public VSegmentation
+{
 
-public:
-
+ public:
   ChipSegmentation();
   ChipSegmentation(UInt_t uniqueID);
-  
+
   ~ChipSegmentation() override = default;
-  void Clear(const Option_t* /*opt*/) override {;}
+  void Clear(const Option_t* /*opt*/) override { ; }
   virtual void print(Option_t* /*option*/);
 
-private:
-  
+ private:
   ClassDefOverride(ChipSegmentation, 1);
-
 };
+}
+}
 
-}
-}
-	
 #endif
-

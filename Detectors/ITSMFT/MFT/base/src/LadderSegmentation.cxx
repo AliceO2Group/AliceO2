@@ -27,104 +27,91 @@ ClassImp(LadderSegmentation);
 /// Default constructor
 
 //_____________________________________________________________________________
-LadderSegmentation::LadderSegmentation():
-  VSegmentation(),
-  mChips(nullptr)
-{
-
-
-}
+LadderSegmentation::LadderSegmentation() : VSegmentation(), mChips(nullptr) {}
 
 /// Constructor
 /// \param [in] uniqueID UInt_t: Unique ID of the Ladder to build
 
 //_____________________________________________________________________________
-LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
-  VSegmentation(),
-  mChips(nullptr)
+LadderSegmentation::LadderSegmentation(UInt_t uniqueID) : VSegmentation(), mChips(nullptr)
 {
 
   SetUniqueID(uniqueID);
 
-  Geometry * mftGeom = Geometry::instance();
-  
-  SetName(Form("%s_%d_%d_%d",GeometryTGeo::getMFTLadderPattern(),
-               mftGeom->getHalfID(GetUniqueID()),
-               mftGeom->getDiskID(GetUniqueID()),
-               mftGeom->getLadderID(GetUniqueID()) ));
+  Geometry* mftGeom = Geometry::instance();
+
+  SetName(Form("%s_%d_%d_%d", GeometryTGeo::getMFTLadderPattern(), mftGeom->getHalfID(GetUniqueID()),
+               mftGeom->getDiskID(GetUniqueID()), mftGeom->getLadderID(GetUniqueID())));
 
   // constructor
-  
 }
 
 /// Copy Constructor
 
 //_____________________________________________________________________________
-LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder):
-  VSegmentation(ladder),
-  mNSensors(ladder.mNSensors)
+LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder)
+  : VSegmentation(ladder), mNSensors(ladder.mNSensors)
 {
   // copy constructor
-  
-  if (ladder.mChips) mChips = new TClonesArray(*(ladder.mChips));
-  else mChips = new TClonesArray("o2::MFT::ChipSegmentation",mNSensors);
+
+  if (ladder.mChips)
+    mChips = new TClonesArray(*(ladder.mChips));
+  else
+    mChips = new TClonesArray("o2::MFT::ChipSegmentation", mNSensors);
 
   mChips->SetOwner(kTRUE);
-        
 }
 
 /// Creates the Sensors Segmentation array on the Ladder
 
 //_____________________________________________________________________________
-void LadderSegmentation::createSensors() {
-  
+void LadderSegmentation::createSensors()
+{
+
   if (!mChips) {
-    mChips = new TClonesArray("o2::MFT::ChipSegmentation",mNSensors);
-    mChips -> SetOwner(kTRUE);
+    mChips = new TClonesArray("o2::MFT::ChipSegmentation", mNSensors);
+    mChips->SetOwner(kTRUE);
   }
 
-  Geometry * mftGeom = Geometry::instance();
+  Geometry* mftGeom = Geometry::instance();
 
-  for (Int_t iSensor=0; iSensor<mNSensors; iSensor++) {
-    UInt_t sensorUniqueID = mftGeom->getObjectID(Geometry::SensorType,
-                           mftGeom->getHalfID(GetUniqueID()),
-                           mftGeom->getDiskID(GetUniqueID()),
-                           mftGeom->getPlaneID(GetUniqueID()),
-                           mftGeom->getLadderID(GetUniqueID()),
-                           iSensor);
-    
-    auto *chip = new ChipSegmentation(sensorUniqueID);
+  for (Int_t iSensor = 0; iSensor < mNSensors; iSensor++) {
+    UInt_t sensorUniqueID =
+      mftGeom->getObjectID(Geometry::SensorType, mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()),
+                           mftGeom->getPlaneID(GetUniqueID()), mftGeom->getLadderID(GetUniqueID()), iSensor);
+
+    auto* chip = new ChipSegmentation(sensorUniqueID);
 
     new ((*mChips)[iSensor]) ChipSegmentation(*chip);
     delete chip;
   }
-
 }
 
 /// Returns pointer to a sensor segmentation
 /// \param [in] sensorID Int_t: ID of the sensor on the ladder
 
 //_____________________________________________________________________________
-ChipSegmentation* LadderSegmentation::getSensor(Int_t sensorID) const {
-  
-  if (sensorID<0 || sensorID>=mNSensors) return nullptr;
-  
-  ChipSegmentation *chip = (ChipSegmentation*) mChips->At(sensorID);
-  
+ChipSegmentation* LadderSegmentation::getSensor(Int_t sensorID) const
+{
+
+  if (sensorID < 0 || sensorID >= mNSensors)
+    return nullptr;
+
+  ChipSegmentation* chip = (ChipSegmentation*)mChips->At(sensorID);
+
   return chip;
-  
 }
 
 /// Print out Ladder information (position, orientation, # of sensors)
 /// \param [in] opt "s" or "sensor" -> The individual sensor information will be printed out as well
 
 //_____________________________________________________________________________
-void LadderSegmentation::print(Option_t* opt){
-  
-  getTransformation()->Print();
-  if(opt && (strstr(opt,"sensor")||strstr(opt,"s"))){
-    for (int i=0; i<getNSensors(); i++)  getSensor(i)->Print("");
-  }
-  
-}
+void LadderSegmentation::print(Option_t* opt)
+{
 
+  getTransformation()->Print();
+  if (opt && (strstr(opt, "sensor") || strstr(opt, "s"))) {
+    for (int i = 0; i < getNSensors(); i++)
+      getSensor(i)->Print("");
+  }
+}

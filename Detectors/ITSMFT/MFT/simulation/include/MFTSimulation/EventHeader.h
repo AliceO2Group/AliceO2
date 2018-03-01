@@ -16,36 +16,34 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/base_object.hpp>
 
-namespace o2 {
-namespace MFT {
+namespace o2
+{
+namespace MFT
+{
 
 class EventHeader : public FairEventHeader
 {
 
  public:
-  
   EventHeader();
   ~EventHeader() override;
 
-  void  setPartNo(Int_t ipart) { mPartNo = ipart;}
-  Int_t getPartNo()            { return mPartNo; }
-  
+  void setPartNo(Int_t ipart) { mPartNo = ipart; }
+  Int_t getPartNo() { return mPartNo; }
+
   template <class Archive>
-    void serialize(Archive& ar, const unsigned int /*version*/)
-    {
-      ar& boost::serialization::base_object<FairEventHeader>(*this);
-    }
-  
+  void serialize(Archive& ar, const unsigned int /*version*/)
+  {
+    ar& boost::serialization::base_object<FairEventHeader>(*this);
+  }
+
  private:
-
   Int_t mPartNo;
-  
+
   friend class boost::serialization::access;
-  
+
   ClassDefOverride(EventHeader, 1);
-
 };
-
 }
 }
 
