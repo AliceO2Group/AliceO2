@@ -128,24 +128,33 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       float yy = clusters[ihit].fY;
       float zz = clusters[ihit].fZ - fZOffset;
       unsigned char clusterState = clusters[ihit].fState;
+      const float clAlpha = param.Alpha(clusters[ihit].fSlice);
+      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)\n", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz, nMissed);)
       int ihitMergeFirst = ihit;
       if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
       {
+          float maxDistY, maxDistZ;
+          prop.GetErr2(maxDistY, maxDistZ, param, zz, clusters[ihit].fRow, 0);
+          maxDistY = (maxDistY + fC[0]) * 20.f;
+          maxDistZ = (maxDistZ + fC[2]) * 20.f;
+          int noReject = 0; //Cannot reject if simple estimation of y/z fails (extremely unlike case)
+          if (fabs(clAlpha - prop.GetAlpha()) > 1.e-4) noReject = prop.RotateToAlpha(clAlpha);
+          float projY, projZ;
+          if (noReject == 0) noReject |= prop.GetPropagatedYZ(xx, projY, projZ);
           float count = 0.f;
           xx = yy = zz = 0.f;
           clusterState = 0;
-          float maxDistY, maxDistZ;
-          prop.GetErr2(maxDistY, maxDistZ, param, zz, clusters[ihit].fRow, 0);
           while(true)
           {
-              float dy = clusters[ihit].fY - fP[0], dz = clusters[ihit].fZ - fP[1];
-              if (dy * dy > 9.f * maxDistY || dz * dz > 9.f * maxDistZ)
+              float dy = clusters[ihit].fY - projY, dz = clusters[ihit].fZ - projZ;
+              if (noReject == 0 && (dy * dy > maxDistY || dz * dz > maxDistZ))
               {
+                CADEBUG(printf("Rejecting double-row cluster: dy %f, dz %f, chiY %f, chiZ %f (Y: trk %f prj %f cl %f - Z: trk %f prj %f cl %f)\n", dy, dz, sqrt(maxDistY), sqrt(maxDistZ), fP[0], projY, clusters[ihit].fY, fP[1], projZ, clusters[ihit].fZ);)
                 clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectDistance;
               }
               else
               {
-                CADEBUG(printf("\t\tMerging hit row %d X %f Y %f Z %f\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);)
+                CADEBUG(printf("\t\tMerging hit row %d X %f Y %f Z %f (dy %f, dz %f, chiY %f, chiZ %f)\n", clusters[ihit].fRow, clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ, dy, dz, sqrt(maxDistY), sqrt(maxDistZ));)
                 const float amp = clusters[ihit].fAmp;
                 xx += clusters[ihit].fX * amp;
                 yy += clusters[ihit].fY * amp;
@@ -165,13 +174,13 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       
       bool changeDirection = (clusters[ihit].fLeg - lastLeg) & 1;
       CADEBUG(if(changeDirection) printf("\t\tChange direction\n");)
-      CADEBUG(printf("\tLeg %3d%14sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", (int) clusters[ihit].fLeg, "", prop.GetAlpha(), (fabs(prop.GetAlpha() - param.Alpha(clusters[ihit].fSlice)) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);)
-      int err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
+      CADEBUG(printf("\tLeg %3d%14sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f\n", (int) clusters[ihit].fLeg, "", prop.GetAlpha(), (fabs(prop.GetAlpha() - clAlpha) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3]);)
+      int err = prop.PropagateToXAlpha(xx, clAlpha, inFlyDirection );
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
       {
           CADEBUG(printf("REROTATE\n");)
           if (prop.PropagateToXAlpha(xx, prop.GetAlpha(), inFlyDirection ) == 0)
-            err = prop.PropagateToXAlpha(xx, param.Alpha(clusters[ihit].fSlice), inFlyDirection );
+            err = prop.PropagateToXAlpha(xx, clAlpha, inFlyDirection );
       }
       
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SinPhi %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f SPPt %8.3f YSP %8.3f   -   Err %d", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[0] - yy, fP[1] - zz, sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], fC[12], fC[3], err);)

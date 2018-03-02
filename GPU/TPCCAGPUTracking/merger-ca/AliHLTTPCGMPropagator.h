@@ -79,6 +79,7 @@ public:
   GPUd() void Mirror(bool inFlyDirection);
   GPUd() float GetMirroredYModel() const;
   GPUd() float GetMirroredYTrack() const;
+  GPUd() int GetPropagatedYZ(float x, float& projY, float& projZ);
   
   GPUd() AliHLTTPCGMPhysicalTrackModel& Model() {return fT0;}
   GPUd() void CalculateMaterialCorrection();

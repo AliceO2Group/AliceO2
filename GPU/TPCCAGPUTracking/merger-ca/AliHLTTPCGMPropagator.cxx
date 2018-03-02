@@ -483,6 +483,37 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   return 0;
 }
 
+GPUd() int AliHLTTPCGMPropagator::GetPropagatedYZ(float x, float& projY, float& projZ)
+{
+  float bz = GetBz(fAlpha, fT->X(), fT->Y(), fT->Z());
+  float k  = fT0.QPt() * bz;
+  float dx = x - fT->X();
+  float kdx = k * dx;
+  float ex = fT0.CosPhi();
+  float ey = fT0.SinPhi();
+  float ey1 = kdx + ey;
+  if(fabs(ey1) > HLTCA_MAX_SIN_PHI) return 1;
+  float ss = ey + ey1;
+  float ex1 = sqrt(1.f - ey1 * ey1);
+  float cc = ex + ex1;
+  float dxcci = dx / cc;
+  float dy = dxcci * ss;
+  float norm2 = 1.f + ey * ey1 + ex * ex1;
+  float dl = dxcci * sqrt(norm2 + norm2);
+  float dS;
+  {
+    float dSin = 0.5f * k*dl;
+    float a = dSin * dSin;
+    const float k2 = 1.f / 6.f;
+    const float k4 = 3.f / 40.f;
+    dS = dl + dl * a * (k2 + a * (k4));
+  }
+  float dz = dS * fT0.DzDs();
+  projY = fT->Y() + dy;
+  projZ = fT->Z() + dz;
+  return 0;
+}
+
 /*
 GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection)
 {
