@@ -662,9 +662,9 @@ GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const Ali
   else param.GetClusterRMS2( iRow, fContinuousTracking ? 125. : posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
 
   if (clusterState & AliHLTTPCGMMergedTrackHit::flagEdge) {err2Y += 0.35;err2Z += 0.15;}
-  if (clusterState & (AliHLTTPCGMMergedTrackHit::flagSplitPad | AliHLTTPCGMMergedTrackHit::flagShared)) {err2Y += 0.03;err2Y *= 3;}
-  if (clusterState & (AliHLTTPCGMMergedTrackHit::flagSplitTime | AliHLTTPCGMMergedTrackHit::flagShared)) {err2Z += 0.03;err2Z *= 3;}
-  if (clusterState & AliHLTTPCGMMergedTrackHit::flagSingle) {err2Y += 0.2;err2Y *= 9;err2Z += 0.2;err2Z *= 9;}
+  if (clusterState & AliHLTTPCGMMergedTrackHit::flagSingle) {err2Y += 0.2;err2Z += 0.2;}
+  if (clusterState & (AliHLTTPCGMMergedTrackHit::flagSplitPad | AliHLTTPCGMMergedTrackHit::flagShared | AliHLTTPCGMMergedTrackHit::flagSingle)) {err2Y += 0.03;err2Y *= 3;}
+  if (clusterState & (AliHLTTPCGMMergedTrackHit::flagSplitTime | AliHLTTPCGMMergedTrackHit::flagShared | AliHLTTPCGMMergedTrackHit::flagSingle)) {err2Z += 0.03;err2Z *= 3;}
 }
 
 GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2 )
