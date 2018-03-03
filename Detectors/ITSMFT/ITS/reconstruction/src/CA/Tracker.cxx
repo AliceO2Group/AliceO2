@@ -71,7 +71,7 @@ void TrackerTraits<false>::computeLayerTracklets(PrimaryVertexContext& primaryVe
         const int firstRowClusterIndex = primaryVertexContext.getIndexTables()[iLayer][firstBinIndex];
         const int maxRowClusterIndex = primaryVertexContext.getIndexTables()[iLayer][maxBinIndex];
 
-        for (int iNextLayerCluster { firstRowClusterIndex }; iNextLayerCluster <= maxRowClusterIndex;
+        for (int iNextLayerCluster { firstRowClusterIndex }; iNextLayerCluster < maxRowClusterIndex;
             ++iNextLayerCluster) {
 
           const Cluster& nextCluster { primaryVertexContext.getClusters()[iLayer + 1][iNextLayerCluster] };

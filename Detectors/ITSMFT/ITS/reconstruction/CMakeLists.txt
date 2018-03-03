@@ -41,11 +41,6 @@ set(HEADERS
   ${HEADERS}
   )
 
-set(NO_DICT_HEADERS # sources not for the dictionary
-    include/${MODULE_NAME}/TrivialClusterer.h
-    include/${MODULE_NAME}/CookedTracker.h
-    )
-
 Set(LINKDEF src/ITSReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 Set(BUCKET_NAME its_reconstruction_bucket)

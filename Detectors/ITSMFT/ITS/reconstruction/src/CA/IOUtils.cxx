@@ -104,9 +104,12 @@ void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* cl
     std::cerr << "Missing clusters." << std::endl;
     return;
   }
+  event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
   int clusterId{0}, prevLayer{0};
+  event.setClusterMCtruth(mcLabels);
+
   for (auto& c : *clusters) {
     int layer = geom->getLayer(c.getSensorID());
     if (layer != prevLayer) {
@@ -114,16 +117,14 @@ void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* cl
       clusterId = 0;
     }
 
-    event.setClusterMCtruth(mcLabels);
-
     /// Clusters are stored in the tracking frame
     event.addTrackingFrameInfoToLayer(layer, c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
         std::array<float,2>{c.getY(),c.getZ()}, std::array<float,3>{c.getSigmaY2(),c.getSigmaYZ(),c.getSigmaZ2()});
 
     /// Rotate to the global frame
-    auto xyz = c.getXYZGlo(*geom);
+    auto xyz = c.getXYZGloRot(*geom);
     event.addClusterToLayer(layer,xyz.x(),xyz.y(),xyz.z(),clusterId);
-    std::cout << layer << "\t" << clusterId << "\t" << event.getGlobalIndex(layer,clusterId) << std::endl;
+
     clusterId++;
   }
 
