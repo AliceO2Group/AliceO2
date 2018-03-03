@@ -21,10 +21,10 @@ namespace ITS
 namespace CA
 {
 
-Label::Label(const int monteCarloId, const float transverseMomentum, const float phiCoordinate,
-    const float pseudorapidity, const int pdgCode, const int numberOfClusters)
-    : monteCarloId { monteCarloId }, transverseMomentum { transverseMomentum }, phiCoordinate { phiCoordinate }, pseudorapidity {
-        pseudorapidity }, pdgCode { pdgCode }, numberOfClusters { numberOfClusters }
+Label::Label(const int mcId, const float pT, const float phi, const float eta, const int pdg,
+  const int ncl)
+    : monteCarloId { mcId }, transverseMomentum { pT }, phiCoordinate { phi }, pseudorapidity {
+        eta }, pdgCode { pdg }, numberOfClusters { ncl }
 {
   // Nothing to do
 }
