@@ -37,8 +37,8 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fMaxEta(0.84),
   fMaxChi2(15.0),
   fMaxMissingLy(6),
-  fChi2Penalty(10.0),
-  fZCorrCoefNRC(0.0),
+  fChi2Penalty(12.0),
+  fZCorrCoefNRC(1.4),
   fNhypothesis(100),
   fMaskedChambers(0x0),
   fMCEvent(0x0),
@@ -607,10 +607,10 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
           double zPosCorr = fSpacePoints[trkltIdx].fX[1] + fZCorrCoefNRC * fCandidates[2*iCandidate+currIdx].GetTgl();
           double deltaY = fSpacePoints[trkltIdx].fX[0] - fCandidates[2*iCandidate+currIdx].GetY();
           double deltaZ = zPosCorr - fCandidates[2*iCandidate+currIdx].GetZ();
-          double tiltCorr = tilt * deltaZ;
+          double tiltCorr = tilt * (fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].GetZ());
           // tilt correction only makes sense if deltaZ < l_pad && track z err << l_pad
           float l_pad = pad->GetRowSize(fTracklets[trkltIdx].GetZbin());
-          if ( (TMath::Abs(deltaZ) <  l_pad) && (TMath::Sqrt(fCandidates[2*iCandidate+currIdx].GetSigmaZ2()) < (l_pad/TMath::Sqrt(12))) ) {
+          if ( (TMath::Abs(fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].GetZ()) <  l_pad) && (TMath::Sqrt(fCandidates[2*iCandidate+currIdx].GetSigmaZ2()) < (l_pad/TMath::Sqrt(12))) ) {
             deltaY -= tiltCorr;
           }
           double trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] - tiltCorr, zPosCorr };
@@ -686,9 +686,9 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       }
       double zPosCorrReal = fSpacePoints[realTrkltId].fX[1] + fZCorrCoefNRC * fCandidates[currIdx].GetTgl();
       double deltaZReal = zPosCorrReal - fCandidates[currIdx].GetZ();
-      double tiltCorrReal = tilt * deltaZReal;
+      double tiltCorrReal = tilt * (fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].GetZ());
       float l_padReal = pad->GetRowSize(fTracklets[realTrkltId].GetZbin());
-      if ( (TMath::Sqrt(fCandidates[currIdx].GetSigmaZ2()) >= (l_padReal/TMath::Sqrt(12))) || (TMath::Abs(deltaZReal) >= l_padReal) ) {
+      if ( (TMath::Sqrt(fCandidates[currIdx].GetSigmaZ2()) >= (l_padReal/TMath::Sqrt(12))) || (TMath::Abs(fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].GetZ()) >= l_padReal) ) {
         tiltCorrReal = 0;
       }
       double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - tiltCorrReal, zPosCorrReal };
@@ -722,11 +722,14 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       nCandidates = iUpdate + 1;
       fCandidates[2*iUpdate+nextIdx] = fCandidates[2*fHypothesis[iUpdate].fCandidateId+currIdx];
       if (fHypothesis[iUpdate].fTrackletId == -1) {
-        // no update for this candidate
+        // no update for this candidate (if track was already stopped findable == 0)
+        //FIXME not yet working for more than 1 candidate per layer
         if (findable(iLayer) > 0.5) {
           fCandidates[2*iUpdate+nextIdx].SetNmissingConsecLayers(fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() + 1);
-          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() >= fMaxMissingLy) {
-            //fCandidates[2*iUpdate+nextIdx].SetChi2(fHypothesis[iUpdate].fChi2 + (5. - iLayer) * fChi2Penalty); // FIXME: how to deal with stopped tracks?? penalyze?
+          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() > fMaxMissingLy) {
+            // do not add chi2 penalty if track was stopped
+            fCandidates[2*iUpdate+nextIdx].SetChi2(fHypothesis[iUpdate].fChi2 - (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() - 1) * fChi2Penalty);
+            fCandidates[2*iUpdate+nextIdx].SetNlayers( fCandidates[2*iUpdate+nextIdx].GetNlayers() - fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers());
             fCandidates[2*iUpdate+nextIdx].SetIsStopped();
           }
           else {
@@ -764,8 +767,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       double deltaZup = zPosCorrUpdate - fCandidates[2*iUpdate+nextIdx].GetZ();
       double yCorr = 0;
       float l_padTrklt = pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin());
-      if ( (TMath::Sqrt(fCandidates[2*iUpdate+nextIdx].GetSigmaZ2()) < (l_padTrklt/TMath::Sqrt(12))) && (TMath::Abs(deltaZup) < l_padTrklt) ) {
-        yCorr = tilt * deltaZup;
+      if ( (TMath::Sqrt(fCandidates[2*iUpdate+nextIdx].GetSigmaZ2()) < (l_padTrklt/TMath::Sqrt(12))) && (TMath::Abs(fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].GetZ()) < l_padTrklt) ) {
+        yCorr = tilt * (fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].GetZ());
       }
       double trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
 
@@ -854,75 +857,76 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
     }
   } // end layer loop
 
-  // for MC: check attached tracklets (match, related, fake)
-  int nRelated = 0;
-  int nMatching = 0;
-  int nFake = 0;
-  for (int iLy = 0; iLy < kNLayers; iLy++) {
-    if (t->GetTracklet(iLy) != -1) {
-      int lbTracklet;
-      for (int il=0; il<3; il++) {
-        if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
-          // no more valid labels
-          continue;
-        }
-        if (lbTracklet == TMath::Abs(trackID)) {
-          update(iLy) = 1 + il;
-          nMatching++;
-          break;
-        }
-      }
-      if (update(iLy) < 1 && fMCEvent) {
-        // no exact match, check in related labels
+  if (fDebugOutput) {
+
+    // for MC: check attached tracklets (match, related, fake)
+    int nRelated = 0;
+    int nMatching = 0;
+    int nFake = 0;
+    for (int iLy = 0; iLy < kNLayers; iLy++) {
+      if (t->GetTracklet(iLy) != -1) {
+        int lbTracklet;
         for (int il=0; il<3; il++) {
           if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
             // no more valid labels
             continue;
           }
-          AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
-          while (mcPart) {
-            int motherPart = mcPart->GetMother();
-            if (motherPart == TMath::Abs(trackID)) {
-              update(iLy) = 50 + il;
-              nRelated++;
-              break;
+          if (lbTracklet == TMath::Abs(trackID)) {
+            update(iLy) = 1 + il;
+            nMatching++;
+            break;
+          }
+        }
+        if (update(iLy) < 1 && fMCEvent) {
+          // no exact match, check in related labels
+          for (int il=0; il<3; il++) {
+            if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
+              // no more valid labels
+              continue;
             }
-            mcPart = motherPart >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPart) : 0;
+            AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
+            while (mcPart) {
+              int motherPart = mcPart->GetMother();
+              if (motherPart == TMath::Abs(trackID)) {
+                update(iLy) = 50 + il;
+                nRelated++;
+                break;
+              }
+              mcPart = motherPart >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPart) : 0;
+            }
           }
         }
-      }
-      if (update(iLy) < 1) {
-        update(iLy) = 999;
-        nFake++;
-        /*
-	      printf("FAKE on lr %d for trackID=%d\n",iLy, trackID);
-        printf("fake tracklet label[3] = { %i, %i, %i}\n", fSpacePoints[t->GetTracklet(iLy)].fLabel[0], fSpacePoints[t->GetTracklet(iLy)].fLabel[1], fSpacePoints[t->GetTracklet(iLy)].fLabel[2]);
-        AliMCParticle *mcPartTrk = (AliMCParticle*) fMCEvent->GetTrack(trackID);
-        int levelTrk = 0;
-        while (mcPartTrk) {
-          int motherPartTrk = mcPartTrk->GetMother();
-	        printf("track: Parent %d (level %d)\n",motherPartTrk, levelTrk++);
-          mcPartTrk = motherPartTrk >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPartTrk) : 0;
-        }
-	      for (int il=0; il<3; il++) {
-	        int level = 0;
-	        if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
-            // no more valid labels
-            continue;
+        if (update(iLy) < 1) {
+          update(iLy) = 999;
+          nFake++;
+          /*
+	        printf("FAKE on lr %d for trackID=%d\n",iLy, trackID);
+          printf("fake tracklet label[3] = { %i, %i, %i}\n", fSpacePoints[t->GetTracklet(iLy)].fLabel[0], fSpacePoints[t->GetTracklet(iLy)].fLabel[1], fSpacePoints[t->GetTracklet(iLy)].fLabel[2]);
+          AliMCParticle *mcPartTrk = (AliMCParticle*) fMCEvent->GetTrack(trackID);
+          int levelTrk = 0;
+          while (mcPartTrk) {
+            int motherPartTrk = mcPartTrk->GetMother();
+	          printf("track: Parent %d (level %d)\n",motherPartTrk, levelTrk++);
+            mcPartTrk = motherPartTrk >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPartTrk) : 0;
           }
-          AliMCParticle *mcPartTrklt = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
-          while (mcPartTrklt) {
-            int motherPartTrklt = mcPartTrklt->GetMother();
-	          printf("tracklet: Parent %d (level %d)\n",motherPartTrklt, level++);
-            mcPartTrklt = motherPartTrklt >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPartTrklt) : 0;
+	        for (int il=0; il<3; il++) {
+	          int level = 0;
+	          if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
+              // no more valid labels
+              continue;
+            }
+            AliMCParticle *mcPartTrklt = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
+            while (mcPartTrklt) {
+              int motherPartTrklt = mcPartTrklt->GetMother();
+	            printf("tracklet: Parent %d (level %d)\n",motherPartTrklt, level++);
+              mcPartTrklt = motherPartTrklt >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPartTrklt) : 0;
+            }
           }
+          */
         }
-        */
       }
     }
-  }
 
-  if (fDebugOutput) {
     double XvMC = 0, YvMC = 0, ZvMC = 0;
     int pdgCode = 0;
     if (fMCEvent) {
@@ -1322,11 +1326,11 @@ bool AliHLTTRDTracker::IsFindable(const AliHLTTRDTrack *t, const int layer) cons
   float zMin = pp->GetRowPos(rowIdx) - pp->GetRowSize(rowIdx);
 
   // reject tracks closer than 10 cm to pad plane boundary
-  if (yMax - TMath::Abs(t->GetY()) < 10.) {
+  if (yMax - TMath::Abs(t->GetY()) < 5.) {
     return false;
   }
   // reject tracks closer than 10 cm to stack boundary
-  if ( (zMax - t->GetZ() < 10.) || (t->GetZ() - zMin < 10.) ) {
+  if ( (zMax - t->GetZ() < 5.) || (t->GetZ() - zMin < 5.) ) {
     return false;
   }
 
