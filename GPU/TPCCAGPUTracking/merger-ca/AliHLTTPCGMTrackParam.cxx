@@ -123,9 +123,13 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     int ihit = ihitStart;
     for(;ihit >= 0 && ihit<maxN;ihit += wayDirection)
     {
-      if (clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue; // hit is excluded from fit
-      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, maxN, clusters[ihit].fRow, param.Alpha(clusters[ihit].fSlice), clusters[ihit].fX, clusters[ihit].fY, clusters[ihit].fZ);)
-      
+      if (clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
+      {
+        CADEBUG(printf("\t\tSkipping hit, flag %X\n", (int) clusters[ihit].fState);)
+        if (iWay + 1 >= nWays && !(clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectErr;
+        continue;
+      }
+
       float xx = clusters[ihit].fX;
       float yy = clusters[ihit].fY;
       float zz = clusters[ihit].fZ - fZOffset;
@@ -152,7 +156,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               if (noReject == 0 && (dy * dy > maxDistY || dz * dz > maxDistZ))
               {
                 CADEBUG(printf("Rejecting double-row cluster: dy %f, dz %f, chiY %f, chiZ %f (Y: trk %f prj %f cl %f - Z: trk %f prj %f cl %f)\n", dy, dz, sqrt(maxDistY), sqrt(maxDistZ), fP[0], projY, clusters[ihit].fY, fP[1], projZ, clusters[ihit].fZ);)
-                clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectDistance;
+                if (rejectChi2ThisRound) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectDistance;
               }
               else
               {
