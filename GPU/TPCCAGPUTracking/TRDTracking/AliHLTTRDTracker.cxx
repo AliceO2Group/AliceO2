@@ -546,7 +546,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       }
 
       // check if track is findable
-      if (IsFindable(&fCandidates[2*iCandidate+currIdx], iLayer )) {
+      if (IsGeoFindable(&fCandidates[2*iCandidate+currIdx], iLayer )) {
         findable(iLayer) = 1;
         fCandidates[2*iCandidate+currIdx].SetNlayers(fCandidates[2*iCandidate+currIdx].GetNlayers() + 1);
       }
@@ -1300,7 +1300,7 @@ void AliHLTTRDTracker::FindChambersInRoad(const AliHLTTRDTrack *t, const float r
   det.resize(last);
 }
 
-bool AliHLTTRDTracker::IsFindable(const AliHLTTRDTrack *t, const int layer) const
+bool AliHLTTRDTracker::IsGeoFindable(const AliHLTTRDTrack *t, const int layer) const
 {
   //--------------------------------------------------------------------
   // returns true if track position inside active area of the TRD
@@ -1325,11 +1325,11 @@ bool AliHLTTRDTracker::IsFindable(const AliHLTTRDTrack *t, const int layer) cons
   float zMax = pp->GetRowPos(0);
   float zMin = pp->GetRowPos(rowIdx) - pp->GetRowSize(rowIdx);
 
-  // reject tracks closer than 10 cm to pad plane boundary
+  // reject tracks closer than 5 cm to pad plane boundary
   if (yMax - TMath::Abs(t->GetY()) < 5.) {
     return false;
   }
-  // reject tracks closer than 10 cm to stack boundary
+  // reject tracks closer than 5 cm to stack boundary
   if ( (zMax - t->GetZ() < 5.) || (t->GetZ() - zMin < 5.) ) {
     return false;
   }

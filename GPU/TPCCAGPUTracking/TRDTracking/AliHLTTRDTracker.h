@@ -67,14 +67,12 @@ public:
   bool AdjustSector(AliHLTTRDTrack *t, const int layer) const;
   int GetSector(double alpha) const;
   float GetAlphaOfSector(const int sec) const;
-  // fitDy = sqrt( [0]^2 + [2]^2 * (x - [1])^2 )
   double GetRPhiRes(double snp) const { return (0.04*0.04+0.33*0.33*(snp-0.126)*(snp-0.126)); }
   void RecalcTrkltCov(const int trkltIdx, const double tilt, const double snp, const double rowSize);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
   void CheckTrackRefs(const int trackID, TVectorF &findableMC, TVectorF &xPosMC, TVectorF &yPosMC, TVectorF &zPosMC, TVectorF &ptMC) const;
   void FindChambersInRoad(const AliHLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax) const;
-  bool IsFindable(const AliHLTTRDTrack *t, const int layer) const;
-  // for paranoia check
+  bool IsGeoFindable(const AliHLTTRDTrack *t, const int layer) const;
   bool IsTrackletSortingOk() const;
 
   // settings
