@@ -14,6 +14,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
 #include "AliHLTTPCGMPolynomialField.h"
+#include "AliHLTTPCGMOfflineStatisticalErrors.h"
 
 class AliHLTTPCGMTrackParam;
 class AliHLTTPCCAParam;
@@ -83,6 +84,7 @@ public:
   
   GPUd() AliHLTTPCGMPhysicalTrackModel& Model() {return fT0;}
   GPUd() void CalculateMaterialCorrection();
+  GPUd() void SetStatErrorCurCluster(AliHLTTPCGMMergedTrackHit* c) {fStatErrors.SetCurCluster(c);}
 
 private:
 
@@ -98,11 +100,13 @@ private:
   bool fFitInProjections; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
   bool fToyMCEvents; // events are simulated with simple home-made simulation
   float fMaxSinPhi;
+  
+  AliHLTTPCGMOfflineStatisticalErrors fStatErrors;
 };
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
 : fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
-  fSpecialErrors(0), fContinuousTracking(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI)
+  fSpecialErrors(0), fContinuousTracking(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI), fStatErrors()
 {
 }
 
