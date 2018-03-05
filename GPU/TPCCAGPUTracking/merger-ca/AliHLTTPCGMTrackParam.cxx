@@ -86,6 +86,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
 
   int nWays = param.GetNWays();
   int maxN = N;
+  int Ntolerate = 0; //Clusters not fit but tollerated for track length cut
   int ihitStart = 0;
   float covYYUpd = 0.;
   float lastUpdateX = -1.;
@@ -114,6 +115,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", nTracks, iWay, (int) (prop.GetAlpha() / kSectAngle + 0.5) + (fP[1] < 0 ? 18 : 0), prop.GetAlpha());)
 
     N = 0;
+    Ntolerate = 0;
     lastUpdateX = -1;
     const bool inFlyDirection = iWay & 1;
     unsigned char lastLeg = clusters[ihitStart].fLeg;
@@ -129,7 +131,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       float zz = clusters[ihit].fZ - fZOffset;
       unsigned char clusterState = clusters[ihit].fState;
       const float clAlpha = param.Alpha(clusters[ihit].fSlice);
-      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)\n", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz, nMissed);)
+      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz);)
       int ihitMergeFirst = ihit;
       if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
       {
@@ -218,12 +220,14 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       const int err2 = fNDF > 0 && CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate;
       if ( err || err2 )
       {
-        if (rejectChi2ThisRound)
+        /*if (rejectChi2ThisRound)
         {
           if (fNDF > 0 && (fabs(yy - fP[0]) > 3 || fabs(zz - fP[1]) > 3)) MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagRejectDistance);
           else if (err && err >= -3) MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagRejectErr);
         }
-        
+        nMissed++;*/
+        MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagNotFit);
+        Ntolerate++;
         CADEBUG(printf(" --- break (%d, %d)\n", err, err2);)
         continue;
       }
@@ -240,8 +244,9 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       {
         lastUpdateX = fX;
         covYYUpd = fC[0];
-        ihitStart = ihit;
+        UnmarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagNotFit);
         N++;
+        ihitStart = ihit;
         float dy = fP[0] - prop.Model().Y();
         float dz = fP[1] - prop.Model().Z();
         if (AliHLTTPCCAMath::Abs(fP[4]) > 10 && --resetT0 <= 0 && AliHLTTPCCAMath::Abs(fP[2]) < 0.15 && dy*dy+dz*dz>1)
@@ -259,7 +264,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     ConstrainSinPhi();
   }
   
-  bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
+  bool ok = N + Ntolerate >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
   if (!ok) return(false);
   
   Alpha = prop.GetAlpha();

@@ -98,6 +98,10 @@ public:
   {
     clusters[ihitFirst].fState |= state; while (ihitFirst != ihitLast) {ihitFirst += wayDirection; clusters[ihitFirst].fState |= state;}
   }
+  GPUd() void UnmarkClusters(AliHLTTPCGMMergedTrackHit* clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
+  {
+    clusters[ihitFirst].fState &= ~state; while (ihitFirst != ihitLast) {ihitFirst += wayDirection; clusters[ihitFirst].fState &= ~state;}
+  }
   
   GPUd() bool Rotate( float alpha );
 
