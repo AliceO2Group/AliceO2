@@ -118,13 +118,17 @@ void o2sim()
     TIter next(modArr);
     FairModule* module = nullptr;
     while ((module = (FairModule*)next())) {
-      if (module->GetModId() < o2::detectors::DetID::First) {
+      o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+      if (!det) {
+        continue; // not a detector
+      }
+      if (det->GetDetId() < o2::detectors::DetID::First) {
         continue; // passive
       }
-      if (module->GetModId() > o2::detectors::DetID::Last) {
+      if (det->GetDetId() > o2::detectors::DetID::Last) {
         continue; // passive
       }
-      grp.addDetReadOut(o2::detectors::DetID(module->GetModId()));
+      grp.addDetReadOut(o2::detectors::DetID(det->GetDetId()));
     }
     grp.print();
     printf("VMC: %p\n", TVirtualMC::GetMC());
