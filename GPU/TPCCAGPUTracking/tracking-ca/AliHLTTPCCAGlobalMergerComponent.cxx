@@ -96,7 +96,7 @@ int AliHLTTPCCAGlobalMergerComponent::GetOutputDataTypes(AliHLTComponentDataType
 
   tgtList.clear();
   tgtList.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC );
-  tgtList.push_back( AliHLTTPCDefinitions::TracksDataType() | kAliHLTDataOriginTPC );
+  tgtList.push_back( AliHLTTPCDefinitions::TracksOuterDataType() | kAliHLTDataOriginTPC );
   return tgtList.size();
 }
 
@@ -527,7 +527,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       FillBlockData( resultData );
       resultData.fOffset = mySize;
       resultData.fSize = newSize;
-      resultData.fDataType = AliHLTTPCDefinitions::TracksDataType() | kAliHLTDataOriginTPC;
+      resultData.fDataType = AliHLTTPCDefinitions::TracksOuterDataType() | kAliHLTDataOriginTPC;
       resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
       outputBlocks.push_back( resultData );
       fBenchmark.AddOutput(resultData.fSize);
