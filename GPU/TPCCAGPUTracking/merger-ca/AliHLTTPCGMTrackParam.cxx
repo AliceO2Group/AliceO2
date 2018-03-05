@@ -137,6 +137,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       const float clAlpha = param.Alpha(clusters[ihit].fSlice);
       CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f\n", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz);)
       int ihitMergeFirst = ihit;
+      prop.SetStatErrorCurCluster(&clusters[ihit]);
+      
       if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
       {
           float maxDistY, maxDistZ;
