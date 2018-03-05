@@ -711,6 +711,10 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 			unsigned short amp = fClusterData->Amp( clusterIndex );
 			AliHLTTPCCASliceOutCluster c;
 			c.Set( id, iRow, flags, amp, origX, origY, origZ );
+#ifdef GMPropagatePadRowTime
+			c.fPad = fClusterData->GetClusterData( clusterIndex )->fPad;
+			c.fTime = fClusterData->GetClusterData( clusterIndex )->fTime;
+#endif
 			out->SetCluster( nClu, c );
 			nClu++;
 		}

@@ -321,6 +321,22 @@ struct cahit2{cahit x, y;};
 #define HLTCA_EVDUMP_FILE "event"
 #endif
 
+#ifdef GPUseStatError
+#define GMPropagatePadRowTime
+#endif
+#ifdef GMPropagatePadRowTime
+#define HLTCA_FULL_CLUSTERDATA
+#endif
+#if  defined(HLTCA_STANDALONE) | defined(HLTCA_GPUCODE)
+#ifdef GMPropagatorUseFullField
+#undef GMPropagatorUseFullField
+#endif
+#ifdef GPUseStatError
+#undef GPUseStatError
+#endif
+#endif
+
+
 #endif //ALIHLTTPCCADEF_H
 
 #if defined(HLTCA_CADEBUG) && !defined(CADEBUG)

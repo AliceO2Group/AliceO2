@@ -16,7 +16,7 @@
 //                                                                          *
 //***************************************************************************
 
-// #define GMPropagatorUseFullField
+
 
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCCAMath.h"
@@ -26,11 +26,10 @@
 #include <cmath>
 
 
-#if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
+#if defined(GMPropagatorUseFullField)
 #include "AliTracker.h"
 #include "AliMagF.h"
 #endif
-
 
 GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const
 {
@@ -42,7 +41,7 @@ GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, fl
   float cs = AliHLTTPCCAMath::Cos(Alpha);
   float sn = AliHLTTPCCAMath::Sin(Alpha);
 
-#if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
+#if defined(GMPropagatorUseFullField)
   const double kCLight = 0.000299792458;
   double r[3] = { X*cs - Y*sn, X*sn + Y*cs, Z };
   double bb[3];
@@ -91,7 +90,7 @@ GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, floa
   float cs = AliHLTTPCCAMath::Cos(Alpha);
   float sn = AliHLTTPCCAMath::Sin(Alpha);  
 
-#if defined(GMPropagatorUseFullField) & !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
+#if defined(GMPropagatorUseFullField)
   const double kCLight = 0.000299792458;
   double r[3] = { X*cs - Y*sn, X*sn + Y*cs, Z };
   double bb[3];

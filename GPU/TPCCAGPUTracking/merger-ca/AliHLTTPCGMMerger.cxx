@@ -791,6 +791,10 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
           cl[i].fState = trackClusters[i].GetFlags() & AliHLTTPCGMMergedTrackHit::hwcfFlags; //Only allow edge and deconvoluted flags
           cl[i].fSlice = clA[i].x;
           cl[i].fLeg = clA[i].y;
+#ifdef GMPropagatePadRowTime
+          cl[i].fPad = trackClusters[i].fPad;
+          cl[i].fTime = trackClusters[i].fTime;
+#endif
       }
 
       AliHLTTPCGMMergedTrack &mergedTrack = fOutputTracks[fNOutputTracks];

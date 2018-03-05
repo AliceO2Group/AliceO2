@@ -50,6 +50,12 @@ class AliHLTTPCCASliceOutCluster
   Float_t fX;// coordinates
   Float_t fY;// coordinates
   Float_t fZ;// coordinates
+
+#ifdef GMPropagatePadRowTime
+public:
+  float fPad;
+  float fTime;
+#endif
 };
 
 #endif 
