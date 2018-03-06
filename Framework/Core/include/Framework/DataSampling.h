@@ -71,9 +71,11 @@ class DataSampling
  private:
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
+
   // Internal functions, used by GenerateInfrastructure()
   static auto getEdgeMatcher(const QcTaskConfiguration& taskCfg);
-  static auto getDispatcherCreator(const QcTaskConfiguration& taskCfg);
+  static std::unique_ptr<Dispatcher> createDispatcher(SubSpecificationType subSpec, const QcTaskConfiguration& taskCfg,
+                                                        InfrastructureConfig infCfg);
   static QcTaskConfigurations readQcTasksConfiguration(const std::string& configurationSource);
   static InfrastructureConfig readInfrastructureConfiguration(const std::string& configurationSource);
 };

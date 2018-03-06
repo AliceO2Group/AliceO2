@@ -54,17 +54,18 @@ auto DataSampling::getEdgeMatcher(const QcTaskConfiguration& taskCfg)
 
 /// Returns appropriate dispatcher initializer, dependent on whether dispatcher should send data to DPL or FairMQ
 /// device.
-auto DataSampling::getDispatcherCreator(const QcTaskConfiguration& taskCfg)
+std::unique_ptr<Dispatcher>
+DataSampling::createDispatcher(SubSpecificationType subSpec, const QcTaskConfiguration& taskCfg,
+                               InfrastructureConfig infCfg)
 {
   // consider: use ROOT ?
-  return taskCfg.fairMqOutputChannelConfig.empty() ?
-         [](SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task, const InfrastructureConfig& cfg) {
-           return std::unique_ptr<Dispatcher>(new DispatcherDPL(dispatcherSubSpec, task, cfg));
-         }
-                                                   :
-         [](SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task, const InfrastructureConfig& cfg) {
-           return std::unique_ptr<Dispatcher>(new DispatcherFairMQ(dispatcherSubSpec, task, cfg));
-         };
+  if (taskCfg.dispatcherType == "FairMQ") {
+    return std::unique_ptr<Dispatcher>(new DispatcherFairMQ(subSpec, taskCfg, infCfg));
+  } else if (taskCfg.dispatcherType == "FlpProto") {
+    return std::unique_ptr<Dispatcher>(new DispatcherFlpProto(subSpec, taskCfg, infCfg));
+  } else { // DPL
+    return std::unique_ptr<Dispatcher>(new DispatcherDPL(subSpec, taskCfg, infCfg));
+  }
 }
 
 void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& configurationSource)
@@ -87,10 +88,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     }
 
     std::vector<std::unique_ptr<Dispatcher>> dispatchers;
-
-    // some lambda functions to make the later code cleaner and hide its configuration
     auto areEdgesMatching = getEdgeMatcher(task);
-    auto createDispatcher = getDispatcherCreator(task);
 
     // Find all available outputs in workflow that match desired data. Create dispatchers that take them as inputs
     // and provide them filtered as outputs.
@@ -165,6 +163,7 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
                    << simpleQcTaskDefinition + "/fraction" << " is not in range (0,1]. Setting value to 0.";
         task.fractionOfDataToSample = 0;
       }
+      task.dispatcherType = configFile->getString(simpleQcTaskDefinition + "/dispatcherType").value_or("DPL");
       //if there is a channelConfig specified, then user wants output in raw FairMQ layer, not DPL
       task.fairMqOutputChannelConfig = configFile->getString(simpleQcTaskDefinition + "/channelConfig").value_or("");
 
