@@ -23,10 +23,6 @@ class AliHLTTPCCAClusterData;
 
 class AliHLTTPCCATrackerFramework : AliHLTLogging
 {
-#ifdef HLTCA_STANDALONE
-	friend int DrawGLScene(bool DoAnimation);
-#endif
-
 public:
 	AliHLTTPCCATrackerFramework(int allowGPU = 1, const char* GPU_Library = NULL, int GPUDeviceNum = -1);
 	~AliHLTTPCCATrackerFramework();
@@ -57,6 +53,7 @@ public:
 	void SetKeepData(bool v) {fKeepData = v;}
 
 	AliHLTTPCCAGPUTracker* GetGPUTracker() {return(fGPUTracker);}
+	AliHLTTPCCATracker& CPUTracker(int iSlice) {return(fCPUTrackers[iSlice]);}
 
 private:
   static const int fgkNSlices = 36;       //* N slices

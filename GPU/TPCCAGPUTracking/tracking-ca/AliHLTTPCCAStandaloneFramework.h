@@ -32,10 +32,6 @@
  */
 class AliHLTTPCCAStandaloneFramework
 {
-#ifdef HLTCA_STANDALONE
-	friend int DrawGLScene(bool DoAnimation);
-#endif
-
   public:
 
     AliHLTTPCCAStandaloneFramework(int allowGPU = 1, const char* GPULibrary = NULL);
@@ -49,7 +45,7 @@ class AliHLTTPCCAStandaloneFramework
     const AliHLTTPCCASliceOutput &Output( int iSlice ) const { return *fSliceOutput[iSlice]; }
     AliHLTTPCGMMerger  &Merger()  { return fMerger; }
     AliHLTTPCCAClusterData &ClusterData( int iSlice ) { return fClusterData[iSlice]; }
-
+    AliHLTTPCCATrackerFramework &Tracker() {return fTracker;}
     /**
      * prepare for reading of the event
      */
