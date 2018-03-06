@@ -17,6 +17,7 @@
 #define ALICEO2_MFT_LADDERSEGMENTATION_H_
 
 #include "TClonesArray.h"
+#include "TXMLEngine.h"
 
 #include "MFTBase/VSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
@@ -52,8 +53,8 @@ class LadderSegmentation : public VSegmentation
 
   ChipSegmentation* getSensor(Int_t sensor) const;
 
-  void createSensors();
-
+  void createSensors(TXMLEngine* xml, XMLNodePointer_t node);
+  
   /// \brief Returns number of Sensor on the ladder
   Int_t getNSensors() const { return mNSensors; };
   /// \brief Set number of Sensor on the ladder

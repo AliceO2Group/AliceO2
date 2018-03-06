@@ -153,8 +153,8 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
     Double_t master[3];
     ladder->getTransformation()->LocalToMaster(pos, master);
     ladder->setPosition(master);
-
-    ladder->createSensors();
+    
+    ladder->createSensors(xml, node);
 
     new ((*mLadders)[iladder]) LadderSegmentation(*ladder);
     delete ladder;
