@@ -88,6 +88,7 @@ int excludeClusters = 0;
 int projectxy = 0;
 
 int markClusters = 0;
+int hideRejectedClusters = 1;
 
 float Xadd = 0;
 float Zadd = 0;
@@ -334,7 +335,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			float smallest = 1e20;
 			for (int k = 0; k < track.NClusters(); k++)
 			{
-				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
+				if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
 				int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
 				float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
 				if (dist < smallest)
@@ -364,7 +365,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 				for (int k = 0; k < track.NClusters(); k++)
 				{
 					if (clusterused[k]) continue;
-					if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
+					if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
 					int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
 					float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
 					             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
@@ -379,7 +380,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			}
 			else
 			{
-				if (merger.Clusters()[track.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
+				if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
 				bestcid = merger.Clusters()[track.FirstClusterRef() + j].fId;
 			}
 			if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
@@ -1036,6 +1037,7 @@ void PrintHelp()
 	printf("[I]\t\tProject onto XY-plane\n");
 	printf("[X]\t\tExclude Clusters used in the tracking steps enabled for visualization ([1]-[8])\n");
 	printf("[C]\t\tMark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20\n");
+	printf("[V]\t\tHide rejected clusters from tracks\n");
 	printf("[1]\t\tShow Clusters\n");
 	printf("[2]\t\tShow Links that were removed\n");
 	printf("[3]\t\tShow Links that remained in Neighbors Cleaner\n");
@@ -1096,6 +1098,11 @@ void HandleKeyRelease(int wParam)
 		if (markClusters == 0) markClusters = 1;
 		else if (markClusters >= 8) markClusters = 0;
 		else markClusters <<= 1;
+		updateDLList = true;
+	}
+	else if (wParam == 'V')
+	{
+		hideRejectedClusters ^= 1;
 		updateDLList = true;
 	}
 	else if (wParam == 'I')
