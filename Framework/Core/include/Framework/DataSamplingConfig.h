@@ -48,6 +48,7 @@ struct QcTaskConfiguration {
   std::vector<InputSpec> desiredDataSpecs;
   SubSpecificationType subSpec;
   double fractionOfDataToSample;
+  std::string dispatcherType;
   std::string fairMqOutputChannelConfig;
 };
 using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
