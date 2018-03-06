@@ -21,8 +21,8 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/DataSampling.h"
 #include "Framework/ProcessingContext.h"
-#include "FairLogger.h"
 #include "Headers/DataHeader.h"
+#include "FairLogger.h"
 
 using namespace o2::framework;
 using namespace AliceO2::Configuration;
@@ -51,71 +51,18 @@ auto DataSampling::getEdgeMatcher(const QcTaskConfiguration& taskCfg)
          };
 }
 
-/// Returns appropriate dispatcher input/output creator, dependent on given configuration.
-auto DataSampling::getEdgeCreator(const QcTaskConfiguration& taskCfg, const InfrastructureConfig& infrastructureCfg)
-{
-  return taskCfg.fairMqOutputChannelConfig.empty() ?
-         (infrastructureCfg.enableParallelDispatchers ?
-          [](DataProcessorSpec& dispatcher, const InputSpec& newInput) {
-            dispatcher.inputs.push_back(newInput);
-            dispatcher.outputs.push_back(createDispatcherOutputSpec(newInput));
-          }
-                                                      :
-          [](DataProcessorSpec& dispatcher, const InputSpec& newInput) {
-            dispatcher.inputs.push_back(newInput);
-            OutputSpec newOutput = createDispatcherOutputSpec(newInput);
-            if (std::find(dispatcher.outputs.begin(), dispatcher.outputs.end(), newOutput)
-                == dispatcher.outputs.end()) {
-              dispatcher.outputs.push_back(newOutput);
-            }
-          })
-                                                   :
-         [](DataProcessorSpec& dispatcher, const InputSpec& newInput) {
-           dispatcher.inputs.push_back(newInput);
-         };
-}
-
 /// Returns appropriate dispatcher initializer, dependent on whether dispatcher should send data to DPL or FairMQ
 /// device.
 auto DataSampling::getDispatcherCreator(const QcTaskConfiguration& taskCfg)
 {
+  // consider: use ROOT ?
   return taskCfg.fairMqOutputChannelConfig.empty() ?
-         // create dispatcher with DPL output
-         [](const SubSpecificationType& dispatcherSubSpec, const QcTaskConfiguration& task, const InputSpec& input) {
-           return DataProcessorSpec{
-             "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name,
-             Inputs{input},
-             Outputs{createDispatcherOutputSpec(input)},
-             AlgorithmSpec{
-               [gen = BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext& ctx) mutable {
-                 DataSampling::dispatcherCallback(ctx, gen);
-               }
-             }
-           };
+         [](SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task, const InfrastructureConfig& cfg) {
+           return std::unique_ptr<Dispatcher>(new DispatcherDPL(dispatcherSubSpec, task, cfg));
          }
                                                    :
-         // create dispatcher with FairMQ output
-         [](const SubSpecificationType& dispatcherSubSpec, const QcTaskConfiguration& task, const InputSpec& newInput) {
-           //todo: throw an exception when 'name=' not found?
-           size_t n_begin = task.fairMqOutputChannelConfig.find("name=") + sizeof("name=") - 1;
-           size_t n_end = task.fairMqOutputChannelConfig.find_first_of(',', n_begin);
-           std::string channel = task.fairMqOutputChannelConfig.substr(n_begin, n_end - n_begin);
-
-           return DataProcessorSpec{
-             "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name,
-             Inputs{newInput},
-             Outputs{},
-             AlgorithmSpec{
-               [fraction = task.fractionOfDataToSample, channel](InitContext& ctx) {
-                 return dispatcherInitCallbackFairMQ(ctx, channel, fraction);
-               }
-             },
-             {
-               ConfigParamSpec{
-                 "channel-config", VariantType::String,
-                 task.fairMqOutputChannelConfig.c_str(), {"Out-of-band channel config"}}
-             }
-           };
+         [](SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task, const InfrastructureConfig& cfg) {
+           return std::unique_ptr<Dispatcher>(new DispatcherFairMQ(dispatcherSubSpec, task, cfg));
          };
 }
 
@@ -138,12 +85,11 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
       ));
     }
 
-    std::unordered_map<SubSpecificationType, DataProcessorSpec> dispatchers;
+    std::vector<std::unique_ptr<Dispatcher>> dispatchers;
 
     // some lambda functions to make the later code cleaner and hide its configuration
     auto areEdgesMatching = getEdgeMatcher(task);
-    auto createDispatcherSpec = getDispatcherCreator(task);
-    auto addEdgesToDispatcher = getEdgeCreator(task, infrastructureCfg);
+    auto createDispatcher = getDispatcherCreator(task);
 
     // Find all available outputs in workflow that match desired data. Create dispatchers that take them as inputs
     // and provide them filtered as outputs.
@@ -154,35 +100,23 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
           if (areEdgesMatching(externalOutput, desiredData, task.subSpec)) {
 
             wasDataFound = true;
-            InputSpec newInput{
-              desiredData.binding,
-              desiredData.origin,
-              desiredData.description,
-              externalOutput.subSpec,
-              static_cast<InputSpec::Lifetime>(externalOutput.lifetime),
-            };
 
             // if parallel dispatchers are not enabled, then edges will be added to the only one dispatcher.
             // in other case, new dispatcher will be created for every parallel flow.
             SubSpecificationType dispatcherSubSpec = infrastructureCfg.enableParallelDispatchers ?
                                                      externalOutput.subSpec : 0;
 
-            auto res = dispatchers.find(dispatcherSubSpec);
+            auto res = std::find_if(dispatchers.begin(), dispatchers.end(),
+                                    [dispatcherSubSpec](const auto& d) {
+                                      return d->getSubSpec() == dispatcherSubSpec;
+                                    });
+
             if (res != dispatchers.end()) {
-
-              addEdgesToDispatcher(res->second, newInput);
-
-              if (infrastructureCfg.enableTimePipeliningDispatchers &&
-                  res->second.maxInputTimeslices < dataProcessor.maxInputTimeslices) {
-                res->second.maxInputTimeslices = dataProcessor.maxInputTimeslices;
-              }
+              (*res)->addSource(dataProcessor, externalOutput, desiredData.binding);
             } else {
-              dispatchers[dispatcherSubSpec] = createDispatcherSpec(dispatcherSubSpec, task, newInput);
-
-              //todo: can fairmq dispatchers be time pipelined?
-              if (infrastructureCfg.enableTimePipeliningDispatchers) {
-                dispatchers[dispatcherSubSpec].maxInputTimeslices = dataProcessor.maxInputTimeslices;
-              }
+              auto newDispatcher = createDispatcher(dispatcherSubSpec, task, infrastructureCfg);
+              newDispatcher->addSource(dataProcessor, externalOutput, desiredData.binding);
+              dispatchers.push_back(std::move(newDispatcher));
             }
           }
         }
@@ -193,113 +127,9 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
       }
     }
     for (auto& dispatcher : dispatchers) {
-      workflow.push_back(std::move(dispatcher.second));
+      workflow.push_back(std::move(dispatcher->getDataProcessorSpec()));
     }
   }
-}
-
-AlgorithmSpec::ProcessCallback DataSampling::dispatcherInitCallback(InitContext& ctx)
-{
-
-  BernoulliGenerator generator(0);
-  return [generator](o2::framework::ProcessingContext& pCtx) mutable {
-    o2::framework::DataSampling::dispatcherCallback(pCtx, generator);
-  };
-}
-
-void DataSampling::dispatcherCallback(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenerator)
-{
-  InputRecord& inputs = ctx.inputs();
-
-  if (bernoulliGenerator.drawLots()) {
-    for (auto& input : inputs) {
-
-      OutputSpec outputSpec = createDispatcherOutputSpec(*input.spec);
-
-      const auto* inputHeader = header::get<header::DataHeader>(input.header);
-
-      /*if (inputHeader->payloadSerializationMethod == header::gSerializationMethodInvalid) {
-        LOG(ERROR) << "DataSampling::dispatcherCallback: input of origin'" << inputHeader->dataOrigin.str
-                   << "', description '" << inputHeader->dataDescription.str
-                   << "' has gSerializationMethodInvalid.";
-      } else*/ if (inputHeader->payloadSerializationMethod == header::gSerializationMethodROOT) {
-        ctx.allocator().adopt(outputSpec, DataRefUtils::as<TObject>(input).release());
-      } else { //POD
-        //todo: use API for that when it is available
-        ctx.allocator().adoptChunk(outputSpec, const_cast<char*>(input.payload), inputHeader->size(),
-                                   &header::Stack::freefn, nullptr);
-      }
-
-      LOG(DEBUG) << "DataSampler sends data from subspec " << input.spec->subSpec;
-    }
-  }
-}
-
-AlgorithmSpec::ProcessCallback DataSampling::dispatcherInitCallbackFairMQ(InitContext& ctx, const std::string& channel,
-                                                                          double fraction)
-{
-  auto device = ctx.services().get<RawDeviceService>().device();
-  auto gen = BernoulliGenerator(fraction);
-
-  return [gen, device, channel](o2::framework::ProcessingContext& pCtx) mutable {
-    o2::framework::DataSampling::dispatcherCallbackFairMQ(pCtx, gen, device, channel);
-  };
-}
-
-void DataSampling::dispatcherCallbackFairMQ(ProcessingContext& ctx, BernoulliGenerator& bernoulliGenerator,
-                                            FairMQDevice* device, const std::string& channel)
-{
-  InputRecord& inputs = ctx.inputs();
-
-  if (bernoulliGenerator.drawLots()) {
-
-    auto cleanupFcn = [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); };
-    for (auto& input : inputs) {
-      const auto* header = header::get<header::DataHeader>(input.header);
-
-      char* payloadCopy = new char[header->payloadSize];
-      memcpy(payloadCopy, input.payload, header->payloadSize);
-      FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, header->payloadSize, cleanupFcn, payloadCopy));
-
-      int bytesSent = device->Send(msgPayload, channel);
-      LOG(DEBUG) << "Payload bytes sent: " << bytesSent;
-    }
-
-    // from repo Common/DataBlock.h
-    struct DataBlockHeaderBase {
-      uint32_t blockType;
-      uint32_t headerSize;
-      uint32_t dataSize;
-      uint64_t id;
-      uint32_t linkId;
-    };
-
-    auto* endOfMessage = new DataBlockHeaderBase();
-    endOfMessage->blockType = 0xFF;
-    endOfMessage->headerSize = 0x60; // just the header eom -> 96 bits
-    FairMQMessagePtr msgEom(device->NewMessage((void*) endOfMessage, (endOfMessage->headerSize), cleanupFcn));
-    int ret = device->Send(msgEom, channel);
-  }
-}
-
-/// Creates dispatcher output specification basing on input specification of the same data. Basically, it adds '_S' at
-/// the end of description, which makes data stream distinctive from the main flow (which is not sampled/filtered).
-OutputSpec DataSampling::createDispatcherOutputSpec(const InputSpec& dispatcherInput)
-{
-  OutputSpec dispatcherOutput{
-    dispatcherInput.origin,
-    dispatcherInput.description,
-    0,
-    static_cast<OutputSpec::Lifetime>(dispatcherInput.lifetime)
-  };
-
-  size_t len = strlen(dispatcherOutput.description.str);
-  if (len < dispatcherOutput.description.size - 2) {
-    dispatcherOutput.description.str[len] = '_';
-    dispatcherOutput.description.str[len + 1] = 'S';
-  }
-
-  return dispatcherOutput;
 }
 
 /// Reads QC Tasks configuration from given filepath. Uses Configuration dependency and handles most of its exceptions.
