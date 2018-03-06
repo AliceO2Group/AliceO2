@@ -50,9 +50,11 @@ class ClusterLines
 {
   public:
     ClusterLines( const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine, const bool weight = false );
-    void Add( const int lineLabel, const Line& line, const bool weight = false );
-    void ComputeClusterCentroid();
-    inline const std::array<float, 3> GetVertex() { return mVertex; }
+    void add( const int lineLabel, const Line& line, const bool weight = false );
+    void computeClusterCentroid();
+    inline std::vector<int> getLabels() { return mLabels; };
+    inline int getSize() const { return mLabels.size(); };
+    inline std::array<float, 3> getVertex() { return mVertex; }
 
   protected:
     std::array<float, 6> mAMatrix;          // AX=B 

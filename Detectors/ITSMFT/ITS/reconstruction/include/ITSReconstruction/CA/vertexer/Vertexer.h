@@ -2,7 +2,7 @@
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -35,17 +35,19 @@ class Line;
 class Vertexer
 {
 public:
-  explicit Vertexer(const Event& event);
+  explicit Vertexer( const Event& event );
   virtual ~Vertexer();
-  Vertexer(const Vertexer&) = delete;
-  Vertexer& operator=(const Vertexer&) = delete;
+  Vertexer( const Vertexer& ) = delete;
+  Vertexer& operator=( const Vertexer& ) = delete;
 
-  void initialise(const float zCut, const float phiCut, const float pairCut);
+  void initialise( const float zCut, const float phiCut, const float pairCut, const float clusterCut, const int clusterContributorsCut );
   void findTracklets();
   void computeTriplets();
   void checkTriplets();
-  void FindVertices();
+  void findVertices();
   void printIndexTables();
+  void printVertices();
+  void debugTracklets();
   static const std::vector<std::pair<int, int>> selectClusters(
     const std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1> &indexTable,
     const std::array<int, 4> &selectedBinsRect
@@ -55,7 +57,8 @@ protected:
   bool mVertexerInitialised { false };
   bool mTrackletsFound { false };
   float mDeltaRadii10, mDeltaRadii21;
-  float mZCut, mPhiCut, mPairCut;
+  float mZCut, mPhiCut, mPairCut, mClusterCut;
+  int mClusterContributorsCut;
   int mPhiSpan, mZSpan;
   std::array<float, 3> mAverageClustersRadii; 
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
@@ -68,7 +71,7 @@ protected:
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
             Constants::ITS::LayersNumberVertexer> mIndexTables;
   std::vector<std::array<int, 3>> mTriplets;
-  std::vector<bool> mUsedTracklets;
+  std::vector<int> mUsedTracklets;
   std::vector<Line> mTracklets;
   std::vector<ClusterLines> mTrackletClusters;
 };
