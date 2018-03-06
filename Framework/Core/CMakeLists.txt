@@ -39,6 +39,7 @@ set(SRCS
     src/DDSConfigHelpers.cxx
     src/DispatcherDPL.cxx
     src/DispatcherFairMQ.cxx
+    src/DispatcherFlpProto.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx

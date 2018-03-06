@@ -29,6 +29,7 @@
 #include "Framework/Dispatcher.h"
 #include "Framework/DispatcherDPL.h"
 #include "Framework/DispatcherFairMQ.h"
+#include "Framework/DispatcherFlpProto.h"
 #include "Framework/DataSamplingConfig.h"
 
 namespace o2
