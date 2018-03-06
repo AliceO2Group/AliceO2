@@ -28,7 +28,7 @@
 #endif
 
 void run_vert_ca_its(std::string path = "./",
-                std::string outputfile = "o2ca_its.root",
+                // std::string outputfile = "o2ca_its.root",
                 std::string inputClustersITS = "o2clus_its.root",
                 std::string paramfilename = "o2sim_par.root")
 {
@@ -71,17 +71,20 @@ void run_vert_ca_its(std::string path = "./",
   // TTree outTree("catracks", "CA ITS Tracks");
 
   //-------------------- settings -----------//
-  for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
+  for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) { // itsClusters.GetEntries()
     itsClusters.GetEntry(iEvent);
     o2::ITS::CA::IOUtils::loadEventData(event,clusters,labels);
     // event.addPrimaryVertex(0.,0.,0.);
     // tracker.clustersToTracks(event);
     o2::ITS::CA::Vertexer vertexer(event);
-    vertexer.initialise(0.02, 0.005, -1);
-    // vertexer.findTracklets();
-    vertexer.computeTriplets();
+    vertexer.initialise(0.02, 0.005, 0.03, 0.8, 3);
+    vertexer.findTracklets();
+    // vertexer.computeTriplets();
     // vertexer.printIndexTables();
-    vertexer.checkTriplets();
+    // vertexer.checkTriplets();
+    // vertexer.debugTracklets();
+    vertexer.findVertices();
+    vertexer.printVertices();
   }
 
 

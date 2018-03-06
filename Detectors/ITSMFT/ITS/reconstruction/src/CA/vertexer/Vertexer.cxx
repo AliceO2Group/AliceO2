@@ -2,15 +2,12 @@
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Vertexer.cxx
-/// \brief
-/// \author matteo.concas@cern.ch
 
 #include <algorithm>
 #include <iostream>
@@ -26,6 +23,10 @@
 #include "ITSReconstruction/CA/vertexer/ClusterLines.h"
 #include "ITSReconstruction/CA/vertexer/Vertexer.h"
 #include "ITSReconstruction/CA/IndexTableUtils.h"
+
+// debug starts here
+#include "TH1F.h"
+// and ends here
 
 namespace o2
 {
@@ -70,7 +71,7 @@ mEvent{ event } // ,
 
 Vertexer::~Vertexer() {};
 
-void Vertexer::initialise( const float zCut, const float phiCut, const float pairCut )
+void Vertexer::initialise( const float zCut, const float phiCut, const float pairCut, const float clusterCut, const int clusterContributorsCut )
 {
   for (int iLayer { 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
     std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
@@ -101,6 +102,8 @@ void Vertexer::initialise( const float zCut, const float phiCut, const float pai
   mZCut = zCut;
   mPhiCut = phiCut;
   mPairCut = pairCut;
+  mClusterCut = clusterCut;
+  mClusterContributorsCut = clusterContributorsCut;
   mPhiSpan = static_cast<int>( std::ceil( PhiBins * mPhiCut/TwoPi ));
   mZSpan = static_cast<int>( std::ceil( mZCut * Constants::IndexTable::InverseZBinSize()[0] ) );
   mVertexerInitialised = true;
@@ -273,7 +276,8 @@ void Vertexer::findTracklets()
   }
 }
 
-void Vertexer::checkTriplets() {
+void Vertexer::checkTriplets()
+{
   std::cout<< "Triplets found: " << mTriplets.size() << std::endl;
   std::cout<< "Tracklets found: " << mTracklets.size() << std::endl;
   int good { 0 };
@@ -291,121 +295,98 @@ void Vertexer::checkTriplets() {
   std::cout<<"good: "<<good<<"\tbad: "<<bad<<"\tratio: "<<std::setprecision(4)<<100*(float)good/(good+bad)<<"%"<<std::endl;
 }
 
-void Vertexer::FindVertices() {
+void Vertexer::debugTracklets()
+{
+  // Line zAxis { std::array<float, 3>{0., 0., 0.}, std::array<float, 3>{0., 0., 1.} };
+  // Line zAxisPar { std::array<float, 3>{0., 1., 0.}, std::array<float, 3>{0., 1., 1.} };
+  // Line yAxis { std::array<float, 3>{0., 0., 0.}, std::array<float, 3>{0., 1., 0.} };
+  // Line skewLine { std::array<float, 3>{1., 1., 2.}, std::array<float, 3>{1., 0., 0.} };
+  // Line skewLine2 { std::array<float, 3>{1., 1., 0.}, std::array<float, 3>{0., 0., 2.} };
+  // std::array<float, 3> point { 1., 1., 1. };
+  // std::array<float, 3> otherpoint { };
+  // std::cout<<" z-zpar: "<<Line::getDCA(zAxis, zAxisPar)<<std::endl;
+  // std::cout<<" zpar-zort: "<<Line::getDCA(zAxisPar, yAxis)<<std::endl;
+  // std::cout<<" 1,1,1 from zAxis: "<<Line::getDistanceFromPoint( zAxis, point )<<" vs sqrt(2) "<<std::sqrt(2)<<std::endl;
+  // std::cout<<" skewlines: "<<Line::getDCA(skewLine, skewLine2)<<std::endl;
+}
+
+void Vertexer::findVertices() 
+{
+  
   if ( mTrackletsFound ) {
+    // TH1F* hDCA = new TH1F("dca", ";DCA;#counts", 1000, 0, 20);
     findTracklets();
-    mUsedTracklets.resize( mTracklets.size(), false );
+    const int numTracklets { static_cast<int>( mTracklets.size() ) };
+    mUsedTracklets.resize( numTracklets, -1 );
+    int numberTrackletsCluster { 0 };
 
-  }
-}
-
-}
-}
-}
-
-
-
-
-/*
-//_____________________________________________________________________________________________
-void AliITSUVertexer::FindVerticesForCurrentEvent() {
-  // Try to find all the primary vertices in the current 
-  fNoVertices=0;
-  FindTracklets();
-  if(fNoLines<2) { 
-    //fVertices.push_back(AliESDVertex());
-    return;// AliESDVertex();
-  }
+    for ( int tracklet1 { 0 }; tracklet1 < numTracklets; ++tracklet1  ) {
+      if ( mUsedTracklets[tracklet1] != -1 ) continue;
+      for ( int tracklet2 { tracklet1 + 1 }; tracklet2 < numTracklets; ++tracklet2 ) {
+        if ( mUsedTracklets[tracklet2] != -1 ) continue;
+        if ( Line::getDCA( mTracklets[tracklet1], mTracklets[tracklet2] ) <= mPairCut ) {
+          mTrackletClusters.emplace_back( tracklet1, mTracklets[tracklet1], tracklet2, mTracklets[tracklet2] );
+          std::array<float, 3> tmpVertex { mTrackletClusters.back().getVertex() };
+          if ( tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f ) {
+            mTrackletClusters.pop_back();
+            break;
+          }
+          mUsedTracklets[tracklet1] = numberTrackletsCluster; 
+          mUsedTracklets[tracklet2] = numberTrackletsCluster; 
+          for ( int tracklet3 { 0 }; tracklet3 < numTracklets; ++tracklet3 ) {
+            if ( mUsedTracklets[tracklet3] != -1 ) continue;
+            if ( Line::getDistanceFromPoint( mTracklets[tracklet3], tmpVertex ) < mPairCut ) {
+              mTrackletClusters.back().add( tracklet3, mTracklets[tracklet3] );
+              mUsedTracklets[tracklet3] = numberTrackletsCluster;
+              tmpVertex = mTrackletClusters.back().getVertex();
+            } 
+          }
+        ++numberTrackletsCluster; // probably can be removed?
+        break;
+        }
+      }
+    }
+    std::sort( mTrackletClusters.begin(), mTrackletClusters.end(), []( ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); } );
+    for ( int iCluster1 { 0 }; iCluster1 < mTrackletClusters.size(); ++iCluster1 ) {
+      std::array<float, 3> vertex1 { mTrackletClusters[iCluster1].getVertex() };
+      std::array<float, 3> vertex2 { };
+      for ( int iCluster2 { iCluster1 + 1 }; iCluster2 < mTrackletClusters.size(); ++iCluster2 ) {
+        vertex2 = mTrackletClusters[iCluster2].getVertex();
+        if ( std::abs( vertex1[2] - vertex2[2] ) < mClusterCut ) {
+          float distance { ( vertex1[0] - vertex2[0] ) * ( vertex1[0] - vertex2[0] ) +
+                           ( vertex1[1] - vertex2[1] ) * ( vertex1[1] - vertex2[1] ) +
+                           ( vertex1[2] - vertex2[2] ) * ( vertex1[2] - vertex2[2] ) };
+          if ( distance <= mPairCut * mPairCut ) {
+            for ( auto label : mTrackletClusters[iCluster2].getLabels() ) {
+              mTrackletClusters[iCluster1].add( label, mTracklets[label] );
+              vertex1 = mTrackletClusters[iCluster1].getVertex();
+            }
+            mTrackletClusters.erase( mTrackletClusters.begin() + iCluster2 );
+            --iCluster2;
+          }
+        }
+      }
+      for ( int iCluster { 0 }; iCluster < mTrackletClusters.size(); ++iCluster ) {
+        if ( mTrackletClusters[iCluster].getSize() < mClusterContributorsCut && mTrackletClusters.size() > 1 ) {
+          mTrackletClusters.erase( mTrackletClusters.begin() + iCluster );
+          continue;
+        }
   
-  //  fVertices.push_back(AliVertexerTracks::TrackletVertexFinder(&fLines,1));
-  //fNoVertices=1;
-  fUsedLines=new Short_t[fNoLines];
-  for(UInt_t i=0;i<fNoLines;++i) fUsedLines[i]=-1;
-  
-  fNoClusters=0;
-  for(UInt_t i1=0;i1<fNoLines;++i1) {
-    if(fUsedLines[i1]!=-1) continue;
-    AliStrLine* line1 = (AliStrLine*)fLines.At(i1);
-    for(UInt_t i2=i1+1;i2<fNoLines;++i2) {
-      if(fUsedLines[i2]!=-1) continue;
-      AliStrLine* line2 = (AliStrLine*)fLines.At(i2);
-      if(line1->GetDCA(line2)<=fPairCut) {
-	      new(fLinesClusters[fNoClusters])AliITSUClusterLines(i1,line1,i2,line2);
-	      AliITSUClusterLines* current=(AliITSUClusterLines*)fLinesClusters.At(fNoClusters);
-	      Double_t p[3];
-	      current->GetVertex(p);
-	    if((p[0]*p[0]+p[1]*p[1])>=4) { // Beam pipe check
-	      fLinesClusters.RemoveAt(fNoClusters);
-	      fLinesClusters.Compress();
-	      break;
-	    }
-	    fUsedLines[i1]=fNoClusters;
-	    fUsedLines[i2]=fNoClusters;
-	    for(UInt_t i3=0;i3<fNoLines;++i3) {
-	      if(fUsedLines[i3]!=-1) continue;
-	      AliStrLine *line3 = (AliStrLine*)fLines.At(i3);
-	      //cout << p[0] << " " << p[1] << " " << p[2] << endl;
-	      //line3->PrintStatus();
-	      if(line3->GetDistFromPoint(p)<=fPairCut) {
-	        //cout << i3 << " ";
-	        current->Add(i3,line3);
-	        fUsedLines[i3]=fNoClusters;
-	        current->GetVertex(p);
-	      }
-	    }
-	++fNoClusters;
-	//cout << endl;
-	break;
+        mVertices.emplace_back( mTrackletClusters[iCluster].getVertex() );
       }
     }
   }
-  
-  fLinesClusters.Sort();
-
-  for(UInt_t i0=0;i0<fNoClusters; ++i0) {
-    Double_t p0[3],p1[3];
-    AliITSUClusterLines *clu0 = (AliITSUClusterLines*)fLinesClusters.At(i0);
-    clu0->GetVertex(p0);
-    for(UInt_t i1=i0+1;i1<fNoClusters; ++i1) {
-      AliITSUClusterLines *clu1 = (AliITSUClusterLines*)fLinesClusters.At(i1);
-      clu1->GetVertex(p1);
-      if (TMath::Abs(p0[2]-p1[2])<=fClusterCut) {
-	Double_t distance=(p0[0]-p1[0])*(p0[0]-p1[0])+(p0[1]-p1[1])*(p0[1]-p1[1])+(p0[2]-p1[2])*(p0[2]-p1[2]);
-	//Bool_t flag=kFALSE;
-	if(distance<=fPairCut*fPairCut) {
-	  UInt_t n=0;
-	  Int_t *labels=clu1->GetLabels(n);
-	  for(UInt_t icl=0; icl<n; ++icl) clu0->Add(labels[icl],(AliStrLine*)fLines.At(labels[icl]));
-	  clu0->GetVertex(p0);
-	  //flag=kTRUE;
-	}
-	fLinesClusters.RemoveAt(i1);
-	fLinesClusters.Compress();
-	fNoClusters--;
-	i1--;
-	//if(flag) i1=10;
-      }
-    }
-  }
-
-  fVertices=new AliESDVertex[fNoClusters];
-  for(UInt_t i0=0; i0<fNoClusters; ++i0) {
-    AliITSUClusterLines *clu0 = (AliITSUClusterLines*)fLinesClusters.At(i0);
-    Int_t size=clu0->GetSize();
-    if(size<fClusterContribCut&&fNoClusters>1) {
-      fLinesClusters.RemoveAt(i0);
-      fLinesClusters.Compress();
-      fNoClusters--;
-      continue;
-    } 
-    Double_t p0[3],cov[6];
-    clu0->GetVertex(p0);
-    clu0->GetCovMatrix(cov);
-    if((p0[0]*p0[0]+p0[1]*p0[1])<1.98*1.98) {
-      fVertices[fNoVertices++]=AliESDVertex(p0,cov,99999.,size);   
-    }
-  }
-  
-  return;// AliVertexerTracks::TrackletVertexFinder(&fLines,0);
 }
-*/
+
+void Vertexer::printVertices()
+{
+  for ( auto& vertex : mVertices ) {
+    for ( int i { 0 }; i < 3; ++i ) {
+      std::cout<< "coord: " << i << " -> " << vertex[i] << std::endl;
+    }
+  }
+}
+
+}
+}
+}
