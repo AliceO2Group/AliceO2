@@ -44,6 +44,10 @@
 #include "AliHLTTPCCAGPUConfig.h"
 #include "MemoryAssignmentHelpers.h"
 
+#if defined(BUILD_QA) && defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
+#include "include.h"
+#endif
+
 #define DEBUG 0
 
 //#define OFFLINE_FITTER
@@ -824,8 +828,16 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       p1.DzDs()  = p2.DzDs();
       p1.QPt()  = p2.QPt();
       mergedTrack.SetAlpha( p2.Alpha() );
-
+      
       //if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
+
+#if defined(BUILD_QA) && defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
+      if (SuppressTrack(fNOutputTracks))
+      {
+          mergedTrack.SetOK(0);
+          mergedTrack.SetNClusters(0);
+      }
+#endif
 
       fNOutputTracks++;
       nOutTrackClusters += nHits;
