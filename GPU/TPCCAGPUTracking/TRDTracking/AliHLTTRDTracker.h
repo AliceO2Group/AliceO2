@@ -5,7 +5,7 @@
 
 
 class TTree;
-class TTreeSRedirector;
+class AliHLTTRDTrackerDebug;
 class AliESDEvent;
 class AliESDtrack;
 
@@ -29,10 +29,10 @@ public:
 
   // struct to hold the information on the space points
   struct AliHLTTRDSpacePointInternal {
-    double fR;                // x position (7mm above anode wires)
-    double fX[2];             // y and z position (sector coordinates)
+    float fR;                // x position (7mm above anode wires)
+    float fX[2];             // y and z position (sector coordinates)
     double fCov[3];           // sigma_y^2, sigma_yz, sigma_z^2
-    double fDy;               // deflection over drift length
+    float fDy;               // deflection over drift length
     int fId;                  // index
     int fLabel[3];            // MC labels
     unsigned short fVolumeId; // basically derived from TRD chamber number
@@ -41,7 +41,7 @@ public:
   enum Relation_t { kNoTracklet = 0, kNoMatch, kRelated, kEqual };
 
   struct Hypothesis {
-    double fChi2;
+    float fChi2;
     int fLayers;
     int fCandidateId;
     int fTrackletId;
@@ -63,17 +63,16 @@ public:
   void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0);
   bool CalculateSpacePoints();
   bool FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks);
-  int GetDetectorNumber(const double zPos, const double alpha, const int layer) const;
+  int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   bool AdjustSector(AliHLTTRDTrack *t, const int layer) const;
-  int GetSector(double alpha) const;
+  int GetSector(float alpha) const;
   float GetAlphaOfSector(const int sec) const;
-  double GetRPhiRes(double snp) const { return (0.04*0.04+0.33*0.33*(snp-0.126)*(snp-0.126)); }
-  void RecalcTrkltCov(const int trkltIdx, const double tilt, const double snp, const double rowSize);
+  float GetRPhiRes(float snp) const { return (0.04*0.04+0.33*0.33*(snp-0.126)*(snp-0.126)); }
+  void RecalcTrkltCov(const int trkltIdx, const float tilt, const float snp, const float rowSize);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
-  void CheckTrackRefs(const int trackID, TVectorF &findableMC, TVectorF &xPosMC, TVectorF &yPosMC, TVectorF &zPosMC, TVectorF &ptMC) const;
+  void CheckTrackRefs(const int trackID, bool *findableMC) const;
   void FindChambersInRoad(const AliHLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax) const;
   bool IsGeoFindable(const AliHLTTRDTrack *t, const int layer) const;
-  bool IsTrackletSortingOk() const;
 
   // settings
   void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
@@ -114,8 +113,8 @@ public:
 
 protected:
 
-  static const double fgkX0[kNLayers];        // default values of anode wires
-  static const double fgkXshift;              // online tracklets evaluated above anode wire
+  static const float fgkX0[kNLayers];        // default values of anode wires
+  static const float fgkXshift;              // online tracklets evaluated above anode wire
 
   float *fR;                                  // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
@@ -142,7 +141,7 @@ protected:
   int fNhypothesis;                           // number of track hypothesis per layer
   std::vector<int> fMaskedChambers;           // vector holding bad TRD chambers
   AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
-  TTreeSRedirector *fStreamer;                // debug output stream
+  AliHLTTRDTrackerDebug *fDebug;              // debug output
 
 private:
   AliHLTTRDTracker(const AliHLTTRDTracker &tracker);
