@@ -82,7 +82,8 @@ TLegend* legendncl;
 int nEvents = 0;
 std::vector<std::vector<int>> mcEffBuffer;
 std::vector<std::vector<int>> mcLabelBuffer;
-std::vector<std::vector<int>> goodTracks;
+std::vector<std::vector<bool>> goodTracks;
+std::vector<std::vector<bool>> goodHits;
 
 #define DEBUG 0
 #define TIMING 0
@@ -204,6 +205,11 @@ void SetMCTrackRange(int min, int max)
 bool SuppressTrack(int iTrack)
 {
 	return (configStandalone.configQA.matchMCLabels.size() && !goodTracks[nEvents][iTrack]);
+}
+
+bool SuppressHit(int iHit)
+{
+	return (configStandalone.configQA.matchMCLabels.size() && !goodHits[nEvents - 1][iHit]);
 }
 
 void InitQA()
@@ -360,6 +366,7 @@ void InitQA()
 		}
 		
 		goodTracks.resize(labelsBuffer[0]->size());
+		goodHits.resize(labelsBuffer[0]->size());
 		for (unsigned int iEvent = 0;iEvent < labelsBuffer[0]->size();iEvent++)
 		{
 			std::vector<bool> labelsOK((*effBuffer[0])[iEvent].size());
@@ -419,7 +426,7 @@ void RunQA()
 	}
 	std::vector<int> &effBuffer = mcEffBuffer[nEvents - 1];
 	std::vector<int> &labelBuffer = mcLabelBuffer[nEvents - 1];
-
+	
 	if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
 	{
 		//Assign Track MC Labels
@@ -526,6 +533,41 @@ void RunQA()
 					(merger.OutputTracks()[i].OK() && fabs(merger.OutputTracks()[i].GetParam().GetZ()) < fabs(merger.OutputTracks()[revLabel].GetParam().GetZ())))
 				{
 					revLabel = i;
+				}
+			}
+		}
+		if (config.matchMCLabels.size())
+		{
+			goodHits[nEvents-1].resize(hlt.GetNMCLabels());
+			std::vector<bool> allowMCLabels(hlt.GetNMCInfo());
+			for (int k = 0;k < hlt.GetNMCInfo();k++) allowMCLabels[k] = false;
+			for (int i = 0;i < merger.NOutputTracks();i++)
+			{
+				if (!goodTracks[nEvents-1][i]) continue;
+				if (config.matchDisplayMinPt > 0)
+				{
+					if (trackMCLabels[i] == MC_LABEL_INVALID) continue;
+					const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[abs(trackMCLabels[i])];
+					if (info.fPx * info.fPx + info.fPy * info.fPy < config.matchDisplayMinPt * config.matchDisplayMinPt) continue;
+				}
+
+				const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+				for (int j = 0;j < track.NClusters();j++)
+				{
+					int hitId = merger.Clusters()[track.FirstClusterRef() + j].fId;
+					for (int k = 0;k < 1;k++)
+					{
+						int mcID = hlt.GetMCLabels()[hitId].fClusterID[k].fMCID;
+						if (mcID >= 0) allowMCLabels[mcID] = true;
+					}
+				}
+			}
+			for (int i = 0;i < hlt.GetNMCLabels();i++)
+			{
+				for (int j = 0;j < 1;j++)
+				{
+					int mcID = hlt.GetMCLabels()[i].fClusterID[j].fMCID;
+					if (mcID >= 0 && allowMCLabels[mcID]) goodHits[nEvents-1][i] = true;
 				}
 			}
 		}
