@@ -21,7 +21,19 @@ class AliHLTTRDTrackerDebug
                             fRoadY.ResizeTo(6); fRoadZ.ResizeTo(6); fTrackletXReal.ResizeTo(6); fTrackletYReal.ResizeTo(6); fTrackletZReal.ResizeTo(6); ; fTrackletYcorrReal.ResizeTo(6); fTrackletZcorrReal.ResizeTo(6);
                             fTrackletSecReal.ResizeTo(6); fTrackletDetReal.ResizeTo(6); fTrackXReal.ResizeTo(6); fTrackYReal.ResizeTo(6); fTrackZReal.ResizeTo(6); fTrackSecReal.ResizeTo(6);
                             fChi2Update.ResizeTo(6); fChi2Real.ResizeTo(6); fNmatchesAvail.ResizeTo(6); fFindable.ResizeTo(6); fFindableMC.ResizeTo(6); fUpdates.ResizeTo(6);
-                          }
+                         }
+
+    void Reset() { fTrackX.Zero(); fTrackY.Zero(); fTrackZ.Zero(); fTrackPhi.Zero(); fTrackLambda.Zero(); fTrackPt.Zero();
+                    fTrackSector.Zero(); fTrackYerr.Zero(); fTrackZerr.Zero(); fTrackNoUpX.Zero(); fTrackNoUpY.Zero(); fTrackNoUpZ.Zero();
+                    fTrackNoUpPhi.Zero(); fTrackNoUpLambda.Zero(); fTrackNoUpPt.Zero(); fTrackNoUpSector.Zero(); fTrackNoUpYerr.Zero();
+                    fTrackNoUpZerr.Zero(); fTrackletX.Zero(); fTrackletY.Zero(); fTrackletZ.Zero(); ; fTrackletYcorr.Zero(); fTrackletZcorr.Zero();
+                    fTrackletY2err.Zero(); fTrackletYZerr.Zero(); fTrackletZ2err.Zero(); fTrackletDy.Zero(); fTrackletDet.Zero();
+                    fRoadY.Zero(); fRoadZ.Zero(); fTrackletXReal.Zero(); fTrackletYReal.Zero(); fTrackletZReal.Zero(); ; fTrackletYcorrReal.Zero(); fTrackletZcorrReal.Zero();
+                    fTrackletSecReal.Zero(); fTrackletDetReal.Zero(); fTrackXReal.Zero(); fTrackYReal.Zero(); fTrackZReal.Zero(); fTrackSecReal.Zero();
+                    fChi2Update.Zero(); fChi2Real.Zero(); fNmatchesAvail.Zero(); fFindable.Zero(); fFindableMC.Zero(); fUpdates.Zero();
+                    fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fNtrklts = 0; fNtrkltsRef = 0; fNlayers = 0; fChi2 = 0; fNmatch = 0; fNfake = 0; fNrelated = 0;
+                    fXvMC = 0; fYvMC = 0; fZvMC = 0; fPdgCode = 0; fParam.Reset(); fParamNoUp.Reset();
+                 }
 
     // general information
     void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId)
@@ -204,6 +216,7 @@ class AliHLTTRDTrackerDebug
 {
   public:
     void ExpandVectors() {}
+    void Reset() {}
 
     // general information
     void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId) {}
