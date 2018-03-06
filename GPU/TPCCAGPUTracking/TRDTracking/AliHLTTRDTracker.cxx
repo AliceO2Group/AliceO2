@@ -379,12 +379,9 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
 
   AliTRDpadPlane *pad = 0x0;
 
-  bool findable[6] = { false };
-  bool findableMC[6] = { false };
-  int update[6] = { 0 };
-
-  //FIXME only necessary for debugging
+#ifdef ENABLE_HLTTRDDEBUG
   AliHLTTRDTrack *trackNoUpdates = new AliHLTTRDTrack(*t);
+#endif
 
   // look for matching tracklets via MC label
   int trackID = t->GetLabel();
@@ -392,7 +389,9 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   std::vector<int> matchAvailableAll[kNLayers]; // all available MC tracklet matches for this track
   if (fDebugOutput && trackID > 0 && fMCEvent) {
     CountMatches(trackID, matchAvailableAll);
+    bool findableMC[6] = { false };
     CheckTrackRefs(trackID, findableMC);
+    fDebug->SetFindableMC(findableMC);
   }
 
   // the vector det holds the numbers of the detectors which are searched for tracklets
@@ -445,7 +444,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
 
       // propagate track to average radius of TRD layer iLayer
       if (!PropagateTrackToBxByBz(&fCandidates[2*iCandidate+currIdx], fR[iLayer], mass, 2.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/)) {
-        Info("FollowProlongation", "Track propagation failed for track %i candidate %i in layer %i (pt=%f)", iTrack, iCandidate, iLayer, fCandidates[2*iCandidate+currIdx].Pt());
+        Info("FollowProlongation", "Track propagation failed for track %i candidate %i in layer %i (pt=%f)",
+          iTrack, iCandidate, iLayer, fCandidates[2*iCandidate+currIdx].Pt());
         continue;
       }
 
@@ -457,8 +457,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
 
       // check if track is findable
       if (IsGeoFindable(&fCandidates[2*iCandidate+currIdx], iLayer )) {
-        findable[iLayer] = true;
-        fCandidates[2*iCandidate+currIdx].SetNlayers(fCandidates[2*iCandidate+currIdx].GetNlayers() + 1);
+        fCandidates[2*iCandidate+currIdx].SetIsFindable(iLayer);
       }
 
       // define search window
@@ -467,7 +466,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       roadZ = 18.; // simply twice the longest pad length -> efficiency 99.996%
       //
       if (TMath::Abs(fCandidates[2*iCandidate+currIdx].GetZ()) - roadZ >= zMaxTRD ) {
-        Info("FollowProlongation", "Track out of TRD acceptance with z=%f in layer %i (eta=%f)", fCandidates[2*iCandidate+currIdx].GetZ(), iLayer, fCandidates[2*iCandidate+currIdx].Eta());
+        Info("FollowProlongation", "Track out of TRD acceptance with z=%f in layer %i (eta=%f)",
+          fCandidates[2*iCandidate+currIdx].GetZ(), iLayer, fCandidates[2*iCandidate+currIdx].Eta());
         continue;
       }
 
@@ -500,7 +500,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         for (int iTrklt=0; iTrklt<fNtrackletsInChamber[detToSearch]; ++iTrklt) {
           int trkltIdx = fTrackletIndexArray[detToSearch] + iTrklt;
           if (!PropagateTrackToBxByBz(&fCandidates[2*iCandidate+currIdx], fSpacePoints[trkltIdx].fR, mass, 2.0, kFALSE, 0.8)) {
-            Warning("FollowProlongation", "Track parameter for track %i, x=%f at tracklet %i x=%f in layer %i cannot be retrieved", iTrack, fCandidates[2*iCandidate+currIdx].GetX(), iTrklt, fSpacePoints[trkltIdx].fR, iLayer);
+            Warning("FollowProlongation", "Track parameter for track %i, x=%f at tracklet %i x=%f in layer %i cannot be retrieved",
+              iTrack, fCandidates[2*iCandidate+currIdx].GetX(), iTrklt, fSpacePoints[trkltIdx].fR, iLayer);
             continue;
           }
           float zPosCorr = fSpacePoints[trkltIdx].fX[1] + fZCorrCoefNRC * fCandidates[2*iCandidate+currIdx].GetTgl();
@@ -509,7 +510,9 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
           float tiltCorr = tilt * (fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].GetZ());
           // tilt correction only makes sense if deltaZ < l_pad && track z err << l_pad
           float l_pad = pad->GetRowSize(fTracklets[trkltIdx].GetZbin());
-          if ( (TMath::Abs(fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].GetZ()) <  l_pad) && (TMath::Sqrt(fCandidates[2*iCandidate+currIdx].GetSigmaZ2()) < (l_pad/TMath::Sqrt(12))) ) {
+          if ( (TMath::Abs(fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].GetZ()) <  l_pad) &&
+               (fCandidates[2*iCandidate+currIdx].GetSigmaZ2() < (l_pad*l_pad/12.)) )
+          {
             deltaY -= tiltCorr;
           }
           double trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] - tiltCorr, zPosCorr };
@@ -571,7 +574,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         flag = AdjustSector(&fCandidates[currIdx], iLayer);
       }
       if (!flag) {
-        Warning("FollowProlongation", "Track parameter at x=%f for track %i at real tracklet x=%f in layer %i cannot be retrieved (pt=%f)", fCandidates[currIdx].GetX(), iTrack, fSpacePoints[realTrkltId].fR, iLayer, fCandidates[currIdx].Pt());
+        Warning("FollowProlongation", "Track parameter at x=%f for track %i at real tracklet x=%f in layer %i cannot be retrieved (pt=%f)",
+          fCandidates[currIdx].GetX(), iTrack, fSpacePoints[realTrkltId].fR, iLayer, fCandidates[currIdx].Pt());
       }
       else {
         fDebug->SetTrackParameterReal(fCandidates[currIdx], iLayer);
@@ -579,7 +583,9 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         float deltaZReal = zPosCorrReal - fCandidates[currIdx].GetZ();
         float tiltCorrReal = tilt * (fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].GetZ());
         float l_padReal = pad->GetRowSize(fTracklets[realTrkltId].GetZbin());
-        if ( (TMath::Sqrt(fCandidates[currIdx].GetSigmaZ2()) >= (l_padReal/TMath::Sqrt(12))) || (TMath::Abs(fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].GetZ()) >= l_padReal) ) {
+        if ( (fCandidates[currIdx].GetSigmaZ2() >= (l_padReal*l_padReal/12.)) ||
+             (TMath::Abs(fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].GetZ()) >= l_padReal) )
+        {
           tiltCorrReal = 0;
         }
         double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - tiltCorrReal, zPosCorrReal };
@@ -597,6 +603,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
     bool wasTrackStored = false;
     //
     // loop over the best N_candidates hypothesis
+    //
     for (int iUpdate = 0; iUpdate < TMath::Min(nCurrHypothesis, fNCandidates); iUpdate++) {
       if (fHypothesis[iUpdate].fCandidateId == -1) {
         // no more candidates
@@ -609,37 +616,29 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       nCandidates = iUpdate + 1;
       fCandidates[2*iUpdate+nextIdx] = fCandidates[2*fHypothesis[iUpdate].fCandidateId+currIdx];
       if (fHypothesis[iUpdate].fTrackletId == -1) {
-        // no update for this candidate (if track was already stopped findable == 0)
-        //FIXME not yet working for more than 1 candidate per layer
-        if (findable[iLayer]) {
-          fCandidates[2*iUpdate+nextIdx].SetNmissingConsecLayers(fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() + 1);
-          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() > fMaxMissingLy) {
-            // do not add chi2 penalty if track was stopped
-            fCandidates[2*iUpdate+nextIdx].SetChi2(fHypothesis[iUpdate].fChi2 - (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() - 1) * fChi2Penalty);
-            fCandidates[2*iUpdate+nextIdx].SetNlayers( fCandidates[2*iUpdate+nextIdx].GetNlayers() - fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers());
+        // no matching tracklet found
+        if (fCandidates[2*iUpdate+nextIdx].GetIsFindable(iLayer)) {
+          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers(iLayer) > fMaxMissingLy) {
             fCandidates[2*iUpdate+nextIdx].SetIsStopped();
           }
-          else {
-            fCandidates[2*iUpdate+nextIdx].SetChi2(fHypothesis[iUpdate].fChi2);
-          }
+          fCandidates[2*iUpdate+nextIdx].SetChi2(fCandidates[2*iUpdate+nextIdx].GetChi2() + fChi2Penalty);
         }
         if (iUpdate == 0) {
           *t = fCandidates[2*iUpdate+nextIdx];
         }
         continue;
       }
-      // best matching tracklet found
+      // matching tracklet found
       int trkltSec = fGeo->GetSector(fTracklets[fHypothesis[iUpdate].fTrackletId].GetDetector());
       if ( trkltSec != GetSector(fCandidates[2*iUpdate+nextIdx].GetAlpha())) {
         // if after a matching tracklet was found another sector was searched for tracklets the track needs to be rotated back
         fCandidates[2*iUpdate+nextIdx].Rotate( GetAlphaOfSector(trkltSec) );
       }
-      if (!PropagateTrackToBxByBz(&fCandidates[2*iUpdate+nextIdx], fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, mass, 2.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/)){
+      if (!PropagateTrackToBxByBz(&fCandidates[2*iUpdate+nextIdx], fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, mass, 2.0, kFALSE, 0.8)){
         Warning("FollowProlongation", "Final track propagation for track %i update %i in layer %i failed", iTrack, iUpdate, iLayer);
         fCandidates[2*iUpdate+nextIdx].SetChi2(fCandidates[2*iUpdate+nextIdx].GetChi2() + fChi2Penalty);
-        if (findable[iLayer]) {
-          fCandidates[2*iUpdate+nextIdx].SetNmissingConsecLayers(fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() + 1);
-          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() >= fMaxMissingLy) {
+        if (fCandidates[2*iUpdate+nextIdx].GetIsFindable(iLayer)) {
+          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers(iLayer) >= fMaxMissingLy) {
             fCandidates[2*iUpdate+nextIdx].SetIsStopped();
           }
         }
@@ -654,16 +653,22 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       float deltaZup = zPosCorrUpdate - fCandidates[2*iUpdate+nextIdx].GetZ();
       float yCorr = 0;
       float l_padTrklt = pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin());
-      if ( (TMath::Sqrt(fCandidates[2*iUpdate+nextIdx].GetSigmaZ2()) < (l_padTrklt/TMath::Sqrt(12))) && (TMath::Abs(fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].GetZ()) < l_padTrklt) ) {
+      if ( (fCandidates[2*iUpdate+nextIdx].GetSigmaZ2() < (l_padTrklt*l_padTrklt/12.)) &&
+           (TMath::Abs(fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].GetZ()) < l_padTrklt) )
+      {
         yCorr = tilt * (fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].GetZ());
       }
       double trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
 
+#ifdef ENABLE_HLTTRDDEBUG
       trackNoUpdates->Rotate(GetAlphaOfSector(trkltSec));
       PropagateTrackToBxByBz(trackNoUpdates, fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, mass, 2.0, kFALSE, 0.8);
+#endif
 
       if (!wasTrackStored) {
+#ifdef ENABLE_HLTTRDDEBUG
         fDebug->SetTrackParameterNoUp(*trackNoUpdates, iLayer);
+#endif
         fDebug->SetTrackParameter(fCandidates[2*iUpdate+nextIdx], iLayer);
         fDebug->SetRawTrackletPosition(fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX, iLayer);
         fDebug->SetCorrectedTrackletPosition(trkltPosYZ, iLayer);
@@ -677,9 +682,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       {
         Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
         fCandidates[2*iUpdate+nextIdx].SetChi2(fCandidates[2*iUpdate+nextIdx].GetChi2() + fChi2Penalty);
-        if (findable[iLayer]) {
-          fCandidates[2*iUpdate+nextIdx].SetNmissingConsecLayers(fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() + 1);
-          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers() >= fMaxMissingLy) {
+        if (fCandidates[2*iUpdate+nextIdx].GetIsFindable(iLayer)) {
+          if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers(iLayer) >= fMaxMissingLy) {
             fCandidates[2*iUpdate+nextIdx].SetIsStopped();
           }
         }
@@ -690,7 +694,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       }
       fCandidates[2*iUpdate+nextIdx].AddTracklet(iLayer, fHypothesis[iUpdate].fTrackletId);
       fCandidates[2*iUpdate+nextIdx].SetChi2(fHypothesis[iUpdate].fChi2);
-      fCandidates[2*iUpdate+nextIdx].SetNmissingConsecLayers(0);
+      fCandidates[2*iUpdate+nextIdx].SetIsFindable(iLayer);
       if (iUpdate == 0) {
         *t = fCandidates[2*iUpdate+nextIdx];
       }
@@ -714,66 +718,72 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   } // end layer loop
 
   if (fDebugOutput) {
-
-    // for MC: check attached tracklets (match, related, fake)
-    int nRelated = 0;
-    int nMatching = 0;
-    int nFake = 0;
-    for (int iLy = 0; iLy < kNLayers; iLy++) {
-      if (t->GetTracklet(iLy) != -1) {
-        int lbTracklet;
-        for (int il=0; il<3; il++) {
-          if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
-            // no more valid labels
-            continue;
-          }
-          if (lbTracklet == TMath::Abs(trackID)) {
-            update[iLy] = 1 + il;
-            nMatching++;
-            break;
-          }
+    int update[6] = { 0 };
+    if (!fMCEvent) {
+      for (int iLy = 0; iLy < kNLayers; iLy++) {
+        if (t->GetTracklet(iLy) != -1) {
+          update[iLy] = 1;
         }
-        if (update[iLy] < 1 && fMCEvent) {
-          // no exact match, check in related labels
+      }
+    }
+    else {
+      // for MC: check attached tracklets (match, related, fake)
+      int nRelated = 0;
+      int nMatching = 0;
+      int nFake = 0;
+      for (int iLy = 0; iLy < kNLayers; iLy++) {
+        if (t->GetTracklet(iLy) != -1) {
+          int lbTracklet;
           for (int il=0; il<3; il++) {
             if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
               // no more valid labels
               continue;
             }
-            AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
-            while (mcPart) {
-              int motherPart = mcPart->GetMother();
-              if (motherPart == TMath::Abs(trackID)) {
-                update[iLy] = 4 + il;
-                nRelated++;
-                break;
-              }
-              mcPart = motherPart >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPart) : 0;
+            if (lbTracklet == TMath::Abs(trackID)) {
+              update[iLy] = 1 + il;
+              nMatching++;
+              break;
             }
           }
-        }
-        if (update[iLy] < 1) {
-          update[iLy] = 9;
-          nFake++;
+          if (update[iLy] < 1 && fMCEvent) {
+            // no exact match, check in related labels
+            for (int il=0; il<3; il++) {
+              if ( (lbTracklet = fSpacePoints[t->GetTracklet(iLy)].fLabel[il]) < 0 ) {
+                // no more valid labels
+                continue;
+              }
+              AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
+              while (mcPart) {
+                int motherPart = mcPart->GetMother();
+                if (motherPart == TMath::Abs(trackID)) {
+                  update[iLy] = 4 + il;
+                  nRelated++;
+                  break;
+                }
+                mcPart = motherPart >= 0 ? (AliMCParticle*) fMCEvent->GetTrack(motherPart) : 0;
+              }
+            }
+          }
+          if (update[iLy] < 1) {
+            update[iLy] = 9;
+            nFake++;
+          }
         }
       }
-    }
-    fDebug->SetTrackProperties(nMatching, nFake, nRelated);
-
-    if (fMCEvent) {
+      fDebug->SetTrackProperties(nMatching, nFake, nRelated);
       AliMCParticle *mcPartDbg = (AliMCParticle*) fMCEvent->GetTrack(trackID);
       if (mcPartDbg) {
         fDebug->SetMCinfo(mcPartDbg->Xv(), mcPartDbg->Yv(), mcPartDbg->Zv(), mcPartDbg->PdgCode());
       }
-      fDebug->SetFindableMC(findableMC);
     }
-    fDebug->SetTrack(*t);
-    fDebug->SetTrackNoUp(*trackNoUpdates);
-    fDebug->SetFindable(findable);
-    fDebug->SetUpdates(update);
-  }
 
-  fDebug->Output();
+    fDebug->SetTrack(*t);
+#ifdef ENABLE_HLTTRDDEBUG
+    fDebug->SetTrackNoUp(*trackNoUpdates);
+#endif
+    fDebug->SetUpdates(update);
+    fDebug->Output();
+  }
 
   return true;
 }

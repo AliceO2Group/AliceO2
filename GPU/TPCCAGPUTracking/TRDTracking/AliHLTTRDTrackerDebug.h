@@ -49,7 +49,8 @@ class AliHLTTRDTrackerDebug
             { fTrackNoUpX(ly) = trk.GetX(); fTrackNoUpY(ly) = trk.GetY(); fTrackNoUpZ(ly) = trk.GetZ(); fTrackNoUpPhi(ly) = trk.GetSnp(); fTrackNoUpLambda(ly) = trk.GetTgl();
               fTrackNoUpPt(ly) = trk.Pt(); fTrackNoUpSector(ly) = GetSector(trk.GetAlpha()); fTrackNoUpYerr(ly) = trk.GetSigmaY2(); fTrackNoUpZerr(ly) = trk.GetSigmaZ2(); }
     void SetTrackParameterReal(const AliHLTTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.GetX(); fTrackYReal(ly) = trk.GetY(); fTrackZReal(ly) = trk.GetZ(); fTrackSecReal(ly) = GetSector(trk.GetAlpha()); }
-    void SetTrack(const AliHLTTRDTrack &trk) { fParam = trk; fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(); }
+    void SetTrack(const AliHLTTRDTrack &trk) { fParam = trk; fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline();
+                                                for (int iLy=0; iLy<6; iLy++) { if (trk.GetIsFindable(iLy)) fFindable(iLy) = 1; } }
     void SetTrackNoUp(const AliHLTTRDTrack &trk) { fParamNoUp = trk; }
 
     // tracklet parameters
@@ -69,7 +70,6 @@ class AliHLTTRDTrackerDebug
     void SetRoad(float roadY, float roadZ, int ly) { fRoadY(ly) = roadY; fRoadZ(ly) = roadZ; }
     void SetUpdates(int *up) { for (int iLy=0; iLy<6; iLy++) { fUpdates(iLy) = up[iLy]; } }
     void SetNmatchAvail(size_t i, int ly) { fNmatchesAvail(ly) = (int) i; };
-    void SetFindable(bool *findable) { for (int iLy=0; iLy<6; iLy++) { fFindable(iLy) = findable[iLy]; } }
     void SetFindableMC(bool *findableMC) { for (int iLy=0; iLy<6; iLy++) { fFindableMC(iLy) = findableMC[iLy]; } }
     void SetMCinfo(float xv, float yv, float zv, int pdg) { fXvMC = xv; fYvMC = yv; fZvMC = zv; fPdgCode = pdg; }
 
