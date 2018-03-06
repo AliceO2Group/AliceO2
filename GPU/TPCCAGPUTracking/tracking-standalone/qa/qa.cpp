@@ -1005,6 +1005,7 @@ int DrawQAHistograms()
 						int bin0 = std::max(bin - integ, 0);
 						int bin1 = std::min(bin + integ, nBins);
 						TH1D* proj = src->ProjectionX("proj", bin0, bin1);
+						proj->ClearUnderflowAndOverflow();
 						if (proj->GetEntries())
 						{
 							unsigned int rebin = 1;
