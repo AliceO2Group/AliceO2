@@ -370,7 +370,9 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
     return false;
   }
 
-  int iTrack = t->GetTPCtrackId(); // for debugging individual tracks
+  fDebug->Reset();
+
+  int iTrack = t->GetTPCtrackId();
   float mass = t->GetMass();
 
   t->SetChi2(0.);
@@ -381,8 +383,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
   bool findableMC[6] = { false };
   int update[6] = { 0 };
 
-  AliHLTTRDTrack *trackNoUpdates = new AliHLTTRDTrack();
-  *trackNoUpdates = *t;
+  //FIXME only necessary for debugging
+  AliHLTTRDTrack *trackNoUpdates = new AliHLTTRDTrack(*t);
 
   // look for matching tracklets via MC label
   int trackID = t->GetLabel();
