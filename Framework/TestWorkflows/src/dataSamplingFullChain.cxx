@@ -21,9 +21,11 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 
-/// This is an example of using Data Sampling with both FairMQ inputs and outputs and no processing inside DPL workflow.
-/// It is configurable by config file. At first, it looks for 'dataSamplingFullChainConfig.ini' in current working
-/// directory. If it is not found there, it tries to use 'O2/Framework/TestWorkflows/dataSamplingFullChainConfig.ini'.
+/// This is an executable allowing to run Data Sampling with FLP Proto, in between FairInjector and FairSampler.
+///
+/// It also serves as an example of using Data Sampling with both FairMQ inputs and outputs and no processing inside DPL
+/// workflow. It is configurable by config file, which is installed at /share/config/dataSamplingFullChainConfig.ini.
+/// In source files it is located at O2/Framework/TestWorkflows/dataSamplingFullChainConfig.ini.
 /// You can use this file as a template to adapt Data Sampling to your own needs. Input channel configuration is
 /// declared in readoutInput/channelConfig, while output channel at readoutQcTaskDefinition/channelConfig. More details
 /// regarding options are provided inside config file.
@@ -48,18 +50,14 @@
 ///   > readout.exe file:///your/absolute/path/to/Readout/configDummy.cfg
 ///
 /// - Quality Control - configure Quality Control to subscribe for data at port 26525 (or any other, if you change it
-///                     in config file). More information on running Quality Control can be found here:
+///                     in Data Sampling config file). More information on running Quality Control can be found here:
 ///                     https://github.com/AliceO2Group/QualityControl
 
 using namespace o2::framework;
 
 void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 {
-  std::string configFilePath = std::ifstream(std::string(getenv("PWD")) + "/dataSamplingFullChainConfig.ini").good()
-                                 ? std::string("file://") + getenv("PWD") + "/dataSamplingFullChainConfig.ini"
-                                 : std::string("file://") + getenv("BASEDIR") +
-                                     "/../../O2/Framework/TestWorkflows/dataSamplingFullChainConfig.ini";
-
+  std::string configFilePath = std::string("file://") + getenv("O2_ROOT") + "/share/config/dataSamplingFullChainConfig.ini";
   LOG(INFO) << "Using config file '" << configFilePath << "'";
 
   DataSampling::GenerateInfrastructure(specs, configFilePath);
