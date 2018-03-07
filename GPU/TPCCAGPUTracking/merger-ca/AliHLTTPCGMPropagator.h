@@ -81,6 +81,7 @@ public:
   GPUd() float GetMirroredYModel() const;
   GPUd() float GetMirroredYTrack() const;
   GPUd() int GetPropagatedYZ(float x, float& projY, float& projZ);
+  GPUd() bool GetFitInProjections() const {return fFitInProjections;}
   
   GPUd() AliHLTTPCGMPhysicalTrackModel& Model() {return fT0;}
   GPUd() void CalculateMaterialCorrection();

@@ -355,7 +355,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
     float n11 = c41 + j13*c43;
     float n12 = c42 + j24*c44;
         
-    c[0]+= j02*j02c22 + j04*j04c44 + float(2.f)*( j02*c20ph04c42  + j04*c40 );
+    c[0]+= j02*j02c22 + j04*j04c44 + 2.f*( j02*c20ph04c42  + j04*c40 );
     c[1]+= j02*c21 + j04*c41 + j13*n6;
     c[2]+= j13*(c31 + n7);
     c[3] = c20ph04c42 + j02c22  + j24*n10;
@@ -449,7 +449,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
 
   if( 1||!fToyMCEvents ){  
     //std::cout<<"APPLY ENERGY LOSS!!!"<<std::endl;
-    float corr = float(1.f) - fMaterial.fEP2* dLmask ;
+    float corr = 1.f - fMaterial.fEP2* dLmask ;
     float corrInv = 1.f/corr;
     fT0.Px()*=corrInv;
     fT0.Py()*=corrInv;
@@ -594,7 +594,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
       
   c[8] = c32 + h24*c43;
   
-  c[0]+= h02*h02c22 + h04*h04c44 + float(2.f)*( h02*c20ph04c42  + h04*c40 );
+  c[0]+= h02*h02c22 + h04*h04c44 + 2.f*( h02*c20ph04c42  + h04*c40 );
   
   c[1]+= h02*c21 + h04*c41 + h13*n6;
   c[6] = n6;
@@ -625,7 +625,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
   bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
   if( maskMS ) dLmask = dL;
   float dLabs = fabs( dLmask); 
-  float corr = float(1.f) - fMaterial.fEP2* dLmask ;
+  float corr = 1.f - fMaterial.fEP2* dLmask ;
 
   float corrInv = 1.f/corr;
   fT0.Px()*=corrInv;
@@ -806,8 +806,8 @@ GPUd() float AliHLTTPCGMPropagator::ApproximateBetheBloch( float beta2 )
   // (the approximation is reasonable only for solid materials)
   //------------------------------------------------------------------
 
-  const float log0 = log( float(5940.f));
-  const float log1 = log( float(3.5f*5940.f) );
+  const float log0 = log( 5940.f );
+  const float log1 = log( 3.5f*5940.f );
 
   bool bad = (beta2 >= .999f)||( beta2 < 1.e-8f );
 
@@ -943,7 +943,7 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
     bool maskMS = ( fabs( dL ) < fMaterial.fDLMax );
     if( maskMS ) dLmask = dL;
     float dLabs = fabs( dLmask); 
-    float corr = float(1.f) - fMaterial.fEP2* dLmask ;
+    float corr = 1.f - fMaterial.fEP2* dLmask ;
     
     float corrInv = 1.f/corr;
     fT0.Px()*=corrInv;
