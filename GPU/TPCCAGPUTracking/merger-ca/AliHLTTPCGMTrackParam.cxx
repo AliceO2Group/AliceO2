@@ -98,7 +98,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   float covYYUpd = 0.;
   float lastUpdateX = -1.;
   
-  ConstrainSinPhi();
   for (int iWay = 0;iWay < nWays;iWay++)
   {
     int nMissed = 0;
@@ -120,6 +119,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     ResetCovariance();
     prop.SetFitInProjections(iWay != 0);
     prop.SetTrack( this, iWay ? prop.GetAlpha() : Alpha);
+    ConstrainSinPhi(prop.GetFitInProjections() ? 0.95 : HLTCA_MAX_SIN_PHI_LOW);
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", cadebug_nTracks, iWay, (int) (prop.GetAlpha() / kSectAngle + 0.5) + (fP[1] < 0 ? 18 : 0), prop.GetAlpha());)
 
     N = 0;
@@ -279,8 +279,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
-    ConstrainSinPhi();
   }
+  ConstrainSinPhi();
   
   bool ok = N + Ntolerate >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
   if (!ok) return(false);

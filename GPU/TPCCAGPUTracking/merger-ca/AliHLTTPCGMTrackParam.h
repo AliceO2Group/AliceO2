@@ -128,10 +128,10 @@ public:
   void SetExtParam( const AliExternalTrackParam &T );
 #endif
       
-  GPUd() void ConstrainSinPhi()
+  GPUd() void ConstrainSinPhi(float limit = HLTCA_MAX_SIN_PHI)
   {
-    if (fP[2] > HLTCA_MAX_SIN_PHI) fP[2] = HLTCA_MAX_SIN_PHI;
-    else if (fP[2] < -HLTCA_MAX_SIN_PHI) fP[2] = -HLTCA_MAX_SIN_PHI;
+    if (fP[2] > limit) fP[2] = limit;
+    else if (fP[2] < -limit) fP[2] = -limit;
   }
 
   private:
