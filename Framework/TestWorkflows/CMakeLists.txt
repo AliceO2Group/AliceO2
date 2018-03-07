@@ -97,6 +97,8 @@ O2_GENERATE_EXECUTABLE(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
+Install(FILES dataSamplingFullChainConfig.ini DESTINATION share/config/)
+
 
 
 # These should be enabled only if one uses the full O2 default
