@@ -347,6 +347,10 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 				}
 			}
 		}
+		else
+		{
+			while (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + bestk].fState & AliHLTTPCGMMergedTrackHit::flagReject)) bestk++;
+		}
 
 		int lastcid = merger.Clusters()[track.FirstClusterRef() + bestk].fId;
 		if (reorderFinalTracks) clusterused[bestk] = 1;
@@ -357,7 +361,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			drawPointLinestrip(lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
 		}
 
-		for (int j = 1; j < track.NClusters(); j++)
+		for (int j = (reorderFinalTracks ? 1 : (bestk + 1)); j < track.NClusters(); j++)
 		{
 			int bestcid = 0;
 			if (reorderFinalTracks)
@@ -379,6 +383,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 						bestk = k;
 					}
 				}
+				if (bestdist > 1e19) continue;
 			}
 			else
 			{
