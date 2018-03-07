@@ -41,7 +41,7 @@
 #include "AliHLTTRDTrackerComponent.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDDefinitions.h"
-#include "../../TPCLib/AliHLTTPCDefinitions.h"
+#include "AliHLTTPCDefinitions.h"
 #include "AliHLTTRDTrackPoint.h"
 #include "AliHLTGlobalBarrelTrack.h"
 #include "AliExternalTrackParam.h"
