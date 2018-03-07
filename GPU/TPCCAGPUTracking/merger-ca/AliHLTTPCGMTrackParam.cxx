@@ -111,10 +111,10 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     }
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
-    const bool rejectChi2ThisRound = ( nWays == 1 || iWay >= 1 );
+    const bool refit = ( nWays == 1 || iWay >= 1 );
     const double kDeg2Rad = 3.14159265358979323846/180.;
     const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
-    if (rejectChi2ThisRound && attempt == 0) prop.SetSpecialErrors(true);
+    if (refit && attempt == 0) prop.SetSpecialErrors(true);
   
     ResetCovariance();
     prop.SetFitInProjections(iWay != 0);
@@ -145,6 +145,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         continue;
       }
 
+      const bool rejectChi2 = refit;
       int ihitMergeFirst = ihit;
       prop.SetStatErrorCurCluster(&clusters[ihit]);
       
@@ -167,7 +168,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               if (noReject == 0 && (dy * dy > maxDistY || dz * dz > maxDistZ))
               {
                 CADEBUG(printf("Rejecting double-row cluster: dy %f, dz %f, chiY %f, chiZ %f (Y: trk %f prj %f cl %f - Z: trk %f prj %f cl %f)\n", dy, dz, sqrt(maxDistY), sqrt(maxDistZ), fP[0], projY, clusters[ihit].fY, fP[1], projZ, clusters[ihit].fZ);)
-                if (rejectChi2ThisRound) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectDistance;
+                if (rejectChi2) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectDistance;
               }
               else
               {
@@ -251,7 +252,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       int retVal;
       float threshold = 3. + (lastUpdateX >= 0 ? (fabs(fX - lastUpdateX) / 2) : 0.);
       if (fNDF > 5 && (fabs(yy - fP[0]) > threshold || fabs(zz - fP[1]) > threshold)) retVal = 2;
-      else retVal = prop.Update( yy, zz, clusters[ihit].fRow, param, clusterState, rejectChi2ThisRound);
+      else retVal = prop.Update( yy, zz, clusters[ihit].fRow, param, clusterState, rejectChi2, refit);
       CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[3], "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], retVal);)
 
       if (retVal == 0) // track is updated
@@ -272,7 +273,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else if (retVal == 2) // cluster far away form the track
       {
-        if (rejectChi2ThisRound) MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagRejectDistance);
+        if (rejectChi2) MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagRejectDistance);
         nMissed++;
       }
       else break; // bad chi2 for the whole track, stop the fit

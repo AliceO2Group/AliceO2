@@ -666,7 +666,7 @@ GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const Ali
   fStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, fT0.SinPhi(), fT0.DzDs(), clusterState);
 }
 
-GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2 )
+GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2, bool refit )
 {
   float *fC = fT->Cov();
   float *fP = fT->Par();
@@ -676,6 +676,12 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   
   if ( fT->NDF()==-5 ) { // first measurement: no need to filter, as the result is known in advance. just set it. 
     fT->ResetCovariance();
+    if (refit)
+    {
+        fC[14] = CAMath::Max(0.5f, fabs(fP[4]));
+        fC[5] = CAMath::Max(0.2f, fabs(fP[2]) / 2);
+        fC[9] = CAMath::Max(0.5f, fabs(fP[3]) / 2);
+    }
     fP[ 0] = posY;
     fP[ 1] = posZ;
     fC[ 0] = err2Y;
