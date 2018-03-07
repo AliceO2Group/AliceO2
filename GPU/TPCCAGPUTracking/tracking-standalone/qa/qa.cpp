@@ -890,7 +890,17 @@ void GetName(char* fname, int k)
 {
 	const structConfigQA& config = configStandalone.configQA;
 	const int nNewInput = config.inputHistogramsOnly ? 0 : 1;
-	if (k || config.inputHistogramsOnly || config.name) sprintf(fname, "%s - ", config.inputHistogramsOnly || k ? (config.compareInputNames.size() > (unsigned) (k - nNewInput) ? config.compareInputNames[k - nNewInput] : config.compareInputs[k - nNewInput]) : config.name);
+	if (k || config.inputHistogramsOnly || config.name)
+	{
+		if (!(config.inputHistogramsOnly || k)) sprintf(fname, "%s - ", config.name);
+		else if (config.compareInputNames.size() > (unsigned) (k - nNewInput)) sprintf(fname, "%s - ", config.compareInputNames[k - nNewInput]);
+		else
+		{
+			strcpy(fname, config.compareInputs[k - nNewInput]);
+			if (strlen(fname) > 5 && strcmp(fname + strlen(fname) - 5, ".root") == 0) fname[strlen(fname) - 5] = 0;
+			strcat(fname, " - ");
+		}
+	}
 	else fname[0] = 0;
 }
 
