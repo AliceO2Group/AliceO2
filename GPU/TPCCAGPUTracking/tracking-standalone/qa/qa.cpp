@@ -555,16 +555,13 @@ void RunQA()
 				for (int j = 0;j < track.NClusters();j++)
 				{
 					int hitId = merger.Clusters()[track.FirstClusterRef() + j].fId;
-					for (int k = 0;k < 1;k++)
-					{
-						int mcID = hlt.GetMCLabels()[hitId].fClusterID[k].fMCID;
-						if (mcID >= 0) allowMCLabels[mcID] = true;
-					}
+					int mcID = hlt.GetMCLabels()[hitId].fClusterID[0].fMCID;
+					if (mcID >= 0) allowMCLabels[mcID] = true;
 				}
 			}
 			for (int i = 0;i < hlt.GetNMCLabels();i++)
 			{
-				for (int j = 0;j < 1;j++)
+				for (int j = 0;j < 3;j++)
 				{
 					int mcID = hlt.GetMCLabels()[i].fClusterID[j].fMCID;
 					if (mcID >= 0 && allowMCLabels[mcID]) goodHits[nEvents-1][i] = true;
