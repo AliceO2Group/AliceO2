@@ -17,6 +17,7 @@
 //***************************************************************************
 
 #define HLTCA_CADEBUG 0
+#define DEBUG_SINGLE_TRACK -1
 
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCAMath.h"
@@ -30,9 +31,15 @@
 #endif
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCAClusterErrorStat.h"
+#if HLTCA_CADEBUG == 1
+#include "AliHLTTPCCAStandaloneFramework.h"
+#include "../cmodules/qconfig.h"
+#endif
 
 #include <cmath>
 #include <stdlib.h>
+
+CADEBUG(int cadebug_nTracks = 0;)
 
 GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, int attempt, float maxSinPhi)
 {
@@ -41,7 +48,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   const float kDeg2Rad = 3.1415926535897 / 180.f;
   const float kSectAngle = 2*3.1415926535897 / 18.f;
   
-  CADEBUG(static int nTracks = 0;nTracks++;)
   AliHLTTPCCAClusterErrorStat errorStat(N);
 
   AliHLTTPCGMPropagator prop;
@@ -113,7 +119,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     ResetCovariance();
     prop.SetFitInProjections(iWay != 0);
     prop.SetTrack( this, iWay ? prop.GetAlpha() : Alpha);
-    CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", nTracks, iWay, (int) (prop.GetAlpha() / kSectAngle + 0.5) + (fP[1] < 0 ? 18 : 0), prop.GetAlpha());)
+    CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", cadebug_nTracks, iWay, (int) (prop.GetAlpha() / kSectAngle + 0.5) + (fP[1] < 0 ? 18 : 0), prop.GetAlpha());)
 
     N = 0;
     Ntolerate = 0;
@@ -124,23 +130,26 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     int ihit = ihitStart;
     for(;ihit >= 0 && ihit<maxN;ihit += wayDirection)
     {
-      if (nMissed >= 5 || clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
-      {
-        CADEBUG(printf("\t\tSkipping hit, %d hits rejected, flag %X\n", nMissed, (int) clusters[ihit].fState);)
-        if (iWay + 2 >= nWays && !(clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectErr;
-        continue;
-      }
-
       float xx = clusters[ihit].fX;
       float yy = clusters[ihit].fY;
       float zz = clusters[ihit].fZ - fZOffset;
       unsigned char clusterState = clusters[ihit].fState;
       const float clAlpha = param.Alpha(clusters[ihit].fSlice);
-      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)\n", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz, nMissed);)
+      CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f (Missed %d)", ihit, maxN, clusters[ihit].fRow, clAlpha, xx, yy, zz, nMissed);)
+      CADEBUG(AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();if (configStandalone.resetids && (unsigned int) hlt.GetNMCLabels() > clusters[ihit].fId));
+      CADEBUG({printf(" MC:"); for (int i = 0;i < 3;i++) {int mcId = hlt.GetMCLabels()[clusters[ihit].fId].fClusterID[i].fMCID; if (mcId >= 0) printf(" %d", mcId);}})
+      if ((HLTCA_GM_MAXNMISSED > 0 && nMissed >= HLTCA_GM_MAXNMISSED) || clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)
+      {
+        CADEBUG(printf(" - Skipping hit, %d hits rejected, flag %X\n", nMissed, (int) clusters[ihit].fState);)
+        if (iWay + 2 >= nWays && !(clusters[ihit].fState & AliHLTTPCGMMergedTrackHit::flagReject)) clusters[ihit].fState |= AliHLTTPCGMMergedTrackHit::flagRejectErr;
+        continue;
+      }
+      CADEBUG(printf("\n");)
+
       int ihitMergeFirst = ihit;
       prop.SetStatErrorCurCluster(&clusters[ihit]);
       
-      if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow)
+      if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].fRow == clusters[ihit + wayDirection].fRow && clusters[ihit].fSlice == clusters[ihit + wayDirection].fSlice && clusters[ihit].fLeg == clusters[ihit + wayDirection].fLeg)
       {
           float maxDistY, maxDistZ;
           prop.GetErr2(maxDistY, maxDistZ, param, zz, clusters[ihit].fRow, 0);
@@ -379,7 +388,10 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 
 GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param)
 {
-	if( !track.OK() ) return;    
+	if( !track.OK() ) return;
+
+	CADEBUG(if (DEBUG_SINGLE_TRACK >= 0 && cadebug_nTracks != DEBUG_SINGLE_TRACK) {track.SetNClusters(0);track.SetOK(0);return;})
+	CADEBUG(cadebug_nTracks++;)
 
 	const int nAttempts = 2;
 	for (int attempt = 0;;)
