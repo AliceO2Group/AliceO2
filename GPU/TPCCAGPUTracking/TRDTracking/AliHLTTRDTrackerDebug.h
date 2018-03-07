@@ -130,6 +130,9 @@ class AliHLTTRDTrackerDebug
         "findable.=" << &fFindable <<
         "findableMC.=" << &fFindableMC <<
         "update.=" << &fUpdates <<
+        "nRelated=" << fNrelated <<
+        "nMatching=" << fNmatch <<
+        "nFake=" << fNfake <<
         "nMatchingTracklets.=" << &fNmatchesAvail <<  // number of matching + related tracklets for this track in each layer
         "XvMC=" << fXvMC <<                          // MC production vertex x
         "YvMC=" << fYvMC <<                          // MC production vertex y
