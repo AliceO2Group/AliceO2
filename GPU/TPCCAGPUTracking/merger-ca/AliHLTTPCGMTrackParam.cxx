@@ -19,6 +19,7 @@
 #define HLTCA_CADEBUG 0
 #define DEBUG_SINGLE_TRACK -1
 
+#include "AliHLTTPCCADef.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMPhysicalTrackModel.h"
@@ -31,7 +32,7 @@
 #endif
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCAClusterErrorStat.h"
-#if HLTCA_CADEBUG == 1
+#ifdef HLTCA_CADEBUG_ENABLED
 #include "AliHLTTPCCAStandaloneFramework.h"
 #include "../cmodules/qconfig.h"
 #endif
