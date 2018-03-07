@@ -90,6 +90,7 @@ int projectxy = 0;
 int markClusters = 0;
 int hideRejectedClusters = 1;
 int hideUnmatchedClusters = 0;
+int hideRejectedTracks = 1;
 
 float Xadd = 0;
 float Zadd = 0;
@@ -325,7 +326,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 		if (track.NClusters() == 0) continue;
 		int *clusterused = NULL;
 		int bestk = 0;
-		if (!track.OK()) continue;
+		if (hideRejectedTracks && !track.OK()) continue;
 		glBegin(GL_LINE_STRIP);
 		
 		if (reorderFinalTracks)
@@ -1043,6 +1044,7 @@ void PrintHelp()
 	printf("[G]\t\tDraw Grid\n");
 	printf("[I]\t\tProject onto XY-plane\n");
 	printf("[X]\t\tExclude Clusters used in the tracking steps enabled for visualization ([1]-[8])\n");
+	printf("[<]\t\tExclude rejected tracks\n");
 	printf("[C]\t\tMark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20\n");
 	printf("[V]\t\tHide rejected clusters from tracks\n");
 	printf("[B]\t\tHide all clusters not belonging or related to matched tracks\n");
@@ -1144,6 +1146,11 @@ void HandleKeyRelease(int wParam)
 
 	else if (wParam == 'G') drawGrid ^= 1;
 	else if (wParam == 'X') excludeClusters ^= 1;
+	else if (wParam == '<')
+	{
+		hideRejectedTracks ^= 1;
+		updateDLList = true;
+	}
 
 	else if (wParam == '1')
 		drawClusters ^= 1;
