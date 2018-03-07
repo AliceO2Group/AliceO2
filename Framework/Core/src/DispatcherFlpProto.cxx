@@ -21,21 +21,14 @@ DispatcherFlpProto::DispatcherFlpProto(const SubSpecificationType dispatcherSubS
   size_t nameEnd = task.fairMqOutputChannelConfig.find_first_of(',', nameBegin);
   std::string channel = task.fairMqOutputChannelConfig.substr(nameBegin, nameEnd - nameBegin);
 
-  mDataProcessorSpec = DataProcessorSpec{
-    "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name,
-    Inputs{},
-    Outputs{},
-    AlgorithmSpec{
-      [fraction = task.fractionOfDataToSample, channel](InitContext& ctx) {
-        return initCallback(ctx, channel, fraction);
-      }
-    },
-    {
-      ConfigParamSpec{
-        "channel-config", VariantType::String,
-        task.fairMqOutputChannelConfig.c_str(), { "Out-of-band channel config" }}
+  mDataProcessorSpec.algorithm = AlgorithmSpec{
+    [fraction = task.fractionOfDataToSample, channel](InitContext& ctx) {
+      return initCallback(ctx, channel, fraction);
     }
   };
+  mDataProcessorSpec.options.push_back({
+      "channel-config", VariantType::String, task.fairMqOutputChannelConfig.c_str(), { "Out-of-band channel config" }
+    });
 }
 
 DispatcherFlpProto::~DispatcherFlpProto() {}

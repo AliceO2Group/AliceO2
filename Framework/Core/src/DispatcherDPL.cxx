@@ -14,16 +14,10 @@ DispatcherDPL::DispatcherDPL(const SubSpecificationType dispatcherSubSpec,
                              const QcTaskConfiguration& task,
                              const InfrastructureConfig& cfg) : Dispatcher(dispatcherSubSpec, task, cfg)
 {
-  mDataProcessorSpec = DataProcessorSpec{
-    "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name,
-    Inputs{},
-    Outputs{},
-    AlgorithmSpec{
-      [gen = Dispatcher::BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext& ctx) mutable {
-        processCallback(ctx, gen);
-      }
-    }
-  };
+  mDataProcessorSpec.algorithm =
+    AlgorithmSpec{[gen = Dispatcher::BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext& ctx) mutable {
+      processCallback(ctx, gen);
+    }};
 }
 
 DispatcherDPL::~DispatcherDPL() {}

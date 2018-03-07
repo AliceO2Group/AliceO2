@@ -34,7 +34,9 @@ class Dispatcher
     : mSubSpec(dispatcherSubSpec),
       mCfg(cfg),
       mDataProcessorSpec()
-  {}
+  {
+    mDataProcessorSpec.name = "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name;
+  }
   virtual ~Dispatcher() = default;
 
   DataProcessorSpec getDataProcessorSpec() { return mDataProcessorSpec; };
