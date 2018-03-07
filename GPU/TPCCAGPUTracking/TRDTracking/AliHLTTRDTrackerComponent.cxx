@@ -41,6 +41,7 @@
 #include "AliHLTTRDTrackerComponent.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDDefinitions.h"
+#include "../../TPCLib/AliHLTTPCDefinitions.h"
 #include "AliHLTTRDTrackPoint.h"
 #include "AliHLTGlobalBarrelTrack.h"
 #include "AliExternalTrackParam.h"
@@ -96,7 +97,8 @@ const char* AliHLTTRDTrackerComponent::GetComponentID() {
 void AliHLTTRDTrackerComponent::GetInputDataTypes( std::vector<AliHLTComponentDataType>& list) {
   list.clear();
   list.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginITS );
-  list.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC );
+  //list.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC );
+  list.push_back( AliHLTTPCDefinitions::TracksOuterDataType()|kAliHLTDataOriginTPC);
   list.push_back( kAliHLTDataTypeTrackMC|kAliHLTDataOriginTPC );
   list.push_back( AliHLTTRDDefinitions::fgkTRDTrackletDataType );
 }
@@ -302,7 +304,8 @@ int AliHLTTRDTrackerComponent::DoEvent
 
     // Read TPC tracks
 
-    if( iter->fDataType == ( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC ) ){
+    //if( iter->fDataType == ( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC ) ){
+    if( iter->fDataType == ( AliHLTTPCDefinitions::TracksOuterDataType()|kAliHLTDataOriginTPC ) ){
       AliHLTTracksData* dataPtr = ( AliHLTTracksData* ) iter->fPtr;
       int nTracks = dataPtr->fCount;
       AliHLTExternalTrackParam* currOutTrack = dataPtr->fTracklets;
