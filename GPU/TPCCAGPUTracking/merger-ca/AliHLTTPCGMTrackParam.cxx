@@ -145,7 +145,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
         continue;
       }
 
-      const bool rejectChi2 = refit;
+      const bool rejectChi2 = refit && (iWay == 0 || (((nWays - iWay) & 1) ? (ihit >= maxN / 2) : (ihit <= maxN / 2)));
       int ihitMergeFirst = ihit;
       prop.SetStatErrorCurCluster(&clusters[ihit]);
       

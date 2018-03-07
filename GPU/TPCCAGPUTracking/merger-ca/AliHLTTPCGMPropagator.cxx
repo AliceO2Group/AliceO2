@@ -721,7 +721,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   }
   float dChi2 = chiY + chiZ;
   //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, chiY, chiZ, z0, z1);
-  if (fSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) return 2;
+  if (fSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) return 2; //DRTOTO get rid of stupid specialerror
  
   fT->Chi2() += dChi2;
   fT->NDF() += 2;
