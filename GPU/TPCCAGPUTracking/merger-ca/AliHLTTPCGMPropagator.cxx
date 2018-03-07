@@ -198,8 +198,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
     c[ 8] *= j1;
   }
   
-  if( px1 <0 ){ // change direction 
-    t0.SetDirectionAlongX(); 
+  if( t0.SetDirectionAlongX() ){ // change direction if Px < 0
     fT->SinPhi() = -fT->SinPhi();
     fT->DzDs()   = -fT->DzDs();
     fT->QPt()    = -fT->QPt();    
