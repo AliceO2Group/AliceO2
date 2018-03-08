@@ -11,6 +11,11 @@
 #ifndef ALICEO2_DISPATCHER_H
 #define ALICEO2_DISPATCHER_H
 
+/// \file Dispatcher.h
+/// \brief Definition of Dispatcher for O2 Data Sampling
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include <random>
 
 #include "Framework/DataProcessorSpec.h"
@@ -25,10 +30,18 @@ namespace o2
 namespace framework
 {
 
+/// \brief A base class for dispatcher used by DataSampling.
+///
+/// An abstract class to be inherited by different implementations of Data Sampling dispatchers. It is responsible
+/// initializing some common class members and includes some functionalities used by all of children dispatchers.
+/// The algorithm implementation and adding new data source is left to child class.
+
 class Dispatcher
 {
  public:
+  /// \brief Deleted default constructor
   Dispatcher() = delete;
+  /// \brief Constructor.
   Dispatcher(const SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task,
              const InfrastructureConfig& cfg)
     : mSubSpec(dispatcherSubSpec),
@@ -37,14 +50,20 @@ class Dispatcher
   {
     mDataProcessorSpec.name = "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name;
   }
+  /// \brief Destructor
   virtual ~Dispatcher() = default;
 
+  // getters
   DataProcessorSpec getDataProcessorSpec() { return mDataProcessorSpec; };
   SubSpecificationType getSubSpec() { return mSubSpec; };
+
+  /// \brief Function responsible for adding new data source to dispatcher. Needs to be overriden by a child.
   virtual void addSource(const DataProcessorSpec& externalDataProcessor, const OutputSpec& externalOutput,
                          const std::string& binding) = 0;
 
  protected:
+  /// \brief Bernoulli distribution pseudo-random numbers generator.
+  ///
   /// Bernoulli distribution pseudo-random numbers generator. Used to decide, which data should be bypassed to
   /// QC tasks, in order to achieve certain fraction of data passing through. For example, generator initialized with
   /// value 0.1 returns true *approximately* once per 10 times.

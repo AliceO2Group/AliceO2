@@ -11,27 +11,37 @@
 #ifndef ALICEO2_DISPATCHERFAIRMQ_H
 #define ALICEO2_DISPATCHERFAIRMQ_H
 
+/// \file DispatcherFairMQ.h
+/// \brief Definition of DispatcherFairMQ for O2 Data Sampling
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include "Framework/Dispatcher.h"
 #include "Framework/DataSamplingConfig.h"
 
 using namespace o2::framework;
 using namespace o2::framework::DataSamplingConfig;
 
-// class Dispatcher;
-
 namespace o2
 {
 namespace framework
 {
 
+/// \brief A dispatcher for clients that are FairMQDevices using O2 Data Model.
+///
+/// A dispatcher for clients outside of Data Processing Layer, specifically FairMQ devices using O2 Data Model.
+/// For now, it sends only the payload, without the header - it will be added later probably.
+
 class DispatcherFairMQ : public Dispatcher
 {
  public:
-  DispatcherFairMQ() = delete;
+  /// \brief Constructor.
   DispatcherFairMQ(const SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task,
                    const InfrastructureConfig& cfg);
+  /// \brief Destructor
   ~DispatcherFairMQ() override;
 
+  /// \brief Function responsible for adding new data source to dispatcher.
   void addSource(const DataProcessorSpec& externalDataProcessor, const OutputSpec& externalOutput,
                  const std::string& binding) override;
 

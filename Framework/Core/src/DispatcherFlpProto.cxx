@@ -8,8 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/DispatcherFlpProto.h"
+/// \file DispatcherFlpProto.cxx
+/// \brief Implementation of DispatcherFlpProto for O2 Data Sampling
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
+#include "Framework/DispatcherFlpProto.h"
 #include "Framework/SimpleRawDeviceService.h"
 
 DispatcherFlpProto::DispatcherFlpProto(const SubSpecificationType dispatcherSubSpec,
@@ -71,20 +75,21 @@ void DispatcherFlpProto::processCallback(ProcessingContext& ctx, BernoulliGenera
     // check what is it
     if (header->payloadSize == 32 && input.payload[0] == char(0xBB)) {
       // it is a header
-      char* payloadCopy = new char[header->payloadSize];
-      memcpy(payloadCopy, input.payload, header->payloadSize);
-      FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, header->payloadSize, cleanupFcn, payloadCopy));
+      char* headerCopy = new char[header->payloadSize];
+      memcpy(headerCopy, input.payload, header->payloadSize);
+      FairMQMessagePtr msgHeader(device->NewMessage(headerCopy, header->payloadSize, cleanupFcn, headerCopy));
 
-      device->Send(msgPayload, channel);
+      device->Send(msgHeader, channel);
       state = FlpProtoState::ExpectingPayload;
 
     } else if (header->payloadSize == 96 && input.payload[0] == char(0xFF)) {
       // it is an EOM
-      char* payloadCopy = new char[header->payloadSize];
-      memcpy(payloadCopy, input.payload, header->payloadSize);
-      FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, header->payloadSize, cleanupFcn, payloadCopy));
-      device->Send(msgPayload, channel);
+      char* EomCopy = new char[header->payloadSize];
+      memcpy(EomCopy, input.payload, header->payloadSize);
+      FairMQMessagePtr msgEom(device->NewMessage(EomCopy, header->payloadSize, cleanupFcn, EomCopy));
+      device->Send(msgEom, channel);
 
+      // decide in advance whether to take next messages until another EOM
       state = bernoulliGenerator.drawLots() ? FlpProtoState::ExpectingHeaderOrEOM : FlpProtoState::Idle;
 
     } else {
@@ -97,7 +102,6 @@ void DispatcherFlpProto::processCallback(ProcessingContext& ctx, BernoulliGenera
     FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, header->payloadSize, cleanupFcn, payloadCopy));
     device->Send(msgPayload, channel);
 
-    // decide in advance whether to take next messages until another EOM
     state = FlpProtoState::ExpectingHeaderOrEOM;
   } else {
     state = FlpProtoState::Idle;

@@ -11,6 +11,11 @@
 #ifndef ALICEO2_DISPATCHERDPL_H
 #define ALICEO2_DISPATCHERDPL_H
 
+/// \file DispatcherDPL.h
+/// \brief Definition of DispatcherDPL for O2 Data Sampling
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include "Framework/Dispatcher.h"
 #include "Framework/DataSamplingConfig.h"
 
@@ -22,15 +27,19 @@ namespace o2
 namespace framework
 {
 
+/// \brief A dispatcher for clients inside Data Processing Layer.
 class DispatcherDPL : public Dispatcher
 {
 
  public:
-  DispatcherDPL() = delete;
+  /// \brief Constructor.
   DispatcherDPL(const SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task,
                 const InfrastructureConfig& cfg);
+  /// \brief Destructor
   ~DispatcherDPL() override;
 
+  /// \brief Function responsible for adding new data source to dispatcher. It has different behaviour dependent
+  /// on infrastructure configuration.
   void addSource(const DataProcessorSpec& externalDataProcessor, const OutputSpec& externalOutput,
                  const std::string& binding) override;
 

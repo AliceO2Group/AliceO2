@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file DispatcherFairMQ.cxx
+/// \brief Implementation of DispatcherFairMQ for O2 Data Sampling
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include "Framework/DispatcherFairMQ.h"
 
 #include "FairLogger.h"

@@ -11,6 +11,11 @@
 #ifndef ALICEO2_DATASAMPLINGCONFIG_H
 #define ALICEO2_DATASAMPLINGCONFIG_H
 
+/// \file DataSamplingConfig.h
+/// \brief Helper structures for O2 Data Sampling configuration
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include <vector>
 #include <string>
 
@@ -22,7 +27,9 @@ namespace o2
 {
 namespace framework
 {
+// consider: make that just a boost variable map?
 
+/// A bunch of helper structures for DataSampling configuration.
 namespace DataSamplingConfig
 {
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
@@ -43,6 +50,7 @@ struct QcTaskConfiguration {
   double fractionOfDataToSample;
   std::string fairMqOutputChannelConfig;
 };
+using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
 
 /// Structure that holds general data sampling infrastructure configuration
 struct InfrastructureConfig {
