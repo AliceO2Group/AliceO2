@@ -57,8 +57,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   prop.SetContinuousTracking( param.GetContinuousTracking() );
   prop.SetMaxSinPhi( maxSinPhi );
   prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
-
-  if (param.GetContinuousTracking()) ShiftZ(field, clusters, param, N);
+  ShiftZ(field, clusters, param, N);
 
   int nWays = param.GetNWays();
   int maxN = N;
@@ -248,7 +247,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
-    if (((nWays - iWay) & 1) && param.GetContinuousTracking()) ShiftZ(field, clusters, param, N);
+    if (((nWays - iWay) & 1)) ShiftZ(field, clusters, param, N);
   }
   ConstrainSinPhi();
   
@@ -286,14 +285,17 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
 }
 
 GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int N)
-{  
-  const float cosPhi = AliHLTTPCCAMath::Sqrt(1 - fP[2] * fP[2]);
+{
+  if (!param.GetContinuousTracking()) return;
+  if (clusters[0].fZ * clusters[N - 1].fZ < 0) return; //Do not shift tracks crossing the central electrode
+  
+  const float cosPhi = fabs(fP[2]) < 1.f ? AliHLTTPCCAMath::Sqrt(1 - fP[2] * fP[2]) : 0.f;
   const float dxf = -AliHLTTPCCAMath::Abs(fP[2]);
   const float dyf = cosPhi * (fP[2] > 0 ? 1. : -1.);
   const float r = 1./fabs(fP[4] * field->GetNominalBz());
   float xp = fX + dxf * r;
   float yp = fP[0] + dyf * r;
-  //printf("\nX %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r, xp, yp);
+  //printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r, xp, yp);
   const float r2 = (r + AliHLTTPCCAMath::Sqrt(xp * xp + yp * yp)) / 2.; //Improve the radius by taking into acount both points we know (00 and xy).
   xp = fX + dxf * r2;
   yp = fP[0] + dyf * r2;
@@ -303,19 +305,22 @@ GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* fiel
   //printf("Tan %f %f (%f %f)\n", atana, atanb, fX - xp, fP[0] - yp);
   const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
   float dz = dS * fP[3];
-  //printf("Track Z %f, Z0 %f (dS %f, dZds %f)             - Direction %f to %f: %f\n", fP[1], dz, dS, fP[3], clusters[0].fZ, clusters[N - 1].fZ, clusters[0].fZ - clusters[N - 1].fZ);
+  //printf("Track Z %f (Offset %f), dz %f, V %f (dS %f, dZds %f, qPt %f)             - Z span %f to %f: diff %f\n", fP[1], fZOffset, dz, fP[1] - dz, dS, fP[3], fP[4], clusters[0].fZ, clusters[N - 1].fZ, clusters[0].fZ - clusters[N - 1].fZ);
   if (CAMath::Abs(dz) > 250.) dz = dz > 0 ? 250. : -250.;
-  float dZOffset;
-  if (fP[1] * (fP[1] - dz) < 0)
-  {
-    dZOffset = clusters[N - 1].fZ;
-  }
-  else
-  {
-    dZOffset = fP[1] - dz; 
-  }
+  float dZOffset = fP[1] - dz; 
   fZOffset += dZOffset;
   fP[1] -= dZOffset;
+  dZOffset = 0;
+  float zMax = CAMath::Max(clusters[0].fZ, clusters[N - 1].fZ);
+  float zMin = CAMath::Min(clusters[0].fZ, clusters[N - 1].fZ);
+  if (zMin < 0 && zMin - fZOffset < -250) dZOffset = zMin - fZOffset + 250;
+  else if (zMax > 0 && zMax - fZOffset > 250) dZOffset = zMax - fZOffset - 250;
+  if (zMin < 0 && zMax - fZOffset > 0) dZOffset = zMax - fZOffset;
+  else if (zMax > 0 && zMin - fZOffset < 0) dZOffset = zMin - fZOffset;
+  //if (dZOffset != 0) printf("Moving clusters to TPC Range: Side %f, Shift %f: %f to %f --> %f to %f\n", clusters[0].fZ, dZOffset, clusters[0].fZ - fZOffset, clusters[N - 1].fZ - fZOffset, clusters[0].fZ - fZOffset - dZOffset, clusters[N - 1].fZ - fZOffset - dZOffset);
+  fZOffset += dZOffset;
+  fP[1] -= dZOffset;
+  //printf("\n");
 }
 
 GPUd() bool AliHLTTPCGMTrackParam::CheckCov() const
