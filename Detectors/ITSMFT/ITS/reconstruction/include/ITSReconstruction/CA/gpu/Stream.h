@@ -26,22 +26,21 @@ namespace CA
 namespace GPU
 {
 
-class Stream
-  final {
+class Stream final
+{
 
-    public:
-      Stream();
-      ~Stream();
+ public:
+  Stream();
+  ~Stream();
 
-      Stream(const Stream&) = delete;
-      Stream &operator=(const Stream&) = delete;
+  Stream(const Stream&) = delete;
+  Stream& operator=(const Stream&) = delete;
 
-      const GPUStream& get() const;
+  const GPUStream& get() const;
 
-    private:
-      GPUStream mStream;
-  };
-
+ private:
+  GPUStream mStream;
+};
 }
 }
 }

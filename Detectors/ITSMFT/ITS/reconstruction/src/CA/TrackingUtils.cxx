@@ -28,23 +28,23 @@ namespace CA
 {
 
 GPU_DEVICE const int4 TrackingUtils::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-    const float directionZIntersection)
+                                                 const float directionZIntersection)
 {
   const float zRangeMin = directionZIntersection - 2 * Constants::Thresholds::ZCoordinateCut;
   const float phiRangeMin = currentCluster.phiCoordinate - Constants::Thresholds::PhiCoordinateCut;
   const float zRangeMax = directionZIntersection + 2 * Constants::Thresholds::ZCoordinateCut;
   const float phiRangeMax = currentCluster.phiCoordinate + Constants::Thresholds::PhiCoordinateCut;
 
-  if (zRangeMax < -Constants::ITS::LayersZCoordinate()[layerIndex + 1]
-      || zRangeMin > Constants::ITS::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
+  if (zRangeMax < -Constants::ITS::LayersZCoordinate()[layerIndex + 1] ||
+      zRangeMin > Constants::ITS::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
 
     return getEmptyBinsRect();
   }
 
-  return int4 { MATH_MAX(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
-      IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)), MATH_MIN(
-          Constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
-      IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
+  return int4{ MATH_MAX(0, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMin)),
+               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMin)),
+               MATH_MIN(Constants::IndexTable::ZBins - 1, IndexTableUtils::getZBinIndex(layerIndex + 1, zRangeMax)),
+               IndexTableUtils::getPhiBinIndex(MathUtils::getNormalizedPhiCoordinate(phiRangeMax)) };
 }
 
 float TrackingUtils::computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3)
@@ -68,7 +68,6 @@ float TrackingUtils::computeTanDipAngle(float x1, float y1, float x2, float y2, 
 {
   return (z1 - z2) / std::sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
-
 }
 }
 }

@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Layer.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_LAYER_H_
@@ -28,75 +28,63 @@ namespace ITS
 namespace CA
 {
 
-class Layer
-  final
-  {
-    public:
-      Layer();
-      Layer(const int layerIndex);
+class Layer final
+{
+ public:
+  Layer();
+  Layer(const int layerIndex);
 
-      int getLayerIndex() const;
-      const std::vector<Cluster>& getClusters() const;
-      const std::vector<TrackingFrameInfo>& getTrackingFrameInfo() const;
-      const Cluster& getCluster(int idx) const;
-      const TrackingFrameInfo& getTrackingFrameInfo(int idx) const;
-      int getClustersSize() const;
-      template<typename... T> void addCluster(T&&... args);
-      template<typename... T> void addTrackingFrameInfo(T&&... args);
+  int getLayerIndex() const;
+  const std::vector<Cluster>& getClusters() const;
+  const std::vector<TrackingFrameInfo>& getTrackingFrameInfo() const;
+  const Cluster& getCluster(int idx) const;
+  const TrackingFrameInfo& getTrackingFrameInfo(int idx) const;
+  int getClustersSize() const;
+  template <typename... T>
+  void addCluster(T&&... args);
+  template <typename... T>
+  void addTrackingFrameInfo(T&&... args);
 
-      void clear();
-    private:
-      int mLayerIndex;
-      std::vector<Cluster> mClusters;
-      std::vector<TrackingFrameInfo> mTrackingFrameInfo;
-  };
+  void clear();
 
-  inline int Layer::getLayerIndex() const
-  {
-    return mLayerIndex;
-  }
+ private:
+  int mLayerIndex;
+  std::vector<Cluster> mClusters;
+  std::vector<TrackingFrameInfo> mTrackingFrameInfo;
+};
 
-  inline const std::vector<Cluster>& Layer::getClusters() const
-  {
-    return mClusters;
-  }
+inline int Layer::getLayerIndex() const { return mLayerIndex; }
 
-  inline const std::vector<TrackingFrameInfo>& Layer::getTrackingFrameInfo() const
-  {
-    return mTrackingFrameInfo;
-  }
+inline const std::vector<Cluster>& Layer::getClusters() const { return mClusters; }
 
-  inline const Cluster& Layer::getCluster(int clusterIndex) const
-  {
-    return mClusters[clusterIndex];
-  }
+inline const std::vector<TrackingFrameInfo>& Layer::getTrackingFrameInfo() const { return mTrackingFrameInfo; }
 
-  inline const TrackingFrameInfo& Layer::getTrackingFrameInfo(int clusterIndex) const
-  {
-    return mTrackingFrameInfo[clusterIndex];
-  }
+inline const Cluster& Layer::getCluster(int clusterIndex) const { return mClusters[clusterIndex]; }
 
-  inline int Layer::getClustersSize() const
-  {
-    return mClusters.size();
-  }
+inline const TrackingFrameInfo& Layer::getTrackingFrameInfo(int clusterIndex) const
+{
+  return mTrackingFrameInfo[clusterIndex];
+}
 
-  template<typename... T> void Layer::addCluster(T&&... args)
-  {
-    mClusters.emplace_back(std::forward<T>(args)...);
-  }
+inline int Layer::getClustersSize() const { return mClusters.size(); }
 
-  template<typename... T> void Layer::addTrackingFrameInfo(T&&... args)
-  {
-    mTrackingFrameInfo.emplace_back(std::forward<T>(args)...);
-  }
+template <typename... T>
+void Layer::addCluster(T&&... args)
+{
+  mClusters.emplace_back(std::forward<T>(args)...);
+}
 
-  inline void Layer::clear()
-  {
-    mClusters.clear();
-    mTrackingFrameInfo.clear();
-  }
+template <typename... T>
+void Layer::addTrackingFrameInfo(T&&... args)
+{
+  mTrackingFrameInfo.emplace_back(std::forward<T>(args)...);
+}
 
+inline void Layer::clear()
+{
+  mClusters.clear();
+  mTrackingFrameInfo.clear();
+}
 }
 }
 }

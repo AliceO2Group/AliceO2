@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Tracklet.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_TRACKLET_H_
@@ -24,18 +24,15 @@ namespace ITS
 namespace CA
 {
 
-struct Tracklet
-    final
-    {
-      Tracklet();
-      GPU_DEVICE Tracklet(const int, const int, const Cluster&, const Cluster&);
+struct Tracklet final {
+  Tracklet();
+  GPU_DEVICE Tracklet(const int, const int, const Cluster&, const Cluster&);
 
-      const int firstClusterIndex;
-      const int secondClusterIndex;
-      const float tanLambda;
-      const float phiCoordinate;
-  };
-
+  const int firstClusterIndex;
+  const int secondClusterIndex;
+  const float tanLambda;
+  const float phiCoordinate;
+};
 }
 }
 }

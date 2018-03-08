@@ -16,24 +16,21 @@
 
 ClassImp(o2::ITS::CA::TrackObject)
 
-namespace o2
+  namespace o2
 {
-namespace ITS
-{
-namespace CA
-{
+  namespace ITS
+  {
+  namespace CA
+  {
 
-Track::Track(const Base::Track::TrackParCov& param, float chi2, const std::array<int,7>& clusters) :
-  mParam{param},
-  mChi2{chi2},
-  mClusters{clusters} {}
+  Track::Track(const Base::Track::TrackParCov& param, float chi2, const std::array<int, 7>& clusters)
+    : mParam{ param }, mChi2{ chi2 }, mClusters{ clusters }
+  {
+  }
 
-TrackObject::TrackObject(const Track& track) :
-  TObject{},
-  mTrack{track} {}
+  TrackObject::TrackObject(const Track& track) : TObject{}, mTrack{ track } {}
 
-TrackObject::~TrackObject() {}
-
-}
-}
+  TrackObject::~TrackObject() {}
+  }
+  }
 }

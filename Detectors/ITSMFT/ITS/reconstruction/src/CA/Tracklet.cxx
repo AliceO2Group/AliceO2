@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Tracklet.cxx
-/// \brief 
+/// \brief
 ///
 
 #include <cmath>
@@ -23,22 +23,22 @@ namespace ITS
 namespace CA
 {
 
-Tracklet::Tracklet()
-    : firstClusterIndex { 0 }, secondClusterIndex { 0 }, tanLambda { 0.0f }, phiCoordinate { 0.0f }
+Tracklet::Tracklet() : firstClusterIndex{ 0 }, secondClusterIndex{ 0 }, tanLambda{ 0.0f }, phiCoordinate{ 0.0f }
 {
   // Nothing to do
 }
 
 GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
-    const Cluster& firstCluster, const Cluster& secondCluster)
-    : firstClusterIndex { firstClusterOrderingIndex }, secondClusterIndex { secondClusterOrderingIndex }, tanLambda {
-        (firstCluster.zCoordinate - secondCluster.zCoordinate) / (firstCluster.rCoordinate - secondCluster.rCoordinate) }, phiCoordinate {
-    MATH_ATAN2(firstCluster.yCoordinate - secondCluster.yCoordinate,
-        firstCluster.xCoordinate - secondCluster.xCoordinate) }
+                              const Cluster& firstCluster, const Cluster& secondCluster)
+  : firstClusterIndex{ firstClusterOrderingIndex },
+    secondClusterIndex{ secondClusterOrderingIndex },
+    tanLambda{ (firstCluster.zCoordinate - secondCluster.zCoordinate) /
+               (firstCluster.rCoordinate - secondCluster.rCoordinate) },
+    phiCoordinate{ MATH_ATAN2(firstCluster.yCoordinate - secondCluster.yCoordinate,
+                              firstCluster.xCoordinate - secondCluster.xCoordinate) }
 {
   // Nothing to do
 }
-
 }
 }
 }

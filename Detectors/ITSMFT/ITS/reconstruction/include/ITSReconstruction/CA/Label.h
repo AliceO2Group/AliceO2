@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Label.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_LABEL_H_
@@ -24,21 +24,18 @@ namespace ITS
 namespace CA
 {
 
-struct Label
-    final
-    {
-      Label(const int, const float, const float, const float, const int, const int);
+struct Label final {
+  Label(const int, const float, const float, const float, const int, const int);
 
-      int monteCarloId;
-      float transverseMomentum;
-      float phiCoordinate;
-      float pseudorapidity;
-      int pdgCode;
-      int numberOfClusters;
+  int monteCarloId;
+  float transverseMomentum;
+  float phiCoordinate;
+  float pseudorapidity;
+  int pdgCode;
+  int numberOfClusters;
 
-      friend std::ostream& operator<<(std::ostream&, const Label&);
-  };
-
+  friend std::ostream& operator<<(std::ostream&, const Label&);
+};
 }
 }
 }

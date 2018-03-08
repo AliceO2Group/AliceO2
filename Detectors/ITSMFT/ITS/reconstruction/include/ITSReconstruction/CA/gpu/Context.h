@@ -20,19 +20,16 @@
 <<<<<<< HEAD
 #include "ITSReconstruction/CA/Definitions.h"
 =======
->>>>>>> [WIP] Add tracking-itsu repository content
+>>>>>>> [WIP] Add tracking-itsu repository content namespace o2
+{
+  namespace ITS
+  {
+  namespace CA
+  {
+  namespace GPU
+  {
 
-namespace o2
-{
-namespace ITS
-{
-namespace CA
-{
-namespace GPU
-{
-
-struct DeviceProperties final
-{
+  struct DeviceProperties final {
     std::string name;
     int gpuProcessors;
     int cudaCores;
@@ -48,11 +45,11 @@ struct DeviceProperties final
     int maxBlocksPerSM;
     dim3 maxThreadsDim;
     dim3 maxGridDim;
-};
+  };
 
-class Context final
-{
-  public:
+  class Context final
+  {
+   public:
     static Context& getInstance();
 
     Context(const Context&);
@@ -61,17 +58,16 @@ class Context final
     const DeviceProperties& getDeviceProperties();
     const DeviceProperties& getDeviceProperties(const int);
 
-  private:
+   private:
     Context();
     ~Context() = default;
 
     int mDevicesNum;
     std::vector<DeviceProperties> mDeviceProperties;
-};
-
-}
-}
-}
+  };
+  }
+  }
+  }
 }
 
 #endif /* TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_ */

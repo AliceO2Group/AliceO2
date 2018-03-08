@@ -38,6 +38,7 @@ class TrackITS : public o2::track::TrackParCov
 
   TrackITS() = default;
   TrackITS(const TrackITS& t) = default;
+  TrackITS(o2::track::TrackParCov&& parcov) : TrackParCov{ parcov } {}
   TrackITS& operator=(const TrackITS& tr) = default;
   ~TrackITS() = default;
 
@@ -57,6 +58,8 @@ class TrackITS : public o2::track::TrackParCov
   void setExternalClusterIndex(Int_t layer, Int_t idx);
   void resetClusters();
 
+  void addChi2(float chi2) { mChi2 += chi2; }
+
   std::uint32_t getROFrame() const { return mROFrame; }
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   Bool_t isBetter(const TrackITS& best, Float_t maxChi2) const;
@@ -66,11 +69,11 @@ class TrackITS : public o2::track::TrackParCov
 
  private:
   short mNClusters = 0;
-  float mMass = 0.14;                    ///< Assumed mass for this track
-  float mChi2 = 0.;                      ///< Chi2 for this track
-  std::uint32_t mROFrame = 0;            ///< RO Frame
-  o2::track::TrackParCov mParamOut;      // parameter at largest radius
-  std::array<Int_t, MaxClusters> mIndex; ///< Indices of associated clusters
+  float mMass = 0.14;                             ///< Assumed mass for this track
+  float mChi2 = 0.;                               ///< Chi2 for this track
+  std::uint32_t mROFrame = 0;                     ///< RO Frame
+  o2::track::TrackParCov mParamOut;               /// parameter at largest radius
+  std::array<Int_t, MaxClusters> mIndex = { -1 }; ///< Indices of associated clusters
 
   ClassDef(TrackITS, 2)
 };

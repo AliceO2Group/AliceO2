@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Event.cxx
-/// \brief 
+/// \brief
 ///
 
 #include "ITSReconstruction/CA/Event.h"
@@ -23,10 +23,9 @@ namespace ITS
 namespace CA
 {
 
-Event::Event(const int eventId)
-    : mEventId { eventId }
+Event::Event(const int eventId) : mEventId{ eventId }
 {
-  for (int iLayer { 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
     mLayers[iLayer] = Layer(iLayer);
   }
@@ -34,14 +33,14 @@ Event::Event(const int eventId)
 
 void Event::addPrimaryVertex(const float xCoordinate, const float yCoordinate, const float zCoordinate)
 {
-  mPrimaryVertices.emplace_back(float3 { xCoordinate, yCoordinate, zCoordinate });
+  mPrimaryVertices.emplace_back(float3{ xCoordinate, yCoordinate, zCoordinate });
 }
 
 void Event::printPrimaryVertices() const
 {
-  const int verticesNum { static_cast<int>(mPrimaryVertices.size()) };
+  const int verticesNum{ static_cast<int>(mPrimaryVertices.size()) };
 
-  for (int iVertex { 0 }; iVertex < verticesNum; ++iVertex) {
+  for (int iVertex{ 0 }; iVertex < verticesNum; ++iVertex) {
 
     const float3& currentVertex = mPrimaryVertices[iVertex];
 
@@ -51,16 +50,15 @@ void Event::printPrimaryVertices() const
 
 int Event::getTotalClusters() const
 {
-  int totalClusters { 0 };
+  int totalClusters{ 0 };
 
-  for (int iLayer { 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
+  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
 
     totalClusters += mLayers[iLayer].getClustersSize();
   }
 
   return totalClusters;
 }
-
 }
 }
 }

@@ -27,9 +27,11 @@ namespace CA
 namespace GPU
 {
 
-namespace Utils {
+namespace Utils
+{
 
-namespace Host {
+namespace Host
+{
 dim3 getBlockSize(const int);
 dim3 getBlockSize(const int, const int);
 dim3 getBlockSize(const int, const int, const int);
@@ -38,21 +40,21 @@ dim3 getBlocksGrid(const dim3&, const int, const int);
 
 void gpuMalloc(void**, const int);
 void gpuFree(void*);
-void gpuMemset(void *, int, int);
-void gpuMemcpyHostToDevice(void *, const void *, int);
-void gpuMemcpyHostToDeviceAsync(void *, const void *, int, Stream&);
-void gpuMemcpyDeviceToHost(void *, const void *, int);
+void gpuMemset(void*, int, int);
+void gpuMemcpyHostToDevice(void*, const void*, int);
+void gpuMemcpyHostToDeviceAsync(void*, const void*, int, Stream&);
+void gpuMemcpyDeviceToHost(void*, const void*, int);
 void gpuStartProfiler();
 void gpuStopProfiler();
 }
 
-namespace Device {
+namespace Device
+{
 GPU_DEVICE int getLaneIndex();
 GPU_DEVICE int shareToWarp(const int, const int);
 GPU_DEVICE int gpuAtomicAdd(int*, const int);
 }
 }
-
 }
 }
 }

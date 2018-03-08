@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Tracker.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_TRACKER_H_
@@ -30,7 +30,7 @@
 #include "ITSReconstruction/CA/PrimaryVertexContext.h"
 #include "ITSReconstruction/CA/Road.h"
 
-#include "ReconstructionDataFormats/Track.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
@@ -40,93 +40,110 @@ namespace ITS
 namespace CA
 {
 
-template<bool IsGPU>
+template <bool IsGPU>
 class TrackerTraits
 {
-  public:
-    void computeLayerTracklets(PrimaryVertexContext&);
-    void computeLayerCells(PrimaryVertexContext&);
+ public:
+  void computeLayerTracklets(PrimaryVertexContext&);
+  void computeLayerCells(PrimaryVertexContext&);
 
-  protected:
-    ~TrackerTraits() = default;
+ protected:
+  ~TrackerTraits() = default;
 };
 
-template<bool IsGPU>
-class Tracker: private TrackerTraits<IsGPU>
+template <bool IsGPU>
+class Tracker : private TrackerTraits<IsGPU>
 {
-  private:
-    typedef TrackerTraits<IsGPU> Trait;
-  public:
-    Tracker();
+ private:
+  typedef TrackerTraits<IsGPU> Trait;
 
-    Tracker(const Tracker&) = delete;
-    Tracker &operator=(const Tracker&) = delete;
+ public:
+  Tracker();
 
-    void setBz(float bz);
-    float getBz() const;
+  Tracker(const Tracker&) = delete;
+  Tracker& operator=(const Tracker&) = delete;
 
-    std::vector<std::vector<Road>> clustersToTracks(const Event&, \
-        std::ostream& = std::cout);
+  void setBz(float bz);
+  float getBz() const;
 
-  private:
-    track::TrackParCov buildTrackSeed(const Cluster& cluster1, \
-        const Cluster& cluster2, const Cluster& cluster3, \
-        const TrackingFrameInfo& tf3);
-    template<typename ... T> void initialisePrimaryVertexContext(T&& ... args);
-    void computeTracklets();
-    void computeCells();
-    void findCellsNeighbours();
-    void findRoads();
-    void findTracks(const Event& ev);
-    void traverseCellsTree(const int, const int);
-    void computeMontecarloLabels(const Event&);
+  std::vector<TrackITS>& getTracks();
+  dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
 
-    template<typename ...T> float evaluateTask(void (Tracker<IsGPU>::*)(T...),\
-        const char*, std::ostream& ostream, T&& ... args);
+  void clustersToTracks(const Event&, std::ostream& = std::cout);
 
-    PrimaryVertexContext mPrimaryVertexContext;
-    float                mBz = 0.5f;
+ private:
+  track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
+                                    const TrackingFrameInfo& tf3);
+  template <typename... T>
+  void initialisePrimaryVertexContext(T&&... args);
+  void computeTracklets();
+  void computeCells();
+  void findCellsNeighbours();
+  void findRoads();
+  void findTracks(const Event& ev);
+  void traverseCellsTree(const int, const int);
+  void computeRoadsMClabels(const Event&);
+  void computeTracksMClabels(const Event&);
+
+  template <typename... T>
+  float evaluateTask(void (Tracker<IsGPU>::*)(T...), const char*, std::ostream& ostream, T&&... args);
+
+  float mBz;
+  PrimaryVertexContext mPrimaryVertexContext;
+  std::vector<TrackITS> mTracks;
+  dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
 };
 
-template<bool IsGPU>
+template <bool IsGPU>
 float Tracker<IsGPU>::getBz() const
 {
   return mBz;
 }
 
-template<bool IsGPU>
+template <bool IsGPU>
 void Tracker<IsGPU>::setBz(float bz)
 {
   mBz = bz;
 }
 
-template<bool IsGPU>
-template<typename ... T>
-void Tracker<IsGPU>::initialisePrimaryVertexContext(T&& ... args)
+template <bool IsGPU>
+template <typename... T>
+void Tracker<IsGPU>::initialisePrimaryVertexContext(T&&... args)
 {
   mPrimaryVertexContext.initialise(std::forward<T>(args)...);
 }
 
-template<bool IsGPU>
-template<typename ... T>
-float Tracker<IsGPU>::evaluateTask(void (Tracker<IsGPU>::*task)(T ...), \
-    const char *taskName, std::ostream& ostream, T&& ... args)
+template <bool IsGPU>
+inline std::vector<TrackITS>& Tracker<IsGPU>::getTracks()
 {
-  float diff {0.f};
+  return mTracks;
+}
+
+template <bool IsGPU>
+inline dataformats::MCTruthContainer<MCCompLabel>& Tracker<IsGPU>::getTrackLabels()
+{
+  return mTrackLabels;
+}
+
+template <bool IsGPU>
+template <typename... T>
+float Tracker<IsGPU>::evaluateTask(void (Tracker<IsGPU>::*task)(T...), const char* taskName, std::ostream& ostream,
+                                   T&&... args)
+{
+  float diff{ 0.f };
 
   if (Constants::DoTimeBenchmarks) {
     auto start = std::chrono::high_resolution_clock::now();
     (this->*task)(std::forward<T>(args)...);
     auto end = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<double, std::milli> diff_t{end-start};
+    std::chrono::duration<double, std::milli> diff_t{ end - start };
     diff = diff_t.count();
 
     if (taskName == nullptr) {
       ostream << diff << "\t";
     } else {
-      ostream << std::setw(2) << " - " << taskName << " completed in: " \
-        << diff << " ms" << std::endl;
+      ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
     }
   } else {
     (this->*task)(std::forward<T>(args)...);
@@ -135,9 +152,10 @@ float Tracker<IsGPU>::evaluateTask(void (Tracker<IsGPU>::*task)(T ...), \
   return diff;
 }
 
-template<> void TrackerTraits<TRACKINGITSU_GPU_MODE>::computeLayerTracklets(PrimaryVertexContext&);
-template<> void TrackerTraits<TRACKINGITSU_GPU_MODE>::computeLayerCells(PrimaryVertexContext&);
-
+template <>
+void TrackerTraits<TRACKINGITSU_GPU_MODE>::computeLayerTracklets(PrimaryVertexContext&);
+template <>
+void TrackerTraits<TRACKINGITSU_GPU_MODE>::computeLayerCells(PrimaryVertexContext&);
 }
 }
 }

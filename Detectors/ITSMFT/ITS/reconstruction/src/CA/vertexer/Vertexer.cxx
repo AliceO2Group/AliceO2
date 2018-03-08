@@ -155,11 +155,10 @@ void Vertexer::computeTriplets()
 
       mClustersToProcessInner = selectClusters(
         mIndexTables[0],
-        std::array<int, 4>{
-          lowestZInnerBin,
-          (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + (MiddlePhiBin - mPhiSpan) : MiddlePhiBin - mPhiSpan,
-          highestZInnerBin,
-          (MiddlePhiBin + mPhiSpan > PhiBins) ? MiddlePhiBin + mPhiSpan - PhiBins : MiddlePhiBin + mPhiSpan });
+        std::array<int, 4>{ lowestZInnerBin, (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + (MiddlePhiBin - mPhiSpan)
+                                                                           : MiddlePhiBin - mPhiSpan,
+                            highestZInnerBin, (MiddlePhiBin + mPhiSpan > PhiBins) ? MiddlePhiBin + mPhiSpan - PhiBins
+                                                                                  : MiddlePhiBin + mPhiSpan });
 
       for (int iClusterMiddleLayer{ mIndexTables[1][iBinMiddleTable] };
            iClusterMiddleLayer < mIndexTables[1][iBinMiddleTable + 1]; ++iClusterMiddleLayer) {
@@ -250,11 +249,10 @@ void Vertexer::findTracklets()
 
       mClustersToProcessInner = selectClusters(
         mIndexTables[0],
-        std::array<int, 4>{
-          lowestZInnerBin,
-          (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + (MiddlePhiBin - mPhiSpan) : MiddlePhiBin - mPhiSpan,
-          highestZInnerBin,
-          (MiddlePhiBin + mPhiSpan > PhiBins) ? MiddlePhiBin + mPhiSpan - PhiBins : MiddlePhiBin + mPhiSpan });
+        std::array<int, 4>{ lowestZInnerBin, (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + (MiddlePhiBin - mPhiSpan)
+                                                                           : MiddlePhiBin - mPhiSpan,
+                            highestZInnerBin, (MiddlePhiBin + mPhiSpan > PhiBins) ? MiddlePhiBin + mPhiSpan - PhiBins
+                                                                                  : MiddlePhiBin + mPhiSpan });
 
       for (int iClusterMiddleLayer{ mIndexTables[1][iBinMiddleTable] };
            iClusterMiddleLayer < mIndexTables[1][iBinMiddleTable + 1]; ++iClusterMiddleLayer) {
