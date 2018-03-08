@@ -179,8 +179,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   Double_t mBirkC1;
   Double_t mBirkC2;
 
-  std::vector<Hit>* mHits;        ///< Collection of EMCAL hits
-  Geometry* mGeometry;            ///< Geometry pointer
+  std::vector<Hit>* mHits;        //!<! Collection of EMCAL hits
+  Geometry* mGeometry;            //!<! Geometry pointer
 
   // Worker variables during hit creation
   Int_t mCurrentTrackID;      //!<! ID of the current track
