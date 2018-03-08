@@ -6,7 +6,6 @@ set(SRCS
     src/TrivialClustererTask.cxx
     src/ClustererTask.cxx
     src/CookedTrackerTask.cxx
-    src/CA/TrackerTask.cxx
     src/CA/vertexer/VertexerTask.cxx
     )
 
