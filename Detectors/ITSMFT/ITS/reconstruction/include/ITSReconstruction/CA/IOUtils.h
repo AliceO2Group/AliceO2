@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file IOUtils.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_EVENTLOADER_H_
@@ -31,13 +31,13 @@ class MCCompLabel;
 
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template <typename T>
+class MCTruthContainer;
 }
 
 namespace ITSMFT
 {
-  class Cluster;
+class Cluster;
 }
 
 namespace ITS
@@ -45,15 +45,15 @@ namespace ITS
 namespace CA
 {
 
-namespace IOUtils {
+namespace IOUtils
+{
 std::vector<Event> loadEventData(const std::string&);
-void loadEventData(Event& events, const std::vector<ITSMFT::Cluster>* mClustersArray, \
-    const dataformats::MCTruthContainer<MCCompLabel> *mClsLabels = nullptr);
+void loadEventData(Event& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
+                   const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,
-    const std::unordered_map<int, Label>&);
+                      const std::unordered_map<int, Label>&);
 }
-
 }
 }
 }

@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Layer.cxx
-/// \brief 
+/// \brief
 ///
 
 #include "ITSReconstruction/CA/Layer.h"
@@ -23,18 +23,15 @@ namespace ITS
 namespace CA
 {
 
-Layer::Layer()
-    : mLayerIndex { Constants::ITS::UnusedIndex }
+Layer::Layer() : mLayerIndex{ Constants::ITS::UnusedIndex }
 {
-  //Nothing to do
+  // Nothing to do
 }
 
-Layer::Layer(const int layerIndex)
-    : mLayerIndex { layerIndex }
+Layer::Layer(const int layerIndex) : mLayerIndex{ layerIndex }
 {
-  //Nothing to do
+  // Nothing to do
 }
-
 }
 }
 }

@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Cell.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_CACELL_H_
@@ -27,78 +27,49 @@ namespace ITS
 namespace CA
 {
 
-class Cell
-  final
-  {
-    public:
-      GPU_DEVICE Cell(const int, const int, const int, const int, const int, const float3&, const float);
+class Cell final
+{
+ public:
+  GPU_DEVICE Cell(const int, const int, const int, const int, const int, const float3&, const float);
 
-      int getFirstClusterIndex() const;
-      int getSecondClusterIndex() const;
-      int getThirdClusterIndex() const;
-      GPU_HOST_DEVICE int getFirstTrackletIndex() const;
-      int getSecondTrackletIndex() const;
-      int getLevel() const;
-      float getCurvature() const;
-      const float3& getNormalVectorCoordinates() const;
-      void setLevel(const int level);
+  int getFirstClusterIndex() const;
+  int getSecondClusterIndex() const;
+  int getThirdClusterIndex() const;
+  GPU_HOST_DEVICE int getFirstTrackletIndex() const;
+  int getSecondTrackletIndex() const;
+  int getLevel() const;
+  float getCurvature() const;
+  const float3& getNormalVectorCoordinates() const;
+  void setLevel(const int level);
 
-    private:
-      const int mFirstClusterIndex;
-      const int mSecondClusterIndex;
-      const int mThirdClusterIndex;
-      const int mFirstTrackletIndex;
-      const int mSecondTrackletIndex;
-      const float3 mNormalVectorCoordinates;
-      const float mCurvature;
-      int mLevel;
-  };
+ private:
+  const int mFirstClusterIndex;
+  const int mSecondClusterIndex;
+  const int mThirdClusterIndex;
+  const int mFirstTrackletIndex;
+  const int mSecondTrackletIndex;
+  const float3 mNormalVectorCoordinates;
+  const float mCurvature;
+  int mLevel;
+};
 
-  inline int Cell::getFirstClusterIndex() const
-  {
-    return mFirstClusterIndex;
-  }
+inline int Cell::getFirstClusterIndex() const { return mFirstClusterIndex; }
 
-  inline int Cell::getSecondClusterIndex() const
-  {
-    return mSecondClusterIndex;
-  }
+inline int Cell::getSecondClusterIndex() const { return mSecondClusterIndex; }
 
-  inline int Cell::getThirdClusterIndex() const
-  {
-    return mThirdClusterIndex;
-  }
+inline int Cell::getThirdClusterIndex() const { return mThirdClusterIndex; }
 
-  GPU_HOST_DEVICE inline int Cell::getFirstTrackletIndex() const
-  {
-    return mFirstTrackletIndex;
-  }
+GPU_HOST_DEVICE inline int Cell::getFirstTrackletIndex() const { return mFirstTrackletIndex; }
 
-  inline int Cell::getSecondTrackletIndex() const
-  {
-    return mSecondTrackletIndex;
-  }
+inline int Cell::getSecondTrackletIndex() const { return mSecondTrackletIndex; }
 
-  inline int Cell::getLevel() const
-  {
-    return mLevel;
-  }
+inline int Cell::getLevel() const { return mLevel; }
 
-  inline float Cell::getCurvature() const
-  {
-    return mCurvature;
-  }
+inline float Cell::getCurvature() const { return mCurvature; }
 
-  inline const float3& Cell::getNormalVectorCoordinates() const
-  {
-    return mNormalVectorCoordinates;
-  }
+inline const float3& Cell::getNormalVectorCoordinates() const { return mNormalVectorCoordinates; }
 
-  inline void Cell::setLevel(const int level)
-  {
-    mLevel = level;
-  }
-
+inline void Cell::setLevel(const int level) { mLevel = level; }
 }
 }
 }

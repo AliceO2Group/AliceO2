@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file CACell.cxx
-/// \brief 
+/// \brief
 ///
 
 #include "ITSReconstruction/CA/Cell.h"
@@ -22,15 +22,19 @@ namespace CA
 {
 
 GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
-    const int firstTrackletIndex, const int secondTrackletIndex, const float3& normalVectorCoordinates,
-    const float curvature)
-    : mFirstClusterIndex { firstClusterIndex }, mSecondClusterIndex { secondClusterIndex }, mThirdClusterIndex {
-        thirdClusterIndex }, mFirstTrackletIndex(firstTrackletIndex), mSecondTrackletIndex(secondTrackletIndex), mNormalVectorCoordinates(
-        normalVectorCoordinates), mCurvature { curvature }, mLevel { 1 }
+                      const int firstTrackletIndex, const int secondTrackletIndex,
+                      const float3& normalVectorCoordinates, const float curvature)
+  : mFirstClusterIndex{ firstClusterIndex },
+    mSecondClusterIndex{ secondClusterIndex },
+    mThirdClusterIndex{ thirdClusterIndex },
+    mFirstTrackletIndex(firstTrackletIndex),
+    mSecondTrackletIndex(secondTrackletIndex),
+    mNormalVectorCoordinates(normalVectorCoordinates),
+    mCurvature{ curvature },
+    mLevel{ 1 }
 {
   // Nothing to do
 }
-
 }
 }
 }

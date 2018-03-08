@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file MathUtils.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_CAUTILS_H_
@@ -27,7 +27,8 @@ namespace ITS
 namespace CA
 {
 
-namespace MathUtils {
+namespace MathUtils
+{
 float calculatePhiCoordinate(const float, const float);
 float calculateRCoordinate(const float, const float);
 GPU_HOST_DEVICE constexpr float getNormalizedPhiCoordinate(const float);
@@ -46,19 +47,18 @@ inline float MathUtils::calculateRCoordinate(const float xCoordinate, const floa
 
 GPU_HOST_DEVICE constexpr float MathUtils::getNormalizedPhiCoordinate(const float phiCoordinate)
 {
-  return (phiCoordinate < 0) ? phiCoordinate + Constants::Math::TwoPi :
-         (phiCoordinate > Constants::Math::TwoPi) ? phiCoordinate - Constants::Math::TwoPi : phiCoordinate;
+  return (phiCoordinate < 0)
+           ? phiCoordinate + Constants::Math::TwoPi
+           : (phiCoordinate > Constants::Math::TwoPi) ? phiCoordinate - Constants::Math::TwoPi : phiCoordinate;
 }
 
-GPU_HOST_DEVICE constexpr float3 MathUtils::crossProduct(const float3& firstVector,
-    const float3& secondVector)
+GPU_HOST_DEVICE constexpr float3 MathUtils::crossProduct(const float3& firstVector, const float3& secondVector)
 {
 
-  return float3 { (firstVector.y * secondVector.z) - (firstVector.z * secondVector.y),
-      (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z), (firstVector.x * secondVector.y)
-          - (firstVector.y * secondVector.x) };
+  return float3{ (firstVector.y * secondVector.z) - (firstVector.z * secondVector.y),
+                 (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z),
+                 (firstVector.x * secondVector.y) - (firstVector.y * secondVector.x) };
 }
-
 }
 }
 }

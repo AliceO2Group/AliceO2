@@ -25,31 +25,42 @@ namespace CA
 {
 
 Cluster::Cluster(const float x, const float y, const float z, const int index)
-    : xCoordinate { x }, yCoordinate { y }, zCoordinate { z }, phiCoordinate { 0 }, rCoordinate {
-        0 }, clusterId { index }, indexTableBinIndex { 0 }
+  : xCoordinate{ x },
+    yCoordinate{ y },
+    zCoordinate{ z },
+    phiCoordinate{ 0 },
+    rCoordinate{ 0 },
+    clusterId{ index },
+    indexTableBinIndex{ 0 }
 {
   // Nothing to do
 }
 
 Cluster::Cluster(const int layerIndex, const Cluster& other)
-    : xCoordinate { other.xCoordinate }, yCoordinate { other.yCoordinate }, zCoordinate { other.zCoordinate }, 
-      phiCoordinate{ MathUtils::getNormalizedPhiCoordinate(MathUtils::calculatePhiCoordinate(other.xCoordinate, other.yCoordinate)) },
-      rCoordinate{ MathUtils::calculateRCoordinate(other.xCoordinate, other.yCoordinate) },
-      clusterId{ other.clusterId },
-      indexTableBinIndex{ IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
-      IndexTableUtils::getPhiBinIndex(phiCoordinate)) } //, montecarloId{ other.montecarloId }
+  : xCoordinate{ other.xCoordinate },
+    yCoordinate{ other.yCoordinate },
+    zCoordinate{ other.zCoordinate },
+    phiCoordinate{ MathUtils::getNormalizedPhiCoordinate(
+      MathUtils::calculatePhiCoordinate(other.xCoordinate, other.yCoordinate)) },
+    rCoordinate{ MathUtils::calculateRCoordinate(other.xCoordinate, other.yCoordinate) },
+    clusterId{ other.clusterId },
+    indexTableBinIndex{ IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
+                                                     IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
+//, montecarloId{ other.montecarloId }
 {
   // Nothing to do
 }
 
-Cluster::Cluster(const int layerIndex, const float3 &primaryVertex, const Cluster& other)
-    : xCoordinate { other.xCoordinate }, yCoordinate { other.yCoordinate }, zCoordinate { other.zCoordinate }, phiCoordinate {
-        MathUtils::getNormalizedPhiCoordinate(
-            MathUtils::calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y)) }, rCoordinate {
-        MathUtils::calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y) }, clusterId {
-        other.clusterId }, indexTableBinIndex {
-        IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
-            IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
+Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const Cluster& other)
+  : xCoordinate{ other.xCoordinate },
+    yCoordinate{ other.yCoordinate },
+    zCoordinate{ other.zCoordinate },
+    phiCoordinate{ MathUtils::getNormalizedPhiCoordinate(
+      MathUtils::calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y)) },
+    rCoordinate{ MathUtils::calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y) },
+    clusterId{ other.clusterId },
+    indexTableBinIndex{ IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
+                                                     IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
 {
   // Nothing to do
 }
@@ -59,7 +70,6 @@ TrackingFrameInfo::TrackingFrameInfo(float xTF, float alpha, std::array<float, 2
 {
   // Nothing to do
 }
-
 }
 }
 }

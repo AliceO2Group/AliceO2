@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Road.cxx
-/// \brief 
+/// \brief
 ///
 
 #include "ITSReconstruction/CA/Road.h"
@@ -21,17 +21,9 @@ namespace ITS
 namespace CA
 {
 
-Road::Road()
-    : mCellIds { }, mRoadSize { }, mIsFakeRoad { }
-{
-  resetRoad();
-}
+Road::Road() : mCellIds{}, mRoadSize{}, mIsFakeRoad{} { resetRoad(); }
 
-Road::Road(int cellLayer, int cellId)
-    : Road()
-{
-  addCell(cellLayer, cellId);
-}
+Road::Road(int cellLayer, int cellId) : Road() { addCell(cellLayer, cellId); }
 
 void Road::resetRoad()
 {
@@ -48,7 +40,6 @@ void Road::addCell(int cellLayer, int cellId)
 
   mCellIds[cellLayer] = cellId;
 }
-
 }
 }
 }

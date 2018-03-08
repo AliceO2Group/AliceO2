@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file IOUtils.cxx
-/// \brief 
+/// \brief
 ///
 
 #include "ITSReconstruction/CA/IOUtils.h"
@@ -28,9 +28,10 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-namespace {
-constexpr int PrimaryVertexLayerId { -1 };
-constexpr int EventLabelsSeparator { -1 };
+namespace
+{
+constexpr int PrimaryVertexLayerId{ -1 };
+constexpr int EventLabelsSeparator{ -1 };
 }
 
 namespace o2
@@ -42,19 +43,19 @@ namespace CA
 
 std::vector<Event> IOUtils::loadEventData(const std::string& fileName)
 {
-  std::vector<Event> events { };
-  std::ifstream inputStream { };
-  std::string line { }, unusedVariable { };
-  int layerId { }, monteCarlo { };
-  int clusterId { EventLabelsSeparator };
-  float xCoordinate { }, yCoordinate { }, zCoordinate { }, alphaAngle { };
-  float varZ { -1.f }, varY { -1.f };
+  std::vector<Event> events{};
+  std::ifstream inputStream{};
+  std::string line{}, unusedVariable{};
+  int layerId{}, monteCarlo{};
+  int clusterId{ EventLabelsSeparator };
+  float xCoordinate{}, yCoordinate{}, zCoordinate{}, alphaAngle{};
+  float varZ{ -1.f }, varY{ -1.f };
 
   inputStream.open(fileName);
 
   int currentLayer = -99;
   /// THIS IS LEAKING IN THE BACKWARD COMPATIBLE MODE. KEEP IT IN MIND.
-  dataformats::MCTruthContainer<MCCompLabel> *mcLabels = nullptr;
+  dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr;
   while (std::getline(inputStream, line)) {
 
     std::istringstream inputStringStream(line);
@@ -82,11 +83,11 @@ std::vector<Event> IOUtils::loadEventData(const std::string& fileName)
           const float cosAlpha = std::cos(alphaAngle);
           const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
           const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
-          events.back().addTrackingFrameInfoToLayer(layerId, xTF, alphaAngle, std::array<float,2>{yTF, zCoordinate},
-              std::array<float,3>{varY, 0.f, varZ});
+          events.back().addTrackingFrameInfoToLayer(layerId, xTF, alphaAngle, std::array<float, 2>{ yTF, zCoordinate },
+                                                    std::array<float, 3>{ varY, 0.f, varZ });
 
-          const int globalId = events.back().getGlobalIndex(layerId,clusterId);
-          mcLabels->addElement(globalId,MCCompLabel(monteCarlo));
+          const int globalId = events.back().getGlobalIndex(layerId, clusterId);
+          mcLabels->addElement(globalId, MCCompLabel(monteCarlo));
           events.back().setClusterMCtruth(mcLabels);
 
           ++clusterId;
@@ -98,8 +99,9 @@ std::vector<Event> IOUtils::loadEventData(const std::string& fileName)
   return events;
 }
 
-void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* clusters, \
-   const dataformats::MCTruthContainer<MCCompLabel> *mcLabels) {
+void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* clusters,
+                            const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+{
   if (!clusters) {
     std::cerr << "Missing clusters." << std::endl;
     return;
@@ -107,7 +109,7 @@ void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* cl
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
-  int clusterId{0}, prevLayer{0};
+  int clusterId{ 0 }, prevLayer{ 0 };
   event.setClusterMCtruth(mcLabels);
 
   for (auto& c : *clusters) {
@@ -119,25 +121,25 @@ void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* cl
 
     /// Clusters are stored in the tracking frame
     event.addTrackingFrameInfoToLayer(layer, c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
-        std::array<float,2>{c.getY(),c.getZ()}, std::array<float,3>{c.getSigmaY2(),c.getSigmaYZ(),c.getSigmaZ2()});
+                                      std::array<float, 2>{ c.getY(), c.getZ() },
+                                      std::array<float, 3>{ c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2() });
 
     /// Rotate to the global frame
     auto xyz = c.getXYZGloRot(*geom);
-    event.addClusterToLayer(layer,xyz.x(),xyz.y(),xyz.z(),clusterId);
+    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), clusterId);
 
     clusterId++;
   }
-
 }
 
 std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int eventsNum, const std::string& fileName)
 {
-  std::vector<std::unordered_map<int, Label>> labelsMap { };
-  std::unordered_map<int, Label> currentEventLabelsMap { };
-  std::ifstream inputStream { };
-  std::string line { };
-  int monteCarloId { }, pdgCode { }, numberOfClusters { };
-  float transverseMomentum { }, phiCoordinate { }, pseudorapidity { };
+  std::vector<std::unordered_map<int, Label>> labelsMap{};
+  std::unordered_map<int, Label> currentEventLabelsMap{};
+  std::ifstream inputStream{};
+  std::string line{};
+  int monteCarloId{}, pdgCode{}, numberOfClusters{};
+  float transverseMomentum{}, phiCoordinate{}, pseudorapidity{};
 
   labelsMap.reserve(eventsNum);
 
@@ -162,8 +164,8 @@ std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int events
           if (std::abs(pdgCode) == Constants::PDGCodes::PionCode && numberOfClusters == 7) {
 
             currentEventLabelsMap.emplace(std::piecewise_construct, std::forward_as_tuple(monteCarloId),
-                std::forward_as_tuple(monteCarloId, transverseMomentum, phiCoordinate, pseudorapidity, pdgCode,
-                    numberOfClusters));
+                                          std::forward_as_tuple(monteCarloId, transverseMomentum, phiCoordinate,
+                                                                pseudorapidity, pdgCode, numberOfClusters));
           }
         }
       }
@@ -176,31 +178,31 @@ std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int events
 }
 
 void IOUtils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofstream& duplicateRoadsOutputStream,
-    std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road>>& roads,
-    const std::unordered_map<int, Label>& labelsMap)
+                               std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road>>& roads,
+                               const std::unordered_map<int, Label>& labelsMap)
 {
-  const int numVertices { static_cast<int>(roads.size()) };
-  std::unordered_set<int> foundMonteCarloIds { };
+  const int numVertices{ static_cast<int>(roads.size()) };
+  std::unordered_set<int> foundMonteCarloIds{};
 
   correctRoadsOutputStream << EventLabelsSeparator << std::endl;
   fakeRoadsOutputStream << EventLabelsSeparator << std::endl;
 
-  for (int iVertex { 0 }; iVertex < numVertices; ++iVertex) {
+  for (int iVertex{ 0 }; iVertex < numVertices; ++iVertex) {
 
-    const std::vector<Road>& currentVertexRoads { roads[iVertex] };
-    const int numRoads { static_cast<int>(currentVertexRoads.size()) };
+    const std::vector<Road>& currentVertexRoads{ roads[iVertex] };
+    const int numRoads{ static_cast<int>(currentVertexRoads.size()) };
 
-    for (int iRoad { 0 }; iRoad < numRoads; ++iRoad) {
+    for (int iRoad{ 0 }; iRoad < numRoads; ++iRoad) {
 
-      const Road& currentRoad { currentVertexRoads[iRoad] };
-      const int currentRoadLabel { currentRoad.getLabel() };
+      const Road& currentRoad{ currentVertexRoads[iRoad] };
+      const int currentRoadLabel{ currentRoad.getLabel() };
 
       if (!labelsMap.count(currentRoadLabel)) {
 
         continue;
       }
 
-      const Label& currentLabel { labelsMap.at(currentRoadLabel) };
+      const Label& currentLabel{ labelsMap.at(currentRoadLabel) };
 
       if (currentRoad.isFakeRoad()) {
 
@@ -221,7 +223,6 @@ void IOUtils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
     }
   }
 }
-
 }
 }
 }

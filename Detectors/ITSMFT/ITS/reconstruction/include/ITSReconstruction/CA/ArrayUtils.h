@@ -26,25 +26,25 @@ namespace ITS
 namespace CA
 {
 
-namespace ArrayUtils {
-template<typename T, std::size_t ...Is, typename Initializer>
+namespace ArrayUtils
+{
+template <typename T, std::size_t... Is, typename Initializer>
 constexpr std::array<T, sizeof...(Is)> fillArray(Initializer, std::index_sequence<Is...>);
-template<typename T, std::size_t N, typename Initializer>
+template <typename T, std::size_t N, typename Initializer>
 constexpr std::array<T, N> fillArray(Initializer);
 }
 
-template<typename T, std::size_t ...Is, typename Initializer>
+template <typename T, std::size_t... Is, typename Initializer>
 constexpr std::array<T, sizeof...(Is)> ArrayUtils::fillArray(Initializer initializer, std::index_sequence<Is...>)
 {
-  return std::array<T, sizeof...(Is)> { { initializer(Is)... } };
+  return std::array<T, sizeof...(Is)>{ { initializer(Is)... } };
 }
 
-template<typename T, std::size_t N, typename Initializer>
+template <typename T, std::size_t N, typename Initializer>
 constexpr std::array<T, N> ArrayUtils::fillArray(Initializer initializer)
 {
-  return ArrayUtils::fillArray<T>(initializer, std::make_index_sequence<N> { });
+  return ArrayUtils::fillArray<T>(initializer, std::make_index_sequence<N>{});
 }
-
 }
 }
 }

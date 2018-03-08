@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Road.h
-/// \brief 
+/// \brief
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_ROAD_H_
@@ -26,62 +26,40 @@ namespace ITS
 namespace CA
 {
 
-class Road
-  final
-  {
-    public:
-      Road();
-      Road(int, int);
+class Road final
+{
+ public:
+  Road();
+  Road(int, int);
 
-      int getRoadSize() const;
-      int getLabel() const;
-      void setLabel(const int);
-      bool isFakeRoad() const;
-      void setFakeRoad(const bool);
-      int &operator[](const int&);
+  int getRoadSize() const;
+  int getLabel() const;
+  void setLabel(const int);
+  bool isFakeRoad() const;
+  void setFakeRoad(const bool);
+  int& operator[](const int&);
 
-      void resetRoad();
-      void addCell(int, int);
+  void resetRoad();
+  void addCell(int, int);
 
-    private:
-      std::array<int, Constants::ITS::CellsPerRoad> mCellIds;
-      int mRoadSize;
-      int mLabel;
-      bool mIsFakeRoad;
-  };
+ private:
+  std::array<int, Constants::ITS::CellsPerRoad> mCellIds;
+  int mRoadSize;
+  int mLabel;
+  bool mIsFakeRoad;
+};
 
-  inline int Road::getRoadSize() const
-  {
+inline int Road::getRoadSize() const { return mRoadSize; }
 
-    return mRoadSize;
-  }
+inline int Road::getLabel() const { return mLabel; }
 
-  inline int Road::getLabel() const
-  {
+inline void Road::setLabel(const int label) { mLabel = label; }
 
-    return mLabel;
-  }
+inline int& Road::operator[](const int& i) { return mCellIds[i]; }
 
-  inline void Road::setLabel(const int label)
-  {
-    mLabel = label;
-  }
+inline bool Road::isFakeRoad() const { return mIsFakeRoad; }
 
-  inline int& Road::operator [](const int& i)
-  {
-    return mCellIds[i];
-  }
-
-  inline bool Road::isFakeRoad() const
-  {
-    return mIsFakeRoad;
-  }
-
-  inline void Road::setFakeRoad(const bool isFakeRoad)
-  {
-    mIsFakeRoad = isFakeRoad;
-  }
-
+inline void Road::setFakeRoad(const bool isFakeRoad) { mIsFakeRoad = isFakeRoad; }
 }
 }
 }

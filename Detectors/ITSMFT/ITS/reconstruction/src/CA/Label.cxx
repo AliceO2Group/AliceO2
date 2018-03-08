@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Label.cxx
-/// \brief 
+/// \brief
 ///
 
 #include "ITSReconstruction/CA/Label.h"
@@ -21,10 +21,13 @@ namespace ITS
 namespace CA
 {
 
-Label::Label(const int mcId, const float pT, const float phi, const float eta, const int pdg,
-  const int ncl)
-    : monteCarloId { mcId }, transverseMomentum { pT }, phiCoordinate { phi }, pseudorapidity {
-        eta }, pdgCode { pdg }, numberOfClusters { ncl }
+Label::Label(const int mcId, const float pT, const float phi, const float eta, const int pdg, const int ncl)
+  : monteCarloId{ mcId },
+    transverseMomentum{ pT },
+    phiCoordinate{ phi },
+    pseudorapidity{ eta },
+    pdgCode{ pdg },
+    numberOfClusters{ ncl }
 {
   // Nothing to do
 }
@@ -32,11 +35,10 @@ Label::Label(const int mcId, const float pT, const float phi, const float eta, c
 std::ostream& operator<<(std::ostream& outputStream, const Label& label)
 {
   outputStream << label.monteCarloId << "\t" << label.transverseMomentum << "\t" << label.phiCoordinate << "\t"
-      << label.pseudorapidity << "\t" << label.pdgCode << "\t" << label.numberOfClusters;
+               << label.pseudorapidity << "\t" << label.pdgCode << "\t" << label.numberOfClusters;
 
   return outputStream;
 }
-
 }
 }
 }

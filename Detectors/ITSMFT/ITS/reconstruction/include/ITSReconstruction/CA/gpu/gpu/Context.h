@@ -28,44 +28,42 @@ namespace CA
 namespace GPU
 {
 
-struct DeviceProperties final
-{
-    std::string name;
-    int gpuProcessors;
-    int cudaCores;
-    long globalMemorySize;
-    long constantMemorySize;
-    long sharedMemorySize;
-    long maxClockRate;
-    int busWidth;
-    long l2CacheSize;
-    long registersPerBlock;
-    int warpSize;
-    int maxThreadsPerBlock;
-    int maxBlocksPerSM;
-    dim3 maxThreadsDim;
-    dim3 maxGridDim;
+struct DeviceProperties final {
+  std::string name;
+  int gpuProcessors;
+  int cudaCores;
+  long globalMemorySize;
+  long constantMemorySize;
+  long sharedMemorySize;
+  long maxClockRate;
+  int busWidth;
+  long l2CacheSize;
+  long registersPerBlock;
+  int warpSize;
+  int maxThreadsPerBlock;
+  int maxBlocksPerSM;
+  dim3 maxThreadsDim;
+  dim3 maxGridDim;
 };
 
 class Context final
 {
-  public:
-    static Context& getInstance();
+ public:
+  static Context& getInstance();
 
-    Context(const Context&);
-    Context& operator=(const Context&);
+  Context(const Context&);
+  Context& operator=(const Context&);
 
-    const DeviceProperties& getDeviceProperties();
-    const DeviceProperties& getDeviceProperties(const int);
+  const DeviceProperties& getDeviceProperties();
+  const DeviceProperties& getDeviceProperties(const int);
 
-  private:
-    Context();
-    ~Context() = default;
+ private:
+  Context();
+  ~Context() = default;
 
-    int mDevicesNum;
-    std::vector<DeviceProperties> mDeviceProperties;
+  int mDevicesNum;
+  std::vector<DeviceProperties> mDeviceProperties;
 };
-
 }
 }
 }

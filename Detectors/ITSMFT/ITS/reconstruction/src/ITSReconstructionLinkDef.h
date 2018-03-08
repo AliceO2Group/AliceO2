@@ -20,7 +20,6 @@
 #pragma link C++ class o2::ITS::TrivialClustererTask+;
 #pragma link C++ class o2::ITS::ClustererTask+;
 #pragma link C++ class o2::ITS::CookedTrackerTask+;
-#pragma link C++ class o2::ITS::CA::Track+;
 
 #pragma link C++ class o2::ITS::CA::VertexerTask+;
 

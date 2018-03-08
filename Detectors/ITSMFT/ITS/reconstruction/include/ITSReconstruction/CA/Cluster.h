@@ -9,9 +9,8 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Cluster.h
-/// \brief 
+/// \brief
 ///
-
 
 #ifndef TRACKINGITSU_INCLUDE_CACLUSTER_H_
 #define TRACKINGITSU_INCLUDE_CACLUSTER_H_
@@ -29,31 +28,28 @@ namespace ITS
 namespace CA
 {
 
-struct Cluster
-    final
-    {
-      Cluster(const float x, const float y, const float z, const int idx);
-      Cluster(const int, const Cluster&);
-      Cluster(const int, const float3&, const Cluster&);
+struct Cluster final {
+  Cluster(const float x, const float y, const float z, const int idx);
+  Cluster(const int, const Cluster&);
+  Cluster(const int, const float3&, const Cluster&);
 
-      float xCoordinate;
-      float yCoordinate;
-      float zCoordinate;
-      float phiCoordinate;
-      float rCoordinate;
-      int clusterId;
-      int indexTableBinIndex;
-  };
+  float xCoordinate;
+  float yCoordinate;
+  float zCoordinate;
+  float phiCoordinate;
+  float rCoordinate;
+  int clusterId;
+  int indexTableBinIndex;
+};
 
 struct TrackingFrameInfo {
-  TrackingFrameInfo(float xTF, float alpha, std::array<float,2>&& posTF, std::array<float,3>&& covTF);
+  TrackingFrameInfo(float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
 
   float xTrackingFrame;
   float alphaTrackingFrame;
-  std::array<float,2> positionTrackingFrame;
-  std::array<float,3> covarianceTrackingFrame;
+  std::array<float, 2> positionTrackingFrame;
+  std::array<float, 3> covarianceTrackingFrame;
 };
-
 }
 }
 }
