@@ -218,7 +218,7 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     data_format_TPC_bucket
-    
+
     DEPENDENCIES
     data_format_reconstruction_bucket
     ReconstructionDataFormats
@@ -471,7 +471,7 @@ o2_define_bucket(
     ReconstructionDataFormats
     DataFormatsParameters
     Field
-    
+
     VMC # ROOT
     Geom
 
@@ -570,7 +570,7 @@ o2_define_bucket(
     ITSMFTBase
     DetectorsBase
     SimulationDataFormat
-    
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
@@ -629,7 +629,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     ITSSimulation
-    
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
@@ -812,7 +812,7 @@ o2_define_bucket(
     data_format_TPC_bucket
     data_format_detectors_common_bucket
     DetectorsCommonDataFormats
-    DetectorsBase    
+    DetectorsBase
     TPCBase
     DataFormatsTPC
     SimulationDataFormat
@@ -1065,7 +1065,7 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     passive_detector_bucket
- 
+
     DEPENDENCIES
     fairroot_geom
     Field
@@ -1168,7 +1168,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
-    ${CMAKE_SOURCE_DIR}/Detectors/FIT/Simulations/include 
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/Simulations/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
@@ -1374,7 +1374,7 @@ o2_define_bucket(
   Core
   data_format_detectors_common_bucket
   DetectorsCommonDataFormats
-  
+
   INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/Detectors/Base/include
@@ -1390,12 +1390,11 @@ o2_define_bucket(
   DEPENDENCIES
   Core Tree
   ReconstructionDataFormats # for test dependency only
-  
+
   INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/include/ReconstructionDataFormats # for test dependency only
 )
-
 
 o2_define_bucket(
     NAME
@@ -1434,18 +1433,18 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-   data_format_itsmft_bucket
+    data_format_itsmft_bucket
 
     DEPENDENCIES
     data_format_reconstruction_bucket
     #
     ReconstructionDataFormats
-    
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
 )
-  
+
 o2_define_bucket(
     NAME
     data_format_its_bucket
@@ -1454,7 +1453,7 @@ o2_define_bucket(
     data_format_reconstruction_bucket
     #
     ReconstructionDataFormats
-    
+
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
@@ -1498,7 +1497,7 @@ o2_define_bucket(
     RIO
     Core
     Geom
-   
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
@@ -1515,7 +1514,6 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Parameters/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
 )
-
 
 o2_define_bucket(
   NAME
@@ -1575,3 +1573,13 @@ o2_define_bucket(
   MCHMappingSegContour3
 )
 
+o2_define_bucket(
+    NAME
+    mid_base_bucket
+
+    DEPENDENCIES
+    common_math_bucket
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
