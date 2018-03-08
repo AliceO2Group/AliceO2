@@ -42,7 +42,7 @@
 
 CADEBUG(int cadebug_nTracks = 0;)
 
-GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, float &Alpha, int attempt, float maxSinPhi)
+GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, int &NTolerated, float &Alpha, int attempt, float maxSinPhi)
 {
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
@@ -58,42 +58,10 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   prop.SetMaxSinPhi( maxSinPhi );
   prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
 
-  if (param.GetContinuousTracking())
-  {  
-    fP[1] += fZOffset;
-    
-    const float cosPhi = AliHLTTPCCAMath::Sqrt(1 - fP[2] * fP[2]);
-    const float dxf = -AliHLTTPCCAMath::Abs(fP[2]);
-    const float dyf = cosPhi * (fP[2] > 0 ? 1. : -1.);
-    const float r = 1./fabs(fP[4] * field->GetNominalBz());
-    float xp = fX + dxf * r;
-    float yp = fP[0] + dyf * r;
-    //printf("\nX %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r, xp, yp);
-    const float r2 = (r + AliHLTTPCCAMath::Sqrt(xp * xp + yp * yp)) / 2.; //Improve the radius by taking into acount both points we know (00 and xy).
-    xp = fX + dxf * r2;
-    yp = fP[0] + dyf * r2;
-    //printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r2, xp, yp);
-    float atana = AliHLTTPCCAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
-    float atanb = AliHLTTPCCAMath::ATan2(CAMath::Abs(fX - xp), CAMath::Abs(fP[0] - yp));
-    //printf("Tan %f %f (%f %f)\n", atana, atanb, fX - xp, fP[0] - yp);
-    const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
-    float dz = dS * fP[3];
-    //printf("Track Z %f, Z0 %f (dS %f, dZds %f)             - Direction %f to %f: %f\n", fP[1], dz, dS, fP[3], clusters[0].fZ, clusters[N - 1].fZ, clusters[0].fZ - clusters[N - 1].fZ);
-    if (CAMath::Abs(dz) > 250.) dz = dz > 0 ? 250. : -250.;
-    if (fP[1] * (fP[1] - dz) < 0)
-    {
-      fZOffset = clusters[N - 1].fZ;
-    }
-    else
-    {
-      fZOffset = fP[1] - dz; 
-    }
-    fP[1] -= fZOffset;
-  }
+  if (param.GetContinuousTracking()) ShiftZ(field, clusters, param, N);
 
   int nWays = param.GetNWays();
   int maxN = N;
-  int Ntolerate = 0; //Clusters not fit but tollerated for track length cut
   int ihitStart = 0;
   float covYYUpd = 0.;
   float lastUpdateX = -1.;
@@ -123,7 +91,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", cadebug_nTracks, iWay, (int) (prop.GetAlpha() / kSectAngle + 0.5) + (fP[1] < 0 ? 18 : 0), prop.GetAlpha());)
 
     N = 0;
-    Ntolerate = 0;
     lastUpdateX = -1;
     const bool inFlyDirection = iWay & 1;
     unsigned char lastLeg = clusters[ihitStart].fLeg;
@@ -200,6 +167,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       CADEBUG(if(changeDirection) printf("\t\tChange direction\n");)
       CADEBUG(printf("\tLeg %3d%14sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", (int) clusters[ihit].fLeg, "", prop.GetAlpha(), (fabs(prop.GetAlpha() - clAlpha) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10]);)
       int err = prop.PropagateToXAlpha(xx, clAlpha, inFlyDirection );
+      CADEBUG(if(!CheckCov()) printf("INVALID COV AFTER PROPAGATE!!!\n");)
       if (err == -2) //Rotation failed, try to bring to new x with old alpha first, rotate, and then propagate to x, alpha
       {
           CADEBUG(printf("REROTATE\n");)
@@ -243,7 +211,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       if ( err || err2 )
       {
         MarkClusters(clusters, ihitMergeFirst, ihit, wayDirection, AliHLTTPCGMMergedTrackHit::flagNotFit);
-        Ntolerate++;
+        NTolerated++;
         CADEBUG(printf(" --- break (%d, %d)\n", err, err2);)
         continue;
       }
@@ -254,6 +222,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       float threshold = 3. + (lastUpdateX >= 0 ? (fabs(fX - lastUpdateX) / 2) : 0.);
       if (fNDF > 5 && (fabs(yy - fP[0]) > threshold || fabs(zz - fP[1]) > threshold)) retVal = 2;
       else retVal = prop.Update( yy, zz, clusters[ihit].fRow, param, clusterState, rejectChi2, refit);
+      CADEBUG(if(!CheckCov()) printf("INVALID COV AFTER UPDATE!!!\n");)
       CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   Err %d\n", "", prop.GetAlpha(), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), fP[3], "", sqrt(fC[0]), sqrt(fC[2]), sqrt(fC[5]), sqrt(fC[14]), fC[10], retVal);)
 
       if (retVal == 0) // track is updated
@@ -279,10 +248,11 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
+    if (((nWays - iWay) & 1) && param.GetContinuousTracking()) ShiftZ(field, clusters, param, N);
   }
   ConstrainSinPhi();
   
-  bool ok = N + Ntolerate >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
+  bool ok = N + NTolerated >= TRACKLET_SELECTOR_MIN_HITS(fP[4]) && CheckNumericalQuality(covYYUpd);
   if (!ok) return(false);
   
   Alpha = prop.GetAlpha();
@@ -315,6 +285,56 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   return(ok);
 }
 
+GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int N)
+{  
+  const float cosPhi = AliHLTTPCCAMath::Sqrt(1 - fP[2] * fP[2]);
+  const float dxf = -AliHLTTPCCAMath::Abs(fP[2]);
+  const float dyf = cosPhi * (fP[2] > 0 ? 1. : -1.);
+  const float r = 1./fabs(fP[4] * field->GetNominalBz());
+  float xp = fX + dxf * r;
+  float yp = fP[0] + dyf * r;
+  //printf("\nX %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r, xp, yp);
+  const float r2 = (r + AliHLTTPCCAMath::Sqrt(xp * xp + yp * yp)) / 2.; //Improve the radius by taking into acount both points we know (00 and xy).
+  xp = fX + dxf * r2;
+  yp = fP[0] + dyf * r2;
+  //printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", fX, fP[0], fP[2], fP[4], r2, xp, yp);
+  float atana = AliHLTTPCCAMath::ATan2(CAMath::Abs(xp), CAMath::Abs(yp));
+  float atanb = AliHLTTPCCAMath::ATan2(CAMath::Abs(fX - xp), CAMath::Abs(fP[0] - yp));
+  //printf("Tan %f %f (%f %f)\n", atana, atanb, fX - xp, fP[0] - yp);
+  const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
+  float dz = dS * fP[3];
+  //printf("Track Z %f, Z0 %f (dS %f, dZds %f)             - Direction %f to %f: %f\n", fP[1], dz, dS, fP[3], clusters[0].fZ, clusters[N - 1].fZ, clusters[0].fZ - clusters[N - 1].fZ);
+  if (CAMath::Abs(dz) > 250.) dz = dz > 0 ? 250. : -250.;
+  float dZOffset;
+  if (fP[1] * (fP[1] - dz) < 0)
+  {
+    dZOffset = clusters[N - 1].fZ;
+  }
+  else
+  {
+    dZOffset = fP[1] - dz; 
+  }
+  fZOffset += dZOffset;
+  fP[1] -= dZOffset;
+}
+
+GPUd() bool AliHLTTPCGMTrackParam::CheckCov() const
+{
+  const float *c = fC;
+  bool ok = c[0] >= 0 && c[2] >= 0 && c[5] >= 0 && c[9] >= 0 && c[14] >= 0
+  && ( c[1]*c[1]<=c[2]*c[0] )
+  && ( c[3]*c[3]<=c[5]*c[0] )
+  && ( c[4]*c[4]<=c[5]*c[2] )
+  && ( c[6]*c[6]<=c[9]*c[0] )
+  && ( c[7]*c[7]<=c[9]*c[2] )
+  && ( c[8]*c[8]<=c[9]*c[5] )
+  && ( c[10]*c[10]<=c[14]*c[0] )
+  && ( c[11]*c[11]<=c[14]*c[2] )
+  && ( c[12]*c[12]<=c[14]*c[5] )
+  && ( c[13]*c[13]<=c[14]*c[9] );      
+  return ok;
+}
+
 GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
 {
   //* Check that the track parameters and covariance matrix are reasonable
@@ -325,24 +345,11 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) co
   CADEBUG(printf("OK1 %d\n", (int) ok);)
   for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
   CADEBUG(printf("OK2 %d\n", (int) ok);)
-  if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
   if ( (overrideCovYY > 0 ? overrideCovYY : c[0]) > 4.*4. || c[2] > 4.*4. || c[5] > 2.*2. || c[9] > 2.*2. ) ok = 0;
   CADEBUG(printf("OK3 %d\n", (int) ok);)
   if ( fabs( fP[2] ) > HLTCA_MAX_SIN_PHI ) ok = 0;
   CADEBUG(printf("OK4 %d\n", (int) ok);)
-  if( ok ){
-    ok = ok 
-      && ( c[1]*c[1]<=c[2]*c[0] )
-      && ( c[3]*c[3]<=c[5]*c[0] )
-      && ( c[4]*c[4]<=c[5]*c[2] )
-      && ( c[6]*c[6]<=c[9]*c[0] )
-      && ( c[7]*c[7]<=c[9]*c[2] )
-      && ( c[8]*c[8]<=c[9]*c[5] )
-      && ( c[10]*c[10]<=c[14]*c[0] )
-      && ( c[11]*c[11]<=c[14]*c[2] )
-      && ( c[12]*c[12]<=c[14]*c[5] )
-      && ( c[13]*c[13]<=c[14]*c[9] );      
-  }
+  if (!CheckCov()) ok = false;
   CADEBUG(printf("OK5 %d\n", (int) ok);)
   return ok;
 }
@@ -392,15 +399,16 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 	for (int attempt = 0;;)
 	{
 		int nTrackHits = track.NClusters();
+		int NTolerated = 0; //Clusters not fit but tollerated for track length cut
 		AliHLTTPCGMTrackParam t = track.Param();
 		float Alpha = track.Alpha();  
 		CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt();)
-		bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, Alpha, attempt );
+		bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, NTolerated, Alpha, attempt );
 		CADEBUG(printf("Finished Fit Track %d\n", cadebug_nTracks);)
 		
 		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 
-		CADEBUG(printf("OUTPUT hits %d -> %d, QPt %f -> %f, SP %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));)
+		CADEBUG(printf("OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, NTolerated, nTrackHits + NTolerated, ptOld, t.QPt(), t.SinPhi(), (int) ok, t.Chi2(), t.Chi2() / std::max(1,nTrackHits));)
 		
 		if (!ok && ++attempt < nAttempts)
 		{
