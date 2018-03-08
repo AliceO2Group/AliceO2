@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file DispatcherDPL.cxx
+/// \brief Implementation of DispatcherDPL for O2 Data Sampling
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
 #include "Framework/DispatcherDPL.h"
 
 DispatcherDPL::DispatcherDPL(const SubSpecificationType dispatcherSubSpec,

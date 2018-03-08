@@ -25,6 +25,7 @@
 #include "FairLogger.h"
 
 using namespace o2::framework;
+using namespace o2::framework::DataSamplingConfig;
 using namespace AliceO2::Configuration;
 
 namespace o2 {
@@ -134,9 +135,9 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
 
 /// Reads QC Tasks configuration from given filepath. Uses Configuration dependency and handles most of its exceptions.
 /// When some obligatory value is missing, it shows ERROR in logs, but continues to read another QC tasks.
-DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& configurationSource)
+QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& configurationSource)
 {
-  std::vector<QcTaskConfiguration> tasks;
+  QcTaskConfigurations tasks;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
   std::vector<std::string> taskNames;
@@ -226,7 +227,7 @@ DataSampling::QcTaskConfigurations DataSampling::readQcTasksConfiguration(const 
 }
 
 /// Reads general Data Sampling infrastructure configuration.
-DataSampling::InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::string& configurationSource)
+InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::string& configurationSource)
 {
 
   InfrastructureConfig cfg;

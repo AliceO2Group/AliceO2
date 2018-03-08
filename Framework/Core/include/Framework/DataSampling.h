@@ -32,6 +32,8 @@
 #include "Framework/DispatcherFlpProto.h"
 #include "Framework/DataSamplingConfig.h"
 
+using namespace o2::framework::DataSamplingConfig;
+
 namespace o2
 {
 namespace framework
@@ -68,9 +70,6 @@ class DataSampling
 
  private:
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
-  using QcTaskConfiguration = DataSamplingConfig::QcTaskConfiguration;
-  using QcTaskConfigurations = std::vector<QcTaskConfiguration>;
-  using InfrastructureConfig = DataSamplingConfig::InfrastructureConfig;
 
   // Internal functions, used by GenerateInfrastructure()
   static auto getEdgeMatcher(const QcTaskConfiguration& taskCfg);
