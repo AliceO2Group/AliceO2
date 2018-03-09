@@ -136,8 +136,8 @@ const std::vector<std::pair<int, int>> Vertexer::selectClusters(const std::array
 void Vertexer::computeTriplets()
 {
   if (mVertexerInitialised) {
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    start = std::chrono::system_clock::now();
+    // std::chrono::time_point<std::chrono::system_clock> start, end;
+    // start = std::chrono::system_clock::now();
 
     for (int iBinMiddleTable{ 0 }; iBinMiddleTable < ZBins * PhiBins; ++iBinMiddleTable) {
 
@@ -219,19 +219,19 @@ void Vertexer::computeTriplets()
       }
     }
 
-    end = std::chrono::system_clock::now();
-    int elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-    std::cout << "Finished computation at " << std::ctime(&end_time) << "elapsed time: " << elapsed_milliseconds
-              << "ms\n";
+    // end = std::chrono::system_clock::now();
+    // int elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    // std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    // std::cout << "Finished computation at " << std::ctime(&end_time) << "elapsed time: " << elapsed_milliseconds
+    //           << "ms\n";
   }
 }
 
 void Vertexer::findTracklets()
 {
   if (mVertexerInitialised) {
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    start = std::chrono::system_clock::now();
+    // std::chrono::time_point<std::chrono::system_clock> start, end;
+    // start = std::chrono::system_clock::now();
 
     for (int iBinMiddleTable{ 0 }; iBinMiddleTable < ZBins * PhiBins; ++iBinMiddleTable) {
 
@@ -319,11 +319,11 @@ void Vertexer::findTracklets()
       }
     }
 
-    end = std::chrono::system_clock::now();
-    int elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-    std::cout << "Finished computation at " << std::ctime(&end_time) << "elapsed time: " << elapsed_milliseconds
-              << "ms\n";
+    // end = std::chrono::system_clock::now();
+    // int elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    // std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    // std::cout << "Finished computation at " << std::ctime(&end_time) << "elapsed time: " << elapsed_milliseconds
+    //           << "ms\n";
     mTrackletsFound = true;
   }
 }
