@@ -86,10 +86,9 @@ class Mapping
   void buildDETypeMedium(int rpcType, std::array<int, 7> boards, bool largeNonBend);
   void buildDETypeCut(int rpcType, std::array<int, 7> boards, bool isBelowBeamPipe);
   void buildDETypeShort(int rpcType, std::array<int, 7> boards);
-  int getChamber(int deId) const;
-  int getRPCType(int deId) const;
+  /// Gets the RPC type of detection element deId
+  inline int getRPCType(int deId) const { return deId % 9; }
   double getStripSize(int chamber, int stripPitch, int strip = 0) const;
-  double getRPCCenterX(int chamber, int rpcType) const;
   double getColumnLeftPosition(int column, int chamber, int rpcType) const;
   double getColumnBottomPosition(int column, int chamber, int rpcType) const;
   double getColumnHeight(int column, int chamber, int rpcType) const;
@@ -103,13 +102,8 @@ class Mapping
   std::vector<MpStripIndex> getNeighboursBP(const MpStripIndex& stripIndex, int rpcType) const;
   std::vector<MpStripIndex> getNeighboursNBP(const MpStripIndex& stripIndex, int rpcType) const;
 
-  const double mUnitPitchSize;                 ///< Unit pitch size
-  const double mBaseRPCHalfWidth;              ///< Typical half width of the RPC
-  const double mBaseBoardWidth;                ///< Local board width in chamber 11
-  const double mBaseBoardHeight;               ///< Local board height in chamber 11
   std::array<MpDE, 9> mDetectionElements;      ///< Array of detection element
   std::array<MpBoardIndex, 118> mBoardIndexes; ///< Array of board indexes
-  std::array<double, 4> mScaleFactors;         ///< Array of scale factors for projective geometry
 };
 } // namespace mid
 } // namespace o2

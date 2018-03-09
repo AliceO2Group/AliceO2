@@ -16,20 +16,14 @@
 
 #include <cassert>
 #include <iostream>
+#include "MIDBase/Constants.h"
 
 namespace o2
 {
 namespace mid
 {
 //______________________________________________________________________________
-Mapping::Mapping()
-  : mUnitPitchSize(1.0625),
-    mBaseRPCHalfWidth(127.5),
-    mBaseBoardWidth(34.),
-    mBaseBoardHeight(17.),
-    mDetectionElements(),
-    mBoardIndexes(),
-    mScaleFactors({ { 1., 1.01060, 1.06236, 1.07296 } })
+Mapping::Mapping() : mDetectionElements(), mBoardIndexes()
 {
   /// Default constructor
   init();
@@ -148,9 +142,8 @@ double Mapping::getStripSize(int strip, int cathode, int column, int deId) const
   /// @param cathode Bending plane (0) or Non-Bending plane (1)
   /// @param column The column id in the detection element
   /// @param deId The detection element ID
-  /// @param warn Set to false to avoid printing an error message in case the strip is not found (default: true)
   int rpcType = getRPCType(deId);
-  int ichamber = getChamber(deId);
+  int ichamber = Constants::getChamber(deId);
   int stripPitch = (cathode == 0) ? mDetectionElements[rpcType].columns[column].stripPitchBP
                                   : mDetectionElements[rpcType].columns[column].stripPitchNBP;
 
@@ -374,46 +367,25 @@ bool Mapping::isValidLine(int line, int column, int rpcType) const
 }
 
 //______________________________________________________________________________
-int Mapping::getRPCType(int deId) const
-{
-  /// Gets the RPC type of detection element deId
-  return deId % 9;
-}
-
-//______________________________________________________________________________
-int Mapping::getChamber(int deId) const
-{
-  /// Gets the chamber number of detection element deId
-  return (deId % 36) / 9;
-}
-
-//______________________________________________________________________________
 double Mapping::getStripSize(int chamber, int stripPitch, int strip) const
 {
   /// Gets the strip size of the strip in the chamber
   if (strip > 7 && stripPitch == 4) {
     stripPitch = 2;
   }
-  return mUnitPitchSize * stripPitch * mScaleFactors[chamber];
-}
-
-//______________________________________________________________________________
-double Mapping::getRPCCenterX(int chamber, int rpcType) const
-{
-  /// Returns the x position of the center of the RPC
-  /// with respect to its left border
-  double xPos = (rpcType == 4) ? 102. : mBaseRPCHalfWidth;
-  return xPos * mScaleFactors[chamber];
+  return Constants::getStripUnitPitchSize(chamber) * stripPitch;
 }
 
 //______________________________________________________________________________
 double Mapping::getColumnLeftPosition(int column, int chamber, int rpcType) const
 {
   /// Returns the left position of the column
-  double xCenter = getRPCCenterX(chamber, rpcType);
-  double offset = (rpcType == 4 && column == 1) ? 0.5 * mBaseBoardWidth * mScaleFactors[chamber] : 0.;
-  return mBaseBoardWidth * mScaleFactors[chamber] * column + xCenter - 2. * mBaseRPCHalfWidth * mScaleFactors[chamber] +
-         offset;
+  double xCenter = Constants::getRPCHalfWidth(chamber, rpcType);
+  double col = (double)column;
+  if (rpcType == 4) {
+    col += (column == 1) ? -1. : -1.5;
+  }
+  return Constants::getLocalBoardWidth(chamber) * col - xCenter;
 }
 
 //______________________________________________________________________________
@@ -421,7 +393,7 @@ double Mapping::getColumnBottomPosition(int column, int chamber, int rpcType) co
 {
   /// Returns the bottom position of the column
   double nBoardsDown = (rpcType == 5 && column == 0) ? 1. : 2.;
-  return -mBaseBoardHeight * nBoardsDown * mScaleFactors[chamber];
+  return -Constants::getLocalBoardHeight(chamber) * nBoardsDown;
 }
 
 //______________________________________________________________________________
@@ -432,7 +404,7 @@ double Mapping::getColumnHeight(int column, int chamber, int rpcType) const
   if (column == 0 && (rpcType == 3 || rpcType == 5)) {
     sizeFactor = 0.75;
   }
-  return 4 * mBaseBoardHeight * mScaleFactors[chamber] * sizeFactor;
+  return 4 * Constants::getLocalBoardHeight(chamber) * sizeFactor;
 }
 
 //______________________________________________________________________________
@@ -445,14 +417,15 @@ double Mapping::getColumnWidth(int column, int chamber, int rpcType) const
   } else if (column == 1 && rpcType == 4) {
     sizeFactor = 0.5;
   }
-  return mBaseBoardWidth * mScaleFactors[chamber] * sizeFactor;
+  return Constants::getLocalBoardWidth(chamber) * sizeFactor;
 }
 
 //______________________________________________________________________________
 double Mapping::getStripLowEdge(int strip, int stripPitch, int line, int chamber) const
 {
   /// Gets position of the low edge of the strip
-  return (mUnitPitchSize * stripPitch * (strip + 16 * line) - 2. * mBaseBoardHeight) * mScaleFactors[chamber];
+  return (Constants::getStripUnitPitchSize(chamber) * stripPitch * (strip + 16 * line) -
+          2. * Constants::getLocalBoardHeight(chamber));
 }
 
 //______________________________________________________________________________
@@ -478,7 +451,7 @@ MpArea Mapping::stripByLocation(int strip, int cathode, int line, int column, in
   /// @param deId The detection element ID
   /// @param warn Set to false to avoid printing an error message in case the strip is not found (default: true)
   int deType = getRPCType(deId);
-  int chamber = getChamber(deId);
+  int chamber = Constants::getChamber(deId);
   assert(strip < 16);
   auto& columnStruct{ mDetectionElements[deType].columns[column] };
 
@@ -528,15 +501,14 @@ MpArea Mapping::stripByLocationInBoard(int strip, int cathode, int boardId, int 
 int Mapping::getColumn(double xPos, int chamber, int rpcType) const
 {
   /// Gets the column from x position
-  double xCenter = getRPCCenterX(chamber, rpcType);
-  double xShift = xPos + 2. * mBaseRPCHalfWidth * mScaleFactors[chamber] - xCenter;
+  double xShift = xPos + Constants::getRPCHalfWidth(chamber, rpcType);
   int invalid = 7;
   if (xShift < 0) {
     return invalid;
   }
-  double boardUnitWidth = mBaseBoardWidth * mScaleFactors[chamber];
-  if ((rpcType == 4) && (xShift < 1.5 * boardUnitWidth)) {
-    return invalid;
+  double boardUnitWidth = Constants::getLocalBoardWidth(chamber);
+  if (rpcType == 4) {
+    xShift += 1.5 * boardUnitWidth;
   }
   double column = xShift / boardUnitWidth;
   if (column > 7.5) {
@@ -557,7 +529,7 @@ int Mapping::getLine(double yPos, const MpColumn& column, int chamber) const
   if (nBoards == 0) {
     return invalid;
   }
-  double boardUnitHeight = mBaseBoardHeight * mScaleFactors[chamber];
+  double boardUnitHeight = Constants::getLocalBoardHeight(chamber);
   double yShift = yPos + 2. * boardUnitHeight;
   if (yShift < 0) {
     return invalid;
@@ -584,7 +556,7 @@ Mapping::MpStripIndex Mapping::stripByPosition(double xPos, double yPos, int cat
   /// @param warn Set to false to avoid printing an error message in case the strip is not found (default: true)
   assert(deId < 72);
   int rpcType = getRPCType(deId);
-  int chamber = getChamber(deId);
+  int chamber = Constants::getChamber(deId);
   MpStripIndex stripIndex;
   stripIndex.column = getColumn(xPos, chamber, rpcType);
   stripIndex.line = 4;
@@ -607,7 +579,7 @@ Mapping::MpStripIndex Mapping::stripByPosition(double xPos, double yPos, int cat
   }
 
   if (cathode == 0) {
-    double yBoardLow = mBaseBoardHeight * mScaleFactors[chamber] * (stripIndex.line * 4 / column.boardsBP.size() - 2.);
+    double yBoardLow = Constants::getLocalBoardHeight(chamber) * (stripIndex.line * 4 / column.boardsBP.size() - 2.);
     double stripSize = getStripSize(chamber, column.stripPitchBP);
     stripIndex.strip = (int)((yPos - yBoardLow) / stripSize);
   } else {
