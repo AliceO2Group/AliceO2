@@ -133,6 +133,12 @@ int AliHLTTPCCAO2Interface::RunTracking(const AliHLTTPCCAClusterData* inputClust
 	return(0);
 }
 
+void AliHLTTPCCAO2Interface::GetClusterErrors2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const
+{
+	if (!fInitialized) return;
+	fHLT->Param().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
+}
+
 void AliHLTTPCCAO2Interface::Cleanup()
 {
 	

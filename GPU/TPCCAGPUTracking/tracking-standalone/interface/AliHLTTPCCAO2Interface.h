@@ -27,6 +27,7 @@ public:
 	void Cleanup();
 	
 	bool GetParamContinuous() {return(fContinuous);}
+	void GetClusterErrors2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const;
 
 private:
 	AliHLTTPCCAO2Interface(const AliHLTTPCCAO2Interface&);
