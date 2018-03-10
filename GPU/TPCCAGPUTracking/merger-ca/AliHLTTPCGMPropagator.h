@@ -42,7 +42,6 @@ public:
 
   GPUd() void SetPolynomialField( const AliHLTTPCGMPolynomialField* field ){ fField = field; }
 
-  GPUd() void SetContinuousTracking( bool Flag ){ fContinuousTracking = Flag; }
   GPUd() void SetFitInProjections( bool Flag ){ fFitInProjections = Flag; }
   GPUd() void SetToyMCEventsFlag( bool Flag ){ fToyMCEvents = Flag; }
   GPUd() void SetSpecialErrors( bool Flag ){ fSpecialErrors = Flag; }
@@ -97,7 +96,6 @@ private:
   AliHLTTPCGMPhysicalTrackModel fT0;
   MaterialCorrection fMaterial;
   bool fSpecialErrors;
-  bool fContinuousTracking; // take field at the mean TPC Z
   bool fFitInProjections; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
   bool fToyMCEvents; // events are simulated with simple home-made simulation
   float fMaxSinPhi;
@@ -107,7 +105,7 @@ private:
 
 GPUd() inline AliHLTTPCGMPropagator::AliHLTTPCGMPropagator()
 : fField(0), fT(0), fAlpha(0), fT0(), fMaterial(),
-  fSpecialErrors(0), fContinuousTracking(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI), fStatErrors()
+  fSpecialErrors(0), fFitInProjections(1), fToyMCEvents(0), fMaxSinPhi(HLTCA_MAX_SIN_PHI), fStatErrors()
 {
 }
 

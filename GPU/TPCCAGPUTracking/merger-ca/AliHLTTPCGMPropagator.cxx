@@ -33,9 +33,6 @@
 
 GPUd() void  AliHLTTPCGMPropagator::GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const
 {
-
-  if( fContinuousTracking ) Z =  ( Z > 0 ? 125. : -125.);
-
   // get global coordinates
 
   float cs = AliHLTTPCCAMath::Cos(Alpha);
@@ -82,8 +79,6 @@ GPUd()  float  AliHLTTPCGMPropagator::GetBz( float Alpha, float X, float Y, floa
     GetBxByBz(Alpha,X,Y,Z,B);
     return B[2];
   }
-
-  if( fContinuousTracking ) Z =  ( Z > 0 ? 125. : -125.);
 
   // get global coordinates
 
@@ -656,8 +651,8 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
 
 GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow, short clusterState)
 {
-  if (fSpecialErrors) param.GetClusterErrors2( iRow, fContinuousTracking ? 125. : posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
-  else param.GetClusterRMS2( iRow, fContinuousTracking ? 125. : posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
+  if (fSpecialErrors) param.GetClusterErrors2( iRow, posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
+  else param.GetClusterRMS2( iRow, posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
 
   if (clusterState & AliHLTTPCGMMergedTrackHit::flagEdge) {err2Y += 0.35;err2Z += 0.15;}
   if (clusterState & AliHLTTPCGMMergedTrackHit::flagSingle) {err2Y += 0.2;err2Z += 0.2;}

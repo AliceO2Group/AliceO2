@@ -673,7 +673,6 @@ void RunQA()
 		prop.SetMaxSinPhi( .999 );
 		prop.SetMaterial( kRadLen, kRho );
 		prop.SetPolynomialField( merger.pField() );		
-		prop.SetContinuousTracking( kFALSE );
 		prop.SetToyMCEventsFlag( merger.SliceParam().ToyMCEventsFlag());
 
 		for (int i = 0; i < merger.NOutputTracks(); i++)

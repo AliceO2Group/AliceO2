@@ -54,7 +54,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
   prop.SetPolynomialField( field );  
-  prop.SetContinuousTracking( param.GetContinuousTracking() );
   prop.SetMaxSinPhi( maxSinPhi );
   prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
   ShiftZ(field, clusters, param, N);
