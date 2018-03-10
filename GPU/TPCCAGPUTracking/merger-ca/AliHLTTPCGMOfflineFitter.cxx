@@ -276,7 +276,6 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
     AliHLTTPCGMPropagator prop;
     //    prop.SetMaterial( kRadLen, kRho );
     prop.SetPolynomialField( field );  
-    prop.SetContinuousTracking( 0 );
     prop.SetMaxSinPhi( maxSinPhi );
     prop.SetToyMCEventsFlag( fCAParam.ToyMCEventsFlag());
 
