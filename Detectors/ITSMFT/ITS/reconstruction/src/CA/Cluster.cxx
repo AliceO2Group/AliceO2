@@ -24,12 +24,16 @@ namespace ITS
 namespace CA
 {
 
+using MathUtils::getNormalizedPhiCoordinate;
+using MathUtils::calculatePhiCoordinate;
+using MathUtils::calculateRCoordinate;
+
 Cluster::Cluster(const float x, const float y, const float z, const int index)
   : xCoordinate{ x },
     yCoordinate{ y },
     zCoordinate{ z },
-    phiCoordinate{ 0 },
-    rCoordinate{ 0 },
+    phiCoordinate{ getNormalizedPhiCoordinate(calculatePhiCoordinate(x, y)) },
+    rCoordinate{ calculateRCoordinate(x, y) },
     clusterId{ index },
     indexTableBinIndex{ 0 }
 {
@@ -40,9 +44,8 @@ Cluster::Cluster(const int layerIndex, const Cluster& other)
   : xCoordinate{ other.xCoordinate },
     yCoordinate{ other.yCoordinate },
     zCoordinate{ other.zCoordinate },
-    phiCoordinate{ MathUtils::getNormalizedPhiCoordinate(
-      MathUtils::calculatePhiCoordinate(other.xCoordinate, other.yCoordinate)) },
-    rCoordinate{ MathUtils::calculateRCoordinate(other.xCoordinate, other.yCoordinate) },
+    phiCoordinate{ getNormalizedPhiCoordinate(calculatePhiCoordinate(other.xCoordinate, other.yCoordinate)) },
+    rCoordinate{ calculateRCoordinate(other.xCoordinate, other.yCoordinate) },
     clusterId{ other.clusterId },
     indexTableBinIndex{ IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
                                                      IndexTableUtils::getPhiBinIndex(phiCoordinate)) }
@@ -55,9 +58,9 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const Cluste
   : xCoordinate{ other.xCoordinate },
     yCoordinate{ other.yCoordinate },
     zCoordinate{ other.zCoordinate },
-    phiCoordinate{ MathUtils::getNormalizedPhiCoordinate(
-      MathUtils::calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y)) },
-    rCoordinate{ MathUtils::calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y) },
+    phiCoordinate{ getNormalizedPhiCoordinate(
+      calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y)) },
+    rCoordinate{ calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y) },
     clusterId{ other.clusterId },
     indexTableBinIndex{ IndexTableUtils::getBinIndex(IndexTableUtils::getZBinIndex(layerIndex, zCoordinate),
                                                      IndexTableUtils::getPhiBinIndex(phiCoordinate)) }

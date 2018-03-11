@@ -17,10 +17,7 @@
 
 #include <string>
 #include <vector>
-<<<<<<< HEAD
 #include "ITSReconstruction/CA/Definitions.h"
-=======
->>>>>>> [WIP] Add tracking-itsu repository content namespace o2
 {
   namespace ITS
   {

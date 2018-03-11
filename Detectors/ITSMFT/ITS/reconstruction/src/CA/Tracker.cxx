@@ -21,6 +21,8 @@
 #include "ITSReconstruction/CA/Layer.h"
 #include "ITSReconstruction/CA/Tracklet.h"
 #include "ITSReconstruction/CA/TrackingUtils.h"
+
+#include "ReconstructionDataFormats/Track.h"
 #include <cassert>
 
 namespace o2
@@ -433,7 +435,7 @@ void Tracker<IsGPU>::findTracks(const Event& event)
     for (size_t iC = 0; iC < clusters.size(); ++iC)
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC]);
 
-    /*bool fitSuccess = true;
+    bool fitSuccess = true;
     for (int iCluster{ Constants::ITS::LayersNumber - 3 }; iCluster--;) {
       if (temporaryTrack.getClusterIndex(iCluster) == Constants::ITS::UnusedIndex) {
         continue;
@@ -465,18 +467,15 @@ void Tracker<IsGPU>::findTracks(const Event& event)
     }
     if (!fitSuccess) {
       continue;
-    }*/
+    }
     tracks.emplace_back(temporaryTrack);
   }
-
-  std::cout << " * Found roads: " << mPrimaryVertexContext.getRoads().size() << ", tracks: " << tracks.size()
-            << std::endl;
 
   std::sort(tracks.begin(), tracks.end(),
             [](TrackITS& track1, TrackITS& track2) { return track2.isBetter(track1, 1.e6f); });
 
   for (auto& track : tracks) {
-    /*bool sharingCluster = false;
+    bool sharingCluster = false;
     for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
       if (track.getClusterIndex(iLayer) == Constants::ITS::UnusedIndex) {
         continue;
@@ -491,7 +490,7 @@ void Tracker<IsGPU>::findTracks(const Event& event)
         continue;
       }
       mPrimaryVertexContext.markUsedCluster(iLayer, track.getClusterIndex(iLayer));
-    }*/
+    }
     mPrimaryVertexContext.getTracks().emplace_back(track);
   }
 }
@@ -668,9 +667,9 @@ track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1, const
   const float x2 = cluster2.xCoordinate * ca + cluster2.yCoordinate * sa;
   const float y2 = -cluster2.xCoordinate * sa + cluster2.yCoordinate * ca;
   const float z2 = cluster2.zCoordinate;
-  const float x3 = tf3.positionTrackingFrame[0];
-  const float y3 = tf3.positionTrackingFrame[1];
-  const float z3 = cluster3.zCoordinate;
+  const float x3 = tf3.xTrackingFrame;
+  const float y3 = tf3.positionTrackingFrame[0];
+  const float z3 = tf3.positionTrackingFrame[1];
 
   const float crv = TrackingUtils::computeCurvature(x1, y1, x2, y2, x3, y3);
   const float x0 = TrackingUtils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);

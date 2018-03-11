@@ -88,7 +88,7 @@ class Tracker : private TrackerTraits<IsGPU>
   template <typename... T>
   float evaluateTask(void (Tracker<IsGPU>::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
-  float mBz;
+  float mBz = 5.f;
   PrimaryVertexContext mPrimaryVertexContext;
   std::vector<TrackITS> mTracks;
   dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;

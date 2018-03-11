@@ -39,6 +39,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
 
     mClusters[iLayer].clear();
     mClusters[iLayer].reserve(clustersNum);
+    mUsedClusters[iLayer].clear();
     mUsedClusters[iLayer].resize(clustersNum, false);
 
     for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
@@ -85,6 +86,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
 
   mRoads.clear();
   mTracks.clear();
+  mTrackLabels.clear();
 
 #if TRACKINGITSU_GPU_MODE
   mGPUContextDevicePointer = mGPUContext.initialize(mPrimaryVertex, mClusters, mCells, mCellsLookupTable);
