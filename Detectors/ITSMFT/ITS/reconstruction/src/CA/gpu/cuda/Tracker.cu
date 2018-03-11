@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file CAGPUTracker.cu
+/// \file Tracker.cu
 /// \brief
 ///
 
@@ -97,7 +97,6 @@ __device__ void computeLayerTracklets(PrimaryVertexContext &primaryVertexContext
               && (deltaPhi < Constants::Thresholds::PhiCoordinateCut
                   || MATH_ABS(deltaPhi - Constants::Math::TwoPi) < Constants::Thresholds::PhiCoordinateCut)) {
 
-<<<<<<< HEAD
         	  cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
 			  int currentIndex { };
 
@@ -107,20 +106,6 @@ __device__ void computeLayerTracklets(PrimaryVertexContext &primaryVertexContext
 			  }
 
 			  currentIndex = threadGroup.shfl(currentIndex, 0) + threadGroup.thread_rank();
-=======
-            int mask { static_cast<int>(__ballot(1)) };
-            int leader { __ffs(mask) - 1 };
-            int laneIndex { Utils::Device::getLaneIndex() };
-            int currentIndex { };
-
-            if (laneIndex == leader) {
-
-              currentIndex = trackletsVector.extend(__popc(mask));
-            }
-
-            currentIndex = Utils::Device::shareToWarp(currentIndex, leader)
-                + __popc(mask & ((1 << laneIndex) - 1));
->>>>>>> [WIP] Add tracking-itsu repository content
 
             trackletsVector.emplace(currentIndex, currentClusterIndex, iNextLayerCluster, currentCluster, nextCluster);
             ++clusterTrackletsNum;
@@ -221,7 +206,6 @@ __device__ void computeLayerCells(PrimaryVertexContext& primaryVertexContext, co
               if (distanceOfClosestApproach
                   <= Constants::Thresholds::CellMaxDistanceOfClosestApproachThreshold()[layerIndex]) {
 
-<<<<<<< HEAD
             	cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
                 int currentIndex { };
 
@@ -231,20 +215,6 @@ __device__ void computeLayerCells(PrimaryVertexContext& primaryVertexContext, co
                 }
 
                 currentIndex = threadGroup.shfl(currentIndex, 0) + threadGroup.thread_rank();
-=======
-                int mask { static_cast<int>(__ballot(1)) };
-                int leader { __ffs(mask) - 1 };
-                int laneIndex { Utils::Device::getLaneIndex() };
-                int currentIndex { };
-
-                if (laneIndex == leader) {
-
-                  currentIndex = cellsVector.extend(__popc(mask));
-                }
-
-                currentIndex = Utils::Device::shareToWarp(currentIndex, leader)
-                    + __popc(mask & ((1 << laneIndex) - 1));
->>>>>>> [WIP] Add tracking-itsu repository content
 
                 cellsVector.emplace(currentIndex, currentTracklet.firstClusterIndex,
                     nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex, currentTrackletIndex,
@@ -322,13 +292,8 @@ void TrackerTraits<true>::computeLayerTracklets(CA::PrimaryVertexContext& primar
   for (int iLayer { 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
 
     tempSize[iLayer] = 0;
-<<<<<<< HEAD
     primaryVertexContext.getTempTrackletArray()[iLayer].reset(
 		static_cast<int>(primaryVertexContext.getDeviceTracklets()[iLayer + 1].capacity()));
-=======
-    const int trackletsNum { static_cast<int>(primaryVertexContext.getDeviceTracklets()[iLayer + 1].capacity()) };
-    primaryVertexContext.getTempTrackletArray()[iLayer].reset(trackletsNum);
->>>>>>> [WIP] Add tracking-itsu repository content
 
     cub::DeviceScan::ExclusiveSum(static_cast<void *>(NULL), tempSize[iLayer],
         primaryVertexContext.getDeviceTrackletsPerClustersTable()[iLayer].get(),
@@ -413,13 +378,8 @@ void TrackerTraits<true>::computeLayerCells(CA::PrimaryVertexContext& primaryVer
 
     tempSize[iLayer] = 0;
     trackletsNum[iLayer] = primaryVertexContext.getDeviceTracklets()[iLayer + 1].getSizeFromDevice();
-<<<<<<< HEAD
     primaryVertexContext.getTempCellArray()[iLayer].reset(
 		static_cast<int>(primaryVertexContext.getDeviceCells()[iLayer + 1].capacity()));
-=======
-    const int cellsNum { static_cast<int>(primaryVertexContext.getDeviceCells()[iLayer + 1].capacity()) };
-    primaryVertexContext.getTempCellArray()[iLayer].reset(cellsNum);
->>>>>>> [WIP] Add tracking-itsu repository content
 
     cub::DeviceScan::ExclusiveSum(static_cast<void *>(NULL), tempSize[iLayer],
         primaryVertexContext.getDeviceCellsPerTrackletTable()[iLayer].get(),
