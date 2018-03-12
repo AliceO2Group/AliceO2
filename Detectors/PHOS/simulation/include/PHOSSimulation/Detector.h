@@ -73,6 +73,11 @@ class Detector : public o2::Base::DetImpl<Detector>
   ~Detector() override = default;
 
   ///
+  ///  Clone this object (used in MT mode only)
+  ///
+  FairModule *CloneModule() const override;
+
+  ///
   /// Initializing detector
   ///
   void Initialize() final;
@@ -161,6 +166,10 @@ class Detector : public o2::Base::DetImpl<Detector>
     Double_t CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const;
   */
  private:
+  /// copy constructor (used in MT)
+  Detector(const Detector& rhs);
+  Detector& operator=(const Detector&);
+
   // Geometry parameters
   Bool_t mCreateHalfMod;   // Should we create  1/2 filled module
   Bool_t mActiveModule[6]; // list of modules to create
