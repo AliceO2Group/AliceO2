@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   ClusterNative.cxx
+/// @file   testClusterNative.cxx
 /// @since  2018-01-17
 /// @brief  Unit test for the TPC ClusterNative data struct
 

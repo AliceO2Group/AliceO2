@@ -61,7 +61,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
 
         for (int k = 0;k < cont.numberOfClusters;k++)
         {
-          const int padRowGlobal = rowOffset + cont.clusters[k].row;
+          const int padRowGlobal = rowOffset + cont.clusters[k].getRow();
           int& nCls = nRowClusters[sector][padRowGlobal];
           if (loop == 1)
           {
@@ -71,12 +71,12 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             MCLabelContainer& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
             float pad = cIn.getPad();
             cOut.setPad(pad);
-            cOut.setTimeFlags(cIn.getTimeLocal() + cont.timeBinOffset, cIn.flags);
+            cOut.setTimeFlags(cIn.getTimeLocal() + cont.timeBinOffset, cIn.getFlags());
             cOut.setSigmaPad(std::sqrt(cIn.getSigmaPad2()));
             cOut.setSigmaTime(std::sqrt(cIn.getSigmaTime2()));
-            cOut.qMax = cIn.qMax;
-            cOut.qTot = cIn.qTot;
-            mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.qTot);
+            cOut.qMax = cIn.getQMax();
+            cOut.qTot = cIn.getQTot();
+            mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.getQTot());
             if (outMCLabels)
             {
               for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
