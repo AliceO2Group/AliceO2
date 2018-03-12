@@ -236,7 +236,6 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       auto& oTrack = (*outputTracks)[iTmp];
       const int i = trackSort[iTmp].first;
       float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
-      float zTrack = tracks[i].GetParam().GetZ();
 
       float zHigh = 0, zLow = 0;
       if (mTrackingCAO2Interface->GetParamContinuous()) {
@@ -252,19 +251,6 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         bool sideLowA =
           (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24) < Sector::MAXSECTOR / 2;
 
-        // check if Z of edge clusters don't appear on the wrong side of the TPC
-        if (sideHighA == sideLowA) {
-          if ((sideHighA && zHigh < 0) || (!sideHighA && zHigh > 0)) {
-            // need to add shift to bring track to the side corresponding to clusters
-            float dz = sideHighA ? -std::min(zLow, zHigh) : -std::max(zLow, zHigh); // = -max(|zLow|,|zAbs|)
-            zTrack += dz;
-            time0 += dz * vzbinInv;
-            zLow += dz;
-            zHigh += dz;
-          }
-        } else {
-          // at the moment we don't have tracks with clusters on different sides
-        }
         // calculate time bracket
         float zLowAbs = zLow < 0.f ? -zLow : zLow;
         float zHighAbs = zHigh < 0.f ? -zHigh : zHigh;
@@ -283,7 +269,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
 
       oTrack =
         TrackTPC(tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
-                 { tracks[i].GetParam().GetY(), zTrack, tracks[i].GetParam().GetSinPhi(),
+                 { tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), tracks[i].GetParam().GetSinPhi(),
                    tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt() },
                  { tracks[i].GetParam().GetCov(0), tracks[i].GetParam().GetCov(1), tracks[i].GetParam().GetCov(2),
                    tracks[i].GetParam().GetCov(3), tracks[i].GetParam().GetCov(4), tracks[i].GetParam().GetCov(5),
