@@ -45,11 +45,11 @@ namespace TPC
  * Not for permanent storage.
  */
 struct ClusterNative {
-  static constexpr int scaleTimePacked = 64; //< ~50 is needed for 0.1mm precision, but leads to float rounding
-  // artifacts around 20ms
+  static constexpr int scaleTimePacked =
+    64; //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
   static constexpr int scalePadPacked = 64; //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
-  static constexpr int scaleSigmaTimePacked = 20;
-  static constexpr int scaleSigmaPadPacked = 25;
+  static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
+  static constexpr int scaleSigmaPadPacked = 32;
 
   uint32_t timeFlagsPacked; //< Contains the time in the lower 24 bits in a packed format, contains the flags in the
                             // upper 8 bits
@@ -87,8 +87,9 @@ struct ClusterNative {
   void setSigmaTime(float sigmaTime)
   {
     uint32_t tmp = sigmaTime * scaleSigmaTimePacked + 0.5;
-    if (tmp > 0xFF)
+    if (tmp > 0xFF) {
       tmp = 0xFF;
+    }
     sigmaTimePacked = tmp;
   }
   float getSigmaPad() const { return float(sigmaPadPacked) / scaleSigmaPadPacked; }
