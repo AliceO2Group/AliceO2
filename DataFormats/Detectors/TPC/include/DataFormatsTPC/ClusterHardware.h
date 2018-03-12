@@ -21,24 +21,115 @@ namespace o2
 {
 namespace TPC
 {
-struct ClusterHardware { // Temporary draft of hardware clusters. The ...Pre members are yet to be defined, and will
-                         // most likely either be floats or fixed point integers.
-  float padPre;          //< Quantity needed to compute the pad
-  float timePre;         //< Quantity needed to compute the time
-  float sigmaPad2Pre;    //< Quantity needed to compute the sigma^2 of the pad
-  float sigmaTime2Pre;   //< Quantity needed to compute the sigma^2 of the time
-  uint16_t qMax;         //< QMax of the cluster
-  uint16_t qTot;         //< Total charge of the cluster
-  uint8_t row;           //< Row of the cluster (local, needs to add PadRegionInfo::getGlobalRowOffset
-  uint8_t flags;         //< Flags of the cluster
+struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
+  // padPre: word 0, bits 0 - 18 (19 bit, two-complement, 4 fixed-point-bits) - Quantity needed to compute the pad.
+  // padPeak: word 0, bits 19-26 (8 bit, unsigned integer) - Offset of padPre.
+  // timePre: word 1, bits 0-18 (19 bit, two-complement, 4 fixed-point-bits) - Quantity needed to compute the time.
+  // timePeak: word 1, bits 19-27 (9 bit, unsigned integer) - Offset of timePre.
+  // sigmaPadPre: word 2, bits 0-19 (20 bit, unsigned, 4 fixed-point-bits) - Quantity needed to compute the sigma^2 of
+  // the pad.
+  // sigmaTimePre: word 3, bits 0-19 (20 bit, unsigned, 4 fixed-point-bits) - Quantity needed to compute the
+  // sigma^2 of the time.
+  // qMax: word 2, bits 20-30 (11 bit, 1 fixed-point-bit) - QMax of the cluster.
+  // qTot: word 4, bits 0-18 (19 bit, 4 fixed-point-bits) - Total charge of the cluster.
+  // row: word 3, bits 20-24 (5 bit, unsigned integer) - Row of the cluster (local, needs to add
+  // PadRegionInfo::getGlobalRowOffset)
+  // flags: word 4, bits 19-26 (8 bit) up to 8 bit flag field.
+  // remaining bits: reserved, must be 0!, could be used for additional bits later.
+  uint32_t word0; //< word0 of binary hardware cluster
+  uint32_t word1; //< word1 of binary hardware cluster
+  uint32_t word2; //< word2 of binary hardware cluster
+  uint32_t word3; //< word3 of binary hardware cluster
+  uint32_t word4; //< word4 of binary hardware cluster
 
-  float getPad() const { return padPre / qTot; }
-  float getTimeLocal() const
+  float getQTotFloat() const
   {
-    return timePre / qTot;
-  } // Returns the local time, not taking into accound the time bin offset of the container
-  float getSigmaPad2() const { return (sigmaPad2Pre - padPre * padPre) / (qTot * qTot); }
-  float getSigmaTime2() const { return (sigmaTime2Pre - timePre * timePre) / (qTot * qTot); }
+    unsigned int qTotInt = word4 & 0x7FFFF;
+    return (qTotInt / 16.f);
+  }
+
+  int getQTot() const { return (getQTotFloat() + 0.5); }
+
+  int getQMax() const
+  {
+    int qmaxint = (word2 & 0x7FF00000) >> 20;
+    return (qmaxint / 2.0 + 0.5);
+  }
+
+  int getRow() const { return ((word3 & 0x1F00000) >> 20); }
+
+  int getFlags() const { return ((word4 & 0x7F80000) >> 19); }
+
+  float getPadPre() const
+  {
+    int padPreInt = word0 & 0x7FFFF;
+    if (padPreInt & 0x40000) {
+      padPreInt |= 0xFFF80000;
+    }
+    return (padPreInt / 16.f);
+  }
+
+  float getPad() const
+  {
+    int padPeak = (word0 & 0x7F80000) >> 19;
+    return (getPadPre() / getQTotFloat() + padPeak);
+  }
+
+  float getTimeLocalPre() const
+  {
+    int timePreInt = word1 & 0x7FFFF;
+    if (timePreInt & 0x40000) {
+      timePreInt |= 0xFFF80000;
+    }
+    return (timePreInt / 16.f);
+  }
+
+  float getTimeLocal() const // Returns the local time, not taking into account the time bin offset of the container
+  {
+    int timePeak = (word1 & 0xFF80000) >> 19;
+    return (getTimeLocalPre() / getQTotFloat() + timePeak);
+  }
+
+  float getSigmaPad2() const
+  {
+    int sigmaPad2PreInt = word2 & 0xFFFFF;
+    float sigmaPad2Pre = sigmaPad2PreInt / 16.f;
+    return sigmaPad2Pre / getQTotFloat() - (getPadPre() * getPadPre()) / (getQTotFloat() * getQTotFloat());
+  }
+
+  float getSigmaTime2() const
+  {
+    int sigmaTime2PreInt = word3 & 0xFFFFF;
+    float sigmaTime2Pre = sigmaTime2PreInt / 16.f;
+    return sigmaTime2Pre / getQTotFloat() - (getTimeLocalPre() * getTimeLocalPre()) / (getQTotFloat() * getQTotFloat());
+  }
+
+  void setCluster(float pad, float time, float sigmaPad2, float sigmaTime2, float qMax, float qTot, int row, int flags)
+  {
+    int max = qMax * 2.f;
+    int tot = qTot * 16.f;
+    qTot = tot / 16.f;
+    int padPeak = pad + 0.5;
+    float padOrg = pad;
+    pad -= padPeak;
+    int timePeak = time + 0.5;
+    time -= timePeak;
+    pad *= qTot;
+    time *= qTot;
+    int p = pad * 16.f;
+    int t = time * 16.f;
+    pad = p / 16.f;
+    time = t / 16.f;
+    sigmaPad2 = (sigmaPad2 + pad / qTot * pad / qTot) * qTot;
+    sigmaTime2 = (sigmaTime2 + time / qTot * time / qTot) * qTot;
+    int sp = sigmaPad2 * 16.f;
+    int st = sigmaTime2 * 16.f;
+    word0 = (p & 0x7FFFF) | ((padPeak & 0xFF) << 19);
+    word1 = (t & 0x7FFFF) | ((timePeak & 0x1FF) << 19);
+    word2 = (sp & 0xFFFFF) | ((max & 0x7FF) << 20);
+    word3 = (st & 0xFFFFF) | ((row & 0x1F) << 20);
+    word4 = (tot & 0x7FFFF) | ((flags & 0xFF) << 19);
+  }
 };
 
 struct ClusterHardwareContainer { // Temporary struct to hold a set of hardware clusters, prepended by an RDH, and a

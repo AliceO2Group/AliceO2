@@ -26,6 +26,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/Constants.h"
+
 #include "TPCBase/CRU.h"
 #else
 #pragma cling load("libTPCReconstruction")
@@ -87,26 +88,11 @@ int convertClusterToClusterHardware(TString infile = "", TString outfile = "")
       outMCLabels.clear();
       for (unsigned int icluster = 0; icluster < clusterContainer.numberOfClusters; icluster++) {
         const auto& cluster = (*inClusters)[iCurrentCluster + icluster];
-
-        float mPadPre;        //< Quantity needed to compute the pad
-        float mTimePre;       //< Quantity needed to compute the time
-        float mSigmaPad2Pre;  //< Quantity needed to compute the sigma^2 of the pad
-        float mSigmaTime2Pre; //< Quantity needed to compute the sigma^2 of the time
-        uint16_t mQMax;       //< QMax of the cluster
-        uint16_t mQTot;       //< Total charge of the cluster
-        uint8_t mRow;         //< Row of the cluster (local, needs to add PadRegionInfo::getGlobalRowOffset
-        uint8_t mFlags;       //< Flags of the cluster
         ClusterHardware& oCluster = clusterContainer.clusters[icluster];
-        oCluster.qMax = cluster.getQmax() + 0.5;
-        oCluster.qTot = cluster.getQ() + 0.5;
-        oCluster.padPre = cluster.getPadMean() * oCluster.qTot;
-        oCluster.timePre = (cluster.getTimeMean() - clusterContainer.timeBinOffset) * oCluster.qTot;
-        oCluster.sigmaPad2Pre = cluster.getPadSigma() * cluster.getPadSigma() * oCluster.qTot * oCluster.qTot +
-                                oCluster.padPre * oCluster.padPre;
-        oCluster.sigmaTime2Pre = cluster.getTimeSigma() * cluster.getTimeSigma() * oCluster.qTot * oCluster.qTot +
-                                 oCluster.timePre * oCluster.timePre;
-        oCluster.row = cluster.getRow();
-        oCluster.flags = 0;
+        oCluster.setCluster(cluster.getPadMean(), cluster.getTimeMean() - clusterContainer.timeBinOffset,
+                            cluster.getPadSigma() * cluster.getPadSigma(),
+                            cluster.getTimeSigma() * cluster.getTimeSigma(), cluster.getQmax(), cluster.getQ(),
+                            cluster.getRow(), 0);
         for (const auto& element : inMCLabels->getLabels(iCurrentCluster + icluster)) {
           outMCLabels.addElement(icluster, element);
           nMCLabels++;

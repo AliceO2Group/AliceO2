@@ -31,7 +31,8 @@ set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
-  test/ClusterNative.cxx
+  test/testClusterNative.cxx
+  test/testClusterHardware.cxx
 )
 
 O2_GENERATE_TESTS(
