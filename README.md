@@ -37,21 +37,47 @@ The code organisation is described [here](doc/CodeOrganization.md).
 The build system (cmake) is described [here](doc/CMakeInstructions.md).
 
 ### Formatting
-##### Using clang-format
+The project uses `clang-format` to push for a common code formatting according
+the the `clang-format` configuration files in this repository. With an adiabatic
+approach, all changes have to follow the formatting rules. A tool script can be
+used to integrate the formatting into `git` and suggest formatting only for
+changed lines.
+
+##### Install `clang-format` git integration
+The `git-clang-format` Python script integrates `clang-format` into `git`.
+Put it somewhere in your path and ensure that it is executable, e.g.
 ```bash
-# Get the configuration file
-git clone https://github.com/AliceO2Group/CodingGuidelines.git
-cp CodingGuidelines/_clang-format-4  /path/to/O2/top/dir # (use _clang-format-3 if you use clang-format v3)
+cd $HOME
+mkdir -p bin
+cd bin
+wget //llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format
+chmod u+x git-clang-format
+```
 
-# Check the style
-# Here any tag "<replacement " indicates a problem ("<replacements " with **s** is fine!)
-clang-format -style=file -output-replacements-xml SOURCEFILE`
-# shows what would the file content be after the reformatting
+Note: installation of the script will be added to build of AliceO2 software stack.
+
+##### Checking formatting
+Now, `git clang-format` will invoke `clang-format` on the changes in current files
+or a specific commit. E.g. for the last commit
+```
+git clang-format HEAD~1
+```
+
+Or for all commits done with respect to the remote branch state
+```
+git clang-format origin/dev
+```
+
+##### Checking files
+show updated version of complete file
+```
 clang-format -style=file SOURCEFILE
+```
 
-# Apply the style to the file
+Directly apply the style to file
+```
 clang-format -style=file -i SOURCEFILE
 ```
 
-##### Using an IDE
+### Using an IDE
 A number of config files are available [here](https://github.com/AliceO2Group/CodingGuidelines) for various IDEs.
