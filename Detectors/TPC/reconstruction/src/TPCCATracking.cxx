@@ -365,3 +365,11 @@ float TPCCATracking::getPseudoVDrift()
   const static ParameterElectronics& elParam = ParameterElectronics::defaultInstance();
   return (elParam.getZBinWidth() * gasParam.getVdrift());
 }
+
+void TPCCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+{
+  if (mTrackingCAO2Interface == nullptr) {
+    return;
+  }
+  mTrackingCAO2Interface->GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
+}

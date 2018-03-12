@@ -61,8 +61,9 @@ public:
   float getPseudoVDrift();                                            //Return artificial VDrift used to convert time to Z
   float getTFReferenceLength() {return sContinuousTFReferenceLength;} //Return reference time frame length used to obtain Z from T in continuous data
   int getNTracksASide() {return mNTracksASide;}
+  void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
 
-private:
+ private:
   int runTracking(TChain* inputClustersChain, const std::vector<Cluster>* inputClustersArray, std::vector<TrackTPC>* outputTracks);
   int convertClusters(TChain* inputClustersChain, const std::vector<Cluster>* inputClustersArray,
                       o2::TPC::ClusterNativeAccessFullTPC& outputClusters,
