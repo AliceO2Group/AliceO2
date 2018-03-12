@@ -20,31 +20,28 @@
 
 class TGeoVolumeAssembly;
 
-namespace o2 {
-namespace MFT {
+namespace o2
+{
+namespace MFT
+{
 
-class HalfCone : public TNamed {
-  
-public:
-  
+class HalfCone : public TNamed
+{
+
+ public:
   HalfCone();
-  
+
   ~HalfCone() override;
-  
+
   TGeoVolumeAssembly* createHalfCone(Int_t half);
 
-protected:
+ protected:
+  TGeoVolumeAssembly* mHalfCone;
 
-  TGeoVolumeAssembly * mHalfCone;
-
-private:
-  
-  ClassDefOverride(HalfCone,1)
-  
+ private:
+  ClassDefOverride(HalfCone, 1)
 };
-
 }
 }
 
 #endif
-

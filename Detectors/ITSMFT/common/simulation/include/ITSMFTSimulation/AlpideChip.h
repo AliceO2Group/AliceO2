@@ -48,6 +48,8 @@ class AlpideChip
                                 char const *chipName="AlpideChip", char const *sensName="AlpideSensor",
                                 Bool_t dummy=kFALSE, const TGeoManager *mgr=gGeoManager);
 
+  static void createMaterials(Int_t id, Int_t fieldType, Float_t maxField);
+
   static constexpr Double_t sMetalLayerThick = 15.0*1.0E-4;  ///< Metal layer thickness (um)
 
   ClassDefNV(AlpideChip, 0) // AlpideChip geometry
