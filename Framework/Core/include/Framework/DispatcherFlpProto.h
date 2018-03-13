@@ -20,13 +20,13 @@
 #include "Framework/DataSamplingConfig.h"
 #include "FairMQDevice.h"
 
-using namespace o2::framework;
-using namespace o2::framework::DataSamplingConfig;
-
 namespace o2
 {
 namespace framework
 {
+
+using namespace o2::framework;
+using namespace o2::framework::DataSamplingConfig;
 
 /// \brief A special dispatcher for QC tasks that are FairMQ devices, using FLP Proto data model.
 class DispatcherFlpProto : public Dispatcher

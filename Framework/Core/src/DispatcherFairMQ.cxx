@@ -20,12 +20,15 @@
 #include "FairMQTransportFactory.h"
 #include "Framework/SimpleRawDeviceService.h"
 
+namespace o2 {
+namespace framework {
+
 DispatcherFairMQ::DispatcherFairMQ(const SubSpecificationType dispatcherSubSpec,
                                    const QcTaskConfiguration& task,
                                    const InfrastructureConfig& cfg) : Dispatcher(dispatcherSubSpec, task, cfg)
 {
 
-  //todo: throw an exception when 'name=' not found?
+  // todo: throw an exception when 'name=' not found?
   size_t nameBegin = task.fairMqOutputChannelConfig.find("name=") + sizeof("name=") - 1;
   size_t nameEnd = task.fairMqOutputChannelConfig.find_first_of(',', nameBegin);
   std::string channel = task.fairMqOutputChannelConfig.substr(nameBegin, nameEnd - nameBegin);
@@ -87,3 +90,6 @@ void DispatcherFairMQ::addSource(const DataProcessorSpec& externalDataProcessor,
 
   mDataProcessorSpec.inputs.push_back(newInput);
 }
+
+} // namespace framework
+} // namespace o2

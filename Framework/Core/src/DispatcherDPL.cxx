@@ -15,6 +15,9 @@
 
 #include "Framework/DispatcherDPL.h"
 
+namespace o2 {
+namespace framework {
+
 DispatcherDPL::DispatcherDPL(const SubSpecificationType dispatcherSubSpec,
                              const QcTaskConfiguration& task,
                              const InfrastructureConfig& cfg) : Dispatcher(dispatcherSubSpec, task, cfg)
@@ -80,3 +83,6 @@ void DispatcherDPL::addSource(const DataProcessorSpec& externalDataProcessor, co
     mDataProcessorSpec.maxInputTimeslices = externalDataProcessor.maxInputTimeslices;
   }
 }
+
+} // namespace framework
+} // namespace o2
