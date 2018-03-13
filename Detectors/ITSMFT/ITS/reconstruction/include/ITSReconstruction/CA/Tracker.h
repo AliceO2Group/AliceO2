@@ -81,6 +81,7 @@ class Tracker : private TrackerTraits<IsGPU>
   void findCellsNeighbours();
   void findRoads();
   void findTracks(const Event& ev);
+  bool fitTrack(const Event& event, TrackITS& track, int start, int end, int step);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const Event&);
   void computeTracksMClabels(const Event&);

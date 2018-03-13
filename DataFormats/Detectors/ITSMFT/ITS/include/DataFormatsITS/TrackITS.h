@@ -58,7 +58,7 @@ class TrackITS : public o2::track::TrackParCov
   void setExternalClusterIndex(Int_t layer, Int_t idx);
   void resetClusters();
 
-  void addChi2(float chi2) { mChi2 += chi2; }
+  void setChi2(float chi2) { mChi2 = chi2; }
 
   std::uint32_t getROFrame() const { return mROFrame; }
   void setROFrame(std::uint32_t f) { mROFrame = f; }
