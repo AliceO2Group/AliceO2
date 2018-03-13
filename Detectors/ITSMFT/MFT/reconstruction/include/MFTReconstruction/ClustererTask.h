@@ -13,8 +13,8 @@
 /// \author bogdan.vulpescu@cern.ch
 /// \date 03/05/2017
 
-#ifndef ALICEO2_MFT_CLUSTERERTASK_H
-#define ALICEO2_MFT_CLUSTERERTASK_H
+#ifndef ALICEO2_MFT_CLUSTERERTASK_H_
+#define ALICEO2_MFT_CLUSTERERTASK_H_
 
 #include "FairTask.h"
 

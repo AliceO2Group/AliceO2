@@ -3,9 +3,6 @@ void load_all_libs()
 
    gSystem->Load("libDetectorsBase");
    gSystem->Load("libDetectorsPassive");
-   gSystem->Load("libExampleModule1");
-   gSystem->Load("libExampleModule2");
-   gSystem->Load("libFLP2EPNex_distributed");
    gSystem->Load("libField");
    gSystem->Load("libGenerators");
    gSystem->Load("libHeaders");
@@ -29,7 +26,6 @@ void load_all_libs()
    gSystem->Load("libQCProducer");
    gSystem->Load("libQCViewer");
    gSystem->Load("libSimulationDataFormat");
-   gSystem->Load("libflp2epn");
 
    cout << endl << endl;
 

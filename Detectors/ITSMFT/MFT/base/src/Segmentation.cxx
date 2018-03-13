@@ -35,7 +35,7 @@ Segmentation::Segmentation(const Char_t* nameGeomFile) : TNamed(), mHalves(nullp
 
   // constructor
 
-  mHalves = new TClonesArray("o2::MFT::HalfSegmentation", sNHalves);
+  mHalves = new TClonesArray("o2::MFT::HalfSegmentation", NumberOfHalves);
   mHalves->SetOwner(kTRUE);
 
   auto* halfBottom = new HalfSegmentation(nameGeomFile, Bottom);

@@ -9,33 +9,41 @@
 // or submit itself to any jurisdiction.
 
 /// \file Track.h
-/// \brief Simple track obtained from hits
+/// \brief Definition of the MFT track
 /// \author bogdan.vulpescu@cern.ch
-/// \date 11/10/2016
+/// \date Feb. 8, 2018
 
-#ifndef ALICEO2_MFT_TRACK_H_
-#define ALICEO2_MFT_TRACK_H_
+#ifndef ALICEO2_MFT_TRACKMFT_H
+#define ALICEO2_MFT_TRACKMFT_H
 
-#include "FairTrackParam.h"
+#include <vector>
+
+#include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
+
+namespace ITSMFT
+{
+class Cluster;
+}
+
 namespace MFT
 {
-
-class Track : public FairTrackParam
+class TrackMFT : public o2::track::TrackParCov
 {
+  using Cluster = o2::ITSMFT::Cluster;
 
  public:
-  Track();
-  ~Track() override;
+  using o2::track::TrackParCov::TrackParCov;
 
-  Track(const Track& track);
+  TrackMFT() = default;
+  TrackMFT(const TrackMFT& t) = default;
+  TrackMFT& operator=(const TrackMFT& tr) = default;
+  ~TrackMFT() = default;
 
  private:
-  Track& operator=(const Track& track);
-
-  ClassDefOverride(Track, 1);
+  ClassDefNV(TrackMFT, 1)
 };
 }
 }

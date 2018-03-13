@@ -40,7 +40,7 @@ class HalfDiskSegmentation : public VSegmentation
 
   void Clear(const Option_t* /*opt*/) override;
 
-  virtual void print(Option_t* opt = "");
+  void print(Option_t* opt = "");
 
   void createLadders(TXMLEngine* xml, XMLNodePointer_t node);
 

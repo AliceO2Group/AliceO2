@@ -8,17 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MFTSimulation/EventHeader.h"
+/// \file TrackMFT.cxx
+/// \brief Implementation of the MFT track
+/// \author bogdan.vulpescu@cern.ch
+/// \date Feb. 8, 2018
 
-using namespace o2::MFT;
+#include "DataFormatsMFT/TrackMFT.h"
+#include "CommonConstants/MathConstants.h"
+#include "DataFormatsITSMFT/Cluster.h"
 
-ClassImp(o2::MFT::EventHeader)
+ClassImp(o2::MFT::TrackMFT)
 
-  //_____________________________________________________________________________
-  EventHeader::EventHeader()
-  : FairEventHeader(), mPartNo(0)
-{
-}
+  using namespace o2::MFT;
+using namespace o2::ITSMFT;
+using namespace o2::constants::math;
+using namespace o2::track;
 
 //_____________________________________________________________________________
-EventHeader::~EventHeader() = default;

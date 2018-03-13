@@ -16,9 +16,6 @@
 #include "MFTReconstruction/ClustererTask.h"
 #include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
-#include "MFTSimulation/EventHeader.h"
-//#include "MathUtils/Utils.h"
-//#include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 

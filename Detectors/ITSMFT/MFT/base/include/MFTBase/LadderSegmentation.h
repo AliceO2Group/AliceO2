@@ -42,7 +42,7 @@ class LadderSegmentation : public VSegmentation
       mChips = nullptr;
     }
   }
-  virtual void print(Option_t* opt = "");
+  void print(Option_t* opt = "");
   void Clear(const Option_t* /*opt*/) override
   {
     if (mChips) {
