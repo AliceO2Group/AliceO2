@@ -52,17 +52,14 @@ class Event final
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
+  void addClusterLabelToLayer(int layer, const MCCompLabel label);
 
   void clear();
-  const gsl::span<const MCCompLabel> getClusterMClabels(int layer, int clustId) const;
-  int getGlobalIndex(int layer, int clusId) const;
-  void setClusterMCtruth(const dataformats::MCTruthContainer<MCCompLabel>* clsLabels);
 
  private:
   const int mEventId;
   std::vector<float3> mPrimaryVertices;
   std::array<Layer, Constants::ITS::LayersNumber> mLayers;
-  const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels;
 };
 
 inline int Event::getEventId() const { return mEventId; }
@@ -89,30 +86,14 @@ void Event::addTrackingFrameInfoToLayer(int layer, T&&... values)
   mLayers[layer].addTrackingFrameInfo(std::forward<T>(values)...);
 }
 
+inline void Event::addClusterLabelToLayer(int layer, const MCCompLabel label) { mLayers[layer].addClusterLabel(label); }
+
 inline void Event::clear()
 {
   for (auto& layer : mLayers) {
     layer.clear();
   }
   mPrimaryVertices.clear();
-}
-
-inline const gsl::span<const MCCompLabel> Event::getClusterMClabels(int layer, int clustId) const
-{
-  return mClsLabels->getLabels(getGlobalIndex(layer, clustId));
-}
-
-inline int Event::getGlobalIndex(int layer, int index) const
-{
-  for (int iLayer{ 0 }; iLayer < layer; ++iLayer) {
-    index += mLayers[iLayer].getClustersSize();
-  }
-  return index;
-}
-
-inline void Event::setClusterMCtruth(const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
-{
-  mClsLabels = clsLabels;
 }
 }
 }

@@ -336,10 +336,10 @@ void Vertexer::checkTriplets()
   int bad{ 0 };
 
   for (auto& triplet : mTriplets) {
-    if ((mEvent.getClusterMClabels(0, mClusters[0][triplet[0]].clusterId).begin()->getTrackID() ==
-         mEvent.getClusterMClabels(1, mClusters[1][triplet[1]].clusterId).begin()->getTrackID()) &&
-        (mEvent.getClusterMClabels(2, mClusters[2][triplet[2]].clusterId).begin()->getTrackID() ==
-         mEvent.getClusterMClabels(1, mClusters[1][triplet[1]].clusterId).begin()->getTrackID())) {
+    if ((mEvent.getLayer(0).getClusterLabel(mClusters[0][triplet[0]].clusterId).getTrackID() ==
+         mEvent.getLayer(1).getClusterLabel(mClusters[1][triplet[1]].clusterId).getTrackID()) &&
+        (mEvent.getLayer(2).getClusterLabel(mClusters[2][triplet[2]].clusterId).getTrackID() ==
+         mEvent.getLayer(1).getClusterLabel(mClusters[1][triplet[1]].clusterId).getTrackID())) {
       ++good;
     } else {
       ++bad;
@@ -436,6 +436,7 @@ void Vertexer::findVertices()
 
 void Vertexer::printVertices()
 {
+  std::cout << "Number of found vertices: " << mVertices.size() << std::endl;
   for (auto& vertex : mVertices) {
     for (int i{ 0 }; i < 3; ++i) {
       std::cout << "coord: " << i << " -> " << vertex[i] << std::endl;
