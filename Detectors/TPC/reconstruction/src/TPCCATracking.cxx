@@ -198,6 +198,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         hltCluster.fZ = zPositionAbs * (-localYfactor);
         hltCluster.fRow = j;
         hltCluster.fAmp = cluster.qMax;
+        hltCluster.fFlags = cluster.getFlags();
         hltCluster.fId = (i << 24) | (j << 16) | (k);
 
         cd.SetNumberOfClusters(cd.NumberOfClusters() + 1);
