@@ -44,7 +44,7 @@ Detector::Detector(Bool_t active)
 {
 }
 
-Detector::Detector(const Detector &rhs)
+Detector::Detector(const Detector& rhs)
   : o2::Base::DetImpl<Detector>(rhs),
     mHits(new std::vector<Hit>),
     mCurrentTrackID(-1),
@@ -54,10 +54,7 @@ Detector::Detector(const Detector &rhs)
 {
 }
 
-FairModule *Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
+FairModule* Detector::CloneModule() const { return new Detector(*this); }
 
 void Detector::Initialize()
 {
