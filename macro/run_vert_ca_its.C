@@ -79,7 +79,11 @@ void run_vert_ca_its(std::string path = "./", std::string inputClustersITS = "o2
     // float zCut, float phiCut, float pairCut, float clusterCut, int clusterContributorsCut
     // Example (0.02, 0.005, 0.04, 0.8, 3)
     vertexer.initialise(0.02, 0.005, 0.04, 0.8, 3);
+    vertexer.findTracklets();
     vertexer.findVertices();
+    // vertexer.printIndexTables();
+    // vertexer.computeTriplets();
+    // vertexer.checkTriplets();
     vertexer.printVertices();
     // Get vertices using:
     // std::vector<std::array<float 3>> vertices = vertexer.getVertices();

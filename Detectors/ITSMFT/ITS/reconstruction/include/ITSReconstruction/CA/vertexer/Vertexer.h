@@ -40,7 +40,6 @@ class Vertexer
                   const int clusterContributorsCut);
   void computeTriplets();
   void checkTriplets();
-  void debugTracklets();
   void findTracklets();
   void findVertices();
   inline std::vector<std::array<float, 3>> getVertices() { return mVertices; };
