@@ -17,8 +17,6 @@
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/V3Layer.h"
 
-#include "ITSBase/MisalignmentParameter.h" // for MisalignmentParameter
-
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 
@@ -72,7 +70,6 @@ Detector::Detector()
     mRotZ(),
     mModifyGeometry(kFALSE),
     mHits(new std::vector<o2::ITSMFT::Hit>),
-    mMisalignmentParameter(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -161,7 +158,6 @@ Detector::Detector(Bool_t active)
     mRotZ(),
     mModifyGeometry(kFALSE),
     mHits(new std::vector<o2::ITSMFT::Hit>),
-    mMisalignmentParameter(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -214,7 +210,6 @@ Detector::Detector(const Detector& rhs)
 
     /// Container for data points
     mHits(new std::vector<o2::ITSMFT::Hit>),
-    mMisalignmentParameter(nullptr),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
 {
@@ -256,8 +251,6 @@ Detector& Detector::operator=(const Detector& rhs)
   /// Container for data points
   mHits = nullptr;
 
-  mMisalignmentParameter = nullptr;
-
   mStaveModelInnerBarrel = rhs.mStaveModelInnerBarrel;
   mStaveModelOuterBarrel = rhs.mStaveModelOuterBarrel;
 
@@ -285,30 +278,6 @@ void Detector::Initialize()
   //  O2itsGeoPar* par=(O2itsGeoPar*)(rtdb->getContainer("O2itsGeoPar"));
 }
 
-void Detector::initializeParameterContainers()
-{
-  LOG(INFO) << "Initialize aliitsdet misallign parameters" << FairLogger::endl;
-  mNumberOfDetectors = mMisalignmentParameter->getNumberOfDetectors();
-  mShiftX = mMisalignmentParameter->getShiftX();
-  mShiftY = mMisalignmentParameter->getShiftY();
-  mShiftZ = mMisalignmentParameter->getShiftZ();
-  mRotX = mMisalignmentParameter->getRotX();
-  mRotY = mMisalignmentParameter->getRotY();
-  mRotZ = mMisalignmentParameter->getRotZ();
-}
-
-void Detector::setParameterContainers()
-{
-  LOG(INFO) << "Set tutdet misallign parameters" << FairLogger::endl;
-  // Get Base Container
-  FairRun* sim = FairRun::Instance();
-  LOG_IF(FATAL, !sim) << "No run object" << FairLogger::endl;
-  FairRuntimeDb* rtdb = sim->GetRuntimeDb();
-  LOG_IF(FATAL, !rtdb) << "No runtime database" << FairLogger::endl;
-
-  mMisalignmentParameter = (MisalignmentParameter*)(rtdb->getContainer("MisallignmentParameter"));
-}
-
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
@@ -326,14 +295,11 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (notSens)
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
 
+  // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::Data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0 || lay == 6)) {
-    // Keep the track refs for the innermost and outermost layers only
-    o2::TrackReference tr(*fMC, GetDetId());
-    tr.setTrackID(stack->GetCurrentTrackNumber());
-    tr.setUserId(lay);
-    stack->addTrackReference(tr);
-  }
+  if (fMC->IsTrackExiting()) {
+    stack->addTrackReference(o2::TrackReference(*fMC, GetDetId()));
+  } // if Outer ITS mother Volume
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
   if (fMC->IsTrackEntering()) {
@@ -901,6 +867,157 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest, c
     auto* obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
     dest->AddNode(obSupp, 1);
   }
+
+  return;
+}
+
+void Detector::addAlignableVolumes() const
+{
+  //
+  // Creates entries for alignable volumes associating the symbolic volume
+  // name with the corresponding volume path.
+  //
+  // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot) 
+  //
+
+  LOG(INFO) << "Add ITS alignable volumes" << FairLogger::endl;
+
+  if (!gGeoManager) {
+    LOG(FATAL) << "TGeoManager doesn't exist !" << FairLogger::endl;
+    return;
+  }
+
+  TString path = Form("/cave_1/%s_2", GeometryTGeo::getITSVolPattern());
+  TString sname = GeometryTGeo::composeSymNameITS();
+
+  LOG(DEBUG) << sname << " <-> " << path << FairLogger::endl;
+
+  if( !gGeoManager->SetAlignableEntry(sname.Data(),path.Data()) )
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+
+  Int_t lastUID = 0;
+  for (Int_t lr=0; lr<sNumberLayers; lr++) addAlignableVolumesLayer(lr,path,lastUID);
+
+  return;
+}
+
+void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t &lastUID) const
+{
+  //
+  // Add alignable volumes for a Layer and its daughters
+  //
+  // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot) 
+  //
+
+  TString wrpV = mWrapperLayerId[lr]!=-1 ? Form("%s%d_1",GeometryTGeo::getITSWrapVolPattern(),mWrapperLayerId[lr]) : "";
+  TString path = Form("%s/%s/%s%d_1",parent.Data(),wrpV.Data(),GeometryTGeo::getITSLayerPattern(),lr);
+  TString sname = GeometryTGeo::composeSymNameLayer(lr);
+
+  LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+
+  if( !gGeoManager->SetAlignableEntry(sname.Data(),path.Data()) )
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+
+  const V3Layer* lrobj = mGeometry[lr];
+  Int_t nstaves = lrobj->getNumberOfStavesPerParent();
+  for (int st=0; st<nstaves; st++) addAlignableVolumesStave(lr,st,path,lastUID);
+
+  return;
+}
+
+void Detector::addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int_t &lastUID) const
+{
+  //
+  // Add alignable volumes for a Stave and its daughters
+  //
+  // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot) 
+  //
+
+  TString path = Form("%s/%s%d_%d",parent.Data(),GeometryTGeo::getITSStavePattern(),lr,st);
+  TString sname = GeometryTGeo::composeSymNameStave(lr,st);
+
+  LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+
+  if ( !gGeoManager->SetAlignableEntry(sname.Data(),path.Data()) ) 
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+
+  const V3Layer* lrobj = mGeometry[lr];
+  Int_t nhstave = lrobj->getNumberOfHalfStavesPerParent();
+  Int_t start = nhstave>0 ? 0:-1;
+  for (Int_t sst=start; sst<nhstave; sst++) addAlignableVolumesHalfStave(lr,st,sst,path,lastUID);
+
+  return;
+}
+
+void Detector::addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TString& parent, Int_t &lastUID) const
+{
+  //
+  // Add alignable volumes for a HalfStave (if any) and its daughters
+  //
+  // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot) 
+  //
+
+  TString path = parent;
+  if (hst>=0) {
+    path = Form("%s/%s%d_%d",parent.Data(),GeometryTGeo::getITSHalfStavePattern(),lr,hst);
+    TString sname = GeometryTGeo::composeSymNameHalfStave(lr,st,hst);
+
+    LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+
+    if ( !gGeoManager->SetAlignableEntry(sname.Data(),path.Data()) ) 
+      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+  }
+
+  const V3Layer* lrobj = mGeometry[lr];
+  Int_t nmodules = lrobj->getNumberOfModulesPerParent();
+  Int_t start = nmodules>0 ? 0:-1;
+  for (Int_t md=start; md<nmodules; md++) addAlignableVolumesModule(lr,st,hst,md,path,lastUID);
+
+  return;
+}
+
+void Detector::addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md, TString& parent, Int_t &lastUID) const
+{
+  //
+  // Add alignable volumes for a Module (if any) and its daughters
+  //
+  // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot) 
+  //
+
+  TString path = parent;
+  if (md>=0) {
+    path = Form("%s/%s%d_%d",parent.Data(),GeometryTGeo::getITSModulePattern(),lr,md);
+    TString sname = GeometryTGeo::composeSymNameModule(lr,st,hst,md);
+
+    LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+
+    if ( !gGeoManager->SetAlignableEntry(sname.Data(),path.Data()) ) 
+      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
+  }
+
+  const V3Layer* lrobj = mGeometry[lr];
+  Int_t nchips = lrobj->getNumberOfChipsPerParent();
+  for (Int_t ic=0; ic<nchips; ic++) addAlignableVolumesChip(lr,st,hst,md,ic,path,lastUID);
+
+  return;
+}  
+
+void Detector::addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, Int_t ch, TString& parent, Int_t &lastUID) const
+{
+  //
+  // Add alignable volumes for a Chip
+  //
+  // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot) 
+  //
+
+  TString path = Form("%s/%s%d_%d",parent.Data(),GeometryTGeo::getITSChipPattern(),lr,ch);
+  TString sname = GeometryTGeo::composeSymNameChip(lr,st,hst,md,ch);
+  Int_t modUID = chipVolUID( lastUID++ );
+
+  LOG(DEBUG) << "Add " << sname << " <-> " << path << FairLogger::endl;
+
+  if ( !gGeoManager->SetAlignableEntry(sname,path.Data(),modUID) )
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path << FairLogger::endl;
 
   return;
 }
