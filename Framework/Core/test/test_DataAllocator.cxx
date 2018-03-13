@@ -36,6 +36,11 @@ using DataRef = o2::framework::DataRef;
 using DataRefUtils = o2::framework::DataRefUtils;
 using ControlService = o2::framework::ControlService;
 
+#define ASSERT_ERROR(condition)                                   \
+  if ((condition) == false) {                                     \
+    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+  }
+
 DataProcessorSpec getTimeoutSpec()
 {
   // a timer process to terminate the workflow after a timeout
@@ -93,20 +98,20 @@ DataProcessorSpec getSinkSpec()
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
     }
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
-    assert(*object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    ASSERT_ERROR(*object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     auto object4 = pc.inputs().get<o2::test::TriviallyCopyable>("input4");
-    assert(*object4 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    ASSERT_ERROR(*object4 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     auto object2 = pc.inputs().get<o2::test::Polymorphic>("input2");
-    assert(object2 != nullptr);
-    assert(*(object2.get()) == o2::test::Polymorphic(0xbeef));
+    ASSERT_ERROR(object2 != nullptr);
+    ASSERT_ERROR(*(object2.get()) == o2::test::Polymorphic(0xbeef));
 
     auto object3 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input3");
-    assert(object3 != nullptr);
-    assert(object3->size() == 2);
-    assert((*object3.get())[0] == o2::test::Polymorphic(0xaffe));
-    assert((*object3.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object3 != nullptr);
+    ASSERT_ERROR(object3->size() == 2);
+    ASSERT_ERROR((*object3.get())[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR((*object3.get())[1] == o2::test::Polymorphic(0xd00f));
 
     pc.services().get<ControlService>().readyToQuit(true);
   };
