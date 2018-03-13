@@ -48,8 +48,7 @@ Vertexer::Vertexer(const Event& event) : mEvent{ event } // ,
       mClusters[iLayer].reserve(clustersNum);
     }
     for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
-      const Cluster& currentCluster{ currentLayer.getCluster(iCluster) };
-      mClusters[iLayer].emplace_back(iLayer, currentCluster);
+      mClusters[iLayer].emplace_back(iLayer, currentLayer.getCluster(iCluster));
     }
     // const float inverseNumberOfClusters { 1.f/mClusters[iLayer].size() };
     // for ( auto& cluster : mClusters[iLayer] ) {
@@ -159,7 +158,6 @@ void Vertexer::computeTriplets()
                                                                            : MiddlePhiBin - mPhiSpan,
                             highestZInnerBin, (MiddlePhiBin + mPhiSpan > PhiBins) ? MiddlePhiBin + mPhiSpan - PhiBins
                                                                                   : MiddlePhiBin + mPhiSpan });
-
       for (int iClusterMiddleLayer{ mIndexTables[1][iBinMiddleTable] };
            iClusterMiddleLayer < mIndexTables[1][iBinMiddleTable + 1]; ++iClusterMiddleLayer) {
         for (int iInnerClusterRow{ 0 }; iInnerClusterRow < mClustersToProcessInner.size(); ++iInnerClusterRow) {
@@ -350,26 +348,9 @@ void Vertexer::checkTriplets()
             << 100 * (float)good / (good + bad) << "%" << std::endl;
 }
 
-void Vertexer::debugTracklets()
-{
-  // Line zAxis { std::array<float, 3>{0., 0., 0.}, std::array<float, 3>{0., 0., 1.} };
-  // Line zAxisPar { std::array<float, 3>{0., 1., 0.}, std::array<float, 3>{0., 1., 1.} };
-  // Line yAxis { std::array<float, 3>{0., 0., 0.}, std::array<float, 3>{0., 1., 0.} };
-  // Line skewLine { std::array<float, 3>{1., 1., 2.}, std::array<float, 3>{1., 0., 0.} };
-  // Line skewLine2 { std::array<float, 3>{1., 1., 0.}, std::array<float, 3>{0., 0., 2.} };
-  // std::array<float, 3> point { 1., 1., 1. };
-  // std::array<float, 3> otherpoint { };
-  // std::cout<<" z-zpar: "<<Line::getDCA(zAxis, zAxisPar)<<std::endl;
-  // std::cout<<" zpar-zort: "<<Line::getDCA(zAxisPar, yAxis)<<std::endl;
-  // std::cout<<" 1,1,1 from zAxis: "<<Line::getDistanceFromPoint( zAxis, point )<<" vs sqrt(2)
-  // "<<std::sqrt(2)<<std::endl; std::cout<<" skewlines: "<<Line::getDCA(skewLine, skewLine2)<<std::endl;
-}
-
 void Vertexer::findVertices()
 {
-
   if (mTrackletsFound) {
-    findTracklets();
     const int numTracklets{ static_cast<int>(mTracklets.size()) };
     mUsedTracklets.resize(numTracklets, false);
 
