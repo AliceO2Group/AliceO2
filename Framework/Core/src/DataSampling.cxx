@@ -105,10 +105,9 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
             SubSpecificationType dispatcherSubSpec = infrastructureCfg.enableParallelDispatchers ?
                                                      externalOutput.subSpec : 0;
 
-            auto res = std::find_if(dispatchers.begin(), dispatchers.end(),
-                                    [dispatcherSubSpec](const auto& d) {
-                                      return d->getSubSpec() == dispatcherSubSpec;
-                                    });
+            auto res = std::find_if(dispatchers.begin(), dispatchers.end(), [dispatcherSubSpec](const auto& d) {
+              return d->getSubSpec() == dispatcherSubSpec;
+            });
 
             if (res != dispatchers.end()) {
               (*res)->addSource(dataProcessor, externalOutput, desiredData.binding);

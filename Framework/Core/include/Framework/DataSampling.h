@@ -32,12 +32,14 @@
 #include "Framework/DispatcherFlpProto.h"
 #include "Framework/DataSamplingConfig.h"
 
-using namespace o2::framework::DataSamplingConfig;
+
 
 namespace o2
 {
 namespace framework
 {
+
+using namespace o2::framework::DataSamplingConfig;
 
 /// A class responsible for providing data from main processing flow to QC tasks.
 ///

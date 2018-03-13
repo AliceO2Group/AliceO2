@@ -21,14 +21,14 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSamplingConfig.h"
 
-using namespace o2::framework;
-using namespace o2::framework::DataSamplingConfig;
-using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
-
 namespace o2
 {
 namespace framework
 {
+
+using namespace o2::framework;
+using namespace o2::framework::DataSamplingConfig;
+using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
 /// \brief A base class for dispatcher used by DataSampling.
 ///

@@ -12,13 +12,7 @@
 #include <iostream>
 #include <memory>
 
-#include "FairMQDevice.h"
-#include "FairMQTransportFactory.h"
-#include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSampling.h"
-#include "Framework/ExternalFairMQDeviceProxy.h"
-#include "Framework/InputSpec.h"
-#include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 
 /// This is an executable allowing to run Data Sampling with FLP Proto, in between FairInjector and FairSampler.

@@ -19,13 +19,13 @@
 #include "Framework/Dispatcher.h"
 #include "Framework/DataSamplingConfig.h"
 
-using namespace o2::framework;
-using namespace o2::framework::DataSamplingConfig;
-
 namespace o2
 {
 namespace framework
 {
+
+using namespace o2::framework;
+using namespace o2::framework::DataSamplingConfig;
 
 /// \brief A dispatcher for clients that are FairMQDevices using O2 Data Model.
 ///
