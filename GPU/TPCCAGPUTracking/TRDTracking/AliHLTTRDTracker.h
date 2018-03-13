@@ -92,6 +92,7 @@ public:
   float GetChi2Penalty()      const { return fChi2Penalty; }
   int   GetMaxMissingLayers() const { return fMaxMissingLy; }
   int   GetNCandidates()      const { return fNCandidates; }
+  void PrintSettings() const;
 
   // output
   AliHLTTRDTrack *Tracks()                    const { return fTracks;}

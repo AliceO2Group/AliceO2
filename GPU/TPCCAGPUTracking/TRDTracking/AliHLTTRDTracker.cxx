@@ -1090,3 +1090,11 @@ bool AliHLTTRDTracker::IsGeoFindable(const AliHLTTRDTrack *t, const int layer) c
 
   return true;
 }
+
+void AliHLTTRDTracker::PrintSettings() const
+{
+  printf("Current settings for HLT TRD tracker:\n");
+  printf("fMaxChi2(%f), fChi2Penalty(%f), nCandidates(%i), nHypothesisMax(%i), maxMissingLayers(%i)\n",
+          fMaxChi2, fChi2Penalty, fNCandidates, fNhypothesis, fMaxMissingLy);
+  printf("ptCut = %f GeV, abs(eta) < %f\n", fMinPt, fMaxEta);
+}
