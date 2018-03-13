@@ -20,6 +20,7 @@
 
 #include "ITSReconstruction/CA/Cluster.h"
 #include "ITSReconstruction/CA/Definitions.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -39,11 +40,13 @@ class Layer final
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfo() const;
   const Cluster& getCluster(int idx) const;
   const TrackingFrameInfo& getTrackingFrameInfo(int idx) const;
+  const MCCompLabel& getClusterLabel(int idx) const;
   int getClustersSize() const;
   template <typename... T>
   void addCluster(T&&... args);
   template <typename... T>
   void addTrackingFrameInfo(T&&... args);
+  void addClusterLabel(const MCCompLabel label);
 
   void clear();
 
@@ -51,6 +54,7 @@ class Layer final
   int mLayerIndex;
   std::vector<Cluster> mClusters;
   std::vector<TrackingFrameInfo> mTrackingFrameInfo;
+  std::vector<MCCompLabel> mClusterLabels;
 };
 
 inline int Layer::getLayerIndex() const { return mLayerIndex; }
@@ -66,6 +70,8 @@ inline const TrackingFrameInfo& Layer::getTrackingFrameInfo(int clusterIndex) co
   return mTrackingFrameInfo[clusterIndex];
 }
 
+inline const MCCompLabel& Layer::getClusterLabel(int idx) const { return mClusterLabels[idx]; }
+
 inline int Layer::getClustersSize() const { return mClusters.size(); }
 
 template <typename... T>
@@ -80,10 +86,13 @@ void Layer::addTrackingFrameInfo(T&&... args)
   mTrackingFrameInfo.emplace_back(std::forward<T>(args)...);
 }
 
+inline void Layer::addClusterLabel(MCCompLabel label) { mClusterLabels.emplace_back(label); }
+
 inline void Layer::clear()
 {
   mClusters.clear();
   mTrackingFrameInfo.clear();
+  mClusterLabels.clear();
 }
 }
 }

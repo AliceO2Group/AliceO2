@@ -564,15 +564,15 @@ void Tracker<IsGPU>::computeRoadsMClabels(const Event& event)
       if (isFirstRoadCell) {
 
         const int cl0index{ mPrimaryVertexContext.getClusters()[iCell][currentCell.getFirstClusterIndex()].clusterId };
-        auto& cl0labs{ event.getClusterMClabels(iCell, cl0index) };
-        maxOccurrencesValue = cl0labs.begin()->getTrackID();
+        auto& cl0labs{ event.getLayer(iCell).getClusterLabel(cl0index) };
+        maxOccurrencesValue = cl0labs.getTrackID();
         count = 1;
 
         const int cl1index{
           mPrimaryVertexContext.getClusters()[iCell + 1][currentCell.getSecondClusterIndex()].clusterId
         };
-        auto& cl1labs{ event.getClusterMClabels(iCell + 1, cl1index) };
-        const int secondMonteCarlo{ cl1labs.begin()->getTrackID() };
+        auto& cl1labs{ event.getLayer(iCell + 1).getClusterLabel(cl1index) };
+        const int secondMonteCarlo{ cl1labs.getTrackID() };
 
         if (secondMonteCarlo == maxOccurrencesValue) {
           ++count;
@@ -588,8 +588,8 @@ void Tracker<IsGPU>::computeRoadsMClabels(const Event& event)
       const int cl2index{
         mPrimaryVertexContext.getClusters()[iCell + 2][currentCell.getThirdClusterIndex()].clusterId
       };
-      auto& cl2labs{ event.getClusterMClabels(iCell + 2, cl2index) };
-      const int currentMonteCarlo = { cl2labs.begin()->getTrackID() };
+      auto& cl2labs{ event.getLayer(iCell + 2).getClusterLabel(cl2index) };
+      const int currentMonteCarlo = { cl2labs.getTrackID() };
 
       if (currentMonteCarlo == maxOccurrencesValue) {
         ++count;
@@ -629,8 +629,7 @@ void Tracker<IsGPU>::computeTracksMClabels(const Event& event)
         continue;
       }
 
-      auto& labels{ event.getClusterMClabels(iCluster, index) };
-      const MCCompLabel& currentLabel = *(labels.begin());
+      const MCCompLabel& currentLabel = event.getLayer(iCluster).getClusterLabel(index);
       if (currentLabel == maxOccurrencesValue) {
         ++count;
       } else {
