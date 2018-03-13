@@ -190,7 +190,6 @@ set(TEST_SRCS
       test/test_TypeTraits.cxx
       test/test_Variants.cxx
       test/test_WorkflowHelpers.cxx
-      test/test_WorkflowOptions.cxx
       test/test_TMessageSerializer.cxx
       test/test_DataAllocator.cxx
    )
@@ -199,4 +198,20 @@ O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${BUCKET_NAME}
   TEST_SRCS ${TEST_SRCS}
+  TIMEOUT 30
+)
+
+# specific tests which needs command line options
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TIMEOUT 30
+
+  TEST_SRCS
+  test/test_WorkflowOptions.cxx
+
+  COMMAND_LINE_ARGS
+  --global-config require-me
+  # Note: the group switch makes process consumer parse only the group arguments
+  --consumer "--global-config require-me --local-option hello-aliceo2"
 )
