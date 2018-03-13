@@ -435,44 +435,24 @@ void Tracker<IsGPU>::findTracks(const Event& event)
     for (size_t iC = 0; iC < clusters.size(); ++iC)
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC]);
 
-    bool fitSuccess = true;
-    for (int iCluster{ Constants::ITS::LayersNumber - 3 }; iCluster--;) {
-      if (temporaryTrack.getClusterIndex(iCluster) == Constants::ITS::UnusedIndex) {
-        continue;
-      }
-      const TrackingFrameInfo& trackingHit =
-        event.getLayer(iCluster).getTrackingFrameInfo(temporaryTrack.getClusterIndex(iCluster));
-      fitSuccess = temporaryTrack.rotate(trackingHit.alphaTrackingFrame);
-      if (!fitSuccess) {
-        break;
-      }
-      fitSuccess = temporaryTrack.propagateTo(trackingHit.xTrackingFrame, getBz());
-      if (!fitSuccess) {
-        break;
-      }
-      temporaryTrack.addChi2(
-        temporaryTrack.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
-      fitSuccess =
-        temporaryTrack.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame);
-      if (!fitSuccess) {
-        break;
-      }
-      const float xx0 = (iCluster > 2) ? 0.008f : 0.003f; // Rough layer thickness
-      constexpr float radiationLength = 9.36f;            // Radiation length of Si [cm]
-      constexpr float density = 2.33f;                    // Density of Si [g/cm^3]
-      fitSuccess = temporaryTrack.correctForMaterial(xx0, xx0 * radiationLength * density, true);
-      if (!fitSuccess) {
-        break;
-      }
-    }
-    if (!fitSuccess) {
+    bool fitSuccess = fitTrack(event, temporaryTrack, Constants::ITS::LayersNumber - 4, -1, -1);
+    if (!fitSuccess)
       continue;
-    }
+    temporaryTrack.resetCovariance();
+    fitSuccess = fitTrack(event, temporaryTrack, 0, Constants::ITS::LayersNumber, 1);
+    if (!fitSuccess)
+      continue;
+    temporaryTrack.getParamOut() = temporaryTrack;
+    temporaryTrack.resetCovariance();
+    fitSuccess = fitTrack(event, temporaryTrack, Constants::ITS::LayersNumber - 1, -1, -1);
+    if (!fitSuccess)
+      continue;
+
     tracks.emplace_back(temporaryTrack);
   }
 
   std::sort(tracks.begin(), tracks.end(),
-            [](TrackITS& track1, TrackITS& track2) { return track2.isBetter(track1, 1.e6f); });
+            [](TrackITS& track1, TrackITS& track2) { return track1.isBetter(track2, 1.e6f); });
 
   for (auto& track : tracks) {
     bool sharingCluster = false;
@@ -493,6 +473,36 @@ void Tracker<IsGPU>::findTracks(const Event& event)
     }
     mPrimaryVertexContext.getTracks().emplace_back(track);
   }
+}
+
+template <bool IsGPU>
+bool Tracker<IsGPU>::fitTrack(const Event& event, TrackITS& track, int start, int end, int step)
+{
+  track.setChi2(0);
+  for (int iLayer{ start }; iLayer != end; iLayer += step) {
+    if (track.getClusterIndex(iLayer) == Constants::ITS::UnusedIndex) {
+      continue;
+    }
+    const TrackingFrameInfo& trackingHit = event.getLayer(iLayer).getTrackingFrameInfo(track.getClusterIndex(iLayer));
+
+    if (!track.rotate(trackingHit.alphaTrackingFrame))
+      return false;
+
+    if (!track.propagateTo(trackingHit.xTrackingFrame, getBz()))
+      return false;
+
+    track.setChi2(track.getChi2() +
+                  track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+    if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame))
+      return false;
+
+    const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness
+    constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
+    constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
+    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true))
+      return false;
+  }
+  return true;
 }
 
 template <bool IsGPU>
