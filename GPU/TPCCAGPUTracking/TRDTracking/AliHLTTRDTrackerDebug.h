@@ -63,8 +63,8 @@ class AliHLTTRDTrackerDebug
     void SetTrackletPropertiesReal(const int sec, const int det, int ly) { fTrackletSecReal(ly) = sec; fTrackletDetReal(ly) = det; }
 
     // update information
-    void SetChi2Update(float chi2) { fChi2Update = chi2; }
-    void SetChi2Real(float chi2) { fChi2Real = chi2; }
+    void SetChi2Update(float chi2, int ly) { fChi2Update(ly) = chi2; }
+    void SetChi2Real(float chi2, int ly) { fChi2Real(ly) = chi2; }
 
     // other infos
     void SetRoad(float roadY, float roadZ, int ly) { fRoadY(ly) = roadY; fRoadZ(ly) = roadZ; }
@@ -242,8 +242,8 @@ class AliHLTTRDTrackerDebug
     void SetTrackletPropertiesReal(const int sec, const int det, int ly) {}
 
     // update information
-    void SetChi2Update(float chi2) {}
-    void SetChi2Real(float chi2) {}
+    void SetChi2Update(float chi2, int ly) {}
+    void SetChi2Real(float chi2, int ly) {}
 
     // other infos
     void SetRoad(float roadY, float roadZ, int ly) {}

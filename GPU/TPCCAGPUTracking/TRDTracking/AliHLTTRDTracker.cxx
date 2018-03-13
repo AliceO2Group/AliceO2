@@ -590,7 +590,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         }
         double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - tiltCorrReal, zPosCorrReal };
         RecalcTrkltCov(realTrkltId, tilt, fCandidates[currIdx].GetSnp(), pad->GetRowSize(fTracklets[realTrkltId].GetZbin()));
-        fDebug->SetChi2Real(fCandidates[currIdx].GetPredictedChi2(yzPosReal, fSpacePoints[realTrkltId].fCov));
+        fDebug->SetChi2Real(fCandidates[currIdx].GetPredictedChi2(yzPosReal, fSpacePoints[realTrkltId].fCov), iLayer);
         fDebug->SetRawTrackletPositionReal(fSpacePoints[realTrkltId].fR, fSpacePoints[realTrkltId].fX, iLayer);
         fDebug->SetCorrectedTrackletPositionReal(yzPosReal, iLayer);
         fDebug->SetTrackletPropertiesReal(fTracklets[realTrkltId].GetDetector(), fGeo->GetSector(fTracklets[realTrkltId].GetDetector()), iLayer);
@@ -598,7 +598,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
     }
     //
     std::sort(fHypothesis, fHypothesis+nCurrHypothesis, Hypothesis_Sort);
-    fDebug->SetChi2Update(fHypothesis[0].fChi2 - t->GetChi2()); // only meaningful for ONE candidate!!!
+    fDebug->SetChi2Update(fHypothesis[0].fChi2 - t->GetChi2(), iLayer); // only meaningful for ONE candidate!!!
     fDebug->SetRoad(roadY, roadZ, iLayer);
     bool wasTrackStored = false;
     //
