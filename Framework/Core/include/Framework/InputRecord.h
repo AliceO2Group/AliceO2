@@ -29,12 +29,12 @@
 #include <memory>
 #include <type_traits>
 
-template <typename T>
-using default_delete = std::default_delete<T>;
-
 namespace o2 {
 namespace framework {
-
+  
+template <typename T>
+using default_delete = std::default_delete<T>;
+  
 struct InputSpec;
 
 /// This class holds the inputs which  are being processed by the system while
