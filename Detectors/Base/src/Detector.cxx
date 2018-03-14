@@ -18,14 +18,52 @@
 #include "Field/MagneticField.h"
 #include "TString.h" // for TString
 
-using std::endl;
 using std::cout;
+using std::endl;
 using std::fstream;
 using std::ios;
 using std::ostream;
 
 using namespace o2::Base;
 using namespace o2::detectors;
+
+namespace o2
+{
+
+namespace Base
+{
+
+std::map<std::string, FairModuleCreator>& fairModuleCreators()
+{
+  static std::map<std::string, FairModuleCreator> creators;
+  return creators;
+}
+
+void registerFairModuleCreator(const char* moduleName, FairModuleCreator func)
+{
+  if (fairModuleCreators().find(moduleName) != fairModuleCreators().end()) {
+    std::cerr << "WARNING: there is already a creator registered for moduleName=" << moduleName
+              << ". Will override it\n";
+  }
+  fairModuleCreators()[moduleName] = func;
+}
+
+FairModule* createFairModule(const char* moduleName, bool isActive)
+{
+  auto creator = fairModuleCreators()[moduleName];
+  if (creator) {
+    return creator(isActive);
+  }
+  return nullptr;
+}
+
+FairModuleRegister::FairModuleRegister(const char* moduleName, FairModuleCreator func)
+{
+  registerFairModuleCreator(moduleName, func);
+}
+
+} // namespace Base
+} // namespace o2
 
 Float_t Detector::mDensityFactor = 1.0;
 

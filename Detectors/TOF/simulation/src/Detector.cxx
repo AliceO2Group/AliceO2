@@ -25,6 +25,10 @@
 using namespace o2::tof;
 
 ClassImp(Detector);
+namespace
+{
+o2::Base::FairModuleRegister a("TOF", [](bool active) -> FairModule* { return new o2::tof::Detector(active); });
+}
 
 Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("TOF", active), mEventNr(0), mTOFHoles(kTRUE), mHits(new std::vector<HitType>)
@@ -34,19 +38,13 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
-    mEventNr(0),
-    mTOFHoles(rhs.mTOFHoles),
-    mHits(new std::vector<HitType>)
+  : o2::Base::DetImpl<Detector>(rhs), mEventNr(0), mTOFHoles(rhs.mTOFHoles), mHits(new std::vector<HitType>)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
     mTOFSectors[i] = rhs.mTOFSectors[i];
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
+FairModule* Detector::CloneModule() const { return new Detector(*this); }
 
 void Detector::Initialize()
 {
@@ -107,10 +105,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return kTRUE;
 }
 
-void Detector::Register()
-{
-  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
-}
+void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE); }
 
 void Detector::Reset()
 {

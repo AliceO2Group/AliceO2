@@ -36,6 +36,10 @@
 
 using o2::ITSMFT::Hit;
 using namespace o2::MFT;
+namespace
+{
+o2::Base::FairModuleRegister a("MFT", [](bool) -> FairModule* { return new o2::MFT::Detector(); });
+}
 
 ClassImp(o2::MFT::Detector)
 

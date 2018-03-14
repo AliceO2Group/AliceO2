@@ -39,6 +39,11 @@
 
 using namespace o2::passive;
 
+namespace
+{
+o2::Base::FairModuleRegister a("PIPE", [](bool) -> FairModule* { return new Pipe("Pipe", "Beam Pipe"); });
+}
+
 Pipe::~Pipe() = default;
 Pipe::Pipe() : FairModule() {}
 Pipe::Pipe(const char* name, const char* title, float rho, float thick)

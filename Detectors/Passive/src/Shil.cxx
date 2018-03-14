@@ -27,6 +27,12 @@ using namespace o2::passive;
 
 #define kDegrad TMath::DegToRad()
 
+namespace
+{
+o2::Base::FairModuleRegister a("SHIL",
+                               [](bool) -> FairModule* { return new Shil("Shield", "Small angle beam shield"); });
+}
+
 Shil::~Shil() = default;
 
 Shil::Shil() : FairModule("Shil", "") {}
@@ -75,7 +81,8 @@ void InvertPcon(TGeoPcon* pcon)
   delete[] rmax;
 }
 
-namespace {
+namespace
+{
 TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drMax)
 {
   //
@@ -88,7 +95,7 @@ TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drM
     cpcon->DefineSection(i, pcon->GetZ(i), pcon->GetRmin(i) + drMin, pcon->GetRmax(i) + drMax);
   return cpcon;
 }
-}
+} // namespace
 
 void Shil::ConstructGeometry()
 {
@@ -629,8 +636,9 @@ void Shil::ConstructGeometry()
   Float_t rOuSaa1InnerTube = 36.8 / 2.; // Radius at exit
   Float_t dSaa1InnerTube = 0.2;         // Thickness
   TGeoVolume* voSaa1InnerTube =
-    new TGeoVolume("YSAA1_InnerTube", new TGeoCone(dzSaa1InnerTube, rInSaa1InnerTube - dSaa1InnerTube, rInSaa1InnerTube,
-                                                   rOuSaa1InnerTube - dSaa1InnerTube, rOuSaa1InnerTube),
+    new TGeoVolume("YSAA1_InnerTube",
+                   new TGeoCone(dzSaa1InnerTube, rInSaa1InnerTube - dSaa1InnerTube, rInSaa1InnerTube,
+                                rOuSaa1InnerTube - dSaa1InnerTube, rOuSaa1InnerTube),
                    kMedSteelSh);
 
   ///////////////////////////////////

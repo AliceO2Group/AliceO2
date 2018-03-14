@@ -30,6 +30,11 @@
 
 using namespace o2::passive;
 
+namespace
+{
+o2::Base::FairModuleRegister dipoleCreator("DIPO", [](bool) -> FairModule* { return new Dipole("Dipole", "Alice Dipole"); });
+}
+
 Dipole::~Dipole() = default;
 
 Dipole::Dipole() : FairModule("Dipole", "") {}

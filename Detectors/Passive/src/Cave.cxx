@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /********************************************************************************
  *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
  *                                                                              *
@@ -29,6 +28,10 @@
 #include "TGeoVolume.h"
 
 using namespace o2::Passive;
+namespace
+{
+o2::Base::FairModuleRegister a("CAVE", [](bool) -> FairModule* { return new Cave("Cave", "Experimental Cavern"); });
+}
 
 void Cave::createMaterials()
 {

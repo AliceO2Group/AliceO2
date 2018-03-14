@@ -20,6 +20,10 @@
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
 using namespace o2::passive;
+namespace
+{
+o2::Base::FairModuleRegister a("HALL", [](bool) -> FairModule* { return new Hall("Hall", "Experimental Hall"); });
+}
 
 Hall::~Hall() = default;
 
@@ -43,7 +47,7 @@ namespace
 {
 constexpr double kDegrad = TMath::DegToRad();
 constexpr double kRaddeg = TMath::RadToDeg();
-}
+} // namespace
 
 void Hall::createMaterials()
 {

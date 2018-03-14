@@ -33,6 +33,10 @@
 using namespace o2::phos;
 
 ClassImp(Detector);
+namespace
+{
+o2::Base::FairModuleRegister a("PHS", [](bool active) -> FairModule* { return new o2::phos::Detector(active); });
+}
 
 Detector::Detector(Bool_t active)
   : o2::Base::DetImpl<Detector>("PHS", active),
@@ -157,11 +161,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   //    return false ; //  We are not inside a PBWO crystal
 
   Int_t moduleNumber;
-  fMC->CurrentVolOffID(11, moduleNumber); //11: number of geom. levels between PXTL and PHOS module: get the PHOS module number ;
+  fMC->CurrentVolOffID(
+    11, moduleNumber); // 11: number of geom. levels between PXTL and PHOS module: get the PHOS module number ;
   Int_t strip;
-  fMC->CurrentVolOffID(3, strip); //3: number of geom levels between PXTL and strip: get strip number in PHOS module
+  fMC->CurrentVolOffID(3, strip); // 3: number of geom levels between PXTL and strip: get strip number in PHOS module
   Int_t cell;
-  fMC->CurrentVolOffID(2, cell);  //2: number of geom levels between PXTL and cell: get sell in strip number.
+  fMC->CurrentVolOffID(2, cell); // 2: number of geom levels between PXTL and cell: get sell in strip number.
   Int_t detID = mGeom->RelToAbsId(moduleNumber, strip, cell);
 
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
