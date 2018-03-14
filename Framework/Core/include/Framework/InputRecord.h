@@ -29,9 +29,6 @@
 #include <memory>
 #include <type_traits>
 
-template <typename T>
-using default_delete = std::default_delete<T>;
-
 namespace o2 {
 namespace framework {
 
@@ -60,7 +57,7 @@ public:
   /// InputRecord and DPL processing APIs. The Deleter can be extended
   /// to support a callback to call a resource management outside.
   template <typename T>
-  class Deleter : public default_delete<T>
+  class Deleter : public std::default_delete<T>
   {
    public:
     enum struct OwnershipProperty : short {
@@ -69,7 +66,7 @@ public:
       Owning = 1     /// normal behavior, falling back to default deleter
     };
 
-    using base = default_delete<T>;
+    using base = std::default_delete<T>;
     using self_type = Deleter<T>;
     // using pointer = typename base::pointer;
 
