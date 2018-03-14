@@ -27,7 +27,7 @@ using namespace o2::tof;
 ClassImp(Detector);
 namespace
 {
-o2::Base::FairModuleRegister a("TOF", [](bool active) -> FairModule* { return new o2::tof::Detector(active); });
+o2::Base::FairModuleRegister tofDetectorCreator("TOF", [](bool active) -> FairModule* { return new o2::tof::Detector(active); });
 }
 
 Detector::Detector(Bool_t active)
