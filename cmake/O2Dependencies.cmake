@@ -19,7 +19,11 @@ else (ALICEO2_MODULAR_BUILD)
 endif (ALICEO2_MODULAR_BUILD)
 find_package(CERNLIB)
 find_package(HEPMC)
-find_package(IWYU)
+# FIXME: the way, iwyu is integrated now conflicts with the possibility to add
+# custom rules for individual modules, e.g. the custom targets introduced in
+# PR #886 depending on some header files conflict with the IWYU setup
+# disable package for the moment
+#find_package(IWYU)
 find_package(DDS)
 
 find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time signals REQUIRED)
