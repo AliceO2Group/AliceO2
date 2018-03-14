@@ -7,7 +7,8 @@
 
 #include "AliMCParticle.h"
 
-#define ENABLE_HLTTRDDEBUG
+//#define ENABLE_HLTTRDDEBUG
+#define ENABLE_WARNING 0
 #include "AliHLTTRDTrackerDebug.h"
 
 ClassImp(AliHLTTRDTracker)
@@ -33,7 +34,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fSpacePoints(0x0),
   fGeo(0x0),
   fDebugOutput(false),
-  fMinPt(1.0),
+  fMinPt(0.6),
   fMaxEta(0.84),
   fMaxChi2(15.0),
   fMaxMissingLy(6),
@@ -500,8 +501,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         for (int iTrklt=0; iTrklt<fNtrackletsInChamber[detToSearch]; ++iTrklt) {
           int trkltIdx = fTrackletIndexArray[detToSearch] + iTrklt;
           if (!PropagateTrackToBxByBz(&fCandidates[2*iCandidate+currIdx], fSpacePoints[trkltIdx].fR, mass, 2.0, kFALSE, 0.8)) {
-            Warning("FollowProlongation", "Track parameter for track %i, x=%f at tracklet %i x=%f in layer %i cannot be retrieved",
-              iTrack, fCandidates[2*iCandidate+currIdx].GetX(), iTrklt, fSpacePoints[trkltIdx].fR, iLayer);
+            if (ENABLE_WARNING) {Warning("FollowProlongation", "Track parameter for track %i, x=%f at tracklet %i x=%f in layer %i cannot be retrieved",
+              iTrack, fCandidates[2*iCandidate+currIdx].GetX(), iTrklt, fSpacePoints[trkltIdx].fR, iLayer);}
             continue;
           }
           float zPosCorr = fSpacePoints[trkltIdx].fX[1] + fZCorrCoefNRC * fCandidates[2*iCandidate+currIdx].GetTgl();
@@ -574,8 +575,8 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         flag = AdjustSector(&fCandidates[currIdx], iLayer);
       }
       if (!flag) {
-        Warning("FollowProlongation", "Track parameter at x=%f for track %i at real tracklet x=%f in layer %i cannot be retrieved (pt=%f)",
-          fCandidates[currIdx].GetX(), iTrack, fSpacePoints[realTrkltId].fR, iLayer, fCandidates[currIdx].Pt());
+        if (ENABLE_WARNING) {Warning("FollowProlongation", "Track parameter at x=%f for track %i at real tracklet x=%f in layer %i cannot be retrieved (pt=%f)",
+          fCandidates[currIdx].GetX(), iTrack, fSpacePoints[realTrkltId].fR, iLayer, fCandidates[currIdx].Pt());}
       }
       else {
         fDebug->SetTrackParameterReal(fCandidates[currIdx], iLayer);
@@ -608,7 +609,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
       if (fHypothesis[iUpdate].fCandidateId == -1) {
         // no more candidates
         if (iUpdate == 0) {
-          Warning("FollowProlongation", "No valid candidates for track %i in layer %i", iTrack, iLayer);
+          if (ENABLE_WARNING) {Warning("FollowProlongation", "No valid candidates for track %i in layer %i", iTrack, iLayer);}
           nCandidates = 0;
         }
         break;
@@ -635,7 +636,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         fCandidates[2*iUpdate+nextIdx].Rotate( GetAlphaOfSector(trkltSec) );
       }
       if (!PropagateTrackToBxByBz(&fCandidates[2*iUpdate+nextIdx], fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, mass, 2.0, kFALSE, 0.8)){
-        Warning("FollowProlongation", "Final track propagation for track %i update %i in layer %i failed", iTrack, iUpdate, iLayer);
+        if (ENABLE_WARNING) {Warning("FollowProlongation", "Final track propagation for track %i update %i in layer %i failed", iTrack, iUpdate, iLayer);}
         fCandidates[2*iUpdate+nextIdx].SetChi2(fCandidates[2*iUpdate+nextIdx].GetChi2() + fChi2Penalty);
         if (fCandidates[2*iUpdate+nextIdx].GetIsFindable(iLayer)) {
           if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers(iLayer) >= fMaxMissingLy) {
@@ -680,7 +681,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
 
       if (!fCandidates[2*iUpdate+nextIdx].Update(trkltPosYZ, fSpacePoints[fHypothesis[iUpdate].fTrackletId].fCov))
       {
-        Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
+        if (ENABLE_WARNING) {Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);}
         fCandidates[2*iUpdate+nextIdx].SetChi2(fCandidates[2*iUpdate+nextIdx].GetChi2() + fChi2Penalty);
         if (fCandidates[2*iUpdate+nextIdx].GetIsFindable(iLayer)) {
           if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers(iLayer) >= fMaxMissingLy) {
