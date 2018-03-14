@@ -186,14 +186,14 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param lr layer number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesLayer(Int_t lr, TString& parent, Int_t &lastUID) const;
+  void addAlignableVolumesLayer(Int_t lr, TString& parent, Int_t& lastUID) const;
 
   /// Add alignable Stave volumes
   /// \param lr layer number
   /// \param st stave number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int_t &lastUID) const;
+  void addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int_t& lastUID) const;
 
   /// Add alignable HalfStave volumes
   /// \param lr layer number
@@ -201,7 +201,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param hst half stave number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TString& parent, Int_t &lastUID) const;
+  void addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TString& parent, Int_t& lastUID) const;
 
   /// Add alignable Module volumes
   /// \param lr layer number
@@ -210,7 +210,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param md module number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md, TString& parent, Int_t &lastUID) const;
+  void addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md, TString& parent, Int_t& lastUID) const;
 
   /// Add alignable Chip volumes
   /// \param lr layer number
@@ -220,11 +220,12 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param ch chip number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, Int_t ch, TString& parent, Int_t &lastUID) const;
+  void addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, Int_t ch, TString& parent,
+                               Int_t& lastUID) const;
 
   /// Return Chip Volume UID
   /// \param id volume id
-  Int_t chipVolUID(Int_t id) const { return o2::Base::GeometryManager::getSensID( o2::detectors::DetID::ITS , id ); }
+  Int_t chipVolUID(Int_t id) const { return o2::Base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
 
   void SetSpecialPhysicsCuts() override { ; }
   void EndOfEvent() override;
@@ -269,12 +270,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   } mTrackData;                    //!
 
   Int_t mNumberOfDetectors;
-  TArrayD mShiftX;
-  TArrayD mShiftY;
-  TArrayD mShiftZ;
-  TArrayD mRotX;
-  TArrayD mRotY;
-  TArrayD mRotZ;
 
   Bool_t mModifyGeometry;
 
