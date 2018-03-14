@@ -29,7 +29,7 @@
 #include "FairMCEventHeader.h"
 
 void run_vert_ca_its(std::string path = "./", std::string inputClustersITS = "o2clus_its.root",
-                     std::string paramfilename = "o2sim_par.root", std::string mctruthfile = "o2sim.root")
+                     std::string paramfilename = "o2sim_par.root", std::string mctruthfile = "o2sim.root", std::string outfile = "vertexer_data.root")
 {
   o2::ITS::CA::Event event;
 
@@ -78,7 +78,7 @@ void run_vert_ca_its(std::string path = "./", std::string inputClustersITS = "o2
     o2::ITS::CA::Vertexer vertexer(event);
     // float zCut, float phiCut, float pairCut, float clusterCut, int clusterContributorsCut
     // Example (0.02, 0.005, 0.04, 0.8, 3)
-    vertexer.initialise(0.02, 0.005, 0.04, 0.8, 3);
+    vertexer.initialise(0.02, 0.005, 0.04, 0.8, 5);
     vertexer.findTracklets();
     vertexer.findVertices();
     // vertexer.printIndexTables();

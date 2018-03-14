@@ -138,78 +138,68 @@ void Vertexer::computeTriplets()
     // std::chrono::time_point<std::chrono::system_clock> start, end;
     // start = std::chrono::system_clock::now();
 
-    for (int iBinMiddleTable{ 0 }; iBinMiddleTable < ZBins * PhiBins; ++iBinMiddleTable) {
+    for (int iBin1{ 0 }; iBin1 < ZBins * PhiBins; ++iBin1) {
 
-      int lowestZInnerBin{ std::max(
-        0, ZBins - static_cast<int>(std::ceil((ZBins - iBinMiddleTable % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) /
-                                              mDeltaRadii10))) };
-      int highestZInnerBin{ std::min(
-        static_cast<int>(std::ceil((iBinMiddleTable % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
+      int ZBinLow0{ std::max(0, ZBins - static_cast<int>(std::ceil((ZBins - iBin1 % ZBins + 1) *
+                                                                   (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii10))) };
+      int ZBinHigh0{ std::min(
+        static_cast<int>(std::ceil((iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
         ZBins - 1) };
 
-      // int lowestZInnerBin { 0 };
-      // int highestZInnerBin { ZBins -1 };
+      // int ZBinLow0 { 0 };
+      // int ZBinHigh0 { ZBins -1 };
 
-      int MiddlePhiBin{ static_cast<int>(iBinMiddleTable / ZBins) };
+      int PhiBin1{ static_cast<int>(iBin1 / ZBins) };
 
       mClustersToProcessInner = selectClusters(
         mIndexTables[0],
-        std::array<int, 4>{ lowestZInnerBin, (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + (MiddlePhiBin - mPhiSpan)
-                                                                           : MiddlePhiBin - mPhiSpan,
-                            highestZInnerBin, (MiddlePhiBin + mPhiSpan > PhiBins) ? MiddlePhiBin + mPhiSpan - PhiBins
-                                                                                  : MiddlePhiBin + mPhiSpan });
-      for (int iClusterMiddleLayer{ mIndexTables[1][iBinMiddleTable] };
-           iClusterMiddleLayer < mIndexTables[1][iBinMiddleTable + 1]; ++iClusterMiddleLayer) {
-        for (int iInnerClusterRow{ 0 }; iInnerClusterRow < mClustersToProcessInner.size(); ++iInnerClusterRow) {
-          for (int iClusterInnerLayer{ std::get<0>(mClustersToProcessInner[iInnerClusterRow]) };
-               iClusterInnerLayer < std::get<0>(mClustersToProcessInner[iInnerClusterRow]) +
-                                      std::get<1>(mClustersToProcessInner[iInnerClusterRow]);
-               ++iClusterInnerLayer) {
+        std::array<int, 4>{ ZBinLow0, (PhiBin1 - mPhiSpan < 0) ? PhiBins + (PhiBin1 - mPhiSpan) : PhiBin1 - mPhiSpan,
+                            ZBinHigh0,
+                            (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
+      for (int iCluster1{ mIndexTables[1][iBin1] }; iCluster1 < mIndexTables[1][iBin1 + 1]; ++iCluster1) {
+        for (int iRow0{ 0 }; iRow0 < mClustersToProcessInner.size(); ++iRow0) {
+          for (int iCluster0{ std::get<0>(mClustersToProcessInner[iRow0]) };
+               iCluster0 < std::get<0>(mClustersToProcessInner[iRow0]) + std::get<1>(mClustersToProcessInner[iRow0]);
+               ++iCluster0) {
 
-            if (std::abs(mClusters[0][iClusterInnerLayer].phiCoordinate -
-                         mClusters[1][iClusterMiddleLayer].phiCoordinate) < mPhiCut) {
+            if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mPhiCut) {
 
-              float zetaProjection{ (mClusters[1][iClusterMiddleLayer].zCoordinate -
-                                     mClusters[0][iClusterInnerLayer].zCoordinate) *
-                                      (mDeltaRadii21 / mDeltaRadii10 + 1) +
-                                    mClusters[0][iClusterInnerLayer].zCoordinate };
+              float ZProjection{ (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) *
+                                   (mDeltaRadii21 / mDeltaRadii10 + 1) +
+                                 mClusters[0][iCluster0].zCoordinate };
 
-              if (std::abs(zetaProjection) > (LayersZCoordinate()[0] + mZCut))
+              if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mZCut))
                 continue;
 
-              int binZOuterProjection{ (zetaProjection < -LayersZCoordinate()[0])
-                                         ? 0
-                                         : (zetaProjection > LayersZCoordinate()[0])
-                                             ? ZBins - 1
-                                             : getZBinIndex(2, zetaProjection) };
+              int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0])
+                                    ? 0
+                                    : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1
+                                                                             : getZBinIndex(2, ZProjection) };
 
-              int lowestZOuterBin{ (binZOuterProjection - mZSpan < 0) ? 0 : binZOuterProjection - mZSpan };
-              int highestZOuterBin{ (binZOuterProjection + mZSpan > ZBins - 1) ? ZBins - 1
-                                                                               : binZOuterProjection + mZSpan };
+              int lowestZOuterBin{ (ZProjectionBin - mZSpan < 0) ? 0 : ZProjectionBin - mZSpan };
+              int highestZOuterBin{ (ZProjectionBin + mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mZSpan };
               // int lowestZOuterBin  { 0 };
               // int highestZOuterBin  { ZBins - 1 };
 
-              int lowestPhiOuterBin{ (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + MiddlePhiBin - mPhiSpan
-                                                                   : MiddlePhiBin - mPhiSpan };
-              int highestPhiOuterBin{ (MiddlePhiBin + mPhiSpan > PhiBins - 1) ? MiddlePhiBin + mPhiSpan - PhiBins
-                                                                              : MiddlePhiBin + mPhiSpan };
+              int PhiBinLow2{ (PhiBin1 - mPhiSpan < 0) ? PhiBins + PhiBin1 - mPhiSpan : PhiBin1 - mPhiSpan };
+              int PhiBinHigh2{ (PhiBin1 + mPhiSpan > PhiBins - 1) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan };
 
               mClustersToProcessOuter = selectClusters(
-                mIndexTables[2],
-                std::array<int, 4>{ lowestZOuterBin, lowestPhiOuterBin, highestZOuterBin, highestPhiOuterBin });
-
-              for (int iOuterClusterRow{ 0 }; iOuterClusterRow < mClustersToProcessOuter.size(); ++iOuterClusterRow) {
-                for (int iClusterOuterLayer{ std::get<0>(mClustersToProcessOuter[iOuterClusterRow]) };
-                     iClusterOuterLayer < std::get<0>(mClustersToProcessOuter[iOuterClusterRow]) +
-                                            std::get<1>(mClustersToProcessOuter[iOuterClusterRow]);
-                     ++iClusterOuterLayer) {
-                  if ((std::abs(std::abs(mClusters[2][iClusterOuterLayer].zCoordinate) - std::abs(zetaProjection)) <
-                       mZCut) &&
-                      std::abs(std::abs(mClusters[2][iClusterOuterLayer].phiCoordinate) -
-                               std::abs(mClusters[1][iClusterMiddleLayer].phiCoordinate)) < mPhiCut)
-                    mTriplets.emplace_back(
-                      std::array<int, 3>{ iClusterInnerLayer, iClusterMiddleLayer, iClusterOuterLayer });
+                mIndexTables[2], std::array<int, 4>{ lowestZOuterBin, PhiBinLow2, highestZOuterBin, PhiBinHigh2 });
+              bool trackFound = false;
+              for (int iRow2{ 0 }; iRow2 < mClustersToProcessOuter.size(); ++iRow2) {
+                for (int iCluster2{ std::get<0>(mClustersToProcessOuter[iRow2]) };
+                     iCluster2 <
+                     std::get<0>(mClustersToProcessOuter[iRow2]) + std::get<1>(mClustersToProcessOuter[iRow2]);
+                     ++iCluster2) {
+                  if ((std::abs(std::abs(mClusters[2][iCluster2].zCoordinate) - std::abs(ZProjection)) < mZCut) &&
+                      std::abs(std::abs(mClusters[2][iCluster2].phiCoordinate) -
+                               std::abs(mClusters[1][iCluster1].phiCoordinate)) < mPhiCut) {
+                    mTriplets.emplace_back(std::array<int, 3>{ iCluster0, iCluster1, iCluster2 });
+                    trackFound = true;
+                  }
                 }
+                if ( trackFound ) break;
               }
             }
           }
@@ -231,85 +221,71 @@ void Vertexer::findTracklets()
     // std::chrono::time_point<std::chrono::system_clock> start, end;
     // start = std::chrono::system_clock::now();
 
-    for (int iBinMiddleTable{ 0 }; iBinMiddleTable < ZBins * PhiBins; ++iBinMiddleTable) {
+    for (int iBin1{ 0 }; iBin1 < ZBins * PhiBins; ++iBin1) {
 
-      int lowestZInnerBin{ std::max(
-        0, ZBins - static_cast<int>(std::ceil((ZBins - iBinMiddleTable % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) /
-                                              mDeltaRadii10))) };
-      int highestZInnerBin{ std::min(
-        static_cast<int>(std::ceil((iBinMiddleTable % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
+      int ZBinLow0{ std::max(0, ZBins - static_cast<int>(std::ceil((ZBins - iBin1 % ZBins + 1) *
+                                                                   (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii10))) };
+      int ZBinHigh0{ std::min(
+        static_cast<int>(std::ceil((iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
         ZBins - 1) };
 
-      // int lowestZInnerBin { 0 };
-      // int highestZInnerBin { ZBins -1 };
+      // int ZBinLow0 { 0 };
+      // int ZBinHigh0 { ZBins -1 };
 
-      int MiddlePhiBin{ static_cast<int>(iBinMiddleTable / ZBins) };
+      int PhiBin1{ static_cast<int>(iBin1 / ZBins) };
 
       mClustersToProcessInner = selectClusters(
         mIndexTables[0],
-        std::array<int, 4>{ lowestZInnerBin, (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + (MiddlePhiBin - mPhiSpan)
-                                                                           : MiddlePhiBin - mPhiSpan,
-                            highestZInnerBin, (MiddlePhiBin + mPhiSpan > PhiBins) ? MiddlePhiBin + mPhiSpan - PhiBins
-                                                                                  : MiddlePhiBin + mPhiSpan });
+        std::array<int, 4>{ ZBinLow0, (PhiBin1 - mPhiSpan < 0) ? PhiBins + (PhiBin1 - mPhiSpan) : PhiBin1 - mPhiSpan,
+                            ZBinHigh0,
+                            (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
 
-      for (int iClusterMiddleLayer{ mIndexTables[1][iBinMiddleTable] };
-           iClusterMiddleLayer < mIndexTables[1][iBinMiddleTable + 1]; ++iClusterMiddleLayer) {
-        for (int iInnerClusterRow{ 0 }; iInnerClusterRow < mClustersToProcessInner.size(); ++iInnerClusterRow) {
-          for (int iClusterInnerLayer{ std::get<0>(mClustersToProcessInner[iInnerClusterRow]) };
-               iClusterInnerLayer < std::get<0>(mClustersToProcessInner[iInnerClusterRow]) +
-                                      std::get<1>(mClustersToProcessInner[iInnerClusterRow]);
-               ++iClusterInnerLayer) {
+      for (int iCluster1{ mIndexTables[1][iBin1] }; iCluster1 < mIndexTables[1][iBin1 + 1]; ++iCluster1) {
+        for (int iRow0{ 0 }; iRow0 < mClustersToProcessInner.size(); ++iRow0) {
+          for (int iCluster0{ std::get<0>(mClustersToProcessInner[iRow0]) };
+               iCluster0 < std::get<0>(mClustersToProcessInner[iRow0]) + std::get<1>(mClustersToProcessInner[iRow0]);
+               ++iCluster0) {
 
-            if (std::abs(mClusters[0][iClusterInnerLayer].phiCoordinate -
-                         mClusters[1][iClusterMiddleLayer].phiCoordinate) < mPhiCut) {
+            if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mPhiCut) {
 
-              float zetaProjection{ (mClusters[1][iClusterMiddleLayer].zCoordinate -
-                                     mClusters[0][iClusterInnerLayer].zCoordinate) *
-                                      (mDeltaRadii21 / mDeltaRadii10 + 1) +
-                                    mClusters[0][iClusterInnerLayer].zCoordinate };
+              float ZProjection{ (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) *
+                                   (mDeltaRadii21 / mDeltaRadii10 + 1) +
+                                 mClusters[0][iCluster0].zCoordinate };
 
-              if (std::abs(zetaProjection) > (LayersZCoordinate()[0] + mZCut))
+              if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mZCut))
                 continue;
 
-              int binZOuterProjection{ (zetaProjection < -LayersZCoordinate()[0])
-                                         ? 0
-                                         : (zetaProjection > LayersZCoordinate()[0])
-                                             ? ZBins - 1
-                                             : getZBinIndex(2, zetaProjection) };
+              int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0]) ? 0 : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1 : getZBinIndex(2, ZProjection) };
 
-              int lowestZOuterBin{ (binZOuterProjection - mZSpan < 0) ? 0 : binZOuterProjection - mZSpan };
-              int highestZOuterBin{ (binZOuterProjection + mZSpan > ZBins - 1) ? ZBins - 1
-                                                                               : binZOuterProjection + mZSpan };
+              int lowestZOuterBin{ (ZProjectionBin - mZSpan < 0) ? 0 : ZProjectionBin - mZSpan };
+              int highestZOuterBin{ (ZProjectionBin + mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mZSpan };
               // int lowestZOuterBin  { 0 };
               // int highestZOuterBin  { ZBins - 1 };
 
-              int lowestPhiOuterBin{ (MiddlePhiBin - mPhiSpan < 0) ? PhiBins + MiddlePhiBin - mPhiSpan
-                                                                   : MiddlePhiBin - mPhiSpan };
-              int highestPhiOuterBin{ (MiddlePhiBin + mPhiSpan > PhiBins - 1) ? MiddlePhiBin + mPhiSpan - PhiBins
-                                                                              : MiddlePhiBin + mPhiSpan };
+              int PhiBinLow2{ (PhiBin1 - mPhiSpan < 0) ? PhiBins + PhiBin1 - mPhiSpan : PhiBin1 - mPhiSpan };
+              int PhiBinHigh2{ (PhiBin1 + mPhiSpan > PhiBins - 1) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan };
 
               mClustersToProcessOuter = selectClusters(
-                mIndexTables[2],
-                std::array<int, 4>{ lowestZOuterBin, lowestPhiOuterBin, highestZOuterBin, highestPhiOuterBin });
-
-              for (int iOuterClusterRow{ 0 }; iOuterClusterRow < mClustersToProcessOuter.size(); ++iOuterClusterRow) {
-                for (int iClusterOuterLayer{ std::get<0>(mClustersToProcessOuter[iOuterClusterRow]) };
-                     iClusterOuterLayer < std::get<0>(mClustersToProcessOuter[iOuterClusterRow]) +
-                                            std::get<1>(mClustersToProcessOuter[iOuterClusterRow]);
-                     ++iClusterOuterLayer) {
-                  if ((std::abs(std::abs(mClusters[2][iClusterOuterLayer].zCoordinate) - std::abs(zetaProjection)) <
-                       mZCut) &&
-                      std::abs(std::abs(mClusters[2][iClusterOuterLayer].phiCoordinate) -
-                               std::abs(mClusters[1][iClusterMiddleLayer].phiCoordinate)) < mPhiCut) {
-                    mTracklets.emplace_back(
-                      Line{ std::array<float, 3>{ mClusters[0][iClusterInnerLayer].xCoordinate,
-                                                  mClusters[0][iClusterInnerLayer].yCoordinate,
-                                                  mClusters[0][iClusterInnerLayer].zCoordinate },
-                            std::array<float, 3>{ mClusters[1][iClusterMiddleLayer].xCoordinate,
-                                                  mClusters[1][iClusterMiddleLayer].yCoordinate,
-                                                  mClusters[1][iClusterMiddleLayer].zCoordinate } });
+                mIndexTables[2], std::array<int, 4>{ lowestZOuterBin, PhiBinLow2, highestZOuterBin, PhiBinHigh2 });
+              bool trackFound = false;
+              for (int iRow2{ 0 }; iRow2 < mClustersToProcessOuter.size(); ++iRow2) {
+                for (int iCluster2{ std::get<0>(mClustersToProcessOuter[iRow2]) };
+                     iCluster2 <
+                     std::get<0>(mClustersToProcessOuter[iRow2]) + std::get<1>(mClustersToProcessOuter[iRow2]);
+                     ++iCluster2) {
+                  if ((std::abs(std::abs(mClusters[2][iCluster2].zCoordinate) - std::abs(ZProjection)) < mZCut) &&
+                      std::abs(std::abs(mClusters[2][iCluster2].phiCoordinate) -
+                               std::abs(mClusters[1][iCluster1].phiCoordinate)) < mPhiCut) {
+                    mTracklets.emplace_back(Line{
+                      std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
+                                            mClusters[0][iCluster0].zCoordinate },
+                      std::array<float, 3>{ mClusters[1][iCluster1].xCoordinate, mClusters[1][iCluster1].yCoordinate,
+                                            mClusters[1][iCluster1].zCoordinate } });
+                    trackFound = true;
+                    break;
                   }
                 }
+                if ( trackFound ) break;
               }
             }
           }
