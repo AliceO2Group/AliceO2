@@ -26,5 +26,7 @@
 #pragma link C++ class o2::TPC::TPCClusterFormatHelper + ;
 #pragma link C++ class o2::TPC::TrackTPC + ;
 #pragma link C++ class o2::TPC::Cluster + ;
+#pragma link C++ class std::vector < o2::TPC::Cluster > +;
+#pragma link C++ class std::vector < o2::TPC::TrackTPC > +;
 
 #endif
