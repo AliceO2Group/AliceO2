@@ -32,7 +32,4 @@
 #pragma link C++ class o2::TPC::HwClusterFinder+;
 #pragma link C++ class o2::TPC::HwFixedPoint+;
 
-#pragma link C++ class std::vector<o2::TPC::Cluster>+;
-#pragma link C++ class std::vector<o2::TPC::TrackTPC>+;
-
 #endif
