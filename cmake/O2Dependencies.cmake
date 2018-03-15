@@ -932,6 +932,18 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/include
 )
 
+o2_define_bucket(
+    NAME
+    TPC_workflow_bucket
+
+    DEPENDENCIES
+    TPCReconstruction
+    Framework
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Algorithm/include
+   )
+
 # base bucket for generators not needing any external stuff
 o2_define_bucket(
     NAME
