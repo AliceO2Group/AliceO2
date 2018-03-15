@@ -44,10 +44,13 @@ struct is_forced_non_messageable<
 // TODO: extend this to exclude structs with pointer data members
 // see e.g. https://stackoverflow.com/questions/32880990/how-to-check-if-class-has-pointers-in-c14
 template <typename T>
-struct is_messageable : std::conditional<std::is_trivially_copyable<T>::value &&
-                                         !std::is_polymorphic<T>::value &&
-                                         !is_forced_non_messageable<T>::value,
-                                         std::true_type, std::false_type>::type {};
+struct is_messageable : std::conditional<std::is_trivially_copyable<T>::value && //
+                                           !std::is_polymorphic<T>::value &&     //
+                                           !std::is_pointer<T>::value &&         //
+                                           !is_forced_non_messageable<T>::value, //
+                                         std::true_type,
+                                         std::false_type>::type {
+};
 
 // Detect a container by checking on the container properties
 // this is the default trait implementation inheriting from false_type
