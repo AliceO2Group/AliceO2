@@ -149,6 +149,16 @@ struct DataRefUtils {
     }
     return std::move(result);
   }
+
+  static unsigned getPayloadSize(const DataRef& ref)
+  {
+    using DataHeader = o2::header::DataHeader;
+    auto header = o2::header::get<const DataHeader>(ref.header);
+    if (!header) {
+      return 0;
+    }
+    return header->payloadSize;
+  }
 };
 
 }

@@ -247,11 +247,12 @@ public:
 
   /// specialization to catch unsupported types and throw a detailed compiler error
   template <typename T>
-  typename std::enable_if<has_root_dictionary<T>::value == false &&
-                          is_specialization<T, ROOTSerialized>::value == false &&
-                          is_messageable<T>::value == false &&
-                          is_specialization<T, std::vector>::value == false>::type
-  snapshot(const OutputSpec& spec, T const&)
+  typename std::enable_if<has_root_dictionary<T>::value == false &&                //
+                          is_specialization<T, ROOTSerialized>::value == false &&  //
+                          is_messageable<T>::value == false &&                     //
+                          std::is_pointer<T>::value == false &&                    //
+                          is_specialization<T, std::vector>::value == false>::type //
+    snapshot(const OutputSpec& spec, T const&)
   {
     static_assert(has_root_dictionary<T>::value == true ||
                   is_specialization<T, ROOTSerialized>::value == true ||
@@ -281,7 +282,16 @@ public:
                   "\n - object with dictionary by reference");
   }
 
-private:
+  /// specialization to catch the case where a pointer to an object has been
+  /// accidentally given as parameter
+  template <typename T>
+  typename std::enable_if<std::is_pointer<T>::value>::type snapshot(const OutputSpec& spec, T const&)
+  {
+    static_assert(std::is_pointer<T>::value == false,
+                  "pointer to data type not supported by API. Please pass object by reference");
+  }
+
+ private:
   std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
                                          std::string const &channel,
