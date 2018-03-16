@@ -119,6 +119,38 @@ void IOUtils::loadEventData(Event& event, const std::vector<ITSMFT::Cluster>* cl
   }
 }
 
+int IOUtils::loadROFrameData(std::uint32_t roFrame, Event& event, const std::vector<ITSMFT::Cluster>* clusters,
+                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+{
+  if (!clusters) {
+    std::cerr << "Missing clusters." << std::endl;
+    return -1;
+  }
+  event.clear();
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
+  int clusterId{ 0 };
+  int nused = 0;
+  for (auto& c : *clusters) {
+    if (c.getROFrame() == roFrame) {
+      int layer = geom->getLayer(c.getSensorID());
+
+      /// Clusters are stored in the tracking frame
+      event.addTrackingFrameInfoToLayer(layer, c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
+                                        std::array<float, 2>{ c.getY(), c.getZ() },
+                                        std::array<float, 3>{ c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2() });
+
+      /// Rotate to the global frame
+      auto xyz = c.getXYZGloRot(*geom);
+      event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getLayer(layer).getClustersSize());
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+      nused++;
+    }
+    clusterId++;
+  }
+  return nused;
+}
+
 std::vector<std::unordered_map<int, Label>> IOUtils::loadLabels(const int eventsNum, const std::string& fileName)
 {
   std::vector<std::unordered_map<int, Label>> labelsMap{};

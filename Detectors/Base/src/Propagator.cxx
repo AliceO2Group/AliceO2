@@ -99,16 +99,9 @@ int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpN
 {
   /// load grp and init magnetic field
   LOG(INFO) << "Loading field from GRP of " << grpFileName << FairLogger::endl;
-  TFile flGRP(grpFileName.data());
-  if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << grpFileName << FairLogger::endl;
-    return -10;
-  }
-  auto grp =
-    static_cast<o2::parameters::GRPObject*>(flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
+  const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
   if (!grp) {
-    LOG(ERROR) << "Did not find GRP object named " << grpName << FairLogger::endl;
-    return -12;
+    return -1;
   }
   grp->print();
 

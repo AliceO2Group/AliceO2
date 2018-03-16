@@ -71,6 +71,9 @@ class Tracker : private TrackerTraits<IsGPU>
 
   void clustersToTracks(const Event&, std::ostream& = std::cout);
 
+  void setROFrame(std::uint32_t f) { mROFrame = f; }
+  std::uint32_t getROFrame() const { return mROFrame; }
+
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
                                     const TrackingFrameInfo& tf3);
@@ -90,6 +93,7 @@ class Tracker : private TrackerTraits<IsGPU>
   float evaluateTask(void (Tracker<IsGPU>::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
   float mBz = 5.f;
+  std::uint32_t mROFrame = 0;
   PrimaryVertexContext mPrimaryVertexContext;
   std::vector<TrackITS> mTracks;
   dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
