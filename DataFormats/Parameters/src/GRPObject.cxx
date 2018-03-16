@@ -12,6 +12,8 @@
 /// \brief Implementation of General Run Parameters object
 /// \author ruben.shahoyan@cern.ch
 
+#include <FairLogger.h>
+#include <TFile.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include <cmath>
 #include "CommonConstants/PhysicsConstants.h"
@@ -65,4 +67,22 @@ void GRPObject::print() const
     printf("%7s ", isDetTriggers(DetID(i)) ? "   +   " : "   -   ");
     printf("\n");
   }
+}
+
+//_______________________________________________
+GRPObject* GRPObject::loadFrom(const std::string grpFileName, std::string grpName)
+{
+  // load object from file
+  TFile flGRP(grpFileName.data());
+  if (flGRP.IsZombie()) {
+    LOG(ERROR) << "Failed to open " << grpFileName << FairLogger::endl;
+    return nullptr;
+  }
+  auto grp = reinterpret_cast<o2::parameters::GRPObject*>(
+    flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
+  if (!grp) {
+    LOG(ERROR) << "Did not find GRP object named " << grpName << FairLogger::endl;
+    return nullptr;
+  }
+  return grp;
 }

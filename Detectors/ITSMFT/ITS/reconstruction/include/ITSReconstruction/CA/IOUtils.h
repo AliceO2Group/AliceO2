@@ -50,6 +50,8 @@ namespace IOUtils
 std::vector<Event> loadEventData(const std::string&);
 void loadEventData(Event& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
+int loadROFrameData(std::uint32_t roFrame, Event& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
+                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,
                       const std::unordered_map<int, Label>&);

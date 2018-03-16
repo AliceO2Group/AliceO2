@@ -5,13 +5,18 @@
 #include <TChain.h>
 #include <TFile.h>
 #include <TTree.h>
+#include <TGeoGlobalMagField.h>
 
 #include <FairEventHeader.h>
 #include <FairGeoParSet.h>
 #include <FairLogger.h>
 #include <FairMCEventHeader.h>
 
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/Propagator.h"
 
 #include "Field/MagneticField.h"
 
@@ -27,7 +32,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its.root",
-                     std::string inputClustersITS = "o2clus_its.root", std::string simfilename = "o2sim_mc.root",
+                     std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
+                     std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root",
                      std::string paramfilename = "o2sim_par.root")
 {
 
@@ -38,9 +44,28 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
     path += '/';
   }
 
-  // Setup Runtime DB
-  TFile paramFile(paramfilename.data());
-  paramFile.Get("FairGeoParSet");
+  //-------- init geometry and field --------//
+  const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
+  if (!grp) {
+    LOG(FATAL) << "Cannot run w/o GRP object" << FairLogger::endl;
+  }
+  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::Base::Propagator::initFieldFromGRP(grp);
+  auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (!field) {
+    LOG(FATAL) << "Failed to load ma" << FairLogger::endl;
+  }
+  double origD[3] = { 0., 0., 0. };
+  tracker.setBz(field->getBz(origD));
+
+  bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
+  if (!isITS) {
+    LOG(WARNING) << "ITS is not in the readoute" << FairLogger::endl;
+    return;
+  }
+  bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
+  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
+
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
@@ -88,19 +113,39 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
   outTree.Branch("ITSTrackMCTruth", &trackLabels);
 
   //-------------------- settings -----------//
+  std::uint32_t roFrame = 0;
   for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
     itsClusters.GetEntry(iEvent);
     mcHeaderTree.GetEntry(iEvent);
 
-    cout << "Event " << iEvent << std::endl;
-    o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
-    event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
-    tracker.clustersToTracks(event);
-    tracksITS->swap(tracker.getTracks());
-    *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-    outTree.Fill();
+    if (isContITS) {
+      int nclLeft = clusters->size();
+      while (nclLeft > 0) {
+        int nclUsed = o2::ITS::CA::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
+        if (nclUsed) {
+          cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
+          // Attention: in the continuous mode cluster entry ID does not give the physics event ID
+          // so until we use real vertexer, we have to work with vertex at origin
+          event.addPrimaryVertex(0.f, 0.f, 0.f);
+          tracker.setROFrame(roFrame);
+          tracker.clustersToTracks(event);
+          tracksITS->swap(tracker.getTracks());
+          *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+          outTree.Fill();
+          nclLeft -= nclUsed;
+        }
+        roFrame++;
+      }
+    } else { // triggered mode
+      cout << "Event " << iEvent << std::endl;
+      o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
+      event.addPrimaryVertex(mcHeader->GetX(), mcHeader->GetY(), mcHeader->GetZ());
+      tracker.clustersToTracks(event);
+      tracksITS->swap(tracker.getTracks());
+      *trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+      outTree.Fill();
+    }
   }
-
   outFile.cd();
   outTree.Write();
   outFile.Close();

@@ -447,7 +447,7 @@ void Tracker<IsGPU>::findTracks(const Event& event)
     fitSuccess = fitTrack(event, temporaryTrack, Constants::ITS::LayersNumber - 1, -1, -1);
     if (!fitSuccess)
       continue;
-
+    temporaryTrack.setROFrame(mROFrame);
     tracks.emplace_back(temporaryTrack);
   }
 
