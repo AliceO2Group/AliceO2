@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/Constants.cxx
   src/GeometryTransformer.cxx
+  src/HitFinder.cxx
   src/LegacyUtility.cxx
   src/Mapping.cxx
   src/MpArea.cxx
@@ -13,6 +14,7 @@ set(SRCS
 set(NO_DICT_HEADERS
   include/${MODULE_NAME}/Constants.h
   include/${MODULE_NAME}/GeometryTransformer.h
+  include/${MODULE_NAME}/HitFinder.h
   include/${MODULE_NAME}/LegacyUtility.h
   include/${MODULE_NAME}/Mapping.h
   include/${MODULE_NAME}/MpArea.h
