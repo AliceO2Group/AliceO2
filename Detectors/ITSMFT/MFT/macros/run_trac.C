@@ -16,45 +16,42 @@
 
 #endif
 
+static std::stringstream mcfile;
+
+void run_trac(float rate = 0., std::string outputfile = "o2track_mft.root", std::string inputfile = "o2clus.root",
+              std::string paramfile = "o2sim_par.root");
+
 void run_trac(Int_t nEvents = 10, Int_t nMuons = 100, TString mcEngine = "TGeant3", Float_t rate = 0.)
 {
 
-  LOG(INFO) << "nEvents = " << nEvents << " nMuons = " << nMuons << " mcEngine = " << mcEngine << " rate = " << rate
-            << FairLogger::endl;
-  // return;
+  std::stringstream inputfile, outputfile, paramfile;
+  inputfile << "AliceO2_" << mcEngine << ".clus_" << nEvents << "ev_" << nMuons << "mu.root";
+  paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << "ev_" << nMuons << "mu.root";
+  outputfile << "AliceO2_" << mcEngine << ".trac_" << nEvents << "ev_" << nMuons << "mu.root";
+  mcfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "ev_" << nMuons << "mu.root";
+  run_trac(rate, outputfile.str(), inputfile.str(), paramfile.str());
+}
+
+void run_trac(float rate, std::string outputfile, std::string inputfile, std::string paramfile)
+{
 
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
   logger->SetLogScreenLevel("INFO");
-
-  // Input file name
-  char filein[100];
-  sprintf(filein, "AliceO2_%s.clus_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
-  TString inFile = filein;
-
-  // Output file name
-  char fileout[100];
-  sprintf(fileout, "AliceO2_%s.trac_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
-  TString outFile = fileout;
-
-  // Parameter file name
-  char filepar[100];
-  sprintf(filepar, "AliceO2_%s.params_%iev_%imu.root", mcEngine.Data(), nEvents, nMuons);
-  TString parFile = filepar;
 
   // Setup timer
   TStopwatch timer;
 
   // Setup FairRoot analysis manager
   FairRunAna* fRun = new FairRunAna();
-  FairFileSource* fFileSource = new FairFileSource(inFile);
+  FairFileSource* fFileSource = new FairFileSource(inputfile.data());
   fRun->SetSource(fFileSource);
-  fRun->SetOutputFile(outFile);
+  fRun->SetOutputFile(outputfile.data());
 
   // Setup Runtime DB
   FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
   FairParRootFileIo* parInput1 = new FairParRootFileIo();
-  parInput1->open(parFile);
+  parInput1->open(paramfile.data());
   rtdb->setFirstInput(parInput1);
 
   // Setup tracker
@@ -94,7 +91,7 @@ void run_trac(Int_t nEvents = 10, Int_t nMuons = 100, TString mcEngine = "TGeant
   std::cout << "Macro finished succesfully" << std::endl;
 
   std::cout << endl << std::endl;
-  std::cout << "Output file is " << fileout << std::endl;
-  // std::cout << "Parameter file is " << parFile << std::endl;
+  std::cout << "Output file is " << outputfile.data() << std::endl;
+  std::cout << "Parameter file is " << paramfile.data() << std::endl;
   std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
 }

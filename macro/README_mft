@@ -18,7 +18,7 @@ Howto check the simulation chain for the MFT detector
 
 - the fourth parameter is "1=true" to use the ALPIDE digitization
 
-- the fifth parameter can be zero, which means the digitization is 
+- the fifth <rate> parameter can be zero, which means the digitization is 
 done in "triggered" mode, when all digits are available at once, or 
 it can have a value in Hz (50.e3 = 50kHz) which means that the 
 digitization is done in continuous mode, per Read-Out frame at 50kHz 
@@ -38,3 +38,6 @@ root.exe
 root.exe
 .x CheckClusters_mft.C+(10,100,"TGeant3")
 
+6) launch the tracker
+
+./run_trac_mft.sh 10 100 TGeant3 <rate>

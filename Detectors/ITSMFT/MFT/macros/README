@@ -38,8 +38,12 @@ or
 root.exe
 .x CheckDigits.C+(10,100,"TGeant3")
 
-6) check the clusters:
+5) check the clusters:
 
 root.exe
 .x CheckClusters.C+(10,100,"TGeant3")
+
+6) launch the tracker
+
+./run_trac.sh 10 100 TGeant3 <rate>
 
