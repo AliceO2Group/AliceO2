@@ -28,8 +28,10 @@ using namespace o2::framework;
 using namespace o2::framework::DataSamplingConfig;
 using namespace AliceO2::Configuration;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // ideas:
 // make sure if it supports 'vectors' of data
@@ -54,9 +56,9 @@ auto DataSampling::getEdgeMatcher(const QcTaskConfiguration& taskCfg)
 
 /// Returns appropriate dispatcher initializer, dependent on whether dispatcher should send data to DPL or FairMQ
 /// device.
-std::unique_ptr<Dispatcher>
-DataSampling::createDispatcher(SubSpecificationType subSpec, const QcTaskConfiguration& taskCfg,
-                               InfrastructureConfig infCfg)
+std::unique_ptr<Dispatcher> DataSampling::createDispatcher(SubSpecificationType subSpec,
+                                                           const QcTaskConfiguration& taskCfg,
+                                                           InfrastructureConfig infCfg)
 {
   // consider: use ROOT ?
   if (taskCfg.dispatcherType == "FairMQ") {
@@ -79,12 +81,9 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
     // (it is surely not an optimal way to do that, but this is only a temporary feature)
     for (auto&& fairMqProxy : task.desiredFairMqData) {
       workflow.emplace_back(specifyExternalFairMQDeviceProxy(
-        ("FairMQ_proxy_for_" + task.name).c_str(),
-        Outputs{fairMqProxy.outputSpec},
-        fairMqProxy.channelConfig.c_str(),
+        ("FairMQ_proxy_for_" + task.name).c_str(), Outputs{ fairMqProxy.outputSpec }, fairMqProxy.channelConfig.c_str(),
         fairMqProxy.converterType == "o2DataModelAdaptor" ? o2DataModelAdaptor(fairMqProxy.outputSpec, 0, 1)
-                                                          : incrementalConverter(fairMqProxy.outputSpec, 0, 1)
-      ));
+                                                          : incrementalConverter(fairMqProxy.outputSpec, 0, 1)));
     }
 
     std::vector<std::unique_ptr<Dispatcher>> dispatchers;
@@ -102,8 +101,8 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
 
             // if parallel dispatchers are not enabled, then edges will be added to the only one dispatcher.
             // in other case, new dispatcher will be created for every parallel flow.
-            SubSpecificationType dispatcherSubSpec = infrastructureCfg.enableParallelDispatchers ?
-                                                     externalOutput.subSpec : 0;
+            SubSpecificationType dispatcherSubSpec =
+              infrastructureCfg.enableParallelDispatchers ? externalOutput.subSpec : 0;
 
             auto res = std::find_if(dispatchers.begin(), dispatchers.end(), [dispatcherSubSpec](const auto& d) {
               return d->getSubSpec() == dispatcherSubSpec;
@@ -159,14 +158,15 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
       task.fractionOfDataToSample = configFile->getFloat(simpleQcTaskDefinition + "/fraction").value();
       if (task.fractionOfDataToSample <= 0 || task.fractionOfDataToSample > 1) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
-                   << simpleQcTaskDefinition + "/fraction" << " is not in range (0,1]. Setting value to 0.";
+                   << simpleQcTaskDefinition + "/fraction"
+                   << " is not in range (0,1]. Setting value to 0.";
         task.fractionOfDataToSample = 0;
       }
       task.dispatcherType = configFile->getString(simpleQcTaskDefinition + "/dispatcherType").value_or("DPL");
-      //if there is a channelConfig specified, then user wants output in raw FairMQ layer, not DPL
+      // if there is a channelConfig specified, then user wants output in raw FairMQ layer, not DPL
       task.fairMqOutputChannelConfig = configFile->getString(simpleQcTaskDefinition + "/channelConfig").value_or("");
 
-      //FIXME: I do not like '-1' meaning 'all' - not 100% sure if it's safe to compare with '-1' later
+      // FIXME: I do not like '-1' meaning 'all' - not 100% sure if it's safe to compare with '-1' later
       task.subSpec = static_cast<header::DataHeader::SubSpecificationType>(
         configFile->getInt(simpleQcTaskDefinition + "/subSpec").value_or(-1));
 
@@ -186,36 +186,32 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
         desiredData.binding = configFile->getString(input + "/inputName").value();
 
         std::string origin = configFile->getString(input + "/dataOrigin").value();
-        origin.copy(desiredData.origin.str, (size_t) desiredData.origin.size);
+        origin.copy(desiredData.origin.str, (size_t)desiredData.origin.size);
 
         std::string description = configFile->getString(input + "/dataDescription").value();
-        description.copy(desiredData.description.str, (size_t) desiredData.description.size);
+        description.copy(desiredData.description.str, (size_t)desiredData.description.size);
 
       } catch (const boost::bad_optional_access&) {
-        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
-                   << " input " << input << " has missing values";
+        LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << " input " << input
+                   << " has missing values";
         continue;
       }
       task.desiredDataSpecs.push_back(desiredData);
 
       // for temporary feature
       if (configFile->getInt(input + "/spawnConverter").value_or(0)) {
-        FairMqInput fairMqInput{
-          OutputSpec{
-            desiredData.origin,
-            desiredData.description,
-            task.subSpec == -1 ? 0 : task.subSpec,
-          },
-          configFile->getString(input + "/channelConfig").value_or(""),
-          configFile->getString(input + "/converterType").value_or("incrementalConverter")
-        };
+        FairMqInput fairMqInput{ OutputSpec{
+                                   desiredData.origin, desiredData.description, task.subSpec == -1 ? 0 : task.subSpec,
+                                 },
+                                 configFile->getString(input + "/channelConfig").value_or(""),
+                                 configFile->getString(input + "/converterType").value_or("incrementalConverter") };
         task.desiredFairMqData.push_back(fairMqInput);
       }
     }
 
     if (task.desiredDataSpecs.empty()) {
-      LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
-                 << " task " << taskName << " has no valid inputs";
+      LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << " task " << taskName
+                 << " has no valid inputs";
       continue;
     }
     tasks.push_back(task);
@@ -231,16 +227,14 @@ InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::st
   InfrastructureConfig cfg;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
-  cfg.enableTimePipeliningDispatchers = static_cast<bool>(
-    configFile->getInt("DataSampling/enableTimePipeliningDispatchers").get_value_or(0));
-  cfg.enableParallelDispatchers = static_cast<bool>(
-    configFile->getInt("DataSampling/enableParallelDispatchers").get_value_or(0));
-  cfg.enableProxy = static_cast<bool>(
-    configFile->getInt("DataSampling/enableProxy").get_value_or(0));
+  cfg.enableTimePipeliningDispatchers =
+    static_cast<bool>(configFile->getInt("DataSampling/enableTimePipeliningDispatchers").get_value_or(0));
+  cfg.enableParallelDispatchers =
+    static_cast<bool>(configFile->getInt("DataSampling/enableParallelDispatchers").get_value_or(0));
+  cfg.enableProxy = static_cast<bool>(configFile->getInt("DataSampling/enableProxy").get_value_or(0));
 
   return cfg;
 }
-
 
 } // namespace framework
 } // namespace o2

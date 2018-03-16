@@ -32,8 +32,6 @@
 #include "Framework/DispatcherFlpProto.h"
 #include "Framework/DataSamplingConfig.h"
 
-
-
 namespace o2
 {
 namespace framework
@@ -49,6 +47,7 @@ using namespace o2::framework::DataSamplingConfig;
 /// inputs/outputs in configuration file.
 ///
 /// In-code usage:
+/// \code{.cxx}
 /// void defineDataProcessing(std::vector<DataProcessorSpec> &workflow)
 /// {
 ///
@@ -58,6 +57,7 @@ using namespace o2::framework::DataSamplingConfig;
 /// DataSampling::GenerateInfrastructure(workflow, configurationFilePath);
 ///
 /// }
+/// \endcode
 
 class DataSampling
 {
@@ -73,11 +73,10 @@ class DataSampling
  private:
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-
   // Internal functions, used by GenerateInfrastructure()
   static auto getEdgeMatcher(const QcTaskConfiguration& taskCfg);
   static std::unique_ptr<Dispatcher> createDispatcher(SubSpecificationType subSpec, const QcTaskConfiguration& taskCfg,
-                                                        InfrastructureConfig infCfg);
+                                                      InfrastructureConfig infCfg);
   static QcTaskConfigurations readQcTasksConfiguration(const std::string& configurationSource);
   static InfrastructureConfig readInfrastructureConfiguration(const std::string& configurationSource);
 };
