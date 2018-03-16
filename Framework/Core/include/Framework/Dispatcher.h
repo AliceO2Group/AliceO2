@@ -44,9 +44,7 @@ class Dispatcher
   /// \brief Constructor.
   Dispatcher(const SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task,
              const InfrastructureConfig& cfg)
-    : mSubSpec(dispatcherSubSpec),
-      mCfg(cfg),
-      mDataProcessorSpec()
+    : mSubSpec(dispatcherSubSpec), mCfg(cfg), mDataProcessorSpec()
   {
     mDataProcessorSpec.name = "Dispatcher" + std::to_string(dispatcherSubSpec) + "_for_" + task.name;
   }
@@ -72,8 +70,7 @@ class Dispatcher
    public:
     BernoulliGenerator(double probabilityOfTrue = 1.0,
                        unsigned int seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count())
-      : mGenerator(seed),
-        mDistribution(probabilityOfTrue){};
+      : mGenerator(seed), mDistribution(probabilityOfTrue){};
     bool drawLots() { return mDistribution(mGenerator); }
 
    private:
@@ -92,12 +89,8 @@ class Dispatcher
       description.str[len + 1] = 'S';
     }
 
-    return OutputSpec{
-      dispatcherInput.origin,
-      description,
-      0,
-      static_cast<OutputSpec::Lifetime>(dispatcherInput.lifetime)
-    };
+    return OutputSpec{ dispatcherInput.origin, description, 0,
+                       static_cast<OutputSpec::Lifetime>(dispatcherInput.lifetime) };
   }
 
  protected:

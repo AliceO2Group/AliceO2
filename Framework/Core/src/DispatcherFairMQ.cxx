@@ -20,12 +20,14 @@
 #include "FairMQTransportFactory.h"
 #include "Framework/SimpleRawDeviceService.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
-DispatcherFairMQ::DispatcherFairMQ(const SubSpecificationType dispatcherSubSpec,
-                                   const QcTaskConfiguration& task,
-                                   const InfrastructureConfig& cfg) : Dispatcher(dispatcherSubSpec, task, cfg)
+DispatcherFairMQ::DispatcherFairMQ(const SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task,
+                                   const InfrastructureConfig& cfg)
+  : Dispatcher(dispatcherSubSpec, task, cfg)
 {
 
   // todo: throw an exception when 'name=' not found?
@@ -33,14 +35,12 @@ DispatcherFairMQ::DispatcherFairMQ(const SubSpecificationType dispatcherSubSpec,
   size_t nameEnd = task.fairMqOutputChannelConfig.find_first_of(',', nameBegin);
   std::string channel = task.fairMqOutputChannelConfig.substr(nameBegin, nameEnd - nameBegin);
 
-  mDataProcessorSpec.algorithm = AlgorithmSpec{
-    [fraction = task.fractionOfDataToSample, channel](InitContext& ctx) {
-      return initCallback(ctx, channel, fraction);
-    }
-  };
-  mDataProcessorSpec.options.push_back({
-      "channel-config", VariantType::String, task.fairMqOutputChannelConfig.c_str(), { "Out-of-band channel config" }
-    });
+  mDataProcessorSpec.algorithm = AlgorithmSpec{[fraction = task.fractionOfDataToSample, channel](InitContext & ctx){
+    return initCallback(ctx, channel, fraction);
+}
+};
+mDataProcessorSpec.options.push_back(
+  { "channel-config", VariantType::String, task.fairMqOutputChannelConfig.c_str(), { "Out-of-band channel config" } });
 }
 
 DispatcherFairMQ::~DispatcherFairMQ() {}

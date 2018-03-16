@@ -15,17 +15,19 @@
 
 #include "Framework/DispatcherDPL.h"
 
-namespace o2 {
-namespace framework {
-
-DispatcherDPL::DispatcherDPL(const SubSpecificationType dispatcherSubSpec,
-                             const QcTaskConfiguration& task,
-                             const InfrastructureConfig& cfg) : Dispatcher(dispatcherSubSpec, task, cfg)
+namespace o2
 {
-  mDataProcessorSpec.algorithm =
-    AlgorithmSpec{[gen = Dispatcher::BernoulliGenerator(task.fractionOfDataToSample)](ProcessingContext& ctx) mutable {
-      processCallback(ctx, gen);
-    }};
+namespace framework
+{
+
+DispatcherDPL::DispatcherDPL(const SubSpecificationType dispatcherSubSpec, const QcTaskConfiguration& task,
+                             const InfrastructureConfig& cfg)
+  : Dispatcher(dispatcherSubSpec, task, cfg)
+{
+  mDataProcessorSpec.algorithm = AlgorithmSpec{[gen = Dispatcher::BernoulliGenerator(task.fractionOfDataToSample)](
+    ProcessingContext & ctx) mutable { processCallback(ctx, gen);
+}
+};
 }
 
 DispatcherDPL::~DispatcherDPL() {}

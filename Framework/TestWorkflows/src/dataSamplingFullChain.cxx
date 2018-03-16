@@ -30,6 +30,7 @@
 ///
 /// To obtain full chain (FMQ Readout -> DPL Data Sampling -> FMQ Quality Control) with default configuration:
 /// - Readout - set following options in Readout/configDummy.cfg file:
+///     \code{.ini}
 ///     ...
 ///     exitTimeout=-1
 ///     ...
@@ -39,10 +40,12 @@
 ///     # which class of datasampling to use (FairInjector, MockInjector)
 ///     class=FairInjector
 ///     ...
+///     \endcode
 ///   And run:
+///   \code{}
 ///   > alienv load Readout/latest
 ///   > readout.exe file:///your/absolute/path/to/Readout/configDummy.cfg
-///
+///   \endcode
 /// - Quality Control - configure Quality Control to subscribe for data at port 26525 (or any other, if you change it
 ///                     in Data Sampling config file). More information on running Quality Control can be found here:
 ///                     https://github.com/AliceO2Group/QualityControl
@@ -51,7 +54,8 @@ using namespace o2::framework;
 
 void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 {
-  std::string configFilePath = std::string("file://") + getenv("O2_ROOT") + "/share/config/dataSamplingFullChainConfig.ini";
+  std::string configFilePath =
+    std::string("file://") + getenv("O2_ROOT") + "/share/config/dataSamplingFullChainConfig.ini";
   LOG(INFO) << "Using config file '" << configFilePath << "'";
 
   DataSampling::GenerateInfrastructure(specs, configFilePath);
