@@ -1110,7 +1110,7 @@ bool MatchTPCITS::refitTrackITSTPC(const TrackLocITS& tITS)
   auto& trfit = mMatchedTracks.back();
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
-  if (mCompareTracksDZ) {
+  if (!mCompareTracksDZ) {
     trfit.setZ(tITS.getZ()); // fix the seed Z
   }
   float deltaT = (trfit.getZ() - tTPC.getZ()) * mZ2TPCBin; // time correction in time-bins

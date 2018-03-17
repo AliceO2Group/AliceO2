@@ -68,7 +68,7 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
   std::array<float, o2::track::kNParams> cutsNSig2 = { 49.f, 49.f, 49.f, 49.f, 49.f };
   matching.setCrudeAbsDiffCut(cutsAbs);
   matching.setCrudeNSigma2Cut(cutsNSig2);
-
+  matching.setTPCTimeEdgeZSafeMargin(3);
   matching.init();
 
   matching.run();
