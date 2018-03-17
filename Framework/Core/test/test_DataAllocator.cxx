@@ -78,6 +78,9 @@ DataProcessorSpec getSourceSpec()
     pc.allocator().snapshot(OutputSpec{ "TST", "ROOTNONTOBJECT", 0, OutputSpec::Timeframe }, b);
     // vector of ROOT serializable class
     pc.allocator().snapshot(OutputSpec{ "TST", "ROOTVECTOR", 0, OutputSpec::Timeframe }, c);
+    // likewise, passed anonymously with char type and class name
+    o2::framework::ROOTSerialized<char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
+    pc.allocator().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC", 0, OutputSpec::Timeframe }, d);
   };
 
   return DataProcessorSpec{ "source", // name of the processor
@@ -85,7 +88,8 @@ DataProcessorSpec getSourceSpec()
                             { OutputSpec{ "TST", "MESSAGEABLE", 0, OutputSpec::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, OutputSpec::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, OutputSpec::Timeframe },
-                              OutputSpec{ "TST", "ROOTVECTOR", 0, OutputSpec::Timeframe } },
+                              OutputSpec{ "TST", "ROOTVECTOR", 0, OutputSpec::Timeframe },
+                              OutputSpec{ "TST", "ROOTSERLZDVEC", 0, OutputSpec::Timeframe } },
                             AlgorithmSpec(processingFct) };
 }
 
@@ -100,27 +104,34 @@ DataProcessorSpec getSinkSpec()
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
     ASSERT_ERROR(*object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    auto object4 = pc.inputs().get<o2::test::TriviallyCopyable>("input4");
-    ASSERT_ERROR(*object4 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    auto object2 = pc.inputs().get<o2::test::TriviallyCopyable>("input2");
+    ASSERT_ERROR(*object2 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    auto object2 = pc.inputs().get<o2::test::Polymorphic>("input2");
-    ASSERT_ERROR(object2 != nullptr);
-    ASSERT_ERROR(*(object2.get()) == o2::test::Polymorphic(0xbeef));
-
-    auto object3 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input3");
+    auto object3 = pc.inputs().get<o2::test::Polymorphic>("input3");
     ASSERT_ERROR(object3 != nullptr);
-    ASSERT_ERROR(object3->size() == 2);
-    ASSERT_ERROR((*object3.get())[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR((*object3.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(*(object3.get()) == o2::test::Polymorphic(0xbeef));
+
+    auto object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
+    ASSERT_ERROR(object4 != nullptr);
+    ASSERT_ERROR(object4->size() == 2);
+    ASSERT_ERROR((*object4.get())[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR((*object4.get())[1] == o2::test::Polymorphic(0xd00f));
+
+    auto object5 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input5");
+    ASSERT_ERROR(object5 != nullptr);
+    ASSERT_ERROR(object5->size() == 2);
+    ASSERT_ERROR((*object5.get())[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR((*object5.get())[1] == o2::test::Polymorphic(0xd00f));
 
     pc.services().get<ControlService>().readyToQuit(true);
   };
 
   return DataProcessorSpec{ "sink", // name of the processor
                             { InputSpec{ "input1", "TST", "MESSAGEABLE", 0, InputSpec::Timeframe },
-                              InputSpec{ "input4", "TST", "MSGBLEROOTSRLZ", 0, InputSpec::Timeframe },
-                              InputSpec{ "input2", "TST", "ROOTNONTOBJECT", 0, InputSpec::Timeframe },
-                              InputSpec{ "input3", "TST", "ROOTVECTOR", 0, InputSpec::Timeframe } },
+                              InputSpec{ "input2", "TST", "MSGBLEROOTSRLZ", 0, InputSpec::Timeframe },
+                              InputSpec{ "input3", "TST", "ROOTNONTOBJECT", 0, InputSpec::Timeframe },
+                              InputSpec{ "input4", "TST", "ROOTVECTOR", 0, InputSpec::Timeframe },
+                              InputSpec{ "input5", "TST", "ROOTSERLZDVEC", 0, InputSpec::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }

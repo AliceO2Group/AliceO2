@@ -177,9 +177,22 @@ public:
   {
     using T = typename W::wrapped_type;
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
-    auto* cl = TClass::GetClass(typeid(T));
+    TClass* cl = nullptr;
+    if (wrapper.getName().empty()) {
+      // get TClass info by wrapped type
+      cl = TClass::GetClass(typeid(T));
+    } else {
+      // get TClass info by optional name
+      cl = TClass::GetClass(wrapper.getName().c_str());
+    }
     if (has_root_dictionary<T>::value == false && cl == nullptr) {
-      throw std::runtime_error("ROOT serialization not supported, dictionary not found for data type");
+      std::string msg("ROOT serialization not supported, dictionary not found for type ");
+      if (!wrapper.getName().empty()) {
+        msg += wrapper.getName();
+      } else {
+        msg += typeid(T).name();
+      }
+      throw std::runtime_error(msg);
     }
     mDevice->Serialize<TMessageSerializer>(*payloadMessage, &wrapper(), cl);
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
