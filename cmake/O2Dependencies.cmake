@@ -1583,8 +1583,10 @@ o2_define_bucket(
 
     DEPENDENCIES
     Boost::serialization
+    common_math_bucket
 
     INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/MUON/MID/include
 )
 
@@ -1593,11 +1595,8 @@ o2_define_bucket(
     mid_base_bucket
 
     DEPENDENCIES
-    common_math_bucket
     data_format_mid_bucket
-
-    INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    DataFormatsMID
 )
 
 o2_define_bucket(
