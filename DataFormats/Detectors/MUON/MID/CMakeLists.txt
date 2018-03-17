@@ -8,6 +8,7 @@ set(SRCS
 
 set(NO_DICT_HEADERS
   include/${MODULE_NAME}/Cluster2D.h
+  include/${MODULE_NAME}/Cluster3D.h
   include/${MODULE_NAME}/StripPattern.h
   include/${MODULE_NAME}/Track.h
 )

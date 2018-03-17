@@ -1642,3 +1642,31 @@ o2_define_bucket(
     DEPENDENCIES
     MIDBase
 )
+
+o2_define_bucket(
+    NAME
+    mid_tracking_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    MIDBase
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/TestingSimTools/include
+)
+
+o2_define_bucket(
+    NAME
+    mid_tracking_test_bucket
+
+    DEPENDENCIES
+    Boost::unit_test_framework
+    $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
+    mid_tracking_bucket
+    mid_testingSimTools_bucket
+    MIDTracking
+    MIDTestingSimTools
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Tracking/src
+)
