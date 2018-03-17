@@ -14,6 +14,7 @@
 /// @brief Type wrappers for enfording a specific serialization method
 
 #include "Framework/TypeTraits.h"
+#include "string"
 
 namespace o2
 {
@@ -40,13 +41,16 @@ class ROOTSerialized
   using non_messageable = o2::framework::MarkAsNonMessageable;
   using wrapped_type = T;
   ROOTSerialized() = delete;
-  ROOTSerialized(wrapped_type& ref) : mRef(ref) {}
+  ROOTSerialized(wrapped_type& ref, const char* refName = "") : mRef(ref), mRefName(refName) {}
 
   T& operator()() { return mRef; }
   T const& operator()() const { return mRef; }
 
+  const std::string& getName() const { return mRefName; }
+
  private:
   wrapped_type& mRef;
+  std::string mRefName; // optional name of the ref type
 };
 }
 }
