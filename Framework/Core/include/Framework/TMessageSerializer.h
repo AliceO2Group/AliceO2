@@ -59,7 +59,8 @@ struct TMessageSerializer {
                         CacheStreamers streamers = CacheStreamers::no,        //
                         CompressionLevel compressionLevel = -1);
 
-  static void Deserialize(const FairMQMessage& msg, std::unique_ptr<TObject>& output);
+  template <typename T = TObject>
+  static void Deserialize(const FairMQMessage& msg, std::unique_ptr<T>& output);
 
   static void serialize(FairTMessage& msg, const TObject* input,
                         CacheStreamers streamers = CacheStreamers::no,
@@ -69,7 +70,11 @@ struct TMessageSerializer {
   static void serialize(FairTMessage& msg, const T* input,                               //
                         const TClass* cl, CacheStreamers streamers = CacheStreamers::no, //
                         CompressionLevel compressionLevel = -1);
-  static std::unique_ptr<TObject> deserialize(gsl::span<byte> buffer);
+
+  template <typename T = TObject>
+  static std::unique_ptr<T> deserialize(gsl::span<byte> buffer);
+  template <typename T = TObject>
+  static inline std::unique_ptr<T> deserialize(byte* buffer, size_t size);
 
   // load the schema information from a message/buffer
   static void loadSchema(const FairMQMessage& msg);
@@ -127,10 +132,38 @@ inline void TMessageSerializer::serialize(FairTMessage& tm, const T* input,     
   }
 }
 
-inline std::unique_ptr<TObject> TMessageSerializer::deserialize(gsl::span<byte> buffer)
+template <typename T>
+inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<byte> buffer)
 {
+  TClass* tgtClass = TClass::GetClass(typeid(T));
+  if (tgtClass == nullptr) {
+    std::string error("class is not ROOT-serializable: ");
+    error += typeid(T).name();
+    throw std::runtime_error(error);
+  }
+  // FIXME: we need to add consistency check for buffer data to be serialized
+  // at the moment, TMessage might simply crash if an invalid or inconsistent
+  // buffer is provided
   FairTMessage tm(buffer);
-  return std::unique_ptr<TObject>(reinterpret_cast<TObject*>(tm.ReadObject(tm.GetClass())));
+  TClass* serializedClass = tm.GetClass();
+  if (serializedClass == nullptr) {
+    std::string error("can not read class info from buffer");
+    throw std::runtime_error(error);
+  }
+  if (tgtClass != serializedClass && serializedClass->GetBaseClass(tgtClass) == nullptr) {
+    std::string error("can not convert serialized class ");
+    error += tm.GetClass()->GetName();
+    error += " into target class ";
+    error += tgtClass->GetName();
+    throw std::runtime_error(error);
+  }
+  return std::unique_ptr<T>(reinterpret_cast<T*>(tm.ReadObjectAny(serializedClass)));
+}
+
+template <typename T>
+inline std::unique_ptr<T> TMessageSerializer::deserialize(byte* buffer, size_t size)
+{
+  return deserialize<T>(gsl::span<byte>(buffer, gsl::narrow<gsl::span<byte>::index_type>(size)));
 }
 
 inline void FairTMessage::free(void* /*data*/, void* hint)
@@ -165,7 +198,8 @@ inline void TMessageSerializer::Serialize(FairMQMessage& msg, const T* input,   
   tm.release();
 }
 
-inline void TMessageSerializer::Deserialize(const FairMQMessage& msg, std::unique_ptr<TObject>& output)
+template <typename T>
+inline void TMessageSerializer::Deserialize(const FairMQMessage& msg, std::unique_ptr<T>& output)
 {
   // we know the message will not be modified by this,
   // so const_cast should be OK here(IMHO).
