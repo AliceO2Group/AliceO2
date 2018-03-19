@@ -41,8 +41,14 @@ struct Line final {
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
+  
+  // Debug purpose only
+  int originID;
+  int destinID;
+  //
 
   std::array<float, 3> originPoint;
+  std::array<float, 3> destinationPoint;
   std::array<float, 3> cosinesDirector;
   std::array<float, 6> weightMatrix;
   // weightMatrix is a symmetric matrix internally stored as

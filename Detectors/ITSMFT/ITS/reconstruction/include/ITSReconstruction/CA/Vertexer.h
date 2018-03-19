@@ -85,6 +85,11 @@ class Vertexer
   std::uint32_t mROFrame = 0;
   std::vector<Line> mTracklets;
   std::vector<ClusterLines> mTrackletClusters;
+  std::vector<std::vector<float>> mDCAMatrix;
+
+  // Debug data structures
+  // std::vector<std::array<int, 3>> mTriplets;
+  std::vector<float> mZProjections;
 };
 
 } // namespace CA

@@ -1,10 +1,21 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+<<<<<<< HEAD
 
+=======
+#include <TFile.h>
+#include <TCanvas.h>
+#include <TChain.h>
+#include <TTree.h>
+#include <TNtuple.h>
+#include <TH1I.h>
+#include <TGeoGlobalMagField.h>
+>>>>>>> 9b9e32fcc... Fix DCA and improve algorithm
 #include <string>
 #include <array>
 #include <vector>
 #include <cmath>
 #include <sstream>
+<<<<<<< HEAD
 
 #include <TChain.h>
 #include <TFile.h>
@@ -12,6 +23,8 @@
 #include <TNtuple.h>
 #include <TGeoGlobalMagField.h>
 
+=======
+>>>>>>> 9b9e32fcc... Fix DCA and improve algorithm
 #include <FairLogger.h>
 #include "FairRunAna.h"
 #include "FairRuntimeDb.h"
@@ -24,9 +37,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsITSMFT/Cluster.h"
-
 #include "Field/MagneticField.h"
-
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/CA/Event.h"
 #include "ITSReconstruction/CA/IOUtils.h"
