@@ -38,11 +38,16 @@ class Vertexer
 
   void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                   const int clusterContributorsCut);
-  void computeTriplets();
-  void checkTriplets();
+  // void computeTriplets();
+  // void checkTriplets();
   void findTracklets();
   void findVertices();
-  inline std::vector<std::array<float, 3>> getVertices() { return mVertices; };
+  void generateTracklets();
+  // inline std::vector<std::array<int, 3>> getTriplets() { return mTriplets; }
+  inline std::vector<Line> getTracklets() { return mTracklets; }
+  inline std::vector<std::array<float, 3>> getVertices() { return mVertices; }
+  inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() { return mClusters; }
+  inline std::vector<float> getZProjections() { return mZProjections; }
   void printIndexTables();
   void printVertices();
 
@@ -60,18 +65,23 @@ class Vertexer
   std::array<float, 3> mAverageClustersRadii;
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
   float mZBinSize;
-  std::vector<std::pair<int, int>> mClustersToProcessInner;
-  std::vector<std::pair<int, int>> mClustersToProcessOuter;
+  // std::vector<std::pair<int, int>> mClustersToProcessInner;
+  // std::vector<std::pair<int, int>> mClustersToProcessOuter;
   Event mEvent;
   std::vector<std::array<float, 3>> mVertices;
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
     mIndexTables;
-  std::vector<std::array<int, 3>> mTriplets;
+  
   std::vector<bool> mUsedTracklets;
   std::vector<Line> mTracklets;
   std::vector<ClusterLines> mTrackletClusters;
+  std::vector<std::vector<float>> mDCAMatrix;
+
+  // Debug data structures
+  // std::vector<std::array<int, 3>> mTriplets;
+  std::vector<float> mZProjections;
 };
 
 } // namespace CA

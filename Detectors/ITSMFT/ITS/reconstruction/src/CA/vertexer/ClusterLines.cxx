@@ -23,8 +23,9 @@ Line::Line() : originPoint{}, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1.
   // Nothing to do
 }
 
-Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
-  : originPoint{ firstPoint }, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
+Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, const int idorigin, const int iddestination)
+  : originPoint{ firstPoint }, destinationPoint { secondPoint }, originID {idorigin}, destinID{iddestination}, 
+    weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
 {
   for (int index{ 0 }; index < 3; ++index)
     cosinesDirector[index] = secondPoint[index] - firstPoint[index];
@@ -61,55 +62,35 @@ bool Line::areParallel(const Line& firstLine, const Line& secondLine, const floa
 }
 
 float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
-{
-  if (areParallel(firstLine, secondLine)) {
-    float squaredOriginsDistance{ 0 }, projectionOnFirstVector{ 0 }, normFirstVector{ 0 };
-    for (int i{ 0 }; i < 3; ++i) {
-      squaredOriginsDistance +=
-        (firstLine.originPoint[i] - secondLine.originPoint[i]) * (firstLine.originPoint[i] - secondLine.originPoint[i]);
-      projectionOnFirstVector += (firstLine.originPoint[i] - secondLine.originPoint[i]) * firstLine.cosinesDirector[i];
-      normFirstVector += firstLine.cosinesDirector[i] * firstLine.cosinesDirector[i];
-    }
+{ 
+  std::array<float, 3> normalVector;
+  normalVector[0] = firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] - firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1];
+  normalVector[1] = -firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] + firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0];
+  normalVector[2] = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] - firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
 
-    if (std::abs(normFirstVector) > precision) {
-      projectionOnFirstVector /= normFirstVector;
-      return std::sqrt(squaredOriginsDistance - projectionOnFirstVector * projectionOnFirstVector);
-    } else {
-      return -1;
-    }
+  float norm { 0.f }, distance { 0.f };
+  for ( int i { 0 }; i < 3; ++i ) {
+    norm += normalVector[i] * normalVector[i];
+    distance += (secondLine.originPoint[i] - firstLine.originPoint[i]) * normalVector[i];
+  }
+  if ( norm > precision ) {
+    return std::abs( distance / std::sqrt(norm) );
   } else {
-    std::array<float, 3> perpendicularVector{};
-    perpendicularVector[0] = firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
-                             firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1];
-    perpendicularVector[1] = -firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
-                             firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0];
-    perpendicularVector[2] = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
-                             firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
-
-    float normFirstVector{ 0 }, distance{ 0 };
-    for (int i{ 0 }; i < 3; ++i) {
-      normFirstVector += perpendicularVector[i] * perpendicularVector[i];
-      distance += (firstLine.originPoint[i] - secondLine.originPoint[i]) * perpendicularVector[i];
-    }
-    if (std::abs(normFirstVector) > precision) {
-      return std::abs(distance / std::sqrt(normFirstVector));
-    } else
-      return -1;
+    return getDistanceFromPoint( firstLine, secondLine.originPoint );
   }
 }
 
 float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3> point)
 {
-  Line tmpLine{};
-  tmpLine.originPoint = point;
-  for (int index{ 0 }; index < 3; ++index)
-    tmpLine.cosinesDirector[index] = line.cosinesDirector[index];
-  float inverseNorm{ 1.f / std::sqrt(tmpLine.cosinesDirector[0] * tmpLine.cosinesDirector[0] +
-                                     tmpLine.cosinesDirector[1] * tmpLine.cosinesDirector[1] +
-                                     tmpLine.cosinesDirector[2] * tmpLine.cosinesDirector[2]) };
-  for (int index{ 0 }; index < 3; ++index)
-    tmpLine.cosinesDirector[index] *= inverseNorm;
-  return getDCA(line, tmpLine);
+  float DCASquared { 0 };
+  float cdelta { 0 };
+  for ( int i{ 0 }; i < 3; ++i )
+    cdelta -= line.cosinesDirector[i]*( line.originPoint[i] - point[i] );
+  for ( int i{ 0 }; i < 3; ++i ) {
+    DCASquared += ( line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta ) *
+           ( line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta );
+  }
+  return std::sqrt(DCASquared);
 }
 
 ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,

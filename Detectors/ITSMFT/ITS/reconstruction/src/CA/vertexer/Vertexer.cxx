@@ -90,13 +90,14 @@ void Vertexer::initialise(const float zCut, const float phiCut, const float pair
     }
   }
 
-  mZCut = zCut;
-  mPhiCut = phiCut;
+  mZCut = zCut > Constants::ITS::LayersZCoordinate()[0] ? LayersZCoordinate()[0] : zCut;
+  mPhiCut = phiCut > TwoPi ? TwoPi : phiCut;
   mPairCut = pairCut;
   mClusterCut = clusterCut;
   mClusterContributorsCut = clusterContributorsCut;
   mPhiSpan = static_cast<int>(std::ceil(PhiBins * mPhiCut / TwoPi));
   mZSpan = static_cast<int>(std::ceil(mZCut * Constants::IndexTable::InverseZBinSize()[0]));
+  std::cout<<"phispan: "<<mPhiSpan<<" zspan: "<<mZSpan<<std::endl;
   mVertexerInitialised = true;
 }
 
@@ -125,23 +126,24 @@ const std::vector<std::pair<int, int>> Vertexer::selectClusters(const std::array
   for (int iPhiBin{ selectedBinsRect[1] }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
        iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
     const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect[0], iPhiBin) };
-    filteredBins.emplace_back(
-      indexTable[firstBinIndex],
+    filteredBins.emplace_back( indexTable[firstBinIndex],
       IndexTableUtils::countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));
   }
   return filteredBins;
 }
 
-void Vertexer::computeTriplets()
+/* Deprecating void Vertexer::computeTriplets()
 {
   if (mVertexerInitialised) {
     // std::chrono::time_point<std::chrono::system_clock> start, end;
     // start = std::chrono::system_clock::now();
 
+    std::vector<std::pair<int, int>> clusters0;
+    std::vector<std::pair<int, int>> clusters2;
+
     for (int iBin1{ 0 }; iBin1 < ZBins * PhiBins; ++iBin1) {
 
-      int ZBinLow0{ std::max(0, ZBins - static_cast<int>(std::ceil((ZBins - iBin1 % ZBins + 1) *
-                                                                   (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii10))) };
+      int ZBinLow0{ std::max(0, ZBins - static_cast<int>(std::ceil((ZBins - iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii10))) };
       int ZBinHigh0{ std::min(
         static_cast<int>(std::ceil((iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
         ZBins - 1) };
@@ -151,15 +153,14 @@ void Vertexer::computeTriplets()
 
       int PhiBin1{ static_cast<int>(iBin1 / ZBins) };
 
-      mClustersToProcessInner = selectClusters(
+      clusters0 = selectClusters(
         mIndexTables[0],
         std::array<int, 4>{ ZBinLow0, (PhiBin1 - mPhiSpan < 0) ? PhiBins + (PhiBin1 - mPhiSpan) : PhiBin1 - mPhiSpan,
-                            ZBinHigh0,
-                            (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
+                            ZBinHigh0, (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
       for (int iCluster1{ mIndexTables[1][iBin1] }; iCluster1 < mIndexTables[1][iBin1 + 1]; ++iCluster1) {
-        for (int iRow0{ 0 }; iRow0 < mClustersToProcessInner.size(); ++iRow0) {
-          for (int iCluster0{ std::get<0>(mClustersToProcessInner[iRow0]) };
-               iCluster0 < std::get<0>(mClustersToProcessInner[iRow0]) + std::get<1>(mClustersToProcessInner[iRow0]);
+        for (int iRow0{ 0 }; iRow0 < clusters0.size(); ++iRow0) {
+          for (int iCluster0{ std::get<0>(clusters0[iRow0]) };
+               iCluster0 < std::get<0>(clusters0[iRow0]) + std::get<1>(clusters0[iRow0]);
                ++iCluster0) {
 
             if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mPhiCut) {
@@ -171,26 +172,23 @@ void Vertexer::computeTriplets()
               if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mZCut))
                 continue;
 
-              int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0])
-                                    ? 0
-                                    : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1
-                                                                             : getZBinIndex(2, ZProjection) };
+              int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0]) ? 0 : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1 : getZBinIndex(2, ZProjection) };
 
-              int lowestZOuterBin{ (ZProjectionBin - mZSpan < 0) ? 0 : ZProjectionBin - mZSpan };
-              int highestZOuterBin{ (ZProjectionBin + mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mZSpan };
-              // int lowestZOuterBin  { 0 };
-              // int highestZOuterBin  { ZBins - 1 };
+              int ZBinLow2{ (ZProjectionBin - mZSpan < 0) ? 0 : ZProjectionBin - mZSpan };
+              int ZBinHigh2{ (ZProjectionBin + mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mZSpan };
+              // int ZBinLow2  { 0 };
+              // int ZBinHigh2  { ZBins - 1 };
 
               int PhiBinLow2{ (PhiBin1 - mPhiSpan < 0) ? PhiBins + PhiBin1 - mPhiSpan : PhiBin1 - mPhiSpan };
               int PhiBinHigh2{ (PhiBin1 + mPhiSpan > PhiBins - 1) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan };
 
-              mClustersToProcessOuter = selectClusters(
-                mIndexTables[2], std::array<int, 4>{ lowestZOuterBin, PhiBinLow2, highestZOuterBin, PhiBinHigh2 });
+              clusters2 = selectClusters(
+                mIndexTables[2], std::array<int, 4>{ ZBinLow2, PhiBinLow2, ZBinHigh2, PhiBinHigh2 });
               bool trackFound = false;
-              for (int iRow2{ 0 }; iRow2 < mClustersToProcessOuter.size(); ++iRow2) {
-                for (int iCluster2{ std::get<0>(mClustersToProcessOuter[iRow2]) };
+              for (int iRow2{ 0 }; iRow2 < clusters2.size(); ++iRow2) {
+                for (int iCluster2{ std::get<0>(clusters2[iRow2]) };
                      iCluster2 <
-                     std::get<0>(mClustersToProcessOuter[iRow2]) + std::get<1>(mClustersToProcessOuter[iRow2]);
+                     std::get<0>(clusters2[iRow2]) + std::get<1>(clusters2[iRow2]);
                      ++iCluster2) {
                   if ((std::abs(std::abs(mClusters[2][iCluster2].zCoordinate) - std::abs(ZProjection)) < mZCut) &&
                       std::abs(std::abs(mClusters[2][iCluster2].phiCoordinate) -
@@ -213,7 +211,7 @@ void Vertexer::computeTriplets()
     // std::cout << "Finished computation at " << std::ctime(&end_time) << "elapsed time: " << elapsed_milliseconds
     //           << "ms\n";
   }
-}
+} */
 
 void Vertexer::findTracklets()
 {
@@ -221,12 +219,14 @@ void Vertexer::findTracklets()
     // std::chrono::time_point<std::chrono::system_clock> start, end;
     // start = std::chrono::system_clock::now();
 
+    std::vector<std::pair<int, int>> clusters0;
+    std::vector<std::pair<int, int>> clusters2;
+
     for (int iBin1{ 0 }; iBin1 < ZBins * PhiBins; ++iBin1) {
 
       int ZBinLow0{ std::max(0, ZBins - static_cast<int>(std::ceil((ZBins - iBin1 % ZBins + 1) *
                                                                    (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii10))) };
-      int ZBinHigh0{ std::min(
-        static_cast<int>(std::ceil((iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
+      int ZBinHigh0{ std::min( static_cast<int>(std::ceil((iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
         ZBins - 1) };
 
       // int ZBinLow0 { 0 };
@@ -234,17 +234,13 @@ void Vertexer::findTracklets()
 
       int PhiBin1{ static_cast<int>(iBin1 / ZBins) };
 
-      mClustersToProcessInner = selectClusters(
-        mIndexTables[0],
-        std::array<int, 4>{ ZBinLow0, (PhiBin1 - mPhiSpan < 0) ? PhiBins + (PhiBin1 - mPhiSpan) : PhiBin1 - mPhiSpan,
-                            ZBinHigh0,
-                            (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
+      clusters0 = selectClusters( mIndexTables[0], 
+        std::array<int, 4>{ ZBinLow0, (PhiBin1 - mPhiSpan < 0) ? PhiBins + (PhiBin1 - mPhiSpan) : PhiBin1 - mPhiSpan, 
+        ZBinHigh0, (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
 
       for (int iCluster1{ mIndexTables[1][iBin1] }; iCluster1 < mIndexTables[1][iBin1 + 1]; ++iCluster1) {
-        for (int iRow0{ 0 }; iRow0 < mClustersToProcessInner.size(); ++iRow0) {
-          for (int iCluster0{ std::get<0>(mClustersToProcessInner[iRow0]) };
-               iCluster0 < std::get<0>(mClustersToProcessInner[iRow0]) + std::get<1>(mClustersToProcessInner[iRow0]);
-               ++iCluster0) {
+        for (int iRow0{ 0 }; iRow0 < clusters0.size(); ++iRow0) {
+          for (int iCluster0{ std::get<0>(clusters0[iRow0]) }; iCluster0 < std::get<0>(clusters0[iRow0]) + std::get<1>(clusters0[iRow0]); ++iCluster0) {
 
             if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mPhiCut) {
 
@@ -254,33 +250,31 @@ void Vertexer::findTracklets()
 
               if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mZCut))
                 continue;
-
               int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0]) ? 0 : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1 : getZBinIndex(2, ZProjection) };
+              int ZBinLow2{ (ZProjectionBin - mZSpan < 0) ? 0 : ZProjectionBin - mZSpan };
+              int ZBinHigh2{ (ZProjectionBin + mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mZSpan };
+              
+              // int ZBinLow2  { 0 };
+              // int ZBinHigh2  { ZBins - 1 };
 
-              int lowestZOuterBin{ (ZProjectionBin - mZSpan < 0) ? 0 : ZProjectionBin - mZSpan };
-              int highestZOuterBin{ (ZProjectionBin + mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mZSpan };
-              // int lowestZOuterBin  { 0 };
-              // int highestZOuterBin  { ZBins - 1 };
-
-              int PhiBinLow2{ (PhiBin1 - mPhiSpan < 0) ? PhiBins + PhiBin1 - mPhiSpan : PhiBin1 - mPhiSpan };
+              int PhiBinLow2{ (PhiBin1 - mPhiSpan < 0) ? PhiBins + PhiBin1 - mPhiSpan : PhiBin1 - mPhiSpan };       
               int PhiBinHigh2{ (PhiBin1 + mPhiSpan > PhiBins - 1) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan };
-
-              mClustersToProcessOuter = selectClusters(
-                mIndexTables[2], std::array<int, 4>{ lowestZOuterBin, PhiBinLow2, highestZOuterBin, PhiBinHigh2 });
+              mZProjections.push_back(PhiBinHigh2);
+              clusters2 = selectClusters(
+                mIndexTables[2], std::array<int, 4>{ ZBinLow2, PhiBinLow2, ZBinHigh2, PhiBinHigh2 });
               bool trackFound = false;
-              for (int iRow2{ 0 }; iRow2 < mClustersToProcessOuter.size(); ++iRow2) {
-                for (int iCluster2{ std::get<0>(mClustersToProcessOuter[iRow2]) };
-                     iCluster2 <
-                     std::get<0>(mClustersToProcessOuter[iRow2]) + std::get<1>(mClustersToProcessOuter[iRow2]);
-                     ++iCluster2) {
-                  if ((std::abs(std::abs(mClusters[2][iCluster2].zCoordinate) - std::abs(ZProjection)) < mZCut) &&
-                      std::abs(std::abs(mClusters[2][iCluster2].phiCoordinate) -
-                               std::abs(mClusters[1][iCluster1].phiCoordinate)) < mPhiCut) {
+              for (int iRow2{ 0 }; iRow2 < clusters2.size(); ++iRow2) {
+                for (int iCluster2{ std::get<0>(clusters2[iRow2]) };
+                     iCluster2 < std::get<0>(clusters2[iRow2]) + std::get<1>(clusters2[iRow2]); ++iCluster2) {
+                  if ( /* std::abs(std::abs(mClusters[2][iCluster2].zCoordinate) - std::abs(ZProjection)) < mZCut &&*/
+                       std::abs(std::abs(mClusters[2][iCluster2].phiCoordinate) - std::abs(mClusters[1][iCluster1].phiCoordinate)) < mPhiCut) {
                     mTracklets.emplace_back(Line{
                       std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
                                             mClusters[0][iCluster0].zCoordinate },
                       std::array<float, 3>{ mClusters[1][iCluster1].xCoordinate, mClusters[1][iCluster1].yCoordinate,
-                                            mClusters[1][iCluster1].zCoordinate } });
+                                            mClusters[1][iCluster1].zCoordinate },
+                                            mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID(),
+                                            mEvent.getLayer(1).getClusterLabel(mClusters[1][iCluster1].clusterId).getTrackID()});
                     trackFound = true;
                     break;
                   }
@@ -302,7 +296,26 @@ void Vertexer::findTracklets()
   }
 }
 
-void Vertexer::checkTriplets()
+void Vertexer::generateTracklets()
+{ // brute force, for testing
+  // std::pair<int, int> truthMap;
+  for ( auto cluster0 : mClusters[0] ) {
+    for ( auto cluster1 : mClusters[1] ) {
+      if ( (mEvent.getLayer(0).getClusterLabel(cluster0.clusterId).getTrackID() ==
+            mEvent.getLayer(1).getClusterLabel(cluster1.clusterId).getTrackID()) &&
+            std::abs(cluster0.phiCoordinate - cluster1.phiCoordinate) < mPhiCut
+         ) {
+            mTracklets.emplace_back( Line{ std::array<float, 3> { cluster0.xCoordinate, cluster0.yCoordinate, cluster0.zCoordinate },
+               std::array<float, 3> { cluster1.xCoordinate, cluster1.yCoordinate, cluster1.zCoordinate },
+               mEvent.getLayer(0).getClusterLabel(cluster0.clusterId).getTrackID(),
+               mEvent.getLayer(1).getClusterLabel(cluster1.clusterId).getTrackID()} );
+      }
+    }
+  }
+  mTrackletsFound = true;
+}
+
+/* DEPRECATING void Vertexer::checkTriplets()
 {
   std::cout << "Triplets found: " << mTriplets.size() << std::endl;
   std::cout << "Tracklets found: " << mTracklets.size() << std::endl;
@@ -322,7 +335,7 @@ void Vertexer::checkTriplets()
 
   std::cout << "good: " << good << "\tbad: " << bad << "\tratio: " << std::setprecision(4)
             << 100 * (float)good / (good + bad) << "%" << std::endl;
-}
+} */
 
 void Vertexer::findVertices()
 {
