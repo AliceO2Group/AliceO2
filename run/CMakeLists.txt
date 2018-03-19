@@ -32,6 +32,11 @@ endforeach (_file RANGE 0 ${_length})
 if (HAVESIMULATION)
   add_test(NAME o2sim_G4 COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4)
   set_tests_properties(o2sim_G4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
+  # o2sim_G4_mt
+  add_test(NAME o2sim_G4_mt COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 10 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 --isMT on)
+  set_tests_properties(o2sim_G4_mt PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
+  set_tests_properties(o2sim_G4_mt PROPERTIES ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR})
+  #
   add_test(NAME checksimkinematics_G4
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C)
