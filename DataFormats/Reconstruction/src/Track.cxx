@@ -16,9 +16,6 @@ using o2::track::TrackPar;
 using o2::track::TrackParCov;
 using namespace o2::constants::math;
 
-ClassImp(o2::track::TrackParCov);
-ClassImp(o2::track::TrackPar);
-
 //______________________________________________________________
 TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, int charge, bool sectorAlpha)
   : mX{ 0.f }, mAlpha{ 0.f }, mP{ 0.f }

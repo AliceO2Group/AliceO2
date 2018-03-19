@@ -18,9 +18,7 @@
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITS/TrackITS.h"
 
-ClassImp(o2::ITS::TrackITS)
-
-  using namespace o2::ITSMFT;
+using namespace o2::ITSMFT;
 using namespace o2::ITS;
 using namespace o2::constants::math;
 using namespace o2::track;
