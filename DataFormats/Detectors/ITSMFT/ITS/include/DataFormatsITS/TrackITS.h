@@ -75,7 +75,7 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov mParamOut;               /// parameter at largest radius
   std::array<Int_t, MaxClusters> mIndex = { -1 }; ///< Indices of associated clusters
 
-  ClassDef(TrackITS, 2)
+  ClassDefNV(TrackITS, 2)
 };
 }
 }
