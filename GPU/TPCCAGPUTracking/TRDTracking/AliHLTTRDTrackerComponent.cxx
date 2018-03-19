@@ -256,102 +256,98 @@ int AliHLTTRDTrackerComponent::DoEvent
 
   int nBlocks = evtData.fBlockCnt;
 
+  AliHLTTracksData *tpcData = NULL;
+  AliHLTTracksData *itsData = NULL;
+  AliHLTTrackMCData *tpcDataMC = NULL;
+
   std::vector< AliExternalTrackParam > tracksTPC;
   std::vector< int > tracksTPCLab;
   std::vector< int > tracksTPCId;
-  std::vector< int > tracksITSId;
 
   int nTrackletsTotal = 0;
   AliHLTTRDTrackletWord *tracklets = NULL;
 
-
-  for (int ndx=0; ndx<nBlocks && iResult>=0; ndx++) {
-
-    const AliHLTComponentBlockData* iter = blocks+ndx;
-
-    // Look for (and store if present) MC information
-
-    std::map<int,int> mcLabels; // mapping of TPC track ID <-> MC track label
-    for (const AliHLTComponentBlockData *pBlock = GetFirstInputBlock(kAliHLTDataTypeTrackMC|kAliHLTDataOriginTPC); pBlock != 0x0; pBlock = GetNextInputBlock()) {
-      AliHLTTrackMCData *dataPtr = reinterpret_cast<AliHLTTrackMCData*>( pBlock->fPtr );
-      if (sizeof(AliHLTTrackMCData) + dataPtr->fCount * sizeof(AliHLTTrackMCLabel) == pBlock->fSize) {
-        for (unsigned int il=0; il < dataPtr->fCount; ++il) {
-          AliHLTTrackMCLabel &lab = dataPtr->fLabels[il];
-          mcLabels[lab.fTrackID] = lab.fMCLabel;
-        }
-      }
-      else {
-        HLTWarning("data mismatch in block %s (0x%08x): count %d, size %d -> ignoring track MC information", DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification, dataPtr->fCount, pBlock->fSize);
-      }
-      fBenchmark.AddInput(pBlock->fSize);
+  for (int iBlock = 0; iBlock < nBlocks; iBlock++) {
+    if (blocks[iBlock].fDataType == (kAliHLTDataTypeTrack | kAliHLTDataOriginITS) && fRequireITStrack) {
+      itsData = (AliHLTTracksData*) blocks[iBlock].fPtr;
+      fBenchmark.AddInput(blocks[iBlock].fSize);
     }
+    else if (blocks[iBlock].fDataType == (AliHLTTPCDefinitions::TracksOuterDataType() | kAliHLTDataOriginTPC)) {
+      tpcData = (AliHLTTracksData*) blocks[iBlock].fPtr;
+      fBenchmark.AddInput(blocks[iBlock].fSize);
+    }
+    else if (blocks[iBlock].fDataType == (kAliHLTDataTypeTrackMC|kAliHLTDataOriginTPC)) {
+      tpcDataMC = (AliHLTTrackMCData*) blocks[iBlock].fPtr;
+      fBenchmark.AddInput(blocks[iBlock].fSize);
+    }
+    else if (blocks[iBlock].fDataType == (AliHLTTRDDefinitions::fgkTRDTrackletDataType)) {
+      tracklets = reinterpret_cast<AliHLTTRDTrackletWord*>( blocks[iBlock].fPtr );
+      nTrackletsTotal = blocks[iBlock].fSize / sizeof(AliHLTTRDTrackletWord);
+      fBenchmark.AddInput(blocks[iBlock].fSize);
+    }
+  }
 
+  if (tpcData == NULL) {
+    HLTError("did not receive any TPC tracks. Skipping event");
+    return 0;
+  }
 
+  if (nTrackletsTotal == 0) {
+    HLTError("did not receive any TRD tracklets. Skipping event");
+    return 0;
+  }
 
-    // Read ITS tracks and store only the track IDs
-
-    if( iter->fDataType == ( kAliHLTDataTypeTrack|kAliHLTDataOriginITS ) ){
-      AliHLTTracksData* dataPtr = ( AliHLTTracksData* ) iter->fPtr;
-      int nTracks = dataPtr->fCount;
-      AliHLTExternalTrackParam* currOutTrack = dataPtr->fTracklets;
-      for( int itr=0; itr<nTracks; itr++ ){
-        if (currOutTrack->fNPoints >= 2) {
-	        tracksITSId.push_back( currOutTrack->fTrackID );
-        }
-	      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
-	      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+  int nTPCtracks = tpcData->fCount;
+  std::vector<bool> itsAvail(nTPCtracks);
+  for (int iTrkTPC = 0; iTrkTPC < nTPCtracks; iTrkTPC++) {
+    itsAvail[iTrkTPC] = false;
+  }
+  if (itsData) {
+    // look for ITS tracks with >= 2 hits
+    int nITStracks = itsData->fCount;
+    AliHLTExternalTrackParam *currITStrack = itsData->fTracklets;
+    for (int iTrkITS = 0; iTrkITS < nITStracks; iTrkITS++) {
+      if (currITStrack->fNPoints >= 2) {
+        itsAvail[currITStrack->fTrackID] = true;
       }
-      fBenchmark.AddInput(iter->fSize);
+      unsigned int dSIze = sizeof(AliHLTExternalTrackParam) + currITStrack->fNPoints * sizeof(unsigned int);
+      currITStrack = (AliHLTExternalTrackParam*) ( ((Byte_t*) currITStrack) + dSIze);
     }
-
-    // Read TPC tracks
-
-    //if( iter->fDataType == ( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC ) ){
-    if( iter->fDataType == ( AliHLTTPCDefinitions::TracksOuterDataType()|kAliHLTDataOriginTPC ) ){
-      AliHLTTracksData* dataPtr = ( AliHLTTracksData* ) iter->fPtr;
-      int nTracks = dataPtr->fCount;
-      AliHLTExternalTrackParam* currOutTrack = dataPtr->fTracklets;
-      for( int itr=0; itr<nTracks; itr++ ){
-	      AliHLTGlobalBarrelTrack t(*currOutTrack);
-        Int_t mcLabel = -1;
-        if (mcLabels.find(currOutTrack->fTrackID) != mcLabels.end() ) {
-          mcLabel = mcLabels[currOutTrack->fTrackID];
-        }
-        tracksTPC.push_back( t );
-        tracksTPCLab.push_back(mcLabel);
-        tracksTPCId.push_back( currOutTrack->fTrackID );
-	      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
-	      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+  }
+  std::map<int,int> mcLabels;
+  if (tpcDataMC) {
+    // look for TPC track MC labels
+    int nMCtracks = tpcDataMC->fCount;
+    for (int iMC = 0; iMC < nMCtracks; iMC++) {
+      AliHLTTrackMCLabel &lab = tpcDataMC->fLabels[iMC];
+      mcLabels[lab.fTrackID] = lab.fMCLabel;
+    }
+  }
+  AliHLTExternalTrackParam *currOutTrackTPC = tpcData->fTracklets;
+  for (int iTrk = 0; iTrk < nTPCtracks; iTrk++) {
+    // store TPC tracks (if required only the ones with >=2 ITS hits)
+    if (itsData != NULL && !itsAvail[currOutTrackTPC->fTrackID]) {
+      continue;
+    }
+    AliHLTGlobalBarrelTrack t(*currOutTrackTPC);
+    int mcLabel = -1;
+    if (tpcDataMC) {
+      if (mcLabels.find(currOutTrackTPC->fTrackID) != mcLabels.end()) {
+        mcLabel = mcLabels[currOutTrackTPC->fTrackID];
       }
-      fBenchmark.AddInput(iter->fSize);
     }
+    tracksTPC.push_back( t );
+    tracksTPCId.push_back( currOutTrackTPC->fTrackID );
+    tracksTPCLab.push_back( mcLabel );
+    unsigned int dSize = sizeof(AliHLTExternalTrackParam) + currOutTrackTPC->fNPoints * sizeof(unsigned int);
+    currOutTrackTPC = (AliHLTExternalTrackParam*) + ( ((Byte_t*) currOutTrackTPC) + dSize );
+  }
 
-    // Read TRD tracklets
 
-    if ( iter->fDataType == (AliHLTTRDDefinitions::fgkTRDTrackletDataType) ){
-      tracklets = reinterpret_cast<AliHLTTRDTrackletWord*>( iter->fPtr );
-      nTrackletsTotal = iter->fSize / sizeof(AliHLTTRDTrackletWord);
-      fBenchmark.AddInput(iter->fSize);
-    }
 
-  }// end read input blocks
 
   if (fVerboseDebugOutput) {
     HLTInfo("TRDTrackerComponent received %i tracklets\n", nTrackletsTotal);
-  }
-
-  // remove tracks without ITS match
-  if (fRequireITStrack) {
-    int iTPCtrack = 0;
-    for (vector<AliExternalTrackParam>::iterator it = tracksTPC.begin(); it != tracksTPC.end(); ) {
-      if (std::find(tracksITSId.begin(), tracksITSId.end(), iTPCtrack) == tracksITSId.end()) {
-        it = tracksTPC.erase(it);
-      }
-      else {
-        ++it;
-      }
-      ++iTPCtrack;
-    }
   }
 
   fTracker->Reset();
