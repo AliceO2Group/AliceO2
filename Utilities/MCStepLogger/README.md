@@ -30,10 +30,25 @@ by setting the `MCSTEPLOG_OUTFILE` env variable).
 MCSTEPLOG_TTREE=1 LD_PRELOAD=path_to/libMCStepLogger.so o2sim ..
 ```
 
-Finally the logger information can be limited to some detectors only using a key,value map file.
+Finally the logger can use a map file to give names to some logical grouping of volumes. For instance to map all sensitive volumes from a given detector `DET` to a common label `DET`. That label can then be used to query information about the detector steps "as a whole" when using the `StepLoggerTree` output tree.
 
 ```bash
-MCSTEPLOG_VOLMAPFILE=path_to_/volmapfile.dat MCSTEPLOG_TTREE=1 LD_PRELOAD=path_to/libMCStepLogger.so o2sim ..
+> cat volmapfile.dat
+normalPCB1 MCH
+normalPCB2 MCH
+normalPCB3 MCH
+normalPCB4 MCH
+normalPCB5 MCH
+normalPCB6 MCH
+centralPCB MCH
+downroundedPCB MCH
+uproundedPCB MCH
+cave TheCavern
+
+> MCSTEPLOG_VOLMAPFILE=path_to_/volmapfile.dat MCSTEPLOG_TTREE=1 LD_PRELOAD=path_to/libMCStepLogger.so o2sim ..
+
+> root -b MCStepLoggerOutput.root
+root[0] StepLoggerTree->Draw("Lookups.volidtomodule.data()");
 ```
 
 Note also the existence of the `LD_DEBUG` variable which can be used to see in details what libraries are loaded (and much more if needed...).
