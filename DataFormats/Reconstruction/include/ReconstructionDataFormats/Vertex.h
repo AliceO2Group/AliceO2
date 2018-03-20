@@ -128,6 +128,12 @@ std::ostream& operator<<(std::ostream& os, const Vertex<Stamp>& v)
      << "TimeStamp: " << v.getTimeStamp();
   return os;
 }
+
+template <typename Stamp>
+void Vertex<Stamp>::print() const
+{
+  std::cout << *this << std::endl;
+}
 }
 } // end namespace AliceO2
 #endif
