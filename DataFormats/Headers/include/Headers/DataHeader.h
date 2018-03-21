@@ -435,7 +435,8 @@ const HeaderType* get(const void* buffer, size_t len=0) {
 /// intended use:
 ///   - as a variadic intializer list (as an argument to a function)
 ///
-///   One can also use Stack::compose(const T& header1, const T& header2, ...)
+///   One can also use the ctor directly:
+//    Stack::Stack(const T& header1, const T& header2, ...)
 //    - arguments can be headers, or stacks, all will be concatenated in a new Stack
 ///   - returns a Stack ready to be shipped.
 struct Stack {
@@ -477,15 +478,6 @@ struct Stack {
   Stack(Stack&) = delete;
   Stack& operator=(Stack&) = delete;
   Stack& operator=(Stack&&) = default;
-
-  /// the magic compose - serialize (almost) anything into the buffer
-  /// (works with headers, strings and arrays)
-  template<typename... Args>
-  static Stack compose(const Args&... args) {
-    Stack b{size(args...),std::make_unique<byte[]>(b.bufferSize)};
-    inject(b.buffer.get(), args...);
-    return b;
-  }
 
   template<typename T, typename... Args>
   static size_t size(const T& h, const Args... args) noexcept {
