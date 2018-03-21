@@ -54,9 +54,9 @@ struct TMessageSerializer {
                         CacheStreamers streamers = CacheStreamers::no,
                         CompressionLevel compressionLevel = -1);
 
-  template<typename T>
-  static void Serialize(FairMQMessage& msg, const T* input, TClass* cl,
-                        CacheStreamers streamers = CacheStreamers::no,
+  template <typename T>
+  static void Serialize(FairMQMessage& msg, const T* input, const TClass* cl, //
+                        CacheStreamers streamers = CacheStreamers::no,        //
                         CompressionLevel compressionLevel = -1);
 
   static void Deserialize(const FairMQMessage& msg, std::unique_ptr<TObject>& output);
@@ -65,9 +65,9 @@ struct TMessageSerializer {
                         CacheStreamers streamers = CacheStreamers::no,
                         CompressionLevel compressionLevel = -1);
 
-  template<typename T>
-  static void serialize(FairTMessage& msg, const T* input,
-                        TClass* cl, CacheStreamers streamers = CacheStreamers::no,
+  template <typename T>
+  static void serialize(FairTMessage& msg, const T* input,                               //
+                        const TClass* cl, CacheStreamers streamers = CacheStreamers::no, //
                         CompressionLevel compressionLevel = -1);
   static std::unique_ptr<TObject> deserialize(gsl::span<byte> buffer);
 
@@ -101,9 +101,9 @@ inline void TMessageSerializer::serialize(FairTMessage& tm, const TObject* input
   return serialize(tm, input, nullptr, streamers, compressionLevel);
 }
 
-template<typename T>
-inline void TMessageSerializer::serialize(FairTMessage& tm, const T* input,
-                                          TClass* cl, CacheStreamers streamers,
+template <typename T>
+inline void TMessageSerializer::serialize(FairTMessage& tm, const T* input,           //
+                                          const TClass* cl, CacheStreamers streamers, //
                                           CompressionLevel compressionLevel)
 {
   if (streamers == CacheStreamers::yes) {
@@ -151,10 +151,10 @@ inline void TMessageSerializer::Serialize(FairMQMessage& msg, const TObject* inp
   tm.release();
 }
 
-template<typename T>
-inline void TMessageSerializer::Serialize(FairMQMessage& msg, const T* input,
-					  TClass* cl,
-                                          TMessageSerializer::CacheStreamers streamers,
+template <typename T>
+inline void TMessageSerializer::Serialize(FairMQMessage& msg, const T* input,           //
+                                          const TClass* cl,                             //
+                                          TMessageSerializer::CacheStreamers streamers, //
                                           TMessageSerializer::CompressionLevel compressionLevel)
 {
   std::unique_ptr<FairTMessage> tm = std::make_unique<FairTMessage>(kMESS_OBJECT);
