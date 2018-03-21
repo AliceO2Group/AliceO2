@@ -176,19 +176,27 @@ public:
   snapshot(const OutputSpec& spec, W wrapper)
   {
     using T = typename W::wrapped_type;
+    static_assert(std::is_same<typename W::hint_type, const char>::value || //
+                    std::is_same<typename W::hint_type, TClass>::value ||   //
+                    std::is_void<typename W::hint_type>::value,             //
+                  "class hint must be of type TClass or const char");
+
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
-    TClass* cl = nullptr;
-    if (wrapper.getName().empty()) {
+    const TClass* cl = nullptr;
+    if (wrapper.getHint() == nullptr) {
       // get TClass info by wrapped type
       cl = TClass::GetClass(typeid(T));
-    } else {
+    } else if (std::is_same<typename W::hint_type, TClass>::value) {
+      // the class info has been passed directly
+      cl = reinterpret_cast<const TClass*>(wrapper.getHint());
+    } else if (std::is_same<typename W::hint_type, const char>::value) {
       // get TClass info by optional name
-      cl = TClass::GetClass(wrapper.getName().c_str());
+      cl = TClass::GetClass(reinterpret_cast<const char*>(wrapper.getHint()));
     }
     if (has_root_dictionary<T>::value == false && cl == nullptr) {
       std::string msg("ROOT serialization not supported, dictionary not found for type ");
-      if (!wrapper.getName().empty()) {
-        msg += wrapper.getName();
+      if (std::is_same<typename W::hint_type, const char>::value) {
+        msg += reinterpret_cast<const char*>(wrapper.getHint());
       } else {
         msg += typeid(T).name();
       }
