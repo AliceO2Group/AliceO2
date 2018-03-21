@@ -30,6 +30,7 @@
 
 #include <FairMQDevice.h>
 #include "Headers/DataHeader.h"
+#include "Monitoring/MonitoringFactory.h"
 #include <stdexcept>
 
 namespace o2 {
@@ -44,6 +45,23 @@ class O2Device : public FairMQDevice
 public:
   using FairMQDevice::FairMQDevice;
   ~O2Device() override = default;
+
+  std::unique_ptr<o2::monitoring::Monitoring> monitoring;
+  
+  o2::monitoring::Monitoring* GetMonitoring() {
+    return monitoring.get();
+  }
+
+  void InitTask() {
+    std::string monitoringKey = "monitoring-url";
+    //FairMQDevice::Init();
+    //using o2::monitoring::MonitoringFactory;
+    auto dupa = GetConfig()->Count(monitoringKey);
+      /*monitoring->addBackend(MonitoringFactory::GetBackend(
+        GetConfig()->CountGetValiue<std::string>("monitoring-url")
+      ));*/
+    //}
+  }
 
   /// Here is how to add an annotated data part (with header);
   /// @param[in,out] parts is a reference to the message;
