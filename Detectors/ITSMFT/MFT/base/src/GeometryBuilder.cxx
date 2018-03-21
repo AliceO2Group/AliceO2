@@ -28,11 +28,10 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::GeometryBuilder)
+ClassImp(o2::MFT::GeometryBuilder);
 
-  //_____________________________________________________________________________
-  GeometryBuilder::GeometryBuilder()
-  : TNamed()
+//_____________________________________________________________________________
+GeometryBuilder::GeometryBuilder() : TNamed()
 {
   // default constructor
 }

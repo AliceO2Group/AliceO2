@@ -1,4 +1,4 @@
-/// \file CheckClusters.C
+/// \file CheckClusters_mft.C
 /// \brief Simple macro to check MFT clusters
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)

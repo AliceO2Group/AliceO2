@@ -68,8 +68,9 @@ void Tracker::process(const std::vector<Cluster>& clusters, std::vector<TrackMFT
     LOG(INFO) << "Processing time for single frame " << mROFrame << " : " << diff.count() << " s" << FairLogger::endl;
 
     start = end;
-    if (mContinuousMode)
+    if (mContinuousMode) {
       mROFrame++; // expect incremented frame in following clusters
+    }
   }
 }
 

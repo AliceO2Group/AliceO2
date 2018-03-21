@@ -21,13 +21,10 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::Segmentation)
+ClassImp(o2::MFT::Segmentation);
 
-  //_____________________________________________________________________________
-  Segmentation::Segmentation()
-  : TNamed(), mHalves(nullptr)
-{
-}
+//_____________________________________________________________________________
+Segmentation::Segmentation() : TNamed(), mHalves(nullptr) {}
 
 //_____________________________________________________________________________
 Segmentation::Segmentation(const Char_t* nameGeomFile) : TNamed(), mHalves(nullptr)

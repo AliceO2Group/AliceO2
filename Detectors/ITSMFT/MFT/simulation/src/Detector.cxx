@@ -37,10 +37,10 @@
 using o2::ITSMFT::Hit;
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::Detector)
+ClassImp(o2::MFT::Detector);
 
-  //_____________________________________________________________________________
-  Detector::Detector()
+//_____________________________________________________________________________
+Detector::Detector()
   : o2::Base::DetImpl<Detector>("MFT", kTRUE),
     mVersion(1),
     mDensitySupportOverSi(0.036),

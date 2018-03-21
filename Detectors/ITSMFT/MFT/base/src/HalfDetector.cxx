@@ -24,15 +24,12 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::HalfDetector)
+ClassImp(o2::MFT::HalfDetector);
 
-  /// \brief Default constructor
+/// \brief Default constructor
 
-  //_____________________________________________________________________________
-  HalfDetector::HalfDetector()
-  : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr)
-{
-}
+//_____________________________________________________________________________
+HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr) {}
 
 /// \brief Constructor
 

@@ -22,9 +22,9 @@
 #include "FairLogger.h"
 #include "FairRootManager.h"
 
-ClassImp(o2::MFT::ClustererTask)
+ClassImp(o2::MFT::ClustererTask);
 
-  using namespace o2::MFT;
+using namespace o2::MFT;
 using namespace o2::Base;
 using namespace o2::utils;
 

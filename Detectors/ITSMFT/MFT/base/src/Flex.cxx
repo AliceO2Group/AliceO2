@@ -35,11 +35,10 @@
 using namespace o2::MFT;
 using namespace o2::ITSMFT;
 
-ClassImp(o2::MFT::Flex)
+ClassImp(o2::MFT::Flex);
 
-  //_____________________________________________________________________________
-  Flex::Flex()
-  : TNamed(), mFlexOrigin(), mLadderSeg(nullptr)
+//_____________________________________________________________________________
+Flex::Flex() : TNamed(), mFlexOrigin(), mLadderSeg(nullptr)
 {
   // Constructor
 }

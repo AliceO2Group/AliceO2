@@ -18,9 +18,9 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-ClassImp(o2::MFT::TrackerTask)
+ClassImp(o2::MFT::TrackerTask);
 
-  using namespace o2::MFT;
+using namespace o2::MFT;
 using namespace o2::Base;
 
 //_____________________________________________________________________________
@@ -37,11 +37,9 @@ TrackerTask::~TrackerTask()
 {
 
   if (mTracksArray) {
-    mTracksArray->clear();
     delete mTracksArray;
   }
   if (mTrkLabels) {
-    mTrkLabels->clear();
     delete mTrkLabels;
   }
 }
@@ -63,7 +61,9 @@ InitStatus TrackerTask::Init()
   }
 
   // Register output container
-  mgr->RegisterAny("MFTTrack", mTracksArray, kTRUE);
+  if (mTracksArray) {
+    mgr->RegisterAny("MFTTrack", mTracksArray, kTRUE);
+  }
 
   // Register MC Truth container
   if (mTrkLabels) {
@@ -89,10 +89,12 @@ InitStatus TrackerTask::Init()
 void TrackerTask::Exec(Option_t* option)
 {
 
-  if (mTracksArray)
+  if (mTracksArray) {
     mTracksArray->clear();
-  if (mTrkLabels)
+  }
+  if (mTrkLabels) {
     mTrkLabels->clear();
+  }
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
   mTracker.process(*mClustersArray, *mTracksArray);

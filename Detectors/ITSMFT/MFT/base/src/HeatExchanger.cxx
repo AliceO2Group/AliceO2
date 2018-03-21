@@ -28,12 +28,10 @@
 
 using namespace o2::MFT;
 
-/// \cond CLASSIMP
-ClassImp(o2::MFT::HeatExchanger)
-  /// \endcond
+ClassImp(o2::MFT::HeatExchanger);
 
-  //_____________________________________________________________________________
-  HeatExchanger::HeatExchanger()
+//_____________________________________________________________________________
+HeatExchanger::HeatExchanger()
   : TNamed(),
     mHalfDisk(nullptr),
     mHalfDiskRotation(nullptr),
