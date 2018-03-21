@@ -14,7 +14,6 @@
 /// @brief Type wrappers for enfording a specific serialization method
 
 #include "Framework/TypeTraits.h"
-#include "string"
 
 namespace o2
 {
@@ -34,23 +33,38 @@ namespace framework
 /// The existence of the ROOT dictionary for the wrapped type can not be
 /// checked at compile time, a runtime check must be performed in the
 /// substitution for the ROOTSerialized type.
-template <typename T>
+///
+/// An optional hint can be passed to point to the class info, supported types
+/// are TClass or const char. A pointer of the hint can be passed to the
+/// constructor in addition to the reference. In the first case, the TClass
+/// instance will be used directly (faster) while in the latter the TClass registry
+/// is searched by name.
+///   TClass* classinfo = ...;
+///   ROOTSerialized<decltype(object), TClass>(object, classinfo));
+///     - or -
+///   ROOTSerialized<decltype(object), const char>(object, "classname"));
+template <typename T, typename HintType = void>
 class ROOTSerialized
 {
  public:
   using non_messageable = o2::framework::MarkAsNonMessageable;
   using wrapped_type = T;
+  using hint_type = HintType;
+
+  static_assert(std::is_pointer<T>::value == false, "wrapped type can not be a pointer");
+  static_assert(std::is_pointer<HintType>::value == false, "hint type can not be a pointer");
+
   ROOTSerialized() = delete;
-  ROOTSerialized(wrapped_type& ref, const char* refName = "") : mRef(ref), mRefName(refName) {}
+  ROOTSerialized(wrapped_type& ref, hint_type* hint = nullptr) : mRef(ref), mHint(hint) {}
 
   T& operator()() { return mRef; }
   T const& operator()() const { return mRef; }
 
-  const std::string& getName() const { return mRefName; }
+  hint_type* getHint() const { return mHint; }
 
  private:
   wrapped_type& mRef;
-  std::string mRefName; // optional name of the ref type
+  hint_type* mHint; // optional hint e.g. class info or class name
 };
 }
 }

@@ -79,8 +79,13 @@ DataProcessorSpec getSourceSpec()
     // vector of ROOT serializable class
     pc.allocator().snapshot(OutputSpec{ "TST", "ROOTVECTOR", 0, OutputSpec::Timeframe }, c);
     // likewise, passed anonymously with char type and class name
-    o2::framework::ROOTSerialized<char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
+    o2::framework::ROOTSerialized<char, const char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
     pc.allocator().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC", 0, OutputSpec::Timeframe }, d);
+    // vector of ROOT serializable class wrapped with TClass info as hint
+    auto* cl = TClass::GetClass(typeid(decltype(c)));
+    ASSERT_ERROR(cl != nullptr);
+    o2::framework::ROOTSerialized<char, TClass> e(*((char*)&c), cl);
+    pc.allocator().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC2", 0, OutputSpec::Timeframe }, e);
   };
 
   return DataProcessorSpec{ "source", // name of the processor
@@ -89,7 +94,8 @@ DataProcessorSpec getSourceSpec()
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, OutputSpec::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, OutputSpec::Timeframe },
                               OutputSpec{ "TST", "ROOTVECTOR", 0, OutputSpec::Timeframe },
-                              OutputSpec{ "TST", "ROOTSERLZDVEC", 0, OutputSpec::Timeframe } },
+                              OutputSpec{ "TST", "ROOTSERLZDVEC", 0, OutputSpec::Timeframe },
+                              OutputSpec{ "TST", "ROOTSERLZDVEC2", 0, OutputSpec::Timeframe } },
                             AlgorithmSpec(processingFct) };
 }
 
@@ -123,6 +129,12 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR((*object5.get())[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR((*object5.get())[1] == o2::test::Polymorphic(0xd00f));
 
+    auto object6 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input6");
+    ASSERT_ERROR(object6 != nullptr);
+    ASSERT_ERROR(object6->size() == 2);
+    ASSERT_ERROR((*object6.get())[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR((*object6.get())[1] == o2::test::Polymorphic(0xd00f));
+
     pc.services().get<ControlService>().readyToQuit(true);
   };
 
@@ -131,7 +143,8 @@ DataProcessorSpec getSinkSpec()
                               InputSpec{ "input2", "TST", "MSGBLEROOTSRLZ", 0, InputSpec::Timeframe },
                               InputSpec{ "input3", "TST", "ROOTNONTOBJECT", 0, InputSpec::Timeframe },
                               InputSpec{ "input4", "TST", "ROOTVECTOR", 0, InputSpec::Timeframe },
-                              InputSpec{ "input5", "TST", "ROOTSERLZDVEC", 0, InputSpec::Timeframe } },
+                              InputSpec{ "input5", "TST", "ROOTSERLZDVEC", 0, InputSpec::Timeframe },
+                              InputSpec{ "input6", "TST", "ROOTSERLZDVEC2", 0, InputSpec::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }
