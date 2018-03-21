@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iomanip>
 #include "Headers/DataHeader.h"
+#include "Headers/NameHeader.h"
 
 #include <chrono>
 
@@ -155,6 +156,26 @@ namespace o2 {
       BOOST_CHECK(!(dh4==dh));
       dh4=dh;
       BOOST_CHECK(dh4==dh);
+    }
+
+    BOOST_AUTO_TEST_CASE(headerStack_test)
+    {
+
+      DataHeader dh1{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 }, 0 };
+
+      Stack s1{ DataHeader{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 }, 0 },
+                NameHeader<9>{ "somename" } };
+
+      const DataHeader* h1 = get<DataHeader>(s1.buffer.get());
+      BOOST_CHECK(h1 != nullptr);
+      BOOST_CHECK(*h1 == dh1);
+      const NameHeader<0>* h2 = get<NameHeader<0>>(s1.buffer.get());
+      BOOST_CHECK(h2 != nullptr);
+      BOOST_CHECK(0 == std::strcmp(h2->getName(), "somename"));
+      BOOST_CHECK(h2->description == NameHeader<0>::sHeaderType);
+      BOOST_CHECK(h2->serialization == gSerializationMethodNone);
+      BOOST_CHECK(h2->size() == sizeof(NameHeader<9>));
+      BOOST_CHECK(h2->getNameLength() == 9);
     }
 
     BOOST_AUTO_TEST_CASE(Descriptor_benchmark)
