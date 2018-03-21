@@ -316,6 +316,20 @@ BOOST_AUTO_TEST_CASE(CheckPositionOfOnePadInDE100Bending)
   BOOST_CHECK_EQUAL(seg.findPadByFEE(76, 9), seg.findPadByPosition(1.575, 18.69));
 }
 
+BOOST_AUTO_TEST_CASE(CheckCopy)
+{
+  Segmentation copy{ seg };
+  BOOST_TEST((copy == seg));
+  BOOST_TEST(copy.nofPads() == seg.nofPads());
+}
+
+BOOST_AUTO_TEST_CASE(CheckAssignment)
+{
+  Segmentation copy{ 200, true };
+  copy = seg;
+  BOOST_TEST((copy == seg));
+  BOOST_TEST(copy.nofPads() == seg.nofPads());
+}
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
