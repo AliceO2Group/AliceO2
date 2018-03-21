@@ -56,12 +56,14 @@ class Segmentation
  public:
   /// This ctor throws if detElemId is invalid
   Segmentation(int detElemId, bool isBendingPlane)
-    : mImpl{ nullptr }, mDualSampaIds{}, mIsBendingPlane{ isBendingPlane }
+    : mImpl{ mchSegmentationConstruct(detElemId, isBendingPlane) },
+      mDualSampaIds{},
+      mDetElemId{ detElemId },
+      mIsBendingPlane{ isBendingPlane }
   {
-    mImpl = mchSegmentationConstruct(detElemId, isBendingPlane);
     if (!mImpl) {
       throw std::runtime_error("Can not create segmentation for DE " + std::to_string(detElemId) +
-                               (isBendingPlane ? " Bending" : " NonBending"));
+                               (mIsBendingPlane ? " Bending" : " NonBending"));
     }
     std::vector<int> dpid;
     auto addDualSampaId = [&dpid](int dualSampaId) { dpid.push_back(dualSampaId); };
@@ -71,6 +73,37 @@ class Segmentation
     };
     mchSegmentationForEachDualSampa(mImpl, callback, &addDualSampaId);
     mDualSampaIds = dpid;
+  }
+
+  bool operator==(const Segmentation& rhs) const
+  {
+    return mDetElemId == rhs.mDetElemId && mIsBendingPlane == rhs.mIsBendingPlane;
+  }
+
+  bool operator!=(const Segmentation& rhs) const { return !(rhs == *this); }
+
+  friend void swap(Segmentation& a, Segmentation& b)
+  {
+    using std::swap;
+
+    swap(a.mImpl, b.mImpl);
+    swap(a.mDualSampaIds, b.mDualSampaIds);
+    swap(a.mDetElemId, b.mDetElemId);
+    swap(a.mIsBendingPlane, b.mIsBendingPlane);
+  }
+
+  Segmentation(const Segmentation& seg)
+  {
+    mDetElemId = seg.mDetElemId;
+    mIsBendingPlane = seg.mIsBendingPlane;
+    mImpl = mchSegmentationConstruct(mDetElemId, mIsBendingPlane);
+    mDualSampaIds = seg.mDualSampaIds;
+  }
+
+  Segmentation& operator=(Segmentation seg)
+  {
+    swap(*this, seg);
+    return *this;
   }
 
   ~Segmentation() { mchSegmentationDestruct(mImpl); }
@@ -162,6 +195,7 @@ class Segmentation
  private:
   MchSegmentationHandle mImpl;
   std::vector<int> mDualSampaIds;
+  int mDetElemId;
   bool mIsBendingPlane;
 };
 
