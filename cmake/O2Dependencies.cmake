@@ -35,6 +35,7 @@ find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(Configuration REQUIRED)
+find_package(Monitoring REQUIRED)
 
 find_package(GLFW)
 
@@ -163,9 +164,11 @@ o2_define_bucket(
     FairRoot::FairMQ
     pthread
     dl
+    ${Monitoring_LIBRARIES}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
+    ${Monitoring_INCLUDE_DIRS}
 )
 
 # a common bucket for the implementation of devices inherited
