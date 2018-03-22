@@ -77,14 +77,16 @@ class Constants
   /// @param rpc RPC ID (0-8)
   inline static int getDEId(bool isRight, int chamber, int rpc)
   {
-    int deOffset = (isRight) ? 0 : 36;
-    return deOffset + 9 * chamber + rpc;
+    int deOffset = (isRight) ? 0 : mNDetectionElementsPerSide;
+    return deOffset + mNRPCLines * chamber + rpc;
   }
 
-  static constexpr int mNChambers = 4;           ///< Number of chambers
-  static constexpr int mNDetectionElements = 72; ///< Number of RPCs
-  static constexpr int mNLocalBoards = 234;      ///< Number of local boards per chamber
-  static constexpr int mNStripsBP = 16;          ///< Number of strips in the Bending Plane
+  static constexpr int mNChambers = 4;                  ///< Number of chambers
+  static constexpr int mNDetectionElements = 72;        ///< Number of RPCs
+  static constexpr int mNLocalBoards = 234;             ///< Number of local boards per chamber
+  static constexpr int mNStripsBP = 16;                 ///< Number of strips in the Bending Plane
+  static constexpr int mNDetectionElementsPerSide = 36; ///< Number of detection elements per side
+  static constexpr int mNRPCLines = 9;                  ///< Number of RPC lines
 
   // Standard sizes/position in the first chamber.
   // The values for the other chambers can be obtained multiplying by the scaling factors below

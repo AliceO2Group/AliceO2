@@ -17,6 +17,7 @@
 
 #include <fstream>
 #include <string>
+#include "TMath.h"
 #include "Math/GenVector/RotationX.h"
 #include "Math/GenVector/RotationY.h"
 #include "FairLogger.h"
@@ -38,12 +39,13 @@ GeometryTransformer::GeometryTransformer()
 void GeometryTransformer::init()
 {
   /// Initializes default geometry
-  const double degToRad = 3.14159265358979312 / 180.;
+  const double degToRad = TMath::DegToRad();
 
   ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(Constants::mBeamAngle * degToRad));
 
   for (int iside = 0; iside < 2; ++iside) {
-    double angle = (iside == 0) ? 0. : 180.;
+    bool isRight = (iside == 0);
+    double angle = isRight ? 0. : 180.;
     ROOT::Math::Rotation3D rot(ROOT::Math::RotationY(angle * degToRad));
     double xSign = (iside == 0) ? 1. : -1.;
     for (int ichamber = 0; ichamber < 4; ++ichamber) {
@@ -58,7 +60,7 @@ void GeometryTransformer::init()
         double newZ = Constants::mDefaultChamberZ[0] + zPos;
         double oldZ = Constants::mDefaultChamberZ[0] - zPos;
         double yPos = Constants::getRPCHalfHeight(ichamber) * (irpc - 4) * (1. + newZ / oldZ);
-        int deId = 36 * iside + 9 * ichamber + irpc;
+        int deId = Constants::getDEId(isRight, ichamber, irpc);
         ROOT::Math::Translation3D trans(xPos, yPos, zPos);
         mTransformations[deId] = planeTrans * planeRot * trans * rot;
         LOG(DEBUG) << "DeID " << deId << ")\n" << mTransformations[deId];
