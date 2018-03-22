@@ -46,21 +46,21 @@ public:
   using FairMQDevice::FairMQDevice;
   ~O2Device() override = default;
 
+
+  /// Monitoring instance
   std::unique_ptr<o2::monitoring::Monitoring> monitoring;
   
-  o2::monitoring::Monitoring* GetMonitoring() {
+  /// Provides monitoring instance
+  auto GetMonitoring() {
     return monitoring.get();
   }
 
-  void InitTask() {
-    std::string monitoringKey = "monitoring-url";
-    //FairMQDevice::Init();
-    //using o2::monitoring::MonitoringFactory;
-    auto dupa = GetConfig()->Count(monitoringKey);
-      /*monitoring->addBackend(MonitoringFactory::GetBackend(
-        GetConfig()->CountGetValiue<std::string>("monitoring-url")
-      ));*/
-    //}
+  /// Connects to a monitoring backend
+  void Init() override {
+    FairMQDevice::Init();
+    static constexpr const char* MonitoringUrlKey = "monitoring-url";
+    std::string monitoringUrl = "infologger://"; //GetConfig()->GetValue<std::string>(MonitoringUrlKey);
+    monitoring->addBackend(o2::monitoring::MonitoringFactory::GetBackend(monitoringUrl));
   }
 
   /// Here is how to add an annotated data part (with header);
