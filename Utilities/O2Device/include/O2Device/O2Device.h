@@ -29,6 +29,7 @@
 #define O2DEVICE_H_
 
 #include <FairMQDevice.h>
+#include <options/FairMQProgOptions.h>
 #include "Headers/DataHeader.h"
 #include "Monitoring/MonitoringFactory.h"
 #include <stdexcept>
@@ -59,7 +60,7 @@ public:
   void Init() override {
     FairMQDevice::Init();
     static constexpr const char* MonitoringUrlKey = "monitoring-url";
-    std::string monitoringUrl = "infologger://"; //GetConfig()->GetValue<std::string>(MonitoringUrlKey);
+    std::string monitoringUrl = GetConfig()->GetValue<std::string>(MonitoringUrlKey);
     monitoring->addBackend(o2::monitoring::MonitoringFactory::GetBackend(monitoringUrl));
   }
 
