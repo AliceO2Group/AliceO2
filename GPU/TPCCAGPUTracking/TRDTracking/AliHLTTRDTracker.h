@@ -60,7 +60,7 @@ public:
   void Reset();
   void StartLoadTracklets(const int nTrklts);
   void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
-  void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0);
+  void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
   bool CalculateSpacePoints();
   bool FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks);
   int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;

@@ -7,8 +7,8 @@
 
 #include "AliMCParticle.h"
 
-//#define ENABLE_HLTTRDDEBUG
-#define ENABLE_WARNING 0
+#define ENABLE_HLTTRDDEBUG
+#define ENABLE_WARNING 1
 #include "AliHLTTRDTrackerDebug.h"
 
 ClassImp(AliHLTTRDTracker)
@@ -243,7 +243,7 @@ void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet)
   fNtrackletsInChamber[tracklet.GetDetector()]++;
 }
 
-void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts )
+void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts, int *tracksTRDlabel )
 {
   //--------------------------------------------------------------------
   // Steering function for the tracking
@@ -276,6 +276,9 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
     t->SetLabel(tracksTPClab[i]);
     if (tracksTPCnTrklts != 0x0) {
       t->SetNtrackletsOffline(tracksTPCnTrklts[i]);
+    }
+    if (tracksTRDlabel != 0x0) {
+      t->SetLabelOffline(tracksTRDlabel[i]);
     }
 
     //FIXME can this be deleted? Or can it happen that a track has no mass assigned?
