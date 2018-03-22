@@ -16,6 +16,11 @@
 namespace o2 {
 namespace framework {
 
+namespace
+{
+std::string quote(std::string s) { return "\"" + s + "\""; }
+} // namespace
+
 /// Helper to dump a workflow as a graphviz file
 void
 GraphvizHelpers::dumpDataProcessorSpec2Graphviz(std::ostream &out, const std::vector<DataProcessorSpec> &specs)
@@ -40,8 +45,7 @@ GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<De
 
   for (auto &spec : specs) {
     auto id = spec.id;
-    std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
-    out << "  " << id << R"( [label="{{)";
+    out << "  " << quote(id) << R"( [label="{{)";
     bool firstInput = true;
     for (auto && input : spec.inputChannels) {
       if (firstInput == false) {
@@ -69,14 +73,11 @@ GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<De
   }
   for (auto &spec : specs) {
     for (auto &input : spec.inputChannels) {
-      auto id = spec.id;
-      std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
       // input and output name are now the same
       auto outputName = input.name;
-      // outputName.erase(0, 3);
-      out << "  " << outputChannel2Device[outputName] << ":" << outputName
+      out << "  " << quote(outputChannel2Device[outputName]) << ":" << quote(outputName)
                   << "-> "
-                  << id << ":" << input.name
+                  << quote(spec.id) << ":" << quote(input.name)
                   << R"( [label=")" << input.port << R"(")"
                   << "]\n";
     }
