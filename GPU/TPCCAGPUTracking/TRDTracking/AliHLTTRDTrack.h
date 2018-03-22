@@ -25,6 +25,7 @@ class AliHLTTRDTrack : public AliKalmanTrack
   Int_t GetNlayers() const;
   Bool_t GetIsFindable(Int_t iLayer) const { return fIsFindable[iLayer]; }
   Int_t GetNtrackletsOffline() const { return fNtrackletsOffline; }
+  Int_t GetLabelOffline() const { return fLabelOffline; }
   Int_t GetTracklet(Int_t iLayer) const;
   Int_t GetNmissingConsecLayers(Int_t iLayer) const;
   Bool_t GetIsStopped() const { return fIsStopped; }
@@ -34,6 +35,7 @@ class AliHLTTRDTrack : public AliKalmanTrack
   void SetNtracklets( Int_t nTrklts) { fNtracklets = nTrklts; }
   void SetIsFindable(Int_t iLayer) { fIsFindable[iLayer] = kTRUE; }
   void SetNtrackletsOffline(Int_t nTrklts) { fNtrackletsOffline = nTrklts; }
+  void SetLabelOffline(Int_t lab) { fLabelOffline = lab; }
   void SetIsStopped() { fIsStopped = kTRUE; }
 
   using AliExternalTrackParam::GetPredictedChi2;
@@ -64,6 +66,7 @@ class AliHLTTRDTrack : public AliKalmanTrack
   Int_t fNtracklets;            // number of attached TRD tracklets
   Int_t fNmissingConsecLayers;  // number of missing consecutive layers
   Int_t fNtrackletsOffline;     // number of attached offline TRD tracklets for debugging only
+  Int_t fLabelOffline;          // offline TRD MC label of this track
   Int_t fAttachedTracklets[6];  // IDs for attached tracklets sorted by layer
   Bool_t fIsFindable[6];        // number of layers where tracklet should exist
   Bool_t fIsStopped;            // track ends in TRD

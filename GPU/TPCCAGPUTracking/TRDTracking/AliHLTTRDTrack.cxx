@@ -9,6 +9,7 @@ AliHLTTRDTrack::AliHLTTRDTrack() :
   fNtracklets(0),
   fNmissingConsecLayers(0),
   fNtrackletsOffline(0),
+  fLabelOffline(0),
   fIsStopped(false)
 {
   //------------------------------------------------------------------
@@ -27,6 +28,7 @@ AliHLTTRDTrack::AliHLTTRDTrack(const AliHLTTRDTrack& t) :
   fNtracklets( t.fNtracklets),
   fNmissingConsecLayers( t.fNmissingConsecLayers),
   fNtrackletsOffline( t.fNtrackletsOffline),
+  fLabelOffline( t.fLabelOffline),
   fIsStopped( t.fIsStopped)
 {
   //------------------------------------------------------------------
@@ -50,6 +52,7 @@ AliHLTTRDTrack &AliHLTTRDTrack::operator=(const AliHLTTRDTrack& t)
   fNtracklets = t.fNtracklets;
   fNmissingConsecLayers = t.fNmissingConsecLayers;
   fNtrackletsOffline = t.fNtrackletsOffline;
+  fLabelOffline = t.fLabelOffline;
   fIsStopped = t.fIsStopped;
   for (Int_t i=0; i<=5; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
@@ -65,6 +68,7 @@ AliHLTTRDTrack::AliHLTTRDTrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
   fNtracklets(0),
   fNmissingConsecLayers(0),
   fNtrackletsOffline(0),
+  fLabelOffline(-1),
   fIsStopped(false)
 {
   //------------------------------------------------------------------
@@ -89,6 +93,7 @@ AliHLTTRDTrack::AliHLTTRDTrack(AliExternalTrackParam& t ) throw (const Char_t *)
   fNtracklets(0),
   fNmissingConsecLayers(0),
   fNtrackletsOffline(0),
+  fLabelOffline(-1),
   fIsStopped(false)
 {
   //------------------------------------------------------------------
@@ -162,6 +167,7 @@ void AliHLTTRDTrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
   SetTPCtrackId( t.fTPCTrackID );
   fNtracklets = 0;
   fNmissingConsecLayers = 0;
+  fLabelOffline = -1;
   fNtrackletsOffline = 0;
   fIsStopped = false;
   for ( int iLayer=0; iLayer <6; iLayer++ ){

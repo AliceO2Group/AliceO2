@@ -31,7 +31,7 @@ class AliHLTTRDTrackerDebug
                     fRoadY.Zero(); fRoadZ.Zero(); fTrackletXReal.Zero(); fTrackletYReal.Zero(); fTrackletZReal.Zero(); ; fTrackletYcorrReal.Zero(); fTrackletZcorrReal.Zero();
                     fTrackletSecReal.Zero(); fTrackletDetReal.Zero(); fTrackXReal.Zero(); fTrackYReal.Zero(); fTrackZReal.Zero(); fTrackSecReal.Zero();
                     fChi2Update.Zero(); fChi2Real.Zero(); fNmatchesAvail.Zero(); fFindable.Zero(); fFindableMC.Zero(); fUpdates.Zero();
-                    fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fNtrklts = 0; fNtrkltsRef = 0; fNlayers = 0; fChi2 = 0; fNmatch = 0; fNfake = 0; fNrelated = 0;
+                    fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fNtrklts = 0; fNtrkltsRef = 0; fTrackIDref = -1; fNlayers = 0; fChi2 = 0; fNmatch = 0; fNfake = 0; fNrelated = 0;
                     fXvMC = 0; fYvMC = 0; fZvMC = 0; fPdgCode = 0; fParam.Reset(); fParamNoUp.Reset();
                  }
 
@@ -49,7 +49,7 @@ class AliHLTTRDTrackerDebug
             { fTrackNoUpX(ly) = trk.GetX(); fTrackNoUpY(ly) = trk.GetY(); fTrackNoUpZ(ly) = trk.GetZ(); fTrackNoUpPhi(ly) = trk.GetSnp(); fTrackNoUpLambda(ly) = trk.GetTgl();
               fTrackNoUpPt(ly) = trk.Pt(); fTrackNoUpSector(ly) = GetSector(trk.GetAlpha()); fTrackNoUpYerr(ly) = trk.GetSigmaY2(); fTrackNoUpZerr(ly) = trk.GetSigmaZ2(); }
     void SetTrackParameterReal(const AliHLTTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.GetX(); fTrackYReal(ly) = trk.GetY(); fTrackZReal(ly) = trk.GetZ(); fTrackSecReal(ly) = GetSector(trk.GetAlpha()); }
-    void SetTrack(const AliHLTTRDTrack &trk) { fParam = trk; fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline();
+    void SetTrack(const AliHLTTRDTrack &trk) { fParam = trk; fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(); fTrackIDref = trk.GetLabelOffline();
                                                 for (int iLy=0; iLy<6; iLy++) { if (trk.GetIsFindable(iLy)) fFindable(iLy) = 1; } }
     void SetTrackNoUp(const AliHLTTRDTrack &trk) { fParamNoUp = trk; }
 
@@ -123,6 +123,8 @@ class AliHLTTRDTrackerDebug
         "chi2Total=" << fChi2 <<
         "nLayers=" << fNlayers <<
         "nTracklets=" << fNtrklts <<
+        "nTrackletsOffline=" << fNtrkltsRef <<
+        "labelRef=" << fTrackIDref <<
         "track.=" << &fParam <<
         "trackNoUp.=" << &fParamNoUp <<
         "roadY.=" << &fRoadY <<
@@ -148,6 +150,7 @@ class AliHLTTRDTrackerDebug
     int fTrackId;
     int fNtrklts;
     int fNtrkltsRef;
+    int fTrackIDref;
     int fNlayers;
     float fChi2;
     int fNmatch;
