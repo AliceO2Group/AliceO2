@@ -36,6 +36,10 @@
 #include <cassert>
 
 using namespace o2::passive;
+namespace
+{
+o2::Base::FairModuleRegister a("MAG", [](bool) -> FairModule* { return new Magnet("Magnet", "L3 Magnet"); });
+}
 
 Magnet::~Magnet() = default;
 

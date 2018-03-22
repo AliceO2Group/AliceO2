@@ -50,6 +50,10 @@ using std::endl;
 using o2::ITSMFT::Hit;
 using Segmentation = o2::ITSMFT::SegmentationAlpide;
 using namespace o2::ITS;
+namespace
+{
+o2::Base::FairModuleRegister a("ITS", [](bool active) -> FairModule* { return new o2::ITS::Detector(active); });
+}
 
 Detector::Detector()
   : o2::Base::DetImpl<Detector>("ITS", kTRUE),
@@ -1040,13 +1044,13 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 
 void Detector::Print(std::ostream* os) const
 {
-// Standard output format for this class.
-// Inputs:
-//   ostream *os   The output stream
-// Outputs:
-//   none.
-// Return:
-//   none.
+  // Standard output format for this class.
+  // Inputs:
+  //   ostream *os   The output stream
+  // Outputs:
+  //   none.
+  // Return:
+  //   none.
 
 #if defined __GNUC__
 #if __GNUC__ > 2

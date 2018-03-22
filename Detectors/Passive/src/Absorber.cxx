@@ -31,6 +31,11 @@
 
 using namespace o2::passive;
 
+namespace
+{
+o2::Base::FairModuleRegister a("ABSO", [](bool) -> FairModule* { return new Absorber("Absorber", "Absorber"); });
+}
+
 Absorber::~Absorber() = default;
 
 Absorber::Absorber() : FairModule("Absorber", "") {}
@@ -755,10 +760,10 @@ void Absorber::ConstructGeometry()
   Float_t rInFaCH2Cone2 = 176.9 / 2.;
   Float_t dFaCH2Cone = 7.5 / TMath::Cos(10. * kDegRad);
 
-  TGeoVolume* voFaCH2Cone =
-    new TGeoVolume("AFaCH2Cone", new TGeoCone(dzFaCH2Cone / 2., rInFaCH2Cone1, rInFaCH2Cone1 + dFaCH2Cone,
-                                              rInFaCH2Cone2, rInFaCH2Cone2 + dFaCH2Cone),
-                   kMedCH2Sh);
+  TGeoVolume* voFaCH2Cone = new TGeoVolume("AFaCH2Cone",
+                                           new TGeoCone(dzFaCH2Cone / 2., rInFaCH2Cone1, rInFaCH2Cone1 + dFaCH2Cone,
+                                                        rInFaCH2Cone2, rInFaCH2Cone2 + dFaCH2Cone),
+                                           kMedCH2Sh);
 
   // Pos 15
   ///////////////////////////////////
@@ -772,10 +777,11 @@ void Absorber::ConstructGeometry()
   Float_t rInFaSteelCone25B = rInFaSteelCone25A + dzFaSteelCone25 * angle02;
   Float_t rOuFaSteelCone25B = rOuFaSteelCone25A + dzFaSteelCone25 * angle10;
 
-  TGeoVolume* voFaSteelCone25 = new TGeoVolume(
-    "AFaSteelCone25", new TGeoCone(dzFaSteelCone25 / 2., rInFaSteelCone25A + eps, rOuFaSteelCone25A - eps,
-                                   rInFaSteelCone25B + eps, rOuFaSteelCone25B - eps),
-    kMedSteelSh);
+  TGeoVolume* voFaSteelCone25 =
+    new TGeoVolume("AFaSteelCone25",
+                   new TGeoCone(dzFaSteelCone25 / 2., rInFaSteelCone25A + eps, rOuFaSteelCone25A - eps,
+                                rInFaSteelCone25B + eps, rOuFaSteelCone25B - eps),
+                   kMedSteelSh);
 
   // Pos 16
   ///////////////////////////////////
@@ -789,10 +795,11 @@ void Absorber::ConstructGeometry()
   Float_t rInFaSteelCone31B = rOuFaWTube4C2;
   Float_t rOuFaSteelCone31B = rOuFaSteelCone31A + dzFaSteelCone31 * angle10;
 
-  TGeoVolume* voFaSteelCone31 = new TGeoVolume(
-    "AFaSteelCone31", new TGeoCone(dzFaSteelCone31 / 2., rInFaSteelCone31A + eps, rOuFaSteelCone31A - eps,
-                                   rInFaSteelCone31B + eps, rOuFaSteelCone31B - eps),
-    kMedSteelSh);
+  TGeoVolume* voFaSteelCone31 =
+    new TGeoVolume("AFaSteelCone31",
+                   new TGeoCone(dzFaSteelCone31 / 2., rInFaSteelCone31A + eps, rOuFaSteelCone31A - eps,
+                                rInFaSteelCone31B + eps, rOuFaSteelCone31B - eps),
+                   kMedSteelSh);
   // Outer Region with higher transport cuts
   dz = 5.;
   TGeoVolume* voFaSteelCone31I =
@@ -1005,10 +1012,11 @@ void Absorber::ConstructGeometry()
   //    Drawing ALIP2A__0089                        //
   //    A2
 
-  TGeoVolume* voFassUMFlange = new TGeoVolume(
-    "AFassUMFlange", new TGeoTrap(kFassUMFlangeH / 2., kFassUMFalpha, 0., 1.5, kFassUMFlangeB / 2., kFassUMFlangeB / 2.,
-                                  0., 1.5, kFassUMFlangeT / 2., kFassUMFlangeT / 2., 0.),
-    kMedSteel);
+  TGeoVolume* voFassUMFlange =
+    new TGeoVolume("AFassUMFlange",
+                   new TGeoTrap(kFassUMFlangeH / 2., kFassUMFalpha, 0., 1.5, kFassUMFlangeB / 2., kFassUMFlangeB / 2.,
+                                0., 1.5, kFassUMFlangeT / 2., kFassUMFlangeT / 2., 0.),
+                   kMedSteel);
 
   TGeoRotation* rotFass1 = new TGeoRotation("rotFass1", 180., 0., 90., 0., 90., 90.);
   voFass->AddNode(voFassUMFlange, 1,
@@ -1023,10 +1031,11 @@ void Absorber::ConstructGeometry()
   const Float_t kFassLMFlangeB = 246.;
   const Float_t kFassLMFlangeT = 43.;
   const Float_t kFassLMFalpha = -TMath::ATan((kFassLMFlangeB - kFassLMFlangeT) / kFassLMFlangeH / 2.) / kDegRad;
-  TGeoVolume* voFassLMFlange = new TGeoVolume(
-    "AFassLMFlange", new TGeoTrap(kFassLMFlangeH / 2., kFassLMFalpha, 0., 1.5, kFassLMFlangeB / 2., kFassLMFlangeB / 2.,
-                                  0., 1.5, kFassLMFlangeT / 2., kFassLMFlangeT / 2., 0.),
-    kMedSteel);
+  TGeoVolume* voFassLMFlange =
+    new TGeoVolume("AFassLMFlange",
+                   new TGeoTrap(kFassLMFlangeH / 2., kFassLMFalpha, 0., 1.5, kFassLMFlangeB / 2., kFassLMFlangeB / 2.,
+                                0., 1.5, kFassLMFlangeT / 2., kFassLMFlangeT / 2., 0.),
+                   kMedSteel);
   TGeoRotation* rotFass2 = new TGeoRotation("rotFass2", 180., 0., 90., 0., 90., 270.);
   voFass->AddNode(voFassLMFlange, 1,
                   new TGeoCombiTrans(0., -180. - kFassLMFlangeH / 2.,

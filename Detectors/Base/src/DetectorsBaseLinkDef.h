@@ -21,4 +21,6 @@
 #pragma link C++ class o2::Base::GeometryManager::MatBudget + ;
 #pragma link C++ class o2::Base::MaterialManager + ;
 
+#pragma link C++ namespace o2::Base;
+#pragma link C++ function o2::Base::createFairModule;
 #endif

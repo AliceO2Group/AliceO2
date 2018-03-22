@@ -31,6 +31,11 @@
 using namespace o2::fit;
 using o2::fit::Geometry;
 
+namespace
+{
+o2::Base::FairModuleRegister a("FIT", [](bool active) -> FairModule* { return new o2::fit::Detector(active); });
+}
+
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
@@ -315,7 +320,7 @@ void Detector::CreateMaterials()
   Int_t isxfld = 2;     // magneticField->Integ();
   Float_t sxmgmx = 10.; // magneticField->Max();
   // FIXME: use o2::Base::Detector::initFieldTrack to init mag field params
-  
+
   //   Float_t a,z,d,radl,absl,buf[1];
   // Int_t nbuf;
   // AIR
@@ -367,7 +372,7 @@ void Detector::DefineOpticalProperties()
   if (ReadOptProperties(optPropPath.Data()) < 0) {
     // Error reading file
     LOG(ERROR) << "Could not read FIT optical properties" << FairLogger::endl;
-        return;
+    return;
   }
   Int_t nBins = mPhotonEnergyD.size();
   // set QE

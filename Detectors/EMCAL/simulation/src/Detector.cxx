@@ -32,6 +32,11 @@
 
 using namespace o2::EMCAL;
 
+namespace
+{
+o2::Base::FairModuleRegister a("EMC", [](bool active) -> FairModule* { return new o2::EMCAL::Detector(active); });
+}
+
 ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
@@ -83,15 +88,12 @@ Detector::Detector(const Detector& rhs)
     mInnerEdge(rhs.mInnerEdge)
 
 {
-  for ( int i=0; i<5; ++i) {
+  for (int i = 0; i < 5; ++i) {
     mParEMOD[i] = rhs.mParEMOD[i];
   }
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
+FairModule* Detector::CloneModule() const { return new Detector(*this); }
 
 void Detector::Initialize()
 {
@@ -165,8 +167,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   LOG(DEBUG3) << "Name of the supermodule type " << fMC->CurrentVolOffName(4) << ", Module name "
               << fMC->CurrentVolOffName(3) << std::endl;
 
-  Int_t partID = fMC->GetStack()->GetCurrentTrackNumber(),
-        parent = fMC->GetStack()->GetCurrentTrack()->GetMother(0),
+  Int_t partID = fMC->GetStack()->GetCurrentTrackNumber(), parent = fMC->GetStack()->GetCurrentTrack()->GetMother(0),
         detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
 
   Double_t lightyield(eloss);
@@ -191,7 +192,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     static_cast<o2::Data::Stack*>(fMC->GetStack())->addHit(GetDetId());
     mCurrentTrackID = partID;
     mCurrentCellID = detID;
-    
+
   } else {
     // std::cout << "Adding energy to the current hit\n";
     mCurrentHit->SetEnergyLoss(mCurrentHit->GetEnergyLoss() + lightyield);
@@ -233,10 +234,7 @@ Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklen
   return energydeposit / (1. + birkC1Mod * dedxcm + mBirkC2 * dedxcm * dedxcm);
 }
 
-void Detector::Register()
-{
-  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
-}
+void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE); }
 
 void Detector::Reset()
 {

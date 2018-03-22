@@ -38,11 +38,14 @@ const char* TOPNAME = "cave";
 #define AliMatrix TVirtualMC::GetMC()->Matrix
 #define kRaddeg TMath::RadToDeg()
 #define kDegrad TMath::DegToRad()
+namespace
+{
+o2::Base::FairModuleRegister a("FRAME", [](bool) -> FairModule* { return new FrameStructure("Frame", "Frame"); });
+}
 
 FrameStructure::FrameStructure(const char* name, const char* Title) : FairModule(name, Title) {}
 
-FrameStructure::FrameStructure(const FrameStructure& rhs) : FairModule(rhs)
-{}
+FrameStructure::FrameStructure(const FrameStructure& rhs) : FairModule(rhs) {}
 
 FairModule* FrameStructure::CloneModule() const
 {
@@ -231,7 +234,7 @@ void FrameStructure::createMaterials()
   tmaxfd = -20.;  // Maximum angle due to field deflection
   deemax = -.3;   // Maximum fractional energy loss, DLS
   stmin = -.8;
-  int isxfld = 2; // field uniformity value as defined by Geant3
+  int isxfld = 2;     // field uniformity value as defined by Geant3
   float sxmgmx = 10.; // max field
   o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
@@ -1891,5 +1894,5 @@ void FrameStructure::ConstructGeometry()
 
   vmc->Gspos("BBMO", 1, TOPNAME, 0., 0., +376. + kBBMdz / 2. + 0.5, 0, "ONLY");
 }
-}
-}
+} // namespace passive
+} // namespace o2

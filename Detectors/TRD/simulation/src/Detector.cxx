@@ -20,12 +20,12 @@
 #include <stdexcept>
 
 using namespace o2::trd;
-
-Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TRD", active),
-    mHits(new std::vector<HitType>)
+namespace
 {
+o2::Base::FairModuleRegister a("TRD", [](bool active) -> FairModule* { return new o2::trd::Detector(active); });
 }
+
+Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("TRD", active), mHits(new std::vector<HitType>) {}
 
 Detector::Detector(const Detector& rhs)
   : o2::Base::DetImpl<Detector>(rhs),
@@ -37,10 +37,7 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
+FairModule* Detector::CloneModule() const { return new Detector(*this); }
 
 void Detector::Initialize()
 {
@@ -67,7 +64,7 @@ bool Detector::ProcessHits(FairVolume* v)
 
   float enDep = fMC->Edep();
   float time = fMC->TrackTime() * 1.0e09;
-  auto stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+  auto stack = (o2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
   auto trackID = stack->GetCurrentTrackNumber();
   auto sensID = v->getMCid();
   addHit(x, y, z, time, enDep, trackID, sensID);
@@ -76,10 +73,7 @@ bool Detector::ProcessHits(FairVolume* v)
   return true;
 }
 
-void Detector::Register()
-{
-  FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true);
-}
+void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true); }
 
 void Detector::Reset() { mHits->clear(); }
 
