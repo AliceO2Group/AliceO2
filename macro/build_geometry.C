@@ -24,6 +24,7 @@
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
 #include <MFTSimulation/Detector.h>
+#include <MCHSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
@@ -56,7 +57,7 @@ void build_geometry(FairRunSim* run = nullptr)
   bool geomonly = (run == nullptr);
 
   // minimal macro to test setup of the geometry
-  
+
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
   gSystem->Setenv("GEOMPATH", geom_dir.Data());
@@ -107,7 +108,7 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("PIPE")) {
     run->AddModule(new o2::passive::Pipe("Pipe", "Beam pipe"));
   }
-  
+
   // the absorber
   if (isActivated("ABSO")) {
     // the frame structure to support other detectors
@@ -120,7 +121,7 @@ void build_geometry(FairRunSim* run = nullptr)
     auto shil = new o2::passive::Shil("Shield", "Small angle beam shield");
     run->AddModule(shil);
   }
-  
+
   if (isActivated("TOF") || isActivated("TRD") || isActivated("FRAME")) {
     // the frame structure to support other detectors
     auto frame = new o2::passive::FrameStructure("Frame", "Frame");
@@ -156,7 +157,12 @@ void build_geometry(FairRunSim* run = nullptr)
     auto mft = new o2::MFT::Detector();
     run->AddModule(mft);
   }
-  
+
+  if (isActivated("MCH")){
+    // mch
+    run->AddModule(new o2::mch::Detector(true));
+  }
+
   if (isActivated("EMC")){
     // emcal
     run->AddModule(new o2::EMCAL::Detector(true));
@@ -188,18 +194,18 @@ void finalize_geometry(FairRunSim* run)
 {
   // finalize geometry and declare alignable volumes
   // this should be called geometry is fully built
-  
+
   if (!gGeoManager) {
     LOG(ERROR) << "gGeomManager is not available" << FairLogger::endl;
     return;
   }
-  
+
   gGeoManager->CloseGeometry();
   if (!run) {
     LOG(ERROR) << "FairRunSim is not available" << FairLogger::endl;
     return;
   }
-  
+
   const TObjArray* modArr = run->GetListOfModules();
   TIter next(modArr);
   FairModule* module = nullptr;

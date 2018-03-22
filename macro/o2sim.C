@@ -54,6 +54,30 @@ void o2sim()
     boxGen->SetPhiRange(0., 360.);
     boxGen->SetDebug(kTRUE);
     primGen->AddGenerator(boxGen);
+  } else if (genconfig.compare("fwmugen") == 0) {
+    // a simple "box" generator for forward muons
+    std::cout << "Init box forward muons generator\n";
+    auto boxGen = new FairBoxGenerator(13, 1); /* mu- */
+    boxGen->SetEtaRange(-2.5, -4.0);
+    boxGen->SetPRange(100.0, 100.0);
+    boxGen->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGen);
+  } else if (genconfig.compare("fwpigen") == 0) {
+    // a simple "box" generator for forward pions
+    std::cout << "Init box forward muons generator\n";
+    auto boxGen = new FairBoxGenerator(-211, 1); /* pi- */
+    boxGen->SetEtaRange(-2.5, -4.0);
+    boxGen->SetPRange(7.0, 7.0);
+    boxGen->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGen);
+  } else if (genconfig.compare("fwrootino") == 0) {
+    // a simple "box" generator for forward rootinos
+    std::cout << "Init box forward rootinos generator\n";
+    auto boxGen = new FairBoxGenerator(0, 1); /* mu- */
+    boxGen->SetEtaRange(-2.5, -4.0);
+    boxGen->SetPRange(1, 5);
+    boxGen->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("extkin") == 0) {
     // external kinematics
     // needs precense of a kinematics file "Kinematics.root"

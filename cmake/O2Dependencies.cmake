@@ -1400,6 +1400,7 @@ o2_define_bucket(
     TPCReconstruction
     ITSSimulation
     MFTSimulation
+    MCHSimulation
     TRDSimulation
     EMCALSimulation
     TOFSimulation
@@ -1552,6 +1553,36 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     fairroot_base_bucket
+)
+
+o2_define_bucket(
+    NAME
+    mch_simulation_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    DetectorsBase
+    SimulationDataFormat
+    RapidJSON
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${RAPIDJSON_INCLUDEDIR}/include
+    ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    mch_simulation_test_bucket
+
+    DEPENDENCIES
+    mch_simulation_bucket
+    mch_mapping_impl3_bucket
+    MCHMappingImpl3
+    MCHSimulation
 )
 
 o2_define_bucket(
