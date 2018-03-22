@@ -53,7 +53,7 @@ std::vector<Point3D<float>> generatePoints(int ntimes)
   return points;
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.002F))
+BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.004F))
 BOOST_DATA_TEST_CASE(InverseTransformation, boost::unit_test::data::xrange(72) * generatePoints(1000), deId, point)
 {
   Point3D<float> globalPoint = GEOM::geoTrans.localToGlobal(deId, point.x(), point.y());
