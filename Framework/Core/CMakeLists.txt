@@ -118,6 +118,7 @@ set(HEADERS
       include/Framework/RootObjectContext.h
       include/Framework/DataProcessingDevice.h
       include/Framework/Variant.h
+      include/Framework/RootTreeReader.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
       src/DriverControl.h
@@ -192,6 +193,7 @@ set(TEST_SRCS
       test/test_WorkflowHelpers.cxx
       test/test_TMessageSerializer.cxx
       test/test_DataAllocator.cxx
+      test/test_RootTreeReader.cxx
    )
 
 O2_GENERATE_TESTS(

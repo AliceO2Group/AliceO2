@@ -65,6 +65,8 @@ class Polymorphic : public Base
 
   bool isDefault() const { return mSecret == ~(decltype(mSecret))0; }
 
+  unsigned get() const { return mSecret; }
+
  private:
   unsigned mSecret;
 
