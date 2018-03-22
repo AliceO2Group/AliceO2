@@ -47,17 +47,15 @@ public:
   using FairMQDevice::FairMQDevice;
   ~O2Device() override = default;
 
-
   /// Monitoring instance
   std::unique_ptr<o2::monitoring::Monitoring> monitoring;
-  
+
   /// Provides monitoring instance
-  auto GetMonitoring() {
-    return monitoring.get();
-  }
+  auto GetMonitoring() { return monitoring.get(); }
 
   /// Connects to a monitoring backend
-  void Init() override {
+  void Init() override
+  {
     FairMQDevice::Init();
     static constexpr const char* MonitoringUrlKey = "monitoring-url";
     std::string monitoringUrl = GetConfig()->GetValue<std::string>(MonitoringUrlKey);
