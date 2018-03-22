@@ -30,11 +30,20 @@ void lineByLineComparision(const std::string& as, const std::string& bs)
 
   char bufferA[1024];
   char bufferB[1024];
-
+ 
+  bool same{true};
   while (a.good() && b.good()) {
     a.getline(bufferA, 1024);
     b.getline(bufferB, 1024);
     BOOST_CHECK_EQUAL(std::string(bufferA), std::string(bufferB));
+    if (std::string(bufferA) != std::string(bufferB)) {
+      same=false;
+    }
+  }
+  if (!same){
+  std::cout << as << "\n";
+  std::cout << "\n";
+  std::cout << bs << "\n";
   }
   BOOST_CHECK(a.eof());
   BOOST_CHECK(b.eof());
@@ -100,14 +109,14 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {
   node[shape=record]
-  A [label="{{}|A(2)|{<from_A_to_B>from_A_to_B|<from_A_to_C>from_A_to_C}}"];
-  B [label="{{<from_A_to_B>from_A_to_B}|B(2)|{<from_B_to_D>from_B_to_D}}"];
-  C [label="{{<from_A_to_C>from_A_to_C}|C(2)|{<from_C_to_D>from_C_to_D}}"];
-  D [label="{{<from_B_to_D>from_B_to_D|<from_C_to_D>from_C_to_D}|D(2)|{}}"];
-  A:from_A_to_B-> B:from_A_to_B [label="22000"]
-  A:from_A_to_C-> C:from_A_to_C [label="22001"]
-  B:from_B_to_D-> D:from_B_to_D [label="22002"]
-  C:from_C_to_D-> D:from_C_to_D [label="22003"]
+  "A" [label="{{}|A(2)|{<from_A_to_B>from_A_to_B|<from_A_to_C>from_A_to_C}}"];
+  "B" [label="{{<from_A_to_B>from_A_to_B}|B(2)|{<from_B_to_D>from_B_to_D}}"];
+  "C" [label="{{<from_A_to_C>from_A_to_C}|C(2)|{<from_C_to_D>from_C_to_D}}"];
+  "D" [label="{{<from_B_to_D>from_B_to_D|<from_C_to_D>from_C_to_D}|D(2)|{}}"];
+  "A":"from_A_to_B"-> "B":"from_A_to_B" [label="22000"]
+  "A":"from_A_to_C"-> "C":"from_A_to_C" [label="22001"]
+  "B":"from_B_to_D"-> "D":"from_B_to_D" [label="22002"]
+  "C":"from_C_to_D"-> "D":"from_C_to_D" [label="22003"]
 }
 )EXPECTED");
 }
@@ -135,21 +144,21 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline)
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {
   node[shape=record]
-  A [label="{{}|A(3)|{<from_A_to_B_t0>from_A_to_B_t0|<from_A_to_B_t1>from_A_to_B_t1|<from_A_to_B_t2>from_A_to_B_t2}}"];
-  B_t0 [label="{{<from_A_to_B_t0>from_A_to_B_t0}|B_t0(3)|{<from_B_t0_to_C_t0>from_B_t0_to_C_t0|<from_B_t0_to_C_t1>from_B_t0_to_C_t1}}"];
-  B_t1 [label="{{<from_A_to_B_t1>from_A_to_B_t1}|B_t1(3)|{<from_B_t1_to_C_t0>from_B_t1_to_C_t0|<from_B_t1_to_C_t1>from_B_t1_to_C_t1}}"];
-  B_t2 [label="{{<from_A_to_B_t2>from_A_to_B_t2}|B_t2(3)|{<from_B_t2_to_C_t0>from_B_t2_to_C_t0|<from_B_t2_to_C_t1>from_B_t2_to_C_t1}}"];
-  C_t0 [label="{{<from_B_t0_to_C_t0>from_B_t0_to_C_t0|<from_B_t1_to_C_t0>from_B_t1_to_C_t0|<from_B_t2_to_C_t0>from_B_t2_to_C_t0}|C_t0(3)|{}}"];
-  C_t1 [label="{{<from_B_t0_to_C_t1>from_B_t0_to_C_t1|<from_B_t1_to_C_t1>from_B_t1_to_C_t1|<from_B_t2_to_C_t1>from_B_t2_to_C_t1}|C_t1(3)|{}}"];
-  A:from_A_to_B_t0-> B_t0:from_A_to_B_t0 [label="22000"]
-  A:from_A_to_B_t1-> B_t1:from_A_to_B_t1 [label="22001"]
-  A:from_A_to_B_t2-> B_t2:from_A_to_B_t2 [label="22002"]
-  B_t0:from_B_t0_to_C_t0-> C_t0:from_B_t0_to_C_t0 [label="22003"]
-  B_t1:from_B_t1_to_C_t0-> C_t0:from_B_t1_to_C_t0 [label="22005"]
-  B_t2:from_B_t2_to_C_t0-> C_t0:from_B_t2_to_C_t0 [label="22007"]
-  B_t0:from_B_t0_to_C_t1-> C_t1:from_B_t0_to_C_t1 [label="22004"]
-  B_t1:from_B_t1_to_C_t1-> C_t1:from_B_t1_to_C_t1 [label="22006"]
-  B_t2:from_B_t2_to_C_t1-> C_t1:from_B_t2_to_C_t1 [label="22008"]
+  "A" [label="{{}|A(3)|{<from_A_to_B_t0>from_A_to_B_t0|<from_A_to_B_t1>from_A_to_B_t1|<from_A_to_B_t2>from_A_to_B_t2}}"];
+  "B_t0" [label="{{<from_A_to_B_t0>from_A_to_B_t0}|B_t0(3)|{<from_B_t0_to_C_t0>from_B_t0_to_C_t0|<from_B_t0_to_C_t1>from_B_t0_to_C_t1}}"];
+  "B_t1" [label="{{<from_A_to_B_t1>from_A_to_B_t1}|B_t1(3)|{<from_B_t1_to_C_t0>from_B_t1_to_C_t0|<from_B_t1_to_C_t1>from_B_t1_to_C_t1}}"];
+  "B_t2" [label="{{<from_A_to_B_t2>from_A_to_B_t2}|B_t2(3)|{<from_B_t2_to_C_t0>from_B_t2_to_C_t0|<from_B_t2_to_C_t1>from_B_t2_to_C_t1}}"];
+  "C_t0" [label="{{<from_B_t0_to_C_t0>from_B_t0_to_C_t0|<from_B_t1_to_C_t0>from_B_t1_to_C_t0|<from_B_t2_to_C_t0>from_B_t2_to_C_t0}|C_t0(3)|{}}"];
+  "C_t1" [label="{{<from_B_t0_to_C_t1>from_B_t0_to_C_t1|<from_B_t1_to_C_t1>from_B_t1_to_C_t1|<from_B_t2_to_C_t1>from_B_t2_to_C_t1}|C_t1(3)|{}}"];
+  "A":"from_A_to_B_t0"-> "B_t0":"from_A_to_B_t0" [label="22000"]
+  "A":"from_A_to_B_t1"-> "B_t1":"from_A_to_B_t1" [label="22001"]
+  "A":"from_A_to_B_t2"-> "B_t2":"from_A_to_B_t2" [label="22002"]
+  "B_t0":"from_B_t0_to_C_t0"-> "C_t0":"from_B_t0_to_C_t0" [label="22003"]
+  "B_t1":"from_B_t1_to_C_t0"-> "C_t0":"from_B_t1_to_C_t0" [label="22005"]
+  "B_t2":"from_B_t2_to_C_t0"-> "C_t0":"from_B_t2_to_C_t0" [label="22007"]
+  "B_t0":"from_B_t0_to_C_t1"-> "C_t1":"from_B_t0_to_C_t1" [label="22004"]
+  "B_t1":"from_B_t1_to_C_t1"-> "C_t1":"from_B_t1_to_C_t1" [label="22006"]
+  "B_t2":"from_B_t2_to_C_t1"-> "C_t1":"from_B_t2_to_C_t1" [label="22008"]
 }
 )EXPECTED");
 }
