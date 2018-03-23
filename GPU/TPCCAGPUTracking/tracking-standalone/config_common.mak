@@ -59,5 +59,5 @@ CONFIG_CPP				= gnu++14
 
 ifneq (${CONFIG_O2DIR}, )
 DEFINES					+= HAVE_O2HEADERS
-INCLUDEPATHSSYSTEM			+= ${CONFIG_O2DIR}/Detectors/TPC/base/include ${CONFIG_O2DIR}/DataFormats/TPC/include
+INCLUDEPATHSSYSTEM			+= ${CONFIG_O2DIR}/Detectors/TPC/base/include ${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include
 endif
