@@ -524,3 +524,117 @@ void AliHLTTPCFastTransform::Print(const char* /*option*/) const
   }
   std::cout.flags(coutflags); // restore the original flags
 }
+
+#include "TFile.h"
+#include "TNtuple.h"
+
+Int_t AliHLTTPCFastTransform::WriteQATree( char *fileName ) 
+{
+  // Set the current time stamp
+  
+ 
+  if( !fOrigTransform ) return Error( -1, "AliHLTTPCFastTransform::WriteQATree: TPC transformation has not been set properly"); 
+
+  AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();  
+
+  if(!pCalib ) return Error( -2, "AliHLTTPCFastTransform::WriteQATree: No TPC calibration found"); 
+  
+  AliTPCParam *tpcParam = pCalib->GetParameters(); 
+
+  if( !tpcParam ) return  Error( -3, "AliHLTTPCFastTransform::WriteQATree: No TPCParam object found"); 
+        
+  if( fUseCorrectionMap ) fOrigTransform->SetCorrectionMapMode(kTRUE); //If the simulation set this to false to simulate distortions, we need to reverse it for the transformation
+
+
+
+  const AliTPCRecoParam *rec = fOrigTransform->GetCurrentRecoParam();
+  rec->Print();
+  
+  int nSec = tpcParam->GetNSector();
+  if( nSec>fkNSec ) nSec = fkNSec;
+
+  {
+    fOrigTransform->PrintCorrectionMapSize();
+
+    TStopwatch timer1;
+    double nCalls1=0;
+    for( Int_t iSec=0; iSec<5; iSec++ ){
+      cout<<"Measure original transformation time for TPC sector "<<iSec<<" .."<<endl;
+     int nRows = tpcParam->GetNRow(iSec);
+      if( nRows>fkNRows ) nRows = fkNRows;
+      for( int iRow=0; iRow<nRows; iRow++){
+	Int_t nPads = tpcParam->GetNPads(iSec,iRow);     
+	for( float pad=0.5; pad<nPads; pad+=1.){
+	  for( float time =0; time < fLastTimeBin; time++ ){
+	    Int_t is[]={iSec};
+	    double orig[3]={static_cast<Double_t>(iRow),pad,time};
+	    float fast[3];
+	    fOrigTransform->Transform(orig,is,0,1);
+	    nCalls1++;
+	  }
+	}
+      }
+    }
+    timer1.Stop();
+    TStopwatch timer2;
+    long int nCalls2=0;
+    for( Int_t iSec=0; iSec<5; iSec++ ){
+      cout<<"Measure fast transformation time for TPC sector "<<iSec<<" .."<<endl;
+      int nRows = tpcParam->GetNRow(iSec);
+      if( nRows>fkNRows ) nRows = fkNRows;
+      for( int iRow=0; iRow<nRows; iRow++){
+	Int_t nPads = tpcParam->GetNPads(iSec,iRow);     
+	for( float pad=0.5; pad<nPads; pad+=1.){
+	  for( float time =0; time < fLastTimeBin; time++ ){
+	    float fast[3];
+	    Transform( iSec, iRow, pad, time, fast );
+	    nCalls2++;
+	  }
+	}
+      }
+    }
+    timer2.Stop();
+
+    cout<<"Orig transformation: "<< timer1.RealTime()*1.e9/nCalls1<<" ns / call"<<endl;
+    cout<<"Fast transformation: "<< timer2.RealTime()*1.e9/nCalls2<<" ns / call"<<endl;
+    cout<<"Transformation speedup: "<< 1.*timer1.RealTime()/timer2.RealTime()*nCalls2/nCalls1<<endl;
+  }
+
+
+  if(1){ 
+    TFile *file = new TFile(fileName,"RECREATE");
+    if( !file || !file->IsOpen() ) return Error( -1, "Can't recreate QA file !"); 
+    file->cd();
+    TNtuple *nt = new TNtuple("fastTransformQA", "fastTransformQA", "sec:row:pad:time:x:y:z:fx:fy:fz");
+ 
+    for( Int_t iSec=fMinInitSec; iSec<fMaxInitSec; iSec++ ){     
+      //for( Int_t iSec=0; iSec<2; iSec++ ){     
+      int nRows = tpcParam->GetNRow(iSec);
+      if( nRows>fkNRows ) nRows = fkNRows;
+      for( int iRow=0; iRow<nRows; iRow++){
+	cout<<"Write fastTransform QA for TPC sector "<<iSec<<", row "<<iRow<<" .."<<endl;
+	Int_t nPads = tpcParam->GetNPads(iSec,iRow);     
+	for( float pad=0.5; pad<nPads; pad+=1.){
+	  for( float time =0; time < fLastTimeBin; time++ ){
+	    Int_t is[]={iSec};
+	    double orig[3]={static_cast<Double_t>(iRow),pad,time};
+	    float fast[3];
+	    fOrigTransform->Transform(orig,is,0,1);
+	    int errF = Transform( iSec, iRow, pad, time, fast );
+	    if( errF ){
+	      Error( -3, "AliHLTTPCFastTransform::WriteQATree: fast transformation failed!!"); 
+	      continue;
+	    }
+	    float entry[] = {(float) iSec, (float) iRow, pad, time, (float) orig[0], (float) orig[1], (float) orig[2], fast[0], fast[1], fast[2] };
+	    nt->Fill(entry);
+	  }
+	}
+      }
+    }
+    file->Write();
+    file->Close();
+    delete file;
+  }
+  cout<<"\n\n FastTransform current time stamp "<<fLastTimeStamp<<endl<<endl;
+  return 0;
+}

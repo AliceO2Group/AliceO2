@@ -97,6 +97,7 @@ class AliHLTTPCFastTransform{
 
   /** Print */
   void Print(const char* option=0) const;
+  Int_t WriteQATree( char *fileName ) ;
 
   static Int_t Version() { return 0; }
   
