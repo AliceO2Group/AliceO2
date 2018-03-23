@@ -587,27 +587,6 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 
 		if (fDebugLevel >= 4 && *fSlaveTrackers[firstSlice + iSlice].NTracklets())
 		{
-#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-			GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[iSlice & 1], ocl->mem_gpu, CL_TRUE, (char*) fGpuTracker[iSlice].TrackletTmpStartHits() - (char*) fGPUMemory, pClusterData[iSlice].NumberOfClusters() * sizeof(AliHLTTPCCAHitId),
-				fSlaveTrackers[firstSlice + iSlice].TrackletStartHits(), 0, NULL, NULL));
-			if (fDebugMask & 8)
-			{
-				*fOutFile << "Temporary ";
-				fSlaveTrackers[firstSlice + iSlice].DumpStartHits(*fOutFile);
-			}
-			uint3* tmpMemory = (uint3*) malloc(sizeof(uint3) * fSlaveTrackers[firstSlice + iSlice].Param().NRows());
-			GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[iSlice & 1], ocl->mem_gpu, CL_TRUE, (char*) fGpuTracker[iSlice].RowStartHitCountOffset() - (char*) fGPUMemory, fSlaveTrackers[firstSlice + iSlice].Param().NRows() * sizeof(uint3), tmpMemory, 0, NULL, NULL));
-			if (fDebugMask & 16)
-			{
-				*fOutFile << "Start Hits Sort Vector:" << std::endl;
-				for (int i = 1;i < fSlaveTrackers[firstSlice + iSlice].Param().NRows() - 5;i++)
-				{
-					*fOutFile << "Row: " << i << ", Len: " << tmpMemory[i].x << ", Offset: " << tmpMemory[i].y << ", New Offset: " << tmpMemory[i].z << std::endl;
-				}
-			}
-			free(tmpMemory);
-#endif
-
 			GPUFailedMsg(clEnqueueReadBuffer(ocl->command_queue[iSlice & 1], ocl->mem_gpu, CL_TRUE, (char*) fGpuTracker[iSlice].HitMemory() - (char*) fGPUMemory, fSlaveTrackers[firstSlice + iSlice].HitMemorySize(),
 				fSlaveTrackers[firstSlice + iSlice].HitMemory(), 0, NULL, NULL));
 			if (fDebugMask & 32) fSlaveTrackers[firstSlice + iSlice].DumpStartHits(*fOutFile);

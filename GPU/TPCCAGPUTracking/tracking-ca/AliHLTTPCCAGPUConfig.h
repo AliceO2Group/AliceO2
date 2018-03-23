@@ -84,6 +84,7 @@
 
 #define HLTCA_GPU_MAX_TRACKLETS 32768					//Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
 #define HLTCA_GPU_MAX_TRACKS 8192						//Max number of Tracks that can be processd by GPU Tracker per sector, must be below 2^24 for track ID format!!!
+#define HLTCA_GPU_MAX_ROWSTARTHITS 20000				//Maximum number of start hits per row
 
 #define HLTCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
 

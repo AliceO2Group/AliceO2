@@ -118,7 +118,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits
 	fHitMemory = (char*) pGPUMemory;
 	SetPointersHits(MaxNHits);
 	pGPUMemory += fHitMemorySize;
-	AssignMemory(fTrackletTmpStartHits, pGPUMemory, NHitsTotal());
+	AssignMemory(fTrackletTmpStartHits, pGPUMemory, HLTCA_ROW_COUNT * HLTCA_GPU_MAX_ROWSTARTHITS);
 	AssignMemory(fRowStartHitCountOffset, pGPUMemory, Param().NRows());
 
 	return(pGPUMemory);
@@ -426,15 +426,9 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
 	char *mem = fHitMemory;
 
 	// extra arrays for tpc clusters
-
-#ifdef HLTCA_GPU_SORT_STARTHITS_2
-	AssignMemory( fTrackletStartHits, mem, MaxNHits + 32);
-#else
 	AssignMemory( fTrackletStartHits, mem, MaxNHits);
-#endif
 
 	// calculate the size
-
 	fHitMemorySize = mem - fHitMemory;
 }
 

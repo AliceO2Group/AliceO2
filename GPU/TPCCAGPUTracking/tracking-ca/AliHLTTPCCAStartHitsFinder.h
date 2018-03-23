@@ -27,17 +27,11 @@ class AliHLTTPCCAStartHitsFinder
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {
-	  AliHLTTPCCAHitId tmp;
-	  tmp.Set(0,0);
-	  for( int i=0; i<ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS; i++)fRowStartHits[i] = tmp;
+            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNRowStartHits( 0 ) {
 }
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-	  : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {
-	  AliHLTTPCCAHitId tmp;
-	  tmp.Set(0,0);
-	  for( int i=0; i<ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS; i++)fRowStartHits[i] = tmp;
+	  : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNRowStartHits( 0 ) {
 	}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif //!HLTCA_GPUCODE
@@ -46,12 +40,10 @@ class AliHLTTPCCAStartHitsFinder
         int fIRow; // row index
         int fNRows; // n rows
         int fNHits; // n hits in the row
-        AliHLTTPCCAHitId fRowStartHits[ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS]; // temp. array for the start hits
-        int fNOldStartHits; // n start hits from other jobs
-        int fNRowStartHits; // n start hits for this row
+        int fNRowStartHits; //start hits found in the row
     };
 
-    GPUd() static int NThreadSyncPoints() { return 3; }
+    GPUd() static int NThreadSyncPoints() { return 2; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
                                MEM_LOCAL(GPUsharedref() AliHLTTPCCASharedMemory) &smem,  MEM_CONSTANT(GPUconstant() AliHLTTPCCATracker) &tracker );
