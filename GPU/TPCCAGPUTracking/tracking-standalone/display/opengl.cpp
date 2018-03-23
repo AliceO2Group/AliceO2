@@ -1112,20 +1112,21 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 
 void PrintHelp()
 {
-	printf("[N]/[SPACE]\tNext event\n");
-	printf("[Q]/[ESC]\tQuit\n");
-	printf("[R]\t\tReset Display Settings\n");
-	printf("[L]\t\tDraw single slice (next slice)\n");
-	printf("[K]\t\tDraw single slice (previous slice)\n");
-	printf("[Z]/[U]\t\tShow splitting of TPC in slices by extruding volume, [U] resets\n");
-	printf("[Y]\t\tStart Animation\n");
-	printf("[G]\t\tDraw Grid\n");
-	printf("[I]\t\tProject onto XY-plane\n");
-	printf("[X]\t\tExclude Clusters used in the tracking steps enabled for visualization ([1]-[8])\n");
+	printf("[n]/[SPACE]\tNext event\n");
+	printf("[q]/[ESC]\tQuit\n");
+	printf("[r]\t\tReset Display Settings\n");
+	printf("[l]\t\tDraw single slice (next slice)\n");
+	printf("[k]\t\tDraw single slice (previous slice)\n");
+	printf("[z]/[U]\t\tShow splitting of TPC in slices by extruding volume, [U] resets\n");
+	printf("[y]\t\tStart Animation\n");
+	printf("[g]\t\tDraw Grid\n");
+	printf("[i]\t\tProject onto XY-plane\n");
+	printf("[x]\t\tExclude Clusters used in the tracking steps enabled for visualization ([1]-[8])\n");
 	printf("[<]\t\tExclude rejected tracks\n");
-	printf("[C]\t\tMark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20\n");
-	printf("[V]\t\tHide rejected clusters from tracks\n");
-	printf("[B]\t\tHide all clusters not belonging or related to matched tracks\n");
+	printf("[c]\t\tMark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20\n");
+	printf("[C]\t\tColorcode clusters of different collisions\n");
+	printf("[v]\t\tHide rejected clusters from tracks\n");
+	printf("[b]\t\tHide all clusters not belonging or related to matched tracks\n");
 	printf("[1]\t\tShow Clusters\n");
 	printf("[2]\t\tShow Links that were removed\n");
 	printf("[3]\t\tShow Links that remained in Neighbors Cleaner\n");
@@ -1134,15 +1135,15 @@ void PrintHelp()
 	printf("[6]\t\tShow Tracks (after Tracklet Selector)\n");
 	printf("[7]\t\tShow Global Track Segments\n");
 	printf("[8]\t\tShow Final Merged Tracks (after Track Merger)\n");
-	printf("[J]\t\tShow global tracks as additional segments of final tracks\n");
-	printf("[M]\t\tReorder clusters of merged tracks before showing them geometrically\n");
-	printf("[T]\t\tTake Screenshot\n");
-	printf("[O]\t\tSave current camera position\n");
-	printf("[P]\t\tRestore camera position\n");
-	printf("[H]\t\tPrint Help\n");
-	printf("[W]/[S]/[A]/[D]\tZoom / Move Left Right\n");
-	printf("[E]/[F]\t\tRotate\n");
-	printf("[+]/[-]\t\tMake points thicker / fainter\n");
+	printf("[j]\t\tShow global tracks as additional segments of final tracks\n");
+	printf("[m]\t\tReorder clusters of merged tracks before showing them geometrically\n");
+	printf("[t]\t\tTake Screenshot\n");
+	printf("[o]\t\tSave current camera position\n");
+	printf("[p]\t\tRestore camera position\n");
+	printf("[h]\t\tPrint Help\n");
+	printf("[w]/[s]/[a]/[d]\tZoom / Move Left Right\n");
+	printf("[e]/[f]\t\tRotate\n");
+	printf("[+]/[-]\t\tMake points thicker / fainter (Hold SHIFT for lines)\n");
 	printf("[MOUSE1]\tLook around\n");
 	printf("[MOUSE2]\tShift camera\n");
 	printf("[MOUSE1+2]\tZoom / Rotate\n");
@@ -1152,78 +1153,91 @@ void PrintHelp()
 void HandleKeyRelease(int wParam)
 {
 	keys[wParam] = false;
+	
+	if (keys[16]) wParam &= ~(int) ('a' ^ 'A');
+	else wParam |= (int) ('a' ^ 'A');
 
-	if (wParam == 13 || wParam == 'N') buttonPressed = 1;
-	else if (wParam == 'Q') buttonPressed = 2;
-	else if (wParam == 'R') resetScene = 1;
+	if (wParam == 13 || wParam == 'n') buttonPressed = 1;
+	else if (wParam == 'q') buttonPressed = 2;
+	else if (wParam == 'r') resetScene = 1;
 
-	else if (wParam == 'L')
+	else if (wParam == 'l')
 	{
 		if (drawSlice == fgkNSlices - 1)
 			drawSlice = -1;
 		else
 			drawSlice++;
 	}
-	else if (wParam == 'K')
+	else if (wParam == 'k')
 	{
 		if (drawSlice == -1)
 			drawSlice = fgkNSlices - 1;
 		else
 			drawSlice--;
 	}
-	else if (wParam == 'J')
+	else if (wParam == 'j')
 	{
 		separateGlobalTracks ^= 1;
 		updateDLList = true;
 	}
-	else if (wParam == 'M')
+	else if (wParam == 'm')
 	{
 		reorderFinalTracks ^= 1;
 		updateDLList = true;
 	}
-	else if (wParam == 'C')
+	else if (wParam == 'c')
 	{
 		if (markClusters == 0) markClusters = 1;
 		else if (markClusters >= 8) markClusters = 0;
 		else markClusters <<= 1;
 		updateDLList = true;
 	}
-	else if (wParam == 'V')
+	else if (wParam == 'C')
+	{
+		colorCollisions ^= 1;
+		updateDLList = true;
+	}
+	else if (wParam == 'P')
+	{
+		propagateTracks ^= 1;
+		updateDLList = true;
+	}
+	else if (wParam == 'v')
 	{
 		hideRejectedClusters ^= 1;
 		updateDLList = true;
 	}
-	else if (wParam == 'B')
+	else if (wParam == 'b')
 	{
 		hideUnmatchedClusters ^= 1;
 		updateDLList = true;
 	}
-	else if (wParam == 'I')
+	else if (wParam == 'i')
 	{
 		updateDLList = true;
 		projectxy ^= 1;
 	}
-	else if (wParam == 'Z')
+	else if (wParam == 'z')
 	{
 		updateDLList = true;
 		Xadd += 60;
 		Zadd += 60;
 	}
-	else if (wParam == 'U')
+	else if (wParam == 'u')
 	{
 		updateDLList = true;
 		Xadd -= 60;
 		Zadd -= 60;
 		if (Zadd < 0 || Xadd < 0) Zadd = Xadd = 0;
 	}
-	else if (wParam == 'Y')
+	else if (wParam == 'y')
 	{
 		animate = 1;
 		printf("Starting Animation\n");
 	}
 
-	else if (wParam == 'G') drawGrid ^= 1;
-	else if (wParam == 'X') excludeClusters ^= 1;
+	else if (wParam == 'g') drawGrid ^= 1;
+	else if (wParam == 'x') excludeClusters ^= 1;
 	else if (wParam == '<')
 	{
 		hideRejectedTracks ^= 1;
@@ -1249,7 +1263,7 @@ void HandleKeyRelease(int wParam)
 		drawGlobalTracks ^= 1;
 	else if (wParam == '8')
 		drawFinal ^= 1;
-	else if (wParam == 'T')
+	else if (wParam == 't')
 	{
 		printf("Taking Screenshot\n");
 		static int nScreenshot = 1;
@@ -1257,7 +1271,7 @@ void HandleKeyRelease(int wParam)
 		sprintf(fname, "screenshot%d.bmp", nScreenshot++);
 		DoScreenshot(fname, screenshot_scale);
 	}
-	else if (wParam == 'O')
+	else if (wParam == 'o')
 	{
 		GLfloat tmp[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, tmp);
@@ -1276,7 +1290,7 @@ void HandleKeyRelease(int wParam)
 			printf("Error opening file\n");
 		}
 	}
-	else if (wParam == 'P')
+	else if (wParam == 'p')
 	{
 		GLfloat tmp[16];
 		FILE *ftmp = fopen("glpos.tmp", "rb");
@@ -1300,7 +1314,7 @@ void HandleKeyRelease(int wParam)
 			printf("Error opening file\n");
 		}
 	}
-	else if (wParam == 'H')
+	else if (wParam == 'h')
 	{
 		PrintHelp();
 	}
