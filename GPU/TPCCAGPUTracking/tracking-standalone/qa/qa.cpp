@@ -239,6 +239,11 @@ bool SuppressHit(int iHit)
 	return (configStandalone.configQA.matchMCLabels.size() && !goodHits[nEvents - 1][iHit]);
 }
 
+int GetMCLabel(unsigned int trackId)
+{
+	return(trackId >= trackMCLabels.size() ? -1 : trackMCLabels[trackId]);
+}
+
 void InitQA()
 {
 	structConfigQA& config = configStandalone.configQA;
