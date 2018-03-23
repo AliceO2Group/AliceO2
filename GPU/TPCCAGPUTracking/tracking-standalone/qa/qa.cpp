@@ -23,10 +23,24 @@
 #include "TF1.h"
 #include "TFile.h"
 #include "TStyle.h"
+#include "TLatex.h"
 #include <sys/stat.h>
 
 #include "../cmodules/qconfig.h"
 #include "../cmodules/timer.h"
+
+//-------------------------: Some compile time settings....
+const constexpr bool plotroot = 0;
+const constexpr bool fixscales = 0;
+const constexpr bool perffigure = 0;
+const constexpr float fixedScalesMin[5] = {-0.05, -0.05, -0.2, -0.2, -0.5};
+const constexpr float fixedScalesMax[5] = {0.4, 0.7, 5, 3, 6.5};
+const constexpr float logPtMin = -1.;
+
+const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
+//const char* str_perf_figure_2 = "2015, MC pp, #sqrt{s} = 5.02 TeV";
+const char* str_perf_figure_2 = "2015, MC Pb-Pb, #sqrt{s_{NN}} = 5.02 TeV";
+//-------------------------
 
 struct additionalMCParameters
 {
@@ -109,43 +123,45 @@ bool MCComp(const AliHLTTPCClusterMCWeight& a, const AliHLTTPCClusterMCWeight& b
 static const int ColorCount = 12;
 static Color_t colorNums[ColorCount];
 
-static const char* EffTypes[4] = {"Rec", "Clone", "Fake", "All"};
-static const char* FindableNames[2] = {"", "Findable"};
-static const char* PrimNames[2] = {"Prim", "Sec"};
-static const char* ParameterNames[5] = {"Y", "Z", "#Phi", "#lambda", "Relative p_{T}"};
-static const char* ParameterNamesNative[5] = {"Y", "Z", "sin(#Phi)", "tan(#lambda)", "q/p_{T} (curvature)"};
-static const char* VSParameterNames[6] = {"Y", "Z", "Phi", "Eta", "Pt", "Pt_log"};
-static const char* EffNames[3] = {"Efficiency", "Clone Rate", "Fake Rate"};
-static const char* EfficiencyTitles[4] = {"Efficiency (Primary Tracks, Findable)", "Efficiency (Secondary Tracks, Findable)", "Efficiency (Primary Tracks)", "Efficiency (Secondary Tracks)"};
-static const double Scale[5] = {10., 10., 1000., 1000., 100.};
-static const double ScaleNative[5] = {10., 10., 1000., 1000., 1.};
-static const char* XAxisTitles[5] = {"y_{mc} [cm]", "z_{mc} [cm]", "#Phi_{mc} [rad]", "#eta_{mc}", "p_{Tmc} [Gev/c]"};
-static const char* AxisTitles[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "#phi-#phi_{mc} [mrad] (Resolution)", "#lambda-#lambda_{mc} [mrad] (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} [%] (Resolution)"};
-static const char* AxisTitlesNative[5] = {"y-y_{mc} [mm] (Resolution)", "z-z_{mc} [mm] (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "q*(q/p_{T} - q/p_{Tmc}) (Resolution)"};
-static const char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)", "q*(q/p_{T} - q/p_{Tmc})/#sigma_{q/p_{T}} (Pull)"};
-static const char* ClustersNames[4] = {"Correctly attached clusters", "Fake attached clusters", "Clusters of reconstructed tracks", "All clusters"};
-static const char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
-static const char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "All"};
-static const char* ClusterTypes[3] = {"", "Ratio", "Integral"};
-static int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
+static const constexpr char* EffTypes[4] = {"Rec", "Clone", "Fake", "All"};
+static const constexpr char* FindableNames[2] = {"", "Findable"};
+static const constexpr char* PrimNames[2] = {"Prim", "Sec"};
+static const constexpr char* ParameterNames[5] = {"Y", "Z", "#Phi", "#lambda", "Relative p_{T}"};
+static const constexpr char* ParameterNamesNative[5] = {"Y", "Z", "sin(#Phi)", "tan(#lambda)", "q/p_{T} (curvature)"};
+static const constexpr char* VSParameterNames[6] = {"Y", "Z", "Phi", "Eta", "Pt", "Pt_log"};
+static const constexpr char* EffNames[3] = {"Efficiency", "Clone Rate", "Fake Rate"};
+static const constexpr char* EfficiencyTitles[4] = {"Efficiency (Primary Tracks, Findable)", "Efficiency (Secondary Tracks, Findable)", "Efficiency (Primary Tracks)", "Efficiency (Secondary Tracks)"};
+static const constexpr double Scale[5] = {10., 10., 1000., 1000., 100.};
+static const constexpr double ScaleNative[5] = {10., 10., 1000., 1000., 1.};
+static const constexpr char* XAxisTitles[5] = {"y_{mc} (cm)", "z_{mc} (cm)", "#Phi_{mc} (rad)", "#eta_{mc}", "p_{Tmc} (GeV/#it{c})"};
+static const constexpr char* AxisTitles[5] = {"y-y_{mc} (mm) (Resolution)", "z-z_{mc} (mm) (Resolution)", "#phi-#phi_{mc} (mrad) (Resolution)", "#lambda-#lambda_{mc} (mrad) (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} (%) (Resolution)"};
+static const constexpr char* AxisTitlesNative[5] = {"y-y_{mc} (mm) (Resolution)", "z-z_{mc} (mm) (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "q*(q/p_{T} - q/p_{Tmc}) (Resolution)"};
+static const constexpr char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)", "q*(q/p_{T} - q/p_{Tmc})/#sigma_{q/p_{T}} (Pull)"};
+static const constexpr char* ClustersNames[4] = {"Correctly attached clusters", "Fake attached clusters", "Clusters of reconstructed tracks", "All clusters"};
+static const constexpr char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
+static const constexpr char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "All"};
+static const constexpr char* ClusterTypes[3] = {"", "Ratio", "Integral"};
+static const constexpr int colorsHex[ColorCount] = {0xB03030, 0x00A000, 0x0000C0, 0x9400D3, 0x19BBBF, 0xF25900, 0x7F7F7F, 0xFFD700, 0x07F707, 0x07F7F7, 0xF08080, 0x000000};
 
 static int ConfigDashedMarkers = 0;
 
-static constexpr float kPi = M_PI;
-static const float axes_min[5] = {-Y_MAX, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
-static const float axes_max[5] = {Y_MAX, Z_MAX, 2.f *  kPi, ETA_MAX, PT_MAX};
-static const int axis_bins[5] = {51, 51, 144, 31, 50};
-static const int res_axis_bins[] = {1017, 113}; //Consecutive bin sizes, histograms are binned down until the maximum entry is 50, each bin size should evenly divide its predecessor.
-static const float res_axes[5] = {1., 1., 0.03, 0.03, 1.0};
-static const float res_axes_native[5] = {1., 1., 0.1, 0.1, 5.0};
-static const float pull_axis = 10.f;
+static const constexpr float kPi = M_PI;
+static const constexpr float axes_min[5] = {-Y_MAX, -Z_MAX, 0.f, -ETA_MAX, PT_MIN};
+static const constexpr float axes_max[5] = {Y_MAX, Z_MAX, 2.f *  kPi, ETA_MAX, PT_MAX};
+static const constexpr int axis_bins[5] = {51, 51, 144, 31, 50};
+static const constexpr int res_axis_bins[] = {1017, 113}; //Consecutive bin sizes, histograms are binned down until the maximum entry is 50, each bin size should evenly divide its predecessor.
+static const constexpr float res_axes[5] = {1., 1., 0.03, 0.03, 1.0};
+static const constexpr float res_axes_native[5] = {1., 1., 0.1, 0.1, 5.0};
+static const constexpr float pull_axis = 10.f;
 
 static void SetAxisSize(TH1F* e)
 {
 	e->GetYaxis()->SetTitleOffset(1.0);
 	e->GetYaxis()->SetTitleSize(0.045);
 	e->GetYaxis()->SetLabelSize(0.045);
+	e->GetXaxis()->SetTitleOffset(1.03);
 	e->GetXaxis()->SetTitleSize(0.045);
+	e->GetXaxis()->SetLabelOffset(-0.005);
 	e->GetXaxis()->SetLabelSize(0.045);
 }
 
@@ -193,6 +209,17 @@ void DrawHisto(TH1* histo, char* filename, char* options)
 	tmp.cd();
 	histo->Draw(options);
 	tmp.Print(filename);
+}
+
+void doPerfFigure(float x, float y, float size)
+{
+	if (!perffigure) return;
+	TLatex* t = new TLatex;
+	t->SetNDC(kTRUE);
+	t->SetTextColor(1);
+	t->SetTextSize(size);
+	t->DrawLatex(x, y, str_perf_figure_1);
+	t->DrawLatex(x, y - 0.01 - size, str_perf_figure_2);
 }
 
 int mcTrackMin = -1, mcTrackMax = -1;
@@ -264,7 +291,7 @@ void InitQA()
 			sprintf(fname, "mean_%s_vs_%s", VSParameterNames[i], VSParameterNames[j]);
 			if (j == 4)
 			{
-				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
+				double* binsPt = CreateLogAxis(axis_bins[4], config.resPrimaries == 1 ? PT_MIN_PRIM : axes_min[4], axes_max[4]);
 				res[i][j][0] = new TH1F(name, name, axis_bins[j], binsPt);
 				res[i][j][1] = new TH1F(fname, fname, axis_bins[j], binsPt);
 				delete[] binsPt;
@@ -279,7 +306,7 @@ void InitQA()
 			const int nbins = i == 4 && config.nativeFitResolutions ? (10 * res_axis_bins[0]) : res_axis_bins[0];
 			if (j == 4)
 			{
-				double* binsPt = CreateLogAxis(axis_bins[4], axes_min[4], axes_max[4]);
+				double* binsPt = CreateLogAxis(axis_bins[4], config.resPrimaries == 1 ? PT_MIN_PRIM : axes_min[4], axes_max[4]);
 				res2[i][j] = new TH2F(name, name, nbins, -axis[i], axis[i], axis_bins[j], binsPt);
 				delete[] binsPt;
 			}
@@ -754,6 +781,7 @@ void RunQA()
 		//Fill Cluster Histograms
 		for (int i = 0;i < hlt.GetNMCInfo();i++)
 		{
+			if ((mcTrackMin != -1 && i < mcTrackMin) || (mcTrackMax != -1 && i >= mcTrackMax)) continue;
 			const additionalMCParameters& mc2 = mcParam[i];
 			
 			float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
@@ -762,6 +790,7 @@ void RunQA()
 		}
 	 	for (int i = 0;i < hlt.GetNMCLabels();i++)
 	 	{
+			if ((mcTrackMin != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
 			float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached;
 			if (totalAttached <= 0) continue;
 			float totalWeight = 0.;
@@ -952,7 +981,7 @@ int DrawQAHistograms()
 		peff[ii][1] = new TPad( "p1","",0.5,dy*0,1.0,dy*1); peff[ii][1]->Draw();peff[ii][1]->SetRightMargin(0.04);
 		peff[ii][2] = new TPad( "p2","",0.0,dy*1,0.5,dy*2-.001); peff[ii][2]->Draw();peff[ii][2]->SetRightMargin(0.04);
 		peff[ii][3] = new TPad( "p3","",0.5,dy*1,1.0,dy*2-.001); peff[ii][3]->Draw();peff[ii][3]->SetRightMargin(0.04);
-		legendeff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.83 - (0.93 - 0.83) / 2. * (float) ConfigNumInputs,0.98,0.849); SetLegend(legendeff[ii]);
+		legendeff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.83 - (0.93 - 0.82) / 2. * (float) ConfigNumInputs,0.98,0.849); SetLegend(legendeff[ii]);
 	}
 
 	//Create Canvas / Pads for Resolution Histograms
@@ -972,7 +1001,7 @@ int DrawQAHistograms()
 		pres[ii][0] = new TPad( "p2","",0.0,dy*1,1./3.,dy*2-.001); pres[ii][0]->Draw();pres[ii][0]->SetRightMargin(0.04);pres[ii][0]->SetLeftMargin(0.15);
 		pres[ii][1] = new TPad( "p3","",1./3.,dy*1,2./3.,dy*2-.001); pres[ii][1]->Draw();pres[ii][1]->SetRightMargin(0.04);pres[ii][1]->SetLeftMargin(0.135);
 		pres[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); pres[ii][2]->Draw();pres[ii][2]->SetRightMargin(0.06);pres[ii][2]->SetLeftMargin(0.135);
-		if (ii < 6) {legendres[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendres[ii]);}
+		if (ii < 6) {legendres[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendres[ii]);}
 	}
 	
 	//Create Canvas / Pads for Pull Histograms
@@ -992,7 +1021,7 @@ int DrawQAHistograms()
 		ppull[ii][0] = new TPad( "p2","",0.0,dy*1,1./3.,dy*2-.001); ppull[ii][0]->Draw();ppull[ii][0]->SetRightMargin(0.04);ppull[ii][0]->SetLeftMargin(0.15);
 		ppull[ii][1] = new TPad( "p3","",1./3.,dy*1,2./3.,dy*2-.001); ppull[ii][1]->Draw();ppull[ii][1]->SetRightMargin(0.04);ppull[ii][1]->SetLeftMargin(0.135);
 		ppull[ii][2] = new TPad( "p4","",2./3.,dy*1,1.0,dy*2-.001); ppull[ii][2]->Draw();ppull[ii][2]->SetRightMargin(0.06);ppull[ii][2]->SetLeftMargin(0.135);
-		if (ii < 6) {legendpull[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendpull[ii]);}
+		if (ii < 6) {legendpull[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendpull[ii]);}
 	}
 
 	//Create Canvas for Cluster Histos
@@ -1002,18 +1031,18 @@ int DrawQAHistograms()
 		cclust[i] = new TCanvas(fname,ClusterTitles[i],0,0,700,700.*2./3.); cclust[i]->cd();
 		pclust[i] = new TPad( "p0","",0.0,0.0,1.0,1.0); pclust[i]->Draw();
 		float y1 = i != 1 ? 0.83 : 0.48, y2 = i != 1 ? 0.9 : 0.55;
-		legendclust[i] = new TLegend(i == 2 ? 0.1 : 0.65, y2 - (y2 - y1) * ConfigNumInputs, i == 2 ? 0.35 : 0.9, y2);SetLegend(legendclust[i]);
+		legendclust[i] = new TLegend(i == 2 ? 0.1 : (0.65 - legendSpacingString * 1.45), y2 - (y2 - y1) * (ConfigNumInputs + (i != 1) / 2.) + 0.005, i == 2 ? (0.3 + legendSpacingString * 1.45) : 0.9, y2);SetLegend(legendclust[i]);
 	}
 
 	//Create Canvas for other histos
 	{
 		ctracks = new TCanvas("ctracks","Track Pt",0,0,700,700.*2./3.);	ctracks->cd();
 		ptracks = new TPad( "p0","",0.0,0.0,1.0,1.0); ptracks->Draw();
-		legendtracks = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendtracks);
+		legendtracks = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendtracks);
 
 		cncl = new TCanvas("cncl","Number of clusters per track",0,0,700,700.*2./3.);	cncl->cd();
 		pncl = new TPad( "p0","",0.0,0.0,1.0,1.0); pncl->Draw();
-		legendncl = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.87) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendncl);
+		legendncl = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float) ConfigNumInputs, 0.98, 0.949); SetLegend(legendncl);
 	}
 	
 	if (!config.inputHistogramsOnly) printf("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)\n",
@@ -1060,9 +1089,6 @@ int DrawQAHistograms()
 					e->SetMinimum(-0.02);
 					if (!config.inputHistogramsOnly && k == 0)
 					{
-						e->SetTitle(EfficiencyTitles[j]);
-						e->GetYaxis()->SetTitle("(Efficiency)");
-						e->GetXaxis()->SetTitle(XAxisTitles[i]);
 						if (tout)
 						{
 							eff[l][j / 2][j % 2][i][0]->Write();
@@ -1071,6 +1097,9 @@ int DrawQAHistograms()
 						}
 					}
 					else if (GetHist(e, tin, k, nNewInput) == NULL) continue;
+					e->SetTitle(EfficiencyTitles[j]);
+					e->GetYaxis()->SetTitle("(Efficiency)");
+					e->GetXaxis()->SetTitle(XAxisTitles[i]);
 
 					e->SetMarkerColor(kBlack);
 					e->SetLineWidth(1);
@@ -1091,6 +1120,9 @@ int DrawQAHistograms()
 			}
 		}
 		legendeff[ii]->Draw();
+		
+		doPerfFigure(0.2, 0.295, 0.025);
+				
 		sprintf(fname, "plots/eff_vs_%s.pdf", VSParameterNames[ii]);
 		ceff[ii]->Print(fname);
 	}
@@ -1227,10 +1259,9 @@ int DrawQAHistograms()
 						if (nNewInput && k == 0 && ii != 5)
 						{
 							if (p == 0) e->Scale(config.nativeFitResolutions ? ScaleNative[j] : Scale[j]);
-							e->GetYaxis()->SetTitle(p ? AxisTitlesPull[j] : config.nativeFitResolutions ? AxisTitlesNative[j] : AxisTitles[j]);
-							e->GetXaxis()->SetTitle(XAxisTitles[i]);
 						}
 						if (ii == 4) e->GetXaxis()->SetRangeUser(0.2, PT_MAX);
+						else if (logPtMin > 0 && ii == 5) e->GetXaxis()->SetRangeUser(logPtMin, PT_MAX);
 						else if (ii == 5) e->GetXaxis()->SetRange(1, 0);
 						e->SetMinimum(-1111);
 						e->SetMaximum(-1111);
@@ -1274,6 +1305,10 @@ int DrawQAHistograms()
 						e->SetLineColor(colorNums[numColor++ % ColorCount]);
 						e->SetLineStyle(ConfigDashedMarkers ? k + 1 : 1);
 						SetAxisSize(e);
+						e->GetYaxis()->SetTitle(p ? AxisTitlesPull[j] : config.nativeFitResolutions ? AxisTitlesNative[j] : AxisTitles[j]);
+						e->GetXaxis()->SetTitle(XAxisTitles[i]);
+						if (logPtMin > 0 && ii == 5) e->GetXaxis()->SetRangeUser(logPtMin, PT_MAX);
+						
 						if (j == 0) e->GetYaxis()->SetTitleOffset(1.5);
 						else if (j < 3) e->GetYaxis()->SetTitleOffset(1.4);
 						e->Draw(k || l ? "same" : "");
@@ -1291,6 +1326,8 @@ int DrawQAHistograms()
 				if (j == 4) ChangePadTitleSize(pad, 0.056);
 			}
 			leg->Draw();
+			
+			doPerfFigure(0.2, 0.295, 0.025);
 
 			sprintf(fname, p ? "plots/pull_vs_%s.pdf" : "plots/res_vs_%s.pdf", VSParameterNames[ii]);
 			can->Print(fname);
@@ -1408,8 +1445,10 @@ int DrawQAHistograms()
 					if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 
 					e->SetTitle(ClusterTitles[i]);
-					e->GetYaxis()->SetTitle(i == 0 ? "Number of clusters" : "Fraction of clusters");
-					e->GetXaxis()->SetTitle("p_{Tmc} [Gev/c]");
+					e->GetYaxis()->SetTitle(i == 0 ? "Number of TPC clusters" : i == 1 ? "Fraction of TPC clusters" : "Fraction of TPC clusters (integrated)");
+					e->GetXaxis()->SetTitle("p_{Tmc} (GeV/#it{c})");
+					e->GetXaxis()->SetTitleOffset(1.1);
+					e->GetXaxis()->SetLabelOffset(-0.005);
 					if (tout && !config.inputHistogramsOnly && k == 0) e->Write();
 					e->SetStats(kFALSE);
 					e->SetMarkerColor(kBlack);
@@ -1423,6 +1462,9 @@ int DrawQAHistograms()
 				}
 			}
 			legendclust[i]->Draw();
+			
+			doPerfFigure(i != 2 ? 0.37 : 0.6, 0.295, 0.030);
+
 			cclust[i]->cd();
 			cclust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
 		}
@@ -1452,7 +1494,7 @@ int DrawQAHistograms()
 			e->SetLineWidth(1);
 			e->SetLineColor(colorNums[k % ColorCount]);
 			e->GetYaxis()->SetTitle("a.u.");
-			e->GetXaxis()->SetTitle("p_{Tmc} [Gev/c]");
+			e->GetXaxis()->SetTitle("p_{Tmc} (GeV/#it{c})");
 			e->Draw(k == 0 ? "" : "same");
 			GetName(fname, k);
 			sprintf(name, "%sTrack Pt", fname);
