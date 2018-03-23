@@ -1244,7 +1244,10 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == 'T')
 	{
 		printf("Taking Screenshot\n");
-		DoScreenshot("screenshot.bmp", screenshot_scale);
+		static int nScreenshot = 1;
+		char fname[32];
+		sprintf(fname, "screenshot%d.bmp", nScreenshot++);
+		DoScreenshot(fname, screenshot_scale);
 	}
 	else if (wParam == 'O')
 	{
