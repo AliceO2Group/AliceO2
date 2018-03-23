@@ -30,20 +30,10 @@ void lineByLineComparision(const std::string& as, const std::string& bs)
 
   char bufferA[1024];
   char bufferB[1024];
- 
-  bool same{true};
   while (a.good() && b.good()) {
     a.getline(bufferA, 1024);
     b.getline(bufferB, 1024);
     BOOST_CHECK_EQUAL(std::string(bufferA), std::string(bufferB));
-    if (std::string(bufferA) != std::string(bufferB)) {
-      same=false;
-    }
-  }
-  if (!same){
-  std::cout << as << "\n";
-  std::cout << "\n";
-  std::cout << bs << "\n";
   }
   BOOST_CHECK(a.eof());
   BOOST_CHECK(b.eof());
