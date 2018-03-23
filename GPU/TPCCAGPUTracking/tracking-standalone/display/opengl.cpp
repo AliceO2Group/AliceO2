@@ -546,7 +546,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	static float fpsscale = 1;
 
 	static int framesDone = 0, framesDoneFPS = 0;
-	static HighResTimer timerFPS, timerDisplay;
+	static HighResTimer timerFPS, timerDisplay, timerDraw;
+	bool showTimer = false;
 
 	constexpr const int N_POINTS_TYPE = 9;
 	constexpr const int N_LINES_TYPE = 7;
@@ -686,6 +687,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	//Extract global cluster information
 	if (updateDLList || displayEventNr != currentEventNr)
 	{
+		showTimer = true;
+		timerDraw.ResetStart();
 		currentClusters = 0;
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
@@ -839,6 +842,10 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		{
 			glDLrecent = 1;
 		}
+	}
+	if (showTimer)
+	{
+		printf("Draw time: %d ms\n", (int) (timerDraw.GetCurrentElapsedTime() * 1000000.));
 	}
 
 	framesDone++;
