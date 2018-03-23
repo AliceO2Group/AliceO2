@@ -23,7 +23,7 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 ( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
-	//Sorts the Start Hits by Row Index and create RowBlock Data
+	//Sorts the Start Hits by Row Index
 	if ( iSync == 0 ) {
 		if ( iThread == 0 ) {
 			const int gpuFixedBlockCount = tracker.GPUParametersConst()->fGPUFixedBlockCount;
@@ -34,7 +34,7 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 
 			for (int ir = 1;ir < tracker.Param().NRows() - 5;ir++)
 			{
-				if (ir < nStartRow) startOffset2 += tracker.RowStartHitCountOffset()[ir].x;
+				if (ir < nStartRow) startOffset2 += tracker.RowStartHitCountOffset()[ir];
 			}
 			s.fStartOffset = startOffset2;
 			s.fNRows = nRows;
@@ -45,15 +45,12 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 		for (int ir = 0;ir < s.fNRows;ir++)
 		{
 			GPUglobalref() AliHLTTPCCAHitId *const startHits = tracker.TrackletStartHits();
-			GPUglobalref() AliHLTTPCCAHitId *const tmpStartHits = tracker.TrackletTmpStartHits();
-			const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.fStartRow].x;			//Length of hits in row stored by StartHitsFinder
-			const int tmpOffset = tracker.RowStartHitCountOffset()[ir + s.fStartRow].y;			//Offset of first hit in row of unsorted array by StartHitsFinder
-			if (iThread == 0)
-				tracker.RowStartHitCountOffset()[ir + s.fStartRow].z = startOffset;				//Store New Offset Value of sorted array
+			GPUglobalref() AliHLTTPCCAHitId *const tmpStartHits = tracker.TrackletTmpStartHits() + (s.fStartRow + ir) * HLTCA_GPU_MAX_ROWSTARTHITS;
+			const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.fStartRow];			//Length of hits in row stored by StartHitsFinder
 
 			for (int j = iThread;j < tmpLen;j += nThreads)
 			{
-				startHits[startOffset + j] = tmpStartHits[tmpOffset + j];
+				startHits[startOffset + j] = tmpStartHits[j];
 			}
 			startOffset += tmpLen;
 		}

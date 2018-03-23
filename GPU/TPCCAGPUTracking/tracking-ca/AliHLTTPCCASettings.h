@@ -48,10 +48,8 @@ typedef unsigned short cahit;
 
 #ifdef HLTCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
-#define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 6000
 #else
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP HLTCA_GPU_MAXN
-#define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 200000
 #endif //HLTCA_GPUCODE
 
 //#define HLTCA_FULL_CLUSTERDATA						//Store all cluster information in the cluster data, also those not needed for tracking.

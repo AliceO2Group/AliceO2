@@ -291,7 +291,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
  
   GPUhd() GPUglobalref() MEM_GLOBAL(AliHLTTPCCARow)* SliceDataRows() const {return(fData.Rows()); }
   
-  GPUhd() GPUglobalref() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
+  GPUhd() GPUglobalref() int* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
   GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
   GPUhd() MakeType(MEM_LG(StructGPUParametersConst)*) GPUParametersConst() {return(&fGPUParametersConst);}
   GPUhd() void SetGPUTextureBase(char* val) { fData.SetGPUTextureBase(val); }
@@ -353,7 +353,7 @@ private:
 #endif
   
   //GPU Temp Arrays
-  GPUglobalref() uint3* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
+  GPUglobalref() int* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
   GPUglobalref() AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
   GPUglobalref() char* fGPUTrackletTemp;					//Temp Memory for GPU Tracklet Constructor
   GPUglobalref() int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
