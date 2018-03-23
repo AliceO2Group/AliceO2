@@ -39,6 +39,8 @@ int screenshot_scale = 1;
 
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #endif
+#include <vector>
+#include <array>
 #include <GL/gl.h>  // Header File For The OpenGL32 Library
 #include <GL/glu.h> // Header File For The GLu32 Library
 
@@ -48,10 +50,14 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCGMMergedTrack.h"
+#include "AliHLTTPCGMPropagator.h"
 #include "include.h"
 #include "../cmodules/timer.h"
 
 #define fgkNSlices 36
+#ifndef BUILD_QA
+bool SuppressHit(int iHit) {return false;}
+#endif
 
 bool keys[256]; // Array Used For The Keyboard Routine
 
@@ -83,6 +89,7 @@ int drawGlobalTracks = false;
 int drawFinal = false;
 
 int drawSlice = -1;
+int drawRelatedSlices = 1;
 int drawGrid = 0;
 int excludeClusters = 0;
 int projectxy = 0;
@@ -91,6 +98,15 @@ int markClusters = 0;
 int hideRejectedClusters = 1;
 int hideUnmatchedClusters = 0;
 int hideRejectedTracks = 1;
+
+int propagateTracks = 0;
+int colorCollisions = 0;
+std::vector<std::array<int,37>> collisionClusters;
+void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
+{
+	collisionClusters.resize(collision + 1);
+	collisionClusters[collision][slice] = cluster;
+}
 
 float Xadd = 0;
 float Zadd = 0;
@@ -112,7 +128,7 @@ int animate = 0;
 
 volatile int resetScene = 0;
 
-inline void SetColorClusters() { glColor3f(0, 0.7, 1.0); }
+inline void SetColorClusters() { if (colorCollisions) return; glColor3f(0, 0.7, 1.0); }
 inline void SetColorInitLinks() { glColor3f(0.42, 0.4, 0.1); }
 inline void SetColorLinks() { glColor3f(0.8, 0.2, 0.2); }
 inline void SetColorSeeds() { glColor3f(0.8, 0.1, 0.85); }
@@ -127,9 +143,17 @@ inline void SetColorGlobalTracks()
 	if (separateGlobalTracks) glColor3f(1., 0.15, 0.15);
 	else glColor3f(1.0, 0.4, 0);
 }
-inline void SetColorFinal() { glColor3f(0, 0.7, 0.2); }
+inline void SetColorFinal() { if (colorCollisions) return; glColor3f(0, 0.7, 0.2); }
 inline void SetColorGrid() { glColor3f(0.7, 0.7, 0.0); }
 inline void SetColorMarked() { glColor3f(1.0, 0.0, 0.0); }
+inline void SetCollisionColor(int col)
+{
+	int red = (col * 2) % 5;
+	int blue =  (2 + col * 3) % 7;
+	int green = (4 + col * 5) % 6;
+	if (red == 0 && blue == 0 && green == 0) red = 4;
+	glColor3f(red / 4., green / 5., blue / 6.);
+}	
 
 void ReSizeGLScene(GLsizei width, GLsizei height) // Resize And Initialize The GL Window
 {
@@ -191,8 +215,15 @@ void DrawClusters(AliHLTTPCCATracker &tracker, int select)
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
 		for (int j = 0; j < row.NHits(); j++)
 		{
-			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
+			const int cidInSlice = tracker.Data().ClusterDataIndex(row, j);
+			const int cid = tracker.ClusterData()->Id(cidInSlice);
 			if (hideUnmatchedClusters && SuppressHit(cid)) continue;
+			if (colorCollisions)
+			{
+				unsigned int k = 0;
+				while (k < collisionClusters.size() && collisionClusters[k][tracker.Param().ISlice()] < cidInSlice) k++;
+				SetCollisionColor(k);
+			}
 			bool draw = globalPos[cid].w == select;
 			if (markClusters)
 			{
@@ -317,8 +348,21 @@ void DrawTracks(AliHLTTPCCATracker &tracker, int global)
 	}
 }
 
-void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
+void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice)
 {
+	static AliHLTTPCGMPropagator prop;
+	static bool initProp = true;
+	if (initProp)
+	{
+		initProp = false;
+		const float kRho = 1.025e-3;//0.9e-3;
+		const float kRadLen = 29.532;//28.94;
+		prop.SetMaxSinPhi( .999 );
+		prop.SetMaterial( kRadLen, kRho );
+		prop.SetPolynomialField( hlt.Merger().pField() );		
+		prop.SetToyMCEventsFlag( hlt.Merger().SliceParam().ToyMCEventsFlag());
+	}
+
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
@@ -327,6 +371,19 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 		int *clusterused = NULL;
 		int bestk = 0;
 		if (hideRejectedTracks && !track.OK()) continue;
+		if (merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1].fSlice != iSlice) continue;
+		if (colorCollisions)
+		{
+			int label = GetMCLabel(i);
+			if (label < -1) label = -label - 2;
+			if (label != -1)
+			{
+				unsigned int k = 0;
+				while (k < collisionClusters.size() && collisionClusters[k][36] < label) {printf("k %d label %d col[k] %d\n", k, label, collisionClusters[k][36]);k++;}
+				printf("label %d col %d\n", label, k);
+				SetCollisionColor(k);
+			}
+		}
 		glBegin(GL_LINE_STRIP);
 		
 		if (reorderFinalTracks)
@@ -404,6 +461,27 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			if (reorderFinalTracks) clusterused[bestk] = 1;
 			lastcid = bestcid;
 		}
+		if (propagateTracks)
+		{
+			AliHLTTPCGMTrackParam param = track.GetParam();
+			float alpha = track.GetAlpha();
+			prop.SetTrack(&param, alpha);
+			bool inFlyDirection = 0;
+			auto cl = merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1];
+			alpha = hlt.Param().Alpha(cl.fSlice);
+			float x = cl.fX - 1.;
+			if (cl.fState & AliHLTTPCGMMergedTrackHit::flagReject) x = 0;
+			while (x > 1.)
+			{
+				if (prop.PropagateToXAlpha( x, alpha, inFlyDirection ) ) break;
+				if (fabs(param.SinPhi()) > 0.9) break;
+				float4 ptr;
+				hlt.Tracker().CPUTracker(cl.fSlice).Param().Slice2Global(param.X() + Xadd, param.Y(), param.Z(), &ptr.x, &ptr.y, &ptr.z);
+				glVertex3f(ptr.x / 50.f, ptr.y / 50.f, projectxy ? 0 : (ptr.z + param.ZOffset()) / 50.f);
+				x -= 1;
+			}
+
+		}
 		glEnd();
 		if (reorderFinalTracks) delete[] clusterused;
 	}
@@ -471,9 +549,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	static HighResTimer timerFPS, timerDisplay;
 
 	constexpr const int N_POINTS_TYPE = 9;
-	constexpr const int N_LINES_TYPE = 6;
+	constexpr const int N_LINES_TYPE = 7;
 	static GLuint glDLlines[fgkNSlices][N_LINES_TYPE];
-	static GLuint glDLlinesFinal;
 	static GLuint glDLpoints[fgkNSlices][N_POINTS_TYPE];
 	static GLuint glDLgrid[fgkNSlices];
 	static int glDLcreated = 0;
@@ -683,14 +760,6 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 				glDLgrid[iSlice] = glGenLists(1);
 			}
 		}
-		if (glDLcreated)
-		{
-			glDeleteLists(glDLlinesFinal, 1);
-		}
-		else
-		{
-			glDLlinesFinal = glGenLists(1);
-		}
 
 		for (int i = 0; i < currentClusters; i++)
 			globalPos[i].w = 0;
@@ -743,11 +812,11 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 			glNewList(glDLgrid[iSlice], GL_COMPILE);
 			DrawGrid(tracker);
 			glEndList();
-		}
 
-		glNewList(glDLlinesFinal, GL_COMPILE);
-		DrawFinal(hlt);
-		glEndList();
+			glNewList(glDLlines[iSlice][6], GL_COMPILE);
+			DrawFinal(hlt, iSlice);
+			glEndList();
+		}
 
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
@@ -790,7 +859,11 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	{
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
-			if (drawSlice != -1 && drawSlice != iSlice) continue;
+			if (drawSlice != -1)
+			{
+				if (!drawRelatedSlices && drawSlice != iSlice) continue;
+				if (drawRelatedSlices && (drawSlice % 9) != (iSlice % 9)) continue;
+			}
 
 			if (drawGrid)
 			{
@@ -891,25 +964,15 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					SetColorGlobalTracks();
 					glCallList(glDLlines[iSlice][5]);
 				}
-			}
-		}
-		if (!excludeClusters && drawFinal) {
-			SetColorFinal();
-			if (!drawClusters)
-			{
-				for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
-				{
-					glCallList(glDLpoints[iSlice][7]);
+				if (drawFinal) {
+					SetColorFinal();
+					if (!drawClusters) glCallList(glDLpoints[iSlice][7]);
+					glCallList(glDLlines[iSlice][6]);
 				}
-			}
-			glCallList(glDLlinesFinal);
-		}
-		if (!excludeClusters && markClusters)
-		{
-			SetColorMarked();
-			for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
-			{
-				glCallList(glDLpoints[iSlice][8]);
+				if (markClusters) {
+					SetColorMarked();
+					glCallList(glDLpoints[iSlice][8]);
+				}
 			}
 		}
 	}

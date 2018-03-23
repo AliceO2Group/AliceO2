@@ -8,6 +8,7 @@ extern pthread_mutex_t semLockDisplay;
 extern void* OpenGLMain( void* );
 #endif
 extern void ShowNextEvent();
+extern void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 extern volatile int buttonPressed;
 extern volatile int displayEventNr;
 extern volatile int sendKey;
@@ -19,6 +20,7 @@ extern int DrawQAHistograms();
 extern void SetMCTrackRange(int min, int max);
 extern bool SuppressTrack(int iTrack);
 extern bool SuppressHit(int iHit);
+extern int GetMCLabel(unsigned int trackId);
 
 //QA - Event Generator
 extern void InitEventGenerator();

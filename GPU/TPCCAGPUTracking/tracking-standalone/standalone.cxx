@@ -276,6 +276,7 @@ int main(int argc, char** argv)
 	{
 		for (int jj = 0;jj < configStandalone.runs2;jj++)
 		{
+			auto& config = configStandalone.configTF;
 			if (configStandalone.configQA.inputHistogramsOnly) break;
 			if (configStandalone.runs2 > 1) printf("RUN2: %d\n", jj);
 			int nEventsProcessed = 0;
@@ -340,7 +341,9 @@ int main(int argc, char** argv)
 									nCollisionsInTrain++;
 									p2 *= collisionProbability / nInBunchPileUp;
 									p += p2;
-									if (configStandalone.configTF.noEventRepeat && simBunchNoRepeatEvent >= nEventsInDirectory) nBunch = lastBunch;
+									if (config.noEventRepeat && simBunchNoRepeatEvent >= nEventsInDirectory) nBunch = lastBunch;
+									for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(nCollisions + nBorderCollisions, sl, hlt.ClusterData(sl).NumberOfClusters());
+									SetCollisionFirstCluster(nCollisions + nBorderCollisions, 36, hlt.GetNMCInfo());
 								}
 								if (nInBunchPileUp > 1) nMultipleCollisions++;
 								nBunch++;
