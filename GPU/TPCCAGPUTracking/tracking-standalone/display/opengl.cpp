@@ -644,9 +644,17 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	glMultMatrixf(currentMatrice);
 
 	//Graphichs Options
-	pointSize += (float) (keys[107] - keys[109] + keys[187] - keys[189]) * fpsscale * 0.05;
-	if (pointSize <= 0.01) pointSize = 0.01;
-
+	if (keys[16])
+	{
+		lineWidth += (float) (keys[107] - keys[109] + keys[187] - keys[189]) * fpsscale * 0.05;
+		if (lineWidth < 0.01) lineWidth = 0.01;
+	}
+	else
+	{
+		pointSize += (float) (keys[107] - keys[109] + keys[187] - keys[189]) * fpsscale * 0.05;
+		if (pointSize < 0.01) pointSize = 0.01;
+	}
+	
 	//Reset position
 	if (resetScene)
 	{
