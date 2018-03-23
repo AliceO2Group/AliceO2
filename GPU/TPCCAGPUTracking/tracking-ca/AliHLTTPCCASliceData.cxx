@@ -189,6 +189,7 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
   	{
   		if (fMemorySize > HLTCA_GPU_SLICE_DATA_MEMORY)
   		{
+  			printf("Insufficient slice data memory: %lld > %lld\n", (long long int) fMemorySize, (long long int) HLTCA_GPU_SLICE_DATA_MEMORY);
   			return(0);
   		}
   	}
