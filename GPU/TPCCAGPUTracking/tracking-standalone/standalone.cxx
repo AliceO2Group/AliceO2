@@ -10,6 +10,7 @@
 #include <chrono>
 #include <tuple>
 #include <algorithm>
+#include <random>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -205,10 +206,16 @@ int main(int argc, char** argv)
 
 	if (configStandalone.seed == -1)
 	{
-		configStandalone.seed = (int) (std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+		std::random_device rd;
+		configStandalone.seed = (int) rd();
 		printf("Using seed %d\n", configStandalone.seed);
 	}
+
 	srand(configStandalone.seed);
+	std::uniform_real_distribution<double> disUniReal(0., 1.);
+	std::uniform_int_distribution<unsigned long long int> disUniInt;
+	std::mt19937_64 rndGen1(configStandalone.seed);
+	std::mt19937_64 rndGen2(disUniInt(rndGen1));
 	
 	int trainDist = 0;
 	float collisionProbability = 0.;
@@ -282,37 +289,41 @@ int main(int argc, char** argv)
 			int nEventsProcessed = 0;
 			long long int nTracksTotal = 0;
 			long long int nClustersTotal = 0;
+			int nTotalCollisions = 0;
+			long long int eventStride = configStandalone.seed;
 			int simBunchNoRepeatEvent = configStandalone.StartEvent;
 			std::vector<char> eventUsed(nEventsInDirectory);
-			if (configStandalone.configTF.noEventRepeat == 2) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
+			if (config.noEventRepeat == 2) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
 		
 			for (int i = configStandalone.StartEvent;i < configStandalone.NEvents || configStandalone.NEvents == -1;i++)
 			{
+				if (config.nTotalInTFEvents && nTotalCollisions >= config.nTotalInTFEvents) break;
 				if (i != configStandalone.StartEvent) printf("\n");
 				HighResTimer timerLoad;
 				timerLoad.Start();
-				if (configStandalone.configTF.bunchSim)
+				if (config.bunchSim)
 				{
 					hlt.StartDataReading(0);
-					long long int nBunch = -driftTime / configStandalone.configTF.bunchSpacing;
-					long long int lastBunch = configStandalone.configTF.timeFrameLen / configStandalone.configTF.bunchSpacing;
-					long long int lastTFBunch = lastBunch - driftTime / configStandalone.configTF.bunchSpacing;
+					long long int nBunch = -driftTime / config.bunchSpacing;
+					long long int lastBunch = config.timeFrameLen / config.bunchSpacing;
+					long long int lastTFBunch = lastBunch - driftTime / config.bunchSpacing;
 					int nCollisions = 0, nBorderCollisions = 0, nTrainCollissions = 0, nMultipleCollisions = 0, nTrainMultipleCollisions = 0;
 					int nTrain = 0;
 					int mcMin = -1, mcMax = -1;
 					while (nBunch < lastBunch)
 					{
-						for (int iTrain = 0;iTrain < configStandalone.configTF.bunchTrainCount && nBunch < lastBunch;iTrain++)
+						for (int iTrain = 0;iTrain < config.bunchTrainCount && nBunch < lastBunch;iTrain++)
 						{
 							int nCollisionsInTrain = 0;
-							for (int iBunch = 0;iBunch < configStandalone.configTF.bunchCount && nBunch < lastBunch;iBunch++)
+							for (int iBunch = 0;iBunch < config.bunchCount && nBunch < lastBunch;iBunch++)
 							{
-								if (mcMin == -1 && nBunch >= 0) mcMin = hlt.GetNMCInfo();
-								if (mcMax == -1 && nBunch >= lastTFBunch) mcMax = hlt.GetNMCInfo();
+								const bool inTF = nBunch >= 0 && nBunch < lastTFBunch && (config.nTotalInTFEvents == 0 || nCollisions < nTotalCollisions + config.nTotalInTFEvents);
+								if (mcMin == -1 && inTF) mcMin = hlt.GetNMCInfo();
+								if (mcMax == -1 && nBunch >= 0 && !inTF) mcMax = hlt.GetNMCInfo();
 								int nInBunchPileUp = 0;
-								float randVal = (float) rand() / (float) RAND_MAX;
-								float p = exp(-collisionProbability);
-								float p2 = p;
+								double randVal = disUniReal(inTF ? rndGen2 : rndGen1);
+								double p = exp(-collisionProbability);
+								double p2 = p;
 								while (randVal > p)
 								{
 									if (nCollisionsInTrain >= nEventsInDirectory)
@@ -320,22 +331,22 @@ int main(int argc, char** argv)
 										printf("Error: insuffient events for mixing!\n");
 										return(1);
 									}
-									if (nCollisionsInTrain == 0 && configStandalone.configTF.noEventRepeat == 0) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
-									if (nBunch >= 0 && nBunch < lastTFBunch) nCollisions++;
+									if (nCollisionsInTrain == 0 && config.noEventRepeat == 0) memset(eventUsed.data(), 0, nEventsInDirectory * sizeof(eventUsed[0]));
+									if (inTF) nCollisions++;
 									else nBorderCollisions++;
 									int useEvent;
-									if (configStandalone.configTF.noEventRepeat == 1) useEvent = simBunchNoRepeatEvent;
-									else while (eventUsed[useEvent = rand() % nEventsInDirectory]);
-									if (configStandalone.configTF.noEventRepeat) simBunchNoRepeatEvent++;
+									if (config.noEventRepeat == 1) useEvent = simBunchNoRepeatEvent;
+									else while (eventUsed[useEvent = (inTF && config.eventStride ? (eventStride += config.eventStride) : disUniInt(inTF ? rndGen2 : rndGen1)) % nEventsInDirectory]);
+									if (config.noEventRepeat) simBunchNoRepeatEvent++;
 									eventUsed[useEvent] = 1;
 									std::ifstream in;
 									char filename[256];
 									sprintf(filename, "events/%s/" HLTCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, useEvent);
 									in.open(filename, std::ifstream::binary);
 									if (in.fail()) {printf("Unexpected error\n");return(1);}
-									float shift = (float) nBunch * (float) configStandalone.configTF.bunchSpacing * (float) TPCZ / (float) driftTime;
-									int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (float) configStandalone.configTF.timeFrameLen * TPCZ / driftTime, true, configStandalone.qa);
-									printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * configStandalone.configTF.bunchSpacing), nBunch >= 0 && nBunch < lastTFBunch ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
+									double shift = (double) nBunch * (double) config.bunchSpacing * (double) TPCZ / (double) driftTime;
+									int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (double) config.timeFrameLen * TPCZ / driftTime, true, configStandalone.qa);
+									printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * config.bunchSpacing), inTF ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
 									in.close();
 									nInBunchPileUp++;
 									nCollisionsInTrain++;
@@ -348,18 +359,19 @@ int main(int argc, char** argv)
 								if (nInBunchPileUp > 1) nMultipleCollisions++;
 								nBunch++;
 							}
-							nBunch += trainDist - configStandalone.configTF.bunchCount;
+							nBunch += trainDist - config.bunchCount;
 							if (nCollisionsInTrain) nTrainCollissions++;
 							if (nCollisionsInTrain > 1) nTrainMultipleCollisions++;
 							nTrain++;
 						}
-						nBunch += maxBunchesFull - trainDist * configStandalone.configTF.bunchTrainCount;
+						nBunch += maxBunchesFull - trainDist * config.bunchTrainCount;
 					}
-					printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (configStandalone.configTF.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
+					nTotalCollisions += nCollisions;
+					printf("Timeframe statistics: collisions: %d+%d in %d trains (inside / outside), average rate %f (pile up: in bunch %d, in train %d)\n", nCollisions, nBorderCollisions, nTrainCollissions, (float) nCollisions / (float) (config.timeFrameLen - driftTime) * 1e9, nMultipleCollisions, nTrainMultipleCollisions);
 #ifdef BUILD_QA
 					SetMCTrackRange(mcMin, mcMax);
 #endif
-					if (configStandalone.configTF.dumpO2)
+					if (config.dumpO2)
 					{
 #if !defined(HAVE_O2HEADERS) | !defined(HLTCA_FULL_CLUSTERDATA)
 						printf("Error, must be compiled with O2 headers and HLTCA_FULL_CLUSTERDATA to dump O2 clusters\n");
@@ -456,31 +468,31 @@ int main(int argc, char** argv)
 					printf("Loading Event %d\n", i);
 					
 					float shift;
-					if (configStandalone.configTF.nMerge && (configStandalone.configTF.shiftFirstEvent || iEventInTimeframe))
+					if (config.nMerge && (config.shiftFirstEvent || iEventInTimeframe))
 					{
-						if (configStandalone.configTF.randomizeDistance)
+						if (config.randomizeDistance)
 						{
-							shift = (double) rand() / (double) RAND_MAX;
-							if (configStandalone.configTF.shiftFirstEvent)
+							shift = disUniReal(rndGen2);
+							if (config.shiftFirstEvent)
 							{
-								if (iEventInTimeframe == 0) shift = shift * configStandalone.configTF.averageDistance;
-								else shift = (iEventInTimeframe + shift) * configStandalone.configTF.averageDistance;
+								if (iEventInTimeframe == 0) shift = shift * config.averageDistance;
+								else shift = (iEventInTimeframe + shift) * config.averageDistance;
 							}
 							else
 							{
 								if (iEventInTimeframe == 0) shift = 0;
-								else shift = (iEventInTimeframe - 0.5 + shift) * configStandalone.configTF.averageDistance;
+								else shift = (iEventInTimeframe - 0.5 + shift) * config.averageDistance;
 							}
 						}
 						else
 						{
-							if (configStandalone.configTF.shiftFirstEvent)
+							if (config.shiftFirstEvent)
 							{
-								shift = configStandalone.configTF.averageDistance * (iEventInTimeframe + 0.5);
+								shift = config.averageDistance * (iEventInTimeframe + 0.5);
 							}
 							else
 							{
-								shift = configStandalone.configTF.averageDistance * (iEventInTimeframe);
+								shift = config.averageDistance * (iEventInTimeframe);
 							}
 						}
 					}
@@ -489,15 +501,15 @@ int main(int argc, char** argv)
 						shift = 0.;
 					}
 
-					if (configStandalone.configTF.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
+					if (config.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
 					if (configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true;
-					hlt.ReadEvent(in, configStandalone.resetids, configStandalone.configTF.nMerge > 0, shift);
+					hlt.ReadEvent(in, configStandalone.resetids, config.nMerge > 0, shift);
 					in.close();
 					
 					iEventInTimeframe++;
-					if (configStandalone.configTF.nMerge)
+					if (config.nMerge)
 					{
-						if (iEventInTimeframe == configStandalone.configTF.nMerge || i == configStandalone.NEvents - 1)
+						if (iEventInTimeframe == config.nMerge || i == configStandalone.NEvents - 1)
 						{
 							iEventInTimeframe = 0;
 						}
