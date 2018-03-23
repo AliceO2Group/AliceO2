@@ -844,6 +844,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData
 	{
 		if (ReadEvent(pClusterData, firstSlice, iSlice, 0))
 		{
+			HLTError("Error reading event");
 			ResetHelperThreads(1);
 			return(1);
 		}
