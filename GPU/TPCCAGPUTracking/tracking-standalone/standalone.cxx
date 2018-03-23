@@ -382,7 +382,7 @@ int main(int argc, char** argv)
 						const float o2height[10] = {7.5, 7.5, 7.5, 7.5, 10, 10, 12, 12, 15, 15};
 						const float o2width[10] = {4.16, 4.2, 4.2, 4.36, 6, 6, 6.08, 5.88, 6.04, 6.07};
 						const float o2offsetinpart[10] = {0, 17, 32, 48, 0, 18, 0, 16, 0, 0};
-						std::vector<o2::TPC::ClusterHardware> hwClusters;
+						std::vector<std::array<float, 8>> hwClusters;
 						o2::TPC::ClusterHardwareContainer* container = (o2::TPC::ClusterHardwareContainer*) malloc(8192);
 						int nDumpClustersTotal0 = 0, nDumpClustersTotal1 = 0;
 						for (int iSec = 0;iSec < 36;iSec++)
@@ -396,29 +396,31 @@ int main(int argc, char** argv)
 								FILE* fp = fopen(filename, "w+b");
 								int nClustersInCRU = 0;
 								AliHLTTPCCAClusterData& cd = hlt.ClusterData(iSec);
+								float maxTime = 0;
 								for (int k = 0;k < cd.NumberOfClusters();k++)
 								{
 									AliHLTTPCCAClusterData::Data& c = cd.Clusters()[k];
 									if (c.fRow >= o2rowoffsets[j] && c.fRow < o2rowoffsets[j + 1])
 									{
-										o2::TPC::ClusterHardware& ch = hwClusters[nClustersInCRU];
-										ch.mQMax = c.fAmpMax;
-										ch.mQTot = c.fAmp;
-										ch.mFlags = c.fFlags;
-										ch.mSigmaTime2Pre = c.fSigmaTime2;
-										ch.mTimePre = fabs(c.fZ) / 2.58 /*vDrift*/ / 0.19379844961f /*zBinWidth*/;
-										ch.mRow = c.fRow - o2rowoffsets[j];
+										auto& ch = hwClusters[nClustersInCRU];
+										ch[0] = c.fAmpMax;
+										ch[1] = c.fAmp;
+										ch[2] = c.fFlags;
+										ch[3] = c.fSigmaTime2;
+										ch[4] = fabs(c.fZ) / 2.58 /*vDrift*/ / 0.19379844961f /*zBinWidth*/;
+										ch[5] = c.fRow - o2rowoffsets[j];
 										float yFactor = iSec < 18 ? -1 : 1;
 										const float ks=o2height[j]/o2width[j]*tan(1.74532925199432948e-01); // tan(10deg)
-										int nPads = 2 * std::floor(ks * (ch.mRow + o2offsetinpart[j]) + o2xhelper[j]);
-										float pad = (-c.fY * yFactor / (o2width[j]/10) + nPads / 2);
-										ch.mPadPre = pad * c.fAmp;
-										ch.mSigmaPad2Pre = c.fSigmaPad2 * c.fAmp * c.fAmp + ch.mPadPre * ch.mPadPre;
+										int nPads = 2 * std::floor(ks * (ch[5] + o2offsetinpart[j]) + o2xhelper[j]);
+										ch[6] = (-c.fY * yFactor / (o2width[j]/10) + nPads / 2);
+										ch[7] = c.fSigmaPad2;
 										nClustersInCRU++;
+										if (ch[4] > maxTime) maxTime = ch[4];
 									}
 								}
+								for (int k = 0;k < nClustersInCRU;k++) hwClusters[k][4] = maxTime - hwClusters[k][4];
 								std::sort(hwClusters.data(), hwClusters.data() + nClustersInCRU, [](const auto& a, const auto& b){
-									return a.mTimePre < b.mTimePre;
+									return a[4] < b[4];
 								});
 								
 								int nPacked = 0;
@@ -426,20 +428,18 @@ int main(int argc, char** argv)
 								{
 									int maxPack = (8192 - sizeof(o2::TPC::ClusterHardwareContainer)) / sizeof(o2::TPC::ClusterHardware);
 									if (nPacked + maxPack > nClustersInCRU) maxPack = nClustersInCRU - nPacked;
-									while (hwClusters[nPacked + maxPack - 1].mTimePre > hwClusters[nPacked].mTimePre + 512) maxPack--;
+									while (hwClusters[nPacked + maxPack - 1][4] > hwClusters[nPacked][4] + 512) maxPack--;
 									memset(container, 0, 8192);
-									container->mTimeBinOffset = hwClusters[nPacked].mTimePre;
-									container->mCRU = iSec * 10 + j;
-									container->mNumberOfClusters = maxPack;
+									container->timeBinOffset = hwClusters[nPacked][4];
+									container->CRU = iSec * 10 + j;
+									container->numberOfClusters = maxPack;
 									for (int k = 0;k < maxPack;k++)
 									{
-										o2::TPC::ClusterHardware& cc = container->mClusters[k];
-										cc = hwClusters[nPacked + k];
-										cc.mTimePre -= container->mTimeBinOffset;
-										cc.mTimePre *= cc.mQTot;
-										cc.mSigmaTime2Pre = cc.mSigmaTime2Pre * cc.mQTot * cc.mQTot + cc.mTimePre * cc.mTimePre;
+										o2::TPC::ClusterHardware& cc = container->clusters[k];
+										auto& ch = hwClusters[nPacked + k];
+										cc.setCluster(ch[6], ch[4] - container->timeBinOffset, ch[7], ch[3], ch[0], ch[1], ch[4], ch[2]);
 									}
-									printf("Sector %d CRU %d Writing container %d/%d bytes (Clusters %d, Time Offset %d)\n", iSec, container->mCRU, (int) (sizeof(o2::TPC::ClusterHardwareContainer) + container->mNumberOfClusters * sizeof(o2::TPC::ClusterHardware)), 8192, container->mNumberOfClusters, container->mTimeBinOffset);
+									printf("Sector %d CRU %d Writing container %d/%d bytes (Clusters %d, Time Offset %d)\n", iSec, container->CRU, (int) (sizeof(o2::TPC::ClusterHardwareContainer) + container->numberOfClusters * sizeof(o2::TPC::ClusterHardware)), 8192, container->numberOfClusters, container->timeBinOffset);
 									fwrite(container, 8192, 1, fp);
 									nPacked += maxPack;
 									nDumpClustersTotal1 += maxPack;
