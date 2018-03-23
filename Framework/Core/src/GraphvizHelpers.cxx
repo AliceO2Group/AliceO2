@@ -18,7 +18,7 @@ namespace framework {
 
 namespace
 {
-std::string quote(std::string s) { return "\"" + s + "\""; }
+std::string quote(std::string s) { return R"(")" + s + R"(")"; }
 } // namespace
 
 /// Helper to dump a workflow as a graphviz file
@@ -75,11 +75,9 @@ GraphvizHelpers::dumpDeviceSpec2Graphviz(std::ostream &out, const std::vector<De
     for (auto &input : spec.inputChannels) {
       // input and output name are now the same
       auto outputName = input.name;
-      out << "  " << quote(outputChannel2Device[outputName]) << ":" << quote(outputName)
-                  << "-> "
-                  << quote(spec.id) << ":" << quote(input.name)
-                  << R"( [label=")" << input.port << R"(")"
-                  << "]\n";
+      out << "  " << quote(outputChannel2Device[outputName]) << ":" << quote(outputName) << "-> " << quote(spec.id)
+          << ":" << quote(input.name) << R"( [label=")" << input.port << R"(")"
+          << "]\n";
     }
   }
   out << "}\n";
