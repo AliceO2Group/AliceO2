@@ -53,14 +53,19 @@ std::vector<Point3D<float>> generatePoints(int ntimes)
   return points;
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.004F))
 BOOST_DATA_TEST_CASE(InverseTransformation, boost::unit_test::data::xrange(72) * generatePoints(1000), deId, point)
 {
   Point3D<float> globalPoint = GEOM::geoTrans.localToGlobal(deId, point.x(), point.y());
   Point3D<float> localPoint = GEOM::geoTrans.globalToLocal(deId, globalPoint.x(), globalPoint.y(), globalPoint.z());
-  BOOST_TEST_CHECK(localPoint.x() == point.x());
-  BOOST_TEST_CHECK(localPoint.y() == point.y());
-  BOOST_TEST_CHECK(localPoint.z() == point.z());
+  float relTolerance = 0.001;
+  float absTolerance = 1.;
+  float minValue = 0.02;
+  float tolerance = (std::abs(localPoint.x()) < minValue) ? absTolerance : relTolerance;
+  BOOST_TEST(localPoint.x() == point.x(), boost::test_tools::tolerance(tolerance));
+  tolerance = (std::abs(localPoint.y()) < minValue) ? absTolerance : relTolerance;
+  BOOST_TEST(localPoint.y() == point.y(), boost::test_tools::tolerance(tolerance));
+  tolerance = (std::abs(localPoint.z()) < minValue) ? absTolerance : relTolerance;
+  BOOST_TEST(localPoint.z() == point.z(), boost::test_tools::tolerance(tolerance));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
