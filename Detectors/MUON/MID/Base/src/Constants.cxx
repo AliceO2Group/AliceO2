@@ -18,8 +18,8 @@ namespace o2
 {
 namespace mid
 {
-constexpr std::array<const double, 4> Constants::mScaleFactors;
-constexpr std::array<const double, 4> Constants::mDefaultChamberZ;
+constexpr std::array<const double, 4> Constants::sScaleFactors;
+constexpr std::array<const double, 4> Constants::sDefaultChamberZ;
 
 } // namespace mid
 } // namespace o2
