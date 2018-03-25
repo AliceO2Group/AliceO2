@@ -41,7 +41,7 @@ void GeometryTransformer::init()
   /// Initializes default geometry
   const double degToRad = TMath::DegToRad();
 
-  ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(Constants::mBeamAngle * degToRad));
+  ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(Constants::sBeamAngle * degToRad));
 
   for (int iside = 0; iside < 2; ++iside) {
     bool isRight = (iside == 0);
@@ -49,16 +49,16 @@ void GeometryTransformer::init()
     ROOT::Math::Rotation3D rot(ROOT::Math::RotationY(angle * degToRad));
     double xSign = (iside == 0) ? 1. : -1.;
     for (int ichamber = 0; ichamber < 4; ++ichamber) {
-      ROOT::Math::Translation3D planeTrans(0., 0., Constants::mDefaultChamberZ[ichamber]);
+      ROOT::Math::Translation3D planeTrans(0., 0., Constants::sDefaultChamberZ[ichamber]);
       for (int irpc = 0; irpc < 9; ++irpc) {
         double xPos = xSign * Constants::getRPCCenterPosX(ichamber, irpc);
         double sign = (irpc % 2 == 0) ? 1. : -1;
         if (iside == 1) {
           sign *= -1.;
         }
-        double zPos = sign * Constants::mRPCZShift;
-        double newZ = Constants::mDefaultChamberZ[0] + zPos;
-        double oldZ = Constants::mDefaultChamberZ[0] - zPos;
+        double zPos = sign * Constants::sRPCZShift;
+        double newZ = Constants::sDefaultChamberZ[0] + zPos;
+        double oldZ = Constants::sDefaultChamberZ[0] - zPos;
         double yPos = Constants::getRPCHalfHeight(ichamber) * (irpc - 4) * (1. + newZ / oldZ);
         int deId = Constants::getDEId(isRight, ichamber, irpc);
         ROOT::Math::Translation3D trans(xPos, yPos, zPos);
