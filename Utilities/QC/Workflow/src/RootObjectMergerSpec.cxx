@@ -53,7 +53,7 @@ DataProcessorSpec getRootObjectMergerSpec() {
   auto processingFct = [merger = std::make_shared<Merger>(10)] (ProcessingContext &pc) {
     using DataHeader = o2::header::DataHeader;
     for (auto & input : pc.inputs()) {
-      auto dh = o2::header::get<const DataHeader>(input.header);
+      auto dh = o2::header::get<const DataHeader*>(input.header);
       std::cout << dh->dataOrigin.str
       << " " << dh->dataDescription.str
       << " " << dh->payloadSize

@@ -174,7 +174,7 @@ void streamTimeframe(std::ostream &stream, FairMQParts &parts) {
     throw std::runtime_error("Expecting at least 2 parts\n");
   }
 
-  auto indexHeader = o2::header::get<DataHeader>(parts.At(parts.Size() - 2)->GetData());
+  auto indexHeader = o2::header::get<DataHeader*>(parts.At(parts.Size() - 2)->GetData());
   // FIXME: Provide iterator pair API for the index
   //        Index should really be something which provides an
   //        iterator pair API so that we can sort / find / lower_bound

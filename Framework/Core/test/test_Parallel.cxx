@@ -120,7 +120,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 
           LOG(DEBUG) << "DataSampler sends data from subSpec: " << inputSpec->subSpec;
 
-          const auto* inputHeader = o2::header::get<o2::header::DataHeader>(input.header);
+          const auto* inputHeader = o2::header::get<o2::header::DataHeader*>(input.header);
           auto output = ctx.allocator().make<char>(outputSpec, inputHeader->size());
 
           //todo: use some std function or adopt(), when it is available for POD data

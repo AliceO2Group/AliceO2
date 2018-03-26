@@ -41,7 +41,7 @@ void DispatcherDPL::processCallback(ProcessingContext& ctx, BernoulliGenerator& 
 
       OutputSpec outputSpec = createDispatcherOutputSpec(*input.spec);
 
-      const auto* inputHeader = header::get<header::DataHeader>(input.header);
+      const auto* inputHeader = header::get<header::DataHeader*>(input.header);
 
       /*if (inputHeader->payloadSerializationMethod == header::gSerializationMethodInvalid) {
         LOG(ERROR) << "DataSampling::dispatcherCallback: input of origin'" << inputHeader->dataOrigin.str

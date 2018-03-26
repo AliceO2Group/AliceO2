@@ -96,7 +96,7 @@ DataProcessorSpec getSinkSpec()
     static int counter = 0;
     using DataHeader = o2::header::DataHeader;
     for (auto& input : pc.inputs()) {
-      auto dh = o2::header::get<const DataHeader>(input.header);
+      auto dh = o2::header::get<const DataHeader*>(input.header);
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
     }
     auto data = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input");

@@ -69,7 +69,7 @@ int parseO2Format(const InputListT& list,
   for (auto & part : list) {
     if (!dh) {
       // new header - payload pair, read DataHeader
-      dh = o2::header::get<o2::header::DataHeader>(getPointer(part), getSize(part));
+      dh = o2::header::get<o2::header::DataHeader*>(getPointer(part), getSize(part));
       if (!dh) {
         return -ENOMSG;
       }

@@ -34,7 +34,7 @@ struct DataRefUtils {
   as(DataRef const& ref)
   {
     using DataHeader = o2::header::DataHeader;
-    auto header = o2::header::get<const DataHeader>(ref.header);
+    auto header = o2::header::get<const DataHeader*>(ref.header);
     if (header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
       throw std::runtime_error("Attempt to extract a POD from a wrong message kind");
     }
@@ -59,7 +59,7 @@ struct DataRefUtils {
   as(DataRef const& ref)
   {
     using DataHeader = o2::header::DataHeader;
-    auto header = o2::header::get<const DataHeader>(ref.header);
+    auto header = o2::header::get<const DataHeader*>(ref.header);
     if (header->payloadSerializationMethod != o2::header::gSerializationMethodROOT) {
       throw std::runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
     }
@@ -126,7 +126,7 @@ struct DataRefUtils {
   {
     using T = typename W::wrapped_type;
     using DataHeader = o2::header::DataHeader;
-    auto header = o2::header::get<const DataHeader>(ref.header);
+    auto header = o2::header::get<const DataHeader*>(ref.header);
     if (header->payloadSerializationMethod != o2::header::gSerializationMethodROOT) {
       throw std::runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
     }
@@ -153,7 +153,7 @@ struct DataRefUtils {
   static unsigned getPayloadSize(const DataRef& ref)
   {
     using DataHeader = o2::header::DataHeader;
-    auto header = o2::header::get<const DataHeader>(ref.header);
+    auto header = o2::header::get<const DataHeader*>(ref.header);
     if (!header) {
       return 0;
     }

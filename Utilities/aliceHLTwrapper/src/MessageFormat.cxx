@@ -141,7 +141,7 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
   bool tryO2format = true;
   for (auto & data : list) {
     if (tryO2format) {
-      if (o2::header::get<o2::header::DataHeader>(data.mP, data.mSize)) {
+      if (o2::header::get<o2::header::DataHeader*>(data.mP, data.mSize)) {
         return readO2Format(list, mBlockDescriptors, mHeartbeatHeader, mHeartbeatTrailer);
       }
       tryO2format = false;
@@ -230,7 +230,7 @@ int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<Bl
   for (auto part : list) {
     if (!dh) {
       // new header - payload pair, read DataHeader
-      dh = o2::header::get<o2::header::DataHeader>(part.mP, part.mSize);
+      dh = o2::header::get<o2::header::DataHeader*>(part.mP, part.mSize);
       if (!dh) {
         cerr << "can not find DataHeader" << endl;
         return -ENOMSG;
@@ -238,7 +238,7 @@ int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<Bl
       // extract the heartbeat information if available and keep it to
       // envelope the data blocks in the output message
       if (dh->dataDescription == o2::header::gDataDescriptionHeartbeatFrame) {
-        const HeartbeatFrameEnvelope* hbf = o2::header::get<HeartbeatFrameEnvelope>(part.mP, part.mSize);
+        const HeartbeatFrameEnvelope* hbf = o2::header::get<HeartbeatFrameEnvelope*>(part.mP, part.mSize);
         if (hbf) {
           hbh = hbf->header;
           hbt = hbf->trailer;

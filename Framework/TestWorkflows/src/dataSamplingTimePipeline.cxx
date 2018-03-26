@@ -88,7 +88,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
         auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "TPC_CLUSTERS_P_S").payload);
 
-        const auto* header = o2::header::get<DataHeader>(ctx.inputs().get("TPC_CLUSTERS_S").header);
+        const auto* header = o2::header::get<DataHeader*>(ctx.inputs().get("TPC_CLUSTERS_S").header);
 
         bool dataGood = true;
         for (int j = 0; j < header->payloadSize / sizeof(FakeCluster); ++j) {

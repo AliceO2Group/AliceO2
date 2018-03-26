@@ -202,7 +202,7 @@ public:
     using DataHeader = o2::header::DataHeader;
 
     auto ref = this->get(binding);
-    auto header = o2::header::get<const DataHeader>(ref.header);
+    auto header = o2::header::get<const DataHeader*>(ref.header);
     auto method = header->payloadSerializationMethod;
     if (method == o2::header::gSerializationMethodNone) {
       auto const* ptr = reinterpret_cast<T const*>(ref.payload);
@@ -234,7 +234,7 @@ public:
     using DataHeader = o2::header::DataHeader;
 
     auto ref = this->get(binding);
-    auto header = o2::header::get<const DataHeader>(ref.header);
+    auto header = o2::header::get<const DataHeader*>(ref.header);
     auto method = header->payloadSerializationMethod;
     if (method == o2::header::gSerializationMethodNone) {
       throw std::runtime_error(

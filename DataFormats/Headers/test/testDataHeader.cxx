@@ -166,10 +166,10 @@ namespace o2 {
       Stack s1{ DataHeader{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 }, 0 },
                 NameHeader<9>{ "somename" } };
 
-      const DataHeader* h1 = get<DataHeader>(s1.buffer.get());
+      const DataHeader* h1 = get<DataHeader*>(s1.buffer.get());
       BOOST_CHECK(h1 != nullptr);
       BOOST_CHECK(*h1 == dh1);
-      const NameHeader<0>* h2 = get<NameHeader<0>>(s1.buffer.get());
+      const NameHeader<0>* h2 = get<NameHeader<0>*>(s1.buffer.get());
       BOOST_CHECK(h2 != nullptr);
       BOOST_CHECK(0 == std::strcmp(h2->getName(), "somename"));
       BOOST_CHECK(h2->description == NameHeader<0>::sHeaderType);
