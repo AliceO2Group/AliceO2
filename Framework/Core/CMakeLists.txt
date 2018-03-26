@@ -54,6 +54,7 @@ set(SRCS
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
     src/TMessageSerializer.cxx
+    src/StreamOperators.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
    )
