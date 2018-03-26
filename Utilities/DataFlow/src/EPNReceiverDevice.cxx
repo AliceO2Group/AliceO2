@@ -97,7 +97,7 @@ void EPNReceiverDevice::Run()
 
     assert(subtimeframeParts.Size() >= 2);
 
-    const auto* dh = o2::header::get<header::DataHeader>(subtimeframeParts.At(0)->GetData());
+    const auto* dh = o2::header::get<header::DataHeader*>(subtimeframeParts.At(0)->GetData());
     assert(strncmp(dh->dataDescription.str, "SUBTIMEFRAMEMD", 16) == 0);
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());
     id = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
@@ -123,7 +123,7 @@ void EPNReceiverDevice::Run()
       {
         if (i % 2 == 0)
         {
-          const auto * adh = o2::header::get<header::DataHeader>(subtimeframeParts.At(i)->GetData());
+          const auto* adh = o2::header::get<header::DataHeader*>(subtimeframeParts.At(i)->GetData());
           auto ie = std::make_pair(*adh, index.count(id)*2);
           index.insert(std::make_pair(id, ie));
         }

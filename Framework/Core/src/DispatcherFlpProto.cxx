@@ -61,7 +61,7 @@ void DispatcherFlpProto::processCallback(ProcessingContext& ctx, BernoulliGenera
   assert(ctx.inputs().size() == 1);
 
   auto input = ctx.inputs().getByPos(0);
-  const auto* header = header::get<header::DataHeader>(input.header);
+  const auto* header = header::get<header::DataHeader*>(input.header);
 
   if (state == FlpProtoState::Idle) {
     // wait until EOM

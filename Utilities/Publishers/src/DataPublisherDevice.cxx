@@ -133,8 +133,8 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
                                                size_t dataBufferSize)
 {
   //  AliceO2::header::hexDump("data buffer", dataBuffer, dataBufferSize);
-  const auto* dataHeader = o2::header::get<o2::header::DataHeader>(headerBuffer);
-  const auto* hbfEnvelope = o2::header::get<o2::header::HeartbeatFrameEnvelope>(headerBuffer);
+  const auto* dataHeader = o2::header::get<o2::header::DataHeader*>(headerBuffer);
+  const auto* hbfEnvelope = o2::header::get<o2::header::HeartbeatFrameEnvelope*>(headerBuffer);
 
   // TODO: not sure what the return value is supposed to indicate, it's
   // not handled in O2Device::ForEach at the moment

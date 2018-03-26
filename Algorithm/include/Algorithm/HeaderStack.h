@@ -67,7 +67,7 @@ void dispatchHeaderStackCallback(PtrType ptr,
                                  HeaderType /*dummy*/,
                                  HeaderCallbackType onHeader)
 {
-  const HeaderType* h = o2::header::get<HeaderType>(ptr, size);
+  const HeaderType* h = o2::header::get<HeaderType*>(ptr, size);
   if (h) {
     onHeader(*h);
   }
@@ -134,7 +134,7 @@ void parseHeaderStack(PtrType ptr,
                       SizeType size,
                       HeaderType & header)
 {
-  const HeaderType* h = o2::header::get<HeaderType>(ptr, size);
+  const HeaderType* h = o2::header::get<HeaderType*>(ptr, size);
   if (h) {
     header = *h;
   }

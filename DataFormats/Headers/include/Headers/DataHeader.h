@@ -406,22 +406,28 @@ struct BaseHeader
 
 /// find a header of type HeaderType in a buffer
 /// use like this:
-/// HeaderType* h = get<HeaderType>(buffer)
-template<typename HeaderType>
-const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
+/// HeaderType* h = get<HeaderType*>(buffer)
+template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
+auto get(const byte* buffer, size_t /*len*/ = 0)
+{
+  using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
+  using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
+
   const BaseHeader* current = BaseHeader::get(buffer);
-  if (!current) return nullptr;
-  if (current->description==HeaderType::sHeaderType)
-    return reinterpret_cast<const HeaderType*>(current);
+  if (!current)
+    return HeaderConstPtrType{ nullptr };
+  if (current->description == HeaderValueType::sHeaderType)
+    return reinterpret_cast<HeaderConstPtrType>(current);
   while ((current = current->next())) {
-    if (current->description==HeaderType::sHeaderType)
-      return reinterpret_cast<const HeaderType*>(current);
+    if (current->description == HeaderValueType::sHeaderType)
+      return reinterpret_cast<HeaderConstPtrType>(current);
   }
-  return nullptr;
+  return HeaderConstPtrType{ nullptr };
 }
 
-template<typename HeaderType>
-const HeaderType* get(const void* buffer, size_t len=0) {
+template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
+auto get(const void* buffer, size_t len = 0)
+{
   return get<HeaderType>(reinterpret_cast<const byte *>(buffer), len);
 }
 

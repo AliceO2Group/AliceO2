@@ -99,7 +99,7 @@ bool O2MessageMonitor::HandleO2frame(const byte* headerBuffer, size_t headerBuff
   hexDump("headerBuffer", headerBuffer, headerBufferSize);
   hexDump("dataBuffer", dataBuffer, dataBufferSize, mLimitOutputCharacters);
 
-  const DataHeader* dataHeader = get<DataHeader>(headerBuffer);
+  const DataHeader* dataHeader = get<DataHeader*>(headerBuffer);
   if (!dataHeader) {
     LOG(INFO) << "data header empty!";
     return false;
@@ -107,7 +107,7 @@ bool O2MessageMonitor::HandleO2frame(const byte* headerBuffer, size_t headerBuff
   if ((*dataHeader) == gDataDescriptionInfo) {
   }
 
-  const NameHeader<0>* nameHeader = get<NameHeader<0>>(headerBuffer);
+  const NameHeader<0>* nameHeader = get<NameHeader<0>*>(headerBuffer);
   if (nameHeader) {
     size_t sizeNameHeader = nameHeader->size();
   }

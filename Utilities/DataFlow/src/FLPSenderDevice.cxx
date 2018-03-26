@@ -55,7 +55,7 @@ void FLPSenderDevice::Run()
 
     assert(subtimeframeParts.Size() != 0);
     assert(subtimeframeParts.Size() >= 2);
-    const auto* dh = o2::header::get<header::DataHeader>(subtimeframeParts.At(0)->GetData());
+    const auto* dh = o2::header::get<header::DataHeader*>(subtimeframeParts.At(0)->GetData());
     assert(strncmp(dh->dataDescription.str, "SUBTIMEFRAMEMD", 16) == 0);
 
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());

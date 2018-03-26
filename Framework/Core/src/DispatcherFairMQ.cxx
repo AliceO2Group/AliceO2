@@ -65,7 +65,7 @@ void DispatcherFairMQ::processCallback(ProcessingContext& ctx, Dispatcher::Berno
 
     auto cleanupFcn = [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); };
     for (auto& input : inputs) {
-      const auto* header = header::get<header::DataHeader>(input.header);
+      const auto* header = header::get<header::DataHeader*>(input.header);
 
       char* payloadCopy = new char[header->payloadSize];
       memcpy(payloadCopy, input.payload, header->payloadSize);

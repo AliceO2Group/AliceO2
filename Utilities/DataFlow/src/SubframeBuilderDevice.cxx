@@ -102,7 +102,7 @@ bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts
   dh.subSpecification = mFLPId;
   dh.payloadSize = sizeof(SubframeMetadata);
 
-  DataHeader payloadheader(*o2::header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
+  DataHeader payloadheader(*o2::header::get<DataHeader*>((byte*)inParts.At(0)->GetData()));
 
   // subframe meta information as payload
   SubframeMetadata md;
