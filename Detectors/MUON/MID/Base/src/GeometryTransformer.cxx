@@ -63,52 +63,10 @@ void GeometryTransformer::init()
         int deId = Constants::getDEId(isRight, ichamber, irpc);
         ROOT::Math::Translation3D trans(xPos, yPos, zPos);
         mTransformations[deId] = planeTrans * planeRot * trans * rot;
-        LOG(DEBUG) << "DeID " << deId << ")\n" << mTransformations[deId];
+        LOG(DEBUG) << "DeID " << deId << "\n" << mTransformations[deId];
       }
     }
   }
-}
-
-//______________________________________________________________________________
-Point3D<float> GeometryTransformer::localToGlobal(int deId, const Point3D<float>& position) const
-{
-  /// Converts local coordinates into global ones
-  return mTransformations[deId](position);
-}
-
-//______________________________________________________________________________
-Point3D<float> GeometryTransformer::globalToLocal(int deId, const Point3D<float>& position) const
-{
-  /// Converts global coordinates into local ones
-  return mTransformations[deId].ApplyInverse(position);
-}
-
-//______________________________________________________________________________
-Point3D<float> GeometryTransformer::localToGlobal(int deId, float xPos, float yPos) const
-{
-  /// Converts local coordinates into global ones
-  return localToGlobal(deId, Point3D<float>(xPos, yPos, 0.));
-}
-
-//______________________________________________________________________________
-Point3D<float> GeometryTransformer::globalToLocal(int deId, float xPos, float yPos, float zPos) const
-{
-  /// Converts global coordinates into local ones
-  return globalToLocal(deId, Point3D<float>(xPos, yPos, zPos));
-}
-
-//______________________________________________________________________________
-Vector3D<float> GeometryTransformer::localToGlobal(int deId, const Vector3D<float>& direction) const
-{
-  /// Converts direction in local coordinates into global ones
-  return mTransformations[deId](direction);
-}
-
-//______________________________________________________________________________
-Vector3D<float> GeometryTransformer::globalToLocal(int deId, const Vector3D<float>& direction) const
-{
-  /// Converts direction in global coordinates into a local ones
-  return mTransformations[deId].ApplyInverse(direction);
 }
 
 } // namespace mid

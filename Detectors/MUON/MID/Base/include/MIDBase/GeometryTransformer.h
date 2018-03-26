@@ -36,12 +36,42 @@ class GeometryTransformer
   GeometryTransformer(GeometryTransformer&&) = delete;
   GeometryTransformer& operator=(GeometryTransformer&&) = delete;
 
-  Point3D<float> localToGlobal(int deId, const Point3D<float>& position) const;
-  Point3D<float> globalToLocal(int deId, const Point3D<float>& position) const;
-  Point3D<float> localToGlobal(int deId, float xPos, float yPos) const;
-  Point3D<float> globalToLocal(int deId, float xPos, float yPos, float zPos) const;
-  Vector3D<float> localToGlobal(int deId, const Vector3D<float>& direction) const;
-  Vector3D<float> globalToLocal(int deId, const Vector3D<float>& direction) const;
+  template <typename T>
+  Point3D<T> localToGlobal(int deId, const Point3D<T>& position) const
+  {
+    /// Converts local coordinates into global ones
+    return mTransformations[deId](position);
+  }
+  template <typename T>
+  Point3D<T> globalToLocal(int deId, const Point3D<T>& position) const
+  {
+    /// Converts global coordinates into local ones
+    return mTransformations[deId].ApplyInverse(position);
+  }
+  template <typename T>
+  Point3D<T> localToGlobal(int deId, T xPos, T yPos) const
+  {
+    /// Converts local coordinates into global ones
+    return localToGlobal(deId, Point3D<T>(xPos, yPos, 0.));
+  }
+  template <typename T>
+  Point3D<T> globalToLocal(int deId, T xPos, T yPos, T zPos) const
+  {
+    /// Converts global coordinates into local ones
+    return globalToLocal(deId, Point3D<T>(xPos, yPos, zPos));
+  }
+  template <typename T>
+  Vector3D<T> localToGlobal(int deId, const Vector3D<T>& direction) const
+  {
+    /// Converts direction in local coordinates into global ones
+    return mTransformations[deId](direction);
+  }
+  template <typename T>
+  Vector3D<T> globalToLocal(int deId, const Vector3D<T>& direction) const
+  {
+    /// Converts direction in global coordinates into a local ones
+    return mTransformations[deId].ApplyInverse(direction);
+  }
 
  private:
   void init();
