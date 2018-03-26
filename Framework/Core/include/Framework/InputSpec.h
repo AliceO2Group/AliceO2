@@ -11,6 +11,7 @@
 #define FRAMEWORK_INPUTSPEC_H
 
 #include <string>
+#include <ostream>
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 
@@ -26,6 +27,8 @@ struct InputSpec {
   header::DataDescription description;
   header::DataHeader::SubSpecificationType subSpec = 0;
   enum Lifetime lifetime = Lifetime::Timeframe;
+
+  friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
 };
 
 }
