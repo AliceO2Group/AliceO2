@@ -68,7 +68,6 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             //Fill cluster in the respective output buffer
             const ClusterHardware& cIn = cont.clusters[k];
             ClusterNative& cOut = outputClusters[containerRowCluster[sector][padRowGlobal]].clusters[nCls];
-            MCLabelContainer& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
             float pad = cIn.getPad();
             cOut.setPad(pad);
             cOut.setTimeFlags(cIn.getTimeLocal() + cont.timeBinOffset, cIn.getFlags());
@@ -79,6 +78,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.getQTot());
             if (outMCLabels)
             {
+              MCLabelContainer& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
               for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
                 mcOut.addElement(nCls, element);
               }
