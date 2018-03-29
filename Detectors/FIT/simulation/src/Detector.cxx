@@ -349,6 +349,8 @@ void Detector::CreateMaterials()
   Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(19, "OpticalGlassCathode$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(22, "SensAir$", 2, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
+
+  DefineOpticalProperties();
 }
 
 //-------------------------------------------------------------------
