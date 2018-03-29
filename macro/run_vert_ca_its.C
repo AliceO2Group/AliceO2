@@ -1,21 +1,9 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-<<<<<<< HEAD
-
-=======
-#include <TFile.h>
-#include <TCanvas.h>
-#include <TChain.h>
-#include <TTree.h>
-#include <TNtuple.h>
-#include <TH1I.h>
-#include <TGeoGlobalMagField.h>
->>>>>>> 9b9e32fcc... Fix DCA and improve algorithm
 #include <string>
 #include <array>
 #include <vector>
 #include <cmath>
 #include <sstream>
-<<<<<<< HEAD
 
 #include <TChain.h>
 #include <TFile.h>
@@ -23,8 +11,6 @@
 #include <TNtuple.h>
 #include <TGeoGlobalMagField.h>
 
-=======
->>>>>>> 9b9e32fcc... Fix DCA and improve algorithm
 #include <FairLogger.h>
 #include "FairRunAna.h"
 #include "FairRuntimeDb.h"
@@ -102,13 +88,11 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
   //<<<---------- attach input data ---------------<<<
   if (!itsClusters.GetBranch("ITSCluster"))
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
-
   std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth"))
     LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
-
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
 

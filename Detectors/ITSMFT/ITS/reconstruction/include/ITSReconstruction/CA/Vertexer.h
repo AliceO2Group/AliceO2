@@ -89,7 +89,8 @@ class Vertexer
 
   // Debug data structures
   // std::vector<std::array<int, 3>> mTriplets;
-  std::vector<float> mZProjections;
+  std::vector<float> mZDelta;
+  std::vector<float> mPhiDelta;
 };
 
 } // namespace CA

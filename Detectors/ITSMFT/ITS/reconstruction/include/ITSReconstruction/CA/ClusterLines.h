@@ -49,6 +49,7 @@ struct Line final {
 
   std::array<float, 3> originPoint;
   std::array<float, 3> destinationPoint;
+  std::array<float, 3> confirmationPoint;
   std::array<float, 3> cosinesDirector;
   std::array<float, 6> weightMatrix;
   // weightMatrix is a symmetric matrix internally stored as
