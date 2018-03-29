@@ -30,6 +30,8 @@
 /// @brief  A general runtime container for a compile time sequence
 /// This file is part of https://github.com/matthiasrichter/gNeric
 
+// clang-format off
+
 // A general runtime container for a compile time sequence
 // of types. A mixin class is used to represent a member of each data
 // type. Every data type in the sequence describes a mixin on top of
@@ -575,5 +577,6 @@ struct create_rtc_types
 };
 
 };// namespace gNeric
+// clang-format on
 
 #endif

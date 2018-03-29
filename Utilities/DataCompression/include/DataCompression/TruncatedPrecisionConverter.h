@@ -28,8 +28,10 @@
 //  @brief  A simple converter producing truncated precision
 //          according to a parameter model
 
-namespace o2 {
-namespace data_compression {
+namespace o2
+{
+namespace data_compression
+{
 
 /**
  * @TruncatedPrecisionConverter A simple converter producing truncated precision
@@ -38,9 +40,10 @@ namespace data_compression {
  *
  * The parameter model is required to implement the method 'convert'.
  */
-template<class ParameterModelT>
-class TruncatedPrecisionConverter {
-public:
+template <class ParameterModelT>
+class TruncatedPrecisionConverter
+{
+ public:
   TruncatedPrecisionConverter() : mParameterModel() {}
   ~TruncatedPrecisionConverter() = default;
   TruncatedPrecisionConverter(const TruncatedPrecisionConverter&) = delete;
@@ -50,21 +53,20 @@ public:
   using code_type = typename ParameterModelT::converted_type;
 
   template <typename T, typename Writer>
-  int write(T value, Writer writer) {
-    uint8_t bitlength=0;
-    code_type content=0;
+  int write(T value, Writer writer)
+  {
+    uint8_t bitlength = 0;
+    code_type content = 0;
     mParameterModel.convert(value, content, bitlength);
     return writer(content, bitlength);
   }
 
-  void resetParameterModel() {
-    mParameterModel.reset();
-  }
+  void resetParameterModel() { mParameterModel.reset(); }
 
-  const ParameterModelT& getModel() const {return mParameterModel;}
-  ParameterModelT& getModel() {return mParameterModel;}
+  const ParameterModelT& getModel() const { return mParameterModel; }
+  ParameterModelT& getModel() { return mParameterModel; }
 
-private:
+ private:
   /// parameter model defines the conversion to the register type for writing bit pattern
   ParameterModelT mParameterModel;
 };

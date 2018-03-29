@@ -38,15 +38,17 @@
 const int nEvents = 6;
 const int sleepTime = 1;
 
-template<typename T>
-bool processValue(T value) {
+template <typename T>
+bool processValue(T value)
+{
   std::cout << "processing " << value << std::endl;
   sleep(sleepTime);
   return (value + 1 < nEvents);
 }
 
-template<class FifoT, typename T>
-void pushFifo(FifoT& fifo, T value = FifoT::value_type) {
+template <class FifoT, typename T>
+void pushFifo(FifoT& fifo, T value = FifoT::value_type)
+{
   std::cout << "pushing " << value << std::endl;
   fifo.push(value);
 }
@@ -58,17 +60,10 @@ BOOST_AUTO_TEST_CASE(test_Fifo)
 
   // start a consumer thread which pulls from the FIFO to the function
   // processValue with a simulated prcessing of one second.
-  std::thread consumer([&fifo]()
-                       {
-                         do {}
-                         while (fifo.pull([](value_type v)
-                                          {
-                                            return processValue(v);
-                                          }
-                                          )
-                                );
-                       }
-                       );
+  std::thread consumer([&fifo]() {
+    do {
+    } while (fifo.pull([](value_type v) { return processValue(v); }));
+  });
 
   // fill some values into the FIFO which the consumer can process
   // immediately
@@ -80,8 +75,8 @@ BOOST_AUTO_TEST_CASE(test_Fifo)
   // now continue filling with a period longer than the consumer
   // processing, consumer and producer are in sync once consumer
   // has processed events which have been added to the FIFO before
-  while (value<nEvents) {
-    sleep(2*sleepTime);
+  while (value < nEvents) {
+    sleep(2 * sleepTime);
     pushFifo(fifo, value++);
   }
 
