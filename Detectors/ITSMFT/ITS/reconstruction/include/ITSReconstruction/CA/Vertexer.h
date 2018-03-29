@@ -10,13 +10,15 @@
 
 #ifndef O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
 #define O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
+#define DEBUG_BUILD
 
 #include <vector>
 #include <array>
+#include <tuple>
 
 #include "ITSReconstruction/CA/Constants.h"
 #include "ITSReconstruction/CA/Definitions.h"
-#include "ITSReconstruction/CA/vertexer/ClusterLines.h"
+#include "ITSReconstruction/CA/ClusterLines.h"
 
 namespace o2
 {
@@ -38,23 +40,22 @@ class Vertexer
 
   void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                   const int clusterContributorsCut);
-  // void computeTriplets();
-  // void checkTriplets();
-  void findTracklets();
+  void findTracklets( const bool useMCLabel = false );
   void findVertices();
-  void generateTracklets();
-  // inline std::vector<std::array<int, 3>> getTriplets() { return mTriplets; }
   inline std::vector<Line> getTracklets() { return mTracklets; }
-  inline std::vector<std::array<float, 3>> getVertices() { return mVertices; }
   inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() { return mClusters; }
-  inline std::vector<float> getZDelta() { return mZDelta; }
-  inline std::vector<float> getPhiDelta() { return mPhiDelta; }
-  void printIndexTables();
-  void printVertices();
-
   static const std::vector<std::pair<int, int>> selectClusters(
     const std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>& indexTable,
     const std::array<int, 4>& selectedBinsRect);
+  std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
+
+#ifdef DEBUG_BUILD
+  void printIndexTables();
+  void dumpTracklets();
+  inline std::vector<std::tuple<std::array<float, 3>, int, float>> getVertices() { return mVertices; }
+#else
+  inline std::vector<std::array<float, 3>> getVertices() { return mVertices; }
+#endif
 
  protected:
   bool mVertexerInitialised{ false };
@@ -66,11 +67,12 @@ class Vertexer
   std::array<float, 3> mAverageClustersRadii;
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
   float mZBinSize;
-  // std::vector<std::pair<int, int>> mClustersToProcessInner;
-  // std::vector<std::pair<int, int>> mClustersToProcessOuter;
   Event mEvent;
+#ifdef DEBUG_BUILD
+  std::vector<std::tuple<std::array<float, 3>, int, float>> mVertices;
+#else
   std::vector<std::array<float, 3>> mVertices;
-  std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
+#endif
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
     mIndexTables;
@@ -78,12 +80,6 @@ class Vertexer
   std::vector<bool> mUsedTracklets;
   std::vector<Line> mTracklets;
   std::vector<ClusterLines> mTrackletClusters;
-  std::vector<std::vector<float>> mDCAMatrix;
-
-  // Debug data structures
-  // std::vector<std::array<int, 3>> mTriplets;
-  std::vector<float> mZDelta;
-  std::vector<float> mPhiDelta;
 };
 
 } // namespace CA

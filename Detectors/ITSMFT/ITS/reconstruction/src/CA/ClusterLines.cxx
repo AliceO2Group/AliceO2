@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
-#include "ITSReconstruction/CA/vertexer/ClusterLines.h"
+#include "ITSReconstruction/CA/ClusterLines.h"
 
 namespace o2
 {
@@ -22,7 +22,7 @@ Line::Line() : originPoint{}, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1.
 {
   // Nothing to do
 }
-
+#ifdef DEBUG_BUILD
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, const int idorigin, const int iddestination)
   : originPoint{ firstPoint }, destinationPoint { secondPoint }, originID {idorigin}, destinID{iddestination}, 
     weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
@@ -46,6 +46,19 @@ Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, st
   for (int index{ 0 }; index < 3; ++index)
     cosinesDirector[index] *= inverseNorm;
 }
+#else
+Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
+  : originPoint{ firstPoint }, 
+    weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
+{
+  for (int index{ 0 }; index < 3; ++index)
+    cosinesDirector[index] = secondPoint[index] - firstPoint[index];
+  float inverseNorm{ 1.f / std::sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                     cosinesDirector[2] * cosinesDirector[2]) };
+  for (int index{ 0 }; index < 3; ++index)
+    cosinesDirector[index] *= inverseNorm;
+}
+#endif
 
 bool Line::areParallel(const Line& firstLine, const Line& secondLine, const float precision)
 {
@@ -111,6 +124,10 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   mLabels.push_back(firstLabel);
   mLabels.push_back(secondLabel);
 
+  // Debug purpose only
+  mLines.push_back(firstLine);
+  mLines.push_back(secondLine);
+  // 
   std::array<float, 3> covarianceFirst{ 1., 1., 1. };
   std::array<float, 3> covarianceSecond{ 1., 1., 1. };
 
@@ -207,6 +224,9 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
 void ClusterLines::add(const int lineLabel, const Line& line, const bool weight)
 {
   mLabels.push_back(lineLabel);
+  // Debug purpose
+  mLines.push_back(line);
+  //
   std::array<float, 3> covariance{ 1., 1., 1. };
 
   for (int i{ 0 }; i < 6; ++i)

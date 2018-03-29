@@ -10,6 +10,7 @@
 
 #ifndef O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
 #define O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
+#define DEBUG_BUILD
 
 #include <array>
 #include <vector>
@@ -23,20 +24,22 @@ namespace CA
 
 struct Line final {
   Line();
-  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint,/*TO BE REMOVED*/ const int idorigin = -99, const int iddestination = -99);
-  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint,/*TO BE REMOVED*/ std::array<float, 3> thirdPoint, const int idorigin = -99, const int iddestination = -99);
-  static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
-  static float getDCA(const Line&, const Line&, const float precision = 1e-14);
-  static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
-  
-  // Debug purpose only
+#ifndef DEBUG_BUILD
+  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
+#else
+  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, const int idorigin = -99, const int iddestination = -99);
+  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, std::array<float, 3> thirdPoint, const int idorigin = -99, const int iddestination = -99);
   int originID;
   int destinID;
-  //
-
-  std::array<float, 3> originPoint;
   std::array<float, 3> destinationPoint;
   std::array<float, 3> confirmationPoint;
+#endif
+
+  static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
+  static float getDCA(const Line&, const Line&, const float precision = 1e-14);
+  static bool areParallel(const Line&, const Line&, const float precision = 1e-14); 
+
+  std::array<float, 3> originPoint;
   std::array<float, 3> cosinesDirector;
   std::array<float, 6> weightMatrix;
   // weightMatrix is a symmetric matrix internally stored as
@@ -58,6 +61,7 @@ class ClusterLines final
   inline std::vector<int> getLabels() { return mLabels; };
   inline int getSize() const { return mLabels.size(); };
   inline std::array<float, 3> getVertex() { return mVertex; }
+  std::vector<Line> mLines;
 
  protected:
   std::array<float, 6> mAMatrix;         // AX=B

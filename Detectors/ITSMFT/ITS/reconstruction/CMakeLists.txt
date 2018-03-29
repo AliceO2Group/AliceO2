@@ -22,8 +22,8 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/CA/Tracker.cxx
     src/CA/TrackingUtils.cxx
     src/CA/Tracklet.cxx
-    src/CA/vertexer/ClusterLines.cxx
-    src/CA/vertexer/Vertexer.cxx
+    src/CA/ClusterLines.cxx
+    src/CA/Vertexer.cxx
     )
 #   src/TrivialClusterer.cxx
 
