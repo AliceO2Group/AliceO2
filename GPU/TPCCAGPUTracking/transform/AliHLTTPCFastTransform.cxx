@@ -554,7 +554,7 @@ Int_t AliHLTTPCFastTransform::WriteQATree( char *fileName )
   if( nSec>fkNSec ) nSec = fkNSec;
 
   {
-    fOrigTransform->PrintCorrectionMapSize();
+    //fOrigTransform->PrintCorrectionMapSize();
 
     TStopwatch timer1;
     double nCalls1=0;
