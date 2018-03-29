@@ -35,7 +35,7 @@
 #include <array>
 #include <bitset>
 #include <thread>
-#include <stdexcept>  // exeptions, runtime_error
+#include <stdexcept> // exeptions, runtime_error
 #include "../include/DataCompression/DataDeflater.h"
 #include "../include/DataCompression/TruncatedPrecisionConverter.h"
 #include "DataGenerator.h"
@@ -43,7 +43,7 @@
 
 namespace o2dc = o2::data_compression;
 
-template<typename DataContainerT, typename DeflatedDataT>
+template <typename DataContainerT, typename DeflatedDataT>
 bool compare(const DataContainerT& container, std::size_t bitwidth, const DeflatedDataT& targetBuffer)
 {
   unsigned wordcount = 0;
@@ -93,20 +93,19 @@ BOOST_AUTO_TEST_CASE(test_DataDeflaterRaw)
 
   using target_type = TestDataDeflater::target_type;
   std::vector<target_type> targetBuffer;
-  auto writerfct = [&](const target_type& value) -> bool
-    {
-      targetBuffer.emplace_back(value);
-      return true;
-    };
+  auto writerfct = [&](const target_type& value) -> bool {
+    targetBuffer.emplace_back(value);
+    return true;
+  };
 
-  std::array<char, 8> data = {'d','e','a','d','b','e','e','f'};
+  std::array<char, 8> data = { 'd', 'e', 'a', 'd', 'b', 'e', 'e', 'f' };
 
   const auto bitwidth = 7;
   for (auto c : data) {
     deflater.writeRaw(c, bitwidth, writerfct);
   }
   deflater.close(writerfct);
-  compare(data, bitwidth,targetBuffer);
+  compare(data, bitwidth, targetBuffer);
 }
 
 BOOST_AUTO_TEST_CASE(test_DataDeflaterCodec)
@@ -118,41 +117,43 @@ BOOST_AUTO_TEST_CASE(test_DataDeflaterCodec)
   TestDataDeflater deflater;
 
   std::vector<target_type> targetBuffer;
-  auto writerfct = [&](const target_type& value) -> bool
-    {
-      targetBuffer.emplace_back(value);
-      return true;
-    };
+  auto writerfct = [&](const target_type& value) -> bool {
+    targetBuffer.emplace_back(value);
+    return true;
+  };
 
-  std::array<char, 8> data = {'d','e','a','d','b','e','e','f'};
+  std::array<char, 8> data = { 'd', 'e', 'a', 'd', 'b', 'e', 'e', 'f' };
 
   for (auto c : data) {
     deflater.write(c, writerfct);
   }
   deflater.close(writerfct);
-  compare(data, bitwidth,targetBuffer);
+  compare(data, bitwidth, targetBuffer);
 }
 
 // define a simple parameter model to mask a data value
-template<int NBits>
-class ParameterModelBitMask {
-public:
+template <int NBits>
+class ParameterModelBitMask
+{
+ public:
   ParameterModelBitMask() {}
   ~ParameterModelBitMask() = default;
 
   static const int sBitlength = NBits;
   using converted_type = uint64_t;
 
-  template<typename T>
-  int convert(T value, converted_type& content, uint8_t& bitlength) {
+  template <typename T>
+  int convert(T value, converted_type& content, uint8_t& bitlength)
+  {
     bitlength = sBitlength; // number of valid bits in the value
-    uint32_t mask = 0x1<<bitlength; mask-=1;
+    uint32_t mask = 0x1 << bitlength;
+    mask -= 1;
     content = value & mask;
     return 0;
   }
 
   void reset() {}
-private:
+ private:
 };
 
 BOOST_AUTO_TEST_CASE(test_TruncatedPrecisionConverter)
@@ -163,13 +164,12 @@ BOOST_AUTO_TEST_CASE(test_TruncatedPrecisionConverter)
   TestDataDeflater deflater;
 
   std::vector<target_type> targetBuffer;
-  auto writerfct = [&](const target_type& value) -> bool
-    {
-      targetBuffer.emplace_back(value);
-      return true;
-    };
+  auto writerfct = [&](const target_type& value) -> bool {
+    targetBuffer.emplace_back(value);
+    return true;
+  };
 
-  std::array<char, 8> data = {'d','e','a','d','b','e','e','f'};
+  std::array<char, 8> data = { 'd', 'e', 'a', 'd', 'b', 'e', 'e', 'f' };
 
   for (auto c : data) {
     deflater.write(c, writerfct);

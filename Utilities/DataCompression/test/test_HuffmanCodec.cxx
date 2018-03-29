@@ -34,41 +34,33 @@
 #include <vector>
 #include <bitset>
 #include <thread>
-#include <stdexcept>  // exeptions, runtime_error
+#include <stdexcept> // exeptions, runtime_error
 #include "../include/DataCompression/dc_primitives.h"
 #include "../include/DataCompression/HuffmanCodec.h"
 #include "DataGenerator.h"
 #include "Fifo.h"
 
-template<class RandvalStreamT
-         , class EncodedStreamT
-         , class CodecT
-         >
+template <class RandvalStreamT, class EncodedStreamT, class CodecT>
 void decoderProcess(RandvalStreamT& fifoRandvals, EncodedStreamT& fifoEncoded, CodecT& codec)
 {
   uint16_t decodedLen = 0;
   typename CodecT::model_type::value_type decodedValue;
-  do {}
-  while (fifoEncoded.pull([&](typename EncodedStreamT::value_type c)
-                          {
-                            codec.Decode(decodedValue, c, decodedLen);
-                            return fifoRandvals.pull([&](typename RandvalStreamT::value_type v)
-                                                     {
-                                                       if (decodedValue != v) {
-                                                         throw std::runtime_error("decoding mismatch");
-                                                         return false;
-                                                       } else {
-                                                         //std::cout << "decoded: "
-                                                         //          << std::setw(4) << decodedValue
-                                                         //          << " code: " << c
-                                                         //          << std::endl;
-                                                       }
-                                                       return true;
-                                                     }
-                                                     );
-                          }
-                          )
-         );
+  do {
+  } while (fifoEncoded.pull([&](typename EncodedStreamT::value_type c) {
+    codec.Decode(decodedValue, c, decodedLen);
+    return fifoRandvals.pull([&](typename RandvalStreamT::value_type v) {
+      if (decodedValue != v) {
+        throw std::runtime_error("decoding mismatch");
+        return false;
+      } else {
+        // std::cout << "decoded: "
+        //          << std::setw(4) << decodedValue
+        //          << " code: " << c
+        //          << std::endl;
+      }
+      return true;
+    });
+  }));
 }
 
 BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
@@ -90,11 +82,8 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   // the node type is defined to be HuffmanNode specialized to bitset<16>
   // third template parameter determines whether code has to be decoded
   // MSB to LSB (true) or LSB to MSB (false)
-  using HuffmanModel_t = o2::HuffmanModel<
-    ProbabilityModel<SimpleRangeAlphabet_t>
-    , o2::HuffmanNode<std::bitset<32> >
-    , true
-    >;
+  using HuffmanModel_t =
+    o2::HuffmanModel<ProbabilityModel<SimpleRangeAlphabet_t>, o2::HuffmanNode<std::bitset<32>>, true>;
   HuffmanModel_t huffmanmodel;
 
   std::cout << std::endl << "Huffman probability model after initialization: " << std::endl;
@@ -122,28 +111,29 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   std::cout << std::endl << "Generating binary tree and Huffman codes" << std::endl;
   huffmanmodel.GenerateHuffmanTree();
   huffmanmodel.print();
-  using Codec_t = o2::HuffmanCodec<HuffmanModel_t >;
+  using Codec_t = o2::HuffmanCodec<HuffmanModel_t>;
   Codec_t codec(huffmanmodel);
 
   ////////////////////////////////////////////////////////////////////////////
   // print Huffman code summary and perform an encoding-decoding check for
   // every symbol
-  std::cout << std::endl << "Huffman code summary: "
-            << (HuffmanModel_t::orderMSB?"MSB to LSB":"LSB to MSB")
-            << std::endl;
-  for ( auto i : huffmanmodel) {
+  std::cout << std::endl
+            << "Huffman code summary: " << (HuffmanModel_t::orderMSB ? "MSB to LSB" : "LSB to MSB") << std::endl;
+  for (auto i : huffmanmodel) {
     uint16_t codeLen = 0;
     HuffmanModel_t::code_type code;
     codec.Encode(i.first, code, codeLen);
-    std::cout << "value: " << std::setw(4) << i.first 
-              << "   code length: " << std::setw(3) << codeLen
-              << "   code: ";
-    if (not HuffmanModel_t::orderMSB) std::cout << std::setw(code.size() - codeLen);
-    for (int k = 0; k<codeLen; k++) {
-      std::cout << code[codeLen-1-k];
+    std::cout << "value: " << std::setw(4) << i.first << "   code length: " << std::setw(3) << codeLen << "   code: ";
+    if (not HuffmanModel_t::orderMSB) {
+      std::cout << std::setw(code.size() - codeLen);
+    }
+    for (int k = 0; k < codeLen; k++) {
+      std::cout << code[codeLen - 1 - k];
     }
     std::cout << std::endl;
-    if (HuffmanModel_t::orderMSB) code <<= (code.size()-codeLen);
+    if (HuffmanModel_t::orderMSB) {
+      code <<= (code.size() - codeLen);
+    }
     uint16_t decodedLen = 0;
     HuffmanModel_t::value_type value;
     codec.Decode(value, code, decodedLen);
@@ -167,7 +157,7 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   int n = nRolls;
   std::cout << std::endl << "Testing encoding-decoding with " << nRolls << " random value(s) ..." << std::endl;
 
-  std::thread decoderThread([&](){decoderProcess(fifoRandvals, fifoEncoded, codec);});
+  std::thread decoderThread([&]() { decoderProcess(fifoRandvals, fifoEncoded, codec); });
 
   while (n-- > 0) {
     uint16_t codeLen = 0;
@@ -175,9 +165,11 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
     DataGenerator_t::value_type value = dg();
     codec.Encode(value, code, codeLen);
     fifoRandvals.push(value);
-    if (HuffmanModel_t::orderMSB) code <<= (code.size()-codeLen);
+    if (HuffmanModel_t::orderMSB) {
+      code <<= (code.size() - codeLen);
+    }
     fifoEncoded.push(code.to_ulong(), n == 0);
-    //std::cout << "encoded: " << std::setw(4) << value << " code: " << code << std::endl;
+    // std::cout << "encoded: " << std::setw(4) << value << " code: " << code << std::endl;
   }
 
   decoderThread.join();
