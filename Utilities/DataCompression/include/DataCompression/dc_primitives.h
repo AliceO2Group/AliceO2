@@ -134,7 +134,7 @@ class ExampleAlphabet
   ExampleAlphabet();
   ~ExampleAlphabet();
 
-  typedef T value_type;
+  using value_type = T;
 
   /// check for valid value within range
   static bool isValid(value_type v);
@@ -148,7 +148,7 @@ class ExampleAlphabet
   /// get the range of indices aka number of indices
   constexpr unsigned getIndexRange();
 
-  typedef std::iterator<std::forward_iterator_tag, T> _iterator_base;
+  using _iterator_base = std::iterator<std::forward_iterator_tag, T>;
 
   /// a forward iterator to access the list of elements
   class iterator : public _iterator_base
@@ -157,9 +157,9 @@ class ExampleAlphabet
     iterator();
     ~iterator();
 
-    typedef iterator self_type;
-    typedef typename _iterator_base::reference reference;
-    typedef T* pointer;
+    using self_type = iterator;
+    using reference = typename _iterator_base::reference;
+    using pointer = typename _iterator_base::pointer;
 
     // prefix increment
     self_type& operator++();
@@ -204,10 +204,10 @@ class ContiguousAlphabet
   ContiguousAlphabet() {}
   ~ContiguousAlphabet() {}
 
-  typedef T value_type;
-  typedef T size_type;
-  typedef boost::mpl::range_c<T, _min, _max> range;
-  typedef boost::mpl::plus<boost::mpl::size<range>, boost::mpl::int_<1>> size;
+  using value_type = T;
+  using size_type = T;
+  using range = boost::mpl::range_c<T, _min, _max>;
+  using size = boost::mpl::plus<boost::mpl::size<range>, boost::mpl::int_<1>>;
 
   /// check for valid value within range
   static bool isValid(value_type v) { return v >= _min && v <= _max; }
@@ -239,7 +239,7 @@ class ContiguousAlphabet
   /// name is part of the type definition, defined as a boost mpl string
   constexpr const char* getName() const { return boost::mpl::c_str<NameT>::value; }
 
-  typedef std::iterator<std::forward_iterator_tag, T> _iterator_base;
+  using _iterator_base = std::iterator<std::forward_iterator_tag, T>;
 
   /// a forward iterator to access the list of elements
   class iterator : public _iterator_base
@@ -249,11 +249,9 @@ class ContiguousAlphabet
     iterator(T value, bool isEnd) : mValue(value), mIsEnd(isEnd) {}
     ~iterator() {}
 
-    typedef iterator self_type;
-    // TODO: while value_type can be used, the reference has to be defined
-    // once again, not yet understood
-    typedef typename _iterator_base::reference reference;
-    typedef T* pointer;
+    using self_type = iterator;
+    using reference = typename _iterator_base::reference;
+    using pointer = typename _iterator_base::pointer;
 
     // prefix increment
     self_type& operator++()
@@ -342,10 +340,10 @@ template <class Alphabet, typename WeightType = double>
 class ProbabilityModel
 {
  public:
-  typedef Alphabet alphabet_type;
-  typedef typename Alphabet::value_type value_type;
-  typedef WeightType weight_type;
-  typedef std::map<value_type, WeightType> TableType;
+  using alphabet_type = Alphabet;
+  using value_type = typename Alphabet::value_type;
+  using weight_type = WeightType;
+  using TableType = std::map<value_type, WeightType>;
 
   // TODO: check if this is the correct way for WeightType defaults
   static const value_type _default0 = 0;
