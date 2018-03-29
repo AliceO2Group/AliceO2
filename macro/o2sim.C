@@ -14,6 +14,7 @@
 #include <FairPrimaryGenerator.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/Pythia8Generator.h>
+#include "Generators/PDG.h"
 #include <SimConfig/SimConfig.h>
 #include <TStopwatch.h>
 #include <memory>
@@ -105,6 +106,8 @@ void o2sim()
   rtdb->setOutput(parOut);
   rtdb->saveOutput();
   rtdb->print();
+
+  o2::PDG::addParticlesToPdgDataBase(0);
 
   run->Run(confref.getNEvents());
 
