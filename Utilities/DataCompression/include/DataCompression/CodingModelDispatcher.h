@@ -60,18 +60,18 @@ class CodingModelDispatcher
   CodingModelDispatcher() : mPosition(0), mContainer() {}
   ~CodingModelDispatcher() = default;
 
-  typedef CodingModelDispatcher<ModelDefinition> self_type;
+  using self_type = CodingModelDispatcher<ModelDefinition>;
 
   // make_mpl_vector traits makes sure that an mpl sequence is used further on
   // if the original type is not a sequence it is wrapped into an mpl vector with
   // the original type as the only element
-  typedef typename mpl::make_mpl_vector<ModelDefinition>::type definition_type;
+  using definition_type = typename mpl::make_mpl_vector<ModelDefinition>::type;
 
   // the runtime container type is the heart of the dispatcher to runtime objects
   // of the sequence of data types which define the probability model
-  typedef typename create_rtc<definition_type, RuntimeContainer<>>::type container_type;
+  using container_type = typename create_rtc<definition_type, RuntimeContainer<>>::type;
 
-  typedef typename container_type::wrapped_type::code_type code_type;
+  using code_type = typename container_type::wrapped_type::code_type;
 
   /// get the number of models in the definition
   static int getNumberOfModels() { return boost::mpl::size<definition_type>::value; }
@@ -87,7 +87,7 @@ class CodingModelDispatcher
     addWeightFctr(ValueType _v, WeightType _w) : value(_v), weight(_w) {}
     ~addWeightFctr() {}
 
-    typedef bool return_type;
+    using return_type = bool;
 
     template <typename T>
     return_type operator()(T& stage)
@@ -128,7 +128,7 @@ class CodingModelDispatcher
     initFctr(container_type& container) : mContainer(container) {}
     ~initFctr() {}
 
-    typedef int return_type;
+    using return_type = int;
 
     template <typename T>
     return_type operator()(boost::type<T>)
@@ -161,7 +161,7 @@ class CodingModelDispatcher
     generateFctr(container_type& container) : mContainer(container) {}
     ~generateFctr() {}
 
-    typedef int return_type;
+    using return_type = int;
 
     template <typename T>
     return_type operator()(boost::type<T>)
@@ -193,7 +193,7 @@ class CodingModelDispatcher
     }
     ~encodeFctr() {}
 
-    typedef bool return_type;
+    using return_type = bool;
 
     template <typename T>
     return_type operator()(T& stage)
@@ -234,7 +234,7 @@ class CodingModelDispatcher
     }
     ~decodeFctr() {}
 
-    typedef bool return_type;
+    using return_type = bool;
 
     template <typename T>
     return_type operator()(T& stage)
@@ -270,7 +270,7 @@ class CodingModelDispatcher
   class getCodingDirectionFctr
   {
    public:
-    typedef bool return_type;
+    using return_type = bool;
     template <typename T>
     return_type operator()(T& stage)
     {
@@ -290,7 +290,7 @@ class CodingModelDispatcher
     writeFctr(std::ostream& out, container_type& container) : mOut(out), mContainer(container) {}
     ~writeFctr() {}
 
-    typedef std::ostream& return_type;
+    using return_type = std::ostream&;
 
     template <typename T>
     return_type operator()(boost::type<T>)
@@ -330,7 +330,7 @@ class CodingModelDispatcher
     readFctr(std::istream& in, container_type& container) : mIn(in), mContainer(container) {}
     ~readFctr() {}
 
-    typedef bool return_type;
+    using return_type = bool;
 
     template <typename T>
     return_type operator()(boost::type<T>)

@@ -61,7 +61,7 @@ class make_mpl_vector
   template <typename U, typename _Iter>
   struct VectorTraits {
     enum { result = true };
-    typedef typename U::type type;
+    using type = typename U::type;
   };
   // specialization for non sequences, for any data type which has no
   // begin meta function defined, the iterator is void type and this
@@ -70,15 +70,17 @@ class make_mpl_vector
   template <typename U>
   struct VectorTraits<U, boost::mpl::void_> {
     enum { result = false };
-    typedef typename boost::mpl::fold<boost::mpl::vector<>, boost::mpl::set<U>,
-                                      boost::mpl::insert<boost::mpl::_1, U>>::type type;
+    using type = typename boost::mpl::fold<boost::mpl::vector<>,                 //
+                                           boost::mpl::set<U>,                   //
+                                           boost::mpl::insert<boost::mpl::_1, U> //
+                                           >::type;                              //
   };
 
  public:
   /// iSequence tells if the original type is a sequence
   enum { isSequence = VectorTraits<T, typename boost::mpl::begin<T>::type>::result };
   /// the tarits type, always a sequence
-  typedef typename VectorTraits<T, typename boost::mpl::begin<T>::type>::type type;
+  using type = typename VectorTraits<T, typename boost::mpl::begin<T>::type>::type;
 };
 
 /******************************************************************************
@@ -152,7 +154,7 @@ struct apply_at_sequence_position<_IndexT, _End, _End, _ReturnT, _Index, F> {
  * @brief A default functor with void return type and no operation
  */
 struct defaultFunctor {
-  typedef void return_type;
+  using return_type = void;
   template <typename T>
   return_type operator()(T)
   {

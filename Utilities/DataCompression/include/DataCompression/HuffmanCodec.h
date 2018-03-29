@@ -56,10 +56,10 @@ template <typename _CodeType>
 class HuffmanNode
 {
  public:
-  typedef HuffmanNode self_type;
-  typedef self_type* pointer;
-  typedef std::shared_ptr<self_type> shared_pointer;
-  typedef _CodeType CodeType;
+  using self_type = HuffmanNode;
+  using pointer = self_type*;
+  using shared_pointer = std::shared_ptr<self_type>;
+  using CodeType = _CodeType;
 
   HuffmanNode() : mLeft(), mRight(), mWeight(0.), mIndex(~uint16_t(0)), mCode(), mCodeLen(0) {}
   HuffmanNode(const HuffmanNode& other) = default;
@@ -172,7 +172,7 @@ class HuffmanCodec
   HuffmanCodec(const _CodingModel& model) : mCodingModel(model) {}
   ~HuffmanCodec() {}
 
-  typedef _CodingModel model_type;
+  using model_type = _CodingModel;
 
   /// Return Huffman code for a value
   template <typename CodeType, typename ValueType>
@@ -216,10 +216,10 @@ class HuffmanModel : public _BASE
   HuffmanModel() : mAlphabet(), mLeaveNodes(), mTreeNodes() {}
   ~HuffmanModel() {}
 
-  typedef _BASE base_type;
-  typedef class HuffmanModel<_BASE, _NodeType> self_type;
-  typedef typename _BASE::value_type value_type;
-  typedef typename _NodeType::CodeType code_type;
+  using base_type = _BASE;
+  using self_type = class HuffmanModel<_BASE, _NodeType>;
+  using value_type = typename _BASE::value_type;
+  using code_type = typename _NodeType::CodeType;
   static constexpr bool orderMSB = _orderMSB;
 
   int init(double v = 1.) { return _BASE::initWeight(mAlphabet, v); }
