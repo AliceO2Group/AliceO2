@@ -24,6 +24,7 @@ namespace CA
 struct Line final {
   Line();
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint,/*TO BE REMOVED*/ const int idorigin = -99, const int iddestination = -99);
+  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint,/*TO BE REMOVED*/ std::array<float, 3> thirdPoint, const int idorigin = -99, const int iddestination = -99);
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
@@ -35,6 +36,7 @@ struct Line final {
 
   std::array<float, 3> originPoint;
   std::array<float, 3> destinationPoint;
+  std::array<float, 3> confirmationPoint;
   std::array<float, 3> cosinesDirector;
   std::array<float, 6> weightMatrix;
   // weightMatrix is a symmetric matrix internally stored as

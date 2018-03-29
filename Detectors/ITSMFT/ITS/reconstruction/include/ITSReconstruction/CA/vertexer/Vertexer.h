@@ -47,7 +47,8 @@ class Vertexer
   inline std::vector<Line> getTracklets() { return mTracklets; }
   inline std::vector<std::array<float, 3>> getVertices() { return mVertices; }
   inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() { return mClusters; }
-  inline std::vector<float> getZProjections() { return mZProjections; }
+  inline std::vector<float> getZDelta() { return mZDelta; }
+  inline std::vector<float> getPhiDelta() { return mPhiDelta; }
   void printIndexTables();
   void printVertices();
 
@@ -81,7 +82,8 @@ class Vertexer
 
   // Debug data structures
   // std::vector<std::array<int, 3>> mTriplets;
-  std::vector<float> mZProjections;
+  std::vector<float> mZDelta;
+  std::vector<float> mPhiDelta;
 };
 
 } // namespace CA
