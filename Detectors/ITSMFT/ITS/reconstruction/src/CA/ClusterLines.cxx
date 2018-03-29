@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
-#include <iostream>
 #include "ITSReconstruction/CA/ClusterLines.h"
 
 namespace o2
