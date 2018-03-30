@@ -56,13 +56,13 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
 
       mCells[iLayer].clear();
       float cellsMemorySize =
-        200 +
-        std::ceil(((Constants::Memory::CellsMemoryCoefficients[iLayer] * event.getLayer(iLayer).getClustersSize()) *
-                   event.getLayer(iLayer + 1).getClustersSize()) *
-                  event.getLayer(iLayer + 2).getClustersSize());
+        Constants::Memory::Offset +
+        std::ceil(((Constants::Memory::CellsMemoryCoefficients[iLayer] *
+        event.getLayer(iLayer).getClustersSize()) *
+        event.getLayer(iLayer + 1).getClustersSize()) *
+        event.getLayer(iLayer + 2).getClustersSize());
 
       if (cellsMemorySize > mCells[iLayer].capacity()) {
-
         mCells[iLayer].reserve(cellsMemorySize);
       }
     }
@@ -70,18 +70,15 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
     if (iLayer < Constants::ITS::CellsPerRoad - 1) {
 
       mCellsLookupTable[iLayer].clear();
-      mCellsLookupTable[iLayer].resize(200 + std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer + 1] *
-                                                        event.getLayer(iLayer + 1).getClustersSize()) *
-                                                       event.getLayer(iLayer + 2).getClustersSize()),
+      mCellsLookupTable[iLayer].resize(std::max(event.getLayer(iLayer + 1).getClustersSize(),
+                                                event.getLayer(iLayer + 2).getClustersSize()) +
+                                       std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer + 1] *
+                                       event.getLayer(iLayer + 1).getClustersSize()) *
+                                       event.getLayer(iLayer + 2).getClustersSize()),
                                        Constants::ITS::UnusedIndex);
 
       mCellsNeighbours[iLayer].clear();
     }
-  }
-
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::CellsPerRoad - 1; ++iLayer) {
-
-    mCellsNeighbours[iLayer].clear();
   }
 
   mRoads.clear();
@@ -127,12 +124,12 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
       mTracklets[iLayer].clear();
 
       float trackletsMemorySize =
-        200 +
-        std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer] * event.getLayer(iLayer).getClustersSize()) *
+        std::max(event.getLayer(iLayer).getClustersSize(), event.getLayer(iLayer + 1).getClustersSize()) +
+        std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer] *
+                  event.getLayer(iLayer).getClustersSize()) *
                   event.getLayer(iLayer + 1).getClustersSize());
 
       if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
-
         mTracklets[iLayer].reserve(trackletsMemorySize);
       }
     }

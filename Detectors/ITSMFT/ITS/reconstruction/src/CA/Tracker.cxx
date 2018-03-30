@@ -216,7 +216,7 @@ void TrackerTraits<false>::computeLayerCells(PrimaryVertexContext& primaryVertex
                 primaryVertexContext.getCells()[iLayer].size();
             }
 
-            primaryVertexContext.getCells()[iLayer].emplace_back(
+           primaryVertexContext.getCells()[iLayer].emplace_back(
               currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
               iTracklet, iNextLayerTracklet, normalizedPlaneVector, cellTrajectoryCurvature);
           }
@@ -255,6 +255,7 @@ void Tracker<IsGPU>::clustersToTracks(const Event& event, std::ostream& timeBenc
                           timeBenchmarkOutputStream, event);
     total += evaluateTask(&Tracker<IsGPU>::computeTracksMClabels, "Tracks Monte Carlo labels computation",
                           timeBenchmarkOutputStream, event);
+
     if (Constants::DoTimeBenchmarks)
       timeBenchmarkOutputStream << std::setw(2) << " - "
                                 << "Vertex processing completed in: " << total << "ms" << std::endl;
@@ -296,7 +297,6 @@ void Tracker<IsGPU>::findCellsNeighbours()
       const Cell& currentCell{ mPrimaryVertexContext.getCells()[iLayer][iCell] };
       const int nextLayerTrackletIndex{ currentCell.getSecondTrackletIndex() };
       const int nextLayerFirstCellIndex{ mPrimaryVertexContext.getCellsLookupTable()[iLayer][nextLayerTrackletIndex] };
-
       if (nextLayerFirstCellIndex != Constants::ITS::UnusedIndex &&
           mPrimaryVertexContext.getCells()[iLayer + 1][nextLayerFirstCellIndex].getFirstTrackletIndex() ==
             nextLayerTrackletIndex) {
