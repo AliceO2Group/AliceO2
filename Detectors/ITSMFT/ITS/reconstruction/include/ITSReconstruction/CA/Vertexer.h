@@ -88,7 +88,6 @@ class Vertexer
   std::vector<std::vector<float>> mDCAMatrix;
 
   // Debug data structures
-  // std::vector<std::array<int, 3>> mTriplets;
   std::vector<float> mZDelta;
   std::vector<float> mPhiDelta;
 };
