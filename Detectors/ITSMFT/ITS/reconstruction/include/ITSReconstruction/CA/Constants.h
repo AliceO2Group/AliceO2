@@ -42,7 +42,7 @@ namespace ITS
 {
 constexpr int LayersNumber{ 7 };
 constexpr int LayersNumberVertexer{ 3 };
-constexpr int TrackletsPerRoad{ 6 };
+constexpr int TrackletsPerRoad{ LayersNumber - 1 };
 constexpr int CellsPerRoad{ LayersNumber - 2 };
 constexpr int UnusedIndex{ -1 };
 constexpr float Resolution{ 0.0005f };
@@ -102,6 +102,7 @@ constexpr GPUArray<float, ITS::TrackletsPerRoad> TrackletsMemoryCoefficients{
 };
 constexpr GPUArray<float, ITS::CellsPerRoad> CellsMemoryCoefficients{ { 2.3208e-08f, 2.104e-08f, 1.6432e-08f,
                                                                         1.2412e-08f, 1.3543e-08f } };
+constexpr int Offset = 256; /// Required for low multiplicity events
 }
 
 namespace PDGCodes

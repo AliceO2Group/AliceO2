@@ -33,6 +33,12 @@ string(REPLACE "src" "include/${MODULE_NAME}" HEADERS "${HEADERS}")
 string(REPLACE ".cxx" ".h" NO_DICT_HEADERS "${NO_DICT_SRCS}")
 string(REPLACE "src" "include/${MODULE_NAME}" NO_DICT_HEADERS "${NO_DICT_HEADERS}")
 
+set(NO_DICT_HEADERS
+    ${NO_DICT_HEADERS}
+    include/${MODULE_NAME}/CA/Config.h
+    include/${MODULE_NAME}/CA/Definitions.h
+    )
+
 Set(LINKDEF src/ITSReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 Set(BUCKET_NAME its_reconstruction_bucket)
