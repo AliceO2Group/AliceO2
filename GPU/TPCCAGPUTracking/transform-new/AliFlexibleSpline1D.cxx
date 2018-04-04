@@ -15,7 +15,7 @@
 //**************************************************************************
 
 
-#include "AliSplineGrid1D.h"
+#include "AliFlexibleSpline1D.h"
 
 /*
    At the moment do nothing here. 
