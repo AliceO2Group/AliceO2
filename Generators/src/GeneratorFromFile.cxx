@@ -78,12 +78,16 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
       auto vy = primary->Vy();
       auto vz = primary->Vz();
 
-      auto parent = -1;
-      bool wanttracking = true;
-      auto e = primary->Energy();
-      auto tof = primary->T();
-      auto weight = primary->GetWeight();
-      primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
+      // a status of 1 means "trackable" in AliRoot kinematics
+      auto status = primary->GetStatusCode();
+      bool wanttracking = status == 1;
+      if (wanttracking || !mSkipNonTrackable) {
+        auto parent = -1;
+        auto e = primary->Energy();
+        auto tof = primary->T();
+        auto weight = primary->GetWeight();
+        primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
+      }
     }
     mEventCounter++;
     return kTRUE;
