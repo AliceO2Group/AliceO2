@@ -31,6 +31,7 @@ void o2sim()
   auto genconfig = confref.getGenerator();
 
   auto run = new FairRunSim();
+  run->SetImportTGeoToVMC(false);              // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetOutputFile("o2sim.root");            // Output file
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
