@@ -312,14 +312,14 @@ class HuffmanModel : public _BASE
   class isless
   {
    public:
-    bool operator()(const T a, const T b) { return a < b; }
+    bool operator()(const T a, const T b) const { return a < b; }
   };
   /// specialization for pointer types
   template <typename T>
   class isless<T*>
   {
    public:
-    bool operator()(const T* a, const T* b)
+    bool operator()(const T* a, const T* b) const
     {
       if (a == nullptr || b == nullptr) {
         return false;
@@ -332,7 +332,7 @@ class HuffmanModel : public _BASE
   class isless<std::shared_ptr<T>>
   {
    public:
-    bool operator()(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b)
+    bool operator()(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b) const
     {
       if (!a || !b) {
         return false;
@@ -461,7 +461,10 @@ class HuffmanModel : public _BASE
       int index, left, right;
       bool operator<(const treeNodeConfiguration& other) const { return index < other.index; }
       struct less {
-        bool operator()(const treeNodeConfiguration& a, const treeNodeConfiguration& b) { return a.index < b.index; }
+        bool operator()(const treeNodeConfiguration& a, const treeNodeConfiguration& b) const
+        {
+          return a.index < b.index;
+        }
       };
     };
     std::set<treeNodeConfiguration> treeNodeConfigurations;
