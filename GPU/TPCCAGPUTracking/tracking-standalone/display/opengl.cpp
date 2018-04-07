@@ -91,7 +91,7 @@ int drawGlobalTracks = false;
 int drawFinal = false;
 
 int drawSlice = -1;
-int drawRelatedSlices = 1;
+int drawRelatedSlices = 0;
 int drawGrid = 0;
 int excludeClusters = 0;
 int projectxy = 0;
@@ -104,9 +104,12 @@ int hideRejectedTracks = 1;
 int propagateTracks = 0;
 int colorCollisions = 0;
 std::vector<std::array<int,37>> collisionClusters;
+int nCollisions = 1;
+int showCollision = -1;
 void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
 {
-	collisionClusters.resize(collision + 1);
+	nCollisions = collision + 1;
+	collisionClusters.resize(nCollisions);
 	collisionClusters[collision][slice] = cluster;
 }
 
@@ -174,7 +177,7 @@ void ReSizeGLScene(GLsizei width, GLsizei height) // Resize And Initialize The G
 	glLoadIdentity();            // Reset The Projection Matrix
 
 	// Calculate The Aspect Ratio Of The Window
-	gluPerspective(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 100.0f);
+	gluPerspective(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 1000.0f);
 
 	glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
 	glLoadIdentity();           // Reset The Modelview Matrix
@@ -209,7 +212,7 @@ inline void drawPointLinestrip(int cid, int id, int id_limit = TRACK_TYPE_ID_LIM
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
-void DrawClusters(AliHLTTPCCATracker &tracker, int select)
+void DrawClusters(AliHLTTPCCATracker &tracker, int select, unsigned int iCol)
 {
 	glBegin(GL_POINTS);
 	for (int i = 0; i < tracker.Param().NRows(); i++)
@@ -220,11 +223,11 @@ void DrawClusters(AliHLTTPCCATracker &tracker, int select)
 			const int cidInSlice = tracker.Data().ClusterDataIndex(row, j);
 			const int cid = tracker.ClusterData()->Id(cidInSlice);
 			if (hideUnmatchedClusters && SuppressHit(cid)) continue;
-			if (colorCollisions)
+			if (nCollisions > 1)
 			{
 				unsigned int k = 0;
 				while (k < collisionClusters.size() && collisionClusters[k][tracker.Param().ISlice()] < cidInSlice) k++;
-				SetCollisionColor(k);
+				if (k != iCol) continue;
 			}
 			bool draw = globalPos[cid].w == select;
 			if (markClusters)
@@ -350,7 +353,7 @@ void DrawTracks(AliHLTTPCCATracker &tracker, int global)
 	}
 }
 
-void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice)
+void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCol)
 {
 	static AliHLTTPCGMPropagator prop;
 	static bool initProp = true;
@@ -374,16 +377,15 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice)
 		int bestk = 0;
 		if (hideRejectedTracks && !track.OK()) continue;
 		if (merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1].fSlice != iSlice) continue;
-		if (colorCollisions)
+		if (nCollisions > 1)
 		{
 			int label = GetMCLabel(i);
 			if (label < -1) label = -label - 2;
 			if (label != -1)
 			{
 				unsigned int k = 0;
-				while (k < collisionClusters.size() && collisionClusters[k][36] < label) {printf("k %d label %d col[k] %d\n", k, label, collisionClusters[k][36]);k++;}
-				printf("label %d col %d\n", label, k);
-				SetCollisionColor(k);
+				while (k < collisionClusters.size() && collisionClusters[k][36] < label) k++;
+				if (k != iCol) continue;
 			}
 		}
 		glBegin(GL_LINE_STRIP);
@@ -552,9 +554,10 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	bool showTimer = false;
 
 	constexpr const int N_POINTS_TYPE = 9;
-	constexpr const int N_LINES_TYPE = 7;
+	constexpr const int N_LINES_TYPE = 6;
 	static GLuint glDLlines[fgkNSlices][N_LINES_TYPE];
-	static GLuint glDLpoints[fgkNSlices][N_POINTS_TYPE];
+	static std::vector<GLuint> glDLfinal[fgkNSlices];
+	static std::vector<GLuint> glDLpoints[fgkNSlices][N_POINTS_TYPE];
 	static GLuint glDLgrid[fgkNSlices];
 	static int glDLcreated = 0;
 
@@ -752,18 +755,21 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		{
 			if (glDLcreated)
 			{
-				for (int i = 0; i < N_LINES_TYPE; i++)
-					glDeleteLists(glDLlines[iSlice][i], 1);
-				for (int i = 0; i < N_POINTS_TYPE; i++)
-					glDeleteLists(glDLpoints[iSlice][i], 1);
+				for (int i = 0;i < N_LINES_TYPE;i++) glDeleteLists(glDLlines[iSlice][i], 1);
+				for (int i = 0;i < N_POINTS_TYPE;i++) for (unsigned int iCol = 0;iCol < glDLpoints[iSlice][i].size();iCol++) glDeleteLists(glDLpoints[iSlice][i][iCol], 1);
+				for (int i = 0;i < nCollisions;i++) glDeleteLists(glDLfinal[iSlice][i], 1);
 				glDeleteLists(glDLgrid[iSlice], 1);
 			}
 			else
 			{
-				for (int i = 0; i < N_LINES_TYPE; i++)
-					glDLlines[iSlice][i] = glGenLists(1);
-				for (int i = 0; i < N_POINTS_TYPE; i++)
-					glDLpoints[iSlice][i] = glGenLists(1);
+				for (int i = 0;i < N_LINES_TYPE;i++) glDLlines[iSlice][i] = glGenLists(1);
+				for (int i = 0;i < N_POINTS_TYPE;i++)
+				{
+					glDLpoints[iSlice][i].resize(nCollisions);
+					for (int iCol = 0;iCol < nCollisions;iCol++) glDLpoints[iSlice][i][iCol] = glGenLists(1);
+				}
+				glDLfinal[iSlice].resize(nCollisions);
+				for (int i = 0;i < nCollisions;i++) glDLfinal[iSlice][i] = glGenLists(1);
 				glDLgrid[iSlice] = glGenLists(1);
 			}
 		}
@@ -820,9 +826,12 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 			DrawGrid(tracker);
 			glEndList();
 
-			glNewList(glDLlines[iSlice][6], GL_COMPILE);
-			DrawFinal(hlt, iSlice);
-			glEndList();
+			for (int iCol = 0;iCol < nCollisions;iCol++)
+			{
+				glNewList(glDLfinal[iSlice][iCol], GL_COMPILE);
+				DrawFinal(hlt, iSlice, iCol);
+				glEndList();
+			}
 		}
 
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
@@ -830,9 +839,12 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 			AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 			for (int i = 0; i < N_POINTS_TYPE; i++)
 			{
-				glNewList(glDLpoints[iSlice][i], GL_COMPILE);
-				DrawClusters(tracker, i);
-				glEndList();
+				for (int iCol = 0;iCol < nCollisions;iCol++)
+				{
+					glNewList(glDLpoints[iSlice][i][iCol], GL_COMPILE);
+					DrawClusters(tracker, i, iCol);
+					glEndList();
+				}
 			}
 		}
 
@@ -885,104 +897,129 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 			if (drawClusters)
 			{
 				SetColorClusters();
-				glCallList(glDLpoints[iSlice][0]);
+				for (int iCol = 0;iCol < nCollisions;iCol++)
+				{
+					if (showCollision != -1) iCol = showCollision;
+					if (colorCollisions) SetCollisionColor(iCol);
+					glCallList(glDLpoints[iSlice][0][iCol]);
 
-				if (drawInitLinks)
-				{
-					if (excludeClusters) goto skip1;
-					SetColorInitLinks();
-				}
-				glCallList(glDLpoints[iSlice][1]);
+					if (drawInitLinks)
+					{
+						if (excludeClusters) goto skip1;
+						SetColorInitLinks();
+					}
+					glCallList(glDLpoints[iSlice][1][iCol]);
 
-				if (drawLinks)
-				{
-					if (excludeClusters) goto skip1;
-					SetColorLinks();
-				}
-				else
-				{
+					if (drawLinks)
+					{
+						if (excludeClusters) goto skip1;
+						SetColorLinks();
+					}
+					else
+					{
+						SetColorClusters();
+					}
+					glCallList(glDLpoints[iSlice][2][iCol]);
+
+					if (drawSeeds)
+					{
+						if (excludeClusters) goto skip1;
+						SetColorSeeds();
+					}
+					glCallList(glDLpoints[iSlice][3][iCol]);
+
+				skip1:
 					SetColorClusters();
-				}
-				glCallList(glDLpoints[iSlice][2]);
+					if (drawTracklets)
+					{
+						if (excludeClusters) goto skip2;
+						SetColorTracklets();
+					}
+					glCallList(glDLpoints[iSlice][4][iCol]);
 
-				if (drawSeeds)
-				{
-					if (excludeClusters) goto skip1;
-					SetColorSeeds();
-				}
-				glCallList(glDLpoints[iSlice][3]);
+					if (drawTracks)
+					{
+						if (excludeClusters) goto skip2;
+						SetColorTracks();
+					}
+					glCallList(glDLpoints[iSlice][5][iCol]);
 
-			skip1:
-				glColor3f(0, 0.7, 1.0);
-				if (drawTracklets)
-				{
-					if (excludeClusters) goto skip2;
-					SetColorTracklets();
-				}
-				glCallList(glDLpoints[iSlice][4]);
+				skip2:
+					if (drawGlobalTracks)
+					{
+						if (excludeClusters) goto skip3;
+						SetColorGlobalTracks();
+					}
+					else
+					{
+						SetColorClusters();
+					}
+					glCallList(glDLpoints[iSlice][6][iCol]);
 
-				if (drawTracks)
-				{
-					if (excludeClusters) goto skip2;
-					SetColorTracks();
+					if (drawFinal)
+					{
+						if (excludeClusters) goto skip3;
+						SetColorFinal();
+					}
+					glCallList(glDLpoints[iSlice][7][iCol]);
+				skip3:;
+					if (showCollision != -1) break;
 				}
-				glCallList(glDLpoints[iSlice][5]);
-
-			skip2:
-				if (drawGlobalTracks)
-				{
-					if (excludeClusters) goto skip3;
-					SetColorGlobalTracks();
-				}
-				else
-				{
-					SetColorClusters();
-				}
-				glCallList(glDLpoints[iSlice][6]);
-
-				if (drawFinal)
-				{
-					if (excludeClusters) goto skip3;
-					SetColorFinal();
-				}
-				glCallList(glDLpoints[iSlice][7]);
-			skip3:;
 			}
 
 			if (!excludeClusters)
 			{
-				if (drawInitLinks) {
+				if (drawInitLinks)
+				{
 					SetColorInitLinks();
 					glCallList(glDLlines[iSlice][0]);
 				}
-				if (drawLinks) {
+				if (drawLinks)
+				{
 					SetColorLinks();
 					glCallList(glDLlines[iSlice][1]);
 				}
-				if (drawSeeds) {
+				if (drawSeeds)
+				{
 					SetColorSeeds();
 					glCallList(glDLlines[iSlice][2]);
 				}
-				if (drawTracklets) {
+				if (drawTracklets)
+				{
 					SetColorTracklets();
 					glCallList(glDLlines[iSlice][3]);
 				}
-				if (drawTracks) {
+				if (drawTracks)
+				{
 					SetColorTracks();
 					glCallList(glDLlines[iSlice][4]);
 				}
-				if (drawGlobalTracks) {
+				if (drawGlobalTracks)
+				{
 					SetColorGlobalTracks();
 					glCallList(glDLlines[iSlice][5]);
 				}
-				if (drawFinal) {
+				if (drawFinal)
+				{
 					SetColorFinal();
-					if (!drawClusters) glCallList(glDLpoints[iSlice][7]);
-					glCallList(glDLlines[iSlice][6]);
+					for (int iCol = 0;iCol < nCollisions;iCol++)
+					{
+						if (showCollision != -1) iCol = showCollision;
+						if (colorCollisions) SetCollisionColor(iCol);
+						if (!drawClusters) glCallList(glDLpoints[iSlice][7][iCol]);
+						glCallList(glDLfinal[iSlice][iCol]);
+						if (showCollision != -1) break;
+					}
 				}
-				if (markClusters) {
+				if (markClusters)
+				{
 					SetColorMarked();
-					glCallList(glDLpoints[iSlice][8]);
+					for (int iCol = 0;iCol < nCollisions;iCol++)
+					{
+						if (showCollision != -1) iCol = showCollision;
+						glCallList(glDLpoints[iSlice][8][iCol]);
+						if (showCollision != -1) break;
+					}
 				}
 			}
 		}
@@ -1113,6 +1150,7 @@ void PrintHelp()
 	printf("[r]\t\tReset Display Settings\n");
 	printf("[l]\t\tDraw single slice (next slice)\n");
 	printf("[k]\t\tDraw single slice (previous slice)\n");
+	printf("[J]\t\tDraw related slices (same plane in phi)\n");
 	printf("[z]/[U]\t\tShow splitting of TPC in slices by extruding volume, [U] resets\n");
 	printf("[y]\t\tStart Animation\n");
 	printf("[g]\t\tDraw Grid\n");
@@ -1162,17 +1200,35 @@ void HandleKeyRelease(int wParam)
 
 	else if (wParam == 'l')
 	{
-		if (drawSlice == fgkNSlices - 1)
+		if (drawSlice >= (drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1)))
 			drawSlice = -1;
 		else
 			drawSlice++;
 	}
 	else if (wParam == 'k')
 	{
-		if (drawSlice == -1)
-			drawSlice = fgkNSlices - 1;
+		if (drawSlice <= -1)
+			drawSlice = drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1);
 		else
 			drawSlice--;
+	}
+	else if (wParam == 'L')
+	{
+		if (showCollision >= nCollisions - 1)
+			showCollision = -1;
+		else
+			showCollision++;
+	}
+	else if (wParam == 'K')
+	{
+		if (showCollision <= -1)
+			showCollision = nCollisions - 1;
+		else
+			showCollision--;
+	}
+	else if (wParam == 'J')
+	{
+		drawRelatedSlices ^= 1;
 	}
 	else if (wParam == 'j')
 	{
@@ -1194,7 +1250,6 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == 'C')
 	{
 		colorCollisions ^= 1;
-		updateDLList = true;
 	}
 	else if (wParam == 'P')
 	{
