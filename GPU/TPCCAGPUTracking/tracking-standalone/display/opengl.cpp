@@ -58,8 +58,10 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #ifndef BUILD_QA
 bool SuppressHit(int iHit) {return false;}
 #endif
+#define GL_SCALE_FACTOR 50.f
 
-bool keys[256]; // Array Used For The Keyboard Routine
+bool keys[256] = {false}; // Array Used For The Keyboard Routine
+bool keysShift[256] = {false}; //Shift held when key down
 
 bool separateGlobalTracks = 0;
 #define SEPERATE_GLOBAL_TRACKS_MAXID 5
@@ -477,7 +479,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice)
 				if (fabs(param.SinPhi()) > 0.9) break;
 				float4 ptr;
 				hlt.Tracker().CPUTracker(cl.fSlice).Param().Slice2Global(param.X() + Xadd, param.Y(), param.Z(), &ptr.x, &ptr.y, &ptr.z);
-				glVertex3f(ptr.x / 50.f, ptr.y / 50.f, projectxy ? 0 : (ptr.z + param.ZOffset()) / 50.f);
+				glVertex3f(ptr.x / GL_SCALE_FACTOR, ptr.y / GL_SCALE_FACTOR, projectxy ? 0 : (ptr.z + param.ZOffset()) / GL_SCALE_FACTOR);
 				x -= 1;
 			}
 
@@ -512,8 +514,8 @@ void DrawGrid(AliHLTTPCCATracker &tracker)
 				zz1 -= Zadd;
 				zz2 -= Zadd;
 			}
-			glVertex3f(xx1 / 50, yy1 / 50, zz1 / 50);
-			glVertex3f(xx2 / 50, yy2 / 50, zz2 / 50);
+			glVertex3f(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
+			glVertex3f(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
 		}
 		for (int j = 0; j <= (signed) row.Grid().Nz(); j++)
 		{
@@ -534,8 +536,8 @@ void DrawGrid(AliHLTTPCCATracker &tracker)
 				zz1 -= Zadd;
 				zz2 -= Zadd;
 			}
-			glVertex3f(xx1 / 50, yy1 / 50, zz1 / 50);
-			glVertex3f(xx2 / 50, yy2 / 50, zz2 / 50);
+			glVertex3f(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
+			glVertex3f(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
 		}
 	}
 	glEnd();
@@ -569,7 +571,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	float scalefactor = keys[16] ? 0.2 : 1.0;
 	float rotatescalefactor = 1;
 
-	float sqrdist = sqrt(sqrt(currentMatrice[12] * currentMatrice[12] + currentMatrice[13] * currentMatrice[13] + currentMatrice[14] * currentMatrice[14]) / 50) * 0.8;
+	float sqrdist = sqrt(sqrt(currentMatrice[12] * currentMatrice[12] + currentMatrice[13] * currentMatrice[13] + currentMatrice[14] * currentMatrice[14]) / GL_SCALE_FACTOR) * 0.8;
 	if (sqrdist < 0.2) sqrdist = 0.2;
 	if (sqrdist > 5) sqrdist = 5;
 	scalefactor *= sqrdist;
@@ -644,16 +646,10 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	glMultMatrixf(currentMatrice);
 
 	//Graphichs Options
-	if (keys[16])
-	{
-		lineWidth += (float) (keys[107] - keys[109] + keys[187] - keys[189]) * fpsscale * 0.05;
-		if (lineWidth < 0.01) lineWidth = 0.01;
-	}
-	else
-	{
-		pointSize += (float) (keys[107] - keys[109] + keys[187] - keys[189]) * fpsscale * 0.05;
-		if (pointSize < 0.01) pointSize = 0.01;
-	}
+	lineWidth += (float) (keys['+']*keysShift['+'] - keys['-']*keysShift['-']) * fpsscale * 0.05;
+	if (lineWidth < 0.01) lineWidth = 0.01;
+	pointSize += (float) (keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-'])) * fpsscale * 0.05;
+	if (pointSize < 0.01) pointSize = 0.01;
 	
 	//Reset position
 	if (resetScene)
@@ -734,9 +730,9 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					ptr->z -= Zadd;
 				}
 
-				ptr->x /= 50;
-				ptr->y /= 50;
-				ptr->z /= 50;
+				ptr->x /= GL_SCALE_FACTOR;
+				ptr->y /= GL_SCALE_FACTOR;
+				ptr->z /= GL_SCALE_FACTOR;
 				ptr->w = 1;
 			}
 		}
@@ -1154,8 +1150,11 @@ void HandleKeyRelease(int wParam)
 {
 	keys[wParam] = false;
 	
-	if (keys[16]) wParam &= ~(int) ('a' ^ 'A');
-	else wParam |= (int) ('a' ^ 'A');
+	if (wParam >= 'A' && wParam <= 'Z')
+	{
+		if (keysShift[wParam]) wParam &= ~(int) ('a' ^ 'A');
+		else wParam |= (int) ('a' ^ 'A');
+	}
 
 	if (wParam == 13 || wParam == 'n') buttonPressed = 1;
 	else if (wParam == 'q') buttonPressed = 2;
@@ -1537,6 +1536,15 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
 	return TRUE; // Success
 }
 
+int GetKey(int key)
+{
+	if (key == 107 || key == 187) return('+'); //+
+	if (key == 109 || key == 189) return('-'); //-
+	if (key >= 'a' && key <= 'z') key += 'A' - 'a';
+	
+	return(key);
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd,     // Handle For This Window
                          UINT uMsg,     // Message For This Window
                          WPARAM wParam, // Additional Message Information
@@ -1577,13 +1585,17 @@ LRESULT CALLBACK WndProc(HWND hWnd,     // Handle For This Window
 
 	case WM_KEYDOWN: // Is A Key Being Held Down?
 	{
+		wParam = GetKey(wParam);
 		keys[wParam] = TRUE; // If So, Mark It As TRUE
+		keysShift[wParam] = keys[16];
 		return 0;            // Jump Back
 	}
 
 	case WM_KEYUP: // Has A Key Been Released?
 	{
+		wParam = GetKey(wParam);
 		HandleKeyRelease(wParam);
+		keysShift[wParam] = false;
 
 		printf("Key: %d\n", wParam);
 		return 0; // Jump Back
@@ -1743,8 +1755,8 @@ void init(void);
 
 int GetKey(int key)
 {
-	if (key == 65453 || key == 45) return(109); //+
-	if (key == 65451 || key == 43) return(107); //-
+	if (key == 65453 || key == 45) return('-');
+	if (key == 65451 || key == 43) return('+');
 	if (key == 65505) return(16); //Shift
 	if (key == 65307) return('Q'); //ESC
 	if (key == 32) return(13); //Space
@@ -1974,8 +1986,9 @@ void *OpenGLMain(void *ptr)
 				{
 					KeySym sym = XLookupKeysym(&event.xkey, 0);
 					int wParam = GetKey(sym);
-					//fprintf(stderr, "KeyPress event %d --> %d (%c) -> %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam);
+					//fprintf(stderr, "KeyPress event %d --> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keys[16]);
 					keys[wParam] = true;
+					keysShift[wParam] = keys[16];
 				}
 				break;
 
@@ -1983,8 +1996,10 @@ void *OpenGLMain(void *ptr)
 				{
 					KeySym sym = XLookupKeysym(&event.xkey, 0);
 					int wParam = GetKey(sym);
-					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam);
+					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keysShift[wParam]);
 					HandleKeyRelease(wParam);
+					keysShift[wParam] = false;
+					//if (updateDLList) printf("Need update!!\n");
 				}
 				break;
 
