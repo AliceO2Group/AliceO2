@@ -67,12 +67,14 @@ struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(
 std::vector<GLvertex> vertexBuffer[fgkNSlices];
 std::vector<GLint> vertexBufferStart[fgkNSlices];
 std::vector<GLsizei> vertexBufferCount[fgkNSlices];
+int drawCalls = 0;
 inline void drawVertices(const vboList& v, const GLenum t)
 {
 	auto first = std::get<0>(v);
 	auto count = std::get<1>(v);
 	auto iSlice = std::get<2>(v);
 	if (count == 0) return;
+	drawCalls += count;
 	glMultiDrawArrays(t, vertexBufferStart[iSlice].data() + first, vertexBufferCount[iSlice].data() + first, count);
 	
 	/*fprintf(stderr, "Draw start %d count %d: %d (size %lld)\n", (vertexBufferStart.data() + v.first)[0], (vertexBufferCount.data() + v.first)[0], v.second, (long long int) vertexBuffer.size());
@@ -905,8 +907,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	if (time > 1.)
 	{
 		float fps = (double) framesDoneFPS / time;
-		printf("FPS: %f (%d frames, Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d, C:Mark %X)\n",
-			fps, framesDone, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal, (int) markClusters);
+		printf("FPS: %f (%d frames, %d calls, Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d, C:Mark %X)\n",
+			fps, framesDone, drawCalls, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal, (int) markClusters);
 		fpsscale = 60 / fps;
 		timerFPS.ResetStart();
 		framesDoneFPS = 0;
@@ -915,6 +917,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	//Draw Event
 	if (glDLrecent)
 	{
+		drawCalls = 0;
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3, GL_FLOAT, 0, 0);
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
