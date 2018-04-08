@@ -1,4 +1,5 @@
 #include "AliHLTTPCCADef.h"
+#include <GL/glew.h>
 
 #ifdef R__WIN32
 #include <winbase.h>
@@ -35,8 +36,6 @@ int g_nLastMousePositX = 0;
 int g_nLastMousePositY = 0;
 bool g_bMousing = false;
 
-int screenshot_scale = 1;
-
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #endif
 #include <vector>
@@ -53,6 +52,32 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #include "AliHLTTPCGMPropagator.h"
 #include "include.h"
 #include "../cmodules/timer.h"
+
+int screenshot_scale = 1;
+
+GLuint vbo_id;
+typedef std::pair<GLsizei, GLsizei> vboList;
+struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
+std::vector<GLvertex> vertexBuffer;
+std::vector<GLint> vertexBufferStart;
+std::vector<GLsizei> vertexBufferCount;
+inline void drawVertices(const vboList& v, const GLenum t)
+{
+	if (!v.second) return;
+	glMultiDrawArrays(t, vertexBufferStart.data() + v.first, vertexBufferCount.data() + v.first, v.second);
+	
+	/*fprintf(stderr, "Draw start %d count %d: %d (size %lld)\n", (vertexBufferStart.data() + v.first)[0], (vertexBufferCount.data() + v.first)[0], v.second, (long long int) vertexBuffer.size());
+	for (int k = vertexBufferStart.data()[v.first];k < vertexBufferStart.data()[v.first + v.second - 1] + vertexBufferCount.data()[v.first + v.second - 1];k++)
+	{
+		printf("Vertex %f %f %f\n", vertexBuffer[k].x, vertexBuffer[k].y, vertexBuffer[k].z);
+	}*/
+}
+inline void insertVertexList(int iSlice, size_t first, size_t last)
+{
+	if (first == last) return;
+	vertexBufferStart.emplace_back(first);
+	vertexBufferCount.emplace_back(last - first);
+}
 
 #define fgkNSlices 36
 #ifndef BUILD_QA
@@ -208,13 +233,14 @@ int InitGL() // All Setup For OpenGL Goes Here
 
 inline void drawPointLinestrip(int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT)
 {
-	glVertex3f(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
+	vertexBuffer.emplace_back(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
-void DrawClusters(AliHLTTPCCATracker &tracker, int select, unsigned int iCol)
+vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, unsigned int iCol)
 {
-	glBegin(GL_POINTS);
+	size_t startCount = vertexBufferStart.size();
+	size_t startCountInner = vertexBuffer.size();
 	for (int i = 0; i < tracker.Param().NRows(); i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
@@ -238,16 +264,18 @@ void DrawClusters(AliHLTTPCCATracker &tracker, int select, unsigned int iCol)
 			}
 			if (draw)
 			{
-				glVertex3f(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
+				vertexBuffer.emplace_back(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 			}
 		}
 	}
-	glEnd();
+	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer.size());
+	return vboList(startCount, vertexBufferStart.size() - startCount);
 }
 
-void DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
+vboList DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 {
-	glBegin(GL_LINES);
+	size_t startCount = vertexBufferStart.size();
+	size_t startCountInner = vertexBuffer.size();
 	for (int i = 0; i < tracker.Param().NRows(); i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
@@ -279,18 +307,20 @@ void DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 					drawPointLinestrip(cid1, id);
 					drawPointLinestrip(cid2, id);
 				}
-			}
+				}
 		}
 	}
-	glEnd();
+	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer.size());
+	return vboList(startCount, vertexBufferStart.size() - startCount);
 }
 
-void DrawSeeds(AliHLTTPCCATracker &tracker)
+vboList DrawSeeds(AliHLTTPCCATracker &tracker)
 {
+	size_t startCount = vertexBufferStart.size();
 	for (int i = 0; i < *tracker.NTracklets(); i++)
 	{
 		const AliHLTTPCCAHitId &hit = tracker.TrackletStartHit(i);
-		glBegin(GL_LINE_STRIP);
+		size_t startCountInner = vertexBuffer.size();
 		int ir = hit.RowIndex();
 		calink ih = hit.HitIndex();
 		do
@@ -301,17 +331,19 @@ void DrawSeeds(AliHLTTPCCATracker &tracker)
 			ir += 2;
 			ih = tracker.Data().HitLinkUpData(row, ih);
 		} while (ih != CALINK_INVAL);
-		glEnd();
+		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer.size());
 	}
+	return vboList(startCount, vertexBufferStart.size() - startCount);
 }
 
-void DrawTracklets(AliHLTTPCCATracker &tracker)
+vboList DrawTracklets(AliHLTTPCCATracker &tracker)
 {
+	size_t startCount = vertexBufferStart.size();
 	for (int i = 0; i < *tracker.NTracklets(); i++)
 	{
 		const AliHLTTPCCATracklet &tracklet = tracker.Tracklet(i);
 		if (tracklet.NHits() == 0) continue;
-		glBegin(GL_LINE_STRIP);
+		size_t startCountInner = vertexBuffer.size();
 		float4 oldpos;
 		for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++)
 		{
@@ -332,16 +364,18 @@ void DrawTracklets(AliHLTTPCCATracker &tracker)
 				drawPointLinestrip(cid, 4);
 			}
 		}
-		glEnd();
+		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer.size());
 	}
+	return vboList(startCount, vertexBufferStart.size() - startCount);
 }
 
-void DrawTracks(AliHLTTPCCATracker &tracker, int global)
+vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 {
+	size_t startCount = vertexBufferStart.size();
 	for (int i = (global ? tracker.CommonMemory()->fNLocalTracks : 0); i < (global ? *tracker.NTracks() : tracker.CommonMemory()->fNLocalTracks); i++)
 	{
 		AliHLTTPCCATrack &track = tracker.Tracks()[i];
-		glBegin(GL_LINE_STRIP);
+		size_t startCountInner = vertexBuffer.size();
 		for (int j = 0; j < track.NHits(); j++)
 		{
 			const AliHLTTPCCAHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
@@ -349,12 +383,14 @@ void DrawTracks(AliHLTTPCCATracker &tracker, int global)
 			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
 			drawPointLinestrip(cid, 5 + global);
 		}
-		glEnd();
+		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer.size());
 	}
+	return vboList(startCount, vertexBufferStart.size() - startCount);
 }
 
-void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCol)
+vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCol)
 {
+	size_t startCount = vertexBufferStart.size();
 	static AliHLTTPCGMPropagator prop;
 	static bool initProp = true;
 	if (initProp)
@@ -388,7 +424,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 				if (k != iCol) continue;
 			}
 		}
-		glBegin(GL_LINE_STRIP);
+		size_t startCountInner = vertexBuffer.size();
 		
 		if (reorderFinalTracks)
 		{
@@ -481,19 +517,21 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 				if (fabs(param.SinPhi()) > 0.9) break;
 				float4 ptr;
 				hlt.Tracker().CPUTracker(cl.fSlice).Param().Slice2Global(param.X() + Xadd, param.Y(), param.Z(), &ptr.x, &ptr.y, &ptr.z);
-				glVertex3f(ptr.x / GL_SCALE_FACTOR, ptr.y / GL_SCALE_FACTOR, projectxy ? 0 : (ptr.z + param.ZOffset()) / GL_SCALE_FACTOR);
+				vertexBuffer.emplace_back(ptr.x / GL_SCALE_FACTOR, ptr.y / GL_SCALE_FACTOR, projectxy ? 0 : (ptr.z + param.ZOffset()) / GL_SCALE_FACTOR);
 				x -= 1;
 			}
 
 		}
-		glEnd();
+		insertVertexList(iSlice, startCountInner, vertexBuffer.size());
 		if (reorderFinalTracks) delete[] clusterused;
 	}
+	return vboList(startCount, vertexBufferStart.size() - startCount);
 }
 
-void DrawGrid(AliHLTTPCCATracker &tracker)
+vboList DrawGrid(AliHLTTPCCATracker &tracker)
 {
-	glBegin(GL_LINES);
+	size_t startCount = vertexBufferStart.size();
+	size_t startCountInner = vertexBuffer.size();
 	for (int i = 0; i < tracker.Param().NRows(); i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
@@ -516,8 +554,8 @@ void DrawGrid(AliHLTTPCCATracker &tracker)
 				zz1 -= Zadd;
 				zz2 -= Zadd;
 			}
-			glVertex3f(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
-			glVertex3f(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
+			vertexBuffer.emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
+			vertexBuffer.emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
 		}
 		for (int j = 0; j <= (signed) row.Grid().Nz(); j++)
 		{
@@ -538,11 +576,12 @@ void DrawGrid(AliHLTTPCCATracker &tracker)
 				zz1 -= Zadd;
 				zz2 -= Zadd;
 			}
-			glVertex3f(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
-			glVertex3f(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
+			vertexBuffer.emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
+			vertexBuffer.emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
 		}
 	}
-	glEnd();
+	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer.size());
+	return vboList(startCount, vertexBufferStart.size() - startCount);
 }
 
 int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
@@ -555,14 +594,13 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 
 	constexpr const int N_POINTS_TYPE = 9;
 	constexpr const int N_LINES_TYPE = 6;
-	static GLuint glDLlines[fgkNSlices][N_LINES_TYPE];
-	static std::vector<GLuint> glDLfinal[fgkNSlices];
-	static std::vector<GLuint> glDLpoints[fgkNSlices][N_POINTS_TYPE];
-	static GLuint glDLgrid[fgkNSlices];
-	static int glDLcreated = 0;
+	static vboList glDLlines[fgkNSlices][N_LINES_TYPE];
+	static std::vector<vboList> glDLfinal[fgkNSlices];
+	static std::vector<vboList> GLpoints[fgkNSlices][N_POINTS_TYPE];
+	static vboList glDLgrid[fgkNSlices];
 
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-
+	
 	//Initialize
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
 	glLoadIdentity();                                   // Reset The Current Modelview Matrix
@@ -751,27 +789,14 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	//Prepare Event
 	if (!glDLrecent)
 	{
+		vertexBuffer.clear();
+		vertexBufferStart.clear();
+		vertexBufferCount.clear();
+
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
-			if (glDLcreated)
-			{
-				for (int i = 0;i < N_LINES_TYPE;i++) glDeleteLists(glDLlines[iSlice][i], 1);
-				for (int i = 0;i < N_POINTS_TYPE;i++) for (unsigned int iCol = 0;iCol < glDLpoints[iSlice][i].size();iCol++) glDeleteLists(glDLpoints[iSlice][i][iCol], 1);
-				for (int i = 0;i < nCollisions;i++) glDeleteLists(glDLfinal[iSlice][i], 1);
-				glDeleteLists(glDLgrid[iSlice], 1);
-			}
-			else
-			{
-				for (int i = 0;i < N_LINES_TYPE;i++) glDLlines[iSlice][i] = glGenLists(1);
-				for (int i = 0;i < N_POINTS_TYPE;i++)
-				{
-					glDLpoints[iSlice][i].resize(nCollisions);
-					for (int iCol = 0;iCol < nCollisions;iCol++) glDLpoints[iSlice][i][iCol] = glGenLists(1);
-				}
-				glDLfinal[iSlice].resize(nCollisions);
-				for (int i = 0;i < nCollisions;i++) glDLfinal[iSlice][i] = glGenLists(1);
-				glDLgrid[iSlice] = glGenLists(1);
-			}
+			for (int i = 0;i < N_POINTS_TYPE;i++) GLpoints[iSlice][i].resize(nCollisions);
+			glDLfinal[iSlice].resize(nCollisions);
 		}
 
 		for (int i = 0; i < currentClusters; i++)
@@ -780,57 +805,37 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
 			AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
-			glNewList(glDLlines[iSlice][0], GL_COMPILE);
-			if (drawInitLinks && iSlice == 0)
+			if (drawInitLinks)
 			{
-				char *tmpMem[fgkNSlices];
-				for (int i = 0; i < fgkNSlices; i++)
+				char *tmpMem;
+				if (tracker.fLinkTmpMemory == NULL)
 				{
-					if (tracker.fLinkTmpMemory == NULL)
-					{
-						printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
-						break;
-					}
-					AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(i);
-					tmpMem[i] = tracker.Data().Memory();
-					tracker.SetGPUSliceDataMemory((void *) tracker.fLinkTmpMemory, tracker.Data().Rows());
-					tracker.SetPointersSliceData(tracker.ClusterData());
-					DrawLinks(tracker, 1, true);
-					tracker.SetGPUSliceDataMemory(tmpMem[i], tracker.Data().Rows());
-					tracker.SetPointersSliceData(tracker.ClusterData());
+					printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
+					break;
 				}
+				tmpMem = tracker.Data().Memory();
+				tracker.SetGPUSliceDataMemory((void *) tracker.fLinkTmpMemory, tracker.Data().Rows());
+				tracker.SetPointersSliceData(tracker.ClusterData());
+				glDLlines[iSlice][0] = DrawLinks(tracker, 1, true);
+				tracker.SetGPUSliceDataMemory(tmpMem, tracker.Data().Rows());
+				tracker.SetPointersSliceData(tracker.ClusterData());
 			}
-			glEndList();
+		}
 
-			glNewList(glDLlines[iSlice][1], GL_COMPILE);
-			DrawLinks(tracker, 2);
-			glEndList();
+		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+		{
+			AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 
-			glNewList(glDLlines[iSlice][2], GL_COMPILE);
-			DrawSeeds(tracker);
-			glEndList();
-
-			glNewList(glDLlines[iSlice][3], GL_COMPILE);
-			DrawTracklets(tracker);
-			glEndList();
-
-			glNewList(glDLlines[iSlice][4], GL_COMPILE);
-			DrawTracks(tracker, 0);
-			glEndList();
-
-			glNewList(glDLlines[iSlice][5], GL_COMPILE);
-			DrawTracks(tracker, 1);
-			glEndList();
-
-			glNewList(glDLgrid[iSlice], GL_COMPILE);
-			DrawGrid(tracker);
-			glEndList();
+			glDLlines[iSlice][1] = DrawLinks(tracker, 2);
+			glDLlines[iSlice][2] = DrawSeeds(tracker);
+			glDLlines[iSlice][3] = DrawTracklets(tracker);
+			glDLlines[iSlice][4] = DrawTracks(tracker, 0);
+			glDLlines[iSlice][5] = DrawTracks(tracker, 1);
+			glDLgrid[iSlice] = DrawGrid(tracker);
 
 			for (int iCol = 0;iCol < nCollisions;iCol++)
 			{
-				glNewList(glDLfinal[iSlice][iCol], GL_COMPILE);
-				DrawFinal(hlt, iSlice, iCol);
-				glEndList();
+				glDLfinal[iSlice][iCol] = DrawFinal(hlt, iSlice, iCol);
 			}
 		}
 
@@ -841,9 +846,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 			{
 				for (int iCol = 0;iCol < nCollisions;iCol++)
 				{
-					glNewList(glDLpoints[iSlice][i][iCol], GL_COMPILE);
-					DrawClusters(tracker, i, iCol);
-					glEndList();
+					GLpoints[iSlice][i][iCol] = DrawClusters(tracker, i, iCol);
 				}
 			}
 		}
@@ -857,6 +860,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		else
 		{
 			glDLrecent = 1;
+			glBufferData(GL_ARRAY_BUFFER, vertexBuffer.size() * sizeof(vertexBuffer[0]), vertexBuffer.data(), GL_STATIC_DRAW);
 		}
 	}
 	if (showTimer)
@@ -880,6 +884,8 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	//Draw Event
 	if (glDLrecent)
 	{
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, 0);
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
 			if (drawSlice != -1)
@@ -891,7 +897,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 			if (drawGrid)
 			{
 				SetColorGrid();
-				glCallList(glDLgrid[iSlice]);
+				drawVertices(glDLgrid[iSlice], GL_LINES);
 			}
 
 			if (drawClusters)
@@ -901,14 +907,14 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 				{
 					if (showCollision != -1) iCol = showCollision;
 					if (colorCollisions) SetCollisionColor(iCol);
-					glCallList(glDLpoints[iSlice][0][iCol]);
+					drawVertices(GLpoints[iSlice][0][iCol], GL_POINTS);
 
 					if (drawInitLinks)
 					{
 						if (excludeClusters) goto skip1;
 						SetColorInitLinks();
 					}
-					glCallList(glDLpoints[iSlice][1][iCol]);
+					drawVertices(GLpoints[iSlice][1][iCol], GL_POINTS);
 
 					if (drawLinks)
 					{
@@ -919,14 +925,14 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					{
 						SetColorClusters();
 					}
-					glCallList(glDLpoints[iSlice][2][iCol]);
+					drawVertices(GLpoints[iSlice][2][iCol], GL_POINTS);
 
 					if (drawSeeds)
 					{
 						if (excludeClusters) goto skip1;
 						SetColorSeeds();
 					}
-					glCallList(glDLpoints[iSlice][3][iCol]);
+					drawVertices(GLpoints[iSlice][3][iCol], GL_POINTS);
 
 				skip1:
 					SetColorClusters();
@@ -935,14 +941,14 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 						if (excludeClusters) goto skip2;
 						SetColorTracklets();
 					}
-					glCallList(glDLpoints[iSlice][4][iCol]);
+					drawVertices(GLpoints[iSlice][4][iCol], GL_POINTS);
 
 					if (drawTracks)
 					{
 						if (excludeClusters) goto skip2;
 						SetColorTracks();
 					}
-					glCallList(glDLpoints[iSlice][5][iCol]);
+					drawVertices(GLpoints[iSlice][5][iCol], GL_POINTS);
 
 				skip2:
 					if (drawGlobalTracks)
@@ -954,14 +960,14 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					{
 						SetColorClusters();
 					}
-					glCallList(glDLpoints[iSlice][6][iCol]);
+					drawVertices(GLpoints[iSlice][6][iCol], GL_POINTS);
 
 					if (drawFinal)
 					{
 						if (excludeClusters) goto skip3;
 						SetColorFinal();
 					}
-					glCallList(glDLpoints[iSlice][7][iCol]);
+					drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS);
 				skip3:;
 					if (showCollision != -1) break;
 				}
@@ -972,32 +978,32 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 				if (drawInitLinks)
 				{
 					SetColorInitLinks();
-					glCallList(glDLlines[iSlice][0]);
+					drawVertices(glDLlines[iSlice][0], GL_LINES);
 				}
 				if (drawLinks)
 				{
 					SetColorLinks();
-					glCallList(glDLlines[iSlice][1]);
+					drawVertices(glDLlines[iSlice][1], GL_LINES);
 				}
 				if (drawSeeds)
 				{
 					SetColorSeeds();
-					glCallList(glDLlines[iSlice][2]);
+					drawVertices(glDLlines[iSlice][2], GL_LINE_STRIP);
 				}
 				if (drawTracklets)
 				{
 					SetColorTracklets();
-					glCallList(glDLlines[iSlice][3]);
+					drawVertices(glDLlines[iSlice][3], GL_LINE_STRIP);
 				}
 				if (drawTracks)
 				{
 					SetColorTracks();
-					glCallList(glDLlines[iSlice][4]);
+					drawVertices(glDLlines[iSlice][4], GL_LINE_STRIP);
 				}
 				if (drawGlobalTracks)
 				{
 					SetColorGlobalTracks();
-					glCallList(glDLlines[iSlice][5]);
+					drawVertices(glDLlines[iSlice][5], GL_LINE_STRIP);
 				}
 				if (drawFinal)
 				{
@@ -1006,8 +1012,9 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					{
 						if (showCollision != -1) iCol = showCollision;
 						if (colorCollisions) SetCollisionColor(iCol);
-						if (!drawClusters) glCallList(glDLpoints[iSlice][7][iCol]);
-						glCallList(glDLfinal[iSlice][iCol]);
+						if (!drawClusters) drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS);
+
+						drawVertices(glDLfinal[iSlice][iCol], GL_LINE_STRIP);
 						if (showCollision != -1) break;
 					}
 				}
@@ -1017,12 +1024,13 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					for (int iCol = 0;iCol < nCollisions;iCol++)
 					{
 						if (showCollision != -1) iCol = showCollision;
-						glCallList(glDLpoints[iSlice][8][iCol]);
+						drawVertices(GLpoints[iSlice][8][iCol], GL_POINTS);
 						if (showCollision != -1) break;
 					}
 				}
 			}
 		}
+		glDisableClientState(GL_VERTEX_ARRAY);
 	}
 
 //Free event
@@ -2118,6 +2126,10 @@ void init(void)
 	gluPerspective(45.0f, 640.0f / 480.0f, 0.1f, 100.0f);
 
 	ReSizeGLScene(1024, 768);
+	
+	glewInit();
+	glGenBuffers(1, &vbo_id);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
 }
 
 //-----------------------------------------------------------------------------
