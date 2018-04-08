@@ -33,6 +33,10 @@ std::vector<std::vector<int>> getPadChannels(const Segmentation& seg);
 
 std::vector<o2::mch::contour::Contour<double>> getDualSampaContours(const Segmentation& seg);
 
+o2::mch::contour::Contour<double> getDualSampaContour(const Segmentation&seg, int dualSampaId);
+
+std::vector<o2::mch::contour::Polygon<double>> getPadPolygons(const Segmentation& seg, int dualSampaId);
+
 o2::mch::contour::Contour<double> getEnvelop(const Segmentation& seg);
 
 o2::mch::contour::BBox<double> getBBox(const Segmentation& seg);

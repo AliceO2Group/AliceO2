@@ -179,7 +179,7 @@ bool Polygon<T>::contains(T xp, T yp) const
   // (e.g. pre-computation)
   //
   if (!isClosed()) {
-    throw std::invalid_argument("isInside can only work with closed polygons");
+    throw std::invalid_argument("contains method can only work with closed polygons");
   }
 
   auto j = mVertices.size() - 1;

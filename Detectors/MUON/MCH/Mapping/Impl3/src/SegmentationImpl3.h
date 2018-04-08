@@ -39,8 +39,6 @@ class Segmentation
   using Box = boost::geometry::model::box<Point>;
   using Value = std::pair<Box, unsigned>;
 
-  Segmentation(int segType, bool isBendingPlane, std::vector<PadGroup> padGroups);
-
   Segmentation(int segType, bool isBendingPlane, std::vector<PadGroup> padGroups,
                std::vector<PadGroupType> padGroupTypes, std::vector<std::pair<float, float>> padSizes);
 

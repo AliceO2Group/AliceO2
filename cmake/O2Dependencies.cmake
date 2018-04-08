@@ -36,6 +36,7 @@ find_package(FairMQ REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 find_package(GLFW)
 
@@ -1637,6 +1638,10 @@ o2_define_bucket(
   $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
   mch_mapping_segcontour_bucket
   MCHMappingSegContour3
+  RapidJSON
+
+  INCLUDE_DIRECTORIES
+  ${RAPIDJSON_INCLUDEDIR}/include
 )
 
 o2_define_bucket(
