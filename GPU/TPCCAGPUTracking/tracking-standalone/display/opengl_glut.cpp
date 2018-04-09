@@ -119,21 +119,21 @@ void *OpenGLMain(void *ptr)
 	glutPassiveMotionFunc(mouseMoveFunc);
 	glutMouseWheelFunc(mouseWheelFunc);
 
-	pthread_mutex_lock(&semLockDisplay);
+	pthread_mutex_lock(&semLockExit);
 	glutRunning = true;
-	pthread_mutex_unlock(&semLockDisplay);
+	pthread_mutex_unlock(&semLockExit);
 	glutMainLoop();
-	pthread_mutex_lock(&semLockDisplay);
+	pthread_mutex_lock(&semLockExit);
 	glutRunning = false;
-	pthread_mutex_unlock(&semLockDisplay);
+	pthread_mutex_unlock(&semLockExit);
 	
 	return 0;
 }
 
 void DisplayExit()
 {
-	pthread_mutex_lock(&semLockDisplay);
+	pthread_mutex_lock(&semLockExit);
 	if (glutRunning) glutLeaveMainLoop();
-	pthread_mutex_unlock(&semLockDisplay);
+	pthread_mutex_unlock(&semLockExit);
 	while (glutRunning) usleep(10000);
 }
