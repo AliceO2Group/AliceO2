@@ -1,6 +1,9 @@
 #ifndef STANDALONESETTINGS_H
 #define STANDALONESETTINGS_H
 
+#ifdef R__WIN32
+#pragma pack(push,1)
+#endif
 struct hltca_event_dump_settings
 {
 	void setDefaults()
@@ -14,6 +17,11 @@ struct hltca_event_dump_settings
 	float solenoidBz;
 	bool constBz;
 	bool homemadeEvents;
-} __attribute__((packed));
+}
+#ifdef R__WIN32
+#pragma pack(pop)
+#else
+__attribute__((packed));
+#endif
 
 #endif

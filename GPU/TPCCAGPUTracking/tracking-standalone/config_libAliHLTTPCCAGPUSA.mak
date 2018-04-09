@@ -3,7 +3,10 @@ include						config_common.mak
 TARGET						= libAliHLTTPCCAGPUSA
 TARGETTYPE					= LIB
 
-CXXFILES					= cagpubuild/AliHLTTPCCAGPUTrackerBase.cxx
+ifeq ($(ARCH_CYGWIN), 1)
+CXXFILES					+=
+endif
+CXXFILES					+= cagpubuild/AliHLTTPCCAGPUTrackerBase.cxx
 
 CUFILES						= cagpubuild/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					= 

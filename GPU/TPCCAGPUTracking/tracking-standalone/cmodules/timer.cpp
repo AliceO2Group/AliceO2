@@ -21,7 +21,6 @@ inline double HighResTimer::GetTime()
 	__int64 istart;
 	QueryPerformanceCounter((LARGE_INTEGER*) &istart);
 	return((double) istart);
-	StartTime = (double) istart;
 #elif defined(__MACH__) || defined(__APPLE__)
 	clock_serv_t cclock;
 	mach_timespec_t mts;

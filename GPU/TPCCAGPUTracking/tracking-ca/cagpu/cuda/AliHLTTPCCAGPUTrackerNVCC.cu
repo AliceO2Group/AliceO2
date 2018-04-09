@@ -17,7 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define PASCAL
+#define HLTCA_GPUTYPE_PASCAL
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
 #include "AliHLTTPCCAGPUTrackerCommon.h"
 #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
@@ -89,7 +89,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		return(1);
 	}
 	if (fDebugLevel >= 2) HLTInfo("Available CUDA devices:");
-#if defined(FERMI) || defined(KEPLER)
+#if defined(HLTCA_GPUTYPE_FERMI) || defined(HLTCA_GPUTYPE_KEPLER)
 	const int reqVerMaj = 2;
 	const int reqVerMin = 0;
 #else

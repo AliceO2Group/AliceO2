@@ -154,7 +154,7 @@
 		#else
 			#define BeginConfig(name, instance) struct name { name(); name(const name& s); name& operator =(const name& s);
 			#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name { name(); name(const name& s); name& operator =(const name& s);
-			struct qConfigDummy{qConfigDummy() {}};
+			;struct qConfigDummy{qConfigDummy() {}};
 			#define QCONFIG_EXTERNS
 		#endif
 		#define EndConfig() qConfigDummy _qConfigDummy; };

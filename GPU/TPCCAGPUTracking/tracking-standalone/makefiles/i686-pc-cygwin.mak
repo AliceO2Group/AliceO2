@@ -1,9 +1,7 @@
 #Set these Compiler Paths and Variables to your needs! 
-VSPATH							:= ${VS120COMNTOOLS}../..
-VSPATH10						:= ${VS100COMNTOOLS}../..
-VSPATH9							:= ${VS90COMNTOOLS}../..
+VSPATH							:= ${VS140COMNTOOLS}../..
 VSPATH6							:= c:/Utility/Speeches/Visual Studio 6
-ICCPATH							:= ${ICPP_COMPILER14}
+ICCPATH							:= ${ICPP_COMPILER17}
 VECTORCPATH						:= c:/Utility/speeches/Codeplay
 WINPATH							:= /cygdrive/c/Windows
 CUDAPATH						:= $(CUDA_PATH)/
@@ -22,21 +20,19 @@ endif
 ICCPATH32						= $(ICCPATH)bin/ia32
 ICCPATH64						= $(ICCPATH)bin/intel64
 
-ICC32							= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars_ia32.bat" $(HIDEVARS) "$(ICCPATH32)/icl.exe"
-ICC64							= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars_intel64.bat" $(HIDEVARS) "$(ICCPATH64)/icl.exe"
-MSCC32							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/vcvars32.bat" $(HIDEVARS) "$(VSPATH)/vc/bin/cl.exe"
-MSCC64							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/amd64/vcvars64.bat" $(HIDEVARS) "$(VSPATH)/vc/bin/amd64/cl.exe"
-MSCC1032						= $(HIDEECHOA) $(CALLVC) "$(VSPATH10)/vc/bin/vcvars32.bat" $(HIDEVARS) "$(VSPATH10)/vc/bin/cl.exe"
-MSCC1064						= $(HIDEECHOA) $(CALLVC) "$(VSPATH10)/vc/bin/amd64/vcvars64.bat" $(HIDEVARS) "$(VSPATH10)/vc/bin/amd64/cl.exe"
-MASM32							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/vcvars32.bat" $(HIDEVARS) "$(VSPATH)/vc/bin/ml.exe"
-MASM64							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/amd64/vcvars64.bat" $(HIDEVARS) "$(VSPATH)/vc/bin/amd64/ml64.exe"
+ICC32							= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars.bat" ia32 $(HIDEVARS) "$(ICCPATH32)/icl.exe"
+ICC64							= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars.bat" intel64 $(HIDEVARS) "$(ICCPATH64)/icl.exe"
+MSCC32							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/vcvars32.bat" none $(HIDEVARS) "$(VSPATH)/vc/bin/cl.exe"
+MSCC64							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/amd64/vcvars64.bat" none $(HIDEVARS) "$(VSPATH)/vc/bin/amd64/cl.exe"
+MASM32							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/vcvars32.bat" none $(HIDEVARS) "$(VSPATH)/vc/bin/ml.exe"
+MASM64							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/amd64/vcvars64.bat" none $(HIDEVARS) "$(VSPATH)/vc/bin/amd64/ml64.exe"
 VCC32							= $(HIDEECHOA) "$(VECTORCPATH)/vectorc86.exe"
 
-MSLINK32GCC						= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars_ia32.bat" $(HIDEVARS) "$(VSPATH8)/VC/bin/link.exe"
-MSLINK32						= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/vcvars32.bat" $(HIDEVARS) "$(VSPATH)/VC/bin/link.exe"
-MSLINK64						= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/amd64/vcvars64.bat" $(HIDEVARS) "$(VSPATH)/VC/bin/amd64/link.exe"
-ICCLINK32						= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars_ia32.bat" $(HIDEVARS) "$(ICCPATH32)/xilink.exe" -quseenv
-ICCLINK64						= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars_intel64.bat" $(HIDEVARS) "$(ICCPATH64)/xilink.exe" -quseenv
+MSLINK32GCC						= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars.bat" ia32 $(HIDEVARS) "$(VSPATH8)/VC/bin/link.exe"
+MSLINK32						= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/vcvars32.bat" none $(HIDEVARS) "$(VSPATH)/VC/bin/link.exe"
+MSLINK64						= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/amd64/vcvars64.bat" none $(HIDEVARS) "$(VSPATH)/VC/bin/amd64/link.exe"
+ICCLINK32						= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars.bat" ia32 $(HIDEVARS) "$(ICCPATH32)/xilink.exe" -quseenv
+ICCLINK64						= $(HIDEECHOA) $(CALLVC) "$(ICCPATH)bin/iclvars.bat" intel64 $(HIDEVARS) "$(ICCPATH64)/xilink.exe" -quseenv
 
 #Linker Optionss
 LINKFLAGSCOMMON					= /fixed:no /nologo /subsystem:console /incremental:no /debug $(MULTITHREADLIBS) /MANIFEST:NO $(HOARD) /pdb:"$(WORKPATH)/$(TARGET).pdb"
@@ -56,7 +52,7 @@ INTELQPROF						=
 #/Qprof_gen, /Qprof_use
 
 #Intel Compiler Options
-INTELFLAGSOPT					= /Oa /Ow /Qansi-alias /Ob2 /Ot /Oi /GA /G7 /O3 /Ox /Qvec_report0 /Qopt-prefetch /Q$(INTELARCH) /Gs0 /debug:minimal
+INTELFLAGSOPT					= /Oa /Ow /Qansi-alias /Ob2 /Ot /Oi /GA /G7 /O3 /Ox /Qopt-prefetch /Q$(INTELARCH) /Gs0 /debug:minimal
 # /Qguide  /Qopt-report:2 /Qvec-report:5
 ifeq ($(CONFIG_LTO), 1)
 INTELFLAGSOPT					+= /Qipo
@@ -135,7 +131,7 @@ MSLINKGCC						= $(MSLINK32GCC) $(LINKFLAGS32)
 VCC								= $(VCC32) /outfile $@ $(VECTORCFLAGS) $(CFLAGS32)
 GCC								= $(GCC32) $(GCCFLAGS32) $(GCCFLAGSCOMMON) $(GCCFLAGSUSE)
 MASM							= $(MASM32)
-CCCUDA							= $(MSCC1032) $(VSNETFLAGS32) $(CFLAGS32) /TP /Gd
+CCCUDA							= $(MSCC32) $(VSNETFLAGS32) $(CFLAGS32) /TP /Gd
 LIBPATHAMD						= /LIBPATH:"$(AMDPATH)lib" /LIBPATH:"$(AMDPATH)lib/x86"
 LIBPATHCUDA						= /LIBPATH:"$(CUDAPATH)lib/win32" /LIBPATH:"$(CUDASDKPATH)common/lib/Win32"
 LIBPATHDIRECTX					= /LIBPATH:"$(DIRECTXPATH)lib/x86"
@@ -166,7 +162,7 @@ CC_SELECTED						= $(CC_i686-pc-cygwin)
 
 ASM								= $(MASM)
 ASMPRE							= $(MSCC32)
-NVCC							= $(HIDEECHOA) $(CALLVC) "$(VSPATH10)/vc/bin/vcvars32.bat" $(HIDEVARS) "$(CUDAPATH)bin/nvcc"
+NVCC							= $(HIDEECHOA) $(CALLVC) "$(VSPATH)/vc/bin/vcvars32.bat" none $(HIDEVARS) "$(CUDAPATH)bin/nvcc"
 
 MULTITHREADGCC					= -mthreads -D_MT
 
@@ -204,7 +200,12 @@ LIBSUSE							+= amstrmid.lib msacm32.lib vfw32.lib winmm.lib
 endif
 
 ifeq ("$(CONFIG_OPENGL)", "1")
-LIBSUSE							+= opengl32.lib glu32.lib
+LIBSUSE							+= opengl32.lib glu32.lib freeglut.lib
+ifeq ($(ARCHBITS), 64)
+LIBSUSE							+= glew64.lib
+else
+LIBSUSE							+= glew32.lib
+endif
 endif
 
 ifeq ("$(CONFIG_QT)", "1")
@@ -243,20 +244,15 @@ LIBPATHSUSE						+= $(LIBPATHAMD)
 endif
 endif
 
-ifeq ("$(CONFIG_CUDA)", "1")
+ifneq ("$(CONFIG_CUDA)$(CONFIG_OPENGL)", "00")
 COMMONINCLUDEPATHS				+= "$(CUDAPATH)include" "$(CUDASDKPATH)common/inc"
 LIBPATHSUSE						+= $(LIBPATHCUDA)
+endif
+ifeq ("$(CONFIG_CUDA)", "1")
 ifneq ($(CUFILES), )
 LIBSUSE							+= cudart.lib cuda.lib
 ifeq ($(CONFIG_CUDA_DC), 1)
 LIBSUSE							+= cudadevrt.lib
-endif
-ifeq ("$(CONFIG_OPENGL)", "1")
-ifeq ($(ARCHBITS), 64)
-LIBSUSE							+= freeglut.lib glew64.lib
-else
-LIBSUSE							+= freeglut.lib glew32.lib
-endif
 endif
 endif
 endif

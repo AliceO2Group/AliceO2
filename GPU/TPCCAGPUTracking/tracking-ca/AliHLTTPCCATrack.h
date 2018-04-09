@@ -28,7 +28,7 @@
     ~AliHLTTPCCATrack() {}
 #endif //!HLTCA_GPUCODE
 
-    GPUhd() bool Alive()               const { return fAlive; }
+    GPUhd() char Alive()               const { return fAlive; }
     GPUhd() int  NHits()               const { return fNHits; }
 	GPUhd() int  LocalTrackId()        const { return fLocalTrackId; }
     GPUhd() int  FirstHitID()          const { return fFirstHitID; }

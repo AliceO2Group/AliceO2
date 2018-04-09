@@ -31,7 +31,7 @@ public:
   GPUd() AliHLTTPCGMPropagator();
 
   struct MaterialCorrection {
-    GPUd() MaterialCorrection() : fRadLen(29.532), fRho(1.025e-3), fRhoOverRadLen(fRho/fRadLen), 
+    GPUd() MaterialCorrection() : fRadLen(29.532f), fRho(1.025e-3f), fRhoOverRadLen(fRho/fRadLen), 
 			   fDLMax(0.f), fEP2(0.f), fSigmadE2(0.f), fK22(0.f), fK33(0.f), fK43(0.f), fK44(0.f) {}
 
     float fRadLen, fRho, fRhoOverRadLen,
