@@ -124,9 +124,14 @@ class TimeStamp
 
   operator uint64_t() const {return mTimeStamp64;}
 
-  template<class Clock>
-  typename Clock::duration get() const {
-    using duration = typename Clock::duration;
+  /// get the duration in the units of the specified clock or duration type
+  /// the template parameter can either be a clock or duration type following std::chrono concept
+  template <class T, typename Rep = typename T::rep, typename Period = typename T::period>
+  auto get() const
+  {
+    static_assert(std::is_same<typename T::rep, Rep>::value && std::is_same<typename T::period, Period>::value,
+                  "only clock and duration types defining the rep and period member types are allowed");
+    using duration = std::chrono::duration<Rep, Period>;
     if (mUnit == sClockLHC) {
       // cast each part individually, if the precision of the return type
       // is smaller the values are simply truncated
