@@ -10,7 +10,7 @@ extern void* OpenGLMain( void* );
 #endif
 extern void ShowNextEvent();
 extern void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
-extern volatile int buttonPressed;
+extern volatile int exitButton;
 extern volatile int displayEventNr;
 extern volatile int sendKey;
 
