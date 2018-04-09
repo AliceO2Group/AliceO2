@@ -511,7 +511,8 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   void* window = nullptr;
   decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
-  if (driverInfo.batch == false) {
+  // An empty frameworkId means this is the driver, so we initialise the GUI
+  if (driverInfo.batch == false && frameworkId.empty()) {
     window = initGUI("O2 Framework debug GUI");
   }
   if (driverInfo.batch == false && window == nullptr) {
