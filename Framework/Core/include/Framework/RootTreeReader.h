@@ -155,7 +155,7 @@ class RootTreeReader
   {
     if (!snapshot) {
       snapshot = [&context](const KeyType& key, const ROOTSerializedByClass& object) {
-        context.allocator().snapshot(key, object);
+        context.outputs().snapshot(key, object);
       };
     }
 
