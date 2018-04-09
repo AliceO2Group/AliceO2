@@ -58,8 +58,8 @@ namespace o2 {
       BOOST_CHECK(ts64 == timestamp);
 
       // checking cast to LHCClock
-      auto timeInLHCOrbitClock = timestamp.get<LHCOrbitClock>();
-      auto timeInLHCBunchClock = timestamp.get<LHCBunchClock>();
+      auto timeInLHCOrbitClock = timestamp.get<LHCOrbitClock::duration>();
+      auto timeInLHCBunchClock = timestamp.get<LHCBunchClock::duration>();
       BOOST_CHECK(timeInLHCOrbitClock.count() == orbits);
       BOOST_CHECK(timeInLHCOrbitClock == LHCOrbitClock::duration(orbits));
 
@@ -68,7 +68,7 @@ namespace o2 {
 
       // get explicitely the time ignoring bunch counter and cast to seconds
       // that must be less then 1h
-      auto timeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp.get<LHCOrbitClock>());
+      auto timeInSeconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp.get<LHCOrbitClock::duration>());
       BOOST_CHECK(timeInSeconds < std::chrono::hours(1));
 
       // directly retrieving time in hours takes both orbits and bunches for
@@ -81,8 +81,8 @@ namespace o2 {
       timestamp = String2<uint16_t>("US") | tenSeconds << 32;
 
       // check conversion of the us value to LHCClock
-      auto timeInOrbitPrecision = timestamp.get<LHCOrbitClock>();
-      auto timeInBunchPrecision = timestamp.get<LHCBunchClock>();
+      auto timeInOrbitPrecision = timestamp.get<LHCOrbitClock::duration>();
+      auto timeInBunchPrecision = timestamp.get<LHCBunchClock::duration>();
       uint64_t expectedOrbits = tenSeconds * 1000 / (LHCClockParameter::gNumberOfBunches * LHCClockParameter::gBunchSpacingNanoSec);
       BOOST_CHECK(timeInOrbitPrecision.count() == expectedOrbits);
 

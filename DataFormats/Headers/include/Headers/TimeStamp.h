@@ -124,25 +124,24 @@ class TimeStamp
 
   operator uint64_t() const {return mTimeStamp64;}
 
-  template<class Clock>
-  typename Clock::duration get() const {
-    using duration = typename Clock::duration;
+  template<typename Duration>
+  Duration get() const {
     if (mUnit == sClockLHC) {
       // cast each part individually, if the precision of the return type
       // is smaller the values are simply truncated
-      return std::chrono::duration_cast<duration>(LHCOrbitClock::duration(mPeriod) + LHCBunchClock::duration(mBCNumber));
+      return std::chrono::duration_cast<Duration>(LHCOrbitClock::duration(mPeriod) + LHCBunchClock::duration(mBCNumber));
     }
     if (mUnit == sMicroSeconds) {
       // TODO: is there a better way to mark the subticks invalid for the
       // micro seconds representation? First step is probably to remove/rename the
       // variable
       assert(mSubTicks == 0);
-      return std::chrono::duration_cast<duration>(std::chrono::microseconds(mTicks));
+      return std::chrono::duration_cast<Duration>(std::chrono::microseconds(mTicks));
     }
     // invalid time unit identifier
     // TODO: define error policy
     assert(0);
-    return std::chrono::duration_cast<duration>(std::chrono::seconds(0));
+    return std::chrono::duration_cast<Duration>(std::chrono::seconds(0));
   }
 
   // TODO: implement transformation from one unit to the other
