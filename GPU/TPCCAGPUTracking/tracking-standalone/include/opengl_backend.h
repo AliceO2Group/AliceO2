@@ -17,3 +17,6 @@ extern int InitGL();
 extern void HandleKeyRelease(int wParam);
 extern int DrawGLScene(bool doAnimation = false);
 extern void ReSizeGLScene(int width, int height);
+void HandleSendKey();
+
+#define GL_WINDOW_NAME "Alice HLT TPC CA Event Display"

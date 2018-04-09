@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "bitmapfile.h"
 #include "opengl_backend.h"
 #include <GL/glx.h> // This includes the necessary X headers
 #include <pthread.h>
@@ -276,19 +275,14 @@ void *OpenGLMain(void *ptr)
 				break;
 			}
 			
-			if (sendKey)
-			{
-				//fprintf(stderr, "sendKey %d '%c'\n", sendKey, (char) sendKey);
-				if (sendKey >= 'a' && sendKey <= 'z') sendKey ^= 'a' ^ 'A';
-				HandleKeyRelease(sendKey);
-				sendKey = 0;
-			}
+			HandleSendKey();
 		} while (XPending(g_pDisplay)); // Loop to compress events
 		if (exitButton == 2) break;
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		DrawGLScene();
 		glXSwapBuffers(g_pDisplay, g_window); // Buffer swap does implicit glFlush
 	}
 	return(NULL);
 }
+
+void DisplayExit() {}
