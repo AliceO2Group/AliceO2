@@ -334,7 +334,7 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 	fullscreen = FALSE; // Windowed Mode
 
 	// Create Our OpenGL Window
-	if (!CreateGLWindow("Alice HLT TPC CA Event Display", init_width, init_height, 32, fullscreen))
+	if (!CreateGLWindow(GL_WINDOW_NAME, init_width, init_height, 32, fullscreen))
 	{
 		return 0; // Quit If Window Was Not Created
 	}
@@ -375,3 +375,5 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 	KillGLWindow();      // Kill The Window
 	return (msg.wParam); // Exit The Program
 }
+
+void DisplayExit() {}

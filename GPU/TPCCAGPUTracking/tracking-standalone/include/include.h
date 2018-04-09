@@ -9,6 +9,7 @@ extern pthread_mutex_t semLockDisplay;
 extern void* OpenGLMain( void* );
 #endif
 extern void ShowNextEvent();
+extern void DisplayExit();
 extern void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 extern volatile int exitButton;
 extern volatile int displayEventNr;

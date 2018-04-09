@@ -1215,7 +1215,7 @@ void HandleKeyRelease(int wParam)
 	}
 
 	if (wParam == 13 || wParam == 'n') exitButton = 1;
-	else if (wParam == 'q') exitButton = 2;
+	else if (wParam == 27 || wParam == 'q') exitButton = 2;
 	else if (wParam == 'r') resetScene = 1;
 
 	else if (wParam == 'l')
@@ -1422,4 +1422,20 @@ void animation()
 
 	free(mixBuffer);
 	printf("Wrote video frame %s\n\n", filename);
+}
+
+void HandleSendKey()
+{
+	if (sendKey)
+	{
+		//fprintf(stderr, "sendKey %d '%c'\n", sendKey, (char) sendKey);
+
+		bool shifted = sendKey >= 'A' && sendKey <= 'Z';
+		if (sendKey >= 'a' && sendKey <= 'z') sendKey ^= 'a' ^ 'A';
+		bool oldShift = keysShift[sendKey];
+		keysShift[sendKey] = shifted;
+		HandleKeyRelease(sendKey);
+		keysShift[sendKey] = oldShift;
+		sendKey = 0;
+	}
 }

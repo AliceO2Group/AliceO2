@@ -31,6 +31,7 @@ ifeq ($(ARCH_CYGWIN), 1)
 CPPFILES					+= display/opengl_windows.cpp
 else
 CPPFILES					+= display/opengl_x11.cpp
+#CPPFILES					+= display/opengl_x11.cpp optional
 endif
 endif
 

@@ -281,7 +281,11 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
             sendKey = iKey;
         }
 	} while (exitButton == 0);
-	if (exitButton == 2) return(2);
+	if (exitButton == 2)
+    {
+        DisplayExit();
+        return(2);
+    }
 	exitButton = 0;
 	printf("Loading next event\n");
 
