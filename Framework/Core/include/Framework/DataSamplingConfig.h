@@ -32,8 +32,6 @@ namespace framework
 /// A bunch of helper structures for DataSampling configuration.
 namespace DataSamplingConfig
 {
-using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
-
 /// Structure that holds requirements for external FairMQ data. Probably temporary.
 struct FairMqInput {
   OutputSpec outputSpec;
@@ -46,7 +44,7 @@ struct QcTaskConfiguration {
   std::string name;
   std::vector<FairMqInput> desiredFairMqData; // for temporary feature
   std::vector<InputSpec> desiredDataSpecs;
-  SubSpecificationType subSpec;
+  header::DataHeader::SubSpecificationType subSpec;
   double fractionOfDataToSample;
   std::string dispatcherType;
   std::string fairMqOutputChannelConfig;
