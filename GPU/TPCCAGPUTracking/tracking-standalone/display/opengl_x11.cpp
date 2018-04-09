@@ -4,18 +4,11 @@
 #include "opengl_backend.h"
 #include <GL/glx.h> // This includes the necessary X headers
 #include <pthread.h>
-
-Display *g_pDisplay = NULL;
-Window g_window;
-GLuint g_textureID = 0;
-
-float g_fSpinX = 0.0f;
-float g_fSpinY = 0.0f;
-int g_nLastMousePositX = 0;
-int g_nLastMousePositY = 0;
-bool g_bMousing = false;
+#include <unistd.h>
 
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
+static volatile bool displayRunning = false;
 
 int GetKey(int key)
 {
@@ -33,6 +26,9 @@ int GetKey(int key)
 
 void *OpenGLMain(void *ptr)
 {
+	Display *g_pDisplay = NULL;
+	Window g_window;
+	
 	XSetWindowAttributes windowAttributes;
 	XVisualInfo *visualInfo = NULL;
 	XEvent event;
@@ -160,6 +156,10 @@ void *OpenGLMain(void *ptr)
 	XMapWindow(g_pDisplay, g_window);
 	XFlush(g_pDisplay);
 	int x11_fd = ConnectionNumber(g_pDisplay);
+	
+	pthread_mutex_lock(&semLockExit);
+	displayRunning = true;
+	pthread_mutex_unlock(&semLockExit);
 
 	while (1)
 	{
@@ -187,6 +187,7 @@ void *OpenGLMain(void *ptr)
 		do
 		{
 			//XNextEvent(g_pDisplay, &event);
+			if (exitButton == 2) break;
 			if (needUpdate)
 			{
 				needUpdate = 0;
@@ -196,17 +197,24 @@ void *OpenGLMain(void *ptr)
 			{
 				XNextEvent(g_pDisplay, &event);
 			}
-			if (exitButton == 2) break;
 			
 			switch (event.type)
 			{
 				case ButtonPress:
 				{
-					if (event.xbutton.button == 1)
+					if (event.xbutton.button == 4)
+					{
+						mouseWheel += 100;
+					}
+					else if (event.xbutton.button == 5)
+					{
+						mouseWheel -= 100;
+					}
+					else if (event.xbutton.button == 1)
 					{
 						mouseDn = true;
 					}
-					if (event.xbutton.button != 1)
+					else if (event.xbutton.button != 1)
 					{
 						mouseDnR = true;
 					}
@@ -282,7 +290,21 @@ void *OpenGLMain(void *ptr)
 		DrawGLScene();
 		glXSwapBuffers(g_pDisplay, g_window); // Buffer swap does implicit glFlush
 	}
+	
+	glXDestroyContext(g_pDisplay, glxContext);
+	XDestroyWindow(g_pDisplay, g_window);
+	
+	pthread_mutex_lock(&semLockExit);
+	displayRunning = false;
+	pthread_mutex_unlock(&semLockExit);
+		
 	return(NULL);
 }
 
-void DisplayExit() {}
+void DisplayExit()
+{
+	pthread_mutex_lock(&semLockExit);
+	if (displayRunning) exitButton = 2;
+	pthread_mutex_unlock(&semLockExit);
+	while (displayRunning) usleep(10000);
+}
