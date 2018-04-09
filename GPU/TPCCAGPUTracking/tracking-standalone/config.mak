@@ -27,6 +27,11 @@ CPPFILES					+= display/opengl.cpp
 CONFIG_OPENGL				= 1
 CONFIG_X11					= 1
 DEFINES						+= BUILD_EVENT_DISPLAY
+ifeq ($(ARCH_CYGWIN), 1)
+CPPFILES					+= display/opengl_windows.cpp
+else
+CPPFILES					+= display/opengl_x11.cpp
+endif
 endif
 
 ifeq ($(BUILD_QA), 1)

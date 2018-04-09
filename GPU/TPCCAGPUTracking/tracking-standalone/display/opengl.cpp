@@ -1,47 +1,13 @@
 #include "AliHLTTPCCADef.h"
+#include "opengl_backend.h"
 
-#include <GL/glew.h>
-#ifdef R__WIN32
-#include <windows.h>
-#include <winbase.h>
-#include <windowsx.h>
-
-HDC hDC = NULL;                                       // Private GDI Device Context
-HGLRC hRC = NULL;                                     // Permanent Rendering Context
-HWND hWnd = NULL;                                     // Holds Our Window Handle
-HINSTANCE hInstance;                                  // Holds The Instance Of The Application
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM); // Declaration For WndProc
-
-bool active = TRUE;     // Window Active Flag Set To TRUE By Default
-bool fullscreen = TRUE; // Fullscreen Flag Set To Fullscreen Mode By Default
-
-HANDLE semLockDisplay = NULL;
-
-POINT mouseCursorPos;
-
-volatile int mouseReset = false;
-#else
-#include "bitmapfile.h"
-#include <GL/glx.h> // This includes the necessary X headers
-#include <pthread.h>
-
-Display *g_pDisplay = NULL;
-Window g_window;
-GLuint g_textureID = 0;
-
-float g_fSpinX = 0.0f;
-float g_fSpinY = 0.0f;
-int g_nLastMousePositX = 0;
-int g_nLastMousePositY = 0;
-bool g_bMousing = false;
-
-pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
-#endif
 #include <vector>
 #include <array>
 #include <tuple>
-#include <GL/gl.h>
-#include <GL/glu.h>
+
+#ifndef R__WIN32
+#include "bitmapfile.h"
+#endif
 
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
@@ -57,7 +23,7 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #ifndef BUILD_QA
 bool SuppressHit(int iHit) {return false;}
 #endif
-volatile static int needUpdate = 0;
+volatile int needUpdate = 0;
 void ShowNextEvent() {needUpdate = 1;}
 #define GL_SCALE_FACTOR 50.f
 int screenshot_scale = 1;
@@ -93,9 +59,6 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 	vertexBufferCount[iSlice].emplace_back(last - first);
 }
 
-bool keys[256] = {false}; // Array Used For The Keyboard Routine
-bool keysShift[256] = {false}; //Shift held when key down
-
 bool separateGlobalTracks = 0;
 #define SEPERATE_GLOBAL_TRACKS_MAXID 5
 #define TRACK_TYPE_ID_LIMIT 100
@@ -108,8 +71,10 @@ float mouseMvX, mouseMvY;
 bool mouseDn = false;
 bool mouseDnR = false;
 int mouseWheel = 0;
+bool keys[256] = {false}; // Array Used For The Keyboard Routine
+bool keysShift[256] = {false}; //Shift held when key down
 
-volatile int buttonPressed = 0;
+volatile int exitButton = 0;
 volatile int sendKey = 0;
 
 GLfloat currentMatrice[16];
@@ -193,7 +158,7 @@ inline void SetCollisionColor(int col)
 	glColor3f(red / 4., green / 5., blue / 6.);
 }	
 
-void ReSizeGLScene(GLsizei width, GLsizei height) // Resize And Initialize The GL Window
+void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 {
 	if (height == 0) // Prevent A Divide By Zero By
 	{
@@ -228,7 +193,7 @@ void ReSizeGLScene(GLsizei width, GLsizei height) // Resize And Initialize The G
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
 }
 
-int InitGL() // All Setup For OpenGL Goes Here
+int InitGL()
 {
 	glewInit();
 	glGenBuffers(1, &vbo_id);
@@ -608,7 +573,7 @@ vboList DrawGrid(AliHLTTPCCATracker &tracker)
 	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
 }
 
-int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
+int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1;
 
@@ -1249,8 +1214,8 @@ void HandleKeyRelease(int wParam)
 		else wParam |= (int) ('a' ^ 'A');
 	}
 
-	if (wParam == 13 || wParam == 'n') buttonPressed = 1;
-	else if (wParam == 'q') buttonPressed = 2;
+	if (wParam == 13 || wParam == 'n') exitButton = 1;
+	else if (wParam == 'q') exitButton = 2;
 	else if (wParam == 'r') resetScene = 1;
 
 	else if (wParam == 'l')
@@ -1429,670 +1394,32 @@ void HandleKeyRelease(int wParam)
 	}
 }
 
-#ifdef R__WIN32
-
-void KillGLWindow() // Properly Kill The Window
+void animation()
 {
-	if (fullscreen) // Are We In Fullscreen Mode?
-	{
-		ChangeDisplaySettings(NULL, 0); // If So Switch Back To The Desktop
-		ShowCursor(TRUE);               // Show Mouse Pointer
-	}
+	static int nFrame = 0;
 
-	if (hRC) // Do We Have A Rendering Context?
-	{
-		if (!wglMakeCurrent(NULL, NULL)) // Are We Able To Release The DC And RC Contexts?
-		{
-			MessageBox(NULL, "Release Of DC And RC Failed.", "SHUTDOWN ERROR", MB_OK | MB_ICONINFORMATION);
-		}
+	DrawGLScene(true);
+	char filename[16];
+	sprintf(filename, "video%05d.bmp", nFrame++);
+	unsigned char *mixBuffer = NULL;
+	drawClusters = nFrame < 240;
+	drawSeeds = nFrame >= 90 && nFrame < 210;
+	drawTracklets = nFrame >= 210 && nFrame < 300;
+	pointSize = nFrame >= 90 ? 1.0 : 2.0;
+	drawTracks = nFrame >= 300 && nFrame < 390;
+	drawFinal = nFrame >= 390;
+	drawGlobalTracks = nFrame >= 480;
+	DoScreenshot(NULL, 1, &mixBuffer);
 
-		if (!wglDeleteContext(hRC)) // Are We Able To Delete The RC?
-		{
-			MessageBox(NULL, "Release Rendering Context Failed.", "SHUTDOWN ERROR", MB_OK | MB_ICONINFORMATION);
-		}
-		hRC = NULL; // Set RC To NULL
-	}
+	drawClusters = nFrame < 210;
+	drawSeeds = nFrame > 60 && nFrame < 180;
+	drawTracklets = nFrame >= 180 && nFrame < 270;
+	pointSize = nFrame > 60 ? 1.0 : 2.0;
+	drawTracks = nFrame > 270 && nFrame < 360;
+	drawFinal = nFrame > 360;
+	drawGlobalTracks = nFrame > 450;
+	DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
 
-	if (hDC && !ReleaseDC(hWnd, hDC)) // Are We Able To Release The DC
-	{
-		MessageBox(NULL, "Release Device Context Failed.", "SHUTDOWN ERROR", MB_OK | MB_ICONINFORMATION);
-		hDC = NULL; // Set DC To NULL
-	}
-
-	if (hWnd && !DestroyWindow(hWnd)) // Are We Able To Destroy The Window?
-	{
-		MessageBox(NULL, "Could Not Release hWnd.", "SHUTDOWN ERROR", MB_OK | MB_ICONINFORMATION);
-		hWnd = NULL; // Set hWnd To NULL
-	}
-
-	if (!UnregisterClass("OpenGL", hInstance)) // Are We Able To Unregister Class
-	{
-		MessageBox(NULL, "Could Not Unregister Class.", "SHUTDOWN ERROR", MB_OK | MB_ICONINFORMATION);
-		hInstance = NULL; // Set hInstance To NULL
-	}
+	free(mixBuffer);
+	printf("Wrote video frame %s\n\n", filename);
 }
-
-BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscreenflag)
-{
-	GLuint PixelFormat;                // Holds The Results After Searching For A Match
-	WNDCLASS wc;                       // Windows Class Structure
-	DWORD dwExStyle;                   // Window Extended Style
-	DWORD dwStyle;                     // Window Style
-	RECT WindowRect;                   // Grabs Rectangle Upper Left / Lower Right Values
-	WindowRect.left = (long) 0;        // Set Left Value To 0
-	WindowRect.right = (long) width;   // Set Right Value To Requested Width
-	WindowRect.top = (long) 0;         // Set Top Value To 0
-	WindowRect.bottom = (long) height; // Set Bottom Value To Requested Height
-
-	fullscreen = fullscreenflag; // Set The Global Fullscreen Flag
-
-	hInstance = GetModuleHandle(NULL);             // Grab An Instance For Our Window
-	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC; // Redraw On Size, And Own DC For Window.
-	wc.lpfnWndProc = (WNDPROC) WndProc;            // WndProc Handles Messages
-	wc.cbClsExtra = 0;                             // No Extra Window Data
-	wc.cbWndExtra = 0;                             // No Extra Window Data
-	wc.hInstance = hInstance;                      // Set The Instance
-	wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);        // Load The Default Icon
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);      // Load The Arrow Pointer
-	wc.hbrBackground = NULL;                       // No Background Required For GL
-	wc.lpszMenuName = NULL;                        // We Don't Want A Menu
-	wc.lpszClassName = "OpenGL";                   // Set The Class Name
-
-	if (!RegisterClass(&wc)) // Attempt To Register The Window Class
-	{
-		MessageBox(NULL, "Failed To Register The Window Class.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		return FALSE; // Return FALSE
-	}
-
-	if (fullscreen) // Attempt Fullscreen Mode?
-	{
-		DEVMODE dmScreenSettings;                               // Device Mode
-		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings)); // Makes Sure Memory's Cleared
-		dmScreenSettings.dmSize = sizeof(dmScreenSettings);     // Size Of The Devmode Structure
-		dmScreenSettings.dmPelsWidth = width;                   // Selected Screen Width
-		dmScreenSettings.dmPelsHeight = height;                 // Selected Screen Height
-		dmScreenSettings.dmBitsPerPel = bits;                   // Selected Bits Per Pixel
-		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-
-		if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-		{
-			printf("The Requested Fullscreen Mode Is Not Supported By Your Video Card.\n");
-			return(FALSE);
-		}
-
-		dwExStyle = WS_EX_APPWINDOW;
-		dwStyle = WS_POPUP;
-		ShowCursor(FALSE);
-	}
-	else
-	{
-		dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE; // Window Extended Style
-		dwStyle = WS_OVERLAPPEDWINDOW;                  // Windows Style
-	}
-
-	AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle); // Adjust Window To True Requested Size
-
-	// Create The Window
-	if (!(hWnd = CreateWindowEx(dwExStyle, "OpenGL", title, dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0, 0, WindowRect.right - WindowRect.left, WindowRect.bottom - WindowRect.top, NULL, NULL, hInstance, NULL)))
-	{
-		KillGLWindow();
-		MessageBox(NULL, "Window Creation Error.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		return FALSE;
-	}
-
-	static PIXELFORMATDESCRIPTOR pfd = // pfd Tells Windows How We Want Things To Be
-	    {
-	        sizeof(PIXELFORMATDESCRIPTOR), // Size Of This Pixel Format Descriptor
-	        1,                             // Version Number
-	        PFD_DRAW_TO_WINDOW |           // Format Must Support Window
-	            PFD_SUPPORT_OPENGL |       // Format Must Support OpenGL
-	            PFD_DOUBLEBUFFER,          // Must Support Double Buffering
-	        PFD_TYPE_RGBA,                 // Request An RGBA Format
-	        (unsigned char) bits,          // Select Our Color Depth
-	        0,
-	        0, 0, 0, 0, 0,  // Color Bits Ignored
-	        0,              // No Alpha Buffer
-	        0,              // Shift Bit Ignored
-	        0,              // No Accumulation Buffer
-	        0, 0, 0, 0,     // Accumulation Bits Ignored
-	        16,             // 16Bit Z-Buffer (Depth Buffer)
-	        0,              // No Stencil Buffer
-	        0,              // No Auxiliary Buffer
-	        PFD_MAIN_PLANE, // Main Drawing Layer
-	        0,              // Reserved
-	        0, 0, 0         // Layer Masks Ignored
-	    };
-
-	if (!(hDC = GetDC(hWnd))) // Did We Get A Device Context?
-	{
-		KillGLWindow(); // Reset The Display
-		MessageBox(NULL, "Can't Create A GL Device Context.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		return FALSE; // Return FALSE
-	}
-
-	if (!(PixelFormat = ChoosePixelFormat(hDC, &pfd))) // Did Windows Find A Matching Pixel Format?
-	{
-		KillGLWindow(); // Reset The Display
-		MessageBox(NULL, "Can't Find A Suitable PixelFormat.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		return FALSE; // Return FALSE
-	}
-
-	if (!SetPixelFormat(hDC, PixelFormat, &pfd)) // Are We Able To Set The Pixel Format?
-	{
-		KillGLWindow(); // Reset The Display
-		MessageBox(NULL, "Can't Set The PixelFormat.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		return FALSE; // Return FALSE
-	}
-
-	if (!(hRC = wglCreateContext(hDC))) // Are We Able To Get A Rendering Context?
-	{
-		KillGLWindow(); // Reset The Display
-		MessageBox(NULL, "Can't Create A GL Rendering Context.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		return FALSE; // Return FALSE
-	}
-
-	if (!wglMakeCurrent(hDC, hRC)) // Try To Activate The Rendering Context
-	{
-		KillGLWindow(); // Reset The Display
-		MessageBox(NULL, "Can't Activate The GL Rendering Context.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		return FALSE; // Return FALSE
-	}
-
-	ShowWindow(hWnd, SW_SHOW);    // Show The Window
-	SetForegroundWindow(hWnd);    // Slightly Higher Priority
-	SetFocus(hWnd);               // Sets Keyboard Focus To The Window
-	ReSizeGLScene(width, height); // Set Up Our Perspective GL Screen
-
-	if (!InitGL()) // Initialize Our Newly Created GL Window
-	{
-		KillGLWindow(); // Reset The Display
-		printf("Initialization Failed.\n");
-		return FALSE; // Return FALSE
-	}
-
-	return TRUE; // Success
-}
-
-int GetKey(int key)
-{
-	if (key == 107 || key == 187) return('+');
-	if (key == 109 || key == 189) return('-');
-	if (key >= 'a' && key <= 'z') key += 'A' - 'a';
-	
-	return(key);
-}
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch (uMsg) // Check For Windows Messages
-	{
-		case WM_ACTIVATE: // Watch For Window Activate Message
-		{
-			if (!HIWORD(wParam)) // Check Minimization State
-			{
-				active = TRUE; // Program Is Active
-			}
-			else
-			{
-				active = FALSE; // Program Is No Longer Active
-			}
-
-			return 0; // Return To The Message Loop
-		}
-
-		case WM_SYSCOMMAND: // Intercept System Commands
-		{
-			switch (wParam) // Check System Calls
-			{
-			case SC_SCREENSAVE:   // Screensaver Trying To Start?
-			case SC_MONITORPOWER: // Monitor Trying To Enter Powersave?
-				return 0;         // Prevent From Happening
-			}
-			break; // Exit
-		}
-
-		case WM_CLOSE: // Did We Receive A Close Message?
-		{
-			PostQuitMessage(0); // Send A Quit Message
-			return 0;           // Jump Back
-		}
-
-		case WM_KEYDOWN: // Is A Key Being Held Down?
-		{
-			wParam = GetKey(wParam);
-			keys[wParam] = TRUE; // If So, Mark It As TRUE
-			keysShift[wParam] = keys[16];
-			return 0;            // Jump Back
-		}
-
-		case WM_KEYUP: // Has A Key Been Released?
-		{
-			wParam = GetKey(wParam);
-			HandleKeyRelease(wParam);
-			keysShift[wParam] = false;
-
-			printf("Key: %d\n", wParam);
-			return 0; // Jump Back
-		}
-
-		case WM_SIZE: // Resize The OpenGL Window
-		{
-			ReSizeGLScene(LOWORD(lParam), HIWORD(lParam)); // LoWord=Width, HiWord=Height
-			return 0;                                      // Jump Back
-		}
-
-		case WM_LBUTTONDOWN:
-		{
-			mouseDnX = GET_X_LPARAM(lParam);
-			mouseDnY = GET_Y_LPARAM(lParam);
-			mouseDn = true;
-			GetCursorPos(&mouseCursorPos);
-			return 0;
-		}
-
-		case WM_LBUTTONUP:
-		{
-			mouseDn = false;
-			return 0;
-		}
-
-		case WM_RBUTTONDOWN:
-		{
-			mouseDnX = GET_X_LPARAM(lParam);
-			mouseDnY = GET_Y_LPARAM(lParam);
-			mouseDnR = true;
-			GetCursorPos(&mouseCursorPos);
-			return 0;
-		}
-
-		case WM_RBUTTONUP:
-		{
-			mouseDnR = false;
-			return 0;
-		}
-
-		case WM_MOUSEMOVE:
-		{
-			if (mouseReset)
-			{
-				mouseDnX = GET_X_LPARAM(lParam);
-				mouseDnY = GET_Y_LPARAM(lParam);
-				mouseReset = 0;
-			}
-			mouseMvX = GET_X_LPARAM(lParam);
-			mouseMvY = GET_Y_LPARAM(lParam);
-			return 0;
-		}
-
-		case WM_MOUSEWHEEL:
-		{
-			mouseWheel += GET_WHEEL_DELTA_WPARAM(wParam);
-			return 0;
-		}
-	}
-
-	// Pass All Unhandled Messages To DefWindowProc
-	return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}
-
-DWORD WINAPI OpenGLMain(LPVOID tmp)
-{
-	MSG msg;           // Windows Message Structure
-	BOOL done = FALSE; // Bool Variable To Exit Loop
-
-	// Ask The User Which Screen Mode They Prefer
-	fullscreen = FALSE; // Windowed Mode
-
-	// Create Our OpenGL Window
-	if (!CreateGLWindow("Alice HLT TPC CA Event Display", init_width, init_height, 32, fullscreen))
-	{
-		return 0; // Quit If Window Was Not Created
-	}
-
-	while (!done) // Loop That Runs While done=FALSE
-	{
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) // Is There A Message Waiting?
-		{
-			if (msg.message == WM_QUIT) // Have We Received A Quit Message?
-			{
-				done = TRUE; // If So done=TRUE
-			}
-			else // If Not, Deal With Window Messages
-			{
-				TranslateMessage(&msg); // Translate The Message
-				DispatchMessage(&msg);  // Dispatch The Message
-			}
-		}
-		else // If There Are No Messages
-		{
-			// Draw The Scene.  Watch For ESC Key And Quit Messages From DrawGLScene()
-			if (active) // Program Active?
-			{
-				if (keys[VK_ESCAPE]) // Was ESC Pressed?
-				{
-					done = TRUE; // ESC Signalled A Quit
-				}
-				else // Not Time To Quit, Update Screen
-				{
-					if (animate)
-					{
-						static int nFrame = 0;
-
-						DrawGLScene(true);
-						char filename[16];
-						sprintf(filename, "video%05d.bmp", nFrame++);
-						unsigned char *mixBuffer = NULL;
-						drawClusters = nFrame < 240;
-						drawSeeds = nFrame >= 90 && nFrame < 210;
-						drawTracklets = nFrame >= 210 && nFrame < 300;
-						pointSize = nFrame >= 90 ? 1.0 : 2.0;
-						drawTracks = nFrame >= 300 && nFrame < 390;
-						drawFinal = nFrame >= 390;
-						drawGlobalTracks = nFrame >= 480;
-						DoScreenshot(NULL, 1, &mixBuffer);
-
-						drawClusters = nFrame < 210;
-						drawSeeds = nFrame > 60 && nFrame < 180;
-						drawTracklets = nFrame >= 180 && nFrame < 270;
-						pointSize = nFrame > 60 ? 1.0 : 2.0;
-						drawTracks = nFrame > 270 && nFrame < 360;
-						drawFinal = nFrame > 360;
-						drawGlobalTracks = nFrame > 450;
-						DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
-
-						free(mixBuffer);
-						printf("Wrote video frame %s\n\n", filename);
-					}
-					else
-					{
-						DrawGLScene(); // Draw The Scene
-					}
-					SwapBuffers(hDC); // Swap Buffers (Double Buffering)
-				}
-			}
-		}
-	}
-
-	// Shutdown
-	KillGLWindow();      // Kill The Window
-	return (msg.wParam); // Exit The Program
-}
-
-#else
-
-int GetKey(int key)
-{
-	if (key == 65453 || key == 45) return('-');
-	if (key == 65451 || key == 43) return('+');
-	if (key == 65505) return(16); //Shift
-	if (key == 65307) return('Q'); //ESC
-	if (key == 32) return(13); //Space
-	if (key > 255) return(0);
-	
-	if (key >= 'a' && key <= 'z') key += 'A' - 'a';
-	
-	return(key);
-}
-
-void *OpenGLMain(void *ptr)
-{
-	XSetWindowAttributes windowAttributes;
-	XVisualInfo *visualInfo = NULL;
-	XEvent event;
-	Colormap colorMap;
-	GLXContext glxContext;
-	int errorBase;
-	int eventBase;
-
-	// Open a connection to the X server
-	g_pDisplay = XOpenDisplay(NULL);
-
-	if (g_pDisplay == NULL)
-	{
-		fprintf(stderr, "glxsimple: %s\n", "could not open display");
-		exit(1);
-	}
-
-	// Make sure OpenGL's GLX extension supported
-	if (!glXQueryExtension(g_pDisplay, &errorBase, &eventBase))
-	{
-		fprintf(stderr, "glxsimple: %s\n", "X server has no OpenGL GLX extension");
-		exit(1);
-	}
-
-	// Find an appropriate visual
-
-	int doubleBufferVisual[] =
-	    {
-	        GLX_RGBA,           // Needs to support OpenGL
-	        GLX_DEPTH_SIZE, 16, // Needs to support a 16 bit depth buffer
-	        GLX_DOUBLEBUFFER,   // Needs to support double-buffering
-	        None                // end of list
-	    };
-
-	// Try for the double-bufferd visual first
-	visualInfo = glXChooseVisual(g_pDisplay, DefaultScreen(g_pDisplay), doubleBufferVisual);
-	if (visualInfo == NULL)
-	{
-		fprintf(stderr, "glxsimple: %s\n", "no RGB visual with depth buffer");
-		exit(1);
-	}
-
-	// Create an OpenGL rendering context
-	glxContext = glXCreateContext(g_pDisplay,
-	                              visualInfo,
-	                              NULL,     // No sharing of display lists
-	                              GL_TRUE); // Direct rendering if possible
-
-	if (glxContext == NULL)
-	{
-		fprintf(stderr, "glxsimple: %s\n", "could not create rendering context");
-		exit(1);
-	}
-	
-	Window win = RootWindow(g_pDisplay, visualInfo->screen);
-
-	// Create an X colormap since we're probably not using the default visual
-	colorMap = XCreateColormap(g_pDisplay,
-	                           win,
-	                           visualInfo->visual,
-	                           AllocNone);
-
-	windowAttributes.colormap = colorMap;
-	windowAttributes.border_pixel = 0;
-	windowAttributes.event_mask = ExposureMask |
-	                              VisibilityChangeMask |
-	                              KeyPressMask |
-	                              KeyReleaseMask |
-	                              ButtonPressMask |
-	                              ButtonReleaseMask |
-	                              PointerMotionMask |
-	                              StructureNotifyMask |
-	                              SubstructureNotifyMask |
-	                              FocusChangeMask;
-
-	// Create an X window with the selected visual
-	g_window = XCreateWindow(g_pDisplay,
-	                         win,
-	                         50, 50,     // x/y position of top-left outside corner of the window
-	                         init_width, init_height, // Width and height of window
-	                         0,        // Border width
-	                         visualInfo->depth,
-	                         InputOutput,
-	                         visualInfo->visual,
-	                         CWBorderPixel | CWColormap | CWEventMask,
-	                         &windowAttributes);
-
-	XSetStandardProperties(g_pDisplay,
-	                       g_window,
-	                       "AliHLTTPCCA Online Event Display",
-	                       "AliHLTTPCCA Online Event Display",
-	                       None,
-	                       NULL,
-	                       0,
-	                       NULL);
-
-	// Bind the rendering context to the window
-	glXMakeCurrent(g_pDisplay, g_window, glxContext);
-
-	// Request the X window to be displayed on the screen
-	XMapWindow(g_pDisplay, g_window);
-	
-	XEvent xev;
-	Atom wm_state  =  XInternAtom(g_pDisplay, "_NET_WM_STATE", False);
-	Atom max_horz  =  XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-	Atom max_vert  =  XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-	memset(&xev, 0, sizeof(xev));
-	xev.type = ClientMessage;
-	xev.xclient.window = g_window;
-	xev.xclient.message_type = wm_state;
-	xev.xclient.format = 32;
-	xev.xclient.data.l[0] = 1; //_NET_WM_STATE_ADD
-	xev.xclient.data.l[1] = max_horz;
-	xev.xclient.data.l[2] = max_vert;
-	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
-	
-	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
-    XSetWMProtocols(g_pDisplay, g_window, &WM_DELETE_WINDOW, 1);
-
-	// Init OpenGL...
-	InitGL();
-
-	// Enter the render loop and don't forget to dispatch X events as they occur.
-	
-	XMapWindow(g_pDisplay, g_window);
-	XFlush(g_pDisplay);
-	int x11_fd = ConnectionNumber(g_pDisplay);
-
-	while (1)
-	{
-		int num_ready_fds;
-		struct timeval tv;
-		fd_set in_fds;
-		int waitCount = 0;
-		do
-		{
-			FD_ZERO(&in_fds);
-			FD_SET(x11_fd, &in_fds);
-			tv.tv_usec = 10000;
-			tv.tv_sec = 0;
-			num_ready_fds = XPending(g_pDisplay) || select(x11_fd + 1, &in_fds, NULL, NULL, &tv);
-			if (num_ready_fds < 0)
-			{
-				printf("Error\n");
-			}
-			else if (num_ready_fds > 0) needUpdate = 0;
-			if (buttonPressed == 2) break;
-			if (sendKey) needUpdate = 1;
-			if (waitCount++ != 100) needUpdate = 1;
-		} while (!(num_ready_fds || needUpdate));
-		
-		do
-		{
-			//XNextEvent(g_pDisplay, &event);
-			if (needUpdate)
-			{
-				needUpdate = 0;
-				event.type = Expose;
-			}
-			else
-			{
-				XNextEvent(g_pDisplay, &event);
-			}
-			if (buttonPressed == 2) break;
-			
-			switch (event.type)
-			{
-				case ButtonPress:
-				{
-					if (event.xbutton.button == 1)
-					{
-						mouseDn = true;
-					}
-					if (event.xbutton.button != 1)
-					{
-						mouseDnR = true;
-					}
-					mouseDnX = event.xmotion.x;
-					mouseDnY = event.xmotion.y;
-				}
-				break;
-
-				case ButtonRelease:
-				{
-					if (event.xbutton.button == 1)
-					{
-						mouseDn = false;
-					}
-					if (event.xbutton.button != 1)
-					{
-						mouseDnR = false;
-					}
-				}
-				break;
-
-				case KeyPress:
-				{
-					KeySym sym = XLookupKeysym(&event.xkey, 0);
-					int wParam = GetKey(sym);
-					//fprintf(stderr, "KeyPress event %d --> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keys[16]);
-					keys[wParam] = true;
-					keysShift[wParam] = keys[16];
-				}
-				break;
-
-				case KeyRelease:
-				{
-					KeySym sym = XLookupKeysym(&event.xkey, 0);
-					int wParam = GetKey(sym);
-					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keysShift[wParam]);
-					HandleKeyRelease(wParam);
-					keysShift[wParam] = false;
-					//if (updateDLList) printf("Need update!!\n");
-				}
-				break;
-
-				case MotionNotify:
-				{
-					mouseMvX = event.xmotion.x;
-					mouseMvY = event.xmotion.y;
-				}
-				break;
-
-				case Expose:
-				{
-				}
-				break;
-
-				case ConfigureNotify:
-				{
-					glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
-					ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
-				}
-				break;
-				
-				case ClientMessage:
-				{
-					buttonPressed = 2;
-				}
-				break;
-			}
-			
-			if (sendKey)
-			{
-				//fprintf(stderr, "sendKey %d '%c'\n", sendKey, (char) sendKey);
-				if (sendKey >= 'a' && sendKey <= 'z') sendKey ^= 'a' ^ 'A';
-				HandleKeyRelease(sendKey);
-				sendKey = 0;
-			}
-		} while (XPending(g_pDisplay)); // Loop to compress events
-		if (buttonPressed == 2) break;
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		DrawGLScene();
-		glXSwapBuffers(g_pDisplay, g_window); // Buffer swap does implicit glFlush
-	}
-	return(NULL);
-}
-
-#endif
