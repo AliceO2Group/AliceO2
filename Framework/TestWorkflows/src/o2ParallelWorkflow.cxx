@@ -34,7 +34,7 @@ DataProcessorSpec templateProcessor() {
           // Create a single output. 
           size_t index = ctx.services().get<ParallelContext>().index1D();
           sleep(1);
-          auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "P", index}, 1);
+          auto aData = ctx.outputs().make<int>(OutputSpec{"TST", "P", index}, 1);
         };
       }
     }
