@@ -1,5 +1,5 @@
 config_options.mak:
-						cp config_options.sample config_options.mak
+							cp config_options.sample config_options.mak
 
 include						config_options.mak
 include						config_common.mak
@@ -9,16 +9,16 @@ TARGET						= ca
 ifeq ($(BUILD_CUDA), 1)
 SUBTARGETS					+= libAliHLTTPCCAGPUSA
 endif
-SUBTARGETS_CLEAN				+= libAliHLTTPCCAGPUSA.*
+SUBTARGETS_CLEAN			+= libAliHLTTPCCAGPUSA.*
 
 ifeq ($(BUILD_OPENCL), 1)
 SUBTARGETS					+= libAliHLTTPCCAGPUSAOpenCL
 endif
-SUBTARGETS_CLEAN				+= libAliHLTTPCCAGPUSAOpenCL.*
+SUBTARGETS_CLEAN			+= libAliHLTTPCCAGPUSAOpenCL.*
 
 CXXFILES					+= standalone.cxx \
-						   $(HLTCA_STANDALONE_CXXFILES) \
-						   $(HLTCA_MERGER_CXXFILES)
+								$(HLTCA_STANDALONE_CXXFILES) \
+									$(HLTCA_MERGER_CXXFILES)
 
 CPPFILES					+= cmodules/qconfig.cpp
 
@@ -32,11 +32,11 @@ endif
 ifeq ($(BUILD_QA), 1)
 CPPFILES					+= qa/qa.cpp qa/genEvents.cpp
 DEFINES						+= BUILD_QA
-INCLUDEPATHSSYSTEM				+= $(shell root-config --incdir)
+INCLUDEPATHSSYSTEM			+= $(shell root-config --incdir)
 LIBSUSE						+= $(shell root-config --libs)
 endif
 
 ALLDEP						+= config_common.mak config_options.mak
 
 o2:
-						make CONFIGFILE=config_o2.mak -f makefile
+							make CONFIGFILE=config_o2.mak -f makefile

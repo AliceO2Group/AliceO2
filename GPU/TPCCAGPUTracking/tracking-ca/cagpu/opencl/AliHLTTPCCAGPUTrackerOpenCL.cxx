@@ -18,7 +18,7 @@
 //***************************************************************************
 
 #define __OPENCL__
-#define RADEON
+#define HLTCA_GPUTYPE_RADEON
 #define HLTCA_HOSTCODE
 
 #include <string.h>

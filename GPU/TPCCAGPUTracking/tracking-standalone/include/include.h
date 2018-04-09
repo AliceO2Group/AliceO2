@@ -1,5 +1,6 @@
 //Event display
 #ifdef R__WIN32
+#include <windows.h>
 extern DWORD WINAPI OpenGLMain(LPVOID tmp);
 extern void KillGLWindow();
 extern HANDLE semLockDisplay;

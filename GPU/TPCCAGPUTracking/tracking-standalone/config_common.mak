@@ -15,7 +15,7 @@ CC_i686-pc-cygwin			= ICC
 
 INCLUDEPATHS				= include code base merger-ca cagpubuild
 DEFINES						= HLTCA_STANDALONE
-CPPFILES				= cmodules/timer.cpp
+CPPFILES					= cmodules/timer.cpp
 
 EXTRAFLAGSGCC				= -Weffc++ -Wno-unused-local-typedefs
 EXTRAFLAGSLINK				= -rdynamic
@@ -23,41 +23,46 @@ EXTRAFLAGSLINK				= -rdynamic
 COMPILER_FLAGS				= OPT
 CONFIG_LTO					= 1
 
-CXXFILES				= code/AliHLTTPCCASliceData.cxx \
-                                          code/AliHLTTPCCASliceOutput.cxx \
-                                          code/AliHLTTPCCATracker.cxx \
-                                          code/AliHLTTPCCARow.cxx \
-                                          code/AliHLTTPCCANeighboursFinder.cxx \
-                                          code/AliHLTTPCCANeighboursCleaner.cxx \
-                                          code/AliHLTTPCCAGrid.cxx \
-                                          code/AliHLTTPCCAParam.cxx \
-                                          code/AliHLTTPCCATrackletConstructor.cxx \
-                                          code/AliHLTTPCCATrackletSelector.cxx \
-                                          code/AliHLTTPCCAStartHitsFinder.cxx \
-                                          code/AliHLTTPCCAHitArea.cxx \
-                                          code/AliHLTTPCCAGPUTracker.cxx \
-                                          code/AliHLTTPCCATrackParam.cxx \
-                                          code/AliHLTTPCCAClusterData.cxx \
-                                          code/AliHLTTPCCATrackerFramework.cxx \
-                                          interface/AliHLTLogging.cxx
+CXXFILES					= code/AliHLTTPCCASliceData.cxx \
+								code/AliHLTTPCCASliceOutput.cxx \
+								code/AliHLTTPCCATracker.cxx \
+								code/AliHLTTPCCARow.cxx \
+								code/AliHLTTPCCANeighboursFinder.cxx \
+								code/AliHLTTPCCANeighboursCleaner.cxx \
+								code/AliHLTTPCCAGrid.cxx \
+								code/AliHLTTPCCAParam.cxx \
+								code/AliHLTTPCCATrackletConstructor.cxx \
+								code/AliHLTTPCCATrackletSelector.cxx \
+								code/AliHLTTPCCAStartHitsFinder.cxx \
+								code/AliHLTTPCCAHitArea.cxx \
+								code/AliHLTTPCCAGPUTracker.cxx \
+								code/AliHLTTPCCATrackParam.cxx \
+								code/AliHLTTPCCAClusterData.cxx \
+								code/AliHLTTPCCATrackerFramework.cxx \
+								interface/AliHLTLogging.cxx
 
-HLTCA_MERGER_CXXFILES			= merger-ca/AliHLTTPCGMMerger.cxx \
-                                          merger-ca/AliHLTTPCGMSliceTrack.cxx \
-                                          merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx \
-                                          merger-ca/AliHLTTPCGMPolynomialField.cxx \
-                                          merger-ca/AliHLTTPCGMPolynomialFieldCreator.cxx \
-                                          merger-ca/AliHLTTPCGMPropagator.cxx \
-                                          merger-ca/AliHLTTPCGMTrackParam.cxx
+HLTCA_MERGER_CXXFILES		= merger-ca/AliHLTTPCGMMerger.cxx \
+								merger-ca/AliHLTTPCGMSliceTrack.cxx \
+								merger-ca/AliHLTTPCGMPhysicalTrackModel.cxx \
+								merger-ca/AliHLTTPCGMPolynomialField.cxx \
+								merger-ca/AliHLTTPCGMPolynomialFieldCreator.cxx \
+								merger-ca/AliHLTTPCGMPropagator.cxx \
+								merger-ca/AliHLTTPCGMTrackParam.cxx
 
 
-HLTCA_STANDALONE_CXXFILES		= code/AliHLTTPCCATrack.cxx \
-                                          code/AliHLTTPCCATracklet.cxx \
-                                          code/AliHLTTPCCAStandaloneFramework.cxx \
-                                          code/AliHLTTPCCAMCPoint.cxx
+HLTCA_STANDALONE_CXXFILES	= code/AliHLTTPCCATrack.cxx \
+								code/AliHLTTPCCATracklet.cxx \
+								code/AliHLTTPCCAStandaloneFramework.cxx \
+								code/AliHLTTPCCAMCPoint.cxx
 
-CONFIG_CPP				= gnu++14
+CONFIG_CPP					= gnu++14
+
+ifeq ($(ARCH_CYGWIN), 1)
+CONFIG_O2DIR				=
+BUILD_QA					= 0
+endif
 
 ifneq (${CONFIG_O2DIR}, )
-DEFINES					+= HAVE_O2HEADERS
+DEFINES						+= HAVE_O2HEADERS
 INCLUDEPATHSSYSTEM			+= ${CONFIG_O2DIR}/Detectors/TPC/base/include ${CONFIG_O2DIR}/DataFormats/Detectors/TPC/include
 endif

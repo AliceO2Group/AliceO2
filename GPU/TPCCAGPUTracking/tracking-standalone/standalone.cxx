@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 	}
 #else
 	if (configStandalone.affinity != -1) {printf("Affinity setting not supported on Windows\n"); return(1);}
-	if (configStandalone.fifi) {printf("FIFO Scheduler setting not supported on Windows\n"); return(1);}
+	if (configStandalone.fifo) {printf("FIFO Scheduler setting not supported on Windows\n"); return(1);}
 	if (configStandalone.fpe) {printf("FPE not supported on Windows\n"); return(1);}
 #endif
 #ifndef BUILD_QA

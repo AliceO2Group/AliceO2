@@ -1,9 +1,9 @@
 #include "AliHLTTPCCADef.h"
-#include <GL/glew.h>
 
+#include <GL/glew.h>
 #ifdef R__WIN32
+#include <windows.h>
 #include <winbase.h>
-#include <windows.h> // Header File For Windows
 #include <windowsx.h>
 
 HDC hDC = NULL;                                       // Private GDI Device Context
@@ -40,8 +40,8 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #include <vector>
 #include <array>
 #include <tuple>
-#include <GL/gl.h>  // Header File For The OpenGL32 Library
-#include <GL/glu.h> // Header File For The GLu32 Library
+#include <GL/gl.h>
+#include <GL/glu.h>
 
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
@@ -432,6 +432,7 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 		int bestk = 0;
 		if (hideRejectedTracks && !track.OK()) continue;
 		if (merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1].fSlice != iSlice) continue;
+#ifdef BUILD_QA
 		if (nCollisions > 1)
 		{
 			int label = GetMCLabel(i);
@@ -443,6 +444,9 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 				if (k != iCol) continue;
 			}
 		}
+#else
+		if (iCol != 0) continue;
+#endif
 		size_t startCountInner = vertexBuffer[iSlice].size();
 		
 		if (reorderFinalTracks)

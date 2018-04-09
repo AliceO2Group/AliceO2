@@ -72,7 +72,7 @@ NVCCFLAGSUSE					= $(NVCCFLAGSOPT)
 OPENCL_DEF_OPTIONS				= "-O3"
 endif
 ifeq ($(GCCCUDA), )
-GCCCUDA						= $(GCC3264)
+GCCCUDA							= $(GCC3264)
 endif
 
 MKDIR							= $(HIDEECHOB) mkdir -p `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'` `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'`
@@ -81,26 +81,26 @@ ALLDEP							+= makefiles/makefile $(CONFIGFILE) makefiles/$(ARCHFILE) config.ma
 include							makefiles/$(ARCHFILE)
 GCCFLAGSARCH					+= $(GCCARCHA)
 ifeq ($(CONFIG_CPP11), 1)
-GCCFLAGSCOMMON						+= -std=c++11
-CLANGFLAGSCOMMON					+= -std=c++11
+GCCFLAGSCOMMON					+= -std=c++11
+CLANGFLAGSCOMMON				+= -std=c++11
 endif
 ifneq ($(CONFIG_CPP), )
-GCCFLAGSCOMMON						+= -std=$(CONFIG_CPP)
-CLANGFLAGSCOMMON					+= -std=$(CONFIG_CPP)
+GCCFLAGSCOMMON					+= -std=$(CONFIG_CPP)
+CLANGFLAGSCOMMON				+= -std=$(CONFIG_CPP)
 endif
 ifeq ($(CONFIG_OPENMP), 1)
-GCCFLAGSCOMMON						+= -fopenmp
-CLANGFLAGSCOMMON					+= -fopenmp
+GCCFLAGSCOMMON					+= -fopenmp
+CLANGFLAGSCOMMON				+= -fopenmp
 GCCLINK							+= -fopenmp
 endif
 
 ifeq ($(TARGETPATH), )
 COPIED_EXECUTABLE				= $(EXECUTABLE)
-TARGETPATH					= .
+TARGETPATH						= .
 else
 COPIED_EXECUTABLE				= $(TARGETPATH)$(EXECUTABLE)
-$(COPIED_EXECUTABLE)				: $(EXECUTABLE)
-						cp $(EXECUTABLE) $(COPIED_EXECUTABLE)
+$(COPIED_EXECUTABLE)			: $(EXECUTABLE)
+								cp $(EXECUTABLE) $(COPIED_EXECUTABLE)
 endif
 
 all_tmp:						$(SUBTARGETS:%=subbuild/%.mak) $(COPIED_EXECUTABLE)
@@ -153,8 +153,8 @@ OBJFILES						+= $(CPPFILES_ICC) $(CPPFILES_MSCC) $(CPPFILES_GCC) $(CPPFILES_CLA
 endif
 
 ifneq ($(CONFIG_GDB), 0)
-GCCFLAGSOPT					+= -ggdb
-GCCFLAGSDBG					+= -ggdb
+GCCFLAGSOPT						+= -ggdb
+GCCFLAGSDBG						+= -ggdb
 CLANGFLAGSOPT					+= -ggdb
 endif
 
@@ -237,10 +237,10 @@ $(WORKPATH)/qt/%_ui.h:			%.ui $(ALLDEP)
 $(WORKPATH)/qt/%_moc.cpp:		%.h $(WORKPATH)/qt/%_ui.h $(ALLDEP)
 								$(QTMOC) -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -o $@ $<
 
-$(WORKPATH)/qt/%_moccpp.cpp:		%.h $(ALLDEP)
+$(WORKPATH)/qt/%_moccpp.cpp:	%.h $(ALLDEP)
 								$(QTMOC) -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -o $@ $<
 								
-$(WORKPATH)/qt/%.$(OBJ):	$(WORKPATH)/qt/%.cpp $(ALLDEP)
+$(WORKPATH)/qt/%.$(OBJ):		$(WORKPATH)/qt/%.cpp $(ALLDEP)
 								$(CC) $(INCLUDEPATHSUSE) $(DEFINESUSE) $(FILEFLAGS$<) $(COMPILEONLY) $< $(COMPILEOUTPUT)
 
 $(WORKPATH)/_makefiles_support_opencl.$(OBJ):	makefiles/makefile_opencl_compiler.cpp $(ALLDEP)
