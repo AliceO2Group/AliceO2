@@ -51,7 +51,7 @@ void DispatcherDPL::processCallback(ProcessingContext& ctx, BernoulliGenerator& 
         ctx.outputs().adopt(outputSpec, DataRefUtils::as<TObject>(input).release());
       } else { // POD
         // todo: use API for that when it is available
-        ctx.outputs().adoptChunk(outputSpec, const_cast<char*>(input.payload), inputHeader->size(),
+        ctx.outputs().adoptChunk(outputSpec, const_cast<char*>(input.payload), inputHeader->payloadSize,
                                  &header::Stack::freefn, nullptr);
       }
 
