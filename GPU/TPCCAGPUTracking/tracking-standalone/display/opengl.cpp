@@ -1276,6 +1276,7 @@ const char* HelpText[] = {
 	"[t]               Take Screenshot", 
 	"[S]/[A]           Smooth points / lines",
 	"[D]               Enable / disable depth buffer",
+	"[F]               Switch fullscreen",
 	"[I]               Enable / disable GL indirect draw",
 	"[o]               Save current camera position", 
 	"[p]               Restore camera position", 
@@ -1359,6 +1360,11 @@ void HandleKeyRelease(int wParam)
 			showCollision++;
 			SetInfo("Showing collision %d", showCollision);
 		}
+	}
+	else if (wParam == 'F')
+	{
+		SwitchFullscreen();
+		SetInfo("Toggling full screen");
 	}
 	else if (wParam == 'K')
 	{

@@ -12,6 +12,9 @@ static volatile bool displayRunning = false;
 
 static GLuint font_base;
 
+Display *g_pDisplay = NULL;
+Window g_window;
+
 int GetKey(int key)
 {
 	if (key == 65453 || key == 45) return('-');
@@ -44,9 +47,6 @@ void OpenGLPrint(const char* s)
 
 void *OpenGLMain(void *ptr)
 {
-	Display *g_pDisplay = NULL;
-	Window g_window;
-	
 	XSetWindowAttributes windowAttributes;
 	XVisualInfo *visualInfo = NULL;
 	XEvent event;
@@ -134,33 +134,20 @@ void *OpenGLMain(void *ptr)
 	                         CWBorderPixel | CWColormap | CWEventMask,
 	                         &windowAttributes);
 
-	XSetStandardProperties(g_pDisplay,
-	                       g_window,
-	                       "AliHLTTPCCA Online Event Display",
-	                       "AliHLTTPCCA Online Event Display",
-	                       None,
-	                       NULL,
-	                       0,
-	                       NULL);
-
-	// Bind the rendering context to the window
+	XSetStandardProperties(g_pDisplay, g_window, GL_WINDOW_NAME, GL_WINDOW_NAME, None, NULL, 0, NULL);
 	glXMakeCurrent(g_pDisplay, g_window, glxContext);
-
-	// Request the X window to be displayed on the screen
 	XMapWindow(g_pDisplay, g_window);
 	
+	//Maximize window
 	XEvent xev;
-	Atom wm_state  =  XInternAtom(g_pDisplay, "_NET_WM_STATE", False);
-	Atom max_horz  =  XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-	Atom max_vert  =  XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
 	memset(&xev, 0, sizeof(xev));
 	xev.type = ClientMessage;
 	xev.xclient.window = g_window;
-	xev.xclient.message_type = wm_state;
+	xev.xclient.message_type = XInternAtom(g_pDisplay, "_NET_WM_STATE", False);
 	xev.xclient.format = 32;
 	xev.xclient.data.l[0] = 1; //_NET_WM_STATE_ADD
-	xev.xclient.data.l[1] = max_horz;
-	xev.xclient.data.l[2] = max_vert;
+	xev.xclient.data.l[1] = XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+	xev.xclient.data.l[2] = XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
 	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
 	
 	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
@@ -222,7 +209,6 @@ void *OpenGLMain(void *ptr)
 		
 		do
 		{
-			//XNextEvent(g_pDisplay, &event);
 			if (exitButton == 2) break;
 			if (needUpdate)
 			{
@@ -314,7 +300,14 @@ void *OpenGLMain(void *ptr)
 				
 				case ClientMessage:
 				{
-					exitButton = 2;
+					if (event.xclient.message_type == XInternAtom(g_pDisplay, "_NET_WM_STATE", False))
+					{
+						XFlush(g_pDisplay);
+					}
+					else
+					{
+						exitButton = 2;
+					}
 				}
 				break;
 			}
@@ -344,4 +337,18 @@ void DisplayExit()
 	if (displayRunning) exitButton = 2;
 	pthread_mutex_unlock(&semLockExit);
 	while (displayRunning) usleep(10000);
+}
+
+void SwitchFullscreen()
+{
+	XEvent xev;
+	memset(&xev, 0, sizeof(xev));
+	xev.type = ClientMessage;
+	xev.xclient.window = g_window;
+	xev.xclient.message_type = XInternAtom(g_pDisplay, "_NET_WM_STATE", False);
+	xev.xclient.format = 32;
+	xev.xclient.data.l[0] = 2; // _NET_WM_STATE_TOGGLE
+	xev.xclient.data.l[1] = XInternAtom(g_pDisplay, "_NET_WM_STATE_FULLSCREEN", True);
+	xev.xclient.data.l[2] = 0;
+	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
 }

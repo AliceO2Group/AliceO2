@@ -19,5 +19,6 @@ extern int DrawGLScene(bool doAnimation = false);
 void OpenGLPrint(const char* s);
 extern void ReSizeGLScene(int width, int height);
 void HandleSendKey();
+void SwitchFullscreen();
 
 #define GL_WINDOW_NAME "Alice HLT TPC CA Event Display"
