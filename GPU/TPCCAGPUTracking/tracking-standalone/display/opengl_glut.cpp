@@ -139,3 +139,4 @@ void DisplayExit()
 }
 
 void OpenGLPrint(const char* s) {}
+void SwitchFullscreen() {}
