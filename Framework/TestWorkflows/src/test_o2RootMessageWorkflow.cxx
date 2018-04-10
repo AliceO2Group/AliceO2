@@ -39,9 +39,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
         [](ProcessingContext &ctx) {
           sleep(1);
           // Create an histogram 
-          auto &singleHisto = ctx.outputs().make<TH1F>(OutputSpec{"TST", "HISTOS", 0},
+          auto &singleHisto = make<TH1F>(OutputSpec{"TST", "HISTOS", 0},
                                                          "h1", "test", 100, -10., 10.);
-          auto &aString = ctx.outputs().make<TObjString>(OutputSpec{"TST", "STRING", 0}, "foo");
+          auto &aString = make<TObjString>(OutputSpec{"TST", "STRING", 0}, "foo");
           singleHisto.FillRandom("gaus", 1000);
           Double_t stats[4];
           singleHisto.GetStats(stats);

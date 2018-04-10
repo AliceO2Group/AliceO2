@@ -121,7 +121,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
           LOG(DEBUG) << "DataSampler sends data from subSpec: " << inputSpec->subSpec;
 
           const auto* inputHeader = o2::header::get<o2::header::DataHeader*>(input.header);
-          auto output = ctx.outputs().make<char>(outputSpec, inputHeader->size());
+          auto output = make<char>(outputSpec, inputHeader->size());
 
           //todo: use some std function or adopt(), when it is available for POD data
           const char* input_ptr = input.payload;
@@ -193,7 +193,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", index }, collectionChunkSize);
+  auto tpcClusters = make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", index }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -213,8 +213,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index },
-                                                                collectionChunkSize);
+  auto processedTpcClusters = make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index }, collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

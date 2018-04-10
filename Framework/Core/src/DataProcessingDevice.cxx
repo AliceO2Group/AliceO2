@@ -38,7 +38,6 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
   mStatelessProcess{spec.algorithm.onProcess},
   mError{spec.algorithm.onError},
   mConfigRegistry{nullptr},
-  mAllocator{this, &mContext, &mRootContext, spec.outputs},
   mRelayer{spec.inputs, spec.forwards, registry.get<MetricsService>()},
   mInputChannels{spec.inputChannels},
   mOutputChannels{spec.outputChannels},
@@ -48,6 +47,7 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
   mErrorCount{0},
   mProcessingCount{0}
 {
+  DataAllocator::getInstance().configure(this, &mContext, &mRootContext, spec.outputs);
 }
 
 /// This  takes care  of initialising  the device  from its  specification. In
@@ -92,7 +92,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto &statelessProcess = mStatelessProcess;
   auto &errorCallback = mError;
   auto &serviceRegistry = mServiceRegistry;
-  auto &allocator = mAllocator;
+  auto &allocator = DataAllocator::getInstance();
   auto &processingCount = mProcessingCount;
   auto &relayer = mRelayer;
   auto &device = *this;

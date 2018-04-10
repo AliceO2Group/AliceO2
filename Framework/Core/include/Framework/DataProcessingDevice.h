@@ -45,7 +45,6 @@ private:
   ServiceRegistry mServiceRegistry;
   MessageContext mContext;
   RootObjectContext mRootContext;
-  DataAllocator mAllocator;
   DataRelayer mRelayer;
 
   std::vector<InputChannelSpec> mInputChannels;
