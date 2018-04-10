@@ -2,13 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "opengl_backend.h"
-#include <GL/glx.h> // This includes the necessary X headers
+#include <GL/glx.h>
 #include <pthread.h>
 #include <unistd.h>
 
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
 static volatile bool displayRunning = false;
+
+static GLuint font_base;
 
 int GetKey(int key)
 {
@@ -22,6 +24,22 @@ int GetKey(int key)
 	if (key >= 'a' && key <= 'z') key += 'A' - 'a';
 	
 	return(key);
+}
+
+void OpenGLPrint(const char* s)
+{
+   if (!glIsList(font_base))
+   {
+      fprintf(stderr, "print string: Bad display list.\n");
+      exit (1);
+   }
+   else if (s && strlen(s))
+   {
+      glPushAttrib(GL_LIST_BIT);
+      glListBase(font_base);
+      glCallLists(strlen(s), GL_UNSIGNED_BYTE, (GLubyte*) s);
+      glPopAttrib();
+   }
 }
 
 void *OpenGLMain(void *ptr)
@@ -147,12 +165,30 @@ void *OpenGLMain(void *ptr)
 	
 	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
     XSetWMProtocols(g_pDisplay, g_window, &WM_DELETE_WINDOW, 1);
+	
+	font_base = glGenLists(256);
+    if (!glIsList(font_base))
+	{
+       printf("Out of display lists.\n");
+       exit(1);
+    }
+	const char* f = "fixed";
+	XFontStruct* font_info = XLoadQueryFont(g_pDisplay, f);
+	if (!font_info)
+	{
+		fprintf(stderr, "XLoadQueryFont failed - Exiting.\n");
+		exit(1);
+	}
+	else
+	{
+		int first = font_info->min_char_or_byte2;
+		int last = font_info->max_char_or_byte2;
+		glXUseXFont(font_info->fid, first, last-first+1, font_base+first);
+	}
 
 	// Init OpenGL...
 	InitGL();
 
-	// Enter the render loop and don't forget to dispatch X events as they occur.
-	
 	XMapWindow(g_pDisplay, g_window);
 	XFlush(g_pDisplay);
 	int x11_fd = ConnectionNumber(g_pDisplay);
@@ -293,6 +329,7 @@ void *OpenGLMain(void *ptr)
 	
 	glXDestroyContext(g_pDisplay, glxContext);
 	XDestroyWindow(g_pDisplay, g_window);
+	XCloseDisplay(g_pDisplay);
 	
 	pthread_mutex_lock(&semLockExit);
 	displayRunning = false;
