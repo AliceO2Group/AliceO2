@@ -89,11 +89,11 @@ DataProcessorSpec getSinkSpec()
     }
     auto data = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input");
 
-    LOG(INFO) << "count: " << counter << "  data elements:" << data->size();
-    ASSERT_ERROR(counter + 1 == data->size());
-    for (int idx = 0; idx < data->size(); idx++) {
-      LOG(INFO) << (*data)[idx].get();
-      ASSERT_ERROR((*data)[idx].get() == 10 * counter + idx);
+    LOG(INFO) << "count: " << counter << "  data elements:" << data.size();
+    ASSERT_ERROR(counter + 1 == data.size());
+    for (int idx = 0; idx < data.size(); idx++) {
+      LOG(INFO) << data[idx].get();
+      ASSERT_ERROR(data[idx].get() == 10 * counter + idx);
     }
     if (++counter >= kTreeSize) {
       pc.services().get<ControlService>().readyToQuit(true);

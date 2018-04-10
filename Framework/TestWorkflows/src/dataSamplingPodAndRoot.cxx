@@ -144,7 +144,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     {},
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
-        auto h = ctx.inputs().get<TH1F>("histos");
+        auto h = ctx.inputs().get<TH1F*>("histos");
         if (h.get() == nullptr) {
           throw std::runtime_error("Missing output");
         }
@@ -154,7 +154,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
                   << "sumw2" << stats[1] << "\n"
                   << "sumwx" << stats[2] << "\n"
                   << "sumwx2" << stats[3] << "\n";
-        auto s = ctx.inputs().get<TObjString>("string");
+        auto s = ctx.inputs().get<TObjString*>("string");
 
         LOG(INFO) << "String is " << s->GetString().Data();
       }
@@ -170,7 +170,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     Outputs{},
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
-        auto h = ctx.inputs().get<TH1F>("TST_HISTOS_S");
+        auto h = ctx.inputs().get<TH1F*>("TST_HISTOS_S");
         if (h.get() == nullptr) {
           throw std::runtime_error("Missing TST_HISTOS_S");
         }
@@ -180,7 +180,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
                   << "sumw2" << stats[1] << "\n"
                   << "sumwx" << stats[2] << "\n"
                   << "sumwx2" << stats[3] << "\n";
-        auto s = ctx.inputs().get<TObjString>("TST_STRING_S");
+        auto s = ctx.inputs().get<TObjString*>("TST_STRING_S");
 
         LOG(INFO) << "qcTaskTst: TObjString is " << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong");
       }
