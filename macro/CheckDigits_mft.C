@@ -1,4 +1,4 @@
-/// \file CheckDigits.C
+/// \file CheckDigits_mft.C
 /// \brief Simple macro to check MFT digits
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)

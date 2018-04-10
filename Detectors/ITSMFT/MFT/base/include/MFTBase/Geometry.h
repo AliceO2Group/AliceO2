@@ -44,8 +44,6 @@ class Geometry : public TNamed
 {
 
  public:
-  static const Int_t sNDisks = 5; ///< \brief Number of Disk
-
   static const Double_t sSensorThickness; ///< \brief CMOS sensor part thickness
   static const Double_t sChipThickness;   ///< \brief CMOS chip thickness
 

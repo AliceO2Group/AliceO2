@@ -27,12 +27,12 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::HalfDisk)
+ClassImp(o2::MFT::HalfDisk);
 
-  /// \brief Default constructor
+/// \brief Default constructor
 
-  //_____________________________________________________________________________
-  HalfDisk::HalfDisk()
+//_____________________________________________________________________________
+HalfDisk::HalfDisk()
   : TNamed(), mSupport(nullptr), mHeatExchanger(nullptr), mHalfDiskVolume(nullptr), mSegmentation(nullptr)
 {
 }

@@ -32,7 +32,7 @@ class ChipSegmentation : public VSegmentation
 
   ~ChipSegmentation() override = default;
   void Clear(const Option_t* /*opt*/) override { ; }
-  virtual void print(Option_t* /*option*/);
+  void print(Option_t* /*option*/);
 
  private:
   ClassDefOverride(ChipSegmentation, 1);

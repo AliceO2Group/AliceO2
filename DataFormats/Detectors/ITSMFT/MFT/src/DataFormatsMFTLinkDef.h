@@ -8,17 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MFTSimulation/EventHeader.h"
+#ifdef __CLING__
 
-using namespace o2::MFT;
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
+#pragma link C++ class o2::MFT::TrackMFT + ;
+#pragma link C++ class std::vector < o2::MFT::TrackMFT > +;
 
-ClassImp(o2::MFT::EventHeader)
-
-  //_____________________________________________________________________________
-  EventHeader::EventHeader()
-  : FairEventHeader(), mPartNo(0)
-{
-}
-
-//_____________________________________________________________________________
-EventHeader::~EventHeader() = default;
+#endif

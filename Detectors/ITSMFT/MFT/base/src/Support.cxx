@@ -24,10 +24,10 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::Support)
+ClassImp(o2::MFT::Support);
 
-  //_____________________________________________________________________________
-  Support::Support()
+//_____________________________________________________________________________
+Support::Support()
   : TNamed(),
     mSupportVolume(nullptr),
     mSupportThickness(0.7), // cm    instead of 0.8, fm

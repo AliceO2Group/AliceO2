@@ -27,11 +27,11 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::Geometry)
+ClassImp(o2::MFT::Geometry);
 
-  const Double_t Geometry::sSensorInterspace = 0.01; //[cm]  Offset between two adjacent chip on a ladder
-const Double_t Geometry::sSensorSideOffset = 0.04;   // [cm] Side Offset between the ladder edge and the chip edge
-const Double_t Geometry::sSensorTopOffset = 0.04;    // [cm] Top Offset between the ladder edge and the chip edge
+const Double_t Geometry::sSensorInterspace = 0.01; //[cm]  Offset between two adjacent chip on a ladder
+const Double_t Geometry::sSensorSideOffset = 0.04; // [cm] Side Offset between the ladder edge and the chip edge
+const Double_t Geometry::sSensorTopOffset = 0.04;  // [cm] Top Offset between the ladder edge and the chip edge
 const Double_t Geometry::sLadderOffsetToEnd =
   4.7; // [cm] Offset between the last Chip and the end of the ladder toward the DAQ connector
 const Double_t Geometry::sSensorThickness = 30.e-4; // 50 microns

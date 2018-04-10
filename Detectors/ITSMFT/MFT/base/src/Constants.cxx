@@ -18,10 +18,10 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::Constants)
+ClassImp(o2::MFT::Constants);
 
-  // Defaults parameters for track reconstruction
-  Double_t Constants::sDiskThicknessInX0[Constants::sNDisks] = { 0.008, 0.008, 0.008, 0.008, 0.008 };
+// Defaults parameters for track reconstruction
+Double_t Constants::sDiskThicknessInX0[Constants::sNDisks] = { 0.008, 0.008, 0.008, 0.008, 0.008 };
 Double_t Constants::sPlaneZPos[2 * Constants::sNDisks] = { -45.3, -46.7, -48.6, -50.0, -52.4,
                                                            -53.8, -68.0, -69.4, -76.1, -77.5 };
 

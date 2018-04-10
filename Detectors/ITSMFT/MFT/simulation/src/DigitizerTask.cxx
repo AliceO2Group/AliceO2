@@ -21,9 +21,9 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::MFT::DigitizerTask)
+ClassImp(o2::MFT::DigitizerTask);
 
-  using namespace o2::MFT;
+using namespace o2::MFT;
 using namespace o2::detectors;
 using namespace o2::utils;
 

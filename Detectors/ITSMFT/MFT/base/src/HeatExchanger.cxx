@@ -28,12 +28,10 @@
 
 using namespace o2::MFT;
 
-/// \cond CLASSIMP
-ClassImp(o2::MFT::HeatExchanger)
-  /// \endcond
+ClassImp(o2::MFT::HeatExchanger);
 
-  //_____________________________________________________________________________
-  HeatExchanger::HeatExchanger()
+//_____________________________________________________________________________
+HeatExchanger::HeatExchanger()
   : TNamed(),
     mHalfDisk(nullptr),
     mHalfDiskRotation(nullptr),
@@ -2097,12 +2095,12 @@ void HeatExchanger::createHalfDisk4(Int_t half)
 void HeatExchanger::initParameters()
 {
 
-  mHalfDiskRotation = new TGeoRotation**[Geometry::sNDisks];
-  mHalfDiskTransformation = new TGeoCombiTrans**[Geometry::sNDisks];
-  for (Int_t idisk = 0; idisk < Geometry::sNDisks; idisk++) {
-    mHalfDiskRotation[idisk] = new TGeoRotation*[NHalves];
-    mHalfDiskTransformation[idisk] = new TGeoCombiTrans*[NHalves];
-    for (Int_t ihalf = 0; ihalf < NHalves; ihalf++) {
+  mHalfDiskRotation = new TGeoRotation**[Constants::sNDisks];
+  mHalfDiskTransformation = new TGeoCombiTrans**[Constants::sNDisks];
+  for (Int_t idisk = 0; idisk < Constants::sNDisks; idisk++) {
+    mHalfDiskRotation[idisk] = new TGeoRotation*[Constants::sNHalves];
+    mHalfDiskTransformation[idisk] = new TGeoCombiTrans*[Constants::sNHalves];
+    for (Int_t ihalf = 0; ihalf < Constants::sNHalves; ihalf++) {
       mHalfDiskRotation[idisk][ihalf] = new TGeoRotation(Form("rotation%d%d", idisk, ihalf), 0., 0., 0.);
       mHalfDiskTransformation[idisk][ihalf] =
         new TGeoCombiTrans(Form("transformation%d%d", idisk, ihalf), 0., 0., 0., mHalfDiskRotation[idisk][ihalf]);
@@ -2139,10 +2137,10 @@ void HeatExchanger::initParameters()
   mZPlan[3] = 0;
   mZPlan[4] = 0;
 
-  mSupportXDimensions = new Double_t*[Geometry::sNDisks];
-  mSupportYDimensions = new Double_t*[Geometry::sNDisks];
+  mSupportXDimensions = new Double_t*[Constants::sNDisks];
+  mSupportYDimensions = new Double_t*[Constants::sNDisks];
 
-  for (Int_t i = 0; i < Geometry::sNDisks; i++) {
+  for (Int_t i = 0; i < Constants::sNDisks; i++) {
     mSupportXDimensions[i] = new double[mNPart[i]];
     mSupportYDimensions[i] = new double[mNPart[i]];
   }

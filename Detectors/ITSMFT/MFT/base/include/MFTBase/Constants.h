@@ -27,7 +27,9 @@ class Constants : public TObject
 
  public:
   // Geometry
-  static const Int_t sNDisks = 5; ///< \brief Number of Disk
+  static const Int_t sNDisks = 5;   ///< \brief Number of Disk
+  static const Int_t sNLayers = 10; ///< \brief Number of layers
+  static const Int_t sNHalves = 2;  ///< \brief Number of halves
 
   /// Return Disk thickness in X0
   static Double_t diskThicknessInX0(Int_t Id) { return (Id >= 0 && Id < sNDisks) ? sDiskThicknessInX0[Id] : 0.; }

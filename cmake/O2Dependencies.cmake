@@ -974,15 +974,13 @@ o2_define_bucket(
     DEPENDENCIES
     mft_base_bucket
     itsmft_reconstruction_bucket
+    data_format_mft_bucket
     ITSMFTBase
     ITSMFTReconstruction
     MFTBase
     MFTSimulation
     DetectorsBase
     DataFormatsITSMFT
-    O2Device_bucket
-    Tree
-    Net
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
@@ -1465,6 +1463,21 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Common/Constants/include
 )
 
+o2_define_bucket(
+    NAME
+    data_format_mft_bucket
+
+    DEPENDENCIES
+    data_format_reconstruction_bucket
+    #
+    ReconstructionDataFormats
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/MFT/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Common/Constants/include
+)
 
 o2_define_bucket(
     NAME

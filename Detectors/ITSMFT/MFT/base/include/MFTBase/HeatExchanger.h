@@ -66,7 +66,7 @@ class HeatExchanger : public TNamed
 
   const static Int_t sNMaxDisks;
 
-  enum { Bottom, Top, NHalves };
+  enum { Bottom, Top };
 
   TGeoVolumeAssembly* mHalfDisk;
 

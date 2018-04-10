@@ -8,13 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file TrackMFT.cxx
+/// \brief Implementation of the MFT track
+/// \author bogdan.vulpescu@cern.ch
+/// \date Feb. 8, 2018
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "DataFormatsMFT/TrackMFT.h"
+#include "CommonConstants/MathConstants.h"
+#include "DataFormatsITSMFT/Cluster.h"
 
-#pragma link C++ class o2::MFT::ClustererTask+;
-#pragma link C++ class o2::MFT::TrackerTask+;
+ClassImp(o2::MFT::TrackMFT);
 
-#endif
+using namespace o2::MFT;
+using namespace o2::ITSMFT;
+using namespace o2::constants::math;
+using namespace o2::track;
+
+//_____________________________________________________________________________

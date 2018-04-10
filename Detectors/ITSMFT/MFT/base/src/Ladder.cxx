@@ -35,10 +35,10 @@ using namespace o2::ITSMFT;
 using namespace o2::MFT;
 using AlpideChip = o2::ITSMFT::AlpideChip;
 
-ClassImp(o2::MFT::Ladder)
+ClassImp(o2::MFT::Ladder);
 
-  // Units are cm
-  const Double_t Ladder::sLadderDeltaY = SegmentationAlpide::SensorSizeRows + 2. * Geometry::sSensorTopOffset;
+// Units are cm
+const Double_t Ladder::sLadderDeltaY = SegmentationAlpide::SensorSizeRows + 2. * Geometry::sSensorTopOffset;
 const Double_t Ladder::sLadderDeltaZ =
   Geometry::sFlexThickness + Geometry::sChipThickness; // TODO: Adjust that value when adding glue layer
 

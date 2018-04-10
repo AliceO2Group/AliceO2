@@ -10,25 +10,29 @@
 #include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
+#include "Field/MagneticField.h"
 
-#include "MFTReconstruction/ClustererTask.h"
+#include "MFTReconstruction/TrackerTask.h"
 
 #endif
 
-void run_clus_mft(std::string outputfile = "o2clus_mft.root", std::string inputfile = "o2dig.root",
+static std::stringstream mcfile;
+
+void run_trac_mft(float rate = 0., std::string outputfile = "o2track_mft.root", std::string inputfile = "o2clus.root",
                   std::string paramfile = "o2sim_par.root");
 
-void run_clus_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGeant3")
+void run_trac_mft(Int_t nEvents = 10, Int_t nMuons = 100, TString mcEngine = "TGeant3", Float_t rate = 0.)
 {
 
   std::stringstream inputfile, outputfile, paramfile;
-  inputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "ev_" << nMuons << "mu.root";
+  inputfile << "AliceO2_" << mcEngine << ".clus_" << nEvents << "ev_" << nMuons << "mu.root";
   paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << "ev_" << nMuons << "mu.root";
-  outputfile << "AliceO2_" << mcEngine << ".clus_" << nEvents << "ev_" << nMuons << "mu.root";
-  run_clus_mft(outputfile.str(), inputfile.str(), paramfile.str());
+  outputfile << "AliceO2_" << mcEngine << ".trac_" << nEvents << "ev_" << nMuons << "mu.root";
+  mcfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "ev_" << nMuons << "mu.root";
+  run_trac_mft(rate, outputfile.str(), inputfile.str(), paramfile.str());
 }
 
-void run_clus_mft(std::string outputfile, std::string inputfile, std::string paramfile)
+void run_trac_mft(float rate, std::string outputfile, std::string inputfile, std::string paramfile)
 {
 
   FairLogger* logger = FairLogger::GetLogger();
@@ -50,13 +54,21 @@ void run_clus_mft(std::string outputfile, std::string inputfile, std::string par
   parInput1->open(paramfile.data());
   rtdb->setFirstInput(parInput1);
 
-  // Setup clusterizer
-  o2::MFT::ClustererTask* clus = new o2::MFT::ClustererTask;
-  fRun->AddTask(clus);
+  // Setup tracker
+  Int_t n = 1;            // Number of threads
+  Bool_t mcTruth = kTRUE; // kFALSE if no comparison with MC is needed
+  o2::MFT::TrackerTask* trac = new o2::MFT::TrackerTask(n, mcTruth);
+  trac->setContinuousMode(rate > 0.);
+
+  fRun->AddTask(trac);
 
   fRun->Init();
 
+  timer.Start();
+
   fRun->Run();
+
+  timer.Stop();
 
   std::cout << std::endl << std::endl;
 
@@ -68,7 +80,6 @@ void run_clus_mft(std::string outputfile, std::string inputfile, std::string par
   std::cout << maxMemory;
   std::cout << "</DartMeasurement>" << std::endl;
 
-  timer.Stop();
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
 
