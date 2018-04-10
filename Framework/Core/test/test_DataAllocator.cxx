@@ -95,33 +95,38 @@ DataProcessorSpec getSinkSpec()
       auto dh = o2::header::get<const DataHeader*>(input.header);
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
     }
+    // plain, unserialized object in input1 channel
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
+    ASSERT_ERROR(object1 != nullptr);
     ASSERT_ERROR(*object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
+    // ROOT-serialized messageable object in input2 channel
     auto object2 = pc.inputs().get<o2::test::TriviallyCopyable>("input2");
+    ASSERT_ERROR(object2 != nullptr);
     ASSERT_ERROR(*object2 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
+    // ROOT-serialized, non-messageable object in input3 channel
     auto object3 = pc.inputs().get<o2::test::Polymorphic>("input3");
     ASSERT_ERROR(object3 != nullptr);
-    ASSERT_ERROR(*(object3.get()) == o2::test::Polymorphic(0xbeef));
+    ASSERT_ERROR(*object3 == o2::test::Polymorphic(0xbeef));
 
+    // container of objects
     auto object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
-    ASSERT_ERROR(object4 != nullptr);
-    ASSERT_ERROR(object4->size() == 2);
-    ASSERT_ERROR((*object4.get())[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR((*object4.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object4.size() == 2);
+    ASSERT_ERROR(object4[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(object4[1] == o2::test::Polymorphic(0xd00f));
 
+    // container of objects
     auto object5 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input5");
-    ASSERT_ERROR(object5 != nullptr);
-    ASSERT_ERROR(object5->size() == 2);
-    ASSERT_ERROR((*object5.get())[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR((*object5.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object5.size() == 2);
+    ASSERT_ERROR(object5[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(object5[1] == o2::test::Polymorphic(0xd00f));
 
+    // container of objects
     auto object6 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input6");
-    ASSERT_ERROR(object6 != nullptr);
-    ASSERT_ERROR(object6->size() == 2);
-    ASSERT_ERROR((*object6.get())[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR((*object6.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object6.size() == 2);
+    ASSERT_ERROR(object6[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(object6[1] == o2::test::Polymorphic(0xd00f));
 
     pc.services().get<ControlService>().readyToQuit(true);
   };

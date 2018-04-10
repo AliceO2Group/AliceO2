@@ -29,8 +29,10 @@
 #include <memory>
 #include <type_traits>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct InputSpec;
 
@@ -119,18 +121,26 @@ public:
                    static_cast<char const*>(mCache[pos*2+1]->GetData())};
   }
 
-  // Generic function to automatically cast the contents of 
-  // a payload bound by @a binding to a known type. This will
-  // not be used if the type is a TObject as extra deserialization
-  // needs to happen.
+  // Generic function to extract a messageable type by reference
+  // Cast content of payload bound by @a binding to known type.
+  // Will not be used for types needing extra serialization
+  // Note: is_messagable also checks that T is not a pointer
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value &&
-                          std::is_same<T, DataRef>::value == false &&
-                          has_root_dictionary<T>::value == false, T>::type const&
-  get(char const* binding) const
+  typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false, //
+                          T>::type const&
+    get(char const* binding) const
   {
-    // TODO: check the serialization type, the cast makes only sense for
+    // we need to check the serialization type, the cast makes only sense for
     // unserialized objects
+    // FIXME: add specialization for move assignable types
+    using DataHeader = o2::header::DataHeader;
+
+    auto ref = this->get(binding);
+    auto header = o2::header::get<const DataHeader*>(ref.header);
+    auto method = header->payloadSerializationMethod;
+    if (method != o2::header::gSerializationMethodNone) {
+      throw std::runtime_error("Can not extract a plain object from serialized message");
+    }
     return *reinterpret_cast<T const *>(get<DataRef>(binding).payload);
   }
 
@@ -150,7 +160,7 @@ public:
   template <typename T>
   typename std::enable_if<std::is_same<T, std::string>::value, T>::type
   get(char const *binding) const {
-    return std::string(get<DataRef>(binding).payload);
+    return std::move(std::string(get<DataRef>(binding).payload));
   }
 
   // DataRef is special. Since there is no point in storing one in a payload,
@@ -162,7 +172,7 @@ public:
     try {
       return getByPos(getPos(binding));
     } catch(...) {
-      throw std::runtime_error("Unknown argument requested" + std::string(binding));
+      throw std::runtime_error("Unknown argument requested " + std::string(binding));
     }
   }
 
@@ -172,34 +182,60 @@ public:
   template <class T = DataRef>
   typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
   get(std::string const &binding) const {
-    return getByPos(getPos(binding));
+    try {
+      return getByPos(getPos(binding));
+    } catch (...) {
+      throw std::runtime_error("Unknown argument requested " + std::string(binding));
+    }
   }
 
-  // Notice that this will return a copy of the actual contents of
-  // the buffer, because the buffer is actually serialised, for this
-  // reason we return a unique_ptr<T>.
-  // FIXME: does it make more sense to keep ownership of all the deserialised 
+  // substitution for pointer to non-messageable objects with ROOT dictionary
+  // This supports the common case of retrieving a root object and getting pointer.
+  // Notice that this will return a copy of the actual contents of the buffer, because
+  // the buffer is actually serialised, for this reason we return a unique_ptr<T>.
+  // FIXME: does it make more sense to keep ownership of all the deserialised
   // objects in a single place so that we can avoid duplicate deserializations?
-  template <class T>
-  typename std::unique_ptr<typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, T>::type const>
-  get(char const* binding) const
+  template <class PtrT>
+  typename std::enable_if<                                                            //
+    std::is_pointer<PtrT>::value == true &&                                           //
+      has_root_dictionary<typename std::remove_pointer<PtrT>::type>::value == true && //
+      is_messageable<typename std::remove_pointer<PtrT>::type>::value == false,       //
+    std::unique_ptr<typename std::remove_pointer<PtrT>::type const>>::type            //
+    get(char const* binding) const
   {
-    using DataHeader = o2::header::DataHeader;
-
+    using T = typename std::remove_pointer<PtrT>::type;
     auto ref = this->get(binding);
     return std::move(DataRefUtils::as<T>(ref));
   }
 
-  // substitution for messageable objects with ROOT dictionary
+  // substitution for container of non-messageable objects with ROOT dictionary
+  // Notice that this will return a copy of the actual contents of the buffer, because
+  // the buffer is actually serialised. The extracted container is returned by std::move
+  template <class T>
+  typename std::enable_if<is_container<T>::value == true &&          //
+                            has_root_dictionary<T>::value == true && //
+                            is_messageable<T>::value == false,       //
+                          T const&>::type                            //
+    get(char const* binding) const
+  {
+    auto ref = this->get(binding);
+    // we expect the unique_ptr to hold an object, exception should have been thrown
+    // otherwise
+    return std::move(*(DataRefUtils::as<T>(ref).release()));
+  }
+
+  // substitution for pointer to messageable objects with ROOT dictionary
   // the operation depends on the transmitted serialization method
-  template <typename T>
-  typename std::enable_if<is_messageable<T>::value &&
-                          std::is_same<T, DataRef>::value == false &&
-                          has_root_dictionary<T>::value,
-                          std::unique_ptr<T const, Deleter<T const>>>::type
-  get(char const* binding) const
+  template <typename PtrT>
+  typename std::enable_if<std::is_pointer<PtrT>::value == true &&                                           //
+                            has_root_dictionary<typename std::remove_pointer<PtrT>::type>::value == true && //
+                            is_messageable<typename std::remove_pointer<PtrT>::type>::value == true,        //
+                          std::unique_ptr<typename std::remove_pointer<PtrT>::type const,
+                                          Deleter<typename std::remove_pointer<PtrT>::type const>>>::type
+    get(char const* binding) const
   {
     using DataHeader = o2::header::DataHeader;
+    using T = typename std::remove_pointer<PtrT>::type;
 
     auto ref = this->get(binding);
     auto header = o2::header::get<const DataHeader*>(ref.header);
@@ -216,20 +252,20 @@ public:
       std::unique_ptr<T const, Deleter<T const>> result(DataRefUtils::as<ROOTSerialized<T>>(ref).release());
       return std::move(result);
     } else {
-      throw std::runtime_error("Attempt to extract object from message with unsupported serializayion type");
+      throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
     }
   }
 
-  // substitution for non-messageable objects without ROOT dictionary
-  // the operation depends on the transmitted serialization method
+  // substitution for non-messageable objects for which serialization method can not
+  // be derived by type, the operation depends on the transmitted serialization method
   // FIXME: some of the substitutions can for sure be combined when the return types
   // will be unified in a later refactoring
+  // FIXME: request a pointer where you get a pointer
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value == false &&
-                          std::is_same<T, DataRef>::value == false &&
-                          has_root_dictionary<T>::value == false,
+  typename std::enable_if<is_messageable<T>::value == false && std::is_pointer<T>::value == false &&
+                            std::is_same<T, DataRef>::value == false && has_root_dictionary<T>::value == false,
                           std::unique_ptr<T const, Deleter<T const>>>::type
-  get(char const* binding) const
+    get(char const* binding) const
   {
     using DataHeader = o2::header::DataHeader;
 
@@ -246,7 +282,7 @@ public:
       std::unique_ptr<T const, Deleter<T const>> result(DataRefUtils::as<ROOTSerialized<T>>(ref).release());
       return std::move(result);
     } else {
-      throw std::runtime_error("Attempt to extract object from message with unsupported serializayion type");
+      throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
     }
   }
 
