@@ -16,6 +16,7 @@ extern bool keysShift[256];
 extern int InitGL();
 extern void HandleKeyRelease(int wParam);
 extern int DrawGLScene(bool doAnimation = false);
+void OpenGLPrint(const char* s);
 extern void ReSizeGLScene(int width, int height);
 void HandleSendKey();
 

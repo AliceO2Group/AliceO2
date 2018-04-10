@@ -377,3 +377,4 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 }
 
 void DisplayExit() {}
+void OpenGLPrint(const char* s) {}

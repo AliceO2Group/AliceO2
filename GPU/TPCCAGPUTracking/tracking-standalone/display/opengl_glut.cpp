@@ -137,3 +137,5 @@ void DisplayExit()
 	pthread_mutex_unlock(&semLockExit);
 	while (glutRunning) usleep(10000);
 }
+
+void OpenGLPrint(const char* s) {}

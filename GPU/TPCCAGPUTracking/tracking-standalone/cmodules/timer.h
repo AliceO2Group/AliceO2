@@ -12,6 +12,7 @@ public:
 	void ResetStart();
 	double GetElapsedTime();
 	double GetCurrentElapsedTime(bool reset = false);
+	int IsRunning() {return running;}
 
 private:
 	double ElapsedTime;
