@@ -19,6 +19,24 @@
 #include "include.h"
 #include "../cmodules/timer.h"
 
+struct DrawArraysIndirectCommand
+{
+	DrawArraysIndirectCommand(uint a = 0, uint b = 0, uint c = 0, uint d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
+	uint  count;
+	uint  instanceCount;
+	uint  first;
+	uint  baseInstance;
+};
+
+//#define CHKERR(cmd) {cmd;}
+#define CHKERR(cmd) {(cmd); GLenum err = glGetError(); while (err != GL_NO_ERROR) {printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__);exit(1);}}
+
+#define OPENGL_EMULATE_MULTI_DRAW 0
+#define OPENGL_DRAW_INDIRECT 1
+#define OPENGL_DEPTH_BUFFER 0
+#define OPENGL_SMOOTH_POINTS 1
+#define OPENGL_SMOOTH_LINES 1
+
 #define fgkNSlices 36
 #ifndef BUILD_QA
 bool SuppressHit(int iHit) {return false;}
@@ -30,7 +48,8 @@ int screenshot_scale = 1;
 
 const int init_width = 1024, init_height = 768;
 
-GLuint vbo_id;
+GLuint vbo_id, indirect_id;
+int indirectSliceOffset[fgkNSlices];
 typedef std::tuple<GLsizei, GLsizei, int> vboList;
 struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
 std::vector<GLvertex> vertexBuffer[fgkNSlices];
@@ -44,7 +63,21 @@ inline void drawVertices(const vboList& v, const GLenum t)
 	auto iSlice = std::get<2>(v);
 	if (count == 0) return;
 	drawCalls += count;
-	glMultiDrawArrays(t, vertexBufferStart[iSlice].data() + first, vertexBufferCount[iSlice].data() + first, count);
+
+	if (OPENGL_DRAW_INDIRECT)
+	{
+		CHKERR(glMultiDrawArraysIndirect(t, (void*) (size_t) ((indirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand)), count, 0));
+	}
+	else if (OPENGL_EMULATE_MULTI_DRAW)
+	{
+		for (int k = 0;k < count;k++) CHKERR(glDrawArrays(t, vertexBufferStart[iSlice][first + k], vertexBufferCount[iSlice][first + k]));
+	}
+	else
+	{
+		CHKERR(glMultiDrawArrays(t, vertexBufferStart[iSlice].data() + first, vertexBufferCount[iSlice].data() + first, count));
+	}
+
+	//CHKERR(glDrawArrays(t, vertexBufferStart[iSlice][first], vertexBufferStart[iSlice][first + count - 1] - vertexBufferStart[iSlice][first] + vertexBufferCount[iSlice][first + count - 1])); //TEST, combine in single strip
 	
 	/*fprintf(stderr, "Draw start %d count %d: %d (size %lld)\n", (vertexBufferStart.data() + v.first)[0], (vertexBufferCount.data() + v.first)[0], v.second, (long long int) vertexBuffer.size());
 	for (int k = vertexBufferStart.data()[v.first];k < vertexBufferStart.data()[v.first + v.second - 1] + vertexBufferCount.data()[v.first + v.second - 1];k++)
@@ -195,15 +228,23 @@ void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 
 int InitGL()
 {
-	glewInit();
-	glGenBuffers(1, &vbo_id);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
-	glShadeModel(GL_SMOOTH);                           // Enable Smooth Shading
-	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);              // Black Background
-	glClearDepth(1.0f);                                // Depth Buffer Setup
-	glEnable(GL_DEPTH_TEST);                           // Enables Depth Testing
-	glDepthFunc(GL_LEQUAL);                            // The Type Of Depth Testing To Do
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // Really Nice Perspective Calculations
+	CHKERR(glewInit());
+	CHKERR(glGenBuffers(1, &vbo_id));
+	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id));
+	if (OPENGL_DRAW_INDIRECT)
+	{
+		CHKERR(glGenBuffers(1, &indirect_id));
+		CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
+	}
+	CHKERR(glShadeModel(GL_SMOOTH));                           // Enable Smooth Shading
+	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);                      // Black Background
+	glClearDepth(1.0f);                                        // Depth Buffer Setup
+	if (OPENGL_DEPTH_BUFFER)
+	{
+		CHKERR(glEnable(GL_DEPTH_TEST));                           // Enables Depth Testing
+		CHKERR(glDepthFunc(GL_LEQUAL));                            // The Type Of Depth Testing To Do
+		CHKERR(glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)); // Really Nice Perspective Calculations
+	}
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	ReSizeGLScene(init_width, init_height);
@@ -711,12 +752,12 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 #endif
 
 	//Open GL Default Values
-	glEnable(GL_POINT_SMOOTH);
-	glEnable(GL_LINE_SMOOTH);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glPointSize(pointSize);
-	glLineWidth(lineWidth);
+	if (OPENGL_SMOOTH_POINTS) CHKERR(glEnable(GL_POINT_SMOOTH));
+	if (OPENGL_SMOOTH_LINES) CHKERR(glEnable(GL_LINE_SMOOTH));
+	CHKERR(glEnable(GL_BLEND));
+	CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+	CHKERR(glPointSize(pointSize));
+	CHKERR(glLineWidth(lineWidth));
 
 	//Extract global cluster information
 	if (updateDLList || displayEventNr != currentEventNr)
@@ -847,31 +888,36 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 			}
 		}
 
-		int errCode;
-		if ((errCode = glGetError()) != GL_NO_ERROR)
+		glDLrecent = 1;
+		size_t totalVertizes = 0;
+		for (int i = 0;i < fgkNSlices;i++) totalVertizes += vertexBuffer[i].size();
+		vertexBuffer[0].reserve(totalVertizes); //ATTENTION, this only reserves but not initializes, I.e. we use the vector as raw ptr for now...
+		size_t totalYet = vertexBuffer[0].size();
+		for (int i = 1;i < fgkNSlices;i++)
 		{
-			printf("Error creating OpenGL display list: %s\n", gluErrorString(errCode));
-			resetScene = 1;
-		}
-		else
-		{
-			glDLrecent = 1;
-			size_t totalVertizes = 0;
-			for (int i = 0;i < fgkNSlices;i++) totalVertizes += vertexBuffer[i].size();
-			vertexBuffer[0].reserve(totalVertizes); //ATTENTION, this only reserves but not initializes, I.e. we use the vector as raw ptr for now...
-			size_t totalYet = vertexBuffer[0].size();
-			for (int i = 1;i < fgkNSlices;i++)
+			for (unsigned int j = 0;j < vertexBufferStart[i].size();j++)
 			{
-				for (unsigned int j = 0;j < vertexBufferStart[i].size();j++)
-				{
-					vertexBufferStart[i][j] += totalYet;
-				}
-				memcpy(&vertexBuffer[0][totalYet], &vertexBuffer[i][0], vertexBuffer[i].size() * sizeof(vertexBuffer[i][0]));
-				totalYet += vertexBuffer[i].size();
-				vertexBuffer[i].clear();
+				vertexBufferStart[i][j] += totalYet;
 			}
-			glBufferData(GL_ARRAY_BUFFER, totalVertizes * sizeof(vertexBuffer[0][0]), vertexBuffer[0].data(), GL_STATIC_DRAW);
-			vertexBuffer[0].clear();
+			memcpy(&vertexBuffer[0][totalYet], &vertexBuffer[i][0], vertexBuffer[i].size() * sizeof(vertexBuffer[i][0]));
+			totalYet += vertexBuffer[i].size();
+			vertexBuffer[i].clear();
+		}
+		CHKERR(glBufferData(GL_ARRAY_BUFFER, totalVertizes * sizeof(vertexBuffer[0][0]), vertexBuffer[0].data(), GL_STATIC_DRAW));
+		vertexBuffer[0].clear();
+		
+		if (OPENGL_DRAW_INDIRECT)
+		{
+			std::vector<DrawArraysIndirectCommand> cmds;
+			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+			{
+				indirectSliceOffset[iSlice] = cmds.size();
+				for (unsigned int k = 0;k < vertexBufferStart[iSlice].size();k++)
+				{
+					cmds.emplace_back(vertexBufferCount[iSlice][k], 1, vertexBufferStart[iSlice][k], 0);
+				}
+			}
+			CHKERR(glBufferData(GL_DRAW_INDIRECT_BUFFER, cmds.size() * sizeof(cmds[0]), cmds.data(), GL_STATIC_DRAW));
 		}
 	}
 	if (showTimer)
@@ -896,8 +942,8 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	if (glDLrecent)
 	{
 		drawCalls = 0;
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glVertexPointer(3, GL_FLOAT, 0, 0);
+		CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
+		CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
 			if (drawSlice != -1)
@@ -914,9 +960,9 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 
 			if (drawClusters)
 			{
-				SetColorClusters();
 				for (int iCol = 0;iCol < nCollisions;iCol++)
 				{
+					SetColorClusters();
 					if (showCollision != -1) iCol = showCollision;
 					if (colorCollisions) SetCollisionColor(iCol);
 					drawVertices(GLpoints[iSlice][0][iCol], GL_POINTS);
@@ -1017,32 +1063,26 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 					SetColorGlobalTracks();
 					drawVertices(glDLlines[iSlice][5], GL_LINE_STRIP);
 				}
-				if (drawFinal)
+				for (int iCol = 0;iCol < nCollisions;iCol++)
 				{
-					SetColorFinal();
-					for (int iCol = 0;iCol < nCollisions;iCol++)
+					if (showCollision != -1) iCol = showCollision;
+					if (drawFinal)
 					{
-						if (showCollision != -1) iCol = showCollision;
+						SetColorFinal();
 						if (colorCollisions) SetCollisionColor(iCol);
-						if (!drawClusters) drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS);
-
+						//if (!drawClusters) drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS);
 						drawVertices(glDLfinal[iSlice][iCol], GL_LINE_STRIP);
-						if (showCollision != -1) break;
 					}
-				}
-				if (markClusters)
-				{
-					SetColorMarked();
-					for (int iCol = 0;iCol < nCollisions;iCol++)
+					if (markClusters)
 					{
-						if (showCollision != -1) iCol = showCollision;
+						SetColorMarked();
 						drawVertices(GLpoints[iSlice][8][iCol], GL_POINTS);
-						if (showCollision != -1) break;
 					}
+					if (showCollision != -1) break;
 				}
 			}
 		}
-		glDisableClientState(GL_VERTEX_ARRAY);
+		CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
 	}
 
 //Free event
