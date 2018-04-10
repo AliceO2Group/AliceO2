@@ -43,7 +43,6 @@ private:
   ServiceRegistry mServiceRegistry;
   MessageContext mContext;
   RootObjectContext mRootContext;
-  DataAllocator mAllocator;
   size_t mCurrentTimeslice;
   float mRate;
   size_t mLastTime;

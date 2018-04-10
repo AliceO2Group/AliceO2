@@ -47,10 +47,15 @@ public:
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-  DataAllocator(FairMQDevice *device,
-                MessageContext *context,
-                RootObjectContext *rootContext,
-                const AllowedOutputsMap &outputs);
+  void configure(FairMQDevice *device,
+                 MessageContext *context,
+                 RootObjectContext *rootContext,
+                 const AllowedOutputsMap &outputs) {
+    this->mDevice = device;
+    this->mContext = context;
+    this->mRootContext = rootContext;
+    this->mAllowedOutputs = outputs;
+  }
 
   DataChunk newChunk(const OutputSpec &, size_t);
   DataChunk adoptChunk(const OutputSpec &, char *, size_t, fairmq_free_fn*, void *);
@@ -312,7 +317,18 @@ public:
                   "pointer to data type not supported by API. Please pass object by reference");
   }
 
- private:
+  static DataAllocator &getInstance() {
+    static DataAllocator instance;
+    return instance;
+  };
+
+private:
+  /// Only one allocator per process.
+  DataAllocator() = default;
+  ~DataAllocator()= default;
+  DataAllocator(const DataAllocator&) = delete;
+  DataAllocator& operator=(const DataAllocator&) = delete;
+
   std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
                                          std::string const &channel,
@@ -327,6 +343,80 @@ public:
   MessageContext *mContext;
   RootObjectContext *mRootContext;
 };
+
+// These are free functions which depend on a global DataAllocator.
+template <typename T>
+typename std::enable_if<is_messageable<T>::value == true, T&>::type
+make(const OutputSpec& spec) {
+  auto &allocator = DataAllocator::getInstance();
+  return allocator.make<T>(spec);
+}
+
+// In case an extra argument is provided, we consider this an array / 
+// collection elements of that type
+template <typename T>
+typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
+make(const OutputSpec& spec, size_t nElements)
+{
+  auto &allocator = DataAllocator::getInstance();
+  return allocator.make<T>(spec, nElements);
+}
+
+template <typename T, typename... Args>
+typename std::enable_if<std::is_base_of<TObject, T>::value == true, T&>::type
+make(const OutputSpec &spec, Args... args) {
+  auto &allocator = DataAllocator::getInstance();
+  return allocator.make<T>(spec, args...);
+}
+
+/// catching unsupported type for case without additional arguments
+/// have to add three specializations because of the different role of
+/// the arguments and the different return types
+template <typename T>
+typename std::enable_if<
+  std::is_base_of<TObject, T>::value == false &&
+  is_messageable<T>::value == false,
+  T&>::type
+make(const OutputSpec&)
+{
+  static_assert(is_messageable<T>::value == true ||
+                std::is_base_of<TObject, T>::value == true,
+                "data type T not supported by API, \n specializations available for"
+                "\n - trivially copyable, non-polymorphic structures"
+                "\n - arrays of those"
+                "\n - TObject with additional constructor arguments");
+}
+
+/// catching unsupported type for case of span of objects
+template <typename T>
+typename std::enable_if<
+  std::is_base_of<TObject, T>::value == false &&
+  is_messageable<T>::value == false,
+  gsl::span<T>>::type
+make(const OutputSpec&, size_t)
+{
+  static_assert(is_messageable<T>::value == true,
+                "data type T not supported by API, \n specializations available for"
+                "\n - trivially copyable, non-polymorphic structures"
+                "\n - arrays of those"
+                "\n - TObject with additional constructor arguments");
+}
+
+/// catching unsupported type for case of at least two additional arguments
+template <typename T, typename U, typename V, typename... Args>
+typename std::enable_if<
+  std::is_base_of<TObject, T>::value == false &&
+  is_messageable<T>::value == false,
+  T&>::type
+make(const OutputSpec&, U, V, Args...)
+{
+  static_assert(is_messageable<T>::value == true || std::is_base_of<TObject, T>::value == true,
+                "data type T not supported by API, \n specializations available for"
+                "\n - trivially copyable, non-polymorphic structures"
+                "\n - arrays of those"
+                "\n - TObject with additional constructor arguments");
+}
+
 
 }
 }

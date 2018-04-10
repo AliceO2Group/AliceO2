@@ -32,7 +32,7 @@ DataProcessorSpec templateProducer() {
           // Create a single output. 
           size_t index = ctx.services().get<ParallelContext>().index1D();
           sleep(1);
-          auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "A", index}, 1);
+          auto aData = o2::framework::make<int>(OutputSpec{"TST", "A", index}, 1);
           ctx.services().get<ControlService>().readyToQuit(true);
         };
       }

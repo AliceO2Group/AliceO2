@@ -29,12 +29,12 @@ DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &regi
   mStatelessProcess{spec.algorithm.onProcess},
   mError{spec.algorithm.onError},
   mConfigRegistry{nullptr},
-  mAllocator{this,&mContext, &mRootContext, spec.outputs},
   mServiceRegistry{registry},
   mCurrentTimeslice{0},
   mRate{0.},
   mLastTime{0}
 {
+  DataAllocator::getInstance().configure(this,&mContext, &mRootContext, spec.outputs);
 }
 
 void DataSourceDevice::Init() {
@@ -79,7 +79,7 @@ bool DataSourceDevice::ConditionalRun() {
       sleep(1);
     }
 
-    ProcessingContext processingContext{dummyInputs, mServiceRegistry, mAllocator};
+    ProcessingContext processingContext{dummyInputs, mServiceRegistry, DataAllocator::getInstance()};
     if (mStatelessProcess) {
       LOG(DEBUG) << "Has stateless process callback";
       mStatelessProcess(processingContext);

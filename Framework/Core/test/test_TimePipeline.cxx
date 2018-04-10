@@ -86,7 +86,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", index }, collectionChunkSize);
+  auto tpcClusters = o2::framework::make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", index }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -106,7 +106,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index },
+  auto processedTpcClusters = o2::framework::make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index },
                                                                 collectionChunkSize);
 
   int i = 0;

@@ -21,17 +21,6 @@ using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
-DataAllocator::DataAllocator(FairMQDevice *device,
-                             MessageContext *context,
-                             RootObjectContext *rootContext,
-                             const AllowedOutputsMap &outputs)
-: mDevice{device},
-  mAllowedOutputs{outputs},
-  mContext{context},
-  mRootContext{rootContext}
-{
-}
-
 std::string
 DataAllocator::matchDataHeader(const OutputSpec &spec, size_t timeslice) {
   // FIXME: we should take timeframeId into account as well.

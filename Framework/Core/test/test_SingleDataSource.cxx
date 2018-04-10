@@ -25,7 +25,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "A1", 0}, 1);
+       auto aData = o2::framework::make<int>(OutputSpec{"TST", "A1", 0}, 1);
        ctx.services().get<ControlService>().readyToQuit(true);
       }
     },

@@ -122,9 +122,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
       [](ProcessingContext& ctx) {
         sleep(1);
         // Create an histogram
-        auto& singleHisto = ctx.allocator().make<TH1F>(OutputSpec{ "TST", "HISTOS", 0 },
+        auto& singleHisto = o2::framework::make<TH1F>(OutputSpec{ "TST", "HISTOS", 0 },
                                                        "h1", "test", 100, -10., 10.);
-        auto& aString = ctx.allocator().make<TObjString>(OutputSpec{ "TST", "STRING", 0 }, "foo");
+        auto& aString = o2::framework::make<TObjString>(OutputSpec{ "TST", "STRING", 0 }, "foo");
         singleHisto.FillRandom("gaus", 1000);
         Double_t stats[4];
         singleHisto.GetStats(stats);
@@ -209,7 +209,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);
+  auto tpcClusters = o2::framework::make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -221,7 +221,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     i++;
   }
 
-  auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS", 0 }, collectionChunkSize);
+  auto itsClusters = o2::framework::make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS", 0 }, collectionChunkSize);
   i = 0;
   for (auto& cluster : itsClusters) {
     assert(i < collectionChunkSize);
@@ -239,9 +239,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
   const FakeCluster* inputDataIts = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataITS").payload);
 
-  auto processedTpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", 0 },
+  auto processedTpcClusters = o2::framework::make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", 0 },
                                                                 collectionChunkSize);
-  auto processedItsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS_P", 0 },
+  auto processedItsClusters = o2::framework::make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS_P", 0 },
                                                                 collectionChunkSize);
 
   int i = 0;

@@ -38,19 +38,19 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       AlgorithmSpec{
         [](ProcessingContext &ctx) {
           // A new message with 1 XYZ instance in it
-          XYZ &x = ctx.allocator().make<XYZ>(OutputSpec{"TST", "POINT", 0});
+          XYZ &x = make<XYZ>(OutputSpec{"TST", "POINT", 0});
           // A new message with a gsl::span<XYZ> with 1000 items
-          gsl::span<XYZ> y = ctx.allocator().make<XYZ>(OutputSpec{"TST", "POINTS", 0}, 1000);
+          gsl::span<XYZ> y = make<XYZ>(OutputSpec{"TST", "POINTS", 0}, 1000);
           y[0] = XYZ{1,2,3};
           y[999] = XYZ{1,2,3};
           // A new message with a TH1F inside
-          auto h = ctx.allocator().make<TH1F>(OutputSpec{"TST", "HISTO"},
-                                             "h", "test", 100, -10., 10.);
+          auto h = make<TH1F>(OutputSpec{"TST", "HISTO"},
+                                         "h", "test", 100, -10., 10.);
           // A snapshot for an std::vector
           std::vector<XYZ> v{1000};
           v[0] = XYZ{1,2,3};
           v[999] = XYZ{1,2,3};
-          ctx.allocator().snapshot(OutputSpec{"TST", "VECTOR"}, v);
+          ctx.outputs().snapshot(OutputSpec{"TST", "VECTOR"}, v);
           v[999] = XYZ{2,3,4};
 
           // A snapshot for an std::vector of pointers to objects
@@ -58,11 +58,11 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           // change, but not the one which is done after taking the snapshot
           std::vector<XYZ*> p;
           for (auto & i : v) p.push_back(&i);
-          ctx.allocator().snapshot(OutputSpec{"TST", "LINEARIZED"}, p);
+          ctx.outputs().snapshot(OutputSpec{"TST", "LINEARIZED"}, p);
           v[999] = XYZ{3,4,5};
 
           TNamed named("named", "a named test object");
-          ctx.allocator().snapshot(OutputSpec{"TST", "OBJECT"}, named);
+          ctx.outputs().snapshot(OutputSpec{"TST", "OBJECT"}, named);
         }
       }
     },
