@@ -597,7 +597,7 @@ bool AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, int nTPCtracks)
         fDebug->SetChi2Real(fCandidates[currIdx].GetPredictedChi2(yzPosReal, fSpacePoints[realTrkltId].fCov), iLayer);
         fDebug->SetRawTrackletPositionReal(fSpacePoints[realTrkltId].fR, fSpacePoints[realTrkltId].fX, iLayer);
         fDebug->SetCorrectedTrackletPositionReal(yzPosReal, iLayer);
-        fDebug->SetTrackletPropertiesReal(fTracklets[realTrkltId].GetDetector(), fGeo->GetSector(fTracklets[realTrkltId].GetDetector()), iLayer);
+        fDebug->SetTrackletPropertiesReal(fGeo->GetSector(fTracklets[realTrkltId].GetDetector()), fTracklets[realTrkltId].GetDetector(), iLayer);
       }
     }
     //
