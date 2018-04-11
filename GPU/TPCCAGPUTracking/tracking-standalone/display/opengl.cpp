@@ -35,12 +35,19 @@ struct DrawArraysIndirectCommand
 #define OPENGL_EMULATE_MULTI_DRAW 0
 
 bool smoothPoints = true;
-bool smoothLines = true;
+bool smoothLines = false;
 bool depthBuffer = false;
 const int drawQualityPoint = 0;
 const int drawQualityLine = 0;
 const int drawQualityPerspective = 0;
+int drawQualityMSAA = 0;
+int drawQualityVSync = 1;
 bool useGLIndirectDraw = true;
+
+bool camLookOrigin = false;
+bool camYUp = false;
+float angleRollOrigin = -1e9;
+int cameraMode = 0;
 
 #define fgkNSlices 36
 #ifndef BUILD_QA
@@ -117,7 +124,42 @@ bool keysShift[256] = {false}; //Shift held when key down
 volatile int exitButton = 0;
 volatile int sendKey = 0;
 
-GLfloat currentMatrice[16];
+GLfloat currentMatrix[16];
+float xyz[3];
+float angle[3];
+template <typename... Args> void SetInfo(Args... args);
+void calcXYZ()
+{
+	xyz[0] = -(currentMatrix[0] * currentMatrix[12] + currentMatrix[1] * currentMatrix[13] + currentMatrix[2] * currentMatrix[14]);
+	xyz[1] = -(currentMatrix[4] * currentMatrix[12] + currentMatrix[5] * currentMatrix[13] + currentMatrix[6] * currentMatrix[14]);
+	xyz[2] = -(currentMatrix[8] * currentMatrix[12] + currentMatrix[9] * currentMatrix[13] + currentMatrix[10] * currentMatrix[14]);
+	
+	angle[0] = -asin(currentMatrix[6]); //Invert rotY*rotX*rotZ
+	float A = cos(angle[0]);
+	if (fabs(A) > 0.005)
+	{
+		angle[1] = atan2(-currentMatrix[2] / A, currentMatrix[10] / A);
+		angle[2] = atan2(currentMatrix[4] / A, currentMatrix[5] / A);
+	}
+	else
+	{
+		angle[1] = 0;
+		angle[2] = atan2(-currentMatrix[1], -currentMatrix[0]);
+	}
+	
+	/*float angle[1] = -asin(currentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
+	float C = cos( angle_y );
+	if (fabs(C) > 0.005) //Gimball lock?
+	{
+		angle[0]  = atan2(-currentMatrix[6] / C, currentMatrix[10] / C);
+		angle[2]  = atan2(-currentMatrix[1] / C, currentMatrix[0] / C);
+	}
+	else
+	{
+		angle[0]  = 0; //set x-angle
+		angle[2]  = atan2(currentMatrix[4], currentMatrix[5]);
+	}*/
+}
 
 int drawClusters = true;
 int drawLinks = false;
@@ -165,7 +207,7 @@ int glDLrecent = 0;
 int updateDLList = 0;
 
 float pointSize = 2.0;
-float lineWidth = 1.5;
+float lineWidth = 1.4;
 
 int animate = 0;
 
@@ -238,7 +280,7 @@ void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 		glLoadMatrixf(tmp);
 	}
 
-	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
+	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 	screen_width = width;
 	screen_height = height;
 }
@@ -249,6 +291,14 @@ void setQuality()
 	CHKERR(glHint(GL_POINT_SMOOTH_HINT, drawQualityPoint == 2 ? GL_NICEST : drawQualityPoint == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_LINE_SMOOTH_HINT, drawQualityLine == 2 ? GL_NICEST : drawQualityLine == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_PERSPECTIVE_CORRECTION_HINT, drawQualityPerspective == 2 ? GL_NICEST : drawQualityPerspective == 1 ? GL_DONT_CARE : GL_FASTEST));
+	if (drawQualityMSAA)
+	{
+		CHKERR(glEnable(GL_MULTISAMPLE))
+	}
+	else
+	{
+		CHKERR(glDisable(GL_MULTISAMPLE))
+	}
 }
 
 void setDepthBuffer()
@@ -630,7 +680,7 @@ vboList DrawGrid(AliHLTTPCCATracker &tracker)
 
 int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 {
-	static float fpsscale = 1;
+	static float fpsscale = 1, fpsscaleadjust = 0;
 
 	static int framesDone = 0, framesDoneFPS = 0;
 	static HighResTimer timerFPS, timerDisplay, timerDraw;
@@ -652,20 +702,20 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 
 	int mouseWheelTmp = mouseWheel;
 	mouseWheel = 0;
+	bool lookOrigin = camLookOrigin ^ keys[KEY_ALT];
+	bool yUp = camYUp ^ keys[KEY_CTRL] ^ lookOrigin;
 
 	//Calculate rotation / translation scaling factors
-	float scalefactor = keys[16] ? 0.2 : 1.0;
-	float rotatescalefactor = 1;
-
-	float sqrdist = sqrt(sqrt(currentMatrice[12] * currentMatrice[12] + currentMatrice[13] * currentMatrice[13] + currentMatrice[14] * currentMatrice[14]) / GL_SCALE_FACTOR) * 0.8;
+	float scalefactor = keys[KEY_SHIFT] ? 0.2 : 1.0;
+	float rotatescalefactor = scalefactor * 0.25f;
+	if (drawSlice != -1)
+	{
+		scalefactor *= 0.2f;
+	}
+	float sqrdist = sqrt(sqrt(currentMatrix[12] * currentMatrix[12] + currentMatrix[13] * currentMatrix[13] + currentMatrix[14] * currentMatrix[14]) / GL_SCALE_FACTOR) * 0.8;
 	if (sqrdist < 0.2) sqrdist = 0.2;
 	if (sqrdist > 5) sqrdist = 5;
 	scalefactor *= sqrdist;
-	if (drawSlice != -1)
-	{
-		scalefactor /= 5;
-		rotatescalefactor = 3;
-	}
 
 	//Perform new rotation / translation
 	if (doAnimation)
@@ -684,85 +734,120 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 			moveZ = scalefactor * 1.f * (nFrame - 510) / 60.f;
 		}
 		glTranslatef(moveX, moveY, moveZ);
-	}
-	else
-	{
-		float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (keys['W'] - keys['S']) * (!keys[16]) * 0.2 * fpsscale);
-		float moveX = scalefactor * ((float) (keys['A'] - keys['D']) * (!keys[16]) * 0.2 * fpsscale);
-		glTranslatef(moveX, 0, moveZ);
-	}
 
-	if (doAnimation)
-	{
-		glRotatef(scalefactor * rotatescalefactor * -0.5, 0, 1, 0);
-		glRotatef(scalefactor * rotatescalefactor * 0.5 * 0.25, 1, 0, 0);
+		glRotatef(rotatescalefactor * -0.5, 0, 1, 0);
+		glRotatef(rotatescalefactor * 0.5 * 0.25, 1, 0, 0);
 		glRotatef(scalefactor * 0.2, 0, 0, 1);
 	}
-	else if (mouseDnR && mouseDn)
+	else if (resetScene)
 	{
-		glTranslatef(0, 0, -scalefactor * ((float) mouseMvY - (float) mouseDnY) / 4);
-		glRotatef(scalefactor * ((float) mouseMvX - (float) mouseDnX), 0, 0, 1);
-	}
-	else if (mouseDnR)
-	{
-		glTranslatef(-scalefactor * 0.5 * ((float) mouseDnX - (float) mouseMvX) / 4, -scalefactor * 0.5 * ((float) mouseMvY - (float) mouseDnY) / 4, 0);
-	}
-	else if (mouseDn)
-	{
-		glRotatef(scalefactor * rotatescalefactor * ((float) mouseMvX - (float) mouseDnX), 0, 1, 0);
-		glRotatef(scalefactor * rotatescalefactor * ((float) mouseMvY - (float) mouseDnY), 1, 0, 0);
-	}
-	if (!keys[16] && (keys['E'] ^ keys['F']))
-	{
-		glRotatef(scalefactor * fpsscale * 2, 0, 0, keys['E'] - keys['F']);
-	}
-
-	if (mouseDn || mouseDnR)
-	{
-#ifdef R__WIN32a
-		mouseReset = true;
-		SetCursorPos(mouseCursorPos.x, mouseCursorPos.y);
-#else
-		mouseDnX = mouseMvX;
-		mouseDnY = mouseMvY;
-#endif
-	}
-
-	//Apply standard translation / rotation
-	glMultMatrixf(currentMatrice);
-
-	//Graphichs Options
-	int deltaLine = keys['+']*keysShift['+'] - keys['-']*keysShift['-'];
-	lineWidth += (float) deltaLine * fpsscale * 0.05;
-	if (lineWidth < 0.01) lineWidth = 0.01;
-	if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", lineWidth); 
-	int deltaPoint = keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-']);
-	pointSize += (float) deltaPoint * fpsscale * 0.05;
-	if (pointSize < 0.01) pointSize = 0.01;
-	if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", pointSize);
-	
-	//Reset position
-	if (resetScene)
-	{
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
 		glTranslatef(0, 0, -16);
-
-		timerFPS.ResetStart();
-		framesDone = framesDoneFPS = 0;
 
 		pointSize = 2.0;
 		drawSlice = -1;
-		
-		Xadd = 0;
-		Zadd = 0;
+		Xadd = Zadd = 0;
+		camLookOrigin = camYUp = false;
+		angleRollOrigin = -1e9;
 
 		resetScene = 0;
 		updateDLList = true;
 	}
+	else
+	{
+		float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (keys['W'] - keys['S']) * (!keys[KEY_SHIFT]) * 0.2 * fpsscale);
+		float moveY = scalefactor * ((float) (keys[KEY_PAGEDOWN] - keys[KEY_PAGEUP]) * 0.2 * fpsscale);
+		float moveX = scalefactor * ((float) (keys['A'] - keys['D']) * (!keys[KEY_SHIFT]) * 0.2 * fpsscale);
+		float rotRoll = rotatescalefactor * fpsscale * 2 * (keys['E'] - keys['F']) * (!keys[KEY_SHIFT]);
+		float rotYaw = rotatescalefactor * fpsscale * 2 * (keys[KEY_RIGHT] - keys[KEY_LEFT]);
+		float rotPitch = rotatescalefactor * fpsscale * 2 * (keys[KEY_DOWN] - keys[KEY_UP]);
 
+		if (mouseDnR && mouseDn)
+		{
+			moveZ += -scalefactor * ((float) mouseMvY - (float) mouseDnY) / 4;
+			rotRoll += rotatescalefactor * ((float) mouseMvX - (float) mouseDnX);
+		}
+		else if (mouseDnR)
+		{
+			moveX += -scalefactor * 0.5 * ((float) mouseDnX - (float) mouseMvX) / 4;
+			moveY += -scalefactor * 0.5 * ((float) mouseMvY - (float) mouseDnY) / 4;
+		}
+		else if (mouseDn)
+		{
+			rotYaw += rotatescalefactor * ((float) mouseMvX - (float) mouseDnX);
+			rotPitch += rotatescalefactor * ((float) mouseMvY - (float) mouseDnY);
+		}
+
+		if (yUp) angleRollOrigin = 0;
+		else if (!lookOrigin) angleRollOrigin = -1e6;
+		if (lookOrigin)
+		{
+			if (!yUp)
+			{
+				if (angleRollOrigin < -1e6) angleRollOrigin = yUp ? 0. : -angle[2];
+				angleRollOrigin += rotRoll;
+				glRotatef(angleRollOrigin, 0, 0, 1);
+				float tmpX = moveX, tmpY = moveY;
+				moveX = tmpX * cos(angle[2]) - tmpY * sin(angle[2]);
+				moveY = tmpX * sin(angle[2]) + tmpY * cos(angle[2]);
+			}
+			
+			const float x = xyz[0], y = xyz[1], z = xyz[2];
+			float r = sqrt(x * x + + y * y + z * z);
+			float r2 = sqrt(x * x + z * z);
+			float phi = atan2(z, x);
+			phi += moveX * 0.1f;
+			float theta = atan2(xyz[1], r2);
+			theta -= moveY * 0.1f;
+			const float max_theta = M_PI / 2 - 0.01;
+			if (theta >= max_theta) theta = max_theta;
+			else if (theta <= -max_theta) theta = -max_theta;
+			if (moveZ >= r - 0.1) moveZ = r - 0.1;
+			r -= moveZ;
+			r2 = r * cos(theta);
+			xyz[0] = r2 * cos(phi);
+			xyz[2] = r2 * sin(phi);
+			xyz[1] = r * sin(theta);
+			
+			gluLookAt(xyz[0], xyz[1], xyz[2], 0, 0, 0, 0, 1, 0);
+		}
+		else
+		{
+			glTranslatef(moveX, moveY, moveZ);
+			if (rotYaw != 0.f) glRotatef(rotYaw, 0, 1, 0);
+			if (rotPitch != 0.f) glRotatef(rotPitch, 1, 0, 0);
+			if (!yUp && rotRoll != 0.f) glRotatef(rotRoll, 0, 0, 1);
+			glMultMatrixf(currentMatrix); //Apply previous translation / rotation
+			
+			if (yUp)
+			{
+				glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
+				calcXYZ();
+				glLoadIdentity();
+				glRotatef(angle[2] * 180.f / M_PI, 0, 0, 1);
+				glMultMatrixf(currentMatrix);
+			}
+		}
+
+		//Graphichs Options
+		int deltaLine = keys['+']*keysShift['+'] - keys['-']*keysShift['-'];
+		lineWidth += (float) deltaLine * fpsscale * 0.05;
+		if (lineWidth < 0.01) lineWidth = 0.01;
+		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", lineWidth); 
+		int deltaPoint = keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-']);
+		pointSize += (float) deltaPoint * fpsscale * 0.05;
+		if (pointSize < 0.01) pointSize = 0.01;
+		if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", pointSize);
+	}
+	
 	//Store position
-	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
+	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
+	calcXYZ();
+	
+	if (mouseDn || mouseDnR)
+	{
+		mouseDnX = mouseMvX;
+		mouseDnY = mouseMvY;
+	}	
 
 //Make sure event gets not overwritten during display
 #ifdef R__WIN32
@@ -845,7 +930,8 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 		currentEventNr = displayEventNr;
 
 		timerFPS.ResetStart();
-		framesDone = framesDoneFPS = 0;
+		framesDoneFPS = 0;
+		fpsscaleadjust = 0;
 		glDLrecent = 0;
 		updateDLList = 0;
 	}
@@ -1116,12 +1202,12 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	double time = timerFPS.GetCurrentElapsedTime();
 	char info[1024];
 	float fps = (double) framesDoneFPS / time;
-	sprintf(info, "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls)",
-		fps, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal, framesDone, drawCalls);
+	sprintf(info, "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) (X %f Y %f Z %f / %f %f %f)",
+		fps, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal, framesDone, drawCalls, xyz[0], xyz[1], xyz[2], angle[0], angle[1], angle[2]);
 	if (time > 1.)
 	{
 		if (printInfoText & 2) printf("%s\n", info);
-		fpsscale = 60 / fps;
+		if (fpsscaleadjust++) fpsscale = 60 / fps;
 		timerFPS.ResetStart();
 		framesDoneFPS = 0;
 	}		
@@ -1140,9 +1226,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 
 void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL, float mixFactor = 0.)
 {
-
-//#define SCALE_X 3
-#define SCALE_Y SCALE_X
+	int SCALE_Y = SCALE_X;
 
 	if (mixFactor < 0.f) mixFactor = 0.f;
 	if (mixFactor > 1.f) mixFactor = 1.f;
@@ -1246,49 +1330,81 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 	DrawGLScene();
 }
 
+void animation()
+{
+	static int nFrame = 0;
+
+	DrawGLScene(true);
+	char filename[16];
+	sprintf(filename, "video%05d.bmp", nFrame++);
+	unsigned char *mixBuffer = NULL;
+	drawClusters = nFrame < 240;
+	drawSeeds = nFrame >= 90 && nFrame < 210;
+	drawTracklets = nFrame >= 210 && nFrame < 300;
+	pointSize = nFrame >= 90 ? 1.0 : 2.0;
+	drawTracks = nFrame >= 300 && nFrame < 390;
+	drawFinal = nFrame >= 390;
+	drawGlobalTracks = nFrame >= 480;
+	DoScreenshot(NULL, 1, &mixBuffer);
+
+	drawClusters = nFrame < 210;
+	drawSeeds = nFrame > 60 && nFrame < 180;
+	drawTracklets = nFrame >= 180 && nFrame < 270;
+	pointSize = nFrame > 60 ? 1.0 : 2.0;
+	drawTracks = nFrame > 270 && nFrame < 360;
+	drawFinal = nFrame > 360;
+	drawGlobalTracks = nFrame > 450;
+	DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
+
+	free(mixBuffer);
+	printf("Wrote video frame %s\n\n", filename);
+}
+
 const char* HelpText[] = {
-	"[n]/[SPACE]       Next event", 
-	"[q]/[ESC]         Quit", 
-	"[r]               Reset Display Settings", 
-	"[l]               Draw single slice (next slice)", 
-	"[k]               Draw single slice (previous slice)", 
-	"[J]               Draw related slices (same plane in phi)", 
-	"[z]/[U]           Show splitting of TPC in slices by extruding volume, [U] resets", 
-	"[y]               Start Animation", 
-	"[g]               Draw Grid", 
-	"[i]               Project onto XY-plane", 
-	"[x]               Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
-	"[<]               Exclude rejected tracks", 
-	"[c]               Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
-	"[C]               Colorcode clusters of different collisions", 
-	"[v]               Hide rejected clusters from tracks", 
-	"[b]               Hide all clusters not belonging or related to matched tracks", 
-	"[1]               Show Clusters", 
-	"[2]               Show Links that were removed", 
-	"[3]               Show Links that remained in Neighbors Cleaner", 
-	"[4]               Show Seeds (Start Hits)", 
-	"[5]               Show Tracklets", 
-	"[6]               Show Tracks (after Tracklet Selector)", 
-	"[7]               Show Global Track Segments", 
-	"[8]               Show Final Merged Tracks (after Track Merger)", 
-	"[j]               Show global tracks as additional segments of final tracks", 
-	"[m]               Reorder clusters of merged tracks before showing them geometrically", 
-	"[t]               Take Screenshot", 
-	"[S]/[A]           Smooth points / lines",
-	"[D]               Enable / disable depth buffer",
-	"[F]               Switch fullscreen",
-	"[I]               Enable / disable GL indirect draw",
-	"[o]               Save current camera position", 
-	"[p]               Restore camera position", 
-	"[h]               Print Help", 
-	"[T]               Show info texts",
-	"[w]/[s]/[a]/[d]   Zoom / Move Left Right", 
-	"[e]/[f]           Rotate", 
-	"[+]/[-]           Make points thicker / fainter (Hold SHIFT for lines)", 
-	"[MOUSE1]          Look around", 
-	"[MOUSE2]          Shift camera", 
-	"[MOUSE1+2]        Zoom / Rotate", 
-	"[SHIFT]           Slow Zoom / Move / Rotate"
+	"[n] / [SPACE]            Next event", 
+	"[q] / [Q] / [ESC]        Quit", 
+	"[r]                      Reset Display Settings", 
+	"[l]                      Draw single slice (next slice)", 
+	"[k]                      Draw single slice (previous slice)", 
+	"[J]                      Draw related slices (same plane in phi)", 
+	"[z] / [U]                Show splitting of TPC in slices by extruding volume, [U] resets", 
+	"[y]                      Start Animation", 
+	"[g]                      Draw Grid", 
+	"[i]                      Project onto XY-plane", 
+	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
+	"[<]                      Exclude rejected tracks", 
+	"[c]                      Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
+	"[C]                      Colorcode clusters of different collisions", 
+	"[v]                      Hide rejected clusters from tracks", 
+	"[b]                      Hide all clusters not belonging or related to matched tracks", 
+	"[1]                      Show Clusters", 
+	"[2]                      Show Links that were removed", 
+	"[3]                      Show Links that remained in Neighbors Cleaner", 
+	"[4]                      Show Seeds (Start Hits)", 
+	"[5]                      Show Tracklets", 
+	"[6]                      Show Tracks (after Tracklet Selector)", 
+	"[7]                      Show Global Track Segments", 
+	"[8]                      Show Final Merged Tracks (after Track Merger)", 
+	"[j]                      Show global tracks as additional segments of final tracks", 
+	"[m]                      Reorder clusters of merged tracks before showing them geometrically", 
+	"[t]                      Take Screenshot", 
+	"[S] / [A] / [D]          Enable or disable smoothing of points / smoothing of lines / depth buffer",
+	"[X] / [V]                Enable / disable anti-aliasing / VSync",
+	"[F]                      Switch fullscreen",
+	"[I]                      Enable / disable GL indirect draw",
+	"[o]                      Save current camera position", 
+	"[p]                      Restore camera position", 
+	"[h]                      Print Help", 
+	"[T]                      Show info texts",
+	"[w] / [s] / [a] / [d]    Zoom / Strafe Left and Right", 
+	"[pgup] / [pgdn]          Strafe Up and Down",
+	"[e] / [f]                Rotate", 
+	"[+] / [-]                Make points thicker / fainter (Hold SHIFT for lines)", 
+	"[MOUSE 1]                Look around", 
+	"[MOUSE 2]                Shift camera", 
+	"[MOUSE 1+2]              Zoom / Rotate", 
+	"[SHIFT]                  Slow Zoom / Move / Rotate",
+	"[ALT] / [CTRL] / [M]     Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes"  
 };
 
 void PrintHelp()
@@ -1312,7 +1428,7 @@ void HandleKeyRelease(int wParam)
 		exitButton = 1;
 		SetInfo("Showing next event");
 	}
-	else if (wParam == 27 || wParam == 'q')
+	else if (wParam == 27 || wParam == 'q' || wParam == 'Q')
 	{
 		exitButton = 2;
 		SetInfo("Exiting");
@@ -1334,6 +1450,31 @@ void HandleKeyRelease(int wParam)
 			drawSlice++;
 			SetInfo("Showing slice %d", drawSlice);
 		}
+	}
+	else if (wParam == KEY_ALT && keysShift[KEY_ALT])
+	{
+		camLookOrigin ^= 1;
+		cameraMode = camLookOrigin + 2 * camYUp;
+		SetInfo("Camera locked on origin: %s", camLookOrigin ? "enabled" : "disabled");
+	}
+	else if (wParam == KEY_CTRL && keysShift[KEY_CTRL])
+	{
+		camYUp ^= 1;
+		cameraMode = camLookOrigin + 2 * camYUp;
+		SetInfo("Camera locked on y-axis facing upwards: %s", camYUp ? "enabled" : "disabled");
+	}
+	else if (wParam == 'M')
+	{
+		cameraMode++;
+		if (cameraMode == 4) cameraMode = 0;
+		camLookOrigin = cameraMode & 1;
+		camYUp = cameraMode & 2;
+		const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
+		SetInfo("Camera mode: %s", modeText[cameraMode]);
+	}
+	else if (wParam == KEY_ALT)
+	{
+		keys[KEY_CTRL] = false; //Release CTRL with alt, to avoid orienting along y automatically!
 	}
 	else if (wParam == 'k')
 	{
@@ -1452,8 +1593,22 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == 'D')
 	{
 		depthBuffer ^= true;
-		SetInfo("Depth buffer (z-buffer) %s", depthBuffer ? "enabled" : "disabled");
+		GLint depthBits;
+		glGetIntegerv(GL_DEPTH_BITS, &depthBits);
+		SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, depthBuffer ? "enabled" : "disabled");
 		setDepthBuffer();
+	}
+	else if (wParam == 'X')
+	{
+		drawQualityMSAA ^= 1;
+		setQuality();
+		SetInfo("Multisampling anti-aliasing: %s", drawQualityMSAA ? "enabled" : "disabled");
+	}
+	else if (wParam == 'V')
+	{
+		drawQualityVSync ^= 1;
+		SetVSync(drawQualityVSync);
+		SetInfo("VSync: %s", drawQualityVSync ? "enabled" : "disabled");
 	}
 	else if (wParam == 'I')
 	{
@@ -1546,7 +1701,7 @@ void HandleKeyRelease(int wParam)
 		FILE *ftmp = fopen("glpos.tmp", "w+b");
 		if (ftmp)
 		{
-			int retval = fwrite(&currentMatrice[0], sizeof(GLfloat), 16, ftmp);
+			int retval = fwrite(&currentMatrix[0], sizeof(GLfloat), 16, ftmp);
 			if (retval != 16)
 			{
 				printf("Error writing position to file\n");
@@ -1574,7 +1729,7 @@ void HandleKeyRelease(int wParam)
 			{
 				glMatrixMode(GL_MODELVIEW);
 				glLoadMatrixf(tmp);
-				glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
+				glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 				printf("Position read from file\n");
 			}
 			else
@@ -1625,36 +1780,6 @@ void showInfo(const char* info)
 	}
 	glLoadMatrixf(tmp);
 }	
-
-void animation()
-{
-	static int nFrame = 0;
-
-	DrawGLScene(true);
-	char filename[16];
-	sprintf(filename, "video%05d.bmp", nFrame++);
-	unsigned char *mixBuffer = NULL;
-	drawClusters = nFrame < 240;
-	drawSeeds = nFrame >= 90 && nFrame < 210;
-	drawTracklets = nFrame >= 210 && nFrame < 300;
-	pointSize = nFrame >= 90 ? 1.0 : 2.0;
-	drawTracks = nFrame >= 300 && nFrame < 390;
-	drawFinal = nFrame >= 390;
-	drawGlobalTracks = nFrame >= 480;
-	DoScreenshot(NULL, 1, &mixBuffer);
-
-	drawClusters = nFrame < 210;
-	drawSeeds = nFrame > 60 && nFrame < 180;
-	drawTracklets = nFrame >= 180 && nFrame < 270;
-	pointSize = nFrame > 60 ? 1.0 : 2.0;
-	drawTracks = nFrame > 270 && nFrame < 360;
-	drawFinal = nFrame > 360;
-	drawGlobalTracks = nFrame > 450;
-	DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
-
-	free(mixBuffer);
-	printf("Wrote video frame %s\n\n", filename);
-}
 
 void HandleSendKey()
 {
