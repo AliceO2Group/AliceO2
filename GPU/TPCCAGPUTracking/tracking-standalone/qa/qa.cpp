@@ -429,7 +429,7 @@ void InitQA()
 	}
 }
 
-void RunQA()
+void RunQA(bool matchOnly)
 {
 	//Initialize Arrays
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
@@ -600,6 +600,8 @@ void RunQA()
 				}
 			}
 		}
+		
+		if (matchOnly) return;
 		
 		if (TIMING) printf("QA Time: Assign Track Labels:\t\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();

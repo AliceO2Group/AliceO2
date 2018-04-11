@@ -199,7 +199,7 @@ void *OpenGLMain(void *ptr)
 		fprintf(stderr, "Cannot enable vsync\n");
 		exit(1);
 	}
-	glXSwapIntervalEXT(g_pDisplay, glXGetCurrentDrawable(), 1);
+	glXSwapIntervalEXT(g_pDisplay, glXGetCurrentDrawable(), 0);
 	
 	pthread_mutex_lock(&semLockExit);
 	displayRunning = true;

@@ -174,10 +174,10 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 
 #ifdef HLTCA_STANDALONE
 #ifdef BUILD_QA
-  if (fRunQA)
+  if (fRunQA || fEventDisplay)
   {
     timerQA.Start();
-    RunQA();
+    RunQA(!fRunQA);
     timerQA.Stop();
   }
 #endif
