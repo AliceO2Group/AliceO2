@@ -20,5 +20,17 @@ void OpenGLPrint(const char* s);
 extern void ReSizeGLScene(int width, int height);
 void HandleSendKey();
 void SwitchFullscreen();
+void SetVSync(bool enable);
 
 #define GL_WINDOW_NAME "Alice HLT TPC CA Event Display"
+
+#define KEY_UP 1
+#define KEY_DOWN 2
+#define KEY_LEFT 3
+#define KEY_RIGHT 4
+#define KEY_PAGEUP 5
+#define KEY_PAGEDOWN 6
+#define KEY_SPACE 13
+#define KEY_SHIFT 16
+#define KEY_ALT 17
+#define KEY_CTRL 18

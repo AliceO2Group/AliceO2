@@ -251,7 +251,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			wParam = GetKey(wParam);
 			keys[wParam] = TRUE; // If So, Mark It As TRUE
-			keysShift[wParam] = keys[16];
+			keysShift[wParam] = keys[KEY_SHIFT];
 			return 0;            // Jump Back
 		}
 
@@ -379,3 +379,4 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 void DisplayExit() {}
 void OpenGLPrint(const char* s) {}
 void SwitchFullscreen() {}
+void SetVSync(bool enable) {}

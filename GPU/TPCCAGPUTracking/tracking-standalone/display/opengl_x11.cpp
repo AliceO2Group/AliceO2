@@ -5,7 +5,7 @@
 #include <GL/glx.h>
 #include <pthread.h>
 #include <unistd.h>
-
+#include <GL/glxext.h>
 pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t semLockExit = PTHREAD_MUTEX_INITIALIZER;
 static volatile bool displayRunning = false;
@@ -15,13 +15,25 @@ static GLuint font_base;
 Display *g_pDisplay = NULL;
 Window g_window;
 
+PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT = NULL;
+
 int GetKey(int key)
 {
 	if (key == 65453 || key == 45) return('-');
 	if (key == 65451 || key == 43) return('+');
-	if (key == 65505) return(16); //Shift
+	if (key == 65505) return(KEY_SHIFT); //Shift
+	if (key == 65513) return(KEY_ALT); //ALT
+	if (key == 65027) return(KEY_ALT); //R ALT
+	if (key == 65507) return(KEY_CTRL); //L CTRL
+	if (key == 65508) return(KEY_CTRL); //R CTRL
+	if (key == 65362) return(KEY_UP); //UP
+	if (key == 65364) return(KEY_DOWN); //DOWN
+	if (key == 65361) return(KEY_LEFT); //LEFT
+	if (key == 65363) return(KEY_RIGHT); //RIGHT
+	if (key == 65365) return(KEY_PAGEUP); //LEFT
+	if (key == 65366) return(KEY_PAGEDOWN); //RIGHT
 	if (key == 65307) return('Q'); //ESC
-	if (key == 32) return(13); //Space
+	if (key == 32) return(KEY_SPACE); //Space
 	if (key > 255) return(0);
 	
 	if (key >= 'a' && key <= 'z') key += 'A' - 'a';
@@ -70,19 +82,44 @@ void *OpenGLMain(void *ptr)
 		fprintf(stderr, "glxsimple: %s\n", "X server has no OpenGL GLX extension");
 		exit(1);
 	}
+	
+	const char* glxExt = glXQueryExtensionsString(g_pDisplay, DefaultScreen(g_pDisplay));
+	if (strstr(glxExt, "GLX_EXT_swap_control") == NULL)
+	{
+		fprintf(stderr, "No vsync support!\n");
+		exit(1);
+	}
 
-	// Find an appropriate visual
+	int attribs[] =
+	{
+		GLX_X_RENDERABLE    , True,
+		GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
+		GLX_RENDER_TYPE     , GLX_RGBA_BIT,
+		GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
+		GLX_RED_SIZE        , 8,
+		GLX_GREEN_SIZE      , 8,
+		GLX_BLUE_SIZE       , 8,
+		GLX_ALPHA_SIZE      , 8,
+		GLX_DEPTH_SIZE      , 24,
+		GLX_STENCIL_SIZE    , 8,
+		GLX_DOUBLEBUFFER    , True,
+		GLX_SAMPLE_BUFFERS  , 1,
+		GLX_SAMPLES         , 4,
+		None
+	};
 
-	int doubleBufferVisual[] =
-	    {
-	        GLX_RGBA,           // Needs to support OpenGL
-	        GLX_DEPTH_SIZE, 16, // Needs to support a 16 bit depth buffer
-	        GLX_DOUBLEBUFFER,   // Needs to support double-buffering
-	        None                // end of list
-	    };
-
-	// Try for the double-bufferd visual first
-	visualInfo = glXChooseVisual(g_pDisplay, DefaultScreen(g_pDisplay), doubleBufferVisual);
+	GLXFBConfig fbconfig = 0;
+	int fbcount;
+	GLXFBConfig *fbc = glXChooseFBConfig(g_pDisplay, DefaultScreen(g_pDisplay), attribs, &fbcount);
+	if (fbc == NULL || fbcount == 0)
+	{
+		fprintf(stderr, "Failed to get MSAA GLXFBConfig\n");
+		exit(1);
+	}
+	fbconfig = fbc[0];
+	XFree(fbc);
+	visualInfo = glXGetVisualFromFBConfig(g_pDisplay, fbconfig);
+	
 	if (visualInfo == NULL)
 	{
 		fprintf(stderr, "glxsimple: %s\n", "no RGB visual with depth buffer");
@@ -90,11 +127,7 @@ void *OpenGLMain(void *ptr)
 	}
 
 	// Create an OpenGL rendering context
-	glxContext = glXCreateContext(g_pDisplay,
-	                              visualInfo,
-	                              NULL,     // No sharing of display lists
-	                              GL_TRUE); // Direct rendering if possible
-
+	glxContext = glXCreateContext(g_pDisplay, visualInfo, NULL, GL_TRUE);
 	if (glxContext == NULL)
 	{
 		fprintf(stderr, "glxsimple: %s\n", "could not create rendering context");
@@ -102,38 +135,15 @@ void *OpenGLMain(void *ptr)
 	}
 	
 	Window win = RootWindow(g_pDisplay, visualInfo->screen);
-
-	// Create an X colormap since we're probably not using the default visual
-	colorMap = XCreateColormap(g_pDisplay,
-	                           win,
-	                           visualInfo->visual,
-	                           AllocNone);
-
+	colorMap = XCreateColormap(g_pDisplay, win, visualInfo->visual, AllocNone);
 	windowAttributes.colormap = colorMap;
 	windowAttributes.border_pixel = 0;
-	windowAttributes.event_mask = ExposureMask |
-	                              VisibilityChangeMask |
-	                              KeyPressMask |
-	                              KeyReleaseMask |
-	                              ButtonPressMask |
-	                              ButtonReleaseMask |
-	                              PointerMotionMask |
-	                              StructureNotifyMask |
-	                              SubstructureNotifyMask |
-	                              FocusChangeMask;
+	windowAttributes.event_mask = ExposureMask | VisibilityChangeMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask | SubstructureNotifyMask | FocusChangeMask;
 
 	// Create an X window with the selected visual
-	g_window = XCreateWindow(g_pDisplay,
-	                         win,
-	                         50, 50,     // x/y position of top-left outside corner of the window
-	                         init_width, init_height, // Width and height of window
-	                         0,        // Border width
-	                         visualInfo->depth,
-	                         InputOutput,
-	                         visualInfo->visual,
-	                         CWBorderPixel | CWColormap | CWEventMask,
-	                         &windowAttributes);
-
+	g_window = XCreateWindow(g_pDisplay, win,
+	                         50, 50, init_width, init_height, // Position / Width and height of window
+	                         0, visualInfo->depth, InputOutput, visualInfo->visual, CWBorderPixel | CWColormap | CWEventMask, &windowAttributes);
 	XSetStandardProperties(g_pDisplay, g_window, GL_WINDOW_NAME, GL_WINDOW_NAME, None, NULL, 0, NULL);
 	glXMakeCurrent(g_pDisplay, g_window, glxContext);
 	XMapWindow(g_pDisplay, g_window);
@@ -150,13 +160,15 @@ void *OpenGLMain(void *ptr)
 	xev.xclient.data.l[2] = XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
 	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
 	
+	//Receive signal when window closed
 	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
     XSetWMProtocols(g_pDisplay, g_window, &WM_DELETE_WINDOW, 1);
 	
+	//Prepare fonts
 	font_base = glGenLists(256);
     if (!glIsList(font_base))
 	{
-       printf("Out of display lists.\n");
+       fprintf(stderr, "Out of display lists.\n");
        exit(1);
     }
 	const char* f = "fixed";
@@ -175,10 +187,19 @@ void *OpenGLMain(void *ptr)
 
 	// Init OpenGL...
 	InitGL();
-
+	
 	XMapWindow(g_pDisplay, g_window);
 	XFlush(g_pDisplay);
 	int x11_fd = ConnectionNumber(g_pDisplay);
+	
+	//Enable vsync
+	glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC) glXGetProcAddressARB((const GLubyte*) "glXSwapIntervalEXT");
+	if (glXSwapIntervalEXT == NULL)
+	{
+		fprintf(stderr, "Cannot enable vsync\n");
+		exit(1);
+	}
+	glXSwapIntervalEXT(g_pDisplay, glXGetCurrentDrawable(), 1);
 	
 	pthread_mutex_lock(&semLockExit);
 	displayRunning = true;
@@ -199,7 +220,7 @@ void *OpenGLMain(void *ptr)
 			num_ready_fds = XPending(g_pDisplay) || select(x11_fd + 1, &in_fds, NULL, NULL, &tv);
 			if (num_ready_fds < 0)
 			{
-				printf("Error\n");
+				fprintf(stderr, "Error\n");
 			}
 			else if (num_ready_fds > 0) needUpdate = 0;
 			if (exitButton == 2) break;
@@ -232,28 +253,34 @@ void *OpenGLMain(void *ptr)
 					{
 						mouseWheel -= 100;
 					}
-					else if (event.xbutton.button == 1)
+					else
 					{
-						mouseDn = true;
+						if (event.xbutton.button == 1)
+						{
+							mouseDn = true;
+						}
+						else if (event.xbutton.button != 1)
+						{
+							mouseDnR = true;
+						}
+						mouseDnX = event.xmotion.x;
+						mouseDnY = event.xmotion.y;
 					}
-					else if (event.xbutton.button != 1)
-					{
-						mouseDnR = true;
-					}
-					mouseDnX = event.xmotion.x;
-					mouseDnY = event.xmotion.y;
 				}
 				break;
 
 				case ButtonRelease:
 				{
-					if (event.xbutton.button == 1)
+					if (event.xbutton.button != 4 && event.xbutton.button != 5)
 					{
-						mouseDn = false;
-					}
-					if (event.xbutton.button != 1)
-					{
-						mouseDnR = false;
+						if (event.xbutton.button == 1)
+						{
+							mouseDn = false;
+						}
+						else if (event.xbutton.button != 1)
+						{
+							mouseDnR = false;
+						}
 					}
 				}
 				break;
@@ -264,7 +291,7 @@ void *OpenGLMain(void *ptr)
 					int wParam = GetKey(sym);
 					//fprintf(stderr, "KeyPress event %d --> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keys[16]);
 					keys[wParam] = true;
-					keysShift[wParam] = keys[16];
+					keysShift[wParam] = keys[KEY_SHIFT];
 				}
 				break;
 
@@ -275,7 +302,6 @@ void *OpenGLMain(void *ptr)
 					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keysShift[wParam]);
 					HandleKeyRelease(wParam);
 					keysShift[wParam] = false;
-					//if (updateDLList) printf("Need update!!\n");
 				}
 				break;
 
@@ -351,4 +377,9 @@ void SwitchFullscreen()
 	xev.xclient.data.l[1] = XInternAtom(g_pDisplay, "_NET_WM_STATE_FULLSCREEN", True);
 	xev.xclient.data.l[2] = 0;
 	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
+}
+
+void SetVSync(bool enable)
+{
+	glXSwapIntervalEXT(g_pDisplay, glXGetCurrentDrawable(), (int) enable);
 }
