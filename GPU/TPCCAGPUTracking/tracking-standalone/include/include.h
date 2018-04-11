@@ -17,7 +17,7 @@ extern volatile int sendKey;
 
 //QA
 extern void InitQA();
-extern void RunQA();
+extern void RunQA(bool matchOnly = false);
 extern int DrawQAHistograms();
 extern void SetMCTrackRange(int min, int max);
 extern bool SuppressTrack(int iTrack);

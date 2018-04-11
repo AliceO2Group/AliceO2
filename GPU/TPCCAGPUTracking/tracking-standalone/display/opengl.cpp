@@ -41,13 +41,15 @@ const int drawQualityPoint = 0;
 const int drawQualityLine = 0;
 const int drawQualityPerspective = 0;
 int drawQualityMSAA = 0;
-int drawQualityVSync = 1;
+int drawQualityVSync = 0;
 bool useGLIndirectDraw = true;
 
 bool camLookOrigin = false;
 bool camYUp = false;
 float angleRollOrigin = -1e9;
 int cameraMode = 0;
+
+float maxClusterZ = 0;
 
 #define fgkNSlices 36
 #ifndef BUILD_QA
@@ -107,8 +109,8 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 }
 
 bool separateGlobalTracks = 0;
-#define SEPERATE_GLOBAL_TRACKS_MAXID 5
 #define TRACK_TYPE_ID_LIMIT 100
+#define SEPERATE_GLOBAL_TRACKS_MAXID (separateGlobalTracks ? 5 : TRACK_TYPE_ID_LIMIT)
 #define SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES 6
 bool reorderFinalTracks = 0;
 
@@ -182,6 +184,7 @@ int hideUnmatchedClusters = 0;
 int hideRejectedTracks = 1;
 
 int propagateTracks = 0;
+int colorClusters = 1;
 int colorCollisions = 0;
 std::vector<std::array<int,37>> collisionClusters;
 int nCollisions = 1;
@@ -495,20 +498,24 @@ vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop)
 {
 	size_t startCount = vertexBufferStart[iSlice].size();
+	std::vector<GLvertex> buffer;
 
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
-	for (int i = 0; i < merger.NOutputTracks(); i++)
+	int trackCount = propagateTracks == 3 ? hlt.GetNMCInfo() : merger.NOutputTracks();
+	for (int i = 0; i < trackCount; i++)
 	{
 		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
-		if (track.NClusters() == 0) continue;
 		int *clusterused = NULL;
 		int bestk = 0;
-		if (hideRejectedTracks && !track.OK()) continue;
-		if (merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1].fSlice != iSlice) continue;
+		if (propagateTracks < 3)
+		{
+			if (track.NClusters() == 0) continue;
+			if (hideRejectedTracks && !track.OK()) continue;
+			if (merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1].fSlice != iSlice) continue;
+		}
 		if (nCollisions > 1)
 		{
-			if (!configStandalone.qa && iCol != 0) continue;
-			int label = GetMCLabel(i);
+			int label = propagateTracks == 3 ? i : GetMCLabel(i);
 			if (label < -1) label = -label - 2;
 			if (label != -1)
 			{
@@ -519,101 +526,181 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 		}
 
 		size_t startCountInner = vertexBuffer[iSlice].size();
-		if (reorderFinalTracks)
+		if (propagateTracks <= 1)
 		{
-			clusterused = new int[track.NClusters()];
-			for (int j = 0; j < track.NClusters(); j++)
-				clusterused[j] = 0;
+			if (reorderFinalTracks)
+			{
+				clusterused = new int[track.NClusters()];
+				for (int j = 0; j < track.NClusters(); j++)
+					clusterused[j] = 0;
 
-			float smallest = 1e20;
+				float smallest = 1e20;
+				for (int k = 0; k < track.NClusters(); k++)
+				{
+					if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
+					int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
+					float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
+					if (dist < smallest)
+					{
+						smallest = dist;
+						bestk = k;
+					}
+				}
+			}
+			else
+			{
+				while (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + bestk].fState & AliHLTTPCGMMergedTrackHit::flagReject)) bestk++;
+			}
+
+			int lastcid = merger.Clusters()[track.FirstClusterRef() + bestk].fId;
+			if (reorderFinalTracks) clusterused[bestk] = 1;
+
+			bool linestarted = (globalPos[lastcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES);
+			if (!separateGlobalTracks || linestarted)
+			{
+				drawPointLinestrip(iSlice, lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
+			}
+
+			for (int j = (reorderFinalTracks ? 1 : (bestk + 1)); j < track.NClusters(); j++)
+			{
+				int bestcid = 0;
+				if (reorderFinalTracks)
+				{
+					bestk = 0;
+					float bestdist = 1e20;
+					for (int k = 0; k < track.NClusters(); k++)
+					{
+						if (clusterused[k]) continue;
+						if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
+						int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
+						float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
+						             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
+						             (globalPos[cid].z - globalPos[lastcid].z) * (globalPos[cid].z - globalPos[lastcid].z);
+						if (dist < bestdist)
+						{
+							bestdist = dist;
+							bestcid = cid;
+							bestk = k;
+						}
+					}
+					if (bestdist > 1e19) continue;
+				}
+				else
+				{
+					if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
+					bestcid = merger.Clusters()[track.FirstClusterRef() + j].fId;
+				}
+				if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
+				{
+					drawPointLinestrip(iSlice, lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
+					linestarted = true;
+				}
+				if (!separateGlobalTracks || linestarted)
+				{
+					drawPointLinestrip(iSlice, bestcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
+				}
+				if (separateGlobalTracks && linestarted && !(globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)) linestarted = false;
+				if (reorderFinalTracks) clusterused[bestk] = 1;
+				lastcid = bestcid;
+			}
+		}
+		else if (propagateTracks == 2)
+		{
 			for (int k = 0; k < track.NClusters(); k++)
 			{
 				if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
 				int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
-				float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
-				if (dist < smallest)
-				{
-					smallest = dist;
-					bestk = k;
-				}
+				if (globalPos[cid].w < SEPERATE_GLOBAL_TRACKS_MAXID) globalPos[cid].w = 7;
 			}
-		}
-		else
-		{
-			while (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + bestk].fState & AliHLTTPCGMMergedTrackHit::flagReject)) bestk++;
-		}
-
-		int lastcid = merger.Clusters()[track.FirstClusterRef() + bestk].fId;
-		if (reorderFinalTracks) clusterused[bestk] = 1;
-
-		bool linestarted = (globalPos[lastcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES);
-		if (!separateGlobalTracks || linestarted)
-		{
-			drawPointLinestrip(iSlice, lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
-		}
-
-		for (int j = (reorderFinalTracks ? 1 : (bestk + 1)); j < track.NClusters(); j++)
-		{
-			int bestcid = 0;
-			if (reorderFinalTracks)
-			{
-				bestk = 0;
-				float bestdist = 1e20;
-				for (int k = 0; k < track.NClusters(); k++)
-				{
-					if (clusterused[k]) continue;
-					if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
-					int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
-					float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
-					             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
-					             (globalPos[cid].z - globalPos[lastcid].z) * (globalPos[cid].z - globalPos[lastcid].z);
-					if (dist < bestdist)
-					{
-						bestdist = dist;
-						bestcid = cid;
-						bestk = k;
-					}
-				}
-				if (bestdist > 1e19) continue;
-			}
-			else
-			{
-				if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
-				bestcid = merger.Clusters()[track.FirstClusterRef() + j].fId;
-			}
-			if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
-			{
-				drawPointLinestrip(iSlice, lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
-				linestarted = true;
-			}
-			if (!separateGlobalTracks || linestarted)
-			{
-				drawPointLinestrip(iSlice, bestcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
-			}
-			if (separateGlobalTracks && linestarted && !(globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)) linestarted = false;
-			if (reorderFinalTracks) clusterused[bestk] = 1;
-			lastcid = bestcid;
 		}
 		if (propagateTracks)
 		{
-			AliHLTTPCGMTrackParam param = track.GetParam();
-			float alpha = track.GetAlpha();
-			prop->SetTrack(&param, alpha);
-			bool inFlyDirection = 0;
-			auto cl = merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1];
-			alpha = hlt.Param().Alpha(cl.fSlice);
-			float x = cl.fX - 1.;
-			if (cl.fState & AliHLTTPCGMMergedTrackHit::flagReject) x = 0;
-			while (x > 1.)
+			int flyRounds = (propagateTracks >= 2 ? 2 : 1);
+			for (int inFlyDirection = 0;inFlyDirection < flyRounds;inFlyDirection++)
 			{
-				if (prop->PropagateToXAlpha( x, alpha, inFlyDirection ) ) break;
-				if (fabs(param.SinPhi()) > 0.9) break;
-				float4 ptr;
-				hlt.Tracker().CPUTracker(cl.fSlice).Param().Slice2Global(param.X() + Xadd, param.Y(), param.Z(), &ptr.x, &ptr.y, &ptr.z);
-				vertexBuffer[iSlice].emplace_back(ptr.x / GL_SCALE_FACTOR, ptr.y / GL_SCALE_FACTOR, projectxy ? 0 : (ptr.z + param.ZOffset()) / GL_SCALE_FACTOR);
-				x -= 1;
+				AliHLTTPCGMTrackParam param;
+				float alpha;
+				float x = 0;
+				int slice = 0;
+				if (propagateTracks < 3)
+				{
+					param = track.GetParam();
+					alpha = track.GetAlpha();
+					for (int k = track.NClusters() - 1;k >= 0;k--)
+					{
+						auto cl = merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1];
+						if (cl.fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
+						slice = cl.fSlice;
+						x = cl.fX + (inFlyDirection ? 0 : -1);
+					}
+				}
+				else
+				{
+					param.ResetCovariance();
+					const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
+					if (mc.fCharge == 0.f) break;
+					if (mc.fPID < 0) break;
+					
+					alpha = atan2(mc.fY, mc.fX);
+					if (alpha < 0) alpha += 2 * M_PI;
+					slice = floor(alpha / (2 * M_PI) * 18);
+					if (mc.fZ < 0) slice += 18;
+					if (slice != iSlice) break;
+					alpha = hlt.Param().Alpha(slice);
+					float c = cos(alpha);
+					float s = sin(alpha);
+					
+					float mclocal[4];
+					x = mc.fX;
+					float y = mc.fY;
+					mclocal[0] = x*c + y*s;
+					mclocal[1] =-x*s + y*c;
+					float px = mc.fPx;
+					float py = mc.fPy;
+					mclocal[2] = px*c + py*s;
+					mclocal[3] =-px*s + py*c;
+					float pt = sqrt(px * px + py * py);
+					if (pt < 0.001) break;
+					float sinPhi = mclocal[3] / pt;
+					float charge = mc.fCharge > 0 ? 1.f : -1.f;
+					float qpt = charge / pt;
+					float dzds = mc.fPz / pt;
+					
+					x = mclocal[0];
+					param.X() = mclocal[0];
+					param.Y() = mclocal[1];
+					param.Z() = mc.fZ;
+					param.SinPhi() = sinPhi;
+					param.DzDs() = dzds;
+					param.QPt() = qpt;
+					param.ZOffset() = 0.f;
+					
+					//printf("Track: XYZ %f %f %f, P %f %f %f, x %f y %f z %f pt %f sinphi %f dzds %f qpt %f\n", mc.fX, mc.fY, mc.fZ, mc.fPx, mc.fPy, mc.fPz, x, param.Y(), param.Z(), pt, param.SinPhi(), param.DzDs(), param.QPt());
+				}
+				if (flyRounds == 2) buffer.clear();
+				prop->SetTrack(&param, alpha);
+				if (x < 1) break;
+				alpha = hlt.Param().Alpha(slice);
+				std::vector<GLvertex>& useBuffer = flyRounds == 2 && inFlyDirection == 0 ? buffer : vertexBuffer[iSlice];
+				
+				while (x > 1. && x <= 250 && fabs(param.Z() + param.ZOffset()) <= maxClusterZ)
+				{
+					if (prop->PropagateToXAlpha( x, alpha, inFlyDirection ) ) break;
+					if (fabs(param.SinPhi()) > 0.9) break;
+					float4 ptr;
+					hlt.Tracker().CPUTracker(slice).Param().Slice2Global(param.X() + Xadd, param.Y(), param.Z(), &ptr.x, &ptr.y, &ptr.z);
+					useBuffer.emplace_back(ptr.x / GL_SCALE_FACTOR, ptr.y / GL_SCALE_FACTOR, projectxy ? 0 : (ptr.z + param.ZOffset()) / GL_SCALE_FACTOR);
+					x += inFlyDirection ? 1 : -1;
+				}
+				
+				if (flyRounds == 2 && inFlyDirection == 0)
+				{
+					for (int k = (int) buffer.size() - 1;k >= 0;k--)
+					{
+						vertexBuffer[iSlice].emplace_back(buffer[k]);
+					}
+				}
 			}
-
 		}
 		insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
 		if (reorderFinalTracks) delete[] clusterused;
@@ -896,6 +983,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 			globalPos = new float4[maxClusters];
 		}
 
+		maxClusterZ = 0;
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 		{
 			const AliHLTTPCCAClusterData &cdata = hlt.ClusterData(iSlice);
@@ -909,6 +997,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				}
 				float4 *ptr = &globalPos[cid];
 				hlt.Tracker().CPUTracker(iSlice).Param().Slice2Global(cdata.X(i) + Xadd, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
+				if (fabs(ptr->z) > maxClusterZ) maxClusterZ = fabs(ptr->z);
 				if (ptr->z >= 0)
 				{
 					ptr->z += Zadd;
@@ -1083,14 +1172,14 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				if (drawInitLinks)
 				{
 					if (excludeClusters) goto skip1;
-					SetColorInitLinks();
+					if (colorClusters) SetColorInitLinks();
 				}
 				drawVertices(GLpoints[iSlice][1][iCol], GL_POINTS);
 
 				if (drawLinks)
 				{
 					if (excludeClusters) goto skip1;
-					SetColorLinks();
+					if (colorClusters) SetColorLinks();
 				}
 				else
 				{
@@ -1101,7 +1190,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				if (drawSeeds)
 				{
 					if (excludeClusters) goto skip1;
-					SetColorSeeds();
+					if (colorClusters) SetColorSeeds();
 				}
 				drawVertices(GLpoints[iSlice][3][iCol], GL_POINTS);
 
@@ -1110,14 +1199,14 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				if (drawTracklets)
 				{
 					if (excludeClusters) goto skip2;
-					SetColorTracklets();
+					if (colorClusters) SetColorTracklets();
 				}
 				drawVertices(GLpoints[iSlice][4][iCol], GL_POINTS);
 
 				if (drawTracks)
 				{
 					if (excludeClusters) goto skip2;
-					SetColorTracks();
+					if (colorClusters) SetColorTracks();
 				}
 				drawVertices(GLpoints[iSlice][5][iCol], GL_POINTS);
 
@@ -1125,18 +1214,19 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				if (drawGlobalTracks)
 				{
 					if (excludeClusters) goto skip3;
-					SetColorGlobalTracks();
+					if (colorClusters) SetColorGlobalTracks();
 				}
 				else
 				{
 					SetColorClusters();
 				}
 				drawVertices(GLpoints[iSlice][6][iCol], GL_POINTS);
+				SetColorClusters();
 
 				if (drawFinal)
 				{
 					if (excludeClusters) goto skip3;
-					SetColorFinal();
+					if (colorClusters) SetColorFinal();
 				}
 				drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS);
 			skip3:;
@@ -1404,7 +1494,8 @@ const char* HelpText[] = {
 	"[MOUSE 2]                Shift camera", 
 	"[MOUSE 1+2]              Zoom / Rotate", 
 	"[SHIFT]                  Slow Zoom / Move / Rotate",
-	"[ALT] / [CTRL] / [M]     Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes"  
+	"[ALT] / [CTRL] / [M]     Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
+	"[1] ... [8] / [V]        Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
 };
 
 void PrintHelp()
@@ -1556,10 +1647,17 @@ void HandleKeyRelease(int wParam)
 		colorCollisions ^= 1;
 		SetInfo("Color coding of collisions %s", colorCollisions ? "enabled" : "disabled");
 	}
+	else if (wParam == 'V')
+	{
+		colorClusters ^= 1;
+		SetInfo("Color coding for seed / trrack attachmend %s", colorClusters ? "enabled" : "disabled");
+	}
 	else if (wParam == 'P')
 	{
-		propagateTracks ^= 1;
-		SetInfo("Display of track propagation %s", propagateTracks ? "enabled" : "disabled");
+		propagateTracks += 1;
+		if (propagateTracks == 4) propagateTracks = 0;
+		const char* infoText[] = {"Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track"};
+		SetInfo("Display of track propagation: %s", infoText[propagateTracks]);
 		updateDLList = true;
 	}
 	else if (wParam == 'v')
