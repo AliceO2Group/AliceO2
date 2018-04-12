@@ -54,14 +54,17 @@ class AliFlexibleSpline1D
     float fScaleR; //  scale for u derivative at knot i+1:  L[i,i+1] / L[i,i+2]
   };
 
-  AliFlexibleSpline1D( int nKnots, float knots[], int nAxisTicks );
+  AliFlexibleSpline1D( int nKnots, const float knots[], int nAxisTicks );
 
   ~AliFlexibleSpline1D(){} // do nothing
 
-  int Init( int nKnots, float knots[], int nAxisTicks );
+  int Init( int nKnots, const float knots[], int nAxisTicks );
 
   template <typename T>
-    T GetSpline( float u, T f0, T f1, T f2, T f3 );
+    T GetSpline( float u, const AliFlexibleSpline1D::TKnot &knot, T f0, T f1, T f2, T f3 ) const;
+
+  template <typename T>
+    T GetSpline( float u, const T f[] ) const;
 
   void ReleaseBorderRegions();
 
@@ -71,10 +74,6 @@ class AliFlexibleSpline1D
  
   const AliFlexibleSpline1D::TKnot& GetKnot( int i ) const { 
     return GetKnots()[i]; 
-  }
-
-  const AliFlexibleSpline1D::TKnot& GetAssociatedKnot( float u ) const { 
-    return GetKnot( GetKnotIndex( u ) ); 
   }
 
   const AliFlexibleSpline1D::TKnot* GetKnots() const { 
@@ -130,7 +129,7 @@ class AliFlexibleSpline1D
 };
 
   
-inline AliFlexibleSpline1D::AliFlexibleSpline1D( int nKnots, float knots[], int nAxisTicks )
+inline AliFlexibleSpline1D::AliFlexibleSpline1D( int nKnots, const float knots[], int nAxisTicks )
  :		       		       
  fContentSize(0),
  fNKnots(0), 
@@ -150,7 +149,7 @@ inline unsigned int AliFlexibleSpline1D::EstimateSize( int  nKnots, int nAxisTic
 }
 
 
-inline int AliFlexibleSpline1D::Init( int nKnots, float knots[], int nAxisTicks )
+inline int AliFlexibleSpline1D::Init( int nKnots, const float knots[], int nAxisTicks )
 { 
   // initialise the grid with nKnots knots in the interval [0,1]
   // knots on the borders u==0. & u==1. are obligatory
@@ -225,6 +224,8 @@ inline int AliFlexibleSpline1D::Init( int nKnots, float knots[], int nAxisTicks 
   }
   map[nAxisTicks] = map[nAxisTicks-1]; // this is map for just single value of u == 1.f
 
+  ReleaseBorderRegions();
+
   fContentSize = fTick2KnotMapPointer + (nAxisTicks+1)*sizeof(int);
 
   return ret;
@@ -263,10 +264,8 @@ inline int AliFlexibleSpline1D::GetKnotIndex( float u ) const
 }  
 
 template <typename T>
-inline T AliFlexibleSpline1D::GetSpline( float u, T f0, T f1, T f2, T f3 )
+inline T AliFlexibleSpline1D::GetSpline( float u, const AliFlexibleSpline1D::TKnot &knot, T f0, T f1, T f2, T f3 ) const
 {  
-  const AliFlexibleSpline1D::TKnot &knot = GetAssociatedKnot( u );
- 
   T x = (u-knot.fU)*knot.fScale; // scaled u
   T z1 = (f2-f0)*knot.fScaleL; // scaled u derivative at the knot 1 
   T z2 = (f3-f1)*knot.fScaleR; // scaled u derivative at the knot 2 
@@ -287,6 +286,15 @@ inline T AliFlexibleSpline1D::GetSpline( float u, T f0, T f1, T f2, T f3 )
   T a = -df -df + z1 + z2;
   T b =  df - z1 - a;
   return a*x*x2 + b*x2 + z1*x + f1;
+}
+
+template <typename T>
+inline T AliFlexibleSpline1D::GetSpline( float u, const T f[] ) const
+{  
+  int iknot = GetKnotIndex( u );
+  const AliFlexibleSpline1D::TKnot &knot = GetKnot( iknot );
+  const T *ff = f + iknot -1;
+  return GetSpline(u, knot, ff[0], ff[1], ff[2], ff[3] );
 }
 
 #endif
