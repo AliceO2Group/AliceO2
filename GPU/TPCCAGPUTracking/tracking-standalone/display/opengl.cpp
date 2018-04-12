@@ -58,7 +58,7 @@ int GetMCLabel(int track) {return(-1);}
 #endif
 volatile int needUpdate = 0;
 void ShowNextEvent() {needUpdate = 1;}
-#define GL_SCALE_FACTOR 50.f
+#define GL_SCALE_FACTOR 100.f
 int screenshot_scale = 1;
 
 const int init_width = 1024, init_height = 768;
@@ -129,6 +129,8 @@ volatile int sendKey = 0;
 GLfloat currentMatrix[16];
 float xyz[3];
 float angle[3];
+float rphitheta[3];
+float quat[4];
 template <typename... Args> void SetInfo(Args... args);
 void calcXYZ()
 {
@@ -148,6 +150,13 @@ void calcXYZ()
 		angle[1] = 0;
 		angle[2] = atan2(-currentMatrix[1], -currentMatrix[0]);
 	}
+	
+	rphitheta[0] = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
+	rphitheta[1] = atan2(xyz[0], xyz[2]);
+	rphitheta[2] = atan2(xyz[1], sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]));
+	
+	createQuaternionFromMatrix(quat, currentMatrix);
+
 	
 	/*float angle[1] = -asin(currentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
 	float C = cos( angle_y );
@@ -214,20 +223,66 @@ float lineWidth = 1.4;
 
 int animate = 0;
 HighResTimer animationTimer;
+int animationMode = 0;
 int animationFrame;
-std::vector<float> animateVectors[7];
-opengl_spline animationSplines[6];
+std::vector<float> animateVectors[8];
+opengl_spline animationSplines[7];
+void animationCloseAngle(float& newangle, float lastAngle)
+{
+	const float delta = lastAngle > newangle ? (2 * M_PI) : (-2 * M_PI);
+	while (fabs(newangle + delta - lastAngle) < fabs(newangle - lastAngle)) newangle += delta;	
+}
+void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw)
+{
+	float distPos2 = (lastx - v[0]) * (lastx - v[0]) + (lasty - v[1]) * (lasty - v[1]) + (lastz - v[2]) * (lastz - v[2]) + (lastw - v[3]) * (lastw - v[3]);
+	float distNeg2 = (lastx + v[0]) * (lastx + v[0]) + (lasty + v[1]) * (lasty + v[1]) + (lastz + v[2]) * (lastz + v[2]) + (lastw + v[3]) * (lastw + v[3]);
+	if (distPos2 > distNeg2)
+	{
+		for (int i = 0;i < 4;i++) v[i] = -v[i];
+	}
+}
 void setAnimationPoint()
 {
 	float t = animateVectors[0].size();
+	if (animationMode & 2) //Spherical
+	{
+		float r = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
+		float r2 = sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
+		float anglePhi = atan2(xyz[0], xyz[2]);
+		float angleTheta = atan2(xyz[1], r2);
+		if (animateVectors[0].size()) animationCloseAngle(anglePhi, animateVectors[2].back());
+		if (animateVectors[0].size()) animationCloseAngle(angleTheta, animateVectors[3].back());
+		animateVectors[1].emplace_back(r);
+		animateVectors[2].emplace_back(anglePhi);
+		animateVectors[3].emplace_back(angleTheta);
+	}
+	else
+	{
+		for (int i = 0;i < 3;i++) {animateVectors[i + 1].emplace_back(xyz[i]);} //Cartesian
+	}
+	if (animationMode & 1) //Euler-angles
+	{
+		for (int i = 0;i < 3;i++)
+		{
+			float newangle = angle[i];
+			if (animateVectors[0].size()) animationCloseAngle(newangle, animateVectors[i + 4].back());
+			animateVectors[i + 4].emplace_back(newangle);
+		}
+		animateVectors[7].emplace_back(0);
+	}
+	else //Quaternions
+	{
+		float v[4];
+		createQuaternionFromMatrix(v, currentMatrix);
+		if (animateVectors[0].size()) animateCloseQuaternion(v, animateVectors[4].back(), animateVectors[5].back(), animateVectors[6].back(), animateVectors[7].back());
+		for (int i = 0;i < 4;i++) animateVectors[i + 4].emplace_back(v[i]);
+	}
 	animateVectors[0].emplace_back(t);
-	for (int i = 0;i < 3;i++) animateVectors[i + 1].emplace_back(xyz[i]);
-	for (int i = 0;i < 3;i++) animateVectors[i + 4].emplace_back(angle[i]);
 }
-void resetAnimation() {for (int i = 0;i < 7;i++) animateVectors[i].clear();}
+void resetAnimation() {for (int i = 0;i < 8;i++) animateVectors[i].clear();}
 void startAnimation()
 {
-	for (int i = 0;i < 6;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
+	for (int i = 0;i < 7;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
 	animationTimer.ResetStart();
 	animationFrame = 0;
 	animate = 1;
@@ -280,8 +335,6 @@ void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 	}
 
 	static int init = 1;
-	GLfloat tmp[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, tmp);
 
 	glViewport(0, 0, width, height); // Reset The Current Viewport
 
@@ -290,16 +343,16 @@ void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 	gluPerspective(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 1000.0f);
 
 	glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-	glLoadIdentity();
 
 	if (init)
 	{
-		glTranslatef(0, 0, -16);
+		resetScene = 1;
 		init = 0;
+		glLoadIdentity();
 	}
 	else
 	{
-		glLoadMatrixf(tmp);
+		glLoadMatrixf(currentMatrix);
 	}
 
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
@@ -826,7 +879,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	//Perform new rotation / translation
 	if (animate)
 	{
-		float time = animationTimer.GetCurrentElapsedTime();
+		float time = animationTimer.GetCurrentElapsedTime() / 3.f;
 		//float time = animationFrame / 30.f;
 		float maxTime = animateVectors[0].back();
 		animationFrame++;
@@ -840,10 +893,35 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 		{
 			SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
 		}
-		glRotatef(-animationSplines[3].evaluate(time) * 180.f / M_PI, 1, 0, 0);
-		glRotatef(animationSplines[4].evaluate(time) * 180.f / M_PI, 0, 1, 0);
-		glRotatef(-animationSplines[5].evaluate(time) * 180.f / M_PI, 0, 0, 1);
-		glTranslatef(-animationSplines[0].evaluate(time), -animationSplines[1].evaluate(time), -animationSplines[2].evaluate(time));
+		float vals[7];
+		for (int i = 0;i < 7;i++)
+		{
+			vals[i] = animationSplines[i].evaluate(time);
+		}
+		if (animationMode & 1) //Rotation from euler angles
+		{
+			glRotatef(-vals[3] * 180.f / M_PI, 1, 0, 0);
+			glRotatef(vals[4] * 180.f / M_PI, 0, 1, 0);
+			glRotatef(-vals[5] * 180.f / M_PI, 0, 0, 1);
+		}
+		else //Rotation from quaternion
+		{
+			float mag = sqrt(vals[3] * vals[3] + vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6]);
+			if (mag < 0.0001) vals[6] = 1;
+			else for (int i = 0;i < 4;i++) vals[3 + i] /= mag;
+
+			float xx = vals[3] * vals[3], xy = vals[3] * vals[4], xz = vals[3] * vals[5], xw = vals[3] * vals[6], yy = vals[4] * vals[4], yz = vals[4] * vals[5], yw = vals[4] * vals[6], zz = vals[5] * vals[5], zw = vals[5] * vals[6];
+			float mat[16] = {1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw),  1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1};
+			glMultMatrixf(mat);
+		}
+		if (animationMode & 2) //Compute cartesian translation from sperical coordinates
+		{
+			float r = vals[0], phi = vals[1], theta = vals[2];
+			vals[2] = r * cos(phi) * cos(theta);
+			vals[0] = r * sin(phi) * cos(theta);
+			vals[1] = r * sin(theta);
+		}
+		glTranslatef(-vals[0], -vals[1], -vals[2]);
 		
 		/*static int nFrame = 0;
 
@@ -862,7 +940,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	}
 	else if (resetScene)
 	{
-		glTranslatef(0, 0, -16);
+		glTranslatef(0, 0, -8);
 
 		pointSize = 2.0;
 		drawSlice = -1;
@@ -1103,10 +1181,10 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 			AliHLTTPCGMPropagator prop;
 			const float kRho = 1.025e-3;//0.9e-3;
 			const float kRadLen = 29.532;//28.94;
-			prop.SetMaxSinPhi( .999 );
-			prop.SetMaterial( kRadLen, kRho );
-			prop.SetPolynomialField( hlt.Merger().pField() );		
-			prop.SetToyMCEventsFlag( hlt.Merger().SliceParam().ToyMCEventsFlag());
+			prop.SetMaxSinPhi(.999);
+			prop.SetMaterial(kRadLen, kRho);
+			prop.SetPolynomialField(hlt.Merger().pField());		
+			prop.SetToyMCEventsFlag(hlt.Merger().SliceParam().ToyMCEventsFlag());
 #pragma omp for
 			for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 			{
@@ -1321,13 +1399,17 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	}
 	CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
 	
+
+	
 	framesDone++;
 	framesDoneFPS++;
 	double time = timerFPS.GetCurrentElapsedTime();
 	char info[1024];
 	float fps = (double) framesDoneFPS / time;
-	sprintf(info, "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) (X %f Y %f Z %f / %f %f %f)",
-		fps, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal, framesDone, drawCalls, xyz[0], xyz[1], xyz[2], angle[0], angle[1], angle[2]);
+	sprintf(info, "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
+		"(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
+		fps, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal, framesDone, drawCalls,
+		xyz[0], xyz[1], xyz[2], rphitheta[0], rphitheta[1] * 180 / M_PI, rphitheta[2] * 180 / M_PI, angle[1] * 180 / M_PI, angle[0] * 180 / M_PI, angle[2] * 180 / M_PI);
 	if (time > 1.)
 	{
 		if (printInfoText & 2) printf("%s\n", info);
@@ -1462,7 +1544,7 @@ const char* HelpText[] = {
 	"[k]                      Draw single slice (previous slice)", 
 	"[J]                      Draw related slices (same plane in phi)", 
 	"[z] / [U]                Show splitting of TPC in slices by extruding volume, [U] resets", 
-	"[y] / [Y] / [X]          Start Animation / Add animation point / Reset", 
+	"[y] / [Y] / [X] / [N]    Start Animation / Add animation point / Reset / Cycle mode", 
 	"[g]                      Draw Grid", 
 	"[i]                      Project onto XY-plane", 
 	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
@@ -1559,14 +1641,14 @@ void HandleKeyRelease(int wParam)
 		cameraMode = camLookOrigin + 2 * camYUp;
 		SetInfo("Camera locked on y-axis facing upwards: %s", camYUp ? "enabled" : "disabled");
 	}
-	else if (wParam == 'M')
+	else if (wParam == 'm')
 	{
 		cameraMode++;
 		if (cameraMode == 4) cameraMode = 0;
 		camLookOrigin = cameraMode & 1;
 		camYUp = cameraMode & 2;
 		const char* modeText[] = {"Descent (free movement)", "Focus locked on origin (y-axis forced upwards)", "Spectator (y-axis forced upwards)", "Focus locked on origin (with free rotation)"};
-		SetInfo("Camera mode: %s", modeText[cameraMode]);
+		SetInfo("Camera mode %d: %s", cameraMode, modeText[cameraMode]);
 	}
 	else if (wParam == KEY_ALT)
 	{
@@ -1701,7 +1783,7 @@ void HandleKeyRelease(int wParam)
 		SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, depthBuffer ? "enabled" : "disabled");
 		setDepthBuffer();
 	}
-	else if (wParam == 'w')
+	else if (wParam == 'W')
 	{
 		drawQualityMSAA ^= 1;
 		setQuality();
@@ -1755,6 +1837,13 @@ void HandleKeyRelease(int wParam)
 	{
 		resetAnimation();
 		SetInfo("Reset animation points");
+	}
+	else if (wParam == 'N')
+	{
+		animationMode++;
+		if (animationMode == 4) animationMode = 0;
+		resetAnimation();
+		SetInfo("Animation mode %d - Position: %s, Direction: %s", animationMode, animationMode & 2 ? "Sperical" : "Cartesian", animationMode & 1 ? "Euler angles" : "Quaternion");
 	}
 	else if (wParam == 'g')
 	{
@@ -1899,7 +1988,7 @@ void showInfo(const char* info)
 		if (infoHelpTimer.GetCurrentElapsedTime() >= 5) infoHelpTimer.Reset();
 		for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
 		{
-			glRasterPos2f(40.f, screen_height - 20 * (1 + i));
+			glRasterPos2f(40.f, screen_height - 35 - 20 * (1 + i));
 			OpenGLPrint(HelpText[i]);					
 		}
 	}

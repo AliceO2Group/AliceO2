@@ -25,6 +25,7 @@ extern void ReSizeGLScene(int width, int height);
 void HandleSendKey();
 void SwitchFullscreen();
 void SetVSync(bool enable);
+void createQuaternionFromMatrix(float* v, const float* mat);
 
 #define GL_WINDOW_NAME "Alice HLT TPC CA Event Display"
 
@@ -45,9 +46,11 @@ public:
 	opengl_spline() : fa(), fb(), fc(), fd(), fx() {}
 	void create(const std::vector<float>& x, const std::vector<float>& y);
 	float evaluate(float x);
+	void setVerbose() {verbose = true;}
 	
 private:
 	std::vector<float> fa, fb, fc, fd, fx;
+	bool verbose = false;
 };
 
 #endif

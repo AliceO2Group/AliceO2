@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "opengl_backend.h"
 
 void opengl_spline::create(const std::vector<float>& x, const std::vector<float>& y)
@@ -9,6 +10,7 @@ void opengl_spline::create(const std::vector<float>& x, const std::vector<float>
 	fx.clear();
 	if (x.size() != y.size() || x.size() < 2) return;
 	int k = x.size() - 1;
+	if (verbose) for (unsigned int i = 0;i < x.size();i++) printf("Point %d: %f --> %f\n", i, x[i], y[i]);
 	fa.resize(k + 1);
 	fb.resize(k + 1);
 	fc.resize(k + 1);
@@ -49,5 +51,6 @@ float opengl_spline::evaluate(float x)
 	retVal += fc[base] * x;
 	x *= xx;
 	retVal += fd[base] * x;
+	if (verbose) printf("Evaluate: %f --> %f (basepoint %d)\n", xx, retVal, base);
 	return(retVal);
 }
