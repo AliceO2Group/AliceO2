@@ -161,8 +161,8 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
-  auto processedTpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index },
-                                                                collectionChunkSize);
+  auto processedTpcClusters =
+    ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", index }, collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

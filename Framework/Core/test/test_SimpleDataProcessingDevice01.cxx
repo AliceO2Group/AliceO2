@@ -44,7 +44,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
         sleep(1);
         // Creates a new message of size 1000 which
         // has "TPC" as data origin and "CLUSTERS" as data description.
-        auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
+        auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", 0 }, 1000);
         int i = 0;
 
         for (auto &cluster : tpcClusters) {
@@ -56,7 +56,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           i++;
         }
 
-        auto itsClusters = ctx.outputs().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
+        auto itsClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS", 0 }, 1000);
         i = 0;
         for (auto &cluster : itsClusters) {
           assert(i < 1000);

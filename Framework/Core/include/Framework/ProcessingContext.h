@@ -30,7 +30,7 @@ public:
 
   InputRecord & inputs() {return mInputs;}
   ServiceRegistry & services() {return mServices;}
-  DataAllocator & outputs(){return mAllocator;}
+  DataAllocator& outputs() { return mAllocator; }
 
   InputRecord &mInputs;
   ServiceRegistry &mServices;

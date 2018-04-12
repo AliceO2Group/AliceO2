@@ -12,12 +12,9 @@
 using namespace o2::framework;
 
 AlgorithmSpec simplePipe(o2::header::DataDescription what) {
-  return AlgorithmSpec{
-    [what](ProcessingContext &ctx)
-      {
-        auto bData = ctx.outputs().make<int>(OutputSpec{"TST", what, 0}, 1);
-      }
-    };
+  return AlgorithmSpec{ [what](ProcessingContext& ctx) {
+    auto bData = ctx.outputs().make<int>(OutputSpec{ "TST", what, 0 }, 1);
+  } };
 }
 
 // This is how you can define your processing in a declarative way
@@ -33,8 +30,8 @@ void defineDataProcessing(WorkflowSpec &specs) {
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = ctx.outputs().make<int>(OutputSpec{"TST", "A1", 0}, 1);
-       auto bData = ctx.outputs().make<int>(OutputSpec{"TST", "A2", 0}, 1);
+       auto aData = ctx.outputs().make<int>(OutputSpec{ "TST", "A1", 0 }, 1);
+       auto bData = ctx.outputs().make<int>(OutputSpec{ "TST", "A2", 0 }, 1);
       }
     }
   },

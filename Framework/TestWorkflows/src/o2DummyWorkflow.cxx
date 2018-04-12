@@ -43,7 +43,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
        sleep(1);
        // Creates a new message of size 1000 which
        // has "TPC" as data origin and "CLUSTERS" as data description.
-       auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
+       auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", 0 }, 1000);
        int i = 0;
 
        for (auto &cluster : tpcClusters) {
@@ -55,7 +55,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
          i++;
        }
 
-       auto itsClusters = ctx.outputs().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
+       auto itsClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS", 0 }, 1000);
        i = 0;
        for (auto &cluster : itsClusters) {
          assert(i < 1000);
@@ -70,49 +70,30 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     }
   };
 
-  DataProcessorSpec tpcClusterSummary {
+  DataProcessorSpec tpcClusterSummary{
     "tpc-cluster-summary",
-    {
-       InputSpec{"clusters", "TPC", "CLUSTERS", InputSpec::Timeframe}
-    },
-    {
-       OutputSpec{"TPC", "SUMMARY", OutputSpec::Timeframe}
-    },
-    AlgorithmSpec{
-    [](ProcessingContext &ctx)
-      {
-        auto tpcSummary = ctx.outputs().make<Summary>(OutputSpec{"TPC", "SUMMARY", 0}, 1);
-        tpcSummary.at(0).inputCount = ctx.inputs().size();
-      }
-    },
-    {
-      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}
-    },
-    {
-      "CPUTimer"
-    }
+    { InputSpec{ "clusters", "TPC", "CLUSTERS", InputSpec::Timeframe } },
+    { OutputSpec{ "TPC", "SUMMARY", OutputSpec::Timeframe } },
+    AlgorithmSpec{ [](ProcessingContext& ctx) {
+      auto tpcSummary = ctx.outputs().make<Summary>(OutputSpec{ "TPC", "SUMMARY", 0 }, 1);
+      tpcSummary.at(0).inputCount = ctx.inputs().size();
+    } },
+    { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
+    { "CPUTimer" }
   };
 
-  DataProcessorSpec itsClusterSummary {
+  DataProcessorSpec itsClusterSummary{
     "its-cluster-summary",
+    { InputSpec{ "clusters", "ITS", "CLUSTERS", InputSpec::Timeframe } },
     {
-      InputSpec{"clusters", "ITS", "CLUSTERS", InputSpec::Timeframe}
+      OutputSpec{ "ITS", "SUMMARY", OutputSpec::Timeframe },
     },
-    {
-      OutputSpec{"ITS", "SUMMARY", OutputSpec::Timeframe},
-    },
-    AlgorithmSpec{
-      [](ProcessingContext &ctx) {
-        auto itsSummary = ctx.outputs().make<Summary>(OutputSpec{"ITS", "SUMMARY", 0}, 1);
-        itsSummary.at(0).inputCount = ctx.inputs().size();
-      }
-    },
-    {
-      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}
-    },
-    {
-      "CPUTimer"
-    }
+    AlgorithmSpec{ [](ProcessingContext& ctx) {
+      auto itsSummary = ctx.outputs().make<Summary>(OutputSpec{ "ITS", "SUMMARY", 0 }, 1);
+      itsSummary.at(0).inputCount = ctx.inputs().size();
+    } },
+    { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
+    { "CPUTimer" }
   };
 
   DataProcessorSpec merger{
