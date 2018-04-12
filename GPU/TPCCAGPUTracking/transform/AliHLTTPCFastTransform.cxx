@@ -527,11 +527,11 @@ void AliHLTTPCFastTransform::Print(const char* /*option*/) const
 
 #include "TFile.h"
 #include "TNtuple.h"
+#include "AliFlexibleSpline2D3D.h"
 
 Int_t AliHLTTPCFastTransform::WriteQATree( char *fileName ) 
 {
   // Set the current time stamp
-  
  
   if( !fOrigTransform ) return Error( -1, "AliHLTTPCFastTransform::WriteQATree: TPC transformation has not been set properly"); 
 
@@ -558,7 +558,7 @@ Int_t AliHLTTPCFastTransform::WriteQATree( char *fileName )
 
     TStopwatch timer1;
     double nCalls1=0;
-    for( Int_t iSec=0; iSec<5; iSec++ ){
+    for( Int_t iSec=0; iSec<1; iSec++ ){
       cout<<"Measure original transformation time for TPC sector "<<iSec<<" .."<<endl;
      int nRows = tpcParam->GetNRow(iSec);
       if( nRows>fkNRows ) nRows = fkNRows;
@@ -594,14 +594,98 @@ Int_t AliHLTTPCFastTransform::WriteQATree( char *fileName )
       }
     }
     timer2.Stop();
+    
+    int nKnotsU = 15;
+    int nAxisTicksU = tpcParam->GetNPads(0, 10);    
+    int nKnotsV = 20;
+    int nAxisTicksV = fLastTimeBin+1;
+    
+     
+    float knotsU[nKnotsU];
+    float knotsV[nKnotsV];
+    for( int i=0; i<nKnotsU; i++ ) knotsU[i] = 1./(nKnotsU-1)*i;
+    for( int i=0; i<nKnotsV; i++ ) knotsV[i] = 1./(nKnotsV-1)*i;
 
-    cout<<"Orig transformation: "<< timer1.RealTime()*1.e9/nCalls1<<" ns / call"<<endl;
-    cout<<"Fast transformation: "<< timer2.RealTime()*1.e9/nCalls2<<" ns / call"<<endl;
-    cout<<"Transformation speedup: "<< 1.*timer1.RealTime()/timer2.RealTime()*nCalls2/nCalls1<<endl;
+    char *memory = new char[AliFlexibleSpline2D3D::EstimateSize( nKnotsU, nAxisTicksU, nKnotsV, nAxisTicksV)];
+    AliFlexibleSpline2D3D &spline = *(new( memory ) AliFlexibleSpline2D3D( nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV ));
+    
+    int nKnotsTot = 3*spline.GetGridU().GetNKnots() * spline.GetGridV().GetNKnots();
+    float *data = new float[ nKnotsTot*fkNRows*5 ];
+    for( int i=0; i<nKnotsTot*fkNRows*5; i++ ) data[i] = 1.e-4;
+    
+    float scaleT = 1./(fLastTimeBin+1);
+   
+    TStopwatch timer3;
+    double nCalls3=0;
+    double sum=0;
+    for( Int_t iSec=0; iSec<5; iSec++ ){
+      cout<<"Measure new fast transformation time for TPC sector "<<iSec<<" .."<<endl;
+      int nRows = tpcParam->GetNRow(iSec);
+      if( nRows>fkNRows ) nRows = fkNRows;
+      float *dt = data + nKnotsTot*fkNRows*iSec;
+      for( int iRow=0; iRow<nRows; iRow++){
+	Int_t nPads = tpcParam->GetNPads(iSec,iRow);     
+	float scaleP = 1./nPads;
+	for( float pad=0.5; pad<nPads; pad+=1.){
+	  for( float time =0; time < fLastTimeBin; time++ ){
+	    float x,y,z;
+	    spline.GetSpline(dt, pad*scaleP, time*scaleT, x,y,z);
+	    nCalls3++;
+	    sum+=x+y+z;
+	  }
+	}
+	dt+=nKnotsTot;
+      }
+    }
+    timer3.Stop();
+
+    TStopwatch timer4;
+    double nCalls4=0;
+    double sumV=0;
+    for( Int_t iSec=0; iSec<5; iSec++ ){
+      cout<<"Measure new fast transformation time for TPC sector "<<iSec<<" .."<<endl;
+      int nRows = tpcParam->GetNRow(iSec);
+      if( nRows>fkNRows ) nRows = fkNRows;
+      float *dt = data + nKnotsTot*fkNRows*iSec;
+      for( int iRow=0; iRow<nRows; iRow++){
+	Int_t nPads = tpcParam->GetNPads(iSec,iRow);     
+	float scaleP = 1./nPads;
+	for( float pad=0.5; pad<nPads; pad+=1.){
+	  for( float time =0; time < fLastTimeBin; time++ ){
+	    float x,y,z;
+	    spline.GetSplineVec(dt, pad*scaleP, time*scaleT, x,y,z);
+	    nCalls4++;
+	    sumV+=x+y+z;
+	  }
+	}
+	dt+=nKnotsTot;
+      }
+    }
+    timer4.Stop();
+
+
+    delete[] data;
+    delete[] memory;
+
+    cout<<"Orig transformation    : "<< timer1.RealTime()*1.e9/nCalls1<<" ns / call"<<endl;
+    cout<<"Fast transformation    : "<< timer2.RealTime()*1.e9/nCalls2<<" ns / call"<<endl;
+    cout<<"New  transformation    : "<< timer3.RealTime()*1.e9/nCalls3<<" ns / call"<<endl;
+    cout<<"New  transformation Vec: "<< timer4.RealTime()*1.e9/nCalls3<<" ns / call"<<endl;
+
+    cout<<"Fast Transformation speedup: "<< 1.*timer1.RealTime()/timer2.RealTime()*nCalls2/nCalls1<<endl;
+
+    cout<<"New transformation speedup: "<< 1.*timer1.RealTime()/timer3.RealTime()*nCalls3/nCalls1<<endl;
+    cout<<"New transformation Vec speedup: "<< 1.*timer1.RealTime()/timer4.RealTime()*nCalls4/nCalls1<<endl;
+
+    cout<<"New / Fast transformation speedup: "<< 1.*timer2.RealTime()/timer3.RealTime()*nCalls3/nCalls2<<endl;
+    cout<<"New vec / Fast transformation speedup: "<< 1.*timer2.RealTime()/timer4.RealTime()*nCalls4/nCalls2<<endl;
+
+    cout<<"sum ="<<sum<<endl;
+    cout<<"sumV="<<sumV<<endl;
   }
 
 
-  if(1){ 
+  if(0){ 
     TFile *file = new TFile(fileName,"RECREATE");
     if( !file || !file->IsOpen() ) return Error( -1, "Can't recreate QA file !"); 
     file->cd();
