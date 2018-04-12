@@ -213,6 +213,25 @@ float pointSize = 2.0;
 float lineWidth = 1.4;
 
 int animate = 0;
+HighResTimer animationTimer;
+int animationFrame;
+std::vector<float> animateVectors[7];
+opengl_spline animationSplines[6];
+void setAnimationPoint()
+{
+	float t = animateVectors[0].size();
+	animateVectors[0].emplace_back(t);
+	for (int i = 0;i < 3;i++) animateVectors[i + 1].emplace_back(xyz[i]);
+	for (int i = 0;i < 3;i++) animateVectors[i + 4].emplace_back(angle[i]);
+}
+void resetAnimation() {for (int i = 0;i < 7;i++) animateVectors[i].clear();}
+void startAnimation()
+{
+	for (int i = 0;i < 6;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
+	animationTimer.ResetStart();
+	animationFrame = 0;
+	animate = 1;
+}
 
 volatile int resetScene = 0;
 
@@ -805,26 +824,41 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	scalefactor *= sqrdist;
 
 	//Perform new rotation / translation
-	if (doAnimation)
+	if (animate)
 	{
-		float moveY = scalefactor * -0.14 * 0.25;
-		float moveX = scalefactor * -0.14;
-		static int nFrame = 0;
-		nFrame++;
-		float moveZ = 0;
-		if (nFrame > 570)
+		float time = animationTimer.GetCurrentElapsedTime();
+		//float time = animationFrame / 30.f;
+		float maxTime = animateVectors[0].back();
+		animationFrame++;
+		if (time >= maxTime)
 		{
-			moveZ = scalefactor * 1.;
+			time = maxTime;
+			animate = 0;
+			SetInfo("Animation finished. (%f seconds, %d frames)", time, animationFrame);
 		}
-		else if (nFrame > 510)
+		else
 		{
-			moveZ = scalefactor * 1.f * (nFrame - 510) / 60.f;
+			SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
 		}
-		glTranslatef(moveX, moveY, moveZ);
+		glRotatef(-animationSplines[3].evaluate(time) * 180.f / M_PI, 1, 0, 0);
+		glRotatef(animationSplines[4].evaluate(time) * 180.f / M_PI, 0, 1, 0);
+		glRotatef(-animationSplines[5].evaluate(time) * 180.f / M_PI, 0, 0, 1);
+		glTranslatef(-animationSplines[0].evaluate(time), -animationSplines[1].evaluate(time), -animationSplines[2].evaluate(time));
+		
+		/*static int nFrame = 0;
 
-		glRotatef(rotatescalefactor * -0.5, 0, 1, 0);
-		glRotatef(rotatescalefactor * 0.5 * 0.25, 1, 0, 0);
-		glRotatef(scalefactor * 0.2, 0, 0, 1);
+		DrawGLScene(true);
+		char filename[16];
+		sprintf(filename, "video%05d.bmp", nFrame++);
+		unsigned char *mixBuffer = NULL;
+		//...
+		DoScreenshot(NULL, 1, &mixBuffer);
+
+		//...
+		DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
+		free(mixBuffer);
+		printf("Wrote video frame %s\n\n", filename);*/
+		
 	}
 	else if (resetScene)
 	{
@@ -1420,36 +1454,6 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 	DrawGLScene();
 }
 
-void animation()
-{
-	static int nFrame = 0;
-
-	DrawGLScene(true);
-	char filename[16];
-	sprintf(filename, "video%05d.bmp", nFrame++);
-	unsigned char *mixBuffer = NULL;
-	drawClusters = nFrame < 240;
-	drawSeeds = nFrame >= 90 && nFrame < 210;
-	drawTracklets = nFrame >= 210 && nFrame < 300;
-	pointSize = nFrame >= 90 ? 1.0 : 2.0;
-	drawTracks = nFrame >= 300 && nFrame < 390;
-	drawFinal = nFrame >= 390;
-	drawGlobalTracks = nFrame >= 480;
-	DoScreenshot(NULL, 1, &mixBuffer);
-
-	drawClusters = nFrame < 210;
-	drawSeeds = nFrame > 60 && nFrame < 180;
-	drawTracklets = nFrame >= 180 && nFrame < 270;
-	pointSize = nFrame > 60 ? 1.0 : 2.0;
-	drawTracks = nFrame > 270 && nFrame < 360;
-	drawFinal = nFrame > 360;
-	drawGlobalTracks = nFrame > 450;
-	DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
-
-	free(mixBuffer);
-	printf("Wrote video frame %s\n\n", filename);
-}
-
 const char* HelpText[] = {
 	"[n] / [SPACE]            Next event", 
 	"[q] / [Q] / [ESC]        Quit", 
@@ -1458,7 +1462,7 @@ const char* HelpText[] = {
 	"[k]                      Draw single slice (previous slice)", 
 	"[J]                      Draw related slices (same plane in phi)", 
 	"[z] / [U]                Show splitting of TPC in slices by extruding volume, [U] resets", 
-	"[y]                      Start Animation", 
+	"[y] / [Y] / [X]          Start Animation / Add animation point / Reset", 
 	"[g]                      Draw Grid", 
 	"[i]                      Project onto XY-plane", 
 	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
@@ -1478,14 +1482,15 @@ const char* HelpText[] = {
 	"[j]                      Show global tracks as additional segments of final tracks", 
 	"[m]                      Reorder clusters of merged tracks before showing them geometrically", 
 	"[t]                      Take Screenshot", 
+	"[T]                      Change screenshot resolution (scaling factor)",
 	"[S] / [A] / [D]          Enable or disable smoothing of points / smoothing of lines / depth buffer",
-	"[X] / [V]                Enable / disable anti-aliasing / VSync",
+	"[W] / [V]                Enable / disable anti-aliasing / VSync",
 	"[F]                      Switch fullscreen",
 	"[I]                      Enable / disable GL indirect draw",
 	"[o]                      Save current camera position", 
 	"[p]                      Restore camera position", 
 	"[h]                      Print Help", 
-	"[T]                      Show info texts",
+	"[H]                      Show info texts",
 	"[w] / [s] / [a] / [d]    Zoom / Strafe Left and Right", 
 	"[pgup] / [pgdn]          Strafe Up and Down",
 	"[e] / [f]                Rotate", 
@@ -1611,7 +1616,7 @@ void HandleKeyRelease(int wParam)
 			SetInfo("Showing collision %d", showCollision);
 		}
 	}
-	else if (wParam == 'T')
+	else if (wParam == 'H')
 	{
 		printInfoText += 1;
 		printInfoText &= 3;
@@ -1696,7 +1701,7 @@ void HandleKeyRelease(int wParam)
 		SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, depthBuffer ? "enabled" : "disabled");
 		setDepthBuffer();
 	}
-	else if (wParam == 'X')
+	else if (wParam == 'w')
 	{
 		drawQualityMSAA ^= 1;
 		setQuality();
@@ -1731,10 +1736,26 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'y')
 	{
-		animate = 1;
-		SetInfo("Starting animation");
+		if (animateVectors[0].size() > 1)
+		{
+			startAnimation();
+			SetInfo("Starting animation");
+		}
+		else
+		{
+			SetInfo("Insufficient animation points to start animation");
+		}
 	}
-
+	else if (wParam == 'Y')
+	{
+		setAnimationPoint();
+		SetInfo("Added animation point (%d points, %6.2f seconds)", (int) animateVectors[0].size(), animateVectors[0].back());
+	}
+	else if (wParam == 'X')
+	{
+		resetAnimation();
+		SetInfo("Reset animation points");
+	}
 	else if (wParam == 'g')
 	{
 		drawGrid ^= 1;
@@ -1793,6 +1814,12 @@ void HandleKeyRelease(int wParam)
 		sprintf(fname, "screenshot%d.bmp", nScreenshot++);
 		DoScreenshot(fname, screenshot_scale);
 		SetInfo("Taking screenshot (%s)", fname);
+	}
+	else if (wParam == 'T')
+	{
+		screenshot_scale += 1;
+		if (screenshot_scale == 5) screenshot_scale = 1;
+		SetInfo("Screenshot scaling factor set to %d", screenshot_scale);
 	}
 	else if (wParam == 'o')
 	{
