@@ -1,3 +1,7 @@
+#ifndef OPENGL_BACKEND_H
+#define OPENGL_BACKEND_H
+
+#include <vector>
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -34,3 +38,16 @@ void SetVSync(bool enable);
 #define KEY_SHIFT 16
 #define KEY_ALT 17
 #define KEY_CTRL 18
+
+class opengl_spline
+{
+public:
+	opengl_spline() : fa(), fb(), fc(), fd(), fx() {}
+	void create(const std::vector<float>& x, const std::vector<float>& y);
+	float evaluate(float x);
+	
+private:
+	std::vector<float> fa, fb, fc, fd, fx;
+};
+
+#endif
