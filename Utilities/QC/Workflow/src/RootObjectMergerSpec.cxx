@@ -27,16 +27,7 @@
 #include <utility> // std::forward
 #include <iostream>
 
-using DataProcessorSpec = o2::framework::DataProcessorSpec;
-using Inputs = o2::framework::Inputs;
-using Outputs = o2::framework::Outputs;
-using Options = o2::framework::Options;
-using InputSpec = o2::framework::InputSpec;
-using OutputSpec = o2::framework::OutputSpec;
-using AlgorithmSpec = o2::framework::AlgorithmSpec;
-using InitContext = o2::framework::InitContext;
-using ProcessingContext = o2::framework::ProcessingContext;
-using VariantType = o2::framework::VariantType;
+using namespace o2::framework;
 
 namespace o2 {
 namespace qc {
@@ -70,7 +61,7 @@ DataProcessorSpec getRootObjectMergerSpec() {
 
   return {
     "qc_merger",
-    {InputSpec{"qc_producer", "QC", "ROOTOBJECT", 0, InputSpec::QA}},
+    {InputSpec{"qc_producer", "QC", "ROOTOBJECT", 0, Lifetime::QA}},
     Outputs{},
     AlgorithmSpec(processingFct)
   };

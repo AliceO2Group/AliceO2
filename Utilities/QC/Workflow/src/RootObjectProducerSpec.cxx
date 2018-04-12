@@ -30,15 +30,7 @@
 #include <stdexcept> // std::runtime_error
 #include <type_traits>  // std::conditional
 
-using DataProcessorSpec = o2::framework::DataProcessorSpec;
-using Inputs = o2::framework::Inputs;
-//using Outputs = o2::framework::Outputs;
-using Options = o2::framework::Options;
-using OutputSpec = o2::framework::OutputSpec;
-using AlgorithmSpec = o2::framework::AlgorithmSpec;
-using InitContext = o2::framework::InitContext;
-using ProcessingContext = o2::framework::ProcessingContext;
-using VariantType = o2::framework::VariantType;
+using namespace o2::framework;
 
 namespace o2 {
 namespace qc {
@@ -109,7 +101,7 @@ DataProcessorSpec getRootObjectProducerSpec() {
     "qc_producer",
     Inputs{},
     {
-      OutputSpec{"QC", "ROOTOBJECT", 0, OutputSpec::QA}
+      OutputSpec{"QC", "ROOTOBJECT", 0, Lifetime::QA}
     },
     AlgorithmSpec{
       [](InitContext &ic) {
@@ -136,7 +128,7 @@ DataProcessorSpec getRootObjectProducerSpec() {
         // the shared pointer makes sure to clean up the instance when the processing
         // function gets out of scope
         auto processingFct = [producer](ProcessingContext& pc) {
-          pc.outputs().adopt(OutputSpec{ "QC", "ROOTOBJECT", 0, OutputSpec::QA }, producer->produceData());
+          pc.outputs().adopt(OutputSpec{ "QC", "ROOTOBJECT", 0, Lifetime::QA }, producer->produceData());
         };
 
         // return the actual processing function as a lambda function using variables

@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
       "producer",
       Inputs{},
       {
-        OutputSpec{"TPC", "CLUSTERS", 0, OutputSpec::Timeframe}
+        OutputSpec{"TPC", "CLUSTERS", 0, Lifetime::Timeframe}
       },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {}
@@ -37,10 +37,10 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
     {
       "processingStage",
       Inputs{
-        {"dataTPC", "TPC", "CLUSTERS", 0, InputSpec::Timeframe}
+        {"dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe}
       },
       Outputs{
-        {"TPC", "CLUSTERS_P", 0, OutputSpec::Timeframe}
+        {"TPC", "CLUSTERS_P", 0, Lifetime::Timeframe}
       },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {}
@@ -49,8 +49,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
     {
       "qcTaskTpc",
       Inputs{
-        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
-        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
+        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S"},
+        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S"}
       },
       Outputs{},
       AlgorithmSpec{
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
                                      in.origin == DataOrigin("TPC") &&
                                      in.description == DataDescription("CLUSTERS") &&
                                      in.subSpec == 0 &&
-                                     in.lifetime == InputSpec::Timeframe;
+                                     in.lifetime == Lifetime::Timeframe;
                             });
   BOOST_CHECK(input != disp->inputs.end());
 
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
                                 in.origin == DataOrigin("TPC") &&
                                 in.description == DataDescription("CLUSTERS_P") &&
                                 in.subSpec == 0 &&
-                                in.lifetime == InputSpec::Timeframe;
+                                in.lifetime == Lifetime::Timeframe;
                        });
   BOOST_CHECK(input != disp->inputs.end());
 
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
                                return out.origin == DataOrigin("TPC") &&
                                       out.description == DataDescription("CLUSTERS_P_S") &&
                                       out.subSpec == 0 &&
-                                      out.lifetime == OutputSpec::Timeframe;
+                                      out.lifetime == Lifetime::Timeframe;
                              });
   BOOST_CHECK(output != disp->outputs.end());
 
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
                           return out.origin == DataOrigin("TPC") &&
                                  out.description == DataDescription("CLUSTERS_S") &&
                                  out.subSpec == 0 &&
-                                 out.lifetime == OutputSpec::Timeframe;
+                                 out.lifetime == Lifetime::Timeframe;
                         });
   BOOST_CHECK(output != disp->outputs.end());
 
@@ -117,9 +117,9 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
       "producer",
       Inputs{},
       {
-        OutputSpec{"TPC", "CLUSTERS", 0, OutputSpec::Timeframe},
-        OutputSpec{"TPC", "CLUSTERS", 1, OutputSpec::Timeframe},
-        OutputSpec{"TPC", "CLUSTERS", 2, OutputSpec::Timeframe}
+        OutputSpec{"TPC", "CLUSTERS", 0, Lifetime::Timeframe},
+        OutputSpec{"TPC", "CLUSTERS", 1, Lifetime::Timeframe},
+        OutputSpec{"TPC", "CLUSTERS", 2, Lifetime::Timeframe}
       },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {}
@@ -128,8 +128,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
     {
       "qcTaskTpc",
       Inputs{
-        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
-        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
+        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0},
+        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0}
       },
       Outputs{},
       AlgorithmSpec{
@@ -142,10 +142,10 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        {"dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe}
+        {"dataTPC", "TPC", "CLUSTERS"}
       },
       Outputs{
-        {"TPC", "CLUSTERS_P", OutputSpec::Timeframe}
+        {"TPC", "CLUSTERS_P"}
       },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {}
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
                                        in.origin == DataOrigin("TPC") &&
                                        in.description == DataDescription("CLUSTERS") &&
                                        in.subSpec == i &&
-                                       in.lifetime == InputSpec::Timeframe;
+                                       in.lifetime == Lifetime::Timeframe;
                               });
     BOOST_CHECK(input != disp->inputs.end());
 
@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
                                   in.origin == DataOrigin("TPC") &&
                                   in.description == DataDescription("CLUSTERS_P") &&
                                   in.subSpec == i &&
-                                  in.lifetime == InputSpec::Timeframe;
+                                  in.lifetime == Lifetime::Timeframe;
                          });
     BOOST_CHECK(input != disp->inputs.end());
 
@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
                                  return out.origin == DataOrigin("TPC") &&
                                         out.description == DataDescription("CLUSTERS_P_S") &&
                                         out.subSpec == 0 &&
-                                        out.lifetime == OutputSpec::Timeframe;
+                                        out.lifetime == Lifetime::Timeframe;
                                });
     BOOST_CHECK(output != disp->outputs.end());
 
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
                             return out.origin == DataOrigin("TPC") &&
                                    out.description == DataDescription("CLUSTERS_S") &&
                                    out.subSpec == 0 &&
-                                   out.lifetime == OutputSpec::Timeframe;
+                                   out.lifetime == Lifetime::Timeframe;
                           });
     BOOST_CHECK(output != disp->outputs.end());
 
@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
       "producer",
       Inputs{},
       {
-        OutputSpec{"TPC", "CLUSTERS", 0, OutputSpec::Timeframe}
+        OutputSpec{"TPC", "CLUSTERS", 0, Lifetime::Timeframe}
       },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {}
@@ -230,10 +230,10 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
       DataProcessorSpec{
         "processingStage",
         Inputs{
-          {"dataTPC", "TPC", "CLUSTERS", 0, InputSpec::Timeframe}
+          {"dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe}
         },
         Outputs{
-          {"TPC", "CLUSTERS_P", 0, OutputSpec::Timeframe}
+          {"TPC", "CLUSTERS_P", 0, Lifetime::Timeframe}
         },
         AlgorithmSpec{
           [](ProcessingContext& ctx) {}
@@ -242,8 +242,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
     {
       "qcTaskTpc",
       Inputs{
-        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe},
-        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe}
+        {"TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, Lifetime::Timeframe},
+        {"TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, Lifetime::Timeframe}
       },
       Outputs{},
       AlgorithmSpec{
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
                                return out.origin == DataOrigin("TPC") &&
                                       out.description == DataDescription("RAWDATA") &&
                                       out.subSpec == 0 &&
-                                      out.lifetime == OutputSpec::Timeframe;
+                                      out.lifetime == Lifetime::Timeframe;
                              });
   BOOST_CHECK(output != fairMqProxy->outputs.end());
 
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
                                      in.origin == DataOrigin("TPC") &&
                                      in.description == DataDescription("RAWDATA") &&
                                      in.subSpec == 0 &&
-                                     in.lifetime == InputSpec::Timeframe;
+                                     in.lifetime == Lifetime::Timeframe;
                             });
   BOOST_CHECK(input != disp->inputs.end());
   BOOST_CHECK_EQUAL(disp->outputs.size(), 0);

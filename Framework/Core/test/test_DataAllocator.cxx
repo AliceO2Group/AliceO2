@@ -22,19 +22,7 @@
 #include "FairMQLogger.h"
 #include <vector>
 
-using DataProcessorSpec = o2::framework::DataProcessorSpec;
-using WorkflowSpec = o2::framework::WorkflowSpec;
-using ProcessingContext = o2::framework::ProcessingContext;
-using OutputSpec = o2::framework::OutputSpec;
-using InputSpec = o2::framework::InputSpec;
-using Inputs = o2::framework::Inputs;
-using Outputs = o2::framework::Outputs;
-using AlgorithmSpec = o2::framework::AlgorithmSpec;
-using InitContext = o2::framework::InitContext;
-using ProcessingContext = o2::framework::ProcessingContext;
-using DataRef = o2::framework::DataRef;
-using DataRefUtils = o2::framework::DataRefUtils;
-using ControlService = o2::framework::ControlService;
+using namespace o2::framework;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
@@ -46,7 +34,7 @@ DataProcessorSpec getTimeoutSpec()
   // a timer process to terminate the workflow after a timeout
   auto processingFct = [](ProcessingContext& pc) {
     static int counter = 0;
-    pc.outputs().snapshot(OutputSpec{ "TST", "TIMER", 0, OutputSpec::Timeframe }, counter);
+    pc.outputs().snapshot(OutputSpec{ "TST", "TIMER", 0, Lifetime::Timeframe }, counter);
 
     sleep(1);
     if (counter++ > 10) {
@@ -57,7 +45,7 @@ DataProcessorSpec getTimeoutSpec()
 
   return DataProcessorSpec{ "timer",  // name of the processor
                             Inputs{}, // inputs empty
-                            { OutputSpec{ "TST", "TIMER", 0, OutputSpec::Timeframe } },
+                            { OutputSpec{ "TST", "TIMER", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(processingFct) };
 }
 
@@ -70,32 +58,32 @@ DataProcessorSpec getSourceSpec()
     std::vector<o2::test::Polymorphic> c{ { 0xaffe }, { 0xd00f } };
     // class TriviallyCopyable is both messageable and has a dictionary, the default
     // picked by the framework is no serialization
-    pc.outputs().snapshot(OutputSpec{ "TST", "MESSAGEABLE", 0, OutputSpec::Timeframe }, a);
-    pc.outputs().snapshot(OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, OutputSpec::Timeframe },
+    pc.outputs().snapshot(OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe }, a);
+    pc.outputs().snapshot(OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                           o2::framework::ROOTSerialized<decltype(a)>(a));
     // class Polymorphic is not messageable, so the serialization type is deduced
     // from the fact that the type has a dictionary and can be ROOT-serialized.
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTNONTOBJECT", 0, OutputSpec::Timeframe }, b);
+    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe }, b);
     // vector of ROOT serializable class
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTVECTOR", 0, OutputSpec::Timeframe }, c);
+    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTVECTOR", 0, Lifetime::Timeframe }, c);
     // likewise, passed anonymously with char type and class name
     o2::framework::ROOTSerialized<char, const char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC", 0, OutputSpec::Timeframe }, d);
+    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe }, d);
     // vector of ROOT serializable class wrapped with TClass info as hint
     auto* cl = TClass::GetClass(typeid(decltype(c)));
     ASSERT_ERROR(cl != nullptr);
     o2::framework::ROOTSerialized<char, TClass> e(*((char*)&c), cl);
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC2", 0, OutputSpec::Timeframe }, e);
+    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe }, e);
   };
 
   return DataProcessorSpec{ "source", // name of the processor
-                            { InputSpec{ "timer", "TST", "TIMER", 0, InputSpec::Timeframe } },
-                            { OutputSpec{ "TST", "MESSAGEABLE", 0, OutputSpec::Timeframe },
-                              OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, OutputSpec::Timeframe },
-                              OutputSpec{ "TST", "ROOTNONTOBJECT", 0, OutputSpec::Timeframe },
-                              OutputSpec{ "TST", "ROOTVECTOR", 0, OutputSpec::Timeframe },
-                              OutputSpec{ "TST", "ROOTSERLZDVEC", 0, OutputSpec::Timeframe },
-                              OutputSpec{ "TST", "ROOTSERLZDVEC2", 0, OutputSpec::Timeframe } },
+                            { InputSpec{ "timer", "TST", "TIMER", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe },
+                              OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
+                              OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
+                              OutputSpec{ "TST", "ROOTVECTOR", 0, Lifetime::Timeframe },
+                              OutputSpec{ "TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe },
+                              OutputSpec{ "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(processingFct) };
 }
 
@@ -139,12 +127,12 @@ DataProcessorSpec getSinkSpec()
   };
 
   return DataProcessorSpec{ "sink", // name of the processor
-                            { InputSpec{ "input1", "TST", "MESSAGEABLE", 0, InputSpec::Timeframe },
-                              InputSpec{ "input2", "TST", "MSGBLEROOTSRLZ", 0, InputSpec::Timeframe },
-                              InputSpec{ "input3", "TST", "ROOTNONTOBJECT", 0, InputSpec::Timeframe },
-                              InputSpec{ "input4", "TST", "ROOTVECTOR", 0, InputSpec::Timeframe },
-                              InputSpec{ "input5", "TST", "ROOTSERLZDVEC", 0, InputSpec::Timeframe },
-                              InputSpec{ "input6", "TST", "ROOTSERLZDVEC2", 0, InputSpec::Timeframe } },
+                            { InputSpec{ "input1", "TST", "MESSAGEABLE", 0, Lifetime::Timeframe },
+                              InputSpec{ "input2", "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
+                              InputSpec{ "input3", "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
+                              InputSpec{ "input4", "TST", "ROOTVECTOR", 0, Lifetime::Timeframe },
+                              InputSpec{ "input5", "TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe },
+                              InputSpec{ "input6", "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }

@@ -41,7 +41,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
       "dataProducer",
       Inputs{},
       {
-        OutputSpec{ "TPC", "CLUSTERS", OutputSpec::Timeframe }
+        OutputSpec{ "TPC", "CLUSTERS"}
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -57,10 +57,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe }
+        { "dataTPC", "TPC", "CLUSTERS"}
       },
       Outputs{
-        { "TPC", "CLUSTERS_P", OutputSpec::Timeframe }
+        { "TPC", "CLUSTERS_P"}
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
@@ -75,7 +75,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 
 
   auto inputsSink = mergeInputs(
-    { "dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe },
+    { "dataTPC-proc", "TPC", "CLUSTERS_P" },
     parallelSize,
     [](InputSpec& input, size_t index) {
       input.subSpec = index;
@@ -95,8 +95,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec simpleQcTask{
     "simpleQcTask",
     Inputs{
-      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe },
-      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe }
+      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, Lifetime::Timeframe },
+      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, Lifetime::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{

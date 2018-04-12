@@ -29,7 +29,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
       "producer",
       Inputs{},
       Outputs{
-        {"TES", "STATEFUL", OutputSpec::Timeframe},
+        {"TES", "STATEFUL", Lifetime::Timeframe},
       },
       // The producer is stateful, we use a static for the state in this
       // particular case, but a Singleton or a captured new object would
@@ -48,7 +48,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
     {
       "consumer",
       Inputs{
-        {"test", "TES", "STATEFUL", OutputSpec::Timeframe},
+        {"test", "TES", "STATEFUL", Lifetime::Timeframe},
       },
       Outputs{},
       AlgorithmSpec{[](InitContext &) {

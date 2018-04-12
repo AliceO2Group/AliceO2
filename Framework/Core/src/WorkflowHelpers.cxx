@@ -120,7 +120,7 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
   // Notice that if the output is actually a forward, we need to store that
   // information so that when we add it at device level we know which output
   // channel we need to connect it too.
-  auto hasMatchingOutputFor = [&workflow, &constOutputs, 
+  auto hasMatchingOutputFor = [&workflow, &constOutputs,
                                &availableOutputsInfo, &oif,
                                &forwardedInputsInfo](size_t ci, size_t ii) {
     assert(ci < workflow.size());

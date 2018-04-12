@@ -68,7 +68,7 @@ void DispatcherDPL::addSource(const DataProcessorSpec& externalDataProcessor, co
     externalOutput.origin,
     externalOutput.description,
     externalOutput.subSpec,
-    static_cast<InputSpec::Lifetime>(externalOutput.lifetime),
+    externalOutput.lifetime
   };
 
   mDataProcessorSpec.inputs.push_back(newInput);

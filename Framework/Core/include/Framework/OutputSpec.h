@@ -11,6 +11,7 @@
 #define FRAMEWORK_OUTPUTSPEC_H
 
 #include "Headers/DataHeader.h"
+#include "Framework/Lifetime.h"
 
 namespace o2 {
 namespace framework {
@@ -19,18 +20,10 @@ namespace framework {
 /// input or in output. This can be used, for example to match
 /// specific payloads in a timeframe.
 struct OutputSpec {
-  /// The lifetime of objects being referred here.
-  enum Lifetime {
-    Timeframe,
-    Condition,
-    QA,
-    Transient
-  };
-
   header::DataOrigin origin;
   header::DataDescription description;
-  header::DataHeader::SubSpecificationType subSpec;
-  enum Lifetime lifetime;
+  header::DataHeader::SubSpecificationType subSpec = 0;
+  enum Lifetime lifetime = Lifetime::Timeframe;
 
   bool operator==(const OutputSpec& that)
   {

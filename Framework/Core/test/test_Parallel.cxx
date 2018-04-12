@@ -39,7 +39,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
       "dataProducer",
       Inputs{},
       {
-        OutputSpec{ "TPC", "CLUSTERS", OutputSpec::Timeframe }
+        OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe }
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -55,10 +55,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe }
+        { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe }
       },
       Outputs{
-        { "TPC", "CLUSTERS_P", OutputSpec::Timeframe }
+        { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe }
       },
       AlgorithmSpec{
         //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
@@ -73,14 +73,14 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   );
 
   auto inputsDataSampler = mergeInputs(
-    { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe },
+    { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
     parallelSize,
     [](InputSpec& input, size_t index) {
       input.subSpec = index;
     }
   );
   auto inputsTpcProc = mergeInputs(
-    { "dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe },
+    { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
     parallelSize,
     [](InputSpec& input, size_t index) {
       input.subSpec = index;
@@ -92,8 +92,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "dataSampler",
     inputsDataSampler,
     Outputs{
-      { "TPC", "CLUSTERS_S",   0, OutputSpec::Timeframe },
-      { "TPC", "CLUSTERS_P_S", 0, OutputSpec::Timeframe }
+      { "TPC", "CLUSTERS_S"},
+      { "TPC", "CLUSTERS_P_S"}
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
@@ -115,7 +115,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
             inputSpec->origin,
             outputDescription,
             0,
-            static_cast<OutputSpec::Lifetime>(inputSpec->lifetime)
+            inputSpec->lifetime
           };
 
           LOG(DEBUG) << "DataSampler sends data from subSpec: " << inputSpec->subSpec;
@@ -136,8 +136,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec qcTask{
     "qcTask",
     Inputs{
-      { "dataTPC-sampled",      "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe },
-      { "dataTPC-proc-sampled", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe }
+      { "dataTPC-sampled",      "TPC", "CLUSTERS_S" },
+      { "dataTPC-proc-sampled", "TPC", "CLUSTERS_P_S" }
     },
     Outputs{},
     AlgorithmSpec{
@@ -153,7 +153,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec sink{
     "sink",
     mergeInputs(
-      { "dataTPC-proc", "TPC", "CLUSTERS_P", InputSpec::Timeframe },
+      { "dataTPC-proc", "TPC", "CLUSTERS_P" },
       parallelSize,
       [](InputSpec& input, size_t index) {
         input.subSpec = index;

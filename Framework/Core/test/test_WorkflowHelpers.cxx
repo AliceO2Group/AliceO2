@@ -98,8 +98,8 @@ BOOST_AUTO_TEST_CASE(TestWorkflowHelpers) {
 //
 // A->B
 BOOST_AUTO_TEST_CASE(TestSimpleConnection) {
-  std::vector<InputSpec> expectedInputs = {InputSpec{"y", "TST", "A", InputSpec::Timeframe}};
-  std::vector<OutputSpec> expectedOutputs = {OutputSpec{"TST", "A", OutputSpec::Timeframe}};
+  std::vector<InputSpec> expectedInputs = {InputSpec{"y", "TST", "A" }};
+  std::vector<OutputSpec> expectedOutputs = {OutputSpec{"TST", "A" }};
   WorkflowSpec workflow{
     {
       "A",
@@ -137,8 +137,8 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection) {
 //  \
 //   C
 BOOST_AUTO_TEST_CASE(TestSimpleForward) {
-  std::vector<InputSpec> expectedInputs = {InputSpec{"y", "TST", "A", InputSpec::Timeframe}};
-  std::vector<OutputSpec> expectedOutputs = {OutputSpec{"TST", "A", OutputSpec::Timeframe}};
+  std::vector<InputSpec> expectedInputs = {InputSpec{"y", "TST", "A" }};
+  std::vector<OutputSpec> expectedOutputs = {OutputSpec{"TST", "A" }};
   WorkflowSpec workflow{
     {
       "A",
@@ -187,17 +187,17 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction) {
       "A",
       Inputs{},
       Outputs{
-        OutputSpec{"TST", "A", OutputSpec::Timeframe}
+        OutputSpec{"TST", "A"}
       }
     },
     timePipeline({
       "B",
-      Inputs{InputSpec{"b", "TST", "A", InputSpec::Timeframe}},
-      Outputs{OutputSpec{"TST", "B", OutputSpec::Timeframe}},
+      Inputs{InputSpec{"b", "TST", "A"}},
+      Outputs{OutputSpec{"TST", "B"}},
     }, 3),
     timePipeline({
       "C",
-      Inputs{InputSpec{"c", "TST", "B", InputSpec::Timeframe}}
+      Inputs{InputSpec{"c", "TST", "B" }}
     }, 2)
   };
 
@@ -228,8 +228,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction) {
   BOOST_CHECK_EQUAL(outputs.size(), 2); // FIXME: Is this what we actually want? We need
                                         // different matchers depending on the different timeframe ID.
   Outputs expectedOutputs = {
-    OutputSpec{"TST", "A", OutputSpec::Timeframe},
-    OutputSpec{"TST", "B", OutputSpec::Timeframe},
+    OutputSpec{"TST", "A"},
+    OutputSpec{"TST", "B"},
   };
 
   for (size_t i = 0; i < outputs.size(); ++i) {

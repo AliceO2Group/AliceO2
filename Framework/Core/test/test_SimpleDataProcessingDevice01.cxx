@@ -36,8 +36,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     "simple",
     Inputs{},
     {
-      OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
-      OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
+      OutputSpec{"TPC", "CLUSTERS"},
+      OutputSpec{"ITS", "CLUSTERS"}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {

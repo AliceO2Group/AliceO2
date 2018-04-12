@@ -89,8 +89,7 @@ class Dispatcher
       description.str[len + 1] = 'S';
     }
 
-    return OutputSpec{ dispatcherInput.origin, description, 0,
-                       static_cast<OutputSpec::Lifetime>(dispatcherInput.lifetime) };
+    return OutputSpec{ dispatcherInput.origin, description, 0, dispatcherInput.lifetime };
   }
 
  protected:

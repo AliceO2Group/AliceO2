@@ -25,11 +25,11 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing1()
 {
   return { { "A", Inputs{},
-             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
-                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+             Outputs{ OutputSpec{ "TST", "A1" },
+                      OutputSpec{ "TST", "A2" } } },
            {
              "B",
-             Inputs{ InputSpec{ "a", "TST", "A1", InputSpec::Timeframe } },
+             Inputs{ InputSpec{ "a", "TST", "A1" } },
            } };
 }
 
@@ -95,13 +95,13 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull)
 WorkflowSpec defineDataProcessing2()
 {
   return { { "A", Inputs{},
-             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
-                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+             Outputs{ OutputSpec{ "TST", "A1" },
+                      OutputSpec{ "TST", "A2" } } },
            {
              "B",
              Inputs{
-               InputSpec{ "a", "TST", "A1", InputSpec::Timeframe },
-               InputSpec{ "b", "TST", "A2", InputSpec::Timeframe },
+               InputSpec{ "a", "TST", "A1" },
+               InputSpec{ "b", "TST", "A2" },
              },
            } };
 }
@@ -132,16 +132,16 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec2)
 WorkflowSpec defineDataProcessing3()
 {
   return { { "A", Inputs{},
-             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
-                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
+             Outputs{ OutputSpec{ "TST", "A1" },
+                      OutputSpec{ "TST", "A2" } } },
            {
              "B",
              Inputs{
-               InputSpec{ "a", "TST", "A1", InputSpec::Timeframe },
+               InputSpec{ "a", "TST", "A1" },
              },
            },
            { "C", Inputs{
-                    InputSpec{ "a", "TST", "A2", InputSpec::Timeframe },
+                    InputSpec{ "a", "TST", "A2" },
                   } } };
 }
 
@@ -180,14 +180,14 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec3)
 WorkflowSpec defineDataProcessing4()
 {
   return { { "A", Inputs{},
-             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
-                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } } },
-           { "B", Inputs{ InputSpec{ "input", "TST", "A1", InputSpec::Timeframe } },
-             Outputs{ OutputSpec{ "TST", "B1", OutputSpec::Timeframe } } },
-           { "C", Inputs{ InputSpec{ "input", "TST", "A2", InputSpec::Timeframe } },
-             Outputs{ OutputSpec{ "TST", "C1", OutputSpec::Timeframe } } },
-           { "D", Inputs{ InputSpec{ "a", "TST", "B1", InputSpec::Timeframe },
-                          InputSpec{ "b", "TST", "C1", InputSpec::Timeframe } } } };
+             Outputs{ OutputSpec{ "TST", "A1" },
+                      OutputSpec{ "TST", "A2" } } },
+           { "B", Inputs{ InputSpec{ "input", "TST", "A1" } },
+             Outputs{ OutputSpec{ "TST", "B1" } } },
+           { "C", Inputs{ InputSpec{ "input", "TST", "A2" } },
+             Outputs{ OutputSpec{ "TST", "C1" } } },
+           { "D", Inputs{ InputSpec{ "a", "TST", "B1" },
+                          InputSpec{ "b", "TST", "C1" } } } };
 }
 
 BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
@@ -245,14 +245,14 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
 // need to forward (assuming we are in shared memory).
 WorkflowSpec defineDataProcessing5()
 {
-  return { { "A", Inputs{}, Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe } } },
+  return { { "A", Inputs{}, Outputs{ OutputSpec{ "TST", "A1" } } },
            {
              "B",
-             Inputs{ InputSpec{ "x", "TST", "A1", InputSpec::Timeframe } },
+             Inputs{ InputSpec{ "x", "TST", "A1" } },
            },
            {
              "C",
-             Inputs{ InputSpec{ "y", "TST", "A1", InputSpec::Timeframe } },
+             Inputs{ InputSpec{ "y", "TST", "A1" } },
            } };
 }
 
@@ -309,23 +309,23 @@ BOOST_AUTO_TEST_CASE(TestTopologyForwarding)
 // need to forward (assuming we are in shared memory).
 WorkflowSpec defineDataProcessing6()
 {
-  return { { "A", Inputs{}, Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe } } },
-           timePipeline({ "B", Inputs{ InputSpec{ "a", "TST", "A1", InputSpec::Timeframe } } }, 2) };
+  return { { "A", Inputs{}, Outputs{ OutputSpec{ "TST", "A1" } } },
+           timePipeline({ "B", Inputs{ InputSpec{ "a", "TST", "A1" } } }, 2) };
 }
 
 // This is three explicit layers, last two with
 // multiple (non commensurable) timeslice setups.
 WorkflowSpec defineDataProcessing7()
 {
-  return { { "A", Inputs{}, { OutputSpec{ "TST", "A", OutputSpec::Timeframe } } },
+  return { { "A", Inputs{}, { OutputSpec{ "TST", "A" } } },
            timePipeline(
              {
                "B",
-               Inputs{ InputSpec{ "x", "TST", "A", InputSpec::Timeframe } },
-               Outputs{ OutputSpec{ "TST", "B", OutputSpec::Timeframe } },
+               Inputs{ InputSpec{ "x", "TST", "A" } },
+               Outputs{ OutputSpec{ "TST", "B" } },
              },
              3),
-           timePipeline({ "C", Inputs{ InputSpec{ "x", "TST", "B", InputSpec::Timeframe } } }, 2) };
+           timePipeline({ "C", Inputs{ InputSpec{ "x", "TST", "B" } } }, 2) };
 }
 
 BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
@@ -344,8 +344,8 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   std::vector<DeviceConnectionId> connections;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
-  std::vector<OutputSpec> globalOutputs = { OutputSpec{ "TST", "A", OutputSpec::Timeframe },
-                                            OutputSpec{ "TST", "B", OutputSpec::Timeframe } };
+  std::vector<OutputSpec> globalOutputs = { OutputSpec{ "TST", "A" },
+                                            OutputSpec{ "TST", "B" } };
 
   unsigned short nextPort = 22000;
   std::vector<size_t> edgeOutIndex{ 0, 1, 2, 3, 6, 4, 7, 5, 8 };

@@ -119,7 +119,7 @@ void DispatcherFlpProto::addSource(const DataProcessorSpec& externalDataProcesso
     externalOutput.origin,
     externalOutput.description,
     externalOutput.subSpec,
-    static_cast<InputSpec::Lifetime>(externalOutput.lifetime),
+    externalOutput.lifetime
   };
 
   mDataProcessorSpec.inputs.push_back(newInput);

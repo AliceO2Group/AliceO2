@@ -26,8 +26,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
                             o2::header::gDataDescriptionHeartbeatFrame};
   auto inspec = InputSpec{"heatbeat",
                           o2::header::DataOrigin("SMPL"),
-                          o2::header::gDataDescriptionHeartbeatFrame,
-                          InputSpec::Timeframe};
+                          o2::header::gDataDescriptionHeartbeatFrame};
   WorkflowSpec workflow = {
     specifyExternalFairMQDeviceProxy("foreign-source",
                     {outspec},
