@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
   spec.description = "CLUSTERS";
   spec.origin = "TPC";
   spec.subSpec = 0;
-  spec.lifetime = InputSpec::Timeframe;
+  spec.lifetime = Lifetime::Timeframe;
 
   InputRoute route;
   route.sourceChannel = "Fake";
@@ -77,14 +77,14 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
   spec1.description = "CLUSTERS";
   spec1.origin = "TPC";
   spec1.subSpec = 0;
-  spec1.lifetime = InputSpec::Timeframe;
+  spec1.lifetime = Lifetime::Timeframe;
 
   InputSpec spec2;
   spec2.binding = "clusters_its";
   spec2.description = "CLUSTERS";
   spec2.origin = "ITS";
   spec2.subSpec = 0;
-  spec2.lifetime = InputSpec::Timeframe;
+  spec2.lifetime = Lifetime::Timeframe;
 
   InputRoute route1;
   route1.sourceChannel = "Fake";
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(TestCache) {
   spec.description = "CLUSTERS";
   spec.origin = "TPC";
   spec.subSpec = 0;
-  spec.lifetime = InputSpec::Timeframe;
+  spec.lifetime = Lifetime::Timeframe;
 
   InputRoute route;
   route.sourceChannel = "Fake";

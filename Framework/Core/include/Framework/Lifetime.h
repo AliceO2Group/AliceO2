@@ -7,25 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_INPUTSPEC_H
-#define FRAMEWORK_INPUTSPEC_H
-
-#include <string>
-#include "Framework/Lifetime.h"
-#include "Headers/DataHeader.h"
+#ifndef FRAMEWORK_LIFETIME_H
+#define FRAMEWORK_LIFETIME_H
 
 namespace o2 {
 namespace framework {
 
-/// A selector for some kind of data being processed, either in
-/// input or in output. This can be used, for example to match
-/// specific payloads in a timeframe.
-struct InputSpec {
-  std::string binding;
-  header::DataOrigin origin;
-  header::DataDescription description;
-  header::DataHeader::SubSpecificationType subSpec = 0;
-  enum Lifetime lifetime = Lifetime::Timeframe;
+/// Possible Lifetime of objects being exchanged by the DPL.
+/// FIXME: currently only Timeframe behaves as expected.
+enum struct Lifetime {
+  Timeframe,
+  Condition,
+  QA,
+  Transient
 };
 
 }

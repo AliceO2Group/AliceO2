@@ -18,7 +18,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
     "A",
     Inputs{},
     Outputs{
-      {"TST", "A1", OutputSpec::Timeframe}
+      {"TST", "A1", Lifetime::Timeframe}
     },
     AlgorithmSpec{
       [](const InputRecord &inputs,

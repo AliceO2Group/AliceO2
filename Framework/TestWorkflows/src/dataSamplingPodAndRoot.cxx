@@ -43,8 +43,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "podDataProducer",
     Inputs{},
     {
-      OutputSpec{ "TPC", "CLUSTERS", 0, OutputSpec::Timeframe },
-      OutputSpec{ "ITS", "CLUSTERS", 0, OutputSpec::Timeframe }
+      OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
+      OutputSpec{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe }
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -54,12 +54,12 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec processingStage{
     "processingStage",
     Inputs{
-      { "dataTPC", "TPC", "CLUSTERS", 0, InputSpec::Timeframe },
-      { "dataITS", "ITS", "CLUSTERS", 0, InputSpec::Timeframe }
+      { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
+      { "dataITS", "ITS", "CLUSTERS", 0, Lifetime::Timeframe }
     },
     Outputs{
-      { "TPC", "CLUSTERS_P", 0, OutputSpec::Timeframe },
-      { "ITS", "CLUSTERS_P", 0, OutputSpec::Timeframe }
+      { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
+      { "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe }
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
@@ -70,8 +70,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec podSink{
     "podSink",
     Inputs{
-      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, InputSpec::Timeframe },
-      { "dataITS-proc", "ITS", "CLUSTERS_P", 0, InputSpec::Timeframe }
+      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
+      { "dataITS-proc", "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
@@ -82,8 +82,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
     Inputs{
-      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, InputSpec::Timeframe },
-      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, InputSpec::Timeframe }
+      { "TPC_CLUSTERS_S",   "TPC", "CLUSTERS_S",   0, Lifetime::Timeframe },
+      { "TPC_CLUSTERS_P_S", "TPC", "CLUSTERS_P_S", 0, Lifetime::Timeframe }
     },
     Outputs{},
     AlgorithmSpec{
@@ -115,8 +115,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "rootDataProducer",
     {},
     {
-      OutputSpec{ "TST", "HISTOS", OutputSpec::Timeframe },
-      OutputSpec{ "TST", "STRING", OutputSpec::Timeframe }
+      OutputSpec{ "TST", "HISTOS", 0, Lifetime::Timeframe },
+      OutputSpec{ "TST", "STRING", 0, Lifetime::Timeframe }
     },
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
@@ -138,8 +138,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec rootSink{
     "rootSink",
     {
-      InputSpec{ "histos", "TST", "HISTOS", InputSpec::Timeframe },
-      InputSpec{ "string", "TST", "STRING", InputSpec::Timeframe },
+      InputSpec{ "histos", "TST", "HISTOS", 0, Lifetime::Timeframe },
+      InputSpec{ "string", "TST", "STRING", 0, Lifetime::Timeframe },
     },
     {},
     AlgorithmSpec{
@@ -164,8 +164,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec rootQcTask{
     "rootQcTask",
     {
-      InputSpec{ "TST_HISTOS_S", "TST", "HISTOS_S", InputSpec::Timeframe },
-      InputSpec{ "TST_STRING_S", "TST", "STRING_S", InputSpec::Timeframe },
+      InputSpec{ "TST_HISTOS_S", "TST", "HISTOS_S", 0, Lifetime::Timeframe },
+      InputSpec{ "TST_STRING_S", "TST", "STRING_S", 0, Lifetime::Timeframe },
     },
     Outputs{},
     AlgorithmSpec{

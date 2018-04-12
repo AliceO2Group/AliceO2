@@ -25,19 +25,7 @@
 #include <TFile.h>
 #include <vector>
 
-using DataProcessorSpec = o2::framework::DataProcessorSpec;
-using WorkflowSpec = o2::framework::WorkflowSpec;
-using ProcessingContext = o2::framework::ProcessingContext;
-using OutputSpec = o2::framework::OutputSpec;
-using InputSpec = o2::framework::InputSpec;
-using Inputs = o2::framework::Inputs;
-using Outputs = o2::framework::Outputs;
-using AlgorithmSpec = o2::framework::AlgorithmSpec;
-using InitContext = o2::framework::InitContext;
-using ProcessingContext = o2::framework::ProcessingContext;
-using DataRef = o2::framework::DataRef;
-using DataRefUtils = o2::framework::DataRefUtils;
-using ControlService = o2::framework::ControlService;
+using namespace o2::framework;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
@@ -71,7 +59,7 @@ DataProcessorSpec getSourceSpec()
       testFile->Close();
     }
 
-    constexpr auto persistency = OutputSpec::Transient;
+    constexpr auto persistency = Lifetime::Transient;
     using TreeReader = o2::framework::RootTreeReader<OutputSpec>;
     auto reader = std::make_shared<TreeReader>("testtree",       // tree name
                                                fileName.c_str(), // input file name
@@ -86,7 +74,7 @@ DataProcessorSpec getSourceSpec()
 
   return DataProcessorSpec{ "source", // name of the processor
                             {},
-                            { OutputSpec{ "TST", "ARRAYOFDATA", 0, OutputSpec::Timeframe } },
+                            { OutputSpec{ "TST", "ARRAYOFDATA"} },
                             AlgorithmSpec(initFct) };
 }
 
@@ -113,7 +101,7 @@ DataProcessorSpec getSinkSpec()
   };
 
   return DataProcessorSpec{ "sink", // name of the processor
-                            { InputSpec{ "input", "TST", "ARRAYOFDATA", 0, InputSpec::Timeframe } },
+                            { InputSpec{ "input", "TST", "ARRAYOFDATA" } },
                             Outputs{},
                             AlgorithmSpec(processingFct) };
 }

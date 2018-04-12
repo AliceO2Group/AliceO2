@@ -32,14 +32,14 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   spec1.description = "CLUSTERS";
   spec1.origin = "TPC";
   spec1.subSpec = 0;
-  spec1.lifetime = InputSpec::Timeframe;
+  spec1.lifetime = Lifetime::Timeframe;
 
   InputSpec spec2;
   spec2.binding = "y";
   spec2.description = "CLUSTERS";
   spec2.origin = "ITS";
   spec2.subSpec = 0;
-  spec2.lifetime = InputSpec::Timeframe;
+  spec2.lifetime = Lifetime::Timeframe;
 
   auto createRoute = [](const char *source, InputSpec &spec) {
     InputRoute route;

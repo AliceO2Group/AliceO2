@@ -26,21 +26,21 @@ WorkflowSpec defineSimplePipelining()
                                 "A",
                                 Inputs{},
                                 {
-                                  OutputSpec{ "TST", "A", OutputSpec::Timeframe },
+                                  OutputSpec{ "TST", "A" },
                                 },
                               },
                               timePipeline(
                                 {
                                   "B",
-                                  Inputs{ InputSpec{ "a", "TST", "A", InputSpec::Timeframe } },
+                                  Inputs{ InputSpec{ "a", "TST", "A" } },
                                   Outputs{
-                                    OutputSpec{ "TST", "B", OutputSpec::Timeframe },
+                                    OutputSpec{ "TST", "B" },
                                   },
                                 },
                                 2),
                               {
                                 "C",
-                                { InputSpec{ "b", "TST", "B", InputSpec::Timeframe } },
+                                { InputSpec{ "b", "TST", "B" } },
                               } };
 
   return result;
@@ -71,24 +71,24 @@ WorkflowSpec defineDataProcessing()
       "A",
       Inputs{},
       {
-        OutputSpec{ "TST", "A", OutputSpec::Timeframe },
+        OutputSpec{ "TST", "A" },
       },
     },
     timePipeline(
       {
         "B",
-        Inputs{ InputSpec{ "a", "TST", "A", InputSpec::Timeframe } },
-        Outputs{ OutputSpec{ "TST", "B1", OutputSpec::Timeframe }, OutputSpec{ "TST", "B2", OutputSpec::Timeframe } },
+        Inputs{ InputSpec{ "a", "TST", "A" } },
+        Outputs{ OutputSpec{ "TST", "B1" }, OutputSpec{ "TST", "B2" } },
       },
       2),
     timePipeline({ "C",
-                   { InputSpec{ "b", "TST", "B1", InputSpec::Timeframe } },
-                   { OutputSpec{ "TST", "C", OutputSpec::Timeframe } } },
+                   { InputSpec{ "b", "TST", "B1" } },
+                   { OutputSpec{ "TST", "C" } } },
                  3),
     timePipeline(
       {
         "D",
-        { InputSpec{ "c", "TST", "C", InputSpec::Timeframe }, InputSpec{ "d", "TST", "B2", InputSpec::Timeframe } },
+        { InputSpec{ "c", "TST", "C" }, InputSpec{ "d", "TST", "B2" } },
       },
       1)
   };

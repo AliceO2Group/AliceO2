@@ -35,8 +35,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     "reader",
     Inputs{},
     {
-      OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
-      OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
+      OutputSpec{"TPC", "CLUSTERS"},
+      OutputSpec{"ITS", "CLUSTERS"}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
@@ -72,8 +72,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
 
   DataProcessorSpec tpcClusterSummary{
     "tpc-cluster-summary",
-    { InputSpec{ "clusters", "TPC", "CLUSTERS", InputSpec::Timeframe } },
-    { OutputSpec{ "TPC", "SUMMARY", OutputSpec::Timeframe } },
+    { InputSpec{ "clusters", "TPC", "CLUSTERS"} },
+    { OutputSpec{ "TPC", "SUMMARY"} },
     AlgorithmSpec{ [](ProcessingContext& ctx) {
       auto tpcSummary = ctx.outputs().make<Summary>(OutputSpec{ "TPC", "SUMMARY", 0 }, 1);
       tpcSummary.at(0).inputCount = ctx.inputs().size();
@@ -84,9 +84,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
 
   DataProcessorSpec itsClusterSummary{
     "its-cluster-summary",
-    { InputSpec{ "clusters", "ITS", "CLUSTERS", InputSpec::Timeframe } },
+    { InputSpec{ "clusters", "ITS", "CLUSTERS" } },
     {
-      OutputSpec{ "ITS", "SUMMARY", OutputSpec::Timeframe },
+      OutputSpec{ "ITS", "SUMMARY" },
     },
     AlgorithmSpec{ [](ProcessingContext& ctx) {
       auto itsSummary = ctx.outputs().make<Summary>(OutputSpec{ "ITS", "SUMMARY", 0 }, 1);
@@ -99,9 +99,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
   DataProcessorSpec merger{
     "merger",
     {
-      InputSpec{"clusters", "TPC", "CLUSTERS", InputSpec::Timeframe},
-      InputSpec{"summary", "TPC", "SUMMARY", InputSpec::Timeframe},
-      InputSpec{"other_summary", "ITS", "SUMMARY", InputSpec::Timeframe}
+      InputSpec{"clusters", "TPC", "CLUSTERS"},
+      InputSpec{"summary", "TPC", "SUMMARY"},
+      InputSpec{"other_summary", "ITS", "SUMMARY"}
     },
     Outputs{},
     AlgorithmSpec{

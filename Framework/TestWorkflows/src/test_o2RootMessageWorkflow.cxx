@@ -32,8 +32,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       "producer",
       {},
       {
-        OutputSpec{"TST", "HISTOS", OutputSpec::Timeframe},
-        OutputSpec{"TST", "STRING", OutputSpec::Timeframe}
+        OutputSpec{"TST", "HISTOS"},
+        OutputSpec{"TST", "STRING"}
       },
       AlgorithmSpec{
         [](ProcessingContext &ctx) {
@@ -54,8 +54,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     {
       "consumer",
       {
-         InputSpec{"histos", "TST", "HISTOS", InputSpec::Timeframe},
-         InputSpec{"string", "TST", "STRING", InputSpec::Timeframe},
+         InputSpec{"histos", "TST", "HISTOS"},
+         InputSpec{"string", "TST", "STRING"},
       },
       {},
       AlgorithmSpec{

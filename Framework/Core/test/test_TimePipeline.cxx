@@ -39,7 +39,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     "dataProducer",
     Inputs{},
     {
-      OutputSpec{ "TPC", "CLUSTERS", 0, OutputSpec::Timeframe },
+      OutputSpec{ "TPC", "CLUSTERS" },
     },
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
@@ -50,10 +50,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS", InputSpec::Timeframe }
+        { "dataTPC", "TPC", "CLUSTERS" }
       },
       Outputs{
-        { "TPC", "CLUSTERS_P", OutputSpec::Timeframe }
+        { "TPC", "CLUSTERS_P" }
       },
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
@@ -65,7 +65,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
   DataProcessorSpec dataSampler{
     "dataSampler",
     Inputs{
-      { "dataTPC-sampled", "TPC", "CLUSTERS", 0, InputSpec::Timeframe },
+      { "dataTPC-sampled", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
     },
     Outputs{},
     AlgorithmSpec{

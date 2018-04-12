@@ -43,7 +43,7 @@ DataProcessorSpec sim_tpc() {
     "sim_tpc",
     Inputs{},
     {
-      OutputSpec{"TPC", "GEN", OutputSpec::Timeframe}
+      OutputSpec{"TPC", "GEN"}
     },
     AlgorithmSpec{
       [](InitContext &setup) {

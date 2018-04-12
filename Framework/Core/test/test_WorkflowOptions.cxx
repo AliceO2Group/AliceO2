@@ -24,7 +24,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       "producer",
       Inputs{},
       {
-        OutputSpec{ "TST", "TEST", OutputSpec::Timeframe },
+        OutputSpec{ "TST", "TEST" },
       },
       AlgorithmSpec{
         // define init callback
@@ -50,7 +50,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     DataProcessorSpec{
       "consumer",
       Inputs{
-        InputSpec{ "in", "TST", "TEST", OutputSpec::Timeframe },
+        InputSpec{ "in", "TST", "TEST" },
       },
       {},
       AlgorithmSpec{

@@ -22,7 +22,7 @@ DataProcessorSpec templateProducer() {
     "some-producer",
     Inputs{},
     {
-      OutputSpec{"TST", "A", 0, OutputSpec::Timeframe},
+      OutputSpec{"TST", "A", 0, Lifetime::Timeframe},
     },
     // The producer is stateful, we use a static for the state in this
     // particular case, but a Singleton or a captured new object would
@@ -54,7 +54,7 @@ void defineDataProcessing(o2::framework::WorkflowSpec &specs) {
   );
   workflow.push_back(DataProcessorSpec{
       "merger",
-      mergeInputs(InputSpec{"x", "TST", "A", InputSpec::Timeframe},
+      mergeInputs(InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
                   4,
                   [](InputSpec &input, size_t index){
                      input.subSpec = index;

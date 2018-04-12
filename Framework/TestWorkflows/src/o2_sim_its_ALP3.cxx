@@ -44,7 +44,7 @@ DataProcessorSpec sim_its_ALP3() {
     "sim_its_ALP3",
     Inputs{},
     {
-      OutputSpec{"ITS", "HITS", OutputSpec::Timeframe}
+      OutputSpec{"ITS", "HITS"}
     },
     AlgorithmSpec{
       [](InitContext &setup) {

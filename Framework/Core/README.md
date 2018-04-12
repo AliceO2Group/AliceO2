@@ -151,7 +151,7 @@ kind of the produced outputs.
 The `lifetime` property:
 
 ```cpp
-enum Lifetime {
+enum struct Lifetime {
   Timeframe,
   Condition,
   QA,
@@ -489,7 +489,7 @@ parallel devices, this time by modifying programmatically the `Inputs`:
 // ...
 DataProcessorSpec{
   "merger",
-  mergeInputs({"a", "TST", "A", InputSpec::Timeframe},
+  mergeInputs({"a", "TST", "A", 0, Lifetime::Timeframe},
               4,
               [](InputSpec &input, size_t index) {
                  input.subSpec = index;
