@@ -55,9 +55,9 @@ int loadROFrameData(std::uint32_t roFrame, Event& events, const std::vector<ITSM
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,
                       const std::unordered_map<int, Label>&);
-}
-}
-}
-}
+} // namespace IOUtils
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_EVENTLOADER_H_ */

@@ -32,7 +32,7 @@ template <typename T, std::size_t... Is, typename Initializer>
 constexpr std::array<T, sizeof...(Is)> fillArray(Initializer, std::index_sequence<Is...>);
 template <typename T, std::size_t N, typename Initializer>
 constexpr std::array<T, N> fillArray(Initializer);
-}
+} // namespace ArrayUtils
 
 template <typename T, std::size_t... Is, typename Initializer>
 constexpr std::array<T, sizeof...(Is)> ArrayUtils::fillArray(Initializer initializer, std::index_sequence<Is...>)
@@ -45,8 +45,8 @@ constexpr std::array<T, N> ArrayUtils::fillArray(Initializer initializer)
 {
   return ArrayUtils::fillArray<T>(initializer, std::make_index_sequence<N>{});
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_ARRAYUTILS_H_ */

@@ -39,6 +39,6 @@ std::ostream& operator<<(std::ostream& outputStream, const Label& label)
 
   return outputStream;
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

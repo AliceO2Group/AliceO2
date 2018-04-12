@@ -94,8 +94,8 @@ inline void Layer::clear()
   mTrackingFrameInfo.clear();
   mClusterLabels.clear();
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_LAYER_H_ */

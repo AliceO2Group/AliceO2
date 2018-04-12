@@ -57,10 +57,9 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
       mCells[iLayer].clear();
       float cellsMemorySize =
         Constants::Memory::Offset +
-        std::ceil(((Constants::Memory::CellsMemoryCoefficients[iLayer] *
-        event.getLayer(iLayer).getClustersSize()) *
-        event.getLayer(iLayer + 1).getClustersSize()) *
-        event.getLayer(iLayer + 2).getClustersSize());
+        std::ceil(((Constants::Memory::CellsMemoryCoefficients[iLayer] * event.getLayer(iLayer).getClustersSize()) *
+                   event.getLayer(iLayer + 1).getClustersSize()) *
+                  event.getLayer(iLayer + 2).getClustersSize());
 
       if (cellsMemorySize > mCells[iLayer].capacity()) {
         mCells[iLayer].reserve(cellsMemorySize);
@@ -70,12 +69,12 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
     if (iLayer < Constants::ITS::CellsPerRoad - 1) {
 
       mCellsLookupTable[iLayer].clear();
-      mCellsLookupTable[iLayer].resize(std::max(event.getLayer(iLayer + 1).getClustersSize(),
-                                                event.getLayer(iLayer + 2).getClustersSize()) +
-                                       std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer + 1] *
-                                       event.getLayer(iLayer + 1).getClustersSize()) *
-                                       event.getLayer(iLayer + 2).getClustersSize()),
-                                       Constants::ITS::UnusedIndex);
+      mCellsLookupTable[iLayer].resize(
+        std::max(event.getLayer(iLayer + 1).getClustersSize(), event.getLayer(iLayer + 2).getClustersSize()) +
+          std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer + 1] *
+                     event.getLayer(iLayer + 1).getClustersSize()) *
+                    event.getLayer(iLayer + 2).getClustersSize()),
+        Constants::ITS::UnusedIndex);
 
       mCellsNeighbours[iLayer].clear();
     }
@@ -125,8 +124,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
 
       float trackletsMemorySize =
         std::max(event.getLayer(iLayer).getClustersSize(), event.getLayer(iLayer + 1).getClustersSize()) +
-        std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer] *
-                  event.getLayer(iLayer).getClustersSize()) *
+        std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer] * event.getLayer(iLayer).getClustersSize()) *
                   event.getLayer(iLayer + 1).getClustersSize());
 
       if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
@@ -142,6 +140,6 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
   }
 #endif
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

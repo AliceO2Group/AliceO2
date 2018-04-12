@@ -40,6 +40,6 @@ void Road::addCell(int cellLayer, int cellId)
 
   mCellIds[cellLayer] = cellId;
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

@@ -24,9 +24,9 @@ namespace ITS
 namespace CA
 {
 
-using MathUtils::getNormalizedPhiCoordinate;
 using MathUtils::calculatePhiCoordinate;
 using MathUtils::calculateRCoordinate;
+using MathUtils::getNormalizedPhiCoordinate;
 
 Cluster::Cluster(const float x, const float y, const float z, const int index)
   : xCoordinate{ x },
@@ -73,6 +73,6 @@ TrackingFrameInfo::TrackingFrameInfo(float xTF, float alpha, std::array<float, 2
 {
   // Nothing to do
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

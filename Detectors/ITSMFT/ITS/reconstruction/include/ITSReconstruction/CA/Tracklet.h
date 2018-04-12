@@ -33,8 +33,8 @@ struct Tracklet final {
   const float tanLambda;
   const float phiCoordinate;
 };
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_TRACKLET_H_ */

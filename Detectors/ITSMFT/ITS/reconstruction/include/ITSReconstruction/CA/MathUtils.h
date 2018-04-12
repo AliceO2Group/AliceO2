@@ -33,7 +33,7 @@ float calculatePhiCoordinate(const float, const float);
 float calculateRCoordinate(const float, const float);
 GPU_HOST_DEVICE constexpr float getNormalizedPhiCoordinate(const float);
 GPU_HOST_DEVICE constexpr float3 crossProduct(const float3&, const float3&);
-}
+} // namespace MathUtils
 
 inline float MathUtils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
 {
@@ -59,8 +59,8 @@ GPU_HOST_DEVICE constexpr float3 MathUtils::crossProduct(const float3& firstVect
                  (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z),
                  (firstVector.x * secondVector.y) - (firstVector.y * secondVector.x) };
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CAUTILS_H_ */

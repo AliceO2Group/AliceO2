@@ -36,8 +36,8 @@ struct Label final {
 
   friend std::ostream& operator<<(std::ostream&, const Label&);
 };
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_LABEL_H_ */

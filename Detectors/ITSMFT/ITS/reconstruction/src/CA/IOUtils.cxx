@@ -32,7 +32,7 @@ namespace
 {
 constexpr int PrimaryVertexLayerId{ -1 };
 constexpr int EventLabelsSeparator{ -1 };
-}
+} // namespace
 
 namespace o2
 {
@@ -242,6 +242,6 @@ void IOUtils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
     }
   }
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

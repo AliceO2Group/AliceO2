@@ -36,7 +36,7 @@ namespace Math
 constexpr float Pi{ 3.14159265359f };
 constexpr float TwoPi{ 2.0f * Pi };
 constexpr float FloatMinThreshold{ 1e-20f };
-}
+} // namespace Math
 
 namespace ITS
 {
@@ -55,7 +55,7 @@ GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 {
   return GPUArray<float, LayersNumber>{ { 2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f } };
 }
-}
+} // namespace ITS
 
 namespace Thresholds
 {
@@ -80,7 +80,7 @@ constexpr GPUArray<float, ITS::CellsPerRoad - 1> NeighbourCellMaxNormalVectorsDe
 constexpr GPUArray<float, ITS::CellsPerRoad - 1> NeighbourCellMaxCurvaturesDelta{ { 0.008f, 0.0025f, 0.003f,
                                                                                     0.0035f } };
 constexpr int CellsMinLevel{ 5 };
-}
+} // namespace Thresholds
 
 namespace IndexTable
 {
@@ -93,7 +93,7 @@ GPU_HOST_DEVICE constexpr GPUArray<float, ITS::LayersNumber> InverseZBinSize()
                                                0.5 * ZBins / 42.140f, 0.5 * ZBins / 42.140f, 0.5 * ZBins / 73.745f,
                                                0.5 * ZBins / 73.745f } };
 }
-}
+} // namespace IndexTable
 
 namespace Memory
 {
@@ -103,15 +103,15 @@ constexpr GPUArray<float, ITS::TrackletsPerRoad> TrackletsMemoryCoefficients{
 constexpr GPUArray<float, ITS::CellsPerRoad> CellsMemoryCoefficients{ { 2.3208e-08f, 2.104e-08f, 1.6432e-08f,
                                                                         1.2412e-08f, 1.3543e-08f } };
 constexpr int Offset = 256; /// Required for low multiplicity events
-}
+} // namespace Memory
 
 namespace PDGCodes
 {
 constexpr int PionCode{ 211 };
 }
-}
-}
-}
-}
+} // namespace Constants
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CONSTANTS_H_ */

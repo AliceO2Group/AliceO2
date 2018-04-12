@@ -32,6 +32,6 @@ Layer::Layer(const int layerIndex) : mLayerIndex{ layerIndex }
 {
   // Nothing to do
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

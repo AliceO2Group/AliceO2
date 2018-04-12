@@ -46,6 +46,6 @@ const std::vector<std::pair<int, int>> IndexTableUtils::selectClusters(
 
   return filteredBins;
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

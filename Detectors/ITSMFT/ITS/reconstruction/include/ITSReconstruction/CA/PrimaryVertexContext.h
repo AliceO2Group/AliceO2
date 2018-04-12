@@ -220,8 +220,8 @@ inline std::array<std::vector<int>, Constants::ITS::CellsPerRoad>& PrimaryVertex
   return mTrackletsLookupTable;
 }
 #endif
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_PRIMARYVERTEXCONTEXT_H_ */

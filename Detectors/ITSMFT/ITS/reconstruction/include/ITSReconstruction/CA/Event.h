@@ -95,8 +95,8 @@ inline void Event::clear()
   }
   mPrimaryVertices.clear();
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_EVENT_H_ */

@@ -50,8 +50,8 @@ struct TrackingFrameInfo {
   std::array<float, 2> positionTrackingFrame;
   std::array<float, 3> covarianceTrackingFrame;
 };
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CACLUSTER_H_ */
