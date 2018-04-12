@@ -39,6 +39,6 @@ GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int sec
 {
   // Nothing to do
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

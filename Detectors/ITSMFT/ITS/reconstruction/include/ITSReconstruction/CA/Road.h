@@ -60,8 +60,8 @@ inline int& Road::operator[](const int& i) { return mCellIds[i]; }
 inline bool Road::isFakeRoad() const { return mIsFakeRoad; }
 
 inline void Road::setFakeRoad(const bool isFakeRoad) { mIsFakeRoad = isFakeRoad; }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_ROAD_H_ */

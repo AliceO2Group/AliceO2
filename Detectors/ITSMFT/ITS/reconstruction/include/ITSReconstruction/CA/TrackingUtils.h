@@ -33,9 +33,9 @@ GPU_DEVICE const int4 getBinsRect(const Cluster&, const int, const float);
 float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3);
 float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3);
 float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2);
-}
-}
-}
-}
+} // namespace TrackingUtils
+} // namespace CA
+} // namespace ITS
+} // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CATRACKINGUTILS_H_ */

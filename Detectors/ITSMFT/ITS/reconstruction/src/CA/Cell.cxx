@@ -35,6 +35,6 @@ GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondClusterIndex,
 {
   // Nothing to do
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

@@ -216,7 +216,7 @@ void TrackerTraits<false>::computeLayerCells(PrimaryVertexContext& primaryVertex
                 primaryVertexContext.getCells()[iLayer].size();
             }
 
-           primaryVertexContext.getCells()[iLayer].emplace_back(
+            primaryVertexContext.getCells()[iLayer].emplace_back(
               currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
               iTracklet, iNextLayerTracklet, normalizedPlaneVector, cellTrajectoryCurvature);
           }
@@ -701,6 +701,6 @@ track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1, const
 }
 
 template class Tracker<TRACKINGITSU_GPU_MODE>;
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2

@@ -31,6 +31,6 @@ ClassImp(o2::ITS::CA::TrackObject)
   TrackObject::TrackObject(const Track& track) : TObject{}, mTrack{ track } {}
 
   TrackObject::~TrackObject() {}
-  }
-  }
+  } // namespace CA
+  } // namespace ITS
 }

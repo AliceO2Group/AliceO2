@@ -59,6 +59,6 @@ int Event::getTotalClusters() const
 
   return totalClusters;
 }
-}
-}
-}
+} // namespace CA
+} // namespace ITS
+} // namespace o2
