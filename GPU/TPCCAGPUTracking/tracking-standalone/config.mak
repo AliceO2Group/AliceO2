@@ -23,7 +23,7 @@ CXXFILES					+= standalone.cxx \
 CPPFILES					+= cmodules/qconfig.cpp
 
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
-CPPFILES					+= display/opengl.cpp display/opengl_interpolation.cpp
+CPPFILES					+= display/opengl.cpp display/opengl_interpolation.cpp display/opengl_quaternion.cpp
 CONFIG_OPENGL				= 1
 CONFIG_X11					= 1
 DEFINES						+= BUILD_EVENT_DISPLAY
