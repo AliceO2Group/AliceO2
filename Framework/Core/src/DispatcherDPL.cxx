@@ -52,7 +52,7 @@ void DispatcherDPL::processCallback(ProcessingContext& ctx, BernoulliGenerator& 
       } else { // POD
         // todo: use API for that when it is available
         ctx.outputs().adoptChunk(outputSpec, const_cast<char*>(input.payload), inputHeader->size(),
-                                   &header::Stack::freefn, nullptr);
+                                 &header::Stack::freefn, nullptr);
       }
 
       LOG(DEBUG) << "DataSampler sends data from subspec " << input.spec->subSpec;

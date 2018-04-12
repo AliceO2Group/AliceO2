@@ -135,9 +135,8 @@ DataProcessorSpec getRootObjectProducerSpec() {
         // using by-copy capture of the worker instance shared pointer
         // the shared pointer makes sure to clean up the instance when the processing
         // function gets out of scope
-        auto processingFct = [producer] (ProcessingContext &pc) {
-          pc.outputs().adopt(OutputSpec{"QC", "ROOTOBJECT", 0, OutputSpec::QA},
-                               producer->produceData());
+        auto processingFct = [producer](ProcessingContext& pc) {
+          pc.outputs().adopt(OutputSpec{ "QC", "ROOTOBJECT", 0, OutputSpec::QA }, producer->produceData());
         };
 
         // return the actual processing function as a lambda function using variables

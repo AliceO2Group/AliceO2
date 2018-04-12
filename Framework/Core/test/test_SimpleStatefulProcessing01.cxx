@@ -38,7 +38,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
         static int foo = 0;
         return [](ProcessingContext &ctx) {
             sleep(1);
-            auto out = ctx.outputs().newChunk({"TES", "STATEFUL", 0}, sizeof(int));
+            auto out = ctx.outputs().newChunk({ "TES", "STATEFUL", 0 }, sizeof(int));
             auto outI = reinterpret_cast<int *>(out.data);
             outI[0] = foo++;
           };

@@ -122,8 +122,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
       [](ProcessingContext& ctx) {
         sleep(1);
         // Create an histogram
-        auto& singleHisto = ctx.outputs().make<TH1F>(OutputSpec{ "TST", "HISTOS", 0 },
-                                                       "h1", "test", 100, -10., 10.);
+        auto& singleHisto = ctx.outputs().make<TH1F>(OutputSpec{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
         auto& aString = ctx.outputs().make<TObjString>(OutputSpec{ "TST", "STRING", 0 }, "foo");
         singleHisto.FillRandom("gaus", 1000);
         Double_t stats[4];
@@ -239,10 +238,10 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
   const FakeCluster* inputDataIts = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataITS").payload);
 
-  auto processedTpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", 0 },
-                                                                collectionChunkSize);
-  auto processedItsClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS_P", 0 },
-                                                                collectionChunkSize);
+  auto processedTpcClusters =
+    ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", 0 }, collectionChunkSize);
+  auto processedItsClusters =
+    ctx.outputs().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS_P", 0 }, collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

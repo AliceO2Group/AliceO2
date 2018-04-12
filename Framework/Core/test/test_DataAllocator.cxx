@@ -72,7 +72,7 @@ DataProcessorSpec getSourceSpec()
     // picked by the framework is no serialization
     pc.outputs().snapshot(OutputSpec{ "TST", "MESSAGEABLE", 0, OutputSpec::Timeframe }, a);
     pc.outputs().snapshot(OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, OutputSpec::Timeframe },
-                            o2::framework::ROOTSerialized<decltype(a)>(a));
+                          o2::framework::ROOTSerialized<decltype(a)>(a));
     // class Polymorphic is not messageable, so the serialization type is deduced
     // from the fact that the type has a dictionary and can be ROOT-serialized.
     pc.outputs().snapshot(OutputSpec{ "TST", "ROOTNONTOBJECT", 0, OutputSpec::Timeframe }, b);
