@@ -7,8 +7,8 @@
 
 #include "AliMCParticle.h"
 
-#define ENABLE_HLTTRDDEBUG
-#define ENABLE_WARNING 1
+//#define ENABLE_HLTTRDDEBUG
+#define ENABLE_WARNING 0
 #include "AliHLTTRDTrackerDebug.h"
 
 ClassImp(AliHLTTRDTracker)
