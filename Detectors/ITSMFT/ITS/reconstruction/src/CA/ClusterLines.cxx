@@ -81,8 +81,7 @@ Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, st
 }
 #else
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
-  : originPoint{ firstPoint }, 
-    weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
+  : originPoint{ firstPoint }, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
 {
   for (int index{ 0 }; index < 3; ++index)
     cosinesDirector[index] = secondPoint[index] - firstPoint[index];

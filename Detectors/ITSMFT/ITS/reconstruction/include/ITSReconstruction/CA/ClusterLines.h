@@ -51,7 +51,7 @@ struct Line final {
 
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
-  static bool areParallel(const Line&, const Line&, const float precision = 1e-14); 
+  static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
   std::array<float, 3> originPoint;
   std::array<float, 3> cosinesDirector;

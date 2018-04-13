@@ -44,11 +44,8 @@ class Vertexer
   void initialise(const std::tuple<float, float, float, float, int> initParams);
   void findTracklets(const bool useMCLabel = false);
   void findVertices();
-<<<<<<< HEAD
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
-=======
->>>>>>> 049713076... Add ifdef debug guards
   inline std::vector<Line> getTracklets() { return mTracklets; }
   inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() { return mClusters; }
   static const std::vector<std::pair<int, int>> selectClusters(
@@ -56,7 +53,6 @@ class Vertexer
     const std::array<int, 4>& selectedBinsRect);
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
 
-<<<<<<< HEAD
   // #ifdef DEBUG_BUILD
   //   void printIndexTables();
   //   void dumpTracklets();
@@ -65,15 +61,6 @@ class Vertexer
   //   inline std::vector<std::array<float, 3>> getLegacyVertices() { return mLegacyVertices; }
   // #endif
   std::vector<Vertex>& getVertices() { return mVertices; }
-=======
-#ifdef DEBUG_BUILD
-  void printIndexTables();
-  void dumpTracklets();
-  inline std::vector<std::tuple<std::array<float, 3>, int, float>> getVertices() { return mVertices; }
-#else
-  inline std::vector<std::array<float, 3>> getVertices() { return mVertices; }
-#endif
->>>>>>> 049713076... Add ifdef debug guards
 
  protected:
   bool mVertexerInitialised{ false };
@@ -87,20 +74,12 @@ class Vertexer
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
   float mZBinSize;
   Event mEvent;
-<<<<<<< HEAD
   // #ifdef DEBUG_BUILD
   //   std::vector<std::tuple<std::array<float, 3>, int, float>> mLegacyVertices;
   // #else
   //   std::vector<std::array<float, 3>> mLegacyVertices;
   // #endif
   std::vector<Vertex> mVertices;
-=======
-#ifdef DEBUG_BUILD
-  std::vector<std::tuple<std::array<float, 3>, int, float>> mVertices;
-#else
-  std::vector<std::array<float, 3>> mVertices;
-#endif
->>>>>>> 049713076... Add ifdef debug guards
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
     mIndexTables;

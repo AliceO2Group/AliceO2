@@ -39,8 +39,7 @@ using Constants::IndexTable::ZBins;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
-Vertexer::Vertexer(const Event& event) : mEvent{ event },
-mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } }
+Vertexer::Vertexer(const Event& event) : mEvent{ event }, mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } }
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
     const Layer& currentLayer{ event.getLayer(iLayer) };
@@ -53,8 +52,8 @@ mAverageClustersRadii{ std::array<float, 3>{ 0.f, 0.f, 0.f } }
       mClusters[iLayer].emplace_back(iLayer, currentLayer.getCluster(iCluster));
     }
     if (mClusters[iLayer].size() != 0) {
-      const float inverseNumberOfClusters { 1.f/mClusters[iLayer].size() };
-      for ( auto& cluster : mClusters[iLayer] ) {
+      const float inverseNumberOfClusters{ 1.f / mClusters[iLayer].size() };
+      for (auto& cluster : mClusters[iLayer]) {
         mAverageClustersRadii[iLayer] += cluster.rCoordinate;
       }
       mAverageClustersRadii[iLayer] *= inverseNumberOfClusters;
@@ -104,8 +103,6 @@ void Vertexer::initialise(const float zCut, const float phiCut, const float pair
   mVertexerInitialised = true;
 }
 
-
-
 const std::vector<std::pair<int, int>> Vertexer::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
                                                                 const std::array<int, 4>& selectedBinsRect)
 {
@@ -117,13 +114,14 @@ const std::vector<std::pair<int, int>> Vertexer::selectClusters(const std::array
   for (int iPhiBin{ selectedBinsRect[1] }, iPhiCount{ 0 }; iPhiCount < phiBinsNum;
        iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
     const int firstBinIndex{ IndexTableUtils::getBinIndex(selectedBinsRect[0], iPhiBin) };
-    filteredBins.emplace_back( indexTable[firstBinIndex],
+    filteredBins.emplace_back(
+      indexTable[firstBinIndex],
       IndexTableUtils::countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));
   }
   return filteredBins;
 }
 
-void Vertexer::findTracklets( const bool useMCLabel )
+void Vertexer::findTracklets(const bool useMCLabel)
 {
   if (mVertexerInitialised) {
     // std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -135,71 +133,95 @@ void Vertexer::findTracklets( const bool useMCLabel )
     for (int iBin1{ 0 }; iBin1 < ZBins * PhiBins; ++iBin1) {
 
       int ZBinLow0{ std::max(0, ZBins - static_cast<int>(std::ceil((ZBins - iBin1 % ZBins + 1) *
-                                                                    (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii10))) };
-      int ZBinHigh0{ std::min( static_cast<int>(std::ceil((iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
+                                                                   (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii10))) };
+      int ZBinHigh0{ std::min(
+        static_cast<int>(std::ceil((iBin1 % ZBins + 1) * (mDeltaRadii21 + mDeltaRadii10) / mDeltaRadii21)),
         ZBins - 1) };
       // int ZBinLow0 { 0 };
       // int ZBinHigh0 { ZBins -1 };
 
       int PhiBin1{ static_cast<int>(iBin1 / ZBins) };
-      clusters0 = selectClusters( mIndexTables[0], 
-        std::array<int, 4>{ ZBinLow0, (PhiBin1 - mPhiSpan < 0) ? PhiBins + (PhiBin1 - mPhiSpan) : PhiBin1 - mPhiSpan, 
-        ZBinHigh0, (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
+      clusters0 = selectClusters(
+        mIndexTables[0],
+        std::array<int, 4>{ ZBinLow0, (PhiBin1 - mPhiSpan < 0) ? PhiBins + (PhiBin1 - mPhiSpan) : PhiBin1 - mPhiSpan,
+                            ZBinHigh0,
+                            (PhiBin1 + mPhiSpan > PhiBins) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan });
 
       for (int iCluster1{ mIndexTables[1][iBin1] }; iCluster1 < mIndexTables[1][iBin1 + 1]; ++iCluster1) {
         bool trackFound = false;
         for (int iRow0{ 0 }; iRow0 < clusters0.size(); ++iRow0) {
-          for (int iCluster0{ std::get<0>(clusters0[iRow0]) }; iCluster0 < std::get<0>(clusters0[iRow0]) + std::get<1>(clusters0[iRow0]); ++iCluster0) {
-            if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mPhiCut || std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) > TwoPi - mPhiCut) {
-              float ZProjection{ mClusters[0][iCluster0].zCoordinate +  (mAverageClustersRadii[2] - mClusters[0][iCluster0].rCoordinate) * (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) / (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
-              float ZProjectionInner{ mClusters[0][iCluster0].zCoordinate +  (mClusters[0][iCluster0].rCoordinate) * (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) / (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
+          for (int iCluster0{ std::get<0>(clusters0[iRow0]) };
+               iCluster0 < std::get<0>(clusters0[iRow0]) + std::get<1>(clusters0[iRow0]); ++iCluster0) {
+            if (std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mPhiCut ||
+                std::abs(mClusters[0][iCluster0].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) >
+                  TwoPi - mPhiCut) {
+              float ZProjection{ mClusters[0][iCluster0].zCoordinate +
+                                 (mAverageClustersRadii[2] - mClusters[0][iCluster0].rCoordinate) *
+                                   (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) /
+                                   (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
+              float ZProjectionInner{ mClusters[0][iCluster0].zCoordinate +
+                                      (mClusters[0][iCluster0].rCoordinate) *
+                                        (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) /
+                                        (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
               if (std::abs(ZProjection) > (LayersZCoordinate()[0] + mZCut))
                 continue;
-              int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0]) ? 0 : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1 : getZBinIndex(2, ZProjection) };
+              int ZProjectionBin{ (ZProjection < -LayersZCoordinate()[0])
+                                    ? 0
+                                    : (ZProjection > LayersZCoordinate()[0]) ? ZBins - 1
+                                                                             : getZBinIndex(2, ZProjection) };
               int ZBinLow2{ (ZProjectionBin - mZSpan < 0) ? 0 : ZProjectionBin - mZSpan };
               int ZBinHigh2{ (ZProjectionBin + mZSpan > ZBins - 1) ? ZBins - 1 : ZProjectionBin + mZSpan };
               // int ZBinLow2  { 0 };
               // int ZBinHigh2  { ZBins - 1 };
-              int PhiBinLow2{ (PhiBin1 - mPhiSpan < 0) ? PhiBins + PhiBin1 - mPhiSpan : PhiBin1 - mPhiSpan };       
+              int PhiBinLow2{ (PhiBin1 - mPhiSpan < 0) ? PhiBins + PhiBin1 - mPhiSpan : PhiBin1 - mPhiSpan };
               int PhiBinHigh2{ (PhiBin1 + mPhiSpan > PhiBins - 1) ? PhiBin1 + mPhiSpan - PhiBins : PhiBin1 + mPhiSpan };
               // int PhiBinLow2{ 0 };
               // int PhiBinHigh2{ PhiBins - 1 };
-              clusters2 = selectClusters(mIndexTables[2], std::array<int, 4>{ ZBinLow2, PhiBinLow2, ZBinHigh2, PhiBinHigh2 });
+              clusters2 =
+                selectClusters(mIndexTables[2], std::array<int, 4>{ ZBinLow2, PhiBinLow2, ZBinHigh2, PhiBinHigh2 });
               for (int iRow2{ 0 }; iRow2 < clusters2.size(); ++iRow2) {
-                for (int iCluster2{ std::get<0>(clusters2[iRow2]) }; iCluster2 < std::get<0>(clusters2[iRow2]) + std::get<1>(clusters2[iRow2]); ++iCluster2) {
-                  float ZProjectionRefined { mClusters[0][iCluster0].zCoordinate +  (mClusters[2][iCluster2].rCoordinate - mClusters[0][iCluster0].rCoordinate) * (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) / (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate) };
-                  bool testMC { !useMCLabel || ( mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID() == mEvent.getLayer(2).getClusterLabel(mClusters[2][iCluster2].clusterId).getTrackID() && 
-                             mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID() == mEvent.getLayer(1).getClusterLabel(mClusters[1][iCluster1].clusterId).getTrackID() ) 
+                for (int iCluster2{ std::get<0>(clusters2[iRow2]) };
+                     iCluster2 < std::get<0>(clusters2[iRow2]) + std::get<1>(clusters2[iRow2]); ++iCluster2) {
+                  float ZProjectionRefined{
+                    mClusters[0][iCluster0].zCoordinate +
+                    (mClusters[2][iCluster2].rCoordinate - mClusters[0][iCluster0].rCoordinate) *
+                      (mClusters[1][iCluster1].zCoordinate - mClusters[0][iCluster0].zCoordinate) /
+                      (mClusters[1][iCluster1].rCoordinate - mClusters[0][iCluster0].rCoordinate)
                   };
-                  if ( std::abs( mClusters[2][iCluster2].zCoordinate - ZProjectionRefined ) < mZCut &&
-                       (std::abs(mClusters[2][iCluster2].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) < mPhiCut || 
-                        std::abs(mClusters[2][iCluster2].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) > TwoPi - mPhiCut) &&
-                        testMC
-                     ) 
-                  {
+                  bool testMC{ !useMCLabel ||
+                               (mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID() ==
+                                  mEvent.getLayer(2).getClusterLabel(mClusters[2][iCluster2].clusterId).getTrackID() &&
+                                mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID() ==
+                                  mEvent.getLayer(1).getClusterLabel(mClusters[1][iCluster1].clusterId).getTrackID()) };
+                  if (std::abs(mClusters[2][iCluster2].zCoordinate - ZProjectionRefined) < mZCut &&
+                      (std::abs(mClusters[2][iCluster2].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) <
+                         mPhiCut ||
+                       std::abs(mClusters[2][iCluster2].phiCoordinate - mClusters[1][iCluster1].phiCoordinate) >
+                         TwoPi - mPhiCut) &&
+                      testMC) {
                     mTracklets.emplace_back(Line{
-                                                 std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
-                                                   mClusters[0][iCluster0].zCoordinate },
-                                                 std::array<float, 3>{ mClusters[1][iCluster1].xCoordinate, mClusters[1][iCluster1].yCoordinate,
-                                                   mClusters[1][iCluster1].zCoordinate }
+                      std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
+                                            mClusters[0][iCluster0].zCoordinate },
+                      std::array<float, 3>{ mClusters[1][iCluster1].xCoordinate, mClusters[1][iCluster1].yCoordinate,
+                                            mClusters[1][iCluster1].zCoordinate }
 #ifdef DEBUG_BUILD
-                                                , mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID(),
-                                                 mEvent.getLayer(1).getClusterLabel(mClusters[1][iCluster1].clusterId).getTrackID()
+                      ,
+                      mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID(),
+                      mEvent.getLayer(1).getClusterLabel(mClusters[1][iCluster1].clusterId).getTrackID()
 #endif
-                                                }
-                                            );
+                    });
                     trackFound = true;
                     break;
                   }
                 }
-                if ( trackFound )
+                if (trackFound)
                   break;
               }
             }
-            if ( trackFound )
+            if (trackFound)
               break;
           }
-          if ( trackFound )
+          if (trackFound)
             break;
         }
       }
@@ -218,7 +240,7 @@ void Vertexer::findVertices()
 {
   if (mTrackletsFound) {
     const int numTracklets{ static_cast<int>(mTracklets.size()) };
-    std::vector<bool> usedTracklets {};
+    std::vector<bool> usedTracklets{};
     usedTracklets.resize(mTracklets.size(), false);
     for (int tracklet1{ 0 }; tracklet1 < numTracklets; ++tracklet1) {
       if (usedTracklets[tracklet1])
@@ -227,7 +249,7 @@ void Vertexer::findVertices()
         if (usedTracklets[tracklet2])
           continue;
         if (Line::getDCA(mTracklets[tracklet1], mTracklets[tracklet2]) <= mPairCut) {
-          mTrackletClusters.emplace_back(tracklet1, mTracklets[tracklet1], tracklet2, mTracklets[tracklet2]);        
+          mTrackletClusters.emplace_back(tracklet1, mTracklets[tracklet1], tracklet2, mTracklets[tracklet2]);
           std::array<float, 3> tmpVertex{ mTrackletClusters.back().getVertex() };
           if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
             mTrackletClusters.pop_back();
@@ -238,7 +260,7 @@ void Vertexer::findVertices()
           for (int tracklet3{ 0 }; tracklet3 < numTracklets; ++tracklet3) {
             if (usedTracklets[tracklet3])
               continue;
-            if (Line::getDistanceFromPoint(mTracklets[tracklet3], tmpVertex) < mPairCut) {            
+            if (Line::getDistanceFromPoint(mTracklets[tracklet3], tmpVertex) < mPairCut) {
               mTrackletClusters.back().add(tracklet3, mTracklets[tracklet3]);
               usedTracklets[tracklet3] = true;
               tmpVertex = mTrackletClusters.back().getVertex();
@@ -250,14 +272,14 @@ void Vertexer::findVertices()
     }
     std::sort(mTrackletClusters.begin(), mTrackletClusters.end(),
               [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
-    int noClusters { static_cast<int>( mTrackletClusters.size() ) };
+    int noClusters{ static_cast<int>(mTrackletClusters.size()) };
     for (int iCluster1{ 0 }; iCluster1 < noClusters; ++iCluster1) {
       std::array<float, 3> vertex1{ mTrackletClusters[iCluster1].getVertex() };
       std::array<float, 3> vertex2{};
       for (int iCluster2{ iCluster1 + 1 }; iCluster2 < noClusters; ++iCluster2) {
         vertex2 = mTrackletClusters[iCluster2].getVertex();
         if (std::abs(vertex1[2] - vertex2[2]) < mClusterCut) {
-          
+
           float distance{ (vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
                           (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
                           (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2]) };
@@ -274,18 +296,22 @@ void Vertexer::findVertices()
       }
     }
     for (int iCluster{ 0 }; iCluster < noClusters; ++iCluster) {
-      if ( mTrackletClusters[iCluster].getSize() < mClusterContributorsCut && noClusters > 1 ) {
+      if (mTrackletClusters[iCluster].getSize() < mClusterContributorsCut && noClusters > 1) {
         mTrackletClusters.erase(mTrackletClusters.begin() + iCluster);
         noClusters--;
         continue;
       }
-      float dist { 0. };
-      for ( auto& line : mTrackletClusters[iCluster].mLines ) {
-        dist += Line::getDistanceFromPoint(line, mTrackletClusters[iCluster].getVertex()) / mTrackletClusters[iCluster].getSize();
+      float dist{ 0. };
+      for (auto& line : mTrackletClusters[iCluster].mLines) {
+        dist += Line::getDistanceFromPoint(line, mTrackletClusters[iCluster].getVertex()) /
+                mTrackletClusters[iCluster].getSize();
       }
-      if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] + mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] < 1.98*1.98 )
+      if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
+            mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <
+          1.98 * 1.98)
 #ifdef DEBUG_BUILD
-        mVertices.emplace_back(std::make_tuple(mTrackletClusters[iCluster].getVertex(), mTrackletClusters[iCluster].getSize(), dist));
+        mVertices.emplace_back(
+          std::make_tuple(mTrackletClusters[iCluster].getVertex(), mTrackletClusters[iCluster].getSize(), dist));
 #else
         mVertices.emplace_back(mTrackletClusters[iCluster].getVertex());
 #endif
@@ -308,14 +334,16 @@ void Vertexer::printIndexTables()
   }
 }
 
-void Vertexer::dumpTracklets() {
-  for ( auto& cluster : mClusters[0]) {
-    if ( mEvent.getLayer(0).getClusterLabel(cluster.clusterId).getTrackID() == 60 ) {
-      std::cout<<"x: "<<cluster.xCoordinate<<" y: "<<cluster.yCoordinate<<" z: "<<cluster.zCoordinate<<std::endl;
+void Vertexer::dumpTracklets()
+{
+  for (auto& cluster : mClusters[0]) {
+    if (mEvent.getLayer(0).getClusterLabel(cluster.clusterId).getTrackID() == 60) {
+      std::cout << "x: " << cluster.xCoordinate << " y: " << cluster.yCoordinate << " z: " << cluster.zCoordinate
+                << std::endl;
     }
   }
-  for ( auto& tracklet : mTracklets ) {
-    std::cout<<"or id: "<< tracklet.originID << "\t de id: " << tracklet.destinID <<std::endl;
+  for (auto& tracklet : mTracklets) {
+    std::cout << "or id: " << tracklet.originID << "\t de id: " << tracklet.destinID << std::endl;
   }
 }
 #endif
