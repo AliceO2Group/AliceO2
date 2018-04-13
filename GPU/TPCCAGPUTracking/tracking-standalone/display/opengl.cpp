@@ -225,8 +225,8 @@ int animate = 0;
 HighResTimer animationTimer;
 int animationMode = 0;
 int animationFrame;
-std::vector<float> animateVectors[8];
-opengl_spline animationSplines[7];
+std::vector<float> animateVectors[9];
+opengl_spline animationSplines[8];
 void animationCloseAngle(float& newangle, float lastAngle)
 {
 	const float delta = lastAngle > newangle ? (2 * M_PI) : (-2 * M_PI);
@@ -244,15 +244,14 @@ void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, flo
 void setAnimationPoint()
 {
 	float t = animateVectors[0].size();
-	if (animationMode & 2) //Spherical
+	if (animationMode & 4) //Spherical
 	{
-		float r = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
-		float r2 = sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
+		float rxy = sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
 		float anglePhi = atan2(xyz[0], xyz[2]);
-		float angleTheta = atan2(xyz[1], r2);
+		float angleTheta = atan2(xyz[1], rxy);
 		if (animateVectors[0].size()) animationCloseAngle(anglePhi, animateVectors[2].back());
 		if (animateVectors[0].size()) animationCloseAngle(angleTheta, animateVectors[3].back());
-		animateVectors[1].emplace_back(r);
+		animateVectors[1].emplace_back(0);
 		animateVectors[2].emplace_back(anglePhi);
 		animateVectors[3].emplace_back(angleTheta);
 	}
@@ -260,29 +259,31 @@ void setAnimationPoint()
 	{
 		for (int i = 0;i < 3;i++) {animateVectors[i + 1].emplace_back(xyz[i]);} //Cartesian
 	}
+	float r = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
+	animateVectors[4].emplace_back(r);
 	if (animationMode & 1) //Euler-angles
 	{
 		for (int i = 0;i < 3;i++)
 		{
 			float newangle = angle[i];
-			if (animateVectors[0].size()) animationCloseAngle(newangle, animateVectors[i + 4].back());
-			animateVectors[i + 4].emplace_back(newangle);
+			if (animateVectors[0].size()) animationCloseAngle(newangle, animateVectors[i + 5].back());
+			animateVectors[i + 5].emplace_back(newangle);
 		}
-		animateVectors[7].emplace_back(0);
+		animateVectors[8].emplace_back(0);
 	}
 	else //Quaternions
 	{
 		float v[4];
 		createQuaternionFromMatrix(v, currentMatrix);
-		if (animateVectors[0].size()) animateCloseQuaternion(v, animateVectors[4].back(), animateVectors[5].back(), animateVectors[6].back(), animateVectors[7].back());
-		for (int i = 0;i < 4;i++) animateVectors[i + 4].emplace_back(v[i]);
+		if (animateVectors[0].size()) animateCloseQuaternion(v, animateVectors[5].back(), animateVectors[6].back(), animateVectors[7].back(), animateVectors[8].back());
+		for (int i = 0;i < 4;i++) animateVectors[i + 5].emplace_back(v[i]);
 	}
 	animateVectors[0].emplace_back(t);
 }
-void resetAnimation() {for (int i = 0;i < 8;i++) animateVectors[i].clear();}
+void resetAnimation() {for (int i = 0;i < 9;i++) animateVectors[i].clear();}
 void startAnimation()
 {
-	for (int i = 0;i < 7;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
+	for (int i = 0;i < 8;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
 	animationTimer.ResetStart();
 	animationFrame = 0;
 	animate = 1;
@@ -879,7 +880,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	//Perform new rotation / translation
 	if (animate)
 	{
-		float time = animationTimer.GetCurrentElapsedTime() / 3.f;
+		float time = animationTimer.GetCurrentElapsedTime();
 		//float time = animationFrame / 30.f;
 		float maxTime = animateVectors[0].back();
 		animationFrame++;
@@ -893,35 +894,52 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 		{
 			SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
 		}
-		float vals[7];
-		for (int i = 0;i < 7;i++)
+		float vals[8];
+		for (int i = 0;i < 8;i++)
 		{
 			vals[i] = animationSplines[i].evaluate(time);
 		}
-		if (animationMode & 1) //Rotation from euler angles
+		if (animationMode != 6)
 		{
-			glRotatef(-vals[3] * 180.f / M_PI, 1, 0, 0);
-			glRotatef(vals[4] * 180.f / M_PI, 0, 1, 0);
-			glRotatef(-vals[5] * 180.f / M_PI, 0, 0, 1);
-		}
-		else //Rotation from quaternion
-		{
-			float mag = sqrt(vals[3] * vals[3] + vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6]);
-			if (mag < 0.0001) vals[6] = 1;
-			else for (int i = 0;i < 4;i++) vals[3 + i] /= mag;
+			if (animationMode & 1) //Rotation from euler angles
+			{
+				glRotatef(-vals[4] * 180.f / M_PI, 1, 0, 0);
+				glRotatef(vals[5] * 180.f / M_PI, 0, 1, 0);
+				glRotatef(-vals[6] * 180.f / M_PI, 0, 0, 1);
+			}
+			else //Rotation from quaternion
+			{
+				const float mag = sqrt(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
+				if (mag < 0.0001) vals[7] = 1;
+				else for (int i = 0;i < 4;i++) vals[4 + i] /= mag;
 
-			float xx = vals[3] * vals[3], xy = vals[3] * vals[4], xz = vals[3] * vals[5], xw = vals[3] * vals[6], yy = vals[4] * vals[4], yz = vals[4] * vals[5], yw = vals[4] * vals[6], zz = vals[5] * vals[5], zw = vals[5] * vals[6];
-			float mat[16] = {1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw),  1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1};
-			glMultMatrixf(mat);
+				float xx = vals[4] * vals[4], xy = vals[4] * vals[5], xz = vals[4] * vals[6], xw = vals[4] * vals[7], yy = vals[5] * vals[5], yz = vals[5] * vals[6], yw = vals[5] * vals[7], zz = vals[6] * vals[6], zw = vals[6] * vals[7];
+				float mat[16] = {1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw),  1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1};
+				glMultMatrixf(mat);
+			}
 		}
-		if (animationMode & 2) //Compute cartesian translation from sperical coordinates
+		if (animationMode & 4) //Compute cartesian translation from sperical coordinates (euler angles)
 		{
-			float r = vals[0], phi = vals[1], theta = vals[2];
+			const float r = vals[3], phi = vals[1], theta = vals[2];
 			vals[2] = r * cos(phi) * cos(theta);
 			vals[0] = r * sin(phi) * cos(theta);
 			vals[1] = r * sin(theta);
 		}
-		glTranslatef(-vals[0], -vals[1], -vals[2]);
+		else if (animationMode & 2) //Scale cartesion translation to interpolated radius
+		{
+			float r = sqrt(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
+			if (fabs(r) < 0.0001) r = 1;
+			r = vals[3] / r;
+			for (int i = 0;i < 3;i++) vals[i] *= r;
+		}
+		if (animationMode == 6)
+		{
+			gluLookAt(vals[0], vals[1], vals[2], 0, 0, 0, 0, 1, 0);
+		}
+		else
+		{
+			glTranslatef(-vals[0], -vals[1], -vals[2]);
+		}
 		
 		/*static int nFrame = 0;
 
@@ -1841,9 +1859,10 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == 'N')
 	{
 		animationMode++;
-		if (animationMode == 4) animationMode = 0;
+		if (animationMode == 7) animationMode = 0;
 		resetAnimation();
-		SetInfo("Animation mode %d - Position: %s, Direction: %s", animationMode, animationMode & 2 ? "Sperical" : "Cartesian", animationMode & 1 ? "Euler angles" : "Quaternion");
+		if (animationMode == 6) SetInfo("Animation mode %d - Centered on origin", animationMode);
+		else SetInfo("Animation mode %d - Position: %s, Direction: %s", animationMode, animationMode & 2 ? "Spherical (spherical rotation)" : animationMode & 4 ? "Spherical (Euler angles)" : "Cartesian", animationMode & 1 ? "Euler angles" : "Quaternion");
 	}
 	else if (wParam == 'g')
 	{
