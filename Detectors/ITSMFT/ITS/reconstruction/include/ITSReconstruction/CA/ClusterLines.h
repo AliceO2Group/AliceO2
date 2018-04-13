@@ -10,7 +10,7 @@
 
 #ifndef O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
 #define O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
-#define DEBUG_BUILD
+// #define DEBUG_BUILD
 
 #include <array>
 #include <vector>
@@ -27,8 +27,10 @@ struct Line final {
 #ifndef DEBUG_BUILD
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
 #else
-  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, const int idorigin = -99, const int iddestination = -99);
-  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, std::array<float, 3> thirdPoint, const int idorigin = -99, const int iddestination = -99);
+  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, const int idorigin = -99,
+       const int iddestination = -99);
+  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, std::array<float, 3> thirdPoint,
+       const int idorigin = -99, const int iddestination = -99);
   int originID;
   int destinID;
   std::array<float, 3> destinationPoint;
@@ -37,7 +39,7 @@ struct Line final {
 
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
-  static bool areParallel(const Line&, const Line&, const float precision = 1e-14); 
+  static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
   std::array<float, 3> originPoint;
   std::array<float, 3> cosinesDirector;

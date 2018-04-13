@@ -1,33 +1,24 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 // #define DEBUG_BUILD
 
+#include <TFile.h>
+#include <TChain.h>
+#include <TTree.h>
+#include <TNtuple.h>
+#include <TH1I.h>
+#include <TGeoGlobalMagField.h>
 #include <string>
 #include <array>
 #include <vector>
 #include <cmath>
 #include <sstream>
-
-#include <TChain.h>
-#include <TFile.h>
-#include <TTree.h>
-#include <TNtuple.h>
-#include <TGeoGlobalMagField.h>
-
 #include <FairLogger.h>
 #include "FairRunAna.h"
 #include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
 #include "FairGeoParSet.h"
-#include "FairMCEventHeader.h"
-
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsBase/GeometryManager.h"
-#include "DetectorsBase/Propagator.h"
 #include "DataFormatsITSMFT/Cluster.h"
-
 #include "Field/MagneticField.h"
-
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/CA/Event.h"
 #include "ITSReconstruction/CA/IOUtils.h"
@@ -36,46 +27,26 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "FairMCEventHeader.h"
 
 using o2::ITS::CA::Cluster;
 using o2::ITS::CA::Line;
 using o2::ITS::CA::MathUtils::calculatePhiCoordinate;
 using o2::ITS::CA::MathUtils::calculateRCoordinate;
 
-void run_vert_ca_its(/*int startfrom = 0, int nevents = 1000,*/ std::string path = "./",
-                     std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
-                     std::string inputGRP = "o2sim_grp.root", std::string paramfilename = "o2sim_par.root",
-                     std::string simfilename = "o2sim.root", std::string outfile = "vertexer_data.root")
+void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string path = "./",
+                           std::string inputClustersITS = "o2clus_its.root",
+                           std::string paramfilename = "o2sim_par.root", std::string simfilename = "o2sim.root",
+                           std::string outfile = "vertexer_data.root")
 {
 
   o2::ITS::CA::Event event;
   if (path.back() != '/')
     path += '/';
-  //-------- init geometry and field --------//
-
-  const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
-  if (!grp) {
-    LOG(FATAL) << "Cannot run w/o GRP object" << FairLogger::endl;
-  }
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  o2::Base::Propagator::initFieldFromGRP(grp);
-  auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  if (!field) {
-    LOG(FATAL) << "Failed to load ma" << FairLogger::endl;
-  }
-  double origD[3] = { 0., 0., 0. };
-  // tracker.setBz(field->getBz(origD));
-  bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
-  if (!isITS) {
-    LOG(WARNING) << "ITS is not in the readoute" << FairLogger::endl;
-    return;
-  }
-  bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
 
   // Setup Runtime DB
-  // TFile paramFile(paramfilename.data());
-  // paramFile.Get("FairGeoParSet");
+  TFile paramFile(paramfilename.data());
+  paramFile.Get("FairGeoParSet");
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
@@ -105,7 +76,7 @@ void run_vert_ca_its(/*int startfrom = 0, int nevents = 1000,*/ std::string path
 
   mcHeaderTree.SetBranchAddress("MCEventHeader.", &header);
   TFile* outputfile = new TFile(outfile.data(), "recreate");
-  // Output tree
+
   TNtuple* verTupleResiduals =
     new TNtuple("residuals", "residuals", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
   TNtuple* verTupleResidualsmc =
@@ -113,67 +84,17 @@ void run_vert_ca_its(/*int startfrom = 0, int nevents = 1000,*/ std::string path
   TNtuple* evtDumpFromVtxer = new TNtuple("evtdump", "evtdump", "evt_id:nClusters:effRecTrks:effMCTrks");
   TNtuple* evtDumpFromVtxermc = new TNtuple("evtdump_mc", "evtdump_mc", "evt_id:nClusters");
 
-  // int startevent = static_cast<int>(std::max(0, startfrom));
-  // int endevent = std::min(static_cast<int>(itsClusters.GetEntries()), nevents + startevent);
-  // std::cout << "running on range of events: [" << startevent << ", " << endevent << ")" << std::endl;
-  std::uint32_t roFrame = 0;
-  for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
-    // can't use custom range of events until I figure out what roFrame is
-    // int good{ 0 }, bad{ 0 }, duplicate{ 0 }, duplicatemc{ 0 }, idx{ 0 }, idx_mc{ 0 };
-    int idx{ 0 };
+  int startevent = static_cast<int>(std::max(0, startfrom));
+  int endevent = std::min(static_cast<int>(itsClusters.GetEntries()), nevents + startevent);
+  std::cout << "running on evt: [" << startevent << ", " << endevent << ")" << std::endl;
+
+  for (int iEvent{ startevent }; iEvent < endevent; ++iEvent) {
+    std::cout << "evt: " << iEvent << std::endl;
+    int good{ 0 }, bad{ 0 }, duplicate{ 0 }, duplicatemc{ 0 }, idx{ 0 }, idx_mc{ 0 };
+
     itsClusters.GetEntry(iEvent);
     mcHeaderTree.GetEntry(iEvent);
-
-    if (isContITS) {
-      int nclLeft = clusters->size();
-      while (nclLeft > 0) {
-        int nclUsed = o2::ITS::CA::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
-        if (nclUsed) {
-          cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
-          o2::ITS::CA::Vertexer vertexer(event);
-          vertexer.setROFrame(roFrame);
-          vertexer.initialise(0.002, 0.003, 0.03, 0.8, 5);
-          vertexer.findTracklets();
-          // auto tracklets = vertexer.getTracklets();
-          std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
-          vertexer.findVertices();
-          auto vertices = vertexer.getVertices();
-          std::cout << "\tvertices found: " << vertices.size() << std::endl;
-          evtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
-          for (auto& vertex : vertices) {
-            float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2] };
-            verTupleResiduals->Fill(tmpdata);
-          }
-          nclLeft -= nclUsed;
-        }
-        roFrame++;
-      }
-    } else { // triggered mode
-      cout << "Event " << iEvent << std::endl;
-      o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
-      o2::ITS::CA::Vertexer vertexer(event);
-      vertexer.setROFrame(roFrame);
-      vertexer.initialise(0.002, 0.003, 0.03, 0.8, 5);
-      vertexer.findTracklets();
-      // auto tracklets = vertexer.getTracklets();
-      std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
-      vertexer.findVertices();
-      auto vertices = vertexer.getVertices();
-      std::cout << "\tvertices found: " << vertices.size() << std::endl;
-      evtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
-      for (auto& vertex : vertices) {
-        float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2] };
-        verTupleResiduals->Fill(tmpdata);
-      }
-    }
-  } // loop on events
-  verTupleResiduals->Write();
-  evtDumpFromVtxer->Write();
-  outputfile->Close();
-}
-#endif
-
-/*    o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
+    o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
 
 #ifdef DEBUG_BUILD
     //<<<---------- MC tracklets reconstruction ---------------<<<
@@ -300,4 +221,3 @@ void run_vert_ca_its(/*int startfrom = 0, int nevents = 1000,*/ std::string path
   outputfile->Close();
 }
 #endif
-*/

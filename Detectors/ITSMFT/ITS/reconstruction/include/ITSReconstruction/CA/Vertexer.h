@@ -10,7 +10,7 @@
 
 #ifndef O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
 #define O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
-#define DEBUG_BUILD
+// #define DEBUG_BUILD
 
 #include <vector>
 #include <array>
@@ -40,8 +40,10 @@ class Vertexer
 
   void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                   const int clusterContributorsCut);
-  void findTracklets( const bool useMCLabel = false );
+  void findTracklets(const bool useMCLabel = false);
   void findVertices();
+  void setROFrame(std::uint32_t f) { mROFrame = f; }
+  std::uint32_t getROFrame() const { return mROFrame; }
   inline std::vector<Line> getTracklets() { return mTracklets; }
   inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() { return mClusters; }
   static const std::vector<std::pair<int, int>> selectClusters(
@@ -76,7 +78,7 @@ class Vertexer
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
     mIndexTables;
-  
+  std::uint32_t mROFrame = 0;
   std::vector<bool> mUsedTracklets;
   std::vector<Line> mTracklets;
   std::vector<ClusterLines> mTrackletClusters;
