@@ -30,7 +30,6 @@ class ParameterGEM
   static ParameterGEM& defaultInstance()
   {
     static ParameterGEM param;
-    param.setDefaultValues();
     return param;
   }
 
@@ -39,9 +38,6 @@ class ParameterGEM
 
   /// Destructor
   ~ParameterGEM() = default;
-
-  /// Set the default values
-  void setDefaultValues();
 
   /// Set absolute gain for the stack
   /// \param absGain1 Absolute gain in GEM 1

@@ -17,25 +17,13 @@
 using namespace o2::TPC;
 
 ParameterElectronics::ParameterElectronics()
-  : mNShapedPoints(0),
-    mPeakingTime(0.f),
-    mChipGain(0.f),
-    mADCdynamicRange(0.f),
-    mADCsaturation(0.f),
-    mZbinWidth(0.f),
-    mElectronCharge(0.f),
+  : mNShapedPoints(8),
+    mPeakingTime(160e-3f),
+    mChipGain(20.f),
+    mADCdynamicRange(2200.f),
+    mADCsaturation(1024.f),
+    mZbinWidth(0.2f),
+    mElectronCharge(1.602e-19f),
     mDigitizationMode(DigitzationMode::FullMode)
 {
-}
-
-void ParameterElectronics::setDefaultValues()
-{
-  mNShapedPoints = 8; ///< to fit into SSE registers
-  mPeakingTime = 160e-3f;
-  mChipGain = 20.f;
-  mADCdynamicRange = 2200.f;
-  mADCsaturation = 1024.f;
-  mZbinWidth = 0.2f;
-  mElectronCharge = 1.602e-19f;
-  mDigitizationMode = DigitzationMode::FullMode;
 }

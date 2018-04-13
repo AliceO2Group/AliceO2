@@ -30,7 +30,6 @@ class ParameterGas
   static ParameterGas& defaultInstance()
   {
     static ParameterGas param;
-    param.setDefaultValues();
     return param;
   }
 
@@ -39,9 +38,6 @@ class ParameterGas
 
   /// Destructor
   ~ParameterGas() = default;
-
-  /// Set the default values
-  void setDefaultValues();
 
   /// Set effective ionization potential
   /// \param wion Effective ionization potential [GeV]
