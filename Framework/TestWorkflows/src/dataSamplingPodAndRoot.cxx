@@ -135,57 +135,50 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     }
   };
 
-  DataProcessorSpec rootSink{
-    "rootSink",
-    {
-      InputSpec{ "histos", "TST", "HISTOS", 0, Lifetime::Timeframe },
-      InputSpec{ "string", "TST", "STRING", 0, Lifetime::Timeframe },
-    },
-    {},
-    AlgorithmSpec{
-      [](ProcessingContext& ctx) {
-        auto h = ctx.inputs().get<TH1F*>("histos");
-        if (h.get() == nullptr) {
-          throw std::runtime_error("Missing output");
-        }
-        Double_t stats[4];
-        h->GetStats(stats);
-        LOG(INFO) << "sumw" << stats[0] << "\n"
-                  << "sumw2" << stats[1] << "\n"
-                  << "sumwx" << stats[2] << "\n"
-                  << "sumwx2" << stats[3] << "\n";
-        auto s = ctx.inputs().get<TObjString*>("string");
+  DataProcessorSpec rootSink{ "rootSink",
+                              {
+                                InputSpec{ "histos", "TST", "HISTOS", 0, Lifetime::Timeframe },
+                                InputSpec{ "string", "TST", "STRING", 0, Lifetime::Timeframe },
+                              },
+                              {},
+                              AlgorithmSpec{ [](ProcessingContext& ctx) {
+                                auto h = ctx.inputs().get<TH1F*>("histos");
+                                if (h.get() == nullptr) {
+                                  throw std::runtime_error("Missing output");
+                                }
+                                Double_t stats[4];
+                                h->GetStats(stats);
+                                LOG(INFO) << "sumw" << stats[0] << "\n"
+                                          << "sumw2" << stats[1] << "\n"
+                                          << "sumwx" << stats[2] << "\n"
+                                          << "sumwx2" << stats[3] << "\n";
+                                auto s = ctx.inputs().get<TObjString*>("string");
 
-        LOG(INFO) << "String is " << s->GetString().Data();
-      }
-    }
-  };
+                                LOG(INFO) << "String is " << s->GetString().Data();
+                              } } };
 
-  DataProcessorSpec rootQcTask{
-    "rootQcTask",
-    {
-      InputSpec{ "TST_HISTOS_S", "TST", "HISTOS_S", 0, Lifetime::Timeframe },
-      InputSpec{ "TST_STRING_S", "TST", "STRING_S", 0, Lifetime::Timeframe },
-    },
-    Outputs{},
-    AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
-        auto h = ctx.inputs().get<TH1F*>("TST_HISTOS_S");
-        if (h.get() == nullptr) {
-          throw std::runtime_error("Missing TST_HISTOS_S");
-        }
-        Double_t stats[4];
-        h->GetStats(stats);
-        LOG(INFO) << "sumw" << stats[0] << "\n"
-                  << "sumw2" << stats[1] << "\n"
-                  << "sumwx" << stats[2] << "\n"
-                  << "sumwx2" << stats[3] << "\n";
-        auto s = ctx.inputs().get<TObjString*>("TST_STRING_S");
+  DataProcessorSpec rootQcTask{ "rootQcTask",
+                                {
+                                  InputSpec{ "TST_HISTOS_S", "TST", "HISTOS_S", 0, Lifetime::Timeframe },
+                                  InputSpec{ "TST_STRING_S", "TST", "STRING_S", 0, Lifetime::Timeframe },
+                                },
+                                Outputs{},
+                                AlgorithmSpec{ [](ProcessingContext& ctx) {
+                                  auto h = ctx.inputs().get<TH1F*>("TST_HISTOS_S");
+                                  if (h.get() == nullptr) {
+                                    throw std::runtime_error("Missing TST_HISTOS_S");
+                                  }
+                                  Double_t stats[4];
+                                  h->GetStats(stats);
+                                  LOG(INFO) << "sumw" << stats[0] << "\n"
+                                            << "sumw2" << stats[1] << "\n"
+                                            << "sumwx" << stats[2] << "\n"
+                                            << "sumwx2" << stats[3] << "\n";
+                                  auto s = ctx.inputs().get<TObjString*>("TST_STRING_S");
 
-        LOG(INFO) << "qcTaskTst: TObjString is " << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong");
-      }
-    }
-  };
+                                  LOG(INFO) << "qcTaskTst: TObjString is "
+                                            << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong");
+                                } } };
 
   specs.push_back(podDataProducer);
   specs.push_back(processingStage);
