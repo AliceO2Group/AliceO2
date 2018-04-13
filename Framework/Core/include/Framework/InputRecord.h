@@ -36,12 +36,39 @@ namespace framework
 
 struct InputSpec;
 
+/// @class InputRecord
+/// @brief The input API of the Data Processing Layer
 /// This class holds the inputs which  are being processed by the system while
 /// they are  being processed.  The user can  get an instance  for it  via the
 /// ProcessingContext and can use it to retrieve the inputs, either by name or
 /// by index.  A few utility  methods are  provided to automatically  cast the
 /// inputs to  known types. The user is also allowed to  override the `get`
 /// template and provide his own serialization mechanism.
+///
+/// The @ref get<T>(binding) method is implemeted for the following types:
+/// - (a) const char*
+/// - (b) std::string
+/// - (c) messageable type T
+/// - (d) pointer type T* for types with ROOT dictionary or messageable types
+/// - (e) std container of type T with ROOT dictionary
+/// - (f) DataRef holding header and payload information, this is also the default
+///       get method without template parameter
+///
+/// The return type of get<T>(binding) is:
+/// - (a) const char* to payload content
+/// - (b) std::string copy of the payload
+/// - (c) const ref for messageable types T, the payload content casted to the type
+/// - (d) object with pointer-like behavior (unique_ptr) if T* specified
+/// - (e) std::container object returned by std::move
+/// - (f) DataRef object returned by copy
+///
+/// Iterator functionality is implemented to iterate over the list of DataRef objects,
+/// including begin() and end() methods.
+/// <pre>
+///    for (auto const& ref : inputs) {
+///      // do something with DataRef object ref
+///    }
+/// </pre>
 class InputRecord {
 public:
   InputRecord(std::vector<InputRoute> const &inputs,
@@ -121,10 +148,11 @@ public:
                    static_cast<char const*>(mCache[pos*2+1]->GetData())};
   }
 
-  // Generic function to extract a messageable type by reference
-  // Cast content of payload bound by @a binding to known type.
-  // Will not be used for types needing extra serialization
-  // Note: is_messagable also checks that T is not a pointer
+  /// Generic function to extract a messageable type by reference
+  /// Cast content of payload bound by @a binding to known type.
+  /// Will not be used for types needing extra serialization
+  /// Note: is_messagable also checks that T is not a pointer
+  /// @return const ref to specified type
   template <typename T>
   typename std::enable_if<is_messageable<T>::value && std::is_same<T, DataRef>::value == false, //
                           T>::type const&
@@ -144,28 +172,34 @@ public:
     return *reinterpret_cast<T const *>(get<DataRef>(binding).payload);
   }
 
-  // If we ask for a char const *, we simply point to the payload. Notice this
-  // is meant for C-style strings. If you want to actually get hold of the buffer,
-  // use get<DataRef> (or simply get) as that will give you the size as well.
-  // FIXME: check that the string is null terminated.
+  /// substitution for const char*
+  /// If we ask for a char const *, we simply point to the payload. Notice this
+  /// is meant for C-style strings. If you want to actually get hold of the buffer,
+  /// use get<DataRef> (or simply get) as that will give you the size as well.
+  /// FIXME: check that the string is null terminated.
+  /// @return pointer to payload content
   template <typename T>
   typename std::enable_if<std::is_same<T, char const *>::value, T>::type
   get(char const *binding) const {
     return reinterpret_cast<char const *>(get<DataRef>(binding).payload);
   }
 
-  // If we ask for a string, we need to duplicate it because we do not want
-  // the buffer to be deleted when it goes out of scope.
-  // FIXME: check that the string is null terminated.
+  /// substitution for std::string
+  /// If we ask for a string, we need to duplicate it because we do not want
+  /// the buffer to be deleted when it goes out of scope.
+  /// FIXME: check that the string is null terminated.
+  /// @return std::string object
   template <typename T>
   typename std::enable_if<std::is_same<T, std::string>::value, T>::type
   get(char const *binding) const {
     return std::move(std::string(get<DataRef>(binding).payload));
   }
 
-  // DataRef is special. Since there is no point in storing one in a payload,
-  // what it actually does is to return the DataRef used to hold the 
-  // (header, payload) pair.
+  /// substitution for DataRef
+  /// DataRef is special. Since there is no point in storing one in a payload,
+  /// what it actually does is to return the DataRef used to hold the
+  /// (header, payload) pair.
+  /// @return DataRef object
   template <typename T = DataRef>
   typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
   get(const char *binding) const {
@@ -176,9 +210,11 @@ public:
     }
   }
 
-  // DataRef is special. Since there is no point in storing one in a payload,
-  // what it actually does is to return the DataRef used to hold the 
-  // (header, payload) pair.
+  /// substitution for DataRef
+  /// DataRef is special. Since there is no point in storing one in a payload,
+  /// what it actually does is to return the DataRef used to hold the
+  /// (header, payload) pair.
+  /// @return DataRef object
   template <class T = DataRef>
   typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
   get(std::string const &binding) const {
@@ -189,12 +225,14 @@ public:
     }
   }
 
-  // substitution for pointer to non-messageable objects with ROOT dictionary
-  // This supports the common case of retrieving a root object and getting pointer.
-  // Notice that this will return a copy of the actual contents of the buffer, because
-  // the buffer is actually serialised, for this reason we return a unique_ptr<T>.
-  // FIXME: does it make more sense to keep ownership of all the deserialised
-  // objects in a single place so that we can avoid duplicate deserializations?
+  /// substitution for pointer to non-messageable objects with ROOT dictionary
+  /// Template parameter is a pointer
+  /// This supports the common case of retrieving a root object and getting pointer.
+  /// Notice that this will return a copy of the actual contents of the buffer, because
+  /// the buffer is actually serialised, for this reason we return a unique_ptr<T>.
+  /// FIXME: does it make more sense to keep ownership of all the deserialised
+  /// objects in a single place so that we can avoid duplicate deserializations?
+  /// @return unique_ptr to deserialized content
   template <class PtrT>
   typename std::enable_if<                                                            //
     std::is_pointer<PtrT>::value == true &&                                           //
@@ -208,9 +246,10 @@ public:
     return std::move(DataRefUtils::as<T>(ref));
   }
 
-  // substitution for container of non-messageable objects with ROOT dictionary
-  // Notice that this will return a copy of the actual contents of the buffer, because
-  // the buffer is actually serialised. The extracted container is returned by std::move
+  /// substitution for container of non-messageable objects with ROOT dictionary
+  /// Notice that this will return a copy of the actual contents of the buffer, because
+  /// the buffer is actually serialised. The extracted container is returned by std::move
+  /// @return std container object
   template <class T>
   typename std::enable_if<is_container<T>::value == true &&          //
                             has_root_dictionary<T>::value == true && //
@@ -224,8 +263,9 @@ public:
     return std::move(*(DataRefUtils::as<T>(ref).release()));
   }
 
-  // substitution for pointer to messageable objects with ROOT dictionary
-  // the operation depends on the transmitted serialization method
+  /// substitution for pointer to messageable objects with ROOT dictionary
+  /// the operation depends on the transmitted serialization method
+  /// @return unique_ptr to deserialized content
   template <typename PtrT>
   typename std::enable_if<std::is_pointer<PtrT>::value == true &&                                           //
                             has_root_dictionary<typename std::remove_pointer<PtrT>::type>::value == true && //
