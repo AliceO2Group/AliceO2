@@ -37,7 +37,6 @@ class ParameterElectronics
   static ParameterElectronics& defaultInstance()
   {
     static ParameterElectronics param;
-    param.setDefaultValues();
     return param;
   }
 
@@ -46,9 +45,6 @@ class ParameterElectronics
 
   /// Destructor
   ~ParameterElectronics() = default;
-
-  /// Set the default values
-  void setDefaultValues();
 
   /// Set number of ADC samples with which are taken into account for a given, shaped signal
   /// \param nShaped Number of shaped ADC samples

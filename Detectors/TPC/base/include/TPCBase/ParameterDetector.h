@@ -30,7 +30,6 @@ class ParameterDetector
   static ParameterDetector& defaultInstance()
   {
     static ParameterDetector param;
-    param.setDefaultValues();
     return param;
   }
 
@@ -39,9 +38,6 @@ class ParameterDetector
 
   /// Destructor
   ~ParameterDetector() = default;
-
-  /// Set the default values
-  void setDefaultValues();
 
   /// Set the TPC length
   /// \param tpclength TPC length [cm]
