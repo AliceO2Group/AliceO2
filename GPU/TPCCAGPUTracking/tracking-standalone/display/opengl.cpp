@@ -34,6 +34,8 @@ struct DrawArraysIndirectCommand
 
 #define OPENGL_EMULATE_MULTI_DRAW 0
 
+OpenGLConfig cfg;
+
 bool smoothPoints = true;
 bool smoothLines = false;
 bool depthBuffer = false;
@@ -92,14 +94,6 @@ inline void drawVertices(const vboList& v, const GLenum t)
 	{
 		CHKERR(glMultiDrawArrays(t, vertexBufferStart[iSlice].data() + first, vertexBufferCount[iSlice].data() + first, count));
 	}
-
-	//CHKERR(glDrawArrays(t, vertexBufferStart[iSlice][first], vertexBufferStart[iSlice][first + count - 1] - vertexBufferStart[iSlice][first] + vertexBufferCount[iSlice][first + count - 1])); //TEST, combine in single strip
-	
-	/*fprintf(stderr, "Draw start %d count %d: %d (size %lld)\n", (vertexBufferStart.data() + v.first)[0], (vertexBufferCount.data() + v.first)[0], v.second, (long long int) vertexBuffer.size());
-	for (int k = vertexBufferStart.data()[v.first];k < vertexBufferStart.data()[v.first + v.second - 1] + vertexBufferCount.data()[v.first + v.second - 1];k++)
-	{
-		printf("Vertex %f %f %f\n", vertexBuffer[k].x, vertexBuffer[k].y, vertexBuffer[k].z);
-	}*/
 }
 inline void insertVertexList(int iSlice, size_t first, size_t last)
 {
@@ -156,7 +150,6 @@ void calcXYZ()
 	rphitheta[2] = atan2(xyz[1], sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]));
 	
 	createQuaternionFromMatrix(quat, currentMatrix);
-
 	
 	/*float angle[1] = -asin(currentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
 	float C = cos( angle_y );
@@ -223,7 +216,6 @@ float lineWidth = 1.4;
 
 int animate = 0;
 HighResTimer animationTimer;
-int animationMode = 0;
 int animationFrame;
 std::vector<float> animateVectors[9];
 opengl_spline animationSplines[8];
@@ -244,7 +236,7 @@ void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, flo
 void setAnimationPoint()
 {
 	float t = animateVectors[0].size();
-	if (animationMode & 4) //Spherical
+	if (cfg.animationMode & 4) //Spherical
 	{
 		float rxy = sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
 		float anglePhi = atan2(xyz[0], xyz[2]);
@@ -261,7 +253,7 @@ void setAnimationPoint()
 	}
 	float r = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
 	animateVectors[4].emplace_back(r);
-	if (animationMode & 1) //Euler-angles
+	if (cfg.animationMode & 1) //Euler-angles
 	{
 		for (int i = 0;i < 3;i++)
 		{
@@ -899,9 +891,9 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 		{
 			vals[i] = animationSplines[i].evaluate(time);
 		}
-		if (animationMode != 6)
+		if (cfg.animationMode != 6)
 		{
-			if (animationMode & 1) //Rotation from euler angles
+			if (cfg.animationMode & 1) //Rotation from euler angles
 			{
 				glRotatef(-vals[4] * 180.f / M_PI, 1, 0, 0);
 				glRotatef(vals[5] * 180.f / M_PI, 0, 1, 0);
@@ -918,21 +910,21 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				glMultMatrixf(mat);
 			}
 		}
-		if (animationMode & 4) //Compute cartesian translation from sperical coordinates (euler angles)
+		if (cfg.animationMode & 4) //Compute cartesian translation from sperical coordinates (euler angles)
 		{
 			const float r = vals[3], phi = vals[1], theta = vals[2];
 			vals[2] = r * cos(phi) * cos(theta);
 			vals[0] = r * sin(phi) * cos(theta);
 			vals[1] = r * sin(theta);
 		}
-		else if (animationMode & 2) //Scale cartesion translation to interpolated radius
+		else if (cfg.animationMode & 2) //Scale cartesion translation to interpolated radius
 		{
 			float r = sqrt(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
 			if (fabs(r) < 0.0001) r = 1;
 			r = vals[3] / r;
 			for (int i = 0;i < 3;i++) vals[i] *= r;
 		}
-		if (animationMode == 6)
+		if (cfg.animationMode == 6)
 		{
 			gluLookAt(vals[0], vals[1], vals[2], 0, 0, 0, 0, 1, 0);
 		}
@@ -1580,6 +1572,7 @@ const char* HelpText[] = {
 	"[7]                      Show Global Track Segments", 
 	"[8]                      Show Final Merged Tracks (after Track Merger)", 
 	"[j]                      Show global tracks as additional segments of final tracks", 
+	"[E]                      Extrapolate tracks",
 	"[m]                      Reorder clusters of merged tracks before showing them geometrically", 
 	"[t]                      Take Screenshot", 
 	"[T]                      Change screenshot resolution (scaling factor)",
@@ -1587,8 +1580,7 @@ const char* HelpText[] = {
 	"[W] / [V]                Enable / disable anti-aliasing / VSync",
 	"[F]                      Switch fullscreen",
 	"[I]                      Enable / disable GL indirect draw",
-	"[o]                      Save current camera position", 
-	"[p]                      Restore camera position", 
+	"[o] / [p] / [O] / [P]    Save / restore current camera position / animation path", 
 	"[h]                      Print Help", 
 	"[H]                      Show info texts",
 	"[w] / [s] / [a] / [d]    Zoom / Strafe Left and Right", 
@@ -1757,7 +1749,7 @@ void HandleKeyRelease(int wParam)
 		colorClusters ^= 1;
 		SetInfo("Color coding for seed / trrack attachmend %s", colorClusters ? "enabled" : "disabled");
 	}
-	else if (wParam == 'P')
+	else if (wParam == 'E')
 	{
 		propagateTracks += 1;
 		if (propagateTracks == 4) propagateTracks = 0;
@@ -1858,11 +1850,11 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'N')
 	{
-		animationMode++;
-		if (animationMode == 7) animationMode = 0;
+		cfg.animationMode++;
+		if (cfg.animationMode == 7) cfg.animationMode = 0;
 		resetAnimation();
-		if (animationMode == 6) SetInfo("Animation mode %d - Centered on origin", animationMode);
-		else SetInfo("Animation mode %d - Position: %s, Direction: %s", animationMode, animationMode & 2 ? "Spherical (spherical rotation)" : animationMode & 4 ? "Spherical (Euler angles)" : "Cartesian", animationMode & 1 ? "Euler angles" : "Quaternion");
+		if (cfg.animationMode == 6) SetInfo("Animation mode %d - Centered on origin", cfg.animationMode);
+		else SetInfo("Animation mode %d - Position: %s, Direction: %s", cfg.animationMode, cfg.animationMode & 2 ? "Spherical (spherical rotation)" : cfg.animationMode & 4 ? "Spherical (Euler angles)" : "Cartesian", cfg.animationMode & 1 ? "Euler angles" : "Quaternion");
 	}
 	else if (wParam == 'g')
 	{
@@ -1934,22 +1926,16 @@ void HandleKeyRelease(int wParam)
 		FILE *ftmp = fopen("glpos.tmp", "w+b");
 		if (ftmp)
 		{
-			int retval = fwrite(&currentMatrix[0], sizeof(GLfloat), 16, ftmp);
-			if (retval != 16)
-			{
-				printf("Error writing position to file\n");
-			}
-			else
-			{
-				printf("Position stored to file\n");
-			}
+			int retval = fwrite(&currentMatrix[0], sizeof(currentMatrix[0]), 16, ftmp);
+			if (retval != 16) printf("Error writing position to file\n");
+			else printf("Position stored to file\n");
 			fclose(ftmp);
 		}
 		else
 		{
 			printf("Error opening file\n");
 		}
-		SetInfo("Storing camera position to file");
+		SetInfo("Camera position stored to file");
 	}
 	else if (wParam == 'p')
 	{
@@ -1957,7 +1943,7 @@ void HandleKeyRelease(int wParam)
 		FILE *ftmp = fopen("glpos.tmp", "rb");
 		if (ftmp)
 		{
-			int retval = fread(&tmp[0], sizeof(GLfloat), 16, ftmp);
+			int retval = fread(&tmp[0], sizeof(tmp[0]), 16, ftmp);
 			if (retval == 16)
 			{
 				glMatrixMode(GL_MODELVIEW);
@@ -1975,9 +1961,46 @@ void HandleKeyRelease(int wParam)
 		{
 			printf("Error opening file\n");
 		}
-		SetInfo("Loading camera position from file");
+		SetInfo("Camera position loaded from file");
 	}
-	else if (wParam == 'h')
+	else if (wParam == 'O')
+	{
+		FILE *ftmp = fopen("glanimation.tmp", "w+b");
+		if (ftmp)
+		{
+			fwrite(&cfg, sizeof(cfg), 1, ftmp);
+			int size = animateVectors[0].size();
+			fwrite(&size, sizeof(size), 1, ftmp);
+			for (int i = 0;i < 9;i++) fwrite(animateVectors[i].data(), sizeof(animateVectors[i][0]), size, ftmp);
+			fclose(ftmp);
+		}
+		else
+		{
+			printf("Error opening file\n");
+		}
+		SetInfo("Animation path stored to file");
+	}
+	else if (wParam == 'P')
+	{
+		FILE *ftmp = fopen("glanimation.tmp", "rb");
+		if (ftmp)
+		{
+			int retval = fread(&cfg, sizeof(cfg), 1, ftmp);
+			int size;
+			retval += fread(&size, sizeof(size), 1, ftmp);
+			for (int i = 0;i < 9;i++)
+			{
+				animateVectors[i].resize(size);
+				retval += fread(animateVectors[i].data(), sizeof(animateVectors[i][0]), size, ftmp);
+			}
+			fclose(ftmp);
+		}
+		else
+		{
+			printf("Error opening file\n");
+		}
+		SetInfo("Animation path loaded from file");
+	}	else if (wParam == 'h')
 	{
 		PrintHelp();
 		SetInfo("Showing help text");
