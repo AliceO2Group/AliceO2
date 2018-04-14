@@ -18,8 +18,9 @@ extern bool keys[256];
 extern bool keysShift[256];
 
 extern int InitGL();
+extern void ExitGL();
 extern void HandleKeyRelease(int wParam);
-extern int DrawGLScene(bool doAnimation = false);
+extern int DrawGLScene(bool mixAnimation = false, float mixTime = 0.f);
 void OpenGLPrint(const char* s);
 extern void ReSizeGLScene(int width, int height);
 void HandleSendKey();
@@ -56,6 +57,31 @@ private:
 struct OpenGLConfig
 {
 	int animationMode = 0;
+	
+	bool drawQualityMSAA = 0;
+	bool smoothPoints = true;
+	bool smoothLines = false;
+	bool depthBuffer = false;
+
+	int drawClusters = true;
+	int drawLinks = false;
+	int drawSeeds = false;
+	int drawInitLinks = false;
+	int drawTracklets = false;
+	int drawTracks = false;
+	int drawGlobalTracks = false;
+	int drawFinal = false;
+	int excludeClusters = 0;
+
+	int colorClusters = 1;
+	int drawSlice = -1;
+	int drawRelatedSlices = 0;
+	int drawGrid = 0;
+	int colorCollisions = 0;
+	int showCollision = -1;
+
+	float pointSize = 2.0;
+	float lineWidth = 1.4;
 };
 extern OpenGLConfig cfg;
 

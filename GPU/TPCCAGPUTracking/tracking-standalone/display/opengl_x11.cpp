@@ -346,6 +346,7 @@ void *OpenGLMain(void *ptr)
 		glXSwapBuffers(g_pDisplay, g_window); // Buffer swap does implicit glFlush
 	}
 	
+	ExitGL();
 	glXDestroyContext(g_pDisplay, glxContext);
 	XDestroyWindow(g_pDisplay, g_window);
 	XCloseDisplay(g_pDisplay);
