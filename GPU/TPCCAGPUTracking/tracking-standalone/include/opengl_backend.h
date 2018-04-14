@@ -53,4 +53,10 @@ private:
 	bool verbose = false;
 };
 
+struct OpenGLConfig
+{
+	int animationMode = 0;
+};
+extern OpenGLConfig cfg;
+
 #endif
