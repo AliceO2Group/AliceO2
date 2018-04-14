@@ -20,38 +20,10 @@
 #include "../cmodules/timer.h"
 #include "../cmodules/qconfig.h"
 
-struct DrawArraysIndirectCommand
-{
-	DrawArraysIndirectCommand(uint a = 0, uint b = 0, uint c = 0, uint d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
-	uint  count;
-	uint  instanceCount;
-	uint  first;
-	uint  baseInstance;
-};
-
 //#define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd) {(cmd); GLenum err = glGetError(); while (err != GL_NO_ERROR) {printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__);exit(1);}}
 
 #define OPENGL_EMULATE_MULTI_DRAW 0
-
-OpenGLConfig cfg;
-
-bool smoothPoints = true;
-bool smoothLines = false;
-bool depthBuffer = false;
-const int drawQualityPoint = 0;
-const int drawQualityLine = 0;
-const int drawQualityPerspective = 0;
-int drawQualityMSAA = 0;
-int drawQualityVSync = 0;
-bool useGLIndirectDraw = true;
-
-bool camLookOrigin = false;
-bool camYUp = false;
-float angleRollOrigin = -1e9;
-int cameraMode = 0;
-
-float maxClusterZ = 0;
 
 #define fgkNSlices 36
 #ifndef BUILD_QA
@@ -61,11 +33,21 @@ int GetMCLabel(int track) {return(-1);}
 volatile int needUpdate = 0;
 void ShowNextEvent() {needUpdate = 1;}
 #define GL_SCALE_FACTOR 100.f
-int screenshot_scale = 1;
 
-const int init_width = 1024, init_height = 768;
-int screen_width = init_width, screen_height = init_height;
+#define TRACK_TYPE_ID_LIMIT 100
+#define SEPERATE_GLOBAL_TRACKS_MAXID (separateGlobalTracks ? 5 : TRACK_TYPE_ID_LIMIT)
+#define SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES 6
 
+OpenGLConfig cfg;
+
+struct DrawArraysIndirectCommand
+{
+	DrawArraysIndirectCommand(uint a = 0, uint b = 0, uint c = 0, uint d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
+	uint  count;
+	uint  instanceCount;
+	uint  first;
+	uint  baseInstance;
+};
 GLuint vbo_id, indirect_id;
 int indirectSliceOffset[fgkNSlices];
 typedef std::tuple<GLsizei, GLsizei, int> vboList;
@@ -74,6 +56,7 @@ std::vector<GLvertex> vertexBuffer[fgkNSlices];
 std::vector<GLint> vertexBufferStart[fgkNSlices];
 std::vector<GLsizei> vertexBufferCount[fgkNSlices];
 int drawCalls = 0;
+bool useGLIndirectDraw = true;
 inline void drawVertices(const vboList& v, const GLenum t)
 {
 	auto first = std::get<0>(v);
@@ -102,13 +85,28 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 	vertexBufferCount[iSlice].emplace_back(last - first);
 }
 
+GLuint fb_id, fbTex_id;
+
+const int drawQualityPoint = 0;
+const int drawQualityLine = 0;
+const int drawQualityPerspective = 0;
+bool drawQualityVSync = 0;
+
+bool camLookOrigin = false;
+bool camYUp = false;
+int cameraMode = 0;
+
+float angleRollOrigin = -1e9;
+float maxClusterZ = 0;
+
+int screenshot_scale = 1;
+
+const int init_width = 1024, init_height = 768;
+int screen_width = init_width, screen_height = init_height;
+
 bool separateGlobalTracks = 0;
-#define TRACK_TYPE_ID_LIMIT 100
-#define SEPERATE_GLOBAL_TRACKS_MAXID (separateGlobalTracks ? 5 : TRACK_TYPE_ID_LIMIT)
-#define SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES 6
 bool reorderFinalTracks = 0;
 
-float rotateX = 0, rotateY = 0;
 float mouseDnX, mouseDnY;
 float mouseMvX, mouseMvY;
 bool mouseDn = false;
@@ -165,19 +163,6 @@ void calcXYZ()
 	}*/
 }
 
-int drawClusters = true;
-int drawLinks = false;
-int drawSeeds = false;
-int drawInitLinks = false;
-int drawTracklets = false;
-int drawTracks = false;
-int drawGlobalTracks = false;
-int drawFinal = false;
-
-int drawSlice = -1;
-int drawRelatedSlices = 0;
-int drawGrid = 0;
-int excludeClusters = 0;
 int projectxy = 0;
 
 int markClusters = 0;
@@ -186,11 +171,8 @@ int hideUnmatchedClusters = 0;
 int hideRejectedTracks = 1;
 
 int propagateTracks = 0;
-int colorClusters = 1;
-int colorCollisions = 0;
 std::vector<std::array<int,37>> collisionClusters;
 int nCollisions = 1;
-int showCollision = -1;
 void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
 {
 	nCollisions = collision + 1;
@@ -211,13 +193,12 @@ int currentEventNr = -1;
 int glDLrecent = 0;
 int updateDLList = 0;
 
-float pointSize = 2.0;
-float lineWidth = 1.4;
-
 int animate = 0;
 HighResTimer animationTimer;
-int animationFrame;
+int animationFrame = 0;
+int animationLastBase = 0;
 std::vector<float> animateVectors[9];
+std::vector<OpenGLConfig> animateConfig;
 opengl_spline animationSplines[8];
 void animationCloseAngle(float& newangle, float lastAngle)
 {
@@ -270,15 +251,22 @@ void setAnimationPoint()
 		if (animateVectors[0].size()) animateCloseQuaternion(v, animateVectors[5].back(), animateVectors[6].back(), animateVectors[7].back(), animateVectors[8].back());
 		for (int i = 0;i < 4;i++) animateVectors[i + 5].emplace_back(v[i]);
 	}
-	animateVectors[0].emplace_back(t);
+	animateVectors[0].emplace_back(t * 3.f);
+	animateConfig.emplace_back(cfg);
 }
-void resetAnimation() {for (int i = 0;i < 9;i++) animateVectors[i].clear();}
+void resetAnimation()
+{
+	for (int i = 0;i < 9;i++) animateVectors[i].clear();
+	animateConfig.clear();
+	animate = 0;
+}
 void startAnimation()
 {
 	for (int i = 0;i < 8;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
 	animationTimer.ResetStart();
 	animationFrame = 0;
 	animate = 1;
+	animationLastBase = 0;
 }
 
 volatile int resetScene = 0;
@@ -293,7 +281,7 @@ template <typename... Args> void SetInfo(Args... args)
 	infoText2Timer.ResetStart();
 }
 
-inline void SetColorClusters() { if (colorCollisions) return; glColor3f(0, 0.7, 1.0); }
+inline void SetColorClusters() { if (cfg.colorCollisions) return; glColor3f(0, 0.7, 1.0); }
 inline void SetColorInitLinks() { glColor3f(0.42, 0.4, 0.1); }
 inline void SetColorLinks() { glColor3f(0.8, 0.2, 0.2); }
 inline void SetColorSeeds() { glColor3f(0.8, 0.1, 0.85); }
@@ -308,7 +296,7 @@ inline void SetColorGlobalTracks()
 	if (separateGlobalTracks) glColor3f(1., 0.15, 0.15);
 	else glColor3f(1.0, 0.4, 0);
 }
-inline void SetColorFinal() { if (colorCollisions) return; glColor3f(0, 0.7, 0.2); }
+inline void SetColorFinal() { if (cfg.colorCollisions) return; glColor3f(0, 0.7, 0.2); }
 inline void SetColorGrid() { glColor3f(0.7, 0.7, 0.0); }
 inline void SetColorMarked() { glColor3f(1.0, 0.0, 0.0); }
 inline void SetCollisionColor(int col)
@@ -318,7 +306,31 @@ inline void SetCollisionColor(int col)
 	int green = (4 + col * 5) % 6;
 	if (red == 0 && blue == 0 && green == 0) red = 4;
 	glColor3f(red / 4., green / 5., blue / 6.);
-}	
+}
+
+void createFB()
+{
+	CHKERR(glGenFramebuffers(1, &fb_id));
+	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, fb_id));
+	CHKERR(glGenTextures(1, &fbTex_id));
+	CHKERR(glBindTexture(GL_TEXTURE_2D, fbTex_id));
+	CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
+	CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+	CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTex_id, 0));
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		printf("Error creating framebuffer\n");
+		exit(1);
+	}
+	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+}
+
+void deleteFB()
+{
+	glDeleteTextures(1, &fbTex_id);
+	glDeleteFramebuffers(1, &fb_id);
+}
 
 void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 {
@@ -346,11 +358,13 @@ void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 	else
 	{
 		glLoadMatrixf(currentMatrix);
+		deleteFB();
 	}
 
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 	screen_width = width;
 	screen_height = height;
+	createFB();
 }
 
 void setQuality()
@@ -359,7 +373,7 @@ void setQuality()
 	CHKERR(glHint(GL_POINT_SMOOTH_HINT, drawQualityPoint == 2 ? GL_NICEST : drawQualityPoint == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_LINE_SMOOTH_HINT, drawQualityLine == 2 ? GL_NICEST : drawQualityLine == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_PERSPECTIVE_CORRECTION_HINT, drawQualityPerspective == 2 ? GL_NICEST : drawQualityPerspective == 1 ? GL_DONT_CARE : GL_FASTEST));
-	if (drawQualityMSAA)
+	if (cfg.drawQualityMSAA)
 	{
 		CHKERR(glEnable(GL_MULTISAMPLE))
 	}
@@ -371,9 +385,8 @@ void setQuality()
 
 void setDepthBuffer()
 {
-	if (depthBuffer)
+	if (cfg.depthBuffer)
 	{
-		glClearDepth(1.0f);                                        // Depth Buffer Setup
 		CHKERR(glEnable(GL_DEPTH_TEST));                           // Enables Depth Testing
 		CHKERR(glDepthFunc(GL_LEQUAL));                            // The Type Of Depth Testing To Do
 	}
@@ -383,6 +396,12 @@ void setDepthBuffer()
 	}
 }
 
+void updateConfig()
+{
+	setQuality();
+	setDepthBuffer();
+}
+
 int InitGL()
 {
 	CHKERR(glewInit());
@@ -390,12 +409,20 @@ int InitGL()
 	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id));
 	CHKERR(glGenBuffers(1, &indirect_id));
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
+	
+	createFB();
+	
 	CHKERR(glShadeModel(GL_SMOOTH));                           // Enable Smooth Shading
-	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);                      // Black Background
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);                      // Black Background
 	setDepthBuffer();
 	setQuality();
 	ReSizeGLScene(init_width, init_height);
 	return (true);                                     // Initialization Went OK
+}
+
+void ExitGL()
+{
+	deleteFB();
 }
 
 inline void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT)
@@ -830,7 +857,7 @@ vboList DrawGrid(AliHLTTPCCATracker &tracker)
 	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
 }
 
-int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
+int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1, fpsscaleadjust = 0;
 
@@ -848,9 +875,12 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	
 	//Initialize
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();                                   // Reset The Current Modelview Matrix
+	if (!mixAnimation)
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();                                   // Reset The Current Modelview Matrix
+	}
 
 	int mouseWheelTmp = mouseWheel;
 	mouseWheel = 0;
@@ -860,7 +890,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	//Calculate rotation / translation scaling factors
 	float scalefactor = keys[KEY_SHIFT] ? 0.2 : 1.0;
 	float rotatescalefactor = scalefactor * 0.25f;
-	if (drawSlice != -1)
+	if (cfg.drawSlice != -1)
 	{
 		scalefactor *= 0.2f;
 	}
@@ -869,28 +899,64 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	if (sqrdist > 5) sqrdist = 5;
 	scalefactor *= sqrdist;
 
+	float mixSlaveImage = 0.f;
 	//Perform new rotation / translation
-	if (animate)
+	if (animate || mixAnimation)
 	{
-		float time = animationTimer.GetCurrentElapsedTime();
-		//float time = animationFrame / 30.f;
-		float maxTime = animateVectors[0].back();
-		animationFrame++;
-		if (time >= maxTime)
+		float time;
+		
+		if (mixAnimation)
 		{
-			time = maxTime;
-			animate = 0;
-			SetInfo("Animation finished. (%f seconds, %d frames)", time, animationFrame);
+			time = mixTime;
 		}
 		else
 		{
-			SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
+			time = animationTimer.GetCurrentElapsedTime();
+			//float time = animationFrame / 30.f;
+			float maxTime = animateVectors[0].back();
+			animationFrame++;
+			if (time >= maxTime)
+			{
+				time = maxTime;
+				animate = 0;
+				SetInfo("Animation finished. (%f seconds, %d frames)", time, animationFrame);
+			}
+			else
+			{
+				SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
+			}
 		}
 		float vals[8];
 		for (int i = 0;i < 8;i++)
 		{
 			vals[i] = animationSplines[i].evaluate(time);
 		}
+		if (mixAnimation == false)
+		{
+			int base = 0;
+			int k = animateVectors[0].size() - 1;
+			while (base < k && time > animateVectors[0][base]) base++;
+			if (base > animationLastBase + 1) animationLastBase = base - 1;
+			
+			if (base != animationLastBase && animateVectors[0][animationLastBase] != animateVectors[0][base] && memcmp(&animateConfig[base], &animateConfig[animationLastBase], sizeof(animateConfig[base])))
+			{
+				cfg = animateConfig[animationLastBase];
+				updateConfig();
+				DrawGLScene(true, time);
+				CHKERR(glBlitNamedFramebuffer(0, fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
+				glMatrixMode(GL_MODELVIEW);
+				glLoadIdentity();                                   // Reset The Current Modelview Matrix
+				mixSlaveImage = 1.f - (time - animateVectors[0][animationLastBase]) / (animateVectors[0][base] - animateVectors[0][animationLastBase]);
+			}
+			
+			if (memcmp(&animateConfig[base], &cfg, sizeof(cfg)))
+			{
+				cfg = animateConfig[base];
+				updateConfig();
+			}
+		}
+		
 		if (cfg.animationMode != 6)
 		{
 			if (cfg.animationMode & 1) //Rotation from euler angles
@@ -932,28 +998,13 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 		{
 			glTranslatef(-vals[0], -vals[1], -vals[2]);
 		}
-		
-		/*static int nFrame = 0;
-
-		DrawGLScene(true);
-		char filename[16];
-		sprintf(filename, "video%05d.bmp", nFrame++);
-		unsigned char *mixBuffer = NULL;
-		//...
-		DoScreenshot(NULL, 1, &mixBuffer);
-
-		//...
-		DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
-		free(mixBuffer);
-		printf("Wrote video frame %s\n\n", filename);*/
-		
 	}
 	else if (resetScene)
 	{
 		glTranslatef(0, 0, -8);
 
-		pointSize = 2.0;
-		drawSlice = -1;
+		cfg.pointSize = 2.0;
+		cfg.drawSlice = -1;
 		Xadd = Zadd = 0;
 		camLookOrigin = camYUp = false;
 		angleRollOrigin = -1e9;
@@ -1039,18 +1090,21 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 
 		//Graphichs Options
 		int deltaLine = keys['+']*keysShift['+'] - keys['-']*keysShift['-'];
-		lineWidth += (float) deltaLine * fpsscale * 0.05;
-		if (lineWidth < 0.01) lineWidth = 0.01;
-		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", lineWidth); 
+		cfg.lineWidth += (float) deltaLine * fpsscale * 0.05;
+		if (cfg.lineWidth < 0.01) cfg.lineWidth = 0.01;
+		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", cfg.lineWidth); 
 		int deltaPoint = keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-']);
-		pointSize += (float) deltaPoint * fpsscale * 0.05;
-		if (pointSize < 0.01) pointSize = 0.01;
-		if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", pointSize);
+		cfg.pointSize += (float) deltaPoint * fpsscale * 0.05;
+		if (cfg.pointSize < 0.01) cfg.pointSize = 0.01;
+		if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", cfg.pointSize);
 	}
 	
 	//Store position
-	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
-	calcXYZ();
+	if (!mixAnimation)
+	{
+		glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
+		calcXYZ();
+	}
 	
 	if (mouseDn || mouseDnR)
 	{
@@ -1066,7 +1120,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 #endif
 
 	//Open GL Default Values
-	if (smoothPoints)
+	if (cfg.smoothPoints)
 	{
 		CHKERR(glEnable(GL_POINT_SMOOTH));
 	}
@@ -1074,7 +1128,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	{
 		CHKERR(glDisable(GL_POINT_SMOOTH));
 	}
-	if (smoothLines)
+	if (cfg.smoothLines)
 	{
 		CHKERR(glEnable(GL_LINE_SMOOTH));
 	}
@@ -1084,8 +1138,8 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	}
 	CHKERR(glEnable(GL_BLEND));
 	CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-	CHKERR(glPointSize(pointSize));
-	CHKERR(glLineWidth(lineWidth));
+	CHKERR(glPointSize(cfg.pointSize));
+	CHKERR(glLineWidth(cfg.lineWidth));
 
 	//Extract global cluster information
 	if (updateDLList || displayEventNr != currentEventNr)
@@ -1170,7 +1224,7 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 			for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
-				if (drawInitLinks)
+				if (cfg.drawInitLinks)
 				{
 					char *tmpMem;
 					if (tracker.fLinkTmpMemory == NULL)
@@ -1270,38 +1324,38 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 	CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
 	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
 	{
-		if (drawSlice != -1)
+		if (cfg.drawSlice != -1)
 		{
-			if (!drawRelatedSlices && drawSlice != iSlice) continue;
-			if (drawRelatedSlices && (drawSlice % 9) != (iSlice % 9)) continue;
+			if (!cfg.drawRelatedSlices && cfg.drawSlice != iSlice) continue;
+			if (cfg.drawRelatedSlices && (cfg.drawSlice % 9) != (iSlice % 9)) continue;
 		}
 
-		if (drawGrid)
+		if (cfg.drawGrid)
 		{
 			SetColorGrid();
 			drawVertices(glDLgrid[iSlice], GL_LINES);
 		}
 
-		if (drawClusters)
+		if (cfg.drawClusters)
 		{
 			for (int iCol = 0;iCol < nCollisions;iCol++)
 			{
 				SetColorClusters();
-				if (showCollision != -1) iCol = showCollision;
-				if (colorCollisions) SetCollisionColor(iCol);
+				if (cfg.showCollision != -1) iCol = cfg.showCollision;
+				if (cfg.colorCollisions) SetCollisionColor(iCol);
 				drawVertices(GLpoints[iSlice][0][iCol], GL_POINTS);
 
-				if (drawInitLinks)
+				if (cfg.drawInitLinks)
 				{
-					if (excludeClusters) goto skip1;
-					if (colorClusters) SetColorInitLinks();
+					if (cfg.excludeClusters) goto skip1;
+					if (cfg.colorClusters) SetColorInitLinks();
 				}
 				drawVertices(GLpoints[iSlice][1][iCol], GL_POINTS);
 
-				if (drawLinks)
+				if (cfg.drawLinks)
 				{
-					if (excludeClusters) goto skip1;
-					if (colorClusters) SetColorLinks();
+					if (cfg.excludeClusters) goto skip1;
+					if (cfg.colorClusters) SetColorLinks();
 				}
 				else
 				{
@@ -1309,34 +1363,34 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				}
 				drawVertices(GLpoints[iSlice][2][iCol], GL_POINTS);
 
-				if (drawSeeds)
+				if (cfg.drawSeeds)
 				{
-					if (excludeClusters) goto skip1;
-					if (colorClusters) SetColorSeeds();
+					if (cfg.excludeClusters) goto skip1;
+					if (cfg.colorClusters) SetColorSeeds();
 				}
 				drawVertices(GLpoints[iSlice][3][iCol], GL_POINTS);
 
 			skip1:
 				SetColorClusters();
-				if (drawTracklets)
+				if (cfg.drawTracklets)
 				{
-					if (excludeClusters) goto skip2;
-					if (colorClusters) SetColorTracklets();
+					if (cfg.excludeClusters) goto skip2;
+					if (cfg.colorClusters) SetColorTracklets();
 				}
 				drawVertices(GLpoints[iSlice][4][iCol], GL_POINTS);
 
-				if (drawTracks)
+				if (cfg.drawTracks)
 				{
-					if (excludeClusters) goto skip2;
-					if (colorClusters) SetColorTracks();
+					if (cfg.excludeClusters) goto skip2;
+					if (cfg.colorClusters) SetColorTracks();
 				}
 				drawVertices(GLpoints[iSlice][5][iCol], GL_POINTS);
 
 			skip2:
-				if (drawGlobalTracks)
+				if (cfg.drawGlobalTracks)
 				{
-					if (excludeClusters) goto skip3;
-					if (colorClusters) SetColorGlobalTracks();
+					if (cfg.excludeClusters) goto skip3;
+					if (cfg.colorClusters) SetColorGlobalTracks();
 				}
 				else
 				{
@@ -1345,56 +1399,56 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 				drawVertices(GLpoints[iSlice][6][iCol], GL_POINTS);
 				SetColorClusters();
 
-				if (drawFinal)
+				if (cfg.drawFinal)
 				{
-					if (excludeClusters) goto skip3;
-					if (colorClusters) SetColorFinal();
+					if (cfg.excludeClusters) goto skip3;
+					if (cfg.colorClusters) SetColorFinal();
 				}
 				drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS);
 			skip3:;
-				if (showCollision != -1) break;
+				if (cfg.showCollision != -1) break;
 			}
 		}
 
-		if (!excludeClusters)
+		if (!cfg.excludeClusters)
 		{
-			if (drawInitLinks)
+			if (cfg.drawInitLinks)
 			{
 				SetColorInitLinks();
 				drawVertices(glDLlines[iSlice][0], GL_LINES);
 			}
-			if (drawLinks)
+			if (cfg.drawLinks)
 			{
 				SetColorLinks();
 				drawVertices(glDLlines[iSlice][1], GL_LINES);
 			}
-			if (drawSeeds)
+			if (cfg.drawSeeds)
 			{
 				SetColorSeeds();
 				drawVertices(glDLlines[iSlice][2], GL_LINE_STRIP);
 			}
-			if (drawTracklets)
+			if (cfg.drawTracklets)
 			{
 				SetColorTracklets();
 				drawVertices(glDLlines[iSlice][3], GL_LINE_STRIP);
 			}
-			if (drawTracks)
+			if (cfg.drawTracks)
 			{
 				SetColorTracks();
 				drawVertices(glDLlines[iSlice][4], GL_LINE_STRIP);
 			}
-			if (drawGlobalTracks)
+			if (cfg.drawGlobalTracks)
 			{
 				SetColorGlobalTracks();
 				drawVertices(glDLlines[iSlice][5], GL_LINE_STRIP);
 			}
 			for (int iCol = 0;iCol < nCollisions;iCol++)
 			{
-				if (showCollision != -1) iCol = showCollision;
-				if (drawFinal)
+				if (cfg.showCollision != -1) iCol = cfg.showCollision;
+				if (cfg.drawFinal)
 				{
 					SetColorFinal();
-					if (colorCollisions) SetCollisionColor(iCol);
+					if (cfg.colorCollisions) SetCollisionColor(iCol);
 					//if (!drawClusters) drawVertices(GLpoints[iSlice][7][iCol], GL_POINTS);
 					drawVertices(glDLfinal[iSlice][iCol], GL_LINE_STRIP);
 				}
@@ -1403,32 +1457,56 @@ int DrawGLScene(bool doAnimation) // Here's Where We Do All The Drawing
 					SetColorMarked();
 					drawVertices(GLpoints[iSlice][8][iCol], GL_POINTS);
 				}
-				if (showCollision != -1) break;
+				if (cfg.showCollision != -1) break;
 			}
 		}
 	}
 	CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
 	
-
-	
-	framesDone++;
-	framesDoneFPS++;
-	double time = timerFPS.GetCurrentElapsedTime();
-	char info[1024];
-	float fps = (double) framesDoneFPS / time;
-	sprintf(info, "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
-		"(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
-		fps, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal, framesDone, drawCalls,
-		xyz[0], xyz[1], xyz[2], rphitheta[0], rphitheta[1] * 180 / M_PI, rphitheta[2] * 180 / M_PI, angle[1] * 180 / M_PI, angle[0] * 180 / M_PI, angle[2] * 180 / M_PI);
-	if (time > 1.)
+	if (mixSlaveImage > 0)
 	{
-		if (printInfoText & 2) printf("%s\n", info);
-		if (fpsscaleadjust++) fpsscale = 60 / fps;
-		timerFPS.ResetStart();
-		framesDoneFPS = 0;
-	}		
-	
-	if (printInfoText & 1) showInfo(info);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		gluOrtho2D(0.f, screen_width, 0.f, screen_height);
+		glEnable(GL_TEXTURE_2D);
+		glDisable(GL_DEPTH_TEST);
+		glBindTexture(GL_TEXTURE_2D, fbTex_id);
+		glColor4f(1, 1, 1, mixSlaveImage);
+		glBegin(GL_QUADS);
+		glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
+		glTexCoord2f(0, 1); glVertex3f(0, screen_height, 0);
+		glTexCoord2f(1, 1); glVertex3f(screen_width, screen_height, 0);
+		glTexCoord2f(1, 0); glVertex3f(screen_width, 0, 0);
+		glEnd();
+		glColor4f(1, 1, 1, 0);
+		glDisable(GL_TEXTURE_2D);
+		setDepthBuffer();
+		glPopMatrix();
+	}
+	if (!mixAnimation)
+	{
+		framesDone++;
+		framesDoneFPS++;
+		double time = timerFPS.GetCurrentElapsedTime();
+		char info[1024];
+		float fps = (double) framesDoneFPS / time;
+		sprintf(info, "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
+			"(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
+			fps, cfg.drawSlice, cfg.drawClusters, cfg.drawInitLinks, cfg.drawLinks, cfg.drawSeeds, cfg.drawTracklets, cfg.drawTracks, cfg.drawGlobalTracks, cfg.drawFinal, framesDone, drawCalls,
+			xyz[0], xyz[1], xyz[2], rphitheta[0], rphitheta[1] * 180 / M_PI, rphitheta[2] * 180 / M_PI, angle[1] * 180 / M_PI, angle[0] * 180 / M_PI, angle[2] * 180 / M_PI);
+		if (time > 1.)
+		{
+			if (printInfoText & 2) printf("%s\n", info);
+			if (fpsscaleadjust++) fpsscale = 60 / fps;
+			timerFPS.ResetStart();
+			framesDoneFPS = 0;
+		}		
+		
+		if (printInfoText & 1) showInfo(info);
+	}
 
 //Free event
 #ifdef R__WIN32
@@ -1447,10 +1525,10 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 	if (mixFactor < 0.f) mixFactor = 0.f;
 	if (mixFactor > 1.f) mixFactor = 1.f;
 
-	float tmpPointSize = pointSize;
-	float tmpLineWidth = lineWidth;
-	pointSize *= (float) (SCALE_X + SCALE_Y) / 2.;
-	lineWidth *= (float) (SCALE_X + SCALE_Y) / 2.;
+	float tmpPointSize = cfg.pointSize;
+	float tmpLineWidth = cfg.lineWidth;
+	cfg.pointSize *= (float) (SCALE_X + SCALE_Y) / 2.;
+	cfg.lineWidth *= (float) (SCALE_X + SCALE_Y) / 2.;
 
 	GLint view[4], viewold[4];
 	glGetIntegerv(GL_VIEWPORT, viewold);
@@ -1541,8 +1619,8 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 	free(pixels);
 
 	glViewport(0, 0, viewold[2], viewold[3]);
-	pointSize = tmpPointSize;
-	lineWidth = tmpLineWidth;
+	cfg.pointSize = tmpPointSize;
+	cfg.lineWidth = tmpLineWidth;
 	DrawGLScene();
 }
 
@@ -1626,19 +1704,6 @@ void HandleKeyRelease(int wParam)
 		resetScene = 1;
 		SetInfo("View reset");
 	}
-	else if (wParam == 'l')
-	{
-		if (drawSlice >= (drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1)))
-		{
-			drawSlice = -1;
-			SetInfo("Showing all slices");
-		}
-		else
-		{
-			drawSlice++;
-			SetInfo("Showing slice %d", drawSlice);
-		}
-	}
 	else if (wParam == KEY_ALT && keysShift[KEY_ALT])
 	{
 		camLookOrigin ^= 1;
@@ -1664,60 +1729,73 @@ void HandleKeyRelease(int wParam)
 	{
 		keys[KEY_CTRL] = false; //Release CTRL with alt, to avoid orienting along y automatically!
 	}
-	else if (wParam == 'k')
+	else if (wParam == 'l')
 	{
-		if (drawSlice <= -1)
+		if (cfg.drawSlice >= (cfg.drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1)))
 		{
-			drawSlice = drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1);
+			cfg.drawSlice = -1;
 			SetInfo("Showing all slices");
 		}
 		else
 		{
-			drawSlice--;
-			SetInfo("Showing slice %d", drawSlice);
+			cfg.drawSlice++;
+			SetInfo("Showing slice %d", cfg.drawSlice);
 		}
+	}
+	else if (wParam == 'k')
+	{
+		if (cfg.drawSlice <= -1)
+		{
+			cfg.drawSlice = cfg.drawRelatedSlices ? (fgkNSlices / 4 - 1) : (fgkNSlices - 1);
+		}
+		else
+		{
+			cfg.drawSlice--;
+		}
+		if (cfg.drawSlice == -1) SetInfo("Showing all slices");
+		else SetInfo("Showing slice %d", cfg.drawSlice);
+	}
+	else if (wParam == 'J')
+	{
+		cfg.drawRelatedSlices ^= 1;
+		SetInfo("Drawing of related slices %s", cfg.drawRelatedSlices ? "enabled" : "disabled");
 	}
 	else if (wParam == 'L')
 	{
-		if (showCollision >= nCollisions - 1)
+		if (cfg.showCollision >= nCollisions - 1)
 		{
-			showCollision = -1;
+			cfg.showCollision = -1;
 			SetInfo("Showing all collisions");
 		}
 		else
 		{
-			showCollision++;
-			SetInfo("Showing collision %d", showCollision);
+			cfg.showCollision++;
+			SetInfo("Showing collision %d", cfg.showCollision);
 		}
+	}
+	else if (wParam == 'K')
+	{
+		if (cfg.showCollision <= -1)
+		{
+			cfg.showCollision = nCollisions - 1;
+		}
+		else
+		{
+			cfg.showCollision--;
+		}
+		if (cfg.showCollision == -1) SetInfo("Showing all collisions");
+		else SetInfo("Showing collision %d", cfg.showCollision);
 	}
 	else if (wParam == 'F')
 	{
 		SwitchFullscreen();
 		SetInfo("Toggling full screen");
 	}
-	else if (wParam == 'K')
-	{
-		if (showCollision <= -1)
-		{
-			showCollision = nCollisions - 1;
-			SetInfo("Showing all collisions");
-		}
-		else
-		{
-			showCollision--;
-			SetInfo("Showing collision %d", showCollision);
-		}
-	}
 	else if (wParam == 'H')
 	{
 		printInfoText += 1;
 		printInfoText &= 3;
 		SetInfo("Info text display - console: %s, onscreen %s", (printInfoText & 2) ? "enabled" : "disabled", (printInfoText & 1) ? "enabled" : "disabled");
-	}
-	else if (wParam == 'J')
-	{
-		drawRelatedSlices ^= 1;
-		SetInfo("Drawing of related slices %s", drawRelatedSlices ? "enabled" : "disabled");
 	}
 	else if (wParam == 'j')
 	{
@@ -1741,13 +1819,13 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'C')
 	{
-		colorCollisions ^= 1;
-		SetInfo("Color coding of collisions %s", colorCollisions ? "enabled" : "disabled");
+		cfg.colorCollisions ^= 1;
+		SetInfo("Color coding of collisions %s", cfg.colorCollisions ? "enabled" : "disabled");
 	}
 	else if (wParam == 'V')
 	{
-		colorClusters ^= 1;
-		SetInfo("Color coding for seed / trrack attachmend %s", colorClusters ? "enabled" : "disabled");
+		cfg.colorClusters ^= 1;
+		SetInfo("Color coding for seed / trrack attachmend %s", cfg.colorClusters ? "enabled" : "disabled");
 	}
 	else if (wParam == 'E')
 	{
@@ -1777,31 +1855,31 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'S')
 	{
-		smoothPoints ^= true;
-		SetInfo("Smoothing of points %s", smoothPoints ? "enabled" : "disabled");
+		cfg.smoothPoints ^= true;
+		SetInfo("Smoothing of points %s", cfg.smoothPoints ? "enabled" : "disabled");
 	}
 	else if (wParam == 'A')
 	{
-		smoothLines ^= true;
-		SetInfo("Smoothing of lines %s", smoothLines ? "enabled" : "disabled");
+		cfg.smoothLines ^= true;
+		SetInfo("Smoothing of lines %s", cfg.smoothLines ? "enabled" : "disabled");
 	}
 	else if (wParam == 'D')
 	{
-		depthBuffer ^= true;
+		cfg.depthBuffer ^= true;
 		GLint depthBits;
 		glGetIntegerv(GL_DEPTH_BITS, &depthBits);
-		SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, depthBuffer ? "enabled" : "disabled");
+		SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, cfg.depthBuffer ? "enabled" : "disabled");
 		setDepthBuffer();
 	}
 	else if (wParam == 'W')
 	{
-		drawQualityMSAA ^= 1;
+		cfg.drawQualityMSAA ^= true;
 		setQuality();
-		SetInfo("Multisampling anti-aliasing: %s", drawQualityMSAA ? "enabled" : "disabled");
+		SetInfo("Multisampling anti-aliasing: %s", cfg.drawQualityMSAA ? "enabled" : "disabled");
 	}
 	else if (wParam == 'V')
 	{
-		drawQualityVSync ^= 1;
+		drawQualityVSync ^= true;
 		SetVSync(drawQualityVSync);
 		SetInfo("VSync: %s", drawQualityVSync ? "enabled" : "disabled");
 	}
@@ -1858,13 +1936,13 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'g')
 	{
-		drawGrid ^= 1;
-		SetInfo("Fast Cluster Search Grid %s", drawGrid ? "shown" : "hidden");
+		cfg.drawGrid ^= 1;
+		SetInfo("Fast Cluster Search Grid %s", cfg.drawGrid ? "shown" : "hidden");
 	}
 	else if (wParam == 'x')
 	{
-		excludeClusters ^= 1;
-		SetInfo(excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown");
+		cfg.excludeClusters ^= 1;
+		SetInfo(cfg.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown");
 	}
 	else if (wParam == '<')
 	{
@@ -1875,36 +1953,36 @@ void HandleKeyRelease(int wParam)
 
 	else if (wParam == '1')
 	{
-		drawClusters ^= 1;
+		cfg.drawClusters ^= 1;
 	}
 	else if (wParam == '2')
 	{
-		drawInitLinks ^= 1;
+		cfg.drawInitLinks ^= 1;
 		updateDLList = true;
 	}
 	else if (wParam == '3')
 	{
-		drawLinks ^= 1;
+		cfg.drawLinks ^= 1;
 	}
 	else if (wParam == '4')
 	{
-		drawSeeds ^= 1;
+		cfg.drawSeeds ^= 1;
 	}
 	else if (wParam == '5')
 	{
-		drawTracklets ^= 1;
+		cfg.drawTracklets ^= 1;
 	}
 	else if (wParam == '6')
 	{
-		drawTracks ^= 1;
+		cfg.drawTracks ^= 1;
 	}
 	else if (wParam == '7')
 	{
-		drawGlobalTracks ^= 1;
+		cfg.drawGlobalTracks ^= 1;
 	}
 	else if (wParam == '8')
 	{
-		drawFinal ^= 1;
+		cfg.drawFinal ^= 1;
 	}
 	else if (wParam == 't')
 	{
@@ -1972,6 +2050,7 @@ void HandleKeyRelease(int wParam)
 			int size = animateVectors[0].size();
 			fwrite(&size, sizeof(size), 1, ftmp);
 			for (int i = 0;i < 9;i++) fwrite(animateVectors[i].data(), sizeof(animateVectors[i][0]), size, ftmp);
+			fwrite(animateConfig.data(), sizeof(animateConfig[0]), size, ftmp);
 			fclose(ftmp);
 		}
 		else
@@ -1993,7 +2072,10 @@ void HandleKeyRelease(int wParam)
 				animateVectors[i].resize(size);
 				retval += fread(animateVectors[i].data(), sizeof(animateVectors[i][0]), size, ftmp);
 			}
+			animateConfig.resize(size);
+			retval += fread(animateConfig.data(), sizeof(animateConfig[0]), size, ftmp);
 			fclose(ftmp);
+			updateConfig();
 		}
 		else
 		{
@@ -2009,11 +2091,10 @@ void HandleKeyRelease(int wParam)
 
 void showInfo(const char* info)
 {
-	GLfloat tmp[16];
-	glGetFloatv(GL_PROJECTION_MATRIX, tmp);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
 	glLoadIdentity();
 	gluOrtho2D(0.f, screen_width, 0.f, screen_height);
 	glColor3f(1.f, 1.f, 1.f);
@@ -2034,7 +2115,7 @@ void showInfo(const char* info)
 			OpenGLPrint(HelpText[i]);					
 		}
 	}
-	glLoadMatrixf(tmp);
+	glPopMatrix();
 }	
 
 void HandleSendKey()
