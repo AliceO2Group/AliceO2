@@ -80,7 +80,7 @@ class Dispatcher
 
   /// Creates dispatcher output specification basing on input specification of the same data. Basically, it adds '_S' at
   /// the end of description, which makes data stream distinctive from the main flow (which is not sampled/filtered).
-  static OutputSpec createDispatcherOutputSpec(const InputSpec& dispatcherInput)
+  static Output createDispatcherOutput(const InputSpec& dispatcherInput)
   {
     header::DataDescription description = dispatcherInput.description;
     size_t len = strlen(description.str);
@@ -89,7 +89,7 @@ class Dispatcher
       description.str[len + 1] = 'S';
     }
 
-    return OutputSpec{ dispatcherInput.origin, description, 0, dispatcherInput.lifetime };
+    return Output{ dispatcherInput.origin, description, 0, dispatcherInput.lifetime };
   }
 
  protected:

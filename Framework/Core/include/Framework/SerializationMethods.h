@@ -26,9 +26,9 @@ namespace framework
 /// Usage: (with 'output' being the DataAllocator of the ProcessingContext)
 ///   SomeType object;
 ///   ROOTSerialized<decltype(object)> ref(object);
-///   output.snapshot(OutputSpec{}, ref);
+///   output.snapshot(Output{}, ref);
 ///     - or -
-///   output.snapshot(OutputSpec{}, ROOTSerialized<decltype(object)>(object));
+///   output.snapshot(Output{}, ROOTSerialized<decltype(object)>(object));
 ///
 /// The existence of the ROOT dictionary for the wrapped type can not be
 /// checked at compile time, a runtime check must be performed in the
