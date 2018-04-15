@@ -31,6 +31,7 @@ void createQuaternionFromMatrix(float* v, const float* mat);
 void DoScreenshot(char *filename, float animateTime = -1.f);
 
 #define GL_WINDOW_NAME "Alice HLT TPC CA Event Display"
+#define MSAA_SAMPLES 4
 
 #define KEY_UP 1
 #define KEY_DOWN 2
@@ -60,7 +61,6 @@ struct OpenGLConfig
 {
 	int animationMode = 0;
 	
-	bool drawQualityMSAA = 0;
 	bool smoothPoints = true;
 	bool smoothLines = false;
 	bool depthBuffer = false;
