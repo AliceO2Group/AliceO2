@@ -90,6 +90,7 @@ void *OpenGLMain(void *ptr)
 		exit(1);
 	}
 
+	//Require MSAA, double buffering, and Depth buffer
 	int attribs[] =
 	{
 		GLX_X_RENDERABLE    , True,
@@ -104,7 +105,7 @@ void *OpenGLMain(void *ptr)
 		GLX_STENCIL_SIZE    , 8,
 		GLX_DOUBLEBUFFER    , True,
 		GLX_SAMPLE_BUFFERS  , 1,
-		GLX_SAMPLES         , 4,
+		GLX_SAMPLES         , MSAA_SAMPLES,
 		None
 	};
 

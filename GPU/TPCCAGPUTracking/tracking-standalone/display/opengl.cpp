@@ -88,7 +88,7 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 const int drawQualityPoint = 0;
 const int drawQualityLine = 0;
 const int drawQualityPerspective = 0;
-const bool drawToMixBufferDirectly = true;
+bool drawQualityMSAA = 0;
 bool drawQualityVSync = 0;
 int maxFPSRate = 0;
 
@@ -316,39 +316,61 @@ struct GLfb
 {
 	GLuint fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
 	bool tex = false;
+	bool msaa = false;
+	bool depth = false;
 };
-GLfb mixBuffer, screenshotBuffer;
-void createFB(GLfb& fb, bool tex)
+GLfb mixBuffer;
+void createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
 {
+	GLenum textureType = msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+	CHKERR(glGenTextures(1, &id));
+	CHKERR(glBindTexture(textureType, id));
+	if (msaa)
+	{
+		CHKERR(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, storage, screen_width, screen_height, false));
+	}
+	else
+	{
+		CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, screen_width, screen_height, 0, storage, GL_UNSIGNED_BYTE, NULL));
+		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	}
+	CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textureType, id, 0));
+}
+
+void createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
+{
+	CHKERR(glGenRenderbuffers(1, &id));
+	CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, id));
+	if (msaa) CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, storage, screen_width, screen_height))
+	else CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, screen_width, screen_height))
+	CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, id));
+}
+
+void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
+{
+	fb.tex = tex;
+	fb.depth = withDepth;
+	fb.msaa = msaa;
 	GLint drawFboId = 0, readFboId = 0;
 	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
 	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFboId);
 	CHKERR(glGenFramebuffers(1, &fb.fb_id));
 	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, fb.fb_id));
-	if (tex)
+
+	if (tex) createFB_texture(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
+	else createFB_renderbuffer(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
+	
+	if (withDepth)
 	{
-		CHKERR(glGenTextures(1, &fb.fbCol_id));
-		CHKERR(glBindTexture(GL_TEXTURE_2D, fb.fbCol_id));
-		CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
-		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-		CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.fbCol_id, 0));
+		if (tex && fb.msaa) createFB_texture(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT, GL_DEPTH_ATTACHMENT);
+		else createFB_renderbuffer(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT, GL_DEPTH_ATTACHMENT);
 	}
-	else
+	
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
 	{
-		CHKERR(glGenRenderbuffers(1, &fb.fbCol_id));
-		CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, fb.fbCol_id));
-		CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, screen_width, screen_height));
-		CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, fb.fbCol_id));
-	}
-	CHKERR(glGenRenderbuffers(1, &fb.fbDepth_id));
-	CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, fb.fbDepth_id));
-	CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screen_width, screen_height));
-	CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fb.fbDepth_id));
-	fb.tex = tex;
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		printf("Error creating framebuffer\n");
+		printf("Error creating framebuffer (tex %d) - incomplete (%d)\n", (int) tex, status);
 		exit(1);
 	}
 	CHKERR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFboId));
@@ -357,15 +379,13 @@ void createFB(GLfb& fb, bool tex)
 
 void deleteFB(GLfb& fb)
 {
-	if (fb.tex)
+	if (fb.tex) CHKERR(glDeleteTextures(1, &fb.fbCol_id))
+	else CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id))
+	if (fb.depth)
 	{
-		CHKERR(glDeleteTextures(1, &fb.fbCol_id));
+		if (fb.tex && fb.msaa) CHKERR(glDeleteTextures(1, &fb.fbDepth_id))
+		else CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id))
 	}
-	else
-	{
-		CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id));
-	}
-	CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id));
 	CHKERR(glDeleteFramebuffers(1, &fb.fb_id));
 }
 
@@ -417,7 +437,7 @@ void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize Th
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 	screen_width = width;
 	screen_height = height;
-	createFB(mixBuffer, true);
+	createFB(mixBuffer, true, true, false);
 }
 
 void setQuality()
@@ -426,7 +446,7 @@ void setQuality()
 	CHKERR(glHint(GL_POINT_SMOOTH_HINT, drawQualityPoint == 2 ? GL_NICEST : drawQualityPoint == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_LINE_SMOOTH_HINT, drawQualityLine == 2 ? GL_NICEST : drawQualityLine == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_PERSPECTIVE_CORRECTION_HINT, drawQualityPerspective == 2 ? GL_NICEST : drawQualityPerspective == 1 ? GL_DONT_CARE : GL_FASTEST));
-	if (cfg.drawQualityMSAA)
+	if (drawQualityMSAA)
 	{
 		CHKERR(glEnable(GL_MULTISAMPLE))
 	}
@@ -464,7 +484,7 @@ int InitGL()
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
 	
 	CHKERR(glShadeModel(GL_SMOOTH));                           // Enable Smooth Shading
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);                      // Black Background
+	CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));                      // Black Background
 	setDepthBuffer();
 	setQuality();
 	ReSizeGLScene(init_width, init_height, true);
@@ -999,14 +1019,14 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			{
 				cfg = animateConfig[animationLastBase];
 				updateConfig();
-				if (drawToMixBufferDirectly)
+				if (!drawQualityMSAA) //Render to texture directly
 				{
 					setFrameBuffer(1, mixBuffer.fb_id);
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear Screen And Depth Buffer
 					DrawGLScene(true, time);
 					setFrameBuffer();
 				}
-				else
+				else //We cannot draw from multisampled texture anyway, so we can blit already here
 				{
 					DrawGLScene(true, time);
 					CHKERR(glBlitNamedFramebuffer(mainBufferStack.back(), mixBuffer.fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
@@ -1531,9 +1551,9 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		glPushMatrix();
 		glLoadIdentity();
 		gluOrtho2D(0.f, screen_width, 0.f, screen_height);
-		glEnable(GL_TEXTURE_2D);
+		CHKERR(glEnable(GL_TEXTURE_2D));
 		glDisable(GL_DEPTH_TEST);
-		glBindTexture(GL_TEXTURE_2D, mixBuffer.fbCol_id);
+		CHKERR(glBindTexture(GL_TEXTURE_2D, mixBuffer.fbCol_id));
 		glColor4f(1, 1, 1, mixSlaveImage);
 		glBegin(GL_QUADS);
 		glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
@@ -1542,7 +1562,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		glTexCoord2f(1, 0); glVertex3f(screen_width, 0, 0);
 		glEnd();
 		glColor4f(1, 1, 1, 0);
-		glDisable(GL_TEXTURE_2D);
+		CHKERR(glDisable(GL_TEXTURE_2D));
 		setDepthBuffer();
 		glPopMatrix();
 	}
@@ -1596,6 +1616,7 @@ void DoScreenshot(char *filename, float animateTime)
 	cfg.lineWidth *= (float) (SCALE_X + SCALE_Y) / 2.;
 	
 	int oldWidth = screen_width, oldHeight = screen_height;
+	GLfb screenshotBuffer, screenshotBufferMSAA;
 	
 	bool offScreenBuffer = SCALE_X != 1 || SCALE_Y != 1;
 
@@ -1604,11 +1625,17 @@ void DoScreenshot(char *filename, float animateTime)
 		deleteFB(mixBuffer);
 		screen_width *= SCALE_X;
 		screen_height *= SCALE_Y;
-		createFB(mixBuffer, 1);
-		createFB(screenshotBuffer, 0);
-		setFrameBuffer(1, screenshotBuffer.fb_id);
+		createFB(mixBuffer, 1, true, false);
+		createFB(screenshotBuffer, 0, 1, false);
+		if (drawQualityMSAA) createFB(screenshotBufferMSAA, 0, 1, true);
+		setFrameBuffer(1, drawQualityMSAA ? screenshotBufferMSAA.fb_id : screenshotBuffer.fb_id);
 		glViewport(0, 0, screen_width, screen_height);
 		DrawGLScene(false, animateTime);
+		if (drawQualityMSAA)
+		{
+			CHKERR(glBlitNamedFramebuffer(screenshotBufferMSAA.fb_id, screenshotBuffer.fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR))
+			setFrameBuffer(2, screenshotBuffer.fb_id);
+		}
 	}
 	size_t size = 4 * screen_width * screen_height;
 	unsigned char *pixels = new unsigned char [size];
@@ -1653,9 +1680,10 @@ void DoScreenshot(char *filename, float animateTime)
 		screen_width = oldWidth;
 		screen_height = oldHeight;
 		setFrameBuffer();
+		if (drawQualityMSAA) deleteFB(screenshotBufferMSAA);
 		deleteFB(screenshotBuffer);
 		deleteFB(mixBuffer);
-		createFB(mixBuffer, 1);
+		createFB(mixBuffer, 1, true, false);
 		glViewport(0, 0, screen_width, screen_height);
 		DrawGLScene(false, animateTime);
 	}
@@ -1915,9 +1943,10 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'W')
 	{
-		cfg.drawQualityMSAA ^= true;
+		drawQualityMSAA ^= true;
+		if (MSAA_SAMPLES < 2) drawQualityMSAA = false;
 		setQuality();
-		SetInfo("Multisampling anti-aliasing: %s", cfg.drawQualityMSAA ? "enabled" : "disabled");
+		SetInfo("Multisampling anti-aliasing: %s", drawQualityMSAA ? "enabled" : "disabled");
 	}
 	else if (wParam == 'V')
 	{
