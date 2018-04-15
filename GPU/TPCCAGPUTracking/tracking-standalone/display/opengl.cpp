@@ -88,8 +88,11 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 const int drawQualityPoint = 0;
 const int drawQualityLine = 0;
 const int drawQualityPerspective = 0;
+const bool drawToMixBufferDirectly = true;
 bool drawQualityVSync = 0;
 int maxFPSRate = 0;
+
+int testSetting = 0;
 
 bool camLookOrigin = false;
 bool camYUp = false;
@@ -197,6 +200,7 @@ HighResTimer animationTimer;
 int animationFrame = 0;
 int animationLastBase = 0;
 int animateScreenshot = 0;
+int animationExport = 0;
 std::vector<float> animateVectors[9];
 std::vector<OpenGLConfig> animateConfig;
 opengl_spline animationSplines[8];
@@ -314,8 +318,6 @@ struct GLfb
 	bool tex = false;
 };
 GLfb mixBuffer, screenshotBuffer;
-GLuint mainBuffer = 0;
-
 void createFB(GLfb& fb, bool tex)
 {
 	GLint drawFboId = 0, readFboId = 0;
@@ -365,6 +367,26 @@ void deleteFB(GLfb& fb)
 	}
 	CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id));
 	CHKERR(glDeleteFramebuffers(1, &fb.fb_id));
+}
+
+std::vector<GLuint> mainBufferStack{0};
+void setFrameBuffer(int updateCurrent = -1, GLuint newID = 0)
+{
+	if (updateCurrent == 1) mainBufferStack.push_back(newID);
+	else if (updateCurrent == 2) mainBufferStack.back() = newID;
+	else if (updateCurrent == -2) newID = mainBufferStack.back();
+	else if (updateCurrent == -1) {mainBufferStack.pop_back();newID = mainBufferStack.back();}
+	if (newID == 0)
+	{
+		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+		glDrawBuffer(GL_BACK);
+	}
+	else
+	{
+		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, newID));
+		GLenum drawBuffer = GL_COLOR_ATTACHMENT0;
+		glDrawBuffers(1, &drawBuffer);
+	}
 }
 
 void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
@@ -951,11 +973,11 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		{
 			time = maxTime;
 			animate = 0;
-			SetInfo("Animation finished. (%f seconds, %d frames)", time, animationFrame);
+			SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, animationFrame);
 		}
 		else
 		{
-			SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
+			SetInfo("Running animation: time %1.2f/%1.2f, frames %d", time, maxTime, animationFrame);
 		}
 	}
 	//Perform new rotation / translation
@@ -977,11 +999,21 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			{
 				cfg = animateConfig[animationLastBase];
 				updateConfig();
-				DrawGLScene(true, time);
-				CHKERR(glBlitNamedFramebuffer(mainBuffer, mixBuffer.fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
+				if (drawToMixBufferDirectly)
+				{
+					setFrameBuffer(1, mixBuffer.fb_id);
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear Screen And Depth Buffer
+					DrawGLScene(true, time);
+					setFrameBuffer();
+				}
+				else
+				{
+					DrawGLScene(true, time);
+					CHKERR(glBlitNamedFramebuffer(mainBufferStack.back(), mixBuffer.fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear Screen And Depth Buffer
+				}
 				glMatrixMode(GL_MODELVIEW);
-				glLoadIdentity();                                   // Reset The Current Modelview Matrix
+				glLoadIdentity();                                   //Reset The Current Modelview Matrix
 				mixSlaveImage = 1.f - (time - animateVectors[0][animationLastBase]) / (animateVectors[0][base] - animateVectors[0][animationLastBase]);
 			}
 			
@@ -1517,9 +1549,8 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	
 	if (animate && animateScreenshot && animateTime < 0)
 	{
-		static int animationExport = 0;
 		char animateScreenshotFile[32];
-		sprintf(animateScreenshotFile, "animation%d_%05d.bmp", animationExport++, animationFrame);
+		sprintf(animateScreenshotFile, "animation%d_%05d.bmp", animationExport, animationFrame);
 		DoScreenshot(animateScreenshotFile, time);
 	}
 
@@ -1575,11 +1606,8 @@ void DoScreenshot(char *filename, float animateTime)
 		screen_height *= SCALE_Y;
 		createFB(mixBuffer, 1);
 		createFB(screenshotBuffer, 0);
-		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, screenshotBuffer.fb_id));
+		setFrameBuffer(1, screenshotBuffer.fb_id);
 		glViewport(0, 0, screen_width, screen_height);
-		mainBuffer = screenshotBuffer.fb_id;
-		GLenum drawBuffer = GL_COLOR_ATTACHMENT0;
-		glDrawBuffers(1, &drawBuffer);
 		DrawGLScene(false, animateTime);
 	}
 	size_t size = 4 * screen_width * screen_height;
@@ -1624,13 +1652,11 @@ void DoScreenshot(char *filename, float animateTime)
 	{
 		screen_width = oldWidth;
 		screen_height = oldHeight;
-		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-		mainBuffer = 0;
+		setFrameBuffer();
 		deleteFB(screenshotBuffer);
 		deleteFB(mixBuffer);
 		createFB(mixBuffer, 1);
 		glViewport(0, 0, screen_width, screen_height);
-		glDrawBuffer(GL_BACK);
 		DrawGLScene(false, animateTime);
 	}
 }
@@ -1987,7 +2013,7 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'y' || wParam == 'T')
 	{
-		animateScreenshot = wParam == 'T';
+		if ((animateScreenshot = wParam == 'T')) animationExport++;
 		if (animateVectors[0].size() > 1)
 		{
 			startAnimation();
@@ -2099,10 +2125,17 @@ void HandleKeyRelease(int wParam)
 			printf("Error opening file\n");
 		}
 		SetInfo("Animation path loaded from file");
-	}	else if (wParam == 'h')
+	}
+	else if (wParam == 'h')
 	{
 		PrintHelp();
 		SetInfo("Showing help text");
+	}
+	else if (wParam == '#')
+	{
+		testSetting++;
+		SetInfo("Debug test variable set to %d", testSetting);
+		updateDLList = true;
 	}
 }
 
