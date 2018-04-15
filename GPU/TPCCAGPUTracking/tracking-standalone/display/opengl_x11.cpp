@@ -217,23 +217,22 @@ void *OpenGLMain(void *ptr)
 			FD_SET(x11_fd, &in_fds);
 			tv.tv_usec = 10000;
 			tv.tv_sec = 0;
-			num_ready_fds = XPending(g_pDisplay) || select(x11_fd + 1, &in_fds, NULL, NULL, &tv);
+			num_ready_fds = maxFPSRate || XPending(g_pDisplay) || select(x11_fd + 1, &in_fds, NULL, NULL, &tv);
 			if (num_ready_fds < 0)
 			{
 				fprintf(stderr, "Error\n");
 			}
-			else if (num_ready_fds > 0) needUpdate = 0;
 			if (exitButton == 2) break;
 			if (sendKey) needUpdate = 1;
 			if (waitCount++ != 100) needUpdate = 1;
 		} while (!(num_ready_fds || needUpdate));
+		needUpdate = 0;
 		
 		do
 		{
 			if (exitButton == 2) break;
-			if (needUpdate)
+			if (!XPending(g_pDisplay))
 			{
-				needUpdate = 0;
 				event.type = Expose;
 			}
 			else

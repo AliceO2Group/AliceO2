@@ -16,17 +16,19 @@ extern bool mouseDn, mouseDnR;
 extern int mouseWheel;
 extern bool keys[256];
 extern bool keysShift[256];
+extern int maxFPSRate;
 
 extern int InitGL();
 extern void ExitGL();
 extern void HandleKeyRelease(int wParam);
-extern int DrawGLScene(bool mixAnimation = false, float mixTime = 0.f);
+extern int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
 void OpenGLPrint(const char* s);
-extern void ReSizeGLScene(int width, int height);
+extern void ReSizeGLScene(int width, int height, bool init = false);
 void HandleSendKey();
 void SwitchFullscreen();
 void SetVSync(bool enable);
 void createQuaternionFromMatrix(float* v, const float* mat);
+void DoScreenshot(char *filename, float animateTime = -1.f);
 
 #define GL_WINDOW_NAME "Alice HLT TPC CA Event Display"
 

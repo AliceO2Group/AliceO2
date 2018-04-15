@@ -85,12 +85,11 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 	vertexBufferCount[iSlice].emplace_back(last - first);
 }
 
-GLuint fb_id, fbTex_id;
-
 const int drawQualityPoint = 0;
 const int drawQualityLine = 0;
 const int drawQualityPerspective = 0;
 bool drawQualityVSync = 0;
+int maxFPSRate = 0;
 
 bool camLookOrigin = false;
 bool camYUp = false;
@@ -197,6 +196,7 @@ int animate = 0;
 HighResTimer animationTimer;
 int animationFrame = 0;
 int animationLastBase = 0;
+int animateScreenshot = 0;
 std::vector<float> animateVectors[9];
 std::vector<OpenGLConfig> animateConfig;
 opengl_spline animationSplines[8];
@@ -251,7 +251,7 @@ void setAnimationPoint()
 		if (animateVectors[0].size()) animateCloseQuaternion(v, animateVectors[5].back(), animateVectors[6].back(), animateVectors[7].back(), animateVectors[8].back());
 		for (int i = 0;i < 4;i++) animateVectors[i + 5].emplace_back(v[i]);
 	}
-	animateVectors[0].emplace_back(t * 3.f);
+	animateVectors[0].emplace_back(t * 2.f);
 	animateConfig.emplace_back(cfg);
 }
 void resetAnimation()
@@ -308,38 +308,71 @@ inline void SetCollisionColor(int col)
 	glColor3f(red / 4., green / 5., blue / 6.);
 }
 
-void createFB()
+struct GLfb
 {
-	CHKERR(glGenFramebuffers(1, &fb_id));
-	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, fb_id));
-	CHKERR(glGenTextures(1, &fbTex_id));
-	CHKERR(glBindTexture(GL_TEXTURE_2D, fbTex_id));
-	CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
-	CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-	CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-	CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTex_id, 0));
+	GLuint fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
+	bool tex = false;
+};
+GLfb mixBuffer, screenshotBuffer;
+GLuint mainBuffer = 0;
+
+void createFB(GLfb& fb, bool tex)
+{
+	GLint drawFboId = 0, readFboId = 0;
+	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
+	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFboId);
+	CHKERR(glGenFramebuffers(1, &fb.fb_id));
+	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, fb.fb_id));
+	if (tex)
+	{
+		CHKERR(glGenTextures(1, &fb.fbCol_id));
+		CHKERR(glBindTexture(GL_TEXTURE_2D, fb.fbCol_id));
+		CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screen_width, screen_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
+		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+		CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.fbCol_id, 0));
+	}
+	else
+	{
+		CHKERR(glGenRenderbuffers(1, &fb.fbCol_id));
+		CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, fb.fbCol_id));
+		CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, screen_width, screen_height));
+		CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, fb.fbCol_id));
+	}
+	CHKERR(glGenRenderbuffers(1, &fb.fbDepth_id));
+	CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, fb.fbDepth_id));
+	CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screen_width, screen_height));
+	CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fb.fbDepth_id));
+	fb.tex = tex;
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		printf("Error creating framebuffer\n");
 		exit(1);
 	}
-	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+	CHKERR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFboId));
+	CHKERR(glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId));
 }
 
-void deleteFB()
+void deleteFB(GLfb& fb)
 {
-	glDeleteTextures(1, &fbTex_id);
-	glDeleteFramebuffers(1, &fb_id);
+	if (fb.tex)
+	{
+		CHKERR(glDeleteTextures(1, &fb.fbCol_id));
+	}
+	else
+	{
+		CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id));
+	}
+	CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id));
+	CHKERR(glDeleteFramebuffers(1, &fb.fb_id));
 }
 
-void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
+void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
 {
 	if (height == 0) // Prevent A Divide By Zero By
 	{
 		height = 1; // Making Height Equal One
 	}
-
-	static int init = 1;
 
 	glViewport(0, 0, width, height); // Reset The Current Viewport
 
@@ -348,23 +381,21 @@ void ReSizeGLScene(int width, int height) // Resize And Initialize The GL Window
 	gluPerspective(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 1000.0f);
 
 	glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-
 	if (init)
 	{
 		resetScene = 1;
-		init = 0;
 		glLoadIdentity();
 	}
 	else
 	{
 		glLoadMatrixf(currentMatrix);
-		deleteFB();
+		deleteFB(mixBuffer);
 	}
 
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 	screen_width = width;
 	screen_height = height;
-	createFB();
+	createFB(mixBuffer, true);
 }
 
 void setQuality()
@@ -410,19 +441,17 @@ int InitGL()
 	CHKERR(glGenBuffers(1, &indirect_id));
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
 	
-	createFB();
-	
 	CHKERR(glShadeModel(GL_SMOOTH));                           // Enable Smooth Shading
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);                      // Black Background
 	setDepthBuffer();
 	setQuality();
-	ReSizeGLScene(init_width, init_height);
+	ReSizeGLScene(init_width, init_height, true);
 	return (true);                                     // Initialization Went OK
 }
 
 void ExitGL()
 {
-	deleteFB();
+	deleteFB(mixBuffer);
 }
 
 inline void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT)
@@ -857,7 +886,7 @@ vboList DrawGrid(AliHLTTPCCATracker &tracker)
 	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
 }
 
-int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The Drawing
+int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1, fpsscaleadjust = 0;
 
@@ -873,6 +902,16 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 	static vboList glDLgrid[fgkNSlices];
 
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
+	
+	//Make sure event gets not overwritten during display
+	if (animateTime < 0)
+	{
+		#ifdef R__WIN32
+			WaitForSingleObject(semLockDisplay, INFINITE);
+		#else
+			pthread_mutex_lock(&semLockDisplay);
+		#endif	
+	}
 	
 	//Initialize
 	if (!mixAnimation)
@@ -900,32 +939,28 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 	scalefactor *= sqrdist;
 
 	float mixSlaveImage = 0.f;
-	//Perform new rotation / translation
-	if (animate || mixAnimation)
+	float time = animateTime;
+	if (animate && time < 0)
 	{
-		float time;
+		if (animateScreenshot) time = animationFrame / 30.f;
+		else time = animationTimer.GetCurrentElapsedTime();
 		
-		if (mixAnimation)
+		float maxTime = animateVectors[0].back();
+		animationFrame++;
+		if (time >= maxTime)
 		{
-			time = mixTime;
+			time = maxTime;
+			animate = 0;
+			SetInfo("Animation finished. (%f seconds, %d frames)", time, animationFrame);
 		}
 		else
 		{
-			time = animationTimer.GetCurrentElapsedTime();
-			//float time = animationFrame / 30.f;
-			float maxTime = animateVectors[0].back();
-			animationFrame++;
-			if (time >= maxTime)
-			{
-				time = maxTime;
-				animate = 0;
-				SetInfo("Animation finished. (%f seconds, %d frames)", time, animationFrame);
-			}
-			else
-			{
-				SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
-			}
+			SetInfo("Running animation: time %f/%f, frames %d", time, maxTime, animationFrame);
 		}
+	}
+	//Perform new rotation / translation
+	if (animate)
+	{
 		float vals[8];
 		for (int i = 0;i < 8;i++)
 		{
@@ -943,7 +978,7 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 				cfg = animateConfig[animationLastBase];
 				updateConfig();
 				DrawGLScene(true, time);
-				CHKERR(glBlitNamedFramebuffer(0, fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+				CHKERR(glBlitNamedFramebuffer(mainBuffer, mixBuffer.fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
 				glMatrixMode(GL_MODELVIEW);
 				glLoadIdentity();                                   // Reset The Current Modelview Matrix
@@ -1100,7 +1135,7 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 	}
 	
 	//Store position
-	if (!mixAnimation)
+	if (animateTime < 0)
 	{
 		glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
 		calcXYZ();
@@ -1111,13 +1146,6 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 		mouseDnX = mouseMvX;
 		mouseDnY = mouseMvY;
 	}	
-
-//Make sure event gets not overwritten during display
-#ifdef R__WIN32
-	WaitForSingleObject(semLockDisplay, INFINITE);
-#else
-	pthread_mutex_lock(&semLockDisplay);
-#endif
 
 	//Open GL Default Values
 	if (cfg.smoothPoints)
@@ -1473,7 +1501,7 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 		gluOrtho2D(0.f, screen_width, 0.f, screen_height);
 		glEnable(GL_TEXTURE_2D);
 		glDisable(GL_DEPTH_TEST);
-		glBindTexture(GL_TEXTURE_2D, fbTex_id);
+		glBindTexture(GL_TEXTURE_2D, mixBuffer.fbCol_id);
 		glColor4f(1, 1, 1, mixSlaveImage);
 		glBegin(GL_QUADS);
 		glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
@@ -1486,7 +1514,16 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 		setDepthBuffer();
 		glPopMatrix();
 	}
-	if (!mixAnimation)
+	
+	if (animate && animateScreenshot && animateTime < 0)
+	{
+		static int animationExport = 0;
+		char animateScreenshotFile[32];
+		sprintf(animateScreenshotFile, "animation%d_%05d.bmp", animationExport++, animationFrame);
+		DoScreenshot(animateScreenshotFile, time);
+	}
+
+	if (animateTime < 0)
 	{
 		framesDone++;
 		framesDoneFPS++;
@@ -1507,7 +1544,7 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 		
 		if (printInfoText & 1) showInfo(info);
 	}
-
+	
 //Free event
 #ifdef R__WIN32
 	ReleaseSemaphore(semLockDisplay, 1, NULL);
@@ -1518,75 +1555,38 @@ int DrawGLScene(bool mixAnimation, float mixTime) // Here's Where We Do All The 
 	return true; // Keep Going
 }
 
-void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL, float mixFactor = 0.)
+void DoScreenshot(char *filename, float animateTime)
 {
-	int SCALE_Y = SCALE_X;
-
-	if (mixFactor < 0.f) mixFactor = 0.f;
-	if (mixFactor > 1.f) mixFactor = 1.f;
+	int SCALE_Y = screenshot_scale, SCALE_X = screenshot_scale;
 
 	float tmpPointSize = cfg.pointSize;
 	float tmpLineWidth = cfg.lineWidth;
 	cfg.pointSize *= (float) (SCALE_X + SCALE_Y) / 2.;
 	cfg.lineWidth *= (float) (SCALE_X + SCALE_Y) / 2.;
+	
+	int oldWidth = screen_width, oldHeight = screen_height;
+	
+	bool offScreenBuffer = SCALE_X != 1 || SCALE_Y != 1;
 
-	GLint view[4], viewold[4];
-	glGetIntegerv(GL_VIEWPORT, viewold);
-	glGetIntegerv(GL_VIEWPORT, view);
-	view[2] *= SCALE_X;
-	view[3] *= SCALE_Y;
-	unsigned char *pixels = (unsigned char *) malloc(4 * view[2] * view[3]);
-
-	if (SCALE_X != 1 || SCALE_Y != 1)
+	if (offScreenBuffer)
 	{
-		memset(pixels, 0, 4 * view[2] * view[3]);
-		unsigned char *pixels2 = (unsigned char *) malloc(4 * view[2] * view[3]);
-		for (int i = 0; i < SCALE_X; i++)
-		{
-			for (int j = 0; j < SCALE_Y; j++)
-			{
-				glViewport(-i * viewold[2], -j * viewold[3], view[2], view[3]);
-
-				DrawGLScene();
-				glPixelStorei(GL_PACK_ALIGNMENT, 1);
-				glReadBuffer(GL_BACK);
-				glReadPixels(0, 0, view[2], view[3], GL_RGBA, GL_UNSIGNED_BYTE, pixels2);
-				for (int k = 0; k < viewold[2]; k++)
-				{
-					for (int l = 0; l < viewold[3]; l++)
-					{
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4] = pixels2[(l * view[2] + k) * 4 + 2];
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 1] = pixels2[(l * view[2] + k) * 4 + 1];
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 2] = pixels2[(l * view[2] + k) * 4];
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 3] = 0;
-					}
-				}
-			}
-		}
-		free(pixels2);
+		deleteFB(mixBuffer);
+		screen_width *= SCALE_X;
+		screen_height *= SCALE_Y;
+		createFB(mixBuffer, 1);
+		createFB(screenshotBuffer, 0);
+		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, screenshotBuffer.fb_id));
+		glViewport(0, 0, screen_width, screen_height);
+		mainBuffer = screenshotBuffer.fb_id;
+		GLenum drawBuffer = GL_COLOR_ATTACHMENT0;
+		glDrawBuffers(1, &drawBuffer);
+		DrawGLScene(false, animateTime);
 	}
-	else
-	{
-		glPixelStorei(GL_PACK_ALIGNMENT, 1);
-		glReadBuffer(GL_BACK);
-		glReadPixels(0, 0, view[2], view[3], GL_BGRA, GL_UNSIGNED_BYTE, pixels);
-	}
-
-	if (mixBuffer)
-	{
-		if (*mixBuffer == NULL)
-		{
-			*mixBuffer = (unsigned char *) malloc(4 * view[2] * view[3]);
-			memcpy(*mixBuffer, pixels, 4 * view[2] * view[3]);
-		}
-		else
-		{
-			for (int i = 0; i < 4 * view[2] * view[3]; i++)
-			{
-				pixels[i] = (*mixBuffer)[i] = (mixFactor * pixels[i] + (1.f - mixFactor) * (*mixBuffer)[i]);
-			}
-		}
-	}
+	size_t size = 4 * screen_width * screen_height;
+	unsigned char *pixels = new unsigned char [size];
+	CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
+	CHKERR(glReadBuffer(offScreenBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));
+	CHKERR(glReadPixels(0, 0, screen_width, screen_height, GL_BGRA, GL_UNSIGNED_BYTE, pixels));
 
 	if (filename)
 	{
@@ -1598,30 +1598,41 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 		memset(&bmpIH, 0, sizeof(bmpIH));
 
 		bmpFH.bfType = 19778; //"BM"
-		bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + 4 * view[2] * view[3];
+		bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + size;
 		bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
 
 		bmpIH.biSize = sizeof(bmpIH);
-		bmpIH.biWidth = view[2];
-		bmpIH.biHeight = view[3];
+		bmpIH.biWidth = screen_width;
+		bmpIH.biHeight = screen_height;
 		bmpIH.biPlanes = 1;
 		bmpIH.biBitCount = 32;
 		bmpIH.biCompression = BI_RGB;
-		bmpIH.biSizeImage = view[2] * view[3] * 4;
+		bmpIH.biSizeImage = size;
 		bmpIH.biXPelsPerMeter = 5670;
 		bmpIH.biYPelsPerMeter = 5670;
 
 		fwrite(&bmpFH, 1, sizeof(bmpFH), fp);
 		fwrite(&bmpIH, 1, sizeof(bmpIH), fp);
-		fwrite(pixels, view[2] * view[3], 4, fp);
+		fwrite(pixels, 1, size, fp);
 		fclose(fp);
 	}
-	free(pixels);
+	delete[] pixels;
 
-	glViewport(0, 0, viewold[2], viewold[3]);
 	cfg.pointSize = tmpPointSize;
 	cfg.lineWidth = tmpLineWidth;
-	DrawGLScene();
+	if (offScreenBuffer)
+	{
+		screen_width = oldWidth;
+		screen_height = oldHeight;
+		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+		mainBuffer = 0;
+		deleteFB(screenshotBuffer);
+		deleteFB(mixBuffer);
+		createFB(mixBuffer, 1);
+		glViewport(0, 0, screen_width, screen_height);
+		glDrawBuffer(GL_BACK);
+		DrawGLScene(false, animateTime);
+	}
 }
 
 const char* HelpText[] = {
@@ -1652,11 +1663,11 @@ const char* HelpText[] = {
 	"[j]                      Show global tracks as additional segments of final tracks", 
 	"[E]                      Extrapolate tracks",
 	"[m]                      Reorder clusters of merged tracks before showing them geometrically", 
-	"[t]                      Take Screenshot", 
-	"[T]                      Change screenshot resolution (scaling factor)",
+	"[t] / [T]                Take Screenshot / Record animation to pictures", 
+	"[Z]                      Change screenshot resolution (scaling factor)",
 	"[S] / [A] / [D]          Enable or disable smoothing of points / smoothing of lines / depth buffer",
 	"[W] / [V]                Enable / disable anti-aliasing / VSync",
-	"[F]                      Switch fullscreen",
+	"[F] / [R]                Switch fullscreen / FPS rate limiter",
 	"[I]                      Enable / disable GL indirect draw",
 	"[o] / [p] / [O] / [P]    Save / restore current camera position / animation path", 
 	"[h]                      Print Help", 
@@ -1791,6 +1802,11 @@ void HandleKeyRelease(int wParam)
 		SwitchFullscreen();
 		SetInfo("Toggling full screen");
 	}
+	else if (wParam == 'R')
+	{
+		maxFPSRate ^= 1;
+		SetInfo("FPS rate %s", maxFPSRate ? "not limited" : "limited");
+	}
 	else if (wParam == 'H')
 	{
 		printInfoText += 1;
@@ -1904,36 +1920,6 @@ void HandleKeyRelease(int wParam)
 		if (Zadd < 0 || Xadd < 0) Zadd = Xadd = 0;
 		SetInfo("TPC sector separation: %f %f", Xadd, Zadd);
 	}
-	else if (wParam == 'y')
-	{
-		if (animateVectors[0].size() > 1)
-		{
-			startAnimation();
-			SetInfo("Starting animation");
-		}
-		else
-		{
-			SetInfo("Insufficient animation points to start animation");
-		}
-	}
-	else if (wParam == 'Y')
-	{
-		setAnimationPoint();
-		SetInfo("Added animation point (%d points, %6.2f seconds)", (int) animateVectors[0].size(), animateVectors[0].back());
-	}
-	else if (wParam == 'X')
-	{
-		resetAnimation();
-		SetInfo("Reset animation points");
-	}
-	else if (wParam == 'N')
-	{
-		cfg.animationMode++;
-		if (cfg.animationMode == 7) cfg.animationMode = 0;
-		resetAnimation();
-		if (cfg.animationMode == 6) SetInfo("Animation mode %d - Centered on origin", cfg.animationMode);
-		else SetInfo("Animation mode %d - Position: %s, Direction: %s", cfg.animationMode, cfg.animationMode & 2 ? "Spherical (spherical rotation)" : cfg.animationMode & 4 ? "Spherical (Euler angles)" : "Cartesian", cfg.animationMode & 1 ? "Euler angles" : "Quaternion");
-	}
 	else if (wParam == 'g')
 	{
 		cfg.drawGrid ^= 1;
@@ -1990,14 +1976,45 @@ void HandleKeyRelease(int wParam)
 		static int nScreenshot = 1;
 		char fname[32];
 		sprintf(fname, "screenshot%d.bmp", nScreenshot++);
-		DoScreenshot(fname, screenshot_scale);
+		DoScreenshot(fname);
 		SetInfo("Taking screenshot (%s)", fname);
 	}
-	else if (wParam == 'T')
+	else if (wParam == 'Z')
 	{
 		screenshot_scale += 1;
 		if (screenshot_scale == 5) screenshot_scale = 1;
 		SetInfo("Screenshot scaling factor set to %d", screenshot_scale);
+	}
+	else if (wParam == 'y' || wParam == 'T')
+	{
+		animateScreenshot = wParam == 'T';
+		if (animateVectors[0].size() > 1)
+		{
+			startAnimation();
+			SetInfo("Starting animation");
+		}
+		else
+		{
+			SetInfo("Insufficient animation points to start animation");
+		}
+	}
+	else if (wParam == 'Y')
+	{
+		setAnimationPoint();
+		SetInfo("Added animation point (%d points, %6.2f seconds)", (int) animateVectors[0].size(), animateVectors[0].back());
+	}
+	else if (wParam == 'X')
+	{
+		resetAnimation();
+		SetInfo("Reset animation points");
+	}
+	else if (wParam == 'N')
+	{
+		cfg.animationMode++;
+		if (cfg.animationMode == 7) cfg.animationMode = 0;
+		resetAnimation();
+		if (cfg.animationMode == 6) SetInfo("Animation mode %d - Centered on origin", cfg.animationMode);
+		else SetInfo("Animation mode %d - Position: %s, Direction: %s", cfg.animationMode, cfg.animationMode & 2 ? "Spherical (spherical rotation)" : cfg.animationMode & 4 ? "Spherical (Euler angles)" : "Cartesian", cfg.animationMode & 1 ? "Euler angles" : "Quaternion");
 	}
 	else if (wParam == 'o')
 	{
