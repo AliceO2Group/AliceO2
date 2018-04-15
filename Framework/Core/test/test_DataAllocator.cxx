@@ -34,7 +34,7 @@ DataProcessorSpec getTimeoutSpec()
   // a timer process to terminate the workflow after a timeout
   auto processingFct = [](ProcessingContext& pc) {
     static int counter = 0;
-    pc.outputs().snapshot(OutputSpec{ "TST", "TIMER", 0, Lifetime::Timeframe }, counter);
+    pc.outputs().snapshot(Output{ "TST", "TIMER", 0, Lifetime::Timeframe }, counter);
 
     sleep(1);
     if (counter++ > 10) {
@@ -58,22 +58,22 @@ DataProcessorSpec getSourceSpec()
     std::vector<o2::test::Polymorphic> c{ { 0xaffe }, { 0xd00f } };
     // class TriviallyCopyable is both messageable and has a dictionary, the default
     // picked by the framework is no serialization
-    pc.outputs().snapshot(OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe }, a);
-    pc.outputs().snapshot(OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
+    pc.outputs().snapshot(Output{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe }, a);
+    pc.outputs().snapshot(Output{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                           o2::framework::ROOTSerialized<decltype(a)>(a));
     // class Polymorphic is not messageable, so the serialization type is deduced
     // from the fact that the type has a dictionary and can be ROOT-serialized.
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe }, b);
+    pc.outputs().snapshot(Output{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe }, b);
     // vector of ROOT serializable class
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTVECTOR", 0, Lifetime::Timeframe }, c);
+    pc.outputs().snapshot(Output{ "TST", "ROOTVECTOR", 0, Lifetime::Timeframe }, c);
     // likewise, passed anonymously with char type and class name
     o2::framework::ROOTSerialized<char, const char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe }, d);
+    pc.outputs().snapshot(Output{ "TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe }, d);
     // vector of ROOT serializable class wrapped with TClass info as hint
     auto* cl = TClass::GetClass(typeid(decltype(c)));
     ASSERT_ERROR(cl != nullptr);
     o2::framework::ROOTSerialized<char, TClass> e(*((char*)&c), cl);
-    pc.outputs().snapshot(OutputSpec{ "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe }, e);
+    pc.outputs().snapshot(Output{ "TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe }, e);
   };
 
   return DataProcessorSpec{ "source", // name of the processor

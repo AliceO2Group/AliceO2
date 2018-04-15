@@ -27,7 +27,7 @@ using namespace o2::framework;
 AlgorithmSpec simplePipe(o2::header::DataDescription what)
 {
   return AlgorithmSpec{ [what](ProcessingContext& ctx) {
-    auto bData = ctx.outputs().make<int>(OutputSpec{ "TST", what, 0 }, 1);
+    auto bData = ctx.outputs().make<int>(Output{ "TST", what, 0 }, 1);
   } };
 }
 
@@ -39,8 +39,8 @@ WorkflowSpec defineDataProcessing()
                       OutputSpec{ "TST", "A2" } },
              AlgorithmSpec{ [](ProcessingContext& ctx) {
                sleep(1);
-               auto aData = ctx.outputs().make<int>(OutputSpec{ "TST", "A1", 0 }, 1);
-               auto bData = ctx.outputs().make<int>(OutputSpec{ "TST", "A2", 0 }, 1);
+               auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0 }, 1);
+               auto bData = ctx.outputs().make<int>(Output{ "TST", "A2", 0 }, 1);
              } } },
            { "B",
              { InputSpec{ "x", "TST", "A1" } },

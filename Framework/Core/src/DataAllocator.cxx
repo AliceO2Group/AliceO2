@@ -33,7 +33,7 @@ DataAllocator::DataAllocator(FairMQDevice *device,
 }
 
 std::string
-DataAllocator::matchDataHeader(const OutputSpec &spec, size_t timeslice) {
+DataAllocator::matchDataHeader(const Output& spec, size_t timeslice) {
   // FIXME: we should take timeframeId into account as well.
   for (auto &output : mAllowedOutputs) {
     if (DataSpecUtils::match(output.matcher, spec.origin, spec.description, spec.subSpec)
@@ -50,7 +50,7 @@ DataAllocator::matchDataHeader(const OutputSpec &spec, size_t timeslice) {
 }
 
 DataChunk
-DataAllocator::newChunk(const OutputSpec &spec, size_t size) {
+DataAllocator::newChunk(const Output& spec, size_t size) {
   std::string channel = matchDataHeader(spec, mContext->timeslice());
 
   DataHeader dh;
@@ -83,7 +83,7 @@ DataAllocator::newChunk(const OutputSpec &spec, size_t size) {
 }
 
 DataChunk
-DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fairmq_free_fn *freefn, void *hint = nullptr) {
+DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_free_fn *freefn, void *hint = nullptr) {
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
   std::string channel = matchDataHeader(spec, mContext->timeslice());
@@ -119,9 +119,9 @@ DataAllocator::adoptChunk(const OutputSpec &spec, char *buffer, size_t size, fai
 }
 
 FairMQMessagePtr
-DataAllocator::headerMessageFromSpec(OutputSpec const &spec,
-                                     std::string const &channel,
-                                     o2::header::SerializationMethod method) {
+DataAllocator::headerMessageFromOutput(Output const &spec,
+                                       std::string const &channel,
+                                       o2::header::SerializationMethod method) {
   DataHeader dh;
   dh.dataOrigin = spec.origin;
   dh.dataDescription = spec.description;
@@ -145,11 +145,11 @@ DataAllocator::headerMessageFromSpec(OutputSpec const &spec,
 
 void
 DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage,
-                                const OutputSpec &spec,
+                                const Output &spec,
                                 o2::header::SerializationMethod serializationMethod)
 {
     std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-    auto headerMessage = headerMessageFromSpec(spec, channel, serializationMethod);
+    auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod);
 
     FairMQParts parts;
 
@@ -164,10 +164,10 @@ DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage,
 }
 
 void
-DataAllocator::adopt(const OutputSpec &spec, TObject*ptr) {
+DataAllocator::adopt(const Output &spec, TObject*ptr) {
   std::unique_ptr<TObject> payload(ptr);
   std::string channel = matchDataHeader(spec, mRootContext->timeslice());
-  auto header = headerMessageFromSpec(spec, channel, o2::header::gSerializationMethodROOT);
+  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodROOT);
   mRootContext->addObject(std::move(header), std::move(payload), channel);
   assert(payload.get() == nullptr);
 }

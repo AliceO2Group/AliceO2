@@ -25,7 +25,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = ctx.outputs().make<int>(OutputSpec{ "TST", "A1", 0}, 1);
+       auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0}, 1);
        ctx.services().get<ControlService>().readyToQuit(true);
       }
     },

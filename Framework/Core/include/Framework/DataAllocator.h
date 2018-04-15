@@ -13,6 +13,7 @@
 #include <fairmq/FairMQDevice.h>
 #include "Headers/DataHeader.h"
 #include "Framework/OutputRoute.h"
+#include "Framework/Output.h"
 #include "Framework/DataChunk.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
@@ -52,15 +53,15 @@ public:
                 RootObjectContext *rootContext,
                 const AllowedOutputsMap &outputs);
 
-  DataChunk newChunk(const OutputSpec &, size_t);
-  DataChunk adoptChunk(const OutputSpec &, char *, size_t, fairmq_free_fn*, void *);
+  DataChunk newChunk(const Output&, size_t);
+  DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
   // In case no extra argument is provided and the passed type is trivially
   // copyable and non polymorphic, the most likely wanted behavior is to create
   // a message with that type, and so we do.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, T&>::type
-  make(const OutputSpec& spec)
+  make(const Output& spec)
   {
     DataChunk chunk = newChunk(spec, sizeof(T));
     return *reinterpret_cast<T*>(chunk.data);
@@ -70,7 +71,7 @@ public:
   // collection elements of that type
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
-  make(const OutputSpec& spec, size_t nElements)
+  make(const Output& spec, size_t nElements)
   {
     auto size = nElements*sizeof(T);
     DataChunk chunk = newChunk(spec, size);
@@ -86,7 +87,7 @@ public:
   /// once the processing callback completes.
   template <typename T, typename... Args>
   typename std::enable_if<std::is_base_of<TObject, T>::value == true, T&>::type
-  make(const OutputSpec &spec, Args... args) {
+  make(const Output& spec, Args... args) {
     auto obj = new T(args...);
     adopt(spec, obj);
     return *obj;
@@ -100,7 +101,7 @@ public:
     std::is_base_of<TObject, T>::value == false &&
     is_messageable<T>::value == false,
     T&>::type
-  make(const OutputSpec&)
+  make(const Output&)
   {
     static_assert(is_messageable<T>::value == true ||
                   std::is_base_of<TObject, T>::value == true,
@@ -116,7 +117,7 @@ public:
     std::is_base_of<TObject, T>::value == false &&
     is_messageable<T>::value == false,
     gsl::span<T>>::type
-  make(const OutputSpec&, size_t)
+  make(const Output&, size_t)
   {
     static_assert(is_messageable<T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -131,7 +132,7 @@ public:
     std::is_base_of<TObject, T>::value == false &&
     is_messageable<T>::value == false,
     T&>::type
-  make(const OutputSpec&, U, V, Args...)
+  make(const Output&, U, V, Args...)
   {
     static_assert(is_messageable<T>::value == true || std::is_base_of<TObject, T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -143,7 +144,7 @@ public:
   /// Adopt a TObject in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   void
-  adopt(const OutputSpec &spec, TObject*obj);
+  adopt(const Output& spec, TObject*obj);
 
   /// Serialize a snapshot of an object with root dictionary when called,
   /// will then be sent once the computation ends.
@@ -155,7 +156,7 @@ public:
   /// explicitely otherwise by using ROOTSerialized wrapper type.
   template <typename T>
   typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
-  snapshot(const OutputSpec& spec, T& object)
+  snapshot(const Output& spec, T& object)
   {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
     auto* cl = TClass::GetClass(typeid(T));
@@ -173,7 +174,7 @@ public:
   /// after the call will not be sent.
   template <typename W>
   typename std::enable_if<is_specialization<W, ROOTSerialized>::value == true, void>::type
-  snapshot(const OutputSpec& spec, W wrapper)
+  snapshot(const Output& spec, W wrapper)
   {
     using T = typename W::wrapped_type;
     static_assert(std::is_same<typename W::hint_type, const char>::value || //
@@ -214,7 +215,7 @@ public:
   /// unserialized. Use @a ROOTSerialized type wrapper to force ROOT serialization.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, void>::type
-  snapshot(const OutputSpec& spec, T const& object)
+  snapshot(const Output& spec, T const& object)
   {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
@@ -230,7 +231,7 @@ public:
   typename std::enable_if<is_specialization<C, std::vector>::value == true &&
                           std::is_pointer<typename C::value_type>::value == false &&
                           is_messageable<typename C::value_type>::value == true>::type
-  snapshot(const OutputSpec& spec, C const& v)
+  snapshot(const Output& spec, C const& v)
   {
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
@@ -250,7 +251,7 @@ public:
     is_specialization<C, std::vector>::value == true &&
     std::is_pointer<typename C::value_type>::value == true &&
     is_messageable<typename std::remove_pointer<typename C::value_type>::type>::value == true>::type
-  snapshot(const OutputSpec& spec, C const& v)
+  snapshot(const Output& spec, C const& v)
   {
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
@@ -273,7 +274,7 @@ public:
                           is_messageable<T>::value == false &&                     //
                           std::is_pointer<T>::value == false &&                    //
                           is_specialization<T, std::vector>::value == false>::type //
-    snapshot(const OutputSpec& spec, T const&)
+    snapshot(const Output& spec, T const&)
   {
     static_assert(has_root_dictionary<T>::value == true ||
                   is_specialization<T, ROOTSerialized>::value == true ||
@@ -294,7 +295,7 @@ public:
       typename std::remove_pointer<typename T::value_type>::type
       >::value == false
     >::type
-  snapshot(const OutputSpec& spec, T const&)
+  snapshot(const Output& spec, T const&)
   {
     static_assert(is_messageable<typename std::remove_pointer<typename T::value_type>::type>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -306,20 +307,20 @@ public:
   /// specialization to catch the case where a pointer to an object has been
   /// accidentally given as parameter
   template <typename T>
-  typename std::enable_if<std::is_pointer<T>::value>::type snapshot(const OutputSpec& spec, T const&)
+  typename std::enable_if<std::is_pointer<T>::value>::type snapshot(const Output& spec, T const&)
   {
     static_assert(std::is_pointer<T>::value == false,
                   "pointer to data type not supported by API. Please pass object by reference");
   }
 
  private:
-  std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
-  FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
-                                         std::string const &channel,
-                                         o2::header::SerializationMethod serializationMethod);
+  std::string matchDataHeader(const Output &spec, size_t timeframeId);
+  FairMQMessagePtr headerMessageFromOutput(Output const &spec,
+                                           std::string const &channel,
+                                           o2::header::SerializationMethod serializationMethod);
 
   void addPartToContext(FairMQMessagePtr&& payload,
-                        const OutputSpec &spec,
+                        const Output &spec,
                         o2::header::SerializationMethod serializationMethod);
 
   FairMQDevice *mDevice;

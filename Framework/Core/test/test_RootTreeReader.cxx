@@ -60,10 +60,10 @@ DataProcessorSpec getSourceSpec()
     }
 
     constexpr auto persistency = Lifetime::Transient;
-    using TreeReader = o2::framework::RootTreeReader<OutputSpec>;
+    using TreeReader = o2::framework::RootTreeReader<Output>;
     auto reader = std::make_shared<TreeReader>("testtree",       // tree name
                                                fileName.c_str(), // input file name
-                                               OutputSpec{ "TST", "ARRAYOFDATA", 0, persistency },
+                                               Output{ "TST", "ARRAYOFDATA", 0, persistency },
                                                "dataarray" // name of cluster branch
                                                );
 

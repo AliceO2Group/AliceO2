@@ -39,7 +39,7 @@ void DispatcherDPL::processCallback(ProcessingContext& ctx, BernoulliGenerator& 
   if (bernoulliGenerator.drawLots()) {
     for (auto& input : inputs) {
 
-      OutputSpec outputSpec = createDispatcherOutputSpec(*input.spec);
+      Output output = createDispatcherOutput(*input.spec);
 
       const auto* inputHeader = header::get<header::DataHeader*>(input.header);
 
@@ -48,10 +48,10 @@ void DispatcherDPL::processCallback(ProcessingContext& ctx, BernoulliGenerator& 
                    << "', description '" << inputHeader->dataDescription.str
                    << "' has gSerializationMethodInvalid.";
       } else*/ if (inputHeader->payloadSerializationMethod == header::gSerializationMethodROOT) {
-        ctx.outputs().adopt(outputSpec, DataRefUtils::as<TObject>(input).release());
+        ctx.outputs().adopt(output, DataRefUtils::as<TObject>(input).release());
       } else { // POD
         // todo: use API for that when it is available
-        ctx.outputs().adoptChunk(outputSpec, const_cast<char*>(input.payload), inputHeader->payloadSize,
+        ctx.outputs().adoptChunk(output, const_cast<char*>(input.payload), inputHeader->payloadSize,
                                  &header::Stack::freefn, nullptr);
       }
 
@@ -72,12 +72,18 @@ void DispatcherDPL::addSource(const DataProcessorSpec& externalDataProcessor, co
   };
 
   mDataProcessorSpec.inputs.push_back(newInput);
-  OutputSpec newOutput = createDispatcherOutputSpec(newInput);
+  Output newOutput = createDispatcherOutput(newInput);
+  OutputSpec spec {
+    newOutput.origin,
+    newOutput.description,
+    newOutput.subSpec,
+    newOutput.lifetime
+  };
   if (mCfg.enableParallelDispatchers ||
-      std::find(mDataProcessorSpec.outputs.begin(), mDataProcessorSpec.outputs.end(), newOutput) ==
+      std::find(mDataProcessorSpec.outputs.begin(), mDataProcessorSpec.outputs.end(), spec) ==
         mDataProcessorSpec.outputs.end()) {
 
-    mDataProcessorSpec.outputs.push_back(newOutput);
+    mDataProcessorSpec.outputs.push_back(spec);
   }
 
   if (mCfg.enableTimePipeliningDispatchers &&

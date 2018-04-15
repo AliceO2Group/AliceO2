@@ -122,8 +122,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
       [](ProcessingContext& ctx) {
         sleep(1);
         // Create an histogram
-        auto& singleHisto = ctx.outputs().make<TH1F>(OutputSpec{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
-        auto& aString = ctx.outputs().make<TObjString>(OutputSpec{ "TST", "STRING", 0 }, "foo");
+        auto& singleHisto = ctx.outputs().make<TH1F>(Output{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
+        auto& aString = ctx.outputs().make<TObjString>(Output{ "TST", "STRING", 0 }, "foo");
         singleHisto.FillRandom("gaus", 1000);
         Double_t stats[4];
         singleHisto.GetStats(stats);
@@ -208,7 +208,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   sleep(1);
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);
+  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -220,7 +220,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     i++;
   }
 
-  auto itsClusters = ctx.outputs().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS", 0 }, collectionChunkSize);
+  auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, collectionChunkSize);
   i = 0;
   for (auto& cluster : itsClusters) {
     assert(i < collectionChunkSize);
@@ -239,9 +239,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   const FakeCluster* inputDataIts = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataITS").payload);
 
   auto processedTpcClusters =
-    ctx.outputs().make<FakeCluster>(OutputSpec{ "TPC", "CLUSTERS_P", 0 }, collectionChunkSize);
+    ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS_P", 0 }, collectionChunkSize);
   auto processedItsClusters =
-    ctx.outputs().make<FakeCluster>(OutputSpec{ "ITS", "CLUSTERS_P", 0 }, collectionChunkSize);
+    ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS_P", 0 }, collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {
