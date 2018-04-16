@@ -174,7 +174,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 
 #ifdef HLTCA_STANDALONE
 #ifdef BUILD_QA
-  if (fRunQA || fEventDisplay)
+  if (fRunQA || (fEventDisplay && GetNMCInfo()))
   {
     timerQA.Start();
     RunQA(!fRunQA);
