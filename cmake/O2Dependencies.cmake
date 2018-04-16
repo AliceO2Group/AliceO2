@@ -1364,6 +1364,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     Headers
+    common_boost_bucket
 
     INCLUDE_DIRECTORIES
 )
