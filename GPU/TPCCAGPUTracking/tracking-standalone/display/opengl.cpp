@@ -37,8 +37,7 @@ void ShowNextEvent() {needUpdate = 1;}
 #define GL_SCALE_FACTOR 100.f
 
 #define TRACK_TYPE_ID_LIMIT 100
-#define SEPERATE_GLOBAL_TRACKS_MAXID (separateGlobalTracks ? 5 : TRACK_TYPE_ID_LIMIT)
-#define SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES 6
+#define SEPERATE_GLOBAL_TRACKS_LIMIT (separateGlobalTracks ? 6 : TRACK_TYPE_ID_LIMIT)
 
 OpenGLConfig cfg;
 
@@ -112,7 +111,6 @@ int screen_width = init_width, screen_height = init_height;
 int render_width = init_width, render_height = init_height;
 
 bool separateGlobalTracks = 0;
-bool reorderFinalTracks = 0;
 
 float mouseDnX, mouseDnY;
 float mouseMvX, mouseMvY;
@@ -298,16 +296,8 @@ inline void SetColorInitLinks() { glColor3f(0.42, 0.4, 0.1); }
 inline void SetColorLinks() { glColor3f(0.8, 0.2, 0.2); }
 inline void SetColorSeeds() { glColor3f(0.8, 0.1, 0.85); }
 inline void SetColorTracklets() { glColor3f(1, 1, 1); }
-inline void SetColorTracks()
-{
-	if (separateGlobalTracks) glColor3f(1., 1., 0.15);
-	else glColor3f(0.4, 1, 0);
-}
-inline void SetColorGlobalTracks()
-{
-	if (separateGlobalTracks) glColor3f(1., 0.15, 0.15);
-	else glColor3f(1.0, 0.4, 0);
-}
+inline void SetColorTracks() { glColor3f(0.8, 1., 0.15); }
+inline void SetColorGlobalTracks() { glColor3f(1.0, 0.4, 0); }
 inline void SetColorFinal() { if (cfg.colorCollisions) return; glColor3f(0, 0.7, 0.2); }
 inline void SetColorGrid() { glColor3f(0.7, 0.7, 0.0); }
 inline void SetColorMarked() { glColor3f(1.0, 0.0, 0.0); }
@@ -571,14 +561,14 @@ vboList DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
-	for (int i = 0; i < tracker.Param().NRows(); i++)
+	for (int i = 0;i < tracker.Param().NRows();i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
 
 		if (i < tracker.Param().NRows() - 2)
 		{
 			const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
-			for (int j = 0; j < row.NHits(); j++)
+			for (int j = 0;j < row.NHits();j++)
 			{
 				if (tracker.Data().HitLinkUpData(row, j) != CALINK_INVAL)
 				{
@@ -593,7 +583,7 @@ vboList DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 		if (dodown && i >= 2)
 		{
 			const AliHLTTPCCARow &rowDown = tracker.Data().Row(i - 2);
-			for (int j = 0; j < row.NHits(); j++)
+			for (int j = 0;j < row.NHits();j++)
 			{
 				if (tracker.Data().HitLinkDownData(row, j) != CALINK_INVAL)
 				{
@@ -613,7 +603,7 @@ vboList DrawSeeds(AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
-	for (int i = 0; i < *tracker.NTracklets(); i++)
+	for (int i = 0;i < *tracker.NTracklets();i++)
 	{
 		const AliHLTTPCCAHitId &hit = tracker.TrackletStartHit(i);
 		size_t startCountInner = vertexBuffer[iSlice].size();
@@ -636,13 +626,13 @@ vboList DrawTracklets(AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
-	for (int i = 0; i < *tracker.NTracklets(); i++)
+	for (int i = 0;i < *tracker.NTracklets();i++)
 	{
 		const AliHLTTPCCATracklet &tracklet = tracker.Tracklet(i);
 		if (tracklet.NHits() == 0) continue;
 		size_t startCountInner = vertexBuffer[iSlice].size();
 		float4 oldpos;
-		for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++)
+		for (int j = tracklet.FirstRow();j <= tracklet.LastRow();j++)
 		{
 #ifdef EXTERN_ROW_HITS
 			const calink rowHit = tracker.TrackletRowHits()[j * *tracker.NTracklets() + i];
@@ -670,11 +660,11 @@ vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 {
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
-	for (int i = (global ? tracker.CommonMemory()->fNLocalTracks : 0); i < (global ? *tracker.NTracks() : tracker.CommonMemory()->fNLocalTracks); i++)
+	for (int i = (global ? tracker.CommonMemory()->fNLocalTracks : 0);i < (global ? *tracker.NTracks() : tracker.CommonMemory()->fNLocalTracks);i++)
 	{
 		AliHLTTPCCATrack &track = tracker.Tracks()[i];
 		size_t startCountInner = vertexBuffer[iSlice].size();
-		for (int j = 0; j < track.NHits(); j++)
+		for (int j = 0;j < track.NHits();j++)
 		{
 			const AliHLTTPCCAHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
 			const AliHLTTPCCARow &row = tracker.Data().Row(hit.RowIndex());
@@ -693,11 +683,9 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
 	int trackCount = propagateTracks == 3 ? hlt.GetNMCInfo() : merger.NOutputTracks();
-	for (int i = 0; i < trackCount; i++)
+	for (int i = 0;i < trackCount;i++)
 	{
 		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
-		int *clusterused = NULL;
-		int bestk = 0;
 		if (propagateTracks < 3)
 		{
 			if (track.NClusters() == 0) continue;
@@ -717,93 +705,40 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 		}
 
 		size_t startCountInner = vertexBuffer[iSlice].size();
-		if (propagateTracks <= 1)
+		int lastCluster = -1;
+		bool drawing = false;
+		if (propagateTracks <= 2)
 		{
-			if (reorderFinalTracks)
-			{
-				clusterused = new int[track.NClusters()];
-				for (int j = 0; j < track.NClusters(); j++)
-					clusterused[j] = 0;
-
-				float smallest = 1e20;
-				for (int k = 0; k < track.NClusters(); k++)
-				{
-					if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
-					int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
-					float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
-					if (dist < smallest)
-					{
-						smallest = dist;
-						bestk = k;
-					}
-				}
-			}
-			else
-			{
-				while (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + bestk].fState & AliHLTTPCGMMergedTrackHit::flagReject)) bestk++;
-			}
-
-			int lastcid = merger.Clusters()[track.FirstClusterRef() + bestk].fId;
-			if (reorderFinalTracks) clusterused[bestk] = 1;
-
-			bool linestarted = (globalPos[lastcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES);
-			if (!separateGlobalTracks || linestarted)
-			{
-				drawPointLinestrip(iSlice, lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
-			}
-
-			for (int j = (reorderFinalTracks ? 1 : (bestk + 1)); j < track.NClusters(); j++)
-			{
-				int bestcid = 0;
-				if (reorderFinalTracks)
-				{
-					bestk = 0;
-					float bestdist = 1e20;
-					for (int k = 0; k < track.NClusters(); k++)
-					{
-						if (clusterused[k]) continue;
-						if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
-						int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
-						float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
-						             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
-						             (globalPos[cid].z - globalPos[lastcid].z) * (globalPos[cid].z - globalPos[lastcid].z);
-						if (dist < bestdist)
-						{
-							bestdist = dist;
-							bestcid = cid;
-							bestk = k;
-						}
-					}
-					if (bestdist > 1e19) continue;
-				}
-				else
-				{
-					if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
-					bestcid = merger.Clusters()[track.FirstClusterRef() + j].fId;
-				}
-				if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
-				{
-					drawPointLinestrip(iSlice, lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
-					linestarted = true;
-				}
-				if (!separateGlobalTracks || linestarted)
-				{
-					drawPointLinestrip(iSlice, bestcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
-				}
-				if (separateGlobalTracks && linestarted && !(globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)) linestarted = false;
-				if (reorderFinalTracks) clusterused[bestk] = 1;
-				lastcid = bestcid;
-			}
-		}
-		else if (propagateTracks == 2)
-		{
-			for (int k = 0; k < track.NClusters(); k++)
+			for (int k = 0;k < track.NClusters();k++)
 			{
 				if (hideRejectedClusters && (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
 				int cid = merger.Clusters()[track.FirstClusterRef() + k].fId;
-				if (globalPos[cid].w < SEPERATE_GLOBAL_TRACKS_MAXID) globalPos[cid].w = 7;
+				if (propagateTracks == 2)
+				{
+					printf("aaa\n");
+					if (globalPos[cid].w < SEPERATE_GLOBAL_TRACKS_LIMIT) globalPos[cid].w = 7;
+				}
+				else
+				{
+					if (drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+					if (globalPos[cid].w == SEPERATE_GLOBAL_TRACKS_LIMIT)
+					{
+						printf("bbb\n");
+						if (drawing) insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
+						drawing = false;
+					}
+					else
+					{
+						if (!drawing) startCountInner = vertexBuffer[iSlice].size();
+						if (!drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+						if (!drawing && lastCluster != -1) drawPointLinestrip(iSlice, merger.Clusters()[track.FirstClusterRef() + lastCluster].fId, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+						drawing = true;
+					}
+					lastCluster = k;
+				}
 			}
 		}
+
 		if (propagateTracks)
 		{
 			int flyRounds = (propagateTracks >= 2 ? 2 : 1);
@@ -817,13 +752,9 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 				{
 					param = track.GetParam();
 					alpha = track.GetAlpha();
-					for (int k = track.NClusters() - 1;k >= 0;k--)
-					{
-						auto cl = merger.Clusters()[track.FirstClusterRef() + track.NClusters() - 1];
-						if (cl.fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
-						slice = cl.fSlice;
-						x = cl.fX + (inFlyDirection ? 0 : -1);
-					}
+					auto cl = merger.Clusters()[track.FirstClusterRef() + lastCluster];
+					slice = cl.fSlice;
+					x = cl.fX + (inFlyDirection ? 0 : -1);
 				}
 				else
 				{
@@ -892,7 +823,6 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 			}
 		}
 		insertVertexList(iSlice, startCountInner, vertexBuffer[iSlice].size());
-		if (reorderFinalTracks) delete[] clusterused;
 	}
 	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
 }
@@ -902,10 +832,10 @@ vboList DrawGrid(AliHLTTPCCATracker &tracker)
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
-	for (int i = 0; i < tracker.Param().NRows(); i++)
+	for (int i = 0;i < tracker.Param().NRows();i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
-		for (int j = 0; j <= (signed) row.Grid().Ny(); j++)
+		for (int j = 0;j <= (signed) row.Grid().Ny();j++)
 		{
 			float z1 = row.Grid().ZMin();
 			float z2 = row.Grid().ZMax();
@@ -927,7 +857,7 @@ vboList DrawGrid(AliHLTTPCCATracker &tracker)
 			vertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
 			vertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
 		}
-		for (int j = 0; j <= (signed) row.Grid().Nz(); j++)
+		for (int j = 0;j <= (signed) row.Grid().Nz();j++)
 		{
 			float y1 = row.Grid().YMin();
 			float y2 = row.Grid().YMax();
@@ -1220,7 +1150,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		int deltaLine = keys['+']*keysShift['+'] - keys['-']*keysShift['-'];
 		cfg.lineWidth += (float) deltaLine * fpsscale * 0.05;
 		if (cfg.lineWidth < minSize) cfg.lineWidth = minSize;
-		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", cfg.lineWidth); 
+		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", cfg.lineWidth);
 		int deltaPoint = keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-']);
 		cfg.pointSize += (float) deltaPoint * fpsscale * 0.05;
 		if (cfg.pointSize < minSize) cfg.pointSize = minSize;
@@ -1268,7 +1198,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		showTimer = true;
 		timerDraw.ResetStart();
 		currentClusters = 0;
-		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
 			currentClusters += hlt.Tracker().CPUTracker(iSlice).NHitsTotal();
 		}
@@ -1281,10 +1211,10 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		}
 
 		maxClusterZ = 0;
-		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
 			const AliHLTTPCCAClusterData &cdata = hlt.ClusterData(iSlice);
-			for (int i = 0; i < cdata.NumberOfClusters(); i++)
+			for (int i = 0;i < cdata.NumberOfClusters();i++)
 			{
 				const int cid = cdata.Id(i);
 				if (cid >= maxClusters)
@@ -1332,9 +1262,9 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			vertexBufferCount[i].clear();
 		}
 
-		for (int i = 0; i < currentClusters; i++) globalPos[i].w = 0;
+		for (int i = 0;i < currentClusters;i++) globalPos[i].w = 0;
 
-		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
 			for (int i = 0;i < N_POINTS_TYPE;i++) GLpoints[iSlice][i].resize(nCollisions);
 			glDLfinal[iSlice].resize(nCollisions);
@@ -1342,7 +1272,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #pragma omp parallel
 		{
 #pragma omp for
-			for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 				if (cfg.drawInitLinks)
@@ -1361,8 +1291,6 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 					tracker.SetPointersSliceData(tracker.ClusterData());
 				}
 			}
-#pragma omp barrier
-
 			AliHLTTPCGMPropagator prop;
 			const float kRho = 1.025e-3;//0.9e-3;
 			const float kRadLen = 29.532;//28.94;
@@ -1370,8 +1298,10 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			prop.SetMaterial(kRadLen, kRho);
 			prop.SetPolynomialField(hlt.Merger().pField());		
 			prop.SetToyMCEventsFlag(hlt.Merger().SliceParam().ToyMCEventsFlag());
+
+#pragma omp barrier
 #pragma omp for
-			for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
 
@@ -1379,20 +1309,33 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				glDLlines[iSlice][2] = DrawSeeds(tracker);
 				glDLlines[iSlice][3] = DrawTracklets(tracker);
 				glDLlines[iSlice][4] = DrawTracks(tracker, 0);
-				glDLlines[iSlice][5] = DrawTracks(tracker, 1);
 				glDLgrid[iSlice] = DrawGrid(tracker);
+			}
 
+#pragma omp barrier
+#pragma omp for
+			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+			{
+				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
+				glDLlines[iSlice][5] = DrawTracks(tracker, 1);
+			}
+
+#pragma omp barrier
+#pragma omp for
+			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+			{
 				for (int iCol = 0;iCol < nCollisions;iCol++)
 				{
 					glDLfinal[iSlice][iCol] = DrawFinal(hlt, iSlice, iCol, &prop);
 				}
 			}
+
 #pragma omp barrier
 #pragma omp for
-			for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				AliHLTTPCCATracker &tracker = hlt.Tracker().CPUTracker(iSlice);
-				for (int i = 0; i < N_POINTS_TYPE; i++)
+				for (int i = 0;i < N_POINTS_TYPE;i++)
 				{
 					for (int iCol = 0;iCol < nCollisions;iCol++)
 					{
@@ -1443,7 +1386,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	drawCalls = 0;
 	CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
 	CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
-	for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
+	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 	{
 		if (cfg.drawSlice != -1)
 		{
@@ -1759,7 +1702,7 @@ const char* HelpText[] = {
 	"[k]                      Draw single slice (previous slice)", 
 	"[J]                      Draw related slices (same plane in phi)", 
 	"[z] / [u]                Show splitting of TPC in slices by extruding volume, [U] resets", 
-	"[y] / [Y] / [X] / [N]    Start Animation / Add animation point / Reset / Cycle mode", 
+	"[y] / [Y] / [X] / [M]    Start Animation / Add animation point / Reset / Cycle mode", 
 	"[>] / [<]                Toggle config interpolation during animation / change animation interval (via movement)",
 	"[g]                      Draw Grid", 
 	"[i]                      Project onto XY-plane", 
@@ -1779,7 +1722,6 @@ const char* HelpText[] = {
 	"[8]                      Show Final Merged Tracks (after Track Merger)", 
 	"[j]                      Show global tracks as additional segments of final tracks", 
 	"[E]                      Extrapolate tracks",
-	"[m]                      Reorder clusters of merged tracks before showing them geometrically", 
 	"[t] / [T]                Take Screenshot / Record animation to pictures", 
 	"[Z]                      Change screenshot resolution (scaling factor)",
 	"[S] / [A] / [D]          Enable or disable smoothing of points / smoothing of lines / depth buffer",
@@ -1934,12 +1876,6 @@ void HandleKeyRelease(int wParam, char key)
 	{
 		separateGlobalTracks ^= 1;
 		SetInfo("Seperated display of global tracks %s", separateGlobalTracks ? "enabled" : "disabled");
-		updateDLList = true;
-	}
-	else if (wParam == 'm')
-	{
-		reorderFinalTracks ^= 1;
-		SetInfo("Reordering hits of final tracks %s", reorderFinalTracks ? "enabled" : "disabled");
 		updateDLList = true;
 	}
 	else if (wParam == 'c')
@@ -2139,7 +2075,7 @@ void HandleKeyRelease(int wParam, char key)
 		resetAnimation();
 		SetInfo("Reset animation points");
 	}
-	else if (wParam == 'N')
+	else if (wParam == 'M')
 	{
 		cfg.animationMode++;
 		if (cfg.animationMode == 7) cfg.animationMode = 0;
