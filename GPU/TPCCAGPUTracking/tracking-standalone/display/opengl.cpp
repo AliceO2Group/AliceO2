@@ -20,6 +20,8 @@
 #include "../cmodules/timer.h"
 #include "../cmodules/qconfig.h"
 
+#include <omp.h>
+
 //#define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd) {(cmd); GLenum err = glGetError(); while (err != GL_NO_ERROR) {printf("OpenGL Error %d: %s (%s: %d)\n", err, gluErrorString(err), __FILE__, __LINE__);exit(1);}}
 
@@ -522,6 +524,7 @@ int InitGL()
 	setDepthBuffer();
 	setQuality();
 	ReSizeGLScene(init_width, init_height, true);
+	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	return (true);                                     // Initialization Went OK
 }
 
@@ -536,36 +539,27 @@ inline void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
-vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, unsigned int iCol)
+vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
 {
 	int iSlice = tracker.Param().ISlice();
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
-	for (int i = 0; i < tracker.Param().NRows(); i++)
+	const int firstCluster = (nCollisions > 1 && iCol > 0) ? collisionClusters[iCol - 1][iSlice] : 0;
+	const int lastCluster = (nCollisions > 1 && iCol + 1 < nCollisions) ? collisionClusters[iCol][iSlice] : tracker.Data().NumberOfHits();
+	for (int cidInSlice = firstCluster;cidInSlice < lastCluster;cidInSlice++)
 	{
-		const AliHLTTPCCARow &row = tracker.Data().Row(i);
-		for (int j = 0; j < row.NHits(); j++)
+		const int cid = tracker.ClusterData()->Id(cidInSlice);
+		if (hideUnmatchedClusters && SuppressHit(cid)) continue;
+		bool draw = globalPos[cid].w == select;
+		if (markClusters)
 		{
-			const int cidInSlice = tracker.Data().ClusterDataIndex(row, j);
-			const int cid = tracker.ClusterData()->Id(cidInSlice);
-			if (hideUnmatchedClusters && SuppressHit(cid)) continue;
-			if (nCollisions > 1)
-			{
-				unsigned int k = 0;
-				while (k < collisionClusters.size() && collisionClusters[k][tracker.Param().ISlice()] < cidInSlice) k++;
-				if (k != iCol) continue;
-			}
-			bool draw = globalPos[cid].w == select;
-			if (markClusters)
-			{
-				const short flags = tracker.ClusterData()->Flags(tracker.Data().ClusterDataIndex(row, j));
-				const bool match = flags & markClusters;
-				draw = (select == 8) ? (match) : (draw && !match);
-			}
-			if (draw)
-			{
-				vertexBuffer[iSlice].emplace_back(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
-			}
+			const short flags = tracker.ClusterData()->Flags(cidInSlice);
+			const bool match = flags & markClusters;
+			draw = (select == 8) ? (match) : (draw && !match);
+		}
+		if (draw)
+		{
+			vertexBuffer[iSlice].emplace_back(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 		}
 	}
 	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
@@ -871,8 +865,6 @@ vboList DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int 
 					param.DzDs() = dzds;
 					param.QPt() = qpt;
 					param.ZOffset() = 0.f;
-					
-					//printf("Track: XYZ %f %f %f, P %f %f %f, x %f y %f z %f pt %f sinphi %f dzds %f qpt %f\n", mc.fX, mc.fY, mc.fZ, mc.fPx, mc.fPy, mc.fPz, x, param.Y(), param.Z(), pt, param.SinPhi(), param.DzDs(), param.QPt());
 				}
 				if (flyRounds == 2) buffer.clear();
 				prop->SetTrack(&param, alpha);
@@ -1224,13 +1216,14 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		}
 
 		//Graphichs Options
+		float minSize = 0.01 * (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1);
 		int deltaLine = keys['+']*keysShift['+'] - keys['-']*keysShift['-'];
 		cfg.lineWidth += (float) deltaLine * fpsscale * 0.05;
-		if (cfg.lineWidth < 0.01) cfg.lineWidth = 0.01;
+		if (cfg.lineWidth < minSize) cfg.lineWidth = minSize;
 		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", cfg.lineWidth); 
 		int deltaPoint = keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-']);
 		cfg.pointSize += (float) deltaPoint * fpsscale * 0.05;
-		if (cfg.pointSize < 0.01) cfg.pointSize = 0.01;
+		if (cfg.pointSize < minSize) cfg.pointSize = minSize;
 		if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", cfg.pointSize);
 	}
 	
@@ -1266,8 +1259,8 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	}
 	CHKERR(glEnable(GL_BLEND));
 	CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-	CHKERR(glPointSize(cfg.pointSize));
-	CHKERR(glLineWidth(cfg.lineWidth));
+	CHKERR(glPointSize(cfg.pointSize * (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1)));
+	CHKERR(glLineWidth(cfg.lineWidth * (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1)));
 
 	//Extract global cluster information
 	if (updateDLList || displayEventNr != currentEventNr)
@@ -1767,6 +1760,7 @@ const char* HelpText[] = {
 	"[J]                      Draw related slices (same plane in phi)", 
 	"[z] / [u]                Show splitting of TPC in slices by extruding volume, [U] resets", 
 	"[y] / [Y] / [X] / [N]    Start Animation / Add animation point / Reset / Cycle mode", 
+	"[>] / [<]                Toggle config interpolation during animation / change animation interval (via movement)",
 	"[g]                      Draw Grid", 
 	"[i]                      Project onto XY-plane", 
 	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
