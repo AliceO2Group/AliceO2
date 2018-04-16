@@ -17,8 +17,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "../include/DataCompression/dc_primitives.h"
-#include "../include/DataCompression/mpl_tools.h"
+#include "../include/Algorithm/mpl_tools.h"
 #include <boost/mpl/size.hpp>
 #include <boost/type.hpp>
 #include <boost/mpl/range_c.hpp>
@@ -28,11 +27,17 @@
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/placeholders.hpp>
 #include <boost/mpl/lambda.hpp>
+#include <boost/mpl/string.hpp> // see note below
 #include <iostream>
 #include <iomanip>
 #include <vector>
 #include <type_traits>
 
+// FIXME: mpl/string.hpp required to be included to avoid compilation error
+// error: no matching function for call to ‘assertion_failed ...' in the mpl::for_each
+// implementation (BOOST_MPL_ASSERT check). Not fully understood as simply including
+// mpl/assert.hpp does not help. Maybe it's an inconssitency in the do_typewrap meta
+// program
 namespace bmpl = boost::mpl;
 
 // defining a list of known data types
