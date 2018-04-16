@@ -104,8 +104,8 @@ void *OpenGLMain(void *ptr)
 		GLX_DEPTH_SIZE      , 24,
 		GLX_STENCIL_SIZE    , 8,
 		GLX_DOUBLEBUFFER    , True,
-		GLX_SAMPLE_BUFFERS  , 1,
-		GLX_SAMPLES         , MSAA_SAMPLES,
+//		GLX_SAMPLE_BUFFERS  , 1, //Disable MSAA here, we do it by rendering to offscreenbuffer
+//		GLX_SAMPLES         , MSAA_SAMPLES,
 		None
 	};
 
@@ -297,10 +297,12 @@ void *OpenGLMain(void *ptr)
 
 				case KeyRelease:
 				{
-					KeySym sym = XLookupKeysym(&event.xkey, 0);
+					char tmpString[9];
+					KeySym sym;
+					if (XLookupString(&event.xkey, tmpString, 8, &sym, NULL) == 0) tmpString[0] = 0;
 					int wParam = GetKey(sym);
-					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d (%c), %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keysShift[wParam]);
-					HandleKeyRelease(wParam);
+					//fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d (%c), %d   -   Char: %c\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam, (char) wParam, (int) keysShift[wParam], tmpString[0]);
+					HandleKeyRelease(wParam, tmpString[0]);
 					keysShift[wParam] = false;
 				}
 				break;

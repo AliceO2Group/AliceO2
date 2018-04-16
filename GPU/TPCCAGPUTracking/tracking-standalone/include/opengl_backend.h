@@ -20,7 +20,7 @@ extern int maxFPSRate;
 
 extern int InitGL();
 extern void ExitGL();
-extern void HandleKeyRelease(int wParam);
+extern void HandleKeyRelease(int wParam, char character);
 extern int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f);
 void OpenGLPrint(const char* s);
 extern void ReSizeGLScene(int width, int height, bool init = false);
@@ -31,7 +31,6 @@ void createQuaternionFromMatrix(float* v, const float* mat);
 void DoScreenshot(char *filename, float animateTime = -1.f);
 
 #define GL_WINDOW_NAME "Alice HLT TPC CA Event Display"
-#define MSAA_SAMPLES 4
 
 #define KEY_UP 1
 #define KEY_DOWN 2

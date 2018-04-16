@@ -88,7 +88,9 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 const int drawQualityPoint = 0;
 const int drawQualityLine = 0;
 const int drawQualityPerspective = 0;
-bool drawQualityMSAA = 0;
+const int drawQualityRenderToTexture = 1;
+int drawQualityMSAA = 0;
+int drawQualityDownsampleFSAA = 0;
 bool drawQualityVSync = 0;
 int maxFPSRate = 0;
 
@@ -105,6 +107,7 @@ int screenshot_scale = 1;
 
 const int init_width = 1024, init_height = 768;
 int screen_width = init_width, screen_height = init_height;
+int render_width = init_width, render_height = init_height;
 
 bool separateGlobalTracks = 0;
 bool reorderFinalTracks = 0;
@@ -201,6 +204,8 @@ int animationFrame = 0;
 int animationLastBase = 0;
 int animateScreenshot = 0;
 int animationExport = 0;
+bool animationChangeConfig = true;
+float animationDelay = 2.f;
 std::vector<float> animateVectors[9];
 std::vector<OpenGLConfig> animateConfig;
 opengl_spline animationSplines[8];
@@ -220,7 +225,6 @@ void animateCloseQuaternion(float* v, float lastx, float lasty, float lastz, flo
 }
 void setAnimationPoint()
 {
-	float t = animateVectors[0].size();
 	if (cfg.animationMode & 4) //Spherical
 	{
 		float rxy = sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
@@ -255,7 +259,9 @@ void setAnimationPoint()
 		if (animateVectors[0].size()) animateCloseQuaternion(v, animateVectors[5].back(), animateVectors[6].back(), animateVectors[7].back(), animateVectors[8].back());
 		for (int i = 0;i < 4;i++) animateVectors[i + 5].emplace_back(v[i]);
 	}
-	animateVectors[0].emplace_back(t * 2.f);
+	float delay = 0.f;
+	if (animateVectors[0].size()) delay = animateVectors[0].back() + ((int) (animationDelay * 20)) / 20.f;;
+	animateVectors[0].emplace_back(delay);
 	animateConfig.emplace_back(cfg);
 }
 void resetAnimation()
@@ -312,141 +318,13 @@ inline void SetCollisionColor(int col)
 	glColor3f(red / 4., green / 5., blue / 6.);
 }
 
-struct GLfb
-{
-	GLuint fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
-	bool tex = false;
-	bool msaa = false;
-	bool depth = false;
-};
-GLfb mixBuffer;
-void createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
-{
-	GLenum textureType = msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-	CHKERR(glGenTextures(1, &id));
-	CHKERR(glBindTexture(textureType, id));
-	if (msaa)
-	{
-		CHKERR(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, MSAA_SAMPLES, storage, screen_width, screen_height, false));
-	}
-	else
-	{
-		CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, screen_width, screen_height, 0, storage, GL_UNSIGNED_BYTE, NULL));
-		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-	}
-	CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textureType, id, 0));
-}
-
-void createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
-{
-	CHKERR(glGenRenderbuffers(1, &id));
-	CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, id));
-	if (msaa) CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, MSAA_SAMPLES, storage, screen_width, screen_height))
-	else CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, screen_width, screen_height))
-	CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, id));
-}
-
-void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
-{
-	fb.tex = tex;
-	fb.depth = withDepth;
-	fb.msaa = msaa;
-	GLint drawFboId = 0, readFboId = 0;
-	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
-	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFboId);
-	CHKERR(glGenFramebuffers(1, &fb.fb_id));
-	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, fb.fb_id));
-
-	if (tex) createFB_texture(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
-	else createFB_renderbuffer(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
-	
-	if (withDepth)
-	{
-		if (tex && fb.msaa) createFB_texture(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT, GL_DEPTH_ATTACHMENT);
-		else createFB_renderbuffer(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT, GL_DEPTH_ATTACHMENT);
-	}
-	
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-	{
-		printf("Error creating framebuffer (tex %d) - incomplete (%d)\n", (int) tex, status);
-		exit(1);
-	}
-	CHKERR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFboId));
-	CHKERR(glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId));
-}
-
-void deleteFB(GLfb& fb)
-{
-	if (fb.tex) CHKERR(glDeleteTextures(1, &fb.fbCol_id))
-	else CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id))
-	if (fb.depth)
-	{
-		if (fb.tex && fb.msaa) CHKERR(glDeleteTextures(1, &fb.fbDepth_id))
-		else CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id))
-	}
-	CHKERR(glDeleteFramebuffers(1, &fb.fb_id));
-}
-
-std::vector<GLuint> mainBufferStack{0};
-void setFrameBuffer(int updateCurrent = -1, GLuint newID = 0)
-{
-	if (updateCurrent == 1) mainBufferStack.push_back(newID);
-	else if (updateCurrent == 2) mainBufferStack.back() = newID;
-	else if (updateCurrent == -2) newID = mainBufferStack.back();
-	else if (updateCurrent == -1) {mainBufferStack.pop_back();newID = mainBufferStack.back();}
-	if (newID == 0)
-	{
-		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-		glDrawBuffer(GL_BACK);
-	}
-	else
-	{
-		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, newID));
-		GLenum drawBuffer = GL_COLOR_ATTACHMENT0;
-		glDrawBuffers(1, &drawBuffer);
-	}
-}
-
-void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
-{
-	if (height == 0) // Prevent A Divide By Zero By
-	{
-		height = 1; // Making Height Equal One
-	}
-
-	glViewport(0, 0, width, height); // Reset The Current Viewport
-
-	glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
-	glLoadIdentity();
-	gluPerspective(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 1000.0f);
-
-	glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-	if (init)
-	{
-		resetScene = 1;
-		glLoadIdentity();
-	}
-	else
-	{
-		glLoadMatrixf(currentMatrix);
-		deleteFB(mixBuffer);
-	}
-
-	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
-	screen_width = width;
-	screen_height = height;
-	createFB(mixBuffer, true, true, false);
-}
-
 void setQuality()
 {
 	//Doesn't seem to make a difference in this applicattion
 	CHKERR(glHint(GL_POINT_SMOOTH_HINT, drawQualityPoint == 2 ? GL_NICEST : drawQualityPoint == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_LINE_SMOOTH_HINT, drawQualityLine == 2 ? GL_NICEST : drawQualityLine == 1 ? GL_DONT_CARE : GL_FASTEST));
 	CHKERR(glHint(GL_PERSPECTIVE_CORRECTION_HINT, drawQualityPerspective == 2 ? GL_NICEST : drawQualityPerspective == 1 ? GL_DONT_CARE : GL_FASTEST));
-	if (drawQualityMSAA)
+	if (drawQualityMSAA > 1)
 	{
 		CHKERR(glEnable(GL_MULTISAMPLE))
 	}
@@ -469,6 +347,162 @@ void setDepthBuffer()
 	}
 }
 
+struct GLfb
+{
+	GLuint fb_id = 0, fbCol_id = 0, fbDepth_id = 0;
+	bool tex = false;
+	bool msaa = false;
+	bool depth = false;
+	bool created = false;
+};
+GLfb mixBuffer;
+void createFB_texture(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
+{
+	GLenum textureType = msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+	CHKERR(glGenTextures(1, &id));
+	CHKERR(glBindTexture(textureType, id));
+	if (msaa)
+	{
+		CHKERR(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, drawQualityMSAA, storage, render_width, render_height, false));
+	}
+	else
+	{
+		CHKERR(glTexImage2D(GL_TEXTURE_2D, 0, storage, render_width, render_height, 0, storage, GL_UNSIGNED_BYTE, NULL));
+		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		CHKERR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	}
+	CHKERR(glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, textureType, id, 0));
+}
+
+void createFB_renderbuffer(GLuint& id, bool msaa, GLenum storage, GLenum attachment)
+{
+	CHKERR(glGenRenderbuffers(1, &id));
+	CHKERR(glBindRenderbuffer(GL_RENDERBUFFER, id));
+	if (msaa) CHKERR(glRenderbufferStorageMultisample(GL_RENDERBUFFER, drawQualityMSAA, storage, render_width, render_height))
+	else CHKERR(glRenderbufferStorage(GL_RENDERBUFFER, storage, render_width, render_height))
+	CHKERR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, id));
+}
+
+void createFB(GLfb& fb, bool tex, bool withDepth, bool msaa)
+{
+	fb.tex = tex;
+	fb.depth = withDepth;
+	fb.msaa = msaa;
+	GLint drawFboId = 0, readFboId = 0;
+	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFboId);
+	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFboId);
+	CHKERR(glGenFramebuffers(1, &fb.fb_id));
+	CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, fb.fb_id));
+
+	if (tex) createFB_texture(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
+	else createFB_renderbuffer(fb.fbCol_id, fb.msaa, GL_RGBA, GL_COLOR_ATTACHMENT0);
+	
+	if (withDepth)
+	{
+		if (tex && fb.msaa) createFB_texture(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT);
+		else createFB_renderbuffer(fb.fbDepth_id, fb.msaa, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT);
+	}
+	
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+		printf("Error creating framebuffer (tex %d) - incomplete (%d)\n", (int) tex, status);
+		exit(1);
+	}
+	CHKERR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFboId));
+	CHKERR(glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId));
+	fb.created = true;
+}
+
+void deleteFB(GLfb& fb)
+{
+	if (fb.tex) CHKERR(glDeleteTextures(1, &fb.fbCol_id))
+	else CHKERR(glDeleteRenderbuffers(1, &fb.fbCol_id))
+	if (fb.depth)
+	{
+		if (fb.tex && fb.msaa) CHKERR(glDeleteTextures(1, &fb.fbDepth_id))
+		else CHKERR(glDeleteRenderbuffers(1, &fb.fbDepth_id))
+	}
+	CHKERR(glDeleteFramebuffers(1, &fb.fb_id));
+	fb.created = false;
+}
+
+std::vector<GLuint> mainBufferStack{0};
+void setFrameBuffer(int updateCurrent = -1, GLuint newID = 0)
+{
+	if (updateCurrent == 1) mainBufferStack.push_back(newID);
+	else if (updateCurrent == 2) mainBufferStack.back() = newID;
+	else if (updateCurrent == -2) newID = mainBufferStack.back();
+	else if (updateCurrent == -1) {mainBufferStack.pop_back();newID = mainBufferStack.back();}
+	if (newID == 0)
+	{
+		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+		glDrawBuffer(GL_BACK);
+	}
+	else
+	{
+		CHKERR(glBindFramebuffer(GL_FRAMEBUFFER, newID));
+		GLenum drawBuffer = GL_COLOR_ATTACHMENT0;
+		glDrawBuffers(1, &drawBuffer);
+	}
+}
+
+GLfb offscreenBuffer, offscreenBufferNoMSAA;
+void UpdateOffscreenBuffers()
+{
+	if (mixBuffer.created) deleteFB(mixBuffer);
+	if (offscreenBuffer.created) deleteFB(offscreenBuffer);
+	if (offscreenBufferNoMSAA.created) deleteFB(offscreenBufferNoMSAA);
+	
+	if (drawQualityDownsampleFSAA > 1)
+	{
+		render_width = screen_width * drawQualityDownsampleFSAA;
+		render_height = screen_height * drawQualityDownsampleFSAA;
+	}
+	else
+	{
+		render_width = screen_width;
+		render_height = screen_height;
+	}
+	if (drawQualityMSAA > 1 || drawQualityDownsampleFSAA > 1)
+	{
+		createFB(offscreenBuffer, false, true, drawQualityMSAA > 1);
+		if (drawQualityMSAA > 1 && drawQualityDownsampleFSAA > 1) createFB(offscreenBufferNoMSAA, false, true, false > 1);
+	}
+	createFB(mixBuffer, true, true, false);
+	glViewport(0, 0, render_width, render_height); // Reset The Current Viewport
+	setQuality();
+}
+
+void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
+{
+	if (height == 0) // Prevent A Divide By Zero By
+	{
+		height = 1; // Making Height Equal One
+	}
+
+	screen_width = width;
+	screen_height = height;
+	UpdateOffscreenBuffers();
+
+	glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
+	glLoadIdentity();
+	gluPerspective(45.0f, (GLfloat) width / (GLfloat) height, 0.1f, 1000.0f);
+
+	glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
+	if (init)
+	{
+		resetScene = 1;
+		glLoadIdentity();
+	}
+	else
+	{
+		glLoadMatrixf(currentMatrix);
+	}
+
+	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrix);
+}
+
 void updateConfig()
 {
 	setQuality();
@@ -484,7 +518,7 @@ int InitGL()
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
 	
 	CHKERR(glShadeModel(GL_SMOOTH));                           // Enable Smooth Shading
-	CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));                      // Black Background
+	CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));                      // Black Background
 	setDepthBuffer();
 	setQuality();
 	ReSizeGLScene(init_width, init_height, true);
@@ -955,6 +989,11 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		#endif	
 	}
 	
+	if (!mixAnimation && offscreenBuffer.created)
+	{
+		setFrameBuffer(1, offscreenBuffer.fb_id);
+	}
+	
 	//Initialize
 	if (!mixAnimation)
 	{
@@ -1008,7 +1047,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		{
 			vals[i] = animationSplines[i].evaluate(time);
 		}
-		if (mixAnimation == false)
+		if (animationChangeConfig && mixAnimation == false)
 		{
 			int base = 0;
 			int k = animateVectors[0].size() - 1;
@@ -1019,17 +1058,17 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			{
 				cfg = animateConfig[animationLastBase];
 				updateConfig();
-				if (!drawQualityMSAA) //Render to texture directly
+				if (drawQualityRenderToTexture)
 				{
 					setFrameBuffer(1, mixBuffer.fb_id);
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear Screen And Depth Buffer
 					DrawGLScene(true, time);
 					setFrameBuffer();
 				}
-				else //We cannot draw from multisampled texture anyway, so we can blit already here
+				else
 				{
 					DrawGLScene(true, time);
-					CHKERR(glBlitNamedFramebuffer(mainBufferStack.back(), mixBuffer.fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+					CHKERR(glBlitNamedFramebuffer(mainBufferStack.back(), mixBuffer.fb_id, 0, 0, render_width, render_height, 0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear Screen And Depth Buffer
 				}
 				glMatrixMode(GL_MODELVIEW);
@@ -1122,6 +1161,15 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		{
 			rotYaw += rotatescalefactor * ((float) mouseMvX - (float) mouseDnX);
 			rotPitch += rotatescalefactor * ((float) mouseMvY - (float) mouseDnY);
+		}
+		
+		if (keys['<'] && !keysShift['<'])
+		{
+			animationDelay += moveX;
+			if (animationDelay < 0.05) animationDelay = 0.05;
+			moveX = 0.f;
+			moveY = 0.f;
+			SetInfo("Animation delay set to %1.2f", animationDelay);
 		}
 
 		if (yUp) angleRollOrigin = 0;
@@ -1550,21 +1598,43 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
-		gluOrtho2D(0.f, screen_width, 0.f, screen_height);
+		gluOrtho2D(0.f, render_width, 0.f, render_height);
 		CHKERR(glEnable(GL_TEXTURE_2D));
 		glDisable(GL_DEPTH_TEST);
 		CHKERR(glBindTexture(GL_TEXTURE_2D, mixBuffer.fbCol_id));
 		glColor4f(1, 1, 1, mixSlaveImage);
 		glBegin(GL_QUADS);
-		glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
-		glTexCoord2f(0, 1); glVertex3f(0, screen_height, 0);
-		glTexCoord2f(1, 1); glVertex3f(screen_width, screen_height, 0);
-		glTexCoord2f(1, 0); glVertex3f(screen_width, 0, 0);
+		glTexCoord2f(0, 0);
+		glVertex3f(0, 0, 0);
+		glTexCoord2f(0, 1);
+		glVertex3f(0, render_height, 0);
+		glTexCoord2f(1, 1);
+		glVertex3f(render_width, render_height, 0);
+		glTexCoord2f(1, 0);
+		glVertex3f(render_width, 0, 0);
 		glEnd();
 		glColor4f(1, 1, 1, 0);
 		CHKERR(glDisable(GL_TEXTURE_2D));
 		setDepthBuffer();
 		glPopMatrix();
+	}
+	
+	if (mixAnimation)
+	{
+		glColorMask(false, false, false, true);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glColorMask(true, true, true, true);
+	}
+	else if (offscreenBuffer.created)
+	{
+		setFrameBuffer();
+		GLuint srcid = offscreenBuffer.fb_id;
+		if (drawQualityMSAA > 1 && drawQualityDownsampleFSAA > 1)
+		{
+			CHKERR(glBlitNamedFramebuffer(srcid, offscreenBufferNoMSAA.fb_id, 0, 0, render_width, render_height, 0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+			srcid = offscreenBufferNoMSAA.fb_id;
+		}
+		CHKERR(glBlitNamedFramebuffer(srcid, mainBufferStack.back(), 0, 0, render_width, render_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR));
 	}
 	
 	if (animate && animateScreenshot && animateTime < 0)
@@ -1593,7 +1663,12 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			framesDoneFPS = 0;
 		}		
 		
-		if (printInfoText & 1) showInfo(info);
+		if (printInfoText & 1)
+		{
+			setFrameBuffer(0, 0);
+			showInfo(info);
+			setFrameBuffer(-2);
+		}
 	}
 	
 //Free event
@@ -1616,31 +1691,27 @@ void DoScreenshot(char *filename, float animateTime)
 	cfg.lineWidth *= (float) (SCALE_X + SCALE_Y) / 2.;
 	
 	int oldWidth = screen_width, oldHeight = screen_height;
-	GLfb screenshotBuffer, screenshotBufferMSAA;
+	GLfb screenshotBuffer;
 	
-	bool offScreenBuffer = SCALE_X != 1 || SCALE_Y != 1;
+	bool needBuffer = SCALE_X != 1 || SCALE_Y != 1;
 
-	if (offScreenBuffer)
+	if (needBuffer)
 	{
 		deleteFB(mixBuffer);
 		screen_width *= SCALE_X;
 		screen_height *= SCALE_Y;
-		createFB(mixBuffer, 1, true, false);
-		createFB(screenshotBuffer, 0, 1, false);
-		if (drawQualityMSAA) createFB(screenshotBufferMSAA, 0, 1, true);
-		setFrameBuffer(1, drawQualityMSAA ? screenshotBufferMSAA.fb_id : screenshotBuffer.fb_id);
-		glViewport(0, 0, screen_width, screen_height);
+		render_width = screen_width;
+		render_height = screen_height;
+		createFB(screenshotBuffer, 0, 1, false); //Create screenshotBuffer of size screen_width * SCALE, render_width * SCALE
+		UpdateOffscreenBuffers(); //Create other buffers of size screen_width * SCALE * downscale, ...
+		setFrameBuffer(1, screenshotBuffer.fb_id);
+		glViewport(0, 0, render_width, render_height);
 		DrawGLScene(false, animateTime);
-		if (drawQualityMSAA)
-		{
-			CHKERR(glBlitNamedFramebuffer(screenshotBufferMSAA.fb_id, screenshotBuffer.fb_id, 0, 0, screen_width, screen_height, 0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR))
-			setFrameBuffer(2, screenshotBuffer.fb_id);
-		}
 	}
 	size_t size = 4 * screen_width * screen_height;
 	unsigned char *pixels = new unsigned char [size];
 	CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
-	CHKERR(glReadBuffer(offScreenBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));
+	CHKERR(glReadBuffer(needBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));
 	CHKERR(glReadPixels(0, 0, screen_width, screen_height, GL_BGRA, GL_UNSIGNED_BYTE, pixels));
 
 	if (filename)
@@ -1675,16 +1746,14 @@ void DoScreenshot(char *filename, float animateTime)
 
 	cfg.pointSize = tmpPointSize;
 	cfg.lineWidth = tmpLineWidth;
-	if (offScreenBuffer)
+	if (needBuffer)
 	{
+		setFrameBuffer();
+		deleteFB(screenshotBuffer);
 		screen_width = oldWidth;
 		screen_height = oldHeight;
-		setFrameBuffer();
-		if (drawQualityMSAA) deleteFB(screenshotBufferMSAA);
-		deleteFB(screenshotBuffer);
-		deleteFB(mixBuffer);
-		createFB(mixBuffer, 1, true, false);
-		glViewport(0, 0, screen_width, screen_height);
+		UpdateOffscreenBuffers();
+		glViewport(0, 0, render_width, render_height);
 		DrawGLScene(false, animateTime);
 	}
 }
@@ -1696,12 +1765,12 @@ const char* HelpText[] = {
 	"[l]                      Draw single slice (next slice)", 
 	"[k]                      Draw single slice (previous slice)", 
 	"[J]                      Draw related slices (same plane in phi)", 
-	"[z] / [U]                Show splitting of TPC in slices by extruding volume, [U] resets", 
+	"[z] / [u]                Show splitting of TPC in slices by extruding volume, [U] resets", 
 	"[y] / [Y] / [X] / [N]    Start Animation / Add animation point / Reset / Cycle mode", 
 	"[g]                      Draw Grid", 
 	"[i]                      Project onto XY-plane", 
 	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
-	"[<]                      Exclude rejected tracks", 
+	"[.]                      Exclude rejected tracks", 
 	"[c]                      Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
 	"[C]                      Colorcode clusters of different collisions", 
 	"[v]                      Hide rejected clusters from tracks", 
@@ -1720,7 +1789,7 @@ const char* HelpText[] = {
 	"[t] / [T]                Take Screenshot / Record animation to pictures", 
 	"[Z]                      Change screenshot resolution (scaling factor)",
 	"[S] / [A] / [D]          Enable or disable smoothing of points / smoothing of lines / depth buffer",
-	"[W] / [V]                Enable / disable anti-aliasing / VSync",
+	"[W] / [U] / [V]          Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA facot / toggle VSync",
 	"[F] / [R]                Switch fullscreen / FPS rate limiter",
 	"[I]                      Enable / disable GL indirect draw",
 	"[o] / [p] / [O] / [P]    Save / restore current camera position / animation path", 
@@ -1744,7 +1813,7 @@ void PrintHelp()
 	for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++) printf("%s\n", HelpText[i]);
 }
 
-void HandleKeyRelease(int wParam)
+void HandleKeyRelease(int wParam, char key)
 {
 	keys[wParam] = false;
 	
@@ -1943,10 +2012,19 @@ void HandleKeyRelease(int wParam)
 	}
 	else if (wParam == 'W')
 	{
-		drawQualityMSAA ^= true;
-		if (MSAA_SAMPLES < 2) drawQualityMSAA = false;
-		setQuality();
-		SetInfo("Multisampling anti-aliasing: %s", drawQualityMSAA ? "enabled" : "disabled");
+		drawQualityMSAA*= 2;
+		if (drawQualityMSAA < 2) drawQualityMSAA = 2;
+		if (drawQualityMSAA > 16) drawQualityMSAA = 0;
+		UpdateOffscreenBuffers();
+		SetInfo("Multisampling anti-aliasing factor set to %d", drawQualityMSAA);
+	}
+	else if (wParam == 'U')
+	{
+		drawQualityDownsampleFSAA++;
+		if (drawQualityDownsampleFSAA == 1) drawQualityDownsampleFSAA = 2;
+		if (drawQualityDownsampleFSAA == 5) drawQualityDownsampleFSAA = 0;
+		UpdateOffscreenBuffers();
+		SetInfo("Downsampling anti-aliasing factor set to %d", drawQualityDownsampleFSAA);
 	}
 	else if (wParam == 'V')
 	{
@@ -1985,13 +2063,12 @@ void HandleKeyRelease(int wParam)
 		cfg.excludeClusters ^= 1;
 		SetInfo(cfg.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown");
 	}
-	else if (wParam == '<')
+	else if (key == '.')
 	{
 		hideRejectedTracks ^= 1;
 		SetInfo("Rejected tracks are %s", hideRejectedTracks ? "hidden" : "shown");
 		updateDLList = true;
 	}
-
 	else if (wParam == '1')
 	{
 		cfg.drawClusters ^= 1;
@@ -2052,6 +2129,11 @@ void HandleKeyRelease(int wParam)
 		{
 			SetInfo("Insufficient animation points to start animation");
 		}
+	}
+	else if (wParam == '>')
+	{
+		animationChangeConfig ^= 1;
+		SetInfo("Interpolating visualization settings during animation %s", animationChangeConfig ? "enabled" : "disabled");
 	}
 	else if (wParam == 'Y')
 	{
@@ -2160,7 +2242,7 @@ void HandleKeyRelease(int wParam)
 		PrintHelp();
 		SetInfo("Showing help text");
 	}
-	else if (wParam == '#')
+	else if (key == '#')
 	{
 		testSetting++;
 		SetInfo("Debug test variable set to %d", testSetting);
@@ -2176,24 +2258,29 @@ void showInfo(const char* info)
 	glPushMatrix();
 	glLoadIdentity();
 	gluOrtho2D(0.f, screen_width, 0.f, screen_height);
+	glViewport(0, 0, screen_width, screen_height);
 	glColor3f(1.f, 1.f, 1.f);
 	glRasterPos2f(40.f, 40.f);
 	OpenGLPrint(info);
 	if (infoText2Timer.IsRunning())
 	{
-		if (infoText2Timer.GetCurrentElapsedTime() >= 5) infoText2Timer.Reset();
+		if (infoText2Timer.GetCurrentElapsedTime() >= 6) infoText2Timer.Reset();
+		else if (infoText2Timer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoText2Timer.GetCurrentElapsedTime());
 		glRasterPos2f(40.f, 20.f);
 		OpenGLPrint(infoText2);		
 	}
 	if (infoHelpTimer.IsRunning())
 	{
-		if (infoHelpTimer.GetCurrentElapsedTime() >= 5) infoHelpTimer.Reset();
+		if (infoHelpTimer.GetCurrentElapsedTime() >= 6) infoHelpTimer.Reset();
+		else if (infoHelpTimer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoHelpTimer.GetCurrentElapsedTime());
 		for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
 		{
 			glRasterPos2f(40.f, screen_height - 35 - 20 * (1 + i));
 			OpenGLPrint(HelpText[i]);					
 		}
 	}
+	glColor4f(1, 1, 1, 0);
+	glViewport(0, 0, render_width, render_height);
 	glPopMatrix();
 }	
 
@@ -2207,7 +2294,7 @@ void HandleSendKey()
 		if (sendKey >= 'a' && sendKey <= 'z') sendKey ^= 'a' ^ 'A';
 		bool oldShift = keysShift[sendKey];
 		keysShift[sendKey] = shifted;
-		HandleKeyRelease(sendKey);
+		HandleKeyRelease(sendKey, sendKey);
 		keysShift[sendKey] = oldShift;
 		sendKey = 0;
 	}
