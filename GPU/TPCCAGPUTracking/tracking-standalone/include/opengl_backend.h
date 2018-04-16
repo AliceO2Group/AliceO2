@@ -73,6 +73,7 @@ struct OpenGLConfig
 	int drawGlobalTracks = false;
 	int drawFinal = false;
 	int excludeClusters = 0;
+	int propagateTracks = 0;
 
 	int colorClusters = 1;
 	int drawSlice = -1;
