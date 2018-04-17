@@ -49,7 +49,7 @@ struct DrawArraysIndirectCommand
 	uint  first;
 	uint  baseInstance;
 };
-GLuint vbo_id, indirect_id;
+GLuint vbo_id[fgkNSlices], indirect_id;
 int indirectSliceOffset[fgkNSlices];
 typedef std::tuple<GLsizei, GLsizei, int> vboList;
 struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
@@ -58,6 +58,7 @@ std::vector<GLint> vertexBufferStart[fgkNSlices];
 std::vector<GLsizei> vertexBufferCount[fgkNSlices];
 int drawCalls = 0;
 bool useGLIndirectDraw = true;
+bool useMultiVBO = false;
 inline void drawVertices(const vboList& v, const GLenum t)
 {
 	auto first = std::get<0>(v);
@@ -66,6 +67,12 @@ inline void drawVertices(const vboList& v, const GLenum t)
 	if (count == 0) return;
 	drawCalls += count;
 
+	if (useMultiVBO)
+	{
+		CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[iSlice]))
+		CHKERR(glVertexPointer(3, GL_FLOAT, 0, 0));
+	}
+	
 	if (useGLIndirectDraw)
 	{
 		CHKERR(glMultiDrawArraysIndirect(t, (void*) (size_t) ((indirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand)), count, 0));
@@ -447,7 +454,7 @@ void setFrameBuffer(int updateCurrent = -1, GLuint newID = 0)
 }
 
 GLfb offscreenBuffer, offscreenBufferNoMSAA;
-void UpdateOffscreenBuffers()
+void UpdateOffscreenBuffers(bool clean = false)
 {
 	if (mixBuffer.created) deleteFB(mixBuffer);
 	if (offscreenBuffer.created) deleteFB(offscreenBuffer);
@@ -511,8 +518,8 @@ void updateConfig()
 int InitGL()
 {
 	CHKERR(glewInit());
-	CHKERR(glGenBuffers(1, &vbo_id));
-	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id));
+	CHKERR(glCreateBuffers(36, vbo_id));
+	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0]));
 	CHKERR(glGenBuffers(1, &indirect_id));
 	CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_id));
 	
@@ -527,7 +534,9 @@ int InitGL()
 
 void ExitGL()
 {
-	deleteFB(mixBuffer);
+	UpdateOffscreenBuffers(true);
+	CHKERR(glDeleteBuffers(36, vbo_id));
+	CHKERR(glDeleteBuffers(1, &indirect_id));
 }
 
 inline void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT)
@@ -708,7 +717,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 				else
 				{
 					unsigned int k = 0;
-					while (k < collisionClusters.size() && collisionClusters[k][36] < label) k++;
+					while (k < collisionClusters.size() && collisionClusters[k][fgkNSlices] < label) k++;
 					if (k != iCol) track = nullptr;
 				}
 			}
@@ -757,7 +766,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 				if (nCollisions > 1)
 				{
 					unsigned int k = 0;
-					while (k < collisionClusters.size() && collisionClusters[k][36] < i) k++;
+					while (k < collisionClusters.size() && collisionClusters[k][fgkNSlices] < i) k++;
 					if (k != iCol) continue;
 				}
 			}
@@ -1227,22 +1236,10 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	}	
 
 	//Open GL Default Values
-	if (cfg.smoothPoints)
-	{
-		CHKERR(glEnable(GL_POINT_SMOOTH));
-	}
-	else
-	{
-		CHKERR(glDisable(GL_POINT_SMOOTH));
-	}
-	if (cfg.smoothLines)
-	{
-		CHKERR(glEnable(GL_LINE_SMOOTH));
-	}
-	else
-	{
-		CHKERR(glDisable(GL_LINE_SMOOTH));
-	}
+	if (cfg.smoothPoints) CHKERR(glEnable(GL_POINT_SMOOTH))
+	else CHKERR(glDisable(GL_POINT_SMOOTH))
+	if (cfg.smoothLines) CHKERR(glEnable(GL_LINE_SMOOTH))
+	else CHKERR(glDisable(GL_LINE_SMOOTH))
 	CHKERR(glEnable(GL_BLEND));
 	CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 	CHKERR(glPointSize(cfg.pointSize * (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1)));
@@ -1401,20 +1398,34 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		glDLrecent = 1;
 		size_t totalVertizes = 0;
 		for (int i = 0;i < fgkNSlices;i++) totalVertizes += vertexBuffer[i].size();
-		vertexBuffer[0].reserve(totalVertizes); //ATTENTION, this only reserves but not initializes, I.e. we use the vector as raw ptr for now...
-		size_t totalYet = vertexBuffer[0].size();
-		for (int i = 1;i < fgkNSlices;i++)
+		
+		useMultiVBO = (totalVertizes * sizeof(vertexBuffer[0][0]) >= 0x100000000ll);
+		if (useMultiVBO)
 		{
-			for (unsigned int j = 0;j < vertexBufferStart[i].size();j++)
+			for (int i = 0;i < fgkNSlices;i++)
 			{
-				vertexBufferStart[i][j] += totalYet;
+				CHKERR(glNamedBufferData(vbo_id[i], vertexBuffer[i].size() * sizeof(vertexBuffer[i][0]), vertexBuffer[i].data(), GL_STATIC_DRAW));
+				vertexBuffer[i].clear();
 			}
-			memcpy(&vertexBuffer[0][totalYet], &vertexBuffer[i][0], vertexBuffer[i].size() * sizeof(vertexBuffer[i][0]));
-			totalYet += vertexBuffer[i].size();
-			vertexBuffer[i].clear();
 		}
-		CHKERR(glBufferData(GL_ARRAY_BUFFER, totalVertizes * sizeof(vertexBuffer[0][0]), vertexBuffer[0].data(), GL_STATIC_DRAW));
-		vertexBuffer[0].clear();
+		else
+		{
+			vertexBuffer[0].reserve(totalVertizes); //ATTENTION, this only reserves but not initializes, I.e. we use the vector as raw ptr for now...
+			size_t totalYet = vertexBuffer[0].size();
+			for (int i = 1;i < fgkNSlices;i++)
+			{
+				for (unsigned int j = 0;j < vertexBufferStart[i].size();j++)
+				{
+					vertexBufferStart[i][j] += totalYet;
+				}
+				memcpy(&vertexBuffer[0][totalYet], &vertexBuffer[i][0], vertexBuffer[i].size() * sizeof(vertexBuffer[i][0]));
+				totalYet += vertexBuffer[i].size();
+				vertexBuffer[i].clear();
+			}
+			CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0])); //Bind ahead of time, since it is not going to change
+			CHKERR(glNamedBufferData(vbo_id[0], totalVertizes * sizeof(vertexBuffer[0][0]), vertexBuffer[0].data(), GL_STATIC_DRAW));
+			vertexBuffer[0].clear();
+		}
 		
 		if (useGLIndirectDraw)
 		{
