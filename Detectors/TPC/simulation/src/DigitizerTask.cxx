@@ -55,8 +55,10 @@ DigitizerTask::DigitizerTask(int sectorid)
 DigitizerTask::~DigitizerTask()
 {
   delete mDigitizer;
-  delete mDigitsArray;
-  delete mDigitsDebugArray;
+  // We need to clarify the ownsership of these potentially external containers
+  // and reenable the cleanup
+  // delete mDigitsArray;
+  // delete mDigitsDebugArray;
 }
 
 InitStatus DigitizerTask::Init()

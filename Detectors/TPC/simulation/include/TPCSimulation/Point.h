@@ -30,6 +30,7 @@ class ElementalHit {
   float GetX() const { return mPos.X(); }
   float GetY() const { return mPos.Y(); }
   float GetZ() const { return mPos.Z(); }
+  const ::Point3D<float>& getPos() const { return mPos; }
   float GetEnergyLoss() const { return mELoss; }
   float GetTime() const { return mTime; }
 

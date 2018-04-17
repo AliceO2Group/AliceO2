@@ -8,14 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_STEER_SIMREADERSPEC_H
+#define O2_STEER_SIMREADERSPEC_H
 
-#ifdef __CLING__
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::steer::O2RunAna;
-#pragma link C++ class o2::steer::InteractionSampler+;
-#pragma link C++ class o2::steer::RunContext+;
+namespace o2
+{
+namespace steer
+{
+o2::framework::DataProcessorSpec getSimReaderSpec(int fanoutsize);
+}
+}
 
-#endif
+#endif // O2_STEER_SIMREADERSPEC_H
