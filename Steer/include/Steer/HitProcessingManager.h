@@ -38,12 +38,13 @@ class RunContext
   int getNEntries() const { return mNofEntries; }
   const std::vector<o2::MCInteractionRecord>& getEventRecords() const { return mEventRecords; }
  private:
-  int mNofEntries;
+  int mNofEntries; //!
   std::vector<o2::MCInteractionRecord> mEventRecords;
   // std::vector<EventIndices> mEvents; // EventIndices (sourceID, chainID, entry ID)
-  TChain* mChain; // pointer to input chain
+  TChain* mChain; //! pointer to input chain
 
   friend class HitProcessingManager;
+  ClassDef(RunContext, 1);
 };
 
 using RunFunct_t = std::function<void(const RunContext&)>;
@@ -73,9 +74,11 @@ class HitProcessingManager
 
   void registerRunFunction(RunFunct_t&& f);
 
+  void setupRun();
+  const RunContext& getRunContext() { return mRunContext; }
+
  private:
   HitProcessingManager() : mSimChain("o2sim") {}
-  void setupRun();
   void setupChain();
 
   std::vector<RunFunct_t> mRegisteredRunFunctions;

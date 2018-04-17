@@ -8,14 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef STEER_DIGITIZERWORKFLOW_SRC_COLLISIONTIMEPRINTER_H_
+#define STEER_DIGITIZERWORKFLOW_SRC_COLLISIONTIMEPRINTER_H_
 
-#ifdef __CLING__
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::steer::O2RunAna;
-#pragma link C++ class o2::steer::InteractionSampler+;
-#pragma link C++ class o2::steer::RunContext+;
+namespace o2
+{
+namespace steer
+{
+o2::framework::DataProcessorSpec getCollisionTimePrinter(int subchannel);
+}
+}
 
-#endif
+#endif /* STEER_DIGITIZERWORKFLOW_SRC_COLLISIONTIMEPRINTER_H_ */

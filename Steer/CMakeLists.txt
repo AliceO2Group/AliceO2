@@ -28,3 +28,5 @@ O2_GENERATE_TESTS(
   BUCKET_NAME ${BUCKET_NAME}
   TEST_SRCS ${TEST_SRCS}
 )
+
+add_subdirectory(DigitizerWorkflow)
