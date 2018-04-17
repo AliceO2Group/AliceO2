@@ -345,7 +345,7 @@ int main(int argc, char** argv)
 									in.open(filename, std::ifstream::binary);
 									if (in.fail()) {printf("Unexpected error\n");return(1);}
 									double shift = (double) nBunch * (double) config.bunchSpacing * (double) TPCZ / (double) driftTime;
-									int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (double) config.timeFrameLen * TPCZ / driftTime, true, configStandalone.qa);
+									int nClusters = hlt.ReadEvent(in, true, true, shift, 0, (double) config.timeFrameLen * TPCZ / driftTime, true, configStandalone.qa || configStandalone.eventDisplay);
 									printf("Placing event %4d+%d (ID %4d) at z %7.3f (time %'dns) %s(collisions %4d, bunch %6lld, train %3d) (%'10d clusters, %'10d MC labels, %'10d track MC info)\n", nCollisions, nBorderCollisions, useEvent, shift, (int) (nBunch * config.bunchSpacing), inTF ? " inside" : "outside", nCollisions, nBunch, nTrain, nClusters, hlt.GetNMCLabels(), hlt.GetNMCInfo());
 									in.close();
 									nInBunchPileUp++;

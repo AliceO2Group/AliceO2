@@ -698,26 +698,21 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 		int lastCluster = -1;
 		while (true)
 		{
-			if (i >= merger.NOutputTracks())
-			{
-				track = nullptr;
-				break;
-			}
-			if (nCollisions > 1)
+			if (i >= merger.NOutputTracks()) track = nullptr;
+			else if (merger.Clusters()[track->FirstClusterRef() + track->NClusters() - 1].fSlice != iSlice) track = nullptr;
+			else if (nCollisions > 1)
 			{
 				int label = GetMCLabel(i);
 				if (label < -1) label = -label - 2;
-				if (label != -1)
+				if (label == -1) track = nullptr;
+				else
 				{
 					unsigned int k = 0;
 					while (k < collisionClusters.size() && collisionClusters[k][36] < label) k++;
-					if (k != iCol)
-					{
-						track = nullptr;
-						break;
-					}
+					if (k != iCol) track = nullptr;
 				}
 			}
+			if (track == nullptr) break;
 
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			bool drawing = false;
@@ -825,25 +820,37 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 					x = mclocal[0];
 					param.X() = mclocal[0];
 					param.Y() = mclocal[1];
-					param.Z() = mc.fZ;
+					param.Z() = 0;
 					param.SinPhi() = sinPhi;
 					param.DzDs() = dzds;
 					param.QPt() = qpt;
-					param.ZOffset() = 0.f;
+					param.ZOffset() = mc.fZ;
 				}
+				param.X() += Xadd;
+				x += Xadd;
+				float z0 = param.Z();
 				if (iMC && inFlyDirection == 0) buffer.clear();
 				prop->SetTrack(&param, alpha);
 				if (x < 1) break;
+				if (fabs(param.SinPhi()) > 1) break;
 				alpha = hlt.Param().Alpha(slice);
 				std::vector<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : vertexBuffer[iSlice];
+				int nPoints = 0;
 				
-				while (x > 0. && x <= 250 && fabs(param.Z() + param.ZOffset()) <= maxClusterZ)
+				while (nPoints++ < 5000)
 				{
+					if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + param.Y() * param.Y() > (iMC ? (450 * 450) : (300 * 300)))) break;
+					if (fabs(param.Z() + param.ZOffset()) > maxClusterZ + (iMC ? 0 : 0)) break;
+					if (fabs(param.Z() - z0) > (iMC ? 250 : 250)) break;
+					if (inFlyDirection)
+					{
+						prop->RotateToAlpha(alpha = prop->GetAlpha() + asin(param.SinPhi()));
+						x = param.X() + 1.f;
+					}
 					if (prop->PropagateToXAlpha( x, alpha, inFlyDirection ) ) break;
 					if (fabs(param.SinPhi()) > 0.9) break;
-					float4 ptr;
-					hlt.Tracker().CPUTracker(slice).Param().Slice2Global(param.X() + Xadd, param.Y(), param.Z(), &ptr.x, &ptr.y, &ptr.z);
-					useBuffer.emplace_back(ptr.x / GL_SCALE_FACTOR, ptr.y / GL_SCALE_FACTOR, projectxy ? 0 : (ptr.z + param.ZOffset()) / GL_SCALE_FACTOR);
+					float sa = sin(alpha), ca = cos(alpha);
+					useBuffer.emplace_back((ca * param.X() - sa * param.Y()) / GL_SCALE_FACTOR, (ca * param.Y() + sa * param.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (param.Z() + param.ZOffset()) / GL_SCALE_FACTOR);
 					x += inFlyDirection ? 1 : -1;
 				}
 				
@@ -1327,7 +1334,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				char *tmpMem;
 				if (tracker.fLinkTmpMemory == NULL)
 				{
-					printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
+					if (tracker.Data().NumberOfHits()) printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
 					continue;
 				}
 				tmpMem = tracker.Data().Memory();
