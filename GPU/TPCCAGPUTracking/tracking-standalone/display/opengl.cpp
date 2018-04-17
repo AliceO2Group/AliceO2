@@ -1429,12 +1429,13 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			}
 			CHKERR(glBufferData(GL_DRAW_INDIRECT_BUFFER, cmds.size() * sizeof(cmds[0]), cmds.data(), GL_STATIC_DRAW));
 		}
-	}
-	if (showTimer)
-	{
-		printf("Draw time: %d ms\n", (int) (timerDraw.GetCurrentElapsedTime() * 1000000.));
-	}
 
+		if (showTimer)
+		{
+			printf("Draw time: %d ms (vertices %lld / %lld bytes)\n", (int) (timerDraw.GetCurrentElapsedTime() * 1000000.), (long long int) totalVertizes, (long long int) (totalVertizes * sizeof(vertexBuffer[0][0])));
+		}
+	}
+	
 	//Draw Event
 	drawCalls = 0;
 	CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
@@ -2235,19 +2236,31 @@ void showInfo(const char* info)
 	OpenGLPrint(info);
 	if (infoText2Timer.IsRunning())
 	{
-		if (infoText2Timer.GetCurrentElapsedTime() >= 6) infoText2Timer.Reset();
-		else if (infoText2Timer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoText2Timer.GetCurrentElapsedTime());
-		glRasterPos2f(40.f, 20.f);
-		OpenGLPrint(infoText2);		
+		if (infoText2Timer.GetCurrentElapsedTime() >= 6)
+		{
+			infoText2Timer.Reset();
+		}
+		else
+		{
+			if (infoText2Timer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoText2Timer.GetCurrentElapsedTime());
+			glRasterPos2f(40.f, 20.f);
+			OpenGLPrint(infoText2);
+		}
 	}
 	if (infoHelpTimer.IsRunning())
 	{
-		if (infoHelpTimer.GetCurrentElapsedTime() >= 6) infoHelpTimer.Reset();
-		else if (infoHelpTimer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoHelpTimer.GetCurrentElapsedTime());
-		for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
+		if (infoHelpTimer.GetCurrentElapsedTime() >= 6)
 		{
-			glRasterPos2f(40.f, screen_height - 35 - 20 * (1 + i));
-			OpenGLPrint(HelpText[i]);					
+			infoHelpTimer.Reset();
+		}
+		else
+		{
+			if (infoHelpTimer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoHelpTimer.GetCurrentElapsedTime());
+			for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
+			{
+				glRasterPos2f(40.f, screen_height - 35 - 20 * (1 + i));
+				OpenGLPrint(HelpText[i]);
+			}
 		}
 	}
 	glColor4f(1, 1, 1, 0);
