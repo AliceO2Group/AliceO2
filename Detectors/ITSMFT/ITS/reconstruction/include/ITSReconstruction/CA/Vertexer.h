@@ -10,7 +10,6 @@
 
 #ifndef O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
 #define O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
-#define DEBUG_BUILD
 
 #include <vector>
 #include <array>

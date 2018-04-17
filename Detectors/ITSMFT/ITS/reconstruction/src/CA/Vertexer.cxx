@@ -32,10 +32,10 @@ namespace ITS
 namespace CA
 {
 
-using Constants::ITS::LayersRCoordinate;
-using Constants::ITS::LayersZCoordinate;
 using Constants::IndexTable::PhiBins;
 using Constants::IndexTable::ZBins;
+using Constants::ITS::LayersRCoordinate;
+using Constants::ITS::LayersZCoordinate;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
@@ -308,13 +308,23 @@ void Vertexer::findVertices()
       }
       if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
             mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <
-          1.98 * 1.98)
+          1.98 * 1.98) {
 #ifdef DEBUG_BUILD
-        mVertices.emplace_back(
+        mLegacyVertices.emplace_back(
           std::make_tuple(mTrackletClusters[iCluster].getVertex(), mTrackletClusters[iCluster].getSize(), dist));
 #else
-        mVertices.emplace_back(mTrackletClusters[iCluster].getVertex());
+        mLegacyVertices.emplace_back(mTrackletClusters[iCluster].getVertex());
 #endif
+        mVertices.emplace_back(
+          Point3D<float>{ mTrackletClusters[iCluster].getVertex()[0], mTrackletClusters[iCluster].getVertex()[1],
+                          mTrackletClusters[iCluster].getVertex()[2] },
+          mTrackletClusters[iCluster].getAvgDeviations(), // Symm matrix. Diagonal: square of DCA projections,
+                                                          // off-diagonal: sqrt of mixed sum od squared terms.
+          mTrackletClusters[iCluster].getSize(),          // Contributors
+          mTrackletClusters[iCluster].getAvgDistance2()   // In place of chi2
+          );
+        mVertices.back().setTimeStamp(mROFrame);
+      }
     }
   }
 }
