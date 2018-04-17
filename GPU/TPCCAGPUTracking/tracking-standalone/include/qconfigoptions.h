@@ -1,5 +1,10 @@
 typedef std::tuple<const char*, int> tupleGpuOpt;
 
+BeginSubConfig(structConfigGL, configGL, configStandalone, "GL", 'g', "OpenGL display settings")
+AddOption(clustersOnly, bool, false, "clustersOnly", 0, "Visualize clusters only")
+AddHelp("help", 'h')
+EndConfig()
+
 BeginSubConfig(structConfigTF, configTF, configStandalone, "TF", 't', "Timeframe settings")
 AddOption(nMerge, int, 0, "merge", 0, "Merge n events in a timeframe", min(0))
 AddOption(averageDistance, float, 50., "mergeDist", 0, "Average distance of events merged into timeframe", min(0.f))
@@ -91,4 +96,5 @@ AddHelpAll("helpall", 'H')
 AddSubConfig(structConfigTF, configTF)
 AddSubConfig(structConfigQA, configQA)
 AddSubConfig(structConfigEG, configEG)
+AddSubConfig(structConfigGL, configGL)
 EndConfig()

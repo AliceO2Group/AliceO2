@@ -29,7 +29,7 @@
 
 #define fgkNSlices 36
 #ifndef BUILD_QA
-bool SuppressHit(int iHit) {return false;}
+bool SuppressHit(int iHit) {return(false);}
 int GetMCLabel(int track) {return(-1);}
 #endif
 volatile int needUpdate = 0;
@@ -40,6 +40,7 @@ void ShowNextEvent() {needUpdate = 1;}
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (separateGlobalTracks ? 6 : TRACK_TYPE_ID_LIMIT)
 
 OpenGLConfig cfg;
+static auto& config = configStandalone.configGL;
 
 struct DrawArraysIndirectCommand
 {
@@ -123,6 +124,7 @@ int screen_width = init_width, screen_height = init_height;
 int render_width = init_width, render_height = init_height;
 
 bool separateGlobalTracks = 0;
+bool propagateLoopers = 0;
 
 float mouseDnX, mouseDnY;
 float mouseMvX, mouseMvY;
@@ -529,7 +531,7 @@ int InitGL()
 	setQuality();
 	ReSizeGLScene(init_width, init_height, true);
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
-	return (true);                                     // Initialization Went OK
+	return(true);                                     // Initialization Went OK
 }
 
 void ExitGL()
@@ -569,12 +571,13 @@ vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
 		}
 	}
 	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
-	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
+	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 {
 	int iSlice = tracker.Param().ISlice();
+	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	size_t startCountInner = vertexBuffer[iSlice].size();
 	for (int i = 0;i < tracker.Param().NRows();i++)
@@ -612,12 +615,13 @@ vboList DrawLinks(AliHLTTPCCATracker &tracker, int id, bool dodown = false)
 		}
 	}
 	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
-	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
+	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawSeeds(AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.Param().ISlice();
+	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	for (int i = 0;i < *tracker.NTracklets();i++)
 	{
@@ -635,12 +639,13 @@ vboList DrawSeeds(AliHLTTPCCATracker &tracker)
 		} while (ih != CALINK_INVAL);
 		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	}
-	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
+	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawTracklets(AliHLTTPCCATracker &tracker)
 {
 	int iSlice = tracker.Param().ISlice();
+	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	for (int i = 0;i < *tracker.NTracklets();i++)
 	{
@@ -669,12 +674,13 @@ vboList DrawTracklets(AliHLTTPCCATracker &tracker)
 		}
 		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	}
-	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
+	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 {
 	int iSlice = tracker.Param().ISlice();
+	if (config.clustersOnly) return(vboList(0, 0, iSlice));
 	size_t startCount = vertexBufferStart[iSlice].size();
 	for (int i = (global ? tracker.CommonMemory()->fNLocalTracks : 0);i < (global ? *tracker.NTracks() : tracker.CommonMemory()->fNLocalTracks);i++)
 	{
@@ -689,7 +695,7 @@ vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 		}
 		insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
 	}
-	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
+	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboList* list)
@@ -701,7 +707,9 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 	for (int i = 0;i < N_FINAL_TYPE;i++) {vBuf[i].first = vertexBufferStartLocal + i; vBuf[i].second = vertexBufferCountLocal + i;}
 
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
-	for (int i = 0;i < std::max(hlt.GetNMCInfo(), merger.NOutputTracks());i++)
+	int nTracks = std::max(hlt.GetNMCInfo(), merger.NOutputTracks());
+	if (config.clustersOnly) nTracks = 0;
+	for (int i = 0;i < nTracks;i++)
 	{
 		const AliHLTTPCGMMergedTrack* track = &merger.OutputTracks()[i];
 		int lastCluster = -1;
@@ -725,34 +733,24 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			bool drawing = false;
-			if (cfg.propagateTracks <= 2)
+			for (int k = 0;k < track->NClusters();k++)
 			{
-				for (int k = 0;k < track->NClusters();k++)
+				if (hideRejectedClusters && (merger.Clusters()[track->FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
+				int cid = merger.Clusters()[track->FirstClusterRef() + k].fId;
+				if (drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+				if (globalPos[cid].w == SEPERATE_GLOBAL_TRACKS_LIMIT)
 				{
-					if (hideRejectedClusters && (merger.Clusters()[track->FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
-					int cid = merger.Clusters()[track->FirstClusterRef() + k].fId;
-					if (cfg.propagateTracks == 2)
-					{
-						if (globalPos[cid].w < SEPERATE_GLOBAL_TRACKS_LIMIT) globalPos[cid].w = 7;
-					}
-					else
-					{
-						if (drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
-						if (globalPos[cid].w == SEPERATE_GLOBAL_TRACKS_LIMIT)
-						{
-							if (drawing) insertVertexList(vBuf[0], startCountInner, vertexBuffer[iSlice].size());
-							drawing = false;
-						}
-						else
-						{
-							if (!drawing) startCountInner = vertexBuffer[iSlice].size();
-							if (!drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
-							if (!drawing && lastCluster != -1) drawPointLinestrip(iSlice, merger.Clusters()[track->FirstClusterRef() + lastCluster].fId, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
-							drawing = true;
-						}
-						lastCluster = k;
-					}
+					if (drawing) insertVertexList(vBuf[0], startCountInner, vertexBuffer[iSlice].size());
+					drawing = false;
 				}
+				else
+				{
+					if (!drawing) startCountInner = vertexBuffer[iSlice].size();
+					if (!drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+					if (!drawing && lastCluster != -1) drawPointLinestrip(iSlice, merger.Clusters()[track->FirstClusterRef() + lastCluster].fId, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+					drawing = true;
+				}
+				lastCluster = k;
 			}
 			insertVertexList(vBuf[0], startCountInner, vertexBuffer[iSlice].size());
 			break;
@@ -855,6 +853,12 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 					{
 						prop->RotateToAlpha(alpha = prop->GetAlpha() + asin(param.SinPhi()));
 						x = param.X() + 1.f;
+						if (!propagateLoopers)
+						{
+							float diff = fabs(alpha - hlt.Param().Alpha(slice)) / (2. * M_PI);
+							diff -= floor(diff);
+							if (diff > 0.25 && diff < 0.75) break;
+						}
 					}
 					if (prop->PropagateToXAlpha( x, alpha, inFlyDirection ) ) break;
 					if (fabs(param.SinPhi()) > 0.9) break;
@@ -948,7 +952,7 @@ vboList DrawGrid(AliHLTTPCCATracker &tracker)
 		}
 	}
 	insertVertexList(tracker.Param().ISlice(), startCountInner, vertexBuffer[iSlice].size());
-	return vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
+	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
 int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All The Drawing
@@ -1443,7 +1447,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 
 		if (showTimer)
 		{
-			printf("Draw time: %d ms (vertices %lld / %lld bytes)\n", (int) (timerDraw.GetCurrentElapsedTime() * 1000000.), (long long int) totalVertizes, (long long int) (totalVertizes * sizeof(vertexBuffer[0][0])));
+			printf("Draw time: %'d us (vertices %'lld / %'lld bytes)\n", (int) (timerDraw.GetCurrentElapsedTime() * 1000000.), (long long int) totalVertizes, (long long int) (totalVertizes * sizeof(vertexBuffer[0][0])));
 		}
 	}
 	
@@ -1529,7 +1533,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	skip3:;
 }
 
-	if (!cfg.excludeClusters)
+	if (!config.clustersOnly && !cfg.excludeClusters)
 	{
 		if (cfg.drawInitLinks)
 		{
@@ -1669,7 +1673,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	pthread_mutex_unlock(&semLockDisplay);
 #endif
 
-	return true; // Keep Going
+	return(true);
 }
 
 void DoScreenshot(char *filename, float animateTime)
@@ -1753,8 +1757,7 @@ const char* HelpText[] = {
 	"[n] / [SPACE]            Next event", 
 	"[q] / [Q] / [ESC]        Quit", 
 	"[r]                      Reset Display Settings", 
-	"[l]                      Draw single slice (next slice)", 
-	"[k]                      Draw single slice (previous slice)", 
+	"[l] / [k]                Draw single slice (next  / previous slice)", 
 	"[J]                      Draw related slices (same plane in phi)", 
 	"[z] / [u]                Show splitting of TPC in slices by extruding volume, [U] resets", 
 	"[y] / [Y] / [X] / [M]    Start Animation / Add animation point / Reset / Cycle mode", 
@@ -1764,6 +1767,7 @@ const char* HelpText[] = {
 	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
 	"[.]                      Exclude rejected tracks", 
 	"[c]                      Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
+	"[L] / [K]                Draw single collisions (next / previous)",
 	"[C]                      Colorcode clusters of different collisions", 
 	"[v]                      Hide rejected clusters from tracks", 
 	"[b]                      Hide all clusters not belonging or related to matched tracks", 
@@ -1776,7 +1780,7 @@ const char* HelpText[] = {
 	"[7]                      Show Global Track Segments", 
 	"[8]                      Show Final Merged Tracks (after Track Merger)", 
 	"[j]                      Show global tracks as additional segments of final tracks", 
-	"[E]                      Extrapolate tracks",
+	"[E] / [G]                Extrapolate tracks / loopers",
 	"[t] / [T]                Take Screenshot / Record animation to pictures", 
 	"[Z]                      Change screenshot resolution (scaling factor)",
 	"[S] / [A] / [D]          Enable or disable smoothing of points / smoothing of lines / depth buffer",
@@ -1956,7 +1960,13 @@ void HandleKeyRelease(int wParam, char key)
 		cfg.propagateTracks += 1;
 		if (cfg.propagateTracks == 4) cfg.propagateTracks = 0;
 		const char* infoText[] = {"Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track"};
-		SetInfo("Display of track propagation: %s", infoText[cfg.propagateTracks]);
+		SetInfo("Display of propagated tracks: %s", infoText[cfg.propagateTracks]);
+	}
+	else if (wParam == 'G')
+	{
+		propagateLoopers ^= 1;
+		SetInfo("Propagation of loopers %s", propagateLoopers ? "enabled" : "disabled");
+		updateDLList = true;
 	}
 	else if (wParam == 'v')
 	{
