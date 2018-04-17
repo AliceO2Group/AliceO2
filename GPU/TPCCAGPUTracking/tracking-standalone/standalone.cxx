@@ -353,8 +353,8 @@ int main(int argc, char** argv)
 									p2 *= collisionProbability / nInBunchPileUp;
 									p += p2;
 									if (config.noEventRepeat && simBunchNoRepeatEvent >= nEventsInDirectory) nBunch = lastBunch;
-									for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(nCollisions + nBorderCollisions, sl, hlt.ClusterData(sl).NumberOfClusters());
-									SetCollisionFirstCluster(nCollisions + nBorderCollisions, 36, hlt.GetNMCInfo());
+									for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(nCollisions + nBorderCollisions - 1, sl, hlt.ClusterData(sl).NumberOfClusters());
+									SetCollisionFirstCluster(nCollisions + nBorderCollisions - 1, 36, hlt.GetNMCInfo());
 								}
 								if (nInBunchPileUp > 1) nMultipleCollisions++;
 								nBunch++;
