@@ -30,49 +30,41 @@ struct OutputSpec {
   header::DataHeader::SubSpecificationType subSpec = 0;
   enum Lifetime lifetime = Lifetime::Timeframe;
 
-  OutputSpec(OutputLabel const&inBinding,
-             header::DataOrigin inOrigin,
-             header::DataDescription inDescription,
-             header::DataHeader::SubSpecificationType inSubSpec,
-             enum Lifetime inLifetime = Lifetime::Timeframe)
-  : binding{inBinding},
-    origin{inOrigin},
-    description{inDescription},
-    subSpec{inSubSpec},
-    lifetime{inLifetime}
-  {}
+  OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
+             header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe)
+    : binding{ inBinding },
+      origin{ inOrigin },
+      description{ inDescription },
+      subSpec{ inSubSpec },
+      lifetime{ inLifetime }
+  {
+  }
 
-  OutputSpec(header::DataOrigin inOrigin,
-             header::DataDescription inDescription,
-             header::DataHeader::SubSpecificationType inSubSpec,
-             enum Lifetime inLifetime = Lifetime::Timeframe)
-  : binding{OutputLabel{""}},
-    origin{inOrigin},
-    description{inDescription},
-    subSpec{inSubSpec},
-    lifetime{inLifetime}
-  {}
+  OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
+             header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe)
+    : binding{ OutputLabel{ "" } },
+      origin{ inOrigin },
+      description{ inDescription },
+      subSpec{ inSubSpec },
+      lifetime{ inLifetime }
+  {
+  }
 
-  OutputSpec(OutputLabel const &inBinding,
-             header::DataOrigin inOrigin,
-             header::DataDescription inDescription,
+  OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
              enum Lifetime inLifetime = Lifetime::Timeframe)
-  : binding{inBinding},
-    origin{inOrigin},
-    description{inDescription},
-    subSpec{0},
-    lifetime{inLifetime}
-  {}
+    : binding{ inBinding }, origin{ inOrigin }, description{ inDescription }, subSpec{ 0 }, lifetime{ inLifetime }
+  {
+  }
 
-  OutputSpec(header::DataOrigin inOrigin,
-             header::DataDescription inDescription,
+  OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
              enum Lifetime inLifetime = Lifetime::Timeframe)
-  : binding{OutputLabel{""}},
-    origin{inOrigin},
-    description{inDescription},
-    subSpec{0},
-    lifetime{inLifetime}
-  {}
+    : binding{ OutputLabel{ "" } },
+      origin{ inOrigin },
+      description{ inDescription },
+      subSpec{ 0 },
+      lifetime{ inLifetime }
+  {
+  }
 
   bool operator==(const OutputSpec& that)
   {
