@@ -509,9 +509,9 @@ int main(int argc, char** argv)
 					for (int sl = 0;sl < 36;sl++) SetCollisionFirstCluster(iEventInTimeframe, sl, hlt.ClusterData(sl).NumberOfClusters());
 					SetCollisionFirstCluster(iEventInTimeframe, 36, hlt.GetNMCInfo());
 					
-					iEventInTimeframe++;
 					if (config.nMerge)
 					{
+						iEventInTimeframe++;
 						if (iEventInTimeframe == config.nMerge || i == configStandalone.NEvents - 1)
 						{
 							iEventInTimeframe = 0;

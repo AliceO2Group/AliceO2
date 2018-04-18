@@ -865,6 +865,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       nOutTrackClusters += nHits;
     }
   }
+  fNOutputTrackClusters = nOutTrackClusters;
   
   unsigned int maxId = 0;
   if (fSliceTrackers)
@@ -900,16 +901,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   std::sort(trackSort, trackSort + fNOutputTracks, trackSortCompanion);
   memset(fClusterAttachment, 0, maxId * sizeof(fClusterAttachment[0]));
   for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
-  for (int i = 0;i < fNOutputTracks;i++)
-  {
-    const AliHLTTPCGMMergedTrack& trk = fOutputTracks[i];
-    for (int j = 0;j < trk.NClusters();j++)
-    {
-        int id = fClusters[trk.FirstClusterRef() + j].fId;
-        int weight = -fTrackOrder[i] - 1;
-        if (weight < fClusterAttachment[id]) fClusterAttachment[id] = weight;
-    }
-  }
+  for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fId] = attachAttached | attachGood;
 #endif
   
   for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
@@ -923,8 +915,6 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   }
   delete[] sharedCount;
   delete[] trackSort;
-  
-  fNOutputTrackClusters = nOutTrackClusters;
 }
 
 void AliHLTTPCGMMerger::Refit(bool resetTimers)
@@ -956,6 +946,7 @@ void AliHLTTPCGMMerger::Finalize()
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
     int* trkOrderReverse = new int[fNOutputTracks];
     for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
+    for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fId] = 0;
     for (int i = 0;i < fNOutputTracks;i++)
     {
       const AliHLTTPCGMMergedTrack& trk = fOutputTracks[i];
@@ -963,26 +954,15 @@ void AliHLTTPCGMMerger::Finalize()
       for (int j = 0;j < trk.NClusters();j++)
       {
           int id = fClusters[trk.FirstClusterRef() + j].fId;
-          int weight = -fTrackOrder[i] - 1;
-          if (fClusterAttachment[id] == weight)
-          {
-            if (fClusters[trk.FirstClusterRef() + j].fLeg == goodLeg) weight -= 1000000000;
-            if (!trk.OK() || (fClusters[trk.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) weight *= -1;
-            fClusterAttachment[id] = weight;
-          }
+          int weight = fTrackOrder[i] | attachAttached;
+          if (trk.OK() && !(fClusters[trk.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
+          if (fClusters[trk.FirstClusterRef() + j].fLeg == goodLeg) weight |= attachGoodLeg;
+          if (weight > fClusterAttachment[id]) fClusterAttachment[id] = weight;
       }
     }
     for (int i = 0;i < fMaxID;i++) if (fClusterAttachment[i] != 0)
     {
-        int val = fClusterAttachment[i];
-        int sign = val > 0 ? -1 : 1;
-        val = abs(val);
-        bool goodLeg = val > 1000000000;
-        if (goodLeg) val -= 1000000000;
-        val = trkOrderReverse[val - 1] + 1;
-        if (!goodLeg) val += 1000000000;
-        val *= sign;
-        fClusterAttachment[i] = val;
+        fClusterAttachment[i] = (fClusterAttachment[i] & attachFlagMask) | trkOrderReverse[fClusterAttachment[i] & attachTrackMask];
     }
     delete[] trkOrderReverse;
     delete[] fTrackOrder;
