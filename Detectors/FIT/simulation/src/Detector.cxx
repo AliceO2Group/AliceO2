@@ -266,16 +266,17 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   Int_t quadrant, mcp;
-
+  
   if (fMC->IsTrackEntering()) {
     float x, y, z;
     fMC->TrackPosition(x, y, z);
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
-    float time = fMC->TrackTime() * 1.0e12;
+    fMC->CurrentVolOffID(1,mcp);
+     float time = fMC->TrackTime() * 1.0e12;
     int trackID = fMC->GetStack()->GetCurrentTrackNumber();
     int detID = 4 * mcp + quadrant - 1;
-    float etot = fMC->Etot();
+     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
     //  if (iPart != 50000050) printf("@@@@@  %f %f %f %i %i %i\n",x,y,z,detID,mcp,quadrant );
