@@ -187,11 +187,12 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
     assert(edge.outputGlobalIndex < outputsMatchers.size());
 
     if (edge.isForward == false) {
-      OutputRoute route;
-      route.matcher = outputsMatchers[edge.outputGlobalIndex];
-      route.timeslice = edge.timeIndex;
-      route.maxTimeslices = consumer.maxInputTimeslices;
-      route.channel = channel.name;
+      OutputRoute route{
+        edge.timeIndex,
+        consumer.maxInputTimeslices,
+        outputsMatchers[edge.outputGlobalIndex],
+        channel.name
+      };
       device.outputs.emplace_back(route);
     } else {
       ForwardRoute route;
