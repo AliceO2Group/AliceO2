@@ -48,7 +48,7 @@ void o2sim()
     // a simple "box" generator
     std::cout << "Init box generator\n";
     auto boxGen = new FairBoxGenerator(211, 10); /*protons*/
-    boxGen->SetEtaRange(-0.9, 0.9);
+    boxGen->SetEtaRange(-5.9, 5.9);
     boxGen->SetPRange(0.1, 5);
     boxGen->SetPhiRange(0., 360.);
     boxGen->SetDebug(kTRUE);
