@@ -66,6 +66,8 @@ public:
   int* ClusterAttachment() const {return(fClusterAttachment);}
   int MaxId() const {return(fMaxID);}
   unsigned int* TrackOrder() const {return(fTrackOrder);}
+  
+  enum attachTypes {attachAttached = 0x40000000, attachGood = 0x20000000, attachGoodLeg = 0x10000000, attachTube = 0x08000000, attachTrackMask = 0x07FFFFFF, attachFlagMask = 0xF8000000};
 
 private:
   

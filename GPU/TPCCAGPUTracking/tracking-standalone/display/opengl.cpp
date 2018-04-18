@@ -41,6 +41,7 @@ void ShowNextEvent() {needUpdate = 1;}
 
 OpenGLConfig cfg;
 static auto& config = configStandalone.configGL;
+AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
 struct DrawArraysIndirectCommand
 {
@@ -188,6 +189,7 @@ int markClusters = 0;
 int hideRejectedClusters = 1;
 int hideUnmatchedClusters = 0;
 int hideRejectedTracks = 1;
+int markAdjacentClusters = 0;
 
 std::vector<std::array<int,37>> collisionClusters;
 int nCollisions = 1;
@@ -559,7 +561,22 @@ vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
 		const int cid = tracker.ClusterData()->Id(cidInSlice);
 		if (hideUnmatchedClusters && SuppressHit(cid)) continue;
 		bool draw = globalPos[cid].w == select;
-		if (markClusters)
+
+		if (markAdjacentClusters)
+		{
+			const int attach = hlt.Merger().ClusterAttachment()[cid];
+			if (attach)
+			{
+				if ((markAdjacentClusters & 2) && (attach & AliHLTTPCGMMerger::attachTube)) draw = select == 8;
+				else if ((markAdjacentClusters & 1) && (attach & (AliHLTTPCGMMerger::attachGood | AliHLTTPCGMMerger::attachTube)) == 0) draw = select == 8;
+				else if ((markAdjacentClusters & 4) && (attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) draw = select == 8;
+				else if (markAdjacentClusters & 8)
+				{
+					if (fabs(hlt.Merger().OutputTracks()[attach & AliHLTTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) draw = select == 8;
+				}
+			}
+		}
+		else if (markClusters)
 		{
 			const short flags = tracker.ClusterData()->Flags(cidInSlice);
 			const bool match = flags & markClusters;
@@ -698,7 +715,7 @@ vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboList* list)
+void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboList* list)
 {
 	std::vector<GLvertex> buffer;
 	std::vector<GLint> vertexBufferStartLocal[N_FINAL_TYPE];
@@ -720,8 +737,8 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt, int iSlice, unsigned int iCo
 			else if (nCollisions > 1)
 			{
 				int label = GetMCLabel(i);
+				printf("%d nCol %d\n", label, nCollisions);
 				if (label < -1) label = -label - 2;
-				if (label == -1) track = nullptr;
 				else
 				{
 					unsigned int k = 0;
@@ -968,8 +985,6 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	static std::vector<vboList> GLpoints[fgkNSlices][N_POINTS_TYPE];
 	static vboList glDLgrid[fgkNSlices];
 
-	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-	
 	//Make sure event gets not overwritten during display
 	if (animateTime < 0)
 	{
@@ -1380,7 +1395,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			{
 				for (int iCol = 0;iCol < nCollisions;iCol++)
 				{
-					DrawFinal(hlt, iSlice, iCol, &prop, &glDLfinal[iSlice][iCol][0]);
+					DrawFinal(iSlice, iCol, &prop, &glDLfinal[iSlice][iCol][0]);
 				}
 			}
 
@@ -1577,7 +1592,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				if (cfg.propagateTracks == 3) drawVertices(glDLfinal[iSlice][iCol][3], GL_LINE_STRIP);
 			}
 		}
-		if (markClusters)
+		if (markClusters || markAdjacentClusters)
 		{
 			SetColorMarked();
 			LOOP_SLICE LOOP_COLLISION drawVertices(GLpoints[iSlice][8][iCol], GL_POINTS);
@@ -1757,9 +1772,8 @@ const char* HelpText[] = {
 	"[n] / [SPACE]            Next event", 
 	"[q] / [Q] / [ESC]        Quit", 
 	"[r]                      Reset Display Settings", 
-	"[l] / [k]                Draw single slice (next  / previous slice)", 
-	"[J]                      Draw related slices (same plane in phi)", 
-	"[z] / [u]                Show splitting of TPC in slices by extruding volume, [U] resets", 
+	"[l] / [k] / [J]          Draw single slice (next  / previous slice), draw related slices (same plane in phi)", 
+	"[;] / [:]                Show splitting of TPC in slices by extruding volume, [:] resets", 
 	"[y] / [Y] / [X] / [M]    Start Animation / Add animation point / Reset / Cycle mode", 
 	"[>] / [<]                Toggle config interpolation during animation / change animation interval (via movement)",
 	"[g]                      Draw Grid", 
@@ -1767,6 +1781,7 @@ const char* HelpText[] = {
 	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
 	"[.]                      Exclude rejected tracks", 
 	"[c]                      Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
+	"[B]                      Mark clusters attached as adjacent",
 	"[L] / [K]                Draw single collisions (next / previous)",
 	"[C]                      Colorcode clusters of different collisions", 
 	"[v]                      Hide rejected clusters from tracks", 
@@ -1798,8 +1813,9 @@ const char* HelpText[] = {
 	"[MOUSE 2]                Shift camera", 
 	"[MOUSE 1+2]              Zoom / Rotate", 
 	"[SHIFT]                  Slow Zoom / Move / Rotate",
-	"[ALT] / [CTRL] / [M]     Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
+	"[ALT] / [CTRL] / [m]     Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
 	"[1] ... [8] / [V]        Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
+	//FREE: u z
 };
 
 void PrintHelp()
@@ -1945,6 +1961,15 @@ void HandleKeyRelease(int wParam, char key)
 		SetInfo("Cluster flag highlight mask set to %d (%s)", markClusters, markClusters == 0 ? "off" : markClusters == 1 ? "split pad" : markClusters == 2 ? "split time" : markClusters == 4 ? "edge" : markClusters == 8 ? "singlePad" : markClusters == 0x10 ? "reject distance" : "reject error");
 		updateDLList = true;
 	}
+	else if (wParam == 'B')
+	{
+		markAdjacentClusters++;
+		if (markAdjacentClusters == 5) markAdjacentClusters = 7;
+		if (markAdjacentClusters == 9) markAdjacentClusters = 15;
+		if (markAdjacentClusters == 16) markAdjacentClusters = 0;
+		SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", markAdjacentClusters, markAdjacentClusters & 1 ? "yes" : " no", markAdjacentClusters & 2 ? "yes" : " no", markAdjacentClusters & 4 ? "yes" : " no", markAdjacentClusters & 8 ? "yes" : " no");
+		updateDLList = true;
+	}
 	else if (wParam == 'C')
 	{
 		cfg.colorCollisions ^= 1;
@@ -2032,14 +2057,14 @@ void HandleKeyRelease(int wParam, char key)
 		SetInfo("OpenGL Indirect Draw %s", useGLIndirectDraw ? "enabled" : "disabled");
 		updateDLList = true;
 	}
-	else if (wParam == 'z')
+	else if (key == ';')
 	{
 		updateDLList = true;
 		Xadd += 60;
 		Zadd += 60;
 		SetInfo("TPC sector separation: %f %f", Xadd, Zadd);
 	}
-	else if (wParam == 'u')
+	else if (key == ':')
 	{
 		updateDLList = true;
 		Xadd -= 60;

@@ -317,15 +317,15 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(AliHLTTPCGMMerger* merger, int
         cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
         int id = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
         int* weight = &merger->ClusterAttachment()[id];
-        if (*weight < 0) continue;
+        if (*weight & AliHLTTPCGMMerger::attachGood) continue;
         float y = y0 + hh.x * stepY;
         float z = z0 + hh.y * stepZ;
         float dy = y - fP[0];
         float dz = z - fP[1];
         if (dy * dy < sy2 && dz * dz < sz2)
         {
-          int myWeight = merger->TrackOrder()[iTrack] + 1;
-          if (goodLeg) myWeight += 1000000000;
+          int myWeight = merger->TrackOrder()[iTrack] | AliHLTTPCGMMerger::attachAttached | AliHLTTPCGMMerger::attachTube;
+          if (goodLeg) myWeight |= AliHLTTPCGMMerger::attachGoodLeg;
           CAMath::AtomicMax(weight, myWeight);
         }
       }

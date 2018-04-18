@@ -83,7 +83,7 @@ static TCanvas* cclust[3];
 static TPad* pclust[3];
 static TLegend* legendclust[3];
 
-long long int recClustersPhysics = 0, recClustersPhysicsNonFit = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClustersUnattached = 0, recClusters200MeV = 0;
+long long int recClustersPhysics = 0, recClustersRejected = 0,  recClustersTube = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClustersUnattached = 0, recClusters200MeV = 0;
 
 TH1F* tracks;
 TCanvas* ctracks;
@@ -837,13 +837,9 @@ void RunQA(bool matchOnly)
 	
 	for (int i = 0;i < merger.MaxId();i++)
 	{
-		int state = merger.ClusterAttachment()[i];
-		bool unattached = state == 0;
-		bool goodTrack = state > 0;
-		bool looper = abs(state) > 1000000000;
-		int id = abs(state);
-		if (looper) id -= 1000000000;
-		id--;
+		int attach = merger.ClusterAttachment()[i];
+		bool unattached = attach == 0;
+		int id = attach & AliHLTTPCGMMerger::attachTrackMask;
 		bool lowPt = false;
 		if (!unattached)
 		{
@@ -853,8 +849,9 @@ void RunQA(bool matchOnly)
 		}
 		if (unattached) recClustersUnattached++;
 		else if (lowPt) recClustersLowPt++;
-		else if (looper) recClustersLoopers++;
-		else if (!goodTrack) recClustersPhysicsNonFit++;
+		else if ((attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) recClustersLoopers++;
+		else if (attach & AliHLTTPCGMMerger::attachTube) recClustersTube++;
+		else if ((attach & AliHLTTPCGMMerger::attachGood) == 0) recClustersRejected++;
 		else recClustersPhysics++;
 	}
 	
@@ -1570,17 +1567,18 @@ int DrawQAHistograms()
 	
 	//Cluster rejection statistics
 	{
-		long long int clustersTotal = recClustersUnattached + recClustersLowPt + recClustersLoopers + recClustersPhysicsNonFit + recClustersPhysics;
+		long long int clustersTotal = recClustersUnattached + recClustersLowPt + recClustersLoopers + recClustersTube + recClustersRejected + recClustersPhysics;
 		if (clustersTotal > 0)
 		{
 			float fracPhysics = 100.f * recClustersPhysics / clustersTotal;
-			float fracPhysicsNonFit = 100.f * recClustersPhysicsNonFit / clustersTotal;
+			float fracRejected = 100.f * recClustersRejected / clustersTotal;
+			float fracTube = 100.f * recClustersTube / clustersTotal;
 			float fracLoopers = 100.f * recClustersLoopers / clustersTotal;
 			float fracLowPt = 100.f * recClustersLowPt / clustersTotal;
 			float fracUnattached = 100.f * recClustersUnattached / clustersTotal;
 			float frac200MeV = 100.f * recClusters200MeV / clustersTotal;
-			printf("Cluster statistics: Total %'lld - Physics %'lld (%1.2f%%) - Physics (not in fit) %'lld (%1.2f%%) - Looping legs %'lld (%1.2f%%) - low Pt < 50 MeV %'lld (%1.2f%%) - Unattached %'lld (%1.2f%%)   -   < 200 MeV %'lld (%1.2f%%)\n",
-				clustersTotal, recClustersPhysics, fracPhysics, recClustersPhysicsNonFit, fracPhysicsNonFit, recClustersLoopers, fracLoopers, recClustersLowPt, fracLowPt, recClustersUnattached, fracUnattached, recClusters200MeV, frac200MeV);
+			printf("Cluster statistics: Total %'lld - Physics %'lld (%1.2f%%) - Physics (not in fit) %'lld (%1.2f%%) - Tube %'lld (%1.2f%%) - Looping legs %'lld (%1.2f%%) - low Pt < 50 MeV %'lld (%1.2f%%) - Unattached %'lld (%1.2f%%)   -   < 200 MeV %'lld (%1.2f%%)\n",
+				clustersTotal, recClustersPhysics, fracPhysics, recClustersRejected, fracRejected, recClustersTube, fracTube, recClustersLoopers, fracLoopers, recClustersLowPt, fracLowPt, recClustersUnattached, fracUnattached, recClusters200MeV, frac200MeV);
 		}
 	}
 	
