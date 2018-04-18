@@ -35,15 +35,15 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     "reader",
     Inputs{},
     {
-      OutputSpec{"TPC", "CLUSTERS"},
-      OutputSpec{"ITS", "CLUSTERS"}
+      OutputSpec{{"tpc"}, "TPC", "CLUSTERS"},
+      OutputSpec{{"its"}, "ITS", "CLUSTERS"}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
        // Creates a new message of size 1000 which
        // has "TPC" as data origin and "CLUSTERS" as data description.
-       auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, 1000);
+       auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{"tpc"}, 1000);
        int i = 0;
 
        for (auto &cluster : tpcClusters) {
@@ -55,7 +55,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
          i++;
        }
 
-       auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, 1000);
+       auto itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{"its"}, 1000);
        i = 0;
        for (auto &cluster : itsClusters) {
          assert(i < 1000);
@@ -73,9 +73,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
   DataProcessorSpec tpcClusterSummary{
     "tpc-cluster-summary",
     { InputSpec{ "clusters", "TPC", "CLUSTERS"} },
-    { OutputSpec{ "TPC", "SUMMARY"} },
+    { OutputSpec{ {"summary"}, "TPC", "SUMMARY"} },
     AlgorithmSpec{ [](ProcessingContext& ctx) {
-      auto tpcSummary = ctx.outputs().make<Summary>(Output{ "TPC", "SUMMARY", 0 }, 1);
+      auto tpcSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
       tpcSummary.at(0).inputCount = ctx.inputs().size();
     } },
     { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
@@ -86,10 +86,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     "its-cluster-summary",
     { InputSpec{ "clusters", "ITS", "CLUSTERS" } },
     {
-      OutputSpec{ "ITS", "SUMMARY" },
+      OutputSpec{ {"summary"}, "ITS", "SUMMARY" },
     },
     AlgorithmSpec{ [](ProcessingContext& ctx) {
-      auto itsSummary = ctx.outputs().make<Summary>(Output{ "ITS", "SUMMARY", 0 }, 1);
+      auto itsSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
       itsSummary.at(0).inputCount = ctx.inputs().size();
     } },
     { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
