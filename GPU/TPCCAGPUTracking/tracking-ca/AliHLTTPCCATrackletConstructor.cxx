@@ -27,7 +27,6 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCATrackletConstructor.h"
-#include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCAHit.h"
 
 MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::InitTracklet( MEM_LG2(AliHLTTPCCATrackParam) &tParam )
@@ -46,26 +45,6 @@ MEM_CLASS_PRE2() GPUdi() bool AliHLTTPCCATrackletConstructor::CheckCov(MEM_LG2(A
       if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
       return(ok);
 }
-
-#ifdef EXTERN_ROW_HITS
-  #define GETRowHit(iRow) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr]
-  #define SETRowHit(iRow, val) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = val
-#else
-  #define GETRowHit(iRow) tracklet.RowHit(iRow)
-  #define SETRowHit(iRow, val) tracklet.SetRowHit(iRow, val)
-#endif
-
-#ifdef HLTCA_GPUCODE
-  #define MAKESharedRef(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) &varname = varshared;
-#else
-  #define MAKESharedRef(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) &varname = varglobal;
-#endif
-
-#ifdef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
-  #define TEXTUREFetchCons(type, texture, address, entry) tex1Dfetch(texture, ((char*) address - tracker.Data().GPUTextureBase()) / sizeof(type) + entry);
-#else
-  #define TEXTUREFetchCons(type, texture, address, entry) address[entry];
-#endif
 
 MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,

@@ -75,7 +75,7 @@ AddOption(OMPThreads, int, -1, "omp", 't', "Number of OMP threads to run (-1: al
 AddOption(eventDisplay, bool, false, "display", 'd', "Show standalone event display", message("Event display: %s"))
 AddOption(qa, bool, false, "qa", 'q', "Enable tracking QA", message("Running QA: %s"))
 AddOption(eventGenerator, bool, false, "eventGenerator", 0, "Run event generator")
-AddOption(resetids, bool, false, "enumerateClusterIDs", 0, "Enumerate cluster IDs when loading clusters overwriting predefined IDs")
+AddOption(resetids, bool, true, "enumerateClusterIDs", 0, "Enumerate cluster IDs when loading clusters overwriting predefined IDs")
 AddOption(nways, int, 3, "NWays", 0, "Use n-way track-fit", min(1))
 AddOptionSet(nways, int, 3, "3Way", 0, "Use 3-way track-fit")
 AddOptionSet(nways, int, 1, "1Way", 0, "Use 3-way track-fit")

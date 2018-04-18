@@ -14,6 +14,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
 
+class AliHLTTPCGMMerger;
 class AliHLTTPCGMBorderTrack;
 class AliExternalTrackParam;
 class AliHLTTPCCAParam;
@@ -94,7 +95,8 @@ public:
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.) const ;
   GPUd() bool CheckCov() const ;
 
-  GPUd() bool Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI);
+  GPUd() bool Fit(AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI);
+  GPUd() void AttachClusters(AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, bool goodLeg);
   GPUd() void MarkClusters(AliHLTTPCGMMergedTrackHit* clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
   {
     clusters[ihitFirst].fState |= state; while (ihitFirst != ihitLast) {ihitFirst += wayDirection; clusters[ihitFirst].fState |= state;}
@@ -116,7 +118,7 @@ public:
     if( mask ) x = v;
   }
   
-  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param);
+  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, int iTrk, AliHLTTPCGMMerger* merger, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param);
   
   struct AliHLTTPCCAOuterParam {
     float fX, fAlpha;

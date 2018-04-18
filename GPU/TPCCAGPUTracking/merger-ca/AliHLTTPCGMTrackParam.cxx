@@ -27,6 +27,9 @@
 #include "AliHLTTPCGMBorderTrack.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMPolynomialField.h"
+#include "AliHLTTPCGMMerger.h"
+#include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCCAClusterData.h"
 #ifndef HLTCA_STANDALONE
 #include "AliExternalTrackParam.h"
 #endif
@@ -42,7 +45,7 @@
 
 CADEBUG(int cadebug_nTracks = 0;)
 
-GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, int &NTolerated, float &Alpha, int attempt, float maxSinPhi)
+GPUd() bool AliHLTTPCGMTrackParam::Fit(AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, int &NTolerated, float &Alpha, int attempt, float maxSinPhi)
 {
   const float kRho = 1.025e-3;//0.9e-3;
   const float kRadLen = 29.532;//28.94;
@@ -53,10 +56,10 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
 
   AliHLTTPCGMPropagator prop;
   prop.SetMaterial( kRadLen, kRho );
-  prop.SetPolynomialField( field );  
+  prop.SetPolynomialField( merger->pField() );
   prop.SetMaxSinPhi( maxSinPhi );
   prop.SetToyMCEventsFlag( param.ToyMCEventsFlag());
-  ShiftZ(field, clusters, param, N);
+  ShiftZ(merger->pField(), clusters, param, N);
 
   int nWays = param.GetNWays();
   int maxN = N;
@@ -204,6 +207,8 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
               continue;
           }
       }
+      
+      if (rejectChi2) AttachClusters(merger, clusters[ihit].fSlice, clusters[ihit].fRow, iTrk, clusters[ihit].fLeg == clusters[maxN - 1].fLeg);
 
       const int err2 = fNDF > 0 && CAMath::Abs(prop.GetSinPhi0())>=maxSinForUpdate;
       if ( err || err2 )
@@ -246,7 +251,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
       }
       else break; // bad chi2 for the whole track, stop the fit
     }
-    if (((nWays - iWay) & 1)) ShiftZ(field, clusters, param, N);
+    if (((nWays - iWay) & 1)) ShiftZ(merger->pField(), clusters, param, N);
   }
   ConstrainSinPhi();
   
@@ -281,6 +286,51 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMPolynomialField* field, 
   else if (Alpha <= -3.1415926535897) Alpha += 2*3.1415926535897;
   
   return(ok);
+}
+
+GPUd() void AliHLTTPCGMTrackParam::AttachClusters(AliHLTTPCGMMerger* merger, int slice, int iRow, int iTrack, bool goodLeg)
+{
+#if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
+    AliHLTTPCCATracker& tracker = *(merger->SliceTrackers() + slice);
+    MAKESharedRef(AliHLTTPCCARow, row, tracker.Row(iRow), s.fRows[iRow]);
+#ifndef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+    GPUglobalref() const cahit2 *hits = tracker.HitData(row);
+    GPUglobalref() const calink *firsthit = tracker.FirstHitInBin(row);
+#endif //!HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+    
+    const float y0 = row.Grid().YMin();
+    const float stepY = row.HstepY();
+    const float z0 = row.Grid().ZMin() - fZOffset;
+    const float stepZ = row.HstepZ();
+    int bin, ny, nz;
+    row.Grid().GetBinArea(fP[0], fP[1] + fZOffset, 1.5, 1.5, bin, ny, nz);
+    float sy2 = 6.25f, sz2 = 6.25f;
+
+    for (int k = 0;k <= nz;k++)
+    {
+      int nBinsY = row.Grid().Ny();
+      int mybin = bin + k * nBinsY;
+      unsigned int hitFst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin);
+      unsigned int hitLst = TEXTUREFetchCons(calink, gAliTexRefu, firsthit, mybin + ny + 1);
+      for ( unsigned int ih = hitFst; ih < hitLst; ih++ ) {
+        assert( (signed) ih < row.NHits() );
+        cahit2 hh = TEXTUREFetchCons(cahit2, gAliTexRefu2, hits, ih);
+        int id = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
+        int* weight = &merger->ClusterAttachment()[id];
+        if (*weight < 0) continue;
+        float y = y0 + hh.x * stepY;
+        float z = z0 + hh.y * stepZ;
+        float dy = y - fP[0];
+        float dz = z - fP[1];
+        if (dy * dy < sy2 && dz * dz < sz2)
+        {
+          int myWeight = merger->TrackOrder()[iTrack] + 1;
+          if (goodLeg) myWeight += 1000000000;
+          CAMath::AtomicMax(weight, myWeight);
+        }
+      }
+    }
+#endif
 }
 
 GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int N)
@@ -392,7 +442,7 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 }
 #endif
 
-GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param)
+GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, int iTrk, AliHLTTPCGMMerger* merger, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param)
 {
 	if( !track.OK() ) return;
 
@@ -407,7 +457,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 		AliHLTTPCGMTrackParam t = track.Param();
 		float Alpha = track.Alpha();  
 		CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt();)
-		bool ok = t.Fit( field, clusters + track.FirstClusterRef(), param, nTrackHits, NTolerated, Alpha, attempt );
+		bool ok = t.Fit( merger, iTrk, clusters + track.FirstClusterRef(), param, nTrackHits, NTolerated, Alpha, attempt );
 		CADEBUG(printf("Finished Fit Track %d\n", cadebug_nTracks);)
 		
 		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
@@ -444,11 +494,11 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, con
 
 #ifdef HLTCA_GPUCODE
 
-GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, const AliHLTTPCGMPolynomialField* field, AliHLTTPCGMMergedTrackHit* clusters, AliHLTTPCCAParam* param)
+GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, AliHLTTPCGMMergedTrackHit* clusters, AliHLTTPCCAParam* param)
 {
 	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
-	  AliHLTTPCGMTrackParam::RefitTrack(tracks[i], field, clusters, *param);
+		AliHLTTPCGMTrackParam::RefitTrack(tracks[i], i, (AliHLTTPCGMMerger*) gAliHLTTPCCATracker, clusters, *param);
 	}
 }
 

@@ -723,6 +723,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		out->SetNClusters( nClu );
 		out = out->NextTrack();
 	}
+	delete[] trackOrder;
 
 	useOutput->SetNTracks( nStoredTracks );
 	useOutput->SetNLocalTracks( nStoredLocalTracks );

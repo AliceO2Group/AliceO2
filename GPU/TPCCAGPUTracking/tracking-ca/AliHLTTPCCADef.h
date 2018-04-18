@@ -336,6 +336,26 @@ struct cahit2{cahit x, y;};
 #endif
 #endif
 
+#ifdef EXTERN_ROW_HITS
+  #define GETRowHit(iRow) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr]
+  #define SETRowHit(iRow, val) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = val
+#else
+  #define GETRowHit(iRow) tracklet.RowHit(iRow)
+  #define SETRowHit(iRow, val) tracklet.SetRowHit(iRow, val)
+#endif
+
+#ifdef HLTCA_GPUCODE
+  #define MAKESharedRef(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) &varname = varshared;
+#else
+  #define MAKESharedRef(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) &varname = varglobal;
+#endif
+
+#ifdef HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+  #define TEXTUREFetchCons(type, texture, address, entry) tex1Dfetch(texture, ((char*) address - tracker.Data().GPUTextureBase()) / sizeof(type) + entry);
+#else
+  #define TEXTUREFetchCons(type, texture, address, entry) address[entry];
+#endif
+
 #endif //ALIHLTTPCCADEF_H
 
 #ifdef HLTCA_CADEBUG
