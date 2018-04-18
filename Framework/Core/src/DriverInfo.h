@@ -68,6 +68,11 @@ enum struct DriverState {
   LAST
 };
 
+/// These are the possible actions we can do
+/// when a workflow is deemed complete (e.g. when we are done
+/// reading from file).
+enum struct CompletionPolicy { QUIT, WAIT, RESTART };
+
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
 struct DriverInfo {
@@ -94,6 +99,8 @@ struct DriverInfo {
   char** argv;
   /// Whether the driver was started in batch mode or not.
   bool batch;
+  /// What we should do when the workflow is completed.
+  enum CompletionPolicy completionPolicy;
   /// The offset at which the process was started.
   std::chrono::time_point<std::chrono::steady_clock> startTime;
   /// The optional timeout after which the driver will request

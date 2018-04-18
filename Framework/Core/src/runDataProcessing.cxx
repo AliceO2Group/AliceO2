@@ -77,6 +77,37 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
+// To be used to allow specifying the CompletionPolicy on the command line.
+namespace o2
+{
+namespace framework
+{
+std::istream& operator>>(std::istream& in, enum CompletionPolicy& policy)
+{
+  std::string token;
+  in >> token;
+  if (token == "quit") {
+    policy = CompletionPolicy::QUIT;
+  } else if (token == "wait") {
+    policy = CompletionPolicy::WAIT;
+  } else
+    in.setstate(std::ios_base::failbit);
+  return in;
+}
+
+std::ostream& operator<<(std::ostream& out, const enum CompletionPolicy& policy)
+{
+  if (policy == CompletionPolicy::QUIT) {
+    out << "quit";
+  } else if (policy == CompletionPolicy::WAIT) {
+    out << "wait";
+  } else
+    out.setstate(std::ios_base::failbit);
+  return out;
+}
+} // namespace framework
+} // namespace o2
+
 // Read from a given fd and print it.
 // return true if we can still read from it,
 // return false if we need to close the input pipe.
@@ -635,9 +666,12 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       case DriverState::RUNNING:
         // Calculate what we should do next and eventually
         // show the GUI
-        if (driverInfo.batch || guiQuitRequested || (checkIfCanExit(infos) == true)) {
-          // Something requested to quit. Let's update the GUI
-          // one more time and then EXIT.
+        if (guiQuitRequested ||
+            (driverInfo.completionPolicy == CompletionPolicy::QUIT && (checkIfCanExit(infos) == true))) {
+          // Something requested to quit. This can be a user
+          // interaction with the GUI or (if --completion-policy=quit)
+          // it could mean that the workflow does not have anything else to do.
+          // Let's update the GUI one more time and then EXIT.
           LOG(INFO) << "Quitting";
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
           driverInfo.states.push_back(DriverState::GUI);
@@ -779,6 +813,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies)
 {
+  enum CompletionPolicy policy;
   bpo::options_description executorOptions("Executor options");
   executorOptions.add_options()                                                                             //
     ("help,h", "print this help")                                                                           //
@@ -786,8 +821,10 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
     ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode") //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
-    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
+    ("completion-policy,c", bpo::value<CompletionPolicy>(&policy)->default_value(CompletionPolicy::QUIT),
+     "what to do when processing is finished")                                                      //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output") //
+    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")            //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
@@ -811,7 +848,12 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   // FIXME: decide about the policy for handling unrecognized arguments
   // command_line_parser with option allow_unregistered() can be used
   bpo::variables_map varmap;
-  bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
+  try {
+    bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
+  } catch (std::exception const& e) {
+    std::cout << "Error: " << e.what() << std::endl;
+    exit(1);
+  }
 
   if (varmap.count("help")) {
     bpo::options_description helpOptions;
@@ -834,6 +876,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();
+  driverInfo.completionPolicy = varmap["completion-policy"].as<CompletionPolicy>();
   driverInfo.startTime = std::chrono::steady_clock::now();
   driverInfo.timeout = varmap["timeout"].as<double>();
 
