@@ -756,6 +756,7 @@ o2_define_bucket(
     data_format_TPC_bucket
     ParBase
     MathUtils
+    CCDB
     Core Hist Gpad
     SimulationDataFormat
     CommonDataFormat
@@ -763,6 +764,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/CCDB/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include

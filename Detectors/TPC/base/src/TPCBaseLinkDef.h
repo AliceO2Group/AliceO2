@@ -26,6 +26,7 @@
 #pragma link C++ class o2::TPC::CalDet<unsigned>+;
 #pragma link C++ class o2::TPC::CalDet<short>+;
 #pragma link C++ class o2::TPC::CalDet<bool>+;
+#pragma link C++ class o2::TPC::CDBInterface;
 #pragma link C++ class o2::TPC::ContainerFactory;
 #pragma link C++ class o2::TPC::CRU;
 #pragma link C++ class o2::TPC::Digit+;
@@ -58,5 +59,13 @@
 #pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<int>);
 #pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<short>);
 #pragma link C++ function o2::TPC::Painter::draw(o2::TPC::CalDet<bool>);
+
+// for CDB
+#pragma link C++ class o2::TObjectWrapper<o2::TPC::CalArray<float>>+;
+#pragma link C++ class o2::TObjectWrapper<o2::TPC::CalDet<float>>+;
+#pragma link C++ class o2::TObjectWrapper<o2::TPC::ParameterDetector>+;
+#pragma link C++ class o2::TObjectWrapper<o2::TPC::ParameterElectronics>+;
+#pragma link C++ class o2::TObjectWrapper<o2::TPC::ParameterGas>+;
+#pragma link C++ class o2::TObjectWrapper<o2::TPC::ParameterGEM>+;
 
 #endif
