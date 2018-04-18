@@ -320,28 +320,24 @@ public:
   {
     return make<T>(getOutputByBind(ref), std::forward<Args>(args)...);
   }
+
  private:
-  FairMQDevice *mDevice;
+  FairMQDevice* mDevice;
   AllowedOutputRoutes mAllowedOutputRoutes;
-  MessageContext *mContext;
-  RootObjectContext *mRootContext;
+  MessageContext* mContext;
+  RootObjectContext* mRootContext;
 
   std::string matchDataHeader(const Output &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const &spec,
                                            std::string const &channel,
                                            o2::header::SerializationMethod serializationMethod);
 
-  Output getOutputByBind(OutputRef const &ref)
+  Output getOutputByBind(OutputRef const& ref)
   {
     for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
       if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
         auto spec = mAllowedOutputRoutes[ri].matcher;
-        return Output{
-          spec.origin,
-          spec.description,
-          ref.subSpec,
-          spec.lifetime
-        };
+        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime };
       }
     }
     throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
