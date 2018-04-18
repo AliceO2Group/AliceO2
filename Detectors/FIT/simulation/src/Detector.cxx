@@ -267,20 +267,23 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-
+ Int_t  quadrant, mcp;
+  
   TLorentzVector position;
   if (fMC->IsTrackEntering()) {
     fMC->TrackPosition(position);
     float x = position.X();
     float y = position.Y();
     float z = position.Z();
-
-    float time = fMC->TrackTime() * 1.0e12;
+    fMC->CurrentVolID(quadrant);
+    fMC->CurrentVolOffID(1,mcp);
+     float time = fMC->TrackTime() * 1.0e12;
     int trackID = fMC->GetStack()->GetCurrentTrackNumber();
-    int detID = v->getMCid();
-    float etot = fMC->Etot();
+    int detID = 4*(mcp) +quadrant -1;
+     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
+    //  if (iPart != 50000050) printf("@@@@@  %f %f %f %i %i %i\n",x,y,z,detID,mcp,quadrant );
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {
