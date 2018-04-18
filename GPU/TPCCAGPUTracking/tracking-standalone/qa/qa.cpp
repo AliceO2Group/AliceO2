@@ -83,6 +83,8 @@ static TCanvas* cclust[3];
 static TPad* pclust[3];
 static TLegend* legendclust[3];
 
+long long int recClustersPhysics = 0, recClustersPhysicsNonFit = 0, recClustersLoopers = 0, recClustersLowPt = 0, recClustersUnattached = 0, recClusters200MeV = 0;
+
 TH1F* tracks;
 TCanvas* ctracks;
 TPad* ptracks;
@@ -832,6 +834,30 @@ void RunQA(bool matchOnly)
 		tracks->Fill(1.f / fabs(track.GetParam().GetQPt()));
 		ncl->Fill(track.NClustersFitted());
 	}
+	
+	for (int i = 0;i < merger.MaxId();i++)
+	{
+		int state = merger.ClusterAttachment()[i];
+		bool unattached = state == 0;
+		bool goodTrack = state > 0;
+		bool looper = abs(state) > 1000000000;
+		int id = abs(state);
+		if (looper) id -= 1000000000;
+		id--;
+		bool lowPt = false;
+		if (!unattached)
+		{
+			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[id];
+			lowPt = fabs(track.GetParam().GetQPt()) > 20;
+			if (fabs(track.GetParam().GetQPt()) > 5) recClusters200MeV++;
+		}
+		if (unattached) recClustersUnattached++;
+		else if (lowPt) recClustersLowPt++;
+		else if (looper) recClustersLoopers++;
+		else if (!goodTrack) recClustersPhysicsNonFit++;
+		else recClustersPhysics++;
+	}
+	
 	if (TIMING) printf("QA Time: Others:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 	
 	//Create CSV DumpTrackHits
@@ -1540,6 +1566,22 @@ int DrawQAHistograms()
 		legendncl->Draw();
 		cncl->cd();
 		cncl->Print("plots/nClusters.pdf");
+	}
+	
+	//Cluster rejection statistics
+	{
+		long long int clustersTotal = recClustersUnattached + recClustersLowPt + recClustersLoopers + recClustersPhysicsNonFit + recClustersPhysics;
+		if (clustersTotal > 0)
+		{
+			float fracPhysics = 100.f * recClustersPhysics / clustersTotal;
+			float fracPhysicsNonFit = 100.f * recClustersPhysicsNonFit / clustersTotal;
+			float fracLoopers = 100.f * recClustersLoopers / clustersTotal;
+			float fracLowPt = 100.f * recClustersLowPt / clustersTotal;
+			float fracUnattached = 100.f * recClustersUnattached / clustersTotal;
+			float frac200MeV = 100.f * recClusters200MeV / clustersTotal;
+			printf("Cluster statistics: Total %'lld - Physics %'lld (%1.2f%%) - Physics (not in fit) %'lld (%1.2f%%) - Looping legs %'lld (%1.2f%%) - low Pt < 50 MeV %'lld (%1.2f%%) - Unattached %'lld (%1.2f%%)   -   < 200 MeV %'lld (%1.2f%%)\n",
+				clustersTotal, recClustersPhysics, fracPhysics, recClustersPhysicsNonFit, fracPhysicsNonFit, recClustersLoopers, fracLoopers, recClustersLowPt, fracLowPt, recClustersUnattached, fracUnattached, recClusters200MeV, frac200MeV);
+		}
 	}
 	
 	if (tout && !config.inputHistogramsOnly && config.writeMCLabels)
