@@ -15,6 +15,7 @@ set(SRCS
 )
 
 set(HEADERS
+   include/${MODULE_NAME}/ClusterGroupAttribute.h
    include/${MODULE_NAME}/ClusterNative.h
    include/${MODULE_NAME}/ClusterHardware.h
    include/${MODULE_NAME}/Helpers.h

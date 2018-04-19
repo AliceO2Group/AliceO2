@@ -15,7 +15,10 @@
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #include <cstdint>
 #include <vector>
+#include <cstddef>   // for size_t
+#include <stdexcept> // for runtime_error
 #include "DataFormatsTPC/Constants.h"
+#include "DataFormatsTPC/ClusterGroupAttribute.h"
 
 namespace o2
 {
@@ -107,10 +110,14 @@ struct ClusterNative {
  * \struct ClusterNativeContainer
  * A container class for a collection of ClusterNative object
  * belonging to a row.
+ * The struct inherits the sector and globalPadRow members of ClusterGroupAttribute.
  *
  * Not for permanent storage.
  */
-struct ClusterNativeContainer {
+struct ClusterNativeContainer : public ClusterGroupAttribute {
+  using attribute_type = ClusterGroupAttribute;
+  using value_type = ClusterNative;
+
   static bool sortComparison(const ClusterNative& a, const ClusterNative& b)
   {
     if (a.getTimePacked() != b.getTimePacked()) {
@@ -120,18 +127,39 @@ struct ClusterNativeContainer {
     }
   }
 
-  uint8_t sector;
-  uint8_t globalPadRow;
+  size_t getFlatSize() const { return sizeof(attribute_type) + clusters.size() * sizeof(value_type); }
+
+  const value_type* data() const { return clusters.data(); }
+
+  value_type* data() { return clusters.data(); }
+
   std::vector<ClusterNative> clusters;
 };
 
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but jus point to
 // the data inside a buffer.
 struct ClusterNativeAccessFullTPC {
-  ClusterNative* clusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
+  const ClusterNative* clusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
   unsigned int nClusters[o2::TPC::Constants::MAXSECTOR][o2::TPC::Constants::MAXGLOBALPADROW];
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth[o2::TPC::Constants::MAXSECTOR]
                                                                      [o2::TPC::Constants::MAXGLOBALPADROW];
+
+  // add clusters from a flattened buffer starting with ClusterGroupAttribute followed by the
+  // array of ClusterNative, the number of clusters is determined from the size of the buffer
+  // FIXME: add mc labels
+  template <typename AttributeT = ClusterGroupAttribute>
+  void addFlatBuffer(unsigned char* buffer, size_t size)
+  {
+    if (buffer == nullptr || size < sizeof(AttributeT) || (size - sizeof(AttributeT)) % sizeof(ClusterNative) != 0) {
+      // this is not a valid message
+      throw std::runtime_error("incompatible message size");
+    }
+    const auto& groupAttribute = *reinterpret_cast<AttributeT*>(buffer);
+    auto nofClusters = (size - sizeof(AttributeT)) / sizeof(ClusterNative);
+    auto ptrClusters = reinterpret_cast<ClusterNative*>(buffer + sizeof(groupAttribute));
+    clusters[groupAttribute.sector][groupAttribute.globalPadRow] = ptrClusters;
+    nClusters[groupAttribute.sector][groupAttribute.globalPadRow] = nofClusters;
+  }
 };
 }
 }

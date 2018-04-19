@@ -79,6 +79,10 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
     numChunks = 1;
   }
 
+  // index to the pointers in the store, used to assign converted clusters and sort them
+  // while outputClusters object only holds the const pointer for read access
+  ClusterNative* clusterptrs[Sector::MAXSECTOR][Constants::MAXGLOBALPADROW];
+  memset(clusterptrs, 0, sizeof(ClusterNative*) * Sector::MAXSECTOR * Constants::MAXGLOBALPADROW);
   Mapper& mapper = Mapper::instance();
   for (int iter = 0; iter < 2; iter++) {
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
@@ -92,16 +96,16 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
       if (inputClustersChain) {
         inputClustersChain->GetEntry(iChunk);
       }
-      for (int icluster = 0; icluster < inputClustersArray->size(); ++icluster) {
-        const auto& cluster = (*inputClustersArray)[icluster];
+      for (const auto& cluster : *inputClustersArray) {
         const CRU cru(cluster.getCRU());
         const Sector sector = cru.sector();
         const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
         const int rowInSector = cluster.getRow() + region.getGlobalRowOffset();
 
+        // in first iteration (== 0) only the clusters are counted
+        // clusters are converted in the second iteraton once store has been allocated
         if (iter == 1) {
-          ClusterNative& oCluster =
-            outputClusters.clusters[sector][rowInSector][outputClusters.nClusters[sector][rowInSector]];
+          ClusterNative& oCluster = clusterptrs[sector][rowInSector][outputClusters.nClusters[sector][rowInSector]];
           oCluster.setTimeFlags(cluster.getTimeMean(), 0);
           oCluster.setPad(cluster.getPadMean());
           oCluster.setSigmaTime(cluster.getTimeSigma());
@@ -118,6 +122,7 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
       unsigned int pos = 0;
       for (int i = 0; i < Sector::MAXSECTOR; i++) {
         for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+          clusterptrs[i][j] = &clusterMemory[pos];
           outputClusters.clusters[i][j] = &clusterMemory[pos];
           pos += outputClusters.nClusters[i][j];
         }
@@ -126,7 +131,7 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
   }
   for (int i = 0; i < Sector::MAXSECTOR; i++) {
     for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-      std::sort(outputClusters.clusters[i][j], outputClusters.clusters[i][j] + outputClusters.nClusters[i][j],
+      std::sort(clusterptrs[i][j], clusterptrs[i][j] + outputClusters.nClusters[i][j],
                 ClusterNativeContainer::sortComparison);
     }
   }

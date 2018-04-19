@@ -15,7 +15,7 @@
 /// @since  2018-03-15
 /// @brief  A generic reader for ROOT TTrees
 
-#include "Framework/OutputSpec.h"
+#include "Framework/Output.h"
 #include <TChain.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -37,17 +37,18 @@ namespace framework
 /// A generic reader interface for ROOT TTrees
 ///
 /// The reader interfaces one TTree specified by its name, and supports this
-/// tree to be distributed over multiple files multiple files.
+/// tree to be distributed over multiple files.
 ///
 /// The class uses a KeyType to define sinks for specific branches, the default
-/// key type is OutputSpec. Branches are defined for processing by pairs of
+/// key type is DPL `Output`. Branches are defined for processing by pairs of
 /// key type and branch name.
+/// Note that `Output` is probably going to be changed to `OutputDesc`
 ///
 /// Usage (for the default KeyType):
 ///   RootTreeReader(treename,
 ///                  filename1, filename2, ...,
-///                  OutputSpec{...}, branchname1,
-///                  OutputSpec{...}, branchname2,
+///                  Output{...}, branchname1,
+///                  Output{...}, branchname2,
 ///                 ) reader;
 ///   auto processSomething = [] (auto& key, auto& object) {/*do something*/};
 ///   while (reader.next()) {
@@ -56,16 +57,16 @@ namespace framework
 ///   // -- or --
 ///   while ((++reader)(processSomething));
 ///
-/// In the DPL AlgorithmSpec the processing lambda can simple look like
+/// In the DPL AlgorithmSpec, the processing lambda can simply look like
 ///   auto processingFct = [reader](ProcessingContext& pc) {
 ///     // increment the reader and invoke it for the processing context
 ///     (++reader)(pc);
 ///   };
-/// Note that reader has to be set up in the init callback and it must
+/// Note that `reader` has to be set up in the init callback and it must
 /// be static there to persist. It can also be a shared_pointer, which then
-/// requires additional dereferencing in the syntax.
-///
-template <typename KeyType = OutputSpec>
+/// requires additional dereferencing in the syntax. The processing lambda has
+/// to capture the shared pointer instance by copy.
+template <typename KeyType = Output>
 class RootTreeReader
 {
  public:
