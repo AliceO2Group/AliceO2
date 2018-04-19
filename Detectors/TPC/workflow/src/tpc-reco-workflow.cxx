@@ -22,6 +22,7 @@
 #include "ClusterConverterSpec.h"
 #include "ClusterDecoderRawSpec.h"
 #include "CATrackerSpec.h"
+#include "RootFileWriterSpec.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 
@@ -102,6 +103,7 @@ void defineDataProcessing(WorkflowSpec& specs)
 
   if (true) {
     specs.emplace_back(o2::TPC::getCATrackerSpec());
+    specs.emplace_back(o2::TPC::getRootFileWriterSpec());
   } else {
     specs.emplace_back(DataProcessorSpec{ "writer",
                                           { createInputSpec() },

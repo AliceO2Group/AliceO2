@@ -82,6 +82,7 @@ DataProcessorSpec getCATrackerSpec()
         LOG(ERROR) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
+      pc.outputs().snapshot(Output{ "TPC", "TRACKS", 0, Lifetime::Timeframe }, tracks);
     };
 
     return processingFct;
@@ -89,7 +90,7 @@ DataProcessorSpec getCATrackerSpec()
 
   return DataProcessorSpec{ "tracker",                                                                // process id
                             { InputSpec{ "input", "TPC", "CLUSTERNATIVE", 0, Lifetime::Timeframe } }, //
-                            {},                                                                       //
+                            { OutputSpec{ "TPC", "TRACKS", 0, Lifetime::Timeframe } },                //
                             AlgorithmSpec(initFunction) };
 }
 
