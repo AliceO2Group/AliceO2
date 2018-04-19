@@ -15,6 +15,7 @@
 #include <TGeoManager.h>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include "TChain.h"
 
