@@ -21,8 +21,6 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
                   // misc options
                   ,
                   bool useALPIDE = true)
-// Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t useALPIDE=kTRUE, Float_t rate=50.e3, std::string inputGRP =
-// "o2sim_grp.root")
 {
   // if rate>0 then continuous simulation for this rate will be performed
 
@@ -30,12 +28,6 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
   logger->SetLogScreenLevel("INFO");
-
-  // Input and output file name
-  // std::stringstream inputfile, outputfile, paramfile;
-  // inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
-  // paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
-  // outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
 
   // Setup timer
   TStopwatch timer;
@@ -123,4 +115,14 @@ int updateITSinGRP(std::string inputGRP, std::string grpName)
   flGRP.WriteObjectAny(grp, grp->Class(), grpName.data());
   flGRP.Close();
   return 0;
+}
+
+void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp = kTRUE, Float_t rate = 50.e3)
+{
+  // Input and output file name
+  std::stringstream inputfile, outputfile, paramfile;
+  inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
+  paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
+  outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
+  run_digi_its(rate, outputfile.str().c_str(), inputfile.str().c_str(), paramfile.str().c_str(), "", alp);
 }
