@@ -26,7 +26,7 @@
 
 using namespace o2::framework;
 using namespace o2::framework::DataSamplingConfig;
-using namespace AliceO2::Configuration;
+using namespace o2::configuration;
 
 namespace o2
 {
