@@ -20,6 +20,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
+#include "ComputingResource.h"
 #include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>
 
@@ -36,7 +37,8 @@ struct DeviceSpecHelpers {
   static void dataProcessorSpecs2DeviceSpecs(
       const WorkflowSpec &workflow,
       std::vector<ChannelConfigurationPolicy> const &channelPolicies,
-      std::vector<DeviceSpec> &devices
+      std::vector<DeviceSpec> &devices,
+      std::vector<ComputingResource> &resources
       );
 
   /// Helper to prepare the arguments which will be used to 
@@ -58,7 +60,7 @@ struct DeviceSpecHelpers {
       std::vector<DeviceSpec> &devices,
       std::vector<DeviceId> &deviceIndex,
       std::vector<DeviceConnectionId> &connections,
-      unsigned short &nextPort,
+      std::vector<ComputingResource> &resources,
       const std::vector<size_t> &outEdgeIndex,
       const std::vector<DeviceConnectionEdge> &logicalEdges,
       const std::vector<EdgeAction> &actions,
@@ -74,7 +76,7 @@ struct DeviceSpecHelpers {
   static void processInEdgeActions(
         std::vector<DeviceSpec> &devices,
         std::vector<DeviceId> &deviceIndex,
-        unsigned short &nextPort,
+        std::vector<ComputingResource> &resources,
         const std::vector<DeviceConnectionId> &connections,
         const std::vector<size_t> &inEdgeIndex,
         const std::vector<DeviceConnectionEdge> &logicalEdges,

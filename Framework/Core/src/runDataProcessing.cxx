@@ -35,6 +35,8 @@
 #include "DriverControl.h"
 #include "DriverInfo.h"
 #include "GraphvizHelpers.h"
+#include "SimpleResourceManager.h"
+
 #include "options/FairMQProgOptions.h"
 
 #include <cinttypes>
@@ -52,8 +54,10 @@
 
 #include <sys/resource.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <boost/program_options.hpp>
@@ -61,6 +65,46 @@
 
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/FairMQLogger.h>
+
+/// Helper class to find a free port.
+class FreePortFinder {
+public:
+  FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step)
+    : mInitialPort{initialPort},
+      mFinalPort{finalPort},
+      mStep{step},
+      mSocket{socket(AF_INET, SOCK_STREAM, 0)}
+  {}
+
+  void scan() {
+    struct sockaddr_in addr;
+    for (mPort = mInitialPort; mPort < mFinalPort; mPort += mStep) {
+      memset(&addr, 0, sizeof(addr));
+      addr.sin_family = AF_INET;
+      addr.sin_addr.s_addr = INADDR_ANY;
+      addr.sin_port = htons(mPort);
+      if (bind(mSocket, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+        LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
+                  << "] already taken. Skipping";
+        continue;
+      }
+      LOG(INFO) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
+      break;
+    }
+  }
+
+  ~FreePortFinder() {
+    close(mSocket);
+  }
+  unsigned short port() { return mPort + 1; }
+  unsigned short range() {return mStep; }
+private:
+  int mSocket;
+  unsigned short mInitialPort;
+  unsigned short mFinalPort;
+  unsigned short mStep;
+  unsigned short mPort;
+};
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
@@ -538,6 +582,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   DeviceInfos infos;
   DeviceControls controls;
   DeviceExecutions deviceExecutions;
+  auto resourceManager = std::make_unique<SimpleResourceManager>(driverInfo.startPort, driverInfo.portRange);
 
   void* window = nullptr;
   decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
@@ -619,7 +664,8 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         break;
       case DriverState::MATERIALISE_WORKFLOW:
         try {
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, deviceSpecs);
+          std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, deviceSpecs, resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -821,7 +867,9 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
     ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode") //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
-    ("completion-policy,c", bpo::value<CompletionPolicy>(&policy)->default_value(CompletionPolicy::QUIT),
+    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
+    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
+    ("completion-policy,c", bpo::value<CompletionPolicy>(&policy)->default_value(CompletionPolicy::QUIT),   //
      "what to do when processing is finished")                                                      //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output") //
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")            //
@@ -879,10 +927,21 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   driverInfo.completionPolicy = varmap["completion-policy"].as<CompletionPolicy>();
   driverInfo.startTime = std::chrono::steady_clock::now();
   driverInfo.timeout = varmap["timeout"].as<double>();
+  driverInfo.startPort = varmap["start-port"].as<unsigned short>();
+  driverInfo.portRange = varmap["port-range"].as<unsigned short>();
 
   std::string frameworkId;
+  // If the id is set, this means this is a device,
+  // otherwise this is the driver.
+  FreePortFinder finder(driverInfo.startPort - 1,
+                        65535 - driverInfo.portRange,
+                        driverInfo.portRange);
   if (varmap.count("id")) {
     frameworkId = varmap["id"].as<std::string>();
+  } else {
+    finder.scan();
+    driverInfo.startPort = finder.port();
+    driverInfo.portRange = finder.range();
   }
   return runStateMachine(workflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
 }

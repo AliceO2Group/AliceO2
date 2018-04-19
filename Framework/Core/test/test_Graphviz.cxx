@@ -13,6 +13,7 @@
 
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
+#include "../src/SimpleResourceManager.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Headers/DataHeader.h"
@@ -94,7 +95,9 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
     BOOST_CHECK(device.id != "");
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices);
+  SimpleResourceManager rm(22000, 1000);
+  auto resources = rm.getAvailableResources();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {
@@ -129,7 +132,9 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline)
     BOOST_CHECK(device.id != "");
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices);
+  SimpleResourceManager rm(22000, 1000);
+  auto resources = rm.getAvailableResources();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {

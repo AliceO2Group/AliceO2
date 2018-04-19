@@ -49,6 +49,7 @@ set(SRCS
     src/LogParsingHelpers.cxx
     src/ExternalFairMQDeviceProxy.cxx
     src/SimpleMetricsService.cxx
+    src/SimpleResourceManager.cxx
     src/TextControlService.cxx
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
@@ -122,11 +123,14 @@ set(HEADERS
       include/Framework/DataProcessingDevice.h
       include/Framework/Variant.h
       include/Framework/RootTreeReader.h
+      src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
       src/DriverControl.h
       src/DriverInfo.h
       src/GraphvizHelpers.h
+      src/ResourceManager.h
+      src/SimpleResourceManager.h
       src/WorkflowHelpers.h
   )
 
