@@ -106,6 +106,10 @@ struct DriverInfo {
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;
+  /// The start port to use when looking for a free range
+  unsigned short startPort;
+  /// The size of the port range to consider allocated
+  unsigned short portRange;
 };
 
 } // namespace framework
