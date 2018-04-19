@@ -33,6 +33,7 @@ O2_GENERATE_EXECUTABLE(
   src/ClusterConverterSpec.cxx
   src/ClusterDecoderRawSpec.cxx
   src/CATrackerSpec.cxx
+  src/RootFileWriterSpec.cxx
 
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
