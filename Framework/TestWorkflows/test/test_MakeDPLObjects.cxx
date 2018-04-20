@@ -79,7 +79,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       AlgorithmSpec{
         [](ProcessingContext &ctx) {
           // A new message with a TH1F inside
-          auto h = ctx.inputs().get<TH1F>("histo");
+          auto h = ctx.inputs().get<TH1F*>("histo");
           // A new message with 1 XYZ instance in it
           XYZ const &x = ctx.inputs().get<XYZ>("point");
           // A new message with a gsl::span<XYZ> with 1000 items
@@ -108,7 +108,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           assert(c3[999].y == 3);
           assert(c3[999].z == 4);
           ctx.services().get<ControlService>().readyToQuit(true);
-          auto o = ctx.inputs().get<TNamed>("object");
+          auto o = ctx.inputs().get<TNamed*>("object");
           assert(strcmp(o->GetName(), "named") == 0 &&
                  strcmp(o->GetTitle(), "a named test object") == 0);
         }
