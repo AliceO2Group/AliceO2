@@ -70,7 +70,7 @@ void run_digi_all(float rate = 100e3, std::string outputfile = "o2dig.root", std
   digiITS->setAlpideROFramLength(5000.); // ALPIDE RO frame in ns
   run->AddTask(digiITS);
 
-  o2::TPC::DigitizerTask* digiTPC = new o2::TPC::DigitizerTask;
+  o2::TPC::DigitizerTask* digiTPC = new o2::TPC::DigitizerTask(0);
   digiTPC->setContinuousReadout(rate > 0);
   digiTPC->setDebugOutput("DigitMCDebug");
   run->AddTask(digiTPC);
