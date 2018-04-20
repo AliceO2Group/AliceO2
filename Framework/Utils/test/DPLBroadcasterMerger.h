@@ -16,4 +16,4 @@ o2::framework::WorkflowSpec DPLBroadcasterMergerWorkflow();
 }
 } // namespace o2
 
-#endif //DPLBROADCASTERMERGER_H
+#endif // DPLBROADCASTERMERGER_H

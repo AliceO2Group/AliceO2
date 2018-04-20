@@ -16,4 +16,4 @@ o2::framework::WorkflowSpec DPLOutputTest();
 }
 } // namespace o2
 
-#endif //DPLOUTPUTTEST_H
+#endif // DPLOUTPUTTEST_H

@@ -96,7 +96,7 @@ o2f::DataProcessorSpec defineSink(o2f::InputSpec usrInput)
                LOG(INFO) << "Received message containing" << payload[0] << "elements";
 
                for (int j = 0; j < payload[0]; ++j) {
-                 LOG(INFO) << payload[j+1] << "\t";
+                 LOG(INFO) << payload[j + 1] << "\t";
                }
                LOG(INFO);
              };
@@ -111,24 +111,22 @@ o2::framework::WorkflowSpec DPLBroadcasterMergerWorkflow()
   lspec.emplace_back(defineGenerator(o2f::OutputSpec{ "TST", "ToBC", 0, o2f::Lifetime::Timeframe }));
 
   // A two-way broadcaster
-  lspec.emplace_back(defineBroadcaster(
-    "Broadcaster", o2f::InputSpec{ "input", "TST", "ToBC", 0, o2f::Lifetime::Timeframe },
-    o2f::Outputs{ { "TST", "BCAST0", 0, o2f::Lifetime::Timeframe },
-                  { "TST", "BCAST1", 0, o2f::Lifetime::Timeframe } }));
+  lspec.emplace_back(defineBroadcaster("Broadcaster",
+                                       o2f::InputSpec{ "input", "TST", "ToBC", 0, o2f::Lifetime::Timeframe },
+                                       o2f::Outputs{ { "TST", "BCAST0", 0, o2f::Lifetime::Timeframe },
+                                                     { "TST", "BCAST1", 0, o2f::Lifetime::Timeframe } }));
 
   // Two pipeline devices
-  lspec.emplace_back(definePipeline("pip0",
-                                    o2f::InputSpec{ "bc", "TST", "BCAST0", 0, o2f::Lifetime::Timeframe },
+  lspec.emplace_back(definePipeline("pip0", o2f::InputSpec{ "bc", "TST", "BCAST0", 0, o2f::Lifetime::Timeframe },
                                     o2f::OutputSpec{ "TST", "PIP0", 0, o2f::Lifetime::Timeframe }));
-  lspec.emplace_back(definePipeline("pip1",
-                                    o2f::InputSpec{ "bc", "TST", "BCAST1", 0, o2f::Lifetime::Timeframe },
+  lspec.emplace_back(definePipeline("pip1", o2f::InputSpec{ "bc", "TST", "BCAST1", 0, o2f::Lifetime::Timeframe },
                                     o2f::OutputSpec{ "TST", "PIP1", 0, o2f::Lifetime::Timeframe }));
 
   // A gatherer
   lspec.emplace_back(defineMerger("Gatherer",
-                                    o2f::Inputs{ { "input1", "TST", "PIP0", 0, o2f::Lifetime::Timeframe },
-                                                 { "input2", "TST", "PIP1", 0, o2f::Lifetime::Timeframe } },
-                                    o2f::OutputSpec{ "TST", "ToSink", 0, o2f::Lifetime::Timeframe }));
+                                  o2f::Inputs{ { "input1", "TST", "PIP0", 0, o2f::Lifetime::Timeframe },
+                                               { "input2", "TST", "PIP1", 0, o2f::Lifetime::Timeframe } },
+                                  o2f::OutputSpec{ "TST", "ToSink", 0, o2f::Lifetime::Timeframe }));
 
   // A sink which dumps messages
   lspec.emplace_back(defineSink(o2f::InputSpec{ "input", "TST", "ToSink", 0, o2f::Lifetime::Timeframe }));

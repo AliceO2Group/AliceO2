@@ -16,7 +16,8 @@
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(WorkflowSpec &specs) {
+void defineDataProcessing(WorkflowSpec& specs)
+{
   WorkflowSpec workflow{
     o2::workflows::DPLBroadcasterMergerWorkflow(),
   };

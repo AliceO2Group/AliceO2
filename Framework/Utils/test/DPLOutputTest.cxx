@@ -18,8 +18,8 @@ namespace workflows
 
 o2f::DataProcessorSpec defineTestGenerator()
 {
-  return { "Generator",                                                             // Device name
-           {},                                                                // No inputs for a generator
+  return { "Generator",                                                      // Device name
+           {},                                                               // No inputs for a generator
            o2f::Outputs{ { "TST", "ToSink", 0, o2f::Lifetime::Timeframe } }, // One simple output
 
            o2f::AlgorithmSpec{ [](o2f::InitContext&) {
@@ -35,8 +35,8 @@ o2f::DataProcessorSpec defineTestGenerator()
 
                LOG(INFO) << ">>> Preparing MSG:" << msgIndex;
 
-               auto outputMsg =
-                 ctx.outputs().newChunk({ "TST", "ToSink", 0, o2f::Lifetime::Timeframe }, (31 + 1)*sizeof(uint32_t)/sizeof(char));
+               auto outputMsg = ctx.outputs().newChunk({ "TST", "ToSink", 0, o2f::Lifetime::Timeframe },
+                                                       (31 + 1) * sizeof(uint32_t) / sizeof(char));
 
                LOG(INFO) << ">>> Preparing1 MSG:" << msgIndex;
 
@@ -63,7 +63,6 @@ o2f::DataProcessorSpec defineTestSink()
            {},
 
            o2f::AlgorithmSpec{ [](o2f::InitContext&) {
-
              LOG(INFO) << ">>>>>>>>>>>>>> Sink initialised\n";
 
              // Processing context in captured from return on InitCallback
