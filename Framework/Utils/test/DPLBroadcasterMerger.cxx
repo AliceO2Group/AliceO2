@@ -123,9 +123,8 @@ o2::framework::WorkflowSpec DPLBroadcasterMergerWorkflow()
                                     o2f::OutputSpec{ "TST", "PIP1", 0, o2f::Lifetime::Timeframe }));
 
   // A gatherer
-  lspec.emplace_back(defineMerger("Gatherer",
-                                  o2f::Inputs{ { "input1", "TST", "PIP0", 0, o2f::Lifetime::Timeframe },
-                                               { "input2", "TST", "PIP1", 0, o2f::Lifetime::Timeframe } },
+  lspec.emplace_back(defineMerger("Merger", o2f::Inputs{ { "input1", "TST", "PIP0", 0, o2f::Lifetime::Timeframe },
+                                                         { "input2", "TST", "PIP1", 0, o2f::Lifetime::Timeframe } },
                                   o2f::OutputSpec{ "TST", "ToSink", 0, o2f::Lifetime::Timeframe }));
 
   // A sink which dumps messages
