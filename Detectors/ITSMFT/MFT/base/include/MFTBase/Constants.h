@@ -90,12 +90,7 @@ class Constants : public TObject
   static const Int_t sNMaxLaddersPerPlane = 20;
   static const Int_t sNMaxChipsPerLadder = 5;
   static const Int_t sNMFTHalves = 2;
-  static const Double_t sChipWidth;
   static const Double_t sMinDistanceLadderFromSupportRMin;
-  static const Double_t sChipThickness;
-  static const Double_t sChipInterspace; // Offset between two adjacent chip on a ladder
-  static const Double_t sChipSideOffset; // Side Offset between the ladder edge and the chip edge
-  static const Double_t sChipTopOffset;  // Top Offset between the ladder edge and the chip edge
 
  protected:
   Constants() : TObject() {}

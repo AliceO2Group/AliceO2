@@ -54,10 +54,4 @@ const Double_t Constants::sPrimaryVertexResZ = 5.e-4; // 5 micron
 
 const Double_t Constants::sMisalignmentMagnitude = 15.e-4; // 15 micron
 
-const Double_t Constants::sChipWidth = 3.;                         // 3 cm ???
-const Double_t Constants::sChipThickness = 500.e-4;                // 50 micron
 const Double_t Constants::sMinDistanceLadderFromSupportRMin = 0.1; // 1mm ???
-
-const Double_t Constants::sChipInterspace = 500.e-4; // 50um // Offset between two adjacent chip on a ladder
-const Double_t Constants::sChipSideOffset = 500.e-4; // Side Offset between the ladder edge and the chip edge
-const Double_t Constants::sChipTopOffset = 500.e-4;  // Top Offset between the ladder edge and the chip edge
