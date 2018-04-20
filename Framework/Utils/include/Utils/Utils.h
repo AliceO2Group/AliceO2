@@ -44,7 +44,7 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
 
 // Splitter implementation
 o2f::DataProcessorSpec defineRouter(std::string devName, o2f::Inputs usrInput, o2f::Outputs usrOutputs,
-                                    const std::function<unsigned long(const o2::framework::DataRef)> mappingFunc);
+                                    std::function<size_t(const o2f::DataRef)> const mappingFunc);
 
 // Gatherer implementation
 o2f::DataProcessorSpec defineGatherer(std::string devName, o2f::Inputs usrInputs, o2f::OutputSpec usrOutput);
