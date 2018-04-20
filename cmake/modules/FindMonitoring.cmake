@@ -2,7 +2,6 @@
 # Author: Barthelemy von Haller
 # Author: Adam Wegrzynek
 #
-#
 # This module will set the following non-cached variables:
 #  Monitoring_FOUND - states whether Monitoring package has been found
 #  Monitoring_INCLUDE_DIRS - Monitoring include directory
