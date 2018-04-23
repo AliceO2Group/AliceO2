@@ -1310,7 +1310,6 @@ o2_define_bucket(
     DEPENDENCIES
     #-- buckets follow
     fairroot_base_bucket
-    pythia8
 
     #-- precise modules follow
     SimConfig
