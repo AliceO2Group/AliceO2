@@ -150,16 +150,7 @@ void *OpenGLMain(void *ptr)
 	XMapWindow(g_pDisplay, g_window);
 	
 	//Maximize window
-	XEvent xev;
-	memset(&xev, 0, sizeof(xev));
-	xev.type = ClientMessage;
-	xev.xclient.window = g_window;
-	xev.xclient.message_type = XInternAtom(g_pDisplay, "_NET_WM_STATE", False);
-	xev.xclient.format = 32;
-	xev.xclient.data.l[0] = 1; //_NET_WM_STATE_ADD
-	xev.xclient.data.l[1] = XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-	xev.xclient.data.l[2] = XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
+	ToggleMaximized(true);
 	
 	//Receive signal when window closed
 	Atom WM_DELETE_WINDOW = XInternAtom(g_pDisplay, "WM_DELETE_WINDOW", False); 
@@ -379,6 +370,20 @@ void SwitchFullscreen()
 	xev.xclient.data.l[0] = 2; // _NET_WM_STATE_TOGGLE
 	xev.xclient.data.l[1] = XInternAtom(g_pDisplay, "_NET_WM_STATE_FULLSCREEN", True);
 	xev.xclient.data.l[2] = 0;
+	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
+}
+
+void ToggleMaximized(bool set)
+{
+	XEvent xev;
+	memset(&xev, 0, sizeof(xev));
+	xev.type = ClientMessage;
+	xev.xclient.window = g_window;
+	xev.xclient.message_type = XInternAtom(g_pDisplay, "_NET_WM_STATE", False);
+	xev.xclient.format = 32;
+	xev.xclient.data.l[0] = set ? 1 : 2; //_NET_WM_STATE_ADD
+	xev.xclient.data.l[1] = XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+	xev.xclient.data.l[2] = XInternAtom(g_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
 	XSendEvent(g_pDisplay, DefaultRootWindow(g_pDisplay), False, SubstructureNotifyMask, &xev);
 }
 

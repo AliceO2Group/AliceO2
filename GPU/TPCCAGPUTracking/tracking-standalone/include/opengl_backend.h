@@ -26,6 +26,7 @@ void OpenGLPrint(const char* s);
 extern void ReSizeGLScene(int width, int height, bool init = false);
 void HandleSendKey();
 void SwitchFullscreen();
+void ToggleMaximized(bool set = false);
 void SetVSync(bool enable);
 void createQuaternionFromMatrix(float* v, const float* mat);
 void DoScreenshot(char *filename, float animateTime = -1.f);
