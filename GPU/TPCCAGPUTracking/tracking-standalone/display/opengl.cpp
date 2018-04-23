@@ -285,6 +285,12 @@ void resetAnimation()
 	animateConfig.clear();
 	animate = 0;
 }
+void removeAnimationPoint()
+{
+	if (animateVectors[0].size() == 0) return;
+	for (int i = 0;i < 9;i++) animateVectors[i].pop_back();
+	animateConfig.pop_back();
+}
 void startAnimation()
 {
 	for (int i = 0;i < 8;i++) animationSplines[i].create(animateVectors[0], animateVectors[i + 1]);
@@ -737,14 +743,10 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 			else if (nCollisions > 1)
 			{
 				int label = GetMCLabel(i);
-				printf("%d nCol %d\n", label, nCollisions);
 				if (label < -1) label = -label - 2;
-				else
-				{
-					unsigned int k = 0;
-					while (k < collisionClusters.size() && collisionClusters[k][fgkNSlices] < label) k++;
-					if (k != iCol) track = nullptr;
-				}
+				unsigned int k = 0;
+				while (k < collisionClusters.size() && collisionClusters[k][fgkNSlices] < label) k++;
+				if (k != iCol) track = nullptr;
 			}
 			if (track == nullptr) break;
 
@@ -1230,13 +1232,14 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		}
 
 		//Graphichs Options
-		float minSize = 0.01 * (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1);
+		float minSize = 0.4 / (drawQualityDownsampleFSAA > 1 ? drawQualityDownsampleFSAA : 1);
 		int deltaLine = keys['+']*keysShift['+'] - keys['-']*keysShift['-'];
-		cfg.lineWidth += (float) deltaLine * fpsscale * 0.05;
+		cfg.lineWidth += (float) deltaLine * fpsscale * 0.02 * cfg.lineWidth;
 		if (cfg.lineWidth < minSize) cfg.lineWidth = minSize;
 		if (deltaLine) SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", cfg.lineWidth);
+		minSize *= 2;
 		int deltaPoint = keys['+']*(!keysShift['+']) - keys['-']*(!keysShift['-']);
-		cfg.pointSize += (float) deltaPoint * fpsscale * 0.05;
+		cfg.pointSize += (float) deltaPoint * fpsscale * 0.02 * cfg.pointSize;
 		if (cfg.pointSize < minSize) cfg.pointSize = minSize;
 		if (deltaPoint) SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", cfg.pointSize);
 	}
@@ -1769,52 +1772,52 @@ void DoScreenshot(char *filename, float animateTime)
 }
 
 const char* HelpText[] = {
-	"[n] / [SPACE]            Next event", 
-	"[q] / [Q] / [ESC]        Quit", 
-	"[r]                      Reset Display Settings", 
-	"[l] / [k] / [J]          Draw single slice (next  / previous slice), draw related slices (same plane in phi)", 
-	"[;] / [:]                Show splitting of TPC in slices by extruding volume, [:] resets", 
-	"[y] / [Y] / [X] / [M]    Start Animation / Add animation point / Reset / Cycle mode", 
-	"[>] / [<]                Toggle config interpolation during animation / change animation interval (via movement)",
-	"[g]                      Draw Grid", 
-	"[i]                      Project onto XY-plane", 
-	"[x]                      Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
-	"[.]                      Exclude rejected tracks", 
-	"[c]                      Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
-	"[B]                      Mark clusters attached as adjacent",
-	"[L] / [K]                Draw single collisions (next / previous)",
-	"[C]                      Colorcode clusters of different collisions", 
-	"[v]                      Hide rejected clusters from tracks", 
-	"[b]                      Hide all clusters not belonging or related to matched tracks", 
-	"[1]                      Show Clusters", 
-	"[2]                      Show Links that were removed", 
-	"[3]                      Show Links that remained in Neighbors Cleaner", 
-	"[4]                      Show Seeds (Start Hits)", 
-	"[5]                      Show Tracklets", 
-	"[6]                      Show Tracks (after Tracklet Selector)", 
-	"[7]                      Show Global Track Segments", 
-	"[8]                      Show Final Merged Tracks (after Track Merger)", 
-	"[j]                      Show global tracks as additional segments of final tracks", 
-	"[E] / [G]                Extrapolate tracks / loopers",
-	"[t] / [T]                Take Screenshot / Record animation to pictures", 
-	"[Z]                      Change screenshot resolution (scaling factor)",
-	"[S] / [A] / [D]          Enable or disable smoothing of points / smoothing of lines / depth buffer",
-	"[W] / [U] / [V]          Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA facot / toggle VSync",
-	"[F] / [R]                Switch fullscreen / FPS rate limiter",
-	"[I]                      Enable / disable GL indirect draw",
-	"[o] / [p] / [O] / [P]    Save / restore current camera position / animation path", 
-	"[h]                      Print Help", 
-	"[H]                      Show info texts",
-	"[w] / [s] / [a] / [d]    Zoom / Strafe Left and Right", 
-	"[pgup] / [pgdn]          Strafe Up and Down",
-	"[e] / [f]                Rotate", 
-	"[+] / [-]                Make points thicker / fainter (Hold SHIFT for lines)", 
-	"[MOUSE 1]                Look around", 
-	"[MOUSE 2]                Shift camera", 
-	"[MOUSE 1+2]              Zoom / Rotate", 
-	"[SHIFT]                  Slow Zoom / Move / Rotate",
-	"[ALT] / [CTRL] / [m]     Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
-	"[1] ... [8] / [V]        Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
+	"[n] / [SPACE]                 Next event", 
+	"[q] / [Q] / [ESC]             Quit", 
+	"[r]                           Reset Display Settings", 
+	"[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)", 
+	"[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets", 
+	"[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove animation point, Reset, Cycle mode", 
+	"[>] / [<]                     Toggle config interpolation during animation / change animation interval (via movement)",
+	"[g]                           Draw Grid", 
+	"[i]                           Project onto XY-plane", 
+	"[x]                           Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
+	"[.]                           Exclude rejected tracks", 
+	"[c]                           Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
+	"[B]                           Mark clusters attached as adjacent",
+	"[L] / [K]                     Draw single collisions (next / previous)",
+	"[C]                           Colorcode clusters of different collisions", 
+	"[v]                           Hide rejected clusters from tracks", 
+	"[b]                           Hide all clusters not belonging or related to matched tracks", 
+	"[1]                           Show Clusters", 
+	"[2]                           Show Links that were removed", 
+	"[3]                           Show Links that remained in Neighbors Cleaner", 
+	"[4]                           Show Seeds (Start Hits)", 
+	"[5]                           Show Tracklets", 
+	"[6]                           Show Tracks (after Tracklet Selector)", 
+	"[7]                           Show Global Track Segments", 
+	"[8]                           Show Final Merged Tracks (after Track Merger)", 
+	"[j]                           Show global tracks as additional segments of final tracks", 
+	"[E] / [G]                     Extrapolate tracks / loopers",
+	"[t] / [T]                     Take Screenshot / Record animation to pictures", 
+	"[Z]                           Change screenshot resolution (scaling factor)",
+	"[S] / [A] / [D]               Enable or disable smoothing of points / smoothing of lines / depth buffer",
+	"[W] / [U] / [V]               Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA facot / toggle VSync",
+	"[F] / [_] / [R]               Switch fullscreen / Maximized window / FPS rate limiter",
+	"[I]                           Enable / disable GL indirect draw",
+	"[o] / [p] / [O] / [P]         Save / restore current camera position / animation path", 
+	"[h]                           Print Help", 
+	"[H]                           Show info texts",
+	"[w] / [s] / [a] / [d]         Zoom / Strafe Left and Right", 
+	"[pgup] / [pgdn]               Strafe Up and Down",
+	"[e] / [f]                     Rotate", 
+	"[+] / [-]                     Make points thicker / fainter (Hold SHIFT for lines)", 
+	"[MOUSE 1]                     Look around", 
+	"[MOUSE 2]                     Shift camera", 
+	"[MOUSE 1+2]                   Zoom / Rotate", 
+	"[SHIFT]                       Slow Zoom / Move / Rotate",
+	"[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
+	"[1] ... [8] / [V]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
 	//FREE: u z
 };
 
@@ -1935,6 +1938,11 @@ void HandleKeyRelease(int wParam, char key)
 	{
 		SwitchFullscreen();
 		SetInfo("Toggling full screen");
+	}
+	else if (wParam == '_')
+	{
+		ToggleMaximized();
+		SetInfo("Toggling maximized window");
 	}
 	else if (wParam == 'R')
 	{
@@ -2162,6 +2170,11 @@ void HandleKeyRelease(int wParam, char key)
 	{
 		resetAnimation();
 		SetInfo("Reset animation points");
+	}
+	else if (wParam == '\'')
+	{
+		removeAnimationPoint();
+		SetInfo("Removed animation point");
 	}
 	else if (wParam == 'M')
 	{

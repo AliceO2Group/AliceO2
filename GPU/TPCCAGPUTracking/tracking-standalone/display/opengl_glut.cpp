@@ -140,4 +140,5 @@ void DisplayExit()
 
 void OpenGLPrint(const char* s) {}
 void SwitchFullscreen() {}
+void ToggleMaximized(bool set) {}
 void SetVSync(bool enable) {}
