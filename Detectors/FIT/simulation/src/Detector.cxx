@@ -267,8 +267,8 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  Int_t  quadrant, mcp;
-  
+  Int_t quadrant, mcp;
+
   TLorentzVector position;
   if (fMC->IsTrackEntering()) {
     fMC->TrackPosition(position);
@@ -276,10 +276,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     float y = position.Y();
     float z = position.Z();
     fMC->CurrentVolID(quadrant);
-    fMC->CurrentVolOffID(1,mcp);
+    fMC->CurrentVolOffID(1, mcp);
     float time = fMC->TrackTime() * 1.0e12;
     int trackID = fMC->GetStack()->GetCurrentTrackNumber();
-    int detID = 4*(mcp) +quadrant -1;
+    int detID = 4 * mcp + quadrant - 1;
     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
