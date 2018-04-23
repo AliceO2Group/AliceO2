@@ -281,7 +281,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   Int_t quadrant, mcp;
-  
+
   if (fMC->IsTrackEntering()) {
     float x, y, z;
     fMC->TrackPosition(x, y, z);
