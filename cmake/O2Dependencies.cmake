@@ -1155,6 +1155,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
  )
+
 o2_define_bucket(
     NAME
     fit_simulation_bucket
@@ -1182,6 +1183,33 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
+
+o2_define_bucket(
+    NAME
+    hmpid_simulation_bucket
+
+    DEPENDENCIES # library names
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    DetectorsBase
+    SimulationDataFormat
+    Core Hist # ROOT
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/HMPID/Simulationf/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
 
 o2_define_bucket(
     NAME
@@ -1295,6 +1323,7 @@ o2_define_bucket(
     EMCALSimulation
     TOFSimulation
     FITSimulation
+    HMPIDSimulation
     PHOSSimulation
     Field
     Generators
