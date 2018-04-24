@@ -81,6 +81,7 @@ void GEMAmplification::updateParameters()
   auto& cdb = CDBInterface::instance();
   mGEMParam = &(cdb.getParameterGEM());
   mGasParam = &(cdb.getParameterGas());
+  mGainMap = &(cdb.getGainMap());
 }
 
 int GEMAmplification::getStackAmplification(int nElectrons)
@@ -93,6 +94,13 @@ int GEMAmplification::getStackAmplification(int nElectrons)
   const int nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, 3);
   const int nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, 4);
   return nElectronsGEM4;
+}
+
+int GEMAmplification::getStackAmplification(const CRU& cru, const PadPos& pos, int nElectrons)
+{
+  /// Additionally to the electron amplification the final number of electrons is multiplied by the local gain on the
+  /// pad
+  return static_cast<int>(static_cast<float>(getStackAmplification(nElectrons)) * mGainMap->getValue(cru, pos.getRow(), pos.getPad()));
 }
 
 int GEMAmplification::getSingleGEMAmplification(int nElectrons, int GEM)

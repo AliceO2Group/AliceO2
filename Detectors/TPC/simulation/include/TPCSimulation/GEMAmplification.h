@@ -18,6 +18,9 @@
 #include "TPCBase/RandomRing.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterGEM.h"
+#include "TPCBase/CRU.h"
+#include "TPCBase/PadPos.h"
+#include "TPCBase/CalDet.h"
 
 namespace o2
 {
@@ -26,7 +29,8 @@ namespace TPC
 
 /// \class GEMAmplification
 /// This class handles the amplification of electrons in the GEM stack
-/// The full amplification in a stack of four GEMs can be conducted, or each of the individual processes (Electrons collection, amplification and extraction) can be conducted individually
+/// The full amplification in a stack of four GEMs can be conducted, or each of the individual processes (Electrons
+/// collection, amplification and extraction) can be conducted individually
 
 class GEMAmplification
 {
@@ -49,6 +53,14 @@ class GEMAmplification
   /// \return Number of electrons after amplification in a full stack of four GEM foils
   int getStackAmplification(int nElectrons = 1);
 
+  /// Compute the number of electrons after amplification in a full stack of four GEM foils
+  /// taking into account local variations of the electron amplification
+  /// \param nElectrons Number of electrons arriving at the first amplification stage (GEM1)
+  /// \param cru CRU where the electron arrives
+  /// \param pos PadPos where the electron arrives
+  /// \return Number of electrons after amplification in a full stack of four GEM foils
+  int getStackAmplification(const CRU& cru, const PadPos& pos, int nElectrons = 1);
+
   /// Compute the number of electrons after amplification in a single GEM foil
   /// taking into account collection and extraction efficiencies and fluctuations of the GEM amplification
   /// \param nElectrons Number of electrons to be amplified
@@ -63,7 +75,8 @@ class GEMAmplification
   int getElectronLosses(int nElectrons, float probability);
 
   /// Compute the number of electrons after amplification in a single GEM foil
-  /// taking into account avalanche fluctuations (Polya for <500 electrons and Gaus (central limit theorem) for a larger number of electrons)
+  /// taking into account avalanche fluctuations (Polya for <500 electrons and Gaus (central limit theorem) for a
+  /// larger number of electrons)
   /// \param nElectrons Input number of electrons
   /// \param GEM Number of the GEM in the stack (1, 2, 3, 4)
   /// \return Number of electrons after amplification in the GEM
@@ -72,7 +85,8 @@ class GEMAmplification
  private:
   GEMAmplification();
 
-  /// Circular random buffer containing random Gaus values for gain fluctuation if the number of electrons is larger (central limit theorem)
+  /// Circular random buffer containing random Gaus values for gain fluctuation if the number of electrons is larger
+  /// (central limit theorem)
   RandomRing mRandomGaus;
   /// Circular random buffer containing flat random values for the collection/extraction
   RandomRing mRandomFlat;
@@ -81,6 +95,7 @@ class GEMAmplification
 
   const ParameterGEM* mGEMParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterGas* mGasParam; ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mGainMap;        ///< Caching of the parameter class to avoid multiple CDB calls
 };
 }
 }
