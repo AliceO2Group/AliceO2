@@ -130,7 +130,7 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
       }
 
       /// Electron amplification
-      const int nElectronsGEM = gemAmplification.getStackAmplification();
+      const int nElectronsGEM = gemAmplification.getStackAmplification(digiPadPos.getCRU(), digiPadPos.getPadPos());
       if (nElectronsGEM == 0) {
         continue;
       }
