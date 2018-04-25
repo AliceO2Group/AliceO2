@@ -166,7 +166,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   fT->X() =  trackX; // == x0*cc + ss*fT->Y()  == t0.X() + j0*dy;
   fT->Y() = -x0*ss  + cc*fT->Y(); //== t0.Y() + j0*dy;
   //fT->SinPhi() = py1/pt0 + j1*ds; // == t0.SinPhi() + j1*ds; // use py1, since t0.SinPhi can have different sign
-  fT->SinPhi() = -sqrt(1.f-fT->SinPhi()*fT->SinPhi())*ss + fT->SinPhi()*cc;
+  fT->SinPhi() = -sqrtf(1.f-fT->SinPhi()*fT->SinPhi())*ss + fT->SinPhi()*cc;
     
   // Rotate cov. matrix Cr = J0 x C x J0T. Cr has one more row+column for X:
   float *c = fT->Cov();
@@ -487,12 +487,12 @@ GPUd() int AliHLTTPCGMPropagator::GetPropagatedYZ(float x, float& projY, float& 
   float ey1 = kdx + ey;
   if(fabs(ey1) > HLTCA_MAX_SIN_PHI) return 1;
   float ss = ey + ey1;
-  float ex1 = sqrt(1.f - ey1 * ey1);
+  float ex1 = sqrtf(1.f - ey1 * ey1);
   float cc = ex + ex1;
   float dxcci = dx / cc;
   float dy = dxcci * ss;
   float norm2 = 1.f + ey * ey1 + ex * ex1;
-  float dl = dxcci * sqrt(norm2 + norm2);
+  float dl = dxcci * sqrtf(norm2 + norm2);
   float dS;
   {
     float dSin = 0.5f * k*dl;
@@ -841,7 +841,7 @@ GPUd() void AliHLTTPCGMPropagator::CalculateMaterialCorrection()
   
   float p2 = w2 / pti2; // impuls 2
   float betheRho = ApproximateBetheBloch( p2 / mass2 )*fMaterial.fRho;
-  float E = sqrt( p2 + mass2 );
+  float E = sqrtf( p2 + mass2 );
   float theta2 = ( 14.1*14.1/1.e6 ) / ( beta2 * p2 )*fMaterial.fRhoOverRadLen;
 
   fMaterial.fEP2 = E / p2;
@@ -887,7 +887,7 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
     const float k4 = 3./40.;
     //const float k6 = 5.f/112.f;
     dS =  chord + chord*sa2*(k2 + k4*sa2);
-    //dS = sqrt(pt2)/b*2.*AliHLTTPCCAMath::ASin( sa );
+    //dS = sqrtf(pt2)/b*2.*AliHLTTPCCAMath::ASin( sa );
   }
 
   if( fT0.SinPhi()<0.f ) dS = -dS;
