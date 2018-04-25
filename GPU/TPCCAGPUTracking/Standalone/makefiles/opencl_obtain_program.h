@@ -37,7 +37,7 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
 		_makefiles_opencl_device_info* dinfo = (_makefiles_opencl_device_info*) current_ptr;
 		if (strcmp(device_name, dinfo->device_name) != 0 || strcmp(device_vendor, dinfo->device_vendor) != 0)
 		{
-			printf("Device list is different to device list from opencl program\n");
+			printf("Device list is different to device list from opencl program (Device %d: '%s - %s' != '%s - %s')\n", i, device_vendor, device_name, dinfo->device_vendor, dinfo->device_name);
 			return(1);
 		}
 		if (nbits != dinfo->nbits)
