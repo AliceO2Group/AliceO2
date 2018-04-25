@@ -534,7 +534,7 @@ void RunQA(bool matchOnly)
 			if (DEBUG && track.OK() && hlt.GetNMCInfo() > maxLabel.fMCID)
 			{
 				const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[maxLabel.fMCID >= 0 ? maxLabel.fMCID : (-maxLabel.fMCID - 2)];
-				printf("Track %d label %d weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, nClusters, track.NClustersFitted(), maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
+				printf("Track %d label %d weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f\n", i, maxLabel.fMCID >= 0 ? maxLabel.fMCID : (maxLabel.fMCID + 2), maxLabel.fWeight, nClusters, track.NClustersFitted(), maxLabel.fWeight / sumweight, (float) maxcount / (float) nClusters, std::sqrt(mc.fPx * mc.fPx + mc.fPy * mc.fPy));
 			}
 		}
 		if (ompError) return;
@@ -936,7 +936,7 @@ void RunQA(bool matchOnly)
 			{
 				const AliHLTTPCCAMCInfo& info = hlt.GetMCInfo()[i];
 				additionalMCParameters& mc2 = mcParam[i];
-				if (mc2.nWeightCls > 0) fprintf(fp, "%d;%f;%f;%f\n", i, sqrt(info.fPx * info.fPx + info.fPy * info.fPy + info.fPz * info.fPz), mc2.pt, info.fPz);
+				if (mc2.nWeightCls > 0) fprintf(fp, "%d;%f;%f;%f\n", i, std::sqrt(info.fPx * info.fPx + info.fPy * info.fPy + info.fPz * info.fPz), mc2.pt, info.fPz);
 			}
 			fclose(fp);
 		}
@@ -1200,9 +1200,9 @@ int DrawQAHistograms()
 							if (proj->GetEntries() < 20 || proj->GetRMS() < 0.00001)
 							{
 								dst[0]->SetBinContent(bin, proj->GetRMS());
-								dst[0]->SetBinError(bin, sqrt(proj->GetRMS()));
+								dst[0]->SetBinError(bin, std::sqrt(proj->GetRMS()));
 								dst[1]->SetBinContent(bin, proj->GetMean());
-								dst[1]->SetBinError(bin, sqrt(proj->GetRMS()));
+								dst[1]->SetBinError(bin, std::sqrt(proj->GetRMS()));
 							}
 							else
 							{
@@ -1238,9 +1238,9 @@ int DrawQAHistograms()
 									else if (k >= 2)
 									{
 										dst[0]->SetBinContent(bin, proj->GetRMS());
-										dst[0]->SetBinError(bin, sqrt(proj->GetRMS()));
+										dst[0]->SetBinError(bin, std::sqrt(proj->GetRMS()));
 										dst[1]->SetBinContent(bin, proj->GetMean());
-										dst[1]->SetBinError(bin, sqrt(proj->GetRMS()));
+										dst[1]->SetBinError(bin, std::sqrt(proj->GetRMS()));
 									}
 								}
 							}

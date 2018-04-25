@@ -209,9 +209,9 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     phi = phi - GetSliceAngle( iSlice );
 
     //std::cout<<"phi = "<<phi<<std::endl;
-    double x0 = cos(phi);
-    double y0 = sin(phi);
-    double z0 = tan(lambda);
+    double x0 = cosf(phi);
+    double y0 = sinf(phi);
+    double z0 = tanf(lambda);
     t.Set( x0, y0, z0, pt*x0, pt*y0, pt*z0, q);
 
     if( RecalculateSlice(t,iSlice) !=0 ){

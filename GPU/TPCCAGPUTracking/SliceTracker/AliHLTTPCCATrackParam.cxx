@@ -132,7 +132,7 @@ MEM_CLASS_PRE() GPUdi() bool MEM_LG(AliHLTTPCCATrackParam)::TransportToX( float 
 
   if ( CAMath::Abs( cc ) < 1.e-4 || CAMath::Abs( ex ) < 1.e-4 || CAMath::Abs( ex1 ) < 1.e-4 ) return 0;
 
-  float tg = ss / cc; // tan((phi1+phi)/2)
+  float tg = ss / cc; // tanf((phi1+phi)/2)
 
   float dy = dx * tg;
   float dl = dx * CAMath::Sqrt( 1 + tg * tg );

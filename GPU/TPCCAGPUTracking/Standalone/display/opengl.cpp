@@ -150,36 +150,36 @@ void calcXYZ()
 	xyz[1] = -(currentMatrix[4] * currentMatrix[12] + currentMatrix[5] * currentMatrix[13] + currentMatrix[6] * currentMatrix[14]);
 	xyz[2] = -(currentMatrix[8] * currentMatrix[12] + currentMatrix[9] * currentMatrix[13] + currentMatrix[10] * currentMatrix[14]);
 	
-	angle[0] = -asin(currentMatrix[6]); //Invert rotY*rotX*rotZ
-	float A = cos(angle[0]);
+	angle[0] = -asinf(currentMatrix[6]); //Invert rotY*rotX*rotZ
+	float A = cosf(angle[0]);
 	if (fabs(A) > 0.005)
 	{
-		angle[1] = atan2(-currentMatrix[2] / A, currentMatrix[10] / A);
-		angle[2] = atan2(currentMatrix[4] / A, currentMatrix[5] / A);
+		angle[1] = atan2f(-currentMatrix[2] / A, currentMatrix[10] / A);
+		angle[2] = atan2f(currentMatrix[4] / A, currentMatrix[5] / A);
 	}
 	else
 	{
 		angle[1] = 0;
-		angle[2] = atan2(-currentMatrix[1], -currentMatrix[0]);
+		angle[2] = atan2f(-currentMatrix[1], -currentMatrix[0]);
 	}
 	
-	rphitheta[0] = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
-	rphitheta[1] = atan2(xyz[0], xyz[2]);
-	rphitheta[2] = atan2(xyz[1], sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]));
+	rphitheta[0] = sqrtf(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
+	rphitheta[1] = atan2f(xyz[0], xyz[2]);
+	rphitheta[2] = atan2f(xyz[1], sqrtf(xyz[0] * xyz[0] + xyz[2] * xyz[2]));
 	
 	createQuaternionFromMatrix(quat, currentMatrix);
 	
-	/*float angle[1] = -asin(currentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
-	float C = cos( angle_y );
+	/*float angle[1] = -asinf(currentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
+	float C = cosf( angle_y );
 	if (fabs(C) > 0.005) //Gimball lock?
 	{
-		angle[0]  = atan2(-currentMatrix[6] / C, currentMatrix[10] / C);
-		angle[2]  = atan2(-currentMatrix[1] / C, currentMatrix[0] / C);
+		angle[0]  = atan2f(-currentMatrix[6] / C, currentMatrix[10] / C);
+		angle[2]  = atan2f(-currentMatrix[1] / C, currentMatrix[0] / C);
 	}
 	else
 	{
 		angle[0]  = 0; //set x-angle
-		angle[2]  = atan2(currentMatrix[4], currentMatrix[5]);
+		angle[2]  = atan2f(currentMatrix[4], currentMatrix[5]);
 	}*/
 }
 
@@ -242,9 +242,9 @@ void setAnimationPoint()
 {
 	if (cfg.animationMode & 4) //Spherical
 	{
-		float rxy = sqrt(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
-		float anglePhi = atan2(xyz[0], xyz[2]);
-		float angleTheta = atan2(xyz[1], rxy);
+		float rxy = sqrtf(xyz[0] * xyz[0] + xyz[2] * xyz[2]);
+		float anglePhi = atan2f(xyz[0], xyz[2]);
+		float angleTheta = atan2f(xyz[1], rxy);
 		if (animateVectors[0].size()) animationCloseAngle(anglePhi, animateVectors[2].back());
 		if (animateVectors[0].size()) animationCloseAngle(angleTheta, animateVectors[3].back());
 		animateVectors[1].emplace_back(0);
@@ -255,7 +255,7 @@ void setAnimationPoint()
 	{
 		for (int i = 0;i < 3;i++) {animateVectors[i + 1].emplace_back(xyz[i]);} //Cartesian
 	}
-	float r = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
+	float r = sqrtf(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]);
 	animateVectors[4].emplace_back(r);
 	if (cfg.animationMode & 1) //Euler-angles
 	{
@@ -829,14 +829,14 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 					if (mc.fCharge == 0.f) break;
 					if (mc.fPID < 0) break;
 					
-					alpha = atan2(mc.fY, mc.fX);
+					alpha = atan2f(mc.fY, mc.fX);
 					if (alpha < 0) alpha += 2 * M_PI;
 					slice = floor(alpha / (2 * M_PI) * 18);
 					if (mc.fZ < 0) slice += 18;
 					if (slice != iSlice) break;
 					alpha = hlt.Param().Alpha(slice);
-					float c = cos(alpha);
-					float s = sin(alpha);
+					float c = cosf(alpha);
+					float s = sinf(alpha);
 					
 					float mclocal[4];
 					x = mc.fX;
@@ -847,7 +847,7 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 					float py = mc.fPy;
 					mclocal[2] = px*c + py*s;
 					mclocal[3] =-px*s + py*c;
-					float pt = sqrt(px * px + py * py);
+					float pt = sqrtf(px * px + py * py);
 					if (pt < 0.001) break;
 					float sinPhi = mclocal[3] / pt;
 					float charge = mc.fCharge > 0 ? 1.f : -1.f;
@@ -881,7 +881,7 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 					if (fabs(param.Z() - z0) > (iMC ? 250 : 250)) break;
 					if (inFlyDirection)
 					{
-						prop->RotateToAlpha(alpha = prop->GetAlpha() + asin(param.SinPhi()));
+						prop->RotateToAlpha(alpha = prop->GetAlpha() + asinf(param.SinPhi()));
 						x = param.X() + 1.f;
 						if (!propagateLoopers)
 						{
@@ -892,7 +892,7 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 					}
 					if (prop->PropagateToXAlpha( x, alpha, inFlyDirection ) ) break;
 					if (fabs(param.SinPhi()) > 0.9) break;
-					float sa = sin(alpha), ca = cos(alpha);
+					float sa = sinf(alpha), ca = cosf(alpha);
 					useBuffer.emplace_back((ca * param.X() - sa * param.Y()) / GL_SCALE_FACTOR, (ca * param.Y() + sa * param.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (param.Z() + param.ZOffset()) / GL_SCALE_FACTOR);
 					x += inFlyDirection ? 1 : -1;
 				}
@@ -1033,7 +1033,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	{
 		scalefactor *= 0.2f;
 	}
-	float sqrdist = sqrt(sqrt(currentMatrix[12] * currentMatrix[12] + currentMatrix[13] * currentMatrix[13] + currentMatrix[14] * currentMatrix[14]) / GL_SCALE_FACTOR) * 0.8;
+	float sqrdist = sqrtf(sqrtf(currentMatrix[12] * currentMatrix[12] + currentMatrix[13] * currentMatrix[13] + currentMatrix[14] * currentMatrix[14]) / GL_SCALE_FACTOR) * 0.8;
 	if (sqrdist < 0.2) sqrdist = 0.2;
 	if (sqrdist > 5) sqrdist = 5;
 	scalefactor *= sqrdist;
@@ -1112,7 +1112,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			}
 			else //Rotation from quaternion
 			{
-				const float mag = sqrt(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
+				const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
 				if (mag < 0.0001) vals[7] = 1;
 				else for (int i = 0;i < 4;i++) vals[4 + i] /= mag;
 
@@ -1124,13 +1124,13 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		if (cfg.animationMode & 4) //Compute cartesian translation from sperical coordinates (euler angles)
 		{
 			const float r = vals[3], phi = vals[1], theta = vals[2];
-			vals[2] = r * cos(phi) * cos(theta);
-			vals[0] = r * sin(phi) * cos(theta);
-			vals[1] = r * sin(theta);
+			vals[2] = r * cosf(phi) * cosf(theta);
+			vals[0] = r * sinf(phi) * cosf(theta);
+			vals[1] = r * sinf(theta);
 		}
 		else if (cfg.animationMode & 2) //Scale cartesion translation to interpolated radius
 		{
-			float r = sqrt(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
+			float r = sqrtf(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
 			if (fabs(r) < 0.0001) r = 1;
 			r = vals[3] / r;
 			for (int i = 0;i < 3;i++) vals[i] *= r;
@@ -1201,26 +1201,26 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				angleRollOrigin += rotRoll;
 				glRotatef(angleRollOrigin, 0, 0, 1);
 				float tmpX = moveX, tmpY = moveY;
-				moveX = tmpX * cos(angle[2]) - tmpY * sin(angle[2]);
-				moveY = tmpX * sin(angle[2]) + tmpY * cos(angle[2]);
+				moveX = tmpX * cosf(angle[2]) - tmpY * sinf(angle[2]);
+				moveY = tmpX * sinf(angle[2]) + tmpY * cosf(angle[2]);
 			}
 			
 			const float x = xyz[0], y = xyz[1], z = xyz[2];
-			float r = sqrt(x * x + + y * y + z * z);
-			float r2 = sqrt(x * x + z * z);
-			float phi = atan2(z, x);
+			float r = sqrtf(x * x + + y * y + z * z);
+			float r2 = sqrtf(x * x + z * z);
+			float phi = atan2f(z, x);
 			phi += moveX * 0.1f;
-			float theta = atan2(xyz[1], r2);
+			float theta = atan2f(xyz[1], r2);
 			theta -= moveY * 0.1f;
 			const float max_theta = M_PI / 2 - 0.01;
 			if (theta >= max_theta) theta = max_theta;
 			else if (theta <= -max_theta) theta = -max_theta;
 			if (moveZ >= r - 0.1) moveZ = r - 0.1;
 			r -= moveZ;
-			r2 = r * cos(theta);
-			xyz[0] = r2 * cos(phi);
-			xyz[2] = r2 * sin(phi);
-			xyz[1] = r * sin(theta);
+			r2 = r * cosf(theta);
+			xyz[0] = r2 * cosf(phi);
+			xyz[2] = r2 * sinf(phi);
+			xyz[1] = r * sinf(theta);
 			
 			gluLookAt(xyz[0], xyz[1], xyz[2], 0, 0, 0, 0, 1, 0);
 		}
