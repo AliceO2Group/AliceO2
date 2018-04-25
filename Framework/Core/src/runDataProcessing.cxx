@@ -539,23 +539,26 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // We initialise this in the driver, because different drivers might have
     // different versions of the service
     ServiceRegistry serviceRegistry;
-    serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
-    serviceRegistry.registerService<RootFileService>(new LocalRootFileService());
-    serviceRegistry.registerService<ControlService>(new TextControlService());
-    serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
 
     std::unique_ptr<FairMQDevice> device;
-    serviceRegistry.registerService<RawDeviceService>(new SimpleRawDeviceService(nullptr));
-
     if (spec.inputs.empty()) {
       LOG(DEBUG) << spec.id << " is a source\n";
-      device.reset(new DataSourceDevice(spec, serviceRegistry));
+      device = std::make_unique<DataSourceDevice>(spec, serviceRegistry);
     } else {
       LOG(DEBUG) << spec.id << " is a processor\n";
-      device.reset(new DataProcessingDevice(spec, serviceRegistry));
+      device = std::make_unique<DataProcessingDevice>(spec, serviceRegistry);
     }
 
-    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+    auto simpleMetricsService = std::make_unique<SimpleMetricsService>();
+    auto localRootFileService = std::make_unique<LocalRootFileService>();
+    auto textControlService = std::make_unique<TextControlService>();
+    auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
+    auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(device.get());
+    serviceRegistry.registerService<MetricsService>(simpleMetricsService.get());
+    serviceRegistry.registerService<RootFileService>(localRootFileService.get());
+    serviceRegistry.registerService<ControlService>(textControlService.get());
+    serviceRegistry.registerService<ParallelContext>(parallelContext.get());
+    serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
       r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };

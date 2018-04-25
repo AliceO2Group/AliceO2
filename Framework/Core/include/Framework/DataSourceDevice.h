@@ -40,7 +40,7 @@ private:
   AlgorithmSpec::ErrorCallback mError;
 
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
-  ServiceRegistry mServiceRegistry;
+  ServiceRegistry& mServiceRegistry;
   MessageContext mContext;
   RootObjectContext mRootContext;
   DataAllocator mAllocator;
