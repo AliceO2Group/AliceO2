@@ -14,6 +14,7 @@
 /// @brief  Processor spec for running TPC CA tracking
 
 #include "CATrackerSpec.h"
+#include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -27,6 +28,7 @@
 #include <iomanip>
 
 using namespace o2::framework;
+using namespace o2::header;
 
 namespace o2
 {
@@ -82,15 +84,15 @@ DataProcessorSpec getCATrackerSpec()
         LOG(ERROR) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
-      pc.outputs().snapshot(Output{ "TPC", "TRACKS", 0, Lifetime::Timeframe }, tracks);
+      pc.outputs().snapshot(OutputRef{ "output" }, tracks);
     };
 
     return processingFct;
   };
 
-  return DataProcessorSpec{ "tracker",                                                                // process id
-                            { InputSpec{ "input", "TPC", "CLUSTERNATIVE", 0, Lifetime::Timeframe } }, //
-                            { OutputSpec{ "TPC", "TRACKS", 0, Lifetime::Timeframe } },                //
+  return DataProcessorSpec{ "tracker", // process id
+                            { InputSpec{ "input", "TPC", "CLUSTERNATIVE", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ { "output" }, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(initFunction) };
 }
 

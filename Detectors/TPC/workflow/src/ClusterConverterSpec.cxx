@@ -14,6 +14,7 @@
 /// @brief  Processor spec for converter of TPC clusters to HW cluster raw data
 
 #include "ClusterConverterSpec.h"
+#include "Headers/DataHeader.h"
 #include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -24,6 +25,7 @@
 #include <vector>
 
 using namespace o2::framework;
+using namespace o2::header;
 
 namespace o2
 {
@@ -70,8 +72,7 @@ DataProcessorSpec getClusterConverterSpec()
         nPages += (m.numberOfClusters - 1) / maxClustersPerContainer + 1;
       }
       LOG(DEBUG) << "allocating " << nPages << " output page(s), " << nPages * sizeof(ClusterHardwareContainer8kb);
-      auto outputPages =
-        pc.outputs().make<ClusterHardwareContainer8kb>(Output{ "TPC", "CLUSTERHW", 0, Lifetime::Timeframe }, nPages);
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(OutputRef{ "clusterout" }, nPages);
 
       auto containerMetricsIterator = containerMetrics.begin();
       auto outputPageIterator = outputPages.begin();
@@ -111,9 +112,9 @@ DataProcessorSpec getClusterConverterSpec()
   };
 
   return DataProcessorSpec{ "converter",
-                            { InputSpec{ "clusterin", "TPC", "CLUSTERSIM", 0, Lifetime::Timeframe },
-                              InputSpec{ "mclblin", "TPC", "CLUSTERMCLBL", 0, Lifetime::Timeframe } },
-                            { OutputSpec{ "TPC", "CLUSTERHW", 0, Lifetime::Timeframe } },
+                            { InputSpec{ "clusterin", gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
+                              InputSpec{ "mclblin", gDataOriginTPC, "CLUSTERMCLBL", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(initFunction) };
 }
 } // end namespace TPC

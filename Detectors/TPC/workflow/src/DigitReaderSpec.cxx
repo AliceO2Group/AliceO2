@@ -14,10 +14,12 @@
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "DigitReaderSpec.h"
+#include "Headers/DataHeader.h"
 #include "Framework/RootTreeReader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 
 using namespace o2::framework;
+using namespace o2::header;
 
 namespace o2
 {
@@ -42,9 +44,9 @@ DataProcessorSpec getDigitReaderSpec()
     auto reader = std::make_shared<TreeReader>(treename.c_str(), // tree name
                                                nofEvents,        // number of entries to publish
                                                filename.c_str(), // input file name
-                                               Output{ "TPC", "DIGIT", 0, persistency },
+                                               Output{ gDataOriginTPC, "DIGIT", 0, persistency },
                                                clbrName.c_str(), // name of digit branch
-                                               Output{ "TPC", "DIGITMCLBL", 0, persistency },
+                                               Output{ gDataOriginTPC, "DIGITMCLBL", 0, persistency },
                                                mcbrName.c_str() // name of mc label branch
                                                );
 
@@ -65,8 +67,8 @@ DataProcessorSpec getDigitReaderSpec()
 
   return DataProcessorSpec{ "producer",
                             Inputs{}, // no inputs
-                            { OutputSpec{ "TPC", "DIGIT", 0, Lifetime::Timeframe },
-                              OutputSpec{ "TPC", "DIGITMCLBL", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ gDataOriginTPC, "DIGIT", 0, Lifetime::Timeframe },
+                              OutputSpec{ gDataOriginTPC, "DIGITMCLBL", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(initFunction),
                             Options{
                               { "infile", VariantType::String, "", { "Name of the input file" } },

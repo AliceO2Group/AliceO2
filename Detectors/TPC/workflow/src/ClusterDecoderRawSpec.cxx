@@ -14,6 +14,7 @@
 /// @brief  Processor spec for decoder of TPC raw cluster data
 
 #include "ClusterDecoderRawSpec.h"
+#include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -25,6 +26,7 @@
 #include <vector>
 
 using namespace o2::framework;
+using namespace o2::header;
 
 namespace o2
 {
@@ -65,8 +67,7 @@ DataProcessorSpec getClusterDecoderRawSpec()
         totalSize += coll.getFlatSize() + sizeof(ClusterGroupHeader) - sizeof(ClusterGroupAttribute);
       }
 
-      auto outputDesc = Output{ "TPC", "CLUSTERNATIVE", 0, Lifetime::Timeframe };
-      auto* target = pc.outputs().newChunk(outputDesc, totalSize).data;
+      auto* target = pc.outputs().newChunk(OutputRef{ "clout" }, totalSize).data;
 
       for (const auto& coll : cont) {
         ClusterGroupHeader groupHeader(coll, coll.clusters.size());
@@ -82,25 +83,9 @@ DataProcessorSpec getClusterDecoderRawSpec()
     return processingFct;
   };
 
-  // We can split the output on sector level, but the DPL does not scale if there are too many specs
-  // at the moment we have to create out specs for all individual data packages
-  // its planned to support ranges of subSpecifications in the DPL
-  auto createOutputSpec = []() {
-    o2::framework::Outputs outputs;
-    /**
-    for (uint8_t sector = 0; sector < o2::TPC::Constants::MAXSECTOR; sector++) {
-      auto subSpec = ClusterGroupAttribute{sector, 0}.getSubSpecification();
-      outputs.emplace_back(OutputSpec{ "TPC", "CLUSTERNATIVE", subSpec, Lifetime::Timeframe });
-    }
-    */
-    outputs.emplace_back(OutputSpec{ "TPC", "CLUSTERNATIVE", 0, Lifetime::Timeframe });
-
-    return std::move(outputs);
-  };
-
   return DataProcessorSpec{ "decoder",
-                            { InputSpec{ "rawin", "TPC", "CLUSTERHW", 0, Lifetime::Timeframe } },
-                            { createOutputSpec() },
+                            { InputSpec{ "rawin", gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ { "clout" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(initFunction) };
 }
 

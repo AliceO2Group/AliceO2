@@ -14,6 +14,7 @@
 /// @brief  spec definition for a TPC clusterer process
 
 #include "ClustererSpec.h"
+#include "Headers/DataHeader.h"
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "DataFormatsTPC/Cluster.h"
@@ -24,6 +25,7 @@
 #include <vector>
 
 using namespace o2::framework;
+using namespace o2::header;
 
 namespace o2
 {
@@ -53,18 +55,18 @@ DataProcessorSpec getClustererSpec()
       mctruthArray->clear();
       clusterer->Process(*(inDigits.get()), inMCLabels.get(), 1);
       LOG(INFO) << "clusterer produced " << clusterArray->size() << " cluster(s)";
-      pc.outputs().snapshot(Output{ "TPC", "CLUSTERSIM", 0, Lifetime::Timeframe }, *clusterArray.get());
-      pc.outputs().snapshot(Output{ "TPC", "CLUSTERMCLBL", 0, Lifetime::Timeframe }, *mctruthArray.get());
+      pc.outputs().snapshot(OutputRef{ "clusters" }, *clusterArray.get());
+      pc.outputs().snapshot(OutputRef{ "clusterlbl" }, *mctruthArray.get());
     };
 
     return processingFct;
   };
 
   return DataProcessorSpec{ "tpc-clusterer",
-                            { InputSpec{ "digits", "TPC", "DIGIT", 0, Lifetime::Timeframe },
-                              InputSpec{ "mclabels", "TPC", "DIGITMCLBL", 0, Lifetime::Timeframe } },
-                            { OutputSpec{ "TPC", "CLUSTERSIM", 0, Lifetime::Timeframe },
-                              OutputSpec{ "TPC", "CLUSTERMCLBL", 0, Lifetime::Timeframe } },
+                            { InputSpec{ "digits", gDataOriginTPC, "DIGIT", 0, Lifetime::Timeframe },
+                              InputSpec{ "mclabels", gDataOriginTPC, "DIGITMCLBL", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ { "clusters" }, gDataOriginTPC, "CLUSTERSIM", 0, Lifetime::Timeframe },
+                              OutputSpec{ { "clusterlbl" }, gDataOriginTPC, "CLUSTERMCLBL", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(initFunction) };
 }
 
