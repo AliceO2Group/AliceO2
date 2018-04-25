@@ -56,6 +56,8 @@ public:
                 const AllowedOutputRoutes &routes);
 
   DataChunk newChunk(const Output&, size_t);
+  DataChunk newChunk(OutputRef const& ref, size_t size) { return newChunk(getOutputByBind(ref), size); }
+
   DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
   // In case no extra argument is provided and the passed type is trivially
@@ -319,6 +321,14 @@ public:
   auto make(OutputRef const& ref, Args&&... args)
   {
     return make<T>(getOutputByBind(ref), std::forward<Args>(args)...);
+  }
+
+  void adopt(OutputRef const& ref, TObject* obj) { return adopt(getOutputByBind(ref), obj); }
+
+  template <typename... Args>
+  auto snapshot(OutputRef const& ref, Args&&... args)
+  {
+    return snapshot(getOutputByBind(ref), std::forward<Args>(args)...);
   }
 
  private:
