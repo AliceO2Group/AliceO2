@@ -27,7 +27,7 @@
 #endif
 
 #include "AliHLTTPCGMMergedTrack.h"
-#include "interface/outputtrack.h"
+#include "Interface/outputtrack.h"
 #include "include.h"
 #include "standaloneSettings.h"
 #include <vector>

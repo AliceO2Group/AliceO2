@@ -195,7 +195,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 
 	//Workaround to compile CL kernel during tracker initialization
 	/*{
-		char* file = "cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cl";
+		char* file = "GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cl";
 		HLTDebug("Reading source file %s\n", file);
 		FILE* fp = fopen(file, "rb");
 		if (fp == NULL)
@@ -226,7 +226,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 
 		HLTDebug("Compiling OpenCL Program\n");
 		//Compile program
-		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -Icode -Ibase -Imerger-ca -Icagpubuild -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -I/usr/local/cuda/include -DHLTCA_STANDALONE -DBUILD_GPU -D_64BIT  -x clc++", NULL, NULL);
+		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -ISliceTracker -IHLTHeaders -IMerger -IGlobalTracker -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -I/usr/local/cuda/include -DHLTCA_STANDALONE -DBUILD_GPU -D_64BIT  -x clc++", NULL, NULL);
 		if (ocl_error != CL_SUCCESS)
 		{
 			HLTDebug("OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");

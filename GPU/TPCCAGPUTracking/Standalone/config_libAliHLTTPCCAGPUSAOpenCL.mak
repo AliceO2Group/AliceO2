@@ -3,11 +3,11 @@ include						config_common.mak
 TARGET						= libAliHLTTPCCAGPUSAOpenCL
 TARGETTYPE					= LIB
 
-CXXFILES					= cagpubuild/AliHLTTPCCAGPUTrackerBase.cxx \
-						   cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cxx
+CXXFILES					= GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx \
+						   GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cxx
 
 ASMFILES					= 
-CLFILES						= cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cl
+CLFILES						= GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cl
 
 CONFIG_OPENCL				= 1
 OPENCL_OPTIONS				= -x clc++

@@ -6,9 +6,9 @@ TARGETTYPE					= LIB
 ifeq ($(ARCH_CYGWIN), 1)
 CXXFILES					+=
 endif
-CXXFILES					+= cagpubuild/AliHLTTPCCAGPUTrackerBase.cxx
+CXXFILES					+= GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
 
-CUFILES						= cagpubuild/AliHLTTPCCAGPUTrackerNVCC.cu
+CUFILES						= GlobalTracker/cuda/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					= 
 
 CONFIG_CUDA					= 1
