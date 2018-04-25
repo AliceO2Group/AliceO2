@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "opengl_backend.h"
 
-void opengl_spline::create(const std::vector<float>& x, const std::vector<float>& y)
+void opengl_spline::create(const vecpod<float>& x, const vecpod<float>& y)
 {
 	fa.clear();
 	fb.clear();
@@ -16,7 +16,7 @@ void opengl_spline::create(const std::vector<float>& x, const std::vector<float>
 	fc.resize(k + 1);
 	fd.resize(k + 1);
 	fx.resize(k + 1);
-	std::vector<float> h(k + 1), alpha(k + 1), l(k + 1), mu(k + 1), z(k + 1);
+	vecpod<float> h(k + 1), alpha(k + 1), l(k + 1), mu(k + 1), z(k + 1);
 	for (int i = 0;i <= k;i++) fa[i] = y[i];
 	for (int i = 0;i < k;i++) h[i] = x[i + 1] - x[i];
 	for (int i = 1;i < k;i++) alpha[i] = 3.f / h[i] * (fa[i + 1] - fa[i]) - 3.f / h[i - 1] * (fa[i] - fa[i - 1]);

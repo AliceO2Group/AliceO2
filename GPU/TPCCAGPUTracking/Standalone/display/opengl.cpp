@@ -55,9 +55,9 @@ GLuint vbo_id[fgkNSlices], indirect_id;
 int indirectSliceOffset[fgkNSlices];
 typedef std::tuple<GLsizei, GLsizei, int> vboList;
 struct GLvertex {GLfloat x, y, z; GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}};
-std::vector<GLvertex> vertexBuffer[fgkNSlices];
-std::vector<GLint> vertexBufferStart[fgkNSlices];
-std::vector<GLsizei> vertexBufferCount[fgkNSlices];
+vecpod<GLvertex> vertexBuffer[fgkNSlices];
+vecpod<GLint> vertexBufferStart[fgkNSlices];
+vecpod<GLsizei> vertexBufferCount[fgkNSlices];
 int drawCalls = 0;
 bool useGLIndirectDraw = true;
 bool useMultiVBO = false;
@@ -88,7 +88,7 @@ inline void drawVertices(const vboList& v, const GLenum t)
 		CHKERR(glMultiDrawArrays(t, vertexBufferStart[iSlice].data() + first, vertexBufferCount[iSlice].data() + first, count));
 	}
 }
-inline void insertVertexList(std::pair<std::vector<GLint>*, std::vector<GLsizei>*>& vBuf, size_t first, size_t last)
+inline void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last)
 {
 	if (first == last) return;
 	vBuf.first->emplace_back(first);
@@ -96,7 +96,7 @@ inline void insertVertexList(std::pair<std::vector<GLint>*, std::vector<GLsizei>
 }
 inline void insertVertexList(int iSlice, size_t first, size_t last)
 {
-	std::pair<std::vector<GLint>*, std::vector<GLsizei>*> vBuf(vertexBufferStart + iSlice, vertexBufferCount + iSlice);
+	std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf(vertexBufferStart + iSlice, vertexBufferCount + iSlice);
 	insertVertexList(vBuf, first, last);
 }
 
@@ -191,7 +191,7 @@ int hideUnmatchedClusters = 0;
 int hideRejectedTracks = 1;
 int markAdjacentClusters = 0;
 
-std::vector<std::array<int,37>> collisionClusters;
+vecpod<std::array<int,37>> collisionClusters;
 int nCollisions = 1;
 void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
 {
@@ -221,8 +221,8 @@ int animateScreenshot = 0;
 int animationExport = 0;
 bool animationChangeConfig = true;
 float animationDelay = 2.f;
-std::vector<float> animateVectors[9];
-std::vector<OpenGLConfig> animateConfig;
+vecpod<float> animateVectors[9];
+vecpod<OpenGLConfig> animateConfig;
 opengl_spline animationSplines[8];
 void animationCloseAngle(float& newangle, float lastAngle)
 {
@@ -443,7 +443,7 @@ void deleteFB(GLfb& fb)
 	fb.created = false;
 }
 
-std::vector<GLuint> mainBufferStack{0};
+vecpod<GLuint> mainBufferStack{0};
 void setFrameBuffer(int updateCurrent = -1, GLuint newID = 0)
 {
 	if (updateCurrent == 1) mainBufferStack.push_back(newID);
@@ -687,10 +687,6 @@ vboList DrawTracklets(AliHLTTPCCATracker &tracker)
 			{
 				const AliHLTTPCCARow &row = tracker.Data().Row(j);
 				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, rowHit));
-				/*if (j != tracklet.FirstRow())
-				{
-					float dist = (oldpos.x - globalPos[cid].x) * (oldpos.x - globalPos[cid].x) + (oldpos.y - globalPos[cid].y) * (oldpos.y - globalPos[cid].y) + (oldpos.z - globalPos[cid].z) * (oldpos.z - globalPos[cid].z);
-				}*/
 				oldpos = globalPos[cid];
 				drawPointLinestrip(iSlice, cid, 4);
 			}
@@ -723,10 +719,10 @@ vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 
 void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboList* list)
 {
-	std::vector<GLvertex> buffer;
-	std::vector<GLint> vertexBufferStartLocal[N_FINAL_TYPE];
-	std::vector<GLsizei> vertexBufferCountLocal[N_FINAL_TYPE];
-	std::pair<std::vector<GLint>*, std::vector<GLsizei>*> vBuf[N_FINAL_TYPE];
+	vecpod<GLvertex> buffer;
+	vecpod<GLint> vertexBufferStartLocal[N_FINAL_TYPE];
+	vecpod<GLsizei> vertexBufferCountLocal[N_FINAL_TYPE];
+	std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf[N_FINAL_TYPE];
 	for (int i = 0;i < N_FINAL_TYPE;i++) {vBuf[i].first = vertexBufferStartLocal + i; vBuf[i].second = vertexBufferCountLocal + i;}
 
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
@@ -860,7 +856,7 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 				if (x < 1) break;
 				if (fabs(param.SinPhi()) > 1) break;
 				alpha = hlt.Param().Alpha(slice);
-				std::vector<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : vertexBuffer[iSlice];
+				vecpod<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : vertexBuffer[iSlice];
 				int nPoints = 0;
 				
 				while (nPoints++ < 5000)
@@ -983,8 +979,8 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	bool showTimer = false;
 
 	static vboList glDLlines[fgkNSlices][N_LINES_TYPE];
-	static std::vector<std::array<vboList, N_FINAL_TYPE>> glDLfinal[fgkNSlices];
-	static std::vector<vboList> GLpoints[fgkNSlices][N_POINTS_TYPE];
+	static vecpod<std::array<vboList, N_FINAL_TYPE>> glDLfinal[fgkNSlices];
+	static vecpod<vboList> GLpoints[fgkNSlices][N_POINTS_TYPE];
 	static vboList glDLgrid[fgkNSlices];
 
 	//Make sure event gets not overwritten during display
@@ -1416,6 +1412,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 				}
 			}
 		}
+//End omp parallel
 
 		glDLrecent = 1;
 		size_t totalVertizes = 0;
@@ -1432,8 +1429,8 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		}
 		else
 		{
-			vertexBuffer[0].reserve(totalVertizes); //ATTENTION, this only reserves but not initializes, I.e. we use the vector as raw ptr for now...
 			size_t totalYet = vertexBuffer[0].size();
+			vertexBuffer[0].resize(totalVertizes);
 			for (int i = 1;i < fgkNSlices;i++)
 			{
 				for (unsigned int j = 0;j < vertexBufferStart[i].size();j++)
@@ -1451,7 +1448,8 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		
 		if (useGLIndirectDraw)
 		{
-			std::vector<DrawArraysIndirectCommand> cmds;
+			static vecpod<DrawArraysIndirectCommand> cmds;
+			cmds.clear();
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				indirectSliceOffset[iSlice] = cmds.size();
