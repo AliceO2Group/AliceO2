@@ -490,6 +490,23 @@ void UpdateOffscreenBuffers(bool clean = false)
 	setQuality();
 }
 
+struct threadVertexBuffer
+{
+	vecpod<GLvertex> buffer;
+	vecpod<GLint> start[N_FINAL_TYPE];
+	vecpod<GLsizei> count[N_FINAL_TYPE];
+	std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf[N_FINAL_TYPE];
+	threadVertexBuffer() : buffer()
+	{
+		for (int i = 0;i < N_FINAL_TYPE;i++) {vBuf[i].first = start + i; vBuf[i].second = count + i;}
+	}
+	void clear()
+	{
+		for (int i = 0;i < N_FINAL_TYPE;i++) {start[i].clear(); count[i].clear();}
+	}
+};
+std::vector<threadVertexBuffer> threadBuffers;
+
 void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
 {
 	if (height == 0) // Prevent A Divide By Zero By
@@ -539,6 +556,7 @@ int InitGL()
 	setQuality();
 	ReSizeGLScene(init_width, init_height, true);
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
+	threadBuffers.resize(omp_get_max_threads());
 	return(true);                                     // Initialization Went OK
 }
 
@@ -717,14 +735,11 @@ vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboList* list)
+void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboList* list, threadVertexBuffer& threadBuffer)
 {
-	vecpod<GLvertex> buffer;
-	vecpod<GLint> vertexBufferStartLocal[N_FINAL_TYPE];
-	vecpod<GLsizei> vertexBufferCountLocal[N_FINAL_TYPE];
-	std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf[N_FINAL_TYPE];
-	for (int i = 0;i < N_FINAL_TYPE;i++) {vBuf[i].first = vertexBufferStartLocal + i; vBuf[i].second = vertexBufferCountLocal + i;}
-
+	auto& vBuf = threadBuffer.vBuf;
+	auto& buffer = threadBuffer.buffer;
+	threadBuffer.clear();
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
 	int nTracks = std::max(hlt.GetNMCInfo(), merger.NOutputTracks());
 	if (config.clustersOnly) nTracks = 0;
@@ -904,10 +919,10 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 	for (int i = 0;i < N_FINAL_TYPE;i++)
 	{
 		size_t startCount = vertexBufferStart[iSlice].size();
-		for (unsigned int j = 0;j < vertexBufferStartLocal[i].size();j++)
+		for (unsigned int j = 0;j < threadBuffer.start[i].size();j++)
 		{
-			vertexBufferStart[iSlice].emplace_back(vertexBufferStartLocal[i][j]);
-			vertexBufferCount[iSlice].emplace_back(vertexBufferCountLocal[i][j]);
+			vertexBufferStart[iSlice].emplace_back(threadBuffer.start[i][j]);
+			vertexBufferCount[iSlice].emplace_back(threadBuffer.count[i][j]);
 		}
 		list[i] = vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
 	}
@@ -1342,6 +1357,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 		}
 #pragma omp parallel
 		{
+			int numThread = omp_get_thread_num();
 #pragma omp for
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
@@ -1394,7 +1410,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			{
 				for (int iCol = 0;iCol < nCollisions;iCol++)
 				{
-					DrawFinal(iSlice, iCol, &prop, &glDLfinal[iSlice][iCol][0]);
+					DrawFinal(iSlice, iCol, &prop, &glDLfinal[iSlice][iCol][0], threadBuffers[numThread]);
 				}
 			}
 

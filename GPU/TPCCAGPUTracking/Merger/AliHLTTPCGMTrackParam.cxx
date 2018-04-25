@@ -385,7 +385,9 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(AliHLTTPCGMMerger* merge
     float toX = fP[2] > 0 ? toY : -toY;
     float Y = fP[2] > 0 ? -fX : fX;
     float Z = fP[1];
+    if (fabs(fP[2]) >= HLTCA_MAX_SIN_PHI_LOW) return;
     float SinPhi = sqrtf(1 - fP[2] * fP[2]) * (fP[2] > 0 ? -1 : 1);
+    if (fabs(SinPhi) >= HLTCA_MAX_SIN_PHI_LOW) return;
     float b = prop.GetBz(prop.GetAlpha(), fX, fP[0], fP[1]);
 
     int count = fabs((toX - X) / 0.5) + 0.5;
