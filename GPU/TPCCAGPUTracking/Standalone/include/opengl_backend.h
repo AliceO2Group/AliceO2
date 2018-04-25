@@ -1,7 +1,7 @@
 #ifndef OPENGL_BACKEND_H
 #define OPENGL_BACKEND_H
 
-#include <vector>
+#include "../cmodules/vecpod.h"
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -48,12 +48,12 @@ class opengl_spline
 {
 public:
 	opengl_spline() : fa(), fb(), fc(), fd(), fx() {}
-	void create(const std::vector<float>& x, const std::vector<float>& y);
+	void create(const vecpod<float>& x, const vecpod<float>& y);
 	float evaluate(float x);
 	void setVerbose() {verbose = true;}
 	
 private:
-	std::vector<float> fa, fb, fc, fd, fx;
+	vecpod<float> fa, fb, fc, fd, fx;
 	bool verbose = false;
 };
 
