@@ -124,6 +124,7 @@ set(HEADERS
       include/Framework/DataProcessingDevice.h
       include/Framework/Variant.h
       include/Framework/RootTreeReader.h
+      include/Framework/CallbackRegistry.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -202,6 +203,7 @@ set(TEST_SRCS
       test/test_TMessageSerializer.cxx
       test/test_DataAllocator.cxx
       test/test_RootTreeReader.cxx
+      test/test_CallbackRegistry.cxx
    )
 
 O2_GENERATE_TESTS(
