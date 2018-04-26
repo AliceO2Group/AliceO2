@@ -27,6 +27,7 @@
 #include "ITSMFTSimulation/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/ElectronTransport.h"
+#include "TPCSimulation/HitDriftFilter.h"
 #include "TStopwatch.h"
 #include <sstream>
 #include <algorithm>
@@ -37,72 +38,6 @@ namespace o2
 {
 namespace steer
 {
-
-template <typename Collection>
-void getHits(TChain& chain, const Collection& eventrecords, std::vector<std::vector<o2::TPC::HitGroup>*>& hitvectors,
-             std::vector<o2::TPC::TPCHitGroupID>& hitids, const char* branchname, float tmin /*NS*/, float tmax /*NS*/,
-             std::function<float(float, float, float)>&& f)
-{
-  // f is some function taking event time + z of hit and returns final "digit" time
-  LOG(DEBUG) << "BR NAME " << branchname;
-  auto br = chain.GetBranch(branchname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-
-  auto nentries = br->GetEntries();
-
-  // do the filtering
-  for (int entry = 0; entry < nentries; ++entry) {
-    if (tmin > f(eventrecords[entry].timeNS, 0, 0)) {
-      continue;
-    }
-    if (tmax < f(eventrecords[entry].timeNS, 0, 250)) {
-      break;
-    }
-
-    // This needs to be done only once for any entry
-    if (hitvectors[entry] == nullptr) {
-      br->SetAddress(&hitvectors[entry]);
-      br->GetEntry(entry);
-    }
-
-    int groupid = -1;
-    auto groups = hitvectors[entry];
-    for (auto& singlegroup : *groups) {
-      if (singlegroup.getSize() == 0) {
-        // there are not hits in this group .. so continue
-        // TODO: figure out why such a group would exist??
-        continue;
-      }
-      const auto& pos = singlegroup.getHit(0).getPos();
-      // std::cout << "This Group is in sector " << o2::TPC::Sector::ToSector(pos.X(), pos.Y(), pos.Z()) << "\n";
-      groupid++;
-      auto zmax = singlegroup.mZAbsMax;
-      auto zmin = singlegroup.mZAbsMin;
-      // in case of secondaries, the time ordering may be reversed
-      if (zmax < zmin) {
-        std::swap(zmax, zmin);
-      }
-      // auto tof = singlegroup.
-      float tmaxtrack = f(eventrecords[entry].timeNS, 0., zmin);
-      float tmintrack = f(eventrecords[entry].timeNS, 0., zmax);
-      if (tmin > tmaxtrack || tmax < tmintrack) {
-        // std::cout << "DISCARDING " << groupid << " OF ENTRY " << entry << "\n";
-        continue;
-      }
-      // need to record index of the group
-      hitids.emplace_back(entry, groupid);
-    }
-  }
-}
-
-// TPC hit selection lambda
-auto fTPC = [](float tNS, float tof, float z) {
-  // returns time in NS
-  return tNS + o2::TPC::ElectronTransport::getDriftTime(z) * 1000 + tof;
-};
 
 DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehits)
 {
@@ -184,9 +119,11 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
       digitizertask->setEndTime(endtime);
 
       // obtain candidate hit(ids) for this time range --> left
-      getHits(*simChain, timesview, hitvectorsleft, hitidsleft, branchnameleft.c_str(), starttime, endtime, fTPC);
+      o2::TPC::getHits(*simChain, timesview, hitvectorsleft, hitidsleft, branchnameleft.c_str(), starttime, endtime,
+                       o2::TPC::calcDriftTime);
       // --> right
-      getHits(*simChain, timesview, hitvectorsright, hitidsright, branchnameright.c_str(), starttime, endtime, fTPC);
+      o2::TPC::getHits(*simChain, timesview, hitvectorsright, hitidsright, branchnameright.c_str(), starttime, endtime,
+                       o2::TPC::calcDriftTime);
 
       LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
                  << " SELECTED RIGHT " << hitidsright.size();
