@@ -30,8 +30,9 @@ std::vector<TestPoint> generateUniformTestPoints(int n, double xmin, double ymin
   testPoints.resize(n);
   std::uniform_real_distribution<double> distX{ xmin, xmax };
   std::uniform_real_distribution<double> distY{ ymin, ymax };
-  std::generate(testPoints.begin(), testPoints.end(),
-                [&distX, &distY, &mt] { return TestPoint{distX(mt), distY(mt)}; });
+  std::generate(testPoints.begin(), testPoints.end(), [&distX, &distY, &mt] {
+    return TestPoint{ distX(mt), distY(mt) };
+  });
 
   return testPoints;
 }

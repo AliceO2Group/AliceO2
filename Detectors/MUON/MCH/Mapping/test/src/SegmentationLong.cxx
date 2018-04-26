@@ -94,7 +94,8 @@ std::vector<Point> checkGaps(const Segmentation& seg, double xstep = 1.0, double
 
   for (double x = bbox.xmin() - xstep; x <= bbox.xmax() + xstep; x += xstep) {
     for (double y = bbox.ymin() - ystep; y <= bbox.ymax() + ystep; y += ystep) {
-      double distanceToEnveloppe = std::sqrt(o2::mch::contour::squaredDistancePointToPolygon(o2::mch::contour::Vertex<double>{ x, y }, env[0]));
+      double distanceToEnveloppe =
+        std::sqrt(o2::mch::contour::squaredDistancePointToPolygon(o2::mch::contour::Vertex<double>{ x, y }, env[0]));
       bool withinEnveloppe = env.contains(x, y) && (distanceToEnveloppe > 1E-5);
       if (withinEnveloppe && !seg.isValid(seg.findPadByPosition(x, y))) {
         gaps.push_back(std::make_pair(x, y));
