@@ -30,7 +30,6 @@
 
 using namespace o2::mch::mapping;
 namespace bdata = boost::unit_test::data;
-using Point = std::pair<double, double>;
 
 BOOST_AUTO_TEST_SUITE(o2_mch_mapping)
 BOOST_AUTO_TEST_SUITE(segmentation)
@@ -120,6 +119,56 @@ BOOST_AUTO_TEST_CASE(TotalNofBendingFECInSegTypes)
   });
   BOOST_CHECK_EQUAL(nb, 1246);
   BOOST_CHECK_EQUAL(nnb, 1019);
+}
+
+BOOST_AUTO_TEST_CASE(BendingBoundingBox)
+{
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(100, true)), o2::mch::contour::BBox<double>(0, 0, 89.04, 89.46));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(300, true)), o2::mch::contour::BBox<double>(-1, -0.75, 116, 117.25));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(500, true)), o2::mch::contour::BBox<double>(-75, -20, 57.5, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(501, true)), o2::mch::contour::BBox<double>(-75, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(502, true)), o2::mch::contour::BBox<double>(-80, -20, 75, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(503, true)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(504, true)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(600, true)), o2::mch::contour::BBox<double>(-80, -20, 57.5, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(601, true)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(602, true)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(700, true)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(701, true)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(702, true)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(703, true)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(704, true)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(705, true)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(706, true)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(902, true)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(903, true)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(904, true)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(905, true)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+}
+
+BOOST_AUTO_TEST_CASE(NonBendingBoundingBox)
+{
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(100, false)), o2::mch::contour::BBox<double>(-0.315, 0.21, 89.145, 89.25));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(300, false)), o2::mch::contour::BBox<double>(-0.625, -0.5, 115.625, 117.5));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(500, false)), o2::mch::contour::BBox<double>(-74.2857, -20, 58.5714, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(501, false)), o2::mch::contour::BBox<double>(-74.2857, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(502, false)), o2::mch::contour::BBox<double>(-80, -20, 74.2857, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(503, false)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(504, false)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(600, false)), o2::mch::contour::BBox<double>(-80, -20, 58.5714, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(601, false)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(602, false)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(700, false)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(701, false)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(702, false)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(703, false)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(704, false)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(705, false)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(706, false)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(902, false)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(903, false)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(904, false)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(Segmentation(905, false)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
 }
 
 BOOST_AUTO_TEST_CASE(NofBendingFEC)
@@ -234,60 +283,6 @@ BOOST_AUTO_TEST_CASE(DualSampasWithLessThan64Pads)
   }
 
   BOOST_CHECK_EQUAL(n, 166);
-}
-
-void dumpToFile(std::string fileName, const Segmentation& seg, const std::vector<Point>& points)
-{
-  std::ofstream out(fileName);
-  o2::mch::contour::SVGWriter w(getBBox(seg));
-
-  w.addStyle(svgSegmentationDefaultStyle());
-
-  svgSegmentation(seg, w, true, true, true, false);
-
-  w.svgGroupStart("testpoints");
-  w.points(points, 0.1);
-  w.svgGroupEnd();
-  w.writeHTML(out);
-}
-
-/// Check that for all points within the segmentation contour
-/// the findPadByPosition actually returns a valid pad
-std::vector<Point> checkGaps(const Segmentation& seg, double xstep = 1.0, double ystep = 1.0)
-{
-  std::vector<Point> gaps;
-  auto bbox = o2::mch::mapping::getBBox(seg);
-  auto env = o2::mch::mapping::getEnvelop(seg);
-
-  if (env.size() != 1) {
-    throw std::runtime_error("assumption env contour = one polygon is not verified");
-  }
-
-  for (double x = bbox.xmin() - xstep; x <= bbox.xmax() + xstep; x += xstep) {
-    for (double y = bbox.ymin() - ystep; y <= bbox.ymax() + ystep; y += ystep) {
-      double distanceToEnveloppe = std::sqrt(o2::mch::contour::squaredDistancePointToPolygon({ x, y }, env[0]));
-      bool withinEnveloppe = env.contains(x, y) && (distanceToEnveloppe > 1E-5);
-      if (withinEnveloppe && !seg.isValid(seg.findPadByPosition(x, y))) {
-        gaps.push_back(std::make_pair(x, y));
-      }
-    }
-  }
-  return gaps;
-}
-
-BOOST_DATA_TEST_CASE(NoGapWithinPads,
-                     boost::unit_test::data::make({ 100, 300, 500, 501, 502, 503, 504, 600, 601, 602, 700,
-                                                    701, 702, 703, 704, 705, 706, 902, 903, 904, 905 }) *
-                       boost::unit_test::data::make({ true, false }),
-                     detElemId, isBendingPlane)
-{
-  Segmentation seg{ detElemId, isBendingPlane };
-  auto g = checkGaps(seg);
-
-  if (!g.empty()) {
-    dumpToFile("bug-gap-" + std::to_string(detElemId) + "-" + (isBendingPlane ? "B" : "NB") + ".html", seg, g);
-  }
-  BOOST_TEST(g.empty());
 }
 
 struct SEG {

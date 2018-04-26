@@ -276,8 +276,10 @@ Contour<T> finalizeContour(const std::vector<VerticalEdge<T>>& verticals,
       contour.addPolygon(close(polygon));
       iCurrent = std::distance(alreadyAdded.begin(), std::find_if(alreadyAdded.begin(), alreadyAdded.end(),
                                                                   [](bool a) { return a == false; }));
-      startSegment = all[iCurrent];
-      inorder.clear();
+      if (iCurrent<all.size()) {
+        startSegment = all[iCurrent];
+        inorder.clear();
+      }
     }
 
     for (auto i = 0; i < alreadyAdded.size(); ++i) {
