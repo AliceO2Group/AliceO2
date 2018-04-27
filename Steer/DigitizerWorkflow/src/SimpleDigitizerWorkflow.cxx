@@ -16,8 +16,64 @@
 
 // for TPC
 #include "TPCDriftTimeDigitizerSpec.h"
+#include "TPCBase/Sector.h"
+
+#include <cstdlib>
+// this is somewhat assuming that a DPL workflow will run on one node
+#include <thread>   // to detector number of hardware threads
+#include <string>
+#include <sstream>
+#include <cmath>
 
 using namespace o2::framework;
+
+// extract num TPC lanes, a lane is a streaming line of processors (digitizer-clusterizer-etc)
+// by default this will be std::max(the number of physical cores, numberofsectors)
+// as a temporary means to fully use a machine and as a way to play with different topologies
+int getNumTPCLanes(std::vector<int> const& sectors)
+{
+  int lanes = std::thread::hardware_concurrency();
+  if (const char* f = std::getenv("DPL_TPC_LANES")) {
+    lanes = atoi(f);
+  }
+  // crosscheck with sectors
+  return std::min(lanes, (int)sectors.size());
+}
+
+void extractTPCSectors(std::vector<int>& sectors)
+{
+  if (const char* f = std::getenv("DPL_TPC_SECTORS")) {
+    // we expect them to be , separated
+    std::stringstream ss(f);
+    std::vector<std::string> stringtokens;
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      stringtokens.push_back(substr);
+    }
+    // now try to convert each token to int
+    for (auto& token : stringtokens) {
+      try {
+        auto s = std::stoi(token);
+        sectors.emplace_back(s);
+      } catch (std::invalid_argument e) {
+      }
+    }
+  } else {
+    // all sectors otherwise by default
+    for (int s = 0; s < o2::TPC::Sector::MAXSECTOR; ++s) {
+      sectors.emplace_back(s);
+    }
+  }
+}
+
+bool wantCollisionTimePrinter()
+{
+  if (const char* f = std::getenv("DPL_COLLISION_TIME_PRINTER")) {
+    return true;
+  }
+  return false;
+}
 
 /// This function is required to be implemented to define the workflow
 /// specifications
@@ -26,14 +82,21 @@ void defineDataProcessing(WorkflowSpec& specs)
   specs.clear();
 
   int fanoutsize = 0;
+  if (wantCollisionTimePrinter()) {
+    specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
+  }
 
-  //
-  // specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
+  std::vector<int> tpcsectors;
+  extractTPCSectors(tpcsectors);
+  auto lanes = getNumTPCLanes(tpcsectors);
 
-  // parallely processing the first 6 TPC sectors
-  for (int s = 0; s < 1; ++s) {
-    // probably a parallel construct can be used here
-    specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(s, fanoutsize++));
+  int l = 0;
+  for (auto& s : tpcsectors) {
+    if (l++ < lanes) {
+      LOG(INFO) << "ADDING SECTOR " << s << " LANE";
+      // probably a parallel construct can be used here
+      specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(s, fanoutsize++));
+    }
   }
 
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize));
