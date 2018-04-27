@@ -541,6 +541,19 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // different versions of the service
     ServiceRegistry serviceRegistry;
 
+    auto simpleMetricsService = std::make_unique<SimpleMetricsService>();
+    auto localRootFileService = std::make_unique<LocalRootFileService>();
+    auto textControlService = std::make_unique<TextControlService>();
+    auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
+    auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
+    auto callbackService = std::make_unique<CallbackService>();
+    serviceRegistry.registerService<MetricsService>(simpleMetricsService.get());
+    serviceRegistry.registerService<RootFileService>(localRootFileService.get());
+    serviceRegistry.registerService<ControlService>(textControlService.get());
+    serviceRegistry.registerService<ParallelContext>(parallelContext.get());
+    serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
+    serviceRegistry.registerService<CallbackService>(callbackService.get());
+
     std::unique_ptr<FairMQDevice> device;
     if (spec.inputs.empty()) {
       LOG(DEBUG) << spec.id << " is a source\n";
@@ -550,18 +563,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       device = std::make_unique<DataProcessingDevice>(spec, serviceRegistry);
     }
 
-    auto simpleMetricsService = std::make_unique<SimpleMetricsService>();
-    auto localRootFileService = std::make_unique<LocalRootFileService>();
-    auto textControlService = std::make_unique<TextControlService>();
-    auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
-    auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(device.get());
-    auto callbackService = std::make_unique<CallbackService>();
-    serviceRegistry.registerService<MetricsService>(simpleMetricsService.get());
-    serviceRegistry.registerService<RootFileService>(localRootFileService.get());
-    serviceRegistry.registerService<ControlService>(textControlService.get());
-    serviceRegistry.registerService<ParallelContext>(parallelContext.get());
-    serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
-    serviceRegistry.registerService<CallbackService>(callbackService.get());
+    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
       r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };
