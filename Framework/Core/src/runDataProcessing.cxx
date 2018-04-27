@@ -28,6 +28,7 @@
 #include "Framework/SimpleMetricsService.h"
 #include "Framework/SimpleRawDeviceService.h"
 #include "Framework/TextControlService.h"
+#include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
 
 #include "DDSConfigHelpers.h"
@@ -554,11 +555,13 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     auto textControlService = std::make_unique<TextControlService>();
     auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
     auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(device.get());
+    auto callbackService = std::make_unique<CallbackService>();
     serviceRegistry.registerService<MetricsService>(simpleMetricsService.get());
     serviceRegistry.registerService<RootFileService>(localRootFileService.get());
     serviceRegistry.registerService<ControlService>(textControlService.get());
     serviceRegistry.registerService<ParallelContext>(parallelContext.get());
     serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
+    serviceRegistry.registerService<CallbackService>(callbackService.get());
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
       r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };

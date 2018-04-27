@@ -31,7 +31,11 @@ class DataSourceDevice : public FairMQDevice {
 public:
   DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &registry);
   void Init() final;
-protected:
+  void PreRun() final;
+  void PostRun() final;
+  void Reset() final;
+
+ protected:
   bool ConditionalRun() final;
 private:
   AlgorithmSpec::InitCallback mInit;

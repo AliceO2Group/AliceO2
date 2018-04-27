@@ -14,6 +14,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/MetricsService.h"
+#include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
 #include <fairmq/FairMQParts.h>
@@ -72,6 +73,12 @@ void DataProcessingDevice::Init() {
   }
   LOG(DEBUG) << "DataProcessingDevice::InitTask::END";
 }
+
+void DataProcessingDevice::PreRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start); }
+
+void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop); }
+
+void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
