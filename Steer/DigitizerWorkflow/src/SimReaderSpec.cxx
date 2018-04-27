@@ -41,7 +41,6 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize)
     // counter to make sure we are sending the data only once
     static int counter = 0;
     if (counter++ == 0) {
-      // sleep(10);
       LOG(INFO) << "SENDING " << eventrecords.size() << " records";
 
       for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
