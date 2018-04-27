@@ -14,7 +14,7 @@
 /// @brief  Processor spec for a ROOT file writer
 
 #include "RootFileWriterSpec.h"
-#include "Framework/ControlService.h"
+#include "Framework/CallbackService.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include <TFile.h>
 #include <TTree.h>
@@ -35,35 +35,29 @@ DataProcessorSpec getRootFileWriterSpec()
     // get the option from the init context
     auto filename = ic.options().get<std::string>("outfile");
     auto treename = ic.options().get<std::string>("treename");
-    auto nofEvents = ic.options().get<int>("nevents");
-    if (nofEvents < 0) {
-      // this is a hack for the moment to workaround that there is no cleanup function
-      // we require a number of events after which to close
-      std::runtime_error("number of events required");
-    }
 
     auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
     auto tracks = std::make_shared<std::vector<o2::TPC::TrackTPC>>();
     auto trackbranch = outputtree->Branch("Tracks", tracks.get());
 
+    // the callback to be set as hook at stop of processing for the framework
+    auto finishWriting = [outputfile, outputtree]() {
+      outputtree->Write();
+      outputfile->Close();
+    };
+    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
+
     // set up the processing function
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [outputfile, outputtree, tracks, nofEvents](ProcessingContext& pc) {
+    auto processingFct = [outputfile, outputtree, tracks](ProcessingContext& pc) {
       auto indata = pc.inputs().get<std::vector<o2::TPC::TrackTPC>>("input");
       LOG(INFO) << "RootFileWriter: get " << indata->size() << " track(s)";
       *tracks.get() = std::move(*indata.get());
       LOG(INFO) << "RootFileWriter: write " << tracks->size() << " track(s)";
       outputtree->Fill();
-
-      // a cleanup callback is soon going to be supported in the framework
-      if (outputtree->GetEntries() == nofEvents) {
-        outputtree->Write();
-        outputfile->Close();
-        pc.services().get<ControlService>().readyToQuit(true);
-      }
     };
 
     // return the actual processing function as a lambda function using variables
@@ -78,7 +72,6 @@ DataProcessorSpec getRootFileWriterSpec()
                             Options{
                               { "outfile", VariantType::String, "tpctracks.root", { "Name of the input file" } },
                               { "treename", VariantType::String, "Tracks", { "Name of tree for tracks" } },
-                              { "nevents", VariantType::Int, -1, { "number of events to run" } },
                             } };
 }
 } // end namespace TPC
