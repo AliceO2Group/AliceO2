@@ -13,13 +13,11 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/MetricsService.h"
 #include "Framework/ControlService.h"
+#include "Framework/CallbackService.h"
 #include "FairMQLogger.h"
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
-
-using Inputs = std::vector<InputSpec>;
-using Outputs = std::vector<OutputSpec>;
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
@@ -29,13 +27,20 @@ void defineDataProcessing(WorkflowSpec &specs) {
       "producer",
       Inputs{},
       Outputs{
-        {"TES", "STATEFUL", Lifetime::Timeframe},
+        {"TES", "STATEFUL", 0, Lifetime::Timeframe},
       },
       // The producer is stateful, we use a static for the state in this
       // particular case, but a Singleton or a captured new object would
       // work as well.
       AlgorithmSpec{[](InitContext &setup) {
         static int foo = 0;
+	static int step = 0; // incremented in registered callbacks
+	auto startcb = []() {++step; LOG(INFO) << "start " << step;};
+	auto stopcb = []() {++step; LOG(INFO) << "stop " << step;};
+	auto resetcb = []() {++step; LOG(INFO) << "reset " << step;};
+	setup.services().get<CallbackService>().set(CallbackService::Id::Start, startcb);
+	setup.services().get<CallbackService>().set(CallbackService::Id::Stop, stopcb);
+	setup.services().get<CallbackService>().set(CallbackService::Id::Reset, resetcb);
         return [](ProcessingContext &ctx) {
             sleep(1);
             auto out = ctx.outputs().newChunk({ "TES", "STATEFUL", 0 }, sizeof(int));
@@ -48,7 +53,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
     {
       "consumer",
       Inputs{
-        {"test", "TES", "STATEFUL", Lifetime::Timeframe},
+        {"test", "TES", "STATEFUL", 0, Lifetime::Timeframe},
       },
       Outputs{},
       AlgorithmSpec{[](InitContext &) {
@@ -60,7 +65,7 @@ void defineDataProcessing(WorkflowSpec &specs) {
               LOG(ERROR) << "Expecting " << expected << " found " << *in;
             } else {
               LOG(INFO) << "Everything OK for " << expected << std::endl;
-              services.get<ControlService>().readyToQuit(true);
+              ctx.services().get<ControlService>().readyToQuit(true);
             }
           };
         }
