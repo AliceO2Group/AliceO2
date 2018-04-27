@@ -125,6 +125,7 @@ set(HEADERS
       include/Framework/Variant.h
       include/Framework/RootTreeReader.h
       include/Framework/CallbackRegistry.h
+      include/Framework/CallbackService.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
