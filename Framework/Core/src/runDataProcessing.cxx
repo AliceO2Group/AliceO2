@@ -419,6 +419,14 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
               deviceInfo.readyToQuit = true;
             }
           }
+          // in case of "ME", fetch the pid and modify only matching deviceInfos
+          if (validFor == "ME") {
+            for (auto& deviceInfo : infos) {
+              if (deviceInfo.pid == info.pid) {
+                deviceInfo.readyToQuit = true;
+              }
+            }
+          }
         }
       } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != nullptr) &&
                  logLevel >= control.logLevel) {

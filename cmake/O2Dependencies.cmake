@@ -35,6 +35,8 @@ find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(Configuration REQUIRED)
+find_package(Monitoring REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 find_package(GLFW)
 
@@ -163,9 +165,11 @@ o2_define_bucket(
     FairRoot::FairMQ
     pthread
     dl
+    ${Monitoring_LIBRARIES}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
+    ${Monitoring_INCLUDE_DIRS}
 )
 
 # a common bucket for the implementation of devices inherited
@@ -208,6 +212,17 @@ o2_define_bucket(
     O2FrameworkCore_bucket
     Framework
     Hist
+)
+
+o2_define_bucket(
+        NAME
+        DPLUtils_bucket
+
+        DEPENDENCIES
+        O2FrameworkCore_bucket
+        Core
+        Headers
+        Framework
 )
 
 o2_define_bucket(
@@ -1152,6 +1167,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
  )
+
 o2_define_bucket(
     NAME
     fit_simulation_bucket
@@ -1179,6 +1195,33 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
+
+o2_define_bucket(
+    NAME
+    hmpid_simulation_bucket
+
+    DEPENDENCIES # library names
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    DetectorsBase
+    SimulationDataFormat
+    Core Hist # ROOT
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/HMPID/Simulationf/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
 
 o2_define_bucket(
     NAME
@@ -1279,7 +1322,6 @@ o2_define_bucket(
     DEPENDENCIES
     #-- buckets follow
     fairroot_base_bucket
-    pythia8
 
     #-- precise modules follow
     SimConfig
@@ -1292,10 +1334,12 @@ o2_define_bucket(
     EMCALSimulation
     TOFSimulation
     FITSimulation
+    HMPIDSimulation
     PHOSSimulation
     Field
     Generators
     DataFormatsParameters
+    Framework
 )
 
 o2_define_bucket(
@@ -1594,6 +1638,10 @@ o2_define_bucket(
   $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
   mch_mapping_segcontour_bucket
   MCHMappingSegContour3
+  RapidJSON
+
+  INCLUDE_DIRECTORIES
+  ${RAPIDJSON_INCLUDEDIR}/include
 )
 
 o2_define_bucket(

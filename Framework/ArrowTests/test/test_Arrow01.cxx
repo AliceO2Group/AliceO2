@@ -23,8 +23,8 @@
 class ARROW_EXPORT PrintingKernel : public arrow::compute::UnaryKernel
 {
  public:
-  virtual arrow::Status Call(arrow::compute::FunctionContext* ctx, const arrow::compute::Datum& input,
-                             arrow::compute::Datum* output)
+  arrow::Status Call(arrow::compute::FunctionContext* ctx, const arrow::compute::Datum& input,
+                     arrow::compute::Datum* output) override
   {
     return arrow::Status::OK();
   }

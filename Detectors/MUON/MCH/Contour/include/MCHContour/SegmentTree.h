@@ -205,8 +205,6 @@ void Node<T>::insertInterval(Interval<T> i)
   if (interval().isFullyContainedIn(i)) {
     increaseCardinality();
   } else {
-    bool l = goLeft(i);
-    bool r = goRight(i);
     if (goLeft(i)) {
       left()->insertInterval(i);
     }

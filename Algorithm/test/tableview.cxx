@@ -143,9 +143,9 @@ BOOST_AUTO_TEST_CASE(test_tableview_formaterror)
                                             ParserT>;
   ViewType heartbeatview;
 
-  o2::Header::DataHeader dh;
-  dh.dataDescription = o2::Header::DataDescription("FIRSTSLOT");
-  dh.dataOrigin = o2::Header::DataOrigin("TST");
+  o2::header::DataHeader dh;
+  dh.dataDescription = o2::header::DataDescription("FIRSTSLOT");
+  dh.dataOrigin = o2::header::DataOrigin("TST");
   dh.subSpecification = 0;
   dh.payloadSize = 0;
 

@@ -26,13 +26,12 @@
 
 using namespace o2::framework;
 using namespace o2::framework::DataSamplingConfig;
-using namespace AliceO2::Configuration;
+using namespace o2::configuration;
 
 namespace o2
 {
 namespace framework
 {
-
 // ideas:
 // make sure if it supports 'vectors' of data
 // how about not using dispatcher, when qc needs 100% data ? instead, connect it directly

@@ -28,6 +28,7 @@
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
 #include <FITSimulation/Detector.h>
+#include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
@@ -171,7 +172,11 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::fit::Detector(true));
   }
 
-    
+  if (isActivated("HMP")) {
+    // HMP
+    run->AddModule(new o2::hmpid::Detector(true));
+  }
+
   if (geomonly) {
     run->Init();
     finalize_geometry(run);

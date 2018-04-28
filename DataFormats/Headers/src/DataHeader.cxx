@@ -27,44 +27,6 @@
 //the answer to life and everything
 const uint32_t o2::header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
 
-//possible serialization types
-const o2::header::SerializationMethod o2::header::gSerializationMethodAny    ("*******");
-const o2::header::SerializationMethod o2::header::gSerializationMethodInvalid("INVALID");
-const o2::header::SerializationMethod o2::header::gSerializationMethodNone   ("NONE");
-const o2::header::SerializationMethod o2::header::gSerializationMethodROOT   ("ROOT");
-const o2::header::SerializationMethod o2::header::gSerializationMethodFlatBuf("FLATBUF");
-
-//__________________________________________________________________________________________________
-//possible data origins
-const o2::header::DataOrigin o2::header::gDataOriginAny    ("***");
-const o2::header::DataOrigin o2::header::gDataOriginInvalid("NIL");
-const o2::header::DataOrigin o2::header::gDataOriginFLP    ("FLP");
-const o2::header::DataOrigin o2::header::gDataOriginACO    ("ACO");
-const o2::header::DataOrigin o2::header::gDataOriginCPV    ("CPV");
-const o2::header::DataOrigin o2::header::gDataOriginCTP    ("CTP");
-const o2::header::DataOrigin o2::header::gDataOriginEMC    ("EMC");
-const o2::header::DataOrigin o2::header::gDataOriginFIT    ("FIT");
-const o2::header::DataOrigin o2::header::gDataOriginHMP    ("HMP");
-const o2::header::DataOrigin o2::header::gDataOriginITS    ("ITS");
-const o2::header::DataOrigin o2::header::gDataOriginMCH    ("MCH");
-const o2::header::DataOrigin o2::header::gDataOriginMFT    ("MFT");
-const o2::header::DataOrigin o2::header::gDataOriginMID    ("MID");
-const o2::header::DataOrigin o2::header::gDataOriginPHS    ("PHS");
-const o2::header::DataOrigin o2::header::gDataOriginTOF    ("TOF");
-const o2::header::DataOrigin o2::header::gDataOriginTPC    ("TPC");
-const o2::header::DataOrigin o2::header::gDataOriginTRD    ("TRD");
-const o2::header::DataOrigin o2::header::gDataOriginZDC    ("ZDC");
-
-//possible data types
-const o2::header::DataDescription o2::header::gDataDescriptionAny     ("***************");
-const o2::header::DataDescription o2::header::gDataDescriptionInvalid ("INVALID_DESC");
-const o2::header::DataDescription o2::header::gDataDescriptionRawData ("RAWDATA");
-const o2::header::DataDescription o2::header::gDataDescriptionClusters("CLUSTERS");
-const o2::header::DataDescription o2::header::gDataDescriptionTracks  ("TRACKS");
-const o2::header::DataDescription o2::header::gDataDescriptionConfig  ("CONFIGURATION");
-const o2::header::DataDescription o2::header::gDataDescriptionInfo    ("INFORMATION");
-const o2::header::DataDescription o2::header::gDataDescriptionROOTStreamers("ROOT STREAMERS");
-
 //definitions for Stack statics
 std::default_delete<byte[]> o2::header::Stack::sDeleter;
 

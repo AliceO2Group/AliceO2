@@ -43,7 +43,9 @@ void o2::PDG::addAntiParticle(const char* name, int pdgCode, int verbose)
   }
   TParticlePDG* part = pdgDB->GetParticle(pdgCode);
   if (part) {
-    LOG(WARNING) << "PDG code " << pdgCode << " is already defined (" << part->GetName() << ")" << FairLogger::endl;
+    if (verbose) {
+      LOG(WARNING) << "PDG code " << pdgCode << " is already defined (" << part->GetName() << ")" << FairLogger::endl;
+    }
     return;
   }
   pdgDB->AddAntiParticle(name, pdgCode);
@@ -172,8 +174,8 @@ void o2::PDG::addParticlesToPdgDataBase(int verbose)
   //
   addParticle("Cherenkov", "Cherenkov", 0, kFALSE, 0, 0, "Special", kspe + 50, verbose);
   addParticle("FeedbackPhoton", "FeedbackPhoton", 0, kFALSE, 0, 0, "Special", kspe + 51, verbose);
-  addParticle("Lambda1520", "Lambda1520", 1.5195, kFALSE, 0.0156, 0, "Resonance", 3124, verbose);
-  addAntiParticle("Lambda1520bar", -3124, verbose);
+  // addParticle("Lambda1520", "Lambda1520", 1.5195, kFALSE, 0.0156, 0, "Resonance", 3124, verbose);
+  // addAntiParticle("Lambda1520bar", -3124, verbose);
 
   // Hyper nuclei and exotica
   ionCode = 1010010030;
@@ -268,8 +270,8 @@ void o2::PDG::addParticlesToPdgDataBase(int verbose)
   ionCode = 9010221;
   addParticle("f0_980", "f0_980", 0.980, kFALSE, 0.07, 0, "Resonance", ionCode, verbose);
 
-  ionCode = 225;
-  addParticle("f2_1270", "f2_1270", 1.275, kFALSE, 0.185, 0, "Resonance", ionCode, verbose);
+  // ionCode = 225;
+  // addParticle("f2_1270", "f2_1270", 1.275, kFALSE, 0.185, 0, "Resonance", ionCode, verbose);
 
   // Xi-/+ (1820)
   ionCode = 123314;
