@@ -33,21 +33,17 @@ class ARROW_EXPORT PrintingKernel : public arrow::compute::UnaryKernel
 BOOST_AUTO_TEST_CASE(TestArrow01)
 {
   arrow::Int64Builder builder;
-  // the CI build on macos fails with
-  // "error: ignoring return value of function declared with 'warn_unused_result' attribute
-  //  [-Werror,-Wunused-result]"
-  // assign the return value to variables
-  auto result1 = builder.Append(1);
-  auto result2 = builder.Append(2);
-  auto result3 = builder.Append(3);
-  auto result4 = builder.AppendNull();
-  auto result5 = builder.Append(5);
-  auto result6 = builder.Append(6);
-  auto result7 = builder.Append(7);
-  auto result8 = builder.Append(8);
+  BOOST_REQUIRE(builder.Append(1).ok());
+  BOOST_REQUIRE(builder.Append(2).ok());
+  BOOST_REQUIRE(builder.Append(3).ok());
+  BOOST_REQUIRE(builder.AppendNull().ok());
+  BOOST_REQUIRE(builder.Append(5).ok());
+  BOOST_REQUIRE(builder.Append(6).ok());
+  BOOST_REQUIRE(builder.Append(7).ok());
+  BOOST_REQUIRE(builder.Append(8).ok());
 
   std::shared_ptr<arrow::Array> input;
-  auto result = builder.Finish(&input);
+  BOOST_REQUIRE(builder.Finish(&input).ok());
 
   std::shared_ptr<arrow::Array> output;
   PrintingKernel kernel;
