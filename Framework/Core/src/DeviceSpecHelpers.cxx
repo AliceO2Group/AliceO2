@@ -453,6 +453,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
 
 void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuiet, bool defaultStopped,
                                          const std::vector<DeviceSpec>& deviceSpecs,
+                                         const std::vector<ConfigParamSpec> &workflowOptions,
                                          std::vector<DeviceExecution>& deviceExecutions,
                                          std::vector<DeviceControl>& deviceControls)
 {
@@ -489,8 +490,11 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
     // DeviceSpec, and some global options from getForwardedDeviceOptions
     const char* name = spec.name.c_str();
     bpo::options_description od;
-    prepareOptionsDescription(spec.options, od);
+    bpo::options_description wo;
+    ConfigParamsHelper::prepareOptionsDescription(spec.options, od);
+    ConfigParamsHelper::prepareOptionsDescription(workflowOptions, wo);
     od.add(getForwardedDeviceOptions());
+    od.add(wo);
     od.add_options()(name, bpo::value<std::string>());
 
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;

@@ -24,8 +24,9 @@ using namespace o2::framework;
 /// specifications
 ///
 /// The example connects a producer for ROOT objects with a merger process
-void defineDataProcessing(WorkflowSpec &specs) {
-  specs.clear();
-  specs.emplace_back(o2::qc::getRootObjectProducerSpec());
-  specs.emplace_back(o2::qc::getRootObjectMergerSpec());
+WorkflowSpec defineDataProcessing(ConfigContext const &) {
+  return WorkflowSpec{
+    o2::qc::getRootObjectProducerSpec(),
+    o2::qc::getRootObjectMergerSpec()
+  };
 }

@@ -43,7 +43,7 @@ DataProcessorSpec templateProcessor() {
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
-void defineDataProcessing(o2::framework::WorkflowSpec &specs) {
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
   // This is an example of how we can parallelize by subSpec.
   // templatedProducer will be instanciated 32 times and the lambda function
   // passed to the parallel statement will be applied to each one of the
@@ -85,5 +85,5 @@ void defineDataProcessing(o2::framework::WorkflowSpec &specs) {
       }
   }, 3));
 
-  specs.swap(workflow);
+  return workflow;
 }

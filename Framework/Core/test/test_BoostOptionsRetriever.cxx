@@ -7,7 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework ConfigParamsHelper
+#define BOOST_TEST_MODULE Test Framework BoostOptionsRetriever
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
@@ -21,7 +21,7 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(ConfigParamsHelper) {
+BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest) {
   using namespace o2::framework;
   namespace bpo = boost::program_options;
 
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(ConfigParamsHelper) {
   bpo::variables_map vm;
   bpo::options_description opts;
 
-  populateBoostProgramOptions(opts, specs);
+  ConfigParamsHelper::populateBoostProgramOptions(opts, specs);
 
   bpo::store(parse_command_line(sizeof(args)/sizeof(char*), args, opts), vm);
   bpo::notify(vm);

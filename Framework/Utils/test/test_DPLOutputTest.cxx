@@ -24,11 +24,7 @@
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(WorkflowSpec& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  WorkflowSpec workflow{
-    o2::workflows::DPLOutputTest(),
-  };
-
-  specs.swap(workflow);
+  return o2::workflows::DPLOutputTest();
 }

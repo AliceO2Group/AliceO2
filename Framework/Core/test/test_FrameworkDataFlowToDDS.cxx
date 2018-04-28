@@ -76,20 +76,25 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());
   executions.resize(devices.size());
-  DeviceSpecHelpers::prepareArguments(1, fakeArgv, false, false, devices, executions, controls);
+
+  std::vector<ConfigParamSpec> workflowOptions = {
+    ConfigParamSpec{"jobs", VariantType::Int, 4, {"number of producer jobs"}}
+  };
+
+  DeviceSpecHelpers::prepareArguments(1, fakeArgv, false, false, devices, workflowOptions, executions, controls);
   dumpDeviceSpec2DDS(ss, devices, executions);
   BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
    <decltask id="A">
-       <exe reachable="true">foo --id A --control static --log-color false --color false </exe>
+       <exe reachable="true">foo --id A --control static --log-color false --color false --jobs 4 </exe>
    </decltask>
    <decltask id="B">
-       <exe reachable="true">foo --id B --control static --log-color false --color false </exe>
+       <exe reachable="true">foo --id B --control static --log-color false --color false --jobs 4 </exe>
    </decltask>
    <decltask id="C">
-       <exe reachable="true">foo --id C --control static --log-color false --color false </exe>
+       <exe reachable="true">foo --id C --control static --log-color false --color false --jobs 4 </exe>
    </decltask>
    <decltask id="D">
-       <exe reachable="true">foo --id D --control static --log-color false --color false </exe>
+       <exe reachable="true">foo --id D --control static --log-color false --color false --jobs 4 </exe>
    </decltask>
 </topology>
 )EXPECTED");

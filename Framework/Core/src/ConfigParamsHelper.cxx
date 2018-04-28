@@ -21,7 +21,7 @@ namespace framework {
 
 /// this creates the boost program options description from the ConfigParamSpec
 /// taking the VariantType into account
-void populateBoostProgramOptions(
+void ConfigParamsHelper::populateBoostProgramOptions(
     bpo::options_description &options,
     const std::vector<ConfigParamSpec> &specs,
     bpo::options_description vetos
@@ -61,10 +61,9 @@ void populateBoostProgramOptions(
 
 /// populate boost program options making all options of type string
 /// this is used for filtering the command line argument
-bool
-prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
-                          boost::program_options::options_description& options,
-                          boost::program_options::options_description vetos
+bool ConfigParamsHelper::prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
+                                                   boost::program_options::options_description& options,
+                                                   boost::program_options::options_description vetos
 			  )
 {
   bool haveOption = false;
