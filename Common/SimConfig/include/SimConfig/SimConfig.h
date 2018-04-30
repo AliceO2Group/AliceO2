@@ -55,7 +55,8 @@ class SimConfig
   unsigned int getStartEvent() const { return mStartEvent; }
   float getBMax() const { return mBMax; }
   bool getIsMT() const { return mIsMT; }
-  
+  std::string getOutPrefix() const { return mOutputPrefix; }
+
  private:
   std::vector<std::string> mActiveDetectors; //!< list active detectord
   std::string mMCEngine;                     //!< chosen VMC engine
@@ -65,7 +66,8 @@ class SimConfig
   unsigned int mStartEvent;                  //!< index of first event to be taken
   float mBMax;                               //!< maximum for impact parameter sampling
   bool mIsMT;                                //!< chosen MT mode (Geant4 only)
-  
+  std::string mOutputPrefix;                 //!< prefix to be used for output files
+
   ClassDefNV(SimConfig, 1);
 };
 }
