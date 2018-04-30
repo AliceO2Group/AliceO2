@@ -75,6 +75,30 @@ void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, In
   mgr.Medium(GetName(), numed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf, nbuf);
 }
 
+void Detector::SpecialCuts(Int_t numed, const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialCuts(GetName(), numed, parIDValMap);
+}
+
+void Detector::SpecialCut(Int_t numed, ECut parID, Float_t val)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialCut(GetName(), numed, parID, val);
+}
+
+void Detector::SpecialProcesses(Int_t numed, const std::initializer_list<std::pair<EProc, int>>& parIDValMap)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialProcesses(GetName(), numed, parIDValMap);
+}
+
+void Detector::SpecialProcess(Int_t numed, EProc parID, int val)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialProcess(GetName(), numed, parID, val);
+}
+
 void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2, Float_t theta3,
                       Float_t phi3) const
 {

@@ -19,6 +19,7 @@
 #include <TGeoTrd1.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
+#include <initializer_list>
 using namespace o2::passive;
 
 Hall::~Hall() = default;
@@ -86,20 +87,43 @@ void Hall::createMaterials()
   // only media needed for geometry are created
 
   //  Stainless Steel
-  matmgr.Mixture("HALL", 50, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
-  matmgr.Medium("HALL", 50, "STST_C2", 50, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("HALL", kSTST_C2, "STAINLESS STEEL3", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Medium("HALL", kSTST_C2, "STST_C2", kSTST_C2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //  Air
-  matmgr.Mixture("HALL", 55, "AIR2", aAir, zAir, dAir, 4, wAir);
-  matmgr.Medium("HALL", 55, "AIR_C2", 55, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("HALL", kAIR_C2, "AIR2", aAir, zAir, dAir, 4, wAir);
+  matmgr.Medium("HALL", kAIR_C2, "AIR_C2", kAIR_C2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Concrete
-  matmgr.Mixture("HALL", 57, "CONCRETE2", aconc, zconc, 2.35, 10, wconc);
-  matmgr.Medium("HALL", 57, "CC_C2", 57, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("HALL", kCC_C2, "CONCRETE2", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Medium("HALL", kCC_C2, "CC_C2", kCC_C2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //  Iron
-  matmgr.Material("HALL", 52, "IRON", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Medium("HALL", 52, "FE_C2", 52, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("HALL", kFE_C2, "IRON", 55.85, 26., 7.87, 1.76, 17.1);
+  matmgr.Medium("HALL", kFE_C2, "FE_C2", kFE_C2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+}
+
+void Hall::SetSpecialPhysicsCuts()
+{
+
+  using namespace o2::Base;
+  // MaterialManager used to set physics cuts
+  auto& matmgr = MaterialManager::Instance();
+
+  // \note ported from AliRoot. People responsible for the HALL implementation must judge and modify cuts if required.
+  const Float_t cut1 = 1.e00;
+  const Float_t cut2 = 1.e-1;
+  const Float_t cut3 = 1.e-3;
+
+  matmgr.SpecialCuts(
+    "HALL", kSTST_C2,
+    { { ECut::kCUTGAM, cut1 }, { ECut::kCUTELE, cut1 }, { ECut::kCUTNEU, cut2 }, { ECut::kCUTHAD, cut3 } });
+  matmgr.SpecialCuts(
+    "HALL", kAIR_C2,
+    { { ECut::kCUTGAM, cut1 }, { ECut::kCUTELE, cut1 }, { ECut::kCUTNEU, cut2 }, { ECut::kCUTHAD, cut3 } });
+  matmgr.SpecialCuts(
+    "HALL", kCC_C2,
+    { { ECut::kCUTGAM, cut1 }, { ECut::kCUTELE, cut1 }, { ECut::kCUTNEU, cut2 }, { ECut::kCUTHAD, cut3 } });
 }
 
 void Hall::ConstructGeometry()
