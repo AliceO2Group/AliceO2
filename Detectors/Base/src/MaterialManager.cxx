@@ -27,6 +27,14 @@
 
 using namespace o2::Base;
 
+const std::vector<std::string> MaterialManager::mProcessIDToName = {
+  "PAIR", "COMP", "PHOT", "PFIS", "DRAY", "ANNI", "BREM", "HADR", "MUNU", "DCAY", "LOSS", "MULS", "CKOV"
+};
+
+const std::vector<std::string> MaterialManager::mCutIDToName = {
+  "CUTGAM", "CUTELE", "CUTNEU", "CUTHAD", "CUTMUO", "BCUTE", "BCUTM", "DCUTE", "DCUTM", "PPCUTM", "TOFMAX"
+};
+
 void MaterialManager::Material(const char* modname, Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens,
                                Float_t radl, Float_t absl, Float_t* buf, Int_t nwbuf)
 {
@@ -71,6 +79,56 @@ void MaterialManager::Medium(const char* modname, Int_t numed, const char* name,
   mMediumMap[modname][numed] = kmed;
   insertMediumName(uniquename.Data(), kmed);
   insertTGeoMedium(modname, numed);
+}
+
+void MaterialManager::Processes(bool special, int globalindex,
+                                const std::initializer_list<std::pair<EProc, int>>& parIDValMap)
+{
+  for (auto& m : parIDValMap) {
+    Process(special, globalindex, m.first, m.second);
+  }
+}
+
+void MaterialManager::Cuts(bool special, int globalindex,
+                           const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
+{
+  for (auto& m : parIDValMap) {
+    Cut(special, globalindex, m.first, m.second);
+  }
+}
+
+void MaterialManager::Cut(bool special, int globalindex, ECut parID, Float_t val)
+{
+  // this check is needed, in principal only for G3, otherwise SegFault
+  if (val < 0.) {
+    return;
+  }
+
+  if (!special) {
+    mDefaultCutMap[parID] = val;
+    /// Explicit template definition to cover this which differs from global cut setting
+    TVirtualMC::GetMC()->SetCut(mCutIDToName[parID].c_str(), val);
+  } else if (mApplySpecialCuts) {
+    mMediumCutMap[globalindex][parID] = val;
+    TVirtualMC::GetMC()->Gstpar(globalindex, mCutIDToName[parID].c_str(), val);
+  }
+}
+
+void MaterialManager::Process(bool special, int globalindex, EProc parID, int val)
+{
+  // this check is needed, in principal only for G3, otherwise SegFault
+  if (val < 0) {
+    return;
+  }
+
+  if (!special) {
+    mDefaultProcessMap[parID] = val;
+    /// Explicit template definition to cover this which differs from global process setting
+    TVirtualMC::GetMC()->SetProcess(mProcessIDToName[parID].c_str(), val);
+  } else if (mApplySpecialProcesses) {
+    mMediumProcessMap[globalindex][parID] = val;
+    TVirtualMC::GetMC()->Gstpar(globalindex, mProcessIDToName[parID].c_str(), val);
+  }
 }
 
 void MaterialManager::printMaterials() const
