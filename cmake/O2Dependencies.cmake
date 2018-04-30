@@ -1345,6 +1345,21 @@ o2_define_bucket(
     Framework
 )
 
+# a bucket for "global" executables/macros
+o2_define_bucket(
+    NAME
+    digitizer_workflow_bucket
+
+    DEPENDENCIES
+    #-- buckets follow
+    fairroot_base_bucket
+
+    #-- precise modules follow
+    Steer
+    Framework
+    TPCSimulation
+)
+
 o2_define_bucket(
 NAME
     event_visualisation_detectors_bucket

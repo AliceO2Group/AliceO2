@@ -24,7 +24,6 @@
 #include <TPCSimulation/Digitizer.h>
 #include <TPCSimulation/DigitizerTask.h>
 #include <functional>
-#include "ITSMFTSimulation/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/HitDriftFilter.h"
