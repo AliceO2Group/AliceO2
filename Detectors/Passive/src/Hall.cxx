@@ -102,6 +102,23 @@ void Hall::createMaterials()
   matmgr.Medium("HALL", 52, "FE_C2", 52, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
+void Hall::SetSpecialPhysicsCuts()
+{
+
+  // MaterialManager used to set physics cuts
+  auto& matmgr = o2::Base::MaterialManager::Instance();
+
+  const Float_t cut1 = 1.e00;
+  const Float_t cut2 = 1.e-1;
+  const Float_t cut3 = 1.e-3;
+  const Float_t noCut = o2::Base::MaterialManager::NOCUT;
+
+  matmgr.Cuts( "HALL", 50, cut1, cut1, cut2, cut3, noCut, noCut, noCut, noCut, noCut, noCut, noCut ); // STST_C2
+  matmgr.Cuts( "HALL", 55, cut1, cut1, cut2, cut3, noCut, noCut, noCut, noCut, noCut, noCut, noCut ); // AIR_C2
+  matmgr.Cuts( "HALL", 57, cut1, cut1, cut2, cut3, noCut, noCut, noCut, noCut, noCut, noCut, noCut ); // CC_C2 
+
+}
+
 void Hall::ConstructGeometry()
 {
   createMaterials();

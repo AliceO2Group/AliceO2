@@ -109,84 +109,21 @@ void Detector::Initialize()
 
 void Detector::SetSpecialPhysicsCuts()
 {
-  FairRun* fRun = FairRun::Instance();
+  // Cuts set by forwarding to MaterialManager
+  const Float_t cut1 = 1e-3;
+  const Float_t cut2 = 1e-5;
+  const Float_t cut3 = 1e-6;
+  const Float_t cut4 = o2::Base::MaterialManager::NOCUT;
+  
+  // Some cuts implemented in AliRoot
+  Cuts( 1, cut2, cut2, cut1, cut1, cut2, cut2, cut2, cut2, cut2, cut4, cut4); //DriftGas1
+  Cuts( 2, cut2, cut2, cut1, cut1, cut2, cut2, cut2, cut2, cut2, cut4, cut4 ); //DriftGas2
+  Cuts( 3, cut2, cut2, cut1, cut1, cut2, cut2, cut2, cut2, cut2, cut4, cut4 ); //CO2
+  Cuts( 20, cut3, cut3, cut1, cut1, cut3, cut3, cut3, cut3, cut3, cut4, cut4); //DriftGas3
 
-  // check for GEANT3, else abort
-  if (strcmp(fRun->GetName(), "TGeant3") == 0) {
-
-    // get material ID for customs settings
-    std::string fMixture("TPC_DriftGas2");
-    bool fAliMC = false; // implemented the e-loss now on our own -> use default model
-    std::cout << "TpcDetector::SetSpecialPhysicsCuts() "
-              << "Working on medium " << fMixture.c_str() << std::endl;
-    int matIdVMC = gGeoManager->GetMedium(fMixture.c_str())->GetId();
-
-    double tofmax = 1.E10; // (s)
-
-    // Set new properties, physics cuts etc. for the TPCmixture
-
-    // gMC->Gstpar(matIdVMC,"PAIR",1); /** pair production*/
-    // gMC->Gstpar(matIdVMC,"COMP",1); /**Compton scattering*/
-    // gMC->Gstpar(matIdVMC,"PHOT",1); /** photo electric effect */
-    // gMC->Gstpar(matIdVMC,"PFIS",0); /**photofission*/
-    // gMC->Gstpar(matIdVMC,"DRAY",1); /**delta-ray*/
-    // gMC->Gstpar(matIdVMC,"ANNI",1); /**annihilation*/
-    // gMC->Gstpar(matIdVMC,"BREM",1); /**bremsstrahlung*/
-    // gMC->Gstpar(matIdVMC,"HADR",1); /**hadronic process*/
-    // gMC->Gstpar(matIdVMC,"MUNU",1); /**muon nuclear interaction*/
-    // gMC->Gstpar(matIdVMC,"DCAY",1); /**decay*/
-    // gMC->Gstpar(matIdVMC,"LOSS",1); /**energy loss*/
-    // gMC->Gstpar(matIdVMC,"MULS",1); /**multiple scattering*/
-    // gMC->Gstpar(matIdVMC,"STRA",0);
-    // gMC->Gstpar(matIdVMC,"RAYL",1);
-
-    // gMC->Gstpar(matIdVMC,"CUTGAM",fCut_el); /** gammas (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTELE",fCut_el); /** electrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTNEU",fCut_had); /** neutral hadrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTHAD",fCut_had); /** charged hadrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTMUO",fCut_el); /** muons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"BCUTE",fCut_el);  /** electron bremsstrahlung (GeV)*/
-    // gMC->Gstpar(matIdVMC,"BCUTM",fCut_el);  /** muon and hadron bremsstrahlung(GeV)*/
-    // gMC->Gstpar(matIdVMC,"DCUTE",fCut_el);  /** delta-rays by electrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"DCUTM",fCut_el);  /** delta-rays by muons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"PPCUTM",fCut_el); /** direct pair production by muons (GeV)*/
-    gMC->Gstpar(matIdVMC, "PAIR", 1);
-    gMC->Gstpar(matIdVMC, "COMP", 1);
-    gMC->Gstpar(matIdVMC, "PHOT", 1);
-    gMC->Gstpar(matIdVMC, "PFIS", 0);
-    gMC->Gstpar(matIdVMC, "DRAY", 1);
-    gMC->Gstpar(matIdVMC, "ANNI", 1);
-    gMC->Gstpar(matIdVMC, "BREM", 1);
-    gMC->Gstpar(matIdVMC, "HADR", 1);
-    gMC->Gstpar(matIdVMC, "MUNU", 1);
-    gMC->Gstpar(matIdVMC, "DCAY", 1);
-    gMC->Gstpar(matIdVMC, "LOSS", 1);
-    gMC->Gstpar(matIdVMC, "MULS", 1);
-    Double_t cut1 = 1.0E-5; // GeV --> 1 MeV
-    Double_t cutel = 1.0E-5;
-
-    gMC->SetCut("CUTGAM", cutel);
-    gMC->SetCut("CUTELE", cutel);
-    gMC->SetCut("CUTNEU", cut1);
-    gMC->SetCut("CUTHAD", cut1);
-    gMC->SetCut("CUTMUO", cut1);
-    gMC->SetCut("BCUTE", cutel);
-    gMC->SetCut("BCUTM", cut1);
-    gMC->SetCut("DCUTE", cutel);
-    gMC->SetCut("DCUTM", cut1);
-    gMC->SetCut("PPCUTM", cut1);
-    gMC->SetCut("TOFMAX", tofmax);
-    gMC->SetMaxNStep((int)1E6);
-
-    std::cout << "\n************************************************************\n"
-              << "TpcDetector::SetSpecialPhysicsCuts():\n"
-              << "   using special physics cuts ...\n";
-    if (fAliMC) {
-      std::cout << "   using LOSS=5 for ALICE MC model\n";
-      gMC->Gstpar(matIdVMC, "LOSS", 5);
-    }
-    std::cout << "************************************************************" << std::endl;
-  }
+  // as an example get parameterID for dcute and set explicitly
+  int dcute = o2::Base::MaterialManager::DCUTE;
+  Cut( 1, dcute, cut3 );
 }
 
 Bool_t Detector::ProcessHits(FairVolume* vol)
@@ -372,9 +309,6 @@ void Detector::ConstructGeometry()
   // Load geometry
   //   LoadGeometryFromFile();
   ConstructTPCGeometry();
-
-  // GeantHack
-  // GeantHack();
 }
 
 void Detector::CreateMaterials()
@@ -3140,85 +3074,5 @@ Double_t Detector::Gamma(Double_t k)
   return TMath::Exp(x);
 }
 
-#include <sstream>
-#include <string>
-#include "TVirtualMC.h"
-void Detector::GeantHack()
-{
-  //   Med  GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA ANNI BREM COMP DCAY DRAY HADR LOSS MULS PAIR PHOT
-  //   RAYL STRA
-  std::stringstream data(
-    "\
-  TPC    0    -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     1 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.   1    1    1    1    1    1    3    1    1    1    1\n\
-  TPC     2 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.   1    1    1    1    1    1    5    1    1    1    1\n\
-  TPC     3 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.  -1   -1   -1    1    1    1    3    1    1    1    1 \n\
-  TPC    20 1e-6  1e-6  1e-3 1e-3  1e-6   1e-6   1e-6  1e-6 1e-6    -1.   1    1    1    1    1    1    5    1    1    1    1\n\
-  TPC     4   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     5   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     6   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     7   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     8   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     9   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    10   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    11   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    12   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    13   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    14   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    15   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1");
-
-  const Int_t kncuts = 10;
-  const Int_t knflags = 12;
-  const Int_t knpars = kncuts + knflags;
-  const char kpars[knpars][7] = { "CUTGAM", "CUTELE", "CUTNEU", "CUTHAD", "CUTMUO", "BCUTE", "BCUTM", "DCUTE",
-                                  "DCUTM",  "PPCUTM", "ANNI",   "BREM",   "COMP",   "DCAY",  "DRAY",  "HADR",
-                                  "LOSS",   "MULS",   "PAIR",   "PHOT",   "RAYL",   "STRA" };
-  std::string detName;
-  char* filtmp;
-  Float_t cut[kncuts];
-  Int_t flag[knflags];
-  Int_t i, itmed, iret, jret, ktmed, kz;
-
-  std::string line;
-  while (std::getline(data, line)) {
-    std::cout << line << endl;
-    for (i = 0; i < kncuts; i++)
-      cut[i] = -99;
-    for (i = 0; i < knflags; i++)
-      flag[i] = -99;
-    itmed = 0;
-
-    std::stringstream linedata(line);
-    linedata >> detName >> itmed >> cut[0] >> cut[1] >> cut[2] >> cut[3] >> cut[4] >> cut[5] >> cut[6] >> cut[7] >>
-      cut[8] >> cut[9] >> flag[0] >> flag[1] >> flag[2] >> flag[3] >> flag[4] >> flag[5] >> flag[6] >> flag[7] >>
-      flag[8] >> flag[9] >> flag[10] >> flag[11];
-
-    if (0 <= itmed && itmed < 100) {
-      ktmed = getMediumID(itmed);
-      if (ktmed == -1) {
-        LOG(INFO) << Form("Invalid tracking medium code %d for %s", itmed, GetName()) << FairLogger::endl;
-        continue;
-      }
-      // Set energy thresholds
-      for (kz = 0; kz < kncuts; kz++) {
-        if (cut[kz] >= 0) {
-          LOG(INFO) << Form("%-6s set to %10.3E for tracking medium code %4d (%4d) for %s", kpars[kz], cut[kz], itmed,
-                            ktmed, GetName())
-                    << FairLogger::endl;
-          TVirtualMC::GetMC()->Gstpar(ktmed, kpars[kz], cut[kz]);
-        }
-      }
-      // Set transport mechanisms
-      for (kz = 0; kz < knflags; kz++) {
-        if (flag[kz] >= 0) {
-          LOG(INFO) << Form("%-6s set to %10d for tracking medium code %4d (%4d) for %s", kpars[kncuts + kz], flag[kz],
-                            itmed, ktmed, GetName())
-                    << FairLogger::endl;
-          TVirtualMC::GetMC()->Gstpar(ktmed, kpars[kncuts + kz], Float_t(flag[kz]));
-        }
-      }
-    }
-  }
-}
 
 ClassImp(o2::TPC::Detector)

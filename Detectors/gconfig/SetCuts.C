@@ -26,20 +26,29 @@ void SetCuts()
   // 
   // The default settings refer to a complete simulation which generates and follows also the secondary particles.
   
+  // use MaterialManager to set processes and cuts
+  auto& mgr = o2::Base::MaterialManager::Instance();
+  // En- or disable setting of special cuts depending on ENV variable \note temorary
+  if( !getenv("SPECIALCUTSPROC") )
+  {
+    mgr.applySpecialProcesses(false);
+    mgr.applySpecialCuts(false);
+  }
 
-  TVirtualMC::GetMC()->SetProcess("PAIR",1); /** pair production*/
-  TVirtualMC::GetMC()->SetProcess("COMP",1); /**Compton scattering*/
-  TVirtualMC::GetMC()->SetProcess("PHOT",1); /** photo electric effect */
-  TVirtualMC::GetMC()->SetProcess("PFIS",0); /**photofission*/
-  TVirtualMC::GetMC()->SetProcess("DRAY",0); /**delta-ray*/
-  TVirtualMC::GetMC()->SetProcess("ANNI",1); /**annihilation*/
-  TVirtualMC::GetMC()->SetProcess("BREM",1); /**bremsstrahlung*/
-  TVirtualMC::GetMC()->SetProcess("HADR",1); /**hadronic process*/
-  TVirtualMC::GetMC()->SetProcess("MUNU",1); /**muon nuclear interaction*/
-  TVirtualMC::GetMC()->SetProcess("DCAY",1); /**decay*/
-  TVirtualMC::GetMC()->SetProcess("LOSS",2); /**energy loss*/
-  TVirtualMC::GetMC()->SetProcess("MULS",1); /**multiple scattering*/
-  TVirtualMC::GetMC()->SetProcess("CKOV",1); /**cherenkov */
+  //TVirtualMC::GetMC()->SetProcess("PAIR",1); /** pair production*/
+  //TVirtualMC::GetMC()->SetProcess("COMP",1); /**Compton scattering*/
+  //TVirtualMC::GetMC()->SetProcess("PHOT",1); /** photo electric effect */
+  //TVirtualMC::GetMC()->SetProcess("PFIS",0); /**photofission*/
+  //TVirtualMC::GetMC()->SetProcess("DRAY",0); /**delta-ray*/
+  //TVirtualMC::GetMC()->SetProcess("ANNI",1); /**annihilation*/
+  //TVirtualMC::GetMC()->SetProcess("BREM",1); /**bremsstrahlung*/
+  //TVirtualMC::GetMC()->SetProcess("HADR",1); /**hadronic process*/
+  //TVirtualMC::GetMC()->SetProcess("MUNU",1); /**muon nuclear interaction*/
+  //TVirtualMC::GetMC()->SetProcess("DCAY",1); /**decay*/
+  //TVirtualMC::GetMC()->SetProcess("LOSS",2); /**energy loss*/
+  //TVirtualMC::GetMC()->SetProcess("MULS",1); /**multiple scattering*/
+  //TVirtualMC::GetMC()->SetProcess("CKOV",1); /**cherenkov */
+  mgr.Processes( 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 2, 1, 1 );
 
   
     
@@ -49,17 +58,18 @@ void SetCuts()
   Double_t tofmax = 1.E10;        // seconds
   cout << "SetCuts Macro: Setting cuts.." <<endl;
   
-  TVirtualMC::GetMC()->SetCut("CUTGAM",cut1);   /** gammas (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTELE",cut1);   /** electrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTNEU",cut1);   /** neutral hadrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTHAD",cut1);   /** charged hadrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTMUO",cut1);   /** muons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("BCUTE",cut1);    /** electron bremsstrahlung (GeV)*/
-  TVirtualMC::GetMC()->SetCut("BCUTM",cut1);    /** muon and hadron bremsstrahlung(GeV)*/ 
-  TVirtualMC::GetMC()->SetCut("DCUTE",cut1);    /** delta-rays by electrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("DCUTM",cut1);    /** delta-rays by muons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("PPCUTM",cut1);   /** direct pair production by muons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("TOFMAX",tofmax); /**time of flight cut in seconds*/
+  //TVirtualMC::GetMC()->SetCut("CUTGAM",cut1);   /** gammas (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("CUTELE",cut1);   /** electrons (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("CUTNEU",cut1);   /** neutral hadrons (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("CUTHAD",cut1);   /** charged hadrons (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("CUTMUO",cut1);   /** muons (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("BCUTE",cut1);    /** electron bremsstrahlung (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("BCUTM",cut1);    /** muon and hadron bremsstrahlung(GeV)*/ 
+  //TVirtualMC::GetMC()->SetCut("DCUTE",cut1);    /** delta-rays by electrons (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("DCUTM",cut1);    /** delta-rays by muons (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("PPCUTM",cut1);   /** direct pair production by muons (GeV)*/
+  //TVirtualMC::GetMC()->SetCut("TOFMAX",tofmax); /**time of flight cut in seconds*/
+  mgr.Cuts( cut1, cut1, cut1, cut1, cut1, cut1, cut1, cut1, cut1, cut1, tofmax );
   
    
 }
