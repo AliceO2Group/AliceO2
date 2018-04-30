@@ -4,6 +4,8 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/ChamberHV.cxx
+  src/ChamberResponse.cxx
+  src/ChamberResponseParams.cxx
   src/Detector.cxx
   src/Geometry.cxx
   src/Hit.cxx
@@ -13,6 +15,8 @@ set(SRCS
 
 set(HEADERS
   include/${MODULE_NAME}/ChamberHV.h
+  include/${MODULE_NAME}/ChamberResponse.h
+  include/${MODULE_NAME}/ChamberResponseParams.h
   include/${MODULE_NAME}/Detector.h
   include/${MODULE_NAME}/Hit.h
   include/${MODULE_NAME}/Stepper.h
