@@ -27,6 +27,14 @@
 
 using namespace o2::Base;
 
+const std::vector< std::string > MaterialManager::mProcessIDToName = { "PAIR", "COMP", "PHOT", "PFIS", "DRAY", 
+                                                                       "ANNI", "BREM", "HADR", "MUNU", "DCAY", 
+                                                                       "LOSS", "MULS", "CKOV" };
+
+const std::vector< std::string > MaterialManager::mCutIDToName = { "CUTGAM", "CUTELE", "CUTNEU", "CUTHAD", 
+                                                                   "CUTMUO", "BCUTE", "BCUTM", "DCUTE", "DCUTM", 
+                                                                   "PPCUTM", "TOFMAX" };
+
 void MaterialManager::Material(const char* modname, Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens,
                                Float_t radl, Float_t absl, Float_t* buf, Int_t nwbuf)
 {
@@ -71,6 +79,94 @@ void MaterialManager::Medium(const char* modname, Int_t numed, const char* name,
   mMediumMap[modname][numed] = kmed;
   insertMediumName(uniquename.Data(), kmed);
   insertTGeoMedium(modname, numed);
+}
+
+void MaterialManager::Processes( bool special, int globalindex, int pair, int comp, int phot, int pfis, int dray, 
+                                                                int anni, int brem, int hadr, int munu, int dcay, 
+                                                                int loss, int muls, int ckov )
+{
+
+  Process( special, globalindex, PAIR, pair );
+  Process( special, globalindex, COMP, comp );
+  Process( special, globalindex, PHOT, phot );
+  Process( special, globalindex, PFIS, pfis );
+  Process( special, globalindex, DRAY, dray );
+  Process( special, globalindex, ANNI, anni );
+  Process( special, globalindex, BREM, brem );
+  Process( special, globalindex, HADR, hadr );
+  Process( special, globalindex, MUNU, munu );
+  Process( special, globalindex, DCAY, dcay );
+  Process( special, globalindex, LOSS, loss );
+  Process( special, globalindex, MULS, muls );
+  Process( special, globalindex, CKOV, ckov );
+}
+
+void MaterialManager::Cuts( bool special, int globalindex, Float_t cutgam, Float_t cutele, Float_t cutneu, 
+                                                           Float_t cuthad, Float_t cutmuo, Float_t bcute, 
+                                                           Float_t bcutm, Float_t dcute, Float_t dcutm, 
+                                                           Float_t ppcutm, Float_t tofmax )
+{
+  Cut( special, globalindex, CUTGAM, cutgam );
+  Cut( special, globalindex, CUTELE, cutgam );
+  Cut( special, globalindex, CUTNEU, cutneu );
+  Cut( special, globalindex, CUTHAD, cuthad );
+  Cut( special, globalindex, CUTMUO, cutmuo );
+  Cut( special, globalindex, BCUTE, bcute );
+  Cut( special, globalindex, BCUTM, bcutm );
+  Cut( special, globalindex, DCUTE, dcute );
+  Cut( special, globalindex, DCUTM, dcutm );
+  Cut( special, globalindex, PPCUTM, ppcutm );
+  Cut( special, globalindex, TOFMAX, tofmax );
+}
+
+void MaterialManager::Cut( bool special, int globalindex, int parID, Float_t val )
+{
+  // this check is needed, in principal only for G3, otherwise SegFault
+  if( val < 0. )
+  {
+    return;
+  }
+  
+  if( !special )
+  {
+    mDefaultCutMap[ parID ] = val;
+    /// Explicit template definition to cover this which differs from global cut setting
+    TVirtualMC::GetMC()->SetCut( mCutIDToName[parID].c_str(), val );
+  }
+  else if( mApplySpecialCuts )
+  {
+    mMediumCutMap[ globalindex ][ parID ] = val;
+    TVirtualMC::GetMC()->Gstpar( globalindex, mCutIDToName[parID].c_str(), val );
+  }
+  else
+  {
+    LOG(INFO) << "Special cuts for media are disabled.";
+  }
+}
+
+void MaterialManager::Process( bool special, int globalindex, int parID, int val )
+{
+  // this check is needed, in principal only for G3, otherwise SegFault
+  if( val < 0 )
+  {
+    return;
+  }
+
+  if( !special )
+  {
+    mDefaultProcessMap[ parID ] = val;
+    /// Explicit template definition to cover this which differs from global process setting
+    TVirtualMC::GetMC()->SetProcess( mProcessIDToName[parID].c_str(), val );
+  }
+  else if( mApplySpecialProcesses )
+  {
+    mMediumProcessMap[globalindex][ parID ] = val;
+    TVirtualMC::GetMC()->Gstpar( globalindex, mProcessIDToName[parID].c_str(), val );
+  }
+  else
+  {
+    LOG(INFO) << "Special processes for media are disabled.";
+  }
 }
 
 void MaterialManager::printMaterials() const

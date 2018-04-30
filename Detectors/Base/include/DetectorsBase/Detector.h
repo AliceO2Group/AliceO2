@@ -55,6 +55,18 @@ class Detector : public FairDetector
                 Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t *ubuf = nullptr,
                 Int_t nbuf = 0);
 
+    /// Custom processes and transport cuts
+    void Cuts( Int_t numed, Float_t cutgam, Float_t cutele, Float_t cutneu, Float_t cuthad, 
+                                  Float_t cutmuo, Float_t bcute, Float_t bcutm, Float_t dcute, 
+                                  Float_t dcutm, Float_t ppcutm, Float_t tofmax );
+    /// Set cut by name and value
+    void Cut( Int_t numed, int parID, Float_t val );
+
+    void Processes( Int_t numed, int pair, int comp, int phot, int pfis, int dray, int anni, int brem,
+                                 int hadr, int munu, int dcay, int loss, int muls, int ckov );
+    /// Set process by name and value
+    void Process( Int_t numed, int parID, int val );
+
     /// Define a rotation matrix. angles are in degrees.
     /// \param nmat on output contains the number assigned to the rotation matrix
     /// \param theta1 polar angle for axis I

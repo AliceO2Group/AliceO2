@@ -75,6 +75,37 @@ void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, In
   mgr.Medium(GetName(), numed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf, nbuf);
 }
 
+void Detector::Cuts( Int_t numed, Float_t cutgam, Float_t cutele, Float_t cutneu, Float_t cuthad, 
+                                  Float_t cutmuo, Float_t bcute, Float_t bcutm, Float_t dcute, 
+                                  Float_t dcutm, Float_t ppcutm, Float_t tofmax )
+{
+  auto& mgr = o2::Base::MaterialManager::Instance();
+  mgr.Cuts( GetName(), numed, cutgam, cutele, cutneu, cuthad, cutmuo, bcute, bcutm, 
+                              dcute, dcutm, ppcutm, tofmax );
+
+}
+
+void Detector::Cut( Int_t numed, int parID, Float_t val )
+{
+  auto& mgr = o2::Base::MaterialManager::Instance();
+  mgr.Cut( GetName(), numed, parID, val );
+}
+
+
+void Detector::Processes( Int_t numed, int pair, int comp, int phot, int pfis, int dray, int anni, int brem,
+                                       int hadr, int munu, int dcay, int loss, int muls, int ckov )
+{
+  auto& mgr = o2::Base::MaterialManager::Instance();
+  mgr.Processes( GetName(), numed, pair, comp, phot, pfis, dray, anni, brem, hadr, munu, dcay, loss, muls, ckov );
+}
+
+
+void Detector::Process( Int_t numed, int parID, int val )
+{
+  auto& mgr = o2::Base::MaterialManager::Instance();
+  mgr.Process( GetName(), numed, parID, val );
+}
+
 void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2, Float_t theta3,
                       Float_t phi3) const
 {

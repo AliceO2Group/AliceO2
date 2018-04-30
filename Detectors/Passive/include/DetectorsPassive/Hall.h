@@ -24,6 +24,7 @@ class Hall : public FairModule
   Hall();
   ~Hall() override;
   void ConstructGeometry() override;
+  void SetSpecialPhysicsCuts() override;
 
   /// Clone this object (used in MT mode only)
   FairModule* CloneModule() const override;
