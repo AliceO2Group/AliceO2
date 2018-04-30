@@ -9,7 +9,7 @@
 # or submit itself to any jurisdiction.
 
 set(MODULE_NAME "DigitizerWorkflow")
-set(MODULE_BUCKET_NAME run_bucket)
+set(MODULE_BUCKET_NAME digitizer_workflow_bucket)
 
 O2_SETUP(NAME ${MODULE_NAME})
 
