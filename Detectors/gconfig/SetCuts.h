@@ -25,41 +25,44 @@ void SetCuts()
   // or to message #5362 in the PandaRoot Forum >> Monte Carlo Engines >> g3Config.C thread)
   // 
   // The default settings refer to a complete simulation which generates and follows also the secondary particles.
-  
 
-  TVirtualMC::GetMC()->SetProcess("PAIR",1); /** pair production*/
-  TVirtualMC::GetMC()->SetProcess("COMP",1); /**Compton scattering*/
-  TVirtualMC::GetMC()->SetProcess("PHOT",1); /** photo electric effect */
-  TVirtualMC::GetMC()->SetProcess("PFIS",0); /**photofission*/
-  TVirtualMC::GetMC()->SetProcess("DRAY",0); /**delta-ray*/
-  TVirtualMC::GetMC()->SetProcess("ANNI",1); /**annihilation*/
-  TVirtualMC::GetMC()->SetProcess("BREM",1); /**bremsstrahlung*/
-  TVirtualMC::GetMC()->SetProcess("HADR",1); /**hadronic process*/
-  TVirtualMC::GetMC()->SetProcess("MUNU",1); /**muon nuclear interaction*/
-  TVirtualMC::GetMC()->SetProcess("DCAY",1); /**decay*/
-  TVirtualMC::GetMC()->SetProcess("LOSS",2); /**energy loss*/
-  TVirtualMC::GetMC()->SetProcess("MULS",1); /**multiple scattering*/
-  TVirtualMC::GetMC()->SetProcess("CKOV",1); /**cherenkov */
+  // \note All following settings could also be set in Cave since it is always loaded.
+  // Use MaterialManager to set processes and cuts
+  auto& mgr = MaterialManager::Instance();
 
-  
-    
-  
-  Double_t cut1 = 1.0E-3;         // GeV --> 1 MeV
-  Double_t cutb = 1.0E4;          // GeV --> 10 TeV
-  Double_t tofmax = 1.E10;        // seconds
-  cout << "SetCuts Macro: Setting cuts.." <<endl;
-  
-  TVirtualMC::GetMC()->SetCut("CUTGAM",cut1);   /** gammas (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTELE",cut1);   /** electrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTNEU",cut1);   /** neutral hadrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTHAD",cut1);   /** charged hadrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("CUTMUO",cut1);   /** muons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("BCUTE",cut1);    /** electron bremsstrahlung (GeV)*/
-  TVirtualMC::GetMC()->SetCut("BCUTM",cut1);    /** muon and hadron bremsstrahlung(GeV)*/ 
-  TVirtualMC::GetMC()->SetCut("DCUTE",cut1);    /** delta-rays by electrons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("DCUTM",cut1);    /** delta-rays by muons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("PPCUTM",cut1);   /** direct pair production by muons (GeV)*/
-  TVirtualMC::GetMC()->SetCut("TOFMAX",tofmax); /**time of flight cut in seconds*/
-  
-   
+  LOG(INFO) << "Set default settings for processes and cuts.";
+  mgr.DefaultProcesses({ { EProc::kPAIR, 1 },    /** pair production */
+                         { EProc::kCOMP, 1 },    /** Compton scattering */
+                         { EProc::kPHOT, 1 },    /** photo electric effect */
+                         { EProc::kPFIS, 0 },    /** photofission */
+                         { EProc::kDRAY, 0 },    /** delta ray */
+                         { EProc::kANNI, 1 },    /** annihilation */
+                         { EProc::kBREM, 1 },    /** bremsstrahlung */
+                         { EProc::kHADR, 1 },    /** hadronic process */
+                         { EProc::kMUNU, 1 },    /** muon nuclear interaction */
+                         { EProc::kDCAY, 1 },    /** decay */
+                         { EProc::kLOSS, 2 },    /** energy loss */
+                         { EProc::kMULS, 1 },    /** multiple scattering */
+                         { EProc::kCKOV, 1 } }); /** Cherenkov */
+
+  const Double_t cut1 = 1.0E-3; // GeV --> 1 MeV
+  //Double_t cutb = 1.0E4;          // GeV --> 10 TeV
+  const Double_t cutTofmax = 1.E10; // seconds
+
+  mgr.DefaultCuts({ { ECut::kCUTGAM, cut1 },         /** gammas */
+                    { ECut::kCUTELE, cut1 },         /** electrons */
+                    { ECut::kCUTNEU, cut1 },         /** neutral hadrons */
+                    { ECut::kCUTHAD, cut1 },         /** charged hadrons */
+                    { ECut::kCUTMUO, cut1 },         /** muons */
+                    { ECut::kBCUTE, cut1 },          /** electron bremsstrahlung */
+                    { ECut::kBCUTM, cut1 },          /** muon and hadron bremsstrahlung */
+                    { ECut::kDCUTE, cut1 },          /** delta-rays by electrons */
+                    { ECut::kDCUTM, cut1 },          /** delta-rays by muons */
+                    { ECut::kPPCUTM, cut1 },         /** direct pair production by muons */
+                    { ECut::kTOFMAX, cutTofmax } }); /** time of flight */
+
+  const char* settingProc = mgr.specialProcessesEnabled() ? "enabled" : "disabled";
+  const char* settingCut = mgr.specialCutsEnabled() ? "enabled" : "disabled";
+  LOG(INFO) << "Special process settings are " << settingProc << ".";
+  LOG(INFO) << "Special cut settings are " << settingCut << ".";
 }
