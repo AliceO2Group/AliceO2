@@ -1,15 +1,37 @@
 
 ########## DEPENDENCIES lookup ############
 
+function(guess_append_libpath _libname _root)
+  # Globally adds, as library path, the path of library ${_libname} searched
+  # under ${_root}/lib and ${_root}/lib64. The purpose is to work around broken
+  # external CMake config files, hardcoding full paths of their dependencies
+  # not being relocated properly, leading to broken builds if reusing builds
+  # produced under different hosts/paths.
+  unset(_lib CACHE)  # force find_library to look again
+  find_library(_lib "${_libname}" HINTS "${_root}" NO_DEFAULT_PATH PATH_SUFFIXES lib lib64)
+  if(_lib)
+    get_filename_component(_libdir "${_lib}" DIRECTORY)
+    message(STATUS "Adding library path: ${_libdir}")
+    link_directories(${_libdir})
+  else()
+    message(WARNING "Cannot find library ${_libname} under ${_root}")
+  endif()
+endfunction()
+
 find_package(ROOT 6.06.00 REQUIRED)
 find_package(Vc REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
 if (ALICEO2_MODULAR_BUILD)
-  # Geant3, Geant4 installed via cmake
+  # Installed via CMake. Note: we work around hardcoded full paths in the CMake
+  # config files not being relocated properly by appending library paths.
+  guess_append_libpath(geant321 "${Geant3_DIR}")
   find_package(Geant3 NO_MODULE)
+  guess_append_libpath(G4run "${Geant4_DIR}")
   find_package(Geant4 NO_MODULE)
+  guess_append_libpath(geant4vmc "${GEANT4_VMC_DIR}")
   find_package(Geant4VMC NO_MODULE)
+  guess_append_libpath(BaseVGM "${VGM_DIR}")
   find_package(VGM NO_MODULE)
 else (ALICEO2_MODULAR_BUILD)
   # For old versions of VMC packages (to be removed)
