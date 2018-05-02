@@ -97,7 +97,7 @@ bool Clusterizer::loadPatterns(const std::vector<ColumnData>& stripPatterns)
     mActiveDEs[deIndex] = 1;
 
     de->firedColumns |= (1 << col.columnId);
-    de->columns[col.columnId] = col.patterns;
+    de->columns[col.columnId] = col;
   }
 
   return (stripPatterns.size() > 0);

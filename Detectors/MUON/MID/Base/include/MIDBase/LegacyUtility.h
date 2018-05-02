@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "DataFormatsMID/StripPattern.h"
+#include "DataFormatsMID/ColumnData.h"
 
 namespace o2
 {
