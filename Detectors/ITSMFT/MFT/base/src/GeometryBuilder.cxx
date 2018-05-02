@@ -12,7 +12,6 @@
 /// \brief Class describing MFT Geometry Builder
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
-#include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 #include "MFTBase/GeometryBuilder.h"
