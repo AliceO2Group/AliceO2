@@ -57,6 +57,8 @@ class Mapping
   std::vector<MpStripIndex> getNeighbours(const Mapping::MpStripIndex& stripIndex, int cathode, int deId) const;
   bool isValid(int deId, int column, int cathode = 0, int line = 0, int strip = 0) const;
 
+  MpStripIndex nextStrip(const MpStripIndex& stripIndex, int cathode, int deId, bool descending = false) const;
+
  private:
   /// Structure of a column in a DE in the internal mapping
   struct MpColumn {
