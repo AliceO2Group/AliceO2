@@ -81,7 +81,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           // A new message with a TH1F inside
           auto h = ctx.inputs().get<TH1F>("histo");
           // A new message with 1 XYZ instance in it
-          XYZ const &x = ctx.inputs().get<XYZ>("point");
+          auto resx = ctx.inputs().get<XYZ>("point");
+          XYZ const& x = *resx;
           // A new message with a gsl::span<XYZ> with 1000 items
           auto ref1 = ctx.inputs().get("points");
           gsl::span<XYZ> c = DataRefUtils::as<XYZ>(ref1);
