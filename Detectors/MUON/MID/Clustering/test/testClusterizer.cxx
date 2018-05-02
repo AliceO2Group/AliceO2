@@ -87,41 +87,41 @@ std::vector<ColumnData> getColumnsFixed(int event)
       columns.emplace_back(ColumnData());
       columns.back().deId = 31;
       columns.back().columnId = 1;
-      columns.back().patterns.setNonBendPattern(1 << 4 | 1 << 5 | 1 << 7);
-      columns.back().patterns.setBendPattern(1 << 14 | 1 << 15, 0);
-      columns.back().patterns.setBendPattern(1 << 0 | 1 << 1, 1);
+      columns.back().setNonBendPattern(1 << 4 | 1 << 5 | 1 << 7);
+      columns.back().setBendPattern(1 << 14 | 1 << 15, 0);
+      columns.back().setBendPattern(1 << 0 | 1 << 1, 1);
       columns.emplace_back(ColumnData());
       columns.back().deId = 31;
       columns.back().columnId = 2;
-      columns.back().patterns.setNonBendPattern(1 << 0);
-      columns.back().patterns.setBendPattern(1 << 0, 1);
+      columns.back().setNonBendPattern(1 << 0);
+      columns.back().setBendPattern(1 << 0, 1);
       break;
     case 1:
       columns.emplace_back(ColumnData());
       columns.back().deId = 68;
       columns.back().columnId = 0;
-      columns.back().patterns.setNonBendPattern(1 << 2 | 1 << 3 | 1 << 15);
-      columns.back().patterns.setBendPattern(1 << 14 | 1 << 15, 2);
-      columns.back().patterns.setBendPattern(1 << 0 | 1 << 1, 3);
+      columns.back().setNonBendPattern(1 << 2 | 1 << 3 | 1 << 15);
+      columns.back().setBendPattern(1 << 14 | 1 << 15, 2);
+      columns.back().setBendPattern(1 << 0 | 1 << 1, 3);
       columns.emplace_back(ColumnData());
       columns.back().deId = 68;
       columns.back().columnId = 1;
-      columns.back().patterns.setNonBendPattern(1 << 0);
-      columns.back().patterns.setBendPattern(1 << 1, 3);
+      columns.back().setNonBendPattern(1 << 0);
+      columns.back().setBendPattern(1 << 1, 3);
       break;
     case 2:
       columns.emplace_back(ColumnData());
       columns.back().deId = 31;
       columns.back().columnId = 1;
-      columns.back().patterns.setNonBendPattern(1 << 7);
-      columns.back().patterns.setBendPattern(1 << 14 | 1 << 15, 0);
-      columns.back().patterns.setBendPattern(1 << 0 | 1 << 1, 1);
+      columns.back().setNonBendPattern(1 << 7);
+      columns.back().setBendPattern(1 << 14 | 1 << 15, 0);
+      columns.back().setBendPattern(1 << 0 | 1 << 1, 1);
       columns.emplace_back(ColumnData());
       columns.back().deId = 31;
       columns.back().columnId = 2;
-      columns.back().patterns.setNonBendPattern(1 << 0);
-      columns.back().patterns.setBendPattern(1 << 14 | 1 << 15, 0);
-      columns.back().patterns.setBendPattern(1 << 0 | 1 << 1, 1);
+      columns.back().setNonBendPattern(1 << 0);
+      columns.back().setBendPattern(1 << 14 | 1 << 15, 0);
+      columns.back().setBendPattern(1 << 0 | 1 << 1, 1);
       break;
     default:
       std::cerr << "Event " << event << "not defined" << std::endl;
@@ -291,7 +291,7 @@ std::vector<ColumnData> getFiredStrips(float xPos, float yPos, int deId, Mapping
         columnStruct->columnId = neigh.column;
       }
       int line = (cathode == 1) ? 4 : neigh.line;
-      columnStruct->patterns.patterns[line] |= (1 << neigh.strip);
+      columnStruct->patterns[line] |= (1 << neigh.strip);
     }
   }
   return columns;
