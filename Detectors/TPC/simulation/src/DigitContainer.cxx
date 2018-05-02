@@ -18,25 +18,24 @@
 
 using namespace o2::TPC;
 
-void DigitContainer::addDigit(size_t eventID, size_t trackID, const CRU& cru, TimeBin timeBin,
-                              GlobalPadNumber globalPad, float signal)
+void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad,
+                              float signal)
 {
   mEffectiveTimeBin = timeBin - mFirstTimeBin;
   if (mEffectiveTimeBin < 0.) {
-    LOG(FATAL) << "TPC DigitCRU buffer misaligned ";
-    LOG(DEBUG) << "for hit " << trackID << " CRU " << cru << " TimeBin " << timeBin << " First TimeBin "
+    LOG(FATAL) << "TPC DigitCRU buffer misaligned "
+               << "for hit " << label.getTrackID() << " CRU " << cru << " TimeBin " << timeBin << " First TimeBin "
                << mFirstTimeBin << " Global pad " << globalPad;
-    LOG(FATAL) << FairLogger::endl;
     return;
   }
   if (cru.sector() != mSector) {
-    LOG(FATAL) << "Digit for wrong sector " << cru.sector() << " added in sector " << mSector << FairLogger::endl;
+    LOG(FATAL) << "Digit for wrong sector " << cru.sector() << " added in sector " << mSector;
   }
   /// If time bin outside specified range, the range of the vector is extended by one full drift time.
   while (mTimeBins.size() <= mEffectiveTimeBin) {
     mTimeBins.resize(mTimeBins.size() + 500);
   }
-  mTimeBins[mEffectiveTimeBin].addDigit(eventID, trackID, cru, globalPad, signal);
+  mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
 }
 
 void DigitContainer::fillOutputContainer(std::vector<Digit>* output,

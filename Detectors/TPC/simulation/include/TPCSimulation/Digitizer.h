@@ -83,7 +83,8 @@ class Digitizer
   /// \param sector Sector to be processed
   /// \param eventTime Time of the event to be processed
   /// \param eventID ID of the event to be processed
-  void ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector, const float eventTime, const int eventID);
+  void ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector, const float eventTime, const int eventID,
+                       const int sourceID = 0);
 
   DigitContainer* getDigitContainer() const { return mDigitContainer; }
 
