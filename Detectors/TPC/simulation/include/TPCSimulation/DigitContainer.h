@@ -61,8 +61,7 @@ class DigitContainer
   /// \param globalPad Global pad number of the digit
   /// \param timeBin Time bin of the digit
   /// \param signal Charge of the digit in ADC counts
-  void addDigit(size_t eventID, size_t trackID, const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad,
-                float signal);
+  void addDigit(const MCCompLabel& label, const CRU& cru, TimeBin timeBin, GlobalPadNumber globalPad, float signal);
 
   /// Fill output vector
   /// \param output Output container

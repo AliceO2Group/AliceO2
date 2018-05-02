@@ -56,7 +56,7 @@ class DigitGlobalPad
   /// \param eventID MC Event ID
   /// \param trackID MC Track ID
   /// \param signal Charge of the digit in ADC counts
-  void addDigit(size_t eventID, size_t trackID, float signal);
+  void addDigit(const MCCompLabel& label, float signal);
 
   /// Fill output vector
   /// \param output Output container
@@ -84,18 +84,18 @@ class DigitGlobalPad
 
 inline DigitGlobalPad::DigitGlobalPad() : mChargePad(0.), mMClabel() {}
 
-inline void DigitGlobalPad::addDigit(size_t eventID, size_t trackID, float signal)
+inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal)
 {
   bool isKnown = false;
-  MCCompLabel tempLabel(trackID, eventID);
+  // MCCompLabel tempLabel(trackID, eventID);
   for (auto& mcLabel : mMClabel) {
-    if (compareMClabels(tempLabel, mcLabel.first)) {
+    if (compareMClabels(label, mcLabel.first)) {
       ++mcLabel.second;
       isKnown = true;
     }
   }
   if (!isKnown) {
-    mMClabel.emplace_back(tempLabel, 1);
+    mMClabel.emplace_back(label, 1);
   }
   mChargePad += signal;
 }

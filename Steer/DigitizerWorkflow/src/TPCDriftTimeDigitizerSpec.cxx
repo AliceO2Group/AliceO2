@@ -41,6 +41,8 @@ namespace steer
 DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehits)
 {
   TChain* simChain = new TChain("o2sim");
+  //
+  auto simChains = std::make_shared<std::vector<TChain*>>();
   std::stringstream branchnamestreamleft;
   branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(sector)));
   std::string branchnameleft = branchnamestreamleft.str();
@@ -50,14 +52,14 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
 
   auto digitizertask = std::make_shared<o2::TPC::DigitizerTask>();
   digitizertask->Init2();
-  // the task takes the ownership of digit array + mc truth array
-  // TODO: make this clear in the API
 
   auto digitArray = std::make_shared<std::vector<o2::TPC::Digit>>();
   auto mcTruthArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  // the task takes the ownership of digit array + mc truth array
+  // TODO: make this clear in the API
   digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
 
-  auto doit = [simChain, branchnameleft, branchnameright, sector, digitizertask, digitArray,
+  auto doit = [simChain, simChains, branchnameleft, branchnameright, sector, digitizertask, digitArray,
                mcTruthArray](ProcessingContext& pc) {
     static int callcounter = 0;
     callcounter++;
@@ -78,7 +80,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
     auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
 
     auto context = pc.inputs().get<o2::steer::RunContext>("timeinput");
-    auto timesview = context->getEventRecords();
+    auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
     // if there is nothing ... return
@@ -106,10 +108,17 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
     std::vector<o2::TPC::TPCHitGroupID> hitidsleft;               // "TPCHitIDs"
     std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsright; // "TPCHitVector"
     std::vector<o2::TPC::TPCHitGroupID> hitidsright;              // "TPCHitIDs"
-    hitvectorsleft.resize(timesview.size(), nullptr);
-    hitvectorsright.resize(timesview.size(), nullptr);
 
-    // have to do a loop over drift times
+    // try to access event parts information
+    const auto& parts = context->getEventParts();
+    // query max size of entries
+    const int maxsourcespercollision = context->getMaxNumberParts();
+    const int numberofcollisions = context->getNCollisions();
+    const int maxnumberofentries = maxsourcespercollision * numberofcollisions;
+    LOG(INFO) << " MAX ENTRIES " << maxnumberofentries;
+    hitvectorsleft.resize(maxnumberofentries, nullptr);
+    hitvectorsright.resize(maxnumberofentries, nullptr);
+
     for (int drift = 1; drift <= ndrifts; ++drift) {
       auto starttime = (drift - 1) * TPCDRIFT;
       auto endtime = drift * TPCDRIFT;
@@ -117,12 +126,15 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
       digitizertask->setStartTime(starttime);
       digitizertask->setEndTime(endtime);
 
+      hitidsleft.clear();
+      hitidsright.clear();
+
       // obtain candidate hit(ids) for this time range --> left
-      o2::TPC::getHits(*simChain, timesview, hitvectorsleft, hitidsleft, branchnameleft.c_str(), starttime, endtime,
-                       o2::TPC::calcDriftTime);
+      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, branchnameleft.c_str(), starttime,
+                       endtime, o2::TPC::calcDriftTime);
       // --> right
-      o2::TPC::getHits(*simChain, timesview, hitvectorsright, hitidsright, branchnameright.c_str(), starttime, endtime,
-                       o2::TPC::calcDriftTime);
+      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright, branchnameright.c_str(),
+                       starttime, endtime, o2::TPC::calcDriftTime);
 
       LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
                  << " SELECTED RIGHT " << hitidsright.size();
@@ -146,9 +158,21 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
   };
 
   // init function return a lambda taking a ProcessingContext
-  auto initIt = [simChain, doit](InitContext& ctx) {
+  auto initIt = [simChain, simChains, doit](InitContext& ctx) {
     // setup the input chain
-    simChain->AddFile("o2sim.root");
+
+    simChains->emplace_back(new TChain("o2sim"));
+    // add the background chain
+    simChains->back()->AddFile(ctx.options().get<std::string>("simFile").c_str());
+    auto signalfilename = ctx.options().get<std::string>("simFileS");
+    if (signalfilename.size() > 0) {
+      simChains->emplace_back(new TChain("o2sim"));
+      simChains->back()->AddFile(signalfilename.c_str());
+    }
+
+    LOG(INFO) << "HAVE " << simChains->size() << " chains \n";
+
+    simChain->AddFile(ctx.options().get<std::string>("simFile").c_str());
     return doit;
   };
 
@@ -160,7 +184,9 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
     Outputs{
       // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
     },
-    AlgorithmSpec{ initIt }, Options{ /*{ "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } }*/ }
+    AlgorithmSpec{ initIt },
+    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
+             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
   };
 }
 }

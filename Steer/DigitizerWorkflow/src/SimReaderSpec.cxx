@@ -59,6 +59,9 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize)
     // initialize fundamental objects
     auto& mgr = steer::HitProcessingManager::instance();
     mgr.addInputFile(ctx.options().get<std::string>("simFile").c_str());
+    if (ctx.options().get<std::string>("simFileS").size() > 0) {
+      mgr.addInputSignalFile(ctx.options().get<std::string>("simFileS").c_str());
+    }
     mgr.setupRun();
 
     LOG(INFO) << "Initializing Spec ... have " << mgr.getRunContext().getEventRecords().size() << " times ";
@@ -76,7 +79,8 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize)
                             /* ALGORITHM */
                             AlgorithmSpec{ initIt },
                             /* OPTIONS */
-                            Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } } } };
+                            Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } },
+                                     { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } } };
 }
 }
 }
