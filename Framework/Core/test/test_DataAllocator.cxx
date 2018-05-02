@@ -128,6 +128,11 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object6[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object6[1] == o2::test::Polymorphic(0xd00f));
 
+    // checking retrieving buffer as raw char*, and checking content by cast
+    auto rawchar = pc.inputs().get<const char*>("input1");
+    const auto& data1 = *reinterpret_cast<const o2::test::TriviallyCopyable*>(rawchar);
+    ASSERT_ERROR(data1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+
     pc.services().get<ControlService>().readyToQuit(true);
   };
 

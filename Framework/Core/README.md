@@ -280,12 +280,15 @@ DataRef ref = args.get("points");
 You can then use the `DataRef` `header` and `payload` raw pointers to access
 the data in the messages.
 
-If the message is of a known type, you can automatically get a casted reference
+If the message is of a known type, you can automatically get a a smart pointer
 to the contents of the message by passing it as template argument, e.g.:
 
 ```cpp
-XYZ &p = args.get<XYZ>("points");
+auto v = args.get<XYZ>("points");
+XYZ &p = *v;
 ```
+
+The framework will also take care of necessary deserialization.
 
 [InputRecord]: https://github.com/AliceO2Group/AliceO2/blob/HEAD/Framework/Core/include/Framework/InputRecord.h
 
