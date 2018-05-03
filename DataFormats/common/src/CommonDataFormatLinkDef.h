@@ -29,4 +29,6 @@
 #pragma link C++ class o2::dataformats::TimeStampWithError < double, double > +;
 #pragma link C++ class o2::dataformats::TimeStampWithError < int, int > +;
 
+#pragma link C++ class o2::dataformats::EvIndex < int, int > +;
+
 #endif

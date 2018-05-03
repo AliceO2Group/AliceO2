@@ -14,6 +14,7 @@
 #include <boost/test/unit_test.hpp>
 #include "../src/DDSConfigHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
+#include "../src/SimpleResourceManager.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
@@ -27,7 +28,7 @@ using namespace o2::framework;
 AlgorithmSpec simplePipe(o2::header::DataDescription what)
 {
   return AlgorithmSpec{ [what](ProcessingContext& ctx) {
-    auto bData = ctx.allocator().make<int>(OutputSpec{ "TST", what, 0 }, 1);
+    auto bData = ctx.outputs().make<int>(Output{ "TST", what, 0 }, 1);
   } };
 }
 
@@ -35,25 +36,25 @@ AlgorithmSpec simplePipe(o2::header::DataDescription what)
 WorkflowSpec defineDataProcessing()
 {
   return { { "A", Inputs{},
-             Outputs{ OutputSpec{ "TST", "A1", OutputSpec::Timeframe },
-                      OutputSpec{ "TST", "A2", OutputSpec::Timeframe } },
+             Outputs{ OutputSpec{ "TST", "A1" },
+                      OutputSpec{ "TST", "A2" } },
              AlgorithmSpec{ [](ProcessingContext& ctx) {
                sleep(1);
-               auto aData = ctx.allocator().make<int>(OutputSpec{ "TST", "A1", 0 }, 1);
-               auto bData = ctx.allocator().make<int>(OutputSpec{ "TST", "A2", 0 }, 1);
+               auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0 }, 1);
+               auto bData = ctx.outputs().make<int>(Output{ "TST", "A2", 0 }, 1);
              } } },
            { "B",
-             { InputSpec{ "x", "TST", "A1", InputSpec::Timeframe } },
-             Outputs{ OutputSpec{ "TST", "B1", OutputSpec::Timeframe } },
+             { InputSpec{ "x", "TST", "A1" } },
+             Outputs{ OutputSpec{ "TST", "B1" } },
              simplePipe(o2::header::DataDescription{ "B1" }) },
            { "C",
-             { InputSpec{ "y", "TST", "A2", InputSpec::Timeframe } },
-             Outputs{ OutputSpec{ "TST", "C1", OutputSpec::Timeframe } },
+             { InputSpec{ "y", "TST", "A2" } },
+             Outputs{ OutputSpec{ "TST", "C1" } },
              simplePipe(o2::header::DataDescription{ "C1" }) },
            { "D",
              {
-               InputSpec{ "x", "TST", "B1", InputSpec::Timeframe },
-               InputSpec{ "y", "TST", "C1", InputSpec::Timeframe },
+               InputSpec{ "x", "TST", "B1" },
+               InputSpec{ "y", "TST", "C1" },
              },
              Outputs{},
              AlgorithmSpec{
@@ -67,7 +68,9 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   std::ostringstream ss{ "" };
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices);
+  SimpleResourceManager rm(22000, 1000);
+  auto resources = rm.getAvailableResources();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
   char* fakeArgv[] = { strdup("foo"), nullptr };
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;

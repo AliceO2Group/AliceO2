@@ -75,9 +75,6 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   o2::MFT::Detector* mft = new o2::MFT::Detector();
   run->AddModule(mft);
   
-  // Delete the segmentations from previous runs
-  gSystem->Exec(" rm -f mftSegmentations.root ");
-
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   FairBoxGenerator* boxGen = new FairBoxGenerator(13, nMuons);

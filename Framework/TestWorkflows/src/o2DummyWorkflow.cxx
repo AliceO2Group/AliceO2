@@ -35,15 +35,15 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     "reader",
     Inputs{},
     {
-      OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
-      OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
+      OutputSpec{{"tpc"}, "TPC", "CLUSTERS"},
+      OutputSpec{{"its"}, "ITS", "CLUSTERS"}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
        // Creates a new message of size 1000 which
        // has "TPC" as data origin and "CLUSTERS" as data description.
-       auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
+       auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{"tpc"}, 1000);
        int i = 0;
 
        for (auto &cluster : tpcClusters) {
@@ -55,7 +55,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
          i++;
        }
 
-       auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
+       auto itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{"its"}, 1000);
        i = 0;
        for (auto &cluster : itsClusters) {
          assert(i < 1000);
@@ -70,65 +70,46 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     }
   };
 
-  DataProcessorSpec tpcClusterSummary {
+  DataProcessorSpec tpcClusterSummary{
     "tpc-cluster-summary",
-    {
-       InputSpec{"clusters", "TPC", "CLUSTERS", InputSpec::Timeframe}
-    },
-    {
-       OutputSpec{"TPC", "SUMMARY", OutputSpec::Timeframe}
-    },
-    AlgorithmSpec{
-    [](ProcessingContext &ctx)
-      {
-        auto tpcSummary = ctx.allocator().make<Summary>(OutputSpec{"TPC", "SUMMARY", 0}, 1);
-        tpcSummary.at(0).inputCount = ctx.inputs().size();
-      }
-    },
-    {
-      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}
-    },
-    {
-      "CPUTimer"
-    }
+    { InputSpec{ "clusters", "TPC", "CLUSTERS"} },
+    { OutputSpec{ {"summary"}, "TPC", "SUMMARY"} },
+    AlgorithmSpec{ [](ProcessingContext& ctx) {
+      auto tpcSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
+      tpcSummary.at(0).inputCount = ctx.inputs().size();
+    } },
+    { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
+    { "CPUTimer" }
   };
 
-  DataProcessorSpec itsClusterSummary {
+  DataProcessorSpec itsClusterSummary{
     "its-cluster-summary",
+    { InputSpec{ "clusters", "ITS", "CLUSTERS" } },
     {
-      InputSpec{"clusters", "ITS", "CLUSTERS", InputSpec::Timeframe}
+      OutputSpec{ {"summary"}, "ITS", "SUMMARY" },
     },
-    {
-      OutputSpec{"ITS", "SUMMARY", OutputSpec::Timeframe},
-    },
-    AlgorithmSpec{
-      [](ProcessingContext &ctx) {
-        auto itsSummary = ctx.allocator().make<Summary>(OutputSpec{"ITS", "SUMMARY", 0}, 1);
-        itsSummary.at(0).inputCount = ctx.inputs().size();
-      }
-    },
-    {
-      ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}
-    },
-    {
-      "CPUTimer"
-    }
+    AlgorithmSpec{ [](ProcessingContext& ctx) {
+      auto itsSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
+      itsSummary.at(0).inputCount = ctx.inputs().size();
+    } },
+    { ConfigParamSpec{ "some-cut", VariantType::Float, 1.0f, { "some cut" } } },
+    { "CPUTimer" }
   };
 
   DataProcessorSpec merger{
     "merger",
     {
-      InputSpec{"clusters", "TPC", "CLUSTERS", InputSpec::Timeframe},
-      InputSpec{"summary", "TPC", "SUMMARY", InputSpec::Timeframe},
-      InputSpec{"other_summary", "ITS", "SUMMARY", InputSpec::Timeframe}
+      InputSpec{"clusters", "TPC", "CLUSTERS"},
+      InputSpec{"summary", "TPC", "SUMMARY"},
+      InputSpec{"other_summary", "ITS", "SUMMARY"}
     },
     Outputs{},
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
         // We verify we got inputs in the correct order
-        auto h0 = o2::header::get<DataHeader>(ctx.inputs().get("clusters").header);
-        auto h1 = o2::header::get<DataHeader>(ctx.inputs().get("summary").header);
-        auto h2 = o2::header::get<DataHeader>(ctx.inputs().get("other_summary").header);
+        auto h0 = o2::header::get<DataHeader*>(ctx.inputs().get("clusters").header);
+        auto h1 = o2::header::get<DataHeader*>(ctx.inputs().get("summary").header);
+        auto h2 = o2::header::get<DataHeader*>(ctx.inputs().get("other_summary").header);
         // This should always be the case, since the 
         // test for an actual DataHeader should happen in the device itself.
         assert(h0 && h1 && h2);

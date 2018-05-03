@@ -36,15 +36,15 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
     "simple",
     Inputs{},
     {
-      OutputSpec{"TPC", "CLUSTERS", OutputSpec::Timeframe},
-      OutputSpec{"ITS", "CLUSTERS", OutputSpec::Timeframe}
+      OutputSpec{"TPC", "CLUSTERS"},
+      OutputSpec{"ITS", "CLUSTERS"}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
         sleep(1);
         // Creates a new message of size 1000 which
         // has "TPC" as data origin and "CLUSTERS" as data description.
-        auto tpcClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"TPC", "CLUSTERS", 0}, 1000);
+        auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, 1000);
         int i = 0;
 
         for (auto &cluster : tpcClusters) {
@@ -56,7 +56,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           i++;
         }
 
-        auto itsClusters = ctx.allocator().make<FakeCluster>(OutputSpec{"ITS", "CLUSTERS", 0}, 1000);
+        auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, 1000);
         i = 0;
         for (auto &cluster : itsClusters) {
           assert(i < 1000);

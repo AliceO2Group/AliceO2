@@ -2,3 +2,5 @@
 
 add_subdirectory (Common)
 add_subdirectory (TPC)
+add_subdirectory (ITSMFT)
+add_subdirectory (MUON)

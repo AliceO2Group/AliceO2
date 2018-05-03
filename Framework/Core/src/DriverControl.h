@@ -10,8 +10,12 @@
 #ifndef FRAMEWORK_DRIVERCONTROL_H
 #define FRAMEWORK_DRIVERCONTROL_H
 
+#include <functional>
 #include <vector>
+
 #include "DriverInfo.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/DeviceExecution.h"
 
 namespace o2
 {
@@ -20,17 +24,24 @@ namespace framework
 
 /// These are the possible states for the driver controller
 /// and determine what should happen of state machine transitions.
-enum struct DriverControlState {
-  STEP,
-  PLAY,
-  PAUSE
-};
+enum struct DriverControlState { STEP, PLAY, PAUSE };
 
-/// Information about the driver process (i.e.  / the one which calculates the
-/// topology and actually spawns the devices )
+/// Controller for the driver process (i.e. / the one which calculates the
+/// topology and actually spawns the devices ). Any operation to be done by
+/// the driver process should be recorded in an instance of this, so that the
+/// changes can be applied at the correct moment / state.
 struct DriverControl {
+  using Callback = std::function<void(std::vector<DeviceSpec> const&, std::vector<DeviceExecution> const&)>;
+  /// States to be added to the stack on next iteration
+  /// of the state machine processing.
   std::vector<DriverState> forcedTransitions;
+  /// Current state of the state machine player.
   DriverControlState state;
+  /// Callbacks to be performed by the driver next time it
+  /// goes in the "PERFORM_CALLBACK" state.
+  std::vector<Callback> callbacks;
+  bool defaultQuiet;
+  bool defaultStopped;
 };
 
 } // namespace framework

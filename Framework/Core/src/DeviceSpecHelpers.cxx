@@ -23,7 +23,9 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/WorkflowSpec.h"
+
 #include "WorkflowHelpers.h"
+#include "ComputingResource.h"
 
 namespace bpo = boost::program_options;
 
@@ -81,7 +83,8 @@ std::string outputChannel2String(const OutputChannelSpec& channel)
 }
 
 void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, std::vector<DeviceId>& deviceIndex,
-                                              std::vector<DeviceConnectionId>& connections, unsigned short& nextPort,
+                                              std::vector<DeviceConnectionId>& connections,
+                                              std::vector<ComputingResource>& resources,
                                               const std::vector<size_t>& outEdgeIndex,
                                               const std::vector<DeviceConnectionEdge>& logicalEdges,
                                               const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
@@ -151,7 +154,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
   // alredy there) and create a new channel only if it connects two new
   // devices. Whether or not this is the case was previously computed
   // in the action.requiresNewChannel field.
-  auto createChannelForDeviceEdge = [&devices, &logicalEdges, &nextPort, &channelFromDeviceEdgeAndPort,
+  auto createChannelForDeviceEdge = [&devices, &logicalEdges, &resources, &channelFromDeviceEdgeAndPort,
                                      &connectionIdFromEdgeAndPort, &outputsMatchers, &deviceIndex,
                                      &workflow](size_t di, size_t ei) {
     auto& device = devices[di];
@@ -159,9 +162,9 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
 
     deviceIndex.emplace_back(DeviceId{ edge.producer, edge.producerTimeIndex, di });
 
-    OutputChannelSpec channel = channelFromDeviceEdgeAndPort(device, edge, nextPort);
-    const DeviceConnectionId& id = connectionIdFromEdgeAndPort(edge, nextPort);
-    nextPort++;
+    OutputChannelSpec channel = channelFromDeviceEdgeAndPort(device, edge, resources.back().port);
+    const DeviceConnectionId& id = connectionIdFromEdgeAndPort(edge, resources.back().port);
+    resources.pop_back();
 
     device.outputChannels.push_back(channel);
     return device.outputChannels.size() - 1;
@@ -184,11 +187,12 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
     assert(edge.outputGlobalIndex < outputsMatchers.size());
 
     if (edge.isForward == false) {
-      OutputRoute route;
-      route.matcher = outputsMatchers[edge.outputGlobalIndex];
-      route.timeslice = edge.timeIndex;
-      route.maxTimeslices = consumer.maxInputTimeslices;
-      route.channel = channel.name;
+      OutputRoute route{
+        edge.timeIndex,
+        consumer.maxInputTimeslices,
+        outputsMatchers[edge.outputGlobalIndex],
+        channel.name
+      };
       device.outputs.emplace_back(route);
     } else {
       ForwardRoute route;
@@ -229,8 +233,9 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
   sortDeviceIndex();
 }
 
-void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices, std::vector<DeviceId>& deviceIndex,
-                                             unsigned short& nextPort,
+void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
+                                             std::vector<DeviceId>& deviceIndex,
+                                             std::vector<ComputingResource> &resources,
                                              const std::vector<DeviceConnectionId>& connections,
                                              const std::vector<size_t>& inEdgeIndex,
                                              const std::vector<DeviceConnectionEdge>& logicalEdges,
@@ -399,7 +404,8 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices, s
 // FIXME: make start port configurable?
 void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workflow,
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
-                                                       std::vector<DeviceSpec>& devices)
+                                                       std::vector<DeviceSpec>& devices,
+                                                       std::vector<ComputingResource> &resources)
 {
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -428,11 +434,10 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
   std::vector<size_t> inEdgeIndex;
   std::vector<size_t> outEdgeIndex;
   WorkflowHelpers::sortEdges(inEdgeIndex, outEdgeIndex, logicalEdges);
-  unsigned short nextPort = 22000;
 
   std::vector<EdgeAction> actions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
 
-  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, nextPort, outEdgeIndex, logicalEdges,
+  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, resources, outEdgeIndex, logicalEdges,
                                            actions, workflow, outputs, channelPolicies);
 
   // Crete the connections on the inverse map for all of them
@@ -442,7 +447,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
 
-  processInEdgeActions(devices, deviceIndex, nextPort, connections, inEdgeIndex, logicalEdges, inActions, workflow,
+  processInEdgeActions(devices, deviceIndex, resources, connections, inEdgeIndex, logicalEdges, inActions, workflow,
                        availableForwardsInfo, channelPolicies);
 }
 

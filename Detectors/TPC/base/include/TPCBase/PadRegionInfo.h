@@ -28,7 +28,7 @@
 
 #include <vector>
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/PadPos.h"
 
 namespace o2 {

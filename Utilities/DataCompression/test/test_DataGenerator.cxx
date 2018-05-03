@@ -34,7 +34,7 @@
 #include <iomanip>
 #include <vector>
 
-template<typename DistributionType, typename... Args>
+template <typename DistributionType, typename... Args>
 bool testWithDistribution(Args&&... args)
 {
   using value_type = typename DistributionType::result_type;
@@ -45,7 +45,7 @@ bool testWithDistribution(Args&&... args)
 
   for (unsigned n = 0; n < nRolls; n++) {
     value_type v = dg();
-    unsigned bin = v/dg.step - dg.min;
+    unsigned bin = v / dg.step - dg.min;
     BOOST_REQUIRE(bin < dg.nbins);
     throws[bin]++;
   }
@@ -55,7 +55,7 @@ bool testWithDistribution(Args&&... args)
   auto highestProbability = dg.getProbability(dg.min);
   highestProbability = 0;
   for (auto i : dg) {
-    int bin = i/dg.step - dg.min;
+    int bin = i / dg.step - dg.min;
     BOOST_REQUIRE(bin >= 0);
     if (mostAbundantValueCount < throws[bin]) {
       mostAbundantValueBin = bin;
@@ -64,20 +64,21 @@ bool testWithDistribution(Args&&... args)
     if (highestProbability < dg.getProbability(i)) {
       highestProbability = dg.getProbability(i);
     }
-    std::cout << std::setw(4)  << std::right << i << ": "
-              << std::setw(11) << std::left << dg.getProbability(i)
-              << " -- "
-              << throws[bin]
-              << std::endl;
+    std::cout << std::setw(4) << std::right << i << ": "            //
+              << std::setw(11) << std::left << dg.getProbability(i) //
+              << " -- "                                             //
+              << throws[bin]                                        //
+              << std::endl;                                         //
   }
   std::vector<int> mostProbableValueBins;
   for (auto i : dg) {
-    int bin = i/dg.step - dg.min;
+    int bin = i / dg.step - dg.min;
     if (dg.getProbability(i) >= highestProbability) {
       mostProbableValueBins.push_back(bin);
     }
   }
-  BOOST_CHECK(std::find(mostProbableValueBins.begin(), mostProbableValueBins.end(), mostAbundantValueBin) != mostProbableValueBins.end());
+  auto& list = mostProbableValueBins;
+  BOOST_CHECK(std::find(list.begin(), list.end(), mostAbundantValueBin) != list.end());
 
   return true;
 }

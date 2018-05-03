@@ -311,11 +311,11 @@ using HeaderType = Descriptor<gSizeHeaderDescriptionString>;
 using SerializationMethod = Descriptor<gSizeSerializationMethodString>;
 
 //possible serialization types
-extern const o2::header::SerializationMethod gSerializationMethodAny;
-extern const o2::header::SerializationMethod gSerializationMethodInvalid;
-extern const o2::header::SerializationMethod gSerializationMethodNone;
-extern const o2::header::SerializationMethod gSerializationMethodROOT;
-extern const o2::header::SerializationMethod gSerializationMethodFlatBuf;
+constexpr o2::header::SerializationMethod gSerializationMethodAny{ "*******" };
+constexpr o2::header::SerializationMethod gSerializationMethodInvalid{ "INVALID" };
+constexpr o2::header::SerializationMethod gSerializationMethodNone{ "NONE" };
+constexpr o2::header::SerializationMethod gSerializationMethodROOT{ "ROOT" };
+constexpr o2::header::SerializationMethod gSerializationMethodFlatBuf{ "FLATBUF" };
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
@@ -406,22 +406,28 @@ struct BaseHeader
 
 /// find a header of type HeaderType in a buffer
 /// use like this:
-/// HeaderType* h = get<HeaderType>(buffer)
-template<typename HeaderType>
-const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
+/// HeaderType* h = get<HeaderType*>(buffer)
+template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
+auto get(const byte* buffer, size_t /*len*/ = 0)
+{
+  using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
+  using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
+
   const BaseHeader* current = BaseHeader::get(buffer);
-  if (!current) return nullptr;
-  if (current->description==HeaderType::sHeaderType)
-    return reinterpret_cast<const HeaderType*>(current);
+  if (!current)
+    return HeaderConstPtrType{ nullptr };
+  if (current->description == HeaderValueType::sHeaderType)
+    return reinterpret_cast<HeaderConstPtrType>(current);
   while ((current = current->next())) {
-    if (current->description==HeaderType::sHeaderType)
-      return reinterpret_cast<const HeaderType*>(current);
+    if (current->description == HeaderValueType::sHeaderType)
+      return reinterpret_cast<HeaderConstPtrType>(current);
   }
-  return nullptr;
+  return HeaderConstPtrType{ nullptr };
 }
 
-template<typename HeaderType>
-const HeaderType* get(const void* buffer, size_t len=0) {
+template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
+auto get(const void* buffer, size_t len = 0)
+{
   return get<HeaderType>(reinterpret_cast<const byte *>(buffer), len);
 }
 
@@ -435,7 +441,8 @@ const HeaderType* get(const void* buffer, size_t len=0) {
 /// intended use:
 ///   - as a variadic intializer list (as an argument to a function)
 ///
-///   One can also use Stack::compose(const T& header1, const T& header2, ...)
+///   One can also use the ctor directly:
+//    Stack::Stack(const T& header1, const T& header2, ...)
 //    - arguments can be headers, or stacks, all will be concatenated in a new Stack
 ///   - returns a Stack ready to be shipped.
 struct Stack {
@@ -477,15 +484,6 @@ struct Stack {
   Stack(Stack&) = delete;
   Stack& operator=(Stack&) = delete;
   Stack& operator=(Stack&&) = default;
-
-  /// the magic compose - serialize (almost) anything into the buffer
-  /// (works with headers, strings and arrays)
-  template<typename... Args>
-  static Stack compose(const Args&... args) {
-    Stack b{size(args...),std::make_unique<byte[]>(b.bufferSize)};
-    inject(b.buffer.get(), args...);
-    return b;
-  }
 
   template<typename T, typename... Args>
   static size_t size(const T& h, const Args... args) noexcept {
@@ -609,34 +607,34 @@ struct DataHeader : public BaseHeader
 
 //__________________________________________________________________________________________________
 //possible data origins
-extern const o2::header::DataOrigin gDataOriginAny;
-extern const o2::header::DataOrigin gDataOriginInvalid;
-extern const o2::header::DataOrigin gDataOriginFLP;
-extern const o2::header::DataOrigin gDataOriginACO;
-extern const o2::header::DataOrigin gDataOriginCPV;
-extern const o2::header::DataOrigin gDataOriginCTP;
-extern const o2::header::DataOrigin gDataOriginEMC;
-extern const o2::header::DataOrigin gDataOriginFIT;
-extern const o2::header::DataOrigin gDataOriginHMP;
-extern const o2::header::DataOrigin gDataOriginITS;
-extern const o2::header::DataOrigin gDataOriginMCH;
-extern const o2::header::DataOrigin gDataOriginMFT;
-extern const o2::header::DataOrigin gDataOriginMID;
-extern const o2::header::DataOrigin gDataOriginPHS;
-extern const o2::header::DataOrigin gDataOriginTOF;
-extern const o2::header::DataOrigin gDataOriginTPC;
-extern const o2::header::DataOrigin gDataOriginTRD;
-extern const o2::header::DataOrigin gDataOriginZDC;
+constexpr o2::header::DataOrigin gDataOriginAny{ "***" };
+constexpr o2::header::DataOrigin gDataOriginInvalid{ "NIL" };
+constexpr o2::header::DataOrigin gDataOriginFLP{ "FLP" };
+constexpr o2::header::DataOrigin gDataOriginACO{ "ACO" };
+constexpr o2::header::DataOrigin gDataOriginCPV{ "CPV" };
+constexpr o2::header::DataOrigin gDataOriginCTP{ "CTP" };
+constexpr o2::header::DataOrigin gDataOriginEMC{ "EMC" };
+constexpr o2::header::DataOrigin gDataOriginFIT{ "FIT" };
+constexpr o2::header::DataOrigin gDataOriginHMP{ "HMP" };
+constexpr o2::header::DataOrigin gDataOriginITS{ "ITS" };
+constexpr o2::header::DataOrigin gDataOriginMCH{ "MCH" };
+constexpr o2::header::DataOrigin gDataOriginMFT{ "MFT" };
+constexpr o2::header::DataOrigin gDataOriginMID{ "MID" };
+constexpr o2::header::DataOrigin gDataOriginPHS{ "PHS" };
+constexpr o2::header::DataOrigin gDataOriginTOF{ "TOF" };
+constexpr o2::header::DataOrigin gDataOriginTPC{ "TPC" };
+constexpr o2::header::DataOrigin gDataOriginTRD{ "TRD" };
+constexpr o2::header::DataOrigin gDataOriginZDC{ "ZDC" };
 
 //possible data types
-extern const o2::header::DataDescription gDataDescriptionAny;
-extern const o2::header::DataDescription gDataDescriptionInvalid;
-extern const o2::header::DataDescription gDataDescriptionRawData;
-extern const o2::header::DataDescription gDataDescriptionClusters;
-extern const o2::header::DataDescription gDataDescriptionTracks;
-extern const o2::header::DataDescription gDataDescriptionConfig;
-extern const o2::header::DataDescription gDataDescriptionInfo;
-extern const o2::header::DataDescription gDataDescriptionROOTStreamers;
+constexpr o2::header::DataDescription gDataDescriptionAny{ "***************" };
+constexpr o2::header::DataDescription gDataDescriptionInvalid{ "INVALID_DESC" };
+constexpr o2::header::DataDescription gDataDescriptionRawData{ "RAWDATA" };
+constexpr o2::header::DataDescription gDataDescriptionClusters{ "CLUSTERS" };
+constexpr o2::header::DataDescription gDataDescriptionTracks{ "TRACKS" };
+constexpr o2::header::DataDescription gDataDescriptionConfig{ "CONFIGURATION" };
+constexpr o2::header::DataDescription gDataDescriptionInfo{ "INFORMATION" };
+constexpr o2::header::DataDescription gDataDescriptionROOTStreamers{ "ROOT STREAMERS" };
 /// @} // end of doxygen group
 
 //__________________________________________________________________________________________________
@@ -688,9 +686,6 @@ void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
 
 } //namespace header
 
-// 2017-12-21: keep an alias for a short while after renaming the namespace
-// to lower case, supports pull request currently open
-namespace Header = header;
 } //namespace o2
 
 #endif

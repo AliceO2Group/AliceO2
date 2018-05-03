@@ -7,7 +7,6 @@ link_directories( ${LINK_DIRECTORIES})
 set(SRCS
    src/AdcClockMonitor.cxx
    src/BoxClusterer.cxx
-   src/Cluster.cxx
    src/ClusterContainer.cxx
    src/ClustererTask.cxx
    src/GBTFrame.cxx
@@ -19,7 +18,6 @@ set(SRCS
    src/RawReader.cxx
    src/RawReaderEventSync.cxx
    src/SyncPatternMonitor.cxx
-   src/TrackTPC.cxx
    src/TPCCATracking.cxx
    src/HardwareClusterDecoder.cxx
    src/DigitalCurrentClusterIntegrator.cxx
@@ -28,7 +26,6 @@ set(SRCS
 set(HEADERS
    include/${MODULE_NAME}/AdcClockMonitor.h
    include/${MODULE_NAME}/BoxClusterer.h
-   include/${MODULE_NAME}/Cluster.h
    include/${MODULE_NAME}/Clusterer.h
    include/${MODULE_NAME}/ClusterContainer.h
    include/${MODULE_NAME}/ClustererTask.h
@@ -41,7 +38,6 @@ set(HEADERS
    include/${MODULE_NAME}/RawReader.h
    include/${MODULE_NAME}/RawReaderEventSync.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
-   include/${MODULE_NAME}/TrackTPC.h
    include/${MODULE_NAME}/TPCCATracking.h
    include/${MODULE_NAME}/HardwareClusterDecoder.h
    include/${MODULE_NAME}/DigitalCurrentClusterIntegrator.h
@@ -98,6 +94,7 @@ endforeach (_file RANGE 0 ${_length})
 set(TEST_SRCS
   test/testTPCSyncPatternMonitor.cxx
   test/testTPCAdcClockMonitor.cxx
+  test/testTPCCATracking.cxx
 )
 
 O2_GENERATE_TESTS(

@@ -27,7 +27,7 @@
 #include "CommonConstants/MathConstants.h"
 #include "DetectorsBase/Propagator.h"
 #include "Field/MagneticField.h"
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "ITSReconstruction/CookedTracker.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -81,16 +81,10 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
 
   for (Int_t i = 0; i < kNLayers; i++)
     sLayers[i].setR(klRadius[i]);
-
-  // Some default primary vertex
-  Double_t xyz[] = { 0., 0., 0. };
-  Double_t ers[] = { 2., 2., 2. };
-
-  setVertex(xyz, ers);
 }
 
 //__________________________________________________________________________
-Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
+Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
 {
   //--------------------------------------------------------------------
   // This function "cooks" a track label.
@@ -144,7 +138,7 @@ Label CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
 }
 
 //__________________________________________________________________________
-void CookedTracker::setExternalIndices(CookedTrack& t) const
+void CookedTracker::setExternalIndices(TrackITS& t) const
 {
   //--------------------------------------------------------------------
   // Set the indices within the external cluster array.
@@ -212,8 +206,8 @@ static Double_t f3(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t 
   return (z1 - z2) / sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-static CookedTrack cookSeed(const Point3Df& r1, Point3Df& r2, const Point3Df& tr3, float rad2, float rad3,
-                            float_t alpha, float_t bz)
+static TrackITS cookSeed(const Point3Df& r1, Point3Df& r2, const Point3Df& tr3, float rad2, float rad3, float_t alpha,
+                         float_t bz)
 // const  Float_t r1[4], const Float_t r2[4], const Float_t tr3[4], Double_t alpha, Double_t bz)
 {
   //--------------------------------------------------------------------
@@ -272,10 +266,10 @@ static CookedTrack cookSeed(const Point3Df& r1, Point3Df& r2, const Point3Df& tr
   cov[13] = 0.;
   cov[14] = s2 * cy * cy;
 
-  return CookedTrack(x3, alpha, par, cov);
+  return TrackITS(x3, alpha, par, cov);
 }
 
-void CookedTracker::makeSeeds(std::vector<CookedTrack>& seeds, Int_t first, Int_t last)
+void CookedTracker::makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t last)
 {
   //--------------------------------------------------------------------
   // This is the main pattern recongition function.
@@ -347,7 +341,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack>& seeds, Int_t first, Int_
 
         auto xyz3 = c3->getXYZGloRot(*mGeom);
 
-        CookedTrack seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
+        TrackITS seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
         float ip[2];
         seed.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
@@ -385,7 +379,7 @@ void CookedTracker::makeSeeds(std::vector<CookedTrack>& seeds, Int_t first, Int_
   */
 }
 
-void CookedTracker::trackSeeds(std::vector<CookedTrack>& seeds)
+void CookedTracker::trackSeeds(std::vector<TrackITS>& seeds)
 {
   //--------------------------------------------------------------------
   // Loop over a subset of track seeds
@@ -422,32 +416,32 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack>& seeds)
       r1 = r2;
     }
 
-    CookedTrack best(track);
+    TrackITS best(track);
 
     Int_t volID = -1;
     Int_t ci = -1;
-    CookedTrack t3(track);
+    TrackITS t3(track);
     for (auto& ci3 : selec[3]) {
       if (used[3][ci3])
         continue;
       if (!attachCluster(volID, 3, ci3, t3, track))
         continue;
 
-      CookedTrack t2(t3);
+      TrackITS t2(t3);
       for (auto& ci2 : selec[2]) {
         if (used[2][ci2])
           continue;
         if (!attachCluster(volID, 2, ci2, t2, t3))
           continue;
 
-        CookedTrack t1(t2);
+        TrackITS t1(t2);
         for (auto& ci1 : selec[1]) {
           if (used[1][ci1])
             continue;
           if (!attachCluster(volID, 1, ci1, t1, t2))
             continue;
 
-          CookedTrack t0(t1);
+          TrackITS t0(t1);
           for (auto& ci0 : selec[0]) {
             if (used[0][ci0])
               continue;
@@ -474,15 +468,21 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack>& seeds)
   }
 }
 
-std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
+std::vector<TrackITS> CookedTracker::trackInThread(Int_t first, Int_t last)
 {
   //--------------------------------------------------------------------
   // This function is passed to a tracking thread
   //--------------------------------------------------------------------
-  std::vector<CookedTrack> seeds;
+  std::vector<TrackITS> seeds;
   seeds.reserve(last - first + 1);
 
-  makeSeeds(seeds, first, last);
+  for (auto& vtx : mVertices) {
+    mX = vtx[0];
+    mY = vtx[1];
+    mZ = vtx[2];
+    makeSeeds(seeds, first, last);
+  }
+
   std::sort(seeds.begin(), seeds.end());
 
   trackSeeds(seeds);
@@ -492,7 +492,7 @@ std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<CookedTrack>& tracks)
+void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -538,7 +538,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Co
   }
 }
 
-void CookedTracker::processFrame(std::vector<CookedTrack>& tracks)
+void CookedTracker::processFrame(std::vector<TrackITS>& tracks)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function for single frame, it is assumed that only clusters
@@ -546,23 +546,8 @@ void CookedTracker::processFrame(std::vector<CookedTrack>& tracks)
   //--------------------------------------------------------------------
   LOG(INFO) << "CookedTracker::process(), number of threads: " << mNumOfThreads << FairLogger::endl;
 
-  Double_t xyz[3]{ 0, 0, 0 }; // FIXME
-  setVertex(xyz);
-  // mSeeds = makeSeeds(0, sLayers[kSeedingLayer1].getNumberOfClusters());
-  // Seeding with the pileup primary vertices
-  /* FIXME
-     TClonesArray *verticesSPD=tracks->GetPileupVerticesSPD();
-     Int_t nfoundSPD=verticesSPD->GetEntries();
-     for (Int_t v=0; v<nfoundSPD; v++) {
-     vtx=(AliESDVertex *)verticesSPD->UncheckedAt(v);
-     if (!vtx->GetStatus()) continue;
-     xyz[0]=vtx->getX(); xyz[1]=vtx->getY(); xyz[2]=vtx->getZ();
-     setVertex(xyz);
-     makeSeeds();
-     }
-  */
-  std::vector<std::future<std::vector<CookedTrack>>> futures(mNumOfThreads);
-  std::vector<std::vector<CookedTrack>> seedArray(mNumOfThreads);
+  std::vector<std::future<std::vector<TrackITS>>> futures(mNumOfThreads);
+  std::vector<std::vector<TrackITS>> seedArray(mNumOfThreads);
 
   Int_t numOfClusters = sLayers[kSeedingLayer1].getNumberOfClusters();
   for (Int_t t = 0, first = 0; t < mNumOfThreads; t++) {
@@ -598,7 +583,7 @@ void CookedTracker::processFrame(std::vector<CookedTrack>& tracks)
 }
 
 //____________________________________________________________
-void CookedTracker::makeBackPropParam(std::vector<CookedTrack>& seeds) const
+void CookedTracker::makeBackPropParam(std::vector<TrackITS>& seeds) const
 {
   // refit in backward direction
   for (auto& track : seeds) {
@@ -609,7 +594,7 @@ void CookedTracker::makeBackPropParam(std::vector<CookedTrack>& seeds) const
 }
 
 //____________________________________________________________
-bool CookedTracker::makeBackPropParam(CookedTrack& track) const
+bool CookedTracker::makeBackPropParam(TrackITS& track) const
 {
   // refit in backward direction
   auto backProp = track.getParamOut();
@@ -635,141 +620,6 @@ bool CookedTracker::makeBackPropParam(CookedTrack& track) const
   track.getParamOut() = backProp;
   return true;
 }
-
-/*
-Int_t CookedTracker::propagateBack(std::vector<CookedTrack> *tracks) {
-  //--------------------------------------------------------------------
-  // Here, we implement the Kalman smoother ?
-  // The clusters must already be loaded
-  //--------------------------------------------------------------------
-  Int_t n=tracks->getNumberOfTracks();
-  Int_t ntrk=0;
-  Int_t ngood=0;
-
-  for (Int_t i=0; i<n; i++) {
-      CookedTrack *esdTrack=tracks->GetTrack(i);
-
-      if (!esdTrack->IsOn(CookedTrack::kITSin)) continue;
-      if ( esdTrack->IsOn(CookedTrack::kTPCin)) continue;//skip a TPC+ITS track
-
-      CookedTrack track(*esdTrack);
-      CookedTrack toRefit(track);
-
-      toRefit.resetCovariance(10.); toRefit.resetClusters();
-      if (refitAt(40., &toRefit, &track)) {
-
-         cookLabel(toRefit, 0.); //For comparison only
-         Int_t label=toRefit.getLabel();
-         if (label>0) ngood++;
-
-         esdTrack->UpdateTrackParams(&toRefit,CookedTrack::kITSout);
-         ntrk++;
-      }
-  }
-
-  Info("propagateBack","Back propagated tracks: %d",ntrk);
-  if (ntrk)
-  Info("propagateBack","Good tracks/back propagated: %f",Float_t(ngood)/ntrk);
-
-  return 0;
-}
-
-Bool_t CookedTracker::
-refitAt(Double_t xx, CookedTrack *t, const CookedTrack *c) {
-  //--------------------------------------------------------------------
-  // This function refits the track "t" at the position "x" using
-  // the clusters from "c"
-  //--------------------------------------------------------------------
-  Int_t index[kNLayers];
-  Int_t k;
-  for (k=0; k<kNLayers; k++) index[k]=-1;
-  Int_t nc=c->getNumberOfClusters();
-  for (k=0; k<nc; k++) {
-    Int_t idx=c->getClusterIndex(k), nl=(idx&0xf0000000)>>28;
-    index[nl]=idx;
-  }
-
-  Int_t from, to, step;
-  if (xx > t->getX()) {
-      from=0; to=kNLayers;
-      step=+1;
-  } else {
-      from=kNLayers-1; to=-1;
-      step=-1;
-  }
-
-  for (Int_t i=from; i != to; i += step) {
-     Int_t idx=index[i];
-     if (idx>=0) {
-        const Cluster *cl=getCluster(idx);
-        Float_t xr,ar; cl->getXAlphaRefPlane(xr, ar);
-        if (!t->propagate(Double_t(ar), Double_t(xr), getBz())) {
-           //Warning("refitAt","propagation failed !\n");
-           return kFALSE;
-        }
-        Double_t chi2=t->getPredictedChi2(cl);
-        if (chi2 < kmaxChi2PerCluster) t->update(cl, chi2, idx);
-     } else {
-        Double_t r=sLayers[i].getR();
-        Double_t phi,z;
-        if (!t->GetPhiZat(r,phi,z)) {
-           //Warning("refitAt","failed to estimate track !\n");
-           return kFALSE;
-        }
-        if (!t->propagate(phi, r, getBz())) {
-           //Warning("refitAt","propagation failed !\n");
-           return kFALSE;
-        }
-     }
-     Double_t xx0 = (i > 2) ? 0.008 : 0.003;  // Rough layer thickness
-     Double_t x0  = 9.36; // Radiation length of Si [cm]
-     Double_t rho = 2.33; // Density of Si [g/cm^3]
-     t->correctForMeanMaterial(xx0, -step*xx0*x0*rho, kTRUE);
-  }
-
-  if (!t->propagateTo(xx,0.,0.)) return kFALSE;
-  return kTRUE;
-}
-
-Int_t CookedTracker::RefitInward(std::vector<CookedTrack> *tracks) {
-  //--------------------------------------------------------------------
-  // Some final refit, after the outliers get removed by the smoother ?
-  // The clusters must be loaded
-  //--------------------------------------------------------------------
-  Int_t n=tracks->getNumberOfTracks();
-  Int_t ntrk=0;
-  Int_t ngood=0;
-
-  for (Int_t i=0; i<n; i++) {
-      CookedTrack *esdTrack=tracks->GetTrack(i);
-
-      if (!esdTrack->IsOn(CookedTrack::kITSout)) continue;
-      if ( esdTrack->IsOn(CookedTrack::kTPCin)) continue;//skip a TPC+ITS track
-
-      CookedTrack track(*esdTrack);
-      CookedTrack toRefit(track);
-
-      toRefit.resetCovariance(10.); toRefit.resetClusters();
-      if (!refitAt(2.1, &toRefit, &track)) continue;
-      //Cross the beam pipe
-      if (!toRefit.propagateTo(1.8, 2.27e-3, 35.28*1.848)) continue;
-
-      cookLabel(toRefit, 0.); //For comparison only
-      Int_t label=toRefit.getLabel();
-      if (label>0) ngood++;
-
-      esdTrack->UpdateTrackParams(&toRefit,CookedTrack::kITSrefit);
-      //esdTrack->RelateToVertex(tracks->GetVertex(),getBz(),33.);
-      ntrk++;
-  }
-
-  Info("RefitInward","Refitted tracks: %d",ntrk);
-  if (ntrk)
-  Info("RefitInward","Good tracks/refitted: %f",Float_t(ngood)/ntrk);
-
-  return 0;
-}
-*/
 
 int CookedTracker::loadClusters(const std::vector<Cluster>& clusters)
 {
@@ -947,7 +797,7 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
   }
 }
 
-Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const
+Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITS& t, const TrackITS& o) const
 {
   //--------------------------------------------------------------------
   // Try to attach a clusters with index ci to running track hypothesis

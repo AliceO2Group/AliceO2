@@ -13,31 +13,25 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitTime.h"
-#include "TPCSimulation/DigitRow.h"
 #include "TPCBase/Mapper.h"
 
 using namespace o2::TPC;
 
-void DigitTime::setDigit(size_t hitID, int cru, int row, int pad, float charge)
+void DigitTime::addDigit(size_t eventID, size_t trackID, const CRU& cru, GlobalPadNumber globalPad, float signal)
 {
-  /// Check whether the container at this spot already contains an entry
-  DigitRow *result = mRows[row].get();
-  if(result != nullptr) {
-    mRows[row]->setDigit(hitID, pad, charge);
-  }
-  else{
-    const Mapper& mapper = Mapper::instance();
-    mRows[row] = std::make_unique<DigitRow> (row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row));
-    mRows[row]->setDigit(hitID, pad, charge);
-  }
-  mTotalChargeTimeBin+=charge;
+  mGlobalPads[globalPad].addDigit(eventID, trackID, signal);
+  mCommonMode[cru.gemStack()] += signal;
 }
 
-void DigitTime::fillOutputContainer(std::vector<o2::TPC::Digit> *output, o2::dataformats::MCTruthContainer<o2::MCCompLabel> &mcTruth,
-                                    std::vector<o2::TPC::DigitMCMetaData> *debug, int cru, int timeBin, float commonMode)
+void DigitTime::fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
+                                    std::vector<DigitMCMetaData>* debug, const Sector& sector, TimeBin timeBin,
+                                    float commonMode)
 {
-  for(auto &aRow : mRows) {
-    if(aRow == nullptr) continue;
-    aRow->fillOutputContainer(output, mcTruth, debug, cru, timeBin, aRow->getRow(), commonMode);
+  static Mapper& mapper = Mapper::instance();
+  GlobalPadNumber globalPad = 0;
+  for (auto& pad : mGlobalPads) {
+    const int cru = mapper.getCRU(sector, globalPad);
+    pad.fillOutputContainer(output, mcTruth, debug, cru, timeBin, globalPad, getCommonMode(cru));
+    ++globalPad;
   }
 }

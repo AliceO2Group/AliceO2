@@ -13,6 +13,7 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/CallbackService.h"
 #include <cassert>
 #include <chrono>
 #include <thread> // this_thread::sleep_for
@@ -49,6 +50,12 @@ void DataSourceDevice::Init() {
   }
   LOG(DEBUG) << "DataSourceDevice::InitTask::END";
 }
+
+void DataSourceDevice::PreRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start); }
+
+void DataSourceDevice::PostRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop); }
+
+void DataSourceDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
 bool DataSourceDevice::ConditionalRun() {
   static const auto reftime = std::chrono::system_clock::now();

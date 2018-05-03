@@ -29,5 +29,6 @@
 #pragma link C++ class  o2::eventgen::Pythia6Generator+;
 #pragma link C++ class  o2::eventgen::Pythia8Generator+;
 #pragma link C++ class  o2::eventgen::GeneratorFromFile+;
+#pragma link C++ class o2::PDG + ;
 
 #endif

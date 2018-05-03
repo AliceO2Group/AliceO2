@@ -44,10 +44,12 @@ class GeneratorFromFile : public FairGenerator
   // Set from which event to start
   void SetStartEvent(int start);
 
+  void SetSkipNonTrackable(bool b) { mSkipNonTrackable = b; }
  private:
   TFile* mEventFile = nullptr; //! the file containing the persistent events
   int mEventCounter = 0;
   int mEventsAvailable = 0;
+  bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
 
   ClassDefOverride(GeneratorFromFile, 1);
 };

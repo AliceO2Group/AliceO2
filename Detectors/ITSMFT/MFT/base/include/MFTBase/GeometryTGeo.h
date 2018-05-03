@@ -86,6 +86,9 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   /// of the sensor in the ladder
   Int_t getSensorIndex(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
 
+  /// get layer index (0:9) from the chip index
+  Int_t getLayer(Int_t index) const;
+
  protected:
   /// Determines the number of detector halves in the Geometry
   Int_t extractNumberOfHalves();
@@ -149,7 +152,10 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   std::vector<std::vector<Int_t>> mLadderIndex2Id; ///< from matrix index to geometry index
   std::vector<std::vector<Int_t>> mLadderId2Index; ///< from to geometry index to matrix index
 
-  std::vector<Int_t> mLastSensorIndex; ///< last sensor index in a layer
+  std::vector<Int_t> mLastSensorIndex;        ///< last sensor index in a layer
+  std::vector<Int_t> mSensorIndexToLayer;     ///< get from sensor index the layer
+  std::vector<Int_t> mNumberOfSensorsPerDisk; ///< get from sensor index the lay er
+  std::vector<Float_t> mLayerMedianZ;         ///< z median value between the two planes of a disk
 
   static std::string sVolumeName; ///<
   static std::string sHalfName;   ///<

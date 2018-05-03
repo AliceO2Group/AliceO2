@@ -18,7 +18,7 @@
 
 #include "Rtypes.h"
 #include "TPCReconstruction/Clusterer.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCBase/CalDet.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"

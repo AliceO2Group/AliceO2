@@ -18,24 +18,23 @@
 
 #include "TNamed.h"
 
-namespace o2 {
-namespace MFT {
+namespace o2
+{
+namespace MFT
+{
 
-class GeometryBuilder : public TNamed {
+class GeometryBuilder : public TNamed
+{
 
  public:
-
   GeometryBuilder();
   ~GeometryBuilder() override;
 
   void buildGeometry();
 
  private:
-
   ClassDefOverride(GeometryBuilder, 1)
-
 };
-
 }
 }
 

@@ -20,12 +20,12 @@ void defineDataProcessing(WorkflowSpec &specs) {
     "A",
     {},
     {
-      OutputSpec{"TST", "A1", OutputSpec::Timeframe}
+      OutputSpec{"TST", "A1", 0, Lifetime::Timeframe}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "A1", 0}, 1);
+       auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0}, 1);
        ctx.services().get<ControlService>().readyToQuit(true);
       }
     },

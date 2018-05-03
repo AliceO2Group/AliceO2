@@ -16,15 +16,9 @@
 
 using namespace o2::TPC;
 
-ParameterGEM::ParameterGEM()
-  : mAbsoluteGain(),
-    mCollectionEfficiency(),
-    mExtractionEfficiency()
-{}
-
-void ParameterGEM::setDefaultValues()
+ParameterGEM::ParameterGEM() : mAbsoluteGain(), mCollectionEfficiency(), mExtractionEfficiency()
 {
-  mAbsoluteGain = {{14.f, 8.f, 53.f, 240.f}};
-  mCollectionEfficiency = {{1.f, 0.2f, 0.25f, 1.f}};
-  mExtractionEfficiency = {{0.65f, 0.55f, 0.12f, 0.6f}};
+  mAbsoluteGain = { { 14.f, 8.f, 53.f, 240.f } };
+  mCollectionEfficiency = { { 1.f, 0.2f, 0.25f, 1.f } };
+  mExtractionEfficiency = { { 0.65f, 0.55f, 0.12f, 0.6f } };
 }

@@ -14,7 +14,7 @@
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSReconstruction/TrivialClusterer.h"
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 

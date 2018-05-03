@@ -18,14 +18,14 @@ void defineDataProcessing(WorkflowSpec &specs) {
     "A",
     Inputs{},
     Outputs{
-      {"TST", "A1", OutputSpec::Timeframe}
+      {"TST", "A1", Lifetime::Timeframe}
     },
     AlgorithmSpec{
       [](const InputRecord &inputs,
          ServiceRegistry& services,
          DataAllocator& allocator) {
        sleep(1);
-       auto aData = allocator.make<int>(OutputSpec{"TST", "A1", 0}, 1);
+       auto aData = allocator.make<int>(Output{"TST", "A1", 0}, 1);
       }
     },
     Options{{"test-option", VariantType::String, "test", "A test option"}},

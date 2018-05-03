@@ -30,9 +30,6 @@ using namespace o2::framework;
 
 using DataHeader = o2::header::DataHeader;
 
-using Inputs = std::vector<InputSpec>;
-using Outputs = std::vector<OutputSpec>;
-
 double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 {
   // compute turbo angle from radii and sensor width
@@ -47,7 +44,7 @@ DataProcessorSpec sim_its_ALP3() {
     "sim_its_ALP3",
     Inputs{},
     {
-      OutputSpec{"ITS", "HITS", OutputSpec::Timeframe}
+      OutputSpec{"ITS", "HITS"}
     },
     AlgorithmSpec{
       [](InitContext &setup) {

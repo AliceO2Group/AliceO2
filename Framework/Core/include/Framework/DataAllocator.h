@@ -12,12 +12,15 @@
 
 #include <fairmq/FairMQDevice.h>
 #include "Headers/DataHeader.h"
+#include "Framework/Output.h"
+#include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
+#include "Framework/SerializationMethods.h"
 
 #include "fairmq/FairMQMessage.h"
 
@@ -27,6 +30,7 @@
 #include <utility>
 #include <type_traits>
 #include <gsl/span>
+#include <utility>
 
 #include <TClass.h>
 
@@ -40,7 +44,7 @@ namespace framework {
 class DataAllocator
 {
 public:
-  using AllowedOutputsMap = std::vector<OutputRoute>;
+  using AllowedOutputRoutes = std::vector<OutputRoute>;
   using DataHeader = o2::header::DataHeader;
   using DataOrigin = o2::header::DataOrigin;
   using DataDescription = o2::header::DataDescription;
@@ -49,17 +53,19 @@ public:
   DataAllocator(FairMQDevice *device,
                 MessageContext *context,
                 RootObjectContext *rootContext,
-                const AllowedOutputsMap &outputs);
+                const AllowedOutputRoutes &routes);
 
-  DataChunk newChunk(const OutputSpec &, size_t);
-  DataChunk adoptChunk(const OutputSpec &, char *, size_t, fairmq_free_fn*, void *);
+  DataChunk newChunk(const Output&, size_t);
+  DataChunk newChunk(OutputRef const& ref, size_t size) { return newChunk(getOutputByBind(ref), size); }
+
+  DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
   // In case no extra argument is provided and the passed type is trivially
   // copyable and non polymorphic, the most likely wanted behavior is to create
   // a message with that type, and so we do.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, T&>::type
-  make(const OutputSpec& spec)
+  make(const Output& spec)
   {
     DataChunk chunk = newChunk(spec, sizeof(T));
     return *reinterpret_cast<T*>(chunk.data);
@@ -69,7 +75,7 @@ public:
   // collection elements of that type
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, gsl::span<T>>::type
-  make(const OutputSpec& spec, size_t nElements)
+  make(const Output& spec, size_t nElements)
   {
     auto size = nElements*sizeof(T);
     DataChunk chunk = newChunk(spec, size);
@@ -85,7 +91,7 @@ public:
   /// once the processing callback completes.
   template <typename T, typename... Args>
   typename std::enable_if<std::is_base_of<TObject, T>::value == true, T&>::type
-  make(const OutputSpec &spec, Args... args) {
+  make(const Output& spec, Args... args) {
     auto obj = new T(args...);
     adopt(spec, obj);
     return *obj;
@@ -99,7 +105,7 @@ public:
     std::is_base_of<TObject, T>::value == false &&
     is_messageable<T>::value == false,
     T&>::type
-  make(const OutputSpec&)
+  make(const Output&)
   {
     static_assert(is_messageable<T>::value == true ||
                   std::is_base_of<TObject, T>::value == true,
@@ -115,7 +121,7 @@ public:
     std::is_base_of<TObject, T>::value == false &&
     is_messageable<T>::value == false,
     gsl::span<T>>::type
-  make(const OutputSpec&, size_t)
+  make(const Output&, size_t)
   {
     static_assert(is_messageable<T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -130,7 +136,7 @@ public:
     std::is_base_of<TObject, T>::value == false &&
     is_messageable<T>::value == false,
     T&>::type
-  make(const OutputSpec&, U, V, Args...)
+  make(const Output&, U, V, Args...)
   {
     static_assert(is_messageable<T>::value == true || std::is_base_of<TObject, T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -142,28 +148,78 @@ public:
   /// Adopt a TObject in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   void
-  adopt(const OutputSpec &spec, TObject*obj);
+  adopt(const Output& spec, TObject*obj);
 
-  /// Serialize a snapshot of a TObject when called, which will then be
-  /// sent once the computation ends.
+  /// Serialize a snapshot of an object with root dictionary when called,
+  /// will then be sent once the computation ends.
   /// Framework does not take ownership of the @a object. Changes to @a object
   /// after the call will not be sent.
+  /// Note: also messageable objects can have a dictionary, but serialization
+  /// method can not be deduced automatically. Messageable objects are sent
+  /// unserialized by default. Serialization method needs to be specified
+  /// explicitely otherwise by using ROOTSerialized wrapper type.
   template <typename T>
-  typename std::enable_if<std::is_base_of<TObject, T>::value == true, void>::type
-  snapshot(const OutputSpec &spec, T & object) {
+  typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
+  snapshot(const Output& spec, T& object)
+  {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage());
-    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object);
+    auto* cl = TClass::GetClass(typeid(T));
+    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object, cl);
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
-  /// Serialize a snapshot of a trivially copyable, non-polymorphic type, which
-  /// will then be sent once the computation ends.
+  /// Explicitely ROOT serialize a snapshot of @a object when called,
+  /// will then be sent once the computation ends. The @a object is wrapped
+  /// into type ROOTSerialized to explicitely mark this serialization method,
+  /// and is expected to have a ROOT dictionary. Availability can not be checked
+  /// at compile time for all cases.
+  /// Framework does not take ownership of the @a object. Changes to @a object
+  /// after the call will not be sent.
+  template <typename W>
+  typename std::enable_if<is_specialization<W, ROOTSerialized>::value == true, void>::type
+  snapshot(const Output& spec, W wrapper)
+  {
+    using T = typename W::wrapped_type;
+    static_assert(std::is_same<typename W::hint_type, const char>::value || //
+                    std::is_same<typename W::hint_type, TClass>::value ||   //
+                    std::is_void<typename W::hint_type>::value,             //
+                  "class hint must be of type TClass or const char");
+
+    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    const TClass* cl = nullptr;
+    if (wrapper.getHint() == nullptr) {
+      // get TClass info by wrapped type
+      cl = TClass::GetClass(typeid(T));
+    } else if (std::is_same<typename W::hint_type, TClass>::value) {
+      // the class info has been passed directly
+      cl = reinterpret_cast<const TClass*>(wrapper.getHint());
+    } else if (std::is_same<typename W::hint_type, const char>::value) {
+      // get TClass info by optional name
+      cl = TClass::GetClass(reinterpret_cast<const char*>(wrapper.getHint()));
+    }
+    if (has_root_dictionary<T>::value == false && cl == nullptr) {
+      std::string msg("ROOT serialization not supported, dictionary not found for type ");
+      if (std::is_same<typename W::hint_type, const char>::value) {
+        msg += reinterpret_cast<const char*>(wrapper.getHint());
+      } else {
+        msg += typeid(T).name();
+      }
+      throw std::runtime_error(msg);
+    }
+    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &wrapper(), cl);
+    addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
+  }
+
+  /// Serialize a snapshot of a trivially copyable, non-polymorphic @a object,
+  /// referred to be 'messageable, will then be sent once the computation ends.
   /// Framework does not take ownership of @param object. Changes to @param object
   /// after the call will not be sent.
+  /// Note: also messageable objects with ROOT dictionary are preferably sent
+  /// unserialized. Use @a ROOTSerialized type wrapper to force ROOT serialization.
   template <typename T>
   typename std::enable_if<is_messageable<T>::value == true, void>::type
-  snapshot(const OutputSpec& spec, T const& object)
+  snapshot(const Output& spec, T const& object)
   {
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
@@ -179,7 +235,7 @@ public:
   typename std::enable_if<is_specialization<C, std::vector>::value == true &&
                           std::is_pointer<typename C::value_type>::value == false &&
                           is_messageable<typename C::value_type>::value == true>::type
-  snapshot(const OutputSpec& spec, C const& v)
+  snapshot(const Output& spec, C const& v)
   {
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
     FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
@@ -199,7 +255,7 @@ public:
     is_specialization<C, std::vector>::value == true &&
     std::is_pointer<typename C::value_type>::value == true &&
     is_messageable<typename std::remove_pointer<typename C::value_type>::type>::value == true>::type
-  snapshot(const OutputSpec& spec, C const& v)
+  snapshot(const Output& spec, C const& v)
   {
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
@@ -217,17 +273,21 @@ public:
 
   /// specialization to catch unsupported types and throw a detailed compiler error
   template <typename T>
-  typename std::enable_if<std::is_base_of<TObject, T>::value == false &&
-                          is_messageable<T>::value == false &&
-                          is_specialization<T, std::vector>::value == false>::type
-  snapshot(const OutputSpec& spec, T const&)
+  typename std::enable_if<has_root_dictionary<T>::value == false &&                //
+                          is_specialization<T, ROOTSerialized>::value == false &&  //
+                          is_messageable<T>::value == false &&                     //
+                          std::is_pointer<T>::value == false &&                    //
+                          is_specialization<T, std::vector>::value == false>::type //
+    snapshot(const Output& spec, T const&)
   {
-    static_assert(std::is_base_of<TObject, T>::value == true || is_messageable<T>::value == true ||
-                    is_specialization<T, std::vector>::value == true,
+    static_assert(has_root_dictionary<T>::value == true ||
+                  is_specialization<T, ROOTSerialized>::value == true ||
+                  is_messageable<T>::value == true ||
+                  is_specialization<T, std::vector>::value == true,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - std::vector of messageable structures or pointers to those"
-                  "\n - TObject by reference");
+                  "\n - object with dictionary by reference");
   }
 
   /// specialization to catch unsupported types, check value_type of std::vector
@@ -239,29 +299,65 @@ public:
       typename std::remove_pointer<typename T::value_type>::type
       >::value == false
     >::type
-  snapshot(const OutputSpec& spec, T const&)
+  snapshot(const Output& spec, T const&)
   {
     static_assert(is_messageable<typename std::remove_pointer<typename T::value_type>::type>::value == true,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - std::vector of messageable structures or pointers to those"
-                  "\n - TObject by reference");
+                  "\n - object with dictionary by reference");
   }
 
-private:
-  std::string matchDataHeader(const OutputSpec &spec, size_t timeframeId);
-  FairMQMessagePtr headerMessageFromSpec(OutputSpec const &spec,
-                                         std::string const &channel,
-                                         o2::header::SerializationMethod serializationMethod);
+  /// specialization to catch the case where a pointer to an object has been
+  /// accidentally given as parameter
+  template <typename T>
+  typename std::enable_if<std::is_pointer<T>::value>::type snapshot(const Output& spec, T const&)
+  {
+    static_assert(std::is_pointer<T>::value == false,
+                  "pointer to data type not supported by API. Please pass object by reference");
+  }
+
+  template <typename T, typename... Args>
+  auto make(OutputRef const& ref, Args&&... args)
+  {
+    return make<T>(getOutputByBind(ref), std::forward<Args>(args)...);
+  }
+
+  void adopt(OutputRef const& ref, TObject* obj) { return adopt(getOutputByBind(ref), obj); }
+
+  template <typename... Args>
+  auto snapshot(OutputRef const& ref, Args&&... args)
+  {
+    return snapshot(getOutputByBind(ref), std::forward<Args>(args)...);
+  }
+
+ private:
+  FairMQDevice* mDevice;
+  AllowedOutputRoutes mAllowedOutputRoutes;
+  MessageContext* mContext;
+  RootObjectContext* mRootContext;
+
+  std::string matchDataHeader(const Output &spec, size_t timeframeId);
+  FairMQMessagePtr headerMessageFromOutput(Output const &spec,
+                                           std::string const &channel,
+                                           o2::header::SerializationMethod serializationMethod);
+
+  Output getOutputByBind(OutputRef const& ref)
+  {
+    for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
+      if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
+        auto spec = mAllowedOutputRoutes[ri].matcher;
+        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime };
+      }
+    }
+    throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
+    assert(false);
+  }
 
   void addPartToContext(FairMQMessagePtr&& payload,
-                        const OutputSpec &spec,
+                        const Output &spec,
                         o2::header::SerializationMethod serializationMethod);
 
-  FairMQDevice *mDevice;
-  AllowedOutputsMap mAllowedOutputs;
-  MessageContext *mContext;
-  RootObjectContext *mRootContext;
 };
 
 }

@@ -23,9 +23,11 @@
 #define ALICEO2_ITSMFT_BUILDTOPOLOGYDICTIONARY_H
 #include <algorithm>
 #include <array>
+#include <map>
+#include <unordered_map>
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSMFTReconstruction/ClusterTopology.h"
-#include "ITSMFTReconstruction/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ClusterTopology.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 #define _HISTO_ // in order to have a histogram with the ditribution of groupIDs
 
@@ -73,7 +75,7 @@ class BuildTopologyDictionary
 
  private:
   TopologyDictionary mDictionary; ///< Dictionary of topologies
-  std::unordered_map<unsigned long, std::pair<ClusterTopology, unsigned long>>
+  std::map<unsigned long, std::pair<ClusterTopology, unsigned long>>
     mTopologyMap; ///< Temporary map of type <hash,<topology,counts>>
   std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; ///< <freq,hash>, needed to define threshold
   int mTotClusters;

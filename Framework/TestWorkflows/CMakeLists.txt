@@ -2,7 +2,7 @@
 # distributed under the terms of the GNU General Public License v3 (GPL
 # Version 3), copied verbatim in the file "COPYING".
 #
-# See https://alice-o2.web.cern.ch/ for full licensing information.
+# See http://alice-o2.web.cern.ch/ for full licensing information.
 #
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +15,11 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/dummy.cxx
    )
+
+set(HEADERS
+    src/o2_sim_its_ALP3.h
+    src/o2_sim_tpc.h
+  )
 
 ## TODO: feature of macro, it deletes the variables we pass to it, set them again
 ## this has to be fixed in the macro implementation
@@ -60,10 +65,41 @@ O2_GENERATE_EXECUTABLE(
 
 O2_GENERATE_EXECUTABLE(
   EXE_NAME "test_RawDeviceInjector"
-  SOURCES src/test_RawDeviceInjector.cxx
+  SOURCES "src/test_RawDeviceInjector.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "dataSamplingPodAndRoot"
+  SOURCES "src/dataSamplingPodAndRoot.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "dataSamplingParallel"
+  SOURCES "src/dataSamplingParallel.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "dataSamplingTimePipeline"
+  SOURCES "src/dataSamplingTimePipeline.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "dataSamplingFullChain"
+  SOURCES "src/dataSamplingFullChain.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+Install(FILES dataSamplingFullChainConfig.ini DESTINATION share/config/)
+
+
 
 # These should be enabled only if one uses the full O2 default
 if (PYTHIA8_INCLUDE_DIR)

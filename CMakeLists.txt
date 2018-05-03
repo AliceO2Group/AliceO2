@@ -14,6 +14,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
 FOREACH (p
     CMP0025 # CMake 3.0
     CMP0042 # CMake 3.0
+    CMP0028
     )
   IF (POLICY ${p})
     cmake_policy(SET ${p} NEW)
@@ -57,6 +58,8 @@ ELSE (NOT ALICEO2_MODULAR_BUILD)
   find_package(Boost REQUIRED)
 ENDIF (NOT ALICEO2_MODULAR_BUILD)
 
+find_package(Arrow)
+
 # Load some basic macros which are needed later on
 include(O2Utils)
 include(O2Dependencies)
@@ -74,7 +77,17 @@ find_library(VMCLIB libgeant4vmc.dylib libgeant4vmc.so HINTS ENV LD_LIBRARY_PATH
 if (G4RUNLIB AND G3RUNLIB AND VMCLIB AND Pythia6_FOUND AND PYTHIA8_FOUND)
   SET (HAVESIMULATION 1)
   message(STATUS "Simulation environment found")
+else()
+  message(STATUS "Simulation environment not found : at least one of the variables G4RUNLIB, G3RUNLIB, VMCLIB, Pythia6_FOUND or PYTHIA8_FOUND was not set correctly.")
+  message(STATUS "All of them are needed for a simulation environment.")
+  message(STATUS "That might not be a problem if you don't care about simulation though.")
+  message(STATUS "G4RUNLIB=${G4RUNLIB}")
+  message(STATUS "G3RUNLIB=${G3RUNLIB}")
+  message(STATUS "VMCLIB=${VMCLIB}")
+  message(STATUS "Pythia6_FOUND=${Pythia6_FOUND}")
+  message(STATUS "PYTHIA8_FOUND=${PYTHIA8_FOUND}")
 endif()
+
 
 # Build type for coverage builds
 set(CMAKE_CXX_FLAGS_COVERAGE "-g -O2 -fprofile-arcs -ftest-coverage")
@@ -210,22 +223,10 @@ IF (IWYU_FOUND)
       )
 ENDIF ()
 
-Install(FILES ${CMAKE_BINARY_DIR}/check_system.sh
-        DESTINATION bin
-       )
-
 SET(VMCWORKDIR ${CMAKE_SOURCE_DIR})
-
-WRITE_CONFIG_FILE(config.sh)
 
 SET(VMCWORKDIR ${CMAKE_INSTALL_PREFIX}/share)
 SET(ROOT_INCLUDE_PATH ${CMAKE_INSTALL_PREFIX}/include)
-WRITE_CONFIG_FILE(config.sh_install)
-
-Install(FILES ${CMAKE_BINARY_DIR}/config.sh_install
-        DESTINATION bin
-        RENAME O2Config.sh
-       )
 
 # Place the CTestCustom.cmake in the build dir
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake

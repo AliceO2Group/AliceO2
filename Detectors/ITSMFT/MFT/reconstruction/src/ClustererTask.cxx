@@ -16,18 +16,15 @@
 #include "MFTReconstruction/ClustererTask.h"
 #include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
-#include "MFTSimulation/EventHeader.h"
-//#include "MathUtils/Utils.h"
-//#include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
 
-ClassImp(o2::MFT::ClustererTask)
+ClassImp(o2::MFT::ClustererTask);
 
-  using namespace o2::MFT;
+using namespace o2::MFT;
 using namespace o2::Base;
 using namespace o2::utils;
 

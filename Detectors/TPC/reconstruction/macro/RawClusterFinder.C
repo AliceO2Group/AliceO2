@@ -25,7 +25,7 @@
 #include "TGraph.h"
 #include "TLinearFitter.h"
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
@@ -34,8 +34,8 @@
 #include "TPCReconstruction/ClusterContainer.h"
 #include "TPCBase/Digit.h"
 #include "TPCBase/Mapper.h"
-#include "TPCReconstruction/TrackTPC.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/Cluster.h"
 
 #include "TCanvas.h"
 #endif

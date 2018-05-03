@@ -64,6 +64,7 @@ InitStatus DigitizerTask::Init()
   DigiParams param; // RS: TODO: Eventually load this from the CCDB
 
   param.setContinuous(mContinuous);
+  param.setROFrameLenght(mAlpideROFramLength);
   param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
   mDigitizer.setDigiParams(param);
 

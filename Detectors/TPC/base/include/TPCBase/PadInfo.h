@@ -11,7 +11,7 @@
 #ifndef AliceO2_TPC_PadInfo_H
 #define AliceO2_TPC_PadInfo_H
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/FECInfo.h"
 

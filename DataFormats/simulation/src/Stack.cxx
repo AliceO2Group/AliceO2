@@ -192,6 +192,7 @@ void Stack::notifyFinishPrimary()
 {
   // someone notifies us that a primary is finished
   // this means we can do some filtering and cleanup
+
   mPrimariesDone++;
   LOG(DEBUG) << "Finish primary hook " << mPrimariesDone << FairLogger::endl;
   mCleanupCounter++;
@@ -208,7 +209,9 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
 
   // If end of stack: Return empty pointer
   if (mStack.empty()) {
-    notifyFinishPrimary();
+    if (mParticles.size() > 0) { // make sure something was tracked at all
+      notifyFinishPrimary();
+    }
     iTrack = -1;
     return nullptr;
   }
@@ -403,8 +406,8 @@ void Stack::Reset()
   mParticles.clear();
   mTracks->clear();
   if (mPrimariesDone != mPrimaryParticles.size()) {
-    LOG(FATAL) << "Inconsistency in primary particles treated vs expected (This points "
-               << "to a flaw in the stack logic)" << FairLogger::endl;
+    LOG(FATAL) << "Inconsistency in primary particles treated " << mPrimariesDone << " vs expected "
+               << mPrimaryParticles.size() << "\n(This points to a flaw in the stack logic)" << FairLogger::endl;
   }
   mPrimariesDone = 0;
   mPrimaryParticles.clear();

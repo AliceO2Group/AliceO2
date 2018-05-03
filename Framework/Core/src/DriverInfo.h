@@ -11,12 +11,15 @@
 #ifndef FRAMEWORK_DRIVER_INFO_H
 #define FRAMEWORK_DRIVER_INFO_H
 
+#include <chrono>
 #include <cstddef>
 #include <map>
 #include <vector>
 
 #include <csignal>
 #include <sys/select.h>
+
+#include "Framework/ChannelConfigurationPolicy.h"
 
 namespace o2
 {
@@ -59,8 +62,16 @@ enum struct DriverState {
   HANDLE_CHILDREN,
   EXIT,
   UNKNOWN,
+  PERFORM_CALLBACKS,
+  MATERIALISE_WORKFLOW,
+  DO_CHILD,
   LAST
 };
+
+/// These are the possible actions we can do
+/// when a workflow is deemed complete (e.g. when we are done
+/// reading from file).
+enum struct CompletionPolicy { QUIT, WAIT, RESTART };
 
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
@@ -78,6 +89,27 @@ struct DriverInfo {
   struct sigaction sa_handle_child;
   bool sigintRequested;
   bool sigchldRequested;
+  /// These are the configuration policies for the channel creation.
+  /// Since they are decided by the toplevel configuration, they belong
+  /// to the driver process.
+  std::vector<ChannelConfigurationPolicy> channelPolicies;
+  /// The argc with which the driver was started.
+  int argc;
+  /// The argv with which the driver was started.
+  char** argv;
+  /// Whether the driver was started in batch mode or not.
+  bool batch;
+  /// What we should do when the workflow is completed.
+  enum CompletionPolicy completionPolicy;
+  /// The offset at which the process was started.
+  std::chrono::time_point<std::chrono::steady_clock> startTime;
+  /// The optional timeout after which the driver will request
+  /// all the children to quit.
+  double timeout;
+  /// The start port to use when looking for a free range
+  unsigned short startPort;
+  /// The size of the port range to consider allocated
+  unsigned short portRange;
 };
 
 } // namespace framework

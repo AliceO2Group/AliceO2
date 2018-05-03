@@ -17,102 +17,162 @@
 
 #include <cstdio>
 #include <string>
-#include "FairTask.h"
 #include "FairLogger.h"
-#include "TPCSimulation/Digitizer.h"
-#include "TPCBase/Sector.h"
+#include "FairTask.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "TPCBase/Sector.h"
+#include "TPCSimulation/Digitizer.h"
+#include "Steer/HitProcessingManager.h"
 
-namespace o2 {
-namespace TPC { 
+namespace o2
+{
+namespace TPC
+{
 
 class Digitizer;
-    
+
 /// \class DigitizerTask
 /// This task steers the digitization process and takes care of the input and output
 /// Furthermore, it allows for switching debug output on/off
-    
-class DigitizerTask : public FairTask{
-  public:
-      
-    /// Default constructor
-    DigitizerTask(int sectorid=-1);
-      
-    /// Destructor
-    ~DigitizerTask() override;
-      
-    /// Inititializes the digitizer and connects input and output container
-    InitStatus Init() override;
 
-    /// Sets the debug flags for the sub-tasks
-    /// \param debugsString String containing the debug flags
-    ///        o PRFdebug - Debug output after application of the PRF
-    ///        o DigitMCDebug - Debug output for the DigitMC
-    void setDebugOutput(TString debugString);
+class DigitizerTask : public FairTask
+{
+ public:
+  /// Default constructor
+  DigitizerTask(int sectorid = -1);
 
-    /// Switch for triggered / continuous readout
-    /// \param isContinuous - false for triggered readout, true for continuous readout
-    void setContinuousReadout(bool isContinuous);
+  /// Destructor
+  ~DigitizerTask() override;
 
-    /// Set the maximal number of written out time bins
-    /// \param nTimeBinsMax Maximal number of time bins to be written out
-    void setMaximalTimeBinWriteOut(int i) { mTimeBinMax = i; }
-      
-    /// Digitization
-    /// \param option Option
-    void Exec(Option_t *option) override;
-      
-    void FinishTask() override;
+  /// Inititializes the digitizer and connects input and output container
+  InitStatus Init() override;
 
-    /// Temporary stuff for bunch train simulation
-    ///
-    /// Initialise the event times using a bunch train structure
-    /// \param numberOfEvents number of event times to simulate
-    void initBunchTrainStructure(const size_t numberOfEvents);
-  private:
-    Digitizer           *mDigitizer;    ///< Digitization process
-    DigitContainer      *mDigitContainer;
-      
-    std::vector<o2::TPC::Digit> *mDigitsArray = nullptr;  ///< Array of the Digits, passed from the digitization
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray = nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
-    std::vector<o2::TPC::DigitMCMetaData> *mDigitsDebugArray = nullptr;  ///< Array of the Digits, for debugging purposes only, passed from the digitization
-    
-    int                 mTimeBinMax;   ///< Maximum time bin to be written out
-    bool                mIsContinuousReadout; ///< Switch for continuous readout
-    bool                mDigitDebugOutput;    ///< Switch for the debug output of the DigitMC
-    int                 mHitSector=-1; ///< which sector to treat
+  /// Inititializes the digitizer and connects input and output container
+  InitStatus Init2();
 
-    const std::vector<o2::TPC::HitGroup> *mSectorHitsArray[Sector::MAXSECTOR];
+  /// Sets the debug flags for the sub-tasks
+  /// \param debugsString String containing the debug flags
+  ///        o PRFdebug - Debug output after application of the PRF
+  ///        o DigitMCDebug - Debug output for the DigitMC
+  void setDebugOutput(TString debugString);
 
-    // Temporary stuff for bunch train structure simulation
-    std::vector<float> mEventTimes; ///< Simulated event times in us
-    int                mCurrentEvent = 0; ///< Current event
+  /// Switch for triggered / continuous readout
+  /// \param isContinuous - false for triggered readout, true for continuous readout
+  void setContinuousReadout(bool isContinuous);
 
-    ClassDefOverride(DigitizerTask, 1);
+  /// Set the maximal number of written out time bins
+  /// \param nTimeBinsMax Maximal number of time bins to be written out
+  void setMaximalTimeBinWriteOut(int i) { mTimeBinMax = i; }
+
+  /// Setter for time-chunk wise processing
+  /// \param isTimeChunk Process time-chunk wise
+  void setTimeChunkProcessing(bool isTimeChunk) { mProcessTimeChunks = isTimeChunk; }
+
+  /// Setup a sector for processing
+  /// \param s Sector to be processed
+  void setupSector(int s);
+
+  void setStartTime(double tstart) { mStartTime = tstart; }
+  void setEndTime(double tend) { mEndTime = tend; }
+
+  /// Digitization
+  /// \param option Option
+  void Exec(Option_t* option) override;
+
+  /// Digitization
+  /// \param option Option
+  void Exec2(Option_t* option);
+
+  void FinishTask() override;
+
+  void FinishTask2();
+
+  void setData(const std::vector<std::vector<o2::TPC::HitGroup>*>* lefthits,
+               const std::vector<std::vector<o2::TPC::HitGroup>*>* righthits,
+               const std::vector<o2::TPC::TPCHitGroupID>* leftids, const std::vector<o2::TPC::TPCHitGroupID>* rightids,
+               const o2::steer::RunContext* context)
+  {
+    mAllSectorHitsLeft = lefthits;
+    mAllSectorHitsRight = righthits;
+    mHitIdsLeft = leftids;
+    mHitIdsRight = rightids;
+    mRunContext = context;
+  }
+
+  void setOutputData(std::vector<o2::TPC::Digit>* digitsArray,
+                     o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTruthArray)
+  {
+    mDigitsArray = digitsArray;
+    mMCTruthArray = mcTruthArray;
+  }
+
+  /// Temporary stuff for bunch train simulation
+  ///
+  /// Initialise the event times using a bunch train structure
+  /// \param numberOfEvents number of event times to simulate
+  void initBunchTrainStructure(const size_t numberOfEvents);
+
+ private:
+  Digitizer* mDigitizer; ///< Digitization process
+  DigitContainer* mDigitContainer;
+
+  std::vector<Digit>* mDigitsArray = nullptr; ///< Array of the Digits, passed from the digitization
+  dataformats::MCTruthContainer<MCCompLabel>* mMCTruthArray =
+    nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
+  std::vector<DigitMCMetaData>* mDigitsDebugArray =
+    nullptr; ///< Array of the Digits, for debugging purposes only, passed from the digitization
+
+  int mTimeBinMax;           ///< Maximum time bin to be written out
+  bool mIsContinuousReadout; ///< Switch for continuous readout
+  bool mProcessTimeChunks;   ///< Switch for time-chunk wise processing
+  bool mDigitDebugOutput;    ///< Switch for the debug output of the DigitMC
+  int mHitSector = -1;       ///< which sector to treat
+
+  const std::vector<o2::TPC::HitGroup>* mSectorHitsArrayLeft;
+  const std::vector<o2::TPC::HitGroup>* mSectorHitsArrayRight;
+
+  const std::vector<std::vector<o2::TPC::HitGroup>*>* mAllSectorHitsLeft = nullptr;
+  const std::vector<std::vector<o2::TPC::HitGroup>*>* mAllSectorHitsRight = nullptr;
+  const std::vector<o2::TPC::TPCHitGroupID>* mHitIdsLeft = nullptr;
+  const std::vector<o2::TPC::TPCHitGroupID>* mHitIdsRight = nullptr;
+  const o2::steer::RunContext* mRunContext = nullptr;
+  double mStartTime; // = tstart [ns]
+  double mEndTime;   // = tend [ns]
+
+  // Temporary stuff for bunch train structure simulation
+  std::vector<float> mEventTimes; ///< Simulated event times in us
+  int mCurrentEvent = 0;          ///< Current event
+
+  ClassDefOverride(DigitizerTask, 1);
 };
 
-inline
-void DigitizerTask::setDebugOutput(TString debugString)
+inline void DigitizerTask::setDebugOutput(TString debugString)
 {
   LOG(INFO) << "TPC - Debug output enabled for: ";
-  if (debugString.Contains("PRFdebug")) {
-    LOG(INFO) << "Pad response function, ";
-    o2::TPC::Digitizer::setPRFDebug();
-  }
   if (debugString.Contains("DigitMCDebug")) {
     LOG(INFO) << "DigitMC, ";
     mDigitDebugOutput = true;
   }
   LOG(INFO) << "\n";
 }
-  
-inline
-void DigitizerTask::setContinuousReadout(bool isContinuous)
+
+inline void DigitizerTask::setContinuousReadout(bool isContinuous)
 {
   mIsContinuousReadout = isContinuous;
   o2::TPC::Digitizer::setContinuousReadout(isContinuous);
 }
 
+inline void DigitizerTask::setupSector(int s)
+{
+  mDigitContainer->setup(s);
+  if (mDigitsArray)
+    mDigitsArray->clear();
+  if (mMCTruthArray)
+    mMCTruthArray->clear();
+  if (mDigitsDebugArray)
+    mDigitsDebugArray->clear();
+  mHitSector = s;
+}
 }
 }
 

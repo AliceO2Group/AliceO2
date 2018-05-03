@@ -10,6 +10,7 @@ set(SRCS
 set(HEADERS
   include/${MODULE_NAME}/O2RunAna.h
   include/${MODULE_NAME}/InteractionSampler.h
+  include/${MODULE_NAME}/HitProcessingManager.h
 )
 
 set(LINKDEF src/SteerLinkDef.h)
@@ -27,3 +28,5 @@ O2_GENERATE_TESTS(
   BUCKET_NAME ${BUCKET_NAME}
   TEST_SRCS ${TEST_SRCS}
 )
+
+add_subdirectory(DigitizerWorkflow)

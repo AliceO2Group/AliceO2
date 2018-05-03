@@ -49,7 +49,7 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
     if (timeframeParts.Size() < 2)
       LOG(ERROR) << "Expecting at least 2 parts\n";
 
-    auto indexHeader = o2::header::get<header::DataHeader>(timeframeParts.At(timeframeParts.Size() - 2)->GetData());
+    auto indexHeader = o2::header::get<header::DataHeader*>(timeframeParts.At(timeframeParts.Size() - 2)->GetData());
     // FIXME: Provide iterator pair API for the index
     //        Index should really be something which provides an
     //        iterator pair API so that we can sort / find / lower_bound

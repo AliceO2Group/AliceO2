@@ -55,7 +55,7 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const &spec, uint64_t startTime, 
   auto timesliceId = std::make_shared<size_t>(startTime);
   return [timesliceId, step](FairMQDevice &device, FairMQParts &parts, int index) {
     for (size_t i = 0; i < parts.Size()/2; ++i) {
-      auto dh = o2::header::get<DataHeader>(parts.At(i*2)->GetData());
+      auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
 
       DataProcessingHeader dph{*timesliceId, 0};
       o2::header::Stack headerStack{*dh, dph};

@@ -24,14 +24,15 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
   desc.add_options()("help,h", "Produce help message.")(
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
-    "modules,m",
-    bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({ "EMCAL TOF TPC TRD" }), "EMCAL TOF TPC TRD"),
-    "list of detectors")
-    ("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")
-    ("startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")
-    ("extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"), "name of kinematics file for event generator from file (when applicable)")
-    ("bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")
-    ("isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only");
+    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(
+                   std::vector<std::string>({ "EMCAL TOF TPC TRD" }), "EMCAL TOF TPC TRD"),
+    "list of detectors")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
+    "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
+    "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
+    "name of kinematics file for event generator from file (when applicable)")(
+    "bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")(
+    "isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only")(
+    "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files");
 
   try {
     bpo::store(parse_command_line(argc, argv, desc), vm);
@@ -55,7 +56,8 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
   mStartEvent = vm["startEvent"].as<unsigned int>();
   mBMax = vm["bMax"].as<float>();
   mIsMT = vm["isMT"].as<bool>();
-  
+  mOutputPrefix = vm["outPrefix"].as<std::string>();
+
   return true;
 }
 

@@ -17,9 +17,9 @@
 #include <TTree.h>
 
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "ITSReconstruction/CookedTrack.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -31,8 +31,8 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   using namespace o2::Base;
   using namespace o2::ITS;
 
-  using o2::ITSMFT::Hit;
   using o2::ITSMFT::Cluster;
+  using o2::ITSMFT::Hit;
 
   char filename[100];
   TFile* f = nullptr;
@@ -127,13 +127,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   points->SetMarkerColor(kMagenta);
 
   std::vector<Cluster>* clusArr = nullptr;
-  // tree->SetBranchAddress("ITSCluster",&clusArr); // Why this does not work ???
-  auto* branch = tree->GetBranch("ITSCluster");
-  if (!branch) {
-    std::cout << "No clusters !" << std::endl;
-    return;
-  }
-  branch->SetAddress(&clusArr);
+  tree->SetBranchAddress("ITSCluster", &clusArr);
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabArr = nullptr;
   tree->SetBranchAddress("ITSClusterMCTruth", &clsLabArr);
@@ -187,7 +181,7 @@ found:
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kGreen);
 
-  std::vector<CookedTrack>* trkArr = nullptr;
+  std::vector<TrackITS>* trkArr = nullptr;
   tree->SetBranchAddress("ITSTrack", &trkArr);
   // Track MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
@@ -198,7 +192,7 @@ found:
   Int_t nt = trkArr->size();
   n = 0;
   while (nt--) {
-    const CookedTrack& t = (*trkArr)[nt];
+    const TrackITS& t = (*trkArr)[nt];
     auto lab = (trkLabArr->getLabels(nt))[0];
     if (TMath::Abs(lab.getEventID()) != event)
       continue;

@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
       tree->GetEntry(i);
       BOOST_CHECK(id == i);
       printf("id: %d X: %e Track> ", id, x);
-      trc->PrintParam();
+      trc->printParam();
       BOOST_CHECK(std::abs(x - trc->getX()) < 1e-4);
     }
   }

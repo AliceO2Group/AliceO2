@@ -17,52 +17,48 @@
 
 #include <array>
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace TPC
+{
 
 /// \class ParameterDetector
 
-class ParameterDetector{
-  public:
-    static ParameterDetector& defaultInstance() {
-      static ParameterDetector param;
-      param.setDefaultValues();
-      return param;
-    }
+class ParameterDetector
+{
+ public:
+  static ParameterDetector& defaultInstance()
+  {
+    static ParameterDetector param;
+    return param;
+  }
 
-    /// Constructor
-    ParameterDetector();
+  /// Constructor
+  ParameterDetector();
 
-    /// Destructor
-    ~ParameterDetector() = default;
+  /// Destructor
+  ~ParameterDetector() = default;
 
-    /// Set the default values
-    void setDefaultValues();
+  /// Set the TPC length
+  /// \param tpclength TPC length [cm]
+  void setTPClength(float tpclength) { mTPClength = tpclength; }
 
-    /// Set the TPC length
-    /// \param tpclength TPC length [cm]
-    void setTPClength(float tpclength) { mTPClength = tpclength; }
+  /// Set the pad capacitance
+  /// \param cpad Pad capacitance [pF]
+  void setPadCapacitance(float cpad) { mPadCapacitance = cpad; }
 
-    /// Set the pad capacitance
-    /// \param cpad Pad capacitance [pF]
-    void setPadCapacitance(float cpad) { mPadCapacitance = cpad; }
+  /// Get the TPC length
+  /// \return TPC length [cm]
+  float getTPClength() const { return mTPClength; }
 
+  /// Get the pad capacitance
+  /// \return Pad capacitance [pF]
+  float getPadCapacitance() const { return mPadCapacitance; }
 
-    /// Get the TPC length
-    /// \return TPC length [cm]
-    float getTPClength() const { return mTPClength; }
-
-    /// Get the pad capacitance
-    /// \return Pad capacitance [pF]
-    float getPadCapacitance() const { return mPadCapacitance; }
-
-
-  private:
-
-    float mTPClength;                      ///< Length of the TPC [cm]
-    float mPadCapacitance;                 ///< Capacitance of a single pad [pF]
-  };
-
+ private:
+  float mTPClength;      ///< Length of the TPC [cm]
+  float mPadCapacitance; ///< Capacitance of a single pad [pF]
+};
 }
 }
 

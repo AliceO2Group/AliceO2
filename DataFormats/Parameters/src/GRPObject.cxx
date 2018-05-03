@@ -12,6 +12,8 @@
 /// \brief Implementation of General Run Parameters object
 /// \author ruben.shahoyan@cern.ch
 
+#include <FairLogger.h>
+#include <TFile.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include <cmath>
 #include "CommonConstants/PhysicsConstants.h"
@@ -55,18 +57,32 @@ void GRPObject::print() const
   printf("sqrt[s]    = %.3f\n", getSqrtS());
   printf("crossing angle (radian) = %e\n", getCrossingAngle());
   printf("magnet currents (A) L3 = %.3f, Dipole = %.f\n", getL3Current(), getDipoleCurrent());
-  printf("Detectors in readout: ");
+  printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
-    if (isDetReadOut(DetID(i))) {
-      printf(" %s", DetID(i).getName());
+    if (!isDetReadOut(DetID(i))) {
+      continue;
     }
+    printf("%9s: ", DetID(i).getName());
+    printf("%7s ", isDetContinuousReadOut(DetID(i)) ? "   +   " : "   -   ");
+    printf("%7s ", isDetTriggers(DetID(i)) ? "   +   " : "   -   ");
+    printf("\n");
   }
-  printf("\n");
-  printf("Detectors in trigger: ");
-  for (auto i = DetID::First; i <= DetID::Last; i++) {
-    if (isDetTriggers(DetID(i))) {
-      printf(" %s", DetID(i).getName());
-    }
+}
+
+//_______________________________________________
+GRPObject* GRPObject::loadFrom(const std::string grpFileName, std::string grpName)
+{
+  // load object from file
+  TFile flGRP(grpFileName.data());
+  if (flGRP.IsZombie()) {
+    LOG(ERROR) << "Failed to open " << grpFileName << FairLogger::endl;
+    return nullptr;
   }
-  printf("\n");
+  auto grp = reinterpret_cast<o2::parameters::GRPObject*>(
+    flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
+  if (!grp) {
+    LOG(ERROR) << "Did not find GRP object named " << grpName << FairLogger::endl;
+    return nullptr;
+  }
+  return grp;
 }

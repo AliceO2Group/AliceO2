@@ -21,9 +21,9 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::MFT::DigitizerTask)
+ClassImp(o2::MFT::DigitizerTask);
 
-  using namespace o2::MFT;
+using namespace o2::MFT;
 using namespace o2::detectors;
 using namespace o2::utils;
 
@@ -63,6 +63,7 @@ InitStatus DigitizerTask::Init()
   DigiParams param; // RS: TODO: Eventually load this from the CCDB
 
   param.setContinuous(mContinuous);
+  param.setROFrameLenght(mAlpideROFramLength);
   param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
   param.setNoisePerPixel(0.);
   mDigitizer.setDigiParams(param);

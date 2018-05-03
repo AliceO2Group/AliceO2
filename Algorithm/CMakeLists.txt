@@ -43,6 +43,7 @@ set(TEST_SRCS
   test/parser.cxx
   test/tableview.cxx
   test/pageparser.cxx
+  test/test_mpl_tools.cxx
 )
 
 O2_GENERATE_TESTS(

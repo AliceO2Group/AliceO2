@@ -21,7 +21,7 @@
 #include "TString.h"
 #include "Rtypes.h"
 
-#include "TPCBase/Defs.h"
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
 
 #include "TPCReconstruction/GBTFrameContainer.h"

@@ -11,6 +11,8 @@
 #define FRAMEWORK_INPUTSPEC_H
 
 #include <string>
+#include <ostream>
+#include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 
 namespace o2 {
@@ -20,19 +22,13 @@ namespace framework {
 /// input or in output. This can be used, for example to match
 /// specific payloads in a timeframe.
 struct InputSpec {
-  /// The lifetime of objects being referred here.
-  enum Lifetime {
-    Timeframe,
-    Condition,
-    QA,
-    Transient
-  };
-
   std::string binding;
   header::DataOrigin origin;
   header::DataDescription description;
-  header::DataHeader::SubSpecificationType subSpec;
-  enum Lifetime lifetime;
+  header::DataHeader::SubSpecificationType subSpec = 0;
+  enum Lifetime lifetime = Lifetime::Timeframe;
+
+  friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
 };
 
 }

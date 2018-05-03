@@ -2,7 +2,7 @@
 # distributed under the terms of the GNU General Public License v3 (GPL
 # Version 3), copied verbatim in the file "COPYING".
 # 
-# See https://alice-o2.web.cern.ch/ for full licensing information.
+# See http://alice-o2.web.cern.ch/ for full licensing information.
 # 
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
@@ -21,6 +21,10 @@ set(SRCS
       src/gl3w.c
       src/DebugGUI.cxx
    )
+
+set(HEADERS
+    include/DebugGUI/imconfig.h
+    include/DebugGUI/imgui.h)
 
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})

@@ -27,40 +27,29 @@ ClassImp(ChipSegmentation);
 /// Default constructor
 
 //_____________________________________________________________________________
-ChipSegmentation::ChipSegmentation():
-  VSegmentation()
-{
-}
+ChipSegmentation::ChipSegmentation() : VSegmentation() {}
 
 /// Constructor
 //_____________________________________________________________________________
-ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
-  VSegmentation()
+ChipSegmentation::ChipSegmentation(UInt_t uniqueID) : VSegmentation()
 {
   // constructor
-  Geometry * mftGeom = Geometry::instance();
+  Geometry* mftGeom = Geometry::instance();
 
   SetUniqueID(uniqueID);
 
-  SetName(Form("%s_%d_%d_%d_%d",GeometryTGeo::getMFTChipPattern(),
-               mftGeom->getHalfID(GetUniqueID()),
-               mftGeom->getDiskID(GetUniqueID()),
-               mftGeom->getLadderID(GetUniqueID()),
-               mftGeom->getSensorID(GetUniqueID()) ));
+  SetName(Form("%s_%d_%d_%d_%d", GeometryTGeo::getMFTChipPattern(), mftGeom->getHalfID(GetUniqueID()),
+               mftGeom->getDiskID(GetUniqueID()), mftGeom->getLadderID(GetUniqueID()),
+               mftGeom->getSensorID(GetUniqueID())));
 
   Double_t pos[3];
-  pos[0] = mftGeom->getSensorID(GetUniqueID())*
-    (SegmentationAlpide::SensorSizeCols + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
+  pos[0] = mftGeom->getSensorID(GetUniqueID()) * (SegmentationAlpide::SensorSizeCols + Geometry::sSensorInterspace) +
+           Geometry::sSensorSideOffset;
   pos[1] = Geometry::sSensorTopOffset;
   pos[2] = Geometry::sFlexThickness;
   setPosition(pos);
-  
 }
 
 /// \brief Print out Sensor information (Name, ID, position, orientation)
 //_____________________________________________________________________________
-void ChipSegmentation::print(Option_t* /*option*/){
-  
-  getTransformation()->Print();
-
-}
+void ChipSegmentation::print(Option_t* /*option*/) { getTransformation()->Print(); }

@@ -14,6 +14,7 @@
 #include <FairPrimaryGenerator.h>
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/Pythia8Generator.h>
+#include "Generators/PDG.h"
 #include <SimConfig/SimConfig.h>
 #include <TStopwatch.h>
 #include <memory>
@@ -21,7 +22,7 @@
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
 #include "TVirtualMC.h"
-
+#include <SimSetup/SimSetup.h>
 #endif
 
 void o2sim()
@@ -30,7 +31,10 @@ void o2sim()
   auto genconfig = confref.getGenerator();
 
   auto run = new FairRunSim();
-  run->SetOutputFile("o2sim.root");            // Output file
+  run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
+  run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
+  std::string outputfilename = confref.getOutPrefix() + ".root";
+  run->SetOutputFile(outputfilename.c_str());  // Output file
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
 
@@ -101,10 +105,13 @@ void o2sim()
   bool kParameterMerged = true;
   auto rtdb = run->GetRuntimeDb();
   auto parOut = new FairParRootFileIo(kParameterMerged);
-  parOut->open("o2sim_par.root");
+  std::string parfilename = confref.getOutPrefix() + "_par.root";
+  parOut->open(parfilename.c_str());
   rtdb->setOutput(parOut);
   rtdb->saveOutput();
   rtdb->print();
+
+  o2::PDG::addParticlesToPdgDataBase(0);
 
   run->Run(confref.getNEvents());
 
@@ -118,13 +125,17 @@ void o2sim()
     TIter next(modArr);
     FairModule* module = nullptr;
     while ((module = (FairModule*)next())) {
-      if (module->GetModId() < o2::detectors::DetID::First) {
+      o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+      if (!det) {
+        continue; // not a detector
+      }
+      if (det->GetDetId() < o2::detectors::DetID::First) {
         continue; // passive
       }
-      if (module->GetModId() > o2::detectors::DetID::Last) {
+      if (det->GetDetId() > o2::detectors::DetID::Last) {
         continue; // passive
       }
-      grp.addDetReadOut(o2::detectors::DetID(module->GetModId()));
+      grp.addDetReadOut(o2::detectors::DetID(det->GetDetId()));
     }
     grp.print();
     printf("VMC: %p\n", TVirtualMC::GetMC());
@@ -138,7 +149,8 @@ void o2sim()
     // todo: save beam information in the grp
 
     // save
-    TFile grpF("o2sim_grp.root", "recreate");
+    std::string grpfilename = confref.getOutPrefix() + "_grp.root";
+    TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
 

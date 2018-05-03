@@ -30,6 +30,7 @@ class ElementalHit {
   float GetX() const { return mPos.X(); }
   float GetY() const { return mPos.Y(); }
   float GetZ() const { return mPos.Z(); }
+  const ::Point3D<float>& getPos() const { return mPos; }
   float GetEnergyLoss() const { return mELoss; }
   float GetTime() const { return mTime; }
 
@@ -43,6 +44,14 @@ class ElementalHit {
     :  mPos(x, y, z), mTime(time), mELoss(e) {}
 
   ClassDefNV(ElementalHit,1);
+};
+
+// an index to uniquely identify a single hit of TPC
+struct TPCHitGroupID {
+  TPCHitGroupID() = default;
+  TPCHitGroupID(int e, int gid) : entry{ e }, groupID{ gid } {}
+  int entry = -1;
+  int groupID = -1;
 };
 
 // a higher order hit class encapsulating
@@ -90,6 +99,8 @@ public:
     mHitsTVctr.emplace_back(time);
     mHitsEVctr.emplace_back(e);
 #endif
+    mZAbsMax = std::max(std::abs(z), mZAbsMax);
+    mZAbsMin = std::min(std::abs(z), mZAbsMin);
   }
 
   size_t getSize() const {
@@ -132,11 +143,13 @@ public:
 #ifdef HIT_AOS
   std::vector<o2::TPC::ElementalHit> mHits; // the hits for this group
 #else
-  std::vector<float> mHitsXVctr; 
-  std::vector<float> mHitsYVctr; 
-  std::vector<float> mHitsZVctr; 
-  std::vector<float> mHitsTVctr; 
-  std::vector<short> mHitsEVctr; 
+ std::vector<float> mHitsXVctr;
+ std::vector<float> mHitsYVctr;
+ std::vector<float> mHitsZVctr;
+ std::vector<float> mHitsTVctr;
+ std::vector<short> mHitsEVctr;
+ float mZAbsMin = 1E10; // minimal abs z position of all hits in this group
+ float mZAbsMax = 0.;   // maximal z position of all hits in this group
 #endif
   ClassDefNV(HitGroup, 1);
 };

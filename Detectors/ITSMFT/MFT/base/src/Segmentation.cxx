@@ -21,47 +21,39 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::Segmentation)
+ClassImp(o2::MFT::Segmentation);
 
 //_____________________________________________________________________________
-Segmentation::Segmentation():
-  TNamed(),
-  mHalves(nullptr)
-{ 
-
-
-}
+Segmentation::Segmentation() : TNamed(), mHalves(nullptr) {}
 
 //_____________________________________________________________________________
-Segmentation::Segmentation(const Char_t *nameGeomFile): 
-  TNamed(),
-  mHalves(nullptr)
-{ 
+Segmentation::Segmentation(const Char_t* nameGeomFile) : TNamed(), mHalves(nullptr)
+{
 
   // constructor
-  
-  mHalves = new TClonesArray("o2::MFT::HalfSegmentation", sNHalves);
+
+  mHalves = new TClonesArray("o2::MFT::HalfSegmentation", NumberOfHalves);
   mHalves->SetOwner(kTRUE);
-  
-  auto *halfBottom = new HalfSegmentation(nameGeomFile, Bottom);
-  auto *halfTop    = new HalfSegmentation(nameGeomFile, Top);
+
+  auto* halfBottom = new HalfSegmentation(nameGeomFile, Bottom);
+  auto* halfTop = new HalfSegmentation(nameGeomFile, Top);
 
   new ((*mHalves)[Bottom]) HalfSegmentation(*halfBottom);
-  new ((*mHalves)[Top])    HalfSegmentation(*halfTop);
+  new ((*mHalves)[Top]) HalfSegmentation(*halfTop);
 
   delete halfBottom;
   delete halfTop;
-  
-  LOG(DEBUG1) << "MFT segmentation set!" << FairLogger::endl;
 
+  LOG(DEBUG1) << "MFT segmentation set!" << FairLogger::endl;
 }
 
 //_____________________________________________________________________________
-Segmentation::~Segmentation() {
+Segmentation::~Segmentation()
+{
 
-  if (mHalves) mHalves->Delete();
-  delete mHalves; 
-  
+  if (mHalves)
+    mHalves->Delete();
+  delete mHalves;
 }
 
 /// \brief Returns pointer to the segmentation of the half-MFT
@@ -69,26 +61,25 @@ Segmentation::~Segmentation() {
 /// \return Pointer to a HalfSegmentation
 
 //_____________________________________________________________________________
-HalfSegmentation* Segmentation::getHalf(Int_t iHalf) const 
-{ 
+HalfSegmentation* Segmentation::getHalf(Int_t iHalf) const
+{
 
-  Info("GetHalf",Form("Ask for half %d (of %d and %d)",iHalf,Bottom,Top),0,0);
+  Info("GetHalf", Form("Ask for half %d (of %d and %d)", iHalf, Bottom, Top), 0, 0);
 
-  return ((iHalf==Top || iHalf==Bottom) ? ( (HalfSegmentation*) mHalves->At(iHalf)) :  nullptr); 
-
+  return ((iHalf == Top || iHalf == Bottom) ? ((HalfSegmentation*)mHalves->At(iHalf)) : nullptr);
 }
 
-///Clear the TClonesArray holding the HalfSegmentation objects
+/// Clear the TClonesArray holding the HalfSegmentation objects
 
 //_____________________________________________________________________________
-void Segmentation::Clear(const Option_t* /*opt*/) {
+void Segmentation::Clear(const Option_t* /*opt*/)
+{
 
-  if (mHalves) mHalves->Delete();
-  delete mHalves; 
+  if (mHalves)
+    mHalves->Delete();
+  delete mHalves;
   mHalves = nullptr;
-  
 }
-
 
 /// Returns the local ID of the sensor on the entire disk specified
 ///
@@ -97,25 +88,28 @@ void Segmentation::Clear(const Option_t* /*opt*/) {
 /// \param disk Int_t : Half-Disk ID holding the Sensor
 /// \param half Int_t : Half-MFT  ID holding the Sensor
 ///
-/// \return A fixed number that represents the ID of the sensor on the disk. It goes from 0 to the max number of sensor on the disk
+/// \return A fixed number that represents the ID of the sensor on the disk. It goes from 0 to the max number of sensor
+/// on the disk
 //_____________________________________________________________________________
-Int_t Segmentation::getDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const {
+Int_t Segmentation::getDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const
+{
 
   Int_t localId = 0;
-  
-  if (half == 1) localId += getHalf(0)->getHalfDisk(disk)->getNChips();
-  
+
+  if (half == 1)
+    localId += getHalf(0)->getHalfDisk(disk)->getNChips();
+
   for (Int_t iLad = 0; iLad < getHalf(half)->getHalfDisk(disk)->getNLadders(); iLad++) {
     if (iLad < ladder) {
       localId += getHalf(half)->getHalfDisk(disk)->getLadder(iLad)->getNSensors();
     } else {
       for (Int_t iSens = 0; iSens < getHalf(half)->getHalfDisk(disk)->getLadder(iLad)->getNSensors(); iSens++) {
-        if(iSens == sensor) return localId;
+        if (iSens == sensor)
+          return localId;
         localId++;
       }
     }
   }
-  
-  return -1;
 
+  return -1;
 }

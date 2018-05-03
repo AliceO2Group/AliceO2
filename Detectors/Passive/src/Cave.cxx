@@ -66,7 +66,7 @@ void Cave::ConstructGeometry()
 
 Cave::Cave() : FairDetector() {}
 Cave::~Cave() = default;
-Cave::Cave(const char* name, const char* Title) : FairDetector(name, Title) {}
+Cave::Cave(const char* name, const char* Title) : FairDetector(name, Title, -1) {}
 Cave::Cave(const Cave& rhs) : FairDetector(rhs) {}
 Cave& Cave::operator=(const Cave& rhs)
 {

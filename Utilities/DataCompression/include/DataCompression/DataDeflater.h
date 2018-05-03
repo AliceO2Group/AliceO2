@@ -32,16 +32,19 @@
 #include <stdexcept>
 #include <cassert>
 
-namespace o2 {
-namespace data_compression {
+namespace o2
+{
+namespace data_compression
+{
 
 /**
  * @class CodecIdentity
  * A simple default codec forwarding identity
  */
-template<typename CodeType, std::size_t Length = 8 * sizeof(CodeType)>
-class CodecIdentity {
-public:
+template <typename CodeType, std::size_t Length = 8 * sizeof(CodeType)>
+class CodecIdentity
+{
+ public:
   using code_type = CodeType;
   static_assert(Length <= 8 * sizeof(code_type), "CodeType must allow specified bit length");
   static const std::size_t sMaxLength = Length;
@@ -49,8 +52,9 @@ public:
   CodecIdentity() = default;
   ~CodecIdentity() = default;
 
-  template<typename ValueType, typename WriterType>
-  int write(ValueType v, WriterType writer) {
+  template <typename ValueType, typename WriterType>
+  int write(ValueType v, WriterType writer)
+  {
     code_type code = v;
     return writer(code, sMaxLength);
   }
@@ -63,18 +67,17 @@ public:
    TODO: monitoring policy
    TODO: bit order: LSB to MSB in every byte or vice versa
  */
-template<
-  typename TargetType,
-  class Codec = CodecIdentity<TargetType>
-  >
-class DataDeflater {
-public:
+template <typename TargetType, class Codec = CodecIdentity<TargetType>>
+class DataDeflater
+{
+ public:
   using target_type = TargetType;
   static const std::size_t TargetBitWidth = 8 * sizeof(target_type);
   using Writer = std::function<bool(const target_type&)>;
 
   DataDeflater() : mCurrent(0), mFilledBits(0), mCodec() {}
-  ~DataDeflater() {
+  ~DataDeflater()
+  {
     // check if the deflater is properly terminated, or pending data will be lost
     assert(mFilledBits == 0);
   }
@@ -83,7 +86,8 @@ public:
    * Reset deflater
    * Drop the current word if a clean start is needed.
    */
-  int reset() {
+  int reset()
+  {
     mCurrent = 0;
     mFilledBits = 0;
 
@@ -95,8 +99,9 @@ public:
    * Write the pending target word
    * @return Number of written words during close
    */
-  template<typename WriterT>
-  int close(WriterT& writer) {
+  template <typename WriterT>
+  int close(WriterT& writer)
+  {
     int nWords = 0;
     if (mFilledBits > 0) {
       writer(mCurrent);
@@ -116,28 +121,33 @@ public:
    * finally use 'write' of the mixin base.
    */
   template <typename ValueType, typename WriterT>
-  int writeRaw(ValueType value, uint16_t bitlength, WriterT writer) {
+  int writeRaw(ValueType value, uint16_t bitlength, WriterT writer)
+  {
     auto bitsToWrite = bitlength;
-    if (bitlength > 8*sizeof(ValueType)) {
+    if (bitlength > 8 * sizeof(ValueType)) {
       // TODO: error policy
       throw std::runtime_error("bit length exceeds width of the data type");
     }
     while (bitsToWrite > 0) {
       if (mFilledBits == TargetBitWidth) {
-        mFilledBits=0;
+        mFilledBits = 0;
         writer(mCurrent);
         mCurrent = 0;
       }
       // write at max what is left to be written
       auto writeNow = bitsToWrite;
       // write one element of the target buffer at a time
-      if (writeNow > TargetBitWidth) writeNow = TargetBitWidth;
+      if (writeNow > TargetBitWidth) {
+        writeNow = TargetBitWidth;
+      }
       // write the remaining space in the current element
       auto capacity = TargetBitWidth - mFilledBits;
-      if (writeNow > capacity) writeNow = capacity;
+      if (writeNow > capacity) {
+        writeNow = capacity;
+      }
       auto mask = (((ValueType)1 << writeNow) - 1) << (bitsToWrite - writeNow);
-      auto activebits = (value&mask) >> (bitsToWrite - writeNow);
-      mCurrent |= activebits << (capacity-writeNow);
+      auto activebits = (value & mask) >> (bitsToWrite - writeNow);
+      mCurrent |= activebits << (capacity - writeNow);
       mFilledBits += writeNow;
       bitsToWrite -= writeNow;
       assert(mFilledBits <= TargetBitWidth);
@@ -146,11 +156,11 @@ public:
   }
 
   template <typename T, typename WriterT>
-  int write(T value, WriterT writer) {
+  int write(T value, WriterT writer)
+  {
     using RegType = typename Codec::code_type;
-    return mCodec.write(value,
-                        [&, this] (RegType code, uint16_t codelength) -> int {return this->writeRaw(code, codelength, writer);}
-                        );
+    return mCodec.write(
+      value, [&, this](RegType code, uint16_t codelength) -> int { return this->writeRaw(code, codelength, writer); });
   }
 
   /**
@@ -159,15 +169,18 @@ public:
    * (either write or close).
    * @return number of forward bits
    */
-  int align() {
-    if (mFilledBits == 0 || mFilledBits == TargetBitWidth) return 0;
+  int align()
+  {
+    if (mFilledBits == 0 || mFilledBits == TargetBitWidth) {
+      return 0;
+    }
     // set the number of filled bits to the next target border
     int nBits = TargetBitWidth - mFilledBits;
     mFilledBits = TargetBitWidth;
     return nBits;
   }
 
-private:
+ private:
   /// current target word
   target_type mCurrent;
   /// current bit position

@@ -33,7 +33,11 @@ class DataProcessingDevice : public FairMQDevice {
 public:
   DataProcessingDevice(const DeviceSpec &spec, ServiceRegistry &);
   void Init() final;
-protected:
+  void PreRun() final;
+  void PostRun() final;
+  void Reset() final;
+
+ protected:
   bool HandleData(FairMQParts &parts, int index);
   void error(const char *msg);
 private:
@@ -42,7 +46,7 @@ private:
   AlgorithmSpec::ProcessCallback mStatelessProcess;
   AlgorithmSpec::ErrorCallback mError;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
-  ServiceRegistry mServiceRegistry;
+  ServiceRegistry& mServiceRegistry;
   MessageContext mContext;
   RootObjectContext mRootContext;
   DataAllocator mAllocator;

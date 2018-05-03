@@ -17,7 +17,7 @@
 //
 
 #include "TPCReconstruction/ClustererTask.h"
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCBase/Digit.h"
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager
@@ -27,20 +27,21 @@ ClassImp(o2::TPC::ClustererTask);
 using namespace o2::TPC;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask()
-  : FairTask("TPCClustererTask")
-  , mBoxClustererEnable(false)
-  , mHwClustererEnable(false)
-  , mIsContinuousReadout(true)
-  , mEventCount(0)
-  , mBoxClusterer(nullptr)
-  , mHwClusterer(nullptr)
-  , mDigitsArray(nullptr)
-  , mDigitMCTruthArray(nullptr)
-  , mClustersArray(nullptr)
-  , mHwClustersArray(nullptr)
-  , mClustersMCTruthArray(nullptr)
-  , mHwClustersMCTruthArray(nullptr)
+ClustererTask::ClustererTask(int sectorid)
+  : FairTask("TPCClustererTask"),
+    mBoxClustererEnable(false),
+    mHwClustererEnable(false),
+    mIsContinuousReadout(true),
+    mEventCount(0),
+    mClusterSector(sectorid),
+    mBoxClusterer(nullptr),
+    mHwClusterer(nullptr),
+    mDigitsArray(),
+    mDigitMCTruthArray(),
+    mClustersArray(nullptr),
+    mHwClustersArray(nullptr),
+    mClustersMCTruthArray(nullptr),
+    mHwClustersMCTruthArray(nullptr)
 {
 }
 
@@ -70,16 +71,43 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = mgr->InitObjectAs<decltype(mDigitsArray)>("TPCDigit");
-  if( !mDigitsArray ) {
-    LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-    return kERROR;
-  }
-
-  mDigitMCTruthArray = mgr->InitObjectAs<decltype(mDigitMCTruthArray)>("TPCDigitMCTruth");
-  if( !mDigitMCTruthArray ) {
-    LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-    return kERROR;
+  if (mClusterSector != -1) {
+    std::stringstream sectornamestr;
+    std::stringstream mcsectornamestr;
+    sectornamestr << "TPCDigit" << mClusterSector;
+    LOG(INFO) << "FETCHING DIGITS FOR SECTOR " << mClusterSector << "\n";
+    mDigitsArray[mClusterSector] = mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str());
+    if (!mDigitsArray[mClusterSector]) {
+      LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+      return kERROR;
+    }
+    mcsectornamestr << "TPCDigitMCTruth" << mClusterSector;
+    mDigitMCTruthArray[mClusterSector] =
+      mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>(mcsectornamestr.str().c_str());
+    if (!mDigitMCTruthArray[mClusterSector]) {
+      LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+      return kERROR;
+    }
+  } else {
+    // in case we are treating all sectors
+    for (int s = 0; s < Sector::MAXSECTOR; ++s) {
+      std::stringstream sectornamestr;
+      std::stringstream mcsectornamestr;
+      sectornamestr << "TPCDigit" << s;
+      LOG(INFO) << "FETCHING DIGITS FOR SECTOR " << s << "\n";
+      mDigitsArray[s] = mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str());
+      if (!mDigitsArray[s]) {
+        LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+        return kERROR;
+      }
+      mcsectornamestr << "TPCDigitMCTruth" << s;
+      mDigitMCTruthArray[s] =
+        mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>(mcsectornamestr.str().c_str());
+      if (!mDigitMCTruthArray[s]) {
+        LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+        return kERROR;
+      }
+    }
   }
 
   if (mBoxClustererEnable) {
@@ -123,20 +151,39 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t *option)
 {
-  LOG(DEBUG) << "Running clusterization on new event with " << mDigitsArray->size() << " digits" << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
 
   if (mBoxClustererEnable) {
     mClustersArray->clear();
     if(mClustersMCTruthArray) mClustersMCTruthArray->clear();
-    mBoxClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mEventCount);
-    LOG(DEBUG) << "Box clusterer found " << mClustersArray->size() << " clusters" << FairLogger::endl << FairLogger::endl;
+    if (mClusterSector != -1) {
+      mBoxClusterer->Process(*mDigitsArray[mClusterSector], mDigitMCTruthArray[mClusterSector], mEventCount);
+      LOG(DEBUG) << "Box clusterer found " << mClustersArray->size() << " clusters" << FairLogger::endl
+                 << FairLogger::endl;
+    } else {
+      for (int s = 0; s < Sector::MAXSECTOR; ++s) {
+        mBoxClusterer->Process(*mDigitsArray[s], mDigitMCTruthArray[s], mEventCount);
+        LOG(DEBUG) << "Box clusterer found " << mClustersArray->size() << " clusters" << FairLogger::endl
+                   << FairLogger::endl;
+      }
+    }
   }
-
   if (mHwClustererEnable) {
-    if(mHwClustersArray) mHwClustersArray->clear();
-    if(mHwClustersMCTruthArray) mHwClustersMCTruthArray->clear();
-    mHwClusterer->Process(*mDigitsArray,mDigitMCTruthArray,mEventCount);
-    LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl << FairLogger::endl;
+    if (mHwClustersArray)
+      mHwClustersArray->clear();
+    if (mHwClustersMCTruthArray)
+      mHwClustersMCTruthArray->clear();
+    if (mClusterSector != -1) {
+      mHwClusterer->Process(*mDigitsArray[mClusterSector], mDigitMCTruthArray[mClusterSector], mEventCount);
+      LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl
+                 << FairLogger::endl;
+    } else {
+      for (int s = 0; s < Sector::MAXSECTOR; ++s) {
+        mHwClusterer->Process(*mDigitsArray[s], mDigitMCTruthArray[s], mEventCount);
+        LOG(DEBUG) << "Hw clusterer found" << mClustersArray->size() << " clusters" << FairLogger::endl
+                   << FairLogger::endl;
+      }
+    }
   }
   ++mEventCount;
 }

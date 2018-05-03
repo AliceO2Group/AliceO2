@@ -32,29 +32,35 @@
  * http://stackoverflow.com/questions/2840640/how-to-loop-through-a-boostmpllist
  * http://stackoverflow.com/questions/16087806/boost-mpl-nested-lambdas
  */
-struct getmaxTester
-{
-  template<typename T> void operator()(boost::type<T>) {
-    std::cout << "Max number in " << std::setw(2) << T::value << "-bit range: "<< getmax<uint64_t,  T::value>::value << std::endl;
+struct getmaxTester {
+  template <typename T>
+  void operator()(boost::type<T>)
+  {
+    std::cout << "Max number in " << std::setw(2) << T::value << "-bit range: " << getmax<uint64_t, T::value>::value
+              << std::endl;
   }
 };
 
-struct upperbinaryboundTester
-{
-  template<typename T> void operator()(boost::type<T>) {
-    std::cout << "number of bits required for value " << std::setw(4) << T::value << ": " << std::setw(3) << upperbinarybound<T::value>::value << std::endl;
+struct upperbinaryboundTester {
+  template <typename T>
+  void operator()(boost::type<T>)
+  {
+    std::cout << "number of bits required for value " << std::setw(4) << T::value << ": " << std::setw(3)
+              << upperbinarybound<T::value>::value << std::endl;
   }
 };
 
-template<typename ValueList>
-struct AlphabetTester
-{
+template <typename ValueList>
+struct AlphabetTester {
   ValueList mList;
   AlphabetTester();
   AlphabetTester(const ValueList& list) : mList(list) {}
-  template<typename Alphabet> void operator()(Alphabet& alphabet) {
+  template <typename Alphabet>
+  void operator()(Alphabet& alphabet)
+  {
     for (const auto v : mList) {
-      std::cout << "Alphabet '" << alphabet.getName() << "': value " << std::setw(2) << v << " is " << (alphabet.isValid(v)?"valid":"not valid") << std::endl;
+      std::cout << "Alphabet '" << alphabet.getName() << "': value " << std::setw(2) << v << " is "
+                << (alphabet.isValid(v) ? "valid" : "not valid") << std::endl;
     }
   }
 };
@@ -64,33 +70,32 @@ BOOST_AUTO_TEST_CASE(test_dc_primitives)
   // test the getmax meta program
   std::cout << std::endl << "Testing getmax meta program ..." << std::endl;
   using bitranges = boost::mpl::vector_c<uint16_t, 0, 1, 2, 3, 4, 31, 32, 64>;
-  boost::mpl::for_each<bitranges, boost::type<boost::mpl::_> >(getmaxTester());
+  boost::mpl::for_each<bitranges, boost::type<boost::mpl::_>>(getmaxTester());
 
   // test the getnofelements meta program
   std::cout << std::endl << "Testing getnofelements meta program ..." << std::endl;
   constexpr uint16_t lowerelement = 0;
   constexpr uint16_t upperelement = 10;
-  std::cout << "Number of elements in range [" 
-            << lowerelement << "," << upperelement << "]: "
-            << getnofelements<uint16_t, lowerelement, upperelement >::value
-            << std::endl;
+  std::cout << "Number of elements in range [" << lowerelement << "," << upperelement
+            << "]: " << getnofelements<uint16_t, lowerelement, upperelement>::value << std::endl;
 
   // test the upperbinarybound compile time evaluation
   std::cout << std::endl << "Testing upperbinarybound meta program ..." << std::endl;
-  boost::mpl::for_each<boost::mpl::vector_c<int, 6, 1000, 86, 200>, boost::type<boost::mpl::_> >(upperbinaryboundTester());
+  boost::mpl::for_each<boost::mpl::vector_c<int, 6, 1000, 86, 200>, boost::type<boost::mpl::_>>(
+    upperbinaryboundTester());
 
   std::cout << std::endl << "Testing alphabet template ..." << std::endl;
   // declare two types of alphabets: a contiguous range alphabet with symbols
   // between -1 and 10 and a bit-range alphabet for a 10-bit word
-  using TestAlphabetName = boost::mpl::string<'T','e','s','t'>::type;
-  using TenBitAlphabetName = boost::mpl::string<'1','0','-','b','i','t'>::type;
+  using TestAlphabetName = boost::mpl::string<'T', 'e', 's', 't'>::type;
+  using TenBitAlphabetName = boost::mpl::string<'1', '0', '-', 'b', 'i', 't'>::type;
   using TestAlphabet = ContiguousAlphabet<int16_t, -1, 10, TestAlphabetName>;
   using TenBitAlphabet = BitRangeContiguousAlphabet<int16_t, 10, TenBitAlphabetName>;
 
   // now check a set of values if they are valid in each of the alphabets
   // the check is done at runtime on types of alphabets rather than on
   // actual objects
-  std::vector<int16_t> values = {0 , 5, 15, -2, -1};
+  std::vector<int16_t> values = { 0, 5, 15, -2, -1 };
   using ParameterSet = boost::mpl::vector<TestAlphabet, TenBitAlphabet>;
-  boost::mpl::for_each<ParameterSet>( AlphabetTester<std::vector<int16_t>>(values) );
+  boost::mpl::for_each<ParameterSet>(AlphabetTester<std::vector<int16_t>>(values));
 }

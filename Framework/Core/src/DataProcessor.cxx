@@ -40,7 +40,7 @@ void DataProcessor::doSend(FairMQDevice &device, RootObjectContext &context) {
     FairMQMessagePtr payload(device.NewMessage());
     auto a = messageRef.payload.get();
     device.Serialize<TMessageSerializer>(*payload, a);
-    const DataHeader *cdh = o2::header::get<DataHeader>(messageRef.header->GetData());
+    const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
     DataHeader *dh = const_cast<DataHeader *>(cdh);

@@ -16,7 +16,11 @@
 
 #pragma link C++ class o2::track::TrackPar + ;
 #pragma link C++ class o2::track::TrackParCov + ;
-
 #pragma link C++ class o2::BaseCluster < float > +;
+#pragma link C++ class o2::dataformats::TrackTPCITS + ;
+
+#pragma link C++ class o2::dataformats::Vertex < int > +;
+#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int >> +;
+#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < double, double >> +;
 
 #endif

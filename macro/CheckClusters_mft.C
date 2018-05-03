@@ -1,4 +1,4 @@
-/// \file CheckDigits.C
+/// \file CheckClusters_mft.C
 /// \brief Simple macro to check MFT clusters
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
@@ -10,7 +10,7 @@
 #include <TString.h>
 #include <TTree.h>
 
-#include "ITSMFTReconstruction/Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MFTBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"

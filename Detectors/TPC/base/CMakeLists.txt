@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
    src/CalArray.cxx
    src/CalDet.cxx
+   src/CDBInterface.cxx
    src/ContainerFactory.cxx
    src/CRU.cxx
    src/Digit.cxx
@@ -30,10 +31,9 @@ set(SRCS
 set(HEADERS
    include/TPCBase/CalArray.h
    include/TPCBase/CalDet.h
+   include/TPCBase/CDBInterface.h
    include/TPCBase/ContainerFactory.h
    include/TPCBase/CRU.h
-#    include/TPCBase/Defs.h
-#    include/TPCBase/Constants.h
    include/TPCBase/Digit.h
    include/TPCBase/DigitPos.h
    include/TPCBase/FECInfo.h
@@ -51,7 +51,6 @@ set(HEADERS
    include/TPCBase/PartitionInfo.h
    include/TPCBase/RandomRing.h
    include/TPCBase/ROC.h
-   include/TPCBase/Defs.h
    include/TPCBase/Sector.h
 )
 
@@ -66,6 +65,7 @@ set(TEST_SRCS
    test/testTPCCalDet.cxx
    test/testTPCMapper.cxx
    test/testTPCParameters.cxx
+   test/testTPCCDBInterface.cxx
 )
 
 O2_GENERATE_TESTS(

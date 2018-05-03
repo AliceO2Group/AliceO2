@@ -24,60 +24,48 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::HalfDetector)
+ClassImp(o2::MFT::HalfDetector);
 
 /// \brief Default constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector():
-TNamed(),
-mHalfVolume(nullptr),
-mSegmentation(nullptr)
-{
-  
-}
+HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr) {}
 
 /// \brief Constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector(HalfSegmentation *seg):
-TNamed(),
-mHalfVolume(nullptr),
-mSegmentation(seg)
+HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullptr), mSegmentation(seg)
 {
-  
-  Geometry * mftGeom = Geometry::instance();
-  
+
+  Geometry* mftGeom = Geometry::instance();
+
   SetUniqueID(mSegmentation->GetUniqueID());
-  
-  SetName(Form("MFT_H_%d",mftGeom->getHalfID(GetUniqueID())));
-    
-  Info("HalfDetector",Form("Creating : %s ",GetName()),0,0);
+
+  SetName(Form("MFT_H_%d", mftGeom->getHalfID(GetUniqueID())));
+
+  Info("HalfDetector", Form("Creating : %s ", GetName()), 0, 0);
 
   mHalfVolume = new TGeoVolumeAssembly(GetName());
-  
-  createHalfDisks();
 
+  createHalfDisks();
 }
 
 //_____________________________________________________________________________
-HalfDetector::~HalfDetector() 
-= default;
+HalfDetector::~HalfDetector() = default;
 
-/// \brief Creates the Half-disks composing the Half-MFT 
+/// \brief Creates the Half-disks composing the Half-MFT
 
 //_____________________________________________________________________________
 void HalfDetector::createHalfDisks()
 {
 
-  Info("CreateHalfDisks",Form("Creating  %d Half-Disk ",mSegmentation->getNHalfDisks()),0,0);
-  
-  for (Int_t iDisk = 0 ; iDisk < mSegmentation->getNHalfDisks(); iDisk++) {
-    HalfDiskSegmentation * halfDiskSeg = mSegmentation->getHalfDisk(iDisk);    
-    auto * halfDisk = new HalfDisk(halfDiskSeg);
+  Info("CreateHalfDisks", Form("Creating  %d Half-Disk ", mSegmentation->getNHalfDisks()), 0, 0);
+
+  for (Int_t iDisk = 0; iDisk < mSegmentation->getNHalfDisks(); iDisk++) {
+    HalfDiskSegmentation* halfDiskSeg = mSegmentation->getHalfDisk(iDisk);
+    auto* halfDisk = new HalfDisk(halfDiskSeg);
     Int_t halfDiskId = Geometry::instance()->getDiskID(halfDiskSeg->GetUniqueID());
-    mHalfVolume->AddNode(halfDisk->getVolume(),halfDiskId,halfDiskSeg->getTransformation());
+    mHalfVolume->AddNode(halfDisk->getVolume(), halfDiskId, halfDiskSeg->getTransformation());
     delete halfDisk;
   }
-  
 }

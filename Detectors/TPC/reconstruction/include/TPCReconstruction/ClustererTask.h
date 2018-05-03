@@ -36,22 +36,28 @@ class ClustererTask : public FairTask{
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
   public:
-    ClustererTask();
-    ~ClustererTask() override;
+   /// \param sectorid Sector to be processed
+   ClustererTask(int sectorid = -1);
+   ~ClustererTask() override;
 
-    InitStatus Init() override;
-    void Exec(Option_t *option) override;
+   InitStatus Init() override;
+   void Exec(Option_t* option) override;
 
-    enum class ClustererType : int { HW, Box};
+   enum class ClustererType : int { HW, Box };
 
-    /// Switch to enable individual clusterer
-    /// \param type - Clusterer type, HW or Box
-    /// \param val - Enable set to true or false
-    void setClustererEnable(ClustererType type, bool val) {
-      switch (type) {
-        case ClustererType::HW:   mHwClustererEnable = val; break;
-        case ClustererType::Box:  mBoxClustererEnable = val; break;
-      };
+   /// Switch to enable individual clusterer
+   /// \param type - Clusterer type, HW or Box
+   /// \param val - Enable set to true or false
+   void setClustererEnable(ClustererType type, bool val)
+   {
+     switch (type) {
+       case ClustererType::HW:
+         mHwClustererEnable = val;
+         break;
+       case ClustererType::Box:
+         mBoxClustererEnable = val;
+         break;
+     };
     };
 
     /// Returns status of Cluster enable
@@ -91,13 +97,15 @@ class ClustererTask : public FairTask{
     bool mHwClustererEnable;    ///< Switch to enable Hw Clusterfinder
     bool mIsContinuousReadout;  ///< Switch for continuous readout
     int mEventCount;            ///< Event counter
+    int mClusterSector = -1;    ///< Sector to be processed
 
     std::unique_ptr<BoxClusterer> mBoxClusterer;    ///< Box Clusterfinder instance
     std::unique_ptr<HwClusterer> mHwClusterer;      ///< Hw Clusterfinder instance
 
     // Digit arrays
-    std::vector<o2::TPC::Digit> const *mDigitsArray;    ///< Array of TPC digits
-    MCLabelContainer const *mDigitMCTruthArray;         ///< Array for MCTruth information associated to digits in mDigitsArrray
+    std::vector<o2::TPC::Digit> const* mDigitsArray[Sector::MAXSECTOR]; ///< Array of TPC digits
+    MCLabelContainer const*
+      mDigitMCTruthArray[Sector::MAXSECTOR]; ///< Array for MCTruth information associated to digits in mDigitsArrray
 
     // Cluster arrays
     std::vector<o2::TPC::Cluster> *mClustersArray;              ///< Array of clusters found by Box Clusterfinder

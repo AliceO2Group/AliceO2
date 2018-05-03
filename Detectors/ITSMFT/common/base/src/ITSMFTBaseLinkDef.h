@@ -14,9 +14,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ITSMFT::SDigit+;
-#pragma link C++ class o2::ITSMFT::Digit+;
-#pragma link C++ class o2::ITSMFT::SegmentationAlpide+;
+#pragma link C++ class o2::ITSMFT::SDigit + ;
+#pragma link C++ class o2::ITSMFT::Digit + ;
+#pragma link C++ class std::vector < o2::ITSMFT::Digit > +;
+#pragma link C++ class o2::ITSMFT::SegmentationAlpide + ;
 //#pragma link C++ class o2::ITS::ContainerFactory;
 //#pragma link C++ class o2::ITS::MisalignmentParameter+;
 

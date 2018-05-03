@@ -21,10 +21,10 @@ DataProcessorSpec templateProcessor() {
   return DataProcessorSpec{
     "some-processor",
     {
-      InputSpec{"x", "TST", "A", 0, InputSpec::Timeframe},
+      InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
     },
     {
-      OutputSpec{"TST", "P", 0, OutputSpec::Timeframe},
+      OutputSpec{"TST", "P", 0, Lifetime::Timeframe},
     },
     // The producer is stateful, we use a static for the state in this
     // particular case, but a Singleton or a captured new object would
@@ -34,7 +34,7 @@ DataProcessorSpec templateProcessor() {
           // Create a single output. 
           size_t index = ctx.services().get<ParallelContext>().index1D();
           sleep(1);
-          auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "P", index}, 1);
+          auto aData = ctx.outputs().make<int>(Output{ "TST", "P", index }, 1);
         };
       }
     }
@@ -69,7 +69,7 @@ void defineDataProcessing(o2::framework::WorkflowSpec &specs) {
   });
   workflow.push_back(timePipeline(DataProcessorSpec{
       "merger",
-      mergeInputs(InputSpec{"x", "TST", "P", InputSpec::Timeframe},
+      mergeInputs(InputSpec{"x", "TST", "P"},
                   4,
                   [](InputSpec &input, size_t index){
                      input.subSpec = index;

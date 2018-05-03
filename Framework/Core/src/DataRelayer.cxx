@@ -46,7 +46,7 @@ size_t
 assignInputSpecId(void *data, std::vector<InputRoute> const &routes) {
   for (size_t ri = 0, re = routes.size(); ri < re; ++ri) {
     auto &route = routes[ri];
-    const DataHeader *h = o2::header::get<DataHeader>(data);
+    const DataHeader* h = o2::header::get<DataHeader*>(data);
     if (h == nullptr) {
       return re;
     }
@@ -101,8 +101,8 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // header stack. This is an extension to the DataHeader, because apparently
   // we do have data which comes without a timestamp, although I am personally
   // not sure what that would be.
-  auto getTimeslice = [&header,&timeslices]() -> int64_t {
-    const DataProcessingHeader *dph = o2::header::get<DataProcessingHeader>(header->GetData());
+  auto getTimeslice = [&header, &timeslices]() -> int64_t {
+    const DataProcessingHeader* dph = o2::header::get<DataProcessingHeader*>(header->GetData());
     if (dph == nullptr) {
       return -1;
     }

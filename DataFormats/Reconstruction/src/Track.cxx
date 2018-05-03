@@ -16,9 +16,6 @@ using o2::track::TrackPar;
 using o2::track::TrackParCov;
 using namespace o2::constants::math;
 
-ClassImp(o2::track::TrackParCov);
-ClassImp(o2::track::TrackPar);
-
 //______________________________________________________________
 TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, int charge, bool sectorAlpha)
   : mX{ 0.f }, mAlpha{ 0.f }, mP{ 0.f }
@@ -177,7 +174,7 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   // Do not propagate tracks outside the ALICE detector
   if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
     printf("Anomalous track, target X:%f\n", xk);
-    //    Print();
+    //    print();
     return false;
   }
   float crv = (fabs(b[2]) < Almost0) ? 0.f : getCurvature(b[2]);
@@ -399,7 +396,23 @@ void TrackPar::invertParam()
 }
 
 //______________________________________________________________
-void TrackPar::PrintParam() const
+float TrackPar::getZAt(float xk, float b) const
+{
+  ///< this method is just an alias for obtaining Z @ X in the tree->Draw()
+  float y, z;
+  return getYZAt(xk, b, y, z) ? z : -9999.;
+}
+
+//______________________________________________________________
+float TrackPar::getYAt(float xk, float b) const
+{
+  ///< this method is just an alias for obtaining Z @ X in the tree->Draw()
+  float y, z;
+  return getYZAt(xk, b, y, z) ? y : -9999.;
+}
+
+//______________________________________________________________
+void TrackPar::printParam() const
 {
   // print parameters
   printf("X:%+e Alp:%+e Par: %+e %+e %+e %+e %+e\n", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt());
@@ -745,7 +758,7 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   // Do not propagate tracks outside the ALICE detector
   if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
     printf("Anomalous track, target X:%f\n", xk);
-    //    Print();
+    //    print();
     return false;
   }
   float crv = (fabs(b[2]) < Almost0) ? 0.f : getCurvature(b[2]);
@@ -1306,10 +1319,10 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
 }
 
 //______________________________________________________________
-void TrackParCov::Print() const
+void TrackParCov::print() const
 {
   // print parameters
-  PrintParam();
+  printParam();
   printf(
     "%7s %+.3e\n"
     "%7s %+.3e %+.3e\n"

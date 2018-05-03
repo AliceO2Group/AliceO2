@@ -27,73 +27,70 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::HalfDisk)
+ClassImp(o2::MFT::HalfDisk);
 
 /// \brief Default constructor
 
 //_____________________________________________________________________________
-HalfDisk::HalfDisk():
-TNamed(), 
-mSupport(nullptr),
-mHeatExchanger(nullptr),
-mHalfDiskVolume(nullptr),
-mSegmentation(nullptr)
+HalfDisk::HalfDisk()
+  : TNamed(), mSupport(nullptr), mHeatExchanger(nullptr), mHalfDiskVolume(nullptr), mSegmentation(nullptr)
 {
-  
 }
 
 /// \brief Constructor
 
 //_____________________________________________________________________________
-HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetName(),segmentation->GetName()),
-  mSupport(nullptr),
-  mHeatExchanger(nullptr),
-  mSegmentation(segmentation)
+HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
+  : TNamed(segmentation->GetName(), segmentation->GetName()),
+    mSupport(nullptr),
+    mHeatExchanger(nullptr),
+    mSegmentation(segmentation)
 {
-  Geometry * mftGeom = Geometry::instance();
+  Geometry* mftGeom = Geometry::instance();
   SetUniqueID(mSegmentation->GetUniqueID());
 
-  LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName(), mSegmentation->GetUniqueID()) << FairLogger::endl;
+  LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName(), mSegmentation->GetUniqueID())
+              << FairLogger::endl;
 
   mHalfDiskVolume = new TGeoVolumeAssembly(GetName());
-  /*  
+  /*
   // Building MFT Support and PCBs
   mSupport = new Support();
-  TGeoVolumeAssembly * mftSupport = mSupport->createVolume(mftGeom->getHalfID(GetUniqueID()),mftGeom->getDiskID(GetUniqueID()));  
+  TGeoVolumeAssembly * mftSupport =
+  mSupport->createVolume(mftGeom->getHalfID(GetUniqueID()),mftGeom->getDiskID(GetUniqueID()));
   mHalfDiskVolume->AddNode(mftSupport,1);
   */
   // Building Heat Exchanger Between faces
-  TGeoVolumeAssembly * heatExchangerVol = createHeatExchanger();
-  mHalfDiskVolume->AddNode(heatExchangerVol,1);
-        
+  TGeoVolumeAssembly* heatExchangerVol = createHeatExchanger();
+  mHalfDiskVolume->AddNode(heatExchangerVol, 1);
+
   // Building Front Face of the Half Disk
   createLadders();
-  
 }
 
 //_____________________________________________________________________________
-HalfDisk::~HalfDisk() {
+HalfDisk::~HalfDisk()
+{
 
   delete mSupport;
   delete mHeatExchanger;
-
 }
 
 /// \brief Build Heat exchanger
 /// \return Pointer to the volume assembly holding the heat exchanger
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly * HalfDisk::createHeatExchanger()
+TGeoVolumeAssembly* HalfDisk::createHeatExchanger()
 {
-  
-  Geometry * mftGeom = Geometry::instance();
+
+  Geometry* mftGeom = Geometry::instance();
 
   mHeatExchanger = new HeatExchanger();
-  
-  TGeoVolumeAssembly * vol = mHeatExchanger->create(mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()));
-  
+
+  TGeoVolumeAssembly* vol =
+    mHeatExchanger->create(mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()));
+
   return vol;
-  
 }
 
 /// \brief Build Ladders on the Half-disk
@@ -103,13 +100,14 @@ void HalfDisk::createLadders()
 {
 
   LOG(DEBUG1) << "CreateLadders: start building ladders" << FairLogger::endl;
-  for (Int_t iLadder=0; iLadder<mSegmentation->getNLadders(); iLadder++) {
-    
-    LadderSegmentation * ladderSeg = mSegmentation->getLadder(iLadder);
-    if(!ladderSeg) Fatal("CreateLadders",Form("No Segmentation found for ladder %d ",iLadder),0,0);
-    auto * ladder = new Ladder(ladderSeg);
-    TGeoVolume * ladVol = ladder->createVolume();
-    
+  for (Int_t iLadder = 0; iLadder < mSegmentation->getNLadders(); iLadder++) {
+
+    LadderSegmentation* ladderSeg = mSegmentation->getLadder(iLadder);
+    if (!ladderSeg)
+      Fatal("CreateLadders", Form("No Segmentation found for ladder %d ", iLadder), 0, 0);
+    auto* ladder = new Ladder(ladderSeg);
+    TGeoVolume* ladVol = ladder->createVolume();
+
     // Position of the center on the ladder volume in the ladder coordinate system
     TGeoBBox* shape = (TGeoBBox*)ladVol->GetShape();
     Double_t center[3];
@@ -120,10 +118,10 @@ void HalfDisk::createLadders()
     Double_t master[3];
     ladderSeg->getTransformation()->LocalToMaster(center, master);
     Int_t ladderId = Geometry::instance()->getLadderID(ladderSeg->GetUniqueID());
-    
-    mHalfDiskVolume->AddNode(ladVol,ladderId,new TGeoCombiTrans(master[0],master[1],master[2],ladderSeg->getTransformation()->GetRotation()));
-    
+
+    mHalfDiskVolume->AddNode(ladVol, ladderId, new TGeoCombiTrans(master[0], master[1], master[2],
+                                                                  ladderSeg->getTransformation()->GetRotation()));
+
     delete ladder;
   }
-
 }

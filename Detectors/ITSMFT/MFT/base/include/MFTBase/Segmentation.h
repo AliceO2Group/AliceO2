@@ -19,20 +19,28 @@
 #include "TNamed.h"
 #include "TClonesArray.h"
 
-namespace o2 { namespace MFT { class HalfSegmentation; } }
+namespace o2
+{
+namespace MFT
+{
+class HalfSegmentation;
+}
+}
 
-namespace o2 {
-namespace MFT {
+namespace o2
+{
+namespace MFT
+{
 
-class Segmentation : public TNamed {
+class Segmentation : public TNamed
+{
 
-public:
-  
+ public:
   enum { Bottom, Top };
 
   Segmentation();
-  Segmentation(const Char_t *nameGeomFile);
-  
+  Segmentation(const Char_t* nameGeomFile);
+
   ~Segmentation() override;
   void Clear(const Option_t* /*opt*/) override;
 
@@ -42,21 +50,18 @@ public:
   HalfSegmentation* getHalf(Int_t iHalf) const;
 
   Int_t getDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
-  
-  Bool_t hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t half, Int_t disk, Int_t ladder, Int_t sensor, Int_t &xPixel, Int_t &yPixel);
 
-  static constexpr Int_t sNHalves = 2;   ///< \brief Number of detector halves
+  Bool_t hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t half, Int_t disk, Int_t ladder, Int_t sensor,
+                      Int_t& xPixel, Int_t& yPixel);
 
-private:
+  static constexpr Int_t NumberOfHalves = 2; ///< \brief Number of detector halves
 
-  TClonesArray *mHalves; ///< \brief Array of pointer to HalfSegmentation
+ private:
+  TClonesArray* mHalves; ///< \brief Array of pointer to HalfSegmentation
 
   ClassDefOverride(Segmentation, 1);
-  
 };
-
 }
 }
 
 #endif
-

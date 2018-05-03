@@ -51,9 +51,18 @@ prepareOptionDescriptions(const ContainerType &workflow,
     specOptions.add_options()(spec.name.c_str(),
                               boost::program_options::value<std::string>(),
                               help.c_str());
-    boost::program_options::options_description options(spec.name.c_str());
+    std::string name = "Processor spec: " + spec.name;
+    boost::program_options::options_description options(name);
     if (prepareOptionsDescription(spec.options, options, vetos)) {
       specOptions.add(options);
+      // if vetos have been provided to the function we also need to make
+      // sure that there are no duplicate option definitions for the individual
+      // processor specs, so we add in order to be vetos for all subsequent specs.
+      // Note: this only concerns the main parser, all individual options are
+      // handled when starting individual processors.
+      if (vetos.options().size() > 0) {
+        vetos.add(options);
+      }
     }
   }
   return specOptions;

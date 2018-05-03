@@ -22,39 +22,50 @@
 #include "MFTBase/Segmentation.h"
 #include "MFTBase/VSegmentation.h"
 
-namespace o2 { namespace MFT { class HalfDiskSegmentation; } }
+namespace o2
+{
+namespace MFT
+{
+class HalfDiskSegmentation;
+}
+}
 
-namespace o2 {
-namespace MFT {
+namespace o2
+{
+namespace MFT
+{
 
-class HalfSegmentation : public VSegmentation {
+class HalfSegmentation : public VSegmentation
+{
 
-public:
-  
+ public:
   HalfSegmentation();
-  HalfSegmentation(const Char_t *initFile, const Short_t id);
-  HalfSegmentation(const HalfSegmentation &source);
+  HalfSegmentation(const Char_t* initFile, const Short_t id);
+  HalfSegmentation(const HalfSegmentation& source);
 
   ~HalfSegmentation() override;
   void Clear(const Option_t* /*opt*/) override;
-  
-  Bool_t getID() const {return (GetUniqueID()>>12);};
-  
+
+  Bool_t getID() const { return (GetUniqueID() >> 12); };
+
   Int_t getNHalfDisks() const { return mHalfDisks->GetEntries(); }
 
-  HalfDiskSegmentation* getHalfDisk(Int_t iDisk) const { if (iDisk>=0 && iDisk<mHalfDisks->GetEntries()) return (HalfDiskSegmentation*) mHalfDisks->At(iDisk); else return nullptr; }
- 
-private:
-  
-  void findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodePointer_t &retnode);
+  HalfDiskSegmentation* getHalfDisk(Int_t iDisk) const
+  {
+    if (iDisk >= 0 && iDisk < mHalfDisks->GetEntries())
+      return (HalfDiskSegmentation*)mHalfDisks->At(iDisk);
+    else
+      return nullptr;
+  }
+
+ private:
+  void findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodePointer_t& retnode);
   void createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node);
 
-  TClonesArray *mHalfDisks; ///< \brief Array of pointer to HalfDiskSegmentation
+  TClonesArray* mHalfDisks; ///< \brief Array of pointer to HalfDiskSegmentation
 
   ClassDefOverride(HalfSegmentation, 1);
-  
 };
-
 }
 }
 

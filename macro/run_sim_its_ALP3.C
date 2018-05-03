@@ -17,17 +17,16 @@
 #include "ITSSimulation/Detector.h"
 #endif
 
-extern TSystem *gSystem;
+extern TSystem* gSystem;
 
 void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
-  gSystem->Setenv("GEOMPATH",geom_dir.Data());
-
+  gSystem->Setenv("GEOMPATH", geom_dir.Data());
 
   TString tut_configdir = dir + "/Detectors/gconfig";
-  gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
+  gSystem->Setenv("CONFIG_DIR", tut_configdir.Data());
 
   // Output file name
   char fileout[100];
@@ -53,7 +52,6 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   //   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
   //   cdbManager->setRun(0);
 
-
   // Create simulation run
   FairRunSim* run = new FairRunSim();
   run->SetName(mcEngine);      // Transport engine
@@ -72,7 +70,7 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
    field.SetField(0., 0., 5.); //in kG
    field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in c
   */
-  o2::field::MagneticField field("field","field +5kG");
+  o2::field::MagneticField field("field", "field +5kG");
   run->SetField(&field);
 
   o2::ITS::Detector* its = new o2::ITS::Detector(kTRUE);
@@ -80,10 +78,12 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-  FairBoxGenerator* boxGen = new FairBoxGenerator(211, 100); //pions
+  primGen->SetTarget(0., 3.);
+  primGen->SmearGausVertexZ(kTRUE);
+  FairBoxGenerator* boxGen = new FairBoxGenerator(211, 100); // pions
 
-  //boxGen->SetThetaRange(0.0, 90.0);
-  boxGen->SetEtaRange(-0.9,0.9);
+  // boxGen->SetThetaRange(0.0, 90.0);
+  boxGen->SetEtaRange(-0.9, 0.9);
   boxGen->SetPtRange(1, 1.01);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kFALSE);
@@ -93,7 +93,7 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetGenerator(primGen);
 
   // store track trajectories
-  //run->SetStoreTraj(kTRUE);
+  // run->SetStoreTraj(kTRUE);
 
   // Initialize simulation run
   run->Init();

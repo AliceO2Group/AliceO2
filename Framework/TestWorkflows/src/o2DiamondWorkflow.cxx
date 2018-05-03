@@ -11,13 +11,10 @@
 
 using namespace o2::framework;
 
-AlgorithmSpec simplePipe(o2::header::DataDescription what) {
-  return AlgorithmSpec{
-    [what](ProcessingContext &ctx)
-      {
-        auto bData = ctx.allocator().make<int>(OutputSpec{"TST", what, 0}, 1);
-      }
-    };
+AlgorithmSpec simplePipe(std::string const &what) {
+  return AlgorithmSpec{ [what](ProcessingContext& ctx) {
+    auto bData = ctx.outputs().make<int>(OutputRef{what}, 1);
+  } };
 }
 
 // This is how you can define your processing in a declarative way
@@ -27,34 +24,34 @@ void defineDataProcessing(WorkflowSpec &specs) {
     "A",
     Inputs{},
     {
-      OutputSpec{"TST", "A1", OutputSpec::Timeframe},
-      OutputSpec{"TST", "A2", OutputSpec::Timeframe}
+      OutputSpec{{"a1"}, "TST", "A1"},
+      OutputSpec{{"a2"}, "TST", "A2"}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = ctx.allocator().make<int>(OutputSpec{"TST", "A1", 0}, 1);
-       auto bData = ctx.allocator().make<int>(OutputSpec{"TST", "A2", 0}, 1);
+       auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
+       auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
       }
     }
   },
   {
     "B",
-    {InputSpec{"x", "TST", "A1", InputSpec::Timeframe}},
-    {OutputSpec{"TST", "B1", OutputSpec::Timeframe}},
-    simplePipe(o2::header::DataDescription{"B1"})
+    {InputSpec{"x", "TST", "A1"}},
+    {OutputSpec{{"b1"}, "TST", "B1"}},
+    simplePipe("b1")
   },
   {
     "C",
-    Inputs{InputSpec{"x", "TST", "A2", InputSpec::Timeframe}},
-    Outputs{OutputSpec{"TST", "C1", OutputSpec::Timeframe}},
-    simplePipe(o2::header::DataDescription{"C1"})
+    Inputs{InputSpec{"x", "TST", "A2"}},
+    Outputs{OutputSpec{{"c1"}, "TST", "C1"}},
+    simplePipe("c1")
   },
   {
     "D",
     Inputs{
-      InputSpec{"b", "TST", "B1", InputSpec::Timeframe},
-      InputSpec{"c", "TST", "C1", InputSpec::Timeframe},
+      InputSpec{"b", "TST", "B1"},
+      InputSpec{"c", "TST", "C1"},
     },
     Outputs{},
     AlgorithmSpec{

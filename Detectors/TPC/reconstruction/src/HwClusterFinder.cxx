@@ -13,7 +13,7 @@
 
 #include "TPCReconstruction/HwClusterFinder.h"
 #include <cmath>
-#include "TPCReconstruction/Cluster.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "TPCReconstruction/ClusterContainer.h"
 
 #include "FairLogger.h"

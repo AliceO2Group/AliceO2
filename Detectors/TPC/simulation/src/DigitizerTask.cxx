@@ -13,27 +13,26 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TFile.h"
-#include "TTree.h"
 #include "TRandom.h"
+#include "TTree.h"
 
-#include "TPCSimulation/DigitizerTask.h"
-#include "TPCSimulation/DigitContainer.h"
-#include "TPCSimulation/Digitizer.h"
-#include "TPCSimulation/Point.h"
-#include "TPCBase/Sector.h"
 #include "TPCBase/Digit.h"
+#include "TPCBase/Sector.h"
+#include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitMCMetaData.h"
+#include "TPCSimulation/Digitizer.h"
+#include "TPCSimulation/DigitizerTask.h"
+#include "TPCSimulation/Point.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
 
 #include <sstream>
-//#include "valgrind/callgrind.h"
 
 ClassImp(o2::TPC::DigitizerTask)
 
-using namespace o2::TPC;
-
+  using namespace o2::TPC;
 
 DigitizerTask::DigitizerTask(int sectorid)
   : FairTask("TPCDigitizerTask"),
@@ -43,74 +42,73 @@ DigitizerTask::DigitizerTask(int sectorid)
     mMCTruthArray(nullptr),
     mDigitsDebugArray(nullptr),
     mTimeBinMax(1000000),
+    mProcessTimeChunks(false),
     mIsContinuousReadout(true),
     mDigitDebugOutput(false),
-    mHitSector(sectorid)
+    mHitSector(sectorid),
+    mStartTime(-1),
+    mEndTime(-1)
 {
-  /// \todo get rid of new
   mDigitizer = new Digitizer;
-  //CALLGRIND_START_INSTRUMENTATION;
 }
 
 DigitizerTask::~DigitizerTask()
 {
   delete mDigitizer;
-  delete mDigitsArray;
-  delete mDigitsDebugArray;
-
-  //CALLGRIND_STOP_INSTRUMENTATION;
-  //CALLGRIND_DUMP_STATS;
+  // We need to clarify the ownsership of these potentially external containers
+  // and reenable the cleanup
+  // delete mDigitsArray;
+  // delete mDigitsDebugArray;
 }
-
 
 InitStatus DigitizerTask::Init()
 {
   /// Initialize the task and the input and output containers
-  FairRootManager *mgr = FairRootManager::Instance();
-  if(!mgr){
+  FairRootManager* mgr = FairRootManager::Instance();
+  if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
-  // in case we are treating a specific sector
-  if (mHitSector != -1){
-    std::stringstream sectornamestr;
-    sectornamestr << "TPCHitsSector" << mHitSector;
-    LOG(INFO) << "FETCHING HITS FOR SECTOR " << mHitSector << "\n";
-    mSectorHitsArray[mHitSector] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
-  }
-  else {
-    // in case we are treating all sectors
-    for (int s=0;s<Sector::MAXSECTOR;++s){
-      std::stringstream sectornamestr;
-      sectornamestr << "TPCHitsSector" << s;
-      LOG(INFO) << "FETCHING HITS FOR SECTOR " << s << "\n";
-      mSectorHitsArray[s] = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestr.str().c_str());
-    }
-  }
-  
+  /// Fetch the hits for the sector which is to be processed
+  LOG(DEBUG) << "Processing sector " << mHitSector << "  - loading HitSector "
+             << int(Sector::getLeft(Sector(mHitSector))) << " and " << mHitSector << "\n";
+  std::stringstream sectornamestrleft, sectornamestrright;
+  sectornamestrleft << "TPCHitsShiftedSector" << int(Sector::getLeft(Sector(mHitSector)));
+  sectornamestrright << "TPCHitsShiftedSector" << mHitSector;
+  mSectorHitsArrayLeft = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestrleft.str().c_str());
+  mSectorHitsArrayRight = mgr->InitObjectAs<const std::vector<HitGroup>*>(sectornamestrright.str().c_str());
+
   // Register output container
-  mDigitsArray = new std::vector<o2::TPC::Digit>;
-  mgr->RegisterAny("TPCDigit", mDigitsArray, kTRUE);
+  mDigitsArray = new std::vector<Digit>;
+  mgr->RegisterAny(Form("TPCDigit%i", mHitSector), mDigitsArray, kTRUE);
 
   // Register MC Truth container
   mMCTruthArray = new typename std::remove_pointer<decltype(mMCTruthArray)>::type;
-  mgr->RegisterAny("TPCDigitMCTruth", mMCTruthArray, kTRUE);
+  mgr->RegisterAny(Form("TPCDigitMCTruth%i", mHitSector), mMCTruthArray, kTRUE);
 
   // Register additional (optional) debug output
-  if(mDigitDebugOutput) {
-    mDigitsDebugArray = new std::vector<o2::TPC::DigitMCMetaData>;
-    mgr->RegisterAny("TPCDigitMCMetaData", mDigitsDebugArray, kTRUE);
+  if (mDigitDebugOutput) {
+    mDigitsDebugArray = new std::vector<DigitMCMetaData>;
+    mgr->RegisterAny(Form("TPCDigitMCMetaData%i", mHitSector), mDigitsDebugArray, kTRUE);
   }
-  
+
+  mDigitizer->init();
+  mDigitContainer = mDigitizer->getDigitContainer();
+  mDigitContainer->setup(mHitSector);
+  return kSUCCESS;
+}
+
+InitStatus DigitizerTask::Init2()
+{
   mDigitizer->init();
   mDigitContainer = mDigitizer->getDigitContainer();
   return kSUCCESS;
 }
 
-void DigitizerTask::Exec(Option_t *option)
+void DigitizerTask::Exec(Option_t* option)
 {
-  FairRootManager *mgr = FairRootManager::Instance();
+  FairRootManager* mgr = FairRootManager::Instance();
 
   // time should be given in us
   float eventTime = static_cast<float>(mgr->GetEventTime() * 0.001);
@@ -118,40 +116,63 @@ void DigitizerTask::Exec(Option_t *option)
     eventTime = mEventTimes[mCurrentEvent++];
     LOG(DEBUG) << "Event time taken from bunch simulation";
   }
-  const int eventTimeBin = Digitizer::getTimeBinFromTime(eventTime);
+  const int eventTimeBin = SAMPAProcessing::getTimeBinFromTime(eventTime);
 
-  LOG(DEBUG) << "Running digitization on new event at time " << eventTime << " us in time bin " << eventTimeBin << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization for sector " << mHitSector << " on new event at time " << eventTime
+             << " us in time bin " << eventTimeBin << FairLogger::endl;
   mDigitsArray->clear();
   mMCTruthArray->clear();
-  if(mDigitDebugOutput) {
+  if (mDigitDebugOutput) {
     mDigitsDebugArray->clear();
   }
 
-  if (mHitSector == -1){
-    // treat all sectors
-    for (int s=0; s<Sector::MAXSECTOR; ++s){
-      LOG(DEBUG) << "Processing sector " << s << "\n";
-      mDigitContainer = mDigitizer->Process(*mSectorHitsArray[s], eventTime);
-    }
+  // Treat the chosen sector
+  mDigitContainer = mDigitizer->Process(Sector(mHitSector), *mSectorHitsArrayLeft, mgr->GetEntryNr(), eventTime);
+  mDigitContainer = mDigitizer->Process(Sector(mHitSector), *mSectorHitsArrayRight, mgr->GetEntryNr(), eventTime);
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin,
+                                       mIsContinuousReadout);
+}
+
+void DigitizerTask::Exec2(Option_t* option)
+{
+  mDigitsArray->clear();
+  mMCTruthArray->clear();
+  if (mDigitDebugOutput) {
+    mDigitsDebugArray->clear();
   }
-  else {
-    // treat only chosen sector
-    mDigitContainer = mDigitizer->Process(*mSectorHitsArray[mHitSector], eventTime);
+
+  const auto sec = Sector(mHitSector);
+  const int endTimeBin = SAMPAProcessing::getTimeBinFromTime(mEndTime * 0.001f);
+  if (mProcessTimeChunks) {
+    mDigitContainer->setFirstTimeBin(SAMPAProcessing::getTimeBinFromTime(mStartTime * 0.001f));
   }
-  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, eventTimeBin, mIsContinuousReadout);
+  mDigitContainer = mDigitizer->Process2(sec, *mAllSectorHitsLeft, *mHitIdsLeft, *mRunContext);
+  mDigitContainer = mDigitizer->Process2(sec, *mAllSectorHitsRight, *mHitIdsRight, *mRunContext);
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, endTimeBin,
+                                       mIsContinuousReadout);
 }
 
 void DigitizerTask::FinishTask()
 {
-  if(!mIsContinuousReadout) return;
-  FairRootManager *mgr = FairRootManager::Instance();
+  if (!mIsContinuousReadout)
+    return;
+  FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   mDigitsArray->clear();
   mMCTruthArray->clear();
-  if(mDigitDebugOutput) {
+  if (mDigitDebugOutput) {
     mDigitsDebugArray->clear();
   }
-  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax, mIsContinuousReadout);
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax,
+                                       mIsContinuousReadout);
+}
+
+void DigitizerTask::FinishTask2()
+{
+  if (!mIsContinuousReadout)
+    return;
+  mDigitContainer->fillOutputContainer(mDigitsArray, *mMCTruthArray, mDigitsDebugArray, mTimeBinMax,
+                                       mIsContinuousReadout);
 }
 
 void DigitizerTask::initBunchTrainStructure(const size_t numberOfEvents)
@@ -160,17 +181,17 @@ void DigitizerTask::initBunchTrainStructure(const size_t numberOfEvents)
   // Parameters for bunches
   const double abortGap = 3e-6; //
   const double collFreq = 50e3;
-  const double bSpacing = 50e-9; //bunch spacing
+  const double bSpacing = 50e-9; // bunch spacing
   const int nTrainBunches = 48;
   const int nTrains = 12;
-  const double revFreq = 1.11e4; //revolution frequency
-  const double collProb = collFreq/(nTrainBunches*nTrains*revFreq);
-  const double trainLength = bSpacing*(nTrainBunches-1);
-  const double totTrainLength = nTrains*trainLength;
-  const double trainSpacing = (1./revFreq - abortGap - totTrainLength)/(nTrains-1); 
+  const double revFreq = 1.11e4; // revolution frequency
+  const double collProb = collFreq / (nTrainBunches * nTrains * revFreq);
+  const double trainLength = bSpacing * (nTrainBunches - 1);
+  const double totTrainLength = nTrains * trainLength;
+  const double trainSpacing = (1. / revFreq - abortGap - totTrainLength) / (nTrains - 1);
 
   // counters
-  double eventTime=0.; // all in seconds
+  double eventTime = 0.; // all in seconds
   size_t nGeneratedEvents = 0;
   size_t bunchCounter = 0;
   size_t trainCounter = 0;
@@ -178,29 +199,28 @@ void DigitizerTask::initBunchTrainStructure(const size_t numberOfEvents)
   // reset vector
   mEventTimes.clear();
 
-  while (nGeneratedEvents < numberOfEvents+2){
+  while (nGeneratedEvents < numberOfEvents + 2) {
     //  std::cout <<trainCounter << " " << bunchCounter << " "<< "eventTime " << eventTime << std::endl;
 
-    int nCollsInCrossing = gRandom -> Poisson(collProb);
-    for(int iColl = 0; iColl<nCollsInCrossing; iColl++){
-      //printf("Generating event %3d (%.3g)\n",nGeneratedEvents,eventTime);
-      mEventTimes.emplace_back(static_cast<float>(eventTime*1e6)); // convert to us
+    int nCollsInCrossing = gRandom->Poisson(collProb);
+    for (int iColl = 0; iColl < nCollsInCrossing; iColl++) {
+      // printf("Generating event %3d (%.3g)\n",nGeneratedEvents,eventTime);
+      mEventTimes.emplace_back(static_cast<float>(eventTime * 1e6)); // convert to us
       nGeneratedEvents++;
     }
     bunchCounter++;
 
-    if(bunchCounter>=nTrainBunches){
+    if (bunchCounter >= nTrainBunches) {
 
       trainCounter++;
-      if(trainCounter>=nTrains){
-        eventTime+=abortGap;
-        trainCounter=0;
-      }
-      else eventTime+=trainSpacing;
+      if (trainCounter >= nTrains) {
+        eventTime += abortGap;
+        trainCounter = 0;
+      } else
+        eventTime += trainSpacing;
 
-      bunchCounter=0;
-    }
-    else eventTime+= bSpacing;
-
+      bunchCounter = 0;
+    } else
+      eventTime += bSpacing;
   }
 }
