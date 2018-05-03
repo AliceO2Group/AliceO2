@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(GEMamplification_test)
 {
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
-  const ParameterGEM& gemParam = cdb.getParameterGEM();
+  const static ParameterGEM& gemParam = ParameterGEM::defaultInstance();
   static GEMAmplification& gemStack = GEMAmplification::instance();
   TH1D hTest("hTest", "", 10000, 0, 1000000);
   TF1 gaus("gaus", "gaus");
@@ -52,13 +52,9 @@ BOOST_AUTO_TEST_CASE(GEMamplification_test)
 
   /// Check the resulting gain
   /// \todo should be more restrictive
-  BOOST_CHECK_CLOSE(gaus.GetParameter(1) / static_cast<float>(nEleIn),
-                    (gemParam.getEffectiveGain(1) *
-                     gemParam.getEffectiveGain(2) * gemParam.getEffectiveGain(3) * gemParam.getEffectiveGain(4)),
-                    20.f);
+  BOOST_CHECK_CLOSE(gaus.GetParameter(1) / static_cast<float>(nEleIn), (gemParam.getEffectiveGain(1) * gemParam.getEffectiveGain(2) * gemParam.getEffectiveGain(3) * gemParam.getEffectiveGain(4)), 20.f);
   /// Check the resulting energy resolution
-  /// we allow for 5% variation which is given by the uncertainty of the experimental determination of the
-  /// energy resolution (12.1 +/- 0.5) %
+  /// we allow for 5% variation which is given by the uncertainty of the experimental determination of the energy resolution (12.1 +/- 0.5) %
   BOOST_CHECK_CLOSE(energyResolution, 12.1, 5);
 }
 
@@ -66,9 +62,7 @@ BOOST_AUTO_TEST_CASE(GEMamplification_test)
 /// We filter 1000 electrons through a single GEM and compare to the outcome
 BOOST_AUTO_TEST_CASE(GEMamplification_singleGEM_test)
 {
-  auto& cdb = CDBInterface::instance();
-  cdb.setUseDefaults();
-  const ParameterGEM& gemParam = cdb.getParameterGEM();
+  const static ParameterGEM& gemParam = ParameterGEM::defaultInstance();
   static GEMAmplification& gemStack = GEMAmplification::instance();
   TH1D hTest("hTest", "", 10000, 0, 10000);
   TF1 gaus("gaus", "gaus");
@@ -90,10 +84,8 @@ BOOST_AUTO_TEST_CASE(GEMamplification_singleGEM_test)
 /// The outcome is compared to the expected value
 BOOST_AUTO_TEST_CASE(GEMamplification_singleGEMmultiplication_test)
 {
-  auto& cdb = CDBInterface::instance();
-  cdb.setUseDefaults();
-  const ParameterGEM& gemParam = cdb.getParameterGEM();
-  const ParameterGas& gasParam = cdb.getParameterGas();
+  const static ParameterGEM& gemParam = ParameterGEM::defaultInstance();
+  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
   static GEMAmplification& gemStack = GEMAmplification::instance();
   TH1D hTest("hTest", "", 10000, 0, 10000);
   TH1D hTest2("hTest2", "", 10000, 0, 10000);
@@ -112,10 +104,8 @@ BOOST_AUTO_TEST_CASE(GEMamplification_singleGEMmultiplication_test)
   /// -# case nElectrons > 500 - Gaussian
   BOOST_CHECK_CLOSE(gaus.GetParameter(1), gemParam.getAbsoluteGain(2) * 1000.f, 0.1);
   /// As a gaussian is used the mean is tested as well, but with reduced precision
-  BOOST_CHECK_CLOSE(gaus.GetParameter(2),
-                    std::sqrt(1000.f) * gasParam.getSigmaOverMu() * gemParam.getAbsoluteGain(2), 2.5);
-  /// -# case the probability is explicitly handled for each electron - the mean is a bad estimator,
-  /// therefore larger tolerance
+  BOOST_CHECK_CLOSE(gaus.GetParameter(2), std::sqrt(1000.f) * gasParam.getSigmaOverMu() * gemParam.getAbsoluteGain(2), 2.5);
+  /// -# case the probability is explicitly handled for each electron - the mean is a bad estimator, therefore larger tolerance
   BOOST_CHECK_CLOSE(hTest2.GetMean(), gemParam.getAbsoluteGain(1) * 100.f, 5);
 }
 
@@ -125,14 +115,12 @@ BOOST_AUTO_TEST_CASE(GEMamplification_singleGEMmultiplication_test)
 /// The outcome is compared to the expected value
 BOOST_AUTO_TEST_CASE(GEMamplification_losses_test)
 {
-  auto& cdb = CDBInterface::instance();
-  cdb.setUseDefaults();
   static GEMAmplification& gemStack = GEMAmplification::instance();
   TH1D hTest("hTest", "", 100, 0, 100);
   TH1D hTest2("hTest2", "", 10, 0, 10);
   TF1 gaus("gaus", "gaus");
 
-  for (int i = 0; i < 1000000; ++i) {
+  for (int i = 0; i < 100000; ++i) {
     hTest.Fill(gemStack.getElectronLosses(100, 0.6));
     hTest2.Fill(gemStack.getElectronLosses(10, 0.2));
   }
@@ -149,7 +137,7 @@ BOOST_AUTO_TEST_CASE(GEMamplification_losses_test)
   /// As a gaussian is used the mean is tested as well
   BOOST_CHECK_CLOSE(gaus.GetParameter(2), std::sqrt(100.f * 0.6 * (1 - 0.6)), 1.5);
   /// -# case the probability is explicitly handled for each electron
-  BOOST_CHECK_CLOSE(hTest2.GetMean(), 2, 1.5);
+  BOOST_CHECK_CLOSE(hTest2.GetMean(), 2, 0.5);
 }
-}
-}
+} // namespace TPC
+} // namespace o2
