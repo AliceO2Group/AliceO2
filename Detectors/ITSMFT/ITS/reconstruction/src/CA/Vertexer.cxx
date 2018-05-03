@@ -15,7 +15,6 @@
 #include <iomanip>
 #include <chrono>
 #include <utility>
-#include <tuple>
 
 #include "ITSReconstruction/CA/Constants.h"
 #include "ITSReconstruction/CA/Cluster.h"
@@ -32,10 +31,10 @@ namespace ITS
 namespace CA
 {
 
-using Constants::ITS::LayersRCoordinate;
-using Constants::ITS::LayersZCoordinate;
 using Constants::IndexTable::PhiBins;
 using Constants::IndexTable::ZBins;
+using Constants::ITS::LayersRCoordinate;
+using Constants::ITS::LayersZCoordinate;
 using Constants::Math::TwoPi;
 using IndexTableUtils::getZBinIndex;
 
@@ -98,6 +97,41 @@ void Vertexer::initialise(const float zCut, const float phiCut, const float pair
   mPairCut = pairCut;
   mClusterCut = clusterCut;
   mClusterContributorsCut = clusterContributorsCut;
+  mPhiSpan = static_cast<int>(std::ceil(PhiBins * mPhiCut / TwoPi));
+  mZSpan = static_cast<int>(std::ceil(mZCut * Constants::IndexTable::InverseZBinSize()[0]));
+  mVertexerInitialised = true;
+}
+
+void Vertexer::initialise(const std::tuple<float, float, float, float, int> initParams)
+{
+  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
+    std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
+      return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
+    });
+  }
+  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumberVertexer; ++iLayer) {
+    const int clustersNum = static_cast<int>(mClusters[iLayer].size());
+    int previousBinIndex{ 0 };
+    mIndexTables[iLayer][0] = 0;
+    for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+      const int currentBinIndex{ mClusters[iLayer][iCluster].indexTableBinIndex };
+      if (currentBinIndex > previousBinIndex) {
+        for (int iBin{ previousBinIndex + 1 }; iBin <= currentBinIndex; ++iBin) {
+          mIndexTables[iLayer][iBin] = iCluster;
+        }
+        previousBinIndex = currentBinIndex;
+      }
+    }
+    for (int iBin{ previousBinIndex + 1 }; iBin <= ZBins * PhiBins; iBin++) {
+      mIndexTables[iLayer][iBin] = clustersNum;
+    }
+  }
+
+  mZCut = std::get<0>(initParams) > Constants::ITS::LayersZCoordinate()[0] ? LayersZCoordinate()[0] : std::get<0>(initParams);
+  mPhiCut = std::get<1>(initParams) > TwoPi ? TwoPi : std::get<1>(initParams);
+  mPairCut = std::get<2>(initParams);
+  mClusterCut = std::get<3>(initParams);
+  mClusterContributorsCut = std::get<4>(initParams);
   mPhiSpan = static_cast<int>(std::ceil(PhiBins * mPhiCut / TwoPi));
   mZSpan = static_cast<int>(std::ceil(mZCut * Constants::IndexTable::InverseZBinSize()[0]));
   mVertexerInitialised = true;
@@ -308,13 +342,23 @@ void Vertexer::findVertices()
       }
       if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
             mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <
-          1.98 * 1.98)
+          1.98 * 1.98) {
 #ifdef DEBUG_BUILD
-        mVertices.emplace_back(
+        mLegacyVertices.emplace_back(
           std::make_tuple(mTrackletClusters[iCluster].getVertex(), mTrackletClusters[iCluster].getSize(), dist));
 #else
-        mVertices.emplace_back(mTrackletClusters[iCluster].getVertex());
+        mLegacyVertices.emplace_back(mTrackletClusters[iCluster].getVertex());
 #endif
+        mVertices.emplace_back(
+          Point3D<float>{ mTrackletClusters[iCluster].getVertex()[0], mTrackletClusters[iCluster].getVertex()[1],
+                          mTrackletClusters[iCluster].getVertex()[2] },
+          mTrackletClusters[iCluster].getAvgDistances(), // Symm matrix. Diagonal: square of DCA projections,
+                                                         // off-diagonal: sqrt of mixed sum of squared terms.
+          mTrackletClusters[iCluster].getSize(),         // Contributors
+          mTrackletClusters[iCluster].getAvgDistance2()  // In place of chi2
+          );
+        mVertices.back().setTimeStamp(mROFrame);
+      }
     }
   }
 }

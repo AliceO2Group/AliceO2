@@ -22,5 +22,6 @@
 #pragma link C++ class o2::dataformats::Vertex < int > +;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int >> +;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < double, double >> +;
+#pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int >>> +;
 
 #endif

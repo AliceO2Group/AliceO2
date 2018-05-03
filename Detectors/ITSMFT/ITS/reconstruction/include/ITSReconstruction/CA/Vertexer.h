@@ -10,7 +10,6 @@
 
 #ifndef O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
 #define O2_ITSMFT_RECONSTRUCTION_CA_VERTEXER_H_
-// #define DEBUG_BUILD
 
 #include <vector>
 #include <array>
@@ -19,6 +18,7 @@
 #include "ITSReconstruction/CA/Constants.h"
 #include "ITSReconstruction/CA/Definitions.h"
 #include "ITSReconstruction/CA/ClusterLines.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
@@ -29,6 +29,7 @@ namespace CA
 class Cluster;
 class Event;
 class Line;
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class Vertexer
 {
@@ -40,6 +41,7 @@ class Vertexer
 
   void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                   const int clusterContributorsCut);
+  void initialise(const std::tuple<float, float, float, float, int> initParams);
   void findTracklets(const bool useMCLabel = false);
   void findVertices();
   void setROFrame(std::uint32_t f) { mROFrame = f; }
@@ -54,10 +56,11 @@ class Vertexer
 #ifdef DEBUG_BUILD
   void printIndexTables();
   void dumpTracklets();
-  inline std::vector<std::tuple<std::array<float, 3>, int, float>> getVertices() { return mVertices; }
+  inline std::vector<std::tuple<std::array<float, 3>, int, float>> getLegacyVertices() { return mLegacyVertices; }
 #else
-  inline std::vector<std::array<float, 3>> getVertices() { return mVertices; }
+  inline std::vector<std::array<float, 3>> getLegacyVertices() { return mLegacyVertices; }
 #endif
+  std::vector<Vertex>& getVertices() { return mVertices; }
 
  protected:
   bool mVertexerInitialised{ false };
@@ -71,10 +74,11 @@ class Vertexer
   float mZBinSize;
   Event mEvent;
 #ifdef DEBUG_BUILD
-  std::vector<std::tuple<std::array<float, 3>, int, float>> mVertices;
+  std::vector<std::tuple<std::array<float, 3>, int, float>> mLegacyVertices;
 #else
-  std::vector<std::array<float, 3>> mVertices;
+  std::vector<std::array<float, 3>> mLegacyVertices;
 #endif
+  std::vector<Vertex> mVertices;
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
     mIndexTables;

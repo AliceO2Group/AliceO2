@@ -1,5 +1,4 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-// #define DEBUG_BUILD
 
 #include <TFile.h>
 #include <TChain.h>
@@ -7,6 +6,7 @@
 #include <TNtuple.h>
 #include <TH1I.h>
 #include <TGeoGlobalMagField.h>
+#include <TParticle.h>
 #include <string>
 #include <array>
 #include <vector>
@@ -28,11 +28,12 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "FairMCEventHeader.h"
-
+// #define DEBUG_BUILD
 using o2::ITS::CA::Cluster;
 using o2::ITS::CA::Line;
 using o2::ITS::CA::MathUtils::calculatePhiCoordinate;
 using o2::ITS::CA::MathUtils::calculateRCoordinate;
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string path = "./",
                            std::string inputClustersITS = "o2clus_its.root",
@@ -58,6 +59,9 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
   mcHeaderTree.AddFile((path + simfilename).data());
 
   //<<<---------- attach input data ---------------<<<
+  // Workaround to obtain orign monte carlo vertex
+  TFile* mEventFile = TFile::Open("Kinematics_pbpb_100_novtx.root");
+
   if (!itsClusters.GetBranch("ITSCluster"))
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
 
@@ -77,6 +81,14 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
   mcHeaderTree.SetBranchAddress("MCEventHeader.", &header);
   TFile* outputfile = new TFile(outfile.data(), "recreate");
 
+  TTree outTree("o2sim", "Vertexer Vertices");
+
+  std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>>* verticesITS =
+    new std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>>;
+  std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>>* verticesITSMC =
+    new std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>>;
+  outTree.Branch("ITSVertices", &verticesITS);
+  outTree.Branch("ITSVerticesMC", &verticesITSMC);
   TNtuple* verTupleResiduals =
     new TNtuple("residuals", "residuals", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
   TNtuple* verTupleResidualsmc =
@@ -87,11 +99,17 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
   int startevent = static_cast<int>(std::max(0, startfrom));
   int endevent = std::min(static_cast<int>(itsClusters.GetEntries()), nevents + startevent);
   std::cout << "running on evt: [" << startevent << ", " << endevent << ")" << std::endl;
-
+  TTree* tree = new TTree();
   for (int iEvent{ startevent }; iEvent < endevent; ++iEvent) {
     std::cout << "evt: " << iEvent << std::endl;
     int good{ 0 }, bad{ 0 }, duplicate{ 0 }, duplicatemc{ 0 }, idx{ 0 }, idx_mc{ 0 };
-
+    std::stringstream treestringstr;
+    treestringstr << "Event" << iEvent << "/TreeK";
+    tree = (TTree*)mEventFile->Get(treestringstr.str().c_str());
+    auto branch = tree->GetBranch("Particles");
+    TParticle* primary = new TParticle();
+    branch->SetAddress(&primary);
+    branch->GetEntry(0); // first primary particle only, needed
     itsClusters.GetEntry(iEvent);
     mcHeaderTree.GetEntry(iEvent);
     o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
@@ -100,7 +118,7 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
     //<<<---------- MC tracklets reconstruction ---------------<<<
     std::cout << "\tFinding vertices on trackID-validated tracklets" << std::endl;
     o2::ITS::CA::Vertexer vertexer_montecarlo(event);
-    vertexer_montecarlo.initialise(0.002, 0.003, 0.03, 0.8, 5);
+    vertexer_montecarlo.initialise(0.005, 0.002, 0.04, 0.8, 5);
     vertexer_montecarlo.findTracklets(true);
     auto tracklets_montecarlo = vertexer_montecarlo.getTracklets();
     std::cout << "\t\ttracklets found: " << tracklets_montecarlo.size() << std::endl;
@@ -110,7 +128,6 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
       if (tracklet.originID == tracklet.destinID) {
         for (auto id : used_mc_ids) {
           if (id == tracklet.originID) {
-            // std::cout<<"\ttracks sharing same inner cluster: "<<id<<std::endl;
             duplicate_found = true;
             ++duplicatemc;
           }
@@ -124,14 +141,16 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
     }
     std::cout << "\t\tduplicate trackID-validated tracklets found: " << duplicatemc << std::endl;
     vertexer_montecarlo.findVertices();
-    auto vertices_montecarlo = vertexer_montecarlo.getVertices();
+    verticesITSMC->swap(vertexer_montecarlo.getVertices());
+    auto vertices_montecarlo = vertexer_montecarlo.getLegacyVertices();
     std::cout << "\t\tvertices found: " << vertices_montecarlo.size() << std::endl;
+
 #endif
 
     //<<<---------- reconstruction ---------------<<<
     std::cout << "\n\tFinding vertices on REC tracklets" << std::endl;
     o2::ITS::CA::Vertexer vertexer(event);
-    vertexer.initialise(0.002, 0.003, 0.03, 0.8, 5);
+    vertexer.initialise(0.005, 0.002, 0.04, 0.8, 5);
     vertexer.findTracklets();
     auto tracklets = vertexer.getTracklets();
     std::cout << "\t\ttracklets found: " << tracklets.size() << std::endl;
@@ -143,7 +162,6 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
       if (tracklet.originID == tracklet.destinID) {
         for (auto id : used_ids) {
           if (id == tracklet.originID) {
-            // std::cout<<"tracks sharing same inner cluster: "<<id<<std::endl;
             duplicate_found = true;
             ++duplicate;
           }
@@ -168,7 +186,8 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
 #endif
 
     vertexer.findVertices();
-    auto vertices = vertexer.getVertices();
+    verticesITS->swap(vertexer.getVertices());
+    auto vertices = vertexer.getLegacyVertices();
     std::cout << "\t\tvertices found: " << vertices.size() << std::endl;
     evtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size())
 #ifdef DEBUG_BUILD
@@ -185,9 +204,9 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
 #ifdef DEBUG_BUILD
       float tmpdata[7] = { static_cast<float>(iEvent),
                            static_cast<float>(idx),
-                           std::get<0>(vertex)[0],
-                           std::get<0>(vertex)[1],
-                           std::get<0>(vertex)[2],
+                           std::get<0>(vertex)[0] /* - static_cast<float>(primary->Vx()) */,
+                           std::get<0>(vertex)[1] /* - static_cast<float>(primary->Vy()) */,
+                           std::get<0>(vertex)[2] /* - static_cast<float>(primary->Vz()) */,
                            static_cast<float>(std::get<1>(vertex)),
                            static_cast<float>(std::get<2>(vertex)) };
 #else
@@ -200,9 +219,9 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
     for (auto& vertex : vertices_montecarlo) {
       float tmpdata[7] = { static_cast<float>(iEvent),
                            static_cast<float>(idx),
-                           std::get<0>(vertex)[0],
-                           std::get<0>(vertex)[1],
-                           std::get<0>(vertex)[2],
+                           std::get<0>(vertex)[0] /* - static_cast<float>(primary->Vx()) */,
+                           std::get<0>(vertex)[1] /* - static_cast<float>(primary->Vy()) */,
+                           std::get<0>(vertex)[2] /* - static_cast<float>(primary->Vz()) */,
                            static_cast<float>(std::get<1>(vertex)),
                            static_cast<float>(std::get<2>(vertex)) };
 
@@ -210,6 +229,7 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
       ++idx_mc;
     }
 #endif
+    outTree.Fill();
   } // Loop on events;
 
   verTupleResiduals->Write();
@@ -218,6 +238,7 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
   evtDumpFromVtxermc->Write();
   verTupleResidualsmc->Write();
 #endif
+  outTree.Write();
   outputfile->Close();
 }
 #endif

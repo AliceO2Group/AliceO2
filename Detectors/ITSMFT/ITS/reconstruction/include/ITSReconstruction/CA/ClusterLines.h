@@ -38,6 +38,7 @@ struct Line final {
 #endif
 
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
+  static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
@@ -60,6 +61,8 @@ class ClusterLines final
                const bool weight = false);
   void add(const int lineLabel, const Line& line, const bool weight = false);
   void computeClusterCentroid();
+  float getAvgDistance2();
+  std::array<float, 6> getAvgDistances();
   inline std::vector<int> getLabels() { return mLabels; };
   inline int getSize() const { return mLabels.size(); };
   inline std::array<float, 3> getVertex() { return mVertex; }

@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
+#include <iostream>
 #include "ITSReconstruction/CA/ClusterLines.h"
 
 namespace o2
@@ -129,6 +130,23 @@ float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3> po
   return std::sqrt(DCASquared);
 }
 
+std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<float, 3> point)
+{
+  std::array<float, 6> components{ 0., 0., 0., 0., 0., 0. };
+  float cdelta{ 0. };
+  for (int i{ 0 }; i < 3; ++i)
+    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+
+  components[0] = std::abs(line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta);
+  components[3] = std::abs(line.originPoint[3] - point[3] + line.cosinesDirector[3] * cdelta);
+  components[5] = std::abs(line.originPoint[5] - point[5] + line.cosinesDirector[5] * cdelta);
+  components[1] = std::sqrt(components[0] * components[0] + components[3] * components[3]);
+  components[2] = std::sqrt(components[0] * components[0] + components[5] * components[5]);
+  components[4] = std::sqrt(components[3] * components[3] + components[5] * components[5]);
+
+  return components;
+}
+
 ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
                            const bool weight)
 {
@@ -228,7 +246,6 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
        (-secondLine.cosinesDirector[1] * secondLine.originPoint[2] +
         secondLine.cosinesDirector[2] * secondLine.originPoint[1])) /
     determinantSecond;
-
   computeClusterCentroid();
 }
 
@@ -276,7 +293,6 @@ void ClusterLines::add(const int lineLabel, const Line& line, const bool weight)
                   line.cosinesDirector[1] * covariance[0] *
                     (-line.cosinesDirector[1] * line.originPoint[2] + line.cosinesDirector[2] * line.originPoint[1])) /
                  determinant;
-
   computeClusterCentroid();
 }
 
@@ -303,6 +319,27 @@ void ClusterLines::computeClusterCentroid()
                  mAMatrix[1] * (mAMatrix[1] * mBMatrix[2] - mBMatrix[1] * mAMatrix[2]) +
                  mBMatrix[0] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])) /
                determinant;
+}
+
+std::array<float, 6> ClusterLines::getAvgDistances()
+{
+  std::array<float, 6> deviations{ 0., 0., 0., 0., 0., 0. }, deviationSingleLine;
+  // std::array<float, 6> deviationSingleLine {0., 0., 0.};
+  for (auto line : mLines) {
+    deviationSingleLine = Line::getDCAComponents(line, mVertex);
+    for (int i{ 0 }; i < 6; ++i) {
+      deviations[i] += deviationSingleLine[i] / mLines.size();
+    }
+  }
+  return deviations;
+}
+
+float ClusterLines::getAvgDistance2()
+{
+  float dist{ 0. };
+  for (auto line : mLines)
+    dist += Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex);
+  return dist / mLines.size();
 }
 
 } // namespace CA
