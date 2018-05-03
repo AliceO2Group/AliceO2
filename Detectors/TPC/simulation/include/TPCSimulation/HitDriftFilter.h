@@ -82,7 +82,7 @@ void getHits(TChain& chain, const Collection& eventrecords, std::vector<std::vec
 
 inline void getHits(std::vector<TChain*> const& chains, const o2::steer::RunContext& runcontext,
                     std::vector<std::vector<o2::TPC::HitGroup>*>& hitvectors,
-                    std::vector<o2::TPC::TPCHitGroupID>& hitids, const char* branchname, float tmin /*NS*/,
+                    std::vector<o2::TPC::TPCHitGroupID>& hitids, const std::string_view branchname, float tmin /*NS*/,
                     float tmax /*NS*/, std::function<float(float, float, float)>&& f)
 {
   // The runcontext contains information about the collision times in runcontext->getEventRecords
@@ -98,7 +98,7 @@ inline void getHits(std::vector<TChain*> const& chains, const o2::steer::RunCont
       return nullptr;
     }
     auto& chain = *chains[source];
-    auto br = chain.GetBranch(branchname);
+    auto br = chain.GetBranch(branchname.data());
     if (!br) {
       return nullptr;
     }
@@ -131,7 +131,7 @@ inline void getHits(std::vector<TChain*> const& chains, const o2::steer::RunCont
       // This needs to be done only once for any entry per chain
       // retrieve source
       if (hitvectors[storeentry] == nullptr) {
-        // TODO: instead of
+        // TODO: instead of trying to fetch all the time .. do this outside and cache
         auto br = fetchBranch(source);
         br->SetAddress(&hitvectors[storeentry]);
         br->GetEntry(eventID);
