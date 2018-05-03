@@ -10,6 +10,7 @@ set(SRCS
    src/CRU.cxx
    src/Digit.cxx
    src/DigitPos.cxx
+   src/EfficiencyGEM.cxx
    src/FECInfo.cxx
    src/Mapper.cxx
    src/PadInfo.cxx
@@ -36,6 +37,7 @@ set(HEADERS
    include/TPCBase/CRU.h
    include/TPCBase/Digit.h
    include/TPCBase/DigitPos.h
+   include/TPCBase/EfficiencyGEM.h
    include/TPCBase/FECInfo.h
    include/TPCBase/Mapper.h
    include/TPCBase/PadInfo.h
