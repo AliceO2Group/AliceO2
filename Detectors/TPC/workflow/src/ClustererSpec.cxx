@@ -46,14 +46,11 @@ DataProcessorSpec getClustererSpec()
     auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
       auto inDigits = pc.inputs().get<std::vector<o2::TPC::Digit>>("digits");
       auto inMCLabels = pc.inputs().get<MCLabelContainer>("mclabels");
-      if (!inDigits) {
-        return;
-      }
 
-      LOG(INFO) << "processing " << inDigits->size() << " digit object(s)";
+      LOG(INFO) << "processing " << inDigits.size() << " digit object(s)";
       clusterArray->clear();
       mctruthArray->clear();
-      clusterer->Process(*(inDigits.get()), inMCLabels.get(), 1);
+      clusterer->Process(inDigits, inMCLabels.get(), 1);
       LOG(INFO) << "clusterer produced " << clusterArray->size() << " cluster(s)";
       pc.outputs().snapshot(OutputRef{ "clusters" }, *clusterArray.get());
       pc.outputs().snapshot(OutputRef{ "clusterlbl" }, *mctruthArray.get());
