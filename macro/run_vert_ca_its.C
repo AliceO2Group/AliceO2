@@ -132,8 +132,13 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
           cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
           o2::ITS::CA::Vertexer vertexer(event);
           vertexer.setROFrame(roFrame);
+<<<<<<< HEAD
           vertexer.initialise(initParams);
           vertexer.findTracklets(useMC);
+=======
+          vertexer.initialise(0.005, 0.002, 0.04, 0.8, 5);
+          vertexer.findTracklets();
+>>>>>>> 07aab1ea2... Fix DCA components
           std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
           vertexer.findVertices();
           // auto vertices = vertexer.getLegacyVertices();

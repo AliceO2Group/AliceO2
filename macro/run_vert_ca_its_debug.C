@@ -248,6 +248,7 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
     o2::ITS::CA::Vertexer vertexer(event);
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     vertexer.initialise(0.005, 0.002, 0.04, 0.8, 5);
 =======
     vertexer.initialise(0.002, 0.003, 0.03, 0.8, 5);
@@ -255,6 +256,9 @@ void run_vert_ca_its_debug(int startfrom = 0, int nevents = 1000, std::string pa
 =======
     vertexer.initialise(0.002, 0.003, 0.03, 0.8, 3);
 >>>>>>> a9dde0135... Make use of Vertex defined in O2
+=======
+    vertexer.initialise(0.005, 0.002, 0.04, 0.8, 5);
+>>>>>>> 07aab1ea2... Fix DCA components
     vertexer.findTracklets();
     auto tracklets = vertexer.getTracklets();
     std::cout << "\t\ttracklets found: " << tracklets.size() << std::endl;
