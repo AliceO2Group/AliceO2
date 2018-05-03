@@ -44,7 +44,7 @@ DataProcessorSpec getClusterConverterSpec()
     auto processingFct = [](ProcessingContext& pc) {
       // this will return a span of TPC clusters
       auto inClusters = pc.inputs().get<std::vector<o2::TPC::Cluster>>("clusterin");
-      int nClusters = inClusters->size();
+      int nClusters = inClusters.size();
       LOG(INFO) << "got clusters from input: " << nClusters;
 
       std::vector<ClusterHardwareContainer> containerMetrics;
@@ -52,7 +52,7 @@ DataProcessorSpec getClusterConverterSpec()
       for (; clusterIndex < nClusters; clusterIndex++) {
         // clusters are supposed to be sorted in CRU number, start a new entry
         // for every new CRU, a map is needed if the clusters are not ordered
-        auto inputcluster = (*inClusters)[clusterIndex];
+        auto inputcluster = inClusters[clusterIndex];
         uint16_t CRU = inputcluster.getCRU();
         if (containerMetrics.size() == 0 || containerMetrics.back().CRU != CRU) {
           containerMetrics.emplace_back(ClusterHardwareContainer{ 0, 0, 0, 0, 0, 0, 0, 0, 0xFFFFFFFF, 0, CRU });
@@ -90,7 +90,7 @@ DataProcessorSpec getClusterConverterSpec()
           LOG(DEBUG) << "writing " << clusterContainer->numberOfClusters << " cluster(s) of CRU "
                      << clusterContainer->CRU;
           for (unsigned int clusterInPage = 0; clusterInPage < clusterContainer->numberOfClusters; clusterInPage++) {
-            const auto& inputCluster = (*inClusters)[clusterIndex + clusterInPage];
+            const auto& inputCluster = inClusters[clusterIndex + clusterInPage];
             auto& outputCluster = clusterContainer->clusters[clusterInPage];
             outputCluster.setCluster(inputCluster.getPadMean(),
                                      inputCluster.getTimeMean() - clusterContainer->timeBinOffset,

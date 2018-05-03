@@ -54,8 +54,8 @@ DataProcessorSpec getRootFileWriterSpec()
     // function gets out of scope
     auto processingFct = [outputfile, outputtree, tracks](ProcessingContext& pc) {
       auto indata = pc.inputs().get<std::vector<o2::TPC::TrackTPC>>("input");
-      LOG(INFO) << "RootFileWriter: get " << indata->size() << " track(s)";
-      *tracks.get() = std::move(*indata.get());
+      LOG(INFO) << "RootFileWriter: get " << indata.size() << " track(s)";
+      *tracks.get() = std::move(indata);
       LOG(INFO) << "RootFileWriter: write " << tracks->size() << " track(s)";
       outputtree->Fill();
     };
