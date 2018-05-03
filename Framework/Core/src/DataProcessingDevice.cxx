@@ -98,7 +98,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // does not need to know about the whole class state, but I can 
   // fine grain control what is exposed at each state.
   auto &metricsService = mServiceRegistry.get<MetricsService>();
-  auto &monitoringService = mServiceRegistry.get<Monitoring>();
+  auto& monitoringService = mServiceRegistry.get<Monitoring>();
   auto &statefulProcess = mStatefulProcess;
   auto &statelessProcess = mStatelessProcess;
   auto &errorCallback = mError;
@@ -129,7 +129,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // to the implementation details of the messaging layer.
   auto isValidInput = [&monitoringService, &parts]() -> bool {
     // metricsService.post("inputs/parts/total", (int)parts.Size());
-    monitoringService.send({(int)parts.Size(), "inputs/parts/total"});
+    monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
 
     for (size_t i = 0; i < parts.Size() ; ++i) {
       LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << " bytes";
