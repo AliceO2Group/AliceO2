@@ -109,84 +109,68 @@ void Detector::Initialize()
 
 void Detector::SetSpecialPhysicsCuts()
 {
-  FairRun* fRun = FairRun::Instance();
+  using o2::Base::MaterialManager;
+  // provide available cuts
+  const MaterialManager::ECut cutgam = MaterialManager::kCUTGAM;
+  const MaterialManager::ECut cutele = MaterialManager::kCUTELE;
+  const MaterialManager::ECut cutneu = MaterialManager::kCUTNEU;
+  const MaterialManager::ECut cuthad = MaterialManager::kCUTHAD;
+  const MaterialManager::ECut cutmuo = MaterialManager::kCUTMUO;
+  const MaterialManager::ECut bcute = MaterialManager::kBCUTE;
+  const MaterialManager::ECut bcutm = MaterialManager::kBCUTM;
+  const MaterialManager::ECut dcute = MaterialManager::kDCUTE;
+  const MaterialManager::ECut dcutm = MaterialManager::kDCUTM;
+  const MaterialManager::ECut ppcutm = MaterialManager::kPPCUTM;
+  const MaterialManager::ECut tofmax = MaterialManager::kTOFMAX;
 
-  // check for GEANT3, else abort
-  if (strcmp(fRun->GetName(), "TGeant3") == 0) {
+  // provide available processes
+  const MaterialManager::EProc pair = MaterialManager::kPAIR;
+  const MaterialManager::EProc comp = MaterialManager::kCOMP;
+  const MaterialManager::EProc phot = MaterialManager::kPHOT;
+  const MaterialManager::EProc pfis = MaterialManager::kPFIS;
+  const MaterialManager::EProc dray = MaterialManager::kDRAY;
+  const MaterialManager::EProc anni = MaterialManager::kANNI;
+  const MaterialManager::EProc brem = MaterialManager::kBREM;
+  const MaterialManager::EProc hadr = MaterialManager::kHADR;
+  const MaterialManager::EProc munu = MaterialManager::kMUNU;
+  const MaterialManager::EProc dcay = MaterialManager::kDCAY;
+  const MaterialManager::EProc loss = MaterialManager::kLOSS;
+  const MaterialManager::EProc muls = MaterialManager::kMULS;
 
-    // get material ID for customs settings
-    std::string fMixture("TPC_DriftGas2");
-    bool fAliMC = false; // implemented the e-loss now on our own -> use default model
-    std::cout << "TpcDetector::SetSpecialPhysicsCuts() "
-              << "Working on medium " << fMixture.c_str() << std::endl;
-    int matIdVMC = gGeoManager->GetMedium(fMixture.c_str())->GetId();
+  const Float_t cut1 = 1e-5;
+  const Float_t cutTofmax = 1e10;
 
-    double tofmax = 1.E10; // (s)
-
-    // Set new properties, physics cuts etc. for the TPCmixture
-
-    // gMC->Gstpar(matIdVMC,"PAIR",1); /** pair production*/
-    // gMC->Gstpar(matIdVMC,"COMP",1); /**Compton scattering*/
-    // gMC->Gstpar(matIdVMC,"PHOT",1); /** photo electric effect */
-    // gMC->Gstpar(matIdVMC,"PFIS",0); /**photofission*/
-    // gMC->Gstpar(matIdVMC,"DRAY",1); /**delta-ray*/
-    // gMC->Gstpar(matIdVMC,"ANNI",1); /**annihilation*/
-    // gMC->Gstpar(matIdVMC,"BREM",1); /**bremsstrahlung*/
-    // gMC->Gstpar(matIdVMC,"HADR",1); /**hadronic process*/
-    // gMC->Gstpar(matIdVMC,"MUNU",1); /**muon nuclear interaction*/
-    // gMC->Gstpar(matIdVMC,"DCAY",1); /**decay*/
-    // gMC->Gstpar(matIdVMC,"LOSS",1); /**energy loss*/
-    // gMC->Gstpar(matIdVMC,"MULS",1); /**multiple scattering*/
-    // gMC->Gstpar(matIdVMC,"STRA",0);
-    // gMC->Gstpar(matIdVMC,"RAYL",1);
-
-    // gMC->Gstpar(matIdVMC,"CUTGAM",fCut_el); /** gammas (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTELE",fCut_el); /** electrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTNEU",fCut_had); /** neutral hadrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTHAD",fCut_had); /** charged hadrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"CUTMUO",fCut_el); /** muons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"BCUTE",fCut_el);  /** electron bremsstrahlung (GeV)*/
-    // gMC->Gstpar(matIdVMC,"BCUTM",fCut_el);  /** muon and hadron bremsstrahlung(GeV)*/
-    // gMC->Gstpar(matIdVMC,"DCUTE",fCut_el);  /** delta-rays by electrons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"DCUTM",fCut_el);  /** delta-rays by muons (GeV)*/
-    // gMC->Gstpar(matIdVMC,"PPCUTM",fCut_el); /** direct pair production by muons (GeV)*/
-    gMC->Gstpar(matIdVMC, "PAIR", 1);
-    gMC->Gstpar(matIdVMC, "COMP", 1);
-    gMC->Gstpar(matIdVMC, "PHOT", 1);
-    gMC->Gstpar(matIdVMC, "PFIS", 0);
-    gMC->Gstpar(matIdVMC, "DRAY", 1);
-    gMC->Gstpar(matIdVMC, "ANNI", 1);
-    gMC->Gstpar(matIdVMC, "BREM", 1);
-    gMC->Gstpar(matIdVMC, "HADR", 1);
-    gMC->Gstpar(matIdVMC, "MUNU", 1);
-    gMC->Gstpar(matIdVMC, "DCAY", 1);
-    gMC->Gstpar(matIdVMC, "LOSS", 1);
-    gMC->Gstpar(matIdVMC, "MULS", 1);
-    Double_t cut1 = 1.0E-5; // GeV --> 1 MeV
-    Double_t cutel = 1.0E-5;
-
-    gMC->SetCut("CUTGAM", cutel);
-    gMC->SetCut("CUTELE", cutel);
-    gMC->SetCut("CUTNEU", cut1);
-    gMC->SetCut("CUTHAD", cut1);
-    gMC->SetCut("CUTMUO", cut1);
-    gMC->SetCut("BCUTE", cutel);
-    gMC->SetCut("BCUTM", cut1);
-    gMC->SetCut("DCUTE", cutel);
-    gMC->SetCut("DCUTM", cut1);
-    gMC->SetCut("PPCUTM", cut1);
-    gMC->SetCut("TOFMAX", tofmax);
-    gMC->SetMaxNStep((int)1E6);
-
-    std::cout << "\n************************************************************\n"
-              << "TpcDetector::SetSpecialPhysicsCuts():\n"
-              << "   using special physics cuts ...\n";
-    if (fAliMC) {
-      std::cout << "   using LOSS=5 for ALICE MC model\n";
-      gMC->Gstpar(matIdVMC, "LOSS", 5);
-    }
-    std::cout << "************************************************************" << std::endl;
-  }
+  // Some cuts implemented in AliRoot
+  // \note
+  //    Cuts in TPC were set globally before and hence affected the default settings of all other media,
+  //    also outside of TPC. Also, settings were just done for G3.
+  //    Now cuts are set in both cases, for G3 and G4; Further cuts are only set for TPC medium DriftGas2.
+  // \todo discussion needed!!
+  // cut settings for DriftGas2
+  SpecialCuts(kDriftGas2, { { cutgam, cut1 },
+                            { cutele, cut1 },
+                            { cutneu, cut1 },
+                            { cuthad, cut1 },
+                            { cutmuo, cut1 },
+                            { bcute, cut1 },
+                            { bcutm, cut1 },
+                            { dcute, cut1 },
+                            { dcutm, cut1 },
+                            { ppcutm, cut1 },
+                            { tofmax, cutTofmax } });
+  // process settings for DriftGas2
+  SpecialProcesses(kDriftGas2, { { pair, 1 },
+                                 { comp, 1 },
+                                 { phot, 1 },
+                                 { pfis, 0 },
+                                 { dray, 1 },
+                                 { anni, 1 },
+                                 { brem, 1 },
+                                 { hadr, 1 },
+                                 { munu, 1 },
+                                 { dcay, 1 },
+                                 { loss, 1 },
+                                 { muls, 1 } });
 }
 
 Bool_t Detector::ProcessHits(FairVolume* vol)
@@ -372,9 +356,6 @@ void Detector::ConstructGeometry()
   // Load geometry
   //   LoadGeometryFromFile();
   ConstructTPCGeometry();
-
-  // GeantHack
-  // GeantHack();
 }
 
 void Detector::CreateMaterials()
@@ -934,39 +915,39 @@ void Detector::CreateMaterials()
   // tracking media for gases
   //----------------------------------------------------------
 
-  o2::Base::Detector::Medium(0, "Air", 11, 0, iSXFLD, sXMGMX, 10., 999., .1, .01, .1);
-  o2::Base::Detector::Medium(1, "DriftGas1", 12, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(2, "DriftGas2", 13, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(3, "CO2", 10, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(20, "DriftGas3", 40, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kAir, "Air", 11, 0, iSXFLD, sXMGMX, 10., 999., .1, .01, .1);
+  o2::Base::Detector::Medium(kDriftGas1, "DriftGas1", 12, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kDriftGas2, "DriftGas2", 13, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kCO2, "CO2", 10, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kDriftGas3, "DriftGas3", 40, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
   //-----------------------------------------------------------
   // tracking media for solids
   //-----------------------------------------------------------
 
-  o2::Base::Detector::Medium(4, "Al", 23, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(5, "Kevlar", 14, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(6, "Nomex", 15, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(7, "Makrolon", 16, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(8, "Mylar", 18, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(9, "Tedlar", 17, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kAl, "Al", 23, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kKevlar, "Kevlar", 14, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kNomex, "Nomex", 15, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kMakrolon, "Makrolon", 16, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kMylar, "Mylar", 18, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kTedlar, "Tedlar", 17, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
   //
-  o2::Base::Detector::Medium(10, "Prepreg1", 19, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(11, "Prepreg2", 20, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(12, "Prepreg3", 21, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(13, "Epoxy", 26, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kPrepreg1, "Prepreg1", 19, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kPrepreg2, "Prepreg2", 20, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kPrepreg3, "Prepreg3", 21, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kEpoxy, "Epoxy", 26, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
 
-  o2::Base::Detector::Medium(14, "Cu", 25, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(15, "Si", 24, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(16, "G10", 22, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(17, "Plexiglas", 27, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(18, "Steel", 29, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(19, "Peek", 30, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(21, "Alumina", 31, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(22, "Water", 32, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(23, "Brass", 33, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(24, "Epoxyfm", 34, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(25, "Epoxy1", 35, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(26, "Alumina1", 36, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kCu, "Cu", 25, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kSi, "Si", 24, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kG10, "G10", 22, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kPlexiglas, "Plexiglas", 27, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kSteel, "Steel", 29, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kPeek, "Peek", 30, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kAlumina, "Alumina", 31, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kWater, "Water", 32, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kBrass, "Brass", 33, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::Base::Detector::Medium(kEpoxyfm, "Epoxyfm", 34, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kEpoxy1, "Epoxy1", 35, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::Base::Detector::Medium(kAlumina1, "Alumina1", 36, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
 }
 
 void Detector::ConstructTPCGeometry()
@@ -3140,85 +3121,5 @@ Double_t Detector::Gamma(Double_t k)
   return TMath::Exp(x);
 }
 
-#include <sstream>
-#include <string>
-#include "TVirtualMC.h"
-void Detector::GeantHack()
-{
-  //   Med  GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA ANNI BREM COMP DCAY DRAY HADR LOSS MULS PAIR PHOT
-  //   RAYL STRA
-  std::stringstream data(
-    "\
-  TPC    0    -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     1 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.   1    1    1    1    1    1    3    1    1    1    1\n\
-  TPC     2 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.   1    1    1    1    1    1    5    1    1    1    1\n\
-  TPC     3 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.  -1   -1   -1    1    1    1    3    1    1    1    1 \n\
-  TPC    20 1e-6  1e-6  1e-3 1e-3  1e-6   1e-6   1e-6  1e-6 1e-6    -1.   1    1    1    1    1    1    5    1    1    1    1\n\
-  TPC     4   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     5   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     6   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     7   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     8   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC     9   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    10   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    11   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    12   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    13   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    14   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
-  TPC    15   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1");
-
-  const Int_t kncuts = 10;
-  const Int_t knflags = 12;
-  const Int_t knpars = kncuts + knflags;
-  const char kpars[knpars][7] = { "CUTGAM", "CUTELE", "CUTNEU", "CUTHAD", "CUTMUO", "BCUTE", "BCUTM", "DCUTE",
-                                  "DCUTM",  "PPCUTM", "ANNI",   "BREM",   "COMP",   "DCAY",  "DRAY",  "HADR",
-                                  "LOSS",   "MULS",   "PAIR",   "PHOT",   "RAYL",   "STRA" };
-  std::string detName;
-  char* filtmp;
-  Float_t cut[kncuts];
-  Int_t flag[knflags];
-  Int_t i, itmed, iret, jret, ktmed, kz;
-
-  std::string line;
-  while (std::getline(data, line)) {
-    std::cout << line << endl;
-    for (i = 0; i < kncuts; i++)
-      cut[i] = -99;
-    for (i = 0; i < knflags; i++)
-      flag[i] = -99;
-    itmed = 0;
-
-    std::stringstream linedata(line);
-    linedata >> detName >> itmed >> cut[0] >> cut[1] >> cut[2] >> cut[3] >> cut[4] >> cut[5] >> cut[6] >> cut[7] >>
-      cut[8] >> cut[9] >> flag[0] >> flag[1] >> flag[2] >> flag[3] >> flag[4] >> flag[5] >> flag[6] >> flag[7] >>
-      flag[8] >> flag[9] >> flag[10] >> flag[11];
-
-    if (0 <= itmed && itmed < 100) {
-      ktmed = getMediumID(itmed);
-      if (ktmed == -1) {
-        LOG(INFO) << Form("Invalid tracking medium code %d for %s", itmed, GetName()) << FairLogger::endl;
-        continue;
-      }
-      // Set energy thresholds
-      for (kz = 0; kz < kncuts; kz++) {
-        if (cut[kz] >= 0) {
-          LOG(INFO) << Form("%-6s set to %10.3E for tracking medium code %4d (%4d) for %s", kpars[kz], cut[kz], itmed,
-                            ktmed, GetName())
-                    << FairLogger::endl;
-          TVirtualMC::GetMC()->Gstpar(ktmed, kpars[kz], cut[kz]);
-        }
-      }
-      // Set transport mechanisms
-      for (kz = 0; kz < knflags; kz++) {
-        if (flag[kz] >= 0) {
-          LOG(INFO) << Form("%-6s set to %10d for tracking medium code %4d (%4d) for %s", kpars[kncuts + kz], flag[kz],
-                            itmed, ktmed, GetName())
-                    << FairLogger::endl;
-          TVirtualMC::GetMC()->Gstpar(ktmed, kpars[kncuts + kz], Float_t(flag[kz]));
-        }
-      }
-    }
-  }
-}
 
 ClassImp(o2::TPC::Detector)
