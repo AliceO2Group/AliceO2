@@ -319,9 +319,9 @@ void Vertexer::findVertices()
           Point3D<float>{ mTrackletClusters[iCluster].getVertex()[0], mTrackletClusters[iCluster].getVertex()[1],
                           mTrackletClusters[iCluster].getVertex()[2] },
           mTrackletClusters[iCluster].getAvgDistances(), // Symm matrix. Diagonal: square of DCA projections,
-                                                          // off-diagonal: sqrt of mixed sum od squared terms.
-          mTrackletClusters[iCluster].getSize(),          // Contributors
-          mTrackletClusters[iCluster].getAvgDistance2()   // In place of chi2
+                                                         // off-diagonal: sqrt of mixed sum od squared terms.
+          mTrackletClusters[iCluster].getSize(),         // Contributors
+          mTrackletClusters[iCluster].getAvgDistance2()  // In place of chi2
           );
         mVertices.back().setTimeStamp(mROFrame);
       }
