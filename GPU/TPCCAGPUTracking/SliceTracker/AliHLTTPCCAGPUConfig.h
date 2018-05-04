@@ -82,8 +82,8 @@
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 8		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
-#define HLTCA_GPU_MAX_TRACKLETS 32768					//Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
-#define HLTCA_GPU_MAX_TRACKS 8192						//Max number of Tracks that can be processd by GPU Tracker per sector, must be below 2^24 for track ID format!!!
+#define HLTCA_GPU_MAX_TRACKLETS 65536					//Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
+#define HLTCA_GPU_MAX_TRACKS 32768						//Max number of Tracks that can be processd by GPU Tracker per sector, must be below 2^24 for track ID format!!!
 #define HLTCA_GPU_MAX_ROWSTARTHITS 20000				//Maximum number of start hits per row
 
 #define HLTCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
@@ -91,10 +91,10 @@
 #define HLTCA_GPU_TRACKER_OBJECT_MEMORY		((size_t)       1024 * 1024)		//Total amount of Memory to reserve for GPU Tracker Objects
 #define HLTCA_GPU_ROWS_MEMORY				((size_t)       1024 * 1024)		//Total amount of Memory to reserve for GPU Row Parameters
 #define HLTCA_GPU_COMMON_MEMORY				((size_t)       1024 * 1024)		//Total amount of Memory to reserve for CommomMemoryStruct on GPU
-#define HLTCA_GPU_SLICE_DATA_MEMORY			((size_t)  15 * 1024 * 1024)		//Amount of Slice Data Memory to reserve per Slice on GPU
-#define HLTCA_GPU_GLOBAL_MEMORY				((size_t)  45 * 1024 * 1024)		//Amount of global temporary Memory to reserve per Slice on GPU
+#define HLTCA_GPU_SLICE_DATA_MEMORY			((size_t)  50 * 1024 * 1024)		//Amount of Slice Data Memory to reserve per Slice on GPU
+#define HLTCA_GPU_GLOBAL_MEMORY				((size_t) 100 * 1024 * 1024)		//Amount of global temporary Memory to reserve per Slice on GPU
 #define HLTCA_GPU_TRACKS_MEMORY				((size_t)  10 * 1024 * 1024)		//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
-#define HLTCA_GPU_MERGER_MEMORY				((size_t) 200 * 1024 * 1024)		//Memory for track merger
+#define HLTCA_GPU_MERGER_MEMORY				((size_t) 600 * 1024 * 1024)		//Memory for track merger
 #define HLTCA_GPU_MEMALIGN					((size_t)       1024 * 1024)		//Alignment of memory blocks, all constants above must be multiple of this!!!
 #define HLTCA_GPU_MEMALIGN_SMALL			((size_t)         64 * 1024)		//Alignment of small blocks, HLTCA_GPU_MEMALIGN must be multiple of this!!!
 

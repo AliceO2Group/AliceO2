@@ -479,7 +479,7 @@ void RunQA(bool matchOnly)
 			{
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
 				nClusters++;
-				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
+				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
 				if (hitId >= hlt.GetNMCLabels()) {printf("Invalid hit id %d > %d\n", hitId, hlt.GetNMCLabels());ompError = true;break;}
 				for (int j = 0;j < 3;j++)
 				{
@@ -547,7 +547,7 @@ void RunQA(bool matchOnly)
 			for (int k = 0;k < track.NClusters();k++)
 			{
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
-				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
+				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
 				bool correct = false;
 				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true;break;}
 				if (correct) clusterParam[hitId].attached++;
@@ -588,7 +588,7 @@ void RunQA(bool matchOnly)
 				const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
 				for (int j = 0;j < track.NClusters();j++)
 				{
-					int hitId = merger.Clusters()[track.FirstClusterRef() + j].fId;
+					int hitId = merger.Clusters()[track.FirstClusterRef() + j].fNum;
 					int mcID = hlt.GetMCLabels()[hitId].fClusterID[0].fMCID;
 					if (mcID >= 0) allowMCLabels[mcID] = true;
 				}
@@ -872,7 +872,7 @@ void RunQA(bool matchOnly)
 			for (int k = 0;k < track.NClusters();k++)
 			{
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
-				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fId;
+				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
 				float pt = fabs(1.f/track.GetParam().GetQPt());
 				if (pt > clusterInfo[hitId]) clusterInfo[hitId] = pt;
 			}

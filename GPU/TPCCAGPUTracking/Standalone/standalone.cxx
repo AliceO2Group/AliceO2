@@ -281,6 +281,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{
+		if (1 || configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true; //Force resetting of IDs in standalone mode for the time being, otherwise late cluster attachment in the merger cannot work with the forced cluster ids in the merger.
 		for (int jj = 0;jj < configStandalone.runs2;jj++)
 		{
 			auto& config = configStandalone.configTF;
@@ -502,7 +503,6 @@ int main(int argc, char** argv)
 					}
 
 					if (config.nMerge == 0 || iEventInTimeframe == 0) hlt.StartDataReading(0);
-					if (configStandalone.eventDisplay || configStandalone.qa) configStandalone.resetids = true;
 					hlt.ReadEvent(in, configStandalone.resetids, config.nMerge > 0, shift);
 					in.close();
 					
@@ -591,7 +591,7 @@ int main(int argc, char** argv)
 								fprintf(foutput, "Track %d: %4s Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f q/Pt %f - Clusters ", k, track.OK() ? "OK" : "FAIL", track.GetAlpha(), param.GetX(), param.GetY(), param.GetZ(), param.GetSinPhi(), param.GetDzDs(), param.GetQPt());
 								for (int l = 0;l < track.NClusters();l++)
 								{
-									fprintf(foutput, "%d ", merger.Clusters()[track.FirstClusterRef() + l].fId);
+									fprintf(foutput, "%d ", merger.Clusters()[track.FirstClusterRef() + l].fNum);
 								}
 								fprintf(foutput, "\n");
 							}
@@ -621,7 +621,7 @@ int main(int argc, char** argv)
 								const AliHLTTPCGMMergedTrackHit* clusters = merger.Clusters() + track.FirstClusterRef();
 								for (int l = 0;l < track.NClusters();l++)
 								{
-									fwrite(&clusters[l].fId, sizeof(clusters[l].fId), 1, fpBinaryOutput);
+									fwrite(&clusters[l].fNum, sizeof(clusters[l].fNum), 1, fpBinaryOutput);
 								}
 							}
 						}

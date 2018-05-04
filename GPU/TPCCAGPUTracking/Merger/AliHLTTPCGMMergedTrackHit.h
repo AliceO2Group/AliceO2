@@ -13,7 +13,7 @@
 struct AliHLTTPCGMMergedTrackHit
 {
   float fX, fY, fZ;
-  unsigned int fId;
+  unsigned int fNum;
   unsigned char fSlice, fRow, fLeg, fState;
   unsigned short fAmp;
   

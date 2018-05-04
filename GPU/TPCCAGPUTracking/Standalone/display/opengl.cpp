@@ -766,7 +766,7 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 			for (int k = 0;k < track->NClusters();k++)
 			{
 				if (hideRejectedClusters && (merger.Clusters()[track->FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject)) continue;
-				int cid = merger.Clusters()[track->FirstClusterRef() + k].fId;
+				int cid = merger.Clusters()[track->FirstClusterRef() + k].fNum;
 				if (drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
 				if (globalPos[cid].w == SEPERATE_GLOBAL_TRACKS_LIMIT)
 				{
@@ -777,7 +777,7 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 				{
 					if (!drawing) startCountInner = vertexBuffer[iSlice].size();
 					if (!drawing) drawPointLinestrip(iSlice, cid, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
-					if (!drawing && lastCluster != -1) drawPointLinestrip(iSlice, merger.Clusters()[track->FirstClusterRef() + lastCluster].fId, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
+					if (!drawing && lastCluster != -1) drawPointLinestrip(iSlice, merger.Clusters()[track->FirstClusterRef() + lastCluster].fNum, 7, SEPERATE_GLOBAL_TRACKS_LIMIT);
 					drawing = true;
 				}
 				lastCluster = k;
