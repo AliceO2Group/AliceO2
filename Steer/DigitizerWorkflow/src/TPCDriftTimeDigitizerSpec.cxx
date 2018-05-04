@@ -76,9 +76,6 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
     auto mcTruthBranch = outtree->Branch(Form("TPCDigitMCTruth_%i", sector), &mcTruthArrayRaw);
 
     // obtain collision contexts
-    auto dataref = pc.inputs().get("timeinput");
-    auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
-
     auto context = pc.inputs().get<o2::steer::RunContext>("timeinput");
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
