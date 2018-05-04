@@ -121,7 +121,6 @@ set(HEADERS
       include/Framework/RootObjectContext.h
       include/Framework/DataProcessingDevice.h
       include/Framework/Variant.h
-      include/Framework/RootTreeReader.h
       include/Framework/CallbackRegistry.h
       include/Framework/CallbackService.h
       src/ComputingResource.h
@@ -202,7 +201,6 @@ set(TEST_SRCS
       test/test_WorkflowHelpers.cxx
       test/test_TMessageSerializer.cxx
       test/test_DataAllocator.cxx
-      test/test_RootTreeReader.cxx
       test/test_CallbackRegistry.cxx
    )
 
