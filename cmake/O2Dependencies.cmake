@@ -2340,7 +2340,6 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
-    ${CMAKE_SOURCE_DIR}/Detectors/MID/base/include
 )
 
 o2_define_bucket(
@@ -2353,9 +2352,11 @@ o2_define_bucket(
     RapidJSON
     MIDBase
     MIDSimulation
+    MIDClustering
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Simulation/src
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Clustering/src
 )
 
 o2_define_bucket(
