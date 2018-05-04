@@ -64,11 +64,11 @@ DataAllocator::newChunk(const Output& spec, size_t size) {
   //we have to move the incoming data
   o2::header::Stack headerStack{dh, dph};
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
-                                                          headerStack.buffer.get(),
-                                                          headerStack.bufferSize,
+                                                          headerStack.data(),
+                                                          headerStack.size(),
                                                           &o2::header::Stack::freefn,
-                                                          headerStack.buffer.get());
-  headerStack.buffer.release();
+                                                          headerStack.data());
+  headerStack.release();
   FairMQMessagePtr payloadMessage = mDevice->NewMessageFor(channel, 0, size);
   auto dataPtr = payloadMessage->GetData();
   auto dataSize = payloadMessage->GetSize();
@@ -99,11 +99,11 @@ DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_
   //we have to move the incoming data
   o2::header::Stack headerStack{dh, dph};
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
-                                                          headerStack.buffer.get(),
-                                                          headerStack.bufferSize,
+                                                          headerStack.data(),
+                                                          headerStack.size(),
                                                           &o2::header::Stack::freefn,
-                                                          headerStack.buffer.get());
-  headerStack.buffer.release();
+                                                          headerStack.data());
+  headerStack.release();
 
   FairMQParts parts;
 
@@ -135,11 +135,11 @@ DataAllocator::headerMessageFromOutput(Output const &spec,
   //we have to move the incoming data
   o2::header::Stack headerStack{dh, dph};
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
-                                                          headerStack.buffer.get(),
-                                                          headerStack.bufferSize,
+                                                          headerStack.data(),
+                                                          headerStack.size(),
                                                           &o2::header::Stack::freefn,
-                                                          headerStack.buffer.get());
-  headerStack.buffer.release();
+                                                          headerStack.data());
+  headerStack.release();
   return std::move(headerMessage);
 }
 

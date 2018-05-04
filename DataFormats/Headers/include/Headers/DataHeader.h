@@ -446,7 +446,12 @@ auto get(const void* buffer, size_t len = 0)
 //    - arguments can be headers, or stacks, all will be concatenated in a new Stack
 ///   - returns a Stack ready to be shipped.
 struct Stack {
+ protected:
+  using Buffer = std::unique_ptr<byte[]>;
+  size_t bufferSize;
+  Buffer buffer;
 
+ public:
   // This is ugly and needs fixing BUT:
   // we need a static deleter for fairmq.
   // TODO: maybe use allocator_traits if custom allocation is desired
@@ -455,17 +460,14 @@ struct Stack {
   //       The copy can be avoided if we construct in place inside a FairMQMessage directly (instead of
   //       allocating a unique_ptr we would hold a FairMQMessage which for the large part has similar semantics).
   //
-  using Buffer = std::unique_ptr<byte[]>;
   static std::default_delete<byte[]> sDeleter;
   static void freefn(void* /*data*/, void* hint) {
     Stack::sDeleter(static_cast<byte*>(hint));
   }
 
-  size_t bufferSize;
-  Buffer buffer;
-
   byte* data() const {return buffer.get();}
   size_t size() const {return bufferSize;}
+  void release() {buffer.release();}
 
   ///The magic constructor: takes arbitrary number of arguments and serialized them
   /// into the buffer.
