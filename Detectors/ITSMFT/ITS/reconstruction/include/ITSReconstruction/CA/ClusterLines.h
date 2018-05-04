@@ -73,7 +73,7 @@ class ClusterLines final
   void add(const int lineLabel, const Line& line, const bool weight = false);
   void computeClusterCentroid();
   float getAvgDistance2();
-  std::array<float, 6> getAvgDistances();
+  std::array<float, 6> getRMS2();
   inline std::vector<int> getLabels() { return mLabels; };
   inline int getSize() const { return mLabels.size(); };
   inline std::array<float, 3> getVertex() { return mVertex; }

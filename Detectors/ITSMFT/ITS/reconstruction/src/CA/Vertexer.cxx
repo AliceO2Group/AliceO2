@@ -318,10 +318,10 @@ void Vertexer::findVertices()
         mVertices.emplace_back(
           Point3D<float>{ mTrackletClusters[iCluster].getVertex()[0], mTrackletClusters[iCluster].getVertex()[1],
                           mTrackletClusters[iCluster].getVertex()[2] },
-          mTrackletClusters[iCluster].getAvgDistances(), // Symm matrix. Diagonal: square of DCA projections,
-                                                         // off-diagonal: sqrt of mixed sum od squared terms.
-          mTrackletClusters[iCluster].getSize(),         // Contributors
-          mTrackletClusters[iCluster].getAvgDistance2()  // In place of chi2
+          mTrackletClusters[iCluster].getRMS2(),        // Symm matrix. Diagonal: RMS2 components,
+                                                        // off-diagonal square mean of projections on planes.
+          mTrackletClusters[iCluster].getSize(),        // Contributors
+          mTrackletClusters[iCluster].getAvgDistance2() // In place of chi2
           );
         mVertices.back().setTimeStamp(mROFrame);
       }

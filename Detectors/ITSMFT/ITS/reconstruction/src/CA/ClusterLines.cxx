@@ -160,9 +160,9 @@ std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<f
   for (int i{ 0 }; i < 3; ++i)
     cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
 
-  components[0] = std::abs(line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta);
-  components[3] = std::abs(line.originPoint[3] - point[3] + line.cosinesDirector[3] * cdelta);
-  components[5] = std::abs(line.originPoint[5] - point[5] + line.cosinesDirector[5] * cdelta);
+  components[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
+  components[3] = line.originPoint[3] - point[3] + line.cosinesDirector[3] * cdelta;
+  components[5] = line.originPoint[5] - point[5] + line.cosinesDirector[5] * cdelta;
   components[1] = std::sqrt(components[0] * components[0] + components[3] * components[3]);
   components[2] = std::sqrt(components[0] * components[0] + components[5] * components[5]);
   components[4] = std::sqrt(components[3] * components[3] + components[5] * components[5]);
@@ -344,14 +344,14 @@ void ClusterLines::computeClusterCentroid()
                determinant;
 }
 
-std::array<float, 6> ClusterLines::getAvgDistances()
+std::array<float, 6> ClusterLines::getRMS2()
 {
   std::array<float, 6> deviations{ 0., 0., 0., 0., 0., 0. }, deviationSingleLine;
   // std::array<float, 6> deviationSingleLine {0., 0., 0.};
   for (auto line : mLines) {
     deviationSingleLine = Line::getDCAComponents(line, mVertex);
     for (int i{ 0 }; i < 6; ++i) {
-      deviations[i] += deviationSingleLine[i] / mLines.size();
+      deviations[i] += deviationSingleLine[i] * deviationSingleLine[i] / mLines.size();
     }
   }
   return deviations;
