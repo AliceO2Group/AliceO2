@@ -14,7 +14,7 @@
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
 #include "ClusterReaderSpec.h"
-#include "Framework/RootTreeReader.h"
+#include "Utils/RootTreeReader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 
 using namespace o2::framework;

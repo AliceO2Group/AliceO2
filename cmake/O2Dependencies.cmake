@@ -971,6 +971,7 @@ o2_define_bucket(
     DEPENDENCIES
     TPCReconstruction
     Framework
+    DPLUtils
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Algorithm/include
