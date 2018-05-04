@@ -73,6 +73,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fSliceTrackInfos( 0 ),
   fMaxSliceTracks(0),
   fClusters(NULL),
+  fGlobalClusterIDs(NULL),
   fClusterAttachment(NULL),
   fMaxID(0),
   fTrackOrder(NULL),
@@ -110,6 +111,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   fSliceTrackInfos( 0 ),  
   fMaxSliceTracks(0),
   fClusters(NULL),
+  fGlobalClusterIDs(NULL),
   fClusterAttachment(NULL),
   fMaxID(0),
   fTrackOrder(NULL),
@@ -171,6 +173,7 @@ void AliHLTTPCGMMerger::ClearMemory()
     if (fOutputTracks) delete[] fOutputTracks;
     if (fClusters) delete[] fClusters;
   }
+  if (fGlobalClusterIDs) delete[] fGlobalClusterIDs;
   if (fBorderMemory) delete[] fBorderMemory;
   if (fBorderRangeMemory) delete[] fBorderRangeMemory;
   
@@ -182,6 +185,7 @@ void AliHLTTPCGMMerger::ClearMemory()
   fSliceTrackInfos = NULL;
   fMaxSliceTracks = 0;
   fClusters = NULL;
+  fGlobalClusterIDs = NULL;
   fBorderMemory = NULL;
   fBorderRangeMemory = NULL;
   fTrackOrder = NULL;
@@ -294,6 +298,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
     fOutputTracks = new AliHLTTPCGMMergedTrack[nTracks];
     fClusters = new AliHLTTPCGMMergedTrackHit[fNClusters];
   }
+  if (!fSliceTrackers) fGlobalClusterIDs = new int[fNClusters];
   fBorderMemory = new AliHLTTPCGMBorderTrack[fMaxSliceTracks*2];
   fBorderRangeMemory = new AliHLTTPCGMBorderTrack::Range[fMaxSliceTracks*2];
   
@@ -806,13 +811,22 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       }
       
       AliHLTTPCGMMergedTrackHit *cl = fClusters + nOutTrackClusters;
+      int* clid = fGlobalClusterIDs + nOutTrackClusters;
       for( int i=0; i<nHits; i++ )
       {
           cl[i].fX = trackClusters[i].GetX();
           cl[i].fY = trackClusters[i].GetY();
           cl[i].fZ = trackClusters[i].GetZ();
           cl[i].fRow = trackClusters[i].GetRow();
-          cl[i].fId = trackClusters[i].GetId();
+          if (fSliceTrackers) //We already have global consecutive numbers from the slice tracker, and we need to keep them for late cluster attachment
+          {
+              cl[i].fNum = trackClusters[i].GetId();
+          }
+          else //Produce consecutive numbers for shared cluster flagging
+          {
+              cl[i].fNum = nOutTrackClusters + i;
+              clid[i] = trackClusters[i].GetId();
+          }
           cl[i].fAmp = trackClusters[i].GetAmp();
           cl[i].fState = trackClusters[i].GetFlags() & AliHLTTPCGMMergedTrackHit::hwcfFlags; //Only allow edge and deconvoluted flags
           cl[i].fSlice = clA[i].x;
@@ -881,10 +895,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   }
   else
   {
-      for (int k = 0;k < nOutTrackClusters;k++)
-      {
-        if (fClusters[k].fId > maxId) maxId = fClusters[k].fId;
-      }
+      maxId = nOutTrackClusters;
   }
   maxId++;
   unsigned char* sharedCount = new unsigned char[maxId];
@@ -901,17 +912,17 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   std::sort(trackSort, trackSort + fNOutputTracks, trackSortCompanion);
   memset(fClusterAttachment, 0, maxId * sizeof(fClusterAttachment[0]));
   for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
-  for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fId] = attachAttached | attachGood;
+  for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = attachAttached | attachGood;
 #endif
   
   for (unsigned int k = 0;k < maxId;k++) sharedCount[k] = 0;
   for (int k = 0;k < nOutTrackClusters;k++)
   {
-    if (sharedCount[fClusters[k].fId] < 255) sharedCount[fClusters[k].fId]++;
+    sharedCount[fClusters[k].fNum] = (sharedCount[fClusters[k].fNum] << 1) | 1;
   }
   for (int k = 0;k < nOutTrackClusters;k++)
   {
-    if (sharedCount[fClusters[k].fId] >= 2) fClusters[k].fState |= AliHLTTPCGMMergedTrackHit::flagShared;
+    if (sharedCount[fClusters[k].fNum] > 1) fClusters[k].fState |= AliHLTTPCGMMergedTrackHit::flagShared;
   }
   delete[] sharedCount;
   delete[] trackSort;
@@ -946,14 +957,14 @@ void AliHLTTPCGMMerger::Finalize()
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
     int* trkOrderReverse = new int[fNOutputTracks];
     for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
-    for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fId] = 0;
+    for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = 0;
     for (int i = 0;i < fNOutputTracks;i++)
     {
       const AliHLTTPCGMMergedTrack& trk = fOutputTracks[i];
       char goodLeg = fClusters[trk.FirstClusterRef() + trk.NClusters() - 1].fLeg;
       for (int j = 0;j < trk.NClusters();j++)
       {
-          int id = fClusters[trk.FirstClusterRef() + j].fId;
+          int id = fClusters[trk.FirstClusterRef() + j].fNum;
           int weight = fTrackOrder[i] | attachAttached;
           if (trk.OK() && !(fClusters[trk.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
           if (fClusters[trk.FirstClusterRef() + j].fLeg == goodLeg) weight |= attachGoodLeg;

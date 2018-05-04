@@ -42,8 +42,8 @@
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #else
-typedef unsigned short calink;
-typedef unsigned short cahit;
+typedef unsigned int calink;
+typedef unsigned int cahit;
 #endif
 
 #ifdef HLTCA_GPUCODE
