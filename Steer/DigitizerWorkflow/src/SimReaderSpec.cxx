@@ -32,7 +32,8 @@ namespace o2
 {
 namespace steer
 {
-DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<int>> tpcsectors, std::shared_ptr<std::vector<int>> tpcsubchannels)
+DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<int>> tpcsectors,
+                                   std::shared_ptr<std::vector<int>> tpcsubchannels)
 {
   auto doit = [fanoutsize, tpcsectors, tpcsubchannels](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
@@ -113,15 +114,19 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
       OutputSpec{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(subchannel), Lifetime::Condition });
   }
 
-  return DataProcessorSpec{ /*ID*/ "SimReader",
-                            /*INPUT CHANNELS*/ Inputs{}, outputs,
-                            /* ALGORITHM */
-                            AlgorithmSpec{ initIt },
-                            /* OPTIONS */
-                            Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } },
-                                     { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-									 { "ncollisions,n", VariantType::Int, 0, { "number of collisions to sample (default is given by number of entries in chain" } }
-                            } };
+  return DataProcessorSpec{
+    /*ID*/ "SimReader",
+    /*INPUT CHANNELS*/ Inputs{}, outputs,
+    /* ALGORITHM */
+    AlgorithmSpec{ initIt },
+    /* OPTIONS */
+    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } },
+             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
+             { "ncollisions,n",
+               VariantType::Int,
+               0,
+               { "number of collisions to sample (default is given by number of entries in chain" } } }
+  };
 }
 }
 }

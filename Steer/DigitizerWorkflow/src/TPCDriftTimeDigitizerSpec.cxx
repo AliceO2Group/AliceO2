@@ -66,8 +66,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
   // TODO: make this clear in the API
   digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
 
-  auto doit = [simChain, simChains, digitizertask, digitArray,
-               mcTruthArray](ProcessingContext& pc) {
+  auto doit = [simChain, simChains, digitizertask, digitArray, mcTruthArray](ProcessingContext& pc) {
     static int callcounter = 0;
     callcounter++;
 
@@ -101,7 +100,6 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
     // extract which sector to treat (strangely this is a unique pointer)
-
 
     // if there is nothing ... return
     if (timesview.size() == 0) {
@@ -150,11 +148,11 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
       hitidsright.clear();
 
       // obtain candidate hit(ids) for this time range --> left
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, getBranchNameLeft(sector).c_str(), starttime,
-                       endtime, o2::TPC::calcDriftTime);
-      // --> right
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright, getBranchNameRight(sector).c_str(),
+      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, getBranchNameLeft(sector).c_str(),
                        starttime, endtime, o2::TPC::calcDriftTime);
+      // --> right
+      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright,
+                       getBranchNameRight(sector).c_str(), starttime, endtime, o2::TPC::calcDriftTime);
 
       LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
                  << " SELECTED RIGHT " << hitidsright.size();
