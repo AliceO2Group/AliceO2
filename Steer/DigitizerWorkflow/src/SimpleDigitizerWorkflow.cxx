@@ -20,7 +20,7 @@
 
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
-#include <thread>   // to detector number of hardware threads
+#include <thread> // to detect number of hardware threads
 #include <string>
 #include <sstream>
 #include <cmath>
