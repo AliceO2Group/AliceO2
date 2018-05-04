@@ -80,24 +80,23 @@ bool wantCollisionTimePrinter()
 void defineDataProcessing(WorkflowSpec& specs)
 {
   specs.clear();
-
   int fanoutsize = 0;
   if (wantCollisionTimePrinter()) {
     specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
   }
 
-  std::vector<int> tpcsectors;
-  extractTPCSectors(tpcsectors);
-  auto lanes = getNumTPCLanes(tpcsectors);
+  // keeps track of which subchannels correspond to tpc channels
+  auto tpclanes = std::make_shared<std::vector<int>>();
+  // keeps track of which tpc sectors to process
+  auto tpcsectors = std::make_shared<std::vector<int>>();
+  extractTPCSectors(*tpcsectors.get());
+  auto lanes = getNumTPCLanes(*tpcsectors.get());
 
-  int l = 0;
-  for (auto& s : tpcsectors) {
-    if (l++ < lanes) {
-      LOG(INFO) << "ADDING SECTOR " << s << " LANE";
-      // probably a parallel construct can be used here
-      specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(s, fanoutsize++));
-    }
+  for (int l = 0; l < lanes; ++l) {
+    specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(fanoutsize));
+    tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
+    fanoutsize++;
   }
 
-  specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize));
+  specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
 }

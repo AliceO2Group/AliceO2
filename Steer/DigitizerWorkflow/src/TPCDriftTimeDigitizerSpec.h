@@ -17,7 +17,7 @@ namespace o2
 {
 namespace steer
 {
-o2::framework::DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehits = false);
+o2::framework::DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits = false);
 }
 }
 
