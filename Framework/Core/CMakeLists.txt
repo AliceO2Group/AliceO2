@@ -48,7 +48,6 @@ set(SRCS
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
     src/ExternalFairMQDeviceProxy.cxx
-    src/SimpleMetricsService.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
     src/WorkflowHelpers.cxx
@@ -74,11 +73,9 @@ set(HEADERS
       include/Framework/DebugGUI.h
       include/Framework/TypeTraits.h
       include/Framework/PaletteHelpers.h
-      include/Framework/SimpleMetricsService.h
       include/Framework/ConfigParamSpec.h
       include/Framework/TMessageSerializer.h
       include/Framework/DataProcessorLabel.h
-      include/Framework/MetricsService.h
       include/Framework/LogParsingHelpers.h
       include/Framework/InputSpec.h
       include/Framework/DeviceInfo.h
@@ -104,7 +101,6 @@ set(HEADERS
       include/Framework/DataRef.h
       include/Framework/WorkflowSpec.h
       include/Framework/LocalRootFileService.h
-      include/Framework/RemoteMetricsService.h
       include/Framework/OutputSpec.h
       include/Framework/ChannelSpec.h
       include/Framework/ChannelConfigurationPolicy.h

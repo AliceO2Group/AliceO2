@@ -17,9 +17,10 @@
 #include <vector>
 
 namespace o2 {
+namespace monitoring {
+class Monitoring;
+}
 namespace framework {
-
-class MetricsService;
 
 class DataRelayer {
 public:
@@ -40,7 +41,7 @@ public:
 
   DataRelayer(std::vector<InputRoute> const&,
               std::vector<ForwardRoute> const&,
-              MetricsService &);
+              monitoring::Monitoring &);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack
@@ -75,7 +76,7 @@ public:
 private:
   std::vector<InputRoute> mInputs;
   std::vector<ForwardRoute> mForwards;
-  MetricsService &mMetrics;
+  monitoring::Monitoring &mMetrics;
 
   /// This is the actual cache of all the parts in flight. 
   /// Notice that we store them as a NxM sized vector, where

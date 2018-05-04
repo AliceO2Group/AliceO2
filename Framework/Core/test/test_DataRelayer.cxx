@@ -16,10 +16,11 @@
 #include "Headers/DataHeader.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingHeader.h"
-#include "DummyMetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQTransportFactory.h>
 #include <cstring>
 
+using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
@@ -28,7 +29,7 @@ using Stack = o2::header::Stack;
 // A simple test where an input is provided
 // and the subsequent InputRecord is immediately requested.
 BOOST_AUTO_TEST_CASE(TestNoWait) {
-  DummyMetricsService metrics;
+  Monitoring metrics;
   InputSpec spec;
   spec.binding = "clusters";
   spec.description = "CLUSTERS";
@@ -71,7 +72,7 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
 // This test a more complicated set of inputs, and verifies that data is
 // correctly relayed before being processed.
 BOOST_AUTO_TEST_CASE(TestRelay) {
-  DummyMetricsService metrics;
+  Monitoring metrics;
   InputSpec spec1;
   spec1.binding = "clusters";
   spec1.description = "CLUSTERS";
@@ -139,7 +140,7 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
 // This tests a simple cache pruning, where a single input is shifted out of
 // the cache.
 BOOST_AUTO_TEST_CASE(TestCache) {
-  DummyMetricsService metrics;
+  Monitoring metrics;
   InputSpec spec;
   spec.binding = "clusters";
   spec.description = "CLUSTERS";

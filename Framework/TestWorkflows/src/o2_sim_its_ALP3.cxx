@@ -10,7 +10,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "Framework/AlgorithmSpec.h"
 #include "FairMQLogger.h"
 

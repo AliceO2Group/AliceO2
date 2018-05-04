@@ -9,9 +9,10 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "FairMQLogger.h"
 
+using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
 
 struct FakeCluster {
@@ -125,9 +126,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           throw std::runtime_error("Unexpected data origin" + std::string(h2->dataOrigin.str));
         }
 
-        auto &metrics = ctx.services().get<MetricsService>();
-        metrics.post("merger/invoked", 1);
-        metrics.post("merger/inputs", (int) ctx.inputs().size());
+        auto &metrics = ctx.services().get<Monitoring>();
+        metrics.send({ 1, "merger/invoked" });
+        metrics.send({ (int) ctx.inputs().size(), "merger/inputs" });
       },
     }
   };

@@ -11,7 +11,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "FairMQLogger.h"
 
 using namespace o2::framework;
