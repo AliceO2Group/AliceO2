@@ -25,7 +25,6 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
-#include "Framework/SimpleMetricsService.h"
 #include "Framework/SimpleRawDeviceService.h"
 #include "Framework/TextControlService.h"
 #include "Framework/CallbackService.h"
