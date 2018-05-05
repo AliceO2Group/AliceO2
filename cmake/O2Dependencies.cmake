@@ -874,6 +874,7 @@ o2_define_bucket(
     Gen
     Base
     TreePlayer
+    O2TPCCAGPUTracking
     TPCSimulation
     #the dependency on TPCSimulation should be removed at some point
     #perhaps 'Cluster' can be moved to base, or so
@@ -890,6 +891,26 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
     ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    TPCCAGPUTracking_bucket
+    
+    DEPENDENCIES
+    dl
+    pthread
+    root_base_bucket
+    common_vc_bucket
+    
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
 )
 
 o2_define_bucket(
@@ -1800,5 +1821,3 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
 )
-
-
