@@ -76,8 +76,8 @@ struct AliHLTTPCGMOfflineStatisticalErrors
 #else
 struct AliHLTTPCGMOfflineStatisticalErrors
 {
-	GPUd() void SetCurCluster(AliHLTTPCGMMergedTrackHit* c) {}
-	GPUd() void GetOfflineStatisticalErrors(float& err2Y, float& err2Z, float sinPhi, float dzds, unsigned char clusterState) {}
+	GPUd() void SetCurCluster(AliHLTTPCGMMergedTrackHit* /*c*/) {}
+	GPUd() void GetOfflineStatisticalErrors(float& /*err2Y*/, float& /*err2Z*/, float /*sinPhi*/, float /*dzds*/, unsigned char /*clusterState*/) {}
 };
 #endif
 

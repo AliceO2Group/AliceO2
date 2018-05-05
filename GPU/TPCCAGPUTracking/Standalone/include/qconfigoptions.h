@@ -1,4 +1,7 @@
+#ifndef QCONFIGOPTIONS_H
+#define QCONFIGOPTIONS_H
 typedef std::tuple<const char*, int> tupleGpuOpt;
+#endif
 
 BeginSubConfig(structConfigGL, configGL, configStandalone, "GL", 'g', "OpenGL display settings")
 AddOption(clustersOnly, bool, false, "clustersOnly", 0, "Visualize clusters only")

@@ -152,6 +152,8 @@ void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v, long int TimeS
 
 #if ( defined(OFFLINE_FITTER) )
   gOfflineFitter.Initialize(  fSliceParam, TimeStamp, isMC );
+#else
+  (void) (TimeStamp + isMC); //Suppress warning
 #endif
 }
 
