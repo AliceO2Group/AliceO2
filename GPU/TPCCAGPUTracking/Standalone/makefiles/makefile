@@ -31,8 +31,8 @@ CLANGFLAGSOPT					= -O3 $(GCCFLAGSARCH) -minline-all-stringops -mfpmath=sse -fun
 CLANGFLAGSDBG					= $(GCCFLAGSDBG) $(EXTRAFLAGSCLANG)
 #-fgcse-sm -fgcse-las -fmodulo-sched -fipa-pta -floop-interchange -floop-block 
 GCCFLAGSDBG						= -O0 $(GCCFLAGSARCH)
-GCCFLAGSCOMMON					= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME $(GCCPROF) $(EXTRAFLAGSGCC) -Wall -Wno-write-strings
-CLANGFLAGSCOMMON				= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME -DCLANG_RUNTIME $(GCCPROF) $(EXTRAFLAGSGCC) -Wall -Wno-write-strings
+GCCFLAGSCOMMON					= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME $(GCCPROF) $(EXTRAFLAGSGCC) -Wall -Wextra -Wshadow -Wno-write-strings
+CLANGFLAGSCOMMON				= $(MULTITHREADGCC) -pipe -DGCC_RUNTIME -DCLANG_RUNTIME $(GCCPROF) $(EXTRAFLAGSGCC) -Wall -Wextra -Wshadow -Wno-write-strings
 GCCFLAGS32						= -m32
 GCCFLAGS64						= -m64 -D"_AMD64_" -D"_X64_"
 

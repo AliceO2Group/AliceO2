@@ -18,10 +18,6 @@
 #ifndef ALIHLTTPCCAGPUTRACKERNVCC_H
 #define ALIHLTTPCCAGPUTRACKERNVCC_H
 
-#ifdef __CLING__
-typedef int cudaError_t;
-#endif
-
 #include "AliHLTTPCCAGPUTrackerBase.h"
 
 class AliHLTTPCCAGPUTrackerNVCC : public AliHLTTPCCAGPUTrackerBase
@@ -44,7 +40,7 @@ protected:
 
 private:
 	void* fCudaContext; //Pointer to CUDA context
-	bool GPUFailedMsgA(cudaError_t error, const char* file, int line);
+	bool GPUFailedMsgA(const long long int error, const char* file, int line);
 
 	void* fpCudaStreams; //Pointer to array of CUDA Streams
 
