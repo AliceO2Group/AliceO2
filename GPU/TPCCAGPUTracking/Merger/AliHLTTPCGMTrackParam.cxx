@@ -325,6 +325,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(AliHLTTPCGMMerger* merger, int
     GPUglobalref() const cahit2 *hits = tracker.HitData(row);
     GPUglobalref() const calink *firsthit = tracker.FirstHitInBin(row);
 #endif //!HLTCA_GPU_TEXTURE_FETCH_CONSTRUCTOR
+    if (row.NHits() == 0) return;
     
     const float y0 = row.Grid().YMin();
     const float stepY = row.HstepY();
