@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <tuple>
+#include <memory>
 
 #ifndef R__WIN32
 #include "bitmapfile.h"
@@ -42,6 +43,7 @@ void ShowNextEvent() {needUpdate = 1;}
 OpenGLConfig cfg;
 static auto& config = configStandalone.configGL;
 AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
+const AliHLTTPCGMMerger &merger = hlt.Merger();
 
 struct DrawArraysIndirectCommand
 {
@@ -203,7 +205,8 @@ void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
 float Xadd = 0;
 float Zadd = 0;
 
-float4 *globalPos = NULL;
+std::unique_ptr<float4[]> globalPosPtr = nullptr;
+float4* globalPos;
 int maxClusters = 0;
 int currentClusters = 0;
 
@@ -507,6 +510,7 @@ struct threadVertexBuffer
 	}
 };
 std::vector<threadVertexBuffer> threadBuffers;
+std::vector<std::vector<std::array<std::array<vecpod<int>, 2>, fgkNSlices>>> threadTracks;
 
 void ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
 {
@@ -558,6 +562,7 @@ int InitGL()
 	ReSizeGLScene(init_width, init_height, true);
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	threadBuffers.resize(omp_get_max_threads());
+	threadTracks.resize(omp_get_max_threads());
 	return(true);                                     // Initialization Went OK
 }
 
@@ -589,7 +594,7 @@ vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
 
 		if (markAdjacentClusters)
 		{
-			const int attach = hlt.Merger().ClusterAttachment()[cid];
+			const int attach = merger.ClusterAttachment()[cid];
 			if (attach)
 			{
 				if ((markAdjacentClusters & 2) && (attach & AliHLTTPCGMMerger::attachTube)) draw = select == 8;
@@ -597,7 +602,7 @@ vboList DrawClusters(AliHLTTPCCATracker &tracker, int select, int iCol)
 				else if ((markAdjacentClusters & 4) && (attach & AliHLTTPCGMMerger::attachGoodLeg) == 0) draw = select == 8;
 				else if (markAdjacentClusters & 8)
 				{
-					if (fabs(hlt.Merger().OutputTracks()[attach & AliHLTTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) draw = select == 8;
+					if (fabs(merger.OutputTracks()[attach & AliHLTTPCGMMerger::attachTrackMask].GetParam().GetQPt()) > 20.f) draw = select == 8;
 				}
 			}
 		}
@@ -736,33 +741,22 @@ vboList DrawTracks(AliHLTTPCCATracker &tracker, int global)
 	return(vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboList* list, threadVertexBuffer& threadBuffer)
+void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer)
 {
 	auto& vBuf = threadBuffer.vBuf;
 	auto& buffer = threadBuffer.buffer;
-	threadBuffer.clear();
-	const AliHLTTPCGMMerger &merger = hlt.Merger();
-	int nTracks = std::max(hlt.GetNMCInfo(), merger.NOutputTracks());
+	unsigned int nTracks = std::max(trackList[0].size(), trackList[1].size());
 	if (config.clustersOnly) nTracks = 0;
-	for (int i = 0;i < nTracks;i++)
+	for (unsigned int ii = 0;ii < nTracks;ii++)
 	{
-		const AliHLTTPCGMMergedTrack* track = &merger.OutputTracks()[i];
+		int i = 0;
+		const AliHLTTPCGMMergedTrack* track = nullptr;
 		int lastCluster = -1;
 		while (true)
 		{
-			if (i >= merger.NOutputTracks()) track = nullptr;
-			else if (track->NClusters() == 0) track = nullptr;
-			else if (hideRejectedTracks && !track->OK()) track = nullptr;
-			else if (merger.Clusters()[track->FirstClusterRef() + track->NClusters() - 1].fSlice != iSlice) track = nullptr;
-			else if (nCollisions > 1)
-			{
-				int label = GetMCLabel(i);
-				if (label < -1) label = -label - 2;
-				unsigned int k = 0;
-				while (k < collisionClusters.size() && collisionClusters[k][fgkNSlices] < label) k++;
-				if (k != iCol) track = nullptr;
-			}
-			if (track == nullptr) break;
+			if (ii >= trackList[0].size()) break;
+			i = trackList[0][ii];
+			track = &merger.OutputTracks()[i];
 
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			bool drawing = false;
@@ -793,34 +787,26 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 		{
 			if (iMC)
 			{
-				if (i >= hlt.GetNMCInfo()) continue;
-				if (nCollisions > 1)
-				{
-					unsigned int k = 0;
-					while (k < collisionClusters.size() && collisionClusters[k][fgkNSlices] < i) k++;
-					if (k != iCol) continue;
-				}
+				if (ii >= trackList[1].size()) continue;
+				i = trackList[1][ii];
 			}
 			else
 			{
 				if (track == nullptr) continue;
 				if (lastCluster == -1) continue;
-				if (merger.Clusters()[track->FirstClusterRef() + track->NClusters() - 1].fSlice != iSlice) continue;
 			}
 
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			for (int inFlyDirection = 0;inFlyDirection < 2;inFlyDirection++)
 			{
 				AliHLTTPCGMTrackParam param;
-				float alpha;
 				float x = 0;
-				int slice = 0;
+				int slice = iSlice;
+				float alpha = hlt.Param().Alpha(slice);
 				if (iMC == 0)
 				{
 					param = track->GetParam();
-					alpha = track->GetAlpha();
 					auto cl = merger.Clusters()[track->FirstClusterRef() + lastCluster];
-					slice = cl.fSlice;
 					x = cl.fX;
 				}
 				else
@@ -829,16 +815,9 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 					const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
 					if (mc.fCharge == 0.f) break;
 					if (mc.fPID < 0) break;
-					
-					alpha = atan2f(mc.fY, mc.fX);
-					if (alpha < 0) alpha += 2 * M_PI;
-					slice = floor(alpha / (2 * M_PI) * 18);
-					if (mc.fZ < 0) slice += 18;
-					if (slice != iSlice) break;
-					alpha = hlt.Param().Alpha(slice);
+
 					float c = cosf(alpha);
 					float s = sinf(alpha);
-					
 					float mclocal[4];
 					x = mc.fX;
 					float y = mc.fY;
@@ -916,16 +895,6 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 			}
 			insertVertexList(vBuf[iMC ? 3 : 2], startCountInner, vertexBuffer[iSlice].size());
 		}
-	}
-	for (int i = 0;i < N_FINAL_TYPE;i++)
-	{
-		size_t startCount = vertexBufferStart[iSlice].size();
-		for (unsigned int j = 0;j < threadBuffer.start[i].size();j++)
-		{
-			vertexBufferStart[iSlice].emplace_back(threadBuffer.start[i][j]);
-			vertexBufferCount[iSlice].emplace_back(threadBuffer.count[i][j]);
-		}
-		list[i] = vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
 	}
 }
 
@@ -1292,9 +1261,9 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 
 		if (maxClusters < currentClusters)
 		{
-			if (globalPos) delete[] globalPos;
 			maxClusters = currentClusters;
-			globalPos = new float4[maxClusters];
+			globalPosPtr.reset(new float4[maxClusters]);
+			globalPos = globalPosPtr.get();
 		}
 
 		maxClusterZ = 0;
@@ -1359,6 +1328,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 #pragma omp parallel
 		{
 			int numThread = omp_get_thread_num();
+			int numThreads = omp_get_num_threads();
 #pragma omp for
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
@@ -1381,8 +1351,8 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			const float kRadLen = 29.532;//28.94;
 			prop.SetMaxSinPhi(.999);
 			prop.SetMaterial(kRadLen, kRho);
-			prop.SetPolynomialField(hlt.Merger().pField());		
-			prop.SetToyMCEventsFlag(hlt.Merger().SliceParam().ToyMCEventsFlag());
+			prop.SetPolynomialField(merger.pField());		
+			prop.SetToyMCEventsFlag(merger.SliceParam().ToyMCEventsFlag());
 
 #pragma omp barrier
 #pragma omp for
@@ -1406,12 +1376,64 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 			}
 
 #pragma omp barrier
+			threadTracks[numThread].resize(nCollisions);
+			for (int i = 0;i < nCollisions;i++) for (int j = 0;j < fgkNSlices;j++) for (int k = 0;k < 2;k++) threadTracks[numThread][i][j][k].clear();
+#pragma omp for
+			for (int i = 0;i < merger.NOutputTracks();i++)
+			{
+				const AliHLTTPCGMMergedTrack* track = &merger.OutputTracks()[i];
+				if (track->NClusters() == 0) continue;
+				if (hideRejectedTracks && !track->OK()) continue;
+				int slice = merger.Clusters()[track->FirstClusterRef() + track->NClusters() - 1].fSlice;
+				unsigned int col = 0;
+				if (nCollisions > 1)
+				{
+					int label = GetMCLabel(i);
+					if (label < -1) label = -label - 2;
+					while (col < collisionClusters.size() && collisionClusters[col][fgkNSlices] < label) col++;
+				}
+				threadTracks[numThread][col][slice][0].emplace_back(i);
+			}
+#pragma omp for
+			for (int i = 0;i < hlt.GetNMCInfo();i++)
+			{
+				const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
+				if (mc.fCharge == 0.f) continue;
+				if (mc.fPID < 0) continue;
+				
+				float alpha = atan2f(mc.fY, mc.fX);
+				if (alpha < 0) alpha += 2 * M_PI;
+				int slice = alpha / (2 * M_PI) * 18;
+				if (mc.fZ < 0) slice += 18;
+				unsigned int col = 0;
+				if (nCollisions > 1)
+				{
+					while (col < collisionClusters.size() && collisionClusters[col][fgkNSlices] < i) col++;
+				}
+				threadTracks[numThread][col][slice][1].emplace_back(i);
+			}
+#pragma omp barrier
 #pragma omp for
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
 				for (int iCol = 0;iCol < nCollisions;iCol++)
 				{
-					DrawFinal(iSlice, iCol, &prop, &glDLfinal[iSlice][iCol][0], threadBuffers[numThread]);
+					threadBuffers[numThread].clear();
+					for (int iSet = 0;iSet < numThreads;iSet++)
+					{
+						DrawFinal(iSlice, iCol, &prop, threadTracks[iSet][iCol][iSlice], threadBuffers[numThread]);
+					}
+					vboList* list = &glDLfinal[iSlice][iCol][0];
+					for (int i = 0;i < N_FINAL_TYPE;i++)
+					{
+						size_t startCount = vertexBufferStart[iSlice].size();
+						for (unsigned int j = 0;j < threadBuffers[numThread].start[i].size();j++)
+						{
+							vertexBufferStart[iSlice].emplace_back(threadBuffers[numThread].start[i][j]);
+							vertexBufferCount[iSlice].emplace_back(threadBuffers[numThread].count[i][j]);
+						}
+						list[i] = vboList(startCount, vertexBufferStart[iSlice].size() - startCount, iSlice);
+					}
 				}
 			}
 

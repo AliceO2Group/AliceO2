@@ -339,8 +339,11 @@ void *OpenGLMain(void* /*ptr*/)
 		glXSwapBuffers(g_pDisplay, g_window); // Buffer swap does implicit glFlush
 	}
 	
+	glDeleteLists(font_base, 256);
 	ExitGL();
 	glXDestroyContext(g_pDisplay, glxContext);
+	XUnloadFont(g_pDisplay, font_info->fid);
+	XFree(visualInfo);
 	XDestroyWindow(g_pDisplay, g_window);
 	XCloseDisplay(g_pDisplay);
 	

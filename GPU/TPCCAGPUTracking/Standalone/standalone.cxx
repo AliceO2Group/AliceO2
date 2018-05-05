@@ -523,7 +523,7 @@ int main(int argc, char** argv)
 					}
 				}
 				hlt.FinishDataReading();
-				printf("Loading time: %1.0f us\n", 1000000 * timerLoad.GetCurrentElapsedTime());
+				printf("Loading time: %'d us\n", (int) (1000000 * timerLoad.GetCurrentElapsedTime()));
 
 				printf("Processing Event %d\n", i);
 				for (int j = 0;j < configStandalone.runs;j++)
