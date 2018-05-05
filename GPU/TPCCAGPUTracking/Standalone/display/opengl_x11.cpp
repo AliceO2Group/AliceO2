@@ -57,7 +57,7 @@ void OpenGLPrint(const char* s)
    }
 }
 
-void *OpenGLMain(void *ptr)
+void *OpenGLMain(void* /*ptr*/)
 {
 	XSetWindowAttributes windowAttributes;
 	XVisualInfo *visualInfo = NULL;

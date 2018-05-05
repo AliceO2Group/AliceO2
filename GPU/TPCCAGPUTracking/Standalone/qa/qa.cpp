@@ -921,8 +921,7 @@ void RunQA(bool matchOnly)
 				if (clusterInfo[cid] > 0.f) clustersAttached++;
 				int labels[3] = {};
 				if (hlt.GetNMCInfo() && hlt.GetNMCLabels())
-					for (int i = 0;i < 3;i++)
-						labels[i] = hlt.GetMCLabels()[cid].fClusterID[i].fMCID;
+					for (int j = 0;j < 3;j++) labels[j] = hlt.GetMCLabels()[cid].fClusterID[j].fMCID;
 				fprintf(fp, "%f;%f;%f;%f;%f;%f;%d;%d;%d\n", x, y, z, clusterInfo[cid], p, maxPt, labels[0], labels[1], labels[2]);
 			}
 		}

@@ -469,6 +469,7 @@ void UpdateOffscreenBuffers(bool clean = false)
 	if (mixBuffer.created) deleteFB(mixBuffer);
 	if (offscreenBuffer.created) deleteFB(offscreenBuffer);
 	if (offscreenBufferNoMSAA.created) deleteFB(offscreenBufferNoMSAA);
+	if (clean) return;
 	
 	if (drawQualityDownsampleFSAA > 1)
 	{
@@ -1675,14 +1676,14 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	{
 		framesDone++;
 		framesDoneFPS++;
-		double time = timerFPS.GetCurrentElapsedTime();
+		double fpstime = timerFPS.GetCurrentElapsedTime();
 		char info[1024];
-		float fps = (double) framesDoneFPS / time;
+		float fps = (double) framesDoneFPS / fpstime;
 		sprintf(info, "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
 			"(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
 			fps, cfg.drawSlice, cfg.drawClusters, cfg.drawInitLinks, cfg.drawLinks, cfg.drawSeeds, cfg.drawTracklets, cfg.drawTracks, cfg.drawGlobalTracks, cfg.drawFinal, framesDone, drawCalls,
 			xyz[0], xyz[1], xyz[2], rphitheta[0], rphitheta[1] * 180 / M_PI, rphitheta[2] * 180 / M_PI, angle[1] * 180 / M_PI, angle[0] * 180 / M_PI, angle[2] * 180 / M_PI);
-		if (time > 1.)
+		if (fpstime > 1.)
 		{
 			if (printInfoText & 2) printf("%s\n", info);
 			if (fpsscaleadjust++) fpsscale = 60 / fps;

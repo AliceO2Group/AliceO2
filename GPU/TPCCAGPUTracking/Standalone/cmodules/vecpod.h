@@ -5,7 +5,7 @@ template <class T> struct vecpod_allocator {
   vecpod_allocator() noexcept : stdalloc() {}
   T* allocate (std::size_t n) { return stdalloc.allocate(n); }
   void deallocate (T* p, std::size_t n) { stdalloc.deallocate(p, n); }
-  static void construct(T* p) {}
+  static void construct(T*) {}
   std::allocator<T> stdalloc;
 };
 

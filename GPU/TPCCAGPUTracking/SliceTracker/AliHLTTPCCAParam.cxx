@@ -129,12 +129,10 @@ void AliHLTTPCCAParam::Update()
   fTrackChi2Cut = fTrackChiCut * fTrackChiCut;
 }
 
-
+#if !defined(HLTCA_STANDALONE)
 void AliHLTTPCCAParam::LoadClusterErrors( bool Print )
 {
   // update of calculated values
-#if !defined(HLTCA_STANDALONE)
-
   const AliTPCClusterParam *clparam =  AliTPCcalibDB::Instance()->GetClusterParam();
  if( !clparam ){
     cout<<"Error: AliHLTTPCCAParam::LoadClusterErrors():: No AliTPCClusterParam instance found !!!! "<<endl;
@@ -201,8 +199,10 @@ void AliHLTTPCCAParam::LoadClusterErrors( bool Print )
 
  }
 
-#endif
 }
+#else
+void AliHLTTPCCAParam::LoadClusterErrors( bool /*Print*/ ) {}
+#endif
 
 #endif
 
