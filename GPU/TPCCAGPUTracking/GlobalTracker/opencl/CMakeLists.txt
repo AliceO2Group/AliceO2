@@ -14,7 +14,11 @@
 # **************************************************************************
 
 # Module
-set(MODULE AliHLTTPCCAGPUOpenCL)
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+set(MODULE O2TPCCAGPUTrackingOpenCL)
+elseif(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+set(MODULE AliTPCCAGPUTrackingOpenCL)
+endif()
 
 # AMD APP SDK required for OpenCL tracker; it's using specific
 # extensions (currently) not provided by other vendors.
@@ -35,7 +39,7 @@ endif()
 message(STATUS "Building HLT with OpenCL support" )
 
 #convenience variables
-set(CAGPUDIR ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu)
+set(CAGPUDIR ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking)
 
 #libdir path
 link_directories(${AMDAPPSDKROOT}/lib/x86_64)
@@ -43,16 +47,17 @@ link_directories(${AMDAPPSDKROOT}/lib/x86_64)
 # build the OpenCL compile wrapper:
 # -- checks the correct vendor implementation (AMD)
 # -- builds binary code (blob) for the found platform(s)
-add_executable(opencl_compiler ${CAGPUDIR}/makefiles/makefile_opencl_compiler.cpp)
+add_executable(opencl_compiler ${CAGPUDIR}/Standalone/makefiles/makefile_opencl_compiler.cpp)
 target_link_libraries(opencl_compiler OpenCL)
 
 #convenience variables
-set(CL_SRC ${CAGPUDIR}/opencl/AliHLTTPCCAGPUTrackerOpenCL.cl )
+set(CL_SRC ${CAGPUDIR}/GlobalTracker/opencl/AliHLTTPCCAGPUTrackerOpenCL.cl )
 set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.bin )
 set(CL_INC
-    -I${AliRoot_SOURCE_DIR}/HLT/BASE 
-    -I${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca
-    -I${CAGPUDIR}
+    -I${CAGPUDIR}/HLTHeaders
+    -I${CAGPUDIR}/SliceTracker
+    -I${CAGPUDIR}/Merger
+    -I${CAGPUDIR}/GlobalTracker
 )
 
 # executes OpenCL compiler wrapper to build binary object
@@ -62,64 +67,86 @@ add_custom_command(
     MAIN_DEPENDENCY ${CL_SRC}
 )
 
-# make cmake compile the assembler file
-set_source_files_properties(${CAGPUDIR}/makefiles/include.S PROPERTIES LANGUAGE CXX)
-# add proper dependency on included binary code
-set_source_files_properties(${CAGPUDIR}/makefiles/include.S PROPERTIES OBJECT_DEPENDS ${CL_BIN})
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
+    COMMAND cat ${CAGPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl/g" | sed "s/FILENAMENORMAL/AliHLTTPCCAGPUTrackerOpenCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
+    MAIN_DEPENDENCY ${CAGPUDIR}/Standalone/makefiles/include.S
+)
 
-# bit of a hack, but otherwise dictionary compilation fails:
-# defines __ROOT__; triggers "ifdef" in source code to circumvent broken cint behaviour with "volatile" keyword
-# not sure why __ROOT__ is used here, could just as well be something else
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/G__AliHLTTPCCAGPUOpenCL.cxx PROPERTIES COMPILE_DEFINITIONS "__ROOT__")
+# make cmake compile the assembler file, add proper dependency on included binary code
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S PROPERTIES LANGUAGE CXX OBJECT_DEPENDS "${CL_BIN};${CAGPUDIR}/Standalone/makefiles/include.S")
 
 # Module include folder
-include_directories(${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu/opencl
-                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/makefiles
-                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu
-                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca
+include_directories(${CAGPUDIR}/GlobalTracker/opencl
+                    ${CAGPUDIR}/GlobalTracker
+                    ${CAGPUDIR}/Standalone/makefiles
+                    ${CAGPUDIR}/SliceTracker
+                    ${CAGPUDIR}/Merger
                    )
 
 # Additional include folders in alphabetical order except ROOT
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
-include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE
-                    ${AMDAPPSDKROOT}/include
-                   )
+include_directories(${AMDAPPSDKROOT}/include)
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+   include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE)
+   add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
+else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
+   include_directories(${CAGPUDIR}/HLTHeaders ${CAGPUDIR}/Standalone/include)
+   add_definitions(-DHLTCA_STANDALONE)
+endif()
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+   add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
+endif()                   
 
 # Sources in alphabetical order
 set(SRCS
-    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerBase.cxx
+    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
     AliHLTTPCCAGPUTrackerOpenCL.cxx
-    ${CAGPUDIR}/makefiles/include.S
+    ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
    )
 
 # Headers from sources
 set(CINTHDRS
-    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerBase.h
+    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.h
     AliHLTTPCCAGPUTrackerOpenCL.h
 )
 
 set(HDRS
     ${CINTHDRS}
-    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerCommon.h
+    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerCommon.h
     AliHLTTPCCAGPUTrackerOpenCLInternals.h
   )
 
-# Generate the dictionary
-# It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
-get_directory_property(incdirs INCLUDE_DIRECTORIES)
-generate_dictionary("${MODULE}" "" "${CINTHDRS}" "${incdirs}")
+#Default cmake build script for AliRoot
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+    # Generate the dictionary
+    # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
+    get_directory_property(incdirs INCLUDE_DIRECTORIES)
+    generate_dictionary("${MODULE}" "" "${CINTHDRS}" "${incdirs}")
 
-# Generate the ROOT map
-generate_rootmap("${MODULE}" "" "")
+    # Generate the ROOT map
+    generate_rootmap("${MODULE}" "" "")
 
-# Add a library to the project using the specified source files
-add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
-#MAD OpenCL run-time and driver
-target_link_libraries(${MODULE} OpenCL AliHLTTPC)
+    # Add a library to the project using the specified source files
+    add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
+    # AMD OpenCL run-time and driver
+    target_link_libraries(${MODULE} OpenCL AliTPCCAGPUTracking)
 
-# Installation
-install(TARGETS ${MODULE}
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
+    # Installation
+    install(TARGETS ${MODULE}
+            ARCHIVE DESTINATION lib
+            LIBRARY DESTINATION lib)
 
-install(FILES ${HDRS} DESTINATION include)
+    install(FILES ${HDRS} DESTINATION include)
+endif()
+
+#Default cmake build script for O2
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+#We do not need the dictionary for the standalone library files
+    Set(LIBRARY_NAME ${MODULE})
+    set(BUCKET_NAME TPCCAGPUTracking_bucket)
+    
+    O2_GENERATE_LIBRARY()
+
+    target_link_libraries(${MODULE} OpenCL O2TPCCAGPUTracking)
+endif()

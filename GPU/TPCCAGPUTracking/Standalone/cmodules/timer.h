@@ -1,5 +1,5 @@
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef QONMODULE_TIMER_H
+#define QONMODULE_TIMER_H
 
 class HighResTimer {
 

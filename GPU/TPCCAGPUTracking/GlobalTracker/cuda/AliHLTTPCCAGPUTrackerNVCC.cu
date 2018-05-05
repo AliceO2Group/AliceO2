@@ -74,6 +74,14 @@ AliHLTTPCCAGPUTrackerNVCC::~AliHLTTPCCAGPUTrackerNVCC()
 	delete (CUcontext*) fCudaContext;
 };
 
+bool AliHLTTPCCAGPUTrackerNVCC::GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+	//Check for CUDA Error and in the case of an error display the corresponding error string
+	if (error == cudaSuccess) return(false);
+	HLTWarning("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t) error), file, line);
+	return(true);
+}
+
 int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID)
 {
 	//Find best CUDA device, initialize and allocate memory
@@ -241,14 +249,6 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	HLTInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d, %lld bytes used)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount, fGPUMemSize);
 
 	return(0);
-}
-
-bool AliHLTTPCCAGPUTrackerNVCC::GPUFailedMsgA(cudaError_t error, const char* file, int line)
-{
-	//Check for CUDA Error and in the case of an error display the corresponding error string
-	if (error == cudaSuccess) return(false);
-	HLTWarning("CUDA Error: %d / %s (%s:%d)", error, cudaGetErrorString(error), file, line);
-	return(true);
 }
 
 int AliHLTTPCCAGPUTrackerNVCC::GPUSync(const char* state, int stream, int slice)
@@ -545,14 +545,14 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		{
 			if (*fSlaveTrackers[firstSlice + tmpSlice].NTracks() > 0)
 			{
-				int useStream = HLTCA_GPU_NUM_STREAMS ? streamMap[tmpSlice] : tmpSlice;
+				useStream = HLTCA_GPU_NUM_STREAMS ? streamMap[tmpSlice] : tmpSlice;
 				GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].Tracks(), fGpuTracker[tmpSlice].Tracks(), sizeof(AliHLTTPCCATrack) * *fSlaveTrackers[firstSlice + tmpSlice].NTracks(), cudaMemcpyDeviceToHost, cudaStreams[useStream]));
 				GPUFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].TrackHits(), fGpuTracker[tmpSlice].TrackHits(), sizeof(AliHLTTPCCAHitId) * *fSlaveTrackers[firstSlice + tmpSlice].NTrackHits(), cudaMemcpyDeviceToHost, cudaStreams[useStream]));
 			}
 			tmpSlice++;
 		}
 
-		int useStream = HLTCA_GPU_NUM_STREAMS ? streamMap[iSlice] : iSlice;
+		useStream = HLTCA_GPU_NUM_STREAMS ? streamMap[iSlice] : iSlice;
 		if (GPUFailedMsg(cudaStreamSynchronize(cudaStreams[useStream])) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);

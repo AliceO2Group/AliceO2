@@ -57,7 +57,7 @@
 using namespace std;
 #endif
 
-#include "../tracking-standalone/include/standaloneSettings.h"
+#include "../Standalone/include/standaloneSettings.h"
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer( "CATRACKL", kAliHLTDataOriginTPC );
 

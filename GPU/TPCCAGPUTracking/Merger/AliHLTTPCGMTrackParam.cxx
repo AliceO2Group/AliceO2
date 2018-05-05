@@ -82,7 +82,6 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(AliHLTTPCGMMerger* merger, int iTrk, AliH
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
     const bool refit = ( nWays == 1 || iWay >= 1 );
-    const double kDeg2Rad = 3.14159265358979323846/180.;
     const float maxSinForUpdate = CAMath::Sin(70.*kDeg2Rad);
     if (refit && attempt == 0) prop.SetSpecialErrors(true);
   

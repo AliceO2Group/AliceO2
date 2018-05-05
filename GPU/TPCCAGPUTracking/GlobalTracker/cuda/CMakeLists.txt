@@ -14,9 +14,13 @@
 # **************************************************************************
 
 # Module
-set(MODULE AliHLTTPCCAGPU)
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+set(MODULE O2TPCCAGPUTrackingCUDA)
+elseif(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+set(MODULE AliTPCCAGPUTrackingCUDA)
+endif()
 
-option(HLT_CUDA_GCCBIN   "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
+option(HLT_CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
 
 find_package(CUDA)
 if(NOT CUDA_FOUND)
@@ -32,78 +36,89 @@ if(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
 endif(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
 
 #set nvcc flags
-set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_52,code=sm_52 -gencode arch=compute_61,code=sm_61)
+set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_61,code=sm_61 --compiler-bindir /usr/x86_64-pc-linux-gnu/gcc-bin/6.4.0/x86_64-pc-linux-gnu-gcc)
 if(HLT_CUDA_GCCBIN)
   set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --compiler-bindir ${HLT_CUDA_GCCBIN})
 endif()
 
 #for convenience
-set(CAGPUDIR ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu)
+set(CAGPUDIR ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking)
 
 # Module include folder
-include_directories(${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu/cuda
-                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu
-                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca
+include_directories(${CAGPUDIR}/GlobalTracker
+                    ${CAGPUDIR}/GlobalTracker/cuda
+                    ${CAGPUDIR}/Merger
+                    ${CAGPUDIR}/SliceTracker
                    )
 
 # Additional include folders in alphabetical order except ROOT
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
-include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE
-                   )
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+    include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE)
+    add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
+else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
+    include_directories(${CAGPUDIR}/HLTHeaders ${CAGPUDIR}/Standalone/include)
+    add_definitions(-DHLTCA_STANDALONE)
+endif()
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+    add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
+endif()
 
 #compile CUDA object file
 cuda_compile(CAGPU_O AliHLTTPCCAGPUTrackerNVCC.cu)
 
-#set it back
-if(STDCXX11FOUND GREATER -1)
-  string ( REPLACE "-std=c++98" "-std=c++11" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" )
-endif()
 #end of CUDA specific stuff; from here on build usual library
-
-
-# bit of a hack, but otherwise dictionary compilation fails:
-# defines cudaError_t to make it known
-# defines __ROOT__; triggers "ifdef" in source code to circumvent broken cint behaviour with "volatile" keyword
-# not sure why __ROOT__ is used here, could just as well be something else
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/G__AliHLTTPCCAGPU.cxx PROPERTIES COMPILE_DEFINITIONS "cudaError_t=int;__ROOT__")
 
 # Sources in alphabetical order
 set(SRCS
-    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerBase.cxx
+    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
     ${CAGPU_O}
    )
 
 # Headers from sources
 set(CINTHDRS
-    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerBase.h
+    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.h
     AliHLTTPCCAGPUTrackerNVCC.h
     )
   
 set(HDRS
     ${CINTHDRS}
-    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerCommon.h
+    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerCommon.h
   )
 
-# Generate the dictionary
-# It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
-get_directory_property(incdirs INCLUDE_DIRECTORIES)
-generate_dictionary("${MODULE}" "" "${CINTHDRS}" "${incdirs}")
+#Default cmake build script for AliRoot
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+    # Generate the dictionary
+    # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
+    get_directory_property(incdirs INCLUDE_DIRECTORIES)
+    generate_dictionary("${MODULE}" "" "${CINTHDRS}" "${incdirs}")
 
-# Generate the ROOT map
-# Dependecies
-generate_rootmap("${MODULE}" "" "")
+    # Generate the ROOT map
+    # Dependecies
+    generate_rootmap("${MODULE}" "" "")
 
-# Add a library to the project using the specified source files
-add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
-#CUDA run-time and driver
-target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} AliHLTTPC)
+    # Add a library to the project using the specified source files
+    add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
+    #CUDA run-time and driver
+    target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} AliTPCCAGPUTracking)
 
-# Additional compilation flags
-set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
+    # Additional compilation flags
+    set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
 
-# Installation
-install(TARGETS ${MODULE}
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
+    # Installation
+    install(TARGETS ${MODULE}
+            ARCHIVE DESTINATION lib
+            LIBRARY DESTINATION lib)
 
-install(FILES ${HDRS} DESTINATION include)
+    install(FILES ${HDRS} DESTINATION include)
+endif()
+
+#Default cmake build script for O2
+if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+    Set(LIBRARY_NAME ${MODULE})
+    set(BUCKET_NAME TPCCAGPUTracking_bucket)
+    
+    O2_GENERATE_LIBRARY()
+
+    target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} O2TPCCAGPUTracking)
+endif()
