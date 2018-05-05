@@ -751,6 +751,8 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 		while (true)
 		{
 			if (i >= merger.NOutputTracks()) track = nullptr;
+			else if (track->NClusters() == 0) track = nullptr;
+			else if (hideRejectedTracks && !track->OK()) track = nullptr;
 			else if (merger.Clusters()[track->FirstClusterRef() + track->NClusters() - 1].fSlice != iSlice) track = nullptr;
 			else if (nCollisions > 1)
 			{
@@ -803,8 +805,6 @@ void DrawFinal(int iSlice, unsigned int iCol, AliHLTTPCGMPropagator* prop, vboLi
 			{
 				if (track == nullptr) continue;
 				if (lastCluster == -1) continue;
-				if (track->NClusters() == 0) continue;
-				if (hideRejectedTracks && !track->OK()) continue;
 				if (merger.Clusters()[track->FirstClusterRef() + track->NClusters() - 1].fSlice != iSlice) continue;
 			}
 
