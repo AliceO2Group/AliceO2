@@ -799,19 +799,20 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 			size_t startCountInner = vertexBuffer[iSlice].size();
 			for (int inFlyDirection = 0;inFlyDirection < 2;inFlyDirection++)
 			{
-				AliHLTTPCGMTrackParam param;
+				AliHLTTPCGMPhysicalTrackModel param;
+				float ZOffset = 0;
 				float x = 0;
 				int slice = iSlice;
 				float alpha = hlt.Param().Alpha(slice);
 				if (iMC == 0)
 				{
-					param = track->GetParam();
+					param.Set(track->GetParam());
+					ZOffset = track->GetParam().GetZOffset();
 					auto cl = merger.Clusters()[track->FirstClusterRef() + lastCluster];
 					x = cl.fX;
 				}
 				else
 				{
-					param.ResetCovariance();
 					const AliHLTTPCCAMCInfo& mc = hlt.GetMCInfo()[i];
 					if (mc.fCharge == 0.f) break;
 					if (mc.fPID < 0) break;
@@ -827,27 +828,16 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 					float py = mc.fPy;
 					mclocal[2] = px*c + py*s;
 					mclocal[3] =-px*s + py*c;
-					float pt = sqrtf(px * px + py * py);
-					if (pt < 0.001) break;
-					float sinPhi = mclocal[3] / pt;
 					float charge = mc.fCharge > 0 ? 1.f : -1.f;
-					float qpt = charge / pt;
-					float dzds = mc.fPz / pt;
 					
 					x = mclocal[0];
-					param.X() = mclocal[0];
-					param.Y() = mclocal[1];
-					param.Z() = 0;
-					param.SinPhi() = sinPhi;
-					param.DzDs() = dzds;
-					param.QPt() = qpt;
-					param.ZOffset() = mc.fZ;
+					if (fabs(mc.fZ) > 250) ZOffset = mc.fZ > 0 ? (mc.fZ - 250) : (mc.fZ + 250);
+					param.Set(mclocal[0], mclocal[1], mc.fZ - ZOffset, mclocal[2], mclocal[3], mc.fPz, charge);
 				}
 				param.X() += Xadd;
 				x += Xadd;
 				float z0 = param.Z();
 				if (iMC && inFlyDirection == 0) buffer.clear();
-				prop->SetTrack(&param, alpha);
 				if (x < 1) break;
 				if (fabs(param.SinPhi()) > 1) break;
 				alpha = hlt.Param().Alpha(slice);
@@ -857,11 +847,16 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 				while (nPoints++ < 5000)
 				{
 					if ((inFlyDirection == 0 && x < 0) || (inFlyDirection && x * x + param.Y() * param.Y() > (iMC ? (450 * 450) : (300 * 300)))) break;
-					if (fabs(param.Z() + param.ZOffset()) > maxClusterZ + (iMC ? 0 : 0)) break;
+					if (fabs(param.Z() + ZOffset) > maxClusterZ + (iMC ? 0 : 0)) break;
 					if (fabs(param.Z() - z0) > (iMC ? 250 : 250)) break;
 					if (inFlyDirection)
 					{
-						prop->RotateToAlpha(alpha = prop->GetAlpha() + asinf(param.SinPhi()));
+						if (fabs(param.SinPhi()) > 0.4)
+						{
+							float dalpha = asinf(param.SinPhi());
+							param.Rotate(dalpha);
+							alpha += dalpha;
+						}
 						x = param.X() + 1.f;
 						if (!propagateLoopers)
 						{
@@ -870,10 +865,13 @@ void DrawFinal(int iSlice, int /*iCol*/, AliHLTTPCGMPropagator* prop, std::array
 							if (diff > 0.25 && diff < 0.75) break;
 						}
 					}
-					if (prop->PropagateToXAlpha( x, alpha, inFlyDirection ) ) break;
+					float B[3];
+					prop->GetBxByBz(alpha, param.GetX(), param.GetY(), param.GetZ(), B );
+					float dLp=0;
+					if (param.PropagateToXBxByBz(x, B[0], B[1], B[2], dLp)) break;
 					if (fabs(param.SinPhi()) > 0.9) break;
 					float sa = sinf(alpha), ca = cosf(alpha);
-					useBuffer.emplace_back((ca * param.X() - sa * param.Y()) / GL_SCALE_FACTOR, (ca * param.Y() + sa * param.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (param.Z() + param.ZOffset()) / GL_SCALE_FACTOR);
+					useBuffer.emplace_back((ca * param.X() - sa * param.Y()) / GL_SCALE_FACTOR, (ca * param.Y() + sa * param.X()) / GL_SCALE_FACTOR, projectxy ? 0 : (param.Z() + ZOffset) / GL_SCALE_FACTOR);
 					x += inFlyDirection ? 1 : -1;
 				}
 				

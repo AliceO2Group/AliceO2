@@ -17,7 +17,7 @@ INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker
 DEFINES						= HLTCA_STANDALONE
 CPPFILES					= cmodules/timer.cpp
 
-EXTRAFLAGSGCC				= -Weffc++ -Wno-unused-local-typedefs
+EXTRAFLAGSGCC				= -Weffc++
 EXTRAFLAGSLINK				= -rdynamic
 
 COMPILER_FLAGS				= OPT
