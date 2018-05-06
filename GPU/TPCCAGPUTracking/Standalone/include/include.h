@@ -19,8 +19,7 @@ extern volatile int sendKey;
 #else
 static void ShowNextEvent() {}
 static void DisplayExit() {}
-static void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
-static int exitButton;
+static void SetCollisionFirstCluster(unsigned int /*collision*/, int /*slice*/, int /*cluster*/) {}
 static volatile int displayEventNr;
 static volatile int sendKey;
 #endif
@@ -37,11 +36,11 @@ extern int GetMCLabel(unsigned int trackId);
 #else
 static void InitQA() {}
 static void RunQA(bool matchOnly = false) {}
-static int DrawQAHistograms() {}
+static int DrawQAHistograms() {return 0;}
 static void SetMCTrackRange(int min, int max) {}
-static bool SuppressTrack(int iTrack) {}
-static bool SuppressHit(int iHit) {}
-static int GetMCLabel(unsigned int trackId) {}
+static bool SuppressTrack(int iTrack) {return false;}
+static bool SuppressHit(int iHit) {return false;}
+static int GetMCLabel(unsigned int trackId) {return(0);}
 #endif
 
 //QA - Event Generator
