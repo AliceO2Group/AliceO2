@@ -13,7 +13,7 @@
 
 #if defined(HLTCA_STANDALONE) || defined(HLTCA_GPUCODE)
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
-#include <math.h>
+#include <cmath>
 #endif
 #else
 #include "TMath.h"
@@ -119,7 +119,7 @@ GPUd() inline int AliHLTTPCCAMath::Nint( float x )
 
 GPUd() inline bool AliHLTTPCCAMath::Finite( float x )
 {
-  return choice( 1 /*isfinite( x )*/, isfinite( x ), isfinite( x ) );
+  return choice( 1 /*isfinite( x )*/, std::isfinite( x ), std::isfinite( x ) );
 }
 
 GPUd() inline float AliHLTTPCCAMath::ATan2( float y, float x )
