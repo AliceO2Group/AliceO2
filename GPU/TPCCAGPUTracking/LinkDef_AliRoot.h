@@ -26,7 +26,6 @@
 #pragma link C++ class AliHLTTPCCAStandaloneFramework+;
 #pragma link C++ class AliHLTTPCCATrackerFramework+;
 #pragma link C++ class AliHLTTPCCAGPUTracker+;
-#pragma link C++ class AliHLTTPCCATrackConvertor+;
 #pragma link C++ class AliHLTTPCGMTrackParam+;
 #pragma link C++ class AliHLTTPCGMSliceTrack+;
 #pragma link C++ class AliHLTTPCGMMerger+;
@@ -34,5 +33,6 @@
 #pragma link C++ class AliHLTTPCGMPropagator+;
 #pragma link C++ class AliHLTTPCGMPhysicalTrackModel+;
 #pragma link C++ class AliHLTTPCGMPolynomialFieldCreator+;
+#pragma link C++ class AliHLTTPCCAClusterStatComponent+;
 
 #endif

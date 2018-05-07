@@ -48,7 +48,10 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
 if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
     include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
     include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE
+        ${AliRoot_SOURCE_DIR}/HLT/BASE/util
         ${AliRoot_SOURCE_DIR}/HLT/TPCLib
+        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/transform
+        ${AliRoot_SOURCE_DIR}/HLT/TPCLib/comp
         ${AliRoot_SOURCE_DIR}/STEER/STEERBase
         ${AliRoot_SOURCE_DIR}/STEER/STEER
         ${AliRoot_SOURCE_DIR}/STEER/ESD
@@ -60,8 +63,8 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
 
     set(SRCS ${SRCS}
         SliceTracker/AliHLTTPCCAGlobalMergerComponent.cxx
-        SliceTracker/AliHLTTPCCATrackConvertor.cxx
         SliceTracker/AliHLTTPCCATrackerComponent.cxx
+        DataCompression/AliHLTTPCClusterStatComponent.cxx
     )
     
     add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
