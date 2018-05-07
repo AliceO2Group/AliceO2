@@ -24,7 +24,6 @@
 #include "ITSMFTSimulation/AlpideChip.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 
-#include "MFTBase/Constants.h"
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 #include "MFTBase/Flex.h"

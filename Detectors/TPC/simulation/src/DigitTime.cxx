@@ -17,12 +17,6 @@
 
 using namespace o2::TPC;
 
-void DigitTime::addDigit(size_t eventID, size_t trackID, const CRU& cru, GlobalPadNumber globalPad, float signal)
-{
-  mGlobalPads[globalPad].addDigit(eventID, trackID, signal);
-  mCommonMode[cru.gemStack()] += signal;
-}
-
 void DigitTime::fillOutputContainer(std::vector<Digit>* output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                     std::vector<DigitMCMetaData>* debug, const Sector& sector, TimeBin timeBin,
                                     float commonMode)

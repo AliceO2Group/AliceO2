@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/O2RunAna.cxx
   src/InteractionSampler.cxx
+  src/HitProcessingManager.cxx
 )
 
 set(HEADERS
@@ -21,6 +22,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/testInteractionSampler.cxx
+  test/testHitProcessingManager.cxx
 )
 
 O2_GENERATE_TESTS(

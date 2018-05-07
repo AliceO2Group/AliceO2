@@ -31,7 +31,7 @@ void defineDataProcessing(WorkflowSpec& specs)
   // specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
 
   // parallely processing the first 6 TPC sectors
-  for (int s = 0; s < 6; ++s) {
+  for (int s = 0; s < 1; ++s) {
     // probably a parallel construct can be used here
     specs.emplace_back(o2::steer::getTPCDriftTimeDigitizer(s, fanoutsize++));
   }

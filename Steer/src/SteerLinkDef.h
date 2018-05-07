@@ -17,5 +17,9 @@
 #pragma link C++ class o2::steer::O2RunAna;
 #pragma link C++ class o2::steer::InteractionSampler+;
 #pragma link C++ class o2::steer::RunContext+;
+#pragma link C++ class o2::steer::EventPart+;
+#pragma link C++ class vector<o2::steer::EventPart>+;
+#pragma link C++ class vector<vector<o2::steer::EventPart>>+;
+#pragma link C++ class o2::steer::HitProcessingManager;
 
 #endif

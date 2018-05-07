@@ -19,7 +19,6 @@
 #include "TGeoVolume.h"
 #include "TGeoCompositeShape.h"
 
-#include "MFTBase/Constants.h"
 #include "MFTBase/Support.h"
 
 using namespace o2::MFT;
