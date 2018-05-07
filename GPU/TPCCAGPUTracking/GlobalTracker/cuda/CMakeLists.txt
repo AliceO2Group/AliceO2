@@ -36,7 +36,7 @@ if(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
 endif(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
 
 #set nvcc flags
-set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_61,code=sm_61 --compiler-bindir /usr/x86_64-pc-linux-gnu/gcc-bin/6.4.0/x86_64-pc-linux-gnu-gcc)
+set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_61,code=sm_61)
 if(HLT_CUDA_GCCBIN)
   set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --compiler-bindir ${HLT_CUDA_GCCBIN})
 endif()
