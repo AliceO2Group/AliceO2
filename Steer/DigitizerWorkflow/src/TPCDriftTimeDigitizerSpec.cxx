@@ -61,45 +61,56 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
   digitizertask->Init2();
 
   auto digitArray = std::make_shared<std::vector<o2::TPC::Digit>>();
+
   auto mcTruthArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   // the task takes the ownership of digit array + mc truth array
   // TODO: make this clear in the API
   digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
 
-  auto doit = [simChain, simChains, digitizertask, digitArray, mcTruthArray](ProcessingContext& pc) {
+  auto doit = [simChain, simChains, digitizertask, digitArray, mcTruthArray, channel](ProcessingContext& pc) {
     static int callcounter = 0;
     callcounter++;
-
-    auto sectorptr = pc.inputs().get<int>("sectorassign");
-    if (sectorptr) {
-      LOG(INFO) << "GOT ASSIGNED SECTOR" << *sectorptr.get();
-    }
-    int sector = *sectorptr;
-
-    // no more tasks can be marked with a negative sector
-    if (sector == -1) {
-      // we are ready to quit
-      pc.services().get<ControlService>().readyToQuit(false);
+    static bool finished = false;
+    if (finished) {
       return;
     }
+
+    // extract which sector to treat (strangely this is a unique pointer)
+    auto sectorptr = pc.inputs().get<int>("sectorassign");
+    if (sectorptr) {
+      LOG(INFO) << "GOT ASSIGNED SECTOR " << *sectorptr.get();
+    }
+    int sector = *sectorptr;
 
     // ===| open file and register branches |=====================================
     // this is done at the moment for each worker function invocation
     // TODO: make this nicer or let the write service be handled outside
-    auto file = std::make_unique<TFile>(Form("tpc_digi_%i_instance%i.root", sector, callcounter), "recreate");
-    auto outtree = std::make_unique<TTree>("o2sim", "TPC digits");
-    outtree->SetDirectory(file.get());
     auto digitArrayRaw = digitArray.get();
     auto mcTruthArrayRaw = mcTruthArray.get();
-    auto digitBranch = outtree->Branch(Form("TPCDigit_%i", sector), &digitArrayRaw);
-    auto mcTruthBranch = outtree->Branch(Form("TPCDigitMCTruth_%i", sector), &mcTruthArrayRaw);
+
+    // no more tasks can be marked with a negative sector
+    if (sector == -1) {
+      // we are ready to quit
+
+      // notify channels further down the road that we are done (why do I have to send digitArray here????)
+      digitArrayRaw->clear();
+      mcTruthArrayRaw->clear();
+      pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+                            *digitArrayRaw);
+      pc.outputs().snapshot(
+        Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+        *mcTruthArrayRaw);
+      pc.outputs().snapshot(Output{ "TPC", "SECTOR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+                            sector);
+      pc.services().get<ControlService>().readyToQuit(false);
+      finished = true;
+      return;
+    }
 
     // obtain collision contexts
     auto context = pc.inputs().get<o2::steer::RunContext>("collisioncontext");
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
-
-    // extract which sector to treat (strangely this is a unique pointer)
 
     // if there is nothing ... return
     if (timesview.size() == 0) {
@@ -137,6 +148,10 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     hitvectorsleft.resize(maxnumberofentries, nullptr);
     hitvectorsright.resize(maxnumberofentries, nullptr);
 
+    // this is to accum digits from different drift times
+    std::vector<o2::TPC::Digit> digitAccum;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
+
     for (int drift = 1; drift <= ndrifts; ++drift) {
       auto starttime = (drift - 1) * TPCDRIFT;
       auto endtime = drift * TPCDRIFT;
@@ -163,12 +178,22 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
         digitizertask->setupSector(sector);
         digitizertask->Exec2("");
 
-        // write digits + MC truth
-        outtree->Fill();
+        std::copy(digitArrayRaw->begin(), digitArrayRaw->end(), std::back_inserter(digitAccum));
+        labelAccum.mergeAtBack(*mcTruthArrayRaw);
+
+        // NOTE: we would like to send it here in order to avoid copying/accumulating !!
       }
     }
-    outtree->SetDirectory(file.get());
-    file->Write();
+    // write digits + MC truth
+    pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+                          digitAccum);
+    pc.outputs().snapshot(
+      Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{ "TPC", "SECTOR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+                          sector);
+
+    //# outtree->SetDirectory(file.get());
+    //# file->Write();
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
   };
@@ -199,9 +224,10 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
                                          static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
                               InputSpec{ "sectorassign", "SIM", "TPCSECTORASSIGN",
                                          static_cast<SubSpecificationType>(channel), Lifetime::Condition } },
-    Outputs{
-      // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
-    },
+    Outputs{ // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
+             OutputSpec{ "TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+             OutputSpec{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+             OutputSpec{ "TPC", "SECTOR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
     AlgorithmSpec{ initIt },
     Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }

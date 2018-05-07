@@ -16,6 +16,7 @@
 
 // for TPC
 #include "TPCDriftTimeDigitizerSpec.h"
+#include "TPCDigitRootWriterSpec.h"
 #include "TPCBase/Sector.h"
 
 #include <cstdlib>
@@ -98,5 +99,7 @@ void defineDataProcessing(WorkflowSpec& specs)
     fanoutsize++;
   }
 
+  // for writing digits to disc
+  specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
 }

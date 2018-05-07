@@ -42,6 +42,25 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
 
     // counter to make sure we are sending the data only once
     static int counter = 0;
+
+    static bool finished = false;
+    if (finished) {
+      // we need to send this in a different time slice
+      // send message telling tpc workers that they can terminate
+      for (const auto& channel : *tpcsubchannels.get()) {
+        // -1 is marker for end of work
+        pc.outputs().snapshot(
+          Output{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(channel), Lifetime::Condition }, -1);
+        // not sure if I have to resend this as well? Seems not necessary
+        pc.outputs().snapshot(
+          Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+          context);
+      }
+      // do this only one
+      pc.services().get<ControlService>().readyToQuit(false);
+      return;
+    }
+
     if (counter++ == 0) {
       LOG(INFO) << "SENDING " << eventrecords.size() << " records";
 
@@ -59,16 +78,6 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
           context);
         tpcchannelcounter++;
       }
-      // send message telling tpc workers that they can terminate
-      for (const auto& channel : *tpcsubchannels.get()) {
-        // -1 is marker for end of work
-        pc.outputs().snapshot(
-          Output{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(channel), Lifetime::Condition }, -1);
-        // not sure if I have to resend this as well? Seems not necessary
-        pc.outputs().snapshot(
-          Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
-          context);
-      }
 
       // everything not done previously treat here
       for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
@@ -80,9 +89,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
           Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe },
           context);
       }
-
-      // do this only one
-      pc.services().get<ControlService>().readyToQuit(false);
+      finished = true;
     }
   };
 
