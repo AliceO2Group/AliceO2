@@ -76,6 +76,7 @@ void Digitizer::addDigit(Double_t time, Int_t channel, Int_t cfd, Int_t amp, Int
     o2::fit::MCLabel label(trackID, mEventID, mSrcID, cfd);
     mMCTruthContainer->addElement(ndigits, label);
   }
+
 }
 
 void Digitizer::initParameters()

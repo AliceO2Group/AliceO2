@@ -27,7 +27,7 @@ void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
   // inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
   // paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
   // outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
-  inputfile << "o2sim.root";
+ inputfile << "o2sim.root";
   paramfile << "o2sim_par.root";
   outputfile << "o2sim_digi.root";
 
