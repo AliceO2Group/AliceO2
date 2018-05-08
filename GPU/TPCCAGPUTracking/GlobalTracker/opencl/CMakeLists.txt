@@ -100,14 +100,12 @@ endif()
 
 # Sources in alphabetical order
 set(SRCS
-    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
     AliHLTTPCCAGPUTrackerOpenCL.cxx
     ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
    )
 
 # Headers from sources
 set(CINTHDRS
-    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.h
     AliHLTTPCCAGPUTrackerOpenCL.h
 )
 

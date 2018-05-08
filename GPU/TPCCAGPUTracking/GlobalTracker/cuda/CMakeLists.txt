@@ -71,13 +71,11 @@ cuda_compile(CAGPU_O AliHLTTPCCAGPUTrackerNVCC.cu)
 
 # Sources in alphabetical order
 set(SRCS
-    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
     ${CAGPU_O}
    )
 
 # Headers from sources
 set(CINTHDRS
-    ${CAGPUDIR}/GlobalTracker/AliHLTTPCCAGPUTrackerBase.h
     AliHLTTPCCAGPUTrackerNVCC.h
     )
   
@@ -121,4 +119,6 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
     O2_GENERATE_LIBRARY()
 
     target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} O2TPCCAGPUTracking)
+    
+    set_target_properties(${MODULE} PROPERTIES LINKER_LANGUAGE CXX) 
 endif()
