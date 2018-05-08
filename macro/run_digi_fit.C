@@ -13,7 +13,7 @@
 #include "FITSimulation/DigitizerTask.h"
 #endif
 
-void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
+void run_digi_fit(Int_t nEvents = 10, Float_t rate=50.e3)
 {
   // if rate>0 then continuous simulation for this rate will be performed
 
@@ -24,9 +24,9 @@ void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
 
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;
-  // inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
-  // paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
-  // outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
+  //inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
+  //paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
+  //outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
   inputfile << "o2sim.root";
   paramfile << "o2sim_par.root";
   outputfile << "o2sim_digi.root";
@@ -38,37 +38,36 @@ void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
   FairRunAna* fRun = new FairRunAna();
   FairFileSource* fFileSource = new FairFileSource(inputfile.str().c_str());
   fRun->SetSource(fFileSource);
-  std::cout << "@@@@ input " << inputfile.str().c_str() << std::endl;
+  std::cout<<"@@@@ input "<<inputfile.str().c_str()<<std::endl;
   fRun->SetOutputFile(outputfile.str().c_str());
-  std::cout << "@@@@ output " << outputfile.str().c_str() << std::endl;
+  std::cout<<"@@@@ output "<<outputfile.str().c_str()<<std::endl;
   /*
   if (rate > 0) {
     fFileSource->SetEventMeanTime(1.e9 / rate); // is in us
   }
   */
   // Setup Runtime DB
-
+  
   FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
-  std::cout << "@@@@ param " << paramfile.str().c_str() << std::endl;
+  std::cout<<"@@@@ param "<<paramfile.str().c_str()<<std::endl;
   FairParRootFileIo* parInput1 = new FairParRootFileIo();
   parInput1->open(paramfile.str().c_str());
   rtdb->setFirstInput(parInput1);
 
   // Setup digitizer
   o2::fit::DigitizerTask* digi = new o2::fit::DigitizerTask();
-  //  digi->setContinuous(rate > 0);
-  //  digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
+//  digi->setContinuous(rate > 0);
+//  digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
   fRun->AddTask(digi);
 
-  std::cout << "@@@@ Add task " << std::endl;
-  fRun->Init();
-  std::cout << "@@@@ Run Init " << std::endl;
+   std::cout<<"@@@@ Add task "<<std::endl;
+ fRun->Init();
+  std::cout<<"@@@@ Run Init "<<std::endl;
 
   timer.Start();
   fRun->Run();
 
-  std::cout << std::endl
-            << std::endl;
+  std::cout << std::endl << std::endl;
 
   // Extract the maximal used memory an add is as Dart measurement
   // This line is filtered by CTest and the value send to CDash
@@ -86,14 +85,11 @@ void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
   cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
   cout << cpuUsage;
   cout << "</DartMeasurement>" << endl;
-  cout << endl
-       << endl;
+  cout << endl << endl;
   std::cout << "Macro finished succesfully" << std::endl;
 
-  std::cout << endl
-            << std::endl;
+  std::cout << endl << std::endl;
   std::cout << "Output file is " << outputfile.str() << std::endl;
   // std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl
-            << endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
 }

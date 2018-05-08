@@ -1,0 +1,5 @@
+#%Module1.0
+set base_path /home/alla/aliO2/O2/sw/ubuntu1604_x86-64
+setenv BASEDIR $base_path
+set osname [uname sysname]
+set osarchitecture [uname machine]

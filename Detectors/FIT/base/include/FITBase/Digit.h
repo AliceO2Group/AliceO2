@@ -8,17 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_FIT_DIGIT_H
-#define ALICEO2_FIT_DIGIT_H
+#ifndef ALICEO2_FIT_DIGIT_H_
+#define ALICEO2_FIT_DIGIT_H_
 
 #include "CommonDataFormat/TimeStamp.h"
 #include <iosfwd>
 #include "Rtypes.h"
 
-namespace o2
-{
-namespace fit
-{
+#include <boost/serialization/base_object.hpp> // for base_object
+
+namespace o2 {
+namespace fit {
 /// \class Digit
 /// \brief FIT digit implementation
 using DigitBase = o2::dataformats::TimeStamp<double>;
@@ -27,39 +27,40 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Double_t time, Int_t channel, Double_t cfd, Float_t amp, Int_t bc);
+  Digit(Double_t time, Int_t channel, Int_t cfd,  Int_t amp, Int_t bc);
   ~Digit() = default;
 
   Int_t getChannel() const { return mChannel; }
-  void setChannel(Int_t channel) { mChannel = channel; }
-
+  void  setChannel(Int_t channel) { mChannel = channel; }
+  
   Double_t getTime() const { return mTime; }
-  void setTime(Double_t time) { mTime = time; }
+  void  setTime(Double_t time) { mTime = time; }
 
-  Double_t getCFD() const { return mCFD; }
-  void setCFD(Double_t time) { mCFD = time; }
+  Int_t getCFD() const { return mCFD; }
+  void  setCFD(Int_t time) { mCFD = time; }
 
-  Float_t getQTC() const { return mQTC; }
-  void setQTC(Float_t amp) { mQTC = amp; }
+  Int_t getQTC() const { return mQTC; }
+  void  setQTC(Int_t amp) { mQTC = amp; }
 
   Int_t getBC() const { return mBC; }
-  void setBC(Int_t bc) { mBC = bc; }
+  void  setBC(Int_t bc) { mBC = bc; }
 
-  void printStream(std::ostream& stream) const;
 
- private:
-  //  friend class boost::serialization::access;
+  void printStream(std::ostream &stream) const;
 
-  Double_t mTime; /// time stamp
-  Int_t mChannel; ///< FIT channel index
-  Double_t mCFD;  ///< CFD time value
-  Float_t mQTC;   ///< QTC time value
-  Int_t mBC;      ///< Bunch Crossing
+private:
+  friend class boost::serialization::access;
 
+  Double_t    mTime;     ///time stamp
+  Int_t    mChannel;       ///< FIT channel index
+  Int_t    mCFD;           ///< CFD time value
+  Int_t    mQTC;           ///< QTC time value
+  Int_t    mBC;            ///< Bunch Crossing
+  
   ClassDefNV(Digit, 1);
 };
 
-std::ostream& operator<<(std::ostream& stream, const Digit& dig);
-} // namespace fit
+std::ostream &operator<<(std::ostream &stream, const Digit &dig);
+} // namespace FIT
 } // namespace o2
 #endif

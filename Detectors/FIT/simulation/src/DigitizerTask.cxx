@@ -24,6 +24,7 @@ using namespace o2::fit;
 DigitizerTask::DigitizerTask() : FairTask("FITDigitizerTask"), mDigitizer() {}
 DigitizerTask::~DigitizerTask()
 {
+  std::cout<<"@@@@ DigitizerTask::~DigitizerTask()"<<std::endl;
   if (mDigitsArray) {
     mDigitsArray->clear();
     delete mDigitsArray;
@@ -33,6 +34,7 @@ DigitizerTask::~DigitizerTask()
 /// Inititializes the digitizer and connects input and output container
 InitStatus DigitizerTask::Init()
 {
+  printf("@@@@ DigitizerTask::Init \n");
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
@@ -41,9 +43,13 @@ InitStatus DigitizerTask::Init()
 
   // TList * brlist = mgr->GetBranchNameList ();
   //  brlist->Print();
-
+  
+  printf("@@@@ before read FIT Hits \n");
+ 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::fit::HitType>*>("FITHit");
+  printf("@@@@ read FIT Hits \n");
 
+  
   if (!mHitsArray) {
     LOG(ERROR) << "FIT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -51,6 +57,10 @@ InitStatus DigitizerTask::Init()
 
   // Register output container
   mgr->RegisterAny("FITDigit", mDigitsArray, kTRUE);
+  printf("@@@@@RegisterAny\n");
+ 
+  //  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
+
   //  mDigitizer.init();
   return kSUCCESS;
 }
@@ -59,19 +69,22 @@ InitStatus DigitizerTask::Init()
 void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
-  mDigitizer.setEventTime(mgr->GetEventTime());
 
-  mDigitsArray->clear();
+  if (mDigitsArray)
+    mDigitsArray->clear();
+  mDigitizer.setEventTime(mgr->GetEventTime());
+  std::cout<<" @@@@ mgr->GetEventTime() "<<mgr->GetEventTime()<<std::endl;
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID
-             << FairLogger::endl;
+  LOG(DEBUG) << "@@@@@@Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
 
   /// RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
   /// provided and identified.
   mDigitizer.setEventID(mEventID);
 
+  LOG(INFO) << "@@@@@ Digitizing " << mHitsArray->size() << " hits \n";
   mDigitizer.process(mHitsArray, mDigitsArray);
+
 
   mEventID++;
 }
@@ -82,12 +95,10 @@ void DigitizerTask::FinishTask()
   // finalize digitization, if needed, flash remaining digits
   if (!mContinuous)
     return;
-
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   if (mDigitsArray)
     mDigitsArray->clear();
-  mDigitizer.finish();
 
   // TODO: reenable this
   // mDigitizer.fillOutputContainer(mDigitsArray);
