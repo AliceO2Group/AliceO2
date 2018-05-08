@@ -32,6 +32,7 @@ class DigitizerTask : public FairTask
   using Digitizer = o2::fit::Digitizer;
 
  public:
+
   DigitizerTask();
   ~DigitizerTask() override;
 
@@ -45,6 +46,7 @@ class DigitizerTask : public FairTask
   bool isContinuous() const { return mContinuous; }
 
  private:
+
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
 
