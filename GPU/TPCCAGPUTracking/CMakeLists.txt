@@ -42,6 +42,7 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     Merger/AliHLTTPCGMPropagator.cxx
     Merger/AliHLTTPCGMPolynomialField.cxx
     Merger/AliHLTTPCGMPolynomialFieldCreator.cxx
+    GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -94,7 +95,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
     set(SRCS ${SRCS} Standalone/cmodules/timer.cpp)
 endif()
 if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
-    set (SRCS ${SRCS} ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx)
+    set (SRCS ${SRCS} ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx)
 endif()
 
 #Default cmake build script for AliRoot

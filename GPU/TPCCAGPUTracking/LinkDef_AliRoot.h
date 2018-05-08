@@ -33,6 +33,7 @@
 #pragma link C++ class AliHLTTPCGMPropagator+;
 #pragma link C++ class AliHLTTPCGMPhysicalTrackModel+;
 #pragma link C++ class AliHLTTPCGMPolynomialFieldCreator+;
-#pragma link C++ class AliHLTTPCCAClusterStatComponent+;
+#pragma link C++ class AliHLTTPCClusterStatComponent+;
+#pragma link C++ class AliHLTTPCCAGPUTrackerBase+;
 
 #endif
