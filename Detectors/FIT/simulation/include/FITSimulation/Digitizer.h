@@ -40,13 +40,14 @@ class Digitizer
   Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
   void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
 
+
  private:
   // digit info
   std::vector<Digit>* mDigits;
   o2::dataformats::MCTruthContainer<o2::fit::MCLabel>* mMCTruthContainer =
     nullptr; ///< Array for MCTruth information associated to digits in mDigitsArrray. Passed from the digitization
 
-  void addDigit(Double_t time, Int_t channel, Int_t cfd, Int_t amp, Int_t bc, Int_t trackID);
+  void addDigit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, Int_t bc, Int_t trackID);
   // parameters
   Int_t mMode;
   Int_t mTimeFrameCurrent;
@@ -58,4 +59,5 @@ class Digitizer
 };
 } // namespace fit
 } // namespace o2
+
 #endif

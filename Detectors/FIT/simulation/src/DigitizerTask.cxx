@@ -43,11 +43,11 @@ InitStatus DigitizerTask::Init()
 
   // TList * brlist = mgr->GetBranchNameList ();
   //  brlist->Print();
-
   printf("@@@@ before read FIT Hits \n");
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::fit::HitType>*>("FITHit");
   printf("@@@@ read FIT Hits \n");
+
 
   if (!mHitsArray) {
     LOG(ERROR) << "FIT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
@@ -57,7 +57,6 @@ InitStatus DigitizerTask::Init()
   // Register output container
   mgr->RegisterAny("FITDigit", mDigitsArray, kTRUE);
   printf("@@@@@RegisterAny\n");
-
   //  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
 
   //  mDigitizer.init();
