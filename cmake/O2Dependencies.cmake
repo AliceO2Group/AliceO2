@@ -1143,6 +1143,10 @@ o2_define_bucket(
     Physics
     Geom
     Core Hist # ROOT
+    CommonDataFormat
+    detectors_base_bucket
+    DetectorsBase
+    SimulationDataFormat
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -1150,13 +1154,17 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
+
  )
 o2_define_bucket(
     NAME
     fit_simulation_bucket
 
     DEPENDENCIES # library names
+    fit_base_bucket
     root_base_bucket
     fairroot_geom
     RIO
@@ -1168,7 +1176,9 @@ o2_define_bucket(
     DetectorsBase
     SimulationDataFormat
     Core Hist # ROOT
-
+    CommonDataFormat
+    detectors_base_bucket
+ 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}

@@ -15,5 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::fit::Geometry;
+#pragma link C++ class o2::fit::Digit;
 
 #endif
