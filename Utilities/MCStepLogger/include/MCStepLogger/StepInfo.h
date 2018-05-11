@@ -8,18 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Sandro Wenzel <sandro.wenzel@cern.ch>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
-
 #ifndef O2_STEPINFO
 #define O2_STEPINFO
 

@@ -645,9 +645,19 @@ o2_define_bucket(
     VMC
     EG
     Tree
+    Hist
+    Graf
+    Gpad
     Geom
+    common_boost_bucket
+    Boost::unit_test_framework
+    ${FairLogger_DEP}
+    RapidJSON
 
     INCLUDE_DIRECTORIES
+    ${FairLogger_INCDIR}
+    ${FAIRROOT_INCLUDE_DIR}
+    ${RAPIDJSON_INCLUDEDIR}/include
 )
 
 o2_define_bucket(
@@ -987,13 +997,13 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     TPCCAGPUTracking_bucket
-    
+
     DEPENDENCIES
     dl
     pthread
     root_base_bucket
     common_vc_bucket
-    
+
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
@@ -1350,7 +1360,7 @@ o2_define_bucket(
     Core Hist # ROOT
     CommonDataFormat
     detectors_base_bucket
- 
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
