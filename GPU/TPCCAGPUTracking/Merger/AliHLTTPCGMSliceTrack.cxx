@@ -170,11 +170,12 @@ bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinP
 
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = 1;
+  bool ok = AliHLTTPCCAMath::Finite(fX) && AliHLTTPCCAMath::Finite(fY) && AliHLTTPCCAMath::Finite(fZ) && AliHLTTPCCAMath::Finite(fSinPhi) &&
+    AliHLTTPCCAMath::Finite(fDzDs) && AliHLTTPCCAMath::Finite(fQPt) && AliHLTTPCCAMath::Finite(fCosPhi) && AliHLTTPCCAMath::Finite(fSecPhi) &&
+    AliHLTTPCCAMath::Finite(fZOffset) && AliHLTTPCCAMath::Finite(fC0) && AliHLTTPCCAMath::Finite(fC2) && AliHLTTPCCAMath::Finite(fC3) &&
+    AliHLTTPCCAMath::Finite(fC5) && AliHLTTPCCAMath::Finite(fC7) && AliHLTTPCCAMath::Finite(fC9) && AliHLTTPCCAMath::Finite(fC10) &&
+    AliHLTTPCCAMath::Finite(fC12) && AliHLTTPCCAMath::Finite(fC14);
   
-  const float *c = &fX;
-  for ( int i = 0; i < 17; i++ ) ok = ok && finite( c[i] );
-
   if ( fC0 <= 0.f || fC2 <= 0.f || fC5 <= 0.f || fC9 <= 0.f || fC14 <= 0.f 
        || fC0 > 5.f || fC2 > 5.f || fC5 > 2.f || fC9 > 2.f             ) ok = 0;
 

@@ -41,6 +41,7 @@ MEM_CLASS_PRE() class AliHLTTPCCARow;
 
 class AliHLTTPCCAGPUTrackerBase : public AliHLTTPCCAGPUTracker, public AliHLTLogging
 {
+#ifdef HLTCA_ENABLE_GPU_TRACKER
 	friend void* helperWrapper(void*);
 public:
 	AliHLTTPCCAGPUTrackerBase();
@@ -119,7 +120,15 @@ protected:
 	int CheckMemorySizes(int sliceCount);
 
 	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) = 0;
-	template <class T> T* alignPointer(T* ptr, int alignment);
+	template <class T> T* alignPointer(T* ptr, int alignment)
+	{
+		size_t adr = (size_t) ptr;
+		if (adr % alignment)
+		{
+			adr += alignment - (adr % alignment);
+		}
+		return((T*) adr);
+	}
 	void StandalonePerfTime(int iSlice, int i);
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
 	
@@ -192,21 +201,8 @@ protected:
 	AliHLTTPCCAGPUTrackerBase( const AliHLTTPCCAGPUTrackerBase& );
 	AliHLTTPCCAGPUTrackerBase &operator=( const AliHLTTPCCAGPUTrackerBase& );
 
+#endif
 	ClassDef( AliHLTTPCCAGPUTrackerBase, 0 )
 };
-
-template <class T> inline T* AliHLTTPCCAGPUTrackerBase::alignPointer(T* ptr, int alignment)
-{
-	//Macro to align Pointers.
-	//Will align to start at 1 MB segments, this should be consistent with every alignment in the tracker
-	//(As long as every single data structure is <= 1 MB)
-
-	size_t adr = (size_t) ptr;
-	if (adr % alignment)
-	{
-		adr += alignment - (adr % alignment);
-	}
-	return((T*) adr);
-}
 
 #endif

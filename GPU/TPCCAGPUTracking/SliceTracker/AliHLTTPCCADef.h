@@ -42,9 +42,9 @@
 #endif //VSNET_RUNTIME
 #endif //R__WIN32
 
-#if defined(HLTCA_STANDALONE) || (defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)) || !defined(HLTCA_BUILD_ALIROOT_LIB)
+#if defined(HLTCA_STANDALONE) || (defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)) || !defined(HLTCA_BUILD_ALIROOT_LIB) 
 
-#ifndef ROOT_Rtypes
+#if !defined(ROOT_Rtypes) && !defined(__CLING__)
 // class TObject{};
 
 #define ClassDef(name,id)
