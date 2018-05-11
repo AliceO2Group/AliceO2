@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
-if(HLT_CUDA)
-    add_subdirectory(GlobalTracker/cuda)
-endif(HLT_CUDA)
-
-if(HLT_OPENCL)
-    add_subdirectory(GlobalTracker/opencl)
+if (HLT_CUDA OR HLT_OPENCL)
+    if (CMAKE_SYSTEM_NAME MATCHES Darwin)
+        message(WARNING "GPU Tracking disabled on MacOS")
+    else()
+        add_definitions(-DHLTCA_ENABLE_GPU_TRACKER)
+        if(HLT_CUDA)
+            add_subdirectory(GlobalTracker/cuda)
+        endif(HLT_CUDA)
+        if(HLT_OPENCL)
+            add_subdirectory(GlobalTracker/opencl)
+        endif()
+    endif()
 endif()
 
 if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")

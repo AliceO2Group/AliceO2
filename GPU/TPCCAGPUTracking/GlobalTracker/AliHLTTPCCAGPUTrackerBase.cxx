@@ -27,6 +27,8 @@
 
 ClassImp( AliHLTTPCCAGPUTrackerBase )
 
+#ifdef HLTCA_ENABLE_GPU_TRACKER
+
 int AliHLTTPCCAGPUTrackerBase::GlobalTracking(int iSlice, int threadId, AliHLTTPCCAGPUTrackerBase::helperParam* hParam)
 {
 	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
@@ -1008,3 +1010,5 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 
 double AliHLTTPCCAGPUTrackerBase::GetTimer(int iSlice, unsigned int iTimer) {return fSlaveTrackers[iSlice].GetTimer(iTimer) / ((iTimer == 0 || iTimer >= 8) ? (fNHelperThreads + 1) : 1);}
 void AliHLTTPCCAGPUTrackerBase::ResetTimer(int iSlice, unsigned int iTimer) {fSlaveTrackers[iSlice].ResetTimer(iTimer);}
+
+#endif
