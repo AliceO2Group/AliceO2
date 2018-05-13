@@ -17,8 +17,10 @@
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
-namespace o2 {
-namespace fit {
+namespace o2
+{
+namespace fit
+{
 /// \class Digit
 /// \brief FIT digit implementation
 using DigitBase = o2::dataformats::TimeStamp<double>;
@@ -27,40 +29,39 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Double_t time, Int_t channel, Int_t cfd,  Int_t amp, Int_t bc);
+  Digit(Double_t time, Int_t channel, Int_t cfd, Int_t amp, Int_t bc);
   ~Digit() = default;
 
   Int_t getChannel() const { return mChannel; }
-  void  setChannel(Int_t channel) { mChannel = channel; }
-  
+  void setChannel(Int_t channel) { mChannel = channel; }
+
   Double_t getTime() const { return mTime; }
-  void  setTime(Double_t time) { mTime = time; }
+  void setTime(Double_t time) { mTime = time; }
 
   Int_t getCFD() const { return mCFD; }
-  void  setCFD(Int_t time) { mCFD = time; }
+  void setCFD(Int_t time) { mCFD = time; }
 
   Int_t getQTC() const { return mQTC; }
-  void  setQTC(Int_t amp) { mQTC = amp; }
+  void setQTC(Int_t amp) { mQTC = amp; }
 
   Int_t getBC() const { return mBC; }
-  void  setBC(Int_t bc) { mBC = bc; }
+  void setBC(Int_t bc) { mBC = bc; }
 
+  void printStream(std::ostream& stream) const;
 
-  void printStream(std::ostream &stream) const;
-
-private:
+ private:
   friend class boost::serialization::access;
 
-  Double_t    mTime;     ///time stamp
-  Int_t    mChannel;       ///< FIT channel index
-  Int_t    mCFD;           ///< CFD time value
-  Int_t    mQTC;           ///< QTC time value
-  Int_t    mBC;            ///< Bunch Crossing
-  
+  Double_t mTime; /// time stamp
+  Int_t mChannel; ///< FIT channel index
+  Int_t mCFD;     ///< CFD time value
+  Int_t mQTC;     ///< QTC time value
+  Int_t mBC;      ///< Bunch Crossing
+
   ClassDefNV(Digit, 1);
 };
 
-std::ostream &operator<<(std::ostream &stream, const Digit &dig);
-} // namespace FIT
+std::ostream& operator<<(std::ostream& stream, const Digit& dig);
+} // namespace fit
 } // namespace o2
 #endif
