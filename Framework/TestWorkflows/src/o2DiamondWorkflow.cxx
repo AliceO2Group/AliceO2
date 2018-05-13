@@ -11,9 +11,9 @@
 
 using namespace o2::framework;
 
-AlgorithmSpec simplePipe(o2::header::DataDescription what) {
+AlgorithmSpec simplePipe(std::string const &what) {
   return AlgorithmSpec{ [what](ProcessingContext& ctx) {
-    auto bData = ctx.outputs().make<int>(Output{ "TST", what, 0 }, 1);
+    auto bData = ctx.outputs().make<int>(OutputRef{what}, 1);
   } };
 }
 
@@ -24,28 +24,28 @@ void defineDataProcessing(WorkflowSpec &specs) {
     "A",
     Inputs{},
     {
-      OutputSpec{"TST", "A1"},
-      OutputSpec{"TST", "A2"}
+      OutputSpec{{"a1"}, "TST", "A1"},
+      OutputSpec{{"a2"}, "TST", "A2"}
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
        sleep(1);
-       auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0 }, 1);
-       auto bData = ctx.outputs().make<int>(Output{ "TST", "A2", 0 }, 1);
+       auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
+       auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
       }
     }
   },
   {
     "B",
     {InputSpec{"x", "TST", "A1"}},
-    {OutputSpec{"TST", "B1"}},
-    simplePipe(o2::header::DataDescription{"B1"})
+    {OutputSpec{{"b1"}, "TST", "B1"}},
+    simplePipe("b1")
   },
   {
     "C",
     Inputs{InputSpec{"x", "TST", "A2"}},
-    Outputs{OutputSpec{"TST", "C1"}},
-    simplePipe(o2::header::DataDescription{"C1"})
+    Outputs{OutputSpec{{"c1"}, "TST", "C1"}},
+    simplePipe("c1")
   },
   {
     "D",

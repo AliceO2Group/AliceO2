@@ -1,14 +1,38 @@
 
 ########## DEPENDENCIES lookup ############
 
+function(guess_append_libpath _libname _root)
+  # Globally adds, as library path, the path of library ${_libname} searched
+  # under ${_root}/lib and ${_root}/lib64. The purpose is to work around broken
+  # external CMake config files, hardcoding full paths of their dependencies
+  # not being relocated properly, leading to broken builds if reusing builds
+  # produced under different hosts/paths.
+  unset(_lib CACHE)  # force find_library to look again
+  find_library(_lib "${_libname}" HINTS "${_root}" NO_DEFAULT_PATH PATH_SUFFIXES lib lib64)
+  if(_lib)
+    get_filename_component(_libdir "${_lib}" DIRECTORY)
+    message(STATUS "Adding library path: ${_libdir}")
+    link_directories(${_libdir})
+  else()
+    message(WARNING "Cannot find library ${_libname} under ${_root}")
+  endif()
+endfunction()
+
 find_package(ROOT 6.06.00 REQUIRED)
 find_package(Vc REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
 if (ALICEO2_MODULAR_BUILD)
-  # Geant3, Geant4 installed via cmake
-  find_package(Geant3)
-  find_package(Geant4)
+  # Installed via CMake. Note: we work around hardcoded full paths in the CMake
+  # config files not being relocated properly by appending library paths.
+  guess_append_libpath(geant321 "${Geant3_DIR}")
+  find_package(Geant3 NO_MODULE)
+  guess_append_libpath(G4run "${Geant4_DIR}")
+  find_package(Geant4 NO_MODULE)
+  guess_append_libpath(geant4vmc "${GEANT4_VMC_DIR}")
+  find_package(Geant4VMC NO_MODULE)
+  guess_append_libpath(BaseVGM "${VGM_DIR}")
+  find_package(VGM NO_MODULE)
 else (ALICEO2_MODULAR_BUILD)
   # For old versions of VMC packages (to be removed)
   find_package(GEANT3)
@@ -35,6 +59,8 @@ find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(Configuration REQUIRED)
+find_package(Monitoring REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 find_package(GLFW)
 
@@ -163,9 +189,11 @@ o2_define_bucket(
     FairRoot::FairMQ
     pthread
     dl
+    ${Monitoring_LIBRARIES}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
+    ${Monitoring_INCLUDE_DIRS}
 )
 
 # a common bucket for the implementation of devices inherited
@@ -208,6 +236,17 @@ o2_define_bucket(
     O2FrameworkCore_bucket
     Framework
     Hist
+)
+
+o2_define_bucket(
+        NAME
+        DPLUtils_bucket
+
+        DEPENDENCIES
+        O2FrameworkCore_bucket
+        Core
+        Headers
+        Framework
 )
 
 o2_define_bucket(
@@ -893,6 +932,18 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/include
 )
 
+o2_define_bucket(
+    NAME
+    TPC_workflow_bucket
+
+    DEPENDENCIES
+    TPCReconstruction
+    Framework
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Algorithm/include
+   )
+
 # base bucket for generators not needing any external stuff
 o2_define_bucket(
     NAME
@@ -1159,6 +1210,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
 
  )
+
 o2_define_bucket(
     NAME
     fit_simulation_bucket
@@ -1189,6 +1241,33 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
+
+o2_define_bucket(
+    NAME
+    hmpid_simulation_bucket
+
+    DEPENDENCIES # library names
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    DetectorsBase
+    SimulationDataFormat
+    Core Hist # ROOT
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/HMPID/Simulationf/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
+
 
 o2_define_bucket(
     NAME
@@ -1289,10 +1368,10 @@ o2_define_bucket(
     DEPENDENCIES
     #-- buckets follow
     fairroot_base_bucket
-    pythia8
 
     #-- precise modules follow
     SimConfig
+    SimSetup
     DetectorsPassive
     TPCSimulation
     TPCReconstruction
@@ -1302,10 +1381,27 @@ o2_define_bucket(
     EMCALSimulation
     TOFSimulation
     FITSimulation
+    HMPIDSimulation
     PHOSSimulation
     Field
     Generators
     DataFormatsParameters
+    Framework
+)
+
+# a bucket for "global" executables/macros
+o2_define_bucket(
+    NAME
+    digitizer_workflow_bucket
+
+    DEPENDENCIES
+    #-- buckets follow
+    fairroot_base_bucket
+
+    #-- precise modules follow
+    Steer
+    Framework
+    TPCSimulation
 )
 
 o2_define_bucket(
@@ -1604,6 +1700,10 @@ o2_define_bucket(
   $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
   mch_mapping_segcontour_bucket
   MCHMappingSegContour3
+  RapidJSON
+
+  INCLUDE_DIRECTORIES
+  ${RAPIDJSON_INCLUDEDIR}/include
 )
 
 o2_define_bucket(
@@ -1686,3 +1786,29 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Tracking/src
 )
+
+
+o2_define_bucket(
+    NAME
+    simulation_setup_bucket
+
+    DEPENDENCIES
+    ${Geant3_LIBRARIES}
+    ${Geant4_LIBRARIES}
+    ${Geant4VMC_LIBRARIES}
+    ${VGM_LIBRARIES}
+    fairroot_geom
+    SimulationDataFormat
+    DetectorsPassive
+    pythia6 # this is needed by Geant3 and EGPythia6
+    EGPythia6 # this is needed by Geant4 (TPythia6Decayer)
+
+    INCLUDE_DIRECTORIES
+    ${Geant4VMC_INCLUDE_DIRS}
+    ${Geant4_INCLUDE_DIRS}
+    ${Geant3_INCLUDE_DIRS}
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+)
+
+

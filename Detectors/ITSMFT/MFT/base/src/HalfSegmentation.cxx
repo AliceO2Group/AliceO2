@@ -56,7 +56,7 @@ HalfSegmentation::HalfSegmentation(const Char_t* nameGeomFile, const Short_t id)
   SetUniqueID(halfUniqueID);
   SetName(Form("%s_%d", GeometryTGeo::getMFTHalfPattern(), id));
 
-  mHalfDisks = new TClonesArray("o2::MFT::HalfDiskSegmentation", Constants::sNDisks);
+  mHalfDisks = new TClonesArray("o2::MFT::HalfDiskSegmentation", Constants::DisksNumber);
   mHalfDisks->SetOwner(kTRUE);
 
   // Create XML engine
@@ -124,7 +124,7 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
       TString attrVal = xml->GetAttrValue(attr);
       if (!attrName.CompareTo("idisk")) {
         idisk = attrVal.Atoi();
-        if (idisk >= Constants::sNDisks || idisk < 0) {
+        if (idisk >= Constants::DisksNumber || idisk < 0) {
           LOG(FATAL) << "Wrong disk number : " << idisk << FairLogger::endl;
         }
       } else if (!attrName.CompareTo("nladder")) {

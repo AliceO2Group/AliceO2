@@ -49,11 +49,13 @@ set(SRCS
     src/LogParsingHelpers.cxx
     src/ExternalFairMQDeviceProxy.cxx
     src/SimpleMetricsService.cxx
+    src/SimpleResourceManager.cxx
     src/TextControlService.cxx
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
     src/TMessageSerializer.cxx
+    src/StreamOperators.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
    )
@@ -122,11 +124,16 @@ set(HEADERS
       include/Framework/DataProcessingDevice.h
       include/Framework/Variant.h
       include/Framework/RootTreeReader.h
+      include/Framework/CallbackRegistry.h
+      include/Framework/CallbackService.h
+      src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
       src/DriverControl.h
       src/DriverInfo.h
       src/GraphvizHelpers.h
+      src/ResourceManager.h
+      src/SimpleResourceManager.h
       src/WorkflowHelpers.h
   )
 
@@ -173,6 +180,7 @@ target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit
 Install(FILES test/test_DataSamplingDPL.ini test/test_DataSamplingFairMQ.ini DESTINATION share/tests/)
 
 set(TEST_SRCS
+      test/test_SimpleStatefulProcessing01.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
       test/test_DataRelayer.cxx
@@ -197,6 +205,7 @@ set(TEST_SRCS
       test/test_TMessageSerializer.cxx
       test/test_DataAllocator.cxx
       test/test_RootTreeReader.cxx
+      test/test_CallbackRegistry.cxx
    )
 
 O2_GENERATE_TESTS(

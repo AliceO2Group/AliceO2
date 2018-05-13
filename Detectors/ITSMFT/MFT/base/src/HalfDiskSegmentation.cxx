@@ -17,7 +17,6 @@
 #include "FairLogger.h"
 
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "MFTBase/Constants.h"
 #include "MFTBase/HalfDiskSegmentation.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"

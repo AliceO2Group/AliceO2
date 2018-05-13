@@ -24,9 +24,9 @@ using DataProcessingHeader = o2::framework::DataProcessingHeader;
 DataAllocator::DataAllocator(FairMQDevice *device,
                              MessageContext *context,
                              RootObjectContext *rootContext,
-                             const AllowedOutputsMap &outputs)
+                             const AllowedOutputRoutes &routes)
 : mDevice{device},
-  mAllowedOutputs{outputs},
+  mAllowedOutputRoutes{routes},
   mContext{context},
   mRootContext{rootContext}
 {
@@ -35,7 +35,7 @@ DataAllocator::DataAllocator(FairMQDevice *device,
 std::string
 DataAllocator::matchDataHeader(const Output& spec, size_t timeslice) {
   // FIXME: we should take timeframeId into account as well.
-  for (auto &output : mAllowedOutputs) {
+  for (auto &output : mAllowedOutputRoutes) {
     if (DataSpecUtils::match(output.matcher, spec.origin, spec.description, spec.subSpec)
         && ((timeslice % output.maxTimeslices) == output.timeslice)) {
       return output.channel;

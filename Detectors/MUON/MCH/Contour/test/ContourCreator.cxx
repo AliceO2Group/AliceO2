@@ -113,22 +113,6 @@ BOOST_AUTO_TEST_CASE(VerticalsToHorizontals)
   BOOST_CHECK(he == expected);
 }
 
-BOOST_AUTO_TEST_CASE(GetVertexFromVertical)
-{
-  VerticalEdge<int> e{ 12, 20, 100 };
-
-  BOOST_CHECK_EQUAL(e.begin(), (Vertex<int>{ 12, 20 }));
-  BOOST_CHECK_EQUAL(e.end(), (Vertex<int>{ 12, 100 }));
-}
-
-BOOST_AUTO_TEST_CASE(GetVertexFromHorizontal)
-{
-  HorizontalEdge<int> e{ 12, 20, 100 };
-
-  BOOST_CHECK_EQUAL(e.begin(), (Vertex<int>{ 20, 12 }));
-  BOOST_CHECK_EQUAL(e.end(), (Vertex<int>{ 100, 12 }));
-}
-
 BOOST_AUTO_TEST_CASE(FinalizeContourThrowsIfNumberOfVerticalsDifferFromNumberOfHorizontals)
 {
   std::vector<VerticalEdge<double>> v{ { 0, 1, 0 }, { 1, 0, 1 } };

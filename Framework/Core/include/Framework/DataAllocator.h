@@ -12,8 +12,9 @@
 
 #include <fairmq/FairMQDevice.h>
 #include "Headers/DataHeader.h"
-#include "Framework/OutputRoute.h"
 #include "Framework/Output.h"
+#include "Framework/OutputRef.h"
+#include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
@@ -29,6 +30,7 @@
 #include <utility>
 #include <type_traits>
 #include <gsl/span>
+#include <utility>
 
 #include <TClass.h>
 
@@ -42,7 +44,7 @@ namespace framework {
 class DataAllocator
 {
 public:
-  using AllowedOutputsMap = std::vector<OutputRoute>;
+  using AllowedOutputRoutes = std::vector<OutputRoute>;
   using DataHeader = o2::header::DataHeader;
   using DataOrigin = o2::header::DataOrigin;
   using DataDescription = o2::header::DataDescription;
@@ -51,9 +53,11 @@ public:
   DataAllocator(FairMQDevice *device,
                 MessageContext *context,
                 RootObjectContext *rootContext,
-                const AllowedOutputsMap &outputs);
+                const AllowedOutputRoutes &routes);
 
   DataChunk newChunk(const Output&, size_t);
+  DataChunk newChunk(OutputRef const& ref, size_t size) { return newChunk(getOutputByBind(ref), size); }
+
   DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
   // In case no extra argument is provided and the passed type is trivially
@@ -313,20 +317,47 @@ public:
                   "pointer to data type not supported by API. Please pass object by reference");
   }
 
+  template <typename T, typename... Args>
+  auto make(OutputRef const& ref, Args&&... args)
+  {
+    return make<T>(getOutputByBind(ref), std::forward<Args>(args)...);
+  }
+
+  void adopt(OutputRef const& ref, TObject* obj) { return adopt(getOutputByBind(ref), obj); }
+
+  template <typename... Args>
+  auto snapshot(OutputRef const& ref, Args&&... args)
+  {
+    return snapshot(getOutputByBind(ref), std::forward<Args>(args)...);
+  }
+
  private:
+  FairMQDevice* mDevice;
+  AllowedOutputRoutes mAllowedOutputRoutes;
+  MessageContext* mContext;
+  RootObjectContext* mRootContext;
+
   std::string matchDataHeader(const Output &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const &spec,
                                            std::string const &channel,
                                            o2::header::SerializationMethod serializationMethod);
 
+  Output getOutputByBind(OutputRef const& ref)
+  {
+    for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
+      if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
+        auto spec = mAllowedOutputRoutes[ri].matcher;
+        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime };
+      }
+    }
+    throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
+    assert(false);
+  }
+
   void addPartToContext(FairMQMessagePtr&& payload,
                         const Output &spec,
                         o2::header::SerializationMethod serializationMethod);
 
-  FairMQDevice *mDevice;
-  AllowedOutputsMap mAllowedOutputs;
-  MessageContext *mContext;
-  RootObjectContext *mRootContext;
 };
 
 }

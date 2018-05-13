@@ -28,6 +28,7 @@
 #include "Framework/SimpleMetricsService.h"
 #include "Framework/SimpleRawDeviceService.h"
 #include "Framework/TextControlService.h"
+#include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
 
 #include "DDSConfigHelpers.h"
@@ -35,6 +36,8 @@
 #include "DriverControl.h"
 #include "DriverInfo.h"
 #include "GraphvizHelpers.h"
+#include "SimpleResourceManager.h"
+
 #include "options/FairMQProgOptions.h"
 
 #include <cinttypes>
@@ -52,8 +55,10 @@
 
 #include <sys/resource.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <boost/program_options.hpp>
@@ -61,6 +66,46 @@
 
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/FairMQLogger.h>
+
+/// Helper class to find a free port.
+class FreePortFinder {
+public:
+  FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step)
+    : mInitialPort{initialPort},
+      mFinalPort{finalPort},
+      mStep{step},
+      mSocket{socket(AF_INET, SOCK_STREAM, 0)}
+  {}
+
+  void scan() {
+    struct sockaddr_in addr;
+    for (mPort = mInitialPort; mPort < mFinalPort; mPort += mStep) {
+      memset(&addr, 0, sizeof(addr));
+      addr.sin_family = AF_INET;
+      addr.sin_addr.s_addr = INADDR_ANY;
+      addr.sin_port = htons(mPort);
+      if (bind(mSocket, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+        LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
+                  << "] already taken. Skipping";
+        continue;
+      }
+      LOG(INFO) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
+      break;
+    }
+  }
+
+  ~FreePortFinder() {
+    close(mSocket);
+  }
+  unsigned short port() { return mPort + 1; }
+  unsigned short range() {return mStep; }
+private:
+  int mSocket;
+  unsigned short mInitialPort;
+  unsigned short mFinalPort;
+  unsigned short mStep;
+  unsigned short mPort;
+};
 
 using namespace o2::framework;
 namespace bpo = boost::program_options;
@@ -76,6 +121,37 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // these are the device options added by the framework, but they can be
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
+
+// To be used to allow specifying the CompletionPolicy on the command line.
+namespace o2
+{
+namespace framework
+{
+std::istream& operator>>(std::istream& in, enum CompletionPolicy& policy)
+{
+  std::string token;
+  in >> token;
+  if (token == "quit") {
+    policy = CompletionPolicy::QUIT;
+  } else if (token == "wait") {
+    policy = CompletionPolicy::WAIT;
+  } else
+    in.setstate(std::ios_base::failbit);
+  return in;
+}
+
+std::ostream& operator<<(std::ostream& out, const enum CompletionPolicy& policy)
+{
+  if (policy == CompletionPolicy::QUIT) {
+    out << "quit";
+  } else if (policy == CompletionPolicy::WAIT) {
+    out << "wait";
+  } else
+    out.setstate(std::ios_base::failbit);
+  return out;
+}
+} // namespace framework
+} // namespace o2
 
 // Read from a given fd and print it.
 // return true if we can still read from it,
@@ -344,6 +420,14 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
               deviceInfo.readyToQuit = true;
             }
           }
+          // in case of "ME", fetch the pid and modify only matching deviceInfos
+          if (validFor == "ME") {
+            for (auto& deviceInfo : infos) {
+              if (deviceInfo.pid == info.pid) {
+                deviceInfo.readyToQuit = true;
+              }
+            }
+          }
         }
       } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != nullptr) &&
                  logLevel >= control.logLevel) {
@@ -456,20 +540,27 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // We initialise this in the driver, because different drivers might have
     // different versions of the service
     ServiceRegistry serviceRegistry;
-    serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
-    serviceRegistry.registerService<RootFileService>(new LocalRootFileService());
-    serviceRegistry.registerService<ControlService>(new TextControlService());
-    serviceRegistry.registerService<ParallelContext>(new ParallelContext(spec.rank, spec.nSlots));
+
+    auto simpleMetricsService = std::make_unique<SimpleMetricsService>();
+    auto localRootFileService = std::make_unique<LocalRootFileService>();
+    auto textControlService = std::make_unique<TextControlService>();
+    auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
+    auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
+    auto callbackService = std::make_unique<CallbackService>();
+    serviceRegistry.registerService<MetricsService>(simpleMetricsService.get());
+    serviceRegistry.registerService<RootFileService>(localRootFileService.get());
+    serviceRegistry.registerService<ControlService>(textControlService.get());
+    serviceRegistry.registerService<ParallelContext>(parallelContext.get());
+    serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
+    serviceRegistry.registerService<CallbackService>(callbackService.get());
 
     std::unique_ptr<FairMQDevice> device;
-    serviceRegistry.registerService<RawDeviceService>(new SimpleRawDeviceService(nullptr));
-
     if (spec.inputs.empty()) {
       LOG(DEBUG) << spec.id << " is a source\n";
-      device.reset(new DataSourceDevice(spec, serviceRegistry));
+      device = std::make_unique<DataSourceDevice>(spec, serviceRegistry);
     } else {
       LOG(DEBUG) << spec.id << " is a processor\n";
-      device.reset(new DataProcessingDevice(spec, serviceRegistry));
+      device = std::make_unique<DataProcessingDevice>(spec, serviceRegistry);
     }
 
     serviceRegistry.get<RawDeviceService>().setDevice(device.get());
@@ -507,6 +598,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
   DeviceInfos infos;
   DeviceControls controls;
   DeviceExecutions deviceExecutions;
+  auto resourceManager = std::make_unique<SimpleResourceManager>(driverInfo.startPort, driverInfo.portRange);
 
   void* window = nullptr;
   decltype(getGUIDebugger(infos, deviceSpecs, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
@@ -588,7 +680,8 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         break;
       case DriverState::MATERIALISE_WORKFLOW:
         try {
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, deviceSpecs);
+          std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, deviceSpecs, resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -635,9 +728,12 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       case DriverState::RUNNING:
         // Calculate what we should do next and eventually
         // show the GUI
-        if (driverInfo.batch || guiQuitRequested || (checkIfCanExit(infos) == true)) {
-          // Something requested to quit. Let's update the GUI
-          // one more time and then EXIT.
+        if (guiQuitRequested ||
+            (driverInfo.completionPolicy == CompletionPolicy::QUIT && (checkIfCanExit(infos) == true))) {
+          // Something requested to quit. This can be a user
+          // interaction with the GUI or (if --completion-policy=quit)
+          // it could mean that the workflow does not have anything else to do.
+          // Let's update the GUI one more time and then EXIT.
           LOG(INFO) << "Quitting";
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
           driverInfo.states.push_back(DriverState::GUI);
@@ -779,6 +875,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies)
 {
+  enum CompletionPolicy policy;
   bpo::options_description executorOptions("Executor options");
   executorOptions.add_options()                                                                             //
     ("help,h", "print this help")                                                                           //
@@ -786,8 +883,12 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
     ("single-step,S", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode") //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
-    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
+    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
+    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
+    ("completion-policy,c", bpo::value<CompletionPolicy>(&policy)->default_value(CompletionPolicy::QUIT),   //
+     "what to do when processing is finished")                                                      //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output") //
+    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")            //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
@@ -811,7 +912,12 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   // FIXME: decide about the policy for handling unrecognized arguments
   // command_line_parser with option allow_unregistered() can be used
   bpo::variables_map varmap;
-  bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
+  try {
+    bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
+  } catch (std::exception const& e) {
+    std::cout << "Error: " << e.what() << std::endl;
+    exit(1);
+  }
 
   if (varmap.count("help")) {
     bpo::options_description helpOptions;
@@ -834,12 +940,24 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();
+  driverInfo.completionPolicy = varmap["completion-policy"].as<CompletionPolicy>();
   driverInfo.startTime = std::chrono::steady_clock::now();
   driverInfo.timeout = varmap["timeout"].as<double>();
+  driverInfo.startPort = varmap["start-port"].as<unsigned short>();
+  driverInfo.portRange = varmap["port-range"].as<unsigned short>();
 
   std::string frameworkId;
+  // If the id is set, this means this is a device,
+  // otherwise this is the driver.
+  FreePortFinder finder(driverInfo.startPort - 1,
+                        65535 - driverInfo.portRange,
+                        driverInfo.portRange);
   if (varmap.count("id")) {
     frameworkId = varmap["id"].as<std::string>();
+  } else {
+    finder.scan();
+    driverInfo.startPort = finder.port();
+    driverInfo.portRange = finder.range();
   }
   return runStateMachine(workflow, driverControl, driverInfo, gDeviceMetricsInfos, frameworkId);
 }

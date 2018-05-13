@@ -16,7 +16,6 @@
 
 #include "FairLogger.h"
 
-#include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryBuilder.h"
 #include "MFTBase/Segmentation.h"

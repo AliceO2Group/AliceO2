@@ -23,8 +23,8 @@
 class ARROW_EXPORT PrintingKernel : public arrow::compute::UnaryKernel
 {
  public:
-  virtual arrow::Status Call(arrow::compute::FunctionContext* ctx, const arrow::compute::Datum& input,
-                             arrow::compute::Datum* output)
+  arrow::Status Call(arrow::compute::FunctionContext* ctx, const arrow::compute::Datum& input,
+                     arrow::compute::Datum* output) override
   {
     return arrow::Status::OK();
   }
@@ -33,17 +33,17 @@ class ARROW_EXPORT PrintingKernel : public arrow::compute::UnaryKernel
 BOOST_AUTO_TEST_CASE(TestArrow01)
 {
   arrow::Int64Builder builder;
-  builder.Append(1);
-  builder.Append(2);
-  builder.Append(3);
-  builder.AppendNull();
-  builder.Append(5);
-  builder.Append(6);
-  builder.Append(7);
-  builder.Append(8);
+  BOOST_REQUIRE(builder.Append(1).ok());
+  BOOST_REQUIRE(builder.Append(2).ok());
+  BOOST_REQUIRE(builder.Append(3).ok());
+  BOOST_REQUIRE(builder.AppendNull().ok());
+  BOOST_REQUIRE(builder.Append(5).ok());
+  BOOST_REQUIRE(builder.Append(6).ok());
+  BOOST_REQUIRE(builder.Append(7).ok());
+  BOOST_REQUIRE(builder.Append(8).ok());
 
   std::shared_ptr<arrow::Array> input;
-  builder.Finish(&input);
+  BOOST_REQUIRE(builder.Finish(&input).ok());
 
   std::shared_ptr<arrow::Array> output;
   PrintingKernel kernel;

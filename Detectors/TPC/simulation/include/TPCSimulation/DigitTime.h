@@ -55,7 +55,7 @@ class DigitTime
   /// \param cru CRU of the digit
   /// \param globalPad Global pad number of the digit
   /// \param signal Charge of the digit in ADC counts
-  void addDigit(size_t eventID, size_t trackID, const CRU& cru, GlobalPadNumber globalPad, float signal);
+  void addDigit(const MCCompLabel& label, const CRU& cru, GlobalPadNumber globalPad, float signal);
 
   /// Fill output vector
   /// \param output Output container
@@ -74,6 +74,12 @@ class DigitTime
 };
 
 inline DigitTime::DigitTime() : mCommonMode(), mGlobalPads() { mCommonMode.fill(0); }
+
+inline void DigitTime::addDigit(const MCCompLabel& label, const CRU& cru, GlobalPadNumber globalPad, float signal)
+{
+  mGlobalPads[globalPad].addDigit(label, signal);
+  mCommonMode[cru.gemStack()] += signal;
+}
 
 inline void DigitTime::reset()
 {

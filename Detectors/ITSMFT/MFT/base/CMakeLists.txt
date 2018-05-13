@@ -3,7 +3,6 @@ set(MODULE_NAME "MFTBase")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  src/Constants.cxx
   src/GeometryTGeo.cxx
   src/Geometry.cxx
   src/GeometryBuilder.cxx

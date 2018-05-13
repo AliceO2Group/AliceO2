@@ -14,7 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::MFT::Constants+;
 #pragma link C++ class o2::MFT::GeometryTGeo+;
 #pragma link C++ class o2::MFT::Geometry+;
 #pragma link C++ class o2::MFT::GeometryBuilder+;

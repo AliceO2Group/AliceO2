@@ -79,10 +79,12 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
   dh1.subSpecification = 0;
+  dh1.payloadSerializationMethod = o2::header::gSerializationMethodNone;
   DataHeader dh2;
   dh2.dataDescription = "CLUSTERS";
   dh2.dataOrigin = "ITS";
   dh2.subSpecification = 0;
+  dh2.payloadSerializationMethod = o2::header::gSerializationMethodNone;
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   InputRecord registry(schema, inputs);
@@ -110,9 +112,9 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   //
   // *static_cast<int const *>(registry.get("x").payload);
   //
-  BOOST_CHECK_EQUAL(registry.get<int>("x"),1);
-  BOOST_CHECK_EQUAL(registry.get<int>("y"),2);
+  BOOST_CHECK_EQUAL(*registry.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(*registry.get<int>("y"), 2);
   // A few more time just to make sure we are not stateful..
-  BOOST_CHECK_EQUAL(registry.get<int>("x"),1);
-  BOOST_CHECK_EQUAL(registry.get<int>("x"),1);
+  BOOST_CHECK_EQUAL(*registry.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(*registry.get<int>("x"), 1);
 }

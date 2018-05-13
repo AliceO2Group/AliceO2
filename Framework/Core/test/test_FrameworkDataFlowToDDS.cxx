@@ -14,6 +14,7 @@
 #include <boost/test/unit_test.hpp>
 #include "../src/DDSConfigHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
+#include "../src/SimpleResourceManager.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
@@ -67,7 +68,9 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   std::ostringstream ss{ "" };
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices);
+  SimpleResourceManager rm(22000, 1000);
+  auto resources = rm.getAvailableResources();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
   char* fakeArgv[] = { strdup("foo"), nullptr };
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;

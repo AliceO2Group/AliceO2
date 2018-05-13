@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
 
   for (int i = 0; i < cru.size(); ++i) {
     const GlobalPadNumber globalPad = mapper.getPadNumberInROC(PadROCPos(CRU(cru[i]).roc(), PadPos(Row[i], Pad[i])));
-    digitContainer.addDigit(MCevent[i], MCtrack[i], cru[i], Time[i], globalPad, nEle[i]);
+    digitContainer.addDigit(MCCompLabel(MCtrack[i], MCevent[i], 0), cru[i], Time[i], globalPad, nEle[i]);
   }
 
   /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
   int nEleSum = 0;
   for (int i = 0; i < cru.size(); ++i) {
     const GlobalPadNumber globalPad = mapper.getPadNumberInROC(PadROCPos(CRU(cru[i]).roc(), PadPos(Row[i], Pad[i])));
-    digitContainer.addDigit(MCevent[i], MCtrack[i], cru[i], Time[i], globalPad, nEle[i]);
+    digitContainer.addDigit(MCCompLabel(MCtrack[i], MCevent[i], 0), cru[i], Time[i], globalPad, nEle[i]);
     nEleSum += nEle[i];
   }
 

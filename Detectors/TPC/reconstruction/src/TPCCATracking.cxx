@@ -110,8 +110,8 @@ int TPCCATracking::convertClusters(TChain* inputClustersChain, const std::vector
           oCluster.setPad(cluster.getPadMean());
           oCluster.setSigmaTime(cluster.getTimeSigma());
           oCluster.setSigmaPad(cluster.getPadSigma());
-          oCluster.qTot = cluster.getQmax();
-          oCluster.qMax = cluster.getQ();
+          oCluster.qTot = cluster.getQ();
+          oCluster.qMax = cluster.getQmax();
         }
         outputClusters.nClusters[sector][rowInSector]++;
       }

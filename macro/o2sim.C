@@ -22,7 +22,7 @@
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
 #include "TVirtualMC.h"
-
+#include <SimSetup/SimSetup.h>
 #endif
 
 void o2sim()
@@ -31,8 +31,10 @@ void o2sim()
   auto genconfig = confref.getGenerator();
 
   auto run = new FairRunSim();
-  run->SetImportTGeoToVMC(false);              // do not import TGeo to VMC since the latter is built together with TGeo
-  run->SetOutputFile("o2sim.root");            // Output file
+  run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
+  run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
+  std::string outputfilename = confref.getOutPrefix() + ".root";
+  run->SetOutputFile(outputfilename.c_str());  // Output file
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
 
@@ -103,7 +105,8 @@ void o2sim()
   bool kParameterMerged = true;
   auto rtdb = run->GetRuntimeDb();
   auto parOut = new FairParRootFileIo(kParameterMerged);
-  parOut->open("o2sim_par.root");
+  std::string parfilename = confref.getOutPrefix() + "_par.root";
+  parOut->open(parfilename.c_str());
   rtdb->setOutput(parOut);
   rtdb->saveOutput();
   rtdb->print();
@@ -146,7 +149,8 @@ void o2sim()
     // todo: save beam information in the grp
 
     // save
-    TFile grpF("o2sim_grp.root", "recreate");
+    std::string grpfilename = confref.getOutPrefix() + "_grp.root";
+    TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
 
