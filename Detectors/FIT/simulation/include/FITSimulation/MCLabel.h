@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 // Declaration of a transient MC label class for TOF
 
 #ifndef ALICEO2_FIT_MCLABEL_H_
@@ -30,7 +29,7 @@ class MCLabel : public o2::MCCompLabel
   MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t cfd) : o2::MCCompLabel(trackID, eventID, srcID), mCFD(cfd) {}
   Int_t getCFD() const { return mCFD; }
 };
-}
-}
+} // namespace fit
+} // namespace o2
 
 #endif
