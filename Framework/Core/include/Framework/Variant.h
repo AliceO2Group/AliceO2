@@ -15,7 +15,6 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <iosfwd>
-#include <iostream>
 #include <initializer_list>
 
 namespace o2 {
@@ -195,37 +194,9 @@ public:
     return variant_helper<storage_t, T>::set(mStore, value);
   }
 
-  friend std::ostream& operator<< (std::ostream& oss, Variant const & val) {
-    switch(val.mType) {
-      case VariantType::Int:
-        oss << val.get<int>();
-        break;
-      case VariantType::Int64:
-        oss << val.get<int64_t>();
-        break;
-      case VariantType::Float:
-        oss << val.get<float>();
-        break;
-      case VariantType::Double:
-        oss << val.get<double>();
-        break;
-      case VariantType::String:
-        oss << val.get<const char*>();
-        break;
-      case VariantType::Bool:
-        oss << val.get<bool>();
-        break;
-      case VariantType::Empty:
-        break;
-      default:
-        oss << "undefined";
-        break;
-    };
-    return oss;
-  }
-
   VariantType type() const { return mType; }
 private:
+  friend std::ostream& operator<<(std::ostream& oss, Variant const & val);
   storage_t mStore;
   VariantType mType;
 };
