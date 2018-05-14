@@ -15,7 +15,7 @@
 #include <bitset>
 #include <iomanip>
 #include <ios>
-#include <iostream>
+#include <iosfwd>
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
 #include "MathUtils/Cartesian3D.h"
 

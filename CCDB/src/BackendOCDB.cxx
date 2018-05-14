@@ -21,6 +21,7 @@
 #include <FairMQLogger.h>
 
 #include <zlib.h>
+#include <iostream>
 
 using namespace o2::CDB;
 using namespace std;

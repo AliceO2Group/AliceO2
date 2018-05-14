@@ -17,7 +17,7 @@
 
 #include <algorithm>
 #include <array>
-#include <iostream>
+#include <iosfwd>
 #include <vector>
 
 #include "DataFormatsITS/TrackITS.h"

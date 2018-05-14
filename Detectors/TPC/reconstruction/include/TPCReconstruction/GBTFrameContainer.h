@@ -30,7 +30,7 @@
 #include <thread>
 
 #include <fstream>
-#include <iostream>
+#include <iosfwd>
 #include <iomanip>
 
 #include "FairLogger.h"

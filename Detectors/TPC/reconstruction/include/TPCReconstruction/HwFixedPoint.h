@@ -13,7 +13,7 @@
 #ifndef ALICEO2_TPC_HWFIXEDPOINT_H
 #define ALICEO2_TPC_HWFIXEDPOINT_H
 
-#include <iostream>
+#include <iosfwd>
 
 namespace o2{
 namespace TPC{

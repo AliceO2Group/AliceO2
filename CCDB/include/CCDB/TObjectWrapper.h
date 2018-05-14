@@ -13,7 +13,7 @@
 #include <TClass.h>
 #include <TObject.h>
 #include <cxxabi.h>
-#include <iostream>
+#include <iosfwd>
 #include <memory>
 #include <stdexcept>
 #include <typeinfo>

@@ -14,6 +14,7 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "DataFormatsITSMFT/ClusterTopology.h"
+#include <iostream>
 
 ClassImp(o2::ITSMFT::ClusterTopology)
 

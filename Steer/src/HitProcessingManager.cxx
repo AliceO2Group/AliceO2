@@ -12,6 +12,7 @@
 #include "FairLogger.h"
 #include <vector>
 #include <map>
+#include <iostream>
 
 ClassImp(o2::steer::HitProcessingManager);
 
@@ -94,6 +95,17 @@ void HitProcessingManager::setupRun(int ncollisions)
 
   // sample collision (background-signal) constituents
   sampleCollisionConstituents();
+}
+
+void RunContext::printCollisionSummary() const
+{
+  for (int i = 0; i < mEventRecords.size(); ++i) {
+    std::cout << "Collision " << i << " TIME " << mEventRecords[i].timeNS;
+    for (auto& e : mEventParts[i]) {
+      std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
+    }
+    std::cout << "\n";
+  }
 }
 }
 }

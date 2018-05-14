@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MathUtils/Cartesian3D.h"
+#include <iostream>
 
 using namespace o2;
 

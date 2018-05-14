@@ -24,6 +24,7 @@
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
+#include <iostream>
 
 namespace o2
 {

@@ -14,6 +14,7 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include <iostream>
 
 using std::cout;
 using std::endl;

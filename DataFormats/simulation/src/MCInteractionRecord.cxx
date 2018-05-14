@@ -7,26 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-#include "TPCBase/FECInfo.h"
+#include "SimulationDataFormat/MCInteractionRecord.h"
 #include <iostream>
 
 namespace o2
 {
-namespace TPC
+void MCInteractionRecord::print()
 {
-std::ostream& FECInfo::print(std::ostream& out) const
-{
-  out << "FEC in sector [" << int(mIndex)
-      //<<"], FEC connector [" << int(mConnector) << "], FEC channel [" << int(mChannel)
-      << "], SAMPA chip [" << int(mSampaChip) << "], SAMPA channel [" << int(mSampaChannel) << "]";
-  return out;
+  std::cout << "BCid: " << bc << " Orbit: " << orbit << " Period: " << period << " T(ns): " << timeNS << std::endl;
 }
 
-std::ostream& operator<<(std::ostream& out, const TPC::FECInfo& fec)
-{
-  fec.print(out);
-  return out;
-}
-} // namespace TPC
 } // namespace o2
