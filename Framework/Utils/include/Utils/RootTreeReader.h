@@ -33,6 +33,23 @@ namespace o2
 namespace framework
 {
 
+namespace rtr
+{
+struct DefaultKey {
+  header::DataOrigin origin;
+  header::DataDescription description;
+  header::DataHeader::SubSpecificationType subSpec = 0;
+  enum Lifetime lifetime = Lifetime::Timeframe;
+
+  DefaultKey(const Output& desc)
+    : origin(desc.origin), description(desc.description), subSpec(desc.subSpec), lifetime(desc.lifetime)
+  {
+  }
+
+  operator Output() const { return Output{ origin, description, subSpec, lifetime }; }
+};
+}
+
 /// @class RootTreeReader
 /// A generic reader interface for ROOT TTrees
 ///
@@ -66,11 +83,11 @@ namespace framework
 /// be static there to persist. It can also be a shared_pointer, which then
 /// requires additional dereferencing in the syntax. The processing lambda has
 /// to capture the shared pointer instance by copy.
-template <typename KeyType = Output>
-class RootTreeReader
+template <typename KeyType>
+class GenericRootTreeReader
 {
  public:
-  using self_type = RootTreeReader<KeyType>;
+  using self_type = GenericRootTreeReader<KeyType>;
   using key_type = KeyType;
 
   // the key must not be of type const char* to make sure that the variable argument
@@ -78,14 +95,14 @@ class RootTreeReader
   static_assert(std::is_same<KeyType, const char*>::value == false, "the key type must not be const char*");
 
   /// default constructor
-  RootTreeReader();
+  GenericRootTreeReader();
 
   /// constructor
   /// @param treename  name of tree to process
   /// variable argument list of file names followed by pairs of KeyType and branch name
   template <typename... Args>
-  RootTreeReader(const char* treename, // name of the tree to read from
-                 Args&&... args)       // file names, followed by branch info
+  GenericRootTreeReader(const char* treename, // name of the tree to read from
+                        Args&&... args)       // file names, followed by branch info
     : mInput(treename)
   {
     parseConstructorArgs(std::forward<Args>(args)...);
@@ -96,9 +113,9 @@ class RootTreeReader
   /// @nMaxEntries maximum number of entries to be processed
   /// variable argument list of file names followed by pairs of KeyType and branch name
   template <typename... Args>
-  RootTreeReader(const char* treename, // name of the tree to read from
-                 int nMaxEntries,      // max number of entries to be read
-                 Args&&... args)       // file names, followed by branch info
+  GenericRootTreeReader(const char* treename, // name of the tree to read from
+                        int nMaxEntries,      // max number of entries to be read
+                        Args&&... args)       // file names, followed by branch info
     : mInput(treename),
       mMaxEntries(nMaxEntries)
   {
@@ -156,7 +173,7 @@ class RootTreeReader
   {
     if (!snapshot) {
       snapshot = [&context](const KeyType& key, const ROOTSerializedByClass& object) {
-        context.outputs().snapshot(key, object);
+        context.outputs().snapshot(static_cast<Output>(key), object);
       };
     }
 
@@ -222,12 +239,12 @@ class RootTreeReader
 
   /// helper function to recursively parse constructor arguments
   /// parse the branch definitions with key and branch name.
-  template <typename... Args>
-  void parseConstructorArgs(KeyType key, const char* name, Args&&... args)
+  template <typename T, typename... Args>
+  void parseConstructorArgs(T key, const char* name, Args&&... args)
   {
     if (name != nullptr && *name != 0) {
       // add branch spec if the name is not empty
-      addBranchSpec(key, name);
+      addBranchSpec(KeyType{ key }, name);
     }
     parseConstructorArgs(std::forward<Args>(args)...);
   }
@@ -246,6 +263,8 @@ class RootTreeReader
   /// maximum number of entries to be processed
   int mMaxEntries = -1;
 };
+
+using RootTreeReader = GenericRootTreeReader<rtr::DefaultKey>;
 
 } // namespace framework
 } // namespace o2

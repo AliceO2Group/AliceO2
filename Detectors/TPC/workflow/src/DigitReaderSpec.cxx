@@ -40,15 +40,14 @@ DataProcessorSpec getDigitReaderSpec()
     // set up the tree interface
     // TODO: parallelism on sectors needs to be implemented as selector in the reader
     constexpr auto persistency = Lifetime::Timeframe;
-    using TreeReader = o2::framework::RootTreeReader<Output>;
-    auto reader = std::make_shared<TreeReader>(treename.c_str(), // tree name
-                                               nofEvents,        // number of entries to publish
-                                               filename.c_str(), // input file name
-                                               Output{ gDataOriginTPC, "DIGIT", 0, persistency },
-                                               clbrName.c_str(), // name of digit branch
-                                               Output{ gDataOriginTPC, "DIGITMCLBL", 0, persistency },
-                                               mcbrName.c_str() // name of mc label branch
-                                               );
+    auto reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
+                                                   nofEvents,        // number of entries to publish
+                                                   filename.c_str(), // input file name
+                                                   Output{ gDataOriginTPC, "DIGIT", 0, persistency },
+                                                   clbrName.c_str(), // name of digit branch
+                                                   Output{ gDataOriginTPC, "DIGITMCLBL", 0, persistency },
+                                                   mcbrName.c_str() // name of mc label branch
+                                                   );
 
     // set up the processing function
     // using by-copy capture of the worker instance shared pointer
