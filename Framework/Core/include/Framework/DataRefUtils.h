@@ -155,11 +155,20 @@ struct DataRefUtils {
   static unsigned getPayloadSize(const DataRef& ref)
   {
     using DataHeader = o2::header::DataHeader;
-    auto header = o2::header::get<const DataHeader*>(ref.header);
+    auto* header = o2::header::get<const DataHeader*>(ref.header);
     if (!header) {
       return 0;
     }
     return header->payloadSize;
+  }
+
+  template <typename T>
+  static auto getHeader(const DataRef& ref)
+  {
+    using HeaderT = typename std::remove_pointer<T>::type;
+    static_assert(std::is_pointer<T>::value && std::is_base_of<o2::header::BaseHeader, HeaderT>::value,
+                  "pointer to BaseHeader-derived type required");
+    return o2::header::get<T>(ref.header);
   }
 };
 
