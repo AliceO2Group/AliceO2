@@ -22,6 +22,29 @@
 using system_clock = std::chrono::system_clock;
 using TimeScale = std::chrono::nanoseconds;
 
+namespace o2
+{
+namespace header
+{
+namespace test
+{
+struct MetaHeader : public BaseHeader {
+  // Required to do the lookup
+  static const o2::header::HeaderType sHeaderType;
+  static const uint32_t sVersion = 1;
+
+  MetaHeader(uint32_t v)
+    : BaseHeader(sizeof(MetaHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), secret(v)
+  {
+  }
+
+  uint64_t secret;
+};
+constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
+}
+}
+}
+
 namespace o2 {
   namespace header {
 
@@ -176,6 +199,17 @@ namespace o2 {
       BOOST_CHECK(h2->serialization == gSerializationMethodNone);
       BOOST_CHECK(h2->size() == sizeof(NameHeader<9>));
       BOOST_CHECK(h2->getNameLength() == 9);
+
+      auto meta = test::MetaHeader{ 42 };
+      Stack s2{ s1, meta };
+      BOOST_CHECK(s2.size() == s1.size() + sizeof(decltype(meta)));
+
+      auto* h3 = get<test::MetaHeader*>(s1.data());
+      BOOST_CHECK(h3 == nullptr);
+      h3 = get<test::MetaHeader*>(s2.data());
+      BOOST_CHECK(h3 != nullptr);
+      h1 = get<DataHeader*>(s2.data());
+      BOOST_CHECK(h1 != nullptr);
     }
 
     BOOST_AUTO_TEST_CASE(Descriptor_benchmark)
