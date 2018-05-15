@@ -26,8 +26,14 @@ class Digit : public o2::dataformats::TimeStamp<double>
  public:
   Digit() = default;
 
-  Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc);
+  Digit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label = -1);
   ~Digit() = default;
+
+  /// Get global ordering key made of
+  static ULong64_t getOrderingKey(Int_t channel, Int_t bc, Int_t /*tdc*/)
+  {
+    return ((static_cast<ULong64_t>(bc) << 18) + channel); // channel in the least significant bits; then shift by 18 bits (which cover the total number of channels) to write the BC number
+  }
 
   Int_t getChannel() const { return mChannel; }
   void setChannel(Int_t channel) { mChannel = channel; }
@@ -41,15 +47,28 @@ class Digit : public o2::dataformats::TimeStamp<double>
   Int_t getBC() const { return mBC; }
   void setBC(Int_t bc) { mBC = bc; }
 
+  Int_t getLabel() const { return mLabel; }
+  void setLabel(Int_t label) { mLabel = label; }
+
   void printStream(std::ostream &stream) const;
 
-private:
+  void merge(Double_t time, Int_t tdc, Int_t tot);
+
+  void getPhiAndEtaIndex(int& phi, int& eta);
+
+  Bool_t isUsedInCluster() const { return mIsUsedInCluster; }
+
+  void setIsUsedInCluster() { mIsUsedInCluster = kTRUE; }
+
+ private:
   friend class boost::serialization::access;
 
   Int_t mChannel;       ///< TOF channel index
   Int_t mTDC;           ///< TDC bin number
   Int_t mTOT;           ///< TOT bin number
   Int_t mBC;            ///< Bunch Crossing
+  Int_t mLabel;         ///< Index of the corresponding entry in the MC label array
+  Bool_t mIsUsedInCluster; //!/< flag to declare that the digit was used to build a cluster
 
   ClassDefNV(Digit, 1);
 };
