@@ -9,5 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/BaseCluster.h"
+#include <iostream>
 
 templateClassImp(o2::BaseCluster);

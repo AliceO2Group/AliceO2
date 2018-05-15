@@ -14,7 +14,7 @@
 #ifndef ALICEO2_TPC_GBTFRAME_H_
 #define ALICEO2_TPC_GBTFRAME_H_
 
-#include <iostream>
+#include <iosfwd>
 #include <iomanip>
 #include <vector>
 #include <array>

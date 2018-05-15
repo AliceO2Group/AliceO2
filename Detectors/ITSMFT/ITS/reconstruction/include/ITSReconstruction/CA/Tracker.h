@@ -20,7 +20,7 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
+#include <iosfwd>
 #include <memory>
 #include <utility>
 

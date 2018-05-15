@@ -24,7 +24,7 @@
 #define ALICEO2_ITSMFT_CLUSTERTOPOLOGY_H
 #include <Rtypes.h>
 #include <array>
-#include <iostream>
+#include <iosfwd>
 #include <string>
 #include "DataFormatsITSMFT/Cluster.h"
 

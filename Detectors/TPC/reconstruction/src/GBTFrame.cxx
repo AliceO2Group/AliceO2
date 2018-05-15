@@ -12,6 +12,8 @@
 /// \author Sebastian Klewin
 
 #include "TPCReconstruction/GBTFrame.h"
+#include <iostream>
+
 using namespace o2::TPC;
 
 GBTFrame::GBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,

@@ -10,6 +10,7 @@
 
 #include "ReconstructionDataFormats/Track.h"
 #include <FairLogger.h>
+#include <iostream>
 
 using std::array;
 using o2::track::TrackPar;

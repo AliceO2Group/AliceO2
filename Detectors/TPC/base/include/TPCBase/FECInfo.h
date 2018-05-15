@@ -11,7 +11,7 @@
 #ifndef AliceO2_TPC_FECInfo_H
 #define AliceO2_TPC_FECInfo_H
 
-#include <iostream>
+#include <iosfwd>
 
 namespace o2 {
 namespace TPC {
@@ -66,31 +66,18 @@ class FECInfo {
       if (mIndex < other.mIndex) { return true; }
       if (mSampaChip < other.mSampaChip) { return true; }
       if (mSampaChip==other.mSampaChip && mSampaChannel<other.mSampaChannel) { return true; }
-      std::cout << *this << " < " << other << std::endl;
       return false;
     }
 
-    std::ostream& print(std::ostream& out = std::cout) const
-    {
-      out << "FEC in sector [" << int(mIndex)
-          //<<"], FEC connector [" << int(mConnector) << "], FEC channel [" << int(mChannel)
-          << "], SAMPA chip [" << int(mSampaChip) << "], SAMPA channel [" << int(mSampaChannel) << "]";
-      return out;
-    }
-
-    friend std::ostream& operator<< (std::ostream& out, const FECInfo& fec)
-    {
-      fec.print(out);
-      return out;
-    }
-
   private:
-    unsigned char mIndex        {0};   ///< FEC number in the sector
-    unsigned char mSampaChip    {0};   ///< SAMPA chip on the FEC
-    unsigned char mSampaChannel {0};   ///< Cannel on the SAMPA chip
+   std::ostream& print(std::ostream& out) const;
+   friend std::ostream& operator<<(std::ostream& out, const FECInfo& fec);
+   unsigned char mIndex{ 0 };        ///< FEC number in the sector
+   unsigned char mSampaChip{ 0 };    ///< SAMPA chip on the FEC
+   unsigned char mSampaChannel{ 0 }; ///< Cannel on the SAMPA chip
 
-    //unsigned char mConnector    {0};   ///< Connector on the FEC -> Can be deduced from mSampaChip and mSampaChannel
-    //unsigned char mChannel      {0};   ///< Channel on the FEC -> Can be deduced from mSampaChip and mSampaChannel
+   // unsigned char mConnector    {0};   ///< Connector on the FEC -> Can be deduced from mSampaChip and mSampaChannel
+   // unsigned char mChannel      {0};   ///< Channel on the FEC -> Can be deduced from mSampaChip and mSampaChannel
 };
 
 }

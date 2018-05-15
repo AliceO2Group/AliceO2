@@ -472,6 +472,15 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    data_format_simulation_test_bucket
+
+    DEPENDENCIES
+    data_format_simulation_bucket
+    SimulationDataFormat
+)
+
+o2_define_bucket(
+    NAME
     data_format_reconstruction_bucket
 
     DEPENDENCIES

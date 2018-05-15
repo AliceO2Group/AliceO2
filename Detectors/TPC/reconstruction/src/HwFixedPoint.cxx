@@ -12,6 +12,7 @@
 /// \brief Class to Fixed Point calculations as it would be done in Hardware
 
 #include "TPCReconstruction/HwFixedPoint.h"
+#include <iostream>
 
 using namespace o2::TPC;
 

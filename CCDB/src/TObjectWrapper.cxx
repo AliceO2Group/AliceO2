@@ -7,8 +7,5 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-#include "ReconstructionDataFormats/Vertex.h"
+#include "CCDB/TObjectWrapper.h"
 #include <iostream>
-
-using namespace o2::dataformats;

@@ -22,7 +22,7 @@
 #include <Math/GenVector/Translation3D.h>
 #include <Rtypes.h>
 #include <TGeoMatrix.h>
-#include <iostream>
+#include <iosfwd>
 #include "MathUtils/Cartesian2D.h"
 
 template <typename T>

@@ -60,16 +60,7 @@ class RunContext
   const std::vector<std::vector<EventPart>>& getEventParts() const { return mEventParts; }
   const std::vector<TChain*>& getChains() const { return mChains; }
 
-  void printCollisionSummary() const
-  {
-    for (int i = 0; i < mEventRecords.size(); ++i) {
-      std::cout << "Collision " << i << " TIME " << mEventRecords[i].timeNS;
-      for (auto& e : mEventParts[i]) {
-        std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
-      }
-      std::cout << "\n";
-    }
-  }
+  void printCollisionSummary() const;
 
  private:
   int mNofEntries;

@@ -15,6 +15,7 @@
 #include "ITSReconstruction/CA/PrimaryVertexContext.h"
 
 #include "ITSReconstruction/CA/Event.h"
+#include <iostream>
 
 namespace o2
 {

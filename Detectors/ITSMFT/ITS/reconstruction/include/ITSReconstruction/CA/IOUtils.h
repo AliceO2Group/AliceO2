@@ -15,7 +15,7 @@
 #ifndef TRACKINGITSU_INCLUDE_EVENTLOADER_H_
 #define TRACKINGITSU_INCLUDE_EVENTLOADER_H_
 
-#include <iostream>
+#include <iosfwd>
 #include <string>
 #include <unordered_map>
 #include <vector>
