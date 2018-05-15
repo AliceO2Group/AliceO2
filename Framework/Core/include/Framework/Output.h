@@ -24,6 +24,34 @@ struct Output {
   header::DataDescription description;
   header::DataHeader::SubSpecificationType subSpec = 0;
   enum Lifetime lifetime = Lifetime::Timeframe;
+  header::Stack metaHeader = {};
+
+  Output(header::DataOrigin o, header::DataDescription d) : origin(o), description(d) {}
+
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s)
+    : origin(o), description(d), subSpec(s)
+  {
+  }
+
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, Lifetime l)
+    : origin(o), description(d), subSpec(s), lifetime(l)
+  {
+  }
+
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, Lifetime l,
+         header::Stack&& stack)
+    : origin(o), description(d), subSpec(s), lifetime(l), metaHeader(std::move(stack))
+  {
+  }
+
+  Output(const Output&& rhs)
+    : origin(rhs.origin),
+      description(rhs.description),
+      subSpec(rhs.subSpec),
+      lifetime(rhs.lifetime),
+      metaHeader(std::move(rhs.metaHeader))
+  {
+  }
 
   bool operator==(const Output& that)
   {

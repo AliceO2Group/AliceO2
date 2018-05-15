@@ -29,6 +29,23 @@ using namespace o2::framework;
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
+namespace test
+{
+struct MetaHeader : public o2::header::BaseHeader {
+  // Required to do the lookup
+  static const o2::header::HeaderType sHeaderType;
+  static const uint32_t sVersion = 1;
+
+  MetaHeader(uint32_t v)
+    : BaseHeader(sizeof(MetaHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), secret(v)
+  {
+  }
+
+  uint64_t secret;
+};
+constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
+}
+
 DataProcessorSpec getTimeoutSpec()
 {
   // a timer process to terminate the workflow after a timeout
@@ -58,7 +75,9 @@ DataProcessorSpec getSourceSpec()
     std::vector<o2::test::Polymorphic> c{ { 0xaffe }, { 0xd00f } };
     // class TriviallyCopyable is both messageable and has a dictionary, the default
     // picked by the framework is no serialization
-    pc.outputs().snapshot(Output{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe }, a);
+    test::MetaHeader meta1{ 42 };
+    test::MetaHeader meta2{ 23 };
+    pc.outputs().snapshot(Output{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe, { meta1, meta2 } }, a);
     pc.outputs().snapshot(Output{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                           o2::framework::ROOTSerialized<decltype(a)>(a));
     // class Polymorphic is not messageable, so the serialization type is deduced
@@ -92,13 +111,31 @@ DataProcessorSpec getSinkSpec()
   auto processingFct = [](ProcessingContext& pc) {
     using DataHeader = o2::header::DataHeader;
     for (auto& input : pc.inputs()) {
-      auto dh = o2::header::get<const DataHeader*>(input.header);
+      auto* dh = o2::header::get<const DataHeader*>(input.header);
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
+
+      using DumpStackFctType = std::function<void(const o2::header::BaseHeader*)>;
+      DumpStackFctType dumpStack = [&](const o2::header::BaseHeader* h) {
+        o2::header::hexDump("", h, h->size());
+        if (h->flagsNextHeader) {
+          auto next = reinterpret_cast<const byte*>(h) + h->size();
+          dumpStack(reinterpret_cast<const o2::header::BaseHeader*>(next));
+        }
+      };
+
+      dumpStack(dh);
     }
     // plain, unserialized object in input1 channel
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
     ASSERT_ERROR(object1 != nullptr);
     ASSERT_ERROR(*object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    // check the additional header on the stack
+    auto* metaHeader1 = DataRefUtils::getHeader<test::MetaHeader*>(pc.inputs().get("input1"));
+    // check if there are more of the same type
+    auto* metaHeader2 = metaHeader1 ? o2::header::get<test::MetaHeader*>(metaHeader1->next()) : nullptr;
+    ASSERT_ERROR(metaHeader1 != nullptr);
+    ASSERT_ERROR(metaHeader1->secret == 42);
+    ASSERT_ERROR(metaHeader2 != nullptr && metaHeader2->secret == 23);
 
     // ROOT-serialized messageable object in input2 channel
     auto object2 = pc.inputs().get<o2::test::TriviallyCopyable>("input2");

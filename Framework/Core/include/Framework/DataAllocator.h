@@ -60,7 +60,7 @@ public:
                 const AllowedOutputRoutes &routes);
 
   DataChunk newChunk(const Output&, size_t);
-  DataChunk newChunk(OutputRef const& ref, size_t size) { return newChunk(getOutputByBind(ref), size); }
+  DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
   DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
@@ -321,18 +321,33 @@ public:
                   "pointer to data type not supported by API. Please pass object by reference");
   }
 
+  /// make an object of type T and route to output specified by OutputRef
+  /// The object is owned by the framework, returned reference can be used to fill the object.
+  ///
+  /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
+  /// function call
   template <typename T, typename... Args>
-  auto make(OutputRef const& ref, Args&&... args)
+  auto make(OutputRef&& ref, Args&&... args)
   {
-    return make<T>(getOutputByBind(ref), std::forward<Args>(args)...);
+    return make<T>(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
 
-  void adopt(OutputRef const& ref, TObject* obj) { return adopt(getOutputByBind(ref), obj); }
+  /// adopt an object of type T and route to output specified by OutputRef
+  /// Framework takes ownership of the object
+  ///
+  /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
+  /// function call
+  void adopt(OutputRef&& ref, TObject* obj) { return adopt(getOutputByBind(std::move(ref)), obj); }
 
+  /// snapshot object and route to output specified by OutputRef
+  /// Framework makes a (serialized) copy of object content.
+  ///
+  /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
+  /// function call
   template <typename... Args>
-  auto snapshot(OutputRef const& ref, Args&&... args)
+  auto snapshot(OutputRef&& ref, Args&&... args)
   {
-    return snapshot(getOutputByBind(ref), std::forward<Args>(args)...);
+    return snapshot(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
 
  private:
@@ -343,16 +358,17 @@ public:
   RootObjectContext* mRootContext;
 
   std::string matchDataHeader(const Output &spec, size_t timeframeId);
-  FairMQMessagePtr headerMessageFromOutput(Output const &spec,
-                                           std::string const &channel,
-                                           o2::header::SerializationMethod serializationMethod);
+  FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //
+                                           std::string const& channel,                          //
+                                           o2::header::SerializationMethod serializationMethod, //
+                                           size_t payloadSize);                                 //
 
-  Output getOutputByBind(OutputRef const& ref)
+  Output getOutputByBind(OutputRef&& ref)
   {
     for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
       if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
         auto spec = mAllowedOutputRoutes[ri].matcher;
-        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime };
+        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack) };
       }
     }
     throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
