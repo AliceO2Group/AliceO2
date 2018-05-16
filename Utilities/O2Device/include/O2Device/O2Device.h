@@ -33,9 +33,12 @@
 #include "Headers/DataHeader.h"
 #include "Monitoring/MonitoringFactory.h"
 #include <stdexcept>
+#include <gsl/gsl>
 
-namespace o2 {
-namespace Base {
+namespace o2
+{
+namespace Base
+{
 
 /// just a typedef to express the fact that it is not just a FairMQParts vector,
 /// it has to follow the O2 convention of header-payload-header-payload
@@ -43,7 +46,7 @@ using O2Message = FairMQParts;
 
 class O2Device : public FairMQDevice
 {
-public:
+ public:
   using FairMQDevice::FairMQDevice;
   ~O2Device() override = default;
 
@@ -66,20 +69,17 @@ public:
 
   /// Here is how to add an annotated data part (with header);
   /// @param[in,out] parts is a reference to the message;
-  /// @param[] incomingStack header block must be MOVED in (rvalue ref)
-  /// @param[] dataMessage the data message must be MOVED in (unique_ptr by value)
-  bool AddMessage(O2Message& parts,
-                  o2::header::Stack&& incomingStack,
-                  FairMQMessagePtr incomingDataMessage) {
+  /// @param[] inputHeaderStack header block must be MOVED in (rvalue ref)
+  /// @param[] inputDataMessage the data message must be MOVED in (unique_ptr by value)
+  bool AddMessage(O2Message& parts, o2::header::Stack&& inputHeaderStack, FairMQMessagePtr inputDataMessage)
+  {
 
-    //we have to move the incoming data
-    o2::header::Stack headerStack{std::move(incomingStack)};
-    FairMQMessagePtr dataMessage{std::move(incomingDataMessage)};
+    // we have to move the incoming data
+    o2::header::Stack headerStack{ std::move(inputHeaderStack) };
+    FairMQMessagePtr dataMessage{ std::move(inputDataMessage) };
 
-    FairMQMessagePtr headerMessage = NewMessage(headerStack.data(),
-                                                headerStack.size(),
-                                                &o2::header::Stack::freefn,
-                                                headerStack.data());
+    FairMQMessagePtr headerMessage =
+      NewMessage(headerStack.data(), headerStack.size(), &o2::header::Stack::freefn, headerStack.data());
     headerStack.release();
 
     parts.AddPart(std::move(headerMessage));
@@ -87,40 +87,63 @@ public:
     return true;
   }
 
-  /// The user needs to define a member function with correct signature
-  /// currently this is old school: buf,len pairs;
-  /// In the end I'd like to move to array_view
-  /// when this becomes available (either with C++17 or via GSL)
-  template <typename T>
+  // this executes user code (e.g. a lambda) on each data block (header-payload pair)
+  template <typename F>
+  bool ForEach(O2Message& parts, F function)
+  {
+    if ((parts.Size() % 2) != 0) {
+      throw std::invalid_argument(
+        "number of parts in message not even (n%2 != 0), cannot be considered an O2 compliant message");
+    }
+
+    return ForEach(parts.begin(), parts.end(), function);
+  }
+
+  // this executes user code (a member function) on a data block (header-payload pair)
+  // at some point should de DEPRECATED in favor of the lambda version
+  template <typename T, typename std::enable_if<std::is_base_of<O2Device, T>::value, int>::type = 0>
   bool ForEach(O2Message& parts, bool (T::*memberFunction)(const byte* headerBuffer, size_t headerBufferSize,
                                                            const byte* dataBuffer, size_t dataBufferSize))
   {
-    if ((parts.Size() % 2) != 0)
-      throw std::invalid_argument("number of parts in message not even (n%2 != 0)");
+    if ((parts.Size() % 2) != 0) {
+      throw std::invalid_argument(
+        "number of parts in message not even (n%2 != 0), cannot be considered an O2 compliant message");
+    }
 
-    for (auto it = parts.fParts.begin(); it != parts.fParts.end(); ++it) {
-      byte* headerBuffer = nullptr;
-      size_t headerBufferSize = 0;
+    return ForEach(parts.fParts.begin(), parts.fParts.end(),
+                   [&](gsl::span<const byte> headerBuffer, gsl::span<const byte> dataBuffer) {
+                     (static_cast<T*>(this)->*memberFunction)(headerBuffer.data(), headerBuffer.size(),
+                                                              dataBuffer.data(), dataBuffer.size());
+                   });
+  }
+
+ private:
+  template <typename I, typename F>
+  bool ForEach(I begin, I end, F function)
+  {
+    using span = gsl::span<const byte>;
+    using gsl::narrow_cast;
+    for (auto it = begin; it != end; ++it) {
+      byte* headerBuffer{ nullptr };
+      span::index_type headerBufferSize{ 0 };
       if (*it != nullptr) {
         headerBuffer = reinterpret_cast<byte*>((*it)->GetData());
-        headerBufferSize = (*it)->GetSize();
+        headerBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
       }
       ++it;
-      byte* dataBuffer = nullptr;
-      size_t dataBufferSize = 0;
+      byte* dataBuffer{ nullptr };
+      span::index_type dataBufferSize{ 0 };
       if (*it != nullptr) {
         dataBuffer = reinterpret_cast<byte*>((*it)->GetData());
-        dataBufferSize = (*it)->GetSize();
+        dataBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
       }
 
       // call the user provided function
-      (static_cast<T*>(this)->*memberFunction)
-        (headerBuffer, headerBufferSize, dataBuffer, dataBufferSize);
+      function(span{ headerBuffer, headerBufferSize }, span{ dataBuffer, dataBufferSize });
     }
     return true;
   }
 };
-
 }
 }
 #endif /* O2DEVICE_H_ */

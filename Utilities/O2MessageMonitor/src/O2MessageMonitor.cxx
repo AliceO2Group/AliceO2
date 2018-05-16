@@ -78,7 +78,9 @@ void O2MessageMonitor::Run()
     // message in;
     Receive(message, "data");
     LOG(INFO) << "== New message=============================";
-    ForEach(message, &O2MessageMonitor::HandleO2frame);
+    ForEach(message, [&](auto header, auto data) {
+      this->HandleO2frame(header.data(), header.size(), data.data(), data.size());
+    });
     message.fParts.clear();
 
     // maybe a reply message
