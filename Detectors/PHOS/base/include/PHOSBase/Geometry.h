@@ -33,10 +33,7 @@ class Geometry
   /// Constructor for normal use.
   ///
   /// \param name: geometry name: PHOS (see main class description for definition)
-  /// \param title \param mcname: Geant3/4, Flukla, needed for settings of transport (check)
-  /// \param mctitle: Geant4 physics list (check)
-  ///
-  Geometry(const std::string_view name, const std::string_view mcname = "", const std::string_view mctitle = "");
+  Geometry(const std::string_view name);
 
   ///
   /// Copy constructor.
@@ -67,11 +64,20 @@ class Geometry
   //  \param mcname: Geant3/4, Fluka, needed for settings of transport (check) \param mctitle: Geant4 physics list
   //  (check)
   ///
-  static Geometry* GetInstance(const std::string_view name, const std::string_view mcname = "TGeant3",
-                               const std::string_view mctitle = "")
+  static Geometry* GetInstance(const std::string_view name)
   {
+    if (sGeom) {
+      if (sGeom->GetName() == name) {
+        return sGeom;
+      } else {
+        delete sGeom;
+      }
+    }
+    sGeom = new Geometry(name);
     return sGeom;
   }
+
+  int AreNeighbours(Int_t absId1, Int_t absId2) const;
 
   ///
   /// \return AbsId index of the PHOS cell
@@ -80,17 +86,29 @@ class Geometry
   /// \param strip: strip number
   //  \param cell: cell in strip number
   ///
-  Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell);
+  Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell) const;
+  // Converts the absolute numbering into the following array
+  //  relid[0] = PHOS Module number 1:module
+  //  relid[1] = Row number inside a PHOS module (Phi coordinate)
+  //  relid[2] = Column number inside a PHOS module (Z coordinate)
+  Bool_t AbsToRelNumbering(Int_t absId, Int_t* relid) const;
+  Int_t AbsIdToModule(Int_t absId);
+  void AbsIdToRelPosInModule(int absId, double& x, double& z) const;
+  Bool_t RelToAbsNumbering(const Int_t* RelId, Int_t& AbsId) const;
+  // converts the absolute PHOS numbering to a relative
 
-  Int_t RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell){return 0 ; }
-
+  Int_t GetTotalNCells() const { return 56 * 64 * 4; } // TODO: evaluate from real geometry
+  Int_t IsCellExists(Int_t absId) const
+  {
+    return absId > 0 && absId <= GetTotalNCells();
+  } // TODO: evaluate from real geometry
 
   const std::string& GetName() const { return mGeoName; }
 
  private:
-  static Geometry* sGeom; ///< Pointer to the unique instance of the singleton
+  static Geometry* sGeom; // Pointer to the unique instance of the singleton
 
-  std::string mGeoName;   ///< Geometry name string
+  std::string mGeoName; ///< Geometry name string
 };
 } // namespace phos
 } // namespace o2

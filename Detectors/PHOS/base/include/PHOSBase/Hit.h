@@ -45,9 +45,15 @@ class Hit : public o2::BasicXYZEHit<float>
   {
   }
 
+  Hit& operator=(const Hit& hit) = default;
+
   /// \brief Check whether the points are from the same SuperParent and in the same detector volume
   /// \return True if points are the same (origin and detector), false otherwise
   Bool_t operator==(const Hit& rhs) const;
+
+  /// \brief Check whether the points are from the same SuperParent and in the same detector volume
+  /// \return True if points are the same (origin and detector), false otherwise
+  Bool_t operator=(const Hit& rhs) const;
 
   /// \brief Sorting points according to parent particle and detector volume
   /// \return True if this Hit is smaller, false otherwise
