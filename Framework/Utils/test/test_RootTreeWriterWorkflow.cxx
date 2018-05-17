@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
 #include "Utils/RootTreeWriter.h"
+#include "Utils/MakeRootTreeWriterSpec.h"
 #include "Headers/DataHeader.h"
 #include "../../Core/test/TestClasses.h"
 #include "FairMQLogger.h"
@@ -61,6 +62,8 @@ DataProcessorSpec getSourceSpec()
                             AlgorithmSpec(initFct) };
 }
 
+// this is the direct definition of the processor spec, can be generated from
+// MakeRootTreeWriterSpec as shown below
 DataProcessorSpec getSinkSpec()
 {
   auto initFct = [](InitContext& ic) {
@@ -99,8 +102,19 @@ DataProcessorSpec getSinkSpec()
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
+  std::string fileName = gSystem->TempDirectory();
+  fileName += "/test_RootTreeWriter.root";
+
   return WorkflowSpec{
     getSourceSpec(),
-    getSinkSpec()
+    MakeRootTreeWriterSpec<o2::test::Polymorphic, int>         // type setup
+    (                                                          //
+      "sink",                                                  // process name
+      fileName.c_str(),                                        // default file name
+      "testtree",                                              // default tree name
+      1,                                                       // default number of events
+      InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject", // input and branch config
+      InputSpec{ "meta", "TST", "METADATA" }, "counter"        // input and branch config
+      )()                                                      // call the generator
   };
 }
