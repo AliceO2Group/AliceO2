@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iomanip>
 #include "Utils/RootTreeWriter.h"
+#include "Utils/MakeRootTreeWriterSpec.h"
 #include <vector>
 #include <memory>
 
@@ -49,4 +50,13 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter_runtime)
   // test with correct configuration
   branchConfig.emplace_back("input2", "branchfloat");
   auto writer = createWriterFct();
+}
+
+BOOST_AUTO_TEST_CASE(test_RootTreeWriterSpec)
+{
+  // setup the spec helper and retrieve the spec by calling the operator
+  MakeRootTreeWriterSpec<int, float>("writer-process",                                        //
+                                     InputSpec{ "input1", "TST", "INTDATA" }, "intbranch",    //
+                                     InputSpec{ "input2", "TST", "FLOATDATA" }, "floatbranch" //
+                                     )();
 }
