@@ -20,6 +20,7 @@ using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
 using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
+using namespace std;
 
 BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 {
@@ -59,8 +60,9 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
     }
   };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.ini";
-  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
+  cout << "config file : " << "json://" << configFilePath << endl;
+  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
@@ -160,8 +162,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
   workflow.insert(std::end(workflow), std::begin(processingStages), std::end(processingStages));
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.ini";
-  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
+  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   for (int i = 0; i < 3; ++i) {
     auto disp = std::find_if(workflow.begin(), workflow.end(),
@@ -252,8 +254,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
     }
   };
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.ini";
-  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingDPL.json";
+  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   auto disp = std::find_if(workflow.begin(), workflow.end(),
                            [](const DataProcessorSpec& d) {
@@ -271,8 +273,8 @@ BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
 {
   WorkflowSpec workflow;
 
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingFairMQ.ini";
-  DataSampling::GenerateInfrastructure(workflow, "file://" + configFilePath);
+  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingFairMQ.json";
+  DataSampling::GenerateInfrastructure(workflow, "json://" + configFilePath);
 
   auto fairMqProxy = std::find_if(workflow.begin(), workflow.end(),
                                   [](const DataProcessorSpec& p) {

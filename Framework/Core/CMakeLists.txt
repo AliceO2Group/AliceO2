@@ -178,7 +178,7 @@ O2_GENERATE_EXECUTABLE(
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
 target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
 
-Install(FILES test/test_DataSamplingDPL.ini test/test_DataSamplingFairMQ.ini DESTINATION share/tests/)
+Install(FILES test/test_DataSamplingDPL.json test/test_DataSamplingFairMQ.json DESTINATION share/tests/)
 
 set(TEST_SRCS
       test/test_SimpleStatefulProcessing01.cxx
