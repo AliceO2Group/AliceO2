@@ -25,7 +25,7 @@ namespace framework {
 //
 // [METRIC] <name>,<type> <value> <timestamp> [<tags>]
 bool parseMetric(const std::string &s, std::smatch &match) {
-  const static std::regex metricsRE(".*METRIC.* ([a-zA-Z0-9/_-]+),(0|1|2|4) ([0-9]+) ([0-9]+) (.*)");
+  const static std::regex metricsRE(".*METRIC.* ([a-zA-Z0-9/_-]+),(0|1|2|4) ([0-9.]+) ([0-9]+) (.*)");
   return std::regex_match(s, match, metricsRE);
 }
 
