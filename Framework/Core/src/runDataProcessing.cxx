@@ -548,7 +548,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
     auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
     auto callbackService = std::make_unique<CallbackService>();
-    serviceRegistry.registerService<Monitoring>(MonitoringFactory::Get("infologger://").get());
+    auto monitoringService = MonitoringFactory::Get("infologger://");
+    serviceRegistry.registerService<Monitoring>(monitoringService.get());
     serviceRegistry.registerService<RootFileService>(localRootFileService.get());
     serviceRegistry.registerService<ControlService>(textControlService.get());
     serviceRegistry.registerService<ParallelContext>(parallelContext.get());
