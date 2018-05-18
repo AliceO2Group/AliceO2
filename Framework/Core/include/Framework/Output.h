@@ -19,6 +19,11 @@ namespace framework
 {
 
 /// A concrete description of the output to be created
+///
+/// Note that header::Stack forbids copy constructor and so it is for Output.
+/// As a consequence it can not be used in standard containers. This is however
+/// not a limitation which is expected to cause problems because Output is mostly
+/// used as rvalue in specifying output route.
 struct Output {
   header::DataOrigin origin;
   header::DataDescription description;
