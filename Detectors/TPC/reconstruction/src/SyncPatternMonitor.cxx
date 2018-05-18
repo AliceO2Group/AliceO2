@@ -12,6 +12,7 @@
 /// \author Sebastian Klewin
 
 #include "TPCReconstruction/SyncPatternMonitor.h"
+#include <iostream>
 
 using namespace o2::TPC;
 constexpr std::array<short,32> SyncPatternMonitor::SYNC_PATTERN;

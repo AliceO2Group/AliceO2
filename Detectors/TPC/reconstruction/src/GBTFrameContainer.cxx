@@ -13,6 +13,7 @@
 
 #include "TPCReconstruction/GBTFrameContainer.h"
 #include <bitset>
+#include <iostream>
 
 using namespace o2::TPC;
 

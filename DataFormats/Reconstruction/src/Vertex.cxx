@@ -9,5 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/Vertex.h"
+#include <iostream>
 
 using namespace o2::dataformats;

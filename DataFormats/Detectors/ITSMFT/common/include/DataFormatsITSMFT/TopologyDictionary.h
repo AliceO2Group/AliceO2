@@ -29,7 +29,7 @@
 #define ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
 #include <Rtypes.h>
 #include <fstream>
-#include <iostream>
+#include <iosfwd>
 #include <string>
 #include <unordered_map>
 #include <vector>

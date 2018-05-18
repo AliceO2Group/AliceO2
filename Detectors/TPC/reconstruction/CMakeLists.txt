@@ -1,3 +1,16 @@
+option(HLT_CUDA   "Build HLT GPU tracker using CUDA"   OFF)
+option(HLT_OPENCL "Build HLT GPU tracker using OpenCL" OFF)
+
+if(DEFINED ALITPCCOMMON_DIR)
+    set(ALITPCCOMMON_BUILD_TYPE "O2")
+    add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking TPCCAGPUTracking)
+    include_directories(${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
+                        ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
+                        ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface)
+else()
+    message(FATAL_ERROR "cmake variable ALITPCCOMMON_DIR is not defined")
+endif()
+
 set(MODULE_NAME "TPCReconstruction")
 
 O2_SETUP(NAME ${MODULE_NAME})
@@ -45,18 +58,6 @@ set(HEADERS
 set(LINKDEF src/TPCReconstructionLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_reconstruction_bucket)
-
-if(DEFINED O2_TPCCA_TRACKING_LIB_DIR)
-  include_directories(${O2_TPCCA_TRACKING_LIB_DIR}/include)
-  find_library(CATRACKING_LIB NAMES O2TPCCATracking PATHS ${O2_TPCCA_TRACKING_LIB_DIR}/lib NO_DEFAULT_PATH)
-  if(NOT CATRACKING_LIB)
-    message(FATAL_ERROR "Cannot find library O2TPCCATracking in ${O2_TPCCA_TRACKING_LIB_DIR}/lib")
-  endif()
-  link_libraries(${CATRACKING_LIB})
-  message("Building TPCCA tracking interface from standalone library in ${O2_TPCCA_TRACKING_LIB_DIR}")
-else()
-  message(FATAL_ERROR "cmake variable O2_TPCCA_TRACKING_LIB_DIR is not defined")
-endif()
 
 O2_GENERATE_LIBRARY()
 

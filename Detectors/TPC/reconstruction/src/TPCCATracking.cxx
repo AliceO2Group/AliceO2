@@ -253,9 +253,9 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
         zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fZ -
                tracks[i].GetParam().GetZOffset(); // low R cluster
 
-        bool sideHighA = (trackClusters[tracks[i].FirstClusterRef()].fId >> 24) < Sector::MAXSECTOR / 2;
+        bool sideHighA = (trackClusters[tracks[i].FirstClusterRef()].fNum >> 24) < Sector::MAXSECTOR / 2;
         bool sideLowA =
-          (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24) < Sector::MAXSECTOR / 2;
+          (trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fNum >> 24) < Sector::MAXSECTOR / 2;
 
         // calculate time bracket
         float zLowAbs = zLow < 0.f ? -zLow : zLow;
@@ -303,7 +303,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
       oTrack.resetClusterReferences(tracks[i].NClusters());
       std::vector<std::pair<MCCompLabel, unsigned int>> labels;
       for (int j = 0; j < tracks[i].NClusters(); j++) {
-        int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].fId;
+        int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].fNum;
         Sector sector = clusterId >> 24;
         int globalRow = (clusterId >> 16) & 0xFF;
         clusterId &= 0xFFFF;
@@ -343,7 +343,7 @@ int TPCCATracking::runTracking(const ClusterNativeAccessFullTPC& clusters, std::
           bestLabel.set(-bestLabel.getTrackID(), bestLabel.getEventID(), bestLabel.getSourceID());
         outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
-      int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fId >> 24;
+      int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].fNum >> 24;
     }
   }
   mTrackingCAO2Interface->Cleanup();

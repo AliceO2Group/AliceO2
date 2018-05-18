@@ -18,7 +18,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Rtypes.h"       // for Bool_t, Double_t, Int_t, Double32_t, etc
 #include "TVector3.h"     // for TVector3
-#include <iostream>
+#include <iosfwd>
 
 namespace o2 {
 namespace ITSMFT {

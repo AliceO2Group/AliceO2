@@ -27,6 +27,7 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include <iostream>
 
 namespace
 {

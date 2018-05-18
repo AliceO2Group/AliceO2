@@ -74,11 +74,11 @@ public:
     o2::header::Stack headerStack{std::move(incomingStack)};
     FairMQMessagePtr dataMessage{std::move(incomingDataMessage)};
 
-    FairMQMessagePtr headerMessage = NewMessage(headerStack.buffer.get(),
-                                                headerStack.bufferSize,
+    FairMQMessagePtr headerMessage = NewMessage(headerStack.data(),
+                                                headerStack.size(),
                                                 &o2::header::Stack::freefn,
-                                                headerStack.buffer.get());
-    headerStack.buffer.release();
+                                                headerStack.data());
+    headerStack.release();
 
     parts.AddPart(std::move(headerMessage));
     parts.AddPart(std::move(dataMessage));

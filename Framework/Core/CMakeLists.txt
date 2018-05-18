@@ -57,6 +57,7 @@ set(SRCS
     src/StreamOperators.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
+    src/Variant.cxx
    )
 
 set(HEADERS

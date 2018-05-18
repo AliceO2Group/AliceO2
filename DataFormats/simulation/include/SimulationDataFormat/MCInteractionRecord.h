@@ -14,7 +14,7 @@
 #define ALICEO2_MCINTERACTIONRECORD_H
 
 #include <Rtypes.h>
-#include <iostream>
+#include <iosfwd>
 
 namespace o2
 {
@@ -30,10 +30,7 @@ struct MCInteractionRecord {
   {
   }
 
-  void print()
-  {
-    std::cout << "BCid: " << bc << " Orbit: " << orbit << " Period: " << period << " T(ns): " << timeNS << std::endl;
-  }
+  void print();
 
   ClassDefNV(MCInteractionRecord, 1);
 };

@@ -38,18 +38,25 @@ namespace o2
 namespace steer
 {
 
-DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehits)
+std::string getBranchNameLeft(int sector)
+{
+  std::stringstream branchnamestreamleft;
+  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(sector)));
+  return branchnamestreamleft.str();
+}
+
+std::string getBranchNameRight(int sector)
+{
+  std::stringstream branchnamestreamright;
+  branchnamestreamright << "TPCHitsShiftedSector" << sector;
+  return branchnamestreamright.str();
+}
+
+DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 {
   TChain* simChain = new TChain("o2sim");
   //
   auto simChains = std::make_shared<std::vector<TChain*>>();
-  std::stringstream branchnamestreamleft;
-  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(sector)));
-  std::string branchnameleft = branchnamestreamleft.str();
-  std::stringstream branchnamestreamright;
-  branchnamestreamright << "TPCHitsShiftedSector" << sector;
-  std::string branchnameright = branchnamestreamright.str();
-
   auto digitizertask = std::make_shared<o2::TPC::DigitizerTask>();
   digitizertask->Init2();
 
@@ -59,10 +66,22 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
   // TODO: make this clear in the API
   digitizertask->setOutputData(digitArray.get(), mcTruthArray.get());
 
-  auto doit = [simChain, simChains, branchnameleft, branchnameright, sector, digitizertask, digitArray,
-               mcTruthArray](ProcessingContext& pc) {
+  auto doit = [simChain, simChains, digitizertask, digitArray, mcTruthArray](ProcessingContext& pc) {
     static int callcounter = 0;
     callcounter++;
+
+    auto sectorptr = pc.inputs().get<int>("sectorassign");
+    if (sectorptr) {
+      LOG(INFO) << "GOT ASSIGNED SECTOR" << *sectorptr.get();
+    }
+    int sector = *sectorptr;
+
+    // no more tasks can be marked with a negative sector
+    if (sector == -1) {
+      // we are ready to quit
+      pc.services().get<ControlService>().readyToQuit(false);
+      return;
+    }
 
     // ===| open file and register branches |=====================================
     // this is done at the moment for each worker function invocation
@@ -76,12 +95,11 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
     auto mcTruthBranch = outtree->Branch(Form("TPCDigitMCTruth_%i", sector), &mcTruthArrayRaw);
 
     // obtain collision contexts
-    auto dataref = pc.inputs().get("timeinput");
-    auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
-
-    auto context = pc.inputs().get<o2::steer::RunContext>("timeinput");
+    auto context = pc.inputs().get<o2::steer::RunContext>("collisioncontext");
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+
+    // extract which sector to treat (strangely this is a unique pointer)
 
     // if there is nothing ... return
     if (timesview.size() == 0) {
@@ -130,11 +148,11 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
       hitidsright.clear();
 
       // obtain candidate hit(ids) for this time range --> left
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, branchnameleft.c_str(), starttime,
-                       endtime, o2::TPC::calcDriftTime);
-      // --> right
-      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright, branchnameright.c_str(),
+      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsleft, hitidsleft, getBranchNameLeft(sector).c_str(),
                        starttime, endtime, o2::TPC::calcDriftTime);
+      // --> right
+      o2::TPC::getHits(*simChains.get(), *context.get(), hitvectorsright, hitidsright,
+                       getBranchNameRight(sector).c_str(), starttime, endtime, o2::TPC::calcDriftTime);
 
       LOG(DEBUG) << "DRIFTTIME " << drift << " SECTOR " << sector << " : SELECTED LEFT " << hitidsleft.size() << " IDs"
                  << " SELECTED RIGHT " << hitidsright.size();
@@ -153,8 +171,6 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
     file->Write();
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
-
-    pc.services().get<ControlService>().readyToQuit(false);
   };
 
   // init function return a lambda taking a ProcessingContext
@@ -177,10 +193,12 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int sector, int channel, bool cachehi
   };
 
   std::stringstream id;
-  id << "TPCDigitizer" << sector;
+  id << "TPCDigitizer" << channel;
   return DataProcessorSpec{
-    id.str().c_str(), Inputs{ InputSpec{ "timeinput", "SIM", "EVENTTIMES", static_cast<SubSpecificationType>(channel),
-                                         Lifetime::Timeframe } },
+    id.str().c_str(), Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
+                                         static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
+                              InputSpec{ "sectorassign", "SIM", "TPCSECTORASSIGN",
+                                         static_cast<SubSpecificationType>(channel), Lifetime::Condition } },
     Outputs{
       // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
     },
