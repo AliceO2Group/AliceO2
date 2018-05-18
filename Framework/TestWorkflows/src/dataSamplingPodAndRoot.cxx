@@ -37,7 +37,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx);
 void someProcessingStageAlgorithm(ProcessingContext& ctx);
 void someSinkAlgorithm(ProcessingContext& ctx);
 
-void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   DataProcessorSpec podDataProducer{
     "podDataProducer",
@@ -187,19 +187,22 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     }
   };
 
-  specs.push_back(podDataProducer);
-  specs.push_back(processingStage);
-  specs.push_back(podSink);
-  specs.push_back(qcTaskTpc);
+  WorkflowSpec specs{
+    podDataProducer,
+    processingStage,
+    podSink,
+    qcTaskTpc,
 
-  specs.push_back(rootDataProducer);
-  specs.push_back(rootSink);
-  specs.push_back(rootQcTask);
+    rootDataProducer,
+    rootSink,
+    rootQcTask
+  };
 
   std::string configurationSource = std::string("file://") + getenv("BASEDIR")
                                     + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
 
   DataSampling::GenerateInfrastructure(specs, configurationSource);
+  return specs;
 }
 
 

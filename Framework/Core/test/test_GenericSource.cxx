@@ -12,8 +12,8 @@
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(WorkflowSpec &specs) {
-  WorkflowSpec workflow = {
+WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
+  return WorkflowSpec{
   {
     "A",
     Inputs{},
@@ -31,5 +31,4 @@ void defineDataProcessing(WorkflowSpec &specs) {
     Options{{"test-option", VariantType::String, "test", "A test option"}},
   }
   };
-  specs.swap(workflow);
 }

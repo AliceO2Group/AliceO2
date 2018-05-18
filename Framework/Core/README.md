@@ -70,19 +70,21 @@ and given these premises it actually guarantees:
 The description of  the computation in such the Data  Processing Layer is done
 via instances  of the [`DataProcessorSpec`][DataProcessorSpec]  class, grouped
 in a  so called `WorkflowSpec` instance.  In order to provide  a description a
-computation to  be run, the user  must implement a callback  which modifies an
-empty `WorkflowSpec` instance provided by the system. E.g.:
+computation to  be run,  the user  must implement a  callback which  return an
+filled `WorkflowSpec`. E.g.:
 
 ```cpp
 #include "Framework/Utils/runDataProcessing.h"
 
-void defineDataProcessing(WorkflowSpec &workflow) {
-  auto spec = DataProcessorSpec{
-    ...
+WorkflowSpec defineDataProcessing(ConfigContext &context) {
+  return WorkflowSpec {
+    DataProcessorSpec{
+      ...
+    },
+    DataProcessorSpec{
+    }
   };
-  // Fill a DataProcessingSpec "spec"
-  workflow.push_back(spec);
-}
+};
 ```
 
 See   next    section,   for    a   more    detailed   description    of   the
@@ -94,6 +96,9 @@ to form a so called driver executable which if run will:
   (using 1-1 correspondence, in the current implementation).
 - Instanciate and start all the devices resulted from the previous step.
 - (Optionally) start a GUI which allows to monitor the running of the system.
+
+The ConfigContext object being passed to the function contains a set of user
+provided options to customise the creation of the workflow.
 
 [DataProcessorSpec]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/include/Framework/DataProcessorSpec.h
 
@@ -620,6 +625,24 @@ the `ChannelConfigurationPolicy::modifyInput` and
 `ChannelConfigurationPolicy::modifyOutput` will be invoked passing the input and 
 output channel associated to the two devices, giving the opportunity to modify 
 the matching channels.
+
+## Customizing workflows creation (WIP)
+
+Sometimes it's handy to customise or generalise the workflow creation based on
+external inputs. For example you might want to change the number of workers for
+a given task or disable part of the topology if a given detector should not be
+enabled. 
+
+This can be done by implementing the function:
+
+    customise(std::vector<o2::framework::ConfigParamSpec> &workflowOptions)
+
+**before** including the `Framework/runDataProcessing.h` (this will most likely 
+change in the future). Each ConfigParamSpec will be added to the configuration
+mechanism (e.g. the command line options) allowing you to modify them. Such options
+will then be made available at workflow creation time via the `ConfigContext`
+passed to the `defineDataProcessing` function, using the `ConfigContext::options()`
+getter.
 
 ## Current Demonstrator (WIP)
 

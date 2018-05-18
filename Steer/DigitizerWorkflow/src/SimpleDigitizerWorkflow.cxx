@@ -78,9 +78,10 @@ bool wantCollisionTimePrinter()
 
 /// This function is required to be implemented to define the workflow
 /// specifications
-void defineDataProcessing(WorkflowSpec& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  specs.clear();
+  WorkflowSpec specs;
+
   int fanoutsize = 0;
   if (wantCollisionTimePrinter()) {
     specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
@@ -102,4 +103,5 @@ void defineDataProcessing(WorkflowSpec& specs)
   // for writing digits to disc
   specs.emplace_back(o2::TPC::getTPCDigitRootWriterSpec(lanes));
   specs.emplace_back(o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes));
+  return specs;
 }

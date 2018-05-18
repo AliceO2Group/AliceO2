@@ -30,7 +30,7 @@ using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
+std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
   DataProcessorSpec timeframeReader{
     "reader",
     Inputs{},
@@ -131,8 +131,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       },
     }
   };
-  specs.push_back(timeframeReader);
-  specs.push_back(tpcClusterSummary);
-  specs.push_back(itsClusterSummary);
-  specs.push_back(merger);
+  return {
+    timeframeReader,
+    tpcClusterSummary,
+    itsClusterSummary,
+    merger
+  };
 }

@@ -48,7 +48,7 @@ using namespace o2::framework::DataSamplingConfig;
 ///
 /// In-code usage:
 /// \code{.cxx}
-/// void defineDataProcessing(std::vector<DataProcessorSpec> &workflow)
+/// std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext &ctx)
 /// {
 ///
 /// // <declaration of other DPL processors>
