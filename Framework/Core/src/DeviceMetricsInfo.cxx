@@ -20,7 +20,6 @@
 namespace o2 {
 namespace framework {
 
-
 // Parses a metric in the form
 //
 // [METRIC] <name>,<type> <value> <timestamp> [<tags>]

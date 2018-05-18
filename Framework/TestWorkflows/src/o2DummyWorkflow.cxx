@@ -126,9 +126,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           throw std::runtime_error("Unexpected data origin" + std::string(h2->dataOrigin.str));
         }
 
-        auto &metrics = ctx.services().get<Monitoring>();
+        auto& metrics = ctx.services().get<Monitoring>();
         metrics.send({ 1, "merger/invoked" });
-        metrics.send({ (int) ctx.inputs().size(), "merger/inputs" });
+        metrics.send({ (int)ctx.inputs().size(), "merger/inputs" });
       },
     }
   };

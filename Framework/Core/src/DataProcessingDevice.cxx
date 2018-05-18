@@ -32,22 +32,21 @@ using DataHeader = o2::header::DataHeader;
 namespace o2 {
 namespace framework {
 
-DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
-                                           ServiceRegistry &registry)
-: mInit{spec.algorithm.onInit},
-  mStatefulProcess{nullptr},
-  mStatelessProcess{spec.algorithm.onProcess},
-  mError{spec.algorithm.onError},
-  mConfigRegistry{nullptr},
-  mAllocator{this, &mContext, &mRootContext, spec.outputs},
-  mRelayer{spec.inputs, spec.forwards, registry.get<Monitoring>()},
-  mInputChannels{spec.inputChannels},
-  mOutputChannels{spec.outputChannels},
-  mInputs{spec.inputs},
-  mForwards{spec.forwards},
-  mServiceRegistry{registry},
-  mErrorCount{0},
-  mProcessingCount{0}
+DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry& registry)
+  : mInit{ spec.algorithm.onInit },
+    mStatefulProcess{ nullptr },
+    mStatelessProcess{ spec.algorithm.onProcess },
+    mError{ spec.algorithm.onError },
+    mConfigRegistry{ nullptr },
+    mAllocator{ this, &mContext, &mRootContext, spec.outputs },
+    mRelayer{ spec.inputs, spec.forwards, registry.get<Monitoring>() },
+    mInputChannels{ spec.inputChannels },
+    mOutputChannels{ spec.outputChannels },
+    mInputs{ spec.inputs },
+    mForwards{ spec.forwards },
+    mServiceRegistry{ registry },
+    mErrorCount{ 0 },
+    mProcessingCount{ 0 }
 {
 }
 
@@ -156,8 +155,8 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     return true;
   };
 
-  // 
-  auto reportError = [&errorCount, &monitoringService](const char *message) {
+  //
+  auto reportError = [&errorCount, &monitoringService](const char* message) {
     LOG(ERROR) << message;
     errorCount++;
     monitoringService.send({ errorCount, "dataprocessing/errors" });
@@ -193,7 +192,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getCompleteInputSets = [&relayer,&completed,&monitoringService]() -> std::vector<int> {
+  auto getCompleteInputSets = [&relayer, &completed, &monitoringService]() -> std::vector<int> {
     LOG(DEBUG) << "Getting parts to process";
     completed = relayer.getReadyToProcess();
     int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
@@ -217,15 +216,8 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // why we do the stateful processing before the stateless one.
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
-  auto dispatchProcessing = [&processingCount,
-                             &allocator,
-                             &statefulProcess,
-                             &statelessProcess,
-                             &monitoringService,
-                             &context,
-                             &rootContext,
-                             &serviceRegistry,
-                             &device](int i, InputRecord &record) {
+  auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
+                             &context, &rootContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
       monitoringService.send({ processingCount++, "dataprocessing/stateful_process" });
@@ -245,9 +237,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   };
 
   // Error handling means printing the error and updating the metric
-  auto errorHandling = [&errorCallback,
-                        &monitoringService,
-                        &serviceRegistry](std::exception &e, InputRecord &record) {
+  auto errorHandling = [&errorCallback, &monitoringService, &serviceRegistry](std::exception& e, InputRecord& record) {
     LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
       monitoringService.send({ 1, "error" });
