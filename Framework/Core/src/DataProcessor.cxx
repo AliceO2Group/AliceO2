@@ -24,12 +24,13 @@ namespace framework {
 void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
   for (auto &message : context) {
  //     metricsService.post("outputs/total", message.parts.Size());
-    assert(message.parts.Size() == 2);
-    FairMQParts parts = std::move(message.parts);
-    assert(message.parts.Size() == 0);
+    assert(message.parts.size() == 2);
+    FairMQParts parts;
+    parts.fParts = std::move(message.parts);
+    assert(message.parts.size() == 0);
     assert(parts.Size() == 2);
     device.Send(parts, message.channel, 0);
-    assert(parts.Size() == 2);
+    assert(parts.fParts.size() == 2);
   }
 }
 

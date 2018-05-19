@@ -10,27 +10,30 @@
 #ifndef FRAMEWORK_MESSAGECONTEXT_H
 #define FRAMEWORK_MESSAGECONTEXT_H
 
-#include <fairmq/FairMQParts.h>
-#include <vector>
 #include <cassert>
+#include <memory>
 #include <string>
+#include <vector>
+
+class FairMQMessage;
 
 namespace o2 {
 namespace framework {
 
 class MessageContext {
 public:
+  using Parts = std::vector<std::unique_ptr<FairMQMessage>>;
   struct MessageRef {
-    FairMQParts parts;
+    Parts parts;
     std::string channel;
   };
   using Messages = std::vector<MessageRef>;
 
-  void addPart(FairMQParts &&parts, const std::string &channel) {
-    assert(parts.Size() == 2);
+  void addPart(Parts &&parts, const std::string &channel) {
+    assert(parts.size() == 2);
     mMessages.push_back(std::move(MessageRef{std::move(parts), channel}));
-    assert(parts.Size() == 0);
-    assert(mMessages.back().parts.Size() == 2);
+    assert(parts.size() == 0);
+    assert(mMessages.back().parts.size() == 2);
   }
 
   Messages::iterator begin()
@@ -55,7 +58,7 @@ public:
   {
     // Verify that everything has been sent on clear.
     for (auto &m : mMessages) {
-      assert(m.parts.Size() == 0);
+      assert(m.parts.size() == 0);
     }
     mMessages.clear();
     mTimeslice = timeslice;
