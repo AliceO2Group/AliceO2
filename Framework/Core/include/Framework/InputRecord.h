@@ -15,9 +15,6 @@
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
 
-#include <fairmq/FairMQMessage.h>
-#include <Framework/TMessageSerializer.h>
-
 #include <TClass.h>
 
 #include <iterator>
@@ -28,6 +25,8 @@
 #include <exception>
 #include <memory>
 #include <type_traits>
+
+class FairMQMessage;
 
 namespace o2
 {

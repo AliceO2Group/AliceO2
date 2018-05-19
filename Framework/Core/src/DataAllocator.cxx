@@ -12,7 +12,11 @@
 #include "Framework/RootObjectContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
+
+#include <fairmq/FairMQDevice.h>
+
 #include <TClonesArray.h>
+
 
 namespace o2 {
 namespace framework {
@@ -21,11 +25,12 @@ using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
-DataAllocator::DataAllocator(FairMQDevice *device,
+DataAllocator::DataAllocator(FairMQDeviceProxy proxy,
                              MessageContext *context,
                              RootObjectContext *rootContext,
                              const AllowedOutputRoutes &routes)
-: mDevice{device},
+: mProxy{proxy},
+  mDevice{proxy.getDevice()},
   mAllowedOutputRoutes{routes},
   mContext{context},
   mRootContext{rootContext}

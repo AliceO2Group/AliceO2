@@ -43,6 +43,7 @@ set(SRCS
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
+    src/FairMQDeviceProxy.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/LocalRootFileService.cxx

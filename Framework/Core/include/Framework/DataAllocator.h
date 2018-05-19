@@ -10,19 +10,17 @@
 #ifndef FRAMEWORK_DATAALLOCATOR_H
 #define FRAMEWORK_DATAALLOCATOR_H
 
-#include <fairmq/FairMQDevice.h>
 #include "Headers/DataHeader.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/SerializationMethods.h"
-
-#include "fairmq/FairMQMessage.h"
 
 #include <vector>
 #include <map>
@@ -33,6 +31,10 @@
 #include <utility>
 
 #include <TClass.h>
+
+// Do not change this for a full inclusion of FairMQDevice.
+class FairMQDevice;
+class FairMQMessage;
 
 namespace o2 {
 namespace framework {
@@ -50,7 +52,7 @@ public:
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-  DataAllocator(FairMQDevice *device,
+  DataAllocator(FairMQDeviceProxy device,
                 MessageContext *context,
                 RootObjectContext *rootContext,
                 const AllowedOutputRoutes &routes);
@@ -162,9 +164,9 @@ public:
   typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
   snapshot(const Output& spec, T& object)
   {
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    FairMQMessagePtr payloadMessage(mProxy.createMessage());
     auto* cl = TClass::GetClass(typeid(T));
-    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object, cl);
+    TMessageSerializer().Serialize(*payloadMessage, &object, cl);
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
@@ -186,7 +188,7 @@ public:
                     std::is_void<typename W::hint_type>::value,             //
                   "class hint must be of type TClass or const char");
 
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    FairMQMessagePtr payloadMessage(mProxy.createMessage());
     const TClass* cl = nullptr;
     if (wrapper.getHint() == nullptr) {
       // get TClass info by wrapped type
@@ -207,7 +209,7 @@ public:
       }
       throw std::runtime_error(msg);
     }
-    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &wrapper(), cl);
+    TMessageSerializer().Serialize(*payloadMessage, &wrapper(), cl);
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
@@ -221,7 +223,7 @@ public:
   typename std::enable_if<is_messageable<T>::value == true, void>::type
   snapshot(const Output& spec, T const& object)
   {
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
+    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
@@ -238,7 +240,7 @@ public:
   snapshot(const Output& spec, C const& v)
   {
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
+    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
 
     typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
@@ -260,7 +262,7 @@ public:
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
     auto sizeInBytes = elementSizeInBytes * v.size();
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
+    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
 
     auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
     for (auto const & pointer : v) {
@@ -332,7 +334,8 @@ public:
   }
 
  private:
-  FairMQDevice* mDevice;
+  FairMQDeviceProxy mProxy;
+  FairMQDevice *mDevice;
   AllowedOutputRoutes mAllowedOutputRoutes;
   MessageContext* mContext;
   RootObjectContext* mRootContext;

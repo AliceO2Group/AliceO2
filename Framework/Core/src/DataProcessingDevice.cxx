@@ -13,6 +13,7 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/FairOptionsRetriever.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "Framework/MetricsService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
@@ -39,7 +40,7 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
   mStatelessProcess{spec.algorithm.onProcess},
   mError{spec.algorithm.onError},
   mConfigRegistry{nullptr},
-  mAllocator{this, &mContext, &mRootContext, spec.outputs},
+  mAllocator{FairMQDeviceProxy{this}, &mContext, &mRootContext, spec.outputs},
   mRelayer{spec.inputs, spec.forwards, registry.get<MetricsService>()},
   mInputChannels{spec.inputChannels},
   mOutputChannels{spec.outputChannels},
