@@ -13,6 +13,7 @@
 #include <vector>
 #include <cassert>
 #include <string>
+#include <memory>
 
 class TObject;
 class FairMQMessage;
