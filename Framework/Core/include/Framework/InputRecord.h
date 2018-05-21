@@ -15,8 +15,6 @@
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
 
-#include <TClass.h>
-
 #include <iterator>
 #include <string>
 #include <vector>
