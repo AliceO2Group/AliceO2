@@ -70,19 +70,21 @@ and given these premises it actually guarantees:
 The description of  the computation in such the Data  Processing Layer is done
 via instances  of the [`DataProcessorSpec`][DataProcessorSpec]  class, grouped
 in a  so called `WorkflowSpec` instance.  In order to provide  a description a
-computation to  be run, the user  must implement a callback  which modifies an
-empty `WorkflowSpec` instance provided by the system. E.g.:
+computation to  be run,  the user  must implement a  callback which  return an
+filled `WorkflowSpec`. E.g.:
 
 ```cpp
 #include "Framework/Utils/runDataProcessing.h"
 
-void defineDataProcessing(WorkflowSpec &workflow) {
-  auto spec = DataProcessorSpec{
-    ...
+WorkflowSpec defineDataProcessing(ConfigContext &context) {
+  return WorkflowSpec {
+    DataProcessorSpec{
+      ...
+    },
+    DataProcessorSpec{
+    }
   };
-  // Fill a DataProcessingSpec "spec"
-  workflow.push_back(spec);
-}
+};
 ```
 
 See   next    section,   for    a   more    detailed   description    of   the
@@ -94,6 +96,9 @@ to form a so called driver executable which if run will:
   (using 1-1 correspondence, in the current implementation).
 - Instanciate and start all the devices resulted from the previous step.
 - (Optionally) start a GUI which allows to monitor the running of the system.
+
+The ConfigContext object being passed to the function contains a set of user
+provided options to customise the creation of the workflow.
 
 [DataProcessorSpec]: https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/include/Framework/DataProcessorSpec.h
 
@@ -621,9 +626,74 @@ the `ChannelConfigurationPolicy::modifyInput` and
 output channel associated to the two devices, giving the opportunity to modify 
 the matching channels.
 
-## Current Demonstrator (WIP)
+## Customizing workflows creation (WIP)
 
-An demonstrator illustrating a possible implementation of the design described
+Sometimes it's handy to customise or generalise the workflow creation based on
+external inputs. For example you might want to change the number of workers for
+a given task or disable part of the topology if a given detector should not be
+enabled. 
+
+This can be done by implementing the function:
+
+    customise(std::vector<o2::framework::ConfigParamSpec> &workflowOptions)
+
+**before** including the `Framework/runDataProcessing.h` (this will most likely 
+change in the future). Each ConfigParamSpec will be added to the configuration
+mechanism (e.g. the command line options) allowing you to modify them. Such options
+will then be made available at workflow creation time via the `ConfigContext`
+passed to the `defineDataProcessing` function, using the `ConfigContext::options()`
+getter.
+
+# Forseen features
+
+## Completion policies
+
+It was requested from multiple parts to be able to customise when a given
+computation can take place.
+
+At the moment this decision is hardcoded to be only when all the inputs are present.
+
+This can be done by allowing the user to define a
+`CompletionPolicyRule{DataProcessorMatcher{}, CompletionCallback{}}`, via the
+usual customisation mechanism, which will allow to define a vector of matchers
+to be used on the topology which will make sure the specified callback is
+applied when determining if a record is complete.
+
+## Lifetime support
+
+While initially foreseen in the design, Lifetime for Inputs / Outputs has not
+yet being implemented correctly. However, once that happens, the following behaviors 
+will be implemented (naming foreseen to change).
+
+* Timeframe: an input that gets processed only once.
+* Condition: an input that is cache on considered valid for multiple computations,
+             according to its IOV.
+* Transient: an output which is not actually sent. Useful to use the same mechanism
+             of the Message Passing API to create
+* QA: an output which once send is also proposed as input to the subsequent computation,
+      allowing for accumulating data (e.g. histograms).
+
+## Wildcard support
+
+In order to reduce the amount of code which one has to write to define inputs
+and outputs, we plan to make the InputSpecs and OutputSpecs as veritable
+matchers, supporting wildcards. For example if your Algorithm supports
+processing clusters coming from multiple detectors, it will be possible to
+specify:
+
+    InputSpec{"*", "CLUSTERS"}
+
+If the user wants to get both clusters and tracks coming from the same detector,
+it will be possible to write:
+
+    InputSpec{"*", "CLUSTERS"}, InputSpec{"*", "TRACKS"}
+
+i.e. the first message which arrives will define the wildcard for all the other input
+spec in the definition.
+
+# Current Demonstrator (WIP)
+
+A demonstrator illustrating a possible implementation of the design described
 above is now found in the dev branch of AliceO2, in the
 [Framework](https://github.com/AliceO2Group/AliceO2/tree/dev/Framework) folder.
 In particular:
@@ -643,9 +713,9 @@ In particular:
   solution, OpenSource.
 
 ## General remarks & Feedback so far:
-- Gvozden and  Mikolaj were  suggesting to have  a multiple  payload view-like
+- ~~Gvozden and  Mikolaj were  suggesting to have  a multiple  payload view-like
   object.  Where does  that fit?  Shouldn’t this  feature be  provided by  the
-  DataRef binder?
+  DataRef binder?~~
 - Do we need `process` to return a `bool` / an `error` code?
 - What are the possible Services we can think about?
   - CPUTimer
@@ -664,29 +734,35 @@ In particular:
     inputs.
   - On the other hand  it would probably make some of the  flow code easier to
     read / more type safe.
-- Can inputs  / outputs be  optional? Most likely,  no, since that  would mean
+- ~~Can inputs  / outputs be  optional? Most likely,  no, since that  would mean
   that if  they arrive  late the  processing happens with  a different  set of
   inputs (and  consequently a  optional output means  someone has  an optional
-  input). Do we need some “guaranteed delivery” for messages?
+  input). Do we need some “guaranteed delivery” for messages?~~ CompletionPolicies
+  design solves this issue.
 - ~~Do we need to guarantee that timeframes are processed in their natural
   order?~~ nope. Actually in general we cannot guarantee that.
 - Do we want to separate “Algorithms”s from “DataProcessor”s? The former would
   declare generic argument bindings (e.g. I take x, and y) and the latter
   would do the actual binding to real data (input clusters is y, input tracks
   is y). This is what tensor flow actually does.
-- Shouldn’t the DataHeader contain the timeframe ID?
-- David / Ruben: sometimes the input data depends on whether
+- ~~Shouldn’t the DataHeader contain the timeframe ID?~~ Discussion held in WP1.
+  While there was general consensus about having a IOV like pair of numbers in
+  DataHeader, no followup happeneded. Given the current solution of having a
+  DataProcessingHeader is good enough, for now, no need to push more on it.
+- ~~David / Ruben: sometimes the input data depends on whether
   or not a detector is active during data taking. We would therefore need a
   mechanism to mask out inputs (and maybe modules) from the dataflow, based on
   run control. If only part of the data is available, it might make sense that
-  we offer “fallback” callbacks which can work only on part of the data.
+  we offer “fallback” callbacks which can work only on part of the data.~~
+  Workflow options offer the ability to create configurable workflows.
 - Ruben: most likely people will want to also query the CCDB directly. Does
          it make sense to offer CCDB querying as a service so that we can
          intercept (and eventually optimise) multiple queries from the same
          workflow?
-- Are options scoped? I.e.  do we want to have that  if two devices, `deviceA`
+- ~~Are options scoped? I.e.  do we want to have that  if two devices, `deviceA`
   and `deviceB` defining the same option (e.g. `mcEngine`) they will require /
-  support using `--``deviceA-mcEngine` and `--``deviceB-mcEngine`?
+  support using `--``deviceA-mcEngine` and `--``deviceB-mcEngine`?~~ Matthias
+  improved option handling code takes care of this.
 - ~~Mikolaj pointed out  that capture by move is possible  in `C++14` lambdas,
   so we should use that for the  stateful init~~. Actually this is not working
   out as expected?

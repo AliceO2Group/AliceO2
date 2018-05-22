@@ -147,9 +147,11 @@ DataProcessorSpec getSinkSpec()
                             AlgorithmSpec(processingFct) };
 }
 
-void defineDataProcessing(WorkflowSpec& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  specs.emplace_back(getTimeoutSpec());
-  specs.emplace_back(getSourceSpec());
-  specs.emplace_back(getSinkSpec());
+  return WorkflowSpec{
+    getTimeoutSpec(),
+    getSourceSpec(),
+    getSinkSpec()
+  };
 }

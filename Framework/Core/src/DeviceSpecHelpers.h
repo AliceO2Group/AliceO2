@@ -49,6 +49,7 @@ struct DeviceSpecHelpers {
       bool defaultQuiet,
       bool defaultStopped,
       const std::vector<DeviceSpec> &deviceSpecs,
+      const std::vector<ConfigParamSpec> &workflowOptions,
       std::vector<DeviceExecution> &deviceExecutions,
       std::vector<DeviceControl> &deviceControls);
 

@@ -13,6 +13,7 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/FairOptionsRetriever.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"

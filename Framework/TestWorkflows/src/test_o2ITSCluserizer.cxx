@@ -27,10 +27,8 @@ using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(WorkflowSpec &specs) {
-  WorkflowSpec workflow{
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     sim_its_ALP3(),
   };
-
-  specs.swap(workflow);
 }

@@ -32,8 +32,9 @@ size_t collectionChunkSize = 1000;
 void someDataProducerAlgorithm(ProcessingContext& ctx);
 void someProcessingStageAlgorithm(ProcessingContext& ctx);
 
-void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
+std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 {
+  std::vector<DataProcessorSpec> specs;
   auto dataProducers = parallel(
     DataProcessorSpec{
       "dataProducer",
@@ -184,6 +185,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
 //  specs.push_back(qcTask);
 //  specs.push_back(sink);
 
+  return specs;
 }
 
 

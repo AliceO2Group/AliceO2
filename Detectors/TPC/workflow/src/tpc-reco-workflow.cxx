@@ -50,9 +50,9 @@ using namespace o2::framework;
 /// - add propagation of MC information
 /// - add writing of the CA Tracker output to ROOT file
 /// This function is required to be implemented to define the workflow specifications
-void defineDataProcessing(WorkflowSpec& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  specs.clear();
+  WorkflowSpec specs;
 
   // choose whether to start from the digits or from the clusters
   // these are just temporary switches
@@ -113,4 +113,5 @@ void defineDataProcessing(WorkflowSpec& specs)
                                             { "outfile", VariantType::String, { "Name of the output file" } },
                                           } });
   }
+  return specs;
 }

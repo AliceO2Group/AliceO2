@@ -22,8 +22,8 @@ struct XYZ {
   float z;
 };
 
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
-  WorkflowSpec workflow = {
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     DataProcessorSpec{
       "source",
       Inputs{},
@@ -116,6 +116,4 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       }
     }
   };
-
-  specs.swap(workflow);
 }

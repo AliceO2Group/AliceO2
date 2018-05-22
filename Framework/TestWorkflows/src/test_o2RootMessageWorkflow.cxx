@@ -26,8 +26,8 @@ using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
-    std::vector<DataProcessorSpec> workflow = {
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     {
       "producer",
       {},
@@ -80,5 +80,4 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       }
     }
   };
-  specs.swap(workflow);
 }

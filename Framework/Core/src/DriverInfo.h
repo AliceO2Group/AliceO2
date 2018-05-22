@@ -20,6 +20,7 @@
 #include <sys/select.h>
 
 #include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/ConfigParamSpec.h"
 
 namespace o2
 {
@@ -110,6 +111,8 @@ struct DriverInfo {
   unsigned short startPort;
   /// The size of the port range to consider allocated
   unsigned short portRange;
+  /// The current set of workflow options 
+  std::vector<ConfigParamSpec> workflowOptions;
 };
 
 } // namespace framework

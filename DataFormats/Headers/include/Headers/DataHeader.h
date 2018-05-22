@@ -387,21 +387,35 @@ struct BaseHeader
   ///
   /// this is to guess if the buffer starting at b looks like a header
   inline static const BaseHeader* get(const byte* b, size_t /*len*/=0) {
-    return (*(reinterpret_cast<const uint32_t*>(b))==sMagicString) ?
-      reinterpret_cast<const BaseHeader*>(b) :
-      nullptr;
+    return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
+             ? reinterpret_cast<const BaseHeader*>(b)
+             : nullptr;
+  }
+
+  /// @brief access header in buffer
+  ///
+  /// this is to guess if the buffer starting at b looks like a header
+  inline static BaseHeader* get(byte* b, size_t /*len*/ = 0)
+  {
+    return (b != nullptr && *(reinterpret_cast<uint32_t*>(b)) == sMagicString) ? reinterpret_cast<BaseHeader*>(b)
+                                                                               : nullptr;
   }
 
   inline uint32_t size() const noexcept { return headerSize; }
   inline const byte* data() const noexcept { return reinterpret_cast<const byte*>(this); }
 
-  /// get the next header if any
+  /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept {
     return (flagsNextHeader) ?
       reinterpret_cast<const BaseHeader*>(reinterpret_cast<const byte*>(this)+headerSize) :
       nullptr;
   }
 
+  /// get the next header if any (non-const version)
+  inline BaseHeader* next() noexcept
+  {
+    return (flagsNextHeader) ? reinterpret_cast<BaseHeader*>(reinterpret_cast<byte*>(this) + headerSize) : nullptr;
+  }
 };
 
 /// find a header of type HeaderType in a buffer
@@ -500,6 +514,8 @@ private:
 
   template<typename T>
   static byte* inject(byte* here, const T& h) noexcept {
+    static_assert(std::is_base_of<BaseHeader, T>::value == true || std::is_same<Stack, T>::value == true,
+                  "header stack parameters are restricted to stacks and headers derived from BaseHeader");
     std::copy(h.data(), h.data()+h.size(), here);
     return here + h.size();
   }
@@ -507,7 +523,12 @@ private:
   template<typename T, typename... Args>
   static byte* inject(byte* here, const T& h, const Args... args) noexcept {
     auto alsohere = inject(here, h);
-    (reinterpret_cast<BaseHeader*>(here))->flagsNextHeader = true;
+    // the type might be a stack itself, loop through headers and set the flag in the last one
+    BaseHeader* next = BaseHeader::get(here);
+    while (next->flagsNextHeader) {
+      next = next->next();
+    }
+    next->flagsNextHeader = true;
     return inject(alsohere, args...);
   }
 };

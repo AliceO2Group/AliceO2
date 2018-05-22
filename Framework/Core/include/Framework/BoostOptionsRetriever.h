@@ -26,18 +26,19 @@ namespace framework {
 //        using the FairMQ plugin directly
 class BoostOptionsRetriever : public ParamRetriever {
 public:
-  BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs);
-  void parseArgs(int argc, char **argv);
+  BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs, bool ignoreUnknown, int &argc, char **&argv);
 
-  virtual int getInt(const char *name) final;
-  virtual float getFloat(const char *name) final;
-  virtual double getDouble(const char *name) final;
-  virtual bool getBool(const char *name) final;
-  virtual std::string getString(const char *name) final;
-  virtual std::vector<std::string> getVString(const char *name) final;
+  virtual int getInt(const char *name) const final;
+  virtual float getFloat(const char *name) const final;
+  virtual double getDouble(const char *name) const final;
+  virtual bool getBool(const char *name) const final;
+  virtual std::string getString(const char *name) const final;
+  virtual std::vector<std::string> getVString(const char *name) const final;
 private:
+  void parseArgs(int &argc, char **&argv);
   boost::program_options::variables_map mVariables;
   boost::program_options::options_description mDescription;
+  bool mIgnoreUnknown;
 };
 
 }

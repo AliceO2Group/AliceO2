@@ -31,44 +31,44 @@ struct Summary {
 using DataHeader = o2::header::DataHeader;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
-  DataProcessorSpec simple{
-    "simple",
-    Inputs{},
-    {
-      OutputSpec{"TPC", "CLUSTERS"},
-      OutputSpec{"ITS", "CLUSTERS"}
-    },
-    AlgorithmSpec{
-      [](ProcessingContext &ctx) {
-        sleep(1);
-        // Creates a new message of size 1000 which
-        // has "TPC" as data origin and "CLUSTERS" as data description.
-        auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, 1000);
-        int i = 0;
+std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const &) {
+  return {
+    DataProcessorSpec{
+      "simple",
+      Inputs{},
+      {
+        OutputSpec{"TPC", "CLUSTERS"},
+        OutputSpec{"ITS", "CLUSTERS"}
+      },
+      AlgorithmSpec{
+        [](ProcessingContext &ctx) {
+          sleep(1);
+          // Creates a new message of size 1000 which
+          // has "TPC" as data origin and "CLUSTERS" as data description.
+          auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, 1000);
+          int i = 0;
 
-        for (auto &cluster : tpcClusters) {
-          assert(i < 1000);
-          cluster.x = i;
-          cluster.y = i;
-          cluster.z = i;
-          cluster.q = i;
-          i++;
-        }
+          for (auto &cluster : tpcClusters) {
+            assert(i < 1000);
+            cluster.x = i;
+            cluster.y = i;
+            cluster.z = i;
+            cluster.q = i;
+            i++;
+          }
 
-        auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, 1000);
-        i = 0;
-        for (auto &cluster : itsClusters) {
-          assert(i < 1000);
-          cluster.x = i;
-          cluster.y = i;
-          cluster.z = i;
-          cluster.q = i;
-          i++;
+          auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, 1000);
+          i = 0;
+          for (auto &cluster : itsClusters) {
+            assert(i < 1000);
+            cluster.x = i;
+            cluster.y = i;
+            cluster.z = i;
+            cluster.q = i;
+            i++;
+          }
         }
       }
     }
   };
-
-  specs.push_back(simple);
 }

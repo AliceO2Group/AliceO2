@@ -18,8 +18,8 @@ using namespace o2::framework;
   }
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
-  WorkflowSpec w = {
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     DataProcessorSpec{
       "producer",
       Inputs{},
@@ -74,5 +74,4 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
       },
     }
   };
-  specs.swap(w);
 }

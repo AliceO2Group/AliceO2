@@ -48,7 +48,7 @@ class MCTruthContainer
     mHeaderArray;                        // the header structure array serves as an index into the actual storage
   std::vector<TruthElement> mTruthArray; // the buffer containing the actual truth information
 
-  size_t getSize(int dataindex) const
+  size_t getSize(uint dataindex) const
   {
     // calculate size / number of labels from a difference in pointed indices
     const auto size = (dataindex < mHeaderArray.size() - 1)
@@ -79,15 +79,21 @@ class MCTruthContainer
 
   // get individual "view" container for a given data index
   // the caller can do modifications on this view (such as sorting)
-  gsl::span<TruthElement> getLabels(int dataindex) {
-    if(dataindex >= getIndexedSize()) return gsl::span<TruthElement>();
+  gsl::span<TruthElement> getLabels(uint dataindex)
+  {
+    if (dataindex >= getIndexedSize()) {
+      return gsl::span<TruthElement>();
+    }
     return gsl::span<TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], getSize(dataindex));
   }
 
   // get individual const "view" container for a given data index
   // the caller can't do modifications on this view
-  gsl::span<const TruthElement> getLabels(int dataindex) const {
-    if(dataindex >= getIndexedSize()) return gsl::span<const TruthElement>();
+  gsl::span<const TruthElement> getLabels(uint dataindex) const
+  {
+    if (dataindex >= getIndexedSize()) {
+      return gsl::span<const TruthElement>();
+    }
     return gsl::span<const TruthElement>(&mTruthArray[mHeaderArray[dataindex].index], getSize(dataindex));
   }
 
@@ -186,10 +192,26 @@ class MCTruthContainer
       mTruthArray[lastindex] = element;
 
       // fix headers
-      for (int i = dataindex + 1; i < mHeaderArray.size(); ++i) {
+      for (uint i = dataindex + 1; i < mHeaderArray.size(); ++i) {
         auto oldindex = mHeaderArray[i].index;
         mHeaderArray[i].index = (oldindex != -1) ? oldindex + 1 : oldindex;
       }
+    }
+  }
+
+  // merge another container to the back of this one
+  void mergeAtBack(MCTruthContainer<TruthElement> const& other)
+  {
+    const auto oldtruthsize = mTruthArray.size();
+    const auto oldheadersize = mHeaderArray.size();
+
+    // copy from other
+    std::copy(other.mHeaderArray.begin(), other.mHeaderArray.end(), std::back_inserter(mHeaderArray));
+    std::copy(other.mTruthArray.begin(), other.mTruthArray.end(), std::back_inserter(mTruthArray));
+
+    // adjust information of newly attached part
+    for (uint i = oldheadersize; i < mHeaderArray.size(); ++i) {
+      mHeaderArray[i].index += oldtruthsize;
     }
   }
 

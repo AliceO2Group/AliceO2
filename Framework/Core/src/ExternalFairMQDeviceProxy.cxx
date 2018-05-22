@@ -16,6 +16,7 @@
 #include "Headers/DataHeader.h"
 #include "Framework/DataProcessingHeader.h"
 #include <fairmq/FairMQParts.h>
+#include <fairmq/FairMQDevice.h>
 #include <cstring>
 #include <cassert>
 #include <memory>

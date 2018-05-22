@@ -59,7 +59,9 @@ public:
     FairMQDevice::Init();
     static constexpr const char* MonitoringUrlKey = "monitoring-url";
     std::string monitoringUrl = GetConfig()->GetValue<std::string>(MonitoringUrlKey);
-    monitoring->addBackend(o2::monitoring::MonitoringFactory::GetBackend(monitoringUrl));
+    if (!monitoringUrl.empty()) {
+      monitoring->addBackend(o2::monitoring::MonitoringFactory::GetBackend(monitoringUrl));
+    }
   }
 
   /// Here is how to add an annotated data part (with header);

@@ -535,7 +535,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // declared in the workflow definition are allowed.
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
-      populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+      ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
 
@@ -718,7 +718,8 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         deviceExecutions.resize(deviceSpecs.size());
 
         DeviceSpecHelpers::prepareArguments(driverInfo.argc, driverInfo.argv, driverControl.defaultQuiet,
-                                            driverControl.defaultStopped, deviceSpecs, deviceExecutions, controls);
+                                            driverControl.defaultStopped, deviceSpecs,
+                                            driverInfo.workflowOptions, deviceExecutions, controls);
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           spawnDevice(deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
                       driverInfo.maxFd, driverInfo.childFdset);
@@ -875,7 +876,8 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
 int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
-           std::vector<ChannelConfigurationPolicy> const& channelPolicies)
+           std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+           std::vector<ConfigParamSpec> const &workflowOptions)
 {
   enum CompletionPolicy policy;
   bpo::options_description executorOptions("Executor options");
@@ -905,7 +907,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
   // in the main parser. Note: all config specs are forwarded to devices
-  visibleOptions.add(prepareOptionDescriptions(workflow, gHiddenDeviceOptions));
+  visibleOptions.add(ConfigParamsHelper::prepareOptionDescriptions(workflow, workflowOptions, gHiddenDeviceOptions));
 
   bpo::options_description od;
   od.add(visibleOptions);
@@ -925,7 +927,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
     bpo::options_description helpOptions;
     helpOptions.add(executorOptions);
     // this time no veto is applied, so all the options are added for printout
-    helpOptions.add(prepareOptionDescriptions(workflow));
+    helpOptions.add(ConfigParamsHelper::prepareOptionDescriptions(workflow, workflowOptions));
     std::cout << helpOptions << std::endl;
     exit(0);
   }
@@ -947,6 +949,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   driverInfo.timeout = varmap["timeout"].as<double>();
   driverInfo.startPort = varmap["start-port"].as<unsigned short>();
   driverInfo.portRange = varmap["port-range"].as<unsigned short>();
+  driverInfo.workflowOptions = workflowOptions;
 
   std::string frameworkId;
   // If the id is set, this means this is a device,

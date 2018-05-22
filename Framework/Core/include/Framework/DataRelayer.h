@@ -10,11 +10,12 @@
 #ifndef FRAMEWORK_DATARELAYER_H
 #define FRAMEWORK_DATARELAYER_H
 
-#include <fairmq/FairMQMessage.h>
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
 #include <cstddef>
 #include <vector>
+
+class FairMQMessage;
 
 namespace o2 {
 namespace monitoring
