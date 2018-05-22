@@ -2,6 +2,7 @@
   "qc": {
     "config": {
       "DataSampling": {
+        "tasksList_comment" : "example",
         "tasksList": "TpcQcTask",
         "enableTimePipeliningDispatchers": "1",
         "enableParallelDispatchers": "1",
