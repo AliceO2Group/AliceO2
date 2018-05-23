@@ -43,6 +43,8 @@ struct EventPart {
 class RunContext
 {
  public:
+  RunContext() : mNofEntries{ 0 }, mMaxPartNumber{ 0 }, mEventRecords(), mEventParts() {}
+
   TBranch* getBranch(std::string_view name, int sourceid = 0) const
   {
     if (mChains[sourceid]) {
@@ -63,8 +65,8 @@ class RunContext
   void printCollisionSummary() const;
 
  private:
-  int mNofEntries;
-  int mMaxPartNumber; // max number of parts in any given collision
+  int mNofEntries = 0;
+  int mMaxPartNumber = 0; // max number of parts in any given collision
   std::vector<o2::MCInteractionRecord> mEventRecords;
   // for each collision we record the constituents (which shall not exceed mMaxPartNumber)
   std::vector<std::vector<EventPart>> mEventParts;
@@ -112,6 +114,11 @@ class HitProcessingManager
   void setupRun(int ncollisions = -1);
 
   const RunContext& getRunContext() { return mRunContext; }
+
+  // serializes the runcontext to file
+  void writeRunContext(const char* filename) const;
+  // setup run from serialized context; returns true if ok
+  bool setupRunFromExistingContext(const char* filename);
 
  private:
   HitProcessingManager() : mSimChains() {}
