@@ -13,8 +13,10 @@
 #include <iostream>
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 namespace
 {

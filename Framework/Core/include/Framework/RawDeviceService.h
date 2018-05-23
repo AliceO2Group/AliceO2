@@ -14,8 +14,10 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// This service provides a hook into the actual fairmq device running the
 /// computation, and allows and advanced user to modify its behavior in
@@ -28,6 +30,6 @@ public:
   virtual void setDevice(FairMQDevice *device) = 0;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_RAWDEVICESERVICE_H

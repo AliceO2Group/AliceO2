@@ -17,8 +17,10 @@
 #include <typeinfo>
 #include <unordered_map>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // FIXME: decide what we really want from this
 class ServiceRegistry

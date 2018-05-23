@@ -13,8 +13,10 @@
 #include <string>
 #include <cstddef>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 WorkflowSpec parallel(DataProcessorSpec original,
                       size_t maxIndex,

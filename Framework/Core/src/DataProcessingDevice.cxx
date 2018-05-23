@@ -30,8 +30,10 @@ using namespace o2::framework;
 using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry& registry)
   : mInit{ spec.algorithm.onInit },

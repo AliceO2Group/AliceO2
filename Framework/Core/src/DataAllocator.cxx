@@ -18,8 +18,10 @@
 #include <TClonesArray.h>
 
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;

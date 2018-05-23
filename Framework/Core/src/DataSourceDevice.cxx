@@ -21,8 +21,10 @@ using TimeScale = std::chrono::microseconds;
 
 using namespace o2::framework;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &registry)
 : mInit{spec.algorithm.onInit},

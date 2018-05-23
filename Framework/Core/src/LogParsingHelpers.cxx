@@ -10,8 +10,10 @@
 #include "Framework/LogParsingHelpers.h"
 #include <regex>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel::Size] = {
     "DEBUG",

@@ -10,8 +10,10 @@
 #ifndef FRAMEWORK_CONTROLSERVICE_H
 #define FRAMEWORK_CONTROLSERVICE_H
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // A service that data processors can use to talk to control and ask for
 // their own state change or others.
@@ -20,6 +22,6 @@ public:
   virtual void readyToQuit(bool all = false) = 0; // Tell the control that I am ready to quit
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_ROOTFILESERVICE_H

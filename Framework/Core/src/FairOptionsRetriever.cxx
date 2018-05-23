@@ -18,8 +18,10 @@
 using namespace o2::framework;
 namespace bpo = boost::program_options;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 FairOptionsRetriever::FairOptionsRetriever(const FairMQProgOptions *opts)
 : mOpts{opts}

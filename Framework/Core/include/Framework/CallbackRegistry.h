@@ -142,6 +142,6 @@ class CallbackRegistry
   // store of RegistryPairs
   std::tuple<Args...> mStore;
 };
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_CALLBACKREGISTRY_H

@@ -13,8 +13,10 @@
 #include <regex>
 #include <iostream>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // All we do is to printout
 void TextControlService::readyToQuit(bool all) {

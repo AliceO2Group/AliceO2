@@ -14,8 +14,10 @@
 
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 void showTopologyNodeGraph(bool* opened,
                            const std::vector<DeviceInfo> &infos,

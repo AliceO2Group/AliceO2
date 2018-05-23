@@ -12,8 +12,10 @@
 
 #include "Framework/RawDeviceService.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Fairly unsophisticated service which simply stores and return the
 /// requested FairMQDevice
@@ -36,6 +38,6 @@ private:
   FairMQDevice *mDevice;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_SIMPLERAWDEVICESERVICE_H

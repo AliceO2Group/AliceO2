@@ -60,6 +60,6 @@ class CallbackService
   Callbacks mCallbacks;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_CALLBACKSERVICE_H

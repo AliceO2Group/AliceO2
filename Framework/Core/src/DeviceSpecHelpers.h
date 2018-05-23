@@ -28,8 +28,10 @@
 #include <string>
 #include <map>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,

@@ -21,8 +21,10 @@
 #include <type_traits>
 #include <gsl/gsl>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // FIXME: Should enforce the fact that DataRefs are read only...
 struct DataRefUtils {
@@ -161,7 +163,7 @@ struct DataRefUtils {
   }
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_DATAREFUTILS_H
