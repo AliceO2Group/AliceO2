@@ -53,6 +53,11 @@ template <> inline float ConfigParamRegistry::get<float>(const char *key) const 
   return mRetriever->getFloat(key);
 }
 
+template <> inline double ConfigParamRegistry::get<double>(const char *key) const {
+  assert(mRetriever.get());
+  return mRetriever->getDouble(key);
+}
+
 template <> inline std::string ConfigParamRegistry::get<std::string>(const char *key) const {
   assert(mRetriever.get());
   return mRetriever->getString(key);
