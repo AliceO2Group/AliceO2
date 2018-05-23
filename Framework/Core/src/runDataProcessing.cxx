@@ -8,9 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "FairMQDevice.h"
+#include "Framework/BoostOptionsRetriever.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSourceDevice.h"
@@ -61,6 +64,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
 #include <csignal>
 
 #include <fairmq/DeviceRunner.h>
@@ -875,9 +880,10 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 //     killing them all on ctrl-c).
 //   - Child, pick the data-processor ID and start a O2DataProcessorDevice for
 //     each DataProcessorSpec
-int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
+int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies,
-           std::vector<ConfigParamSpec> const &workflowOptions)
+           std::vector<ConfigParamSpec> const &workflowOptions,
+           o2::framework::ConfigContext &configContext)
 {
   enum CompletionPolicy policy;
   bpo::options_description executorOptions("Executor options");
@@ -950,6 +956,7 @@ int doMain(int argc, char** argv, const o2::framework::WorkflowSpec& workflow,
   driverInfo.startPort = varmap["start-port"].as<unsigned short>();
   driverInfo.portRange = varmap["port-range"].as<unsigned short>();
   driverInfo.workflowOptions = workflowOptions;
+  driverInfo.configContext = &configContext;
 
   std::string frameworkId;
   // If the id is set, this means this is a device,
