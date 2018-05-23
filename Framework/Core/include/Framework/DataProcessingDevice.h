@@ -11,7 +11,6 @@
 #define FRAMEWORK_DATAPROCESSING_DEVICE_H
 
 #include <fairmq/FairMQDevice.h>
-#include <fairmq/FairMQParts.h>
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -25,6 +24,8 @@
 #include "Framework/ForwardRoute.h"
 
 #include <memory>
+
+class FairMQParts;
 
 namespace o2 {
 namespace framework {

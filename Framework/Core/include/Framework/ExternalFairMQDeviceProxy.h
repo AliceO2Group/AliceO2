@@ -11,14 +11,16 @@
 #define FRAMEWORK_RAWDEVICESOURCE_H
 
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/OutputSpec.h"
-#include "Framework/DataAllocator.h"
-#include <fairmq/FairMQParts.h>
 #include <vector>
 #include <functional>
 
+class FairMQParts;
+class FairMQDevice;
+
 namespace o2 {
 namespace framework {
+  class OutputSpec;
+
   using InjectorFunction = std::function<void(FairMQDevice &device, FairMQParts& inputs, int index)>;
 
   /// Helper function which takes a set of inputs coming from a device,

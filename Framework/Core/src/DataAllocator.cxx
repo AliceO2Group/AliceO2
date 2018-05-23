@@ -78,12 +78,12 @@ DataAllocator::newChunk(const Output& spec, size_t size) {
   auto dataPtr = payloadMessage->GetData();
   auto dataSize = payloadMessage->GetSize();
 
-  FairMQParts parts;
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
-  assert(parts.Size() == 2);
+  std::vector<std::unique_ptr<FairMQMessage>> parts;
+  parts.push_back(std::move(headerMessage));
+  parts.push_back(std::move(payloadMessage));
+  assert(parts.size() == 2);
   mContext->addPart(std::move(parts), channel);
-  assert(parts.Size() == 0);
+  assert(parts.size() == 0);
   return DataChunk{reinterpret_cast<char*>(dataPtr), dataSize};
 }
 
@@ -110,15 +110,15 @@ DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_
                                                           headerStack.data());
   headerStack.release();
 
-  FairMQParts parts;
+  std::vector<std::unique_ptr<FairMQMessage>> parts;
 
   // FIXME: how do we want to use subchannels? time based parallelism?
   FairMQMessagePtr payloadMessage = mDevice->NewMessageFor(channel, 0, buffer, size, freefn, hint);
   auto dataPtr = payloadMessage->GetData();
   LOG(DEBUG) << "New payload at " << payloadMessage->GetData();
   auto dataSize = payloadMessage->GetSize();
-  parts.AddPart(std::move(headerMessage));
-  parts.AddPart(std::move(payloadMessage));
+  parts.push_back(std::move(headerMessage));
+  parts.push_back(std::move(payloadMessage));
   mContext->addPart(std::move(parts), channel);
   return DataChunk{reinterpret_cast<char *>(dataPtr), dataSize};
 }
@@ -156,15 +156,15 @@ DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage,
     std::string channel = matchDataHeader(spec, mRootContext->timeslice());
     auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod);
 
-    FairMQParts parts;
+    std::vector<std::unique_ptr<FairMQMessage>> parts;
 
     // FIXME: this is kind of ugly, we know that we can change the content of the
     // header message because we have just created it, but the API declares it const
     const DataHeader* cdh = o2::header::get<DataHeader*>(headerMessage->GetData());
     DataHeader *dh = const_cast<DataHeader *>(cdh);
     dh->payloadSize = payloadMessage->GetSize();
-    parts.AddPart(std::move(headerMessage));
-    parts.AddPart(std::move(payloadMessage));
+    parts.push_back(std::move(headerMessage));
+    parts.push_back(std::move(payloadMessage));
     mContext->addPart(std::move(parts), channel);
 }
 
