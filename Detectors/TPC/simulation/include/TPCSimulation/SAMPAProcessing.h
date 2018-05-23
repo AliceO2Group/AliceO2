@@ -31,7 +31,7 @@ namespace TPC
 {
 
 /// \class SAMPAProcessing
-/// This class takes care of the signal processing in the Front-End Cards (FECs), i.e. the shaping and the digitization.
+/// This class takes care of the signal processing in the Front-End Cards (FECs), i.e. the shaping and the digitization
 /// Further effects such as saturation of the FECs are implemented.
 
 class SAMPAProcessing
@@ -45,22 +45,25 @@ class SAMPAProcessing
   /// Destructor
   ~SAMPAProcessing();
 
+  /// Update the OCDB parameters cached in the class. To be called once per event
+  void updateParameters();
+
   /// Conversion from a given number of electrons into ADC value without taking into account saturation (vectorized)
   /// \param nElectrons Number of electrons in time bin
   /// \return ADC value
   template <typename T>
-  static T getADCvalue(T nElectrons);
+  T getADCvalue(T nElectrons) const;
 
   /// For larger input values the SAMPA response is not linear which is taken into account by this function
   /// \param signal Input signal
   /// \return ADC value of the (saturated) SAMPA
-  const float getADCSaturation(const float signal) const;
+  float getADCSaturation(const float signal) const;
 
   /// Make the full signal including noise and pedestals from the Baseline class
   /// \param ADCcounts ADC value of the signal (common mode already subtracted)
   /// \param padSecPos PadSecPos of the signal
   /// \return ADC value after application of noise, pedestal and saturation
-  static float makeSignal(float ADCcounts, const PadSecPos& padSecPos, float& pedestal, float& noise);
+  float makeSignal(float ADCcounts, const PadSecPos& padSecPos, float& pedestal, float& noise) const;
 
   /// A delta signal is shaped by the FECs and thus spread over several time bins
   /// This function returns an array with the signal spread into the following time bins
@@ -68,46 +71,43 @@ class SAMPAProcessing
   /// \param driftTime t0 of the incoming charge
   /// \return Array with the shaped signal
   /// \todo the size of the array should be retrieved from ParameterElectronics::getNShapedPoints()
-  static void getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray);
+  void getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray) const;
 
   /// Value of the Gamma4 shaping function at a given time (vectorized)
   /// \param time Time of the ADC value with respect to the first bin in the pulse
   /// \param startTime First bin in the pulse
   /// \param ADC ADC value of the corresponding time bin
   template <typename T>
-  static T getGamma4(T time, T startTime, T ADC);
+  T getGamma4(T time, T startTime, T ADC) const;
 
   /// Compute time bin from z position
   /// \param zPos z position of the charge
   /// \return Time bin of the charge
-  static TimeBin getTimeBin(float zPos);
+  TimeBin getTimeBin(float zPos) const;
 
   /// Compute z position from time bin
   /// \param Time bin of the charge
   /// \param Side of the TPC
   /// \return zPos z position of the charge
-  static float getZfromTimeBin(float timeBin, Side s);
+  float getZfromTimeBin(float timeBin, Side s) const;
 
   /// Compute time bin from time
   /// \param time time of the charge
   /// \return Time bin of the charge
-  static TimeBin getTimeBinFromTime(float time);
+  TimeBin getTimeBinFromTime(float time) const;
 
   /// Compute time from time bin
   /// \param timeBin time bin of the charge
   /// \return Time of the charge
-  static float getTimeFromBin(TimeBin timeBin);
+  float getTimeFromBin(TimeBin timeBin) const;
 
   /// Compute the time of a given time bin
   /// \param time Time of the charge
   /// \return Time of the time bin of the charge
-  static float getTimeBinTime(float time);
+  float getTimeBinTime(float time) const;
 
  private:
   SAMPAProcessing();
-  // use old c++03 due to root
-  SAMPAProcessing(const SAMPAProcessing&) {}
-  void operator=(const SAMPAProcessing&) {}
 
   std::unique_ptr<TSpline3> mSaturationSpline; ///< TSpline3 which holds the saturation curve
 
@@ -116,37 +116,39 @@ class SAMPAProcessing
   /// \param spline TSpline3 to which the saturation curve will be written
   /// \return Boolean if succesful or not
   bool importSaturationCurve(std::string file);
+
+  const ParameterGas* mGasParam;         ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterDetector* mDetParam;    ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
 };
 
 template <typename T>
-inline T SAMPAProcessing::getADCvalue(T nElectrons)
+inline T SAMPAProcessing::getADCvalue(T nElectrons) const
 {
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  T conversion = eleParam.getElectronCharge() * 1.e15 * eleParam.getChipGain() * eleParam.getADCSaturation() /
-                 eleParam.getADCDynamicRange(); // 1E-15 is to convert Coulomb in fC
+  T conversion = mEleParam->getElectronCharge() * 1.e15 * mEleParam->getChipGain() * mEleParam->getADCSaturation() /
+                 mEleParam->getADCDynamicRange(); // 1E-15 is to convert Coulomb in fC
   return nElectrons * conversion;
 }
 
-inline float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos, float& pedestal, float& noise)
+inline float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos,
+                                         float& pedestal, float& noise) const
 {
-  SAMPAProcessing& sampa = SAMPAProcessing::instance();
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
   static Baseline baseline;
   float signal = ADCcounts;
   /// \todo Pedestal to be implemented in baseline class
   //  pedestal = baseline.getPedestal(padSecPos);
   noise = baseline.getNoise(padSecPos);
-  switch (eleParam.getDigitizationMode()) {
+  switch (mEleParam->getDigitizationMode()) {
     case DigitzationMode::FullMode: {
       signal += noise;
       signal += pedestal;
-      return sampa.getADCSaturation(signal);
+      return getADCSaturation(signal);
       break;
     }
     case DigitzationMode::SubtractPedestal: {
       signal += noise;
       signal += pedestal;
-      float signalSubtractPedestal = sampa.getADCSaturation(signal) - pedestal;
+      float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
       return signalSubtractPedestal;
       break;
     }
@@ -163,22 +165,20 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSe
   }
 }
 
-inline const float SAMPAProcessing::getADCSaturation(const float signal) const
+inline float SAMPAProcessing::getADCSaturation(const float signal) const
 {
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
   /// \todo Performance of TSpline?
   const float saturatedSignal = mSaturationSpline->Eval(signal);
-  const float adcSaturation = eleParam.getADCSaturation();
+  const float adcSaturation = mEleParam->getADCSaturation();
   if (saturatedSignal > adcSaturation - 1)
     return adcSaturation - 1;
   return saturatedSignal;
 }
 
 template <typename T>
-inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
+inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC) const
 {
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  Vc::float_v tmp0 = (time - startTime) / eleParam.getPeakingTime();
+  Vc::float_v tmp0 = (time - startTime) / mEleParam->getPeakingTime();
   Vc::float_m cond = (tmp0 > 0);
   Vc::float_v tmp;
   tmp(cond) = tmp0;
@@ -186,40 +186,32 @@ inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
   return 55.f * ADC * Vc::exp(-4.f * tmp) * tmp2 * tmp2; /// 55 is for normalization: 1/Integral(Gamma4)
 }
 
-inline TimeBin SAMPAProcessing::getTimeBin(float zPos)
+inline TimeBin SAMPAProcessing::getTimeBin(float zPos) const
 {
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  float timeBin = (detParam.getTPClength() - std::abs(zPos)) / (gasParam.getVdrift() * eleParam.getZBinWidth());
+  float timeBin = (mDetParam->getTPClength() - std::abs(zPos)) / (mGasParam->getVdrift() * mEleParam->getZBinWidth());
   return static_cast<TimeBin>(timeBin);
 }
 
-inline float SAMPAProcessing::getZfromTimeBin(float timeBin, Side s)
+inline float SAMPAProcessing::getZfromTimeBin(float timeBin, Side s) const
 {
   float zSign = (s == 0) ? 1 : -1;
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  float zAbs = zSign * (detParam.getTPClength() - (timeBin * gasParam.getVdrift() * eleParam.getZBinWidth()));
+  float zAbs = zSign * (mDetParam->getTPClength() - (timeBin * mGasParam->getVdrift() * mEleParam->getZBinWidth()));
   return zAbs;
 }
 
-inline TimeBin SAMPAProcessing::getTimeBinFromTime(float time)
+inline TimeBin SAMPAProcessing::getTimeBinFromTime(float time) const
 {
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  float timeBin = time / eleParam.getZBinWidth();
+  float timeBin = time / mEleParam->getZBinWidth();
   return static_cast<TimeBin>(timeBin);
 }
 
-inline float SAMPAProcessing::getTimeFromBin(TimeBin timeBin)
+inline float SAMPAProcessing::getTimeFromBin(TimeBin timeBin) const
 {
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  float time = static_cast<float>(timeBin) * eleParam.getZBinWidth();
+  float time = static_cast<float>(timeBin) * mEleParam->getZBinWidth();
   return time;
 }
 
-inline float SAMPAProcessing::getTimeBinTime(float time)
+inline float SAMPAProcessing::getTimeBinTime(float time) const
 {
   TimeBin timeBin = getTimeBinFromTime(time);
   return getTimeFromBin(timeBin);

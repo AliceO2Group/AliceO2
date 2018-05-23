@@ -34,11 +34,17 @@ namespace TPC
 class ElectronTransport
 {
  public:
-  /// Default constructor
-  ElectronTransport();
+  static ElectronTransport& instance()
+  {
+    static ElectronTransport electronTransport;
+    return electronTransport;
+  }
 
   /// Destructor
   ~ElectronTransport();
+
+  /// Update the OCDB parameters cached in the class. To be called once per event
+  void updateParameters();
 
   /// Drift of electrons in electric field taking into account diffusion
   /// \param posEle GlobalPosition3D with start position of the electrons
@@ -48,9 +54,9 @@ class ElectronTransport
 
   /// Drift of electrons in electric field taking into account diffusion with 3 sigma of the width
   /// \param posEle GlobalPosition3D with start position of the electrons
-  /// \return GlobalPosition3D with position of the electrons after the drift taking into account diffusion with 3 sigma
-  /// of the width
-  bool isCompletelyOutOfSectorCourseElectronDrift(GlobalPosition3D posEle, const Sector& sector);
+  /// \return GlobalPosition3D with position of the electrons after the drift taking into account diffusion with
+  /// 3 sigma of the width
+  bool isCompletelyOutOfSectorCourseElectronDrift(GlobalPosition3D posEle, const Sector& sector) const;
 
   /// Attachment probability for a given drift time
   /// \param driftTime Drift time of the electron
@@ -62,9 +68,11 @@ class ElectronTransport
   /// \param signChange If the zPosition of the charge is shifted to the other TPC side, the drift length needs to be
   /// accordingly longer. In such cases, this parameter is set to -1
   /// \return Time of the charge
-  static float getDriftTime(float zPos, float signChange = 1.f);
+  float getDriftTime(float zPos, float signChange = 1.f) const;
 
  private:
+  ElectronTransport();
+
   /// Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the
   /// electrons
   RandomRing mRandomGaus;
@@ -92,22 +100,22 @@ class ElectronTransport
       0.1736481776669299703641513588081579655409, 0.5000000000000001110223024625156540423632,
       0.7660444431189777914070759834430646151304, 0.9396926207859084279050421173451468348503 }
   }; ///< Array of cos for all sectors
+
+  const ParameterDetector* mDetParam; ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterGas* mGasParam;      ///< Caching of the parameter class to avoid multiple CDB calls
 };
 
 inline bool ElectronTransport::isElectronAttachment(float driftTime)
 {
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  if (mRandomFlat.getNextValue() < gasParam.getAttachmentCoefficient() * gasParam.getOxygenContent() * driftTime) {
+  if (mRandomFlat.getNextValue() < mGasParam->getAttachmentCoefficient() * mGasParam->getOxygenContent() * driftTime) {
     return true; /// electron is attached and lost
   } else
     return false; /// not attached
 }
 
-inline float ElectronTransport::getDriftTime(float zPos, float signChange)
+inline float ElectronTransport::getDriftTime(float zPos, float signChange) const
 {
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  float time = (detParam.getTPClength() - signChange * std::abs(zPos)) / gasParam.getVdrift();
+  float time = (mDetParam->getTPClength() - signChange * std::abs(zPos)) / mGasParam->getVdrift();
   return time;
 }
 }

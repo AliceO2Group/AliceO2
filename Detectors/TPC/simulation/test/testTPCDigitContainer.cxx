@@ -22,6 +22,7 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitMCMetaData.h"
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCBase/CDBInterface.h"
 
 namespace o2
 {
@@ -33,6 +34,8 @@ namespace TPC
 /// conversion to digits
 BOOST_AUTO_TEST_CASE(DigitContainer_test1)
 {
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
   const Mapper& mapper = Mapper::instance();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   DigitContainer digitContainer;
@@ -89,6 +92,8 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
 /// and that the MC labels are right
 BOOST_AUTO_TEST_CASE(DigitContainer_test2)
 {
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
   const Mapper& mapper = Mapper::instance();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   DigitContainer digitContainer;
