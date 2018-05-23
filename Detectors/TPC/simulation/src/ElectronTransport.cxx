@@ -13,6 +13,7 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/ElectronTransport.h"
+#include "TPCBase/CDBInterface.h"
 
 #include <cmath>
 
@@ -20,24 +21,30 @@ using namespace o2::TPC;
 
 ElectronTransport::ElectronTransport() : mRandomGaus(), mRandomFlat()
 {
+  updateParameters();
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
   mRandomFlat.initialize(RandomRing::RandomType::Flat);
 }
 
 ElectronTransport::~ElectronTransport() = default;
 
+void ElectronTransport::updateParameters()
+{
+  auto& cdb = CDBInterface::instance();
+  mGasParam = &(cdb.getParameterGas());
+  mDetParam = &(cdb.getParameterDetector());
+}
+
 GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle, float& driftTime)
 {
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   /// For drift lengths shorter than 1 mm, the drift length is set to that value
-  float driftl = detParam.getTPClength() - std::abs(posEle.Z());
+  float driftl = mDetParam->getTPClength() - std::abs(posEle.Z());
   if (driftl < 0.01) {
     driftl = 0.01;
   }
   driftl = std::sqrt(driftl);
-  const float sigT = driftl * gasParam.getDiffT();
-  const float sigL = driftl * gasParam.getDiffL();
+  const float sigT = driftl * mGasParam->getDiffT();
+  const float sigL = driftl * mGasParam->getDiffL();
 
   /// The position is smeared by a Gaussian with mean around the actual position and a width according to the diffusion
   /// coefficient times sqrt(drift length)
@@ -60,19 +67,17 @@ GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle, fl
   return posEleDiffusion;
 }
 
-bool ElectronTransport::isCompletelyOutOfSectorCourseElectronDrift(GlobalPosition3D posEle, const Sector& sector)
+bool ElectronTransport::isCompletelyOutOfSectorCourseElectronDrift(GlobalPosition3D posEle, const Sector& sector) const
 {
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   /// For drift lengths shorter than 1 mm, the drift length is set to that value
-  float driftl = detParam.getTPClength() - std::abs(posEle.Z());
+  float driftl = mDetParam->getTPClength() - std::abs(posEle.Z());
   if (driftl < 0.01) {
     driftl = 0.01;
   }
   driftl = std::sqrt(driftl);
 
   /// Three sigma of the expected average transverse diffusion
-  const float threeSigmaT = 3.f * driftl * gasParam.getDiffT();
+  const float threeSigmaT = 3.f * driftl * mGasParam->getDiffT();
 
   int secRight = int(sector);
   int secLeft = int(Sector::getLeft(sector));

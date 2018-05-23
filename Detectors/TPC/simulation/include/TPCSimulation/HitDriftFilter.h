@@ -169,8 +169,9 @@ inline void getHits(std::vector<TChain*> const& chains, const o2::steer::RunCont
 
 // TPC hit selection lambda
 auto calcDriftTime = [](float tNS, float tof, float z) {
+  const static ElectronTransport& eleTrans = ElectronTransport::instance();
   // returns time in NS
-  return tNS + o2::TPC::ElectronTransport::getDriftTime(z) * 1000 + tof;
+  return tNS + eleTrans.getDriftTime(z) * 1000 + tof;
 };
 
 } // end namespace TPC

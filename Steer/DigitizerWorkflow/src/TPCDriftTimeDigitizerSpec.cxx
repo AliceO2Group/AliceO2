@@ -30,6 +30,7 @@
 #include "TStopwatch.h"
 #include <sstream>
 #include <algorithm>
+#include "TPCBase/CDBInterface.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -55,6 +56,11 @@ std::string getBranchNameRight(int sector)
 DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
 {
   TChain* simChain = new TChain("o2sim");
+
+  /// For the time being use the defaults for the CDB
+  auto& cdb = o2::TPC::CDBInterface::instance();
+  cdb.setUseDefaults();
+
   //
   auto simChains = std::make_shared<std::vector<TChain*>>();
   auto digitizertask = std::make_shared<o2::TPC::DigitizerTask>();

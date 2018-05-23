@@ -24,6 +24,7 @@
 #include "TPCSimulation/DigitizerTask.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCBase/CDBInterface.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -70,6 +71,10 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
+  /// For the time being use the defaults for the CDB
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
+
   /// Fetch the hits for the sector which is to be processed
   LOG(DEBUG) << "Processing sector " << mHitSector << "  - loading HitSector "
              << int(Sector::getLeft(Sector(mHitSector))) << " and " << mHitSector << "\n";
@@ -101,6 +106,10 @@ InitStatus DigitizerTask::Init()
 
 InitStatus DigitizerTask::Init2()
 {
+  /// For the time being use the defaults for the CDB
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
+
   mDigitizer->init();
   mDigitContainer = mDigitizer->getDigitContainer();
   return kSUCCESS;
@@ -116,7 +125,9 @@ void DigitizerTask::Exec(Option_t* option)
     eventTime = mEventTimes[mCurrentEvent++];
     LOG(DEBUG) << "Event time taken from bunch simulation";
   }
-  const int eventTimeBin = SAMPAProcessing::getTimeBinFromTime(eventTime);
+
+  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  const int eventTimeBin = sampaProcessing.getTimeBinFromTime(eventTime);
 
   LOG(DEBUG) << "Running digitization for sector " << mHitSector << " on new event at time " << eventTime
              << " us in time bin " << eventTimeBin << FairLogger::endl;
@@ -142,9 +153,10 @@ void DigitizerTask::Exec2(Option_t* option)
   }
 
   const auto sec = Sector(mHitSector);
-  const int endTimeBin = SAMPAProcessing::getTimeBinFromTime(mEndTime * 0.001f);
+  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  const int endTimeBin = sampaProcessing.getTimeBinFromTime(mEndTime * 0.001f);
   if (mProcessTimeChunks) {
-    mDigitContainer->setFirstTimeBin(SAMPAProcessing::getTimeBinFromTime(mStartTime * 0.001f));
+    mDigitContainer->setFirstTimeBin(sampaProcessing.getTimeBinFromTime(mStartTime * 0.001f));
   }
   mDigitContainer = mDigitizer->Process2(sec, *mAllSectorHitsLeft, *mHitIdsLeft, *mRunContext);
   mDigitContainer = mDigitizer->Process2(sec, *mAllSectorHitsRight, *mHitIdsRight, *mRunContext);
