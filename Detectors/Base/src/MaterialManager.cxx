@@ -12,8 +12,7 @@
 /// \brief Implementation of the MaterialManager class
 
 #include "DetectorsBase/MaterialManager.h"
-#include <TVirtualMC.h>  // for TVirtualMC, gMC
-#include "TString.h"     // for TString
+#include "TString.h" // for TString
 #include <TGeoMedium.h>
 #include <TGeoManager.h>
 #include <TList.h>
@@ -34,13 +33,24 @@ void MaterialManager::Material(const char* modname, Int_t imat, const char* name
   uniquename.Append("_");
   uniquename.Append(name);
 
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Material(kmat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
-  mMaterialMap[modname][imat] = kmat;
-  insertMaterialName(uniquename.Data(), kmat);
+  auto uid = gGeoManager->GetListOfMaterials()->GetSize();
+  auto mat = gGeoManager->Material(uniquename.Data(), a, z, dens * mDensityFactor, uid, radl, absl);
+  mMaterialMap[modname][imat] = uid;
+  insertMaterialName(uniquename.Data(), uid);
 }
 
+/// Define a mixture or a compound
+/// @param imat local (to detector/module) mixture identifier
+/// @param a,z,wmat arrays of size abs(nlmat) defining the materials
+/// @param nlmat indicates what wmat array represents
+///
+/// If nlmat > 0 then wmat contains the proportion by
+/// weights of each basic material in the mixture.
+///
+/// If nlmat < 0 then wmat contains the number of atoms
+/// of a given kind into the molecule of the compound.
+/// In this case, wmat in output is changed to relative
+/// weights.
 void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens,
                               Int_t nlmat, Float_t* wmat)
 {
@@ -48,11 +58,21 @@ void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name,
   uniquename.Append("_");
   uniquename.Append(name);
 
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Mixture(kmat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
-  mMaterialMap[modname][imat] = kmat;
-  insertMaterialName(uniquename.Data(), kmat);
+  auto uid = gGeoManager->GetListOfMaterials()->GetSize();
+  if (nlmat < 0) {
+    nlmat = -nlmat;
+    Double_t amol = 0;
+    Int_t i;
+    for (i = 0; i < nlmat; i++) {
+      amol += a[i] * wmat[i];
+    }
+    for (i = 0; i < nlmat; i++) {
+      wmat[i] *= a[i] / amol;
+    }
+  }
+  auto mix = gGeoManager->Mixture(uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat, uid);
+  mMaterialMap[modname][imat] = uid;
+  insertMaterialName(uniquename.Data(), uid);
 }
 
 void MaterialManager::Medium(const char* modname, Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield,
@@ -63,13 +83,11 @@ void MaterialManager::Medium(const char* modname, Int_t numed, const char* name,
   uniquename.Append("_");
   uniquename.Append(name);
 
-  // Check this!!!
-  int kmed = -1;
-  const int kmat = getMaterialID(modname, nmat);
-  TVirtualMC::GetMC()->Medium(kmed, uniquename.Data(), kmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
-                              stmin, ubuf, nbuf);
-  mMediumMap[modname][numed] = kmed;
-  insertMediumName(uniquename.Data(), kmed);
+  auto uid = gGeoManager->GetListOfMedia()->GetSize();
+  auto med = gGeoManager->Medium(uniquename.Data(), uid, getMaterialID(modname, nmat), isvol, ifield, fieldm, tmaxfd,
+                                 stemax, deemax, epsil, stmin);
+  mMediumMap[modname][numed] = uid;
+  insertMediumName(uniquename.Data(), uid);
   insertTGeoMedium(modname, numed);
 }
 
@@ -141,7 +159,3 @@ TGeoMedium* MaterialManager::getTGeoMedium(const char* mediumname)
 }
 
 ClassImp(o2::Base::MaterialManager)
-
-
-
-

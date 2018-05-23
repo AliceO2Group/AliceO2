@@ -31,7 +31,7 @@ void o2sim()
   auto genconfig = confref.getGenerator();
 
   auto run = new FairRunSim();
-  run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
+  run->SetImportTGeoToVMC(true); // geometry is created by TGeo and then fed to VMC
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
   std::string outputfilename = confref.getOutPrefix() + ".root";
   run->SetOutputFile(outputfilename.c_str());  // Output file
