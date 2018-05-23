@@ -13,6 +13,8 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <TFile.h>
+#include <TClass.h>
 
 ClassImp(o2::steer::HitProcessingManager);
 
@@ -99,6 +101,8 @@ void HitProcessingManager::setupRun(int ncollisions)
 
 void RunContext::printCollisionSummary() const
 {
+  std::cout << "Summary of RunContext --\n";
+  std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
   for (int i = 0; i < mEventRecords.size(); ++i) {
     std::cout << "Collision " << i << " TIME " << mEventRecords[i].timeNS;
     for (auto& e : mEventParts[i]) {
@@ -107,5 +111,28 @@ void RunContext::printCollisionSummary() const
     std::cout << "\n";
   }
 }
+
+void HitProcessingManager::writeRunContext(const char* filename) const
+{
+  TFile file(filename, "RECREATE");
+  auto cl = TClass::GetClass(typeid(mRunContext));
+  file.WriteObjectAny(&mRunContext, cl, "RunContext");
+  file.Close();
 }
+
+bool HitProcessingManager::setupRunFromExistingContext(const char* filename)
+{
+  RunContext* incontext = nullptr;
+  TFile file(filename, "OPEN");
+  file.GetObject("RunContext", incontext);
+
+  if (incontext) {
+    incontext->printCollisionSummary();
+    mRunContext = *incontext;
+    return true;
+  }
+  LOG(INFO) << "NO COLLISIONOBJECT FOUND";
+  return false;
 }
+} // end namespace steer
+} // end namespace o2
