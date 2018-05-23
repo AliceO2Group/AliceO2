@@ -18,8 +18,10 @@
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
   for (auto &message : context) {

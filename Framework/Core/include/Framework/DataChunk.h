@@ -10,8 +10,10 @@
 #ifndef FRAMEWORK_DATACHUNK_H
 #define FRAMEWORK_DATACHUNK_H
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Simple struct to hold a pointer to the actual FairMQMessage.
 /// In principle this could be an iovec...
@@ -20,7 +22,7 @@ struct DataChunk {
   size_t size;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_DATACHUNK_H

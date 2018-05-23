@@ -14,8 +14,10 @@
 #include <string>
 #include "Framework/LogParsingHelpers.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 constexpr int MAX_USER_FILTER_SIZE = 256;
 

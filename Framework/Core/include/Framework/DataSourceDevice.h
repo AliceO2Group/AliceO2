@@ -23,8 +23,10 @@
 #include <memory>
 #include <cstddef>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 /// Implements the boilerplate for a generic
 /// framework device which only produces data
 class DataSourceDevice : public FairMQDevice {
@@ -53,6 +55,6 @@ private:
   size_t mLastTime;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

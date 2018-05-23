@@ -20,8 +20,10 @@ using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 constexpr size_t MAX_PARALLEL_TIMESLICES = 256;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 constexpr int64_t INVALID_TIMESLICE = -1;
 constexpr int INVALID_INPUT = -1;

@@ -15,8 +15,10 @@
 #include <cassert>
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 class MessageContext {
 public:
@@ -72,6 +74,6 @@ private:
   size_t mTimeslice;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_MESSAGECONTEXT_H

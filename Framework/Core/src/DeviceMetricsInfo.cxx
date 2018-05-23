@@ -17,8 +17,10 @@
 #include <regex>
 #include <tuple>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // Parses a metric in the form
 //

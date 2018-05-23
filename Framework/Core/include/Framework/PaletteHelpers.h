@@ -12,8 +12,10 @@
 
 #include "DebugGUI/imgui.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// An helper class for colors and palettes
 struct PaletteHelpers {

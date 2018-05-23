@@ -13,8 +13,10 @@
 #include <type_traits>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 /// Helper trait to determine if a given type T
 /// is a specialization of a given reference type Ref.
 /// See Framework/Core/test_TypeTraits.cxx for an example
@@ -121,6 +123,6 @@ class has_root_dictionary<T, typename std::enable_if<is_container<T>::value>::ty
 {
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_TYPETRAITS_H

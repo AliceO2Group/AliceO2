@@ -12,8 +12,10 @@
 
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// A set of helpers to parse device logs.
 struct LogParsingHelpers {
@@ -37,6 +39,6 @@ struct LogParsingHelpers {
   static LogLevel parseTokenLevel(const std::string &s);
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_LOGPARSINGHELPERS

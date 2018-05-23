@@ -19,8 +19,10 @@
 using namespace o2::framework;
 namespace bpo = boost::program_options;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs, bool ignoreUnknown, int &argc, char **&argv)
 : mVariables{},

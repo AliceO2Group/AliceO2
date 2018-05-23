@@ -13,8 +13,10 @@
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// A concrete description of the output to be created
 struct Output {
@@ -30,6 +32,6 @@ struct Output {
   };
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

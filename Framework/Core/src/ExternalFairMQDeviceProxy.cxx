@@ -21,8 +21,10 @@
 #include <cassert>
 #include <memory>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 using DataHeader = o2::header::DataHeader;
 

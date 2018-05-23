@@ -17,8 +17,10 @@
 
 class FairMQProgOptions;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 class FairOptionsRetriever : public ParamRetriever {
 public:
@@ -34,7 +36,7 @@ private:
   const FairMQProgOptions *mOpts;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
 

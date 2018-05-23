@@ -17,12 +17,14 @@
 
 class FairMQMessage;
 
-namespace o2 {
+namespace o2
+{
 namespace monitoring
 {
 class Monitoring;
 }
-namespace framework {
+namespace framework
+{
 
 class DataRelayer {
 public:
@@ -90,7 +92,7 @@ private:
   std::vector<bool> mForwardingMask;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif

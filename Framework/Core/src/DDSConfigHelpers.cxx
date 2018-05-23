@@ -12,8 +12,10 @@
 #include <iostream>
 #include <cstring>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 void
 dumpDeviceSpec2DDS(std::ostream &out,

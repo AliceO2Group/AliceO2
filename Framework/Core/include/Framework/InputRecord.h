@@ -404,7 +404,7 @@ private:
   std::vector<std::unique_ptr<FairMQMessage>> const &mCache;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_INPUTREGISTRY_H

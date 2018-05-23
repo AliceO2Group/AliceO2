@@ -18,8 +18,10 @@
 #include <string>
 #include <type_traits>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 using options_description = boost::program_options::options_description;
 
@@ -98,6 +100,6 @@ struct ConfigParamsHelper
   }
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_CONFIGPARAMSHELPER_H

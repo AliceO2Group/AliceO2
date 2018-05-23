@@ -18,8 +18,10 @@
 #include <cstddef>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // Structure to hold information which was derived 
 // for output channels.

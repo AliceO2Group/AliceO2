@@ -13,8 +13,10 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ServiceRegistry.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // This is a utility class to reduce the amount of boilerplate when defining
 // an algorithm.

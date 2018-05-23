@@ -25,8 +25,10 @@
 #include <map>
 #include <utility>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Concrete description of the device which will actually run 
 /// a DataProcessor.
@@ -48,6 +50,6 @@ struct DeviceSpec {
   size_t inputTimesliceId;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

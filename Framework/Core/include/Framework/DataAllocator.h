@@ -36,8 +36,10 @@
 class FairMQDevice;
 class FairMQMessage;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// This allocator is responsible to make sure that the messages created match
 /// the provided spec and that depending on how many pipelined reader we
@@ -363,7 +365,7 @@ public:
 
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif //FRAMEWORK_DATAALLOCATOR_H
