@@ -67,6 +67,7 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <csignal>
+#include <netinet/ip.h>
 
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/FairMQLogger.h>
