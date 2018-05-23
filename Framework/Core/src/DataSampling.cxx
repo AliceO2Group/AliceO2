@@ -14,6 +14,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include <random>
+#include <boost/algorithm/string.hpp>
 #include <boost/optional.hpp>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
