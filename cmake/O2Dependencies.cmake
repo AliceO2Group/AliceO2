@@ -48,7 +48,6 @@ find_package(HEPMC)
 # PR #886 depending on some header files conflict with the IWYU setup
 # disable package for the moment
 #find_package(IWYU)
-find_package(DDS)
 
 find_package(Boost 1.59 COMPONENTS container thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time signals REQUIRED)
 # for the guideline support library
@@ -56,7 +55,14 @@ include_directories(${MS_GSL_INCLUDE_DIR})
 
 find_package(AliRoot)
 find_package(FairRoot REQUIRED)
-find_package(FairMQ REQUIRED)
+find_package(FairMQInFairRoot) # DEPRECATED: This looks for FairMQ embedded in old FairRoot versions,
+                               # before FairMQ and FairLogger have moved to separate repos.
+                               # Remove this line, once we require FairMQ 1.2+.
+if(NOT FairMQInFairRoot_FOUND) # DEPRECATED: Remove this condition, once we require FairMQ 1.2+
+  find_package(FairMQ REQUIRED)
+  find_package(FairLogger REQUIRED)
+endif()
+find_package(DDS)
 find_package(Protobuf REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
@@ -100,6 +106,26 @@ elseif(UNIX)
 endif()
 
 ########## Bucket definitions ############
+get_target_property(_boost_incdir Boost::boost INTERFACE_INCLUDE_DIRECTORIES)
+if(FairMQInFairRoot_FOUND)
+  # DEPRECATED: Remove this case, once we require FairMQ 1.2+
+  get_target_property(_fairmq_incdir FairRoot::FairMQ INTERFACE_INCLUDE_DIRECTORIES)
+  o2_define_bucket(NAME fairmq_bucket
+    DEPENDENCIES FairRoot::FairMQ
+    INCLUDE_DIRECTORIES ${_boost_incdir} ${_fairmq_incdir}
+  )
+else()
+  get_target_property(_fairmq_incdir FairMQ::FairMQ INTERFACE_INCLUDE_DIRECTORIES)
+  get_target_property(_fairlogger_incdir FairLogger::FairLogger INTERFACE_INCLUDE_DIRECTORIES)
+  o2_define_bucket(NAME fairmq_bucket
+    DEPENDENCIES FairMQ::FairMQ
+    INCLUDE_DIRECTORIES ${_boost_incdir} ${_fairmq_incdir} ${_fairlogger_incdir}
+  )
+  set(_fairlogger_incdir)
+endif()
+set(_boost_incdir)
+set(_fairmq_incdir)
+
 o2_define_bucket(
   NAME
   glfw_bucket
@@ -187,9 +213,8 @@ o2_define_bucket(
     Headers
     MemoryResources
     FairTools
-    FairRoot::FairMQ
-    pthread
-    dl
+    Headers
+    fairmq_bucket
     ${Monitoring_LIBRARIES}
 
     INCLUDE_DIRECTORIES
@@ -313,11 +338,9 @@ o2_define_bucket(
     Boost::random
     Boost::regex
     Base
-    Headers
     FairTools
-    FairRoot::FairMQ
-    pthread
-    dl
+    Headers
+    fairmq_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -339,7 +362,8 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    FairRoot::FairMQ Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector RIO
+    fairmq_bucket
+    Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector RIO
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -386,11 +410,11 @@ o2_define_bucket(
     FairTools
     ParBase
     ParMQ
-    FairRoot::FairMQ pthread Core Tree XMLParser Hist Net RIO z
+    fairmq_bucket
+    pthread Core Tree XMLParser Hist Net RIO z
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${FAIRROOT_INCLUDE_DIR}/fairmq
     ${ROOT_INCLUDE_DIR}
 
     SYSTEMINCLUDE_DIRECTORIES
@@ -408,6 +432,12 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
 )
 
+if(FairLogger_FOUND)
+  # DEPRECATED: Remove this variable and use the value directly,
+  # once we require FairMQ 1.2+
+  set(FairLogger_DEP FairLogger::FairLogger)
+endif()
+
 o2_define_bucket(
     NAME
     fairroot_geom
@@ -416,8 +446,10 @@ o2_define_bucket(
     FairTools
     Base GeoBase ParBase Geom Core VMC Tree
     common_boost_bucket
+    ${FairLogger_DEP}
 
     INCLUDE_DIRECTORIES
+    ${FairLogger_INCDIR}
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
 )
@@ -431,15 +463,17 @@ o2_define_bucket(
     fairroot_geom
     Base
     FairTools
-    FairRoot::FairMQ
+    fairmq_bucket
     common_boost_bucket
     Boost::thread
     Boost::serialization
     Boost::container
     pthread
     MemoryResources
+    ${FairLogger_DEP}
 
     INCLUDE_DIRECTORIES
+    ${FairLogger_INCDIR}
     ${FAIRROOT_INCLUDE_DIR}
 )
 
@@ -717,7 +751,7 @@ o2_define_bucket(
     Gpad
     MathCore
     common_boost_bucket
-    FairRoot::FairMQ
+    fairmq_bucket
     pthread
     Boost::date_time
     Boost::timer
@@ -739,7 +773,7 @@ o2_define_bucket(
     Base
     Hist
     pthread
-    FairRoot::FairMQ
+    fairmq_bucket
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
@@ -794,7 +828,7 @@ o2_define_bucket(
     QC_test_bucket
 
     DEPENDENCIES
-    dl Core Base Hist FairRoot::FairMQ
+    dl Core Base Hist fairmq_bucket
     common_boost_bucket
 )
 
