@@ -43,13 +43,19 @@ class Detector : public o2::Base::DetImpl<Detector>
   void Register() override;
   void Reset() override;
   void Initialize() override;
+  // void AddAlignableVolumes() const;
+  void IdealPosition(int iCh, TGeoHMatrix* pMatrix);
+  void IdealPositionCradle(int iCh, TGeoHMatrix* pMatrix);
   void createMaterials();
   void ConstructGeometry() override;
   void defineSensitiveVolumes();
+  void DefineOpticalProperties();
   void EndOfEvent() override { Reset(); }
 
   // for the geometry sub-parts
   TGeoVolume* createChamber(int number);
+  TGeoVolume* CreateCradle();
+  TGeoVolume* CradleBaseVolume(TGeoMedium* med, Double_t l[7], const char* name);
 
  private:
   std::vector<HitType>* mHits = nullptr; ///!< Collection of HMPID hits
