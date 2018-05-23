@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "Framework/RootFileService.h"
 #include "Framework/AlgorithmSpec.h"
 

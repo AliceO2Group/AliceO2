@@ -25,7 +25,6 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
-#include "Framework/SimpleMetricsService.h"
 #include "Framework/SimpleRawDeviceService.h"
 #include "Framework/TextControlService.h"
 #include "Framework/CallbackService.h"
@@ -66,6 +65,9 @@
 
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/FairMQLogger.h>
+
+#include <Monitoring/MonitoringFactory.h>
+using namespace o2::monitoring;
 
 /// Helper class to find a free port.
 class FreePortFinder {
@@ -541,13 +543,13 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // different versions of the service
     ServiceRegistry serviceRegistry;
 
-    auto simpleMetricsService = std::make_unique<SimpleMetricsService>();
     auto localRootFileService = std::make_unique<LocalRootFileService>();
     auto textControlService = std::make_unique<TextControlService>();
     auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
     auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
     auto callbackService = std::make_unique<CallbackService>();
-    serviceRegistry.registerService<MetricsService>(simpleMetricsService.get());
+    auto monitoringService = MonitoringFactory::Get("infologger://");
+    serviceRegistry.registerService<Monitoring>(monitoringService.get());
     serviceRegistry.registerService<RootFileService>(localRootFileService.get());
     serviceRegistry.registerService<ControlService>(textControlService.get());
     serviceRegistry.registerService<ParallelContext>(parallelContext.get());

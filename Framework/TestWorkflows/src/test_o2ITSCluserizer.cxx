@@ -10,7 +10,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 // FIXME: this should not be needed as the framework should be able to
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"

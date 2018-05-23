@@ -20,12 +20,11 @@
 namespace o2 {
 namespace framework {
 
-
 // Parses a metric in the form
 //
-// METRIC:<type>:<name>:<timestamp>:<value>
+// [METRIC] <name>,<type> <value> <timestamp> [<tags>]
 bool parseMetric(const std::string &s, std::smatch &match) {
-  const static std::regex metricsRE(".*METRIC:(int|float|string):([a-zA-Z0-9/_-]+):([0-9]+):(.*)");
+  const static std::regex metricsRE(".*METRIC.* ([a-zA-Z0-9/_-]+),(0|1|2|4) ([0-9.]+) ([0-9]+) (.*)");
   return std::regex_match(s, match, metricsRE);
 }
 
@@ -35,21 +34,21 @@ bool parseMetric(const std::string &s, std::smatch &match) {
 // @info is the DeviceInfo associated to the device posting the metric
 bool processMetric(const std::smatch &match,
                    DeviceMetricsInfo &info) {
-  auto type = match[1];
-  auto name = match[2];
+  auto type = match[2];
+  auto name = match[1];
   char *ep = nullptr;
-  auto timestamp = strtol(match[3].str().c_str(), &ep, 10);
+  auto timestamp = strtol(match[4].str().c_str(), &ep, 10);
   if (ep == nullptr || *ep != '\0') {
     return false;
   }
-  auto stringValue = match[4];
+  auto stringValue = match[3];
 
   size_t metricIndex = -1;
 
   auto metricType = MetricType::Unknown;
-  if (type.str() == "int") {
+  if (type.str() == "0") {
     metricType = MetricType::Int;
-  } else if (type.str() == "float") {
+  } else if (type.str() == "2") {
     metricType = MetricType::Float;
   }
 

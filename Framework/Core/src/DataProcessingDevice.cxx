@@ -14,12 +14,12 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/FairMQDeviceProxy.h"
-#include "Framework/MetricsService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
 #include <fairmq/FairMQParts.h>
 #include <options/FairMQProgOptions.h>
+#include <Monitoring/Monitoring.h>
 #include <TMessage.h>
 #include <TClonesArray.h>
 
@@ -27,28 +27,27 @@
 #include <memory>
 
 using namespace o2::framework;
-
+using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
 
 namespace o2 {
 namespace framework {
 
-DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
-                                           ServiceRegistry &registry)
-: mInit{spec.algorithm.onInit},
-  mStatefulProcess{nullptr},
-  mStatelessProcess{spec.algorithm.onProcess},
-  mError{spec.algorithm.onError},
-  mConfigRegistry{nullptr},
-  mAllocator{FairMQDeviceProxy{this}, &mContext, &mRootContext, spec.outputs},
-  mRelayer{spec.inputs, spec.forwards, registry.get<MetricsService>()},
-  mInputChannels{spec.inputChannels},
-  mOutputChannels{spec.outputChannels},
-  mInputs{spec.inputs},
-  mForwards{spec.forwards},
-  mServiceRegistry{registry},
-  mErrorCount{0},
-  mProcessingCount{0}
+DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry& registry)
+  : mInit{ spec.algorithm.onInit },
+    mStatefulProcess{ nullptr },
+    mStatelessProcess{ spec.algorithm.onProcess },
+    mError{ spec.algorithm.onError },
+    mConfigRegistry{ nullptr },
+    mAllocator{ this, &mContext, &mRootContext, spec.outputs },
+    mRelayer{ spec.inputs, spec.forwards, registry.get<Monitoring>() },
+    mInputChannels{ spec.inputChannels },
+    mOutputChannels{ spec.outputChannels },
+    mInputs{ spec.inputs },
+    mForwards{ spec.forwards },
+    mServiceRegistry{ registry },
+    mErrorCount{ 0 },
+    mProcessingCount{ 0 }
 {
 }
 
@@ -95,7 +94,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can 
   // fine grain control what is exposed at each state.
-  auto &metricsService = mServiceRegistry.get<MetricsService>();
+  auto& monitoringService = mServiceRegistry.get<Monitoring>();
   auto &statefulProcess = mStatefulProcess;
   auto &statelessProcess = mStatelessProcess;
   auto &errorCallback = mError;
@@ -124,8 +123,9 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto isValidInput = [&metricsService, &parts]() -> bool {
-    metricsService.post("inputs/parts/total", (int)parts.Size());
+  auto isValidInput = [&monitoringService, &parts]() -> bool {
+    // monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
+    monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
 
     for (size_t i = 0; i < parts.Size() ; ++i) {
       LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << " bytes";
@@ -156,11 +156,11 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     return true;
   };
 
-  // 
-  auto reportError = [&errorCount, &metricsService](const char *message) {
+  //
+  auto reportError = [&errorCount, &monitoringService](const char* message) {
     LOG(ERROR) << message;
     errorCount++;
-    metricsService.post("dataprocessing/errors", errorCount);
+    monitoringService.send({ errorCount, "dataprocessing/errors" });
   };
 
   auto putIncomingMessageIntoCache = [&parts,&relayer,&reportError]() {
@@ -193,13 +193,13 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getCompleteInputSets = [&relayer,&completed,&metricsService]() -> std::vector<int> {
+  auto getCompleteInputSets = [&relayer, &completed, &monitoringService]() -> std::vector<int> {
     LOG(DEBUG) << "Getting parts to process";
     completed = relayer.getReadyToProcess();
     int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
-    metricsService.post("inputs/relayed/pending", pendingInputs);
+    monitoringService.send({ pendingInputs, "inputs/relayed/pending" });
     if (completed.empty()) {
-      metricsService.post("inputs/relayed/incomplete", 1);
+      monitoringService.send({ 1, "inputs/relayed/incomplete" });
     }
     return completed;
   };
@@ -217,25 +217,18 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // why we do the stateful processing before the stateless one.
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
-  auto dispatchProcessing = [&processingCount,
-                             &allocator,
-                             &statefulProcess,
-                             &statelessProcess,
-                             &metricsService,
-                             &context,
-                             &rootContext,
-                             &serviceRegistry,
-                             &device](int i, InputRecord &record) {
+  auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
+                             &context, &rootContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
-      metricsService.post("dataprocessing/stateful_process", processingCount++);
+      monitoringService.send({ processingCount++, "dataprocessing/stateful_process" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
       statefulProcess(processContext);
       LOG(DEBUG) << "PROCESSING:END:" << i;
     }
     if (statelessProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
-      metricsService.post("dataprocessing/stateless_process", processingCount++);
+      monitoringService.send({ processingCount++, "dataprocessing/stateless_process" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
       statelessProcess(processContext);
       LOG(DEBUG) << "PROCESSING:END:" << i;
@@ -245,12 +238,10 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   };
 
   // Error handling means printing the error and updating the metric
-  auto errorHandling = [&errorCallback,
-                        &metricsService,
-                        &serviceRegistry](std::exception &e, InputRecord &record) {
+  auto errorHandling = [&errorCallback, &monitoringService, &serviceRegistry](std::exception& e, InputRecord& record) {
     LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
-      metricsService.post("error", 1);
+      monitoringService.send({ 1, "error" });
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     }
@@ -366,7 +357,7 @@ void
 DataProcessingDevice::error(const char *msg) {
   LOG(ERROR) << msg;
   mErrorCount++;
-  mServiceRegistry.get<MetricsService>().post("dataprocessing/errors", mErrorCount);
+  mServiceRegistry.get<Monitoring>().send({ mErrorCount, "dataprocessing/errors" });
 }
 
 } // namespace framework

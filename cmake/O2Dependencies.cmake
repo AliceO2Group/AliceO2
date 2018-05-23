@@ -222,9 +222,11 @@ o2_define_bucket(
     Core
     Net
     ${GUI_LIBRARIES}
+    ${Monitoring_LIBRARIES}
     ${Configuration_LIBRARIES}
 
     SYSTEMINCLUDE_DIRECTORIES
+    ${Monitoring_INCLUDE_DIRS}
     ${Configuration_INCLUDE_DIRS}
 )
 
