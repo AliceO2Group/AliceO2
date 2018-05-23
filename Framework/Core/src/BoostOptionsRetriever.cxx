@@ -24,7 +24,9 @@ namespace o2
 namespace framework
 {
 
-BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs, bool ignoreUnknown, int &argc, char **&argv)
+BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&specs,
+                                             bool ignoreUnknown,
+                                             int &argc, char **&argv)
 : mVariables{},
   mDescription{"ALICE O2 Framework - Available options"},
   mIgnoreUnknown{ignoreUnknown}
