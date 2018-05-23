@@ -48,7 +48,7 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
         options = options(name, bpo::value<double>()->default_value(spec.defaultValue.get<double>()), help);
         break;
       case VariantType::String:
-        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<std::string>()), help);
+        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char *>()), help);
         break;
       case VariantType::Bool:
         options = options(name, bpo::value<bool>()->default_value(spec.defaultValue.get<bool>()), help);
