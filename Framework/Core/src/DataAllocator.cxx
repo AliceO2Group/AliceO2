@@ -119,8 +119,8 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
                                                           headerStack.data(),
                                                           headerStack.size(),
-                                                          &o2::header::Stack::freefn,
-                                                          headerStack.data());
+                                                          headerStack.getFreefn(),
+                                                          headerStack.getFreefnHint());
   headerStack.release();
   return std::move(headerMessage);
 }

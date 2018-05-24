@@ -34,6 +34,7 @@
 #include "Monitoring/MonitoringFactory.h"
 #include <stdexcept>
 #include <gsl/gsl>
+#include "O2Device/Utilities.h"
 
 namespace o2
 {
@@ -42,8 +43,6 @@ namespace Base
 
 /// just a typedef to express the fact that it is not just a FairMQParts vector,
 /// it has to follow the O2 convention of header-payload-header-payload
-using O2Message = FairMQParts;
-
 class O2Device : public FairMQDevice
 {
  public:
@@ -75,15 +74,15 @@ class O2Device : public FairMQDevice
   {
 
     // we have to move the incoming data
-    o2::header::Stack headerStack{ std::move(inputHeaderStack) };
-    FairMQMessagePtr dataMessage{ std::move(inputDataMessage) };
+    using std::move;
+    o2::header::Stack headerStack{ move(inputHeaderStack) };
+    FairMQMessagePtr dataMessage{ move(inputDataMessage) };
 
     FairMQMessagePtr headerMessage =
-      NewMessage(headerStack.data(), headerStack.size(), &o2::header::Stack::freefn, headerStack.data());
-    headerStack.release();
+      o2::memoryResources::getMessage(move(inputHeaderStack));
 
-    parts.AddPart(std::move(headerMessage));
-    parts.AddPart(std::move(dataMessage));
+    parts.AddPart(move(headerMessage));
+    parts.AddPart(move(dataMessage));
     return true;
   }
 

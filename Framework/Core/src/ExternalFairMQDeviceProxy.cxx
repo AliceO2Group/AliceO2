@@ -43,8 +43,8 @@ void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, Fai
     FairMQMessagePtr headerMessage = device.NewMessageFor(channel, index,
                                                           headerStack.data(),
                                                           headerStack.size(),
-                                                          &o2::header::Stack::freefn,
-                                                          headerStack.data());
+                                                          headerStack.getFreefn(),
+                                                          headerStack.getFreefnHint());
     headerStack.release();
     FairMQParts out;
     out.AddPart(std::move(headerMessage));
