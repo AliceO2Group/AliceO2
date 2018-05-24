@@ -51,43 +51,7 @@ void Detector::Initialize()
   o2::Base::Detector::Initialize();
 }
 
-/*void Detector::AddAlignableVolumes() const
-{
-// Associates the symbolic volume name with the corresponding volume path. Interface method from AliModule invoked from
-AliMC
-// Arguments: none
-//   Returns: none
-
- // AliGeomManager::ELayerID idHMPID = AliGeomManager::kHMPID;
- // int modUID, modnum = 0;
-
-  TGeoHMatrix *pGm = new TGeoHMatrix;
-  double trans[3]={0.5*131.24,0.5*126.16,0};                            //translation from LORS to TGeo RS (half size
-AllX, half size allY,0)
-  pGm->SetTranslation(trans);
-
-  double ph[7]={10.,10., 30.,30.,30. ,50.,50};
-
-//  for(int iCh=AliHMPIDParam::kMinCh;iCh<=AliHMPIDParam::kMaxCh;iCh++) {
-  for(int iCh=0;iCh<=6;iCh++) {
-   // modUID = AliGeomManager::LayerToVolUID(idHMPID,modnum++);
-//    if(!gGeoManager->SetAlignableEntry(Form("/HMPID/Chamber%i",iCh),Form("ALIC_1/Hmp%i_0",iCh),modUID))
-  //    AliError("AliHMPIDv3::Unable to set alignable entry!!");  //aligment without AliCluster3D
-    //Get Tracking To Local matricies for alignment with AliCluster3D
-    //TGeoPNEntry *eCh = gGeoManager->GetAlignableEntryByUID(modUID);
-    //TGeoHMatrix *globMatrix = eCh->GetGlobalOrig();
-
-    //Double_t phi = 20.0 * ((iCh+1) / 3) + 10.0;
-    double phi = ph[iCh];
-    TGeoHMatrix *t2l  = new TGeoHMatrix();
-    t2l->RotateZ(phi);
-    t2l->MultiplyLeft(&(globMatrix->Inverse()));
-    eCh->SetMatrix(t2l);
-  }//iCh loop
-
-}
-*/
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//*********************************************************************************************************
 
 void Detector::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix) // ideal position of given chamber
 {
@@ -249,7 +213,7 @@ void Detector::createMaterials()
   Medium(kAr, "Ar", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
-//*****************************************************************************************************************************************************************
+//**************************************************************************************************
 
 TGeoVolume* Detector::createChamber(int number)
 {
@@ -551,7 +515,7 @@ TGeoVolume* Detector::createChamber(int number)
   return hmp;
 }
 
-//*****************************************************************************************************************************************************************************************
+//*************************************************************************************************************
 
 TGeoVolume* Detector::CreateCradle()
 {
@@ -899,7 +863,7 @@ TGeoVolume* Detector::CreateCradle()
   return cradle;
 } // CreateCradle()
 
-//******************************************************************************************************************************************************************************************
+//*****************************************************************************************************************
 
 TGeoVolume* Detector::CradleBaseVolume(TGeoMedium* med, Double_t l[7], const char* name)
 {
@@ -971,23 +935,16 @@ TGeoVolume* Detector::CradleBaseVolume(TGeoMedium* med, Double_t l[7], const cha
 
   return vol;
 } // CradleBaseVolume()
-//**************************************************************************************************************************************************************************************************
+//****************************************************************************************************************
 
 void Detector::ConstructGeometry()
 {
   // Creates detailed geometry simulation (currently GEANT volumes tree)
   // includind the HMPID cradle
 
-  // AliDebug(1,"Start main.");
-  // if(!TVirtualMC::GetMC()->IsRootGeometrySupported()) return;
   createMaterials();
 
   TGeoVolume* hmpcradle = CreateCradle();
-  // TString title=GetTitle();
-  // if(title.Contains("TestBeam")){
-  // TGeoVolume *hmpid = CreateChamber(3);
-  //    gGeoManager->GetVolume("ALIC")->AddNode(hmpid,0);
-  //  }else{
 
   for (Int_t iCh = 0; iCh <= 6; iCh++) { // place 7 chambers
     TGeoVolume* hmpid = createChamber(iCh);
@@ -1004,7 +961,7 @@ void Detector::ConstructGeometry()
   // AliDebug(1,"Stop v3. HMPID option");
 }
 
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//*****************************************************************************************************************
 void Detector::DefineOpticalProperties()
 {
   // AliDebug(1,"");
