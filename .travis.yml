@@ -53,7 +53,7 @@ script: |
 
         for x in $COMMIT_FILES; do
           case $x in
-            *.h|*.cxx) grep '.\{120,\}' $x && { echo "Line longer than 120 chars in $x." && exit 1; } ;;
+            *.h|*.cxx) git diff $x | grep -e '^+[^+]' | grep '.\{120,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } ;;
             *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
             *) ;;
           esac
