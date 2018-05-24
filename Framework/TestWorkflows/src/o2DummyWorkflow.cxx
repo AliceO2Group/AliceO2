@@ -48,6 +48,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
        int i = 0;
 
        for (auto &cluster : tpcClusters) {
+         // The assert is here simply because at some point we were allocating the
+         // wrong number of items.
          assert(i < 1000);
          cluster.x = i;
          cluster.y = i;
