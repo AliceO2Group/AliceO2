@@ -53,7 +53,13 @@ script: |
 
         for x in $COMMIT_FILES; do
           case $x in
-            *.h|*.cxx) git diff $x | grep -e '^+[^+]' | grep '.\{120,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } ;;
+            *.h|*.cxx)
+              # We remove the header from the diff as it contains +++ then
+              # we only select the added lines to check for the long ones.
+              # We do not need to check for the lines which have been removed
+              # and we do not want to check for the lines which were not changed
+              # to avoid extra work.
+              git diff $x | tail -n +5 | grep -e '^+' | grep '.\{120,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } ;;
             *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
             *) ;;
           esac
