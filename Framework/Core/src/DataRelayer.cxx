@@ -39,6 +39,9 @@ DataRelayer::DataRelayer(const std::vector<InputRoute>& inputs, const std::vecto
   : mInputs{ inputs }, mForwards{ forwards }, mMetrics{ metrics }
 {
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+  for (size_t ci = 0; ci < mCache.size(); ci++) {
+    metrics.send({ 0, std::string("data_relayer/") + std::to_string(ci) });
+  }
 }
 
 size_t
@@ -71,6 +74,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   std::vector<TimesliceId> &timeslices = mTimeslices;
   auto &cache = mCache;
   const auto &readonlyCache = mCache;
+  auto& metrics = mMetrics;
 
   // IMPLEMENTATION DETAILS
   // 
@@ -127,9 +131,8 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
 
   // We need to prune the cache from the old stuff, if any. Otherwise we
   // simply store the payload in the cache and we mark relevant bit in the
-  // completion mask. Notice that late arrivals should simply be ignored,
   // hence the first if.
-  auto pruneCacheSlotFor = [&cache,&inputs,&timeslices](int64_t timeslice) {
+  auto pruneCacheSlotFor = [&cache, &inputs, &timeslices, &metrics](int64_t timeslice) {
     size_t slotIndex = timeslice % timeslices.size();
     // Prune old stuff from the cache, hopefully deleting it...
     // We set the current slot to the timeslice value, so that old stuff
@@ -139,6 +142,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
     for (size_t ai = slotIndex*inputs.size(), ae = ai + inputs.size(); ai != ae ; ++ai) {
       cache[ai].header.reset(nullptr);
       cache[ai].payload.reset(nullptr);
+      metrics.send({ 0, std::string("data_relayer/") + std::to_string(ai) });
     }
   };
 
@@ -153,9 +157,11 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   };
 
   // Actually save the header / payload in the slot
-  auto saveInSlot = [&header, &payload, &cache, &timeslices, &inputs](int64_t timeslice, int input) {
+  auto saveInSlot = [&header, &payload, &cache, &timeslices, &inputs, &metrics](int64_t timeslice, int input) {
     size_t slotIndex = timeslice % timeslices.size();
-    PartRef &currentPart = cache[inputs.size()*slotIndex + input];
+    auto cacheIdx = inputs.size() * slotIndex + input;
+    PartRef& currentPart = cache[cacheIdx];
+    metrics.send({ 1, std::string("data_relayer/") + std::to_string(cacheIdx) });
     PartRef ref{std::move(header), std::move(payload)};
     currentPart = std::move(ref);
     timeslices[slotIndex] = {timeslice};
@@ -259,6 +265,7 @@ DataRelayer::getInputsForTimeslice(size_t timeslice) {
   messages.reserve(mInputs.size()*2);
   auto &cache = mCache;
   auto &timeslices = mTimeslices;
+  auto& metrics = mMetrics;
   const auto &inputs = mInputs;
 
   // Nothing to see here, this is just to make the outer loop more understandable.
@@ -270,9 +277,11 @@ DataRelayer::getInputsForTimeslice(size_t timeslice) {
   // finished. We bump by one the timeslice for the given cache entry, so that
   // in case we get (for whatever reason) an old input, it will be
   // automatically discarded by the relay method.
-  auto moveHeaderPayloadToOutput = [&messages, &cache, &timeslices, &inputs](size_t ti, size_t arg) {
-    messages.emplace_back(std::move(cache[ti*inputs.size() + arg].header));
-    messages.emplace_back(std::move(cache[ti*inputs.size() + arg].payload));
+  auto moveHeaderPayloadToOutput = [&messages, &cache, &timeslices, &inputs, &metrics](size_t ti, size_t arg) {
+    auto cacheId = ti * inputs.size() + arg;
+    metrics.send({ 2, "data_relayer/" + std::to_string(cacheId) });
+    messages.emplace_back(std::move(cache[cacheId].header));
+    messages.emplace_back(std::move(cache[cacheId].payload));
     timeslices[ti % timeslices.size()].value += 1;
   };
 
@@ -308,6 +317,8 @@ void
 DataRelayer::setPipelineLength(size_t s) {
   mTimeslices.resize(s, INVALID_TIMESLICE_ID);
   mCache.resize(mInputs.size() * mTimeslices.size());
+  mMetrics.send({ (int)mInputs.size(), "data_relayer/h" });
+  mMetrics.send({ (int)mTimeslices.size(), "data_relayer/w" });
 }
 
 

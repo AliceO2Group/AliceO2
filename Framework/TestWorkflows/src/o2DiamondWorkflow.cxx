@@ -21,8 +21,12 @@ void customize(std::vector<ConfigParamSpec> &options) {
 
 
 AlgorithmSpec simplePipe(std::string const &what) {
-  return AlgorithmSpec{ [what](ProcessingContext& ctx) {
-    auto bData = ctx.outputs().make<int>(OutputRef{what}, 1);
+  return AlgorithmSpec{ [what](InitContext& ic) {
+    srand(getpid());
+    return [what](ProcessingContext& ctx) {
+      sleep(rand() % 5);
+      auto bData = ctx.outputs().make<int>(OutputRef{ what }, 1);
+    };
   } };
 }
 
@@ -38,7 +42,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
     },
     AlgorithmSpec{
       [](ProcessingContext &ctx) {
-       sleep(1);
+       sleep(rand() % 5);
        auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
        auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
       }

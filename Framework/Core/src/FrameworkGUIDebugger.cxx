@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <iostream>
 #include <set>
+#include <string>
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
@@ -18,6 +19,9 @@
 #include "DriverInfo.cxx"
 #include "Framework/FrameworkGUIDevicesGraph.h"
 #include "Framework/PaletteHelpers.h"
+
+static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
+static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
 namespace o2
 {
@@ -98,6 +102,117 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     default:
       return PaletteHelpers::WHITE;
   };
+}
+
+// This is to display the information in the data relayer
+struct HeatMapHelper {
+  template <typename RECORD, typename ITEM>
+  static void draw(const char* name,
+                   float widgetYSize,
+                   std::function<size_t()> const& getNumRecords,
+                   std::function<RECORD(size_t)> const& getRecord,
+                   std::function<size_t(RECORD const&)> const& getNumItems,
+                   std::function<ITEM const&(RECORD const&, size_t)> const& getItem,
+                   std::function<int(ITEM const&)> const& getValue,
+                   std::function<ImU32(int value)> const& getColor)
+  {
+    ImU32 BORDER_COLOR = ImColor(200, 200, 200, 40);
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 winPos = ImGui::GetCursorScreenPos();
+    ImVec2 canvas_sz = ImGui::GetWindowSize();
+    ImGui::BeginChild(name, ImVec2(canvas_sz.x, widgetYSize), true);
+    drawList->AddQuad(
+      ImVec2(0., 0.) + winPos,
+      ImVec2{ canvas_sz.x - 1, 0 } + winPos,
+      ImVec2{ canvas_sz.x - 1, widgetYSize } + winPos,
+      ImVec2{ 0, widgetYSize } + winPos,
+      BORDER_COLOR);
+    float padding = 1;
+    for (size_t ri = 0, re = getNumRecords(); ri < re; ri++) {
+      auto record = getRecord(ri);
+      ImVec2 xOffset{ (ri * canvas_sz.x / getNumRecords()) + padding, 0 };
+      ImVec2 xSize{ canvas_sz.x / getNumRecords() - 2 * padding, 0 };
+      for (size_t mi = 0, me = getNumItems(record); mi < me; mi++) {
+        ImVec2 yOffSet{ 0, (mi * widgetYSize / getNumItems(record)) + padding };
+        ImVec2 ySize{ 0, (widgetYSize / getNumItems(record)) - 2 * padding };
+        drawList->AddQuadFilled(
+          xOffset + yOffSet + winPos,
+          xOffset + xSize + yOffSet + winPos,
+          xOffset + xSize + yOffSet + ySize + winPos,
+          xOffset + yOffSet + ySize + winPos,
+          getColor(getValue(getItem(record, mi))));
+      }
+    }
+    ImGui::EndChild();
+  }
+};
+
+bool startsWith(std::string mainStr, std::string toMatch)
+{
+  if (mainStr.find(toMatch) == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void displayDataRelayer(DeviceMetricsInfo const& metrics,
+                        DeviceInfo const& info)
+{
+  auto& viewIndex = info.dataRelayerViewIndex;
+
+  auto getNumRecords = [&viewIndex]() -> size_t {
+    if (viewIndex.isComplete()) {
+      return viewIndex.w;
+    }
+    return 0;
+  };
+  auto getRecord = [&metrics](size_t i) -> int {
+    return i;
+  };
+  auto getNumItems = [&viewIndex](int record) {
+    if (viewIndex.isComplete()) {
+      return viewIndex.h;
+    }
+    return 0;
+  };
+  auto getItem = [&metrics, &viewIndex](int const& record, size_t i) {
+    // Calculate the index in the viewIndex.
+    auto idx = record * viewIndex.h + i;
+    assert(viewIndex.indexes.size() > idx);
+    MetricInfo const& info = metrics.metrics[viewIndex.indexes[idx]];
+    assert(metrics.intMetrics.size() > info.storeIdx);
+    auto& data = metrics.intMetrics[info.storeIdx];
+    return data[(info.pos - 1) % data.size()];
+  };
+  auto getValue = [](int const& item) { return item; };
+  auto getColor = [](int value) {
+    const ImU32 SLOT_EMPTY = ImColor(20, 20, 20, 255);
+    const ImU32 SLOT_FULL = ImColor(0xf9, 0xcd, 0xad, 255);
+    const ImU32 SLOT_DISPATCHED = ImColor(0xc8, 0xc8, 0xa9, 255);
+    const ImU32 SLOT_DONE = ImColor(0x83, 0xaf, 0, 0x9b);
+    const ImU32 SLOT_ERROR = ImColor(0xfe, 0x43, 0x65, 255);
+    switch (value) {
+      case 0:
+        return SLOT_EMPTY;
+      case 1:
+        return SLOT_FULL;
+      case 2:
+        return SLOT_DISPATCHED;
+      case 3:
+        return SLOT_DONE;
+    }
+    return SLOT_ERROR;
+  };
+
+  HeatMapHelper::draw<int, int>("DataRelayer",
+                                100.f,
+                                getNumRecords,
+                                getRecord,
+                                getNumItems,
+                                getItem,
+                                getValue,
+                                getColor);
 }
 
 void displayHistory(const DeviceInfo& info, DeviceControl& control)
@@ -199,7 +314,7 @@ void historyBar(DeviceGUIState& state, const DeviceSpec& spec, const DeviceMetri
 
   auto currentMetricName = gState.availableMetrics[gState.selectedMetric];
 
-  size_t i = metricIdxByName(currentMetricName, metricsInfo);
+  size_t i = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
   // We did not find any plot, skipping this.
   if (i == metricsInfo.metricLabelsIdx.size()) {
     ImGui::NextColumn();
@@ -284,7 +399,7 @@ void displayDeviceHistograms(const std::vector<DeviceInfo>& infos, const std::ve
     size_t minTime = -1;
     size_t maxTime = 0;
     for (auto& metricInfo : metricsInfos) {
-      size_t mi = metricIdxByName(currentMetricName, metricInfo);
+      size_t mi = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricInfo);
       if (mi == metricInfo.metricLabelsIdx.size()) {
         continue;
       }
@@ -482,6 +597,7 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
       assert(i < devices.size());
       const DeviceInfo& info = infos[i];
       const DeviceSpec& spec = devices[i];
+      const DeviceMetricsInfo& metrics = metricsInfos[i];
 
       DeviceControl& control = controls[i];
       ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x / 3 * 2, i * windowPosStepping), ImGuiSetCond_Once);
@@ -497,6 +613,9 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
         ChannelsTableHelper::channelsTable("Outputs:", spec.outputChannels);
       }
       optionsTable(spec, control);
+      if (ImGui::CollapsingHeader("Data relayer")) {
+        displayDataRelayer(metrics, info);
+      }
       if (ImGui::CollapsingHeader("Logs", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Checkbox("Stop logging", &control.quiet);
         ImGui::InputText("Log filter", control.logFilter, sizeof(control.logFilter));

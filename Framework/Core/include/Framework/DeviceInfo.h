@@ -25,6 +25,16 @@ namespace o2
 namespace framework
 {
 
+/// Index of what metrics have to be picked up
+/// for the DataRelayer view of a given device.
+struct DataRelayerViewIndex {
+  int w;
+  int h;
+  std::vector<size_t> indexes;
+  /// Whether or not the view is ready to be used.
+  bool isComplete() const { return (w * h) != 0; }
+};
+
 struct DeviceInfo {
   /// The pid of the device associated to this device
   pid_t pid;
@@ -47,6 +57,8 @@ struct DeviceInfo {
   bool active;
   /// Whether the device is ready to quit.
   bool readyToQuit;
+  /// Index for a particular release.
+  DataRelayerViewIndex dataRelayerViewIndex;
 };
 
 } // namespace framework
