@@ -345,7 +345,15 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     prepareForCurrentTimeSlice(cacheline);
     InputRecord record = fillInputs(cacheline);
     try {
+      for (size_t ai = 0; ai != record.size(); ai++) {
+        auto cacheId = cacheline * record.size() + ai;
+        monitoringService.send({ 2, "data_relayer/" + std::to_string(cacheId) });
+      }
       dispatchProcessing(cacheline, record);
+      for (size_t ai = 0; ai != record.size(); ai++) {
+        auto cacheId = cacheline * record.size() + ai;
+        monitoringService.send({ 3, "data_relayer/" + std::to_string(cacheId) });
+      }
     } catch(std::exception &e) {
       errorHandling(e, record);
     }

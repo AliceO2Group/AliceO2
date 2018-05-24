@@ -279,6 +279,15 @@ static void handle_sigint(int) { graceful_exit = true; }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
+bool startsWith(std::string mainStr, std::string toMatch)
+{
+  if (mainStr.find(toMatch) == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 /// This will start a new device by forking and executing a
 /// new child
 void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInfo, DeviceControl& control,
@@ -336,6 +345,7 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
   info.historySize = 1000;
   info.historyPos = 0;
   info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
+  info.dataRelayerViewIndex = DataRelayerViewIndex{ 0, 0, {} };
 
   socket2DeviceInfo.insert(std::make_pair(childstdout[0], deviceInfos.size()));
   socket2DeviceInfo.insert(std::make_pair(childstderr[0], deviceInfos.size()));
@@ -352,6 +362,8 @@ void spawnDevice(DeviceSpec const& spec, std::map<int, size_t>& socket2DeviceInf
 void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
                            DeviceControls& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
+  static const char* DATA_RELAYER_METRIC_PREFIX = "data_relayer";
+  static const size_t DATA_RELAYER_METRIC_PREFIX_SIZE = std::strlen(DATA_RELAYER_METRIC_PREFIX);
   // Wait for children to say something. When they do
   // print it.
   fd_set fdset;
@@ -405,6 +417,40 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
 
+    auto& view = info.dataRelayerViewIndex;
+    auto updateDataRelayerViewIndex = [&view](std::string const& name, MetricInfo const& metric, int value) {
+      if (startsWith(name, DATA_RELAYER_METRIC_PREFIX) == false) {
+        return;
+      }
+      auto extra = name;
+
+      // +1 is to remove the /
+      extra.erase(0, DATA_RELAYER_METRIC_PREFIX_SIZE + 1);
+      if (extra == "w") {
+        view.w = value;
+        view.indexes.resize(view.w * view.h);
+        return;
+      } else if (extra == "h") {
+        view.h = value;
+        view.indexes.resize(view.w * view.h);
+        return;
+      }
+      int idx = -1;
+      try {
+        idx = std::stoi(extra, nullptr, 10);
+      } catch (...) {
+        LOG(ERROR) << "Badly formatted metric" << std::endl;
+      }
+      if (idx < 0) {
+        LOG(ERROR) << "Negative metric" << std::endl;
+        return;
+      }
+      if (view.indexes.size() <= idx) {
+        view.indexes.resize(std::max(idx + 1, view.w * view.h));
+      }
+      view.indexes[idx] = metric.storeIdx;
+    };
+
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
       auto logLevel = LogParsingHelpers::parseTokenLevel(token);
@@ -414,9 +460,11 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       // in the GUI.
       // Then we check if it is part of our Poor man control system
       // if yes, we execute the associated command.
-      if (parseMetric(token, match)) {
+      if (DeviceMetricsHelper::parseMetric(token, match)) {
         LOG(DEBUG) << "Found metric with key " << match[2] << " and value " << match[4];
-        processMetric(match, metrics);
+        // We use this callback to cache which metrics are needed to provide a
+        // the DataRelayer view.
+        DeviceMetricsHelper::processMetric(match, metrics, updateDataRelayerViewIndex);
       } else if (parseControl(token, match)) {
         auto command = match[1];
         auto validFor = match[2];
