@@ -48,7 +48,6 @@ class O2MessageMonitor : public o2::Base::O2Device
   void Run() override;
   void InitTask() override;
   bool HandleData(o2::Base::O2Message& parts, int index);
-  bool HandleO2frame(const byte* headerBuffer, size_t headerBufferSize, const byte* dataBuffer, size_t dataBufferSize);
 
  private:
   std::string mPayload{ "I am the info payload" };
