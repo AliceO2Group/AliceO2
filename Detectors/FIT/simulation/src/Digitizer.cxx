@@ -50,11 +50,10 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
         (mcp > 95 && hit.GetTime() > lowTimeC && hit.GetTime() < highTimeC)) {
       cfd[mcp] += hit.GetTime();
       amp[mcp]++;
-
     }
   // extract trackID
     trackID = hit.GetTrackID();
-  }//end of loop over hits
+  } // end of loop over hits
 
   Int_t ndigits = 0; // Number of digits added
   for (Int_t ipmt = 0; ipmt < 208; ipmt++) {
@@ -62,25 +61,23 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
       cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant 
       ndigits++;
       addDigit(Double_t(timeframe), ipmt, cfd[ipmt], amp[ipmt], bc, trackID);
-    } 
-  } //end of loop over PMT
-
+    }
+  } // end of loop over PMT
 }
 
 void Digitizer::addDigit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, Int_t bc, Int_t trackID )
 {
   // FIT digit requires: channel, time and number of photons
-  //simplified version,will be change
+  // simplified version,will be change
 
   Digit newdigit(time, channel, cfd, amp, bc);
   mDigits->emplace_back(time, channel, cfd, amp, bc);
-   
+
   if (mMCTruthContainer) {
     auto ndigits = mDigits->size() - 1;
-     o2::fit::MCLabel label(trackID, mEventID, mSrcID, cfd);
+    o2::fit::MCLabel label(trackID, mEventID, mSrcID, cfd);
     mMCTruthContainer->addElement(ndigits, label);
   }
- 
 }
 
 void Digitizer::initParameters()
