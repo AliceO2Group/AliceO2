@@ -23,9 +23,8 @@ namespace fit
 {
 /// \class Digit
 /// \brief FIT digit implementation
-//using DigitBase = o2::dataformats::TimeStamp<double>;
-class Digit : public o2::dataformats::TimeStamp<double>
-{
+using DigitBase = o2::dataformats::TimeStamp<double>;
+class Digit : public DigitBase{
  public:
   Digit() = default;
 
