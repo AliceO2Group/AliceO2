@@ -78,7 +78,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setEventID(mEventID);
 
   mDigitizer.process(mHitsArray, mDigitsArray);
- 
+
   mEventID++;
 }
 
@@ -86,15 +86,15 @@ void DigitizerTask::Exec(Option_t* option)
 void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-   if (!mContinuous) 
-        return;
-  
+  if (!mContinuous)
+    return;
+
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   if (mDigitsArray)
-   mDigitsArray->clear();
+    mDigitsArray->clear();
   mDigitizer.finish();
-  
+
   // TODO: reenable this
   // mDigitizer.fillOutputContainer(mDigitsArray);
 }
