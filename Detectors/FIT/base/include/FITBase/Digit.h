@@ -54,7 +54,7 @@ class Digit : public DigitBase
 
   Double_t mTime; /// time stamp
   Int_t mChannel; ///< FIT channel index
-  Double_t mCFD;     ///< CFD time value
+  Double_t mCFD;  ///< CFD time value
   Int_t mQTC;     ///< QTC time value
   Int_t mBC;      ///< Bunch Crossing
 
