@@ -524,12 +524,33 @@ private:
   static byte* inject(byte* here, const T& h, const Args... args) noexcept {
     auto alsohere = inject(here, h);
     // the type might be a stack itself, loop through headers and set the flag in the last one
-    BaseHeader* next = BaseHeader::get(here);
-    while (next->flagsNextHeader) {
-      next = next->next();
+    if (h.size() > 0) {
+      BaseHeader* next = BaseHeader::get(here);
+      while (next->flagsNextHeader) {
+        next = next->next();
+      }
+      next->flagsNextHeader = hasNonEmptyArg(args...);
     }
-    next->flagsNextHeader = true;
     return inject(alsohere, args...);
+  }
+
+  // helper function to check if there is at least one non-empty header/stack in the argument pack
+  template <typename T, typename... Args>
+  static bool hasNonEmptyArg(const T& h, const Args&... args) noexcept
+  {
+    if (h.size() > 0) {
+      return true;
+    }
+    return hasNonEmptyArg(args...);
+  }
+
+  template <typename T>
+  static bool hasNonEmptyArg(const T& h) noexcept
+  {
+    if (h.size() > 0) {
+      return true;
+    }
+    return false;
   }
 };
 
