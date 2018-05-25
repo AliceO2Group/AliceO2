@@ -200,6 +200,7 @@ namespace o2 {
       BOOST_CHECK(h2->size() == sizeof(NameHeader<9>));
       BOOST_CHECK(h2->getNameLength() == 9);
 
+      // create new stack from stack and additional header
       auto meta = test::MetaHeader{ 42 };
       Stack s2{ s1, meta };
       BOOST_CHECK(s2.size() == s1.size() + sizeof(decltype(meta)));
@@ -207,9 +208,27 @@ namespace o2 {
       auto* h3 = get<test::MetaHeader*>(s1.data());
       BOOST_CHECK(h3 == nullptr);
       h3 = get<test::MetaHeader*>(s2.data());
-      BOOST_CHECK(h3 != nullptr);
+      BOOST_REQUIRE(h3 != nullptr);
+      BOOST_CHECK(h3->flagsNextHeader == false);
       h1 = get<DataHeader*>(s2.data());
-      BOOST_CHECK(h1 != nullptr);
+      BOOST_REQUIRE(h1 != nullptr);
+      BOOST_CHECK(h1->flagsNextHeader == true);
+
+      // create stack from header and empty stack
+      Stack s3{ meta, Stack{} };
+      BOOST_CHECK(s3.size() == sizeof(meta));
+      h3 = get<test::MetaHeader*>(s3.data());
+      BOOST_REQUIRE(h3 != nullptr);
+      // no next header to be flagged as the stack was empty
+      BOOST_CHECK(h3->flagsNextHeader == false);
+
+      // create new stack from stack, empty stack, and header
+      Stack s4{ s1, Stack{}, meta };
+      BOOST_CHECK(s4.size() == s1.size() + sizeof(meta));
+      // check if we can find the header even though there was an empty stack in the middle
+      h3 = get<test::MetaHeader*>(s4.data());
+      BOOST_REQUIRE(h3 != nullptr);
+      BOOST_CHECK(h3->secret == 42);
     }
 
     BOOST_AUTO_TEST_CASE(Descriptor_benchmark)
