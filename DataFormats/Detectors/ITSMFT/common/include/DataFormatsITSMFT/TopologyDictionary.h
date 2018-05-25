@@ -15,21 +15,21 @@
 ///
 /// Short TopologyDictionary descritpion
 ///
-/// The entries of the dictionaries are the cluster topologies, with all the indormation
+/// The entries of the dictionaries are the cluster topologies, with all the information
 /// which is common to the clusters with the same topology:
 /// - number of rows
 /// - number of columns
+/// - pixel bitmask
 /// - position of the Centre Of Gravity (COG) wrt the bottom left corner pixel of the bounding box
 /// - error associated to the position of the hit point
 /// Rare topologies, i.e. with a frequency below a threshold defined a priori, have not their own entries
 /// in the dictionaries, but are grouped together with topologies with similar dimensions.
-///
+/// For the groups of rare topollogies a dummy bitmask is used.
 
 #ifndef ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
 #define ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
-#include <Rtypes.h>
+#include "DataFormatsITSMFT/ClusterPattern.h"
 #include <fstream>
-#include <iosfwd>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -44,18 +44,23 @@ class TopologyFastSimulation;
 
 /// Structure containing the most relevant pieces of information of a topology
 struct GroupStruct {
-  unsigned long mHash; ///< Hashcode
-  float mErrX;         ///< Error associated to the hit point in the x direction.
-  float mErrZ;         ///< Error associated to the hit point in the z direction.
-  float mXCOG;         ///< x position of te COG wrt the boottom left corner of the bounding box
-  float mZCOG;         ///< z position of te COG wrt the boottom left corner of the bounding box
-  int mNpixels;        ///< Number of fired pixels
-  double mFrequency;   ///< Frequency of the topology
+  unsigned long mHash;     ///< Hashcode
+  float mErrX;             ///< Error associated to the hit point in the x direction.
+  float mErrZ;             ///< Error associated to the hit point in the z direction.
+  float mXCOG;             ///< x position of te COG wrt the boottom left corner of the bounding box
+  float mZCOG;             ///< z position of te COG wrt the boottom left corner of the bounding box
+  int mNpixels;            ///< Number of fired pixels
+  ClusterPattern mPattern; ///< Bitmask of pixels. For groups the biggest bounding box for the group is taken, with all
+                           ///the bits set to 1.
+  double mFrequency;       ///< Frequency of the topology
 };
 
 class TopologyDictionary
 {
  public:
+
+  /// Default constructor
+  TopologyDictionary();
   /// constexpr for the definition of the groups of rare topologies
   static constexpr int NumberOfRowClasses = 7; ///< Number of row classes for the groups of rare topologies
   static constexpr int NumberOfColClasses = 7; ///< Number of column classes for the groups of rare topologies
@@ -67,8 +72,6 @@ class TopologyDictionary
   friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
   /// Prints the dictionary in a binary file
   void WriteBinaryFile(std::string outputFile);
-  /// Reads the dictionary from a file
-  void ReadFile(std::string fileName);
   /// Reads the dictionary from a binary file
   void ReadBinaryFile(std::string fileName);
   friend BuildTopologyDictionary;
@@ -77,9 +80,10 @@ class TopologyDictionary
 
  private:
   std::unordered_map<unsigned long, int> mFinalMap; ///< Map of pair <hash, position in mVectorOfGroupIDs>
+  int mSmallTopologiesLUT[8 * 255];                 ///< Look-Up Table for the topologies with 1-byte linearised matrix
   std::vector<GroupStruct> mVectorOfGroupIDs;       ///< Vector of topologies and groups
 
-  ClassDefNV(TopologyDictionary, 1);
+  ClassDefNV(TopologyDictionary, 2);
 };
 } // namespace ITSMFT
 } // namespace o2
