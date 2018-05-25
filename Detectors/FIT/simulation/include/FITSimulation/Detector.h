@@ -28,7 +28,7 @@ namespace fit
 {
 class Geometry;
 }
-} // namespace o2
+}
 
 namespace o2
 {
@@ -57,7 +57,6 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Default constructor
   Detector() = default;
-
   /// Initialization of the detector is done here
   void Initialize() override;
 
@@ -76,7 +75,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   }
 
   void Reset() override;
-  void EndOfEvent() override { Reset(); }
 
   /// Base class to create the detector geometry
   void CreateMaterials();
@@ -99,11 +97,11 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param istream *is The input stream
   void Read(std::istream* is);
 
- private:
-  /// copy constructor (used in MT)
-  Detector(const Detector& rhs);
+  /// Clone this object (used in MT mode only)
+  // FairModule *CloneModule() const override;
 
-  Int_t mIdSens1;            // Sensetive volume  in T0
+ private:
+  Int_t mIdSens1;  // Sensetive volume  in T0
   TGraph* mPMTeff = nullptr; // pmt registration effeicincy
 
   // Optical properties to be extracted from file
@@ -122,14 +120,16 @@ class Detector : public o2::Base::DetImpl<Detector>
   std::vector<Double_t> mReflMet;
 
   /// Container for data points
-  std::vector<HitType>* mHits = nullptr;
+  std::vector<HitType>* mHits = nullptr;;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
 
+  Detector(const Detector&);
+
   Detector& operator=(const Detector&);
 
-  Geometry* mGeometry = nullptr; //! Geometry
+  Geometry* mGeometry; //! Geometry
 
   template <typename Det>
   friend class o2::Base::DetImpl;
@@ -140,7 +140,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 std::ostream& operator<<(std::ostream& os, Detector& source);
 
 std::istream& operator>>(std::istream& os, Detector& source);
-} // namespace fit
-} // namespace o2
+}
+}
 
 #endif
