@@ -56,9 +56,6 @@ InitStatus DigitizerTask::Init()
 
   // Register output container
   mgr->RegisterAny("FITDigit", mDigitsArray, kTRUE);
-  printf("@@@@@RegisterAny\n");
-  //  mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
-
   //  mDigitizer.init();
   return kSUCCESS;
 }
@@ -71,7 +68,6 @@ void DigitizerTask::Exec(Option_t* option)
   if (mDigitsArray)
     mDigitsArray->clear();
   mDigitizer.setEventTime(mgr->GetEventTime());
-  std::cout << " @@@@ mgr->GetEventTime() " << mgr->GetEventTime() << std::endl;
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
   LOG(DEBUG) << "@@@@@@Running digitization on new event " << mEventID << " from source " << mSourceID
@@ -81,9 +77,8 @@ void DigitizerTask::Exec(Option_t* option)
   /// provided and identified.
   mDigitizer.setEventID(mEventID);
 
-  LOG(INFO) << "@@@@@ Digitizing " << mHitsArray->size() << " hits \n";
   mDigitizer.process(mHitsArray, mDigitsArray);
-
+ 
   mEventID++;
 }
 
@@ -91,13 +86,15 @@ void DigitizerTask::Exec(Option_t* option)
 void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-  if (!mContinuous)
-    return;
+   if (!mContinuous) 
+        return;
+  
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   if (mDigitsArray)
-    mDigitsArray->clear();
-
+   mDigitsArray->clear();
+  mDigitizer.finish();
+  
   // TODO: reenable this
   // mDigitizer.fillOutputContainer(mDigitsArray);
 }

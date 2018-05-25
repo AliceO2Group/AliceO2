@@ -40,6 +40,9 @@ class Digitizer
   Int_t getCurrentTimeFrame() const { return mTimeFrameCurrent; }
   void setCurrentTimeFrame(Double_t value) { mTimeFrameCurrent = value; }
 
+ void init();
+  void finish();
+
 
  private:
   // digit info
