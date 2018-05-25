@@ -29,9 +29,24 @@ LookUp::LookUp(std::string fileName)
   mTopologiesOverThreshold = mDictionary.mFinalMap.size();
 }
 
-int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed)
+int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
 {
-  unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt, nBytesUsed);
+  int nBits = nRow * nCol;
+  int nBytes = nBits / 8;
+  if (nBits % 8 != 0)
+    nBytes++;
+  if (nBytes == 1){
+    int ID = mDictionary.mSmallTopologiesLUT[(nRow - 1) * 255 + (int)patt[0]];
+    if(ID>=0) return ID;
+    else{
+      int index = (nRow / TopologyDictionary::RowClassSpan) * TopologyDictionary::NumberOfRowClasses +
+                  nCol / TopologyDictionary::ColClassSpan;
+      if (index >= TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses)
+        index = TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses;
+      return (mTopologiesOverThreshold + index);
+    }
+  }
+  unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt);
   auto ret = mDictionary.mFinalMap.find(hash);
   if (ret != mDictionary.mFinalMap.end())
     return ret->second;
