@@ -8,7 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "TClonesArray.h"
 #include "TGeoManager.h" // for TGeoManager
+#include "TLorentzVector.h"
 #include "TMath.h"
 #include "TGraph.h"
 #include "TString.h"
@@ -267,9 +269,12 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 {
   Int_t quadrant, mcp;
 
+  TLorentzVector position;
   if (fMC->IsTrackEntering()) {
-    float x, y, z;
-    fMC->TrackPosition(x, y, z);
+    fMC->TrackPosition(position);
+    float x = position.X();
+    float y = position.Y();
+    float z = position.Z();
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
     float time = fMC->TrackTime() * 1.0e12;
