@@ -104,7 +104,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
  private:
   Int_t mIdSens1;  // Sensetive volume  in T0
-  TGraph* mPMTeff; // pmt registration effeicincy
+  TGraph* mPMTeff = nullptr; // pmt registration effeicincy
 
   // Optical properties to be extracted from file
   std::vector<Double_t> mPhotonEnergyD;
@@ -122,7 +122,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   std::vector<Double_t> mReflMet;
 
   /// Container for data points
-  std::vector<HitType>* mHits;
+  std::vector<HitType>* mHits = nullptr;;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
