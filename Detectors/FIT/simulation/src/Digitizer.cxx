@@ -37,7 +37,7 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
   Int_t mcp, trackID;
   Int_t amp[208];
   Double_t cfd[208];
-  for (Int_t ipmt=0; ipmt<208; ipmt++)   {
+  for (Int_t ipmt = 0; ipmt < 208; ipmt++) {
     amp[ipmt] = 0;
     cfd[ipmt] = 0;
   }
@@ -51,21 +51,21 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
       cfd[mcp] += hit.GetTime();
       amp[mcp]++;
     }
-  // extract trackID
+    // extract trackID
     trackID = hit.GetTrackID();
   } // end of loop over hits
 
   Int_t ndigits = 0; // Number of digits added
   for (Int_t ipmt = 0; ipmt < 208; ipmt++) {
     if (amp[ipmt] > ampthreshold) {
-      cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant 
+      cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant
       ndigits++;
       addDigit(Double_t(timeframe), ipmt, cfd[ipmt], amp[ipmt], bc, trackID);
     }
   } // end of loop over PMT
 }
 
-void Digitizer::addDigit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, Int_t bc, Int_t trackID )
+void Digitizer::addDigit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, Int_t bc, Int_t trackID)
 {
   // FIT digit requires: channel, time and number of photons
   // simplified version,will be change
