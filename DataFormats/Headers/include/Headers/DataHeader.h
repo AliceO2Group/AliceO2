@@ -501,8 +501,9 @@ struct Stack {
   Stack& operator=(Stack&) = delete;
   Stack& operator=(Stack&&) = default;
 
-  template<typename T, typename... Args>
-  static size_t size(const T& h, const Args... args) noexcept {
+  template <typename T, typename... Args>
+  static size_t size(const T& h, const Args&... args) noexcept
+  {
     return size(h) + size(args...);
   }
 
@@ -512,24 +513,48 @@ private:
     return h.size();
   }
 
-  template<typename T>
-  static byte* inject(byte* here, const T& h) noexcept {
+  template <typename T>
+  static byte* inject(byte* here, const T& h) noexcept
+  {
     static_assert(std::is_base_of<BaseHeader, T>::value == true || std::is_same<Stack, T>::value == true,
                   "header stack parameters are restricted to stacks and headers derived from BaseHeader");
     std::copy(h.data(), h.data()+h.size(), here);
     return here + h.size();
   }
 
-  template<typename T, typename... Args>
-  static byte* inject(byte* here, const T& h, const Args... args) noexcept {
+  template <typename T, typename... Args>
+  static byte* inject(byte* here, const T& h, const Args&... args) noexcept
+  {
     auto alsohere = inject(here, h);
     // the type might be a stack itself, loop through headers and set the flag in the last one
-    BaseHeader* next = BaseHeader::get(here);
-    while (next->flagsNextHeader) {
-      next = next->next();
+    // if there is at least one non-empty header/stack in the argument pack
+    if (h.size() > 0) {
+      BaseHeader* next = BaseHeader::get(here);
+      while (next->flagsNextHeader) {
+        next = next->next();
+      }
+      next->flagsNextHeader = hasNonEmptyArg(args...);
     }
-    next->flagsNextHeader = true;
     return inject(alsohere, args...);
+  }
+
+  // helper function to check if there is at least one non-empty header/stack in the argument pack
+  template <typename T, typename... Args>
+  static bool hasNonEmptyArg(const T& h, const Args&... args) noexcept
+  {
+    if (h.size() > 0) {
+      return true;
+    }
+    return hasNonEmptyArg(args...);
+  }
+
+  template <typename T>
+  static bool hasNonEmptyArg(const T& h) noexcept
+  {
+    if (h.size() > 0) {
+      return true;
+    }
+    return false;
   }
 };
 
