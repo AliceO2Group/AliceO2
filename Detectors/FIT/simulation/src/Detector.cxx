@@ -287,7 +287,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->TrackPosition(x, y, z);
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
-    fMC->CurrentVolOffID(1, mcp);
     float time = fMC->TrackTime() * 1.0e12;
     int trackID = fMC->GetStack()->GetCurrentTrackNumber();
     int detID = 4 * mcp + quadrant - 1;

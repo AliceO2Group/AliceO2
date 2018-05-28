@@ -12,7 +12,10 @@
 #define ALICEO2_FIT_DIGIT_H_
 
 #include "CommonDataFormat/TimeStamp.h"
+#include <iosfwd>
+#include "Rtypes.h"
 
+//#include <boost/serialization/base_object.hpp> // for base_object
 namespace o2
 {
 namespace fit
