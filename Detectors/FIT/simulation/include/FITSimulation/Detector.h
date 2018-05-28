@@ -123,7 +123,6 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Container for data points
   std::vector<HitType>* mHits = nullptr;
-  ;
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
