@@ -26,7 +26,7 @@ namespace o2
 namespace g4config
 {
 #include "../g4Config.C"
-#include "../SetCuts.C"
+#include "../SetCuts.h"
 
 void G4Config()
 {
