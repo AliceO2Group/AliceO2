@@ -50,7 +50,7 @@ find_package(HEPMC)
 #find_package(IWYU)
 find_package(DDS)
 
-find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time signals REQUIRED)
+find_package(Boost 1.59 COMPONENTS container thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time signals REQUIRED)
 # for the guideline support library
 include_directories(${MS_GSL_INCLUDE_DIR})
 
@@ -433,6 +433,7 @@ o2_define_bucket(
     common_boost_bucket
     Boost::thread
     Boost::serialization
+    Boost::container
     pthread
 
     INCLUDE_DIRECTORIES

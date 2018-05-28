@@ -35,6 +35,8 @@
 #include <cassert>
 #include <cstring> //needed for memcmp
 #include <algorithm> // std::min
+#include <boost/container/pmr/global_resource.hpp>
+#include <boost/container/pmr/polymorphic_allocator.hpp>
 
 using byte = unsigned char;
 
@@ -84,6 +86,10 @@ constexpr uint32_t gSizeHeaderDescriptionString = 8;
 //__________________________________________________________________________________________________
 struct DataHeader;
 struct DataIdentifier;
+
+//__________________________________________________________________________________________________
+///helper function to print a hex/ASCII dump of some memory
+void hexDump(const char* desc, const void* voidaddr, size_t len, size_t max = 0);
 
 //__________________________________________________________________________________________________
 // internal implementations
@@ -386,7 +392,8 @@ struct BaseHeader
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(const byte* b, size_t /*len*/=0) {
+  inline static const BaseHeader* get(const byte* b, size_t /*len*/ = 0)
+  {
     return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
              ? reinterpret_cast<const BaseHeader*>(b)
              : nullptr;
@@ -460,68 +467,97 @@ auto get(const void* buffer, size_t len = 0)
 //    - arguments can be headers, or stacks, all will be concatenated in a new Stack
 ///   - returns a Stack ready to be shipped.
 struct Stack {
- protected:
-  using Buffer = std::unique_ptr<byte[]>;
-  size_t bufferSize;
-  Buffer buffer;
 
- public:
-  // This is ugly and needs fixing BUT:
-  // we need a static deleter for fairmq.
-  // TODO: maybe use allocator_traits if custom allocation is desired
-  //       the deallocate function is then static.
-  //       In the case of special transports is is cheap to copy the header stack into a message, so no problem there.
-  //       The copy can be avoided if we construct in place inside a FairMQMessage directly (instead of
-  //       allocating a unique_ptr we would hold a FairMQMessage which for the large part has similar semantics).
-  //
-  static std::default_delete<byte[]> sDeleter;
-  static void freefn(void* /*data*/, void* hint) {
-    Stack::sDeleter(static_cast<byte*>(hint));
-  }
-
-  byte* data() const {return buffer.get();}
-  size_t size() const {return bufferSize;}
-  void release() {buffer.release();}
-
-  ///The magic constructor: takes arbitrary number of arguments and serialized them
-  /// into the buffer.
-  /// Intended use: produce a temporary via an initializer list.
-  /// TODO: maybe add a static_assert requiring first arg to be DataHeader
-  /// or maybe even require all these to be derived form BaseHeader
-  template<typename... Headers>
-  Stack(const Headers&... headers)
-    : bufferSize{size(headers...)}
-    , buffer{std::make_unique<byte[]>(bufferSize)}
+  static void freefn(void* data, void* hint)
   {
-    inject(buffer.get(), headers...);
+    boost::container::pmr::memory_resource* resource = static_cast<boost::container::pmr::memory_resource*>(hint);
+    resource->deallocate(data, 0, 0);
   }
+
+  struct freeobj {
+    boost::container::pmr::memory_resource* resource{ nullptr };
+    void operator()(byte* ptr) { Stack::freefn(ptr, resource); }
+  };
+
+  using allocator_type = boost::container::pmr::polymorphic_allocator<byte>;
+  using value_type = byte;
+  using BufferType = std::unique_ptr<byte[], freeobj>;
+
   Stack() = default;
   Stack(Stack&&) = default;
   Stack(Stack&) = delete;
   Stack& operator=(Stack&) = delete;
   Stack& operator=(Stack&&) = default;
 
-  template<typename T, typename... Args>
-  static size_t size(const T& h, const Args... args) noexcept {
-    return size(h) + size(args...);
+  byte* data() const { return buffer.get(); }
+  size_t size() const { return bufferSize; }
+  void release() { buffer.release(); }
+  void clear() { buffer.release(); }
+  allocator_type get_allocator() const { return allocator; }
+
+  /// The magic constructors: take arbitrary number of headers and serialize them
+  /// into the buffer buffer allocated by the specified polymorphic allocator. By default
+  /// allocation is done using new_delete_resource.
+  /// The first argument MUST be DataHeader or another Stack
+  /// all others must derive from BaseHeader and not be DataHeader
+  template <typename FirstArgType, typename... Headers,
+            typename std::enable_if_t<
+              !std::is_convertible<FirstArgType, boost::container::pmr::polymorphic_allocator<byte>>::value, int> = 0>
+  Stack(FirstArgType&& firstHeader, Headers&&... headers)
+    : Stack(boost::container::pmr::new_delete_resource(), std::forward<FirstArgType>(firstHeader),
+            std::forward<Headers>(headers)...)
+  {
   }
 
-private:
-  template<typename T>
-  static size_t size(const T& h) noexcept {
+  template <typename FirstArgType, typename... Headers>
+  Stack(const allocator_type allocatorArg, FirstArgType&& firstHeader, Headers&&... headers)
+    : allocator{ allocatorArg },
+      bufferSize{ calculateSize(firstHeader) + calculateSize(std::forward<Headers>(headers)...) },
+      buffer{ static_cast<byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
+              freeobj{ allocator.resource() } }
+  {
+    using FirstHeaderType = typename std::remove_cv<typename std::remove_reference<FirstArgType>::type>::type;
+    static_assert(std::is_same<FirstHeaderType, DataHeader>::value || std::is_same<FirstHeaderType, Stack>::value, "header stack construction MUST start either with DataHeader or another Stack");
+    inject(buffer.get(), firstHeader, std::forward<Headers>(headers)...);
+  }
+
+ private:
+  allocator_type allocator{ boost::container::pmr::new_delete_resource() };
+  size_t bufferSize{ 0 };
+  BufferType buffer{ nullptr };
+
+  template <typename T, typename... Args>
+  static size_t calculateSize(T&& h, Args&&... args) noexcept
+  {
+    return calculateSize(std::forward<T>(h)) + calculateSize(std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  static size_t calculateSize(T&& h) noexcept
+  {
     return h.size();
   }
 
-  template<typename T>
-  static byte* inject(byte* here, const T& h) noexcept {
-    static_assert(std::is_base_of<BaseHeader, T>::value == true || std::is_same<Stack, T>::value == true,
-                  "header stack parameters are restricted to stacks and headers derived from BaseHeader");
-    std::copy(h.data(), h.data()+h.size(), here);
+  //recursion terminator
+  constexpr static size_t calculateSize() { return 0; }
+
+  template <typename T>
+  static byte* inject(byte* here, T&& h) noexcept
+  {
+    using headerType = typename std::remove_reference<T>::type;
+    static_assert(
+      std::is_base_of<BaseHeader, headerType>::value == true || std::is_same<Stack, headerType>::value == true,
+      "header stack parameters are restricted to stacks and headers derived from BaseHeader");
+    std::copy(h.data(), h.data() + h.size(), here);
     return here + h.size();
+    // somehow could not trigger copy elision for placed construction, TODO: check out if this is possible here
+    // headerType* placed = new (here) headerType(std::forward<T>(h));
+    // return here + placed->size();
   }
 
-  template<typename T, typename... Args>
-  static byte* inject(byte* here, const T& h, const Args... args) noexcept {
+  template <typename T, typename... Args>
+  static byte* inject(byte* here, T&& h, Args&&... args) noexcept
+  {
     auto alsohere = inject(here, h);
     // the type might be a stack itself, loop through headers and set the flag in the last one
     BaseHeader* next = BaseHeader::get(here);
@@ -529,8 +565,11 @@ private:
       next = next->next();
     }
     next->flagsNextHeader = true;
-    return inject(alsohere, args...);
+    return inject(alsohere, std::forward<Args>(args)...);
   }
+
+  // just to terminate the recursion
+  //static byte* inject(byte* here) noexcept { return here; }
 };
 
 //__________________________________________________________________________________________________
@@ -702,10 +741,6 @@ static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
               "Size mismatch in magic string union");
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),
               "Inconsitent size of global magic identifier");
-
-//__________________________________________________________________________________________________
-///helper function to print a hex/ASCII dump of some memory
-void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
 
 } //namespace header
 

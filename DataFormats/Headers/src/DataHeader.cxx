@@ -27,9 +27,6 @@
 //the answer to life and everything
 const uint32_t o2::header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
 
-//definitions for Stack statics
-std::default_delete<byte[]> o2::header::Stack::sDeleter;
-
 //storage for BaseHeader static members, all invalid
 const uint32_t o2::header::BaseHeader::sVersion = o2::header::gInvalidToken32;
 const o2::header::HeaderType o2::header::BaseHeader::sHeaderType = o2::header::gInvalidToken64;
