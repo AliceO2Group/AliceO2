@@ -26,7 +26,8 @@ class MCLabel : public o2::MCCompLabel
 
  public:
   MCLabel() = default;
-  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t cfd) : o2::MCCompLabel(trackID, eventID, srcID), mCFD(cfd) {}
+  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Int_t cfd)
+    : o2::MCCompLabel(trackID, eventID, srcID), mCFD(cfd) {}
   Int_t getCFD() const { return mCFD; }
 };
 } // namespace fit
