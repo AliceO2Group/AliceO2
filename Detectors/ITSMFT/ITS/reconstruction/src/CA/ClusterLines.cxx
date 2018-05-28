@@ -137,8 +137,8 @@ std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<f
     cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
 
   components[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
-  components[3] = line.originPoint[3] - point[3] + line.cosinesDirector[3] * cdelta;
-  components[5] = line.originPoint[5] - point[5] + line.cosinesDirector[5] * cdelta;
+  components[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
+  components[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
   components[1] = std::sqrt(components[0] * components[0] + components[3] * components[3]);
   components[2] = std::sqrt(components[0] * components[0] + components[5] * components[5]);
   components[4] = std::sqrt(components[3] * components[3] + components[5] * components[5]);
