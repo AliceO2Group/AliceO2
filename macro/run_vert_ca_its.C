@@ -1,6 +1,8 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+
 #include <string>
 #include <array>
+#include <chrono>
 #include <vector>
 #include <cmath>
 #include <sstream>
@@ -10,6 +12,7 @@
 #include <TTree.h>
 #include <TNtuple.h>
 #include <TGeoGlobalMagField.h>
+#include <TH1I.h>
 
 #include <FairLogger.h>
 #include "FairRunAna.h"
@@ -90,11 +93,13 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
   //<<<---------- attach input data ---------------<<<
   if (!itsClusters.GetBranch("ITSCluster"))
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
+
   std::vector<o2::ITSMFT::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   if (!itsClusters.GetBranch("ITSClusterMCTruth"))
     LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
+
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
 
@@ -110,14 +115,14 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
     new std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>>;
   outTree.Branch("ITSVertices", &verticesITS);
 
-  // TNtuple* verTupleResiduals =
-  // new TNtuple("residuals", "residuals", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
-  // TNtuple* verTupleResidualsmc =
-  // new TNtuple("residuals_mc", "residuals_mc", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
-  // TNtuple* evtDumpFromVtxer = new TNtuple("evtdump", "evtdump", "evt_id:nClusters:effRecTrks:effMCTrks");
-  // TNtuple* evtDumpFromVtxermc = new TNtuple("evtdump_mc", "evtdump_mc", "evt_id:nClusters");
+  // profiling
+  std::chrono::time_point<std::chrono::system_clock> start, end_inst, end_init, end_track, end_vert;
+  int instance_time, initiali_time, tracking_time = 0, vertexin_time = 0;
 
+  TH1I timet("trackleting_duration", "trackleting_duration", 100, 0, 4000);
+  TH1I timev("vertexing_duration", "vertexing_duration", 100, 0, 4000);
   std::uint32_t roFrame = 0;
+
   const int stopAt = (inspEvt == -1) ? itsClusters.GetEntries() : inspEvt + 1;
   for (int iEvent = (inspEvt == -1) ? 0 : inspEvt; iEvent < stopAt; ++iEvent) {
     int idx{ 0 };
@@ -130,26 +135,28 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
         int nclUsed = o2::ITS::CA::IOUtils::loadROFrameData(roFrame, event, clusters, labels);
         if (nclUsed) {
           cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
+          start = std::chrono::system_clock::now();
           o2::ITS::CA::Vertexer vertexer(event);
+          end_inst = std::chrono::system_clock::now();
           vertexer.setROFrame(roFrame);
-<<<<<<< HEAD
           vertexer.initialise(initParams);
+          end_init = std::chrono::system_clock::now();
           vertexer.findTracklets(useMC);
-=======
-          vertexer.initialise(0.005, 0.002, 0.04, 0.8, 5);
-          vertexer.findTracklets();
->>>>>>> 07aab1ea2... Fix DCA components
-          std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
+          end_track = std::chrono::system_clock::now();
           vertexer.findVertices();
-          // auto vertices = vertexer.getLegacyVertices();
+          end_vert = std::chrono::system_clock::now();
           verticesITS->swap(vertexer.getVertices());
+          instance_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_inst - start).count();
+          initiali_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_init - start).count();
+          tracking_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_track - start).count();
+          vertexin_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_vert - start).count();
+          std::cout << "\tInstance elapsed time: " << instance_time << "ms\n";
+          std::cout << "\tInitialisation   time: " << initiali_time << "ms\n";
+          std::cout << "\tTrackleting      time: " << tracking_time << "ms\n";
+          std::cout << "\tVertex finding   time: " << vertexin_time << "ms\n";
+          std::cout << "\tTotal: " << instance_time + initiali_time + tracking_time + vertexin_time << "ms\n";
+          std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
           std::cout << "\tvertices found: " << verticesITS->size() << std::endl;
-          // bevtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
-          // for (auto& vertex : vertices) {
-          //  float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2]
-          //  };
-          //  verTupleResiduals->Fill(tmpdata);
-          //}
           nclLeft -= nclUsed;
         }
         roFrame++;
@@ -158,27 +165,38 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
     } else { // triggered mode
       cout << "Event " << iEvent << std::endl;
       o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
+      start = std::chrono::system_clock::now();
       o2::ITS::CA::Vertexer vertexer(event);
+      end_inst = std::chrono::system_clock::now();
       vertexer.setROFrame(roFrame);
       vertexer.initialise(initParams);
+      end_init = std::chrono::system_clock::now();
       vertexer.findTracklets(useMC);
-      std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
+      end_track = std::chrono::system_clock::now();
       vertexer.findVertices();
-      // auto vertices = vertexer.getLegacyVertices();
+      end_vert = std::chrono::system_clock::now();
       verticesITS->swap(vertexer.getVertices());
+      instance_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_inst - start).count();
+      initiali_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_init - start).count();
+      tracking_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_track - start).count();
+      vertexin_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_vert - start).count();
+      std::cout << "\tInstance elapsed time: " << instance_time << "ms\n";
+      std::cout << "\tInitialisation   time: " << initiali_time << "ms\n";
+      std::cout << "\tTrackleting      time: " << tracking_time << "ms\n";
+      std::cout << "\tVertex finding   time: " << vertexin_time << "ms\n";
+      std::cout << "\tTotal: " << instance_time + initiali_time + tracking_time + vertexin_time << "ms\n";
+      std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
       std::cout << "\tvertices found: " << verticesITS->size() << std::endl;
-      // evtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
-      // for (auto& vertex : vertices) {
-      //   float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2] };
-      //   verTupleResiduals->Fill(tmpdata);
-      // }
       outTree.Fill();
     }
+    timet.Fill(tracking_time);
+    timev.Fill(vertexin_time);
   } // loop on events
+  timet.Write();
+  timev.Write();
   outTree.Write();
   // verTupleResiduals->Write();
   // evtDumpFromVtxer->Write();
   outputfile->Close();
 }
 #endif
-*/

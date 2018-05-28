@@ -41,17 +41,14 @@ struct Line final {
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
-  
+
+#ifdef DEBUG_BUILD
   // Debug purpose only
   int originID;
   int destinID;
   std::array<float, 3> destinationPoint;
   std::array<float, 3> confirmationPoint;
 #endif
-
-  static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
-  static float getDCA(const Line&, const Line&, const float precision = 1e-14);
-  static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
   std::array<float, 3> originPoint;
   std::array<float, 3> cosinesDirector;

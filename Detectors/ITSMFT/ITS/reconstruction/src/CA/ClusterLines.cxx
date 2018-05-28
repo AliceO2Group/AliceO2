@@ -68,30 +68,6 @@ Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
 }
 #endif
 
-Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, std::array<float, 3> thirdPoint, const int idorigin, const int iddestination)
-  : originPoint{ firstPoint }, destinationPoint { secondPoint }, confirmationPoint{ thirdPoint }, originID { idorigin }, destinID{ iddestination }, 
-    weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
-{
-  for (int index{ 0 }; index < 3; ++index)
-    cosinesDirector[index] = secondPoint[index] - firstPoint[index];
-  float inverseNorm{ 1.f / std::sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                     cosinesDirector[2] * cosinesDirector[2]) };
-  for (int index{ 0 }; index < 3; ++index)
-    cosinesDirector[index] *= inverseNorm;
-}
-#else
-Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
-  : originPoint{ firstPoint }, weightMatrix{ std::array<float, 6>{ 1., 0., 0., 1., 0., 1. } } // dummy, ATM
-{
-  for (int index{ 0 }; index < 3; ++index)
-    cosinesDirector[index] = secondPoint[index] - firstPoint[index];
-  float inverseNorm{ 1.f / std::sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                     cosinesDirector[2] * cosinesDirector[2]) };
-  for (int index{ 0 }; index < 3; ++index)
-    cosinesDirector[index] *= inverseNorm;
-}
-#endif
-
 bool Line::areParallel(const Line& firstLine, const Line& secondLine, const float precision)
 {
   float crossProdX{ firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
