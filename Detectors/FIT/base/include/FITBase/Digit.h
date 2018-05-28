@@ -12,10 +12,6 @@
 #define ALICEO2_FIT_DIGIT_H_
 
 #include "CommonDataFormat/TimeStamp.h"
-#include <iosfwd>
-#include "Rtypes.h"
-
-#include <boost/serialization/base_object.hpp> // for base_object
 
 namespace o2
 {
@@ -50,7 +46,7 @@ class Digit : public DigitBase
   void printStream(std::ostream& stream) const;
 
  private:
-  friend class boost::serialization::access;
+  //  friend class boost::serialization::access;
 
   Double_t mTime; /// time stamp
   Int_t mChannel; ///< FIT channel index
