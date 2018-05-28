@@ -59,6 +59,7 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
   for (Int_t ipmt = 0; ipmt < 208; ipmt++) {
     if (amp[ipmt] > ampthreshold) {
       cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant
+      cfd[ipmt] = gRandom->Gaus(cfd[ipmt],50);
       ndigits++;
       addDigit(Double_t(timeframe), ipmt, cfd[ipmt], amp[ipmt], bc, trackID);
     }
