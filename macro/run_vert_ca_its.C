@@ -42,7 +42,9 @@ using o2::ITS::CA::MathUtils::calculatePhiCoordinate;
 using o2::ITS::CA::MathUtils::calculateRCoordinate;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-void run_vert_ca_its(std::string path = "./", std::string inputClustersITS = "o2clus_its.root",
+void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
+                     std::tuple<float, float, float, float, int> initParams = { 0.005, 0.002, 0.04, 0.8, 5 },
+                     std::string path = "./", std::string inputClustersITS = "o2clus_its.root",
                      std::string inputGeom = "O2geometry.root", std::string inputGRP = "o2sim_grp.root",
                      std::string paramfilename = "o2sim_par.root", std::string simfilename = "o2sim.root",
                      std::string outfile = "vertexer_data.root")
@@ -111,15 +113,16 @@ void run_vert_ca_its(std::string path = "./", std::string inputClustersITS = "o2
     new std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>>;
   outTree.Branch("ITSVertices", &verticesITS);
 
-  TNtuple* verTupleResiduals =
-    new TNtuple("residuals", "residuals", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
-  TNtuple* verTupleResidualsmc =
-    new TNtuple("residuals_mc", "residuals_mc", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
-  TNtuple* evtDumpFromVtxer = new TNtuple("evtdump", "evtdump", "evt_id:nClusters:effRecTrks:effMCTrks");
-  TNtuple* evtDumpFromVtxermc = new TNtuple("evtdump_mc", "evtdump_mc", "evt_id:nClusters");
+  // TNtuple* verTupleResiduals =
+  // new TNtuple("residuals", "residuals", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
+  // TNtuple* verTupleResidualsmc =
+  // new TNtuple("residuals_mc", "residuals_mc", "evtid:id:residualX:residualY:residualZ:contribs:avg_dist");
+  // TNtuple* evtDumpFromVtxer = new TNtuple("evtdump", "evtdump", "evt_id:nClusters:effRecTrks:effMCTrks");
+  // TNtuple* evtDumpFromVtxermc = new TNtuple("evtdump_mc", "evtdump_mc", "evt_id:nClusters");
 
   std::uint32_t roFrame = 0;
-  for (int iEvent = 0; iEvent < itsClusters.GetEntries(); ++iEvent) {
+  const int stopAt = (inspEvt == -1) ? itsClusters.GetEntries() : inspEvt + 1;
+  for (int iEvent = (inspEvt == -1) ? 0 : inspEvt; iEvent < stopAt; ++iEvent) {
     int idx{ 0 };
     itsClusters.GetEntry(iEvent);
     mcHeaderTree.GetEntry(iEvent);
@@ -132,18 +135,19 @@ void run_vert_ca_its(std::string path = "./", std::string inputClustersITS = "o2
           cout << "Event " << iEvent << " ROFrame " << roFrame << std::endl;
           o2::ITS::CA::Vertexer vertexer(event);
           vertexer.setROFrame(roFrame);
-          vertexer.initialise(0.005, 0.002, 0.04, 0.8, 5);
-          vertexer.findTracklets();
+          vertexer.initialise(initParams);
+          vertexer.findTracklets(useMC);
           std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
           vertexer.findVertices();
-          auto vertices = vertexer.getLegacyVertices();
+          // auto vertices = vertexer.getLegacyVertices();
           verticesITS->swap(vertexer.getVertices());
-          std::cout << "\tvertices found: " << vertices.size() << std::endl;
-          evtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
-          for (auto& vertex : vertices) {
-            float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2] };
-            verTupleResiduals->Fill(tmpdata);
-          }
+          std::cout << "\tvertices found: " << verticesITS->size() << std::endl;
+          // bevtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
+          // for (auto& vertex : vertices) {
+          //  float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2]
+          //  };
+          //  verTupleResiduals->Fill(tmpdata);
+          //}
           nclLeft -= nclUsed;
         }
         roFrame++;
@@ -154,24 +158,24 @@ void run_vert_ca_its(std::string path = "./", std::string inputClustersITS = "o2
       o2::ITS::CA::IOUtils::loadEventData(event, clusters, labels);
       o2::ITS::CA::Vertexer vertexer(event);
       vertexer.setROFrame(roFrame);
-      vertexer.initialise(0.002, 0.003, 0.03, 0.8, 5);
-      vertexer.findTracklets();
+      vertexer.initialise(initParams);
+      vertexer.findTracklets(useMC);
       std::cout << "\ttracklets found: " << vertexer.getTracklets().size() << std::endl;
       vertexer.findVertices();
-      auto vertices = vertexer.getLegacyVertices();
+      // auto vertices = vertexer.getLegacyVertices();
       verticesITS->swap(vertexer.getVertices());
-      std::cout << "\tvertices found: " << vertices.size() << std::endl;
-      evtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
-      for (auto& vertex : vertices) {
-        float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2] };
-        verTupleResiduals->Fill(tmpdata);
-      }
+      std::cout << "\tvertices found: " << verticesITS->size() << std::endl;
+      // evtDumpFromVtxer->Fill(static_cast<float>(iEvent), static_cast<float>(vertexer.mClusters[0].size()));
+      // for (auto& vertex : vertices) {
+      //   float tmpdata[5] = { static_cast<float>(iEvent), static_cast<float>(idx), vertex[0], vertex[1], vertex[2] };
+      //   verTupleResiduals->Fill(tmpdata);
+      // }
       outTree.Fill();
     }
   } // loop on events
   outTree.Write();
-  verTupleResiduals->Write();
-  evtDumpFromVtxer->Write();
+  // verTupleResiduals->Write();
+  // evtDumpFromVtxer->Write();
   outputfile->Close();
 }
 #endif

@@ -38,7 +38,6 @@ class Vertexer
   virtual ~Vertexer();
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
-
   void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                   const int clusterContributorsCut);
   void initialise(const std::tuple<float, float, float, float, int> initParams);
@@ -53,37 +52,37 @@ class Vertexer
     const std::array<int, 4>& selectedBinsRect);
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
 
-#ifdef DEBUG_BUILD
-  void printIndexTables();
-  void dumpTracklets();
-  inline std::vector<std::tuple<std::array<float, 3>, int, float>> getLegacyVertices() { return mLegacyVertices; }
-#else
-  inline std::vector<std::array<float, 3>> getLegacyVertices() { return mLegacyVertices; }
-#endif
+  // #ifdef DEBUG_BUILD
+  //   void printIndexTables();
+  //   void dumpTracklets();
+  //   inline std::vector<std::tuple<std::array<float, 3>, int, float>> getLegacyVertices() { return mLegacyVertices; }
+  // #else
+  //   inline std::vector<std::array<float, 3>> getLegacyVertices() { return mLegacyVertices; }
+  // #endif
   std::vector<Vertex>& getVertices() { return mVertices; }
 
  protected:
   bool mVertexerInitialised{ false };
   bool mTrackletsFound{ false };
+  std::vector<bool> mUsedTracklets;
   float mDeltaRadii10, mDeltaRadii21;
-  float mZCut, mPhiCut, mPairCut, mClusterCut;
+  float mZCut, mPhiCut, mPairCut, mClusterCut, mMaxDirectorCosine3;
   int mClusterContributorsCut;
   int mPhiSpan, mZSpan;
   std::array<float, 3> mAverageClustersRadii;
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
   float mZBinSize;
   Event mEvent;
-#ifdef DEBUG_BUILD
-  std::vector<std::tuple<std::array<float, 3>, int, float>> mLegacyVertices;
-#else
-  std::vector<std::array<float, 3>> mLegacyVertices;
-#endif
+  // #ifdef DEBUG_BUILD
+  //   std::vector<std::tuple<std::array<float, 3>, int, float>> mLegacyVertices;
+  // #else
+  //   std::vector<std::array<float, 3>> mLegacyVertices;
+  // #endif
   std::vector<Vertex> mVertices;
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
     mIndexTables;
   std::uint32_t mROFrame = 0;
-  std::vector<bool> mUsedTracklets;
   std::vector<Line> mTracklets;
   std::vector<ClusterLines> mTrackletClusters;
 };
