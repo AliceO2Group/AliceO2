@@ -163,9 +163,6 @@ const std::vector<std::pair<int, int>> Vertexer::selectClusters(const std::array
 void Vertexer::findTracklets(const bool useMCLabel)
 {
   if (mVertexerInitialised) {
-    // std::chrono::time_point<std::chrono::system_clock> start, end;
-    // start = std::chrono::system_clock::now();
-
     std::vector<std::pair<int, int>> clusters0, clusters2;
     std::vector<bool> usedCluster2Flags, usedCluster0Flags;
     usedCluster2Flags.resize(mClusters[2].size(), false);
@@ -242,18 +239,12 @@ void Vertexer::findTracklets(const bool useMCLabel)
                                               mClusters[1][iCluster1].phiCoordinate) };
                   float absDeltaZ{ std::abs(mClusters[2][iCluster2].zCoordinate - ZProjectionRefined) };
                   if (absDeltaZ < mZCut &&
-                      (absDeltaPhi < mPhiCut || (absDeltaPhi > TwoPi - mPhiCut && absDeltaPhi < TwoPi)) && testMC) {
+                      (absDeltaPhi < mPhiCut || std::abs(absDeltaPhi - TwoPi) < mPhiCut && testMC) {
                     mTracklets.emplace_back(Line{
                       std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
                                             mClusters[0][iCluster0].zCoordinate },
                       std::array<float, 3>{ mClusters[1][iCluster1].xCoordinate, mClusters[1][iCluster1].yCoordinate,
                                             mClusters[1][iCluster1].zCoordinate }
-
-                      // #ifdef DEBUG_BUILD
-                      //                       ,
-                      //                       mEvent.getLayer(0).getClusterLabel(mClusters[0][iCluster0].clusterId).getTrackID(),
-                      //                       mEvent.getLayer(1).getClusterLabel(mClusters[1][iCluster1].clusterId).getTrackID()
-                      // #endif
                     });
                     if (std::abs(mTracklets.back().cosinesDirector[2]) < mMaxDirectorCosine3) {
                       usedCluster0Flags[iCluster0] = true;
@@ -277,12 +268,6 @@ void Vertexer::findTracklets(const bool useMCLabel)
         }
       }
     }
-
-    // end = std::chrono::system_clock::now();
-    // int elapsed_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    // std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-    // std::cout << "Finished computation at " << std::ctime(&end_time) << "elapsed time: " << elapsed_milliseconds
-    //           << "ms\n";
     mTrackletsFound = true;
   }
 }
