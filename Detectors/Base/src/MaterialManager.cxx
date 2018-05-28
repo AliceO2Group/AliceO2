@@ -12,6 +12,7 @@
 /// \brief Implementation of the MaterialManager class
 
 #include "DetectorsBase/MaterialManager.h"
+#include "TVirtualMC.h"
 #include "TString.h" // for TString
 #include <TGeoMedium.h>
 #include <TGeoManager.h>
@@ -33,10 +34,18 @@ void MaterialManager::Material(const char* modname, Int_t imat, const char* name
   uniquename.Append("_");
   uniquename.Append(name);
 
-  auto uid = gGeoManager->GetListOfMaterials()->GetSize();
-  auto mat = gGeoManager->Material(uniquename.Data(), a, z, dens * mDensityFactor, uid, radl, absl);
-  mMaterialMap[modname][imat] = uid;
-  insertMaterialName(uniquename.Data(), uid);
+  if (TVirtualMC::GetMC()) {
+    // Check this!!!
+    int kmat = -1;
+    TVirtualMC::GetMC()->Material(kmat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
+    mMaterialMap[modname][imat] = kmat;
+    insertMaterialName(uniquename.Data(), kmat);
+  } else {
+    auto uid = gGeoManager->GetListOfMaterials()->GetSize();
+    auto mat = gGeoManager->Material(uniquename.Data(), a, z, dens * mDensityFactor, uid, radl, absl);
+    mMaterialMap[modname][imat] = uid;
+    insertMaterialName(uniquename.Data(), uid);
+  }
 }
 
 /// Define a mixture or a compound
@@ -58,21 +67,30 @@ void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name,
   uniquename.Append("_");
   uniquename.Append(name);
 
-  auto uid = gGeoManager->GetListOfMaterials()->GetSize();
-  if (nlmat < 0) {
-    nlmat = -nlmat;
-    Double_t amol = 0;
-    Int_t i;
-    for (i = 0; i < nlmat; i++) {
-      amol += a[i] * wmat[i];
+  if (TVirtualMC::GetMC()) {
+    // Check this!!!
+    int kmat = -1;
+    TVirtualMC::GetMC()->Mixture(kmat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
+    mMaterialMap[modname][imat] = kmat;
+    insertMaterialName(uniquename.Data(), kmat);
+
+  } else {
+    auto uid = gGeoManager->GetListOfMaterials()->GetSize();
+    if (nlmat < 0) {
+      nlmat = -nlmat;
+      Double_t amol = 0;
+      Int_t i;
+      for (i = 0; i < nlmat; i++) {
+        amol += a[i] * wmat[i];
+      }
+      for (i = 0; i < nlmat; i++) {
+        wmat[i] *= a[i] / amol;
+      }
     }
-    for (i = 0; i < nlmat; i++) {
-      wmat[i] *= a[i] / amol;
-    }
+    auto mix = gGeoManager->Mixture(uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat, uid);
+    mMaterialMap[modname][imat] = uid;
+    insertMaterialName(uniquename.Data(), uid);
   }
-  auto mix = gGeoManager->Mixture(uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat, uid);
-  mMaterialMap[modname][imat] = uid;
-  insertMaterialName(uniquename.Data(), uid);
 }
 
 void MaterialManager::Medium(const char* modname, Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield,
@@ -83,12 +101,23 @@ void MaterialManager::Medium(const char* modname, Int_t numed, const char* name,
   uniquename.Append("_");
   uniquename.Append(name);
 
-  auto uid = gGeoManager->GetListOfMedia()->GetSize();
-  auto med = gGeoManager->Medium(uniquename.Data(), uid, getMaterialID(modname, nmat), isvol, ifield, fieldm, tmaxfd,
-                                 stemax, deemax, epsil, stmin);
-  mMediumMap[modname][numed] = uid;
-  insertMediumName(uniquename.Data(), uid);
-  insertTGeoMedium(modname, numed);
+  if (TVirtualMC::GetMC()) {
+    // Check this!!!
+    int kmed = -1;
+    const int kmat = getMaterialID(modname, nmat);
+    TVirtualMC::GetMC()->Medium(kmed, uniquename.Data(), kmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+                                stmin, ubuf, nbuf);
+    mMediumMap[modname][numed] = kmed;
+    insertMediumName(uniquename.Data(), kmed);
+    insertTGeoMedium(modname, numed);
+  } else {
+    auto uid = gGeoManager->GetListOfMedia()->GetSize();
+    auto med = gGeoManager->Medium(uniquename.Data(), uid, getMaterialID(modname, nmat), isvol, ifield, fieldm, tmaxfd,
+                                   stemax, deemax, epsil, stmin);
+    mMediumMap[modname][numed] = uid;
+    insertMediumName(uniquename.Data(), uid);
+    insertTGeoMedium(modname, numed);
+  }
 }
 
 void MaterialManager::printMaterials() const
