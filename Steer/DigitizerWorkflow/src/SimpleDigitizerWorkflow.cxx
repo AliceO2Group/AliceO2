@@ -36,10 +36,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{ "tpc-lanes", VariantType::Int, defaultlanes, { laneshelp } });
 
-  std::string emptystring(""); // somehow boost crashes when I give "" directly below
   std::string sectorshelp("Comma separated string of tpc sectors to treat. (Default is all)");
   workflowOptions.push_back(
-    ConfigParamSpec{ "tpc-sectors", VariantType::String, emptystring, { sectorshelp } });
+    ConfigParamSpec{ "tpc-sectors", VariantType::String, "all", { sectorshelp } });
 }
 
 #include "Framework/runDataProcessing.h"
@@ -61,7 +60,7 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
 void extractTPCSectors(std::vector<int>& sectors, ConfigContext const& configcontext)
 {
   auto sectorsstring = configcontext.options().get<std::string>("tpc-sectors");
-  if (sectorsstring.size() > 0) {
+  if (sectorsstring.compare("all") != 0) {
     // we expect them to be , separated
     std::stringstream ss(sectorsstring);
     std::vector<std::string> stringtokens;
@@ -78,11 +77,12 @@ void extractTPCSectors(std::vector<int>& sectors, ConfigContext const& configcon
       } catch (std::invalid_argument e) {
       }
     }
-  } else {
-    // all sectors otherwise by default
-    for (int s = 0; s < o2::TPC::Sector::MAXSECTOR; ++s) {
-      sectors.emplace_back(s);
-    }
+    return;
+  }
+
+  // all sectors otherwise by default
+  for (int s = 0; s < o2::TPC::Sector::MAXSECTOR; ++s) {
+    sectors.emplace_back(s);
   }
 }
 
