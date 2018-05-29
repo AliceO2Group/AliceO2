@@ -21,6 +21,11 @@ const FairMQTransportFactory *FairMQDeviceProxy::getTransport() {
   return mDevice->Transport();
 }
 
+const FairMQTransportFactory* FairMQDeviceProxy::getTransport(const std::string& channel, int index)
+{
+  return mDevice->GetChannel(channel, index).Transport();
+}
+
 std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage() const
 {
   return mDevice->Transport()->CreateMessage();

@@ -498,18 +498,6 @@ struct Stack {
   //
   auto getFreefnHint() const noexcept { return allocator.resource(); }
   static auto getFreefn() noexcept { return &freefn; }
-  value_type* release()
-  {
-    // this only makes sense if the memory resource used does not create a message from the transport factory,
-    // Only use with new_delete_resource (default) is allowed.
-    // this cannot be detected at compile time, hence the dynamic_Cast. Throw when used incorrectly.
-    // This is essentially a backward compatibility workaround.
-    // TODO: remove!
-    if (dynamic_cast<o2::memoryResources::FairMQMemoryResource*>(allocator.resource())) {
-      throw std::runtime_error("cannot release Stack when underlying allocator is a FairMQMemoryResource");
-    }
-    return buffer.release();
-  }
 
   /// The magic constructors: take arbitrary number of headers and serialize them
   /// into the buffer buffer allocated by the specified polymorphic allocator. By default
