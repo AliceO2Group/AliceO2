@@ -238,14 +238,12 @@ void Vertexer::findTracklets(const bool useMCLabel)
                   float absDeltaPhi{ std::abs(mClusters[2][iCluster2].phiCoordinate -
                                               mClusters[1][iCluster1].phiCoordinate) };
                   float absDeltaZ{ std::abs(mClusters[2][iCluster2].zCoordinate - ZProjectionRefined) };
-                  if (absDeltaZ < mZCut &&
-                      (absDeltaPhi < mPhiCut || std::abs(absDeltaPhi - TwoPi) < mPhiCut && testMC) {
+                  if (absDeltaZ < mZCut && (absDeltaPhi < mPhiCut || std::abs(absDeltaPhi - TwoPi) < mPhiCut && testMC)) {
                     mTracklets.emplace_back(Line{
                       std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
                                             mClusters[0][iCluster0].zCoordinate },
                       std::array<float, 3>{ mClusters[1][iCluster1].xCoordinate, mClusters[1][iCluster1].yCoordinate,
-                                            mClusters[1][iCluster1].zCoordinate }
-                    });
+                                            mClusters[1][iCluster1].zCoordinate } });
                     if (std::abs(mTracklets.back().cosinesDirector[2]) < mMaxDirectorCosine3) {
                       usedCluster0Flags[iCluster0] = true;
                       usedCluster2Flags[iCluster2] = true;
