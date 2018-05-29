@@ -114,15 +114,9 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.payloadSerializationMethod = method;
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
-  //we have to move the incoming data
-  o2::header::Stack headerStack{ dh, dph, spec.metaHeader };
-  FairMQMessagePtr headerMessage = mDevice->NewMessageFor(channel, 0,
-                                                          headerStack.data(),
-                                                          headerStack.size(),
-                                                          headerStack.getFreefn(),
-                                                          headerStack.getFreefnHint());
-  headerStack.release();
-  return std::move(headerMessage);
+
+  auto channelAlloc = o2::memoryResources::getTransportAllocator(mProxy.getTransport(channel, 0));
+  return o2::memoryResources::getMessage(o2::header::Stack{ channelAlloc, dh, dph, spec.metaHeader });
 }
 
 void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Output& spec,
