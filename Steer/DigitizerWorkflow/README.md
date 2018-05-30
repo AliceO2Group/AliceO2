@@ -49,17 +49,17 @@ o2sim -n 50 -g SOMESIGNALEVENTGENERATOR -m [detectors] -o o2sim_sg.root
 
 2. **How can I only digitize sectors TPC sectors 1 + 2 for the given background event?**
    ```
-   DPL_TPC_SECTORS=1,2 digitizer-workflow -b --simFile o2sim_bg.root
+   digitizer-workflow -b --tpc-sectors=1,2 --simFile o2sim_bg.root
    ```
 
-3. **How can I digitize sectors 1-8 using only 3 TPC digitizer devices?**
+3. **How can I digitize sectors 1-8 using only 2 TPC digitizer devices?**
    ```
-   DPL_TPC_SECTORS=1,2,3,4,5,6,7,8 DPL_TPC_LANES=3 digitizer-workflow -b --simFile o2sim_bg.root
+   digitizer-workflow -b --tpc-lanes=2 --tpc-sectors=1,2,3,4,5,6,7,8 --simFile o2sim_bg.root
    ```
 
 4. **How can I digitize a total of 100 sampled collisions merging background and signal hits for TPC sector 1?**
    ```
-   DPL_TPC_SECTORS=1 digitizer-workflow -b --simFile o2sim_bg.root --simFileS o2sim_sg.root -n 100
+   digitizer-workflow -b --tpc-sectors=1 --simFile o2sim_bg.root --simFileS o2sim_sg.root -n 100
    ```
 
 # Missing things/Improvements to come
