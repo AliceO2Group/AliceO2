@@ -15,8 +15,6 @@
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
 
-#include <TClass.h>
-
 #include <iterator>
 #include <string>
 #include <vector>
@@ -406,7 +404,7 @@ private:
   std::vector<std::unique_ptr<FairMQMessage>> const &mCache;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_INPUTREGISTRY_H

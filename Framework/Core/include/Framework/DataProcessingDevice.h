@@ -26,8 +26,10 @@
 
 #include <memory>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 class DataProcessingDevice : public FairMQDevice {
 public:
@@ -61,6 +63,6 @@ private:
   int mProcessingCount;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

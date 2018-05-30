@@ -15,8 +15,10 @@
 #include <vector>
 #include <iosfwd>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Helper to dump DDS configuration to run in a deployed
 /// manner.

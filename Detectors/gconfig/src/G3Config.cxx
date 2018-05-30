@@ -26,7 +26,7 @@ namespace o2
 namespace g3config
 {
 #include "../g3Config.C"
-#include "../SetCuts.C"
+#include "../SetCuts.h"
 
 void G3Config()
 {

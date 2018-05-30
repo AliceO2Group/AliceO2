@@ -12,8 +12,10 @@
 
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// These map to zeromq connection
 /// methods.
@@ -52,7 +54,7 @@ struct OutputChannelSpec {
   size_t listeners;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_CHANNELSPEC_H

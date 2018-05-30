@@ -14,8 +14,10 @@
 #include "Framework/InputSpec.h"
 #include "Headers/DataHeader.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct DataSpecUtils {
   static bool match(const InputSpec &spec,

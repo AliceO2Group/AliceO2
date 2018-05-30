@@ -19,10 +19,14 @@
 using namespace o2::framework;
 namespace bpo = boost::program_options;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
-BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs, bool ignoreUnknown, int &argc, char **&argv)
+BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&specs,
+                                             bool ignoreUnknown,
+                                             int &argc, char **&argv)
 : mVariables{},
   mDescription{"ALICE O2 Framework - Available options"},
   mIgnoreUnknown{ignoreUnknown}
@@ -44,7 +48,7 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs
         options = options(name, bpo::value<double>()->default_value(spec.defaultValue.get<double>()), help);
         break;
       case VariantType::String:
-        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<std::string>()), help);
+        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char *>()), help);
         break;
       case VariantType::Bool:
         options = options(name, bpo::value<bool>()->default_value(spec.defaultValue.get<bool>()), help);

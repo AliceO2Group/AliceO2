@@ -13,8 +13,10 @@
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct OutputLabel {
   std::string value;
@@ -73,6 +75,6 @@ struct OutputSpec {
   };
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

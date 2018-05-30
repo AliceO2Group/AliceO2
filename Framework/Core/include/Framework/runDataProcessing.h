@@ -82,32 +82,33 @@ struct UserCustomizationsHelper {
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies,
-           std::vector<o2::framework::ConfigParamSpec> const &workflowOptions);
+           std::vector<o2::framework::ConfigParamSpec> const &workflowOptions,
+           o2::framework::ConfigContext &configContext);
 
 int main(int argc, char** argv)
 {
   using namespace o2::framework;
   using namespace boost::program_options;
+  // The 0 here is an int, therefore having the template matching in the
+  // SFINAE expression above fit better the version which invokes user code over
+  // the default one.
 
   std::vector<o2::framework::ConfigParamSpec> workflowOptions;
   UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
-  std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
-
-  ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
-  ConfigContext configContext{workflowOptionsRegistry};
-  o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
 
   // The default policy is a catch all pub/sub setup to be consistent with the past.
   std::vector<ChannelConfigurationPolicy> channelPolicies;
 
-  // The 0 here is an int, therefore having the template matching in the
-  // SFINAE expression above fit better the version which invokes user code over
-  // the default one.
   UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
   auto defaultPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   channelPolicies.insert(std::end(channelPolicies), std::begin(defaultPolicies), std::end(defaultPolicies));
 
-  auto result = doMain(argc, argv, specs, channelPolicies, workflowOptions);
+  std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
+  ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
+  ConfigContext configContext{workflowOptionsRegistry};
+  o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
+
+  auto result = doMain(argc, argv, specs, channelPolicies, workflowOptions, configContext);
   LOG(INFO) << "Process " << getpid() << " is exiting.";
   return result;
 }

@@ -18,8 +18,8 @@
 #include "Field/MagneticField.h"
 #include "TString.h" // for TString
 
-using std::endl;
 using std::cout;
+using std::endl;
 using std::fstream;
 using std::ios;
 using std::ostream;
@@ -95,19 +95,21 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nla
 
 void Detector::initFieldTrackingParams(int& integration, float& maxfield)
 {
-  auto vmc = TVirtualMC::GetMC();
-  auto field = vmc->GetMagField();
   // set reasonable default values
   integration = 2;
   maxfield = 10;
-  // see if we can query the o2 field
-  if (auto o2field = dynamic_cast<o2::field::MagneticField*>(field)) {
-    integration = o2field->Integral(); // default integration method?
-    maxfield = o2field->Max();
-  } else {
-    LOG(INFO) << "No magnetic field found; using default tracking values " << integration << " " << maxfield
-              << " to initialize media\n";
+  auto vmc = TVirtualMC::GetMC();
+  if (vmc) {
+    auto field = vmc->GetMagField();
+    // see if we can query the o2 field
+    if (auto o2field = dynamic_cast<o2::field::MagneticField*>(field)) {
+      integration = o2field->Integral(); // default integration method?
+      maxfield = o2field->Max();
+      return;
+    }
   }
+  LOG(INFO) << "No magnetic field found; using default tracking values " << integration << " " << maxfield
+            << " to initialize media\n";
 }
 
 TClonesArray* Detector::GetCollection(int) const

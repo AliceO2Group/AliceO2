@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRelayer.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataRef.h"
 #include "Framework/InputRecord.h"
@@ -20,8 +20,10 @@ using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 constexpr size_t MAX_PARALLEL_TIMESLICES = 256;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 constexpr int64_t INVALID_TIMESLICE = -1;
 constexpr int INVALID_INPUT = -1;
@@ -32,12 +34,9 @@ constexpr DataRelayer::TimesliceId INVALID_TIMESLICE_ID = {INVALID_TIMESLICE};
 constexpr int DEFAULT_PIPELINE_LENGTH = 4;
 
 // FIXME: do we really need to pass the forwards?
-DataRelayer::DataRelayer(const std::vector<InputRoute> &inputs,
-                         const std::vector<ForwardRoute> &forwards,
-                         MetricsService &metrics)
-: mInputs{inputs},
-  mForwards{forwards},
-  mMetrics{metrics}
+DataRelayer::DataRelayer(const std::vector<InputRoute>& inputs, const std::vector<ForwardRoute>& forwards,
+                         monitoring::Monitoring& metrics)
+  : mInputs{ inputs }, mForwards{ forwards }, mMetrics{ metrics }
 {
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
 }

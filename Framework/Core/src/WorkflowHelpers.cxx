@@ -17,8 +17,10 @@
 #include <vector>
 #include <climits>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 std::vector<size_t>
 WorkflowHelpers::topologicalSort(size_t nodeCount,

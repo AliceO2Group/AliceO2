@@ -74,9 +74,12 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
   const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
   const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
 
-  static GEMAmplification gemAmplification;
-  static ElectronTransport electronTransport;
-  static PadResponse padResponse;
+  static GEMAmplification& gemAmplification = GEMAmplification::instance();
+  gemAmplification.updateParameters();
+  static ElectronTransport& electronTransport = ElectronTransport::instance();
+  electronTransport.updateParameters();
+  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  sampaProcessing.updateParameters();
 
   const int nShapedPoints = eleParam.getNShapedPoints();
   static std::vector<float> signalArray;
@@ -127,18 +130,18 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
       }
 
       /// Electron amplification
-      const int nElectronsGEM = gemAmplification.getStackAmplification();
+      const int nElectronsGEM = gemAmplification.getStackAmplification(digiPadPos.getCRU(), digiPadPos.getPadPos());
       if (nElectronsGEM == 0) {
         continue;
       }
 
       const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
-      const float ADCsignal = SAMPAProcessing::getADCvalue(static_cast<float>(nElectronsGEM));
-      SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
+      const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
+      sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
       for (float i = 0; i < nShapedPoints; ++i) {
         const float time = absoluteTime + i * eleParam.getZBinWidth();
         const MCCompLabel label(MCTrackID, eventID, sourceID);
-        mDigitContainer->addDigit(label, digiPadPos.getCRU(), SAMPAProcessing::getTimeBinFromTime(time), globalPad,
+        mDigitContainer->addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
                                   signalArray[i]);
       }
     }

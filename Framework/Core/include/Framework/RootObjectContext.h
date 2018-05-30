@@ -18,8 +18,10 @@
 class TObject;
 class FairMQMessage;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 class RootObjectContext {
 public:
@@ -77,6 +79,6 @@ private:
   size_t mTimeslice;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_ROOTOBJECTCONTEXT_H

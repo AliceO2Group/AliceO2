@@ -7,13 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/MetricsService.h"
-#include "FairMQLogger.h"
 
-#include <cassert>
+#define BOOST_TEST_MODULE Test O2Device
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
 
-namespace o2 {
-namespace framework {
+#include "O2Device/O2Device.h"
+#include <boost/test/unit_test.hpp>
+#include <iostream>
+#include <vector>
 
-} // framework
-} // o2
+using namespace o2::Base;
+
+BOOST_AUTO_TEST_CASE(TestO2Device) {}

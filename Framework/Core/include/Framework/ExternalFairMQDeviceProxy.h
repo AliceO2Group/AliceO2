@@ -17,8 +17,10 @@
 #include <vector>
 #include <functional>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
   using InjectorFunction = std::function<void(FairMQDevice &device, FairMQParts& inputs, int index)>;
 
   /// Helper function which takes a set of inputs coming from a device,

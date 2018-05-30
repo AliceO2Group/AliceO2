@@ -11,8 +11,10 @@
 #ifndef FRAMEWORK_PARALLELCONTEXT_H
 #define FRAMEWORK_PARALLELCONTEXT_H
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Purpose of this class is to provide DataProcessors which
 /// have been instanciated in parallel via the o2::framework::parallel
@@ -42,6 +44,6 @@ private:
   size_t mIndex1DSize;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

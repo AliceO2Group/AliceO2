@@ -17,8 +17,10 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 enum class MetricType {
   Int,
@@ -48,7 +50,7 @@ bool processMetric(const std::smatch &match, DeviceMetricsInfo &info);
 size_t metricIdxByName(const std::string &name,
                        const DeviceMetricsInfo &info);
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_DEVICEMETRICSINFO_H

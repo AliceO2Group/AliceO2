@@ -15,8 +15,10 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// A selector for some kind of data being processed, either in
 /// input or in output. This can be used, for example to match
@@ -31,6 +33,6 @@ struct InputSpec {
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

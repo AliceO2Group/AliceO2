@@ -9,8 +9,10 @@
 // or submit itself to any jurisdiction.
 #include "Framework/PaletteHelpers.h"
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 const ImVec4 PaletteHelpers::RED = ImVec4(0xe3/255., 0x67/255., 0x44/255., 1);
 const ImVec4 PaletteHelpers::GREEN = ImVec4(0x7e/255., 0xc4/255., 0x52/255., 1);

@@ -18,12 +18,14 @@
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 void DataProcessor::doSend(FairMQDevice &device, MessageContext &context) {
   for (auto &message : context) {
- //     metricsService.post("outputs/total", message.parts.Size());
+    //     monitoringService.send({ message.parts.Size(), "outputs/total" });
     assert(message.parts.Size() == 2);
     FairMQParts parts = std::move(message.parts);
     assert(message.parts.Size() == 0);

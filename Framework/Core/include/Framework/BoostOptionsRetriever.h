@@ -17,8 +17,10 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // FIXME: For the moment we only support basic types. Should probably support
 //        (nested) vectors and maps as well. If FairMQ plugins can be used
@@ -26,7 +28,9 @@ namespace framework {
 //        using the FairMQ plugin directly
 class BoostOptionsRetriever : public ParamRetriever {
 public:
-  BoostOptionsRetriever(std::vector<ConfigParamSpec> &specs, bool ignoreUnknown, int &argc, char **&argv);
+  BoostOptionsRetriever(std::vector<ConfigParamSpec> const&specs,
+                        bool ignoreUnknown,
+                        int &argc, char **&argv);
 
   virtual int getInt(const char *name) const final;
   virtual float getFloat(const char *name) const final;
@@ -41,7 +45,7 @@ private:
   bool mIgnoreUnknown;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
 

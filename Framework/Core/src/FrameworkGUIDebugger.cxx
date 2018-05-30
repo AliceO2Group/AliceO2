@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <iostream>
 #include <set>
+#include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
 #include "DriverControl.cxx"
 #include "DriverInfo.cxx"
@@ -408,6 +410,38 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   if (driverControl.state == DriverControlState::PAUSE) {
     driverControl.forcedTransitions.push_back(DriverState::GUI);
   }
+
+  auto &registry = driverInfo.configContext->options();
+  ImGui::TextUnformatted("Workflow options:");
+  ImGui::Columns(2);
+  for (auto &option : driverInfo.workflowOptions) {
+    ImGui::TextUnformatted(option.name.c_str());
+    ImGui::NextColumn();
+    switch (option.type) {
+      case ConfigParamSpec::ParamType::Int64:
+      case ConfigParamSpec::ParamType::Int:
+        ImGui::Text("%d", registry.get<int>(option.name.c_str()));
+        break;
+      case ConfigParamSpec::ParamType::Float:
+        ImGui::Text("%f", registry.get<float>(option.name.c_str()));
+        break;
+      case ConfigParamSpec::ParamType::Double:
+        ImGui::Text("%f", registry.get<double>(option.name.c_str()));
+        break;
+      case ConfigParamSpec::ParamType::String:
+        ImGui::Text("%s", registry.get<std::string>(option.name.c_str()).c_str());
+        break;
+      case ConfigParamSpec::ParamType::Bool:
+        ImGui::TextUnformatted(registry.get<bool>(option.name.c_str()) ? "true" : "false");
+        break;
+      case ConfigParamSpec::ParamType::Empty:
+      case ConfigParamSpec::ParamType::Unknown:
+        break;
+    }
+    ImGui::NextColumn();
+  }
+  ImGui::Columns();
+
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {

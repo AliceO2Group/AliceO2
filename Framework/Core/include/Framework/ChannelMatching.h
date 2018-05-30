@@ -16,8 +16,10 @@
 #include <vector>
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct LogicalChannel {
   std::string name;

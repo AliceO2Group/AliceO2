@@ -15,8 +15,10 @@
 #include <string>
 #include <cassert>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// This provides unified access to the parameters specified in the workflow
 /// specification.
@@ -51,6 +53,11 @@ template <> inline float ConfigParamRegistry::get<float>(const char *key) const 
   return mRetriever->getFloat(key);
 }
 
+template <> inline double ConfigParamRegistry::get<double>(const char *key) const {
+  assert(mRetriever.get());
+  return mRetriever->getDouble(key);
+}
+
 template <> inline std::string ConfigParamRegistry::get<std::string>(const char *key) const {
   assert(mRetriever.get());
   return mRetriever->getString(key);
@@ -61,7 +68,7 @@ template <> inline bool ConfigParamRegistry::get<bool>(const char *key) const {
   return mRetriever->getBool(key);
 }
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif //FRAMEWORK_CONFIGPARAMREGISTRY_H

@@ -16,8 +16,10 @@
 #include <climits>
 #include <cassert>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // All we do is to printout
 std::shared_ptr<TFile> LocalRootFileService::open(const char *format, ...) {

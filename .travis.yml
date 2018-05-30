@@ -51,6 +51,22 @@ script: |
         COMMIT_FILES=$(git diff --name-only $BASE_COMMIT | grep -i -v LinkDef)
         RESULT_OUTPUT="$(git-clang-format-3.9 --commit $BASE_COMMIT --diff --binary `which clang-format-3.9` $COMMIT_FILES)"
 
+        for x in $COMMIT_FILES; do
+          case $x in
+            *.h|*.cxx)
+              # We remove the header from the diff as it contains +++ then
+              # we only select the added lines to check for the long ones.
+              # We do not need to check for the lines which have been removed
+              # and we do not want to check for the lines which were not changed
+              # to avoid extra work.
+              # 120 characters are allowed, meaning the error should start with 122,
+              # to allow for the starting + at the end of the line.
+              git diff $x | tail -n +5 | grep -e '^+' | grep '.\{122,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } || true ;;
+            *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
+            *) ;;
+          esac
+        done
+
         if [ "$RESULT_OUTPUT" == "no modified files to format" ] \
           || [ "$RESULT_OUTPUT" == "clang-format did not modify any files" ] ; then
           echo "clang-format passed."

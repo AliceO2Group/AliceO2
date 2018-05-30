@@ -16,9 +16,9 @@
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/ControlService.h"
-#include "Framework/RootTreeReader.h"
+#include "Utils/RootTreeReader.h"
 #include "Headers/DataHeader.h"
-#include "TestClasses.h"
+#include "../../Core/test/TestClasses.h"
 #include "FairMQLogger.h"
 #include <TSystem.h>
 #include <TTree.h>
@@ -60,12 +60,11 @@ DataProcessorSpec getSourceSpec()
     }
 
     constexpr auto persistency = Lifetime::Transient;
-    using TreeReader = o2::framework::RootTreeReader<Output>;
-    auto reader = std::make_shared<TreeReader>("testtree",       // tree name
-                                               fileName.c_str(), // input file name
-                                               Output{ "TST", "ARRAYOFDATA", 0, persistency },
-                                               "dataarray" // name of cluster branch
-                                               );
+    auto reader = std::make_shared<RootTreeReader>("testtree",       // tree name
+                                                   fileName.c_str(), // input file name
+                                                   Output{ "TST", "ARRAYOFDATA", 0, persistency },
+                                                   "dataarray" // name of cluster branch
+                                                   );
 
     auto processingFct = [reader](ProcessingContext& pc) { (++(*reader))(pc); };
 
@@ -74,7 +73,7 @@ DataProcessorSpec getSourceSpec()
 
   return DataProcessorSpec{ "source", // name of the processor
                             {},
-                            { OutputSpec{ "TST", "ARRAYOFDATA"} },
+                            { OutputSpec{ "TST", "ARRAYOFDATA" } },
                             AlgorithmSpec(initFct) };
 }
 

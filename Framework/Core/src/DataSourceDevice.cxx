@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataSourceDevice.h"
-#include "Framework/MetricsService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/FairOptionsRetriever.h"
@@ -22,8 +21,10 @@ using TimeScale = std::chrono::microseconds;
 
 using namespace o2::framework;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &registry)
 : mInit{spec.algorithm.onInit},

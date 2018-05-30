@@ -18,8 +18,10 @@
 
 using namespace o2::framework;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 using LogicalChannelsMap = std::map<LogicalChannel, size_t>;
 

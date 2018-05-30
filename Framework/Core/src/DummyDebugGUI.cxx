@@ -9,8 +9,10 @@
 // or submit itself to any jurisdiction.
 #include <functional>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 void *initGUI(const char *) {return nullptr;}
 bool pollGUI(void *context, std::function<void(void)> guiCallback) {

@@ -16,8 +16,10 @@
 
 namespace bpo = boost::program_options;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// this creates the boost program options description from the ConfigParamSpec
 /// taking the VariantType into account

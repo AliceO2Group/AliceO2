@@ -7,9 +7,18 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ConfigParamSpec.h"
+#include <vector>
+using namespace o2::framework;
+void customize(std::vector<ConfigParamSpec> &options) {
+  options.push_back(o2::framework::ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}});
+  options.push_back(o2::framework::ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}});
+  options.push_back(o2::framework::ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}});
+  options.push_back(o2::framework::ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}});
+  options.push_back(o2::framework::ConfigParamSpec{"aBool", VariantType::Bool, true, {"a boolean option"}});
+};
 #include "Framework/runDataProcessing.h"
 
-using namespace o2::framework;
 
 AlgorithmSpec simplePipe(std::string const &what) {
   return AlgorithmSpec{ [what](ProcessingContext& ctx) {

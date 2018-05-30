@@ -12,8 +12,10 @@
 #include <fairmq/FairMQMessage.h>
 #include <cassert>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 InputRecord::InputRecord(std::vector<InputRoute> const &inputsSchema,
                                std::vector<std::unique_ptr<FairMQMessage>> const& cache)

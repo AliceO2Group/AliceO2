@@ -23,54 +23,20 @@
 #ifndef PNDP8GENERATOR_H
 #define PNDP8GENERATOR_H 1
 
-// Avoid the inclusion of dlfcn.h by Pyhtia.h that CINT is not able to process (avoid compile error on GCC > 5)
-#ifdef __CLING__
-#define _DLFCN_H_
-#define _DLFCN_H
-#endif
-
-#include "Pythia8/Basics.h"          // for RndmEngine
 #include "FairGenerator.h"   // for FairGenerator
-#include "Pythia8/Pythia.h"  // for Pythia
 #include "Rtypes.h"          // for Double_t, Bool_t, Int_t, etc
-#include "TRandom.h"         // for TRandom
-#include "TRandom1.h"        // for TRandom1
-#include "TRandom3.h"        // for TRandom3, gRandom
-class FairPrimaryGenerator;  // lines 22-22
+#include <memory>
 
 class FairPrimaryGenerator;
-using namespace Pythia8;
+namespace Pythia8
+{
+class Pythia;
+class RndmEngine;
+}
 namespace o2
 {
 namespace eventgen
 {
-
-class PyTr1Rng : public RndmEngine
-{
- public:
-  PyTr1Rng() {  rng = new TRandom1(gRandom->GetSeed()); };
-  ~PyTr1Rng() override = default;
-
-  Double_t flat() override { return rng->Rndm(); };
-
- private:
-  TRandom1 *rng; //!
-};
-
-class PyTr3Rng : public RndmEngine
-{
- public:
-  PyTr3Rng() {  rng = new TRandom3(gRandom->GetSeed()); };
-  ~PyTr3Rng() override = default;
-
-  Double_t flat() override { return rng->Rndm(); };
-
- private:
-  TRandom3 *rng; //!
-};
-
-
-
 
 class Pythia8Generator : public FairGenerator
 {
@@ -97,9 +63,8 @@ class Pythia8Generator : public FairGenerator
   void GetPythiaInstance(int);
 
  private:
-
-  Pythia mPythia;             //!
-  RndmEngine* mRandomEngine;  //!
+  std::unique_ptr<Pythia8::Pythia> mPythia;           //!
+  std::unique_ptr<Pythia8::RndmEngine> mRandomEngine; //!
 
  protected:
 

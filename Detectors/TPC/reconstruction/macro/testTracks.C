@@ -72,6 +72,8 @@ void testTracks(
   grClustersLoc3D->SetMarkerColor(kOrange + 2);
   grClustersLoc3D->SetMarkerSize(1);
 
+  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+
   int clusCounter = 0;
   clusterTree->GetEntry(checkEvent);
   for (auto& clusterObject : *clusters) {
@@ -83,7 +85,7 @@ void testTracks(
     const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(rowInSector, inputcluster->getPadMean()));
     const PadCentre& padCentre = mapper.padCentre(pad);
     const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-    float zPosition = SAMPAProcessing::getZfromTimeBin(inputcluster->getTimeMean(), cru.side());
+    float zPosition = sampaProcessing.getZfromTimeBin(inputcluster->getTimeMean(), cru.side());
 
     LocalPosition3D posLoc(padCentre.X(), localYfactor * padCentre.Y(), zPosition);
     GlobalPosition3D posGlob = Mapper::LocalToGlobal(posLoc, cru.sector());
@@ -132,7 +134,7 @@ void testTracks(
         const GlobalPadNumber pad = mapper.globalPadNumber(PadPos(rowInSector, clusterObject.getPadMean()));
         const PadCentre& padCentre = mapper.padCentre(pad);
         const float localYfactor = (cru.side() == Side::A) ? -1.f : 1.f;
-        float zPosition = SAMPAProcessing::getZfromTimeBin(clusterObject.getTimeMean(), cru.side());
+        float zPosition = sampaProcessing.getZfromTimeBin(clusterObject.getTimeMean(), cru.side());
 
         LocalPosition3D clusLoc(padCentre.X(), localYfactor * padCentre.Y(), zPosition);
         GlobalPosition3D clusGlob = Mapper::LocalToGlobal(clusLoc, cru.sector());
