@@ -42,7 +42,6 @@ class Digitizer
 
   void init();
   void finish();
-
  private:
   // digit info
   std::vector<Digit>* mDigits;
@@ -56,7 +55,10 @@ class Digitizer
   Double_t mEventTime;
   Int_t mEventID = 0;
   Int_t mSrcID = 0;
-
+  Int_t mAmpthreshold;
+  Float_t mLowTime;
+  Float_t mHighTime;
+  Float_t mTimeDiffAC; 
   ClassDefNV(Digitizer, 1);
 };
 } // namespace fit

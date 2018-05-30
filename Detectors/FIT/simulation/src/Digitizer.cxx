@@ -22,6 +22,7 @@
 #include <cassert>
 
 using namespace o2::fit;
+using o2::fit::Geometry;
 
 ClassImp(Digitizer);
 
@@ -35,20 +36,24 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
   Int_t ampthreshold = 100;
   Float_t lowTimeA = 10000, lowTimeC = 2500, highTimeA = 12500, highTimeC = 4500;
   Int_t mcp, trackID;
-  Int_t amp[208];
-  Double_t cfd[208];
-  for (Int_t ipmt = 0; ipmt < 208; ipmt++) {
+  Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC)*4;
+
+  Int_t amp[nMCPs];
+  Double_t hittime, cfd[nMCPs];
+  for (Int_t ipmt = 0; ipmt < nMCPs; ipmt++) {
     amp[ipmt] = 0;
     cfd[ipmt] = 0;
   }
+  
   for (auto& hit : *hits) {
     // TODO: put timeframe counting/selection
     // if (timeframe == mTimeFrameCurrent) {
     // timeframe = Int_t((mEventTime + hit.GetTime())); // to be replaced with uncalibrated time
     mcp = hit.GetDetectorID();
-    if ((mcp < 96 && hit.GetTime() > lowTimeA && hit.GetTime() < highTimeA) ||
-        (mcp > 95 && hit.GetTime() > lowTimeC && hit.GetTime() < highTimeC)) {
-      cfd[mcp] += hit.GetTime();
+    hittime = hit.GetTime();
+    if (mcp > 4*Geometry::NCellsA) hittime += mTimeDiffAC;
+    if ( hittime > mLowTime && hittime < mHighTime) {
+      cfd[mcp] += hittime;
       amp[mcp]++;
     }
     // extract trackID
@@ -56,10 +61,10 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
   } // end of loop over hits
 
   Int_t ndigits = 0; // Number of digits added
-  for (Int_t ipmt = 0; ipmt < 208; ipmt++) {
+  for (Int_t ipmt = 0; ipmt < nMCPs; ipmt++) {
     if (amp[ipmt] > ampthreshold) {
       cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant
-      cfd[ipmt] = gRandom->Gaus(cfd[ipmt], 50);
+      cfd[ipmt] = (gRandom->Gaus(cfd[ipmt], 50))/Geometry::ChannelWidth;
       ndigits++;
       addDigit(Double_t(timeframe), ipmt, cfd[ipmt], amp[ipmt], bc, trackID);
     }
@@ -83,8 +88,10 @@ void Digitizer::addDigit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, 
 
 void Digitizer::initParameters()
 {
-  Int_t ampthreshold = 100;
-  Float_t lowTimeA = 10000, lowTimeC = 2500, highTimeA = 12500, highTimeC = 4500;
+  mAmpthreshold = 100;
+  mLowTime = 10000;
+  mHighTime = 12500;
+  mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   // murmur
 }
 //_______________________________________________________________________

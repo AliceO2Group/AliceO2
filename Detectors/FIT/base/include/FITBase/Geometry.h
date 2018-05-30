@@ -31,27 +31,29 @@ class Geometry
   Geometry();
   /// Copy constructor.
   ///
-  // Geometry(const Geometry& geom) : mMCP{ { 0, 0, 0 }; }
-
+  // Geometry(const Geometry& geom) : mMCP{ { 0, 0, 0 }; } 
+  
+  
   ///
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
-
-  static constexpr int NCellsA = 24;          // number of radiatiors on A side
-  static constexpr int NCellsC = 28;          // number of radiatiors on C side
-  static constexpr float ZdetA = 333;         // number of radiatiors on A side
-  static constexpr float ZdetC = 82;          // number of radiatiors on C side
+  
+  static constexpr int NCellsA = 24; // number of radiatiors on A side
+  static constexpr int NCellsC = 28; // number of radiatiors on C side
+  static constexpr float ZdetA = 333; // number of radiatiors on A side
+  static constexpr float ZdetC = 82; // number of radiatiors on C side
   static constexpr float ChannelWidth = 24.4; // channel width in ps
 
   ///
-  // Assign operator.
+ // Assign operator.
   ///
   // Geometry& operator=(const Geometry& rvalue);
+
 
  private:
   TVector3 mMCP[52];
 
   ClassDefNV(Geometry, 1);
 };
-} // namespace fit
-} // namespace o2
+}
+}
 #endif
