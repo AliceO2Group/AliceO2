@@ -42,25 +42,25 @@ namespace eventgen
 class PyTr1Rng : public RndmEngine
 {
  public:
-  PyTr1Rng() { rng = new TRandom1(gRandom->GetSeed()); };
+  PyTr1Rng() { mRng = std::make_unique<TRandom1>(gRandom->GetSeed()); };
   ~PyTr1Rng() override = default;
 
-  Double_t flat() override { return rng->Rndm(); };
+  Double_t flat() override { return mRng->TRandom1::Rndm(); };
 
  private:
-  TRandom1* rng; //!
+  std::unique_ptr<TRandom1> mRng; //!
 };
 
 class PyTr3Rng : public RndmEngine
 {
  public:
-  PyTr3Rng() { rng = new TRandom3(gRandom->GetSeed()); };
+  PyTr3Rng() { mRng = std::make_unique<TRandom3>(gRandom->GetSeed()); };
   ~PyTr3Rng() override = default;
 
-  Double_t flat() override { return rng->Rndm(); };
+  Double_t flat() override { return mRng->TRandom3::Rndm(); };
 
  private:
-  TRandom3* rng; //!
+  std::unique_ptr<TRandom3> mRng; //!
 };
 
 // -----   Default constructor   -------------------------------------------
@@ -71,17 +71,17 @@ Pythia8Generator::Pythia8Generator()
   mId         = 2212; // proton
   mMom        = 400;  // proton
   mHNL        = 0;    // HNL  if set to !=0, for example 9900014, only track
-  mPythia = new Pythia();
+  mPythia = std::make_unique<Pythia>();
 }
 // -------------------------------------------------------------------------
 
 // -----   Default constructor   -------------------------------------------
 Bool_t Pythia8Generator::Init()
 {
-  if (mUseRandom1) mRandomEngine = new PyTr1Rng();
-  if (mUseRandom3) mRandomEngine = new PyTr3Rng();
+  if (mUseRandom1) mRandomEngine = std::make_unique<PyTr1Rng>();
+  if (mUseRandom3) mRandomEngine = std::make_unique<PyTr3Rng>();
 
-  mPythia->setRndmEnginePtr(mRandomEngine);
+  mPythia->setRndmEnginePtr(mRandomEngine.get());
 
   /** commenting these lines  
       as they would override external settings **/
