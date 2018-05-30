@@ -25,6 +25,7 @@
 
 #include "FairGenerator.h"   // for FairGenerator
 #include "Rtypes.h"          // for Double_t, Bool_t, Int_t, etc
+#include <memory>
 
 class FairPrimaryGenerator;
 namespace Pythia8
@@ -62,8 +63,8 @@ class Pythia8Generator : public FairGenerator
   void GetPythiaInstance(int);
 
  private:
-  Pythia8::Pythia* mPythia;           //!
-  Pythia8::RndmEngine* mRandomEngine; //!
+  std::unique_ptr<Pythia8::Pythia> mPythia;           //!
+  std::unique_ptr<Pythia8::RndmEngine> mRandomEngine; //!
 
  protected:
 
