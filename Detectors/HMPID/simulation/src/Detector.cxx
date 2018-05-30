@@ -134,7 +134,7 @@ void Detector::createMaterials()
   // implement materials here
   // Definition of available HMPID materials
   // Arguments: none
-  //   Returns: none
+  // Returns: none
 
   // clm update material definition later on from Antonello
   // Ported to O2 (24.4.2018) -- taken from AliRoot AliHMPIDv3
