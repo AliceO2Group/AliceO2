@@ -100,8 +100,8 @@ void Detector::IdealPositionCradle(Int_t iCh, TGeoHMatrix* pMatrix) // ideal pos
   const double kAngVer = 20;                     //  vertical angle between chambers    20   grad
   const double kAngCom = 30;                     //  common HMPID rotation with respect to x axis  30   grad
   const double kTrans[3] = { 423. + 29, 0, 67 }; //  z-center of the cradle module
-  pMatrix->RotateY(90);            //  rotate around y since initial position is in XY plane -> now in YZ plane
-  pMatrix->SetTranslation(kTrans); //  now plane in YZ is shifted along x
+  pMatrix->RotateY(90);                          //  rotate around y since initial position is in XY plane -> now in YZ plane
+  pMatrix->SetTranslation(kTrans);               //  now plane in YZ is shifted along x
   switch (iCh) {
     case 0:
       pMatrix->RotateY(kAngHor);
@@ -237,7 +237,7 @@ TGeoVolume* Detector::createChamber(int number)
   TGeoMedium* ar = matmgr.getTGeoMedium("HMP_Ar");
 
   TGeoRotation* rot = new TGeoRotation("HwireRot");
-  rot->RotateY(90); // rotate wires around Y to be along X (initially along Z)
+  rot->RotateY(90);                                                                                    // rotate wires around Y to be along X (initially along Z)
   TGeoVolume* sbo = gGeoManager->MakeBox("Hsbo", ch4, 1419 * mm / 2, 1378.00 * mm / 2, 50.5 * mm / 2); // 2072P1
   TGeoVolume* cov = gGeoManager->MakeBox("Hcov", al, 1419 * mm / 2, 1378.00 * mm / 2, 0.5 * mm / 2);
   TGeoVolume* hon = gGeoManager->MakeBox("Hhon", roha, 1359 * mm / 2, 1318.00 * mm / 2, 49.5 * mm / 2);
@@ -257,8 +257,8 @@ TGeoVolume* Detector::createChamber(int number)
   double cellx = 8.04 * mm, celly = 8.4 * mm;
   int nPadX = 80, nPadY = 48;
   TGeoVolume* gap = gGeoManager->MakeBox("Hgap", ch4, cellx * nPadX / 2, celly * nPadY / 2,
-                                         6.2 * mm / 2);  // x=8.04*80 y=8.4*48 z=pad+pad-ano+marign 2006p1
-  TGeoVolume* row = gap->Divide("Hrow", 2, nPadY, 0, 0); // along Y->48 rows
+                                         6.2 * mm / 2);                  // x=8.04*80 y=8.4*48 z=pad+pad-ano+marign 2006p1
+  TGeoVolume* row = gap->Divide("Hrow", 2, nPadY, 0, 0);                 // along Y->48 rows
   TGeoVolume* cel = row->Divide(Form("Hcel%i", number), 1, nPadX, 0, 0); // along X->80 cells
   TGeoVolume* cat = gGeoManager->MakeTube("Hcat", cu, 0.00 * mm, 50.00 * um, cellx / 2);
   TGeoVolume* ano = gGeoManager->MakeTube("Hano", w, 0.00 * mm, 20.00 * um, cellx / 2);
@@ -401,7 +401,7 @@ TGeoVolume* Detector::createChamber(int number)
     gGeoManager->MakeBox("Hgassipl3", csi, 60. * mm / 2, 3. * mm / 2., 19. * mm / 2.); // in Hfr1upcard
   TGeoVolume* gassipl4 = gGeoManager->MakeBox(
     "Hgassipl4", csi, 60. * mm / 2, 3. * mm / 2.,
-    91. * mm / 2.); // in Hext (the big rectangle of the card is 110 mm long, 62 mm wide and 1.5 mm high)
+    91. * mm / 2.);                                                                                    // in Hext (the big rectangle of the card is 110 mm long, 62 mm wide and 1.5 mm high)
   TGeoVolume* busext = gGeoManager->MakeTubs("Hbusext", csi, 29 * mm, 30 * mm, 40 * mm / 2., 0., 180); // in Hext
   TGeoVolume* ext = new TGeoVolumeAssembly("Hext");
 
@@ -546,69 +546,69 @@ TGeoVolume* Detector::CreateCradle()
   // one side
 
   Double_t height = 30. * mm; // 30 = 2*(1488/2-729) (2CRE2112P3)
-  Double_t tubeheight = 50. * mm;
+  Double_t tubeh = 50. * mm;  // tube height
   Double_t heightred = 5. * mm;
   Double_t zred = 5. * mm;
-  Double_t oneshift = tubeheight / TMath::Tan(TMath::DegToRad() * 20.) + (1458. - 35) * mm / 2 - (1607 - 35) * mm / 2;
+  Double_t oneshift = tubeh / TMath::Tan(TMath::DegToRad() * 20.) + (1458. - 35) * mm / 2 - (1607 - 35) * mm / 2;
   Double_t linclined[7] = {
-    1458. * mm - params[6] - 0.5, 1607. * mm - params[6] - 0.5, tubeheight, oneshift, height, heightred, zred
+    1458. * mm - params[6] - 0.5, 1607. * mm - params[6] - 0.5, tubeh, oneshift, height, heightred, zred
   }; // 3.5 is for not correct measurements in 2CRE2112P3<=> 597!=inclined*sin(20)
   TGeoVolume* inclin = CradleBaseVolume(med, linclined, "inclinedbar");
   inclin->SetLineColor(kGray);
   Double_t lhorizontal[7] = {
-    1641.36 * mm + params[7], 1659. * mm + params[7], tubeheight, 0, height, heightred, zred
+    1641.36 * mm + params[7], 1659. * mm + params[7], tubeh, 0, height, heightred, zred
   };
   TGeoVolume* horiz = CradleBaseVolume(med, lhorizontal, "horizontalbar");
   horiz->SetLineColor(kGray);
 
   // inner bars, they are named as the numbering in 2CRE2112P3
-  Double_t fourshift = tubeheight / TMath::Tan(TMath::DegToRad() * 55.);
-  Double_t lfour[7] = { 592 * mm, 592 * mm, tubeheight, fourshift, height, heightred, zred };
+  Double_t fourshift = tubeh / TMath::Tan(TMath::DegToRad() * 55.);
+  Double_t lfour[7] = { 592 * mm, 592 * mm, tubeh, fourshift, height, heightred, zred };
   TGeoVolume* four = CradleBaseVolume(med, lfour, "bar4");
   four->SetLineColor(kGray);
 
-  Double_t fiveshift = tubeheight / TMath::Tan(TMath::DegToRad() * 75);
-  Double_t lfive[7] = { 500. * mm, 500. * mm, tubeheight, fiveshift, height, heightred, zred };
+  Double_t fiveshift = tubeh / TMath::Tan(TMath::DegToRad() * 75);
+  Double_t lfive[7] = { 500. * mm, 500. * mm, tubeh, fiveshift, height, heightred, zred };
   TGeoVolume* five = CradleBaseVolume(med, lfive, "bar5");
   five->SetLineColor(kGray);
 
-  Double_t sixshift = tubeheight / TMath::Tan(TMath::DegToRad() * 55) + 459 * mm / 2 - 480 * mm / 2;
-  Double_t lsix[7] = { 456 * mm, 477 * mm, tubeheight, sixshift, height, heightred, zred };
+  Double_t sixshift = tubeh / TMath::Tan(TMath::DegToRad() * 55) + 459 * mm / 2 - 480 * mm / 2;
+  Double_t lsix[7] = { 456 * mm, 477 * mm, tubeh, sixshift, height, heightred, zred };
   TGeoVolume* six = CradleBaseVolume(med, lsix, "bar6");
   six->SetLineColor(kGray);
 
-  Double_t sevenshift = tubeheight / TMath::Tan(TMath::DegToRad() * 50) + 472 * mm / 2 - 429. * mm / 2;
-  Double_t lseven[7] = { 429 * mm, 472 * mm, tubeheight, sevenshift, height, heightred, zred };
+  Double_t sevenshift = tubeh / TMath::Tan(TMath::DegToRad() * 50) + 472 * mm / 2 - 429. * mm / 2;
+  Double_t lseven[7] = { 429 * mm, 472 * mm, tubeh, sevenshift, height, heightred, zred };
   TGeoVolume* seven = CradleBaseVolume(med, lseven, "bar7");
   seven->SetLineColor(kGray);
 
-  Double_t eightshift = tubeheight / TMath::Tan(TMath::DegToRad() * 30) + 244. * mm / 2 - 200. * mm / 2 - 3;
-  Double_t leight[7] = { 200. * mm, 244. * mm, tubeheight, eightshift, height, heightred, zred };
+  Double_t eightshift = tubeh / TMath::Tan(TMath::DegToRad() * 30) + 244. * mm / 2 - 200. * mm / 2 - 3;
+  Double_t leight[7] = { 200. * mm, 244. * mm, tubeh, eightshift, height, heightred, zred };
   TGeoVolume* eight = CradleBaseVolume(med, leight, "bar8");
   eight->SetLineColor(kGray);
 
-  Double_t nineshift = -tubeheight / TMath::Tan(TMath::DegToRad() * 71) + 83. * mm / 2 - 66. * mm / 2;
-  Double_t lnine[7] = { 59.5 * mm, 76.5 * mm, tubeheight, nineshift, height, heightred, zred };
+  Double_t nineshift = -tubeh / TMath::Tan(TMath::DegToRad() * 71) + 83. * mm / 2 - 66. * mm / 2;
+  Double_t lnine[7] = { 59.5 * mm, 76.5 * mm, tubeh, nineshift, height, heightred, zred };
   TGeoVolume* nine = CradleBaseVolume(med, lnine, "bar9");
   nine->SetLineColor(kGray);
 
-  Double_t tenshift = (-tubeheight / TMath::Tan(TMath::DegToRad() * 60) - 221. * mm / 2 + 195. * mm / 2);
-  Double_t lten[7] = { 195. * mm, 221. * mm, tubeheight, tenshift, height, heightred, zred };
+  Double_t tenshift = (-tubeh / TMath::Tan(TMath::DegToRad() * 60) - 221. * mm / 2 + 195. * mm / 2);
+  Double_t lten[7] = { 195. * mm, 221. * mm, tubeh, tenshift, height, heightred, zred };
   TGeoVolume* ten = CradleBaseVolume(med, lten, "bar10");
   ten->SetLineColor(kGray);
 
-  Double_t elevenshift = (-tubeheight / TMath::Tan(TMath::DegToRad() * 70) - 338. * mm / 2 + 315. * mm / 2);
-  Double_t leleven[7] = { 308. * mm, 331. * mm, tubeheight, elevenshift, height, heightred, zred };
+  Double_t elevenshift = (-tubeh / TMath::Tan(TMath::DegToRad() * 70) - 338. * mm / 2 + 315. * mm / 2);
+  Double_t leleven[7] = { 308. * mm, 331. * mm, tubeh, elevenshift, height, heightred, zred };
   TGeoVolume* eleven = CradleBaseVolume(med, leleven, "bar11");
   eleven->SetLineColor(kGray);
 
-  Double_t twelveshift = (-tubeheight / TMath::Tan(TMath::DegToRad() * 60) - 538. * mm / 2 + 508. * mm / 2);
-  Double_t ltwelve[7] = { 507. * mm, 537. * mm, tubeheight, twelveshift, height, heightred, zred };
+  Double_t twelveshift = (-tubeh / TMath::Tan(TMath::DegToRad() * 60) - 538. * mm / 2 + 508. * mm / 2);
+  Double_t ltwelve[7] = { 507. * mm, 537. * mm, tubeh, twelveshift, height, heightred, zred };
   TGeoVolume* twelve = CradleBaseVolume(med, ltwelve, "bar12");
   twelve->SetLineColor(kGray);
 
-  Double_t thirteenshift = tubeheight / TMath::Tan(TMath::DegToRad() * 43);
-  Double_t lthirteen[7] = { 708. * mm, 708. * mm, tubeheight, thirteenshift, height, heightred, zred };
+  Double_t thirteenshift = tubeh / TMath::Tan(TMath::DegToRad() * 43);
+  Double_t lthirteen[7] = { 708. * mm, 708. * mm, tubeh, thirteenshift, height, heightred, zred };
   TGeoVolume* thirteen = CradleBaseVolume(med, lthirteen, "bar13");
   thirteen->SetLineColor(kGray);
 
@@ -676,7 +676,7 @@ TGeoVolume* Detector::CreateCradle()
   cradle->AddNode(sbase, 2, new TGeoCombiTrans(-(6037 - 100) * mm / 2, 0., -(597 - 60) * mm / 2, rots));
 
   // trapezoidal structure
-  Double_t origintrapstruct = (6037 - 2 * 60) * mm / 2 - 2288 * mm;
+  Double_t origtrastruct = (6037 - 2 * 60) * mm / 2 - 2288 * mm;
 
   TGeoRotation* rot1 = new TGeoRotation("inclrot");
   rot1->RotateX(90);
@@ -684,24 +684,26 @@ TGeoVolume* Detector::CreateCradle()
   TGeoRotation* rot2 = new TGeoRotation("horizrot");
   rot2->RotateX(-90);
   Double_t dx = (1607 - 35) * mm * TMath::Cos(TMath::DegToRad() * 20) / 2 -
-                tubeheight / 2 * TMath::Sin(TMath::DegToRad() * 20) + params[5];
+                tubeh / 2 * TMath::Sin(TMath::DegToRad() * 20) + params[5];
 
-  cradle->AddNode(inclin, 1, new TGeoCombiTrans(origintrapstruct + (2288 + 60) * mm - dx, 729 * mm, params[0] + 0.4,
+  cradle->AddNode(inclin, 1, new TGeoCombiTrans(origtrastruct + (2288 + 60) * mm - dx, 729 * mm, params[0] + 0.4,
                                                 rot1)); //+0.7 added
-  cradle->AddNode(horiz, 1, new TGeoCombiTrans(origintrapstruct, 729 * mm, 597 * mm / 2 - tubeheight / 2,
+  cradle->AddNode(horiz, 1, new TGeoCombiTrans(origtrastruct, 729 * mm, 597 * mm / 2 - tubeh / 2,
                                                rot2)); // correctly positioned
   TGeoRotation* rot1mirror = new TGeoRotation("inclmirrot");
   rot1mirror->RotateX(90);
   rot1mirror->RotateY(200);
   rot1mirror->RotateZ(180);
-  cradle->AddNode(inclin, 2, new TGeoCombiTrans(origintrapstruct - 2345 * mm + dx, 729 * mm, params[0] + 0.4,
+  cradle->AddNode(inclin, 2, new TGeoCombiTrans(origtrastruct - 2345 * mm + dx, 729 * mm, params[0] + 0.4,
                                                 rot1mirror)); //+0.7 added
-  cradle->AddNode(inclin, 3, new TGeoCombiTrans(origintrapstruct + (2288 + 60) * mm - dx, -729 * mm, params[0] + 0.4,
+  cradle->AddNode(inclin, 3, new TGeoCombiTrans(origtrastruct + (2288 + 60) * mm - dx, -729 * mm, params[0] + 0.4,
                                                 rot1)); // 0.7 added
-  cradle->AddNode(horiz, 2, new TGeoCombiTrans(origintrapstruct, -729 * mm, 597 * mm / 2 - tubeheight / 2,
+  cradle->AddNode(horiz, 2, new TGeoCombiTrans(origtrastruct, -729 * mm, 597 * mm / 2 - tubeh / 2,
                                                rot2)); // correctly positioned
-  cradle->AddNode(inclin, 4, new TGeoCombiTrans(origintrapstruct - 2345 * mm + dx, -729 * mm, params[0] + 0.4,
+  cradle->AddNode(inclin, 4, new TGeoCombiTrans(origtrastruct - 2345 * mm + dx, -729 * mm, params[0] + 0.4,
                                                 rot1mirror)); // 0.7 added
+
+  Double_t tan1 = (2 * TMath::Tan(TMath::DegToRad() * 55));
 
   // inner pieces on one side
   TGeoRotation* rot4 = new TGeoRotation("4rot");
@@ -711,14 +713,14 @@ TGeoVolume* Detector::CreateCradle()
   TGeoRotation* rot4a = new TGeoRotation("4arot");
   rot4a->RotateX(-90);
   rot4a->RotateY(-55);
-  cradle->AddNode(four, 1, new TGeoCombiTrans(origintrapstruct -
-                                                (39 + (597 - 50 - 60) / (2 * TMath::Tan(TMath::DegToRad() * 55))) * mm -
-                                                tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 55)),
+  cradle->AddNode(four, 1, new TGeoCombiTrans(origtrastruct -
+                                                (39 + (597 - 50 - 60) / tan1) * mm -
+                                                tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)),
                                               -729 * mm, params[3], rot4));
 
-  cradle->AddNode(four, 2, new TGeoCombiTrans(origintrapstruct +
-                                                (39 + (597 - 50 - 60) / (2 * TMath::Tan(TMath::DegToRad() * 55))) * mm +
-                                                tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 55)),
+  cradle->AddNode(four, 2, new TGeoCombiTrans(origtrastruct +
+                                                (39 + (597 - 50 - 60) / tan1) * mm +
+                                                tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)),
                                               -729 * mm, params[3], rot4a));
 
   TGeoRotation* rot5 = new TGeoRotation("5rot");
@@ -730,21 +732,21 @@ TGeoVolume* Detector::CreateCradle()
   rot5a->RotateY(-75);
   cradle->AddNode(
     five, 1,
-    new TGeoCombiTrans(origintrapstruct + (486 + (597 - 50 - 60) / (2 * TMath::Tan(TMath::DegToRad() * 75))) * mm +
-                         tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 75)),
+    new TGeoCombiTrans(origtrastruct + (486 + (597 - 50 - 60) / (2 * TMath::Tan(TMath::DegToRad() * 75))) * mm +
+                         tubeh / (2 * TMath::Sin(TMath::DegToRad() * 75)),
                        -729 * mm, 0, rot5));
   cradle->AddNode(
     five, 2,
-    new TGeoCombiTrans(origintrapstruct - (486 + (597 - 50 - 60) / (2 * TMath::Tan(TMath::DegToRad() * 75))) * mm -
-                         tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 75)),
+    new TGeoCombiTrans(origtrastruct - (486 + (597 - 50 - 60) / (2 * TMath::Tan(TMath::DegToRad() * 75))) * mm -
+                         tubeh / (2 * TMath::Sin(TMath::DegToRad() * 75)),
                        -729 * mm, 0, rot5a));
   cradle->AddNode(six, 1,
-                  new TGeoCombiTrans(origintrapstruct + 808 * mm + (480 * mm / 2) * TMath::Cos(TMath::DegToRad() * 55) +
-                                       tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 55)) + 2.,
+                  new TGeoCombiTrans(origtrastruct + 808 * mm + (480 * mm / 2) * TMath::Cos(TMath::DegToRad() * 55) +
+                                       tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)) + 2.,
                                      -729 * mm, -params[4] - 0.5, rot4a));
   cradle->AddNode(six, 2,
-                  new TGeoCombiTrans(origintrapstruct - 808 * mm - (480 * mm / 2) * TMath::Cos(TMath::DegToRad() * 55) -
-                                       tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 55)) - 2.,
+                  new TGeoCombiTrans(origtrastruct - 808 * mm - (480 * mm / 2) * TMath::Cos(TMath::DegToRad() * 55) -
+                                       tubeh / (2 * TMath::Sin(TMath::DegToRad() * 55)) - 2.,
                                      -729 * mm, -params[4] - 0.5, rot4));
 
   TGeoRotation* rot7 = new TGeoRotation("7rot");
@@ -756,12 +758,12 @@ TGeoVolume* Detector::CreateCradle()
   rot7a->RotateY(130);
 
   cradle->AddNode(
-    seven, 1, new TGeoCombiTrans(origintrapstruct + 1478 * mm - (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) +
-                                   tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 50)),
+    seven, 1, new TGeoCombiTrans(origtrastruct + 1478 * mm - (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) +
+                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 50)),
                                  -729 * mm, -params[8], rot7));
   cradle->AddNode(
-    seven, 2, new TGeoCombiTrans(origintrapstruct - 1478 * mm + (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) -
-                                   tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 50)),
+    seven, 2, new TGeoCombiTrans(origtrastruct - 1478 * mm + (472 * mm / 2) * TMath::Cos(TMath::DegToRad() * 50) -
+                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 50)),
                                  -729 * mm, -params[8], rot7a));
   TGeoRotation* rot8 = new TGeoRotation("8rot");
   rot8->RotateX(-90);
@@ -771,12 +773,12 @@ TGeoVolume* Detector::CreateCradle()
   rot8a->RotateY(-25);
   rot8a->RotateZ(180);
   cradle->AddNode(
-    eight, 1, new TGeoCombiTrans(origintrapstruct + 1640 * mm + (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) +
-                                   tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 30)),
+    eight, 1, new TGeoCombiTrans(origtrastruct + 1640 * mm + (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) +
+                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 30)),
                                  -729 * mm, -20.5, rot8));
   cradle->AddNode(
-    eight, 2, new TGeoCombiTrans(origintrapstruct - 1640 * mm - (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) -
-                                   tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 30)),
+    eight, 2, new TGeoCombiTrans(origtrastruct - 1640 * mm - (244 * mm / 2) * TMath::Cos(TMath::DegToRad() * 30) -
+                                   tubeh / (2 * TMath::Sin(TMath::DegToRad() * 30)),
                                  -729 * mm, -20.5, rot8a));
   TGeoRotation* rot9 = new TGeoRotation("9rot");
   rot9->RotateX(-90);
@@ -785,8 +787,8 @@ TGeoVolume* Detector::CreateCradle()
   rot9a->RotateX(-90);
   rot9a->RotateY(-90);
   rot9a->RotateZ(180);
-  cradle->AddNode(nine, 1, new TGeoCombiTrans(origintrapstruct + 1960 * mm + 2.5 + 3., -729. * mm, -20., rot9));
-  cradle->AddNode(nine, 2, new TGeoCombiTrans(origintrapstruct - 1960 * mm - 2.5 - 3., -729. * mm, -20., rot9a));
+  cradle->AddNode(nine, 1, new TGeoCombiTrans(origtrastruct + 1960 * mm + 2.5 + 3., -729. * mm, -20., rot9));
+  cradle->AddNode(nine, 2, new TGeoCombiTrans(origtrastruct - 1960 * mm - 2.5 - 3., -729. * mm, -20., rot9a));
   // inner pieces on the other side
   TGeoRotation* rot10 = new TGeoRotation("10rot");
   rot10->RotateX(-90);
@@ -797,10 +799,10 @@ TGeoVolume* Detector::CreateCradle()
   rot10a->RotateZ(180);
 
   cradle->AddNode(
-    ten, 1, new TGeoCombiTrans(origintrapstruct + 1738 * mm + tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 2,
+    ten, 1, new TGeoCombiTrans(origtrastruct + 1738 * mm + tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 2,
                                +729. * mm, -13., rot10));
   cradle->AddNode(
-    ten, 2, new TGeoCombiTrans(origintrapstruct - 1738 * mm - tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 2,
+    ten, 2, new TGeoCombiTrans(origtrastruct - 1738 * mm - tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 2,
                                +729. * mm, -13., rot10a));
 
   TGeoRotation* rot11 = new TGeoRotation("11rot");
@@ -810,11 +812,11 @@ TGeoVolume* Detector::CreateCradle()
   rot11a->RotateX(-90);
   rot11a->RotateY(50);
   rot11a->RotateZ(180);
-  cradle->AddNode(eleven, 1, new TGeoCombiTrans(origintrapstruct - 1738 * mm -
-                                                  tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 352. * mm,
+  cradle->AddNode(eleven, 1, new TGeoCombiTrans(origtrastruct - 1738 * mm -
+                                                  tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) + 352. * mm,
                                                 +729. * mm, -12.7, rot11));
-  cradle->AddNode(eleven, 2, new TGeoCombiTrans(origintrapstruct + 1738 * mm +
-                                                  tubeheight / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 352. * mm,
+  cradle->AddNode(eleven, 2, new TGeoCombiTrans(origtrastruct + 1738 * mm +
+                                                  tubeh / (2 * TMath::Sin(TMath::DegToRad() * 60)) - 352. * mm,
                                                 +729. * mm, -12.7, rot11a));
 
   TGeoRotation* rot12 = new TGeoRotation("12rot");
@@ -824,8 +826,8 @@ TGeoVolume* Detector::CreateCradle()
   rot12a->RotateX(-90);
   rot12a->RotateY(-120);
   rot12a->RotateZ(180);
-  cradle->AddNode(twelve, 1, new TGeoCombiTrans(origintrapstruct + 1065 * mm, +729. * mm, 1., rot12));
-  cradle->AddNode(twelve, 2, new TGeoCombiTrans(origintrapstruct - 1065 * mm, +729. * mm, 1., rot12a));
+  cradle->AddNode(twelve, 1, new TGeoCombiTrans(origtrastruct + 1065 * mm, +729. * mm, 1., rot12));
+  cradle->AddNode(twelve, 2, new TGeoCombiTrans(origtrastruct - 1065 * mm, +729. * mm, 1., rot12a));
 
   TGeoRotation* rot13 = new TGeoRotation("13rot");
   rot13->RotateX(-90);
@@ -834,8 +836,8 @@ TGeoVolume* Detector::CreateCradle()
   TGeoRotation* rot13a = new TGeoRotation("13arot");
   rot13a->RotateX(-90);
   rot13a->RotateY(-43);
-  cradle->AddNode(thirteen, 1, new TGeoCombiTrans(origintrapstruct + 572 * mm - 18., +729. * mm, -1.5, rot13));
-  cradle->AddNode(thirteen, 2, new TGeoCombiTrans(origintrapstruct - 572 * mm + 18., +729. * mm, -1.5, rot13a));
+  cradle->AddNode(thirteen, 1, new TGeoCombiTrans(origtrastruct + 572 * mm - 18., +729. * mm, -1.5, rot13));
+  cradle->AddNode(thirteen, 2, new TGeoCombiTrans(origtrastruct - 572 * mm + 18., +729. * mm, -1.5, rot13a));
 
   // vertical structures
   TGeoRotation* vrot = new TGeoRotation("vertbox");
@@ -849,15 +851,17 @@ TGeoVolume* Detector::CreateCradle()
                                                    -477. * mm / 2 - 20. * mm / 2, vrot));
 
   cradle->AddNode(
-    vbox, 3, new TGeoCombiTrans(origintrapstruct - (1641.36 * mm + params[7]) / 2. + 50. * mm / 2. + 3, 0., 0.5, vrot));
+    vbox, 3, new TGeoCombiTrans(origtrastruct - (1641.36 * mm + params[7]) / 2. + 50. * mm / 2. + 3, 0.,
+                                0.5, vrot));
   cradle->AddNode(cfourteen, 3,
-                  new TGeoCombiTrans(origintrapstruct - (1641.36 * mm + params[7]) / 2. + 50. * mm / 2. + 3, 0.,
+                  new TGeoCombiTrans(origtrastruct - (1641.36 * mm + params[7]) / 2. + 50. * mm / 2. + 3, 0.,
                                      -477. * mm / 2 - 20. * mm / 2, vrot));
 
   cradle->AddNode(
-    vbox, 4, new TGeoCombiTrans(origintrapstruct + (1641.36 * mm + params[7]) / 2. - 50. * mm / 2. - 3, 0., 0.5, vrot));
+    vbox, 4, new TGeoCombiTrans(origtrastruct + (1641.36 * mm + params[7]) / 2. - 50. * mm / 2. - 3, 0.,
+                                0.5, vrot));
   cradle->AddNode(cfourteen, 4,
-                  new TGeoCombiTrans(origintrapstruct + (1641.36 * mm + params[7]) / 2. - 50. * mm / 2. - 3, 0.,
+                  new TGeoCombiTrans(origtrastruct + (1641.36 * mm + params[7]) / 2. - 50. * mm / 2. - 3, 0.,
                                      -477. * mm / 2 - 20. * mm / 2, vrot));
 
   return cradle;
@@ -902,7 +906,7 @@ TGeoVolume* Detector::CradleBaseVolume(TGeoMedium* med, Double_t l[7], const cha
 
   xtruOut->DefinePolygon(4, xv, yv);
   xtruOut->DefineSection(0, -l[4] / 2., 0., 0.,
-                         1.0); // 0=  I plane z; (0.,0.) = shift wrt centre; 1.= shape scale factor
+                         1.0);                        // 0=  I plane z; (0.,0.) = shift wrt centre; 1.= shape scale factor
   xtruOut->DefineSection(1, +l[4] / 2., 0., 0., 1.0); // 1= II plane z;
 
   Double_t tgalpha = 0;
