@@ -12,6 +12,7 @@
 #include "FITBase/Geometry.h"
 
 #include <FairLogger.h>
+#include <sstream>
 
 ClassImp(o2::fit::Geometry);
 
@@ -19,6 +20,8 @@ using namespace o2::fit;
 
 Geometry::Geometry() : mMCP{ { 0, 0, 0 } }
 {
+
+  printf ("@@@@ Geometry::Geometry \n");
   Float_t zDetA = 333;
   Float_t xa[24] = { -11.8, -5.9, 0,     5.9,  11.8, -11.8, -5.9, 0,     5.9,  11.8, -12.8, -6.9,
                      6.9,   12.8, -11.8, -5.9, 0,    5.9,   11.8, -11.8, -5.9, 0,    5.9,   11.8 };
@@ -92,4 +95,7 @@ Geometry::Geometry() : mMCP{ { 0, 0, 0 } }
     mMCP[ipmt].SetXYZ(xa[ipmt], xa[ipmt], zDetA);
   for (int ipmt = 24; ipmt < 52; ipmt++)
     mMCP[ipmt].SetXYZ(xc2[ipmt - 24], yc2[ipmt - 24], zc2[ipmt - 24]);
+  printf(" @@@@ set coordinate \n");
 }
+
+

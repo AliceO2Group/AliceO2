@@ -14,6 +14,8 @@
 #include "TString.h"
 #include "TSystem.h"
 #include "TVirtualMC.h"
+#include "TVector3.h"
+
 
 #include "FairRootManager.h" // for FairRootManager
 #include "FairLogger.h"
@@ -34,7 +36,7 @@ ClassImp(Detector);
 Detector::Detector(Bool_t Active)
   : o2::Base::DetImpl<Detector>("FIT", Active), mIdSens1(0), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>)
 {
-  //  Geometry *geo  = GetGeometry() ;
+  // Gegeo  = GetGeometry() ;
 
   //  TString gn(geo->GetName());
 }
@@ -67,6 +69,15 @@ void Detector::ConstructGeometry()
   Float_t pinstart[3] = { 2.95, 2.95, 4.34 };
   Float_t pmcp[3] = { 2.949, 2.949, 2.8 }; // MCP
 
+  
+  int nCellsA = Geometry::NCellsA;
+  int nCellsC = Geometry::NCellsC;
+  std::cout<<"@@@@ mGeometry->NCells "<<nCellsA<<" "<<nCellsC<<std::endl;
+  
+  // TVector3 * centerMCP = (TVector3*)Geometry::centerMCP(2);
+  // std::cout<<"@@@@ mGeometry->centerMCP "<<nCellsA<<" "<<nCellsC<<
+  //    centerMCP.X()<<std::endl;
+  
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
   // C side Concave Geometry

@@ -131,7 +131,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  Geometry* mGeometry; //! Geometry
+   Geometry* mGeometry = nullptr; //! Geometry
 
   ClassDefOverride(Detector, 1)
 };
