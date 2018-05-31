@@ -58,22 +58,40 @@ struct GroupStruct {
 class TopologyDictionary
 {
  public:
-
   /// Default constructor
   TopologyDictionary();
-  /// constexpr for the definition of the groups of rare topologies
-  static constexpr int NumberOfRowClasses = 7; ///< Number of row classes for the groups of rare topologies
-  static constexpr int NumberOfColClasses = 7; ///< Number of column classes for the groups of rare topologies
-  static constexpr int RowClassSpan = 5;       ///< Row span of the classes of rare topologies
-  static constexpr int ColClassSpan = 5;       ///< Column span of the classes of rare topologies
-  static constexpr int MaxRowSpan = 32;        ///< Maximum row span
-  static constexpr int MaxColSpan = 32;        ///< Maximum column span
+  /// constexpr for the definition of the groups of rare topologies.
+  /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
+  static constexpr int RowClassSpan = 4;                                                 ///< Row span of the classes of rare topologies
+  static constexpr int ColClassSpan = 4;                                                 ///< Column span of the classes of rare topologies
+  static constexpr int MinimumClassArea = RowClassSpan * ColClassSpan;                   ///< Area of the smallest class of rare topologies (used as reference)
+  static constexpr int MaxNumberOfClasses = Cluster::kMaxPatternBits / MinimumClassArea; ///< Maximum number of row/column classes for the groups of rare topologies
+  static constexpr int NumberOfRareGroups = MaxNumberOfClasses * MaxNumberOfClasses;     ///< Number of entries corresponding to groups of rare topologies (those whos matrix exceed the max number of bytes are empty).
   /// Prints the dictionary
   friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
   /// Prints the dictionary in a binary file
   void WriteBinaryFile(std::string outputFile);
   /// Reads the dictionary from a binary file
   void ReadBinaryFile(std::string fileName);
+  /// Returns the x position of the COG for the n_th element
+  float GetXcog(int n);
+  /// Returns the error on the x position of the COG for the n_th element
+  float GetErrX(int n);
+  /// Returns the z position of the COG for the n_th element
+  float GetZcog(int n);
+  /// Returns the error on the z position of the COG for the n_th element
+  float GetErrZ(int n);
+  /// Returns the hash of the n_th element
+  unsigned long GetHash(int n);
+  /// Returns the number of fired pixels of the n_th element
+  int GetNpixels(int n);
+  /// Returns the pattern of the topology
+  ClusterPattern GetPattern(int n);
+  /// Returns the frequency of the n_th element;
+  double GetFrequency(int n);
+  /// Returns the number of elements in the dicionary;
+  int GetSize() { return (int)mVectorOfGroupIDs.size(); }
+
   friend BuildTopologyDictionary;
   friend LookUp;
   friend TopologyFastSimulation;

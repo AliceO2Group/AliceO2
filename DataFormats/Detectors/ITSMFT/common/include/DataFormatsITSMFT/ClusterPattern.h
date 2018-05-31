@@ -41,11 +41,10 @@ class ClusterPattern
   ClusterPattern();
   /// Standard constructor
   ClusterPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  /// Maximum number of bytes for the cluster puttern + 2 bytes respectively for the number of rows and columns of the bounding box
+  static constexpr int kExtendedPatternBytes = Cluster::kMaxPatternBytes + 2;
   /// Returns the pattern
-  void getPattern(unsigned char destination[Cluster::kMaxPatternBytes + 2]) const
-  {
-    memcpy(destination, mBitmap, Cluster::kMaxPatternBytes + 2);
-  }
+  std::array<unsigned char, kExtendedPatternBytes> getPattern() const { return mBitmap; }
   /// Returns a specific byte of the pattern
   unsigned char getByte(int n) const;
   /// Returns the number of rows
@@ -59,7 +58,7 @@ class ClusterPattern
   /// Sets the pattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   /// Sets the whole bitmask: the number of rows, the number of columns and the pattern
-  void setPattern(const unsigned char bitmask[Cluster::kMaxPatternBytes + 2]);
+  void setPattern(const unsigned char bitmask[kExtendedPatternBytes]);
 
   friend ClusterTopology;
   friend TopologyDictionary;
@@ -73,8 +72,8 @@ class ClusterPattern
   /// - remainig bytes : pixels of the cluster, where 1 is a fired pixel and 0
   /// is a non-fired pixel. The number of bytes used for the pixels depends on
   /// the size of the bounding box
-  unsigned char
-    mBitmap[Cluster::kMaxPatternBytes + 2]; ///< Cluster pattern: 1 is a fired pixel and 0 is a non-fired pixel
+
+  std::array<unsigned char, kExtendedPatternBytes> mBitmap; ///< Cluster pattern: 1 is a fired pixel and 0 is a non-fired pixel
 
   ClassDefNV(ClusterPattern, 1);
 };

@@ -33,6 +33,7 @@ class LookUp
 {
  public:
   LookUp(std::string fileName);
+  static int groupFinder(int nRow, int nCol);
   int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   int getTopologiesOverThreshold() { return mTopologiesOverThreshold; }
 
