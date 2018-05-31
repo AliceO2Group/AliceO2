@@ -29,13 +29,16 @@ ClassImp(o2::ITSMFT::TopologyDictionary)
   namespace ITSMFT
   {
 
-  TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{-1} {}
+  TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{ -1 } {}
 
   std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
   {
     for (auto& p : dict.mVectorOfGroupIDs) {
-      os << p.mHash << " " << p.mErrX << " " << p.mErrZ << " " << p.mXCOG << " " << p.mZCOG << " " << p.mNpixels << " "
-         << p.mFrequency << p.mPattern << std::endl;
+      os << "Hash: " << p.mHash << " ErrX: " << p.mErrX << " ErrZ : " << p.mErrZ << " xCOG: " << p.mXCOG << " zCOG: " << p.mZCOG << " Npixles: " << p.mNpixels << " Frequency: "
+         << p.mFrequency << std::endl
+         << p.mPattern << std::endl
+         << "*********************************************************" << std::endl
+         << std::endl;
     }
     return os;
   }
@@ -52,7 +55,7 @@ ClassImp(o2::ITSMFT::TopologyDictionary)
       file_output.write(reinterpret_cast<char*>(&p.mNpixels), sizeof(int));
       file_output.write(reinterpret_cast<char*>(&p.mFrequency), sizeof(double));
       file_output.write(reinterpret_cast<char*>(&p.mPattern.mBitmap),
-                        sizeof(unsigned char) * (Cluster::kMaxPatternBytes + 2));
+                        sizeof(unsigned char) * (ClusterPattern::kExtendedPatternBytes));
     }
     file_output.close();
   }
@@ -61,7 +64,8 @@ ClassImp(o2::ITSMFT::TopologyDictionary)
   {
     mVectorOfGroupIDs.clear();
     mFinalMap.clear();
-    for(auto &p : mSmallTopologiesLUT) p = -1;
+    for (auto& p : mSmallTopologiesLUT)
+      p = -1;
     std::ifstream in(fname.data(), std::ios::in | std::ios::binary);
     GroupStruct gr;
     int groupID = 0;
@@ -76,7 +80,7 @@ ClassImp(o2::ITSMFT::TopologyDictionary)
         in.read(reinterpret_cast<char*>(&gr.mZCOG), sizeof(float));
         in.read(reinterpret_cast<char*>(&gr.mNpixels), sizeof(int));
         in.read(reinterpret_cast<char*>(&gr.mFrequency), sizeof(double));
-        in.read(reinterpret_cast<char*>(&gr.mPattern.mBitmap), sizeof(unsigned char) * (Cluster::kMaxPatternBytes + 2));
+        in.read(reinterpret_cast<char*>(&gr.mPattern.mBitmap), sizeof(unsigned char) * (ClusterPattern::kExtendedPatternBytes));
         mVectorOfGroupIDs.push_back(gr);
         if (gr.mPattern.getUsedBytes() == 1)
           mSmallTopologiesLUT[(gr.mPattern.getRowSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = groupID;
@@ -86,6 +90,80 @@ ClassImp(o2::ITSMFT::TopologyDictionary)
       }
     }
     in.close();
+  }
+
+  float TopologyDictionary::GetXcog(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else
+      return mVectorOfGroupIDs[n].mXCOG;
+  }
+  float TopologyDictionary::GetErrX(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else
+      return mVectorOfGroupIDs[n].mErrX;
+  }
+
+  float TopologyDictionary::GetZcog(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else
+      return mVectorOfGroupIDs[n].mZCOG;
+  }
+
+  float TopologyDictionary::GetErrZ(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else
+      return mVectorOfGroupIDs[n].mErrZ;
+  }
+
+  unsigned long TopologyDictionary::GetHash(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else
+      return mVectorOfGroupIDs[n].mHash;
+  }
+
+  int TopologyDictionary::GetNpixels(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else
+      return mVectorOfGroupIDs[n].mNpixels;
+  }
+
+  ClusterPattern TopologyDictionary::GetPattern(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else
+      return mVectorOfGroupIDs[n].mPattern;
+  }
+
+  double TopologyDictionary::GetFrequency(int n)
+  {
+    if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
+      printf("Incorrect element\n");
+      exit(1);
+    } else if (n == 0) {
+      return mVectorOfGroupIDs[n].mFrequency;
+    } else {
+      return mVectorOfGroupIDs[n].mFrequency - mVectorOfGroupIDs[n - 1].mFrequency;
+    }
   }
   } // namespace ITSMFT
 }

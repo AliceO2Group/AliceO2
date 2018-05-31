@@ -79,7 +79,7 @@ ClassImp(o2::ITSMFT::ClusterTopology)
   unsigned long ClusterTopology::getCompleteHash(int nRow, int nCol,
                                                  const unsigned char patt[Cluster::kMaxPatternBytes])
   {
-    unsigned char extended_pattern[Cluster::kMaxPatternBytes + 2] = { 0 };
+    unsigned char extended_pattern[ClusterPattern::kExtendedPatternBytes] = { 0 };
     extended_pattern[0] = (unsigned char)nRow;
     extended_pattern[1] = (unsigned char)nCol;
     int nBits = nRow * nCol;
@@ -112,10 +112,9 @@ ClassImp(o2::ITSMFT::ClusterTopology)
 
   unsigned long ClusterTopology::getCompleteHash(const ClusterTopology& topology)
   {
-    unsigned char patt[Cluster::kMaxPatternBytes + 2];
-    topology.getPattern(patt);
+    auto patt = topology.getPattern();
     int nBytesUsed = topology.getUsedBytes();
-    unsigned long partialHash = (unsigned long)hashFunction(patt, nBytesUsed);
+    unsigned long partialHash = (unsigned long)hashFunction(patt.data(), nBytesUsed);
     // The first four bytes are directly taken from partialHash
     unsigned long completeHash = partialHash << 32;
     // The last four bytes of the hash are the first 32 pixels of the topology.

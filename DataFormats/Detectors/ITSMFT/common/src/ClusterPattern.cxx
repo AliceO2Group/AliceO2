@@ -57,9 +57,9 @@ ClassImp(o2::ITSMFT::ClusterPattern)
     memcpy(&mBitmap[2], patt, nBytes);
   }
 
-  void ClusterPattern::setPattern(const unsigned char patt[Cluster::kMaxPatternBytes + 2])
+  void ClusterPattern::setPattern(const unsigned char patt[ClusterPattern::kExtendedPatternBytes])
   {
-    memcpy(&mBitmap[0], patt, Cluster::kMaxPatternBytes + 2);
+    memcpy(&mBitmap[0], patt, ClusterPattern::kExtendedPatternBytes);
   }
 
   std::ostream& operator<<(std::ostream& os, const ClusterPattern& pattern)
@@ -73,21 +73,26 @@ ClassImp(o2::ITSMFT::ClusterPattern)
       tempChar = pattern.mBitmap[i];
       s = 128; // 0b10000000
       while (s > 0) {
-        if (ic % pattern.getColumnSpan() == 0)
+        if (ic % pattern.getColumnSpan() == 0) {
           os << "|";
+        }
         ic++;
-        if ((tempChar & s) != 0)
+        if ((tempChar & s) != 0) {
           os << '+';
-        else
+        } else {
           os << ' ';
+        }
         s /= 2;
-        if (ic % pattern.getColumnSpan() == 0)
+        if (ic % pattern.getColumnSpan() == 0) {
           os << "|" << std::endl;
-        if (ic == (pattern.getRowSpan() * pattern.getColumnSpan()))
+        }
+        if (ic == (pattern.getRowSpan() * pattern.getColumnSpan())) {
           break;
+        }
       }
-      if (ic == (pattern.getRowSpan() * pattern.getColumnSpan()))
+      if (ic == (pattern.getRowSpan() * pattern.getColumnSpan())) {
         break;
+      }
     }
     os << std::endl;
     return os;

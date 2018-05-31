@@ -22,6 +22,7 @@
 #ifndef ALICEO2_ITSMFT_BUILDTOPOLOGYDICTIONARY_H
 #define ALICEO2_ITSMFT_BUILDTOPOLOGYDICTIONARY_H
 #include <algorithm>
+#include <map>
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -67,6 +68,7 @@ class BuildTopologyDictionary
   friend std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& BD);
   void printDictionary(std::string fname);
   void printDictionaryBinary(std::string fname);
+  void saveDictionaryRoot(const char* filename);
 
   int getTotClusters() const { return mTotClusters; }
   int getNotInGroups() const { return mNotInGroups; }
@@ -74,8 +76,8 @@ class BuildTopologyDictionary
 
  private:
   TopologyDictionary mDictionary; ///< Dictionary of topologies
-  std::unordered_map<unsigned long, std::pair<ClusterTopology, unsigned long>>
-    mTopologyMap; ///< Temporary map of type <hash,<topology,counts>>
+  std::map<unsigned long, std::pair<ClusterTopology, unsigned long>>
+    mTopologyMap;                                                         ///< Temporary map of type <hash,<topology,counts>>
   std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; ///< <freq,hash>, needed to define threshold
   int mTotClusters;
   int mNumberOfGroups;
