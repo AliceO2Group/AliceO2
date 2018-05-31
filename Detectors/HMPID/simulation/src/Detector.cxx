@@ -981,23 +981,22 @@ void Detector::DefineOpticalProperties()
   Float_t aQeAll[kNbins], aQePc[kNbins];
   Double_t dReflMet[kNbins], dQePc[kNbins];
 
-  TF2* pRaIF = new TF2("HidxRad", "sqrt(1+0.554*(1239.84/x)^2/((1239.84/x)^2-5769)-0.0005*(y-20))", emin, emax, 0,
-                       50); // DiMauro mail temp 0-50 degrees C
-  TF1* pWiIF = new TF1("HidxWin", "sqrt(1+46.411/(10.666*10.666-x*x)+228.71/(18.125*18.125-x*x))", emin,
-                       emax);                                                                  // SiO2 idx TDR p.35
-  TF1* pGaIF = new TF1("HidxGap", "1+0.12489e-6/(2.62e-4 - x*x/1239.84/1239.84)", emin, emax); //?????? from where
+  TF2 pRaIF("HidxRad", "sqrt(1+0.554*(1239.84/x)^2/((1239.84/x)^2-5769)-0.0005*(y-20))", emin, emax, 0,
+            50); // DiMauro mail temp 0-50 degrees C
+  TF1 pWiIF("HidxWin", "sqrt(1+46.411/(10.666*10.666-x*x)+228.71/(18.125*18.125-x*x))", emin,
+            emax);                                                                  // SiO2 idx TDR p.35
+  TF1 pGaIF("HidxGap", "1+0.12489e-6/(2.62e-4 - x*x/1239.84/1239.84)", emin, emax); //?????? from where
 
-  TF1* pRaAF =
-    new TF1("HabsRad", "(x<7.8)*(gaus+gaus(3))+(x>=7.8)*0.0001", emin, emax); // fit from DiMauro data 28.10.03
-  pRaAF->SetParameters(3.20491e16, -0.00917890, 0.742402, 3035.37, 4.81171, 0.626309);
-  TF1* pWiAF = new TF1("HabsWin", "(x<8.2)*(818.8638-301.0436*x+36.89642*x*x-1.507555*x*x*x)+(x>=8.2)*0.0001", emin,
-                       emax); // fit from DiMauro data 28.10.03
-  TF1* pGaAF = new TF1(
+  TF1 pRaAF("HabsRad", "(x<7.8)*(gaus+gaus(3))+(x>=7.8)*0.0001", emin, emax); // fit from DiMauro data 28.10.03
+  pRaAF.SetParameters(3.20491e16, -0.00917890, 0.742402, 3035.37, 4.81171, 0.626309);
+  TF1 pWiAF("HabsWin", "(x<8.2)*(818.8638-301.0436*x+36.89642*x*x-1.507555*x*x*x)+(x>=8.2)*0.0001", emin,
+            emax); // fit from DiMauro data 28.10.03
+  TF1 pGaAF(
     "HabsGap", "(x<7.75)*6512.399+(x>=7.75)*3.90743e-2/(-1.655279e-1+6.307392e-2*x-8.011441e-3*x*x+3.392126e-4*x*x*x)",
     emin, emax); //????? from where
 
-  TF1* pQeF = new TF1("Hqe", "0+(x>6.07267)*0.344811*(1-exp(-1.29730*(x-6.07267)))", emin,
-                      emax); // fit from DiMauro data 28.10.03
+  TF1 pQeF("Hqe", "0+(x>6.07267)*0.344811*(1-exp(-1.29730*(x-6.07267)))", emin,
+           emax); // fit from DiMauro data 28.10.03
 
   TString title = GetTitle();
   Bool_t isFlatIdx = title.Contains("FlatIdx");
@@ -1006,45 +1005,37 @@ void Detector::DefineOpticalProperties()
     Float_t eV = emin + deltaE * i; // Ckov energy in eV
     aEckov[i] = 1e-9 * eV;          // Ckov energy in GeV
     dEckov[i] = aEckov[i];
-    aAbsRad[i] = pRaAF->Eval(eV);
-    (isFlatIdx) ? aIdxRad[i] = 1.292 : aIdxRad[i] = pRaIF->Eval(eV, 20);
-    aAbsWin[i] = pWiAF->Eval(eV);
-    aIdxWin[i] = pWiIF->Eval(eV);
-    aAbsGap[i] = pGaAF->Eval(eV);
-    aIdxGap[i] = pGaIF->Eval(eV);
+    aAbsRad[i] = pRaAF.Eval(eV);
+    (isFlatIdx) ? aIdxRad[i] = 1.292 : aIdxRad[i] = pRaIF.Eval(eV, 20);
+    aAbsWin[i] = pWiAF.Eval(eV);
+    aIdxWin[i] = pWiIF.Eval(eV);
+    aAbsGap[i] = pGaAF.Eval(eV);
+    aIdxGap[i] = pGaIF.Eval(eV);
     aQeAll[i] = 1; // QE for all other materials except for PC must be 1.
     aAbsMet[i] = 0.0001;
     aIdxMet[i] = 0; // metal ref idx must be 0 in order to reflect photon
     aIdxPc[i] = 1;
-    aQePc[i] = pQeF->Eval(eV); // PC ref idx must be 1 in order to apply photon to QE conversion
-    dQePc[i] = pQeF->Eval(eV);
+    aQePc[i] = pQeF.Eval(eV); // PC ref idx must be 1 in order to apply photon to QE conversion
+    dQePc[i] = pQeF.Eval(eV);
     dReflMet[i] = 0.; // no reflection on the surface of the pc (?)
   }
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kC6F14), kNbins, aEckov, aAbsRad, aQeAll, aIdxRad);
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kSiO2), kNbins, aEckov, aAbsWin, aQeAll, aIdxWin);
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kCH4), kNbins, aEckov, aAbsGap, aQeAll, aIdxGap);
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kCu), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kW), kNbins, aEckov, aAbsMet, aQeAll,
-                                   aIdxMet); // n=0 means reflect photons
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kCsI), kNbins, aEckov, aAbsMet, aQePc,
-                                   aIdxPc); // n=1 means convert photons
-  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kAl), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
+  fMC->SetCerenkov(getMediumID(kC6F14), kNbins, aEckov, aAbsRad, aQeAll, aIdxRad);
+  fMC->SetCerenkov(getMediumID(kSiO2), kNbins, aEckov, aAbsWin, aQeAll, aIdxWin);
+  fMC->SetCerenkov(getMediumID(kCH4), kNbins, aEckov, aAbsGap, aQeAll, aIdxGap);
+  fMC->SetCerenkov(getMediumID(kCu), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
+  fMC->SetCerenkov(getMediumID(kW), kNbins, aEckov, aAbsMet, aQeAll,
+                   aIdxMet); // n=0 means reflect photons
+  fMC->SetCerenkov(getMediumID(kCsI), kNbins, aEckov, aAbsMet, aQePc,
+                   aIdxPc); // n=1 means convert photons
+  fMC->SetCerenkov(getMediumID(kAl), kNbins, aEckov, aAbsMet, aQeAll, aIdxMet);
 
   // Define a skin surface for the photocatode to enable 'detection' in G4
   for (Int_t i = 0; i < 7; i++) {
-    TVirtualMC::GetMC()->DefineOpSurface(Form("surfPc%i", i), kGlisur /*kUnified*/, kDielectric_metal, kPolished, 0.);
-    TVirtualMC::GetMC()->SetMaterialProperty(Form("surfPc%i", i), "EFFICIENCY", kNbins, dEckov, dQePc);
-    TVirtualMC::GetMC()->SetMaterialProperty(Form("surfPc%i", i), "REFLECTIVITY", kNbins, dEckov, dReflMet);
-    TVirtualMC::GetMC()->SetSkinSurface(Form("skinPc%i", i), Form("Hpad%i", i), Form("surfPc%i", i));
+    fMC->DefineOpSurface(Form("surfPc%i", i), kGlisur /*kUnified*/, kDielectric_metal, kPolished, 0.);
+    fMC->SetMaterialProperty(Form("surfPc%i", i), "EFFICIENCY", kNbins, dEckov, dQePc);
+    fMC->SetMaterialProperty(Form("surfPc%i", i), "REFLECTIVITY", kNbins, dEckov, dReflMet);
+    fMC->SetSkinSurface(Form("skinPc%i", i), Form("Hpad%i", i), Form("surfPc%i", i));
   }
-
-  delete pRaAF;
-  delete pWiAF;
-  delete pGaAF;
-  delete pRaIF;
-  delete pWiIF;
-  delete pGaIF;
-  delete pQeF;
 }
 
 } // end namespace hmpid
