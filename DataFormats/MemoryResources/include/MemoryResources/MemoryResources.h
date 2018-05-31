@@ -192,7 +192,7 @@ class SpectatorMessageResource : public FairMQMemoryResource
 // return the message associated with the container or nullptr if it does not make sense (e.g. when we are just
 // watching an existing message or when the container is not using FairMQMemoryResource as backend).
 template <typename ContainerT>
-typename std::enable_if<std::is_base_of<boost::container::pmr::polymorphic_allocator<byte>,
+typename std::enable_if<std::is_base_of<boost::container::pmr::polymorphic_allocator<typename ContainerT::value_type>,
                                         typename ContainerT::allocator_type>::value == true,
                         FairMQMessagePtr>::type
   getMessage(ContainerT&& container_, o2::memoryResources::FairMQMemoryResource* targetResource = nullptr)
