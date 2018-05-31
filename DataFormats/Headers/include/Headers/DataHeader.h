@@ -496,7 +496,7 @@ struct Stack {
   allocator_type get_allocator() const { return allocator; }
 
   //
-  auto getFreefnHint() const noexcept { return allocator.resource(); }
+  boost::container::pmr::memory_resource* getFreefnHint() const noexcept { return allocator.resource(); }
   static auto getFreefn() noexcept { return &freefn; }
 
   /// The magic constructors: take arbitrary number of headers and serialize them
@@ -526,7 +526,7 @@ struct Stack {
  private:
   allocator_type allocator{ boost::container::pmr::new_delete_resource() };
   size_t bufferSize{ 0 };
-  BufferType buffer{ nullptr };
+  BufferType buffer{ nullptr, freeobj{ getFreefnHint() } };
 
   template <typename T, typename... Args>
   static size_t calculateSize(T&& h, Args&&... args) noexcept
