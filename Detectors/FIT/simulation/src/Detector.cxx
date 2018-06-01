@@ -16,7 +16,6 @@
 #include "TVirtualMC.h"
 #include "TVector3.h"
 
-
 #include "FairRootManager.h" // for FairRootManager
 #include "FairLogger.h"
 #include "FairVolume.h"
@@ -79,15 +78,14 @@ void Detector::ConstructGeometry()
   Float_t pinstart[3] = { 2.95, 2.95, 4.34 };
   Float_t pmcp[3] = { 2.949, 2.949, 2.8 }; // MCP
 
-  
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
-  std::cout<<"@@@@ mGeometry->NCells "<<nCellsA<<" "<<nCellsC<<std::endl;
-  
-  // TVector3 * centerMCP = (TVector3*)Geometry::centerMCP(2);
-  // std::cout<<"@@@@ mGeometry->centerMCP "<<nCellsA<<" "<<nCellsC<<
-  //    centerMCP.X()<<std::endl;
-  
+  //std::cout<<"@@@@ mGeometry->NCells "<<nCellsA<<" "<<nCellsC<<std::endl;
+
+  Geometry geometry;
+  TVector3 centerMCP = geometry.centerMCP(2);
+  std::cout << "@@@@ mGeometry->centerMCP " << nCellsA << " " << nCellsC << centerMCP.X() << std::endl;
+
   Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
   // C side Concave Geometry
@@ -151,11 +149,11 @@ void Detector::ConstructGeometry()
   }
   // A Side
 
-  Float_t xa[Geometry::NCellsA] = { -11.8, -5.9, 0,     5.9,  11.8, -11.8, -5.9, 0,     5.9,  11.8, -12.8, -6.9,
-                                    6.9,   12.8, -11.8, -5.9, 0,    5.9,   11.8, -11.8, -5.9, 0,    5.9,   11.8 };
+  Float_t xa[Geometry::NCellsA] = { -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
+                                    6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8 };
 
-  Float_t ya[Geometry::NCellsA] = { 11.9, 11.9, 12.9, 11.9, 11.9, 6.0,  6.0,  7.0,   6.0,   6.0,   -0.1,  -0.1,
-                                    0.1,  0.1,  -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9 };
+  Float_t ya[Geometry::NCellsA] = { 11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0.1, -0.1,
+                                    0.1, 0.1, -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9 };
 
   TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("0STL"); // A side mother
   TGeoVolumeAssembly* stlinC = new TGeoVolumeAssembly("0STR"); // C side mother
@@ -222,7 +220,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   Float_t ptopref[3] = { 1.3241, 1.3241, 1. }; // cherenkov radiator wrapped with reflection
   Float_t preg[3] = { 1.324, 1.324, 0.005 };   // photcathode
   Double_t prfv[3] = { 0.0002, 1.323,
-                       1. }; // vertical refracting layer bettwen radiators and bettwen radiator and not optical Air
+                       1. };                // vertical refracting layer bettwen radiators and bettwen radiator and not optical Air
   Double_t prfh[3] = { 1.323, 0.0002, 1. }; // horizontal refracting layer bettwen radiators a
   Double_t pal[3] = { 2.648, 2.648, 0.25 }; // 5mm Al top on th eeach radiator
   // Entry window (glass)
@@ -334,7 +332,7 @@ void Detector::CreateMaterials()
   Int_t isxfld = 2;     // magneticField->Integ();
   Float_t sxmgmx = 10.; // magneticField->Max();
   // FIXME: use o2::Base::Detector::initFieldTrack to init mag field params
-  
+
   //   Float_t a,z,d,radl,absl,buf[1];
   // Int_t nbuf;
   // AIR
@@ -388,7 +386,7 @@ void Detector::DefineOpticalProperties()
   if (ReadOptProperties(optPropPath.Data()) < 0) {
     // Error reading file
     LOG(ERROR) << "Could not read FIT optical properties" << FairLogger::endl;
-        return;
+    return;
   }
   Int_t nBins = mPhotonEnergyD.size();
   // set QE
@@ -450,7 +448,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
     return -1;
   }
 
-  std::string comment; // dummy, used just to read 4 first lines and move the cursor to the 5th, otherwise unused
+  std::string comment;             // dummy, used just to read 4 first lines and move the cursor to the 5th, otherwise unused
   if (!getline(infile, comment)) { // first comment line
     //         AliFatal(Form("Error opening ascii file (it is probably a folder!): %s", filePath.c_str()));
     return -2;

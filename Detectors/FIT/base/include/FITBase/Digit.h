@@ -8,14 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_FIT_DIGIT_H_
-#define ALICEO2_FIT_DIGIT_H_
+#ifndef ALICEO2_FIT_DIGIT_H
+#define ALICEO2_FIT_DIGIT_H
 
 #include "CommonDataFormat/TimeStamp.h"
 #include <iosfwd>
 #include "Rtypes.h"
 
-//#include <boost/serialization/base_object.hpp> // for base_object
 namespace o2
 {
 namespace fit
@@ -28,7 +27,7 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, Int_t bc);
+  Digit(Double_t time, Int_t channel, Double_t cfd, Float_t amp, Int_t bc);
   ~Digit() = default;
 
   Int_t getChannel() const { return mChannel; }
@@ -40,8 +39,8 @@ class Digit : public DigitBase
   Double_t getCFD() const { return mCFD; }
   void setCFD(Double_t time) { mCFD = time; }
 
-  Int_t getQTC() const { return mQTC; }
-  void setQTC(Int_t amp) { mQTC = amp; }
+  Float_t getQTC() const { return mQTC; }
+  void setQTC(Float_t amp) { mQTC = amp; }
 
   Int_t getBC() const { return mBC; }
   void setBC(Int_t bc) { mBC = bc; }
@@ -54,7 +53,7 @@ class Digit : public DigitBase
   Double_t mTime; /// time stamp
   Int_t mChannel; ///< FIT channel index
   Double_t mCFD;  ///< CFD time value
-  Int_t mQTC;     ///< QTC time value
+  Float_t mQTC;   ///< QTC time value
   Int_t mBC;      ///< Bunch Crossing
 
   ClassDefNV(Digit, 1);

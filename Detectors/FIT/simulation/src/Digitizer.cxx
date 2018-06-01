@@ -28,70 +28,44 @@ ClassImp(Digitizer);
 
 void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
 {
-
   // hits array of FIT hits for a given simulated event
   mDigits = digits;
   Double_t timeframe = 0;
   Int_t bc = 0;
-  Int_t ampthreshold = 100;
-  Float_t lowTimeA = 10000, lowTimeC = 2500, highTimeA = 12500, highTimeC = 4500;
-  Int_t mcp, trackID;
-  Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC)*4;
+  constexpr Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
-  Int_t amp[nMCPs];
-  Double_t hittime, cfd[nMCPs];
-  for (Int_t ipmt = 0; ipmt < nMCPs; ipmt++) {
-    amp[ipmt] = 0;
-    cfd[ipmt] = 0;
-  }
-  
+  Int_t amp[nMCPs] = {};
+  Double_t cfd[nMCPs] = {};
+
   for (auto& hit : *hits) {
     // TODO: put timeframe counting/selection
     // if (timeframe == mTimeFrameCurrent) {
     // timeframe = Int_t((mEventTime + hit.GetTime())); // to be replaced with uncalibrated time
-    mcp = hit.GetDetectorID();
-    hittime = hit.GetTime();
-    if (mcp > 4*Geometry::NCellsA) hittime += mTimeDiffAC;
-    if ( hittime > mLowTime && hittime < mHighTime) {
+    Int_t mcp = hit.GetDetectorID();
+    Double_t hittime = hit.GetTime();
+    if (mcp > 4 * Geometry::NCellsA)
+      hittime += mTimeDiffAC;
+    if (hittime > mLowTime && hittime < mHighTime) {
       cfd[mcp] += hittime;
       amp[mcp]++;
     }
-    // extract trackID
-    trackID = hit.GetTrackID();
   } // end of loop over hits
 
-  Int_t ndigits = 0; // Number of digits added
   for (Int_t ipmt = 0; ipmt < nMCPs; ipmt++) {
-    if (amp[ipmt] > ampthreshold) {
+    if (amp[ipmt] > mAmpThreshold) {
       cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant
-      cfd[ipmt] = (gRandom->Gaus(cfd[ipmt], 50))/Geometry::ChannelWidth;
-      ndigits++;
-      addDigit(Double_t(timeframe), ipmt, cfd[ipmt], amp[ipmt], bc, trackID);
+      cfd[ipmt] = (gRandom->Gaus(cfd[ipmt], 50)) / Geometry::ChannelWidth;
+      mDigits->emplace_back(timeframe, ipmt, cfd[ipmt], Float_t(amp[ipmt]), bc);
     }
   } // end of loop over PMT
 }
 
-void Digitizer::addDigit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, Int_t bc, Int_t trackID)
-{
-  // FIT digit requires: channel, time and number of photons
-  // simplified version,will be change
-
-  Digit newdigit(time, channel, cfd, amp, bc);
-  mDigits->emplace_back(time, channel, cfd, amp, bc);
-
-  if (mMCTruthContainer) {
-    auto ndigits = mDigits->size() - 1;
-    o2::fit::MCLabel label(trackID, mEventID, mSrcID, cfd);
-    mMCTruthContainer->addElement(ndigits, label);
-  }
-}
-
 void Digitizer::initParameters()
 {
-  mAmpthreshold = 100;
+  mAmpThreshold = 100;
   mLowTime = 10000;
   mHighTime = 12500;
-  mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
+  mEventTime = 0;
   // murmur
 }
 //_______________________________________________________________________
