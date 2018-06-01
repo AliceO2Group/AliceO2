@@ -243,8 +243,8 @@ void createFrame(int chamber)
   const float kNearFarLHC = 2.4; // Near and Far TUBS Origin wrt LHC Origin
 
   //   Rotation matrices
-  auto rot1 = new TGeoRotation("rot1", 90., 90., 90., 180., 0., 0.);   // +90 deg in x-y plane
-  auto rot4 = new TGeoRotation("rot4", 90., 315., 90., 45., 0., 0.);   // -45 deg in x-y plane
+  auto rot1 = new TGeoRotation("rot1", 90., 90., 90., 180., 0., 0.); // +90 deg in x-y plane
+  auto rot4 = new TGeoRotation("rot4", 90., 315., 90., 45., 0., 0.); // -45 deg in x-y plane
 
   // ___________________Volume thicknesses________________________
 

@@ -41,10 +41,11 @@
 
 void finalize_geometry(FairRunSim* run);
 
-bool isActivated(std::string s) {
-// access user configuration for list of wanted modules
+bool isActivated(std::string s)
+{
+  // access user configuration for list of wanted modules
   auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
-  auto active = std::find(modulelist.begin(), modulelist.end(), s)!=modulelist.end();
+  auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
   if (active) {
     std::cout << "Activating " << s << " module \n";
   }
@@ -98,7 +99,7 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(magnet);
   }
 
-   // the dipole
+  // the dipole
   if (isActivated("DIPO")) {
     auto dipole = new o2::passive::Dipole("Dipole", "Alice Dipole");
     run->AddModule(dipole);
@@ -128,7 +129,7 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(frame);
   }
 
-  if (isActivated("TOF")){
+  if (isActivated("TOF")) {
     // TOF
     auto tof = new o2::tof::Detector(true);
     run->AddModule(tof);
@@ -140,35 +141,35 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(trd);
   }
 
-  if (isActivated("TPC")){
+  if (isActivated("TPC")) {
     // tpc
     auto tpc = new o2::TPC::Detector(true);
     run->AddModule(tpc);
   }
 
-  if (isActivated("ITS")){
+  if (isActivated("ITS")) {
     // its
     auto its = new o2::ITS::Detector(true);
     run->AddModule(its);
   }
 
-  if (isActivated("MFT")){
+  if (isActivated("MFT")) {
     // mft
     auto mft = new o2::MFT::Detector();
     run->AddModule(mft);
   }
 
-  if (isActivated("MCH")){
+  if (isActivated("MCH")) {
     // mch
     run->AddModule(new o2::mch::Detector(true));
   }
 
-  if (isActivated("EMC")){
+  if (isActivated("EMC")) {
     // emcal
     run->AddModule(new o2::EMCAL::Detector(true));
   }
 
-  if (isActivated("PHS")){
+  if (isActivated("PHS")) {
     // phos
     run->AddModule(new o2::phos::Detector(true));
   }
@@ -209,8 +210,9 @@ void finalize_geometry(FairRunSim* run)
   const TObjArray* modArr = run->GetListOfModules();
   TIter next(modArr);
   FairModule* module = nullptr;
-  while ( (module=(FairModule*)next()) ) {
+  while ((module = (FairModule*)next())) {
     o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
-    if (det) det->addAlignableVolumes();
+    if (det)
+      det->addAlignableVolumes();
   }
 }
