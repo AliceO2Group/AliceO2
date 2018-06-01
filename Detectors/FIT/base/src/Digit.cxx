@@ -15,7 +15,7 @@ using namespace o2::fit;
 
 ClassImp(o2::fit::Digit);
 
-Digit::Digit(Double_t time, Int_t channel, Double_t cfd, Int_t qtc, Int_t bc)
+Digit::Digit(Double_t time, Int_t channel, Double_t cfd, Float_t qtc, Int_t bc)
   : mTime(time), mChannel(channel), mCFD(cfd), mQTC(qtc), mBC(bc)
 {
 }

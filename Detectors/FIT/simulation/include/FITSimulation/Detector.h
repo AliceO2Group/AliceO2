@@ -30,7 +30,7 @@ namespace fit
 {
 class Geometry;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -103,7 +103,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   // FairModule *CloneModule() const override;
 
  private:
-  Int_t mIdSens1;  // Sensetive volume  in T0
+  Int_t mIdSens1;            // Sensetive volume  in T0
   TGraph* mPMTeff = nullptr; // pmt registration effeicincy
 
   // Optical properties to be extracted from file
@@ -131,7 +131,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-   Geometry* mGeometry = nullptr; //! Geometry
+  Geometry* mGeometry = nullptr; //! Geometry
 
   ClassDefOverride(Detector, 1)
 };
@@ -140,7 +140,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 std::ostream& operator<<(std::ostream& os, Detector& source);
 
 std::istream& operator>>(std::istream& os, Detector& source);
-}
-}
+} // namespace fit
+} // namespace o2
 
 #endif

@@ -20,7 +20,6 @@
 #include "FITBase/Digit.h"
 #include "FITSimulation/Detector.h" // for HitType
 #include "FITSimulation/Digitizer.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -53,8 +52,6 @@ class DigitizerTask : public FairTask
   Digitizer mDigitizer;                                      ///< Digitizer
   const std::vector<o2::fit::HitType>* mHitsArray = nullptr; ///< Array of MC hits
   std::vector<o2::fit::Digit>* mDigitsArray = nullptr;       ///< Array of digits
-
-  // o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mMCTruthArray = nullptr;
 
   ClassDefOverride(DigitizerTask, 1);
 };
