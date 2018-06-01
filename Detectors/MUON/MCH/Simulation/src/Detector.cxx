@@ -26,11 +26,14 @@ namespace mch
 {
 
 Detector::Detector(bool active)
-  : o2::Base::DetImpl<Detector>("MCH", active), mStepper{ std::make_unique<o2::mch::Stepper>() }
+  : o2::Base::DetImpl<Detector>("MCH", active), mStepper{ new o2::mch::Stepper }
 {
 }
 
-Detector::~Detector() = default;
+Detector::~Detector() 
+{
+  delete mStepper;
+}
 
 void Detector::defineSensitiveVolumes()
 {

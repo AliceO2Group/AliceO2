@@ -48,7 +48,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   void defineSensitiveVolumes();
 
  private:
-  std::unique_ptr<o2::mch::Stepper> mStepper{nullptr}; //!
+  o2::mch::Stepper* mStepper{nullptr}; //!
 
   ClassDefOverride(Detector, 1);
 };
