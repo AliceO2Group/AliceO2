@@ -11,4 +11,3 @@
 #include "MCHSimulation/Hit.h"
 
 ClassImp(o2::mch::Hit);
-

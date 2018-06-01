@@ -19,7 +19,6 @@
 
 ClassImp(o2::mch::Detector);
 
-
 namespace o2
 {
 namespace mch
@@ -30,7 +29,7 @@ Detector::Detector(bool active)
 {
 }
 
-Detector::~Detector() 
+Detector::~Detector()
 {
   delete mStepper;
 }

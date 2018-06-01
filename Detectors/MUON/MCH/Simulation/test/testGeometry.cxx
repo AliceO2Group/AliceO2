@@ -142,8 +142,8 @@ BOOST_AUTO_TEST_CASE(GetTransformations)
 
 BOOST_AUTO_TEST_CASE(TextualTreeDump)
 {
-  const std::string expected = 
-  R"(cave_1
+  const std::string expected =
+    R"(cave_1
 ├──SC01I_0
 │  ├──Quadrant (chamber 1)_101
 │  └──Quadrant (chamber 1)_102
@@ -332,11 +332,11 @@ BOOST_AUTO_TEST_CASE(TextualTreeDump)
    ├──223330N_1017
    ├──333300N_1018
    └──333000N_1019
-)"; 
-  
+)";
+
   std::ostringstream str;
-  o2::mch::test::showGeometryAsTextTree("/cave_1", 2,str);
-  BOOST_CHECK(expected==str.str());
+  o2::mch::test::showGeometryAsTextTree("/cave_1", 2, str);
+  BOOST_CHECK(expected == str.str());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

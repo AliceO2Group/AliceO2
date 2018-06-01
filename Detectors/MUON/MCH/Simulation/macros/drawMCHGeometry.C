@@ -2,5 +2,5 @@
 
 void drawMCHGeometry()
 {
-    o2::mch::test::drawGeometry();
+  o2::mch::test::drawGeometry();
 }

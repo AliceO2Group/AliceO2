@@ -541,6 +541,5 @@ o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo)
   return o2::Transform3D{ *(navig->GetCurrentMatrix()) };
 }
 
-
 } // namespace mch
 } // namespace o2

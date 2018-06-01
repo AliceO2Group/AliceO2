@@ -55,11 +55,11 @@ void Stepper::process(const TVirtualMC& vmc)
   mTrackLength += vmc.TrackStep();
 
   if (t.isExiting() || t.isStopped()) {
-     float x,y,z;
-     vmc.TrackPosition(x,y,z);
-     mHits->emplace_back(stack->GetCurrentTrackNumber(), detElemId, mEntrancePoint,
-           Point3D<float>{x,y,z}, mTrackEloss, mTrackLength);
-     resetStep();
+    float x, y, z;
+    vmc.TrackPosition(x, y, z);
+    mHits->emplace_back(stack->GetCurrentTrackNumber(), detElemId, mEntrancePoint,
+                        Point3D<float>{ x, y, z }, mTrackEloss, mTrackLength);
+    resetStep();
   }
 }
 
@@ -70,9 +70,10 @@ void Stepper::registerHits(const char* branchName)
   }
 }
 
-void Stepper::resetStep() {
-    mTrackEloss = 0.0;
-    mTrackLength = 0.0;
+void Stepper::resetStep()
+{
+  mTrackEloss = 0.0;
+  mTrackLength = 0.0;
 }
 
 void Stepper::resetHits() { mHits->clear(); }
