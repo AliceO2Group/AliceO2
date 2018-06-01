@@ -14,8 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::fit::Digit+;
-#pragma link C++ class o2::fit::Hit+;
-
+#pragma link C++ class o2::fit::CollisionTimeRecoTask+;
+#pragma link C++ class o2::fit::RecPoints+;
+#pragma link C++ class o2::fit::Channel+;
 
 #endif
