@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DeviceSpec.h"
 #include <vector>
 using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec> &options) {
@@ -17,6 +19,19 @@ void customize(std::vector<ConfigParamSpec> &options) {
   options.push_back(o2::framework::ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}});
   options.push_back(o2::framework::ConfigParamSpec{"aBool", VariantType::Bool, true, {"a boolean option"}});
 };
+
+// This completion policy will only be applied to the device called `D` and
+// will process an InputRecord which had any of its constituent updated.
+void customize(std::vector<CompletionPolicy> &policies) {
+  auto matcher = [](DeviceSpec const &device) -> bool {
+    return device.name == "D";
+  };
+  auto policy = [](gsl::span<PartRef const> const &inputs) -> CompletionPolicy::CompletionOp {
+    return CompletionPolicy::CompletionOp::Process;
+  };
+  policies.push_back({CompletionPolicy{"process-any", matcher, policy}});
+}
+
 #include "Framework/runDataProcessing.h"
 
 

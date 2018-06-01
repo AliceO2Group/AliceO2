@@ -7,27 +7,24 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_INPUTROUTE_H
-#define FRAMEWORK_INPUTROUTE_H
+#ifndef FRAMEWORK_PARTREF_H
+#define FRAMEWORK_PARTREF_H
 
-#include "Framework/InputSpec.h"
-#include <cstddef>
-#include <string>
+#include <memory>
+
+class FairMQMessage;
 
 namespace o2
 {
 namespace framework
 {
 
-/// This uniquely identifies a route to from which data matching @a matcher
-/// input spec gets to the device. In case of time pipelining @a timeslice 
-/// refers to the timeslice associated to this route.
-struct InputRoute {
-  InputSpec matcher;
-  std::string sourceChannel;
-  size_t timeslice;
+/// Reference to an inflight part.
+struct PartRef {
+  std::unique_ptr<FairMQMessage> header;
+  std::unique_ptr<FairMQMessage> payload;
 };
 
 } // namespace framework
 } // namespace o2
-#endif // FRAMEWORK_INPUTROUTE_H
+#endif // FRAMEWORK_PARTREF_H

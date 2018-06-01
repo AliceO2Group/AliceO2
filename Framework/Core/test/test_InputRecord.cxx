@@ -41,6 +41,13 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   spec2.subSpec = 0;
   spec2.lifetime = Lifetime::Timeframe;
 
+  InputSpec spec3;
+  spec3.binding = "z";
+  spec3.description = "EMPTY";
+  spec3.origin = "TST";
+  spec3.subSpec = 0;
+  spec3.lifetime = Lifetime::Timeframe;
+
   auto createRoute = [](const char *source, InputSpec &spec) {
     InputRoute route;
     route.sourceChannel = source;
@@ -50,7 +57,8 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
 
   std::vector<InputRoute> schema = {
     createRoute("x_source", spec1),
-    createRoute("y_source", spec2)
+    createRoute("y_source", spec2),
+    createRoute("z_source", spec3)
   };
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
@@ -58,8 +66,10 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
 
   BOOST_CHECK_EXCEPTION(emptyRegistry.get("x"), std::exception, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRegistry.get("y"), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRegistry.get("z"), std::exception, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRegistry.getByPos(0), std::exception, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRegistry.getByPos(1), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRegistry.getByPos(2), std::exception, any_exception);
   // Then we actually check with a real set of inputs.
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -75,6 +85,12 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
     inputs.emplace_back(std::move(header));
     inputs.emplace_back(std::move(payload));
   };
+
+  auto createEmpty = [&inputs] () {
+    inputs.emplace_back(std::move(nullptr));
+    inputs.emplace_back(std::move(nullptr));
+  };
+
   DataHeader dh1;
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
@@ -87,20 +103,23 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   dh2.payloadSerializationMethod = o2::header::gSerializationMethodNone;
   createMessage(dh1, 1);
   createMessage(dh2, 2);
-  InputRecord registry(schema, inputs);
+  createEmpty();
+  InputRecord record(schema, inputs);
 
   // Checking we can get the whole ref by name
-  BOOST_CHECK_NO_THROW(registry.get("x"));
-  BOOST_CHECK_NO_THROW(registry.get("y"));
-  auto ref00 = registry.get("x");
-  auto ref10 = registry.get("y");
-  BOOST_CHECK_EXCEPTION(registry.get("z"), std::exception, any_exception);
+  BOOST_CHECK_NO_THROW(record.get("x"));
+  BOOST_CHECK_NO_THROW(record.get("y"));
+  BOOST_CHECK_NO_THROW(record.get("z"));
+  auto ref00 = record.get("x");
+  auto ref10 = record.get("y");
+  auto ref20 = record.get("z");
+  BOOST_CHECK_EXCEPTION(record.get("err"), std::exception, any_exception);
 
   // Or we can get it positionally
-  BOOST_CHECK_NO_THROW(registry.get("x"));
-  auto ref01 = registry.getByPos(0);
-  auto ref11= registry.getByPos(1);
-  BOOST_CHECK_EXCEPTION(registry.getByPos(3), std::exception, any_exception);
+  BOOST_CHECK_NO_THROW(record.get("x"));
+  auto ref01 = record.getByPos(0);
+  auto ref11= record.getByPos(1);
+  BOOST_CHECK_EXCEPTION(record.getByPos(10), std::exception, any_exception);
 
   // This should be exactly the same pointers
   BOOST_CHECK_EQUAL(ref00.header, ref01.header);
@@ -108,13 +127,22 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   BOOST_CHECK_EQUAL(ref10.header, ref11.header);
   BOOST_CHECK_EQUAL(ref10.payload, ref11.payload);
 
+  BOOST_CHECK_EQUAL(record.isValid("x"), true);
+  BOOST_CHECK_EQUAL(record.isValid("y"), true);
+  BOOST_CHECK_EQUAL(record.isValid("z"), false);
+
+  BOOST_CHECK_EQUAL(record.isValid(0), true);
+  BOOST_CHECK_EQUAL(record.isValid(1), true);
+  BOOST_CHECK_EQUAL(record.isValid(2), false);
   // This by default is a shortcut for 
   //
-  // *static_cast<int const *>(registry.get("x").payload);
+  // *static_cast<int const *>(record.get("x").payload);
   //
-  BOOST_CHECK_EQUAL(*registry.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(*registry.get<int>("y"), 2);
+  BOOST_CHECK_EQUAL(*record.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(*record.get<int>("y"), 2);
   // A few more time just to make sure we are not stateful..
-  BOOST_CHECK_EQUAL(*registry.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(*registry.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(*record.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(*record.get<int>("x"), 1);
 }
+
+

@@ -136,13 +136,19 @@ public:
   int getPos(const std::string &name) const;
 
   DataRef getByPos(int pos) const {
-    if (pos*2 >= mCache.size() || pos < 0) {
+    if (pos*2+1 > mCache.size() || pos < 0) {
       throw std::runtime_error("Unknown argument requested at position " + std::to_string(pos));
     }
-    assert(pos >= 0);
-    return DataRef{&mInputsSchema[pos].matcher,
-                   static_cast<char const*>(mCache[pos*2]->GetData()),
-                   static_cast<char const*>(mCache[pos*2+1]->GetData())};
+    if (pos > mInputsSchema.size()) {
+      throw std::runtime_error("Unknown schema at position");
+    }
+    if (mCache[pos*2] != nullptr && mCache[pos*2+1] != nullptr) {
+      return DataRef{&mInputsSchema[pos].matcher,
+                     static_cast<char const*>(mCache[pos*2]->GetData()),
+                     static_cast<char const*>(mCache[pos*2+1]->GetData())};
+    } else {
+      return DataRef{ &mInputsSchema[pos].matcher, nullptr, nullptr };
+    }
   }
 
   /// Generic function to extract a messageable type
@@ -324,6 +330,15 @@ public:
   {
     static_assert(std::is_pointer<T>::value == true, "template argument must not be a pointer type");
   }
+
+  /// Helper method to be used to check if a given part of the InputRecord is present.
+  bool isValid(std::string const &s) {
+    return isValid(s.c_str());
+  }
+
+  /// Helper method to be used to check if a given part of the InputRecord is present.
+  bool isValid(char const *s);
+  bool isValid(int pos);
 
   size_t size() const {
     return mCache.size()/2;

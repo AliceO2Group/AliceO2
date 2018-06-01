@@ -19,6 +19,7 @@
 #include "Framework/ForwardRoute.h"
 #include "Framework/InputRoute.h"
 #include "Framework/OutputRoute.h"
+#include "Framework/CompletionPolicy.h"
 
 #include <vector>
 #include <string>
@@ -48,6 +49,8 @@ struct DeviceSpec {
   size_t rank; // Id of a parallel processing I am part of
   size_t nSlots; // Total number of parallel units I am part of
   size_t inputTimesliceId;
+  /// The completion policy to use for this device.
+  CompletionPolicy completionPolicy;
 };
 
 } // namespace framework
