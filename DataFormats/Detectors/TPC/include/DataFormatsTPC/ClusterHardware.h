@@ -84,6 +84,11 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
     return (timePreInt / 16.f);
   }
 
+  int getTimePeak() const
+  {
+    return (word1 & 0xFF80000) >> 19;
+  }
+
   float getTimeLocal() const // Returns the local time, not taking into account the time bin offset of the container
   {
     int timePeak = (word1 & 0xFF80000) >> 19;
@@ -130,6 +135,16 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
     word3 = (st & 0xFFFFF) | ((row & 0x1F) << 20);
     word4 = (tot & 0x7FFFF) | ((flags & 0xFF) << 19);
   }
+
+  void setCluster(int padPeak, int timePeak, int pPre, int tPre, int sigmaPad2Pre, int sigmaTime2Pre, int qMax, int qTot, int row, int flags)
+  {
+    word0 = (pPre & 0x7FFFF) | ((padPeak & 0xFF) << 19);
+    word1 = (tPre & 0x7FFFF) | ((timePeak & 0x1FF) << 19);
+    word2 = (sigmaPad2Pre & 0xFFFFF) | ((qMax & 0x7FF) << 20);
+    word3 = (sigmaTime2Pre & 0xFFFFF) | ((row & 0x1F) << 20);
+    word4 = (qTot & 0x7FFFF) | ((flags & 0xFF) << 19);
+  }
+
 };
 
 struct ClusterHardwareContainer { // Temporary struct to hold a set of hardware clusters, prepended by an RDH, and a
