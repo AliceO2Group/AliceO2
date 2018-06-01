@@ -12,6 +12,9 @@
 
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/PartRef.h"
+
 #include <cstddef>
 #include <vector>
 
@@ -37,13 +40,15 @@ public:
     int64_t value;
   };
 
-  // Reference to an inflight part.
-  struct PartRef {
-    std::unique_ptr<FairMQMessage> header;
-    std::unique_ptr<FairMQMessage> payload;
+  struct RecordAction {
+    size_t cacheLineIdx;
+    CompletionPolicy::CompletionOp op;
   };
 
-  DataRelayer(std::vector<InputRoute> const&, std::vector<ForwardRoute> const&, monitoring::Monitoring&);
+  DataRelayer(CompletionPolicy const&,
+              std::vector<InputRoute> const&,
+              std::vector<ForwardRoute> const&,
+              monitoring::Monitoring&);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack
@@ -51,8 +56,8 @@ public:
   RelayChoice relay(std::unique_ptr<FairMQMessage> &&header,
                     std::unique_ptr<FairMQMessage> &&payload);
 
-  /// Returns the lines in the cache which are ready to be completed.
-  std::vector<int> getReadyToProcess();
+  /// @returns the actions ready to be performed.
+  std::vector<RecordAction> getReadyToProcess();
 
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
@@ -88,8 +93,12 @@ private:
 
   /// This is the timeslices for all the in flight parts.
   std::vector<TimesliceId> mTimeslices;
+  /// This keeps track whether or not something was relayed
+  /// since last time we called getReadyToProcess()
+  std::vector<bool> mDirty;
 
   std::vector<bool> mForwardingMask;
+  CompletionPolicy mCompletionPolicy;
 };
 
 } // namespace framework

@@ -650,20 +650,46 @@ will then be made available at workflow creation time via the `ConfigContext`
 passed to the `defineDataProcessing` function, using the `ConfigContext::options()`
 getter.
 
+## Completion policies (WIP)
+
+By default the data processing of a given record happens when all the fields of
+that record are present. So if your Data Processor declares it will consume
+`TRACKS` and `CLUSTERS`, for any given time interval both need to be produced
+by some other data processor before the computation declared in yours can happen.
+
+Sometimes it's however desirable to customise such a behavior, so that some action
+on the record can happen even if it's not complete. For example you might want
+to start computing some quantity as a given message arrives and then complete the
+computation once the record is complete. This is done by specifying by customising 
+the data processing CompletionPolicy. This can be done using the usual **Customization
+mechanism** where a:
+
+```C++
+void customize(std::vector<CompletionPolicy> &policies);
+```
+
+function is provided before including `runDataProcessing.h`.
+
+Each `CompletionPolicy` requires the user to specify the `matcher` to select
+which device is affected by it, and a `callback` to decide what action
+expressed by a `CompletionOp` to take on a given input record.
+
+Possible actions include:
+
+* `CompletionPolicy::CompletionOp::Consume`: run the data processing callback and 
+  mark the available fields in the input as consumed.
+* `CompletionPolicy::CompletionOp::Process`: run the data processing callback, but do
+  not consume the field, which will be available when the next message for the field
+* `CompletionPolicy::CompletionOp::Wait`: hold on the record but do not process it yet.
+* `CompletionPolicy::CompletionOp::Drop`: drop the current available fields from the record.
+
+The default completion policy is to consume all inputs when they are all present.
+
+When the computation is dispatched with a partially completea `InputRecord`,
+the user can check for the validity of any of its parts via the `InputRecord::isValid()`
+API.
+
 # Forseen features
-
-## Completion policies
-
-It was requested from multiple parts to be able to customise when a given
-computation can take place.
-
-At the moment this decision is hardcoded to be only when all the inputs are present.
-
-This can be done by allowing the user to define a
-`CompletionPolicyRule{DataProcessorMatcher{}, CompletionCallback{}}`, via the
-usual customisation mechanism, which will allow to define a vector of matchers
-to be used on the topology which will make sure the specified callback is
-applied when determining if a record is complete.
 
 ## Lifetime support
 

@@ -14,6 +14,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Headers/DataHeader.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingHeader.h"
 #include <Monitoring/Monitoring.h>
@@ -46,7 +47,8 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
   };
   std::vector<ForwardRoute> forwards;
 
-  DataRelayer relayer(inputs, forwards, metrics);
+  auto policy = CompletionPolicyHelpers::consumeWhenAll();
+  DataRelayer relayer(policy, inputs, forwards, metrics);
 
   // Let's create a dummy O2 Message with two headers in the stack:
   // - DataHeader matching the one provided in the input
@@ -64,7 +66,9 @@ BOOST_AUTO_TEST_CASE(TestNoWait) {
   relayer.relay(std::move(header),std::move(payload));
   auto ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
-  auto result = relayer.getInputsForTimeslice(ready[0]);
+  BOOST_CHECK_EQUAL(ready[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  auto result = relayer.getInputsForTimeslice(ready[0].cacheLineIdx);
   // One for the header, one for the payload
   BOOST_REQUIRE_EQUAL(result.size(),2);
 }
@@ -98,7 +102,8 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
   std::vector<InputRoute> inputs = { route1, route2 };
   std::vector<ForwardRoute> forwards;
 
-  DataRelayer relayer(inputs, forwards, metrics);
+  auto policy = CompletionPolicyHelpers::consumeWhenAll();
+  DataRelayer relayer(policy, inputs, forwards, metrics);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
@@ -131,8 +136,10 @@ BOOST_AUTO_TEST_CASE(TestRelay) {
   createMessage(dh2);
   ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
+  BOOST_CHECK_EQUAL(ready[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
 
-  auto result = relayer.getInputsForTimeslice(ready[0]);
+  auto result = relayer.getInputsForTimeslice(ready[0].cacheLineIdx);
   // One for the header, one for the payload, for two inputs.
   BOOST_REQUIRE_EQUAL(result.size(),4);
 }
@@ -157,7 +164,8 @@ BOOST_AUTO_TEST_CASE(TestCache) {
   };
   std::vector<ForwardRoute> forwards;
 
-  DataRelayer relayer(inputs, forwards, metrics);
+  auto policy = CompletionPolicyHelpers::consumeWhenAll();
+  DataRelayer relayer(policy, inputs, forwards, metrics);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -186,8 +194,12 @@ BOOST_AUTO_TEST_CASE(TestCache) {
   createMessage(DataProcessingHeader{1,1});
   auto ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
+  BOOST_CHECK_EQUAL(ready[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready[1].cacheLineIdx, 1);
+  BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  BOOST_CHECK_EQUAL(ready[1].op, CompletionPolicy::CompletionOp::Consume);
   for (size_t i = 0; i < ready.size(); ++i) {
-    auto result = relayer.getInputsForTimeslice(ready[i]);
+    auto result = relayer.getInputsForTimeslice(ready[i].cacheLineIdx);
   }
 
   // This fills the cache and makes 2 obsolete.
@@ -197,9 +209,90 @@ BOOST_AUTO_TEST_CASE(TestCache) {
   ready = relayer.getReadyToProcess();
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
 
-  auto result1 = relayer.getInputsForTimeslice(ready[0]);
-  auto result2 = relayer.getInputsForTimeslice(ready[1]);
+  auto result1 = relayer.getInputsForTimeslice(ready[0].cacheLineIdx);
+  auto result2 = relayer.getInputsForTimeslice(ready[1].cacheLineIdx);
   // One for the header, one for the payload
   BOOST_REQUIRE_EQUAL(result1.size(),2);
   BOOST_REQUIRE_EQUAL(result2.size(),2);
+}
+
+// This the any policy. Even when there are two inputs, given the any policy
+// it will run immediately.
+BOOST_AUTO_TEST_CASE(TestPolicies) {
+  Monitoring metrics;
+  InputSpec spec1;
+  spec1.binding = "clusters";
+  spec1.description = "CLUSTERS";
+  spec1.origin = "TPC";
+  spec1.subSpec = 0;
+  spec1.lifetime = Lifetime::Timeframe;
+
+  InputSpec spec2;
+  spec2.binding = "tracks";
+  spec2.description = "TRACKS";
+  spec2.origin = "TPC";
+  spec2.subSpec = 0;
+  spec2.lifetime = Lifetime::Timeframe;
+
+  InputRoute route1;
+  route1.sourceChannel = "Fake";
+  route1.matcher = spec1;
+
+  InputRoute route2;
+  route2.sourceChannel = "Fake2";
+  route2.matcher = spec2;
+
+  std::vector<InputRoute> inputs = {
+    route1,
+    route2
+  };
+  std::vector<ForwardRoute> forwards;
+
+  auto policy = CompletionPolicyHelpers::processWhenAny();
+  DataRelayer relayer(policy, inputs, forwards, metrics);
+  // Only two messages to fill the cache.
+  relayer.setPipelineLength(2);
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+
+  DataHeader dh2;
+  dh2.dataDescription = "TRACKS";
+  dh2.dataOrigin = "TPC";
+  dh2.subSpecification = 0;
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto createMessage = [&transport, &relayer](DataHeader const&dh, DataProcessingHeader const& h)
+  {
+    Stack stack{dh, h};
+    FairMQMessagePtr header = transport->CreateMessage(stack.size());
+    FairMQMessagePtr payload = transport->CreateMessage(1000);
+    memcpy(header->GetData(), stack.data(), stack.size());
+    return relayer.relay(std::move(header),std::move(payload));
+  };
+
+  // This fills the cache, and then empties it.
+  auto actions1 = createMessage(dh1, DataProcessingHeader{0,1});
+  auto ready1 = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready1.size(), 1);
+  BOOST_CHECK_EQUAL(ready1[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready1[0].op, CompletionPolicy::CompletionOp::Process);
+  auto actions2 = createMessage(dh1, DataProcessingHeader{1,1});
+  auto ready2 = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready2.size(), 2);
+  BOOST_CHECK_EQUAL(ready2[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready2[1].cacheLineIdx, 1);
+  BOOST_CHECK_EQUAL(ready2[0].op, CompletionPolicy::CompletionOp::Process);
+  BOOST_CHECK_EQUAL(ready2[1].op, CompletionPolicy::CompletionOp::Process);
+  auto actions3 = createMessage(dh2, DataProcessingHeader{1,1});
+  auto ready3 = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready3.size(), 2);
+  BOOST_CHECK_EQUAL(ready3[0].cacheLineIdx, 0);
+  BOOST_CHECK_EQUAL(ready3[0].op, CompletionPolicy::CompletionOp::Process);
+  BOOST_CHECK_EQUAL(ready3[1].cacheLineIdx, 1);
+  BOOST_CHECK_EQUAL(ready3[1].op, CompletionPolicy::CompletionOp::Consume);
 }

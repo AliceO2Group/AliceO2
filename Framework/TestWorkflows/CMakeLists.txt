@@ -79,6 +79,13 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_CompletionPolicies"
+  SOURCES "src/test_CompletionPolicies.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
   EXE_NAME "dataSamplingPodAndRoot"
   SOURCES "src/dataSamplingPodAndRoot.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}

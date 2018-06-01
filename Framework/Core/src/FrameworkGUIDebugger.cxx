@@ -614,6 +614,7 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
       }
       optionsTable(spec, control);
       if (ImGui::CollapsingHeader("Data relayer")) {
+        ImGui::Text("Completion policy: %s", spec.completionPolicy.name.c_str());
         displayDataRelayer(metrics, info);
       }
       if (ImGui::CollapsingHeader("Logs", ImGuiTreeNodeFlags_DefaultOpen)) {
