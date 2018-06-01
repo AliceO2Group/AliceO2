@@ -1277,6 +1277,26 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    fit_reconstruction_bucket
+
+    DEPENDENCIES
+    fit_base_bucket
+    FITBase
+    FITSimulation
+    DetectorsBase
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FITsimulation/include
+
+)
+
+o2_define_bucket(
+    NAME
     hmpid_simulation_bucket
 
     DEPENDENCIES # library names
