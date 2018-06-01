@@ -41,6 +41,13 @@ ClustererTask::ClustererTask(int sectorid)
 }
 
 //_____________________________________________________________________
+ClustererTask::~ClustererTask()
+{
+  LOG(DEBUG) << "Enter Destructor of ClustererTask" << FairLogger::endl;
+  if (mHwClustersArray)
+    delete mHwClustersArray;
+}
+//_____________________________________________________________________
 /// \brief Init function
 /// Inititializes the clusterer and connects input and output container
 InitStatus ClustererTask::Init()
@@ -58,60 +65,38 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  if (mClusterSector != -1) {
-    std::stringstream sectornamestr;
-    std::stringstream mcsectornamestr;
-    sectornamestr << "TPCDigit" << mClusterSector;
-    LOG(INFO) << "FETCHING DIGITS FOR SECTOR " << mClusterSector << "\n";
-    mDigitsArray[mClusterSector] = mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str());
-    if (!mDigitsArray[mClusterSector]) {
-      LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-      return kERROR;
-    }
-    mcsectornamestr << "TPCDigitMCTruth" << mClusterSector;
-    mDigitMCTruthArray[mClusterSector] =
-      mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>(mcsectornamestr.str().c_str());
-    if (!mDigitMCTruthArray[mClusterSector]) {
-      LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-      return kERROR;
-    }
-  } else {
-    // in case we are treating all sectors
-    for (int s = 0; s < Sector::MAXSECTOR; ++s) {
-      std::stringstream sectornamestr;
-      std::stringstream mcsectornamestr;
-      sectornamestr << "TPCDigit" << s;
-      LOG(INFO) << "FETCHING DIGITS FOR SECTOR " << s << "\n";
-      mDigitsArray[s] = mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str());
-      if (!mDigitsArray[s]) {
-        LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-        return kERROR;
-      }
-      mcsectornamestr << "TPCDigitMCTruth" << s;
-      mDigitMCTruthArray[s] =
-        mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>(mcsectornamestr.str().c_str());
-      if (!mDigitMCTruthArray[s]) {
-        LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-        return kERROR;
-      }
-    }
+  // Register input container
+  std::stringstream sectornamestr;
+  sectornamestr << "TPCDigit" << mClusterSector;
+  LOG(INFO) << "FETCHING DIGITS FOR SECTOR " << mClusterSector << "\n";
+  mDigitsArray = mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str());
+  if (!mDigitsArray) {
+    LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    return kERROR;
+  }
+  std::stringstream mcsectornamestr;
+  mcsectornamestr << "TPCDigitMCTruth" << mClusterSector;
+  mDigitMCTruthArray = mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>(mcsectornamestr.str().c_str());
+  if (!mDigitMCTruthArray) {
+    LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    return kERROR;
   }
 
-    // Register output container
-    mHwClustersArray = std::make_unique<std::vector<o2::TPC::Cluster>>();
-    // a trick to register the unique pointer with FairRootManager
-    static auto tmp = mHwClustersArray.get();
-    mgr->RegisterAny("TPCClusterHW", tmp, kTRUE);
+  // Register output container
+  mHwClustersArray = new std::vector<ClusterHardwareContainer8kb>();
+  // a trick to register the unique pointer with FairRootManager
+//  static auto tmp = mHwClustersArray.get();
+  mgr->RegisterAny(Form("TPCClusterHW%i",mClusterSector), mHwClustersArray, kTRUE);
 
-    // Register MC Truth output container
-    mHwClustersMCTruthArray = std::make_unique<MCLabelContainer>();
-    // a trick to register the unique pointer with FairRootManager
-    static auto tmp2 = mHwClustersMCTruthArray.get();
-    mgr->RegisterAny("TPCClusterHWMCTruth", tmp2, kTRUE);
+  // Register MC Truth output container
+  mHwClustersMCTruthArray = std::make_unique<MCLabelContainer>();
+  // a trick to register the unique pointer with FairRootManager
+  static auto tmp2 = mHwClustersMCTruthArray.get();
+  mgr->RegisterAny(Form("TPCClusterHWMCTruth%i",mClusterSector), tmp2, kTRUE);
 
-     // create clusterer and pass output pointer
-    mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray.get(),mHwClustersMCTruthArray.get());//,0,359);
-    mHwClusterer->setContinuousReadout(mIsContinuousReadout);
+  // create clusterer and pass output pointer
+  mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray,mHwClustersMCTruthArray.get(),mClusterSector);
+  mHwClusterer->setContinuousReadout(mIsContinuousReadout);
 // TODO: implement noise/pedestal objecta
 //    mHwClusterer->setNoiseObject();
 //    mHwClusterer->setPedestalObject();
@@ -122,22 +107,33 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t *option)
 {
-  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on event " << mEventCount << FairLogger::endl;
 
-    if (mHwClustersArray)
-      mHwClustersArray->clear();
-    if (mHwClustersMCTruthArray)
-      mHwClustersMCTruthArray->clear();
-    if (mClusterSector != -1) {
-      mHwClusterer->Process(*mDigitsArray[mClusterSector], mDigitMCTruthArray[mClusterSector], mEventCount);
-      LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->size() << " clusters" << FairLogger::endl
-                 << FairLogger::endl;
-    } else {
-      for (int s = 0; s < Sector::MAXSECTOR; ++s) {
-        mHwClusterer->Process(*mDigitsArray[s], mDigitMCTruthArray[s], mEventCount);
-        LOG(DEBUG) << "Hw clusterer found" << mHwClustersArray->size() << " clusters" << FairLogger::endl
-                   << FairLogger::endl;
-      }
-    }
+  if (mHwClustersArray)
+    mHwClustersArray->clear();
+  if (mHwClustersMCTruthArray)
+    mHwClustersMCTruthArray->clear();
+
+  mHwClusterer->Process(mDigitsArray, mDigitMCTruthArray, mEventCount);
+  LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
+    << FairLogger::endl;
+
+  ++mEventCount;
+}
+
+//_____________________________________________________________________
+void ClustererTask::FinishTask()
+{
+  LOG(DEBUG) << "Finish clusterization" << FairLogger::endl;
+
+  if (mHwClustersArray)
+    mHwClustersArray->clear();
+  if (mHwClustersMCTruthArray)
+    mHwClustersMCTruthArray->clear();
+
+  mHwClusterer->FinishProcess(mDigitsArray, mDigitMCTruthArray, mEventCount);
+  LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
+    << FairLogger::endl;
+
   ++mEventCount;
 }

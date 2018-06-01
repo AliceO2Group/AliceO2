@@ -57,8 +57,8 @@ namespace o2{
       /// @param mcDigitTruth MC Digit Truth container
       /// @param eventCount event counter 
       /// @return Container with clusters
-      void Process(std::vector<o2::TPC::Digit> const & digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
-      void Process(std::vector<std::unique_ptr<Digit>>& digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
+      void Process(std::vector<o2::TPC::Digit> const* digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
+      void Process(std::vector<std::unique_ptr<Digit>>* digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
 
       /// Set a pedestal object
       void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }

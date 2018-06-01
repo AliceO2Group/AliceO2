@@ -63,8 +63,6 @@ void run_clus_tpc(std::string outputfile, std::string inputfile, std::string par
   // Initialize everything
   run->Init();
 
-  clustTPC->getHwClusterer()->setNumThreads(threads);
-
   // Start simulation
   timer.Start();
   run->Run();

@@ -24,6 +24,7 @@
 #include "TPCReconstruction/HwClusterer.h"      // for Clusterer
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsTPC/Helpers.h"
 #include <vector>
 #include <memory>
 
@@ -40,7 +41,7 @@ class ClustererTask : public FairTask{
   ClustererTask(int sectorid = -1);
 
   /// Destructor
-  ~ClustererTask() = default;
+  ~ClustererTask();
 
   /// Initializes the clusterer and connects input and output container
   InitStatus Init() override;
@@ -48,10 +49,8 @@ class ClustererTask : public FairTask{
   /// Clusterization
   void Exec(Option_t* option) override;
 
-  /// TODO: probably not need anymore after full removal of Box Clusterer
-  /// Returns pointer to HW Clusterer
-  /// \return  Pointer to Clusterer, nullptr if Clusterer
-  HwClusterer* getHwClusterer()     const { return mHwClusterer.get(); };
+  /// Complete Clusterization
+  void FinishTask() override;
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -65,12 +64,11 @@ class ClustererTask : public FairTask{
   std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
 
   // Digit arrays
-  std::vector<o2::TPC::Digit> const* mDigitsArray[Sector::MAXSECTOR];   ///< Array of TPC digits
-  MCLabelContainer const* mDigitMCTruthArray[Sector::MAXSECTOR];        ///< Array for MCTruth information associated to digits in mDigitsArrray
+  std::vector<o2::TPC::Digit> const* mDigitsArray;   ///< Array of TPC digits
+  MCLabelContainer const* mDigitMCTruthArray;        ///< Array for MCTruth information associated to digits in mDigitsArrray
 
   // Cluster arrays
-  /// TODO: change to ClusterHardware
-  std::unique_ptr<std::vector<o2::TPC::Cluster>> mHwClustersArray;      ///< Array of clusters found by Hw Clusterfinder
+  std::vector<ClusterHardwareContainer8kb>* mHwClustersArray;      ///< Array of clusters found by Hw Clusterfinder
   std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray;            ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
   ClassDefOverride(ClustererTask, 1)
