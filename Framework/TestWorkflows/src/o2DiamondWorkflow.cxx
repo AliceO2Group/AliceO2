@@ -33,44 +33,33 @@ AlgorithmSpec simplePipe(std::string const &what) {
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
   return WorkflowSpec{
-  {
-    "A",
-    Inputs{},
-    {
-      OutputSpec{{"a1"}, "TST", "A1"},
-      OutputSpec{{"a2"}, "TST", "A2"}
-    },
-    AlgorithmSpec{
-      [](ProcessingContext &ctx) {
-       sleep(rand() % 5);
-       auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
-       auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
-      }
-    }
-  },
-  {
-    "B",
-    {InputSpec{"x", "TST", "A1"}},
-    {OutputSpec{{"b1"}, "TST", "B1"}},
-    simplePipe("b1")
-  },
-  {
-    "C",
-    Inputs{InputSpec{"x", "TST", "A2"}},
-    Outputs{OutputSpec{{"c1"}, "TST", "C1"}},
-    simplePipe("c1")
-  },
-  {
-    "D",
-    Inputs{
-      InputSpec{"b", "TST", "B1"},
-      InputSpec{"c", "TST", "C1"},
-    },
-    Outputs{},
-    AlgorithmSpec{
-      [](ProcessingContext &ctx) {
+    { "A",
+      Inputs{},
+      { OutputSpec{ { "a1" }, "TST", "A1" },
+        OutputSpec{ { "a2" }, "TST", "A2" } },
+      AlgorithmSpec{
+        [](ProcessingContext& ctx) {
+          sleep(rand() % 5);
+          auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
+          auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
+        } } },
+    { "B",
+      { InputSpec{ "x", "TST", "A1" } },
+      { OutputSpec{ { "b1" }, "TST", "B1" } },
+      simplePipe("b1") },
+    { "C",
+      Inputs{ InputSpec{ "x", "TST", "A2" } },
+      Outputs{ OutputSpec{ { "c1" }, "TST", "C1" } },
+      simplePipe("c1") },
+    { "D",
+      Inputs{
+        InputSpec{ "b", "TST", "B1" },
+        InputSpec{ "c", "TST", "C1" },
       },
-    }
-  }
+      Outputs{},
+      AlgorithmSpec{
+        [](ProcessingContext& ctx) {
+        },
+      } }
   };
 }
