@@ -36,16 +36,12 @@ class Stepper
   void registerHits(const char* branchName);
 
  private:
-  void countProcesses(const TVirtualMC& vmc);
-  void showProcesses();
   void resetStep();
 
  private:
   float mTrackEloss{ 0.0 };
   float mTrackLength{ 0.0 };
   std::vector<o2::mch::Hit>* mHits{ nullptr };
-  std::array<int, kMaxMCProcess> mProcessCodes{};
-  int mNofSteps{ 0 };
   Point3D<float> mEntrancePoint;
 };
 

@@ -30,32 +30,10 @@ Stepper::Stepper() : mHits{ new std::vector<o2::mch::Hit>(20) } {}
 Stepper::~Stepper()
 {
   delete mHits;
-  showProcesses();
-}
-
-void Stepper::showProcesses() {
-  std::cout << "--- MCH Stepper : processes seen\n";
-  for (int i = 0; i < kMaxMCProcess; i++) {
-    if (mProcessCodes[i] > 0) {
-      std::cout << "---" << std::setw(40) << TMCProcessName[i] << " " << std::setprecision(2) << 100.0*mProcessCodes[i]/mNofSteps << "% \n";
-    }
-  }
-}
-
-void Stepper::countProcesses(const TVirtualMC& vmc)
-{
-  TArrayI proCodes;
-  vmc.StepProcesses(proCodes);
-
-  for (int i = 0; i < proCodes.GetSize(); ++i) {
-    mProcessCodes[proCodes.At(i)]++;
-  }
 }
 
 void Stepper::process(const TVirtualMC& vmc)
 {
-  mNofSteps++;
-
   o2::SimTrackStatus t{ vmc };
 
   int detElemId;
@@ -75,8 +53,6 @@ void Stepper::process(const TVirtualMC& vmc)
 
   mTrackEloss += vmc.Edep();
   mTrackLength += vmc.TrackStep();
-
-  countProcesses(vmc);
 
   if (t.isExiting() || t.isStopped()) {
      float x,y,z;
