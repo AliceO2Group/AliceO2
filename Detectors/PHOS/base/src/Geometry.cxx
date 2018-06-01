@@ -10,8 +10,8 @@
 
 #include "PHOSBase/Geometry.h"
 
+ClassImp(Geometry);
 using namespace o2::phos;
-ClassImp(Geometry)
 
   // these initialisations are needed for a singleton
   Geometry* Geometry::sGeom = nullptr;

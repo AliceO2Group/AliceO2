@@ -13,9 +13,9 @@
 
 using namespace o2::phos;
 
-ClassImp(Digit)
+ClassImp(Digit);
 
-  constexpr int Digit::kMaxLabels;
+constexpr int Digit::kMaxLabels;
 
 Digit::Digit(Int_t absId, Double_t amplitude, Double_t time, Int_t label)
   : DigitBase(time), mAbsId(absId), mAmplitude(amplitude), mTime(time), mNlabels(0)

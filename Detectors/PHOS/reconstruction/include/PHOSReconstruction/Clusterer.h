@@ -14,7 +14,6 @@
 #define ALICEO2_PHOS_CLUSTERER_H
 
 #include "Rtypes.h" // for Clusterer::Class, Double_t, ClassDef, etc
-//#include "Base/Geometry.h"
 
 namespace o2
 {

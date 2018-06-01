@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "PHOSSimulation/Digitizer.h"
-//#include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <TRandom.h>

@@ -11,7 +11,6 @@
 #ifndef ALICEO2_PHOS_DIGITIZERTASK_H
 #define ALICEO2_PHOS_DIGITIZERTASK_H
 
-//#include <cstdio>
 #include "FairTask.h" // for FairTask, InitStatus
 #include "Rtypes.h"   // for DigitizerTask::Class, ClassDef, etc
 

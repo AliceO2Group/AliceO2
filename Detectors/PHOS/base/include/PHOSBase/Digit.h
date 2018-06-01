@@ -11,15 +11,9 @@
 #ifndef ALICEO2_PHOS_DIGIT_H_
 #define ALICEO2_PHOS_DIGIT_H_
 
-//#include <iosfwd>
-//#include <cmath>
-//#include "Rtypes.h"
 #include "CommonDataFormat/TimeStamp.h"
-//#include "TimeStamp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "PHOSBase/Hit.h"
-
-//#include <boost/serialization/base_object.hpp> // for base_object
 
 namespace o2
 {

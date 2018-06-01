@@ -11,14 +11,6 @@
 #ifndef ALICEO2_PHOS_DIGITIZER_H
 #define ALICEO2_PHOS_DIGITIZER_H
 
-//#include <memory>
-//#include <unordered_map>
-//#include <vector>
-//#include <deque>
-
-//#include "Rtypes.h"  // for Digitizer::Class, Double_t, ClassDef, etc
-//#include "TObject.h" // for TObject
-
 #include "PHOSBase/Digit.h"
 #include "PHOSBase/Geometry.h"
 #include "PHOSBase/Hit.h"

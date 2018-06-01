@@ -20,10 +20,10 @@
 
 using namespace o2::phos;
 
-ClassImp(Clusterer)
+ClassImp(Clusterer);
 
-  //____________________________________________________________________________
-  void Clusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters)
+//____________________________________________________________________________
+void Clusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>* clusters)
 {
 
   if (!mPHOSGeom) {

@@ -9,13 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file  ClustererTask.cxx
-/// \brief Implementation of the ITS cluster finder task
-
-//#include "ITSReconstruction/ClustererTask.h"
-//#include "MathUtils/Cartesian3D.h"
-//#include "MathUtils/Utils.h"
-//#include "SimulationDataFormat/MCCompLabel.h"
-//#include "SimulationDataFormat/MCTruthContainer.h"
+/// \brief Implementation of the PHOS cluster finder task
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
@@ -27,10 +21,10 @@
 
 using namespace o2::phos;
 
-ClassImp(ClustererTask)
+ClassImp(ClustererTask);
 
-  //_____________________________________________________________________
-  ClustererTask::ClustererTask()
+//_____________________________________________________________________
+ClustererTask::ClustererTask()
   : FairTask("PHOSClustererTask"), mClustersArray(nullptr), mDigitsArray(nullptr), mClusterer(nullptr)
 {
 }

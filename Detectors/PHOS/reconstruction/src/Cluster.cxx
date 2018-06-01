@@ -10,13 +10,12 @@
 
 #include "PHOSReconstruction/Cluster.h"
 #include "PHOSBase/Geometry.h"
-//#include <iostream>
 
 using namespace o2::phos;
 
-ClassImp(Cluster)
+ClassImp(Cluster);
 
-  Cluster::Cluster(int digitAbsId, double energy, double time)
+Cluster::Cluster(int digitAbsId, double energy, double time)
   : mMulDigit(0),
     mModule(0),
     mLocalPosX(-999.),
