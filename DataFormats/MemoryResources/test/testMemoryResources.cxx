@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     v.push_back(3);
     BOOST_CHECK(testData::nallocated == 3);
   }
-  BOOST_CHECK(testData::nallocated == 3); //FastSpectatorAllocator does not call dtors so nallocated remains at 3;
+  BOOST_CHECK(testData::nallocated == 3); //ByteSpectatorAllocator does not call dtors so nallocated remains at 3;
   BOOST_CHECK(allocZMQ->getNumberOfMessages() == 0);
 }
 

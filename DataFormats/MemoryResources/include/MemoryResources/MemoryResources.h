@@ -91,11 +91,7 @@ class ChannelResource : public FairMQMemoryResource
   void* do_allocate(std::size_t bytes, std::size_t alignment) override
   {
     FairMQMessagePtr message;
-    if (!factory) {
-      throw std::bad_alloc();
-    } else {
-      message = factory->CreateMessage(bytes);
-    }
+    message = factory->CreateMessage(bytes);
     void* addr = message->GetData();
     messageMap[addr] = std::move(message);
     return addr;
@@ -141,12 +137,12 @@ class SpectatorAllocator : public boost::container::pmr::polymorphic_allocator<T
   void destroy(U*...){};
 };
 
-using FastSpectatorAllocator = SpectatorAllocator<byte>;
-using PMRAllocator = boost::container::pmr::polymorphic_allocator<byte>;
+using ByteSpectatorAllocator = SpectatorAllocator<byte>;
+using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<byte>;
 
 //__________________________________________________________________________________________________
 /// This memory resource only watches, does not allocate/deallocate anything.
-/// In combination with the FastSpectatorAllocator this is an alternative to using span, as raw memory
+/// In combination with the ByteSpectatorAllocator this is an alternative to using span, as raw memory
 /// (e.g. an existing buffer message) will be accessible with appropriate container.
 class SpectatorMessageResource : public FairMQMemoryResource
 {
@@ -224,7 +220,7 @@ template <typename ElemT>
 auto adoptVector(size_t nelem, FairMQMessage* message)
 {
   using namespace o2::memoryResources;
-  using DataType = std::vector<ElemT, FastSpectatorAllocator>;
+  using DataType = std::vector<ElemT, ByteSpectatorAllocator>;
 
   struct doubleDeleter {
     // kids: don't do this at home! (but here it's OK)
@@ -236,7 +232,7 @@ auto adoptVector(size_t nelem, FairMQMessage* message)
   using OutputType = std::unique_ptr<const DataType, doubleDeleter>;
 
   auto resource = std::make_unique<SpectatorMessageResource>(message);
-  auto output = new DataType(nelem, FastSpectatorAllocator{ resource.get() });
+  auto output = new DataType(nelem, ByteSpectatorAllocator{ resource.get() });
   return OutputType(output, doubleDeleter{ std::move(resource) });
 }
 
