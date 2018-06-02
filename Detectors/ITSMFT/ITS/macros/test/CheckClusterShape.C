@@ -15,6 +15,8 @@
 #include "ITSMFTBase/Digit.h"
 #include "TPCSimulation/Point.h"
 #include "ITSMFTSimulation/ClusterShape.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #endif
 
 using o2::ITSMFT::SegmentationAlpide;
@@ -210,6 +212,8 @@ void CheckClusterShape() {
   TTree *digTree=(TTree*)gFile->Get("o2sim");
   std::vector<o2::ITSMFT::Digit> *digArr = nullptr;
   digTree->SetBranchAddress("ITSDigit",&digArr);
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
+  digTree->SetBranchAddress("ITSDigitMCTruth", &labels);
 
   TH1F *freqDist = new TH1F("freqDist", "", 300, 0, 300);
   //freqDist->GetXaxis()->SetTitle("Shape ID");
@@ -219,23 +223,25 @@ void CheckClusterShape() {
   cSizeDist->GetXaxis()->SetTitle("Cluster Size");
 
   Int_t nev=digTree->GetEntries();
-  while (nev--) {
+  int iev = -1;
+  while (++iev < nev) {
     map<UInt_t, Cluster> clusters;
-    digTree->GetEvent(nev);
+    digTree->GetEvent(iev);
     Int_t nd = digArr->size();
     while(nd--) {
       const Digit &d=(*digArr)[nd];
+      const auto& labs = labels->getLabels(nd);
       Int_t ix=d.getRow(), iz=d.getColumn();
 
       Int_t chipID=d.getChipIndex();
       UInt_t layer = gman->getLayer(chipID);
 
       Pixel pixels(ix, iz);
-      if (clusters.find(d.getLabel(0)) == clusters.end()) {
+      if (clusters.find(labs[0]) == clusters.end()) {
         Cluster c;
-        clusters[d.getLabel(0)] = c;
+        clusters[labs[0]] = c;
       }
-      clusters[d.getLabel(0)].AddPixel(layer, pixels);
+      clusters[labs[0]].AddPixel(layer, pixels);
     }
     AnalyzeClusters(nev, clusters, freqDist, cSizeDist);
   }

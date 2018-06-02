@@ -33,21 +33,16 @@ class PixelReader
   struct PixelData {
     UShort_t row;
     UShort_t col;
-    Label labels[Digit::maxLabels];
-
-    PixelData(const Digit* dig) : row(dig->getRow()), col(dig->getColumn())
-    {
-      for (int i = Digit::maxLabels; i--;)
-        labels[i] = dig->getLabel(i);
-    }
-    PixelData(UShort_t r, UShort_t c) : row(r), col(c) {}
+    PixelData(const Digit* dig) : row(dig->getRow()), col(dig->getColumn()) {}
+    PixelData(UShort_t r = 0, UShort_t c = 0) : row(r), col(c) {}
   };
 
   /// Transient data for single chip fired pixeld
+  /// In case of MC it assumes that the digits data is sorted in chip/col/row
   struct ChipPixelData {
     UShort_t chipID = 0;           // chip id within detector
     UInt_t roFrame = 0;            // readout frame ID
-    Double_t timeStamp = 0.;       // Fair time ?
+    UInt_t startID = 0;            // entry of the 1st pixel data, for MCtruth access
     std::vector<PixelData> pixels; // vector of pixeld
 
     void clear() { pixels.clear(); }

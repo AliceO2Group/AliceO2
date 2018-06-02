@@ -16,11 +16,7 @@
 int updateITSinGRP(std::string inputGRP, std::string grpName = "GRP");
 
 void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std::string inputfile = "o2sim.root",
-                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root"
-                  //
-                  // misc options
-                  ,
-                  bool useALPIDE = true)
+                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root")
 {
   // if rate>0 then continuous simulation for this rate will be performed
 
@@ -51,8 +47,19 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
 
   // Setup digitizer
   // Call o2::ITS::DigitizerTask(kTRUE) to activate the ALPIDE simulation
-  o2::ITS::DigitizerTask* digi = new o2::ITS::DigitizerTask(useALPIDE);
-  digi->setContinuous(rate > 0);
+  o2::ITS::DigitizerTask* digi = new o2::ITS::DigitizerTask();
+  //
+  // This is an example of setting the digitization parameters manually
+  // ====>>
+  // defaults
+  digi->getDigiParams().setContinuous(rate > 0); // continuous vs per-event mode
+  digi->getDigiParams().setROFrameLenght(4000);  // RO frame in ns
+  // parameters of signal time response: total duration, rise and decay times in ns
+  digi->getDigiParams().getSignalShape().setParameters(6000., 50., 30.);
+  digi->getDigiParams().setChargeThreshold(150); // charge threshold in electrons
+  digi->getDigiParams().setNoisePerPixel(1.e-7); // noise level
+  // <<===
+
   digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
   fRun->AddTask(digi);
 
@@ -117,12 +124,12 @@ int updateITSinGRP(std::string inputGRP, std::string grpName)
   return 0;
 }
 
-void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp = kTRUE, Float_t rate = 50.e3)
+void run_digi_its(Int_t nEvents, TString mcEngine, Float_t rate)
 {
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;
   inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
   paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
   outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
-  run_digi_its(rate, outputfile.str().c_str(), inputfile.str().c_str(), paramfile.str().c_str(), "", alp);
+  run_digi_its(rate, outputfile.str().c_str(), inputfile.str().c_str(), paramfile.str().c_str(), "");
 }

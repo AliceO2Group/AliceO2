@@ -23,11 +23,7 @@
 int updateITSTPCinGRP(std::string inputGRP, std::string grpName = "GRP");
 
 void run_digi_all(float rate = 100e3, std::string outputfile = "o2dig.root", std::string inputfile = "o2sim.root",
-                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root"
-                  //
-                  // misc options
-                  ,
-                  bool useALPIDE = true)
+                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root")
 {
 
   FairLogger* logger = FairLogger::GetLogger();
@@ -64,7 +60,7 @@ void run_digi_all(float rate = 100e3, std::string outputfile = "o2dig.root", std
 
   //============================= create digitizers =============================>>>
 
-  o2::ITS::DigitizerTask* digiITS = new o2::ITS::DigitizerTask(useALPIDE);
+  o2::ITS::DigitizerTask* digiITS = new o2::ITS::DigitizerTask();
   digiITS->setContinuous(rate > 0);
   digiITS->setFairTimeUnitInNS(1.0);     // tell in which units (wrt nanosecond) FAIR timestamps are
   digiITS->setAlpideROFramLength(5000.); // ALPIDE RO frame in ns
