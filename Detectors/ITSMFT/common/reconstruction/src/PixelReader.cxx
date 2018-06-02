@@ -24,12 +24,13 @@ Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData& chipData)
     if (mIdx >= mDigitArray->size()) {
       return kFALSE;
     }
+    chipData.startID = mIdx;
     mLastDigit = &((*mDigitArray)[mIdx++]);
+  } else {
+    chipData.startID = mIdx;
   }
   chipData.chipID = mLastDigit->getChipIndex();
   chipData.roFrame = mLastDigit->getROFrame();
-  chipData.timeStamp =
-    mLastDigit->getTimeStamp(); // time difference within the same TFrame does not matter, take 1st one
   chipData.pixels.emplace_back(mLastDigit);
   mLastDigit = nullptr;
 

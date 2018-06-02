@@ -4,25 +4,24 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/Hit.cxx
-    src/ClusterShape.cxx
     src/AlpideSimResponse.cxx
-    src/Chip.cxx
+    src/ChipDigitsContainer.cxx
     src/AlpideChip.cxx
-    src/SimuClusterShaper.cxx
-    src/SimulationAlpide.cxx
     src/DigiParams.cxx
     src/Digitizer.cxx
+    src/AlpideSignalTrapezoid.cxx
+    src/ClusterShape.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Hit.h
-    include/${MODULE_NAME}/ClusterShape.h
     include/${MODULE_NAME}/AlpideSimResponse.h
     include/${MODULE_NAME}/DigiParams.h
     include/${MODULE_NAME}/Digitizer.h
-    include/${MODULE_NAME}/Chip.h
+    include/${MODULE_NAME}/PreDigit.h
+    include/${MODULE_NAME}/ChipDigitsContainer.h
     include/${MODULE_NAME}/AlpideChip.h
-    include/${MODULE_NAME}/SimuClusterShaper.h
-    include/${MODULE_NAME}/SimulationAlpide.h
+    include/${MODULE_NAME}/AlpideSignalTrapezoid.h
+    include/${MODULE_NAME}/ClusterShape.h
     )
 
 Set(LINKDEF src/ITSMFTSimulationLinkDef.h)
