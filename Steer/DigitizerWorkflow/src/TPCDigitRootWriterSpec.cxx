@@ -38,17 +38,17 @@ namespace TPC
 {
 
 template <typename T>
-TBranch* getOrMakeBranch(TTree& tree, const char* basename, int sector, T* ptr)
+TBranch* getOrMakeBranch(TTree& tree, std::string basename, int sector, T* ptr)
 {
   std::stringstream stream;
   stream << basename << "_" << sector;
-  const auto brname = stream.str().c_str();
-  if (auto br = tree.GetBranch(brname)) {
+  const auto brname = stream.str();
+  if (auto br = tree.GetBranch(brname.c_str())) {
     br->SetAddress(static_cast<void*>(&ptr));
     return br;
   }
   // otherwise make it
-  return tree.Branch(brname, ptr);
+  return tree.Branch(brname.c_str(), ptr);
 }
 
 /// create the processor spec
@@ -170,6 +170,12 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
           // the labels
           auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(lname.c_str());
           auto labeldataRaw = labeldata.get();
+          LOG(INFO) << "MCTRUTH ELEMENTS " << labeldataRaw->getNElements();
+          if (labeldataRaw->getNElements() != digits->size()) {
+            LOG(WARNING) << "Inconsistent number of label slots "
+                         << labeldataRaw->getNElements() << " versus digits " << digits->size();
+          }
+
           {
             auto br = getOrMakeBranch(*outputtree.get(), "TPCDigitMCTruth", sector, &labeldataRaw);
             br->Fill();
