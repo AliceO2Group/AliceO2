@@ -30,8 +30,8 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   BOOST_CHECK_EQUAL(result , true);
   BOOST_CHECK_EQUAL(match[2], "0");
   BOOST_CHECK_EQUAL(match[1].str(), "bkey");
-  BOOST_CHECK_EQUAL(match[4].str(),  "1789372894");
-  BOOST_CHECK_EQUAL(match[3].str(),  "12");
+  BOOST_CHECK_EQUAL(match[4].str(), "1789372894");
+  BOOST_CHECK_EQUAL(match[3].str(), "12");
   // Add the first metric to the store
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
