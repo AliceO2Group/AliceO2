@@ -41,11 +41,11 @@ void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
   std::cout << "@@@@ input " << inputfile.str().c_str() << std::endl;
   fRun->SetOutputFile(outputfile.str().c_str());
   std::cout << "@@@@ output " << outputfile.str().c_str() << std::endl;
-  /*
+
   if (rate > 0) {
     fFileSource->SetEventMeanTime(1.e9 / rate); // is in us
   }
-  */
+
   // Setup Runtime DB
 
   FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
