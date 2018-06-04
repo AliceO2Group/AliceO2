@@ -10,7 +10,6 @@
 
 #ifndef O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
 #define O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
-// #define DEBUG_BUILD
 
 #include <array>
 #include <vector>
@@ -24,34 +23,14 @@ namespace CA
 
 struct Line final {
   Line();
-#ifndef DEBUG_BUILD
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
-#else
-  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, const int idorigin = -99,
-       const int iddestination = -99);
-  Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint, std::array<float, 3> thirdPoint,
-       const int idorigin = -99, const int iddestination = -99);
-  int originID;
-  int destinID;
-  std::array<float, 3> destinationPoint;
-  std::array<float, 3> confirmationPoint;
-#endif
 
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
-#ifdef DEBUG_BUILD
-  // Debug purpose only
-  int originID;
-  int destinID;
-  std::array<float, 3> destinationPoint;
-  std::array<float, 3> confirmationPoint;
-#endif
-
-  std::array<float, 3> originPoint;
-  std::array<float, 3> cosinesDirector;
+  std::array<float, 3> originPoint, cosinesDirector;
   std::array<float, 6> weightMatrix;
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
@@ -69,11 +48,11 @@ class ClusterLines final
                const bool weight = false);
   void add(const int lineLabel, const Line& line, const bool weight = false);
   void computeClusterCentroid();
-  float getAvgDistance2();
-  std::array<float, 6> getRMS2();
-  inline std::vector<int> getLabels() { return mLabels; };
+  float getAvgDistance2() const;
+  std::array<float, 6> getRMS2() const;
+  inline std::vector<int> getLabels() const { return mLabels; };
   inline int getSize() const { return mLabels.size(); };
-  inline std::array<float, 3> getVertex() { return mVertex; }
+  inline std::array<float, 3> getVertex() const { return mVertex; }
   std::vector<Line> mLines;
 
  protected:

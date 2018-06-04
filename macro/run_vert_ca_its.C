@@ -145,7 +145,8 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
           end_track = std::chrono::system_clock::now();
           vertexer.findVertices();
           end_vert = std::chrono::system_clock::now();
-          verticesITS->swap(vertexer.getVertices());
+          std::vector<Vertex> vertITS = vertexer.getVertices();
+          verticesITS->swap(vertITS);
           instance_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_inst - start).count();
           initiali_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_init - start).count();
           tracking_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_track - start).count();
@@ -175,7 +176,8 @@ void run_vert_ca_its(const int inspEvt = -1, bool useMC = false,
       end_track = std::chrono::system_clock::now();
       vertexer.findVertices();
       end_vert = std::chrono::system_clock::now();
-      verticesITS->swap(vertexer.getVertices());
+      std::vector<Vertex> vertITS = vertexer.getVertices();
+      verticesITS->swap(vertITS);
       instance_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_inst - start).count();
       initiali_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_init - start).count();
       tracking_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_track - start).count();

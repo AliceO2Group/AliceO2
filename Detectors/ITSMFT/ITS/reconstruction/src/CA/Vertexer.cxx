@@ -238,7 +238,7 @@ void Vertexer::findTracklets(const bool useMCLabel)
                   float absDeltaPhi{ std::abs(mClusters[2][iCluster2].phiCoordinate -
                                               mClusters[1][iCluster1].phiCoordinate) };
                   float absDeltaZ{ std::abs(mClusters[2][iCluster2].zCoordinate - ZProjectionRefined) };
-                  if (absDeltaZ < mZCut && (absDeltaPhi < mPhiCut || std::abs(absDeltaPhi - TwoPi) < mPhiCut && testMC)) {
+                  if (absDeltaZ < mZCut && ((absDeltaPhi < mPhiCut || std::abs(absDeltaPhi - TwoPi) < mPhiCut) && testMC)) {
                     mTracklets.emplace_back(Line{
                       std::array<float, 3>{ mClusters[0][iCluster0].xCoordinate, mClusters[0][iCluster0].yCoordinate,
                                             mClusters[0][iCluster0].zCoordinate },
@@ -343,13 +343,6 @@ void Vertexer::findVertices()
       if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
             mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <
           1.98 * 1.98) {
-        // #ifdef DEBUG_BUILD
-        //         mLegacyVertices.emplace_back(
-        //           std::make_tuple(mTrackletClusters[iCluster].getVertex(), mTrackletClusters[iCluster].getSize(),
-        //           dist));
-        // #else
-        //         mLegacyVertices.emplace_back(mTrackletClusters[iCluster].getVertex());
-        // #endif
         mVertices.emplace_back(
           Point3D<float>{ mTrackletClusters[iCluster].getVertex()[0], mTrackletClusters[iCluster].getVertex()[1],
                           mTrackletClusters[iCluster].getVertex()[2] },
@@ -365,32 +358,6 @@ void Vertexer::findVertices()
 }
 
 #ifdef DEBUG_BUILD
-void Vertexer::printIndexTables()
-{
-  for (int iTables{ 0 }; iTables < Constants::ITS::LayersNumberVertexer; ++iTables) {
-    std::cout << "Table " << iTables << std::endl;
-    for (int iIndexPhi{ 0 }; iIndexPhi < PhiBins; ++iIndexPhi) {
-      for (int iIndexZeta{ 0 }; iIndexZeta < ZBins; ++iIndexZeta) {
-        std::cout << mIndexTables[iTables][iIndexZeta + ZBins * iIndexPhi] << "\t";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << mIndexTables[iTables][ZBins * PhiBins] << "\t";
-  }
-}
-
-void Vertexer::dumpTracklets()
-{
-  for (auto& cluster : mClusters[0]) {
-    if (mEvent.getLayer(0).getClusterLabel(cluster.clusterId).getTrackID() == 60) {
-      std::cout << "x: " << cluster.xCoordinate << " y: " << cluster.yCoordinate << " z: " << cluster.zCoordinate
-                << std::endl;
-    }
-  }
-  for (auto& tracklet : mTracklets) {
-    std::cout << "or id: " << tracklet.originID << "\t de id: " << tracklet.destinID << std::endl;
-  }
-}
 #endif
 
 } // namespace CA

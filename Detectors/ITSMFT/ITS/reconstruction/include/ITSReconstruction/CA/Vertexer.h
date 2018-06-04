@@ -45,21 +45,13 @@ class Vertexer
   void findVertices();
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
-  inline std::vector<Line> getTracklets() { return mTracklets; }
-  inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() { return mClusters; }
+  inline std::vector<Line> const getTracklets() const { return mTracklets; }
+  inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() const { return mClusters; }
   static const std::vector<std::pair<int, int>> selectClusters(
     const std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>& indexTable,
     const std::array<int, 4>& selectedBinsRect);
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
-
-  // #ifdef DEBUG_BUILD
-  //   void printIndexTables();
-  //   void dumpTracklets();
-  //   inline std::vector<std::tuple<std::array<float, 3>, int, float>> getLegacyVertices() { return mLegacyVertices; }
-  // #else
-  //   inline std::vector<std::array<float, 3>> getLegacyVertices() { return mLegacyVertices; }
-  // #endif
-  std::vector<Vertex>& getVertices() { return mVertices; }
+  std::vector<Vertex> getVertices() const { return mVertices; }
 
  protected:
   bool mVertexerInitialised{ false };
@@ -73,11 +65,6 @@ class Vertexer
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
   float mZBinSize;
   Event mEvent;
-  // #ifdef DEBUG_BUILD
-  //   std::vector<std::tuple<std::array<float, 3>, int, float>> mLegacyVertices;
-  // #else
-  //   std::vector<std::array<float, 3>> mLegacyVertices;
-  // #endif
   std::vector<Vertex> mVertices;
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
