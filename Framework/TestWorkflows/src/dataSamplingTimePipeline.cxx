@@ -113,8 +113,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     simpleQcTask
   };
 
-  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
+  std::string configurationSource = std::string("json://") + getenv("BASEDIR")
+                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.json";
 
   DataSampling::GenerateInfrastructure(specs, configurationSource);
   return specs;

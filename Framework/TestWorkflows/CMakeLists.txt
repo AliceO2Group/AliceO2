@@ -97,7 +97,7 @@ O2_GENERATE_EXECUTABLE(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
-Install(FILES dataSamplingFullChainConfig.ini DESTINATION share/config/)
+Install(FILES dataSamplingFullChainConfig.json DESTINATION share/config/)
 
 
 

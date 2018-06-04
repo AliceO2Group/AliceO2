@@ -56,7 +56,7 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   std::string configFilePath =
-    std::string("file://") + getenv("O2_ROOT") + "/share/config/dataSamplingFullChainConfig.ini";
+    std::string("json://") + getenv("O2_ROOT") + "/share/config/dataSamplingFullChainConfig.json";
   LOG(INFO) << "Using config file '" << configFilePath << "'";
 
   WorkflowSpec specs;

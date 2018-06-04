@@ -134,10 +134,11 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 {
   QcTaskConfigurations tasks;
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
+  std::string prefixConfigTasks = "qc/tasks_config/";
 
   std::vector<std::string> taskNames;
   try {
-    std::string taskNamesString = configFile->getString("DataSampling/tasksList").value();
+    std::string taskNamesString = configFile->getString("qc/config/DataSampling/tasksList").value();
     boost::split(taskNames, taskNamesString, boost::is_any_of(","));
   } catch (const boost::bad_optional_access&) {
     LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
@@ -152,22 +153,22 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 
     std::string taskInputsNames;
     try {
-      std::string simpleQcTaskDefinition = configFile->getString(taskName + "/taskDefinition").value();
-      taskInputsNames = configFile->getString(simpleQcTaskDefinition + "/inputs").value();
-      task.fractionOfDataToSample = configFile->getFloat(simpleQcTaskDefinition + "/fraction").value();
+      std::string simpleQcTaskDefinition = configFile->getString(prefixConfigTasks + taskName + "/taskDefinition").value();
+      taskInputsNames = configFile->getString(prefixConfigTasks + simpleQcTaskDefinition + "/inputs").value();
+      task.fractionOfDataToSample = configFile->getFloat(prefixConfigTasks + simpleQcTaskDefinition + "/fraction").value();
       if (task.fractionOfDataToSample <= 0 || task.fractionOfDataToSample > 1) {
         LOG(ERROR) << "QC Task configuration error. In file " << configurationSource << ", value "
-                   << simpleQcTaskDefinition + "/fraction"
+                   << prefixConfigTasks + simpleQcTaskDefinition + "/fraction"
                    << " is not in range (0,1]. Setting value to 0.";
         task.fractionOfDataToSample = 0;
       }
-      task.dispatcherType = configFile->getString(simpleQcTaskDefinition + "/dispatcherType").value_or("DPL");
+      task.dispatcherType = configFile->getString(prefixConfigTasks + simpleQcTaskDefinition + "/dispatcherType").value_or("DPL");
       // if there is a channelConfig specified, then user wants output in raw FairMQ layer, not DPL
-      task.fairMqOutputChannelConfig = configFile->getString(simpleQcTaskDefinition + "/channelConfig").value_or("");
+      task.fairMqOutputChannelConfig = configFile->getString(prefixConfigTasks + simpleQcTaskDefinition + "/channelConfig").value_or("");
 
       // FIXME: I do not like '-1' meaning 'all' - not 100% sure if it's safe to compare with '-1' later
       task.subSpec = static_cast<header::DataHeader::SubSpecificationType>(
-        configFile->getInt(simpleQcTaskDefinition + "/subSpec").value_or(-1));
+        configFile->getInt(prefixConfigTasks + simpleQcTaskDefinition + "/subSpec").value_or(-1));
 
     } catch (const boost::bad_optional_access&) {
       LOG(ERROR) << "QC Task configuration error. In file " << configurationSource
@@ -182,12 +183,12 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
 
       InputSpec desiredData;
       try {
-        desiredData.binding = configFile->getString(input + "/inputName").value();
+        desiredData.binding = configFile->getString(prefixConfigTasks + input + "/inputName").value();
 
-        std::string origin = configFile->getString(input + "/dataOrigin").value();
+        std::string origin = configFile->getString(prefixConfigTasks + input + "/dataOrigin").value();
         origin.copy(desiredData.origin.str, (size_t)desiredData.origin.size);
 
-        std::string description = configFile->getString(input + "/dataDescription").value();
+        std::string description = configFile->getString(prefixConfigTasks + input + "/dataDescription").value();
         description.copy(desiredData.description.str, (size_t)desiredData.description.size);
 
       } catch (const boost::bad_optional_access&) {
@@ -198,12 +199,12 @@ QcTaskConfigurations DataSampling::readQcTasksConfiguration(const std::string& c
       task.desiredDataSpecs.push_back(desiredData);
 
       // for temporary feature
-      if (configFile->getInt(input + "/spawnConverter").value_or(0)) {
+      if (configFile->getInt(prefixConfigTasks + input + "/spawnConverter").value_or(0)) {
         FairMqInput fairMqInput{ OutputSpec{
                                    desiredData.origin, desiredData.description, task.subSpec == -1 ? 0 : task.subSpec,
                                  },
-                                 configFile->getString(input + "/channelConfig").value_or(""),
-                                 configFile->getString(input + "/converterType").value_or("incrementalConverter") };
+                                 configFile->getString(prefixConfigTasks + input + "/channelConfig").value_or(""),
+                                 configFile->getString(prefixConfigTasks + input + "/converterType").value_or("incrementalConverter") };
         task.desiredFairMqData.push_back(fairMqInput);
       }
     }
@@ -227,10 +228,10 @@ InfrastructureConfig DataSampling::readInfrastructureConfiguration(const std::st
   std::unique_ptr<ConfigurationInterface> configFile = ConfigurationFactory::getConfiguration(configurationSource);
 
   cfg.enableTimePipeliningDispatchers =
-    static_cast<bool>(configFile->getInt("DataSampling/enableTimePipeliningDispatchers").get_value_or(0));
+    static_cast<bool>(configFile->getInt("qc/config/DataSampling/enableTimePipeliningDispatchers").get_value_or(0));
   cfg.enableParallelDispatchers =
-    static_cast<bool>(configFile->getInt("DataSampling/enableParallelDispatchers").get_value_or(0));
-  cfg.enableProxy = static_cast<bool>(configFile->getInt("DataSampling/enableProxy").get_value_or(0));
+    static_cast<bool>(configFile->getInt("qc/config/DataSampling/enableParallelDispatchers").get_value_or(0));
+  cfg.enableProxy = static_cast<bool>(configFile->getInt("qc/config/DataSampling/enableProxy").get_value_or(0));
 
   return cfg;
 }
