@@ -12,7 +12,7 @@
 
 using namespace o2::phos;
 
-ClassImp(o2::phos::Hit) ;
+ClassImp(o2::phos::Hit);
 
 void Hit::PrintStream(std::ostream& stream) const
 {
@@ -20,6 +20,16 @@ void Hit::PrintStream(std::ostream& stream) const
          << GetX() << "|" << GetY() << "|" << GetZ() << "), energy loss " << GetEnergyLoss() << " total energy "
          << mInitialEnergy << std::endl;
 }
+// Hit& Hit::operator=(const Hit& rh)
+// {
+//   mTrackID = rh.mTrackID;
+//   mPos = rh.mPos;
+//   mTime = rh.mTime;
+//   mELoss = rh.mEloss;
+//   mDetectorID = rh.mDetectorID;
+//   mPvector = rh.mPvector ;
+//   mInitialEnergy = rh.mInitialEnergy ;
+// }
 
 Bool_t Hit::operator<(const Hit& rhs) const
 {
@@ -30,20 +40,23 @@ Bool_t Hit::operator<(const Hit& rhs) const
 
 Bool_t Hit::operator==(const Hit& rhs) const
 {
-  return ((GetDetectorID() == rhs.GetDetectorID()) && 
-          (GetTrackID() == rhs.GetTrackID()));
+  return ((GetDetectorID() == rhs.GetDetectorID()) && (GetTrackID() == rhs.GetTrackID()));
 }
 
 Hit& Hit::operator+=(const Hit& rhs)
 {
-  AddEnergyLoss(rhs.GetEnergyLoss());
+  if (rhs.GetEnergyLoss() > GetEnergyLoss())
+    SetTime(rhs.GetTime());
+  SetEnergyLoss(GetEnergyLoss() + rhs.GetEnergyLoss());
   return *this;
 }
 
 Hit Hit::operator+(const Hit& rhs) const
 {
   Hit result(*this);
-  result.AddEnergyLoss(rhs.GetEnergyLoss());
+  if (rhs.GetEnergyLoss() > result.GetEnergyLoss())
+    result.SetTime(rhs.GetTime());
+  result.SetEnergyLoss(result.GetEnergyLoss() + rhs.GetEnergyLoss());
   return *this;
 }
 

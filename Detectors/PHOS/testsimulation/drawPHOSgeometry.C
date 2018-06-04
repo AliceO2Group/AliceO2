@@ -2,10 +2,9 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "FairRunSim.h"
-#include "TGeoManager.h"
 #include "PHOSSimulation/Detector.h"
+#include "TGeoManager.h"
 #include "TROOT.h"
-#include "TString.h"
 #include "TString.h"
 #include "TSystem.h"
 
@@ -38,16 +37,15 @@ void drawPHOSgeometry()
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
- // o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
- // run->AddModule(frame);
+  // o2::passive::FrameStructure* frame = new o2::passive::FrameStructure("Frame", "Frame");
+  // run->AddModule(frame);
 
   o2::phos::Detector* phos = new o2::phos::Detector(kTRUE);
   run->AddModule(phos);
 
   run->Init();
   {
-    const TString ToHide =
-      "cave";
+    const TString ToHide = "cave";
 
     TObjArray* lToHide = ToHide.Tokenize(" ");
     TIter* iToHide = new TIter(lToHide);
@@ -56,42 +54,43 @@ void drawPHOSgeometry()
       gGeoManager->GetVolume(name->GetName())->SetVisibility(kFALSE);
 
     TString ToShow =
-      "PHOS PHOH PHOC PSTR PCEL PWRA PXTL PPIN PREA PSUP PSHO PTII PTIH PAGA PAGH PCOR PCOH PTIO PIOH PCOL PCLH PFGC PWAR PWTI PCA1 PBE1 PCA2 PBE2 PFRX PFRZ PFG1 PFG2 PFG3 PFG4 PAFE PEMC PEMH PCPV PCPC PCPD PCPF PCPG PCPQ PCP1 PCF1 PCF2";
-    //Support geometry
-//   TString ToShow =
-//      "PSTR PCEL PWRA PXTL PPIN PREA PSUP PSHO PTII PTIH PAGA PAGH PCOR PCOH PTIO PIOH PCOL PCLH PFGC PWAR PWTI PCA1 PBE1 PCA2 PBE2 PFRX PFRZ PFG1 PFG2 PFG3 PFG4 PAFE PEMC PEMH PCPV PCPC PCPD PCPF PCPG PCPQ PCP1 PCF1 PCF2 PCRA PCRE PWHE";
-
-
+      "PHOS PHOH PHOC PSTR PCEL PWRA PXTL PPIN PREA PSUP PSHO PTII PTIH PAGA PAGH PCOR PCOH PTIO PIOH PCOL PCLH PFGC "
+      "PWAR PWTI PCA1 PBE1 PCA2 PBE2 PFRX PFRZ PFG1 PFG2 PFG3 PFG4 PAFE PEMC PEMH PCPV PCPC PCPD PCPF PCPG PCPQ PCP1 "
+      "PCF1 PCF2";
+    // Support geometry
+    //   TString ToShow =
+    //      "PSTR PCEL PWRA PXTL PPIN PREA PSUP PSHO PTII PTIH PAGA PAGH PCOR PCOH PTIO PIOH PCOL PCLH PFGC PWAR PWTI
+    //      PCA1 PBE1 PCA2 PBE2 PFRX PFRZ PFG1 PFG2 PFG3 PFG4 PAFE PEMC PEMH PCPV PCPC PCPD PCPF PCPG PCPQ PCP1 PCF1
+    //      PCF2 PCRA PCRE PWHE";
 
     TObjArray* lToShow = ToShow.Tokenize(" ");
     TIter* iToShow = new TIter(lToShow);
-    while ((name = (TObjString*)iToShow->Next())){
-      if(gGeoManager->GetVolume(name->GetName()))
-         gGeoManager->GetVolume(name->GetName())->SetVisibility(kTRUE);
+    while ((name = (TObjString*)iToShow->Next())) {
+      if (gGeoManager->GetVolume(name->GetName()))
+        gGeoManager->GetVolume(name->GetName())->SetVisibility(kTRUE);
       else
-        printf("No volume <%s>\n",name->GetName()) ;
+        printf("No volume <%s>\n", name->GetName());
     }
 
-    const TString ToTrans = "" ; //PHOS PHOH PHOC";
+    const TString ToTrans = ""; // PHOS PHOH PHOC";
 
     TObjArray* lToTrans = ToTrans.Tokenize(" ");
     TIter* iToTrans = new TIter(lToTrans);
-    while ((name = (TObjString*)iToTrans->Next())){
-      if(gGeoManager->GetVolume(name->GetName()))
+    while ((name = (TObjString*)iToTrans->Next())) {
+      if (gGeoManager->GetVolume(name->GetName()))
         gGeoManager->GetVolume(name->GetName())->SetTransparency(50);
       else
-        printf("No volume <%s>\n",name->GetName()) ;
+        printf("No volume <%s>\n", name->GetName());
     }
   }
 
   gGeoManager->GetListOfVolumes()->ls();
   gGeoManager->CloseGeometry();
-gGeoManager->SetVisLevel(0); // (default) TGeo calculate number of levels to draw
-//gGeoManager->SetVisLevel(5); // User defines depth of levels to draw
-//gGeoManager->SetVisLevel(1); // (default) do not draw contained, inner parts only
+  gGeoManager->SetVisLevel(0); // (default) TGeo calculate number of levels to draw
+                               // gGeoManager->SetVisLevel(5); // User defines depth of levels to draw
+  // gGeoManager->SetVisLevel(1); // (default) do not draw contained, inner parts only
 
- gGeoManager->GetTopVolume()->Draw("ogl");
+  gGeoManager->GetTopVolume()->Draw("ogl");
 
-
- // gGeoManager->Export("PHOSgeometry.root");
+  // gGeoManager->Export("PHOSgeometry.root");
 }
