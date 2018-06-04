@@ -45,8 +45,7 @@ TGeoVolume* createAirVacuumCave(const char* name)
                                          -1.0,  /* stemax */
                                          -1.0,  /* deemax */
                                          -1.0,  /* epsil */
-                                         -1.0   /* stmin */
-  );
+                                         -1.0 /* stmin */);
   return gGeoManager->MakeBox(name, mair, 2000.0, 2000.0, 3000.0);
 }
 

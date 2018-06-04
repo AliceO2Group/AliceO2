@@ -45,8 +45,10 @@ inline void setVolumeColor(const char* pattern, int color)
 /// get a radlen radiograph of a given detection element within box with the given granularity
 TH2* getRadio(int detElemId, float xmin, float ymin, float xmax, float ymax, float xstep, float ystep, float thickness = 5 /* cm */);
 
-class Dummy {}; // to force Root produce a dictionary for namespace test (seems it is doing it fully if there are only functions in the namespace)
-
+class Dummy
+{
+  // to force Root produce a dictionary for namespace test (seems it is doing it fully if there are only functions in the namespace)
+};
 } // namespace test
 } // namespace mch
 } // namespace o2
