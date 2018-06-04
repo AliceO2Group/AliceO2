@@ -51,10 +51,27 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
     }
   } // end of loop over hits
 
+  //test output
+  LOG(DEBUG) << "Test digizing data ===================" << FairLogger::endl;
+  LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
+
+
+  Int_t nClk = floor(mEventTime/25.);
+  Int_t ClkEventTime = mEventTime - 25.*nClk;
+  LOG(DEBUG) << "nClk: " << nClk << " Clock Event Time " << ClkEventTime << FairLogger::endl;
+
+  for (Int_t ipmt = 0; ipmt < nMCPs; ipmt++) {
+      LOG(DEBUG) << "nMCP: " << ipmt << " Ampl " << amp[ipmt] << " Time " << cfd[ipmt] << FairLogger::endl;
+  }
+  LOG(DEBUG) << "======================================" << FairLogger::endl;
+
+
+
+
   for (Int_t ipmt = 0; ipmt < nMCPs; ipmt++) {
     if (amp[ipmt] > mAmpThreshold) {
       cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant
-      cfd[ipmt] = (gRandom->Gaus(cfd[ipmt], 50)) / Geometry::ChannelWidth;
+      cfd[ipmt] = (gRandom->Gaus(cfd[ipmt], 50)); // Geometry::ChannelWidth;
       mDigits->emplace_back(timeframe, ipmt, cfd[ipmt], Float_t(amp[ipmt]), bc);
     }
   } // end of loop over PMT
