@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo) {
   // Parse a simple metric
   metric = "[METRIC] bkey,0 12 1789372894 hostname=test.cern.ch";
   result = DeviceMetricsHelper::parseMetric(metric, match);
-  BOOST_CHECK_EQUAL(result , true);
+  BOOST_CHECK_EQUAL(result, true);
   BOOST_CHECK_EQUAL(match[2], "0");
   BOOST_CHECK_EQUAL(match[1].str(), "bkey");
   BOOST_CHECK_EQUAL(match[4].str(), "1789372894");
