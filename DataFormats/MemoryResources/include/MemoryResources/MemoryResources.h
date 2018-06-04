@@ -109,7 +109,7 @@ class ChannelResource : public FairMQMemoryResource
   bool do_is_equal(const boost::container::pmr::memory_resource& other) const noexcept override
   {
     const FairMQMemoryResource* that = dynamic_cast<const FairMQMemoryResource*>(&other);
-    if (factory && that && that->getTransportFactory() == factory) {
+    if (that && that->getTransportFactory() == factory) {
       return true;
     }
     return false;
