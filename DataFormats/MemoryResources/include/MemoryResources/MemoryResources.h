@@ -151,6 +151,8 @@ class SpectatorMessageResource : public FairMQMemoryResource
   SpectatorMessageResource() = default;
   SpectatorMessageResource(const FairMQMessage* _message) : message(_message){};
   FairMQMessagePtr getMessage(void* p) override { return nullptr; }
+  const FairMQTransportFactory* getTransportFactory() const noexcept override { return nullptr;}
+  size_t getNumberOfMessages() const noexcept override {return 0;}
 
  protected:
   const FairMQMessage* message;
