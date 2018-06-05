@@ -15,5 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::conf::SimConfig+;
+#pragma link C++ class o2::conf::SimConfigData+;
 
 #endif
