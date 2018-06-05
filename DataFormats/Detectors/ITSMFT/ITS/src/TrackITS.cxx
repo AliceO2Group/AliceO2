@@ -86,11 +86,13 @@ void TrackITS::setClusterIndex(Int_t l, Int_t i)
   mIndex[mNClusters++] = idx;
 }
 
-void TrackITS::setExternalClusterIndex(Int_t layer, Int_t idx)
+void TrackITS::setExternalClusterIndex(Int_t layer, Int_t idx, bool newCluster)
 {
   //--------------------------------------------------------------------
   // Set the cluster index within an external cluster array
   //--------------------------------------------------------------------
+  if (newCluster)
+    mNClusters++;
   mIndex[layer] = idx;
 }
 
