@@ -62,7 +62,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return kTRUE;
 }
 
-std::vector<o2::mch::Hit>* Detector::getHits(int) { return nullptr; /*return mStepper->getHits();*/ }
+std::vector<o2::mch::Hit>* Detector::getHits(int i)
+{
+  if (i == 0) {
+    return mStepper->getHits();
+  }
+  return nullptr;
+}
 
 void Detector::Register()
 {
