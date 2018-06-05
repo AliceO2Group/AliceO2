@@ -521,6 +521,29 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    steer_bucket
+
+    DEPENDENCIES
+    data_format_simulation_bucket
+    SimulationDataFormat
+    ITSMFTSimulation
+    RIO
+    Net
+    SimConfig
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${MS_GSL_INCLUDE_DIR}
+    ${FAIRROOT_INCLUDE_DIR}/fairmq
+)
+
+
+o2_define_bucket(
+    NAME
     data_format_simulation_test_bucket
 
     DEPENDENCIES
@@ -572,7 +595,8 @@ o2_define_bucket(
     ReconstructionDataFormats
     DataFormatsParameters
     Field
-
+    fairmq_bucket
+    Net
     VMC # ROOT
     Geom
 
@@ -874,6 +898,7 @@ o2_define_bucket(
     DEPENDENCIES
     tpc_base_bucket
     data_format_TPC_bucket
+    detectors_base_bucket
     Field
     DetectorsBase
     Generators
@@ -1232,6 +1257,7 @@ o2_define_bucket(
     Physics
     EMCALBase
     DetectorsBase
+    detectors_base_bucket
     SimulationDataFormat
 
     INCLUDE_DIRECTORIES
@@ -1247,6 +1273,7 @@ o2_define_bucket(
     DEPENDENCIES
     tof_base_bucket
     root_base_bucket
+    detectors_base_bucket
     fairroot_geom
     RIO
     Graf
@@ -1309,6 +1336,7 @@ o2_define_bucket(
     Physics
     FITBase
     DetectorsBase
+    detectors_base_bucket
     SimulationDataFormat
     Core Hist # ROOT
     CommonDataFormat
@@ -1351,6 +1379,7 @@ o2_define_bucket(
 
     DEPENDENCIES # library names
     root_base_bucket
+    detectors_base_bucket
     fairroot_geom
     RIO
     Graf
@@ -1404,6 +1433,7 @@ o2_define_bucket(
     phos_base_bucket
     root_base_bucket
     fairroot_geom
+    detectors_base_bucket
     RIO
     Graf
     Gpad
@@ -1486,6 +1516,7 @@ o2_define_bucket(
     Physics
     TRDBase
     DetectorsBase
+    detectors_base_bucket
     SimulationDataFormat
 
     INCLUDE_DIRECTORIES
@@ -1675,6 +1706,7 @@ o2_define_bucket(
     root_base_bucket
     fairroot_base_bucket
     DetectorsBase
+    detectors_base_bucket
     SimulationDataFormat
     RapidJSON
 

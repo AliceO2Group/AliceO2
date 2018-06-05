@@ -20,5 +20,7 @@
 #pragma link C++ class vector<o2::steer::EventPart>+;
 #pragma link C++ class vector<vector<o2::steer::EventPart>>+;
 #pragma link C++ class o2::steer::HitProcessingManager;
+#pragma link C++ class o2::steer::O2RunSim+;
+#pragma link C++ class o2::steer::O2MCApplication+;
 
 #endif

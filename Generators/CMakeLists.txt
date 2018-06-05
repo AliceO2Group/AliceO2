@@ -7,17 +7,23 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/GeneratorFromFile.cxx
-    src/GeneratorFactory.cxx
     src/Pythia6Generator.cxx
     src/PDG.cxx	
    )
 set(HEADERS
     include/${MODULE_NAME}/GeneratorFromFile.h
     include/${MODULE_NAME}/Pythia6Generator.h
-    include/${MODULE_NAME}/GeneratorFactory.h
     include/${MODULE_NAME}/PDG.h
    )
-
+if (HAVESIMULATION)
+  set(HEADERS ${HEADERS}
+      include/${MODULE_NAME}/GeneratorFactory.h
+    )
+  set(SRCS ${SRCS}
+      src/GeneratorFactory.cxx
+    )
+endif()
+ 
 if (PYTHIA8_INCLUDE_DIR)
   set(SRCS ${SRCS}
       src/Pythia8Generator.cxx
