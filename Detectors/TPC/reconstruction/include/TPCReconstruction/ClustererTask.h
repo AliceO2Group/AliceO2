@@ -65,7 +65,7 @@ class ClustererTask : public FairTask{
 
   // Digit arrays
   std::vector<o2::TPC::Digit> const* mDigitsArray;   ///< Array of TPC digits
-  MCLabelContainer const* mDigitMCTruthArray;        ///< Array for MCTruth information associated to digits in mDigitsArrray
+  std::shared_ptr<const MCLabelContainer> mDigitMCTruthArray;        ///< Array for MCTruth information associated to digits in mDigitsArrray
 
   // Cluster arrays
   std::vector<ClusterHardwareContainer8kb>* mHwClustersArray;      ///< Array of clusters found by Hw Clusterfinder

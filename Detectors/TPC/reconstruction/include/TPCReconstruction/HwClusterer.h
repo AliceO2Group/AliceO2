@@ -57,7 +57,7 @@ class HwClusterer {
     /// \param timeBinsMax Max number of timebins to process
     /// \param minQMax Minimum peak charge for cluster
     /// \param requirePositiveCharge Positive charge is required
-    /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
+    /// \param requireNeighbouringPad Requires at least 2 adjacent pads with charge above threshold
     HwClusterer(
         std::vector<ClusterHardwareContainer8kb>* clusterOutput,
         MCLabelContainer *labelOutput = nullptr,
@@ -85,14 +85,14 @@ class HwClusterer {
     /// @param mcDigitTruth MC Digit Truth container
     /// @param eventCount event counter
     /// @return Container with clusters
-    void Process(std::vector<o2::TPC::Digit> const *digits, MCLabelContainer const* mcDigitTruth, int eventCount);
+    void Process(std::vector<o2::TPC::Digit> const &digits, std::shared_ptr<const MCLabelContainer> mcDigitTruth, int eventCount);
 
     /// Finish processing digits
     /// @param digits Container with TPC digits
     /// @param mcDigitTruth MC Digit Truth container
     /// @param eventCount event counter
     /// @return Container with clusters
-    void FinishProcess(std::vector<o2::TPC::Digit> const *digits, MCLabelContainer const* mcDigitTruth, int eventCount);
+    void FinishProcess(std::vector<o2::TPC::Digit> const &digits, std::shared_ptr<const MCLabelContainer> mcDigitTruth, int eventCount);
 
 //    /// Setter for noise object, noise will be added before cluster finding
 //    /// \param noiseObject CalDet object, containing noise simulation
@@ -123,15 +123,18 @@ class HwClusterer {
      */
 
     /// HW Cluster Finder
-    /// \param center_pad   Pad number to be checked for cluster
-    /// \param center_time  Time to be checked for cluster
-    /// \param row          Row number for cluster properties
-    /// \param cluster      Field to store found cluster in
+    /// \param center_pad       Pad number to be checked for cluster
+    /// \param center_time      Time to be checked for cluster
+    /// \param row              Row number for cluster properties
+    /// \param cluster          Field to store found cluster in
+    /// \param sortedMcLabels   Sorted vector with MClabel-counter-pair
     /// \return True if (center_pad,center_time) was a cluster, false if not
-    bool hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row, ClusterHardware& cluster);
+    bool hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row, ClusterHardware& cluster, std::shared_ptr<std::vector<std::pair<MCCompLabel,unsigned>>> sortedMcLabels);
 
     /// Helper function to update cluster properties
-    /// \param charge       Charge
+    /// \param row          Current row
+    /// \param center_pad   Pad of peak
+    /// \param center_time  Timebin of peak
     /// \param dp           delta pad
     /// \param dt           delta time
     /// \param qTot         Total charge
@@ -139,9 +142,10 @@ class HwClusterer {
     /// \param time         Weighted time parameter
     /// \param sigmaPad2    Weighted sigma pad ^2 parameter
     /// \param sigmaTime2   Weighted sigma time ^2 parameter
-    void updateCluster(unsigned charge, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int&sigmaTime2);
+    /// \param mcLabel      Vector with MClabel-counter-pair
+    void updateCluster(int row, unsigned short center_pad, unsigned center_time, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int&sigmaTime2, std::shared_ptr<std::vector<std::pair<MCCompLabel,unsigned>>> mcLabels);
 
-    /// Writes clusters in temorary storage to cluster output
+    /// Writes clusters in temporary storage to cluster output
     /// \param timeOffset   Time offset of cluster container
     void writeOutputForTimeOffset(unsigned timeOffset);
 
@@ -150,7 +154,7 @@ class HwClusterer {
     void findClusterForTime(unsigned timebin);
 
     /// Searches for last remaining cluster and writes them out
-    /// \param clear    Clears data buffer afterwards (for not continous readout)
+    /// \param clear    Clears data buffer afterwards (for not continuous readout)
     void finishFrame(bool clear = false);
 
     /// Clears the buffer at given timebin
@@ -172,9 +176,12 @@ class HwClusterer {
     std::vector<unsigned short> mPadsPerRow;
     std::vector<unsigned short> mGlobalRowToRegion;
     std::vector<unsigned short> mGlobalRowToLocalRow;
-    std::vector<std::vector<unsigned>> mDataBuffer;
+    std::vector<std::vector<unsigned>> mDataBuffer;     ///< Buffer with digits (+noise +CM +...)
+    std::vector<std::vector<int>> mIndexBuffer;         ///< Buffer with digits indices
+    std::vector<std::shared_ptr<const MCLabelContainer>> mMCtruth;  ///< MC truth information of last events
+    std::vector<std::pair<MCCompLabel, int>> mMClabel;  ///< vector to accumulate the MC labels
 
-    std::vector<std::unique_ptr<std::vector<ClusterHardware>>> mTmpClusterArray;
+    std::vector<std::unique_ptr<std::vector<std::pair<ClusterHardware,std::shared_ptr<std::vector<std::pair<MCCompLabel,unsigned>>>>>>> mTmpClusterArray;
 
     std::vector<ClusterHardwareContainer8kb>* mClusterArray;        ///< Pointer to output cluster storage
     MCLabelContainer* mClusterMcLabelArray;     ///< Pointer to MC Label storage
@@ -244,12 +251,34 @@ class HwClusterer {
 //    std::map<int, std::unique_ptr<MCLabelContainer>> mLastMcDigitTruth; ///< Buffer for digit MC truth information
 };
 
-inline void HwClusterer::updateCluster(unsigned charge, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int&sigmaTime2) {
+inline void HwClusterer::updateCluster(
+    int row, unsigned short center_pad, unsigned center_time, short dp, short dt,
+    unsigned& qTot, int& pad, int& time, int& sigmaPad2, int&sigmaTime2,
+    std::shared_ptr<std::vector<std::pair<MCCompLabel,unsigned>>> mcLabels)
+{
+  int index = (5+((center_time+dt)%5))%5*mPadsPerRow[row]+center_pad+dp;
+  unsigned charge = mDataBuffer[row][index];
+
   qTot          += charge;
   pad           += charge * dp;
   time          += charge * dt;
   sigmaPad2     += charge * dp * dp;
   sigmaTime2    += charge * dt * dt;
+
+  if (mMCtruth[(center_time+dt+5)%5] != nullptr) {
+    for (auto &label : mMCtruth[(center_time+dt+5)%5]->getLabels(mIndexBuffer[row][index])) {
+      bool isKnown = false;
+      for (auto &vecLabel : *mcLabels) {
+        if (label == vecLabel.first) {
+          ++vecLabel.second;
+          isKnown = true;
+        }
+      }
+      if (!isKnown) {
+        mcLabels->emplace_back(label,1);
+      }
+    }
+  }
 }
 
 inline void HwClusterer::setContinuousReadout(bool isContinuous) {

@@ -76,7 +76,8 @@ InitStatus ClustererTask::Init()
   }
   std::stringstream mcsectornamestr;
   mcsectornamestr << "TPCDigitMCTruth" << mClusterSector;
-  mDigitMCTruthArray = mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>(mcsectornamestr.str().c_str());
+  mDigitMCTruthArray = std::shared_ptr<const MCLabelContainer>(
+      mgr->InitObjectAs<const MCLabelContainer*>(mcsectornamestr.str().c_str()));
   if (!mDigitMCTruthArray) {
     LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -107,14 +108,14 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t *option)
 {
-  LOG(DEBUG) << "Running clusterization on event " << mEventCount << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on event " << mEventCount << " with " << mDigitsArray->size() << " digits." << FairLogger::endl;
 
   if (mHwClustersArray)
     mHwClustersArray->clear();
   if (mHwClustersMCTruthArray)
     mHwClustersMCTruthArray->clear();
 
-  mHwClusterer->Process(mDigitsArray, mDigitMCTruthArray, mEventCount);
+  mHwClusterer->Process(*mDigitsArray, mDigitMCTruthArray, mEventCount);
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
     << FairLogger::endl;
 
@@ -131,7 +132,7 @@ void ClustererTask::FinishTask()
   if (mHwClustersMCTruthArray)
     mHwClustersMCTruthArray->clear();
 
-  mHwClusterer->FinishProcess(mDigitsArray, mDigitMCTruthArray, mEventCount);
+  mHwClusterer->FinishProcess(*mDigitsArray, mDigitMCTruthArray, mEventCount);
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
     << FairLogger::endl;
 
