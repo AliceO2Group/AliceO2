@@ -13,12 +13,12 @@
 #include <vector>
 using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec> &options) {
-  options.push_back(o2::framework::ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}});
-  options.push_back(o2::framework::ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}});
-  options.push_back(o2::framework::ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}});
-  options.push_back(o2::framework::ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}});
-  options.push_back(o2::framework::ConfigParamSpec{"aBool", VariantType::Bool, true, {"a boolean option"}});
-};
+  options.push_back(ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}});
+  options.push_back(ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}});
+  options.push_back(ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}});
+  options.push_back(ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}});
+  options.push_back(ConfigParamSpec{"aBool", VariantType::Bool, true, {"a boolean option"}});
+}
 
 // This completion policy will only be applied to the device called `D` and
 // will process an InputRecord which had any of its constituent updated.
@@ -35,11 +35,11 @@ void customize(std::vector<CompletionPolicy> &policies) {
 #include "Framework/runDataProcessing.h"
 
 
-AlgorithmSpec simplePipe(std::string const &what) {
-  return AlgorithmSpec{ [what](InitContext& ic) {
+AlgorithmSpec simplePipe(std::string const &what, int minDelay) {
+  return AlgorithmSpec{ [what, minDelay](InitContext& ic) {
     srand(getpid());
-    return [what](ProcessingContext& ctx) {
-      sleep(rand() % 5);
+    return [what, minDelay](ProcessingContext& ctx) {
+      sleep((rand() % 5) + minDelay);
       auto bData = ctx.outputs().make<int>(OutputRef{ what }, 1);
     };
   } };
@@ -54,18 +54,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
         OutputSpec{ { "a2" }, "TST", "A2" } },
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          sleep(rand() % 5);
+          sleep(rand() % 2);
           auto aData = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
           auto bData = ctx.outputs().make<int>(OutputRef{ "a2" }, 1);
         } } },
     { "B",
       { InputSpec{ "x", "TST", "A1" } },
       { OutputSpec{ { "b1" }, "TST", "B1" } },
-      simplePipe("b1") },
+      simplePipe("b1", 0) },
     { "C",
       Inputs{ InputSpec{ "x", "TST", "A2" } },
       Outputs{ OutputSpec{ { "c1" }, "TST", "C1" } },
-      simplePipe("c1") },
+      simplePipe("c1", 5) },
     { "D",
       Inputs{
         InputSpec{ "b", "TST", "B1" },

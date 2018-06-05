@@ -365,12 +365,14 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     try {
       for (size_t ai = 0; ai != record.size(); ai++) {
         auto cacheId = action.cacheLineIdx * record.size() + ai;
-        monitoringService.send({ 2, "data_relayer/" + std::to_string(cacheId) });
+        auto state = record.isValid(ai) ? 2 : 0;
+        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
       }
       dispatchProcessing(action.cacheLineIdx, record);
       for (size_t ai = 0; ai != record.size(); ai++) {
         auto cacheId = action.cacheLineIdx * record.size() + ai;
-        monitoringService.send({ 3, "data_relayer/" + std::to_string(cacheId) });
+        auto state = record.isValid(ai) ? 3 : 0;
+        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
       }
     } catch(std::exception &e) {
       errorHandling(e, record);
