@@ -440,6 +440,15 @@ endif()
 
 o2_define_bucket(
     NAME
+    pmr_bucket
+
+    DEPENDENCIES
+    Boost::container
+    fairmq_bucket
+)
+
+o2_define_bucket(
+    NAME
     fairroot_geom
 
     DEPENDENCIES
