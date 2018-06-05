@@ -1032,6 +1032,9 @@ o2_define_bucket(
     DEPENDENCIES
     Base SimulationDataFormat MathCore RIO Tree
     fairroot_base_bucket
+    # Gen is generator module from FairRoot
+    Gen
+    SimConfig
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
