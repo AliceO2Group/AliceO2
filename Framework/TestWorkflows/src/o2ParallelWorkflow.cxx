@@ -14,7 +14,7 @@
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::string spaceParallelHelp("Number of tpc processing lanes. A lane is a pipeline of algorithms.");
   workflowOptions.push_back(
@@ -26,14 +26,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 
 #include "Framework/runDataProcessing.h"
-
 #include "Framework/DataProcessorSpec.h"
 #include "FairMQLogger.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
 #include <vector>
 
-using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
 DataProcessorSpec templateProcessor()
