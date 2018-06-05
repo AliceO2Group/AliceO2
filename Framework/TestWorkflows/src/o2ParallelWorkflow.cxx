@@ -7,7 +7,26 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#include "Framework/ConfigParamSpec.h"
+#include <vector>
+
+using namespace o2::framework;
+
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::string spaceParallelHelp("Number of tpc processing lanes. A lane is a pipeline of algorithms.");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "2-layer-jobs", VariantType::Int, 1, { spaceParallelHelp } });
+
+  std::string timeHelp("Time pipelining happening in the second layer");
+  workflowOptions.push_back(
+    ConfigParamSpec{ "3-layer-pipelining", VariantType::Int , 1, { timeHelp} });
+}
+
 #include "Framework/runDataProcessing.h"
+
 #include "Framework/DataProcessorSpec.h"
 #include "FairMQLogger.h"
 #include "Framework/ParallelContext.h"
@@ -43,34 +62,42 @@ DataProcessorSpec templateProcessor() {
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
-WorkflowSpec defineDataProcessing(ConfigContext const&) {
+WorkflowSpec defineDataProcessing(ConfigContext const&config) {
+  size_t jobs = config.options().get<int>("2-layer-jobs");
+  size_t stages = config.options().get<int>("3-layer-pipelining");
+
   // This is an example of how we can parallelize by subSpec.
   // templatedProducer will be instanciated 32 times and the lambda function
   // passed to the parallel statement will be applied to each one of the
   // instances in order to modify it. Parallel will also make sure the name of
   // the instance is amended from "some-producer" to "some-producer-<index>".
-  WorkflowSpec workflow = parallel(templateProcessor(), 4, [](DataProcessorSpec &spec, size_t index) {
+  WorkflowSpec workflow = parallel(templateProcessor(), jobs, [](DataProcessorSpec &spec, size_t index) {
       spec.outputs[0].subSpec = index;
       spec.inputs[0].subSpec = index;
     }
   );
+
+  std::vector<OutputSpec> outputSpecs;
+  for (size_t ssi = 0; ssi < jobs; ++ssi) {
+    outputSpecs.push_back(OutputSpec{"TST", "A", ssi});
+  }
+
   workflow.push_back(DataProcessorSpec{
       "reader",
       {},
-      {
-        OutputSpec{"TST", "A", 0},
-        OutputSpec{"TST", "A", 1},
-        OutputSpec{"TST", "A", 2},
-        OutputSpec{"TST", "A", 3}
-      },
-      AlgorithmSpec{[](ProcessingContext &ctx) {
+      outputSpecs,
+      AlgorithmSpec{[jobs](InitContext &initCtx){return [jobs](ProcessingContext &ctx) {
+        for (size_t ji = 0; ji < jobs; ++ji) {
+          ctx.outputs().make<int>(Output{ "TST", "A", ji}, 1);
+        }
+      };
       }
       }
   });
   workflow.push_back(timePipeline(DataProcessorSpec{
       "merger",
       mergeInputs(InputSpec{"x", "TST", "P"},
-                  4,
+                  jobs,
                   [](InputSpec &input, size_t index){
                      input.subSpec = index;
                   }
@@ -78,12 +105,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
       {},
       AlgorithmSpec{[](InitContext &setup) {
         return [](ProcessingContext &ctx) {
-            // Create a single output.
-            LOG(DEBUG) << "Invoked" << std::endl;
           };
         }
       }
-  }, 3));
+  }, stages));
 
   return workflow;
 }
