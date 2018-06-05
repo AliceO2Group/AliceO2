@@ -50,11 +50,12 @@ DataProcessorSpec templateProcessor()
     // particular case, but a Singleton or a captured new object would
     // work as well.
     AlgorithmSpec{ [](InitContext& setup) {
+      srand(setup.services().get<ParallelContext>().index1D());
       return [](ProcessingContext& ctx) {
         // Create a single output.
         size_t index = ctx.services().get<ParallelContext>().index1D();
-        sleep(1);
         auto aData = ctx.outputs().make<int>(Output{ "TST", "P", index }, 1);
+        sleep(rand() % 5);
       };
     } }
   };
