@@ -3,13 +3,11 @@ set(MODULE_NAME "Steer")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  src/O2RunAna.cxx
   src/InteractionSampler.cxx
   src/HitProcessingManager.cxx
 )
 
 set(HEADERS
-  include/${MODULE_NAME}/O2RunAna.h
   include/${MODULE_NAME}/InteractionSampler.h
   include/${MODULE_NAME}/HitProcessingManager.h
 )
