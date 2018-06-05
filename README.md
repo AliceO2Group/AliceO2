@@ -17,7 +17,7 @@ A quickstart page can be found under [https://aliceo2group.github.io/](https://a
 In order to install with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
 
 ### Issue tracking system
-We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets.
+We use JIRA to track issues. [Report a bug here](https://img.shields.io/badge/JIRA-Report%20issue-blue.svg)](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1).
 
 ### Coding guidelines
 The Coding Guidelines are [here](https://github.com/AliceO2Group/CodingGuidelines).
