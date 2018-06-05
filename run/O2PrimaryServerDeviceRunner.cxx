@@ -8,18 +8,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "../macro/o2sim.C"
+/// @author Sandro Wenzel
+
+#include "runFairMQDevice.h"
+#include "O2PrimaryServerDevice.h"
 #include <SimConfig/SimConfig.h>
 
-int main(int argc, char* argv[])
+namespace bpo = boost::program_options;
+
+void addCustomOptions(bpo::options_description& options)
 {
-  auto& conf = o2::conf::SimConfig::Instance();
-  if (!conf.resetFromArguments(argc, argv)) {
-    return 1;
-  }
+  // append the same options here as used for SimConfig
+  o2::conf::SimConfig::initOptions(options);
+}
 
-  // call o2sim "macro"
-  o2sim(false);
-
-  return 0;
+FairMQDevice* getDevice(const FairMQProgOptions& config)
+{
+  return new o2::devices::O2PrimaryServerDevice();
 }
