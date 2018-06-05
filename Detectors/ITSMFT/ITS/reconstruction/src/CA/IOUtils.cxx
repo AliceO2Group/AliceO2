@@ -14,6 +14,7 @@
 
 #include "ITSReconstruction/CA/IOUtils.h"
 
+#include <iostream>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
@@ -27,7 +28,6 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include <iostream>
 
 namespace
 {
@@ -41,6 +41,18 @@ namespace ITS
 {
 namespace CA
 {
+
+void IOUtils::loadConfigurations(const std::string& fileName)
+{
+  if (!fileName.empty()) {
+    std::ifstream inputStream;
+    inputStream.open(fileName);
+    nlohmann::json j;
+    inputStream >> j;
+    static_cast<TrackingParameters&>(Configuration<TrackingParameters>::getInstance()) = j.at("TrackingParameters").get<TrackingParameters>();
+    static_cast<IndexTableParameters&>(Configuration<IndexTableParameters>::getInstance()) = j.at("IndexTableParameters").get<IndexTableParameters>();
+  }
+}
 
 std::vector<Event> IOUtils::loadEventData(const std::string& fileName)
 {
@@ -243,6 +255,68 @@ void IOUtils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
     }
   }
 }
+
+void to_json(nlohmann::json& j, const TrackingParameters& par)
+{
+  j = nlohmann::json{
+    { "ClusterSharing", par.ClusterSharing },
+    { "MinTrackLength", par.MinTrackLength },
+    { "TrackletMaxDeltaPhi", par.TrackletMaxDeltaPhi },
+    { "TrackletMaxDeltaZ", par.TrackletMaxDeltaZ },
+    { "CellMaxDeltaTanLambda", par.CellMaxDeltaTanLambda },
+    { "CellMaxDCA", par.CellMaxDCA },
+    { "CellMaxDeltaPhi", par.CellMaxDeltaPhi },
+    { "CellMaxDeltaZ", par.CellMaxDeltaZ },
+    { "NeighbourMaxDeltaCurvature", par.NeighbourMaxDeltaCurvature },
+    { "NeighbourMaxDeltaN", par.NeighbourMaxDeltaN }
+  };
+}
+
+void from_json(const nlohmann::json& j, TrackingParameters& par)
+{
+  par.ClusterSharing = j.at("ClusterSharing").get<bool>();
+  par.MinTrackLength = j.at("MinTrackLength").get<std::vector<int>>();
+  par.TrackletMaxDeltaPhi = j.at("TrackletMaxDeltaPhi").get<std::vector<float>>();
+  par.TrackletMaxDeltaZ = j.at("TrackletMaxDeltaZ").get<std::vector<std::array<float, Constants::ITS::TrackletsPerRoad>>>();
+  par.CellMaxDeltaTanLambda = j.at("CellMaxDeltaTanLambda").get<std::vector<float>>();
+  par.CellMaxDCA = j.at("CellMaxDCA").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad>>>();
+  par.CellMaxDeltaPhi = j.at("CellMaxDeltaPhi").get<std::vector<float>>();
+  par.CellMaxDeltaZ = j.at("CellMaxDeltaZ").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad>>>();
+  par.NeighbourMaxDeltaCurvature = j.at("NeighbourMaxDeltaCurvature").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad - 1>>>();
+  par.NeighbourMaxDeltaN = j.at("NeighbourMaxDeltaN").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad - 1>>>();
+}
+
+void to_json(nlohmann::json& j, const MemoryParameters& par)
+{
+  j = nlohmann::json{
+    { "MemoryOffset", par.MemoryOffset },
+    { "CellsMemoryCoefficients", par.CellsMemoryCoefficients },
+    { "TrackletsMemoryCoefficients", par.TrackletsMemoryCoefficients }
+  };
+}
+
+void from_json(const nlohmann::json& j, MemoryParameters& par)
+{
+  par.MemoryOffset = j.at("MemoryOffset").get<int>();
+  par.CellsMemoryCoefficients = j.at("CellsMemoryCoefficients").get<std::vector<std::array<float, Constants::ITS::CellsPerRoad>>>();
+  par.TrackletsMemoryCoefficients = j.at("TrackletsMemoryCoefficients").get<std::vector<std::array<float, Constants::ITS::TrackletsPerRoad>>>();
+}
+
+void to_json(nlohmann::json& j, const IndexTableParameters& par)
+{
+  j = nlohmann::json{
+    { "ZBins", par.ZBins },
+    { "PhiBins", par.PhiBins }
+  };
+}
+
+void from_json(const nlohmann::json& j, IndexTableParameters& par)
+{
+  par.ZBins = j.at("ZBins").get<int>();
+  par.PhiBins = j.at("PhiBins").get<int>();
+  par.ComputeInverseBinSizes();
+}
+
 } // namespace CA
 } // namespace ITS
 } // namespace o2

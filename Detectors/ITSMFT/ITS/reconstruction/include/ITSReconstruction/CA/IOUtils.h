@@ -20,7 +20,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "ITSReconstruction/CA/Configuration.h"
 #include "ITSReconstruction/CA/Event.h"
+#include "ITSReconstruction/CA/json.h"
 #include "ITSReconstruction/CA/Label.h"
 #include "ITSReconstruction/CA/Road.h"
 
@@ -45,8 +47,16 @@ namespace ITS
 namespace CA
 {
 
+void to_json(nlohmann::json& j, const TrackingParameters& par);
+void from_json(const nlohmann::json& j, TrackingParameters& par);
+void to_json(nlohmann::json& j, const MemoryParameters& par);
+void from_json(const nlohmann::json& j, MemoryParameters& par);
+void to_json(nlohmann::json& j, const IndexTableParameters& par);
+void from_json(const nlohmann::json& j, IndexTableParameters& par);
+
 namespace IOUtils
 {
+void loadConfigurations(const std::string&);
 std::vector<Event> loadEventData(const std::string&);
 void loadEventData(Event& events, const std::vector<ITSMFT::Cluster>* mClustersArray,
                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);

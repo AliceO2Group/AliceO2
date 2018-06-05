@@ -20,7 +20,6 @@
 #include "ITSReconstruction/CA/IndexTableUtils.h"
 #include "ITSReconstruction/CA/Layer.h"
 #include "ITSReconstruction/CA/Tracklet.h"
-#include "ITSReconstruction/CA/TrackingUtils.h"
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
@@ -35,7 +34,7 @@ namespace CA
 
 #if !TRACKINGITSU_GPU_MODE
 template <>
-void TrackerTraits<false>::computeLayerTracklets(PrimaryVertexContext& primaryVertexContext)
+void TrackerTraits<false>::computeLayerTracklets(PrimaryVertexContext& primaryVertexContext, const TrackingParameters& trkPars, int iteration)
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::TrackletsPerRoad; ++iLayer) {
     if (primaryVertexContext.getClusters()[iLayer].empty() || primaryVertexContext.getClusters()[iLayer + 1].empty()) {
@@ -53,7 +52,8 @@ void TrackerTraits<false>::computeLayerTracklets(PrimaryVertexContext& primaryVe
                                                        currentCluster.rCoordinate) +
                                           currentCluster.zCoordinate };
 
-      const int4 selectedBinsRect{ TrackingUtils::getBinsRect(currentCluster, iLayer, directionZIntersection) };
+      const int4 selectedBinsRect{ getBinsRect(currentCluster, iLayer, directionZIntersection,
+                                               trkPars.TrackletMaxDeltaZ[iteration][iLayer], trkPars.TrackletMaxDeltaPhi[iteration]) };
 
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
         continue;
@@ -78,13 +78,16 @@ void TrackerTraits<false>::computeLayerTracklets(PrimaryVertexContext& primaryVe
 
           const Cluster& nextCluster{ primaryVertexContext.getClusters()[iLayer + 1][iNextLayerCluster] };
 
+          if (primaryVertexContext.isClusterUsed(iLayer + 1, nextCluster.clusterId))
+            continue;
+
           const float deltaZ{ MATH_ABS(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
                                        currentCluster.zCoordinate - nextCluster.zCoordinate) };
           const float deltaPhi{ MATH_ABS(currentCluster.phiCoordinate - nextCluster.phiCoordinate) };
 
-          if (deltaZ < Constants::Thresholds::TrackletMaxDeltaZThreshold()[iLayer] &&
-              (deltaPhi < Constants::Thresholds::PhiCoordinateCut ||
-               MATH_ABS(deltaPhi - Constants::Math::TwoPi) < Constants::Thresholds::PhiCoordinateCut)) {
+          if (deltaZ < trkPars.TrackletMaxDeltaZ[iteration][iLayer] &&
+              (deltaPhi < trkPars.TrackletMaxDeltaPhi[iteration] ||
+               MATH_ABS(deltaPhi - Constants::Math::TwoPi) < trkPars.TrackletMaxDeltaPhi[iteration])) {
 
             if (iLayer > 0 &&
                 primaryVertexContext.getTrackletsLookupTable()[iLayer - 1][iCluster] == Constants::ITS::UnusedIndex) {
@@ -103,7 +106,7 @@ void TrackerTraits<false>::computeLayerTracklets(PrimaryVertexContext& primaryVe
 }
 
 template <>
-void TrackerTraits<false>::computeLayerCells(PrimaryVertexContext& primaryVertexContext)
+void TrackerTraits<false>::computeLayerCells(PrimaryVertexContext& primaryVertexContext, const TrackingParameters& trkPars, int iteration)
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::CellsPerRoad; ++iLayer) {
 
@@ -151,16 +154,16 @@ void TrackerTraits<false>::computeLayerCells(PrimaryVertexContext& primaryVertex
         const float deltaTanLambda{ std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda) };
         const float deltaPhi{ std::abs(currentTracklet.phiCoordinate - nextTracklet.phiCoordinate) };
 
-        if (deltaTanLambda < Constants::Thresholds::CellMaxDeltaTanLambdaThreshold &&
-            (deltaPhi < Constants::Thresholds::CellMaxDeltaPhiThreshold ||
-             std::abs(deltaPhi - Constants::Math::TwoPi) < Constants::Thresholds::CellMaxDeltaPhiThreshold)) {
+        if (deltaTanLambda < trkPars.CellMaxDeltaTanLambda[iteration] &&
+            (deltaPhi < trkPars.CellMaxDeltaPhi[iteration] ||
+             std::abs(deltaPhi - Constants::Math::TwoPi) < trkPars.CellMaxDeltaPhi[iteration])) {
 
           const float averageTanLambda{ 0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda) };
           const float directionZIntersection{ -averageTanLambda * firstCellCluster.rCoordinate +
                                               firstCellCluster.zCoordinate };
           const float deltaZ{ std::abs(directionZIntersection - primaryVertex.z) };
 
-          if (deltaZ < Constants::Thresholds::CellMaxDeltaZThreshold()[iLayer]) {
+          if (deltaZ < trkPars.CellMaxDeltaZ[iteration][iLayer]) {
 
             const Cluster& thirdCellCluster{
               primaryVertexContext.getClusters()[iLayer + 2][nextTracklet.secondClusterIndex]
@@ -203,13 +206,12 @@ void TrackerTraits<false>::computeLayerCells(PrimaryVertexContext& primaryVertex
               cellTrajectoryRadius - std::sqrt(circleCenter.x * circleCenter.x + circleCenter.y * circleCenter.y)) };
 
             if (distanceOfClosestApproach >
-                Constants::Thresholds::CellMaxDistanceOfClosestApproachThreshold()[iLayer]) {
+                trkPars.CellMaxDCA[iteration][iLayer]) {
 
               continue;
             }
 
             const float cellTrajectoryCurvature{ 1.0f / cellTrajectoryRadius };
-
             if (iLayer > 0 &&
                 primaryVertexContext.getCellsLookupTable()[iLayer - 1][iTracklet] == Constants::ITS::UnusedIndex) {
 
@@ -245,15 +247,15 @@ void Tracker<IsGPU>::clustersToTracks(const Event& event, std::ostream& timeBenc
 
     float total{ 0.f };
 
-    total += evaluateTask(&Tracker<IsGPU>::initialisePrimaryVertexContext, "Context initialisation",
-                          timeBenchmarkOutputStream, event, iVertex);
-    total += evaluateTask(&Tracker<IsGPU>::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
-    total += evaluateTask(&Tracker<IsGPU>::computeCells, "Cell finding", timeBenchmarkOutputStream);
-    total += evaluateTask(&Tracker<IsGPU>::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream);
-    total += evaluateTask(&Tracker<IsGPU>::findRoads, "Road finding", timeBenchmarkOutputStream);
-    total += evaluateTask(&Tracker<IsGPU>::findTracks, "Track finding", timeBenchmarkOutputStream, event);
-    total += evaluateTask(&Tracker<IsGPU>::computeRoadsMClabels, "Roads Monte Carlo labels computation",
-                          timeBenchmarkOutputStream, event);
+    for (int iteration = 0; iteration < mTrkParams.NumberOfIterations(); ++iteration) {
+      total += evaluateTask(&Tracker<IsGPU>::initialisePrimaryVertexContext, "Context initialisation",
+                            timeBenchmarkOutputStream, event, iVertex, iteration);
+      total += evaluateTask(&Tracker<IsGPU>::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream, iteration);
+      total += evaluateTask(&Tracker<IsGPU>::computeCells, "Cell finding", timeBenchmarkOutputStream, iteration);
+      total += evaluateTask(&Tracker<IsGPU>::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
+      total += evaluateTask(&Tracker<IsGPU>::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
+      total += evaluateTask(&Tracker<IsGPU>::findTracks, "Track finding", timeBenchmarkOutputStream, event);
+    }
     total += evaluateTask(&Tracker<IsGPU>::computeTracksMClabels, "Tracks Monte Carlo labels computation",
                           timeBenchmarkOutputStream, event);
 
@@ -269,25 +271,24 @@ void Tracker<IsGPU>::clustersToTracks(const Event& event, std::ostream& timeBenc
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::computeTracklets()
+void Tracker<IsGPU>::computeTracklets(int& iteration)
 {
-  Trait::computeLayerTracklets(mPrimaryVertexContext);
+  Trait::computeLayerTracklets(mPrimaryVertexContext, mTrkParams, iteration);
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::computeCells()
+void Tracker<IsGPU>::computeCells(int& iteration)
 {
-  Trait::computeLayerCells(mPrimaryVertexContext);
+  Trait::computeLayerCells(mPrimaryVertexContext, mTrkParams, iteration);
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::findCellsNeighbours()
+void Tracker<IsGPU>::findCellsNeighbours(int& iteration)
 {
   for (int iLayer{ 0 }; iLayer < Constants::ITS::CellsPerRoad - 1; ++iLayer) {
 
     if (mPrimaryVertexContext.getCells()[iLayer + 1].empty() ||
         mPrimaryVertexContext.getCellsLookupTable()[iLayer].empty()) {
-
       continue;
     }
 
@@ -323,8 +324,8 @@ void Tracker<IsGPU>::findCellsNeighbours()
                                                  (normalVectorsDeltaVector.z * normalVectorsDeltaVector.z) };
           const float deltaCurvature{ std::abs(currentCell.getCurvature() - nextCell.getCurvature()) };
 
-          if (deltaNormalVectorsModulus < Constants::Thresholds::NeighbourCellMaxNormalVectorsDelta[iLayer] &&
-              deltaCurvature < Constants::Thresholds::NeighbourCellMaxCurvaturesDelta[iLayer]) {
+          if (deltaNormalVectorsModulus < mTrkParams.NeighbourMaxDeltaN[iteration][iLayer] &&
+              deltaCurvature < mTrkParams.NeighbourMaxDeltaCurvature[iteration][iLayer]) {
 
             mPrimaryVertexContext.getCellsNeighbours()[iLayer][iNextLayerCell].push_back(iCell);
 
@@ -342,10 +343,10 @@ void Tracker<IsGPU>::findCellsNeighbours()
 }
 
 template <bool IsGPU>
-void Tracker<IsGPU>::findRoads()
+void Tracker<IsGPU>::findRoads(int& iteration)
 {
-  for (int iLevel{ Constants::ITS::CellsPerRoad }; iLevel >= Constants::Thresholds::CellsMinLevel; --iLevel) {
-
+  for (int iLevel{ Constants::ITS::CellsPerRoad }; iLevel >= mTrkParams.CellMinimumLevel(iteration); --iLevel) {
+    int nRoads = -mPrimaryVertexContext.getRoads().size();
     const int minimumLevel{ iLevel - 1 };
 
     for (int iLayer{ Constants::ITS::CellsPerRoad - 1 }; iLayer >= minimumLevel; --iLayer) {
@@ -392,13 +393,14 @@ void Tracker<IsGPU>::findRoads()
         // currentCell.setLevel(0);
       }
     }
+    nRoads += mPrimaryVertexContext.getRoads().size();
   }
 }
 
 template <bool IsGPU>
 void Tracker<IsGPU>::findTracks(const Event& event)
 {
-  mPrimaryVertexContext.getTracks().reserve(mPrimaryVertexContext.getRoads().size());
+  mPrimaryVertexContext.getTracks().reserve(mPrimaryVertexContext.getTracks().capacity() + mPrimaryVertexContext.getRoads().size());
   std::vector<TrackITS> tracks;
   tracks.reserve(mPrimaryVertexContext.getRoads().size());
   for (auto& road : mPrimaryVertexContext.getRoads()) {
@@ -433,9 +435,9 @@ void Tracker<IsGPU>::findTracks(const Event& event)
 
     /// FIXME!
     TrackITS temporaryTrack{ buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf) };
-    for (size_t iC = 0; iC < clusters.size(); ++iC)
-      temporaryTrack.setExternalClusterIndex(iC, clusters[iC]);
-
+    for (size_t iC = 0; iC < clusters.size(); ++iC) {
+      temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != Constants::ITS::UnusedIndex);
+    }
     bool fitSuccess = fitTrack(event, temporaryTrack, Constants::ITS::LayersNumber - 4, -1, -1);
     if (!fitSuccess)
       continue;
@@ -681,14 +683,14 @@ track::TrackParCov Tracker<IsGPU>::buildTrackSeed(const Cluster& cluster1, const
   const float y3 = tf3.positionTrackingFrame[0];
   const float z3 = tf3.positionTrackingFrame[1];
 
-  const float crv = TrackingUtils::computeCurvature(x1, y1, x2, y2, x3, y3);
-  const float x0 = TrackingUtils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-  const float tgl12 = TrackingUtils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-  const float tgl23 = TrackingUtils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+  const float crv = MathUtils::computeCurvature(x1, y1, x2, y2, x3, y3);
+  const float x0 = MathUtils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+  const float tgl12 = MathUtils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+  const float tgl23 = MathUtils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
   const float fy = 1. / (cluster2.rCoordinate - cluster3.rCoordinate);
   const float& tz = fy;
-  const float cy = (TrackingUtils::computeCurvature(x1, y1, x2, y2 + Constants::ITS::Resolution, x3, y3) - crv) /
+  const float cy = (MathUtils::computeCurvature(x1, y1, x2, y2 + Constants::ITS::Resolution, x3, y3) - crv) /
                    (Constants::ITS::Resolution * getBz() * constants::math::B2C) *
                    20.f; // FIXME: MS contribution to the cov[14] (*20 added)
   constexpr float s2 = Constants::ITS::Resolution * Constants::ITS::Resolution;

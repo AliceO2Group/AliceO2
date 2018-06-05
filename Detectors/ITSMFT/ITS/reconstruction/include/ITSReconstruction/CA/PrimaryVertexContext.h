@@ -24,6 +24,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include "ITSReconstruction/CA/Cell.h"
+#include "ITSReconstruction/CA/Configuration.h"
 #include "ITSReconstruction/CA/Constants.h"
 #include "ITSReconstruction/CA/Definitions.h"
 #include "ITSReconstruction/CA/Event.h"
@@ -50,7 +51,7 @@ class PrimaryVertexContext final
   PrimaryVertexContext(const PrimaryVertexContext&) = delete;
   PrimaryVertexContext& operator=(const PrimaryVertexContext&) = delete;
 
-  void initialise(const Event&, const int);
+  void initialise(const MemoryParameters& memParam, const Event& event, const int pvIndex, const int iteration);
   const float3& getPrimaryVertex() const;
   std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& getClusters();
   std::array<std::vector<Cell>, Constants::ITS::CellsPerRoad>& getCells();
@@ -144,7 +145,10 @@ inline bool PrimaryVertexContext::isClusterUsed(int layer, int clusterId) const
 inline void PrimaryVertexContext::markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
 
 #if TRACKINGITSU_GPU_MODE
-inline GPU::PrimaryVertexContext& PrimaryVertexContext::getDeviceContext() { return *mGPUContextDevicePointer; }
+inline GPU::PrimaryVertexContext& PrimaryVertexContext::getDeviceContext()
+{
+  return *mGPUContextDevicePointer;
+}
 
 inline GPU::Array<GPU::Vector<Cluster>, Constants::ITS::LayersNumber>& PrimaryVertexContext::getDeviceClusters()
 {
