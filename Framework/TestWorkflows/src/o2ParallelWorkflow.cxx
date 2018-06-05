@@ -22,7 +22,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   std::string timeHelp("Time pipelining happening in the second layer");
   workflowOptions.push_back(
-    ConfigParamSpec{ "3-layer-pipelining", VariantType::Int , 1, { timeHelp} });
+    ConfigParamSpec{ "3-layer-pipelining", VariantType::Int, 1, { timeHelp } });
 }
 
 #include "Framework/runDataProcessing.h"
@@ -36,33 +36,34 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
-DataProcessorSpec templateProcessor() {
+DataProcessorSpec templateProcessor()
+{
   return DataProcessorSpec{
     "some-processor",
     {
-      InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
+      InputSpec{ "x", "TST", "A", 0, Lifetime::Timeframe },
     },
     {
-      OutputSpec{"TST", "P", 0, Lifetime::Timeframe},
+      OutputSpec{ "TST", "P", 0, Lifetime::Timeframe },
     },
     // The producer is stateful, we use a static for the state in this
     // particular case, but a Singleton or a captured new object would
     // work as well.
-    AlgorithmSpec{[](InitContext &setup) {
-      return [](ProcessingContext &ctx) {
-          // Create a single output. 
-          size_t index = ctx.services().get<ParallelContext>().index1D();
-          sleep(1);
-          auto aData = ctx.outputs().make<int>(Output{ "TST", "P", index }, 1);
-        };
-      }
-    }
+    AlgorithmSpec{ [](InitContext& setup) {
+      return [](ProcessingContext& ctx) {
+        // Create a single output.
+        size_t index = ctx.services().get<ParallelContext>().index1D();
+        sleep(1);
+        auto aData = ctx.outputs().make<int>(Output{ "TST", "P", index }, 1);
+      };
+    } }
   };
 }
 
 // This is a simple consumer / producer workflow where both are
 // stateful, i.e. they have context which comes from their initialization.
-WorkflowSpec defineDataProcessing(ConfigContext const&config) {
+WorkflowSpec defineDataProcessing(ConfigContext const& config)
+{
   size_t jobs = config.options().get<int>("2-layer-jobs");
   size_t stages = config.options().get<int>("3-layer-pipelining");
 
@@ -71,44 +72,40 @@ WorkflowSpec defineDataProcessing(ConfigContext const&config) {
   // passed to the parallel statement will be applied to each one of the
   // instances in order to modify it. Parallel will also make sure the name of
   // the instance is amended from "some-producer" to "some-producer-<index>".
-  WorkflowSpec workflow = parallel(templateProcessor(), jobs, [](DataProcessorSpec &spec, size_t index) {
-      spec.outputs[0].subSpec = index;
-      spec.inputs[0].subSpec = index;
-    }
-  );
+  WorkflowSpec workflow = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
+    spec.outputs[0].subSpec = index;
+    spec.inputs[0].subSpec = index;
+  });
 
   std::vector<OutputSpec> outputSpecs;
   for (size_t ssi = 0; ssi < jobs; ++ssi) {
-    outputSpecs.push_back(OutputSpec{"TST", "A", ssi});
+    outputSpecs.push_back(OutputSpec{ "TST", "A", ssi });
   }
 
   workflow.push_back(DataProcessorSpec{
-      "reader",
-      {},
-      outputSpecs,
-      AlgorithmSpec{[jobs](InitContext &initCtx){return [jobs](ProcessingContext &ctx) {
+    "reader",
+    {},
+    outputSpecs,
+    AlgorithmSpec{ [jobs](InitContext& initCtx) {
+      return [jobs](ProcessingContext& ctx) {
         for (size_t ji = 0; ji < jobs; ++ji) {
-          ctx.outputs().make<int>(Output{ "TST", "A", ji}, 1);
+          ctx.outputs().make<int>(Output{ "TST", "A", ji }, 1);
         }
       };
-      }
-      }
-  });
+    } } });
   workflow.push_back(timePipeline(DataProcessorSpec{
-      "merger",
-      mergeInputs(InputSpec{"x", "TST", "P"},
-                  jobs,
-                  [](InputSpec &input, size_t index){
-                     input.subSpec = index;
-                  }
-                 ),
-      {},
-      AlgorithmSpec{[](InitContext &setup) {
-        return [](ProcessingContext &ctx) {
-          };
-        }
-      }
-  }, stages));
+                                    "merger",
+                                    mergeInputs(InputSpec{ "x", "TST", "P" },
+                                                jobs,
+                                                [](InputSpec& input, size_t index) {
+                                                  input.subSpec = index;
+                                                }),
+                                    {},
+                                    AlgorithmSpec{ [](InitContext& setup) {
+                                      return [](ProcessingContext& ctx) {
+                                      };
+                                    } } },
+                                  stages));
 
   return workflow;
 }
