@@ -64,6 +64,9 @@ class Detector: public o2::Base::DetImpl<Detector> {
       return nullptr;
     }
 
+    /** tell the branch names corresponding to hits **/
+    std::string getHitBranchNames(int coll) const override;
+
     /**      has to be called after each event to reset the containers      */
     void   Reset() override;
 

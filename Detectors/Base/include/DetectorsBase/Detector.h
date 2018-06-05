@@ -113,12 +113,16 @@ class Detector : public FairDetector
       mgr.getMediumIDMappingAsVector(GetName(), mapping);
     }
 
-    // return the name augmented by extention
-    std::string addNameTo(const char* ext) {
+    // return the name augmented by extension
+    std::string addNameTo(const char* ext) const
+    {
       std::string s(GetName());
-      return s+ext;
+      return s + ext;
     }
-    
+
+    // returning the name of the branch (corresponding to probe)
+    // returns zero length string when probe not defined
+    virtual std::string getHitBranchNames(int probe) const = 0;
 
     // interface to update track indices of data objects
     // usually called by the Stack, at the end of an event, which might have changed
@@ -175,6 +179,15 @@ class DetImpl : public o2::Base::Detector
  public:
   // offer same constructors as base
   using Detector::Detector;
+
+  // default implementation for getHitBranchNames
+  std::string getHitBranchNames(int probe) const override
+  {
+    if (probe == 0) {
+      return addNameTo("Hit");
+    }
+    return std::string(); // empty string as undefined
+  }
 
   // generic implementation for the updateHitTrackIndices interface
   // assumes Detectors have a GetHits(int) function that return some iterable
