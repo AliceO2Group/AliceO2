@@ -1896,11 +1896,11 @@ void Detector::addAlignableVolumes() const
       LOG(DEBUG) << "--------------------------------------------"
                  << "\n";
 
-      LOG(INFO) << "Check for alignable entry: " << symName << "\n";
+      LOG(DEBUG) << "Check for alignable entry: " << symName;
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
-        LOG(ERROR) << "Alignable entry " << symName << " NOT set\n";
-      LOG(INFO) << "Alignable entry " << symName << " set\n";
+        LOG(ERROR) << "Alignable entry " << symName << " NOT set";
+      LOG(DEBUG) << "Alignable entry " << symName << " set";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
