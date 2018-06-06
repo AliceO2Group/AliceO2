@@ -29,9 +29,9 @@ constexpr int64_t INVALID_TIMESLICE = -1;
 constexpr int INVALID_INPUT = -1;
 constexpr DataRelayer::TimesliceId INVALID_TIMESLICE_ID = {INVALID_TIMESLICE};
 
-// 4 is just a magic number, assuming that each timeslice is a timeframe.
+// 16 is just some reasonable numer
 // The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 4;
+constexpr int DEFAULT_PIPELINE_LENGTH = 16;
 
 // FIXME: do we really need to pass the forwards?
 DataRelayer::DataRelayer(const std::vector<InputRoute>& inputs, const std::vector<ForwardRoute>& forwards,
