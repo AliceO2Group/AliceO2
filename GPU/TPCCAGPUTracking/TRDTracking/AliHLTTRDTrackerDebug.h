@@ -5,6 +5,9 @@
 #include "TVectorF.h"
 #include "TTreeStream.h"
 
+
+typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
+
 class AliHLTTRDTrackerDebug
 {
   public:
@@ -42,16 +45,16 @@ class AliHLTTRDTrackerDebug
             { fNmatch = nMatch; fNfake = nFake; fNrelated = nRelated; }
 
     // track parameters
-    void SetTrackParameter(const AliHLTTRDTrack &trk, int ly)
-            { fTrackX(ly) = trk.GetX(); fTrackY(ly) = trk.GetY(); fTrackZ(ly) = trk.GetZ(); fTrackPhi(ly) = trk.GetSnp(); fTrackLambda(ly) = trk.GetTgl(); fTrackPt(ly) = trk.Pt(); fTrackSector(ly) = GetSector(trk.GetAlpha());
-                fTrackYerr(ly) = trk.GetSigmaY2(); fTrackZerr(ly) = trk.GetSigmaZ2(); }
-    void SetTrackParameterNoUp(const AliHLTTRDTrack &trk, int ly)
-            { fTrackNoUpX(ly) = trk.GetX(); fTrackNoUpY(ly) = trk.GetY(); fTrackNoUpZ(ly) = trk.GetZ(); fTrackNoUpPhi(ly) = trk.GetSnp(); fTrackNoUpLambda(ly) = trk.GetTgl();
-              fTrackNoUpPt(ly) = trk.Pt(); fTrackNoUpSector(ly) = GetSector(trk.GetAlpha()); fTrackNoUpYerr(ly) = trk.GetSigmaY2(); fTrackNoUpZerr(ly) = trk.GetSigmaZ2(); }
-    void SetTrackParameterReal(const AliHLTTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.GetX(); fTrackYReal(ly) = trk.GetY(); fTrackZReal(ly) = trk.GetZ(); fTrackSecReal(ly) = GetSector(trk.GetAlpha()); }
-    void SetTrack(const AliHLTTRDTrack &trk) { fParam = trk; fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(); fTrackIDref = trk.GetLabelOffline();
+    void SetTrackParameter(const HLTTRDTrack &trk, int ly)
+            { fTrackX(ly) = trk.getX(); fTrackY(ly) = trk.getY(); fTrackZ(ly) = trk.getZ(); fTrackPhi(ly) = trk.getSnp(); fTrackLambda(ly) = trk.getTgl(); fTrackPt(ly) = trk.getPt(); fTrackSector(ly) = GetSector(trk.getAlpha());
+                fTrackYerr(ly) = trk.getSigmaY2(); fTrackZerr(ly) = trk.getSigmaZ2(); }
+    void SetTrackParameterNoUp(const HLTTRDTrack &trk, int ly)
+            { fTrackNoUpX(ly) = trk.getX(); fTrackNoUpY(ly) = trk.getY(); fTrackNoUpZ(ly) = trk.getZ(); fTrackNoUpPhi(ly) = trk.getSnp(); fTrackNoUpLambda(ly) = trk.getTgl();
+              fTrackNoUpPt(ly) = trk.getPt(); fTrackNoUpSector(ly) = GetSector(trk.getAlpha()); fTrackNoUpYerr(ly) = trk.getSigmaY2(); fTrackNoUpZerr(ly) = trk.getSigmaZ2(); }
+    void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.getX(); fTrackYReal(ly) = trk.getY(); fTrackZReal(ly) = trk.getZ(); fTrackSecReal(ly) = GetSector(trk.getAlpha()); }
+    void SetTrack(const HLTTRDTrack &trk) { fParam = trk; fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(); fTrackIDref = trk.GetLabelOffline();
                                                 for (int iLy=0; iLy<6; iLy++) { if (trk.GetIsFindable(iLy)) fFindable(iLy) = 1; } }
-    void SetTrackNoUp(const AliHLTTRDTrack &trk) { fParamNoUp = trk; }
+    void SetTrackNoUp(const HLTTRDTrack &trk) { fParamNoUp = trk; }
 
     // tracklet parameters
     void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) { fTrackletX(ly) = fX; fTrackletY(ly) = fYZ[0]; fTrackletZ(ly) = fYZ[1]; }
@@ -229,11 +232,11 @@ class AliHLTTRDTrackerDebug
     void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0) {}
 
     // track parameters
-    void SetTrackParameter(const AliHLTTRDTrack &trk, int ly) {}
-    void SetTrackParameterNoUp(const AliHLTTRDTrack &trk, int ly) {}
-    void SetTrackParameterReal(const AliHLTTRDTrack &trk, int ly) {}
-    void SetTrack(const AliHLTTRDTrack &trk) {}
-    void SetTrackNoUp(const AliHLTTRDTrack &trk) {}
+    void SetTrackParameter(const HLTTRDTrack &trk, int ly) {}
+    void SetTrackParameterNoUp(const HLTTRDTrack &trk, int ly) {}
+    void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) {}
+    void SetTrack(const HLTTRDTrack &trk) {}
+    void SetTrackNoUp(const HLTTRDTrack &trk) {}
 
     // tracklet parameters
     void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}

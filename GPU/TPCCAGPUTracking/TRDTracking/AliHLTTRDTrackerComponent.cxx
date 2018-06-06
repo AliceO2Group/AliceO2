@@ -38,6 +38,7 @@
 #include "AliHLTDataTypes.h"
 #include "AliHLTTRDTracker.h"
 #include "AliHLTTRDTrack.h"
+#include "AliHLTTRDInterfaces.h"
 #include "AliHLTTRDTrackerComponent.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDDefinitions.h"
@@ -52,6 +53,8 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+
+typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
 
 
 ClassImp(AliHLTTRDTrackerComponent)
@@ -150,7 +153,7 @@ int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
     if ( argument.CompareTo("-debugOutput") == 0 ) {
       fDebugTrackOutput = true;
       fVerboseDebugOutput = true;
-      HLTInfo( "Tracks are dumped in the AliHLTTRDTrack format" );
+      HLTInfo( "Tracks are dumped in the HLTTRDTrack format" );
       continue;
     }
 
@@ -362,7 +365,7 @@ int AliHLTTRDTrackerComponent::DoEvent
   fTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());
   fBenchmark.Stop(1);
 
-  AliHLTTRDTrack *trackArray = fTracker->Tracks();
+  HLTTRDTrack *trackArray = fTracker->Tracks();
   int nTracks = fTracker->NTracks();
   AliHLTTRDTracker::AliHLTTRDSpacePointInternal *spacePoints = fTracker->SpacePoints();
 
@@ -387,7 +390,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     outTracks->fCount = 0;
 
     for (int iTrk=0; iTrk<nTracks; ++iTrk) {
-      AliHLTTRDTrack &t = trackArray[iTrk];
+      HLTTRDTrack &t = trackArray[iTrk];
       if (t.GetNtracklets() == 0) continue;
       AliHLTTRDTrackDataRecord &currOutTrack = outTracks->fTracks[outTracks->fCount];
       t.ConvertTo(currOutTrack);

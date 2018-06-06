@@ -1,10 +1,14 @@
 #include "AliHLTTRDTrack.h"
 #include "AliESDtrack.h"
 #include "AliHLTTRDTrackData.h"
+#include "AliHLTTRDInterfaces.h"
 
-ClassImp(AliHLTTRDTrack);
 
-AliHLTTRDTrack::AliHLTTRDTrack() :
+template <typename T>
+AliHLTTRDTrack<T>::AliHLTTRDTrack() :
+  fChi2(0),
+  fMass(0),
+  fLabel(-1),
   fTPCtrackId(0),
   fNtracklets(0),
   fNmissingConsecLayers(0),
@@ -15,46 +19,54 @@ AliHLTTRDTrack::AliHLTTRDTrack() :
   //------------------------------------------------------------------
   //Default constructor
   //------------------------------------------------------------------
-  for (Int_t i=0; i<=5; ++i) {
+  for (int i=0; i<=5; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
   }
 }
 
 
-AliHLTTRDTrack::AliHLTTRDTrack(const AliHLTTRDTrack& t) :
-  AliKalmanTrack(t),
-  fTPCtrackId( t.fTPCtrackId),
-  fNtracklets( t.fNtracklets),
-  fNmissingConsecLayers( t.fNmissingConsecLayers),
-  fNtrackletsOffline( t.fNtrackletsOffline),
-  fLabelOffline( t.fLabelOffline),
-  fIsStopped( t.fIsStopped)
+template <typename T>
+AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
+  T(t),
+  fChi2( t.fChi2 ),
+  fMass( t.fMass ),
+  fLabel( t.fLabel ),
+  fTPCtrackId( t.fTPCtrackId ),
+  fNtracklets( t.fNtracklets ),
+  fNmissingConsecLayers( t.fNmissingConsecLayers ),
+  fNtrackletsOffline( t.fNtrackletsOffline ),
+  fLabelOffline( t.fLabelOffline ),
+  fIsStopped( t.fIsStopped )
 {
   //------------------------------------------------------------------
   //Copy constructor
   //------------------------------------------------------------------
-  for (Int_t i=0; i<=5; ++i) {
+  for (int i=0; i<=5; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
     fIsFindable[i] = t.fIsFindable[i];
   }
 }
 
 
-AliHLTTRDTrack &AliHLTTRDTrack::operator=(const AliHLTTRDTrack& t)
+template <typename T>
+AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
 {
   //------------------------------------------------------------------
   //Assignment operator
   //------------------------------------------------------------------
   if( &t==this ) return *this;
-  *(AliKalmanTrack*)this = t;
+  *(T*)this = t;
+  fChi2 = t.fChi2;
+  fMass = t.fMass;
+  fLabel = t.fLabel;
   fTPCtrackId = t.fTPCtrackId;
   fNtracklets = t.fNtracklets;
   fNmissingConsecLayers = t.fNmissingConsecLayers;
   fNtrackletsOffline = t.fNtrackletsOffline;
   fLabelOffline = t.fLabelOffline;
   fIsStopped = t.fIsStopped;
-  for (Int_t i=0; i<=5; ++i) {
+  for (int i=0; i<=5; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
     fIsFindable[i] = t.fIsFindable[i];
   }
@@ -62,8 +74,8 @@ AliHLTTRDTrack &AliHLTTRDTrack::operator=(const AliHLTTRDTrack& t)
 }
 
 
-AliHLTTRDTrack::AliHLTTRDTrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
-  AliKalmanTrack(),
+template <typename T>
+AliHLTTRDTrack<T>::AliHLTTRDTrack(AliESDtrack& t,bool c) throw (const char *) :
   fTPCtrackId(0),
   fNtracklets(0),
   fNmissingConsecLayers(0),
@@ -80,15 +92,19 @@ AliHLTTRDTrack::AliHLTTRDTrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
     par=t.GetConstrainedParam();
     if (!par) throw "AliHLTTRDTrack: conversion failed !\n";
   }
-  Set(par->GetX(),par->GetAlpha(),par->GetParameter(),par->GetCovariance());
-  for (Int_t i=0; i<=5; ++i) {
+  //Set(par->GetX(),par->GetAlpha(),par->GetParameter(),par->GetCovariance());
+  for (int i=0; i<=5; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
   }
 }
 
-AliHLTTRDTrack::AliHLTTRDTrack(AliExternalTrackParam& t ) throw (const Char_t *) :
-  AliKalmanTrack(),
+template <typename T>
+AliHLTTRDTrack<T>::AliHLTTRDTrack(const typename T::baseClass &t ) throw (const char *) :
+  T(t),
+  fChi2(0),
+  fMass(0),
+  fLabel(-1),
   fTPCtrackId(0),
   fNtracklets(0),
   fNmissingConsecLayers(0),
@@ -97,21 +113,19 @@ AliHLTTRDTrack::AliHLTTRDTrack(AliExternalTrackParam& t ) throw (const Char_t *)
   fIsStopped(false)
 {
   //------------------------------------------------------------------
-  // Conversion ESD track -> TRD track.
-  // If c==kTRUE, create the TRD track out of the constrained params.
+  // Conversion template track -> TRD track.
   //------------------------------------------------------------------
-  const AliExternalTrackParam *par=&t;
-  Set(par->GetX(),par->GetAlpha(),par->GetParameter(),par->GetCovariance());
-  for (Int_t i=0; i<=5; ++i) {
+  for (int i=0; i<=5; ++i) {
     fAttachedTracklets[i] = -1;
     fIsFindable[i] = 0;
   }
 }
 
-Int_t AliHLTTRDTrack::GetNlayers() const
+template <typename T>
+int AliHLTTRDTrack<T>::GetNlayers() const
 {
-  Int_t res = 0;
-  for (Int_t iLy=0; iLy<6; iLy++) {
+  int res = 0;
+  for (int iLy=0; iLy<6; iLy++) {
     if (fIsFindable[iLy]) {
       ++res;
     }
@@ -120,7 +134,8 @@ Int_t AliHLTTRDTrack::GetNlayers() const
 }
 
 
-Int_t AliHLTTRDTrack::GetTracklet(Int_t iLayer) const
+template <typename T>
+int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
 {
   if (iLayer < 0 || iLayer > 5) {
     //Error("GetTracklet", "illegal layer number %i", iLayer);
@@ -130,9 +145,10 @@ Int_t AliHLTTRDTrack::GetTracklet(Int_t iLayer) const
 }
 
 
-Int_t AliHLTTRDTrack::GetNmissingConsecLayers(Int_t iLayer) const
+template <typename T>
+int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
 {
-  Int_t res = 0;
+  int res = 0;
   while (!fIsFindable[iLayer]) {
     ++res;
     --iLayer;
@@ -141,30 +157,35 @@ Int_t AliHLTTRDTrack::GetNmissingConsecLayers(Int_t iLayer) const
 }
 
 
-void AliHLTTRDTrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
+template <typename T>
+void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 {
   // convert to HLT structure
 
-  t.fAlpha = GetAlpha();
-  t.fX = GetX();
-  t.fY = GetY();
-  t.fZ = GetZ();
-  t.fq1Pt = GetSigned1Pt();
-  t.fSinPhi = GetSnp();
-  t.fTgl = GetTgl();
-  for( int i=0; i<15; i++ ) t.fC[i] = GetCovariance()[i];
+  t.fAlpha = T::getAlpha();
+  t.fX = T::getX();
+  t.fY = T::getY();
+  t.fZ = T::getZ();
+  t.fq1Pt = T::getQ2Pt();
+  t.fSinPhi = T::getSnp();
+  t.fTgl = T::GetTgl();
+  for( int i=0; i<15; i++ ) t.fC[i] = T::getCov()[i];
   t.fTPCTrackID = GetTPCtrackId();
   for ( int i = 0; i <6; i++ ){
     t.fAttachedTracklets[ i ] = GetTracklet( i );
   }
 }
 
-void AliHLTTRDTrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
+template <typename T>
+void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 {
   // convert from HLT structure
 
-  Set(t.fX, t.fAlpha, &(t.fY), t.fC);
+  T::set(t.fX, t.fAlpha, &(t.fY), t.fC);
   SetTPCtrackId( t.fTPCTrackID );
+  fChi2 = 0;
+  fMass = 0.13957;
+  fLabel = -1;
   fNtracklets = 0;
   fNmissingConsecLayers = 0;
   fLabelOffline = -1;
@@ -176,3 +197,5 @@ void AliHLTTRDTrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
     if( fAttachedTracklets[iLayer]>=0 ) fNtracklets++;
   }
 }
+
+template class AliHLTTRDTrack<trackInterface<AliExternalTrackParam>>;
