@@ -466,7 +466,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
         // We use this callback to cache which metrics are needed to provide a
         // the DataRelayer view.
         DeviceMetricsHelper::processMetric(match, metrics, updateDataRelayerViewIndex);
-      } else if (parseControl(token, match)) {
+      } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
         auto command = match[1];
         auto validFor = match[2];
         LOG(DEBUG) << "Found control command " << command << " from pid " << info.pid << " valid for " << validFor;
