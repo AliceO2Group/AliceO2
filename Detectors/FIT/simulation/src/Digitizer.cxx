@@ -29,9 +29,13 @@ ClassImp(Digitizer);
 void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
 {
   //parameters constants TO DO: move to class
-  constexpr Double_t signal_width = 5000.; // time gate for signal, ps
-  constexpr Double_t nPe_in_mip = 450.; // n ph. e. in one mip
-
+  constexpr Float_t TimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
+  constexpr Double_t C_side_cable_cmps = 2.8; //ns
+  constexpr Double_t A_side_cable_cmps = 11.; //ns
+  constexpr Double_t BC_clk_center = 25./2.;
+  constexpr Double_t signal_width = 5.; // time gate for signal, ns
+  constexpr Double_t nPe_in_mip = 400.; // n ph. e. in one mip
+  constexpr Double_t CFD_trsh_mip = 0.4; // = 4[mV] / 10[mV/mip]
   constexpr Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
   mDigits = digits;
@@ -43,11 +47,14 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
 
   LOG(DEBUG)<< FairLogger::endl<< FairLogger::endl << "Test digizing data ===================" << FairLogger::endl;
   LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
-  LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << FairLogger::endl;
+  LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << " Time dif AC " << TimeDiffAC << FairLogger::endl;
 
 
 
-  // Counting photo-electrons, mean time
+
+
+
+  // Counting photo-electrons, mean time --------------------------------------
   Int_t ch_hit_nPe[nMCPs] = {};
   Double_t ch_hit_mean_time [nMCPs] = {};
 
@@ -72,44 +79,49 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
     //LOG(DEBUG) << "nMCP: " << ch_iter << " n Ph. e. " << ch_hit_nPe[ch_iter] << " mean time " << ch_hit_mean_time[ch_iter] << FairLogger::endl;
 
   }
+  // --------------------------------------------------------------------------
 
 
 
-  //Calculating signal time, amplitude in mean_time +- time_gate
+
+
+
+  //Calculating signal time, amplitude in mean_time +- time_gate --------------
   Double_t ch_signal_nPe[nMCPs] = {};
   Double_t ch_signal_MIP[nMCPs] = {};
   Double_t ch_signal_time[nMCPs] = {};
 
   for (auto& hit : *hits) {
-    Int_t hit_ch = hit.GetDetectorID();
-    Double_t hit_time = hit.GetTime();
+      Int_t hit_ch = hit.GetDetectorID();
+      Double_t hit_time = hit.GetTime();
+      Bool_t is_hit_in_signal_gate = (hit_time > ch_hit_mean_time[hit_ch] - signal_width*.5) &&
+                                     (hit_time < ch_hit_mean_time[hit_ch] + signal_width*.5);
 
-    Bool_t is_hit_in_signal_gate =
-            (hit_time > ch_hit_mean_time[hit_ch] - signal_width*.5) &&
-            (hit_time < ch_hit_mean_time[hit_ch] + signal_width*.5);
+      Bool_t is_A_side = (hit_ch <= 4 * Geometry::NCellsA);
+      Double_t time_compensate = is_A_side ? A_side_cable_cmps : C_side_cable_cmps;
+      Double_t hit_time_corr = hit_time/1000. - time_compensate + BC_clk_center;// + BCEventTime;
+      Double_t is_time_in_gate = (hit_time != 0.);//&&(hit_time_corr > -BC_clk_center)&&(hit_time_corr < BC_clk_center);
 
-    if(is_hit_in_signal_gate)
-	if(hit_time != 0.)
+    if(is_time_in_gate && is_hit_in_signal_gate)
 	{
 	    ch_signal_nPe[hit_ch]++;
-	    ch_signal_time[hit_ch] += hit_time;
+	    ch_signal_time[hit_ch] += hit_time_corr;
 	}
   }
 
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
   {
-     Bool_t is_A_side = (ch_iter <= 4 * Geometry::NCellsA);
 
     if(ch_signal_nPe[ch_iter] != 0)
     {
       ch_signal_MIP[ch_iter] = ch_signal_nPe[ch_iter] / nPe_in_mip;
       ch_signal_time[ch_iter] = ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter];
-      //if(is_A_side) ch_signal_time[ch_iter] -= mTimeDiffAC;
     }
-
-
-
   }
+  // --------------------------------------------------------------------------
+
+
+
 
 
 
@@ -124,8 +136,6 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
 
 
   LOG(DEBUG) << "nMCP : :IsA : hit nPe : hit mTime : sig nPe : sig mTime" << FairLogger::endl;
-
-
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
   {
       Bool_t is_A_side = (ch_iter <= 4 * Geometry::NCellsA);
