@@ -38,7 +38,8 @@ enum Medium {
   Epoxy,
   Inox,
   St1Rohacell,
-  Aluminium
+  Aluminium,
+  Air
 };
 
 // Return a pointer to the mch medium number imed.

@@ -335,9 +335,10 @@ void createPCBs()
     // the borders
     y = (kPCBHeight - kBorderHeight) / 2.;
     pcb->AddNode(gGeoManager->GetVolume(Form("Top border %.2f long", pcbLength)), 1, new TGeoTranslation(x, y, 0.));
+    x = (pcbShift + pcbLength - borderLength) / 2.;
     pcb->AddNode(gGeoManager->MakeBox(Form("%s bottom border", name), assertMedium(Medium::Rohacell),
                                       borderLength / 2., kBorderHeight / 2., kBorderWidth / 2.),
-                 1, new TGeoTranslation((pcbShift + pcbLength - borderLength) / 2., -y, 0.));
+                 1, new TGeoTranslation(x, -y, 0.));
 
     // the MANUs
     width += kMANUWidth;
@@ -461,6 +462,7 @@ void createSlats()
     auto carbon =
       new TGeoVolume(Form("%s panel carbon fiber", name),
                      new TGeoBBox(Form("%sCarbonBox", name), x, y, kCarbonWidth / 2.), assertMedium(Medium::Carbon));
+
     // nomex (honeycomb)
     auto nomex =
       new TGeoVolume(Form("%s panel nomex (honeycomb)", name),

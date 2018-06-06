@@ -92,9 +92,10 @@ void createMaterials()
 
   /// Create all the materials needed to build the MCH geometry
 
-  int imat = 0;   // counter of material ID
-  int fieldType;  // magnetic field type
-  float maxField; // maximum magnetic field value
+  int imat = 0;                                 // counter of material ID
+  const bool kIsSens = true, kIsUnsens = false; // (un)sensitive medium
+  int fieldType;                                // magnetic field type
+  float maxField;                               // maximum magnetic field value
 
   // get the magnetic field parameters
   Base::Detector::initFieldTrackingParams(fieldType, maxField);
@@ -109,12 +110,12 @@ void createMaterials()
   float dGas = 0.001821;                        // according to AliMUONCommonGeometryBuilder
 
   mgr.Mixture(kModuleName, ++imat, "Ar 80% + CO2 20%", aGas, zGas, dGas, nGas, wGas);
-  mgr.Medium(kModuleName, Medium::Gas, "Ar 80% + CO2 20%", imat, 1, fieldType, maxField, kMaxfd, kStemax, kDeemax,
+  mgr.Medium(kModuleName, Medium::Gas, "Ar 80% + CO2 20%", imat, kIsSens, fieldType, maxField, kMaxfd, kStemax, kDeemax,
              kEpsil, kStmin);
 
   /// Carbon
   mgr.Material(kModuleName, ++imat, "Carbon", kACarbon, kZCarbon, kDensCarbon, 0., 0.);
-  mgr.Medium(kModuleName, Medium::Carbon, "Carbon", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
+  mgr.Medium(kModuleName, Medium::Carbon, "Carbon", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
              kStmin);
 
   /// Nomex : C14 H10 N2 O2 (changed w.r.t AliMUONCommonGeometryBuilder)
@@ -125,12 +126,12 @@ void createMaterials()
   // honey comb
   float dHoneyNomex = 0.024; // according to AliMUONCommonGeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Nomex (honey comb)", aNomex, zNomex, dHoneyNomex, -nNomex, wNomex);
-  mgr.Medium(kModuleName, Medium::HoneyNomex, "Nomex (honey comb)", imat, 0, fieldType, maxField, kMaxfd, kStemax,
+  mgr.Medium(kModuleName, Medium::HoneyNomex, "Nomex (honey comb)", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax,
              kDeemax, kEpsil, kStmin);
   // bulk
   float dBulkNomex = 1.43; // according to AliMUONCommonGeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Nomex (bulk)", aNomex, zNomex, dBulkNomex, -nNomex, wNomex);
-  mgr.Medium(kModuleName, Medium::BulkNomex, "Nomex (bulk)", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax,
+  mgr.Medium(kModuleName, Medium::BulkNomex, "Nomex (bulk)", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax,
              kEpsil, kStmin);
 
   /// Noryl 731 (ALICE-INT-2002-17) : C8 H8 O
@@ -140,12 +141,12 @@ void createMaterials()
   float wNoryl[nNoryl] = { 8., 8., 1. };
   float dNoryl = 1.06;
   mgr.Mixture(kModuleName, ++imat, "Noryl", aNoryl, zNoryl, dNoryl, -nNoryl, wNoryl);
-  mgr.Medium(kModuleName, Medium::Noryl, "Noryl", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
+  mgr.Medium(kModuleName, Medium::Noryl, "Noryl", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
              kStmin);
 
   /// Copper
   mgr.Material(kModuleName, ++imat, "Copper", kACopper, kZCopper, kDensCopper, 0., 0.);
-  mgr.Medium(kModuleName, Medium::Copper, "Copper", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
+  mgr.Medium(kModuleName, Medium::Copper, "Copper", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
              kStmin);
 
   /// FR4 : O292 Si68 C462 H736 (from AliRoot)
@@ -155,7 +156,7 @@ void createMaterials()
   float wFR4[nFR4] = { 292, 68, 462, 736 }; // Relative weight of each atom
   float dFR4 = 1.8;                         // changed w.r.t AliRoot after investigation
   mgr.Mixture(kModuleName, ++imat, "FR4", aFR4, zFR4, dFR4, -nFR4, wFR4);
-  mgr.Medium(kModuleName, Medium::FR4, "FR4", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
+  mgr.Medium(kModuleName, Medium::FR4, "FR4", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 
   /// Rohacell : C9 H13 N1 O2
   const int nRoha = 4;
@@ -165,12 +166,12 @@ void createMaterials()
 
   float dRoha = 0.03; // from AliMUONCommonGeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Rohacell", aRoha, zRoha, dRoha, -nRoha, wRoha);
-  mgr.Medium(kModuleName, Medium::Rohacell, "Rohacell", imat, 0, fieldType, maxField, kMaxfd, kStemax,
+  mgr.Medium(kModuleName, Medium::Rohacell, "Rohacell", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax,
              kDeemax, kEpsil, kStmin);
   // for station 1
   float dSt1Roha = 0.053; // from AliMUONCommonGeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Rohacell (st 1)", aRoha, zRoha, dSt1Roha, -nRoha, wRoha);
-  mgr.Medium(kModuleName, Medium::St1Rohacell, "Rohacell (st 1)", imat, 0, fieldType, maxField, kMaxfd, kStemax,
+  mgr.Medium(kModuleName, Medium::St1Rohacell, "Rohacell (st 1)", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax,
              kDeemax, kEpsil, kStmin);
 
   /// Glue (Araldite 2011, ALICE-INT-2002-17) : C10 H25 N3
@@ -180,7 +181,7 @@ void createMaterials()
   float wGlue[nGlue] = { 10., 25., 3. };
   float dGlue = 1.066;
   mgr.Mixture(kModuleName, ++imat, "Glue", aGlue, zGlue, dGlue, -nGlue, wGlue);
-  mgr.Medium(kModuleName, Medium::Glue, "Glue", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
+  mgr.Medium(kModuleName, Medium::Glue, "Glue", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 
   /// Plastic (definition taken from AliMUONSt1GeometryBuilder)
   const int nPlastic = 2;
@@ -189,12 +190,12 @@ void createMaterials()
   float wPlastic[nPlastic] = { 1, 1 };
   float dPlastic = 1.107;
   mgr.Mixture(kModuleName, ++imat, "Plastic", aPlastic, zPlastic, dPlastic, -nPlastic, wPlastic);
-  mgr.Medium(kModuleName, Medium::Plastic, "Plastic", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
+  mgr.Medium(kModuleName, Medium::Plastic, "Plastic", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
              kStmin);
 
   /// Epoxy (definition taken from AliMUONCommonGeometryBuilder)
   mgr.Material(kModuleName, ++imat, "Epoxy", 12.24, 6., 1.85, 0., 0.);
-  mgr.Medium(kModuleName, Medium::Epoxy, "Epoxy", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
+  mgr.Medium(kModuleName, Medium::Epoxy, "Epoxy", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
              kStmin);
 
   /// Stainless steel : Fe(73%) Cr(18%) Ni(9%)
@@ -204,12 +205,21 @@ void createMaterials()
   float wInox[nInox] = { 73., 18., 9. };
   float dInox = 7.93; // from AliMUONSt1GeometryBuilder
   mgr.Mixture(kModuleName, ++imat, "Stainless steel", aInox, zInox, dInox, -nInox, wInox);
-  mgr.Medium(kModuleName, Medium::Inox, "Inox", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
+  mgr.Medium(kModuleName, Medium::Inox, "Inox", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 
   /// Aluminium
   mgr.Material(kModuleName, ++imat, "Aluminium", kAAluminium, kZAluminium, kDensAluminium, 0., 0.);
-  mgr.Medium(kModuleName, Medium::Aluminium, "Aluminium", imat, 0, fieldType, maxField, kMaxfd, kStemax, kDeemax,
+  mgr.Medium(kModuleName, Medium::Aluminium, "Aluminium", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax,
              kEpsil, kStmin);
+
+  /// Air
+  const int nAir = 4;
+  float aAir[nAir] = { kACarbon, kANitrogen, kAOxygen, kAArgon };
+  float zAir[nAir] = { kZCarbon, kZNitrogen, kZOxygen, kZArgon };
+  float wAir[nAir] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  float dAir = 1.20479E-3; // from AliMUONCommonGeometryBuilder
+  mgr.Mixture(kModuleName, ++imat, "Air", aAir, zAir, dAir, -nAir, wAir);
+  mgr.Medium(kModuleName, Medium::Air, "Air", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 }
 
 TGeoMedium* assertMedium(int imed)
