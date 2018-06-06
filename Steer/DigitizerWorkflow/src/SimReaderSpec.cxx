@@ -35,7 +35,39 @@ namespace steer
 DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<int>> tpcsectors,
                                    std::shared_ptr<std::vector<int>> tpcsubchannels)
 {
-  auto doit = [fanoutsize, tpcsectors, tpcsubchannels](ProcessingContext& pc) {
+  // this container will contain the TPC sector assignment per subchannel per invokation
+  // it will allow that we snapshot/send exactly one sector assignement per algorithm invokation
+  // to ensure that they all have different timeslice ids
+  auto tpcsectormessages = std::make_shared<std::vector<std::vector<int>>>();
+  tpcsectormessages->resize(tpcsubchannels->size());
+  int tpcchannelcounter = 0;
+  for (const auto& tpcsector : *tpcsectors.get()) {
+    auto actualchannel = (*tpcsubchannels.get())[tpcchannelcounter % tpcsubchannels->size()];
+    LOG(DEBUG) << " WILL ASSIGN SECTOR " << tpcsector << " to subchannel " << actualchannel;
+    tpcsectormessages->operator[](actualchannel).emplace_back(tpcsector);
+    tpcchannelcounter++;
+  }
+
+  // this is the number of invocations of the algorithm needed for the TPC
+  size_t tpcinvocations = 0;
+  for (int i = 0; i < tpcsubchannels->size(); ++i) {
+    tpcinvocations = std::max(tpcinvocations, tpcsectormessages->operator[](i).size());
+  }
+  // in principle each channel needs to be invoked exactly the same number of times (sigh)
+  // so I am adding some kind of "NOP" sectors in case needed
+  for (int i = 0; i < tpcsubchannels->size(); ++i) {
+    auto size = tpcsectormessages->operator[](i).size();
+    if (size < tpcinvocations) {
+      for (int k = 0; k < tpcinvocations - size; ++k) {
+        tpcsectormessages->operator[](i).emplace_back(-2); // -2 is NOP
+        LOG(INFO) << "ADDING NOP TO CHANNEL " << i << "\n";
+      }
+      assert(tpcsectormessages->operator[](i).size() == tpcinvocations);
+    }
+  }
+  // at this moment all tpc digitizers should receive the exact same number of messages/invocations
+
+  auto doit = [fanoutsize, tpcsectormessages, tpcinvocations, tpcsubchannels](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
     auto eventrecords = mgr.getRunContext().getEventRecords();
     const auto& context = mgr.getRunContext();
@@ -61,34 +93,34 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
       return;
     }
 
-    if (counter++ == 0) {
-      LOG(INFO) << "SENDING " << eventrecords.size() << " records";
-
-      // TPC specific + distribute sectors over tpc subchannels
-      int tpcchannelcounter = 0;
-      for (const auto& tpcsector : *tpcsectors.get()) {
-        auto actualchannel = (*tpcsubchannels.get())[tpcchannelcounter % tpcsubchannels->size()];
-        LOG(DEBUG) << "SENDING SECTOR " << tpcsector << " to subchannel " << actualchannel;
+    for (int tpcchannel = 0; tpcchannel < tpcsubchannels->size(); ++tpcchannel) {
+      auto& sectors = tpcsectormessages->operator[](tpcchannel);
+      if (counter < sectors.size()) {
+        auto sector = sectors[counter];
         pc.outputs().snapshot(
-          Output{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(actualchannel), Lifetime::Condition },
-          tpcsector);
+          Output{ "SIM", "TPCSECTORASSIGN", static_cast<SubSpecificationType>(tpcchannel), Lifetime::Condition },
+          sector);
 
         pc.outputs().snapshot(
-          Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(actualchannel), Lifetime::Timeframe },
-          context);
-        tpcchannelcounter++;
-      }
-
-      // everything not done previously treat here
-      for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
-        // TODO: this is temporary ... we should find a more clever+ faster + scalable mechanism
-        if (std::find(tpcsubchannels->begin(), tpcsubchannels->end(), subchannel) != tpcsubchannels->end()) {
-          continue;
-        }
-        pc.outputs().snapshot(
-          Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe },
+          Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(tpcchannel), Lifetime::Timeframe },
           context);
       }
+    }
+
+    // everything not done previously treat here (this is to be seen how since other things than TPC will have
+    // a different number of invocations)
+    for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
+      // TODO: this is temporary ... we should find a more clever+ faster + scalable mechanism
+      if (std::find(tpcsubchannels->begin(), tpcsubchannels->end(), subchannel) != tpcsubchannels->end()) {
+        continue;
+      }
+      LOG(INFO) << "SENDING SOMETHING TO OTHERS";
+      pc.outputs().snapshot(
+        Output{ "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe },
+        context);
+    }
+    counter++;
+    if (counter == tpcinvocations) {
       finished = true;
     }
   };
