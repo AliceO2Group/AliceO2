@@ -95,8 +95,8 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     auto mcTruthArrayRaw = mcTruthArray.get();
 
     // no more tasks can be marked with a negative sector
-    if (sector == -1) {
-      // we are ready to quit
+    if (sector < 0) {
+      // we are ready to quit or we received a NOP
 
       // notify channels further down the road that we are done (why do I have to send digitArray here????)
       digitArrayRaw->clear();
@@ -108,8 +108,10 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
         *mcTruthArrayRaw);
       pc.outputs().snapshot(Output{ "TPC", "SECTOR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe },
                             sector);
-      pc.services().get<ControlService>().readyToQuit(false);
-      finished = true;
+      if (sector == -1) {
+        pc.services().get<ControlService>().readyToQuit(false);
+        finished = true;
+      }
       return;
     }
 
