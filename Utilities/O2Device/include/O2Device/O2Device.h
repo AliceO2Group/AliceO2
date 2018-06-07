@@ -30,11 +30,9 @@
 
 #include <FairMQDevice.h>
 #include <options/FairMQProgOptions.h>
-#include "Headers/DataHeader.h"
+#include "O2Device/Utilities.h"
 #include "Monitoring/MonitoringFactory.h"
 #include <stdexcept>
-#include <gsl/gsl>
-#include "O2Device/Utilities.h"
 
 namespace o2
 {
@@ -47,6 +45,7 @@ class O2Device : public FairMQDevice
 {
  public:
   using FairMQDevice::FairMQDevice;
+
   ~O2Device() override = default;
 
   /// Monitoring instance
@@ -66,82 +65,7 @@ class O2Device : public FairMQDevice
     }
   }
 
-  /// Here is how to add an annotated data part (with header);
-  /// @param[in,out] parts is a reference to the message;
-  /// @param[] inputHeaderStack header block must be MOVED in (rvalue ref)
-  /// @param[] inputDataMessage the data message must be MOVED in (unique_ptr by value)
-  bool AddMessage(O2Message& parts, o2::header::Stack&& inputHeaderStack, FairMQMessagePtr inputDataMessage)
-  {
-
-    // we have to move the incoming data
-    using std::move;
-    o2::header::Stack headerStack{ move(inputHeaderStack) };
-    FairMQMessagePtr dataMessage{ move(inputDataMessage) };
-
-    FairMQMessagePtr headerMessage =
-      o2::memoryResources::getMessage(move(inputHeaderStack));
-
-    parts.AddPart(move(headerMessage));
-    parts.AddPart(move(dataMessage));
-    return true;
-  }
-
-  // this executes user code (e.g. a lambda) on each data block (header-payload pair)
-  template <typename F>
-  bool ForEach(O2Message& parts, F function)
-  {
-    if ((parts.Size() % 2) != 0) {
-      throw std::invalid_argument(
-        "number of parts in message not even (n%2 != 0), cannot be considered an O2 compliant message");
-    }
-
-    return ForEach(parts.begin(), parts.end(), function);
-  }
-
-  // this executes user code (a member function) on a data block (header-payload pair)
-  // at some point should de DEPRECATED in favor of the lambda version
-  template <typename T, typename std::enable_if<std::is_base_of<O2Device, T>::value, int>::type = 0>
-  bool ForEach(O2Message& parts, bool (T::*memberFunction)(const byte* headerBuffer, size_t headerBufferSize,
-                                                           const byte* dataBuffer, size_t dataBufferSize))
-  {
-    if ((parts.Size() % 2) != 0) {
-      throw std::invalid_argument(
-        "number of parts in message not even (n%2 != 0), cannot be considered an O2 compliant message");
-    }
-
-    return ForEach(parts.fParts.begin(), parts.fParts.end(),
-                   [&](gsl::span<const byte> headerBuffer, gsl::span<const byte> dataBuffer) {
-                     (static_cast<T*>(this)->*memberFunction)(headerBuffer.data(), headerBuffer.size(),
-                                                              dataBuffer.data(), dataBuffer.size());
-                   });
-  }
-
  private:
-  template <typename I, typename F>
-  bool ForEach(I begin, I end, F function)
-  {
-    using span = gsl::span<const byte>;
-    using gsl::narrow_cast;
-    for (auto it = begin; it != end; ++it) {
-      byte* headerBuffer{ nullptr };
-      span::index_type headerBufferSize{ 0 };
-      if (*it != nullptr) {
-        headerBuffer = reinterpret_cast<byte*>((*it)->GetData());
-        headerBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
-      }
-      ++it;
-      byte* dataBuffer{ nullptr };
-      span::index_type dataBufferSize{ 0 };
-      if (*it != nullptr) {
-        dataBuffer = reinterpret_cast<byte*>((*it)->GetData());
-        dataBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
-      }
-
-      // call the user provided function
-      function(span{ headerBuffer, headerBufferSize }, span{ dataBuffer, dataBufferSize });
-    }
-    return true;
-  }
 };
 }
 }
