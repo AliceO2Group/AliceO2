@@ -180,10 +180,10 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     // Calculate the index in the viewIndex.
     auto idx = record * viewIndex.h + i;
     assert(viewIndex.indexes.size() > idx);
-    MetricInfo const& info = metrics.metrics[viewIndex.indexes[idx]];
-    assert(metrics.intMetrics.size() > info.storeIdx);
-    auto& data = metrics.intMetrics[info.storeIdx];
-    return data[(info.pos - 1) % data.size()];
+    MetricInfo const& metricInfo = metrics.metrics[viewIndex.indexes[idx]];
+    assert(metrics.intMetrics.size() > metricInfo.storeIdx);
+    auto& data = metrics.intMetrics[metricInfo.storeIdx];
+    return data[(metricInfo.pos - 1) % data.size()];
   };
   auto getValue = [](int const& item) { return item; };
   auto getColor = [](int value) {
