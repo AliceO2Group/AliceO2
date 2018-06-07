@@ -158,8 +158,8 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
           // have to do work ...
           // the digits
           auto indata = pc.inputs().get<std::vector<o2::TPC::Digit>>(cname.c_str());
-          LOG(INFO) << "DIGIT SIZE " << indata.size();
-          *digits.get() = std::move(indata);
+          LOG(INFO) << "DIGIT SIZE " << indata->size();
+          *digits.get() = std::move(*indata);
           {
             // connect this to a particular branch
             auto br = getOrMakeBranch(*outputtree.get(), "TPCDigit", sector, digits.get());

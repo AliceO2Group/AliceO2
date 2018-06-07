@@ -46,9 +46,8 @@ struct InputSpec;
 /// - (a) const char*
 /// - (b) std::string
 /// - (c) messageable type T
-/// - (d) types T with ROOT dictionary
-/// - (e) std container of type T with ROOT dictionary
-/// - (f) DataRef holding header and payload information, this is also the default
+/// - (d) types T with ROOT dictionary, including std container of those
+/// - (e) DataRef holding header and payload information, this is also the default
 ///       get method without template parameter
 ///
 /// The return type of get<T>(binding) is:
@@ -56,8 +55,7 @@ struct InputSpec;
 /// - (b) std::string copy of the payload
 /// - (c) object with pointer-like behavior (unique_ptr)
 /// - (d) object with pointer-like behavior (unique_ptr)
-/// - (e) std::container object returned by std::move
-/// - (f) DataRef object returned by copy
+/// - (e) DataRef object returned by copy
 ///
 /// Iterator functionality is implemented to iterate over the list of DataRef objects,
 /// including begin() and end() methods.
@@ -229,34 +227,17 @@ public:
   /// This supports the common case of retrieving a root object and getting pointer.
   /// Notice that this will return a copy of the actual contents of the buffer, because
   /// the buffer is actually serialised, for this reason we return a unique_ptr<T>.
+  /// Note: this also covers std containers of non-messageable objects with ROOT dictionary
   /// FIXME: does it make more sense to keep ownership of all the deserialised
   /// objects in a single place so that we can avoid duplicate deserializations?
   /// @return unique_ptr to deserialized content
   template <class T>
-  typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false &&
-                            is_container<T>::value == false,
-                          std::unique_ptr<T const>>::type
+  typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, //
+                          std::unique_ptr<T const>>::type                                             //
     get(char const* binding) const
   {
     auto ref = this->get(binding);
     return std::move(DataRefUtils::as<T>(ref));
-  }
-
-  /// substitution for container of non-messageable objects with ROOT dictionary
-  /// Notice that this will return a copy of the actual contents of the buffer, because
-  /// the buffer is actually serialised. The extracted container is returned by std::move
-  /// @return std container object
-  template <class T>
-  typename std::enable_if<is_container<T>::value == true &&          //
-                            has_root_dictionary<T>::value == true && //
-                            is_messageable<T>::value == false,       //
-                          T const&>::type                            //
-    get(char const* binding) const
-  {
-    auto ref = this->get(binding);
-    // we expect the unique_ptr to hold an object, exception should have been thrown
-    // otherwise
-    return std::move(*(DataRefUtils::as<T>(ref).release()));
   }
 
   /// substitution for messageable objects with ROOT dictionary
