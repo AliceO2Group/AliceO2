@@ -13,10 +13,12 @@
 
 #include <vector>
 #include <array>
+#include <tuple>
 
 #include "ITSReconstruction/CA/Constants.h"
 #include "ITSReconstruction/CA/Definitions.h"
-#include "ITSReconstruction/CA/vertexer/ClusterLines.h"
+#include "ITSReconstruction/CA/ClusterLines.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
 namespace o2
 {
@@ -27,6 +29,7 @@ namespace CA
 class Cluster;
 class Event;
 class Line;
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class Vertexer
 {
@@ -35,41 +38,38 @@ class Vertexer
   virtual ~Vertexer();
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
-
   void initialise(const float zCut, const float phiCut, const float pairCut, const float clusterCut,
                   const int clusterContributorsCut);
-  void computeTriplets();
-  void checkTriplets();
-  void findTracklets();
+  void initialise(const std::tuple<float, float, float, float, int> initParams);
+  void findTracklets(const bool useMCLabel = false);
   void findVertices();
-  inline std::vector<std::array<float, 3>> getVertices() { return mVertices; };
-  void printIndexTables();
-  void printVertices();
-
+  void setROFrame(std::uint32_t f) { mROFrame = f; }
+  std::uint32_t getROFrame() const { return mROFrame; }
+  inline std::vector<Line> const getTracklets() const { return mTracklets; }
+  inline std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> getClusters() const { return mClusters; }
   static const std::vector<std::pair<int, int>> selectClusters(
     const std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>& indexTable,
     const std::array<int, 4>& selectedBinsRect);
+  std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
+  std::vector<Vertex> getVertices() const { return mVertices; }
 
  protected:
   bool mVertexerInitialised{ false };
   bool mTrackletsFound{ false };
+  std::vector<bool> mUsedTracklets;
   float mDeltaRadii10, mDeltaRadii21;
-  float mZCut, mPhiCut, mPairCut, mClusterCut;
+  float mZCut, mPhiCut, mPairCut, mClusterCut, mMaxDirectorCosine3;
   int mClusterContributorsCut;
   int mPhiSpan, mZSpan;
   std::array<float, 3> mAverageClustersRadii;
   std::array<float, Constants::ITS::LayersNumber> mITSRadii;
   float mZBinSize;
-  std::vector<std::pair<int, int>> mClustersToProcessInner;
-  std::vector<std::pair<int, int>> mClustersToProcessOuter;
   Event mEvent;
-  std::vector<std::array<float, 3>> mVertices;
-  std::array<std::vector<Cluster>, Constants::ITS::LayersNumberVertexer> mClusters;
+  std::vector<Vertex> mVertices;
   std::array<std::array<int, Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins + 1>,
              Constants::ITS::LayersNumberVertexer>
     mIndexTables;
-  std::vector<std::array<int, 3>> mTriplets;
-  std::vector<bool> mUsedTracklets;
+  std::uint32_t mROFrame = 0;
   std::vector<Line> mTracklets;
   std::vector<ClusterLines> mTrackletClusters;
 };

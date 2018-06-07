@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
-#include "ITSReconstruction/CA/vertexer/ClusterLines.h"
+#include "ITSReconstruction/CA/ClusterLines.h"
 
 namespace o2
 {
@@ -62,54 +62,54 @@ bool Line::areParallel(const Line& firstLine, const Line& secondLine, const floa
 
 float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
 {
-  if (areParallel(firstLine, secondLine)) {
-    float squaredOriginsDistance{ 0 }, projectionOnFirstVector{ 0 }, normFirstVector{ 0 };
-    for (int i{ 0 }; i < 3; ++i) {
-      squaredOriginsDistance +=
-        (firstLine.originPoint[i] - secondLine.originPoint[i]) * (firstLine.originPoint[i] - secondLine.originPoint[i]);
-      projectionOnFirstVector += (firstLine.originPoint[i] - secondLine.originPoint[i]) * firstLine.cosinesDirector[i];
-      normFirstVector += firstLine.cosinesDirector[i] * firstLine.cosinesDirector[i];
-    }
+  std::array<float, 3> normalVector;
+  normalVector[0] = firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
+                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1];
+  normalVector[1] = -firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
+                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0];
+  normalVector[2] = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
+                    firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
 
-    if (std::abs(normFirstVector) > precision) {
-      projectionOnFirstVector /= normFirstVector;
-      return std::sqrt(squaredOriginsDistance - projectionOnFirstVector * projectionOnFirstVector);
-    } else {
-      return -1;
-    }
+  float norm{ 0.f }, distance{ 0.f };
+  for (int i{ 0 }; i < 3; ++i) {
+    norm += normalVector[i] * normalVector[i];
+    distance += (secondLine.originPoint[i] - firstLine.originPoint[i]) * normalVector[i];
+  }
+  if (norm > precision) {
+    return std::abs(distance / std::sqrt(norm));
   } else {
-    std::array<float, 3> perpendicularVector{};
-    perpendicularVector[0] = firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
-                             firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1];
-    perpendicularVector[1] = -firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
-                             firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0];
-    perpendicularVector[2] = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
-                             firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
-
-    float normFirstVector{ 0 }, distance{ 0 };
-    for (int i{ 0 }; i < 3; ++i) {
-      normFirstVector += perpendicularVector[i] * perpendicularVector[i];
-      distance += (firstLine.originPoint[i] - secondLine.originPoint[i]) * perpendicularVector[i];
-    }
-    if (std::abs(normFirstVector) > precision) {
-      return std::abs(distance / std::sqrt(normFirstVector));
-    } else
-      return -1;
+    return getDistanceFromPoint(firstLine, secondLine.originPoint);
   }
 }
 
 float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3> point)
 {
-  Line tmpLine{};
-  tmpLine.originPoint = point;
-  for (int index{ 0 }; index < 3; ++index)
-    tmpLine.cosinesDirector[index] = line.cosinesDirector[index];
-  float inverseNorm{ 1.f / std::sqrt(tmpLine.cosinesDirector[0] * tmpLine.cosinesDirector[0] +
-                                     tmpLine.cosinesDirector[1] * tmpLine.cosinesDirector[1] +
-                                     tmpLine.cosinesDirector[2] * tmpLine.cosinesDirector[2]) };
-  for (int index{ 0 }; index < 3; ++index)
-    tmpLine.cosinesDirector[index] *= inverseNorm;
-  return getDCA(line, tmpLine);
+  float DCASquared{ 0 };
+  float cdelta{ 0 };
+  for (int i{ 0 }; i < 3; ++i)
+    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+  for (int i{ 0 }; i < 3; ++i) {
+    DCASquared += (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta) *
+                  (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta);
+  }
+  return std::sqrt(DCASquared);
+}
+
+std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<float, 3> point)
+{
+  std::array<float, 6> components{ 0., 0., 0., 0., 0., 0. };
+  float cdelta{ 0. };
+  for (int i{ 0 }; i < 3; ++i)
+    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+
+  components[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
+  components[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
+  components[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
+  components[1] = std::sqrt(components[0] * components[0] + components[3] * components[3]);
+  components[2] = std::sqrt(components[0] * components[0] + components[5] * components[5]);
+  components[4] = std::sqrt(components[3] * components[3] + components[5] * components[5]);
+
+  return components;
 }
 
 ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
@@ -118,6 +118,10 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   mLabels.push_back(firstLabel);
   mLabels.push_back(secondLabel);
 
+  // Debug purpose only
+  // mLines.push_back(firstLine);
+  // mLines.push_back(secondLine);
+  //
   std::array<float, 3> covarianceFirst{ 1., 1., 1. };
   std::array<float, 3> covarianceSecond{ 1., 1., 1. };
 
@@ -164,56 +168,49 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
                   determinantSecond;
 
   mBMatrix[0] =
-    (firstLine.cosinesDirector[1] * covarianceFirst[2] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[0] +
-                                                          firstLine.cosinesDirector[0] * firstLine.originPoint[1]) +
-     firstLine.cosinesDirector[2] * covarianceFirst[1] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[0] +
-                                                          firstLine.cosinesDirector[0] * firstLine.originPoint[2])) /
+    (firstLine.cosinesDirector[1] * covarianceFirst[2] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[0] + firstLine.cosinesDirector[0] * firstLine.originPoint[1]) +
+     firstLine.cosinesDirector[2] * covarianceFirst[1] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[0] + firstLine.cosinesDirector[0] * firstLine.originPoint[2])) /
     determinantFirst;
 
   mBMatrix[0] +=
-    (secondLine.cosinesDirector[1] * covarianceSecond[2] * (-secondLine.cosinesDirector[1] * secondLine.originPoint[0] +
-                                                            secondLine.cosinesDirector[0] * secondLine.originPoint[1]) +
+    (secondLine.cosinesDirector[1] * covarianceSecond[2] * (-secondLine.cosinesDirector[1] * secondLine.originPoint[0] + secondLine.cosinesDirector[0] * secondLine.originPoint[1]) +
      secondLine.cosinesDirector[2] * covarianceSecond[1] *
        (-secondLine.cosinesDirector[2] * secondLine.originPoint[0] +
         secondLine.cosinesDirector[0] * secondLine.originPoint[2])) /
     determinantSecond;
 
   mBMatrix[1] =
-    (firstLine.cosinesDirector[0] * covarianceFirst[2] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[1] +
-                                                          firstLine.cosinesDirector[1] * firstLine.originPoint[0]) +
-     firstLine.cosinesDirector[2] * covarianceFirst[0] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[1] +
-                                                          firstLine.cosinesDirector[1] * firstLine.originPoint[2])) /
+    (firstLine.cosinesDirector[0] * covarianceFirst[2] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[1] + firstLine.cosinesDirector[1] * firstLine.originPoint[0]) +
+     firstLine.cosinesDirector[2] * covarianceFirst[0] * (-firstLine.cosinesDirector[2] * firstLine.originPoint[1] + firstLine.cosinesDirector[1] * firstLine.originPoint[2])) /
     determinantFirst;
 
   mBMatrix[1] +=
-    (secondLine.cosinesDirector[0] * covarianceSecond[2] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[1] +
-                                                            secondLine.cosinesDirector[1] * secondLine.originPoint[0]) +
+    (secondLine.cosinesDirector[0] * covarianceSecond[2] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[1] + secondLine.cosinesDirector[1] * secondLine.originPoint[0]) +
      secondLine.cosinesDirector[2] * covarianceSecond[0] *
        (-secondLine.cosinesDirector[2] * secondLine.originPoint[1] +
         secondLine.cosinesDirector[1] * secondLine.originPoint[2])) /
     determinantSecond;
 
   mBMatrix[2] =
-    (firstLine.cosinesDirector[0] * covarianceFirst[1] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[2] +
-                                                          firstLine.cosinesDirector[2] * firstLine.originPoint[0]) +
-     firstLine.cosinesDirector[1] * covarianceFirst[0] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[2] +
-                                                          firstLine.cosinesDirector[2] * firstLine.originPoint[1])) /
+    (firstLine.cosinesDirector[0] * covarianceFirst[1] * (-firstLine.cosinesDirector[0] * firstLine.originPoint[2] + firstLine.cosinesDirector[2] * firstLine.originPoint[0]) +
+     firstLine.cosinesDirector[1] * covarianceFirst[0] * (-firstLine.cosinesDirector[1] * firstLine.originPoint[2] + firstLine.cosinesDirector[2] * firstLine.originPoint[1])) /
     determinantFirst;
 
   mBMatrix[2] +=
-    (secondLine.cosinesDirector[0] * covarianceSecond[1] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[2] +
-                                                            secondLine.cosinesDirector[2] * secondLine.originPoint[0]) +
+    (secondLine.cosinesDirector[0] * covarianceSecond[1] * (-secondLine.cosinesDirector[0] * secondLine.originPoint[2] + secondLine.cosinesDirector[2] * secondLine.originPoint[0]) +
      secondLine.cosinesDirector[1] * covarianceSecond[0] *
        (-secondLine.cosinesDirector[1] * secondLine.originPoint[2] +
         secondLine.cosinesDirector[2] * secondLine.originPoint[1])) /
     determinantSecond;
-
   computeClusterCentroid();
 }
 
 void ClusterLines::add(const int lineLabel, const Line& line, const bool weight)
 {
   mLabels.push_back(lineLabel);
+  // Debug purpose
+  // mLines.push_back(line);
+  //
   std::array<float, 3> covariance{ 1., 1., 1. };
 
   for (int i{ 0 }; i < 6; ++i)
@@ -252,7 +249,6 @@ void ClusterLines::add(const int lineLabel, const Line& line, const bool weight)
                   line.cosinesDirector[1] * covariance[0] *
                     (-line.cosinesDirector[1] * line.originPoint[2] + line.cosinesDirector[2] * line.originPoint[1])) /
                  determinant;
-
   computeClusterCentroid();
 }
 
@@ -279,6 +275,26 @@ void ClusterLines::computeClusterCentroid()
                  mAMatrix[1] * (mAMatrix[1] * mBMatrix[2] - mBMatrix[1] * mAMatrix[2]) +
                  mBMatrix[0] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])) /
                determinant;
+}
+
+std::array<float, 6> ClusterLines::getRMS2() const
+{
+  std::array<float, 6> deviations{ 0., 0., 0., 0., 0., 0. }, deviationSingleLine;
+  for (auto line : mLines) {
+    deviationSingleLine = Line::getDCAComponents(line, mVertex);
+    for (int i{ 0 }; i < 6; ++i) {
+      deviations[i] += deviationSingleLine[i] * deviationSingleLine[i] / mLines.size();
+    }
+  }
+  return deviations;
+}
+
+float ClusterLines::getAvgDistance2() const
+{
+  float dist{ 0. };
+  for (auto line : mLines)
+    dist += Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex);
+  return dist / mLines.size();
 }
 
 } // namespace CA

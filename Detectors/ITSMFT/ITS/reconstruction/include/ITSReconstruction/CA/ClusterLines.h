@@ -24,12 +24,13 @@ namespace CA
 struct Line final {
   Line();
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
+
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
+  static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
-  std::array<float, 3> originPoint;
-  std::array<float, 3> cosinesDirector;
+  std::array<float, 3> originPoint, cosinesDirector;
   std::array<float, 6> weightMatrix;
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
@@ -47,9 +48,12 @@ class ClusterLines final
                const bool weight = false);
   void add(const int lineLabel, const Line& line, const bool weight = false);
   void computeClusterCentroid();
-  inline std::vector<int> getLabels() { return mLabels; };
+  float getAvgDistance2() const;
+  std::array<float, 6> getRMS2() const;
+  inline std::vector<int> getLabels() const { return mLabels; };
   inline int getSize() const { return mLabels.size(); };
-  inline std::array<float, 3> getVertex() { return mVertex; }
+  inline std::array<float, 3> getVertex() const { return mVertex; }
+  std::vector<Line> mLines;
 
  protected:
   std::array<float, 6> mAMatrix;         // AX=B
