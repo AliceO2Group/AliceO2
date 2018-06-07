@@ -416,8 +416,6 @@ function(O2_GENERATE_TESTS)
     string(REGEX REPLACE "\\..*" "" test_name ${test_name})
     set(test_name test_${MODULE_NAME}_${test_name})
 
-    message(STATUS "Generate test ${test_name}")
-
     O2_GENERATE_EXECUTABLE(
         EXE_NAME ${test_name}
         SOURCES ${test}
