@@ -8,7 +8,7 @@ function(guess_append_libpath _libname _root)
   # not being relocated properly, leading to broken builds if reusing builds
   # produced under different hosts/paths.
   unset(_lib CACHE)  # force find_library to look again
-  find_library(_lib "${_libname}" HINTS "${_root}" NO_DEFAULT_PATH PATH_SUFFIXES lib lib64)
+  find_library(_lib "${_libname}" HINTS "${_root}" "${_root}/.." NO_DEFAULT_PATH PATH_SUFFIXES lib lib64)
   if(_lib)
     get_filename_component(_libdir "${_lib}" DIRECTORY)
     message(STATUS "Adding library path: ${_libdir}")
