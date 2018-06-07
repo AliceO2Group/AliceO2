@@ -36,6 +36,7 @@
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Cluster.h"
+#include "DataFormatsTPC/Helpers.h"
 
 #include "TCanvas.h"
 #endif
@@ -143,14 +144,14 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   }
 
   // ===| output file and container |===========================================
-  std::vector<o2::TPC::Cluster> arrCluster;
+  std::shared_ptr<std::vector<o2::TPC::ClusterHardwareContainer8kb>> arrCluster;
   std::vector<o2::TPC::Cluster> *arrClusterBox = nullptr;
   float cherenkovValue = 0.;
   int runNumber = 0;
 
   TFile fout(outputFileName,"recreate");
   TTree t("cbmsim","cbmsim");
-  t.Branch("TPCClusterHW", &arrCluster);
+  t.Branch("TPCClusterHW", arrCluster.get());
   t.Branch("cherenkovValue", &cherenkovValue);
   t.Branch("runNumber", &runNumber);
 
@@ -174,18 +175,18 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
 
   // ===| cluster finder |======================================================
   // HW cluster finder
-  std::unique_ptr<Clusterer> cl;
+  std::unique_ptr<HwClusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer *hwCl = new HwClusterer(&arrCluster, nullptr, 0, 3);
+    HwClusterer *hwCl = new HwClusterer(arrCluster, nullptr, 0);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
-    cl = std::unique_ptr<Clusterer>(hwCl);
+    cl = std::unique_ptr<HwClusterer>(hwCl);
   }
-  else if (clustererType == ClustererType::Box) {
-    BoxClusterer *boxCl = new BoxClusterer(arrClusterBox);
-    boxCl->setPedestals(pedestal);
-    cl = std::unique_ptr<Clusterer>(boxCl);
-  }
+//  else if (clustererType == ClustererType::Box) {
+//    BoxClusterer *boxCl = new BoxClusterer(arrClusterBox);
+//    boxCl->setPedestals(pedestal);
+//    cl = std::unique_ptr<Clusterer>(boxCl);
+//  }
   else {
     return;
   }
@@ -207,8 +208,8 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
 
     printf("========| Event %4zu %d %d %d |========\n", converter.getPresentEventNumber(), events, maxEvents, status);
 
-    auto &arr = converter.getDigitVector();
-    if (!arr.size()) {++events; continue;}
+    auto arr = std::make_shared<const std::vector<Digit>>(converter.getDigitVector());
+    if (!arr->size()) {++events; continue;}
     //printf("Converted digits: %zu %f\n", arr.size(), arr.at(0)->getChargeFloat());
 
     cl->Process(arr,nullptr,events);
@@ -221,7 +222,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     }
     t.Fill();
 
-    printf("Found clusters: %d\n", arrCluster.size());
+    printf("Found cluster container: %d\n", arrCluster->size());
 
     Int_t nTries = -1; // defaults to number of clusters in the roc
     Int_t allowedMisses = 3;  //number of allowed holes in track before discarding
@@ -231,7 +232,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     //converter.TrackFinder(nTries, allowedMisses, minClusters, reverse, &arrCluster, arrTracks);
 
     tOut.Fill();
-    arrCluster.clear();
+    arrCluster->clear();
     ++events;
   }
 
