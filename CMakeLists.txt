@@ -15,6 +15,7 @@ FOREACH (p
     CMP0025 # CMake 3.0
     CMP0042 # CMake 3.0
     CMP0028
+    CMP0068
     )
   IF (POLICY ${p})
     cmake_policy(SET ${p} NEW)
