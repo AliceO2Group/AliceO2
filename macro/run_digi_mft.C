@@ -15,7 +15,7 @@
 
 #endif
 
-void run_digi_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGeant3", Bool_t alp=kTRUE, Float_t rate=50.e3)
+void run_digi_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGeant3", Float_t rate = 50.e3)
 {
 
   // if rate>0 then continuous simulation for this rate will be performed
@@ -57,8 +57,7 @@ void run_digi_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGean
   rtdb->setFirstInput(parInput1);
 
   // Setup digitizer
-  // Call o2::MFT::DigitizerTask(kTRUE) to activate the ALPIDE simulation
-  o2::MFT::DigitizerTask *digi = new o2::MFT::DigitizerTask(alp);
+  o2::MFT::DigitizerTask* digi = new o2::MFT::DigitizerTask();
   digi->setContinuous(rate>0);
   digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
   fRun->AddTask(digi);

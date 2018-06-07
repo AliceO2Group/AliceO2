@@ -15,7 +15,6 @@
 #define ALICEO2_ITSMFT_POINT_H_
 
 #include "SimulationDataFormat/BaseHits.h"     // for BasicXYZEHit
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "Rtypes.h"       // for Bool_t, Double_t, Int_t, Double32_t, etc
 #include "TVector3.h"     // for TVector3
 #include <iosfwd>
@@ -27,7 +26,6 @@ class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
 {
 
   public:
-    using Label = o2::MCCompLabel;
     enum HitStatus_t
     {
         kTrackEntering = 0x1,
@@ -106,28 +104,11 @@ class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
       */
       return of;
     }
-
-    void SetSrcEvID(int srcID, int evID) {
-      /// RS: ATTENTION! this is just a trick until we clarify how the hits from different source are
-      // provided and identified. At the moment we just create a combined identifier from eventID
-      // and sourceID
-      mLabel = ( srcID << Label::nbitsEvID ) | evID;
-    }
-
-    Label getCombLabel() const {
-      /// RS: ATTENTION! this is just a trick until we clarify how the hits from different source are
-      // provided and identified. At the moment we just create on the fly the label from the track ID
-      // and SrcEv id stored as mLabel
-      int srcID = ( mLabel>>Label::nbitsEvID ) & Label::maskSrcID;
-      int evID = mLabel & Label::maskEvID;
-      return Label( GetTrackID(), evID, srcID );
-    }
     
   private:
     Vector3D<Float_t> mMomentum;              ///< momentum at entrance
     Point3D<Float_t> mPosStart;               ///< position at entrance (base mPos give position on exit)
     Float_t mE;                               ///< total energy at entrance
-    UInt_t  mLabel;                           ///< member to store a composed MC label
     UChar_t mTrackStatusEnd;                  ///< MC status flag at exit
     UChar_t mTrackStatusStart;                ///< MC status at starting point
 

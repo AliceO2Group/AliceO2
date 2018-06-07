@@ -476,6 +476,7 @@ struct Stack {
   }
 
   struct freeobj {
+    freeobj(boost::container::pmr::memory_resource* mr) : resource(mr) {}
     boost::container::pmr::memory_resource* resource{ nullptr };
     void operator()(byte* ptr) { Stack::freefn(ptr, resource); }
   };

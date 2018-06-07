@@ -17,6 +17,7 @@ Set(HEADERS
     include/${MODULE_NAME}/MCCompLabel.h
     include/${MODULE_NAME}/MCInteractionRecord.h
     include/${MODULE_NAME}/TrackReference.h
+    include/${MODULE_NAME}/PrimaryChunk.h
 )
 
 Set(LINKDEF src/SimulationDataLinkDef.h)

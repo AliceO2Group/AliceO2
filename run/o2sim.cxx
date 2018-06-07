@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   }
 
   // call o2sim "macro"
-  o2sim();
+  o2sim(false);
 
   return 0;
 }

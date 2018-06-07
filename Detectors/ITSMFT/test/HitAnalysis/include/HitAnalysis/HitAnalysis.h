@@ -53,21 +53,11 @@ class HitAnalysis : public FairTask
 
     void FinishTask() override;
 
-    void SetProcessHits()
-    { mProcessChips = kFALSE; }
-
-    void SetProcessChips()
-    { mProcessChips = kTRUE; }
-
   protected:
-    void ProcessChips();
-
     void ProcessHits();
 
   private:
     Bool_t mIsInitialized;       ///< Check whether task is initialized
-    Bool_t mProcessChips;        ///< Process chips or hits
-    std::map<int, o2::ITSMFT::Chip *> mChips; ///< lookup map for ITS chips
     const std::vector<o2::ITSMFT::Hit>* mHits;     ///< Array with ITS hits, filled by the FairRootManager
     const GeometryTGeo *mGeometry;           ///<  geometry
     TH1 *mLineSegment;        ///< Histogram for line segment

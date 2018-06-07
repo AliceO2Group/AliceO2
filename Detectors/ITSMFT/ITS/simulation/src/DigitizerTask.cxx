@@ -24,21 +24,17 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::ITS::DigitizerTask)
+ClassImp(o2::ITS::DigitizerTask);
 
-  using namespace o2::ITS;
+using namespace o2::ITS;
 using namespace o2::detectors;
 using namespace o2::utils;
 
-using o2::ITSMFT::DigiParams;
-
-DigitizerTask::DigitizerTask(Bool_t useAlpide) : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer() {}
+DigitizerTask::DigitizerTask() : FairTask("ITSDigitizerTask"), mDigitizer() {}
 DigitizerTask::~DigitizerTask()
 {
-  if (mDigitsArray) {
-    mDigitsArray->clear();
-    delete mDigitsArray;
-  }
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
 }
 
 /// \brief Init function
@@ -59,20 +55,20 @@ InitStatus DigitizerTask::Init()
   }
 
   // Register output container
-  mgr->RegisterAny("ITSDigit", mDigitsArray, kTRUE);
+  mgr->RegisterAny("ITSDigit", mDigitsArrayPtr, kTRUE);
+  mgr->RegisterAny("ITSDigitMCTruth", mMCTruthArrayPtr, kTRUE);
 
-  DigiParams param; // RS: TODO: Eventually load this from the CCDB
-
-  param.setContinuous(mContinuous);
-  param.setROFrameLenght(mAlpideROFramLength);
-  param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
-  mDigitizer.setDigiParams(param);
+  mDigitizer.setDigiParams(mParams);
 
   mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
   mDigitizer.setGeometry(geom);
+
+  mDigitizer.setHits(mHitsArray);
+  mDigitizer.setDigits(mDigitsArrayPtr);
+  mDigitizer.setMCLabels(mMCTruthArrayPtr);
 
   mDigitizer.init();
 
@@ -84,8 +80,8 @@ void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
 
-  if (mDigitsArray)
-    mDigitsArray->clear();
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
   mDigitizer.setEventTime(mgr->GetEventTime());
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
@@ -96,7 +92,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setCurrSrcID(mSourceID);
   mDigitizer.setCurrEvID(mEventID);
 
-  mDigitizer.process(mHitsArray, mDigitsArray);
+  mDigitizer.process();
 
   mEventID++;
 }
@@ -105,11 +101,12 @@ void DigitizerTask::Exec(Option_t* option)
 void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-  if (!mContinuous)
+  if (!mParams.isContinuous()) {
     return;
+  }
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  if (mDigitsArray)
-    mDigitsArray->clear();
-  mDigitizer.fillOutputContainer(mDigitsArray);
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
+  mDigitizer.fillOutputContainer();
 }

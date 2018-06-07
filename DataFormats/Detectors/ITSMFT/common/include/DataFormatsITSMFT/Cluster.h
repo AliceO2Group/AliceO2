@@ -59,7 +59,7 @@ class Cluster : public o2::BaseCluster<float>
   using BaseCluster::BaseCluster;
 
  public:
-  static constexpr int maxLabels = 3;
+  static constexpr int maxLabels = 10;
 
   ~Cluster() override = default;
 

@@ -518,8 +518,10 @@ parallel id) or the number of parallel devices by using the `ParalleContext`,
 which can be retrieved from the `ServiceRegistry` (see also the `Services`
 section below), e.g.:
 
-    size_t whoAmI = services.get<ParallelContext>().index1D();
-    size_t howManyAreWe = services.get<ParallelContext>().index1DSize();
+```cpp
+size_t whoAmI = services.get<ParallelContext>().index1D();
+size_t howManyAreWe = services.get<ParallelContext>().index1DSize();
+```
 
 A second type of parallelism is time based pipelining. This assumes that the
 data can be subdivided in subsequent "time periods" that are independent one
@@ -614,7 +616,9 @@ customise the connections based on the ids of the devices being instanciated.
 
 In order to do so, one needs to implement the function
 
-    customize(std::vector<o2::framework::ChannelConfigurationPolicy> &policies)
+```cpp
+customize(std::vector<o2::framework::ChannelConfigurationPolicy> &policies)
+```
 
 **before** including `Framework/runDataProcessing.h` (this will most likely
 change in the future). You can then extend the policies vector with your own 
@@ -635,7 +639,9 @@ enabled.
 
 This can be done by implementing the function:
 
-    customise(std::vector<o2::framework::ConfigParamSpec> &workflowOptions)
+```cpp
+customise(std::vector<o2::framework::ConfigParamSpec> &workflowOptions)
+```
 
 **before** including the `Framework/runDataProcessing.h` (this will most likely 
 change in the future). Each ConfigParamSpec will be added to the configuration
@@ -681,12 +687,16 @@ matchers, supporting wildcards. For example if your Algorithm supports
 processing clusters coming from multiple detectors, it will be possible to
 specify:
 
-    InputSpec{"*", "CLUSTERS"}
+```cpp
+InputSpec{"*", "CLUSTERS"}
+```
 
 If the user wants to get both clusters and tracks coming from the same detector,
 it will be possible to write:
 
-    InputSpec{"*", "CLUSTERS"}, InputSpec{"*", "TRACKS"}
+```cpp
+InputSpec{"*", "CLUSTERS"}, InputSpec{"*", "TRACKS"}
+```
 
 i.e. the first message which arrives will define the wildcard for all the other input
 spec in the definition.

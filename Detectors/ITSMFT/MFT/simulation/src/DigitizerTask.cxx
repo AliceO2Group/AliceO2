@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DigitizerTask.h
+/// \file DigitizerTask.cxx
 /// \brief Task driving the convertion from Hit to Digit
 /// \author bogdan.vulpescu@cern.ch
 /// \date 03/05/2017
@@ -30,14 +30,12 @@ using namespace o2::utils;
 using o2::ITSMFT::DigiParams;
 
 //_____________________________________________________________________________
-DigitizerTask::DigitizerTask(Bool_t useAlpide) : FairTask("MFTDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer() {}
+DigitizerTask::DigitizerTask() : FairTask("MFTDigitizerTask"), mDigitizer() {}
 //_____________________________________________________________________________
 DigitizerTask::~DigitizerTask()
 {
-  if (mDigitsArray) {
-    mDigitsArray->clear();
-    delete mDigitsArray;
-  }
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
 }
 /// \brief Init function
 ///
@@ -58,21 +56,20 @@ InitStatus DigitizerTask::Init()
   }
 
   // Register output container
-  mgr->RegisterAny("MFTDigit", mDigitsArray, kTRUE);
+  mgr->RegisterAny("MFTDigit", mDigitsArrayPtr, kTRUE);
+  mgr->RegisterAny("MFTDigitMCTruth", mMCTruthArrayPtr, kTRUE);
 
-  DigiParams param; // RS: TODO: Eventually load this from the CCDB
-
-  param.setContinuous(mContinuous);
-  param.setROFrameLenght(mAlpideROFramLength);
-  param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
-  param.setNoisePerPixel(0.);
-  mDigitizer.setDigiParams(param);
+  mDigitizer.setDigiParams(mParams);
 
   mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
   mDigitizer.setGeometry(geom);
+
+  mDigitizer.setHits(mHitsArray);
+  mDigitizer.setDigits(mDigitsArrayPtr);
+  mDigitizer.setMCLabels(mMCTruthArrayPtr);
 
   mDigitizer.init();
 
@@ -84,8 +81,8 @@ void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
 
-  if (mDigitsArray)
-    mDigitsArray->clear();
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
   mDigitizer.setEventTime(mgr->GetEventTime());
 
   // the type of digitization is steered by the DigiParams object of the Digitizer
@@ -96,7 +93,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setCurrSrcID(mSourceID);
   mDigitizer.setCurrEvID(mEventID);
 
-  mDigitizer.process(const_cast<std::vector<o2::ITSMFT::Hit>*>(mHitsArray), mDigitsArray);
+  mDigitizer.process();
 
   mEventID++;
 }
@@ -105,12 +102,12 @@ void DigitizerTask::Exec(Option_t* option)
 void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-
-  if (!mContinuous)
+  if (!mParams.isContinuous()) {
     return;
+  }
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  if (mDigitsArray)
-    mDigitsArray->clear();
-  mDigitizer.fillOutputContainer(mDigitsArray);
+  mDigitsArray.clear();
+  mMCTruthArray.clear();
+  mDigitizer.fillOutputContainer();
 }

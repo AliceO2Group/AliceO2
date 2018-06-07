@@ -3,14 +3,13 @@ set(MODULE_NAME "ITSReconstruction")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-    src/ClustererTask.cxx
     src/CookedTrackerTask.cxx
-    src/TrivialClustererTask.cxx
+    src/ClustererTask.cxx
     )
+#    src/TrivialClustererTask.cxx
 
 set(NO_DICT_SRCS # sources not for the dictionary
     src/CookedTracker.cxx
-    src/TrivialClusterer.cxx
     src/TrivialVertexer.cxx
     src/CA/Cell.cxx
     src/CA/Cluster.cxx
@@ -23,10 +22,12 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/CA/Tracker.cxx
     src/CA/TrackingUtils.cxx
     src/CA/Tracklet.cxx
-    src/CA/vertexer/ClusterLines.cxx
-    src/CA/vertexer/Vertexer.cxx
+    src/CA/ClusterLines.cxx
+    src/CA/Vertexer.cxx
     )
+#   src/TrivialClusterer.cxx
 
+  
 # Headers from sources
 string(REPLACE ".cxx" ".h" HEADERS "${SRCS}")
 string(REPLACE "src" "include/${MODULE_NAME}" HEADERS "${HEADERS}")

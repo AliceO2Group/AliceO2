@@ -17,6 +17,9 @@
 #include "TPCDriftTimeDigitizerSpec.h"
 #include "TPCDigitRootWriterSpec.h"
 #include "TPCBase/Sector.h"
+#include "TPCBase/CDBInterface.h"
+// needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)
+#include "TPCSimulation/GEMAmplification.h"
 
 #include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
@@ -50,11 +53,21 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
 {
   auto lanes = configcontext.options().get<int>("tpc-lanes");
   if (lanes < 0) {
-    LOG(FATAL) << "tpc-lanes needs to be possitive\n";
+    LOG(FATAL) << "tpc-lanes needs to be positive\n";
     return 0;
   }
   // crosscheck with sectors
   return std::min(lanes, (int)sectors.size());
+}
+
+void initTPC()
+{
+  LOG(DEBUG) << "Initializing TPC GEMAmplification";
+  auto& cdb = o2::TPC::CDBInterface::instance();
+  cdb.setUseDefaults();
+  // by invoking this constructor we make sure that a common file will be created
+  // in future we should take this from OCDB and just forward per message
+  const static auto& ampl = o2::TPC::GEMAmplification::instance();
 }
 
 void extractTPCSectors(std::vector<int>& sectors, ConfigContext const& configcontext)
@@ -105,6 +118,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
   }
 
+  initTPC();
   // keeps track of which subchannels correspond to tpc channels
   auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process

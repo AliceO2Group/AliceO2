@@ -16,6 +16,7 @@
 #include <vector>
 
 #include <fairmq/Tools.h>
+#include <FairMQLogger.h>
 
 namespace o2
 {

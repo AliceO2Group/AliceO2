@@ -16,6 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "random"
 #include "FairMQLogger.h"
+#include <thread>
 
 namespace o2f = o2::framework;
 

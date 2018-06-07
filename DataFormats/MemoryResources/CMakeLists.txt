@@ -14,7 +14,7 @@ set(HEADERS
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fairroot_base_bucket)
+set(BUCKET_NAME pmr_bucket)
 
 O2_GENERATE_LIBRARY()
 
