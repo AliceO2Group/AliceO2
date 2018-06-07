@@ -116,12 +116,12 @@ bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts
   // Add the metadata about the merged subtimeframes
   // FIXME: do we really need this?
   O2Message outgoing;
-  AddMessage(outgoing, dh, NewSimpleMessage(md));
+  o2::Base::AddDataBlock(outgoing, dh, NewSimpleMessage(md));
 
   // Add the actual merged payload.
-  AddMessage(outgoing, payloadheader,
-             NewMessage(*outBuffer, outSize,
-                        [](void* data, void* hint) { delete[] reinterpret_cast<char *>(hint); }, *outBuffer));
+  o2::Base::AddDataBlock(outgoing, payloadheader,
+                         NewMessage(*outBuffer, outSize,
+                                    [](void* data, void* hint) { delete[] reinterpret_cast<char*>(hint); }, *outBuffer));
   // send message
   Send(outgoing, mOutputChannelName.c_str());
   // FIXME: do we actually need this? outgoing should go out of scope
