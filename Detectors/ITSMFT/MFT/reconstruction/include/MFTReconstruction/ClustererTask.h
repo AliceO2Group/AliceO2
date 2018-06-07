@@ -50,7 +50,8 @@ class ClustererTask : public FairTask
   ~ClustererTask() override;
 
   InitStatus Init() override;
-  void Exec(Option_t* opt) override;
+  void Exec(Option_t* option) override;
+  Clusterer& getClusterer() { return mClusterer; }
 
  private:
   bool mUseMCTruth = true;                             ///< flag to use MCtruth if available

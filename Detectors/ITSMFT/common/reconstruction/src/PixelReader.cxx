@@ -17,34 +17,34 @@ using namespace o2::ITSMFT;
 using o2::ITSMFT::Digit;
 
 //______________________________________________________________________________
-Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData& chipData)
+Bool_t DigitPixelReader::getNextChipData(ChipPixelData& chipData)
 {
   chipData.clear();
   if (!mLastDigit) {
     if (mIdx >= mDigitArray->size()) {
       return kFALSE;
     }
-    chipData.startID = mIdx;
+    chipData.setStartID(mIdx);
     mLastDigit = &((*mDigitArray)[mIdx++]);
   } else {
-    chipData.startID = mIdx;
+    chipData.setStartID(mIdx);
   }
-  chipData.chipID = mLastDigit->getChipIndex();
-  chipData.roFrame = mLastDigit->getROFrame();
-  chipData.pixels.emplace_back(mLastDigit);
+  chipData.setChipID(mLastDigit->getChipIndex());
+  chipData.setROFrame(mLastDigit->getROFrame());
+  chipData.getData().emplace_back(mLastDigit);
   mLastDigit = nullptr;
 
   while (mIdx < mDigitArray->size()) {
     mLastDigit = &((*mDigitArray)[mIdx++]);
-    if (chipData.chipID != mLastDigit->getChipIndex())
+    if (chipData.getChipID() != mLastDigit->getChipIndex())
       break;
-    if (chipData.roFrame != mLastDigit->getROFrame())
+    if (chipData.getROFrame() != mLastDigit->getROFrame())
       break;
-    chipData.pixels.emplace_back(mLastDigit);
+    chipData.getData().emplace_back(mLastDigit);
     mLastDigit = nullptr;
   }
   return kTRUE;
 }
 
 //______________________________________________________________________________
-Bool_t RawPixelReader::getNextChipData(PixelReader::ChipPixelData& chipData) { return kTRUE; }
+Bool_t RawPixelReader::getNextChipData(ChipPixelData& chipData) { return kTRUE; }
