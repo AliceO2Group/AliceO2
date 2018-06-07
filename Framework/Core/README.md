@@ -265,21 +265,21 @@ the `ProcessingContext`  your computation  lambda is  passed and  contains one
 value for each of the `InputSpec` you specified. E.g.:
 
 ```cpp
-InputRecord &args = ctx.inputs();
+InputRecord &inputs = ctx.inputs();
 ```
 
 From the `InputRecord` instance you can get the arguments either via their positional
 index:
 
 ```cpp
-DataRef ref = args.getByPos(0);
+DataRef ref = inputs.getByPos(0);
 ```
 
 or using the mnemonics-label which was used as first argument in the associated
 `InputSpec`.
 
 ```cpp
-DataRef ref = args.get("points");
+DataRef ref = inputs.get("points");
 ```
 
 You can then use the `DataRef` `header` and `payload` raw pointers to access
@@ -289,16 +289,35 @@ If the message is of a known type, you can automatically get a a smart pointer
 to the contents of the message by passing it as template argument, e.g.:
 
 ```cpp
-auto v = args.get<XYZ>("points");
-XYZ &p = *v;
+auto v = inputs.get<XYZ>("points");
+const XYZ &p = *v;
 ```
 
-The framework will also take care of necessary deserialization.
+Check next  section  for known types.  The framework  will  also take  care of
+necessary deserialization.
 
 [InputRecord]: https://github.com/AliceO2Group/AliceO2/blob/HEAD/Framework/Core/include/Framework/InputRecord.h
 
-### Creating outputs - the DataAllocator API
+#### Utilities for working with `DataRef`
+Get payload size:
+```cpp
+size_t payloadSize = DataRefUtils::getPayloadSize(ref);
+```
 
+Extract a header from the header stack:
+```cpp
+const HeaderType* header = DataRefUtils::getHeader<HeaderType*>(ref);
+```
+
+Get the payload of messageable type as `gsl::span`
+```cpp
+auto data = DataRefUtils::as<T>(ref);
+for (const auto& element : data) {
+  // do something on element, remember it's const
+}
+```
+
+### Creating outputs - the DataAllocator API
 In order  to prevent  algorithms  to  create  data they  are  not  supposed to
 create, a special `DataAllocator` object is passed to the process callback, so
 that only messages for declared outputs  can be created. A `DataAllocator` can
@@ -308,25 +327,29 @@ wrapper around the collection. A  `DataAllocator` can adopt externally created
 resources via  the `adopt` method. A  `DataAllocator` can create a  copy of an
 externally owned resource via the `snapshot` method.
 
-Currently supported data types are:
+Currently supported data types for `make<T>` are:
 
 - Vanilla `char *` buffers with associated size. This is the actual contents of
   the FairMQ message.
-- POD types. These get directly mapped on the message exchanged by FairMQ and 
-  are therefore "zerocopy" for what the DataProcessingLayer is concerned.
-- POD collections, which are exposed to the user as `gsl::span`.
+- Messageable types. trivially copyable, non-polymorphic types.\
+  These get directly mapped on the message exchanged by FairMQ and are therefore
+  "zerocopy" for what the DataProcessingLayer is concerned.
+- Collections of messageable types, exposed to the user as `gsl::span`.
 - TObject derived classes. These are actually serialised via a TMessage
   and therefore are only suitable for the cases in which the cost of such a
   serialization is not an issue.
 
-Currently supported data types for snapshot functionality, the state at time of
-calling snapshot is captured in a copy:
-- POD types
-- TObject derived classes, serialized
-- std::vector of POD type, at the receiver side the collection is exposed
+Currently supported data types for `snapshot` functionality, state at time of
+calling `snapshot` is captured in a copy, and sent when processing is done:
+- Messageable types
+- ROOT-serializable classes. serialised via a TMessage.\
+  Classes implementing ROOT's TClass interface and std containers of those are
+  automatically detected. ROOT-serialization can be forced using type converter
+  `ROOTSerialized`, e.g. for types which can not be detected automatically
+- std::vector of messageable type, at receiver side the collection is exposed
   as gsl::span
-- std::vector pointer to POD type, the objects are linearized in the message
-  and exposed as gsl::span on the receiver side
+- std::vector of pointers to messageable type, the objects are linearized in the
+  message and exposed as gsl::span on the receiver side
 
 The DataChunk object resembles a `iovec`:
 
