@@ -9,6 +9,8 @@
 #include "AliExternalTrackParam.h"
 #include "AliTrackerBase.h"
 
+#include "AliHLTTPCGMTrackParam.h"
+
 /**
  * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
  */
@@ -47,6 +49,13 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
     void set(float x, float alpha, const float param[5], const float cov[15])  { Set(x, alpha, param, cov); }
 
     typedef AliExternalTrackParam baseClass;
+};
+template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrackParam
+{
+  public:
+    float getX()  const { return GetX(); }
+
+    typedef AliHLTTPCGMTrackParam baseClass;
 };
 
 
