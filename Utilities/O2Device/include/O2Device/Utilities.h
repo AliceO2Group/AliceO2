@@ -20,7 +20,7 @@
 /// granted to it by virtue of its status as an Intergovernmental Organization
 /// or submit itself to any jurisdiction.
 
-/// @brief standalone tools to interact with the O2 data modl
+/// @brief standalone tools to interact with the O2 data model
 ///
 /// @author Mikolaj Krzewicki, mkrzewic@cern.ch
 
