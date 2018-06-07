@@ -26,8 +26,6 @@ set(SRCS
    src/GBTFrameContainer.cxx
    src/HalfSAMPAData.cxx
    src/HwClusterer.cxx
-   src/HwClusterFinder.cxx
-   src/HwFixedPoint.cxx
    src/RawReader.cxx
    src/RawReaderEventSync.cxx
    src/SyncPatternMonitor.cxx
@@ -46,8 +44,6 @@ set(HEADERS
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/HwClusterer.h
-   include/${MODULE_NAME}/HwClusterFinder.h
-   include/${MODULE_NAME}/HwFixedPoint.h
    include/${MODULE_NAME}/RawReader.h
    include/${MODULE_NAME}/RawReaderEventSync.h
    include/${MODULE_NAME}/SyncPatternMonitor.h

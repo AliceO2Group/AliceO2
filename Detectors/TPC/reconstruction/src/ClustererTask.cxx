@@ -8,19 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//
-//  ClustererTask.cxx
-//  ALICEO2
-//
-//  Based on DigitizerTask
-//
-//
+/// \file ClustererTask.cxx
+/// \brief Implementation of the TPC Clusterer Task
 
 #include "TPCReconstruction/ClustererTask.h"
-#include "DataFormatsTPC/Cluster.h"
-#include "TPCBase/Digit.h"
+
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager
+
+#include "TPCBase/Digit.h"
+#include "TPCReconstruction/HwClusterer.h"
 
 ClassImp(o2::TPC::ClustererTask);
 
@@ -46,7 +43,7 @@ ClustererTask::ClustererTask(int sectorid)
 ClustererTask::~ClustererTask()
 {
   LOG(DEBUG) << "Enter Destructor of ClustererTask" << FairLogger::endl;
-  // TODO: remove dummy
+  // TODO: remove dummy, then make destructor default
   if (mDummy)
     delete mDummy;
 }
@@ -106,9 +103,10 @@ InitStatus ClustererTask::Init()
   // create clusterer and pass output pointer
   mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray,mHwClustersMCTruthArray,mClusterSector);
   mHwClusterer->setContinuousReadout(mIsContinuousReadout);
-// TODO: implement noise/pedestal objecta
-//    mHwClusterer->setNoiseObject();
-//    mHwClusterer->setPedestalObject();
+
+// TODO: implement noise/pedestal objects
+//    mHwClusterer->setNoiseObject(...);
+//    mHwClusterer->setPedestalObject(...);
 
   return kSUCCESS;
 }

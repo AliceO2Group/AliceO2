@@ -29,7 +29,5 @@
 #pragma link C++ class o2::TPC::ClusterContainer+;
 #pragma link C++ class o2::TPC::ClustererTask+;
 #pragma link C++ class o2::TPC::HwClusterer+;
-#pragma link C++ class o2::TPC::HwClusterFinder+;
-#pragma link C++ class o2::TPC::HwFixedPoint+;
 
 #endif

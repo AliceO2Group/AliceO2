@@ -8,28 +8,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//
-//  ClustererTask.h
-//  ALICEO2
-//
-//
-//
+/// \file ClustererTask.h
+/// \brief TPC Clusterer Task
+/// \author Sebastian Klewin <sebastian.klewin@cern.ch>
 
 #ifndef __ALICEO2__ClustererTask__
 #define __ALICEO2__ClustererTask__
 
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
-#include "TPCReconstruction/Clusterer.h"        // for Clusterer
-#include "TPCReconstruction/HwClusterer.h"      // for Clusterer
+
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
+#include "DataFormatsTPC/ClusterHardware.h"
 #include <vector>
 #include <memory>
 
 namespace o2 {
 namespace TPC{
+
+class Digit;
+class HwClusterer;
 
 class ClustererTask : public FairTask{
 
