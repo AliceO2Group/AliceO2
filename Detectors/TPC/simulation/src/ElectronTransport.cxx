@@ -67,7 +67,7 @@ GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle, fl
   return posEleDiffusion;
 }
 
-bool ElectronTransport::isCompletelyOutOfSectorCourseElectronDrift(GlobalPosition3D posEle, const Sector& sector) const
+bool ElectronTransport::isCompletelyOutOfSectorCoarseElectronDrift(GlobalPosition3D posEle, const Sector& sector) const
 {
   /// For drift lengths shorter than 1 mm, the drift length is set to that value
   float driftl = mDetParam->getTPClength() - std::abs(posEle.Z());
@@ -81,8 +81,8 @@ bool ElectronTransport::isCompletelyOutOfSectorCourseElectronDrift(GlobalPositio
 
   int secRight = int(sector);
   int secLeft = int(Sector::getLeft(sector));
-  const float dSectorBoundaryRight = -mSinsPerSector[secRight] * posEle.X() + mCosinsPerSector[secRight] * posEle.Y();
-  const float dSectorBoundaryLeft = -mSinsPerSector[secLeft] * posEle.X() + mCosinsPerSector[secLeft] * posEle.Y();
+  const float dSectorBoundaryRight = -mSinsPerSector[secRight % SECTORSPERSIDE] * posEle.X() + mCosinsPerSector[secRight % SECTORSPERSIDE] * posEle.Y();
+  const float dSectorBoundaryLeft = -mSinsPerSector[secLeft % SECTORSPERSIDE] * posEle.X() + mCosinsPerSector[secLeft % SECTORSPERSIDE] * posEle.Y();
 
   if ((dSectorBoundaryLeft > 0 && dSectorBoundaryRight < 0) || (dSectorBoundaryLeft < 0 && dSectorBoundaryRight > 0)) {
     return false;

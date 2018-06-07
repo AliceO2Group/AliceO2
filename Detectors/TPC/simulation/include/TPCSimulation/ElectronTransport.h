@@ -56,7 +56,7 @@ class ElectronTransport
   /// \param posEle GlobalPosition3D with start position of the electrons
   /// \return GlobalPosition3D with position of the electrons after the drift taking into account diffusion with
   /// 3 sigma of the width
-  bool isCompletelyOutOfSectorCourseElectronDrift(GlobalPosition3D posEle, const Sector& sector) const;
+  bool isCompletelyOutOfSectorCoarseElectronDrift(GlobalPosition3D posEle, const Sector& sector) const;
 
   /// Attachment probability for a given drift time
   /// \param driftTime Drift time of the electron
