@@ -371,7 +371,6 @@ CHECK_VARIABLE(PARSED_ARGS_WORKFLOW_NAME "You must provide an executable name")
   ############### build the executable #####################
   ADD_EXECUTABLE(${PARSED_ARGS_WORKFLOW_NAME} ${PARSED_ARGS_SOURCES})
   FOREACH(bucket ${PARSED_ARGS_DETECTOR_BUCKETS})
-    MESSAGE(${bucket})
     O2_TARGET_LINK_BUCKET(
       TARGET ${PARSED_ARGS_WORKFLOW_NAME}
       BUCKET ${bucket}
@@ -416,8 +415,6 @@ function(O2_GENERATE_TESTS)
     string(REGEX REPLACE ".*/" "" test_name ${test})
     string(REGEX REPLACE "\\..*" "" test_name ${test_name})
     set(test_name test_${MODULE_NAME}_${test_name})
-
-    message(STATUS "Generate test ${test_name}")
 
     O2_GENERATE_EXECUTABLE(
         EXE_NAME ${test_name}

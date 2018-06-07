@@ -350,9 +350,7 @@ void Detector::Register()
 
   auto* mgr = FairRootManager::Instance();
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    TString name;
-    name.Form("%sHitsShiftedSector%d", GetName(), i);
-    mgr->RegisterAny(name.Data(), mHitsPerSectorCollection[i], kTRUE);
+    mgr->RegisterAny(getHitBranchNames(i).c_str(), mHitsPerSectorCollection[i], kTRUE);
   }
 }
 
@@ -3219,6 +3217,16 @@ void Detector::GeantHack()
       }
     }
   }
+}
+
+std::string Detector::getHitBranchNames(int probe) const
+{
+  if (probe >= 0 && probe < Sector::MAXSECTOR) {
+    TString name;
+    name.Form("%sHitsShiftedSector%d", GetName(), probe);
+    return std::string(name.Data());
+  }
+  return std::string();
 }
 
 ClassImp(o2::TPC::Detector)

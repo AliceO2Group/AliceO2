@@ -15,6 +15,7 @@ FOREACH (p
     CMP0025 # CMake 3.0
     CMP0042 # CMake 3.0
     CMP0028
+    CMP0068
     )
   IF (POLICY ${p})
     cmake_policy(SET ${p} NEW)
@@ -70,22 +71,19 @@ include(CheckCompiler)
 #include(CheckFortran)
 
 # check if we have a simulation environment
-# (unfortunately neither GEANT4_FOUND nor GEANT3_FOUND work reliably)
-find_library(G4RUNLIB libG4run.dylib libG4run.so HINTS ENV LD_LIBRARY_PATH)
-find_library(G3RUNLIB libgeant321.dylib libgeant321.so HINTS ENV LD_LIBRARY_PATH)
-find_library(VMCLIB libgeant4vmc.dylib libgeant4vmc.so HINTS ENV LD_LIBRARY_PATH)
-if (G4RUNLIB AND G3RUNLIB AND VMCLIB AND Pythia6_FOUND AND PYTHIA8_FOUND)
+if (Geant3_FOUND AND Geant4_FOUND AND Geant4VMC_FOUND AND Pythia6_FOUND AND PYTHIA8_FOUND)
   SET (HAVESIMULATION 1)
   message(STATUS "Simulation environment found")
 else()
-  message(STATUS "Simulation environment not found : at least one of the variables G4RUNLIB, G3RUNLIB, VMCLIB, Pythia6_FOUND or PYTHIA8_FOUND was not set correctly.")
+  message(STATUS "Simulation environment not found : at least one of the variables Geant3_FOUND , Geant4_FOUND , Geant4VMC_FOUND , Pythia6_FOUND or PYTHIA8_FOUND is not set")
   message(STATUS "All of them are needed for a simulation environment.")
   message(STATUS "That might not be a problem if you don't care about simulation though.")
-  message(STATUS "G4RUNLIB=${G4RUNLIB}")
-  message(STATUS "G3RUNLIB=${G3RUNLIB}")
-  message(STATUS "VMCLIB=${VMCLIB}")
+  message(STATUS "Geant3_FOUND    = ${Geant3_FOUND}")
+  message(STATUS "Geant4_FOUND    = ${Geant4_FOUND}")
+  message(STATUS "Geant4VMC_FOUND = ${Geant4VMC_FOUND}")
   message(STATUS "Pythia6_FOUND=${Pythia6_FOUND}")
   message(STATUS "PYTHIA8_FOUND=${PYTHIA8_FOUND}")
+  message(FATAL "stop")
 endif()
 
 

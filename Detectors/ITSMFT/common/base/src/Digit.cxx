@@ -18,47 +18,17 @@ ClassImp(o2::ITSMFT::Digit)
 
   using namespace o2::ITSMFT;
 
-Digit::Digit(UShort_t chipindex, UInt_t frame, UShort_t row, UShort_t col, Float_t charge, Double_t time)
-  : DigitBase(time), mChipIndex(chipindex), mRow(row), mCol(col), mCharge(charge), mROFrame(0)
+Digit::Digit(UShort_t chipindex, UInt_t frame, UShort_t row, UShort_t col, Int_t charge)
+  : mChipIndex(chipindex), mRow(row), mCol(col), mROFrame(0)
 {
   setROFrame(frame);
+  setCharge(charge);
 }
 
-Digit::~Digit() = default;
-
-Digit& Digit::operator+=(const Digit& other)
-{
-  mCharge += other.mCharge;
-  // transfer labels
-  int lbid=0;
-  for (;lbid<maxLabels;lbid++) {
-    if ( mLabels[lbid].isEmpty() ) break;
-  }
-  if (lbid<maxLabels) {
-    for (int i=0;i<maxLabels;i++) {
-      if ( other.mLabels[i].isEmpty() ) break; // all labels transferred
-      mLabels[lbid++] = other.mLabels[i];
-      if (lbid>=maxLabels) break; // no more room
-    }
-  }
-  return *this;
-}
-
-const Digit Digit::operator+(const Digit& other)
-{
-  Digit result(*this);
-  result += other;
-  return result;
-}
 
 std::ostream& Digit::print(std::ostream& output) const
 {
   output << "ITSMFTDigit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: " << mCharge << "ROFrame "
-         << getROFrame() << "(" << getNOverflowFrames() << ") time " << getTimeStamp();
-  for (int i=0;i<maxLabels;i++) {
-    if ( mLabels[i].isEmpty() ) break;
-    output << " Lb" << i << ' ' << mLabels[i];
-  }
-  
+         << getROFrame();
   return output;
 }

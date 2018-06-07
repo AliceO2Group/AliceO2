@@ -147,7 +147,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         const int sector = *sectorptr.get();
         LOG(INFO) << "GOT DIGITS FOR SECTOR " << sector;
 
-        if (sector == -1) {
+        if (sector < 0) {
           finishchecksum += d;
           if (isComplete(finishchecksum)) {
             finished = true;

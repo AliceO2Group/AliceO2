@@ -87,6 +87,9 @@ class Stack : public FairGenericStack
                  Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
                  TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId) override;
 
+  // similar function taking a particle
+  void PushTrack(Int_t toBeDone, TParticle const&);
+
   /// Get next particle for tracking from the stack.
   /// Declared in TVirtualMCStack
   /// Returns a pointer to the TParticle of the track
@@ -169,6 +172,22 @@ class Stack : public FairGenericStack
   // methods concerning track references
   void addTrackReference(const o2::TrackReference& p);
 
+  // get primaries
+  const std::vector<TParticle>& getPrimaries() const { return mPrimaryParticles; }
+
+  // initialize Stack from external vector containing primaries
+  void initFromPrimaries(std::vector<TParticle> const& primaries)
+  {
+    Reset();
+    for (auto p : primaries) {
+      PushTrack(1, p);
+    }
+    mNumberOfPrimaryParticles = primaries.size();
+    mNumberOfEntriesInParticles = mNumberOfPrimaryParticles;
+  }
+
+  void setExternalMode(bool m) { mIsExternalMode = m; }
+
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
   /// stack entries refer to
@@ -216,6 +235,8 @@ class Stack : public FairGenericStack
   Int_t mTracksDone = 0;       //! number of tracks already done
 
   bool mIsG4Like = false; //! flag indicating if the stack is used in a manner done by Geant4
+
+  bool mIsExternalMode = false; // is stack an external factory or directly used inside simulation?
 
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!

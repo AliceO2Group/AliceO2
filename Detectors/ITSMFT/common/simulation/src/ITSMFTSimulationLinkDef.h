@@ -16,14 +16,16 @@
 
 #pragma link C++ class o2::ITSMFT::Hit+;
 #pragma link C++ class std::vector<o2::ITSMFT::Hit>+;
-#pragma link C++ class o2::ITSMFT::ClusterShape+;
-#pragma link C++ class o2::ITSMFT::Chip+;
-#pragma link C++ class o2::ITSMFT::SimuClusterShaper+;
-#pragma link C++ class o2::ITSMFT::SimuClusterShaper+;
+#pragma link C++ class o2::ITSMFT::ChipDigitsContainer + ;
+#pragma link C++ class o2::ITSMFT::PreDigit + ;
+#pragma link C++ class o2::ITSMFT::PreDigitLabelRef + ;
 #pragma link C++ class o2::ITSMFT::AlpideChip+;
 #pragma link C++ class o2::ITSMFT::AlpideSimResponse+;
 #pragma link C++ class o2::ITSMFT::AlpideRespSimMat+;
 #pragma link C++ class o2::ITSMFT::DigiParams+;
 #pragma link C++ class o2::ITSMFT::Digitizer+;
+#pragma link C++ class o2::ITSMFT::AlpideSignalTrapezoid + ;
+
+#pragma link C++ class o2::ITSMFT::ClusterShape + ;
 
 #endif
