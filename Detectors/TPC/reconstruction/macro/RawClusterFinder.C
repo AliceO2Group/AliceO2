@@ -177,16 +177,16 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   // HW cluster finder
   std::unique_ptr<HwClusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer *hwCl = new HwClusterer(arrCluster, nullptr, 0);
+    HwClusterer* hwCl = new HwClusterer(arrCluster, nullptr, 0);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<HwClusterer>(hwCl);
   }
-//  else if (clustererType == ClustererType::Box) {
-//    BoxClusterer *boxCl = new BoxClusterer(arrClusterBox);
-//    boxCl->setPedestals(pedestal);
-//    cl = std::unique_ptr<Clusterer>(boxCl);
-//  }
+  //  else if (clustererType == ClustererType::Box) {
+  //    BoxClusterer *boxCl = new BoxClusterer(arrClusterBox);
+  //    boxCl->setPedestals(pedestal);
+  //    cl = std::unique_ptr<Clusterer>(boxCl);
+  //  }
   else {
     return;
   }
@@ -209,7 +209,10 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     printf("========| Event %4zu %d %d %d |========\n", converter.getPresentEventNumber(), events, maxEvents, status);
 
     auto arr = std::make_shared<const std::vector<Digit>>(converter.getDigitVector());
-    if (!arr->size()) {++events; continue;}
+    if (!arr->size()) {
+      ++events;
+      continue;
+    }
     //printf("Converted digits: %zu %f\n", arr.size(), arr.at(0)->getChargeFloat());
 
     cl->Process(arr,nullptr,events);

@@ -24,8 +24,8 @@ using namespace o2::TPC;
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
-    std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
-    std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
+  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
+  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
   : mClusterSector(sectorid),
     mNumRows(0),
     mLastTimebin(-1),
@@ -51,7 +51,7 @@ HwClusterer::HwClusterer(
   /*
    * Prepare temporary storage for digits
    */
-  Mapper &mapper = Mapper::instance();
+  Mapper& mapper = Mapper::instance();
 
   mNumRows = mapper.getNumberOfRows();
   mDataBuffer.resize(mNumRows);
@@ -60,16 +60,16 @@ HwClusterer::HwClusterer(
 
   for (unsigned short row = 0; row < mNumRows; ++row) {
     // add two empty pads on the left and on the right
-    mPadsPerRow[row] = mapper.getNumberOfPadsInRowSector(row) +2 +2;
+    mPadsPerRow[row] = mapper.getNumberOfPadsInRowSector(row) + 2 + 2;
 
     // prepare for 5 timebins
-    mDataBuffer[row].resize(mPadsPerRow[row]*5,0);
-    mIndexBuffer[row].resize(mPadsPerRow[row]*5,-1);
+    mDataBuffer[row].resize(mPadsPerRow[row] * 5, 0);
+    mIndexBuffer[row].resize(mPadsPerRow[row] * 5, -1);
   }
 
   mTmpClusterArray.resize(10);
   for (unsigned short region = 0; region < 10; ++region) {
-    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<std::shared_ptr<ClusterHardware>,std::shared_ptr<std::vector<std::pair<MCCompLabel,unsigned>>>>>>();
+    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<std::shared_ptr<ClusterHardware>, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>();
   }
 
   mGlobalRowToRegion.resize(mNumRows);
@@ -82,7 +82,7 @@ HwClusterer::HwClusterer(
       ++row;
     }
   }
-  mMCtruth.resize(5,nullptr);
+  mMCtruth.resize(5, nullptr);
 }
 
 //______________________________________________________________________________
@@ -113,14 +113,14 @@ void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> dig
      */
 
     if (digit.getTimeStamp() != mLastTimebin) {
-      mMCtruth[digit.getTimeStamp()%5] = mcDigitTruth;
+      mMCtruth[digit.getTimeStamp() % 5] = mcDigitTruth;
 
       /*
        * If the timebin changes, it could change by more then just 1 (not every
        * timebin has digits). Since the tmp storage covers 5 timebins, at most
        * 5 new timebins need to be prepared and checked for clusters.
        */
-      for (int i = mLastTimebin+1; (i <= digit.getTimeStamp()) && (i-(mLastTimebin+1) < 5); ++i) {
+      for (int i = mLastTimebin + 1; (i <= digit.getTimeStamp()) && (i - (mLastTimebin + 1) < 5); ++i) {
 
         /*
          * If the HB of the cluster which will be found in a few lines, NOT the
@@ -131,8 +131,9 @@ void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> dig
          * a cluster is found with a negative HB, because at least 2 timebins
          * have to be filled to be able to find a cluster.
          */
-        HB = (i-2)/447; // integer division on purpose
-        if (HB != mLastHB) writeOutputForTimeOffset(i-2);
+        HB = (i - 2) / 447; // integer division on purpose
+        if (HB != mLastHB)
+          writeOutputForTimeOffset(i - 2);
 
         /*
          * For each row, we first check for cluster peaks in the timebin i-2,
@@ -149,7 +150,7 @@ void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> dig
          * -> 4 |
          *       ---------
          */
-        findClusterForTime(i+3);
+        findClusterForTime(i + 3);
 
         clearBuffer(i);
 
@@ -160,8 +161,8 @@ void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> dig
     /*
      * add current digit to storage
      */
-    index = (digit.getTimeStamp()%5)*mPadsPerRow[digit.getRow()]+digit.getPad();
-    mDataBuffer[digit.getRow()][index] += static_cast<unsigned>(digit.getChargeFloat()*(1<<4));
+    index = (digit.getTimeStamp() % 5) * mPadsPerRow[digit.getRow()] + digit.getPad();
+    mDataBuffer[digit.getRow()][index] += static_cast<unsigned>(digit.getChargeFloat() * (1 << 4));
     mIndexBuffer[digit.getRow()][index] = digitIndex++;
 
     mLastTimebin = digit.getTimeStamp();
@@ -186,44 +187,56 @@ void HwClusterer::FinishProcess(std::shared_ptr<const std::vector<o2::TPC::Digit
 
 //______________________________________________________________________________
 bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row,
-    std::shared_ptr<ClusterHardware> cluster, std::shared_ptr<std::vector<std::pair<MCCompLabel,unsigned>>> sortedMcLabels) {
+                                  std::shared_ptr<ClusterHardware> cluster, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>> sortedMcLabels)
+{
 
-  unsigned qMaxIndex = (center_time%5)*mPadsPerRow[row]+center_pad;
+  unsigned qMaxIndex = (center_time % 5) * mPadsPerRow[row] + center_pad;
 
   // check if center peak is above peak charge threshold
-  if (mDataBuffer[row][qMaxIndex] <= (mPeakChargeThreshold<<4)) return false;
+  if (mDataBuffer[row][qMaxIndex] <= (mPeakChargeThreshold << 4))
+    return false;
 
   // Require at least one neighboring time bin with signal
   if (mRequireNeighbouringTimebin &&
-      mDataBuffer[row][(center_time+1)%5*mPadsPerRow[row]+center_pad] <= 0 &&
-      mDataBuffer[row][(center_time+4)%5*mPadsPerRow[row]+center_pad] <= 0) return false;
-      //                         (x+4)%5 = (x-1)%5
+      mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad] <= 0 &&
+      mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad] <= 0)
+    return false;
+  //                         (x+4)%5 = (x-1)%5
 
   // Require at least one neighboring pad with signal
   if (mRequireNeighbouringPad &&
-      mDataBuffer[row][center_time%5*mPadsPerRow[row]+center_pad+1] <= 0 &&
-      mDataBuffer[row][center_time%5*mPadsPerRow[row]+center_pad-1] <= 0) return false;
+      mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad + 1] <= 0 &&
+      mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad - 1] <= 0)
+    return false;
 
   // check for local maximum
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time+4)%5*mPadsPerRow[row]+center_pad]))   return false;
-  if (!(mDataBuffer[row][qMaxIndex] >  mDataBuffer[row][(center_time+1)%5*mPadsPerRow[row]+center_pad]))   return false;
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][center_time    %5*mPadsPerRow[row]+center_pad-1])) return false;
-  if (!(mDataBuffer[row][qMaxIndex] >  mDataBuffer[row][center_time    %5*mPadsPerRow[row]+center_pad+1])) return false;
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time+4)%5*mPadsPerRow[row]+center_pad-1])) return false;
-  if (!(mDataBuffer[row][qMaxIndex] >  mDataBuffer[row][(center_time+1)%5*mPadsPerRow[row]+center_pad+1])) return false;
-  if (!(mDataBuffer[row][qMaxIndex] >  mDataBuffer[row][(center_time+1)%5*mPadsPerRow[row]+center_pad-1])) return false;
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time+4)%5*mPadsPerRow[row]+center_pad+1])) return false;
+  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad]))
+    return false;
+  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad]))
+    return false;
+  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad - 1]))
+    return false;
+  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad + 1]))
+    return false;
+  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad - 1]))
+    return false;
+  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad + 1]))
+    return false;
+  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad - 1]))
+    return false;
+  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad + 1]))
+    return false;
 
-//  if (row == 14 && center_time%447 == 177/* && (qMax>>4) == 36*/ && center_time/447 == 3) {
-//    std::cout << std::endl << std::endl << center_pad-2 << ", " << center_time%447 << ", " << static_cast<int>((qMax>>3)/2.0+0.5) << std::endl;
-//    for (int dt = -2; dt <= 2; ++dt) {
-//      for (int dp = -2; dp <= 2; ++dp) {
-//        std::cout << (*data)[(center_time+dt)*nPads+center_pad+dp] << "\t";
-//      }
-//      std::cout << std::endl;
-//    }
-//    std::cout << std::endl << std::endl;
-//  }
+  //  if (row == 14 && center_time%447 == 177/* && (qMax>>4) == 36*/ && center_time/447 == 3) {
+  //    std::cout << std::endl << std::endl << center_pad-2 << ", " << center_time%447 << ", " << static_cast<int>((qMax>>3)/2.0+0.5) << std::endl;
+  //    for (int dt = -2; dt <= 2; ++dt) {
+  //      for (int dp = -2; dp <= 2; ++dp) {
+  //        std::cout << (*data)[(center_time+dt)*nPads+center_pad+dp] << "\t";
+  //      }
+  //      std::cout << std::endl;
+  //    }
+  //    std::cout << std::endl << std::endl;
+  //  }
 
   unsigned qTot = 0;
   int pad = 0;
@@ -256,16 +269,16 @@ bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_tim
   // o  i   C   i   o
   //        i
   //        o
-  if (mDataBuffer[row][center_time%5*mPadsPerRow[row]+center_pad-1] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad - 1] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, -2, 0, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
-  if (mDataBuffer[row][center_time%5*mPadsPerRow[row]+center_pad+1] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad + 1] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, +2, 0, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
-  if (mDataBuffer[row][(5+((center_time-1)%5))%5*mPadsPerRow[row]+center_pad] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][(5 + ((center_time - 1) % 5)) % 5 * mPadsPerRow[row] + center_pad] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, 0, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
-  if (mDataBuffer[row][(5+((center_time+1)%5))%5*mPadsPerRow[row]+center_pad] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][(5 + ((center_time + 1) % 5)) % 5 * mPadsPerRow[row] + center_pad] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, 0, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
 
@@ -274,72 +287,74 @@ bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_tim
   //        C
   // o  i       i   o
   // o  o       o   o
-  if (mDataBuffer[row][(5+((center_time-1)%5))%5*mPadsPerRow[row]+center_pad-1] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][(5 + ((center_time - 1) % 5)) % 5 * mPadsPerRow[row] + center_pad - 1] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, -2, -1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, -2, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, -1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
-  if (mDataBuffer[row][(5+((center_time+1)%5))%5*mPadsPerRow[row]+center_pad-1] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][(5 + ((center_time + 1) % 5)) % 5 * mPadsPerRow[row] + center_pad - 1] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, -2, +1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, -2, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, -1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
-  if (mDataBuffer[row][(5+((center_time-1)%5))%5*mPadsPerRow[row]+center_pad+1] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][(5 + ((center_time - 1) % 5)) % 5 * mPadsPerRow[row] + center_pad + 1] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, +2, -1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, +2, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, +1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
-  if (mDataBuffer[row][(5+((center_time+1)%5))%5*mPadsPerRow[row]+center_pad+1] > (mContributionChargeThreshold<<4)) {
+  if (mDataBuffer[row][(5 + ((center_time + 1) % 5)) % 5 * mPadsPerRow[row] + center_pad + 1] > (mContributionChargeThreshold << 4)) {
     updateCluster(row, center_pad, center_time, +2, +1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, +2, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
     updateCluster(row, center_pad, center_time, +1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
 
   cluster->setCluster(
-      center_pad-2,     // we have two artificial empty pads "on the left" which needs to be subtracted
-      center_time%447,  // the time within a HB
-      pad,time,
-      sigmaPad2,sigmaTime2,
-      (mDataBuffer[row][qMaxIndex]>>3),        // keep only 1 fixed point precision bit
-      qTot,
-      mGlobalRowToLocalRow[row], // the hardware knows only about the local row
-      flags);
+    center_pad - 2,    // we have two artificial empty pads "on the left" which needs to be subtracted
+    center_time % 447, // the time within a HB
+    pad, time,
+    sigmaPad2, sigmaTime2,
+    (mDataBuffer[row][qMaxIndex] >> 3), // keep only 1 fixed point precision bit
+    qTot,
+    mGlobalRowToLocalRow[row], // the hardware knows only about the local row
+    flags);
 
-  using vecType = std::pair<MCCompLabel,unsigned>;
+  using vecType = std::pair<MCCompLabel, unsigned>;
   std::sort(sortedMcLabels->begin(), sortedMcLabels->end(), [](const vecType& a, const vecType& b) { return a.second > b.second; });
 
   return true;
 }
 
 //______________________________________________________________________________
-void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset) {
+void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
+{
   unsigned clusterCounter = 0;
   // Check in which regions cluster were found
   for (unsigned short region = 0; region < 10; ++region) {
-    if (mTmpClusterArray[region]->size() == 0) continue;
+    if (mTmpClusterArray[region]->size() == 0)
+      continue;
 
     // Create new container
     mClusterArray->emplace_back();
     auto clusterContainer = mClusterArray->back().getContainer();
 
     // Set meta data
-    clusterContainer->CRU = mClusterSector*10 + region;
+    clusterContainer->CRU = mClusterSector * 10 + region;
     clusterContainer->numberOfClusters = 0;
     clusterContainer->timeBinOffset = timeOffset;
 
-    for (auto &c : *mTmpClusterArray[region]) {
+    for (auto& c : *mTmpClusterArray[region]) {
       // if the container is full, create a new one
       if (clusterContainer->numberOfClusters == mClusterArray->back().getMaxNumberOfClusters()) {
         mClusterArray->emplace_back();
         clusterContainer = mClusterArray->back().getContainer();
-        clusterContainer->CRU = mClusterSector*10 + region;
+        clusterContainer->CRU = mClusterSector * 10 + region;
         clusterContainer->numberOfClusters = 0;
         clusterContainer->timeBinOffset = timeOffset;
       }
       // Copy cluster and increment cluster counter
       clusterContainer->clusters[clusterContainer->numberOfClusters++] = *(c.first);
-      for (auto &mcLabel : *(c.second)) {
-        mClusterMcLabelArray->addElement(clusterCounter,mcLabel.first);
+      for (auto& mcLabel : *(c.second)) {
+        mClusterMcLabelArray->addElement(clusterCounter, mcLabel.first);
       }
       ++clusterCounter;
     }
@@ -349,88 +364,90 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset) {
 }
 
 //______________________________________________________________________________
-void HwClusterer::findClusterForTime(unsigned timebin) {
+void HwClusterer::findClusterForTime(unsigned timebin)
+{
   auto cluster = std::make_shared<ClusterHardware>();
-  auto sortedMcLabels = std::make_shared<std::vector<std::pair<MCCompLabel,unsigned>>>();
+  auto sortedMcLabels = std::make_shared<std::vector<std::pair<MCCompLabel, unsigned>>>();
 
   for (unsigned short row = mNumRows; row--;) {
     // two empty pads on the left and right without a cluster peak
-    for (unsigned short pad = 2; pad < mPadsPerRow[row]-2; ++pad) {
-      if (hwClusterFinder(pad,timebin,row,cluster,sortedMcLabels)) {
-        mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(cluster,sortedMcLabels);
+    for (unsigned short pad = 2; pad < mPadsPerRow[row] - 2; ++pad) {
+      if (hwClusterFinder(pad, timebin, row, cluster, sortedMcLabels)) {
+        mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(cluster, sortedMcLabels);
 
         // create new empty cluster
         cluster = std::make_shared<ClusterHardware>();
-        sortedMcLabels = std::make_shared<std::vector<std::pair<MCCompLabel,unsigned>>>();
+        sortedMcLabels = std::make_shared<std::vector<std::pair<MCCompLabel, unsigned>>>();
       }
     }
   }
 }
 
 //______________________________________________________________________________
-void HwClusterer::finishFrame(bool clear) {
+void HwClusterer::finishFrame(bool clear)
+{
   int HB;
   // Search in last remaining timebins for clusters
-  for (int i = mLastTimebin+1; i-mLastTimebin < 3; ++i) {
-    HB = (i-2)/447; // integer division on purpose
-    if (HB != mLastHB) writeOutputForTimeOffset(i-2);
+  for (int i = mLastTimebin + 1; i - mLastTimebin < 3; ++i) {
+    HB = (i - 2) / 447; // integer division on purpose
+    if (HB != mLastHB)
+      writeOutputForTimeOffset(i - 2);
 
-    findClusterForTime(i+3);
+    findClusterForTime(i + 3);
     clearBuffer(i);
     mLastHB = HB;
   }
-  writeOutputForTimeOffset(mLastTimebin+3);
+  writeOutputForTimeOffset(mLastTimebin + 3);
 
   if (clear) {
-    for (auto i : {0,1,2,3,4}) clearBuffer(i);
+    for (auto i : { 0, 1, 2, 3, 4 })
+      clearBuffer(i);
   }
 }
 
 //______________________________________________________________________________
-void HwClusterer::clearBuffer(unsigned timebin) {
+void HwClusterer::clearBuffer(unsigned timebin)
+{
   for (unsigned short row = 0; row < mNumRows; ++row) {
     // reset timebin which is not needed anymore
     // TODO: fill with pedestal/noise instead of 0
-    std::fill(mDataBuffer[row].begin()+(timebin%5)*mPadsPerRow[row],
-              mDataBuffer[row].begin()+(timebin%5)*mPadsPerRow[row]+mPadsPerRow[row]-1,0);
-    std::fill(mIndexBuffer[row].begin()+(timebin%5)*mPadsPerRow[row],
-              mIndexBuffer[row].begin()+(timebin%5)*mPadsPerRow[row]+mPadsPerRow[row]-1,-1);
+    std::fill(mDataBuffer[row].begin() + (timebin % 5) * mPadsPerRow[row],
+              mDataBuffer[row].begin() + (timebin % 5) * mPadsPerRow[row] + mPadsPerRow[row] - 1, 0);
+    std::fill(mIndexBuffer[row].begin() + (timebin % 5) * mPadsPerRow[row],
+              mIndexBuffer[row].begin() + (timebin % 5) * mPadsPerRow[row] + mPadsPerRow[row] - 1, -1);
   }
-
 }
 
 //______________________________________________________________________________
 void HwClusterer::updateCluster(
-    int row, unsigned short center_pad, unsigned center_time, short dp, short dt,
-    unsigned& qTot, int& pad, int& time, int& sigmaPad2, int&sigmaTime2,
-    std::shared_ptr<std::vector<std::pair<MCCompLabel,unsigned>>> mcLabels)
+  int row, unsigned short center_pad, unsigned center_time, short dp, short dt,
+  unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2,
+  std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>> mcLabels)
 {
 
   // to avoid negative numbers after modulo:
   // (b + (a % b)) % b in [0,b-1] even if a < 0
-  int index = (5+((center_time+dt)%5))%5*mPadsPerRow[row]+center_pad+dp;
+  int index = (5 + ((center_time + dt) % 5)) % 5 * mPadsPerRow[row] + center_pad + dp;
   unsigned charge = mDataBuffer[row][index];
 
-  qTot          += charge;
-  pad           += charge * dp;
-  time          += charge * dt;
-  sigmaPad2     += charge * dp * dp;
-  sigmaTime2    += charge * dt * dt;
+  qTot += charge;
+  pad += charge * dp;
+  time += charge * dt;
+  sigmaPad2 += charge * dp * dp;
+  sigmaTime2 += charge * dt * dt;
 
-  if (mMCtruth[(center_time+dt+5)%5] != nullptr) {
-    for (auto &label : mMCtruth[(center_time+dt+5)%5]->getLabels(mIndexBuffer[row][index])) {
+  if (mMCtruth[(center_time + dt + 5) % 5] != nullptr) {
+    for (auto& label : mMCtruth[(center_time + dt + 5) % 5]->getLabels(mIndexBuffer[row][index])) {
       bool isKnown = false;
-      for (auto &vecLabel : *mcLabels) {
+      for (auto& vecLabel : *mcLabels) {
         if (label == vecLabel.first) {
           ++vecLabel.second;
           isKnown = true;
         }
       }
       if (!isKnown) {
-        mcLabels->emplace_back(label,1);
+        mcLabels->emplace_back(label, 1);
       }
     }
   }
 }
-
-

@@ -16,7 +16,7 @@
 #define ALICEO2_DATAFORMATSTPC_HELPERS_H
 
 #include <memory>
-#include <cstring>  // for memset
+#include <cstring> // for memset
 #include "DataFormatsTPC/ClusterHardware.h"
 #include "DataFormatsTPC/ClusterNative.h"
 

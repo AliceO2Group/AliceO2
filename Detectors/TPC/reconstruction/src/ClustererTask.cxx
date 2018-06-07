@@ -70,7 +70,7 @@ InitStatus ClustererTask::Init()
   sectornamestr << "TPCDigit" << mClusterSector;
   LOG(INFO) << "FETCHING DIGITS FOR SECTOR " << mClusterSector << "\n";
   mDigitsArray = std::shared_ptr<const std::vector<Digit>>(
-      mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str()));
+    mgr->InitObjectAs<const std::vector<Digit>*>(sectornamestr.str().c_str()));
   if (!mDigitsArray) {
     LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -78,7 +78,7 @@ InitStatus ClustererTask::Init()
   std::stringstream mcsectornamestr;
   mcsectornamestr << "TPCDigitMCTruth" << mClusterSector;
   mDigitMCTruthArray = std::shared_ptr<const MCLabelContainer>(
-      mgr->InitObjectAs<const MCLabelContainer*>(mcsectornamestr.str().c_str()));
+    mgr->InitObjectAs<const MCLabelContainer*>(mcsectornamestr.str().c_str()));
   if (!mDigitMCTruthArray) {
     LOG(ERROR) << "TPC MC Truth not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
@@ -92,21 +92,21 @@ InitStatus ClustererTask::Init()
   mHwClustersArray = std::make_shared<std::vector<ClusterHardwareContainer8kb>>();
   // then using the trick to register the shared pointer with FairRootManager
   static auto clusterArrayTmpPtr = mHwClustersArray.get();
-  mgr->RegisterAny(Form("TPCClusterHW%i",mClusterSector), clusterArrayTmpPtr, kTRUE);
+  mgr->RegisterAny(Form("TPCClusterHW%i", mClusterSector), clusterArrayTmpPtr, kTRUE);
 
   // Register MC Truth output container
   mHwClustersMCTruthArray = std::make_shared<MCLabelContainer>();
   // a trick to register the shared pointer with FairRootManager
   static auto clusterMcTruthTmpPtr = mHwClustersMCTruthArray.get();
-  mgr->RegisterAny(Form("TPCClusterHWMCTruth%i",mClusterSector), clusterMcTruthTmpPtr, kTRUE);
+  mgr->RegisterAny(Form("TPCClusterHWMCTruth%i", mClusterSector), clusterMcTruthTmpPtr, kTRUE);
 
   // create clusterer and pass output pointer
-  mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray,mHwClustersMCTruthArray,mClusterSector);
+  mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray, mHwClustersMCTruthArray, mClusterSector);
   mHwClusterer->setContinuousReadout(mIsContinuousReadout);
 
-// TODO: implement noise/pedestal objects
-//    mHwClusterer->setNoiseObject(...);
-//    mHwClusterer->setPedestalObject(...);
+  // TODO: implement noise/pedestal objects
+  //    mHwClusterer->setNoiseObject(...);
+  //    mHwClusterer->setPedestalObject(...);
 
   return kSUCCESS;
 }
@@ -123,7 +123,7 @@ void ClustererTask::Exec(Option_t *option)
 
   mHwClusterer->Process(mDigitsArray, mDigitMCTruthArray, mEventCount);
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
-    << FairLogger::endl;
+             << FairLogger::endl;
 
   ++mEventCount;
 }
@@ -140,7 +140,7 @@ void ClustererTask::FinishTask()
 
   mHwClusterer->FinishProcess(mDigitsArray, mDigitMCTruthArray, mEventCount);
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
-    << FairLogger::endl;
+             << FairLogger::endl;
 
   ++mEventCount;
 }

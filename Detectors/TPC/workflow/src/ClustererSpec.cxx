@@ -46,8 +46,10 @@ DataProcessorSpec getClustererSpec()
     auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray, mctruthArray);
 
     auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
-      auto inDigits = pc.inputs().get<std::vector<o2::TPC::Digit>>("digits");
-      auto inMCLabels = pc.inputs().get<MCLabelContainer*>("mclabels");
+      auto inDigits = std::make_shared<const std::vector<o2::TPC::Digit>>(
+        pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits"));
+      auto inMCLabels = std::shared_ptr<const MCLabelContainer>(
+        pc.inputs().get<const MCLabelContainer>("mclabels"));
 
       LOG(INFO) << "processing " << inDigits->size() << " digit object(s)";
       clusterArray->clear();

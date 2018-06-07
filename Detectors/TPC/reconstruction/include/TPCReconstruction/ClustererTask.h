@@ -36,43 +36,43 @@ class ClustererTask : public FairTask{
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
   public:
-  /// Default constructor
-  /// \param sectorid Sector to be processed
-  ClustererTask(int sectorid = -1);
+   /// Default constructor
+   /// \param sectorid Sector to be processed
+   ClustererTask(int sectorid = -1);
 
-  /// Destructor
-  ~ClustererTask();
+   /// Destructor
+   ~ClustererTask();
 
-  /// Initializes the clusterer and connects input and output container
-  InitStatus Init() override;
+   /// Initializes the clusterer and connects input and output container
+   InitStatus Init() override;
 
-  /// Clusterization
-  void Exec(Option_t* option) override;
+   /// Clusterization
+   void Exec(Option_t* option) override;
 
-  /// Complete Clusterization
-  void FinishTask() override;
+   /// Complete Clusterization
+   void FinishTask() override;
 
-  /// Switch for triggered / continuous readout
-  /// \param isContinuous - false for triggered readout, true for continuous readout
-  void setContinuousReadout(bool isContinuous);
+   /// Switch for triggered / continuous readout
+   /// \param isContinuous - false for triggered readout, true for continuous readout
+   void setContinuousReadout(bool isContinuous);
 
   private:
-  bool mIsContinuousReadout;  ///< Switch for continuous readout
-  int mEventCount;            ///< Event counter
-  int mClusterSector = -1;    ///< Sector to be processed
+   bool mIsContinuousReadout; ///< Switch for continuous readout
+   int mEventCount;           ///< Event counter
+   int mClusterSector = -1;   ///< Sector to be processed
 
-  std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
+   std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
 
-  // Digit arrays
-  std::shared_ptr<const std::vector<o2::TPC::Digit>> mDigitsArray;   ///< Array of TPC digits
-  std::shared_ptr<const MCLabelContainer> mDigitMCTruthArray;        ///< Array for MCTruth information associated to digits in mDigitsArrray
+   // Digit arrays
+   std::shared_ptr<const std::vector<o2::TPC::Digit>> mDigitsArray; ///< Array of TPC digits
+   std::shared_ptr<const MCLabelContainer> mDigitMCTruthArray;      ///< Array for MCTruth information associated to digits in mDigitsArrray
 
-  // Cluster arrays
-  std::vector<ClusterHardwareContainer8kb>* mDummy;                             ///< TODO: Dummy pointer to register mHwClustersArray with FairRootManager
-  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mHwClustersArray;   ///< Array of clusters found by Hw Clusterfinder
-  std::shared_ptr<MCLabelContainer> mHwClustersMCTruthArray;                    ///< Array for MCTruth information associated to cluster in mHwClustersArrays
+   // Cluster arrays
+   std::vector<ClusterHardwareContainer8kb>* mDummy;                           ///< TODO: Dummy pointer to register mHwClustersArray with FairRootManager
+   std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
+   std::shared_ptr<MCLabelContainer> mHwClustersMCTruthArray;                  ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
-  ClassDefOverride(ClustererTask, 1)
+   ClassDefOverride(ClustererTask, 1)
 };
 
 inline

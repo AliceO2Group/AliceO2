@@ -144,7 +144,6 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
     word3 = (sigmaTime2Pre & 0xFFFFF) | ((row & 0x1F) << 20);
     word4 = (qTot & 0x7FFFF) | ((flags & 0xFF) << 19);
   }
-
 };
 
 struct ClusterHardwareContainer { // Temporary struct to hold a set of hardware clusters, prepended by an RDH, and a

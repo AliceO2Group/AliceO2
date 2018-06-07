@@ -59,7 +59,7 @@ class Clusterer {
     /// \param mcDigitTruth MC Digit Truth container
     /// \param eventCount event counter
     /// \return Container with clusters
-    virtual void Process(std::vector<o2::TPC::Digit> const *digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
+    virtual void Process(std::vector<o2::TPC::Digit> const* digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
     virtual void Process(std::vector<std::unique_ptr<Digit>>* digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
 
     void setRowsMax(int val)                    { mRowsMax = val; };

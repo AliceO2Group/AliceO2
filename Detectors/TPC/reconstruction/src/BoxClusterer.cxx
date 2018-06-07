@@ -141,7 +141,7 @@ BoxClusterer::~BoxClusterer()
 }
 
 //________________________________________________________________________
-void BoxClusterer::Process(std::vector<o2::TPC::Digit> const *digits, MCLabelContainer const* mcDigitTruth, int eventCount)
+void BoxClusterer::Process(std::vector<o2::TPC::Digit> const* digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear(); // check this
 
@@ -149,8 +149,8 @@ void BoxClusterer::Process(std::vector<o2::TPC::Digit> const *digits, MCLabelCon
   Int_t lastCRU = -1;
   Int_t iCRU    = -1;
 
-  for(auto& digit : *digits) {
-                iCRU     = digit.getCRU();
+  for (auto& digit : *digits) {
+    iCRU = digit.getCRU();
     const Int_t iRow     = digit.getRow();
     const Int_t iPad     = digit.getPad();
     const Int_t iTimeBin = digit.getTimeStamp();
