@@ -13,14 +13,21 @@
 #ifndef ALICEO2_ITS_CLUSTERER_H
 #define ALICEO2_ITS_CLUSTERER_H
 
+#define _PERFORM_TIMING_
+
 #include <utility>
 #include <vector>
 #include "ITSMFTBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "ITSMFTReconstruction/PixelReader.h"
+#include "ITSMFTReconstruction/PixelData.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include "Rtypes.h"
+
+#ifdef _PERFORM_TIMING_
+#include <TStopwatch.h>
+#endif
 
 namespace o2
 {
@@ -36,8 +43,8 @@ namespace ITSMFT
 class Clusterer
 {
   using PixelReader = o2::ITSMFT::PixelReader;
-  using PixelData = o2::ITSMFT::PixelReader::PixelData;
-  using ChipPixelData = o2::ITSMFT::PixelReader::ChipPixelData;
+  using PixelData = o2::ITSMFT::PixelData;
+  using ChipPixelData = o2::ITSMFT::ChipPixelData;
   using Cluster = o2::ITSMFT::Cluster;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -56,21 +63,35 @@ class Clusterer
   void setClustersMCTruthContainer(MCTruth* truth) { mClsLabels = truth; }
   void setDigitsMCTruthContainer(const MCTruth* truth) { mDigLabels = truth; }
 
+  void setMaskOverflowPixels(bool v) { mMaskOverflowPixels = v; }
+  bool isMaskOverflowPixels() const { return mMaskOverflowPixels; }
+
+  UInt_t getCurrROF() const { return mCurrROF; }
+  UShort_t getCurrChipID() const { return mCurrChipID; }
+
+  void print() const;
+
  private:
   enum { kMaxRow = 650 }; // Anything larger than the real number of rows (512 for ALPIDE)
-  void initChip();
-  void updateChip(int ip);
+  void initChip(UInt_t first);
+  void updateChip(UInt_t ip);
   void finishChip(std::vector<Cluster>& clusters);
   void fetchMCLabels(int digID, std::array<Label, Cluster::maxLabels>& labels, int& nfilled) const;
 
   ChipPixelData mChipData; ///< single chip data provided by the reader
 
+  ///< array of chips, at the moment index corresponds to chip ID.
+  ///< for the processing of fraction of chips only consider mapping of IDs range on mChips
+  std::vector<ChipPixelData> mChips;
+
+  bool mMaskOverflowPixels = true; ///< flag to mask oveflow pixels (fired from hit in prev. ROF)
   Int_t mColumn1[kMaxRow + 2];
   Int_t mColumn2[kMaxRow + 2];
   Int_t *mCurr, *mPrev;
-
+  UInt_t mCurrROF = o2::ITSMFT::PixelData::DummyROF;
+  UShort_t mCurrChipID = o2::ITSMFT::PixelData::DummyChipID;
   using NextIndex = int;
-  std::vector<std::pair<NextIndex, int>> mPixels;
+  std::vector<std::pair<NextIndex, UInt_t>> mPixels;
 
   using FirstIndex = Int_t;
   std::vector<FirstIndex> mPreClusterHeads;
@@ -82,6 +103,10 @@ class Clusterer
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
   const MCTruth* mDigLabels = nullptr;                 //! Digits MC labels
   MCTruth* mClsLabels = nullptr;                       //! Cluster MC labels
+
+#ifdef _PERFORM_TIMING_
+  TStopwatch mTimer;
+#endif
 };
 
 } // namespace ITSMFT
