@@ -64,12 +64,13 @@ class ClustererTask : public FairTask{
   std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
 
   // Digit arrays
-  std::vector<o2::TPC::Digit> const* mDigitsArray;   ///< Array of TPC digits
+  std::shared_ptr<const std::vector<o2::TPC::Digit>> mDigitsArray;   ///< Array of TPC digits
   std::shared_ptr<const MCLabelContainer> mDigitMCTruthArray;        ///< Array for MCTruth information associated to digits in mDigitsArrray
 
   // Cluster arrays
-  std::vector<ClusterHardwareContainer8kb>* mHwClustersArray;      ///< Array of clusters found by Hw Clusterfinder
-  std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray;            ///< Array for MCTruth information associated to cluster in mHwClustersArrays
+  std::vector<ClusterHardwareContainer8kb>* mDummy;                             ///< TODO: Dummy pointer to register mHwClustersArray with FairRootManager
+  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mHwClustersArray;   ///< Array of clusters found by Hw Clusterfinder
+  std::shared_ptr<MCLabelContainer> mHwClustersMCTruthArray;                    ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
   ClassDefOverride(ClustererTask, 1)
 };

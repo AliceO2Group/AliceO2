@@ -43,13 +43,13 @@ DataProcessorSpec getClustererSpec()
   auto initFunction = [](InitContext& ic) {
     auto clusterArray = std::make_shared<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
     auto mctruthArray = std::make_shared<MCLabelContainer>();
-    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray.get(), mctruthArray.get());
+    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray, mctruthArray);
 
     auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
       auto inDigits = pc.inputs().get<std::vector<o2::TPC::Digit>>("digits");
       auto inMCLabels = pc.inputs().get<MCLabelContainer*>("mclabels");
 
-      LOG(INFO) << "processing " << inDigits.size() << " digit object(s)";
+      LOG(INFO) << "processing " << inDigits->size() << " digit object(s)";
       clusterArray->clear();
       mctruthArray->clear();
       clusterer->Process(inDigits, inMCLabels, 1);
