@@ -93,7 +93,7 @@ void Digitizer::ProcessHitGroup(const HitGroup& inputgroup, const Sector& sector
 
     /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
     /// boundary
-    if (electronTransport.isCompletelyOutOfSectorCourseElectronDrift(posEle, sector)) {
+    if (electronTransport.isCompletelyOutOfSectorCoarseElectronDrift(posEle, sector)) {
       continue;
     }
 
