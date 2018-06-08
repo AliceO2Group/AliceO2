@@ -83,13 +83,19 @@ int main(int argc, char* argv[])
     std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << serverlogname << "\n";
   }
 
-  auto f = getenv("ALICE_NSIMWORKERS");
   int nworkers = std::thread::hardware_concurrency() / 2;
-  if (f) {
-    nworkers = atoi(f);
+  auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
+  if (internalfork) {
+    // forking will be done internally to profit from copy-on-write
+    nworkers = 1;
+  } else {
+    auto f = getenv("ALICE_NSIMWORKERS");
+    if (f) {
+      nworkers = atoi(f);
+    }
+    std::cout << "Running with " << nworkers << " sim workers "
+              << "(customize using the ALICE_NSIMWORKERS environment variable)\n";
   }
-  std::cout << "Running with " << nworkers << " sim workers "
-            << "(customize using the ALICE_NSIMWORKERS environment variable)\n";
   for (int id = 0; id < nworkers; ++id) {
     // the workers
     std::stringstream workerlogss;

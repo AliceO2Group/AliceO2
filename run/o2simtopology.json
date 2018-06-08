@@ -56,6 +56,19 @@
 	    "id": "hitmerger",
 	    "channels": 
             [
+		{
+                     "name": "primary-get",
+                     "sockets": [
+                     {
+                     "type": "req",
+                     "method": "connect",
+                     "address": "tcp://localhost:25005",
+                     "sndBufSize": "1000",
+                     "rcvBufSize": "1000",
+                     "rateLogging": "0"
+                    }
+		    ]
+               },
                {
  	            "name": "simdata",
 		    "sockets": [ 

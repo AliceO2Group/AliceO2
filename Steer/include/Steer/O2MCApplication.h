@@ -88,10 +88,10 @@ class O2MCApplication : public FairMCApplication
   void setSimDataChannel(FairMQChannel* channel) { mSimDataChannel = channel; }
   void setSubEventInfo(o2::Data::SubEventInfo& i) { mSubEventInfo = i; }
 
-  std::vector<TParticle> mPrimaries;
+  std::vector<TParticle> mPrimaries; //!
 
-  FairMQChannel* mSimDataChannel;                      // generic channel on which to send sim data
-  o2::Data::SubEventInfo mSubEventInfo;                // what are we currently processing?
+  FairMQChannel* mSimDataChannel;                      //! generic channel on which to send sim data
+  o2::Data::SubEventInfo mSubEventInfo;                //! what are we currently processing?
   std::vector<o2::Base::Detector*> mActiveO2Detectors; //! active (data taking) o2 detectors
 
   ClassDefOverride(O2MCApplication, 1) //Interface to MonteCarlo application
