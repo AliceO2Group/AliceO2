@@ -19,6 +19,13 @@ namespace o2
 {
 namespace fit
 {
+struct ChannelDigitData {
+  Int_t ChId; //channel Id
+  Float_t CFDTime; //time in ns, 0 at lhc clk center
+  Float_t QTCAmpl; // Amplitude in mips
+  ClassDefNV(ChannelDigitData, 1);
+};
+
 /// \class Digit
 /// \brief FIT digit implementation
 using DigitBase = o2::dataformats::TimeStamp<double>;
@@ -27,34 +34,49 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Double_t time, Int_t channel, Double_t cfd, Float_t amp, Int_t bc);
-  ~Digit() = default;
+  Digit(std::vector<ChannelDigitData> ChDgDataArr, Double_t time, Int_t bc, Bool_t IsA, Bool_t IsC, Bool_t IsCnt, Bool_t IsSCnt, Bool_t IsVrtx)
+  {setChDgData(ChDgDataArr); setTime(time); setBC(bc); setTriggers(IsA, IsC, IsCnt, IsSCnt, IsVrtx); }
 
-  Int_t getChannel() const { return mChannel; }
-  void setChannel(Int_t channel) { mChannel = channel; }
+  ~Digit() = default;
 
   Double_t getTime() const { return mTime; }
   void setTime(Double_t time) { mTime = time; }
 
-  Double_t getCFD() const { return mCFD; }
-  void setCFD(Double_t time) { mCFD = time; }
-
-  Float_t getQTC() const { return mQTC; }
-  void setQTC(Float_t amp) { mQTC = amp; }
-
   Int_t getBC() const { return mBC; }
   void setBC(Int_t bc) { mBC = bc; }
 
-  void printStream(std::ostream& stream) const;
+  Bool_t getIsA() const {return mIsA;}
+  Bool_t getIsC() const {return mIsC;}
+  Bool_t getIsCnt() const {return mIsCentral;}
+  Bool_t getIsSCnt() const {return mIsSemiCentral;}
+  Bool_t getIsVrtx() const {return mIsVertex;}
+
+  void setTriggers(Bool_t IsA, Bool_t IsC, Bool_t IsCnt, Bool_t IsSCnt, Bool_t IsVrtx)
+  {mIsA = IsA; mIsC = IsC; mIsCentral = IsCnt; mIsSemiCentral = IsSCnt; mIsVertex = IsVrtx;}
+
+  std::vector<ChannelDigitData> getChDgData() const {return mChDgDataArr; }
+  void setChDgData(std::vector<ChannelDigitData> ChDgDataArr) {mChDgDataArr(std::move(ChDgDataArr));}
+
+
+  void printStream(std::ostream& stream) const
+  {
+      stream << "FIT Digit: event time " << mTime << " BC " << mBC << std::endl;
+  }
 
  private:
   //  friend class boost::serialization::access;
 
   Double_t mTime; /// time stamp
-  Int_t mChannel; ///< FIT channel index
-  Double_t mCFD;  ///< CFD time value
-  Float_t mQTC;   ///< QTC time value
   Int_t mBC;      ///< Bunch Crossing
+
+  //online triggers processed on TCM
+  Bool_t mIsA, mIsC;
+  Bool_t mIsCentral;
+  Bool_t mIsSemiCentral;
+  Bool_t mIsVertex;
+
+  std::vector<ChannelDigitData> mChDgDataArr;
+
 
   ClassDefNV(Digit, 1);
 };
