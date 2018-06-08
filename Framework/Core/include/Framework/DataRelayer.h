@@ -81,8 +81,8 @@ public:
   /// Tune the maximum number of in flight timeslices this can handle.
   void setPipelineLength(size_t s);
 private:
-  std::vector<InputRoute> mInputs;
-  std::vector<ForwardRoute> mForwards;
+  std::vector<InputRoute> mInputRoutes;
+  std::vector<ForwardRoute> mForwardRoutes;
   monitoring::Monitoring& mMetrics;
 
   /// This is the actual cache of all the parts in flight. 
