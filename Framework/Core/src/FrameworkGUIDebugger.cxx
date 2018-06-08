@@ -453,35 +453,34 @@ struct ChannelsTableHelper {
 void pushWindowColorDueToStatus(const DeviceInfo& info)
 {
   using LogLevel = LogParsingHelpers::LogLevel;
-
   if (info.active == false) {
-    ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::DARK_RED);
-    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
-    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::RED);
-    return;
-  }
-  switch (info.maxLogLevel) {
-    case LogLevel::Error:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_RED);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_RED);
-      break;
-    case LogLevel::Warning:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_YELLOW);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::YELLOW);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_YELLOW);
-      break;
-    case LogLevel::Info:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_GREEN);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::GREEN);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_GREEN);
-      break;
-    default:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_BLUE);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::BLUE);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_BLUE);
-      break;
-  }
+     ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::DARK_RED);
+     ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
+     ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::RED);
+     return;
+   }
+   switch (info.maxLogLevel) {
+     case LogLevel::Error:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_RED);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_RED);
+       break;
+     case LogLevel::Warning:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_YELLOW);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::YELLOW);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_YELLOW);
+       break;
+     case LogLevel::Info:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_GREEN);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::GREEN);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_GREEN);
+       break;
+     default:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_BLUE);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::BLUE);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_BLUE);
+       break;
+   }
 }
 
 void popWindowColorDueToStatus() { ImGui::PopStyleColor(3); }
