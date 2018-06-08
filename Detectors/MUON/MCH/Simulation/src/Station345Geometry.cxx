@@ -735,11 +735,20 @@ void buildHalfChambers(TGeoVolume& topVolume)
 
     } // end of the node loop
 
+    // TEST
+    const double kInclAngle = 0.794 * TMath::DegToRad();
+    const double kDist = 12.;
+    double yShift = TMath::Power(-1, moduleID + 1) * kDist * TMath::Sin(kInclAngle);
+    double zShift = TMath::Power(-1, moduleID) * kDist * (1 - TMath::Cos(kInclAngle));
+
+    cout << endl
+         << nCh << " : y = " << yShift << ", z = " << zShift << endl;
+
     // place the half-chamber in the top volume
     topVolume.AddNode(
       halfChVol, moduleID,
-      new TGeoCombiTrans(halfCh["position"][0].GetDouble(), halfCh["position"][1].GetDouble(),
-                         halfCh["position"][2].GetDouble(),
+      new TGeoCombiTrans(halfCh["position"][0].GetDouble(), /* halfCh["position"][1].GetDouble()*/ yShift,
+                         halfCh["position"][2].GetDouble() + zShift,
                          new TGeoRotation(Form("%srotation", name.data()), halfCh["rotation"][0].GetDouble(),
                                           halfCh["rotation"][1].GetDouble(), halfCh["rotation"][2].GetDouble(),
                                           halfCh["rotation"][3].GetDouble(), halfCh["rotation"][4].GetDouble(),
