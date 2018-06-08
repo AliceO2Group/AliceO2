@@ -104,23 +104,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                     },
                                     AlgorithmSpec{ [](InitContext& setup) {
                                       return [](ProcessingContext& ctx) {
-                                        ctx.outputs().make<int>(OutputRef("out"), 1);
+                                        ctx.outputs().make<int>(OutputRef("out", 0), 1);
                                       };
                                     } } },
                                   stages));
 
-  workflow.push_back(timePipeline(DataProcessorSpec{
+  workflow.push_back(DataProcessorSpec{
                                     "writer",
-                                    mergeInputs(InputSpec{ "x", "TST", "M" },
-                                                jobs,
-                                                [](InputSpec& input, size_t index) {
-                                                  input.subSpec = index;
-                                                }),
+                                    {InputSpec{ "x", "TST", "M" }},
                                     {},
                                     AlgorithmSpec{ [](InitContext& setup) {
                                       return [](ProcessingContext& ctx) {
                                       };
-                                    } } },
-                                  1));
+                                    } } }
+                                  );
   return workflow;
 }
