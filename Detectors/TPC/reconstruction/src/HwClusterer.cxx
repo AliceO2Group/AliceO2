@@ -82,11 +82,11 @@ HwClusterer::HwClusterer(
       ++row;
     }
   }
-  mMCtruth.resize(5, nullptr);
+  mMCtruth.resize(5);
 }
 
 //______________________________________________________________________________
-void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> digits, std::shared_ptr<const MCLabelContainer> mcDigitTruth, int eventCount)
+void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount)
 {
   mClusterArray->clear();
   mClusterMcLabelArray->clear();
@@ -98,7 +98,7 @@ void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> dig
   /*
    * Loop over all (time ordered) digits
    */
-  for (const auto& digit : *digits) {
+  for (const auto& digit : digits) {
     /*
      * This loop does the following:
      *  - add digits to the tmp storage
@@ -113,7 +113,7 @@ void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> dig
      */
 
     if (digit.getTimeStamp() != mLastTimebin) {
-      mMCtruth[digit.getTimeStamp() % 5] = mcDigitTruth;
+      mMCtruth[digit.getTimeStamp() % 5] = std::make_unique<MCLabelContainer const>(mcDigitTruth);
 
       /*
        * If the timebin changes, it could change by more then just 1 (not every
@@ -171,12 +171,12 @@ void HwClusterer::Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> dig
   if (!mIsContinuousReadout)
     finishFrame(true);
 
-  if (digits->size() != 0)
-    LOG(DEBUG) << "Event ranged from time bin " << digits->front().getTimeStamp() << " to " << digits->back().getTimeStamp() << "." << FairLogger::endl;
+  if (digits.size() != 0)
+    LOG(DEBUG) << "Event ranged from time bin " << digits.front().getTimeStamp() << " to " << digits.back().getTimeStamp() << "." << FairLogger::endl;
 }
 
 //______________________________________________________________________________
-void HwClusterer::FinishProcess(std::shared_ptr<const std::vector<o2::TPC::Digit>> digits, std::shared_ptr<const MCLabelContainer> mcDigitTruth, int eventCount)
+void HwClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount)
 {
   // Process the last digits (if there are any)
   Process(digits, mcDigitTruth, eventCount);

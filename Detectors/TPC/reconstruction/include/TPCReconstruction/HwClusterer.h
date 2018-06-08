@@ -57,14 +57,14 @@ class HwClusterer
    /// @param mcDigitTruth MC Digit Truth container
    /// @param eventCount event counter
    /// @return Container with clusters
-   void Process(std::shared_ptr<const std::vector<o2::TPC::Digit>> digits, std::shared_ptr<const MCLabelContainer> mcDigitTruth, int eventCount);
+   void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount);
 
    /// Finish processing digits
    /// @param digits Container with TPC digits
    /// @param mcDigitTruth MC Digit Truth container
    /// @param eventCount event counter
    /// @return Container with clusters
-   void FinishProcess(std::shared_ptr<const std::vector<o2::TPC::Digit>> digits, std::shared_ptr<const MCLabelContainer> mcDigitTruth, int eventCount);
+   void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount);
 
    /// Setter for noise object, noise will be added before cluster finding
    /// \param noiseObject CalDet object, containing noise simulation
@@ -141,7 +141,7 @@ class HwClusterer
    std::vector<unsigned short> mGlobalRowToLocalRow;              ///< Converting global row number to local row number within region
    std::vector<std::vector<unsigned>> mDataBuffer;                ///< Buffer with digits (+noise +CM +...)
    std::vector<std::vector<int>> mIndexBuffer;                    ///< Buffer with digits indices for MC labels
-   std::vector<std::shared_ptr<const MCLabelContainer>> mMCtruth; ///< MC truth information of timebins in buffer
+   std::vector<std::unique_ptr<MCLabelContainer const>> mMCtruth; ///< MC truth information of timebins in buffer
    std::vector<std::pair<MCCompLabel, int>> mMClabel;             ///< Vector to accumulate the MC labels
 
    std::vector<std::unique_ptr<std::vector<std::pair<std::shared_ptr<ClusterHardware>, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>> mTmpClusterArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
