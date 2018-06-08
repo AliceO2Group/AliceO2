@@ -19,7 +19,6 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
-#include "TVirtualMC.h"
 #include <SimSetup/SimSetup.h>
 #include <Steer/O2RunSim.h>
 #include <unistd.h>

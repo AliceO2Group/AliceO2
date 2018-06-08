@@ -17,7 +17,6 @@
 #include "FairMQMessage.h"
 #include <FairMQDevice.h>
 #include <FairLogger.h>
-#include "../macro/o2sim.C"
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
@@ -35,6 +34,7 @@
 #include "Steer/InteractionSampler.h"
 
 #include "O2HitMerger.h"
+#include "O2SimDevice.h"
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
@@ -88,7 +88,13 @@ class O2HitMerger : public FairMQDevice
   /// Overloads the InitTask() method of FairMQDevice
   void InitTask() final
   {
-    mOutFile = new TFile("o2sim_merged_hits.root", "RECREATE");
+    std::string outfilename("o2sim_merged_hits.root"); // default name
+    // query the sim config ... which is used to extract the filenames
+    if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
+      outfilename = o2::conf::SimConfig::Instance().getOutPrefix() + ".root";
+    }
+
+    mOutFile = new TFile(outfilename.c_str(), "RECREATE");
     mOutTree = new TTree("o2sim", "o2sim");
   }
 
