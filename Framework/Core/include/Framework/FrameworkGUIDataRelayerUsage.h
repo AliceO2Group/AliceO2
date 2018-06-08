@@ -7,25 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
-#define FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
-#include "Framework/DeviceSpec.h"
-#include "Framework/DeviceInfo.h"
-#include "Framework/DeviceMetricsInfo.h"
 
-#include <vector>
+class ImVec2;
 
 namespace o2
 {
 namespace framework
 {
+class DeviceMetricsInfo;
+class DeviceInfo;
 
-void showTopologyNodeGraph(bool* opened,
-                           const std::vector<DeviceInfo> &infos,
-                           const std::vector<DeviceSpec> &specs,
-                           const std::vector<DeviceMetricsInfo> &metricsInfos);
+namespace gui
+{
 
+/// View of the DataRelayer metrics for a given DeviceInfo
+void displayDataRelayer(DeviceMetricsInfo const& metrics, DeviceInfo const& info, ImVec2 const &size);
+
+} // namespace gui
 } // namespace framework
 } // namespace o2
-
-#endif // FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
