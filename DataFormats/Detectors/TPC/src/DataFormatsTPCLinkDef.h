@@ -23,7 +23,8 @@
 #pragma link C++ class std::vector < o2::TPC::ClusterNative > +;
 #pragma link C++ class std::vector < o2::TPC::ClusterNativeContainer > +;
 #pragma link C++ class std::vector < o2::TPC::ClusterHardware > +;
-//#pragma link C++ class std::vector < o2::TPC::ClusterHardwareContainer8kb > +;
+#pragma link C++ class std::vector < o2::TPC::ClusterHardwareContainerFixedSize < 8192 > > +;
+#pragma link C++ class std::vector < o2::TPC::ClusterHardwareContainer8kb > +;
 #pragma link C++ class o2::TPC::TPCClusterFormatHelper + ;
 #pragma link C++ class o2::TPC::TrackTPC + ;
 #pragma link C++ class o2::TPC::Cluster + ;
