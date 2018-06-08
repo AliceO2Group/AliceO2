@@ -305,9 +305,11 @@ void    ImGui_ImplGlfwGL3_InvalidateDeviceObjects()
 
 bool    ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
 {
+    ImGui::CreateContext();
     g_Window = window;
 
     ImGuiIO& io = ImGui::GetIO();
+    ImGui::StyleColorsDark();
     io.KeyMap[ImGuiKey_Tab] = GLFW_KEY_TAB;                         // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
     io.KeyMap[ImGuiKey_LeftArrow] = GLFW_KEY_LEFT;
     io.KeyMap[ImGuiKey_RightArrow] = GLFW_KEY_RIGHT;
@@ -350,7 +352,7 @@ bool    ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
 void ImGui_ImplGlfwGL3_Shutdown()
 {
     ImGui_ImplGlfwGL3_InvalidateDeviceObjects();
-    ImGui::Shutdown();
+    ImGui::DestroyContext();
 }
 
 void ImGui_ImplGlfwGL3_NewFrame()
