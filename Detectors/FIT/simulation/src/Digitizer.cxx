@@ -195,22 +195,12 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   digit->setTriggers(Is_A, Is_C, Is_Central, Is_SemiCentral, Is_Vertex);
 
   std::vector<ChannelDigitData> mChDgDataArr;
-  ChannelDigitData ChDgDt;
-
     for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
     {
 
-	if (ch_signal_MIP[ch_iter] > 0.) {
-
-	    ChDgDt.ChId = ch_iter;
-	    ChDgDt.CFDTime = ch_signal_time[ch_iter];
-	    ChDgDt.QTCAmpl = ch_signal_MIP[ch_iter];
-
-	 //ChannelDigitData ChDgDt(ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter]);
-	 mChDgDataArr.emplace_back( ChDgDt );
-	 //mChDgDataArr->emplace_back(ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter]);
-	}
-      }
+	if (ch_signal_MIP[ch_iter] > 0.)
+	    mChDgDataArr.emplace_back( ChannelDigitData{ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter]} );
+    }
   digit->setChDgData(mChDgDataArr);
 
 
