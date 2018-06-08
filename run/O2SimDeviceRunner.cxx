@@ -20,6 +20,7 @@
 #include <FairMQParts.h>
 #include <FairMQTransportFactory.h>
 #include <TStopwatch.h>
+#include <sys/wait.h>
 
 namespace bpo = boost::program_options;
 
@@ -115,6 +116,18 @@ int main(int argc, char* argv[])
 {
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
   if (internalfork) {
+
+    std::string serveraddress("tcp://localhost:25005");
+    std::string mergeraddress("tcp://localhost:25009");
+    auto host = getenv("ALICE_SIMMAINHOST");
+    if (host) {
+      // argv[1] is supposed to be an IP address or hostname
+      serveraddress = "tcp://" + std::string(host) + ":25005";
+      mergeraddress = "tcp://" + std::string(host) + ":25009";
+    }
+    LOG(INFO) << serveraddress;
+    LOG(INFO) << mergeraddress;
+
     // This is a solution based on initializing the simulation once
     // and then fork the process to share the simulation memory across
     // many processes. Here we are not using FairMQDevices and just setup
@@ -122,7 +135,7 @@ int main(int argc, char* argv[])
 
     // we init the simulation first
     // TODO: take the addresses from somewhere else
-    if (!initializeSim("zeromq", "tcp://localhost:25005")) {
+    if (!initializeSim("zeromq", serveraddress)) {
       LOG(ERROR) << "Could not initialize simulation";
       return 1;
     }
@@ -139,7 +152,7 @@ int main(int argc, char* argv[])
     for (int i = 0; i < nworkers; ++i) {
       auto pid = fork();
       if (pid == 0) {
-        runSim("zeromq", "tcp://localhost:25005", "tcp://localhost:25009");
+        runSim("zeromq", serveraddress, mergeraddress);
         return 0;
       }
     }
