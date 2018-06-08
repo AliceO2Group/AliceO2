@@ -31,7 +31,8 @@ class CollisionTimeRecoTask : public FairTask
   void FinishTask() override;
 
  private:
-  const std::vector<Digit>* mDigitsArray = nullptr; ///< Array of digits
+  //const std::vector<Digit>* mDigitsArray = nullptr; ///< Array of digits
+  const Digit *mEventDigit = nullptr; ///<
   Bool_t mContinuous = kFALSE;                      ///< flag to do continuous simulation
   RecPoints* mRecPoints = nullptr;
 

@@ -20,13 +20,15 @@
 #include "TRandom.h"
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 using namespace o2::fit;
 using o2::fit::Geometry;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
+//void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
+void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 {
   //parameters constants TO DO: move to class
   constexpr Float_t TimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
@@ -46,7 +48,7 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
   constexpr Double_t trg_vertex_min = BC_clk_center-3.; //ns
   constexpr Double_t trg_vertex_max = BC_clk_center+3.; //ns
 
-  mDigits = digits;
+  //mDigits = digits;
 
   Double_t digit_timeframe = mEventTime;
   Double_t digit_bc = mEventID;
@@ -187,14 +189,29 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
 
 
 
+  //fillig digit
+  digit->setTime(digit_timeframe);
+  digit->setBC(mEventID);
+  digit->setTriggers(Is_A, Is_C, Is_Central, Is_SemiCentral, Is_Vertex);
 
-  //Filling digits array
-  for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
-  {
-      if (ch_signal_nPe[ch_iter] > mAmpThreshold) {
-	mDigits->emplace_back(digit_timeframe, ch_iter, ch_signal_time[ch_iter], Float_t(ch_signal_nPe[ch_iter]), digit_bc);
+  std::vector<ChannelDigitData> mChDgDataArr;
+  ChannelDigitData ChDgDt;
+
+    for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
+    {
+
+	if (ch_signal_MIP[ch_iter] > 0.) {
+
+	    ChDgDt.ChId = ch_iter;
+	    ChDgDt.CFDTime = ch_signal_time[ch_iter];
+	    ChDgDt.QTCAmpl = ch_signal_MIP[ch_iter];
+
+	 //ChannelDigitData ChDgDt(ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter]);
+	 mChDgDataArr.emplace_back( ChDgDt );
+	 //mChDgDataArr->emplace_back(ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter]);
+	}
       }
-    }
+  digit->setChDgData(mChDgDataArr);
 
 
 
@@ -222,6 +239,12 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
 
   LOG(DEBUG) << "IS A " << Is_A << " IS C " << Is_C << " Is Central " << Is_Central
              << " Is SemiCentral " << Is_SemiCentral << " Is Vertex " << Is_Vertex << FairLogger::endl;
+
+  LOG(DEBUG) << "\n\nResult digit:" << FairLogger::endl;
+
+  //LOG(DEBUG) << *digit << FairLogger::endl;
+  //std::cout << *digit << FairLogger::endl;
+  digit->printStream( std::cout );
 
 
   LOG(DEBUG) << "======================================\n\n" << FairLogger::endl;

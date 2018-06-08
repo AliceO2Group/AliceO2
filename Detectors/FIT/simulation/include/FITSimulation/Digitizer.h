@@ -24,7 +24,8 @@ class Digitizer
   Digitizer(Int_t mode = 0) : mMode(mode), mTimeFrameCurrent(0) { initParameters(); };
   ~Digitizer() = default;
 
-  void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
+  //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
+  void process(const std::vector<HitType>* hits, Digit* digit);
 
   void initParameters();
   // void printParameters();
@@ -38,7 +39,7 @@ class Digitizer
 
  private:
   // digit info
-  std::vector<Digit>* mDigits;
+  //std::vector<Digit>* mDigits;
 
   void addDigit(Double_t time, Int_t channel, Double_t cfd, Int_t amp, Int_t bc);
   // parameters

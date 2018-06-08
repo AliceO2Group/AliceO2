@@ -13,13 +13,20 @@
 
 #include "CommonDataFormat/TimeStamp.h"
 #include <iosfwd>
+#include <iostream>
+
 #include "Rtypes.h"
 
 namespace o2
 {
 namespace fit
 {
+
 struct ChannelDigitData {
+//    ChannelDigitData(Int_t chid, Float_t cfdtime, Float_t qtcampl) :
+//        ChId(chid), CFDTime(cfdtime), QTCAmpl(qtcampl) {}
+//~ChannelDigitData() {}
+
   Int_t ChId; //channel Id
   Float_t CFDTime; //time in ns, 0 at lhc clk center
   Float_t QTCAmpl; // Amplitude in mips
@@ -55,12 +62,17 @@ class Digit : public DigitBase
   {mIsA = IsA; mIsC = IsC; mIsCentral = IsCnt; mIsSemiCentral = IsSCnt; mIsVertex = IsVrtx;}
 
   std::vector<ChannelDigitData> getChDgData() const {return mChDgDataArr; }
-  void setChDgData(std::vector<ChannelDigitData> ChDgDataArr) {mChDgDataArr(std::move(ChDgDataArr));}
+  void setChDgData(std::vector<ChannelDigitData> ChDgDataArr) {mChDgDataArr = ChDgDataArr;}
 
 
   void printStream(std::ostream& stream) const
   {
       stream << "FIT Digit: event time " << mTime << " BC " << mBC << std::endl;
+      stream << "IS A " << mIsA << " IS C " << mIsC << " Is Central " << mIsCentral
+                 << " Is SemiCentral " << mIsSemiCentral << " Is Vertex " << mIsVertex << std::endl;
+
+      for (auto& chdata : mChDgDataArr)
+          stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime << " MIP " << chdata.QTCAmpl << std::endl;
   }
 
  private:
@@ -81,7 +93,7 @@ class Digit : public DigitBase
   ClassDefNV(Digit, 1);
 };
 
-std::ostream& operator<<(std::ostream& stream, const Digit& dig);
+std::ostream& operator<<(std::ostream& stream, const Digit& digi);
 } // namespace fit
 } // namespace o2
 #endif
