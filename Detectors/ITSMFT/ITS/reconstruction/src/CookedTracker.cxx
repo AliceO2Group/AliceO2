@@ -99,7 +99,7 @@ Label CookedTracker::cookLabel(TrackITS& t, Float_t wrong) const
   for (int i = noc; i--;) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
-    auto labels = mClsLabels->getLabels(c->GetUniqueID());
+    auto labels = mClsLabels->getLabels(c->getIndex()); // RS consider not using the stored index
 
     for (auto lab : labels) { // check all labels of the cluster
       if (lab.isEmpty())
@@ -147,7 +147,7 @@ void CookedTracker::setExternalIndices(TrackITS& t) const
   for (Int_t i = 0; i < noc; i++) {
     Int_t index = t.getClusterIndex(i);
     const Cluster* c = getCluster(index);
-    Int_t idx = c->GetUniqueID();
+    Int_t idx = c->getIndex(); // RS: consided not using stored index
     t.setExternalClusterIndex(i, idx);
   }
 }

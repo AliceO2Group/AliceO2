@@ -18,7 +18,7 @@
 // uncomment this to have cluster topology stored
 #define _ClusterTopology_
 
-#define CLUSTER_VERSION 2
+#define CLUSTER_VERSION 3
 
 namespace o2
 {
@@ -61,7 +61,7 @@ class Cluster : public o2::BaseCluster<float>
  public:
   static constexpr int maxLabels = 10;
 
-  ~Cluster() override = default;
+  ~Cluster() = default;
 
   Cluster& operator=(const Cluster& cluster) = delete; // RS why?
 
@@ -129,9 +129,9 @@ class Cluster : public o2::BaseCluster<float>
   UShort_t mPatternColMin = 0;                ///< pattern start column
   UChar_t mPattern[kMaxPatternBytes] = { 0 }; ///< cluster topology
   //
-  ClassDefOverride(Cluster, CLUSTER_VERSION + 1)
+  ClassDefNV(Cluster, CLUSTER_VERSION + 1)
 #else
-  ClassDefOverride(Cluster, CLUSTER_VERSION)
+  ClassDefNV(Cluster, CLUSTER_VERSION)
 #endif
 };
 //______________________________________________________

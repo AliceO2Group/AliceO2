@@ -248,7 +248,7 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
 
     clusters.emplace_back();
     Cluster& c = clusters[noc];
-    c.SetUniqueID(noc); // Let the cluster remember its position within the cluster array
+    c.setIndex(noc); // Let the cluster remember its position within the cluster array
     c.setROFrame(mChipData->getROFrame());
     c.setSensorID(mChipData->getChipID());
     c.setPos(xyzTra);
