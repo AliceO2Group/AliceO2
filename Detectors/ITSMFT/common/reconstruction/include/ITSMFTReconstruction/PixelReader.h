@@ -17,6 +17,7 @@
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTBase/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include <vector>
 
 namespace o2
 {
@@ -39,7 +40,8 @@ class PixelReader
   PixelReader& operator=(const PixelReader& src) = delete;
 
   virtual void init() = 0;
-  virtual Bool_t getNextChipData(ChipPixelData& chipData) = 0;
+  virtual bool getNextChipData(ChipPixelData& chipData) = 0;
+  virtual ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) = 0;
   //
  protected:
   //
@@ -66,7 +68,8 @@ class DigitPixelReader : public PixelReader
     mLastDigit = nullptr;
   }
 
-  Bool_t getNextChipData(ChipPixelData& chipData) override;
+  bool getNextChipData(ChipPixelData& chipData) override;
+  ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) override;
 
  private:
   void addPixel(ChipPixelData& chipData, const Digit* dig)
@@ -90,7 +93,8 @@ class RawPixelReader : public PixelReader
  public:
   RawPixelReader() = default;
   ~RawPixelReader() override = default;
-  Bool_t getNextChipData(ChipPixelData& chipData) override;
+  bool getNextChipData(ChipPixelData& chipData) override;
+  ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) override;
 
   ClassDefOverride(RawPixelReader, 1);
 };

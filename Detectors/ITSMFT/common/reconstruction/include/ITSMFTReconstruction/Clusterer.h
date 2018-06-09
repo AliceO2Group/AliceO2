@@ -78,11 +78,12 @@ class Clusterer
   void finishChip(std::vector<Cluster>& clusters);
   void fetchMCLabels(int digID, std::array<Label, Cluster::maxLabels>& labels, int& nfilled) const;
 
-  ChipPixelData mChipData; ///< single chip data provided by the reader
+  ChipPixelData* mChipData = nullptr; //! pointer on the current single chip data provided by the reader
 
   ///< array of chips, at the moment index corresponds to chip ID.
   ///< for the processing of fraction of chips only consider mapping of IDs range on mChips
   std::vector<ChipPixelData> mChips;
+  std::vector<ChipPixelData> mChipsOld;
 
   bool mMaskOverflowPixels = true; ///< flag to mask oveflow pixels (fired from hit in prev. ROF)
   Int_t mColumn1[kMaxRow + 2];

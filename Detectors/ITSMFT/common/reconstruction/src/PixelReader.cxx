@@ -17,18 +17,34 @@ using namespace o2::ITSMFT;
 using o2::ITSMFT::Digit;
 
 //______________________________________________________________________________
-Bool_t DigitPixelReader::getNextChipData(ChipPixelData& chipData)
+ChipPixelData* DigitPixelReader::getNextChipData(std::vector<ChipPixelData>& chipDataVec)
 {
-  chipData.clear();
+  // decode data of single chip to corresponding slot of chipDataVec
   if (!mLastDigit) {
     if (mIdx >= mDigitArray->size()) {
-      return kFALSE;
+      return nullptr;
     }
-    chipData.setStartID(mIdx);
     mLastDigit = &((*mDigitArray)[mIdx++]);
-  } else {
-    chipData.setStartID(mIdx);
   }
+  auto chipID = mLastDigit->getChipIndex();
+  if (chipID >= chipDataVec.size()) {
+    chipDataVec.resize(chipID + 100);
+  }
+  return getNextChipData(chipDataVec[chipID]) ? &chipDataVec[chipID] : nullptr;
+}
+
+//______________________________________________________________________________
+bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
+{
+  // decode data of single chip to chipData
+  if (!mLastDigit) {
+    if (mIdx >= mDigitArray->size()) {
+      return false;
+    }
+    mLastDigit = &((*mDigitArray)[mIdx++]);
+  }
+  chipData.clear();
+  chipData.setStartID(mIdx - 1);
   chipData.setChipID(mLastDigit->getChipIndex());
   chipData.setROFrame(mLastDigit->getROFrame());
   chipData.getData().emplace_back(mLastDigit);
@@ -43,8 +59,11 @@ Bool_t DigitPixelReader::getNextChipData(ChipPixelData& chipData)
     chipData.getData().emplace_back(mLastDigit);
     mLastDigit = nullptr;
   }
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________________________________
-Bool_t RawPixelReader::getNextChipData(ChipPixelData& chipData) { return kTRUE; }
+bool RawPixelReader::getNextChipData(ChipPixelData& chipData) { return true; }
+
+//______________________________________________________________________________
+ChipPixelData* RawPixelReader::getNextChipData(std::vector<ChipPixelData>& chipDataVec) { return nullptr; }
