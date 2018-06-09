@@ -21,6 +21,8 @@ BOOST_AUTO_TEST_CASE(TestParseTokenLevel) {
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][ERROR] Some message") == LogParsingHelpers::LogLevel::Error);
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][WARN] Some message") == LogParsingHelpers::LogLevel::Warning);
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][INFO] Some message") == LogParsingHelpers::LogLevel::Info);
+  // Log level STATE is interpreted as INFO
+  BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][STATE] Some message") == LogParsingHelpers::LogLevel::Info);
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][DEBUG] Some message") == LogParsingHelpers::LogLevel::Debug);
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[10:10:10][BLAH] Some message") == LogParsingHelpers::LogLevel::Unknown);
   BOOST_CHECK(LogParsingHelpers::parseTokenLevel("[1010:10][BLAH] Some message") == LogParsingHelpers::LogLevel::Unknown);
