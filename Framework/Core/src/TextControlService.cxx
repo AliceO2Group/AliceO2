@@ -37,7 +37,7 @@ bool parseControl(const std::string &s, std::smatch &match) {
   if (idx == std::string::npos) {
     return false;
   }
-  return std::regex_search(s.begin()+idx, s.end(), match, controlRE);
+  return std::regex_search(s.begin() + idx, s.end(), match, controlRE);
 }
 
 } // framework

@@ -43,13 +43,14 @@ LogLevel LogParsingHelpers::parseTokenLevel(const std::string &s) {
     return LogLevel::Unknown;
   }
 
-  if (s.compare(LABELPOS, 7, "[DEBUG]") == 0) {
+  if (s.compare(LABELPOS, 8, "[DEBUG] ") == 0) {
     return LogLevel::Debug;
-  } else if (s.compare(LABELPOS, 6, "[INFO]") == 0 || s.compare(LABELPOS, 7, "[STATE]") == 0) {
+  } else if (s.compare(LABELPOS, 7, "[INFO] ") == 0 ||
+             s.compare(LABELPOS, 8, "[STATE] ") == 0) {
     return LogLevel::Info;
-  } else if (s.compare(LABELPOS, 6, "[WARN]") == 0) {
+  } else if (s.compare(LABELPOS, 7, "[WARN] ") == 0) {
     return LogLevel::Warning;
-  } else if (s.compare(LABELPOS, 7, "[ERROR]") == 0) {
+  } else if (s.compare(LABELPOS, 8, "[ERROR] ") == 0) {
     return LogLevel::Error;
   }
   return LogLevel::Unknown;
