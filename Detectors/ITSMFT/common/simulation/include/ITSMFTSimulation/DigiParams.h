@@ -27,75 +27,85 @@
 //                                                        //
 ////////////////////////////////////////////////////////////
 
-namespace o2 {
-namespace ITSMFT {
+namespace o2
+{
+namespace ITSMFT
+{
 
-  class AlpideSimResponse;
-  
-  class DigiParams {
-  public:
+class AlpideSimResponse;
 
-    DigiParams() = default;
-    ~DigiParams() = default;
-    
-    void  setNoisePerPixel(float v)       {mNoisePerPixel = v;}
-    float getNoisePerPixel()        const {return mNoisePerPixel;}
+class DigiParams
+{
 
-    void  setContinuous(bool v)           {mIsContinuous = v;}
-    bool  isContinuous()            const {return mIsContinuous;}
+  using SignalShape = o2::ITSMFT::AlpideSignalTrapezoid;
 
-    void setROFrameLenght(float l);
-    void setROFrameDeadTime(float l) { mROFrameDeadTime = l; }
-    float getROFrameLenght() const { return mROFrameLenght; }
-    float getROFrameLenghtInv() const { return mROFrameLenghtInv; }
-    float getROFrameDeadTime() const { return mROFrameDeadTime; }
+ public:
+  DigiParams();
+  ~DigiParams() = default;
 
-    void   setTimeOffset(double t)        {mTimeOffset = t;}
-    double getTimeOffset()          const {return mTimeOffset;}
+  void setNoisePerPixel(float v) { mNoisePerPixel = v; }
+  float getNoisePerPixel() const { return mNoisePerPixel; }
 
-    void setChargeThreshold(int v, float frac2Account = 0.1);
-    void setNSimSteps(int v);
-    void setEnergyToNElectrons(float v)   {mEnergyToNElectrons = v;}
+  void setContinuous(bool v) { mIsContinuous = v; }
+  bool isContinuous() const { return mIsContinuous; }
 
-    int   getChargeThreshold()      const {return mChargeThreshold;}
-    int getMinChargeToAccount() const { return mMinChargeToAccount; }
-    int   getNSimSteps()            const {return mNSimSteps;}
-    float getNSimStepsInv() const { return mNSimStepsInv; }
-    float getEnergyToNElectrons()   const {return mEnergyToNElectrons;}
+  void setROFrameLength(float ns);
+  float getROFrameLength() const { return mROFrameLength; }
+  float getROFrameLengthInv() const { return mROFrameLengthInv; }
 
-    bool  isTimeOffsetSet()         const {return mTimeOffset>-infTime;}
+  void setStrobeDelay(float ns) { mStrobeDelay = ns; }
+  float getStrobeDelay() const { return mStrobeDelay; }
 
-    const o2::ITSMFT::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
-    void setAlpSimResponse(const o2::ITSMFT::AlpideSimResponse* par) { mAlpSimResponse=par; }
+  void setStrobeLength(float ns) { mStrobeLength = ns; }
+  float getStrobeLength() const { return mStrobeLength; }
 
-    const o2::ITSMFT::AlpideSignalTrapezoid& getSignalShape() const { return mSignalShape; }
-    o2::ITSMFT::AlpideSignalTrapezoid& getSignalShape() { return (o2::ITSMFT::AlpideSignalTrapezoid&)mSignalShape; }
+  void setTimeOffset(double sec) { mTimeOffset = sec; }
+  double getTimeOffset() const { return mTimeOffset; }
 
-   private:
-    static constexpr double infTime = 1e99;
-    bool   mIsContinuous = false;   ///< flag for continuous simulation
-    float  mNoisePerPixel = 1.e-7;  ///< ALPIDE Noise per chip
-    float mROFrameLenght = 4000.;   ///< length of RO frame in ns
-    float  mROFrameDeadTime = 25;   ///< dead time in end of the ROFrame, in ns
-    Double_t mTimeOffset = -2*infTime;   ///< time offset to calculate ROFrame from hit time
+  void setChargeThreshold(int v, float frac2Account = 0.1);
+  void setNSimSteps(int v);
+  void setEnergyToNElectrons(float v) { mEnergyToNElectrons = v; }
 
-    int mChargeThreshold = 150;  ///< charge threshold in Nelectrons
-    int mMinChargeToAccount = 15; ///< minimum charge contribution to account
-    int mNSimSteps       = 7;    ///< number of steps in response simulation
-    float mEnergyToNElectrons = 1./3.6e-9; // conversion of eloss to Nelectrons
+  int getChargeThreshold() const { return mChargeThreshold; }
+  int getMinChargeToAccount() const { return mMinChargeToAccount; }
+  int getNSimSteps() const { return mNSimSteps; }
+  float getNSimStepsInv() const { return mNSimStepsInv; }
+  float getEnergyToNElectrons() const { return mEnergyToNElectrons; }
 
-    o2::ITSMFT::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
+  bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
-    const o2::ITSMFT::AlpideSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
+  const o2::ITSMFT::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
+  void setAlpSimResponse(const o2::ITSMFT::AlpideSimResponse* par) { mAlpSimResponse = par; }
 
-    // auxiliary precalculated parameters
-    float mROFrameLenghtInv = 1. / 4000; ///< inverse length of RO frame in ns
-    float mNSimStepsInv = 1.f / 7;       ///< its inverse
+  const SignalShape& getSignalShape() const { return mSignalShape; }
+  SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
 
-    ClassDefNV(DigiParams,1);
-  };
+  void print() const;
 
+ private:
+  static constexpr double infTime = 1e99;
+  bool mIsContinuous = false;          ///< flag for continuous simulation
+  float mNoisePerPixel = 1.e-7;        ///< ALPIDE Noise per chip
+  float mROFrameLength = 6000.;        ///< length of RO frame in ns
+  float mStrobeDelay = 6000.;          ///< strobe start (in ns) wrt ROF start
+  float mStrobeLength = 100.;          ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  Double_t mTimeOffset = -2 * infTime; ///< time offset (in seconds!) to calculate ROFrame from hit time
 
+  int mChargeThreshold = 150;              ///< charge threshold in Nelectrons
+  int mMinChargeToAccount = 15;            ///< minimum charge contribution to account
+  int mNSimSteps = 7;                      ///< number of steps in response simulation
+  float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
+
+  o2::ITSMFT::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
+
+  const o2::ITSMFT::AlpideSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
+
+  // auxiliary precalculated parameters
+  float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns
+  float mNSimStepsInv = 0;     ///< its inverse
+
+  ClassDefNV(DigiParams, 1);
+};
 }
 }
 

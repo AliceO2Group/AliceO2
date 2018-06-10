@@ -56,8 +56,8 @@ class DigitizerTask : public FairTask
   bool isContinuous() const { return mParams.isContinuous(); }
   void setFairTimeUnitInNS(double tinNS) { mFairTimeUnitInNS = tinNS < 1. ? 1. : tinNS; }
   double getFairTimeUnitInNS() const { return mFairTimeUnitInNS; }
-  void setAlpideROFramLength(float l) { mParams.setROFrameLenght(l); }
-  float getAlpideROFramLength() const { return mParams.getROFrameLenght(); }
+  void setAlpideROFramLength(float l) { mParams.setROFrameLength(l); }
+  float getAlpideROFramLength() const { return mParams.getROFrameLength(); }
 
  private:
   o2::ITSMFT::DigiParams mParams; // settings, eventually load this from the CCDB
