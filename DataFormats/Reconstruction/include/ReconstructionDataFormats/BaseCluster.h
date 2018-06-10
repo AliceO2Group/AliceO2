@@ -35,7 +35,6 @@ class BaseCluster
   T mSigmaY2;                  // error in Y direction (usually rphi)
   T mSigmaZ2;                  // error in Z direction (usually Z)
   T mSigmaYZ;                  // non-diagonal term of error matrix
-  int mIndex = -1;             // origianl index of this cluster in its vector (consider to drop it)
   std::uint16_t mSensorID = 0; // the sensor id
   std::int8_t mCount = 0;      // user field reserved for counting
   std::uint8_t mBits = 0;      // user field reserved for bit flags
@@ -55,10 +54,6 @@ class BaseCluster
     : mPos(x, y, z), mSigmaY2(sy2), mSigmaZ2(sz2), mSigmaYZ(syz), mSensorID(sensid)
   {
   }
-
-  // methods for indexing. Consider to eliminate the index at all
-  int getIndex() const { return mIndex; }
-  void setIndex(int i) { mIndex = i; }
 
   // getting the cartesian coordinates and errors
   T getX() const { return mPos.X(); }

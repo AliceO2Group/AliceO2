@@ -53,9 +53,11 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
   // ====>>
   // defaults
   digi->getDigiParams().setContinuous(rate > 0); // continuous vs per-event mode
-  digi->getDigiParams().setROFrameLenght(4000);  // RO frame in ns
-  // parameters of signal time response: total duration, rise and decay times in ns
-  digi->getDigiParams().getSignalShape().setParameters(6000., 50., 30.);
+  digi->getDigiParams().setROFrameLength(6000);  // RO frame in ns
+  digi->getDigiParams().setStrobeDelay(6000);    // Strobe delay wrt beginning of the RO frame, in ns
+  digi->getDigiParams().setStrobeLength(100);    // Strobe length in ns
+  // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+  digi->getDigiParams().getSignalShape().setParameters(7500., 1100., 450.);
   digi->getDigiParams().setChargeThreshold(150); // charge threshold in electrons
   digi->getDigiParams().setNoisePerPixel(1.e-7); // noise level
   // <<===

@@ -24,73 +24,58 @@ namespace ITSMFT
 class AlpideSignalTrapezoid
 {
  public:
-  AlpideSignalTrapezoid(float duration = 6000., float rise = 50., float decay = 30.);
+  AlpideSignalTrapezoid(float duration = 7500., float rise = 1100., float qrise0 = 450.);
   AlpideSignalTrapezoid(const AlpideSignalTrapezoid&) = default;
   AlpideSignalTrapezoid& operator=(const AlpideSignalTrapezoid&) = default;
   ~AlpideSignalTrapezoid() = default;
 
-  float getIntegral(float totalNEle, float tMax, float tMin = 0) const;
+  float getCollectedCharge(float totalNEle, float tMin, float tMax) const;
 
   float getDuration() const { return mDuration; }
-  float getRiseTime() const { return mRiseTime; }
-  float getDecayTime() const { return mDecayTime; }
-  float getFlatTopTime() const { return mFlatTopTime; }
-  float getNormalization() const { return mNorm; }
-  float getReducedTime(float t) const;
+  float getMaxRiseTime() const { return mMaxRiseTime; }
+  float getChargeRise0() const { return mChargeRise0; }
+  float getExtraDuration(float riseTime) const { return riseTime * 0.5; }
 
-  void setParameters(float dur, float rise, float dec)
+  // This method queried by digitizer to decided in home many ROFrames the hit can contribute
+  // In case we describe extra duration at small charges, it should be accounted here
+  float getMaxDuration() const { return getDuration(); }
+
+  void setParameters(float dur, float rise, float qrise0)
   {
-    init(dur, rise, dec);
+    init(dur, rise, qrise0);
   }
-  void setDuration(float d) { init(d, mRiseTime, mDecayTime); }
-  void setRiseTime(float r) { init(mDuration, r, mDecayTime); }
-  void setDecayTime(float d) { init(mDuration, mRiseTime, d); }
+  void setDuration(float d) { init(d, mMaxRiseTime, mChargeRise0); }
+  void setMaxRiseTime(float r) { init(mDuration, r, mChargeRise0); }
+  void setChargeRise0(float q) { init(mDuration, mMaxRiseTime, q); }
+
+  void print() const;
 
  private:
-  void init(float dur, float rise, float decay);
+  void init(float dur, float rise, float qrise0);
 
-  float mDuration = 0;
-  float mRiseTime = 0;    ///< rise time in nanoseconts
-  float mFlatTopTime = 0; ///< flat top duration
-  float mDecayTime = 0;   ///< decay time in nanoseconts
-  float mNorm = 1.f;      ///< normalization to 1
-  // aux parameters
-  float mRiseTimeH = 0.f;     ///< half rise time
-  float mDecayTimeH = 0.f;    ///< half decay time
-  float mRiseTimeInvH = 0.f;  ///< half inverse of the rise time
-  float mDecayTimeInvH = 0.f; ///< half inverse of decay time
+  float mDuration = 7500.f;           ///< total duration in ns for signal above mChargeRise0
+  float mMaxRiseTime = 1100.f;        ///< rise time in ns for smallest charge
+  float mChargeRise0 = 450.f;         ///< charge at which rise time is ~0
+  float mChargeRise0Inv = 1. / 450.f; ///< its inverse
 
   ClassDefNV(AlpideSignalTrapezoid, 1);
 };
 
-inline float AlpideSignalTrapezoid::getReducedTime(float t) const
+inline float AlpideSignalTrapezoid::getCollectedCharge(float totalNEle, float tMin, float tMax) const
 {
-  // return time intervals needed for the effective area calculation
-  float tef = 0.f;
-  if (t < 0.)
-    return 0.;
-  if (t < mRiseTime) {
-    return t * t * mRiseTimeInvH;
-  }
-  tef += mRiseTimeH;
-  t -= mRiseTime;
-  if (t < mFlatTopTime) {
-    return tef + t;
-  }
-  t -= mFlatTopTime;
-  tef += mFlatTopTime + mDecayTimeH;
-  if (t < mDecayTime) {
-    float resid = mDecayTime - t;
-    tef -= resid * resid * mDecayTimeInvH;
-  }
-  return tef;
-}
+  // calculate max number of electrons seen by the strobe from tMin to tMax (in nanosec),
+  // provided that the total injected charge was totalNEle electrons
 
-inline float AlpideSignalTrapezoid::getIntegral(float totalNEle, float tMax, float tMin) const
-{
-  // calculate number of electrons between time tMin and tMax (in nanosec)
-  float g = totalNEle * (getReducedTime(tMax) - getReducedTime(tMin));
-  return mNorm * g;
+  // estimate rise time for given charge
+  float riseTime = totalNEle > mChargeRise0 ? 0. : mMaxRiseTime * (1.f - totalNEle * mChargeRise0Inv);
+
+  if (tMax >= riseTime && tMin <= mDuration) { // strobe overlaps flat top
+    return totalNEle;
+  }
+  if (tMax > 0. && tMin < riseTime) { // strobe overlaps with rise
+    return totalNEle * tMax / riseTime;
+  }
+  return 0;
 }
 }
 }
