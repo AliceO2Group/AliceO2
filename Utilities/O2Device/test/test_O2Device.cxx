@@ -63,3 +63,63 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
     BOOST_CHECK(message->GetType() == fair::mq::Transport::SHM);
   }
 }
+
+BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
+{
+  {
+    //simple addition of a data block from an exisiting message
+    O2Message message;
+    auto simpleMessage = factoryZMQ->CreateMessage(10);
+    addDataBlock(message,
+                 Stack{ allocZMQ, DataHeader{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 }, 0 } },
+                 std::move(simpleMessage));
+    BOOST_CHECK(message.Size() == 2);
+  }
+
+  {
+    struct elem {
+      int i;
+      int j;
+    };
+    using namespace boost::container::pmr;
+    O2Message message;
+    std::vector<elem, polymorphic_allocator<elem>> vec(polymorphic_allocator<elem>{ allocZMQ });
+    vec.reserve(100);
+    vec.push_back({ 1, 2 });
+    vec.push_back({ 3, 4 });
+
+    addDataBlock(message,
+                 Stack{ allocZMQ, DataHeader{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 }, 0 } },
+                 std::move(vec));
+    BOOST_CHECK(message.Size() == 2);
+    BOOST_CHECK(vec.size() == 0);
+    BOOST_CHECK(message[0].GetSize() == 80);
+    BOOST_CHECK(message[1].GetSize() == 2 * sizeof(elem)); //check the size of the buffer is set
+
+    //check contents
+    int sum{ 0 };
+    forEach(message, [&](auto header, auto data) {
+      const int* numbers = reinterpret_cast<const int*>(data.data());
+      sum = numbers[0] + numbers[1] + numbers[2] + numbers[3];
+    });
+    BOOST_CHECK(sum == 10);
+
+    //add one more data block and check total size using forEach;
+    addDataBlock(message,
+                 Stack{ allocZMQ, DataHeader{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 }, 0 } },
+                 factoryZMQ->CreateMessage(10));
+    int size{ 0 };
+    forEach(message, [&](auto header, auto data) { size += header.size() + data.size(); });
+    BOOST_CHECK(size == 80 + 2 * sizeof(elem) + 80 + 10);
+
+    //check contents (headers)
+    int checkOK{ 0 };
+    forEach(message, [&](auto header, auto data) {
+      auto dh = get<DataHeader*>(header.data());
+      if (dh->dataDescription == gDataDescriptionInvalid && dh->dataOrigin == gDataOriginInvalid) {
+        checkOK++;
+      };
+    });
+    BOOST_CHECK(checkOK == 2);
+  }
+}
