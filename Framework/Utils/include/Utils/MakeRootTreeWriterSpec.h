@@ -33,9 +33,9 @@ namespace framework
 /// @class MakeRootTreeWriterSpec
 /// Generate a processor spec for the RootTreeWriter utility.
 ///
-/// The generator requires to be configured with a list of types as template arguments.
-/// The contructor requires process name as the first argument, followed by a pair of
-/// InputSpec and branchname for each declared type.
+/// The generator is configured with the process name and a list of branch definitions.
+/// Each branch definition holds the type of the data object to be extracted and stored,
+/// InputSpec to describe the input route, and branchname to describe output branch.
 /// Further optional arguments directly after the process name can change the behavior
 /// of spec options defaults.
 ///
@@ -58,7 +58,7 @@ namespace framework
 ///                        "default_file_name",
 ///                        "default_tree_name",
 ///                        1,                              // default number of events
-///                        InputSpec{ ... }, "branchname", // input and branch config
+///                        MakeRootTreeWriterSpec::BranchDefinition<Type>{ InputSpec{ ... }, "branchname" },
 ///                        ...                             // further input and branch config
 ///                      )()                               // invocation of operator()
 ///                     );
@@ -67,7 +67,7 @@ namespace framework
 ///   specs.emplace_back(MakeRootTreeWriterSpec<Types...>
 ///                      (
 ///                        "process_name",
-///                        InputSpec{ ... }, "branchname", // input and branch config
+///                        MakeRootTreeWriterSpec::BranchDefinition<Type>{ InputSpec{ ... }, "branchname" },
 ///                        ...                             // further input and branch config
 ///                      )()                               // invocation of operator()
 ///                     );
@@ -77,17 +77,24 @@ namespace framework
 ///                      (
 ///                        "process_name",
 ///                        "default_file_name",
-///                        InputSpec{ ... }, "branchname", // input and branch config
+///                        MakeRootTreeWriterSpec::BranchDefinition<Type>{ InputSpec{ ... }, "branchname" },
 ///                        ...                             // further input and branch config
 ///                      )()                               // invocation of operator()
 ///                     );
 ///
-template <typename... Types>
 class MakeRootTreeWriterSpec
 {
  public:
-  using WriterType = RootTreeWriter<Types...>;
-  static constexpr std::size_t store_size = sizeof...(Types);
+  using WriterType = RootTreeWriter;
+
+  /// unary helper functor to extract the input key from the InputSpec
+  struct KeyExtractor {
+    static std::string asString(InputSpec const& arg) { return arg.binding; }
+  };
+
+  // branch definition structure uses InputSpec as key type
+  template <typename T>
+  using BranchDefinition = WriterType::BranchDef<T, InputSpec, KeyExtractor>;
 
   /// default constructor forbidden
   MakeRootTreeWriterSpec() = delete;
@@ -100,11 +107,7 @@ class MakeRootTreeWriterSpec
 
   DataProcessorSpec operator()()
   {
-    std::vector<std::pair<std::string, std::string>> branchConfig;
-    for (size_t index = 0; index < mInputs.size(); index++) {
-      branchConfig.emplace_back(mInputs[index].binding, mBranchNames[index]);
-    }
-    auto initFct = [branchConfig = std::move(branchConfig)](InitContext & ic)
+    auto initFct = [writer = mWriter](InitContext & ic)
     {
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
@@ -112,12 +115,10 @@ class MakeRootTreeWriterSpec
       auto counter = std::make_shared<int>();
       *counter = 0;
       if (filename.empty() || treename.empty()) {
-        throw std::runtime_error("output file name and tree name are mandatory options");
+        throw std::invalid_argument("output file name and tree name are mandatory options");
       }
-      auto writer = std::make_shared<WriterType>(filename.c_str(), // output file name
-                                                 treename.c_str(), // tree name
-                                                 branchConfig      // branch config
-                                                 );
+      writer->init(filename.c_str(), treename.c_str());
+
       // the callback to be set as hook at stop of processing for the framework
       auto finishWriting = [writer]() { writer->close(); };
       ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
@@ -176,29 +177,29 @@ class MakeRootTreeWriterSpec
   }
 
   /// helper function to recursively parse constructor arguments
-  /// parse the branch definitions with key and branch name.
-  template <size_t N, typename... Args>
-  void parseConstructorArgs(InputSpec key, const char* name, Args&&... args)
+  /// parse the branch definitions and store the input specs.
+  /// Note: all other properties of the branch definition are handled in the
+  /// constructor of the writer itself
+  template <size_t N, typename T, typename... Args>
+  void parseConstructorArgs(BranchDefinition<T>&& def, Args&&... args)
   {
-    static_assert(N < store_size, "too many branch arguments");
-    mInputs.emplace_back(key);
-    mBranchNames.emplace_back(name);
-
+    mInputs.emplace_back(def.key);
+    LOG(INFO) << "adding input spec: " << mInputs.back();
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
+    if (N == 0) {
+      mWriter = std::make_shared<WriterType>(nullptr, nullptr, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
+    }
   }
 
-  // this terminates the argument parsing, at this point we should have
-  // parsed as many arguments as we have types
+  // this terminates the argument parsing
   template <size_t N>
   void parseConstructorArgs()
   {
-    // at this point we should have processed argument pairs for all types in the stare
-    static_assert(N == store_size, "too few branch arguments");
   }
 
+  std::shared_ptr<WriterType> mWriter;
   std::string mProcessName;
   std::vector<InputSpec> mInputs;
-  std::vector<std::string> mBranchNames;
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
   int mDefaultNofEvents = -1;
