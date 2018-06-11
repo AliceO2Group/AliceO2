@@ -15,6 +15,7 @@
 #ifndef ALICEO2_TPC_HWClusterer_H_
 #define ALICEO2_TPC_HWClusterer_H_
 
+#include "TPCReconstruction/Clusterer.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCBase/CalDet.h"
 
@@ -33,7 +34,7 @@ class ClusterHardware;
 
 /// \class HwClusterer
 /// \brief Class for TPC HW cluster finding
-class HwClusterer
+class HwClusterer : public Clusterer
 {
 
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -57,14 +58,14 @@ class HwClusterer
    /// @param mcDigitTruth MC Digit Truth container
    /// @param eventCount event counter
    /// @return Container with clusters
-   void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount);
+   void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) override;
 
    /// Finish processing digits
    /// @param digits Container with TPC digits
    /// @param mcDigitTruth MC Digit Truth container
    /// @param eventCount event counter
    /// @return Container with clusters
-   void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount);
+   void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) override;
 
    /// Setter for noise object, noise will be added before cluster finding
    /// \param noiseObject CalDet object, containing noise simulation

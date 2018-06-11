@@ -26,7 +26,8 @@ using namespace o2::TPC;
 HwClusterer::HwClusterer(
   std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
   std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
-  : mClusterSector(sectorid),
+  : Clusterer(),
+    mClusterSector(sectorid),
     mNumRows(0),
     mLastTimebin(-1),
     mLastHB(0),
