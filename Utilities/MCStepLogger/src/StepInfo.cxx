@@ -87,6 +87,8 @@ StepInfo::StepInfo(TVirtualMC* mc)
   x = xd;
   y = yd;
   z = zd;
+  step = mc->TrackStep();
+  maxstep = mc->MaxStep();
   E = curtrack->Energy();
   auto now = std::chrono::high_resolution_clock::now();
   // cputimestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(now - starttime).count();
