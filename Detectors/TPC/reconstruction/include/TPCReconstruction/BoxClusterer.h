@@ -19,7 +19,6 @@
 #include "Rtypes.h"
 #include "TPCReconstruction/Clusterer.h"
 #include "DataFormatsTPC/Cluster.h"
-#include "TPCBase/CalDet.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -62,9 +61,6 @@ class BoxClusterer : public Clusterer
   /// \param eventCount event counter
   void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) override;
   void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) override;
-
-  /// Set a pedestal object
-  void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
 
   void setRowsMax(int val) { mRowsMax = val; };
   void setPadsMax(int val) { mPadsMax = val; };
@@ -111,7 +107,6 @@ class BoxClusterer : public Clusterer
   Float_t** mAllBins;  //!<! Array for digit using random access
   Int_t** mAllSigBins; //!<! Array of pointers to the indexes over threshold
   Int_t* mAllNSigBins; //!<! Array with number of signals in each row
-  CalPad* mPedestals;  //!<! Pedestal data
 
   std::vector<o2::TPC::Cluster>* mClusterArray; ///< Internal cluster storage
 };

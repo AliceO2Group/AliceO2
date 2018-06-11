@@ -20,6 +20,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
+#include "TPCBase/CalDet.h"
+
 namespace o2{
 namespace TPC {
 
@@ -34,7 +36,7 @@ class Clusterer {
   public:
 
     /// Default Constructor
-   Clusterer() = default;
+   Clusterer();
 
    /// Destructor
    ~Clusterer() = default;
@@ -46,10 +48,28 @@ class Clusterer {
    virtual void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) = 0;
    virtual void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) = 0;
 
-  protected:
+   /// Setter for noise object, noise will be added before cluster finding
+   /// \param noiseObject CalDet object, containing noise simulation
+   void setNoiseObject(CalDet<float>* noiseObject);
 
+   /// Setter for pedestal object, pedestal value will be subtracted before cluster finding
+   /// \param pedestalObject CalDet object, containing pedestals for each pad
+   void setPedestalObject(CalDet<float>* pedestalObject);
+
+  protected:
+   CalDet<float>* mNoiseObject;    ///< Pointer to the CalDet object for noise simulation
+   CalDet<float>* mPedestalObject; ///< Pointer to the CalDet object for the pedestal subtraction
 };
 
+inline void Clusterer::setNoiseObject(CalDet<float>* noiseObject)
+{
+  mNoiseObject = noiseObject;
+}
+
+inline void Clusterer::setPedestalObject(CalDet<float>* pedestalObject)
+{
+  mPedestalObject = pedestalObject;
+}
 }
 }
 

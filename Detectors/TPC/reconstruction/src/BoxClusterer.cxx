@@ -115,8 +115,7 @@ BoxClusterer::BoxClusterer(std::vector<o2::TPC::Cluster>* output,
     mClusterArray(output),
     mAllBins(nullptr),
     mAllSigBins(nullptr),
-    mAllNSigBins(nullptr),
-    mPedestals(nullptr)
+    mAllNSigBins(nullptr)
 {
   mAllBins = new Float_t*[mRowsMax];
   mAllSigBins = new Int_t*[mRowsMax];
@@ -394,8 +393,8 @@ Int_t BoxClusterer::Update(const Int_t iCRU,
   }
 
   // ===| get pedestal |========================================================
-  if (mPedestals) {
-    signal -= mPedestals->getValue(CRU(iCRU), iRow, iPad);
+  if (mPedestalObject) {
+    signal -= mPedestalObject->getValue(CRU(iCRU), iRow, iPad);
   }
 
   // Fill signal in array. Add 2 to pad and time to make sure that the 2D

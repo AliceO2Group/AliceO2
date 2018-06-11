@@ -17,7 +17,6 @@
 
 #include "TPCReconstruction/Clusterer.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "TPCBase/CalDet.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -66,14 +65,6 @@ class HwClusterer : public Clusterer
    /// @param eventCount event counter
    /// @return Container with clusters
    void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) override;
-
-   /// Setter for noise object, noise will be added before cluster finding
-   /// \param noiseObject CalDet object, containing noise simulation
-   void setNoiseObject(CalDet<float>* noiseObject);
-
-   /// Setter for pedestal object, pedestal value will be subtracted before cluster finding
-   /// \param pedestalObject CalDet object, containing pedestals for each pad
-   void setPedestalObject(CalDet<float>* pedestalObject);
 
    /// Switch for triggered / continuous readout
    /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -148,24 +139,11 @@ class HwClusterer : public Clusterer
 
    std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mClusterArray; ///< Pointer to output cluster container
    std::shared_ptr<MCLabelContainer> mClusterMcLabelArray;                  ///< Pointer to MC Label container
-
-   CalDet<float>* mNoiseObject;    ///< Pointer to the CalDet object for noise simulation
-   CalDet<float>* mPedestalObject; ///< Pointer to the CalDet object for the pedestal subtraction
 };
 
 inline void HwClusterer::setContinuousReadout(bool isContinuous)
 {
   mIsContinuousReadout = isContinuous;
-}
-
-inline void HwClusterer::setNoiseObject(CalDet<float>* noiseObject)
-{
-  mNoiseObject = noiseObject;
-}
-
-inline void HwClusterer::setPedestalObject(CalDet<float>* pedestalObject)
-{
-  mPedestalObject = pedestalObject;
 }
 }
 }

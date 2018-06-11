@@ -181,13 +181,11 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<HwClusterer>(hwCl);
-  }
-  //  else if (clustererType == ClustererType::Box) {
-  //    BoxClusterer *boxCl = new BoxClusterer(arrClusterBox);
-  //    boxCl->setPedestals(pedestal);
-  //    cl = std::unique_ptr<Clusterer>(boxCl);
-  //  }
-  else {
+  } else if (clustererType == ClustererType::Box) {
+    BoxClusterer* boxCl = new BoxClusterer(arrClusterBox);
+    boxCl->setPedestalObject(pedestal);
+    cl = std::unique_ptr<Clusterer>(boxCl);
+  } else {
     return;
   }
     

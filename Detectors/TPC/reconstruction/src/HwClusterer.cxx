@@ -13,6 +13,7 @@
 
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCBase/Digit.h"
+#include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 
@@ -44,9 +45,7 @@ HwClusterer::HwClusterer(
     mMCtruth(),
     mTmpClusterArray(),
     mClusterArray(clusterOutput),
-    mClusterMcLabelArray(labelOutput),
-    mNoiseObject(nullptr),
-    mPedestalObject(nullptr)
+    mClusterMcLabelArray(labelOutput)
 {
   LOG(DEBUG) << "Enter Initializer of HwClusterer" << FairLogger::endl;
   /*
@@ -162,8 +161,24 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
     /*
      * add current digit to storage
      */
-    index = (digit.getTimeStamp() % 5) * mPadsPerRow[digit.getRow()] + digit.getPad();
-    mDataBuffer[digit.getRow()][index] += static_cast<unsigned>(digit.getChargeFloat() * (1 << 4));
+    index = (digit.getTimeStamp() % 5) * mPadsPerRow[digit.getRow()] + (digit.getPad() + 2);
+    // offset of digit pad because of 2 empty pads on both sides
+
+    if (mPedestalObject) {
+      /*
+       * If a pedestal object was registered, check if charge of pad is greater
+       * than pedestal value. If so, assign difference of charge and pedestal
+       * to buffer, if not, set buffer to 0.
+       */
+      if (digit.getChargeFloat() < mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad()))
+        mDataBuffer[digit.getRow()][index] = 0;
+      else
+        mDataBuffer[digit.getRow()][index] += static_cast<unsigned>(
+          (digit.getChargeFloat() - mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad())) * (1 << 4));
+
+    } else {
+      mDataBuffer[digit.getRow()][index] += static_cast<unsigned>(digit.getChargeFloat() * (1 << 4));
+    }
     mIndexBuffer[digit.getRow()][index] = digitIndex++;
 
     mLastTimebin = digit.getTimeStamp();
