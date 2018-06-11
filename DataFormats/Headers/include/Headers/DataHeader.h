@@ -476,7 +476,9 @@ struct Stack {
   }
 
   struct freeobj {
+    freeobj() {}
     freeobj(boost::container::pmr::memory_resource* mr) : resource(mr) {}
+
     boost::container::pmr::memory_resource* resource{ nullptr };
     void operator()(byte* ptr) { Stack::freefn(ptr, resource); }
   };
@@ -519,7 +521,7 @@ struct Stack {
     : allocator{ allocatorArg },
       bufferSize{ calculateSize(std::forward<Headers>(headers)...) },
       buffer{ static_cast<byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
-              freeobj{ getFreefnHint() } }
+              freeobj(getFreefnHint()) }
   {
     inject(buffer.get(), std::forward<Headers>(headers)...);
   }
