@@ -45,8 +45,14 @@ template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT,
 bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::memoryResources::FairMQMemoryResource* targetResource = nullptr)
 {
   using std::move;
-  auto dataMessage = getMessage(move(inputData), targetResource);
-  return addDataBlock(parts, move(inputStack), move(dataMessage), targetResource);
+  using std::forward;
+
+  auto headerMessage = getMessage(move(inputStack), targetResource);
+  auto dataMessage = getMessage(forward<ContainerT>(inputData), targetResource);
+
+  parts.AddPart(move(headerMessage));
+  parts.AddPart(move(dataMessage));
+
   return true;
 }
 
