@@ -40,21 +40,21 @@ namespace Base
 using O2Message = FairMQParts;
 
 //__________________________________________________________________________________________________
-// AddDataBlock for generic (compatible) containers, that is contiguous containers using the pmr allocator
+// addDataBlock for generic (compatible) containers, that is contiguous containers using the pmr allocator
 template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT, FairMQMessagePtr>::value, int>::type = 0>
-bool AddDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::memoryResources::FairMQMemoryResource* targetResource = nullptr)
+bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::memoryResources::FairMQMemoryResource* targetResource = nullptr)
 {
   using std::move;
   auto dataMessage = getMessage(move(inputData), targetResource);
-  return AddDataBlock(parts, move(inputStack), move(dataMessage), targetResource);
+  return addDataBlock(parts, move(inputStack), move(dataMessage), targetResource);
   return true;
 }
 
 //__________________________________________________________________________________________________
-// AddDataBlock for data already wrapped in FairMQMessagePtr
+// addDataBlock for data already wrapped in FairMQMessagePtr
 // note: since we cannot partially specialize function templates, use SFINAE here instead
 template <typename ContainerT, typename std::enable_if<std::is_same<ContainerT, FairMQMessagePtr>::value, int>::type = 0>
-bool AddDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::memoryResources::FairMQMemoryResource* targetResource = nullptr)
+bool addDataBlock(O2Message& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::memoryResources::FairMQMemoryResource* targetResource = nullptr)
 {
   using std::move;
 
@@ -75,7 +75,7 @@ namespace internal
 {
 
 template <typename I, typename F>
-auto ForEach(I begin, I end, F function)
+auto forEach(I begin, I end, F function)
 {
   using span = gsl::span<const byte>;
   using gsl::narrow_cast;
@@ -104,14 +104,14 @@ auto ForEach(I begin, I end, F function)
 /// Execute user code (e.g. a lambda) on each data block (header-payload pair)
 /// returns the function (same as std::for_each)
 template <typename F>
-auto ForEach(O2Message& parts, F function)
+auto forEach(O2Message& parts, F function)
 {
   if ((parts.Size() % 2) != 0) {
     throw std::invalid_argument(
       "number of parts in message not even (n%2 != 0), cannot be considered an O2 compliant message");
   }
 
-  return internal::ForEach(parts.begin(), parts.end(), function);
+  return internal::forEach(parts.begin(), parts.end(), function);
 }
 
 }; //namespace o2

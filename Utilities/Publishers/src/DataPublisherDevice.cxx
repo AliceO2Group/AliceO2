@@ -122,7 +122,7 @@ void DataPublisherDevice::InitTask()
 
 bool DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
 {
-  o2::Base::ForEach(msgParts, [&](auto header, auto payload) { this->HandleO2LogicalBlock(header.data(), header.size(), payload.data(), payload.size()); });
+  o2::Base::forEach(msgParts, [&](auto header, auto payload) { this->HandleO2LogicalBlock(header.data(), header.size(), payload.data(), payload.size()); });
 
   return true;
 }
@@ -191,7 +191,7 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   // TODO: fix payload size in dh
   auto *buffer = new char[mFileBuffer.size()];
   memcpy(buffer, mFileBuffer.data(), mFileBuffer.size());
-  o2::Base::AddDataBlock(outgoing, dh, NewMessage(buffer, mFileBuffer.size(),
+  o2::Base::addDataBlock(outgoing, dh, NewMessage(buffer, mFileBuffer.size(),
                                                   [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); }, nullptr));
 
   // send message
