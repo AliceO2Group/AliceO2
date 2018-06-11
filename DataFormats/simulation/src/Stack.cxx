@@ -77,6 +77,7 @@ Stack::Stack(const Stack& rhs)
     mStoreSecondaries(rhs.mStoreSecondaries),
     mMinHits(rhs.mMinHits),
     mEnergyCut(rhs.mEnergyCut),
+    mTrackRefs(new std::vector<o2::TrackReference>),
     mIsG4Like(rhs.mIsG4Like)
 {
   LOG(DEBUG) << "copy constructor called" << FairLogger::endl;
