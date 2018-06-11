@@ -370,8 +370,10 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
   {
     if (spec.name.empty())
       throw std::runtime_error("Invalid DataProcessorSpec name");
-    if (validNames.find(spec.name) != validNames.end())
+    if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");
+    }
+    validNames.insert(spec.name);
     for (auto &option : spec.options) {
       if (option.defaultValue.type() != VariantType::Empty &&
           option.type != option.defaultValue.type()) {

@@ -31,6 +31,11 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow) {
     BOOST_CHECK_NO_THROW(WorkflowHelpers::verifyWorkflow(workflow));
   };
 
+  auto checkNotOk = [](WorkflowSpec const &workflow) {
+    // Empty workflows should be invalid.
+    BOOST_CHECK_THROW(WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
+  };
+
   // A non fully specified input is an error, given the result is ambiguous.
   // Completely ambiguous.
   checkIncompleteInput(WorkflowSpec{{"A", {InputSpec{}}}});
@@ -41,6 +46,8 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow) {
   // This is fine, since by default both subSpec == 0 and 
   // Timeframe are assumed.
   checkOk(WorkflowSpec{{"A", {InputSpec{"x", "TST", "A"}}}});
+  // Check for duplicate DataProcessorSpecs names
+  checkNotOk(WorkflowSpec{{"A"}, {"A"}});
 }
 
 BOOST_AUTO_TEST_CASE(TestWorkflowHelpers) {
