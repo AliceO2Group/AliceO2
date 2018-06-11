@@ -16,9 +16,6 @@
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager
 
-#include "TPCBase/Digit.h"
-#include "TPCReconstruction/HwClusterer.h"
-
 ClassImp(o2::TPC::ClustererTask);
 
 using namespace o2::TPC;
@@ -29,24 +26,14 @@ ClustererTask::ClustererTask(int sectorid)
     mIsContinuousReadout(true),
     mEventCount(0),
     mClusterSector(sectorid),
-    mHwClusterer(nullptr),
-    mDigitsArray(nullptr),
-    mDigitMCTruthArray(nullptr),
-    mDummy(nullptr),
-    mHwClustersArray(nullptr),
-    mHwClustersMCTruthArray(nullptr)
+    mHwClusterer(),
+    mDigitsArray(),
+    mDigitMCTruthArray(),
+    mHwClustersArray(),
+    mHwClustersMCTruthArray()
 {
-  // TODO: remove dummy
 }
 
-//_____________________________________________________________________
-ClustererTask::~ClustererTask()
-{
-  LOG(DEBUG) << "Enter Destructor of ClustererTask" << FairLogger::endl;
-  // TODO: remove dummy, then make destructor default
-  if (mDummy)
-    delete mDummy;
-}
 //_____________________________________________________________________
 /// \brief Init function
 /// Inititializes the clusterer and connects input and output container
@@ -85,12 +72,8 @@ InitStatus ClustererTask::Init()
   }
 
   // Register output container
-  // TODO: remove dummy
-  // first register a dummy plain pointer that the dictionary of the vector is found
-  mDummy = new std::vector<ClusterHardwareContainer8kb>();
-  mgr->RegisterAny("dummy", mDummy, kTRUE);
   mHwClustersArray = std::make_shared<std::vector<ClusterHardwareContainer8kb>>();
-  // then using the trick to register the shared pointer with FairRootManager
+  // a trick to register the shared pointer with FairRootManager
   static auto clusterArrayTmpPtr = mHwClustersArray.get();
   mgr->RegisterAny(Form("TPCClusterHW%i", mClusterSector), clusterArrayTmpPtr, kTRUE);
 

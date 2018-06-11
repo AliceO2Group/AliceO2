@@ -18,6 +18,8 @@
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
 
+#include "TPCBase/Digit.h"
+#include "TPCReconstruction/HwClusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -27,9 +29,6 @@
 
 namespace o2 {
 namespace TPC{
-
-class Digit;
-class HwClusterer;
 
 class ClustererTask : public FairTask{
 
@@ -41,7 +40,7 @@ class ClustererTask : public FairTask{
    ClustererTask(int sectorid = -1);
 
    /// Destructor
-   ~ClustererTask();
+   ~ClustererTask() = default;
 
    /// Initializes the clusterer and connects input and output container
    InitStatus Init() override;
@@ -59,16 +58,15 @@ class ClustererTask : public FairTask{
   private:
    bool mIsContinuousReadout; ///< Switch for continuous readout
    int mEventCount;           ///< Event counter
-   int mClusterSector = -1;   ///< Sector to be processed
+   int mClusterSector;        ///< Sector to be processed
 
    std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
 
    // Digit arrays
-   std::unique_ptr<const std::vector<o2::TPC::Digit>> mDigitsArray; ///< Array of TPC digits
-   std::unique_ptr<const MCLabelContainer> mDigitMCTruthArray;      ///< Array for MCTruth information associated to digits in mDigitsArrray
+   std::unique_ptr<const std::vector<Digit>> mDigitsArray;     ///< Array of TPC digits
+   std::unique_ptr<const MCLabelContainer> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
 
    // Cluster arrays
-   std::vector<ClusterHardwareContainer8kb>* mDummy;                           ///< TODO: Dummy pointer to register mHwClustersArray with FairRootManager
    std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
    std::shared_ptr<MCLabelContainer> mHwClustersMCTruthArray;                  ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
