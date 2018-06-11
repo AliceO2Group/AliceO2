@@ -45,8 +45,8 @@ class Clusterer {
    /// \param digits Container with TPC digits
    /// \param mcDigitTruth MC Digit Truth container
    /// \param eventCount event counter
-   virtual void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) = 0;
-   virtual void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount) = 0;
+   virtual void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
+   virtual void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
 
    /// Setter for noise object, noise will be added before cluster finding
    /// \param noiseObject CalDet object, containing noise simulation

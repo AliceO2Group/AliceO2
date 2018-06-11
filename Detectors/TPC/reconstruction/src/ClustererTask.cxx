@@ -104,7 +104,7 @@ void ClustererTask::Exec(Option_t *option)
   if (mHwClustersMCTruthArray)
     mHwClustersMCTruthArray->clear();
 
-  mHwClusterer->Process(*mDigitsArray.get(), *mDigitMCTruthArray.get(), mEventCount);
+  mHwClusterer->Process(*mDigitsArray.get(), mDigitMCTruthArray.get(), mEventCount);
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
              << FairLogger::endl;
 
@@ -121,7 +121,7 @@ void ClustererTask::FinishTask()
   if (mHwClustersMCTruthArray)
     mHwClustersMCTruthArray->clear();
 
-  mHwClusterer->FinishProcess(*mDigitsArray.get(), *mDigitMCTruthArray.get(), mEventCount);
+  mHwClusterer->FinishProcess(*mDigitsArray.get(), mDigitMCTruthArray.get(), mEventCount);
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
              << FairLogger::endl;
 

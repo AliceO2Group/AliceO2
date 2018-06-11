@@ -42,13 +42,13 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   int mTimeBinsPerCall=500;
 
   // ===| output file and container |===========================================
-  std::vector<o2::TPC::Cluster> arrCluster;
+  auto arrCluster = std::make_shared<std::vector<o2::TPC::Cluster>>();
   TFile fout(outputFileName,"recreate");
   TTree t("clusters","clusters");
-  t.Branch("cl", &arrCluster);
+  t.Branch("cl", arrCluster.get());
 
   // ===| cluster finder |======================================================
-  HwClusterer cl(&arrCluster, nullptr);
+  HwClusterer cl(arrCluster, nullptr, 0);
   cl.setPedestalObject(pedestal);
 
   // ===| loop over all data |==================================================
@@ -70,7 +70,7 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
 
     // Review if this copy from digits to arr is still needed? (as it used to be when it was still a TClonesArray)
     float maxTime = 0;
-    std::vector<Digit> arr; 
+    std::vector<Digit> arr;
     for (auto& digi : digits) {
       if (digi.getRow() == 255 && digi.getPad() == 255) continue;
       arr.emplace_back(digi.getCRU(), digi.getChargeFloat(), digi.getRow(), digi.getPad(), digi.getTimeStamp());
@@ -86,8 +86,8 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
     cl.Process(arr,nullptr,events);
     t.Fill();
 
-    printf("Found clusters: %lu\n", arrCluster.size());
-    arrCluster.clear();
+    printf("Found clusters: %lu\n", arrCluster->size());
+    arrCluster->clear();
     ++events;
   }
 

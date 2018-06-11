@@ -145,7 +145,7 @@ BoxClusterer::~BoxClusterer()
 }
 
 //________________________________________________________________________
-void BoxClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount)
+void BoxClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   mClusterArray->clear(); // check this
 
@@ -180,7 +180,7 @@ void BoxClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCon
   }
 }
 
-void BoxClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount)
+void BoxClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
 }
 

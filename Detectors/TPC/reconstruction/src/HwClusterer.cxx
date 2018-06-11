@@ -15,6 +15,7 @@
 #include "TPCBase/Digit.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
+#include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 
 #include "FairLogger.h"
@@ -25,8 +26,9 @@ using namespace o2::TPC;
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
-  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
-  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
+  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutputContainer,
+  std::shared_ptr<std::vector<Cluster>> clusterOutputSimple,
+  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid, bool useClusterHardwareContainerOutput)
   : Clusterer(),
     mClusterSector(sectorid),
     mNumRows(0),
@@ -37,6 +39,7 @@ HwClusterer::HwClusterer(
     mRequireNeighbouringTimebin(false),
     mRequireNeighbouringPad(false),
     mIsContinuousReadout(true),
+    mUseClusterHardwareContainer(useClusterHardwareContainerOutput),
     mPadsPerRow(),
     mGlobalRowToRegion(),
     mGlobalRowToLocalRow(),
@@ -44,8 +47,9 @@ HwClusterer::HwClusterer(
     mIndexBuffer(),
     mMCtruth(),
     mTmpClusterArray(),
-    mClusterArray(clusterOutput),
-    mClusterMcLabelArray(labelOutput)
+    mClusterMcLabelArray(labelOutput),
+    mClusterArray(clusterOutputContainer),
+    mPlainClusterArray(clusterOutputSimple)
 {
   LOG(DEBUG) << "Enter Initializer of HwClusterer" << FairLogger::endl;
   /*
@@ -69,7 +73,7 @@ HwClusterer::HwClusterer(
 
   mTmpClusterArray.resize(10);
   for (unsigned short region = 0; region < 10; ++region) {
-    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<std::shared_ptr<ClusterHardware>, std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>();
+    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<std::unique_ptr<ClusterHardware>, std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>();
   }
 
   mGlobalRowToRegion.resize(mNumRows);
@@ -86,9 +90,29 @@ HwClusterer::HwClusterer(
 }
 
 //______________________________________________________________________________
-void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount)
+HwClusterer::HwClusterer(
+  std::shared_ptr<std::vector<Cluster>> clusterOutput,
+  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
+  : HwClusterer(nullptr, clusterOutput, labelOutput, sectorid, false)
 {
-  mClusterArray->clear();
+}
+
+//______________________________________________________________________________
+HwClusterer::HwClusterer(
+  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
+  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
+  : HwClusterer(clusterOutput, nullptr, labelOutput, sectorid, true)
+{
+}
+
+//______________________________________________________________________________
+void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
+{
+  if (mUseClusterHardwareContainer)
+    mClusterArray->clear();
+  else
+    mPlainClusterArray->clear();
+
   mClusterMcLabelArray->clear();
 
   int digitIndex = 0;
@@ -113,7 +137,10 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
      */
 
     if (digit.getTimeStamp() != mLastTimebin) {
-      mMCtruth[digit.getTimeStamp() % 5] = std::make_unique<MCLabelContainer const>(mcDigitTruth);
+      // we have to copy the MC truth container because we need the information
+      // maybe only in the next events (we store permanently 5 timebins), where
+      // the original pointer could already point to a different container.
+      mMCtruth[digit.getTimeStamp() % 5] = std::make_unique<MCLabelContainer const>(*mcDigitTruth);
 
       /*
        * If the timebin changes, it could change by more then just 1 (not every
@@ -192,7 +219,7 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
 }
 
 //______________________________________________________________________________
-void HwClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const& mcDigitTruth, int eventCount)
+void HwClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
   // Process the last digits (if there are any)
   Process(digits, mcDigitTruth, eventCount);
@@ -349,33 +376,54 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
     if (mTmpClusterArray[region]->size() == 0)
       continue;
 
-    // Create new container
-    mClusterArray->emplace_back();
-    auto clusterContainer = mClusterArray->back().getContainer();
+    if (mUseClusterHardwareContainer) {
+      // Create new container
+      mClusterArray->emplace_back();
+      auto clusterContainer = mClusterArray->back().getContainer();
 
-    // Set meta data
-    clusterContainer->CRU = mClusterSector * 10 + region;
-    clusterContainer->numberOfClusters = 0;
-    clusterContainer->timeBinOffset = timeOffset;
+      // Set meta data
+      clusterContainer->CRU = mClusterSector * 10 + region;
+      clusterContainer->numberOfClusters = 0;
+      clusterContainer->timeBinOffset = timeOffset;
 
-    for (auto& c : *mTmpClusterArray[region]) {
-      // if the container is full, create a new one
-      if (clusterContainer->numberOfClusters == mClusterArray->back().getMaxNumberOfClusters()) {
-        mClusterArray->emplace_back();
-        clusterContainer = mClusterArray->back().getContainer();
-        clusterContainer->CRU = mClusterSector * 10 + region;
-        clusterContainer->numberOfClusters = 0;
-        clusterContainer->timeBinOffset = timeOffset;
+      for (auto& c : *mTmpClusterArray[region]) {
+        // if the container is full, create a new one
+        if (clusterContainer->numberOfClusters == mClusterArray->back().getMaxNumberOfClusters()) {
+          mClusterArray->emplace_back();
+          clusterContainer = mClusterArray->back().getContainer();
+          clusterContainer->CRU = mClusterSector * 10 + region;
+          clusterContainer->numberOfClusters = 0;
+          clusterContainer->timeBinOffset = timeOffset;
+        }
+        // Copy cluster and increment cluster counter
+        clusterContainer->clusters[clusterContainer->numberOfClusters++] = *(c.first);
+        for (auto& mcLabel : *(c.second)) {
+          mClusterMcLabelArray->addElement(clusterCounter, mcLabel.first);
+        }
+        ++clusterCounter;
       }
-      // Copy cluster and increment cluster counter
-      clusterContainer->clusters[clusterContainer->numberOfClusters++] = *(c.first);
-      for (auto& mcLabel : *(c.second)) {
-        mClusterMcLabelArray->addElement(clusterCounter, mcLabel.first);
+      // Clear copied temporary storage
+      mTmpClusterArray[region]->clear();
+    } else {
+      short cru = mClusterSector * 10 + region;
+      for (auto& c : *mTmpClusterArray[region]) {
+        auto& cluster = *(c.first);
+        mPlainClusterArray->emplace_back(
+          cru,
+          cluster.getRow(),
+          cluster.getQTotFloat(),
+          cluster.getQMax(),
+          cluster.getPad(),
+          std::sqrt(cluster.getSigmaPad2()),
+          cluster.getTimeLocal() + timeOffset,
+          std::sqrt(cluster.getSigmaTime2()));
+
+        for (auto& mcLabel : *(c.second)) {
+          mClusterMcLabelArray->addElement(clusterCounter, mcLabel.first);
+        }
+        ++clusterCounter;
       }
-      ++clusterCounter;
     }
-    // Clear copied temporary storage
-    mTmpClusterArray[region]->clear();
   }
 }
 
@@ -426,7 +474,7 @@ void HwClusterer::clearBuffer(unsigned timebin)
 {
   for (unsigned short row = 0; row < mNumRows; ++row) {
     // reset timebin which is not needed anymore
-    // TODO: fill with pedestal/noise instead of 0
+    // TODO: for simulation fill with pedestal/noise instead of 0
     std::fill(mDataBuffer[row].begin() + (timebin % 5) * mPadsPerRow[row],
               mDataBuffer[row].begin() + (timebin % 5) * mPadsPerRow[row] + mPadsPerRow[row] - 1, 0);
     std::fill(mIndexBuffer[row].begin() + (timebin % 5) * mPadsPerRow[row],
