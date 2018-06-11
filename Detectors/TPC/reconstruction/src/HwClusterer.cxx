@@ -69,7 +69,7 @@ HwClusterer::HwClusterer(
 
   mTmpClusterArray.resize(10);
   for (unsigned short region = 0; region < 10; ++region) {
-    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<std::shared_ptr<ClusterHardware>, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>();
+    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<std::shared_ptr<ClusterHardware>, std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>();
   }
 
   mGlobalRowToRegion.resize(mNumRows);
@@ -187,7 +187,7 @@ void HwClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLab
 
 //______________________________________________________________________________
 bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row,
-                                  std::shared_ptr<ClusterHardware> cluster, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>> sortedMcLabels)
+                                  ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& sortedMcLabels)
 {
 
   unsigned qMaxIndex = (center_time % 5) * mPadsPerRow[row] + center_pad;
@@ -308,7 +308,7 @@ bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_tim
     updateCluster(row, center_pad, center_time, +1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
   }
 
-  cluster->setCluster(
+  cluster.setCluster(
     center_pad - 2,    // we have two artificial empty pads "on the left" which needs to be subtracted
     center_time % 447, // the time within a HB
     pad, time,
@@ -319,7 +319,7 @@ bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_tim
     flags);
 
   using vecType = std::pair<MCCompLabel, unsigned>;
-  std::sort(sortedMcLabels->begin(), sortedMcLabels->end(), [](const vecType& a, const vecType& b) { return a.second > b.second; });
+  std::sort(sortedMcLabels.begin(), sortedMcLabels.end(), [](const vecType& a, const vecType& b) { return a.second > b.second; });
 
   return true;
 }
@@ -366,18 +366,18 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
 //______________________________________________________________________________
 void HwClusterer::findClusterForTime(unsigned timebin)
 {
-  auto cluster = std::make_shared<ClusterHardware>();
-  auto sortedMcLabels = std::make_shared<std::vector<std::pair<MCCompLabel, unsigned>>>();
+  auto cluster = std::make_unique<ClusterHardware>();
+  auto sortedMcLabels = std::make_unique<std::vector<std::pair<MCCompLabel, unsigned>>>();
 
   for (unsigned short row = mNumRows; row--;) {
     // two empty pads on the left and right without a cluster peak
     for (unsigned short pad = 2; pad < mPadsPerRow[row] - 2; ++pad) {
-      if (hwClusterFinder(pad, timebin, row, cluster, sortedMcLabels)) {
-        mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(cluster, sortedMcLabels);
+      if (hwClusterFinder(pad, timebin, row, *cluster.get(), *sortedMcLabels.get())) {
+        mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(std::move(cluster), std::move(sortedMcLabels));
 
         // create new empty cluster
-        cluster = std::make_shared<ClusterHardware>();
-        sortedMcLabels = std::make_shared<std::vector<std::pair<MCCompLabel, unsigned>>>();
+        cluster = std::make_unique<ClusterHardware>();
+        sortedMcLabels = std::make_unique<std::vector<std::pair<MCCompLabel, unsigned>>>();
       }
     }
   }
@@ -422,7 +422,7 @@ void HwClusterer::clearBuffer(unsigned timebin)
 void HwClusterer::updateCluster(
   int row, unsigned short center_pad, unsigned center_time, short dp, short dt,
   unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2,
-  std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>> mcLabels)
+  std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels)
 {
 
   // to avoid negative numbers after modulo:
@@ -439,14 +439,14 @@ void HwClusterer::updateCluster(
   if (mMCtruth[(center_time + dt + 5) % 5] != nullptr) {
     for (auto& label : mMCtruth[(center_time + dt + 5) % 5]->getLabels(mIndexBuffer[row][index])) {
       bool isKnown = false;
-      for (auto& vecLabel : *mcLabels) {
+      for (auto& vecLabel : mcLabels) {
         if (label == vecLabel.first) {
           ++vecLabel.second;
           isKnown = true;
         }
       }
       if (!isKnown) {
-        mcLabels->emplace_back(label, 1);
+        mcLabels.emplace_back(label, 1);
       }
     }
   }

@@ -68,11 +68,10 @@ class HwClusterer
 
    /// Setter for noise object, noise will be added before cluster finding
    /// \param noiseObject CalDet object, containing noise simulation
-   void setNoiseObject(std::shared_ptr<CalDet<float>> noiseObject);
+   void setNoiseObject(CalDet<float>* noiseObject);
 
    /// Setter for pedestal object, pedestal value will be subtracted before cluster finding
    /// \param pedestalObject CalDet object, containing pedestals for each pad
-   void setPedestalObject(std::shared_ptr<CalDet<float>> pedestalObject);
    void setPedestalObject(CalDet<float>* pedestalObject);
 
    /// Switch for triggered / continuous readout
@@ -91,7 +90,7 @@ class HwClusterer
    /// \param cluster          Field to store found cluster in
    /// \param sortedMcLabels   Sorted vector with MClabel-counter-pair
    /// \return True if (center_pad,center_time) was a cluster, false if not
-   bool hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row, std::shared_ptr<ClusterHardware> cluster, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>> sortedMcLabels);
+   bool hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& sortedMcLabels);
 
    /// Helper function to update cluster properties and MC labels
    /// \param row          Current row
@@ -105,7 +104,7 @@ class HwClusterer
    /// \param sigmaPad2    Weighted sigma pad ^2 parameter
    /// \param sigmaTime2   Weighted sigma time ^2 parameter
    /// \param mcLabel      Vector with MClabel-counter-pair
-   void updateCluster(int row, unsigned short center_pad, unsigned center_time, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>> mcLabels);
+   void updateCluster(int row, unsigned short center_pad, unsigned center_time, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
 
    /// Writes clusters in temporary storage to cluster output
    /// \param timeOffset   Time offset of cluster container
@@ -144,13 +143,13 @@ class HwClusterer
    std::vector<std::unique_ptr<MCLabelContainer const>> mMCtruth; ///< MC truth information of timebins in buffer
    std::vector<std::pair<MCCompLabel, int>> mMClabel;             ///< Vector to accumulate the MC labels
 
-   std::vector<std::unique_ptr<std::vector<std::pair<std::shared_ptr<ClusterHardware>, std::shared_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>> mTmpClusterArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
+   std::vector<std::unique_ptr<std::vector<std::pair<std::shared_ptr<ClusterHardware>, std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>> mTmpClusterArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
 
    std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mClusterArray; ///< Pointer to output cluster container
    std::shared_ptr<MCLabelContainer> mClusterMcLabelArray;                  ///< Pointer to MC Label container
 
-   std::shared_ptr<CalDet<float>> mNoiseObject;    ///< Pointer to the CalDet object for noise simulation
-   std::shared_ptr<CalDet<float>> mPedestalObject; ///< Pointer to the CalDet object for the pedestal subtraction
+   CalDet<float>* mNoiseObject;    ///< Pointer to the CalDet object for noise simulation
+   CalDet<float>* mPedestalObject; ///< Pointer to the CalDet object for the pedestal subtraction
 };
 
 inline void HwClusterer::setContinuousReadout(bool isContinuous)
@@ -158,20 +157,14 @@ inline void HwClusterer::setContinuousReadout(bool isContinuous)
   mIsContinuousReadout = isContinuous;
 }
 
-inline void HwClusterer::setNoiseObject(std::shared_ptr<CalDet<float>> noiseObject)
+inline void HwClusterer::setNoiseObject(CalDet<float>* noiseObject)
 {
   mNoiseObject = noiseObject;
 }
 
-inline void HwClusterer::setPedestalObject(std::shared_ptr<CalDet<float>> pedestalObject)
-{
-  mPedestalObject = pedestalObject;
-}
-
 inline void HwClusterer::setPedestalObject(CalDet<float>* pedestalObject)
 {
-  LOG(DEBUG) << "Consider using std::shared_ptr for the pedestal object." << FairLogger::endl;
-  mPedestalObject = std::shared_ptr<CalDet<float>>(pedestalObject);
+  mPedestalObject = pedestalObject;
 }
 }
 }
