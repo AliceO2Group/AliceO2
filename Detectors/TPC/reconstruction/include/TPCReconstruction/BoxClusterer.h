@@ -81,15 +81,15 @@ class BoxClusterer : public Clusterer
   /* BoxClusterer(const BoxClusterer &); */
   /* BoxClusterer &operator=(const BoxClusterer &); */
 
-  void FindLocalMaxima(const Int_t iCRU);
-  void CleanArrays();
-  void GetPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin);
-  Int_t Update(const Int_t iCRU, const Int_t iRow, const Int_t iPad,
+  void findLocalMaxima(const Int_t iCRU);
+  void cleanArrays();
+  void getPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin);
+  Int_t update(const Int_t iCRU, const Int_t iRow, const Int_t iPad,
                const Int_t iTimeBin, Float_t signal);
-  Float_t GetQ(const Float_t* adcArray, const Short_t pad,
+  Float_t getQ(const Float_t* adcArray, const Short_t pad,
                const Short_t time, Short_t& timeMin, Short_t& timeMax,
                Short_t& padMin, Short_t& padMax) const;
-  Bool_t UpdateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime,
+  Bool_t updateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime,
                        Float_t& qTotal, Double_t& meanPad,
                        Double_t& sigmaPad, Double_t& meanTime,
                        Double_t& sigmaTime);

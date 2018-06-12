@@ -164,28 +164,29 @@ void BoxClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCon
 //  }
     if(iCRU != lastCRU) {
       if(nSignals>0) {
-        FindLocalMaxima(lastCRU);
-        CleanArrays();
+        findLocalMaxima(lastCRU);
+        cleanArrays();
       }
       lastCRU = iCRU;
       nSignals = 0;
     } //else { // add signal to array
-    Update(iCRU, iRow, iPad, iTimeBin, charge);
+    update(iCRU, iRow, iPad, iTimeBin, charge);
     ++nSignals;
   }
   // processing of last CRU
   if(nSignals>0) {
-    FindLocalMaxima(iCRU);
-    CleanArrays();
+    findLocalMaxima(iCRU);
+    cleanArrays();
   }
 }
 
+//________________________________________________________________________
 void BoxClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
 }
 
 //_____________________________________________________________________
-void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
+void BoxClusterer::findLocalMaxima(const Int_t iCRU)
 {
   /// This method is called after the data from each CRU has been
   /// exapanded into an array
@@ -272,8 +273,8 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
           if( dPad==0 && dTime==0 ) // central pad
             continue;
 
-          Float_t charge = GetQ(qArray, dPad, dTime, minT, maxT, minP, maxP);
-          UpdateCluster(charge, dPad, dTime, qTot,
+          Float_t charge = getQ(qArray, dPad, dTime, minT, maxT, minP, maxP);
+          updateCluster(charge, dPad, dTime, qTot,
                         meanP, sigmaP, meanT, sigmaT);
 
           if( !mRequirePositiveCharge || charge>0 ) {
@@ -282,20 +283,20 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
             if(dPad*dTime==0) { // we are above/below or to the sides
                                 // (dPad, dTime) = (+-1, 0), or (0, +-1)
                                 // so we only have 1 neighbor
-              charge = GetQ(qArray, 2*dPad, 2*dTime, minT, maxT, minP, maxP);
-              UpdateCluster(charge, 2*dPad, 2*dTime, qTot,
-                            meanP, sigmaP, meanT, sigmaT);
+                                charge = getQ(qArray, 2 * dPad, 2 * dTime, minT, maxT, minP, maxP);
+                                updateCluster(charge, 2 * dPad, 2 * dTime, qTot,
+                                              meanP, sigmaP, meanT, sigmaT);
             } else { // we are in a diagonal corner so we have 3 neighbors
                      // (dPad, dTime) = (+-1, +-1), or (+-1, -+1)
-              charge = GetQ(qArray,   dPad, 2*dTime, minT, maxT, minP, maxP);
-              UpdateCluster(charge,   dPad, 2*dTime, qTot,
-                            meanP, sigmaP, meanT, sigmaT);
-              charge = GetQ(qArray, 2*dPad,   dTime, minT, maxT, minP, maxP);
-              UpdateCluster(charge, 2*dPad,   dTime, qTot,
-                            meanP, sigmaP, meanT, sigmaT);
-              charge = GetQ(qArray, 2*dPad, 2*dTime, minT, maxT, minP, maxP);
-              UpdateCluster(charge, 2*dPad, 2*dTime, qTot,
-                            meanP, sigmaP, meanT, sigmaT);
+                     charge = getQ(qArray, dPad, 2 * dTime, minT, maxT, minP, maxP);
+                     updateCluster(charge, dPad, 2 * dTime, qTot,
+                                   meanP, sigmaP, meanT, sigmaT);
+                     charge = getQ(qArray, 2 * dPad, dTime, minT, maxT, minP, maxP);
+                     updateCluster(charge, 2 * dPad, dTime, qTot,
+                                   meanP, sigmaP, meanT, sigmaT);
+                     charge = getQ(qArray, 2 * dPad, 2 * dTime, minT, maxT, minP, maxP);
+                     updateCluster(charge, 2 * dPad, 2 * dTime, qTot,
+                                   meanP, sigmaP, meanT, sigmaT);
             }
           }
         }
@@ -310,13 +311,13 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
         sigmaP = TMath::Sqrt(sigmaP - meanP*meanP);
         sigmaT = TMath::Sqrt(sigmaT - meanT*meanT);
         Short_t pad, timebin;
-        GetPadAndTimeBin(bin, pad, timebin);
+        getPadAndTimeBin(bin, pad, timebin);
         meanP += pad;
         meanT += timebin;
         Short_t nPad = maxP-minP+1;
         Short_t nTimeBins = maxT-minT+1;
         Short_t size = 10*nPad+nTimeBins;
-        Cluster* cluster = ClusterContainer::AddCluster<Cluster>(mClusterArray, iCRU, iRow, qTot, qMax, meanP, meanT,sigmaP, sigmaT);
+        Cluster* cluster = ClusterContainer::addCluster<Cluster>(mClusterArray, iCRU, iRow, qTot, qMax, meanP, meanT, sigmaP, sigmaT);
 
         //    if ((iCRU == 179)) {// && iRow == 5)){// && (int)meanP == 103 && (int)meanT == 170) ||
         ////        (iCRU == 256 && iRow == 10 && (int)meanP == 27 && (int)meanT == 181) ) {
@@ -339,7 +340,7 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 }
 
 //_____________________________________________________________________
-void BoxClusterer::CleanArrays()
+void BoxClusterer::cleanArrays()
 {
   // here it might be faster to do a memset for very large datasets
 
@@ -358,7 +359,7 @@ void BoxClusterer::CleanArrays()
 }
 
 //_____________________________________________________________________
-void BoxClusterer::GetPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin)
+void BoxClusterer::getPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin)
 {
   /// Return pad and timebin for a given bin
   //  (where bin = (iPad+2)*(mTimeBinsMax+4) + (iTimeBin+2)
@@ -372,7 +373,7 @@ void BoxClusterer::GetPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin)
 }
 
 //_____________________________________________________________________
-Int_t BoxClusterer::Update(const Int_t iCRU,
+Int_t BoxClusterer::update(const Int_t iCRU,
                            const Int_t iRow,
                            const Int_t iPad,
                            const Int_t iTimeBin,
@@ -411,7 +412,7 @@ Int_t BoxClusterer::Update(const Int_t iCRU,
 
 
 //______________________________________________________________________________
-Float_t BoxClusterer::GetQ(const Float_t* adcArray,
+Float_t BoxClusterer::getQ(const Float_t* adcArray,
                            const Short_t pad, const Short_t time,
                            Short_t& timeMin, Short_t& timeMax,
                            Short_t& padMin, Short_t& padMax) const
@@ -431,7 +432,7 @@ Float_t BoxClusterer::GetQ(const Float_t* adcArray,
 }
 
 //________________________________________________________________________
-Bool_t BoxClusterer::UpdateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime, Float_t& qTotal, Double_t& meanPad, Double_t& sigmaPad, Double_t& meanTime, Double_t& sigmaTime)
+Bool_t BoxClusterer::updateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime, Float_t& qTotal, Double_t& meanPad, Double_t& sigmaPad, Double_t& meanTime, Double_t& sigmaTime)
 {
   if(mRequirePositiveCharge && charge <=0)
     return kFALSE;
