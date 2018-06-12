@@ -44,7 +44,7 @@ class HwClusterer : public Clusterer
   HwClusterer(
     std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutputContainer,
     std::shared_ptr<std::vector<Cluster>> clusterOutputSimple,
-    std::shared_ptr<MCLabelContainer> labelOutput, int sectorid, bool useClusterHardwareContainerOutput);
+    std::shared_ptr<MCLabelContainer> labelOutput, int sectorid);
 
  public:
   /// Constructor
@@ -144,7 +144,6 @@ class HwClusterer : public Clusterer
   bool mRequireNeighbouringTimebin;      ///< Switch to disable single time cluster
   bool mRequireNeighbouringPad;          ///< Switch to disable single pad cluster
   bool mIsContinuousReadout;             ///< Switch for continuous readout
-  bool mUseClusterHardwareContainer;     ///< Using the ClusterHardware container as output
 
   std::vector<unsigned short> mPadsPerRow;                       ///< Number of pads for given row (offset of 2 pads on both sides is already added)
   std::vector<unsigned short> mGlobalRowToRegion;                ///< Mapping global row number to region

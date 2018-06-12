@@ -28,7 +28,7 @@ using namespace o2::TPC;
 HwClusterer::HwClusterer(
   std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutputContainer,
   std::shared_ptr<std::vector<Cluster>> clusterOutputSimple,
-  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid, bool useClusterHardwareContainerOutput)
+  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
   : Clusterer(),
     mClusterSector(sectorid),
     mNumRows(0),
@@ -39,7 +39,6 @@ HwClusterer::HwClusterer(
     mRequireNeighbouringTimebin(false),
     mRequireNeighbouringPad(false),
     mIsContinuousReadout(true),
-    mUseClusterHardwareContainer(useClusterHardwareContainerOutput),
     mPadsPerRow(),
     mGlobalRowToRegion(),
     mGlobalRowToLocalRow(),
@@ -93,7 +92,7 @@ HwClusterer::HwClusterer(
 HwClusterer::HwClusterer(
   std::shared_ptr<std::vector<Cluster>> clusterOutput,
   std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
-  : HwClusterer(nullptr, clusterOutput, labelOutput, sectorid, false)
+  : HwClusterer(nullptr, clusterOutput, labelOutput, sectorid)
 {
 }
 
@@ -101,16 +100,16 @@ HwClusterer::HwClusterer(
 HwClusterer::HwClusterer(
   std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
   std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
-  : HwClusterer(clusterOutput, nullptr, labelOutput, sectorid, true)
+  : HwClusterer(clusterOutput, nullptr, labelOutput, sectorid)
 {
 }
 
 //______________________________________________________________________________
 void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
 {
-  if (mUseClusterHardwareContainer)
+  if (mClusterArray)
     mClusterArray->clear();
-  else
+  if (mPlainClusterArray)
     mPlainClusterArray->clear();
 
   mClusterMcLabelArray->clear();
@@ -139,8 +138,11 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
     if (digit.getTimeStamp() != mLastTimebin) {
       // we have to copy the MC truth container because we need the information
       // maybe only in the next events (we store permanently 5 timebins), where
-      // the original pointer could already point to a different container.
-      mMCtruth[digit.getTimeStamp() % 5] = std::make_unique<MCLabelContainer const>(*mcDigitTruth);
+      // the original pointer could already point to the next container.
+      if (mcDigitTruth)
+        mMCtruth[digit.getTimeStamp() % 5] = std::make_unique<MCLabelContainer const>(*mcDigitTruth);
+      else
+        mMCtruth[digit.getTimeStamp() % 5] = std::unique_ptr<MCLabelContainer const>(nullptr);
 
       /*
        * If the timebin changes, it could change by more then just 1 (not every
@@ -225,7 +227,7 @@ void HwClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLab
   Process(digits, mcDigitTruth, eventCount);
 
   // Search in last remaining timebins
-  finishFrame();
+  finishFrame(false);
 }
 
 //______________________________________________________________________________
@@ -376,7 +378,7 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
     if (mTmpClusterArray[region]->size() == 0)
       continue;
 
-    if (mUseClusterHardwareContainer) {
+    if (mClusterArray) {
       // Create new container
       mClusterArray->emplace_back();
       auto clusterContainer = mClusterArray->back().getContainer();
@@ -402,9 +404,7 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
         }
         ++clusterCounter;
       }
-      // Clear copied temporary storage
-      mTmpClusterArray[region]->clear();
-    } else {
+    } else if (mPlainClusterArray) {
       short cru = mClusterSector * 10 + region;
       for (auto& c : *mTmpClusterArray[region]) {
         auto& cluster = *(c.first);
@@ -424,6 +424,9 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
         ++clusterCounter;
       }
     }
+
+    // Clear copied temporary storage
+    mTmpClusterArray[region]->clear();
   }
 }
 

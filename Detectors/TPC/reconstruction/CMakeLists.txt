@@ -93,6 +93,7 @@ set(TEST_SRCS
   test/testTPCSyncPatternMonitor.cxx
   test/testTPCAdcClockMonitor.cxx
   test/testTPCCATracking.cxx
+  test/testTPCHwClusterer.cxx
 )
 
 O2_GENERATE_TESTS(
