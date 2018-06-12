@@ -143,8 +143,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         const auto sname = sectorchannelname->operator[](d);
         const auto lname = labelchannelname->operator[](d);
 
-        auto sectorptr = pc.inputs().get<int>(sname.c_str());
-        const int sector = *sectorptr.get();
+        const int sector = pc.inputs().get<int>(sname.c_str());
         LOG(INFO) << "GOT DIGITS FOR SECTOR " << sector;
 
         if (sector < 0) {
@@ -168,7 +167,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
           }
 
           // the labels
-          auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(lname.c_str());
+          auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>(lname.c_str());
           auto labeldataRaw = labeldata.get();
           LOG(INFO) << "MCTRUTH ELEMENTS " << labeldataRaw->getNElements();
           if (labeldataRaw->getNElements() != digits->size()) {

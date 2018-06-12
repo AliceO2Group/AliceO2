@@ -202,7 +202,7 @@ class RootTreeWriter
     constexpr static size_t Index = N - 1;
     process<Index>(context);
     using ElementT = typename element<Index>::type;
-    auto data = context.inputs().get<ElementT>(mBranchSpecs[Index].key.c_str());
+    auto data = context.inputs().get<ElementT*>(mBranchSpecs[Index].key.c_str());
     // could either copy to the corresponding store variable or use the object
     // directly. TBranch::SetAddress supports only non-const pointers, so this is
     // a hack

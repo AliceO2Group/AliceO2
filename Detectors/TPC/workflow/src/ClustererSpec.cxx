@@ -45,7 +45,7 @@ DataProcessorSpec getClustererSpec()
 
     auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
       auto inDigits = pc.inputs().get<std::vector<o2::TPC::Digit>>("digits");
-      auto inMCLabels = pc.inputs().get<MCLabelContainer>("mclabels");
+      auto inMCLabels = pc.inputs().get<MCLabelContainer*>("mclabels");
 
       LOG(INFO) << "processing " << inDigits.size() << " digit object(s)";
       clusterArray->clear();
