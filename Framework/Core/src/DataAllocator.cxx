@@ -50,8 +50,8 @@ DataAllocator::matchDataHeader(const Output& spec, size_t timeslice) {
   }
   std::ostringstream str;
   str << "Worker is not authorised to create message with "
-      << "origin(" << spec.origin.str << ")"
-      << "description(" << spec.description.str << ")"
+      << "origin(" << spec.origin.as<std::string>() << ")"
+      << "description(" << spec.description.as<std::string>() << ")"
       << "subSpec(" << spec.subSpec << ")";
   throw std::runtime_error(str.str());
 }

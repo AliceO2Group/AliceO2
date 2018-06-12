@@ -51,7 +51,7 @@ DataProcessorSpec getTimeoutSpec()
   // a timer process to terminate the workflow after a timeout
   auto processingFct = [](ProcessingContext& pc) {
     static int counter = 0;
-    pc.outputs().snapshot(Output{ "TST", "TIMER", 0, Lifetime::Timeframe }, counter);
+    pc.outputs().snapshot(Output{ "TEST", "TIMER", 0, Lifetime::Timeframe }, counter);
 
     sleep(1);
     if (counter++ > 10) {
@@ -62,7 +62,7 @@ DataProcessorSpec getTimeoutSpec()
 
   return DataProcessorSpec{ "timer",  // name of the processor
                             Inputs{}, // inputs empty
-                            { OutputSpec{ "TST", "TIMER", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ "TEST", "TIMER", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(processingFct) };
 }
 
@@ -96,7 +96,7 @@ DataProcessorSpec getSourceSpec()
   };
 
   return DataProcessorSpec{ "source", // name of the processor
-                            { InputSpec{ "timer", "TST", "TIMER", 0, Lifetime::Timeframe } },
+                            { InputSpec{ "timer", "TEST", "TIMER", 0, Lifetime::Timeframe } },
                             { OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },

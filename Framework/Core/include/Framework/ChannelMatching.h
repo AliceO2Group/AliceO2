@@ -37,8 +37,8 @@ struct PhysicalChannel {
 
 inline LogicalChannel outputSpec2LogicalChannel(const OutputSpec &spec) {
   auto name = std::string("out_") +
-              spec.origin.str + "_" +
-              spec.description.str + "_" +
+              spec.origin.as<std::string>() + "_" +
+              spec.description.as<std::string>() + "_" +
               std::to_string(spec.subSpec);
   return LogicalChannel{name};
 }
@@ -50,7 +50,7 @@ inline PhysicalChannel outputSpec2PhysicalChannel(const OutputSpec &spec, int co
 }
 
 inline LogicalChannel inputSpec2LogicalChannelMatcher(const InputSpec &spec) {
-  auto name = std::string("out_") + spec.origin.str + "_" + spec.description.str + "_" + std::to_string(spec.subSpec);
+  auto name = std::string("out_") + spec.origin.as<std::string>() + "_" + spec.description.as<std::string>() + "_" + std::to_string(spec.subSpec);
   return LogicalChannel{name};
 }
 

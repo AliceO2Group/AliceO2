@@ -204,8 +204,8 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
   auto errorDueToMissingOutputFor = [&workflow](size_t ci, size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
-    str << "No matching output found for " << input.origin.str << " "
-        << input.description.str << " "
+    str << "No matching output found for " << input.origin.as<std::string>() << " "
+        << input.description.as<std::string>() << " "
         << input.subSpec << "\n";
     throw std::runtime_error(str.str());
   };

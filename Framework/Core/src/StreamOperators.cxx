@@ -19,7 +19,7 @@ namespace framework
 std::ostream& operator<<(std::ostream& stream, o2::framework::InputSpec const& arg)
 {
   // FIXME: should have stream operators for the header fields
-  stream << arg.binding << " {" << arg.origin.str << ":" << arg.description.str << ":" << arg.subSpec << "}";
+  stream << arg.binding << " {" << arg.origin.as<std::string>() << ":" << arg.description.as<std::string>() << ":" << arg.subSpec << "}";
   return stream;
 }
 
