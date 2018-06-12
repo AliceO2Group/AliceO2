@@ -118,8 +118,15 @@ class O2SimDevice : public FairMQDevice
     LOG(INFO) << "Setting up the simulation ...";
     o2sim_init(true);
     FairSystemInfo sysinfo;
-    LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
+
+    // to finish initialization (trigger further cross section table building etc) -- which especially
+    // G4 is doing at the first ProcessRun
+    // The goal is to have everything setup before we fork
+    TVirtualMC::GetMC()->ProcessRun(0);
+
+    LOG(INFO) << "MEM-STAMP END OF SIM INIT" << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
               << sysinfo.GetMaxMemory() << " MB\n";
+
     return true;
   }
 
