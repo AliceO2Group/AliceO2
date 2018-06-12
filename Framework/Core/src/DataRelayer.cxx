@@ -162,6 +162,8 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // simply store the payload in the cache and we mark relevant bit in the
   // hence the first if.
   auto pruneCacheSlotFor = [&cache, &numInputTypes, &timeslices, &metrics](int64_t timeslice) {
+    assert(cache.empty() == false);
+    assert(timeslices.size() * numInputTypes == cache.size());
     size_t slotIndex = timeslice % timeslices.size();
     // Prune old stuff from the cache, hopefully deleting it...
     // We set the current slot to the timeslice value, so that old stuff
@@ -363,6 +365,7 @@ DataRelayer::setPipelineLength(size_t s) {
   mTimeslices.resize(s, INVALID_TIMESLICE_ID);
   mDirty.resize(mTimeslices.size(), false);
   auto numInputTypes = countDistinctTypes(mInputRoutes);
+  assert(numInputTypes);
   mCache.resize(numInputTypes * mTimeslices.size());
   mMetrics.send({ (int)numInputTypes, "data_relayer/h" });
   mMetrics.send({ (int)mTimeslices.size(), "data_relayer/w" });
