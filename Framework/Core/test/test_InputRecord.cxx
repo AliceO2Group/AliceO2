@@ -138,11 +138,11 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   //
   // *static_cast<int const *>(record.get("x").payload);
   //
-  BOOST_CHECK_EQUAL(*record.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(*record.get<int>("y"), 2);
+  BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(record.get<int>("y"), 2);
   // A few more time just to make sure we are not stateful..
-  BOOST_CHECK_EQUAL(*record.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(*record.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
+  BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
 }
 
 

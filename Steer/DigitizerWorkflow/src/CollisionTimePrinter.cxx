@@ -47,7 +47,7 @@ DataProcessorSpec getCollisionTimePrinter(int channel)
     auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
     LOG(INFO) << "PAYLOAD SIZE " << header->payloadSize;
 
-    const auto context = pc.inputs().get<o2::steer::RunContext>("input");
+    const auto context = pc.inputs().get<o2::steer::RunContext*>("input");
     //    auto view = DataRefUtils::as<o2::MCInteractionRecord>(dataref);
     auto view = context->getEventRecords();
     LOG(INFO) << "GOT " << view.size() << "times";
