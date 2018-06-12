@@ -25,6 +25,7 @@
 #include <Generators/GeneratorFromFile.h>
 #include <SimConfig/SimConfig.h>
 #include <typeinfo>
+#include <thread>
 
 namespace o2
 {
@@ -45,6 +46,14 @@ class O2PrimaryServerDevice : public FairMQDevice
   ~O2PrimaryServerDevice() final = default;
 
  protected:
+  void initGenerator()
+  {
+    auto& conf = o2::conf::SimConfig::Instance();
+    o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
+    mPrimGen.SetEvent(&mEventHeader);
+    mPrimGen.Init();
+  }
+
   void InitTask() final
   {
     LOG(INFO) << "Init Server device ";
@@ -62,9 +71,10 @@ class O2PrimaryServerDevice : public FairMQDevice
 
     mMaxEvents = conf.getNEvents();
 
-    o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
-    mPrimGen.SetEvent(&mEventHeader);
-    mPrimGen.Init();
+    // lunch initialization of particle generator asynchronously
+    // so that we reach the RUNNING state of the server quickly
+    // and do not block here
+    mGeneratorInitThread = std::thread(&O2PrimaryServerDevice::initGenerator, this);
   }
 
   // method reacting to requests to get the simulation configuration
@@ -106,13 +116,15 @@ class O2PrimaryServerDevice : public FairMQDevice
       return true;
     }
 
+    // we only need the initialized generator at this moment
+    if (mGeneratorInitThread.joinable()) {
+      mGeneratorInitThread.join();
+    }
+
     static int counter = 0;
     if (counter >= mMaxEvents && mNeedNewEvent) {
       return false;
     }
-
-    //bool t=true;
-    //while(t){}
 
     LOG(INFO) << "Received request for work ";
     if (mNeedNewEvent) {
@@ -176,6 +188,8 @@ class O2PrimaryServerDevice : public FairMQDevice
   int mPartCounter = 0;
   bool mNeedNewEvent = true;
   int mMaxEvents = 2;
+
+  std::thread mGeneratorInitThread; //! a thread used to concurrently init the particle generator
 };
 
 } // namespace devices
