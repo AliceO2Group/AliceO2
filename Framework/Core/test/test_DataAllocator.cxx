@@ -149,21 +149,21 @@ DataProcessorSpec getSinkSpec()
 
     // container of objects
     auto object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
-    ASSERT_ERROR(object4.size() == 2);
-    ASSERT_ERROR(object4[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR(object4[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object4->size() == 2);
+    ASSERT_ERROR((*object4)[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR((*object4)[1] == o2::test::Polymorphic(0xd00f));
 
     // container of objects
     auto object5 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input5");
-    ASSERT_ERROR(object5.size() == 2);
-    ASSERT_ERROR(object5[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR(object5[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object5->size() == 2);
+    ASSERT_ERROR((*object5)[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR((*object5)[1] == o2::test::Polymorphic(0xd00f));
 
     // container of objects
     auto object6 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input6");
-    ASSERT_ERROR(object6.size() == 2);
-    ASSERT_ERROR(object6[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR(object6[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object6->size() == 2);
+    ASSERT_ERROR((*object6)[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR((*object6)[1] == o2::test::Polymorphic(0xd00f));
 
     // checking retrieving buffer as raw char*, and checking content by cast
     auto rawchar = pc.inputs().get<const char*>("input1");
