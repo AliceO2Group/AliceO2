@@ -51,7 +51,7 @@ struct TrackingParameters {
   int NumberOfIterations();
 
   /// General parameters
-  bool ClusterSharing = false;
+  int ClusterSharing = 0;
   std::vector<int> MinTrackLength = { 7 };
   /// Trackleting cuts
   std::vector<float> TrackletMaxDeltaPhi = { 0.3f };

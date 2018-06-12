@@ -274,7 +274,7 @@ void to_json(nlohmann::json& j, const TrackingParameters& par)
 
 void from_json(const nlohmann::json& j, TrackingParameters& par)
 {
-  par.ClusterSharing = j.at("ClusterSharing").get<bool>();
+  par.ClusterSharing = j.at("ClusterSharing").get<int>();
   par.MinTrackLength = j.at("MinTrackLength").get<std::vector<int>>();
   par.TrackletMaxDeltaPhi = j.at("TrackletMaxDeltaPhi").get<std::vector<float>>();
   par.TrackletMaxDeltaZ = j.at("TrackletMaxDeltaZ").get<std::vector<std::array<float, Constants::ITS::TrackletsPerRoad>>>();
