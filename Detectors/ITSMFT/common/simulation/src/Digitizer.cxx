@@ -49,25 +49,31 @@ void Digitizer::init()
 }
 
 //_______________________________________________________________________
-void Digitizer::process()
+void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 {
   // digitize single event, the time must have been set beforehand
+
+  LOG(INFO) << "Digitizing ITS hits of entry " << evID << " from source " << srcID << " at time "
+            << mEventTime + mParams.getTimeOffset() << " (TOff.= " << mParams.getTimeOffset()
+            << " ROFrame= " << mNewROFrame << ")"
+            << " cont.mode: " << isContinuous()
+            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << FairLogger::endl;
 
   // is there something to flush ?
   if (mNewROFrame > mROFrameMin) {
     fillOutputContainer(mNewROFrame - 1); // flush out all frame preceding the new one
   }
 
-  int nHits = mHits->size();
+  int nHits = hits->size();
   std::vector<int> hitIdx(nHits);
   std::iota(std::begin(hitIdx), std::end(hitIdx), 0);
   // sort hits to improve memory access
   std::sort(hitIdx.begin(), hitIdx.end(),
-            [&](auto lhs, auto rhs) {
-              return (*mHits)[lhs].GetDetectorID() < (*mHits)[rhs].GetDetectorID();
+            [hits](auto lhs, auto rhs) {
+              return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
   for (int i : hitIdx) {
-    processHit((*mHits)[i], mROFrameMax);
+    processHit((*hits)[i], mROFrameMax, evID, srcID);
   }
   // in the triggered mode store digits after every MC event
   // TODO: in the real triggered mode this will not be needed, this is actually for the
@@ -80,10 +86,8 @@ void Digitizer::process()
 //_______________________________________________________________________
 void Digitizer::setEventTime(double t)
 {
-  // assign event time, it should be in a strictly increasing order
-  // convert to ns
-  mEventTime = t * mCoeffToNanoSecond;
-
+  // assign event time in ns
+  mEventTime = t;
   // to randomize the RO phase wrt the event time we use a random offset
   if (mParams.isContinuous()) {       // in continuous mode we set the offset only in the very beginning
     if (!mParams.isTimeOffsetSet()) { // offset is initially at -inf
@@ -108,11 +112,6 @@ void Digitizer::setEventTime(double t)
   if (mNewROFrame < mROFrameMin) {
     LOG(FATAL) << "New ROFrame (time=" << t << ") precedes currently cashed " << mROFrameMin << FairLogger::endl;
   }
-
-  LOG(INFO) << "Digitizing ITS event at time " << t << " (TOffset= " << mParams.getTimeOffset()
-            << " ROFrame= " << mNewROFrame << ")"
-            << " cont.mode: " << isContinuous()
-            << " current Min/Max RO Frames " << mROFrameMin << "/" << mROFrameMax << FairLogger::endl;
 
   if (mParams.isContinuous() && mROFrameMax < mNewROFrame) {
     mROFrameMax = mNewROFrame - 1; // all frames up to this are finished
@@ -169,29 +168,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
 }
 
 //_______________________________________________________________________
-void Digitizer::setCurrSrcID(int v)
-{
-  // set current MC source ID
-  if (v > MCCompLabel::maxSourceID()) {
-    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID()
-               << FairLogger::endl;
-  }
-  mCurrSrcID = v;
-}
-
-//_______________________________________________________________________
-void Digitizer::setCurrEvID(int v)
-{
-  // set current MC event ID
-  if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID()
-               << FairLogger::endl;
-  }
-  mCurrEvID = v;
-}
-
-//_______________________________________________________________________
-void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr)
+void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
 
@@ -320,7 +297,7 @@ void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr)
   }
 
   // fire the pixels assuming Poisson(n_response_electrons)
-  o2::MCCompLabel lbl(hit.GetTrackID(), mCurrEvID, mCurrSrcID);
+  o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID);
   auto& chip = mChips[hit.GetDetectorID()];
   for (int irow = rowSpan; irow--;) {
     UShort_t rowIS = irow + rowS;
