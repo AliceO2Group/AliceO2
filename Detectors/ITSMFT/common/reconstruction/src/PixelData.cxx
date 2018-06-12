@@ -20,5 +20,6 @@ using namespace o2::ITSMFT;
 void PixelData::sanityCheck() const
 {
   // make sure the mask used in this class are compatible with Alpide segmenations
-  static_assert(RowMask + 1 >= o2::ITSMFT::SegmentationAlpide::NRows);
+  static_assert(RowMask + 1 >= o2::ITSMFT::SegmentationAlpide::NRows,
+                "incompatible mask, does not match Alpide segmentations");
 }
