@@ -15,7 +15,6 @@
 using namespace o2::fit;
 
 ClassImp(o2::fit::RecPoints);
-ClassImp(o2::fit::Channel);
 
 //void RecPoints::FillFromDigits(const std::vector<Digit>& digits)
 void RecPoints::FillFromDigits(const Digit* digit)
@@ -40,7 +39,7 @@ void RecPoints::FillFromDigits(const Digit* digit)
     Int_t mcp = d.ChId;
     cfd[mcp] = d.CFDTime;
     amp[mcp] = d.QTCAmpl;
-    mTimeAmp.push_back(Channel{ mcp, cfd[mcp], amp[mcp] });
+    mTimeAmp.push_back(ChannelData{ mcp, cfd[mcp], amp[mcp] });
   }
 
   for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {

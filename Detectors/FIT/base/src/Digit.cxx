@@ -14,6 +14,7 @@
 using namespace o2::fit;
 
 ClassImp(o2::fit::Digit);
+ClassImp(o2::fit::ChannelData);
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)
 {

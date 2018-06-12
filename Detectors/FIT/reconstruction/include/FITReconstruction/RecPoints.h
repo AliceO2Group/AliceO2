@@ -11,18 +11,13 @@ namespace o2
 {
 namespace fit
 {
-struct Channel {
-  Int_t index;
-  Float_t time, amp;
-  ClassDefNV(Channel, 1);
-};
 class RecPoints
 {
  public:
   RecPoints() = default;
   RecPoints(const std::array<Float_t, 3>& collisiontime,
             Float_t vertex,
-            std::vector<Channel> timeamp)
+            std::vector<ChannelData> timeamp)
     : mCollisionTime(collisiontime),
       mVertex(vertex),
       mTimeAmp(std::move(timeamp))
@@ -41,7 +36,7 @@ class RecPoints
  private:
   std::array<Float_t, 3> mCollisionTime;
   Float_t mVertex = 0;
-  std::vector<Channel> mTimeAmp;
+  std::vector<ChannelData> mTimeAmp;
 
   ClassDefNV(RecPoints, 1);
 };

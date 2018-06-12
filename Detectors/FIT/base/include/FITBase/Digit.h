@@ -22,15 +22,15 @@ namespace o2
 namespace fit
 {
 
-struct ChannelDigitData {
-//    ChannelDigitData(Int_t chid, Float_t cfdtime, Float_t qtcampl) :
-//        ChId(chid), CFDTime(cfdtime), QTCAmpl(qtcampl) {}
-//~ChannelDigitData() {}
+struct ChannelData {
+  //    ChannelDigitData(Int_t chid, Float_t cfdtime, Float_t qtcampl) :
+  //        ChId(chid), CFDTime(cfdtime), QTCAmpl(qtcampl) {}
+  //~ChannelDigitData() {}
 
   Int_t ChId; //channel Id
   Float_t CFDTime; //time in ns, 0 at lhc clk center
   Float_t QTCAmpl; // Amplitude in mips
-  ClassDefNV(ChannelDigitData, 1);
+  ClassDefNV(ChannelData, 1);
 };
 
 /// \class Digit
@@ -41,8 +41,13 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(std::vector<ChannelDigitData> ChDgDataArr, Double_t time, Int_t bc, Bool_t IsA, Bool_t IsC, Bool_t IsCnt, Bool_t IsSCnt, Bool_t IsVrtx)
-  {setChDgData(ChDgDataArr); setTime(time); setBC(bc); setTriggers(IsA, IsC, IsCnt, IsSCnt, IsVrtx); }
+  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Bool_t IsA, Bool_t IsC, Bool_t IsCnt, Bool_t IsSCnt, Bool_t IsVrtx)
+  {
+    setChDgData(std::move(ChDgDataArr));
+    setTime(time);
+    setBC(bc);
+    setTriggers(IsA, IsC, IsCnt, IsSCnt, IsVrtx);
+  }
 
   ~Digit() = default;
 
@@ -61,9 +66,9 @@ class Digit : public DigitBase
   void setTriggers(Bool_t IsA, Bool_t IsC, Bool_t IsCnt, Bool_t IsSCnt, Bool_t IsVrtx)
   {mIsA = IsA; mIsC = IsC; mIsCentral = IsCnt; mIsSemiCentral = IsSCnt; mIsVertex = IsVrtx;}
 
-  std::vector<ChannelDigitData> getChDgData() const {return mChDgDataArr; }
-  void setChDgData(std::vector<ChannelDigitData> ChDgDataArr) {mChDgDataArr = ChDgDataArr;}
-
+  const std::vector<ChannelData>& getChDgData() const { return mChDgDataArr; }
+  void setChDgData(const std::vector<ChannelData>& ChDgDataArr) { mChDgDataArr = ChDgDataArr; }
+  void setChDgData(std::vector<ChannelData>&& ChDgDataArr) { mChDgDataArr = std::move(ChDgDataArr); }
 
   void printStream(std::ostream& stream) const
   {
@@ -87,8 +92,7 @@ class Digit : public DigitBase
   Bool_t mIsSemiCentral;
   Bool_t mIsVertex;
 
-  std::vector<ChannelDigitData> mChDgDataArr;
-
+  std::vector<ChannelData> mChDgDataArr;
 
   ClassDefNV(Digit, 1);
 };

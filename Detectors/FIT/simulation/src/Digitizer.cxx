@@ -39,7 +39,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   constexpr Double_t C_side_cable_cmps = 2.8; //ns
   constexpr Double_t A_side_cable_cmps = 11.; //ns
   constexpr Double_t signal_width = 5.; // time gate for signal, ns
-  constexpr Double_t nPe_in_mip = 400.; // n ph. e. in one mip
+  constexpr Double_t nPe_in_mip = 250.; // n ph. e. in one mip
   constexpr Double_t CFD_trsh_mip = 0.4; // = 4[mV] / 10[mV/mip]
   constexpr Double_t time_trg_gate = 4.; // ns
 
@@ -54,12 +54,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   Double_t digit_bc = mEventID;
   Int_t nClk = floor(mEventTime/BC_clk);
   Double_t BCEventTime = mEventTime - BC_clk*nClk;
-
-
-
-
-
-
 
   // Counting photo-electrons, mean time --------------------------------------
   Int_t ch_hit_nPe[nMCPs] = {};
@@ -87,11 +81,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 
   }
   // --------------------------------------------------------------------------
-
-
-
-
-
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
   Double_t ch_signal_nPe[nMCPs] = {};
@@ -186,37 +175,26 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   // --------------------------------------------------------------------------
 
 
-
-
-
   //fillig digit
   digit->setTime(digit_timeframe);
   digit->setBC(mEventID);
   digit->setTriggers(Is_A, Is_C, Is_Central, Is_SemiCentral, Is_Vertex);
 
-  std::vector<ChannelDigitData> mChDgDataArr;
-    for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
-    {
-
-	if (ch_signal_MIP[ch_iter] > 0.)
-	    mChDgDataArr.emplace_back( ChannelDigitData{ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter]} );
+  std::vector<ChannelData> mChDgDataArr;
+  for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
+    if (ch_signal_MIP[ch_iter] > 0.)
+      mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter] });
     }
-  digit->setChDgData(mChDgDataArr);
+    digit->setChDgData(std::move(mChDgDataArr));
 
+    // Debug output -------------------------------------------------------------
+    LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
 
+    LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
+    LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << " Time dif AC " << TimeDiffAC << FairLogger::endl;
 
-
-
-
-  // Debug output -------------------------------------------------------------
-  LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
-
-  LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
-  LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << " Time dif AC " << TimeDiffAC << FairLogger::endl;
-
-  LOG(DEBUG) << "nMCP : :IsA : hit nPe : hit mTime : sig nPe : sig mTime" << FairLogger::endl;
-  for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
-  {
+    LOG(DEBUG) << "nMCP : :IsA : hit nPe : hit mTime : sig nPe : sig mTime" << FairLogger::endl;
+    for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
       Bool_t is_A_side = (ch_iter <= 4 * Geometry::NCellsA);
       if(ch_hit_nPe[ch_iter] > 0)
       LOG(DEBUG) << ch_iter << " : " << is_A_side << " : " << ch_hit_nPe[ch_iter] << " : " << ch_hit_mean_time[ch_iter] << " : "

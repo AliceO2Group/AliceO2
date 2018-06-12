@@ -16,6 +16,5 @@
 
 #pragma link C++ class o2::fit::CollisionTimeRecoTask+;
 #pragma link C++ class o2::fit::RecPoints+;
-#pragma link C++ class o2::fit::Channel+;
 
 #endif
