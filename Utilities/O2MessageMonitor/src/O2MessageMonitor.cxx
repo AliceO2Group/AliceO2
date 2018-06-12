@@ -67,7 +67,7 @@ void O2MessageMonitor::Run()
 
     // maybe send a request
     if (type == "req") {
-      addDataBlock(message, { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 } },
+      addDataBlock(message, { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
                    NewSimpleMessageFor("data", 0, mPayload));
       Send(message, "data");
       message.fParts.clear();
@@ -85,7 +85,7 @@ void O2MessageMonitor::Run()
     // maybe a reply message
     if (type == "rep") {
       o2::Base::addDataBlock(message,
-                             { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 } },
+                             { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
                              NewSimpleMessageFor("data", 0, ""));
       Send(message, "data");
     }
