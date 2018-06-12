@@ -16,7 +16,9 @@
 int updateITSinGRP(std::string inputGRP, std::string grpName = "GRP");
 
 void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std::string inputfile = "o2sim.root",
-                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root")
+                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root",
+                  std::string inputfileQED = "", // "o2sim_QED.root" // optional QED hits file
+                  float timebinQEDns = 1000)     // each entry of QED hits file corresponds to as many nanoseconds
 {
   // if rate>0 then continuous simulation for this rate will be performed
 
@@ -62,6 +64,24 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
   digi->getDigiParams().setNoisePerPixel(1.e-7); // noise level
   // <<===
 
+  //-------------- do we have QED digits file provided ?
+  TFile* qedHitsFile = nullptr;
+  if (!inputfileQED.empty()) {
+    qedHitsFile = TFile::Open(inputfileQED.data());
+    if (!qedHitsFile || qedHitsFile->IsZombie()) {
+      LOG(FATAL) << "Failed to open QED file " << inputfileQED << FairLogger::endl;
+    }
+    TTree* qedTree = (TTree*)qedHitsFile->Get("o2sim");
+    if (!qedTree) {
+      LOG(FATAL) << "No o2sim tree in QED file " << inputfileQED << FairLogger::endl;
+    }
+    TBranch* qedBranch = qedTree->GetBranch("ITSHit");
+    if (!qedBranch) {
+      LOG(FATAL) << "No ITSHit branch in the QED hits tree of file " << inputfileQED << FairLogger::endl;
+    }
+    digi->setQEDInput(qedBranch, timebinQEDns, 99); // the QED is assigned source ID = 99
+  }
+
   digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
   fRun->AddTask(digi);
 
@@ -95,6 +115,11 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
   std::cout << "Output file is " << outputfile << std::endl;
   // std::cout << "Parameter file is " << parFile << std::endl;
   std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+
+  if (qedHitsFile) {
+    qedHitsFile->Close();
+    delete qedHitsFile;
+  }
 }
 
 int updateITSinGRP(std::string inputGRP, std::string grpName)

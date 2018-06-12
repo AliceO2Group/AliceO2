@@ -49,17 +49,23 @@ class Digitizer : public TObject
   Digitizer(const Digitizer&) = delete;
   Digitizer& operator=(const Digitizer&) = delete;
 
-  void setHits(const std::vector<Hit>* hits) { mHits = hits; }
   void setDigits(std::vector<o2::ITSMFT::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
+
+  o2::ITSMFT::DigiParams& getParams() { return (o2::ITSMFT::DigiParams&)mParams; }
+  const o2::ITSMFT::DigiParams& getParams() const { return mParams; }
 
   void init();
 
   /// Steer conversion of hits to digits
-  void process();
-  void processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr);
+  void process(const std::vector<Hit>* hits, int evID, int srcID);
   void setEventTime(double t);
   double getEventTime() const { return mEventTime; }
+  double getEndTimeOfROFMax() const
+  {
+    ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
+    return mParams.getROFrameLength() * (mROFrameMax + 1) + mParams.getTimeOffset();
+  }
 
   void setContinuous(bool v) { mParams.setContinuous(v); }
   bool isContinuous() const { return mParams.isContinuous(); }
@@ -68,19 +74,11 @@ class Digitizer : public TObject
   void setDigiParams(const o2::ITSMFT::DigiParams& par) { mParams = par; }
   const o2::ITSMFT::DigiParams& getDigitParams() const { return mParams; }
 
-  void setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
-  double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
-
-  int getCurrSrcID() const { return mCurrSrcID; }
-  int getCurrEvID() const { return mCurrEvID; }
-
-  void setCurrSrcID(int v);
-  void setCurrEvID(int v);
-
   // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
 
  private:
+  void processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, int srcID);
   void registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
                       UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl);
 
@@ -98,13 +96,10 @@ class Digitizer : public TObject
 
   o2::ITSMFT::DigiParams mParams;  ///< digitization parameters
   double mEventTime = 0;           ///< global event time
-  double mCoeffToNanoSecond = 1.0; ///< coefficient to convert event time (Fair) to ns
   bool mContinuous = false;        ///< flag for continuous simulation
   UInt_t mROFrameMin = 0;          ///< lowest RO frame of current digits
   UInt_t mROFrameMax = 0;          ///< highest RO frame of current digits
   UInt_t mNewROFrame = 0;          ///< ROFrame corresponding to provided time
-  int mCurrSrcID = 0;              ///< current MC source from the manager
-  int mCurrEvID = 0;               ///< current event ID from the manager
 
   std::unique_ptr<o2::ITSMFT::AlpideSimResponse> mAlpSimResp; // simulated response
 
@@ -113,7 +108,6 @@ class Digitizer : public TObject
   std::vector<o2::ITSMFT::ChipDigitsContainer> mChips; ///< Array of chips digits containers
   std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
 
-  const std::vector<Hit>* mHits = nullptr;                                 //! input hits
   std::vector<o2::ITSMFT::Digit>* mDigits = nullptr;                       //! output digits
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
 
