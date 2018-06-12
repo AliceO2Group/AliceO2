@@ -346,7 +346,7 @@ template <bool IsGPU>
 void Tracker<IsGPU>::findRoads(int& iteration)
 {
   for (int iLevel{ Constants::ITS::CellsPerRoad }; iLevel >= mTrkParams.CellMinimumLevel(iteration); --iLevel) {
-    int nRoads = -mPrimaryVertexContext.getRoads().size();
+    CA_DEBUGGER(int nRoads = -mPrimaryVertexContext.getRoads().size());
     const int minimumLevel{ iLevel - 1 };
 
     for (int iLayer{ Constants::ITS::CellsPerRoad - 1 }; iLayer >= minimumLevel; --iLayer) {
@@ -393,7 +393,10 @@ void Tracker<IsGPU>::findRoads(int& iteration)
         // currentCell.setLevel(0);
       }
     }
+#ifdef CA_DEBUG
     nRoads += mPrimaryVertexContext.getRoads().size();
+    std::cout << "+++ Roads with " << iLevel + 2 << " clusters: " << nRoads << " / " << mPrimaryVertexContext.getRoads().size() << std::endl;
+#endif
   }
 }
 
@@ -403,9 +406,18 @@ void Tracker<IsGPU>::findTracks(const Event& event)
   mPrimaryVertexContext.getTracks().reserve(mPrimaryVertexContext.getTracks().capacity() + mPrimaryVertexContext.getRoads().size());
   std::vector<TrackITS> tracks;
   tracks.reserve(mPrimaryVertexContext.getRoads().size());
+#ifdef CA_DEBUG
+  std::array<int, 4> roadCounters{ 0, 0, 0, 0 };
+  std::array<int, 4> fitCounters{ 0, 0, 0, 0 };
+  std::array<int, 4> backpropagatedCounters{ 0, 0, 0, 0 };
+  std::array<int, 4> refitCounters{ 0, 0, 0, 0 };
+  std::array<int, 4> nonsharingCounters{ 0, 0, 0, 0 };
+#endif
   for (auto& road : mPrimaryVertexContext.getRoads()) {
-    std::array<int, 7> clusters{ Constants::ITS::UnusedIndex };
+    std::array<int, 7> clusters{ Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex, Constants::ITS::UnusedIndex };
     int lastCellLevel = Constants::ITS::UnusedIndex;
+    CA_DEBUGGER(int nClusters = 2);
+
     for (int iCell{ 0 }; iCell < Constants::ITS::CellsPerRoad; ++iCell) {
       const int cellIndex = road[iCell];
       if (cellIndex == Constants::ITS::UnusedIndex) {
@@ -414,9 +426,17 @@ void Tracker<IsGPU>::findTracks(const Event& event)
         clusters[iCell] = mPrimaryVertexContext.getCells()[iCell][cellIndex].getFirstClusterIndex();
         clusters[iCell + 1] = mPrimaryVertexContext.getCells()[iCell][cellIndex].getSecondClusterIndex();
         clusters[iCell + 2] = mPrimaryVertexContext.getCells()[iCell][cellIndex].getThirdClusterIndex();
+        assert(clusters[iCell] != Constants::ITS::UnusedIndex &&
+               clusters[iCell + 1] != Constants::ITS::UnusedIndex &&
+               clusters[iCell + 2] != Constants::ITS::UnusedIndex);
         lastCellLevel = iCell;
+        CA_DEBUGGER(nClusters++);
       }
     }
+
+    assert(nClusters >= mTrkParams.MinTrackLength[0]);
+    CA_DEBUGGER(roadCounters[nClusters - 4]++);
+
     if (lastCellLevel == Constants::ITS::UnusedIndex)
       continue;
 
@@ -441,33 +461,64 @@ void Tracker<IsGPU>::findTracks(const Event& event)
     bool fitSuccess = fitTrack(event, temporaryTrack, Constants::ITS::LayersNumber - 4, -1, -1);
     if (!fitSuccess)
       continue;
+    CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
     fitSuccess = fitTrack(event, temporaryTrack, 0, Constants::ITS::LayersNumber, 1);
     if (!fitSuccess)
       continue;
+    CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
     fitSuccess = fitTrack(event, temporaryTrack, Constants::ITS::LayersNumber - 1, -1, -1);
     if (!fitSuccess)
       continue;
+    CA_DEBUGGER(refitCounters[nClusters - 4]++);
     temporaryTrack.setROFrame(mROFrame);
     tracks.emplace_back(temporaryTrack);
+    assert(nClusters == temporaryTrack.getNumberOfClusters());
   }
 
   std::sort(tracks.begin(), tracks.end(),
             [](TrackITS& track1, TrackITS& track2) { return track1.isBetter(track2, 1.e6f); });
 
+#ifdef CA_DEBUG
+  std::array<int, 26> sharingMatrix{ 0 };
+  int prevNclusters = 7;
+  auto cumulativeIndex = [](int ncl) -> int {
+    constexpr int idx[5] = { 0, 5, 11, 18, 26 };
+    return idx[ncl - 4];
+  };
+  std::array<int, 4> xcheckCounters{ 0 };
+#endif
+
   for (auto& track : tracks) {
-    bool sharingCluster = false;
+    CA_DEBUGGER(int nClusters = 0);
+    int nShared = 0;
     for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
       if (track.getClusterIndex(iLayer) == Constants::ITS::UnusedIndex) {
         continue;
       }
-      sharingCluster |= mPrimaryVertexContext.isClusterUsed(iLayer, track.getClusterIndex(iLayer));
+      nShared += int(mPrimaryVertexContext.isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
+      CA_DEBUGGER(nClusters++);
     }
-    if (sharingCluster) {
+
+#ifdef CA_DEBUG
+    assert(nClusters == track.getNumberOfClusters());
+    xcheckCounters[nClusters - 4]++;
+    assert(nShared <= nClusters);
+    sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
+#endif
+
+    if (nShared > mTrkParams.ClusterSharing) {
       continue;
     }
+
+#ifdef CA_DEBUG
+    nonsharingCounters[nClusters - 4]++;
+    assert(nClusters <= prevNclusters);
+    prevNclusters = nClusters;
+#endif
+
     for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
       if (track.getClusterIndex(iLayer) == Constants::ITS::UnusedIndex) {
         continue;
@@ -476,6 +527,49 @@ void Tracker<IsGPU>::findTracks(const Event& event)
     }
     mPrimaryVertexContext.getTracks().emplace_back(track);
   }
+
+#ifdef CA_DEBUG
+  std::cout << "+++ Found candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : roadCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Fitted candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : fitCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Backprop candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : backpropagatedCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Refitted candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : refitCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Cross check counters for 4, 5, 6 and 7 clusters:\t";
+  for (size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
+    std::cout << xcheckCounters[iCount] << "\t";
+    //assert(refitCounters[iCount] == xcheckCounters[iCount]);
+  }
+  std::cout << std::endl;
+
+  std::cout << "+++ Nonsharing candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : nonsharingCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Sharing matrix:\n";
+  for (int iCl = 4; iCl <= 7; ++iCl) {
+    std::cout << "+++ ";
+    for (int iSh = cumulativeIndex(iCl); iSh < cumulativeIndex(iCl + 1); ++iSh) {
+      std::cout << sharingMatrix[iSh] << "\t";
+    }
+    std::cout << std::endl;
+  }
+#endif
 }
 
 template <bool IsGPU>
