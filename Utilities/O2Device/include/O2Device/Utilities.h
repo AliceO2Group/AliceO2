@@ -81,7 +81,7 @@ namespace internal
 {
 
 template <typename I, typename F>
-auto forEach(I begin, I end, F function)
+auto forEach(I begin, I end, F&& function)
 {
   using span = gsl::span<const byte>;
   using gsl::narrow_cast;
@@ -110,14 +110,14 @@ auto forEach(I begin, I end, F function)
 /// Execute user code (e.g. a lambda) on each data block (header-payload pair)
 /// returns the function (same as std::for_each)
 template <typename F>
-auto forEach(O2Message& parts, F function)
+auto forEach(O2Message& parts, F&& function)
 {
   if ((parts.Size() % 2) != 0) {
     throw std::invalid_argument(
       "number of parts in message not even (n%2 != 0), cannot be considered an O2 compliant message");
   }
 
-  return internal::forEach(parts.begin(), parts.end(), function);
+  return internal::forEach(parts.begin(), parts.end(), std::forward<F>(function));
 }
 
 }; //namespace o2
