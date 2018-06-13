@@ -159,7 +159,9 @@ class O2HitMerger : public FairMQDevice
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
       LOG(INFO) << "EVERYTHING IS HERE FOR EVENT " << info.eventID << "\n";
-      if (info.eventID == info.maxEvents) {
+      mEventChecksum += info.eventID;
+      // we also need to check if we have all events
+      if (isDataComplete<uint32_t>(mEventChecksum, info.maxEvents)) {
         return false;
       }
     }
@@ -172,6 +174,7 @@ class O2HitMerger : public FairMQDevice
   TFile* mOutFile;  //!
   TTree* mOutTree;  //!
   int mEntries = 0; //! counts the number of entries in the branches
+  int mEventChecksum = 0; //! checksum for events
   TStopwatch mTimer;
 
   std::vector<std::unique_ptr<o2::Base::Detector>> mDetectorInstances;

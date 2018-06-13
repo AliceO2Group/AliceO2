@@ -147,7 +147,7 @@ class O2SimDevice : public FairMQDevice
     mVMCApp->setSimDataChannel(&dataoutchannel);
 
     LOG(INFO) << "Requesting work ";
-    int timeoutinMS = 2000; // wait for 2s max
+    int timeoutinMS = 10000; // wait for 10s max -- we should have a more robust solution
     if (requestchannel.Send(request, timeoutinMS) >= 0) {
       LOG(INFO) << "Waiting for answer ";
       // asking for primary generation
