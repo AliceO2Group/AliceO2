@@ -52,7 +52,7 @@ if (HAVESIMULATION)
   #  COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C)
   add_test(NAME o2sim_G3
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant3)
+  COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim -n 2 -m PIPE ITS TPC MCH TOF EMC PHS -e TGeant3)
   set_tests_properties(o2sim_G3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully"
                                            ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR} FIXTURES_SETUP G3) 
   
