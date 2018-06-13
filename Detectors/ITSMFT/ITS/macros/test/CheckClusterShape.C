@@ -22,8 +22,6 @@
 using o2::ITSMFT::SegmentationAlpide;
 using o2::ITSMFT::Digit;
 using namespace o2::ITS;
-GeometryTGeo *gman;
-
 
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -201,14 +199,13 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freq
 //////////////////////////////////////////
 
 
-void CheckClusterShape() {
+void CheckClusterShape(std::string digifile = "o2digi_its.root", std::string inputGeom = "O2geometry.root") {
   // Geometry
-  TFile *file = TFile::Open("AliceO2_TGeant3.params_10.root");
-  gFile->Get("FairGeoParSet");
-  gman = new GeometryTGeo(kTRUE);
+  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  auto* gman = o2::ITS::GeometryTGeo::Instance();
 
   // Digits
-  TFile *file1 = TFile::Open("AliceO2_TGeant3.digi_10_event.root");
+  TFile *file1 = TFile::Open(digifile.data());
   TTree *digTree=(TTree*)gFile->Get("o2sim");
   std::vector<o2::ITSMFT::Digit> *digArr = nullptr;
   digTree->SetBranchAddress("ITSDigit",&digArr);

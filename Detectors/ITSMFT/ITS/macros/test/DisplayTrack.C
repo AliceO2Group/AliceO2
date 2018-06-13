@@ -26,7 +26,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event = 0, Int_t track = 0)
+void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root",  std::string inputGeom = "O2geometry.root")
 {
   using namespace o2::Base;
   using namespace o2::ITS;
@@ -34,7 +34,6 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   using o2::ITSMFT::Cluster;
   using o2::ITSMFT::Hit;
 
-  char filename[100];
   TFile* f = nullptr;
 
   if (gEve == nullptr) {
@@ -43,10 +42,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
 
   // Load geometry
   if (gGeoManager == nullptr) {
-    sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
-    f = TFile::Open(filename);
-    f->Get("FairGeoParSet");
-    f->Close();
+    o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   }
 
   gGeoManager->GetVolume("obSuppCyl")->SetInvisible();
@@ -85,8 +81,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   */
 
   // Hits
-  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
-  f = TFile::Open(filename);
+  f = TFile::Open(hitfile.data());
   TTree* tree = (TTree*)gDirectory->Get("o2sim");
 
   string s{ "event" };
@@ -115,8 +110,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event 
   f->Close();
 
   // Clusters
-  sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
-  f = TFile::Open(filename);
+  f = TFile::Open(clusfile.data());
   tree = (TTree*)gDirectory->Get("o2sim");
 
   s = "event";
@@ -170,8 +164,7 @@ found:
   f->Close();
 
   // Track
-  sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
-  f = TFile::Open(filename);
+  f = TFile::Open(tracfile.data());
   tree = (TTree*)gDirectory->Get("o2sim");
 
   s = "event";

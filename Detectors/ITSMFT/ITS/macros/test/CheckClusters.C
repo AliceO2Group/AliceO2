@@ -18,7 +18,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
   using namespace o2::Base;
   using namespace o2::ITS;
@@ -29,30 +29,24 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   TFile* f = TFile::Open("CheckClusters.root", "recreate");
   TNtuple* nt = new TNtuple("ntc", "cluster ntuple", "x:y:z:dx:dz:lab:rof:ev:hlx:hlz:clx:clz");
 
-  char filename[100];
-
   // Geometry
-  sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
-  TFile* file = TFile::Open(filename);
-  gFile->Get("FairGeoParSet");
-
+  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
   // Hits
-  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file0 = TFile::Open(filename);
+  TFile* file0 = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
-  std::vector<Hit>* hitArray = nullptr;
+  std::vector<o2::ITSMFT::Hit>* hitArray = nullptr;
   hitTree->SetBranchAddress("ITSHit", &hitArray);
 
   // Clusters
-  sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file1 = TFile::Open(filename);
+  TFile* file1 = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
   std::vector<Cluster>* clusArr = nullptr;
   clusTree->SetBranchAddress("ITSCluster", &clusArr);
+
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
@@ -105,9 +99,8 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
           dx = locH.X() - locC.X();
           dz = locH.Z() - locC.Z();
         }
+        nt->Fill(gloC.X(), gloC.Y(), gloC.Z(), dx, dz, trID, c.getROFrame(), ievC, locH.X(), locH.Z(), locC.X(), locC.Z());
       }
-      nt->Fill(gloC.X(), gloC.Y(), gloC.Z(), dx, dz, trID, c.getROFrame(), ievC, locH.X(), locH.Z(), locC.X(),
-               locC.Z());
     }
   }
   new TCanvas;
@@ -118,3 +111,4 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   nt->Write();
   f->Close();
 }
+

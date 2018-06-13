@@ -21,7 +21,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #endif
 
-void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root")
 {
   using namespace o2::ITSMFT;
   using namespace o2::ITS;
@@ -37,11 +37,8 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
                             "mcPt:recPt:"
                             "ipD:ipZ:label");
 
-  char filename[100];
-
   // MC tracks
-  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file0 = TFile::Open(filename);
+  TFile* file0 = TFile::Open(hitfile.data());
   TTree* mcTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::MCTrack>* mcArr = nullptr;
   mcTree->SetBranchAddress("MCTrack", &mcArr);
@@ -49,8 +46,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   mcTree->SetBranchAddress("TrackRefs", &mcTrackRefs);
 
   // Clusters
-  sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
-  TFile::Open(filename);
+  TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
   std::vector<Cluster>* clusArr = nullptr;
   auto* branch = clusTree->GetBranch("ITSCluster");
@@ -64,8 +60,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
 
   // Reconstructed tracks
-  sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file1 = TFile::Open(filename);
+  TFile* file1 = TFile::Open(tracfile.data());
   TTree* recTree = (TTree*)gFile->Get("o2sim");
   std::vector<TrackITS>* recArr = nullptr;
   recTree->SetBranchAddress("ITSTrack", &recArr);

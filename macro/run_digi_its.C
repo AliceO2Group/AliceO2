@@ -15,7 +15,7 @@
 
 int updateITSinGRP(std::string inputGRP, std::string grpName = "GRP");
 
-void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std::string inputfile = "o2sim.root",
+void run_digi_its(float rate = 50e3, std::string outputfile = "o2digi_its.root", std::string inputfile = "o2sim.root",
                   std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root",
                   std::string inputfileQED = "", // "o2sim_QED.root" // optional QED hits file
                   float timebinQEDns = 1000)     // each entry of QED hits file corresponds to as many nanoseconds
@@ -151,12 +151,3 @@ int updateITSinGRP(std::string inputGRP, std::string grpName)
   return 0;
 }
 
-void run_digi_its(Int_t nEvents, TString mcEngine, Float_t rate)
-{
-  // Input and output file name
-  std::stringstream inputfile, outputfile, paramfile;
-  inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
-  paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
-  outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
-  run_digi_its(rate, outputfile.str().c_str(), inputfile.str().c_str(), paramfile.str().c_str(), "");
-}

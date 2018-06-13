@@ -26,7 +26,7 @@
 
 #endif
 
-void CheckTopologies(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
 {
   using namespace o2::Base;
   using namespace o2::ITS;
@@ -36,27 +36,20 @@ void CheckTopologies(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   using o2::ITSMFT::ClusterTopology;
   using o2::ITSMFT::Hit;
 
-  char filename[100];
-
   // Geometry
-  sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
-  TFile* file = TFile::Open(filename);
-  gFile->Get("FairGeoParSet");
-
+  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
   // Hits
-  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file0 = TFile::Open(filename);
+  TFile* file0 = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
   std::vector<Hit>* hitArray = nullptr;
   hitTree->SetBranchAddress("ITSHit", &hitArray);
 
   // Clusters
-  sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
-  TFile* file1 = TFile::Open(filename);
+  TFile* file1 = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
   std::vector<Cluster>* clusArr = nullptr;
   clusTree->SetBranchAddress("ITSCluster", &clusArr);
