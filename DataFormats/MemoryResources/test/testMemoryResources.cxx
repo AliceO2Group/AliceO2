@@ -149,5 +149,23 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
     std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{ allocSHM });
   }
 }
+
+BOOST_AUTO_TEST_CASE(adoptVector_test)
+{
+  //Create a bogus message
+  auto message = factoryZMQ->CreateMessage(3 * sizeof(testData));
+  auto messageAddr = message.get();
+  testData tmpBuf[3] = { 3, 2, 1 };
+  std::memcpy(message->GetData(), tmpBuf, 3 * sizeof(testData));
+
+  auto adoptedOwner = adoptVector<testData>(3, getTransportAllocator(factoryZMQ.get()), std::move(message));
+  BOOST_CHECK(adoptedOwner[0].i == 3);
+  BOOST_CHECK(adoptedOwner[1].i == 2);
+  BOOST_CHECK(adoptedOwner[2].i == 1);
+
+  auto reclaimedMessage = getMessage(std::move(adoptedOwner));
+  BOOST_CHECK(reclaimedMessage.get() == messageAddr);
+  BOOST_CHECK(adoptedOwner.size() == 0);
+}
 };
 };
