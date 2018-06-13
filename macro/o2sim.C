@@ -141,8 +141,8 @@ FairRunSim* o2sim_init(bool asservice)
 
   // extract max memory usage for init
   FairSystemInfo sysinfo;
-  std::cout << "Init: Real time " << rtime << " s, CPU time " << ctime << "s\n";
-  std::cout << "Init: Memory used " << sysinfo.GetMaxMemory() << " MB\n";
+  LOG(INFO) << "Init: Real time " << rtime << " s, CPU time " << ctime << "s";
+  LOG(INFO) << "Init: Memory used " << sysinfo.GetMaxMemory() << " MB";
 
   return run;
 }
@@ -168,10 +168,9 @@ void o2sim_run(FairRunSim* run, bool asservice)
   // extract max memory usage
   FairSystemInfo sysinfo;
 
-  std::cout << "\n\n";
-  std::cout << "Macro finished succesfully.\n";
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s\n";
-  std::cout << "Memory used " << sysinfo.GetMaxMemory() << " MB\n";
+  LOG(INFO) << "Macro finished succesfully.";
+  LOG(INFO) << "Real time " << rtime << " s, CPU time " << ctime << "s";
+  LOG(INFO) << "Memory used " << sysinfo.GetMaxMemory() << " MB";
 }
 
 // asservice: in a parallel device-based context?
@@ -179,4 +178,5 @@ void o2sim(bool asservice = false)
 {
   auto run = o2sim_init(asservice);
   o2sim_run(run, asservice);
+  delete run;
 }
