@@ -58,7 +58,6 @@ class O2MCApplication : public FairMCApplication
   void FinishRun();
 
   void attachSubEventInfo(FairMQParts&, o2::Data::SubEventInfo const& info) const;
-  void attachMCTracks(FairMQParts&) const;
 
   /** Generate primary particles */
   void GeneratePrimaries() override

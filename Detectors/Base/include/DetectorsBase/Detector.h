@@ -220,6 +220,17 @@ void attachMetaMessage(T secret, FairMQChannel& channel, FairMQParts& parts)
   parts.AddPart(std::move(message));
 }
 
+template <typename T>
+TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
+{
+  if (auto br = tree.GetBranch(brname)) {
+    br->SetAddress(static_cast<void*>(&ptr));
+    return br;
+  }
+  // otherwise make it
+  return tree.Branch(brname, ptr);
+}
+
 // an implementation helper template which automatically implements
 // common functionality for deriving classes via the CRT pattern
 // (example: it implements the updateHitTrackIndices function and avoids
@@ -263,17 +274,6 @@ class DetImpl : public o2::Base::Detector
     while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
       attachTMessage(*hits, channel, parts);
     }
-  }
-
-  template <typename T>
-  TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
-  {
-    if (auto br = tree.GetBranch(brname)) {
-      br->SetAddress(static_cast<void*>(&ptr));
-      return br;
-    }
-    // otherwise make it
-    return tree.Branch(brname, ptr);
   }
 
   void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) override
