@@ -135,6 +135,17 @@ class O2HitMerger : public FairMQDevice
     }
   }
 
+  template <typename T>
+  void consumeData(std::string name, FairMQParts& data, int& index)
+  {
+    auto decodeddata = o2::Base::decodeTMessage<T*>(data, index);
+    auto br = o2::Base::getOrMakeBranch(*mOutTree, name.c_str(), &decodeddata);
+    br->SetAddress(&decodeddata);
+    br->Fill();
+    br->ResetAddress();
+    index++;
+  }
+
   bool handleSimData(FairMQParts& data, int /*index*/)
   {
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
@@ -148,10 +159,10 @@ class O2HitMerger : public FairMQDevice
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
     // auto totalsize = insertAdd<uint32_t, size_t>(mITSTotalSize, info.eventID, itshits.size());
 
-    // consumeMCTracks(data);
-    // consumeTrackReferences();
-    // indices 0 and 1 are MCData and TrackRef
-    int index = 2;
+    int index = 1;
+    consumeData<std::vector<o2::MCTrack>>("MCTrack", data, index);
+    consumeData<std::vector<o2::TrackReference>>("TrackRefs", data, index);
+    consumeData<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", data, index);
     while (index < data.Size()) {
       consumeHits(data, index);
     }
