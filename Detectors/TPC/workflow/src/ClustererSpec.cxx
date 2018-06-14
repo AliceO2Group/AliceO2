@@ -18,8 +18,6 @@
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "DataFormatsTPC/Cluster.h"
-#include "DataFormatsTPC/Helpers.h"
-#include "DataFormatsTPC/ClusterHardware.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <FairMQLogger.h>
@@ -41,20 +39,18 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 DataProcessorSpec getClustererSpec()
 {
   auto initFunction = [](InitContext& ic) {
-    auto clusterArray = std::make_shared<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+    auto clusterArray = std::make_shared<std::vector<o2::TPC::Cluster>>();
     auto mctruthArray = std::make_shared<MCLabelContainer>();
     auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray, mctruthArray);
 
     auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
-      auto inDigits = std::make_unique<const std::vector<o2::TPC::Digit>>(
-        pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits"));
-      auto inMCLabels = std::unique_ptr<const MCLabelContainer>(
-        pc.inputs().get<const MCLabelContainer>("mclabels"));
+      auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");
+      auto inMCLabels = pc.inputs().get<const MCLabelContainer*>("mclabels");
 
-      LOG(INFO) << "processing " << inDigits->size() << " digit object(s)";
+      LOG(INFO) << "processing " << inDigits.size() << " digit object(s)";
       clusterArray->clear();
       mctruthArray->clear();
-      clusterer->Process(*inDigits.get(), inMCLabels.get(), 1);
+      clusterer->Process(inDigits, inMCLabels.get(), 1);
       LOG(INFO) << "clusterer produced " << clusterArray->size() << " cluster(s)";
       pc.outputs().snapshot(OutputRef{ "clusters" }, *clusterArray.get());
       pc.outputs().snapshot(OutputRef{ "clusterlbl" }, *mctruthArray.get());
