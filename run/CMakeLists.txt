@@ -68,4 +68,26 @@ if (HAVESIMULATION)
     COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C)
   set_tests_properties(checksimkinematics_G3 PROPERTIES FIXTURES_REQUIRED G3 
                                                         ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+
+# testing the parallel simulation
+  add_test(NAME o2sim_parallel_G4_forked
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMAND ${CMAKE_BINARY_DIR}/bin/o2sim_parallel -n 2 -m PIPE ITS TPC TRD TOF EMC PHS -e TGeant4 -g pythia8)
+  set_tests_properties(o2sim_parallel_G4_forked PROPERTIES PASS_REGULAR_EXPRESSION "Merger process"
+                                           ENVIRONMENT VMCWORKDIR=${CMAKE_SOURCE_DIR}
+                                           FIXTURES_SETUP G4PARA
+                                           )
+  # we need to append more environment setting like this
+  set_property(TEST o2sim_parallel_G4_forked
+               APPEND PROPERTY ENVIRONMENT ALICE_NSIMWORKERS=1)
+  set_property(TEST o2sim_parallel_G4_forked
+               APPEND PROPERTY ENVIRONMENT ALICE_SIMINTERNALFORK=ON)
+
+  add_test(NAME checksimkinematics_G4PARA
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMAND root -n -b -l -q ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C)
+  set_tests_properties(checksimkinematics_G4PARA PROPERTIES FIXTURES_REQUIRED G4PARA
+                                                        ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
+
+
 endif()

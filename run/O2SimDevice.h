@@ -48,8 +48,8 @@ class O2SimDevice : public FairMQDevice
   ~O2SimDevice() final
   {
     FairSystemInfo sysinfo;
+    LOG(INFO) << "Shutting down O2SimDevice";
     LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
-    mTimer.Continue();
     LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " " << sysinfo.GetMaxMemory() << " MB\n";
   }
 
@@ -61,7 +61,7 @@ class O2SimDevice : public FairMQDevice
     // NOTE: In a FairMQDevice this is better done here (instead of outside) since
     // we have to setup simulation + worker in the same thread (due to many threadlocal variables
     // in the simulation) ... at least as long FairMQDevice is not spawning workers on the master thread
-    initSim(fChannels.at("primary-get").at(0));
+    initSim(fChannels.at("primary-get").at(0), mSimRun);
 
     // set the vmc and app pointers
     mVMC = TVirtualMC::GetMC();
@@ -109,14 +109,14 @@ class O2SimDevice : public FairMQDevice
   }
 
   // initializes the simulation classes; queries the configuration on a given channel
-  static bool initSim(FairMQChannel& channel)
+  static bool initSim(FairMQChannel& channel, std::unique_ptr<FairRunSim>& simptr)
   {
     if (!querySimConfig(channel)) {
       return false;
     }
 
     LOG(INFO) << "Setting up the simulation ...";
-    o2sim_init(true);
+    simptr = std::move(std::unique_ptr<FairRunSim>(o2sim_init(true)));
     FairSystemInfo sysinfo;
 
     // to finish initialization (trigger further cross section table building etc) -- which especially
@@ -195,6 +195,7 @@ class O2SimDevice : public FairMQDevice
   TStopwatch mTimer;                             //!
   o2::steer::O2MCApplication* mVMCApp = nullptr; //!
   TVirtualMC* mVMC = nullptr;                    //!
+  std::unique_ptr<FairRunSim> mSimRun;
 };
 
 } // namespace devices
