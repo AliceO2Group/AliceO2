@@ -32,7 +32,7 @@ void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hi
 
 // this will initialize the simulation setup
 // once before initializing the actual FairMQ device
-bool initializeSim(std::string transport, std::string address)
+bool initializeSim(std::string transport, std::string address, std::unique_ptr<FairRunSim>& simptr)
 {
   // This needs an already running PrimaryServer
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
@@ -40,7 +40,7 @@ bool initializeSim(std::string transport, std::string address)
   channel.Connect(address);
   channel.ValidateChannel();
 
-  return o2::devices::O2SimDevice::initSim(channel);
+  return o2::devices::O2SimDevice::initSim(channel, simptr);
 }
 
 o2::devices::O2SimDevice* getDevice()
@@ -134,8 +134,9 @@ int main(int argc, char* argv[])
     // some channels manually and do our own runloop.
 
     // we init the simulation first
+    std::unique_ptr<FairRunSim> simrun;
     // TODO: take the addresses from somewhere else
-    if (!initializeSim("zeromq", serveraddress)) {
+    if (!initializeSim("zeromq", serveraddress, simrun)) {
       LOG(ERROR) << "Could not initialize simulation";
       return 1;
     }
