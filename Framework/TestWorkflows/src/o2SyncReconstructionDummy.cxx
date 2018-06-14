@@ -80,11 +80,27 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
       simplePipe("tracks"),
       simplePipeOptions(25, 1)
     },
-    DataProcessorSpec{ "its-tracking",
+    DataProcessorSpec{ "its-segment-matcher",
       { InputSpec{ "clusters", "ITS", "CLUSTERS" } },
-      { OutputSpec{ { "tracks" }, "ITS", "TRACKS" } },
+      { OutputSpec{ { "segments" }, "ITS", "SEGMENTS" } },
+      simplePipe("segments"),
+      simplePipeOptions(8, 1)
+    },
+    DataProcessorSpec{ "its-triplet-matcher",
+      { InputSpec{ "clusters", "ITS", "CLUSTERS" },
+        InputSpec{ "segments", "ITS", "SEGMENTS" }
+      },
+      { OutputSpec{ { "triplets" }, "ITS", "TRIPLETS"} },
+      simplePipe("triplets"),
+      simplePipeOptions(7, 1)
+    },
+    DataProcessorSpec{ "its-tracks-fitter",
+      { InputSpec{ "clusters", "ITS", "CLUSTERS" },
+        InputSpec{ "triplets", "ITS", "TRIPLETS" }
+      },
+      { OutputSpec{ { "tracks" }, "ITS", "TRACKS"} },
       simplePipe("tracks"),
-      simplePipeOptions(25, 1)
+      simplePipeOptions(10, 1)
     },
     DataProcessorSpec{ "its-cluster-compression",
       { InputSpec{ "clusters", "ITS", "CLUSTERS" } },
@@ -150,7 +166,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
       "its-tpc-matching",
       {
         InputSpec{"tpc-tracks", "TPC", "TRACKS"},
-        InputSpec{"its-tracks", "ITS", "TRACKS"}
+        InputSpec{"its-tracks", "ITS", "TRACKS"},
+        InputSpec{"fit-interaction-times", "FIT", "I_TIMES"}
       },
       {
         OutputSpec{{"tpc-its-matching"}, "MTC", "TPC_ITS"}
@@ -163,7 +180,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
       {
         InputSpec{"tpc-tracks", "TPC", "TRACKS"},
         InputSpec{"its-tracks", "ITS", "TRACKS"},
-        InputSpec{"tpc-its-matching", "MTC", "TPC_ITS"}
+        InputSpec{"tpc-its-matching", "MTC", "TPC_ITS"},
+        InputSpec{"fit-interaction-times", "FIT", "I_TIMES"}
       },
       {
         OutputSpec{{"tpc-its-trd-tof-matching"}, "MTC", "ALL"}
