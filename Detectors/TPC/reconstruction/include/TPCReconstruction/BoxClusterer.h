@@ -53,7 +53,7 @@ class BoxClusterer : public Clusterer
                bool requireNeighbouringPad = true);
 
   /// Destructor
-  ~BoxClusterer();
+  ~BoxClusterer() override;
 
   /// Steer conversion of points to digits
   /// \param digits Container with TPC digits

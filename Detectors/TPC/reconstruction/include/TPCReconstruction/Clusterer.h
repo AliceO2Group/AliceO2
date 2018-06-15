@@ -34,12 +34,33 @@ class Clusterer {
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
   public:
-
-    /// Default Constructor
+   /// Default Constructor
    Clusterer();
 
    /// Destructor
-   ~Clusterer();
+   virtual ~Clusterer();
+
+   /// Copy constructor
+   Clusterer(Clusterer const& other);
+
+   /// Move constructor
+   Clusterer(Clusterer&& other) noexcept;
+
+   /// Assignment operator
+   Clusterer& operator=(Clusterer const& other)
+   {
+     mNoiseObject = other.mNoiseObject;
+     mPedestalObject = other.mPedestalObject;
+     return *this;
+   };
+
+   /// Move assignment
+   Clusterer& operator=(Clusterer&& other)
+   {
+     mNoiseObject = other.mNoiseObject;
+     mPedestalObject = other.mPedestalObject;
+     return *this;
+   };
 
    /// Processing all digits
    /// \param digits Container with TPC digits
@@ -60,6 +81,29 @@ class Clusterer {
    CalDet<float>* mNoiseObject;    ///< Pointer to the CalDet object for noise simulation
    CalDet<float>* mPedestalObject; ///< Pointer to the CalDet object for the pedestal subtraction
 };
+
+inline Clusterer::Clusterer()
+  : mNoiseObject(nullptr),
+    mPedestalObject(nullptr)
+{}
+
+inline Clusterer::~Clusterer()
+{
+  mNoiseObject = nullptr;
+  mPedestalObject = nullptr;
+}
+
+inline Clusterer::Clusterer(Clusterer const& other)
+  : mNoiseObject(other.mNoiseObject),
+    mPedestalObject(other.mPedestalObject)
+{
+}
+
+inline Clusterer::Clusterer(Clusterer&& other) noexcept
+  : mNoiseObject(other.mNoiseObject),
+    mPedestalObject(other.mPedestalObject)
+{
+}
 
 inline void Clusterer::setNoiseObject(CalDet<float>* noiseObject)
 {

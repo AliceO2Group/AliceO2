@@ -66,9 +66,7 @@ class HwClusterer : public Clusterer
     int sectorid = -1);
 
   /// Destructor
-  ~HwClusterer() = default;
-
-  HwClusterer(HwClusterer const& other) = default;
+  ~HwClusterer() override = default;
 
   /// Process digits
   /// @param digits Container with TPC digits
@@ -90,8 +88,8 @@ class HwClusterer : public Clusterer
 
  private:
   /*
-     * Helper functions
-     */
+   * Helper functions
+   */
 
   /// HW Cluster Finder
   /// \param center_pad       Pad number to be checked for cluster
