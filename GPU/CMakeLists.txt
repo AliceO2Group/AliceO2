@@ -6,6 +6,7 @@ set(MODULE AliTPCCommon)
 install(DIRECTORY
         TPCCAGPUTracking
         TPCFastTransformation
+        TPCSpaceChargeBase
         DESTINATION sources
         PATTERN "TPCCAGPUTracking/Standalone/cmodules/.*" EXCLUDE
 )
