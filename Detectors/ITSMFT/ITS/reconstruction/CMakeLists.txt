@@ -20,7 +20,6 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/CA/PrimaryVertexContext.cxx
     src/CA/Road.cxx
     src/CA/Tracker.cxx
-    src/CA/TrackingUtils.cxx
     src/CA/Tracklet.cxx
     src/CA/ClusterLines.cxx
     src/CA/Vertexer.cxx

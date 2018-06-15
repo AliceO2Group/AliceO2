@@ -19,7 +19,8 @@ namespace framework
 {
 
 // All we do is to printout
-void TextControlService::readyToQuit(bool all) {
+void TextControlService::readyToQuit(bool all)
+{
   if (mOnce == true) {
     return;
   }
@@ -31,13 +32,15 @@ void TextControlService::readyToQuit(bool all) {
   }
 }
 
-bool parseControl(const std::string &s, std::smatch &match) {
-  const static std::regex controlRE("CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
-  if (s.find("CONTROL_ACTION: ", 0, 50) == std::string::npos) {
+bool parseControl(const std::string& s, std::smatch& match)
+{
+  const static std::regex controlRE("READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
+  auto idx = s.find("CONTROL_ACTION: ");
+  if (idx == std::string::npos) {
     return false;
   }
-  return std::regex_search(s, match, controlRE);
+  return std::regex_search(s.begin() + idx, s.end(), match, controlRE);
 }
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2

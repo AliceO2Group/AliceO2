@@ -28,7 +28,7 @@ namespace o2
 // planes etc.) internal sensor ID within detector
 // Detector specific clusters should be composed by including it as data member
 template <typename T>
-class BaseCluster : public TObject // temprarily derive from TObject
+class BaseCluster
 {
  private:
   Point3D<T> mPos;             // cartesian position
@@ -113,10 +113,9 @@ class BaseCluster : public TObject // temprarily derive from TObject
   }
 
  protected:
-  ~BaseCluster() override = default;
+  ~BaseCluster() = default;
 
-  //  ClassDefNV(BaseCluster, 1);
-  ClassDefOverride(BaseCluster, 1); // temporarily
+  ClassDefNV(BaseCluster, 2);
 };
 
 template <class T>

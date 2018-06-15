@@ -14,6 +14,7 @@
 #include <vector>
 #include <cstring>
 #include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
@@ -63,6 +64,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 // FIXME: add a debug statement saying that the default policy was used?
 void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>& channelPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec> &globalWorkflowOptions) {}
+void defaultConfiguration(std::vector<o2::framework::CompletionPolicy> &completionPolicies) {}
 
 struct UserCustomizationsHelper {
   template <typename T>
@@ -82,6 +84,7 @@ struct UserCustomizationsHelper {
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies,
+           std::vector<o2::framework::CompletionPolicy> const &completionPolicies,
            std::vector<o2::framework::ConfigParamSpec> const &workflowOptions,
            o2::framework::ConfigContext &configContext);
 
@@ -100,15 +103,20 @@ int main(int argc, char** argv)
   std::vector<ChannelConfigurationPolicy> channelPolicies;
 
   UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
-  auto defaultPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultPolicies), std::end(defaultPolicies));
+  auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
+
+  std::vector<CompletionPolicy> completionPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);
+  auto defaultCompletionPolicies = CompletionPolicy::createDefaultPolicies();
+  completionPolicies.insert(std::end(completionPolicies), std::begin(defaultCompletionPolicies), std::end(defaultCompletionPolicies));
 
   std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
   ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
   ConfigContext configContext{workflowOptionsRegistry};
   o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
 
-  auto result = doMain(argc, argv, specs, channelPolicies, workflowOptions, configContext);
+  auto result = doMain(argc, argv, specs, channelPolicies, completionPolicies, workflowOptions, configContext);
   LOG(INFO) << "Process " << getpid() << " is exiting.";
   return result;
 }

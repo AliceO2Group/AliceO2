@@ -108,11 +108,7 @@ class ChannelResource : public FairMQMemoryResource
 
   bool do_is_equal(const boost::container::pmr::memory_resource& other) const noexcept override
   {
-    const FairMQMemoryResource* that = dynamic_cast<const FairMQMemoryResource*>(&other);
-    if (that && that->getTransportFactory() == factory) {
-      return true;
-    }
-    return false;
+    return this == &other;
   };
 };
 
@@ -151,6 +147,8 @@ class SpectatorMessageResource : public FairMQMemoryResource
   SpectatorMessageResource() = default;
   SpectatorMessageResource(const FairMQMessage* _message) : message(_message){};
   FairMQMessagePtr getMessage(void* p) override { return nullptr; }
+  const FairMQTransportFactory* getTransportFactory() const noexcept override { return nullptr; }
+  size_t getNumberOfMessages() const noexcept override { return 0; }
 
  protected:
   const FairMQMessage* message;

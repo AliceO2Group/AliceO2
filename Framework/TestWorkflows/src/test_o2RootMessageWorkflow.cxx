@@ -63,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
           // FIXME: for the moment we need to do the deserialization ourselves.
           //        this should probably be encoded in the serialization field
           //        of the DataHeader and done automatically by the framework
-          auto h = ctx.inputs().get<TH1F>("histos");
+          auto h = ctx.inputs().get<TH1F*>("histos");
           if (h.get() == nullptr) {
             throw std::runtime_error("Missing output");
           }
@@ -73,7 +73,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
                     << "sumw2" << stats[1] << "\n"
                     << "sumwx" << stats[2] << "\n"
                     << "sumwx2" << stats[3] << "\n";
-          auto s = ctx.inputs().get<TObjString>("string");
+          auto s = ctx.inputs().get<TObjString*>("string");
 
           LOG(INFO) << "String is " << s->GetString().Data();
         }

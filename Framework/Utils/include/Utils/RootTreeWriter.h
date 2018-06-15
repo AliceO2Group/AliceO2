@@ -38,35 +38,46 @@ namespace framework
 /// @class RootTreeWriter
 /// A generic writer interface for ROOT TTrees
 ///
-/// The writer class is configured with a list of types to be processed by defining
-/// the class with the appropriate template argumets. Each type needs to be associated
-/// with an input key and a branch name for the output.
+/// The writer class is configured with a list of branch definitions passed to the
+/// constructor. Each branch definition holds the data type as template parameter,
+/// as well as an input key and a branch name for the output.
 ///
 /// The class is currently fixed to the DPL ProcessingContext and InputRecord for
 /// reading the input.
 ///
 /// Usage:
-///   RootTreeWriter<Types...>("file_name",
-///                            "tree_name",
-///                            "key", "branchname",
-///                            ...// further input and branch config
-///                           ) writer;
+///   RootTreeWriter("file_name",
+///                  "tree_name",
+///                  BranchDef<type>{ "key", "branchname" },
+///                  ...// further input and branch config
+///                 ) writer;
 ///   writer(processingContext);
 ///
 /// See also the MakeRootTreeWriterSpec helper class for easy generation of a
 /// processor spec using RootTreeWriter.
-template <typename... Types>
 class RootTreeWriter
 {
  public:
-  using self_type = RootTreeWriter<Types...>;
+  // use string as input binding to be used with DPL input API
   using key_type = std::string;
-  using store_type = std::tuple<Types...>;
-  static constexpr std::size_t store_size = sizeof...(Types);
-  template <size_t Index>
-  struct element {
-    static_assert(Index < store_size, "Index out of range");
-    using type = typename std::tuple_element<Index, store_type>::type;
+
+  struct DefaultKeyExtractor {
+    template <typename T>
+    static key_type asString(T const& arg)
+    {
+      return arg;
+    }
+  };
+  /// branch definition
+  /// FIXME: could become BranchSpec, but that name is currently used for the elements
+  /// of the internal store
+  template <typename T, typename KeyType = key_type, typename KeyExtractor = DefaultKeyExtractor>
+  struct BranchDef {
+    using type = T;
+    using key_type = KeyType;
+    using key_extractor = KeyExtractor;
+    KeyType key;
+    std::string branchName;
   };
 
   /// default constructor forbidden
@@ -79,29 +90,37 @@ class RootTreeWriter
   template <typename... Args>
   RootTreeWriter(const char* filename, // file name
                  const char* treename, // name of the tree to write to
-                 Args&&... args)       // followed by branch info
+                 Args&&... args)       // followed by branch definition
+  {
+    mTreeStructure = createTreeStructure<TreeStructureInterface>(std::forward<Args>(args)...);
+    if (filename && treename) {
+      init(filename, treename);
+    }
+  }
+
+  void init(const char* filename, const char* treename)
   {
     mFile = std::make_unique<TFile>(filename, "RECREATE");
     mTree = std::make_unique<TTree>(treename, treename);
-    mBranchSpecs.resize(store_size);
-    parseConstructorArgs<0>(std::forward<Args>(args)...);
-    setupBranches<store_size>();
+    mTreeStructure->setup(mBranchSpecs, mTree.get());
   }
 
   /// process functor
   /// It expects a context which is used by lambda capture in the snapshot function.
-  /// Loop over all branch definitions and publish by using the snapshot function.
-  /// The default forwards to DPL DataAllocator snapshot.
+  /// Recursively process all inputs and set the branch address to extracted objects.
+  /// Release function is called on the object after filling the tree.
   template <typename ContextType>
   void operator()(ContextType& context)
   {
     if (!mTree || !mFile || mFile->IsZombie()) {
-      throw std::runtime_error("Writer is invalid state, pabably closed previously");
+      throw std::runtime_error("Writer is invalid state, probably closed previously");
     }
-    process<store_size>(context);
+    mTreeStructure->exec(context, mBranchSpecs);
     mTree->Fill();
     for (auto& spec : mBranchSpecs) {
       spec.releaseFct(spec.data);
+      spec.data = nullptr;
+      spec.releaseFct = nullptr;
     }
   }
 
@@ -117,6 +136,11 @@ class RootTreeWriter
     mFile.reset(nullptr);
   }
 
+  size_t getStoreSize() const
+  {
+    return (mTreeStructure != nullptr ? mTreeStructure->size() : 0);
+  }
+
  private:
   struct BranchSpec {
     key_type key;
@@ -127,99 +151,100 @@ class RootTreeWriter
     TClass* classinfo = nullptr;
   };
 
-  /// recursively step through all members of the store and set up corresponding branch
-  template <size_t N>
-  typename std::enable_if<(N != 0)>::type setupBranches()
-  {
-    setupBranches<N - 1>();
-    setupBranch<N - 1>();
-  }
-
-  // specializtion to end the recursive loop
-  template <size_t N>
-  typename std::enable_if<(N == 0)>::type setupBranches()
-  {
-  }
-
-  /// set up a branch for the store type at Index position
-  template <size_t Index>
-  void setupBranch()
-  {
-    using ElementT = typename element<Index>::type;
-    // the variable from the store is actually only used when setting up the branch, during
-    // processing of input, the branch address is directly set to the extracted object
-    ElementT& storeRef = std::get<Index>(mStore);
-    mBranchSpecs[Index].branch = mTree->Branch(mBranchSpecs[Index].name.c_str(), &storeRef);
-    mBranchSpecs[Index].classinfo = TClass::GetClass(typeid(ElementT));
-    LOG(INFO) << "branch set up: " << mBranchSpecs[Index].name;
-  }
-
-  /// helper function to read branch config from vector, this excludes other variadic arguments
-  template <size_t N>
-  void parseConstructorArgs(const std::vector<std::pair<key_type, std::string>>& branchconfig)
-  {
-    static_assert(N == 0, "can not mix variadic arguments and vector config");
-    if (branchconfig.size() != store_size) {
-      throw std::runtime_error("number of branch specifications has to match number of types");
-    }
-    size_t index = 0;
-    for (auto& config : branchconfig) {
-      mBranchSpecs[index].key = config.first;
-      mBranchSpecs[index].name = config.second;
-      index++;
-    }
-  }
-
-  /// helper function to recursively parse constructor arguments
-  /// parse the branch definitions with key and branch name.
-  template <size_t N, typename... Args>
-  void parseConstructorArgs(key_type key, const char* name, Args&&... args)
-  {
-    static_assert(N < store_size, "too many branch arguments");
-    // init branch spec
-    using ElementT = typename element<N>::type;
-    mBranchSpecs[N].key = key;
-    mBranchSpecs[N].name = name;
-
-    parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
-  }
-
-  // this terminates the argument parsing, at this point we should have
-  // parsed as many arguments as we have types
-  template <size_t N>
-  void parseConstructorArgs()
-  {
-    // at this point we should have processed argument pairs for all types in the stare
-    static_assert(N == store_size, "too few branch arguments");
-  }
-
-  // want to have the ContextType as a template parameter, but the compiler
-  // complains about calling the templated get function, to be investigated
   using ContextType = ProcessingContext;
-  template <size_t N>
-  typename std::enable_if<(N != 0)>::type process(ContextType& context)
+
+  /// polymorphic interface for the mixin stack of branch type descriptions
+  /// it implements the entry point for processing through exec method
+  class TreeStructureInterface
   {
-    constexpr static size_t Index = N - 1;
-    process<Index>(context);
-    using ElementT = typename element<Index>::type;
-    auto data = context.inputs().get<ElementT>(mBranchSpecs[Index].key.c_str());
-    // could either copy to the corresponding store variable or use the object
-    // directly. TBranch::SetAddress supports only non-const pointers, so this is
-    // a hack
-    // FIXME: get rid of the const_cast
-    mBranchSpecs[Index].branch->SetAddress(const_cast<ElementT*>(data.get()));
-    // the data object is a smart pointer and we have to keep the data alieve
-    // until the tree is actually filled after the recursive processing of inputs
-    // release the base pointer from the smart pointer instance and keep the
-    // daleter to be called after tree fill.
-    mBranchSpecs[Index].data = const_cast<ElementT*>(data.release());
-    auto deleter = data.get_deleter();
-    mBranchSpecs[Index].releaseFct = [deleter](void* buffer) { deleter(reinterpret_cast<ElementT*>(buffer)); };
+   public:
+    static const size_t STAGE = 0;
+    TreeStructureInterface() = default;
+    virtual ~TreeStructureInterface() = default;
+
+    virtual void setup(std::vector<BranchSpec>&, TTree*) {}
+    virtual void exec(ProcessingContext&, std::vector<BranchSpec>&) {}
+    virtual size_t size() const { return STAGE; }
+
+    // a dummy method called in the recursive processing
+    void setupInstance(std::vector<BranchSpec>&, TTree*) {}
+    // a dummy method called in the recursive processing
+    void process(ProcessingContext&, std::vector<BranchSpec>&) {}
+  };
+
+  template <typename DataT, typename BASE>
+  class TreeStructureElement : public BASE
+  {
+   public:
+    using PrevT = BASE;
+    using type = DataT;
+    static const size_t STAGE = BASE::STAGE + 1;
+    TreeStructureElement() = default;
+    ~TreeStructureElement() override = default;
+
+    void setup(std::vector<BranchSpec>& specs, TTree* tree) override
+    {
+      setupInstance(specs, tree);
+    }
+
+    // this is the polymorphic entry point for processing of branch specs
+    // recursive processing starting from the highest instance
+    void exec(ProcessingContext& context, std::vector<BranchSpec>& specs) override
+    {
+      process(context, specs);
+    }
+    virtual size_t size() const override { return STAGE; }
+
+    /// setup this instance and recurse to the parent one
+    void setupInstance(std::vector<BranchSpec>& specs, TTree* tree)
+    {
+      static_cast<PrevT>(*this).setupInstance(specs, tree);
+      constexpr size_t Index = STAGE - 1;
+      specs[Index].branch = tree->Branch(specs[Index].name.c_str(), &mStore);
+      specs[Index].classinfo = TClass::GetClass(typeid(type));
+      LOG(INFO) << Index << ": branch  " << specs[Index].name << " set up";
+    }
+
+    // process previous stage and this stage
+    void process(ProcessingContext& context, std::vector<BranchSpec>& specs)
+    {
+      static_cast<PrevT>(*this).process(context, specs);
+      constexpr size_t Index = STAGE - 1;
+      auto data = context.inputs().get<type*>(specs[Index].key.c_str());
+      // could either copy to the corresponding store variable or use the object
+      // directly. TBranch::SetAddress supports only non-const pointers, so this is
+      // a hack
+      // FIXME: get rid of the const_cast
+      specs[Index].branch->SetAddress(const_cast<type*>(data.get()));
+      // the data object is a smart pointer and we have to keep the data alieve
+      // until the tree is actually filled after the recursive processing of inputs
+      // release the base pointer from the smart pointer instance and keep the
+      // daleter to be called after tree fill.
+      specs[Index].data = const_cast<type*>(data.release());
+      auto deleter = data.get_deleter();
+      specs[Index].releaseFct = [deleter](void* buffer) { deleter(reinterpret_cast<type*>(buffer)); };
+    }
+
+   private:
+    /// internal store variable of the type wraped by this instance
+    type mStore;
+  };
+
+  /// recursively step through all members of the store and set up corresponding branch
+  template <typename BASE, typename T, typename... Args>
+  std::enable_if_t<is_specialization<T, BranchDef>::value, std::unique_ptr<TreeStructureInterface>>
+    createTreeStructure(T def, Args&&... args)
+  {
+    mBranchSpecs.push_back({ T::key_extractor::asString(def.key), def.branchName });
+    using type = TreeStructureElement<typename T::type, BASE>;
+    return std::move(createTreeStructure<type>(std::forward<Args>(args)...));
   }
 
-  template <size_t N, typename ContextType>
-  typename std::enable_if<(N == 0)>::type process(ContextType& context)
+  template <typename T>
+  std::unique_ptr<TreeStructureInterface> createTreeStructure()
   {
+    std::unique_ptr<TreeStructureInterface> ret(new T);
+    return std::move(ret);
   }
 
   template <typename T>
@@ -240,8 +265,8 @@ class RootTreeWriter
   std::unique_ptr<TTree> mTree;
   /// definitions of branch specs
   std::vector<BranchSpec> mBranchSpecs;
-  // store of underlying branch variables
-  store_type mStore;
+  /// the underlying tree structure
+  std::unique_ptr<TreeStructureInterface> mTreeStructure;
 };
 
 } // namespace framework

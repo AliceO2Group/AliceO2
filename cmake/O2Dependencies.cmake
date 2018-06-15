@@ -392,6 +392,7 @@ o2_define_bucket(
     DEPENDENCIES
     common_boost_bucket
     root_base_bucket
+    DetectorsCommonDataFormats
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}

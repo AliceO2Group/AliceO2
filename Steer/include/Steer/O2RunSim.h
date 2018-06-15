@@ -54,6 +54,8 @@ class O2RunSim : public FairRunSim
   {
     std::cout << "O2RUNSIM SPECIFIC INIT CALLED" << std::endl;
 
+    fRootManager->InitSink();
+
     // original FairRunSim follows
     FairGeoLoader* loader = new FairGeoLoader(fLoaderName->Data(), "Geo Loader");
     FairGeoInterface* GeoInterFace = loader->getGeoInterface();

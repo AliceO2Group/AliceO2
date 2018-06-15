@@ -30,15 +30,11 @@
 
 #include <FairMQLogger.h>
 #include <options/FairMQProgOptions.h>
-#include "Headers/DataHeader.h"
-#include "Headers/NameHeader.h"
 #include "O2MessageMonitor/O2MessageMonitor.h"
 
 using namespace std;
 using namespace o2::header;
 using namespace o2::Base;
-
-using NameHeader48 = NameHeader<48>; // header holding 16 characters
 
 //__________________________________________________________________________________________________
 void O2MessageMonitor::InitTask()
@@ -57,12 +53,12 @@ void O2MessageMonitor::Run()
 {
   // check socket type of data channel
   std::string type;
-  std::vector<FairMQChannel> subChannels = fChannels["data"];
+  std::vector<FairMQChannel>& subChannels = fChannels["data"];
   if (subChannels.size() > 0) {
     type = subChannels[0].GetType();
   }
 
-  o2::memoryResources::ChannelResource dataResource(subChannels[0].Transport());
+  auto dataResource = o2::memoryResources::getTransportAllocator(subChannels[0].Transport());
 
   while (CheckCurrentState(RUNNING) && (--mIterations) != 0) {
     this_thread::sleep_for(chrono::milliseconds(mDelay));
@@ -71,7 +67,7 @@ void O2MessageMonitor::Run()
 
     // maybe send a request
     if (type == "req") {
-      AddDataBlock(message, { &dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 } },
+      addDataBlock(message, { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
                    NewSimpleMessageFor("data", 0, mPayload));
       Send(message, "data");
       message.fParts.clear();
@@ -80,7 +76,7 @@ void O2MessageMonitor::Run()
     // message in;
     Receive(message, "data");
     LOG(INFO) << "== New message=============================";
-    ForEach(message, [&](auto header, auto data) {
+    o2::Base::forEach(message, [&](auto header, auto data) {
       hexDump("headerBuffer", header.data(), header.size());
       hexDump("dataBuffer", data.data(), data.size(), mLimitOutputCharacters);
     });
@@ -88,9 +84,9 @@ void O2MessageMonitor::Run()
 
     // maybe a reply message
     if (type == "rep") {
-      AddMessage(message,
-                 { &dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 } },
-                 NewSimpleMessageFor("data", 0, "I am a reply"));
+      o2::Base::addDataBlock(message,
+                             { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
+                             NewSimpleMessageFor("data", 0, ""));
       Send(message, "data");
     }
   }

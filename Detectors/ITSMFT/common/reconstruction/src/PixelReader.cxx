@@ -17,34 +17,53 @@ using namespace o2::ITSMFT;
 using o2::ITSMFT::Digit;
 
 //______________________________________________________________________________
-Bool_t DigitPixelReader::getNextChipData(PixelReader::ChipPixelData& chipData)
+ChipPixelData* DigitPixelReader::getNextChipData(std::vector<ChipPixelData>& chipDataVec)
 {
-  chipData.clear();
+  // decode data of single chip to corresponding slot of chipDataVec
   if (!mLastDigit) {
     if (mIdx >= mDigitArray->size()) {
-      return kFALSE;
+      return nullptr;
     }
-    chipData.startID = mIdx;
     mLastDigit = &((*mDigitArray)[mIdx++]);
-  } else {
-    chipData.startID = mIdx;
   }
-  chipData.chipID = mLastDigit->getChipIndex();
-  chipData.roFrame = mLastDigit->getROFrame();
-  chipData.pixels.emplace_back(mLastDigit);
+  auto chipID = mLastDigit->getChipIndex();
+  if (chipID >= chipDataVec.size()) {
+    chipDataVec.resize(chipID + 100);
+  }
+  return getNextChipData(chipDataVec[chipID]) ? &chipDataVec[chipID] : nullptr;
+}
+
+//______________________________________________________________________________
+bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
+{
+  // decode data of single chip to chipData
+  if (!mLastDigit) {
+    if (mIdx >= mDigitArray->size()) {
+      return false;
+    }
+    mLastDigit = &((*mDigitArray)[mIdx++]);
+  }
+  chipData.clear();
+  chipData.setStartID(mIdx - 1);
+  chipData.setChipID(mLastDigit->getChipIndex());
+  chipData.setROFrame(mLastDigit->getROFrame());
+  chipData.getData().emplace_back(mLastDigit);
   mLastDigit = nullptr;
 
   while (mIdx < mDigitArray->size()) {
     mLastDigit = &((*mDigitArray)[mIdx++]);
-    if (chipData.chipID != mLastDigit->getChipIndex())
+    if (chipData.getChipID() != mLastDigit->getChipIndex())
       break;
-    if (chipData.roFrame != mLastDigit->getROFrame())
+    if (chipData.getROFrame() != mLastDigit->getROFrame())
       break;
-    chipData.pixels.emplace_back(mLastDigit);
+    chipData.getData().emplace_back(mLastDigit);
     mLastDigit = nullptr;
   }
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________________________________
-Bool_t RawPixelReader::getNextChipData(PixelReader::ChipPixelData& chipData) { return kTRUE; }
+bool RawPixelReader::getNextChipData(ChipPixelData& chipData) { return true; }
+
+//______________________________________________________________________________
+ChipPixelData* RawPixelReader::getNextChipData(std::vector<ChipPixelData>& chipDataVec) { return nullptr; }

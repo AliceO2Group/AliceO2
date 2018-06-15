@@ -19,12 +19,19 @@ ClassImp(o2::ITSMFT::DigiParams);
 
 using namespace o2::ITSMFT;
 
-void DigiParams::setROFrameLenght(float lNS)
+DigiParams::DigiParams()
+{
+  // make sure the defaults are consistent
+  setROFrameLength(mROFrameLength);
+  setNSimSteps(mNSimSteps);
+}
+
+void DigiParams::setROFrameLength(float lNS)
 {
   // set ROFrame length in nanosecongs
-  mROFrameLenght = lNS;
-  assert(mROFrameLenght > 1.);
-  mROFrameLenghtInv = 1. / mROFrameLenght;
+  mROFrameLength = lNS;
+  assert(mROFrameLength > 1.);
+  mROFrameLengthInv = 1. / mROFrameLength;
 }
 
 void DigiParams::setNSimSteps(int v)
@@ -46,4 +53,22 @@ void DigiParams::setChargeThreshold(int v, float frac2Account)
   LOG(INFO) << "Set Alpide charge threshold to " << mChargeThreshold
             << ", single hit will be accounted from " << mMinChargeToAccount
             << " electrons" << FairLogger::endl;
+}
+
+//______________________________________________
+void DigiParams::print() const
+{
+  // print settings
+  printf("Alpide digitization params:\n");
+  printf("Continuous readout             : %s\n", mIsContinuous ? "ON" : "OFF");
+  printf("Readout Frame Length(ns)       : %f\n", mROFrameLength);
+  printf("Strobe delay (ns)              : %f\n", mStrobeDelay);
+  printf("Strobe length (ns)             : %f\n", mStrobeLength);
+  printf("Threshold (N electrons)        : %d\n", mChargeThreshold);
+  printf("Min N electrons to accoint     : %d\n", mMinChargeToAccount);
+  printf("Number of charge sharing steps : %d\n", mNSimSteps);
+  printf("ELoss to N electrons factor    : %e\n", mEnergyToNElectrons);
+  printf("Noise level per pixel          : %e\n", mNoisePerPixel);
+  printf("Charge time-response:\n");
+  mSignalShape.print();
 }

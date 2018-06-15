@@ -130,29 +130,29 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
-// To be used to allow specifying the CompletionPolicy on the command line.
+// To be used to allow specifying the TerminationPolicy on the command line.
 namespace o2
 {
 namespace framework
 {
-std::istream& operator>>(std::istream& in, enum CompletionPolicy& policy)
+std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
 {
   std::string token;
   in >> token;
   if (token == "quit") {
-    policy = CompletionPolicy::QUIT;
+    policy = TerminationPolicy::QUIT;
   } else if (token == "wait") {
-    policy = CompletionPolicy::WAIT;
+    policy = TerminationPolicy::WAIT;
   } else
     in.setstate(std::ios_base::failbit);
   return in;
 }
 
-std::ostream& operator<<(std::ostream& out, const enum CompletionPolicy& policy)
+std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy)
 {
-  if (policy == CompletionPolicy::QUIT) {
+  if (policy == TerminationPolicy::QUIT) {
     out << "quit";
-  } else if (policy == CompletionPolicy::WAIT) {
+  } else if (policy == TerminationPolicy::WAIT) {
     out << "wait";
   } else
     out.setstate(std::ios_base::failbit);
@@ -737,7 +737,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, deviceSpecs, resources);
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo.channelPolicies, driverInfo.completionPolicies, deviceSpecs, resources);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -786,7 +786,7 @@ int runStateMachine(DataProcessorSpecs const& workflow, DriverControl& driverCon
         // Calculate what we should do next and eventually
         // show the GUI
         if (guiQuitRequested ||
-            (driverInfo.completionPolicy == CompletionPolicy::QUIT && (checkIfCanExit(infos) == true))) {
+            (driverInfo.terminationPolicy == TerminationPolicy::QUIT && (checkIfCanExit(infos) == true))) {
           // Something requested to quit. This can be a user
           // interaction with the GUI or (if --completion-policy=quit)
           // it could mean that the workflow does not have anything else to do.
@@ -931,10 +931,11 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 //     each DataProcessorSpec
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+           std::vector<CompletionPolicy> const &completionPolicies,
            std::vector<ConfigParamSpec> const &workflowOptions,
            o2::framework::ConfigContext &configContext)
 {
-  enum CompletionPolicy policy;
+  enum TerminationPolicy policy;
   bpo::options_description executorOptions("Executor options");
   executorOptions.add_options()                                                                             //
     ("help,h", "print this help")                                                                           //
@@ -944,7 +945,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
-    ("completion-policy,c", bpo::value<CompletionPolicy>(&policy)->default_value(CompletionPolicy::QUIT),   //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),   //
      "what to do when processing is finished")                                                      //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output") //
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")            //
@@ -996,10 +997,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.sigintRequested = false;
   driverInfo.sigchldRequested = false;
   driverInfo.channelPolicies = channelPolicies;
+  driverInfo.completionPolicies = completionPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();
-  driverInfo.completionPolicy = varmap["completion-policy"].as<CompletionPolicy>();
+  driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.startTime = std::chrono::steady_clock::now();
   driverInfo.timeout = varmap["timeout"].as<double>();
   driverInfo.startPort = varmap["start-port"].as<unsigned short>();

@@ -352,6 +352,7 @@ void Vertexer::findVertices()
           mTrackletClusters[iCluster].getAvgDistance2() // In place of chi2
           );
         mVertices.back().setTimeStamp(mROFrame);
+        mEvent.addPrimaryVertex(mVertices.back().getX(), mVertices.back().getY(), mVertices.back().getZ());
       }
     }
   }

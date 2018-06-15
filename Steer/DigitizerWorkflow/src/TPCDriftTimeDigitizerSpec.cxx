@@ -82,11 +82,8 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     }
 
     // extract which sector to treat (strangely this is a unique pointer)
-    auto sectorptr = pc.inputs().get<int>("sectorassign");
-    if (sectorptr) {
-      LOG(INFO) << "GOT ASSIGNED SECTOR " << *sectorptr.get();
-    }
-    int sector = *sectorptr;
+    auto sector = pc.inputs().get<int>("sectorassign");
+    LOG(INFO) << "GOT ASSIGNED SECTOR " << sector;
 
     // ===| open file and register branches |=====================================
     // this is done at the moment for each worker function invocation
@@ -116,7 +113,7 @@ DataProcessorSpec getTPCDriftTimeDigitizer(int channel, bool cachehits)
     }
 
     // obtain collision contexts
-    auto context = pc.inputs().get<o2::steer::RunContext>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 

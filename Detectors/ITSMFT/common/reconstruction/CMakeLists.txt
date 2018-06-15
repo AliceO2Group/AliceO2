@@ -5,12 +5,14 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/PixelReader.cxx
   src/Clusterer.cxx
+  src/PixelData.cxx
   src/BuildTopologyDictionary.cxx
   src/LookUp.cxx
   src/TopologyFastSimulation.cxx
 )
 set(HEADERS
   include/${MODULE_NAME}/PixelReader.h
+  include/${MODULE_NAME}/PixelData.h
   include/${MODULE_NAME}/Clusterer.h
   include/${MODULE_NAME}/BuildTopologyDictionary.h
   include/${MODULE_NAME}/LookUp.h

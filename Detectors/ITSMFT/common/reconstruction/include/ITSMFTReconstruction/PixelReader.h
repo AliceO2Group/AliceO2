@@ -14,8 +14,10 @@
 #define ALICEO2_ITSMFT_PIXELREADER_H
 
 #include <Rtypes.h>
+#include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTBase/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include <vector>
 
 namespace o2
 {
@@ -30,35 +32,20 @@ class PixelReader
 
  public:
   /// Transient data for single fired pixel
-  struct PixelData {
-    UShort_t row;
-    UShort_t col;
-    PixelData(const Digit* dig) : row(dig->getRow()), col(dig->getColumn()) {}
-    PixelData(UShort_t r = 0, UShort_t c = 0) : row(r), col(c) {}
-  };
-
-  /// Transient data for single chip fired pixeld
-  /// In case of MC it assumes that the digits data is sorted in chip/col/row
-  struct ChipPixelData {
-    UShort_t chipID = 0;           // chip id within detector
-    UInt_t roFrame = 0;            // readout frame ID
-    UInt_t startID = 0;            // entry of the 1st pixel data, for MCtruth access
-    std::vector<PixelData> pixels; // vector of pixeld
-
-    void clear() { pixels.clear(); }
-  };
 
   PixelReader() = default;
-  PixelReader(const PixelReader& cluster) = delete;
   virtual ~PixelReader() = default;
+  PixelReader(const PixelReader& cluster) = delete;
 
   PixelReader& operator=(const PixelReader& src) = delete;
 
   virtual void init() = 0;
-  virtual Bool_t getNextChipData(ChipPixelData& chipData) = 0;
+  virtual bool getNextChipData(ChipPixelData& chipData) = 0;
+  virtual ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) = 0;
   //
  protected:
   //
+  ClassDef(PixelReader, 1);
 };
 
 /// \class DigitPixelReader
@@ -68,6 +55,7 @@ class DigitPixelReader : public PixelReader
 {
  public:
   DigitPixelReader() = default;
+  ~DigitPixelReader() override = default;
   void setDigitArray(const std::vector<o2::ITSMFT::Digit>* a)
   {
     mDigitArray = a;
@@ -80,18 +68,21 @@ class DigitPixelReader : public PixelReader
     mLastDigit = nullptr;
   }
 
-  Bool_t getNextChipData(ChipPixelData& chipData) override;
+  bool getNextChipData(ChipPixelData& chipData) override;
+  ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) override;
 
  private:
-  void addPixel(PixelReader::ChipPixelData& chipData, const Digit* dig)
+  void addPixel(ChipPixelData& chipData, const Digit* dig)
   {
     // add new fired pixel
-    chipData.pixels.emplace_back(dig);
+    chipData.getData().emplace_back(dig);
   }
 
   const std::vector<o2::ITSMFT::Digit>* mDigitArray = nullptr;
   const Digit* mLastDigit = nullptr;
   Int_t mIdx = 0;
+
+  ClassDefOverride(DigitPixelReader, 1);
 };
 
 /// \class RawPixelReader
@@ -100,7 +91,12 @@ class DigitPixelReader : public PixelReader
 class RawPixelReader : public PixelReader
 {
  public:
-  Bool_t getNextChipData(ChipPixelData& chipData) override;
+  RawPixelReader() = default;
+  ~RawPixelReader() override = default;
+  bool getNextChipData(ChipPixelData& chipData) override;
+  ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) override;
+
+  ClassDefOverride(RawPixelReader, 1);
 };
 
 } // namespace ITSMFT

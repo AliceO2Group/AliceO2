@@ -14,6 +14,7 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceSpec.h"
@@ -39,6 +40,7 @@ struct DeviceSpecHelpers {
   static void dataProcessorSpecs2DeviceSpecs(
       const WorkflowSpec &workflow,
       std::vector<ChannelConfigurationPolicy> const &channelPolicies,
+      std::vector<CompletionPolicy> const &completionPolicies,
       std::vector<DeviceSpec> &devices,
       std::vector<ComputingResource> &resources
       );

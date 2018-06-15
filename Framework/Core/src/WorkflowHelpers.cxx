@@ -204,8 +204,8 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
   auto errorDueToMissingOutputFor = [&workflow](size_t ci, size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
-    str << "No matching output found for " << input.origin.str << " "
-        << input.description.str << " "
+    str << "No matching output found for " << input.origin.as<std::string>() << " "
+        << input.description.as<std::string>() << " "
         << input.subSpec << "\n";
     throw std::runtime_error(str.str());
   };
@@ -370,8 +370,10 @@ WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec &workflow) {
   {
     if (spec.name.empty())
       throw std::runtime_error("Invalid DataProcessorSpec name");
-    if (validNames.find(spec.name) != validNames.end())
+    if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");
+    }
+    validNames.insert(spec.name);
     for (auto &option : spec.options) {
       if (option.defaultValue.type() != VariantType::Empty &&
           option.type != option.defaultValue.type()) {

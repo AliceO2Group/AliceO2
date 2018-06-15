@@ -17,6 +17,17 @@
 
 #include <array>
 
+#ifdef CA_DEBUG
+#define CA_DEBUGGER(x) x
+#else
+#define CA_DEBUGGER(x) \
+  do {                 \
+  } while (0)
+#ifndef NDEBUG
+#define NDEBUG 1
+#endif
+#endif
+
 #if defined(TRACKINGITSU_CUDA_COMPILE)
 #define TRACKINGITSU_GPU_MODE true
 #else

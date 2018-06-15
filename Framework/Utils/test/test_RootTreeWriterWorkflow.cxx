@@ -69,12 +69,12 @@ DataProcessorSpec getSinkSpec()
   auto initFct = [](InitContext& ic) {
     std::string fileName = gSystem->TempDirectory();
     fileName += "/test_RootTreeWriter.root";
-    using WriterType = RootTreeWriter<o2::test::Polymorphic, int>;
-    auto writer = std::make_shared<WriterType>(fileName.c_str(),      // output file name
-                                               "testtree",            // tree name
-                                               "input", "polyobject", // input key and branch name
-                                               "meta", "counter"      // input key and branch name
-                                               );
+    using Polymorphic = o2::test::Polymorphic;
+    using WriterType = RootTreeWriter;
+    auto writer = std::make_shared<WriterType>(fileName.c_str(), // output file name
+                                               "testtree",       // tree name
+                                               WriterType::BranchDef<Polymorphic>{ "input", "polyobject" },
+                                               WriterType::BranchDef<int>{ "meta", "counter" });
     auto counter = std::make_shared<int>();
     *counter = 0;
 
@@ -100,21 +100,24 @@ DataProcessorSpec getSinkSpec()
                             AlgorithmSpec(initFct) };
 }
 
+template <typename T>
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   std::string fileName = gSystem->TempDirectory();
   fileName += "/test_RootTreeWriter.root";
 
+  using Polymorphic = o2::test::Polymorphic;
   return WorkflowSpec{
     getSourceSpec(),
-    MakeRootTreeWriterSpec<o2::test::Polymorphic, int>         // type setup
-    (                                                          //
-      "sink",                                                  // process name
-      fileName.c_str(),                                        // default file name
-      "testtree",                                              // default tree name
-      1,                                                       // default number of events
-      InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject", // input and branch config
-      InputSpec{ "meta", "TST", "METADATA" }, "counter"        // input and branch config
-      )()                                                      // call the generator
+    MakeRootTreeWriterSpec                                                                      //
+    (                                                                                           //
+      "sink",                                                                                   // process name
+      fileName.c_str(),                                                                         // default file name
+      "testtree",                                                                               // default tree name
+      1,                                                                                        // default number of events
+      BranchDefinition<Polymorphic>{ InputSpec{ "input", "TST", "SOMEOBJECT" }, "polyobject" }, // branch config
+      BranchDefinition<int>{ InputSpec{ "meta", "TST", "METADATA" }, "counter" }                // branch config
+      )()                                                                                       // call the generator
   };
 }

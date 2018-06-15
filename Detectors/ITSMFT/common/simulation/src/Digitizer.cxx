@@ -45,57 +45,39 @@ void Digitizer::init()
     mAlpSimResp->initData();
     mParams.setAlpSimResponse(mAlpSimResp.get());
   }
-
+  mParams.print();
 }
 
 //_______________________________________________________________________
-void Digitizer::process()
+void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
 {
-  // digitize single event
+  // digitize single event, the time must have been set beforehand
 
-  const Int_t numOfChips = mGeometry->getNumberOfChips();
+  LOG(INFO) << "Digitizing ITS hits of entry " << evID << " from source " << srcID << " at time "
+            << mEventTime + mParams.getTimeOffset() << " (TOff.= " << mParams.getTimeOffset()
+            << " ROFrame= " << mNewROFrame << ")"
+            << " cont.mode: " << isContinuous()
+            << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax << FairLogger::endl;
 
-  // estimate the smalles RO Frame this event may have
-  double hTime0 = mEventTime - mParams.getTimeOffset();
-  if (hTime0 > UINT_MAX) {
-    LOG(WARNING) << "min Hit RO Frame undefined: time: " << hTime0 << " is in far future: "
-                 << " EventTime: " << mEventTime << " TimeOffset: " << mParams.getTimeOffset() << FairLogger::endl;
-    return;
+  // is there something to flush ?
+  if (mNewROFrame > mROFrameMin) {
+    fillOutputContainer(mNewROFrame - 1); // flush out all frame preceding the new one
   }
 
-  if (hTime0 < 0) {
-    hTime0 = 0.;
-  }
-  UInt_t minNewROFrame = static_cast<UInt_t>(hTime0 / mParams.getROFrameLenght());
-
-  LOG(INFO) << "Digitizing ITS event at time " << mEventTime << " (TOffset= " << mParams.getTimeOffset()
-            << " ROFrame= " << minNewROFrame << ")"
-            << " cont.mode: " << isContinuous() << " current Min/Max RO Frames " << mROFrameMin << "/" << mROFrameMax
-            << FairLogger::endl;
-
-  if (mParams.isContinuous() && minNewROFrame > mROFrameMin) {
-    // if there are already digits cached for previous RO Frames AND the new event
-    // cannot contribute to these digits, move them to the output container
-    if (mROFrameMax < minNewROFrame) {
-      mROFrameMax = minNewROFrame - 1;
-    }
-    for (auto rof = mROFrameMin; rof < minNewROFrame; rof++) {
-      fillOutputContainer(rof);
-    }
-  }
-
-  int nHits = mHits->size();
+  int nHits = hits->size();
   std::vector<int> hitIdx(nHits);
   std::iota(std::begin(hitIdx), std::end(hitIdx), 0);
   // sort hits to improve memory access
   std::sort(hitIdx.begin(), hitIdx.end(),
-            [&](auto lhs, auto rhs) {
-              return (*mHits)[lhs].GetDetectorID() < (*mHits)[rhs].GetDetectorID();
+            [hits](auto lhs, auto rhs) {
+              return (*hits)[lhs].GetDetectorID() < (*hits)[rhs].GetDetectorID();
             });
   for (int i : hitIdx) {
-    processHit((*mHits)[i], mROFrameMax);
+    processHit((*hits)[i], mROFrameMax, evID, srcID);
   }
   // in the triggered mode store digits after every MC event
+  // TODO: in the real triggered mode this will not be needed, this is actually for the
+  // single event processing only
   if (!mParams.isContinuous()) {
     fillOutputContainer(mROFrameMax);
   }
@@ -104,52 +86,62 @@ void Digitizer::process()
 //_______________________________________________________________________
 void Digitizer::setEventTime(double t)
 {
-  // assign event time, it should be in a strictly increasing order
-  // convert to ns
-  t *= mCoeffToNanoSecond;
-
-  if (t < mEventTime && mParams.isContinuous()) {
-    LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")" << FairLogger::endl;
-  }
+  // assign event time in ns
   mEventTime = t;
   // to randomize the RO phase wrt the event time we use a random offset
   if (mParams.isContinuous()) {       // in continuous mode we set the offset only in the very beginning
     if (!mParams.isTimeOffsetSet()) { // offset is initially at -inf
-      mParams.setTimeOffset(0);       ///*mEventTime + */ mParams.getROFrameLenght() * (gRandom->Rndm() - 0.5));
+      mParams.setTimeOffset(0);       ///*mEventTime + */ mParams.getROFrameLength() * (gRandom->Rndm() - 0.5));
     }
-  } else { // in the triggered mode we start from 0 ROFrame in every event
-    mParams.setTimeOffset(mEventTime); // + mParams.getROFrameLenght() * (gRandom->Rndm() - 0.5));
+  } else {                             // in the triggered mode we start from 0 ROFrame in every event, is this correct?
+    mParams.setTimeOffset(mEventTime); // + mParams.getROFrameLength() * (gRandom->Rndm() - 0.5));
     mROFrameMin = 0; // so we reset the frame counters
     mROFrameMax = 0;
+  }
+
+  mEventTime -= mParams.getTimeOffset(); // subtract common offset
+  if (mEventTime < 0.) {
+    mEventTime = 0.;
+  } else if (mEventTime > UINT_MAX) {
+    LOG(FATAL) << "ROFrame for event time " << t << " exceeds allowe maximum " << UINT_MAX << FairLogger::endl;
+  }
+
+  // RO frame corresponding to provided time
+  mNewROFrame = static_cast<UInt_t>(mEventTime * mParams.getROFrameLengthInv());
+
+  if (mNewROFrame < mROFrameMin) {
+    LOG(FATAL) << "New ROFrame (time=" << t << ") precedes currently cashed " << mROFrameMin << FairLogger::endl;
+  }
+
+  if (mParams.isContinuous() && mROFrameMax < mNewROFrame) {
+    mROFrameMax = mNewROFrame - 1; // all frames up to this are finished
   }
 }
 
 //_______________________________________________________________________
-void Digitizer::fillOutputContainer(UInt_t maxFrame)
+void Digitizer::fillOutputContainer(UInt_t frameLast)
 {
-  // fill output with digits ready to be stored, generating the noise beforehand
-  if (maxFrame > mROFrameMax) {
-    maxFrame = mROFrameMax;
+  // fill output with digits from min.cached up to requested frame, generating the noise beforehand
+  if (frameLast > mROFrameMax) {
+    frameLast = mROFrameMax;
   }
-  // make sure all buffers for extra digits are created
+  // make sure all buffers for extra digits are created up to the maxFrame
   getExtraDigBuffer(mROFrameMax);
 
-  LOG(INFO) << "Filling ITS digits output for RO frames " << mROFrameMin << ":" << maxFrame << FairLogger::endl;
+  LOG(INFO) << "Filling ITS digits output for RO frames " << mROFrameMin << ":" << frameLast << FairLogger::endl;
 
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
-  auto rof = mROFrameMin;
-  for (; rof <= maxFrame; rof++) {
+  for (; mROFrameMin <= frameLast; mROFrameMin++) {
     auto& extra = *(mExtraBuff.front().get());
     for (auto& chip : mChips) {
-      //      chip.fillOutputContainer(digits, rof, &mParams);
-      chip.addNoise(rof, rof, &mParams);
+      chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
         continue;
       }
       auto itBeg = buffer.begin();
       auto iter = itBeg;
-      ULong64_t maxKey = chip.getOrderingKey(rof + 1, 0, 0); // fetch digits with key below that
+      ULong64_t maxKey = chip.getOrderingKey(mROFrameMin + 1, 0, 0); // fetch digits with key below that
       for (; iter != buffer.end(); ++iter) {
         if (iter->first > maxKey) {
           break; // is the digit ROFrame from the key > the max requested frame
@@ -157,7 +149,7 @@ void Digitizer::fillOutputContainer(UInt_t maxFrame)
         auto& preDig = iter->second; // preDigit
         if (preDig.charge >= mParams.getChargeThreshold()) {
           int digID = mDigits->size();
-          mDigits->emplace_back(chip.getChipIndex(), rof, preDig.row, preDig.col, preDig.charge);
+          mDigits->emplace_back(chip.getChipIndex(), mROFrameMin, preDig.row, preDig.col, preDig.charge);
           mMCLabels->addElement(digID, preDig.labelRef.label);
           auto& nextRef = preDig.labelRef; // extra contributors are in extra array
           while (nextRef.next >= 0) {
@@ -168,75 +160,40 @@ void Digitizer::fillOutputContainer(UInt_t maxFrame)
       }
       buffer.erase(itBeg, iter);
     }
-    extra.clear(); // clear container for extra digits of the rof ROFrame
+    extra.clear(); // clear container for extra digits of the mROFrameMin ROFrame
     // and move it as a new slot in the end
     mExtraBuff.emplace_back(mExtraBuff.front().release());
     mExtraBuff.pop_front();
-    mROFrameMin++;
   }
-  mROFrameMin = maxFrame + 1;
 }
 
 //_______________________________________________________________________
-void Digitizer::setCurrSrcID(int v)
+void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, int srcID)
 {
-  // set current MC source ID
-  if (v > MCCompLabel::maxSourceID()) {
-    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID()
-               << FairLogger::endl;
-  }
-  mCurrSrcID = v;
-}
+  // convert single hit to digits
 
-//_______________________________________________________________________
-void Digitizer::setCurrEvID(int v)
-{
-  // set current MC event ID
-  if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID()
-               << FairLogger::endl;
-  }
-  mCurrEvID = v;
-}
+  double hTime0 = hit.GetTime() * sec2ns + mEventTime; // time from the RO start, in ns
 
-//_______________________________________________________________________
-void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr)
-{
-  // conver single hit to digits
-
-  double hTime0 = hit.GetTime() * sec2ns + mEventTime - mParams.getTimeOffset(); // time from the RO start, in ns
-  if (hTime0 > UINT_MAX) {
-    LOG(WARNING) << "Hit RO Frame undefined: time: " << hTime0 << " is in far future: hitTime: "
-                 << hit.GetTime() << " EventTime: " << mEventTime << " ChipOffset: "
-                 << mParams.getTimeOffset() << FairLogger::endl;
-    return;
-  }
   // calculate RO Frame for this hit
   if (hTime0 < 0) {
     hTime0 = 0.;
   }
-  float tTot = mParams.getSignalShape().getDuration();
-  UInt_t roFrame = UInt_t(hTime0 * mParams.getROFrameLenghtInv());
-  std::array<float, maxROFPerHit> timesROF; // start/end time in every ROF covered
-  // time till the end of the ROF where the hit was registered, used for signal overflow check
-  float tInt = float((roFrame + 1) * mParams.getROFrameLenght() - hTime0);
-  timesROF[0] = 0.f;
-  timesROF[1] = tInt;
-  int nROFs = 1;
-  while (tInt < tTot) {
-    tInt += mParams.getROFrameLenght();
-    timesROF[++nROFs] = tInt;
+  float tTot = mParams.getSignalShape().getMaxDuration();
+  // frame of the hit signal start
+  UInt_t roFrame = UInt_t(hTime0 * mParams.getROFrameLengthInv());
+  // frame of the hit signal end: in the triggered mode we read just 1 frame
+  UInt_t roFrameMax = mParams.isContinuous() ? UInt_t((hTime0 + tTot) * mParams.getROFrameLengthInv()) : roFrame;
+  int nFrames = roFrameMax + 1 - roFrame;
+  if (roFrameMax > maxFr) {
+    maxFr = roFrameMax; // if signal extends beyond current maxFrame, increase the latter
   }
-  UInt_t roFrameLast = roFrame + (nROFs - 1);
-  if (roFrameLast > maxFr) {
-    maxFr = roFrameLast;
-  }
+  // delay of the signal start wrt 1st ROF start
+  float timeInROF = float(hTime0 - (roFrame * mParams.getROFrameLength()));
 
+  // here we start stepping in the depth of the sensor to generate charge diffision
   float nStepsInv = mParams.getNSimStepsInv();
   int nSteps = mParams.getNSimSteps();
-
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
-
   Vector3D<float> xyzLocS(matrix ^ (hit.GetPosStart())); // start position in sensor frame
   Vector3D<float> xyzLocE(matrix ^ (hit.GetPos()));      // end position in sensor frame
   Vector3D<float> step(xyzLocE);
@@ -340,7 +297,7 @@ void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr)
   }
 
   // fire the pixels assuming Poisson(n_response_electrons)
-  o2::MCCompLabel lbl(hit.GetTrackID(), mCurrEvID, mCurrSrcID);
+  o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID);
   auto& chip = mChips[hit.GetDetectorID()];
   for (int irow = rowSpan; irow--;) {
     UShort_t rowIS = irow + rowS;
@@ -356,7 +313,55 @@ void Digitizer::processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr)
       }
       UShort_t colIS = icol + colS;
       //
-      registerDigits(chip, roFrame, nROFs, rowIS, colIS, nEle, lbl, timesROF);
+      registerDigits(chip, roFrame, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
+    }
+  }
+}
+
+//________________________________________________________________________________
+void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
+                               UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl)
+{
+  // Register digits for given pixel, accounting for the possible signal contribution to
+  // multiple ROFrame. The signal starts at tume tInROF wrt the start of provided roFrame
+  // In every ROFrame we check the collected signal during strobe
+
+  float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
+  for (int i = 0; i < nROF; i++) {
+    UInt_t roFr = roFrame + i;
+    int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength());
+    tStrobe += mParams.getROFrameLength(); // for the next ROF
+
+    // discard too small contributions, they have no chance to produce a digit
+    if (nEleROF < mParams.getMinChargeToAccount()) {
+      continue;
+    }
+
+    auto key = chip.getOrderingKey(roFr, row, col);
+    PreDigit* pd = chip.findDigit(key);
+    if (!pd) {
+      chip.addDigit(key, roFr, row, col, nEleROF, lbl);
+    } else { // there is already a digit at this slot, account as PreDigitExtra contribution
+      pd->charge += nEle;
+      if (pd->labelRef.label == lbl) { // don't store the same label twice
+        continue;
+      }
+      ExtraDig* extra = getExtraDigBuffer(roFr);
+      int& nxt = pd->labelRef.next;
+      bool skip = false;
+      while (nxt >= 0) {
+        if ((*extra)[nxt].label == lbl) { // don't store the same label twice
+          skip = true;
+          break;
+        }
+        nxt = (*extra)[nxt].next;
+      }
+      if (skip) {
+        continue;
+      }
+      // new predigit will be added in the end of the chain
+      nxt = extra->size();
+      extra->emplace_back(lbl);
     }
   }
 }

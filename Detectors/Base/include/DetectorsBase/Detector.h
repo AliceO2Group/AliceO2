@@ -16,6 +16,7 @@
 
 #include <map>
 #include <vector>
+#include <initializer_list>
 #include <memory>
 
 #include "FairDetector.h"  // for FairDetector
@@ -58,6 +59,15 @@ class Detector : public FairDetector
     void Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm,
                 Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t *ubuf = nullptr,
                 Int_t nbuf = 0);
+
+    /// Custom processes and transport cuts
+    void SpecialCuts(Int_t numed, const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap);
+    /// Set cut by name and value
+    void SpecialCut(Int_t numed, ECut parID, Float_t val);
+
+    void SpecialProcesses(Int_t numed, const std::initializer_list<std::pair<EProc, int>>& parIDValMap);
+    /// Set process by name and value
+    void SpecialProcess(Int_t numed, EProc parID, int val);
 
     /// Define a rotation matrix. angles are in degrees.
     /// \param nmat on output contains the number assigned to the rotation matrix
@@ -210,6 +220,17 @@ void attachMetaMessage(T secret, FairMQChannel& channel, FairMQParts& parts)
   parts.AddPart(std::move(message));
 }
 
+template <typename T>
+TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
+{
+  if (auto br = tree.GetBranch(brname)) {
+    br->SetAddress(static_cast<void*>(&ptr));
+    return br;
+  }
+  // otherwise make it
+  return tree.Branch(brname, ptr);
+}
+
 // an implementation helper template which automatically implements
 // common functionality for deriving classes via the CRT pattern
 // (example: it implements the updateHitTrackIndices function and avoids
@@ -253,17 +274,6 @@ class DetImpl : public o2::Base::Detector
     while (auto hits = static_cast<Det*>(this)->Det::getHits(probe++)) {
       attachTMessage(*hits, channel, parts);
     }
-  }
-
-  template <typename T>
-  TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
-  {
-    if (auto br = tree.GetBranch(brname)) {
-      br->SetAddress(static_cast<void*>(&ptr));
-      return br;
-    }
-    // otherwise make it
-    return tree.Branch(brname, ptr);
   }
 
   void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) override

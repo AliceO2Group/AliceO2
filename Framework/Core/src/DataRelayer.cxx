@@ -9,21 +9,40 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRelayer.h"
 #include "Framework/DataSpecUtils.h"
-#include <Monitoring/Monitoring.h>
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataRef.h"
 #include "Framework/InputRecord.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/PartRef.h"
 #include "fairmq/FairMQLogger.h"
+
+#include <Monitoring/Monitoring.h>
+
+#include <gsl/span>
 
 using DataHeader = o2::header::DataHeader;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 constexpr size_t MAX_PARALLEL_TIMESLICES = 256;
 
+
 namespace o2
 {
 namespace framework
 {
+
+namespace {
+size_t
+countDistinctTypes(std::vector<InputRoute> const &routes) {
+  size_t inputDataTypes = 0;
+  for (auto &route : routes) {
+    if (route.timeslice == 0) {
+      inputDataTypes += 1;
+    }
+  }
+  return inputDataTypes;
+}
+}
 
 constexpr int64_t INVALID_TIMESLICE = -1;
 constexpr int INVALID_INPUT = -1;
@@ -34,9 +53,14 @@ constexpr DataRelayer::TimesliceId INVALID_TIMESLICE_ID = {INVALID_TIMESLICE};
 constexpr int DEFAULT_PIPELINE_LENGTH = 16;
 
 // FIXME: do we really need to pass the forwards?
-DataRelayer::DataRelayer(const std::vector<InputRoute>& inputs, const std::vector<ForwardRoute>& forwards,
+DataRelayer::DataRelayer(const CompletionPolicy& policy,
+                         const std::vector<InputRoute>& inputRoutes,
+                         const std::vector<ForwardRoute>& forwardRoutes,
                          monitoring::Monitoring& metrics)
-  : mInputs{ inputs }, mForwards{ forwards }, mMetrics{ metrics }
+  : mInputRoutes{ inputRoutes },
+    mForwardRoutes{ forwardRoutes },
+    mMetrics{ metrics },
+    mCompletionPolicy{policy}
 {
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
   for (size_t ci = 0; ci < mCache.size(); ci++) {
@@ -44,6 +68,9 @@ DataRelayer::DataRelayer(const std::vector<InputRoute>& inputs, const std::vecto
   }
 }
 
+/// This does the mapping between a route and a InputSpec. The
+/// reason why these might diffent is that when you have timepipelining
+/// you have one route per timeslice, even if the type is the same.
 size_t
 assignInputSpecId(void *data, std::vector<InputRoute> const &routes) {
   for (size_t ri = 0, re = routes.size(); ri < re; ++ri) {
@@ -70,19 +97,21 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
   // relay concurrently.
-  const auto &inputs = mInputs;
+  const auto &inputRoutes = mInputRoutes;
   std::vector<TimesliceId> &timeslices = mTimeslices;
   auto &cache = mCache;
   const auto &readonlyCache = mCache;
   auto& metrics = mMetrics;
+  auto& dirty = mDirty;
+  auto numInputTypes = countDistinctTypes(mInputRoutes);
 
   // IMPLEMENTATION DETAILS
   // 
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
-  auto getInput = [&inputs,&header] () -> int {
-    return assignInputSpecId(header->GetData(), inputs);
+  auto getInput = [&inputRoutes,&header] () -> int {
+    return assignInputSpecId(header->GetData(), inputRoutes);
   };
 
   // This will check if the input is valid. We hide the details so that
@@ -132,14 +161,16 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // We need to prune the cache from the old stuff, if any. Otherwise we
   // simply store the payload in the cache and we mark relevant bit in the
   // hence the first if.
-  auto pruneCacheSlotFor = [&cache, &inputs, &timeslices, &metrics](int64_t timeslice) {
+  auto pruneCacheSlotFor = [&cache, &numInputTypes, &timeslices, &metrics](int64_t timeslice) {
+    assert(cache.empty() == false);
+    assert(timeslices.size() * numInputTypes == cache.size());
     size_t slotIndex = timeslice % timeslices.size();
     // Prune old stuff from the cache, hopefully deleting it...
     // We set the current slot to the timeslice value, so that old stuff
     // will be ignored.
-    assert(inputs.size() * slotIndex < cache.size());
+    assert(numInputTypes * slotIndex < cache.size());
     timeslices[slotIndex].value = timeslice;
-    for (size_t ai = slotIndex*inputs.size(), ae = ai + inputs.size(); ai != ae ; ++ai) {
+    for (size_t ai = slotIndex*numInputTypes, ae = ai + numInputTypes; ai != ae ; ++ai) {
       cache[ai].header.reset(nullptr);
       cache[ai].payload.reset(nullptr);
       metrics.send({ 0, std::string("data_relayer/") + std::to_string(ai) });
@@ -150,16 +181,17 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   // the current timeslice.
   // This should never happen, however given this is dependent on the input
   // we want to protect again malicious / bad upstream source.
-  auto hasCacheInputAlreadyFor = [&cache, &timeslices, &inputs](int64_t timeslice, int input) {
+  auto hasCacheInputAlreadyFor = [&cache, &timeslices, &numInputTypes](int64_t timeslice, int input) {
     size_t slotIndex = timeslice % timeslices.size();
-    PartRef &currentPart = cache[inputs.size()*slotIndex + input];
+    PartRef &currentPart = cache[numInputTypes*slotIndex + input];
     return (currentPart.payload != nullptr) || (currentPart.header != nullptr);
   };
 
   // Actually save the header / payload in the slot
-  auto saveInSlot = [&header, &payload, &cache, &timeslices, &inputs, &metrics](int64_t timeslice, int input) {
+  auto saveInSlot = [&header, &payload, &cache, &dirty, &timeslices, &numInputTypes, &metrics](int64_t timeslice, int input) {
     size_t slotIndex = timeslice % timeslices.size();
-    auto cacheIdx = inputs.size() * slotIndex + input;
+    dirty[slotIndex] = true;
+    auto cacheIdx = numInputTypes * slotIndex + input;
     PartRef& currentPart = cache[cacheIdx];
     metrics.send({ 1, std::string("data_relayer/") + std::to_string(cacheIdx) });
     PartRef ref{std::move(header), std::move(payload)};
@@ -202,33 +234,34 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   return WillRelay;
 }
 
-std::vector<int>
+
+std::vector<DataRelayer::RecordAction>
 DataRelayer::getReadyToProcess() {
   // THE STATE
-  std::vector<int> completed;
+  std::vector<RecordAction> completed;
   const auto &cache = mCache;
-  const auto &inputs = mInputs;
+  const auto numInputTypes = countDistinctTypes(mInputRoutes);
   //
   // THE IMPLEMENTATION DETAILS
   //
   // We use this to bail out early from the check as soon as we find something
   // which we know is not complete.
-  auto theLineWillBeIncomplete = [&cache, &inputs](int li, int ai) -> bool {
-    auto &input = cache[li*inputs.size() + ai];
-    if (input.header == nullptr || input.payload == nullptr) {
-      return true;
-    }
-    return false;
+  auto getPartialRecord = [&cache, &numInputTypes](int li) -> gsl::span<const PartRef> {
+    auto offset = li * numInputTypes;
+    assert(cache.size() >= offset + numInputTypes);
+    auto const start = cache.data() + offset;
+    auto const end = cache.data() + offset + numInputTypes;
+    return gsl::span<const PartRef>(start, end);
   };
 
   // These two are trivial, but in principle the whole loop could be parallelised
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
-  auto updateCompletionResults = [&completed](size_t li) {
-    completed.push_back(li);
+  auto updateCompletionResults = [&completed](size_t li, CompletionPolicy::CompletionOp op) {
+    completed.push_back({li, op});
   };
 
-  auto completionResults = [&completed]() -> std::vector<int> {
+  auto completionResults = [&completed]() -> std::vector<RecordAction> {
     return completed;
   };
 
@@ -240,33 +273,43 @@ DataRelayer::getReadyToProcess() {
   // structure will probably result in a larger footprint in any case.
   // Also notice that ai == inputsNumber only when we reach the end of the
   // iteration, that means we have found all the required bits.
-  assert(!inputs.empty());
-  size_t cacheLines = cache.size() / inputs.size();
-  assert(cacheLines * inputs.size() == cache.size());
+  assert(numInputTypes != 0);
+  size_t cacheLines = cache.size() / numInputTypes;
+  assert(cacheLines * numInputTypes == cache.size());
 
   for (size_t li = 0; li < cacheLines; ++li) {
-    size_t ai;
-    for (ai = 0; ai < inputs.size(); ++ai) {
-      if (theLineWillBeIncomplete(li, ai)) {
+    // We only check the cachelines which have been updated by an incoming 
+    // message.
+    if (mDirty[li] == false) {
+      continue;
+    }
+    auto partial = getPartialRecord(li);
+    auto action = mCompletionPolicy.callback(partial);
+    switch (action) {
+      case CompletionPolicy::CompletionOp::Consume:
+      case CompletionPolicy::CompletionOp::Process:
+      case CompletionPolicy::CompletionOp::Discard:
+        updateCompletionResults(li, action);
         break;
-      }
+      case CompletionPolicy::CompletionOp::Wait:
+        break;
     }
-    if (ai == inputs.size()) {
-      updateCompletionResults(li);
-    }
+    // Given we have created an action for this cacheline, we need to wait for
+    // a new message before we look again into the given cacheline.
+    mDirty[li] = false;
   }
   return completionResults();
 }
 
 std::vector<std::unique_ptr<FairMQMessage>>
 DataRelayer::getInputsForTimeslice(size_t timeslice) {
+  const auto numInputTypes = countDistinctTypes(mInputRoutes);
   // State of the computation
   std::vector<std::unique_ptr<FairMQMessage>> messages;
-  messages.reserve(mInputs.size()*2);
+  messages.reserve(numInputTypes*2);
   auto &cache = mCache;
   auto &timeslices = mTimeslices;
   auto& metrics = mMetrics;
-  const auto &inputs = mInputs;
 
   // Nothing to see here, this is just to make the outer loop more understandable.
   auto jumpToCacheEntryAssociatedWith = [](size_t) {
@@ -277,8 +320,8 @@ DataRelayer::getInputsForTimeslice(size_t timeslice) {
   // finished. We bump by one the timeslice for the given cache entry, so that
   // in case we get (for whatever reason) an old input, it will be
   // automatically discarded by the relay method.
-  auto moveHeaderPayloadToOutput = [&messages, &cache, &timeslices, &inputs, &metrics](size_t ti, size_t arg) {
-    auto cacheId = ti * inputs.size() + arg;
+  auto moveHeaderPayloadToOutput = [&messages, &cache, &timeslices, &numInputTypes, &metrics](size_t ti, size_t arg) {
+    auto cacheId = ti * numInputTypes + arg;
     metrics.send({ 2, "data_relayer/" + std::to_string(cacheId) });
     messages.emplace_back(std::move(cache[cacheId].header));
     messages.emplace_back(std::move(cache[cacheId].payload));
@@ -289,8 +332,8 @@ DataRelayer::getInputsForTimeslice(size_t timeslice) {
   // timeslice, so I can simply do that. I keep the assertion there because in principle
   // we should have dispatched the timeslice already!
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
-  auto invalidateCacheFor = [&inputs, &timeslices, &cache](size_t ti) {
-    for (size_t ai = ti*inputs.size(), ae = ai + inputs.size(); ai != ae; ++ai) {
+  auto invalidateCacheFor = [&numInputTypes, &timeslices, &cache](size_t ti) {
+    for (size_t ai = ti*numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
        assert(cache[ai].header.get() == nullptr);
        assert(cache[ai].payload.get() == nullptr);
     }
@@ -299,7 +342,7 @@ DataRelayer::getInputsForTimeslice(size_t timeslice) {
 
   // Outer loop here.
   jumpToCacheEntryAssociatedWith(timeslice);
-  for (size_t ai = 0, ae = inputs.size(); ai != ae;  ++ai) {
+  for (size_t ai = 0, ae = numInputTypes; ai != ae;  ++ai) {
     moveHeaderPayloadToOutput(timeslice, ai);
   }
   invalidateCacheFor(timeslice);
@@ -309,18 +352,24 @@ DataRelayer::getInputsForTimeslice(size_t timeslice) {
 
 size_t
 DataRelayer::getParallelTimeslices() const {
-  return mCache.size() / mInputs.size();
+  return mCache.size() / countDistinctTypes(mInputRoutes);
 }
 
+
 /// Tune the maximum number of in flight timeslices this can handle.
+/// Notice that in case we have time pipelining we need to count
+/// the actual number of different types, without taking into account
+/// the time pipelining.
 void
 DataRelayer::setPipelineLength(size_t s) {
   mTimeslices.resize(s, INVALID_TIMESLICE_ID);
-  mCache.resize(mInputs.size() * mTimeslices.size());
-  mMetrics.send({ (int)mInputs.size(), "data_relayer/h" });
+  mDirty.resize(mTimeslices.size(), false);
+  auto numInputTypes = countDistinctTypes(mInputRoutes);
+  assert(numInputTypes);
+  mCache.resize(numInputTypes * mTimeslices.size());
+  mMetrics.send({ (int)numInputTypes, "data_relayer/h" });
   mMetrics.send({ (int)mTimeslices.size(), "data_relayer/w" });
 }
-
 
 }
 }

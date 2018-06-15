@@ -32,27 +32,70 @@ Clusterer::Clusterer() : mCurr(mColumn2 + 1), mPrev(mColumn1 + 1)
   LOG(INFO) << "ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN" << FairLogger::endl;
   LOG(INFO) << "*********************************************************************" << FairLogger::endl;
 #endif //_ClusterTopology_
+
+#ifdef _PERFORM_TIMING_
+  mTimer.Stop();
+#endif
 }
 
 //__________________________________________________
 void Clusterer::process(PixelReader& reader, std::vector<Cluster>& clusters)
 {
+
+#ifdef _PERFORM_TIMING_
+  mTimer.Start(kFALSE);
+#endif
+
   reader.init();
 
-  while (reader.getNextChipData(mChipData)) {
-    LOG(DEBUG) << "ITSClusterer got Chip " << mChipData.chipID << " ROFrame " << mChipData.roFrame << " Nhits "
-               << mChipData.pixels.size() << FairLogger::endl;
-    initChip();
-    for (int ip = 1; ip < mChipData.pixels.size(); ip++) {
-      updateChip(ip);
+  while ((mChipData = reader.getNextChipData(mChips))) { // read next chip data to corresponding
+    // vector in the mChips and return the pointer on it
+
+    // if necessary, flush existing data
+
+    mCurrROF = mChipData->getROFrame();
+    if (mChipData->getChipID() < mCurrChipID) {
+      LOG(INFO) << "ITS: clusterizing new ROFrame " << mCurrROF << FairLogger::endl;
     }
-    finishChip(clusters);
+    mCurrChipID = mChipData->getChipID();
+    // LOG(DEBUG) << "ITSClusterer got Chip " << mCurrChipID << " ROFrame " << mChipData->getROFrame()
+    //            << " Nhits " << mChipData->getData().size() << FairLogger::endl;
+
+    if (mMaskOverflowPixels) { // mask pixels fired from the previous ROF
+      if (mChipsOld.size() < mChips.size()) {
+        mChipsOld.resize(mChips.size()); // expand buffer of previous ROF data
+      }
+      const auto& chipInPrevROF = mChipsOld[mCurrChipID];
+      if (chipInPrevROF.getROFrame() + 1 == mCurrROF) {
+        mChipData->maskFiredInSample(mChipsOld[mCurrChipID]);
+      }
+    }
+    auto validPixID = mChipData->getFirstUnmasked();
+    if (validPixID < mChipData->getData().size()) { // chip data may have all of its pixels masked!
+      initChip(validPixID++);
+      for (; validPixID < mChipData->getData().size(); validPixID++) {
+        if (!mChipData->getData()[validPixID].isMasked()) {
+          updateChip(validPixID);
+        }
+      }
+      finishChip(clusters);
+    }
+    if (mMaskOverflowPixels) { // current chip data will be used in the next ROF to mask overflow pixels
+      mChipsOld[mCurrChipID].swap(*mChipData);
+    }
   }
+
+#ifdef _PERFORM_TIMING_
+  mTimer.Stop();
+  printf("Clusterization timing (w/o disk IO): ");
+  mTimer.Print();
+#endif
 }
 
 //__________________________________________________
-void Clusterer::initChip()
+void Clusterer::initChip(UInt_t first)
 {
+  // init chip with the 1st unmasked pixel (entry "from" in the mChipData)
   mPrev = mColumn1 + 1;
   mCurr = mColumn2 + 1;
   std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
@@ -61,31 +104,31 @@ void Clusterer::initChip()
   mPixels.clear();
   mPreClusterHeads.clear();
   mPreClusterIndices.clear();
-  PixelReader::PixelData* pix = &mChipData.pixels[0];
-  mCol = pix->col;
-  mCurr[pix->row] = 0;
+  auto pix = mChipData->getData()[first];
+  mCol = pix.getCol();
+  mCurr[pix.getRowDirect()] = 0; // can use getRowDirect since the pixel is not masked
   // start the first pre-cluster
   mPreClusterHeads.push_back(0);
   mPreClusterIndices.push_back(0);
-  mPixels.emplace_back(-1, 0); // id of current pixel
+  mPixels.emplace_back(-1, first); // id of current pixel
 }
 
 //__________________________________________________
-void Clusterer::updateChip(int ip)
+void Clusterer::updateChip(UInt_t ip)
 {
-  const auto pix = mChipData.pixels[ip];
-  if (mCol != pix.col) { // switch the buffers
+  const auto pix = mChipData->getData()[ip];
+  if (mCol != pix.getCol()) { // switch the buffers
     Int_t* tmp = mCurr;
     mCurr = mPrev;
     mPrev = tmp;
-    if (pix.col > mCol + 1)
+    if (pix.getCol() > mCol + 1)
       std::fill(mPrev, mPrev + kMaxRow, -1);
     std::fill(mCurr, mCurr + kMaxRow, -1);
-    mCol = pix.col;
+    mCol = pix.getCol();
   }
 
   Bool_t attached = false;
-  UShort_t row = pix.row;
+  UShort_t row = pix.getRowDirect(); // can use getRowDirect since the pixel is not masked
   Int_t neighbours[]{ mCurr[row - 1], mPrev[row], mPrev[row + 1], mPrev[row - 1] };
   for (auto pci : neighbours) {
     if (pci < 0)
@@ -125,7 +168,7 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
 
   std::array<Label, Cluster::maxLabels> labels;
   std::array<PixelData, Cluster::kMaxPatternBits * 2> pixArr;
-
+  const auto& pixData = mChipData->getData();
   Int_t noc = clusters.size();
   for (Int_t i1 = 0; i1 < mPreClusterHeads.size(); ++i1) {
     const auto ci = mPreClusterIndices[i1];
@@ -139,26 +182,26 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
     Int_t next = mPreClusterHeads[i1];
     while (next >= 0) {
       const auto& dig = mPixels[next];
-      const auto pix = mChipData.pixels[dig.second]; // PixelReader.PixelData
-      x += pix.row;
-      z += pix.col;
-      if (pix.row < rowMin) {
-        rowMin = pix.row;
+      const auto pix = pixData[dig.second];
+      x += pix.getRowDirect();
+      z += pix.getCol();
+      if (pix.getRowDirect() < rowMin) {
+        rowMin = pix.getRowDirect();
       }
-      if (pix.row > rowMax) {
-        rowMax = pix.row;
+      if (pix.getRowDirect() > rowMax) {
+        rowMax = pix.getRowDirect();
       }
-      if (pix.col < colMin) {
-        colMin = pix.col;
+      if (pix.getCol() < colMin) {
+        colMin = pix.getCol();
       }
-      if (pix.col > colMax) {
-        colMax = pix.col;
+      if (pix.getCol() > colMax) {
+        colMax = pix.getCol();
       }
       if (npix < pixArr.size()) {
         pixArr[npix] = pix; // needed for cluster topology
       }
-      if (mDigLabels) { // the MCtruth for this pixel is at mChipData.startID+dig.second
-        fetchMCLabels(dig.second + mChipData.startID, labels, nlab);
+      if (mDigLabels) { // the MCtruth for this pixel is at mChipData->startID+dig.second
+        fetchMCLabels(dig.second + mChipData->getStartID(), labels, nlab);
       }
       npix++;
       next = dig.first;
@@ -171,26 +214,26 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
       next = mPreClusterHeads[i2];
       while (next >= 0) {
         const auto& dig = mPixels[next];
-        const auto pix = mChipData.pixels[dig.second]; // PixelReader.PixelData
-        x += pix.row;
-        z += pix.col;
-        if (pix.row < rowMin) {
-          rowMin = pix.row;
+        const auto pix = pixData[dig.second]; // PixelData
+        x += pix.getRowDirect();
+        z += pix.getCol();
+        if (pix.getRowDirect() < rowMin) {
+          rowMin = pix.getRowDirect();
         }
-        if (pix.row > rowMax) {
-          rowMax = pix.row;
+        if (pix.getRowDirect() > rowMax) {
+          rowMax = pix.getRowDirect();
         }
-        if (pix.col < colMin) {
-          colMin = pix.col;
+        if (pix.getCol() < colMin) {
+          colMin = pix.getCol();
         }
-        if (pix.col > colMax) {
-          colMax = pix.col;
+        if (pix.getCol() > colMax) {
+          colMax = pix.getCol();
         }
         if (npix < pixArr.size()) {
           pixArr[npix] = pix; // needed for cluster topology
         }
-        if (mDigLabels) { // the MCtruth for this pixel is at mChipData.startID+dig.second
-          fetchMCLabels(dig.second + mChipData.startID, labels, nlab);
+        if (mDigLabels) { // the MCtruth for this pixel is at mChipData->startID+dig.second
+          fetchMCLabels(dig.second + mChipData->getStartID(), labels, nlab);
         }
         npix++;
         next = dig.first;
@@ -201,13 +244,13 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
     Point3D<float> xyzLoc(Segmentation::getFirstRowCoordinate() + x * Segmentation::PitchRow / npix, 0.f,
                           Segmentation::getFirstColCoordinate() + z * Segmentation::PitchCol / npix);
     auto xyzTra =
-      mGeometry->getMatrixT2L(mChipData.chipID) ^ (xyzLoc); // inverse transform from Local to Tracking frame
+      mGeometry->getMatrixT2L(mChipData->getChipID()) ^ (xyzLoc); // inverse transform from Local to Tracking frame
 
     clusters.emplace_back();
     Cluster& c = clusters[noc];
-    c.SetUniqueID(noc); // Let the cluster remember its position within the cluster array
-    c.setROFrame(mChipData.roFrame);
-    c.setSensorID(mChipData.chipID);
+    c.setIndex(noc); // Let the cluster remember its position within the cluster array
+    c.setROFrame(mChipData->getROFrame());
+    c.setSensorID(mChipData->getChipID());
     c.setPos(xyzTra);
     c.setErrors(SigmaX2, SigmaY2, 0.f);
     c.setNxNzN(rowMax - rowMin + 1, colMax - colMin + 1, npix);
@@ -243,7 +286,7 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
       npix = pixArr.size();
     for (int i = 0; i < npix; i++) {
       const auto pix = pixArr[i];
-      unsigned short ir = pix.row - rowMin, ic = pix.col - colMin;
+      unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
       if (ir < rowSpanW && ic < colSpanW) {
         c.setPixel(ir, ic);
       }
@@ -275,4 +318,11 @@ void Clusterer::fetchMCLabels(int digID, std::array<Label, Cluster::maxLabels>& 
     }
   }
   //
+}
+
+//__________________________________________________
+void Clusterer::print() const
+{
+  // print settings
+  printf("Masking of overflow pixels: %s\n", mMaskOverflowPixels ? "ON" : "OFF");
 }

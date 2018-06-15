@@ -70,7 +70,8 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   std::vector<DeviceSpec> devices;
   SimpleResourceManager rm(22000, 1000);
   auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
+  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
   char* fakeArgv[] = { strdup("foo"), nullptr };
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;

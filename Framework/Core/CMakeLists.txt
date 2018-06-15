@@ -24,6 +24,8 @@ endif()
 set(SRCS
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
+    src/CompletionPolicy.cxx
+    src/CompletionPolicyHelpers.cxx
     src/ChannelConfigurationPolicy.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
     src/DataAllocator.cxx

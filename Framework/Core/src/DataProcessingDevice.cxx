@@ -42,7 +42,7 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegist
     mError{ spec.algorithm.onError },
     mConfigRegistry{ nullptr },
     mAllocator{ this, &mContext, &mRootContext, spec.outputs },
-    mRelayer{ spec.inputs, spec.forwards, registry.get<Monitoring>() },
+    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
     mInputChannels{ spec.inputChannels },
     mOutputChannels{ spec.outputChannels },
     mInputs{ spec.inputs },
@@ -118,7 +118,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
   FairMQParts &parts = iParts;
-  std::vector<int> completed;
+  std::vector<DataRelayer::RecordAction> completed;
 
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
@@ -195,9 +195,8 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getCompleteInputSets = [&relayer, &completed, &monitoringService]() -> std::vector<int> {
+  auto getReadyActions = [&relayer, &completed, &monitoringService]() -> std::vector<DataRelayer::RecordAction> {
     LOG(DEBUG) << "Getting parts to process";
-    completed = relayer.getReadyToProcess();
     int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
     monitoringService.send({ pendingInputs, "inputs/relayed/pending" });
     if (completed.empty()) {
@@ -253,7 +252,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareForCurrentTimeSlice = [&rootContext, &context, &relayer](int i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&rootContext, &context, &relayer](int i) {
     size_t timeslice = relayer.getTimesliceForCacheline(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
     rootContext.prepareForTimeslice(timeslice);
@@ -268,9 +267,16 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
                        (int timeslice, InputRecord &record) {
     assert(record.size()*2 == currentSetOfInputs.size());
     LOG(DEBUG) << "FORWARDING:START:" << timeslice;
-    for (size_t ii = 0, ie = record.size(); ii != ie; ++ii) {
+    for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
-      assert(input.header);
+
+      // If is now possible that the record is not complete when
+      // we forward it, because of a custom completion policy.
+      // this means that we need to skip the empty entries in the 
+      // record for being forwarded.
+      if (input.header == nullptr || input.payload == nullptr) {
+        continue;
+      }
       auto dh = o2::header::get<DataHeader*>(input.header);
       if (!dh) {
         reportError("Header is not a DataHeader?");
@@ -331,7 +337,9 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // is actually hidden. For example we do not expose what "input" is. This
   // will allow us to keep the same toplevel logic even if the actual meaning
   // of input is changed (for example we might move away from multipart
-  // messages).
+  // messages). Notice also that we need to act diffently depending on the
+  // actual CompletionOp we want to perform. In particular forwarding inputs
+  // also gets rid of them from the cache.
   if (isValidInput() == false) {
     reportError("Parts should come in couples. Dropping it.");
     return true;
@@ -341,23 +349,41 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     return true;
   }
 
-  for (auto cacheline : getCompleteInputSets()) {
-    prepareForCurrentTimeSlice(cacheline);
-    InputRecord record = fillInputs(cacheline);
+  for (auto action: getReadyActions()) {
+    if (action.op == CompletionPolicy::CompletionOp::Wait) {
+      continue;
+    }
+
+    prepareAllocatorForCurrentTimeSlice(action.cacheLineIdx);
+    InputRecord record = fillInputs(action.cacheLineIdx);
+    if (action.op == CompletionPolicy::CompletionOp::Discard) {
+      if (forwards.empty() == false) {
+        forwardInputs(action.cacheLineIdx, record);
+        continue;
+      }
+    }
     try {
       for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = cacheline * record.size() + ai;
-        monitoringService.send({ 2, "data_relayer/" + std::to_string(cacheId) });
+        auto cacheId = action.cacheLineIdx * record.size() + ai;
+        auto state = record.isValid(ai) ? 2 : 0;
+        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
       }
-      dispatchProcessing(cacheline, record);
+      dispatchProcessing(action.cacheLineIdx, record);
       for (size_t ai = 0; ai != record.size(); ai++) {
-        auto cacheId = cacheline * record.size() + ai;
-        monitoringService.send({ 3, "data_relayer/" + std::to_string(cacheId) });
+        auto cacheId = action.cacheLineIdx * record.size() + ai;
+        auto state = record.isValid(ai) ? 3 : 0;
+        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
       }
     } catch(std::exception &e) {
       errorHandling(e, record);
     }
-    forwardInputs(cacheline, record);
+    // We forward inputs only when we consume them. If we simply Process them,
+    // we keep them for next message arriving.
+    if (action.op == CompletionPolicy::CompletionOp::Consume) {
+      if (forwards.empty() == false) {
+        forwardInputs(action.cacheLineIdx, record);
+      }
+    }
   }
 
   return true;

@@ -40,6 +40,16 @@ Detector::Detector(Bool_t Active)
   //  TString gn(geo->GetName());
 }
 
+Detector::Detector(const Detector& rhs)
+  : o2::Base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(nullptr), mHits(new std::vector<o2::fit::HitType>)
+{
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
+}
+
 void Detector::Initialize()
 {
   // FIXME: we need to register the sensitive volumes with FairRoot

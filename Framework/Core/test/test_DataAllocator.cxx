@@ -51,7 +51,7 @@ DataProcessorSpec getTimeoutSpec()
   // a timer process to terminate the workflow after a timeout
   auto processingFct = [](ProcessingContext& pc) {
     static int counter = 0;
-    pc.outputs().snapshot(Output{ "TST", "TIMER", 0, Lifetime::Timeframe }, counter);
+    pc.outputs().snapshot(Output{ "TEST", "TIMER", 0, Lifetime::Timeframe }, counter);
 
     sleep(1);
     if (counter++ > 10) {
@@ -62,7 +62,7 @@ DataProcessorSpec getTimeoutSpec()
 
   return DataProcessorSpec{ "timer",  // name of the processor
                             Inputs{}, // inputs empty
-                            { OutputSpec{ "TST", "TIMER", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ "TEST", "TIMER", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(processingFct) };
 }
 
@@ -96,7 +96,7 @@ DataProcessorSpec getSourceSpec()
   };
 
   return DataProcessorSpec{ "source", // name of the processor
-                            { InputSpec{ "timer", "TST", "TIMER", 0, Lifetime::Timeframe } },
+                            { InputSpec{ "timer", "TEST", "TIMER", 0, Lifetime::Timeframe } },
                             { OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
@@ -127,8 +127,7 @@ DataProcessorSpec getSinkSpec()
     }
     // plain, unserialized object in input1 channel
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
-    ASSERT_ERROR(object1 != nullptr);
-    ASSERT_ERROR(*object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
     // check the additional header on the stack
     auto* metaHeader1 = DataRefUtils::getHeader<test::MetaHeader*>(pc.inputs().get("input1"));
     // check if there are more of the same type
@@ -138,12 +137,12 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(metaHeader2 != nullptr && metaHeader2->secret == 23);
 
     // ROOT-serialized messageable object in input2 channel
-    auto object2 = pc.inputs().get<o2::test::TriviallyCopyable>("input2");
+    auto object2 = pc.inputs().get<o2::test::TriviallyCopyable*>("input2");
     ASSERT_ERROR(object2 != nullptr);
     ASSERT_ERROR(*object2 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     // ROOT-serialized, non-messageable object in input3 channel
-    auto object3 = pc.inputs().get<o2::test::Polymorphic>("input3");
+    auto object3 = pc.inputs().get<o2::test::Polymorphic*>("input3");
     ASSERT_ERROR(object3 != nullptr);
     ASSERT_ERROR(*object3 == o2::test::Polymorphic(0xbeef));
 

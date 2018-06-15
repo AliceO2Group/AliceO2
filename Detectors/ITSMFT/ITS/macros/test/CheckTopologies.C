@@ -134,21 +134,21 @@ void CheckTopologies(Int_t nEvents = 10, TString mcEngine = "TGeant3")
       completeDictionary.accountTopology(topology, dx, dz);
     }
   }
-  completeDictionary.setThreshold(0.00001);
+  completeDictionary.setThreshold(0.0001);
   completeDictionary.groupRareTopologies();
   completeDictionary.printDictionaryBinary("complete_dictionary.bin");
-  ofstream completeDictionaryOutput("complete_dictionary.txt");
-  completeDictionaryOutput << completeDictionary;
-  noiseDictionary.setThreshold(0.00001);
+  completeDictionary.printDictionary("complete_dictionary.txt");
+  completeDictionary.saveDictionaryRoot("complete_dictionary.root");
+  noiseDictionary.setThreshold(0.0001);
   noiseDictionary.groupRareTopologies();
   noiseDictionary.printDictionaryBinary("noise_dictionary.bin");
-  ofstream noiseDictionaryOutput("noise_dictionary.txt");
-  noiseDictionaryOutput << noiseDictionary;
-  signalDictionary.setThreshold(0.00001);
+  noiseDictionary.printDictionary("noise_dictionary.txt");
+  noiseDictionary.saveDictionaryRoot("noise_dictionary.root");
+  signalDictionary.setThreshold(0.0001);
   signalDictionary.groupRareTopologies();
   signalDictionary.printDictionaryBinary("signal_dictionary.bin");
-  ofstream signalDictionaryOutput("signal_dictionary.txt");
-  signalDictionaryOutput << signalDictionary;
+  signalDictionary.printDictionary("signal_dictionary.txt");
+  signalDictionary.saveDictionaryRoot("signal_dictionary.root");
 
   TFile histogramOutput("histograms.root", "recreate");
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");

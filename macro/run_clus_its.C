@@ -52,6 +52,8 @@ void run_clus_its(std::string outputfile, std::string inputfile, std::string par
   // Setup clusterizer
   Bool_t useMCTruth = kTRUE; // kFALSE if no comparison with MC needed
   o2::ITS::ClustererTask* clus = new o2::ITS::ClustererTask(useMCTruth);
+  clus->getClusterer().setMaskOverflowPixels(true); // set this to false to switch off masking
+
   fRun->AddTask(clus);
 
   fRun->Init();

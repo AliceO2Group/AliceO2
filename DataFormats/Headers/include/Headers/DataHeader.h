@@ -36,6 +36,7 @@
 #include <cstring> //needed for memcmp
 #include <algorithm> // std::min
 #include <stdexcept>
+#include <string>
 #include "MemoryResources/MemoryResources.h"
 
 using byte = unsigned char;
@@ -299,6 +300,16 @@ struct Descriptor {
   bool operator==(const T*) const = delete;
   template<typename T>
   bool operator!=(const T*) const = delete;
+
+  /// get the descriptor as std::string
+  template <typename T>
+  std::enable_if_t<std::is_same<T, std::string>::value == true, T> as() const
+  {
+    // init from the complete str member including space for a trailing 0
+    std::string ret(str, size + 1);
+    ret[size] = 0;
+    return std::move(ret);
+  }
   // print function needs to be implemented for every derivation
   void print() const {
     // eventually terminate string before printing
@@ -476,7 +487,9 @@ struct Stack {
   }
 
   struct freeobj {
+    freeobj() {}
     freeobj(boost::container::pmr::memory_resource* mr) : resource(mr) {}
+
     boost::container::pmr::memory_resource* resource{ nullptr };
     void operator()(byte* ptr) { Stack::freefn(ptr, resource); }
   };
@@ -519,7 +532,7 @@ struct Stack {
     : allocator{ allocatorArg },
       bufferSize{ calculateSize(std::forward<Headers>(headers)...) },
       buffer{ static_cast<byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
-              freeobj{ getFreefnHint() } }
+              freeobj(getFreefnHint()) }
   {
     inject(buffer.get(), std::forward<Headers>(headers)...);
   }
@@ -666,7 +679,7 @@ struct DataHeader : public BaseHeader
 
   //___the functions:
   DataHeader(); ///ctor
-  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size); /// ctor
+  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size = 0); /// ctor
 
   DataHeader(const DataHeader&) = default;
   DataHeader& operator=(const DataHeader&) = default; //assignment

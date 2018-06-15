@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <SimConfig/SimConfig.h>
+#include <DetectorsCommonDataFormats/DetID.h>
 #include <boost/program_options.hpp>
 #include <iostream>
 
@@ -21,7 +22,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
     "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(
-                   std::vector<std::string>({ "EMCAL TOF TPC TRD" }), "EMCAL TOF TPC TRD"),
+                   std::vector<std::string>({ "all" }), "all modules"),
     "list of detectors")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
@@ -33,8 +34,15 @@ void SimConfig::initOptions(boost::program_options::options_description& options
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
 {
+  using o2::detectors::DetID;
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
   mConfigData.mActiveDetectors = vm["modules"].as<std::vector<std::string>>();
+  if (mConfigData.mActiveDetectors.size() == 1 && mConfigData.mActiveDetectors[0] == "all") {
+    mConfigData.mActiveDetectors.clear();
+    for (int d = DetID::First; d <= DetID::Last; ++d) {
+      mConfigData.mActiveDetectors.push_back(DetID::getName(d));
+    }
+  }
   mConfigData.mGenerator = vm["generator"].as<std::string>();
   mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();

@@ -17,7 +17,6 @@
 #include "FairMQMessage.h"
 #include <FairMQDevice.h>
 #include <FairLogger.h>
-#include "../macro/o2sim.C"
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
@@ -35,6 +34,7 @@
 #include "Steer/InteractionSampler.h"
 
 #include "O2HitMerger.h"
+#include "O2SimDevice.h"
 #include <DetectorsCommonDataFormats/DetID.h>
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
@@ -88,7 +88,13 @@ class O2HitMerger : public FairMQDevice
   /// Overloads the InitTask() method of FairMQDevice
   void InitTask() final
   {
-    mOutFile = new TFile("o2sim_merged_hits.root", "RECREATE");
+    std::string outfilename("o2sim_merged_hits.root"); // default name
+    // query the sim config ... which is used to extract the filenames
+    if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
+      outfilename = o2::conf::SimConfig::Instance().getOutPrefix() + ".root";
+    }
+
+    mOutFile = new TFile(outfilename.c_str(), "RECREATE");
     mOutTree = new TTree("o2sim", "o2sim");
   }
 
@@ -129,6 +135,17 @@ class O2HitMerger : public FairMQDevice
     }
   }
 
+  template <typename T>
+  void consumeData(std::string name, FairMQParts& data, int& index)
+  {
+    auto decodeddata = o2::Base::decodeTMessage<T*>(data, index);
+    auto br = o2::Base::getOrMakeBranch(*mOutTree, name.c_str(), &decodeddata);
+    br->SetAddress(&decodeddata);
+    br->Fill();
+    br->ResetAddress();
+    index++;
+  }
+
   bool handleSimData(FairMQParts& data, int /*index*/)
   {
     LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts\n";
@@ -142,10 +159,10 @@ class O2HitMerger : public FairMQDevice
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
     // auto totalsize = insertAdd<uint32_t, size_t>(mITSTotalSize, info.eventID, itshits.size());
 
-    // consumeMCTracks(data);
-    // consumeTrackReferences();
-    // indices 0 and 1 are MCData and TrackRef
-    int index = 2;
+    int index = 1;
+    consumeData<std::vector<o2::MCTrack>>("MCTrack", data, index);
+    consumeData<std::vector<o2::TrackReference>>("TrackRefs", data, index);
+    consumeData<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", data, index);
     while (index < data.Size()) {
       consumeHits(data, index);
     }
@@ -153,7 +170,9 @@ class O2HitMerger : public FairMQDevice
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
       LOG(INFO) << "EVERYTHING IS HERE FOR EVENT " << info.eventID << "\n";
-      if (info.eventID == info.maxEvents) {
+      mEventChecksum += info.eventID;
+      // we also need to check if we have all events
+      if (isDataComplete<uint32_t>(mEventChecksum, info.maxEvents)) {
         return false;
       }
     }
@@ -166,6 +185,7 @@ class O2HitMerger : public FairMQDevice
   TFile* mOutFile;  //!
   TTree* mOutTree;  //!
   int mEntries = 0; //! counts the number of entries in the branches
+  int mEventChecksum = 0; //! checksum for events
   TStopwatch mTimer;
 
   std::vector<std::unique_ptr<o2::Base::Detector>> mDetectorInstances;

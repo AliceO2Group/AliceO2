@@ -49,17 +49,23 @@ class Digitizer : public TObject
   Digitizer(const Digitizer&) = delete;
   Digitizer& operator=(const Digitizer&) = delete;
 
-  void setHits(const std::vector<Hit>* hits) { mHits = hits; }
   void setDigits(std::vector<o2::ITSMFT::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
+
+  o2::ITSMFT::DigiParams& getParams() { return (o2::ITSMFT::DigiParams&)mParams; }
+  const o2::ITSMFT::DigiParams& getParams() const { return mParams; }
 
   void init();
 
   /// Steer conversion of hits to digits
-  void process();
-  void processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr);
+  void process(const std::vector<Hit>* hits, int evID, int srcID);
   void setEventTime(double t);
   double getEventTime() const { return mEventTime; }
+  double getEndTimeOfROFMax() const
+  {
+    ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
+    return mParams.getROFrameLength() * (mROFrameMax + 1) + mParams.getTimeOffset();
+  }
 
   void setContinuous(bool v) { mParams.setContinuous(v); }
   bool isContinuous() const { return mParams.isContinuous(); }
@@ -68,24 +74,13 @@ class Digitizer : public TObject
   void setDigiParams(const o2::ITSMFT::DigiParams& par) { mParams = par; }
   const o2::ITSMFT::DigiParams& getDigitParams() const { return mParams; }
 
-  void setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
-  double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
-
-  int getCurrSrcID() const { return mCurrSrcID; }
-  int getCurrEvID() const { return mCurrEvID; }
-
-  void setCurrSrcID(int v);
-  void setCurrEvID(int v);
-
   // provide the common ITSMFT::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
 
  private:
-  static constexpr int maxROFPerHit = 20; // max ROF allowed per hit due to the signal time-shape (no check!)
-
-  void registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, int nROF,
-                      UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl,
-                      const std::array<float, maxROFPerHit>& times);
+  void processHit(const o2::ITSMFT::Hit& hit, UInt_t& maxFr, int evID, int srcID);
+  void registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
+                      UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl);
 
   ExtraDig* getExtraDigBuffer(UInt_t roFrame)
   {
@@ -101,12 +96,10 @@ class Digitizer : public TObject
 
   o2::ITSMFT::DigiParams mParams;  ///< digitization parameters
   double mEventTime = 0;           ///< global event time
-  double mCoeffToNanoSecond = 1.0; ///< coefficient to convert event time (Fair) to ns
   bool mContinuous = false;        ///< flag for continuous simulation
   UInt_t mROFrameMin = 0;          ///< lowest RO frame of current digits
   UInt_t mROFrameMax = 0;          ///< highest RO frame of current digits
-  int mCurrSrcID = 0;              ///< current MC source from the manager
-  int mCurrEvID = 0;               ///< current event ID from the manager
+  UInt_t mNewROFrame = 0;          ///< ROFrame corresponding to provided time
 
   std::unique_ptr<o2::ITSMFT::AlpideSimResponse> mAlpSimResp; // simulated response
 
@@ -115,53 +108,11 @@ class Digitizer : public TObject
   std::vector<o2::ITSMFT::ChipDigitsContainer> mChips; ///< Array of chips digits containers
   std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
 
-  const std::vector<Hit>* mHits = nullptr;                                 //! input hits
   std::vector<o2::ITSMFT::Digit>* mDigits = nullptr;                       //! output digits
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
 
   ClassDefOverride(Digitizer, 2);
 };
-
-inline void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, int nROF,
-                                      UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl,
-                                      const std::array<float, maxROFPerHit>& times)
-{
-  // register digits for given pixel, accounting for the possible signal contribution to
-  // multiple ROFrame
-  for (int i = 0; i < nROF; i++) {
-    UInt_t roFr = roFrame + i;
-    int nEleROF = mParams.getSignalShape().getIntegral(nEle, times[i + 1], times[i]);
-    if (nEleROF < mParams.getMinChargeToAccount()) {
-      continue;
-    }
-    auto key = chip.getOrderingKey(roFr, row, col);
-    PreDigit* pd = chip.findDigit(key);
-    if (!pd) {
-      chip.addDigit(key, roFr, row, col, nEleROF, lbl);
-    } else { // there is already a digit at this slot, account as PreDigitExtra contribution
-      pd->charge += nEle;
-      if (pd->labelRef.label == lbl) { // don't store the same label twice
-        continue;
-      }
-      ExtraDig* extra = getExtraDigBuffer(roFr);
-      int& nxt = pd->labelRef.next;
-      bool skip = false;
-      while (nxt >= 0) {
-        if ((*extra)[nxt].label == lbl) { // don't store the same label twice
-          skip = true;
-          break;
-        }
-        nxt = (*extra)[nxt].next;
-      }
-      if (skip) {
-        continue;
-      }
-      // new predigit will be added in the end of the chain
-      nxt = extra->size();
-      extra->emplace_back(lbl);
-    }
-  }
-}
 }
 }
 

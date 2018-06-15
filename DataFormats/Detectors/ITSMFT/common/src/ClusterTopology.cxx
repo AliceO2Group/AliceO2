@@ -22,7 +22,7 @@ ClassImp(o2::ITSMFT::ClusterTopology)
 {
   namespace ITSMFT
   {
-  ClusterTopology::ClusterTopology() : mPattern{ 0 }, mHash{ 0 }, mNbytes{ 0 } {}
+  ClusterTopology::ClusterTopology() : mPattern{}, mHash{ 0 } {}
 
   ClusterTopology::ClusterTopology(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]) : mHash{ 0 }
   {
@@ -31,12 +31,7 @@ ClassImp(o2::ITSMFT::ClusterTopology)
 
   void ClusterTopology::setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
   {
-    mPattern[0] = (unsigned char)nRow;
-    mPattern[1] = (unsigned char)nCol;
-    mNbytes = nRow * nCol / 8;
-    if (((nRow * nCol) % 8) != 0)
-      mNbytes++;
-    memcpy(&mPattern[2], patt, mNbytes);
+    mPattern.setPattern(nRow, nCol, patt);
     mHash = getCompleteHash(*this);
   }
 
@@ -82,26 +77,30 @@ ClassImp(o2::ITSMFT::ClusterTopology)
   }
 
   unsigned long ClusterTopology::getCompleteHash(int nRow, int nCol,
-                                                 const unsigned char patt[Cluster::kMaxPatternBytes], int nBytesUsed)
+                                                 const unsigned char patt[Cluster::kMaxPatternBytes])
   {
-    unsigned long extended_pattern[Cluster::kMaxPatternBytes + 2] = { 0 };
+    unsigned char extended_pattern[ClusterPattern::kExtendedPatternBytes] = { 0 };
     extended_pattern[0] = (unsigned char)nRow;
     extended_pattern[1] = (unsigned char)nCol;
-    memcpy(&extended_pattern[2], patt, nBytesUsed);
+    int nBits = nRow * nCol;
+    int nBytes = nBits / 8;
+    if (nBits % 8 != 0)
+      nBytes++;
+    memcpy(&extended_pattern[2], patt, nBytes);
 
-    unsigned long partialHash = (unsigned long)hashFunction(extended_pattern, nBytesUsed);
+    unsigned long partialHash = (unsigned long)hashFunction(extended_pattern, nBytes);
     // The first four bytes are directly taken from partialHash
     unsigned long completeHash = partialHash << 32;
     // The last four bytes of the hash are the first 32 pixels of the topology.
     // The bits reserved for the pattern that are not used are set to 0.
-    if (nBytesUsed == 1) {
+    if (nBytes == 1) {
       completeHash += ((((unsigned long)extended_pattern[2]) << 24));
-    } else if (nBytesUsed == 2) {
+    } else if (nBytes == 2) {
       completeHash += ((((unsigned long)extended_pattern[2]) << 24) + (((unsigned long)extended_pattern[3]) << 16));
-    } else if (nBytesUsed == 3) {
+    } else if (nBytes == 3) {
       completeHash += ((((unsigned long)extended_pattern[2]) << 24) + (((unsigned long)extended_pattern[3]) << 16) +
                        (((unsigned long)extended_pattern[4]) << 8));
-    } else if (nBytesUsed >= 4) {
+    } else if (nBytes >= 4) {
       completeHash += ((((unsigned long)extended_pattern[2]) << 24) + (((unsigned long)extended_pattern[3]) << 16) +
                        (((unsigned long)extended_pattern[4]) << 8) + ((unsigned long)extended_pattern[5]));
     } else {
@@ -113,7 +112,7 @@ ClassImp(o2::ITSMFT::ClusterTopology)
 
   unsigned long ClusterTopology::getCompleteHash(const ClusterTopology& topology)
   {
-    std::array<unsigned char, Cluster::kMaxPatternBytes + 2> patt = topology.getPattern();
+    auto patt = topology.getPattern();
     int nBytesUsed = topology.getUsedBytes();
     unsigned long partialHash = (unsigned long)hashFunction(patt.data(), nBytesUsed);
     // The first four bytes are directly taken from partialHash
@@ -139,32 +138,7 @@ ClassImp(o2::ITSMFT::ClusterTopology)
 
   std::ostream& operator<<(std::ostream& os, const ClusterTopology& topology)
   {
-    os << "rowSpan: " << topology.getRowSpan() << " columnSpan: " << topology.getColumnSpan()
-       << " #bytes: " << topology.getUsedBytes() << std::endl;
-    unsigned char tempChar = 0;
-    int s = 0;
-    int ic = 0;
-    for (unsigned int i = 2; i < topology.getUsedBytes() + 2; i++) {
-      tempChar = topology.mPattern[i];
-      s = 128; // 0b10000000
-      while (s > 0) {
-        if (ic % topology.getColumnSpan() == 0)
-          os << "|";
-        ic++;
-        if ((tempChar & s) != 0)
-          os << '+';
-        else
-          os << ' ';
-        s /= 2;
-        if (ic % topology.getColumnSpan() == 0)
-          os << "|" << std::endl;
-        if (ic == (topology.getRowSpan() * topology.getColumnSpan()))
-          break;
-      }
-      if (ic == (topology.getRowSpan() * topology.getColumnSpan()))
-        break;
-    }
-    os << std::endl;
+    os << topology.mPattern << std::endl;
     return os;
   }
   } // namespace ITSMFT

@@ -17,7 +17,14 @@
 #include "TPythia6Decayer.h"
 #include "FairModule.h"
 #include <DetectorsPassive/Cave.h>
+#include "DetectorsBase/MaterialManager.h"
 
+//using declarations here since SetCuts.C and g4Config.C are included within namespace
+// these are needed for SetCuts.C inclusion
+using o2::Base::ECut;
+using o2::Base::EProc;
+using o2::Base::MaterialManager;
+// these are used in g4Config.C
 using std::cout;
 using std::endl;
 

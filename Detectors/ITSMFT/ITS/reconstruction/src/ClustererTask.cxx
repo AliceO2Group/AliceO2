@@ -75,6 +75,9 @@ InitStatus ClustererTask::Init()
   mGeometry = geom;
   mClusterer.setGeometry(geom);
 
+  printf("%s | MCTruth: %s\n", Class()->GetName(), arrDigLbl ? "ON" : "OFF");
+  mClusterer.print();
+
   return kSUCCESS;
 }
 
