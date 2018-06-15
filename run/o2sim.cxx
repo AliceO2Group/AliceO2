@@ -10,9 +10,13 @@
 
 #include "../macro/o2sim.C"
 #include <SimConfig/SimConfig.h>
+#include <TStopwatch.h>
+#include <FairLogger.h>
 
 int main(int argc, char* argv[])
 {
+  TStopwatch timer;
+  timer.Start();
   auto& conf = o2::conf::SimConfig::Instance();
   if (!conf.resetFromArguments(argc, argv)) {
     return 1;
@@ -20,6 +24,9 @@ int main(int argc, char* argv[])
 
   // call o2sim "macro"
   o2sim(false);
+
+  // print total time
+  LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
 
   // We do this instead of return 0
   // for the reason that we see lots of problems

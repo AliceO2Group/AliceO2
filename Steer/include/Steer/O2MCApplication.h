@@ -44,14 +44,20 @@ class O2MCApplication : public FairMCApplication
   /** Define actions at the end of event */
   void FinishEvent() override
   {
+    // update the stack
+    fStack->FillTrackArray();
+    fStack->UpdateTrackIndex(fActiveDetectors);
+
     // This special finish event version does not fill the output tree of FairRootManager
     // but forwards the data to the HitMerger
     SendData();
 
     // call end of event on active detectors
     for (auto det : listActiveDetectors) {
+      det->FinishEvent();
       det->EndOfEvent();
     }
+    fStack->Reset();
   }
 
   /** Define actions at the end of run */
