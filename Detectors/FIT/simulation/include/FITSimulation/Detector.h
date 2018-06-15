@@ -61,7 +61,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   Detector() = default;
 
   /// Clone this object (used in MT mode only)
-  FairModule *CloneModule() const override;
+  FairModule* CloneModule() const override;
 
   /// Initialization of the detector is done here
   void Initialize() override;
