@@ -211,15 +211,6 @@ void createMaterials()
   mgr.Material(kModuleName, ++imat, "Aluminium", kAAluminium, kZAluminium, kDensAluminium, 0., 0.);
   mgr.Medium(kModuleName, Medium::Aluminium, "Aluminium", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax,
              kEpsil, kStmin);
-
-  /// Air
-  const int nAir = 4;
-  float aAir[nAir] = { kACarbon, kANitrogen, kAOxygen, kAArgon };
-  float zAir[nAir] = { kZCarbon, kZNitrogen, kZOxygen, kZArgon };
-  float wAir[nAir] = { 0.000124, 0.755267, 0.231781, 0.012827 };
-  float dAir = 1.20479E-3; // from AliMUONCommonGeometryBuilder
-  mgr.Mixture(kModuleName, ++imat, "Air", aAir, zAir, dAir, -nAir, wAir);
-  mgr.Medium(kModuleName, Medium::Air, "Air", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 }
 
 TGeoMedium* assertMedium(int imed)

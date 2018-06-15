@@ -175,7 +175,7 @@ void drawGeometry()
   // Temporary
   //gGeoManager->GetTopVolume()->Draw("ogl");
   //gGeoManager->GetTopVolume()->Draw();
-  gGeoManager->CheckOverlaps(0.0001);
+  gGeoManager->CheckOverlaps(0.01);
   gGeoManager->PrintOverlaps();
   gGeoManager->Export("MCHgeometry.root");
   /*

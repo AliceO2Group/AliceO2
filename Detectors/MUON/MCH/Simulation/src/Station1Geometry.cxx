@@ -46,8 +46,6 @@ const float kChamberZpos[2] = { -526.16, -545.24 };
 // Quadrant z position w.r.t the chamber center
 const float kQuadZpos = 7.5 / 2;
 
-const int kNofQuad = 4;
-
 // Thickness
 const float kHzPadPlane = 0.0148 / 2.;    // Pad plane
 const float kHzFoam = 2.503 / 2.;         // Foam of mechanicalplane
@@ -1430,6 +1428,8 @@ void createStation1Geometry(TGeoVolume& topVolume)
   createDaughterBoard();
   createInnerLayers();
   createSpacer();
+
+  const int kNofQuad = 4;
 
   auto rot0 = new TGeoRotation();
   auto rot1 = new TGeoRotation("reflXZ", 90., 180., 90., 90., 180., 0.);
