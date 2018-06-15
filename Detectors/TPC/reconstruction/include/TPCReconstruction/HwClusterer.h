@@ -112,7 +112,7 @@ class HwClusterer : public Clusterer
   /// \param sigmaPad2    Weighted sigma pad ^2 parameter
   /// \param sigmaTime2   Weighted sigma time ^2 parameter
   /// \param mcLabel      Vector with MClabel-counter-pair
-  void updateCluster(int row, unsigned short center_pad, unsigned center_time, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
+  void updateCluster(int row, short center_pad, int center_time, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
 
   /// Writes clusters in temporary storage to cluster output
   /// \param timeOffset   Time offset of cluster container

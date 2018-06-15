@@ -113,7 +113,8 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
   if (mPlainClusterArray)
     mPlainClusterArray->clear();
 
-  mClusterMcLabelArray->clear();
+  if (mClusterMcLabelArray)
+    mClusterMcLabelArray->clear();
   mClusterCounter = 0;
 
   int digitIndex = 0;
@@ -163,8 +164,9 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
          * have to be filled to be able to find a cluster.
          */
         HB = (i - 2) / 447; // integer division on purpose
-        if (HB != mLastHB)
-          writeOutputForTimeOffset(i - 2);
+        if (HB != mLastHB) {
+          writeOutputForTimeOffset(mLastHB * 447);
+        }
 
         /*
          * For each row, we first check for cluster peaks in the timebin i-2,
@@ -440,7 +442,7 @@ void HwClusterer::findClusterForTime(unsigned timebin)
   for (unsigned short row = mNumRows; row--;) {
     // two empty pads on the left and right without a cluster peak
     for (unsigned short pad = 2; pad < mPadsPerRow[row] - 2; ++pad) {
-      if (hwClusterFinder(pad, timebin, row, *cluster.get(), *sortedMcLabels.get())) {
+      if (hwClusterFinder(pad, timebin - 5, row, *cluster.get(), *sortedMcLabels.get())) {
         mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(std::move(cluster), std::move(sortedMcLabels));
 
         // create new empty cluster
@@ -458,14 +460,15 @@ void HwClusterer::finishFrame(bool clear)
   // Search in last remaining timebins for clusters
   for (int i = mLastTimebin + 1; i - mLastTimebin < 3; ++i) {
     HB = (i - 2) / 447; // integer division on purpose
-    if (HB != mLastHB)
-      writeOutputForTimeOffset(i - 2);
+    if (HB != mLastHB) {
+      writeOutputForTimeOffset(mLastHB * 447);
+    }
 
     findClusterForTime(i + 3);
     clearBuffer(i);
     mLastHB = HB;
   }
-  writeOutputForTimeOffset(mLastTimebin + 3);
+  writeOutputForTimeOffset(mLastHB * 447);
 
   if (clear) {
     for (auto i : { 0, 1, 2, 3, 4 })
@@ -488,7 +491,7 @@ void HwClusterer::clearBuffer(unsigned timebin)
 
 //______________________________________________________________________________
 void HwClusterer::updateCluster(
-  int row, unsigned short center_pad, unsigned center_time, short dp, short dt,
+  int row, short center_pad, int center_time, short dp, short dt,
   unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2,
   std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels)
 {
