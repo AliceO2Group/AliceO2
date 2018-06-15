@@ -39,7 +39,7 @@ class Clusterer {
    Clusterer();
 
    /// Destructor
-   ~Clusterer() = default;
+   ~Clusterer();
 
    /// Processing all digits
    /// \param digits Container with TPC digits

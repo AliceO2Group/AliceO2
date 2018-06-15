@@ -36,6 +36,7 @@ HwClusterer::HwClusterer(
     mLastHB(0),
     mPeakChargeThreshold(2),
     mContributionChargeThreshold(0),
+    mClusterCounter(0),
     mRequireNeighbouringTimebin(false),
     mRequireNeighbouringPad(false),
     mIsContinuousReadout(true),
@@ -113,6 +114,7 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
     mPlainClusterArray->clear();
 
   mClusterMcLabelArray->clear();
+  mClusterCounter = 0;
 
   int digitIndex = 0;
   int index;
@@ -372,7 +374,6 @@ bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_tim
 //______________________________________________________________________________
 void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
 {
-  unsigned clusterCounter = 0;
   // Check in which regions cluster were found
   for (unsigned short region = 0; region < 10; ++region) {
     if (mTmpClusterArray[region]->size() == 0)
@@ -400,9 +401,9 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
         // Copy cluster and increment cluster counter
         clusterContainer->clusters[clusterContainer->numberOfClusters++] = *(c.first);
         for (auto& mcLabel : *(c.second)) {
-          mClusterMcLabelArray->addElement(clusterCounter, mcLabel.first);
+          mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
         }
-        ++clusterCounter;
+        ++mClusterCounter;
       }
     } else if (mPlainClusterArray) {
       short cru = mClusterSector * 10 + region;
@@ -419,9 +420,9 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
           std::sqrt(cluster.getSigmaTime2()));
 
         for (auto& mcLabel : *(c.second)) {
-          mClusterMcLabelArray->addElement(clusterCounter, mcLabel.first);
+          mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
         }
-        ++clusterCounter;
+        ++mClusterCounter;
       }
     }
 

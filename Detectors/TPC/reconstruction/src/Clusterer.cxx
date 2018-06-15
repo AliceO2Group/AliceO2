@@ -21,3 +21,10 @@ Clusterer::Clusterer()
     mPedestalObject(nullptr)
 {
 }
+
+//______________________________________________________________________________
+Clusterer::~Clusterer()
+{
+  delete mNoiseObject;
+  delete mPedestalObject;
+}

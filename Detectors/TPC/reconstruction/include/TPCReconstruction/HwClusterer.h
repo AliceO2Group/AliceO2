@@ -141,6 +141,7 @@ class HwClusterer : public Clusterer
   unsigned mLastHB;                      ///< Last HB bin of previous event
   unsigned mPeakChargeThreshold;         ///< Charge threshold for the central peak in ADC counts
   unsigned mContributionChargeThreshold; ///< Charge threshold for the contributing pads in ADC counts
+  unsigned mClusterCounter;              ///< Cluster counter in output container for MC truth matching
   bool mRequireNeighbouringTimebin;      ///< Switch to disable single time cluster
   bool mRequireNeighbouringPad;          ///< Switch to disable single pad cluster
   bool mIsContinuousReadout;             ///< Switch for continuous readout
