@@ -17,6 +17,7 @@ set(HEADERS
   include/${MODULE_NAME}/BuildTopologyDictionary.h
   include/${MODULE_NAME}/LookUp.h
   include/${MODULE_NAME}/TopologyFastSimulation.h
+  include/${MODULE_NAME}/ChipMappingITS.h
 )
 Set(LINKDEF src/ITSMFTReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
