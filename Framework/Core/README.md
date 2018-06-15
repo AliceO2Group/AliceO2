@@ -358,7 +358,7 @@ free function which takes as argument the group of policies to be applied to cus
 
 ## Support for analysis
 
-To be written
+While not part of the initial design goal, we plan to extend DPL in order to support analysis. In particular we are evaluating a mode in which users can natively get a ROOT `RDataFrame` with an API similar to the `InputRecord` API.
 
 # Current Demonstrator
 
