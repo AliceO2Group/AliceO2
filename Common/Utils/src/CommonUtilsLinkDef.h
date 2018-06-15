@@ -17,5 +17,6 @@
  
 #pragma link C++ class o2::utils::TreeStream+;
 #pragma link C++ class o2::utils::TreeStreamRedirector+;
+#pragma link C++ class o2::utils::RootChain + ;
 
 #endif

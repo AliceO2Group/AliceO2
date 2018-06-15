@@ -20,7 +20,9 @@
 #include <iostream>
 #include "CommonUtils/TreeStream.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "CommonUtils/RootChain.h"
 #include "ReconstructionDataFormats/Track.h"
+#include <FairLogger.h>
 
 using namespace o2::utils;
 
@@ -31,7 +33,9 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
   // Example test function to show functionality of TreeStreamRedirector
 
   // create the  redirector associated with file (testredirector.root)
+  FairLogger* logger = FairLogger::GetLogger();
 
+  LOG(INFO) << "Testing  TreeStream creation" << FairLogger::endl;
   TString outFName = "testTreeStream.root";
   int nit = 50;
   {
@@ -54,6 +58,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     tstStream.Close();
   }
   //
+  LOG(INFO) << "Testing reading back tree maid by the TreeStream " << FairLogger::endl;
   // read back tracks
   {
     TFile inpf(outFName.Data());
@@ -72,11 +77,17 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     for (int i = 0; i < nent; i++) {
       tree->GetEntry(i);
       BOOST_CHECK(id == i);
-      printf("id: %d X: %e Track> ", id, x);
+      LOG(INFO) << "id: " << id << " X: " << x << " Track> " << FairLogger::endl;
       trc->printParam();
       BOOST_CHECK(std::abs(x - trc->getX()) < 1e-4);
     }
   }
+
+  LOG(INFO) << "Testing loading tree via RootChain" << FairLogger::endl;
+  //
+  auto chain = RootChain::load("TrackTree", outFName);
+  BOOST_CHECK(chain->GetEntries());
+  chain->Print();
 
   // we can also write the stream to external file open in write mode:
   {
@@ -90,9 +101,11 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
   }
 
   // run Marian's old unit test
+  LOG(INFO) << "Doing  UnitTestSparse" << FairLogger::endl;
   nit = 1000;
   BOOST_CHECK(UnitTestSparse(0.5, nit));
   BOOST_CHECK(UnitTestSparse(0.1, nit));
+  //
 }
 
 //_________________________________________________
