@@ -42,7 +42,7 @@
 
 namespace o2
 {
-namespace memoryResources
+namespace memory_resource
 {
 
 using byte = unsigned char;
@@ -414,7 +414,7 @@ inline static ChannelResource* getTransportAllocator(const FairMQTransportFactor
   return internal::TransportAllocatorMap::Instance()[factory];
 }
 
-}; //namespace memoryResources
+}; //namespace memory_resource
 }; //namespace o2
 
 #endif

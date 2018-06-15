@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace memoryResources
+namespace memory_resource
 {
 auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
 auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");

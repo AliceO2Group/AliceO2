@@ -115,8 +115,8 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
 
   DataProcessingHeader dph{mContext->timeslice(), 1};
 
-  auto channelAlloc = o2::memoryResources::getTransportAllocator(mProxy.getTransport(channel, 0));
-  return o2::memoryResources::getMessage(o2::header::Stack{ channelAlloc, dh, dph, spec.metaHeader });
+  auto channelAlloc = o2::memory_resource::getTransportAllocator(mProxy.getTransport(channel, 0));
+  return o2::memory_resource::getMessage(o2::header::Stack{ channelAlloc, dh, dph, spec.metaHeader });
 }
 
 void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Output& spec,
