@@ -29,9 +29,19 @@ Detector::Detector(bool active)
 {
 }
 
+Detector::Detector(const Detector& rhs)
+  : o2::Base::DetImpl<Detector>(rhs), mStepper{ new o2::mch::Stepper }
+{
+}
+
 Detector::~Detector()
 {
   delete mStepper;
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
 }
 
 void Detector::defineSensitiveVolumes()

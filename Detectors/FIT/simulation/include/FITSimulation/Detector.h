@@ -59,6 +59,10 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Default constructor
   Detector() = default;
+
+  /// Clone this object (used in MT mode only)
+  FairModule* CloneModule() const override;
+
   /// Initialization of the detector is done here
   void Initialize() override;
 
@@ -99,10 +103,10 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \param istream *is The input stream
   void Read(std::istream* is);
 
-  /// Clone this object (used in MT mode only)
-  // FairModule *CloneModule() const override;
-
  private:
+  /// copy constructor (used in MT)
+  Detector(const Detector& rhs);
+
   Int_t mIdSens1;            // Sensetive volume  in T0
   TGraph* mPMTeff = nullptr; // pmt registration effeicincy
 
@@ -126,8 +130,6 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
-
-  Detector(const Detector&);
 
   Detector& operator=(const Detector&);
 

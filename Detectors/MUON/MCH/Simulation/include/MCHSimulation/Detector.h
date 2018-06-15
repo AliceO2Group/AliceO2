@@ -30,6 +30,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override;
 
+  FairModule* CloneModule() const override;
+
   Bool_t ProcessHits(FairVolume* v = nullptr) override;
 
   void Initialize() override;
@@ -45,6 +47,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   void EndOfEvent() override;
 
  private:
+  /// copy constructor (used in MT)
+  Detector(const Detector& rhs);
+
   void defineSensitiveVolumes();
 
  private:
