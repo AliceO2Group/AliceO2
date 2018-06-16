@@ -148,6 +148,8 @@ class ChipPixelData
     }
   }
 
+  void print() const;
+
  private:
   UShort_t mChipID = 0;           // chip id within the detector
   UInt_t mROFrame = 0;            // readout frame ID

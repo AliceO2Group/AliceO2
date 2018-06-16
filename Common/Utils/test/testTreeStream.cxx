@@ -14,7 +14,6 @@
 
 #include <TFile.h>
 #include <TRandom.h>
-#include <TString.h>
 #include <TVectorD.h>
 #include <boost/test/unit_test.hpp>
 #include <iostream>
@@ -23,6 +22,7 @@
 #include "CommonUtils/RootChain.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <FairLogger.h>
+#include <string>
 
 using namespace o2::utils;
 
@@ -36,10 +36,10 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
   FairLogger* logger = FairLogger::GetLogger();
 
   LOG(INFO) << "Testing  TreeStream creation" << FairLogger::endl;
-  TString outFName = "testTreeStream.root";
+  std::string outFName("testTreeStream.root");
   int nit = 50;
   {
-    TreeStreamRedirector tstStream(outFName.Data(), "recreate");
+    TreeStreamRedirector tstStream(outFName.data(), "recreate");
     // write tree named TrackTree of int counter, float  and TrackParCov (using pointer)
     // and another similar tree but using reference of TrackParCov
     std::array<float, o2::track::kNParams> par{};
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
   LOG(INFO) << "Testing reading back tree maid by the TreeStream " << FairLogger::endl;
   // read back tracks
   {
-    TFile inpf(outFName.Data());
+    TFile inpf(outFName.data());
     BOOST_CHECK(!inpf.IsZombie());
     auto tree = (TTree*)inpf.GetObjectChecked("TrackTree", "TTree");
     BOOST_CHECK(tree);
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
 
   // we can also write the stream to external file open in write mode:
   {
-    TFile inpf(outFName.Data(), "update");
+    TFile inpf(outFName.data(), "update");
     TreeStream strm("TreeNamed");
     for (int i = 0; i < nit; i++) {
       TNamed nm(Form("obj%d", i), "");
@@ -123,12 +123,12 @@ bool UnitTestSparse(Double_t scale, Int_t testEntries)
   //     b.) Test invariants
   // Input parameter scale => downscaling of sprse element
 
-  TString outFName = "testTreeStreamSparse.root";
+  std::string outFName("testTreeStreamSparse.root");
   if (scale <= 0)
     scale = 1;
   if (scale > 1)
     scale = 1;
-  TreeStreamRedirector* pcstream = new TreeStreamRedirector(outFName.Data(), "recreate");
+  TreeStreamRedirector* pcstream = new TreeStreamRedirector(outFName.data(), "recreate");
   for (Int_t ientry = 0; ientry < testEntries; ientry++) {
     TVectorD vecRandom(200);
     TVectorD vecZerro(200); // zerro vector
@@ -158,9 +158,9 @@ bool UnitTestSparse(Double_t scale, Int_t testEntries)
   // 2.) check results
   //
 
-  TFile* f = TFile::Open(outFName.Data());
+  TFile* f = TFile::Open(outFName.data());
   if (!f) {
-    printf("Failed to open file: %s\n", outFName.Data());
+    printf("Failed to open file: %s\n", outFName.data());
     return false;
   }
   TTree* treeFull = (TTree*)f->Get("Full");

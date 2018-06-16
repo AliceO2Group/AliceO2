@@ -675,17 +675,21 @@ o2_define_bucket(
     DEPENDENCIES
     itsmft_base_bucket
     data_format_itsmft_bucket
+    common_utils_bucket
     #
     Graf
     Gpad
     DetectorsBase
     DataFormatsITSMFT
     ITSMFTBase
+    CommonUtils
 
     INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
+    ${CMAKE_SOURCE_DIR}/Common/Utils/include
 )
 
 o2_define_bucket(

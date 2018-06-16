@@ -11,6 +11,7 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the ITS cluster finder
 #include <algorithm>
+#include <TTree.h>
 #include "FairLogger.h" // for LOG
 
 #include "ITSMFTBase/SegmentationAlpide.h"
@@ -39,21 +40,26 @@ Clusterer::Clusterer() : mCurr(mColumn2 + 1), mPrev(mColumn1 + 1)
 }
 
 //__________________________________________________
-void Clusterer::process(PixelReader& reader, std::vector<Cluster>& clusters)
+void Clusterer::process(PixelReader& reader, std::vector<Cluster>& clusters, MCTruth* labelsCl)
 {
 
 #ifdef _PERFORM_TIMING_
   mTimer.Start(kFALSE);
 #endif
 
-  reader.init();
-
+  UInt_t prevROF = o2::ITSMFT::PixelData::DummyROF;
   while ((mChipData = reader.getNextChipData(mChips))) { // read next chip data to corresponding
     // vector in the mChips and return the pointer on it
 
-    // if necessary, flush existing data
-
     mCurrROF = mChipData->getROFrame();
+
+    if (prevROF != mCurrROF) {
+      if (mClusTree && prevROF != o2::ITSMFT::PixelData::DummyROF) { // if necessary, flush existing data
+        flushClusters(clusters, labelsCl);
+      }
+      prevROF = mCurrROF;
+    }
+
     if (mChipData->getChipID() < mCurrChipID) {
       LOG(INFO) << "ITS: clusterizing new ROFrame " << mCurrROF << FairLogger::endl;
     }
@@ -78,11 +84,16 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>& clusters)
           updateChip(validPixID);
         }
       }
-      finishChip(clusters);
+      finishChip(clusters, reader.getDigitsMCTruth(), labelsCl);
     }
     if (mMaskOverflowPixels) { // current chip data will be used in the next ROF to mask overflow pixels
       mChipsOld[mCurrChipID].swap(*mChipData);
     }
+  }
+
+  // if asked, flush last ROF
+  if (mClusTree && prevROF != o2::ITSMFT::PixelData::DummyROF) { // if necessary, flush existing data
+    flushClusters(clusters, labelsCl);
   }
 
 #ifdef _PERFORM_TIMING_
@@ -161,13 +172,11 @@ void Clusterer::updateChip(UInt_t ip)
 }
 
 //__________________________________________________
-void Clusterer::finishChip(std::vector<Cluster>& clusters)
+void Clusterer::finishChip(std::vector<Cluster>& clusters, const MCTruth* labelsDig, MCTruth* labelsClus)
 {
   constexpr Float_t SigmaX2 = Segmentation::PitchRow * Segmentation::PitchRow / 12.; // FIXME
   constexpr Float_t SigmaY2 = Segmentation::PitchCol * Segmentation::PitchCol / 12.; // FIXME
 
-  std::array<Label, Cluster::maxLabels> labels;
-  std::array<PixelData, Cluster::kMaxPatternBits * 2> pixArr;
   const auto& pixData = mChipData->getData();
   Int_t noc = clusters.size();
   for (Int_t i1 = 0; i1 < mPreClusterHeads.size(); ++i1) {
@@ -197,11 +206,11 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
       if (pix.getCol() > colMax) {
         colMax = pix.getCol();
       }
-      if (npix < pixArr.size()) {
-        pixArr[npix] = pix; // needed for cluster topology
+      if (npix < mPixArrBuff.size()) {
+        mPixArrBuff[npix] = pix; // needed for cluster topology
       }
-      if (mDigLabels) { // the MCtruth for this pixel is at mChipData->startID+dig.second
-        fetchMCLabels(dig.second + mChipData->getStartID(), labels, nlab);
+      if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+dig.second
+        fetchMCLabels(dig.second + mChipData->getStartID(), labelsDig, nlab);
       }
       npix++;
       next = dig.first;
@@ -229,11 +238,11 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
         if (pix.getCol() > colMax) {
           colMax = pix.getCol();
         }
-        if (npix < pixArr.size()) {
-          pixArr[npix] = pix; // needed for cluster topology
+        if (npix < mPixArrBuff.size()) {
+          mPixArrBuff[npix] = pix; // needed for cluster topology
         }
-        if (mDigLabels) { // the MCtruth for this pixel is at mChipData->startID+dig.second
-          fetchMCLabels(dig.second + mChipData->getStartID(), labels, nlab);
+        if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+dig.second
+          fetchMCLabels(dig.second + mChipData->getStartID(), labelsDig, nlab);
         }
         npix++;
         next = dig.first;
@@ -253,9 +262,9 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
     c.setPos(xyzTra);
     c.setErrors(SigmaX2, SigmaY2, 0.f);
     c.setNxNzN(rowMax - rowMin + 1, colMax - colMin + 1, npix);
-    if (mClsLabels) {
+    if (labelsClus) { // MC labels were requested
       for (int i = nlab; i--;) {
-        mClsLabels->addElement(noc, labels[i]);
+        labelsClus->addElement(noc, mLabelsBuff[i]);
       }
     }
     noc++;
@@ -281,10 +290,10 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
     c.setPatternColSpan(colSpanW, colSpanW < colSpan);
     c.setPatternRowMin(rowMin);
     c.setPatternColMin(colMin);
-    if (npix > pixArr.size())
-      npix = pixArr.size();
+    if (npix > mPixArrBuff.size())
+      npix = mPixArrBuff.size();
     for (int i = 0; i < npix; i++) {
-      const auto pix = pixArr[i];
+      const auto pix = mPixArrBuff[i];
       unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
       if (ir < rowSpanW && ic < colSpanW) {
         c.setPixel(ir, ic);
@@ -295,28 +304,38 @@ void Clusterer::finishChip(std::vector<Cluster>& clusters)
 }
 
 //__________________________________________________
-void Clusterer::fetchMCLabels(int digID, std::array<Label, Cluster::maxLabels>& labels, int& nfilled) const
+void Clusterer::fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled)
 {
   // transfer MC labels to cluster
   if (nfilled >= Cluster::maxLabels) {
     return;
   }
-  const auto& lbls = mDigLabels->getLabels(digID);
+  const auto& lbls = labelsDig->getLabels(digID);
   for (int i = lbls.size(); i--;) {
     int ic = nfilled;
     for (; ic--;) { // check if the label is already present
-      if (labels[ic] == lbls[i]) {
+      if (mLabelsBuff[ic] == lbls[i]) {
         break;
       }
     }
     if (ic < 0) { // label not found
-      labels[nfilled++] = lbls[i];
+      mLabelsBuff[nfilled++] = lbls[i];
       if (nfilled >= Cluster::maxLabels) {
         break;
       }
     }
   }
   //
+}
+
+//__________________________________________________
+void Clusterer::clear()
+{
+  // reset
+  mChipData = nullptr;
+  mClusTree = nullptr;
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
 //__________________________________________________
