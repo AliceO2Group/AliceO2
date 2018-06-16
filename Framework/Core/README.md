@@ -22,8 +22,8 @@ For the reasons mentioned above, we propose that the one of the developments whi
 
 The Data Processing Layer in particular requires:
 
-* That the inputs of each computation are provided upfront.
-* That the outputs of each computation are provided upfront.
+* That the inputs types of each computation are provided upfront.
+* That the outputs types of each computation are provided upfront.
 * That a time identifier can be associated to inputs
 
 and given these premises it actually guarantees:
