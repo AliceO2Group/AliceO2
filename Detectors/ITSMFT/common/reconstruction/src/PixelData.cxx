@@ -23,3 +23,12 @@ void PixelData::sanityCheck() const
   static_assert(RowMask + 1 >= o2::ITSMFT::SegmentationAlpide::NRows,
                 "incompatible mask, does not match Alpide segmentations");
 }
+
+void ChipPixelData::print() const
+{
+  // print chip data
+  printf("Chip %d in ROFrame %d\n", mChipID, mROFrame);
+  for (int i = 0; i < mPixels.size(); i++) {
+    printf("#%4d C:%4d R: %3d %s\n", i, mPixels[i].getCol(), mPixels[i].getRow(), mPixels[i].isMasked() ? "*" : "");
+  }
+}

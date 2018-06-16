@@ -17,15 +17,18 @@
 #pragma link C++ class o2::ITSMFT::Clusterer + ;
 #pragma link C++ class o2::ITSMFT::PixelReader + ;
 #pragma link C++ class o2::ITSMFT::DigitPixelReader + ;
-#pragma link C++ class o2::ITSMFT::RawPixelReader + ;
+#pragma link C++ class o2::ITSMFT::RawPixelReader < o2::ITSMFT::ChipMappingITS > +;
+#pragma link C++ class o2::ITSMFT::RawPixelReader < o2::ITSMFT::ChipMappingMFT > +;
 #pragma link C++ class o2::ITSMFT::PixelData + ;
 #pragma link C++ class o2::ITSMFT::ChipPixelData + ;
 #pragma link C++ class o2::ITSMFT::BuildTopologyDictionary + ;
 #pragma link C++ class o2::ITSMFT::LookUp + ;
 #pragma link C++ class o2::ITSMFT::TopologyFastSimulation + ;
-#pragma link C++ class o2::its::ITSChipMappingData + ;
-#pragma link C++ class o2::its::ITSModuleMappingData + ;
-#pragma link C++ class o2::its::ChipMappingITS + ;
+#pragma link C++ struct o2::ITSMFT::ITSChipMappingData + ;
+#pragma link C++ struct o2::ITSMFT::ITSModuleMappingData + ;
+#pragma link C++ class o2::ITSMFT::ChipMappingITS + ;
+#pragma link C++ class o2::ITSMFT::ChipMappingMFT + ;
+#pragma link C++ class o2::ITSMFT::AlpideCoder + ;
 
 #pragma link C++ class std::map<unsigned long, std::pair<o2::ITSMFT::ClusterTopology, unsigned long>> + ;
 
