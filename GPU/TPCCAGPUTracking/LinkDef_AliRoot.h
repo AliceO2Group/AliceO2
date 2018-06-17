@@ -36,4 +36,10 @@
 #pragma link C++ class AliHLTTPCClusterStatComponent+;
 #pragma link C++ class AliHLTTPCCAGPUTrackerBase+;
 
+#pragma link C++ class AliHLTTRDTrack+;
+#pragma link C++ class AliHLTTRDTracker+;
+#pragma link C++ class AliHLTTRDTrackerComponent+;
+#pragma link C++ class AliHLTTRDTrackletWord+;
+#pragma link C++ class AliHLTTRDTrackletReaderComponent+;
+
 #endif

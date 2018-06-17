@@ -49,6 +49,11 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     Merger/AliHLTTPCGMPolynomialField.cxx
     Merger/AliHLTTPCGMPolynomialFieldCreator.cxx
     GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
+    TRDTracking/AliHLTTRDTrack.cxx
+    TRDTracking/AliHLTTRDTracker.cxx
+    TRDTracking/AliHLTTRDTrackerComponent.cxx
+    TRDTracking/AliHLTTRDTrackletReaderComponent.cxx
+    TRDTracking/AliHLTTRDTrackletWord.cxx
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
@@ -59,6 +64,8 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
         ${AliRoot_SOURCE_DIR}/HLT/TPCLib
         ${AliRoot_SOURCE_DIR}/HLT/TPCLib/transform
         ${AliRoot_SOURCE_DIR}/HLT/TPCLib/comp
+        ${AliRoot_SOURCE_DIR}/HLT/TRD
+        ${AliRoot_SOURCE_DIR}/TRD/TRDbase
         ${AliRoot_SOURCE_DIR}/STEER/STEERBase
         ${AliRoot_SOURCE_DIR}/STEER/STEER
         ${AliRoot_SOURCE_DIR}/STEER/ESD
@@ -94,6 +101,7 @@ string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 set(HDRS ${HDRS}
     SliceTracker/AliHLTTPCCADef.h
     SliceTracker/AliHLTTPCCAMath.h
+    TRDTracking/AliHLTTRDTrackPoint.h
 )
 
 #Extra cpp files, whose headers we don't pass to CINT
