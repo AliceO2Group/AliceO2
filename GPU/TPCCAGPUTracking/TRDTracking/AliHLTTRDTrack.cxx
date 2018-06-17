@@ -199,3 +199,4 @@ void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 }
 
 template class AliHLTTRDTrack<trackInterface<AliExternalTrackParam>>;
+//template class AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>;
