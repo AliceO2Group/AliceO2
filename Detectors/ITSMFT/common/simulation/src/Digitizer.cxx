@@ -141,7 +141,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
       }
       auto itBeg = buffer.begin();
       auto iter = itBeg;
-      ULong64_t maxKey = chip.getOrderingKey(mROFrameMin + 1, 0, 0); // fetch digits with key below that
+      ULong64_t maxKey = chip.getOrderingKey(mROFrameMin + 1, 0, 0) - 1; // fetch digits with key below that
       for (; iter != buffer.end(); ++iter) {
         if (iter->first > maxKey) {
           break; // is the digit ROFrame from the key > the max requested frame
