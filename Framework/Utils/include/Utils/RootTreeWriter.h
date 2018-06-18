@@ -15,7 +15,7 @@
 /// @since  2018-05-15
 /// @brief  A generic writer for ROOT TTrees
 
-#include "Framework/ProcessingContext.h"
+#include "Framework/InputRecord.h"
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -110,14 +110,17 @@ class RootTreeWriter
   /// Recursively process all inputs and set the branch address to extracted objects.
   /// Release function is called on the object after filling the tree.
   template <typename ContextType>
-  void operator()(ContextType& context)
+  void operator()(ContextType&& context)
   {
     if (!mTree || !mFile || mFile->IsZombie()) {
       throw std::runtime_error("Writer is invalid state, probably closed previously");
     }
-    mTreeStructure->exec(context, mBranchSpecs);
+    mTreeStructure->exec(std::forward<ContextType>(context), mBranchSpecs);
     mTree->Fill();
     for (auto& spec : mBranchSpecs) {
+      if (!spec.releaseFct) {
+        continue;
+      }
       spec.releaseFct(spec.data);
       spec.data = nullptr;
       spec.releaseFct = nullptr;
@@ -151,7 +154,7 @@ class RootTreeWriter
     TClass* classinfo = nullptr;
   };
 
-  using ContextType = ProcessingContext;
+  using InputContext = InputRecord;
 
   /// polymorphic interface for the mixin stack of branch type descriptions
   /// it implements the entry point for processing through exec method
@@ -163,13 +166,13 @@ class RootTreeWriter
     virtual ~TreeStructureInterface() = default;
 
     virtual void setup(std::vector<BranchSpec>&, TTree*) {}
-    virtual void exec(ProcessingContext&, std::vector<BranchSpec>&) {}
+    virtual void exec(InputContext&, std::vector<BranchSpec>&) {}
     virtual size_t size() const { return STAGE; }
 
     // a dummy method called in the recursive processing
     void setupInstance(std::vector<BranchSpec>&, TTree*) {}
     // a dummy method called in the recursive processing
-    void process(ProcessingContext&, std::vector<BranchSpec>&) {}
+    void process(InputContext&, std::vector<BranchSpec>&) {}
   };
 
   template <typename DataT, typename BASE>
@@ -189,7 +192,7 @@ class RootTreeWriter
 
     // this is the polymorphic entry point for processing of branch specs
     // recursive processing starting from the highest instance
-    void exec(ProcessingContext& context, std::vector<BranchSpec>& specs) override
+    void exec(InputContext& context, std::vector<BranchSpec>& specs) override
     {
       process(context, specs);
     }
@@ -206,20 +209,28 @@ class RootTreeWriter
     }
 
     // process previous stage and this stage
-    void process(ProcessingContext& context, std::vector<BranchSpec>& specs)
+    void process(InputContext& context, std::vector<BranchSpec>& specs)
     {
       static_cast<PrevT>(*this).process(context, specs);
       constexpr size_t Index = STAGE - 1;
-      auto data = context.inputs().get<type*>(specs[Index].key.c_str());
+      auto data = context.get<type*>(specs[Index].key.c_str());
       // could either copy to the corresponding store variable or use the object
       // directly. TBranch::SetAddress supports only non-const pointers, so this is
       // a hack
       // FIXME: get rid of the const_cast
-      specs[Index].branch->SetAddress(const_cast<type*>(data.get()));
+      // FIXME: using object directly results in a segfault in the Streamer when
+      // using std::vector<o2::test::Polymorphic> in test_RootTreeWriter.cxx
+      //specs[Index].branch->SetAddress(const_cast<type*>(data.get()));
+      // handling copy-or-move is also more complicated because the returned smart
+      // pointer wraps a const buffer which might reside in the input queue and
+      // thus can not be moved.
+      //copyOrMove(mStore, (type&)*data);
+      mStore = *data;
       // the data object is a smart pointer and we have to keep the data alieve
       // until the tree is actually filled after the recursive processing of inputs
       // release the base pointer from the smart pointer instance and keep the
       // daleter to be called after tree fill.
+      // Note: the deleter might not be existent if the content was moved before
       specs[Index].data = const_cast<type*>(data.release());
       auto deleter = data.get_deleter();
       specs[Index].releaseFct = [deleter](void* buffer) { deleter(reinterpret_cast<type*>(buffer)); };
@@ -248,13 +259,13 @@ class RootTreeWriter
   }
 
   template <typename T>
-  typename std::enable_if<std::is_move_assignable<T>::value == true>::type copyOrMove(T& from, T& to)
+  static typename std::enable_if<std::is_move_assignable<T>::value == true>::type copyOrMove(T& from, T& to)
   {
     to = std::move(from);
   }
 
   template <typename T>
-  typename std::enable_if<std::is_move_assignable<T>::value == false>::type copyOrMove(T& from, T& to)
+  static typename std::enable_if<std::is_move_assignable<T>::value == false>::type copyOrMove(T& from, T& to)
   {
     to = from;
   }
