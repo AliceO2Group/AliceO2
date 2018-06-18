@@ -99,7 +99,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                                 [](InputSpec& input, size_t index) {
                                                   input.subSpec = index;
                                                 }),
+<<<<<<< HEAD
                                     { OutputSpec{ { "out" }, "TST", "M" } },
+=======
+                                    {
+                                      OutputSpec{{"out"}, "TST", "M"}
+                                    },
+>>>>>>> 88eac68cd403296a631a5f445f228b92c00abc61
                                     AlgorithmSpec{ [](InitContext& setup) {
                                       return [](ProcessingContext& ctx) {
                                         ctx.outputs().make<int>(OutputRef("out", 0), 1);
@@ -108,6 +114,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                   stages));
 
   workflow.push_back(DataProcessorSpec{
+<<<<<<< HEAD
     "writer",
     { InputSpec{ "x", "TST", "M" } },
     {},
@@ -115,5 +122,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       return [](ProcessingContext& ctx) {
       };
     } } });
+=======
+                                    "writer",
+                                    {InputSpec{ "x", "TST", "M" }},
+                                    {},
+                                    AlgorithmSpec{ [](InitContext& setup) {
+                                      return [](ProcessingContext& ctx) {
+                                      };
+                                    } } }
+                                  );
+>>>>>>> 88eac68cd403296a631a5f445f228b92c00abc61
   return workflow;
 }

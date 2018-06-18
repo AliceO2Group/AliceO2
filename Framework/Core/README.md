@@ -66,7 +66,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec> &workflowOptions)
 
 ### Describing a computation
 
+<<<<<<< HEAD
 The description of the computation in such a layer is done via a `DataProcessorSpec` class, which describes some sort of processing of a (set of) O2 Data Payloads (*payloads* from now on), as defined by the O2 Data Model, eventually producing new payloads as outputs. The inputs to the computation, the outputs and the actual code to run on the former to produce the latter, is specified in a `DataProcessorSpec` instance. Multiple `DataProcessorSpec` instances can be grouped together in a `WorkflowSpec`to the driver code which maps them to  processing devices accordingly.
+=======
+The description of the computation in such a layer is done via a `DataProcessorSpec` class, which describes some sort of processing of a (set of) O2 Data Payloads (*payloads* from now on), as defined by the O2 Data Model, eventually producing new payloads as outputs. The inputs to the computation, the outputs and the actual code to run on the former to produce the latter, is specified in a `DataProcessorSpec` instance. Multiple `DataProcessorSpec` instances can be grouped together in a `WorkflowSpec`to the driver code which maps them to  processing devices accordingly. 
+>>>>>>> 88eac68cd403296a631a5f445f228b92c00abc61
 
 The `DataProcessorSpec` is defined as follows:
 
@@ -235,7 +239,11 @@ Currently supported data types for `make<T>` are:
 * Messageable types: trivially copyable, non-polymorphic types.
   These get directly mapped on the message exchanged by FairMQ and are therefore "zerocopy" for what the Data Processing Layer is concerned.
 * Collections of messageable types, exposed to the user as `gsl::span`.
+<<<<<<< HEAD
 * TObject derived classes.
+=======
+* TObject derived classes. 
+>>>>>>> 88eac68cd403296a631a5f445f228b92c00abc61
   These are actually serialised via a TMessage and therefore are only suitable for the cases in which the cost of such a serialization is not an issue.
 
 Currently supported data types for `snapshot` functionality, state at time of
@@ -335,7 +343,11 @@ In order to express those DPL provides the `o2::framework::parallel` and `o2::fr
 
 It can actually happen that you need to interface with native FairMQ devices, either for convenience or because they require a custom behavior which does not map well on top of the Data Processing Layer.
 
+<<<<<<< HEAD
 This is fully supported and the DPL provides means to ingest foreign, non-DPL `FairMQDevice` produced messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs.
+=======
+This is fully supported and the DPL provides means to ingest foreign, non-DPL `FairMQDevice` produced messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs. 
+>>>>>>> 88eac68cd403296a631a5f445f228b92c00abc61
 
 This is done using the `FairMQRawDeviceService` which exposes the actual device on which an Algorithm is running, giving the user full control.
 
