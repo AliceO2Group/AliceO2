@@ -178,14 +178,19 @@ void drawGeometry()
 
   drawOptionPresetBasic();
 
-  gGeoManager->GetTopVolume()->Draw("ogl");
+  // Temporary
+  //gGeoManager->GetTopVolume()->Draw("ogl");
+  //gGeoManager->GetTopVolume()->Draw();
 
+  gGeoManager->Export("MCHgeometry.root");
+  /*
   TGLViewer* gl = static_cast<TGLViewer*>(gPad->GetViewer3D("ogl"));
   TGLCamera& c = gl->CurrentCamera();
 
   // gl->SetStyle(TGLRnrCtx::kWireFrame);
   gl->SetStyle(TGLRnrCtx::kOutline);
   // gl->SetStyle(TGLRnrCtx::kFill);
+  */
 }
 
 o2::Base::GeometryManager::MatBudget getMatBudget(const o2::Transform3D& t, Vector3D<double>& n, float x, float y, float thickness)
