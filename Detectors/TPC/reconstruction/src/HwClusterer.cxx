@@ -119,7 +119,7 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
 
   int digitIndex = 0;
   int index;
-  int HB;
+  unsigned HB;
 
   /*
    * Loop over all (time ordered) digits
@@ -152,40 +152,43 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
        * timebin has digits). Since the tmp storage covers 5 timebins, at most
        * 5 new timebins need to be prepared and checked for clusters.
        */
-      for (int i = mLastTimebin + 1; (i <= digit.getTimeStamp()) && (i - (mLastTimebin + 1) < 5); ++i) {
+      for (int i = mLastTimebin; (i < digit.getTimeStamp()) && (i - mLastTimebin < 5); ++i) {
 
         /*
          * If the HB of the cluster which will be found in a few lines, NOT the
-         * current timebin is a new one, we have to fill the  output container
+         * current timebin is a new one, we have to fill the output container
          * with the so far found clusters. Because cluster center and timebin
          * have an offset of two with respect to each other (see next comment),
          * the HB is calculated with (i-2). By the way, it is not possible, that
          * a cluster is found with a negative HB, because at least 2 timebins
          * have to be filled to be able to find a cluster.
          */
-        HB = (i - 2) / 447; // integer division on purpose
+        HB = i < 2 ? 0 : (i - 2) / 447; // integer division on purpose
         if (HB != mLastHB) {
-          writeOutputForTimeOffset(mLastHB * 447);
+          writeOutputWithTimeOffset(mLastHB * 447);
         }
 
         /*
          * For each row, we first check for cluster peaks in the timebin i-2,
          * or because (i-2) mod 5 = (i+3) mod 5, in i+3, to ensure positive times.
          *
-         * If timebin 4 is the oldest one (and has to be replaced by the new
-         * arriving one, the cluster which still could be ranging from timebin
-         * 0 to 4 has to found, which must have its center at timebin 2.
+         * If timebin 5 is the new digit timebin (4 would be mLastTimebin),
+         * then 0 is the oldest one timebin and will to be replaced by the new
+         * arriving one. The cluster which could be found, would then range
+         * from timebin 0 to 4 and hasits center at timebin 2. Threrefore we
+         * are looking in (i - 2) for clusters and clearing (i - 4), or (i + 1)
+         * afterwards.
          *       ---------
-         *    0 |
+         * -> 0 |
          *    1 |
          *    2 | XXXXXX
          *    3 |
-         * -> 4 |
+         *    4 |
          *       ---------
          */
-        findClusterForTime(i + 3);
+        findClusterForTime(i - 2);
 
-        clearBuffer(i);
+        clearBuffer(i + 1);
 
         mLastHB = HB;
       }
@@ -235,7 +238,7 @@ void HwClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLab
 }
 
 //______________________________________________________________________________
-bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row,
+bool HwClusterer::hwClusterFinder(short center_pad, int center_time, unsigned short row,
                                   ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& sortedMcLabels)
 {
 
@@ -374,7 +377,7 @@ bool HwClusterer::hwClusterFinder(unsigned short center_pad, unsigned center_tim
 }
 
 //______________________________________________________________________________
-void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
+void HwClusterer::writeOutputWithTimeOffset(int timeOffset)
 {
   // Check in which regions cluster were found
   for (unsigned short region = 0; region < 10; ++region) {
@@ -434,15 +437,17 @@ void HwClusterer::writeOutputForTimeOffset(unsigned timeOffset)
 }
 
 //______________________________________________________________________________
-void HwClusterer::findClusterForTime(unsigned timebin)
+void HwClusterer::findClusterForTime(int timebin)
 {
+  if (timebin < 0)
+    return;
   auto cluster = std::make_unique<ClusterHardware>();
   auto sortedMcLabels = std::make_unique<std::vector<std::pair<MCCompLabel, unsigned>>>();
 
   for (unsigned short row = mNumRows; row--;) {
     // two empty pads on the left and right without a cluster peak
-    for (unsigned short pad = 2; pad < mPadsPerRow[row] - 2; ++pad) {
-      if (hwClusterFinder(pad, timebin - 5, row, *cluster.get(), *sortedMcLabels.get())) {
+    for (short pad = 2; pad < mPadsPerRow[row] - 2; ++pad) {
+      if (hwClusterFinder(pad, timebin, row, *cluster.get(), *sortedMcLabels.get())) {
         mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(std::move(cluster), std::move(sortedMcLabels));
 
         // create new empty cluster
@@ -456,19 +461,19 @@ void HwClusterer::findClusterForTime(unsigned timebin)
 //______________________________________________________________________________
 void HwClusterer::finishFrame(bool clear)
 {
-  int HB;
+  unsigned HB;
   // Search in last remaining timebins for clusters
-  for (int i = mLastTimebin + 1; i - mLastTimebin < 3; ++i) {
-    HB = (i - 2) / 447; // integer division on purpose
+  for (int i = mLastTimebin; i - mLastTimebin < 5; ++i) {
+    HB = i < 2 ? 0 : (i - 2) / 447; // integer division on purpose
     if (HB != mLastHB) {
-      writeOutputForTimeOffset(mLastHB * 447);
+      writeOutputWithTimeOffset(mLastHB * 447);
     }
 
-    findClusterForTime(i + 3);
-    clearBuffer(i);
+    findClusterForTime(i - 2);
+    clearBuffer(i + 1);
     mLastHB = HB;
   }
-  writeOutputForTimeOffset(mLastHB * 447);
+  writeOutputWithTimeOffset(mLastHB * 447);
 
   if (clear) {
     for (auto i : { 0, 1, 2, 3, 4 })
@@ -477,7 +482,7 @@ void HwClusterer::finishFrame(bool clear)
 }
 
 //______________________________________________________________________________
-void HwClusterer::clearBuffer(unsigned timebin)
+void HwClusterer::clearBuffer(int timebin)
 {
   for (unsigned short row = 0; row < mNumRows; ++row) {
     // reset timebin which is not needed anymore

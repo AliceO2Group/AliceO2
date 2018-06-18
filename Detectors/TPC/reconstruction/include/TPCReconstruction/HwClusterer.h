@@ -98,7 +98,7 @@ class HwClusterer : public Clusterer
   /// \param cluster          Field to store found cluster in
   /// \param sortedMcLabels   Sorted vector with MClabel-counter-pair
   /// \return True if (center_pad,center_time) was a cluster, false if not
-  bool hwClusterFinder(unsigned short center_pad, unsigned center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& sortedMcLabels);
+  bool hwClusterFinder(short center_pad, int center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& sortedMcLabels);
 
   /// Helper function to update cluster properties and MC labels
   /// \param row          Current row
@@ -116,11 +116,11 @@ class HwClusterer : public Clusterer
 
   /// Writes clusters in temporary storage to cluster output
   /// \param timeOffset   Time offset of cluster container
-  void writeOutputForTimeOffset(unsigned timeOffset);
+  void writeOutputWithTimeOffset(int timeOffset);
 
   /// Does the Cluster Finding in all rows for given timebin
   /// \param timebin  Timebin to cluster peaks
-  void findClusterForTime(unsigned timebin);
+  void findClusterForTime(int timebin);
 
   /// Searches for last remaining cluster and writes them out
   /// \param clear    Clears data buffer afterwards (for not continuous readout)
@@ -128,7 +128,7 @@ class HwClusterer : public Clusterer
 
   /// Clears the buffer at given timebin TODO: and fills timebin with noise + pedestal
   /// \param timebin  Timebin to be cleared
-  void clearBuffer(unsigned timebin);
+  void clearBuffer(int timebin);
 
   /*
      * class members

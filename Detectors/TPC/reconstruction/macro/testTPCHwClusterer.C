@@ -14,7 +14,6 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TPCBase/Digit.h"
-#include "TPCBase/Mapper.h"
 #include "TPCReconstruction/HwClusterer.h"
 
 #include "DataFormatsTPC/Helpers.h"
@@ -22,9 +21,12 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <vector>
+#include <array>
 #include <memory>
 #include <iostream>
 #endif
+
+#include <algorithm>
 
 struct sortTime {
   inline bool operator()(const o2::TPC::Digit& d1, const o2::TPC::Digit& d2)
@@ -33,37 +35,103 @@ struct sortTime {
   }
 };
 
+float p_pre(std::array<int, 25>& data)
+{
+  int ret = 0;
+  ret += -2 * (data[0]) - (data[1]) + 0 * (data[3]) + (data[3]) + 2 * (data[4]);
+  ret += -2 * (data[5]) - (data[6]) + 0 * (data[8]) + (data[8]) + 2 * (data[9]);
+  ret += -2 * (data[10]) - (data[11]) + 0 * (data[13]) + (data[13]) + 2 * (data[14]);
+  ret += -2 * (data[15]) - (data[16]) + 0 * (data[18]) + (data[18]) + 2 * (data[19]);
+  ret += -2 * (data[20]) - (data[21]) + 0 * (data[23]) + (data[23]) + 2 * (data[24]);
+  return ret;
+}
+
+float sigma_p_pre(std::array<int, 25>& data)
+{
+  int ret = 0;
+  ret += 4 * (data[0]) + (data[1]) + 0 * (data[3]) + (data[3]) + 4 * (data[4]);
+  ret += 4 * (data[5]) + (data[6]) + 0 * (data[8]) + (data[8]) + 4 * (data[9]);
+  ret += 4 * (data[10]) + (data[11]) + 0 * (data[13]) + (data[13]) + 4 * (data[14]);
+  ret += 4 * (data[15]) + (data[16]) + 0 * (data[18]) + (data[18]) + 4 * (data[19]);
+  ret += 4 * (data[20]) + (data[21]) + 0 * (data[23]) + (data[23]) + 4 * (data[24]);
+  return ret;
+}
+
+float t_pre(std::array<int, 25>& data)
+{
+  int ret = 0;
+  ret += -2 * (data[0]) - 2 * (data[1]) - 2 * (data[2]) - 2 * (data[3]) - 2 * (data[4]);
+  ret += -1 * (data[5]) - 1 * (data[6]) - 1 * (data[7]) - 1 * (data[8]) - 1 * (data[9]);
+  ret += 0 * (data[10]) + 0 * (data[11]) + 0 * (data[12]) + 0 * (data[13]) + 0 * (data[14]);
+  ret += 1 * (data[15]) + 1 * (data[16]) + 1 * (data[17]) + 1 * (data[18]) + 1 * (data[19]);
+  ret += 2 * (data[20]) + 2 * (data[21]) + 2 * (data[22]) + 2 * (data[23]) + 2 * (data[24]);
+  return ret;
+}
+
+float sigma_t_pre(std::array<int, 25>& data)
+{
+  int ret = 0;
+  ret += 4 * (data[0]) + 4 * (data[1]) + 4 * (data[2]) + 4 * (data[3]) + 4 * (data[4]);
+  ret += 1 * (data[5]) + 1 * (data[6]) + 1 * (data[7]) + 1 * (data[8]) + 1 * (data[9]);
+  ret += 0 * (data[10]) + 0 * (data[11]) + 0 * (data[12]) + 0 * (data[13]) + 0 * (data[14]);
+  ret += 1 * (data[15]) + 1 * (data[16]) + 1 * (data[17]) + 1 * (data[18]) + 1 * (data[19]);
+  ret += 4 * (data[20]) + 4 * (data[21]) + 4 * (data[22]) + 4 * (data[23]) + 4 * (data[24]);
+  return ret;
+}
+
 void testTPCHwClusterer()
 {
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   auto clusterArray = std::make_shared<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
-  int sector = 0;
 
-  o2::TPC::HwClusterer clusterer(clusterArray, labelArray, sector);
+  o2::TPC::HwClusterer clusterer(clusterArray, labelArray, 0);
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
   auto digits = make_unique<std::vector<o2::TPC::Digit>>();
 
-  // create a lot of single pad clusters, one in every pad, well separated in time
-  // which should result in one cluster
   // Digit(int cru, float charge, int row, int pad, int time)
-  o2::TPC::Mapper& mapper = o2::TPC::Mapper::instance();
-  std::vector<unsigned> clusterPerRegionGenerated(10, 0);
-  int globalRow = 0;
-  for (int region = 0; region < 10; ++region) {
-    for (int row = 0; row < mapper.getNumberOfRowsRegion(region); ++row) {
-      int time = 0;
-      for (int pad = 0; pad < mapper.getNumberOfPadsInRowSector(globalRow); ++pad) {
-        ++clusterPerRegionGenerated[region];
-        digits->emplace_back(region, 20, globalRow, pad, time);
-        time += 7;
+  // Create digits for different clusters
+  std::array<std::array<int, 25>, 6> clusters = { { { 7, 10, 11, 8, 5,
+                                                      10, 18, 21, 15, 8,
+                                                      12, 22, 50, 20, 10,
+                                                      9, 16, 20, 15, 8,
+                                                      6, 9, 10, 8, 5 },
+                                                    { 7, 10, 11, 8, 5,
+                                                      11, 19, 22, 16, 9,
+                                                      14, 24, 52, 22, 12,
+                                                      12, 19, 23, 18, 11,
+                                                      10, 13, 14, 12, 9 },
+                                                    { 12, 15, 16, 13, 10,
+                                                      16, 24, 27, 21, 14,
+                                                      19, 29, 57, 27, 17,
+                                                      17, 24, 28, 23, 16,
+                                                      15, 18, 19, 17, 14 },
+                                                    { 17, 20, 21, 18, 15,
+                                                      21, 29, 32, 26, 19,
+                                                      24, 34, 62, 32, 22,
+                                                      22, 29, 33, 28, 21,
+                                                      20, 23, 24, 22, 19 },
+                                                    { 22, 25, 26, 23, 20,
+                                                      26, 34, 37, 31, 24,
+                                                      29, 39, 67, 37, 27,
+                                                      27, 34, 38, 33, 26,
+                                                      25, 28, 29, 27, 24 },
+                                                    { 27, 30, 31, 28, 25,
+                                                      31, 39, 42, 36, 29,
+                                                      34, 44, 72, 42, 32,
+                                                      32, 39, 43, 38, 31,
+                                                      30, 33, 34, 32, 29 } } };
+
+  for (int dp = 0; dp < 5; ++dp) {
+    for (int dt = 0; dt < 5; ++dt) {
+      for (int cl = 0; cl < clusters.size(); ++cl) {
+        digits->emplace_back(0, clusters[cl][dt * 5 + dp], cl, cl + dp, cl * 10 + dt);
       }
-      ++globalRow;
     }
-    std::cout << "Created " << clusterPerRegionGenerated[region] << " clusters in region " << region << std::endl;
   }
+
   std::sort(digits->begin(), digits->end(), sortTime());
 
   // Search clusters
@@ -71,54 +139,36 @@ void testTPCHwClusterer()
 
   // Check outcome
   std::cout << "ClusterArray size: " << clusterArray->size() << std::endl;
-  //  BOOST_CHECK_EQUAL(clusterArray->size(), 47);
 
-  // check if all clusters were found
-  std::vector<unsigned> clusterPerRegionFound(10, 0);
-  for (auto& cont : *clusterArray) {
-    auto clusterContainer = cont.getContainer();
-    clusterPerRegionFound[clusterContainer->CRU] += clusterContainer->numberOfClusters;
-  }
-  for (int region = 0; region < 10; ++region) {
-    if (clusterPerRegionFound[region] != clusterPerRegionGenerated[region]) {
-      std::cout << "In region " << region << " were " << clusterPerRegionGenerated[region]
-                << " clusters generated, but only " << clusterPerRegionFound[region] << " found." << std::endl;
-    }
-    //    BOOST_CHECK_EQUAL(clusterPerRegionFound[region],clusterPerRegionGenerated[region]);
-  }
-
-  // check if all cluster charges (tot and max) are 20
-  for (auto& cont : *clusterArray) {
-    auto clusterContainer = cont.getContainer();
-    for (int clIndex = 0; clIndex < clusterContainer->numberOfClusters; ++clIndex) {
-      if (clusterContainer->clusters[clIndex].getQTot() != 20)
-        std::cout << "cluster has wrong tot charge: " << clusterContainer->clusters[clIndex].getQTot() << std::endl;
-      if (clusterContainer->clusters[clIndex].getQMax() != 20)
-        std::cout << "cluster has wrong max charge: " << clusterContainer->clusters[clIndex].getQMax() << std::endl;
-      //      BOOST_CHECK_EQUAL(clusterContainer->clusters[clIndex].getQTot(),20);
-      //      BOOST_CHECK_EQUAL(clusterContainer->clusters[clIndex].getQMax(),20);
-    }
-  }
-
-  // check the pad and time positions of the clusters and sigmas (all 0 because single pad lcusters)
-  for (auto& cont : *clusterArray) {
-    auto clusterContainer = cont.getContainer();
-    for (int clIndex = 0; clIndex < clusterContainer->numberOfClusters; ++clIndex) {
-      if ((clusterContainer->clusters[clIndex].getTimeLocal() + clusterContainer->timeBinOffset) / 7 != clusterContainer->clusters[clIndex].getPad())
-        std::cout << "something with pad/time recovering was wrong" << std::endl;
-      //      BOOST_CHECK_EQUAL((clusterContainer->clusters[clIndex].getTimeLocal()+clusterContainer->timeBinOffset)/7,
-      //          clusterContainer->clusters[clIndex].getPad());
-      //      BOOST_CHECK_EQUAL(clusterContainer->clusters[clIndex].getSigmaPad2(),0);
-      //      BOOST_CHECK_EQUAL(clusterContainer->clusters[clIndex].getSigmaTime2(),0);
-      std::cout
-        << clusterContainer->CRU << " "
-        << clusterContainer->clusters[clIndex].getRow() << " "
-        << clusterContainer->clusters[clIndex].getPad() << " "
-        << clusterContainer->clusters[clIndex].getTimeLocal() + clusterContainer->timeBinOffset << " "
-        << clusterContainer->timeBinOffset << " "
-        << clusterContainer->clusters[clIndex].getSigmaPad2() << " "
-        << clusterContainer->clusters[clIndex].getSigmaTime2() << " "
-        << std::endl;
-    }
+  auto clusterContainer = (*clusterArray)[0].getContainer();
+  // Checking cluster properties
+  for (int clIndex = 0; clIndex < clusterContainer->numberOfClusters; ++clIndex) {
+    float qtot = std::accumulate(clusters[clIndex].begin(), clusters[clIndex].end(), 0);
+    std::cout
+      << "Qtot: "
+      << clusterContainer->clusters[clIndex].getQTot() << " "
+      << qtot << std::endl
+      << "Qmax: "
+      << clusterContainer->clusters[clIndex].getQMax() << " "
+      << clusters[clIndex][12] << std::endl
+      << "Row: "
+      << clusterContainer->clusters[clIndex].getRow() << " "
+      << clIndex << std::endl
+      << "Flags: "
+      << clusterContainer->clusters[clIndex].getFlags() << " "
+      << 0 << std::endl
+      << "Pad: "
+      << clusterContainer->clusters[clIndex].getPad() << " "
+      << p_pre(clusters[clIndex]) / qtot + clIndex + 2 << std::endl
+      << "Time: "
+      << clusterContainer->clusters[clIndex].getTimeLocal() + clusterContainer->timeBinOffset << " "
+      << t_pre(clusters[clIndex]) / qtot + clIndex * 10 + 2 << std::endl
+      << "PadSigma: "
+      << clusterContainer->clusters[clIndex].getSigmaPad2() << " "
+      << (sigma_p_pre(clusters[clIndex]) / qtot) - ((p_pre(clusters[clIndex]) * p_pre(clusters[clIndex])) / (qtot * qtot)) << std::endl
+      << "TimeSigma: "
+      << clusterContainer->clusters[clIndex].getSigmaTime2() << " "
+      << (sigma_t_pre(clusters[clIndex]) / qtot) - ((t_pre(clusters[clIndex]) * t_pre(clusters[clIndex])) / (qtot * qtot)) << std::endl
+      << std::endl;
   }
 }

@@ -127,15 +127,15 @@ void readClusters(std::string clusterFilename, std::string digitFilename, int se
           }
         }
         // all digits
-        //        for (auto& digiEv : allDigits) {
-        //          for (auto &digit : *digiEv) {
-        //            if (digit.getCRU() != container->CRU) continue;
-        //            if (mGlobalRowToLocalRow[digit.getRow()] != cluster.getRow()) continue;
-        //            hMeanPad->Fill(cluster.getPad() - digit.getPad());
-        //            hMeanTime->Fill(cluster.getTimeLocal()+container->timeBinOffset - digit.getTimeStamp());
-        //
-        //          }
-        //        }
+        //for (auto& digiEv : allDigits) {
+        //  for (auto &digit : *digiEv) {
+        //    if (digit.getCRU() != container->CRU) continue;
+        //    if (mGlobalRowToLocalRow[digit.getRow()] != cluster.getRow()) continue;
+        //    hMeanPad->Fill(cluster.getPad() - digit.getPad());
+        //    hMeanTime->Fill(cluster.getTimeLocal()+container->timeBinOffset - digit.getTimeStamp());
+
+        //  }
+        //}
       }
     }
   }
