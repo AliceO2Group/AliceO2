@@ -11,10 +11,10 @@
 #include "MCHSimulation/GeometryTest.h"
 
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/MaterialManager.h"
 #include "MCHSimulation/Geometry.h"
 #include "Math/GenVector/Cartesian3D.h"
 #include "TGeoManager.h"
-#include "TGeoMedium.h"
 #include "TGeoVolume.h"
 #include "TH2F.h"
 #include <iostream>
@@ -32,21 +32,27 @@ namespace test
 
 TGeoVolume* createAirVacuumCave(const char* name)
 {
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  // create the air medium (only used for the geometry test)
+  auto& mgr = o2::Base::MaterialManager::Instance();
+
+  const int nAir = 4;
+  Float_t aAir[nAir] = { 12.0107, 14.0067, 15.9994, 39.948 };
+  Float_t zAir[nAir] = { 6., 7., 8., 18. };
+  Float_t wAir[nAir] = { 0.000124, 0.755267, 0.231781, 0.012827 };
   Float_t dAirVacuum = 1.20479E-10;
-  gGeoManager->Mixture("air", aAir, zAir, dAirVacuum, 4, wAir, 1);
-  TGeoMedium* mair = gGeoManager->Medium("air", 1, 1,
-                                         false, /* isvol */
-                                         0,     /* ifield */
-                                         -1.0,  /* fieldm */
-                                         -1.0,  /* tmaxfd */
-                                         -1.0,  /* stemax */
-                                         -1.0,  /* deemax */
-                                         -1.0,  /* epsil */
-                                         -1.0 /* stmin */);
-  return gGeoManager->MakeBox(name, mair, 2000.0, 2000.0, 3000.0);
+  const int kID = 90; // to avoid conflicts with definitions of other MCH materials
+
+  mgr.Mixture("MCH", kID, "Air", aAir, zAir, dAirVacuum, nAir, wAir);
+  mgr.Medium("MCH", kID, "Air", kID,
+             false, /* isvol */
+             0,     /* ifield */
+             -1.0,  /* fieldm */
+             -1.0,  /* tmaxfd */
+             -1.0,  /* stemax */
+             -1.0,  /* deemax */
+             -1.0,  /* epsil */
+             -1.0 /* stmin */);
+  return gGeoManager->MakeBox(name, gGeoManager->GetMedium("MCH_Air"), 2000.0, 2000.0, 3000.0);
 }
 
 void dump(std::ostream& out, const TGeoNode& n, int level, int maxdepth, std::string prefix)

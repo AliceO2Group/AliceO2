@@ -21,6 +21,8 @@
 #include <vector>
 #include <thread>
 #include <signal.h>
+#include "TStopwatch.h"
+#include "FairLogger.h"
 
 const char* serverlogname = "serverlog";
 const char* workerlogname = "workerlog";
@@ -30,6 +32,8 @@ const char* mergerlogname = "mergerlog";
 // for parallel simulation
 int main(int argc, char* argv[])
 {
+  TStopwatch timer;
+  timer.Start();
   std::string rootpath(getenv("O2_ROOT"));
   std::string installpath = rootpath + "/bin";
 
@@ -151,7 +155,9 @@ int main(int argc, char* argv[])
   // wait just blocks and waits until any child returns; make sure that we wait until merger is here
   while ((cpid = wait(&status)) != mergerpid) {
   }
-  std::cout << "Merger process " << mergerpid << " returned\n";
+  // This marks the actual end of the computation (since results are available)
+  LOG(INFO) << "Merger process " << mergerpid << " returned";
+  LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
 
   // make sure the rest shuts down
   for (auto p : childpids) {

@@ -8,17 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/FrameworkGUIDevicesGraph.h"
+#include "Framework/FrameworkGUIDataRelayerUsage.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/PaletteHelpers.h"
 #include "DebugGUI/imgui.h"
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x+rhs.x, lhs.y+rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x-rhs.x, lhs.y-rhs.y); }
-
 
 namespace o2
 {
@@ -28,6 +29,8 @@ namespace framework
 struct NodeColor {
   ImVec4 normal;
   ImVec4 hovered;
+  ImVec4 title;
+  ImVec4 title_hovered;
 };
 
 using LogLevel = LogParsingHelpers::LogLevel;
@@ -44,18 +47,26 @@ decideColorForNode(const DeviceInfo &info) {
     case LogParsingHelpers::LogLevel::Error:
       result.normal = PaletteHelpers::SHADED_RED;
       result.hovered = PaletteHelpers::RED;
+      result.title = PaletteHelpers::RED;
+      result.title_hovered = PaletteHelpers::DARK_RED;
       break;
     case LogLevel::Warning:
       result.normal = PaletteHelpers::SHADED_YELLOW;
       result.hovered = PaletteHelpers::YELLOW;
+      result.title = PaletteHelpers::YELLOW;
+      result.title_hovered = PaletteHelpers::DARK_YELLOW;
       break;
     case LogLevel::Info:
       result.normal = PaletteHelpers::SHADED_GREEN;
       result.hovered = PaletteHelpers::GREEN;
+      result.title = PaletteHelpers::GREEN;
+      result.title_hovered = PaletteHelpers::DARK_GREEN;
       break;
     default:
       result.normal = PaletteHelpers::GRAY;
       result.hovered = PaletteHelpers::LIGHT_GRAY;
+      result.title = PaletteHelpers::GRAY;
+      result.title_hovered = PaletteHelpers::BLACK;
       break;
   }
   return result;
@@ -63,7 +74,9 @@ decideColorForNode(const DeviceInfo &info) {
 
 void showTopologyNodeGraph(bool* opened,
                            const std::vector<DeviceInfo> &infos,
-                           const std::vector<DeviceSpec> &specs)
+                           const std::vector<DeviceSpec> &specs,
+                           const std::vector<DeviceMetricsInfo>& metricsInfos
+                          )
 {
     ImGui::SetNextWindowPos(ImVec2(0, 0), 0);
     ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x/3*2, ImGui::GetIO().DisplaySize.y - 300), 0);
@@ -143,20 +156,21 @@ void showTopologyNodeGraph(bool* opened,
     int node_hovered_in_list = -1;
     int node_hovered_in_scene = -1;
     ImGui::BeginChild("node_list", ImVec2(100,0));
-    ImGui::Text("Nodes");
+    ImGui::Text("Devices");
     ImGui::Separator();
     for (int node_idx = 0; node_idx < nodes.Size; node_idx++)
     {
-        Node* node = &nodes[node_idx];
-        ImGui::PushID(node->ID);
-        if (ImGui::Selectable(node->Name, node->ID == node_selected))
-            node_selected = node->ID;
-        if (ImGui::IsItemHovered())
-        {
-            node_hovered_in_list = node->ID;
-            open_context_menu |= ImGui::IsMouseClicked(1);
-        }
-        ImGui::PopID();
+      Node* node = &nodes[node_idx];
+      ImGui::PushID(node->ID);
+      if (ImGui::Selectable(node->Name, node->ID == node_selected)) {
+        node_selected = node->ID;
+      }
+      if (ImGui::IsItemHovered())
+      {
+        node_hovered_in_list = node->ID;
+        open_context_menu |= ImGui::IsMouseClicked(1);
+      }
+      ImGui::PopID();
     }
     ImGui::EndChild();
 
@@ -167,18 +181,22 @@ void showTopologyNodeGraph(bool* opened,
     const ImVec2 NODE_WINDOW_PADDING(8.0f, 8.0f);
 
     // Create our child canvas
-    ImGui::Text("Hold middle mouse button to scroll (%.2f,%.2f)", scrolling.x, scrolling.y);
-    ImGui::SameLine(ImGui::GetWindowWidth()-100);
     ImGui::Checkbox("Show grid", &show_grid);
+    ImGui::SameLine();
+    if (ImGui::Button("Center")) {
+      scrolling = ImVec2(0., 0.);
+    }
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1,1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
-    ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, ImColor(60,60,70,200));
-    ImGui::BeginChild("scrolling_region", ImVec2(0,0), true, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoMove);
+    ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, (ImU32) ImColor(60,60,70,200));
+    ImGui::BeginChild("scrolling_region", ImVec2(0,0), true, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PushItemWidth(120.0f);
 
     ImVec2 offset = ImGui::GetCursorScreenPos() - scrolling;
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    draw_list->ChannelsSplit(2);
+    // Number of layers we need. 2 per node, plus 2 for 
+    // the background stuff.
+    draw_list->ChannelsSplit((nodes.Size + 2)*2);
 
     // Display grid
     if (show_grid)
@@ -208,60 +226,78 @@ void showTopologyNodeGraph(bool* opened,
     // Display nodes
     for (int node_idx = 0; node_idx < nodes.Size; node_idx++)
     {
-        Node* node = &nodes[node_idx];
-        const DeviceInfo &info = infos[node_idx];
+      auto backgroundLayer = (node_idx + 1) * 2;
+      auto foregroundLayer = (node_idx + 1) * 2 + 1;
+      // Selected node goes to front
+      if (node_selected == node_idx) {
+        backgroundLayer = (nodes.Size + 1) * 2;
+        foregroundLayer = (nodes.Size + 1) * 2 + 1;
+      }
+      Node* node = &nodes[node_idx];
+      const DeviceInfo &info = infos[node_idx];
 
-        ImGui::PushID(node->ID);
-        ImVec2 node_rect_min = offset + node->Pos;
+      ImGui::PushID(node->ID);
+      ImVec2 node_rect_min = offset + node->Pos;
 
-        // Display node contents first
-        draw_list->ChannelsSetCurrent(1); // Foreground
-        bool old_any_active = ImGui::IsAnyItemActive();
-        ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
-        ImGui::BeginGroup(); // Lock horizontal position
-        ImGui::Text("%s", node->Name);
-        ImGui::EndGroup();
+      // Display node contents first
+      draw_list->ChannelsSetCurrent(foregroundLayer);
+      bool old_any_active = ImGui::IsAnyItemActive();
+      ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
+      ImGui::BeginGroup(); // Lock horizontal position
+      ImGui::Text("%s", node->Name);
+      gui::displayDataRelayer(metricsInfos[node->ID], infos[node->ID], ImVec2(140., 90.));
+      ImGui::EndGroup();
 
-        // Save the size of what we have emitted and whether any of the widgets are being used
-        bool node_widgets_active = (!old_any_active && ImGui::IsAnyItemActive());
-        node->Size = ImGui::GetItemRectSize() + NODE_WINDOW_PADDING + NODE_WINDOW_PADDING;
-        ImVec2 node_rect_max = node_rect_min + node->Size;
+      // Save the size of what we have emitted and whether any of the widgets are being used
+      bool node_widgets_active = (!old_any_active && ImGui::IsAnyItemActive());
+      float attemptX = std::max(ImGui::GetItemRectSize().x, 150.f);
+      float attemptY = std::min(ImGui::GetItemRectSize().y, 128.f);
+      node->Size = ImVec2(attemptX, attemptY) + NODE_WINDOW_PADDING + NODE_WINDOW_PADDING;
+      ImVec2 node_rect_max = node_rect_min + node->Size;
+      ImVec2 node_rect_title = node_rect_min + ImVec2(node->Size.x, 24);
 
-        // Display node box
-        draw_list->ChannelsSetCurrent(0); // Background
-        ImGui::SetCursorScreenPos(node_rect_min);
-        ImGui::InvisibleButton("node", node->Size);
-        if (ImGui::IsItemHovered())
-        {
-            node_hovered_in_scene = node->ID;
-            open_context_menu |= ImGui::IsMouseClicked(1);
-        }
-        bool node_moving_active = ImGui::IsItemActive();
-        if (node_widgets_active || node_moving_active)
-            node_selected = node->ID;
-        if (node_moving_active && ImGui::IsMouseDragging(0))
-            node->Pos = node->Pos + ImGui::GetIO().MouseDelta;
+      // Display node box
+      draw_list->ChannelsSetCurrent(backgroundLayer); // Background
+      ImGui::SetCursorScreenPos(node_rect_min);
+      ImGui::InvisibleButton("node", node->Size);
+      if (ImGui::IsItemHovered())
+      {
+          node_hovered_in_scene = node->ID;
+          open_context_menu |= ImGui::IsMouseClicked(1);
+      }
+      bool node_moving_active = ImGui::IsItemActive();
+      if (node_widgets_active || node_moving_active)
+          node_selected = node->ID;
+      if (node_moving_active && ImGui::IsMouseDragging(0))
+          node->Pos = node->Pos + ImGui::GetIO().MouseDelta;
+      if (ImGui::IsWindowHovered() && !node_moving_active && ImGui::IsMouseDragging(0))
+          scrolling = scrolling - ImVec2(ImGui::GetIO().MouseDelta.x / 4.f, ImGui::GetIO().MouseDelta.y / 4.f);
 
-        auto nodeBg = decideColorForNode(info);
+      auto nodeBg = decideColorForNode(info);
 
-        ImVec4 nodeBgColor = (node_hovered_in_list == node->ID || node_hovered_in_scene == node->ID || (node_hovered_in_list == -1 && node_selected == node->ID)) ? nodeBg.hovered : nodeBg.normal;
-        ImU32 node_bg_color = ImGui::ColorConvertFloat4ToU32(nodeBgColor);
+      auto hovered = (node_hovered_in_list == node->ID || node_hovered_in_scene == node->ID || (node_hovered_in_list == -1 && node_selected == node->ID));
+      ImVec4 nodeBgColor = hovered ? nodeBg.hovered : nodeBg.normal;
+      ImVec4 nodeTitleColor = hovered ? nodeBg.title_hovered : nodeBg.title;
+      ImU32 node_bg_color = ImGui::ColorConvertFloat4ToU32(nodeBgColor);
+      ImU32 node_title_color = ImGui::ColorConvertFloat4ToU32(nodeTitleColor);
 
-        draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f);
-        draw_list->AddRect(node_rect_min, node_rect_max, ImColor(100,100,100), 4.0f);
-        for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
-          auto color = ImColor(200,200,100);
-          ImVec2 p1(-3*NODE_SLOT_RADIUS,NODE_SLOT_RADIUS), p2(-3*NODE_SLOT_RADIUS,-NODE_SLOT_RADIUS), p3(0,0);
-          auto pp1 = p1 + offset + node->GetInputSlotPos(slot_idx);
-          auto pp2 = p2 + offset + node->GetInputSlotPos(slot_idx);
-          auto pp3 = p3 + offset + node->GetInputSlotPos(slot_idx);
-          draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
-          draw_list->AddCircleFilled(offset + node->GetInputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150,150,150,150));
-        }
-        for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++)
-            draw_list->AddCircleFilled(offset + node->GetOutputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150,150,150,150));
+      draw_list->AddRectFilled(node_rect_min + ImVec2(3.f, 3.f), node_rect_max + ImVec2(3.f, 3.f), ImColor(0,0,0,70), 4.0f);
+      draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f);
+      draw_list->AddRectFilled(node_rect_min, node_rect_title, node_title_color, 4.0f);
+      draw_list->AddRect(node_rect_min, node_rect_max, ImColor(100,100,100), 4.0f);
+      for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
+        auto color = ImColor(200,200,100);
+        ImVec2 p1(-3*NODE_SLOT_RADIUS,NODE_SLOT_RADIUS), p2(-3*NODE_SLOT_RADIUS,-NODE_SLOT_RADIUS), p3(0,0);
+        auto pp1 = p1 + offset + node->GetInputSlotPos(slot_idx);
+        auto pp2 = p2 + offset + node->GetInputSlotPos(slot_idx);
+        auto pp3 = p3 + offset + node->GetInputSlotPos(slot_idx);
+        draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
+        draw_list->AddCircleFilled(offset + node->GetInputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150,150,150,150));
+      }
+      for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++)
+          draw_list->AddCircleFilled(offset + node->GetOutputSlotPos(slot_idx), NODE_SLOT_RADIUS, ImColor(150,150,150,150));
 
-        ImGui::PopID();
+      ImGui::PopID();
     }
     draw_list->ChannelsMerge();
 
@@ -281,8 +317,8 @@ void showTopologyNodeGraph(bool* opened,
     }
 
     // Scrolling
-    if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() && ImGui::IsMouseDragging(2, 0.0f))
-        scrolling = scrolling - ImGui::GetIO().MouseDelta;
+    //if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() && ImGui::IsMouseDragging(2, 0.0f))
+    //    scrolling = scrolling - ImGui::GetIO().MouseDelta;
 
     ImGui::PopItemWidth();
     ImGui::EndChild();
