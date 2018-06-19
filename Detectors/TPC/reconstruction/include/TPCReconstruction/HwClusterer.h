@@ -86,6 +86,22 @@ class HwClusterer : public Clusterer
   /// \param isContinuous - false for triggered readout, true for continuous readout
   void setContinuousReadout(bool isContinuous);
 
+  /// Sets the charge threshold for the peak
+  /// \param charge Threshold which will be used
+  void setPeakChargeThreshold(unsigned charge);
+
+  /// Sets the charge threshold for the contributing pads
+  /// \param charge Threshold which will be used
+  void setContributionChargeThreshold(unsigned charge);
+
+  /// Swtich for requiring charge in at least one neighbouring pad
+  /// \param reqPad - false for single pad clusters, true otherwise
+  void setRequireNeighbouringPad(bool reqPad);
+
+  /// Swtich for requiring charge in at least one neighbouring timebin
+  /// \param reqPad - false for single timebin clusters, true otherwise
+  void setRequireNeighbouringTimebin(bool reqTimebin);
+
  private:
   /*
    * Helper functions
@@ -131,8 +147,8 @@ class HwClusterer : public Clusterer
   void clearBuffer(int timebin);
 
   /*
-     * class members
-     */
+   * class members
+   */
   int mClusterSector;                    ///< Sector to be processed
   unsigned short mNumRows;               ///< Number of rows in this sector
   int mLastTimebin;                      ///< Last time bin of previous event
@@ -162,6 +178,26 @@ class HwClusterer : public Clusterer
 inline void HwClusterer::setContinuousReadout(bool isContinuous)
 {
   mIsContinuousReadout = isContinuous;
+}
+
+inline void HwClusterer::setPeakChargeThreshold(unsigned charge)
+{
+  mPeakChargeThreshold = charge;
+}
+
+inline void HwClusterer::setContributionChargeThreshold(unsigned charge)
+{
+  mContributionChargeThreshold = charge;
+}
+
+inline void HwClusterer::setRequireNeighbouringPad(bool reqPad)
+{
+  mRequireNeighbouringPad = reqPad;
+}
+
+inline void HwClusterer::setRequireNeighbouringTimebin(bool reqTimebin)
+{
+  mRequireNeighbouringTimebin = reqTimebin;
 }
 }
 }

@@ -512,8 +512,8 @@ void HwClusterer::updateCluster(
   sigmaPad2 += charge * dp * dp;
   sigmaTime2 += charge * dt * dt;
 
-  if (mMCtruth[(center_time + dt + 5) % 5] != nullptr) {
-    for (auto& label : mMCtruth[(center_time + dt + 5) % 5]->getLabels(mIndexBuffer[row][index])) {
+  if (mMCtruth[(5 + ((center_time + dt) % 5)) % 5] != nullptr) {
+    for (auto& label : mMCtruth[(5 + ((center_time + dt) % 5)) % 5]->getLabels(mIndexBuffer[row][index])) {
       bool isKnown = false;
       for (auto& vecLabel : mcLabels) {
         if (label == vecLabel.first) {
