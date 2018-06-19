@@ -21,6 +21,15 @@
 #include "HepMC/GenParticle.h"
 #include "HepMC/GenVertex.h"
 #include "HepMC/FourVector.h"
+
+/** 
+    HepMC/Errors.h of HepMC3 defines DEBUG as a logging macro, and this interferes with FairLogger.
+    Undefining it for the time being, while thinking about a possible solution for this issue.
+**/
+#ifdef DEBUG
+#undef DEBUG
+#endif
+
 #include "FairLogger.h"
 #include "FairPrimaryGenerator.h"
 #include <cmath>
