@@ -134,8 +134,11 @@ Int_t AliHLTTRDTrackletWord::GetROB() const
 
 Int_t AliHLTTRDTrackletWord::GetMCM() const
 {
+#ifdef HLTCA_BUILD_ALIROOT_LIB    
   AliTRDpadPlane *pp = fgGeo->GetPadPlane(GetDetector());
   return (((Int_t) ((GetY()) / pp->GetWidthIPad()) + 72) / 18) % 4
     + 4 * (GetZbin() % 4);
+#else
+  return 0;
+#endif
 }
-
