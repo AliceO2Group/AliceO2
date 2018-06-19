@@ -10,29 +10,45 @@
 
 #include "build_geometry.C"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include <FairBoxGenerator.h>
 #include <FairPrimaryGenerator.h>
-#include <Generators/GeneratorFromFile.h>
-#include <Generators/Pythia8Generator.h>
-#include "Generators/PDG.h"
+#include <Generators/GeneratorFactory.h>
+#include <Generators/PDG.h>
 #include <SimConfig/SimConfig.h>
 #include <TStopwatch.h>
 #include <memory>
 #include "DataFormatsParameters/GRPObject.h"
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
-#include "TVirtualMC.h"
-
+#include <SimSetup/SimSetup.h>
+#include <Steer/O2RunSim.h>
+#include <unistd.h>
+#include <sstream>
 #endif
 
-void o2sim()
+FairRunSim* o2sim_init(bool asservice)
 {
   auto& confref = o2::conf::SimConfig::Instance();
   auto genconfig = confref.getGenerator();
 
-  auto run = new FairRunSim();
-  run->SetImportTGeoToVMC(false);              // do not import TGeo to VMC since the latter is built together with TGeo
-  run->SetOutputFile("o2sim.root");            // Output file
+  FairRunSim* run;
+  if (asservice) {
+    run = new o2::steer::O2RunSim();
+  } else {
+    run = new FairRunSim();
+  }
+  run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
+  run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
+
+  auto pid = getpid();
+  std::stringstream s;
+  s << confref.getOutPrefix();
+  if (asservice) {
+    s << "_" << pid;
+  }
+  s << ".root";
+
+  std::string outputfilename = s.str();
+  run->SetOutputFile(outputfilename.c_str());  // Output file
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
 
@@ -41,50 +57,8 @@ void o2sim()
 
   // setup generator
   auto primGen = new FairPrimaryGenerator();
-
-  if (genconfig.compare("boxgen") == 0) {
-    // a simple "box" generator
-    std::cout << "Init box generator\n";
-    auto boxGen = new FairBoxGenerator(211, 10); /*protons*/
-    boxGen->SetEtaRange(-0.9, 0.9);
-    boxGen->SetPRange(0.1, 5);
-    boxGen->SetPhiRange(0., 360.);
-    boxGen->SetDebug(kTRUE);
-    primGen->AddGenerator(boxGen);
-  } else if (genconfig.compare("extkin") == 0) {
-    // external kinematics
-    // needs precense of a kinematics file "Kinematics.root"
-    // TODO: make this configurable and check for presence
-    auto extGen = new o2::eventgen::GeneratorFromFile(confref.getExtKinematicsFileName().c_str());
-    extGen->SetStartEvent(confref.getStartEvent());
-    primGen->AddGenerator(extGen);
-    std::cout << "using external kinematics\n";
-  } else if (genconfig.compare("pythia8") == 0) {
-    // pythia8 pp
-    // configures pythia for min.bias pp collisions at 14 TeV
-    // TODO: make this configurable
-    auto py8Gen = new o2::eventgen::Pythia8Generator();
-    py8Gen->SetParameters("Beams:idA 2212");       // p
-    py8Gen->SetParameters("Beams:idB 2212");       // p
-    py8Gen->SetParameters("Beams:eCM 14000.");     // [GeV]
-    py8Gen->SetParameters("SoftQCD:inelastic on"); // all inelastic processes
-    primGen->AddGenerator(py8Gen);
-  } else if (genconfig.compare("pythia8hi") == 0) {
-    // pythia8 heavy-ion
-    // exploits pythia8 heavy-ion machinery (available from v8.230)
-    // configures pythia for min.bias Pb-Pb collisions at 5.52 TeV
-    // TODO: make this configurable
-    auto py8Gen = new o2::eventgen::Pythia8Generator();
-    py8Gen->SetParameters("Beams:idA 1000822080");                                      // Pb ion
-    py8Gen->SetParameters("Beams:idB 1000822080");                                      // Pb ion
-    py8Gen->SetParameters("Beams:eCM 5520.0");                                          // [GeV]
-    py8Gen->SetParameters("HeavyIon:SigFitNGen 0");                                     // valid for Pb-Pb 5520 only
-    py8Gen->SetParameters("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
-    py8Gen->SetParameters(
-      ("HeavyIon:bWidth " + std::to_string(confref.getBMax())).c_str()); // impact parameter from 0-x [fm]
-    primGen->AddGenerator(py8Gen);
-  } else {
-    LOG(FATAL) << "Invalid generator" << FairLogger::endl;
+  if (!asservice) {
+    o2::eventgen::GeneratorFactory::setPrimaryGenerator(confref, primGen);
   }
   run->SetGenerator(primGen);
 
@@ -95,7 +69,13 @@ void o2sim()
   // run init
   run->Init();
   finalize_geometry(run);
-  gGeoManager->Export("O2geometry.root");
+  std::stringstream geomss;
+  geomss << "O2geometry";
+  if (asservice) {
+    geomss << "_" << pid;
+  }
+  geomss << ".root";
+  gGeoManager->Export(geomss.str().c_str());
 
   std::time_t runStart = std::time(nullptr);
 
@@ -103,14 +83,19 @@ void o2sim()
   bool kParameterMerged = true;
   auto rtdb = run->GetRuntimeDb();
   auto parOut = new FairParRootFileIo(kParameterMerged);
-  parOut->open("o2sim_par.root");
+
+  std::stringstream s2;
+  s2 << confref.getOutPrefix();
+  if (asservice) {
+    s2 << "_" << pid;
+  }
+  s2 << "_par.root";
+  std::string parfilename = s2.str();
+  parOut->open(parfilename.c_str());
   rtdb->setOutput(parOut);
   rtdb->saveOutput();
   rtdb->print();
-
   o2::PDG::addParticlesToPdgDataBase(0);
-
-  run->Run(confref.getNEvents());
 
   {
     // store GRPobject
@@ -143,15 +128,37 @@ void o2sim()
       grp.setL3Current(currL3);
       grp.setDipoleCurrent(currDip);
     }
-    // todo: save beam information in the grp
-
     // save
-    TFile grpF("o2sim_grp.root", "recreate");
+    std::string grpfilename = confref.getOutPrefix() + "_grp.root";
+    TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
+  // todo: save beam information in the grp
 
-  // needed ... otherwise nothing flushed?
-  delete run;
+  timer.Stop();
+  Double_t rtime = timer.RealTime();
+  Double_t ctime = timer.CpuTime();
+
+  // extract max memory usage for init
+  FairSystemInfo sysinfo;
+  LOG(INFO) << "Init: Real time " << rtime << " s, CPU time " << ctime << "s";
+  LOG(INFO) << "Init: Memory used " << sysinfo.GetMaxMemory() << " MB";
+
+  return run;
+}
+
+// only called from the normal o2sim
+void o2sim_run(FairRunSim* run, bool asservice)
+{
+  TStopwatch timer;
+  timer.Start();
+
+  auto& confref = o2::conf::SimConfig::Instance();
+  if (!asservice) {
+    run->Run(confref.getNEvents());
+  } else {
+    run->Run(1);
+  }
 
   // Finish
   timer.Stop();
@@ -161,8 +168,15 @@ void o2sim()
   // extract max memory usage
   FairSystemInfo sysinfo;
 
-  std::cout << "\n\n";
-  std::cout << "Macro finished succesfully.\n";
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s\n";
-  std::cout << "Memory used " << sysinfo.GetMaxMemory() << " MB\n";
+  LOG(INFO) << "Macro finished succesfully.";
+  LOG(INFO) << "Real time " << rtime << " s, CPU time " << ctime << "s";
+  LOG(INFO) << "Memory used " << sysinfo.GetMaxMemory() << " MB";
+}
+
+// asservice: in a parallel device-based context?
+void o2sim(bool asservice = false)
+{
+  auto run = o2sim_init(asservice);
+  o2sim_run(run, asservice);
+  delete run;
 }

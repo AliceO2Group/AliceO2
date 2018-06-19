@@ -11,9 +11,64 @@
 /// \file DigiParams.cxx
 /// \brief Implementation of the ITS digitization steering params
 
+#include "FairLogger.h" // for LOG
 #include "ITSMFTSimulation/DigiParams.h"
-#include "ITSMFTSimulation/AlpideSimResponse.h"
+#include <cassert>
 
 ClassImp(o2::ITSMFT::DigiParams);
 
 using namespace o2::ITSMFT;
+
+DigiParams::DigiParams()
+{
+  // make sure the defaults are consistent
+  setROFrameLength(mROFrameLength);
+  setNSimSteps(mNSimSteps);
+}
+
+void DigiParams::setROFrameLength(float lNS)
+{
+  // set ROFrame length in nanosecongs
+  mROFrameLength = lNS;
+  assert(mROFrameLength > 1.);
+  mROFrameLengthInv = 1. / mROFrameLength;
+}
+
+void DigiParams::setNSimSteps(int v)
+{
+  // set number of sampling steps in silicon
+  mNSimSteps = v > 0 ? v : 1;
+  mNSimStepsInv = 1.f / mNSimSteps;
+}
+
+void DigiParams::setChargeThreshold(int v, float frac2Account)
+{
+  // set charge threshold for digits creation and its fraction to account
+  // contribution from single hit
+  mChargeThreshold = v;
+  mMinChargeToAccount = v * frac2Account;
+  if (mMinChargeToAccount < 0 || mMinChargeToAccount > mChargeThreshold) {
+    mMinChargeToAccount = mChargeThreshold;
+  }
+  LOG(INFO) << "Set Alpide charge threshold to " << mChargeThreshold
+            << ", single hit will be accounted from " << mMinChargeToAccount
+            << " electrons" << FairLogger::endl;
+}
+
+//______________________________________________
+void DigiParams::print() const
+{
+  // print settings
+  printf("Alpide digitization params:\n");
+  printf("Continuous readout             : %s\n", mIsContinuous ? "ON" : "OFF");
+  printf("Readout Frame Length(ns)       : %f\n", mROFrameLength);
+  printf("Strobe delay (ns)              : %f\n", mStrobeDelay);
+  printf("Strobe length (ns)             : %f\n", mStrobeLength);
+  printf("Threshold (N electrons)        : %d\n", mChargeThreshold);
+  printf("Min N electrons to accoint     : %d\n", mMinChargeToAccount);
+  printf("Number of charge sharing steps : %d\n", mNSimSteps);
+  printf("ELoss to N electrons factor    : %e\n", mEnergyToNElectrons);
+  printf("Noise level per pixel          : %e\n", mNoisePerPixel);
+  printf("Charge time-response:\n");
+  mSignalShape.print();
+}

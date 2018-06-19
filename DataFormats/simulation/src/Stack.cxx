@@ -52,13 +52,12 @@ Stack::Stack(Int_t size)
     mStoreSecondaries(kTRUE),
     mMinHits(1),
     mEnergyCut(0.),
-    mTrackRefs(new std::vector<o2::TrackReference>)
+    mTrackRefs(new std::vector<o2::TrackReference>),
+    mIndexedTrackRefs(new typename std::remove_pointer<decltype(mIndexedTrackRefs)>::type),
+    mIsG4Like(false)
 {
   auto vmc = TVirtualMC::GetMC();
-  if (!vmc) {
-    LOG(FATAL) << "Must have VMC initialized before Stack construction" << FairLogger::endl;
-  }
-  if (strcmp(vmc->GetName(), "TGeant4") == 0) {
+  if (vmc && strcmp(vmc->GetName(), "TGeant4") == 0) {
     mIsG4Like = true;
   }
 }
@@ -78,6 +77,7 @@ Stack::Stack(const Stack& rhs)
     mStoreSecondaries(rhs.mStoreSecondaries),
     mMinHits(rhs.mMinHits),
     mEnergyCut(rhs.mEnergyCut),
+    mTrackRefs(new std::vector<o2::TrackReference>),
     mIsG4Like(rhs.mIsG4Like)
 {
   LOG(DEBUG) << "copy constructor called" << FairLogger::endl;
@@ -133,6 +133,9 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
 {
   // Create new TParticle and add it to the TParticle array
   Int_t trackId = mNumberOfEntriesInParticles;
+  // Set track variable
+  ntr = trackId;
+
   Int_t nPoints = 0;
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
@@ -160,8 +163,30 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
     mPrimaryParticles.push_back(p);
   }
 
-  // Set argument variable
-  ntr = trackId;
+  // Push particle on the stack if toBeDone is set
+  if (toBeDone == 1) {
+    mStack.push(p);
+  }
+}
+
+void Stack::PushTrack(int toBeDone, TParticle const& p)
+{
+  auto parentId = p.GetMother(0);
+  // currently I only know of G4 who pushes particles like this (but never pops)
+  // so we have to register the particles here
+  if (mIsG4Like && parentId >= 0) {
+    //p.SetStatusCode(mParticles.size());
+    mParticles.emplace_back(p);
+    mTransportedIDs.emplace_back(p.GetStatusCode());
+    mCurrentParticle = p;
+  }
+
+  // Increment counter
+  if (parentId < 0) {
+    mNumberOfPrimaryParticles++;
+    // fix trackID
+    mPrimaryParticles.push_back(p);
+  }
 
   // Push particle on the stack if toBeDone is set
   if (toBeDone == 1) {
@@ -405,7 +430,7 @@ void Stack::Reset()
   }
   mParticles.clear();
   mTracks->clear();
-  if (mPrimariesDone != mPrimaryParticles.size()) {
+  if (!mIsExternalMode && (mPrimariesDone != mPrimaryParticles.size())) {
     LOG(FATAL) << "Inconsistency in primary particles treated " << mPrimariesDone << " vs expected "
                << mPrimaryParticles.size() << "\n(This points to a flaw in the stack logic)" << FairLogger::endl;
   }
@@ -419,7 +444,6 @@ void Stack::Register()
 {
   FairRootManager::Instance()->RegisterAny("MCTrack", mTracks, kTRUE);
   FairRootManager::Instance()->RegisterAny("TrackRefs", mTrackRefs, kTRUE);
-  mIndexedTrackRefs = new typename std::remove_pointer<decltype(mIndexedTrackRefs)>::type;
   FairRootManager::Instance()->RegisterAny("IndexedTrackRefs", mIndexedTrackRefs, kTRUE);
 }
 

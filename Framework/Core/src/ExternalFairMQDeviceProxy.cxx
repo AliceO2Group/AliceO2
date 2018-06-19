@@ -16,12 +16,15 @@
 #include "Headers/DataHeader.h"
 #include "Framework/DataProcessingHeader.h"
 #include <fairmq/FairMQParts.h>
+#include <fairmq/FairMQDevice.h>
 #include <cstring>
 #include <cassert>
 #include <memory>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 using DataHeader = o2::header::DataHeader;
 
@@ -37,12 +40,9 @@ void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, Fai
 
     // FIXME: this assumes there is only one output from here... This should
     //        really do the matchmaking between inputs and output channels.
-    FairMQMessagePtr headerMessage = device.NewMessageFor(channel, index,
-                                                          headerStack.buffer.get(),
-                                                          headerStack.bufferSize,
-                                                          &o2::header::Stack::freefn,
-                                                          headerStack.buffer.get());
-    headerStack.buffer.release();
+    auto channelAlloc = o2::memoryResources::getTransportAllocator(channelInfo.second[index].Transport());
+    FairMQMessagePtr headerMessage = o2::memoryResources::getMessage(std::move(headerStack), channelAlloc);
+
     FairMQParts out;
     out.AddPart(std::move(headerMessage));
     out.AddPart(std::move(payloadMessage));

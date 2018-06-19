@@ -367,6 +367,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     InputRoute route;
     route.matcher = consumer.inputs[edge.consumerInputIndex];
     route.sourceChannel = consumerDevice.inputChannels[ci].name;
+    route.timeslice = edge.producerTimeIndex;
     consumerDevice.inputs.push_back(route);
   };
 
@@ -404,6 +405,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 // FIXME: make start port configurable?
 void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workflow,
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+                                                       std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        std::vector<ComputingResource> &resources)
 {
@@ -449,10 +451,21 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
 
   processInEdgeActions(devices, deviceIndex, resources, connections, inEdgeIndex, logicalEdges, inActions, workflow,
                        availableForwardsInfo, channelPolicies);
+  // We apply the completion policies here since this is where we have all the
+  // devices resolved.
+  for (auto &device : devices) {
+    for (auto &policy : completionPolicies) {
+      if (policy.matcher(device) == true) {
+        device.completionPolicy = policy;
+        break;
+      }
+    }
+  }
 }
 
 void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuiet, bool defaultStopped,
                                          const std::vector<DeviceSpec>& deviceSpecs,
+                                         const std::vector<ConfigParamSpec> &workflowOptions,
                                          std::vector<DeviceExecution>& deviceExecutions,
                                          std::vector<DeviceControl>& deviceControls)
 {
@@ -489,8 +502,11 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
     // DeviceSpec, and some global options from getForwardedDeviceOptions
     const char* name = spec.name.c_str();
     bpo::options_description od;
-    prepareOptionsDescription(spec.options, od);
+    bpo::options_description wo;
+    ConfigParamsHelper::prepareOptionsDescription(spec.options, od);
+    ConfigParamsHelper::prepareOptionsDescription(workflowOptions, wo);
     od.add(getForwardedDeviceOptions());
+    od.add(wo);
     od.add_options()(name, bpo::value<std::string>());
 
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;

@@ -4,4 +4,11 @@
 library=$1
 expected=$2
 
-test $(/usr/bin/nm -m -extern-only -defined-only $library -s __TEXT __text | wc -l) -eq $expected
+nlibs=$(/usr/bin/nm -m -extern-only -defined-only $library -s __TEXT __text | wc -l)
+
+if [ $nlibs -ne $expected ]; then
+  echo "bad: check number of exported symbols in $library"
+  /usr/bin/nm -m -extern-only -defined-only $library -s __TEXT __text
+else
+  echo "good: $library contains the expected $expected exported symbols"
+fi

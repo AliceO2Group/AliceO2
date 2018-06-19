@@ -16,6 +16,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 if (GLFW_FOUND)
   set(GUI_SOURCES src/FrameworkGUIDebugger.cxx
                   src/FrameworkGUIDevicesGraph.cxx
+                  src/FrameworkGUIDataRelayerUsage.cxx
                   src/PaletteHelpers.cxx)
 else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx src/DummyDebugGUI.cxx)
@@ -24,6 +25,8 @@ endif()
 set(SRCS
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
+    src/CompletionPolicy.cxx
+    src/CompletionPolicyHelpers.cxx
     src/ChannelConfigurationPolicy.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
     src/DataAllocator.cxx
@@ -43,12 +46,12 @@ set(SRCS
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
+    src/FairMQDeviceProxy.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/LocalRootFileService.cxx
     src/LogParsingHelpers.cxx
     src/ExternalFairMQDeviceProxy.cxx
-    src/SimpleMetricsService.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
     src/WorkflowHelpers.cxx
@@ -58,6 +61,7 @@ set(SRCS
     src/StreamOperators.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
+    src/Variant.cxx
    )
 
 set(HEADERS
@@ -65,6 +69,7 @@ set(HEADERS
       include/Framework/DataProcessor.h
       include/Framework/DataSpecUtils.h
       include/Framework/FrameworkGUIDevicesGraph.h
+      include/Framework/FrameworkGUIDataRelayerUsage.h
       include/Framework/DeviceMetricsInfo.h
       include/Framework/DeviceSpec.h
       include/Framework/DeviceControl.h
@@ -74,11 +79,9 @@ set(HEADERS
       include/Framework/DebugGUI.h
       include/Framework/TypeTraits.h
       include/Framework/PaletteHelpers.h
-      include/Framework/SimpleMetricsService.h
       include/Framework/ConfigParamSpec.h
       include/Framework/TMessageSerializer.h
       include/Framework/DataProcessorLabel.h
-      include/Framework/MetricsService.h
       include/Framework/LogParsingHelpers.h
       include/Framework/InputSpec.h
       include/Framework/DeviceInfo.h
@@ -104,7 +107,6 @@ set(HEADERS
       include/Framework/DataRef.h
       include/Framework/WorkflowSpec.h
       include/Framework/LocalRootFileService.h
-      include/Framework/RemoteMetricsService.h
       include/Framework/OutputSpec.h
       include/Framework/ChannelSpec.h
       include/Framework/ChannelConfigurationPolicy.h
@@ -123,7 +125,8 @@ set(HEADERS
       include/Framework/RootObjectContext.h
       include/Framework/DataProcessingDevice.h
       include/Framework/Variant.h
-      include/Framework/RootTreeReader.h
+      include/Framework/CallbackRegistry.h
+      include/Framework/CallbackService.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -175,9 +178,10 @@ O2_GENERATE_EXECUTABLE(
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
 target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
 
-Install(FILES test/test_DataSamplingDPL.ini test/test_DataSamplingFairMQ.ini DESTINATION share/tests/)
+Install(FILES test/test_DataSamplingDPL.json test/test_DataSamplingFairMQ.json DESTINATION share/tests/)
 
 set(TEST_SRCS
+      test/test_SimpleStatefulProcessing01.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
       test/test_DataRelayer.cxx
@@ -201,7 +205,7 @@ set(TEST_SRCS
       test/test_WorkflowHelpers.cxx
       test/test_TMessageSerializer.cxx
       test/test_DataAllocator.cxx
-      test/test_RootTreeReader.cxx
+      test/test_CallbackRegistry.cxx
    )
 
 O2_GENERATE_TESTS(

@@ -14,23 +14,22 @@
 using namespace o2::framework;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(WorkflowSpec &specs) {
-  WorkflowSpec workflow = {
-  {
-    "A",
-    {},
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     {
-      OutputSpec{"TST", "A1", 0, Lifetime::Timeframe}
-    },
-    AlgorithmSpec{
-      [](ProcessingContext &ctx) {
-       sleep(1);
-       auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0}, 1);
-       ctx.services().get<ControlService>().readyToQuit(true);
-      }
-    },
-    Options{{"test-option", VariantType::String, "test", {"A test option"}}},
-  }
+      "A",
+      {},
+      {
+        OutputSpec{"TST", "A1", 0, Lifetime::Timeframe}
+      },
+      AlgorithmSpec{
+        [](ProcessingContext &ctx) {
+         sleep(1);
+         auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0}, 1);
+         ctx.services().get<ControlService>().readyToQuit(true);
+        }
+      },
+      Options{{"test-option", VariantType::String, "test", {"A test option"}}},
+    }
   };
-  specs.swap(workflow);
 }

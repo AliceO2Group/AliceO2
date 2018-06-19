@@ -35,6 +35,9 @@
 #include <cassert>
 #include <cstring> //needed for memcmp
 #include <algorithm> // std::min
+#include <stdexcept>
+#include <string>
+#include "MemoryResources/MemoryResources.h"
 
 using byte = unsigned char;
 
@@ -84,6 +87,10 @@ constexpr uint32_t gSizeHeaderDescriptionString = 8;
 //__________________________________________________________________________________________________
 struct DataHeader;
 struct DataIdentifier;
+
+//__________________________________________________________________________________________________
+///helper function to print a hex/ASCII dump of some memory
+void hexDump(const char* desc, const void* voidaddr, size_t len, size_t max = 0);
 
 //__________________________________________________________________________________________________
 // internal implementations
@@ -293,6 +300,16 @@ struct Descriptor {
   bool operator==(const T*) const = delete;
   template<typename T>
   bool operator!=(const T*) const = delete;
+
+  /// get the descriptor as std::string
+  template <typename T>
+  std::enable_if_t<std::is_same<T, std::string>::value == true, T> as() const
+  {
+    // init from the complete str member including space for a trailing 0
+    std::string ret(str, size + 1);
+    ret[size] = 0;
+    return std::move(ret);
+  }
   // print function needs to be implemented for every derivation
   void print() const {
     // eventually terminate string before printing
@@ -311,11 +328,11 @@ using HeaderType = Descriptor<gSizeHeaderDescriptionString>;
 using SerializationMethod = Descriptor<gSizeSerializationMethodString>;
 
 //possible serialization types
-extern const o2::header::SerializationMethod gSerializationMethodAny;
-extern const o2::header::SerializationMethod gSerializationMethodInvalid;
-extern const o2::header::SerializationMethod gSerializationMethodNone;
-extern const o2::header::SerializationMethod gSerializationMethodROOT;
-extern const o2::header::SerializationMethod gSerializationMethodFlatBuf;
+constexpr o2::header::SerializationMethod gSerializationMethodAny{ "*******" };
+constexpr o2::header::SerializationMethod gSerializationMethodInvalid{ "INVALID" };
+constexpr o2::header::SerializationMethod gSerializationMethodNone{ "NONE" };
+constexpr o2::header::SerializationMethod gSerializationMethodROOT{ "ROOT" };
+constexpr o2::header::SerializationMethod gSerializationMethodFlatBuf{ "FLATBUF" };
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
@@ -386,22 +403,37 @@ struct BaseHeader
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(const byte* b, size_t /*len*/=0) {
-    return (*(reinterpret_cast<const uint32_t*>(b))==sMagicString) ?
-      reinterpret_cast<const BaseHeader*>(b) :
-      nullptr;
+  inline static const BaseHeader* get(const byte* b, size_t /*len*/ = 0)
+  {
+    return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
+             ? reinterpret_cast<const BaseHeader*>(b)
+             : nullptr;
+  }
+
+  /// @brief access header in buffer
+  ///
+  /// this is to guess if the buffer starting at b looks like a header
+  inline static BaseHeader* get(byte* b, size_t /*len*/ = 0)
+  {
+    return (b != nullptr && *(reinterpret_cast<uint32_t*>(b)) == sMagicString) ? reinterpret_cast<BaseHeader*>(b)
+                                                                               : nullptr;
   }
 
   inline uint32_t size() const noexcept { return headerSize; }
   inline const byte* data() const noexcept { return reinterpret_cast<const byte*>(this); }
 
-  /// get the next header if any
+  /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept {
     return (flagsNextHeader) ?
       reinterpret_cast<const BaseHeader*>(reinterpret_cast<const byte*>(this)+headerSize) :
       nullptr;
   }
 
+  /// get the next header if any (non-const version)
+  inline BaseHeader* next() noexcept
+  {
+    return (flagsNextHeader) ? reinterpret_cast<BaseHeader*>(reinterpret_cast<byte*>(this) + headerSize) : nullptr;
+  }
 };
 
 /// find a header of type HeaderType in a buffer
@@ -447,66 +479,130 @@ auto get(const void* buffer, size_t len = 0)
 ///   - returns a Stack ready to be shipped.
 struct Stack {
 
-  // This is ugly and needs fixing BUT:
-  // we need a static deleter for fairmq.
-  // TODO: maybe use allocator_traits if custom allocation is desired
-  //       the deallocate function is then static.
-  //       In the case of special transports is is cheap to copy the header stack into a message, so no problem there.
-  //       The copy can be avoided if we construct in place inside a FairMQMessage directly (instead of
-  //       allocating a unique_ptr we would hold a FairMQMessage which for the large part has similar semantics).
-  //
-  using Buffer = std::unique_ptr<byte[]>;
-  static std::default_delete<byte[]> sDeleter;
-  static void freefn(void* /*data*/, void* hint) {
-    Stack::sDeleter(static_cast<byte*>(hint));
-  }
-
-  size_t bufferSize;
-  Buffer buffer;
-
-  byte* data() const {return buffer.get();}
-  size_t size() const {return bufferSize;}
-
-  ///The magic constructor: takes arbitrary number of arguments and serialized them
-  /// into the buffer.
-  /// Intended use: produce a temporary via an initializer list.
-  /// TODO: maybe add a static_assert requiring first arg to be DataHeader
-  /// or maybe even require all these to be derived form BaseHeader
-  template<typename... Headers>
-  Stack(const Headers&... headers)
-    : bufferSize{size(headers...)}
-    , buffer{std::make_unique<byte[]>(bufferSize)}
+ private:
+  static void freefn(void* data, void* hint)
   {
-    inject(buffer.get(), headers...);
+    boost::container::pmr::memory_resource* resource = static_cast<boost::container::pmr::memory_resource*>(hint);
+    resource->deallocate(data, 0, 0);
   }
+
+  struct freeobj {
+    freeobj() {}
+    freeobj(boost::container::pmr::memory_resource* mr) : resource(mr) {}
+
+    boost::container::pmr::memory_resource* resource{ nullptr };
+    void operator()(byte* ptr) { Stack::freefn(ptr, resource); }
+  };
+
+ public:
+  using allocator_type = boost::container::pmr::polymorphic_allocator<byte>;
+  using value_type = byte;
+  using BufferType = std::unique_ptr<value_type[], freeobj>;
+
   Stack() = default;
   Stack(Stack&&) = default;
   Stack(Stack&) = delete;
   Stack& operator=(Stack&) = delete;
   Stack& operator=(Stack&&) = default;
 
-  template<typename T, typename... Args>
-  static size_t size(const T& h, const Args... args) noexcept {
-    return size(h) + size(args...);
+  value_type* data() const { return buffer.get(); }
+  size_t size() const { return bufferSize; }
+  allocator_type get_allocator() const { return allocator; }
+
+  //
+  boost::container::pmr::memory_resource* getFreefnHint() const noexcept { return allocator.resource(); }
+  static auto getFreefn() noexcept { return &freefn; }
+
+  /// The magic constructors: take arbitrary number of headers and serialize them
+  /// into the buffer buffer allocated by the specified polymorphic allocator. By default
+  /// allocation is done using new_delete_resource.
+  /// In the final stack the first header must be DataHeader.
+  /// all headers must derive from BaseHeader, in addition also other stacks can be passed to ctor.
+  template <typename FirstArgType, typename... Headers,
+            typename std::enable_if_t<
+              !std::is_convertible<FirstArgType, boost::container::pmr::polymorphic_allocator<byte>>::value, int> = 0>
+  Stack(FirstArgType&& firstHeader, Headers&&... headers)
+    : Stack(boost::container::pmr::new_delete_resource(), std::forward<FirstArgType>(firstHeader),
+            std::forward<Headers>(headers)...)
+  {
   }
 
-private:
-  template<typename T>
-  static size_t size(const T& h) noexcept {
+  template <typename... Headers>
+  Stack(const allocator_type allocatorArg, Headers&&... headers)
+    : allocator{ allocatorArg },
+      bufferSize{ calculateSize(std::forward<Headers>(headers)...) },
+      buffer{ static_cast<byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
+              freeobj(getFreefnHint()) }
+  {
+    inject(buffer.get(), std::forward<Headers>(headers)...);
+  }
+
+ private:
+  allocator_type allocator{ boost::container::pmr::new_delete_resource() };
+  size_t bufferSize{ 0 };
+  BufferType buffer{ nullptr, freeobj{ getFreefnHint() } };
+
+  template <typename T, typename... Args>
+  static size_t calculateSize(T&& h, Args&&... args) noexcept
+  {
+    return calculateSize(std::forward<T>(h)) + calculateSize(std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  static size_t calculateSize(T&& h) noexcept
+  {
     return h.size();
   }
 
-  template<typename T>
-  static byte* inject(byte* here, const T& h) noexcept {
-    std::copy(h.data(), h.data()+h.size(), here);
+  //recursion terminator
+  constexpr static size_t calculateSize() { return 0; }
+
+  template <typename T>
+  static byte* inject(byte* here, T&& h) noexcept
+  {
+    using headerType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+    static_assert(
+      std::is_base_of<BaseHeader, headerType>::value == true || std::is_same<Stack, headerType>::value == true,
+      "header stack parameters are restricted to stacks and headers derived from BaseHeader");
+    std::copy(h.data(), h.data() + h.size(), here);
     return here + h.size();
+    // somehow could not trigger copy elision for placed construction, TODO: check out if this is possible here
+    // headerType* placed = new (here) headerType(std::forward<T>(h));
+    // return here + placed->size();
   }
 
-  template<typename T, typename... Args>
-  static byte* inject(byte* here, const T& h, const Args... args) noexcept {
+  template <typename T, typename... Args>
+  static byte* inject(byte* here, T&& h, Args&&... args) noexcept
+  {
     auto alsohere = inject(here, h);
-    (reinterpret_cast<BaseHeader*>(here))->flagsNextHeader = true;
+    // the type might be a stack itself, loop through headers and set the flag in the last one
+    if (h.size() > 0) {
+      BaseHeader* next = BaseHeader::get(here);
+      while (next->flagsNextHeader) {
+        next = next->next();
+      }
+      next->flagsNextHeader = hasNonEmptyArg(args...);
+    }
     return inject(alsohere, args...);
+  }
+
+  // helper function to check if there is at least one non-empty header/stack in the argument pack
+  template <typename T, typename... Args>
+  static bool hasNonEmptyArg(const T& h, const Args&... args) noexcept
+  {
+    if (h.size() > 0) {
+      return true;
+    }
+    return hasNonEmptyArg(args...);
+  }
+
+  template <typename T>
+  static bool hasNonEmptyArg(const T& h) noexcept
+  {
+    if (h.size() > 0) {
+      return true;
+    }
+    return false;
   }
 };
 
@@ -583,7 +679,7 @@ struct DataHeader : public BaseHeader
 
   //___the functions:
   DataHeader(); ///ctor
-  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size); /// ctor
+  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size = 0); /// ctor
 
   DataHeader(const DataHeader&) = default;
   DataHeader& operator=(const DataHeader&) = default; //assignment
@@ -607,34 +703,34 @@ struct DataHeader : public BaseHeader
 
 //__________________________________________________________________________________________________
 //possible data origins
-extern const o2::header::DataOrigin gDataOriginAny;
-extern const o2::header::DataOrigin gDataOriginInvalid;
-extern const o2::header::DataOrigin gDataOriginFLP;
-extern const o2::header::DataOrigin gDataOriginACO;
-extern const o2::header::DataOrigin gDataOriginCPV;
-extern const o2::header::DataOrigin gDataOriginCTP;
-extern const o2::header::DataOrigin gDataOriginEMC;
-extern const o2::header::DataOrigin gDataOriginFIT;
-extern const o2::header::DataOrigin gDataOriginHMP;
-extern const o2::header::DataOrigin gDataOriginITS;
-extern const o2::header::DataOrigin gDataOriginMCH;
-extern const o2::header::DataOrigin gDataOriginMFT;
-extern const o2::header::DataOrigin gDataOriginMID;
-extern const o2::header::DataOrigin gDataOriginPHS;
-extern const o2::header::DataOrigin gDataOriginTOF;
-extern const o2::header::DataOrigin gDataOriginTPC;
-extern const o2::header::DataOrigin gDataOriginTRD;
-extern const o2::header::DataOrigin gDataOriginZDC;
+constexpr o2::header::DataOrigin gDataOriginAny{ "***" };
+constexpr o2::header::DataOrigin gDataOriginInvalid{ "NIL" };
+constexpr o2::header::DataOrigin gDataOriginFLP{ "FLP" };
+constexpr o2::header::DataOrigin gDataOriginACO{ "ACO" };
+constexpr o2::header::DataOrigin gDataOriginCPV{ "CPV" };
+constexpr o2::header::DataOrigin gDataOriginCTP{ "CTP" };
+constexpr o2::header::DataOrigin gDataOriginEMC{ "EMC" };
+constexpr o2::header::DataOrigin gDataOriginFIT{ "FIT" };
+constexpr o2::header::DataOrigin gDataOriginHMP{ "HMP" };
+constexpr o2::header::DataOrigin gDataOriginITS{ "ITS" };
+constexpr o2::header::DataOrigin gDataOriginMCH{ "MCH" };
+constexpr o2::header::DataOrigin gDataOriginMFT{ "MFT" };
+constexpr o2::header::DataOrigin gDataOriginMID{ "MID" };
+constexpr o2::header::DataOrigin gDataOriginPHS{ "PHS" };
+constexpr o2::header::DataOrigin gDataOriginTOF{ "TOF" };
+constexpr o2::header::DataOrigin gDataOriginTPC{ "TPC" };
+constexpr o2::header::DataOrigin gDataOriginTRD{ "TRD" };
+constexpr o2::header::DataOrigin gDataOriginZDC{ "ZDC" };
 
 //possible data types
-extern const o2::header::DataDescription gDataDescriptionAny;
-extern const o2::header::DataDescription gDataDescriptionInvalid;
-extern const o2::header::DataDescription gDataDescriptionRawData;
-extern const o2::header::DataDescription gDataDescriptionClusters;
-extern const o2::header::DataDescription gDataDescriptionTracks;
-extern const o2::header::DataDescription gDataDescriptionConfig;
-extern const o2::header::DataDescription gDataDescriptionInfo;
-extern const o2::header::DataDescription gDataDescriptionROOTStreamers;
+constexpr o2::header::DataDescription gDataDescriptionAny{ "***************" };
+constexpr o2::header::DataDescription gDataDescriptionInvalid{ "INVALID_DESC" };
+constexpr o2::header::DataDescription gDataDescriptionRawData{ "RAWDATA" };
+constexpr o2::header::DataDescription gDataDescriptionClusters{ "CLUSTERS" };
+constexpr o2::header::DataDescription gDataDescriptionTracks{ "TRACKS" };
+constexpr o2::header::DataDescription gDataDescriptionConfig{ "CONFIGURATION" };
+constexpr o2::header::DataDescription gDataDescriptionInfo{ "INFORMATION" };
+constexpr o2::header::DataDescription gDataDescriptionROOTStreamers{ "ROOT STREAMERS" };
 /// @} // end of doxygen group
 
 //__________________________________________________________________________________________________
@@ -680,15 +776,8 @@ static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),
               "Inconsitent size of global magic identifier");
 
-//__________________________________________________________________________________________________
-///helper function to print a hex/ASCII dump of some memory
-void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
-
 } //namespace header
 
-// 2017-12-21: keep an alias for a short while after renaming the namespace
-// to lower case, supports pull request currently open
-namespace Header = header;
 } //namespace o2
 
 #endif

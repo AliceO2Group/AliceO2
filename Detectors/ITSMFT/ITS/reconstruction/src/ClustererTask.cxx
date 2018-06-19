@@ -14,68 +14,69 @@
 #include "ITSReconstruction/ClustererTask.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
-#include "FairLogger.h"      // for LOG
-#include "FairRootManager.h" // for FairRootManager
+#include "FairLogger.h"
+#include "FairRootManager.h"
 
-ClassImp(o2::ITS::ClustererTask)
+ClassImp(o2::ITS::ClustererTask);
 
-  using namespace o2::ITS;
+using namespace o2::ITS;
 using namespace o2::Base;
 using namespace o2::utils;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("ITSClustererTask")
+ClustererTask::ClustererTask(bool useMC) : FairTask("ITSClustererTask"), mUseMCTruth(useMC)
 {
-  if (useMCTruth)
-    mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 }
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  if (mClustersArray) {
-    mClustersArray->clear();
-    delete mClustersArray;
-  }
-  if (mClsLabels) {
-    mClsLabels->clear();
-    delete mClsLabels;
-  }
+  mClustersArray.clear();
+  mClsLabels.clear();
 }
 
 //_____________________________________________________________________
-/// \brief Init function
-/// Inititializes the clusterer and connects input and output container
 InitStatus ClustererTask::Init()
 {
+  /// Inititializes the clusterer and connects input and output container
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
-  const std::vector<o2::ITSMFT::Digit>* arr = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
-  if (!arr) {
-    LOG(ERROR) << "ITS digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+  const auto arrDig = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("ITSDigit");
+  if (!arrDig) {
+    LOG(ERROR) << "ITS digits are not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
-  mReader.setDigitArray(arr);
+  mReader.setDigitArray(arrDig);
+
+  const auto arrDigLbl = mUseMCTruth ? mgr->InitObjectAs<const MCTruth*>("ITSDigitMCTruth") : nullptr;
+
+  if (!arrDigLbl && mUseMCTruth) {
+    LOG(WARNING) << "ITS digits labeals are not registered in the FairRootManager. Continue w/o MC truth ..."
+                 << FairLogger::endl;
+  }
+  mClusterer.setDigitsMCTruthContainer(arrDigLbl);
 
   // Register output container
-  mgr->RegisterAny("ITSCluster", mClustersArray, kTRUE);
+  mgr->RegisterAny("ITSCluster", mClustersArrayPtr, kTRUE);
 
-  // Register MC Truth container
-  if (mClsLabels)
-    mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
+  // Register output MC Truth container if there is an MC truth for digits
+  if (arrDigLbl) {
+    mgr->RegisterAny("ITSClusterMCTruth", mClsLabelsPtr, kTRUE);
+    mClusterer.setClustersMCTruthContainer(mClsLabelsPtr);
+  }
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L)); // make sure T2L matrices are loaded
   mGeometry = geom;
   mClusterer.setGeometry(geom);
-  mClusterer.setMCTruthContainer(mClsLabels);
+
+  printf("%s | MCTruth: %s\n", Class()->GetName(), arrDigLbl ? "ON" : "OFF");
+  mClusterer.print();
 
   return kSUCCESS;
 }
@@ -83,11 +84,10 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  if (mClustersArray)
-    mClustersArray->clear();
-  if (mClsLabels)
-    mClsLabels->clear();
+  mClustersArray.clear();
+  mClsLabels.clear();
+
   LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
 
-  mClusterer.process(mReader, *mClustersArray);
+  mClusterer.process(mReader, mClustersArray);
 }

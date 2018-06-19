@@ -53,11 +53,13 @@
 
 using namespace o2::framework;
 
-void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   std::string configFilePath =
-    std::string("file://") + getenv("O2_ROOT") + "/share/config/dataSamplingFullChainConfig.ini";
+    std::string("json://") + getenv("O2_ROOT") + "/share/config/dataSamplingFullChainConfig.json";
   LOG(INFO) << "Using config file '" << configFilePath << "'";
 
+  WorkflowSpec specs;
   DataSampling::GenerateInfrastructure(specs, configFilePath);
+  return specs;
 }

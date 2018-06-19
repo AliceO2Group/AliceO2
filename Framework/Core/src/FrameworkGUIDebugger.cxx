@@ -11,11 +11,18 @@
 #include <algorithm>
 #include <iostream>
 #include <set>
+#include <string>
+#include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
 #include "DriverControl.cxx"
 #include "DriverInfo.cxx"
 #include "Framework/FrameworkGUIDevicesGraph.h"
+#include "Framework/FrameworkGUIDataRelayerUsage.h"
 #include "Framework/PaletteHelpers.h"
+
+static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
+static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
 namespace o2
 {
@@ -96,6 +103,15 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     default:
       return PaletteHelpers::WHITE;
   };
+}
+
+bool startsWith(std::string mainStr, std::string toMatch)
+{
+  if (mainStr.find(toMatch) == 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void displayHistory(const DeviceInfo& info, DeviceControl& control)
@@ -197,7 +213,7 @@ void historyBar(DeviceGUIState& state, const DeviceSpec& spec, const DeviceMetri
 
   auto currentMetricName = gState.availableMetrics[gState.selectedMetric];
 
-  size_t i = metricIdxByName(currentMetricName, metricsInfo);
+  size_t i = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
   // We did not find any plot, skipping this.
   if (i == metricsInfo.metricLabelsIdx.size()) {
     ImGui::NextColumn();
@@ -249,7 +265,7 @@ void displayDeviceHistograms(const std::vector<DeviceInfo>& infos, const std::ve
                              std::vector<DeviceControl>& controls, const std::vector<DeviceMetricsInfo>& metricsInfos)
 {
   bool graphNodes = true;
-  showTopologyNodeGraph(&graphNodes, infos, devices);
+  showTopologyNodeGraph(&graphNodes, infos, devices, metricsInfos);
   ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - 300), 0);
   ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 300), 0);
 
@@ -282,7 +298,7 @@ void displayDeviceHistograms(const std::vector<DeviceInfo>& infos, const std::ve
     size_t minTime = -1;
     size_t maxTime = 0;
     for (auto& metricInfo : metricsInfos) {
-      size_t mi = metricIdxByName(currentMetricName, metricInfo);
+      size_t mi = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricInfo);
       if (mi == metricInfo.metricLabelsIdx.size()) {
         continue;
       }
@@ -336,35 +352,34 @@ struct ChannelsTableHelper {
 void pushWindowColorDueToStatus(const DeviceInfo& info)
 {
   using LogLevel = LogParsingHelpers::LogLevel;
-
   if (info.active == false) {
-    ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::DARK_RED);
-    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
-    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::RED);
-    return;
-  }
-  switch (info.maxLogLevel) {
-    case LogLevel::Error:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_RED);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_RED);
-      break;
-    case LogLevel::Warning:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_YELLOW);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::YELLOW);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_YELLOW);
-      break;
-    case LogLevel::Info:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_GREEN);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::GREEN);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_GREEN);
-      break;
-    default:
-      ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_BLUE);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::BLUE);
-      ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_BLUE);
-      break;
-  }
+     ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::DARK_RED);
+     ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
+     ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::RED);
+     return;
+   }
+   switch (info.maxLogLevel) {
+     case LogLevel::Error:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_RED);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::RED);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_RED);
+       break;
+     case LogLevel::Warning:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_YELLOW);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::YELLOW);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_YELLOW);
+       break;
+     case LogLevel::Info:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_GREEN);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::GREEN);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_GREEN);
+       break;
+     default:
+       ImGui::PushStyleColor(ImGuiCol_TitleBg, PaletteHelpers::SHADED_BLUE);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgActive, PaletteHelpers::BLUE);
+       ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, PaletteHelpers::SHADED_BLUE);
+       break;
+   }
 }
 
 void popWindowColorDueToStatus() { ImGui::PopStyleColor(3); }
@@ -408,6 +423,38 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   if (driverControl.state == DriverControlState::PAUSE) {
     driverControl.forcedTransitions.push_back(DriverState::GUI);
   }
+
+  auto &registry = driverInfo.configContext->options();
+  ImGui::TextUnformatted("Workflow options:");
+  ImGui::Columns(2);
+  for (auto &option : driverInfo.workflowOptions) {
+    ImGui::TextUnformatted(option.name.c_str());
+    ImGui::NextColumn();
+    switch (option.type) {
+      case ConfigParamSpec::ParamType::Int64:
+      case ConfigParamSpec::ParamType::Int:
+        ImGui::Text("%d", registry.get<int>(option.name.c_str()));
+        break;
+      case ConfigParamSpec::ParamType::Float:
+        ImGui::Text("%f", registry.get<float>(option.name.c_str()));
+        break;
+      case ConfigParamSpec::ParamType::Double:
+        ImGui::Text("%f", registry.get<double>(option.name.c_str()));
+        break;
+      case ConfigParamSpec::ParamType::String:
+        ImGui::Text("%s", registry.get<std::string>(option.name.c_str()).c_str());
+        break;
+      case ConfigParamSpec::ParamType::Bool:
+        ImGui::TextUnformatted(registry.get<bool>(option.name.c_str()) ? "true" : "false");
+        break;
+      case ConfigParamSpec::ParamType::Empty:
+      case ConfigParamSpec::ParamType::Unknown:
+        break;
+    }
+    ImGui::NextColumn();
+  }
+  ImGui::Columns();
+
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
@@ -448,6 +495,7 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
       assert(i < devices.size());
       const DeviceInfo& info = infos[i];
       const DeviceSpec& spec = devices[i];
+      const DeviceMetricsInfo& metrics = metricsInfos[i];
 
       DeviceControl& control = controls[i];
       ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x / 3 * 2, i * windowPosStepping), ImGuiSetCond_Once);
@@ -463,6 +511,9 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
         ChannelsTableHelper::channelsTable("Outputs:", spec.outputChannels);
       }
       optionsTable(spec, control);
+      if (ImGui::CollapsingHeader("Data relayer")) {
+        ImGui::Text("Completion policy: %s", spec.completionPolicy.name.c_str());
+      }
       if (ImGui::CollapsingHeader("Logs", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Checkbox("Stop logging", &control.quiet);
         ImGui::InputText("Log filter", control.logFilter, sizeof(control.logFilter));

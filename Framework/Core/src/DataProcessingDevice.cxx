@@ -13,11 +13,13 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/FairOptionsRetriever.h"
-#include "Framework/MetricsService.h"
+#include "Framework/FairMQDeviceProxy.h"
+#include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
 #include <fairmq/FairMQParts.h>
 #include <options/FairMQProgOptions.h>
+#include <Monitoring/Monitoring.h>
 #include <TMessage.h>
 #include <TClonesArray.h>
 
@@ -25,28 +27,29 @@
 #include <memory>
 
 using namespace o2::framework;
-
+using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
-DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec,
-                                           ServiceRegistry &registry)
-: mInit{spec.algorithm.onInit},
-  mStatefulProcess{nullptr},
-  mStatelessProcess{spec.algorithm.onProcess},
-  mError{spec.algorithm.onError},
-  mConfigRegistry{nullptr},
-  mAllocator{this, &mContext, &mRootContext, spec.outputs},
-  mRelayer{spec.inputs, spec.forwards, registry.get<MetricsService>()},
-  mInputChannels{spec.inputChannels},
-  mOutputChannels{spec.outputChannels},
-  mInputs{spec.inputs},
-  mForwards{spec.forwards},
-  mServiceRegistry{registry},
-  mErrorCount{0},
-  mProcessingCount{0}
+DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry& registry)
+  : mInit{ spec.algorithm.onInit },
+    mStatefulProcess{ nullptr },
+    mStatelessProcess{ spec.algorithm.onProcess },
+    mError{ spec.algorithm.onError },
+    mConfigRegistry{ nullptr },
+    mAllocator{ this, &mContext, &mRootContext, spec.outputs },
+    mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
+    mInputChannels{ spec.inputChannels },
+    mOutputChannels{ spec.outputChannels },
+    mInputs{ spec.inputs },
+    mForwards{ spec.forwards },
+    mServiceRegistry{ registry },
+    mErrorCount{ 0 },
+    mProcessingCount{ 0 }
 {
 }
 
@@ -73,6 +76,12 @@ void DataProcessingDevice::Init() {
   LOG(DEBUG) << "DataProcessingDevice::InitTask::END";
 }
 
+void DataProcessingDevice::PreRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start); }
+
+void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop); }
+
+void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
+
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
@@ -87,7 +96,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can 
   // fine grain control what is exposed at each state.
-  auto &metricsService = mServiceRegistry.get<MetricsService>();
+  auto& monitoringService = mServiceRegistry.get<Monitoring>();
   auto &statefulProcess = mStatefulProcess;
   auto &statelessProcess = mStatelessProcess;
   auto &errorCallback = mError;
@@ -109,15 +118,16 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
   FairMQParts &parts = iParts;
-  std::vector<int> completed;
+  std::vector<DataRelayer::RecordAction> completed;
 
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto isValidInput = [&metricsService, &parts]() -> bool {
-    metricsService.post("inputs/parts/total", (int)parts.Size());
+  auto isValidInput = [&monitoringService, &parts]() -> bool {
+    // monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
+    monitoringService.send({ (int)parts.Size(), "inputs/parts/total" });
 
     for (size_t i = 0; i < parts.Size() ; ++i) {
       LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << " bytes";
@@ -148,11 +158,11 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     return true;
   };
 
-  // 
-  auto reportError = [&errorCount, &metricsService](const char *message) {
+  //
+  auto reportError = [&errorCount, &monitoringService](const char* message) {
     LOG(ERROR) << message;
     errorCount++;
-    metricsService.post("dataprocessing/errors", errorCount);
+    monitoringService.send({ errorCount, "dataprocessing/errors" });
   };
 
   auto putIncomingMessageIntoCache = [&parts,&relayer,&reportError]() {
@@ -185,13 +195,12 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getCompleteInputSets = [&relayer,&completed,&metricsService]() -> std::vector<int> {
+  auto getReadyActions = [&relayer, &completed, &monitoringService]() -> std::vector<DataRelayer::RecordAction> {
     LOG(DEBUG) << "Getting parts to process";
-    completed = relayer.getReadyToProcess();
     int pendingInputs = (int)relayer.getParallelTimeslices() - completed.size();
-    metricsService.post("inputs/relayed/pending", pendingInputs);
+    monitoringService.send({ pendingInputs, "inputs/relayed/pending" });
     if (completed.empty()) {
-      metricsService.post("inputs/relayed/incomplete", 1);
+      monitoringService.send({ 1, "inputs/relayed/incomplete" });
     }
     return completed;
   };
@@ -209,25 +218,18 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // why we do the stateful processing before the stateless one.
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
-  auto dispatchProcessing = [&processingCount,
-                             &allocator,
-                             &statefulProcess,
-                             &statelessProcess,
-                             &metricsService,
-                             &context,
-                             &rootContext,
-                             &serviceRegistry,
-                             &device](int i, InputRecord &record) {
+  auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
+                             &context, &rootContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
-      metricsService.post("dataprocessing/stateful_process", processingCount++);
+      monitoringService.send({ processingCount++, "dataprocessing/stateful_process" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
       statefulProcess(processContext);
       LOG(DEBUG) << "PROCESSING:END:" << i;
     }
     if (statelessProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
-      metricsService.post("dataprocessing/stateless_process", processingCount++);
+      monitoringService.send({ processingCount++, "dataprocessing/stateless_process" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
       statelessProcess(processContext);
       LOG(DEBUG) << "PROCESSING:END:" << i;
@@ -237,12 +239,10 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   };
 
   // Error handling means printing the error and updating the metric
-  auto errorHandling = [&errorCallback,
-                        &metricsService,
-                        &serviceRegistry](std::exception &e, InputRecord &record) {
+  auto errorHandling = [&errorCallback, &monitoringService, &serviceRegistry](std::exception& e, InputRecord& record) {
     LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
-      metricsService.post("error", 1);
+      monitoringService.send({ 1, "error" });
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     }
@@ -252,7 +252,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareForCurrentTimeSlice = [&rootContext, &context, &relayer](int i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&rootContext, &context, &relayer](int i) {
     size_t timeslice = relayer.getTimesliceForCacheline(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
     rootContext.prepareForTimeslice(timeslice);
@@ -267,9 +267,16 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
                        (int timeslice, InputRecord &record) {
     assert(record.size()*2 == currentSetOfInputs.size());
     LOG(DEBUG) << "FORWARDING:START:" << timeslice;
-    for (size_t ii = 0, ie = record.size(); ii != ie; ++ii) {
+    for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
-      assert(input.header);
+
+      // If is now possible that the record is not complete when
+      // we forward it, because of a custom completion policy.
+      // this means that we need to skip the empty entries in the 
+      // record for being forwarded.
+      if (input.header == nullptr || input.payload == nullptr) {
+        continue;
+      }
       auto dh = o2::header::get<DataHeader*>(input.header);
       if (!dh) {
         reportError("Header is not a DataHeader?");
@@ -330,7 +337,9 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // is actually hidden. For example we do not expose what "input" is. This
   // will allow us to keep the same toplevel logic even if the actual meaning
   // of input is changed (for example we might move away from multipart
-  // messages).
+  // messages). Notice also that we need to act diffently depending on the
+  // actual CompletionOp we want to perform. In particular forwarding inputs
+  // also gets rid of them from the cache.
   if (isValidInput() == false) {
     reportError("Parts should come in couples. Dropping it.");
     return true;
@@ -340,15 +349,41 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     return true;
   }
 
-  for (auto cacheline : getCompleteInputSets()) {
-    prepareForCurrentTimeSlice(cacheline);
-    InputRecord record = fillInputs(cacheline);
+  for (auto action: getReadyActions()) {
+    if (action.op == CompletionPolicy::CompletionOp::Wait) {
+      continue;
+    }
+
+    prepareAllocatorForCurrentTimeSlice(action.cacheLineIdx);
+    InputRecord record = fillInputs(action.cacheLineIdx);
+    if (action.op == CompletionPolicy::CompletionOp::Discard) {
+      if (forwards.empty() == false) {
+        forwardInputs(action.cacheLineIdx, record);
+        continue;
+      }
+    }
     try {
-      dispatchProcessing(cacheline, record);
+      for (size_t ai = 0; ai != record.size(); ai++) {
+        auto cacheId = action.cacheLineIdx * record.size() + ai;
+        auto state = record.isValid(ai) ? 2 : 0;
+        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
+      }
+      dispatchProcessing(action.cacheLineIdx, record);
+      for (size_t ai = 0; ai != record.size(); ai++) {
+        auto cacheId = action.cacheLineIdx * record.size() + ai;
+        auto state = record.isValid(ai) ? 3 : 0;
+        monitoringService.send({ state, "data_relayer/" + std::to_string(cacheId) });
+      }
     } catch(std::exception &e) {
       errorHandling(e, record);
     }
-    forwardInputs(cacheline, record);
+    // We forward inputs only when we consume them. If we simply Process them,
+    // we keep them for next message arriving.
+    if (action.op == CompletionPolicy::CompletionOp::Consume) {
+      if (forwards.empty() == false) {
+        forwardInputs(action.cacheLineIdx, record);
+      }
+    }
   }
 
   return true;
@@ -358,7 +393,7 @@ void
 DataProcessingDevice::error(const char *msg) {
   LOG(ERROR) << msg;
   mErrorCount++;
-  mServiceRegistry.get<MetricsService>().post("dataprocessing/errors", mErrorCount);
+  mServiceRegistry.get<Monitoring>().send({ mErrorCount, "dataprocessing/errors" });
 }
 
 } // namespace framework

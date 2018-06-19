@@ -30,15 +30,11 @@
 
 #include <FairMQLogger.h>
 #include <options/FairMQProgOptions.h>
-#include "Headers/DataHeader.h"
-#include "Headers/NameHeader.h"
 #include "O2MessageMonitor/O2MessageMonitor.h"
 
 using namespace std;
 using namespace o2::header;
 using namespace o2::Base;
-
-using NameHeader48 = NameHeader<48>; // header holding 16 characters
 
 //__________________________________________________________________________________________________
 void O2MessageMonitor::InitTask()
@@ -57,60 +53,41 @@ void O2MessageMonitor::Run()
 {
   // check socket type of data channel
   std::string type;
-  std::vector<FairMQChannel> subChannels = fChannels["data"];
+  std::vector<FairMQChannel>& subChannels = fChannels["data"];
   if (subChannels.size() > 0) {
     type = subChannels[0].GetType();
   }
+
+  auto dataResource = o2::memoryResources::getTransportAllocator(subChannels[0].Transport());
 
   while (CheckCurrentState(RUNNING) && (--mIterations) != 0) {
     this_thread::sleep_for(chrono::milliseconds(mDelay));
 
     O2Message message;
-    NameHeader48 nameHeader{ mName };
 
     // maybe send a request
-    AddMessage(message, { DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 },
-                          NameHeader48{ mName } },
-               NewSimpleMessage(mPayload));
-    Send(message, "data");
-    message.fParts.clear();
+    if (type == "req") {
+      addDataBlock(message, { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
+                   NewSimpleMessageFor("data", 0, mPayload));
+      Send(message, "data");
+      message.fParts.clear();
+    }
 
     // message in;
     Receive(message, "data");
     LOG(INFO) << "== New message=============================";
-    ForEach(message, &O2MessageMonitor::HandleO2frame);
+    o2::Base::forEach(message, [&](auto header, auto data) {
+      hexDump("headerBuffer", header.data(), header.size());
+      hexDump("dataBuffer", data.data(), data.size(), mLimitOutputCharacters);
+    });
     message.fParts.clear();
 
     // maybe a reply message
     if (type == "rep") {
-      AddMessage(message,
-                 { DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 }, 0 },
-                   NameHeader48{ "My name is a reply" } },
-                 NewSimpleMessage("I am a reply"));
+      o2::Base::addDataBlock(message,
+                             { dataResource, DataHeader{ gDataDescriptionInfo, gDataOriginAny, DataHeader::SubSpecificationType{ 0 } } },
+                             NewSimpleMessageFor("data", 0, ""));
       Send(message, "data");
     }
   }
-}
-
-//__________________________________________________________________________________________________
-bool O2MessageMonitor::HandleO2frame(const byte* headerBuffer, size_t headerBufferSize, const byte* dataBuffer,
-                                     size_t dataBufferSize)
-{
-  hexDump("headerBuffer", headerBuffer, headerBufferSize);
-  hexDump("dataBuffer", dataBuffer, dataBufferSize, mLimitOutputCharacters);
-
-  const DataHeader* dataHeader = get<DataHeader*>(headerBuffer);
-  if (!dataHeader) {
-    LOG(INFO) << "data header empty!";
-    return false;
-  }
-  if ((*dataHeader) == gDataDescriptionInfo) {
-  }
-
-  const NameHeader<0>* nameHeader = get<NameHeader<0>*>(headerBuffer);
-  if (nameHeader) {
-    size_t sizeNameHeader = nameHeader->size();
-  }
-
-  return true;
 }

@@ -17,7 +17,7 @@
 
 #include "CCDB/Backend.h"
 
-#include <iostream>
+#include <iosfwd>
 #include <memory>
 
 namespace o2 {

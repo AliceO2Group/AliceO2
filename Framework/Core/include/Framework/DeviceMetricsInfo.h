@@ -13,18 +13,23 @@
 
 #include <array>
 #include <cstddef>
+#include <functional>
 #include <regex>
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 enum class MetricType {
   Int,
   Float,
   Unknown
 };
+
+std::ostream& operator<<(std::ostream& oss, MetricType const& val);
 
 struct MetricInfo {
   enum MetricType type;
@@ -42,13 +47,27 @@ struct DeviceMetricsInfo {
   std::vector<MetricInfo> metrics;
 };
 
+struct DeviceMetricsHelper {
+  /// Type of the callback which can be provided to be invoked every time a new
+  /// metric is found by the system.
+  using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value)>;
 
-bool parseMetric(const std::string &s, std::smatch &match);
-bool processMetric(const std::smatch &match, DeviceMetricsInfo &info);
-size_t metricIdxByName(const std::string &name,
-                       const DeviceMetricsInfo &info);
+  /// Helper function to parse a metric string.
+  static bool parseMetric(const std::string& s, std::smatch& match);
 
-}
-}
+  /// Processes a parsed metric and stores in the backend store.
+  ///
+  /// @matches is the regexp_matches from the metric identifying regex
+  /// @info is the DeviceInfo associated to the device posting the metric
+  /// @newMetricsCallback is a callback that will be invoked every time a new metric is added to the list.
+  static bool processMetric(const std::smatch& match,
+                            DeviceMetricsInfo& info,
+                            NewMetricCallback newMetricCallback = nullptr);
+  static size_t metricIdxByName(const std::string& name,
+                                const DeviceMetricsInfo& info);
+};
+
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_DEVICEMETRICSINFO_H

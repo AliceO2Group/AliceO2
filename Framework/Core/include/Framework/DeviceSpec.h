@@ -19,14 +19,17 @@
 #include "Framework/ForwardRoute.h"
 #include "Framework/InputRoute.h"
 #include "Framework/OutputRoute.h"
+#include "Framework/CompletionPolicy.h"
 
 #include <vector>
 #include <string>
 #include <map>
 #include <utility>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// Concrete description of the device which will actually run 
 /// a DataProcessor.
@@ -46,8 +49,10 @@ struct DeviceSpec {
   size_t rank; // Id of a parallel processing I am part of
   size_t nSlots; // Total number of parallel units I am part of
   size_t inputTimesliceId;
+  /// The completion policy to use for this device.
+  CompletionPolicy completionPolicy;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

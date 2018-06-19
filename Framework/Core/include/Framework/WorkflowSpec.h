@@ -17,8 +17,10 @@
 #include <functional>
 #include <cstddef>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 using WorkflowSpec = std::vector<DataProcessorSpec>;
 
 /// The purpose of this helper is to duplicate a DataProcessorSpec @a
@@ -45,7 +47,7 @@ Inputs mergeInputs(InputSpec original,
 /// you.
 DataProcessorSpec timePipeline(DataProcessorSpec original,
                                size_t count);
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_WORKFLOWSPEC_H

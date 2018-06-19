@@ -1,0 +1,89 @@
+{
+    "fairMQOptions":
+    {
+        "devices": [
+        {
+            "id": "worker",
+            "channels": [   
+            {
+                "name": "primary-get",
+                "sockets": [
+                {
+                    "type": "req",
+                    "method": "connect",
+                    "address": "tcp://localhost:25005",
+                    "sndBufSize": "1000",
+                    "rcvBufSize": "1000",
+                    "rateLogging": "0"
+                }
+		]
+            },
+            {
+	        "name": "simdata",
+		"sockets": [ 
+		{
+		    "type": "push",
+		    "method": "connect",
+		    "address": "tcp://localhost:25009",
+		    "sndBufSize": 1000,
+		    "rcvBufSize": 1000,
+		    "rateLogging": 0
+		}
+		]
+            }
+	  ]
+	},
+	{
+	    "id": "primary-server",
+	    "channels":
+	    [
+		{
+		    "name": "primary-get",
+		    "sockets": [ 
+			{
+			    "type": "rep",
+			    "method": "bind",
+			    "address": "tcp://*:25005",
+			    "sndBufSize": 1000,
+			    "rcvBufSize": 1000,
+			    "rateLogging": 0
+		        }
+		    ]
+	        }
+	    ]
+	},
+	{
+	    "id": "hitmerger",
+	    "channels": 
+            [
+		{
+                     "name": "primary-get",
+                     "sockets": [
+                     {
+                     "type": "req",
+                     "method": "connect",
+                     "address": "tcp://localhost:25005",
+                     "sndBufSize": "1000",
+                     "rcvBufSize": "1000",
+                     "rateLogging": "0"
+                    }
+		    ]
+               },
+               {
+ 	            "name": "simdata",
+		    "sockets": [ 
+		    {
+		      "type": "pull",
+    		      "method": "bind",
+		      "address": "tcp://*:25009",
+		      "sndBufSize": 1000,
+		      "rcvBufSize": 1000,
+		      "rateLogging": 0
+		    }
+		    ]
+               }
+	   ]
+	}
+      ]
+    }
+}

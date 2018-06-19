@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
   o2::header::Stack stack(dh, nh);
 
   // check that the call without any other arguments is compiling
-  o2::algorithm::dispatchHeaderStackCallback(stack.buffer.get(), stack.bufferSize);
+  o2::algorithm::dispatchHeaderStackCallback(stack.data(), stack.size());
 
   // lambda functor given as argument for dispatchHeaderStackCallback
   auto checkDataHeader = [&dh] (const auto & header) {
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
   };
 
   // check extraction of headers via callbacks
-  o2::algorithm::dispatchHeaderStackCallback(stack.buffer.get(), stack.bufferSize,
+  o2::algorithm::dispatchHeaderStackCallback(stack.data(), stack.size(),
                                              o2::header::DataHeader(),
                                              checkDataHeader,
                                              Name8Header(),
@@ -68,18 +68,18 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
                                              );
 
   // check extraction of only one header via callback
-  o2::algorithm::dispatchHeaderStackCallback(stack.buffer.get(), stack.bufferSize,
+  o2::algorithm::dispatchHeaderStackCallback(stack.data(), stack.size(),
                                              Name8Header(),
                                              checkNameHeader
                                              );
 
   // check that the call without any other arguments is compiling
-  o2::algorithm::parseHeaderStack(stack.buffer.get(), stack.bufferSize);
+  o2::algorithm::parseHeaderStack(stack.data(), stack.size());
 
   // check extraction of headers via object references
   o2::header::DataHeader targetDataHeader;
   Name8Header targetNameHeader;
-  o2::algorithm::parseHeaderStack(stack.buffer.get(), stack.bufferSize,
+  o2::algorithm::parseHeaderStack(stack.data(), stack.size(),
                                   targetDataHeader,
                                   targetNameHeader
                                   );

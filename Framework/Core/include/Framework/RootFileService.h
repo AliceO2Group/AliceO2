@@ -18,8 +18,10 @@
 #include <string>
 #include <vector>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// A service which is delegated the creation and the booking of ROOT files.
 /// A simple implementation is to use fmt as a local file name. More complex
@@ -32,6 +34,6 @@ public:
   virtual std::string format(const char *fmt, ...) = 0;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_ROOTFILESERVICE_H

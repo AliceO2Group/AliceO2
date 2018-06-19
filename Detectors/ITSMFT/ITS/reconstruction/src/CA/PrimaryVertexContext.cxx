@@ -15,6 +15,7 @@
 #include "ITSReconstruction/CA/PrimaryVertexContext.h"
 
 #include "ITSReconstruction/CA/Event.h"
+#include <iostream>
 
 namespace o2
 {
@@ -28,7 +29,7 @@ PrimaryVertexContext::PrimaryVertexContext()
   // Nothing to do
 }
 
-void PrimaryVertexContext::initialise(const Event& event, const int primaryVertexIndex)
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Event& event, const int primaryVertexIndex, const int iteration)
 {
   mPrimaryVertex = event.getPrimaryVertex(primaryVertexIndex);
 
@@ -37,27 +38,31 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
     const Layer& currentLayer{ event.getLayer(iLayer) };
     const int clustersNum{ currentLayer.getClustersSize() };
 
-    mClusters[iLayer].clear();
-    mClusters[iLayer].reserve(clustersNum);
-    mUsedClusters[iLayer].clear();
-    mUsedClusters[iLayer].resize(clustersNum, false);
+    if (iteration == 0) {
+      mClusters[iLayer].clear();
+      mClusters[iLayer].reserve(clustersNum);
+      mUsedClusters[iLayer].clear();
+      mUsedClusters[iLayer].resize(clustersNum, false);
 
-    for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
+      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
 
-      const Cluster& currentCluster{ currentLayer.getCluster(iCluster) };
-      mClusters[iLayer].emplace_back(iLayer, event.getPrimaryVertex(primaryVertexIndex), currentCluster);
+        const Cluster& currentCluster{ currentLayer.getCluster(iCluster) };
+        mClusters[iLayer].emplace_back(iLayer, event.getPrimaryVertex(primaryVertexIndex), currentCluster);
+      }
+
+      std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
+        return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
+      });
+      mTracks.clear();
+      mTrackLabels.clear();
     }
-
-    std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
-      return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
-    });
 
     if (iLayer < Constants::ITS::CellsPerRoad) {
 
       mCells[iLayer].clear();
       float cellsMemorySize =
-        Constants::Memory::Offset +
-        std::ceil(((Constants::Memory::CellsMemoryCoefficients[iLayer] * event.getLayer(iLayer).getClustersSize()) *
+        memParam.MemoryOffset +
+        std::ceil(((memParam.CellsMemoryCoefficients[iteration][iLayer] * event.getLayer(iLayer).getClustersSize()) *
                    event.getLayer(iLayer + 1).getClustersSize()) *
                   event.getLayer(iLayer + 2).getClustersSize());
 
@@ -71,7 +76,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
         std::max(event.getLayer(iLayer + 1).getClustersSize(), event.getLayer(iLayer + 2).getClustersSize()) +
-          std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer + 1] *
+          std::ceil((memParam.TrackletsMemoryCoefficients[iteration][iLayer + 1] *
                      event.getLayer(iLayer + 1).getClustersSize()) *
                     event.getLayer(iLayer + 2).getClustersSize()),
         Constants::ITS::UnusedIndex);
@@ -81,8 +86,6 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
   }
 
   mRoads.clear();
-  mTracks.clear();
-  mTrackLabels.clear();
 
 #if TRACKINGITSU_GPU_MODE
   mGPUContextDevicePointer = mGPUContext.initialize(mPrimaryVertex, mClusters, mCells, mCellsLookupTable);
@@ -91,7 +94,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
 
     const int clustersNum = static_cast<int>(mClusters[iLayer].size());
 
-    if (iLayer > 0) {
+    if (iLayer > 0 && iteration == 0) {
 
       int previousBinIndex{ 0 };
       mIndexTables[iLayer - 1][0] = 0;
@@ -111,9 +114,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
         }
       }
 
-      for (int iBin{ previousBinIndex + 1 }; iBin <= Constants::IndexTable::ZBins * Constants::IndexTable::PhiBins;
-           iBin++) {
-
+      for (int iBin{ previousBinIndex + 1 }; iBin < mIndexTables[iLayer - 1].size(); iBin++) {
         mIndexTables[iLayer - 1][iBin] = clustersNum;
       }
     }
@@ -124,7 +125,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
 
       float trackletsMemorySize =
         std::max(event.getLayer(iLayer).getClustersSize(), event.getLayer(iLayer + 1).getClustersSize()) +
-        std::ceil((Constants::Memory::TrackletsMemoryCoefficients[iLayer] * event.getLayer(iLayer).getClustersSize()) *
+        std::ceil((memParam.TrackletsMemoryCoefficients[iteration][iLayer] * event.getLayer(iLayer).getClustersSize()) *
                   event.getLayer(iLayer + 1).getClustersSize());
 
       if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
@@ -140,6 +141,7 @@ void PrimaryVertexContext::initialise(const Event& event, const int primaryVerte
   }
 #endif
 }
+
 } // namespace CA
 } // namespace ITS
 } // namespace o2

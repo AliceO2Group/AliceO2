@@ -10,8 +10,10 @@
 #ifndef FRAMEWORK_DATAREF_H
 #define FRAMEWORK_DATAREF_H
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct InputSpec;
 
@@ -23,7 +25,7 @@ struct DataRef {
   const char * payload;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif

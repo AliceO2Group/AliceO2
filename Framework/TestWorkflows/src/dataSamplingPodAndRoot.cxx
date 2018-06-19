@@ -37,7 +37,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx);
 void someProcessingStageAlgorithm(ProcessingContext& ctx);
 void someSinkAlgorithm(ProcessingContext& ctx);
 
-void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   DataProcessorSpec podDataProducer{
     "podDataProducer",
@@ -144,7 +144,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     {},
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
-        auto h = ctx.inputs().get<TH1F>("histos");
+        auto h = ctx.inputs().get<TH1F*>("histos");
         if (h.get() == nullptr) {
           throw std::runtime_error("Missing output");
         }
@@ -154,11 +154,10 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
                   << "sumw2" << stats[1] << "\n"
                   << "sumwx" << stats[2] << "\n"
                   << "sumwx2" << stats[3] << "\n";
-        auto s = ctx.inputs().get<TObjString>("string");
+        auto s = ctx.inputs().get<TObjString*>("string");
 
         LOG(INFO) << "String is " << s->GetString().Data();
-      }
-    }
+      } }
   };
 
   DataProcessorSpec rootQcTask{
@@ -169,8 +168,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
     },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
-        auto h = ctx.inputs().get<TH1F>("TST_HISTOS_S");
+      [](ProcessingContext& ctx) {
+        auto h = ctx.inputs().get<TH1F*>("TST_HISTOS_S");
         if (h.get() == nullptr) {
           throw std::runtime_error("Missing TST_HISTOS_S");
         }
@@ -180,26 +179,28 @@ void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
                   << "sumw2" << stats[1] << "\n"
                   << "sumwx" << stats[2] << "\n"
                   << "sumwx2" << stats[3] << "\n";
-        auto s = ctx.inputs().get<TObjString>("TST_STRING_S");
+        auto s = ctx.inputs().get<TObjString*>("TST_STRING_S");
 
         LOG(INFO) << "qcTaskTst: TObjString is " << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong");
-      }
-    }
+      } }
   };
 
-  specs.push_back(podDataProducer);
-  specs.push_back(processingStage);
-  specs.push_back(podSink);
-  specs.push_back(qcTaskTpc);
+  WorkflowSpec specs{
+    podDataProducer,
+    processingStage,
+    podSink,
+    qcTaskTpc,
 
-  specs.push_back(rootDataProducer);
-  specs.push_back(rootSink);
-  specs.push_back(rootQcTask);
+    rootDataProducer,
+    rootSink,
+    rootQcTask
+  };
 
-  std::string configurationSource = std::string("file://") + getenv("BASEDIR")
-                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.ini";
+  std::string configurationSource = std::string("json://") + getenv("BASEDIR")
+                                    + "/../../O2/Framework/TestWorkflows/exampleDataSamplerConfig.json";
 
   DataSampling::GenerateInfrastructure(specs, configurationSource);
+  return specs;
 }
 
 

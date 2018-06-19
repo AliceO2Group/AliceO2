@@ -81,7 +81,7 @@ class Tracker
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr;       ///< Track MC labels
   std::uint32_t mROFrame = 0;                                                     ///< last frame processed
   Int_t mNumOfThreads;                                                            ///< Number of tracking threads
-  static Layer sLayers[Constants::sNLayers];                                      ///< MFT layers of ladders
+  static Layer sLayers[Constants::LayersNumber];                                  ///< MFT layers of ladders
 };
 
 class Tracker::Layer

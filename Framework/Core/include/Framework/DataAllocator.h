@@ -10,19 +10,17 @@
 #ifndef FRAMEWORK_DATAALLOCATOR_H
 #define FRAMEWORK_DATAALLOCATOR_H
 
-#include <fairmq/FairMQDevice.h>
 #include "Headers/DataHeader.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/SerializationMethods.h"
-
-#include "fairmq/FairMQMessage.h"
 
 #include <vector>
 #include <map>
@@ -34,8 +32,14 @@
 
 #include <TClass.h>
 
-namespace o2 {
-namespace framework {
+// Do not change this for a full inclusion of FairMQDevice.
+class FairMQDevice;
+class FairMQMessage;
+
+namespace o2
+{
+namespace framework
+{
 
 /// This allocator is responsible to make sure that the messages created match
 /// the provided spec and that depending on how many pipelined reader we
@@ -50,13 +54,13 @@ public:
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-  DataAllocator(FairMQDevice *device,
+  DataAllocator(FairMQDeviceProxy device,
                 MessageContext *context,
                 RootObjectContext *rootContext,
                 const AllowedOutputRoutes &routes);
 
   DataChunk newChunk(const Output&, size_t);
-  DataChunk newChunk(OutputRef const& ref, size_t size) { return newChunk(getOutputByBind(ref), size); }
+  DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
   DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
@@ -162,9 +166,9 @@ public:
   typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
   snapshot(const Output& spec, T& object)
   {
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    FairMQMessagePtr payloadMessage(mProxy.createMessage());
     auto* cl = TClass::GetClass(typeid(T));
-    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &object, cl);
+    TMessageSerializer().Serialize(*payloadMessage, &object, cl);
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
@@ -186,7 +190,7 @@ public:
                     std::is_void<typename W::hint_type>::value,             //
                   "class hint must be of type TClass or const char");
 
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage());
+    FairMQMessagePtr payloadMessage(mProxy.createMessage());
     const TClass* cl = nullptr;
     if (wrapper.getHint() == nullptr) {
       // get TClass info by wrapped type
@@ -207,7 +211,7 @@ public:
       }
       throw std::runtime_error(msg);
     }
-    mDevice->Serialize<TMessageSerializer>(*payloadMessage, &wrapper(), cl);
+    TMessageSerializer().Serialize(*payloadMessage, &wrapper(), cl);
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodROOT);
   }
 
@@ -221,7 +225,7 @@ public:
   typename std::enable_if<is_messageable<T>::value == true, void>::type
   snapshot(const Output& spec, T const& object)
   {
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeof(T)));
+    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
@@ -238,7 +242,7 @@ public:
   snapshot(const Output& spec, C const& v)
   {
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
+    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
 
     typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
@@ -260,7 +264,7 @@ public:
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
     auto sizeInBytes = elementSizeInBytes * v.size();
-    FairMQMessagePtr payloadMessage(mDevice->NewMessage(sizeInBytes));
+    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
 
     auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
     for (auto const & pointer : v) {
@@ -317,37 +321,54 @@ public:
                   "pointer to data type not supported by API. Please pass object by reference");
   }
 
+  /// make an object of type T and route to output specified by OutputRef
+  /// The object is owned by the framework, returned reference can be used to fill the object.
+  ///
+  /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
+  /// function call
   template <typename T, typename... Args>
-  auto make(OutputRef const& ref, Args&&... args)
+  auto make(OutputRef&& ref, Args&&... args)
   {
-    return make<T>(getOutputByBind(ref), std::forward<Args>(args)...);
+    return make<T>(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
 
-  void adopt(OutputRef const& ref, TObject* obj) { return adopt(getOutputByBind(ref), obj); }
+  /// adopt an object of type T and route to output specified by OutputRef
+  /// Framework takes ownership of the object
+  ///
+  /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
+  /// function call
+  void adopt(OutputRef&& ref, TObject* obj) { return adopt(getOutputByBind(std::move(ref)), obj); }
 
+  /// snapshot object and route to output specified by OutputRef
+  /// Framework makes a (serialized) copy of object content.
+  ///
+  /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
+  /// function call
   template <typename... Args>
-  auto snapshot(OutputRef const& ref, Args&&... args)
+  auto snapshot(OutputRef&& ref, Args&&... args)
   {
-    return snapshot(getOutputByBind(ref), std::forward<Args>(args)...);
+    return snapshot(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
 
  private:
-  FairMQDevice* mDevice;
+  FairMQDeviceProxy mProxy;
+  FairMQDevice *mDevice;
   AllowedOutputRoutes mAllowedOutputRoutes;
   MessageContext* mContext;
   RootObjectContext* mRootContext;
 
   std::string matchDataHeader(const Output &spec, size_t timeframeId);
-  FairMQMessagePtr headerMessageFromOutput(Output const &spec,
-                                           std::string const &channel,
-                                           o2::header::SerializationMethod serializationMethod);
+  FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //
+                                           std::string const& channel,                          //
+                                           o2::header::SerializationMethod serializationMethod, //
+                                           size_t payloadSize);                                 //
 
-  Output getOutputByBind(OutputRef const& ref)
+  Output getOutputByBind(OutputRef&& ref)
   {
     for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
       if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
         auto spec = mAllowedOutputRoutes[ri].matcher;
-        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime };
+        return Output{ spec.origin, spec.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack) };
       }
     }
     throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
@@ -360,7 +381,7 @@ public:
 
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif //FRAMEWORK_DATAALLOCATOR_H

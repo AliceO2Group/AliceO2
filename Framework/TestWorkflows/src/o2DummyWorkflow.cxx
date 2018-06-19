@@ -9,9 +9,10 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "FairMQLogger.h"
 
+using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
 
 struct FakeCluster {
@@ -30,7 +31,7 @@ using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
+std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&) {
   DataProcessorSpec timeframeReader{
     "reader",
     Inputs{},
@@ -47,6 +48,8 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
        int i = 0;
 
        for (auto &cluster : tpcClusters) {
+         // The assert is here simply because at some point we were allocating the
+         // wrong number of items.
          assert(i < 1000);
          cluster.x = i;
          cluster.y = i;
@@ -125,14 +128,16 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           throw std::runtime_error("Unexpected data origin" + std::string(h2->dataOrigin.str));
         }
 
-        auto &metrics = ctx.services().get<MetricsService>();
-        metrics.post("merger/invoked", 1);
-        metrics.post("merger/inputs", (int) ctx.inputs().size());
+        auto& metrics = ctx.services().get<Monitoring>();
+        metrics.send({ 1, "merger/invoked" });
+        metrics.send({ (int)ctx.inputs().size(), "merger/inputs" });
       },
     }
   };
-  specs.push_back(timeframeReader);
-  specs.push_back(tpcClusterSummary);
-  specs.push_back(itsClusterSummary);
-  specs.push_back(merger);
+  return {
+    timeframeReader,
+    tpcClusterSummary,
+    itsClusterSummary,
+    merger
+  };
 }

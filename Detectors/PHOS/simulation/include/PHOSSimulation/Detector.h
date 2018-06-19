@@ -111,13 +111,22 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   /// Get access to the hits
   ///
-  std::vector<Hit>* getHits(Int_t  iColl ) const { if(iColl==0) return mHits; else return nullptr ; }
+  std::vector<Hit>* getHits(Int_t iColl) const
+  {
+    if (iColl == 0)
+      return mHits;
+    else
+      return nullptr;
+  }
 
   ///
   /// Reset
   /// Clean Hits collection
   ///
   void Reset() final;
+
+  /// Sort final hist
+  void FinishEvent() final;
 
   ///
   /// Steps to be carried out at the end of the event
@@ -131,7 +140,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// \return Access to the PHOS Geometry description
   ///
   Geometry* GetGeometry();
-
 
  protected:
   ///

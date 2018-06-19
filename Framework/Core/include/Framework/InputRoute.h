@@ -14,16 +14,20 @@
 #include <cstddef>
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// This uniquely identifies a route to from which data matching @a matcher
-/// input spec gets to the device.
+/// input spec gets to the device. In case of time pipelining @a timeslice 
+/// refers to the timeslice associated to this route.
 struct InputRoute {
   InputSpec matcher;
   std::string sourceChannel;
+  size_t timeslice;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_INPUTROUTE_H

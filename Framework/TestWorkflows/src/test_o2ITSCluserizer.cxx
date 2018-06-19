@@ -10,7 +10,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 // FIXME: this should not be needed as the framework should be able to
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
@@ -27,10 +27,8 @@ using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(WorkflowSpec &specs) {
-  WorkflowSpec workflow{
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     sim_its_ALP3(),
   };
-
-  specs.swap(workflow);
 }

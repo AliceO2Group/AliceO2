@@ -54,6 +54,15 @@ if (NOT PYTHIA8_FOUND)
    message(STATUS "module 'Generators' requires Pythia8 ... Pythia8 support deactivated")
 endif()
 
+if (HAVESIMULATION)
+  set(HEADERS ${HEADERS}
+      include/${MODULE_NAME}/GeneratorFactory.h
+    )
+  set(SRCS ${SRCS}
+      src/GeneratorFactory.cxx
+    )
+endif()
+ 
 set(BUCKET_NAME generators_bucket)
 set(LINKDEF src/GeneratorsLinkDef.h)
 set(LIBRARY_NAME ${MODULE_NAME})

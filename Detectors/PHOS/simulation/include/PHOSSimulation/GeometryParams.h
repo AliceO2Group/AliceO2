@@ -47,14 +47,22 @@ class GeometryParams : public TNamed
   Int_t GetNCristalsInModule() const { return mNPhi * mNz; }
   Int_t GetNModules() const { return mNModules; }
   Float_t GetPHOSAngle(Int_t index) const { return mPHOSAngle[index - 1]; }
-  Float_t* GetPHOSParams() { return mPHOSParams; } // Half-sizes of PHOS trapecoid
+  Float_t* GetPHOSParams() { return mPHOSParams; }       // Half-sizes of PHOS trapecoid
   Float_t* GetPHOSATBParams() { return mPHOSATBParams; } // Half-sizes of PHOS trapecoid
   Float_t GetOuterBoxSize(Int_t index) const { return 2. * mPHOSParams[index]; }
   Float_t GetCellStep() const { return 2. * mAirCellHalfSize[0]; }
 
-  void GetModuleCenter(Int_t module, Float_t * pos) const { for(int i = 0; i < 3; i++) pos[i] = mModuleCenter[module][i]; }
-  void GetModuleAngle(Int_t module, Float_t angle[3][2]) const {for( int i = 0; i < 3; i++)
-                                                              for (int ian = 0; ian < 2; ian++)angle[i][ian]  = mModuleAngle[module][i][ian]; }
+  void GetModuleCenter(Int_t module, Float_t* pos) const
+  {
+    for (int i = 0; i < 3; i++)
+      pos[i] = mModuleCenter[module][i];
+  }
+  void GetModuleAngle(Int_t module, Float_t angle[3][2]) const
+  {
+    for (int i = 0; i < 3; i++)
+      for (int ian = 0; ian < 2; ian++)
+        angle[i][ian] = mModuleAngle[module][i][ian];
+  }
   // Return PHOS support geometry parameters
   Float_t GetRailOuterSize(Int_t index) const { return mRailOuterSize[index]; }
   Float_t GetRailPart1(Int_t index) const { return mRailPart1[index]; }
@@ -110,9 +118,8 @@ class GeometryParams : public TNamed
   const Float_t* GetFEEAirHalfSize() const { return mFEEAirHalfSize; }
   const Float_t* GetFEEAirPosition() const { return mFEEAirPosition; }
   const Float_t* GetEMCParams() const { return mEMCParams; }
-  const Float_t  GetDistATBtoModule() const { return mzAirTightBoxToTopModuleDist; }
-  const Float_t  GetATBWallWidth() const { return mATBoxWall ;} 
-
+  const Float_t GetDistATBtoModule() const { return mzAirTightBoxToTopModuleDist; }
+  const Float_t GetATBWallWidth() const { return mATBoxWall; }
 
   Int_t GetNCellsXInStrip() const { return mNCellsXInStrip; }
   Int_t GetNCellsZInStrip() const { return mNCellsZInStrip; }
@@ -130,7 +137,7 @@ class GeometryParams : public TNamed
   static GeometryParams* sGeomParam; ///< Pointer to the unique instance of the singleton
 
   // General PHOS modules parameters
-  Int_t mNModules;               // Number of PHOS modules
+  Int_t mNModules;               ///< Number of PHOS modules
   Float_t mAngle;                ///< Position angles between modules
   Float_t mPHOSAngle[4];         ///< Position angles of modules
   Float_t mPHOSParams[4];        ///< Half-sizes of PHOS trapecoid
@@ -221,10 +228,9 @@ class GeometryParams : public TNamed
   Float_t mIPtoOuterCoverDistance; ///< Distances from interaction point to outer cover
   Float_t mIPtoCrystalSurface;     ///< Distances from interaction point to Xtal surface
 
-  Float_t mSupportPlateThickness;  ///< Thickness of the Aluminium support plate for Strip
-  Float_t mzAirTightBoxToTopModuleDist; ///<Distance between PHOS upper surface and inner part of Air Tight Box
-  Float_t mATBoxWall ;             ///<width of the wall of air tight box
-
+  Float_t mSupportPlateThickness;       ///< Thickness of the Aluminium support plate for Strip
+  Float_t mzAirTightBoxToTopModuleDist; ///< Distance between PHOS upper surface and inner part of Air Tight Box
+  Float_t mATBoxWall;                   ///< width of the wall of air tight box
 
   Int_t mNCellsXInStrip; ///< Number of cells in a strip unit in X
   Int_t mNCellsZInStrip; ///< Number of cells in a strip unit in Z

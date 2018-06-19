@@ -12,11 +12,13 @@
 #include <fairmq/FairMQMessage.h>
 #include <cassert>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 InputRecord::InputRecord(std::vector<InputRoute> const &inputsSchema,
-                               std::vector<std::unique_ptr<FairMQMessage>> const& cache)
+                         std::vector<std::unique_ptr<FairMQMessage>> const& cache)
 : mInputsSchema{inputsSchema},
   mCache{cache}
 {
@@ -43,6 +45,24 @@ InputRecord::getPos(std::string const &binding) const {
     }
   }
   return -1;
+}
+
+bool
+InputRecord::isValid(char const *s) {
+  DataRef ref = get(s);
+  if (ref.header == nullptr || ref.payload == nullptr) {
+    return false;
+  }
+  return true;
+}
+
+bool
+InputRecord::isValid(int s) {
+  DataRef ref = getByPos(s);
+  if (ref.header == nullptr || ref.payload == nullptr) {
+    return false;
+  }
+  return true;
 }
 
 } // namespace framework

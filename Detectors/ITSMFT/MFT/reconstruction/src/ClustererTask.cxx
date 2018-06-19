@@ -8,16 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FindClusters.h
-/// \brief Cluster finding from digits (ITS)
+/// \file ClustererTrack.h
+/// \brief Cluster finding from digits (MFT)
 /// \author bogdan.vulpescu@cern.ch
 /// \date 03/05/2017
 
 #include "MFTReconstruction/ClustererTask.h"
 #include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -28,67 +26,70 @@ using namespace o2::MFT;
 using namespace o2::Base;
 using namespace o2::utils;
 
-//_____________________________________________________________________________
-ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("MFTClustererTask")
+//_____________________________________________________________________
+ClustererTask::ClustererTask(bool useMC) : FairTask("MFTClustererTask"), mUseMCTruth(useMC)
 {
-  if (useMCTruth)
-    mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 }
 
-//_____________________________________________________________________________
+//_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  if (mClustersArray) {
-    mClustersArray->clear();
-    delete mClustersArray;
-  }
-  if (mClsLabels) {
-    mClsLabels->clear();
-    delete mClsLabels;
-  }
+  mClustersArray.clear();
+  mClsLabels.clear();
 }
 
-//_____________________________________________________________________________
+//_____________________________________________________________________
 InitStatus ClustererTask::Init()
 {
+  /// Inititializes the clusterer and connects input and output container
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
-  const std::vector<o2::ITSMFT::Digit>* arr = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("MFTDigit");
-  if (!arr) {
-    LOG(ERROR) << "MFT digits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+  const auto arrDig = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Digit>*>("MFTDigit");
+  if (!arrDig) {
+    LOG(ERROR) << "MFT digits are not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
-  mReader.setDigitArray(arr);
+  mReader.setDigitArray(arrDig);
+
+  const auto arrDigLbl = mUseMCTruth ? mgr->InitObjectAs<const MCTruth*>("MFTDigitMCTruth") : nullptr;
+
+  if (!arrDigLbl && mUseMCTruth) {
+    LOG(WARNING) << "MFT digits labeals are not registered in the FairRootManager. Continue w/o MC truth ..."
+                 << FairLogger::endl;
+  }
+  mClusterer.setDigitsMCTruthContainer(arrDigLbl);
 
   // Register output container
-  mgr->RegisterAny("MFTCluster", mClustersArray, kTRUE);
+  mgr->RegisterAny("MFTCluster", mClustersArrayPtr, kTRUE);
 
-  // Register MC Truth container
-  if (mClsLabels) {
-    mgr->RegisterAny("MFTClusterMCTruth", mClsLabels, kTRUE);
+  // Register output MC Truth container if there is an MC truth for digits
+  if (arrDigLbl) {
+    mgr->RegisterAny("MFTClusterMCTruth", mClsLabelsPtr, kTRUE);
+    mClusterer.setClustersMCTruthContainer(mClsLabelsPtr);
   }
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L)); // make sure T2L matrices are loaded
   mGeometry = geom;
   mClusterer.setGeometry(geom);
-  mClusterer.setMCTruthContainer(mClsLabels);
+
+  printf("%s | MCTruth: %s\n", Class()->GetName(), arrDigLbl ? "ON" : "OFF");
+  mClusterer.print();
 
   return kSUCCESS;
 }
 
-//_____________________________________________________________________________
-void ClustererTask::Exec(Option_t* /*opt*/)
+//_____________________________________________________________________
+void ClustererTask::Exec(Option_t* option)
 {
-  if (mClustersArray)
-    mClustersArray->clear();
-  if (mClsLabels)
-    mClsLabels->clear();
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
+  mClustersArray.clear();
+  mClsLabels.clear();
 
-  mClusterer.process(mReader, *mClustersArray);
+  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
+
+  mClusterer.process(mReader, mClustersArray);
 }

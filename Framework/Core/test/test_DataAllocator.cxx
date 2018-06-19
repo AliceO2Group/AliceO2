@@ -29,12 +29,29 @@ using namespace o2::framework;
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
+namespace test
+{
+struct MetaHeader : public o2::header::BaseHeader {
+  // Required to do the lookup
+  static const o2::header::HeaderType sHeaderType;
+  static const uint32_t sVersion = 1;
+
+  MetaHeader(uint32_t v)
+    : BaseHeader(sizeof(MetaHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), secret(v)
+  {
+  }
+
+  uint64_t secret;
+};
+constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
+}
+
 DataProcessorSpec getTimeoutSpec()
 {
   // a timer process to terminate the workflow after a timeout
   auto processingFct = [](ProcessingContext& pc) {
     static int counter = 0;
-    pc.outputs().snapshot(Output{ "TST", "TIMER", 0, Lifetime::Timeframe }, counter);
+    pc.outputs().snapshot(Output{ "TEST", "TIMER", 0, Lifetime::Timeframe }, counter);
 
     sleep(1);
     if (counter++ > 10) {
@@ -45,7 +62,7 @@ DataProcessorSpec getTimeoutSpec()
 
   return DataProcessorSpec{ "timer",  // name of the processor
                             Inputs{}, // inputs empty
-                            { OutputSpec{ "TST", "TIMER", 0, Lifetime::Timeframe } },
+                            { OutputSpec{ "TEST", "TIMER", 0, Lifetime::Timeframe } },
                             AlgorithmSpec(processingFct) };
 }
 
@@ -58,7 +75,9 @@ DataProcessorSpec getSourceSpec()
     std::vector<o2::test::Polymorphic> c{ { 0xaffe }, { 0xd00f } };
     // class TriviallyCopyable is both messageable and has a dictionary, the default
     // picked by the framework is no serialization
-    pc.outputs().snapshot(Output{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe }, a);
+    test::MetaHeader meta1{ 42 };
+    test::MetaHeader meta2{ 23 };
+    pc.outputs().snapshot(Output{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe, { meta1, meta2 } }, a);
     pc.outputs().snapshot(Output{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                           o2::framework::ROOTSerialized<decltype(a)>(a));
     // class Polymorphic is not messageable, so the serialization type is deduced
@@ -77,7 +96,7 @@ DataProcessorSpec getSourceSpec()
   };
 
   return DataProcessorSpec{ "source", // name of the processor
-                            { InputSpec{ "timer", "TST", "TIMER", 0, Lifetime::Timeframe } },
+                            { InputSpec{ "timer", "TEST", "TIMER", 0, Lifetime::Timeframe } },
                             { OutputSpec{ "TST", "MESSAGEABLE", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe },
                               OutputSpec{ "TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe },
@@ -92,36 +111,63 @@ DataProcessorSpec getSinkSpec()
   auto processingFct = [](ProcessingContext& pc) {
     using DataHeader = o2::header::DataHeader;
     for (auto& input : pc.inputs()) {
-      auto dh = o2::header::get<const DataHeader*>(input.header);
+      auto* dh = o2::header::get<const DataHeader*>(input.header);
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
-    }
-    auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
-    ASSERT_ERROR(*object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    auto object2 = pc.inputs().get<o2::test::TriviallyCopyable>("input2");
+      using DumpStackFctType = std::function<void(const o2::header::BaseHeader*)>;
+      DumpStackFctType dumpStack = [&](const o2::header::BaseHeader* h) {
+        o2::header::hexDump("", h, h->size());
+        if (h->flagsNextHeader) {
+          auto next = reinterpret_cast<const byte*>(h) + h->size();
+          dumpStack(reinterpret_cast<const o2::header::BaseHeader*>(next));
+        }
+      };
+
+      dumpStack(dh);
+    }
+    // plain, unserialized object in input1 channel
+    auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
+    ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
+    // check the additional header on the stack
+    auto* metaHeader1 = DataRefUtils::getHeader<test::MetaHeader*>(pc.inputs().get("input1"));
+    // check if there are more of the same type
+    auto* metaHeader2 = metaHeader1 ? o2::header::get<test::MetaHeader*>(metaHeader1->next()) : nullptr;
+    ASSERT_ERROR(metaHeader1 != nullptr);
+    ASSERT_ERROR(metaHeader1->secret == 42);
+    ASSERT_ERROR(metaHeader2 != nullptr && metaHeader2->secret == 23);
+
+    // ROOT-serialized messageable object in input2 channel
+    auto object2 = pc.inputs().get<o2::test::TriviallyCopyable*>("input2");
+    ASSERT_ERROR(object2 != nullptr);
     ASSERT_ERROR(*object2 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    auto object3 = pc.inputs().get<o2::test::Polymorphic>("input3");
+    // ROOT-serialized, non-messageable object in input3 channel
+    auto object3 = pc.inputs().get<o2::test::Polymorphic*>("input3");
     ASSERT_ERROR(object3 != nullptr);
-    ASSERT_ERROR(*(object3.get()) == o2::test::Polymorphic(0xbeef));
+    ASSERT_ERROR(*object3 == o2::test::Polymorphic(0xbeef));
 
+    // container of objects
     auto object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
-    ASSERT_ERROR(object4 != nullptr);
-    ASSERT_ERROR(object4->size() == 2);
-    ASSERT_ERROR((*object4.get())[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR((*object4.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object4.size() == 2);
+    ASSERT_ERROR(object4[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(object4[1] == o2::test::Polymorphic(0xd00f));
 
+    // container of objects
     auto object5 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input5");
-    ASSERT_ERROR(object5 != nullptr);
-    ASSERT_ERROR(object5->size() == 2);
-    ASSERT_ERROR((*object5.get())[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR((*object5.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object5.size() == 2);
+    ASSERT_ERROR(object5[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(object5[1] == o2::test::Polymorphic(0xd00f));
 
+    // container of objects
     auto object6 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input6");
-    ASSERT_ERROR(object6 != nullptr);
-    ASSERT_ERROR(object6->size() == 2);
-    ASSERT_ERROR((*object6.get())[0] == o2::test::Polymorphic(0xaffe));
-    ASSERT_ERROR((*object6.get())[1] == o2::test::Polymorphic(0xd00f));
+    ASSERT_ERROR(object6.size() == 2);
+    ASSERT_ERROR(object6[0] == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(object6[1] == o2::test::Polymorphic(0xd00f));
+
+    // checking retrieving buffer as raw char*, and checking content by cast
+    auto rawchar = pc.inputs().get<const char*>("input1");
+    const auto& data1 = *reinterpret_cast<const o2::test::TriviallyCopyable*>(rawchar);
+    ASSERT_ERROR(data1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     pc.services().get<ControlService>().readyToQuit(true);
   };
@@ -137,9 +183,11 @@ DataProcessorSpec getSinkSpec()
                             AlgorithmSpec(processingFct) };
 }
 
-void defineDataProcessing(WorkflowSpec& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  specs.emplace_back(getTimeoutSpec());
-  specs.emplace_back(getSourceSpec());
-  specs.emplace_back(getSinkSpec());
+  return WorkflowSpec{
+    getTimeoutSpec(),
+    getSourceSpec(),
+    getSinkSpec()
+  };
 }

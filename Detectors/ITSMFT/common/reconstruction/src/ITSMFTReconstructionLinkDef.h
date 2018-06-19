@@ -16,6 +16,10 @@
 
 #pragma link C++ class o2::ITSMFT::Clusterer + ;
 #pragma link C++ class o2::ITSMFT::PixelReader + ;
+#pragma link C++ class o2::ITSMFT::DigitPixelReader + ;
+#pragma link C++ class o2::ITSMFT::RawPixelReader + ;
+#pragma link C++ class o2::ITSMFT::PixelData + ;
+#pragma link C++ class o2::ITSMFT::ChipPixelData + ;
 #pragma link C++ class o2::ITSMFT::BuildTopologyDictionary + ;
 #pragma link C++ class o2::ITSMFT::LookUp + ;
 #pragma link C++ class o2::ITSMFT::TopologyFastSimulation + ;

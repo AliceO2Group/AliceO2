@@ -23,15 +23,21 @@
 #include <memory>
 #include <cstddef>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 /// Implements the boilerplate for a generic
 /// framework device which only produces data
 class DataSourceDevice : public FairMQDevice {
 public:
   DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &registry);
   void Init() final;
-protected:
+  void PreRun() final;
+  void PostRun() final;
+  void Reset() final;
+
+ protected:
   bool ConditionalRun() final;
 private:
   AlgorithmSpec::InitCallback mInit;
@@ -40,7 +46,7 @@ private:
   AlgorithmSpec::ErrorCallback mError;
 
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
-  ServiceRegistry mServiceRegistry;
+  ServiceRegistry& mServiceRegistry;
   MessageContext mContext;
   RootObjectContext mRootContext;
   DataAllocator mAllocator;
@@ -49,6 +55,6 @@ private:
   size_t mLastTime;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

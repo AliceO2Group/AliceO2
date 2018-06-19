@@ -20,9 +20,23 @@ namespace framework
 {
 
 /// A reference to an output spec
+///
+/// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
+/// function call. This is due to the fact that the header stack has no ordinary copy
+/// constructor but only a move constructor
 struct OutputRef {
   std::string label;
   header::DataHeader::SubSpecificationType subSpec;
+  header::Stack headerStack = {};
+
+  OutputRef(std::string&& l, header::DataHeader::SubSpecificationType s = 0) : label(std::move(l)), subSpec(s) {}
+
+  OutputRef(const std::string& l, header::DataHeader::SubSpecificationType s = 0) : label(l), subSpec(s) {}
+
+  OutputRef(std::string&& l, header::DataHeader::SubSpecificationType s, o2::header::Stack&& stack)
+    : label(std::move(l)), subSpec(s), headerStack(std::move(stack))
+  {
+  }
 };
 
 } // namespace framework

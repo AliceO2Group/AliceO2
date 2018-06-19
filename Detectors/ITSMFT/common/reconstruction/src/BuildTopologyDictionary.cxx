@@ -14,7 +14,9 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
+#include "ITSMFTReconstruction/LookUp.h"
 #include <cmath>
+#include <TFile.h>
 
 ClassImp(o2::ITSMFT::BuildTopologyDictionary)
 
@@ -33,6 +35,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
     if (ret.second == true) {
       //___________________DEFINING_TOPOLOGY_CHARACTERISTICS__________________
       TopologyInfo topInf;
+      topInf.mPattern.setPattern(cluster.getPattern().data());
       int& rs = topInf.mSizeX = cluster.getRowSpan();
       int& cs = topInf.mSizeZ = cluster.getColumnSpan();
       //__________________COG_Deterrmination_____________
@@ -44,7 +47,7 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       int ic = 0;
       int ir = 0;
       for (unsigned int i = 2; i < cluster.getUsedBytes() + 2; i++) {
-        tempChar = cluster.getPattern()[i];
+        tempChar = cluster.getByte(i);
         s = 128; // 0b10000000
         while (s > 0) {
           if ((tempChar & s) != 0) {
@@ -119,14 +122,15 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
     std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
               [](const std::pair<unsigned long, unsigned long>& couple1,
                  const std::pair<unsigned long, unsigned long>& couple2) { return (couple1.first > couple2.first); });
-    if (ngr < 10 ||
+    int maxNumberOfGroups = Cluster::kMaxPatternBits / (TopologyDictionary::RowClassSpan * TopologyDictionary::ColClassSpan) * (1 + ceil(log(Cluster::kMaxPatternBits / (TopologyDictionary::RowClassSpan * TopologyDictionary::ColClassSpan))));
+    if (ngr < maxNumberOfGroups ||
         ngr > (mTopologyFrequency.size() -
-               TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses)) {
+               maxNumberOfGroups)) {
       std::cout << "BuildTopologyDictionary::setNGroups : Invalid number of groups" << std::endl;
       exit(1);
     }
     mNumberOfGroups = mNotInGroups =
-      ngr - TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses;
+      ngr - maxNumberOfGroups;
     mDictionary.mFinalMap.clear();
     mFrequencyThreshold = ((double)mTopologyFrequency[mNotInGroups - 1].first) / mTotClusters;
   }
@@ -166,8 +170,8 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
 #ifdef _HISTO_
     mHdist =
       TH1F("mHdist", "Groups distribution",
-           mNumberOfGroups + TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses, -0.5,
-           mNumberOfGroups + TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses - 0.5);
+           mNumberOfGroups + TopologyDictionary::NumberOfRareGroups, -0.5,
+           mNumberOfGroups + TopologyDictionary::NumberOfRareGroups - 0.5);
     mHdist.GetXaxis()->SetTitle("GroupID");
     mHdist.SetFillColor(kRed);
     mHdist.SetFillStyle(3005);
@@ -182,23 +186,27 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       GroupStruct gr;
       gr.mHash = mTopologyFrequency[j].second;
       gr.mFrequency = totFreq;
-      // rough estimation for the error considering a uniform distribution
+      // rough estimation for the error considering a8 uniform distribution
       gr.mErrX = std::sqrt(mMapInfo.find(gr.mHash)->second.mXsigma2);
       gr.mErrZ = std::sqrt(mMapInfo.find(gr.mHash)->second.mZsigma2);
       gr.mXCOG = mMapInfo.find(gr.mHash)->second.mCOGx;
       gr.mZCOG = mMapInfo.find(gr.mHash)->second.mCOGz;
       gr.mNpixels = mMapInfo.find(gr.mHash)->second.mNpixels;
+      gr.mPattern = mMapInfo.find(gr.mHash)->second.mPattern;
       mDictionary.mVectorOfGroupIDs.push_back(gr);
       mDictionary.mFinalMap.insert(std::make_pair(gr.mHash, j));
+      if (gr.mPattern.getUsedBytes() == 1)
+        mDictionary.mSmallTopologiesLUT[(gr.mPattern.getRowSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = j;
     }
     // groupRareTopologies based on binning over number of rows and columns (TopologyDictionary::NumberOfRowClasses *
     // NumberOfColClasse)
-    mNumberOfGroups += TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses;
+
+    mNumberOfGroups += TopologyDictionary::NumberOfRareGroups;
     // array of groups
-    std::array<GroupStruct, TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses> GroupArray;
-    std::array<unsigned long, TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses>
+    std::array<GroupStruct, TopologyDictionary::NumberOfRareGroups> GroupArray;
+    std::array<unsigned long, TopologyDictionary::NumberOfRareGroups>
       groupCounts{ 0 };
-    auto func = [&GroupArray](int rowBinEdge, int colBinEdge, int& index) {
+    auto createGroupEntry = [&GroupArray](int rowBinEdge, int colBinEdge, int& index) {
       unsigned long provvHash = 0;
       provvHash = (((unsigned long)(index + 1)) << 32) & 0xffffffff00000000;
       GroupArray[index].mHash = provvHash;
@@ -207,25 +215,56 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       GroupArray[index].mXCOG = rowBinEdge / 2;
       GroupArray[index].mZCOG = colBinEdge / 2;
       GroupArray[index].mNpixels = rowBinEdge * colBinEdge;
+      unsigned char dummyPattern[ClusterPattern::kExtendedPatternBytes] = {
+        0
+      }; /// A dummy pattern with all fired pixels in the bounding box is assigned to groups of rare topologies.
+      dummyPattern[0] = (unsigned char)rowBinEdge;
+      dummyPattern[1] = (unsigned char)colBinEdge;
+      int nBits = rowBinEdge * colBinEdge;
+      int nBytes = nBits / 8;
+      for (int iB = 2; iB < nBytes + 2; iB++) {
+        dummyPattern[iB] = (unsigned char)255;
+      }
+      int residualBits = nBits % 8;
+      if (residualBits) {
+        unsigned char tempChar = 0;
+        while (residualBits > 0) {
+          residualBits--;
+          tempChar |= 1 << (7 - residualBits);
+        }
+        dummyPattern[nBytes + 2] = tempChar;
+      }
+      GroupArray[index].mPattern.setPattern(dummyPattern);
       index++;
       return;
     };
+    auto createPlaceHolder = [&GroupArray](int& index) { // Filling the dictionary with place-holders for entries of impossible groups due to pattern size.
+      GroupArray[index].mHash = 0;
+      GroupArray[index].mErrX = 0;
+      GroupArray[index].mErrZ = 0;
+      GroupArray[index].mXCOG = 0;
+      GroupArray[index].mZCOG = 0;
+      GroupArray[index].mNpixels = 0;
+      unsigned char dummyPattern[ClusterPattern::kExtendedPatternBytes] = {
+        0
+      };
+      dummyPattern[0] = (unsigned char)TopologyDictionary::RowClassSpan;
+      dummyPattern[1] = (unsigned char)TopologyDictionary::ColClassSpan;
+      GroupArray[index].mPattern.setPattern(dummyPattern);
+      index++;
+      return;
+    };
+
     int grNum = 0;
-    for (int ir = 0; ir < TopologyDictionary::NumberOfRowClasses - 1; ir++) {
-      for (int ic = 0; ic < TopologyDictionary::NumberOfColClasses - 1; ic++) {
-        func((ir + 1) * TopologyDictionary::RowClassSpan - 1, (ic + 1) * TopologyDictionary::ColClassSpan - 1, grNum);
+    for (int iRow = 0; iRow < TopologyDictionary::MaxNumberOfClasses; iRow++) {
+      for (int iCol = 0; iCol < TopologyDictionary::MaxNumberOfClasses; iCol++) {
+        if ((iRow + 1) * (iCol + 1) <= TopologyDictionary::MaxNumberOfClasses) {
+          createGroupEntry((iRow + 1) * TopologyDictionary::RowClassSpan, (iCol + 1) * TopologyDictionary::ColClassSpan, grNum);
+        } else
+          createPlaceHolder(grNum);
       }
-      func((ir + 1) * TopologyDictionary::RowClassSpan - 1, TopologyDictionary::MaxColSpan, grNum);
     }
-    for (int ic = 0; ic < TopologyDictionary::NumberOfColClasses - 1; ic++) {
-      func(TopologyDictionary::MaxRowSpan, (ic + 1) * TopologyDictionary::ColClassSpan - 1, grNum);
-      unsigned long provvHash = 0;
-    }
-    func(TopologyDictionary::MaxRowSpan, TopologyDictionary::MaxColSpan, grNum);
-    if (grNum != TopologyDictionary::NumberOfColClasses * TopologyDictionary::NumberOfRowClasses) {
-      std::cout << "Wrong number of groups" << std::endl;
-      exit(1);
-    }
+
     int rs;
     int cs;
     int index;
@@ -234,14 +273,11 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
       unsigned long hash1 = mTopologyFrequency[j].second;
       rs = mTopologyMap.find(hash1)->second.first.getRowSpan();
       cs = mTopologyMap.find(hash1)->second.first.getColumnSpan();
-      index = (rs / TopologyDictionary::RowClassSpan) * TopologyDictionary::NumberOfRowClasses +
-              cs / TopologyDictionary::ColClassSpan;
-      if (index > TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses - 1)
-        index = TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses - 1;
+      index = LookUp::groupFinder(rs, cs);
       groupCounts[index] += mTopologyFrequency[j].first;
     }
 
-    for (int i = 0; i < TopologyDictionary::NumberOfRowClasses * TopologyDictionary::NumberOfColClasses; i++) {
+    for (int i = 0; i < TopologyDictionary::MaxNumberOfClasses * TopologyDictionary::MaxNumberOfClasses; i++) {
       totFreq += ((double)groupCounts[i]) / mTotClusters;
       GroupArray[i].mFrequency = totFreq;
 #ifdef _HISTO_
@@ -252,6 +288,8 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
 #ifdef _HISTO_
     mHdist.Scale(1. / mHdist.Integral());
 #endif
+
+    // Filling Look-up table for small topologies
   }
 
   std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& DB)
@@ -280,5 +318,13 @@ ClassImp(o2::ITSMFT::BuildTopologyDictionary)
     mDictionary.WriteBinaryFile(fname);
     out.close();
   }
+
+  void BuildTopologyDictionary::saveDictionaryRoot(const char* filename)
+  {
+    TFile output(filename, "recreate");
+    output.WriteObjectAny(&mDictionary, mDictionary.Class(), "TopologyDictionary");
+    output.Close();
+  }
+
   } // namespace ITSMFT
 }

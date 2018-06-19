@@ -1,14 +1,38 @@
 
 ########## DEPENDENCIES lookup ############
 
+function(guess_append_libpath _libname _root)
+  # Globally adds, as library path, the path of library ${_libname} searched
+  # under ${_root}/lib and ${_root}/lib64. The purpose is to work around broken
+  # external CMake config files, hardcoding full paths of their dependencies
+  # not being relocated properly, leading to broken builds if reusing builds
+  # produced under different hosts/paths.
+  unset(_lib CACHE)  # force find_library to look again
+  find_library(_lib "${_libname}" HINTS "${_root}" "${_root}/.." NO_DEFAULT_PATH PATH_SUFFIXES lib lib64)
+  if(_lib)
+    get_filename_component(_libdir "${_lib}" DIRECTORY)
+    message(STATUS "Adding library path: ${_libdir}")
+    link_directories(${_libdir})
+  else()
+    message(WARNING "Cannot find library ${_libname} under ${_root}")
+  endif()
+endfunction()
+
 find_package(ROOT 6.06.00 REQUIRED)
 find_package(Vc REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
 if (ALICEO2_MODULAR_BUILD)
-  # Geant3, Geant4 installed via cmake
-  find_package(Geant3)
-  find_package(Geant4)
+  # Installed via CMake. Note: we work around hardcoded full paths in the CMake
+  # config files not being relocated properly by appending library paths.
+  guess_append_libpath(geant321 "${Geant3_DIR}")
+  find_package(Geant3 NO_MODULE)
+  guess_append_libpath(G4run "${Geant4_DIR}")
+  find_package(Geant4 NO_MODULE)
+  guess_append_libpath(geant4vmc "${GEANT4_VMC_DIR}")
+  find_package(Geant4VMC NO_MODULE)
+  guess_append_libpath(BaseVGM "${VGM_DIR}")
+  find_package(VGM NO_MODULE)
 else (ALICEO2_MODULAR_BUILD)
   # For old versions of VMC packages (to be removed)
   find_package(GEANT3)
@@ -23,19 +47,27 @@ find_package(CERNLIB)
 # PR #886 depending on some header files conflict with the IWYU setup
 # disable package for the moment
 #find_package(IWYU)
-find_package(HepMC3)
-find_package(DDS)
 
-find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time signals REQUIRED)
+find_package(HepMC3)
+
+find_package(Boost 1.59 COMPONENTS container thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time signals REQUIRED)
 # for the guideline support library
 include_directories(${MS_GSL_INCLUDE_DIR})
 
 find_package(AliRoot)
 find_package(FairRoot REQUIRED)
-find_package(FairMQ REQUIRED)
+find_package(FairMQInFairRoot) # DEPRECATED: This looks for FairMQ embedded in old FairRoot versions,
+                               # before FairMQ and FairLogger have moved to separate repos.
+                               # Remove this line, once we require FairMQ 1.2+.
+if(NOT FairMQInFairRoot_FOUND) # DEPRECATED: Remove this condition, once we require FairMQ 1.2+
+  find_package(FairMQ REQUIRED)
+  find_package(FairLogger REQUIRED)
+endif()
+find_package(DDS)
 find_package(Protobuf REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 find_package(GLFW)
 
@@ -75,6 +107,26 @@ elseif(UNIX)
 endif()
 
 ########## Bucket definitions ############
+get_target_property(_boost_incdir Boost::boost INTERFACE_INCLUDE_DIRECTORIES)
+if(FairMQInFairRoot_FOUND)
+  # DEPRECATED: Remove this case, once we require FairMQ 1.2+
+  get_target_property(_fairmq_incdir FairRoot::FairMQ INTERFACE_INCLUDE_DIRECTORIES)
+  o2_define_bucket(NAME fairmq_bucket
+    DEPENDENCIES FairRoot::FairMQ
+    INCLUDE_DIRECTORIES ${_boost_incdir} ${_fairmq_incdir}
+  )
+else()
+  get_target_property(_fairmq_incdir FairMQ::FairMQ INTERFACE_INCLUDE_DIRECTORIES)
+  get_target_property(_fairlogger_incdir FairLogger::FairLogger INTERFACE_INCLUDE_DIRECTORIES)
+  o2_define_bucket(NAME fairmq_bucket
+    DEPENDENCIES FairMQ::FairMQ
+    INCLUDE_DIRECTORIES ${_boost_incdir} ${_fairmq_incdir} ${_fairlogger_incdir}
+  )
+  set(_fairlogger_incdir)
+endif()
+set(_boost_incdir)
+set(_fairmq_incdir)
+
 o2_define_bucket(
   NAME
   glfw_bucket
@@ -160,10 +212,10 @@ o2_define_bucket(
     Boost::regex
     Base
     Headers
+    MemoryResources
     FairTools
-    FairRoot::FairMQ
-    pthread
-    dl
+    Headers
+    fairmq_bucket
     ${Monitoring_LIBRARIES}
 
     INCLUDE_DIRECTORIES
@@ -197,9 +249,11 @@ o2_define_bucket(
     Core
     Net
     ${GUI_LIBRARIES}
+    ${Monitoring_LIBRARIES}
     ${Configuration_LIBRARIES}
 
     SYSTEMINCLUDE_DIRECTORIES
+    ${Monitoring_INCLUDE_DIRS}
     ${Configuration_INCLUDE_DIRS}
 )
 
@@ -260,6 +314,7 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}/fairmq # temporary fix, until bucket system works with imported targets
     ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/MemoryResources/include
 )
 
 o2_define_bucket(
@@ -284,11 +339,9 @@ o2_define_bucket(
     Boost::random
     Boost::regex
     Base
-    Headers
     FairTools
-    FairRoot::FairMQ
-    pthread
-    dl
+    Headers
+    fairmq_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -310,7 +363,8 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    FairRoot::FairMQ Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector RIO
+    fairmq_bucket
+    Base FairTools Core MathCore Matrix Minuit Hist Geom GenVector RIO
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -339,6 +393,7 @@ o2_define_bucket(
     DEPENDENCIES
     common_boost_bucket
     root_base_bucket
+    DetectorsCommonDataFormats
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -357,11 +412,11 @@ o2_define_bucket(
     FairTools
     ParBase
     ParMQ
-    FairRoot::FairMQ pthread Core Tree XMLParser Hist Net RIO z
+    fairmq_bucket
+    pthread Core Tree XMLParser Hist Net RIO z
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${FAIRROOT_INCLUDE_DIR}/fairmq
     ${ROOT_INCLUDE_DIR}
 
     SYSTEMINCLUDE_DIRECTORIES
@@ -379,6 +434,21 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
 )
 
+if(FairLogger_FOUND)
+  # DEPRECATED: Remove this variable and use the value directly,
+  # once we require FairMQ 1.2+
+  set(FairLogger_DEP FairLogger::FairLogger)
+endif()
+
+o2_define_bucket(
+    NAME
+    pmr_bucket
+
+    DEPENDENCIES
+    Boost::container
+    fairmq_bucket
+)
+
 o2_define_bucket(
     NAME
     fairroot_geom
@@ -387,8 +457,10 @@ o2_define_bucket(
     FairTools
     Base GeoBase ParBase Geom Core VMC Tree
     common_boost_bucket
+    ${FairLogger_DEP}
 
     INCLUDE_DIRECTORIES
+    ${FairLogger_INCDIR}
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
 )
@@ -402,13 +474,17 @@ o2_define_bucket(
     fairroot_geom
     Base
     FairTools
-    FairRoot::FairMQ
+    fairmq_bucket
     common_boost_bucket
     Boost::thread
     Boost::serialization
+    Boost::container
     pthread
+    MemoryResources
+    ${FairLogger_DEP}
 
     INCLUDE_DIRECTORIES
+    ${FairLogger_INCDIR}
     ${FAIRROOT_INCLUDE_DIR}
 )
 
@@ -443,6 +519,38 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include/
     ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    steer_bucket
+
+    DEPENDENCIES
+    data_format_simulation_bucket
+    SimulationDataFormat
+    ITSMFTSimulation
+    RIO
+    Net
+    SimConfig
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${MS_GSL_INCLUDE_DIR}
+    ${FAIRROOT_INCLUDE_DIR}/fairmq
+)
+
+
+o2_define_bucket(
+    NAME
+    data_format_simulation_test_bucket
+
+    DEPENDENCIES
+    data_format_simulation_bucket
+    SimulationDataFormat
 )
 
 o2_define_bucket(
@@ -489,7 +597,8 @@ o2_define_bucket(
     ReconstructionDataFormats
     DataFormatsParameters
     Field
-
+    fairmq_bucket
+    Net
     VMC # ROOT
     Geom
 
@@ -677,7 +786,7 @@ o2_define_bucket(
     Gpad
     MathCore
     common_boost_bucket
-    FairRoot::FairMQ
+    fairmq_bucket
     pthread
     Boost::date_time
     Boost::timer
@@ -699,7 +808,7 @@ o2_define_bucket(
     Base
     Hist
     pthread
-    FairRoot::FairMQ
+    fairmq_bucket
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
@@ -754,7 +863,7 @@ o2_define_bucket(
     QC_test_bucket
 
     DEPENDENCIES
-    dl Core Base Hist FairRoot::FairMQ
+    dl Core Base Hist fairmq_bucket
     common_boost_bucket
 )
 
@@ -791,6 +900,7 @@ o2_define_bucket(
     DEPENDENCIES
     tpc_base_bucket
     data_format_TPC_bucket
+    detectors_base_bucket
     Field
     DetectorsBase
     Generators
@@ -849,6 +959,7 @@ o2_define_bucket(
     Gen
     Base
     TreePlayer
+    O2TPCCAGPUTracking
     TPCSimulation
     #the dependency on TPCSimulation should be removed at some point
     #perhaps 'Cluster' can be moved to base, or so
@@ -865,6 +976,26 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/Common/include
     ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    TPCCAGPUTracking_bucket
+    
+    DEPENDENCIES
+    dl
+    pthread
+    root_base_bucket
+    common_vc_bucket
+    
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
 )
 
 o2_define_bucket(
@@ -907,12 +1038,28 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/include
 )
 
+o2_define_bucket(
+    NAME
+    TPC_workflow_bucket
+
+    DEPENDENCIES
+    TPCReconstruction
+    Framework
+    DPLUtils
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Algorithm/include
+   )
+
 # base bucket for generators not needing any external stuff
 
 set(GENERATORS_BUCKET_DEPENDENCIES
         Base SimulationDataFormat MathCore RIO Tree
         fairroot_base_bucket
-        )
+    	# Gen is generator module from FairRoot
+    	Gen
+    	SimConfig
+    	)
 set(GENERATORS_BUCKET_INCLUDE_DIRECTORIES
         ${ROOT_INCLUDE_DIR}
         ${FAIRROOT_INCLUDE_DIR}
@@ -1118,6 +1265,7 @@ o2_define_bucket(
     Physics
     EMCALBase
     DetectorsBase
+    detectors_base_bucket
     SimulationDataFormat
 
     INCLUDE_DIRECTORIES
@@ -1133,6 +1281,7 @@ o2_define_bucket(
     DEPENDENCIES
     tof_base_bucket
     root_base_bucket
+    detectors_base_bucket
     fairroot_geom
     RIO
     Graf
@@ -1163,6 +1312,10 @@ o2_define_bucket(
     Physics
     Geom
     Core Hist # ROOT
+    CommonDataFormat
+    detectors_base_bucket
+    DetectorsBase
+    SimulationDataFormat
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -1170,7 +1323,10 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
+
  )
 
 o2_define_bucket(
@@ -1178,6 +1334,7 @@ o2_define_bucket(
     fit_simulation_bucket
 
     DEPENDENCIES # library names
+    fit_base_bucket
     root_base_bucket
     fairroot_geom
     RIO
@@ -1187,9 +1344,12 @@ o2_define_bucket(
     Physics
     FITBase
     DetectorsBase
+    detectors_base_bucket
     SimulationDataFormat
     Core Hist # ROOT
-
+    CommonDataFormat
+    detectors_base_bucket
+ 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
@@ -1203,10 +1363,31 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    fit_reconstruction_bucket
+
+    DEPENDENCIES
+    fit_base_bucket
+    FITBase
+    FITSimulation
+    DetectorsBase
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FIT/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Detectors/FITsimulation/include
+
+)
+
+o2_define_bucket(
+    NAME
     hmpid_simulation_bucket
 
     DEPENDENCIES # library names
     root_base_bucket
+    detectors_base_bucket
     fairroot_geom
     RIO
     Graf
@@ -1247,7 +1428,9 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
 )
 
 o2_define_bucket(
@@ -1258,6 +1441,7 @@ o2_define_bucket(
     phos_base_bucket
     root_base_bucket
     fairroot_geom
+    detectors_base_bucket
     RIO
     Graf
     Gpad
@@ -1267,12 +1451,41 @@ o2_define_bucket(
     DetectorsBase
     SimulationDataFormat
 
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
+)
+
+o2_define_bucket(
+    NAME
+    phos_reconstruction_bucket
+
+    DEPENDENCIES
+    phos_base_bucket
+    phos_simulation_bucket
+    root_base_bucket
+    PHOSBase
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/PHOS/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
 )
 
 o2_define_bucket(
@@ -1311,6 +1524,7 @@ o2_define_bucket(
     Physics
     TRDBase
     DetectorsBase
+    detectors_base_bucket
     SimulationDataFormat
 
     INCLUDE_DIRECTORIES
@@ -1327,24 +1541,42 @@ o2_define_bucket(
     DEPENDENCIES
     #-- buckets follow
     fairroot_base_bucket
-    pythia8
 
     #-- precise modules follow
     SimConfig
+    SimSetup
     DetectorsPassive
     TPCSimulation
     TPCReconstruction
     ITSSimulation
     MFTSimulation
+    MCHSimulation
     TRDSimulation
     EMCALSimulation
     TOFSimulation
     FITSimulation
     HMPIDSimulation
     PHOSSimulation
+    PHOSReconstruction
     Field
     Generators
     DataFormatsParameters
+    Framework
+)
+
+# a bucket for "global" executables/macros
+o2_define_bucket(
+    NAME
+    digitizer_workflow_bucket
+
+    DEPENDENCIES
+    #-- buckets follow
+    fairroot_base_bucket
+
+    #-- precise modules follow
+    Steer
+    Framework
+    TPCSimulation
 )
 
 o2_define_bucket(
@@ -1472,6 +1704,37 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     fairroot_base_bucket
+)
+
+o2_define_bucket(
+    NAME
+    mch_simulation_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    DetectorsBase
+    detectors_base_bucket
+    SimulationDataFormat
+    RapidJSON
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${RAPIDJSON_INCLUDEDIR}/include
+    ${MS_GSL_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    mch_simulation_test_bucket
+
+    DEPENDENCIES
+    mch_simulation_bucket
+    mch_mapping_impl3_bucket
+    MCHMappingImpl3
+    MCHSimulation
 )
 
 o2_define_bucket(
@@ -1643,6 +1906,10 @@ o2_define_bucket(
   $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
   mch_mapping_segcontour_bucket
   MCHMappingSegContour3
+  RapidJSON
+
+  INCLUDE_DIRECTORIES
+  ${RAPIDJSON_INCLUDEDIR}/include
 )
 
 o2_define_bucket(
@@ -1724,4 +1991,28 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MUON/MID/Tracking/src
+)
+
+
+o2_define_bucket(
+    NAME
+    simulation_setup_bucket
+
+    DEPENDENCIES
+    ${Geant3_LIBRARIES}
+    ${Geant4_LIBRARIES}
+    ${Geant4VMC_LIBRARIES}
+    ${VGM_LIBRARIES}
+    fairroot_geom
+    SimulationDataFormat
+    DetectorsPassive
+    pythia6 # this is needed by Geant3 and EGPythia6
+    EGPythia6 # this is needed by Geant4 (TPythia6Decayer)
+
+    INCLUDE_DIRECTORIES
+    ${Geant4VMC_INCLUDE_DIRS}
+    ${Geant4_INCLUDE_DIRS}
+    ${Geant3_INCLUDE_DIRS}
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
 )

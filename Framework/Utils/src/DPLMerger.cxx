@@ -46,7 +46,7 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
                  (*mergerFuncPtr)(outputBuffer, itInputs);
                }
                // Adopting the buffer as new chunk
-               ctx.outputs().adoptChunk((*outputPtr), &outputBuffer[0], outputBuffer.size(), &header::Stack::freefn,
+               ctx.outputs().adoptChunk((*outputPtr), &outputBuffer[0], outputBuffer.size(), header::Stack::getFreefn(),
                                         nullptr);
              };
            } } };

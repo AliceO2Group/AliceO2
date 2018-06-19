@@ -21,6 +21,8 @@
 #include "MFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 class TClonesArray;
 
@@ -41,21 +43,26 @@ class ClustererTask : public FairTask
   using DigitPixelReader = o2::ITSMFT::DigitPixelReader;
   using Clusterer = o2::ITSMFT::Clusterer;
   using Cluster = o2::ITSMFT::Cluster;
+  using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
-  ClustererTask(Bool_t useMCTruth = kTRUE);
+  ClustererTask(bool useMC = true);
   ~ClustererTask() override;
 
   InitStatus Init() override;
-  void Exec(Option_t* opt) override;
+  void Exec(Option_t* option) override;
+  Clusterer& getClusterer() { return mClusterer; }
 
  private:
+  bool mUseMCTruth = true;                             ///< flag to use MCtruth if available
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
   DigitPixelReader mReader;                            ///< Pixel reader
   Clusterer mClusterer;                                ///< Cluster finder
 
-  std::vector<Cluster>* mClustersArray = nullptr;                           ///< Array of clusters
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; ///< MC labels
+  std::vector<Cluster> mClustersArray;                       //!< Array of clusters
+  std::vector<Cluster>* mClustersArrayPtr = &mClustersArray; //!< Array of clusters pointer
+  MCTruth mClsLabels;                                        //! MC labels
+  MCTruth* mClsLabelsPtr = &mClsLabels;                      //! MC labels pointer
 
   ClassDefOverride(ClustererTask, 1);
 };

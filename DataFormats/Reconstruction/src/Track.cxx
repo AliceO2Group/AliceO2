@@ -10,6 +10,7 @@
 
 #include "ReconstructionDataFormats/Track.h"
 #include <FairLogger.h>
+#include <iostream>
 
 using std::array;
 using o2::track::TrackPar;
@@ -140,7 +141,7 @@ bool TrackPar::rotateParam(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
+    //printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
     return false;
   }
   //
@@ -553,7 +554,7 @@ bool TrackParCov::rotate(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
+    //printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
     return false;
   }
   //

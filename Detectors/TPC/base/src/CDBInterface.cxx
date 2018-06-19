@@ -75,6 +75,29 @@ const CalPad& CDBInterface::getNoise()
 }
 
 //______________________________________________________________________________
+const CalPad& CDBInterface::getGainMap()
+{
+  // ===| load gain map from file if requested |=====================
+  if (mGainMapFileName.size()) {
+    if (!mGainMap) {
+      loadGainMapFromFile();
+    }
+  } else if (mUseDefaults) {
+    if (!mGainMap)
+      createDefaultGainMap();
+  } else {
+    // return from CDB, assume that check for object existence are done there
+    return getObjectFromCDB<CalPad>("TPC/Calib/Gain");
+  }
+
+  if (!mGainMap) {
+    LOG(FATAL) << "No valid gain object was loaded" << FairLogger::endl;
+  }
+
+  return *mGainMap;
+}
+
+//______________________________________________________________________________
 const ParameterDetector& CDBInterface::getParameterDetector()
 {
   if (mUseDefaults) {
@@ -143,6 +166,22 @@ void CDBInterface::loadNoiseAndPedestalFromFile()
 }
 
 //______________________________________________________________________________
+void CDBInterface::loadGainMapFromFile()
+{
+  auto file = TFile::Open(mGainMapFileName.data());
+  CalPad* gain{ nullptr };
+  file->GetObject("Gain", gain);
+  delete file;
+
+  if (!gain) {
+    LOG(FATAL) << "No valid gain map object was loaded" << FairLogger::endl;
+  }
+
+  mGainMap.reset(gain);
+
+  LOG(INFO) << "Loaded gain map from file '" << mGainMapFileName << "'" << FairLogger::endl;
+}
+//______________________________________________________________________________
 void CDBInterface::createDefaultPedestals()
 {
   // ===| create random pedestals |=============================================
@@ -192,6 +231,34 @@ void CDBInterface::createDefaultNoise()
       }
       if (random > maxNoise) {
         random = maxNoise;
+      }
+      val = random;
+    }
+  }
+}
+
+//______________________________________________________________________________
+void CDBInterface::createDefaultGainMap()
+{
+  // ===| create random gain map |=============================================
+  mGainMap = std::make_unique<CalPad>("Gain");
+
+  // distribution based on test beam data
+  const float meanGain = 1.0;
+  const float sigmaGain = 0.12;
+
+  // set a minimum and maximum for the value
+  const float minGain = meanGain - 4 * sigmaGain;
+  const float maxGain = meanGain + 8 * sigmaGain;
+
+  for (auto& calArray : mGainMap->getData()) {
+    for (auto& val : calArray.getData()) {
+      float random = gRandom->Gaus(meanGain, sigmaGain);
+      if (random < minGain) {
+        random = minGain;
+      }
+      if (random > minGain) {
+        random = minGain;
       }
       val = random;
     }

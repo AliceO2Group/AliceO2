@@ -12,8 +12,10 @@
 
 class FairMQDevice;
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 class RootObjectContext;
 class MessageContext;
@@ -23,7 +25,7 @@ struct DataProcessor {
   static void doSend(FairMQDevice &device, MessageContext &);
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_DATAPROCESSOR_H

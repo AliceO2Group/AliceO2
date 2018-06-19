@@ -30,6 +30,7 @@ class ElementalHit {
   float GetX() const { return mPos.X(); }
   float GetY() const { return mPos.Y(); }
   float GetZ() const { return mPos.Z(); }
+  const ::Point3D<float>& getPos() const { return mPos; }
   float GetEnergyLoss() const { return mELoss; }
   float GetTime() const { return mTime; }
 
@@ -45,12 +46,18 @@ class ElementalHit {
   ClassDefNV(ElementalHit,1);
 };
 
-// an index to uniquely identify a single hit of TPC
+// an index to uniquely identify a single hit group of TPC
 struct TPCHitGroupID {
   TPCHitGroupID() = default;
-  TPCHitGroupID(int e, int gid) : entry{ e }, groupID{ gid } {}
-  int entry = -1;
+  TPCHitGroupID(int sindex, int c, int e, int gid, int src = 0)
+    : storeindex{ sindex }, collision{ c }, entry{ e }, groupID{ gid }, sourceID{ src }
+  {
+  }
+  int storeindex = -1; // tells in which index/entry of some hitvector I should look up this hit group
+  int collision = -1;  // the collision id --> determines the time
+  int entry = -1; // the real entry/eventID in some branch (not necessarily the same as collision but often the case)
   int groupID = -1;
+  int sourceID = 0;
 };
 
 // a higher order hit class encapsulating

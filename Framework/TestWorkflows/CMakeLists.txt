@@ -57,6 +57,14 @@ O2_GENERATE_EXECUTABLE(
 )
 
 O2_GENERATE_EXECUTABLE(
+  EXE_NAME "o2SyncReconstructionDummy"
+  SOURCES "src/o2SyncReconstructionDummy.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+
+O2_GENERATE_EXECUTABLE(
   EXE_NAME "test_MakeDPLObjects"
   SOURCES "test/test_MakeDPLObjects.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
@@ -66,6 +74,13 @@ O2_GENERATE_EXECUTABLE(
 O2_GENERATE_EXECUTABLE(
   EXE_NAME "test_RawDeviceInjector"
   SOURCES "src/test_RawDeviceInjector.cxx"
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME "test_CompletionPolicies"
+  SOURCES "src/test_CompletionPolicies.cxx"
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
@@ -97,7 +112,7 @@ O2_GENERATE_EXECUTABLE(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
-Install(FILES dataSamplingFullChainConfig.ini DESTINATION share/config/)
+Install(FILES dataSamplingFullChainConfig.json DESTINATION share/config/)
 
 
 

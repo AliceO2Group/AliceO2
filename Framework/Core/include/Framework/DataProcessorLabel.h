@@ -7,6 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef FRAMEWORK_DATAPROCESSORLABEL_H
+#define FRAMEWORK_DATAPROCESSORLABEL_H
 
 namespace o2
 {
@@ -18,3 +20,4 @@ struct DataProcessorLabel {
 };
 } // namespace framework
 } // namespace o2
+#endif // FRAMEWORK_DATAPROCESSORLABEL_H

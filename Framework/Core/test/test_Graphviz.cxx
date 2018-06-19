@@ -95,9 +95,10 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
     BOOST_CHECK(device.id != "");
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   SimpleResourceManager rm(22000, 1000);
   auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {
@@ -132,9 +133,10 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline)
     BOOST_CHECK(device.id != "");
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   SimpleResourceManager rm(22000, 1000);
   auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, devices, resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {

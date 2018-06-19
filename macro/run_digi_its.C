@@ -16,11 +16,9 @@
 int updateITSinGRP(std::string inputGRP, std::string grpName = "GRP");
 
 void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std::string inputfile = "o2sim.root",
-                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root"
-                  //
-                  // misc options
-                  ,
-                  bool useALPIDE = true)
+                  std::string paramfile = "o2sim_par.root", std::string inputGRP = "o2sim_grp.root",
+                  std::string inputfileQED = "", // "o2sim_QED.root" // optional QED hits file
+                  float timebinQEDns = 1000)     // each entry of QED hits file corresponds to as many nanoseconds
 {
   // if rate>0 then continuous simulation for this rate will be performed
 
@@ -51,8 +49,39 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
 
   // Setup digitizer
   // Call o2::ITS::DigitizerTask(kTRUE) to activate the ALPIDE simulation
-  o2::ITS::DigitizerTask* digi = new o2::ITS::DigitizerTask(useALPIDE);
-  digi->setContinuous(rate > 0);
+  o2::ITS::DigitizerTask* digi = new o2::ITS::DigitizerTask();
+  //
+  // This is an example of setting the digitization parameters manually
+  // ====>>
+  // defaults
+  digi->getDigiParams().setContinuous(rate > 0); // continuous vs per-event mode
+  digi->getDigiParams().setROFrameLength(6000);  // RO frame in ns
+  digi->getDigiParams().setStrobeDelay(6000);    // Strobe delay wrt beginning of the RO frame, in ns
+  digi->getDigiParams().setStrobeLength(100);    // Strobe length in ns
+  // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+  digi->getDigiParams().getSignalShape().setParameters(7500., 1100., 450.);
+  digi->getDigiParams().setChargeThreshold(150); // charge threshold in electrons
+  digi->getDigiParams().setNoisePerPixel(1.e-7); // noise level
+  // <<===
+
+  //-------------- do we have QED digits file provided ?
+  TFile* qedHitsFile = nullptr;
+  if (!inputfileQED.empty()) {
+    qedHitsFile = TFile::Open(inputfileQED.data());
+    if (!qedHitsFile || qedHitsFile->IsZombie()) {
+      LOG(FATAL) << "Failed to open QED file " << inputfileQED << FairLogger::endl;
+    }
+    TTree* qedTree = (TTree*)qedHitsFile->Get("o2sim");
+    if (!qedTree) {
+      LOG(FATAL) << "No o2sim tree in QED file " << inputfileQED << FairLogger::endl;
+    }
+    TBranch* qedBranch = qedTree->GetBranch("ITSHit");
+    if (!qedBranch) {
+      LOG(FATAL) << "No ITSHit branch in the QED hits tree of file " << inputfileQED << FairLogger::endl;
+    }
+    digi->setQEDInput(qedBranch, timebinQEDns, 99); // the QED is assigned source ID = 99
+  }
+
   digi->setFairTimeUnitInNS(1.0); // tell in which units (wrt nanosecond) FAIT timestamps are
   fRun->AddTask(digi);
 
@@ -86,6 +115,11 @@ void run_digi_its(float rate = 50e3, std::string outputfile = "o2dig.root", std:
   std::cout << "Output file is " << outputfile << std::endl;
   // std::cout << "Parameter file is " << parFile << std::endl;
   std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+
+  if (qedHitsFile) {
+    qedHitsFile->Close();
+    delete qedHitsFile;
+  }
 }
 
 int updateITSinGRP(std::string inputGRP, std::string grpName)
@@ -117,12 +151,12 @@ int updateITSinGRP(std::string inputGRP, std::string grpName)
   return 0;
 }
 
-void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp = kTRUE, Float_t rate = 50.e3)
+void run_digi_its(Int_t nEvents, TString mcEngine, Float_t rate)
 {
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;
   inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
   paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
   outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
-  run_digi_its(rate, outputfile.str().c_str(), inputfile.str().c_str(), paramfile.str().c_str(), "", alp);
+  run_digi_its(rate, outputfile.str().c_str(), inputfile.str().c_str(), paramfile.str().c_str(), "");
 }

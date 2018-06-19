@@ -28,41 +28,74 @@ namespace TPC {
 class Detector: public o2::Base::DetImpl<Detector> {
 
   public:
-    /**      Name :  Detector Name
-     *       Active: kTRUE for active detectors (ProcessHits() will be called)
-     *               kFALSE for inactive detectors
+   /** Local material/media IDs for TPC */
+   enum EMedium {
+     kAir = 0,
+     kDriftGas1 = 1,
+     kDriftGas2 = 2,
+     kCO2 = 3,
+     kDriftGas3 = 20,
+     kAl = 4,
+     kKevlar = 5,
+     kNomex = 6,
+     kMakrolon = 7,
+     kMylar = 8,
+     kTedlar = 9,
+     kPrepreg1 = 10,
+     kPrepreg2 = 11,
+     kPrepreg3 = 12,
+     kEpoxy = 13,
+     kCu = 14,
+     kSi = 15,
+     kG10 = 16,
+     kPlexiglas = 17,
+     kSteel = 18,
+     kPeek = 19,
+     kAlumina = 21,
+     kWater = 22,
+     kBrass = 23,
+     kEpoxyfm = 24,
+     kEpoxy1 = 25,
+     kAlumina1 = 26
+   };
+   /**      Name :  Detector Name
+    *       Active: kTRUE for active detectors (ProcessHits() will be called)
+    *               kFALSE for inactive detectors
     */
-    Detector(Bool_t Active);
+   Detector(Bool_t Active);
 
-    /**      default constructor    */
-    Detector();
+   /**      default constructor    */
+   Detector();
 
-    /**       destructor     */
-    ~Detector() override;
+   /**       destructor     */
+   ~Detector() override;
 
-    /**      Clone this object (used in MT mode only)    */
-    FairModule *CloneModule() const override;
+   /**      Clone this object (used in MT mode only)    */
+   FairModule* CloneModule() const override;
 
-    /**      Initialization of the detector is done here    */
-    void   Initialize() override;
+   /**      Initialization of the detector is done here    */
+   void Initialize() override;
 
-    /**       this method is called for each step during simulation
-     *       (see FairMCApplication::Stepping())
+   /**       this method is called for each step during simulation
+    *       (see FairMCApplication::Stepping())
     */
-//     virtual Bool_t ProcessHitsOrig( FairVolume* v=0);
-    Bool_t ProcessHits( FairVolume* v=nullptr) override;
+   //     virtual Bool_t ProcessHitsOrig( FairVolume* v=0);
+   Bool_t ProcessHits(FairVolume* v = nullptr) override;
 
-    /**       Registers the produced collections in FAIRRootManager.     */
-    void   Register() override;
+   /**       Registers the produced collections in FAIRRootManager.     */
+   void Register() override;
 
-    /** Get the produced hits */
-    std::vector<HitGroup>* getHits(Int_t iColl) const
-    {
-      if (iColl >= 0 && iColl < Sector::MAXSECTOR) {
-        return mHitsPerSectorCollection[iColl];
-      }
-      return nullptr;
+   /** Get the produced hits */
+   std::vector<HitGroup>* getHits(Int_t iColl) const
+   {
+     if (iColl >= 0 && iColl < Sector::MAXSECTOR) {
+       return mHitsPerSectorCollection[iColl];
+     }
+     return nullptr;
     }
+
+    /** tell the branch names corresponding to hits **/
+    std::string getHitBranchNames(int coll) const override;
 
     /**      has to be called after each event to reset the containers      */
     void   Reset() override;

@@ -10,8 +10,10 @@
 #include "Framework/LogParsingHelpers.h"
 #include <regex>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel::Size] = {
     "DEBUG",
@@ -23,20 +25,32 @@ char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel
 using LogLevel = o2::framework::LogParsingHelpers::LogLevel;
 
 LogLevel LogParsingHelpers::parseTokenLevel(const std::string &s) {
-  std::smatch match;
-  const static std::regex metricsRE(R"regex(^\[[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\]\[(DEBUG|INFO|STATE|WARN|ERROR)\] .*)regex");
-  std::regex_match(s, match, metricsRE);
 
-  if (match.empty()) {
+  // Example format: [99:99:99][ERROR] (string begins with that, longest is 17 chars)
+  constexpr size_t MAXPREFLEN = 17;
+  constexpr size_t LABELPOS = 10;
+  if (s.size() < MAXPREFLEN) {
     return LogLevel::Unknown;
   }
-  if (match[1] == "DEBUG") {
+
+  // Check if first chars match [NN:NN:NN]
+  //                            0123456789
+  if ((unsigned char)s[0] != '[' || (unsigned char)s[9] != ']' ||
+      (unsigned char)s[3] != ':' || (unsigned char)s[6] != ':' ||
+      (unsigned char)s[1] - '0' > 9 || (unsigned char)s[2] - '0' > 9 ||
+      (unsigned char)s[4] - '0' > 9 || (unsigned char)s[5] - '0' > 9 ||
+      (unsigned char)s[7] - '0' > 9 || (unsigned char)s[8] - '0' > 9) {
+    return LogLevel::Unknown;
+  }
+
+  if (s.compare(LABELPOS, 8, "[DEBUG] ") == 0) {
     return LogLevel::Debug;
-  } else if (match[1] == "INFO" || match[1] == "STATE") {
+  } else if (s.compare(LABELPOS, 7, "[INFO] ") == 0 ||
+             s.compare(LABELPOS, 8, "[STATE] ") == 0) {
     return LogLevel::Info;
-  } else if (match[1] == "WARN") {
+  } else if (s.compare(LABELPOS, 7, "[WARN] ") == 0) {
     return LogLevel::Warning;
-  } else if (match[1] == "ERROR") {
+  } else if (s.compare(LABELPOS, 8, "[ERROR] ") == 0) {
     return LogLevel::Error;
   }
   return LogLevel::Unknown;

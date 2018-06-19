@@ -66,7 +66,7 @@ class ROOTSerialized
   wrapped_type& mRef;
   hint_type* mHint; // optional hint e.g. class info or class name
 };
-}
-}
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_SERIALIZATIONMETHODS_H

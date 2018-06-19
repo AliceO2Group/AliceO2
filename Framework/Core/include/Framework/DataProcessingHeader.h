@@ -14,12 +14,13 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <iostream>
 #include <memory>
 #include <cassert>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 //__________________________________________________________________________________________________
 /// @defgroup o2_dataflow_header The DataFlow Header
@@ -88,7 +89,7 @@ struct DataProcessingHeader : public header::BaseHeader
   }
 };
 
-} //namespace framework
-} //namespace o2
+} // namespace framework
+} // namespace o2
 
 #endif // FRAMEWORK_DATAPROCESSINGHEADER_H

@@ -3,6 +3,7 @@ ALICE O2 software
 =================
 
 [![codecov](https://codecov.io/gh/AliceO2Group/AliceO2/branch/dev/graph/badge.svg)](https://codecov.io/gh/AliceO2Group/AliceO2/branches/dev)
+[![JIRA](https://img.shields.io/badge/JIRA-Report%20issue-blue.svg)](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1)
 
 ### Scope
 The ALICE O2 software repository contains the framework, as well as the detector specific, code for the reconstruction, calibration and simulation for the ALICE experiment at CERN for Run 3 and 4. It also encompasses the commonalities such as the data format, and the global algorithms like the global tracking. 
@@ -16,7 +17,7 @@ A quickstart page can be found under [https://aliceo2group.github.io/](https://a
 In order to install with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
 
 ### Issue tracking system
-We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets.
+We use JIRA to track issues. [Report a bug here](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1).
 
 ### Coding guidelines
 The Coding Guidelines are [here](https://github.com/AliceO2Group/CodingGuidelines).

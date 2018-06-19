@@ -10,27 +10,30 @@
 #ifndef FRAMEWORK_ROOTOBJETCONTEXT_H
 #define FRAMEWORK_ROOTOBJETCONTEXT_H
 
-#include <fairmq/FairMQMessage.h>
-#include <TObject.h>
-
 #include <vector>
 #include <cassert>
 #include <string>
+#include <memory>
 
-namespace o2 {
-namespace framework {
+class TObject;
+class FairMQMessage;
+
+namespace o2
+{
+namespace framework
+{
 
 class RootObjectContext {
 public:
   struct MessageRef {
-    FairMQMessagePtr header;
+    std::unique_ptr<FairMQMessage> header;
     std::unique_ptr<TObject> payload;
     std::string channel;
   };
 
   using Messages = std::vector<MessageRef>;
 
-  void addObject(FairMQMessagePtr header,
+  void addObject(std::unique_ptr<FairMQMessage> header,
                  std::unique_ptr<TObject> obj,
                  const std::string &channel)
   {
@@ -76,6 +79,6 @@ private:
   size_t mTimeslice;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_ROOTOBJECTCONTEXT_H

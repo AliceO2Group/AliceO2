@@ -14,8 +14,10 @@
 #include <cstddef>
 #include <string>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 // This uniquely identifies a route out of the device if
 // the OutputSpec @a matcher and @a timeslice match.
@@ -26,6 +28,6 @@ struct OutputRoute {
   std::string channel;
 };
 
-}
-}
+} // namespace framework
+} // namespace o2
 #endif

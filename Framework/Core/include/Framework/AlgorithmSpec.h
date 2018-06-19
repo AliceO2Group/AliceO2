@@ -16,8 +16,10 @@
 
 #include <functional>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// This is the class holding the actual algorithm to be used. Notice that the
 /// InitCallback  can  be  used  to  define stateful  data  as  it  returns  a

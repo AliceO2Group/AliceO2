@@ -18,8 +18,10 @@
 #include <vector>
 #include <memory>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// A simple service to create ROOT files in the local folder
 class LocalRootFileService : public RootFileService {
@@ -28,6 +30,6 @@ public:
   std::string format(const char *fmt, ...) final;
 };
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_LOCALROOTFILESERVICE_H

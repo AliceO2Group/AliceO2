@@ -1,0 +1,34 @@
+{
+  "qc": {
+    "config": {
+      "DataSampling": {
+        "tasksList": "readoutQcTask",
+        "enableTimePipeliningDispatchers": "0",
+        "enableParallelDispatchers": "0",
+        "enableProxy": "0"
+      }
+    },
+    "tasks_config": {
+      "readoutQcTask": {
+        "taskDefinition": "readoutQcTaskDefinition"
+      },
+      "readoutQcTaskDefinition": {
+        "outputDataOrigin": "ITS",
+        "outputDataDescription": "HIST_SKLT_TASK",
+        "inputs": "readoutInput",
+        "fraction": "0.1",
+        "subSpec": "-1",
+        "dispatcherType": "FlpProto",
+        "channelConfig": "name=dpl-out,type=pub,method=bind,address=tcp://127.0.0.1:26525,rateLogging=1"
+      },
+      "readoutInput": {
+        "inputName": "readout",
+        "dataOrigin": "ITS",
+        "dataDescription": "RAWDATA",
+        "spawnConverter": "1",
+        "channelConfig": "type=sub,method=connect,address=tcp://localhost:5558,rateLogging=1",
+        "converterType": "incrementalConverter"
+      }
+    }
+  }
+}

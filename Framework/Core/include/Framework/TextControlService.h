@@ -14,8 +14,10 @@
 #include <string>
 #include <regex>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 /// A service that data processors can use to talk to control and ask for
 /// their own state change or others.
@@ -41,6 +43,6 @@ private:
 
 bool parseControl(const std::string &s, std::smatch &match);
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2
 #endif // FRAMEWORK_TEXTCONTROLSERVICE_H

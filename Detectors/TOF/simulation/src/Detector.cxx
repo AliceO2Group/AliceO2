@@ -62,38 +62,34 @@ void Detector::Initialize()
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  static thread_local TLorentzVector position2;
-  fMC->TrackPosition(position2);
-
-  fMC->TrackPosition(position2);
-  Float_t radius = TMath::Sqrt(position2.X() * position2.X() + position2.Y() * position2.Y());
-  LOG(DEBUG) << "Process hit in TOF volume ar R=" << radius << " - Z=" << position2.Z() << FairLogger::endl;
-
   // This method is called from the MC stepping for the sensitive volume only
-
   if (static_cast<int>(fMC->TrackCharge()) == 0) {
     // set a very large step size for neutral particles
     return kFALSE; // take only charged particles
   }
+
+  float pos2x, pos2y, pos2z;
+  fMC->TrackPosition(pos2x, pos2y, pos2z);
+  Float_t radius = std::sqrt(pos2x * pos2x + pos2y * pos2y);
+  LOG(DEBUG) << "Process hit in TOF volume ar R=" << radius << " - Z=" << pos2z;
 
   Float_t enDep = fMC->Edep();
   if (enDep < 1E-8)
     return kFALSE; // wo se need a threshold?
 
   // ADD HIT
-  static thread_local TLorentzVector position;
-  fMC->TrackPosition(position);
+  float posx, posy, posz;
+  fMC->TrackPosition(posx, posy, posz);
   float time = fMC->TrackTime() * 1.0e09;
   auto stack = static_cast<o2::Data::Stack*>(fMC->GetStack());
   int trackID = stack->GetCurrentTrackNumber();
   int sensID = v->getMCid();
   Int_t det[5];
-  Float_t pos[3] = { static_cast<Float_t>(position.X()), static_cast<Float_t>(position.Y()),
-                     static_cast<Float_t>(position.Z()) };
+  Float_t pos[3] = { posx, posy, posz };
   Float_t delta[3];
   Geo::getPadDxDyDz(pos, det, delta);
   auto channel = Geo::getIndex(det);
-  HitType newhit(position.X(), position.Y(), position.Z(), time, enDep, trackID, sensID);
+  HitType newhit(posx, posy, posz, time, enDep, trackID, sensID);
   if (channel != mLastChannelID || !isMergable(newhit, mHits->back())) {
     mHits->push_back(newhit);
     stack->addHit(GetDetId());
@@ -1859,7 +1855,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t isect = 0; isect < Geo::NSECTORS; isect++) {
     for (Int_t istr = 1; istr <= Geo::NSTRIPXSECTOR; istr++) {
       modUID = o2::Base::GeometryManager::getSensID(idTOF, modnum++);
-      LOG(INFO) << "modUID: " << modUID << "\n";
+      LOG(DEBUG) << "modUID: " << modUID;
 
       if (mTOFSectors[isect] == -1)
         continue;
@@ -1900,15 +1896,15 @@ void Detector::addAlignableVolumes() const
       LOG(DEBUG) << "--------------------------------------------"
                  << "\n";
 
-      LOG(INFO) << "Check for alignable entry: " << symName << "\n";
+      LOG(DEBUG) << "Check for alignable entry: " << symName;
 
       if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID))
-        LOG(ERROR) << "Alignable entry " << symName << " NOT set\n";
-      LOG(INFO) << "Alignable entry " << symName << " set\n";
+        LOG(ERROR) << "Alignable entry " << symName << " NOT set";
+      LOG(DEBUG) << "Alignable entry " << symName << " set";
 
       // T2L matrices for alignment
       TGeoPNEntry* e = gGeoManager->GetAlignableEntryByUID(modUID);
-      LOG(INFO) << "Got TGeoPNEntry " << e << "\n";
+      LOG(DEBUG) << "Got TGeoPNEntry " << e;
 
       if (e) {
         TGeoHMatrix* globMatrix = e->GetGlobalOrig();

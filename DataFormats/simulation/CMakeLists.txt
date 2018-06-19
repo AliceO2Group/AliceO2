@@ -11,6 +11,7 @@ set(SRCS
   src/GeneratorInfo.cxx
   src/HeavyIonInfo.cxx
   src/CrossSectionInfo.cxx
+  src/MCInteractionRecord.cxx
 )
 
 Set(HEADERS
@@ -26,6 +27,7 @@ Set(HEADERS
     include/${MODULE_NAME}/GeneratorInfo.h
     include/${MODULE_NAME}/HeavyIonInfo.h
     include/${MODULE_NAME}/CrossSectionInfo.h
+    include/${MODULE_NAME}/PrimaryChunk.h
 )
 
 Set(LINKDEF src/SimulationDataLinkDef.h)

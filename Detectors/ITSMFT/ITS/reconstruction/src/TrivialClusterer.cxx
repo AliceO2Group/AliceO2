@@ -47,11 +47,13 @@ TrivialClusterer::process(const std::vector<Digit>* digits, std::vector<Cluster>
     clusters->emplace_back(d.getChipIndex(), tra, sigma2, sigma2, 0.);
     (*clusters)[noc].SetUniqueID(noc); // Save the index within the cluster array
     if (mClsLabels) {
+      /*
       for (int i=0; i<Digit::maxLabels; i++) {
         Label lab = d.getLabel(i);
         if (lab.isEmpty()) break;
         mClsLabels->addElement(noc,lab);
       }
+      */
     }
   }
 }

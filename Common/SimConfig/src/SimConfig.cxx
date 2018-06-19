@@ -9,10 +9,49 @@
 // or submit itself to any jurisdiction.
 
 #include <SimConfig/SimConfig.h>
+#include <DetectorsCommonDataFormats/DetID.h>
 #include <boost/program_options.hpp>
 #include <iostream>
 
 using namespace o2::conf;
+namespace bpo = boost::program_options;
+
+void SimConfig::initOptions(boost::program_options::options_description& options)
+{
+  options.add_options()(
+    "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
+    "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
+    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(
+                   std::vector<std::string>({ "all" }), "all modules"),
+    "list of detectors")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
+    "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
+    "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
+    "name of kinematics file for event generator from file (when applicable)")(
+    "bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")(
+    "isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only")(
+    "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files");
+}
+
+bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+{
+  using o2::detectors::DetID;
+  mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
+  mConfigData.mActiveDetectors = vm["modules"].as<std::vector<std::string>>();
+  if (mConfigData.mActiveDetectors.size() == 1 && mConfigData.mActiveDetectors[0] == "all") {
+    mConfigData.mActiveDetectors.clear();
+    for (int d = DetID::First; d <= DetID::Last; ++d) {
+      mConfigData.mActiveDetectors.push_back(DetID::getName(d));
+    }
+  }
+  mConfigData.mGenerator = vm["generator"].as<std::string>();
+  mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
+  mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
+  mConfigData.mStartEvent = vm["startEvent"].as<unsigned int>();
+  mConfigData.mBMax = vm["bMax"].as<float>();
+  mConfigData.mIsMT = vm["isMT"].as<bool>();
+  mConfigData.mOutputPrefix = vm["outPrefix"].as<std::string>();
+  return true;
+}
 
 bool SimConfig::resetFromArguments(int argc, char* argv[])
 {
@@ -21,17 +60,8 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
   // Arguments parsing
   bpo::variables_map vm;
   bpo::options_description desc("Allowed options");
-  desc.add_options()("help,h", "Produce help message.")(
-    "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
-    "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
-    "modules,m",
-    bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({ "EMCAL TOF TPC TRD" }), "EMCAL TOF TPC TRD"),
-    "list of detectors")
-    ("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")
-    ("startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")
-    ("extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"), "name of kinematics file for event generator from file (when applicable)")
-    ("bMax,b", bpo::value<float>()->default_value(0.), "maximum value for impact parameter sampling (when applicable)")
-    ("isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only");
+  desc.add_options()("help,h", "Produce help message.");
+  initOptions(desc);
 
   try {
     bpo::store(parse_command_line(argc, argv, desc), vm);
@@ -47,16 +77,7 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
     return false;
   }
 
-  mMCEngine = vm["mcEngine"].as<std::string>();
-  mActiveDetectors = vm["modules"].as<std::vector<std::string>>();
-  mGenerator = vm["generator"].as<std::string>();
-  mNEvents = vm["nEvents"].as<unsigned int>();
-  mExtKinFileName = vm["extKinFile"].as<std::string>();
-  mStartEvent = vm["startEvent"].as<unsigned int>();
-  mBMax = vm["bMax"].as<float>();
-  mIsMT = vm["isMT"].as<bool>();
-  
-  return true;
+  return resetFromParsedMap(vm);
 }
 
 ClassImp(o2::conf::SimConfig);

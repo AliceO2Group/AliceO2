@@ -32,51 +32,46 @@ size_t collectionChunkSize = 1000;
 void someDataProducerAlgorithm(ProcessingContext& ctx);
 void someProcessingStageAlgorithm(ProcessingContext& ctx);
 
-void defineDataProcessing(std::vector<DataProcessorSpec>& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-
-  DataProcessorSpec dataProducer{
-    "dataProducer",
-    Inputs{},
+  return WorkflowSpec {
     {
-      OutputSpec{ "TPC", "CLUSTERS" },
-    },
-    AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
-    }
-  };
-
-  auto processingStage = timePipeline(
-    DataProcessorSpec{
-      "processingStage",
-      Inputs{
-        { "dataTPC", "TPC", "CLUSTERS" }
-      },
-      Outputs{
-        { "TPC", "CLUSTERS_P" }
+      "dataProducer",
+      Inputs{},
+      {
+        OutputSpec{ "TPC", "CLUSTERS" },
       },
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
+        (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
       }
     },
-    parallelSize
-  );
-
-  DataProcessorSpec dataSampler{
-    "dataSampler",
-    Inputs{
-      { "dataTPC-sampled", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
-    },
-    Outputs{},
-    AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
+    timePipeline(
+      DataProcessorSpec{
+        "processingStage",
+        Inputs{
+          { "dataTPC", "TPC", "CLUSTERS" }
+        },
+        Outputs{
+          { "TPC", "CLUSTERS_P" }
+        },
+        AlgorithmSpec{
+          (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
+        }
+      },
+      parallelSize
+    ),
+    DataProcessorSpec{
+      "dataSampler",
+      Inputs{
+        { "dataTPC-sampled", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
+      },
+      Outputs{},
+      AlgorithmSpec{
+        (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
+        }
       }
     }
   };
-
-  specs.push_back(dataProducer);
-  specs.push_back(processingStage);
-  specs.push_back(dataSampler);
 }
 
 

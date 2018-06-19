@@ -15,7 +15,8 @@
 #include "ITSMFTSimulation/Hit.h"
 #include "MFTBase/GeometryTGeo.h"
 #include "MathUtils/Utils.h"
-
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include <vector>
 
 #endif
@@ -61,6 +62,8 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
   TTree* digTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::ITSMFT::Digit>* digArr = nullptr;
   digTree->SetBranchAddress("MFTDigit", &digArr);
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
+  digTree->SetBranchAddress("MFTDigitMCTruth", &labels);
 
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   Int_t nevH = hitTree->GetEntries(); // hits are stored as one event per entry
@@ -82,8 +85,10 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
       seg.detectorToLocal(ix, iz, x, z);
       const Point3D<Float_t> locD(x, 0., z);
 
+      const auto& labs = labels->getLabels(nd);
+
       Int_t chipID = d->getChipIndex();
-      o2::MCCompLabel lab = d->getLabel(0);
+      o2::MCCompLabel lab = labs[0];
       Int_t trID = lab.getTrackID();
       Int_t ievH = lab.getEventID();
 

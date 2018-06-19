@@ -19,7 +19,7 @@
 
 #include "ConversionConstants.h"
 
-#include <iostream>
+#include <iosfwd>
 #include <string>
 #include <vector>
 #include <cmath>

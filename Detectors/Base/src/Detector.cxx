@@ -18,8 +18,8 @@
 #include "Field/MagneticField.h"
 #include "TString.h" // for TString
 
-using std::endl;
 using std::cout;
+using std::endl;
 using std::fstream;
 using std::ios;
 using std::ostream;
@@ -57,60 +57,46 @@ Detector& Detector::operator=(const Detector& rhs)
 void Detector::Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
                         Float_t* buf, Int_t nwbuf)
 {
-#ifdef NEWMAT
-  // new way
   auto& mgr = o2::Base::MaterialManager::Instance();
   mgr.Material(GetName(), imat, name, a, z, dens, radl, absl, buf, nwbuf);
-#else
-  TString uniquename = GetName();
-  uniquename.Append("_");
-  uniquename.Append(name);
-
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Material(kmat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
-  mMapMaterial[imat] = kmat;
-#endif
 }
 
 void Detector::Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat)
 {
-#ifdef NEWMAT
-  // new way
   auto& mgr = o2::Base::MaterialManager::Instance();
   mgr.Mixture(GetName(), imat, name, a, z, dens, nlmat, wmat);
-#else
-  TString uniquename = GetName();
-  uniquename.Append("_");
-  uniquename.Append(name);
-
-  // Check this!!!
-  int kmat = -1;
-  TVirtualMC::GetMC()->Mixture(kmat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
-  mMapMaterial[imat] = kmat;
-#endif
 }
 
 void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm,
                       Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf,
                       Int_t nbuf)
 {
-#ifdef NEWMAT
-  // new way
   auto& mgr = o2::Base::MaterialManager::Instance();
   mgr.Medium(GetName(), numed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf, nbuf);
-#else
-  TString uniquename = GetName();
-  uniquename.Append("_");
-  uniquename.Append(name);
+}
 
-  // Check this!!!
-  int kmed = -1;
-  const int kmat = mMapMaterial[nmat];
-  TVirtualMC::GetMC()->Medium(kmed, uniquename.Data(), kmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
-                              stmin, ubuf, nbuf);
-  mMapMedium[numed] = kmed;
-#endif
+void Detector::SpecialCuts(Int_t numed, const std::initializer_list<std::pair<ECut, Float_t>>& parIDValMap)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialCuts(GetName(), numed, parIDValMap);
+}
+
+void Detector::SpecialCut(Int_t numed, ECut parID, Float_t val)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialCut(GetName(), numed, parID, val);
+}
+
+void Detector::SpecialProcesses(Int_t numed, const std::initializer_list<std::pair<EProc, int>>& parIDValMap)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialProcesses(GetName(), numed, parIDValMap);
+}
+
+void Detector::SpecialProcess(Int_t numed, EProc parID, int val)
+{
+  auto& mgr = MaterialManager::Instance();
+  mgr.SpecialProcess(GetName(), numed, parID, val);
 }
 
 void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2, Float_t theta3,
@@ -133,19 +119,21 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nla
 
 void Detector::initFieldTrackingParams(int& integration, float& maxfield)
 {
-  auto vmc = TVirtualMC::GetMC();
-  auto field = vmc->GetMagField();
   // set reasonable default values
   integration = 2;
   maxfield = 10;
-  // see if we can query the o2 field
-  if (auto o2field = dynamic_cast<o2::field::MagneticField*>(field)) {
-    integration = o2field->Integral(); // default integration method?
-    maxfield = o2field->Max();
-  } else {
-    LOG(INFO) << "No magnetic field found; using default tracking values " << integration << " " << maxfield
-              << " to initialize media\n";
+  auto vmc = TVirtualMC::GetMC();
+  if (vmc) {
+    auto field = vmc->GetMagField();
+    // see if we can query the o2 field
+    if (auto o2field = dynamic_cast<o2::field::MagneticField*>(field)) {
+      integration = o2field->Integral(); // default integration method?
+      maxfield = o2field->Max();
+      return;
+    }
   }
+  LOG(INFO) << "No magnetic field found; using default tracking values " << integration << " " << maxfield
+            << " to initialize media\n";
 }
 
 TClonesArray* Detector::GetCollection(int) const

@@ -14,6 +14,7 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceSpec.h"
@@ -28,8 +29,10 @@
 #include <string>
 #include <map>
 
-namespace o2 {
-namespace framework {
+namespace o2
+{
+namespace framework
+{
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -37,6 +40,7 @@ struct DeviceSpecHelpers {
   static void dataProcessorSpecs2DeviceSpecs(
       const WorkflowSpec &workflow,
       std::vector<ChannelConfigurationPolicy> const &channelPolicies,
+      std::vector<CompletionPolicy> const &completionPolicies,
       std::vector<DeviceSpec> &devices,
       std::vector<ComputingResource> &resources
       );
@@ -49,6 +53,7 @@ struct DeviceSpecHelpers {
       bool defaultQuiet,
       bool defaultStopped,
       const std::vector<DeviceSpec> &deviceSpecs,
+      const std::vector<ConfigParamSpec> &workflowOptions,
       std::vector<DeviceExecution> &deviceExecutions,
       std::vector<DeviceControl> &deviceControls);
 

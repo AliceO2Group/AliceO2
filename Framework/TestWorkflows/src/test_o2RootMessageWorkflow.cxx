@@ -10,7 +10,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/MetricsService.h"
+#include <Monitoring/Monitoring.h>
 #include "Headers/DataHeader.h"
 // FIXME: this should not be needed as the framework should be able to
 //        decode TClonesArray by itself.
@@ -26,8 +26,8 @@ using DataOrigin = o2::header::DataOrigin;
 using DataDescription = o2::header::DataDescription;
 
 // This is how you can define your processing in a declarative way
-void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
-    std::vector<DataProcessorSpec> workflow = {
+WorkflowSpec defineDataProcessing(ConfigContext const&) {
+  return WorkflowSpec{
     {
       "producer",
       {},
@@ -63,7 +63,7 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
           // FIXME: for the moment we need to do the deserialization ourselves.
           //        this should probably be encoded in the serialization field
           //        of the DataHeader and done automatically by the framework
-          auto h = ctx.inputs().get<TH1F>("histos");
+          auto h = ctx.inputs().get<TH1F*>("histos");
           if (h.get() == nullptr) {
             throw std::runtime_error("Missing output");
           }
@@ -73,12 +73,11 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
                     << "sumw2" << stats[1] << "\n"
                     << "sumwx" << stats[2] << "\n"
                     << "sumwx2" << stats[3] << "\n";
-          auto s = ctx.inputs().get<TObjString>("string");
+          auto s = ctx.inputs().get<TObjString*>("string");
 
           LOG(INFO) << "String is " << s->GetString().Data();
         }
       }
     }
   };
-  specs.swap(workflow);
 }

@@ -54,4 +54,8 @@
 #pragma link C++ class o2::dataformats::HeavyIonInfo + ;
 #pragma link C++ class o2::dataformats::CrossSectionInfo + ;
 
+#pragma link C++ struct o2::Data::SubEventInfo+;
+#pragma link C++ class std::vector<o2::Data::SubEventInfo>+;
+#pragma link C++ struct o2::Data::PrimaryChunk+;
+
 #endif

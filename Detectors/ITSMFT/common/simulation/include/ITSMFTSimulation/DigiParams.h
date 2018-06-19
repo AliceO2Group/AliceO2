@@ -15,8 +15,10 @@
 #define ALICEO2_ITSMFT_DIGIPARAMS_H
 
 #include <Rtypes.h>
+#include <ITSMFTSimulation/AlpideSignalTrapezoid.h>
 
 ////////////////////////////////////////////////////////////
+//                                                        //
 // Simulation params for Alpide chip                      //
 //                                                        //
 // This is a provisionary implementation, until proper    //
@@ -25,77 +27,85 @@
 //                                                        //
 ////////////////////////////////////////////////////////////
 
-namespace o2 {
-namespace ITSMFT {
+namespace o2
+{
+namespace ITSMFT
+{
 
-  class AlpideSimResponse;
-  
-  class DigiParams {
-  public:
+class AlpideSimResponse;
 
-    enum Hit2DigitsMethod {p2dSimple, p2dCShape};
+class DigiParams
+{
 
-    DigiParams() = default;
-    ~DigiParams() = default;
-    
-    void  setNoisePerPixel(float v)       {mNoisePerPixel = v;}
-    float getNoisePerPixel()        const {return mNoisePerPixel;}
+  using SignalShape = o2::ITSMFT::AlpideSignalTrapezoid;
 
-    void  setContinuous(bool v)           {mIsContinuous = v;}
-    bool  isContinuous()            const {return mIsContinuous;}
+ public:
+  DigiParams();
+  ~DigiParams() = default;
 
-    void setROFrameLenght(float l) { mROFrameLenght = l; }
-    void setROFrameDeadTime(float l) { mROFrameDeadTime = l; }
-    float getROFrameLenght() const { return mROFrameLenght; }
-    float getROFrameDeadTime() const { return mROFrameDeadTime; }
+  void setNoisePerPixel(float v) { mNoisePerPixel = v; }
+  float getNoisePerPixel() const { return mNoisePerPixel; }
 
-    void   setTimeOffset(double t)        {mTimeOffset = t;}
-    double getTimeOffset()          const {return mTimeOffset;}
+  void setContinuous(bool v) { mIsContinuous = v; }
+  bool isContinuous() const { return mIsContinuous; }
 
-    void setACSFromBGPar0(float v)        {mACSFromBGPar0 = v;}
-    void setACSFromBGPar1(float v)        {mACSFromBGPar1 = v;}
-    void setACSFromBGPar2(float v)        {mACSFromBGPar2 = v;}
-    void setChargeThreshold(int v)        {mChargeThreshold = v;}
-    void setNSimSteps(int v)              {mNSimSteps = v;}
-    void setEnergyToNElectrons(float v)   {mEnergyToNElectrons = v;}
+  void setROFrameLength(float ns);
+  float getROFrameLength() const { return mROFrameLength; }
+  float getROFrameLengthInv() const { return mROFrameLengthInv; }
 
-    float getACSFromBGPar0()        const {return mACSFromBGPar0;}
-    float getACSFromBGPar1()        const {return mACSFromBGPar1;}
-    float getACSFromBGPar2()        const {return mACSFromBGPar2;}
-    int   getChargeThreshold()      const {return mChargeThreshold;}
-    int   getNSimSteps()            const {return mNSimSteps;}
-    float getEnergyToNElectrons()   const {return mEnergyToNElectrons;}
+  void setStrobeDelay(float ns) { mStrobeDelay = ns; }
+  float getStrobeDelay() const { return mStrobeDelay; }
 
-    bool  isTimeOffsetSet()         const {return mTimeOffset>-infTime;}
-    Hit2DigitsMethod getHit2DigitsMethod() const {return mHit2DigitsMethod;}
-    void setHitDigitsMethod(Hit2DigitsMethod m) { mHit2DigitsMethod = m; }
+  void setStrobeLength(float ns) { mStrobeLength = ns; }
+  float getStrobeLength() const { return mStrobeLength; }
 
-    const o2::ITSMFT::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
-    void setAlpSimResponse(const o2::ITSMFT::AlpideSimResponse* par) { mAlpSimResponse=par; }
-    
-  private:
-    static constexpr double infTime = 1e99;
-    Hit2DigitsMethod mHit2DigitsMethod = p2dCShape; ///< method of point to digitis conversion
-    bool   mIsContinuous = false;   ///< flag for continuous simulation
-    float  mNoisePerPixel = 1.e-7;  ///< ALPIDE Noise per chip
-    float  mROFrameLenght = 10000;  ///< length of RO frame in ns
-    float  mROFrameDeadTime = 25;   ///< dead time in end of the ROFrame, in ns
-    Double_t mTimeOffset = -2*infTime;   ///< time offset to calculate ROFrame from hit time
+  void setTimeOffset(double sec) { mTimeOffset = sec; }
+  double getTimeOffset() const { return mTimeOffset; }
 
-    float mACSFromBGPar0 = -1.315;
-    float mACSFromBGPar1 = 0.5018;
-    float mACSFromBGPar2 = 1.084;
+  void setChargeThreshold(int v, float frac2Account = 0.1);
+  void setNSimSteps(int v);
+  void setEnergyToNElectrons(float v) { mEnergyToNElectrons = v; }
 
-    int mChargeThreshold = 150;  ///< charge threshold in Nelectrons
-    int mNSimSteps       = 7;    ///< number of steps in response simulation
-    float mEnergyToNElectrons = 1./3.6e-9; // conversion of eloss to Nelectrons
+  int getChargeThreshold() const { return mChargeThreshold; }
+  int getMinChargeToAccount() const { return mMinChargeToAccount; }
+  int getNSimSteps() const { return mNSimSteps; }
+  float getNSimStepsInv() const { return mNSimStepsInv; }
+  float getEnergyToNElectrons() const { return mEnergyToNElectrons; }
 
-    const o2::ITSMFT::AlpideSimResponse* mAlpSimResponse = nullptr;
-    
-    ClassDefNV(DigiParams,1);
-  };
+  bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
+  const o2::ITSMFT::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
+  void setAlpSimResponse(const o2::ITSMFT::AlpideSimResponse* par) { mAlpSimResponse = par; }
 
+  const SignalShape& getSignalShape() const { return mSignalShape; }
+  SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
+
+  void print() const;
+
+ private:
+  static constexpr double infTime = 1e99;
+  bool mIsContinuous = false;          ///< flag for continuous simulation
+  float mNoisePerPixel = 1.e-7;        ///< ALPIDE Noise per chip
+  float mROFrameLength = 6000.;        ///< length of RO frame in ns
+  float mStrobeDelay = 6000.;          ///< strobe start (in ns) wrt ROF start
+  float mStrobeLength = 100.;          ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  Double_t mTimeOffset = -2 * infTime; ///< time offset (in seconds!) to calculate ROFrame from hit time
+
+  int mChargeThreshold = 150;              ///< charge threshold in Nelectrons
+  int mMinChargeToAccount = 15;            ///< minimum charge contribution to account
+  int mNSimSteps = 7;                      ///< number of steps in response simulation
+  float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
+
+  o2::ITSMFT::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
+
+  const o2::ITSMFT::AlpideSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
+
+  // auxiliary precalculated parameters
+  float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns
+  float mNSimStepsInv = 0;     ///< its inverse
+
+  ClassDefNV(DigiParams, 1);
+};
 }
 }
 
