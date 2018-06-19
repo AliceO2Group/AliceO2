@@ -86,7 +86,7 @@ HeavyIonInfo::~HeavyIonInfo() { /** default destructor **/}
 
 /*****************************************************************/
 
-void HeavyIonInfo::Reset()
+void HeavyIonInfo::reset()
 {
   /** reset **/
 
@@ -105,7 +105,7 @@ void HeavyIonInfo::Reset()
 
 /*****************************************************************/
 
-void HeavyIonInfo::Print(Option_t* opt) const
+void HeavyIonInfo::print() const
 {
   /** print **/
 
@@ -119,5 +119,3 @@ void HeavyIonInfo::Print(Option_t* opt) const
 
 } /* namespace dataformats */
 } /* namespace o2 */
-
-ClassImp(o2::dataformats::HeavyIonInfo)

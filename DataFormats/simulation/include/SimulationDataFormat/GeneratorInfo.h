@@ -13,8 +13,6 @@
 #ifndef ALICEO2_DATAFORMATS_GENERATORINFO_H_
 #define ALICEO2_DATAFORMATS_GENERATORINFO_H_
 
-#include "TObject.h"
-
 namespace o2
 {
 namespace dataformats
@@ -23,7 +21,7 @@ namespace dataformats
 /*****************************************************************/
 /*****************************************************************/
 
-class GeneratorInfo : public TObject
+class GeneratorInfo
 {
 
  public:
@@ -34,13 +32,15 @@ class GeneratorInfo : public TObject
   /** operator= **/
   GeneratorInfo& operator=(const GeneratorInfo& rhs);
   /** destructor **/
-  ~GeneratorInfo() override;
+  virtual ~GeneratorInfo();
+
+  /** methods **/
+  virtual void print() const { };
 
   /** methods to override **/
-  virtual void Reset() = 0;
+  virtual void reset() = 0;
 
  protected:
-  ClassDefOverride(GeneratorInfo, 1);
 
 }; /** class GeneratorInfo **/
 

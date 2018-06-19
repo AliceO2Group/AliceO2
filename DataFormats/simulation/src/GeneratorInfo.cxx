@@ -20,11 +20,11 @@ namespace dataformats
 /*****************************************************************/
 /*****************************************************************/
 
-GeneratorInfo::GeneratorInfo() : TObject() { /** default constructor **/}
+GeneratorInfo::GeneratorInfo() { /** default constructor **/}
 
 /*****************************************************************/
 
-GeneratorInfo::GeneratorInfo(const GeneratorInfo& rhs) : TObject(rhs) { /** copy constructor **/}
+GeneratorInfo::GeneratorInfo(const GeneratorInfo& rhs) { /** copy constructor **/}
 
 /*****************************************************************/
 
@@ -34,7 +34,6 @@ GeneratorInfo& GeneratorInfo::operator=(const GeneratorInfo& rhs)
 
   if (this == &rhs)
     return *this;
-  TObject::operator=(rhs);
   return *this;
 }
 
@@ -47,5 +46,3 @@ GeneratorInfo::~GeneratorInfo() { /** default destructor **/}
 
 } /* namespace dataformats */
 } /* namespace o2 */
-
-ClassImp(o2::dataformats::GeneratorInfo)

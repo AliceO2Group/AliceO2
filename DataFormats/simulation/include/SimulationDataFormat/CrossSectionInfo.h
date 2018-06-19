@@ -14,6 +14,7 @@
 #define ALICEO2_DATAFORMATS_CROSSSECTIONINFO_H_
 
 #include "SimulationDataFormat/GeneratorInfo.h"
+#include <string>
 
 namespace o2
 {
@@ -37,32 +38,30 @@ class CrossSectionInfo : public GeneratorInfo
   ~CrossSectionInfo() override;
 
   /** getters **/
-  Double_t getCrossSection() const { return mCrossSection; };
-  Double_t getCrossSectionError() const { return mCrossSectionError; };
-  Long64_t getAcceptedEvents() const { return mAcceptedEvents; };
-  Long64_t getAttemptedEvents() const { return mAttemptedEvents; };
+  double getCrossSection() const { return mCrossSection; };
+  double getCrossSectionError() const { return mCrossSectionError; };
+  long int getAcceptedEvents() const { return mAcceptedEvents; };
+  long int getAttemptedEvents() const { return mAttemptedEvents; };
 
   /** setters **/
-  void setCrossSection(Double_t val) { mCrossSection = val; };
-  void setCrossSectionError(Double_t val) { mCrossSectionError = val; };
-  void setAcceptedEvents(Long64_t val) { mAcceptedEvents = val; };
-  void setAttemptedEvents(Long64_t val) { mAttemptedEvents = val; };
+  void setCrossSection(double val) { mCrossSection = val; };
+  void setCrossSectionError(double val) { mCrossSectionError = val; };
+  void setAcceptedEvents(long int val) { mAcceptedEvents = val; };
+  void setAttemptedEvents(long int val) { mAttemptedEvents = val; };
 
   /** methods **/
-  void Print(Option_t* opt = "") const override;
-  void Reset() override;
+  void print() const override;
+  void reset() override;
 
   /** statics **/
   static std::string keyName() { return "cross-section"; };
 
  protected:
   /** data members **/
-  Double_t mCrossSection;      // Generated cross-section
-  Double_t mCrossSectionError; // Generated cross-section error
-  Long64_t mAcceptedEvents;    // The number of events generated so far
-  Long64_t mAttemptedEvents;   // The number of events attempted so far
-
-  ClassDefOverride(CrossSectionInfo, 1);
+  double mCrossSection;      // Generated cross-section
+  double mCrossSectionError; // Generated cross-section error
+  double mAcceptedEvents;    // The number of events generated so far
+  double mAttemptedEvents;   // The number of events attempted so far
 
 }; /** class CrossSectionInfo **/
 

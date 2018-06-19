@@ -61,7 +61,7 @@ CrossSectionInfo::~CrossSectionInfo() { /** default destructor **/}
 
 /*****************************************************************/
 
-void CrossSectionInfo::Reset()
+void CrossSectionInfo::reset()
 {
   /** reset **/
 
@@ -73,7 +73,7 @@ void CrossSectionInfo::Reset()
 
 /*****************************************************************/
 
-void CrossSectionInfo::Print(Option_t* opt) const
+void CrossSectionInfo::print() const
 {
   /** print **/
 
@@ -86,5 +86,3 @@ void CrossSectionInfo::Print(Option_t* opt) const
 
 } /* namespace dataformats */
 } /* namespace o2 */
-
-ClassImp(o2::dataformats::CrossSectionInfo)

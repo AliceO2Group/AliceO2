@@ -79,7 +79,7 @@ void GeneratorHeader::Reset()
   mNumberOfTracks = 0;
   mNumberOfAttempts = 0;
   for (auto& info : mInfo)
-    info.second->Reset();
+    info.second->reset();
 }
 
 /*****************************************************************/
@@ -93,7 +93,7 @@ void GeneratorHeader::Print(Option_t* opt) const
   auto ntracks = getNumberOfTracks();
   std::cout << ">> generator: " << name << " | tracks: " << offset << " -> " << offset + ntracks - 1 << std::endl;
   for (auto const& info : mInfo)
-    info.second->Print();
+    info.second->print();
 }
 
 /*****************************************************************/

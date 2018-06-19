@@ -14,6 +14,7 @@
 #define ALICEO2_DATAFORMATS_HEAVYIONINFO_H_
 
 #include "SimulationDataFormat/GeneratorInfo.h"
+#include <string>
 
 namespace o2
 {
@@ -37,53 +38,51 @@ class HeavyIonInfo : public GeneratorInfo
   ~HeavyIonInfo() override;
 
   /** getters **/
-  Int_t getNcollHard() const { return mNcollHard; };
-  Int_t getNpartProj() const { return mNpartProj; };
-  Int_t getNpartTarg() const { return mNpartTarg; };
-  Int_t getNcoll() const { return mNcoll; };
-  Int_t getNspecNeut() const { return mNspecNeut; };
-  Int_t getNspecProt() const { return mNspecProt; };
-  Double_t getImpactParameter() const { return mImpactParameter; };
-  Double_t getEventPlaneAngle() const { return mEventPlaneAngle; };
-  Double_t getEccentricity() const { return mEccentricity; };
-  Double_t getSigmaNN() const { return mSigmaNN; };
-  Double_t getCentrality() const { return mCentrality; };
+  int getNcollHard() const { return mNcollHard; };
+  int getNpartProj() const { return mNpartProj; };
+  int getNpartTarg() const { return mNpartTarg; };
+  int getNcoll() const { return mNcoll; };
+  int getNspecNeut() const { return mNspecNeut; };
+  int getNspecProt() const { return mNspecProt; };
+  double getImpactParameter() const { return mImpactParameter; };
+  double getEventPlaneAngle() const { return mEventPlaneAngle; };
+  double getEccentricity() const { return mEccentricity; };
+  double getSigmaNN() const { return mSigmaNN; };
+  double getCentrality() const { return mCentrality; };
 
   /** setters **/
-  void setNcollHard(Int_t val) { mNcollHard = val; };
-  void setNpartProj(Int_t val) { mNpartProj = val; };
-  void setNpartTarg(Int_t val) { mNpartTarg = val; };
-  void setNcoll(Int_t val) { mNcoll = val; };
-  void setNspecNeut(Int_t val) { mNspecNeut = val; };
-  void setNspecProt(Int_t val) { mNspecProt = val; };
-  void setImpactParameter(Double_t val) { mImpactParameter = val; };
-  void setEventPlaneAngle(Double_t val) { mEventPlaneAngle = val; };
-  void setEccentricity(Double_t val) { mEccentricity = val; };
-  void setSigmaNN(Double_t val) { mSigmaNN = val; };
-  void setCentrality(Double_t val) { mCentrality = val; };
+  void setNcollHard(int val) { mNcollHard = val; };
+  void setNpartProj(int val) { mNpartProj = val; };
+  void setNpartTarg(int val) { mNpartTarg = val; };
+  void setNcoll(int val) { mNcoll = val; };
+  void setNspecNeut(int val) { mNspecNeut = val; };
+  void setNspecProt(int val) { mNspecProt = val; };
+  void setImpactParameter(double val) { mImpactParameter = val; };
+  void setEventPlaneAngle(double val) { mEventPlaneAngle = val; };
+  void setEccentricity(double val) { mEccentricity = val; };
+  void setSigmaNN(double val) { mSigmaNN = val; };
+  void setCentrality(double val) { mCentrality = val; };
 
   /** methods **/
-  void Print(Option_t* opt = "") const override;
-  void Reset() override;
+  void print() const override;
+  void reset() override;
 
   /** statics **/
   static std::string keyName() { return "heavy-ion"; };
 
  protected:
   /** data members **/
-  Int_t mNcollHard;          // Number of hard collisions
-  Int_t mNpartProj;          // Number of participating nucleons in the projectile
-  Int_t mNpartTarg;          // Number of participating nucleons in the target
-  Int_t mNcoll;              // Number of collisions
-  Int_t mNspecNeut;          // Number of spectator neutrons
-  Int_t mNspecProt;          // Number of spectator protons
-  Double_t mImpactParameter; // Impact parameter
-  Double_t mEventPlaneAngle; // Event plane angle
-  Double_t mEccentricity;    // Eccentricity
-  Double_t mSigmaNN;         // Assumed nucleon-nucleon cross-section
-  Double_t mCentrality;      // Centrality
-
-  ClassDefOverride(HeavyIonInfo, 1);
+  int mNcollHard;          // Number of hard collisions
+  int mNpartProj;          // Number of participating nucleons in the projectile
+  int mNpartTarg;          // Number of participating nucleons in the target
+  int mNcoll;              // Number of collisions
+  int mNspecNeut;          // Number of spectator neutrons
+  int mNspecProt;          // Number of spectator protons
+  double mImpactParameter; // Impact parameter
+  double mEventPlaneAngle; // Event plane angle
+  double mEccentricity;    // Eccentricity
+  double mSigmaNN;         // Assumed nucleon-nucleon cross-section
+  double mCentrality;      // Centrality
 
 }; /** class HeavyIonInfo **/
 
