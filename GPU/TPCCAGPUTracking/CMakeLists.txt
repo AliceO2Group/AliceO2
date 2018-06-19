@@ -51,8 +51,6 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
     GlobalTracker/AliHLTTPCCAGPUTrackerBase.cxx
     TRDTracking/AliHLTTRDTrack.cxx
     TRDTracking/AliHLTTRDTracker.cxx
-    TRDTracking/AliHLTTRDTrackerComponent.cxx
-    TRDTracking/AliHLTTRDTrackletReaderComponent.cxx
     TRDTracking/AliHLTTRDTrackletWord.cxx
 )
 
@@ -79,6 +77,8 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
         SliceTracker/AliHLTTPCCAGlobalMergerComponent.cxx
         SliceTracker/AliHLTTPCCATrackerComponent.cxx
         DataCompression/AliHLTTPCClusterStatComponent.cxx
+        TRDTracking/AliHLTTRDTrackerComponent.cxx
+        TRDTracking/AliHLTTRDTrackletReaderComponent.cxx
     )
     
     add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
@@ -109,7 +109,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
     set(SRCS ${SRCS} Standalone/cmodules/timer.cpp)
 endif()
 if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
-    set (SRCS ${SRCS} ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx)
+    set (SRCS ${SRCS} ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx ${AliRoot_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 endif()
 
 #Default cmake build script for AliRoot
@@ -121,7 +121,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
 
     # Generate the ROOT map
     # Dependecies
-    set(LIBDEPS STEERBase STEER ESD CDB HLTbase TPCbase TPCrec TPCcalib)
+    set(LIBDEPS STEERBase STEER ESD CDB HLTbase TPCbase TPCrec TPCcalib TRDbase)
     generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/LinkDef_AliRoot.h")
     # Don't pass Vc to root
     set(LIBDEPS ${LIBDEPS} Vc)
