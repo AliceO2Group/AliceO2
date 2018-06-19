@@ -13,7 +13,7 @@
 #ifndef ALICEO2_DATAFORMATS_GENERATORHEADER_H_
 #define ALICEO2_DATAFORMATS_GENERATORHEADER_H_
 
-#include "TNamed.h"
+#include <string>
 #include <map>
 
 namespace o2
@@ -28,36 +28,38 @@ class HeavyIonInfo;
 /*****************************************************************/
 /*****************************************************************/
 
-class GeneratorHeader : public TNamed
+class GeneratorHeader
 {
 
  public:
   /** default constructor **/
   GeneratorHeader();
   /** constructor **/
-  GeneratorHeader(const Char_t* name, const Char_t* title = "ALICEo2 Generator Header");
+  GeneratorHeader(const std::string& name);
   /** copy constructor **/
   GeneratorHeader(const GeneratorHeader& rhs);
   /** operator= **/
   GeneratorHeader& operator=(const GeneratorHeader& rhs);
   /** destructor **/
-  ~GeneratorHeader() override;
+  ~GeneratorHeader();
 
   /** getters **/
-  Int_t getTrackOffset() const { return mTrackOffset; };
-  Int_t getNumberOfTracks() const { return mNumberOfTracks; };
-  Int_t getNumberOfAttempts() const { return mNumberOfAttempts; };
+  const std::string& getName() const { return mName; }; 
+  int getTrackOffset() const { return mTrackOffset; };
+  int getNumberOfTracks() const { return mNumberOfTracks; };
+  int getNumberOfAttempts() const { return mNumberOfAttempts; };
   CrossSectionInfo* getCrossSectionInfo() const;
   HeavyIonInfo* getHeavyIonInfo() const;
 
   /** setters **/
-  void setTrackOffset(Int_t val) { mTrackOffset = val; };
-  void setNumberOfTracks(Int_t val) { mNumberOfTracks = val; };
-  void setNumberOfAttempts(Int_t val) { mNumberOfAttempts = val; };
+  void setName(const std::string& val) { mName = val; };
+  void setTrackOffset(int val) { mTrackOffset = val; };
+  void setNumberOfTracks(int val) { mNumberOfTracks = val; };
+  void setNumberOfAttempts(int val) { mNumberOfAttempts = val; };
 
   /** methods **/
-  void Print(Option_t* opt = "") const override;
-  virtual void Reset();
+  void print() const;
+  void reset();
   void removeGeneratorInfo(const std::string& key)
   {
     if (mInfo.count(key))
@@ -70,12 +72,11 @@ class GeneratorHeader : public TNamed
 
  protected:
   /** data members **/
-  Int_t mTrackOffset;
-  Int_t mNumberOfTracks;
-  Int_t mNumberOfAttempts;
+  std::string mName;
+  int mTrackOffset;
+  int mNumberOfTracks;
+  int mNumberOfAttempts;
   std::map<std::string, GeneratorInfo*> mInfo;
-
-  ClassDefOverride(GeneratorHeader, 1);
 
 }; /** class GeneratorHeader **/
 

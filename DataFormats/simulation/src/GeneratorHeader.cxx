@@ -24,15 +24,15 @@ namespace dataformats
 /*****************************************************************/
 
 GeneratorHeader::GeneratorHeader()
-  : TNamed("ALICEo2", "ALICEo2 Generator Header"), mTrackOffset(0), mNumberOfTracks(0), mNumberOfAttempts(0), mInfo()
+  : mName("Generator"), mTrackOffset(0), mNumberOfTracks(0), mNumberOfAttempts(0), mInfo()
 {
   /** default constructor **/
 }
 
 /*****************************************************************/
 
-GeneratorHeader::GeneratorHeader(const Char_t* name, const Char_t* title)
-  : TNamed(name, title), mTrackOffset(0), mNumberOfTracks(0), mNumberOfAttempts(0), mInfo()
+GeneratorHeader::GeneratorHeader(const std::string& name)
+  : mName(name), mTrackOffset(0), mNumberOfTracks(0), mNumberOfAttempts(0), mInfo()
 {
   /** constructor **/
 }
@@ -40,7 +40,7 @@ GeneratorHeader::GeneratorHeader(const Char_t* name, const Char_t* title)
 /*****************************************************************/
 
 GeneratorHeader::GeneratorHeader(const GeneratorHeader& rhs)
-  : TNamed(rhs),
+  : mName(rhs.mName),
     mTrackOffset(rhs.mTrackOffset),
     mNumberOfTracks(rhs.mNumberOfTracks),
     mNumberOfAttempts(rhs.mNumberOfAttempts),
@@ -57,7 +57,7 @@ GeneratorHeader& GeneratorHeader::operator=(const GeneratorHeader& rhs)
 
   if (this == &rhs)
     return *this;
-  TNamed::operator=(rhs);
+  mName = rhs.mName;
   mTrackOffset = rhs.mTrackOffset;
   mNumberOfTracks = rhs.mNumberOfTracks;
   mNumberOfAttempts = rhs.mNumberOfAttempts;
@@ -71,7 +71,7 @@ GeneratorHeader::~GeneratorHeader() { /** default destructor **/}
 
 /*****************************************************************/
 
-void GeneratorHeader::Reset()
+void GeneratorHeader::reset()
 {
   /** reset **/
 
@@ -84,11 +84,11 @@ void GeneratorHeader::Reset()
 
 /*****************************************************************/
 
-void GeneratorHeader::Print(Option_t* opt) const
+void GeneratorHeader::print() const
 {
   /** print **/
 
-  auto name = GetName();
+  auto name = getName();
   auto offset = getTrackOffset();
   auto ntracks = getNumberOfTracks();
   std::cout << ">> generator: " << name << " | tracks: " << offset << " -> " << offset + ntracks - 1 << std::endl;
@@ -167,5 +167,3 @@ void GeneratorHeader::removeHeavyIonInfo()
 
 } /* namespace dataformats */
 } /* namespace o2 */
-
-ClassImp(o2::dataformats::GeneratorHeader)

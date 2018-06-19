@@ -80,7 +80,7 @@ void MCEventHeader::Print(Option_t* opt) const
   std::cout << "> event-id: " << eventId << " | xyz: (" << GetX() << ", " << GetY() << ", " << GetZ() << ")"
             << " | N.primaries: " << GetNPrim() << std::endl;
   for (auto const& header : mGeneratorHeaders)
-    header->Print();
+    header->print();
 }
 
 /*****************************************************************/

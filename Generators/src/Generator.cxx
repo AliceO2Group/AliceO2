@@ -71,7 +71,7 @@ Bool_t Generator::ReadEvent(FairPrimaryGenerator* primGen)
   /** read event **/
 
   /** reset header **/
-  mHeader->Reset();
+  mHeader->reset();
 
   /** trigger loop **/
   Int_t nAttempts = 0;
