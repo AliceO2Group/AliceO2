@@ -11,7 +11,7 @@
 /// \file   Station1Geometry.cxx
 /// \brief  Implementation of the station 1 geometry (copied and adapted from AliMUONSt1GeometryBuilder)
 /// \author Florian Damas <florian.damas@cern.ch>
-/// \date   16 mai 2018
+/// \date   16 may 2018
 
 /// TODO :
 /// * finish the createQuadrant function
@@ -31,6 +31,7 @@
 #include <TGeoVolume.h>
 
 #include <iostream>
+#include <string>
 #include <array>
 
 namespace o2
@@ -47,9 +48,10 @@ const float kChamberZpos[2] = { -526.16, -545.24 };
 const float kQuadZpos = 7.5 / 2;
 
 // Thickness
-const float kHzPadPlane = 0.0148 / 2.;    // Pad plane
-const float kHzFoam = 2.503 / 2.;         // Foam of mechanicalplane
-const float kHzFR4 = 0.062 / 2.;          // FR4 of mechanical plane
+const float kHzPadPlane = 0.0148 / 2.; // Pad plane
+const float kHzFoam = 2.503 / 2.;      // Foam of mechanicalplane
+const float kHzFR4 = 0.062 / 2.;       // FR4 of mechanical plane
+const float kTotalHzPlane = kHzFoam + kHzFR4;
 const float kHzSnPb = 0.0091 / 2.;        // Pad/Kapton connection (66 pt)
 const float kHzKapton = 0.0122 / 2.;      // Kapton
 const float kHzBergPlastic = 0.3062 / 2.; // Berg connector
@@ -112,6 +114,9 @@ const float kFrameOffset = 5.2;
 // Pad planes offsets
 const float kPadXOffsetBP = 0.50 - 0.63 / 2; // = 0.185
 const float kPadYOffsetBP = 0.31 + 0.42 / 2; // = 0.52
+const int kFoamBoxNameOffset = 200;
+const int kFR4BoxNameOffset = 400;
+const int kDaughterCopyNoOffset = 1000;
 
 // Volume names
 const char* kHoleName = "SCHL";
@@ -141,12 +146,10 @@ void createDaughterBoard()
 
   auto daughter = new TGeoVolumeAssembly(kDaughterName);
 
-  daughter->AddNode(
-    gGeoManager->MakeBox("SBGP", assertMedium(Medium::Plastic), kHxBergPlastic, kHyBergPlastic, kHzBergPlastic), 1,
-    new TGeoTranslation(0., 0., -kHzDaughter));
+  daughter->AddNode(gGeoManager->MakeBox("SBGP", assertMedium(Medium::Plastic), kHxBergPlastic, kHyBergPlastic, kHzBergPlastic),
+                    1, new TGeoTranslation(0., 0., -kHzDaughter));
 
-  daughter->AddNode(
-    gGeoManager->MakeBox("SBGC", assertMedium(Medium::Copper), kHxBergCopper, kHyBergCopper, kHzBergCopper), 1);
+  daughter->AddNode(gGeoManager->MakeBox("SBGC", assertMedium(Medium::Copper), kHxBergCopper, kHyBergCopper, kHzBergCopper), 1);
 
   daughter->AddNode(gGeoManager->MakeBox("SDGH", assertMedium(Medium::Copper), kHxDaughter, kHyDaughter, kHzDaughter),
                     1, new TGeoTranslation(0., 0., -kHzBergPlastic));
@@ -156,11 +159,11 @@ void createDaughterBoard()
 void createInnerLayers()
 {
   /// Create the layer of sensitive volumes with gas and the copper layer.
-  /// The shape of the sensitive area is defined as an extruded solid substracted with tube (to get inner circular
-  /// shape).
+  /// The shape of the sensitive area is defined as an extruded solid substracted with tube (to get inner circular shape).
 
   new TGeoTube("cutTube", 0., kMotherIR1, kHzPadPlane + kHzGas);
 
+  // Xtru parameters
   double maxXY = 89.;
   double xy1 = 77.33;
   double xy2 = 48.77;
@@ -171,29 +174,30 @@ void createInnerLayers()
   double vx[nv] = { 0., 0., xy2, maxXY, maxXY, dxy1 };
   double vy[nv] = { dxy1, maxXY, maxXY, xy2, 0., 0. };
 
-  for (int i = 1; i <= 2; i++) {
-    TGeoXtru* xtruS = new TGeoXtru(nz);
-    xtruS->SetName(Form("xtruS%d", i));
-    xtruS->DefinePolygon(nv, vx, vy);
-    xtruS->DefineSection(0, -kHzGas, 0., 0., 1.);
-    xtruS->DefineSection(1, kHzGas, 0., 0., 1.);
-    new TGeoVolume(Form("SA%dG", i), new TGeoCompositeShape(Form("layerS%d", i), Form("xtruS%d-cutTube", i)),
-                   assertMedium(Medium::Gas));
-  }
+  // Layers parameters
+  const auto kGasMed = assertMedium(Medium::Gas);
+  const auto kPadMed = assertMedium(Medium::Copper);
 
-  TGeoXtru* xtruS3 = new TGeoXtru(nz);
-  xtruS3->SetName("xtruS3");
-  xtruS3->DefinePolygon(nv, vx, vy);
-  xtruS3->DefineSection(0, -kHzPadPlane, 0., 0., 1.);
-  xtruS3->DefineSection(1, kHzPadPlane, 0., 0., 1.);
-  new TGeoVolume("SA1C", new TGeoCompositeShape("layerS3", "xtruS3-cutTube"), assertMedium(Medium::Copper));
+  const int kNofLayers = 3;
+  const std::string kLayerName[kNofLayers] = { "SA1G", "SA2G", "SA1C" };
+  const std::array<const TGeoMedium*, kNofLayers> kLayerMedium = { kGasMed, kGasMed, kPadMed };
+  const double kLayerZpos[kNofLayers] = { kHzGas, kHzGas, kHzPadPlane };
+
+  for (int i = 0; i < kNofLayers; i++) {
+    TGeoXtru* xtruS = new TGeoXtru(nz);
+    xtruS->SetName(Form("xtruS%d", i + 1));
+    xtruS->DefinePolygon(nv, vx, vy);
+    xtruS->DefineSection(0, -kLayerZpos[i], 0., 0., 1.);
+    xtruS->DefineSection(1, kLayerZpos[i], 0., 0., 1.);
+    new TGeoVolume(kLayerName[i].data(), new TGeoCompositeShape(Form("layerS%d", i + 1), Form("xtruS%d-cutTube", i + 1)),
+                   kLayerMedium[i]);
+  }
 }
 
 //______________________________________________________________________________
 void createSpacer()
 {
-  /// The spacer volumes are defined according to the input prepared by Nicole Williswith modifications needed to fit
-  /// into existing geometry.
+  /// The spacer volumes are defined according to the input prepared by Nicole Williswith modifications needed to fit into existing geometry.
 
   /// No.    Type  Material Center (mm)            Dimensions (mm) (half lengths)
   ///  5     BOX   EPOXY    408.2  430.4 522.41    5.75  1.5   25.5
@@ -201,9 +205,9 @@ void createSpacer()
   ///  6     BOX   EPOXY    408.2  437.9 519.76    5.75  15.0   1.0
   ///  6P    BOX   EPOXY    408.2  437.9 525.06    5.75  15.0   1.0
   ///  7     CYL   INOX     408.2  437.9 522.41    r=3.0  hz=20.63
-  ///                                                                      </pre>
+
   /// To fit in existing volumes the volumes 5 and 7 are represented by 2 volumes
-  /// with half size in z (5A, &A); the dimensions of the volume 5A were also modified
+  /// with half size in z (5A, 7A); the dimensions of the volume 5A were also modified
   /// to avoid overlaps (x made smaller, y larger to obtain the identical volume)
 
   new TGeoVolume("Spacer5A", new TGeoBBox(kHxBoxSpacer, kHySpacer5A, kHzSpacer5A), assertMedium(Medium::Epoxy));
@@ -239,9 +243,9 @@ void createFrame(int chamber)
   ///                                                                         \n
   /// 06 February 2003 - Overlapping volumes resolved.                        \n
   /// One quarter chamber is comprised of three TUBS volumes: SQMx, SQNx, and SQFx,
-  /// where SQMx is the Quadrant Middle layer for chamber \a chamber ( posZ in [-3.25,3.25]),
-  /// SQNx is the Quadrant Near side layer for chamber \a chamber ( posZ in [-6.25,3-.25) ), and
-  /// SQFx is the Quadrant Far side layer for chamber \a chamber ( posZ in (3.25,6.25] ).
+  /// where SQMx is the Quadrant Middle layer for chamber \a chamber ( z in [-3.25,3.25]),
+  /// SQNx is the Quadrant Near side layer for chamber \a chamber ( z in [-6.25,3-.25) ), and
+  /// SQFx is the Quadrant Far side layer for chamber \a chamber ( z in (3.25,6.25] ).
 
   auto Mlayer = new TGeoVolumeAssembly(Form("%s%d", kQuadrantMLayerName, chamber));
   auto Flayer = new TGeoVolumeAssembly(Form("%s%d", kQuadrantFLayerName, chamber));
@@ -380,8 +384,8 @@ void createFrame(int chamber)
   const float kTl1OETF3 = 3.01 / 2.;  // Trapezoid 3
   const float kTl1OETF4 = 1.77 / 2.;  // Trapezoid 4
 
-  // Frame Structure (OutVFrame):
-  //
+  /// Frame Structure (OutVFrame):
+
   // OutVFrame and corner (OutVFrame cuboid, OutVFrame trapezoid)
   // EARTHING (VertEarthFaceCu,VertEarthSteel,VertEarthProfCu),
   // DETECTOR POSITIONNING (SuppLateralPositionner, LateralPositionner),
@@ -503,7 +507,6 @@ void createFrame(int chamber)
 
   const int npar = 11;
   float par[npar];
-  float posX, posY, posZ;
 
   if (chamber == 1) {
     // InVFrame
@@ -512,11 +515,9 @@ void createFrame(int chamber)
     // Flat 1mm vertical section
     new TGeoVolume("SQ01", new TGeoBBox(kHxV1mm, kHyV1mm, kHzV1mm), kEpoxyMed);
 
-    // OutTopFrame
-    //
-    // - 3 components (a cuboid and 2 trapezes) and 2 layers (Epoxy/Inox)
-    //
-    //---
+    /// OutTopFrame
+
+    // 3 components (a cuboid and 2 trapezes) and 2 layers (Epoxy/Inox)
 
     // TopFrameAnode - layer 1 of 2
     new TGeoVolume("SQ02", new TGeoBBox(kHxTFA, kHyTFA, kHzTFAE), kEpoxyMed);
@@ -653,10 +654,8 @@ void createFrame(int chamber)
                    new TGeoTrap(par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8], par[9], par[10]),
                    kInoxMed);
 
-    //
     // OutEdgeTrapFrame Epoxy = (4 trapezes)*2 copies*2 layers (Epoxy/Inox)
     // (redefined with TGeoXtru shape )
-    //---
 
     dx = 2 * kH1OETF;
     dy1 = 2 * kTl1OETF4;
@@ -715,9 +714,8 @@ void createFrame(int chamber)
     xtruS2->DefineSection(1, kHzOuterFrameInox, 0., 0., 1.);
     new TGeoVolume("SQ18to24", xtruS2, kInoxMed);
 
-    //
     // OutEdgeTrapFrame Epoxy = (4 trapezes)*2 copies*2 layers (Epoxy/Inox)
-    //---
+
     // OutVFrame
     new TGeoVolume("SQ25", new TGeoBBox(kHxOutVFrame, kHyOutVFrame, kHzOutVFrame), kEpoxyMed);
 
@@ -893,7 +891,6 @@ void createFrame(int chamber)
     // LateralSight
     new TGeoVolume("SQ39", new TGeoTube(kVSInRad, kVSOutRad, kVSLen), kEpoxyMed);
 
-    //---
     // InHFrame
     new TGeoVolume("SQ40", new TGeoBBox(kHxInHFrame, kHyInHFrame, kHzInHFrame), kEpoxyMed);
 
@@ -903,7 +900,6 @@ void createFrame(int chamber)
     // InArcFrame
     new TGeoVolume("SQ42", new TGeoTubeSeg(kIAF, kOAF, kHzAF, kAFphi1, kAFphi2), kEpoxyMed);
 
-    //---
     // ScrewsInFrame - 3 sections in order to avoid overlapping volumes
     // Screw Head, in air
     new TGeoVolume("SQ43", new TGeoTube(kSCRUHMI, kSCRUHMA, kSCRUHLE), kInoxMed);
@@ -918,235 +914,226 @@ void createFrame(int chamber)
   // __________________Place volumes in the quadrant ____________
 
   // InVFrame
-  posX = kHxInVFrame;
-  posY = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyInVFrame;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ00"), 1, new TGeoTranslation(posX, posY, posZ));
+  float x = kHxInVFrame;
+  float y = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyInVFrame;
+  float z = 0.;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ00"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position. Used for placing screws
-  const float kMidVposX = posX;
-  const float kMidVposY = posY;
-  const float kMidVposZ = posZ;
+  const float kMidVposX = x;
+  const float kMidVposY = y;
+  const float kMidVposZ = z;
 
   // Flat 7.5mm vertical section
-  posX = 2 * kHxInVFrame + kHxV1mm;
-  posY = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyV1mm;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ01"), 1, new TGeoTranslation(posX, posY, posZ));
+  x = 2 * kHxInVFrame + kHxV1mm;
+  y = 2 * (kHyInHFrame + kHyH1mm) + kIAF + kHyV1mm;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ01"), 1, new TGeoTranslation(x, y, z));
 
   // TopFrameAnode place 2 layers of TopFrameAnode cuboids
-  posX = kHxTFA;
-  posY = 2 * (kHyInHFrame + kHyH1mm + kHyInVFrame) + kIAF + kHyTFA;
-  posZ = -kHzOuterFrameInox;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ02"), 1, new TGeoTranslation(posX, posY, posZ));
-  posZ = kHzOuterFrameEpoxy;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ03"), 1, new TGeoTranslation(posX, posY, posZ));
+  x = kHxTFA;
+  y = 2 * (kHyInHFrame + kHyH1mm + kHyInVFrame) + kIAF + kHyTFA;
+  z = kHzOuterFrameInox;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ02"), 1, new TGeoTranslation(x, y, -z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ03"), 1, new TGeoTranslation(x, y, z));
 
   // TopFrameAnode - place 2 layers of 2 trapezoids
   // (SQ04 - SQ07)
-  posX += kHxTFA + 2 * kH1FAA;
-  posZ = -kHzOuterFrameInox;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ04toSQ06"), 1, new TGeoTranslation(posX, posY, posZ));
-  posZ = kHzOuterFrameEpoxy;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ05toSQ07"), 1, new TGeoTranslation(posX, posY, posZ));
+  x += kHxTFA + 2 * kH1FAA;
+  z = kHzOuterFrameInox;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ04toSQ06"), 1, new TGeoTranslation(x, y, -z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ05toSQ07"), 1, new TGeoTranslation(x, y, z));
 
   // TopAnode1 place 2 layers
-  posX = 6.8 + kDeltaQuadLHC;
-  posY = 99.85 + kDeltaQuadLHC;
-  posZ = -kHzAnodeFR4;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ08"), 1, new TGeoTranslation(posX, posY, posZ));
-  posZ = kHzTopAnodeSteel1;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ09"), 1, new TGeoTranslation(posX, posY, posZ));
+  x = 6.8 + kDeltaQuadLHC;
+  y = 99.85 + kDeltaQuadLHC;
+  z = -kHzAnodeFR4;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ08"), 1, new TGeoTranslation(x, y, z));
+  z = kHzTopAnodeSteel1;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ09"), 1, new TGeoTranslation(x, y, z));
 
   // TopAnode2 place 2 layers
-  posX = 18.534 + kDeltaQuadLHC;
-  posY = 99.482 + kDeltaQuadLHC;
-  posZ = -kHzAnodeFR4;
+  x = 18.534 + kDeltaQuadLHC;
+  y = 99.482 + kDeltaQuadLHC;
+  z = -kHzAnodeFR4;
   // shift up to solve overlap with SQ14
-  posY += 0.1;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ10"), 1, new TGeoCombiTrans(posX, posY, posZ, rot1));
-  posZ = kHzTopAnodeSteel2;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ11"), 1, new TGeoCombiTrans(posX, posY, posZ, rot1));
+  y += 0.1;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ10"), 1, new TGeoCombiTrans(x, y, z, rot1));
+  z = kHzTopAnodeSteel2;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ11"), 1, new TGeoCombiTrans(x, y, z, rot1));
 
   // TopAnode3 place 1 layer
-  posX = 25.804 + kDeltaQuadLHC;
-  posY = 98.61 + kDeltaQuadLHC;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ12"), 1, new TGeoCombiTrans(posX, posY, posZ, rot1));
+  x = 25.804 + kDeltaQuadLHC;
+  y = 98.61 + kDeltaQuadLHC;
+  z = 0.;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ12"), 1, new TGeoCombiTrans(x, y, z, rot1));
 
   // TopEarthFace - 2 copies
-  posX = 23.122 + kDeltaQuadLHC;
-  posY = 96.9 + kDeltaQuadLHC;
-  posZ = kHzOuterFrameEpoxy + kHzOuterFrameInox + kHzTopEarthFaceCu;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ13"), 1, new TGeoTranslation(posX, posY, posZ));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ13"), 2, new TGeoTranslation(posX, posY, -posZ));
+  x = 23.122 + kDeltaQuadLHC;
+  y = 96.9 + kDeltaQuadLHC;
+  z = kHzOuterFrameEpoxy + kHzOuterFrameInox + kHzTopEarthFaceCu;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ13"), 1, new TGeoTranslation(x, y, z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ13"), 2, new TGeoTranslation(x, y, -z));
 
   // TopEarthProfile
-  posX = 14.475 + kDeltaQuadLHC;
-  posY = 97.9 + kDeltaQuadLHC;
-  posZ = kHzTopEarthProfileCu;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ14"), 1, new TGeoTranslation(posX, posY, posZ));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ14"), 2, new TGeoTranslation(posX, posY, -posZ));
+  x = 14.475 + kDeltaQuadLHC;
+  y = 97.9 + kDeltaQuadLHC;
+  z = kHzTopEarthProfileCu;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ14"), 1, new TGeoTranslation(x, y, z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ14"), 2, new TGeoTranslation(x, y, -z));
 
   // TopGasSupport - 2 copies
-  posX = 4.95 + kDeltaQuadLHC;
-  posY = 96.2 + kDeltaQuadLHC;
-  posZ = kHzOuterFrameEpoxy + kHzOuterFrameInox + kHzTopGasSupportAl;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ15"), 1, new TGeoTranslation(posX, posY, posZ));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ15"), 2, new TGeoTranslation(posX, posY, -posZ));
+  x = 4.95 + kDeltaQuadLHC;
+  y = 96.2 + kDeltaQuadLHC;
+  z = kHzOuterFrameEpoxy + kHzOuterFrameInox + kHzTopGasSupportAl;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ15"), 1, new TGeoTranslation(x, y, z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ15"), 2, new TGeoTranslation(x, y, -z));
 
   // TopPositioner parameters - single Stainless Steel trapezoid - 2 copies
-  posX = 7.6 + kDeltaQuadLHC;
-  posY = 98.98 + kDeltaQuadLHC;
-  posZ = kHzOuterFrameEpoxy + kHzOuterFrameInox + 2 * kHzTopGasSupportAl + kHzTopPositionerSteel;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ16"), 1, new TGeoTranslation(posX, posY, posZ));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ16"), 2, new TGeoTranslation(posX, posY, -posZ));
+  x = 7.6 + kDeltaQuadLHC;
+  y = 98.98 + kDeltaQuadLHC;
+  z = kHzOuterFrameEpoxy + kHzOuterFrameInox + 2 * kHzTopGasSupportAl + kHzTopPositionerSteel;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ16"), 1, new TGeoTranslation(x, y, z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ16"), 2, new TGeoTranslation(x, y, -z));
 
   // OutEdgeFrame
 
-  posZ = -kHzOuterFrameInox;
+  z = -kHzOuterFrameInox;
   // float xCenterAll = 70.6615;
   float xCenterAll = 70.5;
   float yCenterAll = 70.35;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ17to23"), 1, new TGeoCombiTrans(xCenterAll, yCenterAll, posZ, rot4));
-  posZ = kHzOuterFrameEpoxy;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ18to24"), 1, new TGeoCombiTrans(xCenterAll, yCenterAll, posZ, rot4));
-
-  //---
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ17to23"), 1, new TGeoCombiTrans(xCenterAll, yCenterAll, z, rot4));
+  z = kHzOuterFrameEpoxy;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ18to24"), 1, new TGeoCombiTrans(xCenterAll, yCenterAll, z, rot4));
 
   // OutVFrame
-  posX = 2 * (kHxInVFrame + kHxInHFrame + kHxV1mm) + kIAF - kHxOutVFrame;
-  posY = 2 * kHyInHFrame + kHyOutVFrame;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ25"), 1, new TGeoTranslation(posX, posY, posZ));
+  x = 2 * (kHxInVFrame + kHxInHFrame + kHxV1mm) + kIAF - kHxOutVFrame;
+  y = 2 * kHyInHFrame + kHyOutVFrame;
+  z = 0.;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ25"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position. Used for placing screws
-  const float kMidOVposX = posX;
-  const float kMidOVposY = posY;
-  const float kMidOVposZ = posZ;
+  const float kMidOVposX = x;
+  const float kMidOVposY = y;
+  const float kMidOVposZ = z;
 
   // OutVFrame corner
-  posY += kHyOutVFrame + (kBlOCTF + kTlOCTF) / 2.;
+  y += kHyOutVFrame + (kBlOCTF + kTlOCTF) / 2.;
   // shift to solve overlap with SQ17to23 and SQ18to24
-  posX += 0.02;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ26"), 1, new TGeoCombiTrans(posX, posY, posZ, rot1));
+  x += 0.02;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ26"), 1, new TGeoCombiTrans(x, y, z, rot1));
 
   // VertEarthFaceCu - 2 copies
-  posX = 89.4 + kDeltaQuadLHC;
-  posY = 25.79 + kDeltaQuadLHC;
-  posZ = kHzFrameThickness + 2 * kHzFoam2 + kHzVertEarthFaceCu;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ27"), 1, new TGeoCombiTrans(posX, posY, posZ, rot1));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ27"), 2, new TGeoCombiTrans(posX, posY, -posZ, rot1));
+  x = 89.4 + kDeltaQuadLHC;
+  y = 25.79 + kDeltaQuadLHC;
+  z = kHzFrameThickness + 2 * kHzFoam2 + kHzVertEarthFaceCu;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ27"), 1, new TGeoCombiTrans(x, y, z, rot1));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ27"), 2, new TGeoCombiTrans(x, y, -z, rot1));
 
   // VertEarthSteel - 2 copies
-  posX = 91 + kDeltaQuadLHC;
-  posY = 30.616 + kDeltaQuadLHC;
-  posZ = kHzFrameThickness + 2 * kHzFoam2 + kHzVertBarSteel;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ28"), 1, new TGeoCombiTrans(posX, posY, posZ, rot1));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ28"), 2, new TGeoCombiTrans(posX, posY, -posZ, rot1));
+  x = 91 + kDeltaQuadLHC;
+  y = 30.616 + kDeltaQuadLHC;
+  z = kHzFrameThickness + 2 * kHzFoam2 + kHzVertBarSteel;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ28"), 1, new TGeoCombiTrans(x, y, z, rot1));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ28"), 2, new TGeoCombiTrans(x, y, -z, rot1));
 
   // VertEarthProfCu - 2 copies
-  posX = 92 + kDeltaQuadLHC;
-  posY = 29.64 + kDeltaQuadLHC;
-  posZ = kHzFrameThickness;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ29"), 1, new TGeoCombiTrans(posX, posY, posZ, rot1));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ29"), 2, new TGeoCombiTrans(posX, posY, -posZ, rot1));
+  x = 92 + kDeltaQuadLHC;
+  y = 29.64 + kDeltaQuadLHC;
+  z = kHzFrameThickness;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ29"), 1, new TGeoCombiTrans(x, y, z, rot1));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ29"), 2, new TGeoCombiTrans(x, y, -z, rot1));
 
   // SuppLateralPositionner - 2 copies
-  posX = 90.2 - kNearFarLHC;
-  posY = kLateralPosYshift - kNearFarLHC;
-  posZ = kHzLateralPosnAl - kMotherThick2;
-  Flayer->AddNode(gGeoManager->GetVolume("SQ30"), 1, new TGeoTranslation(posX, posY, posZ));
-  Nlayer->AddNode(gGeoManager->GetVolume("SQ30"), 2, new TGeoTranslation(posX, posY, -posZ));
+  x = 90.2 - kNearFarLHC;
+  y = kLateralPosYshift - kNearFarLHC;
+  z = kHzLateralPosnAl - kMotherThick2;
+  Flayer->AddNode(gGeoManager->GetVolume("SQ30"), 1, new TGeoTranslation(x, y, z));
+  Nlayer->AddNode(gGeoManager->GetVolume("SQ30"), 2, new TGeoTranslation(x, y, -z));
 
   /// Lateral positionners
 
   // Face view
-  posX = kLateralPosXshift - kNearFarLHC - 2 * kHxLPP;
-  posY = kLateralPosYshift - kNearFarLHC;
-  posZ = 2 * kHzLateralPosnAl + kHzLateralPosnInoxFace - kMotherThick2;
-  Flayer->AddNode(gGeoManager->GetVolume("SQ31"), 1, new TGeoTranslation(posX, posY, posZ));
-  Nlayer->AddNode(gGeoManager->GetVolume("SQ31"), 2, new TGeoTranslation(posX, posY, -posZ));
+  x = kLateralPosXshift - kNearFarLHC - 2 * kHxLPP;
+  y = kLateralPosYshift - kNearFarLHC;
+  z = 2 * kHzLateralPosnAl + kHzLateralPosnInoxFace - kMotherThick2;
+  Flayer->AddNode(gGeoManager->GetVolume("SQ31"), 1, new TGeoTranslation(x, y, z));
+  Nlayer->AddNode(gGeoManager->GetVolume("SQ31"), 2, new TGeoTranslation(x, y, -z));
 
   // Profile view
-  posX = kLateralPosXshift + kDeltaQuadLHC + kHxLPF - kHxLPP;
-  posY = kLateralPosYshift + kDeltaQuadLHC;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ32"), 1, new TGeoTranslation(posX, posY, posZ)); // middle layer
+  x = kLateralPosXshift + kDeltaQuadLHC + kHxLPF - kHxLPP;
+  y = kLateralPosYshift + kDeltaQuadLHC;
+  z = 0.;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ32"), 1, new TGeoTranslation(x, y, z)); // middle layer
 
-  posX = kLateralPosXshift - kNearFarLHC + kHxLPF - kHxLPP;
-  posY = kLateralPosYshift - kNearFarLHC;
-  posZ = kMotherThick2 - kHzLPNF;
-  Nlayer->AddNode(gGeoManager->GetVolume("SQ33"), 1, new TGeoTranslation(posX, posY, posZ));  // near layer
-  Flayer->AddNode(gGeoManager->GetVolume("SQ33"), 2, new TGeoTranslation(posX, posY, -posZ)); // far layer
+  x = kLateralPosXshift - kNearFarLHC + kHxLPF - kHxLPP;
+  y = kLateralPosYshift - kNearFarLHC;
+  z = kMotherThick2 - kHzLPNF;
+  Nlayer->AddNode(gGeoManager->GetVolume("SQ33"), 1, new TGeoTranslation(x, y, z));  // near layer
+  Flayer->AddNode(gGeoManager->GetVolume("SQ33"), 2, new TGeoTranslation(x, y, -z)); // far layer
 
   // VertCradle - 3 (or 4 ) trapezoids redefined with TGeoXtru shape
+  const float kVertCradleX = 97.29;
+  const float kVertCradleXshift = 1.39311;
+  const float kVertCradleY = 23.02;
 
-  posX = 97.29 + kDeltaQuadLHC;
-  posY = 23.02 + kDeltaQuadLHC;
-  posZ = 0.;
-  posX += 1.39311;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ34to37"), 2, new TGeoTranslation(posX, posY, posZ));
+  x = kVertCradleX + kDeltaQuadLHC;
+  x += kVertCradleXshift;
+  y = kVertCradleY + kDeltaQuadLHC;
+  z = 0.;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ34to37"), 2, new TGeoTranslation(x, y, z));
 
-  posX = 97.29 - kNearFarLHC;
-  posY = 23.02 - kNearFarLHC;
-  posZ = 2 * kHzLateralSightAl + kHzVerticalCradleAl - kMotherThick2;
-  posX += 1.39311;
-  Nlayer->AddNode(gGeoManager->GetVolume("SQ34to36"), 1, new TGeoTranslation(posX, posY, posZ));
-  Flayer->AddNode(gGeoManager->GetVolume("SQ34to36"), 3, new TGeoTranslation(posX, posY, -posZ));
+  x = kVertCradleX - kNearFarLHC;
+  x += kVertCradleXshift;
+  y = kVertCradleY - kNearFarLHC;
+  z = 2 * kHzLateralSightAl + kHzVerticalCradleAl - kMotherThick2;
+  Nlayer->AddNode(gGeoManager->GetVolume("SQ34to36"), 1, new TGeoTranslation(x, y, z));
+  Flayer->AddNode(gGeoManager->GetVolume("SQ34to36"), 3, new TGeoTranslation(x, y, -z));
 
   // OutVertCradleD  4th Trapeze - 3 copies
-
-  posX = 98.81 + kDeltaQuadLHC;
-  posY = 2.52 + kDeltaQuadLHC;
-  posZ = kMotherThick1 - kHzVerticalCradleAl;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ37"), 1, new TGeoTranslation(posX, posY, posZ));
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ37"), 3, new TGeoTranslation(posX, posY, -posZ));
+  x = 98.81 + kDeltaQuadLHC;
+  y = 2.52 + kDeltaQuadLHC;
+  z = kMotherThick1 - kHzVerticalCradleAl;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ37"), 1, new TGeoTranslation(x, y, z));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ37"), 3, new TGeoTranslation(x, y, -z));
 
   // LateralSightSupport - 2 copies
-  posX = 98.33 - kNearFarLHC;
-  posY = 10 - kNearFarLHC;
-  posZ = kHzLateralSightAl - kMotherThick2;
-  // Fix (3) of extrusion SQ38 from SQN1, SQN2, SQF1, SQF2
-  // (was posX = 98.53 ...)
-  Nlayer->AddNode(gGeoManager->GetVolume("SQ38"), 1, new TGeoTranslation(posX, posY, posZ));
-  Flayer->AddNode(gGeoManager->GetVolume("SQ38"), 2, new TGeoTranslation(posX, posY, -posZ));
+  x = 98.33 - kNearFarLHC;
+  y = 10 - kNearFarLHC;
+  z = kHzLateralSightAl - kMotherThick2;
+  // Fix (3) of extrusion SQ38 from SQN1, SQN2, SQF1, SQF2 (was x = 98.53 ...)
+  Nlayer->AddNode(gGeoManager->GetVolume("SQ38"), 1, new TGeoTranslation(x, y, z));
+  Flayer->AddNode(gGeoManager->GetVolume("SQ38"), 2, new TGeoTranslation(x, y, -z));
 
   // Mire placement
-  posX = 92.84 + kDeltaQuadLHC;
-  posY = 8.13 + kDeltaQuadLHC;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ39"), 1, new TGeoTranslation(posX, posY, posZ));
+  x = 92.84 + kDeltaQuadLHC;
+  y = 8.13 + kDeltaQuadLHC;
+  z = 0.;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ39"), 1, new TGeoTranslation(x, y, z));
 
-  //---
-
-  // InHFrame
-  posX = 2 * (kHxInVFrame + kHxV1mm) + kIAF + kHxInHFrame;
-  posY = kHyInHFrame;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ40"), 1, new TGeoTranslation(posX, posY, posZ));
+  /// InHFrame
+  x = 2 * (kHxInVFrame + kHxV1mm) + kIAF + kHxInHFrame;
+  y = kHyInHFrame;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ40"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position. Used for placing screws
-  const float kMidHposX = posX;
-  const float kMidHposY = posY;
-  const float kMidHposZ = posZ;
+  const float kMidHposX = x;
+  const float kMidHposY = y;
+  const float kMidHposZ = z;
 
   // Flat 7.5mm horizontal section
-  posX = 2 * (kHxInVFrame + kHxV1mm) + kIAF + kHxH1mm;
-  posY = 2 * kHyInHFrame + kHyH1mm;
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ41"), 1, new TGeoTranslation(posX, posY, posZ));
+  x = 2 * (kHxInVFrame + kHxV1mm) + kIAF + kHxH1mm;
+  y = 2 * kHyInHFrame + kHyH1mm;
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ41"), 1, new TGeoTranslation(x, y, z));
 
   // InArcFrame
-  posX = 2 * (kHxInVFrame + kHxV1mm);
-  posY = 2 * (kHyInHFrame + kHyH1mm);
-  posZ = 0.;
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ42"), 1, new TGeoTranslation(posX, posY, posZ));
+  x = 2 * (kHxInVFrame + kHxV1mm);
+  y = 2 * (kHyInHFrame + kHyH1mm);
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ42"), 1, new TGeoTranslation(x, y, z));
 
   // keep memory of the mid position. Used for placing screws
-  const float kMidArcposX = posX;
-  const float kMidArcposY = posY;
-  const float kMidArcposZ = posZ;
+  const float kMidArcposX = x;
+  const float kMidArcposY = y;
+  const float kMidArcposZ = z;
 
   // ScrewsInFrame - in sensitive volume
   const int kNofScrews = 64;
@@ -1154,14 +1141,15 @@ void createFrame(int chamber)
   float scruX[kNofScrews];
   float scruY[kNofScrews];
 
-  // Screws on IHEpoxyFrame
+  const float kSpecScrewPos = -2.23;
 
+  // Screws on IHEpoxyFrame
   const int kNofScrewsIH = 14; // no. of screws on the IHEpoxyFrame
   const float kOffX = 5.;      // inter-screw distance
 
   // first screw coordinates
   scruX[0] = 21.07;
-  scruY[0] = -2.23;
+  scruY[0] = kSpecScrewPos;
   // other screw coordinates
   for (int i = 1; i < kNofScrewsIH; i++) {
     scruX[i] = scruX[i - 1] + kOffX;
@@ -1169,47 +1157,47 @@ void createFrame(int chamber)
   }
 
   // Position the volumes on the frames
-  posZ = 0.;
+  z = 0.;
   for (int i = 0; i < kNofScrewsIH; i++) {
-    posX = kDeltaQuadLHC + scruX[i] + 0.1;
-    posY = kDeltaQuadLHC + scruY[i] + 0.1;
+    x = kDeltaQuadLHC + scruX[i] + 0.1;
+    y = kDeltaQuadLHC + scruY[i] + 0.1;
     Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + 1,
-                    new TGeoTranslation(posX, posY, posZ - kHzInHFrame - kSCRUHLE));
+                    new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
     if (chamber == 1)
       gGeoManager->GetVolume("SQ40")->AddNode(
         gGeoManager->GetVolume("SQ44"), i + 1,
-        new TGeoTranslation(posX - kMidHposX, posY - kMidHposY, posZ - kMidHposZ));
+        new TGeoTranslation(x - kMidHposX, y - kMidHposY, z - kMidHposZ));
 
     Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + 1,
-                    new TGeoTranslation(posX, posY, posZ + kHzInHFrame + kSCRUNLE));
+                    new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
 
   // special screw coordinates
   scruX[63] = 16.3;
-  scruY[63] = -2.23;
-  posX = kDeltaQuadLHC + scruX[63] + 0.1;
-  posY = kDeltaQuadLHC + scruY[63] + 0.1;
-  posZ = 0.;
+  scruY[63] = kSpecScrewPos;
+  x = kDeltaQuadLHC + scruX[63] + 0.1;
+  y = kDeltaQuadLHC + scruY[63] + 0.1;
+  z = 0.;
 
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), kNofScrews, new TGeoTranslation(posX, posY, posZ - kHzInHFrame - kSCRUHLE));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), kNofScrews, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+
   if (chamber == 1)
     gGeoManager->GetVolume("SQ40")->AddNode(gGeoManager->GetVolume("SQ44"), kNofScrews,
-                                            new TGeoTranslation(posX - kMidHposX, posY - kMidHposY, posZ - kMidHposZ));
+                                            new TGeoTranslation(x - kMidHposX, y - kMidHposY, z - kMidHposZ));
 
-  Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), kNofScrews, new TGeoTranslation(posX, posY, posZ + kHzInHFrame + kSCRUNLE));
+  Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), kNofScrews, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
 
   // Screws on the IVEpoxyFrame
-
   const int kNofScrewsIV = 15; // no. of screws on the IVEpoxyFrame
   const float kOffY = 5.;      // inter-screw distance
   int firstScrew = 58;
   int lastScrew = 44;
 
   // first (special) screw coordinates
-  scruX[firstScrew - 1] = -2.23;
+  scruX[firstScrew - 1] = kSpecScrewPos;
   scruY[firstScrew - 1] = 16.3;
   // second (repetitive) screw coordinates
-  scruX[firstScrew - 2] = -2.23;
+  scruX[firstScrew - 2] = kSpecScrewPos;
   scruY[firstScrew - 2] = 21.07;
   // other screw coordinates
   for (int i = firstScrew - 3; i > lastScrew - 2; i--) {
@@ -1217,24 +1205,21 @@ void createFrame(int chamber)
     scruY[i] = scruY[i + 1] + kOffY;
   }
 
-  posZ = 0.;
-  for (int i = 0; i < kNofScrewsIV; i++) {
-    posX = kDeltaQuadLHC + scruX[i + lastScrew - 1] + 0.1;
-    posY = kDeltaQuadLHC + scruY[i + lastScrew - 1] + 0.1;
+  z = 0.;
+  for (int i = lastScrew; i <= firstScrew; i++) {
+    x = kDeltaQuadLHC + scruX[i - 1] + 0.1;
+    y = kDeltaQuadLHC + scruY[i - 1] + 0.1;
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + lastScrew,
-                    new TGeoTranslation(posX, posY, posZ - kHzInHFrame - kSCRUHLE));
+    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+
     if (chamber == 1)
-      gGeoManager->GetVolume("SQ00")->AddNode(
-        gGeoManager->GetVolume("SQ44"), i + lastScrew,
-        new TGeoTranslation(posX - kMidVposX, posY - kMidVposY, posZ - kMidVposZ));
+      gGeoManager->GetVolume("SQ00")->AddNode(gGeoManager->GetVolume("SQ44"), i,
+                                              new TGeoTranslation(x - kMidVposX, y - kMidVposY, z - kMidVposZ));
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + lastScrew,
-                    new TGeoTranslation(posX, posY, posZ + kHzInHFrame + kSCRUNLE));
+    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
 
   // Screws on the OVEpoxyFrame
-
   const int kNofScrewsOV = 10; // no. of screws on the OVEpoxyFrame
 
   firstScrew = 15;
@@ -1243,7 +1228,7 @@ void createFrame(int chamber)
   // first (repetitive) screw coordinates
   // notes: 1st screw should be placed in volume 40 (InnerHorizFrame)
   scruX[firstScrew - 1] = 90.9;
-  scruY[firstScrew - 1] = -2.23; // true value
+  scruY[firstScrew - 1] = kSpecScrewPos; // true value
 
   // other screw coordinates
   for (int i = firstScrew; i < lastScrew; i++) {
@@ -1251,72 +1236,287 @@ void createFrame(int chamber)
     scruY[i] = scruY[i - 1] + kOffY;
   }
 
-  posZ = 0.;
+  z = 0.;
   for (int i = 1; i < kNofScrewsOV; i++) {
-    posX = kDeltaQuadLHC + scruX[i + firstScrew - 1] + 0.1;
-    posY = kDeltaQuadLHC + scruY[i + firstScrew - 1] + 0.1;
+    x = kDeltaQuadLHC + scruX[i + firstScrew - 1] + 0.1;
+    y = kDeltaQuadLHC + scruY[i + firstScrew - 1] + 0.1;
 
     Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + firstScrew,
-                    new TGeoTranslation(posX, posY, posZ - kHzInHFrame - kSCRUHLE));
+                    new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
     if (chamber == 1)
       gGeoManager->GetVolume("SQ25")->AddNode(
         gGeoManager->GetVolume("SQ44"), i + firstScrew,
-        new TGeoTranslation(posX - kMidOVposX, posY - kMidOVposY, posZ - kMidOVposZ));
+        new TGeoTranslation(x - kMidOVposX, y - kMidOVposY, z - kMidOVposZ));
 
     Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + firstScrew,
-                    new TGeoTranslation(posX, posY, posZ + kHzInHFrame + kSCRUNLE));
+                    new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
+
   // special case for 1st screw, inside the horizontal frame (volume 40)
-  posX = kDeltaQuadLHC + scruX[firstScrew - 1] + 0.1 - kMidHposX;
-  posY = kDeltaQuadLHC + scruY[firstScrew - 1] + 0.1 - kMidHposY;
-  posZ = -kMidHposZ;
+  x = kDeltaQuadLHC + scruX[firstScrew - 1] + 0.1 - kMidHposX;
+  y = kDeltaQuadLHC + scruY[firstScrew - 1] + 0.1 - kMidHposY;
+  z = -kMidHposZ;
 
   if (chamber == 1)
     gGeoManager->GetVolume("SQ40")->AddNode(gGeoManager->GetVolume("SQ44"), firstScrew,
-                                            new TGeoTranslation(posX, posY, posZ));
+                                            new TGeoTranslation(x, y, z));
 
   // Inner Arc of Frame, screw positions and numbers-1
+  firstScrew = 58;
   scruX[62] = 16.009;
   scruY[62] = 1.401;
   scruX[61] = 14.564;
   scruY[61] = 6.791;
   scruX[60] = 11.363;
-  scruY[60] = 11.363;
-  scruX[59] = 6.791;
-  scruY[59] = 14.564;
-  scruX[58] = 1.401;
-  scruY[58] = 16.009;
+  scruY[60] = scruX[60];
+  scruX[59] = scruY[61];
+  scruY[59] = scruX[61];
+  scruX[58] = scruY[62];
+  scruY[58] = scruX[62];
 
-  posZ = 0.;
-  for (int i = 0; i < 5; i++) {
-    posX = kDeltaQuadLHC + scruX[i + 58] + 0.1;
-    posY = kDeltaQuadLHC + scruY[i + 58] + 0.1;
+  z = 0.;
+  for (int i = firstScrew; i < firstScrew + 5; i++) {
+    x = kDeltaQuadLHC + scruX[i] + 0.1;
+    y = kDeltaQuadLHC + scruY[i] + 0.1;
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + 58 + 1,
-                    new TGeoTranslation(posX, posY, posZ - kHzInHFrame - kSCRUHLE));
+    Mlayer->AddNode(gGeoManager->GetVolume("SQ43"), i + 1, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
+
     if (chamber == 1)
-      gGeoManager->GetVolume("SQ42")->AddNode(
-        gGeoManager->GetVolume("SQ44"), i + 58 + 1,
-        new TGeoTranslation(posX - kMidArcposX, posY - kMidArcposY, posZ - kMidArcposZ));
+      gGeoManager->GetVolume("SQ42")->AddNode(gGeoManager->GetVolume("SQ44"), i + 1,
+                                              new TGeoTranslation(x - kMidArcposX, y - kMidArcposY, z - kMidArcposZ));
 
-    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + 58 + 1,
-                    new TGeoTranslation(posX, posY, posZ + kHzInHFrame + kSCRUNLE));
+    Mlayer->AddNode(gGeoManager->GetVolume("SQ45"), i + 1, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
 }
 
 //______________________________________________________________________________
+TGeoVolume* createPlaneSegment(int iSegment, float dim[2], int nofHoles)
+{
+  /// Create a segment of a plane (this includes a foam layer,holes in the foam to feed the kaptons through, kapton connectors and the mother board.)
+
+  auto segment = new TGeoVolumeAssembly(Form("S%d", iSegment));
+
+  // variables
+  float halfLength = dim[0] / 2., halfHeight = dim[1] / 2., x = 0., y = 0., z = 0.;
+
+  // foam layer
+  const int kFoamNumber = iSegment + kFoamBoxNameOffset;
+  const char* kFoamBoxName = Form("S%d", kFoamNumber);
+
+  auto foam = gGeoManager->MakeBox(kFoamBoxName, assertMedium(Medium::St1Rohacell), halfLength, halfHeight, kHzFoam);
+
+  // Place spacer in the concrete plane segments:
+  // S225 (in S025), S267 (in S067) in chamber1 and S309 (in S109). S351(in S151) in chamber2
+  // The segments were found as those which caused overlaps when we placed the spacer in global coordinates via PlaceSpacer0
+
+  //    <posXYZ   X_Y_Z=" 12.6000;   0.75000;   0.0000"> <volume name="Spacer5A"/>
+  //    <posXYZ   X_Y_Z=" 12.6000;  -0.75000;   0.0000"> <volume name="Spacer5A"/>
+  //    <posXYZ   X_Y_Z=" 12.6000;   0.0000;    1.1515"> <volume name="Spacer6"/>
+  //    <posXYZ   X_Y_Z=" 12.6000;   0.0000;    0.0000"> <volume name="Spacer7A"/>
+  bool is267or351 = (kFoamNumber == 267 || kFoamNumber == 351);
+
+  if (kFoamNumber == 225 || is267or351 || kFoamNumber == 309) {
+    x = 12.6;
+    y = 0.75;
+    z = -0.1;
+
+    if (is267or351)
+      y += kPadYOffsetBP;
+
+    foam->AddNode(gGeoManager->GetVolume("Spacer5A"), 1, new TGeoTranslation(x, y, z));
+
+    y = -0.75;
+    if (is267or351)
+      y += kPadYOffsetBP;
+
+    foam->AddNode(gGeoManager->GetVolume("Spacer5A"), 2, new TGeoTranslation(x, y, z));
+
+    y = 0.;
+    z = 1.1515;
+    if (is267or351)
+      y += kPadYOffsetBP;
+
+    foam->AddNode(gGeoManager->GetVolume("Spacer6"), 1, new TGeoTranslation(x, y, z));
+
+    y = 0.;
+    z = 0.;
+    if (is267or351)
+      y += kPadYOffsetBP;
+
+    foam->AddNode(gGeoManager->GetVolume("Spacer7A"), 1, new TGeoTranslation(x, y, z));
+  }
+
+  y = 0.;
+  z = 0.;
+  for (int holeNum = 0; holeNum < nofHoles; holeNum++) {
+    x = ((2 * holeNum + 1) / nofHoles - 1) * dim[0];
+
+    foam->AddNode(gGeoManager->GetVolume(kHoleName), 1, new TGeoTranslation(x, y, z));
+  }
+
+  z = -kTotalHzPlane + kHzFoam; // - kHzFR4
+  segment->AddNode(foam, 1, new TGeoTranslation(0., 0., z));
+
+  // mechanical plane FR4 layer
+  z = kHzFoam;
+  segment->AddNode(gGeoManager->MakeBox(Form("S%d", iSegment + kFR4BoxNameOffset), assertMedium(Medium::FR4), halfLength, halfHeight, kHzFR4),
+                   1, new TGeoTranslation(0., 0., z));
+
+  return segment;
+}
+
+/*
+//______________________________________________________________________________
+void placeSector(const AliMpSector* sector, TExMap specialMap, const TVector3& where, Bool_t reflectZ, Int_t chamber)
+{
+  /// Place all the segments in the mother volume, at the position defined
+  /// by the sector's data.
+  /// The lines with comments COMMENT OUT BEGIN/END indicates blocks
+  /// which can be commented out in order to reduce the number of volumes
+  /// in a sector to the plane segments corresponding to regular motifs only.
+
+  static Int_t segNum = 1;
+  Int_t sgn;
+  Int_t reflZ;
+  Int_t rotMat;
+
+  if (!reflectZ) {
+    sgn = 1;
+    reflZ = 0;                                            // no reflection along z... nothing
+    fMUON->AliMatrix(rotMat, 90., 90., 90, 180., 0., 0.); // 90� rotation around z, NO reflection along z
+  } else {
+    sgn = -1;
+    fMUON->AliMatrix(reflZ, 90., 0., 90, 90., 180., 0.);    // reflection along z
+    fMUON->AliMatrix(rotMat, 90., 90., 90, 180., 180., 0.); // 90� rotation around z AND reflection along z
+  }
+
+  GReal_t x, y, z;
+
+  TArrayI alreadyDone(20);
+  Int_t nofAlreadyDone = 0;
+
+  for (Int_t irow = 0; irow < sector->GetNofRows(); irow++) { // for each row
+    AliMpRow* row = sector->GetRow(irow);
+
+    for (Int_t iseg = 0; iseg < row->GetNofRowSegments(); iseg++) { // for each row segment
+      AliMpVRowSegment* seg = row->GetRowSegment(iseg);
+
+      Long_t value = specialMap.GetValue(seg->GetMotifPositionId(0));
+
+      if (value == 0) { //if this is a normal segment (ie. not part of <specialMap>)
+
+        // create the cathode part
+        float dimensions[2] = {seg->GetDimensionX(), seg->GetDimensionY()};
+        auto segment = createPlaneSegment(segNum, dimensions,seg->GetNofMotifs());
+
+        x = where.X() + seg->GetPositionX();
+        y = where.Y() + seg->GetPositionY();
+        z = where.Z() + sgn * (kTotalHzPlane + kHzGas + 2. * kHzPadPlane);
+
+        auto MLayer = gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber));
+        MLayer->AddNode(segment,1,new TGeoCombiTrans(x, y, z, reflZ));
+
+        // and place all the daughter boards of this segment
+
+        // COMMENT OUT BEGIN
+        for (Int_t motifNum = 0; motifNum < seg->GetNofMotifs(); motifNum++) {
+
+          // Copy number
+          Int_t motifPosId = seg->GetMotifPositionId(motifNum);
+          AliMpMotifPosition* motifPos =
+            sector->GetMotifMap()->FindMotifPosition(motifPosId);
+          Int_t copyNo = motifPosId;
+          if (sector->GetDirection() == AliMp::kX)
+            copyNo += kDaughterCopyNoOffset;
+
+          // Position
+          x = where.X() + motifPos->GetPositionX() + fgkOffsetX;
+          y = where.Y() + motifPos->GetPositionY() + fgkOffsetY;
+          z = where.Z() + sgn * (kMotherThick1 - TotalHzDaughter());
+          TVirtualMC::GetMC()->Gspos(kDaughterName, copyNo, QuadrantMLayerName(chamber), x, y, z, reflZ, "ONLY");
+        }
+        // COMMENT OUT END
+
+        segNum++;
+
+      } else {
+
+        // COMMENT OUT BEGIN
+        // if this is a special segment
+        for (Int_t motifNum = 0; motifNum < seg->GetNofMotifs(); motifNum++) { // for each motif
+
+          Int_t motifPosId = seg->GetMotifPositionId(motifNum);
+
+          Bool_t isDone = false;
+          Int_t i = 0;
+          while (i < nofAlreadyDone && !isDone) {
+            if (alreadyDone.At(i) == motifPosId)
+              isDone = true;
+            i++;
+          }
+          if (isDone)
+            continue; // don't treat the same motif twice
+
+          AliMUONSt1SpecialMotif spMot = *((AliMUONSt1SpecialMotif*)specialMap.GetValue(motifPosId));
+          AliDebugStream(2) << chamber << " processing special motif: " << motifPosId << endl;
+
+          AliMpMotifPosition* motifPos = sector->GetMotifMap()->FindMotifPosition(motifPosId);
+
+          // Copy number
+          Int_t copyNo = motifPosId;
+          if (sector->GetDirection() == AliMp::kX)
+            copyNo += kDaughterCopyNoOffset;
+
+          // place the hole for the motif, wrt the requested rotation angle
+          Int_t rot = (spMot.GetRotAngle() < 0.1) ? reflZ : rotMat;
+
+          x = where.X() + motifPos->GetPositionX() + spMot.GetDelta().X();
+          y = where.Y() + motifPos->GetPositionY() + spMot.GetDelta().Y();
+          z = where.Z() + sgn * (kTotalHzPlane + kHzGas + 2. * kHzPadPlane);
+          // Shift the hole for special motif 46 to avoid debording into S047
+          if (copyNo == 2070) {
+            x -= 0.1;
+            y -= 0.1;
+          }
+          TVirtualMC::GetMC()->Gspos(kHoleName, copyNo, QuadrantMLayerName(chamber), x, y, z, rot, "ONLY");
+
+          // then place the daughter board for the motif, wrt the requested rotation angle
+          x = x + kDeltaFilleEtamX;
+          y = y + kDeltaFilleEtamY;
+          // Do not shift the daughter board
+          if (copyNo == 2070) {
+            x += 0.1;
+            y += 0.1;
+          }
+          z = where.Z() + sgn * (kMotherThick1 - TotalHzDaughter());
+          TVirtualMC::GetMC()->Gspos(kDaughterName, copyNo, QuadrantMLayerName(chamber), x, y, z, rot, "ONLY");
+
+          if (nofAlreadyDone == alreadyDone.GetSize())
+            alreadyDone.Set(2 * nofAlreadyDone);
+          alreadyDone.AddAt(motifPosId, nofAlreadyDone++);
+
+          AliDebugStream(2) << chamber << " processed motifPosId: " << motifPosId << endl;
+        }
+        // COMMENT OUT END
+
+      } // end of special motif case
+    }
+  }
+}
+*/
+//______________________________________________________________________________
+
 void placeInnerLayers(int chamber)
 {
   /// Place the gas and copper layers for the specified chamber.
 
   float x = kDeltaQuadLHC;
   float y = kDeltaQuadLHC;
-  float zg = 0.;
   float zc = kHzGas + kHzPadPlane;
   int dpos = 2 * (chamber - 1);
 
   auto layer = gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber));
-  layer->AddNode(gGeoManager->GetVolume(Form("SA%dG", chamber)), 1, new TGeoTranslation(x, y, zg));
+  layer->AddNode(gGeoManager->GetVolume(Form("SA%dG", chamber)), 1, new TGeoTranslation(x, y, 0.));
   layer->AddNode(gGeoManager->GetVolume("SA1C"), 1 + dpos, new TGeoTranslation(x, y, zc));
   layer->AddNode(gGeoManager->GetVolume("SA1C"), 2 + dpos, new TGeoTranslation(x, y, -zc));
 }
@@ -1402,19 +1602,19 @@ TGeoVolume* createQuadrant(int chamber)
   placeInnerLayers(chamber);
 
   // Middle layers
-  float posx = -(kDeltaQuadLHC + kPadXOffsetBP);
-  float posy = -(kDeltaQuadLHC + kPadYOffsetBP);
-  float posz = 0.;
-  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber)), 1, new TGeoTranslation(posx, posy, posz));
-  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMFLayerName, chamber)), 1, new TGeoTranslation(posx, posy, posz));
+  float x = -(kDeltaQuadLHC + kPadXOffsetBP);
+  float y = -(kDeltaQuadLHC + kPadYOffsetBP);
+  float z = 0.;
+  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
+  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantMFLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
 
   // Near/far layers
-  posx += kFrameOffset;
-  posy += kFrameOffset;
-  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantFLayerName, chamber)), 1, new TGeoTranslation(posx, posy, posz));
+  x += kFrameOffset;
+  y += kFrameOffset;
+  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantFLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
 
-  posz -= kMotherThick1 + kMotherThick2;
-  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantNLayerName, chamber)), 1, new TGeoTranslation(posx, posy, posz));
+  z -= kMotherThick1 + kMotherThick2;
+  quadrant->AddNode(gGeoManager->GetVolume(Form("%s%d", kQuadrantNLayerName, chamber)), 1, new TGeoTranslation(x, y, z));
 
   return quadrant;
 }

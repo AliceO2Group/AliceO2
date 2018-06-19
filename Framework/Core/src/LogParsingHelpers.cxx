@@ -24,7 +24,6 @@ char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel
 };
 using LogLevel = o2::framework::LogParsingHelpers::LogLevel;
 
-<<<<<<< HEAD
 LogLevel LogParsingHelpers::parseTokenLevel(const std::string& s)
 {
 
@@ -45,27 +44,6 @@ LogLevel LogParsingHelpers::parseTokenLevel(const std::string& s)
     return LogLevel::Unknown;
   }
 
-=======
-LogLevel LogParsingHelpers::parseTokenLevel(const std::string &s) {
-
-  // Example format: [99:99:99][ERROR] (string begins with that, longest is 17 chars)
-  constexpr size_t MAXPREFLEN = 17;
-  constexpr size_t LABELPOS = 10;
-  if (s.size() < MAXPREFLEN) {
-    return LogLevel::Unknown;
-  }
-
-  // Check if first chars match [NN:NN:NN]
-  //                            0123456789
-  if ((unsigned char)s[0] != '[' || (unsigned char)s[9] != ']' ||
-      (unsigned char)s[3] != ':' || (unsigned char)s[6] != ':' ||
-      (unsigned char)s[1] - '0' > 9 || (unsigned char)s[2] - '0' > 9 ||
-      (unsigned char)s[4] - '0' > 9 || (unsigned char)s[5] - '0' > 9 ||
-      (unsigned char)s[7] - '0' > 9 || (unsigned char)s[8] - '0' > 9) {
-    return LogLevel::Unknown;
-  }
-
->>>>>>> 88eac68cd403296a631a5f445f228b92c00abc61
   if (s.compare(LABELPOS, 8, "[DEBUG] ") == 0) {
     return LogLevel::Debug;
   } else if (s.compare(LABELPOS, 7, "[INFO] ") == 0 ||

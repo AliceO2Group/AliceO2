@@ -32,12 +32,8 @@ void TextControlService::readyToQuit(bool all)
   }
 }
 
-<<<<<<< HEAD
 bool parseControl(const std::string& s, std::smatch& match)
 {
-=======
-bool parseControl(const std::string &s, std::smatch &match) {
->>>>>>> 88eac68cd403296a631a5f445f228b92c00abc61
   const static std::regex controlRE("READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
   auto idx = s.find("CONTROL_ACTION: ");
   if (idx == std::string::npos) {
