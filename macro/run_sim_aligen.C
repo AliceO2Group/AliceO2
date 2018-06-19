@@ -158,10 +158,12 @@ void run_sim_aligen(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // extract max memory usage
   FairSystemInfo sysinfo;
 
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
   std::cout << "Macro finished succesfully." << std::endl;
   std::cout << "Output file is " << outFile << std::endl;
   std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl
+            << std::endl;
   std::cout << "Memory used " << sysinfo.GetMaxMemory() << "\n";
 }

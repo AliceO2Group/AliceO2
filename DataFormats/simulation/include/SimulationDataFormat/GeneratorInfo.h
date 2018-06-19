@@ -35,13 +35,12 @@ class GeneratorInfo
   virtual ~GeneratorInfo();
 
   /** methods **/
-  virtual void print() const { };
+  virtual void print() const {};
 
   /** methods to override **/
   virtual void reset() = 0;
 
  protected:
-
 }; /** class GeneratorInfo **/
 
 /*****************************************************************/

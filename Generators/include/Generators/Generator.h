@@ -41,7 +41,9 @@ class Generator : public FairGenerator
 {
 
  public:
-  enum ETriggerMode_t { kTriggerOFF, kTriggerOR, kTriggerAND };
+  enum ETriggerMode_t { kTriggerOFF,
+                        kTriggerOR,
+                        kTriggerAND };
 
   /** default constructor **/
   Generator();

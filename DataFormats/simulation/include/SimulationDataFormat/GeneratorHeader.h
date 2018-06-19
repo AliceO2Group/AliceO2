@@ -44,7 +44,7 @@ class GeneratorHeader
   ~GeneratorHeader();
 
   /** getters **/
-  const std::string& getName() const { return mName; }; 
+  const std::string& getName() const { return mName; };
   int getTrackOffset() const { return mTrackOffset; };
   int getNumberOfTracks() const { return mNumberOfTracks; };
   int getNumberOfAttempts() const { return mNumberOfAttempts; };

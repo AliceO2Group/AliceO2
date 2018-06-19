@@ -40,8 +40,8 @@ class GeneratorTGenerator : public Generator
 
   /** setters **/
   void setGenerator(TGenerator* val) { mGenerator = val; };
-  void setImportParticles(const std::string& val) { mImportParticles = val; }; 
-  
+  void setImportParticles(const std::string& val) { mImportParticles = val; };
+
   /** Initialize the generator if needed **/
   Bool_t Init() override;
 
