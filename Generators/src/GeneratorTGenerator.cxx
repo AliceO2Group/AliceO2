@@ -26,7 +26,7 @@ namespace eventgen
 /*****************************************************************/
 
 GeneratorTGenerator::GeneratorTGenerator()
-  : Generator("ALICEo2", "ALICEo2 TGenerator Generator"), mGenerator(nullptr), mParticles(nullptr)
+  : Generator("ALICEo2", "ALICEo2 TGenerator Generator"), mGenerator(nullptr), mParticles(nullptr), mImportParticles("Final")
 {
   /** default constructor **/
 }
@@ -34,7 +34,7 @@ GeneratorTGenerator::GeneratorTGenerator()
 /*****************************************************************/
 
 GeneratorTGenerator::GeneratorTGenerator(const Char_t* name, const Char_t* title)
-  : Generator(name, title), mGenerator(nullptr), mParticles(nullptr)
+  : Generator(name, title), mGenerator(nullptr), mParticles(nullptr), mImportParticles("Final")
 {
   /** constructor **/
 }
@@ -56,7 +56,7 @@ Bool_t GeneratorTGenerator::generateEvent()
   /** generate event **/
 
   mGenerator->GenerateEvent();
-  mGenerator->ImportParticles(mParticles, "All");
+  mGenerator->ImportParticles(mParticles, mImportParticles.c_str());
 
   /** success **/
   return kTRUE;

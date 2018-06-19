@@ -14,6 +14,7 @@
 #define ALICEO2_EVENTGEN_GENERATORTGENERATOR_H_
 
 #include "Generators/Generator.h"
+#include <string>
 
 class TGenerator;
 class TClonesArray;
@@ -39,7 +40,8 @@ class GeneratorTGenerator : public Generator
 
   /** setters **/
   void setGenerator(TGenerator* val) { mGenerator = val; };
-
+  void setImportParticles(const std::string& val) { mImportParticles = val; }; 
+  
   /** Initialize the generator if needed **/
   Bool_t Init() override;
 
@@ -61,6 +63,7 @@ class GeneratorTGenerator : public Generator
   /** TGenerator interface **/
   TGenerator* mGenerator;
   TClonesArray* mParticles;
+  std::string mImportParticles;
 
   ClassDefOverride(GeneratorTGenerator, 1);
 
