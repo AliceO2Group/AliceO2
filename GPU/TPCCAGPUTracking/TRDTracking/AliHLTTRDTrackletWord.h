@@ -12,8 +12,12 @@
 //
 //----------------------------------
 
+#ifdef HLTCA_BUILD_ALIROOT_LIB
 #include "AliTRDgeometry.h"
 #include "AliTRDpadPlane.h"
+#else
+class AliTRDgeometry {};
+#endif
 
 class AliTRDtrackletWord;
 class AliTRDtrackletMCM;
@@ -52,12 +56,18 @@ class AliHLTTRDTrackletWord {
   Int_t GetDetector() const { return fHCId / 2; }
   Int_t GetHCId() const { return fHCId; }
   Float_t GetdYdX() const { return (GetdY() * 140e-4 / 3.); }
+#ifdef HLTCA_BUILD_ALIROOT_LIB
   Float_t GetX() const { return fgGeo->GetTime0((fHCId%12)/2); }
   Float_t GetY() const { return (GetYbin() * 160e-4); }
   Float_t GetZ() const { return fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos(GetZbin()) -
       fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowSize(GetZbin())  * .5; }
   Float_t GetLocalZ() const { return GetZ() - fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos((((fHCId/12) % 5) != 2) ? 8 : 6); }
-
+#else
+  Float_t GetX() const { return 0; }
+  Float_t GetY() const { return 0; }
+  Float_t GetZ() const { return 0; }
+  Float_t GetLocalZ() const { return 0; }
+#endif
   UInt_t GetTrackletWord() const { return fTrackletWord; }
 
   void SetTrackletWord(UInt_t trackletWord) { fTrackletWord = trackletWord; }
