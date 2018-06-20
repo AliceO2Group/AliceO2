@@ -144,7 +144,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   }
 
   // ===| output file and container |===========================================
-  auto arrCluster = std::make_shared<std::vector<o2::TPC::Cluster>>();
+  auto arrCluster = std::make_unique<std::vector<o2::TPC::Cluster>>();
   std::vector<o2::TPC::Cluster> *arrClusterBox = nullptr;
   float cherenkovValue = 0.;
   int runNumber = 0;
@@ -177,7 +177,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   // HW cluster finder
   std::unique_ptr<Clusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer* hwCl = new HwClusterer(arrCluster, nullptr, 0);
+    HwClusterer* hwCl = new HwClusterer(arrCluster.get(), nullptr, 0);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<Clusterer>(hwCl);
@@ -213,7 +213,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
     }
     //printf("Converted digits: %zu %f\n", arr.size(), arr.at(0)->getChargeFloat());
 
-    cl->Process(*arr.get(), nullptr, events);
+    cl->process(*arr.get(), nullptr);
 
     // ---| set cherenkov value|---------------------------------------------
     if (istr.is_open()) {

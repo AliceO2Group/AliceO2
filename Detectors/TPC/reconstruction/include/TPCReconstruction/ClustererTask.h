@@ -67,8 +67,8 @@ class ClustererTask : public FairTask{
    std::unique_ptr<const MCLabelContainer> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
 
    // Cluster arrays
-   std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
-   std::shared_ptr<MCLabelContainer> mHwClustersMCTruthArray;                  ///< Array for MCTruth information associated to cluster in mHwClustersArrays
+   std::unique_ptr<std::vector<ClusterHardwareContainer8kb>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
+   std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray;                  ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
    ClassDefOverride(ClustererTask, 1)
 };

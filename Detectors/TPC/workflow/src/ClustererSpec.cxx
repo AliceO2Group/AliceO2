@@ -41,7 +41,7 @@ DataProcessorSpec getClustererSpec()
   auto initFunction = [](InitContext& ic) {
     auto clusterArray = std::make_shared<std::vector<o2::TPC::Cluster>>();
     auto mctruthArray = std::make_shared<MCLabelContainer>();
-    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray, mctruthArray);
+    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray.get(), mctruthArray.get(), 0); // correct sector needs to be set!!
 
     auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
       auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");
@@ -50,8 +50,8 @@ DataProcessorSpec getClustererSpec()
       LOG(INFO) << "processing " << inDigits.size() << " digit object(s)";
       clusterArray->clear();
       mctruthArray->clear();
-      clusterer->Process(inDigits, inMCLabels.get(), 1);
-      LOG(INFO) << "clusterer produced " << clusterArray->size() << " cluster(s)";
+      clusterer->process(inDigits, inMCLabels.get());
+      LOG(INFO) << "clusterer produced " << clusterArray->size() << " cluster container";
       pc.outputs().snapshot(OutputRef{ "clusters" }, *clusterArray.get());
       pc.outputs().snapshot(OutputRef{ "clusterlbl" }, *mctruthArray.get());
     };

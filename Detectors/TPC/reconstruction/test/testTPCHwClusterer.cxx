@@ -92,10 +92,10 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test1)
   std::cout << "##" << std::endl
             << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_shared<std::vector<ClusterHardwareContainer8kb>>();
-  auto labelArray = std::make_shared<MCLabelContainer>();
+  auto clusterArray = std::make_unique<std::vector<ClusterHardwareContainer8kb>>();
+  auto labelArray = std::make_unique<MCLabelContainer>();
 
-  HwClusterer clusterer(clusterArray, labelArray, 0);
+  HwClusterer clusterer(clusterArray.get(), labelArray.get(), 0);
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test1)
   auto digits = std::make_unique<const std::vector<Digit>>(digitVec);
   auto mcDigitTruth = std::make_unique<const MCLabelContainer>(labelContainer);
 
-  clusterer.Process(*digits.get(), mcDigitTruth.get(), 0);
+  clusterer.process(*digits.get(), mcDigitTruth.get());
 
   // check if clusters were found
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
@@ -149,10 +149,10 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test2)
   std::cout << "##" << std::endl
             << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_shared<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
-  auto labelArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray, labelArray, 0);
+  o2::TPC::HwClusterer clusterer(clusterArray.get(), labelArray.get(), 0);
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test2)
   std::sort(digits->begin(), digits->end(), sortTime());
 
   // Search clusters
-  clusterer.Process(*digits.get(), nullptr, 0);
+  clusterer.process(*digits.get(), nullptr);
 
   // Check result
   BOOST_CHECK_EQUAL(clusterArray->size(), 47);
@@ -227,10 +227,10 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test3)
   std::cout << "##" << std::endl
             << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_shared<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
-  auto labelArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray, labelArray, 0);
+  o2::TPC::HwClusterer clusterer(clusterArray.get(), labelArray.get(), 0);
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test3)
   std::sort(digits->begin(), digits->end(), sortTime());
 
   // Search clusters
-  clusterer.Process(*digits.get(), nullptr, 0);
+  clusterer.process(*digits.get(), nullptr);
 
   // Check outcome
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);

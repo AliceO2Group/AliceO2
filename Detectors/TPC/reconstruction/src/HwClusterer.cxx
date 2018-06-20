@@ -26,12 +26,13 @@ using namespace o2::TPC;
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
-  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutputContainer,
-  std::shared_ptr<std::vector<Cluster>> clusterOutputSimple,
-  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
+  std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
+  std::vector<Cluster>* clusterOutputSimple,
+  MCLabelContainer* labelOutput, int sectorid)
   : Clusterer(),
-    mClusterSector(sectorid),
     mNumRows(0),
+    mCurrentMcContainerInBuffer(0),
+    mClusterSector(sectorid),
     mLastTimebin(-1),
     mLastHB(0),
     mPeakChargeThreshold(2),
@@ -73,7 +74,7 @@ HwClusterer::HwClusterer(
 
   mTmpClusterArray.resize(10);
   for (unsigned short region = 0; region < 10; ++region) {
-    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<std::unique_ptr<ClusterHardware>, std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>();
+    mTmpClusterArray[region] = std::make_unique<std::vector<std::pair<ClusterHardware, std::vector<std::pair<MCCompLabel, unsigned>>>>>();
   }
 
   mGlobalRowToRegion.resize(mNumRows);
@@ -91,22 +92,22 @@ HwClusterer::HwClusterer(
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
-  std::shared_ptr<std::vector<Cluster>> clusterOutput,
-  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
+  std::vector<Cluster>* clusterOutput,
+  MCLabelContainer* labelOutput, int sectorid)
   : HwClusterer(nullptr, clusterOutput, labelOutput, sectorid)
 {
 }
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
-  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
-  std::shared_ptr<MCLabelContainer> labelOutput, int sectorid)
+  std::vector<ClusterHardwareContainer8kb>* clusterOutput,
+  MCLabelContainer* labelOutput, int sectorid)
   : HwClusterer(clusterOutput, nullptr, labelOutput, sectorid)
 {
 }
 
 //______________________________________________________________________________
-void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
+void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth)
 {
   if (mClusterArray)
     mClusterArray->clear();
@@ -120,6 +121,7 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
   int digitIndex = 0;
   int index;
   unsigned HB;
+  mCurrentMcContainerInBuffer = 0;
 
   /*
    * Loop over all (time ordered) digits
@@ -139,14 +141,6 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
      */
 
     if (digit.getTimeStamp() != mLastTimebin) {
-      // we have to copy the MC truth container because we need the information
-      // maybe only in the next events (we store permanently 5 timebins), where
-      // the original pointer could already point to the next container.
-      if (mcDigitTruth)
-        mMCtruth[digit.getTimeStamp() % 5] = std::make_unique<MCLabelContainer const>(*mcDigitTruth);
-      else
-        mMCtruth[digit.getTimeStamp() % 5] = std::unique_ptr<MCLabelContainer const>(nullptr);
-
       /*
        * If the timebin changes, it could change by more then just 1 (not every
        * timebin has digits). Since the tmp storage covers 5 timebins, at most
@@ -192,6 +186,19 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
 
         mLastHB = HB;
       }
+
+      // we have to copy the MC truth container because we need the information
+      // maybe only in the next events (we store permanently 5 timebins), where
+      // the original pointer could already point to the next container.
+      if (mcDigitTruth) {
+        if (mCurrentMcContainerInBuffer == 0)
+          mMCtruth[digit.getTimeStamp() % 5] = std::make_shared<MCLabelContainer const>(*mcDigitTruth);
+        else
+          mMCtruth[digit.getTimeStamp() % 5] = std::shared_ptr<MCLabelContainer const>(mMCtruth[getFirstSetBitOfField()]);
+
+        mCurrentMcContainerInBuffer |= (0x1 << (digit.getTimeStamp() % 5));
+      } else
+        mMCtruth[digit.getTimeStamp() % 5] = std::shared_ptr<MCLabelContainer const>(nullptr);
     }
 
     /*
@@ -228,25 +235,21 @@ void HwClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
 }
 
 //______________________________________________________________________________
-void HwClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
+void HwClusterer::finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth)
 {
   // Process the last digits (if there are any)
-  Process(digits, mcDigitTruth, eventCount);
+  process(digits, mcDigitTruth);
 
   // Search in last remaining timebins
   finishFrame(false);
 }
 
 //______________________________________________________________________________
-bool HwClusterer::hwClusterFinder(short center_pad, int center_time, unsigned short row,
-                                  ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& sortedMcLabels)
+bool HwClusterer::hwClusterFinder(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row,
+                                  ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels)
 {
 
-  unsigned qMaxIndex = (center_time % 5) * mPadsPerRow[row] + center_pad;
-
-  // check if center peak is above peak charge threshold
-  if (mDataBuffer[row][qMaxIndex] <= (mPeakChargeThreshold << 4))
-    return false;
+  // check if center peak is above peak charge threshold was already done!!
 
   // Require at least one neighboring time bin with signal
   if (mRequireNeighbouringTimebin &&
@@ -262,21 +265,21 @@ bool HwClusterer::hwClusterFinder(short center_pad, int center_time, unsigned sh
     return false;
 
   // check for local maximum
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad]))
+  if (mDataBuffer[row][qMaxIndex] < mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad])
     return false;
-  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad]))
+  if (mDataBuffer[row][qMaxIndex] <= mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad])
     return false;
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad - 1]))
+  if (mDataBuffer[row][qMaxIndex] < mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad - 1])
     return false;
-  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad + 1]))
+  if (mDataBuffer[row][qMaxIndex] <= mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad + 1])
     return false;
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad - 1]))
+  if (mDataBuffer[row][qMaxIndex] < mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad - 1])
     return false;
-  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad + 1]))
+  if (mDataBuffer[row][qMaxIndex] <= mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad + 1])
     return false;
-  if (!(mDataBuffer[row][qMaxIndex] > mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad - 1]))
+  if (mDataBuffer[row][qMaxIndex] <= mDataBuffer[row][(center_time + 1) % 5 * mPadsPerRow[row] + center_pad - 1])
     return false;
-  if (!(mDataBuffer[row][qMaxIndex] >= mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad + 1]))
+  if (mDataBuffer[row][qMaxIndex] < mDataBuffer[row][(center_time + 4) % 5 * mPadsPerRow[row] + center_pad + 1])
     return false;
 
   //  if (row == 14 && center_time%447 == 177/* && (qMax>>4) == 36*/ && center_time/447 == 3) {
@@ -312,7 +315,7 @@ bool HwClusterer::hwClusterFinder(short center_pad, int center_time, unsigned sh
   //
   for (short dt = -1; dt <= 1; ++dt) {
     for (short dp = -1; dp <= 1; ++dp) {
-      updateCluster(row, center_pad, center_time, dp, dt, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+      updateCluster(row, center_pad, center_time, dp, dt, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
     }
   }
 
@@ -322,16 +325,16 @@ bool HwClusterer::hwClusterFinder(short center_pad, int center_time, unsigned sh
   //        i
   //        o
   if (mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad - 1] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, -2, 0, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, -2, 0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
   if (mDataBuffer[row][center_time % 5 * mPadsPerRow[row] + center_pad + 1] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, +2, 0, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, +2, 0, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
   if (mDataBuffer[row][(5 + ((center_time - 1) % 5)) % 5 * mPadsPerRow[row] + center_pad] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, 0, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, 0, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
   if (mDataBuffer[row][(5 + ((center_time + 1) % 5)) % 5 * mPadsPerRow[row] + center_pad] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, 0, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, 0, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
 
   // o  o       o   o
@@ -340,24 +343,24 @@ bool HwClusterer::hwClusterFinder(short center_pad, int center_time, unsigned sh
   // o  i       i   o
   // o  o       o   o
   if (mDataBuffer[row][(5 + ((center_time - 1) % 5)) % 5 * mPadsPerRow[row] + center_pad - 1] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, -2, -1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, -2, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, -1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, -2, -1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, -2, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, -1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
   if (mDataBuffer[row][(5 + ((center_time + 1) % 5)) % 5 * mPadsPerRow[row] + center_pad - 1] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, -2, +1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, -2, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, -1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, -2, +1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, -2, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, -1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
   if (mDataBuffer[row][(5 + ((center_time - 1) % 5)) % 5 * mPadsPerRow[row] + center_pad + 1] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, +2, -1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, +2, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, +1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, +2, -1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, +2, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, +1, -2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
   if (mDataBuffer[row][(5 + ((center_time + 1) % 5)) % 5 * mPadsPerRow[row] + center_pad + 1] > (mContributionChargeThreshold << 4)) {
-    updateCluster(row, center_pad, center_time, +2, +1, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, +2, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
-    updateCluster(row, center_pad, center_time, +1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, sortedMcLabels);
+    updateCluster(row, center_pad, center_time, +2, +1, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, +2, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
+    updateCluster(row, center_pad, center_time, +1, +2, qTot, pad, time, sigmaPad2, sigmaTime2, mcLabels);
   }
 
   cluster.setCluster(
@@ -371,7 +374,7 @@ bool HwClusterer::hwClusterFinder(short center_pad, int center_time, unsigned sh
     flags);
 
   using vecType = std::pair<MCCompLabel, unsigned>;
-  std::sort(sortedMcLabels.begin(), sortedMcLabels.end(), [](const vecType& a, const vecType& b) { return a.second > b.second; });
+  std::sort(mcLabels.begin(), mcLabels.end(), [](const vecType& a, const vecType& b) { return a.second > b.second; });
 
   return true;
 }
@@ -404,8 +407,8 @@ void HwClusterer::writeOutputWithTimeOffset(int timeOffset)
           clusterContainer->timeBinOffset = timeOffset;
         }
         // Copy cluster and increment cluster counter
-        clusterContainer->clusters[clusterContainer->numberOfClusters++] = *(c.first);
-        for (auto& mcLabel : *(c.second)) {
+        clusterContainer->clusters[clusterContainer->numberOfClusters++] = c.first;
+        for (auto& mcLabel : c.second) {
           mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
         }
         ++mClusterCounter;
@@ -413,7 +416,7 @@ void HwClusterer::writeOutputWithTimeOffset(int timeOffset)
     } else if (mPlainClusterArray) {
       short cru = mClusterSector * 10 + region;
       for (auto& c : *mTmpClusterArray[region]) {
-        auto& cluster = *(c.first);
+        auto& cluster = c.first;
         mPlainClusterArray->emplace_back(
           cru,
           cluster.getRow(),
@@ -424,7 +427,7 @@ void HwClusterer::writeOutputWithTimeOffset(int timeOffset)
           cluster.getTimeLocal() + timeOffset,
           std::sqrt(cluster.getSigmaTime2()));
 
-        for (auto& mcLabel : *(c.second)) {
+        for (auto& mcLabel : c.second) {
           mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
         }
         ++mClusterCounter;
@@ -441,18 +444,21 @@ void HwClusterer::findClusterForTime(int timebin)
 {
   if (timebin < 0)
     return;
-  auto cluster = std::make_unique<ClusterHardware>();
-  auto sortedMcLabels = std::make_unique<std::vector<std::pair<MCCompLabel, unsigned>>>();
 
+  ClusterHardware cluster;
+  std::vector<std::pair<MCCompLabel, unsigned>> mcLabels;
+
+  unsigned qMaxIndex;
   for (unsigned short row = mNumRows; row--;) {
     // two empty pads on the left and right without a cluster peak
     for (short pad = 2; pad < mPadsPerRow[row] - 2; ++pad) {
-      if (hwClusterFinder(pad, timebin, row, *cluster.get(), *sortedMcLabels.get())) {
-        mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(std::move(cluster), std::move(sortedMcLabels));
-
-        // create new empty cluster
-        cluster = std::make_unique<ClusterHardware>();
-        sortedMcLabels = std::make_unique<std::vector<std::pair<MCCompLabel, unsigned>>>();
+      qMaxIndex = (timebin % 5) * mPadsPerRow[row] + pad;
+      // Check if pad is above peak threshold already here to avoid function
+      // call in most of the case. Provide index of center to avoid
+      // recalculation of the same index.
+      if (mDataBuffer[row][qMaxIndex] > (mPeakChargeThreshold << 4) && hwClusterFinder(qMaxIndex, pad, timebin, row, cluster, mcLabels)) {
+        mTmpClusterArray[mGlobalRowToRegion[row]]->emplace_back(cluster, std::move(mcLabels));
+        mcLabels.clear();
       }
     }
   }
@@ -484,6 +490,8 @@ void HwClusterer::finishFrame(bool clear)
 //______________________________________________________________________________
 void HwClusterer::clearBuffer(int timebin)
 {
+  mMCtruth[timebin % 5] = std::shared_ptr<MCLabelContainer const>(nullptr);
+  mCurrentMcContainerInBuffer &= ~(0x1 << (timebin % 5)); // clear bit
   for (unsigned short row = 0; row < mNumRows; ++row) {
     // reset timebin which is not needed anymore
     // TODO: for simulation fill with pedestal/noise instead of 0

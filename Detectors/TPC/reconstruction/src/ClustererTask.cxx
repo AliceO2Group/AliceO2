@@ -72,19 +72,19 @@ InitStatus ClustererTask::Init()
   }
 
   // Register output container
-  mHwClustersArray = std::make_shared<std::vector<ClusterHardwareContainer8kb>>();
-  // a trick to register the shared pointer with FairRootManager
+  mHwClustersArray = std::make_unique<std::vector<ClusterHardwareContainer8kb>>();
+  // a trick to register the unique pointer with FairRootManager
   static auto clusterArrayTmpPtr = mHwClustersArray.get();
   mgr->RegisterAny(Form("TPCClusterHW%i", mClusterSector), clusterArrayTmpPtr, kTRUE);
 
   // Register MC Truth output container
-  mHwClustersMCTruthArray = std::make_shared<MCLabelContainer>();
-  // a trick to register the shared pointer with FairRootManager
+  mHwClustersMCTruthArray = std::make_unique<MCLabelContainer>();
+  // a trick to register the unique pointer with FairRootManager
   static auto clusterMcTruthTmpPtr = mHwClustersMCTruthArray.get();
   mgr->RegisterAny(Form("TPCClusterHWMCTruth%i", mClusterSector), clusterMcTruthTmpPtr, kTRUE);
 
   // create clusterer and pass output pointer
-  mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray, mHwClustersMCTruthArray, mClusterSector);
+  mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray.get(), mHwClustersMCTruthArray.get(), mClusterSector);
   mHwClusterer->setContinuousReadout(mIsContinuousReadout);
 
   // TODO: implement noise/pedestal objects
@@ -104,7 +104,7 @@ void ClustererTask::Exec(Option_t *option)
   if (mHwClustersMCTruthArray)
     mHwClustersMCTruthArray->clear();
 
-  mHwClusterer->Process(*mDigitsArray.get(), mDigitMCTruthArray.get(), mEventCount);
+  mHwClusterer->process(*mDigitsArray.get(), mDigitMCTruthArray.get());
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
              << FairLogger::endl;
 
@@ -121,7 +121,7 @@ void ClustererTask::FinishTask()
   if (mHwClustersMCTruthArray)
     mHwClustersMCTruthArray->clear();
 
-  mHwClusterer->FinishProcess(*mDigitsArray.get(), mDigitMCTruthArray.get(), mEventCount);
+  mHwClusterer->finishProcess(*mDigitsArray.get(), mDigitMCTruthArray.get());
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container" << FairLogger::endl
              << FairLogger::endl;
 

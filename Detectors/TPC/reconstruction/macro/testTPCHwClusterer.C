@@ -82,10 +82,10 @@ float sigma_t_pre(std::array<int, 25>& data)
 void testTPCHwClusterer()
 {
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_shared<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
-  auto labelArray = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray, labelArray, 0);
+  o2::TPC::HwClusterer clusterer(clusterArray.get(), labelArray.get(), 0);
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
@@ -135,7 +135,7 @@ void testTPCHwClusterer()
   std::sort(digits->begin(), digits->end(), sortTime());
 
   // Search clusters
-  clusterer.Process(*digits.get(), nullptr, 0);
+  clusterer.process(*digits.get(), nullptr);
 
   // Check outcome
   std::cout << "ClusterArray size: " << clusterArray->size() << std::endl;

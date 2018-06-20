@@ -145,7 +145,7 @@ BoxClusterer::~BoxClusterer()
 }
 
 //________________________________________________________________________
-void BoxClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
+void BoxClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth)
 {
   mClusterArray->clear(); // check this
 
@@ -178,11 +178,6 @@ void BoxClusterer::Process(std::vector<o2::TPC::Digit> const& digits, MCLabelCon
     findLocalMaxima(iCRU);
     cleanArrays();
   }
-}
-
-//________________________________________________________________________
-void BoxClusterer::FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount)
-{
 }
 
 //_____________________________________________________________________

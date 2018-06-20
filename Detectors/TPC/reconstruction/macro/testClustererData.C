@@ -42,13 +42,13 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   int mTimeBinsPerCall=500;
 
   // ===| output file and container |===========================================
-  auto arrCluster = std::make_shared<std::vector<o2::TPC::Cluster>>();
+  auto arrCluster = std::make_unique<std::vector<o2::TPC::Cluster>>();
   TFile fout(outputFileName,"recreate");
   TTree t("clusters","clusters");
   t.Branch("cl", arrCluster.get());
 
   // ===| cluster finder |======================================================
-  HwClusterer cl(arrCluster, nullptr, 0);
+  HwClusterer cl(arrCluster.get(), nullptr, 0);
   cl.setPedestalObject(pedestal);
 
   // ===| loop over all data |==================================================
@@ -83,7 +83,7 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
     //}
     //printf("\n");
 
-    cl.Process(arr,nullptr,events);
+    cl.process(arr, nullptr);
     t.Fill();
 
     printf("Found clusters: %lu\n", arrCluster->size());

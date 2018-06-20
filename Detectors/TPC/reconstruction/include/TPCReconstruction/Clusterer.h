@@ -35,39 +35,19 @@ class Clusterer {
 
   public:
    /// Default Constructor
-   Clusterer();
+   Clusterer() = default;
 
    /// Destructor
-   virtual ~Clusterer();
+   virtual ~Clusterer() = default;
 
    /// Copy constructor
-   Clusterer(Clusterer const& other);
-
-   /// Move constructor
-   Clusterer(Clusterer&& other) noexcept;
-
-   /// Assignment operator
-   Clusterer& operator=(Clusterer const& other)
-   {
-     mNoiseObject = other.mNoiseObject;
-     mPedestalObject = other.mPedestalObject;
-     return *this;
-   };
-
-   /// Move assignment
-   Clusterer& operator=(Clusterer&& other)
-   {
-     mNoiseObject = other.mNoiseObject;
-     mPedestalObject = other.mPedestalObject;
-     return *this;
-   };
+   Clusterer(Clusterer const& other) = default;
 
    /// Processing all digits
    /// \param digits Container with TPC digits
    /// \param mcDigitTruth MC Digit Truth container
-   /// \param eventCount event counter
-   virtual void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
-   virtual void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) = 0;
+   virtual void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
+   virtual void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
 
    /// Setter for noise object, noise will be added before cluster finding
    /// \param noiseObject CalDet object, containing noise simulation
@@ -81,29 +61,6 @@ class Clusterer {
    CalDet<float>* mNoiseObject;    ///< Pointer to the CalDet object for noise simulation
    CalDet<float>* mPedestalObject; ///< Pointer to the CalDet object for the pedestal subtraction
 };
-
-inline Clusterer::Clusterer()
-  : mNoiseObject(nullptr),
-    mPedestalObject(nullptr)
-{}
-
-inline Clusterer::~Clusterer()
-{
-  mNoiseObject = nullptr;
-  mPedestalObject = nullptr;
-}
-
-inline Clusterer::Clusterer(Clusterer const& other)
-  : mNoiseObject(other.mNoiseObject),
-    mPedestalObject(other.mPedestalObject)
-{
-}
-
-inline Clusterer::Clusterer(Clusterer&& other) noexcept
-  : mNoiseObject(other.mNoiseObject),
-    mPedestalObject(other.mPedestalObject)
-{
-}
 
 inline void Clusterer::setNoiseObject(CalDet<float>* noiseObject)
 {

@@ -58,9 +58,8 @@ class BoxClusterer : public Clusterer
   /// Steer conversion of points to digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
-  /// \param eventCount event counter
-  void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
-  void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
+  void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
+  void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override{};
 
   void setRowsMax(int val) { mRowsMax = val; };
   void setPadsMax(int val) { mPadsMax = val; };

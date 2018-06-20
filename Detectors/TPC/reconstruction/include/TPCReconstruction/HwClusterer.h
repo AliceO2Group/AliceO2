@@ -42,9 +42,9 @@ class HwClusterer : public Clusterer
 
   /// Main Constructor
   HwClusterer(
-    std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutputContainer,
-    std::shared_ptr<std::vector<Cluster>> clusterOutputSimple,
-    std::shared_ptr<MCLabelContainer> labelOutput, int sectorid);
+    std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
+    std::vector<Cluster>* clusterOutputSimple,
+    MCLabelContainer* labelOutput, int sectorid);
 
  public:
   /// Constructor
@@ -52,8 +52,8 @@ class HwClusterer : public Clusterer
   /// \param labelOutput is pointer to storage to be filled with MC labels
   /// \param sectorid is sector number to be processed
   HwClusterer(
-    std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> clusterOutput,
-    std::shared_ptr<MCLabelContainer> labelOutput = nullptr,
+    std::vector<ClusterHardwareContainer8kb>* clusterOutput,
+    MCLabelContainer* labelOutput = nullptr,
     int sectorid = -1);
 
   /// Constructor
@@ -61,26 +61,25 @@ class HwClusterer : public Clusterer
   /// \param labelOutput is pointer to storage to be filled with MC labels
   /// \param sectorid is sector number to be processed
   HwClusterer(
-    std::shared_ptr<std::vector<Cluster>> clusterOutput,
-    std::shared_ptr<MCLabelContainer> labelOutput = nullptr,
+    std::vector<Cluster>* clusterOutput,
+    MCLabelContainer* labelOutput = nullptr,
     int sectorid = -1);
 
   /// Destructor
   ~HwClusterer() override = default;
 
+  /// Copy Constructor
+  HwClusterer(HwClusterer const& other) = default;
+
   /// Process digits
-  /// @param digits Container with TPC digits
-  /// @param mcDigitTruth MC Digit Truth container
-  /// @param eventCount event counter
-  /// @return Container with clusters
-  void Process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
+  /// \param digits Container with TPC digits
+  /// \param mcDigitTruth MC Digit Truth container
+  void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
 
   /// Finish processing digits
-  /// @param digits Container with TPC digits
-  /// @param mcDigitTruth MC Digit Truth container
-  /// @param eventCount event counter
-  /// @return Container with clusters
-  void FinishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth, int eventCount) override;
+  /// \param digits Container with TPC digits
+  /// \param mcDigitTruth MC Digit Truth container
+  void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -111,10 +110,9 @@ class HwClusterer : public Clusterer
   /// \param center_pad       Pad number to be checked for cluster
   /// \param center_time      Time to be checked for cluster
   /// \param row              Row number for cluster properties
-  /// \param cluster          Field to store found cluster in
-  /// \param sortedMcLabels   Sorted vector with MClabel-counter-pair
+  /// \param cluster          Reference to pair of a cluster and vector with MClabel-counter-pair to store found clusters in
   /// \return True if (center_pad,center_time) was a cluster, false if not
-  bool hwClusterFinder(short center_pad, int center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& sortedMcLabels);
+  bool hwClusterFinder(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
 
   /// Helper function to update cluster properties and MC labels
   /// \param row          Current row
@@ -146,11 +144,16 @@ class HwClusterer : public Clusterer
   /// \param timebin  Timebin to be cleared
   void clearBuffer(int timebin);
 
+  /// Returns least significant set bit of mCurrentMcContainerInBuffer, only the 5 LSBs are checked
+  /// \return LSB index which is set
+  short getFirstSetBitOfField();
+
   /*
    * class members
    */
-  int mClusterSector;                    ///< Sector to be processed
   unsigned short mNumRows;               ///< Number of rows in this sector
+  short mCurrentMcContainerInBuffer;     ///< Bit field, where to find the current MC container in buffer
+  int mClusterSector;                    ///< Sector to be processed
   int mLastTimebin;                      ///< Last time bin of previous event
   unsigned mLastHB;                      ///< Last HB bin of previous event
   unsigned mPeakChargeThreshold;         ///< Charge threshold for the central peak in ADC counts
@@ -165,14 +168,13 @@ class HwClusterer : public Clusterer
   std::vector<unsigned short> mGlobalRowToLocalRow;              ///< Converting global row number to local row number within region
   std::vector<std::vector<unsigned>> mDataBuffer;                ///< Buffer with digits (+noise +CM +...)
   std::vector<std::vector<int>> mIndexBuffer;                    ///< Buffer with digits indices for MC labels
-  std::vector<std::unique_ptr<MCLabelContainer const>> mMCtruth; ///< MC truth information of timebins in buffer
-  std::vector<std::pair<MCCompLabel, int>> mMClabel;             ///< Vector to accumulate the MC labels
+  std::vector<std::shared_ptr<MCLabelContainer const>> mMCtruth; ///< MC truth information of timebins in buffer
 
-  std::vector<std::unique_ptr<std::vector<std::pair<std::unique_ptr<ClusterHardware>, std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>>>> mTmpClusterArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
+  std::vector<std::unique_ptr<std::vector<std::pair<ClusterHardware, std::vector<std::pair<MCCompLabel, unsigned>>>>>> mTmpClusterArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
 
-  std::shared_ptr<std::vector<ClusterHardwareContainer8kb>> mClusterArray; ///< Pointer to output cluster container
-  std::shared_ptr<std::vector<Cluster>> mPlainClusterArray;                ///< Pointer to output cluster container
-  std::shared_ptr<MCLabelContainer> mClusterMcLabelArray;                  ///< Pointer to MC Label container
+  std::vector<ClusterHardwareContainer8kb>* mClusterArray; ///< Pointer to output cluster container
+  std::vector<Cluster>* mPlainClusterArray;                ///< Pointer to output cluster container
+  MCLabelContainer* mClusterMcLabelArray;                  ///< Pointer to MC Label container
 };
 
 inline void HwClusterer::setContinuousReadout(bool isContinuous)
@@ -198,6 +200,15 @@ inline void HwClusterer::setRequireNeighbouringPad(bool reqPad)
 inline void HwClusterer::setRequireNeighbouringTimebin(bool reqTimebin)
 {
   mRequireNeighbouringTimebin = reqTimebin;
+}
+
+inline short HwClusterer::getFirstSetBitOfField()
+{
+  for (short i = 0; i < 5; ++i) {
+    if ((mCurrentMcContainerInBuffer >> i) & 0x1)
+      return i;
+  }
+  return -1;
 }
 }
 }
