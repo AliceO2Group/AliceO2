@@ -743,20 +743,10 @@ void buildHalfChambers(TGeoVolume& topVolume)
 
     } // end of the node loop
 
-    // TEST
-    const double kInclAngle = 0.794 * TMath::DegToRad();
-    const double kDist = 12.;
-    double yShift = TMath::Power(-1, moduleID + 1) * kDist * TMath::Sin(kInclAngle);
-    double zShift = TMath::Power(-1, moduleID) * kDist * (1 - TMath::Cos(kInclAngle));
-
-    cout << endl
-         << nCh << " : y = " << yShift << ", z = " << zShift << endl;
-
     // place the half-chamber in the top volume
     topVolume.AddNode(
       halfChVol, moduleID,
-      new TGeoCombiTrans(halfCh["position"][0].GetDouble(), /* halfCh["position"][1].GetDouble()*/ yShift,
-                         halfCh["position"][2].GetDouble() + zShift,
+      new TGeoCombiTrans(halfCh["position"][0].GetDouble(), halfCh["position"][1].GetDouble(), halfCh["position"][2].GetDouble(),
                          new TGeoRotation(Form("%srotation", name.data()), halfCh["rotation"][0].GetDouble(),
                                           halfCh["rotation"][1].GetDouble(), halfCh["rotation"][2].GetDouble(),
                                           halfCh["rotation"][3].GetDouble(), halfCh["rotation"][4].GetDouble(),
@@ -821,7 +811,7 @@ const string jsonSlatDescription =
     {
       "name":"SC05I",
       "moduleID":8,
-      "position":[0.00, -0.1663, -959.75],
+      "position":[0.00, -0.1074, -959.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -884,7 +874,7 @@ const string jsonSlatDescription =
     {
       "name":"SC05O",
       "moduleID":9,
-      "position":[0.00, 0.1663, -975.25],
+      "position":[0.00, 0.1074, -975.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -947,7 +937,7 @@ const string jsonSlatDescription =
     {
       "name":"SC06I",
       "moduleID":10,
-      "position":[0.00, -0.1663, -990.75],
+      "position":[0.00, -0.1074, -990.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1010,7 +1000,7 @@ const string jsonSlatDescription =
     {
       "name":"SC06O",
       "moduleID":11,
-      "position":[0.00, 0.1663, -1006.25],
+      "position":[0.00, 0.1074, -1006.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1073,7 +1063,7 @@ const string jsonSlatDescription =
     {
       "name":"SC07I",
       "moduleID":12,
-      "position":[0.00, -0.1663, -1259.75],
+      "position":[0.00, -0.1074, -1259.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1160,7 +1150,7 @@ const string jsonSlatDescription =
     {
       "name":"SC07O",
       "moduleID":13,
-      "position":[0.00, -0.1663, -1284.25],
+      "position":[0.00, -0.1074, -1284.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1247,7 +1237,7 @@ const string jsonSlatDescription =
     {
       "name":"SC08I",
       "moduleID":14,
-      "position":[0.00, -0.1663, -1299.75],
+      "position":[0.00, -0.1074, -1299.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1334,7 +1324,7 @@ const string jsonSlatDescription =
     {
       "name":"SC08O",
       "moduleID":15,
-      "position":[0.00, -0.1663, -1315.25],
+      "position":[0.00, -0.1074, -1315.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1421,7 +1411,7 @@ const string jsonSlatDescription =
     {
       "name":"SC09I",
       "moduleID":16,
-      "position":[0.00, -0.1663, -1398.85],
+      "position":[0.00, -0.1074, -1398.85],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1508,7 +1498,7 @@ const string jsonSlatDescription =
     {
       "name":"SC09O",
       "moduleID":17,
-      "position":[0.00, -0.1663, -1414.35],
+      "position":[0.00, -0.1074, -1414.35],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1595,7 +1585,7 @@ const string jsonSlatDescription =
     {
       "name":"SC10I",
       "moduleID":18,
-      "position":[0.00, -0.1663, -1429.85],
+      "position":[0.00, -0.1074, -1429.85],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1682,7 +1672,7 @@ const string jsonSlatDescription =
     {
       "name":"SC10O",
       "moduleID":19,
-      "position":[0.00, -0.1663, -1445.35],
+      "position":[0.00, -0.1074, -1445.35],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
