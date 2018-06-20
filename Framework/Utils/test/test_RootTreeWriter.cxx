@@ -76,9 +76,19 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   createPlainMessage(o2::header::DataHeader{ "INT", "TST", 0 }, a);
   createSerializedMessage(o2::header::DataHeader{ "CONTAINER", "TST", 0 }, b);
 
+  // Note: InputRecord works on references to the schema and the message vector
+  // so we can not specify the schema definition directly in the definition of
+  // the InputRecord. Intrestingly enough, the compiler does not complain about
+  // getting reference to temporary rvalue argument. So it might work if the
+  // temporary argument is still in memory
+  // FIXME: check why the compiler does not detect this
+  std::vector<InputRoute> schema = {
+    { InputSpec{ "input1", "TST", "INT" }, "input1", 0 },      //
+    { InputSpec{ "input2", "TST", "CONTAINER" }, "input2", 0 } //
+  };
+
   InputRecord inputs{
-    { { InputSpec{ "input1", "TST", "INT" }, "input1", 0 },
-      { InputSpec{ "input2", "TST", "CONTAINER" }, "input2", 0 } },
+    schema,
     messages
   };
 
