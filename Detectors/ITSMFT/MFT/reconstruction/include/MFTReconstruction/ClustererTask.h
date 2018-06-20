@@ -24,6 +24,8 @@
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <memory>
@@ -37,6 +39,8 @@ class ClustererTask : public FairTask
 {
   using Clusterer = o2::ITSMFT::Clusterer;
   using Cluster = o2::ITSMFT::Cluster;
+  using CompCluster = o2::ITSMFT::CompCluster;
+  using CompClusterExt = o2::ITSMFT::CompClusterExt;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
@@ -63,8 +67,12 @@ class ClustererTask : public FairTask
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
   Clusterer mClusterer;                                ///< Cluster finder
 
-  std::vector<Cluster> mClustersArray;                       //!< Array of clusters
-  std::vector<Cluster>* mClustersArrayPtr = &mClustersArray; //!< Array of clusters pointer
+  std::vector<Cluster> mFullClus;               //!< vector of full clusters
+  std::vector<Cluster>* mFullClusPtr = nullptr; //!< vector of full clusters pointer
+
+  std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
+  std::vector<CompClusterExt>* mCompClusPtr = nullptr; //!< vector of compact clusters pointer
+
   MCTruth mClsLabels;                                        //! MC labels
   MCTruth* mClsLabelsPtr = nullptr;                          //! MC labels pointer (optional)
 

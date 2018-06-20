@@ -39,6 +39,8 @@ void run_clus_its(std::string outputfile = "o2clus_its.root", std::string inputf
   Bool_t useMCTruth = kTRUE; // kFALSE if no comparison with MC needed
   o2::ITS::ClustererTask* clus = new o2::ITS::ClustererTask(useMCTruth);
   clus->getClusterer().setMaskOverflowPixels(true); // set this to false to switch off masking
+  clus->getClusterer().setWantFullClusters(true);   // require clusters with coordinates and full pattern
+  clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID
 
   fRun->AddTask(clus);
 

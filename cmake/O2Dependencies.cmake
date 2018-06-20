@@ -739,6 +739,7 @@ o2_define_bucket(
     its_base_bucket
     data_format_itsmft_bucket
     data_format_its_bucket
+    itsmft_reconstruction_bucket
     #
     ITSMFTBase
     ITSMFTReconstruction

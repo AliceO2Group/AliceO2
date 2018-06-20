@@ -29,6 +29,7 @@ using namespace o2::utils;
 
 //_____________________________________________________________________
 ClustererTask::ClustererTask(bool useMC, bool raw) : FairTask("MFTClustererTask"),
+                                                     mRawDataMode(raw),
                                                      mUseMCTruth(useMC && (!raw))
 {
   LOG(INFO) << Class()->GetName() << ": MC digits mode: " << (mRawDataMode ? "OFF" : "ON")
@@ -40,7 +41,8 @@ ClustererTask::ClustererTask(bool useMC, bool raw) : FairTask("MFTClustererTask"
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  mClustersArray.clear();
+  mFullClus.clear();
+  mCompClus.clear();
   mClsLabels.clear();
 }
 
@@ -96,7 +98,12 @@ void ClustererTask::attachFairManagerIO()
   }
   mReaderMC->setDigits(arrDig);
 
-  const auto arrDigLbl = mUseMCTruth ? mgr->InitObjectAs<const MCTruth*>("MFTDigitMCTruth") : nullptr;
+  if (mUseMCTruth && !(mClusterer.getWantFullClusters() || mClusterer.getWantCompactClusters())) {
+    mUseMCTruth = false;
+    LOG(WARNING) << "MFT clusters storage is not requested, suppressing MCTruth storage" << FairLogger::endl;
+  }
+
+  const auto arrDigLbl = mUseMCTruth ? mgr->InitObjectAs<const MCTruth*>("ITSDigitMCTruth") : nullptr;
 
   if (!arrDigLbl && mUseMCTruth) {
     LOG(WARNING) << "MFT digits labeals are not registered in the FairRootManager. Continue w/o MC truth ..."
@@ -105,7 +112,21 @@ void ClustererTask::attachFairManagerIO()
   mReaderMC->setDigitsMCTruth(arrDigLbl);
 
   // Register output container
-  mgr->RegisterAny("MFTCluster", mClustersArrayPtr, kTRUE);
+  if (mClusterer.getWantFullClusters()) {
+    mFullClusPtr = &mFullClus;
+    mgr->RegisterAny("MFTCluster", mFullClusPtr, kTRUE);
+    LOG(INFO) << Class()->GetName() << " output of full clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of full clusters is not requested " << FairLogger::endl;
+  }
+
+  if (mClusterer.getWantCompactClusters()) {
+    mCompClusPtr = &mCompClus;
+    mgr->RegisterAny("MFTClusterComp", mCompClusPtr, kTRUE);
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested " << FairLogger::endl;
+  }
 
   // Register output MC Truth container if there is an MC truth for digits
   if (arrDigLbl) {
@@ -118,13 +139,19 @@ void ClustererTask::attachFairManagerIO()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  mClustersArray.clear();
-  if (mClsLabelsPtr)
+  /// execution entry point used when managed by the FairRunAna
+  if (mFullClusPtr) {
+    mFullClusPtr->clear();
+  }
+  if (mCompClusPtr) {
+    mCompClusPtr->clear();
+  }
+  if (mClsLabelsPtr) {
     mClsLabelsPtr->clear();
-
+  }
   LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
   mReader->init(); // needed when we start with fresh input data, as in case of FairRoort input
-  mClusterer.process(*mReader, mClustersArray, mClsLabelsPtr);
+  mClusterer.process(*mReader, mFullClusPtr, mCompClusPtr, mClsLabelsPtr);
 }
 
 //_____________________________________________________________________
@@ -139,7 +166,22 @@ void ClustererTask::run(const std::string inpName, const std::string outName, bo
     LOG(FATAL) << "Failed to open output file " << outName << FairLogger::endl;
   }
   std::unique_ptr<TTree> outTree = std::make_unique<TTree>("o2sim", "MFT Clusters");
-  outTree->Branch("MFTCluster", &mClustersArrayPtr);
+
+  if (mClusterer.getWantFullClusters()) {
+    mFullClusPtr = &mFullClus;
+    outTree->Branch("MFTCluster", &mFullClusPtr);
+    LOG(INFO) << Class()->GetName() << " output of full clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of full clusters is not requested " << FairLogger::endl;
+  }
+
+  if (mClusterer.getWantCompactClusters()) {
+    mCompClusPtr = &mCompClus;
+    outTree->Branch("MFTClusterComp", &mCompClusPtr);
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is requested " << FairLogger::endl;
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested " << FairLogger::endl;
+  }
 
   if (entryPerROF) {
     mClusterer.setOutputTree(outTree.get()); // this will force flushing at every ROF
@@ -147,9 +189,15 @@ void ClustererTask::run(const std::string inpName, const std::string outName, bo
 
   if (mRawDataMode) {
     mReaderRaw->openInput(inpName);
-    mClusterer.process(*mReaderRaw.get(), mClustersArray);
+    mClusterer.process(*mReaderRaw.get(), mFullClusPtr, mCompClusPtr);
   } else {
     mReaderMC->openInput(inpName, o2::detectors::DetID("MFT"));
+
+    if (mUseMCTruth && !(mClusterer.getWantFullClusters() || mClusterer.getWantCompactClusters())) {
+      mUseMCTruth = false;
+      LOG(WARNING) << "MFT clusters storage is not requested, suppressing MCTruth storage" << FairLogger::endl;
+    }
+
     if (mUseMCTruth && mReaderMC->getDigitsMCTruth()) {
       // digit labels are provided directly to clusterer
       mClsLabelsPtr = &mClsLabels;
@@ -161,7 +209,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName, bo
 
     // loop over entries of the input tree
     while (mReaderMC->readNextEntry()) {
-      mClusterer.process(*mReaderMC.get(), mClustersArray, mClsLabelsPtr);
+      mClusterer.process(*mReaderMC.get(), mFullClusPtr, mCompClusPtr, mClsLabelsPtr);
     }
   }
 

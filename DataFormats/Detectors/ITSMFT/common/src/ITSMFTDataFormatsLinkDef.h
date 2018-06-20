@@ -15,7 +15,11 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ITSMFT::Cluster + ;
+#pragma link C++ class o2::ITSMFT::CompCluster + ;
+#pragma link C++ class o2::ITSMFT::CompClusterExt + ;
 #pragma link C++ class std::vector < o2::ITSMFT::Cluster > +;
+#pragma link C++ class std::vector < o2::ITSMFT::CompCluster > +;
+#pragma link C++ class std::vector < o2::ITSMFT::CompClusterExt > +;
 #pragma link C++ class o2::ITSMFT::ClusterPattern + ;
 #pragma link C++ class o2::ITSMFT::ClusterTopology + ;
 #pragma link C++ class o2::ITSMFT::TopologyDictionary + ;
