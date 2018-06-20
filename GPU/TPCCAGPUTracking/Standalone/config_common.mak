@@ -20,7 +20,11 @@ CPPFILES					= cmodules/timer.cpp
 EXTRAFLAGSGCC				= -Weffc++
 EXTRAFLAGSLINK				= -rdynamic
 
+ifeq (${BUILD_DEBUG}, 1)
+COMPILER_FLAGS				= DBG
+else
 COMPILER_FLAGS				= OPT
+endif
 CONFIG_LTO					= 1
 
 CXXFILES					= SliceTracker/AliHLTTPCCASliceData.cxx \

@@ -15,9 +15,9 @@ if (HLT_CUDA OR HLT_OPENCL)
 endif()
 
 if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
-set(MODULE O2TPCCAGPUTracking)
+    set(MODULE O2TPCCAGPUTracking)
 elseif(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
-set(MODULE AliTPCCAGPUTracking)
+    set(MODULE AliTPCCAGPUTracking)
 endif()
 
 include_directories(. SliceTracker Merger)
