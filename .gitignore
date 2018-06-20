@@ -61,7 +61,6 @@ compile_commands.json
 .ycm_extra_conf.py
 
 # Datafiles
-gphysi.dat
 *.root
 *.o2tf
 
