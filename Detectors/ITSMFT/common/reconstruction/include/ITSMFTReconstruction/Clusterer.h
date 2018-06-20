@@ -19,6 +19,7 @@
 #include <vector>
 #include "ITSMFTBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -47,6 +48,8 @@ class Clusterer
   using PixelData = o2::ITSMFT::PixelData;
   using ChipPixelData = o2::ITSMFT::ChipPixelData;
   using Cluster = o2::ITSMFT::Cluster;
+  using CompCluster = o2::ITSMFT::CompCluster;
+  using CompClusterExt = o2::ITSMFT::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
@@ -57,13 +60,20 @@ class Clusterer
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
-  void process(PixelReader& r, std::vector<Cluster>& clusters, MCTruth* labelsCl = 0);
+  void process(PixelReader& r, std::vector<Cluster>* fullClus,
+               std::vector<CompClusterExt>* compClus, MCTruth* labelsCl = 0);
 
   // provide the common ITSMFT::GeometryTGeo to access matrices
   void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
 
   void setMaskOverflowPixels(bool v) { mMaskOverflowPixels = v; }
   bool isMaskOverflowPixels() const { return mMaskOverflowPixels; }
+
+  void setWantFullClusters(bool v) { mWantFullClusters = v; }
+  void setWantCompactClusters(bool v) { mWantCompactClusters = v; }
+
+  bool getWantFullClusters() const { return mWantFullClusters; }
+  bool getWantCompactClusters() const { return mWantCompactClusters; }
 
   UInt_t getCurrROF() const { return mCurrROF; }
   UShort_t getCurrChipID() const { return mCurrChipID; }
@@ -83,11 +93,12 @@ class Clusterer
   enum { kMaxRow = 650 }; // Anything larger than the real number of rows (512 for ALPIDE)
   void initChip(UInt_t first);
   void updateChip(UInt_t ip);
-  void finishChip(std::vector<Cluster>& clusters, const MCTruth* labelsDig, MCTruth* labelsClus = nullptr);
+  void finishChip(std::vector<Cluster>* fullClus, std::vector<CompClusterExt>* compClus,
+                  const MCTruth* labelsDig, MCTruth* labelsClus = nullptr);
   void fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled);
 
   ///< flush cluster data accumulated so far into the tree
-  void flushClusters(std::vector<Cluster>& clusters, MCTruth* labels)
+  void flushClusters(std::vector<Cluster>* fullClus, std::vector<CompClusterExt>* compClus, MCTruth* labels)
   {
 #ifdef _PERFORM_TIMING_
     mTimer.Stop();
@@ -96,12 +107,22 @@ class Clusterer
 #ifdef _PERFORM_TIMING_
     mTimer.Start(kFALSE);
 #endif
-    clusters.clear();
+    if (fullClus) {
+      fullClus->clear();
+    }
+    if (compClus) {
+      compClus->clear();
+    }
     if (labels) {
       labels->clear();
     }
   }
 
+  // clusterization options
+  bool mWantFullClusters = true;     ///< request production of full clusters with pattern and coordinates
+  bool mWantCompactClusters = false; ///< request production of compact clusters with patternID and corner address
+
+  // aux data for clusterization
   ChipPixelData* mChipData = nullptr; //! pointer on the current single chip data provided by the reader
 
   ///< array of chips, at the moment index corresponds to chip ID.
