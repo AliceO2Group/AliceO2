@@ -11,7 +11,7 @@
 /// \file   Materials.cxx
 /// \brief  Implementation of the MCH materials definitions
 /// \author Florian Damas <florian.damas@cern.ch>
-/// \date   22 mars 2018
+/// \date   22 march 2018
 
 #include "Materials.h"
 
@@ -110,7 +110,7 @@ void createMaterials()
   float dGas = 0.001821;                        // according to AliMUONCommonGeometryBuilder
 
   mgr.Mixture(kModuleName, ++imat, "Ar 80% + CO2 20%", aGas, zGas, dGas, nGas, wGas);
-  mgr.Medium(kModuleName, Medium::Gas, "Ar 80% + CO2 20%", imat, kIsSens, fieldType, maxField, kMaxfd, kStemax, kDeemax,
+  mgr.Medium(kModuleName, Medium::Gas, "Tracking gas", imat, kIsSens, fieldType, maxField, kMaxfd, kStemax, kDeemax,
              kEpsil, kStmin);
 
   /// Carbon
@@ -193,8 +193,13 @@ void createMaterials()
   mgr.Medium(kModuleName, Medium::Plastic, "Plastic", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
              kStmin);
 
-  /// Epoxy (definition taken from AliMUONCommonGeometryBuilder)
-  mgr.Material(kModuleName, ++imat, "Epoxy", 12.24, 6., 1.85, 0., 0.);
+  /// Epoxy : C18 H19 O3 (to be confirmed)
+  const int nEpoxy = 3;
+  float aEpoxy[nEpoxy] = { kACarbon, kAHydrogen, kAOxygen };
+  float zEpoxy[nEpoxy] = { kZCarbon, kZHydrogen, kZOxygen };
+  float wEpoxy[nEpoxy] = { 18, 19, 3 };
+  float dEpoxy = 1.23; // from MFT, to be confirmed
+  mgr.Mixture(kModuleName, ++imat, "Epoxy", aEpoxy, zEpoxy, dEpoxy, -nEpoxy, wEpoxy);
   mgr.Medium(kModuleName, Medium::Epoxy, "Epoxy", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil,
              kStmin);
 
@@ -204,7 +209,7 @@ void createMaterials()
   float zInox[nInox] = { kZIron, kZChromium, kZNickel };
   float wInox[nInox] = { 73., 18., 9. };
   float dInox = 7.93; // from AliMUONSt1GeometryBuilder
-  mgr.Mixture(kModuleName, ++imat, "Stainless steel", aInox, zInox, dInox, -nInox, wInox);
+  mgr.Mixture(kModuleName, ++imat, "Inox", aInox, zInox, dInox, -nInox, wInox);
   mgr.Medium(kModuleName, Medium::Inox, "Inox", imat, kIsUnsens, fieldType, maxField, kMaxfd, kStemax, kDeemax, kEpsil, kStmin);
 
   /// Aluminium
