@@ -102,6 +102,7 @@ inline void insertVertexList(int iSlice, size_t first, size_t last)
 	insertVertexList(vBuf, first, last);
 }
 
+bool invertColors = false;
 const int drawQualityPoint = 0;
 const int drawQualityLine = 0;
 const int drawQualityPerspective = 0;
@@ -318,22 +319,23 @@ template <typename... Args> void SetInfo(Args... args)
 static constexpr const int N_POINTS_TYPE = 9;
 static constexpr const int N_LINES_TYPE = 6;
 static constexpr const int N_FINAL_TYPE = 4;
-inline void SetColorClusters() { if (cfg.colorCollisions) return; glColor3f(0, 0.7, 1.0); }
-inline void SetColorInitLinks() { glColor3f(0.42, 0.4, 0.1); }
-inline void SetColorLinks() { glColor3f(0.8, 0.2, 0.2); }
-inline void SetColorSeeds() { glColor3f(0.8, 0.1, 0.85); }
-inline void SetColorTracklets() { glColor3f(1, 1, 1); }
-inline void SetColorTracks() { glColor3f(0.8, 1., 0.15); }
-inline void SetColorGlobalTracks() { glColor3f(1.0, 0.4, 0); }
-inline void SetColorFinal() { if (cfg.colorCollisions) return; glColor3f(0, 0.7, 0.2); }
-inline void SetColorGrid() { glColor3f(0.7, 0.7, 0.0); }
-inline void SetColorMarked() { glColor3f(1.0, 0.0, 0.0); }
+inline void SetColorClusters() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0, 0.3, 0.7); else glColor3f(0, 0.7, 1.0); }
+inline void SetColorInitLinks() { if (invertColors) glColor3f(0.42, 0.4, 0.1); else glColor3f(0.42, 0.4, 0.1); }
+inline void SetColorLinks() { if (invertColors) glColor3f(0.6, 0.1, 0.1); else glColor3f(0.8, 0.2, 0.2); }
+inline void SetColorSeeds() { if (invertColors) glColor3f(0.6, 0.0, 0.65); else glColor3f(0.8, 0.1, 0.85); }
+inline void SetColorTracklets() { if (invertColors) glColor3f(0, 0, 0); else glColor3f(1, 1, 1); }
+inline void SetColorTracks() { if (invertColors) glColor3f(0.6, 0, 0.1); else glColor3f(0.8, 1., 0.15); }
+inline void SetColorGlobalTracks() { if (invertColors) glColor3f(0.8, 0.2, 0); else glColor3f(1.0, 0.4, 0); }
+inline void SetColorFinal() { if (cfg.colorCollisions) return; if (invertColors) glColor3f(0, 0.6, 0.1); else glColor3f(0, 0.7, 0.2); }
+inline void SetColorGrid() { if (invertColors) glColor3f(0.5, 0.5, 0); else glColor3f(0.7, 0.7, 0.0); }
+inline void SetColorMarked() { if (invertColors) glColor3f(0.8, 0, 0); else glColor3f(1.0, 0.0, 0.0); }
 inline void SetCollisionColor(int col)
 {
 	int red = (col * 2) % 5;
 	int blue =  (2 + col * 3) % 7;
 	int green = (4 + col * 5) % 6;
-	if (red == 0 && blue == 0 && green == 0) red = 4;
+	if (invertColors && red == 4 && blue == 5 && green == 6) red = 0;
+	if (!invertColors && red == 0 && blue == 0 && green == 0) red = 4;
 	glColor3f(red / 4., green / 5., blue / 6.);
 }
 
@@ -1807,49 +1809,50 @@ void DoScreenshot(char *filename, float animateTime)
 }
 
 const char* HelpText[] = {
-	"[n] / [SPACE]                 Next event", 
-	"[q] / [Q] / [ESC]             Quit", 
-	"[r]                           Reset Display Settings", 
-	"[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)", 
-	"[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets", 
-	"[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove animation point, Reset, Cycle mode", 
+	"[n] / [SPACE]                 Next event",
+	"[q] / [Q] / [ESC]             Quit",
+	"[r]                           Reset Display Settings",
+	"[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)",
+	"[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets",
+	"[#]                           Invert colors",
+	"[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove animation point, Reset, Cycle mode",
 	"[>] / [<]                     Toggle config interpolation during animation / change animation interval (via movement)",
-	"[g]                           Draw Grid", 
-	"[i]                           Project onto XY-plane", 
-	"[x]                           Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])", 
-	"[.]                           Exclude rejected tracks", 
-	"[c]                           Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20", 
+	"[g]                           Draw Grid",
+	"[i]                           Project onto XY-plane",
+	"[x]                           Exclude Clusters used in the tracking steps enabled for visualization ([1]-[8])",
+	"[.]                           Exclude rejected tracks",
+	"[c]                           Mark flagged clusters (splitPad = 0x1, splitTime = 0x2, edge = 0x4, singlePad = 0x8, rejectDistance = 0x10, rejectErr = 0x20",
 	"[B]                           Mark clusters attached as adjacent",
 	"[L] / [K]                     Draw single collisions (next / previous)",
-	"[C]                           Colorcode clusters of different collisions", 
-	"[v]                           Hide rejected clusters from tracks", 
-	"[b]                           Hide all clusters not belonging or related to matched tracks", 
-	"[1]                           Show Clusters", 
-	"[2]                           Show Links that were removed", 
-	"[3]                           Show Links that remained in Neighbors Cleaner", 
-	"[4]                           Show Seeds (Start Hits)", 
-	"[5]                           Show Tracklets", 
-	"[6]                           Show Tracks (after Tracklet Selector)", 
-	"[7]                           Show Global Track Segments", 
-	"[8]                           Show Final Merged Tracks (after Track Merger)", 
-	"[j]                           Show global tracks as additional segments of final tracks", 
+	"[C]                           Colorcode clusters of different collisions",
+	"[v]                           Hide rejected clusters from tracks",
+	"[b]                           Hide all clusters not belonging or related to matched tracks",
+	"[1]                           Show Clusters",
+	"[2]                           Show Links that were removed",
+	"[3]                           Show Links that remained in Neighbors Cleaner",
+	"[4]                           Show Seeds (Start Hits)",
+	"[5]                           Show Tracklets",
+	"[6]                           Show Tracks (after Tracklet Selector)",
+	"[7]                           Show Global Track Segments",
+	"[8]                           Show Final Merged Tracks (after Track Merger)",
+	"[j]                           Show global tracks as additional segments of final tracks",
 	"[E] / [G]                     Extrapolate tracks / loopers",
-	"[t] / [T]                     Take Screenshot / Record animation to pictures", 
+	"[t] / [T]                     Take Screenshot / Record animation to pictures",
 	"[Z]                           Change screenshot resolution (scaling factor)",
 	"[S] / [A] / [D]               Enable or disable smoothing of points / smoothing of lines / depth buffer",
 	"[W] / [U] / [V]               Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA facot / toggle VSync",
 	"[F] / [_] / [R]               Switch fullscreen / Maximized window / FPS rate limiter",
 	"[I]                           Enable / disable GL indirect draw",
-	"[o] / [p] / [O] / [P]         Save / restore current camera position / animation path", 
-	"[h]                           Print Help", 
+	"[o] / [p] / [O] / [P]         Save / restore current camera position / animation path",
+	"[h]                           Print Help",
 	"[H]                           Show info texts",
-	"[w] / [s] / [a] / [d]         Zoom / Strafe Left and Right", 
+	"[w] / [s] / [a] / [d]         Zoom / Strafe Left and Right",
 	"[pgup] / [pgdn]               Strafe Up and Down",
-	"[e] / [f]                     Rotate", 
-	"[+] / [-]                     Make points thicker / fainter (Hold SHIFT for lines)", 
-	"[MOUSE 1]                     Look around", 
-	"[MOUSE 2]                     Shift camera", 
-	"[MOUSE 1+2]                   Zoom / Rotate", 
+	"[e] / [f]                     Rotate",
+	"[+] / [-]                     Make points thicker / fainter (Hold SHIFT for lines)",
+	"[MOUSE 1]                     Look around",
+	"[MOUSE 2]                     Shift camera",
+	"[MOUSE 1+2]                   Zoom / Rotate",
 	"[SHIFT]                       Slow Zoom / Move / Rotate",
 	"[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
 	"[1] ... [8] / [V]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
@@ -2115,6 +2118,12 @@ void HandleKeyRelease(int wParam, char key)
 		if (Zadd < 0 || Xadd < 0) Zadd = Xadd = 0;
 		SetInfo("TPC sector separation: %f %f", Xadd, Zadd);
 	}
+	else if (key == '#')
+	{
+		invertColors ^= 1;
+		if (invertColors) {CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));}
+		else {CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));}
+	}
 	else if (wParam == 'g')
 	{
 		cfg.drawGrid ^= 1;
@@ -2325,7 +2334,9 @@ void showInfo(const char* info)
 	glLoadIdentity();
 	gluOrtho2D(0.f, screen_width, 0.f, screen_height);
 	glViewport(0, 0, screen_width, screen_height);
-	glColor3f(1.f, 1.f, 1.f);
+	float colorValue = invertColors ? 0.f : 1.f;
+	if (invertColors) glColor3f(colorValue, colorValue, colorValue);
+	else glColor3f(colorValue, colorValue, colorValue);
 	glRasterPos2f(40.f, 40.f);
 	OpenGLPrint(info);
 	if (infoText2Timer.IsRunning())
@@ -2336,7 +2347,7 @@ void showInfo(const char* info)
 		}
 		else
 		{
-			if (infoText2Timer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoText2Timer.GetCurrentElapsedTime());
+			if (infoText2Timer.GetCurrentElapsedTime() >= 5) glColor4f(colorValue, colorValue, colorValue, 6 - infoText2Timer.GetCurrentElapsedTime());
 			glRasterPos2f(40.f, 20.f);
 			OpenGLPrint(infoText2);
 		}
@@ -2349,7 +2360,7 @@ void showInfo(const char* info)
 		}
 		else
 		{
-			if (infoHelpTimer.GetCurrentElapsedTime() >= 5) glColor4f(1, 1, 1, 6 - infoHelpTimer.GetCurrentElapsedTime());
+			if (infoHelpTimer.GetCurrentElapsedTime() >= 5) glColor4f(colorValue, colorValue, colorValue, 6 - infoHelpTimer.GetCurrentElapsedTime());
 			for (unsigned int i = 0;i < sizeof(HelpText) / sizeof(HelpText[0]);i++)
 			{
 				glRasterPos2f(40.f, screen_height - 35 - 20 * (1 + i));
@@ -2357,7 +2368,7 @@ void showInfo(const char* info)
 			}
 		}
 	}
-	glColor4f(1, 1, 1, 0);
+	glColor4f(colorValue, colorValue, colorValue, 0);
 	glViewport(0, 0, render_width, render_height);
 	glPopMatrix();
 }	
