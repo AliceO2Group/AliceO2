@@ -536,6 +536,14 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
         return;
       }
 
+      const char* child_driver_key = "child-driver";
+      if (varmap.count(child_driver_key) > 0) {
+        auto arguments = varmap[child_driver_key].as<std::string>();
+        wordexp_t expansions;
+        wordexp(arguments.c_str(), &expansions, 0);
+        tmpArgs.insert(tmpArgs.begin(), expansions.we_wordv, expansions.we_wordv + expansions.we_wordc);
+      }
+
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
@@ -593,10 +601,15 @@ void DeviceSpecHelpers::prepareArguments(int argc, char** argv, bool defaultQuie
   }
 }
 
+/// define the options which are forwarded to the FairMQ device
 boost::program_options::options_description DeviceSpecHelpers::getForwardedDeviceOptions()
 {
+  // - rate is an option of FairMQ device for ConditionalRun
+  // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
-  forwardedDeviceOptions.add_options()("rate", bpo::value<std::string>(), "rate for a data source device (Hz)");
+  forwardedDeviceOptions.add_options()                                                                   //
+    ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                            //
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)"); //
 
   return forwardedDeviceOptions;
 }
