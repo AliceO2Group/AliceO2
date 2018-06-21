@@ -45,7 +45,7 @@ GPUd() int AliHLTTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate( float x, 
   float pye = fPy - dx*b; // extrapolated py
   float pxe2 = pt2 - pye*pye;
 
-  if( fPx<(1.f - HLTCA_MAX_SIN_PHI) || pxe2<(1.f - HLTCA_MAX_SIN_PHI)*(1.f - HLTCA_MAX_SIN_PHI) ) return -1; // can not transport to x=x  
+  if(fPx < (1.f - HLTCA_MAX_SIN_PHI) || pxe2 < (1.f - HLTCA_MAX_SIN_PHI) * (1.f - HLTCA_MAX_SIN_PHI)) return -1; // can not transport to x=x  
   
   float pxe = AliHLTTPCCAMath::Sqrt( pxe2 ); // extrapolated px
   float pti = 1.f/AliHLTTPCCAMath::Sqrt(pt2);

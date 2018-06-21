@@ -66,7 +66,6 @@ public:
     return 0;
   }
       
-
   GPUd() float GetBz( float Alpha, float X, float Y, float Z ) const;
   GPUd() void  GetBxByBz( float Alpha, float X, float Y, float Z, float B[3] ) const;
   
@@ -77,6 +76,8 @@ public:
   GPUd() float GetSinPhi0() const { return fT0.GetSinPhi(); }
   GPUd() float GetCosPhi0() const { return fT0.GetCosPhi(); }
   GPUd() void Mirror(bool inFlyDirection);
+  GPUd() void Rotate180();
+  GPUd() void ChangeDirection();
   GPUd() float GetMirroredYModel() const;
   GPUd() float GetMirroredYTrack() const;
   GPUd() int GetPropagatedYZ(float x, float& projY, float& projZ);

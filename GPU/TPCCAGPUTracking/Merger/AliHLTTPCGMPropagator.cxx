@@ -115,7 +115,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   float py0 = fT0.Py();
   //float pt0 = fT0.GetPt();
 
-  if ( CAMath::Abs( fT->GetSinPhi() ) >= fMaxSinPhi  || CAMath::Abs( px0 ) < 1.e-2 ) return -1;
+  if ( CAMath::Abs( fT->GetSinPhi() ) >= fMaxSinPhi || CAMath::Abs( px0 ) < (1 - fMaxSinPhi) ) return -1;
  
   // rotate t0 track
   float px1  =  px0*cc + py0*ss;
@@ -128,8 +128,8 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
     t0.Py() =  py1;
     t0.UpdateValues();
   }
-
-  if ( CAMath::Abs( py1 ) > fMaxSinPhi*fT0.GetPt() || CAMath::Abs( px1 ) < 1.e-2  ) return -1;
+  
+    if ( CAMath::Abs( py1 ) > fMaxSinPhi*fT0.GetPt() || CAMath::Abs( px1 ) < (1 - fMaxSinPhi) ) return -1;
 
   // calculate X of rotated track:
   float trackX = x0*cc + ss*fT->Y();
@@ -138,8 +138,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   float B[3];
   GetBxByBz( newAlpha, t0.X(), t0.Y(), t0.Z(), B );
   float dLp = 0;
-  int err = t0.PropagateToXBxByBz( trackX, B[0], B[1], B[2], dLp );
-  if( err ) return -1;
+  if (t0.PropagateToXBxByBz( trackX, B[0], B[1], B[2], dLp )) return -1;
   
   if( fabs( t0.SinPhi() ) >= fMaxSinPhi ) return -1;
 
@@ -863,8 +862,52 @@ GPUd() void AliHLTTPCGMPropagator::CalculateMaterialCorrection()
   fMaterial.fSigmadE2 = fMaterial.fSigmadE2*betheRho;// + fMaterial.fK44;
 }
 
+GPUd() void AliHLTTPCGMPropagator::Rotate180()
+{
+    fT0.X() = -fT0.X();
+    fT0.Y() = -fT0.Y();
+    fT0.Q() = -fT0.Q();
+    fT0.Pz() = -fT0.Pz();
+    fT0.UpdateValues();
 
-GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection) 
+    fT->X() = -fT->X();
+    fT->Y() = -fT->Y();
+    fT->QPt() = -fT->QPt();
+    fT->DzDs() = -fT->DzDs();
+
+    fAlpha = fAlpha + M_PI;
+    while (fAlpha >= M_PI) fAlpha -= 2 * M_PI;
+    while (fAlpha < -M_PI) fAlpha += 2 * M_PI;
+
+    float *c = fT->Cov();
+    c[6] = -c[6];
+    c[7] = -c[7];
+    c[8] = -c[8];
+    c[10] = -c[10];
+    c[11] = -c[11];
+    c[12] = -c[12];
+}
+
+GPUd() void AliHLTTPCGMPropagator::ChangeDirection()
+{
+    fT0.Py() = -fT0.Py();
+    fT0.Pz() = -fT0.Pz();
+    fT0.Q()  = -fT0.Q();
+    fT->SinPhi() = -fT->SinPhi();
+    fT->DzDs()   = -fT->DzDs();
+    fT->QPt()    = -fT->QPt();
+    fT0.UpdateValues();
+    
+    float *c = fT->Cov();
+    c[3] = -c[3];
+    c[4] = -c[4];
+    c[6] = -c[6];
+    c[7] = -c[7];
+    c[10] = -c[10];
+    c[11] = -c[11];
+}
+
+GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
 {
   // mirror the track and the track approximation to the point which has the same X, but located on the other side of trajectory
   float B[3];
@@ -892,34 +935,14 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
 
   if( fT0.SinPhi()<0.f ) dS = -dS;
     
-  fT0.X() = fT0.X();
   fT0.Y() = fT0.Y() + dy;
   fT0.Z() = fT0.Z() + fT0.DzDs()*dS;
   fT0.Px() = fT0.Px(); // should be positive
-  fT0.Py() = -fT0.Py();
-  fT0.Pz() = -fT0.Pz();
-  fT0.Q()  = -fT0.Q();
-  fT0.UpdateValues();
-  fT0.SetDirectionAlongX(); // not needed
-
-  fT->X() = fT0.X();
   fT->Y() = fT->Y()+dy;
   fT->Z() = fT->Z() + fT0.DzDs()*dS;
-  fT->SinPhi() = -fT->SinPhi();
-  fT->DzDs()   = -fT->DzDs();
-  fT->QPt()    = -fT->QPt();
-
-  float *c = fT->Cov();
-  
-  c[3] = -c[3];
-  c[4] = -c[4];
-  c[6] = -c[6];
-  c[7] = -c[7];
-  c[10] = -c[10];
-  c[11] = -c[11];
+  ChangeDirection();
 
   // Energy Loss
-  
   if( 1||!fToyMCEvents ){
  
     // std::cout<<"MIRROR: APPLY ENERGY LOSS!!!"<<std::endl;
@@ -928,6 +951,7 @@ GPUd() void AliHLTTPCGMPropagator::Mirror(bool inFlyDirection)
     
     if( inFlyDirection ) dL = -dL;
     
+    float *c = fT->Cov();
     float &fC40 = c[10];
     float &fC41 = c[11];
     float &fC42 = c[12];

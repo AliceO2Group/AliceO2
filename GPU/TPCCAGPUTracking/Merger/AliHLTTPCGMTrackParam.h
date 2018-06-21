@@ -96,15 +96,16 @@ public:
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.) const ;
   GPUd() bool CheckCov() const ;
 
-  GPUd() bool Fit(AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI);
-  GPUd() void MirrorTo(AliHLTTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const AliHLTTPCCAParam& param, unsigned char row, unsigned char clusterState);
+  GPUd() bool Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI);
+  GPUd() void MirrorTo(AliHLTTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const AliHLTTPCCAParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
   GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2, int& nMissed);
   
-  GPUd() void AttachClustersMirror(AliHLTTPCGMMerger* merger, int slice, int iRow, int iTrack, float toY, AliHLTTPCGMPropagator& prop);
-  GPUd() void AttachClustersPropagate(AliHLTTPCGMMerger* Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliHLTTPCGMPropagator& prop, bool inFlyDirection);
-  GPUd() void AttachClusters(AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, bool goodLeg);
-  GPUd() void AttachClusters(AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, bool goodLeg, float Y, float Z);
+  GPUd() void AttachClustersMirror(const AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, float toY, AliHLTTPCGMPropagator& prop);
+  GPUd() void AttachClustersPropagate(const AliHLTTPCGMMerger* Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, AliHLTTPCGMPropagator& prop, bool inFlyDirection, float maxSinPhi = HLTCA_MAX_SIN_PHI);
+  GPUd() void AttachClusters(const AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, bool goodLeg);
+  GPUd() void AttachClusters(const AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, bool goodLeg, float Y, float Z);
   
+  GPUd() int FollowCircle(const AliHLTTPCGMMerger* Merger, AliHLTTPCGMPropagator& prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection);
   
   GPUd() void MarkClusters(AliHLTTPCGMMergedTrackHit* clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
   {
@@ -127,7 +128,7 @@ public:
     if( mask ) x = v;
   }
   
-  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, int iTrk, AliHLTTPCGMMerger* merger, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam& param);
+  GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, int iTrk, const AliHLTTPCGMMerger* merger, AliHLTTPCGMMergedTrackHit* clusters);
   
   struct AliHLTTPCCAOuterParam {
     float fX, fAlpha;
@@ -148,6 +149,7 @@ public:
   }
 
   private:
+  GPUd() bool FollowCircleChk(float lrFactor, float toY, float toX, bool up, bool right);
   
     float fX;      // x position
     float fZOffset;

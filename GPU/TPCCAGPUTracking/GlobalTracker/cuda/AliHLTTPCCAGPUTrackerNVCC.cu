@@ -30,7 +30,7 @@
 #include <cuda.h>
 #include <sm_20_atomic_functions.h>
 
-__constant__ float4 gAliHLTTPCCATracker[HLTCA_GPU_TRACKER_CONSTANT_MEM / sizeof( float4 )];
+__constant__ float4 gGPUConstantMem[HLTCA_GPU_TRACKER_CONSTANT_MEM / sizeof( float4 )];
 #ifdef HLTCA_GPU_USE_TEXTURES
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
@@ -322,7 +322,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	fGpuTracker[0].fStageAtSync = tmpMem;
 	GPUFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000));
 #endif
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gAliHLTTPCCATracker, fGpuTracker, sizeof(AliHLTTPCCATracker) * sliceCountLocal, 0, cudaMemcpyHostToDevice, cudaStreams[0]));
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMem, fGpuTracker, sizeof(AliHLTTPCCATracker) * sliceCountLocal, 0, cudaMemcpyHostToDevice, cudaStreams[0]));
 	bool globalSymbolDone = false;
 	if (GPUSync("Initialization (1)", 0, firstSlice) RANDOM_ERROR)
 	{
@@ -673,7 +673,7 @@ __global__ void ClearPPHitWeights(int sliceCount)
 
 	for (int k = 0;k < sliceCount;k++)
 	{
-		AliHLTTPCCATracker &tracker = ((AliHLTTPCCATracker*) gAliHLTTPCCATracker)[k];
+		AliHLTTPCCATracker &tracker = ((AliHLTTPCCATracker*) gGPUConstantMem)[k];
 		int4* const pHitWeights = (int4*) tracker.Data().HitWeights();
 		const int dwCount = tracker.Data().NumberOfHitsPlusAlign();
 		const int stride = get_global_size(0);
@@ -749,12 +749,10 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 	AliHLTTPCGMMergedTrackHit *clusters;
 	AliHLTTPCGMMergedTrack* tracks;
 	AliHLTTPCGMPolynomialField* field;
-	AliHLTTPCCAParam* param;
 
 	AssignMemory(clusters, gpumem, Merger->NClusters());
 	AssignMemory(tracks, gpumem, Merger->NOutputTracks());
 	AssignMemory(field, gpumem, 1);
-	AssignMemory(param, gpumem, 1);
 
 	if ((size_t) (gpumem - (char*) fGPUMergerMemory) > (size_t) fGPUMergerMaxMemory)
 	{
@@ -767,14 +765,13 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger, bool
 	timer.Start();
 	AliHLTTPCGMMerger* gpuMerger = (AliHLTTPCGMMerger*) new char[sizeof(AliHLTTPCGMMerger)]; //We don't want constructor / destructor!
 	memcpy(gpuMerger, Merger, sizeof(AliHLTTPCGMMerger));
-	GPUFailedMsg(cudaMemcpyToSymbolAsync(gAliHLTTPCCATracker, Merger, sizeof(*Merger), 0, cudaMemcpyHostToDevice));
+	GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMem, Merger, sizeof(*Merger), 0, cudaMemcpyHostToDevice));
 	delete[] (char*) gpuMerger;
 	GPUFailedMsg(cudaMemcpy(clusters, Merger->Clusters(), Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyHostToDevice));
 	GPUFailedMsg(cudaMemcpy(tracks, Merger->OutputTracks(), Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyHostToDevice));
 	GPUFailedMsg(cudaMemcpy(field, Merger->pField(), sizeof(AliHLTTPCGMPolynomialField), cudaMemcpyHostToDevice));
-	GPUFailedMsg(cudaMemcpy(param, &Merger->SliceParam(), sizeof(AliHLTTPCCAParam), cudaMemcpyHostToDevice));
 	times[0] += timer.GetCurrentElapsedTime(true);
-	RefitTracks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), clusters, param);
+	RefitTracks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), clusters);
 	GPUFailedMsg(cudaThreadSynchronize());
 	times[1] += timer.GetCurrentElapsedTime(true);
 	GPUFailedMsg(cudaMemcpy(Merger->Clusters(), clusters, Merger->NOutputTrackClusters() * sizeof(clusters[0]), cudaMemcpyDeviceToHost));
