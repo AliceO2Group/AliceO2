@@ -3,8 +3,10 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-class AliESDtrack;
-class AliExternalTrackParam;
+#include "AliHLTTRDInterfaces.h"
+
+#define TRD_TRACK_TYPE_ALIROOT
+
 class AliHLTTRDTrackDataRecord;
 
 //_____________________________________________________________________________
@@ -14,8 +16,7 @@ class AliHLTTRDTrack : public T
  public:
 
   AliHLTTRDTrack();
-  AliHLTTRDTrack(AliESDtrack& t,bool c=false) throw (const char *);
-  AliHLTTRDTrack(const typename T::baseClass &t ) throw (const char *);
+  AliHLTTRDTrack(const typename T::baseClass &t );
   AliHLTTRDTrack(const AliHLTTRDTrack& t);
   AliHLTTRDTrack &operator=(const AliHLTTRDTrack& t);
 
@@ -48,7 +49,7 @@ class AliHLTTRDTrack : public T
     return GetTracklet(iLayer);
   }
 
-  // convertion to HLT track structure
+  // conversion to / from HLT track structure
 
   void ConvertTo( AliHLTTRDTrackDataRecord &t ) const;
   void ConvertFrom( const AliHLTTRDTrackDataRecord &t );
@@ -69,5 +70,11 @@ class AliHLTTRDTrack : public T
   bool fIsStopped;            // track ends in TRD
 
 };
+
+#if defined (TRD_TRACK_TYPE_ALIROOT)
+typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
+#elif defined (TRD_TRACK_TYPE_HLT)
+typedef AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>> HLTTRDTrack;
+#endif
 
 #endif

@@ -38,7 +38,6 @@
 #include "AliHLTDataTypes.h"
 #include "AliHLTTRDTracker.h"
 #include "AliHLTTRDTrack.h"
-#include "AliHLTTRDInterfaces.h"
 #include "AliHLTTRDTrackerComponent.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDDefinitions.h"
@@ -53,8 +52,6 @@
 #include <map>
 #include <vector>
 #include <algorithm>
-
-typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
 
 
 ClassImp(AliHLTTRDTrackerComponent)

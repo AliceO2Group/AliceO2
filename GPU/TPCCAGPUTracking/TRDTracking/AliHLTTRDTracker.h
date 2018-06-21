@@ -4,17 +4,13 @@
  * See cxx source for full Copyright notice                               */
 
 
-class TTree;
 class AliHLTTRDTrackerDebug;
-class AliESDEvent;
+class AliHLTTRDTrackletWord;
+class AliTRDgeometry;
+class AliExternalTrackParam;
 
-#include "AliHLTTRDTrackletWord.h"
-#include "AliHLTTRDTrack.h"
-#include "AliHLTTRDInterfaces.h"
 #include "AliMCEvent.h"
-
-
-typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
+#include "AliHLTTRDTrack.h"
 
 
 //-------------------------------------------------------------------------
@@ -96,7 +92,7 @@ class AliHLTTRDTracker {
   void PrintSettings() const;
 
   // output
-  HLTTRDTrack *Tracks()                    const { return fTracks;}
+  HLTTRDTrack *Tracks()                       const { return fTracks;}
   int NTracks()                               const { return fNTracks;}
   AliHLTTRDSpacePointInternal *SpacePoints()  const { return fSpacePoints; }
 
@@ -110,7 +106,7 @@ class AliHLTTRDTracker {
 
   float *fR;                                  // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
-  HLTTRDTrack *fTracks;                    // array of trd-updated tracks
+  HLTTRDTrack *fTracks;                       // array of trd-updated tracks
   int fNCandidates;                           // max. track hypothesis per layer
   int fNTracks;                               // number of TPC tracks to be matched
   int fNEvents;                               // number of processed events
@@ -120,7 +116,7 @@ class AliHLTTRDTracker {
   int *fNtrackletsInChamber;                  // number of tracklets in each chamber
   int *fTrackletIndexArray;                   // index of first tracklet for each chamber
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
-  HLTTRDTrack *fCandidates;                // array of tracks for multiple hypothesis tracking
+  HLTTRDTrack *fCandidates;                   // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
   AliTRDgeometry *fGeo;                       // TRD geometry
   bool fDebugOutput;                          // store debug output

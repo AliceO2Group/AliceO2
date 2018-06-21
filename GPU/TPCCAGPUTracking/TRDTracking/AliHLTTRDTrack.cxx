@@ -1,8 +1,5 @@
 #include "AliHLTTRDTrack.h"
-#include "AliESDtrack.h"
 #include "AliHLTTRDTrackData.h"
-#include "AliHLTTRDInterfaces.h"
-
 
 template <typename T>
 AliHLTTRDTrack<T>::AliHLTTRDTrack() :
@@ -75,32 +72,7 @@ AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
 
 
 template <typename T>
-AliHLTTRDTrack<T>::AliHLTTRDTrack(AliESDtrack& t,bool c) throw (const char *) :
-  fTPCtrackId(0),
-  fNtracklets(0),
-  fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
-  fLabelOffline(-1),
-  fIsStopped(false)
-{
-  //------------------------------------------------------------------
-  // Conversion ESD track -> TRD HLT track.
-  // If c==kTRUE, create the TRD track out of the constrained params.
-  //------------------------------------------------------------------
-  const AliExternalTrackParam *par=&t;
-  if (c) {
-    par=t.GetConstrainedParam();
-    if (!par) throw "AliHLTTRDTrack: conversion failed !\n";
-  }
-  //Set(par->GetX(),par->GetAlpha(),par->GetParameter(),par->GetCovariance());
-  for (int i=0; i<=5; ++i) {
-    fAttachedTracklets[i] = -1;
-    fIsFindable[i] = 0;
-  }
-}
-
-template <typename T>
-AliHLTTRDTrack<T>::AliHLTTRDTrack(const typename T::baseClass &t ) throw (const char *) :
+AliHLTTRDTrack<T>::AliHLTTRDTrack(const typename T::baseClass &t ) :
   T(t),
   fChi2(0),
   fMass(0),
@@ -168,7 +140,7 @@ void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
   t.fZ = T::getZ();
   t.fq1Pt = T::getQ2Pt();
   t.fSinPhi = T::getSnp();
-  t.fTgl = T::GetTgl();
+  t.fTgl = T::getTgl();
   for( int i=0; i<15; i++ ) t.fC[i] = T::getCov()[i];
   t.fTPCTrackID = GetTPCtrackId();
   for ( int i = 0; i <6; i++ ){
@@ -199,4 +171,4 @@ void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 }
 
 template class AliHLTTRDTrack<trackInterface<AliExternalTrackParam>>;
-//template class AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>;
+template class AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>;
