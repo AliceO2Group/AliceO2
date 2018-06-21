@@ -20,6 +20,7 @@
 
 #include "FairLogger.h"
 
+#include <cassert>
 #include <limits>
 
 using namespace o2::TPC;
@@ -28,7 +29,7 @@ using namespace o2::TPC;
 HwClusterer::HwClusterer(
   std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
   std::vector<Cluster>* clusterOutputSimple,
-  MCLabelContainer* labelOutput, int sectorid)
+  int sectorid, MCLabelContainer* labelOutput)
   : Clusterer(),
     mNumRows(0),
     mCurrentMcContainerInBuffer(0),
@@ -53,6 +54,10 @@ HwClusterer::HwClusterer(
     mPlainClusterArray(clusterOutputSimple)
 {
   LOG(DEBUG) << "Enter Initializer of HwClusterer" << FairLogger::endl;
+
+  // Given sector ID must be within 0 and 35 for a proper CRU ID calculation
+  assert(sectorid >= 0 && sectorid < 36);
+
   /*
    * Prepare temporary storage for digits
    */
@@ -87,22 +92,22 @@ HwClusterer::HwClusterer(
       ++row;
     }
   }
-  mMCtruth.resize(5);
+  mMCtruth.resize(5, nullptr);
 }
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
   std::vector<Cluster>* clusterOutput,
-  MCLabelContainer* labelOutput, int sectorid)
-  : HwClusterer(nullptr, clusterOutput, labelOutput, sectorid)
+  int sectorid, MCLabelContainer* labelOutput)
+  : HwClusterer(nullptr, clusterOutput, sectorid, labelOutput)
 {
 }
 
 //______________________________________________________________________________
 HwClusterer::HwClusterer(
   std::vector<ClusterHardwareContainer8kb>* clusterOutput,
-  MCLabelContainer* labelOutput, int sectorid)
-  : HwClusterer(clusterOutput, nullptr, labelOutput, sectorid)
+  int sectorid, MCLabelContainer* labelOutput)
+  : HwClusterer(clusterOutput, nullptr, sectorid, labelOutput)
 {
 }
 
@@ -197,8 +202,7 @@ void HwClusterer::process(std::vector<o2::TPC::Digit> const& digits, MCLabelCont
           mMCtruth[digit.getTimeStamp() % 5] = std::shared_ptr<MCLabelContainer const>(mMCtruth[getFirstSetBitOfField()]);
 
         mCurrentMcContainerInBuffer |= (0x1 << (digit.getTimeStamp() % 5));
-      } else
-        mMCtruth[digit.getTimeStamp() % 5] = std::shared_ptr<MCLabelContainer const>(nullptr);
+      }
     }
 
     /*
@@ -408,8 +412,10 @@ void HwClusterer::writeOutputWithTimeOffset(int timeOffset)
         }
         // Copy cluster and increment cluster counter
         clusterContainer->clusters[clusterContainer->numberOfClusters++] = c.first;
-        for (auto& mcLabel : c.second) {
-          mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
+        if (mClusterMcLabelArray) {
+          for (auto& mcLabel : c.second) {
+            mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
+          }
         }
         ++mClusterCounter;
       }
@@ -427,8 +433,10 @@ void HwClusterer::writeOutputWithTimeOffset(int timeOffset)
           cluster.getTimeLocal() + timeOffset,
           std::sqrt(cluster.getSigmaTime2()));
 
-        for (auto& mcLabel : c.second) {
-          mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
+        if (mClusterMcLabelArray) {
+          for (auto& mcLabel : c.second) {
+            mClusterMcLabelArray->addElement(mClusterCounter, mcLabel.first);
+          }
         }
         ++mClusterCounter;
       }
@@ -448,11 +456,12 @@ void HwClusterer::findClusterForTime(int timebin)
   ClusterHardware cluster;
   std::vector<std::pair<MCCompLabel, unsigned>> mcLabels;
 
-  unsigned qMaxIndex;
-  for (unsigned short row = mNumRows; row--;) {
+  const unsigned timeBinWrapped = timebin % 5;
+  for (unsigned short row = 0; row < mNumRows; ++row) {
+    const unsigned padOffset = timeBinWrapped * mPadsPerRow[row];
     // two empty pads on the left and right without a cluster peak
     for (short pad = 2; pad < mPadsPerRow[row] - 2; ++pad) {
-      qMaxIndex = (timebin % 5) * mPadsPerRow[row] + pad;
+      const unsigned qMaxIndex = padOffset + pad;
       // Check if pad is above peak threshold already here to avoid function
       // call in most of the case. Provide index of center to avoid
       // recalculation of the same index.
@@ -490,7 +499,7 @@ void HwClusterer::finishFrame(bool clear)
 //______________________________________________________________________________
 void HwClusterer::clearBuffer(int timebin)
 {
-  mMCtruth[timebin % 5] = std::shared_ptr<MCLabelContainer const>(nullptr);
+  mMCtruth[timebin % 5].reset();
   mCurrentMcContainerInBuffer &= ~(0x1 << (timebin % 5)); // clear bit
   for (unsigned short row = 0; row < mNumRows; ++row) {
     // reset timebin which is not needed anymore

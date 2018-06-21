@@ -43,8 +43,8 @@ class HwClusterer : public Clusterer
   /// Main Constructor
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
-    std::vector<Cluster>* clusterOutputSimple,
-    MCLabelContainer* labelOutput, int sectorid);
+    std::vector<Cluster>* clusterOutputSimple, int sectorid,
+    MCLabelContainer* labelOutput);
 
  public:
   /// Constructor
@@ -53,8 +53,8 @@ class HwClusterer : public Clusterer
   /// \param sectorid is sector number to be processed
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutput,
-    MCLabelContainer* labelOutput = nullptr,
-    int sectorid = -1);
+    int sectorid,
+    MCLabelContainer* labelOutput = nullptr);
 
   /// Constructor
   /// \param clusterOutput is pointer to vector to be filled with clusters
@@ -62,8 +62,8 @@ class HwClusterer : public Clusterer
   /// \param sectorid is sector number to be processed
   HwClusterer(
     std::vector<Cluster>* clusterOutput,
-    MCLabelContainer* labelOutput = nullptr,
-    int sectorid = -1);
+    int sectorid,
+    MCLabelContainer* labelOutput = nullptr);
 
   /// Destructor
   ~HwClusterer() override = default;

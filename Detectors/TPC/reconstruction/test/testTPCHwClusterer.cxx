@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test1)
   auto clusterArray = std::make_unique<std::vector<ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<MCLabelContainer>();
 
-  HwClusterer clusterer(clusterArray.get(), labelArray.get(), 0);
+  HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test2)
   auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), labelArray.get(), 0);
+  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
@@ -230,7 +230,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test3)
   auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), labelArray.get(), 0);
+  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 

@@ -48,7 +48,7 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
   t.Branch("cl", arrCluster.get());
 
   // ===| cluster finder |======================================================
-  HwClusterer cl(arrCluster.get(), nullptr, 0);
+  HwClusterer cl(arrCluster.get(), 0, nullptr);
   cl.setPedestalObject(pedestal);
 
   // ===| loop over all data |==================================================

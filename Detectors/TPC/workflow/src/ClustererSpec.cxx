@@ -41,7 +41,7 @@ DataProcessorSpec getClustererSpec()
   auto initFunction = [](InitContext& ic) {
     auto clusterArray = std::make_shared<std::vector<o2::TPC::Cluster>>();
     auto mctruthArray = std::make_shared<MCLabelContainer>();
-    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray.get(), mctruthArray.get(), 0); // correct sector needs to be set!!
+    auto clusterer = std::make_shared<o2::TPC::HwClusterer>(clusterArray.get(), 0, mctruthArray.get()); // correct sector needs to be set!!
 
     auto processingFct = [clusterer, clusterArray, mctruthArray](ProcessingContext& pc) {
       auto inDigits = pc.inputs().get<const std::vector<o2::TPC::Digit>>("digits");

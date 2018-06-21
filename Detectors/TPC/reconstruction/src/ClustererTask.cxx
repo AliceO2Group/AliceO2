@@ -84,7 +84,7 @@ InitStatus ClustererTask::Init()
   mgr->RegisterAny(Form("TPCClusterHWMCTruth%i", mClusterSector), clusterMcTruthTmpPtr, kTRUE);
 
   // create clusterer and pass output pointer
-  mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray.get(), mHwClustersMCTruthArray.get(), mClusterSector);
+  mHwClusterer = std::make_unique<HwClusterer>(mHwClustersArray.get(), mClusterSector, mHwClustersMCTruthArray.get());
   mHwClusterer->setContinuousReadout(mIsContinuousReadout);
 
   // TODO: implement noise/pedestal objects

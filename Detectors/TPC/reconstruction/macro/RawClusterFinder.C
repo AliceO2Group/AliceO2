@@ -177,7 +177,7 @@ void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TSt
   // HW cluster finder
   std::unique_ptr<Clusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer* hwCl = new HwClusterer(arrCluster.get(), nullptr, 0);
+    HwClusterer* hwCl = new HwClusterer(arrCluster.get(), 0, nullptr);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<Clusterer>(hwCl);
