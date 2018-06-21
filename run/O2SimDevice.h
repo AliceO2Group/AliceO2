@@ -89,7 +89,9 @@ class O2SimDevice : public FairMQDevice
 
         // the answer is a TMessage containing the simulation Configuration
         auto message = std::make_unique<o2::devices::TMessageWrapper>(reply->GetData(), reply->GetSize());
-        auto config = static_cast<o2::conf::SimConfigData*>(message.get()->ReadObjectAny(message.get()->GetClass()));
+        auto config = std::make_unique<o2::conf::SimConfigData>(static_cast<o2::conf::SimConfigData*>(
+          message.get()->ReadObjectAny(message.get()->GetClass())));
+
         if (!config) {
           return false;
         }
@@ -156,8 +158,9 @@ class O2SimDevice : public FairMQDevice
         LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes " << FairLogger::endl;
 
         // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
-        auto message = new TMessageWrapper(reply->GetData(), reply->GetSize());
-        auto chunk = static_cast<o2::Data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
+        auto message = std::make_unique<TMessageWrapper>(reply->GetData(), reply->GetSize());
+        auto chunk = std::make_unique<o2::Data::PrimaryChunk>(
+          static_cast<o2::Data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass())));
 
         mVMCApp->setPrimaries(chunk->mParticles);
 
@@ -173,7 +176,6 @@ class O2SimDevice : public FairMQDevice
         mTimer.Continue();
         LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
                   << sysinfo.GetMaxMemory() << " MB\n";
-        delete message;
       } else {
         return false;
       }
