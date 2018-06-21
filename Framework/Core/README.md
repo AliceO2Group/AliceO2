@@ -356,9 +356,19 @@ void customize(...)
 
 free function which takes as argument the group of policies to be applied to customise the behavior.
 
+# Forward looking statements:
+
 ## Support for analysis
 
 While not part of the initial design goal, we plan to extend DPL in order to support analysis. In particular we are evaluating a mode in which users can natively get a ROOT `RDataFrame` with an API similar to the `InputRecord` API.
+
+## Provenance dependent matching of inputs and outputs
+
+By default the Input and Outputs are matched solely by the signature of the data they contain. However sometimes it's desirable that this matching happens based on the history that a given message had, e.g. if it went through one path or another of a dataflow bifurcation. While this is not at the moment supported and you would have to use a separate data type for the two different origins, the usecase is acknowledged and will be addressed in a future revision of this document.
+
+## Support for non compiled, non C++, based configuration
+
+At the moment the configuration of a topology is done by compiling a declarative description of the computation done in C++, and by running the resulting executable. This is however an implementation detail and the datamodel for the configuration description is meant to be agnostic from the language. We foresee both using interpreted configurations (e.g. via ROOT / cling) or configurations done through another language (e.g. go, javascript).
 
 # Current Demonstrator
 
