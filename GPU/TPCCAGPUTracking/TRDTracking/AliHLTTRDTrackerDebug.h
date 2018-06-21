@@ -6,8 +6,6 @@
 #include "TTreeStream.h"
 
 
-typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
-
 class AliHLTTRDTrackerDebug
 {
   public:

@@ -2,18 +2,19 @@
 #include "AliHLTTRDTracker.h"
 #include "AliGeomManager.h"
 #include "AliTRDgeometry.h"
+#include "AliTRDpadPlane.h"
 #include "TDatabasePDG.h"
 #include "TGeoMatrix.h"
 #include "AliExternalTrackParam.h"
-
+#include "AliHLTTRDTrack.h"
+#include "AliHLTTRDTrackletWord.h"
+#include "AliHLTTRDTrackerDebug.h"
 #include "AliMCParticle.h"
 
 //#define ENABLE_HLTTRDDEBUG
 #define ENABLE_WARNING 0
 #define ENABLE_INFO 0
-#include "AliHLTTRDTrackerDebug.h"
 
-typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
 
 // default values taken from AliTRDtrackerV1.cxx
 const float AliHLTTRDTracker::fgkX0[kNLayers]    = { 300.2, 312.8, 325.4, 338.0, 350.6, 363.2 };
