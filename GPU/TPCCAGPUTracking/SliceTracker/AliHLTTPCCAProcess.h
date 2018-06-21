@@ -29,7 +29,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker;
 template<class TProcess>
 GPUg() void AliHLTTPCCAProcess(int iSlice)
 {
-  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[iSlice];
+  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gGPUConstantMem )[iSlice];
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 
   for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
@@ -42,7 +42,7 @@ template <class TProcess>
 GPUg() void AliHLTTPCCAProcessMultiA(int firstSlice, int nSliceCount, int nVirtualBlocks)
 {
 	if (get_group_id(0) >= nSliceCount) return;
-	AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[firstSlice + get_group_id(0)];
+	AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gGPUConstantMem )[firstSlice + get_group_id(0)];
 
 	GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 
@@ -62,7 +62,7 @@ GPUg() void AliHLTTPCCAProcessMulti(int firstSlice, int nSliceCount)
   const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
-  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[firstSlice + iSlice];
+  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gGPUConstantMem )[firstSlice + iSlice];
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 
   for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
@@ -74,7 +74,7 @@ GPUg() void AliHLTTPCCAProcessMulti(int firstSlice, int nSliceCount)
 template<typename TProcess>
 GPUg() void AliHLTTPCCAProcess1()
 {
-  AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker );
+  AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) gGPUConstantMem );
   AliHLTTPCCATrackParam tParam;
 
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory sMem;

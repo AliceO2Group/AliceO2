@@ -946,7 +946,7 @@ void AliHLTTPCGMMerger::Refit(bool resetTimers)
 #endif
     for ( int itr = 0; itr < fNOutputTracks; itr++ )
     {
-      AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], itr, this, fClusters, fSliceParam);
+      AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], itr, this, fClusters);
 #if defined(OFFLINE_FITTER)
       gOfflineFitter.RefitTrack(fOutputTracks[itr], &fField, fClusters);
 #endif

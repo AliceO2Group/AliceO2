@@ -106,7 +106,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorSingl
 GPUg() void AliHLTTPCCATrackletConstructorGPU()
 {
 	//GPU Wrapper for AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU
-	AliHLTTPCCATracker *pTracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker );
+	AliHLTTPCCATracker *pTracker = ( ( AliHLTTPCCATracker* ) gGPUConstantMem );
 	GPUshared() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory) sMem;
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(pTracker, sMem);
 }
@@ -114,7 +114,7 @@ GPUg() void AliHLTTPCCATrackletConstructorGPU()
 GPUg() void AliHLTTPCCATrackletConstructorSingleSlice(int iSlice)
 {
 	GPUshared() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory) sMem;
-	AliHLTTPCCATracker *pTracker = ((AliHLTTPCCATracker*) gAliHLTTPCCATracker) + iSlice;
+	AliHLTTPCCATracker *pTracker = ((AliHLTTPCCATracker*) gGPUConstantMem) + iSlice;
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorSingleSlice(pTracker, sMem);
 }
 #endif
