@@ -61,7 +61,11 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #endif
 
 #ifdef HLTCA_BUILD_O2_LIB //Interface for O2, build only with AliRoot
-
+#endif
+#ifndef HLTCA_BUILD_ALIROOT_LIB
+#define Error(...)
+#define Warning(...)
+#define Info(...)
 #endif
 
 #include "AliHLTTPCGMTrackParam.h"
