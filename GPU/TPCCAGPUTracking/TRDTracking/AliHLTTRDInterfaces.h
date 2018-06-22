@@ -79,8 +79,8 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     float getSnp()     const { return GetSinPhi(); }
     float getTgl()     const { return GetDzDs(); }
     float getQ2Pt()    const { return GetQPt(); }
-    float getEta()     const { return -TMath::Log( TMath::Tan( 0.5 * (0.5 * TMath::Pi() - TMath::ATan(getTgl())) ) ); }
-    float getPt()      const { return TMath::Abs(getQ2Pt() > 0) ? TMath::Abs(1./getQ2Pt()) : 99999; }
+    float getEta()     const { return -logf( tanf( 0.5 * (0.5 * M_PI - atanf(getTgl())) ) ); }
+    float getPt()      const { return fabs(getQ2Pt() > 0) ? fabs(1./getQ2Pt()) : 99999; }
     float getSigmaY2() const { return GetErr2Y(); }
     float getSigmaZ2() const { return GetErr2Z(); }
 

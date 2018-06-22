@@ -30,7 +30,7 @@
 //
 // kCLight = 0.000299792458;
 // Kappa = -Bz*kCLight*QPt;
-// R  = 1/TMath::Abs(Kappa);
+// R  = 1/fabs(Kappa);
 // Xc = X - sin(Phi)/Kappa;
 // Yc = Y + cos(Phi)/Kappa;
 //
