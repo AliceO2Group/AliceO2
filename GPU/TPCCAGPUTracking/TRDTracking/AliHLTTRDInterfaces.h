@@ -6,16 +6,16 @@
 #ifndef ALIHLTTRDINTERFACES_H
 #define ALIHLTTRDINTERFACES_H
 
-#include "AliExternalTrackParam.h"
-#include "AliTrackerBase.h"
-
-#include "AliHLTTPCGMTrackParam.h"
-
 /**
  * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
  */
 
 template <typename T> class trackInterface;
+template <typename T> class propagatorInterface;
+
+#ifdef HLTCA_BUILD_ALIROOT_LIB //Interface for AliRoot, build only with AliRoot
+#include "AliExternalTrackParam.h"
+#include "AliTrackerBase.h"
 template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
 {
   typedef double My_Float;
@@ -50,6 +50,21 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
 
     typedef AliExternalTrackParam baseClass;
 };
+
+template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
+{
+  public:
+    bool PropagateToX(AliExternalTrackParam *trk, float x, float maxSnp, float maxStep) {
+      return PropagateTrackToBxByBz(trk, x, 0.13957, maxStep, false, maxSnp);
+    }
+};
+#endif
+
+#ifdef HLTCA_BUILD_O2_LIB //Interface for O2, build only with AliRoot
+
+#endif
+
+#include "AliHLTTPCGMTrackParam.h"
 template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrackParam
 {
   public:
@@ -82,18 +97,6 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     typedef AliHLTTPCGMTrackParam baseClass;
 };
 
-
-
-
-
-template <typename T> class propagatorInterface;
-template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
-{
-  public:
-    bool PropagateToX(AliExternalTrackParam *trk, float x, float maxSnp, float maxStep) {
-      return PropagateTrackToBxByBz(trk, x, 0.13957, maxStep, false, maxSnp);
-    }
-};
 //template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCGMPropagator TODO
 //{
 //  public:

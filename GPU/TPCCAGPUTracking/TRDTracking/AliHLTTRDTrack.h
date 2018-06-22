@@ -5,7 +5,11 @@
 
 #include "AliHLTTRDInterfaces.h"
 
+#ifdef HLTCA_BUILD_ALIROOT_LIB
 #define TRD_TRACK_TYPE_ALIROOT
+#else
+#define TRD_TRACK_TYPE_HLT
+#endif
 
 class AliHLTTRDTrackDataRecord;
 

@@ -10,6 +10,7 @@
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDTrackerDebug.h"
 #include "AliMCParticle.h"
+#include "AliMCEvent.h"
 
 //#define ENABLE_HLTTRDDEBUG
 #define ENABLE_WARNING 0
