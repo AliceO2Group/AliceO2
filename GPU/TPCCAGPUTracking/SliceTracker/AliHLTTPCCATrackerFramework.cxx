@@ -25,7 +25,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
 
-#ifdef R__WIN32
+#ifdef WIN32
 #include <windows.h>
 #include <winbase.h>
 #else
@@ -254,7 +254,7 @@ void AliHLTTPCCATrackerFramework::UpdateGPUSliceParam()
 AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const char* GPU_Library, int GPUDeviceNum) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
 {
 	//Constructor
-	#ifdef R__WIN32
+	#ifdef WIN32
 		HMODULE hGPULib;
 	#else
 		void* hGPULib;
@@ -262,7 +262,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 	if (allowGPU != -1)
 	{
 		if (GPU_Library && !GPU_Library[0]) GPU_Library = NULL;
-#ifdef R__WIN32
+#ifdef WIN32
 		hGPULib = LoadLibraryEx(GPU_Library == NULL ? (GPULIBNAME ".dll") : GPU_Library, NULL, NULL);
 #else
 		hGPULib = dlopen(GPU_Library == NULL ? (GPULIBNAME ".so") : GPU_Library, RTLD_NOW);
@@ -277,7 +277,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 	{
 		if (allowGPU > 0)
 		{
-			#ifndef R__WIN32
+			#ifndef WIN32
 				HLTImportant("The following error occured during dlopen: %s", dlerror());
 			#endif
 			HLTError("Error Opening cagpu library for GPU Tracker (%s), will fallback to CPU", GPU_Library == NULL ? "default: " GPULIBNAME : GPU_Library);
@@ -290,7 +290,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 	}
 	else
 	{
-#ifdef R__WIN32
+#ifdef WIN32
 		FARPROC createFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
 #else
 		void* createFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
@@ -298,7 +298,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 		if (createFunc == NULL)
 		{
 			HLTError("Error Creating GPU Tracker\n");
-#ifdef R__WIN32
+#ifdef WIN32
 			FreeLibrary(hGPULib);
 #else
 			dlclose(hGPULib);
@@ -331,7 +331,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 
 AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 {
-#ifdef R__WIN32
+#ifdef WIN32
 	HMODULE hGPULib = (HMODULE) (size_t) fGPULib;
 #else
 	void* hGPULib = fGPULib;
@@ -341,7 +341,7 @@ AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 		if (fGPUTracker)
 		{
 			ExitGPU();
-#ifdef R__WIN32
+#ifdef WIN32
 			FARPROC destroyFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
 #else
 			void* destroyFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
@@ -357,7 +357,7 @@ AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 			}
 		}
 
-#ifdef R__WIN32
+#ifdef WIN32
 		FreeLibrary(hGPULib);
 #else
 		dlclose(hGPULib);

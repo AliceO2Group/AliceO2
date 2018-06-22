@@ -24,7 +24,7 @@ class AliHLTTPCGMCluster
   unsigned char  ISlice()  const { return fISlice;    }
   unsigned char  IRow()    const { return fIRow;    }
   int  Id()      const { return fId;      }
-  UChar_t PackedAmp() const { return fPackedAmp; }
+  unsigned char PackedAmp() const { return fPackedAmp; }
   float X()         const { return fX;         }
   float Y()         const { return fY;         }
   float Z()         const { return fZ;         }
@@ -34,7 +34,7 @@ class AliHLTTPCGMCluster
   void SetISlice    ( unsigned char v  ) { fISlice    = v; }
   void SetIRow    ( unsigned char v  ) { fIRow    = v; }
   void SetId      (  int v  ) { fId      = v; }
-  void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
+  void SetPackedAmp ( unsigned char v ) { fPackedAmp = v; }
   void SetX         ( float v ) { fX         = v; }
   void SetY         ( float v ) { fY         = v; }
   void SetZ         ( float v ) { fZ         = v; }
@@ -46,7 +46,7 @@ class AliHLTTPCGMCluster
   unsigned char fISlice;   // slice number
   unsigned char fIRow;     // row number
   int fId;                 // cluster Id
-  UChar_t fPackedAmp;      // packed amplitude
+  unsigned char fPackedAmp;      // packed amplitude
   float fX;                // x position (slice coord.system)
   float fY;                // y position (slice coord.system)
   float fZ;                // z position (slice coord.system)

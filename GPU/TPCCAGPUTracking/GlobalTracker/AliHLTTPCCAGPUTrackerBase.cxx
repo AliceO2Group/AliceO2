@@ -224,7 +224,7 @@ AliHLTTPCCAGPUTrackerBase::~AliHLTTPCCAGPUTrackerBase()
 void AliHLTTPCCAGPUTrackerBase::ReleaseGlobalLock(void* sem)
 {
 	//Release the global named semaphore that locks GPU Initialization
-#ifdef R__WIN32
+#ifdef WIN32
 	HANDLE* h = (HANDLE*) sem;
 	ReleaseSemaphore(*h, 1, NULL);
 	CloseHandle(*h);
@@ -512,7 +512,7 @@ void AliHLTTPCCAGPUTrackerBase::SetOutputControl( AliHLTTPCCASliceOutput::output
 int AliHLTTPCCAGPUTrackerBase::GetThread()
 {
 	//Get Thread ID
-#ifdef R__WIN32
+#ifdef WIN32
 	return((int) (size_t) GetCurrentThread());
 #else
 	return((int) syscall (SYS_gettid));
@@ -549,7 +549,7 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 
 	if (CheckMemorySizes(sliceCount)) return(1);
 
-#ifdef R__WIN32
+#ifdef WIN32
 	HANDLE* semLock = new HANDLE;
 	*semLock = CreateSemaphore(NULL, 1, 1, SemLockName);
 	if (*semLock == NULL)

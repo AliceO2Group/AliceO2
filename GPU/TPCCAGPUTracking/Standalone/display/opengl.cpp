@@ -6,7 +6,7 @@
 #include <tuple>
 #include <memory>
 
-#ifndef R__WIN32
+#ifndef WIN32
 #include "bitmapfile.h"
 #endif
 
@@ -971,7 +971,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	//Make sure event gets not overwritten during display
 	if (animateTime < 0)
 	{
-		#ifdef R__WIN32
+		#ifdef WIN32
 			WaitForSingleObject(semLockDisplay, INFINITE);
 		#else
 			pthread_mutex_lock(&semLockDisplay);
@@ -1722,7 +1722,7 @@ int DrawGLScene(bool mixAnimation, float animateTime) // Here's Where We Do All 
 	}
 	
 //Free event
-#ifdef R__WIN32
+#ifdef WIN32
 	ReleaseSemaphore(semLockDisplay, 1, NULL);
 #else
 	pthread_mutex_unlock(&semLockDisplay);
