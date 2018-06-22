@@ -991,6 +991,7 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Merger
+    ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/TRDTracking
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Interface
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
