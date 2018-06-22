@@ -24,8 +24,8 @@ class AliTRDtrackletMCM;
 
 class AliHLTTRDTrackletWord {
  public:
-  AliHLTTRDTrackletWord(UInt_t trackletWord = 0);
-  AliHLTTRDTrackletWord(UInt_t trackletWord, Int_t hcid, Int_t id, Int_t *label = 0x0);
+  AliHLTTRDTrackletWord(unsigned int trackletWord = 0);
+  AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id, int *label = 0x0);
   AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs);
@@ -38,50 +38,50 @@ class AliHLTTRDTrackletWord {
   bool operator>(const AliHLTTRDTrackletWord &t) const { return (GetHCId() > t.GetHCId()); }
 
   // ----- Getters for contents of tracklet word -----
-  Int_t GetYbin() const;
-  Int_t GetdY() const;
-  Int_t GetZbin() const { return ((fTrackletWord >> 20) & 0xf); }
-  Int_t GetPID() const { return ((fTrackletWord >> 24) & 0xff); }
+  int GetYbin() const;
+  int GetdY() const;
+  int GetZbin() const { return ((fTrackletWord >> 20) & 0xf); }
+  int GetPID() const { return ((fTrackletWord >> 24) & 0xff); }
 
-  Int_t GetROB() const;
-  Int_t GetMCM() const;
+  int GetROB() const;
+  int GetMCM() const;
 
-  Int_t GetId() const { return fId; }
-  const Int_t* GetLabels() const { return fLabel; }
-  Int_t GetLabel(int i=0) const { return fLabel[i];}
+  int GetId() const { return fId; }
+  const int* GetLabels() const { return fLabel; }
+  int GetLabel(int i=0) const { return fLabel[i];}
   
   // ----- Getters for offline corresponding values -----
   Bool_t CookPID() { return kFALSE; }
-  Double_t GetPID(Int_t /* is */) const { return (Double_t) GetPID()/256.; }
-  Int_t GetDetector() const { return fHCId / 2; }
-  Int_t GetHCId() const { return fHCId; }
-  Float_t GetdYdX() const { return (GetdY() * 140e-4 / 3.); }
+  Double_t GetPID(int /* is */) const { return (Double_t) GetPID()/256.; }
+  int GetDetector() const { return fHCId / 2; }
+  int GetHCId() const { return fHCId; }
+  float GetdYdX() const { return (GetdY() * 140e-4 / 3.); }
 #ifdef HLTCA_BUILD_ALIROOT_LIB
-  Float_t GetX() const { return fgGeo->GetTime0((fHCId%12)/2); }
-  Float_t GetY() const { return (GetYbin() * 160e-4); }
-  Float_t GetZ() const { return fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos(GetZbin()) -
+  float GetX() const { return fgGeo->GetTime0((fHCId%12)/2); }
+  float GetY() const { return (GetYbin() * 160e-4); }
+  float GetZ() const { return fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos(GetZbin()) -
       fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowSize(GetZbin())  * .5; }
-  Float_t GetLocalZ() const { return GetZ() - fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos((((fHCId/12) % 5) != 2) ? 8 : 6); }
+  float GetLocalZ() const { return GetZ() - fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos((((fHCId/12) % 5) != 2) ? 8 : 6); }
 #else
-  Float_t GetX() const { return 0; }
-  Float_t GetY() const { return 0; }
-  Float_t GetZ() const { return 0; }
-  Float_t GetLocalZ() const { return 0; }
+  float GetX() const { return 0; }
+  float GetY() const { return 0; }
+  float GetZ() const { return 0; }
+  float GetLocalZ() const { return 0; }
 #endif
-  UInt_t GetTrackletWord() const { return fTrackletWord; }
+  unsigned int GetTrackletWord() const { return fTrackletWord; }
 
-  void SetTrackletWord(UInt_t trackletWord) { fTrackletWord = trackletWord; }
-  void SetDetector(Int_t id) { fHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
-  void SetId(Int_t id) { fId = id; }
-  void SetLabel(const Int_t *label) { for (int i=3;i--;) fLabel[i] = label[i]; }
+  void SetTrackletWord(unsigned int trackletWord) { fTrackletWord = trackletWord; }
+  void SetDetector(int id) { fHCId = 2 * id + (GetYbin() < 0 ? 0 : 1); }
+  void SetId(int id) { fId = id; }
+  void SetLabel(const int *label) { for (int i=3;i--;) fLabel[i] = label[i]; }
   void SetLabel(int i, int label) { fLabel[i] = label; }
-  void SetHCId(Int_t id) { fHCId = id; }
+  void SetHCId(int id) { fHCId = id; }
 
  protected:
-  Int_t fId;              // index in tracklet array
-  Int_t fLabel[3];        // MC label
-  Int_t fHCId;            // half-chamber ID
-  UInt_t fTrackletWord;   // tracklet word: PID | Z | deflection length | Y
+  int fId;              // index in tracklet array
+  int fLabel[3];        // MC label
+  int fHCId;            // half-chamber ID
+  unsigned int fTrackletWord;   // tracklet word: PID | Z | deflection length | Y
                           //          bits:   8   4            7          13
   static AliTRDgeometry *fgGeo;  // pointer to TRD geometry for coordinate calculations
 

@@ -46,7 +46,7 @@ public:
   void SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData );
   bool Reconstruct(bool resetTimers = false);
   
-  Int_t NOutputTracks() const { return fNOutputTracks; }
+  int NOutputTracks() const { return fNOutputTracks; }
   const AliHLTTPCGMMergedTrack * OutputTracks() const { return fOutputTracks; }
    
   const AliHLTTPCCAParam &SliceParam() const { return fSliceParam; }
@@ -99,8 +99,8 @@ private:
   AliHLTTPCCAParam fSliceParam;           //* slice parameters (geometry, calibr, etc.)
   const AliHLTTPCCASliceOutput *fkSlices[fgkNSlices]; //* array of input slice tracks
 
-  Int_t fNOutputTracks;
-  Int_t fNOutputTrackClusters;
+  int fNOutputTracks;
+  int fNOutputTrackClusters;
   AliHLTTPCGMMergedTrack *fOutputTracks;       //* array of output merged tracks
   
   AliHLTTPCGMSliceTrack *fSliceTrackInfos; //* additional information for slice tracks
