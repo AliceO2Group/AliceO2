@@ -87,4 +87,3 @@ void run_trac_its(float rate = 0., std::string outputfile = "o2trac_its.root", s
   // std::cout << "Parameter file is " << parFile << std::endl;
   std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
 }
-

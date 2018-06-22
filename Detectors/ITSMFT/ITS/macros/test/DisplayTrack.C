@@ -26,7 +26,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root",  std::string inputGeom = "O2geometry.root")
+void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
 {
   using namespace o2::Base;
   using namespace o2::ITS;

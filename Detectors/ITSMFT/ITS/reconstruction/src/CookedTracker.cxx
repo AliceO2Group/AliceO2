@@ -631,7 +631,7 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters)
   Int_t numOfClusters = clusters.size();
   int nLoaded = 0;
   mFirstCluster = &clusters.front();
-  
+
   if (mContinuousMode) { // check the ROFrame in cont. mode
     for (auto& c : clusters) {
       if (c.getROFrame() != mROFrame) {

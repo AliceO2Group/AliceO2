@@ -98,7 +98,10 @@ class Cluster : public o2::BaseCluster<float>
   void print() const;
 
 #ifdef _ClusterTopology_
-  int getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
+  int getPatternRowSpan() const
+  {
+    return mPatternNRows & kSpanMask;
+  }
   int getPatternColSpan() const { return mPatternNCols & kSpanMask; }
   bool isPatternRowsTruncated() const { return mPatternNRows & kTruncateMask; }
   bool isPatternColsTruncated() const { return mPatternNCols & kTruncateMask; }
@@ -117,7 +120,7 @@ class Cluster : public o2::BaseCluster<float>
   //
  protected:
   //
-  UInt_t mROFrame;  ///< RO Frame
+  UInt_t mROFrame; ///< RO Frame
 
   Int_t mNxNzN = 0; ///< effective cluster size in X (1st byte) and Z (2nd byte) directions
                     ///< and total Npix(next 9 bits).

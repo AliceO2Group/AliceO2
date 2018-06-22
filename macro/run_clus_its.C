@@ -71,4 +71,3 @@ void run_clus_its(std::string outputfile = "o2clus_its.root", std::string inputf
   // std::cout << "Parameter file is " << parFile << std::endl;
   std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
 }
-

@@ -24,9 +24,9 @@ using namespace o2::Base;
 
 void CheckDigits(std::string digifile = "o2digi_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
-  using o2::ITSMFT::SegmentationAlpide;
   using o2::ITSMFT::Digit;
   using o2::ITSMFT::Hit;
+  using o2::ITSMFT::SegmentationAlpide;
   using namespace o2::ITS;
 
   TFile* f = TFile::Open("CheckDigits.root", "recreate");
@@ -118,4 +118,3 @@ void CheckDigits(std::string digifile = "o2digi_its.root", std::string hitfile =
   f->Close();
   printf("read %d filled %d\n", ndr, ndf);
 }
-

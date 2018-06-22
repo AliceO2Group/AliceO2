@@ -111,4 +111,3 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   nt->Write();
   f->Close();
 }
-
