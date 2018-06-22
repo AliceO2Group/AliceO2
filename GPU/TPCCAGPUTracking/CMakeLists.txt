@@ -14,9 +14,9 @@ if (HLT_CUDA OR HLT_OPENCL)
     endif()
 endif()
 
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(MODULE O2TPCCAGPUTracking)
-elseif(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTracking)
 endif()
 
@@ -55,7 +55,7 @@ set(SRCS SliceTracker/AliHLTTPCCATrack.cxx
 )
 
 #Some extra files / includes / settings needed for the build for AliRoot
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
     include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE
         ${AliRoot_SOURCE_DIR}/HLT/BASE/util
@@ -88,7 +88,7 @@ else() #if we do not build for AliRoot, for the time being we still need some du
 endif()
 
 #Some extra files / includes / settings needed for the build for O2
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(SRCS ${SRCS}
         Interface/AliHLTTPCCAO2Interface.cxx
     )
@@ -105,15 +105,15 @@ set(HDRS ${HDRS}
 )
 
 #Extra cpp files, whose headers we don't pass to CINT
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     set(SRCS ${SRCS} Standalone/cmodules/timer.cpp)
 endif()
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set (SRCS ${SRCS} ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx ${AliRoot_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 endif()
 
 #Default cmake build script for AliRoot
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     # Generate the dictionary
     # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
     get_directory_property(incdirs INCLUDE_DIRECTORIES)
@@ -147,7 +147,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
 endif()
 
 #Default cmake build script for O2
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     Set(HEADERS ${HDRS})
     Set(LINKDEF LinkDef_O2.h)
     Set(LIBRARY_NAME ${MODULE})
