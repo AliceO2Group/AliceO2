@@ -8,8 +8,8 @@ class AliHLTTRDTrackerDebug;
 class AliHLTTRDTrackletWord;
 class AliTRDgeometry;
 class AliExternalTrackParam;
+class AliMCEvent;
 
-#include "AliMCEvent.h"
 #include "AliHLTTRDTrack.h"
 
 

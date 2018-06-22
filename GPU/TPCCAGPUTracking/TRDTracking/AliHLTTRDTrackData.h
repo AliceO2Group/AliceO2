@@ -6,9 +6,6 @@
 #ifndef ALIHLTTRDTRACKDATA_H
 #define ALIHLTTRDTRACKDATA_H
 
-#include "AliHLTDataTypes.h"
-#include "AliHLTStdIncludes.h"
-
 /**
  * @struct AliHLTTRDTrackData
  * This is a flat data structure (w/o virtual methods, i.e w/o pointer to virtual table) for transporting TRD tracks via network between the components.
@@ -16,16 +13,16 @@
 
 struct AliHLTTRDTrackDataRecord
 {
-  AliHLTFloat32_t fAlpha;  // azimuthal angle of reference frame
-  AliHLTFloat32_t fX;      // x: radial distance
-  AliHLTFloat32_t fY;      // local Y-coordinate of a track (cm)
-  AliHLTFloat32_t fZ;      // local Z-coordinate of a track (cm)
-  AliHLTFloat32_t fSinPhi; // local sine of the track momentum azimuthal angle
-  AliHLTFloat32_t fTgl;    // tangent of the track momentum dip angle
-  AliHLTFloat32_t fq1Pt;   // 1/pt (1/(GeV/c))
-  AliHLTFloat32_t fC[15];  // covariance matrix
-  AliHLTInt32_t   fTPCTrackID;// id of corresponding TPC track
-  AliHLTInt32_t   fAttachedTracklets[6];  // IDs for attached tracklets sorted by layer
+  float fAlpha;  // azimuthal angle of reference frame
+  float fX;      // x: radial distance
+  float fY;      // local Y-coordinate of a track (cm)
+  float fZ;      // local Z-coordinate of a track (cm)
+  float fSinPhi; // local sine of the track momentum azimuthal angle
+  float fTgl;    // tangent of the track momentum dip angle
+  float fq1Pt;   // 1/pt (1/(GeV/c))
+  float fC[15];  // covariance matrix
+  int   fTPCTrackID;// id of corresponding TPC track
+  int   fAttachedTracklets[6];  // IDs for attached tracklets sorted by layer
 
   int GetNTracklets() const {
     int n=0;
@@ -37,7 +34,7 @@ struct AliHLTTRDTrackDataRecord
 typedef struct AliHLTTRDTrackDataRecord AliHLTTRDTrackDataRecord;
 
 struct AliHLTTRDTrackData {
-  AliHLTUInt32_t fCount; // number of tracklets
+  unsigned int fCount; // number of tracklets
 #if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
   AliHLTTRDTrackDataRecord fTracks[1]; // array of tracklets
 #else
