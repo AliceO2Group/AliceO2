@@ -1,10 +1,15 @@
-#ifndef ALIHLTLOGGING_H
-#define ALIHLTLOGGING_H
+#ifndef ALICAGPULOGGING_H
+#define ALICAGPULOGGING_H
 
-class AliHLTLogging
+#ifdef HLTCA_BUILD_ALIROOT_LIB
+#include "AliHLTLogging.h"
+#define AliCAGPULogging AliHLTLogging
+#else
+
+class AliCAGPULogging
 {
 public:
-	virtual ~AliHLTLogging() {};
+	virtual ~AliCAGPULogging() {};
 };
 
 #define HLTError(...) {printf(__VA_ARGS__);printf("\n");}
@@ -14,4 +19,5 @@ public:
 #define HLTDebug(...) {printf(__VA_ARGS__);printf("\n");}
 #define HLTFatal(...) {printf(__VA_ARGS__);printf("\n");exit(1);}
 
-#endif //ALIHLTLOGGING_H
+#endif
+#endif //ALICAGPULOGGING_H
