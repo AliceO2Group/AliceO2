@@ -25,7 +25,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "AliHLTTPCCATrackerComponent.h"
-#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTArray.h"
@@ -33,7 +32,7 @@
 #include "AliHLTTPCRawCluster.h"
 #include "AliHLTTPCClusterXYZ.h"
 #include "AliHLTTPCClusterMCData.h"
-#include "AliHLTTPCGeometry.h"
+#include "AliHLTTPCCAGeometry.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliExternalTrackParam.h"
 #include "TMath.h"
@@ -449,14 +448,14 @@ void AliHLTTPCCATrackerComponent::ConfigureSlices()
     //TPCZmin = -249.645, ZMax = 249.778
     //    float rMin =  inRmin;
     //    float rMax =  outRmax;
-    int nRows = AliHLTTPCGeometry::GetNRows();
+    int nRows = AliHLTTPCCAGeometry::GetNRows();
 
     float padPitch = 0.4;
     float sigmaZ = 0.228808;
 
     float *rowX = new float [nRows];
     for ( int irow = 0; irow < nRows; irow++ ) {
-      rowX[irow] = AliHLTTPCGeometry::Row2X( irow );
+      rowX[irow] = AliHLTTPCCAGeometry::Row2X( irow );
     }
 
     AliHLTTPCCAParam param;
@@ -716,14 +715,14 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
             continue;
           }
 
-          const int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
+          const int firstRow = AliHLTTPCCAGeometry::GetFirstRow(patch);
           for (int ic = 0;ic < clXYZ.fCount;ic++)
           {
             const AliHLTTPCClusterXYZ &c = clXYZ.fClusters[ic];
             const AliHLTTPCRawCluster &cRaw = clRaw.fClusters[ic];
             if ( c.GetZ() > fClusterZCut || c.GetZ() < -fClusterZCut) continue;
             if ( c.GetX() <1.f ) continue; // cluster xyz position was not calculated for whatever reason
-            pCluster->fId = AliHLTTPCGeometry::CreateClusterID( slice, patch, ic );
+            pCluster->fId = AliHLTTPCCAGeometry::CreateClusterID( slice, patch, ic );
             pCluster->fX = c.GetX();
             pCluster->fY = c.GetY();
             pCluster->fZ = c.GetZ();
@@ -789,7 +788,7 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
             const AliHLTTPCClusterXYZData& clXYZ = *clustersXYZ[iSlice][iPatch];
             for (int ic = 0;ic < clXYZ.fCount;ic++)
             {
-              if (pCluster->fId != AliHLTTPCGeometry::CreateClusterID(iSlice, iPatch, ic)) continue;
+              if (pCluster->fId != AliHLTTPCCAGeometry::CreateClusterID(iSlice, iPatch, ic)) continue;
               labels.push_back(clusterLabels[iSlice][iPatch]->fLabels[ic]);
               pCluster++;
             }

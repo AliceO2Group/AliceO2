@@ -33,7 +33,7 @@
 #include "AliHLTTPCGMMergedTrack.h"
 
 #include "AliHLTTPCDefinitions.h"
-#include "AliHLTTPCGeometry.h"
+#include "AliHLTTPCCAGeometry.h"
 
 #include "AliExternalTrackParam.h"
 #include "AliCDBEntry.h"
@@ -280,12 +280,12 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
     //bool zPlus = ( iSec < 18 );
     float zMin =  plusZmin; //zPlus ? plusZmin : minusZmin;
     float zMax =  plusZmax; //zPlus ? plusZmax : minusZmax;
-    int nRows = AliHLTTPCGeometry::GetNRows();
+    int nRows = AliHLTTPCCAGeometry::GetNRows();
     float padPitch = 0.4;
     float sigmaZ = 0.228808;
     float *rowX = new float [nRows];
     for ( int irow = 0; irow < nRows; irow++ ) {
-      rowX[irow] = AliHLTTPCGeometry::Row2X( irow );
+      rowX[irow] = AliHLTTPCCAGeometry::Row2X( irow );
     }
 
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
@@ -378,7 +378,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
     fBenchmark.AddInput(block->fSize);
 
     int slice = AliHLTTPCDefinitions::GetMinSliceNr( *block );
-    if ( slice < 0 || slice >= AliHLTTPCGeometry::GetNSlice() ) {
+    if ( slice < 0 || slice >= AliHLTTPCCAGeometry::GetNSlice() ) {
       HLTError( "invalid slice number %d extracted from specification 0x%08lx,  skipping block of type %s",
                 slice, block->fSpecification, DataType2Text( block->fDataType ).c_str() );
       // just remember the error, if there are other valid blocks ignore the error, return code otherwise

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../include/AliHLTTPCGeometry.h" //We use this to convert from row number to X
+#include "../../SliceTracker/AliHLTTPCCAGeometry.h" //We use this to convert from row number to X
 
 struct ClusterData {
 	int fId;
@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 			{
 			    tempBuffer[i].fId = clusterId++;
 			    tempBuffer[i].fRow = i; //We fill one hit per TPC row
-			    tempBuffer[i].fX = AliHLTTPCGeometry::Row2X(i);
+			    tempBuffer[i].fX = AliHLTTPCCAGeometry::Row2X(i);
 			    tempBuffer[i].fY = i *iSector * 0.03f;
 			    tempBuffer[i].fZ = i * (1 + iEvent) * (iSector >= 18 ? -1 : 1);
 			    tempBuffer[i].fAmp = 100; //Arbitrary amplitude

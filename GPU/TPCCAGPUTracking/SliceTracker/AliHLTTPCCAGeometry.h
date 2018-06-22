@@ -1,4 +1,12 @@
-class AliHLTTPCGeometry
+#ifndef ALIHLTTPCCAGEOMETRY_H
+#define ALIHLTTPCCAGEOMETRY_H
+
+#ifdef HLTCA_BUILD_ALIROOT_LIB
+#include "AliHLTTPCGeometry.h"
+#define AliHLTTPCCAGeometry AliHLTTPCGeometry
+#else
+
+class AliHLTTPCCAGeometry
 {
   static double fgX[HLTCA_ROW_COUNT];
 
@@ -8,7 +16,7 @@ public:
 
 #ifdef HLTCA_TPC_GEOMETRY_O2
 
-double AliHLTTPCGeometry::fgX[HLTCA_ROW_COUNT] = { 85.225,
+double AliHLTTPCCAGeometry::fgX[HLTCA_ROW_COUNT] = { 85.225,
   85.975,
   86.725,
   87.475,
@@ -164,7 +172,7 @@ double AliHLTTPCGeometry::fgX[HLTCA_ROW_COUNT] = { 85.225,
 
 #else
 
-double AliHLTTPCGeometry::fgX[HLTCA_ROW_COUNT] = { 85.195,
+double AliHLTTPCCAGeometry::fgX[HLTCA_ROW_COUNT] = { 85.195,
 				     85.945,
 				     86.695,
 				     87.445,
@@ -325,4 +333,6 @@ double AliHLTTPCGeometry::fgX[HLTCA_ROW_COUNT] = { 85.195,
 				     245.930
 };
 
+#endif
+#endif
 #endif
