@@ -33,6 +33,7 @@
 #include "AliHLTTPCGMMergedTrack.h"
 
 #include "AliHLTTPCDefinitions.h"
+#include "AliHLTTPCCADefinitions.h"
 #include "AliHLTTPCCAGeometry.h"
 
 #include "AliExternalTrackParam.h"

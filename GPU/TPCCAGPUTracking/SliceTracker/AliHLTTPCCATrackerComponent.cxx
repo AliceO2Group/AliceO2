@@ -34,6 +34,7 @@
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCCAGeometry.h"
 #include "AliHLTTPCDefinitions.h"
+#include "AliHLTTPCCADefinitions.h"
 #include "AliExternalTrackParam.h"
 #include "TMath.h"
 #include "AliCDBEntry.h"

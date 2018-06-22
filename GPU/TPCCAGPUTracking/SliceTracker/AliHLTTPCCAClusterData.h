@@ -19,7 +19,7 @@
 
 #include "AliHLTTPCCADef.h"
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(__OPENCL__)
 #include <iostream>
 #include <vector>
 

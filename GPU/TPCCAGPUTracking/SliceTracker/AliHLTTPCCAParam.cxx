@@ -129,13 +129,14 @@ void AliHLTTPCCAParam::Update()
   fTrackChi2Cut = fTrackChiCut * fTrackChiCut;
 }
 
-#if !defined(HLTCA_STANDALONE)
+#if !defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE)
+#include <iostream>
 void AliHLTTPCCAParam::LoadClusterErrors( bool Print )
 {
   // update of calculated values
   const AliTPCClusterParam *clparam =  AliTPCcalibDB::Instance()->GetClusterParam();
  if( !clparam ){
-    cout<<"Error: AliHLTTPCCAParam::LoadClusterErrors():: No AliTPCClusterParam instance found !!!! "<<endl;
+    std::cout<<"Error: AliHLTTPCCAParam::LoadClusterErrors():: No AliTPCClusterParam instance found !!!! "<<std::endl;
     return;
   }
 
@@ -157,45 +158,45 @@ void AliHLTTPCCAParam::LoadClusterErrors( bool Print )
   
  if( Print ){
    typedef std::numeric_limits< float > flt;
-   cout<<std::scientific;
+   std::cout<<std::scientific;
 #if __cplusplus >= 201103L  
-   cout<<std::setprecision( flt::max_digits10+2 );
+   std::cout<<std::setprecision( flt::max_digits10+2 );
 #endif
-   cout<<"fParamS0Par[2][3][7]="<<endl;
-   cout<<" { "<<endl;
+   std::cout<<"fParamS0Par[2][3][7]="<<std::endl;
+   std::cout<<" { "<<std::endl;
    for( int i=0; i<2; i++ ){
-     cout<<"   { "<<endl;   
+     std::cout<<"   { "<<std::endl;   
      for( int j=0; j<3; j++){
-       cout<<" { ";   
+       std::cout<<" { ";   
        for( int k=0; k<6; k++){
-	 cout<<fParamS0Par[i][j][k]<<", "; 
+         std::cout<<fParamS0Par[i][j][k]<<", "; 
        }
-       cout<<" }, "<<endl;   
+       std::cout<<" }, "<<std::endl;   
      }
-     cout<<"   }, "<<endl;
+     std::cout<<"   }, "<<std::endl;
    }
-   cout<<" }; "<<endl;
+   std::cout<<" }; "<<std::endl;
 
-  cout<<"fParamRMS0[2][3][4]="<<endl;
-  cout<<" { "<<endl;
+  std::cout<<"fParamRMS0[2][3][4]="<<std::endl;
+  std::cout<<" { "<<std::endl;
   for( int i=0; i<2; i++ ){
-    cout<<"   { "<<endl;   
+    std::cout<<"   { "<<std::endl;   
     for( int j=0; j<3; j++){
-      cout<<" { ";   
+      std::cout<<" { ";   
       for( int k=0; k<4; k++){
-	cout<<fParamRMS0[i][j][k]<<", "; 
+        std::cout<<fParamRMS0[i][j][k]<<", "; 
       }
-      cout<<" }, "<<endl;   
+      std::cout<<" }, "<<std::endl;   
     }
-    cout<<"   }, "<<endl;
+    std::cout<<"   }, "<<std::endl;
   }
-  cout<<" }; "<<endl;
+  std::cout<<" }; "<<std::endl;
   
 
   const THnBase *waveMap = clparam->GetWaveCorrectionMap();
   const THnBase *resYMap = clparam->GetResolutionYMap();
-  cout<<"waveMap = "<<(void*)waveMap<<endl;
-  cout<<"resYMap = "<<(void*)resYMap<<endl;
+  std::cout<<"waveMap = "<<(void*)waveMap<<std::endl;
+  std::cout<<"resYMap = "<<(void*)resYMap<<std::endl;
 
  }
 

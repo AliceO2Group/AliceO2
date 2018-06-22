@@ -14,7 +14,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(HLTCA_GPUCODE)
 #include <iostream>
 #endif
 
@@ -31,13 +31,13 @@ class AliHLTTPCCAClusterData;
 MEM_CLASS_PRE() class AliHLTTPCCARow;
 
 #ifdef HLTCA_STANDALONE
-#ifdef HLTCA_GPUCODE
-#define GPUCODE
-#endif
-#include "../cmodules/timer.h"
-#ifdef HLTCA_GPUCODE
-#undef GPUCODE
-#endif
+    #ifdef HLTCA_GPUCODE
+        #define GPUCODE
+    #endif
+    #include "../cmodules/timer.h"
+    #ifdef HLTCA_GPUCODE
+        #undef GPUCODE
+    #endif
 #endif
 
 /**
@@ -149,7 +149,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   
   //GPU Tracker Interface
   void SetGPUTracker();
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(__OPENCL__)
   void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {fGPUDebugLevel = Level;if (NewDebugOut) fGPUDebugOut = NewDebugOut;}
   char* SetGPUTrackerCommonMemory(char* const pGPUMemory);
   char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
@@ -317,7 +317,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 #endif
 
 private:
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(HLTCA_GPUCODE)
   GPUh() int PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
 #endif
 
@@ -346,7 +346,7 @@ private:
   char fIsGPUTracker; // is it GPU tracker object
   int fGPUDebugLevel; // debug level
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(HLTCA_GPUCODE)
   std::ostream *fGPUDebugOut; // debug stream
 #else
   void* fGPUDebugOut; //No this is a hack, but I have no better idea.

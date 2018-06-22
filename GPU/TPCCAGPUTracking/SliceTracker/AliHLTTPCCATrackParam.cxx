@@ -21,9 +21,6 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-#if !defined(__OPENCL__) | defined(HLTCA_HOSTCODE)
-#include <iostream>
-#endif
 
 //
 // Circle in XY:

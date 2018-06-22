@@ -30,60 +30,31 @@
   #pragma warning(disable : 1684)
 #endif
 
-#if defined(HLTCA_STANDALONE) || (defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)) || !defined(HLTCA_BUILD_ALIROOT_LIB) 
-
+#if defined(HLTCA_STANDALONE) || defined(__OPENCL__) || !defined(HLTCA_BUILD_ALIROOT_LIB) 
   #if !defined(ROOT_Rtypes) && !defined(__CLING__)
     #define ClassDef(name,id)
     #define ClassImp(name)
   #endif
-
-  #define TRACKER_KEEP_TEMPDATA
+#else
+  #include "Rtypes.h"
 #endif //HLTCA_STANDALONE
+
+#if defined(HLTCA_STANDALONE) && !defined(HLTCA_BUILD_ALIROOT_LIB) && !defined(HLTCA_BUILD_O2_LIB)
+#define TRACKER_KEEP_TEMPDATA
+#endif
 
 #ifdef HLTCA_GPUCODE
   #ifdef __OPENCL__
-    #ifdef HLTCA_HOSTCODE //HLTCA_GPUCODE & __OPENCL & HLTCA_HOSTCODE
-
-      #define GPUdi() //TRIGGER_ERROR_NO_DEVICE_CODE
-      #define GPUhdi() inline
-      #define GPUd() //TRIGGER_ERROR_NO_DEVICE_CODE
-      #define GPUi() inline
-      #define GPUhd() 
-      #define GPUh() 
-      #define GPUg() TRIGGER_ERROR_NO_DEVICE_CODE
-      #define GPUshared() 
-      #define GPUsync() 
-
-      struct float4 { float x, y, z, w; };
-      struct float2 { float x; float y; };
-      struct uchar2 { unsigned char x, y; };
-      struct short2 { short x, y; };
-      struct ushort2 { unsigned short x, y; };
-      struct int2 { int x, y; };
-      struct int3 { int x, y, z; };
-      struct int4 { int x, y, z, w; };
-      struct uint1 { unsigned int x; };
-      struct uint2 { unsigned int x, y; };
-      struct uint3 { unsigned int x, y, z; };
-      struct uint4 { unsigned int x, y, z, w; };
-      struct uint16 { unsigned int x[16]; };
-
-    #else //HLTCA_HOSTCODE : HLTCA_GPUCODE & __OPENCL__ & !HLTCA_HOSTCODE
-
-      #define GPUdi() inline
-      #define GPUhdi() inline
-      #define GPUd() 
-      #define GPUi() inline
-      #define GPUhd() 
-      #define GPUh() TRIGGER_ERROR_NO_HOST_CODE
-      #define GPUg() __kernel
-      #define GPUshared() __local
-      #define GPUsync() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
-
-    #endif //HLTCA_HOSTCODE
-
-  #else //__OPENCL__ : HLTCA_GPUCODE & !__OPENCL__
-
+    #define GPUdi() inline
+    #define GPUhdi() inline
+    #define GPUd() 
+    #define GPUi() inline
+    #define GPUhd() 
+    #define GPUh() TRIGGER_ERROR_NO_HOST_CODE
+    #define GPUg() __kernel
+    #define GPUshared() __local
+    #define GPUsync() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
+  #else //No comes CUDA
     #define GPUdi() __device__ inline
     #define GPUhdi() __host__ __device__ inline
     #define GPUd() __device__
@@ -93,9 +64,8 @@
     #define GPUg() __global__
     #define GPUshared() __shared__
     #define GPUsync() __syncthreads()
-
-  #endif //__OPENCL
-#else //HLTCA_GPUCODE : !HLTCA_GPUCODE
+  #endif
+#else //Now comes CPU
 
   #define GPUdi()
   #define GPUhdi()
@@ -123,7 +93,7 @@
 
 #endif //HLTCA_GPUCODE
 
-#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+#if defined(__OPENCL__)
   #define GPUsharedref() GPUshared()
   #define GPUglobalref() __global
   //#define GPUconstant() __constant //Replace __constant by __global (possibly add const __restrict where possible later!)
@@ -135,7 +105,7 @@
 #endif
 
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
-#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+#if defined(__OPENCL__)
   template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Local, L, G, C, P> { typedef L type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };

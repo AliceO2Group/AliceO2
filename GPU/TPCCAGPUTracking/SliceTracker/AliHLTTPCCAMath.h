@@ -11,7 +11,7 @@
 
 #include "AliHLTTPCCADef.h"
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(__OPENCL__)
 #include <cmath>
 #endif
 
@@ -59,26 +59,15 @@ class AliHLTTPCCAMath
 
 typedef AliHLTTPCCAMath CAMath;
 
-#if defined( HLTCA_GPUCODE )
-#define choice(c1,c2) c1
-
-#if defined( __OPENCL__ )
-#if defined( HLTCA_HOSTCODE)
-#if defined( HLTCA_STANDALONE )
-#define choiceA(c1,c2) c2
-#else //HLTCA_STANDALONE
-#define choiceA(c1,c2) c2
-#endif //HLTCA_STANDALONE
-#else //HLTCA_HOSTCODE
-#define choiceA(c1, c2) c2
-#endif //HLTCA_HOSTCODE
-#else //__OPENCL
-
-#define choiceA choice
-#endif //__OPENCL__
-#else
-#define choice(c1,c2) c2
-#define choiceA choice
+#if defined( HLTCA_GPUCODE ) && defined (__CUDACC__)
+    #define choice(c1,c2) c1
+    #define choiceA choice
+#elif defined( HLTCA_GPUCODE ) && defined (__OPENCL__)
+    #define choice(c1,c2) c1
+    #define choiceA(c1, c2) c2
+#else //Host
+    #define choice(c1,c2) c2
+    #define choiceA choice
 #endif //HLTCA_GPUCODE
 
 GPUd() inline float2 AliHLTTPCCAMath::MakeFloat2( float x, float y )
@@ -192,7 +181,7 @@ GPUhd() inline float AliHLTTPCCAMath::Log(float x)
 	return choice( log(x), log(x) );
 }
 
-#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+#if defined(__OPENCL__)
 GPUd()  inline int AliHLTTPCCAMath::AtomicExchShared(register GPUsharedref() int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
 GPUd()  inline int AliHLTTPCCAMath::AtomicAddShared (register GPUsharedref() int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
 GPUd()  inline int AliHLTTPCCAMath::AtomicMaxShared (register GPUsharedref() int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
@@ -206,12 +195,10 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMinShared ( int *addr, int val ) {retu
 
 GPUd()  inline int AliHLTTPCCAMath::AtomicExch(register GPUglobalref() int *addr, int val )
 {
-#if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
-#ifdef __OPENCL__
+#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
 	return ::atomic_xchg( (volatile __global int*) addr, val );
-#else
+#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
   return ::atomicExch( addr, val );
-#endif
 #else
   int old = *addr;
   *addr = val;
@@ -221,12 +208,10 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicExch(register GPUglobalref() int *addr
 
 GPUd()  inline int AliHLTTPCCAMath::AtomicAdd (register GPUglobalref() int *addr, int val )
 {
-#if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
-#ifdef __OPENCL__
+#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_add( (volatile __global int*) addr, val );
-#else
+#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
   return ::atomicAdd( addr, val );
-#endif
 #else
   int old = *addr;
   *addr += val;
@@ -236,12 +221,10 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicAdd (register GPUglobalref() int *addr
 
 GPUd()  inline int AliHLTTPCCAMath::AtomicMax (register GPUglobalref() int *addr, int val )
 {
-#if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
-#ifdef __OPENCL__
+#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_max( (volatile __global int*) addr, val );
-#else
+#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
   return ::atomicMax( addr, val );
-#endif
 #else
   int old = *addr;
   if ( *addr < val ) *addr = val;
@@ -251,12 +234,10 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMax (register GPUglobalref() int *addr
 
 GPUd()  inline int AliHLTTPCCAMath::AtomicMin (register GPUglobalref() int *addr, int val )
 {
-#if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
-#ifdef __OPENCL__
+#if defined(HLTCA_GPUCODE) && defined(__OPENCL__)
   return ::atomic_min( (volatile __global int*) addr, val );
-#else
+#elif defined(HLTCA_GPUCODE) && defined(__CUDACC__)
   return ::atomicMin( addr, val );
-#endif
 #else
   int old = *addr;
   if ( *addr > val ) *addr = val;

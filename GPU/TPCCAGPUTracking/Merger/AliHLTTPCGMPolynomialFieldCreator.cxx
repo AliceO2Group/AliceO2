@@ -248,7 +248,7 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
   Double_t solenoidBzkG = fld->SolenoidField();
   Double_t solenoidBzkGInv = (TMath::Abs(solenoidBzkG) > kAlmost0Field ) ?1./solenoidBzkG :0. ;
   
-  cout << "solenoidBz = " << solenoidBzkG <<" kG"<<endl;  
+  std::cout << "solenoidBz = " << solenoidBzkG <<" kG"<<std::endl;  
   
   const int M = AliHLTTPCGMPolynomialField::fkM;
   AliHLTTPCPolynomFit fitBx(M);
@@ -256,19 +256,19 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
   AliHLTTPCPolynomFit fitBz(M);
   
   for( int sector=0; sector<18; sector++){
-    cout << "sector = " << sector << endl;
+    std::cout << "sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector*sectorAngle;
     double cs = TMath::Cos(asec);
     double ss = TMath::Sin(asec);
     for( double al=alMin; al<alMax; al+=dA ){
-      cout<<"angle "<<al/TMath::Pi()*180.<<" grad "<<endl;
+      std::cout<<"angle "<<al/TMath::Pi()*180.<<" grad "<<std::endl;
       double tg = TMath::Tan(al);
       for( int row=0; row<AliHLTTPCCAGeometry::GetNRows(); row++){
 	double xl = AliHLTTPCCAGeometry::Row2X(row);
 	double yl = xl*tg;
 	double x = xl*cs - yl*ss;
 	double y = xl*ss + yl*cs;
-	//cout<<"sector = "<<sector<<" al = "<<al/TMath::Pi()*180.<<" xl "<<xl<<" yl "<<yl<<endl;
+	//std::cout<<"sector = "<<sector<<" al = "<<al/TMath::Pi()*180.<<" xl "<<xl<<" yl "<<yl<<std::endl;
 	
 	for( double z=zMin; z<=zMax; z+=dZ ){ // 1 cm step in Z
 	  Double_t xyz[3] = {x,y,z};
@@ -304,7 +304,7 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
   int errZ = fitBz.Fit( cZ );
   
   if( errX!=0 || errY!=0 || errZ!=0 ){
-    cout<<"Fit of polynamial field failed!!!"<<endl;
+    std::cout<<"Fit of polynamial field failed!!!"<<std::endl;
     if( fld != inputFld) delete fld;
     return -1;
   }
@@ -330,12 +330,12 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
   TH1F histBz("Performance B_z", "Error B_z", 1000, -0.005, 0.005);
 
   for( int sector=0; sector<18; sector++){
-    cout << "check quality: sector = " << sector << endl;
+    std::cout << "check quality: sector = " << sector << std::endl;
     double asec = sectorAngleShift + sector*sectorAngle;
     double cs = TMath::Cos(asec);
     double ss = TMath::Sin(asec);
     for( double al=alMin; al<alMax; al+=dA ){    
-     cout<<"check quality: angle "<<al/TMath::Pi()*180.<<" grad "<<endl;
+     std::cout<<"check quality: angle "<<al/TMath::Pi()*180.<<" grad "<<std::endl;
       double tg = TMath::Tan(al);
       for( int row=0; row<AliHLTTPCCAGeometry::GetNRows(); row++){
 	double xl = AliHLTTPCCAGeometry::Row2X(row);
@@ -375,7 +375,7 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
   file.Write();
   file.Close();
 
-  cout<<"Fitted polynomial field: "<<endl;
+  std::cout<<"Fitted polynomial field: "<<std::endl;
   fittedField.Print();
 
   return 0;

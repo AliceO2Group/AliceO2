@@ -12,7 +12,7 @@
 
 #include "AliHLTTPCCADef.h"
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(__OPENCL__)
 
 #include <cstdlib>
 #ifndef HLTCA_GPUCODE
@@ -48,7 +48,7 @@ class AliHLTTPCCASliceOutput
     char fEndOfSpace; // end of space flag 
   };
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(__OPENCL__)
   GPUhd() int NTracks()                    const { return fNTracks;              }
   GPUhd() int NLocalTracks()               const { return fNLocalTracks;         }
   GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }  

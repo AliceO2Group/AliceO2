@@ -20,8 +20,10 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAMath.h"
-#if !(defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE))
+#ifndef HLTCA_GPUCODE
 #include "AliHLTArray.h"
+#else
+template<typename T, int Dim> class AliHLTArray;
 #endif
 #include "AliHLTTPCCAGPUConfig.h"
 
@@ -32,9 +34,6 @@ typedef unsigned short ushort_v;
 typedef float float_v;
 
 class AliHLTTPCCAClusterData;
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
-template<typename T, int Dim> class AliHLTArray;
-#endif
 class AliHLTTPCCAHit;
 MEM_CLASS_PRE() class AliHLTTPCCAParam;
 
@@ -125,7 +124,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
      * If the given weight is higher than what is currently stored replace with the new weight.
      */
     MEM_TEMPLATE() GPUd() void MaximizeHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight );
-	MEM_TEMPLATE() GPUd() void SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight );
+    MEM_TEMPLATE() GPUd() void SetHitWeight( const MEM_TYPE( AliHLTTPCCARow)&row, uint_v hitIndex, int_v weight );
 
     /**
      * Return the maximal weight the given hit got from one tracklet
@@ -145,7 +144,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     /**
      * Return the row object for the given row index.
      */
-	GPUhd() GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow)& Row( int rowIndex ) const {return fRows[rowIndex];}
+    GPUhd() GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow)& Row( int rowIndex ) const {return fRows[rowIndex];}
     GPUhd() GPUglobalref() MEM_GLOBAL(AliHLTTPCCARow)* Rows() const {return fRows;}
 
     GPUhd() GPUglobalref() int* HitWeights() const {return(fHitWeights); }
@@ -154,8 +153,8 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     GPUhd() char* GPUTextureBase() const { return(fGPUTextureBase); }
     GPUhd() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
-	GPUh() char* Memory() const {return(fMemory); }
+#if !defined(__OPENCL__)
+    GPUh() char* Memory() const {return(fMemory); }
     GPUh() size_t MemorySize() const {return(fMemorySize); }
     GPUh() size_t GpuMemorySize() const {return(fGpuMemorySize); }
     GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
@@ -168,7 +167,7 @@ MEM_CLASS_PRE() class AliHLTTPCCASliceData
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & );
     AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData & ) ;
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#ifndef HLTCA_GPUCODE
     void CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset );
     int PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 #endif
