@@ -288,12 +288,12 @@ int AliHLTTRDTrackerComponent::DoEvent
   }
 
   if (tpcData == NULL) {
-    HLTError("did not receive any TPC tracks. Skipping event");
+    HLTInfo("did not receive any TPC tracks. Skipping event");
     return 0;
   }
 
   if (nTrackletsTotal == 0) {
-    HLTError("did not receive any TRD tracklets. Skipping event");
+    HLTInfo("did not receive any TRD tracklets. Skipping event");
     return 0;
   }
 

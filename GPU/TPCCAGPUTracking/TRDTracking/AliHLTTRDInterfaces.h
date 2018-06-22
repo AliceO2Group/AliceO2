@@ -94,4 +94,11 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
       return PropagateTrackToBxByBz(trk, x, 0.13957, maxStep, false, maxSnp);
     }
 };
+//template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCGMPropagator TODO
+//{
+//  public:
+//    bool PropagateToX() {
+//      return PropagateToXAlpha();
+//    }
+//};
 #endif
