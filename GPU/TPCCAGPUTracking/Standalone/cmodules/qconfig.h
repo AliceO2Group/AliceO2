@@ -1,3 +1,7 @@
+#include <vector>
+
+#define AddArrayDefaults(...) {__VA_ARGS__}
+
 #ifdef QCONFIG_PARSE
 
 	#define QCONFIG_COMPARE(optname, optnameshort) (thisoption[0] == '-' && ( \
@@ -25,6 +29,13 @@
 		else if (QCONFIG_COMPARE(optname, optnameshort)) \
 		{ \
 			int retVal = qConfigType<type>::qAddOptionVec(tmp.name, i, argv, argc, __VA_ARGS__); \
+			if (retVal) return(retVal); \
+		}
+
+	#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) \
+		else if (QCONFIG_COMPARE(optname, optnameshort)) \
+		{ \
+			int retVal = qConfigType<type>::qAddOptionArray(tmp.name, count, i, argv, argc, __VA_ARGS__); \
 			if (retVal) return(retVal); \
 		}
 
@@ -87,6 +98,7 @@
 	#define AddOption(name, type, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(default), optname, optnameshort, preopt, preoptshort, 0, __VA_ARGS__);
 	#define AddOptionSet(name, type, value, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(value), optname, optnameshort, preopt, preoptshort, 1, __VA_ARGS__);
 	#define AddOptionVec(name, type, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), NULL, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
+	#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type) "[" qon_mxstr(count) "]", NULL, optname, optnameshort, preopt, preoptshort, 2, __VA_ARGS__);
 	#define AddSubConfig(name, instance) printf("\t%s\n\n", qon_mxcat(qConfig_subconfig_, name)); \
 		if (followSub) qConfigHelp(qon_mxstr(name), 2);
 	#define BeginConfig(name, instance) if (subConfig == NULL || *subConfig == 0) { \
@@ -104,12 +116,16 @@
 	#define AddHelpAll(cmd, cmdshort) qConfigType<void*>::qConfigHelpOption("help all", "help all", NULL, cmd, cmdshort, preopt, preoptshort, 3, "Show usage info including all subparameters");
 	#define AddCommand(cmd, cmdshort, command, help) qConfigType<void*>::qConfigHelpOption("command", "command", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
 	#define AddShortcut(cmd, cmdshort, forward, help, ...) qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", NULL, cmd, cmdshort, preopt, preoptshort, 4, help);
+	#define AddHelpText(text) printf("\n    " text ":\n");
 
 #elif defined(QCONFIG_PRINT)
 	#define AddOption(name, type, default, optname, optnameshort, ...) std::cout << "\t" << qon_mxstr(name) << ": " << tmp.name << "\n";
+	#define AddVariable(name, type, default) std::cout << "\t" << qon_mxstr(name) << ": " << tmp.name << "\n";
 	#define AddOptionSet(name, type, value, optname, optnameshort, ...) 
-	#define AddOptionVec(name, type, optname, optnameshort, ...) 
+	#define AddOptionVec(name, type, optname, optnameshort, ...) {std::cout << "\t" << qon_mxstr(name) << "[]: "; for (unsigned int i = 0;i < tmp.name.size();i++) {if (i) {std::cout << ", ";} /*std::cout << tmp.name[i];*/} std::cout << "\n";}
+	#define AddOptionArray(name, type, count, default, optname, optnameshort, ...) {std::cout << "\t" << qon_mxstr(name) << "[" << count << "]: " << tmp.name[0]; for (int i = 1;i < count;i++) {std::cout << ", " << tmp.name[i];} std::cout << "\n";}
 	#define AddSubConfig(name, instance)
+	#define AddHelpText(text) printf("    " text ":\n");
 	#define BeginConfig(name, instance) { name& tmp = instance;
 	#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) { name& tmp = parent.instance;
 	#define EndConfig() }
@@ -119,6 +135,7 @@
 	#define AddVariable(name, type, default) name(default),
 	#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 	#define AddOptionVec(name, type, optname, optnameshort, help, ...) name(),
+	#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) name default,
 	#define AddSubConfig(name, instance) instance(),
 	#define BeginConfig(name, instance) name instance; name::name() :
 	#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) name::name() :
@@ -128,6 +145,7 @@
 	#define AddOption(name, type, default, optname, optnameshort, help, ...)
 	#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 	#define AddOptionVec(name, type, optname, optnameshort, help, ...)
+	#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
 	#define AddSubConfig(name, instance)
 	#define BeginConfig(name, instance) extern "C" name instance;
 	#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
@@ -135,7 +153,7 @@
 	#undef QCONFIG_EXTERNS
 	extern int qConfigParse(int argc, const char** argv, const char* filename = NULL);
 	extern void qConfigPrint();
-	namespace qConfig {enum qConfigRetVal {qcrOK = 0, qcrError = 1, qcrMinFailure = 2, qcrMaxFailure = 3, qcrHelp = 4, qcrCmd = 5, qcrArgMissing = 6, qcrArgIncomplete = 7};}
+	namespace qConfig {enum qConfigRetVal {qcrOK = 0, qcrError = 1, qcrMinFailure = 2, qcrMaxFailure = 3, qcrHelp = 4, qcrCmd = 5, qcrArgMissing = 6, qcrArgIncomplete = 7, qcrArrayOverflow = 8};}
 
 #else
 	#ifdef QCONFIG_HEADER_GUARD
@@ -145,13 +163,15 @@
 		#define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
 		#define AddVariable(name, type, default) type name;
 		#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
-		#define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 		#define AddSubConfig(name, instance) name instance;
+		#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count];
 		#ifdef QCONFIG_GPU
+			#define AddOptionVec(name, type, optname, optnameshort, help, ...) void* name[sizeof(std::vector<type>) / sizeof(void*)];
 			#define BeginConfig(name, instance) struct name {
 			#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name {
 			struct qConfigDummy{};
 		#else
+			#define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 			#define BeginConfig(name, instance) struct name { name(); name(const name& s); name& operator =(const name& s);
 			#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name { name(); name(const name& s); name& operator =(const name& s);
 			;struct qConfigDummy{qConfigDummy() {}};
@@ -176,6 +196,9 @@
 #ifndef AddVariable
 	#define AddVariable(name, type, default)
 #endif
+#ifndef AddHelpText
+	#define AddHelpText(text)
+#endif
 
 #ifndef QCONFIG_HEADER_GUARD_NO_INCLUDE
 	#include "qconfigoptions.h"
@@ -185,12 +208,15 @@
 #undef AddVariable
 #undef AddOptionSet
 #undef AddOptionVec
+#undef AddOptionArray
+#undef AddArrayDefaults
 #undef AddSubConfig
 #undef BeginConfig
 #undef BeginSubConfig
 #undef EndConfig
 #undef AddHelp
 #undef AddHelpAll
+#undef AddHelpText
 #undef AddCommand
 #undef AddShortcut
 #ifdef QCONFIG_COMPARE

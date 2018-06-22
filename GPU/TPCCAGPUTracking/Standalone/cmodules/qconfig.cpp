@@ -169,6 +169,23 @@ template <typename T> struct qConfigType
 		return(0);
 	}
 	
+	template <typename... Args> static inline int qAddOptionArray(T* ref, int count, int& i, const char** argv, const int argc, const char* /*help*/, Args&&... args)
+	{
+		auto settings = qConfigGetSettings(args...);
+		int iFirst = i, iLast;
+		do
+		{
+			iLast = i;
+			T tmp = T(), def = T();
+			settings.allowEmpty = (i != iFirst);
+			int retVal = qConfigTypeSpecialized<T>::qAddOptionMain(settings, tmp, i, argv, argc, def);
+			if (retVal) return(retVal != qcrArgMissing || i == iFirst ? retVal : 0);
+			if (i - iFirst >= count) {printf("Too many values provided for option %s\n", getOptName(argv, i)); return(qcrArrayOverflow);}
+			if (i == iFirst || i != iLast) ref[i - iFirst] = tmp;
+		} while (i != iLast);
+		return(0);
+	}
+
 	template <typename... Args> static inline void qConfigHelpOption(const char* name, const char* type, const char* def, const char* optname, char optnameshort, const char* preopt, char preoptshort, int optionType, const char* help, Args&&... args)
 	{
 		auto settings = qConfigGetSettings(args...);
@@ -226,6 +243,10 @@ template <class T> static inline int qAddOptionGeneric(qConfigSettings<T>& setti
 template <> inline int qAddOptionType<bool>(qConfigSettings<bool>& settings, bool& ref, int& i, const char** argv, const int argc, bool /*def*/)
 {
 	return qAddOptionGeneric<bool>(settings, ref, i, argv, argc, settings.doDefault ? settings.set : true, [](const char* a)->bool{return atoi(a);}, true);
+}
+template <> inline int qAddOptionType<char>(qConfigSettings<char>& settings, char& ref, int& i, const char** argv, const int argc, char /*def*/)
+{
+	return qAddOptionGeneric<char>(settings, ref, i, argv, argc, settings.set, [](const char* a)->char{return atoi(a);}, settings.doDefault);
 }
 template <> inline int qAddOptionType<int>(qConfigSettings<int>& settings, int& ref, int& i, const char** argv, const int argc, int /*def*/)
 {
