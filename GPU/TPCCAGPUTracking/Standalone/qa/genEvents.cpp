@@ -14,7 +14,6 @@
  
 #include "../cmodules/qconfig.h"
 #include "TRandom.h"
-#include "TMath.h"
 #include "TH1F.h"
 #include "TFile.h"
 #include "TCanvas.h"
@@ -39,7 +38,7 @@ struct GenCluster
   unsigned int fId;
 };
 
-const double kTwoPi = TMath::TwoPi();//2.*kPi;
+const double kTwoPi = 2 * M_PI;
 const double kSliceDAngle = kTwoPi/18.;
 const double kSliceAngleOffset = kSliceDAngle/2;
 
@@ -199,9 +198,9 @@ int GenerateEvent(const AliHLTTPCCAParam& sliceParam, char* filename)
     double phi = kSliceAngleOffset + dphi*itr;
     double eta = gRandom->Uniform(-1.5,1.5);
 
-    double theta = 2*TMath::ATan(1./TMath::Exp(eta));
-    double lambda = theta-TMath::Pi()/2;
-    //double theta = gRandom->Uniform(-60,60)*TMath::Pi()/180.;
+    double theta = 2*std::atan(1./exp(eta));
+    double lambda = theta-M_PI/2;
+    //double theta = gRandom->Uniform(-60,60)*M_PI/180.;
     double pt = .08*std::pow(10,gRandom->Uniform(0,2.2));
     
     double q = 1.;

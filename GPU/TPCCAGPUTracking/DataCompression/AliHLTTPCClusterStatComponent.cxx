@@ -540,7 +540,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				float alpha = slice;
 				if (alpha > 18) alpha -= 18;
 				if (alpha > 9) alpha -= 18;
-				alpha = (alpha + 0.5f) * TMath::Pi() / 9.f;
+				alpha = (alpha + 0.5f) * M_PI / 9.f;
 				btrack.CalculateCrossingPoint(x, alpha /* Better use btrack.GetAlpha() ?? */, y, z);
 
 				etrack.Propagate(alpha, x, bz);
