@@ -37,7 +37,7 @@
 #include "AliHLTTPCGMPolynomialField.h"
 #include "AliHLTTPCGMPolynomialFieldCreator.h"
 #include "AliHLTTPCGMTrackParam.h"
-#include "AliHLTTPCGeometry.h"
+#include "AliHLTTPCCAGeometry.h"
 #include "AliHLTTPCRawCluster.h"
 #include "AliHLTTPCReverseTransformInfoV1.h"
 #include "AliRawEventHeaderBase.h"
@@ -181,13 +181,13 @@ int AliHLTTPCClusterStatComponent::DoInit(int argc, const char **argv)
 		float alpha = 0.174533 + dalpha * iSec;
 		float zMin = plusZmin; //zPlus ? plusZmin : minusZmin;
 		float zMax = plusZmax; //zPlus ? plusZmax : minusZmax;
-		int nRows = AliHLTTPCGeometry::GetNRows();
+		int nRows = AliHLTTPCCAGeometry::GetNRows();
 		float padPitch = 0.4;
 		float sigmaZ = 0.228808;
 		float *rowX = new float[nRows];
 		for (int irow = 0; irow < nRows; irow++)
 		{
-			rowX[irow] = AliHLTTPCGeometry::Row2X(irow);
+			rowX[irow] = AliHLTTPCCAGeometry::Row2X(irow);
 		}
 
 		float solenoidBz = GetBz();
@@ -221,7 +221,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 
 	int sector;
 	int sectorrow;
-	if (row < AliHLTTPCGeometry::GetNRowLow())
+	if (row < AliHLTTPCCAGeometry::GetNRowLow())
 	{
 		sector = slice;
 		sectorrow = row;
@@ -232,7 +232,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 	else
 	{
 		sector = slice + 36;
-		sectorrow = row - AliHLTTPCGeometry::GetNRowLow();
+		sectorrow = row - AliHLTTPCCAGeometry::GetNRowLow();
 		maxPad = param->GetNPadsUp(sectorrow);
 		padLength = param->GetPadPitchLength(sector, sectorrow);
 		padWidth = param->GetPadPitchWidth(sector);
@@ -240,7 +240,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 
 	if (applyCorrection)
 	{
-		float correctionY = revInfo->fCorrectY1 + revInfo->fCorrectY2 * param->GetPadRowRadii(sector, sectorrow) + revInfo->fCorrectY3 * (AliHLTTPCGeometry::GetZLength() - fabs(z));
+		float correctionY = revInfo->fCorrectY1 + revInfo->fCorrectY2 * param->GetPadRowRadii(sector, sectorrow) + revInfo->fCorrectY3 * (AliHLTTPCCAGeometry::GetZLength() - fabs(z));
 		y -= correctionY;
 	}
 
@@ -265,7 +265,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
 	}
 
 	float xyzGlobal[2] = {param->GetPadRowRadii(sector, sectorrow), y};
-	AliHLTTPCGeometry::Local2Global(xyzGlobal, slice);
+	AliHLTTPCCAGeometry::Local2Global(xyzGlobal, slice);
 
 	zwidth = revInfo->fZWidth * revInfo->fDriftCorr;
 	zwidth *= vdcorrectionTime * (1 + xyzGlobal[1] * vdcorrectionTimeGY);
@@ -299,7 +299,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 
 	int sector;
 	int sectorrow;
-	if (row < AliHLTTPCGeometry::GetNRowLow())
+	if (row < AliHLTTPCCAGeometry::GetNRowLow())
 	{
 		sector = slice;
 		sectorrow = row;
@@ -310,7 +310,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	else
 	{
 		sector = slice + 36;
-		sectorrow = row - AliHLTTPCGeometry::GetNRowLow();
+		sectorrow = row - AliHLTTPCCAGeometry::GetNRowLow();
 		maxPad = param->GetNPadsUp(sectorrow);
 		padLength = param->GetPadPitchLength(sector, sectorrow);
 		padWidth = param->GetPadPitchWidth(sector);
@@ -338,7 +338,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	}
 
 	float xyzGlobal[2] = {xyz[0], xyz[1]};
-	AliHLTTPCGeometry::Local2Global(xyzGlobal, slice);
+	AliHLTTPCCAGeometry::Local2Global(xyzGlobal, slice);
 
 	zwidth = revInfo->fZWidth * revInfo->fDriftCorr;
 	zwidth *= vdcorrectionTime * (1 + xyzGlobal[1] * vdcorrectionTimeGY);
@@ -355,7 +355,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 		float n = slice >= 18 ? revInfo->fDriftTimeOffsetC : revInfo->fDriftTimeOffsetA;
 		float correctionTime = (xyz[2] - n) / m;
 		xyz[2] += correctionTime * zwidth * sign;
-		float correctionY = revInfo->fCorrectY1 + revInfo->fCorrectY2 * xyz[0] + revInfo->fCorrectY3 * (AliHLTTPCGeometry::GetZLength() - fabs(xyz[2]));
+		float correctionY = revInfo->fCorrectY1 + revInfo->fCorrectY2 * xyz[0] + revInfo->fCorrectY3 * (AliHLTTPCCAGeometry::GetZLength() - fabs(xyz[2]));
 		xyz[1] += correctionY;
 	}
 }
@@ -501,9 +501,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 			for (int ip = 0; ip < track->fNPoints; ip++)
 			{
 				int clusterID = track->fPointIDs[ip];
-				int slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
-				int patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
-				int index = AliHLTTPCGeometry::CluID2Index(clusterID);
+				int slice = AliHLTTPCCAGeometry::CluID2Slice(clusterID);
+				int patch = AliHLTTPCCAGeometry::CluID2Partition(clusterID);
+				int index = AliHLTTPCCAGeometry::CluID2Index(clusterID);
 
 				if (clustersTrackIDArray[slice][patch][index].fID != -1)
 				{
@@ -520,8 +520,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				AliHLTTPCRawCluster &cluster = clustersArray[slice][patch]->fClusters[index];
 				AliHLTTPCClusterXYZ &clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];
 
-				int padrow = AliHLTTPCGeometry::GetFirstRow(patch) + cluster.GetPadRow();
-				float x = AliHLTTPCGeometry::Row2X(padrow);
+				int padrow = AliHLTTPCCAGeometry::GetFirstRow(patch) + cluster.GetPadRow();
+				float x = AliHLTTPCCAGeometry::Row2X(padrow);
 				float y = 0.0;
 				float z = 0.0;
 
@@ -655,7 +655,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 		{
 			AliHLTTPCRawClusterData *clusters = clustersArray[is][ip];
 			AliHLTTPCClusterXYZData *clustersTransformed = clustersTransformedArray[is][ip];
-			int firstRow = AliHLTTPCGeometry::GetFirstRow(ip);
+			int firstRow = AliHLTTPCCAGeometry::GetFirstRow(ip);
 
 			if (clusters == NULL)
 			{
@@ -693,8 +693,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 
 					float xyzOrig[3], xyzLocGlob[3];
 					{
-						int sector = AliHLTTPCGeometry::GetNRowLow() ? is : is + 36;
-						int sectorrow = AliHLTTPCGeometry::GetNRowLow() ? row : row - AliHLTTPCGeometry::GetNRowLow();
+						int sector = AliHLTTPCCAGeometry::GetNRowLow() ? is : is + 36;
+						int sectorrow = AliHLTTPCCAGeometry::GetNRowLow() ? row : row - AliHLTTPCCAGeometry::GetNRowLow();
 
 						Double_t xx[] = {(double) sectorrow, cluster.GetPad(), cluster.GetTime()};
 						transform->Transform(xx, &sector, 0, 1);
@@ -746,9 +746,9 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 			for (int ip = 0; ip < track->fNPoints; ip++)
 			{
 				int clusterID = track->fPointIDs[ip];
-				int slice = AliHLTTPCGeometry::CluID2Slice(clusterID);
-				int patch = AliHLTTPCGeometry::CluID2Partition(clusterID);
-				int index = AliHLTTPCGeometry::CluID2Index(clusterID);
+				int slice = AliHLTTPCCAGeometry::CluID2Slice(clusterID);
+				int patch = AliHLTTPCCAGeometry::CluID2Partition(clusterID);
+				int index = AliHLTTPCCAGeometry::CluID2Index(clusterID);
 
 				AliHLTTPCRawCluster &cluster = clustersArray[slice][patch]->fClusters[index];
 				AliHLTTPCClusterXYZ &clusterTransformed = clustersTransformedArray[slice][patch]->fClusters[index];

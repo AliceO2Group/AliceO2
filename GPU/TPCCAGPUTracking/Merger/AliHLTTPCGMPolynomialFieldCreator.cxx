@@ -156,7 +156,7 @@ int AliHLTTPCGMPolynomialFieldCreator::GetPolynomialField( float nominalFieldkG,
 #include <cmath>
 
 #include "AliTracker.h"
-#include "AliHLTTPCGeometry.h"
+#include "AliHLTTPCCAGeometry.h"
 #include "TGeoGlobalMagField.h"
 #include "AliMagF.h"
 
@@ -224,10 +224,10 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
   
   const double sectorAngleShift = 10./180.*TMath::Pi();
   const double sectorAngle = 20./180.*TMath::Pi();
-  const int nRows = AliHLTTPCGeometry::GetNRows();
+  const int nRows = AliHLTTPCCAGeometry::GetNRows();
 
-  double xMin = AliHLTTPCGeometry::Row2X(0);
-  double xMax = AliHLTTPCGeometry::Row2X(nRows-1);
+  double xMin = AliHLTTPCCAGeometry::Row2X(0);
+  double xMax = AliHLTTPCCAGeometry::Row2X(nRows-1);
   double rMin = xMin;
   double rMax = xMax/TMath::Cos(sectorAngle/2.);
 
@@ -239,8 +239,8 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
 
   double dZ = 1.*step; // step in z == 1 cm
   
-  double zMin = -AliHLTTPCGeometry::GetZLength();
-  double zMax =  AliHLTTPCGeometry::GetZLength();
+  double zMin = -AliHLTTPCCAGeometry::GetZLength();
+  double zMax =  AliHLTTPCCAGeometry::GetZLength();
 
   double alMin = -sectorAngle/2.;
   double alMax =  sectorAngle/2. - 0.5*dA;
@@ -263,8 +263,8 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
     for( double al=alMin; al<alMax; al+=dA ){
       cout<<"angle "<<al/TMath::Pi()*180.<<" grad "<<endl;
       double tg = TMath::Tan(al);
-      for( int row=0; row<AliHLTTPCGeometry::GetNRows(); row++){
-	double xl = AliHLTTPCGeometry::Row2X(row);
+      for( int row=0; row<AliHLTTPCCAGeometry::GetNRows(); row++){
+	double xl = AliHLTTPCCAGeometry::Row2X(row);
 	double yl = xl*tg;
 	double x = xl*cs - yl*ss;
 	double y = xl*ss + yl*cs;
@@ -337,8 +337,8 @@ int AliHLTTPCGMPolynomialFieldCreator::FitField( AliMagF* inputFld, AliHLTTPCGMP
     for( double al=alMin; al<alMax; al+=dA ){    
      cout<<"check quality: angle "<<al/TMath::Pi()*180.<<" grad "<<endl;
       double tg = TMath::Tan(al);
-      for( int row=0; row<AliHLTTPCGeometry::GetNRows(); row++){
-	double xl = AliHLTTPCGeometry::Row2X(row);
+      for( int row=0; row<AliHLTTPCCAGeometry::GetNRows(); row++){
+	double xl = AliHLTTPCCAGeometry::Row2X(row);
 	double yl = xl*tg;
 	double x = xl*cs - yl*ss;
 	double y = xl*ss + yl*cs;		

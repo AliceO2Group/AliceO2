@@ -24,7 +24,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMMergedTrack.h"
 #include "AliHLTTPCGMMergedTrackHit.h"
-#include "AliHLTTPCGeometry.h"
+#include "AliHLTTPCCAGeometry.h"
 #include <cmath>
 #include "AliTracker.h"
 #include "AliMagF.h"
@@ -132,7 +132,7 @@ int  AliHLTTPCGMOfflineFitter::CreateTPCclusterMI( const AliHLTTPCGMMergedTrackH
   // add the information we have
 
   Int_t sector, row;
-  AliHLTTPCGeometry::Slice2Sector( h.fSlice, h.fRow, sector, row);
+  AliHLTTPCCAGeometry::Slice2Sector( h.fSlice, h.fRow, sector, row);
   c.SetDetector( sector );
   c.SetRow( row ); // ?? is it right row numbering for the TPC tracker ??  
   c.SetX(h.fX);
@@ -210,7 +210,7 @@ bool AliHLTTPCGMOfflineFitter::FitOffline( const AliHLTTPCGMPolynomialField* fie
     
     Int_t iRow = clusters[ihit].fRow;
 
-    if( iRow < AliHLTTPCGeometry::GetNRowLow() ) AliTPCtracker::fSectors = AliTPCtracker::fInnerSec; 
+    if( iRow < AliHLTTPCCAGeometry::GetNRowLow() ) AliTPCtracker::fSectors = AliTPCtracker::fInnerSec; 
     else AliTPCtracker::fSectors = AliTPCtracker::fOuterSec; 
 
     seed.SetClusterIndex2( iRow, tpcindex );
