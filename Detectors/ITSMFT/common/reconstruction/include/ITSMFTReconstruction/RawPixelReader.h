@@ -54,14 +54,6 @@ class RawPixelReader : public PixelReader
 
   int getModuleMax() const { return mModuleMax; }
 
-  /// set min/max modules to process
-  void setModuleMinMax(int mn = 0, int mx = -1)
-  {
-    mModuleMin = mn < 0 ? 0 : (mn < mMapping.getNModules() ? mn : mMapping.getNModules() - 1);
-    mModuleMax = mx < 0 ? mMapping.getNModules() - 1 : (mx < mMapping.getNModules() ? mx : mMapping.getNModules() - 1);
-    assert(mModuleMin <= mModuleMax);
-  }
-
   /// open raw data input file
   void openInput(const std::string rawInput)
   {
@@ -102,9 +94,16 @@ class RawPixelReader : public PixelReader
 
   /// convert digits from the Digits branch of digTree to raw ALPIDE data
   void convertDigits2Raw(std::string outName, std::string inpName, std::string digTreeName, std::string digBranchName,
-                         std::size_t evFirst = 0, std::size_t evLast = std::numeric_limits<std::size_t>::max())
+                         UShort_t moduleMin = 0, UShort_t moduleMax = 0xffff,
+                         Long64_t evFirst = 0, Long64_t evLast = -1)
   {
     TStopwatch swTot;
+
+    mModuleMin = moduleMin;
+    mModuleMax = moduleMax < mMapping.getNModules() ? moduleMax : mMapping.getNModules() - 1;
+
+    LOG(INFO) << "Converting ALPIDE digits to raw data for modules " << mModuleMin << " : "
+              << mModuleMax << FairLogger::endl;
 
     std::unique_ptr<TTree> inpTree = o2::utils::RootChain::load(digTreeName, inpName);
     if (!inpTree) {
@@ -122,7 +121,7 @@ class RawPixelReader : public PixelReader
       LOG(INFO) << "Output file name is not provided, set to " << outName << FairLogger::endl;
     }
 
-    if (inpTree->GetEntries() < evLast) {
+    if (evLast < 1 || inpTree->GetEntries() < evLast) {
       evLast = inpTree->GetEntries() - 1;
     }
 
@@ -140,7 +139,7 @@ class RawPixelReader : public PixelReader
         if (modID < mModuleMin || modID > mModuleMax) { // skip unwanted modules
           continue;
         }
-        int rof = dig.getROFrame() + shiftROF;
+        UInt_t rof = dig.getROFrame() + shiftROF;
         if (rof != chipData.getROFrame() || dig.getChipIndex() != chipData.getChipID()) {
           if (rof != chipData.getROFrame()) { // new frame
             counterTot += counterROF;
