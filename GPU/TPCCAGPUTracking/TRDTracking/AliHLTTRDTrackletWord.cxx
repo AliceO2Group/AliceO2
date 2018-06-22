@@ -32,7 +32,7 @@
 
 AliTRDgeometry* AliHLTTRDTrackletWord::fgGeo = 0x0;
 
-AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(UInt_t trackletWord) :
+AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord) :
   fId(-1),
   fHCId(-1),
   fTrackletWord(trackletWord)
@@ -42,7 +42,7 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(UInt_t trackletWord) :
     fgGeo = new AliTRDgeometry;
 }
 
-AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(UInt_t trackletWord, Int_t hcid, Int_t id, Int_t* label) :
+AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id, int* label) :
   fId(id),
   fHCId(hcid),
   fTrackletWord(trackletWord)
@@ -106,7 +106,7 @@ AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM 
   return *this;
 }
 
-Int_t AliHLTTRDTrackletWord::GetYbin() const {
+int AliHLTTRDTrackletWord::GetYbin() const {
   // returns (signed) value of Y
   if (fTrackletWord & 0x1000) {
     return -((~(fTrackletWord-1)) & 0x1fff);
@@ -116,7 +116,7 @@ Int_t AliHLTTRDTrackletWord::GetYbin() const {
   }
 }
 
-Int_t AliHLTTRDTrackletWord::GetdY() const
+int AliHLTTRDTrackletWord::GetdY() const
 {
   // returns (signed) value of the deflection length
   if (fTrackletWord & (1 << 19)) {
@@ -127,16 +127,16 @@ Int_t AliHLTTRDTrackletWord::GetdY() const
   }
 }
 
-Int_t AliHLTTRDTrackletWord::GetROB() const
+int AliHLTTRDTrackletWord::GetROB() const
 {
   return 2 * (GetZbin() / 4) + (GetY() > 0 ? 1 : 0);
 }
 
-Int_t AliHLTTRDTrackletWord::GetMCM() const
+int AliHLTTRDTrackletWord::GetMCM() const
 {
 #ifdef HLTCA_BUILD_ALIROOT_LIB    
   AliTRDpadPlane *pp = fgGeo->GetPadPlane(GetDetector());
-  return (((Int_t) ((GetY()) / pp->GetWidthIPad()) + 72) / 18) % 4
+  return (((int) ((GetY()) / pp->GetWidthIPad()) + 72) / 18) % 4
     + 4 * (GetZbin() % 4);
 #else
   return 0;

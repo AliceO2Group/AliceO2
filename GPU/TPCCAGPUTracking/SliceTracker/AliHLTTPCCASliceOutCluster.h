@@ -11,10 +11,6 @@
 #define ALIHLTTPCCASLICEOUTCLUSTER_H
 
 #include "AliHLTTPCCADef.h"
-#ifdef HLTCA_STANDALONE
-#include "AliHLTTPCRootTypes.h"
-#endif
-
 
 /**
  * @class AliHLTTPCCASliceOutCluster
@@ -25,7 +21,7 @@ class AliHLTTPCCASliceOutCluster
 {
   public:
 
-  GPUh() void Set( UInt_t id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z ){
+  GPUh() void Set( unsigned int id, unsigned char row, unsigned char flags, unsigned short amp, float x, float y, float z ){
     fRow = row;
     fFlags = flags;
     fAmp = amp;
@@ -36,20 +32,20 @@ class AliHLTTPCCASliceOutCluster
   GPUh() float GetX() const {return fX;}
   GPUh() float GetY() const {return fY;}
   GPUh() float GetZ() const {return fZ;}
-  GPUh() UInt_t GetId() const {return fId; }
+  GPUh() unsigned int GetId() const {return fId; }
   GPUh() unsigned char GetRow() const {return fRow; }
   GPUh() unsigned char GetFlags() const {return fFlags; }
   GPUh() unsigned short GetAmp() const {return fAmp; }
 
   private:
 
-  UInt_t  fId; // Id ( slice, patch, cluster )    
+  unsigned int  fId; // Id ( slice, patch, cluster )    
   unsigned char fRow; // row
   unsigned char fFlags; //flags
   unsigned short fAmp; //amplitude
-  Float_t fX;// coordinates
-  Float_t fY;// coordinates
-  Float_t fZ;// coordinates
+  float fX;// coordinates
+  float fY;// coordinates
+  float fZ;// coordinates
 
 #ifdef GMPropagatePadRowTime
 public:
