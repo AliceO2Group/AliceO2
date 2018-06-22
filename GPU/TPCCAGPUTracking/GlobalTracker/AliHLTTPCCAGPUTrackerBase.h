@@ -22,7 +22,7 @@
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTLogging.h"
+#include "AliCAGPULogging.h"
 #include "AliHLTTPCCASliceOutput.h"
 
 #ifdef __CINT__
@@ -39,7 +39,7 @@ typedef int cudaError_t
 
 MEM_CLASS_PRE() class AliHLTTPCCARow;
 
-class AliHLTTPCCAGPUTrackerBase : public AliHLTTPCCAGPUTracker, public AliHLTLogging
+class AliHLTTPCCAGPUTrackerBase : public AliHLTTPCCAGPUTracker, public AliCAGPULogging
 {
 #ifdef HLTCA_ENABLE_GPU_TRACKER
 	friend void* helperWrapper(void*);

@@ -14,14 +14,14 @@
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCASliceOutput.h"
-#include "AliHLTLogging.h"
+#include "AliCAGPULogging.h"
 #include <iostream>
 #include <string.h>
 
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
 
-class AliHLTTPCCATrackerFramework : AliHLTLogging
+class AliHLTTPCCATrackerFramework : AliCAGPULogging
 {
 public:
 	AliHLTTPCCATrackerFramework(int allowGPU = 1, const char* GPU_Library = NULL, int GPUDeviceNum = -1);
