@@ -50,9 +50,12 @@ void DispatcherDPL::processCallback(ProcessingContext& ctx, BernoulliGenerator& 
       } else*/ if (inputHeader->payloadSerializationMethod == header::gSerializationMethodROOT) {
         ctx.outputs().adopt(output, DataRefUtils::as<TObject>(input).release());
       } else { // POD
-        // todo: use API for that when it is available
-        ctx.outputs().adoptChunk(output, const_cast<char*>(input.payload), inputHeader->payloadSize,
-                                 header::Stack::getFreefn(), nullptr);
+        // todo: do it non-copy, when API is available
+        auto outputMessage = ctx.outputs().make<char>(output, inputHeader->payloadSize);
+        const char* inputPayload = input.payload;
+        for (char& it : outputMessage) {
+          it = *inputPayload++;
+        }
       }
 
       LOG(DEBUG) << "DataSampler sends data from subspec " << input.spec->subSpec;
