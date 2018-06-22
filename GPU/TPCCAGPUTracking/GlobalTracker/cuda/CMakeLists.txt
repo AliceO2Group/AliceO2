@@ -14,9 +14,9 @@
 # **************************************************************************
 
 # Module
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
 set(MODULE O2TPCCAGPUTrackingCUDA)
-elseif(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 set(MODULE AliTPCCAGPUTrackingCUDA)
 endif()
 
@@ -53,14 +53,14 @@ include_directories(${CAGPUDIR}/GlobalTracker
 
 # Additional include folders in alphabetical order except ROOT
 include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE)
     add_definitions(-DHLTCA_BUILD_ALIROOT_LIB)
 else() #if we do not build for AliRoot, for the time being we still need some dummy headers for some definitions
     include_directories(${CAGPUDIR}/HLTHeaders ${CAGPUDIR}/Standalone/include)
     add_definitions(-DHLTCA_STANDALONE)
 endif()
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     add_definitions(-DHLTCA_TPC_GEOMETRY_O2 -DHLTCA_BUILD_O2_LIB)
 endif()
 
@@ -85,7 +85,7 @@ set(HDRS
   )
 
 #Default cmake build script for AliRoot
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     # Generate the dictionary
     # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
     get_directory_property(incdirs INCLUDE_DIRECTORIES)
@@ -112,7 +112,7 @@ if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "ALIROOT")
 endif()
 
 #Default cmake build script for O2
-if(${ALITPCCOMMON_BUILD_TYPE} STREQUAL "O2")
+if(ALITPCCOMMON_BUILD_TYPE STREQUAL "O2")
     Set(LIBRARY_NAME ${MODULE})
     set(BUCKET_NAME TPCCAGPUTracking_bucket)
     
