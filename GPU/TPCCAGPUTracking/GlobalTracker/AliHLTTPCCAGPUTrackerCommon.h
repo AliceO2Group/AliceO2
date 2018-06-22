@@ -4,7 +4,7 @@
 #endif
 #define assert(param)
 
-#ifdef R__WIN32
+#ifdef WIN32
 #else
 #include <sys/syscall.h>
 #include <semaphore.h>

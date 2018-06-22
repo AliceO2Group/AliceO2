@@ -1,7 +1,7 @@
 #ifndef STANDALONESETTINGS_H
 #define STANDALONESETTINGS_H
 
-#ifdef R__WIN32
+#ifdef WIN32
 #pragma pack(push,1)
 #endif
 struct hltca_event_dump_settings
@@ -18,7 +18,7 @@ struct hltca_event_dump_settings
 	bool constBz;
 	bool homemadeEvents;
 }
-#ifdef R__WIN32
+#ifdef WIN32
 #pragma pack(pop)
 #else
 __attribute__((packed));

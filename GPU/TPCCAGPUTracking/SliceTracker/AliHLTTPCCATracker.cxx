@@ -52,10 +52,6 @@
 #include "AliHLTTPCCADisplay.h"
 #endif //DRAW1
 
-#ifdef HLTCA_INTERNAL_PERFORMANCE
-//#include "AliHLTTPCCAPerformance.h"
-#endif
-
 ClassImp( AliHLTTPCCATracker )
 
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
@@ -534,12 +530,6 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 #endif
 
 	if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
-
-#ifdef HLTCA_INTERNAL_PERFORMANCE
-	//if( Param().ISlice()<=2 )
-	//AliHLTTPCCAPerformance::Instance().LinkPerformance( Param().ISlice() );
-#endif
-
 
 #ifdef DRAW1
 	if ( NHitsTotal() > 0 ) {

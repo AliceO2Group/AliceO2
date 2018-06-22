@@ -51,7 +51,7 @@ private:
 	ClassDef( AliHLTTPCCAGPUTrackerNVCC, 0 )
 };
 
-#ifdef R__WIN32
+#ifdef WIN32
 #define DLL_EXPORT __declspec(dllexport)
 #else
 #define DLL_EXPORT

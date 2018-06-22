@@ -30,7 +30,7 @@
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
 #include "include.h"
-#ifdef R__WIN32
+#ifdef WIN32
 #include <conio.h>
 #else
 #include <pthread.h>
@@ -232,7 +232,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
     static int displayActive = 0;
 	if (!displayActive)
 	{
-#ifdef R__WIN32
+#ifdef WIN32
 		semLockDisplay = CreateSemaphore(0, 1, 1, 0);
 		HANDLE hThread;
 		if ((hThread = CreateThread(NULL, NULL, &OpenGLMain, NULL, NULL, NULL)) == NULL)
@@ -247,7 +247,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 	}
 	else
 	{
-#ifdef R__WIN32
+#ifdef WIN32
 		ReleaseSemaphore(semLockDisplay, 1, NULL);
 #else
 		pthread_mutex_unlock(&semLockDisplay);
@@ -261,7 +261,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 	int iKey;
 	do
 	{
-#ifdef R__WIN32
+#ifdef WIN32
 		Sleep(10);
 #else
 		usleep(10000);
@@ -273,7 +273,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
         {
             while (sendKey != 0)
             {
-                #ifdef R__WIN32
+                #ifdef WIN32
                 		Sleep(1);
                 #else
                 		usleep(1000);
@@ -290,7 +290,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice, bool rese
 	exitButton = 0;
 	printf("Loading next event\n");
 
-#ifdef R__WIN32
+#ifdef WIN32
 	WaitForSingleObject(semLockDisplay, INFINITE);
 #else
 	pthread_mutex_lock(&semLockDisplay);
