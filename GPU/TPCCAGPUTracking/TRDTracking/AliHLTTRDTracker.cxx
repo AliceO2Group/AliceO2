@@ -453,15 +453,18 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
       //  continue;
       //}
       if (!prop.PropagateToX(&fCandidates[2*iCandidate+currIdx], fR[iLayer], 0.8 /*maxSnp*/, 2.0 /*max step*/)) {
-        if (ENABLE_INFO) {Info("FollowProlongation", "Track propagation failed for track %i candidate %i in layer %i (pt=%f, x=%f, fR[layer]=%f)",
-          iTrack, iCandidate, iLayer, fCandidates[2*iCandidate+currIdx].getPt(), fCandidates[2*iCandidate+currIdx].getX(), fR[iLayer]);
+        if (ENABLE_INFO) {
+          Info("FollowProlongation", "Track propagation failed for track %i candidate %i in layer %i (pt=%f, x=%f, fR[layer]=%f)",
+            iTrack, iCandidate, iLayer, fCandidates[2*iCandidate+currIdx].getPt(), fCandidates[2*iCandidate+currIdx].getX(), fR[iLayer]);
         }
         continue;
       }
 
       // rotate track in new sector in case of sector crossing
       if (!AdjustSector(&fCandidates[2*iCandidate+currIdx], iLayer)) {
-        if (ENABLE_INFO) {Info("FollowProlongation", "Adjusting sector failed for track %i candidate %i in layer %i", iTrack, iCandidate, iLayer); }
+        if (ENABLE_INFO) {
+          Info("FollowProlongation", "Adjusting sector failed for track %i candidate %i in layer %i", iTrack, iCandidate, iLayer);
+        }
         continue;
       }
 
@@ -476,8 +479,9 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
       roadZ = 18.; // simply twice the longest pad length -> efficiency 99.996%
       //
       if (TMath::Abs(fCandidates[2*iCandidate+currIdx].getZ()) - roadZ >= zMaxTRD ) {
-        if (ENABLE_INFO) {Info("FollowProlongation", "Track out of TRD acceptance with z=%f in layer %i (eta=%f)",
-          fCandidates[2*iCandidate+currIdx].getZ(), iLayer, fCandidates[2*iCandidate+currIdx].getEta());
+        if (ENABLE_INFO) {
+          Info("FollowProlongation", "Track out of TRD acceptance with z=%f in layer %i (eta=%f)",
+            fCandidates[2*iCandidate+currIdx].getZ(), iLayer, fCandidates[2*iCandidate+currIdx].getEta());
         }
         continue;
       }
@@ -497,7 +501,9 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
         if (sectorToSearch != GetSector(fCandidates[2*iCandidate+currIdx].getAlpha()) && !wasTrackRotated) {
           float alphaToSearch = GetAlphaOfSector(sectorToSearch);
           if (!fCandidates[2*iCandidate+currIdx].rotate(alphaToSearch)) {
-            Error("FollowProlongation", "Track could not be rotated in tracklet coordinate system");
+            if (ENABLE_WARNING) {
+              Warning("FollowProlongation", "Track could not be rotated in tracklet coordinate system");
+            }
             break;
           }
           wasTrackRotated = true; // tracks need to be rotated max. once per layer
@@ -511,8 +517,10 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
         for (int iTrklt=0; iTrklt<fNtrackletsInChamber[detToSearch]; ++iTrklt) {
           int trkltIdx = fTrackletIndexArray[detToSearch] + iTrklt;
           if (!prop.PropagateToX(&fCandidates[2*iCandidate+currIdx], fSpacePoints[trkltIdx].fR, 0.8, 2.0)) {
-            if (ENABLE_WARNING) {Warning("FollowProlongation", "Track parameter for track %i, x=%f at tracklet %i x=%f in layer %i cannot be retrieved",
-              iTrack, fCandidates[2*iCandidate+currIdx].getX(), iTrklt, fSpacePoints[trkltIdx].fR, iLayer);}
+            if (ENABLE_WARNING) {
+              Warning("FollowProlongation", "Track parameter for track %i, x=%f at tracklet %i x=%f in layer %i cannot be retrieved",
+                iTrack, fCandidates[2*iCandidate+currIdx].getX(), iTrklt, fSpacePoints[trkltIdx].fR, iLayer);
+            }
             continue;
           }
           float zPosCorr = fSpacePoints[trkltIdx].fX[1] + fZCorrCoefNRC * fCandidates[2*iCandidate+currIdx].getTgl();
@@ -585,8 +593,10 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
         flag = AdjustSector(&fCandidates[currIdx], iLayer);
       }
       if (!flag) {
-        if (ENABLE_WARNING) {Warning("FollowProlongation", "Track parameter at x=%f for track %i at real tracklet x=%f in layer %i cannot be retrieved (pt=%f)",
-          fCandidates[currIdx].getX(), iTrack, fSpacePoints[realTrkltId].fR, iLayer, fCandidates[currIdx].getPt());}
+        if (ENABLE_WARNING) {
+          Warning("FollowProlongation", "Track parameter at x=%f for track %i at real tracklet x=%f in layer %i cannot be retrieved (pt=%f)",
+            fCandidates[currIdx].getX(), iTrack, fSpacePoints[realTrkltId].fR, iLayer, fCandidates[currIdx].getPt());
+        }
       }
       else {
         fDebug->SetTrackParameterReal(fCandidates[currIdx], iLayer);
@@ -619,7 +629,9 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
       if (fHypothesis[iUpdate].fCandidateId == -1) {
         // no more candidates
         if (iUpdate == 0) {
-          if (ENABLE_WARNING) {Warning("FollowProlongation", "No valid candidates for track %i in layer %i", iTrack, iLayer);}
+          if (ENABLE_WARNING) {
+            Warning("FollowProlongation", "No valid candidates for track %i in layer %i", iTrack, iLayer);
+          }
           nCandidates = 0;
         }
         break;
@@ -646,7 +658,9 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
         fCandidates[2*iUpdate+nextIdx].rotate( GetAlphaOfSector(trkltSec) );
       }
       if (!prop.PropagateToX(&fCandidates[2*iUpdate+nextIdx], fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, 0.8, 2.0)){
-        if (ENABLE_WARNING) {Warning("FollowProlongation", "Final track propagation for track %i update %i in layer %i failed", iTrack, iUpdate, iLayer);}
+        if (ENABLE_WARNING) {
+          Warning("FollowProlongation", "Final track propagation for track %i update %i in layer %i failed", iTrack, iUpdate, iLayer);
+        }
         fCandidates[2*iUpdate+nextIdx].SetChi2(fCandidates[2*iUpdate+nextIdx].GetChi2() + fChi2Penalty);
         if (fCandidates[2*iUpdate+nextIdx].GetIsFindable(iLayer)) {
           if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers(iLayer) >= fMaxMissingLy) {
@@ -691,7 +705,9 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
 
       if (!fCandidates[2*iUpdate+nextIdx].update(trkltPosYZ, fSpacePoints[fHypothesis[iUpdate].fTrackletId].fCov))
       {
-        if (ENABLE_WARNING) {Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);}
+        if (ENABLE_WARNING) {
+          Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
+        }
         fCandidates[2*iUpdate+nextIdx].SetChi2(fCandidates[2*iUpdate+nextIdx].GetChi2() + fChi2Penalty);
         if (fCandidates[2*iUpdate+nextIdx].GetIsFindable(iLayer)) {
           if (fCandidates[2*iUpdate+nextIdx].GetNmissingConsecLayers(iLayer) >= fMaxMissingLy) {
@@ -723,7 +739,9 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
     }
     nCurrHypothesis = 0;
     if (!isOK) {
-      if (ENABLE_INFO) {Info("FollowProlongation", "Track %i cannot be followed. Stopped in layer %i", iTrack, iLayer); }
+      if (ENABLE_INFO) {
+        Info("FollowProlongation", "Track %i cannot be followed. Stopped in layer %i", iTrack, iLayer);
+      }
       return false;
     }
   } // end layer loop
@@ -831,7 +849,9 @@ bool AliHLTTRDTracker::AdjustSector(HLTTRDTrack *t, const int layer) const
   HLTTRDPropagator prop;
 
   if (TMath::Abs(y) > 2. * yMax) {
-    if (ENABLE_INFO) { Info("AdjustSector", "Track %i with pT = %f crossing two sector boundaries at x = %f", t->GetTPCtrackId(), t->Pt(), t->GetX()); }
+    if (ENABLE_INFO) {
+      Info("AdjustSector", "Track %i with pT = %f crossing two sector boundaries at x = %f", t->GetTPCtrackId(), t->Pt(), t->GetX());
+    }
     return false;
   }
 
