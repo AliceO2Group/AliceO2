@@ -14,7 +14,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATrackParam.h"
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(__OPENCL__)
 #include <iostream>
 #endif
 
@@ -131,7 +131,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float GetClusterError2( int yz, int type, float z, float angle2 ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float DzDs, float &ErrY2, float &ErrZ2 ) const;
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+#if !defined(__OPENCL__)
     void WriteSettings( std::ostream &out ) const;
     void ReadSettings( std::istream &in );
 #endif

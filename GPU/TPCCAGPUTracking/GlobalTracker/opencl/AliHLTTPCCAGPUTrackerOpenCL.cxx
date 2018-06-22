@@ -17,9 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define __OPENCL__
 #define HLTCA_GPUTYPE_RADEON
-#define HLTCA_HOSTCODE
 
 #include <string.h>
 #include "AliHLTTPCCAGPUTrackerOpenCL.h"

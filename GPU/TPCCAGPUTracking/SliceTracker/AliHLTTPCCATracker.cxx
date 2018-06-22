@@ -54,8 +54,6 @@
 
 ClassImp( AliHLTTPCCATracker )
 
-#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
-
 #if !defined(HLTCA_GPUCODE)
 
 AliHLTTPCCATracker::~AliHLTTPCCATracker()
@@ -723,10 +721,6 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	StopTimer(9);
 }
 
-#endif
-
-#if !defined(HLTCA_GPUCODE)
-
 GPUh() void AliHLTTPCCATracker::WriteEvent( std::ostream &out )
 {
 	// write event to the file
@@ -935,5 +929,4 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", fParam.ISlice(), ll, lr, ul, ur);
 }
 
-#endif
 #endif

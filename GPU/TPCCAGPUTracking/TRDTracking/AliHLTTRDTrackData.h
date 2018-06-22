@@ -40,7 +40,7 @@ struct AliHLTTRDTrackData {
 #else
   AliHLTTRDTrackDataRecord fTracks[0]; // array of tracklets
 #endif
-  static size_t GetSize( AliHLTUInt32_t nTracks ) { return sizeof(AliHLTTRDTrackData) + nTracks*sizeof(AliHLTTRDTrackDataRecord); }
+  static size_t GetSize( unsigned int nTracks ) { return sizeof(AliHLTTRDTrackData) + nTracks*sizeof(AliHLTTRDTrackDataRecord); }
   size_t GetSize() const { return GetSize( fCount ); }
 };
 
