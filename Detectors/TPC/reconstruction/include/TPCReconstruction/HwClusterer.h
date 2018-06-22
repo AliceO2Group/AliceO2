@@ -144,13 +144,20 @@ class HwClusterer : public Clusterer
   /// \param timebin  Timebin to be cleared
   void clearBuffer(int timebin);
 
-  /// Returns least significant set bit of mCurrentMcContainerInBuffer, only the 5 LSBs are checked
+  /// Returns least significant set bit of mCurrentMcContainerInBuffer, only the mTimebinsInBuffer LSBs are checked
   /// \return LSB index which is set
   short getFirstSetBitOfField();
+
+  /// Maps the given time into the available range of the stored buffer
+  /// \param time   time to be maped
+  /// \return (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer which is always in range [0, mTimebinsInBuffer-1] even if time < 0
+  int mapTimeInRange(int time);
 
   /*
    * class members
    */
+  static const int mTimebinsInBuffer = 5;
+
   unsigned short mNumRows;               ///< Number of rows in this sector
   short mCurrentMcContainerInBuffer;     ///< Bit field, where to find the current MC container in buffer
   int mClusterSector;                    ///< Sector to be processed
@@ -202,9 +209,13 @@ inline void HwClusterer::setRequireNeighbouringTimebin(bool reqTimebin)
   mRequireNeighbouringTimebin = reqTimebin;
 }
 
+inline int HwClusterer::mapTimeInRange(int time){
+  return (time < 0) ? (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer : (time % mTimebinsInBuffer);
+}
+
 inline short HwClusterer::getFirstSetBitOfField()
 {
-  for (short i = 0; i < 5; ++i) {
+  for (short i = 0; i < mTimebinsInBuffer; ++i) {
     if ((mCurrentMcContainerInBuffer >> i) & 0x1)
       return i;
   }
