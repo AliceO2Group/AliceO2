@@ -12,6 +12,10 @@
  *
  */
 
+#ifdef _WIN32
+  #define WIN32
+#endif
+
 #if defined(__CUDACC__) || defined(__OPENCL__)
   #define HLTCA_GPUCODE //Executed on GPU
 #endif

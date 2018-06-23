@@ -40,7 +40,7 @@ static int DrawQAHistograms() {return 0;}
 static void SetMCTrackRange(int min, int max) {}
 static bool SuppressTrack(int iTrack) {return false;}
 static bool SuppressHit(int iHit) {return false;}
-static int GetMCLabel(unsigned int trackId) {return(0);}
+static int GetMCLabel(unsigned int trackId) {return(-1);}
 #endif
 
 //QA - Event Generator

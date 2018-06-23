@@ -85,10 +85,14 @@ const AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::operator=(
 
 AliHLTTPCCAStandaloneFramework::~AliHLTTPCCAStandaloneFramework()
 {
-#ifndef HLTCA_STANDALONE
-	for (int i = 0;i < fgkNSlices;i++) if (fSliceOutput[i]) free(fSliceOutput[i]);
-#endif
-  //* destructor
+    //* destructor
+    if (fOutputControl.fOutputPtr == NULL)
+    {
+        for (int i = 0;i < fgkNSlices;i++)
+        {
+            if (fSliceOutput[i]) free(fSliceOutput[i]);
+        }
+    }
 }
 
 
