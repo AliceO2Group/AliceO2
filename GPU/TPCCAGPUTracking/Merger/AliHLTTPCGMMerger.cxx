@@ -963,6 +963,7 @@ void AliHLTTPCGMMerger::Finalize()
     for (int i = 0;i < fNOutputTracks;i++)
     {
       const AliHLTTPCGMMergedTrack& trk = fOutputTracks[i];
+      if (trk.NClusters() == 0) continue;
       char goodLeg = fClusters[trk.FirstClusterRef() + trk.NClusters() - 1].fLeg;
       for (int j = 0;j < trk.NClusters();j++)
       {

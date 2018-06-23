@@ -13,7 +13,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
-#if defined(HLTCA_STANDALONE) & !defined(_WIN32)
+#if defined(HLTCA_STANDALONE) & !defined(WIN32)
 #include <sched.h>
 #endif
 

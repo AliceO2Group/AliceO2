@@ -18,7 +18,7 @@
 //***************************************************************************
 
 #include <string.h>
-#ifndef _WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 #include "AliHLTTPCCAGPUTrackerBase.h"
@@ -68,7 +68,7 @@ void* AliHLTTPCCAGPUTrackerBase::helperWrapper(void* arg)
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d starting", par->fNum);
 #endif
 
-#if defined(HLTCA_STANDALONE) & !defined(_WIN32)
+#if defined(HLTCA_STANDALONE) & !defined(WIN32)
 	cpu_set_t mask;
 	CPU_ZERO(&mask);
 	CPU_SET(par->fNum * 2 + 2, &mask);
@@ -538,7 +538,7 @@ int AliHLTTPCCAGPUTrackerBase::IsInitialized()
 
 int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 {
-#if defined(HLTCA_STANDALONE) & !defined(_WIN32)
+#if defined(HLTCA_STANDALONE) & !defined(WIN32)
 	cpu_set_t mask;
 	CPU_ZERO(&mask);
 	CPU_SET(0, &mask);

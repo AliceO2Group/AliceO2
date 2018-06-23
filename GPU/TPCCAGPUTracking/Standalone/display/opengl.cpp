@@ -29,10 +29,6 @@
 #define OPENGL_EMULATE_MULTI_DRAW 0
 
 #define fgkNSlices 36
-#ifndef BUILD_QA
-bool SuppressHit(int iHit) {return(false);}
-int GetMCLabel(int track) {return(-1);}
-#endif
 volatile int needUpdate = 0;
 void ShowNextEvent() {needUpdate = 1;}
 #define GL_SCALE_FACTOR 100.f

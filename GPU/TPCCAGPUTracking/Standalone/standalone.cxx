@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <random>
 
-#ifndef _WIN32
+#ifndef WIN32
 #include <unistd.h>
 #include <sched.h>
 #include <signal.h>
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 	
 	if (configStandalone.runGPU && hlt.GetGPUStatus() == 0) {printf("Cannot enable GPU\n"); configStandalone.runGPU = 0;}
 	if (configStandalone.runGPU == 0 || configStandalone.eventDisplay) hlt.ExitGPU();
-#ifndef _WIN32
+#ifndef WIN32
 	setlocale(LC_ALL, "");
 	if (configStandalone.affinity != -1)
 	{
@@ -640,7 +640,7 @@ breakrun:
 #ifdef BUILD_QA
 	if (configStandalone.qa)
 	{
-#ifndef _WIN32
+#ifndef WIN32
 		if (configStandalone.fpe) fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 #endif
 		DrawQAHistograms();
