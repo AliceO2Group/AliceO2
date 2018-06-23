@@ -98,24 +98,51 @@ class Cluster : public o2::BaseCluster<float>
   void print() const;
 
 #ifdef _ClusterTopology_
-  int getPatternRowSpan() const
-  {
-    return mPatternNRows & kSpanMask;
-  }
+  bool testPixel(UShort_t row, UShort_t col) const;
+  void resetPattern();
+  int getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
   int getPatternColSpan() const { return mPatternNCols & kSpanMask; }
   bool isPatternRowsTruncated() const { return mPatternNRows & kTruncateMask; }
   bool isPatternColsTruncated() const { return mPatternNCols & kTruncateMask; }
   bool isPatternTruncated() const { return isPatternRowsTruncated() || isPatternColsTruncated(); }
-  void setPatternRowSpan(UShort_t nr, bool truncated);
-  void setPatternColSpan(UShort_t nc, bool truncated);
   void setPatternRowMin(UShort_t row) { mPatternRowMin = row; }
   void setPatternColMin(UShort_t col) { mPatternColMin = col; }
-  void resetPattern();
-  bool testPixel(UShort_t row, UShort_t col) const;
-  void setPixel(UShort_t row, UShort_t col, bool fired = kTRUE);
   void getPattern(void* destination, int nbytes) const { memcpy(destination, mPattern, nbytes); }
   int getPatternRowMin() const { return mPatternRowMin; }
   int getPatternColMin() const { return mPatternColMin; }
+
+  ///< set pattern span in rows, flag if truncated
+  void setPatternRowSpan(UShort_t nr, bool truncated)
+  {
+    mPatternNRows = kSpanMask & nr;
+    if (truncated) {
+      mPatternNRows |= kTruncateMask;
+    }
+  }
+
+  ///< set pattern span in columns, flag if truncated
+  void setPatternColSpan(UShort_t nc, bool truncated)
+  {
+    mPatternNCols = kSpanMask & nc;
+    if (truncated) {
+      mPatternNCols |= kTruncateMask;
+    }
+  }
+
+  ///< fire the pixel in the pattern, no check for the overflow, must be done in advance!
+  void setPixel(UShort_t row, UShort_t col)
+  {
+    int nbits = row * getPatternColSpan() + col;
+    mPattern[nbits >> 3] |= (0x1 << (7 - (nbits % 8)));
+  }
+
+  ///< fire the pixel in the pattern, no check for the overflow, must be done in advance!
+  void unSetPixel(UShort_t row, UShort_t col)
+  {
+    int nbits = row * getPatternColSpan() + col;
+    mPattern[nbits >> 3] &= (0xff ^ (0x1 << (nbits % 8)));
+  }
+
 #endif
   //
  protected:

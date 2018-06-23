@@ -17,7 +17,9 @@
 
 #include <utility>
 #include <vector>
+#include <cstring>
 #include "ITSMFTBase/GeometryTGeo.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "ITSMFTReconstruction/PixelReader.h"
@@ -90,8 +92,61 @@ class Clusterer
   }
 
  private:
-  enum { kMaxRow = 650 }; // Anything larger than the real number of rows (512 for ALPIDE)
   void initChip(UInt_t first);
+
+  ///< add new precluster at given row of current column for the fired pixel with index ip in the ChipPixelData
+  void addNewPrecluster(UInt_t ip, UShort_t row)
+  {
+    mPreClusterHeads.push_back(mPixels.size());
+    // new head does not point yet (-1) on other pixels, store just the entry of the pixel in the ChipPixelData
+    mPixels.emplace_back(-1, ip);
+    int lastIndex = mPreClusterIndices.size();
+    mPreClusterIndices.push_back(lastIndex);
+    mCurr[row] = lastIndex; // store index of the new precluster in the current column buffer
+  }
+
+  ///< add cluster at row (entry ip in the ChipPixeData) to the precluster with given index
+  void expandPreCluster(UInt_t ip, UShort_t row, int preClusIndex)
+  {
+    auto& firstIndex = mPreClusterHeads[mPreClusterIndices[preClusIndex]];
+    mPixels.emplace_back(firstIndex, ip);
+    firstIndex = mPixels.size() - 1;
+    mCurr[row] = preClusIndex;
+  }
+
+  ///< recalculate min max row and column of the cluster accounting for the position of pix
+  void adjustBoundingBox(const o2::ITSMFT::PixelData pix, UShort_t& rMin, UShort_t& rMax,
+                         UShort_t& cMin, UShort_t& cMax) const
+  {
+    if (pix.getRowDirect() < rMin) {
+      rMin = pix.getRowDirect();
+    }
+    if (pix.getRowDirect() > rMax) {
+      rMax = pix.getRowDirect();
+    }
+    if (pix.getCol() < cMin) {
+      cMin = pix.getCol();
+    }
+    if (pix.getCol() > cMax) {
+      cMax = pix.getCol();
+    }
+  }
+
+  ///< swap current and previous column buffers
+  void swapColumnBuffers()
+  {
+    int* tmp = mCurr;
+    mCurr = mPrev;
+    mPrev = tmp;
+  }
+
+  ///< reset column buffer, for the performance reasons we use memset
+  void resetColumn(int* buff)
+  {
+    std::memset(buff, -1, sizeof(int) * SegmentationAlpide::NRows);
+    //std::fill(buff, buff + SegmentationAlpide::NRows, -1);
+  }
+
   void updateChip(UInt_t ip);
   void finishChip(std::vector<Cluster>* fullClus, std::vector<CompClusterExt>* compClus,
                   const MCTruth* labelsDig, MCTruth* labelsClus = nullptr);
@@ -116,6 +171,7 @@ class Clusterer
     if (labels) {
       labels->clear();
     }
+    mClustersCount = 0;
   }
 
   // clusterization options
@@ -127,23 +183,29 @@ class Clusterer
 
   ///< array of chips, at the moment index corresponds to chip ID.
   ///< for the processing of fraction of chips only consider mapping of IDs range on mChips
-  std::vector<ChipPixelData> mChips;
-  std::vector<ChipPixelData> mChipsOld;
+  std::vector<ChipPixelData> mChips;    // currently processed chips data
+  std::vector<ChipPixelData> mChipsOld; // previously processed chips data (for masking)
 
   bool mMaskOverflowPixels = true; ///< flag to mask oveflow pixels (fired from hit in prev. ROF)
-  Int_t mColumn1[kMaxRow + 2];
-  Int_t mColumn2[kMaxRow + 2];
-  Int_t *mCurr, *mPrev;
+  // buffers for entries in mPreClusterIndices in 2 columns, to avoid boundary checks, we reserve
+  // extra elements in the beginning and the end
+  int mColumn1[SegmentationAlpide::NRows + 2];
+  int mColumn2[SegmentationAlpide::NRows + 2];
+  int* mCurr; // pointer on the 1st row of currently processed mColumnsX
+  int* mPrev; // pointer on the 1st row of previously processed mColumnsX
 
-  UInt_t mCurrROF = o2::ITSMFT::PixelData::DummyROF;
-  UShort_t mCurrChipID = o2::ITSMFT::PixelData::DummyChipID;
-  using NextIndex = int;
-  std::vector<std::pair<NextIndex, UInt_t>> mPixels;
-  using FirstIndex = Int_t;
-  std::vector<FirstIndex> mPreClusterHeads;
-  std::vector<Int_t> mPreClusterIndices;
+  UInt_t mCurrROF = o2::ITSMFT::PixelData::DummyROF;         // current ROF
+  UShort_t mCurrChipID = o2::ITSMFT::PixelData::DummyChipID; // current chipID
+
+  // mPixels[].first is the index of the next pixel of the same precluster in the mPixels
+  // mPixels[].second is the index of the referred pixel in the ChipPixelData (element of mChips)
+  std::vector<std::pair<int, UInt_t>> mPixels;
+  std::vector<int> mPreClusterHeads; // index of precluster head in the mPixels
+  std::vector<int> mPreClusterIndices;
   UShort_t mCol = 0xffff; ///< Column being processed
+  int mClustersCount = 0; ///< number of clusters in the output container
 
+  bool mNoLeftColumn = true;                           ///< flag that there is no column on the left to check
   const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
 
   TTree* mClusTree = nullptr;                                      //! externally provided tree to write output (if needed)

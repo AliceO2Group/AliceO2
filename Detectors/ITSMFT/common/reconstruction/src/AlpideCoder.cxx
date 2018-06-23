@@ -13,6 +13,7 @@
 
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include <FairLogger.h>
+#include <TClass.h>
 
 using namespace o2::ITSMFT;
 
@@ -21,6 +22,7 @@ AlpideCoder::AlpideCoder()
 {
   LOG(INFO) << "ALPIDE (De)Coder" << FairLogger::endl;
   LOG(INFO) << "ATTENTION: Currently ROFrameID is limited to UShort" << FairLogger::endl;
+  mTimerIO.Stop();
 }
 
 //_____________________________________
@@ -52,20 +54,6 @@ void AlpideCoder::reset()
 }
 
 //_____________________________________
-void AlpideCoder::addPixel(short row, short col)
-{
-  // add pixed to compressed matrix
-  // the data must be provided sorted in row/col, no check is done
-  int last = mPix2Encode.size();
-  mPix2Encode.emplace_back(row, col);
-  if (last && row == mPix2Encode[last - 1].row) { // extend current row
-    mPix2Encode[last - 1].nextInRow = last;       // refer to new link in the same row
-  } else {                                        // create new row
-    mFirstInRow.push_back(last);
-  }
-}
-
-//_____________________________________
 int AlpideCoder::encodeChip(short chipInModule, short framestartdata, short roflags)
 {
   //print();
@@ -73,7 +61,7 @@ int AlpideCoder::encodeChip(short chipInModule, short framestartdata, short rofl
   int nfound = 0;
   // chip header
   addToBuffer(makeChipHeader(chipInModule, framestartdata));
-  for (int ir = 0; ir < NRegions; ir++) {
+  for (int ir = NRegions; ir--;) {
     nfound += procRegion(ir);
   }
   if (nfound) {
@@ -88,24 +76,9 @@ int AlpideCoder::encodeChip(short chipInModule, short framestartdata, short rofl
 }
 
 //_____________________________________
-int AlpideCoder::procRegion(short reg)
-{
-  // process region (16 double columns)
-  addToBuffer(makeRegion(reg));
-  int nfound = 0;
-  for (int idc = 0; idc < NDColInReg; idc++) {
-    nfound += procDoubleCol(reg, idc);
-  }
-  if (!nfound) {
-    eraseInBuffer(SizeRegion);
-  }
-  return nfound;
-}
-
-//_____________________________________
 int AlpideCoder::procDoubleCol(short reg, short dcol)
 {
-  // process double column
+  // process double column: encoding
   short hits[2 * NRows];
   int nHits = 0, nData = 0;
   //
@@ -154,7 +127,7 @@ int AlpideCoder::procDoubleCol(short reg, short dcol)
   int ih = 0;
   while ((ih < nHits)) {
     short addrE, addrW = hits[ih++]; // address of the reference hit
-    std::uint8_t mask = 0, npx = 0;
+    UChar_t mask = 0, npx = 0;
     short addrLim = addrW + HitMapSize + 1; // 1+address of furthest hit can be put in the map
     while ((ih < nHits && (addrE = hits[ih]) < addrLim)) {
       mask |= 0x1 << (addrE - addrW - 1);
@@ -178,9 +151,9 @@ void AlpideCoder::expandBuffer(int add)
 #ifdef _DEBUG_PIX_CONV_
   printf("expandBuffer: %d -> %d\n", mWrBufferSize, mWrBufferSize + add);
 #endif
-  std::uint8_t* bfcopy = new std::uint8_t[(mWrBufferSize += add)];
+  UChar_t* bfcopy = new UChar_t[(mWrBufferSize += add)];
   if (mWrBufferFill) {
-    memcpy(bfcopy, mWrBuffer, mWrBufferFill * sizeof(std::uint8_t));
+    memcpy(bfcopy, mWrBuffer, mWrBufferFill * sizeof(UChar_t));
   }
   delete[] mWrBuffer;
   mWrBuffer = bfcopy;
@@ -219,6 +192,8 @@ void AlpideCoder::closeIO()
     fclose(mIOFile);
   }
   mIOFile = nullptr;
+  LOG(INFO) << Class()->GetName() << " Closed IO | total time spent in IO: " << FairLogger::endl;
+  mTimerIO.Print();
 }
 
 //_____________________________________
@@ -229,10 +204,11 @@ bool AlpideCoder::flushBuffer()
     return false;
   }
   if (!mIOFile) {
-    printf("Output handler is not created");
-    exit(1);
+    LOG(FATAL) << "Output handler is not created" << FairLogger::endl;
   }
+  mTimerIO.Start(false);
   fwrite(mWrBuffer, sizeof(char), mWrBufferFill, mIOFile);
+  mTimerIO.Stop();
   mWrBufferFill = 0; // reset the counter
   return true;
 }
@@ -256,7 +232,9 @@ int AlpideCoder::loadInBuffer(int chunk)
 #ifdef _DEBUG_PIX_CONV_
   printf("loadInBuffer: %d bytes placed with offset %d\n", chunk, save);
 #endif
+  mTimerIO.Start(false);
   int nc = (int)fread(mWrBuffer + save, sizeof(char), chunk, mIOFile);
+  mTimerIO.Stop();
   mWrBufferFill = save + nc;
   mBufferEnd = mWrBuffer + mWrBufferFill;
   return mWrBufferFill;
@@ -272,19 +250,19 @@ void AlpideCoder::resetMap()
 
 //_____________________________________
 int AlpideCoder::readChipData(std::vector<AlpideCoder::HitsRecord>& hits,
-                              std::uint16_t& chip,   // updated on change, don't modify returned value
-                              std::uint16_t& module, // updated on change, don't modify returned value
-                              std::uint16_t& cycle)  // updated on change, don't modify returned value
+                              UShort_t& chip,   // updated on change, don't modify returned value
+                              UShort_t& module, // updated on change, don't modify returned value
+                              UShort_t& cycle)  // updated on change, don't modify returned value
 {
   // read record for single non-empty chip, updating on change module and cycle.
   // return number of records filled (>0), EOFFlag or Error
   //
   hits.clear();
-  std::uint8_t dataC = 0;
-  std::uint8_t region = 0;
-  std::uint8_t framestartdata = 0;
-  std::uint16_t dataS = 0;
-  std::uint32_t dataI = 0;
+  UChar_t dataC = 0;
+  UChar_t region = 0;
+  UChar_t framestartdata = 0;
+  UShort_t dataS = 0;
+  UInt_t dataI = 0;
   //
   int nHitsRec = 0;
   //
@@ -303,19 +281,20 @@ int AlpideCoder::readChipData(std::vector<AlpideCoder::HitsRecord>& hits,
     }
     //
     if (mExpectInp & ExpectModuleTrailer && dataC == MODULETRAILER) { // module trailer
-      std::uint16_t moduleT, cycleT;
+      UShort_t moduleT, cycleT;
       if (!getFromBuffer(moduleT) || !getFromBuffer(cycleT)) {
         return unexpectedEOF("MODULE_HEADER");
       }
       if (moduleT != module || cycleT != cycle) {
-        printf("Error: expected module trailer for module%d/cycle%d, got for module%d/cycle%d\n", module, cycle, moduleT, cycleT);
+        LOG(ERROR) << "Error: expected module trailer for module " << module << "/cycle " << cycle << ", got for module "
+                   << moduleT << "/cycle " << cycleT << FairLogger::endl;
         return Error;
       }
       mExpectInp = ExpectModuleHeader;
       continue;
     }
     // ---------- chip info ?
-    std::uint8_t dataCM = dataC & (~MaskChipID);
+    UChar_t dataCM = dataC & (~MaskChipID);
     //
     if ((mExpectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
       chip = dataC & MaskChipID;
@@ -357,17 +336,17 @@ int AlpideCoder::readChipData(std::vector<AlpideCoder::HitsRecord>& hits,
       if (!getFromBuffer(dataS)) {
         return unexpectedEOF("CHIPDATA");
       }
-      std::uint16_t dataSM = dataS & (~MaskDColID); // check hit data mask
-      if (dataSM == DATASHORT) {                    // single hit
-        std::uint8_t dColID = (dataS & MaskEncoder) >> 10;
-        std::uint16_t pixID = dataS & MaskPixID;
+      UShort_t dataSM = dataS & (~MaskDColID); // check hit data mask
+      if (dataSM == DATASHORT) {               // single hit
+        UChar_t dColID = (dataS & MaskEncoder) >> 10;
+        UShort_t pixID = dataS & MaskPixID;
         hits.push_back(HitsRecord(region, dColID, pixID, 0));
         mExpectInp = ExpectData | ExpectRegion | ExpectChipTrailer;
         continue;
       } else if (dataSM == DATALONG) { // multiple hits
-        std::uint8_t dColID = (dataS & MaskEncoder) >> 10;
-        std::uint16_t pixID = dataS & MaskPixID;
-        std::uint8_t hitsPattern = 0;
+        UChar_t dColID = (dataS & MaskEncoder) >> 10;
+        UShort_t pixID = dataS & MaskPixID;
+        UChar_t hitsPattern = 0;
         if (!getFromBuffer(hitsPattern)) {
           return unexpectedEOF("CHIP_DATA_LONG:Pattern");
         }
@@ -375,17 +354,9 @@ int AlpideCoder::readChipData(std::vector<AlpideCoder::HitsRecord>& hits,
         mExpectInp = ExpectData | ExpectRegion | ExpectChipTrailer;
         continue;
       } else {
-        printf("Is this an error?\n");
+        LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataSM << FairLogger::endl;
         return Error;
       }
     }
   }
-}
-
-//_____________________________________
-int AlpideCoder::unexpectedEOF(const char* message) const
-{
-  // error message on unexpected EOF
-  printf("Error: unexpected EOF on %s\n", message);
-  return Error;
 }
