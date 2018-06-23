@@ -48,11 +48,12 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
 #endif
 
   UInt_t prevROF = o2::ITSMFT::PixelData::DummyROF;
+  mClustersCount = compClus ? compClus->size() : (fullClus ? fullClus->size() : 0);
+
   while ((mChipData = reader.getNextChipData(mChips))) { // read next chip data to corresponding
     // vector in the mChips and return the pointer on it
 
     mCurrROF = mChipData->getROFrame();
-
     if (prevROF != mCurrROF && prevROF != o2::ITSMFT::PixelData::DummyROF) {
       LOG(INFO) << "ITS: clusterizing new ROFrame " << mCurrROF << FairLogger::endl;
       if (mClusTree) { // if necessary, flush existing data
@@ -107,66 +108,72 @@ void Clusterer::initChip(UInt_t first)
   // init chip with the 1st unmasked pixel (entry "from" in the mChipData)
   mPrev = mColumn1 + 1;
   mCurr = mColumn2 + 1;
-  std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
-  std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
+  resetColumn(mCurr);
 
   mPixels.clear();
   mPreClusterHeads.clear();
   mPreClusterIndices.clear();
   auto pix = mChipData->getData()[first];
   mCol = pix.getCol();
+
+  //addNewPrecluster(first, pix.getRowDirect()); // save on .size() calls ?
   mCurr[pix.getRowDirect()] = 0; // can use getRowDirect since the pixel is not masked
   // start the first pre-cluster
   mPreClusterHeads.push_back(0);
   mPreClusterIndices.push_back(0);
   mPixels.emplace_back(-1, first); // id of current pixel
+  mNoLeftColumn = true;            // flag that there is no column on the left to check yet
 }
 
 //__________________________________________________
 void Clusterer::updateChip(UInt_t ip)
 {
   const auto pix = mChipData->getData()[ip];
+  UShort_t row = pix.getRowDirect(); // can use getRowDirect since the pixel is not masked
   if (mCol != pix.getCol()) { // switch the buffers
-    Int_t* tmp = mCurr;
-    mCurr = mPrev;
-    mPrev = tmp;
-    if (pix.getCol() > mCol + 1)
-      std::fill(mPrev, mPrev + kMaxRow, -1);
-    std::fill(mCurr, mCurr + kMaxRow, -1);
+    swapColumnBuffers();
+    resetColumn(mCurr);
+    mNoLeftColumn = false;
+    if (pix.getCol() > mCol + 1) {
+      // no connection with previous column, this pixel cannot belong to any of the
+      // existing preclusters, create a new precluster and flag to check only the row above for next pixels of this column
+      mCol = pix.getCol();
+      addNewPrecluster(ip, row);
+      mNoLeftColumn = true;
+      return;
+    }
     mCol = pix.getCol();
   }
 
-  Bool_t attached = false;
-  UShort_t row = pix.getRowDirect(); // can use getRowDirect since the pixel is not masked
-  Int_t neighbours[]{ mCurr[row - 1], mPrev[row], mPrev[row + 1], mPrev[row - 1] };
-  for (auto pci : neighbours) {
-    if (pci < 0)
-      continue;
-    auto& ci = mPreClusterIndices[pci];
-    if (attached) {
-      auto& newci = mPreClusterIndices[mCurr[row]];
-      if (ci < newci)
-        newci = ci;
-      else
-        ci = newci;
-    } else {
-      auto& firstIndex = mPreClusterHeads[ci];
-      mPixels.emplace_back(firstIndex, ip);
-      firstIndex = mPixels.size() - 1;
-      mCurr[row] = pci;
-      attached = true;
+  Bool_t orphan = true;
+
+  if (mNoLeftColumn) { // check only the row above
+    if (mCurr[row - 1] >= 0) {
+      expandPreCluster(ip, row, mCurr[row - 1]); // attach to the precluster of the previous row
+      return;
+    }
+  } else {
+    int neighbours[]{ mCurr[row - 1], mPrev[row], mPrev[row + 1], mPrev[row - 1] };
+    for (auto pci : neighbours) {
+      if (pci < 0) {
+        continue;
+      }
+      if (orphan) {
+        expandPreCluster(ip, row, pci); // attach to the adjascent precluster
+        orphan = false;
+        continue;
+      }
+      // reassign precluster index to smallest one
+      if (mPreClusterIndices[pci] < mPreClusterIndices[mCurr[row]]) {
+        mPreClusterIndices[mCurr[row]] = mPreClusterIndices[pci];
+      } else {
+        mPreClusterIndices[pci] = mPreClusterIndices[mCurr[row]];
+      }
     }
   }
-
-  if (attached)
-    return;
-
-  // start new precluster
-  mPreClusterHeads.push_back(mPixels.size());
-  mPixels.emplace_back(-1, ip);
-  Int_t lastIndex = mPreClusterIndices.size();
-  mPreClusterIndices.push_back(lastIndex);
-  mCurr[row] = lastIndex;
+  if (orphan) {
+    addNewPrecluster(ip, row); // start new precluster
+  }
 }
 
 //__________________________________________________
@@ -177,8 +184,8 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
   constexpr Float_t SigmaY2 = Segmentation::PitchCol * Segmentation::PitchCol / 12.; // FIXME
 
   const auto& pixData = mChipData->getData();
-  Int_t noc = compClus ? compClus->size() : (fullClus ? fullClus->size() : 0);
-  for (Int_t i1 = 0; i1 < mPreClusterHeads.size(); ++i1) {
+
+  for (int i1 = 0; i1 < mPreClusterHeads.size(); ++i1) {
     const auto ci = mPreClusterIndices[i1];
     if (ci < 0) {
       continue;
@@ -186,55 +193,37 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     UShort_t rowMax = 0, rowMin = 65535;
     UShort_t colMax = 0, colMin = 65535;
     int nlab = 0, npix = 0;
-    Int_t next = mPreClusterHeads[i1];
+    int next = mPreClusterHeads[i1];
     while (next >= 0) {
-      const auto& dig = mPixels[next];
-      const auto pix = pixData[dig.second];
+      const auto& pixEntry = mPixels[next];
+      const auto pix = pixData[pixEntry.second];
       if (npix < mPixArrBuff.size()) {
         mPixArrBuff[npix++] = pix; // needed for cluster topology
-        if (pix.getRowDirect() < rowMin) {
-          rowMin = pix.getRowDirect();
-        } else if (pix.getRowDirect() > rowMax) {
-          rowMax = pix.getRowDirect();
+        adjustBoundingBox(pix, rowMin, rowMax, colMin, colMax);
+        if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+pixEntry.second
+          fetchMCLabels(pixEntry.second + mChipData->getStartID(), labelsDig, nlab);
         }
-        if (pix.getCol() < colMin) {
-          colMin = pix.getCol();
-        } else if (pix.getCol() > colMax) {
-          colMax = pix.getCol();
-        }
-        if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+dig.second
-          fetchMCLabels(dig.second + mChipData->getStartID(), labelsDig, nlab);
-        }
-        next = dig.first;
+        next = pixEntry.first;
       } else {
         LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size" << FairLogger::endl;
       }
     }
     mPreClusterIndices[i1] = -1;
-    for (Int_t i2 = i1 + 1; i2 < mPreClusterHeads.size(); ++i2) {
+    for (int i2 = i1 + 1; i2 < mPreClusterHeads.size(); ++i2) {
       if (mPreClusterIndices[i2] != ci) {
         continue;
       }
       next = mPreClusterHeads[i2];
       while (next >= 0) {
-        const auto& dig = mPixels[next];
-        const auto pix = pixData[dig.second]; // PixelData
+        const auto& pixEntry = mPixels[next];
+        const auto pix = pixData[pixEntry.second]; // PixelData
         if (npix < mPixArrBuff.size()) {
           mPixArrBuff[npix++] = pix; // needed for cluster topology
-          if (pix.getRowDirect() < rowMin) {
-            rowMin = pix.getRowDirect();
-          } else if (pix.getRowDirect() > rowMax) {
-            rowMax = pix.getRowDirect();
+          adjustBoundingBox(pix, rowMin, rowMax, colMin, colMax);
+          if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+pixEntry.second
+            fetchMCLabels(pixEntry.second + mChipData->getStartID(), labelsDig, nlab);
           }
-          if (pix.getCol() < colMin) {
-            colMin = pix.getCol();
-          } else if (pix.getCol() > colMax) {
-            colMax = pix.getCol();
-          }
-          if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+dig.second
-            fetchMCLabels(dig.second + mChipData->getStartID(), labelsDig, nlab);
-          }
-          next = dig.first;
+          next = pixEntry.first;
         } else {
           LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size" << FairLogger::endl;
         }
@@ -243,11 +232,9 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     }
     UShort_t rowSpan = rowMax - rowMin + 1, colSpan = colMax - colMin + 1;
     Cluster clus;
-    clus.setIndex(noc); // Let the cluster remember its position within the cluster array
     clus.setROFrame(mChipData->getROFrame());
     clus.setSensorID(mChipData->getChipID());
     clus.setNxNzN(rowSpan, colSpan, npix);
-
 #ifdef _ClusterTopology_
     UShort_t colSpanW = colSpan, rowSpanW = rowSpan;
     if (colSpan * rowSpan > Cluster::kMaxPatternBits) { // need to store partial info
@@ -268,9 +255,6 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     clus.setPatternColSpan(colSpanW, colSpanW < colSpan);
     clus.setPatternRowMin(rowMin);
     clus.setPatternColMin(colMin);
-    if (npix > mPixArrBuff.size()) {
-      npix = mPixArrBuff.size();
-    }
     for (int i = 0; i < npix; i++) {
       const auto pix = mPixArrBuff[i];
       unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
@@ -279,7 +263,6 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
       }
     }
 #endif //_ClusterTopology_
-
     if (fullClus) { // do we need conventional clusters with full topology and coordinates?
       fullClus->push_back(clus);
       Cluster& c = fullClus->back();
@@ -303,11 +286,11 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
 
     if (labelsClus) { // MC labels were requested
       for (int i = nlab; i--;) {
-        labelsClus->addElement(noc, mLabelsBuff[i]);
+        labelsClus->addElement(mClustersCount, mLabelsBuff[i]);
       }
     }
 
-    noc++;
+    mClustersCount++;
   }
 }
 
@@ -323,14 +306,12 @@ void Clusterer::fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled)
     int ic = nfilled;
     for (; ic--;) { // check if the label is already present
       if (mLabelsBuff[ic] == lbls[i]) {
-        break;
+        return; // label is found, do nothing
       }
     }
-    if (ic < 0) { // label not found
-      mLabelsBuff[nfilled++] = lbls[i];
-      if (nfilled >= Cluster::maxLabels) {
-        break;
-      }
+    mLabelsBuff[nfilled++] = lbls[i];
+    if (nfilled >= Cluster::maxLabels) {
+      break;
     }
   }
   //

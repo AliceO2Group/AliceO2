@@ -81,6 +81,8 @@ class RawPixelReader : public PixelReader
     while (!(res = mCoder.readChipData(mHitsRecordChip, mCurrChipInModule, mCurrModule, mCurrROF))) {
     }
     if (res < 0) { // EOF reached
+      LOG(INFO) << "EOF of raw data reached " << FairLogger::endl;
+      mCoder.closeIO();
       return nullptr;
     }
     ChipPixelData& chipData = chipDataVec[mMapping.module2ChipID(mCurrModule, mCurrChipInModule)];
