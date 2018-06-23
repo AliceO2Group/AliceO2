@@ -286,6 +286,7 @@ GPUd() void AliHLTTPCGMTrackParam::MirrorTo(AliHLTTPCGMPropagator& prop, float t
     if (fC[2] < err2Z) fC[2] = err2Z;
     if (fabs(fC[5]) < 0.1) fC[5] = fC[5] > 0 ? 0.1 : -0.1;
     if (fC[9] < 1.) fC[9] = 1.;
+    fC[1] = fC[4] = fC[6] = fC[8] = fC[11] = fC[13] = 0;
     prop.SetTrack(this, prop.GetAlpha());
     fNDF = -3;
     fChi2 = 0;
@@ -384,7 +385,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger* Merge
         float dz = z - Z;
         if (dy * dy < sy2 && dz * dz < sz2)
         {
-          CADEBUG(printf("Found Y %f Z %f\n", y, z);)
+          //CADEBUG(printf("Found Y %f Z %f\n", y, z);)
           int myWeight = Merger->TrackOrder()[iTrack] | AliHLTTPCGMMerger::attachAttached | AliHLTTPCGMMerger::attachTube;
           if (goodLeg) myWeight |= AliHLTTPCGMMerger::attachGoodLeg;
           CAMath::AtomicMax(weight, myWeight);

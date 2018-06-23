@@ -185,7 +185,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   c[ 5] *= j1 * j1;
   c[12] *= j1;
 
-  if( !fFitInProjections ){
+  if( !fFitInProjections && fT->NDF() > 0 ){
     c[ 1] *= j0;
     c[ 6] *= j0;
     c[ 4] *= j1;
@@ -238,7 +238,7 @@ GPUd() int AliHLTTPCGMPropagator::RotateToAlpha( float newAlpha )
   c[12] += c19*j5;
   // c[14] = c[14];
 
-  if( !fFitInProjections ){
+  if( !fFitInProjections && fT->NDF() > 0){
     c[ 1] += c16*j3 + h15*j4;
     c[ 4] += c17*j4 + h16*j5;
     c[ 6] += c18*j3;
@@ -337,7 +337,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, 
   float c43 = c[13];
   float c44 = c[14];
   
-  if (fFitInProjections)
+  if (fFitInProjections || fT->NDF() <= 0)
   {
     float c20ph04c42 =  c20 + j04*c42;
     float j02c22 = j02*c22;
@@ -691,7 +691,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   float z1 = posZ - fP[1];
 
   float w0, w1, w2, chiY, chiZ;
-  if (fFitInProjections)
+  if (fFitInProjections || fT->NDF() <= 0)
   {
     w0 = 1./(err2Y + d00);
     w1 = 0;
@@ -720,7 +720,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   fT->Chi2() += dChi2;
   fT->NDF() += 2;
 
-  if (fFitInProjections)
+  if (fFitInProjections || fT->NDF() <= 0)
   {
     float k00 = d00 * w0;
     float k20 = d02 * w0;
@@ -771,7 +771,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
     fC[12]-= k40*d02 + k41*d12;
     fC[14]-= k40*d04 + k41*d14;
 
-    if( !fFitInProjections ){
+    if( !fFitInProjections && fT->NDF() >= 0){
       
       fC[1]-= k10*d00 + k11*d10;
       
