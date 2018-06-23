@@ -180,7 +180,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
           if (fabs(yy - fP[0]) > fabs(yy - mirrordY))
           {
               CADEBUG(printf(" - Mirroring!!!");)
-              //if (rejectChi2) AttachClustersMirror(merger, clusters[ihit].fSlice, clusters[ihit].fRow, iTrk, yy, prop); //Never true, will always call FollowCircle above
+              if (rejectChi2) AttachClustersMirror(merger, clusters[ihit].fSlice, clusters[ihit].fRow, iTrk, yy, prop); //Never true, will always call FollowCircle above
               MirrorTo(prop, yy, zz, inFlyDirection, param, clusters[ihit].fRow, clusterState, true);
               noFollowCircle = false;
 
@@ -384,7 +384,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClusters(const AliHLTTPCGMMerger* Merge
         float dz = z - Z;
         if (dy * dy < sy2 && dz * dz < sz2)
         {
-          //printf("Found Y %f Z %f\n", y, z);
+          CADEBUG(printf("Found Y %f Z %f\n", y, z);)
           int myWeight = Merger->TrackOrder()[iTrack] | AliHLTTPCGMMerger::attachAttached | AliHLTTPCGMMerger::attachTube;
           if (goodLeg) myWeight |= AliHLTTPCGMMerger::attachGoodLeg;
           CAMath::AtomicMax(weight, myWeight);
@@ -405,7 +405,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersPropagate(const AliHLTTPCGMMerg
         if (fabs(fX) > fabs(fP[0]) * tanf(kSectAngle / 2.f)) return;
         int err = prop.PropagateToXAlpha(xx + Merger->SliceParam().RowX(iRow), prop.GetAlpha(), inFlyDirection);
         if (err) return;
-        //printf("Attaching in row %d\n", iRow);
+        CADEBUG(printf("Attaching in row %d\n", iRow);)
         AttachClusters(Merger, slice, iRow, iTrack, goodLeg);
     }
 #endif
@@ -459,7 +459,7 @@ GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger* Merger, 
                 if (fabs(rowX - (-fP[0] * lrFactor)) < 1.5)
                 {
                     CADEBUG(printf("Attempt row %d (Y %f Z %f)\n", j, fX * lrFactor, fP[1]);)
-                    AttachClusters(Merger, slice, j, iTrack, false, fX, fP[1]);
+                    AttachClusters(Merger, slice, j, iTrack, false, fX * lrFactor, fP[1]);
                 }
             }
         }
@@ -540,6 +540,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(const AliHLTTPCGMMerger*
         Y += dS * SinPhi + h4;
         Z += dS * fP[3];
         SinPhi = newSinPhi;
+        if (fabs(X) > fabs(Y) * tanf(kSectAngle / 2.f)) continue;
         
         //printf("count %d: At X %f Y %f Z %f SinPhi %f\n", count, fP[2] > 0 ? -Y : Y, fP[2] > 0 ? X : -X, Z, SinPhi);
 
