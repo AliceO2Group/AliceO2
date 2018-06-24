@@ -54,8 +54,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
       AlgorithmSpec{
         [](InitContext &setup) {
           auto delay = setup.options().get<int>("epn-roundrobin-delay");
-          return [delay](ProcessingContext& ctx) {
-            sleep(delay);
+          auto first = std::make_shared<bool>(true);
+          return [delay, first](ProcessingContext& ctx) {
+            if (*first == false) {
+              sleep(delay);
+            }
+            *first = false;
             ctx.outputs().make<int>(OutputRef { "tpc-cluster" }, 1);
             ctx.outputs().make<int>(OutputRef { "its-cluster" }, 1);
             ctx.outputs().make<int>(OutputRef { "trd-tracklet" }, 1);
