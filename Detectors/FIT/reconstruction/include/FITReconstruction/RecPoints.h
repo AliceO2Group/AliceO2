@@ -33,10 +33,19 @@ class RecPoints
   Float_t GetVertex(Float_t vertex) const { return mVertex; }
   void setVertex(Float_t vertex) { mVertex = vertex; }
 
+  void SetMgrEventTime(Double_t time) {mEventTime=time;}
+
+  const std::vector<ChannelData>& getChDgData() const { return mTimeAmp; }
+  void setChDgData(const std::vector<ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
+  void setChDgData(std::vector<ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
+
+
  private:
   std::array<Float_t, 3> mCollisionTime;
   Float_t mVertex = 0;
+  Double_t mEventTime; //event time from Fair for continuous 
   std::vector<ChannelData> mTimeAmp;
+  Int_t mEventID = 0;       ///< current event id from the source
 
   ClassDefNV(RecPoints, 1);
 };

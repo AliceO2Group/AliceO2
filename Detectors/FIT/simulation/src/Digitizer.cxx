@@ -63,8 +63,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     Int_t hit_ch = hit.GetDetectorID();
     Double_t hit_time = hit.GetTime();
 
-    //LOG(DEBUG) << "hit detector ID: " << hit_ch << " Time " << hit_time << FairLogger::endl;
-
     if(hit_time != 0.)
     {
 	ch_hit_nPe[hit_ch]++;
@@ -74,11 +72,11 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
   {
-    if(ch_hit_nPe[ch_iter] != 0)
+    if(ch_hit_nPe[ch_iter] != 0) {
       ch_hit_mean_time[ch_iter] = ch_hit_mean_time[ch_iter] / (float)ch_hit_nPe[ch_iter];
 
-    //LOG(DEBUG) << "nMCP: " << ch_iter << " n Ph. e. " << ch_hit_nPe[ch_iter] << " mean time " << ch_hit_mean_time[ch_iter] << FairLogger::endl;
-
+     LOG(DEBUG) << "nMCP: " << ch_iter << " n Ph. e. " << ch_hit_nPe[ch_iter] << " mean time " << ch_hit_mean_time[ch_iter] << FairLogger::endl;
+    }
   }
   // --------------------------------------------------------------------------
 
@@ -90,12 +88,12 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   for (auto& hit : *hits) {
       Int_t hit_ch = hit.GetDetectorID();
       Double_t hit_time = hit.GetTime();
+      Bool_t is_A_side = (hit_ch <= 4 * Geometry::NCellsA);
+      Double_t time_compensate = is_A_side ? A_side_cable_cmps : C_side_cable_cmps;
       Bool_t is_hit_in_signal_gate = (hit_time > ch_hit_mean_time[hit_ch] - signal_width*.5) &&
                                      (hit_time < ch_hit_mean_time[hit_ch] + signal_width*.5);
 
-      Bool_t is_A_side = (hit_ch <= 4 * Geometry::NCellsA);
-      Double_t time_compensate = is_A_side ? A_side_cable_cmps : C_side_cable_cmps;
-      Double_t hit_time_corr = hit_time/1000. - time_compensate + BC_clk_center + BCEventTime;
+      Double_t hit_time_corr = hit_time - time_compensate + BC_clk_center /*+ BCEventTime*/;
       Double_t is_time_in_gate = (hit_time != 0.);//&&(hit_time_corr > -BC_clk_center)&&(hit_time_corr < BC_clk_center);
 
     if(is_time_in_gate && is_hit_in_signal_gate)
@@ -111,21 +109,16 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     {
       ch_signal_MIP[ch_iter] = ch_signal_nPe[ch_iter] / nPe_in_mip;
       ch_signal_time[ch_iter] = ch_signal_time[ch_iter] / (float)ch_signal_nPe[ch_iter];
-    }
+     } 
 
     //if ampl less than cfd trh adc and cfd has no signal
     if(ch_signal_MIP[ch_iter] < CFD_trsh_mip)
     {
 	ch_signal_MIP[ch_iter] = 0.;
-	ch_signal_time[ch_iter] = 0.;
+	ch_signal_time[ch_iter] = 0.;	
     }
   }
-  // --------------------------------------------------------------------------
-
-
-
-
-
+ 
   // Calculating triggers -----------------------------------------------------
   Int_t n_hit_A = 0., n_hit_C = 0.;
   Double_t mean_time_A = 0.;
@@ -144,8 +137,9 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     Bool_t is_A_side = (ch_iter <= 4 * Geometry::NCellsA);
     Bool_t is_time_in_trg_gate = (ch_signal_time[ch_iter] > BC_clk_center-time_trg_gate*0.5)
                                &&(ch_signal_time[ch_iter] < BC_clk_center+time_trg_gate*0.5);
-
-    if(ch_signal_MIP[ch_iter] == 0.) continue;
+    if (ch_signal_time[ch_iter]>0)
+      //   if(ch_signal_MIP[ch_iter] == 0.) continue;
+    if(ch_signal_MIP[ch_iter] <CFD_trsh_mip) continue;
     if(!is_time_in_trg_gate) continue;
 
     if(is_A_side)
@@ -181,40 +175,38 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   digit->setTriggers(Is_A, Is_C, Is_Central, Is_SemiCentral, Is_Vertex);
 
   std::vector<ChannelData> mChDgDataArr;
+  LOG(DEBUG) << "nMCP : :IsA : hit nPe : hit mTime : sig MIP : sig mTime" << FairLogger::endl;
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
-    if (ch_signal_MIP[ch_iter] > 0.)
-      mChDgDataArr.emplace_back(ChannelData{ ch_iter, ch_signal_time[ch_iter], ch_signal_nPe[ch_iter] });
-    }
-    digit->setChDgData(std::move(mChDgDataArr));
-
-    // Debug output -------------------------------------------------------------
-    LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
-
-    LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
-    LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << " Time dif AC " << TimeDiffAC << FairLogger::endl;
-
-    LOG(DEBUG) << "nMCP : :IsA : hit nPe : hit mTime : sig nPe : sig mTime" << FairLogger::endl;
-    for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
-      Bool_t is_A_side = (ch_iter <= 4 * Geometry::NCellsA);
-      if(ch_hit_nPe[ch_iter] > 0)
-      LOG(DEBUG) << ch_iter << " : " << is_A_side << " : " << ch_hit_nPe[ch_iter] << " : " << ch_hit_mean_time[ch_iter] << " : "
-                    << ch_signal_nPe[ch_iter] << " : " << ch_signal_time[ch_iter] << FairLogger::endl;
+    if (ch_signal_MIP[ch_iter] > CFD_trsh_mip) {
+      Float_t smeared_time = gRandom->Gaus(ch_signal_time[ch_iter], 0.050) + BCEventTime;
+      mChDgDataArr.emplace_back(ChannelData{ ch_iter, smeared_time, ch_signal_MIP[ch_iter]} );
+        LOG(DEBUG) << ch_iter << " : " << " : " << ch_hit_nPe[ch_iter] << " : " << ch_hit_mean_time[ch_iter] << " : "
+		 << ch_signal_MIP[ch_iter] << " : " <<  smeared_time << FairLogger::endl;
   }
-
+  }
+  
+  digit->setChDgData(std::move(mChDgDataArr));
+  
+  // Debug output -------------------------------------------------------------
+  LOG(DEBUG) << "\n\nTest digizing data ===================" << FairLogger::endl;
+  
+  LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
+  LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << " Time dif AC " << TimeDiffAC << FairLogger::endl;
+  
+ 
   LOG(DEBUG) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
              << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
              << " mean time C: " << mean_time_C << FairLogger::endl;
 
   LOG(DEBUG) << "IS A " << Is_A << " IS C " << Is_C << " Is Central " << Is_Central
              << " Is SemiCentral " << Is_SemiCentral << " Is Vertex " << Is_Vertex << FairLogger::endl;
-
-  LOG(DEBUG) << "\n\nResult digit:" << FairLogger::endl;
-
+  
+  
   //LOG(DEBUG) << *digit << FairLogger::endl;
   //std::cout << *digit << FairLogger::endl;
-  digit->printStream( std::cout );
-
-
+  // digit->printStream( std::cout );
+  
+  
   LOG(DEBUG) << "======================================\n\n" << FairLogger::endl;
   // --------------------------------------------------------------------------
 

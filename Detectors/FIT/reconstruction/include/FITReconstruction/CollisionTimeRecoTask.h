@@ -35,6 +35,7 @@ class CollisionTimeRecoTask : public FairTask
   const Digit *mEventDigit = nullptr; ///<
   Bool_t mContinuous = kFALSE;                      ///< flag to do continuous simulation
   RecPoints* mRecPoints = nullptr;
+  Int_t mEventID = 0;       ///< current event id from the source
 
   ClassDefOverride(CollisionTimeRecoTask, 1);
 };

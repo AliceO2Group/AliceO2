@@ -291,7 +291,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->TrackPosition(x, y, z);
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
-    float time = fMC->TrackTime() * 1.0e12;
+    float time = fMC->TrackTime() * 1.0e9;
     int trackID = fMC->GetStack()->GetCurrentTrackNumber();
     int detID = 4 * mcp + quadrant - 1;
     float etot = fMC->Etot();
@@ -301,7 +301,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {
-        AddHit(x, y, z, time, enDep, trackID, detID);
+	HitType newhit(x, y, z, time, enDep, trackID, detID);
+	mHits->push_back(newhit);
+	  //AddHit(x, y, z, time, enDep, trackID, detID);
       }
     }
     return kTRUE;
@@ -326,7 +328,10 @@ void Detector::Register()
   }
 }
 
-void Detector::Reset() { mHits->clear(); }
+void Detector::Reset() {
+  mHits->clear();
+  std::cout<<"@@@@ !!!! Reset Hits "<<std::endl;
+}
 void Detector::CreateMaterials()
 {
   Int_t isxfld = 2;     // magneticField->Integ();

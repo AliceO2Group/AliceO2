@@ -16,7 +16,6 @@ using namespace o2::fit;
 
 ClassImp(o2::fit::RecPoints);
 
-//void RecPoints::FillFromDigits(const std::vector<Digit>& digits)
 void RecPoints::FillFromDigits(const Digit* digit)
 {
   mTimeAmp.clear();
@@ -24,37 +23,35 @@ void RecPoints::FillFromDigits(const Digit* digit)
   constexpr Int_t nMCPsA = 4 * o2::fit::Geometry::NCellsA;
   constexpr Int_t nMCPsC = 4 * o2::fit::Geometry::NCellsC;
   constexpr Int_t nMCPs = nMCPsA + nMCPsC;
-  Float_t meancfd = 454; //!!!!!!should be calibrate with sliding window;
   Float_t cfd[nMCPs] = {}, amp[nMCPs] = {};
   Float_t sideAtime = 0, sideCtime = 0;
-
-  //for (const auto& d : digits) {
-//  Int_t mcp = d.getChannel();
-//  cfd[mcp] = d.getCFD();
-//  amp[mcp] = d.getQTC();
-//  mTimeAmp.push_back(Channel{ mcp, cfd[mcp], amp[mcp] });
-//}
-
+   
+  Float_t eventTimeFromDigits = digit->getTime();
+  //  Double_t digit_timeframe = mEventTime;
+  Double_t digit_timeframe = eventTimeFromDigits;
+  constexpr Double_t BC_clk = 25.; //ns event clk lenght
+  constexpr Double_t BC_clk_center = BC_clk/2.; // clk center
+  Int_t nClk = floor(eventTimeFromDigits/BC_clk);
+  Double_t BCEventTime = eventTimeFromDigits - BC_clk*nClk;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime;
+    cfd[mcp] = d.CFDTime - BC_clk_center - BCEventTime;
     amp[mcp] = d.QTCAmpl;
     mTimeAmp.push_back(ChannelData{ mcp, cfd[mcp], amp[mcp] });
   }
 
   for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {
     if (cfd[imcp] > 0) {
-      sideAtime += (cfd[imcp] - meancfd);
+      sideAtime += (cfd[imcp]);
       ndigitsA++;
     }
   }
   for (Int_t imcp = 0; imcp < nMCPsC; imcp++) {
     if (cfd[imcp + nMCPsA] > 0) {
-      sideCtime += (cfd[imcp + nMCPsA] - meancfd);
+      sideCtime += (cfd[imcp + nMCPsA]);
       ndigitsC++;
     }
   }
-
   if (ndigitsA > 0)
     sideAtime = sideAtime / Float_t(ndigitsA);
   if (ndigitsC > 0)
@@ -64,4 +61,5 @@ void RecPoints::FillFromDigits(const Digit* digit)
   mCollisionTime[1] = sideAtime;
   mCollisionTime[2] = sideCtime;
   mVertex = (sideAtime - sideCtime) / 2.;
+ 
 }
