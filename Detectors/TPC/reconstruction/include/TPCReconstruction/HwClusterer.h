@@ -93,26 +93,25 @@ class HwClusterer : public Clusterer
   /// \param charge Threshold which will be used
   void setContributionChargeThreshold(unsigned charge);
 
-  /// Swtich for requiring charge in at least one neighbouring pad
-  /// \param reqPad - false for single pad clusters, true otherwise
-  void setRequireNeighbouringPad(bool reqPad);
-
-  /// Swtich for requiring charge in at least one neighbouring timebin
-  /// \param reqPad - false for single timebin clusters, true otherwise
-  void setRequireNeighbouringTimebin(bool reqTimebin);
-
  private:
   /*
    * Helper functions
    */
 
-  /// HW Cluster Finder
+  /// HW Cluster Processor
   /// \param center_pad       Pad number to be checked for cluster
   /// \param center_time      Time to be checked for cluster
   /// \param row              Row number for cluster properties
-  /// \param cluster          Reference to pair of a cluster and vector with MClabel-counter-pair to store found clusters in
+  /// \param cluster          Reference to to cluster
   /// \return True if (center_pad,center_time) was a cluster, false if not
-  bool hwClusterFinder(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
+  void hwClusterProcessor(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
+
+  /// HW Peak Finder
+  /// \param qMaxIndex        Index of central pad
+  /// \param center_pad       Pad number to be checked for cluster
+  /// \param center_time      Time to be checked for cluster
+  /// \param row              Row number for cluster properties
+  void hwPeakFinder(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row);
 
   /// Helper function to update cluster properties and MC labels
   /// \param row          Current row
@@ -132,9 +131,13 @@ class HwClusterer : public Clusterer
   /// \param timeOffset   Time offset of cluster container
   void writeOutputWithTimeOffset(int timeOffset);
 
-  /// Does the Cluster Finding in all rows for given timebin
+  /// Collects the Clusters after they were found
   /// \param timebin  Timebin to cluster peaks
-  void findClusterForTime(int timebin);
+  void computeClusterForTime(int timebin);
+
+  /// Does the Peak Finding in all rows for given timebin
+  /// \param timebin  Timebin to cluster peaks
+  void findPeaksForTime(int timebin);
 
   /// Searches for last remaining cluster and writes them out
   /// \param clear    Clears data buffer afterwards (for not continuous readout)
@@ -153,6 +156,11 @@ class HwClusterer : public Clusterer
   /// \return (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer which is always in range [0, mTimebinsInBuffer-1] even if time < 0
   int mapTimeInRange(int time);
 
+  /// Returns the 14 LSB FP part of the value
+  unsigned getFpOfADC(const unsigned value);
+
+  void compareForPeak(const unsigned qMaxIndex, const unsigned compareIndex, const unsigned bitMax, const unsigned bitMin, const unsigned short row);
+
   /*
    * class members
    */
@@ -166,8 +174,6 @@ class HwClusterer : public Clusterer
   unsigned mPeakChargeThreshold;         ///< Charge threshold for the central peak in ADC counts
   unsigned mContributionChargeThreshold; ///< Charge threshold for the contributing pads in ADC counts
   unsigned mClusterCounter;              ///< Cluster counter in output container for MC truth matching
-  bool mRequireNeighbouringTimebin;      ///< Switch to disable single time cluster
-  bool mRequireNeighbouringPad;          ///< Switch to disable single pad cluster
   bool mIsContinuousReadout;             ///< Switch for continuous readout
 
   std::vector<unsigned short> mPadsPerRow;                       ///< Number of pads for given row (offset of 2 pads on both sides is already added)
@@ -199,18 +205,14 @@ inline void HwClusterer::setContributionChargeThreshold(unsigned charge)
   mContributionChargeThreshold = charge;
 }
 
-inline void HwClusterer::setRequireNeighbouringPad(bool reqPad)
+inline int HwClusterer::mapTimeInRange(int time)
 {
-  mRequireNeighbouringPad = reqPad;
+  return (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer;
 }
 
-inline void HwClusterer::setRequireNeighbouringTimebin(bool reqTimebin)
+inline unsigned HwClusterer::getFpOfADC(const unsigned value)
 {
-  mRequireNeighbouringTimebin = reqTimebin;
-}
-
-inline int HwClusterer::mapTimeInRange(int time){
-  return (time < 0) ? (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer : (time % mTimebinsInBuffer);
+  return value & 0x3FFF;
 }
 
 inline short HwClusterer::getFirstSetBitOfField()
@@ -220,6 +222,22 @@ inline short HwClusterer::getFirstSetBitOfField()
       return i;
   }
   return -1;
+}
+
+inline void HwClusterer::compareForPeak(const unsigned qMaxIndex, const unsigned compareIndex, const unsigned bitMax, const unsigned bitMin, const unsigned short row)
+{
+  if (getFpOfADC(mDataBuffer[row][qMaxIndex]) >= getFpOfADC(mDataBuffer[row][compareIndex])) {
+    mDataBuffer[row][qMaxIndex] |= (0x1 << bitMax); // current center could be peak in one direction
+
+    // other is smaller than center
+    // and if other one was not a peak candidate before (bit is 0), it is a minimum in one direction
+    if (!(mDataBuffer[row][compareIndex] & (0x1 << bitMax)))
+      mDataBuffer[row][compareIndex] |= (0x1 << bitMin);
+
+    mDataBuffer[row][compareIndex] &= ~(0x1 << bitMax); // other is not peak
+  } else {
+    mDataBuffer[row][compareIndex] |= (mDataBuffer[row][compareIndex] & (0x1 << bitMax)); // other is peak if bit was already set
+  }
 }
 }
 }
