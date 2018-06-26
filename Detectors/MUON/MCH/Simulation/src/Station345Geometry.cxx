@@ -353,7 +353,9 @@ void createPCBs()
 
       for (int j = 0; j < nMANU; j++) {
         pcb->AddNode(gGeoManager->GetVolume("MANU345"), 100 * i + j,
-                     new TGeoTranslation(-(pcbShift + shift + length) / 2. + (j + 1) * length / nMANU, y, z));
+                     new TGeoTranslation((j - nMANU / 2) * (length / nMANU) - (nMANU % 2 - 1) * (length / (2 * nMANU)) +
+                                           (pcbShift + shift) / 2,
+                                         y, z));
       }
     } // end of the MANUs loop
   }   // end of the PCBs loop
