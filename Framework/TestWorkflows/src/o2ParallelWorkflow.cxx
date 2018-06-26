@@ -99,7 +99,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                                 [](InputSpec& input, size_t index) {
                                                   input.subSpec = index;
                                                 }),
-                                    { OutputSpec{ { "out" }, "TST", "M" } },
+                                    {
+                                      OutputSpec{{"out"}, "TST", "M"}
+                                    },
                                     AlgorithmSpec{ [](InitContext& setup) {
                                       return [](ProcessingContext& ctx) {
                                         ctx.outputs().make<int>(OutputRef("out", 0), 1);
@@ -108,12 +110,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                   stages));
 
   workflow.push_back(DataProcessorSpec{
-    "writer",
-    { InputSpec{ "x", "TST", "M" } },
-    {},
-    AlgorithmSpec{ [](InitContext& setup) {
-      return [](ProcessingContext& ctx) {
-      };
-    } } });
+                                    "writer",
+                                    {InputSpec{ "x", "TST", "M" }},
+                                    {},
+                                    AlgorithmSpec{ [](InitContext& setup) {
+                                      return [](ProcessingContext& ctx) {
+                                      };
+                                    } } }
+                                  );
   return workflow;
 }

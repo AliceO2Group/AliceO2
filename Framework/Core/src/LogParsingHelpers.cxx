@@ -16,16 +16,15 @@ namespace framework
 {
 
 char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel::Size] = {
-  "DEBUG",
-  "INFO",
-  "WARNING",
-  "ERROR",
-  "UNKNOWN"
-};
+    "DEBUG",
+    "INFO",
+    "WARNING",
+    "ERROR",
+    "UNKNOWN"
+  };
 using LogLevel = o2::framework::LogParsingHelpers::LogLevel;
 
-LogLevel LogParsingHelpers::parseTokenLevel(const std::string& s)
-{
+LogLevel LogParsingHelpers::parseTokenLevel(const std::string &s) {
 
   // Example format: [99:99:99][ERROR] (string begins with that, longest is 17 chars)
   constexpr size_t MAXPREFLEN = 17;
@@ -57,5 +56,5 @@ LogLevel LogParsingHelpers::parseTokenLevel(const std::string& s)
   return LogLevel::Unknown;
 }
 
-} // namespace framework
-} // namespace o2
+}
+}

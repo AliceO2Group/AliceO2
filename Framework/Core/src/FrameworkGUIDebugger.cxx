@@ -424,10 +424,10 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     driverControl.forcedTransitions.push_back(DriverState::GUI);
   }
 
-  auto& registry = driverInfo.configContext->options();
+  auto &registry = driverInfo.configContext->options();
   ImGui::TextUnformatted("Workflow options:");
   ImGui::Columns(2);
-  for (auto& option : driverInfo.workflowOptions) {
+  for (auto &option : driverInfo.workflowOptions) {
     ImGui::TextUnformatted(option.name.c_str());
     ImGui::NextColumn();
     switch (option.type) {
