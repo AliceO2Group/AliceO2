@@ -51,8 +51,8 @@ class AliHLTTRDTrackletWord {
   int GetLabel(int i=0) const { return fLabel[i];}
   
   // ----- Getters for offline corresponding values -----
-  Bool_t CookPID() { return kFALSE; }
-  Double_t GetPID(int /* is */) const { return (Double_t) GetPID()/256.; }
+  bool CookPID() { return false; }
+  double GetPID(int /* is */) const { return (double) GetPID()/256.; }
   int GetDetector() const { return fHCId / 2; }
   int GetHCId() const { return fHCId; }
   float GetdYdX() const { return (GetdY() * 140e-4 / 3.); }
@@ -78,12 +78,12 @@ class AliHLTTRDTrackletWord {
   void SetHCId(int id) { fHCId = id; }
 
  protected:
-  int fId;              // index in tracklet array
-  int fLabel[3];        // MC label
-  int fHCId;            // half-chamber ID
+  int fId;                      // index in tracklet array
+  int fLabel[3];                // MC label
+  int fHCId;                    // half-chamber ID
   unsigned int fTrackletWord;   // tracklet word: PID | Z | deflection length | Y
-                          //          bits:   8   4            7          13
-  static AliTRDgeometry *fgGeo;  // pointer to TRD geometry for coordinate calculations
+                                //          bits:   8   4            7          13
+  static AliTRDgeometry *fgGeo; // pointer to TRD geometry for coordinate calculations
 
 };
 

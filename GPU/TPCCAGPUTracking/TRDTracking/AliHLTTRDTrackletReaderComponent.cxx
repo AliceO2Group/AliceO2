@@ -96,7 +96,7 @@ int AliHLTTRDTrackletReaderComponent::ScanConfigurationArgument(int argc, const 
   if (argc <= 0)
     return 0;
 
-  UShort_t iArg = 0;
+  unsigned short iArg = 0;
   TString argument(argv[iArg]);
 
   if (!argument.CompareTo("-debug")){
@@ -232,7 +232,7 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
   { // read raw data
 
     TString infoStr("");
-    UInt_t sourceSectors = 0;
+    unsigned int sourceSectors = 0;
 
     // loop over all incoming TRD raw data blocks
     for (const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD);
@@ -259,7 +259,7 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
       // add data block to rawreader
       infoStr += Form("%02d, ", trdSector);
       sourceSectors |= pBlock->fSpecification;
-      if(!fRawReaderMem->AddBuffer((UChar_t*) pBlock->fPtr, pBlock->fSize, trdSector + 1024)){
+      if(!fRawReaderMem->AddBuffer((unsigned char*) pBlock->fPtr, pBlock->fSize, trdSector + 1024)){
 	LogError("Could not add buffer of data block  %s, 0x%08x to rawreader",
 		 DataType2Text(pBlock->fDataType).c_str(),
 		 pBlock->fSpecification);
@@ -302,13 +302,13 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 	HLTFatal("No tracklet branch found in tracklet tree");
 	return -EINVAL;
       }
-      Int_t nTracklets = trklbranch->GetEntries();
+      int nTracklets = trklbranch->GetEntries();
       HLTInfo("Input tree with %d TRD MCM tracklets", nTracklets );
 
       AliTRDtrackletMCM *trkl = 0x0;
       trklbranch->SetAddress(&trkl);
 
-      for (Int_t iTracklet = 0; iTracklet < nTracklets; iTracklet++) {
+      for (int iTracklet = 0; iTracklet < nTracklets; iTracklet++) {
 	int nbytes = trklbranch->GetEntry(iTracklet,1);
 	if( !trkl || nbytes<=0 ){
 	  //HLTWarning("Can not read entry %d of %d from tracklet branch", &iTracklet, &nTracklets);

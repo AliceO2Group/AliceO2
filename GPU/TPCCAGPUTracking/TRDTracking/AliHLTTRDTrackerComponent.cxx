@@ -118,7 +118,7 @@ int AliHLTTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& t
   return tgtList.size();
 }
 
-void AliHLTTRDTrackerComponent::GetOutputDataSize( ULong_t& constBase, Double_t& inputMultiplier ) {
+void AliHLTTRDTrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier ) {
   // define guess for the output data size
   constBase = 1000;       // minimum size
   inputMultiplier = 2.; // size relative to input
