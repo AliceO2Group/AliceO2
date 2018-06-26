@@ -124,7 +124,7 @@ class MakeRootTreeWriterSpec
       ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
 
       auto processingFct = [writer, nEvents, counter](ProcessingContext& pc) {
-        (*writer)(pc);
+        (*writer)(pc.inputs());
         *counter = *counter + 1;
         if (nEvents >= 0 && *counter >= nEvents) {
           pc.services().get<ControlService>().readyToQuit(true);

@@ -137,10 +137,10 @@ public:
 
   DataRef getByPos(int pos) const {
     if (pos*2+1 > mCache.size() || pos < 0) {
-      throw std::runtime_error("Unknown argument requested at position " + std::to_string(pos));
+      throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
     }
     if (pos > mInputsSchema.size()) {
-      throw std::runtime_error("Unknown schema at position");
+      throw std::runtime_error("Unknown schema at position" + std::to_string(pos));
     }
     if (mCache[pos*2] != nullptr && mCache[pos*2+1] != nullptr) {
       return DataRef{&mInputsSchema[pos].matcher,
@@ -227,9 +227,14 @@ public:
   typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
   get(const char *binding) const {
     try {
-      return getByPos(getPos(binding));
-    } catch(...) {
-      throw std::runtime_error("Unknown argument requested " + std::string(binding));
+      auto pos = getPos(binding);
+      if (pos < 0) {
+        throw std::invalid_argument("no matching route found for " + std::string(binding));
+      }
+      return getByPos(pos);
+    } catch (const std::exception& e) {
+      throw std::runtime_error("Unknown argument requested " + std::string(binding) +
+                               " - " + e.what());
     }
   }
 
@@ -242,9 +247,14 @@ public:
   typename std::enable_if<std::is_same<T, DataRef>::value, T>::type
   get(std::string const &binding) const {
     try {
-      return getByPos(getPos(binding));
-    } catch (...) {
-      throw std::runtime_error("Unknown argument requested " + std::string(binding));
+      auto pos = getPos(binding);
+      if (pos < 0) {
+        throw std::invalid_argument("no matching route found for " + binding);
+      }
+      return getByPos(pos);
+    } catch (const std::exception& e) {
+      throw std::runtime_error("Unknown argument requested " + std::string(binding) +
+                               " - " + e.what());
     }
   }
 

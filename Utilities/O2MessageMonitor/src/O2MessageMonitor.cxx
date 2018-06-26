@@ -58,7 +58,7 @@ void O2MessageMonitor::Run()
     type = subChannels[0].GetType();
   }
 
-  auto dataResource = o2::memoryResources::getTransportAllocator(subChannels[0].Transport());
+  auto dataResource = o2::memory_resource::getTransportAllocator(subChannels[0].Transport());
 
   while (CheckCurrentState(RUNNING) && (--mIterations) != 0) {
     this_thread::sleep_for(chrono::milliseconds(mDelay));

@@ -94,6 +94,8 @@ namespace o2 {
       TestDescriptorT runtimeDescriptor;
       runtimeDescriptor.runtimeInit(runtimeString.c_str());
       BOOST_CHECK(runtimeDescriptor == TestDescriptorT("RUNTIMES"));
+
+      BOOST_CHECK(testDescriptor.as<std::string>().length() == 8);
     }
 
     BOOST_AUTO_TEST_CASE(DataDescription_test)
@@ -125,6 +127,10 @@ namespace o2 {
       DataDescription runtimeDesc;
       runtimeDesc.runtimeInit(runtimeString.c_str());
       BOOST_CHECK(runtimeDesc == DataDescription("DATA_DESCRIPTION"));
+
+      BOOST_CHECK(desc.as<std::string>().length() == 6);
+      BOOST_CHECK(runtimeDesc.as<std::string>().length() == 16);
+      BOOST_CHECK(DataDescription("INVALIDDATA").as<std::string>().length() == 11);
     }
 
     BOOST_AUTO_TEST_CASE(DataOrigin_test)

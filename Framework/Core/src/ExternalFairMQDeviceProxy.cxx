@@ -40,8 +40,8 @@ void broadcastMessage(FairMQDevice &device, o2::header::Stack &&headerStack, Fai
 
     // FIXME: this assumes there is only one output from here... This should
     //        really do the matchmaking between inputs and output channels.
-    auto channelAlloc = o2::memoryResources::getTransportAllocator(channelInfo.second[index].Transport());
-    FairMQMessagePtr headerMessage = o2::memoryResources::getMessage(std::move(headerStack), channelAlloc);
+    auto channelAlloc = o2::memory_resource::getTransportAllocator(channelInfo.second[index].Transport());
+    FairMQMessagePtr headerMessage = o2::memory_resource::getMessage(std::move(headerStack), channelAlloc);
 
     FairMQParts out;
     out.AddPart(std::move(headerMessage));

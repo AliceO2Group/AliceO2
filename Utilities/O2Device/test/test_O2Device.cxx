@@ -20,7 +20,7 @@
 
 using namespace o2::Base;
 using namespace o2::header;
-using namespace o2::memoryResources;
+using namespace o2::memory_resource;
 
 auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
 auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
     Stack s1{ DataHeader{ gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{ 0 } },
               NameHeader<9>{ "somename" } };
 
-    auto message = o2::memoryResources::getMessage(std::move(s1), allocZMQ);
+    auto message = o2::memory_resource::getMessage(std::move(s1), allocZMQ);
 
     BOOST_REQUIRE(s1.data() == nullptr);
     BOOST_REQUIRE(message != nullptr);
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
               NameHeader<9>{ "somename" } };
     BOOST_TEST(allocZMQ->getNumberOfMessages() == 1);
 
-    auto message = o2::memoryResources::getMessage(std::move(s1), allocSHM);
+    auto message = o2::memory_resource::getMessage(std::move(s1), allocSHM);
 
     BOOST_TEST(allocZMQ->getNumberOfMessages() == 0);
     BOOST_TEST(allocSHM->getNumberOfMessages() == 0);

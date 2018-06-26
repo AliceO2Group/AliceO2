@@ -8,20 +8,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
+#include <chrono>
 
 using namespace o2::framework;
 
 AlgorithmSpec simplePipe(std::string const& what)
 {
   return AlgorithmSpec{ [what](InitContext& ic) {
-    auto delay = ic.options().get<int>("delay");
+    auto delay = std::chrono::seconds(ic.options().get<int>("delay"));
     auto messageSize = ic.options().get<int>("size");
 
     return [what, delay, messageSize](ProcessingContext& ctx) {
-      sleep(delay);
-      ctx.outputs().make<char>(OutputRef{ what }, messageSize);
+      auto tStart = std::chrono::high_resolution_clock::now();
+      auto tEnd = std::chrono::high_resolution_clock::now();
+      auto msg = ctx.outputs().make<char>(OutputRef{ what }, messageSize);
+      while (std::chrono::duration_cast<std::chrono::seconds>(tEnd - tStart) < std::chrono::seconds(delay)) {
+        for (size_t i = 0; i < messageSize; ++i) {
+          msg[i] = 0;
+        }
+        tEnd = std::chrono::high_resolution_clock::now();
+      }
     };
-  } };
+  }
+  };
 }
 
 // Helper to create two options, one for the delay between messages,
@@ -29,8 +38,8 @@ AlgorithmSpec simplePipe(std::string const& what)
 std::vector<ConfigParamSpec> simplePipeOptions(int delay, int size)
 {
   return {
-    ConfigParamSpec{ "delay", VariantType::Int, 1, { "Delay between one iteration and the other" } },
-    ConfigParamSpec{ "size", VariantType::Int, 1, { "Size of the output message" } },
+    ConfigParamSpec{ "delay", VariantType::Int, delay, { "Delay between one iteration and the other" } },
+    ConfigParamSpec{ "size", VariantType::Int, size, { "Size of the output message" } },
   };
 }
 
@@ -54,8 +63,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
       AlgorithmSpec{
         [](InitContext &setup) {
           auto delay = setup.options().get<int>("epn-roundrobin-delay");
-          return [delay](ProcessingContext& ctx) {
-            sleep(delay);
+          auto first = std::make_shared<bool>(true);
+          return [delay, first](ProcessingContext& ctx) {
+            if (*first == false) {
+              sleep(delay);
+            }
+            *first = false;
             ctx.outputs().make<int>(OutputRef { "tpc-cluster" }, 1);
             ctx.outputs().make<int>(OutputRef { "its-cluster" }, 1);
             ctx.outputs().make<int>(OutputRef { "trd-tracklet" }, 1);

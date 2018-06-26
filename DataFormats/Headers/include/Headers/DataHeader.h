@@ -287,7 +287,10 @@ struct Descriptor {
     targetEnd = str + N;
     for ( ; target < targetEnd; ++target) *target = 0;
     // require the string to be not longer than the descriptor size
-    assert(source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N)));
+    if (source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N))) {
+    } else {
+      throw std::invalid_argument("argument must not be longer than descriptor size");
+    }
   }
 
   bool operator==(const Descriptor& other) const {return DescriptorCompareTraits<arraySize>::compare(*this,other, N);}
@@ -305,9 +308,14 @@ struct Descriptor {
   template <typename T>
   std::enable_if_t<std::is_same<T, std::string>::value == true, T> as() const
   {
-    // init from the complete str member including space for a trailing 0
-    std::string ret(str, size + 1);
-    ret[size] = 0;
+    // backward search to find first non-zero char
+    // FIXME: can optimize this by using the int value to start at e.g. size/2
+    // if the upper part of the string is just zeros.
+    size_t len = size;
+    while (len > 1 && str[len - 1] == 0) {
+      --len;
+    }
+    std::string ret(str, len);
     return std::move(ret);
   }
   // print function needs to be implemented for every derivation

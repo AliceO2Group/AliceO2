@@ -83,7 +83,7 @@ DataProcessorSpec getSinkSpec()
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
 
     auto processingFct = [writer, counter](ProcessingContext& pc) {
-      (*writer)(pc);
+      (*writer)(pc.inputs());
       *counter = *counter + 1;
       if (*counter >= kTreeSize) {
         pc.services().get<ControlService>().readyToQuit(true);
