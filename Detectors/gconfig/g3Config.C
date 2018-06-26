@@ -42,4 +42,9 @@ void Config()
   geant3->SetOPTI(2); // Select optimisation level for GEANT geometry searches (0,1,2)
   geant3->SetERAN(5.e-7);
   geant3->SetCKOV(1); // cerenkov photons
+
+  // allow many steps per track (per volume)
+  // since this is needed in the TPC
+  // (this does not seem to be possible per module)
+  geant3->SetMaxNStep(1E5);
 }
