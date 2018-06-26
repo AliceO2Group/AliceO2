@@ -15,6 +15,8 @@
 #ifndef ALICEO2_TPC_HWClusterer_H_
 #define ALICEO2_TPC_HWClusterer_H_
 
+#include <Vc/Vc>
+
 #include "TPCReconstruction/Clusterer.h"
 #include "DataFormatsTPC/Helpers.h"
 
@@ -99,39 +101,40 @@ class HwClusterer : public Clusterer
    */
 
   /// HW Cluster Processor
-  /// \param center_pad       Pad number to be checked for cluster
-  /// \param center_time      Time to be checked for cluster
-  /// \param row              Row number for cluster properties
-  /// \param cluster          Reference to to cluster
-  /// \return True if (center_pad,center_time) was a cluster, false if not
-  void hwClusterProcessor(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row, ClusterHardware& cluster, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
+  /// \param peakMask       VC-mask with only peaks enabled
+  /// \param qMaxIndex      Buffer index of center pad
+  /// \param center_pad     Pad number to be checked for cluster
+  /// \param center_time    Time to be checked for cluster
+  /// \param row            Row number for cluster properties
+  void hwClusterProcessor(Vc::uint_m peakMask, unsigned qMaxIndex, short center_pad, int center_time, unsigned short row);
 
   /// HW Peak Finder
-  /// \param qMaxIndex        Index of central pad
+  /// \param qMaxIndex        Buffer index of central pad
   /// \param center_pad       Pad number to be checked for cluster
   /// \param center_time      Time to be checked for cluster
   /// \param row              Row number for cluster properties
   void hwPeakFinder(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row);
 
   /// Helper function to update cluster properties and MC labels
-  /// \param row          Current row
-  /// \param center_pad   Pad of peak
-  /// \param center_time  Timebin of peak
-  /// \param dp           delta pad
-  /// \param dt           delta time
-  /// \param qTot         Total charge
-  /// \param pad          Weighted pad parameter
-  /// \param time         Weighted time parameter
-  /// \param sigmaPad2    Weighted sigma pad ^2 parameter
-  /// \param sigmaTime2   Weighted sigma time ^2 parameter
-  /// \param mcLabel      Vector with MClabel-counter-pair
-  void updateCluster(int row, short center_pad, int center_time, short dp, short dt, unsigned& qTot, int& pad, int& time, int& sigmaPad2, int& sigmaTime2, std::vector<std::pair<MCCompLabel, unsigned>>& mcLabels);
+  /// \param selectionMask  VC-mask with slected pads enabled
+  /// \param row            Current row
+  /// \param center_pad     Pad of peak
+  /// \param center_time    Timebin of peak
+  /// \param dp             delta pad
+  /// \param dt             delta time
+  /// \param qTot           Total charge
+  /// \param pad            Weighted pad parameter
+  /// \param time           Weighted time parameter
+  /// \param sigmaPad2      Weighted sigma pad ^2 parameter
+  /// \param sigmaTime2     Weighted sigma time ^2 parameter
+  /// \param mcLabel        Vector with MClabel-counter-pairs
+  void updateCluster(const Vc::uint_m selectionMask, int row, short center_pad, int center_time, short dp, short dt, Vc::uint_v& qTot, Vc::int_v& pad, Vc::int_v& time, Vc::int_v& sigmaPad2, Vc::int_v& sigmaTime2, std::vector<std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>& mcLabels);
 
-  /// Writes clusters in temporary storage to cluster output
+  /// Writes clusters from temporary storage to cluster output
   /// \param timeOffset   Time offset of cluster container
   void writeOutputWithTimeOffset(int timeOffset);
 
-  /// Collects the Clusters after they were found
+  /// Processes and collects the peaks after they were found
   /// \param timebin  Timebin to cluster peaks
   void computeClusterForTime(int timebin);
 
@@ -157,8 +160,15 @@ class HwClusterer : public Clusterer
   int mapTimeInRange(int time);
 
   /// Returns the 14 LSB FP part of the value
-  unsigned getFpOfADC(const unsigned value);
+  /// \param value  some value
+  Vc::uint_v getFpOfADC(const Vc::uint_v value);
 
+  /// Does the comparison between two pads and sets the bits accordingly
+  /// \param qMaxIndex      Buffer index of central pad
+  /// \param compareIndex   Buffer index of pad to compare with
+  /// \param bitMax         Bit to be set for peak finding
+  /// \param bitMin         Bit to be set for minimum finding
+  /// \param row            Row number
   void compareForPeak(const unsigned qMaxIndex, const unsigned compareIndex, const unsigned bitMax, const unsigned bitMin, const unsigned short row);
 
   /*
@@ -167,6 +177,7 @@ class HwClusterer : public Clusterer
   static const int mTimebinsInBuffer = 5;
 
   unsigned short mNumRows;               ///< Number of rows in this sector
+  unsigned short mNumRowSets;            ///< Number of row sets (Number of rows / Vc::Size) in this sector
   short mCurrentMcContainerInBuffer;     ///< Bit field, where to find the current MC container in buffer
   int mClusterSector;                    ///< Sector to be processed
   int mLastTimebin;                      ///< Last time bin of previous event
@@ -177,13 +188,17 @@ class HwClusterer : public Clusterer
   bool mIsContinuousReadout;             ///< Switch for continuous readout
 
   std::vector<unsigned short> mPadsPerRow;                       ///< Number of pads for given row (offset of 2 pads on both sides is already added)
+  std::vector<unsigned short> mPadsPerRowSet;                    ///< Number of pads for given row set (offset of 2 pads on both sides is already added), a row set combines rows for parallel SIMD processing
   std::vector<unsigned short> mGlobalRowToRegion;                ///< Mapping global row number to region
   std::vector<unsigned short> mGlobalRowToLocalRow;              ///< Converting global row number to local row number within region
-  std::vector<std::vector<unsigned>> mDataBuffer;                ///< Buffer with digits (+noise +CM +...)
-  std::vector<std::vector<int>> mIndexBuffer;                    ///< Buffer with digits indices for MC labels
+  std::vector<unsigned short> mGlobalRowToVcIndex;               ///< Converting global row number to VC index
+  std::vector<unsigned short> mGlobalRowToRowSet;                ///< Converting global row number to row set number
+  std::vector<std::vector<Vc::uint_v>> mDataBuffer;              ///< Buffer with digits (+noise +CM +...)
+  std::vector<std::vector<Vc::int_v>> mIndexBuffer;              ///< Buffer with digits indices for MC labels
   std::vector<std::shared_ptr<MCLabelContainer const>> mMCtruth; ///< MC truth information of timebins in buffer
 
-  std::vector<std::unique_ptr<std::vector<std::pair<ClusterHardware, std::vector<std::pair<MCCompLabel, unsigned>>>>>> mTmpClusterArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
+  std::vector<std::unique_ptr<std::vector<ClusterHardware>>> mTmpClusterArray;                             ///< Temporary cluster storage for each region to accumulate cluster before filling output container
+  std::vector<std::unique_ptr<std::vector<std::vector<std::pair<MCCompLabel, unsigned>>>>> mTmpLabelArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
 
   std::vector<ClusterHardwareContainer8kb>* mClusterArray; ///< Pointer to output cluster container
   std::vector<Cluster>* mPlainClusterArray;                ///< Pointer to output cluster container
@@ -210,7 +225,7 @@ inline int HwClusterer::mapTimeInRange(int time)
   return (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer;
 }
 
-inline unsigned HwClusterer::getFpOfADC(const unsigned value)
+inline Vc::uint_v HwClusterer::getFpOfADC(const Vc::uint_v value)
 {
   return value & 0x3FFF;
 }
@@ -226,17 +241,53 @@ inline short HwClusterer::getFirstSetBitOfField()
 
 inline void HwClusterer::compareForPeak(const unsigned qMaxIndex, const unsigned compareIndex, const unsigned bitMax, const unsigned bitMin, const unsigned short row)
 {
-  if (getFpOfADC(mDataBuffer[row][qMaxIndex]) >= getFpOfADC(mDataBuffer[row][compareIndex])) {
-    mDataBuffer[row][qMaxIndex] |= (0x1 << bitMax); // current center could be peak in one direction
 
-    // other is smaller than center
-    // and if other one was not a peak candidate before (bit is 0), it is a minimum in one direction
-    if (!(mDataBuffer[row][compareIndex] & (0x1 << bitMax)))
-      mDataBuffer[row][compareIndex] |= (0x1 << bitMin);
+  const auto tmpMask = getFpOfADC(mDataBuffer[row][qMaxIndex]) >= getFpOfADC(mDataBuffer[row][compareIndex]);
 
-    mDataBuffer[row][compareIndex] &= ~(0x1 << bitMax); // other is not peak
-  } else {
-    mDataBuffer[row][compareIndex] |= (mDataBuffer[row][compareIndex] & (0x1 << bitMax)); // other is peak if bit was already set
+  // current center could be peak in one direction
+  where(tmpMask) | mDataBuffer[row][qMaxIndex] |= (0x1 << bitMax);
+
+  // other is smaller than center
+  // and if other one was not a peak candidate before (bit is 0), it is a minimum in one direction,
+  // so bitMin has to be set to inverse of bitMax of pad to compare
+  where(tmpMask) | mDataBuffer[row][compareIndex] |= (~mDataBuffer[row][compareIndex] & (0x1 << bitMax)) >> (bitMax - bitMin);
+
+  // other is not peak
+  where(tmpMask) | mDataBuffer[row][compareIndex] &= ~(0x1 << bitMax);
+
+  // other is peak if bit was already set
+  where(!tmpMask) | mDataBuffer[row][compareIndex] |= (mDataBuffer[row][compareIndex] & (0x1 << bitMax));
+}
+
+inline void HwClusterer::updateCluster(
+  const Vc::uint_m selectionMask, int row, short center_pad, int center_time, short dp, short dt,
+  Vc::uint_v& qTot, Vc::int_v& pad, Vc::int_v& time, Vc::int_v& sigmaPad2, Vc::int_v& sigmaTime2,
+  std::vector<std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>& mcLabels)
+{
+  const int mappedTime = mapTimeInRange(center_time + dt);
+  const int index = mappedTime * mPadsPerRowSet[row] + center_pad + dp;
+
+  where(selectionMask) | qTot += getFpOfADC(mDataBuffer[row][index]);
+  where(selectionMask) | pad += getFpOfADC(mDataBuffer[row][index]) * dp;
+  where(selectionMask) | time += getFpOfADC(mDataBuffer[row][index]) * dt;
+  where(selectionMask) | sigmaPad2 += getFpOfADC(mDataBuffer[row][index]) * dp * dp;
+  where(selectionMask) | sigmaTime2 += getFpOfADC(mDataBuffer[row][index]) * dt * dt;
+
+  for (int i = 0; i < Vc::uint_v::Size; ++i) {
+    if (selectionMask[i] && mMCtruth[mappedTime] != nullptr) {
+      for (auto& label : mMCtruth[mappedTime]->getLabels(mIndexBuffer[row][index][i])) {
+        bool isKnown = false;
+        for (auto& vecLabel : *mcLabels[i]) {
+          if (label == vecLabel.first) {
+            ++vecLabel.second;
+            isKnown = true;
+          }
+        }
+        if (!isKnown) {
+          mcLabels[i]->emplace_back(label, 1);
+        }
+      }
+    }
   }
 }
 }
