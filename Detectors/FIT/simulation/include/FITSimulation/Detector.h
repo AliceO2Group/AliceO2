@@ -81,6 +81,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   }
 
   void Reset() override;
+  void EndOfEvent() override { Reset(); }
 
   /// Base class to create the detector geometry
   void CreateMaterials();
