@@ -24,11 +24,11 @@ namespace gui
 
 class WorkspaceGUIState;
 
-void showTopologyNodeGraph(WorkspaceGUIState &state,
-                           const std::vector<DeviceInfo> &infos,
-                           const std::vector<DeviceSpec> &specs,
-                           std::vector<DeviceControl> &controls,
-                           const std::vector<DeviceMetricsInfo> &metricsInfos);
+void showTopologyNodeGraph(WorkspaceGUIState& state,
+                           const std::vector<DeviceInfo>& infos,
+                           const std::vector<DeviceSpec>& specs,
+                           std::vector<DeviceControl>& controls,
+                           const std::vector<DeviceMetricsInfo>& metricsInfos);
 
 } // namespace gui
 } // namespace framework
