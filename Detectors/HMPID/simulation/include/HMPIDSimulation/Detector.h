@@ -16,6 +16,7 @@
 #include "SimulationDataFormat/BaseHits.h"
 
 class TGeoVolume;
+class TGeoHMatrix;
 
 namespace o2
 {
@@ -39,23 +40,26 @@ class Detector : public o2::Base::DetImpl<Detector>
     return nullptr;
   }
 
+  void Initialize() override;
   bool ProcessHits(FairVolume* v) override;
+  HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
+  void GenFee(float qtot);
+  Bool_t IsLostByFresnel();
+  float Fresnel(float ene, float pdoti, Bool_t pola);
   void Register() override;
   void Reset() override;
-  void Initialize() override;
   // void AddAlignableVolumes() const;
   void IdealPosition(int iCh, TGeoHMatrix* pMatrix);
   void IdealPositionCradle(int iCh, TGeoHMatrix* pMatrix);
   void createMaterials();
   void ConstructGeometry() override;
-  void defineSensitiveVolumes();
-  void DefineOpticalProperties();
+  void defineOpticalProperties();
   void EndOfEvent() override { Reset(); }
 
   // for the geometry sub-parts
   TGeoVolume* createChamber(int number);
   TGeoVolume* CreateCradle();
-  TGeoVolume* CradleBaseVolume(TGeoMedium* med, Double_t l[7], const char* name);
+  TGeoVolume* CradleBaseVolume(TGeoMedium* med, double l[7], const char* name);
 
  private:
   std::vector<HitType>* mHits = nullptr; ///!< Collection of HMPID hits
@@ -72,6 +76,8 @@ class Detector : public o2::Base::DetImpl<Detector>
     kNeo = 10,
     kAr = 11
   };
+
+  std::vector<TGeoVolume*> mSensitiveVolumes; //!
 
   ClassDefOverride(Detector, 1);
 };
