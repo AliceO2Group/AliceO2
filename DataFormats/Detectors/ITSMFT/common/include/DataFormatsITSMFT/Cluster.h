@@ -92,17 +92,16 @@ class Cluster : public o2::BaseCluster<float>
   //
   UInt_t getROFrame() const { return mROFrame; }
   void setROFrame(UInt_t v) { mROFrame = v; }
-  //
-  // methods for indexing. Consider to eliminate the index at all
-  int getIndex() const { return mIndex; }
-  void setIndex(int i) { mIndex = i; }
 
   // bool hasCommonTrack(const Cluster* cl) const;
   //
   void print() const;
 
 #ifdef _ClusterTopology_
-  int getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
+  int getPatternRowSpan() const
+  {
+    return mPatternNRows & kSpanMask;
+  }
   int getPatternColSpan() const { return mPatternNCols & kSpanMask; }
   bool isPatternRowsTruncated() const { return mPatternNRows & kTruncateMask; }
   bool isPatternColsTruncated() const { return mPatternNCols & kTruncateMask; }
@@ -121,8 +120,7 @@ class Cluster : public o2::BaseCluster<float>
   //
  protected:
   //
-  UInt_t mROFrame;  ///< RO Frame
-  int mIndex = -1;  // origianl index of this cluster in its vector (consider to drop it)
+  UInt_t mROFrame; ///< RO Frame
 
   Int_t mNxNzN = 0; ///< effective cluster size in X (1st byte) and Z (2nd byte) directions
                     ///< and total Npix(next 9 bits).

@@ -15,25 +15,7 @@
 #include "ITSReconstruction/CookedTrackerTask.h"
 #endif
 
-static std::stringstream mcfile;
-
-void run_trac_its(float rate = 0., std::string outputfile = "o2track_its.root", std::string inputfile = "o2clus.root",
-                  std::string paramfile = "o2sim_par.root");
-
-void run_trac_its(Int_t nEvents, TString mcEngine = "TGeant3", float rate = 0.)
-{
-  // old interface, for BWD compatibility only
-
-  // Input and output file name
-  std::stringstream inputfile, outputfile, paramfile;
-  inputfile << "AliceO2_" << mcEngine << ".clus_" << nEvents << "_event.root";
-  paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
-  outputfile << "AliceO2_" << mcEngine << ".trac_" << nEvents << "_event.root";
-  mcfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
-  run_trac_its(rate, outputfile.str(), inputfile.str(), paramfile.str());
-}
-
-void run_trac_its(float rate, std::string outputfile, std::string inputfile, std::string paramfile)
+void run_trac_its(float rate = 0., std::string outputfile = "o2trac_its.root", std::string inputfile = "o2clus_its.root", std::string mcfile = "o2sim.root", std::string paramfile = "o2sim_par.root")
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -62,7 +44,8 @@ void run_trac_its(float rate, std::string outputfile, std::string inputfile, std
   trac->setContinuousMode(rate > 0.);
 
   o2::ITS::TrivialVertexer& vertexer = trac->getVertexer();
-  vertexer.openInputFile(mcfile.str().c_str());
+  //vertexer.openInputFile(mcfile.str().c_str());
+  vertexer.openInputFile(mcfile.data());
 
   fRun->AddTask(trac);
 

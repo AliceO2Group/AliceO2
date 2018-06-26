@@ -22,22 +22,18 @@
 
 using namespace o2::Base;
 
-void CheckDigits(Int_t nEvents = 10, std::string digitfile = "o2dig.root", std::string hitfile = "o2sim.root",
-                 std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
+void CheckDigits(std::string digifile = "o2digi_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
-  using o2::ITSMFT::SegmentationAlpide;
   using o2::ITSMFT::Digit;
   using o2::ITSMFT::Hit;
+  using o2::ITSMFT::SegmentationAlpide;
   using namespace o2::ITS;
 
   TFile* f = TFile::Open("CheckDigits.root", "recreate");
   TNtuple* nt = new TNtuple("ntd", "digit ntuple", "id:x:y:z:rowD:colD:rowH:colH:xlH:zlH:xlcH:zlcH:dx:dz");
 
-  char filename[100];
-
   // Geometry
   o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-
   auto* gman = o2::ITS::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G));
 
@@ -50,7 +46,7 @@ void CheckDigits(Int_t nEvents = 10, std::string digitfile = "o2dig.root", std::
   hitTree->SetBranchAddress("ITSHit", &hitArray);
 
   // Digits
-  TFile* file1 = TFile::Open(digitfile.data());
+  TFile* file1 = TFile::Open(digifile.data());
   TTree* digTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::ITSMFT::Digit>* digArr = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;

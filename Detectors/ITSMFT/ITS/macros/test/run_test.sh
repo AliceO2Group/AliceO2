@@ -1,28 +1,30 @@
-#
+#Number of events to simulate 
 nEvents=10 
-mcEngine=\"TGeant3\"
-
-#To de - activate the ALPIDE response, set alp = kFALSE
-alp=kTRUE
 
 #To activate the continuos readout, assign a positive value to the rate
 rate=0. #50.e3(Hz)
 
-root.exe -b -q $O2_ROOT/share/macro/run_sim_its_ALP3.C+\($nEvents,$mcEngine\) >& sim.log
+#MC transport
+mcEngine=TGeant3
 
-root.exe -b -q $O2_ROOT/share/macro/run_digi_its.C+\($nEvents,$mcEngine,$alp,$rate\) >& digi.log
+#MC event generator
+mcGener=boxgen
 
-root.exe -b -q CheckDigits.C+\($nEvents,$mcEngine\) >& CheckDigits.log
+o2sim -n $nEvents -e $mcEngine -g $mcGener -m PIPE ITS >& sim_its.log
 
-root.exe -b -q $O2_ROOT/share/macro/run_clus_its.C+\($nEvents,$mcEngine\) >& clus.log
+root -b -q $O2_ROOT/share/macro/run_digi_its.C+\($rate\) >& digi_its.log
 
-root.exe -b -q CheckClusters.C+\($nEvents,$mcEngine\) >& CheckClusters.log
+root.exe -b -q CheckDigits.C+ >& CheckDigits.log
 
-root.exe -b -q CheckTopologies.C+\($nEvents,$mcEngine\) >& CheckTopologies.log
+root -b -q $O2_ROOT/share/macro/run_clus_its.C+ >& clus_its.log
 
-root.exe -b -q $O2_ROOT/share/macro/run_trac_its.C+\($nEvents,$mcEngine,$rate\) >& trac.log
+root.exe -b -q CheckClusters.C+ >& CheckClusters.log
 
-root.exe -b -q CheckTracks.C+\($nEvents,$mcEngine\) >& CheckTracks.log
+root.exe -b -q CheckTopologies.C+ >& CheckTopologies.log
 
-root.exe DisplayTrack.C+\($nEvents,$mcEngine\)
+root.exe -b -q $O2_ROOT/share/macro/run_trac_its.C+\($rate\) >& trac_its.log
+
+root.exe -b -q CheckTracks.C+ >& CheckTracks.log
+
+root.exe DisplayTrack.C+
 
