@@ -17,6 +17,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
       src/imgui.cpp
       src/imgui_draw.cpp
+      src/imgui_extras.cpp
       src/imgui_impl_glfw_gl3.cpp
       src/gl3w.c
       src/DebugGUI.cxx
@@ -24,7 +25,8 @@ set(SRCS
 
 set(HEADERS
     include/DebugGUI/imconfig.h
-    include/DebugGUI/imgui.h)
+    include/DebugGUI/imgui.h
+    include/DebugGUI/imgui_extras.h)
 
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
