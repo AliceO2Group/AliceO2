@@ -691,32 +691,30 @@ void Pipe::ConstructGeometry()
   ///
   //
   // Bellow mother volume
-  TGeoPcon* shRB24B1BellowM = new TGeoPcon(0., 360., 14);
+  TGeoPcon* shRB24B1BellowM = new TGeoPcon(0., 360., 12);
   // Connection Tube and Flange
   z = 0.;
   shRB24B1BellowM->DefineSection(0, z, 0., kRB24B1RFlangeRou);
   z += kRB24B1RFlangeLO;
   shRB24B1BellowM->DefineSection(1, z, 0., kRB24B1RFlangeRou);
-  shRB24B1BellowM->DefineSection(2, z, 0., kRB24B1RFlangeRou);
   z = kRB24B1RFlangeL;
-  shRB24B1BellowM->DefineSection(3, z, 0., kRB24B1RFlangeRou);
-  shRB24B1BellowM->DefineSection(4, z, 0., kRB24B1ConTubeRou);
+  shRB24B1BellowM->DefineSection(2, z, 0., kRB24B1RFlangeRou);
+  shRB24B1BellowM->DefineSection(3, z, 0., kRB24B1ConTubeRou);
   z = kRB24B1ConTubeL + kRB24B1RFlangeL - kRB24B1RFlangeRecess;
-  shRB24B1BellowM->DefineSection(5, z, 0., kRB24B1ConTubeRou);
+  shRB24B1BellowM->DefineSection(4, z, 0., kRB24B1ConTubeRou);
   // Plie
-  shRB24B1BellowM->DefineSection(6, z, 0., kRB24B1BellowRo + kRB24B1ProtTubeThickness);
+  shRB24B1BellowM->DefineSection(5, z, 0., kRB24B1BellowRo + kRB24B1ProtTubeThickness);
   z += kRB24B1BellowUndL;
-  shRB24B1BellowM->DefineSection(7, z, 0., kRB24B1BellowRo + kRB24B1ProtTubeThickness);
-  shRB24B1BellowM->DefineSection(8, z, 0., kRB24B1ConTubeRou);
+  shRB24B1BellowM->DefineSection(6, z, 0., kRB24B1BellowRo + kRB24B1ProtTubeThickness);
+  shRB24B1BellowM->DefineSection(7, z, 0., kRB24B1ConTubeRou);
   // Connection Tube and Flange
   z = kRB24B1L - shRB24B1BellowM->GetZ(3);
-  shRB24B1BellowM->DefineSection(9, z, 0., kRB24B1ConTubeRou);
-  shRB24B1BellowM->DefineSection(10, z, 0., kRB24B1RFlangeRou);
+  shRB24B1BellowM->DefineSection(8, z, 0., kRB24B1ConTubeRou);
+  shRB24B1BellowM->DefineSection(9, z, 0., kRB24B1RFlangeRou);
   z = kRB24B1L - shRB24B1BellowM->GetZ(1);
-  shRB24B1BellowM->DefineSection(11, z, 0., kRB24B1RFlangeRou);
-  shRB24B1BellowM->DefineSection(12, z, 0., kRB24B1RFlangeRou);
+  shRB24B1BellowM->DefineSection(10, z, 0., kRB24B1RFlangeRou);
   z = kRB24B1L - shRB24B1BellowM->GetZ(0);
-  shRB24B1BellowM->DefineSection(13, z, 0., kRB24B1RFlangeRou);
+  shRB24B1BellowM->DefineSection(11, z, 0., kRB24B1RFlangeRou);
 
   TGeoVolume* voRB24B1BellowM = new TGeoVolume("RB24B1BellowM", shRB24B1BellowM, kMedVac);
   voRB24B1BellowM->SetVisibility(0);
@@ -2632,14 +2630,40 @@ TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t 
     printf("Warning: imax reset to nz-1 %5d %5d %5d %5d\n", imin, imax, nz, nz0);
   }
 
+  // construct the sections dynamically since duplications have to be avoided
+  std::vector<double> pconparams;
+  pconparams.reserve(nz0);
+  pconparams.push_back(0.);
+  pconparams.push_back(360);
+  pconparams.push_back(nz0);
+  int zplanecounter = 0;
+
+  auto addSection = [&pconparams, &zplanecounter](double z, double rmin, double rmax) {
+    pconparams.push_back(z);
+    pconparams.push_back(rmin);
+    pconparams.push_back(rmax);
+    zplanecounter++;
+  };
+
+  double zlast, rminlast, rmaxlast;
   for (Int_t i = 0; i < shape->GetNz(); i++) {
     Double_t rmin = shape->GetRmin(i);
     if ((i >= imin) && (i <= imax))
       rmin = r0;
     Double_t rmax = shape->GetRmax(i);
     Double_t z = shape->GetZ(i);
-    mother->DefineSection(i, z, rmin, rmax);
+    if (i == 0 || (z != zlast || rminlast != rminlast || rmax != rmaxlast)) {
+      addSection(z, rmin, rmax);
+    }
+    zlast = z;
+    rminlast = rmin;
+    rmaxlast = rmax;
   }
+  // correct dimension
+  pconparams[2] = zplanecounter;
+  // reinit polycon from parameters
+  mother->SetDimensions(pconparams.data());
+
   return mother;
 }
 
