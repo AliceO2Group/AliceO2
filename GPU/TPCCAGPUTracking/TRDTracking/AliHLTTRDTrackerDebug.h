@@ -1,3 +1,4 @@
+//#define ENABLE_HLTTRDDEBUG
 #ifdef ENABLE_HLTTRDDEBUG
 # ifndef ALIHLTTRDTRACKERDEBUG_H
 # define ALIHLTTRDTRACKERDEBUG_H
@@ -12,7 +13,7 @@ class AliHLTTRDTrackerDebug
     AliHLTTRDTrackerDebug() { fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate"); }
     ~AliHLTTRDTrackerDebug() { delete fStreamer; }
 
-    int GetSector(float alpha) { if (alpha < 0) { alpha += 2. * TMath::Pi(); } return (int) (alpha * 18 / (2. * TMath::Pi())); }
+    int GetSector(float alpha) { if (alpha < 0) { alpha += 2. * M_PI; } return (int) (alpha * 18 / (2. * M_PI)); }
 
     void ExpandVectors() { fTrackX.ResizeTo(6); fTrackY.ResizeTo(6); fTrackZ.ResizeTo(6); fTrackPhi.ResizeTo(6); fTrackLambda.ResizeTo(6); fTrackPt.ResizeTo(6);
                             fTrackSector.ResizeTo(6); fTrackYerr.ResizeTo(6); fTrackZerr.ResizeTo(6); fTrackNoUpX.ResizeTo(6); fTrackNoUpY.ResizeTo(6); fTrackNoUpZ.ResizeTo(6);

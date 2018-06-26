@@ -315,15 +315,15 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
 	    continue;
     }
     AliTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
-    float tilt = TMath::Tan(TMath::DegToRad() * pp->GetTiltingAngle());
+    float tilt = tanf( M_PI / 180. * pp->GetTiltingAngle());
     float t2 = tilt * tilt; // tan^2 (tilt)
     float c2 = 1. / (1. + t2); // cos^2 (tilt)
-    float sy2 = TMath::Power(0.10, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
+    float sy2 = pow(0.10, 2); // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
     for (int iTrklt=0; iTrklt<nTracklets; ++iTrklt) {
       int trkltIdx = fTrackletIndexArray[iDet] + iTrklt;
       int trkltZbin = fTracklets[trkltIdx].GetZbin();
-      float sz2 = TMath::Power(pp->GetRowSize(trkltZbin), 2) / 12.; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
+      float sz2 = pow(pp->GetRowSize(trkltZbin), 2) / 12.; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
       double xTrkltDet[3] = { 0. }; // trklt position in chamber coordinates
       double xTrkltSec[3] = { 0. }; // trklt position in sector coordinates
       xTrkltDet[0] = fGeo->AnodePos() + fgkXshift;
@@ -366,7 +366,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
   HLTTRDPropagator prop;
 
   // only propagate tracks within TRD acceptance
-  if (TMath::Abs(t->Eta()) > fMaxEta) {
+  if (fabs(t->Eta()) > fMaxEta) {
     return false;
   }
 
@@ -420,7 +420,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
     int currIdx = iLayer % 2;
     int nextIdx = (iLayer + 1) % 2;
     pad = fGeo->GetPadPlane(iLayer, 0);
-    float tilt = TMath::Tan(TMath::DegToRad() * pad->GetTiltingAngle()); // tilt is signed!
+    float tilt = tanf( M_PI / 180. * pad->GetTiltingAngle()); // tilt is signed!
     const float zMaxTRD = pad->GetRowPos(0);
 
     for (int iCandidate=0; iCandidate<nCandidates; iCandidate++) {
@@ -435,8 +435,8 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
         }
         else {
           std::sort(fHypothesis, fHypothesis+nCurrHypothesis, Hypothesis_Sort);
-          if ( (fCandidates[2*iCandidate+currIdx].GetChi2() / TMath::Max(fCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
-               (fHypothesis[nCurrHypothesis].fChi2 / TMath::Max(fHypothesis[nCurrHypothesis].fLayers, 1)) ) {
+          if ( (fCandidates[2*iCandidate+currIdx].GetChi2() / std::max(fCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
+               (fHypothesis[nCurrHypothesis].fChi2 / std::max(fHypothesis[nCurrHypothesis].fLayers, 1)) ) {
             fHypothesis[nCurrHypothesis-1].fChi2 = fCandidates[2*iCandidate+currIdx].GetChi2();
             fHypothesis[nCurrHypothesis-1].fLayers = fCandidates[2*iCandidate+currIdx].GetNlayers();
             fHypothesis[nCurrHypothesis-1].fCandidateId = iCandidate;
@@ -475,11 +475,11 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
       }
 
       // define search window
-      roadY = 7. * TMath::Sqrt(fCandidates[2*iCandidate+currIdx].getSigmaY2() + TMath::Power(0.10, 2)) + 2; // add constant to the road for better efficiency
-      //roadZ = 7. * TMath::Sqrt(fCandidates[2*iCandidate+currIdx].getSigmaZ2() + TMath::Power(9., 2) / 12.); // take longest pad length
+      roadY = 7. * sqrt(fCandidates[2*iCandidate+currIdx].getSigmaY2() + pow(0.10, 2)) + 2; // add constant to the road for better efficiency
+      //roadZ = 7. * sqrt(fCandidates[2*iCandidate+currIdx].getSigmaZ2() + power(9., 2) / 12.); // take longest pad length
       roadZ = 18.; // simply twice the longest pad length -> efficiency 99.996%
       //
-      if (TMath::Abs(fCandidates[2*iCandidate+currIdx].getZ()) - roadZ >= zMaxTRD ) {
+      if (fabs(fCandidates[2*iCandidate+currIdx].getZ()) - roadZ >= zMaxTRD ) {
         if (ENABLE_INFO) {
           Info("FollowProlongation", "Track out of TRD acceptance with z=%f in layer %i (eta=%f)",
             fCandidates[2*iCandidate+currIdx].getZ(), iLayer, fCandidates[2*iCandidate+currIdx].getEta());
@@ -530,13 +530,13 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
           float tiltCorr = tilt * (fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].getZ());
           // tilt correction only makes sense if deltaZ < l_pad && track z err << l_pad
           float l_pad = pad->GetRowSize(fTracklets[trkltIdx].GetZbin());
-          if ( (TMath::Abs(fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].getZ()) <  l_pad) &&
+          if ( (fabs(fSpacePoints[trkltIdx].fX[1] - fCandidates[2*iCandidate+currIdx].getZ()) <  l_pad) &&
                (fCandidates[2*iCandidate+currIdx].getSigmaZ2() < (l_pad*l_pad/12.)) )
           {
             deltaY -= tiltCorr;
           }
           double trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] - tiltCorr, zPosCorr };
-          if ( (TMath::Abs(deltaY) < roadY) && (TMath::Abs(deltaZ) < roadZ) )
+          if ( (fabs(deltaY) < roadY) && (fabs(deltaZ) < roadZ) )
           {
             //tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
             RecalcTrkltCov(trkltIdx, tilt, fCandidates[2*iCandidate+currIdx].getSnp(), pad->GetRowSize(fTracklets[trkltIdx].GetZbin()));
@@ -551,8 +551,8 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
               }
               else {
                 std::sort(fHypothesis, fHypothesis+nCurrHypothesis, Hypothesis_Sort);
-                if ( ((chi2 + fCandidates[2*iCandidate+currIdx].GetChi2()) / TMath::Max(fCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
-                      (fHypothesis[nCurrHypothesis].fChi2 / TMath::Max(fHypothesis[nCurrHypothesis].fLayers, 1)) ) {
+                if ( ((chi2 + fCandidates[2*iCandidate+currIdx].GetChi2()) / std::max(fCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
+                      (fHypothesis[nCurrHypothesis].fChi2 / std::max(fHypothesis[nCurrHypothesis].fLayers, 1)) ) {
                   fHypothesis[nCurrHypothesis-1].fChi2 = fCandidates[2*iCandidate+currIdx].GetChi2() + chi2;
                   fHypothesis[nCurrHypothesis-1].fLayers = fCandidates[2*iCandidate+currIdx].GetNlayers();
                   fHypothesis[nCurrHypothesis-1].fCandidateId = iCandidate;
@@ -574,8 +574,8 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
       }
       else {
         std::sort(fHypothesis, fHypothesis+nCurrHypothesis, Hypothesis_Sort);
-        if ( ((fCandidates[2*iCandidate+currIdx].GetChi2() + fChi2Penalty) / TMath::Max(fCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
-             (fHypothesis[nCurrHypothesis].fChi2 / TMath::Max(fHypothesis[nCurrHypothesis].fLayers, 1)) ) {
+        if ( ((fCandidates[2*iCandidate+currIdx].GetChi2() + fChi2Penalty) / std::max(fCandidates[2*iCandidate+currIdx].GetNlayers(), 1)) <
+             (fHypothesis[nCurrHypothesis].fChi2 / std::max(fHypothesis[nCurrHypothesis].fLayers, 1)) ) {
           fHypothesis[nCurrHypothesis-1].fChi2 = fCandidates[2*iCandidate+currIdx].GetChi2() + fChi2Penalty;
           fHypothesis[nCurrHypothesis-1].fLayers = fCandidates[2*iCandidate+currIdx].GetNlayers();
           fHypothesis[nCurrHypothesis-1].fCandidateId = iCandidate;
@@ -606,7 +606,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
         float tiltCorrReal = tilt * (fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].getZ());
         float l_padReal = pad->GetRowSize(fTracklets[realTrkltId].GetZbin());
         if ( (fCandidates[currIdx].getSigmaZ2() >= (l_padReal*l_padReal/12.)) ||
-             (TMath::Abs(fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].getZ()) >= l_padReal) )
+             (fabs(fSpacePoints[realTrkltId].fX[1] - fCandidates[currIdx].getZ()) >= l_padReal) )
         {
           tiltCorrReal = 0;
         }
@@ -626,7 +626,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
     //
     // loop over the best N_candidates hypothesis
     //
-    for (int iUpdate = 0; iUpdate < TMath::Min(nCurrHypothesis, fNCandidates); iUpdate++) {
+    for (int iUpdate = 0; iUpdate < std::min(nCurrHypothesis, fNCandidates); iUpdate++) {
       if (fHypothesis[iUpdate].fCandidateId == -1) {
         // no more candidates
         if (iUpdate == 0) {
@@ -680,7 +680,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
       float yCorr = 0;
       float l_padTrklt = pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin());
       if ( (fCandidates[2*iUpdate+nextIdx].getSigmaZ2() < (l_padTrklt*l_padTrklt/12.)) &&
-           (TMath::Abs(fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].getZ()) < l_padTrklt) )
+           (fabs(fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].getZ()) < l_padTrklt) )
       {
         yCorr = tilt * (fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].getZ());
       }
@@ -769,7 +769,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
               // no more valid labels
               continue;
             }
-            if (lbTracklet == TMath::Abs(trackID)) {
+            if (lbTracklet == fabs(trackID)) {
               update[iLy] = 1 + il;
               nMatching++;
               break;
@@ -785,7 +785,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
               AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lbTracklet);
               while (mcPart) {
                 int motherPart = mcPart->GetMother();
-                if (motherPart == TMath::Abs(trackID)) {
+                if (motherPart == fabs(trackID)) {
                   update[iLy] = 4 + il;
                   nRelated++;
                   break;
@@ -843,20 +843,20 @@ bool AliHLTTRDTracker::AdjustSector(HLTTRDTrack *t, const int layer) const
   float alpha     = fGeo->GetAlpha();
   float xTmp      = t->GetX();
   float y         = t->GetY();
-  float yMax      = t->GetX() * TMath::Tan(0.5 * alpha);
+  float yMax      = t->GetX() * tanf(0.5 * alpha);
   float alphaCurr = t->GetAlpha();
 
   typedef propagatorInterface<AliTrackerBase> HLTTRDPropagator;
   HLTTRDPropagator prop;
 
-  if (TMath::Abs(y) > 2. * yMax) {
+  if (fabs(y) > 2. * yMax) {
     if (ENABLE_INFO) {
       Info("AdjustSector", "Track %i with pT = %f crossing two sector boundaries at x = %f", t->GetTPCtrackId(), t->Pt(), t->GetX());
     }
     return false;
   }
 
-  while (TMath::Abs(y) > yMax) {
+  while (fabs(y) > yMax) {
     int sign = (y > 0) ? 1 : -1;
     if (!t->rotate(alphaCurr + alpha * sign)) {
       return false;
@@ -875,9 +875,9 @@ int AliHLTTRDTracker::GetSector(float alpha) const
   // TRD sector number for reference system alpha
   //--------------------------------------------------------------------
   if (alpha < 0) {
-    alpha += 2. * TMath::Pi();
+    alpha += 2. * M_PI;
   }
-  return (int) (alpha * kNSectors / (2. * TMath::Pi()));
+  return (int) (alpha * kNSectors / (2. * M_PI));
 }
 
 float AliHLTTRDTracker::GetAlphaOfSector(const int sec) const
@@ -885,7 +885,7 @@ float AliHLTTRDTracker::GetAlphaOfSector(const int sec) const
   //--------------------------------------------------------------------
   // rotation angle for TRD sector sec
   //--------------------------------------------------------------------
-  return (2.0 * TMath::Pi() / (float) kNSectors * ((float) sec + 0.5));
+  return (2.0 * M_PI / (float) kNSectors * ((float) sec + 0.5));
 }
 
 void AliHLTTRDTracker::RecalcTrkltCov(const int trkltIdx, const float tilt, const float snp, const float rowSize)
@@ -921,7 +921,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
           // no more valid labels
           break;
         }
-	      if (lb == TMath::Abs(trackID)) {
+	      if (lb == fabs(trackID)) {
 	        matches[layer].push_back(trkltIdx);
           break;
         }
@@ -932,7 +932,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
         AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lb);
         while (mcPart) {
           lb = mcPart->GetMother();
-          if (lb == TMath::Abs(trackID)) {
+          if (lb == fabs(trackID)) {
             matches[layer].push_back(trkltIdx);
             trkltStored = true;
             break;
@@ -1011,7 +1011,7 @@ void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const float road
   // stack if track is close the edge(s) of the chamber
   //--------------------------------------------------------------------
 
-  const float yMax    = TMath::Abs(fGeo->GetCol0(iLayer));
+  const float yMax    = fabs(fGeo->GetCol0(iLayer));
 
   int currStack = fGeo->GetStack(t->getZ(), iLayer);
   int currSec = GetSector(t->getAlpha());
@@ -1032,7 +1032,7 @@ void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const float road
     }
   }
   else {
-    if (TMath::Abs(t->getZ()) > zMax) {
+    if (fabs(t->getZ()) > zMax) {
       // shift track in z so it is in the TRD acceptance
       if (t->getZ() > 0) {
           currDet = fGeo->GetDetector(iLayer, 0, currSec);
@@ -1057,7 +1057,7 @@ void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const float road
     }
   }
   // add chamber(s) from neighbouring sector in case the track is close to the boundary
-  if ( ( TMath::Abs(t->getY()) + roadY ) > yMax ) {
+  if ( ( fabs(t->getY()) + roadY ) > yMax ) {
     const int nStacksToSearch = det.size();
     int newSec;
     if (t->getY() > 0) {
@@ -1110,12 +1110,12 @@ bool AliHLTTRDTracker::IsGeoFindable(const HLTTRDTrack *t, const int layer) cons
 
   AliTRDpadPlane *pp = fGeo->GetPadPlane(layer, fGeo->GetStack(det));
   int rowIdx = pp->GetNrows() - 1;
-  float yMax = TMath::Abs(pp->GetColPos(0));
+  float yMax = fabs(pp->GetColPos(0));
   float zMax = pp->GetRowPos(0);
   float zMin = pp->GetRowPos(rowIdx) - pp->GetRowSize(rowIdx);
 
   // reject tracks closer than 5 cm to pad plane boundary
-  if (yMax - TMath::Abs(t->getY()) < 5.) {
+  if (yMax - fabs(t->getY()) < 5.) {
     return false;
   }
   // reject tracks closer than 5 cm to stack boundary
