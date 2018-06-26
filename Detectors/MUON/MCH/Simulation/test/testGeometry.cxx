@@ -145,29 +145,29 @@ BOOST_AUTO_TEST_CASE(TextualTreeDump)
   const std::string expected =
     R"(cave_1
 ├──SC01I_0
-│  ├──Quadrant (chamber 1)_101
-│  └──Quadrant (chamber 1)_102
-├──SC01O_1
 │  ├──Quadrant (chamber 1)_100
 │  └──Quadrant (chamber 1)_103
+├──SC01O_1
+│  ├──Quadrant (chamber 1)_101
+│  └──Quadrant (chamber 1)_102
 ├──SC02I_2
-│  ├──Quadrant (chamber 2)_201
-│  └──Quadrant (chamber 2)_202
-├──SC02O_3
 │  ├──Quadrant (chamber 2)_200
 │  └──Quadrant (chamber 2)_203
+├──SC02O_3
+│  ├──Quadrant (chamber 2)_201
+│  └──Quadrant (chamber 2)_202
 ├──SC03I_4
-│  ├──Station 2 quadrant_301
-│  └──Station 2 quadrant_302
-├──SC03O_5
 │  ├──Station 2 quadrant_300
 │  └──Station 2 quadrant_303
+├──SC03O_5
+│  ├──Station 2 quadrant_301
+│  └──Station 2 quadrant_302
 ├──SC04I_6
-│  ├──Station 2 quadrant_401
-│  └──Station 2 quadrant_402
-├──SC04O_7
 │  ├──Station 2 quadrant_400
 │  └──Station 2 quadrant_403
+├──SC04O_7
+│  ├──Station 2 quadrant_401
+│  └──Station 2 quadrant_402
 ├──SC05I_8
 │  ├──Chamber 5 support panel_8
 │  ├──122000SR1_500

@@ -51,53 +51,53 @@ std::string getVolumePathName(int detElemId)
 {
   std::string vp{ "incorrect detElemId" };
 
-  if (detElemId == 101) {
-    return "SC01I_0/Quadrant (chamber 1)_101";
-  }
-  if (detElemId == 102) {
-    return "SC01I_0/Quadrant (chamber 1)_102";
-  }
   if (detElemId == 100) {
-    return "SC01O_1/Quadrant (chamber 1)_100";
+    return "SC01I_0/Quadrant (chamber 1)_100";
   }
   if (detElemId == 103) {
-    return "SC01O_1/Quadrant (chamber 1)_103";
+    return "SC01I_0/Quadrant (chamber 1)_103";
   }
-  if (detElemId == 201) {
-    return "SC02I_2/Quadrant (chamber 2)_201";
+  if (detElemId == 101) {
+    return "SC01O_1/Quadrant (chamber 1)_101";
   }
-  if (detElemId == 202) {
-    return "SC02I_2/Quadrant (chamber 2)_202";
+  if (detElemId == 102) {
+    return "SC01O_1/Quadrant (chamber 1)_102";
   }
   if (detElemId == 200) {
-    return "SC02O_3/Quadrant (chamber 2)_200";
+    return "SC02I_2/Quadrant (chamber 2)_200";
   }
   if (detElemId == 203) {
-    return "SC02O_3/Quadrant (chamber 2)_203";
+    return "SC02I_2/Quadrant (chamber 2)_203";
   }
-  if (detElemId == 301) {
-    return "SC03I_4/Station 2 quadrant_301";
+  if (detElemId == 201) {
+    return "SC02O_3/Quadrant (chamber 2)_201";
   }
-  if (detElemId == 302) {
-    return "SC03I_4/Station 2 quadrant_302";
+  if (detElemId == 202) {
+    return "SC02O_3/Quadrant (chamber 2)_202";
   }
   if (detElemId == 300) {
-    return "SC03O_5/Station 2 quadrant_300";
+    return "SC03I_4/Station 2 quadrant_300";
   }
   if (detElemId == 303) {
-    return "SC03O_5/Station 2 quadrant_303";
+    return "SC03I_4/Station 2 quadrant_303";
   }
-  if (detElemId == 401) {
-    return "SC04I_6/Station 2 quadrant_401";
+  if (detElemId == 301) {
+    return "SC03O_5/Station 2 quadrant_301";
   }
-  if (detElemId == 402) {
-    return "SC04I_6/Station 2 quadrant_402";
+  if (detElemId == 302) {
+    return "SC03O_5/Station 2 quadrant_302";
   }
   if (detElemId == 400) {
-    return "SC04O_7/Station 2 quadrant_400";
+    return "SC04I_6/Station 2 quadrant_400";
   }
   if (detElemId == 403) {
-    return "SC04O_7/Station 2 quadrant_403";
+    return "SC04I_6/Station 2 quadrant_403";
+  }
+  if (detElemId == 401) {
+    return "SC04O_7/Station 2 quadrant_401";
+  }
+  if (detElemId == 402) {
+    return "SC04O_7/Station 2 quadrant_402";
   }
   if (detElemId == 500) {
     return "SC05I_8/122000SR1_500";

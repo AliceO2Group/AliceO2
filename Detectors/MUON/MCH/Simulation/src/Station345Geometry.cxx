@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   SlatGeometry.cxx
+/// \file   Station345Geometry.cxx
 /// \brief  Implementation of the slat-stations geometry
 /// \author Florian Damas <florian.damas@cern.ch>
-/// \date   22 mars 2018
+/// \date   22 march 2018
 
 #include "Materials.h"
 #include "Station345Geometry.h"
@@ -46,19 +46,17 @@ const float kGasLength = 40.;
 const float kGasHeight = 40.;
 const float kGasWidth = 2 * 0.25;
 
-/// PCB
+/// PCB = gas + 2*(cathode + insulator)
 const float kPCBLength = kGasLength;
 const float kShortPCBLength = 35.;
 const float kRoundedPCBLength = 42.5;
 const float kR1PCBLength = 19.25;
 const float kPCBHeight = 58.;
-const float kPCBWidth = 0.002; // changed w.r.t AliRoot after investigation
 
-/// Insulator (FR4)
-const float kInsuWidth = 0.04; // changed w.r.t AliRoot after investigation
+const float kCathodeWidth = 0.002; // changed w.r.t AliRoot after investigation
+const float kInsuWidth = 0.04;     // changed w.r.t AliRoot after investigation
 
-/// PCB volume (gas + 2*(pcb plate + insulator))
-const float kTotalPCBWidth = kGasWidth + 2 * (kPCBWidth + kInsuWidth);
+const float kTotalPCBWidth = kGasWidth + 2 * (kCathodeWidth + kInsuWidth);
 
 /// Slat panel = honeycomb nomex + 2 carbon fiber skins
 const float kSlatPanelHeight = 42.5; // according to construction plan, its length depends on the number of PCBs
@@ -151,27 +149,25 @@ void createCommonVolumes()
 {
   /// Build the identical volumes (constant shapes, dimensions, ...) shared by many elements
 
+  const auto kSpacerMed = assertMedium(Medium::Noryl);
+
   // the right vertical spacer (identical to any slat)
-  new TGeoVolume("Right spacer", new TGeoBBox(kVertSpacerLength / 2., kSlatPanelHeight / 2., kSpacerWidth / 2.),
-                 assertMedium(Medium::Noryl));
+  gGeoManager->MakeBox("Right spacer", kSpacerMed, kVertSpacerLength / 2., kSlatPanelHeight / 2., kSpacerWidth / 2.);
 
   // the top spacers and borders : 4 lengths possible according to the PCB shape
   float lengths[4] = { kShortPCBLength, kPCBLength, kR1PCBLength, kRoundedPCBLength };
   for (int i = 0; i < 4; i++) {
     // top spacer
-    new TGeoVolume(Form("Top spacer %.2f long", lengths[i]),
-                   new TGeoBBox(lengths[i] / 2., kHoriSpacerHeight / 2., kSpacerWidth / 2.),
-                   assertMedium(Medium::Noryl));
+    gGeoManager->MakeBox(Form("Top spacer %.2f long", lengths[i]), kSpacerMed, lengths[i] / 2., kHoriSpacerHeight / 2., kSpacerWidth / 2.);
 
     // top border
-    new TGeoVolume(Form("Top border %.2f long", lengths[i]),
-                   new TGeoBBox(lengths[i] / 2., kBorderHeight / 2., kBorderWidth / 2.),
-                   assertMedium(Medium::Rohacell));
+    gGeoManager->MakeBox(Form("Top border %.2f long", lengths[i]),
+                         assertMedium(Medium::Rohacell),
+                         lengths[i] / 2., kBorderHeight / 2., kBorderWidth / 2.);
   }
 
-  // MANU (to be checked !!!)
-  new TGeoVolume("MANU", new TGeoBBox(kMANULength / 2., kMANUHeight / 2., kMANUWidth / 2.),
-                 assertMedium(Medium::Copper));
+  // MANU card (to be changed by Dual SAMPAs in the future)
+  gGeoManager->MakeBox("MANU345", assertMedium(Medium::Copper), kMANULength / 2., kMANUHeight / 2., kMANUWidth / 2.);
 }
 
 //______________________________________________________________________________
@@ -179,14 +175,14 @@ void createPCBs()
 {
   /// Build the different PCB types
 
-  /// A PCB is a pile-up of several material layers, from in to out : sensitive gas, pcb plate and insulator
-  /// There are two types of pcb plates : a "bending" and a "non-bending" one. We build the PCB volume such that the
-  /// bending side faces the IP (z>0). When placing the slat on the half-chambers, the builder grabs the rotation to
+  /// A PCB is a pile-up of several material layers, from in to out : sensitive gas, cathode and insulator
+  /// There are two types of cathodes : a "bending" and a "non-bending" one. We build the PCB volume such that the
+  /// bending side faces the IP (z>0 in the local frame). When placing the slat on the half-chambers, the builder grabs the rotation to
   /// apply from the JSON. By doing so, we make sure that we match the mapping convention
 
   // Define some necessary variables
-  string bendName, nonbendName; // pcb plate names
-  float width = 0., gasLength = 0., pcbLength = 0., borderLength = 0., radius = 0., curvRad = 0., pcbShift = 0.,
+  string bendName, nonbendName; // cathode names
+  float halfWidth = 0., gasLength = 0., pcbLength = 0., borderLength = 0., radius = 0., curvRad = 0., pcbShift = 0.,
         gasShift = 0., x = 0., y = 0.,
         z = 0.; // useful parameters for dimensions and positions
   int numb = 1, nMANU = 0;
@@ -239,11 +235,11 @@ void createPCBs()
 
     x = pcbLength / 2.;
     y = kPCBHeight / 2.;
-    // bending pcb plate
-    auto bend = new TGeoVolume(bendName.data(), new TGeoBBox(Form("%sBendBox", name), x, y, kPCBWidth / 2.),
+    // bending cathode
+    auto bend = new TGeoVolume(bendName.data(), new TGeoBBox(Form("%sBendBox", name), x, y, kCathodeWidth / 2.),
                                assertMedium(Medium::Copper));
-    // non-bending pcb plate
-    auto nonbend = new TGeoVolume(nonbendName.data(), new TGeoBBox(Form("%sNonBendBox", name), x, y, kPCBWidth / 2.),
+    // non-bending cathode
+    auto nonbend = new TGeoVolume(nonbendName.data(), new TGeoBBox(Form("%sNonBendBox", name), x, y, kCathodeWidth / 2.),
                                   assertMedium(Medium::Copper));
     // insulating material
     auto insu = new TGeoVolume(Form("%s insulator", name), new TGeoBBox(Form("%sInsuBox", name), x, y, kInsuWidth / 2.),
@@ -291,7 +287,7 @@ void createPCBs()
       gas->SetShape(new TGeoCompositeShape(Form("R%.1fY%.1fGasShape", curvRad, y),
                                            Form("%sGasBox-GasHoleR%.1f:GasHoleY%.1fShift", name, curvRad, y)));
 
-      new TGeoTube(Form("HoleR%.1f", curvRad), 0., curvRad, kPCBWidth / 2.);
+      new TGeoTube(Form("HoleR%.1f", curvRad), 0., curvRad, kCathodeWidth / 2.);
       bend->SetShape(new TGeoCompositeShape(Form("R%.1fY%.1fBendShape", curvRad, y),
                                             Form("%sBendBox-HoleR%.1f:PCBholeY%.1fShift", name, curvRad, y)));
 
@@ -311,21 +307,23 @@ void createPCBs()
       }
     }
 
-    /// place all the layers in the pcb volume assembly
-
-    width = kGasWidth; // increment this value when adding a new layer
+    /// place all the layers in the PCB
+    halfWidth = kGasWidth / 2.;
     pcb->AddNode(gas, 1, new TGeoTranslation(gasShift / 2., 0., 0.));
+    z = halfWidth;
 
-    width += kPCBWidth;
+    halfWidth = kCathodeWidth / 2.;
     x = pcbShift / 2.;
-    z = width / 2.;
+    z += halfWidth;
     pcb->AddNode(bend, 1, new TGeoTranslation(x, 0., z));
     pcb->AddNode(nonbend, 2, new TGeoTranslation(x, 0., -z));
+    z += halfWidth;
 
-    width += kInsuWidth;
-    z = width / 2.;
+    halfWidth = kInsuWidth / 2.;
+    z += halfWidth;
     pcb->AddNode(insu, 1, new TGeoTranslation(x, 0., z));
     pcb->AddNode(insu, 2, new TGeoTranslation(x, 0., -z));
+    z += halfWidth;
 
     // the horizontal spacers
     y = (kGasHeight + kHoriSpacerHeight) / 2.;
@@ -335,12 +333,14 @@ void createPCBs()
     // the borders
     y = (kPCBHeight - kBorderHeight) / 2.;
     pcb->AddNode(gGeoManager->GetVolume(Form("Top border %.2f long", pcbLength)), 1, new TGeoTranslation(x, y, 0.));
+    x = (pcbShift + pcbLength - borderLength) / 2.;
     pcb->AddNode(gGeoManager->MakeBox(Form("%s bottom border", name), assertMedium(Medium::Rohacell),
                                       borderLength / 2., kBorderHeight / 2., kBorderWidth / 2.),
-                 1, new TGeoTranslation((pcbShift + pcbLength - borderLength) / 2., -y, 0.));
+                 1, new TGeoTranslation(x, -y, 0.));
 
-    // the MANUs
-    width += kMANUWidth;
+    // the MANU cards
+    halfWidth = kMANUWidth / 2.;
+    z += halfWidth;
     auto manus = pcbType.second;
     float length, shift;
     for (int i = 0; i < manus.size(); i++) {
@@ -349,10 +349,10 @@ void createPCBs()
       length = (i % 2) ? borderLength : pcbLength;
       shift = (i % 2) ? pcbLength - borderLength : 0.;
       y = TMath::Power(-1, i % 2) * kMANUypos;
-      z = TMath::Power(-1, i / 2) * width / 2.;
+      z = TMath::Power(-1, i / 2) * z;
 
       for (int j = 0; j < nMANU; j++) {
-        pcb->AddNode(gGeoManager->GetVolume("MANU"), 100 * i + j,
+        pcb->AddNode(gGeoManager->GetVolume("MANU345"), 100 * i + j,
                      new TGeoTranslation((j - nMANU / 2) * (length / nMANU) - (nMANU % 2 - 1) * (length / (2 * nMANU)) +
                                            (pcbShift + shift) / 2,
                                          y, z));
@@ -368,9 +368,11 @@ void createSlats()
   /// The different PCB types must have been built before calling this function !!!
 
   // Define some necessary variables
-  float length = 0., center = 0., PCBlength = 0., gasLength = 0., x = 0., y = 0., z = 0., xRoundedPos = 0., angMin = 0.,
-        angMax = 0., radius = 0., width = 0., cableLength = 0., leftSpacerHeight = 0., panelShift = 0.;
+  float length = 0., center = 0., pcbLength = 0., gasLength = 0., x = 0., y = 0., z = 0., halfWidth = 0., xRoundedPos = 0., angMin = 0.,
+        angMax = 0., radius = 0., cableLength = 0., leftSpacerHeight = 0., panelShift = 0.;
   int ivol = 0;
+
+  const auto kSpacerMed = assertMedium(Medium::Noryl);
 
   // Mirror rotation for the slat panel on the non-bending side
   auto mirror = new TGeoRotation();
@@ -398,20 +400,20 @@ void createSlats()
 
       switch (pcb.front()) {
         case 'R':
-          PCBlength = (pcb.back() == '1') ? kR1PCBLength : kRoundedPCBLength;
-          panelShift -= PCBlength - kRoundedPCBLength;
+          pcbLength = (pcb.back() == '1') ? kR1PCBLength : kRoundedPCBLength;
+          panelShift -= pcbLength - kRoundedPCBLength;
           break;
         case 'S':
-          PCBlength = kShortPCBLength;
+          pcbLength = kShortPCBLength;
           gasLength = kShortPCBLength;
-          panelShift += PCBlength - kPCBLength;
+          panelShift += pcbLength - kPCBLength;
           break;
         default:
-          PCBlength = kPCBLength;
+          pcbLength = kPCBLength;
           break;
       }
 
-      length += PCBlength;
+      length += pcbLength;
 
       // place the corresponding PCB volume in the slat and correct the origin of the slat
       slat->AddNode(gGeoManager->GetVolume(pcb.data()), ivol + 1,
@@ -435,10 +437,8 @@ void createSlats()
     }
 
     // left vertical spacer
-    auto left = new TGeoVolume(
-      Form("%s left spacer", name),
-      new TGeoBBox(Form("%sLeftSpacerBox", name), kVertSpacerLength / 2., leftSpacerHeight / 2., kSpacerWidth / 2.),
-      assertMedium(Medium::Noryl));
+    auto left = new TGeoVolume(Form("%s left spacer", name),
+                               new TGeoBBox(Form("%sLeftSpacerBox", name), kVertSpacerLength / 2., leftSpacerHeight / 2., kSpacerWidth / 2.), kSpacerMed);
 
     // glue a slat panel on each side of the PCBs
     auto panel = new TGeoVolumeAssembly(Form("%s panel", name));
@@ -447,25 +447,24 @@ void createSlats()
     y = kSlatPanelHeight / 2.;
 
     // glue
-    auto glue =
-      new TGeoVolume(Form("%s panel glue", name), new TGeoBBox(Form("%sGlueBox", name), x, y, kGlueWidth / 2.),
-                     assertMedium(Medium::Glue));
+    auto glue = new TGeoVolume(Form("%s panel glue", name),
+                               new TGeoBBox(Form("%sGlueBox", name), x, y, kGlueWidth / 2.),
+                               assertMedium(Medium::Glue));
 
     // nomex (bulk)
-    auto nomexBulk = new TGeoVolume(
-      Form("%s panel nomex (bulk)", name),
-      new TGeoBBox(Form("%sNomexBulkBox", name), length / 2., kSlatPanelHeight / 2., kNomexBulkWidth / 2.),
-      assertMedium(Medium::BulkNomex));
+    auto nomexBulk = new TGeoVolume(Form("%s panel nomex (bulk)", name),
+                                    new TGeoBBox(Form("%sNomexBulkBox", name), length / 2., kSlatPanelHeight / 2., kNomexBulkWidth / 2.),
+                                    assertMedium(Medium::BulkNomex));
 
     // carbon fiber
-    auto carbon =
-      new TGeoVolume(Form("%s panel carbon fiber", name),
-                     new TGeoBBox(Form("%sCarbonBox", name), x, y, kCarbonWidth / 2.), assertMedium(Medium::Carbon));
+    auto carbon = new TGeoVolume(Form("%s panel carbon fiber", name),
+                                 new TGeoBBox(Form("%sCarbonBox", name), x, y, kCarbonWidth / 2.),
+                                 assertMedium(Medium::Carbon));
+
     // nomex (honeycomb)
-    auto nomex =
-      new TGeoVolume(Form("%s panel nomex (honeycomb)", name),
-                     new TGeoBBox(Form("%sNomexBox", name), length / 2., kSlatPanelHeight / 2., kNomexWidth / 2.),
-                     assertMedium(Medium::HoneyNomex));
+    auto nomex = new TGeoVolume(Form("%s panel nomex (honeycomb)", name),
+                                new TGeoBBox(Form("%sNomexBox", name), length / 2., kSlatPanelHeight / 2., kNomexWidth / 2.),
+                                assertMedium(Medium::HoneyNomex));
 
     // change the volume shape if we are creating a rounded slat
     if (typeName.find('R') < typeName.size()) {
@@ -507,7 +506,7 @@ void createSlats()
       cableLength -= x + length / 2.;
 
       // create and place the rounded spacer
-      slat->AddNode(gGeoManager->MakeTubs(Form("%s rounded spacer", name), assertMedium(Medium::Noryl), radius,
+      slat->AddNode(gGeoManager->MakeTubs(Form("%s rounded spacer", name), kSpacerMed, radius,
                                           radius + kRoundedSpacerLength, kSpacerWidth, angMin, angMax),
                     1, new TGeoTranslation(-xRoundedPos, -y, 0.));
 
@@ -544,22 +543,34 @@ void createSlats()
     // place all the layers in the slat panel volume assembly
     // be careful : the panel origin is on the glue edge !
 
-    width = kGlueWidth; // increment this value when adding a new layer
-    panel->AddNode(glue, 1, new TGeoTranslation(0., 0., width / 2.));
+    halfWidth = kGlueWidth / 2.;
+    z = halfWidth;
+    panel->AddNode(glue, 1, new TGeoTranslation(0., 0., z));
+    z += halfWidth;
 
-    panel->AddNode(nomexBulk, 1, new TGeoTranslation(0., 0., width + kNomexBulkWidth / 2.));
-    width += kNomexBulkWidth;
+    halfWidth = kNomexBulkWidth / 2.;
+    z += halfWidth;
+    panel->AddNode(nomexBulk, 1, new TGeoTranslation(0., 0., z));
+    z += halfWidth;
 
-    panel->AddNode(glue, 2, new TGeoTranslation(0., 0., width + kGlueWidth / 2.));
-    width += kGlueWidth;
+    halfWidth = kGlueWidth / 2.;
+    z += halfWidth;
+    panel->AddNode(glue, 2, new TGeoTranslation(0., 0., z));
+    z += halfWidth;
 
-    panel->AddNode(carbon, 1, new TGeoTranslation(0., 0., width + kCarbonWidth / 2.));
-    width += kCarbonWidth;
+    halfWidth = kCarbonWidth / 2.;
+    z += halfWidth;
+    panel->AddNode(carbon, 1, new TGeoTranslation(0., 0., z));
+    z += halfWidth;
 
-    panel->AddNode(nomex, 1, new TGeoTranslation(0., 0., width + kNomexWidth / 2.));
-    width += kNomexWidth;
+    halfWidth = kNomexWidth / 2.;
+    z += halfWidth;
+    panel->AddNode(nomex, 1, new TGeoTranslation(0., 0., z));
+    z += halfWidth;
 
-    panel->AddNode(carbon, 2, new TGeoTranslation(0., 0., width + kCarbonWidth / 2.));
+    halfWidth = kCarbonWidth / 2.;
+    z += halfWidth;
+    panel->AddNode(carbon, 2, new TGeoTranslation(0., 0., z));
 
     // place the panel volume on each side of the slat volume assembly
     x = panelShift / 2.;
@@ -593,7 +604,7 @@ void createSupportPanels()
   /// Function building the half-chamber support panels (one different per chamber)
 
   // dimensions
-  float halfLength = 0., halfHeight = 0., width = 0., radius = 0., z = 0.;
+  float halfLength = 0., halfHeight = 0., halfWidth = 0., radius = 0., z = 0.;
 
   for (int i = 5; i <= 10; i++) {
 
@@ -616,14 +627,13 @@ void createSupportPanels()
     holeTrans->RegisterYourself();
 
     // create the hole in the nomex volume
-    z = kNomexSupportWidth / 2.;
-    new TGeoTube(Form("NomexSupportPanelHoleCh%d", i), 0., radius, z);
+    halfWidth = kNomexSupportWidth / 2.;
+    new TGeoTube(Form("NomexSupportPanelHoleCh%d", i), 0., radius, halfWidth);
 
     // create a box for the nomex volume
-    new TGeoBBox(Form("NomexSupportPanelCh%dBox", i), halfLength, halfHeight, z);
+    new TGeoBBox(Form("NomexSupportPanelCh%dBox", i), halfLength, halfHeight, halfWidth);
 
     // create the nomex volume, change its shape by extracting the pipe shape and place it in the support panel
-    width = kNomexSupportWidth; // increment the width when adding a new layer
     support->AddNode(
       new TGeoVolume(
         Form("NomexSupportPanelCh%d", i),
@@ -631,13 +641,14 @@ void createSupportPanels()
                                Form("NomexSupportPanelCh%dBox-NomexSupportPanelHoleCh%d:holeCh%dShift", i, i, i)),
         assertMedium(Medium::HoneyNomex)),
       i, new TGeoTranslation(halfLength, 0., 0.));
+    z = halfWidth; // increment this value when adding a new layer
 
     // create the hole in the glue volume
-    z = kGlueSupportWidth / 2.;
-    new TGeoTube(Form("GlueSupportPanelHoleCh%d", i), 0., radius, z);
+    halfWidth = kGlueSupportWidth / 2.;
+    new TGeoTube(Form("GlueSupportPanelHoleCh%d", i), 0., radius, halfWidth);
 
     // create a box for the glue volume
-    new TGeoBBox(Form("GlueSupportPanelCh%dBox", i), halfLength, halfHeight, z);
+    new TGeoBBox(Form("GlueSupportPanelCh%dBox", i), halfLength, halfHeight, halfWidth);
 
     // create the glue volume and change its shape by extracting the pipe shape
     auto glue = new TGeoVolume(
@@ -647,17 +658,17 @@ void createSupportPanels()
       assertMedium(Medium::Glue));
 
     // place it on each side of the nomex volume
-    width += kGlueSupportWidth;
-    z = width / 2.;
+    z += halfWidth;
     support->AddNode(glue, 1, new TGeoTranslation(halfLength, 0., z));
     support->AddNode(glue, 2, new TGeoTranslation(halfLength, 0., -z));
+    z += halfWidth;
 
     // create the hole in the carbon volume
-    z = kCarbonSupportWidth / 2.;
-    new TGeoTube(Form("CarbonSupportPanelHoleCh%d", i), 0., radius, z);
+    halfWidth = kCarbonSupportWidth / 2.;
+    new TGeoTube(Form("CarbonSupportPanelHoleCh%d", i), 0., radius, halfWidth);
 
     // create a box for the carbon volume
-    new TGeoBBox(Form("CarbonSupportPanelCh%dBox", i), halfLength, halfHeight, z);
+    new TGeoBBox(Form("CarbonSupportPanelCh%dBox", i), halfLength, halfHeight, halfWidth);
 
     // create the carbon volume and change its shape by extracting the pipe shape
     auto carbon = new TGeoVolume(
@@ -667,8 +678,7 @@ void createSupportPanels()
       assertMedium(Medium::Carbon));
 
     // place it on each side of the glue volume
-    width += kCarbonSupportWidth;
-    z = width / 2.;
+    z += halfWidth;
     support->AddNode(carbon, 1, new TGeoTranslation(halfLength, 0., z));
     support->AddNode(carbon, 2, new TGeoTranslation(halfLength, 0., -z));
 
@@ -736,8 +746,7 @@ void buildHalfChambers(TGeoVolume& topVolume)
     // place the half-chamber in the top volume
     topVolume.AddNode(
       halfChVol, moduleID,
-      new TGeoCombiTrans(halfCh["position"][0].GetDouble(), halfCh["position"][1].GetDouble(),
-                         halfCh["position"][2].GetDouble(),
+      new TGeoCombiTrans(halfCh["position"][0].GetDouble(), halfCh["position"][1].GetDouble(), halfCh["position"][2].GetDouble(),
                          new TGeoRotation(Form("%srotation", name.data()), halfCh["rotation"][0].GetDouble(),
                                           halfCh["rotation"][1].GetDouble(), halfCh["rotation"][2].GetDouble(),
                                           halfCh["rotation"][3].GetDouble(), halfCh["rotation"][4].GetDouble(),
@@ -802,7 +811,7 @@ const string jsonSlatDescription =
     {
       "name":"SC05I",
       "moduleID":8,
-      "position":[0.00, -0.1663, -959.75],
+      "position":[0.00, -0.1074, -959.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -865,7 +874,7 @@ const string jsonSlatDescription =
     {
       "name":"SC05O",
       "moduleID":9,
-      "position":[0.00, 0.1663, -975.25],
+      "position":[0.00, 0.1074, -975.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -928,7 +937,7 @@ const string jsonSlatDescription =
     {
       "name":"SC06I",
       "moduleID":10,
-      "position":[0.00, -0.1663, -990.75],
+      "position":[0.00, -0.1074, -990.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -991,7 +1000,7 @@ const string jsonSlatDescription =
     {
       "name":"SC06O",
       "moduleID":11,
-      "position":[0.00, 0.1663, -1006.25],
+      "position":[0.00, 0.1074, -1006.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1054,7 +1063,7 @@ const string jsonSlatDescription =
     {
       "name":"SC07I",
       "moduleID":12,
-      "position":[0.00, -0.1663, -1259.75],
+      "position":[0.00, -0.1074, -1259.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1141,7 +1150,7 @@ const string jsonSlatDescription =
     {
       "name":"SC07O",
       "moduleID":13,
-      "position":[0.00, -0.1663, -1284.25],
+      "position":[0.00, -0.1074, -1284.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1228,7 +1237,7 @@ const string jsonSlatDescription =
     {
       "name":"SC08I",
       "moduleID":14,
-      "position":[0.00, -0.1663, -1299.75],
+      "position":[0.00, -0.1074, -1299.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1315,7 +1324,7 @@ const string jsonSlatDescription =
     {
       "name":"SC08O",
       "moduleID":15,
-      "position":[0.00, -0.1663, -1315.25],
+      "position":[0.00, -0.1074, -1315.25],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1402,7 +1411,7 @@ const string jsonSlatDescription =
     {
       "name":"SC09I",
       "moduleID":16,
-      "position":[0.00, -0.1663, -1398.85],
+      "position":[0.00, -0.1074, -1398.85],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1489,7 +1498,7 @@ const string jsonSlatDescription =
     {
       "name":"SC09O",
       "moduleID":17,
-      "position":[0.00, -0.1663, -1414.35],
+      "position":[0.00, -0.1074, -1414.35],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1576,7 +1585,7 @@ const string jsonSlatDescription =
     {
       "name":"SC10I",
       "moduleID":18,
-      "position":[0.00, -0.1663, -1429.85],
+      "position":[0.00, -0.1074, -1429.85],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {
@@ -1663,7 +1672,7 @@ const string jsonSlatDescription =
     {
       "name":"SC10O",
       "moduleID":19,
-      "position":[0.00, -0.1663, -1445.35],
+      "position":[0.00, -0.1074, -1445.35],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {

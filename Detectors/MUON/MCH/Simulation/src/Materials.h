@@ -11,7 +11,7 @@
 /// \file   Materials.h
 /// \brief  Implementation of the MCH materials definitions
 /// \author Florian Damas <florian.damas@cern.ch>
-/// \date   22 mars 2018
+/// \date   22 march 2018
 
 #ifndef O2_MCH_SIMULATION_MATERIALS_H
 #define O2_MCH_SIMULATION_MATERIALS_H
