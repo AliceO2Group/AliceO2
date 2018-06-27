@@ -361,8 +361,6 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
   //    or track does not fullfill threshold conditions
   //--------------------------------------------------------------------
 
-  typedef propagatorInterface<AliTrackerBase> HLTTRDPropagator;
-
   HLTTRDPropagator prop;
 
   // only propagate tracks within TRD acceptance
@@ -448,11 +446,6 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
       }
 
       // propagate track to average radius of TRD layer iLayer
-      //if (!PropagateTrackToBxByBz(&fCandidates[2*iCandidate+currIdx], fR[iLayer], mass, 2.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/)) {
-      //  Info("FollowProlongation", "Track propagation failed for track %i candidate %i in layer %i (pt=%f)",
-      //    iTrack, iCandidate, iLayer, fCandidates[2*iCandidate+currIdx].Pt());
-      //  continue;
-      //}
       if (!prop.PropagateToX(&fCandidates[2*iCandidate+currIdx], fR[iLayer], 0.8 /*maxSnp*/, 2.0 /*max step*/)) {
         if (ENABLE_INFO) {
           Info("FollowProlongation", "Track propagation failed for track %i candidate %i in layer %i (pt=%f, x=%f, fR[layer]=%f)",
