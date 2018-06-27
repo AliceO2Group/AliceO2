@@ -69,6 +69,12 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #endif
 
 #include "AliHLTTPCGMTrackParam.h"
+#include "AliHLTTPCGMPropagator.h"
+#include "AliHLTTPCGMMerger.h"
+#include "AliHLTTPCCAParam.h"
+
+template <> class propagatorInterface<AliHLTTPCGMPropagator>;
+
 template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrackParam
 {
   public:
@@ -77,7 +83,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) : AliHLTTPCGMTrackParam() {}; // FIXME set params, or is it dummy?
 
     float getX()  const { return GetX(); }
-    float getAlpha()   const { return -999; } // FIXME
+    float getAlpha()   const { return fProp->GetAlpha(); } // FIXME use of incomplete type... How to fix this?
     float getY()       const { return GetY(); }
     float getZ()       const { return GetZ(); }
     float getSnp()     const { return GetSinPhi(); }
@@ -90,22 +96,51 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
 
     const float *getCov() const { return GetCov(); }
 
+    // propagator
+    propagatorInterface<AliHLTTPCGMPropagator> *fProp;
     // parameter manipulation
-    bool update(const float p[2], const float cov[3])                  { return true; } // FIXME
-    float getPredictedChi2(const float p[2], const float cov[3]) const { return -1; } // FIXME
-    bool rotate(float alpha)                                           { return Rotate(alpha); } // FIXME how does this work if alpha is not a member of the track param?
+    AliHLTTPCCAParam fParam;
+    bool update(const float p[2], const float cov[3]) { // TODO what about the tracklet covariance?
+      return fProp->Update(p[0], p[1], HLTCA_ROW_COUNT - 1, param, 0, false, false);
+    }
+    float getPredictedChi2(const float p[2], const float cov[3]) const { return 99999; } // TODO not available for HLT tracking?
+    bool rotate(float alpha)                                           { return fProp->RotateToAlha(alpha); }
 
-    void set(float x, float alpha, const float param[5], const float cov[15]) // FIXME what about alpha?
-      { SetX(x); for (int i=0; i<5; i++) SetPar(i, param[i]);  for (int j=0; j<15; j++) SetCov(j, cov[j]); }
+    void set(float x, float alpha, const float param[5], const float cov[15]) {
+      SetX(x);
+      for (int i=0; i<5; i++) {
+        SetPar(i, param[i]);
+      }
+      for (int j=0; j<15; j++) {
+        SetCov(j, cov[j]);
+      }
+      fProp->SetTrack(this, alpha);
+    }
 
     typedef AliHLTTPCGMTrackParam baseClass;
 };
 
-//template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCGMPropagator TODO
-//{
-//  public:
-//    bool PropagateToX() {
-//      return PropagateToXAlpha();
-//    }
-//};
+template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCGMPropagator
+{
+  public:
+    propagatorInterface<AliHLTTPCGMPropagator>() : AliHLTTPCGMPropagator() {
+      static constexpr float kRho = 1.025e-3;
+      static constexpr float kRadLen = 29.532;
+      static AliHLTTPCGMMerger fMerger;
+      this->SetMaterial( kRadLen, kRho );
+      this->SetPolynomialField( fMerger.pField() );
+      this->SetMaxSinPhi( HLTCA_MAX_SIN_PHI );
+      this->SetToyMCEventsFlag(0);
+      this->SetFitInProjections(0);
+    };
+    bool PropagateToX( trackInterface<AliHLTTPCGMTrackParam> *trk, float x, float maxSnp, float maxStep ) {
+      return trk->fProp->PropagateToXAlpha();
+    }
+};
+
+#ifdef HLTCA_BUILD_ALIROOT_LIB
+typedef propagatorInterface<AliTrackerBase> HLTTRDPropagator;
+#else
+typedef propagatorInterface<AliHLTTPCGMPropagator> HLTTRDPropagator;
+#endif
 #endif

@@ -141,9 +141,11 @@ void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
   t.fq1Pt = T::getQ2Pt();
   t.fSinPhi = T::getSnp();
   t.fTgl = T::getTgl();
-  for( int i=0; i<15; i++ ) t.fC[i] = T::getCov()[i];
+  for( int i=0; i<15; i++ ) {
+    t.fC[i] = T::getCov()[i];
+  }
   t.fTPCTrackID = GetTPCtrackId();
-  for ( int i = 0; i <6; i++ ){
+  for ( int i = 0; i <6; i++ ) {
     t.fAttachedTracklets[ i ] = GetTracklet( i );
   }
 }
