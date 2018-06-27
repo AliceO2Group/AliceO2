@@ -34,10 +34,10 @@ class Param
   {
     if (fgInstance) {
       for (Int_t i = 0; i < 7; i++) {
-        delete fM[i];
-        fM[i] = 0x0;
+        delete mM[i];
+        mM[i] = nullptr;
       };
-      fgInstance = 0;
+      fgInstance = nullptr;
     }
   }
 
@@ -85,13 +85,13 @@ class Param
   static float LorsY(Int_t pc, Int_t pady) { return (pady + 0.5) * SizePadY() + fgkMinPcY[pc]; }
 
   //PhiMin (degree) of the camber ch
-  float ChPhiMin(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMinPx) - fX, LorsY(ch, kMinPy) - fY).Phi() * r2d(); }
+  float ChPhiMin(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMinPx) - mX, LorsY(ch, kMinPy) - mY).Phi() * r2d(); }
   //ThMin  (degree) of the camber ch
-  float ChThMin(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMinPx) - fX, LorsY(ch, kMinPy) - fY).Theta() * r2d(); }
+  float ChThMin(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMinPx) - mX, LorsY(ch, kMinPy) - mY).Theta() * r2d(); }
   //PhiMax (degree) of the camber ch
-  float ChPhiMax(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMaxPcx) - fX, LorsY(ch, kMaxPcy) - fY).Phi() * r2d(); }
+  float ChPhiMax(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMaxPcx) - mX, LorsY(ch, kMaxPcy) - mY).Phi() * r2d(); }
   //ThMax  (degree) of the camber ch
-  float ChThMax(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMaxPcx) - fX, LorsY(ch, kMaxPcy) - fY).Theta() * r2d(); }
+  float ChThMax(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMaxPcx) - mX, LorsY(ch, kMaxPcy) - mY).Theta() * r2d(); }
 
   inline static void Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py); //(x,y)->(pc,px,py)
 
@@ -156,11 +156,11 @@ class Param
   //find the temperature of the C6F14 in a given point with coord. y (in x is uniform)
   inline static double FindTemp(double tLow, double tUp, double y);
 
-  double GetEPhotMean() const { return fPhotEMean; }
-  double GetRefIdx() const { return fRefIdx; } //running refractive index
+  double GetEPhotMean() const { return mPhotEMean; }
+  double GetRefIdx() const { return mRefIdx; } //running refractive index
 
-  double MeanIdxRad() const { return NIdxRad(fPhotEMean, fTemp); }
-  double MeanIdxWin() const { return NIdxWin(fPhotEMean); }
+  double MeanIdxRad() const { return NIdxRad(mPhotEMean, mTemp); }
+  double MeanIdxWin() const { return NIdxWin(mPhotEMean); }
   //
   float DistCut() const { return 1.0; } //<--TEMPORAR--> to be removed in future. Cut for MIP-TRACK residual
   float QCut() const { return 100; }    //<--TEMPORAR--> to be removed in future. Separation PHOTON-MIP charge
@@ -190,8 +190,8 @@ class Param
         z = -1.25;
         break;
     }
-    double l[3] = { x - fX, y - fY, z };
-    fM[c]->LocalToMaster(l, m);
+    double l[3] = { x - mX, y - mY, z };
+    mM[c]->LocalToMaster(l, m);
   }
   TVector3 Lors2Mars(Int_t c, float x, float y, Int_t pl = kPc) const
   {
@@ -202,19 +202,19 @@ class Param
   void Mars2Lors(Int_t c, double* m, float& x, float& y) const
   {
     double l[3];
-    fM[c]->MasterToLocal(m, l);
-    x = l[0] + fX;
-    y = l[1] + fY;
+    mM[c]->MasterToLocal(m, l);
+    x = l[0] + mX;
+    y = l[1] + mY;
   } //MRS->LRS
   void Mars2LorsVec(Int_t c, double* m, float& th, float& ph) const
   {
     double l[3];
-    fM[c]->MasterToLocalVect(m, l);
+    mM[c]->MasterToLocalVect(m, l);
     float pt = TMath::Sqrt(l[0] * l[0] + l[1] * l[1]);
     th = TMath::ATan(pt / l[2]);
     ph = TMath::ATan2(l[1], l[0]);
   }
-  void Lors2MarsVec(Int_t c, double* m, double* l) const { fM[c]->LocalToMasterVect(m, l); } //LRS->MRS
+  void Lors2MarsVec(Int_t c, double* m, double* l) const { mM[c]->LocalToMasterVect(m, l); } //LRS->MRS
   TVector3 Norm(Int_t c) const
   {
     double n[3];
@@ -224,14 +224,14 @@ class Param
   void Norm(Int_t c, double* n) const
   {
     double l[3] = { 0, 0, 1 };
-    fM[c]->LocalToMasterVect(l, n);
+    mM[c]->LocalToMasterVect(l, n);
   }                                                                                   //norm
   void Point(Int_t c, double* p, Int_t plane) const { Lors2Mars(c, 0, 0, p, plane); } //point of given chamber plane
 
-  void SetTemp(double temp) { fTemp = temp; }                     //set actual temperature of the C6F14
-  void SetEPhotMean(double ePhotMean) { fPhotEMean = ePhotMean; } //set mean photon energy
+  void SetTemp(double temp) { mTemp = temp; }                     //set actual temperature of the C6F14
+  void SetEPhotMean(double ePhotMean) { mPhotEMean = ePhotMean; } //set mean photon energy
 
-  void SetRefIdx(double refRadIdx) { fRefIdx = refRadIdx; } //set running refractive index
+  void SetRefIdx(double refRadIdx) { mRefIdx = refRadIdx; } //set running refractive index
 
   void SetNSigmas(Int_t sigmas) { fgNSigmas = sigmas; }      //set sigma cut
   void SetThreshold(Int_t thres) { fgThreshold = thres; }    //set sigma cut
@@ -291,12 +291,12 @@ class Param
 
   static Param* fgInstance; //static pointer  to instance of Param singleton
 
-  TGeoHMatrix* fM[7]; //pointers to matrices defining HMPID chambers rotations-translations
-  float fX;           //x shift of LORS with respect to rotated MARS
-  float fY;           //y shift of LORS with respect to rotated MARS
-  double fRefIdx;     //running refractive index of C6F14
-  double fPhotEMean;  //mean energy of photon
-  double fTemp;       //actual temparature of C6F14
+  TGeoHMatrix* mM[7]; //pointers to matrices defining HMPID chambers rotations-translations
+  float mX;           //x shift of LORS with respect to rotated MARS
+  float mY;           //y shift of LORS with respect to rotated MARS
+  double mRefIdx;     //running refractive index of C6F14
+  double mPhotEMean;  //mean energy of photon
+  double mTemp;       //actual temparature of C6F14
  private:
   Param(const Param& r);            //dummy copy constructor
   Param& operator=(const Param& r); //dummy assignment operator

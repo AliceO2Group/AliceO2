@@ -56,13 +56,13 @@ float Param::fgAllY = 0;
 
 bool Param::fgInstanceType = kTRUE;
 
-Param* Param::fgInstance = 0x0; //singleton pointer
+Param* Param::fgInstance = nullptr; //singleton pointer
 
 Int_t Param::fgNSigmas = 4;
 Int_t Param::fgThreshold = 4;
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Param::Param(bool noGeo) : fX(0), fY(0), fRefIdx(1.28947), fPhotEMean(6.675), fTemp(25)
+Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mTemp(25)
 //just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C
 {
   // Here all the intitializition is taken place when Param::Instance() is invoked for the first time.
@@ -89,7 +89,7 @@ Param::Param(bool noGeo) : fX(0), fY(0), fRefIdx(1.28947), fPhotEMean(6.675), fT
     }
   }
 */
-  fRefIdx = MeanIdxRad(); //initialization of the running ref. index of freon
+  mRefIdx = MeanIdxRad(); //initialization of the running ref. index of freon
 
   float dead = 2.6; // cm of the dead zones between PCs-> See 2CRC2099P1
 
@@ -139,8 +139,8 @@ Param::Param(bool noGeo) : fX(0), fY(0), fRefIdx(1.28947), fPhotEMean(6.675), fT
   fgkMaxPcY[4] = fgAllY;
   fgkMaxPcY[5] = fgkMaxPcY[4];
 
-  fX = 0.5 * SizeAllX();
-  fY = 0.5 * SizeAllY();
+  mX = 0.5 * SizeAllX();
+  mY = 0.5 * SizeAllY();
 
   for (Int_t ich = kMinCh; ich <= kMaxCh; ich++) {
     for (Int_t padx = 0; padx < 160; padx++) {
@@ -155,20 +155,20 @@ Param::Param(bool noGeo) : fX(0), fY(0), fRefIdx(1.28947), fPhotEMean(6.675), fT
       TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(Form("/HMPID/Chamber%i", i));
       if (!pne) {
         //AliErrorClass(Form("The symbolic volume %s does not correspond to any physical entry!",Form("HMPID_%i",i)));
-        fM[i] = new TGeoHMatrix;
-        IdealPosition(i, fM[i]);
+        mM[i] = new TGeoHMatrix;
+        IdealPosition(i, mM[i]);
       } else {
         TGeoPhysicalNode* pnode = pne->GetPhysicalNode();
         if (pnode)
-          fM[i] = new TGeoHMatrix(*(pnode->GetMatrix()));
+          mM[i] = new TGeoHMatrix(*(pnode->GetMatrix()));
         else {
-          fM[i] = new TGeoHMatrix;
-          IdealPosition(i, fM[i]);
+          mM[i] = new TGeoHMatrix;
+          IdealPosition(i, mM[i]);
         }
       }
     } else {
-      fM[i] = new TGeoHMatrix;
-      IdealPosition(i, fM[i]);
+      mM[i] = new TGeoHMatrix;
+      IdealPosition(i, mM[i]);
     }
   fgInstance = this;
 } //ctor
@@ -178,7 +178,7 @@ void Param::Print(Option_t* opt) const
   // print some usefull (hopefully) info on some internal guts of HMPID parametrisation
 
   for (Int_t i = 0; i < 7; i++)
-    fM[i]->Print(opt);
+    mM[i]->Print(opt);
 } //Print()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
