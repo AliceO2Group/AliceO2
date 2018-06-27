@@ -31,7 +31,7 @@ class Hit : public ::o2::BasicXYZEHit<float>
   Point3D<float> entrancePoint() const { return GetPos(); }
   Point3D<float> exitPoint() const { return mExitPoint; }
 
-  float detElemId() const { return GetDetectorID(); }
+  short detElemId() const { return GetDetectorID(); }
 
  private:
   float mLength = {};
