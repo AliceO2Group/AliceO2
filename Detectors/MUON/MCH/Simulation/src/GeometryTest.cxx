@@ -192,9 +192,7 @@ o2::Base::GeometryManager::MatBudget getMatBudget(const o2::Transform3D& t, Vect
 {
   Point3D<double> point;
   t.LocalToMaster(Point3D<double>{ x, y, 0 }, point);
-  auto front = Point3D<double>(point + n * thickness / 2.0);
-  auto back = Point3D<double>(point - n * thickness / 2.0);
-  return o2::Base::GeometryManager::MeanMaterialBudget(front, back);
+  return o2::Base::GeometryManager::MeanMaterialBudget(Point3D<double>{ point + n * thickness / 2.0 }, Point3D<double>{ point - n * thickness / 2.0 });
 }
 
 std::ostream& operator<<(std::ostream& os, o2::Base::GeometryManager::MatBudget m)
@@ -206,11 +204,12 @@ std::ostream& operator<<(std::ostream& os, o2::Base::GeometryManager::MatBudget 
 
 Vector3D<double> getNormalVector(const o2::Transform3D& t)
 {
-  Point3D<double> pa, pb;
-  t.LocalToMaster(Point3D<double>{ 0, 1, 0 }, pb);
-  t.LocalToMaster(Point3D<double>{ 1, 0, 0 }, pa);
-  Vector3D<double> a{ pa };
-  Vector3D<double> b{ pb };
+  Point3D<double> px, py, po;
+  t.LocalToMaster(Point3D<double>{ 0, 1, 0 }, py);
+  t.LocalToMaster(Point3D<double>{ 1, 0, 0 }, px);
+  t.LocalToMaster(Point3D<double>{ 0, 0, 0 }, po);
+  Vector3D<double> a{ px - po };
+  Vector3D<double> b{ py - po };
   return a.Cross(b).Unit();
 }
 
@@ -225,11 +224,6 @@ TH2* getRadio(int detElemId, float xmin, float ymin, float xmax, float ymax, flo
   auto t = o2::mch::getTransformation(detElemId, *gGeoManager);
 
   auto normal = getNormalVector(t);
-
-  std::cout << getMatBudget(t, normal, 30, 15, 5) << "\n";
-  std::cout << getMatBudget(t, normal, 30, 15, 10) << "\n";
-  std::cout << getMatBudget(t, normal, 30, 15, 15) << "\n";
-  std::cout << getMatBudget(t, normal, 30, 15, 35) << "\n";
 
   for (auto x = xmin; x < xmax; x += xstep) {
     for (auto y = ymin; y < ymax; y += ystep) {

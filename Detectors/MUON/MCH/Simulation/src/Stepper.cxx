@@ -48,6 +48,9 @@ void Stepper::process(const TVirtualMC& vmc)
   }
 
   if (t.isEntering()) {
+    float x, y, z;
+    vmc.TrackPosition(x, y, z);
+    mEntrancePoint.SetXYZ(x, y, z);
     resetStep();
   }
 
