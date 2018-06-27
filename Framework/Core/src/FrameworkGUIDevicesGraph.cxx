@@ -9,10 +9,12 @@
 // or submit itself to any jurisdiction.
 #include "Framework/FrameworkGUIDevicesGraph.h"
 #include "Framework/FrameworkGUIDataRelayerUsage.h"
+#include "Framework/FrameworkGUIState.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/PaletteHelpers.h"
+#include "FrameworkGUIDeviceInspector.h"
 #include "DebugGUI/imgui.h"
 #include <algorithm>
 #include <cmath>
@@ -24,6 +26,8 @@ static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return Im
 namespace o2
 {
 namespace framework
+{
+namespace gui
 {
 
 struct NodeColor {
@@ -72,19 +76,21 @@ decideColorForNode(const DeviceInfo &info) {
   return result;
 }
 
-void showTopologyNodeGraph(bool* opened,
+void showTopologyNodeGraph(WorkspaceGUIState &state,
                            const std::vector<DeviceInfo> &infos,
                            const std::vector<DeviceSpec> &specs,
+                           std::vector<DeviceControl> &controls,
                            const std::vector<DeviceMetricsInfo>& metricsInfos
                           )
 {
     ImGui::SetNextWindowPos(ImVec2(0, 0), 0);
-    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x/3*2, ImGui::GetIO().DisplaySize.y - 300), 0);
-    if (!ImGui::Begin("Physical topology view", opened))
-    {
-        ImGui::End();
-        return;
+    if (state.bottomPaneVisible) {
+      ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y - state.bottomPaneSize), 0);
+    } else {
+      ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y), 0);
     }
+
+    ImGui::Begin("Physical topology view", nullptr, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
     // Dummy
     struct Node
@@ -151,46 +157,84 @@ void showTopologyNodeGraph(bool* opened,
       inited = true;
     }
 
-    // Draw a list of nodes on the left side
-    bool open_context_menu = false;
-    int node_hovered_in_list = -1;
-    int node_hovered_in_scene = -1;
-    ImGui::BeginChild("node_list", ImVec2(100,0));
-    ImGui::Text("Devices");
-    ImGui::Separator();
-    for (int node_idx = 0; node_idx < nodes.Size; node_idx++)
-    {
-      Node* node = &nodes[node_idx];
-      ImGui::PushID(node->ID);
-      if (ImGui::Selectable(node->Name, node->ID == node_selected)) {
-        node_selected = node->ID;
-      }
-      if (ImGui::IsItemHovered())
-      {
-        node_hovered_in_list = node->ID;
-        open_context_menu |= ImGui::IsMouseClicked(1);
-      }
-      ImGui::PopID();
-    }
-    ImGui::EndChild();
-
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-
-    const float NODE_SLOT_RADIUS = 4.0f;
-    const ImVec2 NODE_WINDOW_PADDING(8.0f, 8.0f);
-
     // Create our child canvas
+    ImGui::BeginGroup();
     ImGui::Checkbox("Show grid", &show_grid);
     ImGui::SameLine();
     if (ImGui::Button("Center")) {
       scrolling = ImVec2(0., 0.);
     }
+    ImGui::SameLine();
+    if (state.leftPaneVisible == false && ImGui::Button("Show tree")) {
+       state.leftPaneVisible = true;
+    }
+    if (state.leftPaneVisible == true && ImGui::Button("Hide tree")) {
+      state.leftPaneVisible = false;
+    }
+    ImGui::SameLine();
+    if (state.bottomPaneVisible == false && ImGui::Button("Show metrics")) {
+       state.bottomPaneVisible = true;
+    }
+    if (state.bottomPaneVisible == true && ImGui::Button("Hide metrics")) {
+      state.bottomPaneVisible = false;
+    }
+    ImGui::SameLine();
+    if (state.rightPaneVisible == false && ImGui::Button("Show inspector")) {
+       state.rightPaneVisible = true;
+    }
+    if (state.rightPaneVisible == true && ImGui::Button("Hide inspector")) {
+      state.rightPaneVisible = false;
+    }
+    ImGui::Separator();
+    ImGui::EndGroup();
+    auto toolbarSize = ImGui::GetItemRectSize();
+    // Draw a list of nodes on the left side
+    bool open_context_menu = false;
+    int node_hovered_in_list = -1;
+    int node_hovered_in_scene = -1;
+    if (state.leftPaneVisible) {
+      ImGui::BeginChild("node_list", ImVec2(state.leftPaneSize, 0));
+      ImGui::Text("Devices");
+      ImGui::Separator();
+      for (int node_idx = 0; node_idx < nodes.Size; node_idx++)
+      {
+        Node* node = &nodes[node_idx];
+        ImGui::PushID(node->ID);
+        if (ImGui::Selectable(node->Name, node->ID == node_selected)) {
+          if (ImGui::IsMouseDoubleClicked(0)) {
+            controls[node_selected].logVisible = true;
+          }
+          node_selected = node->ID;
+        }
+        if (ImGui::IsItemHovered())
+        {
+          node_hovered_in_list = node->ID;
+          open_context_menu |= ImGui::IsMouseClicked(1);
+        }
+        ImGui::PopID();
+      }
+      ImGui::EndChild();
+      ImGui::SameLine();
+    }
+
+    ImGui::BeginGroup();
+
+    const float NODE_SLOT_RADIUS = 4.0f;
+    const ImVec2 NODE_WINDOW_PADDING(8.0f, 8.0f);
+
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1,1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, (ImU32) ImColor(60,60,70,200));
-    ImGui::BeginChild("scrolling_region", ImVec2(0,0), true, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollWithMouse);
-    ImGui::PushItemWidth(120.0f);
+    ImVec2 graphSize = ImGui::GetWindowSize();
+    if (state.leftPaneVisible) {
+      graphSize.x -= state.leftPaneSize;
+    }
+    if (state.rightPaneVisible) {
+      graphSize.x -= state.rightPaneSize;
+    }
+    graphSize.y -= toolbarSize.y + 20;
+    ImGui::BeginChild("scrolling_region", graphSize, true, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PushItemWidth(graphSize.x);
 
     ImVec2 offset = ImGui::GetCursorScreenPos() - scrolling;
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -262,8 +306,11 @@ void showTopologyNodeGraph(bool* opened,
       ImGui::InvisibleButton("node", node->Size);
       if (ImGui::IsItemHovered())
       {
-          node_hovered_in_scene = node->ID;
-          open_context_menu |= ImGui::IsMouseClicked(1);
+        node_hovered_in_scene = node->ID;
+        open_context_menu |= ImGui::IsMouseClicked(1);
+        if (ImGui::IsMouseDoubleClicked(0)) {
+          controls[node->ID].logVisible = true;
+        }
       }
       bool node_moving_active = ImGui::IsItemActive();
       if (node_widgets_active || node_moving_active)
@@ -326,8 +373,28 @@ void showTopologyNodeGraph(bool* opened,
     ImGui::PopStyleVar(2);
     ImGui::EndGroup();
 
+    if (state.rightPaneVisible) {
+      ImGui::SameLine();
+      ImGui::BeginGroup();
+      ImGui::BeginChild("inspector");
+      ImGui::TextUnformatted("Device Inspector");
+      ImGui::Separator();
+      if (node_selected != -1) {
+        auto &spec = specs[node_selected];
+        auto &control = controls[node_selected];
+        if (state.rightPaneVisible) {
+          gui::displayDeviceInspector(spec, control);
+        }
+      }
+      else {
+        ImGui::TextWrapped("Select a node in the topology to display information about it");
+      }
+      ImGui::EndChild();
+      ImGui::EndGroup();
+    }
     ImGui::End();
 }
 
-}
-}
+} // namespace gui
+} // namespace framework
+} // namespace o2

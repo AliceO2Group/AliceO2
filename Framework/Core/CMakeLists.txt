@@ -16,6 +16,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 if (GLFW_FOUND)
   set(GUI_SOURCES src/FrameworkGUIDebugger.cxx
                   src/FrameworkGUIDevicesGraph.cxx
+                  src/FrameworkGUIDeviceInspector.cxx
                   src/FrameworkGUIDataRelayerUsage.cxx
                   src/PaletteHelpers.cxx)
 else()

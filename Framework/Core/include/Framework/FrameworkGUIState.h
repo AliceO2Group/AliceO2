@@ -7,13 +7,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
-#define FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
-#include "Framework/DeviceSpec.h"
-#include "Framework/DeviceInfo.h"
-#include "Framework/DeviceMetricsInfo.h"
+
+/// State for the main GUI window
 
 #include <vector>
+#include <string>
 
 namespace o2
 {
@@ -22,16 +20,24 @@ namespace framework
 namespace gui
 {
 
-class WorkspaceGUIState;
+/// State for the Device specific inspector
+struct DeviceGUIState {
+  std::string label;
+};
 
-void showTopologyNodeGraph(WorkspaceGUIState &state,
-                           const std::vector<DeviceInfo> &infos,
-                           const std::vector<DeviceSpec> &specs,
-                           std::vector<DeviceControl> &controls,
-                           const std::vector<DeviceMetricsInfo> &metricsInfos);
+/// State for the workspace
+struct WorkspaceGUIState {
+  int selectedMetric;
+  std::vector<std::string> availableMetrics;
+  std::vector<DeviceGUIState> devices;
+  float leftPaneSize;
+  float rightPaneSize;
+  float bottomPaneSize;
+  bool leftPaneVisible;
+  bool rightPaneVisible;
+  bool bottomPaneVisible;
+};
 
 } // namespace gui
 } // namespace framework
 } // namespace o2
-
-#endif // FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H
