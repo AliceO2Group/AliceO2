@@ -147,7 +147,9 @@ The `onProcess` function is to be used for stateless computations. It’s a free
 * A `ServiceRegistry` referencing the set of services it declared as required the computation.
 * A `DataAllocator` allocator which can allocate new payloads only for the types which have been declared as `outputs`.
 
-`onProcess` is useful whenever your computation is fully contained in your input. In several cases, however, a computation requires some ancillary state, which needs to be initialised only on (re-)start of the job. For example you might want to initialise the geometry of your detector. To do so, you can use the `onInit` callback and allocate the state and pass it to the returned `ProcessCallback` as captured arguments.
+#### Stateful processing
+
+`onProcess` is useful whenever your computation is fully contained in your input. In several cases, however, a computation requires some ancillary state, which needs to be initialised only on (re-)start of the job. For example you might want to initialise the geometry of your detector or open a file for reading. To do so, you can use the `onInit` callback, create the state in it and pass it to the returned `ProcessCallback` as captured arguments.
 
 E.g:
 
