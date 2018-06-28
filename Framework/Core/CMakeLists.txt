@@ -58,6 +58,7 @@ set(SRCS
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
+    src/Task.cxx
     src/TMessageSerializer.cxx
     src/StreamOperators.cxx
     ${GUI_SOURCES}
@@ -207,6 +208,7 @@ set(TEST_SRCS
       test/test_TMessageSerializer.cxx
       test/test_DataAllocator.cxx
       test/test_CallbackRegistry.cxx
+      test/test_Task.cxx
    )
 
 O2_GENERATE_TESTS(

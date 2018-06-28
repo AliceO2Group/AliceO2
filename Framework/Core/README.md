@@ -165,6 +165,22 @@ AlgorithmSpec{
 }
 ```
 
+### Task based API
+
+The previous API is flexible enough to work for large variety of cases, including 
+creating `onProcess` callback on the fly depending on the `onInit` parameters.
+. 
+
+However, very often what the user wants to do is to initialise some state and 
+and invoke a "run" method. For this we provide a `Task` based API. In order to do so,
+you need to inherit your task from `o2::framework::Task` and use the adaptor:
+
+```cpp
+adaptFromTask<TASK>(task constructor arguments) -> AlgorithmSpec
+```
+
+to create the `AlgorithmSpec`. A full example can be found in
+`Framework/Core/test/test_Task.cpp`
 
 ## Implementing a computation
 
