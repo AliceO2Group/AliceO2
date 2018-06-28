@@ -9,8 +9,9 @@
 // or submit itself to any jurisdiction.
 
 #include "FITReconstruction/RecPoints.h"
-//#include <iostream>
 #include "FITBase/Geometry.h"
+#include <cassert>
+#include <iostream>
 
 using namespace o2::fit;
 
@@ -19,6 +20,8 @@ ClassImp(o2::fit::RecPoints);
 void RecPoints::FillFromDigits(const Digit* digit)
 {
   mTimeAmp.clear();
+  mCollisionTime = {};
+  
   Int_t ndigitsC = 0, ndigitsA = 0;
   constexpr Int_t nMCPsA = 4 * o2::fit::Geometry::NCellsA;
   constexpr Int_t nMCPsC = 4 * o2::fit::Geometry::NCellsC;
@@ -33,15 +36,19 @@ void RecPoints::FillFromDigits(const Digit* digit)
   constexpr Double_t BC_clk_center = BC_clk/2.; // clk center
   Int_t nClk = floor(eventTimeFromDigits/BC_clk);
   Double_t BCEventTime = eventTimeFromDigits - BC_clk*nClk;
+  //   LOG(DEBUG) << " Event Time from digits" << eventTimeFromDigits <<" BCEventTime "<<BCEventTime<<  FairLogger::endl;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime - BC_clk_center - BCEventTime;
+    cfd[mcp] = d.CFDTime /*- BC_clk_center - BCEventTime*/;
     amp[mcp] = d.QTCAmpl;
     mTimeAmp.push_back(ChannelData{ mcp, cfd[mcp], amp[mcp] });
+    //   LOG(DEBUG) << " mcp " << mcp<<" time "<< cfd[mcp]<<  FairLogger::endl;
   }
 
   for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {
-    if (cfd[imcp] > 0) {
+    if (cfd[imcp] > (BC_clk_center + BCEventTime - 2) &&
+	cfd[imcp] < (BC_clk_center + BCEventTime + 2) )
+      {
       sideAtime += (cfd[imcp]);
       ndigitsA++;
     }
@@ -57,9 +64,11 @@ void RecPoints::FillFromDigits(const Digit* digit)
   if (ndigitsC > 0)
     sideCtime = sideCtime / Float_t(ndigitsC);
 
-  mCollisionTime[0] = (sideAtime + sideCtime) / 2.;
-  mCollisionTime[1] = sideAtime;
-  mCollisionTime[2] = sideCtime;
-  mVertex = (sideAtime - sideCtime) / 2.;
+  if (sideAtime>0 && sideCtime>0) {
+    mVertex = (sideAtime - sideCtime) / 2.;
+    mCollisionTime[0] = (sideAtime + sideCtime) / 2.;
+  }
+  if (sideAtime>0) mCollisionTime[1] = sideAtime;
+  if (sideCtime>0) mCollisionTime[2] = sideCtime;
  
 }
