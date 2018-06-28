@@ -76,23 +76,26 @@
 using namespace o2::monitoring;
 
 /// Helper class to find a free port.
-class FreePortFinder {
-public:
+class FreePortFinder
+{
+ public:
   FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step)
-    : mInitialPort{initialPort},
-      mFinalPort{finalPort},
-      mStep{step},
-      mSocket{socket(AF_INET, SOCK_STREAM, 0)}
-  {}
+    : mInitialPort{ initialPort },
+      mFinalPort{ finalPort },
+      mStep{ step },
+      mSocket{ socket(AF_INET, SOCK_STREAM, 0) }
+  {
+  }
 
-  void scan() {
+  void scan()
+  {
     struct sockaddr_in addr;
     for (mPort = mInitialPort; mPort < mFinalPort; mPort += mStep) {
       memset(&addr, 0, sizeof(addr));
       addr.sin_family = AF_INET;
       addr.sin_addr.s_addr = INADDR_ANY;
       addr.sin_port = htons(mPort);
-      if (bind(mSocket, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+      if (bind(mSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
                   << "] already taken. Skipping";
         continue;
@@ -102,12 +105,14 @@ public:
     }
   }
 
-  ~FreePortFinder() {
+  ~FreePortFinder()
+  {
     close(mSocket);
   }
   unsigned short port() { return mPort + 1; }
-  unsigned short range() {return mStep; }
-private:
+  unsigned short range() { return mStep; }
+
+ private:
   int mSocket;
   unsigned short mInitialPort;
   unsigned short mFinalPort;
@@ -598,7 +603,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // different versions of the service
     ServiceRegistry serviceRegistry;
 
-    // This is to control lifetime. All these services get destroyed 
+    // This is to control lifetime. All these services get destroyed
     // when the runner is done.
     std::unique_ptr<LocalRootFileService> localRootFileService;
     std::unique_ptr<TextControlService> textControlService;
@@ -949,9 +954,9 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
 //     each DataProcessorSpec
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies,
-           std::vector<CompletionPolicy> const &completionPolicies,
-           std::vector<ConfigParamSpec> const &workflowOptions,
-           o2::framework::ConfigContext &configContext)
+           std::vector<CompletionPolicy> const& completionPolicies,
+           std::vector<ConfigParamSpec> const& workflowOptions,
+           o2::framework::ConfigContext& configContext)
 {
   enum TerminationPolicy policy;
   bpo::options_description executorOptions("Executor options");
@@ -963,10 +968,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),   //
-     "what to do when processing is finished")                                                      //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output") //
-    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")            //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT), //
+     "what to do when processing is finished")                                                              //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
+    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
