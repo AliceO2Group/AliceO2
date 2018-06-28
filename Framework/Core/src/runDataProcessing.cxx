@@ -953,10 +953,12 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
-  gHiddenDeviceOptions.add_options()((std::string("id") + ",i").c_str(), bpo::value<std::string>(),
-                                     "device id for child spawning")(
-    "channel-config", bpo::value<std::vector<std::string>>(), "channel configuration")("control", "control plugin")(
-    "log-color", "logging color scheme")("color", "logging color scheme");
+  gHiddenDeviceOptions.add_options()                                                    //
+    ((std::string("id") + ",i").c_str(), bpo::value<std::string>(),                     //
+     "device id for child spawning")                                                    //
+    ("channel-config", bpo::value<std::vector<std::string>>(), "channel configuration") //
+    ("control", "control plugin")                                                       //
+    ("log-color", "logging color scheme")("color", "logging color scheme");
 
   bpo::options_description visibleOptions;
   visibleOptions.add(executorOptions);
