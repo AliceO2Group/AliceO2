@@ -91,7 +91,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
       Bool_t is_hit_in_signal_gate = (hit_time > ch_hit_mean_time[hit_ch] - signal_width*.5) &&
                                      (hit_time < ch_hit_mean_time[hit_ch] + signal_width*.5);
 
-      Double_t hit_time_corr = hit_time - time_compensate + BC_clk_center/* + BCEventTime*/;
+      Double_t hit_time_corr = hit_time - time_compensate + BC_clk_center /* + BCEventTime*/;
       Double_t is_time_in_gate = (hit_time != 0.);//&&(hit_time_corr > -BC_clk_center)&&(hit_time_corr < BC_clk_center);
 
     if(is_time_in_gate && is_hit_in_signal_gate)
@@ -136,7 +136,8 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     Bool_t is_time_in_trg_gate = (ch_signal_time[ch_iter] > BC_clk_center-time_trg_gate*0.5)
                                &&(ch_signal_time[ch_iter] < BC_clk_center+time_trg_gate*0.5);
     //  if (ch_signal_time[ch_iter]>0)
-    if(ch_signal_MIP[ch_iter] == 0.) continue;
+    if (ch_signal_MIP[ch_iter] == 0.)
+      continue;
     if(ch_signal_MIP[ch_iter] <CFD_trsh_mip) continue;
     if(!is_time_in_trg_gate) continue;
 
@@ -178,8 +179,9 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
     if (ch_signal_MIP[ch_iter] > CFD_trsh_mip) {
       Float_t smeared_time = gRandom->Gaus(ch_signal_time[ch_iter], 0.050) + BCEventTime;
       mChDgDataArr.emplace_back(ChannelData{ ch_iter, smeared_time, ch_signal_MIP[ch_iter]} );
-        LOG(DEBUG) << ch_iter << " : "  << " : " <<ch_signal_time[ch_iter] << " : "
-		   << ch_signal_MIP[ch_iter] << " : " <<  smeared_time << FairLogger::endl;
+      LOG(DEBUG) << ch_iter << " : "
+                 << " : " << ch_signal_time[ch_iter] << " : "
+                 << ch_signal_MIP[ch_iter] << " : " << smeared_time << FairLogger::endl;
   }
   }
   
@@ -190,8 +192,7 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   
   LOG(DEBUG) << "Event ID: " << mEventID << " Event Time " << mEventTime << FairLogger::endl;
   LOG(DEBUG) << "nClk: " << nClk << " BC Event Time " << BCEventTime << FairLogger::endl;
-  
- 
+
   LOG(DEBUG) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
              << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
              << " mean time C: " << mean_time_C << FairLogger::endl;

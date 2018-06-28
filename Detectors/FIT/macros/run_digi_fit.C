@@ -24,7 +24,7 @@ void run_digi_fit(Int_t nEvents = 10, Float_t rate = 50.e3)
 
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;
-   inputfile << "o2sim.root";
+  inputfile << "o2sim.root";
   paramfile << "o2sim_par.root";
   outputfile << "o2sim_digi.root";
 

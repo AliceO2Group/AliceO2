@@ -21,7 +21,7 @@ void RecPoints::FillFromDigits(const Digit* digit)
 {
   mTimeAmp.clear();
   mCollisionTime = {};
-  
+
   Int_t ndigitsC = 0, ndigitsA = 0;
   constexpr Int_t nMCPsA = 4 * o2::fit::Geometry::NCellsA;
   constexpr Int_t nMCPsC = 4 * o2::fit::Geometry::NCellsC;
@@ -47,8 +47,7 @@ void RecPoints::FillFromDigits(const Digit* digit)
 
   for (Int_t imcp = 0; imcp < nMCPsA; imcp++) {
     if (cfd[imcp] > (BC_clk_center + BCEventTime - 2) &&
-	cfd[imcp] < (BC_clk_center + BCEventTime + 2) )
-      {
+        cfd[imcp] < (BC_clk_center + BCEventTime + 2)) {
       sideAtime += (cfd[imcp]);
       ndigitsA++;
     }
@@ -64,11 +63,12 @@ void RecPoints::FillFromDigits(const Digit* digit)
   if (ndigitsC > 0)
     sideCtime = sideCtime / Float_t(ndigitsC);
 
-  if (sideAtime>0 && sideCtime>0) {
+  if (sideAtime > 0 && sideCtime > 0) {
     mVertex = (sideAtime - sideCtime) / 2.;
     mCollisionTime[0] = (sideAtime + sideCtime) / 2.;
   }
-  if (sideAtime>0) mCollisionTime[1] = sideAtime;
-  if (sideCtime>0) mCollisionTime[2] = sideCtime;
- 
+  if (sideAtime > 0)
+    mCollisionTime[1] = sideAtime;
+  if (sideCtime > 0)
+    mCollisionTime[2] = sideCtime;
 }
