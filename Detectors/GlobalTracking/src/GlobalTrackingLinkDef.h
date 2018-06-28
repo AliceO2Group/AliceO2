@@ -15,6 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::globaltracking::MatchTPCITS + ;
+#pragma link C++ class o2::globaltracking::MatchTOF + ;
 #pragma link C++ class o2::globaltracking::timeBracket + ;
 #pragma link C++ class o2::globaltracking::TrackLocTPC + ;
 #pragma link C++ class o2::globaltracking::TrackLocITS + ;
