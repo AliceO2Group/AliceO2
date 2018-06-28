@@ -609,6 +609,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   bpo::options_description forwardedDeviceOptions;
   forwardedDeviceOptions.add_options()                                                                   //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                            //
+    ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                    //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)"); //
 
   return forwardedDeviceOptions;

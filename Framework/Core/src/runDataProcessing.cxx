@@ -590,6 +590,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
 
@@ -597,35 +598,52 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // different versions of the service
     ServiceRegistry serviceRegistry;
 
-    auto localRootFileService = std::make_unique<LocalRootFileService>();
-    auto textControlService = std::make_unique<TextControlService>();
-    auto parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
-    auto simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
-    auto callbackService = std::make_unique<CallbackService>();
-    auto monitoringService = MonitoringFactory::Get("infologger://");
-    serviceRegistry.registerService<Monitoring>(monitoringService.get());
-    serviceRegistry.registerService<RootFileService>(localRootFileService.get());
-    serviceRegistry.registerService<ControlService>(textControlService.get());
-    serviceRegistry.registerService<ParallelContext>(parallelContext.get());
-    serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
-    serviceRegistry.registerService<CallbackService>(callbackService.get());
+    // This is to control lifetime. All these services get destroyed 
+    // when the runner is done.
+    std::unique_ptr<LocalRootFileService> localRootFileService;
+    std::unique_ptr<TextControlService> textControlService;
+    std::unique_ptr<ParallelContext> parallelContext;
+    std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
+    std::unique_ptr<CallbackService> callbackService;
+    std::unique_ptr<Monitoring> monitoringService;
 
-    std::unique_ptr<FairMQDevice> device;
-    if (spec.inputs.empty()) {
-      LOG(DEBUG) << spec.id << " is a source\n";
-      device = std::make_unique<DataSourceDevice>(spec, serviceRegistry);
-    } else {
-      LOG(DEBUG) << spec.id << " is a processor\n";
-      device = std::make_unique<DataProcessingDevice>(spec, serviceRegistry);
-    }
+    auto afterConfigParsingCallback = [&localRootFileService,
+                                       &textControlService,
+                                       &parallelContext,
+                                       &simpleRawDeviceService,
+                                       &callbackService,
+                                       &monitoringService,
+                                       &spec,
+                                       &serviceRegistry](fair::mq::DeviceRunner& r) {
+      localRootFileService = std::make_unique<LocalRootFileService>();
+      textControlService = std::make_unique<TextControlService>();
+      parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
+      simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
+      callbackService = std::make_unique<CallbackService>();
+      monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
 
-    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+      serviceRegistry.registerService<Monitoring>(monitoringService.get());
+      serviceRegistry.registerService<RootFileService>(localRootFileService.get());
+      serviceRegistry.registerService<ControlService>(textControlService.get());
+      serviceRegistry.registerService<ParallelContext>(parallelContext.get());
+      serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
+      serviceRegistry.registerService<CallbackService>(callbackService.get());
 
-    runner.AddHook<fair::mq::hooks::InstantiateDevice>([&device](fair::mq::DeviceRunner& r) {
-      r.fDevice = std::shared_ptr<FairMQDevice>{ std::move(device) };
+      std::shared_ptr<FairMQDevice> device;
+      if (spec.inputs.empty()) {
+        LOG(DEBUG) << spec.id << " is a source\n";
+        device = std::make_shared<DataSourceDevice>(spec, serviceRegistry);
+      } else {
+        LOG(DEBUG) << spec.id << " is a processor\n";
+        device = std::make_shared<DataProcessingDevice>(spec, serviceRegistry);
+      }
+
+      serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+      r.fDevice = device;
       TurnOffColors::apply(false, 0);
-    });
+    };
 
+    runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
     return runner.Run();
   } catch (std::exception& e) {
     LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
