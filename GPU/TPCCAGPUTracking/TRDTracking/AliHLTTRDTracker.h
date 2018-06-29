@@ -6,7 +6,7 @@
 
 class AliHLTTRDTrackerDebug;
 class AliHLTTRDTrackletWord;
-class AliTRDgeometry;
+class AliHLTTRDGeometry;
 class AliExternalTrackParam;
 class AliMCEvent;
 
@@ -57,7 +57,7 @@ class AliHLTTRDTracker {
   void Reset();
   void StartLoadTracklets(const int nTrklts);
   void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
-  void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
+  void DoTracking(HLTTRDBaseTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
   bool CalculateSpacePoints();
   bool FollowProlongation(HLTTRDTrack *t, int nTPCtracks);
   int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
@@ -118,7 +118,7 @@ class AliHLTTRDTracker {
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
   HLTTRDTrack *fCandidates;                   // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
-  AliTRDgeometry *fGeo;                       // TRD geometry
+  AliHLTTRDGeometry *fGeo;                       // TRD geometry
   bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking
   float fMaxEta;                              // TPC tracks with higher eta are ignored
