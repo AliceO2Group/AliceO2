@@ -61,12 +61,8 @@ InitStatus CollisionTimeRecoTask::Init()
 void CollisionTimeRecoTask::Exec(Option_t* option)
 {
   LOG(DEBUG) << "Running reconstruction on new event" << FairLogger::endl;
- FairRootManager* mgr = FairRootManager::Instance();
+  FairRootManager* mgr = FairRootManager::Instance();
 
-  Float_t EventTime = mgr->GetEventTime();
-  mRecPoints->SetMgrEventTime(EventTime);
-  LOG(DEBUG) << "Running reconstruction on new event "<<mEventID 
-             << " Event time " << EventTime << FairLogger::endl;
   mRecPoints->FillFromDigits(mEventDigit);
   mEventID++;
 }

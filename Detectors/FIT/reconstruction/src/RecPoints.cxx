@@ -30,8 +30,6 @@ void RecPoints::FillFromDigits(const Digit* digit)
   Float_t sideAtime = 0, sideCtime = 0;
    
   Float_t eventTimeFromDigits = digit->getTime();
-  //  Double_t digit_timeframe = mEventTime;
-  Double_t digit_timeframe = eventTimeFromDigits;
   constexpr Double_t BC_clk = 25.; //ns event clk lenght
   constexpr Double_t BC_clk_center = BC_clk/2.; // clk center
   Int_t nClk = floor(eventTimeFromDigits/BC_clk);
