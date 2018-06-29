@@ -21,9 +21,9 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
   typedef double My_Float;
 
   public:
-    trackInterface<AliExternalTrackParam>() : AliExternalTrackParam() {};
-    trackInterface<AliExternalTrackParam>(const trackInterface<AliExternalTrackParam> &param) : AliExternalTrackParam(param) {};
-    trackInterface<AliExternalTrackParam>(const AliExternalTrackParam &param) : AliExternalTrackParam(param) {};
+    trackInterface<AliExternalTrackParam> () : AliExternalTrackParam() {};
+    trackInterface<AliExternalTrackParam> (const trackInterface<AliExternalTrackParam> &param) : AliExternalTrackParam(param) {};
+    trackInterface<AliExternalTrackParam> (const AliExternalTrackParam &param) : AliExternalTrackParam(param) {};
 
     // parameter + covariance
     float getX()       const { return GetX(); }
@@ -52,11 +52,27 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
 
 template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 {
+  typedef double My_Float;
+
   public:
-    bool PropagateToX(AliExternalTrackParam *trk, float x, float maxSnp, float maxStep) {
-      return PropagateTrackToBxByBz(trk, x, 0.13957, maxStep, false, maxSnp);
+    propagatorInterface<AliTrackerBase> () : AliTrackerBase(), fParam(nullptr) {};
+    propagatorInterface<AliTrackerBase> (const propagatorInterface<AliTrackerBase> &prop) : AliTrackerBase(), fParam(prop.fParam) {}
+    propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase> &prop) { printf("ERROR: assignment operator is dummy\n"); return *this; }
+
+    bool PropagateToX(float x, float maxSnp, float maxStep) {
+      return PropagateTrackToBxByBz(fParam, x, 0.13957, maxStep, false, maxSnp);
     }
+
+    void SetTrack(trackInterface<AliExternalTrackParam> *trk, float alpha) { fParam = trk; }
+
+    float getAlpha() { return (fParam) ? fParam->GetAlpha() : 99999; }
+    bool update(const My_Float p[2], const My_Float cov[3]) { return (fParam) ? fParam->update(p, cov) : false; }
+    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) { return (fParam) ? fParam->getPredictedChi2(p, cov) : 99999; }
+    bool rotate(float alpha) { return (fParam) ? fParam->rotate(alpha) : false; }
+
+    trackInterface<AliExternalTrackParam> *fParam;
 };
+
 #endif
 
 #ifdef HLTCA_BUILD_O2_LIB //Interface for O2, build only with AliRoot
@@ -82,7 +98,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) : AliHLTTPCGMTrackParam() {}; // FIXME set params, or is it dummy?
 
     float getX()       const { return GetX(); }
-    float getAlpha()   const;
+    float getAlpha()   const { return 99999; } // FIXME
     float getY()       const { return GetY(); }
     float getZ()       const { return GetZ(); }
     float getSnp()     const { return GetSinPhi(); }
@@ -95,15 +111,15 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
 
     const float *getCov() const { return GetCov(); }
 
-    propagatorInterface<AliHLTTPCGMPropagator> *fProp;
-
-    // parameter manipulation
-    AliHLTTPCCAParam fParam;
-    bool update(const float p[2], const float cov[3]); // TODO what about the tracklet covariance?
-    float getPredictedChi2(const float p[2], const float cov[3]) const { return 99999; } // TODO not available for HLT tracking?
-    bool rotate(float alpha);
-
-    void set(float x, float alpha, const float param[5], const float cov[15]);
+    void set(float x, float alpha, const float param[5], const float cov[15]) {
+      SetX(x);
+      for (int i=0; i<5; i++) {
+        SetPar(i, param[i]);
+      }
+      for (int j=0; j<15; j++) {
+        SetCov(j, cov[j]);
+      }
+    }
 
     typedef AliHLTTPCGMTrackParam baseClass;
 };
@@ -111,7 +127,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
 template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCGMPropagator
 {
   public:
-    propagatorInterface<AliHLTTPCGMPropagator>() : AliHLTTPCGMPropagator() {
+    propagatorInterface<AliHLTTPCGMPropagator>() : AliHLTTPCGMPropagator(), param(AliHLTTPCCAParam()) {
       static constexpr float kRho = 1.025e-3;
       static constexpr float kRadLen = 29.532;
       static AliHLTTPCGMMerger fMerger;
@@ -121,41 +137,15 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
       this->SetToyMCEventsFlag(0);
       this->SetFitInProjections(0);
     };
-    bool PropagateToX( trackInterface<AliHLTTPCGMTrackParam> *trk, float x, float maxSnp, float maxStep );
+    AliHLTTPCCAParam param;
+    bool PropagateToX( float x, float maxSnp, float maxStep ) { return PropagateToXAlpha( x, GetAlpha(), true ); }
+    bool rotate(float alpha) { return RotateToAlpha(alpha); }
+    bool update(const float p[2], const float cov[3]) { return Update(p[0], p[1], HLTCA_ROW_COUNT -1, param, 0, false, false); }
+    float getAlpha() { return GetAlpha(); }
+    float getPredictedChi2(const float p[2], const float cov[3]) const { return 99999; } // TODO not available for HLT tracking?
 };
 
-inline bool trackInterface<AliHLTTPCGMTrackParam>::update(const float p[2], const float cov[3])
-{
-  AliHLTTPCCAParam param;
-  return fProp->Update(p[0], p[1], HLTCA_ROW_COUNT - 1, param, 0, false, false);
-}
 
-inline float trackInterface<AliHLTTPCGMTrackParam>::getAlpha() const
-{
-  return fProp->GetAlpha();
-}
-
-inline bool trackInterface<AliHLTTPCGMTrackParam>::rotate(float alpha)
-{
-  return fProp->RotateToAlpha(alpha);
-}
-
-inline void trackInterface<AliHLTTPCGMTrackParam>::set(float x, float alpha, const float param[5], const float cov[15])
-{
-  SetX(x);
-  for (int i=0; i<5; i++) {
-    SetPar(i, param[i]);
-  }
-  for (int j=0; j<15; j++) {
-    SetCov(j, cov[j]);
-  }
-  fProp->SetTrack(this, alpha);
-}
-
-inline bool propagatorInterface<AliHLTTPCGMPropagator>::PropagateToX(trackInterface<AliHLTTPCGMTrackParam> *trk, float x, float maxSnp, float maxStep)
-{
-  return trk->fProp->PropagateToXAlpha( x, GetAlpha(), true); // FIXME determine propagation direction
-}
 
 #ifdef HLTCA_BUILD_ALIROOT_LIB
 typedef propagatorInterface<AliTrackerBase> HLTTRDPropagator;
