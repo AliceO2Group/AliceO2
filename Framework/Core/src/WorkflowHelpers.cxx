@@ -130,7 +130,7 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
     auto &input = workflow[ci].inputs[ii];
     auto matcher = [&input, &constOutputs](const LogicalOutputInfo &outputInfo) -> bool {
       auto &output = constOutputs[outputInfo.outputGlobalIndex];
-      return matchDataSpec2Channel(input, outputSpec2LogicalChannel(output));
+      return intersect(LogicalChannelDomain(input), LogicalChannelRange(output));
     };
     oif = std::find_if(availableOutputsInfo.begin(),
                        availableOutputsInfo.end(),
@@ -152,7 +152,7 @@ WorkflowHelpers::constructGraph(const WorkflowSpec &workflow,
     auto &input = workflow[ci].inputs[ii];
     auto matcher = [&input, &constOutputs](const LogicalOutputInfo &outputInfo) -> bool {
       auto &output = constOutputs[outputInfo.outputGlobalIndex];
-      return matchDataSpec2Channel(input, outputSpec2LogicalChannel(output));
+      return intersect(LogicalChannelDomain(input), LogicalChannelRange(output));
     };
     oif = availableOutputsInfo.erase(oif);
     oif = std::find_if(oif, availableOutputsInfo.end(), matcher);
