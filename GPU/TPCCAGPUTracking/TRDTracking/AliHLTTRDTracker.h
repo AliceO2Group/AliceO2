@@ -59,17 +59,17 @@ class AliHLTTRDTracker {
   void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
   void DoTracking(HLTTRDBaseTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
   bool CalculateSpacePoints();
-  bool FollowProlongation(HLTTRDTrack *t, int nTPCtracks);
+  bool FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t, int nTPCtracks);
   int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
-  bool AdjustSector(HLTTRDTrack *t, const int layer) const;
+  bool AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, const int layer) const;
   int GetSector(float alpha) const;
   float GetAlphaOfSector(const int sec) const;
   float GetRPhiRes(float snp) const { return (0.04*0.04+0.33*0.33*(snp-0.126)*(snp-0.126)); }
   void RecalcTrkltCov(const int trkltIdx, const float tilt, const float snp, const float rowSize);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
   void CheckTrackRefs(const int trackID, bool *findableMC) const;
-  void FindChambersInRoad(const HLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax) const;
-  bool IsGeoFindable(const HLTTRDTrack *t, const int layer) const;
+  void FindChambersInRoad(const HLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax, const float alpha) const;
+  bool IsGeoFindable(const HLTTRDTrack *t, const int layer, const float alpha) const;
 
   // settings
   void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
