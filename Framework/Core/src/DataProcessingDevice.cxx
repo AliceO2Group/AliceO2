@@ -82,6 +82,26 @@ void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(C
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
+class ScopedMetric
+{
+ public:
+  ScopedMetric(o2::monitoring::Monitoring& monitoring, std::string const& name)
+    : mMonitoring(monitoring),
+      mMetricName(name)
+  {
+    mMonitoring.send({ 1, mMetricName });
+  }
+
+  ~ScopedMetric()
+  {
+    mMonitoring.send({ 0, mMetricName });
+  }
+
+ private:
+  o2::monitoring::Monitoring& mMonitoring;
+  std::string const& mMetricName;
+};
+
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
@@ -89,6 +109,7 @@ void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(Cal
 /// In the second part 
 bool
 DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
+  static const std::string handleDataMetricName = "dpl/in_handle_data";
   // Initial part. Let's hide all the unnecessary and have
   // simple lambdas for each of the steps I am planning to have.
   assert(!mInputs.empty());
@@ -97,6 +118,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // does not need to know about the whole class state, but I can 
   // fine grain control what is exposed at each state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
+  ScopedMetric(monitoringService, handleDataMetricName);
   auto &statefulProcess = mStatefulProcess;
   auto &statelessProcess = mStatelessProcess;
   auto &errorCallback = mError;
@@ -162,7 +184,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto reportError = [&errorCount, &monitoringService](const char* message) {
     LOG(ERROR) << message;
     errorCount++;
-    monitoringService.send({ errorCount, "dataprocessing/errors" });
+    monitoringService.send({ errorCount, "dpl/errors" });
   };
 
   auto putIncomingMessageIntoCache = [&parts,&relayer,&reportError]() {
@@ -222,16 +244,20 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
                              &context, &rootContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
-      monitoringService.send({ processingCount++, "dataprocessing/stateful_process" });
+      monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
+      monitoringService.send({ 2, "dpl/in_handle_data" });
       statefulProcess(processContext);
+      monitoringService.send({ 1, "dpl/in_handle_data" });
       LOG(DEBUG) << "PROCESSING:END:" << i;
     }
     if (statelessProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
-      monitoringService.send({ processingCount++, "dataprocessing/stateless_process" });
+      monitoringService.send({ processingCount++, "dpl/stateless_process_count" });
       ProcessingContext processContext{record, serviceRegistry, allocator};
+      monitoringService.send({ 2, "dpl/in_handle_data" });
       statelessProcess(processContext);
+      monitoringService.send({ 1, "dpl/in_handle_data" });
       LOG(DEBUG) << "PROCESSING:END:" << i;
     }
     DataProcessor::doSend(device, context);
@@ -240,12 +266,14 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
 
   // Error handling means printing the error and updating the metric
   auto errorHandling = [&errorCallback, &monitoringService, &serviceRegistry](std::exception& e, InputRecord& record) {
+    monitoringService.send({ 3, "dpl/in_handle_data" });
     LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
     if (errorCallback) {
       monitoringService.send({ 1, "error" });
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     }
+    monitoringService.send({ 1, "dpl/in_handle_data" });
   };
 
   // I need a preparation step which gets the current timeslice id and
@@ -393,7 +421,7 @@ void
 DataProcessingDevice::error(const char *msg) {
   LOG(ERROR) << msg;
   mErrorCount++;
-  mServiceRegistry.get<Monitoring>().send({ mErrorCount, "dataprocessing/errors" });
+  mServiceRegistry.get<Monitoring>().send({ mErrorCount, "dpl/errors" });
 }
 
 } // namespace framework
