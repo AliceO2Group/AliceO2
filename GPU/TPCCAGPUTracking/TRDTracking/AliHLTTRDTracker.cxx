@@ -1,16 +1,19 @@
 #include <vector>
+#include <algorithm>
 #include "AliHLTTRDTracker.h"
-#include "AliGeomManager.h"
-#include "AliTRDgeometry.h"
-#include "AliTRDpadPlane.h"
-#include "TDatabasePDG.h"
-#include "TGeoMatrix.h"
-#include "AliExternalTrackParam.h"
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDTrackerDebug.h"
+#include "AliHLTTRDGeometry.h"
+
+#ifdef HLTCA_BUILD_ALIROOT_LIB
+#include "TDatabasePDG.h"
 #include "AliMCParticle.h"
 #include "AliMCEvent.h"
+static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
+#else
+static const float piMass = 0.139f;
+#endif
 
 //#define ENABLE_HLTTRDDEBUG
 #define ENABLE_WARNING 0
@@ -120,7 +123,7 @@ void AliHLTTRDTracker::Init()
   //--------------------------------------------------------------------
   // Initialise tracker
   //--------------------------------------------------------------------
-  if(!AliGeomManager::GetGeometry()){
+  if(!AliHLTTRDGeometry::CheckGeometryAvailable()){
     Error("Init", "Could not get geometry.");
   }
 
@@ -165,7 +168,7 @@ void AliHLTTRDTracker::Init()
   fCandidates = new HLTTRDTrack[2*fNCandidates];
   fSpacePoints = new AliHLTTRDSpacePointInternal[fNtrackletsMax];
 
-  fGeo = new AliTRDgeometry();
+  fGeo = new AliHLTTRDGeometry();
   if (!fGeo) {
     Error("Init", "TRD geometry could not be loaded");
   }
@@ -247,7 +250,7 @@ void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet)
   fNtrackletsInChamber[tracklet.GetDetector()]++;
 }
 
-void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts, int *tracksTRDlabel )
+void AliHLTTRDTracker::DoTracking( HLTTRDBaseTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts, int *tracksTRDlabel )
 {
   //--------------------------------------------------------------------
   // Steering function for the tracking
@@ -270,8 +273,6 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
   delete[] fTracks;
   fNTracks = 0;
   fTracks = new HLTTRDTrack[nTPCtracks];
-
-  float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
 
   for (int i=0; i<nTPCtracks; ++i) {
     HLTTRDTrack tMI(tracksTPC[i]);
@@ -314,7 +315,7 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
       result = false;
 	    continue;
     }
-    AliTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
+    AliHLTTRDpadPlane *pp = fGeo->GetPadPlane(iDet);
     float tilt = tanf( M_PI / 180. * pp->GetTiltingAngle());
     float t2 = tilt * tilt; // tan^2 (tilt)
     float c2 = 1. / (1. + t2); // cos^2 (tilt)
@@ -342,9 +343,8 @@ bool AliHLTTRDTracker::CalculateSpacePoints()
       fSpacePoints[trkltIdx].fCov[2] = c2 * (t2 * sy2 + sz2);
       fSpacePoints[trkltIdx].fDy = 0.014 * fTracklets[trkltIdx].GetdY();
 
-      AliGeomManager::ELayerID iLayer = AliGeomManager::ELayerID(AliGeomManager::kTRD1+fGeo->GetLayer(iDet));
-      int modId   = fGeo->GetSector(iDet) * AliTRDgeometry::kNstack + fGeo->GetStack(iDet); // global TRD stack number
-      unsigned short volId = AliGeomManager::LayerToVolUID(iLayer, modId);
+      int modId   = fGeo->GetSector(iDet) * AliHLTTRDGeometry::kNstack + fGeo->GetStack(iDet); // global TRD stack number
+      unsigned short volId = fGeo->GetGeomManagerVolUID(iDet, modId);
       fSpacePoints[trkltIdx].fVolumeId = volId;
     }
   }
@@ -380,7 +380,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDTrack *t, int nTPCtracks)
 
   t->SetChi2(0.);
 
-  AliTRDpadPlane *pad = 0x0;
+  AliHLTTRDpadPlane *pad = 0x0;
 
 #ifdef ENABLE_HLTTRDDEBUG
   HLTTRDTrack *trackNoUpdates = new HLTTRDTrack(*t);
@@ -1014,7 +1014,7 @@ void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const float road
     // chamber unambiguous
     currDet = fGeo->GetDetector(iLayer, currStack, currSec);
     det.push_back(currDet);
-    AliTRDpadPlane *pp = fGeo->GetPadPlane(iLayer, currStack);
+    AliHLTTRDpadPlane *pp = fGeo->GetPadPlane(iLayer, currStack);
     int lastPadRow = fGeo->GetRowMax(iLayer, currStack, 0);
     float zCenter = pp->GetRowPos(lastPadRow / 2);
     if ( ( t->getZ() + roadZ ) > pp->GetRowPos(0) || ( t->getZ() - roadZ ) < pp->GetRowPos(lastPadRow) ) {
@@ -1101,7 +1101,7 @@ bool AliHLTTRDTracker::IsGeoFindable(const HLTTRDTrack *t, const int layer) cons
     return false;
   }
 
-  AliTRDpadPlane *pp = fGeo->GetPadPlane(layer, fGeo->GetStack(det));
+  AliHLTTRDpadPlane *pp = fGeo->GetPadPlane(layer, fGeo->GetStack(det));
   int rowIdx = pp->GetNrows() - 1;
   float yMax = fabs(pp->GetColPos(0));
   float zMax = pp->GetRowPos(0);

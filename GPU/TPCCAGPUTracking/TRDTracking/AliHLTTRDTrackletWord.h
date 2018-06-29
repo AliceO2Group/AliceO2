@@ -12,15 +12,9 @@
 //
 //----------------------------------
 
-#ifdef HLTCA_BUILD_ALIROOT_LIB
-#include "AliTRDgeometry.h"
-#include "AliTRDpadPlane.h"
-#else
-class AliTRDgeometry {};
-#endif
-
 class AliTRDtrackletWord;
 class AliTRDtrackletMCM;
+#include "AliHLTTRDGeometry.h"
 
 class AliHLTTRDTrackletWord {
  public:
@@ -56,18 +50,11 @@ class AliHLTTRDTrackletWord {
   int GetDetector() const { return fHCId / 2; }
   int GetHCId() const { return fHCId; }
   float GetdYdX() const { return (GetdY() * 140e-4 / 3.); }
-#ifdef HLTCA_BUILD_ALIROOT_LIB
   float GetX() const { return fgGeo->GetTime0((fHCId%12)/2); }
   float GetY() const { return (GetYbin() * 160e-4); }
-  float GetZ() const { return fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos(GetZbin()) -
-      fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowSize(GetZbin())  * .5; }
-  float GetLocalZ() const { return GetZ() - fgGeo->GetPadPlane((fHCId % 12) / 2, (fHCId/12) % 5)->GetRowPos((((fHCId/12) % 5) != 2) ? 8 : 6); }
-#else
-  float GetX() const { return 0; }
-  float GetY() const { return 0; }
-  float GetZ() const { return 0; }
-  float GetLocalZ() const { return 0; }
-#endif
+  float GetZ() const { return fgGeo->GetPadPlaneRowPos((fHCId % 12) / 2, (fHCId/12) % 5, GetZbin()) -
+      fgGeo->GetPadPlaneRowSize((fHCId % 12) / 2, (fHCId/12) % 5, GetZbin()) * .5; }
+  float GetLocalZ() const { return GetZ() - fgGeo->GetPadPlaneRowPos((fHCId % 12) / 2, (fHCId/12) % 5, (((fHCId/12) % 5) != 2) ? 8 : 6); }
   unsigned int GetTrackletWord() const { return fTrackletWord; }
 
   void SetTrackletWord(unsigned int trackletWord) { fTrackletWord = trackletWord; }
@@ -83,7 +70,7 @@ class AliHLTTRDTrackletWord {
   int fHCId;                    // half-chamber ID
   unsigned int fTrackletWord;   // tracklet word: PID | Z | deflection length | Y
                                 //          bits:   8   4            7          13
-  static AliTRDgeometry *fgGeo; // pointer to TRD geometry for coordinate calculations
+  static AliHLTTRDGeometry *fgGeo; // pointer to TRD geometry for coordinate calculations
 
 };
 

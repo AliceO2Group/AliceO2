@@ -24,13 +24,10 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "AliHLTTRDTrackletWord.h"
-#include "AliTRDgeometry.h"
-#include "AliTRDpadPlane.h"
-#include "AliLog.h"
 #include "AliTRDtrackletWord.h"
 #include "AliTRDtrackletMCM.h"
 
-AliTRDgeometry* AliHLTTRDTrackletWord::fgGeo = 0x0;
+AliHLTTRDGeometry* AliHLTTRDTrackletWord::fgGeo = 0x0;
 
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord) :
   fId(-1),
@@ -39,7 +36,7 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord) :
 {
   for (int i=3;i--;) fLabel[i] = -1;
   if (!fgGeo)
-    fgGeo = new AliTRDgeometry;
+    fgGeo = new AliHLTTRDGeometry;
 }
 
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id, int* label) :
@@ -54,7 +51,7 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid
     for (int i=3;i--;) fLabel[i] = -1;
   }
   if (!fgGeo)
-    fgGeo = new AliTRDgeometry;
+    fgGeo = new AliHLTTRDGeometry;
 }
 
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs) :
@@ -64,7 +61,7 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs) :
 {
   for (int i=3;i--;) fLabel[i] =  rhs.fLabel[i];
   if (!fgGeo)
-    fgGeo = new AliTRDgeometry;
+    fgGeo = new AliHLTTRDGeometry;
 }
 
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs) :
@@ -74,7 +71,7 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs) :
 {
   for (int i=3;i--;) fLabel[i] = -1;
   if (!fgGeo)
-    fgGeo = new AliTRDgeometry;
+    fgGeo = new AliHLTTRDGeometry;
 }
 
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
@@ -84,7 +81,7 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
 {
   for (int i=3;i--;) fLabel[i] =  rhs.GetLabel(i);
   if (!fgGeo)
-    fgGeo = new AliTRDgeometry;
+    fgGeo = new AliHLTTRDGeometry;
 }
 
 AliHLTTRDTrackletWord::~AliHLTTRDTrackletWord()
@@ -134,11 +131,6 @@ int AliHLTTRDTrackletWord::GetROB() const
 
 int AliHLTTRDTrackletWord::GetMCM() const
 {
-#ifdef HLTCA_BUILD_ALIROOT_LIB    
-  AliTRDpadPlane *pp = fgGeo->GetPadPlane(GetDetector());
-  return (((int) ((GetY()) / pp->GetWidthIPad()) + 72) / 18) % 4
+  return (((int) ((GetY()) / fgGeo->GetPadPlaneWithIPad(GetDetector())) + 72) / 18) % 4
     + 4 * (GetZbin() % 4);
-#else
-  return 0;
-#endif
 }

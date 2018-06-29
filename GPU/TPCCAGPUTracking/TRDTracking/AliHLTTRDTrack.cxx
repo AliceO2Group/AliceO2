@@ -175,7 +175,7 @@ void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 #ifdef HLTCA_BUILD_ALIROOT_LIB //Instantiate AliRoot track version
 template class AliHLTTRDTrack<trackInterface<AliExternalTrackParam>>;
 #endif
-#ifdef HLTCA_BUILD_ALIROOT_LIB //Instantiate O2 track version
+#ifdef HLTCA_BUILD_O2_LIB //Instantiate O2 track version
 //Not yet existing
 #endif
 template class AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>>; //Always instatiate HLT track version

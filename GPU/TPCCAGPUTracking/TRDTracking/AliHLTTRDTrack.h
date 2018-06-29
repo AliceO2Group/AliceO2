@@ -76,9 +76,10 @@ class AliHLTTRDTrack : public T
 };
 
 #if defined (TRD_TRACK_TYPE_ALIROOT)
-typedef AliHLTTRDTrack<trackInterface<AliExternalTrackParam>> HLTTRDTrack;
+typedef AliExternalTrackParam HLTTRDBaseTrack;
 #elif defined (TRD_TRACK_TYPE_HLT)
-typedef AliHLTTRDTrack<trackInterface<AliHLTTPCGMTrackParam>> HLTTRDTrack;
+typedef AliHLTTPCGMTrackParam HLTTRDBaseTrack;
 #endif
+typedef AliHLTTRDTrack<trackInterface<HLTTRDBaseTrack>> HLTTRDTrack;
 
 #endif
