@@ -36,8 +36,6 @@ namespace o2
 namespace framework
 {
 
-using LogicalChannelsMap = std::map<LogicalChannel, size_t>;
-
 char const* channelTypeFromEnum(enum ChannelType type)
 {
   switch (type) {
