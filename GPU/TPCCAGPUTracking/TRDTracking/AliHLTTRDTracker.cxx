@@ -1,7 +1,6 @@
 #include <vector>
 #include <algorithm>
 #include "AliHLTTRDTracker.h"
-#include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDTrackerDebug.h"
 #include "AliHLTTRDGeometry.h"
@@ -27,21 +26,21 @@ const float AliHLTTRDTracker::fgkX0[kNLayers]    = { 300.2, 312.8, 325.4, 338.0,
 const float AliHLTTRDTracker::fgkXshift = 0.0;
 
 AliHLTTRDTracker::AliHLTTRDTracker() :
-  fR(0x0),
+  fR(nullptr),
   fIsInitialized(false),
-  fTracks(0x0),
+  fTracks(nullptr),
   fNCandidates(1),
   fNTracks(0),
   fNEvents(0),
-  fTracklets(0x0),
+  fTracklets(nullptr),
   fNtrackletsMax(1000),
   fNTracklets(0),
-  fNtrackletsInChamber(0x0),
-  fTrackletIndexArray(0x0),
-  fHypothesis(0x0),
-  fCandidates(0x0),
-  fSpacePoints(0x0),
-  fGeo(0x0),
+  fNtrackletsInChamber(nullptr),
+  fTrackletIndexArray(nullptr),
+  fHypothesis(nullptr),
+  fCandidates(nullptr),
+  fSpacePoints(nullptr),
+  fGeo(nullptr),
   fDebugOutput(false),
   fMinPt(0.6),
   fMaxEta(0.84),
@@ -50,9 +49,9 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fChi2Penalty(12.0),
   fZCorrCoefNRC(1.4),
   fNhypothesis(100),
-  fMaskedChambers(0x0),
-  fMCEvent(0x0),
-  fDebug(0x0)
+  fMaskedChambers(),
+  fMCEvent(nullptr),
+  fDebug(nullptr)
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -60,21 +59,21 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
 }
 
 AliHLTTRDTracker::AliHLTTRDTracker(const AliHLTTRDTracker &tracker) :
-  fR(0x0),
+  fR(nullptr),
   fIsInitialized(tracker.fIsInitialized),
-  fTracks(0x0),
+  fTracks(nullptr),
   fNCandidates(tracker.fNCandidates),
   fNTracks(tracker.fNTracks),
   fNEvents(tracker.fNEvents),
-  fTracklets(0x0),
+  fTracklets(nullptr),
   fNtrackletsMax(tracker.fNtrackletsMax),
   fNTracklets(tracker.fNTracklets),
-  fNtrackletsInChamber(0x0),
-  fTrackletIndexArray(0x0),
-  fHypothesis(0x0),
-  fCandidates(0x0),
-  fSpacePoints(0x0),
-  fGeo(0x0),
+  fNtrackletsInChamber(nullptr),
+  fTrackletIndexArray(nullptr),
+  fHypothesis(nullptr),
+  fCandidates(nullptr),
+  fSpacePoints(nullptr),
+  fGeo(nullptr),
   fDebugOutput(tracker.fDebugOutput),
   fMinPt(tracker.fMinPt),
   fMaxEta(tracker.fMaxEta),
@@ -83,9 +82,9 @@ AliHLTTRDTracker::AliHLTTRDTracker(const AliHLTTRDTracker &tracker) :
   fChi2Penalty(tracker.fChi2Penalty),
   fZCorrCoefNRC(tracker.fZCorrCoefNRC),
   fNhypothesis(tracker.fNhypothesis),
-  fMaskedChambers(0x0),
-  fMCEvent(0x0),
-  fDebug(0x0)
+  fMaskedChambers(),
+  fMCEvent(nullptr),
+  fDebug(nullptr)
 {
   //--------------------------------------------------------------------
   // Copy constructor (dummy!)
@@ -176,7 +175,7 @@ void AliHLTTRDTracker::Init()
   }
 
   fGeo->CreateClusterMatrixArray();
-  TGeoHMatrix *matrix = 0x0;
+  TGeoHMatrix *matrix = nullptr;
   double loc[3] = { fGeo->AnodePos() + fgkXshift, 0., 0. };
   double glb[3] = { 0., 0., 0. };
   for (int iLy=0; iLy<kNLayers; iLy++) {
@@ -281,10 +280,10 @@ void AliHLTTRDTracker::DoTracking( HLTTRDBaseTrack *tracksTPC, int *tracksTPClab
     HLTTRDTrack *t = &tMI;
     t->SetTPCtrackId(i);
     t->SetLabel(tracksTPClab[i]);
-    if (tracksTPCnTrklts != 0x0) {
+    if (tracksTPCnTrklts) {
       t->SetNtrackletsOffline(tracksTPCnTrklts[i]);
     }
-    if (tracksTRDlabel != 0x0) {
+    if (tracksTRDlabel) {
       t->SetLabelOffline(tracksTRDlabel[i]);
     }
     HLTTRDPropagator prop;
@@ -382,7 +381,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
 
   t->SetChi2(0.);
 
-  AliHLTTRDpadPlane *pad = 0x0;
+  AliHLTTRDpadPlane *pad = nullptr;
 
 #ifdef ENABLE_HLTTRDDEBUG
   HLTTRDTrack *trackNoUpdates = new HLTTRDTrack(*t);
@@ -532,7 +531,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
           {
             deltaY -= tiltCorr;
           }
-          double trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] - tiltCorr, zPosCorr };
+          My_Float trkltPosTmpYZ[2] = { fSpacePoints[trkltIdx].fX[0] - tiltCorr, zPosCorr };
           if ( (fabs(deltaY) < roadY) && (fabs(deltaZ) < roadZ) )
           {
             //tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
@@ -608,7 +607,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
         {
           tiltCorrReal = 0;
         }
-        double yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - tiltCorrReal, zPosCorrReal };
+        My_Float yzPosReal[2] = { fSpacePoints[realTrkltId].fX[0] - tiltCorrReal, zPosCorrReal };
         RecalcTrkltCov(realTrkltId, tilt, fCandidates[currIdx].getSnp(), pad->GetRowSize(fTracklets[realTrkltId].GetZbin()));
         fDebug->SetChi2Real(prop->getPredictedChi2(yzPosReal, fSpacePoints[realTrkltId].fCov), iLayer);
         fDebug->SetRawTrackletPositionReal(fSpacePoints[realTrkltId].fR, fSpacePoints[realTrkltId].fX, iLayer);
@@ -683,7 +682,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
       {
         yCorr = tilt * (fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] - fCandidates[2*iUpdate+nextIdx].getZ());
       }
-      double trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
+      My_Float trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
 
 #ifdef ENABLE_HLTTRDDEBUG
       prop->SetTrack(trackNoUpdates, trackNoUpdates->getAlpha());

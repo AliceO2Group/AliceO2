@@ -28,7 +28,7 @@ class AliHLTTRDTracker {
   struct AliHLTTRDSpacePointInternal {
     float fR;                 // x position (7mm above anode wires)
     float fX[2];              // y and z position (sector coordinates)
-    double fCov[3];           // sigma_y^2, sigma_yz, sigma_z^2
+    My_Float fCov[3];           // sigma_y^2, sigma_yz, sigma_z^2
     float fDy;                // deflection over drift length
     int fId;                  // index
     int fLabel[3];            // MC labels
