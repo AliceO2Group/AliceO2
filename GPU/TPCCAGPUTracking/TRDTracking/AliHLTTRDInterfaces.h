@@ -16,9 +16,11 @@ template <typename T> class propagatorInterface;
 #ifdef HLTCA_BUILD_ALIROOT_LIB //Interface for AliRoot, build only with AliRoot
 #include "AliExternalTrackParam.h"
 #include "AliTrackerBase.h"
+
+typedef double My_Float;
+
 template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
 {
-  typedef double My_Float;
 
   public:
     trackInterface<AliExternalTrackParam> () : AliExternalTrackParam() {};
@@ -52,7 +54,6 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
 
 template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 {
-  typedef double My_Float;
 
   public:
     propagatorInterface<AliTrackerBase> () : AliTrackerBase(), fParam(nullptr) {};
@@ -78,6 +79,7 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #ifdef HLTCA_BUILD_O2_LIB //Interface for O2, build only with AliRoot
 #endif
 #ifndef HLTCA_BUILD_ALIROOT_LIB
+typedef float My_Float;
 #define Error(...)
 #define Warning(...)
 #define Info(...)
@@ -98,7 +100,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) : AliHLTTPCGMTrackParam() {}; // FIXME set params, or is it dummy?
 
     float getX()       const { return GetX(); }
-    float getAlpha()   const { return 99999; } // FIXME
+    float getAlpha()   const { return 99999; } // FIXME this is still needed by the AliHLTTRDTracker::DoTracking(). How to get alpha from the track in the HLT?
     float getY()       const { return GetY(); }
     float getZ()       const { return GetZ(); }
     float getSnp()     const { return GetSinPhi(); }
@@ -140,9 +142,9 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
     AliHLTTPCCAParam param;
     bool PropagateToX( float x, float maxSnp, float maxStep ) { return PropagateToXAlpha( x, GetAlpha(), true ); }
     bool rotate(float alpha) { return RotateToAlpha(alpha); }
-    bool update(const float p[2], const float cov[3]) { return Update(p[0], p[1], HLTCA_ROW_COUNT -1, param, 0, false, false); }
+    bool update(const My_Float p[2], const My_Float cov[3]) { return Update(p[0], p[1], HLTCA_ROW_COUNT -1, param, 0, false, false); }
     float getAlpha() { return GetAlpha(); }
-    float getPredictedChi2(const float p[2], const float cov[3]) const { return 99999; } // TODO not available for HLT tracking?
+    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const { return 99999; } // TODO not available for HLT tracking?
 };
 
 
