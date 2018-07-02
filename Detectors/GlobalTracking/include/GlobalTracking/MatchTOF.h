@@ -44,8 +44,23 @@ class MCTruthContainer;
 namespace globaltracking
 {
 
+///< original track in the currently loaded TPC-ITS reco output
+struct TrackLocTPCITS : public o2::track::TrackParCov {
+  o2::dataformats::EvIndex<int, int> source; ///< track origin id
+  timeBracket timeBins;                      ///< bracketing time-bins
+  float zMin = 0;                            // min possible Z of this track
+  float zMax = 0;                            // max possible Z of this track
+  int matchID = MinusOne;                    ///< entry (none if MinusOne) of TOF matchTOF struct in the mMatchesTOF
+  TrackLocTPCITS(const o2::track::TrackParCov& src, int tch, int tid) : o2::track::TrackParCov(src), source(tch, tid) {}
+  TrackLocTPCITS() = default;
+  ClassDefNV(TrackLocTPCITS, 1);
+};
+ 
 class MatchTOF
 {
+  using Geo = o2::tof::Geo;
+  using Cluster = o2::tof::Cluster;
+  
  public:
   ///< perform matching for provided input
   void run();
@@ -94,9 +109,10 @@ class MatchTOF
   void loadTracksChunk(int chunk);
   bool loadTOFClustersNextChunk();
   void loadTOFClustersChunk(int chunk);
-
+  
   void doMatching(int sec);
   void selectBestMatches();
+  bool propagateToRefX(o2::track::TrackParCov& trc);
 
   //================================================================
 
@@ -104,6 +120,8 @@ class MatchTOF
 
   bool mInitDone = false; ///< flag init already done
 
+  float mXRef = Geo::RMIN;                 ///< reference radius to propage tracks for matching
+  
   int mCurrTracksTreeEntry = -1;      ///< current tracks tree entry loaded to memory
   int mCurrTOFClustersTreeEntry = -1; ///< current TOF clusters tree entry loaded to memory
 
@@ -125,11 +143,27 @@ class MatchTOF
   //           since this info is provided by external device
   std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
 
-  std::vector<o2::tof::Cluster>* mTOFClustersArrayInp = nullptr; ///< input TOF clusters
+  std::vector<Cluster>* mTOFClustersArrayInp = nullptr; ///< input TOF clusters
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFTrkLabels = nullptr; ///< input TOF Track MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTracksLabels = nullptr; ///< input TPC Track MC labels
+
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels
+  std::vector<o2::MCCompLabel> mTracksLblWork; ///<TPCITS track labels
+  std::vector<o2::MCCompLabel> mTTOFClusLblWork; ///<TOF cluster labels
+
 
   /// <<<-----
+
+  ///<working copy of the input tracks
+  std::vector<TrackLocTPCITS> mTracksWork;        ///<track params prepared for matching
+  std::vector<Cluster> mTOFClusWork;        ///<track params prepared for matching
+
+  ///< per sector indices of track entry in mTracksWork
+  std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache;
+  ///< per sector indices of TOF cluster entry in mTOFClusWork
+  std::array<std::vector<int>, o2::constants::math::NSectors> mTOFClusSectIndexCache;
+
+  
 
   ///<outputs tracks container
   std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
@@ -139,6 +173,9 @@ class MatchTOF
   std::string mTOFMCTruthBranchName = "TOFClusterMCTruth"; ///< name of branch containing ITS MC labels
   std::string mOutTracksBranchName = "TOFMatchInfo";       ///< name of branch containing output matched tracks
 
+  ///----------- aux stuff --------------///
+  static constexpr float MaxSnp = 0.85;                // max snp of ITS or TPC track at xRef to be matched
+  
   TStopwatch mTimerTot;
   ClassDefNV(MatchTOF, 1);
 };
