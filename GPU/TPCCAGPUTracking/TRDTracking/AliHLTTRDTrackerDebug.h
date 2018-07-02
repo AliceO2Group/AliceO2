@@ -57,11 +57,11 @@ class AliHLTTRDTrackerDebug
 
     // tracklet parameters
     void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) { fTrackletX(ly) = fX; fTrackletY(ly) = fYZ[0]; fTrackletZ(ly) = fYZ[1]; }
-    void SetCorrectedTrackletPosition(const double (&fYZ)[2], int ly) { fTrackletYcorr(ly) = fYZ[0]; fTrackletZcorr(ly) = fYZ[1]; }
-    void SetTrackletCovariance(const double *fCov, int ly) { fTrackletY2err(ly) = fCov[0]; fTrackletYZerr(ly) = fCov[1]; fTrackletZ2err(ly) = fCov[2]; }
+    void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly) { fTrackletYcorr(ly) = fYZ[0]; fTrackletZcorr(ly) = fYZ[1]; }
+    void SetTrackletCovariance(const My_Float *fCov, int ly) { fTrackletY2err(ly) = fCov[0]; fTrackletYZerr(ly) = fCov[1]; fTrackletZ2err(ly) = fCov[2]; }
     void SetTrackletProperties(const float dy, const int det, int ly) { fTrackletDy(ly) = dy; fTrackletDet(ly) = det; }
     void SetRawTrackletPositionReal(float fX, float *fYZ, int ly) { fTrackletXReal(ly) = fX; fTrackletYReal(ly) = fYZ[0]; fTrackletZReal(ly) = fYZ[1]; }
-    void SetCorrectedTrackletPositionReal(double *fYZ, int ly) { fTrackletYcorrReal(ly) = fYZ[0]; fTrackletZcorrReal(ly) = fYZ[1]; }
+    void SetCorrectedTrackletPositionReal(My_Float *fYZ, int ly) { fTrackletYcorrReal(ly) = fYZ[0]; fTrackletZcorrReal(ly) = fYZ[1]; }
     void SetTrackletPropertiesReal(const int sec, const int det, int ly) { fTrackletSecReal(ly) = sec; fTrackletDetReal(ly) = det; }
 
     // update information
@@ -239,11 +239,11 @@ class AliHLTTRDTrackerDebug
 
     // tracklet parameters
     void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}
-    void SetCorrectedTrackletPosition(const double (&fYZ)[2], int ly) {}
-    void SetTrackletCovariance(const double *fCov, int ly) {}
+    void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly) {}
+    void SetTrackletCovariance(const My_Float *fCov, int ly) {}
     void SetTrackletProperties(const float dy, const int det, int ly) {}
     void SetRawTrackletPositionReal(float fX, float *fYZ, int ly) {}
-    void SetCorrectedTrackletPositionReal(double *fYZ, int ly) {}
+    void SetCorrectedTrackletPositionReal(My_Float *fYZ, int ly) {}
     void SetTrackletPropertiesReal(const int sec, const int det, int ly) {}
 
     // update information

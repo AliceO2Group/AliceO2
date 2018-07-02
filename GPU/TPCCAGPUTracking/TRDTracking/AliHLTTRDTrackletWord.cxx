@@ -24,6 +24,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "AliHLTTRDTrackletWord.h"
+#include <new>
 
 AliHLTTRDGeometry* AliHLTTRDTrackletWord::fgGeo = 0x0;
 

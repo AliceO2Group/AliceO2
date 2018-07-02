@@ -17,6 +17,9 @@ static const float piMass = 0.139f;
 //#define ENABLE_HLTTRDDEBUG
 #define ENABLE_WARNING 0
 #define ENABLE_INFO 0
+#ifdef HLTCA_BUILD_ALIROOT_LIB
+#define ENABLE_HLTMC
+#endif
 
 static const float fgkMaxSnp = 0.8;
 static const float fgkMaxStep = 2.0;
@@ -390,6 +393,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
   // look for matching tracklets via MC label
   int trackID = t->GetLabel();
 
+#ifdef ENABLE_HLTMC
   std::vector<int> matchAvailableAll[kNLayers]; // all available MC tracklet matches for this track
   if (fDebugOutput && trackID > 0 && fMCEvent) {
     CountMatches(trackID, matchAvailableAll);
@@ -397,6 +401,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
     CheckTrackRefs(trackID, findableMC);
     fDebug->SetFindableMC(findableMC);
   }
+#endif
 
   // the vector det holds the numbers of the detectors which are searched for tracklets
   std::vector<int> det;
@@ -581,6 +586,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
       isOK = true;
     } // end candidate loop
 
+#ifdef ENABLE_HLTMC
     // in case matching tracklet exists in this layer -> store position information for debugging
     if (matchAvailableAll[iLayer].size() > 0 && fDebugOutput) {
       fDebug->SetNmatchAvail(matchAvailableAll[iLayer].size(), iLayer);
@@ -615,6 +621,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
         fDebug->SetTrackletPropertiesReal(fGeo->GetSector(fTracklets[realTrkltId].GetDetector()), fTracklets[realTrkltId].GetDetector(), iLayer);
       }
     }
+#endif
     //
     std::sort(fHypothesis, fHypothesis+nCurrHypothesis, Hypothesis_Sort);
     fDebug->SetChi2Update(fHypothesis[0].fChi2 - t->GetChi2(), iLayer); // only meaningful for ONE candidate!!!
@@ -775,6 +782,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
               break;
             }
           }
+#ifdef ENABLE_HLTMC
           if (update[iLy] < 1 && fMCEvent) {
             // no exact match, check in related labels
             for (int il=0; il<3; il++) {
@@ -794,6 +802,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
               }
             }
           }
+#endif
           if (update[iLy] < 1) {
             update[iLy] = 9;
             nFake++;
@@ -801,10 +810,12 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
         }
       }
       fDebug->SetTrackProperties(nMatching, nFake, nRelated);
+#ifdef ENABLE_HLTMC
       AliMCParticle *mcPartDbg = (AliMCParticle*) fMCEvent->GetTrack(trackID);
       if (mcPartDbg) {
         fDebug->SetMCinfo(mcPartDbg->Xv(), mcPartDbg->Yv(), mcPartDbg->Zv(), mcPartDbg->PdgCode());
       }
+#endif
     }
 
     fDebug->SetTrack(*t);
@@ -925,6 +936,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
         if (!fMCEvent) {
           continue;
         }
+#ifdef ENABLE_HLTMC
         //continue; //FIXME uncomment to count only exact matches
         AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lb);
         while (mcPart) {
@@ -939,6 +951,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
         if (trkltStored) {
           break;
         }
+#endif
       }
     }
   }
@@ -946,6 +959,7 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
 
 void AliHLTTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC) const
 {
+#ifdef ENABLE_HLTMC
   //--------------------------------------------------------------------
   // loop over all track references for the input trackID and set
   // findableMC to true for each layer in which a track hit exiting
@@ -998,6 +1012,7 @@ void AliHLTTRDTracker::CheckTrackRefs(const int trackID, bool *findableMC) const
     }
     findableMC[layer] = true;
   }
+#endif
 }
 
 void AliHLTTRDTracker::FindChambersInRoad(const HLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax, const float alpha) const
