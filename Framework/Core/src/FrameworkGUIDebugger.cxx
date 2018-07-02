@@ -544,7 +544,7 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
   static gui::WorkspaceGUIState globalGUIState;
   gui::WorkspaceGUIState& guiState = globalGUIState;
   guiState.selectedMetric = -1;
-  guiState.metricMaxRange = 0UI;
+  guiState.metricMaxRange = 0UL;
   guiState.metricMinRange = -1;
   // FIXME: this should probaly have a better mapping between our window state and
   guiState.devices.resize(infos.size());
