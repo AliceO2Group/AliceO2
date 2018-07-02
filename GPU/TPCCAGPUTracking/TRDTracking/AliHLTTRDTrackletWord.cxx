@@ -24,8 +24,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "AliHLTTRDTrackletWord.h"
-#include "AliTRDtrackletWord.h"
-#include "AliTRDtrackletMCM.h"
 
 AliHLTTRDGeometry* AliHLTTRDTrackletWord::fgGeo = 0x0;
 
@@ -64,6 +62,11 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs) :
     fgGeo = new AliHLTTRDGeometry;
 }
 
+#ifdef HLTCA_BUILD_ALIROOT_LIB
+#include "AliTRDtrackletWord.h"
+#include "AliTRDtrackletMCM.h"
+
+
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs) :
   fId(-1),
   fHCId(rhs.GetHCId()),
@@ -84,19 +87,21 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
     fgGeo = new AliHLTTRDGeometry;
 }
 
-AliHLTTRDTrackletWord::~AliHLTTRDTrackletWord()
-{
-
-}
-
-AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliHLTTRDTrackletWord &rhs)
+AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM &rhs)
 {
   this->~AliHLTTRDTrackletWord();
   new(this) AliHLTTRDTrackletWord(rhs);
   return *this;
 }
 
-AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM &rhs)
+#endif
+
+AliHLTTRDTrackletWord::~AliHLTTRDTrackletWord()
+{
+
+}
+
+AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliHLTTRDTrackletWord &rhs)
 {
   this->~AliHLTTRDTrackletWord();
   new(this) AliHLTTRDTrackletWord(rhs);
