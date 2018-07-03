@@ -104,7 +104,7 @@ void Geo::Init()
 void Geo::getVolumePath(const Int_t* ind, Char_t* path)
 {
   //--------------------------------------------------------------------
-  // This function returns the colume path of a given pad
+  // This function returns the volume path of a given pad
   //--------------------------------------------------------------------
   Int_t sector = ind[0];
 
@@ -633,3 +633,4 @@ void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
 
   return;
 }
+

@@ -112,7 +112,7 @@ class MatchTOF
   
   void doMatching(int sec);
   void selectBestMatches();
-  bool propagateToRefX(o2::track::TrackParCov& trc);
+  bool propagateToRefX(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/);
 
   //================================================================
 
@@ -133,7 +133,8 @@ class MatchTOF
 
   float mTimeTolerance = 1e3; ///<tolerance in ns for track-TOF time bracket matching
   float mSpaceTolerance = 10; ///<tolerance in cm for track-TOF time bracket matching
-
+  int   mSigmaTimeCut = 3; ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  
   TTree* mInputTreeTracks = nullptr; ///< input tree for tracks
   TTree* mTreeTOFClusters = nullptr; ///< input tree for TOF clusters
 
@@ -165,8 +166,15 @@ class MatchTOF
 
   
 
-  ///<outputs tracks container
+  ///<array of track-TOFCluster pairs from the matching
+  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>> mMatchedTracksPairs;
+
+  ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
+  int mNumOfTracks;  // number of tracks to be matched
+  int* mMatchedTracksIndex = nullptr;  //[mNumOfTracks]
+  int mNumOfClusters;  // number of clusters to be matched
+  int* mMatchedClustersIndex = nullptr;  //[mNumOfClusters]
 
   std::string mTracksBranchName = "TPCITS";                ///< name of branch containing input matched tracks
   std::string mTOFClusterBranchName = "TOFCluster";        ///< name of branch containing input ITS clusters

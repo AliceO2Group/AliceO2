@@ -18,23 +18,23 @@ namespace o2
 {
 namespace dataformats
 {
-
-class MatchInfoTOF
+  class MatchInfoTOF
 {
  public:
+
+  MatchInfoTOF(int indexTOFCl, int indexTrack, float chi2) : mTOFClIndex(indexTOFCl), mTrackIndex(indexTrack), mChi2(chi2);
+  MatchInfoTOF() = default;
   void setTOFClIndex(int index) { mTOFClIndex = index; }
   int getTOFClIndex() const { return mTOFClIndex; }
-
-  void setTrackIndex(int index) { mTrackIndex = index; }
-  int getTrackIndex() const { return mTrackIndex; }
 
   void setChi2(int chi2) { mChi2 = chi2; }
   int getChi2() const { return mChi2; }
 
  private:
+  
   int mTOFClIndex; // index of the TOF cluster used for the matching
-  int mTrackIndex; // index of the track used for the matching
   float mChi2;     // chi2 of the pair track-TOFcluster
+  
 
   //  ClassDefNV(MatchInfoTOF, 1);
 };
