@@ -29,7 +29,7 @@ if(NOT AMDAPPSDKROOT)
 endif()
 
 if(NOT AMDAPPSDKROOT)
-    message(FATAL_ERROR "AMDAPPSDKROOT not set. Please install AMD APP SDK and set $AMDAPPSDKROOT or disable HLT_OPENCL.")
+    message(FATAL_ERROR "AMDAPPSDKROOT not set. Please install AMD APP SDK and set $AMDAPPSDKROOT or disable ENABLE_OPENCL.")
 endif()
 
 if(NOT "$ENV{GPU_FORCE_64BIT_PTR}" STREQUAL "1")

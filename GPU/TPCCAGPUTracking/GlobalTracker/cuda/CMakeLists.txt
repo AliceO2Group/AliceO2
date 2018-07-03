@@ -20,11 +20,11 @@ elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
 set(MODULE AliTPCCAGPUTrackingCUDA)
 endif()
 
-option(HLT_CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
+option(CUDA_GCCBIN "GCC binary to use for compiling host part of CUDA code for systems with multiple GCC versions installed"   OFF)
 
 find_package(CUDA)
 if(NOT CUDA_FOUND)
-    message( FATAL_ERROR "NVIDIA CUDA package not found. Please install or set HLT_CUDA=OFF" )
+    message( FATAL_ERROR "NVIDIA CUDA package not found. Please install or set ENABLE_CUDA=OFF" )
 else()
     find_library(LIBCUDA_SO_PATH libcuda.so)
     string(FIND ${LIBCUDA_SO_PATH} "-NOTFOUND" LIBCUDA_SO_PATH_NOTFOUND )
@@ -32,13 +32,13 @@ endif(NOT CUDA_FOUND)
 message( STATUS "Building CAGPUTracking with CUDA support" )
 
 if(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
-  message( FATAL_ERROR "NVIDIA CUDA libcuda.so not found. Please install or set HLT_CUDA=OFF" )
+  message( FATAL_ERROR "NVIDIA CUDA libcuda.so not found. Please install or set ENABLE_CUDA=OFF" )
 endif(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
 
 #set nvcc flags
 set(CUDA_NVCC_FLAGS -Wno-deprecated-gpu-targets --use_fast_math --maxrregcount 64 -O4 -Xcompiler -fPIC -Xptxas -O4 -gencode arch=compute_61,code=sm_61)
-if(HLT_CUDA_GCCBIN)
-  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --compiler-bindir ${HLT_CUDA_GCCBIN})
+if(CUDA_GCCBIN)
+  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --compiler-bindir ${CUDA_GCCBIN})
 endif()
 
 #for convenience
