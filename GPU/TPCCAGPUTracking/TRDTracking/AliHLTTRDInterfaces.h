@@ -10,14 +10,13 @@
  * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
  */
 
+#include "AliHLTTRDDef.h"
 template <typename T> class trackInterface;
 template <typename T> class propagatorInterface;
 
 #ifdef HLTCA_BUILD_ALIROOT_LIB //Interface for AliRoot, build only with AliRoot
 #include "AliExternalTrackParam.h"
 #include "AliTrackerBase.h"
-
-typedef double My_Float;
 
 template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
 {
@@ -77,12 +76,7 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #endif
 
 #ifdef HLTCA_BUILD_O2_LIB //Interface for O2, build only with AliRoot
-#endif
-#ifndef HLTCA_BUILD_ALIROOT_LIB
-typedef float My_Float;
-#define Error(...)
-#define Warning(...)
-#define Info(...)
+//TODO: Implement!
 #endif
 
 #include "AliHLTTPCGMTrackParam.h"
@@ -130,8 +124,8 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
 {
   public:
     propagatorInterface<AliHLTTPCGMPropagator>() : AliHLTTPCGMPropagator(), param(AliHLTTPCCAParam()) {
-      static constexpr float kRho = 1.025e-3;
-      static constexpr float kRadLen = 29.532;
+      static const float kRho = 1.025e-3;
+      static const float kRadLen = 29.532;
       static AliHLTTPCGMMerger fMerger;
       this->SetMaterial( kRadLen, kRho );
       this->SetPolynomialField( fMerger.pField() );
@@ -147,11 +141,4 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
     float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const { return 99999; } // TODO not available for HLT tracking?
 };
 
-
-
-#ifdef HLTCA_BUILD_ALIROOT_LIB
-typedef propagatorInterface<AliTrackerBase> HLTTRDPropagator;
-#else
-typedef propagatorInterface<AliHLTTPCGMPropagator> HLTTRDPropagator;
-#endif
 #endif

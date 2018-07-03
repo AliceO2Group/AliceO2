@@ -101,6 +101,7 @@ string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 set(HDRS ${HDRS}
     SliceTracker/AliHLTTPCCADef.h
     SliceTracker/AliHLTTPCCAMath.h
+    TRDTracking/AliHLTTRDDef.h
     TRDTracking/AliHLTTRDTrackPoint.h
 )
 

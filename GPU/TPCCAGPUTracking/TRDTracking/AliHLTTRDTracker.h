@@ -3,15 +3,12 @@
 /* Copyright(c) 2007-2009, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-
+ #include "AliHLTTRDDef.h"
 class AliHLTTRDTrackerDebug;
 class AliHLTTRDTrackletWord;
 class AliHLTTRDGeometry;
 class AliExternalTrackParam;
 class AliMCEvent;
-
-#include "AliHLTTRDTrack.h"
-
 
 //-------------------------------------------------------------------------
 class AliHLTTRDTracker {

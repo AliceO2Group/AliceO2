@@ -4,6 +4,7 @@
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDTrackerDebug.h"
 #include "AliHLTTRDGeometry.h"
+#include "AliHLTTRDTrack.h"
 
 #ifdef HLTCA_BUILD_ALIROOT_LIB
 #include "TDatabasePDG.h"
