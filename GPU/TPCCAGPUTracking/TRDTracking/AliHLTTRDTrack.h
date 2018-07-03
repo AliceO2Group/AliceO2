@@ -3,13 +3,8 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
+#include "AliHLTTRDDef.h"
 #include "AliHLTTRDInterfaces.h"
-
-#ifdef HLTCA_BUILD_ALIROOT_LIB
-#define TRD_TRACK_TYPE_ALIROOT
-#else
-#define TRD_TRACK_TYPE_HLT
-#endif
 
 class AliHLTTRDTrackDataRecord;
 
@@ -74,12 +69,5 @@ class AliHLTTRDTrack : public T
   bool fIsStopped;            // track ends in TRD
 
 };
-
-#if defined (TRD_TRACK_TYPE_ALIROOT)
-typedef AliExternalTrackParam HLTTRDBaseTrack;
-#elif defined (TRD_TRACK_TYPE_HLT)
-typedef AliHLTTPCGMTrackParam HLTTRDBaseTrack;
-#endif
-typedef AliHLTTRDTrack<trackInterface<HLTTRDBaseTrack>> HLTTRDTrack;
 
 #endif
