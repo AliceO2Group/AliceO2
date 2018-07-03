@@ -1,5 +1,5 @@
-option(HLT_CUDA   "Build HLT GPU tracker using CUDA"   OFF)
-option(HLT_OPENCL "Build HLT GPU tracker using OpenCL" OFF)
+option(ENABLE_CUDA   "Build HLT GPU tracker using CUDA"   OFF)
+option(ENABLE_OPENCL "Build HLT GPU tracker using OpenCL" OFF)
 
 if(DEFINED ALITPCCOMMON_DIR)
     set(ALITPCCOMMON_BUILD_TYPE "O2")
