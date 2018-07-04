@@ -39,8 +39,6 @@
 #include <string>
 #include "MemoryResources/MemoryResources.h"
 
-using byte = unsigned char;
-
 namespace o2 {
 namespace header {
 
@@ -411,7 +409,7 @@ struct BaseHeader
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(const byte* b, size_t /*len*/ = 0)
+  inline static const BaseHeader* get(const o2::byte* b, size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
              ? reinterpret_cast<const BaseHeader*>(b)
@@ -421,26 +419,24 @@ struct BaseHeader
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static BaseHeader* get(byte* b, size_t /*len*/ = 0)
+  inline static BaseHeader* get(o2::byte* b, size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<uint32_t*>(b)) == sMagicString) ? reinterpret_cast<BaseHeader*>(b)
                                                                                : nullptr;
   }
 
   inline uint32_t size() const noexcept { return headerSize; }
-  inline const byte* data() const noexcept { return reinterpret_cast<const byte*>(this); }
+  inline const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
 
   /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept {
-    return (flagsNextHeader) ?
-      reinterpret_cast<const BaseHeader*>(reinterpret_cast<const byte*>(this)+headerSize) :
-      nullptr;
+    return (flagsNextHeader) ? reinterpret_cast<const BaseHeader*>(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
   }
 
   /// get the next header if any (non-const version)
   inline BaseHeader* next() noexcept
   {
-    return (flagsNextHeader) ? reinterpret_cast<BaseHeader*>(reinterpret_cast<byte*>(this) + headerSize) : nullptr;
+    return (flagsNextHeader) ? reinterpret_cast<BaseHeader*>(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
   }
 };
 
@@ -448,7 +444,7 @@ struct BaseHeader
 /// use like this:
 /// HeaderType* h = get<HeaderType*>(buffer)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const byte* buffer, size_t /*len*/ = 0)
+auto get(const o2::byte* buffer, size_t /*len*/ = 0)
 {
   using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
@@ -499,12 +495,12 @@ struct Stack {
     freeobj(boost::container::pmr::memory_resource* mr) : resource(mr) {}
 
     boost::container::pmr::memory_resource* resource{ nullptr };
-    void operator()(byte* ptr) { Stack::freefn(ptr, resource); }
+    void operator()(o2::byte* ptr) { Stack::freefn(ptr, resource); }
   };
 
  public:
-  using allocator_type = boost::container::pmr::polymorphic_allocator<byte>;
-  using value_type = byte;
+  using allocator_type = boost::container::pmr::polymorphic_allocator<o2::byte>;
+  using value_type = o2::byte;
   using BufferType = std::unique_ptr<value_type[], freeobj>;
 
   Stack() = default;
@@ -528,7 +524,7 @@ struct Stack {
   /// all headers must derive from BaseHeader, in addition also other stacks can be passed to ctor.
   template <typename FirstArgType, typename... Headers,
             typename std::enable_if_t<
-              !std::is_convertible<FirstArgType, boost::container::pmr::polymorphic_allocator<byte>>::value, int> = 0>
+              !std::is_convertible<FirstArgType, boost::container::pmr::polymorphic_allocator<o2::byte>>::value, int> = 0>
   Stack(FirstArgType&& firstHeader, Headers&&... headers)
     : Stack(boost::container::pmr::new_delete_resource(), std::forward<FirstArgType>(firstHeader),
             std::forward<Headers>(headers)...)
@@ -539,7 +535,7 @@ struct Stack {
   Stack(const allocator_type allocatorArg, Headers&&... headers)
     : allocator{ allocatorArg },
       bufferSize{ calculateSize(std::forward<Headers>(headers)...) },
-      buffer{ static_cast<byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
+      buffer{ static_cast<o2::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
               freeobj(getFreefnHint()) }
   {
     inject(buffer.get(), std::forward<Headers>(headers)...);
@@ -566,7 +562,7 @@ struct Stack {
   constexpr static size_t calculateSize() { return 0; }
 
   template <typename T>
-  static byte* inject(byte* here, T&& h) noexcept
+  static o2::byte* inject(o2::byte* here, T&& h) noexcept
   {
     using headerType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
     static_assert(
@@ -580,7 +576,7 @@ struct Stack {
   }
 
   template <typename T, typename... Args>
-  static byte* inject(byte* here, T&& h, Args&&... args) noexcept
+  static o2::byte* inject(o2::byte* here, T&& h, Args&&... args) noexcept
   {
     auto alsohere = inject(here, h);
     // the type might be a stack itself, loop through headers and set the flag in the last one
