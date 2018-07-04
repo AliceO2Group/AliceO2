@@ -16,7 +16,7 @@ using namespace o2::framework;
 TMessageSerializer::StreamerList TMessageSerializer::sStreamers{};
 std::mutex TMessageSerializer::sStreamersLock{};
 
-void TMessageSerializer::loadSchema(gsl::span<byte> buffer)
+void TMessageSerializer::loadSchema(gsl::span<o2::byte> buffer)
 {
   std::unique_ptr<TObject> obj = deserialize(buffer);
 

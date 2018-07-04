@@ -70,9 +70,9 @@ protected:
 			    const byte* dataBuffer, size_t dataBufferSize);
 
   /// Read file and append to the buffer
-  static bool AppendFile(const char* name, std::vector<byte>& buffer);
+  static bool AppendFile(const char* name, std::vector<o2::byte>& buffer);
 
-private:
+ private:
   /// configurable name of input channel
   std::string mInputChannelName;
   /// configurable name of output channel
@@ -87,7 +87,7 @@ private:
   SubSpecificationT mSubSpecification;
   /// buffer for the file to read
   /// Note the shift by sizeof(HeartbeatHeader)
-  std::vector<byte> mFileBuffer;
+  std::vector<o2::byte> mFileBuffer;
   std::string mFileName;
 };
 

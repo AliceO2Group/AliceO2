@@ -83,20 +83,20 @@ namespace internal
 template <typename I, typename F>
 auto forEach(I begin, I end, F&& function)
 {
-  using span = gsl::span<const byte>;
+  using span = gsl::span<const o2::byte>;
   using gsl::narrow_cast;
   for (auto it = begin; it != end; ++it) {
-    byte* headerBuffer{ nullptr };
+    o2::byte* headerBuffer{ nullptr };
     span::index_type headerBufferSize{ 0 };
     if (*it != nullptr) {
-      headerBuffer = reinterpret_cast<byte*>((*it)->GetData());
+      headerBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
       headerBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
     }
     ++it;
-    byte* dataBuffer{ nullptr };
+    o2::byte* dataBuffer{ nullptr };
     span::index_type dataBufferSize{ 0 };
     if (*it != nullptr) {
-      dataBuffer = reinterpret_cast<byte*>((*it)->GetData());
+      dataBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
       dataBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
     }
 

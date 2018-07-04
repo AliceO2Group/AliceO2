@@ -42,10 +42,11 @@
 
 namespace o2
 {
-namespace memory_resource
-{
 
 using byte = unsigned char;
+
+namespace memory_resource
+{
 
 //__________________________________________________________________________________________________
 /// All FairMQ related memory resources need to inherit from this interface class for the getMessage() api.
@@ -307,8 +308,8 @@ class OwningMessageSpectatorAllocator
 //__________________________________________________________________________________________________
 //__________________________________________________________________________________________________
 
-using ByteSpectatorAllocator = SpectatorAllocator<byte>;
-using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<byte>;
+using ByteSpectatorAllocator = SpectatorAllocator<o2::byte>;
+using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<o2::byte>;
 
 //__________________________________________________________________________________________________
 // return the message associated with the container or nullptr if it does not make sense (e.g. when we are just
@@ -336,7 +337,7 @@ FairMQMessagePtr getMessage(ContainerT&& container_, FairMQMemoryResource* targe
     return std::move(message);
   } else {
     auto message = targetResource->getTransportFactory()->CreateMessage(containerSizeBytes);
-    std::memcpy(static_cast<byte*>(message->GetData()), container.data(), containerSizeBytes);
+    std::memcpy(static_cast<o2::byte*>(message->GetData()), container.data(), containerSizeBytes);
     return std::move(message);
   }
 };

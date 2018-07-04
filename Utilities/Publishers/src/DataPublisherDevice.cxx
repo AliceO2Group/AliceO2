@@ -28,7 +28,8 @@ using DataDescription = o2::header::DataDescription;
 using DataOrigin = o2::header::DataOrigin;
 
 template <typename T>
-void fakePayload(std::vector<byte> &buffer, std::function<void(T&,int)> filler, int numOfElements) {
+void fakePayload(std::vector<o2::byte>& buffer, std::function<void(T&, int)> filler, int numOfElements)
+{
   auto payloadSize = sizeof(T)*numOfElements;
   LOG(INFO) << "Payload size " << payloadSize << "\n";
   buffer.resize(buffer.size() + payloadSize);
@@ -201,7 +202,7 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   return true;
 }
 
-bool DataPublisherDevice::AppendFile(const char* name, std::vector<byte>& buffer)
+bool DataPublisherDevice::AppendFile(const char* name, std::vector<o2::byte>& buffer)
 {
   bool result = true;
   std::ifstream ifile(name, std::ifstream::binary);

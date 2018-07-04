@@ -20,19 +20,18 @@
 #include <gsl/span>
 #include <memory>
 #include <mutex>
+#include <MemoryResources/MemoryResources.h>
 
 namespace o2
 {
 namespace framework
 {
-// TODO: this should come from a global definitions header (or do we use gsl::byte?)
-using byte = unsigned char;
 class FairTMessage;
 
 // utilities to produce a span over a byte buffer held by various message types
 // this is to avoid littering code with casts and conversions (span has a signed index type(!))
-gsl::span<byte> as_span(const FairTMessage& msg);
-gsl::span<byte> as_span(const FairMQMessage& msg);
+gsl::span<o2::byte> as_span(const FairTMessage& msg);
+gsl::span<o2::byte> as_span(const FairMQMessage& msg);
 
 class FairTMessage : public TMessage
 {
@@ -40,7 +39,7 @@ class FairTMessage : public TMessage
   using TMessage::TMessage;
   FairTMessage() : TMessage(kMESS_OBJECT) {}
   FairTMessage(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
-  FairTMessage(gsl::span<byte> buf) : TMessage(buf.data(), buf.size()) { ResetBit(kIsOwner); }
+  FairTMessage(gsl::span<o2::byte> buf) : TMessage(buf.data(), buf.size()) { ResetBit(kIsOwner); }
   // helper function to clean up the object holding the data after it is transported.
   static void free(void* /*data*/, void* hint);
 };
@@ -72,13 +71,13 @@ struct TMessageSerializer {
                         CompressionLevel compressionLevel = -1);
 
   template <typename T = TObject>
-  static std::unique_ptr<T> deserialize(gsl::span<byte> buffer);
+  static std::unique_ptr<T> deserialize(gsl::span<o2::byte> buffer);
   template <typename T = TObject>
   static inline std::unique_ptr<T> deserialize(byte* buffer, size_t size);
 
   // load the schema information from a message/buffer
   static void loadSchema(const FairMQMessage& msg);
-  static void loadSchema(gsl::span<byte> buffer);
+  static void loadSchema(gsl::span<o2::byte> buffer);
 
   // write the schema into an empty message/buffer
   static void fillSchema(FairMQMessage& msg, const StreamerList& streamers);
@@ -133,7 +132,7 @@ inline void TMessageSerializer::serialize(FairTMessage& tm, const T* input,     
 }
 
 template <typename T>
-inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<byte> buffer)
+inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<o2::byte> buffer)
 {
   TClass* tgtClass = TClass::GetClass(typeid(T));
   if (tgtClass == nullptr) {
@@ -163,7 +162,7 @@ inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<byte> buffer
 template <typename T>
 inline std::unique_ptr<T> TMessageSerializer::deserialize(byte* buffer, size_t size)
 {
-  return deserialize<T>(gsl::span<byte>(buffer, gsl::narrow<gsl::span<byte>::index_type>(size)));
+  return deserialize<T>(gsl::span<o2::byte>(buffer, gsl::narrow<gsl::span<o2::byte>::index_type>(size)));
 }
 
 inline void FairTMessage::free(void* /*data*/, void* hint)
@@ -214,15 +213,15 @@ inline TMessageSerializer::StreamerList TMessageSerializer::getStreamers()
 
 // gsl::narrow is used to do a runtime narrowing check, this might be a bit paranoid,
 // we would probably be fine with e.g. gsl::narrow_cast (or just a static_cast)
-inline gsl::span<byte> as_span(const FairMQMessage& msg)
+inline gsl::span<o2::byte> as_span(const FairMQMessage& msg)
 {
-  return gsl::span<byte>{ static_cast<byte*>(msg.GetData()), gsl::narrow<gsl::span<byte>::index_type>(msg.GetSize()) };
+  return gsl::span<o2::byte>{ static_cast<o2::byte*>(msg.GetData()), gsl::narrow<gsl::span<o2::byte>::index_type>(msg.GetSize()) };
 }
 
-inline gsl::span<byte> as_span(const FairTMessage& msg)
+inline gsl::span<o2::byte> as_span(const FairTMessage& msg)
 {
-  return gsl::span<byte>{ reinterpret_cast<byte*>(msg.Buffer()),
-                          gsl::narrow<gsl::span<byte>::index_type>(msg.BufferSize()) };
+  return gsl::span<o2::byte>{ reinterpret_cast<o2::byte*>(msg.Buffer()),
+                              gsl::narrow<gsl::span<o2::byte>::index_type>(msg.BufferSize()) };
 }
 
 } // namespace framework
