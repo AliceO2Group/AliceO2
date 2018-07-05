@@ -106,6 +106,8 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
     };
     // Add the timestamp buffer for it
     info.timestamps.emplace_back(std::array<size_t, 1024>{});
+    info.max.push_back(std::numeric_limits<float>::lowest());
+    info.min.push_back(std::numeric_limits<float>::max());
 
     // Add the index by name in the correct position
     // this will require moving the tail of the index,
@@ -131,20 +133,24 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
   auto mod = info.timestamps[metricIndex].size();
 
   switch(metricInfo.type) {
-    case MetricType::Int:
+    case MetricType::Int: {
       intValue = strtol(stringValue.str().c_str(), &ep, 10);
       if (!ep || *ep != '\0') {
         return false;
       }
       info.intMetrics[metricInfo.storeIdx][metricInfo.pos] = intValue;
-      break;
-    case MetricType::Float:
+      info.max[metricIndex] = std::max(info.max[metricIndex], (float)intValue);
+      info.min[metricIndex] = std::min(info.min[metricIndex], (float)intValue);
+    } break;
+    case MetricType::Float: {
       floatValue = strtof(stringValue.str().c_str(), &ep);
       if (!ep || *ep != '\0') {
         return false;
       }
       info.floatMetrics[metricInfo.storeIdx][metricInfo.pos] = floatValue;
-      break;
+      info.max[metricIndex] = std::max(info.max[metricIndex], floatValue);
+      info.min[metricIndex] = std::min(info.min[metricIndex], floatValue);
+    } break;
     default:
       return false;
       break;

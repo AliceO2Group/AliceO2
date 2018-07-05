@@ -170,6 +170,8 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
   MetricType metricType;
   size_t metricSize = 0;
   assert(specs.size() == metricsInfos.size());
+  float maxValue = std::numeric_limits<float>::lowest();
+  float minValue = 0;
 
   for (int mi = 0; mi < metricsInfos.size(); ++mi) {
     auto vi = DeviceMetricsHelper::metricIdxByName(selectedMetricName, metricsInfos[mi]);
@@ -183,6 +185,8 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     MultiplotData data;
     data.mod = metricsInfos[mi].timestamps[vi].size();
     data.first = metric.pos - data.mod;
+    minValue = std::min(minValue, metricsInfos[mi].min[vi]);
+    maxValue = std::max(maxValue, metricsInfos[mi].max[vi]);
     switch (metric.type) {
       case MetricType::Int: {
         data.size = metricsInfos[mi].intMetrics[metric.storeIdx].size();
@@ -224,8 +228,8 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
       getter,
       metricsToDisplay.data(),
       metricSize,
-      0,
-      100,
+      minValue,
+      maxValue * 1.2f,
       canvasSize);
   } else {
     ImGui::PlotMultiLines(
@@ -236,8 +240,8 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
       getter,
       metricsToDisplay.data(),
       metricSize,
-      0,
-      100,
+      minValue,
+      maxValue * 1.2f,
       canvasSize);
   }
 }
