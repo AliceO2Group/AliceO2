@@ -62,7 +62,7 @@ void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
       if (currentValueIt == control.options.end()) {
         switch (option.type) {
           case VariantType::String:
-            ImGui::Text("\"%s\" (default)", option.defaultValue.get<const char*>());
+            ImGui::Text(R"("%s" (default))", option.defaultValue.get<const char*>());
             break;
           case VariantType::Int:
             ImGui::Text("%d (default)", option.defaultValue.get<int>());

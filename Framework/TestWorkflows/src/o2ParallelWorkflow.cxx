@@ -78,7 +78,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   std::vector<OutputSpec> outputSpecs;
   for (size_t ssi = 0; ssi < jobs; ++ssi) {
-    outputSpecs.push_back(OutputSpec{ "TST", "A", ssi });
+    outputSpecs.emplace_back("TST", "A", ssi);
   }
 
   workflow.push_back(DataProcessorSpec{

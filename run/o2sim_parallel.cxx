@@ -20,7 +20,7 @@
 #include <sys/wait.h>
 #include <vector>
 #include <thread>
-#include <signal.h>
+#include <csignal>
 #include "TStopwatch.h"
 #include "FairLogger.h"
 
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
       const std::string name("O2SimDeviceRunner");
       const std::string path = installpath + "/" + name;
       execl(path.c_str(), name.c_str(), "--control", "static", "--id", workerss.str().c_str(), "--config-key",
-            "worker", "--mq-config", configss.str().c_str(), "--severity", "info", (char*)0);
+            "worker", "--mq-config", configss.str().c_str(), "--severity", "info", (char*)nullptr);
       return 0;
     } else {
       childpids.push_back(pid);
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
     const std::string name("O2HitMergerRunner");
     const std::string path = installpath + "/" + name;
     execl(path.c_str(), name.c_str(), "--control", "static", "--id", "hitmerger", "--mq-config", configss.str().c_str(),
-          (char*)0);
+          (char*)nullptr);
     return 0;
   } else {
     std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << mergerlogname << "\n";

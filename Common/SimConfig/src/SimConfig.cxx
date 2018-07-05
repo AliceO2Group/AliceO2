@@ -40,7 +40,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   if (mConfigData.mActiveDetectors.size() == 1 && mConfigData.mActiveDetectors[0] == "all") {
     mConfigData.mActiveDetectors.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
-      mConfigData.mActiveDetectors.push_back(DetID::getName(d));
+      mConfigData.mActiveDetectors.emplace_back(DetID::getName(d));
     }
   }
   mConfigData.mGenerator = vm["generator"].as<std::string>();

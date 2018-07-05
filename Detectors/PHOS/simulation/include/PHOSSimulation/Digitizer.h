@@ -55,8 +55,8 @@ class Digitizer : public TObject
   Double_t DigitizeEnergy(Double_t e);
   Double_t Decalibrate(Double_t e);
   Double_t TimeResolution(Double_t time, Double_t e);
-  Double_t SimulateNoiseEnergy(void);
-  Double_t SimulateNoiseTime(void);
+  Double_t SimulateNoiseEnergy();
+  Double_t SimulateNoiseTime();
 
  private:
   const Geometry* mGeometry = nullptr; //!  PHOS geometry
@@ -80,8 +80,8 @@ class Digitizer : public TObject
   double mTimeResolutionB = 2.;        ///< Time resolution parameter B (in ns/GeV)
   double mTimeResThreshold = 0.5;      ///< threshold for time resolution calculation (in GeV)
   double mAPDNoise = 0.005;            ///< Electronics (and APD) noise (in GeV)
-  double kMinNoiseTime = -200.;        ///< minimum time in noise channels (in ns)
-  double kMaxNoiseTime = 2000.;        ///< minimum time in noise channels (in ns)
+  double mMinNoiseTime = -200.;        ///< minimum time in noise channels (in ns)
+  double mMaxNoiseTime = 2000.;        ///< minimum time in noise channels (in ns)
 
   //  std::unordered_map<Int_t, std::deque<Digit>> mDigits; ///< used to sort digits by tower
 

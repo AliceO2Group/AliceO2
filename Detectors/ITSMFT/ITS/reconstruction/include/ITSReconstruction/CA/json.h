@@ -2071,7 +2071,7 @@ class lexer
               int codepoint = codepoint1; // start with codepoint1
 
               if (JSON_UNLIKELY(codepoint1 == -1)) {
-                error_message = "invalid string: '\\u' must be followed by 4 hex digits";
+                error_message = R"(invalid string: '\u' must be followed by 4 hex digits)";
                 return token_type::parse_error;
               }
 
@@ -2082,7 +2082,7 @@ class lexer
                   const int codepoint2 = get_codepoint();
 
                   if (JSON_UNLIKELY(codepoint2 == -1)) {
-                    error_message = "invalid string: '\\u' must be followed by 4 hex digits";
+                    error_message = R"(invalid string: '\u' must be followed by 4 hex digits)";
                     return token_type::parse_error;
                   }
 
@@ -7748,7 +7748,7 @@ class serializer
             o->write_characters(indent_string.c_str(), new_indent);
             o->write_character('\"');
             dump_escaped(i->first, ensure_ascii);
-            o->write_characters("\": ", 3);
+            o->write_characters(R"(": )", 3);
             dump(i->second, true, ensure_ascii, indent_step, new_indent);
             o->write_characters(",\n", 2);
           }
@@ -7759,7 +7759,7 @@ class serializer
           o->write_characters(indent_string.c_str(), new_indent);
           o->write_character('\"');
           dump_escaped(i->first, ensure_ascii);
-          o->write_characters("\": ", 3);
+          o->write_characters(R"(": )", 3);
           dump(i->second, true, ensure_ascii, indent_step, new_indent);
 
           o->write_character('\n');
@@ -7773,7 +7773,7 @@ class serializer
           for (std::size_t cnt = 0; cnt < val.m_value.object->size() - 1; ++cnt, ++i) {
             o->write_character('\"');
             dump_escaped(i->first, ensure_ascii);
-            o->write_characters("\":", 2);
+            o->write_characters(R"(":)", 2);
             dump(i->second, false, ensure_ascii, indent_step, current_indent);
             o->write_character(',');
           }
@@ -7783,7 +7783,7 @@ class serializer
           assert(std::next(i) == val.m_value.object->cend());
           o->write_character('\"');
           dump_escaped(i->first, ensure_ascii);
-          o->write_characters("\":", 2);
+          o->write_characters(R"(":)", 2);
           dump(i->second, false, ensure_ascii, indent_step, current_indent);
 
           o->write_character('}');
@@ -7968,11 +7968,11 @@ class serializer
               // ensure_ascii parameter is used, non-ASCII characters
               if ((codepoint <= 0x1F) or (ensure_ascii and (codepoint >= 0x7F))) {
                 if (codepoint <= 0xFFFF) {
-                  std::snprintf(string_buffer.data() + bytes, 7, "\\u%04x",
+                  std::snprintf(string_buffer.data() + bytes, 7, R"(\u%04x)",
                                 static_cast<uint16_t>(codepoint));
                   bytes += 6;
                 } else {
-                  std::snprintf(string_buffer.data() + bytes, 13, "\\u%04x\\u%04x",
+                  std::snprintf(string_buffer.data() + bytes, 13, R"(\u%04x\u%04x)",
                                 static_cast<uint16_t>(0xD7C0 + (codepoint >> 10)),
                                 static_cast<uint16_t>(0xDC00 + (codepoint & 0x3FF)));
                   bytes += 12;

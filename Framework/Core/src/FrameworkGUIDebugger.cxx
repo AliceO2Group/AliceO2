@@ -138,7 +138,7 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
       continue;
     }
     // Print matching lines
-    if (strstr(line.c_str(), control.logFilter) != 0) {
+    if (strstr(line.c_str(), control.logFilter) != nullptr) {
       auto color = colorForLogLevel(logLevel);
       // We filter twice, once on input, to reduce the
       // stream, a second time at display time, to avoid
@@ -180,7 +180,7 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     }
     auto& metric = metricsInfos[mi].metrics[vi];
     deviceNames.push_back(specs[mi].name.c_str());
-    colors.push_back(ImColor(220, 220, 220));
+    colors.emplace_back(220, 220, 220);
     metricType = metric.type;
     MultiplotData data;
     data.mod = metricsInfos[mi].timestamps[vi].size();

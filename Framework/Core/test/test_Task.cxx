@@ -26,11 +26,11 @@ class ATask : public Task
  public:
   ATask(int state)
     : mSomeState{ state } {}
-  virtual void init(InitContext& ic) final override
+  void init(InitContext& ic) final
   {
     mSomeState += 1;
   }
-  virtual void run(ProcessingContext& pc) final override
+  void run(ProcessingContext& pc) final
   {
     auto result = pc.outputs().make<int>({ "dummy" }, 1);
     result[0] = mSomeState;
@@ -47,7 +47,7 @@ class ATask : public Task
 class BTask : public Task
 {
  public:
-  virtual void run(ProcessingContext& pc) final
+  void run(ProcessingContext& pc) final
   {
     auto result = pc.inputs().get<int>("in");
     ASSERT_ERROR(result == 2);

@@ -77,7 +77,7 @@ class Cluster
   // 0: was no unfolging, -1: unfolding failed
   void SetNExMax(short nmax = 1) { mNExMax = nmax; }
   int GetPHOSMod() const { return mModule; } // PHOS module of a current cluster
-  double GetTime(void) const { return mTime; }
+  double GetTime() const { return mTime; }
 
   void Purify(double threshold); // Removes digits below threshold
 

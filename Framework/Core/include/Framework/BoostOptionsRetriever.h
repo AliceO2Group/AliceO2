@@ -32,13 +32,14 @@ public:
                         bool ignoreUnknown,
                         int &argc, char **&argv);
 
-  virtual int getInt(const char *name) const final;
-  virtual float getFloat(const char *name) const final;
-  virtual double getDouble(const char *name) const final;
-  virtual bool getBool(const char *name) const final;
-  virtual std::string getString(const char *name) const final;
-  virtual std::vector<std::string> getVString(const char *name) const final;
-private:
+  int getInt(const char* name) const final;
+  float getFloat(const char* name) const final;
+  double getDouble(const char* name) const final;
+  bool getBool(const char* name) const final;
+  std::string getString(const char* name) const final;
+  std::vector<std::string> getVString(const char* name) const final;
+
+ private:
   void parseArgs(int &argc, char **&argv);
   boost::program_options::variables_map mVariables;
   boost::program_options::options_description mDescription;

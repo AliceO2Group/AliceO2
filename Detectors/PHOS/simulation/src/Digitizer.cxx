@@ -154,9 +154,9 @@ Double_t Digitizer::TimeResolution(const Double_t time, const Double_t e)
   return gRandom->Gaus(time, timeResolution);
 }
 //_______________________________________________________________________
-Double_t Digitizer::SimulateNoiseEnergy(void) { return DigitizeEnergy(gRandom->Gaus(0., mAPDNoise)); }
+Double_t Digitizer::SimulateNoiseEnergy() { return DigitizeEnergy(gRandom->Gaus(0., mAPDNoise)); }
 //_______________________________________________________________________
-Double_t Digitizer::SimulateNoiseTime(void) { return gRandom->Uniform(kMinNoiseTime, kMaxNoiseTime); }
+Double_t Digitizer::SimulateNoiseTime() { return gRandom->Uniform(mMinNoiseTime, mMaxNoiseTime); }
 
 //_______________________________________________________________________
 void Digitizer::setEventTime(double t)
