@@ -196,7 +196,7 @@ class RootTreeWriter
     {
       process(context, specs);
     }
-    virtual size_t size() const override { return STAGE; }
+    size_t size() const override { return STAGE; }
 
     /// setup this instance and recurse to the parent one
     void setupInstance(std::vector<BranchSpec>& specs, TTree* tree)

@@ -82,9 +82,9 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     v.reserve(3);
     BOOST_CHECK(v.capacity() == 3);
     BOOST_CHECK(allocZMQ->getNumberOfMessages() == 1);
-    v.push_back(1);
-    v.push_back(2);
-    v.push_back(3);
+    v.emplace_back(1);
+    v.emplace_back(2);
+    v.emplace_back(3);
     BOOST_CHECK((byte*)&(*v.end()) - (byte*)&(*v.begin()) == 3 * sizeof(testData));
     BOOST_CHECK(testData::nallocated == 3);
   }
@@ -97,9 +97,9 @@ BOOST_AUTO_TEST_CASE(allocator_test)
     std::vector<testData, SpectatorAllocator<testData>> v(SpectatorAllocator<testData>{ allocZMQ });
     v.reserve(3);
     BOOST_CHECK(allocZMQ->getNumberOfMessages() == 1);
-    v.push_back(1);
-    v.push_back(2);
-    v.push_back(3);
+    v.emplace_back(1);
+    v.emplace_back(2);
+    v.emplace_back(3);
     BOOST_CHECK(testData::nallocated == 3);
   }
   BOOST_CHECK(testData::nallocated == 3); //ByteSpectatorAllocator does not call dtors so nallocated remains at 3;
@@ -118,9 +118,9 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   // test message creation on the same channel it was allocated with
   {
     std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{ allocZMQ });
-    v.push_back(1);
-    v.push_back(2);
-    v.push_back(3);
+    v.emplace_back(1);
+    v.emplace_back(2);
+    v.emplace_back(3);
     void* vectorBeginPtr = &v[0];
     message = getMessage(std::move(v));
     BOOST_CHECK(message != nullptr);
@@ -133,9 +133,9 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   // test message creation on a different channel than it was allocated with
   {
     std::vector<testData, polymorphic_allocator<testData>> v(polymorphic_allocator<testData>{ allocZMQ });
-    v.push_back(4);
-    v.push_back(5);
-    v.push_back(6);
+    v.emplace_back(4);
+    v.emplace_back(5);
+    v.emplace_back(6);
     void* vectorBeginPtr = &v[0];
     message = getMessage(std::move(v), allocSHM);
     BOOST_CHECK(message != nullptr);

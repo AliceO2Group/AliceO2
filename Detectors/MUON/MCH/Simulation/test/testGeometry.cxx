@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(GetDetElemVolumePath, *boost::unit_test::disabled() * boost
       if (detElemId >= 100) {
         std::stringstream s;
         s << "if (detElemId==" << detElemId << ") {\n";
-        s << "  return \"" << node->GetName() << "/" << n2name << "\";\n";
+        s << R"(  return ")" << node->GetName() << "/" << n2name << "\";\n";
         s << "}\n";
         codeLines.push_back(s.str());
       }

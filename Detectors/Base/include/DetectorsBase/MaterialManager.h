@@ -309,7 +309,7 @@ class MaterialManager
   {
     processVector.clear();
     for (auto& m : mDefaultProcessMap) {
-      processVector.push_back({ m.first, m.second });
+      processVector.emplace_back(m.first, m.second);
     }
   }
   /// Fill vector with default cuts
@@ -317,7 +317,7 @@ class MaterialManager
   {
     cutVector.clear();
     for (auto& m : mDefaultCutMap) {
-      cutVector.push_back({ m.first, m.second });
+      cutVector.emplace_back(m.first, m.second);
     }
   }
   /// Get special processes for global medium ID
@@ -326,7 +326,7 @@ class MaterialManager
     processVector.clear();
     if (mMediumProcessMap.find(globalindex) != mMediumProcessMap.end()) {
       for (auto& m : mMediumProcessMap[globalindex]) {
-        processVector.push_back({ m.first, m.second });
+        processVector.emplace_back(m.first, m.second);
       }
     }
   }
@@ -344,7 +344,7 @@ class MaterialManager
     cutVector.clear();
     if (mMediumCutMap.find(globalindex) != mMediumCutMap.end()) {
       for (auto& m : mMediumCutMap[globalindex]) {
-        cutVector.push_back({ m.first, m.second });
+        cutVector.emplace_back(m.first, m.second);
       }
     }
   }

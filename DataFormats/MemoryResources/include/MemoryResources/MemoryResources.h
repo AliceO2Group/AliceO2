@@ -137,7 +137,7 @@ class SpectatorMessageResource : public FairMQMemoryResource
  protected:
   const FairMQMessage* message;
 
-  virtual void* do_allocate(std::size_t bytes, std::size_t alignment) override
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override
   {
     if (message) {
       if (bytes > message->GetSize()) {
@@ -148,12 +148,12 @@ class SpectatorMessageResource : public FairMQMemoryResource
       return nullptr;
     }
   };
-  virtual void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
+  void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
   {
     message = nullptr;
     return;
   };
-  virtual bool do_is_equal(const memory_resource& other) const noexcept override
+  bool do_is_equal(const memory_resource& other) const noexcept override
   {
     const SpectatorMessageResource* that = dynamic_cast<const SpectatorMessageResource*>(&other);
     if (!that) {
@@ -197,19 +197,19 @@ class MessageResource : public FairMQMemoryResource
   size_t mMessageSize{ 0 };
   void* mMessageData{ nullptr };
 
-  virtual void* do_allocate(std::size_t bytes, std::size_t alignment) override
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override
   {
     if (bytes > mMessageSize) {
       throw std::bad_alloc();
     }
     return mMessageData;
   }
-  virtual void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
+  void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
   {
     getMessage(mMessageData); //let the message die.
     return;
   }
-  virtual bool do_is_equal(const memory_resource& other) const noexcept override
+  bool do_is_equal(const memory_resource& other) const noexcept override
   {
     // since this uniquely owns the message it can never be equal to anybody else
     return false;
