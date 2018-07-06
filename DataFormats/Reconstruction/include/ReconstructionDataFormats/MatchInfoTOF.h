@@ -22,7 +22,7 @@ namespace dataformats
 {
  public:
 
-  MatchInfoTOF(int indexTOFCl, int indexTrack, float chi2) : mTOFClIndex(indexTOFCl), mTrackIndex(indexTrack), mChi2(chi2);
+  MatchInfoTOF(int indexTOFCl, float chi2) : mTOFClIndex(indexTOFCl), mChi2(chi2);
   MatchInfoTOF() = default;
   void setTOFClIndex(int index) { mTOFClIndex = index; }
   int getTOFClIndex() const { return mTOFClIndex; }

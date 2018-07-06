@@ -35,6 +35,7 @@
 
 using namespace o2::globaltracking;
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
+using evIdx = o2::dataformats::EvIndex<int, int>;
 
 ClassImp(MatchTOF);
 
@@ -132,17 +133,30 @@ void MatchTOF::attachInputTrees()
     LOG(FATAL) << "Input tree with tracks is not set" << FairLogger::endl;
   }
 
+  if (!mTreeTPCTracks) {
+    LOG(FATAL) << "TPC tracks data input tree is not set" << FairLogger::endl;
+  }
+
   if (!mTreeTOFClusters) {
     LOG(FATAL) << "TOF clusters data input tree is not set" << FairLogger::endl;
   }
 
-  // input tracks
+  // input tracks (this is the pais of ITS-TPC matches)
 
   if (!mInputTreeTracks->GetBranch(mTracksBranchName.data())) {
     LOG(FATAL) << "Did not find tracks branch " << mTracksBranchName << " in the input tree" << FairLogger::endl;
   }
   mInputTreeTracks->SetBranchAddress(mTracksBranchName.data(), &mTracksArrayInp);
   LOG(INFO) << "Attached tracks " << mTracksBranchName << " branch with " << mInputTreeTracks->GetEntries()
+            << " entries" << FairLogger::endl;
+
+  // actual TPC tracks
+  
+  if (!mTreeTPCTracks->GetBranch(mTPCTrackBranchName.data())) {
+    LOG(FATAL) << "Did not find TPC tracks branch " << mTPCTrackBranchName << " in the input tree" << FairLogger::endl;
+  }
+  mTreeTPCTracks->SetBranchAddress(mTPCTrackBranchName.data(), &mTPCTracksArrayInp);
+  LOG(INFO) << "Attached TPC tracks " << mTPCTrackBranchName << " branch with " << mTreeTPCTracks->GetEntries()
             << " entries" << FairLogger::endl;
 
   // input TOF clusters
@@ -195,10 +209,14 @@ bool MatchTOF::prepareTracks()
   }
 
   for (int it = 0; it < mNumOfTracks; it++) {
-    o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below
+    o2::dataformats::TrackTPCITS& trcOrig = (*mTracksArrayInp)[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
+
+    evIdx evIdxTPC = trcOrig.getRefTPC();
+    int indTPC = evIdx.getIndex();
+    o2::TPC::TrackTPC& trcTPCOrig = (*mTPCTracksArrayInp)[indTPC]; // we take the track when it is propagated out
 
     // create working copy of track param
-    mTracksWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcOrig), mCurrTPCTracksTreeEntry, it);
+    mTracksWork.emplace_back(static_cast<o2::track::TrackParCov&>(trcTPCOrig), mCurrTracksTreeEntry, it);
     auto& trc = mTracksWork.back();
     // propagate to matching Xref
     if (!propagateToRefX(trc, mXRef, 2)) {

@@ -71,6 +71,9 @@ class MatchTOF
   ///< set tree/chain containing tracks
   void setInputTreeTracks(TTree* tree) { mInputTreeTracks = tree; }
 
+  ///< set tree/chain containing TPC tracks
+  void setInputTreeTPCTracks(TTree* tree) { mTreeTPCTracks = tree; }
+
   ///< set tree/chain containing TOF clusters
   void setInputTreeTOFClusters(TTree* tree) { mTreeTOFClusters = tree; }
 
@@ -79,12 +82,14 @@ class MatchTOF
 
   ///< set input branch names for the input from the tree
   void setTrackBranchName(const std::string& nm) { mTracksBranchName = nm; }
+  void setTPCTrackBranchName(const std::string& nm) { mTPCTrackBranchName = nm; }
   void setTOFClusterBranchName(const std::string& nm) { mTOFClusterBranchName = nm; }
   void setTOFMCTruthBranchName(const std::string& nm) { mTOFMCTruthBranchName = nm; }
   void setOutTracksBranchName(const std::string& nm) { mOutTracksBranchName = nm; }
 
   ///< get input branch names for the input from the tree
   const std::string& getTracksBranchName() const { return mTracksBranchName; }
+  const std::string& getTPCTrackBranchName() const { return mTPCTrackBranchName; }
   const std::string& getTOFClusterBranchName() const { return mTOFClusterBranchName; }
   const std::string& getTOFMCTruthBranchName() const { return mTOFMCTruthBranchName; }
 
@@ -136,6 +141,7 @@ class MatchTOF
   int   mSigmaTimeCut = 3; ///< number of sigmas to cut on time when matching the track to the TOF cluster
   
   TTree* mInputTreeTracks = nullptr; ///< input tree for tracks
+  TTree* mTreeTPCTracks = nullptr;   ///< input tree for TPC tracks
   TTree* mTreeTOFClusters = nullptr; ///< input tree for TOF clusters
 
   TTree* mOutputTree = nullptr; ///< output tree for matched tracks
@@ -143,7 +149,7 @@ class MatchTOF
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
-
+  std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = nullptr; ///< input TPC tracks
   std::vector<Cluster>* mTOFClustersArrayInp = nullptr; ///< input TOF clusters
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTracksLabels = nullptr; ///< input TPC Track MC labels
