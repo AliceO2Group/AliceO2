@@ -2140,6 +2140,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/ITSMFT/common/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Common/Utils/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include

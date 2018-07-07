@@ -44,6 +44,8 @@ class Cluster : public o2::BaseCluster<float>
 
   ~Cluster() = default;
 
+  void SetBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz);
+
   float getTimeRaw() const { return mTimeRaw; }             // Cluster ToF getter
   void setTimeRaw(float timeRaw) { mTimeRaw = timeRaw; }    // Cluster ToF setter
   float getTime() const { return mTime; }                   // Cluster ToF getter

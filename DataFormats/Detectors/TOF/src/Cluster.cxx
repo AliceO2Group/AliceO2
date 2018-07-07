@@ -30,7 +30,16 @@ Cluster::Cluster(std::int16_t sensid, float x, float y, float z, float sy2, floa
   mR = TMath::Sqrt(x * x + y * y);
   mPhi = TMath::ATan2(y, x);
 }
+//______________________________________________________________________
+void Cluster::SetBaseData(std::int16_t sensid, float x, float y, float z, float sy2, float sz2, float syz){
+  setSensorID(sensid);
+  setXYZ(x,y,z);
+  setErrors(sy2,sz2,syz);
 
+  // caching R and phi
+  mR = TMath::Sqrt(x * x + y * y);
+  mPhi = TMath::ATan2(y, x);
+}
 //______________________________________________________________________
 int Cluster::getNumOfContributingChannels() const
 {

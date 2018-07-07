@@ -28,7 +28,10 @@
 #include "CommonDataFormat/EvIndex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "TOFBase/Geo.h"
 #include "DataFormatsTOF/Cluster.h"
+#include "GlobalTracking/MatchTPCITS.h"
+#include "DataFormatsTPC/TrackTPC.h"
 
 class TTree;
 
@@ -55,7 +58,7 @@ struct TrackLocTPCITS : public o2::track::TrackParCov {
   TrackLocTPCITS() = default;
   ClassDefNV(TrackLocTPCITS, 1);
 };
- 
+
 class MatchTOF
 {
   using Geo = o2::tof::Geo;
@@ -82,14 +85,14 @@ class MatchTOF
 
   ///< set input branch names for the input from the tree
   void setTrackBranchName(const std::string& nm) { mTracksBranchName = nm; }
-  void setTPCTrackBranchName(const std::string& nm) { mTPCTrackBranchName = nm; }
+  void setTPCTrackBranchName(const std::string& nm) { mTPCTracksBranchName = nm; }
   void setTOFClusterBranchName(const std::string& nm) { mTOFClusterBranchName = nm; }
   void setTOFMCTruthBranchName(const std::string& nm) { mTOFMCTruthBranchName = nm; }
   void setOutTracksBranchName(const std::string& nm) { mOutTracksBranchName = nm; }
 
   ///< get input branch names for the input from the tree
   const std::string& getTracksBranchName() const { return mTracksBranchName; }
-  const std::string& getTPCTrackBranchName() const { return mTPCTrackBranchName; }
+  const std::string& getTPCTracksBranchName() const { return mTPCTracksBranchName;}
   const std::string& getTOFClusterBranchName() const { return mTOFClusterBranchName; }
   const std::string& getTOFMCTruthBranchName() const { return mTOFMCTruthBranchName; }
 
@@ -110,6 +113,7 @@ class MatchTOF
  private:
   void attachInputTrees();
   bool prepareTracks();
+  bool prepareTOFClusters();
   bool loadTracksNextChunk();
   void loadTracksChunk(int chunk);
   bool loadTOFClustersNextChunk();
@@ -162,7 +166,7 @@ class MatchTOF
   /// <<<-----
 
   ///<working copy of the input tracks
-  std::vector<TrackLocTPCITS> mTracksWork;        ///<track params prepared for matching
+  std::vector<o2::dataformats::TrackTPCITS> mTracksWork;        ///<track params prepared for matching
   std::vector<Cluster> mTOFClusWork;        ///<track params prepared for matching
 
   ///< per sector indices of track entry in mTracksWork
@@ -183,6 +187,7 @@ class MatchTOF
   int* mMatchedClustersIndex = nullptr;  //[mNumOfClusters]
 
   std::string mTracksBranchName = "TPCITS";                ///< name of branch containing input matched tracks
+  std::string mTPCTracksBranchName = "TPC";                ///< name of branch containing actual TPC tracks
   std::string mTOFClusterBranchName = "TOFCluster";        ///< name of branch containing input ITS clusters
   std::string mTOFMCTruthBranchName = "TOFClusterMCTruth"; ///< name of branch containing ITS MC labels
   std::string mOutTracksBranchName = "TOFMatchInfo";       ///< name of branch containing output matched tracks
