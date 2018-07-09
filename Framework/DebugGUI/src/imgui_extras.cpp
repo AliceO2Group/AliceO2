@@ -4,6 +4,10 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include <iostream>
+#include <tuple>
+#include <vector>
+
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
@@ -12,6 +16,22 @@ namespace ImGui
 // Start PlotMultiLines(...) and PlotMultiHistograms(...)------------------------
 // by @JaapSuter and @maxint (please see: https://github.com/ocornut/imgui/issues/632)
 // I assume the work is public domain.
+
+// Look for the first entry larger in t than the current position
+enum struct BinFunction {
+  CEIL,
+  FLOOR,
+  MIN,
+  MAX,
+  AVG,
+  COUNT
+};
+
+enum struct ValueScale {
+  LINEAR,
+  LOG
+};
+
 static inline ImU32 InvertColorU32(ImU32 in)
 {
   ImVec4 in4 = ColorConvertU32ToFloat4(in);
@@ -21,24 +41,122 @@ static inline ImU32 InvertColorU32(ImU32 in)
   return GetColorU32(in4);
 }
 
-static void PlotMultiEx(
-  ImGuiPlotType plot_type,
-  const char* label,
-  int num_datas,
-  const char** names,
-  const ImColor* colors,
-  float (*getter)(const void* data, int idx),
-  const void* const* datas,
-  int values_count,
-  float scale_min,
-  float scale_max,
-  ImVec2 graph_size)
+static float binner(BinFunction binFunction,
+                    const void* const* datas,
+                    size_t data_idx,
+                    size_t values_count,
+                    float binStart, float binEnd,
+                    size_t domain_min, size_t domain_max,
+                    float (*getterY)(const void* data, int idx),
+                    size_t (*getterX)(const void* data, int idx),
+                    size_t& cacheXIdx,
+                    size_t& count)
 {
-  const int values_offset = 0;
+  float value;
+  switch (binFunction) {
+    case BinFunction::CEIL:
+    case BinFunction::MAX:
+      value = -FLT_MAX;
+      break;
+    case BinFunction::FLOOR:
+    case BinFunction::MIN:
+      value = FLT_MAX;
+      break;
+    default:
+      value = 0;
+  }
+  float scale = 1.f / (domain_max - domain_min);
+  // Accumulate the matching datapoints.
+  while (cacheXIdx < values_count) {
+    size_t bin = getterX(datas[data_idx], cacheXIdx);
+    if ((bin < domain_min)) {
+      cacheXIdx++;
+      continue;
+    }
+    if ((bin > domain_max)) {
+      return value;
+    }
+    // We are withing (domain_min, domain_max), what we have have below
+    // works.
+    float binPos = ImSaturate(float(bin - domain_min) * scale);
+    if ((binPos < binStart)) {
+      cacheXIdx++;
+      continue;
+    }
+    if ((binPos > binEnd)) {
+      return value;
+    }
+    count++;
+    float binValue = getterY(datas[data_idx], cacheXIdx);
+    cacheXIdx++;
+    switch (binFunction) {
+      case BinFunction::CEIL:
+        value = std::max(value, ceilf(binValue));
+        break;
+      case BinFunction::MAX:
+        value = std::max(value, binValue);
+        break;
+      case BinFunction::FLOOR:
+        value = std::min(value, floorf(binValue));
+        break;
+      case BinFunction::MIN:
+        value = std::min(value, binValue);
+        break;
+      case BinFunction::COUNT:
+        value = count;
+        break;
+      case BinFunction::AVG:
+        // NOTE: this will not actually work with too many values because of floating point
+        value = (value * (count - 1) / count) + (binValue / count);
+        break;
+    }
+  }
+  return value;
+}
 
-  ImGuiWindow* window = GetCurrentWindow();
-  if (window->SkipItems)
-    return;
+void drawAxis(ImRect inner_bb, ImRect frame_bb,
+              float scale_min, float scale_max,
+              size_t domain_min, size_t domain_max,
+              ImGuiWindow* window,
+              const char* label,
+              int res_w, float t_step)
+{
+  ImGuiContext& g = *GImGui;
+  const ImGuiStyle& style = g.Style;
+
+  for (int n = 0; n < res_w; n += 10) {
+    float binStart = n * t_step;
+    ImVec2 binP0(binStart, 1);
+    ImVec2 binP1(binStart, (n % 100 == 0) ? 0.95 : 0.98);
+    ImVec2 binPos0 = ImLerp(inner_bb.Min, inner_bb.Max, binP0);
+    ImVec2 binPos1 = ImLerp(inner_bb.Min, inner_bb.Max, binP1);
+    window->DrawList->AddLine(binPos0, binPos1, ImColor(255, 255, 255, 200));
+  }
+
+  char buf[128];
+  RenderText(ImVec2(frame_bb.Min.x + style.ItemInnerSpacing.x, inner_bb.Max.y), (snprintf(buf, 128, "%zu", domain_min), buf));
+  RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x - 102, inner_bb.Max.y), (snprintf(buf, 128, "%zu", domain_max), buf));
+  if (scale_min != scale_max) {
+    RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x - 92, inner_bb.Min.y), (snprintf(buf, 128, "%.2f", scale_max), buf));
+  }
+  RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x - 92, inner_bb.Max.y - 12), (snprintf(buf, 128, "%.2f", scale_min), buf));
+  window->DrawList->AddLine(ImVec2(frame_bb.Min.x + style.ItemInnerSpacing.x, inner_bb.Max.y),
+                            ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x - 100, inner_bb.Max.y),
+                            ImColor(255, 255, 255, 255));
+  window->DrawList->AddLine(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x - 100, inner_bb.Min.y),
+                            ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x - 100, inner_bb.Max.y),
+                            ImColor(255, 255, 255, 255));
+  RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, inner_bb.Min.y), label);
+};
+
+struct FrameLayout {
+  ImRect frame_bb;
+  ImRect inner_bb;
+  ImRect total_bb;
+};
+
+void addPlotWidget(ImGuiWindow* window, const char* label, FrameLayout& result, ImVec2& graph_size)
+{
 
   ImGuiContext& g = *GImGui;
   const ImGuiStyle& style = g.Style;
@@ -49,86 +167,149 @@ static void PlotMultiEx(
   if (graph_size.y == 0.0f)
     graph_size.y = label_size.y + (style.FramePadding.y * 2);
 
-  const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(graph_size.x, graph_size.y));
-  const ImRect inner_bb(frame_bb.Min + style.FramePadding, frame_bb.Max - style.FramePadding);
-  const ImRect total_bb(frame_bb.Min, frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0));
-  ItemSize(total_bb, style.FramePadding.y);
-  if (!ItemAdd(total_bb, 0))
+  const ImVec2 axis_labels(100, 20);
+  result.frame_bb = ImRect(window->DC.CursorPos, window->DC.CursorPos + ImVec2(graph_size.x, graph_size.y));
+  result.inner_bb = ImRect(result.frame_bb.Min + style.FramePadding, result.frame_bb.Max - axis_labels - style.FramePadding);
+  result.total_bb = ImRect(result.frame_bb.Min, result.frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0));
+  ItemSize(result.total_bb, style.FramePadding.y);
+  if (!ItemAdd(result.total_bb, 0))
     return;
+  auto bg_color = GetColorU32(ImGuiCol_FrameBg);
+  bg_color = ImColor{ 20, 20, 20, 255 };
+  RenderFrame(result.frame_bb.Min, result.frame_bb.Max, bg_color, true, style.FrameRounding);
+};
 
-  // Determine scale from values if not specified
-  if (scale_min == FLT_MAX || scale_max == FLT_MAX) {
-    float v_min = FLT_MAX;
-    float v_max = -FLT_MAX;
-    for (int data_idx = 0; data_idx < num_datas; ++data_idx) {
-      for (int i = 0; i < values_count; i++) {
-        const float v = getter(datas[data_idx], i);
-        v_min = ImMin(v_min, v);
-        v_max = ImMax(v_max, v);
-      }
-    }
-    if (scale_min == FLT_MAX)
-      scale_min = v_min;
-    if (scale_max == FLT_MAX)
-      scale_max = v_max;
-  }
+static void PlotMultiEx(
+  ImGuiPlotType plot_type,
+  const char* label,
+  int num_datas,
+  const char** names,
+  const ImColor* colors,
+  float (*getterY)(const void* data, int idx),
+  size_t (*getterX)(const void* data, int idx),
+  const void* const* datas,
+  int values_count,
+  float scale_min,
+  float scale_max,
+  size_t domain_min,
+  size_t domain_max,
+  ImVec2 graph_size)
+{
+  const int values_offset = 0;
 
-  RenderFrame(frame_bb.Min, frame_bb.Max, GetColorU32(ImGuiCol_FrameBg), true, style.FrameRounding);
+  FrameLayout layout;
+  ImGuiWindow* window = GetCurrentWindow();
+  ImGuiContext& g = *GImGui;
+  if (window->SkipItems)
+    return;
+  addPlotWidget(window, label, layout, graph_size);
 
-  int res_w = ImMin((int)graph_size.x, values_count) + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
+  // Use this to save the data below the current cursor position.
+  std::vector<float> hoveredData(num_datas, 0);
+
+  int domain_delta = domain_max - domain_min;
+  int res_w = ImMin((int)graph_size.x, domain_delta) + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
   int item_count = values_count + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
 
   // Tooltip on hover
   int v_hovered = -1;
   if (IsItemHovered()) {
-    const float t = ImClamp((g.IO.MousePos.x - inner_bb.Min.x) / (inner_bb.Max.x - inner_bb.Min.x), 0.0f, 0.9999f);
-    const int v_idx = (int)(t * item_count);
+    const float t = ImClamp((g.IO.MousePos.x - layout.inner_bb.Min.x) / (layout.inner_bb.Max.x - layout.inner_bb.Min.x), 0.0f, 1.f);
+    int v_idx = (int)(t * item_count);
+    // Make results numerically stable.
+    if (v_idx >= values_count) {
+      v_idx = values_count - 1;
+    }
     IM_ASSERT(v_idx >= 0 && v_idx < values_count);
 
-    // std::string toolTip;
-    ImGui::BeginTooltip();
-    const int idx0 = (v_idx + values_offset) % values_count;
-    if (plot_type == ImGuiPlotType_Lines) {
-      const int idx1 = (v_idx + 1 + values_offset) % values_count;
-      Text("%8d %8d | Name", v_idx, v_idx + 1);
-      for (int dataIdx = 0; dataIdx < num_datas; ++dataIdx) {
-        const float v0 = getter(datas[dataIdx], idx0);
-        const float v1 = getter(datas[dataIdx], idx1);
-        TextColored(colors[dataIdx], "%8.4g %8.4g | %s", v0, v1, names[dataIdx]);
-      }
-    } else if (plot_type == ImGuiPlotType_Histogram) {
-      for (int dataIdx = 0; dataIdx < num_datas; ++dataIdx) {
-        const float v0 = getter(datas[dataIdx], idx0);
-        TextColored(colors[dataIdx], "%d: %8.4g | %s", v_idx, v0, names[dataIdx]);
-      }
-    }
-    ImGui::EndTooltip();
     v_hovered = v_idx;
+    ImGui::BeginTooltip();
+    ImGui::Text("Timestamp: %li", v_idx + domain_min);
+    ImGui::EndTooltip();
   }
 
-  for (int data_idx = 0; data_idx < num_datas; ++data_idx) {
-    const float t_step = 1.0f / (float)res_w;
+  const float t_step = 1.0f / (float)res_w;
+  const float bin_size = domain_delta / (float)res_w;
 
-    float v0 = getter(datas[data_idx], (0 + values_offset) % values_count);
-    float t0 = 0.0f;
+  float lastValidValue = FLT_MAX;
+  auto findFirstValidIndexAndValue = [&domain_min, &getterX, &values_count](void const* const data) {
+    // Look for the first X value within the domain.
+    int n;
+    size_t vx0;
+    for (n = 0; n < values_count; n++) {
+      vx0 = getterX(data, n);
+      if (vx0 >= domain_min) {
+        return std::tie(n, vx0);
+      }
+    }
+    return std::tie(values_count, vx0);
+  };
+
+  // We iterate on all the data series.
+  for (int data_idx = 0; data_idx < num_datas; ++data_idx) {
+    auto [first_valid_index, vx0] = findFirstValidIndexAndValue(datas[data_idx]);
+    size_t cacheXIdx = first_valid_index;
+    float v0 = getterY(datas[data_idx], (first_valid_index + values_offset) % values_count);
+    float t0 = ImSaturate((vx0 - domain_min) / (domain_max - domain_min));
     ImVec2 tp0 = ImVec2(t0, 1.0f - ImSaturate((v0 - scale_min) / (scale_max - scale_min))); // Point in the normalized space of our target rectangle
 
     const ImU32 col_base = colors[data_idx];
     const ImU32 col_hovered = InvertColorU32(colors[data_idx]);
 
-    //const ImU32 col_base = GetColorU32((plot_type == ImGuiPlotType_Lines) ? ImGuiCol_PlotLines : ImGuiCol_PlotHistogram);
-    //const ImU32 col_hovered = GetColorU32((plot_type == ImGuiPlotType_Lines) ? ImGuiCol_PlotLinesHovered : ImGuiCol_PlotHistogramHovered);
+    ValueScale valueScale = ValueScale::LINEAR;
 
+    auto scale = [valueScale](float v) {
+      switch (valueScale) {
+        case ValueScale::LINEAR:
+          return v;
+          break;
+        case ValueScale::LOG:
+          return log(v);
+      }
+    };
+
+    float hoveredBinPos = (float)(v_hovered) / (float)(item_count);
+    // We iterate on all the items.
     for (int n = 0; n < res_w; n++) {
-      const float t1 = t0 + t_step;
-      const int v1_idx = (int)(t0 * item_count + 0.5f);
-      IM_ASSERT(v1_idx >= 0 && v1_idx < values_count);
-      const float v1 = getter(datas[data_idx], (v1_idx + values_offset + 1) % values_count);
+      float binStart = n * t_step;
+      float binEnd = (n + 1) * t_step;
+
+      auto binFunction = BinFunction::MAX;
+
+      size_t count = 0;
+      float value = binner(binFunction,
+                           datas,
+                           data_idx,
+                           values_count,
+                           binStart, binEnd,
+                           domain_min, domain_max,
+                           getterY,
+                           getterX,
+                           cacheXIdx,
+                           count);
+      if (count == 0) {
+        value = lastValidValue;
+      } else {
+        lastValidValue = value;
+      }
+
+      value = scale(value);
+
+      const float t1 = n * t_step;
+      const float v1 = value;
+      // n is in resolution space, we transform it to v1_idx which is
+      // in values_space.
+      const size_t v1_idx = (float)n / (float)res_w * (float)values_count;
+
+      if (hoveredBinPos > binStart && hoveredBinPos < binEnd) {
+        hoveredData[data_idx] = value;
+      }
       const ImVec2 tp1 = ImVec2(t1, 1.0f - ImSaturate((v1 - scale_min) / (scale_max - scale_min)));
 
       // NB: Draw calls are merged together by the DrawList system. Still, we should render our batch are lower level to save a bit of CPU.
-      ImVec2 pos0 = ImLerp(inner_bb.Min, inner_bb.Max, tp0);
-      ImVec2 pos1 = ImLerp(inner_bb.Min, inner_bb.Max, (plot_type == ImGuiPlotType_Lines) ? tp1 : ImVec2(tp1.x, 1.0f));
+      ImVec2 pos0 = ImLerp(layout.inner_bb.Min, layout.inner_bb.Max, tp0);
+      ImVec2 pos1 = ImLerp(layout.inner_bb.Min, layout.inner_bb.Max, (plot_type == ImGuiPlotType_Lines) ? tp1 : ImVec2(tp1.x, 1.0f));
+
       if (plot_type == ImGuiPlotType_Lines) {
         window->DrawList->AddLine(pos0, pos1, v_hovered == v1_idx ? col_hovered : col_base);
       } else if (plot_type == ImGuiPlotType_Histogram) {
@@ -141,8 +322,22 @@ static void PlotMultiEx(
       tp0 = tp1;
     }
   }
+  if (ImGui::IsItemHovered()) {
+    ImGui::BeginTooltip();
+    for (size_t data_idx = 0; data_idx < num_datas; data_idx++) {
+      if (hoveredData[data_idx] == FLT_MAX) {
+        continue;
+      }
+      if (plot_type == ImGuiPlotType_Lines) {
+        TextColored(colors[data_idx], "%8.4f | %s", hoveredData[data_idx], names[data_idx]);
+      } else if (plot_type == ImGuiPlotType_Histogram) {
+        TextColored(colors[data_idx], "%8.4f | %s", hoveredData[data_idx], names[data_idx]);
+      }
+    }
+    ImGui::EndTooltip();
+  }
 
-  RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, inner_bb.Min.y), label);
+  drawAxis(layout.inner_bb, layout.frame_bb, scale_min, scale_max, domain_min, domain_max, window, label, res_w, t_step);
 }
 
 void PlotMultiLines(
@@ -150,14 +345,17 @@ void PlotMultiLines(
   int num_datas,
   const char** names,
   const ImColor* colors,
-  float (*getter)(const void* data, int idx),
+  float (*getterY)(const void* data, int idx),
+  size_t (*getterX)(const void* data, int idx),
   const void* const* datas,
   int values_count,
   float scale_min,
   float scale_max,
+  size_t domain_min,
+  size_t domain_max,
   ImVec2 graph_size)
 {
-  PlotMultiEx(ImGuiPlotType_Lines, label, num_datas, names, colors, getter, datas, values_count, scale_min, scale_max, graph_size);
+  PlotMultiEx(ImGuiPlotType_Lines, label, num_datas, names, colors, getterY, getterX, datas, values_count, scale_min, scale_max, domain_min, domain_max, graph_size);
 }
 
 void PlotMultiHistograms(
@@ -165,14 +363,17 @@ void PlotMultiHistograms(
   int num_hists,
   const char** names,
   const ImColor* colors,
-  float (*getter)(const void* data, int idx),
+  float (*getterY)(const void* data, int idx),
+  size_t (*getterX)(const void* data, int idx),
   const void* const* datas,
   int values_count,
   float scale_min,
   float scale_max,
+  size_t domain_min,
+  size_t domain_max,
   ImVec2 graph_size)
 {
-  PlotMultiEx(ImGuiPlotType_Histogram, label, num_hists, names, colors, getter, datas, values_count, scale_min, scale_max, graph_size);
+  PlotMultiEx(ImGuiPlotType_Histogram, label, num_hists, names, colors, getterY, getterX, datas, values_count, scale_min, scale_max, domain_min, domain_max, graph_size);
 }
 
 // End PlotMultiLines(...) and PlotMultiHistograms(...)--------------------------

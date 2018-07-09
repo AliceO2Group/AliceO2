@@ -36,7 +36,8 @@ struct MultiplotData {
   int mod;
   size_t first;
   size_t size;
-  const void* points;
+  const void* Y;
+  const void* X;
   MetricType type;
 };
 } // namespace framework
@@ -163,6 +164,15 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
                           size_t rangeBegin, size_t rangeEnd, size_t bins, bool useHistos,
                           std::vector<DeviceSpec> const& specs, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
+  static std::vector<ImColor> palette = {
+    ImColor{ 218, 124, 48 },
+    ImColor{ 62, 150, 81 },
+    ImColor{ 204, 37, 41 },
+    ImColor{ 83, 81, 84 },
+    ImColor{ 107, 76, 154 },
+    ImColor{ 146, 36, 40 },
+    ImColor{ 148, 139, 61 }
+  };
   std::vector<void const*> metricsToDisplay;
   std::vector<const char*> deviceNames;
   std::vector<MultiplotData> userData;
@@ -172,6 +182,8 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
   assert(specs.size() == metricsInfos.size());
   float maxValue = std::numeric_limits<float>::lowest();
   float minValue = 0;
+  size_t maxDomain = std::numeric_limits<size_t>::lowest();
+  size_t minDomain = std::numeric_limits<size_t>::max();
 
   for (int mi = 0; mi < metricsInfos.size(); ++mi) {
     auto vi = DeviceMetricsHelper::metricIdxByName(selectedMetricName, metricsInfos[mi]);
@@ -180,24 +192,27 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     }
     auto& metric = metricsInfos[mi].metrics[vi];
     deviceNames.push_back(specs[mi].name.c_str());
-    colors.emplace_back(220, 220, 220);
+    colors.push_back(palette[mi % palette.size()]);
     metricType = metric.type;
     MultiplotData data;
     data.mod = metricsInfos[mi].timestamps[vi].size();
     data.first = metric.pos - data.mod;
+    data.X = metricsInfos[mi].timestamps[vi].data();
     minValue = std::min(minValue, metricsInfos[mi].min[vi]);
     maxValue = std::max(maxValue, metricsInfos[mi].max[vi]);
+    minDomain = std::min(minDomain, metricsInfos[mi].minDomain[vi]);
+    maxDomain = std::max(maxDomain, metricsInfos[mi].maxDomain[vi]);
     switch (metric.type) {
       case MetricType::Int: {
         data.size = metricsInfos[mi].intMetrics[metric.storeIdx].size();
-        data.points = metricsInfos[mi].intMetrics[metric.storeIdx].data();
+        data.Y = metricsInfos[mi].intMetrics[metric.storeIdx].data();
         data.type = MetricType::Int;
         metricType = MetricType::Int;
         metricSize = metricsInfos[mi].intMetrics[metric.storeIdx].size();
       } break;
       case MetricType::Float: {
         data.size = metricsInfos[mi].floatMetrics[metric.storeIdx].size();
-        data.points = metricsInfos[mi].floatMetrics[metric.storeIdx].data();
+        data.Y = metricsInfos[mi].floatMetrics[metric.storeIdx].data();
         data.type = MetricType::Float;
         metricType = MetricType::Float;
         metricSize = metricsInfos[mi].floatMetrics[metric.storeIdx].size();
@@ -207,17 +222,28 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     }
     userData.emplace_back(data);
   }
+
+  maxDomain = std::max(minDomain + 1024, maxDomain);
+
   for (size_t ui = 0; ui < userData.size(); ++ui) {
     metricsToDisplay.push_back(&(userData[ui]));
   }
-  auto getter = [](const void* hData, int idx) -> float {
+  auto getterY = [](const void* hData, int idx) -> float {
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
     size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+    // size_t pos = (static_cast<size_t>(idx)) % histoData->mod;
     assert(pos >= 0 && pos < 1024);
     if (histoData->type == MetricType::Int) {
-      return static_cast<const int*>(histoData->points)[pos];
+      return static_cast<const int*>(histoData->Y)[pos];
     }
-    return static_cast<const float*>(histoData->points)[pos];
+    return static_cast<const float*>(histoData->Y)[pos];
+  };
+  auto getterX = [](const void* hData, int idx) -> size_t {
+    auto histoData = reinterpret_cast<const MultiplotData*>(hData);
+    size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+    //size_t pos = (static_cast<size_t>(idx)) % histoData->mod;
+    assert(pos >= 0 && pos < 1024);
+    return static_cast<const size_t*>(histoData->X)[pos];
   };
   if (useHistos) {
     ImGui::PlotMultiHistograms(
@@ -225,11 +251,14 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
       userData.size(),
       deviceNames.data(),
       colors.data(),
-      getter,
+      getterY,
+      getterX,
       metricsToDisplay.data(),
       metricSize,
       minValue,
       maxValue * 1.2f,
+      minDomain,
+      maxDomain,
       canvasSize);
   } else {
     ImGui::PlotMultiLines(
@@ -237,11 +266,14 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
       userData.size(),
       deviceNames.data(),
       colors.data(),
-      getter,
+      getterY,
+      getterX,
       metricsToDisplay.data(),
       metricSize,
       minValue,
       maxValue * 1.2f,
+      minDomain,
+      maxDomain,
       canvasSize);
   }
 }
@@ -396,7 +428,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
     ImGui::EndGroup();
     if (!currentMetricName.empty()) {
       if (currentStyle == 0 || currentStyle == 1) {
-        displayDeviceMetrics("##Metrics", ImVec2(ImGui::GetIO().DisplaySize.x - 10, state.bottomPaneSize - ImGui::GetItemRectSize().y - 20), currentMetricName, minTime, maxTime, 1024, currentStyle, devices, metricsInfos);
+        displayDeviceMetrics("Metrics", ImVec2(ImGui::GetIO().DisplaySize.x - 10, state.bottomPaneSize - ImGui::GetItemRectSize().y - 20), currentMetricName, minTime, maxTime, 1024, currentStyle, devices, metricsInfos);
       } else {
         ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
                           ImGuiWindowFlags_HorizontalScrollbar);

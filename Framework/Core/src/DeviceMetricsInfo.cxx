@@ -108,6 +108,8 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
     info.timestamps.emplace_back(std::array<size_t, 1024>{});
     info.max.push_back(std::numeric_limits<float>::lowest());
     info.min.push_back(std::numeric_limits<float>::max());
+    info.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
+    info.minDomain.push_back(std::numeric_limits<size_t>::max());
 
     // Add the index by name in the correct position
     // this will require moving the tail of the index,
@@ -131,6 +133,8 @@ bool DeviceMetricsHelper::processMetric(const std::smatch& match,
   MetricInfo &metricInfo = info.metrics[metricIndex];
 
   auto mod = info.timestamps[metricIndex].size();
+  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)timestamp);
+  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)timestamp);
 
   switch(metricInfo.type) {
     case MetricType::Int: {
