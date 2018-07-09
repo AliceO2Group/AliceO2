@@ -5,8 +5,9 @@
 
 namespace ImGui
 {
+
 // Start PlotMultiLines(...) and PlotMultiHistograms(...)------------------------
-// by @JaapSuter and @maxint (please see: https://github.com/ocornut/imgui/issues/632)
+// heavily modivied version starting from code of @JaapSuter and @maxint (please see: https://github.com/ocornut/imgui/issues/632)
 static inline ImU32 InvertColorU32(ImU32 in)
 {
   ImVec4 in4 = ColorConvertU32ToFloat4(in);
@@ -21,11 +22,14 @@ void PlotMultiLines(
   int num_datas,
   const char** names,
   const ImColor* colors,
-  float (*getter)(const void* data, int idx),
+  float (*getterY)(const void* data, int idx),
+  size_t (*getterX)(const void* data, int idx),
   const void* const* datas,
   int values_count,
   float scale_min,
   float scale_max,
+  size_t domain_min,
+  size_t domain_max,
   ImVec2 graph_size);
 
 void PlotMultiHistograms(
@@ -33,11 +37,14 @@ void PlotMultiHistograms(
   int num_hists,
   const char** names,
   const ImColor* colors,
-  float (*getter)(const void* data, int idx),
+  float (*getterY)(const void* data, int idx),
+  size_t (*getterX)(const void* data, int idx),
   const void* const* datas,
   int values_count,
   float scale_min,
   float scale_max,
+  size_t domain_min,
+  size_t domain_max,
   ImVec2 graph_size);
 
 // End PlotMultiLines(...) and PlotMultiHistograms(...)--------------------------
