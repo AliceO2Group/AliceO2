@@ -260,7 +260,7 @@ int AliHLTTRDTrackerComponent::DoEvent
   AliHLTTracksData *itsData = NULL;
   AliHLTTrackMCData *tpcDataMC = NULL;
 
-  std::vector< AliExternalTrackParam > tracksTPC;
+  std::vector< HLTTRDTrack > tracksTPC;
   std::vector< int > tracksTPCLab;
   std::vector< int > tracksTPCId;
 
@@ -298,20 +298,17 @@ int AliHLTTRDTrackerComponent::DoEvent
   }
 
   int nTPCtracks = tpcData->fCount;
-  std::vector<bool> itsAvail(nTPCtracks);
-  for (int iTrkTPC = 0; iTrkTPC < nTPCtracks; iTrkTPC++) {
-    itsAvail[iTrkTPC] = false;
-  }
+  std::vector<bool> itsAvail(nTPCtracks, false);
   if (itsData) {
     // look for ITS tracks with >= 2 hits
     int nITStracks = itsData->fCount;
     AliHLTExternalTrackParam *currITStrack = itsData->fTracklets;
     for (int iTrkITS = 0; iTrkITS < nITStracks; iTrkITS++) {
       if (currITStrack->fNPoints >= 2) {
-        itsAvail[currITStrack->fTrackID] = true;
+        itsAvail.at(currITStrack->fTrackID) = true;
       }
-      unsigned int dSIze = sizeof(AliHLTExternalTrackParam) + currITStrack->fNPoints * sizeof(unsigned int);
-      currITStrack = (AliHLTExternalTrackParam*) ( ((Byte_t*) currITStrack) + dSIze);
+      unsigned int dSize = sizeof(AliHLTExternalTrackParam) + currITStrack->fNPoints * sizeof(unsigned int);
+      currITStrack = (AliHLTExternalTrackParam*) ( ((Byte_t*) currITStrack) + dSize);
     }
   }
   std::map<int,int> mcLabels;
@@ -326,10 +323,10 @@ int AliHLTTRDTrackerComponent::DoEvent
   AliHLTExternalTrackParam *currOutTrackTPC = tpcData->fTracklets;
   for (int iTrk = 0; iTrk < nTPCtracks; iTrk++) {
     // store TPC tracks (if required only the ones with >=2 ITS hits)
-    if (itsData != NULL && !itsAvail[currOutTrackTPC->fTrackID]) {
+    if (itsData != NULL && !itsAvail.at(currOutTrackTPC->fTrackID)) {
       continue;
     }
-    AliHLTGlobalBarrelTrack t(*currOutTrackTPC);
+    HLTTRDTrack t(*currOutTrackTPC);
     int mcLabel = -1;
     if (tpcDataMC) {
       if (mcLabels.find(currOutTrackTPC->fTrackID) != mcLabels.end()) {
@@ -366,9 +363,10 @@ int AliHLTTRDTrackerComponent::DoEvent
   int nTracks = fTracker->NTracks();
   AliHLTTRDTracker::AliHLTTRDSpacePointInternal *spacePoints = fTracker->SpacePoints();
 
-  for (int iTrack=0; iTrack<nTracks; ++iTrack) {
-    fTrackList->AddLast(&trackArray[iTrack]);
-  }
+  // TODO delete fTrackList since it only works for TObjects (or use compiler flag after tests with HLT track type)
+  //for (int iTrack=0; iTrack<nTracks; ++iTrack) {
+  //  fTrackList->AddLast(&trackArray[iTrack]);
+  //}
 
   // push back AliHLTTRDTracks for debugging purposes
   if (fDebugTrackOutput) {

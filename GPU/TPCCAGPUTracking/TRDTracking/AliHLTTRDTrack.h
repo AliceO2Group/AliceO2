@@ -7,6 +7,7 @@
 #include "AliHLTTRDInterfaces.h"
 
 class AliHLTTRDTrackDataRecord;
+class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
 template <typename T>
@@ -15,8 +16,9 @@ class AliHLTTRDTrack : public T
  public:
 
   AliHLTTRDTrack();
-  AliHLTTRDTrack(const typename T::baseClass &t );
+  AliHLTTRDTrack(const typename T::baseClass &t ) = delete;
   AliHLTTRDTrack(const AliHLTTRDTrack& t);
+  AliHLTTRDTrack(const AliHLTExternalTrackParam& t);
   AliHLTTRDTrack &operator=(const AliHLTTRDTrack& t);
 
   int   GetNlayers()              const;

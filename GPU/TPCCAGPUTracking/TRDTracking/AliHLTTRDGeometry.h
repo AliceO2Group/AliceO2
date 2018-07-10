@@ -15,7 +15,7 @@ public:
 	static bool CheckGeometryAvailable() {return AliGeomManager::GetGeometry();}
 
 	//Make sub-functionality available directly in AliHLTTRDGeometry
-	double GetPadPlaneWithIPad(int det) {return GetPadPlane(det)->GetWidthIPad();}
+	double GetPadPlaneWidthIPad(int det) {return GetPadPlane(det)->GetWidthIPad();}
 	double GetPadPlaneRowPos(int layer, int stack, int row) {return GetPadPlane(layer, stack)->GetRowPos(row);}
 	double GetPadPlaneRowSize(int layer, int stack, int row) {return GetPadPlane(layer, stack)->GetRowSize(row);}
 	int GetGeomManagerVolUID(int det, int modId) {return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1+GetLayer(det)), modId);}
@@ -45,7 +45,7 @@ public:
 	static bool CheckGeometryAvailable() {return false;}
 
 	//Make sub-functionality available directly in AliHLTTRDGeometry
-	float GetPadPlaneWithIPad(int det) {return 0;}
+	float GetPadPlaneWidthIPad(int det) {return 0;}
 	float GetPadPlaneRowPos(int layer, int stack, int row) {return 0;}
 	float GetPadPlaneRowSize(int layer, int stack, int row) {return 0;}
 	int GetGeomManagerVolUID(int det, int modId) {return 0;}

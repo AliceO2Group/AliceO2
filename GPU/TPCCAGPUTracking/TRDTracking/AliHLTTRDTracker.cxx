@@ -255,7 +255,7 @@ void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet)
   fNtrackletsInChamber[tracklet.GetDetector()]++;
 }
 
-void AliHLTTRDTracker::DoTracking( HLTTRDBaseTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts, int *tracksTRDlabel )
+void AliHLTTRDTracker::DoTracking( HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts, int *tracksTRDlabel )
 {
   //--------------------------------------------------------------------
   // Steering function for the tracking
@@ -280,6 +280,7 @@ void AliHLTTRDTracker::DoTracking( HLTTRDBaseTrack *tracksTPC, int *tracksTPClab
   fTracks = new HLTTRDTrack[nTPCtracks];
 
   for (int i=0; i<nTPCtracks; ++i) {
+    // TODO is this copying necessary or can it be omitted for optimization?
     HLTTRDTrack tMI(tracksTPC[i]);
     HLTTRDTrack *t = &tMI;
     t->SetTPCtrackId(i);
@@ -291,7 +292,7 @@ void AliHLTTRDTracker::DoTracking( HLTTRDBaseTrack *tracksTPC, int *tracksTPClab
       t->SetLabelOffline(tracksTRDlabel[i]);
     }
     HLTTRDPropagator prop;
-    prop.SetTrack(t, t->getAlpha()); // how to retrieve alpha for HLT track type?
+    prop.setTrack(t);
     FollowProlongation(&prop, t, nTPCtracks);
     fTracks[fNTracks++] = *t;
   }
@@ -430,7 +431,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
 
     for (int iCandidate=0; iCandidate<nCandidates; iCandidate++) {
 
-      prop->SetTrack(&fCandidates[2*iCandidate+currIdx], fCandidates[2*iCandidate+currIdx].getAlpha());
+      prop->setTrack(&fCandidates[2*iCandidate+currIdx]);
 
       if (fCandidates[2*iCandidate+currIdx].GetIsStopped()) {
         if (nCurrHypothesis < fNhypothesis) {
@@ -592,7 +593,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
     if (matchAvailableAll[iLayer].size() > 0 && fDebugOutput) {
       fDebug->SetNmatchAvail(matchAvailableAll[iLayer].size(), iLayer);
       int realTrkltId = matchAvailableAll[iLayer].at(0);
-      prop->SetTrack(&fCandidates[currIdx], fCandidates[currIdx].getAlpha());
+      prop->setTrack(&fCandidates[currIdx]);
       bool flag = prop->PropagateToX(fSpacePoints[realTrkltId].fR, fgkMaxSnp, fgkMaxStep);
       if (flag) {
         flag = AdjustSector(prop, &fCandidates[currIdx], iLayer);
@@ -658,7 +659,7 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
         continue;
       }
       // matching tracklet found
-      prop->SetTrack(&fCandidates[2*iUpdate+nextIdx], fCandidates[2*iUpdate+nextIdx].getAlpha());
+      prop->setTrack(&fCandidates[2*iUpdate+nextIdx]);
       int trkltSec = fGeo->GetSector(fTracklets[fHypothesis[iUpdate].fTrackletId].GetDetector());
       if ( trkltSec != GetSector(prop->getAlpha())) {
         // if after a matching tracklet was found another sector was searched for tracklets the track needs to be rotated back
@@ -693,10 +694,10 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
       My_Float trkltPosYZ[2] = { fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[0] - yCorr, zPosCorrUpdate };
 
 #ifdef ENABLE_HLTTRDDEBUG
-      prop->SetTrack(trackNoUpdates, trackNoUpdates->getAlpha());
+      prop->setTrack(trackNoUpdates);
       prop->rotate(GetAlphaOfSector(trkltSec));
       prop->PropagateToX(fSpacePoints[fHypothesis[iUpdate].fTrackletId].fR, fgkMaxSnp, fgkMaxStep);
-      prop->SetTrack(&fCandidates[2*iUpdate+nextIdx], fCandidates[2*iUpdate+nextIdx].getAlpha());
+      prop->setTrack(&fCandidates[2*iUpdate+nextIdx]);
 #endif
 
       if (!wasTrackStored) {
@@ -856,7 +857,7 @@ bool AliHLTTRDTracker::AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, cons
   float xTmp      = t->getX();
   float y         = t->getY();
   float yMax      = t->getX() * tanf(0.5 * alpha);
-  float alphaCurr = prop->getAlpha();
+  float alphaCurr = t->getAlpha();
 
   if (fabs(y) > 2. * yMax) {
     if (ENABLE_INFO) {
