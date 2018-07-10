@@ -110,6 +110,11 @@ class MatchTOF
   ///< get tolerance on track-TOF times comparison
   float getSpaceTolerance() const { return mSpaceTolerance; }
 
+  ///< set number of sigma used to do the matching
+  void setSigmaTimeCut(float val) { mSigmaTimeCut = val; }
+  ///< get number of sigma used to do the matching
+  float getSigmaTimeCut() const { return mSigmaTimeCut; }
+
  private:
   void attachInputTrees();
   bool prepareTracks();

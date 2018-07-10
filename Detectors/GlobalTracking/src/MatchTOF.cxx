@@ -114,6 +114,7 @@ void MatchTOF::print() const
   printf("MC truth: %s\n", mMCTruthON ? "on" : "off");
   printf("Time tolerance: %.3f\n", mTimeTolerance);
   printf("Space tolerance: %.3f\n", mSpaceTolerance);
+  printf("SigmaTimeCut: %d\n", mSigmaTimeCut);
 
   printf("**********************************************************************\n");
 }
