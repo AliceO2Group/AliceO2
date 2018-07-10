@@ -16,6 +16,8 @@ typedef float My_Float;
 #if defined (TRD_TRACK_TYPE_ALIROOT)
 class AliExternalTrackParam;
 typedef AliExternalTrackParam HLTTRDBaseTrack;
+//class AliHLTTPCGMTrackParam;
+//typedef AliHLTTPCGMTrackParam HLTTRDBaseTrack;
 #elif defined (TRD_TRACK_TYPE_HLT)
 class AliHLTTPCGMTrackParam;
 typedef AliHLTTPCGMTrackParam HLTTRDBaseTrack;
@@ -24,6 +26,8 @@ typedef AliHLTTPCGMTrackParam HLTTRDBaseTrack;
 #ifdef HLTCA_BUILD_ALIROOT_LIB
 class AliTrackerBase;
 typedef AliTrackerBase HLTTRDBasePropagator;
+//class AliHLTTPCGMPropagator;
+//typedef AliHLTTPCGMPropagator HLTTRDBasePropagator;
 #else
 class AliHLTTPCGMPropagator;
 typedef AliHLTTPCGMPropagator HLTTRDBasePropagator;

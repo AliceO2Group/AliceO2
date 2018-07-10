@@ -137,6 +137,6 @@ int AliHLTTRDTrackletWord::GetROB() const
 
 int AliHLTTRDTrackletWord::GetMCM() const
 {
-  return (((int) ((GetY()) / fgGeo->GetPadPlaneWithIPad(GetDetector())) + 72) / 18) % 4
+  return (((int) ((GetY()) / fgGeo->GetPadPlaneWidthIPad(GetDetector())) + 72) / 18) % 4
     + 4 * (GetZbin() % 4);
 }

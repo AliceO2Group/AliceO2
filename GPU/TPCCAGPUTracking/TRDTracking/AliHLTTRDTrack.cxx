@@ -1,5 +1,6 @@
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackData.h"
+#include "AliHLTExternalTrackParam.h"
 
 template <typename T>
 AliHLTTRDTrack<T>::AliHLTTRDTrack() :
@@ -47,6 +48,29 @@ AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
 
 
 template <typename T>
+AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
+  T(t),
+  fChi2(0),
+  fMass(0),
+  fLabel(-1),
+  fTPCtrackId(0),
+  fNtracklets(0),
+  fNmissingConsecLayers(0),
+  fNtrackletsOffline(0),
+  fLabelOffline(-1),
+  fIsStopped(false)
+{
+  //------------------------------------------------------------------
+  // copy constructor from AliHLTExternalTrackParam struct
+  //------------------------------------------------------------------
+  for (int i=0; i<=5; ++i) {
+    fAttachedTracklets[i] = -1;
+    fIsFindable[i] = 0;
+  }
+}
+
+
+template <typename T>
 AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
 {
   //------------------------------------------------------------------
@@ -70,28 +94,6 @@ AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
   return *this;
 }
 
-
-template <typename T>
-AliHLTTRDTrack<T>::AliHLTTRDTrack(const typename T::baseClass &t ) :
-  T(t),
-  fChi2(0),
-  fMass(0),
-  fLabel(-1),
-  fTPCtrackId(0),
-  fNtracklets(0),
-  fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
-  fLabelOffline(-1),
-  fIsStopped(false)
-{
-  //------------------------------------------------------------------
-  // Conversion template track -> TRD track.
-  //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
-    fAttachedTracklets[i] = -1;
-    fIsFindable[i] = 0;
-  }
-}
 
 template <typename T>
 int AliHLTTRDTrack<T>::GetNlayers() const
