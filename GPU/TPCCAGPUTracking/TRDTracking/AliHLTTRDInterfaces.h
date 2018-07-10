@@ -24,9 +24,11 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
 
   public:
     trackInterface<AliExternalTrackParam> () : AliExternalTrackParam() {};
-    trackInterface<AliExternalTrackParam> (const trackInterface<AliExternalTrackParam> &param) : AliExternalTrackParam(param) {};
+    trackInterface<AliExternalTrackParam> (const trackInterface<AliExternalTrackParam> &param) :
+      AliExternalTrackParam(param) {};
     trackInterface<AliExternalTrackParam> (const AliExternalTrackParam &param) = delete;
-    trackInterface<AliExternalTrackParam> (const AliHLTExternalTrackParam &param)
+    trackInterface<AliExternalTrackParam> (const AliHLTExternalTrackParam &param) :
+      AliExternalTrackParam()
     {
       float paramTmp[5] = { param.fY, param.fZ, param.fSinPhi, param.fTgl, param.fq1Pt };
       Set( param.fX, param.fAlpha, paramTmp, param.fC );
@@ -96,6 +98,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     trackInterface<AliHLTTPCGMTrackParam>() : AliHLTTPCGMTrackParam(), fAlpha(0.f) {};
     trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) = delete;
     trackInterface<AliHLTTPCGMTrackParam>(const trackInterface<AliHLTTPCGMTrackParam> &param) :
+      AliHLTTPCGMTrackParam(),
       fAlpha(param.fAlpha)
     {
       SetX(param.getX());
@@ -107,6 +110,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
       }
     }
     trackInterface<AliHLTTPCGMTrackParam>(const AliHLTExternalTrackParam &param) :
+      AliHLTTPCGMTrackParam(),
       fAlpha(param.fAlpha)
     {
       SetX(param.fX);
