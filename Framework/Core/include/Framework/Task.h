@@ -45,7 +45,7 @@ class Task
 template <typename T, typename... Args>
 AlgorithmSpec adaptFromTask(Args&&... args)
 {
-  auto task = std::make_shared<T>(std::forward<Args...>(args...));
+  auto task = std::make_shared<T>(std::forward<Args>(args)...);
   return AlgorithmSpec::InitCallback{ [task](InitContext& ic) {
     task->init(ic);
     return [task](ProcessingContext& pc) {
@@ -53,20 +53,6 @@ AlgorithmSpec adaptFromTask(Args&&... args)
     };
   } };
 }
-
-/// Adaptor to make an AlgorithmSpec from a o2::framework::Task
-template <typename T>
-AlgorithmSpec adaptFromTask()
-{
-  auto task = std::make_shared<T>();
-  return AlgorithmSpec::InitCallback{ [task](InitContext& ic) {
-    task->init(ic);
-    return [task](ProcessingContext& pc) {
-      task->run(pc);
-    };
-  } };
-}
-
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_TASK_H
