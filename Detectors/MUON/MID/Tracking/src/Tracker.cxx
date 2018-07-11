@@ -12,7 +12,7 @@
 /// \brief  Implementation of the tracker algorithm for the MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   09 May 2017
-#include "Tracker.h"
+#include "MIDTracking/Tracker.h"
 
 #include <cmath>
 #include "FairLogger.h"

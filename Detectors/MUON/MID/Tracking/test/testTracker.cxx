@@ -29,7 +29,7 @@
 #include "MIDBase/MpArea.h"
 #include "MIDBase/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
-#include "Tracker.h"
+#include "MIDTracking/Tracker.h"
 
 #include "FairLogger.h"
 

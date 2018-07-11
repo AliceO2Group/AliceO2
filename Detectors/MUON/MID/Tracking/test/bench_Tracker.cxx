@@ -22,7 +22,7 @@
 #include "MIDBase/MpArea.h"
 #include "MIDBase/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
-#include "Tracker.h"
+#include "MIDTracking/Tracker.h"
 
 std::vector<o2::mid::Cluster2D> generateTestData(int nTracks, o2::mid::TrackGenerator& trackGen,
                                                  const o2::mid::HitFinder& hitFinder, const o2::mid::Mapping& mapping)
@@ -71,7 +71,8 @@ class BenchTracking : public benchmark::Fixture
   o2::mid::Tracker tracker;
 };
 
-BENCHMARK_DEFINE_F(BenchTracking, tracking)(benchmark::State& state)
+BENCHMARK_DEFINE_F(BenchTracking, tracking)
+(benchmark::State& state)
 {
 
   int nTracksPerEvent = state.range(0);
