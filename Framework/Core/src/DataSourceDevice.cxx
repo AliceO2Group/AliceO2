@@ -14,12 +14,17 @@
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/CallbackService.h"
+#include "ScopedExit.h"
+#include <Monitoring/Monitoring.h>
+
 #include <cassert>
 #include <chrono>
 #include <thread> // this_thread::sleep_for
 using TimeScale = std::chrono::microseconds;
 
 using namespace o2::framework;
+
+constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
 
 namespace o2
 {
@@ -50,6 +55,8 @@ void DataSourceDevice::Init() {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
     mStatefulProcess = mInit(initContext);
   }
+  auto& monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>();
+  monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
   LOG(DEBUG) << "DataSourceDevice::InitTask::END";
 }
 
@@ -60,6 +67,12 @@ void DataSourceDevice::PostRun() { mServiceRegistry.get<CallbackService>()(Callb
 void DataSourceDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
 bool DataSourceDevice::ConditionalRun() {
+  auto& monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>();
+  monitoring.send({ 1, "dpl/in_handle_data" });
+  ScopedExit metricFlusher([&monitoring] {
+      monitoring.send({ 1, "dpl/in_handle_data" });
+      monitoring.send({ 0, "dpl/in_handle_data" });
+      monitoring.flushBuffer(); });
   static const auto reftime = std::chrono::system_clock::now();
   if (mRate > 0.001) {
     auto timeSinceRef = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - reftime);

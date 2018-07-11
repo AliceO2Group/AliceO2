@@ -17,6 +17,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
+#include "ScopedExit.h"
 #include <fairmq/FairMQParts.h>
 #include <options/FairMQProgOptions.h>
 #include <Monitoring/Monitoring.h>
@@ -29,6 +30,8 @@
 using namespace o2::framework;
 using Monitoring = o2::monitoring::Monitoring;
 using DataHeader = o2::header::DataHeader;
+
+constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
 
 namespace o2
 {
@@ -69,6 +72,8 @@ void DataProcessingDevice::Init() {
     OnData(channel.name.c_str(), &DataProcessingDevice::HandleData);
   }
 
+  auto& monitoring = mServiceRegistry.get<Monitoring>();
+  monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
   if (mInit) {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
     mStatefulProcess = mInit(initContext);
@@ -81,26 +86,6 @@ void DataProcessingDevice::PreRun() { mServiceRegistry.get<CallbackService>()(Ca
 void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop); }
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
-
-class ScopedMetric
-{
- public:
-  ScopedMetric(o2::monitoring::Monitoring& monitoring, std::string const& name)
-    : mMonitoring(monitoring),
-      mMetricName(name)
-  {
-    mMonitoring.send({ 1, mMetricName });
-  }
-
-  ~ScopedMetric()
-  {
-    mMonitoring.send({ 0, mMetricName });
-  }
-
- private:
-  o2::monitoring::Monitoring& mMonitoring;
-  std::string const& mMetricName;
-};
 
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
@@ -118,7 +103,11 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // does not need to know about the whole class state, but I can 
   // fine grain control what is exposed at each state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
-  ScopedMetric(monitoringService, handleDataMetricName);
+  monitoringService.send({ 1, "dpl/in_handle_data" });
+  ScopedExit metricFlusher([&monitoringService] {
+      monitoringService.send({ 1, "dpl/in_handle_data"});
+      monitoringService.send({ 0, "dpl/in_handle_data"});
+      monitoringService.flushBuffer(); });
   auto &statefulProcess = mStatefulProcess;
   auto &statelessProcess = mStatelessProcess;
   auto &errorCallback = mError;
