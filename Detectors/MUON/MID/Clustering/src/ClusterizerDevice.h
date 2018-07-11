@@ -17,7 +17,7 @@
 #define O2_MID_CLUSTERIZERDEVICE_H
 
 #include "FairMQDevice.h"
-#include "Clusterizer.h"
+#include "MIDClustering/Clusterizer.h"
 
 namespace o2
 {

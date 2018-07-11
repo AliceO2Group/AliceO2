@@ -18,7 +18,7 @@
 #include <random>
 #include "MIDBase/Mapping.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "Clusterizer.h"
+#include "MIDClustering/Clusterizer.h"
 
 o2::mid::ColumnData& getColumn(std::vector<o2::mid::ColumnData>& patterns, uint8_t icolumn, uint8_t deId)
 {

@@ -25,7 +25,7 @@
 #include <iostream>
 #include <vector>
 #include <random>
-#include "Clusterizer.h"
+#include "MIDClustering/Clusterizer.h"
 
 #include "FairLogger.h"
 

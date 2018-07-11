@@ -12,7 +12,7 @@
 /// \brief  Implementation of the cluster reconstruction algorithm for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   24 October 2016
-#include "Clusterizer.h"
+#include "MIDClustering/Clusterizer.h"
 #include <cassert>
 
 #include "FairLogger.h"
