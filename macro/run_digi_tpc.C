@@ -66,6 +66,10 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isCont
   timer.Start();
   run->Run();
 
+  run->TerminateRun();
+  // we are done, cleanup
+  delete digiTPC;
+
   std::cout << std::endl << std::endl;
 
   // Extract the maximal used memory an add is as Dart measurement
@@ -90,4 +94,5 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isCont
   std::cout << "Output file is " << outputfile.str() << std::endl;
   // std::cout << "Parameter file is " << parFile << std::endl;
   std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
+  return;
 }

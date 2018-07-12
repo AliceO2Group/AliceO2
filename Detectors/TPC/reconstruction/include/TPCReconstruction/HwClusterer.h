@@ -10,179 +10,286 @@
 
 /// \file HwClusterer.h
 /// \brief Class for TPC HW cluster finding
-/// \author Sebastian Klewin
+/// \author Sebastian Klewin <sebastian.klewin@cern.ch>
+
 #ifndef ALICEO2_TPC_HWClusterer_H_
 #define ALICEO2_TPC_HWClusterer_H_
 
+#include <Vc/Vc>
+
 #include "TPCReconstruction/Clusterer.h"
-#include "DataFormatsTPC/Cluster.h"
-#include "TPCBase/CalDet.h"
+#include "DataFormatsTPC/Helpers.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <vector>
-#include <map>
 #include <utility>
-#include <tuple>
 #include <memory>
 
 namespace o2{
 namespace TPC {
 
-class ClustererTask;
-class HwClusterFinder;
 class Digit;
+class Cluster;
+class ClusterHardware;
 
 /// \class HwClusterer
 /// \brief Class for TPC HW cluster finding
-class HwClusterer : public Clusterer {
+class HwClusterer : public Clusterer
+{
 
+ private:
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-  public:
+  /// Main Constructor
+  HwClusterer(
+    std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
+    std::vector<Cluster>* clusterOutputSimple, int sectorid,
+    MCLabelContainer* labelOutput);
 
-    /// Constructor
-    /// \param clusterOutput is pointer to vector to be filled with clusters
-    /// \param labelOutput is pointer to storage to be filled with MC labels
-    /// \param cru Number of CRUs to process
-    /// \param minQDiff Min charge difference
-    /// \param assignChargeUnique Avoid using same charge for multiple nearby clusters
-    /// \param enableNoiseSim Enables the Noise simulation for empty pads (noise object has to be set)
-    /// \param enablePedestalSubtraction Enables the Pedestal subtraction (pedestal object has to be set)
-    /// \param padsPerCF Pads per cluster finder
-    /// \param timebinsPerCF Time bins per cluster finder
-    /// \param rowsMax Max number of rows to process
-    /// \param padsMax Max number of pads to process
-    /// \param timeBinsMax Max number of timebins to process
-    /// \param minQMax Minimum peak charge for cluster
-    /// \param requirePositiveCharge Positive charge is required
-    /// \param requireNeighbouringPad Requires at least 2 adjecent pads with charge above threshold
-    HwClusterer(
-        std::vector<o2::TPC::Cluster> *clusterOutput,
-        MCLabelContainer *labelOutput = nullptr,
-        int cruMin = 0,
-        int cruMax = 359,
-        float minQDiff = 0,
-        bool assignChargeUnique = true,//false,
-        bool enableNoiseSim = true,
-        bool enablePedestalSubtraction = true,
-        int padsPerCF = 8,
-        int timebinsPerCF = 8,
-        int rowsMax = 18,
-        int padsMax = 138,
-        int timeBinsMax = 1024,
-        int minQMax = 5,
-        bool requirePositiveCharge = true,
-        bool requireNeighbouringPad = true);
+ public:
+  /// Constructor
+  /// \param clusterOutput is pointer to vector to be filled with ClusterHardwareContainers
+  /// \param labelOutput is pointer to storage to be filled with MC labels
+  /// \param sectorid is sector number to be processed
+  HwClusterer(
+    std::vector<ClusterHardwareContainer8kb>* clusterOutput,
+    int sectorid,
+    MCLabelContainer* labelOutput = nullptr);
 
-    /// Destructor
-    ~HwClusterer() override;
+  /// Constructor
+  /// \param clusterOutput is pointer to vector to be filled with clusters
+  /// \param labelOutput is pointer to storage to be filled with MC labels
+  /// \param sectorid is sector number to be processed
+  HwClusterer(
+    std::vector<Cluster>* clusterOutput,
+    int sectorid,
+    MCLabelContainer* labelOutput = nullptr);
 
-    /// Steer conversion of points to digits
-    /// @param digits Container with TPC digits
-    /// @param mcDigitTruth MC Digit Truth container
-    /// @param eventCount event counter
-    /// @return Container with clusters
-    void Process(std::vector<o2::TPC::Digit> const &digits,
-        MCLabelContainer const* mcDigitTruth, int eventCount) override;
-    void Process(std::vector<std::unique_ptr<Digit>>& digits,
-        MCLabelContainer const* mcDigitTruth, int eventCount) override;
+  /// Destructor
+  ~HwClusterer() override = default;
 
-    /// Setter for noise object, noise will be added before cluster finding
-    /// \param noiseObject CalDet object, containing noise simulation
-    void setNoiseObject(std::shared_ptr<CalDet<float>> noiseObject) { mNoiseObject = noiseObject; };
+  /// Copy Constructor
+  HwClusterer(HwClusterer const& other) = default;
 
-    /// Setter for pedestal object, pedestal value will be subtracted before cluster finding
-    /// \param pedestalObject CalDet object, containing pedestals for each pad
-    void setPedestalObject(std::shared_ptr<CalDet<float>> pedestalObject) { mPedestalObject = pedestalObject; };
-    void setPedestalObject(CalDet<float>* pedestalObject) { 
-      LOG(DEBUG) << "Consider using std::shared_ptr for the pedestal object." << FairLogger::endl; 
-      mPedestalObject = std::shared_ptr<CalDet<float>>(pedestalObject); 
-    };
+  /// Process digits
+  /// \param digits Container with TPC digits
+  /// \param mcDigitTruth MC Digit Truth container
+  void process(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
 
-    /// Switch for triggered / continuous readout
-    /// \param isContinuous - false for triggered readout, true for continuous readout
-    void setContinuousReadout(bool isContinuous) { mIsContinuousReadout = isContinuous; };
+  /// Finish processing digits
+  /// \param digits Container with TPC digits
+  /// \param mcDigitTruth MC Digit Truth container
+  void finishProcess(std::vector<o2::TPC::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
 
-    /// Setters for CRU range to be processed
-    /// \param cru ID of min/max CRU to be processed
-    void setCRUMin(int cru) { mCRUMin = cru; };
-    void setCRUMax(int cru) { mCRUMax = cru; };
+  /// Switch for triggered / continuous readout
+  /// \param isContinuous - false for triggered readout, true for continuous readout
+  void setContinuousReadout(bool isContinuous);
 
-    /// Set number of parallel threads
-    /// \param threads Number to be set, if 0 hardware default value is used
-    void setNumThreads(unsigned threads);
+  /// Sets the charge threshold for the peak
+  /// \param charge Threshold which will be used
+  void setPeakChargeThreshold(unsigned charge);
 
-  private:
+  /// Sets the charge threshold for the contributing pads
+  /// \param charge Threshold which will be used
+  void setContributionChargeThreshold(unsigned charge);
 
-    /*
-     * Helper functions
-     */
+ private:
+  /*
+   * Helper functions
+   */
 
-    /// Configuration struct for the processDigits function
-    struct CfConfig {
-      unsigned iThreadID;               ///< Index of thread
-      unsigned iThreadMax;              ///< Total number of started threads
-      unsigned iCRUMin;                 ///< Minimum CRU number to process
-      unsigned iCRUMax;                 ///< Maximum CRU number to process
-      unsigned iMaxPads;                ///< Maximum number of pads per row
-      int iMinTimeBin;                  ///< Minumum digit time bin
-      int iMaxTimeBin;                  ///< Maximum digit time bin
-      bool iEnableNoiseSim;             ///< Noise simulation enable switch
-      bool iEnablePedestalSubtraction;  ///< Pedestal subtraction enable switch
-      bool iIsContinuousReadout;        ///< Continous simulation switch
-      std::shared_ptr<CalDet<float>> iNoiseObject;      ///< Pointer to noise object
-      std::shared_ptr<CalDet<float>> iPedestalObject;   ///< Pointer to pedestal object
-    };
+  /// HW Cluster Processor
+  /// \param peakMask       VC-mask with only peaks enabled
+  /// \param qMaxIndex      Buffer index of center pad
+  /// \param center_pad     Pad number to be checked for cluster
+  /// \param center_time    Time to be checked for cluster
+  /// \param row            Row number for cluster properties
+  void hwClusterProcessor(Vc::uint_m peakMask, unsigned qMaxIndex, short center_pad, int center_time, unsigned short row);
 
-    /// Processing the digits, made static to allow for multithreading
-    /// \param digits Reference to digit container
-    /// \param clusterFinder Reference to container holding all cluster finder instances
-    /// \param cluster Reference to container for found clusters
-    /// \param label Reference to container for MC labels of found clusters
-    /// \param config Configuration for the cluster finding
-    static void processDigits(
-        const std::vector<std::vector<std::vector<std::tuple<Digit const*, int, int>>>>& digits,
-        const std::vector<std::vector<std::vector<std::shared_ptr<HwClusterFinder>>>>& clusterFinder,
-              std::vector<std::vector<Cluster>>& cluster,
-              std::vector<std::vector<std::vector<std::pair<int,int>>>>& label,
-              CfConfig config);
+  /// HW Peak Finder
+  /// \param qMaxIndex        Buffer index of central pad
+  /// \param center_pad       Pad number to be checked for cluster
+  /// \param center_time      Time to be checked for cluster
+  /// \param row              Row number for cluster properties
+  void hwPeakFinder(unsigned qMaxIndex, short center_pad, int center_time, unsigned short row);
 
-    /// Handling of the parallel cluster finder threads
-    /// \param iTimeBinMin Minimum time bin to be processed
-    /// \param iTimeBinMax Maximum time bin to be processed
-    void ProcessTimeBins(int iTimeBinMin, int iTimeBinMax);
+  /// Helper function to update cluster properties and MC labels
+  /// \param selectionMask  VC-mask with slected pads enabled
+  /// \param row            Current row
+  /// \param center_pad     Pad of peak
+  /// \param center_time    Timebin of peak
+  /// \param dp             delta pad
+  /// \param dt             delta time
+  /// \param qTot           Total charge
+  /// \param pad            Weighted pad parameter
+  /// \param time           Weighted time parameter
+  /// \param sigmaPad2      Weighted sigma pad ^2 parameter
+  /// \param sigmaTime2     Weighted sigma time ^2 parameter
+  /// \param mcLabel        Vector with MClabel-counter-pairs
+  void updateCluster(const Vc::uint_m selectionMask, int row, short center_pad, int center_time, short dp, short dt, Vc::uint_v& qTot, Vc::int_v& pad, Vc::int_v& time, Vc::int_v& sigmaPad2, Vc::int_v& sigmaTime2, std::vector<std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>& mcLabels);
 
-    /*
-     * class members
-     */
-    bool mAssignChargeUnique;               ///< Setting for CF to use charge only for one cluster
-    bool mEnableNoiseSim;                   ///< Switch for noise simulation
-    bool mEnablePedestalSubtraction;        ///< Switch for pedestal subtraction
-    bool mIsContinuousReadout;              ///< Switch for continuous readout
-    int mLastTimebin;                       ///< Last time bin of previous event
-    unsigned mCRUMin;                       ///< Minimum CRU ID to be processed
-    unsigned mCRUMax;                       ///< Maximum CRU ID to be processed
-    unsigned mPadsPerCF;                    ///< Number of pads per cluster finder instance
-    unsigned mTimebinsPerCF;                ///< Number of time bins per cluster finder instance
-    unsigned mNumThreads;                   ///< Number of parallel processing threads
-    float mMinQDiff;                        ///< Minimum charge difference between neighboring pads / time bins
+  /// Writes clusters from temporary storage to cluster output
+  /// \param timeOffset   Time offset of cluster container
+  void writeOutputWithTimeOffset(int timeOffset);
 
-    std::vector<std::vector<std::vector<std::shared_ptr<HwClusterFinder>>>> mClusterFinder;     ///< Cluster finder container for each row in each CRU
-    std::vector<std::vector<std::vector<std::tuple<Digit const*, int, int>>>> mDigitContainer;  ///< Sorted digit container for each row in each CRU. Tuple consists of pointer to digit, original digit index and event count
+  /// Processes and collects the peaks after they were found
+  /// \param timebin  Timebin to cluster peaks
+  void computeClusterForTime(int timebin);
 
-    std::vector<std::vector<Cluster>> mClusterStorage;                                          ///< Cluster storage for each CRU
-    std::vector<std::vector<std::vector<std::pair<int,int>>>> mClusterDigitIndexStorage;        ///< Container for digit indices, used in found clusters. Pair consists of original digit index and event count
+  /// Does the Peak Finding in all rows for given timebin
+  /// \param timebin  Timebin to cluster peaks
+  void findPeaksForTime(int timebin);
 
-    std::vector<Cluster>* mClusterArray;        ///< Pointer to output cluster storage
-    MCLabelContainer* mClusterMcLabelArray;     ///< Pointer to MC Label storage
+  /// Searches for last remaining cluster and writes them out
+  /// \param clear    Clears data buffer afterwards (for not continuous readout)
+  void finishFrame(bool clear = false);
 
-    std::shared_ptr<CalDet<float>> mNoiseObject;                ///< Pointer to the CalDet object for noise simulation
-    std::shared_ptr<CalDet<float>> mPedestalObject;             ///< Pointer to the CalDet object for the pedestal subtraction
+  /// Clears the buffer at given timebin TODO: and fills timebin with noise + pedestal
+  /// \param timebin  Timebin to be cleared
+  void clearBuffer(int timebin);
 
-    std::map<int, std::unique_ptr<MCLabelContainer>> mLastMcDigitTruth; ///< Buffer for digit MC truth information
-  };
+  /// Returns least significant set bit of mCurrentMcContainerInBuffer, only the mTimebinsInBuffer LSBs are checked
+  /// \return LSB index which is set
+  short getFirstSetBitOfField();
+
+  /// Maps the given time into the available range of the stored buffer
+  /// \param time   time to be maped
+  /// \return (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer which is always in range [0, mTimebinsInBuffer-1] even if time < 0
+  int mapTimeInRange(int time);
+
+  /// Returns the 14 LSB FP part of the value
+  /// \param value  some value
+  Vc::uint_v getFpOfADC(const Vc::uint_v value);
+
+  /// Does the comparison between two pads and sets the bits accordingly
+  /// \param qMaxIndex      Buffer index of central pad
+  /// \param compareIndex   Buffer index of pad to compare with
+  /// \param bitMax         Bit to be set for peak finding
+  /// \param bitMin         Bit to be set for minimum finding
+  /// \param row            Row number
+  void compareForPeak(const unsigned qMaxIndex, const unsigned compareIndex, const unsigned bitMax, const unsigned bitMin, const unsigned short row);
+
+  /*
+   * class members
+   */
+  static const int mTimebinsInBuffer = 5;
+
+  unsigned short mNumRows;               ///< Number of rows in this sector
+  unsigned short mNumRowSets;            ///< Number of row sets (Number of rows / Vc::Size) in this sector
+  short mCurrentMcContainerInBuffer;     ///< Bit field, where to find the current MC container in buffer
+  int mClusterSector;                    ///< Sector to be processed
+  int mLastTimebin;                      ///< Last time bin of previous event
+  unsigned mLastHB;                      ///< Last HB bin of previous event
+  unsigned mPeakChargeThreshold;         ///< Charge threshold for the central peak in ADC counts
+  unsigned mContributionChargeThreshold; ///< Charge threshold for the contributing pads in ADC counts
+  unsigned mClusterCounter;              ///< Cluster counter in output container for MC truth matching
+  bool mIsContinuousReadout;             ///< Switch for continuous readout
+
+  std::vector<unsigned short> mPadsPerRow;                       ///< Number of pads for given row (offset of 2 pads on both sides is already added)
+  std::vector<unsigned short> mPadsPerRowSet;                    ///< Number of pads for given row set (offset of 2 pads on both sides is already added), a row set combines rows for parallel SIMD processing
+  std::vector<unsigned short> mGlobalRowToRegion;                ///< Mapping global row number to region
+  std::vector<unsigned short> mGlobalRowToLocalRow;              ///< Converting global row number to local row number within region
+  std::vector<unsigned short> mGlobalRowToVcIndex;               ///< Converting global row number to VC index
+  std::vector<unsigned short> mGlobalRowToRowSet;                ///< Converting global row number to row set number
+  std::vector<std::vector<Vc::uint_v>> mDataBuffer;              ///< Buffer with digits (+noise +CM +...)
+  std::vector<std::vector<Vc::int_v>> mIndexBuffer;              ///< Buffer with digits indices for MC labels
+  std::vector<std::shared_ptr<MCLabelContainer const>> mMCtruth; ///< MC truth information of timebins in buffer
+
+  std::vector<std::unique_ptr<std::vector<ClusterHardware>>> mTmpClusterArray;                             ///< Temporary cluster storage for each region to accumulate cluster before filling output container
+  std::vector<std::unique_ptr<std::vector<std::vector<std::pair<MCCompLabel, unsigned>>>>> mTmpLabelArray; ///< Temporary cluster storage for each region to accumulate cluster before filling output container
+
+  std::vector<ClusterHardwareContainer8kb>* mClusterArray; ///< Pointer to output cluster container
+  std::vector<Cluster>* mPlainClusterArray;                ///< Pointer to output cluster container
+  MCLabelContainer* mClusterMcLabelArray;                  ///< Pointer to MC Label container
+};
+
+inline void HwClusterer::setContinuousReadout(bool isContinuous)
+{
+  mIsContinuousReadout = isContinuous;
+}
+
+inline void HwClusterer::setPeakChargeThreshold(unsigned charge)
+{
+  mPeakChargeThreshold = charge;
+}
+
+inline void HwClusterer::setContributionChargeThreshold(unsigned charge)
+{
+  mContributionChargeThreshold = charge;
+}
+
+inline int HwClusterer::mapTimeInRange(int time)
+{
+  return (mTimebinsInBuffer + (time % mTimebinsInBuffer)) % mTimebinsInBuffer;
+}
+
+inline Vc::uint_v HwClusterer::getFpOfADC(const Vc::uint_v value)
+{
+  return value & 0x3FFF;
+}
+
+inline short HwClusterer::getFirstSetBitOfField()
+{
+  for (short i = 0; i < mTimebinsInBuffer; ++i) {
+    if ((mCurrentMcContainerInBuffer >> i) & 0x1)
+      return i;
+  }
+  return -1;
+}
+
+inline void HwClusterer::compareForPeak(const unsigned qMaxIndex, const unsigned compareIndex, const unsigned bitMax, const unsigned bitMin, const unsigned short row)
+{
+
+  const auto tmpMask = getFpOfADC(mDataBuffer[row][qMaxIndex]) >= getFpOfADC(mDataBuffer[row][compareIndex]);
+
+  // current center could be peak in one direction
+  where(tmpMask) | mDataBuffer[row][qMaxIndex] |= (0x1 << bitMax);
+
+  // other is smaller than center
+  // and if other one was not a peak candidate before (bit is 0), it is a minimum in one direction,
+  // so bitMin has to be set to inverse of bitMax of pad to compare
+  where(tmpMask) | mDataBuffer[row][compareIndex] |= (~mDataBuffer[row][compareIndex] & (0x1 << bitMax)) >> (bitMax - bitMin);
+
+  // other is not peak
+  where(tmpMask) | mDataBuffer[row][compareIndex] &= ~(0x1 << bitMax);
+
+  // other is peak if bit was already set
+  where(!tmpMask) | mDataBuffer[row][compareIndex] |= (mDataBuffer[row][compareIndex] & (0x1 << bitMax));
+}
+
+inline void HwClusterer::updateCluster(
+  const Vc::uint_m selectionMask, int row, short center_pad, int center_time, short dp, short dt,
+  Vc::uint_v& qTot, Vc::int_v& pad, Vc::int_v& time, Vc::int_v& sigmaPad2, Vc::int_v& sigmaTime2,
+  std::vector<std::unique_ptr<std::vector<std::pair<MCCompLabel, unsigned>>>>& mcLabels)
+{
+  const int mappedTime = mapTimeInRange(center_time + dt);
+  const int index = mappedTime * mPadsPerRowSet[row] + center_pad + dp;
+
+  where(selectionMask) | qTot += getFpOfADC(mDataBuffer[row][index]);
+  where(selectionMask) | pad += getFpOfADC(mDataBuffer[row][index]) * dp;
+  where(selectionMask) | time += getFpOfADC(mDataBuffer[row][index]) * dt;
+  where(selectionMask) | sigmaPad2 += getFpOfADC(mDataBuffer[row][index]) * dp * dp;
+  where(selectionMask) | sigmaTime2 += getFpOfADC(mDataBuffer[row][index]) * dt * dt;
+
+  for (int i = 0; i < Vc::uint_v::Size; ++i) {
+    if (selectionMask[i] && mMCtruth[mappedTime] != nullptr) {
+      for (auto& label : mMCtruth[mappedTime]->getLabels(mIndexBuffer[row][index][i])) {
+        bool isKnown = false;
+        for (auto& vecLabel : *mcLabels[i]) {
+          if (label == vecLabel.first) {
+            ++vecLabel.second;
+            isKnown = true;
+          }
+        }
+        if (!isKnown) {
+          mcLabels[i]->emplace_back(label, 1);
+        }
+      }
+    }
+  }
+}
 }
 }
 

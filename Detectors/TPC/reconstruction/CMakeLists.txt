@@ -26,8 +26,6 @@ set(SRCS
    src/GBTFrameContainer.cxx
    src/HalfSAMPAData.cxx
    src/HwClusterer.cxx
-   src/HwClusterFinder.cxx
-   src/HwFixedPoint.cxx
    src/RawReader.cxx
    src/RawReaderEventSync.cxx
    src/SyncPatternMonitor.cxx
@@ -39,15 +37,13 @@ set(SRCS
 set(HEADERS
    include/${MODULE_NAME}/AdcClockMonitor.h
    include/${MODULE_NAME}/BoxClusterer.h
-   include/${MODULE_NAME}/Clusterer.h
    include/${MODULE_NAME}/ClusterContainer.h
+   include/${MODULE_NAME}/Clusterer.h
    include/${MODULE_NAME}/ClustererTask.h
    include/${MODULE_NAME}/GBTFrame.h
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/HwClusterer.h
-   include/${MODULE_NAME}/HwClusterFinder.h
-   include/${MODULE_NAME}/HwFixedPoint.h
    include/${MODULE_NAME}/RawReader.h
    include/${MODULE_NAME}/RawReaderEventSync.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
@@ -96,6 +92,7 @@ set(TEST_SRCS
   test/testTPCSyncPatternMonitor.cxx
   test/testTPCAdcClockMonitor.cxx
   test/testTPCCATracking.cxx
+  test/testTPCHwClusterer.cxx
 )
 
 O2_GENERATE_TESTS(

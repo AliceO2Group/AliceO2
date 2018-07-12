@@ -38,20 +38,21 @@ namespace o2 {
       /// @param padsigma Sigma of cluster in pad direction
       /// @param timemean Mean position of cluster in time direction
       /// @param timesigma Sigma of cluster in time direction
-      template<typename ClusterType>
-      static ClusterType* AddCluster(std::vector<ClusterType> *output,
-		             Int_t cru, Int_t row, Float_t qTot, Float_t qMax,
-			     Float_t meanpad, Float_t meantime, Float_t sigmapad,
-			     Float_t sigmatime) {
-        assert(output);
-        output->emplace_back(); // emplace_back a defaut constructed cluster of type ClusterType
-        auto& cluster = output->back();
-        // set its concrete parameters:
-        // ATTENTION: the order of parameters in setParameters is different than in AddCluster!
-        cluster.setParameters(cru, row, qTot, qMax,
-                              meanpad, sigmapad,
-                              meantime, sigmatime);
-        return &cluster;
+     template <typename ClusterType>
+     static ClusterType* addCluster(std::vector<ClusterType>* output,
+                                    Int_t cru, Int_t row, Float_t qTot, Float_t qMax,
+                                    Float_t meanpad, Float_t meantime, Float_t sigmapad,
+                                    Float_t sigmatime)
+     {
+       assert(output);
+       output->emplace_back(); // emplace_back a defaut constructed cluster of type ClusterType
+       auto& cluster = output->back();
+       // set its concrete parameters:
+       // ATTENTION: the order of parameters in setParameters is different than in AddCluster!
+       cluster.setParameters(cru, row, qTot, qMax,
+                             meanpad, sigmapad,
+                             meantime, sigmatime);
+       return &cluster;
       }
     };
   }
