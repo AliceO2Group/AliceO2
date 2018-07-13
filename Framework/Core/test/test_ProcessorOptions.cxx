@@ -18,7 +18,8 @@ using namespace o2::framework;
   }
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const&) {
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
   return WorkflowSpec{
     DataProcessorSpec{
       "producer",
@@ -61,7 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
           // read back the option from the command line, see CMakeLists.txt
           auto configstring = ic.options().get<std::string>("global-config");
           auto anotheroption = ic.options().get<std::string>("local-option");
-          ASSERT_ERROR(configstring == "require-me");
+          ASSERT_ERROR(configstring == "consumer-config");
           ASSERT_ERROR(anotheroption == "hello-aliceo2");
 
           return [](ProcessingContext& ctx) {
