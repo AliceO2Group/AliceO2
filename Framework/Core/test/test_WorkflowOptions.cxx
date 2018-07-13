@@ -34,7 +34,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
           ASSERT_ERROR(configstring == "require-me");
 
           return [](ProcessingContext& ctx) {
-            // there is nothing to do, simply stop the workflow
+            // there is nothing to do, simply stop the workflow but we have to send at least one message
+            // to make sure that the callback of the consumer is called
+            ctx.outputs().make<int>(Output{ "TST", "TEST", 0, Lifetime::Timeframe }) = 42;
             ctx.services().get<ControlService>().readyToQuit(true);
           };
         },
