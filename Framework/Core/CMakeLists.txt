@@ -225,10 +225,10 @@ O2_GENERATE_TESTS(
   TIMEOUT 60
 
   TEST_SRCS
-  test/test_WorkflowOptions.cxx
+  test/test_ProcessorOptions.cxx
 
   COMMAND_LINE_ARGS
   --global-config require-me
   # Note: the group switch makes process consumer parse only the group arguments
-  --consumer "--global-config require-me --local-option hello-aliceo2"
+  --consumer "--global-config consumer-config --local-option hello-aliceo2"
 )
