@@ -49,7 +49,7 @@ struct additionalMCParameters
 
 struct additionalClusterParameters
 {
-	int attached, fakeAttached;
+	int attached, fakeAttached, adjacent, fakeAdjacent;
 	float pt;
 };
 
@@ -78,7 +78,8 @@ static TCanvas *cpull[7];
 static TPad* ppull[7][5];
 static TLegend* legendpull[6];
 
-static TH1F* clusters[11]; //attached, fakeAttached, tracks, all, attachedRel, fakeAttachedRel, treaksRel, attachedInt, fakeAttachedInt, treaksInt, AllInt
+#define N_CLS_HIST 5
+static TH1F* clusters[3 * N_CLS_HIST - 1]; //attached, fakeAttached, tracks, all, attachedRel, fakeAttachedRel, treaksRel, attachedInt, fakeAttachedInt, treaksInt, AllInt
 static TCanvas* cclust[3];
 static TPad* pclust[3];
 static TLegend* legendclust[3];
@@ -139,7 +140,7 @@ static const constexpr char* XAxisTitles[5] = {"y_{mc} (cm)", "z_{mc} (cm)", "#P
 static const constexpr char* AxisTitles[5] = {"y-y_{mc} (mm) (Resolution)", "z-z_{mc} (mm) (Resolution)", "#phi-#phi_{mc} (mrad) (Resolution)", "#lambda-#lambda_{mc} (mrad) (Resolution)", "(p_{T} - p_{Tmc}) / p_{Tmc} (%) (Resolution)"};
 static const constexpr char* AxisTitlesNative[5] = {"y-y_{mc} (mm) (Resolution)", "z-z_{mc} (mm) (Resolution)", "sin(#phi)-sin(#phi_{mc}) (Resolution)", "tan(#lambda)-tan(#lambda_{mc}) (Resolution)", "q*(q/p_{T} - q/p_{Tmc}) (Resolution)"};
 static const constexpr char* AxisTitlesPull[5] = {"y-y_{mc}/#sigma_{y} (Pull)", "z-z_{mc}/#sigma_{z} (Pull)", "sin(#phi)-sin(#phi_{mc})/#sigma_{sin(#phi)} (Pull)", "tan(#lambda)-tan(#lambda_{mc})/#sigma_{tan(#lambda)} (Pull)", "q*(q/p_{T} - q/p_{Tmc})/#sigma_{q/p_{T}} (Pull)"};
-static const constexpr char* ClustersNames[4] = {"Correctly attached clusters", "Fake attached clusters", "Clusters of reconstructed tracks", "All clusters"};
+static const constexpr char* ClustersNames[N_CLS_HIST] = {"Correctly attached clusters", "Fake attached clusters", "Attached + adjacent clusters", "Clusters of reconstructed tracks", "All clusters"};
 static const constexpr char* ClusterTitles[3] = {"Clusters Pt Distribution / Attachment", "Clusters Pt Distribution / Attachment (relative to all clusters)", "Clusters Pt Distribution / Attachment (integrated)"};
 static const constexpr char* ClusterNamesShort[4] = {"Attached", "Fake", "FoundTracks", "All"};
 static const constexpr char* ClusterTypes[3] = {"", "Ratio", "Integral"};
@@ -358,10 +359,10 @@ void InitQA()
 	}
 	
 	//Create Cluster Histograms
-	for (int i = 0;i < 11;i++)
+	for (int i = 0;i < 3 * N_CLS_HIST - 1;i++)
 	{
-		int ioffset = i >= 7 ? 7 : i >= 4 ? 4 : 0;
-		int itype   = i >= 7 ? 2 : i >= 4 ? 1 : 0;
+		int ioffset = i >= (2 * N_CLS_HIST - 1) ? (2 * N_CLS_HIST - 1) : i >= N_CLS_HIST ? N_CLS_HIST : 0;
+		int itype   = i >= (2 * N_CLS_HIST - 1) ? 2 : i >= N_CLS_HIST ? 1 : 0;
 		sprintf(name, "clusters%s%s", ClusterNamesShort[i - ioffset], ClusterTypes[itype]);
 		double* binsPt = CreateLogAxis(axis_bins[4], PT_MIN_CLUST, PT_MAX);
 		clusters[i] = new TH1F(name, name, axis_bins[4], binsPt);
@@ -549,7 +550,7 @@ void RunQA(bool matchOnly)
 				if (merger.Clusters()[track.FirstClusterRef() + k].fState & AliHLTTPCGMMergedTrackHit::flagReject) continue;
 				int hitId = merger.Clusters()[track.FirstClusterRef() + k].fNum;
 				bool correct = false;
-				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true;break;}
+				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID == label) {correct=true; break;}
 				if (correct) clusterParam[hitId].attached++;
 				else clusterParam[hitId].fakeAttached++;
 			}
@@ -567,6 +568,26 @@ void RunQA(bool matchOnly)
 					(merger.OutputTracks()[i].OK() && fabs(merger.OutputTracks()[i].GetParam().GetZ()) < fabs(merger.OutputTracks()[revLabel].GetParam().GetZ())))
 				{
 					revLabel = i;
+				}
+			}
+		}
+		for (int i = 0;i < hlt.GetNMCLabels();i++)
+		{
+			if (clusterParam[i].attached == 0 && clusterParam[i].fakeAttached == 0)
+			{
+				int attach = merger.ClusterAttachment()[i];
+				if (attach & AliHLTTPCGMMerger::attachFlagMask)
+				{
+					int track = attach & AliHLTTPCGMMerger::attachTrackMask;
+					track =  trackMCLabels[track] < 0 ? (-trackMCLabels[track] - 2) : trackMCLabels[track];
+					bool fake = true;
+					for (int j = 0;j < 3;j++)
+					{
+						//printf("Attach %x Track %d / %d:%d\n", attach, track, j, hlt.GetMCLabels()[i].fClusterID[j].fMCID);
+						if (hlt.GetMCLabels()[i].fClusterID[j].fMCID == track) {fake = false; break;}
+					}
+					if (fake) clusterParam[i].fakeAdjacent++;
+					else clusterParam[i].adjacent++;
 				}
 			}
 		}
@@ -794,13 +815,13 @@ void RunQA(bool matchOnly)
 			const additionalMCParameters& mc2 = mcParam[i];
 			
 			float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
-			clusters[3]->Fill(pt, mc2.nWeightCls);
-			if (recTracks[i] || fakeTracks[i]) clusters[2]->Fill(pt, mc2.nWeightCls);
+			clusters[4]->Fill(pt, mc2.nWeightCls);
+			if (recTracks[i] || fakeTracks[i]) clusters[3]->Fill(pt, mc2.nWeightCls);
 		}
 	 	for (int i = 0;i < hlt.GetNMCLabels();i++)
 	 	{
 			if ((mcTrackMin != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
-			float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached;
+			float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached + clusterParam[i].fakeAdjacent + clusterParam[i].adjacent;
 			if (totalAttached <= 0) continue;
 			float totalWeight = 0.;
 			for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
@@ -813,7 +834,8 @@ void RunQA(bool matchOnly)
 						float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
 						if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
 						clusters[0]->Fill(pt, clusterParam[i].attached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
-						clusters[1]->Fill(pt, clusterParam[i].fakeAttached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+						clusters[1]->Fill(pt, (clusterParam[i].fakeAttached /*+ clusterParam[i].fakeAdjacent*/) / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
+						clusters[2]->Fill(pt, (clusterParam[i].attached + clusterParam[i].adjacent /*+ clusterParam[i].fakeAdjacent*/) / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
 					}
 				}
 			}
@@ -1410,37 +1432,37 @@ int DrawQAHistograms()
 	{
 		if (config.inputHistogramsOnly == 0)
 		{
-			for (int i = 4;i < 11;i++) clusters[i]->Sumw2(true);
+			for (int i = N_CLS_HIST;i < 3 * N_CLS_HIST - 1;i++) clusters[i]->Sumw2(true);
 			double totalVal = 0;
-			for (int j = 0;j < clusters[3]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[3]->GetBinContent(j);
+			for (int j = 0;j < clusters[N_CLS_HIST - 1]->GetXaxis()->GetNbins() + 2;j++) totalVal += clusters[N_CLS_HIST - 1]->GetBinContent(j);
 			if (totalVal == 0.) totalVal = 1.;
-			for (int i = 0;i < 4;i++)
+			for (int i = 0;i < N_CLS_HIST;i++)
 			{
 				double val = 0;
 				for (int j = 0;j < clusters[i]->GetXaxis()->GetNbins() + 2;j++)
 				{
 					val += clusters[i]->GetBinContent(j);
-					clusters[7 + i]->SetBinContent(j, val / totalVal);
+					clusters[2 * N_CLS_HIST - 1 + i]->SetBinContent(j, val / totalVal);
 				}
 			}
-			for (int i = 0;i < 4;i++)
+			for (int i = 0;i < N_CLS_HIST;i++)
 			{
-				clusters[7 + i]->SetMaximum(1.02);
-				clusters[7 + i]->SetMinimum(-0.02);
+				clusters[2 * N_CLS_HIST - 1 + i]->SetMaximum(1.02);
+				clusters[2 * N_CLS_HIST - 1 + i]->SetMinimum(-0.02);
 			}
 			
-			for (int i = 0;i < 3;i++)
+			for (int i = 0;i < N_CLS_HIST - 1;i++)
 			{
-				clusters[i + 4]->Divide(clusters[i], clusters[3], 1, 1, "B");
-				clusters[i + 4]->SetMinimum(-0.02);
-				clusters[i + 4]->SetMaximum(1.02);
+				clusters[N_CLS_HIST + i]->Divide(clusters[i], clusters[N_CLS_HIST - 1], 1, 1, "B");
+				clusters[N_CLS_HIST + i]->SetMinimum(-0.02);
+				clusters[N_CLS_HIST + i]->SetMaximum(1.02);
 			}
 		}
 		
 		float tmpMax = 0, tmpMin = 0;
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
-			TH1F* e = clusters[3];
+			TH1F* e = clusters[N_CLS_HIST - 1];
 			if (GetHist(e, tin, k, nNewInput) == NULL) continue;
 			e->SetMinimum(-1111);
 			e->SetMaximum(-1111);
@@ -1450,7 +1472,7 @@ int DrawQAHistograms()
 		}
 		for (int k = 0;k < ConfigNumInputs;k++)
 		{
-			for (int i = 0;i < 4;i++)
+			for (int i = 0;i < N_CLS_HIST;i++)
 			{
 				TH1F* e = clusters[i];
 				if (GetHist(e, tin, k, nNewInput) == NULL) continue;
@@ -1463,8 +1485,8 @@ int DrawQAHistograms()
 		{
 			pclust[i]->cd();
 			pclust[i]->SetLogx();
-			int begin = i == 2 ?  7 : i == 1 ? 4 : 0;
-			int end   = i == 2 ? 11 : i == 1 ? 7 : 4;
+			int begin = i == 2 ? (2 * N_CLS_HIST - 1) : i == 1 ? N_CLS_HIST : 0;
+			int end   = i == 2 ? (3 * N_CLS_HIST - 1) : i == 1 ? (2 * N_CLS_HIST - 1) : N_CLS_HIST;
 			int numColor = 0;
 			for (int k = 0;k < ConfigNumInputs;k++)
 			{

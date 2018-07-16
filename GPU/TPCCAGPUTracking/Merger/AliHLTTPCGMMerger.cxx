@@ -959,7 +959,7 @@ void AliHLTTPCGMMerger::Finalize()
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)
     int* trkOrderReverse = new int[fNOutputTracks];
     for (int i = 0;i < fNOutputTracks;i++) trkOrderReverse[fTrackOrder[i]] = i;
-    for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = 0;
+    for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = 0; //Reset adjacent attachment for attached clusters, set correctly below
     for (int i = 0;i < fNOutputTracks;i++)
     {
       const AliHLTTPCGMMergedTrack& trk = fOutputTracks[i];
