@@ -10,13 +10,13 @@
  * @class this is an interface header for making the TRD tracking portable between O2, AliRoot, and HLT standalone framework
  */
 
-#include "AliHLTExternalTrackParam.h"
 #include "AliHLTTRDDef.h"
 template <typename T> class trackInterface;
 template <typename T> class propagatorInterface;
 
 #ifdef HLTCA_BUILD_ALIROOT_LIB //Interface for AliRoot, build only with AliRoot
 #include "AliExternalTrackParam.h"
+#include "AliHLTExternalTrackParam.h"
 #include "AliTrackerBase.h"
 
 template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
@@ -109,6 +109,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
         SetCov(j, param.GetCov(j));
       }
     }
+#ifdef HLTCA_BUILD_ALIROOT_LIB
     trackInterface<AliHLTTPCGMTrackParam>(const AliHLTExternalTrackParam &param) :
       AliHLTTPCGMTrackParam(),
       fAlpha(param.fAlpha)
@@ -123,6 +124,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
         SetCov(i, param.fC[i]);
       }
     };
+#endif
 
     float getX()       const { return GetX(); }
     float getAlpha()   const { return fAlpha; }
