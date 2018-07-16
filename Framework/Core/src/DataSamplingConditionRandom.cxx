@@ -24,12 +24,12 @@ namespace framework
 {
 
 // todo: choose the best PRNG (TRandom3 is fast, but i am not sure about its statistical soundness and behaviour with
-// very small percents).
+// very small percents) or use completely different decision mechanism (map or formula f(timeslice) -> {0,1})
 // todo: consider using run number as a seed
 
 using namespace o2::header;
 
-/// \brief A DataSamplingCondition which makes decicions randomly, but with determinism.
+/// \brief A DataSamplingCondition which makes decisions randomly, but with determinism.
 class DataSamplingConditionRandom : public DataSamplingCondition
 {
 
