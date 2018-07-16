@@ -243,8 +243,10 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     O2FrameworkCore_bucket
+
     DEPENDENCIES
     O2DeviceApplication_bucket
+    common_utils_bucket
     Core
     Net
     MathUtils

@@ -132,6 +132,7 @@ set(HEADERS
       include/Framework/CallbackService.h
       include/Framework/DataSampling.h
       include/Framework/DataSamplingCondition.h
+      include/Framework/DPLBoostSerializer.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
