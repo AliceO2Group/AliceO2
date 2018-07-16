@@ -1704,9 +1704,13 @@ o2_define_bucket(
   DEPENDENCIES
   Core Tree
   ReconstructionDataFormats # for test dependency only
+  common_boost_bucket
+  DataFormatsMID
 
   INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIR}
+  ${CMAKE_SOURCE_DIR}/Common/Utils/include
   ${CMAKE_SOURCE_DIR}/include/ReconstructionDataFormats # for test dependency only
 )
 
