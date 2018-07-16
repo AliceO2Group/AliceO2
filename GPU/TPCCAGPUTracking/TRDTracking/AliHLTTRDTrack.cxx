@@ -1,6 +1,31 @@
 #include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackData.h"
+
+#ifdef HLTCA_BUILD_ALIROOT_LIB
 #include "AliHLTExternalTrackParam.h"
+
+template <typename T>
+AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
+  T(t),
+  fChi2(0),
+  fMass(0),
+  fLabel(-1),
+  fTPCtrackId(0),
+  fNtracklets(0),
+  fNmissingConsecLayers(0),
+  fNtrackletsOffline(0),
+  fLabelOffline(-1),
+  fIsStopped(false)
+{
+  //------------------------------------------------------------------
+  // copy constructor from AliHLTExternalTrackParam struct
+  //------------------------------------------------------------------
+  for (int i=0; i<=5; ++i) {
+    fAttachedTracklets[i] = -1;
+    fIsFindable[i] = 0;
+  }
+}
+#endif
 
 template <typename T>
 AliHLTTRDTrack<T>::AliHLTTRDTrack() :
@@ -43,29 +68,6 @@ AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
   for (int i=0; i<=5; ++i) {
     fAttachedTracklets[i] = t.fAttachedTracklets[i];
     fIsFindable[i] = t.fIsFindable[i];
-  }
-}
-
-
-template <typename T>
-AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
-  T(t),
-  fChi2(0),
-  fMass(0),
-  fLabel(-1),
-  fTPCtrackId(0),
-  fNtracklets(0),
-  fNmissingConsecLayers(0),
-  fNtrackletsOffline(0),
-  fLabelOffline(-1),
-  fIsStopped(false)
-{
-  //------------------------------------------------------------------
-  // copy constructor from AliHLTExternalTrackParam struct
-  //------------------------------------------------------------------
-  for (int i=0; i<=5; ++i) {
-    fAttachedTracklets[i] = -1;
-    fIsFindable[i] = 0;
   }
 }
 
