@@ -1,4 +1,3 @@
-//#define ENABLE_HLTTRDDEBUG
 #ifdef ENABLE_HLTTRDDEBUG
 # ifndef ALIHLTTRDTRACKERDEBUG_H
 # define ALIHLTTRDTRACKERDEBUG_H
@@ -34,7 +33,7 @@ class AliHLTTRDTrackerDebug
                     fTrackletSecReal.Zero(); fTrackletDetReal.Zero(); fTrackXReal.Zero(); fTrackYReal.Zero(); fTrackZReal.Zero(); fTrackSecReal.Zero();
                     fChi2Update.Zero(); fChi2Real.Zero(); fNmatchesAvail.Zero(); fFindable.Zero(); fFindableMC.Zero(); fUpdates.Zero();
                     fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fNtrklts = 0; fNtrkltsRef = 0; fTrackIDref = -1; fNlayers = 0; fChi2 = 0; fNmatch = 0; fNfake = 0; fNrelated = 0;
-                    fXvMC = 0; fYvMC = 0; fZvMC = 0; fPdgCode = 0; fParam.Reset(); fParamNoUp.Reset();
+                    fXvMC = 0; fYvMC = 0; fZvMC = 0; fPdgCode = 0; //fParam.Reset(); fParamNoUp.Reset();
                  }
 
     // general information
@@ -127,8 +126,9 @@ class AliHLTTRDTrackerDebug
         "nTracklets=" << fNtrklts <<
         "nTrackletsOffline=" << fNtrkltsRef <<
         "labelRef=" << fTrackIDref <<
-        "track.=" << &fParam <<
-        "trackNoUp.=" << &fParamNoUp <<
+        // not possible to stream non ROOT objects
+        //"track.=" << &fParam <<
+        //"trackNoUp.=" << &fParamNoUp <<
         "roadY.=" << &fRoadY <<
         "roadZ.=" << &fRoadZ <<
         "findable.=" << &fFindable <<
@@ -205,8 +205,8 @@ class AliHLTTRDTrackerDebug
     TVectorF fFindable;
     TVectorF fFindableMC;
     TVectorF fUpdates;
-    AliExternalTrackParam fParam;
-    AliExternalTrackParam fParamNoUp;
+    HLTTRDTrack fParam;
+    HLTTRDTrack fParamNoUp;
     float fXvMC;
     float fYvMC;
     float fZvMC;

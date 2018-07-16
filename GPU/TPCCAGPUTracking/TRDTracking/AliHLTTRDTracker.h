@@ -14,6 +14,11 @@ class AliMCEvent;
 class AliHLTTRDTracker {
  public:
 
+  AliHLTTRDTracker();
+  AliHLTTRDTracker(const AliHLTTRDTracker &tracker) = delete;
+  AliHLTTRDTracker & operator=(const AliHLTTRDTracker &tracker) = delete;
+  ~AliHLTTRDTracker();
+
   enum EHLTTRDTracker {
     kNLayers = 6,
     kNStacks = 5,
@@ -25,14 +30,12 @@ class AliHLTTRDTracker {
   struct AliHLTTRDSpacePointInternal {
     float fR;                 // x position (7mm above anode wires)
     float fX[2];              // y and z position (sector coordinates)
-    My_Float fCov[3];           // sigma_y^2, sigma_yz, sigma_z^2
+    My_Float fCov[3];         // sigma_y^2, sigma_yz, sigma_z^2
     float fDy;                // deflection over drift length
     int fId;                  // index
     int fLabel[3];            // MC labels
     unsigned short fVolumeId; // basically derived from TRD chamber number
   };
-
-  enum Relation_t { kNoTracklet = 0, kNoMatch, kRelated, kEqual };
 
   struct Hypothesis {
     float fChi2;
@@ -61,7 +64,7 @@ class AliHLTTRDTracker {
   bool AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, const int layer) const;
   int GetSector(float alpha) const;
   float GetAlphaOfSector(const int sec) const;
-  float GetRPhiRes(float snp) const { return (0.04*0.04+0.33*0.33*(snp-0.126)*(snp-0.126)); }
+  float GetRPhiRes(float snp) const { return (0.04f*0.04f+0.33f*0.33f*(snp-0.126f)*(snp-0.126f)); } // parametrization obtained from track-tracklet residuals
   void RecalcTrkltCov(const int trkltIdx, const float tilt, const float snp, const float rowSize);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
   void CheckTrackRefs(const int trackID, bool *findableMC) const;
@@ -86,15 +89,12 @@ class AliHLTTRDTracker {
   float GetChi2Penalty()      const { return fChi2Penalty; }
   int   GetMaxMissingLayers() const { return fMaxMissingLy; }
   int   GetNCandidates()      const { return fNCandidates; }
-  void PrintSettings() const;
+  void  PrintSettings() const;
 
   // output
   HLTTRDTrack *Tracks()                       const { return fTracks;}
   int NTracks()                               const { return fNTracks;}
   AliHLTTRDSpacePointInternal *SpacePoints()  const { return fSpacePoints; }
-
-  AliHLTTRDTracker();
-  virtual ~AliHLTTRDTracker();
 
  protected:
 
@@ -115,7 +115,7 @@ class AliHLTTRDTracker {
   Hypothesis *fHypothesis;                    // array with multiple track hypothesis
   HLTTRDTrack *fCandidates;                   // array of tracks for multiple hypothesis tracking
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
-  AliHLTTRDGeometry *fGeo;                       // TRD geometry
+  AliHLTTRDGeometry *fGeo;                    // TRD geometry
   bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking
   float fMaxEta;                              // TPC tracks with higher eta are ignored
@@ -127,10 +127,6 @@ class AliHLTTRDTracker {
   std::vector<int> fMaskedChambers;           // vector holding bad TRD chambers
   AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
   AliHLTTRDTrackerDebug *fDebug;              // debug output
-
- private:
-  AliHLTTRDTracker(const AliHLTTRDTracker &tracker);
-  AliHLTTRDTracker & operator=(const AliHLTTRDTracker &tracker);
 
 };
 

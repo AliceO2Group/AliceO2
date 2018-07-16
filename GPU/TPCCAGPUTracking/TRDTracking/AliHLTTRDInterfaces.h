@@ -132,7 +132,7 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     float getTgl()     const { return GetDzDs(); }
     float getQ2Pt()    const { return GetQPt(); }
     float getEta()     const { return -logf( tanf( 0.5 * (0.5 * M_PI - atanf(getTgl())) ) ); }
-    float getPt()      const { return fabs(getQ2Pt() > 0) ? fabs(1./getQ2Pt()) : 99999.f; }
+    float getPt()      const { return fabs(getQ2Pt()) > 0 ? fabs(1./getQ2Pt()) : 99999.f; }
     float getSigmaY2() const { return GetErr2Y(); }
     float getSigmaZ2() const { return GetErr2Z(); }
 
@@ -173,7 +173,7 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
     propagatorInterface<AliHLTTPCGMPropagator>& operator=(const propagatorInterface<AliHLTTPCGMPropagator>&) = delete;
     AliHLTTPCCAParam param;
     void setTrack(trackInterface<AliHLTTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); fTrack = trk;}
-    bool PropagateToX( float x, float maxSnp, float maxStep ) { return PropagateToXAlpha( x, GetAlpha(), true ); }
+    bool PropagateToX( float x, float maxSnp, float maxStep ) { return PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false; }
     bool rotate(float alpha) {
       if (RotateToAlpha(alpha) == 0) {
         fTrack->setAlpha(alpha);
