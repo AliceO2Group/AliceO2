@@ -344,8 +344,7 @@ void AliTPCPoissonSolver::PoissonMultiGrid2D(TMatrixD &matrixV, TMatrixD &matrix
 
   Int_t nLoop = TMath::Max(nGridRow, nGridCol);      // Calculate the number of nLoop for the binary expansion
 
-  Info("PoissonMultiGrid2D",Form("nGridRow=%d, nGridCol=%d, nLoop=%d, nMGCycle=%d", nGridRow, nGridCol, nLoop,
-               fMgParameters.nMGCycle));
+  Info("PoissonMultiGrid2D","%s",Form("nGridRow=%d, nGridCol=%d, nLoop=%d, nMGCycle=%d", nGridRow, nGridCol, nLoop, fMgParameters.nMGCycle));
 
   Float_t h, h2, radius;
   Int_t iOne = 1; // in/dex
@@ -508,7 +507,7 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD **matricesV, TMatrixD **m
   const Float_t ratioPhi = gridSizeR * gridSizeR / (gridSizePhi * gridSizePhi);
   const Float_t ratioZ = gridSizeR * gridSizeR / (gridSizeZ * gridSizeZ);
 
-  Info("PoissonRelaxation3D",Form("in Poisson Solver 3D relaxation nRRow=%d, cols=%d, phiSlice=%d \n", nRRow, nZColumn, phiSlice));
+  Info("PoissonRelaxation3D","%s",Form("in Poisson Solver 3D relaxation nRRow=%d, cols=%d, phiSlice=%d \n", nRRow, nZColumn, phiSlice));
   // Check that the number of nRRow and nZColumn is suitable for a binary expansion
   if (!IsPowerOfTwo((nRRow - 1))) {
     Error("PoissonRelaxation3D","Poisson3DRelaxation - Error in the number of nRRow. Must be 2**M - 1");
@@ -719,11 +718,11 @@ void AliTPCPoissonSolver::PoissonRelaxation3D(TMatrixD **matricesV, TMatrixD **m
         // if error already achieved then stop mg iteration
         fIterations = k - 1;
         if ((*fErrorConvergenceNormInf)(k - 1) <= fgConvergenceError) {
-          Info("PoissonRelaxation3D",Form("Exact Err: %f, Iteration : %d", (*fError)(k - 1), k - 1));
+          Info("PoissonRelaxation3D","%s",Form("Exact Err: %f, Iteration : %d", (*fError)(k - 1), k - 1));
           break;
         }
         if (k == maxIteration) {
-          Info("PoissonRelaxation3D",Form("Exact Err: %f, Iteration : %d", (*fError)(k - 1), k - 1));
+          Info("PoissonRelaxation3D","%s",Form("Exact Err: %f, Iteration : %d", (*fError)(k - 1), k - 1));
         }
       }
     }
@@ -787,7 +786,7 @@ void AliTPCPoissonSolver::PoissonMultiGrid3D2D(TMatrixD **matricesV, TMatrixD **
   //const Float_t  ERR = 1e-8;
   Double_t convergenceError;
 
-  Info("PoissonMultiGrid3D2D",Form("in Poisson Solver 3D multiGrid semi coarsening nRRow=%d, cols=%d, phiSlice=%d \n", nRRow, nZColumn,
+  Info("PoissonMultiGrid3D2D","%s",Form("in Poisson Solver 3D multiGrid semi coarsening nRRow=%d, cols=%d, phiSlice=%d \n", nRRow, nZColumn,
                phiSlice));
 
   // Check that the number of nRRow and nZColumn is suitable for a binary expansion
@@ -1023,7 +1022,7 @@ void AliTPCPoissonSolver::PoissonMultiGrid3D(TMatrixD **matricesV, TMatrixD **ma
 
   Float_t convergenceError; // Convergence error
 
-  Info("PoissonMultiGrid3D",Form("in Poisson Solver 3D multi grid full coarsening  nRRow=%d, cols=%d, phiSlice=%d \n", nRRow, nZColumn,
+  Info("PoissonMultiGrid3D","%s",Form("in Poisson Solver 3D multi grid full coarsening  nRRow=%d, cols=%d, phiSlice=%d \n", nRRow, nZColumn,
                phiSlice));
 
   // Check that the number of nRRow and nZColumn is suitable for a binary expansion
@@ -1068,7 +1067,7 @@ void AliTPCPoissonSolver::PoissonMultiGrid3D(TMatrixD **matricesV, TMatrixD **ma
     nnPhi /= 2;
   }
 
-  Info("PoissonMultiGrid3D",Form("nGridRow=%d, nGridCol=%d, nGridPhi=%d", nGridRow, nGridCol, nGridPhi));
+  Info("PoissonMultiGrid3D","%s",Form("nGridRow=%d, nGridCol=%d, nGridPhi=%d", nGridRow, nGridCol, nGridPhi));
   Int_t nLoop = TMath::Max(nGridRow, nGridCol);      // Calculate the number of nLoop for the binary expansion
   nLoop = TMath::Max(nLoop, nGridPhi);
 
@@ -1155,7 +1154,7 @@ void AliTPCPoissonSolver::PoissonMultiGrid3D(TMatrixD **matricesV, TMatrixD **ma
       tPhiSlice = kOne == 1 ? phiSlice : phiSlice / kOne;
       tPhiSlice = tPhiSlice < nnPhi ? nnPhi : tPhiSlice;
 
-      Info("PoissonMultiGrid3D",Form("Restrict3D, tnRRow=%d, tnZColumn=%d, newPhiSlice=%d, oldPhiSlice=%d\n", tnRRow, tnZColumn,
+      Info("PoissonMultiGrid3D","%s",Form("Restrict3D, tnRRow=%d, tnZColumn=%d, newPhiSlice=%d, oldPhiSlice=%d\n", tnRRow, tnZColumn,
                    tPhiSlice, otPhiSlice));
       Restrict3D(tvChargeFMG[count - 1], tvChargeFMG[count - 2], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
       // copy boundary values of V
