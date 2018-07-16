@@ -57,7 +57,8 @@ public:
 
   //  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
 
-  GPUd() int Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2, bool refit );  
+  GPUd() int Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2, bool refit );
+  GPUd() int PredictChi2( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState );
   GPUd() int RejectCluster(float chiY, float chiZ, unsigned char clusterState)
   {
     if (chiY > 9.f || chiZ > 9.f) return 2;
