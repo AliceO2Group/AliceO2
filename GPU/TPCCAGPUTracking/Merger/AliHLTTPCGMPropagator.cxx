@@ -660,6 +660,37 @@ GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const Ali
   fStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, fT0.SinPhi(), fT0.DzDs(), clusterState);
 }
 
+GPUd() int AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState )
+{
+  float err2Y, err2Z;
+  const float *fC = fT->Cov();
+  const float *fP = fT->Par();
+  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
+  const float z0 = posY - fP[0];
+  const float z1 = posZ - fP[1];
+  
+  if (!fFitInProjections || fT->NDF() <= 0)
+  {
+    const float w0 = 1./(err2Y + fC[0]);
+    const float w1 = 0;
+    const float w2 = 1./(err2Z + fC[2]);
+    return w0*z0*z0 + w2*z1*z1;
+  }
+  else
+  {
+    float w0 = fC[2] + err2Z, w1 = fC[1], w2 = fC[0] + err2Y;
+    { // Invert symmetric matrix
+      float det = w0*w2 - w1*w1;
+      if( CAMath::Abs(det) < 1.e-10 ) det = 1.e-10;
+      det = 1./det;    
+      w0 =  w0*det;
+      w1 = -w1*det;
+      w2 =  w2*det;
+    }
+    return CAMath::Abs( (w0*z0 + w1*z1 ) * z0 ) + CAMath::Abs( (w1*z0 + w2*z1 ) * z1 );
+  }
+}
+
 GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2, bool refit )
 {
   float *fC = fT->Cov();
