@@ -20,6 +20,7 @@
 #include <Configuration/ConfigurationFactory.h>
 
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/DataSamplingReadoutAdapter.h"
 #include "Framework/DataSampling.h"
 #include "Framework/ProcessingContext.h"
 #include "Headers/DataHeader.h"
@@ -83,7 +84,9 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
       workflow.emplace_back(specifyExternalFairMQDeviceProxy(
         ("FairMQ_proxy_for_" + task.name).c_str(), Outputs{ fairMqProxy.outputSpec }, fairMqProxy.channelConfig.c_str(),
         fairMqProxy.converterType == "o2DataModelAdaptor" ? o2DataModelAdaptor(fairMqProxy.outputSpec, 0, 1)
-                                                          : incrementalConverter(fairMqProxy.outputSpec, 0, 1)));
+                                                          : fairMqProxy.converterType == "dataSamplingReadoutAdapter"
+                                                              ? dataSamplingReadoutAdapter(fairMqProxy.outputSpec)
+                                                              : incrementalConverter(fairMqProxy.outputSpec, 0, 1)));
     }
 
     std::vector<std::unique_ptr<Dispatcher>> dispatchers;
