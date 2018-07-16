@@ -640,7 +640,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
           }
         }
       }
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 0: Preparing Charge interpolator: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 0: Preparing Charge interpolator: %f\n", w.CpuTime()));
       AliTPCPoissonSolver::fgConvergenceError = stoppingConvergence;
 
       fPoissonSolver->SetStrategy(AliTPCPoissonSolver::kMultiGrid);
@@ -659,14 +659,14 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
       potentialInterpolator->InitCubicSpline();
 
 
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 1: Poisson solver: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 1: Poisson solver: %f\n", w.CpuTime()));
       w.Start();
       ElectricField(matricesV,
                     matricesEr, matricesEPhi, matricesEz, nRRow, nZColumn, phiSlice,
                     gridSizeR, gridSizePhi, gridSizeZ, symmetry, AliTPCPoissonSolver::fgkIFCRadius);
       w.Stop();
 
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 2: Electric Field Calculation: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 2: Electric Field Calculation: %f\n", w.CpuTime()));
       w.Start();
       LocalDistCorrDz(matricesEr, matricesEPhi, matricesEz,
                       matricesDistDrDz, matricesDistDPhiRDz, matricesDistDz,
@@ -687,7 +687,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldC->CopyFromMatricesToInterpolator();
       }
 
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 3: Local distortion and correction: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 3: Local distortion and correction: %f\n", w.CpuTime()));
       w.Start();
 
       IntegrateDistCorrDriftLineDz(
@@ -701,7 +701,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
       );
 
       w.Stop();
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 4: Global correction/distortion: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 4: Global correction/distortion: %f\n", w.CpuTime()));
       w.Start();
 
       //// copy to 1D interpolator /////
@@ -711,7 +711,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
 
 
        w.Stop();
-       Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 5: Filling up the look up: %f\n", w.CpuTime()));
+       Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 5: Filling up the look up: %f\n", w.CpuTime()));
 
       if (side == 0) {
         FillLookUpTable(lookupGlobalDist,
@@ -1020,7 +1020,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
           }
         }
       }
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 0: Preparing Charge interpolator: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 0: Preparing Charge interpolator: %f\n", w.CpuTime()));
       //AliTPCPoissonSolver::fgConvergenceError = stoppingConvergence;
 
       //fPoissonSolver->SetStrategy(AliTPCPoissonSolver::kMultiGrid);
@@ -1039,14 +1039,14 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
       potentialInterpolator->InitCubicSpline();
 
 
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 1: Poisson solver: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 1: Poisson solver: %f\n", w.CpuTime()));
       w.Start();
       //ElectricField(matricesV,
       //              matricesEr, matricesEPhi, matricesEz, nRRow, nZColumn, phiSlice,
       //              gridSizeR, gridSizePhi, gridSizeZ, symmetry, AliTPCPoissonSolver::fgkIFCRadius);
       w.Stop();
 
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 2: Electric Field Calculation: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 2: Electric Field Calculation: %f\n", w.CpuTime()));
       w.Start();
       //LocalDistCorrDz(matricesEr, matricesEPhi, matricesEz,
 //                      matricesDistDrDz, matricesDistDPhiRDz, matricesDistDz,
@@ -1067,7 +1067,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldC->CopyFromMatricesToInterpolator();
       }
 
-      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz",Form("Step 3: Local distortion and correction: %f\n", w.CpuTime()));
+      Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz","%s",Form("Step 3: Local distortion and correction: %f\n", w.CpuTime()));
       w.Start();
 
 
@@ -3297,7 +3297,7 @@ void AliTPCSpaceCharge3DCalc::CalculateEField(
                 phiSlice, gridSizeR, gridSizePhi, gridSizeZ, symmetry, AliTPCPoissonSolver::fgkIFCRadius);
 
   w.Stop();
-  Info("AliTPCSpaceCharge3DCalc::CalculateEField",Form("Time for calculation E-field CPU = %f s\n", w.CpuTime()));
+  Info("AliTPCSpaceCharge3DCalc::CalculateEField","%s",Form("Time for calculation E-field CPU = %f s\n", w.CpuTime()));
 
   //Integrate E(r)/E(z) from point of origin to pad plane
 
