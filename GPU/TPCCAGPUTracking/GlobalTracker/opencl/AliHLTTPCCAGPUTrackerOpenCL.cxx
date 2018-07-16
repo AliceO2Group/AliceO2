@@ -46,7 +46,7 @@
 #include <unistd.h>
 
 #include "../makefiles/opencl_obtain_program.h"
-extern "C" char _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl[];
+extern "C" char _makefile_opencl_program_GlobalTracker_opencl_AliHLTTPCCAGPUTrackerOpenCL_cl[];
 
 ClassImp( AliHLTTPCCAGPUTrackerOpenCL )
 
@@ -247,7 +247,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		}
 	}*/
 
-	if (_makefiles_opencl_obtain_program_helper(ocl->context, count, ocl->devices, &ocl->program, _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl))
+	if (_makefiles_opencl_obtain_program_helper(ocl->context, count, ocl->devices, &ocl->program, _makefile_opencl_program_GlobalTracker_opencl_AliHLTTPCCAGPUTrackerOpenCL_cl))
 	{
 		clReleaseContext(ocl->context);
 		HLTError("Could not obtain OpenCL progarm");

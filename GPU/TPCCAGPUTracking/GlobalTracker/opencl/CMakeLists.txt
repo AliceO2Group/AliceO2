@@ -69,7 +69,7 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
-    COMMAND cat ${CAGPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl/g" | sed "s/FILENAMENORMAL/AliHLTTPCCAGPUTrackerOpenCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
+    COMMAND cat ${CAGPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_GlobalTracker_opencl_AliHLTTPCCAGPUTrackerOpenCL_cl/g" | sed "s/FILENAMENORMAL/AliHLTTPCCAGPUTrackerOpenCLCode.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.S
     MAIN_DEPENDENCY ${CAGPUDIR}/Standalone/makefiles/include.S
 )
 
