@@ -503,9 +503,10 @@ GPUd() int AliHLTTPCGMTrackParam::FollowCircle(const AliHLTTPCGMMerger* Merger, 
     }
     if (prop.PropagateToXAlpha(toX, prop.GetAlpha(), inFlyDirection)) fX = toX;
     CADEBUG(printf("Final position: Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f\n", prop.GetAlpha(), fX, fP[0], fP[1], fP[2], fP[3]);)
-    
+    return(0);
+#else
+    return(1);
 #endif
-return(0);
 }
 
 GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(const AliHLTTPCGMMerger* Merger, int slice, int iRow, int iTrack, float toY, AliHLTTPCGMPropagator& prop)
