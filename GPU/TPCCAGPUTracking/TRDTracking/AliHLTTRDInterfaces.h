@@ -48,6 +48,7 @@ template <> class trackInterface<AliExternalTrackParam> : public AliExternalTrac
     float getSigmaZ2() const { return GetSigmaZ2(); }
 
     const My_Float *getCov() const { return GetCovariance(); }
+    bool CheckNumericalQuality() const { return true; }
 
     // parameter manipulation
     bool update(const My_Float p[2], const My_Float cov[3])                  { return Update(p, cov); }
@@ -175,7 +176,9 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
     propagatorInterface<AliHLTTPCGMPropagator>& operator=(const propagatorInterface<AliHLTTPCGMPropagator>&) = delete;
     AliHLTTPCCAParam param;
     void setTrack(trackInterface<AliHLTTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); fTrack = trk;}
-    bool PropagateToX( float x, float maxSnp, float maxStep ) { return PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false; }
+    bool PropagateToX( float x, float maxSnp, float maxStep ) {
+      return PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false;
+    }
     bool rotate(float alpha) {
       if (RotateToAlpha(alpha) == 0) {
         fTrack->setAlpha(alpha);
@@ -183,9 +186,17 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
       }
       return false;
     }
-    bool update(const My_Float p[2], const My_Float cov[3]) { return Update(p[0], p[1], HLTCA_ROW_COUNT -1, param, 0, false, false); }
+    bool update(const My_Float p[2], const My_Float cov[3]) {
+      return Update(p[0], p[1], HLTCA_ROW_COUNT -1, param, 0, false, false) == 0 ? true : false;
+    }
     float getAlpha() { return GetAlpha(); }
-    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const { return 99999.f; } // TODO not available for HLT tracking?
+    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const {
+      // TODO what about tracklet covariance? posY can be made const in PredictChi2(),
+      //      posZ is changed in AliHLTTPCCAParam::GetClusterErrors2() -> add here also tracklet errors?
+      float tmpY = p[0];
+      float tmpZ = p[1];
+      return PredictChi2( tmpY, tmpZ, HLTCA_ROW_COUNT - 1, param, 0);
+    }
 
     trackInterface<AliHLTTPCGMTrackParam> *fTrack;
 };
