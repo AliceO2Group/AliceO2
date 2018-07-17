@@ -30,6 +30,9 @@ class RecPoints
   Float_t GetCollisionTime(int side) const { return mCollisionTime[side]; }
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
 
+  Float_t GetTimeFromDigit() const { return mEventTime; }
+  void setTimFromDigit(Float_t time) { mEventTime = time; }
+
   Float_t GetVertex(Float_t vertex) const { return mVertex; }
   void setVertex(Float_t vertex) { mVertex = vertex; }
 

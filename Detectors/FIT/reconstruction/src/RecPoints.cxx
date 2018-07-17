@@ -34,7 +34,8 @@ void RecPoints::FillFromDigits(const Digit* digit)
   constexpr Double_t BC_clk_center = BC_clk/2.; // clk center
   Int_t nClk = floor(eventTimeFromDigits/BC_clk);
   Double_t BCEventTime = eventTimeFromDigits - BC_clk*nClk;
-  //   LOG(DEBUG) << " Event Time from digits" << eventTimeFromDigits <<" BCEventTime "<<BCEventTime<<  FairLogger::endl;
+  mEventTime = BC_clk_center + BCEventTime;
+  //   std::cout << " Event Time from digits" << eventTimeFromDigits <<" BCEventTime "<<BCEventTime<< " mEveentTime "<< mEventTime<<std::endl;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
     cfd[mcp] = d.CFDTime /*- BC_clk_center - BCEventTime*/;
