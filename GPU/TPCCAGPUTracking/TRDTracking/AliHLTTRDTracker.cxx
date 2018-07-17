@@ -686,6 +686,12 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
         }
         continue;
       }
+      if (!fCandidates[2*iUpdate+nextIdx].CheckNumericalQuality()) {
+        if (ENABLE_WARNING) {
+          Warning("FollowProlongation", "Track %i has invalid covariance matrix. Aborting track following\n", iTrack);
+        }
+        return false;
+      }
       fCandidates[2*iUpdate+nextIdx].AddTracklet(iLayer, fHypothesis[iUpdate].fTrackletId);
       fCandidates[2*iUpdate+nextIdx].SetChi2(fHypothesis[iUpdate].fChi2);
       fCandidates[2*iUpdate+nextIdx].SetIsFindable(iLayer);
