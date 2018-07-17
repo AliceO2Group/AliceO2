@@ -15,7 +15,7 @@ struct AliHLTTPCGMOfflineStatisticalErrors
 {
 	void SetCurCluster(AliHLTTPCGMMergedTrackHit* c) {fCurCluster = c;}
 
-	void GetOfflineStatisticalErrors(float& err2Y, float& err2Z, float sinPhi, float dzds, unsigned char clusterState)
+	void GetOfflineStatisticalErrors(float& err2Y, float& err2Z, float sinPhi, float dzds, unsigned char clusterState) const
 	{
 		float snp2 = sinPhi * sinPhi;
 		if (snp2>1.-1e-6) snp2 = 1.-1e-6;
@@ -77,7 +77,7 @@ struct AliHLTTPCGMOfflineStatisticalErrors
 struct AliHLTTPCGMOfflineStatisticalErrors
 {
 	GPUd() void SetCurCluster(AliHLTTPCGMMergedTrackHit* /*c*/) {}
-	GPUd() void GetOfflineStatisticalErrors(float& /*err2Y*/, float& /*err2Z*/, float /*sinPhi*/, float /*dzds*/, unsigned char /*clusterState*/) {}
+	GPUd() void GetOfflineStatisticalErrors(float& /*err2Y*/, float& /*err2Z*/, float /*sinPhi*/, float /*dzds*/, unsigned char /*clusterState*/) const {}
 };
 #endif
 

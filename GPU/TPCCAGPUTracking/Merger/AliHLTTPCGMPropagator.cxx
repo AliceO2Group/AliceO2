@@ -648,7 +648,7 @@ GPUd() int AliHLTTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha
 }
 */
 
-GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow, short clusterState)
+GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const AliHLTTPCCAParam &param, float posZ, int iRow, short clusterState) const
 {
   if (fSpecialErrors) param.GetClusterErrors2( iRow, posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
   else param.GetClusterRMS2( iRow, posZ, fT0.GetSinPhi(), fT0.DzDs(), err2Y, err2Z );
@@ -660,7 +660,7 @@ GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const Ali
   fStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, fT0.SinPhi(), fT0.DzDs(), clusterState);
 }
 
-GPUd() int AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState )
+GPUd() float AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState ) const
 {
   float err2Y, err2Z;
   const float *fC = fT->Cov();

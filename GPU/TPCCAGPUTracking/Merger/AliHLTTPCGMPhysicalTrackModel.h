@@ -53,6 +53,9 @@ class AliHLTTPCGMPhysicalTrackModel
   GPUd() float& P() { return fP; }
   GPUd() float& Pt() { return fPt; }
 
+  GPUd() const float& SinPhi() const { return fSinPhi; }
+  GPUd() const float& DzDs() const { return fDzDs; }
+
   GPUd() float GetX() const { return fX; }
   GPUd() float GetY() const { return fY; }
   GPUd() float GetZ() const { return fZ; }
