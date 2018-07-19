@@ -260,7 +260,7 @@ bool isWithinUncertainties(float xPos, float yPos, Cluster2D& cl)
 std::vector<ColumnData> getFiredStrips(float xPos, float yPos, int deId, Mapping& mapping)
 {
   // This is a quite simple case just for testing purposes.
-  // The fired strips are simply the fired stripp itself + its neighbours.
+  // The fired strips are simply the fired strip itself + its neighbours.
   // However, in the bending plane, this also consists of strips with no overlap
   // with the non-bending plane
   std::vector<ColumnData> columns;
