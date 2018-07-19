@@ -146,6 +146,9 @@ double Mapping::getStripSize(int strip, int cathode, int column, int deId) const
   int ichamber = Constants::getChamber(deId);
   int stripPitch = (cathode == 0) ? mDetectionElements[rpcType].columns[column].stripPitchBP
                                   : mDetectionElements[rpcType].columns[column].stripPitchNBP;
+  if (cathode == 0) {
+    strip = 0;
+  }
 
   return getStripSize(ichamber, stripPitch, strip);
 }
