@@ -47,8 +47,8 @@ CADEBUG(int cadebug_nTracks = 0;)
 
 static constexpr float kRho = 1.025e-3;//0.9e-3;
 static constexpr float kRadLen = 29.532;//28.94;
-static constexpr float kDeg2Rad = 3.1415926535897 / 180.f;
-static constexpr float kSectAngle = 2*3.1415926535897 / 18.f;
+static constexpr float kDeg2Rad = M_PI / 180.f;
+static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
 GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt, float maxSinPhi)
 {
@@ -258,6 +258,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
           if (err || k == 2)
           {
               Rotate(dAngle);
+              ConstrainSinPhi();
               break;
           }
       }
@@ -267,10 +268,11 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
   {
       float dAngle = floor(atan2f(fP[0], fX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
       Rotate(dAngle);
+      ConstrainSinPhi();
       Alpha += dAngle;
   }
-  if (Alpha > 3.1415926535897) Alpha -= 2*3.1415926535897;
-  else if (Alpha <= -3.1415926535897) Alpha += 2*3.1415926535897;
+  if (Alpha > M_PI) Alpha -= 2 * M_PI;
+  else if (Alpha <= -M_PI) Alpha += 2 * M_PI;
   
   return(ok);
 }
