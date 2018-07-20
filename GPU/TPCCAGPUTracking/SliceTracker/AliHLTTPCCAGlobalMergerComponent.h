@@ -69,6 +69,8 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
      * @copydoc AliHLTComponent::Spawn
      */
     AliHLTComponent *Spawn();
+    
+    static const AliHLTTPCGMMerger* GetCurrentMerger() {return fgCurrentMerger;}
 
   protected:
 
@@ -120,7 +122,9 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     double fClusterErrorCorrectionY; // correction for the cluster error during pre-fit
     double fClusterErrorCorrectionZ; // correction for the cluster error during pre-fit
 	int fNWays; //Setting for merger
-    char fNWaysOuter;
+    char fNWaysOuter; //Store outer param after n-way fit
+    bool fNoClear;  //Do not clear memory after processing an event
+    static const AliHLTTPCGMMerger* fgCurrentMerger; //Pointer to current merger in case memory is not cleared after processing the event
     AliHLTComponentBenchmark fBenchmark;// benchmark
 
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )
