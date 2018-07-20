@@ -76,6 +76,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(SRCS ${SRCS}
         SliceTracker/AliHLTTPCCAGlobalMergerComponent.cxx
         SliceTracker/AliHLTTPCCATrackerComponent.cxx
+        Merger/AliHLTTPCGMTracksToTPCSeeds.cxx
         DataCompression/AliHLTTPCClusterStatComponent.cxx
         TRDTracking/AliHLTTRDTrackerComponent.cxx
         TRDTracking/AliHLTTRDTrackletReaderComponent.cxx

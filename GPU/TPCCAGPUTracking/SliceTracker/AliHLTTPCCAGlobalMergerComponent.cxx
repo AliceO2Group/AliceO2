@@ -52,14 +52,15 @@ using namespace std;
 // ROOT macro for the implementation of ROOT specific class methods
 ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
+const AliHLTTPCGMMerger* AliHLTTPCCAGlobalMergerComponent::fgCurrentMerger = NULL;
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-: AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fBenchmark("GlobalMerger")
+: AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger")
 {
   // see header file for class documentation
 }
 
-AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent( const AliHLTTPCCAGlobalMergerComponent & ):AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fBenchmark("GlobalMerger")
+AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent( const AliHLTTPCCAGlobalMergerComponent & ):AliHLTProcessor(), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fNWays(1), fNWaysOuter(0), fNoClear(false), fBenchmark("GlobalMerger")
 {
 // dummy
 }
@@ -126,6 +127,7 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   fClusterErrorCorrectionZ = 1.1;
   fNWays = 1;
   fNWaysOuter = 0;
+  fNoClear = false;
   fBenchmark.Reset();
   fBenchmark.SetTimer(0,"total");
   fBenchmark.SetTimer(1,"reco");    
@@ -180,6 +182,12 @@ int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* argu
     if ( argument.CompareTo( "-nwaysouter" ) == 0 ) {
       fNWaysOuter = 1;
       HLTInfo( "nwaysouter enabled" );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-noclear" ) == 0 ) {
+      fNoClear = true;
+      HLTInfo( "noclear enabled" );
       continue;
     }
 
@@ -343,6 +351,7 @@ int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* cdbEntry, const c
 int AliHLTTPCCAGlobalMergerComponent::DoDeinit()
 {
   // see header file for class documentation
+  if (fGlobalMerger == fgCurrentMerger) fgCurrentMerger = NULL;
   delete fGlobalMerger;
   fGlobalMerger = 0;
 
@@ -538,7 +547,14 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 
     HLTInfo( "CAGlobalMerger:: output %d tracks", fGlobalMerger->NOutputTracks() );
 
-    fGlobalMerger->Clear();
+    if (fNoClear)
+    {
+        fgCurrentMerger = fGlobalMerger;
+    }
+    else
+    {
+        fGlobalMerger->Clear();
+    }
 
   fBenchmark.Stop(0);
   HLTInfo( fBenchmark.GetStatistics() );
