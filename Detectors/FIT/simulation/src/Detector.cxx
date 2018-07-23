@@ -26,6 +26,7 @@
 #include <sstream>
 #include "FITBase/Geometry.h"
 #include "FITSimulation/Detector.h"
+#include "SimulationDataFormat/Stack.h"
 
 using namespace o2::fit;
 using o2::fit::Geometry;
@@ -312,6 +313,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  stack->addHit(GetDetId());
   return &(mHits->back());
 }
 
