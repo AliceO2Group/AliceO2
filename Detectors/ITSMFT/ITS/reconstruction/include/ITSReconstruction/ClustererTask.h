@@ -14,7 +14,7 @@
 #ifndef ALICEO2_ITS_CLUSTERERTASK
 #define ALICEO2_ITS_CLUSTERERTASK
 
-#include "FairTask.h" 
+#include "FairTask.h"
 
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
@@ -36,10 +36,10 @@ namespace dataformats
   template<typename T>
   class MCTruthContainer;
 }
- 
+
 namespace ITS
 {
-  
+
 class ClustererTask : public FairTask
 {
   using Clusterer = o2::ITSMFT::Clusterer;
@@ -60,6 +60,8 @@ class ClustererTask : public FairTask
   bool isSelfManagedMode() const { return mSelfManagedMode; }
   void attachFairManagerIO();
   o2::ITSMFT::PixelReader* getReader() const { return (o2::ITSMFT::PixelReader*)mReader; }
+
+  void loadDictionary(std::string fileName) { mClusterer.loadDictionary(fileName); }
 
  private:
   bool mSelfManagedMode = false;                          ///< manages itself input output

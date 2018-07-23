@@ -23,7 +23,15 @@ namespace o2
 {
 namespace ITSMFT
 {
+
+LookUp::LookUp() : mDictionary{}, mTopologiesOverThreshold{0} {}
+
 LookUp::LookUp(std::string fileName)
+{
+  loadDictionary(fileName);
+}
+
+void LookUp::loadDictionary(std::string fileName)
 {
   mDictionary.ReadBinaryFile(fileName);
   mTopologiesOverThreshold = mDictionary.mFinalMap.size();
