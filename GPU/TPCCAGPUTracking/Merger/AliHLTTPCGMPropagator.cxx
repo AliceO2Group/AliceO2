@@ -672,7 +672,6 @@ GPUd() float AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, int iRo
   if (!fFitInProjections || fT->NDF() <= 0)
   {
     const float w0 = 1./(err2Y + fC[0]);
-    const float w1 = 0;
     const float w2 = 1./(err2Z + fC[2]);
     return w0*z0*z0 + w2*z1*z1;
   }
@@ -699,7 +698,8 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
   
-  if ( fT->NDF()==-5 ) { // first measurement: no need to filter, as the result is known in advance. just set it. 
+  if ( fT->NDF()==-5 )
+  { // first measurement: no need to filter, as the result is known in advance. just set it. 
     fT->ResetCovariance();
     if (refit)
     {
@@ -746,7 +746,7 @@ GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, cons
   }
   float dChi2 = chiY + chiZ;
   //printf("hits %d chi2 %f, new %f %f (dy %f dz %f)\n", N, fChi2, chiY, chiZ, z0, z1);
-  if (fSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) return 2; //DRTOTO get rid of stupid specialerror
+  if (fSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) return 2; //DR: TOTO get rid of stupid specialerror
  
   fT->Chi2() += dChi2;
   fT->NDF() += 2;

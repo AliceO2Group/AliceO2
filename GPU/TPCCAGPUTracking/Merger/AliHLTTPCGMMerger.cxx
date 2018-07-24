@@ -963,15 +963,15 @@ void AliHLTTPCGMMerger::Finalize()
     for (int i = 0;i < fNOutputTracks;i++)
     {
       const AliHLTTPCGMMergedTrack& trk = fOutputTracks[i];
-      if (trk.NClusters() == 0) continue;
+      if (!trk.OK() || trk.NClusters() == 0) continue;
       char goodLeg = fClusters[trk.FirstClusterRef() + trk.NClusters() - 1].fLeg;
       for (int j = 0;j < trk.NClusters();j++)
       {
           int id = fClusters[trk.FirstClusterRef() + j].fNum;
           int weight = fTrackOrder[i] | attachAttached;
-          if (trk.OK() && !(fClusters[trk.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
+          if (!(fClusters[trk.FirstClusterRef() + j].fState & AliHLTTPCGMMergedTrackHit::flagReject)) weight |= attachGood;
           if (fClusters[trk.FirstClusterRef() + j].fLeg == goodLeg) weight |= attachGoodLeg;
-          if (weight > fClusterAttachment[id]) fClusterAttachment[id] = weight;
+          CAMath::AtomicMax(&fClusterAttachment[id], weight);
       }
     }
     for (int i = 0;i < fMaxID;i++) if (fClusterAttachment[i] != 0)
