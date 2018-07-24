@@ -830,7 +830,11 @@ bool AliHLTTRDTracker::AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, cons
     return false;
   }
 
+  int nTries = 0;
   while (fabs(y) > yMax) {
+    if (nTries >= 2) {
+      return false;
+    }
     int sign = (y > 0) ? 1 : -1;
     if (!prop->rotate(alphaCurr + alpha * sign)) {
       return false;
@@ -839,6 +843,7 @@ bool AliHLTTRDTracker::AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, cons
       return false;
     }
     y = t->getY();
+    ++nTries;
   }
   return true;
 }
