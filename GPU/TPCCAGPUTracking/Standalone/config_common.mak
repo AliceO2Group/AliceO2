@@ -13,7 +13,7 @@ CONFIG_OPENMP				= 1
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
-INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker
+INCLUDEPATHS				= include SliceTracker HLTHeaders Merger GlobalTracker TRDTracking
 DEFINES						= HLTCA_STANDALONE HLTCA_ENABLE_GPU_TRACKER
 CPPFILES					= cmodules/timer.cpp
 
@@ -52,6 +52,9 @@ HLTCA_MERGER_CXXFILES		= Merger/AliHLTTPCGMMerger.cxx \
 								Merger/AliHLTTPCGMPropagator.cxx \
 								Merger/AliHLTTPCGMTrackParam.cxx
 
+HLTCA_TRD_CXXFILES			= TRDTracking/AliHLTTRDTrack.cxx \
+								TRDTracking/AliHLTTRDTracker.cxx \
+								TRDTracking/AliHLTTRDTrackletWord.cxx
 
 HLTCA_STANDALONE_CXXFILES	= SliceTracker/AliHLTTPCCATrack.cxx \
 								SliceTracker/AliHLTTPCCATracklet.cxx \
