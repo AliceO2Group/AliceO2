@@ -1,0 +1,481 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file MatLayerCylSet.cxx
+/// \brief Implementation of the wrapper for the set of cylindrical material layers
+
+#include "DetectorsBase/MatLayerCylSet.h"
+#include "DetectorsBase/Ray.h"
+#include "CommonConstants/MathConstants.h"
+#include <FairLogger.h>
+
+#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
+#include <TFile.h>
+#include "CommonUtils/TreeStreamRedirector.h"
+#endif // !_COMPILED_ON_GPU_
+
+using namespace o2::Base;
+
+#ifndef _COMPILED_ON_GPU_ // this part is unvisible on GPU version
+
+//________________________________________________________________________________
+void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, float drphi)
+{
+  // add new layer checking for overlaps
+  assert(mConstructionMask != Constructed);
+  assert(rmin < rmax && zmax > 0 && dz > 0 && drphi > 0);
+  mConstructionMask = InProgress;
+
+  if (!getNLayers()) {
+    // book local storage
+    auto sz = sizeof(MatLayerCylSetLayout);
+    resizeArray(mFlatBufferContainer, 0, sz);
+    mFlatBufferPtr = mFlatBufferContainer;
+    mFlatBufferSize = sz;
+    //--------------????
+    get()->mRMin = 1.e99;
+    get()->mRMax = 0.;
+  }
+
+  for (int il = 0; il < getNLayers(); il++) {
+    const auto& lr = getLayer(il);
+    if (lr.getRMax() > rmin && rmax > lr.getRMin()) {
+      LOG(FATAL) << "new layer overlaps with layer " << il;
+    }
+  }
+
+  delete[] resizeArray(get()->mLayers, getNLayers(), getNLayers() + 1);
+  get()->mLayers[getNLayers()].initSegmentation(rmin, rmax, zmax, dz, drphi);
+  get()->mNLayers++;
+  get()->mRMin = get()->mRMin > rmin ? rmin : get()->mRMin;
+  get()->mRMax = get()->mRMax < rmax ? rmax : get()->mRMax;
+  get()->mZMax = get()->mZMax < zmax ? zmax : get()->mZMax;
+  get()->mRMin2 = get()->mRMin * get()->mRMin;
+  get()->mRMax2 = get()->mRMax * get()->mRMax;
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
+{
+  ///< populate layers, using ntrPerCell test tracks per cell
+  assert(mConstructionMask == InProgress);
+
+  int nlr = getNLayers();
+  if (!nlr) {
+    LOG(ERROR) << "The LUT is not yet initialized";
+    return;
+  }
+  if (get()->mR2Intervals) {
+    LOG(ERROR) << "The LUT is already populated";
+    return;
+  }
+  for (int i = 0; i < nlr; i++) {
+    printf("Populating with %d trials Lr  %3d ", ntrPerCell, i);
+    get()->mLayers[i].print();
+    get()->mLayers[i].populateFromTGeo(ntrPerCell);
+  }
+  // build layer search structures
+  int nR2Int = 2 * (nlr + 1);
+  resizeArray(get()->mR2Intervals, 0, nR2Int);
+  resizeArray(get()->mInterval2LrID, 0, nR2Int);
+  get()->mR2Intervals[0] = get()->mRMin2;
+  get()->mR2Intervals[1] = get()->mRMax2;
+  get()->mInterval2LrID[0] = 0;
+  auto& nRIntervals = get()->mNRIntervals;
+  nRIntervals = 1;
+
+  for (int i = 1; i < nlr; i++) {
+    const auto& lr = getLayer(i);
+    if (std::sqrt(lr.getRMin2()) > std::sqrt(get()->mR2Intervals[nRIntervals] + Ray::Tiny)) {
+      // register gap
+      get()->mInterval2LrID[nRIntervals] = -1;
+      get()->mR2Intervals[++nRIntervals] = lr.getRMin2();
+    }
+    get()->mInterval2LrID[nRIntervals] = i;
+    get()->mR2Intervals[++nRIntervals] = lr.getRMax2();
+  }
+  delete[] resizeArray(get()->mInterval2LrID, nR2Int, nRIntervals); // rebook with precise size
+  delete[] resizeArray(get()->mR2Intervals, nR2Int, ++nRIntervals); // rebook with precise size
+  //
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::dumpToTree(const std::string outName) const
+{
+  /// dump per cell info to the tree
+
+  o2::utils::TreeStreamRedirector dump(outName.data(), "recreate");
+  for (int i = 0; i < getNLayers(); i++) {
+    const auto& lr = getLayer(i);
+    float r = 0.5 * (lr.getRMin() + lr.getRMax());
+    // per cell dump
+    int nphib = lr.getNPhiBins();
+    for (int ip = 0; ip < nphib; ip++) {
+      float phi = 0.5 * (lr.getPhiBinMin(ip) + lr.getPhiBinMax(ip));
+      float sn, cs;
+      int ips = lr.phiBin2Slice(ip);
+      char merge = 0; // not mergeable
+      if (ip + 1 < nphib) {
+        int ips1 = lr.phiBin2Slice(ip + 1);
+        merge = ips == ips1 ? -1 : lr.canMergePhiSlices(ips, ips1); // -1 for already merged
+      } else
+        merge = -2; // last one
+      o2::utils::sincosf(phi, sn, cs);
+      float x = r * cs, y = r * sn;
+      for (int iz = 0; iz < lr.getNZBins(); iz++) {
+        float z = 0.5 * (lr.getZBinMin(iz) + lr.getZBinMax(iz));
+        auto cell = lr.getCellPhiBin(ip, iz);
+        dump << "cell"
+             << "ilr=" << i << "r=" << r << "phi=" << phi << "x=" << x << "y=" << y << "z=" << z << "ip=" << ip << "ips=" << ips << "iz=" << iz
+             << "mrgnxt=" << merge << "val=" << cell << "\n";
+      }
+    }
+    //
+    // statistics per layer
+    MatCell mean, rms;
+    lr.getMeanRMS(mean, rms);
+    dump << "lay"
+         << "ilr=" << i << "r=" << r << "mean=" << mean << "rms=" << rms << "\n";
+  }
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::writeToFile(std::string outFName, std::string name)
+{
+  /// store to file
+
+  TFile outf(outFName.data(), "recreate");
+  if (outf.IsZombie()) {
+    return;
+  }
+  if (name.empty()) {
+    name = "matBud";
+  }
+  outf.WriteObjectAny(this, Class(), name.data());
+  outf.Close();
+}
+
+//________________________________________________________________________________
+MatLayerCylSet* MatLayerCylSet::loadFromFile(std::string inpFName, std::string name)
+{
+  if (name.empty()) {
+    name = "MatBud";
+  }
+  TFile inpf(inpFName.data());
+  if (inpf.IsZombie()) {
+    LOG(ERROR) << "Failed to open input file " << inpFName;
+    return nullptr;
+  }
+  MatLayerCylSet* mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked(name.data(), Class()));
+  if (!mb) {
+    LOG(ERROR) << "Failed to load " << name << " from " << inpFName;
+  }
+  mb->fixPointers();
+  return mb;
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::optimizePhiSlices(float maxRelDiff)
+{
+  // merge similar (whose relative budget does not differ within maxRelDiff) phi slices
+  assert(mConstructionMask == InProgress);
+  for (int i = getNLayers(); i--;) {
+    get()->mLayers[i].optimizePhiSlices(maxRelDiff);
+  }
+  // flatten();  // RS: TODO
+}
+
+#endif //!_COMPILED_ON_GPU_
+
+//________________________________________________________________________________
+void MatLayerCylSet::print(bool data) const
+{
+  ///< print layer data
+  if (!get()) {
+    printf("Not initialized yet\n");
+    return;
+  }
+  if (mConstructionMask != Constructed) {
+    LOG(WARNING) << "Object is not yet flattened";
+  }
+  for (int i = 0; i < getNLayers(); i++) {
+    printf("#%3d | ", i);
+    getLayer(i).print(data);
+  }
+  printf("%.2f < R < %.2f  %d layers with total size %.2f MB\n", getRMin(), getRMax(), getNLayers(),
+         float(getFlatBufferSize()) / 1024 / 1024);
+}
+
+//________________________________________________________________________________
+std::size_t MatLayerCylSet::estimateFlatBufferSize() const
+{
+  std::size_t sz = sizeof(MatLayerCylSetLayout);
+  sz += (get()->mNRIntervals + 1) * sizeof(float) + get()->mNRIntervals * sizeof(int) +
+        get()->mNLayers * sizeof(MatLayerCyl);
+  for (int i = 0; i < getNLayers(); i++) {
+    sz += getLayer(i).estimateFlatBufferSize();
+  }
+  return sz;
+}
+
+//_________________________________________________________________________________________________
+MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, float x1, float y1, float z1) const
+{
+  // get material budget traversed on the line between point0 and point1
+  Point3D<float> point0(x0, y0, z0), point1(x1, y1, z1);
+  return getMatBudget(point0, point1);
+}
+
+//_________________________________________________________________________________________________
+MatBudget MatLayerCylSet::getMatBudget(const Point3D<float>& point0, const Point3D<float>& point1) const
+{
+  // get material budget traversed on the line between point0 and point1
+  MatBudget rval;
+  Ray ray(point0, point1);
+  short lmin, lmax; // get innermost and outermost relevant layer
+  if (!getLayersRange(ray, lmin, lmax)) {
+    return rval;
+  }
+  short lrID = lmax;
+  while (lrID >= lmin) { // go from outside to inside
+    const auto& lr = getLayer(lrID);
+    int nc = ray.crossLayer(lr);
+    for (int ic = nc; ic--;) {
+      auto& cross = ray.getCrossParams(ic); // tmax,tmin of crossing the layer
+      auto phi0 = ray.getPhi(cross.first), phi1 = ray.getPhi(cross.second), dPhi = phi0 - phi1;
+      auto phiID = lr.getPhiSliceID(phi0), phiIDLast = lr.getPhiSliceID(phi1);
+      // account for eventual wrapping around 0
+      if (dPhi > 0.f) {
+        if (dPhi > o2::constants::math::PI) { // wraps around phi=0
+          phiIDLast += lr.getNPhiSlices();
+        }
+      } else {
+        if (dPhi < -o2::constants::math::PI) { // wraps around phi=0
+          phiID += lr.getNPhiSlices();
+        }
+      }
+      int stepPhiID = phiID > phiIDLast ? -1 : 1;
+      bool checkMorePhi = true;
+      auto tStartPhi = cross.first, tEndPhi = 0.f;
+      do {
+        // get the path in the current phi slice
+        if (phiID == phiIDLast) {
+          tEndPhi = cross.second;
+          checkMorePhi = false;
+        } else { // last phi slice still not reached
+          tEndPhi = ray.crossRadial(lr, (stepPhiID > 0 ? phiID + 1 : phiID) % lr.getNPhiSlices());
+        }
+        auto zID = lr.getZBinID(ray.getZ(tStartPhi));
+        auto zIDLast = lr.getZBinID(ray.getZ(tEndPhi));
+        // check if Zbins are crossed
+        printf("-- Zdiff (%3d : %3d) mode: t: %+e %+e\n", zID, zIDLast, tStartPhi, tEndPhi);
+        if (zID != zIDLast) {
+          auto stepZID = zID < zIDLast ? 1 : -1;
+          bool checkMoreZ = true;
+          auto tStartZ = tStartPhi, tEndZ = 0.f;
+          do {
+            if (zID == zIDLast) {
+              tEndZ = tEndPhi;
+              checkMoreZ = false;
+            } else {
+              tEndZ = ray.crossZ(lr.getZBinMin(stepZID > 0 ? zID + 1 : zID));
+            }
+            // account materials of this step
+            float step = tEndZ - tStartZ; // the real step is |lr.getDist(tEnd-tStart)|, will rescale all later
+            const auto& cell = lr.getCell(phiID, zID);
+            rval.meanRho += cell.meanRho * step;
+            rval.meanX2X0 += cell.meanX2X0 * step;
+            rval.length += step;
+
+            auto pos0 = ray.getPos(tStartZ);
+            auto pos1 = ray.getPos(tEndZ);
+            printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e]\n",
+                   lrID, ic, tEndZ, tStartZ, phiID % lr.getNPhiSlices(), zID, zIDLast,
+                   pos0.X(), pos0.Y(), pos0.Z(), pos1.X(), pos1.Y(), pos1.Z());
+            tStartZ = tEndZ;
+            zID += stepZID;
+          } while (checkMoreZ);
+        } else {
+          float step = tEndPhi - tStartPhi; // the real step is |ray.getDist(tEnd-tStart)|, will rescale all later
+          const auto& cell = lr.getCell(phiID, zID);
+          rval.meanRho += cell.meanRho * step;
+          rval.meanX2X0 += cell.meanX2X0 * step;
+          rval.length += step;
+
+          auto pos0 = ray.getPos(tStartPhi);
+          auto pos1 = ray.getPos(tEndPhi);
+          printf("Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]\n",
+                 lrID, ic, tEndPhi, tStartPhi, phiID % lr.getNPhiSlices(), zID,
+                 pos0.X(), pos0.Y(), pos0.Z(), pos1.X(), pos1.Y(), pos1.Z());
+        }
+        //
+        tStartPhi = tEndPhi;
+        phiID += stepPhiID;
+
+      } while (checkMorePhi);
+    }
+    lrID--;
+  } // loop over layers
+
+  if (rval.length != 0.) {
+    rval.meanRho /= rval.length;    // average
+    rval.meanX2X0 *= ray.getDist(); // normalize
+    if (rval.meanX2X0 < 0.f) {
+      rval.meanX2X0 = -rval.meanX2X0;
+    }
+  }
+  printf("<rho> = %e, x2X0 = %e  | step = %e\n", rval.meanRho, rval.meanX2X0, rval.length);
+  return rval;
+}
+
+//_________________________________________________________________________________________________
+bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& lmax) const
+{
+  // get range of layers corresponding to rmin/rmax
+  //
+  lmin = lmax = -1;
+  float rmin2, rmax2;
+  ray.getMinMaxR2(rmin2, rmax2);
+
+  if (rmin2 >= getRMax2() || rmax2 <= getRMin2()) {
+    return false;
+  }
+  int lmxInt, lmnInt;
+  lmxInt = rmax2 < getRMax2() ? searchSegment(rmax2, 0) : get()->mNRIntervals - 2;
+  lmnInt = rmin2 >= getRMin2() ? searchSegment(rmin2, 0, lmxInt + 1) : 0;
+  const auto* interval2LrID = get()->mInterval2LrID;
+  lmax = interval2LrID[lmxInt];
+  lmin = interval2LrID[lmnInt];
+  // make sure lmnInt and/or lmxInt are not in the gap
+  if (lmax < 0) {
+    lmax = interval2LrID[--lmxInt]; // rmax2 is in the gap, take highest layer below rmax2
+  }
+  if (lmin < 0) {
+    lmin = interval2LrID[++lmnInt]; // rmin2 is in the gap, take lowest layer above rmin2
+  }
+  return lmin <= lmax; // valid if both are not in the same gap
+}
+
+int MatLayerCylSet::searchSegment(float val, int low, int high) const
+{
+  ///< search segment val belongs to. The val MUST be within the boundaries
+  if (low < 0) {
+    low = 0;
+  }
+  if (high < 0) {
+    high = get()->mNRIntervals;
+  }
+  int mid = (low + high) >> 1;
+  const auto* r2Intervals = get()->mR2Intervals;
+  while (mid != low) {
+    if (val < r2Intervals[mid]) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+    mid = (low + high) >> 1;
+  }
+  return mid;
+}
+
+void MatLayerCylSet::flatten()
+{
+  // make object flat: move all content to single internally allocated buffer
+  assert(mConstructionMask == InProgress);
+
+  int sz = estimateFlatBufferSize();
+  // create new internal buffer with total size and copy data
+  delete[] resizeArray(mFlatBufferContainer, mFlatBufferSize, sz);
+  mFlatBufferPtr = mFlatBufferContainer;
+  mFlatBufferSize = sz;
+  int nLr = getNLayers();
+
+  auto offs = sizeof(MatLayerCylSetLayout); // account for the alignment
+  // move array of layer pointers to the flat array
+  delete[] resizeArray(get()->mLayers, nLr, nLr, (MatLayerCyl*)(mFlatBufferPtr + offs));
+  offs += nLr * sizeof(MatLayerCyl); // account for the alignment
+
+  // move array of R2 boundaries to the flat array
+  delete[] resizeArray(get()->mR2Intervals, nLr + 1, nLr + 1, (float*)(mFlatBufferPtr + offs));
+  offs += (nLr + 1) * sizeof(float); // account for the alignment
+
+  // move array of R2 boundaries to the flat array
+  delete[] resizeArray(get()->mInterval2LrID, nLr, nLr, (int*)(mFlatBufferPtr + offs));
+  offs += nLr * sizeof(int); // account for the alignment
+
+  for (int il = 0; il < nLr; il++) {
+    MatLayerCyl& lr = get()->mLayers[il];
+    lr.flatten(mFlatBufferPtr + offs);
+    //    get()->mLayers[il] = flatObject::relocatePointer((char*)get()->mLayers[il], mFlatBufferPtr+offs, get()->mLayers[il]);
+    offs += lr.getFlatBufferSize(); // account for the alignment
+  }
+  mConstructionMask = Constructed;
+}
+
+//______________________________________________
+void MatLayerCylSet::moveBufferTo(char* newFlatBufferPtr)
+{
+  /// sets buffer pointer to the new address, move the buffer content there.
+  moveBufferTo(newFlatBufferPtr);
+  setActualBufferAddress(mFlatBufferPtr);
+}
+
+//______________________________________________
+void MatLayerCylSet::setFutureBufferAddress(char* futureFlatBufferPtr)
+{
+  /// Sets the actual location of the external flat buffer before it was created
+  ///
+  fixPointers(mFlatBufferPtr, futureFlatBufferPtr);
+  flatObject::setFutureBufferAddress(futureFlatBufferPtr);
+}
+
+//______________________________________________
+void MatLayerCylSet::setActualBufferAddress(char* actualFlatBufferPtr)
+{
+  /// Sets the actual location of the external flat buffer after it has been moved (i.e. to another machine)
+  ///
+  fixPointers(actualFlatBufferPtr);
+}
+
+//______________________________________________
+void MatLayerCylSet::cloneFromObject(const MatLayerCylSet& obj, char* newFlatBufferPtr)
+{
+  /// Initializes from another object, copies data to newBufferPtr
+  flatObject::cloneFromObject(obj, newFlatBufferPtr);
+  fixPointers(mFlatBufferPtr);
+}
+
+//______________________________________________
+void MatLayerCylSet::fixPointers(char* newBasePtr)
+{
+  // fix pointers on the internal structure of the flat buffer after retrieving it from the file
+  if (newBasePtr) {
+    mFlatBufferPtr = newBasePtr; // used to impose external pointer
+  } else {
+    mFlatBufferPtr = mFlatBufferContainer; // impose pointer after reading from file
+  }
+  char* newPtr = mFlatBufferPtr + sizeof(MatLayerCylSetLayout); // correct pointer on MatLayerCyl*
+  char* oldPtr = reinterpret_cast<char*>(get()->mLayers);       // old pointer read from the file
+  fixPointers(oldPtr, newPtr);
+}
+
+//______________________________________________
+void MatLayerCylSet::fixPointers(char* oldPtr, char* newPtr)
+{
+  // fix pointers on the internal structure of the flat buffer after retrieving it from the file
+  get()->mLayers = flatObject::relocatePointer(oldPtr, newPtr, get()->mLayers);
+  get()->mR2Intervals = flatObject::relocatePointer(oldPtr, newPtr, get()->mR2Intervals);
+  get()->mInterval2LrID = flatObject::relocatePointer(oldPtr, newPtr, get()->mInterval2LrID);
+
+  for (int i = 0; i < getNLayers(); i++) {
+    get()->mLayers[i].mFlatBufferPtr = flatObject::relocatePointer(oldPtr, newPtr, get()->mLayers[i].mFlatBufferPtr);
+    get()->mLayers[i].fixPointers(oldPtr, newPtr);
+  }
+}

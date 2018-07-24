@@ -718,8 +718,10 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     data_format_reconstruction_bucket
+    common_utils_bucket
     ReconstructionDataFormats
     DataFormatsParameters
+    CommonUtils
     Field
     fairmq_bucket
     Net
