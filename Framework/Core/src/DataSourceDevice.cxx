@@ -89,7 +89,7 @@ bool DataSourceDevice::ConditionalRun() {
   // This is dummy because a source does not really have inputs.
   // However, in order to be orthogonal between sources and
   // processing code, we still specify it.
-  InputRecord dummyInputs{{}, {}};
+  InputRecord dummyInputs{ {}, { [](size_t) { return nullptr; }, 0 } };
   try {
     mContext.prepareForTimeslice(mCurrentTimeslice);
     mRootContext.prepareForTimeslice(mCurrentTimeslice);

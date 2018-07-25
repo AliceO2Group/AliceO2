@@ -14,6 +14,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
+#include "Framework/InputSpan.h"
 
 #include <iterator>
 #include <string>
@@ -66,10 +67,11 @@ struct InputSpec;
 ///      // do something with DataRef object ref
 ///    }
 /// </pre>
-class InputRecord {
-public:
-  InputRecord(std::vector<InputRoute> const &inputs,
-              std::vector<std::unique_ptr<FairMQMessage>> const &cache);
+class InputRecord
+{
+ public:
+  InputRecord(std::vector<InputRoute> const& inputs,
+              InputSpan&& span);
 
   /// A deleter type to be used with unique_ptr, which can be marked that
   /// it does not own the underlying resource and thus should not delete it.
@@ -136,16 +138,16 @@ public:
   int getPos(const std::string &name) const;
 
   DataRef getByPos(int pos) const {
-    if (pos*2+1 > mCache.size() || pos < 0) {
+    if (pos * 2 + 1 > mSpan.size() || pos < 0) {
       throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
     }
     if (pos > mInputsSchema.size()) {
       throw std::runtime_error("Unknown schema at position" + std::to_string(pos));
     }
-    if (mCache[pos*2] != nullptr && mCache[pos*2+1] != nullptr) {
-      return DataRef{&mInputsSchema[pos].matcher,
-                     static_cast<char const*>(mCache[pos*2]->GetData()),
-                     static_cast<char const*>(mCache[pos*2+1]->GetData())};
+    if (mSpan.get(pos * 2) != nullptr && mSpan.get(pos * 2 + 1) != nullptr) {
+      return DataRef{ &mInputsSchema[pos].matcher,
+                      mSpan.get(pos * 2),
+                      mSpan.get(pos * 2 + 1) };
     } else {
       return DataRef{ &mInputsSchema[pos].matcher, nullptr, nullptr };
     }
@@ -369,7 +371,7 @@ public:
   bool isValid(int pos);
 
   size_t size() const {
-    return mCache.size()/2;
+    return mSpan.size() / 2;
   }
 
   template<typename T>
@@ -444,7 +446,7 @@ public:
 
 private:
   std::vector<InputRoute> const &mInputsSchema;
-  std::vector<std::unique_ptr<FairMQMessage>> const &mCache;
+  InputSpan mSpan;
 };
 
 } // namespace framework

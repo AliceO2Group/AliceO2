@@ -17,12 +17,12 @@ namespace o2
 namespace framework
 {
 
-InputRecord::InputRecord(std::vector<InputRoute> const &inputsSchema,
-                         std::vector<std::unique_ptr<FairMQMessage>> const& cache)
-: mInputsSchema{inputsSchema},
-  mCache{cache}
+InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
+                         InputSpan&& span)
+  : mInputsSchema{ inputsSchema },
+    mSpan{ span }
 {
-  assert(mCache.size() % 2 == 0);
+  assert(mSpan.size() % 2 == 0);
 }
 
 int
