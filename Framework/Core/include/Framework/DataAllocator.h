@@ -365,6 +365,9 @@ public:
 
   Output getOutputByBind(OutputRef&& ref)
   {
+    if (ref.label.empty()) {
+      throw std::runtime_error("Invalid (empty) OutputRef provided.");
+    }
     for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
       if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
         auto spec = mAllowedOutputRoutes[ri].matcher;
