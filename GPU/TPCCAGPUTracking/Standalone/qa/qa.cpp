@@ -821,39 +821,7 @@ void RunQA(bool matchOnly)
 		if (TIMING) printf("QA Time: Fill resolution histograms:\t%6.0f us\n", timer.GetCurrentElapsedTime() * 1e6);
 		timer.ResetStart();
 		
-		//Fill Cluster Histograms
-		/*for (int i = 0;i < hlt.GetNMCInfo();i++)
-		{
-			if ((mcTrackMin != -1 && i < mcTrackMin) || (mcTrackMax != -1 && i >= mcTrackMax)) continue;
-			const additionalMCParameters& mc2 = mcParam[i];
-			
-			float pt = mc2.pt < PT_MIN_CLUST ? PT_MIN_CLUST : mc2.pt;
-			if (recTracks[i] || fakeTracks[i]) clusters[4]->Fill(pt, mc2.nWeightCls);
-			clusters[5]->Fill(pt, mc2.nWeightCls);
-		}
-	 	for (int i = 0;i < hlt.GetNMCLabels();i++)
-	 	{
-			if ((mcTrackMin != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
-			float totalAttached = clusterParam[i].attached + clusterParam[i].fakeAttached + clusterParam[i].fakeAdjacent + clusterParam[i].adjacent;
-			if (totalAttached <= 0) continue;
-			float totalWeight = 0.;
-			for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
-			if (totalWeight > 0)
-			{
-				for (int j = 0;j < 3;j++)
-				{
-					if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0)
-					{
-						float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
-						if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
-						clusters[0]->Fill(pt, clusterParam[i].attached / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
-						clusters[1]->Fill(pt, (clusterParam[i].fakeAttached) / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
-						clusters[2]->Fill(pt, (clusterParam[i].attached + clusterParam[i].adjacent) / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
-						clusters[3]->Fill(pt, (clusterParam[i].fakeAdjacent) / totalAttached * hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight);
-					}
-				}
-			}
-		}*/
+		//Fill cluster histograms
 		for (int iTrk = 0;iTrk < merger.NOutputTracks();iTrk++)
 		{
 			const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[iTrk];
@@ -871,11 +839,13 @@ void RunQA(bool matchOnly)
 					{
 						for (int j = 0;j < 3;j++)
 						{
-							if (hlt.GetMCLabels()[hitId].fClusterID[j].fMCID >= 0)
+							int label = hlt.GetMCLabels()[hitId].fClusterID[j].fMCID;
+							if (label >= 0)
 							{
-								float pt = mcParam[hlt.GetMCLabels()[hitId].fClusterID[j].fMCID].pt;
+								float pt = mcParam[label].pt;
 								if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
 								clusters[1]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
+								if (recTracks[label]) clusters[4]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
 								clusters[5]->Fill(pt, hlt.GetMCLabels()[hitId].fClusterID[j].fWeight * weight);
 							}
 						}
@@ -911,31 +881,58 @@ void RunQA(bool matchOnly)
 	 	{
 			if ((mcTrackMin != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID < mcTrackMin) || (mcTrackMax != -1 && hlt.GetMCLabels()[i].fClusterID[0].fMCID >= mcTrackMax)) continue;
 			if (clusterParam[i].attached || clusterParam[i].fakeAttached) continue;
-			float totalWeight = 0.;
-			for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
-			if (totalWeight > 0)
+			if (clusterParam[i].adjacent)
 			{
-				for (int j = 0;j < 3;j++)
+				int label = merger.ClusterAttachment()[i] & AliHLTTPCGMMerger::attachTrackMask;
+				if (trackMCLabels[label] == -1e9)
 				{
-					int label = hlt.GetMCLabels()[i].fClusterID[j].fMCID;
-					if (label >= 0)
+					float totalWeight = 0.;
+					for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
+					float weight = 1.f / (totalWeight * (clusterParam[i].attached + clusterParam[i].fakeAttached));
+					if (totalWeight > 0)
 					{
-						float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
-						if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
-						float weight = hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight;
-						if (clusterParam[i].adjacent)
+						for (int j = 0;j < 3;j++)
 						{
-							clusters[2]->Fill(pt, weight);
+							label = hlt.GetMCLabels()[i].fClusterID[j].fMCID;
+							if (label >= 0)
+							{
+								float pt = mcParam[label].pt;
+								if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
+								if (recTracks[label]) clusters[4]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								clusters[3]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+								clusters[5]->Fill(pt, hlt.GetMCLabels()[i].fClusterID[j].fWeight * weight);
+							}
 						}
-						if (clusterParam[i].fakeAdjacent)
+					}
+				}
+				else
+				{
+					label = trackMCLabels[label] < 0 ? (-trackMCLabels[label] - 2) : trackMCLabels[label];
+					float pt = mcParam[label].pt;
+					if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
+					clusters[2]->Fill(pt, 1.f);
+					clusters[4]->Fill(pt, 1.f);
+					clusters[5]->Fill(pt, 1.f);
+				}
+			}
+			else
+			{
+				float totalWeight = 0.;
+				for (int j = 0;j < 3;j++) if (hlt.GetMCLabels()[i].fClusterID[j].fMCID >= 0) totalWeight += hlt.GetMCLabels()[i].fClusterID[j].fWeight;
+				if (totalWeight > 0)
+				{
+					for (int j = 0;j < 3;j++)
+					{
+						int label = hlt.GetMCLabels()[i].fClusterID[j].fMCID;
+						if (label >= 0)
 						{
-							clusters[3]->Fill(pt, weight);
+							float pt = mcParam[hlt.GetMCLabels()[i].fClusterID[j].fMCID].pt;
+							if (pt < PT_MIN_CLUST) pt = PT_MIN_CLUST;
+							float weight = hlt.GetMCLabels()[i].fClusterID[j].fWeight / totalWeight;
+							if (clusterParam[i].fakeAdjacent) clusters[3]->Fill(pt, weight);
+							if (recTracks[label]) clusters[4]->Fill(pt, weight);
+							clusters[5]->Fill(pt, weight);
 						}
-						if (recTracks[label])
-						{
-							clusters[4]->Fill(pt, weight);
-						}
-						clusters[5]->Fill(pt, weight);
 					}
 				}
 			}
