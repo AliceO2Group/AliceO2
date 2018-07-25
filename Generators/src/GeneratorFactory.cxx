@@ -83,6 +83,8 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("Beams:idB 2212");       // p
     py8Gen->SetParameters("Beams:eCM 14000.");     // [GeV]
     py8Gen->SetParameters("SoftQCD:inelastic on"); // all inelastic processes
+    py8Gen->SetParameters("ParticleDecays:rMax 0.1");
+    py8Gen->SetParameters("ParticleDecays:limitRadius on");
     primGen->AddGenerator(py8Gen);
   } else if (genconfig.compare("pythia8hi") == 0) {
     // pythia8 heavy-ion
@@ -97,6 +99,8 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
     py8Gen->SetParameters(
       ("HeavyIon:bWidth " + std::to_string(conf.getBMax())).c_str()); // impact parameter from 0-x [fm]
+    py8Gen->SetParameters("ParticleDecays:rMax 0.1");
+    py8Gen->SetParameters("ParticleDecays:limitRadius on");
     primGen->AddGenerator(py8Gen);
   } else {
     LOG(FATAL) << "Invalid generator" << FairLogger::endl;
