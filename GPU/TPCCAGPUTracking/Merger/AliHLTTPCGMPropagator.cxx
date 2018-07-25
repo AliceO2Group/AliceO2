@@ -662,10 +662,15 @@ GPUd() void AliHLTTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const Ali
 
 GPUd() float AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState ) const
 {
-  float err2Y, err2Z;
+    float err2Y, err2Z;
+    GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
+    return PredictChi2(posY, posZ, err2Y, err2Z);
+}
+
+GPUd() float AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, float err2Y, float err2Z ) const
+{
   const float *fC = fT->Cov();
   const float *fP = fT->Par();
-  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
   const float z0 = posY - fP[0];
   const float z1 = posZ - fP[1];
   
@@ -692,29 +697,36 @@ GPUd() float AliHLTTPCGMPropagator::PredictChi2( float posY, float posZ, int iRo
 
 GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, int iRow, const AliHLTTPCCAParam &param, short clusterState, bool rejectChi2, bool refit )
 {
+    float err2Y, err2Z;
+    GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
+
+    if ( fT->NDF()==-5 )
+    { // first measurement: no need to filter, as the result is known in advance. just set it. 
+      fT->ResetCovariance();
+      float *fC = fT->Cov();
+      float *fP = fT->Par();
+      if (refit)
+      {
+          fC[14] = CAMath::Max(0.5f, fabs(fP[4]));
+          fC[5] = CAMath::Max(0.2f, fabs(fP[2]) / 2);
+          fC[9] = CAMath::Max(0.5f, fabs(fP[3]) / 2);
+      }
+      fP[ 0] = posY;
+      fP[ 1] = posZ;
+      fC[ 0] = err2Y;
+      fC[ 2] = err2Z;
+      fT->NDF() = -3;   
+      return 0;
+    }
+
+    return Update(posY, posZ, clusterState, rejectChi2, err2Y, err2Z);
+}
+
+GPUd() int AliHLTTPCGMPropagator::Update( float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z )
+{
   float *fC = fT->Cov();
   float *fP = fT->Par();
-
-  float err2Y, err2Z;
-  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
-  
-  if ( fT->NDF()==-5 )
-  { // first measurement: no need to filter, as the result is known in advance. just set it. 
-    fT->ResetCovariance();
-    if (refit)
-    {
-        fC[14] = CAMath::Max(0.5f, fabs(fP[4]));
-        fC[5] = CAMath::Max(0.2f, fabs(fP[2]) / 2);
-        fC[9] = CAMath::Max(0.5f, fabs(fP[3]) / 2);
-    }
-    fP[ 0] = posY;
-    fP[ 1] = posZ;
-    fC[ 0] = err2Y;
-    fC[ 2] = err2Z;
-    fT->NDF() = -3;   
-    return 0;
-  }
-        
+ 
   float d00= fC[ 0]; float d01= fC[ 1]; float d02= fC[ 3]; float d03= fC[ 6]; float d04= fC[10];
   float d10= fC[ 1]; float d11= fC[ 2]; float d12= fC[ 4]; float d13= fC[ 7]; float d14= fC[11];
 
