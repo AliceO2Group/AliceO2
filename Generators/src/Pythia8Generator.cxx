@@ -112,6 +112,8 @@ Pythia8Generator::~Pythia8Generator() = default;
 // -----   Passing the event   ---------------------------------------------
 Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
 {
+  const double mm2cm = 0.1;
+  const double clight = 2.997924580e10; //cm/c
   Int_t npart = 0;
   while (npart == 0) {
     mPythia->next();
@@ -156,8 +158,15 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
         Double_t pz = mPythia->event[ii].pz();
         Double_t px = mPythia->event[ii].px();
         Double_t py = mPythia->event[ii].py();
+        Double_t t = mPythia->event[ii].tProd();
+        if (t > 0.) {
+          x *= mm2cm;
+          y *= mm2cm;
+          z *= mm2cm;
+          t *= mm2cm / clight;
+        }
         cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z,
-                      (Int_t)mPythia->event[ii].mother1(), wanttracking);
+                      (Int_t)mPythia->event[ii].mother1(), wanttracking, -9e9, t);
         // cout<<"debug p8->geant4 "<< wanttracking << " "<< ii <<  " "
         // << mPythia->event[ii].id()<< " "<< mPythia->event[ii].mother1()<<" "<<x<<" "<< y<<" "<< z <<endl;
       }
@@ -170,8 +179,15 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
       Double_t pz = mPythia->event[ii].pz();
       Double_t px = mPythia->event[ii].px();
       Double_t py = mPythia->event[ii].py();
-      cpg->AddTrack((Int_t)mPythia->event[im].id(), px, py, pz, x, y, z, 0, false);
-      cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z, im, false);
+      Double_t t = mPythia->event[ii].tProd();
+      if (t > 0.) {
+        x *= mm2cm;
+        y *= mm2cm;
+        z *= mm2cm;
+        t *= mm2cm / clight;
+      }
+      cpg->AddTrack((Int_t)mPythia->event[im].id(), px, py, pz, x, y, z, 0, false, -9e9, t);
+      cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z, im, false, -9e9, t);
       //cout<<"debug p8->geant4 "<< 0 << " "<< ii <<  " " << fake<< " "<< mPythia->event[ii].mother1()<<endl;
     };
   }
