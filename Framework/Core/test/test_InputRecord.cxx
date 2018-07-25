@@ -16,8 +16,6 @@
 #include "Framework/InputRecord.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
-#include <fairmq/FairMQMessage.h>
-#include <fairmq/FairMQTransportFactory.h>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -62,33 +60,32 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   };
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
-  InputRecord emptyRegistry(schema, {});
+  InputRecord emptyRecord(schema, { [](size_t) { return nullptr; }, 0 });
 
-  BOOST_CHECK_EXCEPTION(emptyRegistry.get("x"), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRegistry.get("y"), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRegistry.get("z"), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRegistry.getByPos(0), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRegistry.getByPos(1), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRegistry.getByPos(2), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.get("z"), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(0), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(1), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(2), std::exception, any_exception);
   // Then we actually check with a real set of inputs.
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  std::vector<FairMQMessagePtr> inputs;
+  std::vector<void*> inputs;
 
-  auto createMessage = [&transport, &inputs] (DataHeader &dh, int value) {
+  auto createMessage = [&inputs](DataHeader& dh, int value) {
     DataProcessingHeader dph{0,1};
     Stack stack{dh, dph};
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
-    FairMQMessagePtr payload = transport->CreateMessage(sizeof(int));
-    memcpy(header->GetData(), stack.data(), stack.size());
-    memcpy(payload->GetData(), &value, sizeof(int));
-    inputs.emplace_back(std::move(header));
-    inputs.emplace_back(std::move(payload));
+    void* header = malloc(stack.size());
+    void* payload = malloc(sizeof(int));
+    memcpy(header, stack.data(), stack.size());
+    memcpy(payload, &value, sizeof(int));
+    inputs.emplace_back(header);
+    inputs.emplace_back(payload);
   };
 
-  auto createEmpty = [&inputs] () {
-    inputs.emplace_back(std::move(nullptr));
-    inputs.emplace_back(std::move(nullptr));
+  auto createEmpty = [&inputs]() {
+    inputs.emplace_back(nullptr);
+    inputs.emplace_back(nullptr);
   };
 
   DataHeader dh1;
@@ -104,7 +101,8 @@ BOOST_AUTO_TEST_CASE(TestInputRecord) {
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputRecord record(schema, inputs);
+  InputSpan span{ [&inputs](size_t i) { return static_cast<char const*>(inputs[i]); }, inputs.size() };
+  InputRecord record{ schema, std::move(span) };
 
   // Checking we can get the whole ref by name
   BOOST_CHECK_NO_THROW(record.get("x"));

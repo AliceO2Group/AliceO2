@@ -221,8 +221,11 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // the execution.
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](int timeslice) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(timeslice));
-    InputRecord registry{inputsSchema, currentSetOfInputs};
-    return registry;
+    InputSpan span{ [&currentSetOfInputs](size_t i) -> char const* {
+                     return static_cast<char const*>(currentSetOfInputs.at(i)->GetData());
+                   },
+                    currentSetOfInputs.size() };
+    return InputRecord{ inputsSchema, std::move(span) };
   };
 
   // This is the thing which does the actual computation. No particular reason

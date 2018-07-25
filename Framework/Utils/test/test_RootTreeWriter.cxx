@@ -42,9 +42,9 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   BOOST_CHECK(writer.getStoreSize() == 2);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  std::vector<FairMQMessagePtr> messages;
+  std::vector<FairMQMessagePtr> store;
 
-  auto createPlainMessage = [&transport, &messages](DataHeader&& dh, auto& data) {
+  auto createPlainMessage = [&transport, &store](DataHeader&& dh, auto& data) {
     dh.payloadSize = sizeof(data);
     dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     DataProcessingHeader dph{ 0, 1 };
@@ -53,11 +53,11 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     FairMQMessagePtr payload = transport->CreateMessage(sizeof(data));
     memcpy(header->GetData(), stack.data(), stack.size());
     memcpy(payload->GetData(), &data, sizeof(data));
-    messages.emplace_back(std::move(header));
-    messages.emplace_back(std::move(payload));
+    store.emplace_back(std::move(header));
+    store.emplace_back(std::move(payload));
   };
 
-  auto createSerializedMessage = [&transport, &messages](DataHeader&& dh, auto& data) {
+  auto createSerializedMessage = [&transport, &store](DataHeader&& dh, auto& data) {
     FairMQMessagePtr payload = transport->CreateMessage();
     auto* cl = TClass::GetClass(typeid(decltype(data)));
     TMessageSerializer().Serialize(*payload, &data, cl);
@@ -67,8 +67,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     o2::header::Stack stack{ dh, dph };
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     memcpy(header->GetData(), stack.data(), stack.size());
-    messages.emplace_back(std::move(header));
-    messages.emplace_back(std::move(payload));
+    store.emplace_back(std::move(header));
+    store.emplace_back(std::move(payload));
   };
 
   int a = 23;
@@ -87,9 +87,11 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     { InputSpec{ "input2", "TST", "CONTAINER" }, "input2", 0 } //
   };
 
+  auto getter = [&store](size_t i) -> char const* { return static_cast<char const*>(store[i]->GetData()); };
+
   InputRecord inputs{
     schema,
-    messages
+    InputSpan{ getter, store.size() }
   };
 
   writer(inputs);
