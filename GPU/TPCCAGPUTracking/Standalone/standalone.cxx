@@ -544,10 +544,16 @@ int main(int argc, char** argv)
 					}
 
 					int tmpRetVal = hlt.ProcessEvent(configStandalone.forceSlice, j <= configStandalone.runsInit);
-					int nTracks = 0, nClusters = 0;
-					for (int k = 0;k < hlt.Merger().NOutputTracks();k++) if (hlt.Merger().OutputTracks()[k].OK()) nTracks++;
+					int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
+					for (int k = 0;k < hlt.Merger().NOutputTracks();k++)
+					if (hlt.Merger().OutputTracks()[k].OK())
+					{
+						nTracks++;
+						nAttachedClusters += hlt.Merger().OutputTracks()[k].NClusters();
+						nAttachedClustersFitted += hlt.Merger().OutputTracks()[k].NClustersFitted();
+					}
 					for (int k = 0;k < 36;k++) nClusters += hlt.ClusterData(k).NumberOfClusters();
-					printf("Output Tracks: %d\n", nTracks);
+					printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
 					if (j == 0)
 					{
 						nTracksTotal += nTracks;
