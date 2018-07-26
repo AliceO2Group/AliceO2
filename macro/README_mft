@@ -1,10 +1,5 @@
-01.08.2017 (Bogdan Vulpescu, LPC)
----------------------------------
-
-updated: 17.10.2017
-
-Howto check the simulation chain for the MFT detector
------------------------------------------------------
+How to perform a simulation chain with the MFT detector
+-------------------------------------------------------
 
 1) simulation:
 
@@ -41,3 +36,35 @@ root.exe
 6) launch the tracker
 
 ./run_trac_mft.sh 10 100 TGeant3 <rate>
+
+
+
+Conversion to/from raw format
+-----------------------------
+
+1) rename the MC simulations and parameter files as o2sim.root and o2sim_par.root (keep also the old file names if the steps above are to be executed too)
+
+2) run the digitization
+
+./run_digi_mft.sh
+
+this will produce the files o2digi_mft.root and o2sim_grp.root
+
+copy the file o2digi_mft.root to AliceO2_TGeant3.digi_<nev>ev_<nmu>mu.root for
+the clusterization from the ROOT digits directly
+
+previous point 2) becomes obsolete!
+
+3) convert digits to raw format
+
+root.exe -b -q run_digi2raw_mft.C+
+
+this will produce the file o2digi_mft.raw
+
+4) run clusterization from digits in raw format
+
+root.exe -b -q 'run_clus_mftSA.C+("o2clus_mft_raw.root","o2digi_mft.raw",1)'
+
+Note: the macro CheckClusters_mft.C can not be executed because the MC
+information is missing when clusterizing from the raw format digits.
+
