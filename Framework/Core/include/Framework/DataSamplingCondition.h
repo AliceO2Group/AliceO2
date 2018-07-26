@@ -17,7 +17,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/DataRef.h"
-#include "Configuration/Tree.h"
+#include <boost/property_tree/ptree.hpp>
 
 namespace o2
 {
@@ -34,7 +34,7 @@ class DataSamplingCondition
   virtual ~DataSamplingCondition() = default;
 
   /// \brief Reads custom configuration parameters.
-  virtual void configure(const o2::configuration::tree::Branch&) = 0;
+  virtual void configure(const boost::property_tree::ptree&) = 0;
   /// \brief Makes decision whether to pass a data sample or not.
   virtual bool decide(const o2::framework::DataRef&) = 0;
 
