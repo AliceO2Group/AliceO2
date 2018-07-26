@@ -30,8 +30,6 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override;
 
-  FairModule* CloneModule() const override;
-
   Bool_t ProcessHits(FairVolume* v = nullptr) override;
 
   void Initialize() override;
@@ -55,6 +53,8 @@ class Detector : public o2::Base::DetImpl<Detector>
  private:
   o2::mch::Stepper* mStepper{ nullptr }; //!
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 

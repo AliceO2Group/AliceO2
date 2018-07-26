@@ -88,11 +88,6 @@ Detector::Detector(const Detector& rhs)
   }
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
-
 void Detector::Initialize()
 {
   // Define sensitive volume

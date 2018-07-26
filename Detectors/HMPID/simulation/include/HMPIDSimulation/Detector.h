@@ -62,6 +62,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   TGeoVolume* CradleBaseVolume(TGeoMedium* med, double l[7], const char* name);
 
  private:
+  // copy constructor for CloneModule
+  Detector(const Detector&);
+
   std::vector<HitType>* mHits = nullptr; ///!< Collection of HMPID hits
   enum EMedia {
     kAir = 1,
@@ -79,6 +82,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   std::vector<TGeoVolume*> mSensitiveVolumes; //!
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 

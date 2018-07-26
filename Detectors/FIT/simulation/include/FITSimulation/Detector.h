@@ -18,8 +18,6 @@
 #include "DetectorsBase/Detector.h" // for Detector
 #include "FITBase/Geometry.h"
 
-class FairModule;
-
 class FairVolume;
 class TGeoVolume;
 class TGraph;
@@ -59,9 +57,6 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Default constructor
   Detector() = default;
-
-  /// Clone this object (used in MT mode only)
-  FairModule* CloneModule() const override;
 
   /// Initialization of the detector is done here
   void Initialize() override;
@@ -136,6 +131,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   Geometry* mGeometry = nullptr; //! Geometry
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 

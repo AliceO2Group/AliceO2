@@ -26,7 +26,6 @@
 #include "TVirtualMC.h"
 #include "TLorentzVector.h"
 #include "TVector3.h"
-#include "TClonesArray.h"
 #include "TGeoManager.h"
 
 #include "FairLogger.h"

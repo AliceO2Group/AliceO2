@@ -43,11 +43,6 @@ Detector::Detector(const Detector& rhs)
     mTOFSectors[i] = rhs.mTOFSectors[i];
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
-
 void Detector::Initialize()
 {
   TGeoVolume* v = gGeoManager->GetVolume("FPAD");

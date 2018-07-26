@@ -37,11 +37,6 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
-
 void Detector::Initialize()
 {
   // register the sensitive volumes with FairRoot

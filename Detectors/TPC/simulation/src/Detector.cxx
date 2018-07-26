@@ -92,8 +92,6 @@ Detector::~Detector()
   std::cout << "Stepping called " << mStepCounter << "\n";
 }
 
-FairModule* Detector::CloneModule() const { return new Detector(*this); }
-
 void Detector::Initialize()
 {
   // Define the list of sensitive volumes

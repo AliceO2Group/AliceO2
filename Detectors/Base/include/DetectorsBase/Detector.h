@@ -295,6 +295,13 @@ class DetImpl : public o2::Base::Detector
     }
   }
 
+  // implementing CloneModule (for G4-MT mode) automatically for each deriving
+  // Detector class "Det"; calls copy constructor of Det
+  FairModule* CloneModule() const final
+  {
+    return new Det(static_cast<const Det&>(*this));
+  }
+
   ClassDefOverride(DetImpl, 0)
 };
 }
