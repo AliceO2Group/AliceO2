@@ -202,15 +202,12 @@ void AliHLTTPCGMMerger::SetSliceData( int index, const AliHLTTPCCASliceOutput *s
 bool AliHLTTPCGMMerger::Reconstruct(bool resetTimers)
 {
   //* main merging routine
-
-  //fSliceParam.LoadClusterErrors();
-  
   int nIter = 1;
 #ifdef HLTCA_STANDALONE
   HighResTimer timer;
-  static double times[5] = {};
+  static double times[7] = {};
   static int nCount = 0;
-  if (resetTimers)
+  if (resetTimers || !HLTCA_TIMING_SUM)
   {
     for (unsigned int k = 0;k < sizeof(times) / sizeof(times[0]);k++) times[k] = 0;
     nCount = 0;
@@ -220,13 +217,13 @@ bool AliHLTTPCGMMerger::Reconstruct(bool resetTimers)
   for( int iter=0; iter<nIter; iter++ ){
     if( !AllocateMemory() ) return 0;
 #ifdef HLTCA_STANDALONE
-  timer.ResetStart();
+    timer.ResetStart();
 #endif
     UnpackSlices();
 #ifdef HLTCA_STANDALONE
-  times[0] += timer.GetCurrentElapsedTime(true);
+    times[0] += timer.GetCurrentElapsedTime(true);
 #endif
-   MergeWithingSlices();
+    MergeWithingSlices();
 #ifdef HLTCA_STANDALONE
     times[1] += timer.GetCurrentElapsedTime(true);
 #endif
@@ -234,33 +231,32 @@ bool AliHLTTPCGMMerger::Reconstruct(bool resetTimers)
 #ifdef HLTCA_STANDALONE
     times[2] += timer.GetCurrentElapsedTime(true);
 #endif
-    CollectMergedTracks();
+    MergeCE();
 #ifdef HLTCA_STANDALONE
     times[3] += timer.GetCurrentElapsedTime(true);
 #endif
+    CollectMergedTracks();
+#ifdef HLTCA_STANDALONE
+    times[4] += timer.GetCurrentElapsedTime(true);
+#endif
     Refit(resetTimers);
 #ifdef HLTCA_STANDALONE
-    times[4] += timer.GetCurrentElapsedTime();
+    times[5] += timer.GetCurrentElapsedTime(true);
     Finalize();
+    times[6] += timer.GetCurrentElapsedTime(true);
     nCount++;
     if (fDebugLevel > 0)
     {
       printf("Merge Time:\tUnpack Slices:\t%1.0f us\n", times[0] * 1000000 / nCount);
       printf("\t\tMerge Within:\t%1.0f us\n", times[1] * 1000000 / nCount);
       printf("\t\tMerge Slices:\t%1.0f us\n", times[2] * 1000000 / nCount);
-      printf("\t\tCollect:\t%1.0f us\n", times[3] * 1000000 / nCount);
-      printf("\t\tRefit:\t\t%1.0f us\n", times[4] * 1000000 / nCount);
+      printf("\t\tMerge CE:\t%1.0f us\n", times[3] * 1000000 / nCount);
+      printf("\t\tCollect:\t%1.0f us\n", times[4] * 1000000 / nCount);
+      printf("\t\tRefit:\t\t%1.0f us\n", times[5] * 1000000 / nCount);
+      printf("\t\tFinalize:\t%1.0f us\n", times[6] * 1000000 / nCount);
     }
-    if (!HLTCA_TIMING_SUM)
-    {
-        for (int i = 0;i < 5;i++) times[i] = 0.;
-        nCount = 0;
-    }
-    timer.Stop();  
 #endif
   }  
-  //cout<<"\nMerger time = "<<timer.CpuTime()*1.e3/nIter<<" ms\n"<<endl;
-
   return 1;
 }
 
@@ -411,8 +407,8 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
     x0 = fSliceParam.RowX( 63 );
   } else if ( iBorder == 3 ) { // transport to the right age of the sector and rotate vertically
     dAlpha = -dAlpha;
-    x0 =  fSliceParam.RowX( 63 );
-  } else if ( iBorder == 4 ) { // transport to the middle of the sector, w/o rotation
+    x0 = fSliceParam.RowX( 63 );
+  } else if ( iBorder == 4 ) { // transport to the middle of the sßector, w/o rotation
     dAlpha = 0;
     x0 = fSliceParam.RowX( 63 );
   }
@@ -557,26 +553,19 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
     newTrack1.SetNextNeighbour( iBest2 );
     newTrack2.SetPrevNeighbour( b1.TrackID() );
   }
-  //cout<<"slices "<<iSlice1<<","<<iSlice2<<": all "<<statAll<<" merged "<<statMerged<<endl;
+  //printf("STAT: slices %d, %d: all %d merged %d\n", iSlice1, iSlice2, statAll, statMerged);
 }
 
 
 void AliHLTTPCGMMerger::MergeWithingSlices()
 {
-  //* merge track segments withing one slice
-
   float x0 = fSliceParam.RowX( 63 );  
   const float maxSin = CAMath::Sin( 60. / 180.*CAMath::Pi() );
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
-
     int nBord = 0;
     for ( int itr = 0; itr < fSliceNTrackInfos[iSlice]; itr++ ) {
       AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[ fSliceTrackInfoStart[iSlice] + itr ];
-      //track.SetPrevNeighbour( -1 );      
-      //track.SetNextNeighbour( -1 );
-      //track.SetSliceNeighbour( -1 );
-      //track.SetUsed(0);
       
       AliHLTTPCGMBorderTrack &b = fBorderMemory[nBord];
       if( track.TransportToX( x0, fSliceParam.ConstBz(), b, maxSin) ){
@@ -610,16 +599,6 @@ void AliHLTTPCGMMerger::MergeWithingSlices()
 
 void AliHLTTPCGMMerger::MergeSlices()
 {
-  //* track merging between slices
-
-  //for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
-  //for ( int itr = 0; itr < fSliceNTrackInfos[iSlice]; itr++ ) {
-  //AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[ fSliceTrackInfoStart[iSlice] + itr ];
-  //track.SetPrevNeighbour( -1 );
-  //track.SetNextNeighbour( -1 );
-  //}
-  //}
-
   AliHLTTPCGMBorderTrack 
     *bCurr = fBorderMemory,
     *bNext = fBorderMemory + fMaxSliceTracks;
@@ -636,13 +615,35 @@ void AliHLTTPCGMMerger::MergeSlices()
   }
 }
 
+void AliHLTTPCGMMerger::MergeCE()
+{
+    int iSlice[2];
+    for (iSlice[0] = 0;iSlice[0] < fgkNSlices / 2;iSlice[0]++)
+    {
+        iSlice[1] = iSlice[0] + fgkNSlices / 2;
+        int nBorder[2] = {0, 0};
+        AliHLTTPCGMBorderTrack* bTrack[2] = {fBorderMemory, fBorderMemory + fMaxSliceTracks};
+        for (int j = 0;j < 2;j++)
+        {
+            for (int itr = 0;itr < fSliceNTrackInfos[iSlice[j]];itr++)
+            AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[ fSliceTrackInfoStart[iSlice[j]] + itr];
+            AliHLTTPCGMBorderTrack &b = bTrack[j][nBorder[j]];
+            
+        }
+    }
+}
+
 struct clcomparestruct {int i; float x; float z; float q;};
 
 struct AliHLTTPCGMMerger_CompareClusterIds
 {
   float fQPt, fDzDs, fThresh;
-  AliHLTTPCGMMerger_CompareClusterIds(float q, float z) : fQPt(q), fDzDs(z), fThresh(fabs(0.1f * 3.14f * 666.f * z / q)) {if (fThresh < 1.) fThresh = 1.; if (fThresh > 4.) fThresh = 4.;}
-  bool operator()(const clcomparestruct& a, const clcomparestruct& b) { //a < b ?
+  AliHLTTPCGMMerger_CompareClusterIds(float q, float z) : fQPt(q), fDzDs(z), fThresh(fabs(0.1f * 3.14f * 666.f * z / q))
+  {
+    if (fThresh < 1.) fThresh = 1.; if (fThresh > 4.) fThresh = 4.;
+  }
+  bool operator()(const clcomparestruct& a, const clcomparestruct& b)
+  {
     float dz = a.z - b.z;
     if (a.q * b.q < 0) return(dz * fDzDs > 0);
     if (fabs(dz) > fThresh) return(dz * fDzDs > 0);

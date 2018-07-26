@@ -84,6 +84,7 @@ private:
   void ClearMemory();
   bool AllocateMemory();
   void UnpackSlices();
+  void MergeCE();
   void MergeWithingSlices();
   void MergeSlices();
   void CollectMergedTracks();
