@@ -187,16 +187,12 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
       return false;
     }
     bool update(const My_Float p[2], const My_Float cov[3]) {
-      return Update(p[0], p[1], HLTCA_ROW_COUNT -1, param, 0, false, false) == 0 ? true : false;
+      // TODO sigma_yz not taken into account yet, is not zero due to pad tilting!
+      return Update(p[0], p[1], 0, false, cov[0], cov[2]) == 0 ? true : false;
     }
     float getAlpha() { return GetAlpha(); }
-    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const {
-      // TODO what about tracklet covariance? posY can be made const in PredictChi2(),
-      //      posZ is changed in AliHLTTPCCAParam::GetClusterErrors2() -> add here also tracklet errors?
-      float tmpY = p[0];
-      float tmpZ = p[1];
-      return PredictChi2( tmpY, tmpZ, HLTCA_ROW_COUNT - 1, param, 0);
-    }
+    // TODO sigma_yz not taken into account yet, is not zero due to pad tilting!
+    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const { return PredictChi2( p[0], p[1], cov[0], cov[2]); }
 
     trackInterface<AliHLTTPCGMTrackParam> *fTrack;
 };
