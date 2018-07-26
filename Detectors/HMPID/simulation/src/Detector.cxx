@@ -39,6 +39,9 @@ namespace hmpid
 
 Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("HMP", active), mHits(new std::vector<HitType>) {}
 
+Detector::Detector(const Detector& other) : mSensitiveVolumes(other.mSensitiveVolumes),
+                                            mHits(new std::vector<HitType>) {}
+
 void Detector::Initialize()
 {
   for (auto sensitiveHpad : mSensitiveVolumes) {

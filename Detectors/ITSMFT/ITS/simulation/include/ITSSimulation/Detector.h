@@ -25,8 +25,6 @@
 #include "TLorentzVector.h"                   // for TLorentzVector
 #include "TVector3.h"                         // for TVector3
 
-class FairModule;
-
 class FairVolume;
 class TGeoVolume;
 
@@ -250,8 +248,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   virtual void setStaveModelOB(Model model) { mStaveModelOuterBarrel = model; }
   virtual Model getStaveModelIB() const { return mStaveModelInnerBarrel; }
   virtual Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
-  /// Clone this object (used in MT mode only)
-  FairModule* CloneModule() const override;
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
@@ -313,6 +309,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   Model mStaveModelOuterBarrel;      //! The stave model for the Outer Barrel
   V3Layer* mGeometry[sNumberLayers]; //! Geometry
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 

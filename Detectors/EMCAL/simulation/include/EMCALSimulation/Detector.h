@@ -59,11 +59,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   ~Detector() override = default;
 
   ///
-  /// Clone this object (used in MT mode only)
-  ///
-  FairModule *CloneModule() const override;
-
-  ///
   /// Initializing detector
   ///
   void Initialize() final;
@@ -194,7 +189,9 @@ class Detector : public o2::Base::DetImpl<Detector>
   Double_t mInnerEdge;   //!<! Inner edge of DCAL super module
   Double_t mParEMOD[5];  //!<! parameters of EMCAL module (TRD1,2)
 
-  ClassDefOverride(Detector, 1)
+  template <typename Det>
+  friend class o2::Base::DetImpl;
+  ClassDefOverride(Detector, 1);
 };
 }
 }

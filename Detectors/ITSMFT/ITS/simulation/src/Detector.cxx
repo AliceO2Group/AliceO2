@@ -1087,8 +1087,6 @@ void Detector::Read(std::istream* is)
   return;
 }
 
-FairModule* Detector::CloneModule() const { return new Detector(*this); }
-
 std::ostream& operator<<(std::ostream& os, Detector& p)
 {
   // Standard output streaming function.

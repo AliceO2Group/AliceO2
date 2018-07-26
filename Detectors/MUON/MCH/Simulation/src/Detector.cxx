@@ -39,11 +39,6 @@ Detector::~Detector()
   delete mStepper;
 }
 
-FairModule* Detector::CloneModule() const
-{
-  return new Detector(*this);
-}
-
 void Detector::defineSensitiveVolumes()
 {
   for (auto* vol : getSensitiveVolumes()) {

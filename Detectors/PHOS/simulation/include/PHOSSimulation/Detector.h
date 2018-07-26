@@ -73,11 +73,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   ~Detector() override = default;
 
   ///
-  ///  Clone this object (used in MT mode only)
-  ///
-  FairModule* CloneModule() const override;
-
-  ///
   /// Initializing detector
   ///
   void Initialize() final;
@@ -191,6 +186,8 @@ class Detector : public o2::Base::DetImpl<Detector>
   Int_t mCurentSuperParent;         //! current SuperParent ID: particle entered PHOS
   Hit* mCurrentHit;                 //! current Hit
 
+  template <typename Det>
+  friend class o2::Base::DetImpl;
   ClassDefOverride(Detector, 1)
 };
 }
