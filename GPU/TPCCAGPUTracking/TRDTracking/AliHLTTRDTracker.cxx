@@ -339,12 +339,8 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
   }
 
   fDebug->Reset();
-
   int iTrack = t->GetTPCtrackId();
-  float mass = t->GetMass();
-
   t->SetChi2(0.f);
-
   AliHLTTRDpadPlane *pad = nullptr;
 
 #ifdef ENABLE_HLTTRDDEBUG
@@ -640,7 +636,6 @@ bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t
       RecalcTrkltCov(fHypothesis[iUpdate].fTrackletId, tilt, fCandidates[2*iUpdate+nextIdx].getSnp(), pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin()));
 
       float zPosCorrUpdate = fSpacePoints[fHypothesis[iUpdate].fTrackletId].fX[1] + fZCorrCoefNRC * fCandidates[2*iUpdate+nextIdx].getTgl();
-      float deltaZup = zPosCorrUpdate - fCandidates[2*iUpdate+nextIdx].getZ();
       float yCorr = 0;
       float l_padTrklt = pad->GetRowSize(fTracklets[fHypothesis[iUpdate].fTrackletId].GetZbin());
       if ( (fCandidates[2*iUpdate+nextIdx].getSigmaZ2() < (l_padTrklt*l_padTrklt/12.f)) &&
