@@ -50,7 +50,7 @@ static constexpr float kRadLen = 29.532;//28.94;
 static constexpr float kDeg2Rad = M_PI / 180.f;
 static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
-GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt, float maxSinPhi)
+GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt, float maxSinPhi, AliHLTTPCCAOuterParam* outerParam)
 {
   const AliHLTTPCCAParam &param = merger->SliceParam();
   
@@ -74,13 +74,13 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
   for (int iWay = 0;iWay < nWays;iWay++)
   {
     int nMissed = 0;
-    if (iWay && param.GetNWaysOuter() && iWay == nWays - 1)
+    if (iWay && param.GetNWaysOuter() && iWay == nWays - 1 && outerParam)
     {
-        for (int i = 0;i < 5;i++) fOuterParam.fP[i] = fP[i];
-        fOuterParam.fP[1] += fZOffset;
-        for (int i = 0;i < 15;i++) fOuterParam.fC[i] = fC[i];
-        fOuterParam.fX = fX;
-        fOuterParam.fAlpha = prop.GetAlpha();
+        for (int i = 0;i < 5;i++) outerParam->fP[i] = fP[i];
+        outerParam->fP[1] += fZOffset;
+        for (int i = 0;i < 15;i++) outerParam->fC[i] = fC[i];
+        outerParam->fX = fX;
+        outerParam->fAlpha = prop.GetAlpha();
     }
 
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / fP[4]));
@@ -688,7 +688,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, int
 		AliHLTTPCGMTrackParam t = track.Param();
 		float Alpha = track.Alpha();  
 		CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt();)
-		bool ok = t.Fit( merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt );
+		bool ok = t.Fit( merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, HLTCA_MAX_SIN_PHI, &track.OuterParam() );
 		CADEBUG(printf("Finished Fit Track %d\n", cadebug_nTracks);)
 		
 		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;

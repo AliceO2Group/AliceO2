@@ -33,6 +33,13 @@ class AliHLTTPCGMPropagator;
 class AliHLTTPCGMTrackParam
 {
 public:
+    
+  struct AliHLTTPCCAOuterParam
+  {
+    float fX, fAlpha;
+    float fP[5];
+    float fC[15];
+  };
 
   GPUd() float& X()      { return fX;    }
   GPUd() float& Y()      { return fP[0]; }
@@ -96,7 +103,7 @@ public:
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.) const ;
   GPUd() bool CheckCov() const ;
 
-  GPUd() bool Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI);
+  GPUd() bool Fit(const AliHLTTPCGMMerger* merger, int iTrk, AliHLTTPCGMMergedTrackHit* clusters, int &N, int &NTolerated, float &Alpha, int attempt = 0, float maxSinPhi = HLTCA_MAX_SIN_PHI, AliHLTTPCCAOuterParam* outerParam = NULL);
   GPUd() void MirrorTo(AliHLTTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const AliHLTTPCCAParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
   GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, AliHLTTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2, int& nMissed);
   
@@ -130,13 +137,6 @@ public:
   
   GPUd() static void RefitTrack(AliHLTTPCGMMergedTrack &track, int iTrk, const AliHLTTPCGMMerger* merger, AliHLTTPCGMMergedTrackHit* clusters);
   
-  struct AliHLTTPCCAOuterParam {
-    float fX, fAlpha;
-    float fP[5];
-    float fC[15];
-  };
-  GPUd() const AliHLTTPCCAOuterParam& OuterParam() const {return fOuterParam;}
-
 #if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
   bool GetExtParam( AliExternalTrackParam &T, double alpha ) const;
   void SetExtParam( const AliExternalTrackParam &T );
@@ -157,7 +157,6 @@ public:
     float fC[15];  // the covariance matrix for Y,Z,SinPhi,..
     float fChi2;   // the chi^2 value
     int   fNDF;    // the Number of Degrees of Freedom
-    AliHLTTPCCAOuterParam fOuterParam;
 };
 
 GPUd() inline void AliHLTTPCGMTrackParam::ResetCovariance()

@@ -46,9 +46,13 @@ class AliHLTTPCGMMergedTrack
   GPUd() void SetOK( bool v ) {fOK = v;}
   GPUd() void SetCSide( char v ) {fCSide = v;}
   
+  GPUd() const AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam& OuterParam() const {return fOuterParam;}
+  GPUd() AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam& OuterParam() {return fOuterParam;}
+  
  private:
 
   AliHLTTPCGMTrackParam fParam; //* fitted track parameters 
+  AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam fOuterParam; //* outer param
 
   float fAlpha;                 //* alpha angle 
   float fLastX; //* outer X
