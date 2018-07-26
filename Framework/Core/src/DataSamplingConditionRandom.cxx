@@ -40,10 +40,10 @@ class DataSamplingConditionRandom : public DataSamplingCondition
   ~DataSamplingConditionRandom() = default;
 
   /// \brief Reads 'fraction' parameter (type double, between 0 and 1) and seed (int).
-  void configure(const o2::configuration::tree::Branch& cfg) override
+  void configure(const boost::property_tree::ptree& cfg) override
   {
-    mFraction = configuration::tree::getRequired<double>(cfg, "fraction");
-    mSeed = configuration::tree::getRequired<int>(cfg, "seed");
+    mFraction = cfg.get<double>("fraction");
+    mSeed = cfg.get<int>("seed");
   };
   /// \brief Makes pseudo-random, deterministic decision based on TimesliceID.
   /// The reason behind using TimesliceID is to ensure, that data of the same events is sampled even on different FLPs.

@@ -30,7 +30,10 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionRandom)
     true, false, false, true, true, false, false, true, true, false, false, false, false, true, true, false, false,
     true, true, false, false, false, false, false, true, false, false, false, false, false, true, false
   };
-  conditionRandom->configure({ { "fraction", 0.5 }, { "seed", 943753948 } });
+  boost::property_tree::ptree config;
+  config.put("fraction", 0.5);
+  config.put("seed", 943753948);
+  conditionRandom->configure(config);
 
   for (DataProcessingHeader::StartTime id = 1; id < 50; id++) {
     DataProcessingHeader dph{ id, 0 };
