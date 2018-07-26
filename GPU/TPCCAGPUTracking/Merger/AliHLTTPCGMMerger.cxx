@@ -683,6 +683,11 @@ struct AliHLTTPCGMMerger_CompareTracks
   }
 };
 
+bool AliHLTTPCGMMerger_CompareParts(const AliHLTTPCGMSliceTrack* a, const AliHLTTPCGMSliceTrack* b)
+{
+  return(a->X() > b->X());
+}
+
 void AliHLTTPCGMMerger::CollectMergedTracks()
 {
   //Resolve connections for global tracks first
@@ -744,6 +749,11 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       } while(1);
 
       // unpack and sort clusters
+      
+      if (nParts > 1 && !looper)
+      {
+        std::sort(trackParts, trackParts + nParts, AliHLTTPCGMMerger_CompareParts);
+      }
       
       AliHLTTPCCASliceOutCluster trackClusters[kMaxClusters];
       uchar2 clA[kMaxClusters];
