@@ -199,6 +199,7 @@ set(TEST_SRCS
       test/test_DeviceSpec.cxx
       test/test_FrameworkDataFlowToDDS.cxx
       test/test_Graphviz.cxx
+      test/test_GUITests.cxx
       test/test_InputRecord.cxx
       test/test_ParallelProducer.cxx
       test/test_LogParsingHelpers.cxx
