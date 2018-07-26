@@ -104,10 +104,10 @@ private:
   int fNOutputTrackClusters;
   AliHLTTPCGMMergedTrack *fOutputTracks;       //* array of output merged tracks
   
-  AliHLTTPCGMSliceTrack *fSliceTrackInfos; //* additional information for slice tracks
-  int fSliceTrackInfoStart[fgkNSlices];   //* slice starting index in fTrackInfos array;
+  AliHLTTPCGMSliceTrack *fSliceTrackInfoMemory; //* additional information for slice tracks
+  AliHLTTPCGMSliceTrack* fSliceTrackInfo[fgkNSlices];   //* slice starting index in fTrackInfos array;
   int fSliceNTrackInfos[fgkNSlices];      //* N of slice track infos in fTrackInfos array;
-  int fSliceTrackGlobalInfoStart[fgkNSlices]; //* Same for global tracks
+  AliHLTTPCGMSliceTrack* fSliceTrackGlobalInfo[fgkNSlices]; //* Same for global tracks
   int fSliceNGlobalTrackInfos[fgkNSlices]; //* Same for global tracks
   int fMaxSliceTracks;      // max N tracks in one slice
   AliHLTTPCGMMergedTrackHit *fClusters;
@@ -116,7 +116,9 @@ private:
   int fMaxID;
   unsigned int* fTrackOrder;
   AliHLTTPCGMBorderTrack *fBorderMemory; // memory for border tracks
+  AliHLTTPCGMBorderTrack* fBorder[fgkNSlices];
   AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory; // memory for border tracks
+  AliHLTTPCGMBorderTrack::Range *fBorderRange[fgkNSlices]; // memory for border tracks
 
   AliHLTTPCCAGPUTracker* fGPUTracker;
   AliHLTTPCCATracker* fSliceTrackers;
