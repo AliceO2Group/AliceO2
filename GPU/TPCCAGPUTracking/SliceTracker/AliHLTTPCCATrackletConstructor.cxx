@@ -401,12 +401,12 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(A
 	}
 }
 
-GPUdi() int AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalTracking(AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam& tParam, int row, int increment)
+GPUdi() int AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalTracking(AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam& tParam, int row, int increment, int iTracklet)
 {
 	AliHLTTPCCAThreadMemory rMem;	
 	GPUshared() AliHLTTPCCASharedMemory sMem;
 	sMem.fNTracklets = *tracker.NTracklets();
-	rMem.fItr = 0;
+	rMem.fItr = iTracklet;
 	rMem.fStage = 3;
 	rMem.fNHits = rMem.fNMissed = 0;
 	rMem.fGo = 1;
