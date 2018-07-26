@@ -79,8 +79,13 @@ class AliHLTTRDTracker {
   void SetChi2Threshold(float chi2)     { fMaxChi2 = chi2; }
   void SetChi2Penalty(float chi2)       { fChi2Penalty = chi2; }
   void SetMaxMissingLayers(int ly)      { fMaxMissingLy = ly; }
-  void SetNCandidates(int n)            { if (!fIsInitialized) fNCandidates = n; else Error("SetNCandidates", "Cannot change fNCandidates after initialization"); }
-
+  void SetNCandidates(int n) {
+    if (!fIsInitialized) {
+      fNCandidates = n;
+    } else {
+      Error("SetNCandidates", "Cannot change fNCandidates after initialization");
+    }
+  }
   AliMCEvent * GetMCEvent()   const { return fMCEvent; }
   bool  GetIsDebugOutputOn()  const { return fDebugOutput; }
   float GetPtThreshold()      const { return fMinPt; }
