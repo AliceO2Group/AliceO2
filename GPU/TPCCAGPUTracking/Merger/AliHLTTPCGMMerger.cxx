@@ -671,11 +671,17 @@ struct AliHLTTPCGMMerger_CompareClusterIds
   }
 };
 
-static AliHLTTPCGMMergedTrack* tmpTracks;
-static bool trackSortCompanion(const int& a, const int& b)
+struct AliHLTTPCGMMerger_CompareTracks
 {
-    return(fabs(tmpTracks[a].GetParam().GetQPt()) > fabs(tmpTracks[b].GetParam().GetQPt()));
-}
+  const AliHLTTPCGMMergedTrack* const fCmp;
+  AliHLTTPCGMMerger_CompareTracks(AliHLTTPCGMMergedTrack* cmp) : fCmp(cmp) {}
+  bool operator()(const int aa, const int bb)
+  {
+    const AliHLTTPCGMMergedTrack& a = fCmp[aa];
+    const AliHLTTPCGMMergedTrack& b = fCmp[bb];
+    return(fabs(a.GetParam().GetQPt()) > fabs(b.GetParam().GetQPt()));
+  }
+};
 
 void AliHLTTPCGMMerger::CollectMergedTracks()
 {
@@ -947,8 +953,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   fClusterAttachment = new int[maxId];
   fMaxID = maxId;
   for (int i = 0;i < fNOutputTracks;i++) trackSort[i] = i;
-  tmpTracks = fOutputTracks;
-  std::sort(trackSort, trackSort + fNOutputTracks, trackSortCompanion);
+  std::sort(trackSort, trackSort + fNOutputTracks, AliHLTTPCGMMerger_CompareTracks(fOutputTracks));
   memset(fClusterAttachment, 0, maxId * sizeof(fClusterAttachment[0]));
   for (int i = 0;i < fNOutputTracks;i++) fTrackOrder[trackSort[i]] = i;
   for (int i = 0;i < fNOutputTrackClusters;i++) fClusterAttachment[fClusters[i].fNum] = attachAttached | attachGood;
