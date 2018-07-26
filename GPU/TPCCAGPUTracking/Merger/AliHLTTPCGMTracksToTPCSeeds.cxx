@@ -90,7 +90,7 @@ void AliHLTTPCGMTracksToTPCSeeds::UpdateParamsOuter(TObjArray* seeds)
 			return;
 		}
 		AliTPCseed* seed = (AliTPCseed*) seeds->UncheckedAt(index++);
-		const AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam& param = track.GetParam().OuterParam();
+		const AliHLTTPCGMTrackParam::AliHLTTPCGMTrackParam::AliHLTTPCCAOuterParam& param = track.OuterParam();
 		seed->Set(param.fX, param.fAlpha, param.fP, param.fC);
 	}
 }

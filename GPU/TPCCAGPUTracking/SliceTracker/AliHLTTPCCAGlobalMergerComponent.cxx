@@ -512,18 +512,18 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
             
         // normalize the angle to +-Pi
               
-        currOutTrack->fAlpha = track.GetParam().OuterParam().fAlpha - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
-        currOutTrack->fX = track.GetParam().OuterParam().fX;
-        currOutTrack->fY = track.GetParam().OuterParam().fP[0];
-        currOutTrack->fZ = track.GetParam().OuterParam().fP[1];
+        currOutTrack->fAlpha = track.OuterParam().fAlpha - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
+        currOutTrack->fX = track.OuterParam().fX;
+        currOutTrack->fY = track.OuterParam().fP[0];
+        currOutTrack->fZ = track.OuterParam().fP[1];
         currOutTrack->fLastX = track.LastX();
         currOutTrack->fLastY = track.LastY();
         currOutTrack->fLastZ = track.LastZ();
             
-        currOutTrack->fq1Pt = track.GetParam().OuterParam().fP[4];
-        currOutTrack->fSinPhi = track.GetParam().OuterParam().fP[2];
-        currOutTrack->fTgl = track.GetParam().OuterParam().fP[3];
-        for( int i=0; i<15; i++ ) currOutTrack->fC[i] = track.GetParam().OuterParam().fC[i];
+        currOutTrack->fq1Pt = track.OuterParam().fP[4];
+        currOutTrack->fSinPhi = track.OuterParam().fP[2];
+        currOutTrack->fTgl = track.OuterParam().fP[3];
+        for( int i=0; i<15; i++ ) currOutTrack->fC[i] = track.OuterParam().fC[i];
         currOutTrack->fTrackID = itr;
         currOutTrack->fFlags = 0;
         currOutTrack->fNPoints = 0;
