@@ -1370,7 +1370,6 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     fairroot_base_bucket
-    HMPIDBase
     Geom
     MathCore
     Matrix
@@ -1386,6 +1385,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    ${CMAKE_SOURCE_DIR}/Detectors/HMPID/base/include
 )
 
 o2_define_bucket(
@@ -1413,6 +1413,7 @@ o2_define_bucket(
 
     DEPENDENCIES # library names
     hmpid_base_bucket
+    HMPIDBase
     root_base_bucket
     detectors_base_bucket
     fairroot_geom
@@ -1429,8 +1430,7 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-    ${CMAKE_SOURCE_DIR}/Detectors/Simulation/include
-    ${CMAKE_SOURCE_DIR}/Detectors/HMPID/Simulationf/include
+    ${CMAKE_SOURCE_DIR}/Detectors/HMPID/simulation/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
