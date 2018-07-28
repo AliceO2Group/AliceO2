@@ -29,7 +29,7 @@ ClassImp(Digitizer);
 void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 {
   //parameters constants TO DO: move to class
-  constexpr Float_t TimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
+  constexpr Double_t TimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   constexpr Int_t nMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4;
 
   constexpr Double_t BC_clk = 25.; //ns event clk lenght
@@ -125,10 +125,10 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   Double_t summ_ampl_C = 0.;
   Double_t vertex_time;
 
-  Bool_t Is_A, Is_C;
-  Bool_t Is_Central;
-  Bool_t Is_SemiCentral;
-  Bool_t Is_Vertex;
+  Bool_t is_A, is_C;
+  Bool_t is_Central;
+  Bool_t is_SemiCentral;
+  Bool_t is_Vertex;
 
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++)
   {
@@ -156,28 +156,28 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
 
   }
 
-  Is_A = n_hit_A > 0;
-  Is_C = n_hit_C > 0;
-  Is_Central = summ_ampl_A + summ_ampl_C >= trg_central_trh;
-  Is_SemiCentral = summ_ampl_A + summ_ampl_C >= trg_semicentral_trh;
+  is_A = n_hit_A > 0;
+  is_C = n_hit_C > 0;
+  is_Central = summ_ampl_A + summ_ampl_C >= trg_central_trh;
+  is_SemiCentral = summ_ampl_A + summ_ampl_C >= trg_semicentral_trh;
 
-  mean_time_A = Is_A? mean_time_A/n_hit_A : 0.;
-  mean_time_C = Is_C? mean_time_C/n_hit_C : 0.;
+  mean_time_A = is_A? mean_time_A/n_hit_A : 0.;
+  mean_time_C = is_C? mean_time_C/n_hit_C : 0.;
   vertex_time = (mean_time_A + mean_time_C)*.5 ;
-  Is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
+  is_Vertex = (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
   // --------------------------------------------------------------------------
 
 
   //fillig digit
   digit->setTime(digit_timeframe);
   digit->setBC(mEventID);
-  digit->setTriggers(Is_A, Is_C, Is_Central, Is_SemiCentral, Is_Vertex);
+  digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
 
   std::vector<ChannelData> mChDgDataArr;
   //  LOG(DEBUG) << "nMCP : :IsA : hit nPe : hit mTime : sig MIP : sig mTime" << FairLogger::endl;
   for (Int_t ch_iter = 0; ch_iter < nMCPs; ch_iter++) {
     if (ch_signal_MIP[ch_iter] > CFD_trsh_mip) {
-      Float_t smeared_time = gRandom->Gaus(ch_signal_time[ch_iter], 0.050) + BCEventTime;
+      Double_t smeared_time = gRandom->Gaus(ch_signal_time[ch_iter], 0.050) + BCEventTime;
       mChDgDataArr.emplace_back(ChannelData{ ch_iter, smeared_time, ch_signal_MIP[ch_iter]} );
       LOG(DEBUG) << ch_iter << " : "
                  << " : " << ch_signal_time[ch_iter] << " : "
@@ -197,8 +197,8 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
              << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
              << " mean time C: " << mean_time_C << FairLogger::endl;
 
-  LOG(DEBUG) << "IS A " << Is_A << " IS C " << Is_C << " Is Central " << Is_Central
-             << " Is SemiCentral " << Is_SemiCentral << " Is Vertex " << Is_Vertex << FairLogger::endl;
+  LOG(DEBUG) << "IS A " << is_A << " IS C " << is_C << " is Central " << is_Central
+             << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex << FairLogger::endl;
   
   
   //LOG(DEBUG) << *digit << FairLogger::endl;
@@ -208,36 +208,6 @@ void Digitizer::process(const std::vector<HitType>* hits, Digit* digit)
   
   LOG(DEBUG) << "======================================\n\n" << FairLogger::endl;
   // --------------------------------------------------------------------------
-
-
-
-
-//  Int_t amp[nMCPs] = {};
-//  Double_t cfd[nMCPs] = {};
-
-//  for (auto& hit : *hits) {
-//    // TODO: put timeframe counting/selection
-//    // if (timeframe == mTimeFrameCurrent) {
-//    // timeframe = Int_t((mEventTime + hit.GetTime())); // to be replaced with uncalibrated time
-//    Int_t mcp = hit.GetDetectorID();
-//    Double_t hittime = hit.GetTime();
-//    if (mcp > 4 * Geometry::NCellsA)
-//      hittime += mTimeDiffAC;
-//    if (hittime > mLowTime && hittime < mHighTime) {
-//      cfd[mcp] += hittime;
-//      amp[mcp]++;
-//    }
-//  } // end of loop over hits
-
-
-//  for (Int_t ipmt = 0; ipmt < nMCPs; ipmt++) {
-//    if (amp[ipmt] > mAmpThreshold) {
-//      cfd[ipmt] = cfd[ipmt] / Float_t(amp[ipmt]); //mean time on 1 quadrant
-//      cfd[ipmt] = (gRandom->Gaus(cfd[ipmt], 50)); // Geometry::ChannelWidth;
-//      mDigits->emplace_back(timeframe, ipmt, cfd[ipmt], Float_t(amp[ipmt]), bc);
-//    }
-//  } // end of loop over PMT
-
 }
 
 void Digitizer::initParameters()

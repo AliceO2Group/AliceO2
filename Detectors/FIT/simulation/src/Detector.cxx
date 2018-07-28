@@ -26,6 +26,7 @@
 #include <sstream>
 #include "FITBase/Geometry.h"
 #include "FITSimulation/Detector.h"
+#include "SimulationDataFormat/Stack.h"
 
 using namespace o2::fit;
 using o2::fit::Geometry;
@@ -291,7 +292,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->TrackPosition(x, y, z);
     fMC->CurrentVolID(quadrant);
     fMC->CurrentVolOffID(1, mcp);
-    float time = fMC->TrackTime() * 1.0e9;
+    float time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
     int trackID = fMC->GetStack()->GetCurrentTrackNumber();
     int detID = 4 * mcp + quadrant - 1;
     float etot = fMC->Etot();
@@ -300,11 +301,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     //  if (iPart != 50000050) printf("@@@@@  %f %f %f %i %i %i\n",x,y,z,detID,mcp,quadrant );
     if (iPart == 50000050) // If particles is photon then ...
     {
-      if (RegisterPhotoE(etot)) {
-	HitType newhit(x, y, z, time, enDep, trackID, detID);
-	mHits->push_back(newhit);
-	  //AddHit(x, y, z, time, enDep, trackID, detID);
-      }
+      if (RegisterPhotoE(etot)) 
+	AddHit(x, y, z, time, enDep, trackID, detID);      
     }
     return kTRUE;
   }
@@ -314,6 +312,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  stack->addHit(GetDetId());
   return &(mHits->back());
 }
 

@@ -57,6 +57,9 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Default constructor
   Detector() = default;
+  /// Clone this object (used in MT mode only)
+  FairModule* CloneModule() const override;
+ 
   /// Initialization of the detector is done here
   void Initialize() override;
 
@@ -97,9 +100,6 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// Reads in the content of this class in the format of Print
   /// \param istream *is The input stream
   void Read(std::istream* is);
-
-  /// Clone this object (used in MT mode only)
-  // FairModule *CloneModule() const override;
 
  private:
   Int_t mIdSens1;            // Sensetive volume  in T0

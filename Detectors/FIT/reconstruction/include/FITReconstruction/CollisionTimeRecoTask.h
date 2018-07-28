@@ -24,8 +24,7 @@ class CollisionTimeRecoTask : public FairTask
 {
  public:
   CollisionTimeRecoTask();
-  virtual ~CollisionTimeRecoTask();
-
+  ~CollisionTimeRecoTask() override;
   InitStatus Init() override;
   void Exec(Option_t* option) override;
   void FinishTask() override;

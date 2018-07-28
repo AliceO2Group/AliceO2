@@ -16,6 +16,16 @@ using namespace o2::fit;
 ClassImp(o2::fit::Digit);
 ClassImp(o2::fit::ChannelData);
 
+void Digit::printStream(std::ostream& stream) const
+{
+  stream << "FIT Digit: event time " << mTime << " BC " << mBC << std::endl;
+  stream << "IS A " << mIsA << " IS C " << mIsC << " is Central " << mIsCentral
+	 << " is SemiCentral " << mIsSemiCentral << " is Vertex " << mIsVertex << std::endl;
+  
+  for (auto& chdata : mChDgDataArr)
+    stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime << " MIP " << chdata.QTCAmpl << std::endl;
+}
+
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)
 {
   digi.printStream(stream);

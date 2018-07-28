@@ -26,7 +26,7 @@ class RecPoints
   ~RecPoints() = default;
 
   //void FillFromDigits(const std::vector<Digit>& digits);
-  void FillFromDigits(const Digit* digit);
+  void FillFromDigits(const Digit& digit);
   Float_t GetCollisionTime(int side) const { return mCollisionTime[side]; }
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
 

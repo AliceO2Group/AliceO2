@@ -49,9 +49,9 @@ class Digitizer
   Int_t mEventID = 0;
   Int_t mSrcID = 0;
   Int_t mAmpThreshold; // Initialized in initParameters
-  Float_t mLowTime;    // Initialized in initParameters
-  Float_t mHighTime;   // Initialized in initParameters
-  Float_t mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
+  Double_t mLowTime;    // Initialized in initParameters
+  Double_t mHighTime;   // Initialized in initParameters
+  Double_t mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   ClassDefNV(Digitizer, 1);
 };
 } // namespace fit

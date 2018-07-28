@@ -18,7 +18,7 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::fit::CollisionTimeRecoTask)
+ClassImp(o2::fit::CollisionTimeRecoTask);
 
   using namespace o2::fit;
 //_____________________________________________________________________
@@ -63,7 +63,7 @@ void CollisionTimeRecoTask::Exec(Option_t* option)
   LOG(DEBUG) << "Running reconstruction on new event" << FairLogger::endl;
   FairRootManager* mgr = FairRootManager::Instance();
 
-  mRecPoints->FillFromDigits(mEventDigit);
+  mRecPoints->FillFromDigits(*mEventDigit);
   mEventID++;
 }
 //________________________________________________________

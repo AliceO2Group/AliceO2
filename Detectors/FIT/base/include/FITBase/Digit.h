@@ -12,7 +12,6 @@
 #define ALICEO2_FIT_DIGIT_H
 
 #include "CommonDataFormat/TimeStamp.h"
-#include <iosfwd>
 #include <iostream>
 
 #include "Rtypes.h"
@@ -23,13 +22,9 @@ namespace fit
 {
 
 struct ChannelData {
-  //    ChannelDigitData(Int_t chid, Float_t cfdtime, Float_t qtcampl) :
-  //        ChId(chid), CFDTime(cfdtime), QTCAmpl(qtcampl) {}
-  //~ChannelDigitData() {}
-
   Int_t ChId; //channel Id
-  Float_t CFDTime; //time in ns, 0 at lhc clk center
-  Float_t QTCAmpl; // Amplitude in mips
+  Double_t CFDTime; //time in ns, 0 at lhc clk center
+  Double_t QTCAmpl; // Amplitude in mips
   ClassDefNV(ChannelData, 1);
 };
 
@@ -41,12 +36,12 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Bool_t IsA, Bool_t IsC, Bool_t IsCnt, Bool_t IsSCnt, Bool_t IsVrtx)
+  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, Int_t bc, Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
   {
     setChDgData(std::move(ChDgDataArr));
     setTime(time);
     setBC(bc);
-    setTriggers(IsA, IsC, IsCnt, IsSCnt, IsVrtx);
+    setTriggers(isA, isC, isCnt, isSCnt, isVrtx);
   }
 
   ~Digit() = default;
@@ -57,28 +52,20 @@ class Digit : public DigitBase
   Int_t getBC() const { return mBC; }
   void setBC(Int_t bc) { mBC = bc; }
 
-  Bool_t getIsA() const {return mIsA;}
-  Bool_t getIsC() const {return mIsC;}
-  Bool_t getIsCnt() const {return mIsCentral;}
-  Bool_t getIsSCnt() const {return mIsSemiCentral;}
-  Bool_t getIsVrtx() const {return mIsVertex;}
+  Bool_t getisA() const {return mIsA;}
+  Bool_t getisC() const {return mIsC;}
+  Bool_t getisCnt() const {return mIsCentral;}
+  Bool_t getisSCnt() const {return mIsSemiCentral;}
+  Bool_t getisVrtx() const {return mIsVertex;}
 
-  void setTriggers(Bool_t IsA, Bool_t IsC, Bool_t IsCnt, Bool_t IsSCnt, Bool_t IsVrtx)
-  {mIsA = IsA; mIsC = IsC; mIsCentral = IsCnt; mIsSemiCentral = IsSCnt; mIsVertex = IsVrtx;}
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
+  {mIsA = isA; mIsC = isC; mIsCentral = isCnt; mIsSemiCentral = isSCnt; mIsVertex = isVrtx;}
 
   const std::vector<ChannelData>& getChDgData() const { return mChDgDataArr; }
   void setChDgData(const std::vector<ChannelData>& ChDgDataArr) { mChDgDataArr = ChDgDataArr; }
   void setChDgData(std::vector<ChannelData>&& ChDgDataArr) { mChDgDataArr = std::move(ChDgDataArr); }
 
-  void printStream(std::ostream& stream) const
-  {
-      stream << "FIT Digit: event time " << mTime << " BC " << mBC << std::endl;
-      stream << "IS A " << mIsA << " IS C " << mIsC << " Is Central " << mIsCentral
-                 << " Is SemiCentral " << mIsSemiCentral << " Is Vertex " << mIsVertex << std::endl;
-
-      for (auto& chdata : mChDgDataArr)
-          stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime << " MIP " << chdata.QTCAmpl << std::endl;
-  }
+  void printStream(std::ostream& stream) const;
 
  private:
   //  friend class boost::serialization::access;

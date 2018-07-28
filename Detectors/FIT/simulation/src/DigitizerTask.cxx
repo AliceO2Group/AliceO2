@@ -24,11 +24,6 @@ using namespace o2::fit;
 DigitizerTask::DigitizerTask() : FairTask("FITDigitizerTask"), mDigitizer() {}
 DigitizerTask::~DigitizerTask()
 {
-//  if (mDigitsArray) {
-//    mDigitsArray->clear();
-//    delete mDigitsArray;
-//  }
-
     if(mEventDigit)
 	delete mEventDigit;
 }
@@ -42,9 +37,6 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  // TList * brlist = mgr->GetBranchNameList ();
-  //  brlist->Print();
-
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::fit::HitType>*>("FITHit");
 
   if (!mHitsArray) {
@@ -53,9 +45,8 @@ InitStatus DigitizerTask::Init()
   }
 
   // Register output container
-  //mgr->RegisterAny("FITDigit", mDigitsArray, kTRUE);
   mgr->RegisterAny("FITDigit", mEventDigit, kTRUE);
-  //  mDigitizer.init();
+  mDigitizer.init();
   return kSUCCESS;
 }
 
@@ -63,9 +54,6 @@ InitStatus DigitizerTask::Init()
 void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
-
-//  if (mDigitsArray)
-//    mDigitsArray->clear();
 
   Float_t EventTime = mgr->GetEventTime();
   mDigitizer.setEventTime(EventTime);
@@ -79,7 +67,6 @@ void DigitizerTask::Exec(Option_t* option)
   /// provided and identified.
   mDigitizer.setEventID(mEventID);
 
-  //mDigitizer.process(mHitsArray, mDigitsArray);
   mDigitizer.process(mHitsArray, mEventDigit);
 
   mEventID++;
@@ -94,10 +81,6 @@ void DigitizerTask::FinishTask()
 
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-//  if (mDigitsArray)
-//    mDigitsArray->clear();
-  if(mEventDigit)
-      delete mEventDigit;
 
   mDigitizer.finish();
 
