@@ -28,9 +28,9 @@ namespace framework
 /// Index of what metrics have to be picked up
 /// for the DataRelayer view of a given device.
 struct DataRelayerViewIndex {
-  int w;
-  int h;
-  std::vector<size_t> indexes;
+  int w = 0;
+  int h = 0;
+  std::vector<size_t> indexes = {};
   /// Whether or not the view is ready to be used.
   bool isComplete() const { return (w * h) != 0; }
 };
