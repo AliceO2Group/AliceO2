@@ -14,6 +14,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/DataSamplingCondition.h"
+#include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataProcessingHeader.h"
 
 #include <TRandom3.h>
@@ -62,7 +63,7 @@ class DataSamplingConditionRandom : public DataSamplingCondition
   TRandom3 mGenerator;
 };
 
-std::unique_ptr<DataSamplingCondition> DataSamplingCondition::getDataSamplingConditionRandom()
+std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataSamplingConditionRandom()
 {
   return std::make_unique<DataSamplingConditionRandom>();
 }

@@ -37,10 +37,6 @@ class DataSamplingCondition
   virtual void configure(const boost::property_tree::ptree&) = 0;
   /// \brief Makes decision whether to pass a data sample or not.
   virtual bool decide(const o2::framework::DataRef&) = 0;
-
-  // a list of getters of specific DataSamplingCondition's
-  /// \brief Getter for DataSamplingConditionRandom
-  static std::unique_ptr<DataSamplingCondition> getDataSamplingConditionRandom();
 };
 
 } // namespace framework
