@@ -71,7 +71,7 @@ class Detector: public o2::Base::DetImpl<Detector> {
    ~Detector() override;
 
    /**      Initialization of the detector is done here    */
-   void Initialize() override;
+   void InitializeO2Detector() override;
 
    /**       this method is called for each step during simulation
     *       (see FairMCApplication::Stepping())

@@ -17,7 +17,6 @@
 #include "SimulationDataFormat/BaseHits.h"
 
 class FairVolume;
-class TClonesArray;
 
 namespace o2
 {
@@ -53,7 +52,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   ~Detector() override = default;
 
-  void Initialize() final;
+  void InitializeO2Detector() final;
 
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 

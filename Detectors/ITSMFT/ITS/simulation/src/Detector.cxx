@@ -243,7 +243,7 @@ Detector& Detector::operator=(const Detector& rhs)
   return *this;
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   // Define the list of sensitive volumes
   defineSensitiveVolumes();
@@ -253,9 +253,6 @@ void Detector::Initialize()
   }
 
   mGeometryTGeo = GeometryTGeo::Instance();
-
-  FairDetector::Initialize();
-
   //  FairRuntimeDb* rtdb= FairRun::Instance()->GetRuntimeDb();
   //  O2itsGeoPar* par=(O2itsGeoPar*)(rtdb->getContainer("O2itsGeoPar"));
 }

@@ -92,17 +92,10 @@ Detector::~Detector()
   std::cout << "Stepping called " << mStepCounter << "\n";
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   // Define the list of sensitive volumes
   DefineSensitiveVolumes();
-
-  // Register defined detectors in FairRoot maps
-  o2::Base::Detector::Initialize();
-  //     LOG(INFO) << "Initialize" << FairLogger::endl;
-
-  // Set the simulation type
-  FairRun* fRun = FairRun::Instance();
 }
 
 void Detector::SetSpecialPhysicsCuts()

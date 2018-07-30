@@ -75,7 +75,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   /// Initializing detector
   ///
-  void Initialize() final;
+  void InitializeO2Detector() final;
 
   ///
   /// Processing hit creation in the PHOS crystalls
