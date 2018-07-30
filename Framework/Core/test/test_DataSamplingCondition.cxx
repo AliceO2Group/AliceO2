@@ -13,7 +13,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "Framework/DataSamplingCondition.h"
+#include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataRef.h"
 #include "Framework/DataProcessingHeader.h"
 
@@ -21,7 +21,7 @@ using namespace o2::framework;
 
 BOOST_AUTO_TEST_CASE(DataSamplingConditionRandom)
 {
-  auto conditionRandom = DataSamplingCondition::getDataSamplingConditionRandom();
+  auto conditionRandom = DataSamplingConditionFactory::create("random");
 
   // PRNG should behave the same every time and on every machine.
   // Of course, the test does not cover full range of timesliceIDs.
