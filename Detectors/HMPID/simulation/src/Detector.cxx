@@ -42,13 +42,12 @@ Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("HMP", active), 
 Detector::Detector(const Detector& other) : mSensitiveVolumes(other.mSensitiveVolumes),
                                             mHits(new std::vector<HitType>) {}
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   for (auto sensitiveHpad : mSensitiveVolumes) {
     LOG(INFO) << "HMPID: registering sensitive " << sensitiveHpad->GetName();
     AddSensitiveVolume(sensitiveHpad);
   }
-  o2::Base::Detector::Initialize();
 }
 //*********************************************************************************************************
 bool Detector::ProcessHits(FairVolume* v)

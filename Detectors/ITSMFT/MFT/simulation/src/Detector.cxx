@@ -90,14 +90,11 @@ Detector::~Detector()
 }
 
 //_____________________________________________________________________________
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
-
   mGeometryTGeo = GeometryTGeo::Instance();
 
   defineSensitiveVolumes();
-
-  FairDetector::Initialize();
 }
 
 //_____________________________________________________________________________

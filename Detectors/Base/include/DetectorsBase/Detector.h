@@ -149,6 +149,21 @@ class Detector : public FairDetector
     virtual void attachHits(FairMQChannel&, FairMQParts&) = 0;
     virtual void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) = 0;
 
+    // hook which is called automatically to custom initialize the O2 detectors
+    // all initialization not able to do in constructors should be done here
+    // (typically the case for geometry related stuff, etc)
+    virtual void InitializeO2Detector() = 0;
+
+    // the original FairModule/Detector virtual Initialize function
+    // calls individual customized initializations and makes sure that the mother Initialize
+    // is called as well. Marked final for this reason!
+    void Initialize() final
+    {
+      InitializeO2Detector();
+      // make sure the basic initialization is also done
+      FairDetector::Initialize();
+    }
+
     // The GetCollection interface is made final and deprecated since
     // we no longer support TClonesArrays
     [[deprecated("Use getHits API on concrete detectors!")]]

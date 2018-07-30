@@ -46,7 +46,7 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   // FIXME: we need to register the sensitive volumes with FairRoot
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
@@ -55,8 +55,6 @@ void Detector::Initialize()
   else {
     AddSensitiveVolume(v);
   }
-
-  o2::Base::Detector::Initialize();
 }
 
 void Detector::ConstructGeometry()

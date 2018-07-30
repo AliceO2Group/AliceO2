@@ -54,9 +54,8 @@ Detector::Detector(const Detector& rhs)
 {
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
-  o2::Base::Detector::Initialize();
   Reset();
 }
 

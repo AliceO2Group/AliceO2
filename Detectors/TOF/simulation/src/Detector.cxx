@@ -43,7 +43,7 @@ Detector::Detector(const Detector& rhs)
     mTOFSectors[i] = rhs.mTOFSectors[i];
 }
 
-void Detector::Initialize()
+void Detector::InitializeO2Detector()
 {
   TGeoVolume* v = gGeoManager->GetVolume("FPAD");
   if (v == nullptr)
@@ -51,8 +51,6 @@ void Detector::Initialize()
   else {
     AddSensitiveVolume(v);
   }
-
-  o2::Base::Detector::Initialize();
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)

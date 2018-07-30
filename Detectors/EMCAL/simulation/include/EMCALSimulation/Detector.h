@@ -61,7 +61,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   /// Initializing detector
   ///
-  void Initialize() final;
+  void InitializeO2Detector() override;
 
   ///
   /// Processing hit creation in the EMCAL scintillator volume
