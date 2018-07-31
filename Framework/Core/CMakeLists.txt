@@ -14,13 +14,9 @@ set(MODULE_BUCKET_NAME O2FrameworkCore_bucket)
 
 O2_SETUP(NAME ${MODULE_NAME})
 if (GLFW_FOUND)
-  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx
-                  src/FrameworkGUIDevicesGraph.cxx
-                  src/FrameworkGUIDeviceInspector.cxx
-                  src/FrameworkGUIDataRelayerUsage.cxx
-                  src/PaletteHelpers.cxx)
+  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx)
 else()
-  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx src/DummyDebugGUI.cxx)
+  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
 endif()
 
 set(SRCS
@@ -62,6 +58,10 @@ set(SRCS
     src/Task.cxx
     src/TMessageSerializer.cxx
     src/StreamOperators.cxx
+    src/FrameworkGUIDevicesGraph.cxx
+    src/FrameworkGUIDeviceInspector.cxx
+    src/FrameworkGUIDataRelayerUsage.cxx
+    src/PaletteHelpers.cxx
     ${GUI_SOURCES}
     test/TestClasses.cxx
     src/Variant.cxx

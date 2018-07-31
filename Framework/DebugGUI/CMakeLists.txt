@@ -8,19 +8,31 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+
+
+
+if (GLFW_FOUND)
+  set(MODULE_BUCKET_NAME glfw_bucket)
+  set(GUI_BACKEND
+        src/imgui_impl_glfw_gl3.cpp
+        src/gl3w.c
+        src/DebugGUI.cxx
+      )
+else()
+  set(MODULE_BUCKET_NAME headless_bucket)
+  set(GUI_BACKEND
+        src/DummyDebugGUI.cxx
+      )
+endif()
+
 set(MODULE_NAME "DebugGUI")
-
-set(MODULE_BUCKET_NAME glfw_bucket)
-
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
       src/imgui.cpp
       src/imgui_draw.cpp
       src/imgui_extras.cpp
-      src/imgui_impl_glfw_gl3.cpp
-      src/gl3w.c
-      src/DebugGUI.cxx
+      ${GUI_BACKEND}
    )
 
 set(HEADERS
@@ -38,11 +50,13 @@ O2_GENERATE_LIBRARY()
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
+if (GLFW_FOUND)
 O2_GENERATE_EXECUTABLE(
   EXE_NAME "test_ImGUI"
   SOURCES test/test_ImGUI.cpp test/imgui_demo.cpp
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${MODULE_BUCKET_NAME}
 )
+endif()
 
 target_compile_options(DebugGUI PUBLIC -O0 -g -fno-omit-frame-pointer)
