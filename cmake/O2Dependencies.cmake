@@ -138,6 +138,11 @@ o2_define_bucket(
 )
 
 o2_define_bucket(
+  NAME
+  headless_bucket
+)
+
+o2_define_bucket(
     NAME
     common_vc_bucket
 
@@ -222,12 +227,6 @@ o2_define_bucket(
     ${Monitoring_INCLUDE_DIRS}
 )
 
-# a common bucket for the implementation of devices inherited
-# from O2device
-if(GLFW_FOUND)
-    set(GUI_LIBRARIES DebugGUI)
-endif()
-
 o2_define_bucket(
     NAME
     O2DeviceApplication_bucket
@@ -250,7 +249,7 @@ o2_define_bucket(
     Core
     Net
     MathUtils
-    ${GUI_LIBRARIES}
+    DebugGUI
     ${Monitoring_LIBRARIES}
     ${Configuration_LIBRARIES}
 

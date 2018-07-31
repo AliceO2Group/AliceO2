@@ -14,11 +14,13 @@ namespace o2
 namespace framework
 {
 
-void *initGUI(const char *) {return nullptr;}
-bool pollGUI(void *context, std::function<void(void)> guiCallback) {
+void* initGUI(const char*) { return nullptr; }
+bool pollGUI(void* context, std::function<void(void)> guiCallback)
+{
   return true;
 }
-void disposeGUI() {
+void disposeGUI()
+{
 }
 
 } // namespace framework
