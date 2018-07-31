@@ -38,6 +38,7 @@ set(SRCS
     src/DataSamplingConditionNConsecutive.cxx
     src/DataSamplingConditionFactory.cxx
     src/DataSamplingReadoutAdapter.cxx
+    src/DataSamplingPolicy.cxx
     src/DataSourceDevice.cxx
     src/DeviceMetricsInfo.cxx
     src/DeviceSpec.cxx
@@ -145,6 +146,7 @@ set(HEADERS
       include/Framework/DataSamplingCondition.h
       include/Framework/DataSamplingConditionFactory.h
       include/Framework/DataSamplingReadoutAdapter.h
+      include/Framework/DataSamplingPolicy.h
       include/Framework/DPLBoostSerializer.h
       include/Framework/TableBuilder.h
       include/Framework/FairMQResizableBuffer.h
@@ -218,6 +220,7 @@ set(TEST_SRCS
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
       test/test_DataSamplingCondition.cxx
+      test/test_DataSamplingPolicy.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
       test/test_ExternalFairMQDeviceProxy.cxx
