@@ -34,6 +34,8 @@ class DataSamplingConditionFactory
   // inside particular DataSamplingCondition*.cxx files.
   /// \brief Getter for DataSamplingConditionRandom
   static std::unique_ptr<DataSamplingCondition> createDataSamplingConditionRandom();
+  /// \brief Getter for DataSamplingConditionPayloadSize
+  static std::unique_ptr<DataSamplingCondition> createDataSamplingConditionPayloadSize();
 };
 
 } // namespace framework
