@@ -914,6 +914,7 @@ o2_define_bucket(
     TPCBase
     SimulationDataFormat
     DataFormatsTPC
+    TPCSpaceChargeBase_bucket
     Geom
     MathCore
     MathUtils
@@ -988,13 +989,13 @@ o2_define_bucket(
 o2_define_bucket(
     NAME
     TPCCAGPUTracking_bucket
-    
+
     DEPENDENCIES
     dl
     pthread
     root_base_bucket
     common_vc_bucket
-    
+
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/SliceTracker
@@ -1004,6 +1005,18 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
+)
+
+o2_define_bucket(
+    NAME
+    TPCSpaceChargeBase_bucket
+
+    DEPENDENCIES
+    root_base_bucket Hist MathCore Matrix Physics
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase
 )
 
 o2_define_bucket(
@@ -1351,7 +1364,7 @@ o2_define_bucket(
     Core Hist # ROOT
     CommonDataFormat
     detectors_base_bucket
- 
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
