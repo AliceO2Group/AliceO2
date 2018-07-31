@@ -27,6 +27,8 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::create(std:
 {
   if (name == "random" || name == "DataSamplingConditionRandom") {
     return createDataSamplingConditionRandom();
+  } else if (name == "payloadSize" || name == "DataSamplingConditionPayloadSize") {
+    return createDataSamplingConditionPayloadSize();
   } else {
     LOG(ERROR) << "DataSamplingCondition '" << name << "' unknown.";
     return nullptr;
