@@ -11,9 +11,8 @@
 #define GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT 0.85
 #define GLOBAL_TRACKING_MIN_ROWS 10					//Min num of rows an additional global track must span over
 #define GLOBAL_TRACKING_MIN_HITS 8					//Min num of hits for an additional global track
-#ifdef HLTCA_STANDALONE
-#define GLOBAL_TRACKING_MAINTAIN_TRACKLETS			//Maintain tracklets for standalone OpenGL event display
-#endif
+
+#define MERGE_CE_ROWLIMIT 15						////Distance from first / last row in order to attempt merging accross CE
 
 #define HLTCA_Y_FACTOR 4							//Weight of y residual vs z residual in tracklet constructor
 #define HLTCA_GPU_MAXN 40							//Maximum number of neighbor hits to consider in one row in neightbors finder

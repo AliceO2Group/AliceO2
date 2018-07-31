@@ -33,18 +33,20 @@ class AliHLTTPCGMBorderTrack
 
 
   int   TrackID()                    const { return fTrackID;   }
-  int   NClusters()                  const { return fNClusters; }  
+  short NClusters()                  const { return fNClusters; }  
+  short Row()                        const { return fRow;       }
   const float *Par() const { return fP; }
   float ZOffset() const { return fZOffset;}
   const float *Cov() const { return fC; }
   const float *CovD() const { return fD; }
 
-  void SetTrackID   ( int v )                        { fTrackID   = v; }
-  void SetNClusters ( int v )                        { fNClusters = v; }
-  void SetPar( int i, float x ) { fP[i] = x; }
-  void SetZOffset(float v) {fZOffset = v;}
-  void SetCov( int i, float x ) { fC[i] = x; }
-  void SetCovD( int i, float x ) { fD[i] = x; }
+  void SetTrackID   ( int v )              { fTrackID   = v; }
+  void SetNClusters ( short v )            { fNClusters = v; }
+  void SetRow ( short v )                  { fRow = v; }
+  void SetPar( int i, float x )            { fP[i] = x; }
+  void SetZOffset( float v )               { fZOffset = v;}
+  void SetCov( int i, float x )            { fC[i] = x; }
+  void SetCovD( int i, float x )           { fD[i] = x; }
  
   static bool CheckChi2( float x1, float y1, float cx1, float cxy1, float cy1,
 			  float x2, float y2, float cx2, float cxy2, float cy2, float chi2cut  )
@@ -89,7 +91,8 @@ class AliHLTTPCGMBorderTrack
  private:
 
   int   fTrackID;              // track index
-  int   fNClusters;            // n clusters
+  short fNClusters;            // n clusters
+  short fRow;
   float fP[5];
   float fZOffset;
   float fC[5];

@@ -26,6 +26,7 @@ class AliHLTTPCGMSliceTrack
   
   float Alpha()                      const { return fAlpha;          }
   char  Slice()                      const { return (char) fSlice;   }
+  char  CSide()                      const { return fSlice >= 18;    }
   int   NClusters()                  const { return fNClusters;      }
   int   PrevNeighbour()              const { return fPrevNeighbour;  }
   int   NextNeighbour()              const { return fNextNeighbour;  }
