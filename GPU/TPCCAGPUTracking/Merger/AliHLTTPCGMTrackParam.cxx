@@ -100,9 +100,17 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
     unsigned char lastLeg = clusters[ihitStart].fLeg;
     const int wayDirection = (iWay & 1) ? -1 : 1;
     int ihit = ihitStart;
-    bool noFollowCircle = false;
+    bool noFollowCircle = false, noFollowCircle2 = false;
     for(;ihit >= 0 && ihit<maxN;ihit += wayDirection)
     {
+      const bool crossCE = lastSlice != 255 && ((lastSlice < 18) ^ (clusters[ihit].fSlice < 18));
+      if (crossCE)
+      {
+          fZOffset = -fZOffset;
+          lastSlice = clusters[ihit].fSlice;
+          noFollowCircle2 = true;
+      }
+        
       float xx = clusters[ihit].fX;
       float yy = clusters[ihit].fY;
       float zz = clusters[ihit].fZ - fZOffset;
@@ -127,10 +135,10 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
       bool changeDirection = (clusters[ihit].fLeg - lastLeg) & 1;
       CADEBUG(if(changeDirection) printf("\t\tChange direction\n");)
       CADEBUG(printf("\tLeg %3d%14sTrack   Alpha %8.3f %s, X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", (int) clusters[ihit].fLeg, "", prop.GetAlpha(), (fabs(prop.GetAlpha() - clAlpha) < 0.01 ? "   " : " R!"), fX, fP[0], fP[1], fP[4], prop.GetQPt0(), fP[2], prop.GetSinPhi0(), "", sqrtf(fC[0]), sqrtf(fC[2]), sqrtf(fC[5]), sqrtf(fC[14]), fC[10]);)
-      if (rejectChi2 && changeDirection && !noFollowCircle)
+      if (rejectChi2 && changeDirection && !noFollowCircle && !noFollowCircle2)
       {
-          AliHLTTPCGMTrackParam backup = *this;
-          float backupAlpha = prop.GetAlpha();
+          const AliHLTTPCGMTrackParam backup = *this;
+          const float backupAlpha = prop.GetAlpha();
           if (FollowCircle(merger, prop, lastSlice, lastRow, iTrk, clusters[ihit].fLeg == clusters[maxN - 1].fLeg, clAlpha, xx, yy, clusters[ihit].fSlice, clusters[ihit].fRow, inFlyDirection))
           {
               CADEBUG(printf("Error during follow circle, resetting track!\n");)
@@ -217,6 +225,7 @@ GPUd() bool AliHLTTPCGMTrackParam::Fit(const AliHLTTPCGMMerger* merger, int iTrk
 
       if (retVal == 0) // track is updated
       {
+        noFollowCircle2 = false;
         lastUpdateX = fX;
         covYYUpd = fC[0];
         nMissed = 0;
@@ -567,7 +576,7 @@ GPUd() void AliHLTTPCGMTrackParam::AttachClustersMirror(const AliHLTTPCGMMerger*
 GPUd() void AliHLTTPCGMTrackParam::ShiftZ(const AliHLTTPCGMPolynomialField* field, const AliHLTTPCGMMergedTrackHit* clusters, const AliHLTTPCCAParam &param, int N)
 {
   if (!param.GetContinuousTracking()) return;
-  if (clusters[0].fZ * clusters[N - 1].fZ < 0) return; //Do not shift tracks crossing the central electrode
+  if ((clusters[0].fSlice < 18) ^ (clusters[N - 1].fSlice < 18)) return; //Do not shift tracks crossing the central electrode
   
   const float cosPhi = fabs(fP[2]) < 1.f ? AliHLTTPCCAMath::Sqrt(1 - fP[2] * fP[2]) : 0.f;
   const float dxf = -AliHLTTPCCAMath::Abs(fP[2]);

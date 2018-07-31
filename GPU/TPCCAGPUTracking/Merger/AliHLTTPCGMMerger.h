@@ -78,15 +78,17 @@ private:
   
   void MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB );
 
-  void MergeBorderTracks( int iSlice1, AliHLTTPCGMBorderTrack B1[],  int N1,
-			  int iSlice2, AliHLTTPCGMBorderTrack B2[],  int N2 );
+  void MergeBorderTracks( int iSlice1, AliHLTTPCGMBorderTrack B1[], int N1, int iSlice2, AliHLTTPCGMBorderTrack B2[], int N2, int crossCE = 0 );
 
   void ClearMemory();
   bool AllocateMemory();
   void UnpackSlices();
+  void MergeCEInit();
+  void MergeCEFill(const AliHLTTPCGMSliceTrack* track, const AliHLTTPCGMMergedTrackHit& cls, int itr);
   void MergeCE();
   void MergeWithingSlices();
   void MergeSlices();
+  void PrepareClustersForFit();
   void CollectMergedTracks();
   void Refit(bool resetTimers);
   void Finalize();
@@ -102,6 +104,7 @@ private:
 
   int fNOutputTracks;
   int fNOutputTrackClusters;
+  int fNMaxOutputTrackClusters;
   AliHLTTPCGMMergedTrack *fOutputTracks;       //* array of output merged tracks
   
   AliHLTTPCGMSliceTrack *fSliceTrackInfoMemory; //* additional information for slice tracks
@@ -119,13 +122,13 @@ private:
   AliHLTTPCGMBorderTrack* fBorder[fgkNSlices];
   AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory; // memory for border tracks
   AliHLTTPCGMBorderTrack::Range *fBorderRange[fgkNSlices]; // memory for border tracks
+  int fBorderCETracks[2][fgkNSlices];
 
   AliHLTTPCCAGPUTracker* fGPUTracker;
   AliHLTTPCCATracker* fSliceTrackers;
   int fDebugLevel;
 
   int fNClusters;			//Total number of incoming clusters
-  
 };
 
 #endif //ALIHLTTPCGMMERGER_H
