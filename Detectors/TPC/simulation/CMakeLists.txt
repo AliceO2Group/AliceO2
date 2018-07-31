@@ -1,3 +1,11 @@
+if(DEFINED ALITPCCOMMON_DIR)
+    set(ALITPCCOMMON_BUILD_TYPE "O2")
+    add_subdirectory(${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase TPCSpaceChargeBase)
+    include_directories(${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase)
+else()
+    message(FATAL_ERROR "cmake variable ALITPCCOMMON_DIR is not defined")
+endif()
+
 set(MODULE_NAME "TPCSimulation")
 
 O2_SETUP(NAME ${MODULE_NAME})
