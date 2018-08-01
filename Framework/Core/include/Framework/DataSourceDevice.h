@@ -47,6 +47,7 @@ private:
 
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
+  TimingInfo mTimingInfo;
   MessageContext mContext;
   RootObjectContext mRootContext;
   DataAllocator mAllocator;

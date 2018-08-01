@@ -37,7 +37,7 @@ DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &regi
   mStatelessProcess{spec.algorithm.onProcess},
   mError{spec.algorithm.onError},
   mConfigRegistry{nullptr},
-  mAllocator{FairMQDeviceProxy{this},&mContext, &mRootContext, spec.outputs},
+  mAllocator{FairMQDeviceProxy{this},&mTimingInfo, &mContext, &mRootContext, spec.outputs},
   mServiceRegistry{registry},
   mCurrentTimeslice{0},
   mRate{0.},
@@ -91,8 +91,9 @@ bool DataSourceDevice::ConditionalRun() {
   // processing code, we still specify it.
   InputRecord dummyInputs{ {}, { [](size_t) { return nullptr; }, 0 } };
   try {
-    mContext.prepareForTimeslice(mCurrentTimeslice);
-    mRootContext.prepareForTimeslice(mCurrentTimeslice);
+    mTimingInfo.timeslice = mCurrentTimeslice;
+    mContext.clear();
+    mRootContext.clear();
     mCurrentTimeslice += 1;
 
     // Avoid runaway process in case we have nothing to do.

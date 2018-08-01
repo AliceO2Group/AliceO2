@@ -44,7 +44,7 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegist
     mStatelessProcess{ spec.algorithm.onProcess },
     mError{ spec.algorithm.onError },
     mConfigRegistry{ nullptr },
-    mAllocator{ this, &mContext, &mRootContext, spec.outputs },
+    mAllocator{ this, &mTimingInfo, &mContext, &mRootContext, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
     mInputChannels{ spec.inputChannels },
     mOutputChannels{ spec.outputChannels },
@@ -116,6 +116,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto &processingCount = mProcessingCount;
   auto &relayer = mRelayer;
   auto &device = *this;
+  auto &timingInfo = mTimingInfo;
   auto &context = mContext;
   auto &rootContext = mRootContext;
   auto &forwards = mForwards;
@@ -272,11 +273,12 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&rootContext, &context, &relayer](int i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &context, &relayer](int i) {
     size_t timeslice = relayer.getTimesliceForCacheline(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
-    rootContext.prepareForTimeslice(timeslice);
-    context.prepareForTimeslice(timeslice);
+    timingInfo.timeslice = timeslice;
+    rootContext.clear();
+    context.clear();
   };
 
   // This is how we do the forwarding, i.e. we push 

@@ -23,6 +23,8 @@ namespace o2
 namespace framework
 {
 
+/// Holds ROOT objects which are being processed by a given 
+/// computation.
 class RootObjectContext {
 public:
   struct MessageRef {
@@ -57,7 +59,7 @@ public:
     return mMessages.size();
   }
 
-  void prepareForTimeslice(size_t timeslice)
+  void clear()
   {
     // On send we move the header, but the payload remains
     // there because what's really sent is the TMessage
@@ -67,16 +69,10 @@ public:
       assert(m.payload.get() != nullptr);
     }
     mMessages.clear();
-    mTimeslice = timeslice;
   }
 
-  size_t timeslice() const
-  {
-    return mTimeslice;
-  }
 private:
   Messages mMessages;
-  size_t mTimeslice;
 };
 
 } // namespace framework

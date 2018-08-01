@@ -18,6 +18,7 @@
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/SerializationMethods.h"
@@ -55,6 +56,7 @@ public:
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
   DataAllocator(FairMQDeviceProxy device,
+                TimingInfo *timingInfo,
                 MessageContext *context,
                 RootObjectContext *rootContext,
                 const AllowedOutputRoutes &routes);
@@ -354,6 +356,7 @@ public:
   FairMQDeviceProxy mProxy;
   FairMQDevice *mDevice;
   AllowedOutputRoutes mAllowedOutputRoutes;
+  TimingInfo *mTimingInfo;
   MessageContext* mContext;
   RootObjectContext* mRootContext;
 
