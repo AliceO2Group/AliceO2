@@ -16,8 +16,6 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/ServiceRegistry.h"
 
 #include <memory>
@@ -48,8 +46,9 @@ private:
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;
-  MessageContext mContext;
+  MessageContext mFairMQContext;
   RootObjectContext mRootContext;
+  ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   size_t mCurrentTimeslice;
   float mRate;

@@ -11,9 +11,13 @@
 #define FRAMEWORK_MESSAGECONTEXT_H
 
 #include <fairmq/FairMQParts.h>
+#include "Framework/ContextRegistry.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include <vector>
 #include <cassert>
 #include <string>
+
+class FairMQDevice;
 
 namespace o2
 {
@@ -22,9 +26,14 @@ namespace framework
 
 class MessageContext {
 public:
-  struct MessageRef {
-    FairMQParts parts;
-    std::string channel;
+ MessageContext(FairMQDeviceProxy proxy)
+   : mProxy{ proxy }
+ {
+ }
+
+ struct MessageRef {
+   FairMQParts parts;
+   std::string channel;
   };
   using Messages = std::vector<MessageRef>;
 
@@ -61,9 +70,32 @@ public:
     }
     mMessages.clear();
   }
-private:
+
+  FairMQDeviceProxy& proxy()
+  {
+    return mProxy;
+  }
+
+ private:
+  FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
+
+/// Helper to get the context from the registry.
+template <>
+inline MessageContext*
+  ContextRegistry::get<MessageContext>()
+{
+  return reinterpret_cast<MessageContext*>(mContextes[0]);
+}
+
+/// Helper to set the context from the registry.
+template <>
+inline void
+  ContextRegistry::set<MessageContext>(MessageContext* context)
+{
+  mContextes[0] = context;
+}
 
 } // namespace framework
 } // namespace o2

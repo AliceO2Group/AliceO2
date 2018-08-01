@@ -15,12 +15,13 @@
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ContextRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/ServiceRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/ServiceRegistry.h"
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/TimingInfo.h"
@@ -51,8 +52,9 @@ private:
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;
-  MessageContext mContext;
+  MessageContext mFairMQContext;
   RootObjectContext mRootContext;
+  ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer mRelayer;
 
