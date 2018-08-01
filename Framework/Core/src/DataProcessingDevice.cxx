@@ -44,7 +44,10 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegist
     mStatelessProcess{ spec.algorithm.onProcess },
     mError{ spec.algorithm.onError },
     mConfigRegistry{ nullptr },
-    mAllocator{ this, &mTimingInfo, &mContext, &mRootContext, spec.outputs },
+    mFairMQContext{ FairMQDeviceProxy{ this } },
+    mRootContext{ FairMQDeviceProxy{ this } },
+    mContextRegistry{ { &mFairMQContext, &mRootContext } },
+    mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
     mInputChannels{ spec.inputChannels },
     mOutputChannels{ spec.outputChannels },
@@ -117,7 +120,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto &relayer = mRelayer;
   auto &device = *this;
   auto &timingInfo = mTimingInfo;
-  auto &context = mContext;
+  auto& context = mFairMQContext;
   auto &rootContext = mRootContext;
   auto &forwards = mForwards;
   auto &inputsSchema = mInputs;

@@ -7,6 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ContextRegistry.h"
+#include "Framework/MessageContext.h"
+#include "Framework/RootObjectContext.h"
 #include "Framework/DataSourceDevice.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/DataProcessor.h"
@@ -31,17 +34,20 @@ namespace o2
 namespace framework
 {
 
-DataSourceDevice::DataSourceDevice(const DeviceSpec &spec, ServiceRegistry &registry)
-: mInit{spec.algorithm.onInit},
-  mStatefulProcess{nullptr},
-  mStatelessProcess{spec.algorithm.onProcess},
-  mError{spec.algorithm.onError},
-  mConfigRegistry{nullptr},
-  mAllocator{FairMQDeviceProxy{this},&mTimingInfo, &mContext, &mRootContext, spec.outputs},
-  mServiceRegistry{registry},
-  mCurrentTimeslice{0},
-  mRate{0.},
-  mLastTime{0}
+DataSourceDevice::DataSourceDevice(const DeviceSpec& spec, ServiceRegistry& registry)
+  : mInit{ spec.algorithm.onInit },
+    mStatefulProcess{ nullptr },
+    mStatelessProcess{ spec.algorithm.onProcess },
+    mError{ spec.algorithm.onError },
+    mConfigRegistry{ nullptr },
+    mFairMQContext{ this },
+    mRootContext{ this },
+    mContextRegistry{ { &mFairMQContext, &mRootContext } },
+    mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
+    mServiceRegistry{ registry },
+    mCurrentTimeslice{ 0 },
+    mRate{ 0. },
+    mLastTime{ 0 }
 {
 }
 
@@ -92,8 +98,8 @@ bool DataSourceDevice::ConditionalRun() {
   InputRecord dummyInputs{ {}, { [](size_t) { return nullptr; }, 0 } };
   try {
     mTimingInfo.timeslice = mCurrentTimeslice;
-    mContext.clear();
-    mRootContext.clear();
+    mContextRegistry.get<MessageContext>()->clear();
+    mContextRegistry.get<RootObjectContext>()->clear();
     mCurrentTimeslice += 1;
 
     // Avoid runaway process in case we have nothing to do.
@@ -111,10 +117,11 @@ bool DataSourceDevice::ConditionalRun() {
       LOG(DEBUG) << "Has stateful process callback";
       mStatefulProcess(processingContext);
     }
-    size_t nMsg = mContext.size() + mRootContext.size();
+    size_t nMsg = mContextRegistry.get<MessageContext>()->size();
+    nMsg += mContextRegistry.get<RootObjectContext>()->size();
     LOG(DEBUG) << "Process produced " << nMsg << " messages";
-    DataProcessor::doSend(*this, mContext);
-    DataProcessor::doSend(*this, mRootContext);
+    DataProcessor::doSend(*this, *mContextRegistry.get<MessageContext>());
+    DataProcessor::doSend(*this, *mContextRegistry.get<RootObjectContext>());
   } catch(std::exception &e) {
     if (mError) {
       ErrorContext errorContext{dummyInputs, mServiceRegistry, e};

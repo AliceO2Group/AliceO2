@@ -11,13 +11,14 @@
 #define FRAMEWORK_DATAALLOCATOR_H
 
 #include "Headers/DataHeader.h"
+#include "Framework/ContextRegistry.h"
+#include "Framework/MessageContext.h"
+#include "Framework/RootObjectContext.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
 #include "Framework/FairMQDeviceProxy.h"
-#include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
@@ -42,6 +43,8 @@ namespace o2
 namespace framework
 {
 
+class ContextRegistry;
+
 /// This allocator is responsible to make sure that the messages created match
 /// the provided spec and that depending on how many pipelined reader we
 /// have, messages get created on the channel for the reader of the current
@@ -55,14 +58,13 @@ public:
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-  DataAllocator(FairMQDeviceProxy device,
-                TimingInfo *timingInfo,
-                MessageContext *context,
-                RootObjectContext *rootContext,
-                const AllowedOutputRoutes &routes);
+  DataAllocator(TimingInfo* timingInfo,
+                ContextRegistry* contextes,
+                const AllowedOutputRoutes& routes);
 
   DataChunk newChunk(const Output&, size_t);
-  DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
+
+  inline DataChunk newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
   DataChunk adoptChunk(const Output&, char *, size_t, fairmq_free_fn*, void *);
 
@@ -168,7 +170,8 @@ public:
   typename std::enable_if<has_root_dictionary<T>::value == true && is_messageable<T>::value == false, void>::type
   snapshot(const Output& spec, T& object)
   {
-    FairMQMessagePtr payloadMessage(mProxy.createMessage());
+    auto proxy = mContextRegistry->get<RootObjectContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage());
     auto* cl = TClass::GetClass(typeid(T));
     TMessageSerializer().Serialize(*payloadMessage, &object, cl);
 
@@ -192,7 +195,8 @@ public:
                     std::is_void<typename W::hint_type>::value,             //
                   "class hint must be of type TClass or const char");
 
-    FairMQMessagePtr payloadMessage(mProxy.createMessage());
+    auto proxy = mContextRegistry->get<RootObjectContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage());
     const TClass* cl = nullptr;
     if (wrapper.getHint() == nullptr) {
       // get TClass info by wrapped type
@@ -227,7 +231,8 @@ public:
   typename std::enable_if<is_messageable<T>::value == true, void>::type
   snapshot(const Output& spec, T const& object)
   {
-    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeof(T)));
+    auto proxy = mContextRegistry->get<MessageContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage(sizeof(T)));
     memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
     addPartToContext(std::move(payloadMessage), spec, o2::header::gSerializationMethodNone);
@@ -243,8 +248,9 @@ public:
                           is_messageable<typename C::value_type>::value == true>::type
   snapshot(const Output& spec, C const& v)
   {
+    auto proxy = mContextRegistry->get<MessageContext>()->proxy();
     auto sizeInBytes = sizeof(typename C::value_type) * v.size();
-    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
+    FairMQMessagePtr payloadMessage(proxy.createMessage(sizeInBytes));
 
     typename C::value_type *tmp = const_cast<typename C::value_type*>(v.data());
     memcpy(payloadMessage->GetData(), reinterpret_cast<void*>(tmp), sizeInBytes);
@@ -266,7 +272,8 @@ public:
     using ElementType = typename std::remove_pointer<typename C::value_type>::type;
     constexpr auto elementSizeInBytes = sizeof(ElementType);
     auto sizeInBytes = elementSizeInBytes * v.size();
-    FairMQMessagePtr payloadMessage(mProxy.createMessage(sizeInBytes));
+    auto proxy = mContextRegistry->get<MessageContext>()->proxy();
+    FairMQMessagePtr payloadMessage(proxy.createMessage(sizeInBytes));
 
     auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
     for (auto const & pointer : v) {
@@ -353,12 +360,9 @@ public:
   }
 
  private:
-  FairMQDeviceProxy mProxy;
-  FairMQDevice *mDevice;
   AllowedOutputRoutes mAllowedOutputRoutes;
   TimingInfo *mTimingInfo;
-  MessageContext* mContext;
-  RootObjectContext* mRootContext;
+  ContextRegistry* mContextRegistry;
 
   std::string matchDataHeader(const Output &spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //

@@ -10,6 +10,8 @@
 #ifndef FRAMEWORK_ROOTOBJETCONTEXT_H
 #define FRAMEWORK_ROOTOBJETCONTEXT_H
 
+#include "Framework/ContextRegistry.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include <vector>
 #include <cassert>
 #include <string>
@@ -27,10 +29,15 @@ namespace framework
 /// computation.
 class RootObjectContext {
 public:
-  struct MessageRef {
-    std::unique_ptr<FairMQMessage> header;
-    std::unique_ptr<TObject> payload;
-    std::string channel;
+ RootObjectContext(FairMQDeviceProxy proxy)
+   : mProxy{ proxy }
+ {
+ }
+
+ struct MessageRef {
+   std::unique_ptr<FairMQMessage> header;
+   std::unique_ptr<TObject> payload;
+   std::string channel;
   };
 
   using Messages = std::vector<MessageRef>;
@@ -71,9 +78,31 @@ public:
     mMessages.clear();
   }
 
-private:
+  FairMQDeviceProxy& proxy()
+  {
+    return mProxy;
+  }
+
+ private:
+  FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
+
+/// Helper to get the context from the registry.
+template <>
+inline RootObjectContext*
+  ContextRegistry::get<RootObjectContext>()
+{
+  return reinterpret_cast<RootObjectContext*>(mContextes[1]);
+}
+
+/// Helper to set the context from the registry.
+template <>
+inline void
+  ContextRegistry::set<RootObjectContext>(RootObjectContext* context)
+{
+  mContextes[1] = context;
+}
 
 } // namespace framework
 } // namespace o2
