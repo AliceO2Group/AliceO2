@@ -53,25 +53,16 @@ public:
   /// Prepares the context to create messages for the given timeslice. This
   /// expects that the previous context was already sent and can be completely
   /// discarded.
-  void prepareForTimeslice(size_t timeslice)
+  void clear()
   {
     // Verify that everything has been sent on clear.
     for (auto &m : mMessages) {
       assert(m.parts.Size() == 0);
     }
     mMessages.clear();
-    mTimeslice = timeslice;
-  }
-
-  /// This returns the current timeslice for the context. The value of the
-  /// timeslice is used to determine which downstream device will get the
-  /// message in case we are doing time pipelining.
-  size_t timeslice() const {
-    return mTimeslice;
   }
 private:
   Messages mMessages;
-  size_t mTimeslice;
 };
 
 } // namespace framework

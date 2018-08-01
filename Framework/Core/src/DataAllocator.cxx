@@ -28,12 +28,14 @@ using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 DataAllocator::DataAllocator(FairMQDeviceProxy proxy,
+                             TimingInfo *timingInfo,
                              MessageContext *context,
                              RootObjectContext *rootContext,
                              const AllowedOutputRoutes &routes)
 : mProxy{proxy},
   mDevice{proxy.getDevice()},
   mAllowedOutputRoutes{routes},
+  mTimingInfo{timingInfo},
   mContext{context},
   mRootContext{rootContext}
 {
@@ -58,7 +60,7 @@ DataAllocator::matchDataHeader(const Output& spec, size_t timeslice) {
 
 DataChunk
 DataAllocator::newChunk(const Output& spec, size_t size) {
-  std::string channel = matchDataHeader(spec, mContext->timeslice());
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
 
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                            o2::header::gSerializationMethodNone, //
@@ -81,7 +83,7 @@ DataChunk
 DataAllocator::adoptChunk(const Output& spec, char *buffer, size_t size, fairmq_free_fn *freefn, void *hint = nullptr) {
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
-  std::string channel = matchDataHeader(spec, mContext->timeslice());
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
 
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                            o2::header::gSerializationMethodNone, //
@@ -113,7 +115,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.payloadSize = payloadSize;
   dh.payloadSerializationMethod = method;
 
-  DataProcessingHeader dph{mContext->timeslice(), 1};
+  DataProcessingHeader dph{mTimingInfo->timeslice, 1};
 
   auto channelAlloc = o2::memory_resource::getTransportAllocator(mProxy.getTransport(channel, 0));
   return o2::memory_resource::getMessage(o2::header::Stack{ channelAlloc, dh, dph, spec.metaHeader });
@@ -122,7 +124,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
 void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Output& spec,
                                      o2::header::SerializationMethod serializationMethod)
 {
-  std::string channel = matchDataHeader(spec, mRootContext->timeslice());
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
   // the correct payload size is st later when sending the
   // RootObjectContext, see DataProcessor::doSend
   auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod, 0);
@@ -142,7 +144,7 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
 void DataAllocator::adopt(const Output& spec, TObject* ptr)
 {
   std::unique_ptr<TObject> payload(ptr);
-  std::string channel = matchDataHeader(spec, mRootContext->timeslice());
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
   // the correct payload size is set later when sending the
   // RootObjectContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodROOT, 0);

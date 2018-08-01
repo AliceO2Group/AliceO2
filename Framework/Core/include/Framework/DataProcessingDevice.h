@@ -23,6 +23,7 @@
 #include "Framework/RootObjectContext.h"
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
+#include "Framework/TimingInfo.h"
 
 #include <memory>
 
@@ -49,6 +50,7 @@ private:
   AlgorithmSpec::ErrorCallback mError;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
+  TimingInfo mTimingInfo;
   MessageContext mContext;
   RootObjectContext mRootContext;
   DataAllocator mAllocator;
