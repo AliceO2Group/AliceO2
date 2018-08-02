@@ -654,6 +654,7 @@ void AliHLTTPCGMMerger::MergeCEFill(const AliHLTTPCGMSliceTrack* track, const Al
 {
 #if defined(HLTCA_STANDALONE) && !defined(HLTCA_GPUCODE) && !defined(HLTCA_BUILD_O2_LIB)  
   if (cls.fRow < MERGE_CE_ROWLIMIT || cls.fRow >= HLTCA_ROW_COUNT - MERGE_CE_ROWLIMIT) return;
+  if (!fSliceParam.GetContinuousTracking() && fabs(cls.fZ) > 10) return;
   int slice = track->Slice();
   for (int attempt = 0;attempt < 2;attempt++)
   {
