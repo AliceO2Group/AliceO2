@@ -42,7 +42,8 @@ DataSourceDevice::DataSourceDevice(const DeviceSpec& spec, ServiceRegistry& regi
     mConfigRegistry{ nullptr },
     mFairMQContext{ this },
     mRootContext{ this },
-    mContextRegistry{ { &mFairMQContext, &mRootContext } },
+    mStringContext{ this },
+    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext } },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mServiceRegistry{ registry },
     mCurrentTimeslice{ 0 },
@@ -100,6 +101,7 @@ bool DataSourceDevice::ConditionalRun() {
     mTimingInfo.timeslice = mCurrentTimeslice;
     mContextRegistry.get<MessageContext>()->clear();
     mContextRegistry.get<RootObjectContext>()->clear();
+    mContextRegistry.get<StringContext>()->clear();
     mCurrentTimeslice += 1;
 
     // Avoid runaway process in case we have nothing to do.
@@ -119,9 +121,11 @@ bool DataSourceDevice::ConditionalRun() {
     }
     size_t nMsg = mContextRegistry.get<MessageContext>()->size();
     nMsg += mContextRegistry.get<RootObjectContext>()->size();
+    nMsg += mContextRegistry.get<StringContext>()->size();
     LOG(DEBUG) << "Process produced " << nMsg << " messages";
     DataProcessor::doSend(*this, *mContextRegistry.get<MessageContext>());
     DataProcessor::doSend(*this, *mContextRegistry.get<RootObjectContext>());
+    DataProcessor::doSend(*this, *mContextRegistry.get<StringContext>());
   } catch(std::exception &e) {
     if (mError) {
       ErrorContext errorContext{dummyInputs, mServiceRegistry, e};

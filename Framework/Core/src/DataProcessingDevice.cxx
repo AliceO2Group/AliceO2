@@ -46,7 +46,8 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegist
     mConfigRegistry{ nullptr },
     mFairMQContext{ FairMQDeviceProxy{ this } },
     mRootContext{ FairMQDeviceProxy{ this } },
-    mContextRegistry{ { &mFairMQContext, &mRootContext } },
+    mStringContext{ FairMQDeviceProxy{ this } },
+    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext } },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
     mInputChannels{ spec.inputChannels },
@@ -122,6 +123,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto &timingInfo = mTimingInfo;
   auto& context = mFairMQContext;
   auto &rootContext = mRootContext;
+  auto& stringContext = mStringContext;
   auto &forwards = mForwards;
   auto &inputsSchema = mInputs;
   auto &errorCount = mErrorCount;
@@ -237,7 +239,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &serviceRegistry, &device](int i, InputRecord& record) {
+                             &context, &rootContext, &stringContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
       monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
@@ -258,6 +260,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
     }
     DataProcessor::doSend(device, context);
     DataProcessor::doSend(device, rootContext);
+    DataProcessor::doSend(device, stringContext);
   };
 
   // Error handling means printing the error and updating the metric
@@ -276,12 +279,13 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &context, &relayer](int i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &context, &relayer](int i) {
     size_t timeslice = relayer.getTimesliceForCacheline(i);
     LOG(DEBUG) << "Timeslice for cacheline is " << timeslice;
     timingInfo.timeslice = timeslice;
     rootContext.clear();
     context.clear();
+    stringContext.clear();
   };
 
   // This is how we do the forwarding, i.e. we push 

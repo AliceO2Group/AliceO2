@@ -48,6 +48,7 @@ private:
   TimingInfo mTimingInfo;
   MessageContext mFairMQContext;
   RootObjectContext mRootContext;
+  StringContext mStringContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   size_t mCurrentTimeslice;

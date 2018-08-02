@@ -217,7 +217,10 @@ class InputRecord
   template <typename T>
   typename std::enable_if<std::is_same<T, std::string>::value, T>::type
   get(char const *binding) const {
-    return std::move(std::string(get<DataRef>(binding).payload));
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    return std::move(std::string(ref.payload, header->payloadSize));
   }
 
   /// substitution for DataRef
@@ -337,9 +340,12 @@ class InputRecord
   // will be unified in a later refactoring
   // FIXME: request a pointer where you get a pointer
   template <typename T>
-  typename std::enable_if<is_messageable<T>::value == false && std::is_pointer<T>::value == false &&
-                            std::is_same<T, DataRef>::value == false && has_root_dictionary<T>::value == false,
-                          std::unique_ptr<T const, Deleter<T const>>>::type
+  typename std::enable_if_t<is_messageable<T>::value == false
+                              && std::is_pointer<T>::value == false
+                              && std::is_same<T, DataRef>::value == false
+                              && std::is_same<T, std::string>::value == false
+                              && has_root_dictionary<T>::value == false,
+                            std::unique_ptr<T const, Deleter<T const>>>::type
     get(char const* binding) const
   {
     using DataHeader = o2::header::DataHeader;
