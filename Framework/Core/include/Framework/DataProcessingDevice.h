@@ -21,6 +21,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/StringContext.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
@@ -54,6 +55,7 @@ private:
   TimingInfo mTimingInfo;
   MessageContext mFairMQContext;
   RootObjectContext mRootContext;
+  StringContext mStringContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer mRelayer;

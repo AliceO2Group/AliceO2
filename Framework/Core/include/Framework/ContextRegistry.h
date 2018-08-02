@@ -33,7 +33,7 @@ namespace framework
 class ContextRegistry
 {
  public:
-  ContextRegistry(std::array<void*, 2> contextes)
+  ContextRegistry(std::array<void*, 3> contextes)
     : mContextes{ contextes }
   {
   }
@@ -57,7 +57,7 @@ class ContextRegistry
   }
 
  private:
-  std::array<void*, 2> mContextes;
+  std::array<void*, 3> mContextes;
 };
 
 } // namespace framework

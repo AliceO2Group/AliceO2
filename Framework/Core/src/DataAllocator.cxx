@@ -150,5 +150,15 @@ void DataAllocator::adopt(const Output& spec, TObject* ptr)
   assert(payload.get() == nullptr);
 }
 
+void DataAllocator::adopt(const Output& spec, std::string* ptr)
+{
+  std::unique_ptr<std::string> payload(ptr);
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  // the correct payload size is set later when sending the
+  // StringContext, see DataProcessor::doSend
+  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
+  mContextRegistry->get<StringContext>()->addString(std::move(header), std::move(payload), channel);
+  assert(payload.get() == nullptr);
+}
 }
 }

@@ -14,6 +14,7 @@
 #include "Framework/ContextRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/StringContext.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
@@ -105,15 +106,27 @@ public:
     return *obj;
   }
 
+  /// Helper to create an std::string which will be owned by the framework
+  /// and transmitted when the processing finishes.
+  template <typename T, typename... Args>
+  typename std::enable_if<std::is_base_of<std::string, T>::value == true, T&>::type
+    make(const Output& spec, Args... args)
+  {
+    std::string* s = new std::string(args...);
+    adopt(spec, s);
+    return *s;
+  }
+
   /// catching unsupported type for case without additional arguments
   /// have to add three specializations because of the different role of
   /// the arguments and the different return types
   template <typename T>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false &&
-    is_messageable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false
+    && is_messageable<T>::value == false
+    && std::is_same<std::string, T>::value == false,
     T&>::type
-  make(const Output&)
+    make(const Output&)
   {
     static_assert(is_messageable<T>::value == true ||
                   std::is_base_of<TObject, T>::value == true,
@@ -126,10 +139,11 @@ public:
   /// catching unsupported type for case of span of objects
   template <typename T>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false &&
-    is_messageable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false
+    && is_messageable<T>::value == false
+    && std::is_same<std::string, T>::value == false,
     gsl::span<T>>::type
-  make(const Output&, size_t)
+    make(const Output&, size_t)
   {
     static_assert(is_messageable<T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -141,10 +155,11 @@ public:
   /// catching unsupported type for case of at least two additional arguments
   template <typename T, typename U, typename V, typename... Args>
   typename std::enable_if<
-    std::is_base_of<TObject, T>::value == false &&
-    is_messageable<T>::value == false,
+    std::is_base_of<TObject, T>::value == false
+    && is_messageable<T>::value == false
+    && std::is_same<std::string, T>::value == false,
     T&>::type
-  make(const Output&, U, V, Args...)
+    make(const Output&, U, V, Args...)
   {
     static_assert(is_messageable<T>::value == true || std::is_base_of<TObject, T>::value == true,
                   "data type T not supported by API, \n specializations available for"
@@ -157,6 +172,11 @@ public:
   /// it to the consumers of @a spec once done.
   void
   adopt(const Output& spec, TObject*obj);
+
+  /// Adopt a string in the framework and serialize / send
+  /// it to the consumers of @a spec once done.
+  void
+    adopt(const Output& spec, std::string*);
 
   /// Serialize a snapshot of an object with root dictionary when called,
   /// will then be sent once the computation ends.
@@ -346,7 +366,11 @@ public:
   ///
   /// OutputRef descriptors are expected to be passed as rvalue, i.e. a temporary object in the
   /// function call
-  void adopt(OutputRef&& ref, TObject* obj) { return adopt(getOutputByBind(std::move(ref)), obj); }
+  template <typename T>
+  void adopt(OutputRef&& ref, T* obj)
+  {
+    return adopt(getOutputByBind(std::move(ref)), obj);
+  }
 
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
