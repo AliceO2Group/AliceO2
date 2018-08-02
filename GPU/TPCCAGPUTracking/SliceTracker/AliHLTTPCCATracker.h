@@ -73,6 +73,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
       fData(),
       fIsGPUTracker( false ),
       fGPUDebugLevel( 0 ),
+      fNMaxTracks( 0 ),
       fGPUDebugOut( 0 ),
       fRowStartHitCountOffset( NULL ),
       fTrackletTmpStartHits( NULL ),
@@ -224,6 +225,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUhd() GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow)& Row( int rowIndex ) const { return fData.Row( rowIndex ); }
   
   GPUhd() int NHitsTotal() const { return fData.NumberOfHits(); }
+  GPUh() int NMaxTracks() const { return fNMaxTracks; }
   
   MEM_TEMPLATE() GPUd() void SetHitLinkUpData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex, calink v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
   MEM_TEMPLATE() GPUd() void SetHitLinkDownData( const MEM_TYPE( AliHLTTPCCARow)&row, int hitIndex, calink v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }
@@ -302,7 +304,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
 	float fSortVal;		//Value to sort for
   };
 
-  void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks);
+  void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracksLeft, int MaxTracksRight);
 
 #ifdef HLTCA_STANDALONE  
   void StartTimer(int i) {if (fGPUDebugLevel) fTimers[i].Start();}
@@ -345,6 +347,7 @@ private:
   
   char fIsGPUTracker; // is it GPU tracker object
   int fGPUDebugLevel; // debug level
+  int fNMaxTracks;
 
 #if !defined(HLTCA_GPUCODE)
   std::ostream *fGPUDebugOut; // debug stream

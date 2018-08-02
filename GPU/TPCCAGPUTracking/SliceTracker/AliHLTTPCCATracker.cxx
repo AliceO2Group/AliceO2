@@ -556,7 +556,8 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	{
 		SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
 		fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
-		SetPointersTracks( fCommonMem->fNTracklets * 2 + 50, NHitsTotal() ); // to calculate the size
+		fNMaxTracks = fCommonMem->fNTracklets * 2 + 50;
+		SetPointersTracks( fNMaxTracks, NHitsTotal() ); // to calculate the size
 		fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
 	}
 
@@ -852,7 +853,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	return(nHits >= GLOBAL_TRACKING_MIN_HITS);
 }
 
-GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks)
+GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracksLeft, int MaxTracksRight)
 {
 	StartTimer(8);
 	int ul = 0, ur = 0, ll = 0, lr = 0;
@@ -868,7 +869,7 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 
 	for (int i = 0;i < fCommonMem->fNLocalTracks;i++)
 	{
-		if (sliceLeft.fCommonMem->fNTracks >= MaxTracks || sliceRight.fCommonMem->fNTracks >= MaxTracks)  {printf("Insufficient memory for global tracking\n"); return;}
+		if (sliceLeft.fCommonMem->fNTracks >= MaxTracksLeft || sliceRight.fCommonMem->fNTracks >= MaxTracksRight)  {printf("Insufficient memory for global tracking %d/%d, %d/%d\n", sliceLeft.fCommonMem->fNTracks, MaxTracksLeft, sliceRight.fCommonMem->fNTracks, MaxTracksRight); return;}
 
 		{
 			const int tmpHit = fTracks[i].FirstHitID();
@@ -882,7 +883,7 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 					//printf("Track %d, lower row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
 					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha(), -1);
 				}
-				if (sliceRight.fCommonMem->fNTracks >= MaxTracks) {printf("Insufficient memory for global tracking\n"); return;}
+				if (sliceRight.fCommonMem->fNTracks >= MaxTracksRight) {printf("Insufficient memory for global tracking (%d / %d)\n", sliceRight.fCommonMem->fNTracks, MaxTracksRight); return;}
 				if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT)
 				{
 					//printf("Track %d, lower row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
@@ -903,7 +904,7 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 					//printf("Track %d, upper row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
 					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha(), 1);
 				}
-				if (sliceLeft.fCommonMem->fNTracks >= MaxTracks) {printf("Insufficient memory for global tracking\n"); return;}
+				if (sliceLeft.fCommonMem->fNTracks >= MaxTracksLeft) {printf("Insufficient memory for global tracking (%d / %d)\n", sliceLeft.fCommonMem->fNTracks, MaxTracksLeft); return;}
 				if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT)
 				{
 					//printf("Track %d, upper row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
