@@ -1904,7 +1904,8 @@ void Detector::addAlignableVolumes() const
         Double_t phi = Geo::PHISEC * (isect % Geo::NSECTORS) + Geo::PHISEC * 0.5;
         TGeoHMatrix* t2l = new TGeoHMatrix();
         t2l->RotateZ(phi);
-        t2l->MultiplyLeft(&(globMatrix->Inverse()));
+        const TGeoHMatrix& globMatrixi = globMatrix->Inverse();
+        t2l->MultiplyLeft(&globMatrixi);
         e->SetMatrix(t2l);
       } else {
         // AliError(Form("Alignable entry %s is not valid!",symName.Data()));
