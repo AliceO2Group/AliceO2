@@ -40,7 +40,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
           sleep(1);
           // Create an histogram
           auto& singleHisto = ctx.outputs().make<TH1F>(Output{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
-          auto& aString = ctx.outputs().make<TObjString>(Output{ "TST", "STRING", 0 }, "foo");
+          auto& aString = ctx.outputs().make<TObjString>(Output{ "TST", "STRING", 0 }, "fao");
           singleHisto.FillRandom("gaus", 1000);
           Double_t stats[4];
           singleHisto.GetStats(stats);
@@ -48,6 +48,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&) {
                     << "sumw2" << stats[1] << "\n"
                     << "sumwx" << stats[2] << "\n"
                     << "sumwx2" << stats[3] << "\n";
+          aString.SetString("foo");
         }
       }
     },
