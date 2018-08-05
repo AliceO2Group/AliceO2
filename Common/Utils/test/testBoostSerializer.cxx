@@ -1,9 +1,8 @@
-//
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -32,8 +31,8 @@ BOOST_AUTO_TEST_CASE(testTrivialTypeVect)
 
   contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-  auto msgStr = SerializeContainer(inputV).str();
-  auto inputV2 = DeserializeContainer<contType>(msgStr);
+  auto msgStr = BoostSerialize(inputV).str();
+  auto inputV2 = BoostDeserialize<contType>(msgStr);
 
   BOOST_TEST(inputV.size() == inputV2.size());
 
@@ -50,8 +49,8 @@ BOOST_AUTO_TEST_CASE(testTrivialTypeArray)
 
   contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-  auto msgStr = SerializeContainer(inputV).str();
-  auto inputV2 = DeserializeContainer<contType>(msgStr);
+  auto msgStr = BoostSerialize(inputV).str();
+  auto inputV2 = BoostDeserialize<contType>(msgStr);
 
   BOOST_TEST(inputV.size() == inputV2.size());
 
@@ -68,8 +67,8 @@ BOOST_AUTO_TEST_CASE(testTrivialTypeList)
 
   contType inputV{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-  auto msgStr = SerializeContainer(inputV).str();
-  auto inputV2 = DeserializeContainer<contType>(msgStr);
+  auto msgStr = BoostSerialize(inputV).str();
+  auto inputV2 = BoostDeserialize<contType>(msgStr);
 
   BOOST_TEST(inputV.size() == inputV2.size());
 
@@ -92,8 +91,8 @@ BOOST_AUTO_TEST_CASE(testBoostSerialisedType)
     inputV.emplace_back(o2::mid::Cluster2D{ (uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat });
   }
 
-  auto msgStr = SerializeContainer(inputV).str();
-  auto inputV2 = DeserializeContainer<contType>(msgStr);
+  auto msgStr = BoostSerialize(inputV).str();
+  auto inputV2 = BoostDeserialize<contType>(msgStr);
 
   BOOST_TEST(inputV.size() == inputV2.size());
 
