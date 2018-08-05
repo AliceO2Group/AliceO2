@@ -69,7 +69,7 @@ class is_boost_serializable
 template <typename ContT>
 typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_oarchive>::value
                         && std::is_class<typename ContT::value_type>::value, std::ostringstream>::type
-  SerializeContainer(const ContT& dataSet)
+  BoostSerialize(const ContT &dataSet)
 {
   static_assert(check::is_boost_serializable<typename ContT::value_type, boost::archive::binary_oarchive>::value,
                 "This class doesn't provide a boost serializer.");
@@ -84,7 +84,7 @@ typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::bina
 template <typename ContT, typename ContentT = typename ContT::value_type>
 typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_oarchive>::value
                         && !(std::is_class<ContentT>::value), std::ostringstream>::type
-  SerializeContainer(const ContT& dataSet)
+  BoostSerialize(const ContT &dataSet)
 {
   static_assert(boost::serialization::is_bitwise_serializable<typename ContT::value_type>::value,
                 "This type doesn't provide a boost serializer.");
@@ -99,7 +99,7 @@ typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::bina
 template <typename ContT>
 typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_iarchive>::value
                         && std::is_class<typename ContT::value_type>::value, ContT>::type
-  DeserializeContainer(std::string& msgStr)
+  BoostDeserialize(std::string &msgStr)
 {
   static_assert(check::is_boost_serializable<typename ContT::value_type, boost::archive::binary_oarchive>::value,
                 "This class doesn't provide a boost deserializer.");
@@ -114,7 +114,7 @@ typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::bina
 template <typename ContT, typename ContentT = typename ContT::value_type>
 typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::binary_iarchive>::value
                         && !(std::is_class<ContentT>::value), ContT>::type
-  DeserializeContainer(std::string& msgStr)
+  BoostDeserialize(std::string &msgStr)
 {
   static_assert(boost::serialization::is_bitwise_serializable<typename ContT::value_type>::value,
                 "This type doesn't provide a boost serializer.");
@@ -125,6 +125,21 @@ typename std::enable_if<check::is_boost_serializable<ContT, boost::archive::bina
   inputArchive >> output;
   return std::move(output);
 }
+
+template <typename T>
+struct has_serializer
+{
+  template <class, class> class checker;
+
+  template <typename C>
+  static std::true_type test(checker<C, decltype(&o2::utils::BoostSerialize<C>)> *);
+
+  template <typename C>
+  static std::false_type test(...);
+
+  typedef decltype(test<T>(nullptr)) type;
+  static const bool value = std::is_same<std::true_type, decltype(test<T>(nullptr))>::value;
+};
 } // namespace utils
 } // namespace o2
 
