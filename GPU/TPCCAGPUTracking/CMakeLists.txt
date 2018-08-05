@@ -23,6 +23,7 @@ endif()
 include_directories(. SliceTracker Merger)
 
 set(SRCS SliceTracker/AliHLTTPCCATrack.cxx 
+    SliceTracker/AliHLTTPCCABaseTrackParam.cxx
     SliceTracker/AliHLTTPCCATrackParam.cxx
     SliceTracker/AliHLTTPCCATracklet.cxx
     SliceTracker/AliHLTTPCCAStartHitsFinder.cxx
@@ -101,9 +102,35 @@ string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 #Extra headers to install
 set(HDRS ${HDRS}
     SliceTracker/AliHLTTPCCADef.h
+    SliceTracker/AliHLTTPCCASettings.h
+    SliceTracker/AliHLTTPCCAGPUConfig.h
     SliceTracker/AliHLTTPCCAMath.h
+    SliceTracker/AliHLTTPCCAMCInfo.h
+    SliceTracker/AliHLTTPCCAHit.h
+    SliceTracker/AliHLTTPCCAHitId.h
+    SliceTracker/AliHLTTPCCASliceOutCluster.h
+    SliceTracker/AliHLTTPCCASliceOutTrack.h
+    SliceTracker/AliHLTTPCCATrackLinearisation.h
+    Merger/AliHLTTPCGMBorderTrack.h
+    Merger/AliHLTTPCGMCluster.h
+    Merger/AliHLTTPCGMOfflineStatisticalErrors.h
+    Merger/AliHLTTPCGMMergedTrack.h
+    Merger/AliHLTTPCGMMergedTrackHit.h
     TRDTracking/AliHLTTRDDef.h
     TRDTracking/AliHLTTRDTrackPoint.h
+    TRDTracking/AliHLTTRDInterfaces.h
+    TRDTracking/AliHLTTRDTrack.h
+    TRDTracking/AliHLTTRDTrackData.h
+    TRDTracking/AliHLTTRDTrackPoint.h
+)
+#Not processed by ROOT
+set(HDRS2
+    SliceTracker/AliHLTTPCCAProcess.h
+    SliceTracker/AliHLTTPCCADefinitions.h
+    SliceTracker/AliHLTTPCCAGeometry.h
+    SliceTracker/AliCAGPULogging.h
+    TRDTracking/AliHLTTRDGeometry.h
+    TRDTracking/AliHLTTRDTrackerDebug.h
 )
 
 #Extra cpp files, whose headers we don't pass to CINT
@@ -119,7 +146,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     # Generate the dictionary
     # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
     get_directory_property(incdirs INCLUDE_DIRECTORIES)
-    generate_dictionary("${MODULE}" "LinkDef_AliRoot.h" "${HDRS}" "${incdirs}")
+    generate_dictionary_flat("${MODULE}" "LinkDef_AliRoot.h" "${HDRS}" "${incdirs}")
 
     # Generate the ROOT map
     # Dependecies
@@ -145,7 +172,7 @@ if(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
             ARCHIVE DESTINATION lib
             LIBRARY DESTINATION lib)
 
-    install(FILES ${HDRS} DESTINATION include)
+    install(FILES ${HDRS} ${HDRS2} DESTINATION include)
 endif()
 
 #Default cmake build script for O2
