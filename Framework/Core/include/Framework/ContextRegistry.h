@@ -30,10 +30,20 @@ namespace framework
 /// MessageContext 0
 /// ROOTObjectContext 1
 /// StringContext 2
+/// RawContext 3
+
+enum contexts{
+  kMessageContext,
+  kROOTObjectContext,
+  kStringContext,
+  kRawContext,
+  kNContexts
+};
+
 class ContextRegistry
 {
  public:
-  ContextRegistry(std::array<void*, 3> contextes)
+  ContextRegistry(std::array<void*, contexts::kNContexts> contextes)
     : mContextes{ contextes }
   {
   }
@@ -57,7 +67,7 @@ class ContextRegistry
   }
 
  private:
-  std::array<void*, 3> mContextes;
+  std::array<void*, contexts::kNContexts> mContextes;
 };
 
 } // namespace framework

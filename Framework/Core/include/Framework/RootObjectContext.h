@@ -93,7 +93,7 @@ template <>
 inline RootObjectContext*
   ContextRegistry::get<RootObjectContext>()
 {
-  return reinterpret_cast<RootObjectContext*>(mContextes[1]);
+  return reinterpret_cast<RootObjectContext*>(mContextes[o2::framework::contexts::kROOTObjectContext]);
 }
 
 /// Helper to set the context from the registry.
@@ -101,7 +101,7 @@ template <>
 inline void
   ContextRegistry::set<RootObjectContext>(RootObjectContext* context)
 {
-  mContextes[1] = context;
+  mContextes[o2::framework::contexts::kROOTObjectContext] = context;
 }
 
 } // namespace framework
