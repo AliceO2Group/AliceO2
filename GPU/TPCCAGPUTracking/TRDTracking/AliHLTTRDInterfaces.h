@@ -177,12 +177,14 @@ template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCG
     AliHLTTPCCAParam param;
     void setTrack(trackInterface<AliHLTTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); fTrack = trk;}
     bool PropagateToX( float x, float maxSnp, float maxStep ) {
-      return PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false;
+      bool ok = PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false;
+      ok = fTrack->CheckNumericalQuality();
+      return ok;
     }
     bool rotate(float alpha) {
       if (RotateToAlpha(alpha) == 0) {
         fTrack->setAlpha(alpha);
-        return true;
+        return fTrack->CheckNumericalQuality();
       }
       return false;
     }
