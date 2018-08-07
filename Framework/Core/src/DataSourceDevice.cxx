@@ -131,10 +131,10 @@ bool DataSourceDevice::ConditionalRun() {
       ErrorContext errorContext{dummyInputs, mServiceRegistry, e};
       mError(errorContext);
     } else {
-      LOG(DEBUG) << "Uncaught exception: " << e.what();
+      LOG(ERROR) << "Uncaught exception: " << e.what();
     }
   } catch(...) {
-    LOG(DEBUG) << "Unknown exception type.";
+    LOG(ERROR) << "Unknown exception type.";
     LOG(DEBUG) << "DataSourceDevice::Processing::END";
     return false;
   }
