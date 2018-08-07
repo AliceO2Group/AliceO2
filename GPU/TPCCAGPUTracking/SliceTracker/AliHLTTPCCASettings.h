@@ -14,6 +14,9 @@
 
 #define MERGE_CE_ROWLIMIT 15						////Distance from first / last row in order to attempt merging accross CE
 
+#define MERGE_LOOPER_QPT_LIMIT 4					//Min Q/Pt to run special looper merging procedure
+#define MERGE_HORIZONTAL_DOUBLE_QPT_LIMIT 2			//Min Q/Pt to attempt second horizontal merge between slices after a vertical merge was found
+
 #define HLTCA_Y_FACTOR 4							//Weight of y residual vs z residual in tracklet constructor
 #define HLTCA_GPU_MAXN 40							//Maximum number of neighbor hits to consider in one row in neightbors finder
 #define TRACKLET_CONSTRUCTOR_MAX_ROW_GAP 4			//Maximum number of consecutive rows without hit in track following

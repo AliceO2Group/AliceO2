@@ -76,7 +76,7 @@ private:
 
   const AliHLTTPCGMMerger &operator=( const AliHLTTPCGMMerger& ) const;
   
-  void MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB );
+  void MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB, bool fromOrig = false );
 
   void MergeBorderTracks( int iSlice1, AliHLTTPCGMBorderTrack B1[], int N1, int iSlice2, AliHLTTPCGMBorderTrack B2[], int N2, int crossCE = 0 );
 

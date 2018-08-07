@@ -24,14 +24,14 @@ class AliHLTTPCGMSliceTrack
   
  public:
   
-  float Alpha()                      const { return fAlpha;          }
-  char  Slice()                      const { return (char) fSlice;   }
-  char  CSide()                      const { return fSlice >= 18;    }
-  int   NClusters()                  const { return fNClusters;      }
-  int   PrevNeighbour()              const { return fPrevNeighbour;  }
-  int   NextNeighbour()              const { return fNextNeighbour;  }
-  int   SliceNeighbour()             const { return fSliceNeighbour; }
-  int   Used()                       const { return fUsed;           }
+  float Alpha()                      const { return fAlpha;            }
+  char  Slice()                      const { return (char) fSlice;     }
+  char  CSide()                      const { return fSlice >= 18;      }
+  int   NClusters()                  const { return fNClusters;        }
+  int   PrevNeighbour(int i = 0)     const { return fPrevNeighbour[i]; }
+  int   NextNeighbour(int i = 0)     const { return fNextNeighbour[i]; }
+  int   SliceNeighbour()             const { return fSliceNeighbour;   }
+  int   Used()                       const { return fUsed;             }
   const AliHLTTPCCASliceOutTrack* OrigTrack() const { return fOrigTrack; }
   float X()                          const { return fX;      }
   float Y()                          const { return fY;      }
@@ -80,9 +80,9 @@ class AliHLTTPCGMSliceTrack
   }
   
   void SetNClusters ( int v )                        { fNClusters = v;       }
-  void SetPrevNeighbour( int v )                     { fPrevNeighbour = v;   }
-  void SetNextNeighbour( int v )                     { fNextNeighbour = v;   }
-  void SetUsed( int v )                             { fUsed = v;            }
+  void SetPrevNeighbour( int v, int i = 0 )          { fPrevNeighbour[i] = v;}
+  void SetNextNeighbour( int v, int i = 0 )          { fNextNeighbour[i] = v;}
+  void SetUsed( int v )                              { fUsed = v;            }
   void SetSliceNeighbour( int v )                    { fSliceNeighbour = v;            }
 
 
@@ -107,8 +107,8 @@ class AliHLTTPCGMSliceTrack
   float fAlpha;           // alpha angle 
   int fSlice;             // slice of this track segment
   int fNClusters;         // N clusters
-  int fPrevNeighbour;     // neighbour in the previous slise
-  int fNextNeighbour;     // neighbour in the next slise
+  int fPrevNeighbour[2];  // neighbour in the previous slise, 2nd is for other leg of looper
+  int fNextNeighbour[2];  // neighbour in the next slise, 2nd is for other leg of looper
   int fSliceNeighbour;    // next neighbour withing the same slice;
   int fUsed;              // is the slice track already merged
   int fLocalTrackId;	  // Corrected local track id in terms of GMSliceTracks array
