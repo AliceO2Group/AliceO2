@@ -565,18 +565,23 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
         AliHLTTPCGMSliceTrack &newTrack2 = fSliceTrackInfo[iSlice2][iBest2];
 
         int old1 = newTrack2.PrevNeighbour();
-        if (old1 == b1.TrackID()) continue;
 
         if ( old1 >= 0 ) {
+          if (old1 == b1.TrackID()) continue;
           AliHLTTPCGMSliceTrack &oldTrack1 = fSliceTrackInfo[iSlice1][old1];
-          if ( oldTrack1.NClusters()  < newTrack1.NClusters() ) {
+          if (sameSlice)
+          {
+              oldTrack1.SetNextNeighbour(b1.TrackID());
+              newTrack1.SetPrevNeighbour(old1);
+          }
+          else if ( oldTrack1.NClusters() < newTrack1.NClusters() ) {
             newTrack2.SetPrevNeighbour( -1 );
             oldTrack1.SetNextNeighbour( -1 );
           } else continue;
         }
         int old2 = newTrack1.NextNeighbour();
-        if (old2 == iBest2) continue;
         if ( old2 >= 0 ) {
+          if (old2 == iBest2) continue;
           AliHLTTPCGMSliceTrack &oldTrack2 = fSliceTrackInfo[iSlice2][old2];
           if ( oldTrack2.NClusters() < newTrack2.NClusters() ) {
             oldTrack2.SetPrevNeighbour( -1 );
