@@ -417,14 +417,13 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
   float dAlpha = fSliceParam.DAlpha() / 2;
   float x0 = 0;
 
-  if ( iBorder == 0 ) { // transport to the left age of the sector and rotate horisontally
+  if ( iBorder == 0 ) { // transport to the left edge of the sector and rotate horisontally
     dAlpha = dAlpha - CAMath::Pi() / 2 ;
-  } else if ( iBorder == 1 ) { //  transport to the right age of the sector and rotate horisontally
+  } else if ( iBorder == 1 ) { //  transport to the right edge of the sector and rotate horisontally
     dAlpha = -dAlpha - CAMath::Pi() / 2 ;
-  } else if ( iBorder == 2 ) { // transport to the left age of the sector and rotate vertically
-    //dAlpha = dAlpha; //causes compiler warning
+  } else if ( iBorder == 2 ) { // transport to the middle of the sector and rotate vertically to the border on the left
     x0 = fSliceParam.RowX( 63 );
-  } else if ( iBorder == 3 ) { // transport to the right age of the sector and rotate vertically
+  } else if ( iBorder == 3 ) { // transport to the middle of the sector and rotate vertically to the border on the right
     dAlpha = -dAlpha;
     x0 = fSliceParam.RowX( 63 );
   } else if ( iBorder == 4 ) { // transport to the middle of the sßector, w/o rotation
@@ -441,6 +440,11 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
     AliHLTTPCGMSliceTrack &track = fSliceTrackInfo[iSlice][itr];
 
     if( track.Used() ) continue;
+    if (fabs(track.QPt()) < 2)
+    {
+        if (iBorder == 0 && track.NextNeighbour() >= 0) continue;
+        if (iBorder == 1 && track.PrevNeighbour() <= 0) continue;
+    }
     AliHLTTPCGMBorderTrack &b = B[nB];
 
     if(  track.TransportToXAlpha( x0, sinAlpha, cosAlpha, fieldBz, b, maxSin)){
@@ -561,6 +565,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
         AliHLTTPCGMSliceTrack &newTrack2 = fSliceTrackInfo[iSlice2][iBest2];
 
         int old1 = newTrack2.PrevNeighbour();
+        if (old1 == b1.TrackID()) continue;
 
         if ( old1 >= 0 ) {
           AliHLTTPCGMSliceTrack &oldTrack1 = fSliceTrackInfo[iSlice1][old1];
@@ -570,6 +575,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
           } else continue;
         }
         int old2 = newTrack1.NextNeighbour();
+        if (old2 == iBest2) continue;
         if ( old2 >= 0 ) {
           AliHLTTPCGMSliceTrack &oldTrack2 = fSliceTrackInfo[iSlice2][old2];
           if ( oldTrack2.NClusters() < newTrack2.NClusters() ) {
