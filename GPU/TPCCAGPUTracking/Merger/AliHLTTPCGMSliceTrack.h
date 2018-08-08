@@ -13,6 +13,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCASliceOutTrack.h"
+#include <algorithm>
 
 /**
  * @class AliHLTTPCGMSliceTrack
@@ -28,10 +29,12 @@ class AliHLTTPCGMSliceTrack
   char  Slice()                      const { return (char) fSlice;     }
   char  CSide()                      const { return fSlice >= 18;      }
   int   NClusters()                  const { return fNClusters;        }
-  int   PrevNeighbour(int i = 0)     const { return fPrevNeighbour[i]; }
-  int   NextNeighbour(int i = 0)     const { return fNextNeighbour[i]; }
-  int   SliceNeighbour()             const { return fSliceNeighbour;   }
-  int   Used()                       const { return fUsed;             }
+  int   PrevNeighbour()              const { return fNeighbour[0];    }
+  int   NextNeighbour()              const { return fNeighbour[1];    }
+  int   Neighbour(int i)             const { return fNeighbour[i];    }
+  int   PrevSegmentNeighbour()       const { return fSegmentNeighbour[0]; }
+  int   NextSegmentNeighbour()       const { return fSegmentNeighbour[1]; }
+  int   SegmentNeighbour(int i)      const { return fSegmentNeighbour[i]; }
   const AliHLTTPCCASliceOutTrack* OrigTrack() const { return fOrigTrack; }
   float X()                          const { return fX;      }
   float Y()                          const { return fY;      }
@@ -47,7 +50,9 @@ class AliHLTTPCGMSliceTrack
   void SetLocalTrackId( int v )         { fLocalTrackId = v; }
   int  GlobalTrackId(int n)       const { return fGlobalTrackIds[n]; }
   void SetGlobalTrackId( int n, int v ) { fGlobalTrackIds[n] = v; }
-
+  
+  float MaxClusterZ() {return std::max(fOrigTrack->Clusters()->GetZ(), (fOrigTrack->Clusters() + fOrigTrack->NClusters() - 1)->GetZ());}
+  float MinClusterZ() {return std::min(fOrigTrack->Clusters()->GetZ(), (fOrigTrack->Clusters() + fOrigTrack->NClusters() - 1)->GetZ());}
 
   void Set( const AliHLTTPCCASliceOutTrack *sliceTr, float alpha, int slice ){
     const AliHLTTPCCABaseTrackParam &t = sliceTr->Param();
@@ -80,10 +85,11 @@ class AliHLTTPCGMSliceTrack
   }
   
   void SetNClusters ( int v )                        { fNClusters = v;       }
-  void SetPrevNeighbour( int v, int i = 0 )          { fPrevNeighbour[i] = v;}
-  void SetNextNeighbour( int v, int i = 0 )          { fNextNeighbour[i] = v;}
-  void SetUsed( int v )                              { fUsed = v;            }
-  void SetSliceNeighbour( int v )                    { fSliceNeighbour = v;            }
+  void SetPrevNeighbour( int v )                     { fNeighbour[0]    = v;}
+  void SetNextNeighbour( int v )                     { fNeighbour[1]    = v;}
+  void SetNeighbor( int v, int i )                   { fNeighbour[i]    = v;}
+  void SetPrevSegmentNeighbour( int v )              { fSegmentNeighbour[0] = v;}
+  void SetNextSegmentNeighbour( int v )              { fSegmentNeighbour[1] = v;}
 
 
   void CopyParamFrom( const AliHLTTPCGMSliceTrack &t ){
@@ -107,10 +113,8 @@ class AliHLTTPCGMSliceTrack
   float fAlpha;           // alpha angle 
   int fSlice;             // slice of this track segment
   int fNClusters;         // N clusters
-  int fPrevNeighbour[2];  // neighbour in the previous slise, 2nd is for other leg of looper
-  int fNextNeighbour[2];  // neighbour in the next slise, 2nd is for other leg of looper
-  int fSliceNeighbour;    // next neighbour withing the same slice;
-  int fUsed;              // is the slice track already merged
+  int fNeighbour[2];      // 
+  int fSegmentNeighbour[2]; //
   int fLocalTrackId;	  // Corrected local track id in terms of GMSliceTracks array
   int fGlobalTrackIds[2]; // IDs of associated global tracks
 };
