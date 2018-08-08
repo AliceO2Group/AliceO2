@@ -87,14 +87,15 @@ private:
   void MergeCE();
   void MergeWithingSlices();
   void MergeSlices();
-  void ResolveMergeSlices(bool fromOrig);
-  void ResolveMergeInSlice();
+  void ResolveMergeSlices(bool fromOrig, bool mergeAll);
   void MergeSlicesStep(int border0, int border1, bool fromOrig);
   void PrepareClustersForFit();
   void CollectMergedTracks();
   void Refit(bool resetTimers);
   void Finalize();
   void ClearTrackLinks(int n);
+  
+  void PrintMergeGraph(AliHLTTPCGMSliceTrack* trk);
   
   int SliceTrackInfoFirst(int iSlice) {return fSliceTrackInfoIndex[iSlice];}
   int SliceTrackInfoLast(int iSlice) {return fSliceTrackInfoIndex[iSlice + 1];}
