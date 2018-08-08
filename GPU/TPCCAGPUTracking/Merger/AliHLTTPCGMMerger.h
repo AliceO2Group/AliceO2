@@ -72,9 +72,8 @@ public:
 
 private:
   
-  AliHLTTPCGMMerger( const AliHLTTPCGMMerger& );
-
-  const AliHLTTPCGMMerger &operator=( const AliHLTTPCGMMerger& ) const;
+  AliHLTTPCGMMerger( const AliHLTTPCGMMerger& ) = delete;
+  const AliHLTTPCGMMerger &operator=( const AliHLTTPCGMMerger& ) const = delete;
   
   void MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBorderTrack B[], int &nB, bool fromOrig = false );
 
@@ -93,6 +92,13 @@ private:
   void Refit(bool resetTimers);
   void Finalize();
   
+  int SliceTrackInfoFirst(int iSlice) {return fSliceTrackInfoIndex[iSlice];}
+  int SliceTrackInfoLast(int iSlice) {return fSliceTrackInfoIndex[iSlice + 1];}
+  int SliceTrackInfoGlobalFirst(int iSlice) {return fSliceTrackInfoIndex[fgkNSlices + iSlice];}
+  int SliceTrackInfoGlobalLast(int iSlice) {return fSliceTrackInfoIndex[fgkNSlices + iSlice + 1];}
+  int SliceTrackInfoLocalTotal() {return fSliceTrackInfoIndex[fgkNSlices];}
+  int SliceTrackInfoTotal() {return fSliceTrackInfoIndex[2 * fgkNSlices];}
+  
   static const int fgkNSlices = 36;       //* N slices
   int fNextSliceInd[fgkNSlices];
   int fPrevSliceInd[fgkNSlices];
@@ -105,13 +111,10 @@ private:
   int fNOutputTracks;
   int fNOutputTrackClusters;
   int fNMaxOutputTrackClusters;
-  AliHLTTPCGMMergedTrack *fOutputTracks;       //* array of output merged tracks
+  AliHLTTPCGMMergedTrack *fOutputTracks;      //* array of output merged tracks
   
-  AliHLTTPCGMSliceTrack *fSliceTrackInfoMemory; //* additional information for slice tracks
-  AliHLTTPCGMSliceTrack* fSliceTrackInfo[fgkNSlices];   //* slice starting index in fTrackInfos array;
-  int fSliceNTrackInfos[fgkNSlices];      //* N of slice track infos in fTrackInfos array;
-  AliHLTTPCGMSliceTrack* fSliceTrackGlobalInfo[fgkNSlices]; //* Same for global tracks
-  int fSliceNGlobalTrackInfos[fgkNSlices]; //* Same for global tracks
+  AliHLTTPCGMSliceTrack *fSliceTrackInfos;    //* additional information for slice tracks
+  int fSliceTrackInfoIndex[fgkNSlices * 2 + 1];
   int fMaxSliceTracks;      // max N tracks in one slice
   AliHLTTPCGMMergedTrackHit *fClusters;
   int* fGlobalClusterIDs;
