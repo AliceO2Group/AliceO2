@@ -71,7 +71,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fNOutputTrackClusters( 0 ),
   fNMaxOutputTrackClusters( 0 ),
   fOutputTracks( 0 ),
-  fSliceTrackInfoMemory( 0 ),
+  fSliceTrackInfos( 0 ),
   fMaxSliceTracks(0),
   fClusters(NULL),
   fGlobalClusterIDs(NULL),
@@ -90,56 +90,17 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     fNextSliceInd[iSlice] = iSlice + 1;
     fPrevSliceInd[iSlice] = iSlice - 1;
-    fSliceTrackInfo[iSlice] = NULL;
-    fSliceTrackGlobalInfo[iSlice] = NULL;
   }
   int mid = fgkNSlices / 2 - 1 ;
   int last = fgkNSlices - 1 ;
   fNextSliceInd[ mid ] = 0;
-  fPrevSliceInd[ 0 ] = mid;  fNextSliceInd[ last ] = fgkNSlices / 2;
+  fPrevSliceInd[ 0 ] = mid;
+  fNextSliceInd[ last ] = fgkNSlices / 2;
   fPrevSliceInd[ fgkNSlices/2 ] = last;
 
   fField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised    
   
   Clear();
-}
-
-AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
-  :
-  fField(),
-  fSliceParam(),
-  fNOutputTracks( 0 ),
-  fNOutputTrackClusters( 0 ),
-  fNMaxOutputTrackClusters( 0 ),
-  fOutputTracks( 0 ),
-  fSliceTrackInfoMemory( 0 ),
-  fMaxSliceTracks(0),
-  fClusters(NULL),
-  fGlobalClusterIDs(NULL),
-  fClusterAttachment(NULL),
-  fMaxID(0),
-  fTrackOrder(NULL),
-  fBorderMemory(0),
-  fBorderRangeMemory(0),
-  fGPUTracker(NULL),
-  fSliceTrackers(NULL),
-  fDebugLevel(0),
-  fNClusters(0)
-{
-  //* dummy
-  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
-    fNextSliceInd[iSlice] = 0;
-    fPrevSliceInd[iSlice] = 0;
-  }
-  fField.Reset();
-
-  Clear();
-}
-
-const AliHLTTPCGMMerger &AliHLTTPCGMMerger::operator=(const AliHLTTPCGMMerger&) const
-{
-  //* dummy
-  return *this;
 }
 
 AliHLTTPCGMMerger::~AliHLTTPCGMMerger()
@@ -163,31 +124,28 @@ void AliHLTTPCGMMerger::SetSliceParam( const AliHLTTPCCAParam &v, long int TimeS
 
 void AliHLTTPCGMMerger::Clear()
 {
-  for ( int i = 0; i < fgkNSlices; ++i ) {
-    fkSlices[i] = 0;
-    fSliceNTrackInfos[ i ] = 0;
-  }
+  for (int i = 0;i < fgkNSlices;i++) fkSlices[i] = NULL;
   ClearMemory();
 }
  
 void AliHLTTPCGMMerger::ClearMemory()
 {
-  if (fSliceTrackInfoMemory) delete[] fSliceTrackInfoMemory;
+  delete[] fSliceTrackInfos;
   if (!(fGPUTracker && fGPUTracker->IsInitialized()))
   {
-    if (fOutputTracks) delete[] fOutputTracks;
-    if (fClusters) delete[] fClusters;
+    delete[] fOutputTracks;
+    delete[] fClusters;
   }
-  if (fGlobalClusterIDs) delete[] fGlobalClusterIDs;
-  if (fBorderMemory) delete[] fBorderMemory;
-  if (fBorderRangeMemory) delete[] fBorderRangeMemory;
+  delete[] fGlobalClusterIDs;
+  delete[] fBorderMemory;
+  delete[] fBorderRangeMemory;
   
-  if (fTrackOrder) delete[] fTrackOrder;
-  if (fClusterAttachment) delete[] fClusterAttachment;
+  delete[] fTrackOrder;
+  delete[] fClusterAttachment;
 
   fNOutputTracks = 0;
   fOutputTracks = NULL;
-  fSliceTrackInfoMemory = NULL;
+  fSliceTrackInfos = NULL;
   fMaxSliceTracks = 0;
   fClusters = NULL;
   fGlobalClusterIDs = NULL;
@@ -205,6 +163,14 @@ void AliHLTTPCGMMerger::SetSliceData( int index, const AliHLTTPCCASliceOutput *s
 bool AliHLTTPCGMMerger::Reconstruct(bool resetTimers)
 {
   //* main merging routine
+  for (int i = 0;i < fgkNSlices;i++)
+  {
+    if (fkSlices[i] == NULL)
+    {
+      printf("Slice %d missing\n", i);
+      return false;
+    }
+  }
   int nIter = 1;
 #ifdef HLTCA_STANDALONE
   HighResTimer timer;
@@ -218,7 +184,7 @@ bool AliHLTTPCGMMerger::Reconstruct(bool resetTimers)
 #endif
   //cout<<"Merger..."<<endl;
   for( int iter=0; iter<nIter; iter++ ){
-    if( !AllocateMemory() ) return 0;
+    if( !AllocateMemory() ) return false;
 #ifdef HLTCA_STANDALONE
     timer.ResetStart();
 #endif
@@ -269,7 +235,7 @@ bool AliHLTTPCGMMerger::Reconstruct(bool resetTimers)
     }
 #endif
   }  
-  return 1;
+  return true;
 }
 
 bool AliHLTTPCGMMerger::AllocateMemory()
@@ -283,7 +249,6 @@ bool AliHLTTPCGMMerger::AllocateMemory()
   fMaxSliceTracks  = 0;
   
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
-    if ( !fkSlices[iSlice] ) continue;
     nTracks += fkSlices[iSlice]->NTracks();
     fNClusters += fkSlices[iSlice]->NTrackClusters();
     if( fMaxSliceTracks < fkSlices[iSlice]->NTracks() ) fMaxSliceTracks = fkSlices[iSlice]->NTracks();
@@ -292,7 +257,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 
   //cout<<"\nMerger: input "<<nTracks<<" tracks, "<<nClusters<<" clusters"<<endl;
 
-  fSliceTrackInfoMemory = new AliHLTTPCGMSliceTrack[nTracks];
+  fSliceTrackInfos = new AliHLTTPCGMSliceTrack[nTracks];
   if (fGPUTracker && fGPUTracker->IsInitialized())
   {
     char* basemem = fGPUTracker->MergerHostMemory();
@@ -316,11 +281,10 @@ bool AliHLTTPCGMMerger::AllocateMemory()
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
       fBorder[iSlice] = fBorderMemory + nTracks;
       fBorderRange[iSlice] = fBorderRangeMemory + 2 * nTracks;
-    if ( !fkSlices[iSlice] ) continue;
     nTracks += fkSlices[iSlice]->NTracks();
   }  
   return ( ( fOutputTracks!=NULL )
-    && ( fSliceTrackInfoMemory!=NULL )
+    && ( fSliceTrackInfos!=NULL )
     && ( fClusters!=NULL )
     && ( fBorderMemory!=NULL )
     && ( fBorderRangeMemory!=NULL )
@@ -339,7 +303,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
   for( int i=0; i<fgkNSlices; i++)
   {
       firstGlobalTracks[i] = 0;
-      if (fkSlices[i] && fkSlices[i]->NLocalTracks() > maxSliceTracks) maxSliceTracks = fkSlices[i]->NLocalTracks();
+      if (fkSlices[i]->NLocalTracks() > maxSliceTracks) maxSliceTracks = fkSlices[i]->NLocalTracks();
   }
 
   int* TrackIds = new int[maxSliceTracks * fgkNSlices];
@@ -347,19 +311,14 @@ void AliHLTTPCGMMerger::UnpackSlices()
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
 
-    fSliceTrackInfo[ iSlice ] = fSliceTrackInfoMemory + nTracksCurrent;;
-
-    fSliceNTrackInfos[ iSlice ] = 0;
-
-    if ( !fkSlices[iSlice] ) continue;
+    fSliceTrackInfoIndex[iSlice] = nTracksCurrent;
 
     float alpha = fSliceParam.Alpha( iSlice );
-
     const AliHLTTPCCASliceOutput &slice = *( fkSlices[iSlice] );
     const AliHLTTPCCASliceOutTrack *sliceTr = slice.GetFirstTrack();    
     
     for ( int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack() ) {
-      AliHLTTPCGMSliceTrack &track = fSliceTrackInfoMemory[nTracksCurrent];
+      AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
       track.Set( sliceTr, alpha, iSlice );
       if( !track.FilterErrors( fSliceParam, HLTCA_MAX_SIN_PHI, 0.1f ) ) continue;
       if (DEBUG) printf("INPUT Slice %d, Track %d, QPt %f DzDs %f\n", iSlice, itr, track.QPt(), track.DzDs());
@@ -373,25 +332,21 @@ void AliHLTTPCGMMerger::UnpackSlices()
       track.SetGlobalTrackId(1, -1);
       TrackIds[iSlice * maxSliceTracks + sliceTr->LocalTrackId()] = nTracksCurrent;
       nTracksCurrent++;
-      fSliceNTrackInfos[ iSlice ]++;
     }
     firstGlobalTracks[iSlice] = sliceTr;
   }
   for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
   {
-    fSliceTrackGlobalInfo[iSlice] = fSliceTrackInfoMemory + nTracksCurrent;
-    fSliceNGlobalTrackInfos[iSlice] = 0;
+    fSliceTrackInfoIndex[fgkNSlices + iSlice] = nTracksCurrent;
 
-    if ( !fkSlices[iSlice] ) continue;
     float alpha = fSliceParam.Alpha( iSlice );
-
     const AliHLTTPCCASliceOutput &slice = *( fkSlices[iSlice] );
     const AliHLTTPCCASliceOutTrack *sliceTr = firstGlobalTracks[iSlice];
     for (int itr = slice.NLocalTracks();itr < slice.NTracks();itr++, sliceTr = sliceTr->GetNextTrack())
     {
       int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * maxSliceTracks + (sliceTr->LocalTrackId() & 0xFFFFFF)];
       if (localId == -1) continue;
-      AliHLTTPCGMSliceTrack &track = fSliceTrackInfoMemory[nTracksCurrent];
+      AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
       track.Set( sliceTr, alpha, iSlice );
       track.SetGlobalSectorTrackCov();
       track.SetPrevNeighbour( -1 );
@@ -402,9 +357,9 @@ void AliHLTTPCGMMerger::UnpackSlices()
       track.SetUsed( 0 );           
       track.SetLocalTrackId(localId);
       nTracksCurrent++;
-      fSliceNGlobalTrackInfos[ iSlice ]++;
     }
   }
+  fSliceTrackInfoIndex[2 * fgkNSlices] = nTracksCurrent;
 
   delete[] TrackIds;
 }
@@ -440,9 +395,9 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
   float sinAlpha = AliHLTTPCCAMath::Sin( dAlpha );
 
   AliHLTTPCGMSliceTrack trackTmp;
-  for ( int itr = 0; itr < fSliceNTrackInfos[iSlice]; itr++ ) {
+  for ( int itr = SliceTrackInfoFirst(iSlice); itr < SliceTrackInfoLast(iSlice); itr++ ) {
 
-    const AliHLTTPCGMSliceTrack *track = &fSliceTrackInfo[iSlice][itr];
+    const AliHLTTPCGMSliceTrack *track = &fSliceTrackInfos[itr];
 
     if (fromOrig)
     {
@@ -450,7 +405,7 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
         const AliHLTTPCGMSliceTrack *trackMin = track;
         while (track->SliceNeighbour() >= 0)
         {
-            track = &fSliceTrackInfo[iSlice][track->SliceNeighbour()];
+            track = &fSliceTrackInfos[track->SliceNeighbour()];
             if (track->OrigTrack()->Param().X() < trackMin->OrigTrack()->Param().X()) trackMin = track;
         }
         trackTmp = *trackMin;
@@ -583,8 +538,8 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
     }
     else
     {
-        AliHLTTPCGMSliceTrack &newTrack1 = fSliceTrackInfo[iSlice1][b1.TrackID()];
-        AliHLTTPCGMSliceTrack &newTrack2 = fSliceTrackInfo[iSlice2][iBest2];
+        AliHLTTPCGMSliceTrack &newTrack1 = fSliceTrackInfos[b1.TrackID()];
+        AliHLTTPCGMSliceTrack &newTrack2 = fSliceTrackInfos[iBest2];
         
         int neighborType = crossCE < 0 ? 1 : 0;
 
@@ -594,7 +549,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
         if (old1 == b1.TrackID()) continue;
         if (crossCE < 0) old1 = newTrack2.PrevNeighbour(1);
         if ( old1 >= 0 ) {
-          AliHLTTPCGMSliceTrack &oldTrack1 = fSliceTrackInfo[iSlice1][old1];
+          AliHLTTPCGMSliceTrack &oldTrack1 = fSliceTrackInfos[old1];
           if (sameSlice)
           {
               oldTrack1.SetNextNeighbour(b1.TrackID());
@@ -609,7 +564,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
         if (old2 == iBest2) continue;
         if (crossCE < 0) old2 = newTrack1.NextNeighbour(1);
         if ( old2 >= 0 ) {
-          AliHLTTPCGMSliceTrack &oldTrack2 = fSliceTrackInfo[iSlice2][old2];
+          AliHLTTPCGMSliceTrack &oldTrack2 = fSliceTrackInfos[old2];
           if ( oldTrack2.NClusters() < newTrack2.NClusters() ) {
             oldTrack2.SetPrevNeighbour( -1, neighborType );
           } else continue;
@@ -629,8 +584,8 @@ void AliHLTTPCGMMerger::MergeWithingSlices()
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     int nBord = 0;
-    for ( int itr = 0; itr < fSliceNTrackInfos[iSlice]; itr++ ) {
-      AliHLTTPCGMSliceTrack &track = fSliceTrackInfo[iSlice][itr];
+    for ( int itr = SliceTrackInfoFirst(iSlice); itr < SliceTrackInfoLast(iSlice); itr++ ) {
+      AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
       
       AliHLTTPCGMBorderTrack &b = fBorder[iSlice][nBord];
       if( track.TransportToX( x0, fSliceParam.ConstBz(), b, maxSin) ){
@@ -643,14 +598,14 @@ void AliHLTTPCGMMerger::MergeWithingSlices()
 
     MergeBorderTracks( iSlice, fBorder[iSlice], nBord, iSlice, fBorder[iSlice], nBord );
     
-    for ( int itr = 0; itr < fSliceNTrackInfos[iSlice]; itr++ ) {
-      AliHLTTPCGMSliceTrack &track = fSliceTrackInfo[iSlice][itr];
+    for ( int itr = SliceTrackInfoFirst(iSlice); itr < SliceTrackInfoLast(iSlice); itr++ ) {
+      AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
       if( track.PrevNeighbour()>=0 || track.Used() ) continue;
       int jtr = track.NextNeighbour();
       track.SetSliceNeighbour( jtr );
       track.SetNextNeighbour(-1);
       while( jtr>=0 ){
-        AliHLTTPCGMSliceTrack &trackN = fSliceTrackInfo[iSlice][jtr];
+        AliHLTTPCGMSliceTrack &trackN = fSliceTrackInfos[jtr];
         if( trackN.NClusters()>track.NClusters() ) track.CopyParamFrom(trackN);
         trackN.SetUsed(2);
         jtr = trackN.NextNeighbour();
@@ -853,11 +808,11 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
   //Resolve connections for global tracks first
   for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
   {
-    for (int itr = 0;itr < fSliceNGlobalTrackInfos[iSlice];itr++)
+    for (int itr = SliceTrackInfoGlobalFirst(iSlice);itr < SliceTrackInfoGlobalLast(iSlice);itr++)
     {
-      AliHLTTPCGMSliceTrack &globalTrack = fSliceTrackGlobalInfo[iSlice][itr];
-      AliHLTTPCGMSliceTrack &localTrack = fSliceTrackInfoMemory[globalTrack.LocalTrackId()];
-      localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, fSliceTrackGlobalInfo[iSlice] + itr - fSliceTrackInfoMemory);
+      AliHLTTPCGMSliceTrack &globalTrack = fSliceTrackInfos[itr];
+      AliHLTTPCGMSliceTrack &localTrack = fSliceTrackInfos[globalTrack.LocalTrackId()];
+      localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, itr);
     }
   }
 
@@ -869,18 +824,15 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 
   const AliHLTTPCGMSliceTrack *trackParts[kMaxParts];
 
-  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
+  for ( int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++ ) {
 
-    for ( int itr = 0; itr < fSliceNTrackInfos[iSlice]; itr++ ) {
-
-      AliHLTTPCGMSliceTrack &track = fSliceTrackInfo[iSlice][itr];
+      AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[itr];
       
       if ( track.Used() ) continue;
       if ( track.PrevNeighbour() >= 0 ) continue;
       //if ( track.NextNeighbour(1) >= 0 ) continue;
       int nParts = 0;
       int nHits = 0;
-      int jSlice = iSlice;
       bool looper = false;
       float looperQPt = 0.f;
       AliHLTTPCGMSliceTrack *trbase = &track, *tr = &track;
@@ -893,23 +845,18 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
         if (!looper && nParts && fabs(tr->QPt()) > 2 && tr->QPt() * looperQPt < 0) looper = true;
         looperQPt = tr->QPt();
         trackParts[nParts++] = tr;
-        for (int i = 0;i < 2;i++) if (tr->GlobalTrackId(i) != -1) trackParts[nParts++] = &fSliceTrackInfoMemory[tr->GlobalTrackId(i)];
+        for (int i = 0;i < 2;i++) if (tr->GlobalTrackId(i) != -1) trackParts[nParts++] = &fSliceTrackInfos[tr->GlobalTrackId(i)];
 
         int jtr = tr->SliceNeighbour();
         if( jtr >= 0 ) {
-          tr = &(fSliceTrackInfo[jSlice][jtr]);
+          tr = &(fSliceTrackInfos[jtr]);
           tr->SetUsed( 2 );
           continue;
         }
         jtr = trbase->NextNeighbour();
-        if (jtr >= 0) jSlice = fNextSliceInd[jSlice];
-        else
-        {
-            jtr = trbase->PrevNeighbour(1);
-            if (jtr >= 0) jSlice = fPrevSliceInd[jSlice];
-        }
+        if (jtr < 0) jtr = trbase->PrevNeighbour(1);
         if( jtr>=0 ){
-          trbase = &(fSliceTrackInfo[jSlice][jtr]);
+          trbase = &(fSliceTrackInfos[jtr]);
           tr = trbase;
           if( tr->Used() ) break;
           tr->SetUsed( 1 );
@@ -1104,7 +1051,6 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       if (mergedTrack.NClusters() && mergedTrack.OK()) MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], fNOutputTracks);
       fNOutputTracks++;
       nOutTrackClusters += nHits;
-    }
   }
   fNOutputTrackClusters = nOutTrackClusters;
 }
