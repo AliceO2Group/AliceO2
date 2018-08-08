@@ -94,7 +94,7 @@ template <>
 inline StringContext*
   ContextRegistry::get<StringContext>()
 {
-  return reinterpret_cast<StringContext*>(mContextes[2]);
+  return reinterpret_cast<StringContext*>(mContextes[o2::framework::contexts::kStringContext]);
 }
 
 /// Helper to set the context from the registry.
@@ -102,7 +102,7 @@ template <>
 inline void
   ContextRegistry::set<StringContext>(StringContext* context)
 {
-  mContextes[2] = context;
+  mContextes[o2::framework::contexts::kStringContext] = context;
 }
 
 } // namespace framework

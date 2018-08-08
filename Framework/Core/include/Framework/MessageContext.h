@@ -86,7 +86,7 @@ template <>
 inline MessageContext*
   ContextRegistry::get<MessageContext>()
 {
-  return reinterpret_cast<MessageContext*>(mContextes[0]);
+  return reinterpret_cast<MessageContext*>(mContextes[o2::framework::contexts::kMessageContext]);
 }
 
 /// Helper to set the context from the registry.
@@ -94,7 +94,7 @@ template <>
 inline void
   ContextRegistry::set<MessageContext>(MessageContext* context)
 {
-  mContextes[0] = context;
+  mContextes[o2::framework::contexts::kMessageContext] = context;
 }
 
 } // namespace framework
