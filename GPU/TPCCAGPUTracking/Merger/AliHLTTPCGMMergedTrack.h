@@ -24,7 +24,6 @@ class AliHLTTPCGMMergedTrack
 
   GPUd() int NClusters()                         const { return fNClusters;       }
   GPUd() int NClustersFitted()                   const { return fNClustersFitted; }
-  GPUd() int NeighborTrack()                     const { return fNClustersFitted; }
   GPUd() int FirstClusterRef()                   const { return fFirstClusterRef; }
   GPUd() const AliHLTTPCGMTrackParam &GetParam() const { return fParam;           }
   GPUd() float GetAlpha()                        const { return fAlpha;           }
@@ -39,7 +38,6 @@ class AliHLTTPCGMMergedTrack
 
   GPUd() void SetNClusters      ( int v )                { fNClusters = v;       }
   GPUd() void SetNClustersFitted( int v )                { fNClustersFitted = v; }
-  GPUd() void SetNeighborTrack  ( int v )                { fNClustersFitted = v; }
   GPUd() void SetFirstClusterRef( int v )                { fFirstClusterRef = v; }
   GPUd() void SetParam( const AliHLTTPCGMTrackParam &v ) { fParam = v;      }     
   GPUd() void SetAlpha( float v )                        { fAlpha = v;      }  
