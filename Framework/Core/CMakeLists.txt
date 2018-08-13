@@ -53,6 +53,8 @@ set(SRCS
     src/ExternalFairMQDeviceProxy.cxx
     src/SimpleResourceManager.cxx
     src/TextControlService.cxx
+    src/TableBuilder.cxx
+    src/TableConsumer.cxx
     src/WorkflowHelpers.cxx
     src/WorkflowSpec.cxx
     src/runDataProcessing.cxx
@@ -135,6 +137,7 @@ set(HEADERS
       include/Framework/DataSamplingCondition.h
       include/Framework/DataSamplingReadoutAdapter.h
       include/Framework/DPLBoostSerializer.h
+      include/Framework/TableBuilder.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -218,6 +221,7 @@ set(TEST_SRCS
       test/test_DataAllocator.cxx
       test/test_CallbackRegistry.cxx
       test/test_Task.cxx
+      test/test_TableBuilder.cxx
    )
 
 O2_GENERATE_TESTS(
