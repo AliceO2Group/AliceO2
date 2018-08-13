@@ -244,6 +244,7 @@ o2_define_bucket(
     O2FrameworkCore_bucket
 
     DEPENDENCIES
+    arrow_bucket
     O2DeviceApplication_bucket
     common_utils_bucket
     ROOTDataFrame
