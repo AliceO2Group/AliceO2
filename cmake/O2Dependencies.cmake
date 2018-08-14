@@ -246,7 +246,11 @@ o2_define_bucket(
     DEPENDENCIES
     O2DeviceApplication_bucket
     common_utils_bucket
+    ROOTDataFrame
+    ROOTVecOps
     Core
+    Tree
+    TreePlayer
     Net
     MathUtils
     DebugGUI
