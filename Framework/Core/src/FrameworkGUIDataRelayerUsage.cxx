@@ -92,13 +92,13 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   auto getRecord = [&metrics](size_t i) -> int {
     return i;
   };
-  auto getNumItems = [&viewIndex](int record) {
+  auto getNumItems = [&viewIndex](int record) -> int {
     if (viewIndex.isComplete()) {
       return viewIndex.h;
     }
     return 0;
   };
-  auto getItem = [&metrics, &viewIndex](int const& record, size_t i) {
+  auto getItem = [&metrics, &viewIndex](int const& record, size_t i) -> int const& {
     // Calculate the index in the viewIndex.
     auto idx = record * viewIndex.h + i;
     assert(viewIndex.indexes.size() > idx);
@@ -107,7 +107,7 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     auto& data = metrics.intMetrics[metricInfo.storeIdx];
     return data[(metricInfo.pos - 1) % data.size()];
   };
-  auto getValue = [](int const& item) { return item; };
+  auto getValue = [](int const& item) -> int { return item; };
   auto getColor = [](int value) {
     const ImU32 SLOT_EMPTY = ImColor(70, 70, 70, 255);
     const ImU32 SLOT_FULL = ImColor(0xf9, 0xcd, 0xad, 255);
