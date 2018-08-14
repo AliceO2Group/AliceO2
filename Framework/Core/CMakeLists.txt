@@ -214,6 +214,7 @@ set(TEST_SRCS
       test/test_LogParsingHelpers.cxx
       test/test_ExternalFairMQDeviceProxy.cxx
       test/test_Services.cxx
+      test/test_SimpleRDataFrameProcessing.cxx
       test/test_SingleDataSource.cxx
       test/test_SuppressionGenerator.cxx
       test/test_TimeParallelPipelining.cxx

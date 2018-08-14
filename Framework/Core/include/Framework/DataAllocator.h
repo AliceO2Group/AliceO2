@@ -15,6 +15,7 @@
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
 #include "Framework/StringContext.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
@@ -24,6 +25,7 @@
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/SerializationMethods.h"
+#include "Framework/TableBuilder.h"
 
 #include <vector>
 #include <map>
@@ -117,19 +119,30 @@ public:
     return *s;
   }
 
+  /// Helper to create a TableBuilder which will be owned by the framework
+  /// FIXME: perfect forwarding?
+  template <typename T, typename... Args>
+  typename std::enable_if<std::is_base_of<TableBuilder, T>::value == true, T &>::type
+    make(const Output& spec, Args... args)
+  {
+    TableBuilder *tb = new TableBuilder(args...);
+    adopt(spec, tb);
+    return *tb;
+  }
+
   /// catching unsupported type for case without additional arguments
   /// have to add three specializations because of the different role of
   /// the arguments and the different return types
   template <typename T>
   typename std::enable_if<
     std::is_base_of<TObject, T>::value == false
+    && std::is_base_of<TableBuilder, T>::value == false
     && is_messageable<T>::value == false
     && std::is_same<std::string, T>::value == false,
     T&>::type
     make(const Output&)
   {
-    static_assert(is_messageable<T>::value == true ||
-                  std::is_base_of<TObject, T>::value == true,
+    static_assert(sizeof(T) == -1,
                   "data type T not supported by API, \n specializations available for"
                   "\n - trivially copyable, non-polymorphic structures"
                   "\n - arrays of those"
@@ -177,6 +190,11 @@ public:
   /// it to the consumers of @a spec once done.
   void
     adopt(const Output& spec, std::string*);
+
+  /// Adopt a TableBuilder in the framework and serialise / send
+  /// it as an Arrow table to all consumers of @a spec once done
+  void
+    adopt(const Output& spec, TableBuilder *);
 
   /// Serialize a snapshot of an object with root dictionary when called,
   /// will then be sent once the computation ends.

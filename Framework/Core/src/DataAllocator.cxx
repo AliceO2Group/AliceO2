@@ -10,6 +10,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
 
@@ -160,5 +161,17 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
   mContextRegistry->get<StringContext>()->addString(std::move(header), std::move(payload), channel);
   assert(payload.get() == nullptr);
 }
+
+void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
+{
+  std::unique_ptr<TableBuilder> payload(tb);
+  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
+  auto context = mContextRegistry->get<ArrowContext>();
+  assert(context);
+  context->addTable(std::move(header), std::move(payload), channel);
+  assert(payload.get() == nullptr);
+}
+
 }
 }

@@ -11,6 +11,7 @@
 #include "FairMQResizableBuffer.h"
 #include <fairmq/FairMQMessage.h>
 #include <arrow/status.h>
+#include <cassert>
 
 namespace o2
 {

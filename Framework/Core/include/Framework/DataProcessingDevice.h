@@ -21,6 +21,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/InputRoute.h"
@@ -56,6 +57,7 @@ private:
   MessageContext mFairMQContext;
   RootObjectContext mRootContext;
   StringContext mStringContext;
+  ArrowContext mDataFrameContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer mRelayer;
