@@ -339,6 +339,7 @@ constexpr o2::header::SerializationMethod gSerializationMethodInvalid{ "INVALID"
 constexpr o2::header::SerializationMethod gSerializationMethodNone{ "NONE" };
 constexpr o2::header::SerializationMethod gSerializationMethodROOT{ "ROOT" };
 constexpr o2::header::SerializationMethod gSerializationMethodFlatBuf{ "FLATBUF" };
+constexpr o2::header::SerializationMethod gSerializationMethodArrow { "ARROW" };
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader

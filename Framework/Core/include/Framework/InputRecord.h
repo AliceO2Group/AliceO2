@@ -15,6 +15,7 @@
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/InputSpan.h"
+#include "Framework/TableConsumer.h"
 
 #include <iterator>
 #include <string>
@@ -221,6 +222,21 @@ class InputRecord
     auto header = header::get<const header::DataHeader*>(ref.header);
     assert(header);
     return std::move(std::string(ref.payload, header->payloadSize));
+  }
+
+  /// substitution for TableConsumer
+  /// For the moment this is dummy, as it requires proper support to
+  /// create the RDataSource from the arrow buffer.
+  template <typename T>
+  typename std::enable_if<std::is_same<T, TableConsumer>::value, std::unique_ptr<TableConsumer>>::type
+  get(char const *binding) const
+  {
+
+    auto&& ref = get<DataRef>(binding);
+    auto header = header::get<const header::DataHeader*>(ref.header);
+    assert(header);
+    auto data = reinterpret_cast<uint8_t const *>(ref.payload);
+    return std::move(std::make_unique<TableConsumer>(data, header->payloadSize));
   }
 
   /// substitution for DataRef

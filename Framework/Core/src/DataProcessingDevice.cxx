@@ -47,7 +47,8 @@ DataProcessingDevice::DataProcessingDevice(const DeviceSpec& spec, ServiceRegist
     mFairMQContext{ FairMQDeviceProxy{ this } },
     mRootContext{ FairMQDeviceProxy{ this } },
     mStringContext{ FairMQDeviceProxy{ this } },
-    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext } },
+    mDataFrameContext{ FairMQDeviceProxy{ this } },
+    mContextRegistry{ { &mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext } },
     mAllocator{ &mTimingInfo, &mContextRegistry, spec.outputs },
     mRelayer{ spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>() },
     mInputChannels{ spec.inputChannels },
@@ -124,6 +125,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto& context = mFairMQContext;
   auto &rootContext = mRootContext;
   auto& stringContext = mStringContext;
+  auto& rdfContext = mDataFrameContext;
   auto &forwards = mForwards;
   auto &inputsSchema = mInputs;
   auto &errorCount = mErrorCount;
@@ -239,7 +241,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &stringContext, &serviceRegistry, &device](int i, InputRecord& record) {
+                             &context, &rootContext, &stringContext, &rdfContext, &serviceRegistry, &device](int i, InputRecord& record) {
     if (statefulProcess) {
       LOG(DEBUG) << "PROCESSING:START:" << i;
       monitoringService.send({ processingCount++, "dpl/stateful_process_count" });
@@ -258,9 +260,11 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
       monitoringService.send({ 1, "dpl/in_handle_data" });
       LOG(DEBUG) << "PROCESSING:END:" << i;
     }
+
     DataProcessor::doSend(device, context);
     DataProcessor::doSend(device, rootContext);
     DataProcessor::doSend(device, stringContext);
+    DataProcessor::doSend(device, rdfContext);
   };
 
   // Error handling means printing the error and updating the metric

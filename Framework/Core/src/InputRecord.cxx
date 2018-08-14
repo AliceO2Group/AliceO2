@@ -12,6 +12,20 @@
 #include <fairmq/FairMQMessage.h>
 #include <cassert>
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#endif
+#include <arrow/builder.h>
+#include <arrow/memory_pool.h>
+#include <arrow/record_batch.h>
+#include <arrow/table.h>
+#include <arrow/type_traits.h>
+#include <arrow/status.h>
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
 namespace o2
 {
 namespace framework

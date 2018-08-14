@@ -30,10 +30,11 @@ namespace framework
 /// MessageContext 0
 /// ROOTObjectContext 1
 /// StringContext 2
+/// ArrowContext 3
 class ContextRegistry
 {
  public:
-  ContextRegistry(std::array<void*, 3> contextes)
+  ContextRegistry(std::array<void*, 4> contextes)
     : mContextes{ contextes }
   {
   }
@@ -57,7 +58,7 @@ class ContextRegistry
   }
 
  private:
-  std::array<void*, 3> mContextes;
+  std::array<void*, 4> mContextes;
 };
 
 } // namespace framework

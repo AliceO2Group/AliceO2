@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/ArrowContext.h"
 #include "Framework/ServiceRegistry.h"
 
 #include <memory>
@@ -49,6 +50,7 @@ private:
   MessageContext mFairMQContext;
   RootObjectContext mRootContext;
   StringContext mStringContext;
+  ArrowContext mDataFrameContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   size_t mCurrentTimeslice;
