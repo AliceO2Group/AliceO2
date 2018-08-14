@@ -228,7 +228,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](int timeslice) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(timeslice));
     InputSpan span{ [&currentSetOfInputs](size_t i) -> char const* {
-                     return static_cast<char const*>(currentSetOfInputs.at(i)->GetData());
+                     return currentSetOfInputs.at(i) ? static_cast<char const*>(currentSetOfInputs.at(i)->GetData()) : nullptr;
                    },
                     currentSetOfInputs.size() };
     return InputRecord{ inputsSchema, std::move(span) };
