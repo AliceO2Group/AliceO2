@@ -14,8 +14,11 @@
 #include <boost/test/unit_test.hpp>
 #include "DebugGUI/imgui.h"
 #include "Framework/FrameworkGUIDataRelayerUsage.h"
-#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceControl.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceSpec.h"
+#include "../src/FrameworkGUIDeviceInspector.h"
 
 BOOST_AUTO_TEST_CASE(SimpleGUITest)
 {
@@ -93,5 +96,31 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
     ImGui::Render();
   }
 
+  ImGui::DestroyContext();
+}
+
+BOOST_AUTO_TEST_CASE(DeviceInspector)
+{
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+
+  // Build atlas
+  unsigned char* tex_pixels = NULL;
+  int tex_w, tex_h;
+  io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_w, &tex_h);
+
+  using namespace o2::framework;
+  DeviceSpec spec;
+  DeviceInfo info;
+  DeviceControl control;
+
+  for (int n = 0; n < 50; n++) {
+    io.DisplaySize = ImVec2(1920, 1080);
+    io.DeltaTime = 1.0f / 60.0f;
+    ImGui::NewFrame();
+    gui::displayDeviceInspector(spec, info, control);
+    ImGui::Render();
+  }
   ImGui::DestroyContext();
 }
