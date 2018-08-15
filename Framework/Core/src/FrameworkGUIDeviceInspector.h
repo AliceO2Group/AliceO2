@@ -17,11 +17,12 @@ namespace framework
 
 struct DeviceSpec;
 struct DeviceControl;
+struct DeviceInfo;
 
 namespace gui
 {
 
-void displayDeviceInspector(DeviceSpec const& spec, DeviceControl& control);
+void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceControl& control);
 
 } // namespace gui
 } // namespace framework

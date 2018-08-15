@@ -11,8 +11,10 @@
 #include "FrameworkGUIDeviceInspector.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceInfo.h"
 #include "Framework/ChannelSpec.h"
 #include "DebugGUI/imgui.h"
+#include <signal.h>
 
 namespace o2
 {
@@ -87,7 +89,7 @@ void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
   ImGui::Columns(1);
 }
 
-void displayDeviceInspector(DeviceSpec const& spec, DeviceControl& control)
+void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceControl& control)
 {
   if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Text("# channels: %lu", spec.inputChannels.size() + spec.outputChannels.size());
@@ -97,6 +99,30 @@ void displayDeviceInspector(DeviceSpec const& spec, DeviceControl& control)
   optionsTable(spec, control);
   if (ImGui::CollapsingHeader("Data relayer")) {
     ImGui::Text("Completion policy: %s", spec.completionPolicy.name.c_str());
+  }
+  if (ImGui::CollapsingHeader("Signals", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::Button("SIGSTOP")) {
+      kill(info.pid, SIGSTOP);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("SIGTERM")) {
+      kill(info.pid, SIGTERM);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("SIGKILL")) {
+      kill(info.pid, SIGKILL);
+    }
+    if (ImGui::Button("SIGCONT")) {
+      kill(info.pid, SIGCONT);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("SIGUSR1")) {
+      kill(info.pid, SIGUSR1);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("SIGUSR2")) {
+      kill(info.pid, SIGUSR2);
+    }
   }
 }
 
