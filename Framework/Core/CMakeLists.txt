@@ -46,6 +46,7 @@ set(SRCS
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
     src/FairMQDeviceProxy.cxx
+    src/FairMQResizableBuffer.cxx
     src/GraphvizHelpers.cxx
     src/InputRecord.cxx
     src/LocalRootFileService.cxx
@@ -138,6 +139,7 @@ set(HEADERS
       include/Framework/DataSamplingReadoutAdapter.h
       include/Framework/DPLBoostSerializer.h
       include/Framework/TableBuilder.h
+      include/Framework/FairMQResizableBuffer.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
       src/DeviceSpecHelpers.h
@@ -203,6 +205,7 @@ set(TEST_SRCS
       test/test_DataProcessorSpec.cxx
       test/test_DeviceMetricsInfo.cxx
       test/test_DeviceSpec.cxx
+      test/test_FairMQResizableBuffer.cxx
       test/test_FrameworkDataFlowToDDS.cxx
       test/test_Graphviz.cxx
       test/test_GUITests.cxx
