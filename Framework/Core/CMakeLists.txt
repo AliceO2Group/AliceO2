@@ -198,6 +198,7 @@ set(TEST_SRCS
       test/test_SimpleStringProcessing.cxx
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
+      test/test_CompletionPolicy.cxx
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
       test/test_DataSamplingCondition.cxx
