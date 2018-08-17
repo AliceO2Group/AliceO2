@@ -229,6 +229,7 @@ set(TEST_SRCS
       test/test_CallbackRegistry.cxx
       test/test_Task.cxx
       test/test_TableBuilder.cxx
+      test/test_InfoLogger.cxx
    )
 
 O2_GENERATE_TESTS(
