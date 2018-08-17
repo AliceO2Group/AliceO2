@@ -64,6 +64,7 @@ if(NOT FairMQInFairRoot_FOUND) # DEPRECATED: Remove this condition, once we requ
 endif()
 find_package(DDS)
 find_package(Protobuf REQUIRED)
+find_package(InfoLogger REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
 find_package(RapidJSON REQUIRED)
@@ -240,6 +241,17 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    InfoLogger_bucket
+
+    DEPENDENCIES
+    ${InfoLogger_LIBRARIES}
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${InfoLogger_INCLUDE_DIRS}
+)
+
+o2_define_bucket(
+    NAME
     O2FrameworkCore_bucket
 
     DEPENDENCIES
@@ -256,6 +268,7 @@ o2_define_bucket(
     DebugGUI
     ${Monitoring_LIBRARIES}
     ${Configuration_LIBRARIES}
+    InfoLogger_bucket
 
     SYSTEMINCLUDE_DIRECTORIES
     ${Monitoring_INCLUDE_DIRS}
