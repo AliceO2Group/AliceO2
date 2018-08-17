@@ -74,3 +74,34 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionPayloadSize)
     BOOST_CHECK_EQUAL(conditionPayloadSize->decide(dr), t.second);
   }
 }
+BOOST_AUTO_TEST_CASE(DataSamplingConditionNConsecutive)
+{
+  auto conditionNConsecutive = DataSamplingConditionFactory::create("nConsecutive");
+  BOOST_REQUIRE(conditionNConsecutive);
+
+  boost::property_tree::ptree config;
+  config.put("samplesNumber", 3);
+  config.put("cycleSize", 10);
+  conditionNConsecutive->configure(config);
+
+  std::vector<std::pair<size_t, bool>> testCases{
+    { 0, true },
+    { 1, true },
+    { 2, true },
+    { 3, false },
+    { 8, false },
+    { 9, false },
+    { 9999999999999, false },
+    { 10000000000000, true },
+    { 10000000000001, true },
+    { 10000000000002, true },
+    { 10000000000003, false }
+  };
+
+  for (const auto& t : testCases) {
+    DataProcessingHeader dph{ t.first, 0 };
+    o2::header::Stack headerStack{ dph };
+    DataRef dr{ nullptr, reinterpret_cast<const char*>(headerStack.data()), nullptr };
+    BOOST_CHECK_EQUAL(conditionNConsecutive->decide(dr), t.second);
+  }
+}

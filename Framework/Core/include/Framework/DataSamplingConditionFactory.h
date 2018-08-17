@@ -36,6 +36,8 @@ class DataSamplingConditionFactory
   static std::unique_ptr<DataSamplingCondition> createDataSamplingConditionRandom();
   /// \brief Getter for DataSamplingConditionPayloadSize
   static std::unique_ptr<DataSamplingCondition> createDataSamplingConditionPayloadSize();
+  /// \brief Getter for DataSamplingConditionNConsecutive
+  static std::unique_ptr<DataSamplingCondition> createDataSamplingConditionNConsecutive();
 };
 
 } // namespace framework
