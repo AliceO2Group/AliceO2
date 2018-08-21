@@ -33,6 +33,7 @@
 #include "Framework/WorkflowSpec.h"
 
 #include "DDSConfigHelpers.h"
+#include "O2ControlHelpers.h"
 #include "DeviceSpecHelpers.h"
 #include "DriverControl.h"
 #include "DriverInfo.h"
@@ -966,6 +967,16 @@ void initialiseDriverControl(bpo::variables_map const& varmap, DriverControl& co
       DriverState::SCHEDULE,            //
       DriverState::MATERIALISE_WORKFLOW //
     };
+  } else if (varmap["o2-control"].as<bool>()) {
+    control.callbacks = { [](DeviceSpecs const specs, DeviceExecutions const& executions) {
+      dumpDeviceSpec2O2Control(std::cout, specs, executions);
+    } };
+    control.forcedTransitions = {
+      DriverState::EXIT,                //
+      DriverState::PERFORM_CALLBACKS,   //
+      DriverState::SCHEDULE,            //
+      DriverState::MATERIALISE_WORKFLOW //
+    };
   } else if (varmap.count("id")) {
     // FIXME: for the time being each child needs to recalculate the workflow,
     //        so that it can understand what it needs to do. This is obviously
@@ -1013,7 +1024,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
      "what to do when processing is finished")                                                              //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")         //
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                    //
-    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration");
+    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")          //
+    ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
