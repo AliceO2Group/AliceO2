@@ -67,10 +67,9 @@ find_package(Protobuf REQUIRED)
 find_package(Configuration REQUIRED)
 find_package(Monitoring REQUIRED)
 find_package(RapidJSON REQUIRED)
-
 find_package(GLFW)
-
 find_package(benchmark QUIET)
+find_package(Arrow)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
