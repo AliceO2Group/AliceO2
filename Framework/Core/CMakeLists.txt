@@ -45,6 +45,7 @@ set(SRCS
     src/DeviceSpecHelpers.cxx
     src/DDSConfigHelpers.cxx
     src/Dispatcher.cxx
+    src/O2ControlHelpers.cxx
     src/DriverControl.cxx
     src/DriverInfo.cxx
     src/FairOptionsRetriever.cxx
@@ -154,6 +155,7 @@ set(HEADERS
       include/Framework/RawBufferContext.h
       src/ComputingResource.h
       src/DDSConfigHelpers.h
+      src/O2ControlHelpers.h
       src/DeviceSpecHelpers.h
       src/DriverControl.h
       src/DriverInfo.h
