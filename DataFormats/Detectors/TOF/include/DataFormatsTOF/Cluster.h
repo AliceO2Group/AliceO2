@@ -98,7 +98,7 @@ class Cluster : public o2::BaseCluster<float>
   bool isRightContributing() const { return mContributingChannels & kRight; }
   bool isDownRightContributing() const { return mContributingChannels & kDownRight; }
   bool isDownContributing() const { return mContributingChannels & kDown; }
-  bool isDownLeftContributing() const { return mContributingChannels & kDownLeft0; }
+  bool isDownLeftContributing() const { return mContributingChannels & kDownLeft; }
   bool isLeftContributing() const { return mContributingChannels & kLeft; }
 
  private:
