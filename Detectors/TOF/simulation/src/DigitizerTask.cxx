@@ -110,5 +110,5 @@ void DigitizerTask::FinishTask()
   }
   mDigitizer.setMCTruthContainer(mMCTruthArray);
 
-  mDigitizer.flushOutputContainer(mDigitsArray);
+  mDigitizer.flushOutputContainer(*mDigitsArray);
 }

@@ -53,7 +53,7 @@ class Strip
 
   /// Copy constructor
   /// @param ref Reference for the copy
-  Strip(const Strip& ref);
+  Strip(const Strip& ref) = default;
 
   /// Empties the point container
   /// @param option unused
@@ -91,11 +91,11 @@ class Strip
   /// Access Hit assigned to chip at a given index
   /// @param index Index of the point
   /// @return Hit at given index (nullptr if index is out of bounds)
-  const o2::tof::HitType* getHitAt(Int_t index) const;
+  inline const o2::tof::HitType* getHitAt(Int_t index) const {return mHits.at(i);}
 
   Int_t addDigit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl); // returns the MC label
 
-  void fillOutputContainer(std::vector<o2::tof::Digit>* digits);
+  void fillOutputContainer(std::vector<o2::tof::Digit>& digits);
 
  protected:
   Int_t mStripIndex = -1;                      ///< Strip ID

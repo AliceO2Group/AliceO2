@@ -92,17 +92,14 @@ class Cluster : public o2::BaseCluster<float>
   void resetLeftContributingChannel() { mContributingChannels &= ~kLeft; }           // we do "bitwise-and" with the 26th bit only set to zero, which is the negation of "mask"
 
   // getters of the up, down, right, left bits
-  bool isUpLeftContributing() const { return (mContributingChannels & kUpLeft) == kUpLeft ? 1 : 0; }
-  bool isUpContributing() const { return (mContributingChannels & kUp) == kUp ? 1 : 0; }
-  bool isUpRightContributing() const { return (mContributingChannels & kUpRight) == kUpRight ? 1 : 0; }
-  bool isRightContributing() const { return (mContributingChannels & kRight) == kRight ? 1 : 0; }
-  bool isDownRightContributing() const { return (mContributingChannels & kDownRight) == kDownRight ? 1 : 0; }
-  bool isDownContributing() const { return (mContributingChannels & kDown) == kDown ? 1 : 0; }
-  bool isDownLeftContributing() const { return (mContributingChannels & kDownLeft) == kDownLeft ? 1 : 0; }
-  bool isLeftContributing() const { return (mContributingChannels & kLeft) == kLeft ? 1 : 0; }
-
-  void setLabel(int label) { mLabel = label; }
-  int getLabel() const { return mLabel; }
+  bool isUpLeftContributing() const { return mContributingChannels & kUpLeft; }
+  bool isUpContributing() const { return mContributingChannels & kUp; }
+  bool isUpRightContributing() const { return mContributingChannels & kUpRight; }
+  bool isRightContributing() const { return mContributingChannels & kRight; }
+  bool isDownRightContributing() const { return mContributingChannels & kDownRight; }
+  bool isDownContributing() const { return mContributingChannels & kDown; }
+  bool isDownLeftContributing() const { return mContributingChannels & kDownLeft0; }
+  bool isLeftContributing() const { return mContributingChannels & kLeft; }
 
  private:
   friend class boost::serialization::access;
@@ -125,7 +122,6 @@ class Cluster : public o2::BaseCluster<float>
                              // channel & bit24 (0x800000)-> alsoDOWN
                              // channel & bit25 (0x1000000)-> alsoDOWNLEFT
                              // channel & bit26 (0x2000000)-> alsoLEFT
-  int mLabel;                // index pointing to the first MC label in the MC label array for this cluster
 
   ClassDefNV(Cluster, 1);
 };

@@ -179,19 +179,15 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   }
 
   // filling the MC labels of this cluster; the first will be those of the main digit; then the others
-  if (digitMCTruth != 0x0) {
+  if (digitMCTruth != nullptr) {
     int lbl = mClsLabels->getIndexedSize(); // this should correspond to the number of digits also;
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
       int digitLabel = mContributingDigit[i]->getLabel();
       gsl::span<const o2::MCCompLabel> mcArray = digitMCTruth->getLabels(digitLabel);
       for (int j = 0; j < static_cast<int>(mcArray.size()); ++j) {
-        auto evID = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j).getEventID();
-        auto trID = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j).getTrackID();
-        auto srcID = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j).getSourceID();
-        o2::MCCompLabel label(trID, evID, srcID);
+	auto label = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j);
         mClsLabels->addElement(lbl, label);
       }
-      c.setLabel(lbl);
     }
   }
 

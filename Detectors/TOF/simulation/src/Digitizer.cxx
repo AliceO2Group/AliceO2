@@ -718,7 +718,7 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
   h3->Draw();
 }
 //______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<Digit>* digits)
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
 
   // filling the digit container doing a loop on all strips
@@ -726,14 +726,14 @@ void Digitizer::fillOutputContainer(std::vector<Digit>* digits)
     strip.fillOutputContainer(digits);
   }
 
-  // if(! digits->size()) return;
+  // if(! digits.size()) return;
 
   // copying the transient labels to the output labels (stripping the tdc information)
-  if (mMCTrueContainer) {
+  if (mMCTruthOutputContainer) {
     // copy from transientTruthContainer to mMCTruthAray
     // a brute force solution for the moment; should be handled by a dedicated API
     for (int index = 0; index < mMCTruthContainerCurrent->getIndexedSize(); ++index) {
-      mMCTrueContainer->addElements(index, mMCTruthContainerCurrent->getLabels(index));
+      mMCTruthOutputContainer->addElements(index, mMCTruthContainerCurrent->getLabels(index));
     }
   }
 
@@ -754,7 +754,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>* digits)
   }
 }
 //______________________________________________________________________
-void Digitizer::flushOutputContainer(std::vector<Digit>* digits)
+void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   // TO be implemented
   fillOutputContainer(digits);

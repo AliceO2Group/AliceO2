@@ -30,8 +30,6 @@ Strip::Strip(Int_t index)
   : mStripIndex(index)
 {
 }
-//_______________________________________________________________________
-Strip::Strip(const Strip& ref) = default;
 
 //_______________________________________________________________________
 void Strip::insertHit(const HitType* h)
@@ -43,15 +41,6 @@ void Strip::insertHit(const HitType* h)
     return;
   }
   mHits.push_back(h);
-}
-
-//_______________________________________________________________________
-const HitType* Strip::getHitAt(Int_t i) const
-{
-  if (i < mHits.size()) {
-    return mHits[i];
-  }
-  return nullptr;
 }
 
 //_______________________________________________________________________
@@ -86,7 +75,7 @@ Int_t Strip::addDigit(Double_t time, Int_t channel, Int_t tdc, Int_t tot, Int_t 
 }
 
 //______________________________________________________________________
-void Strip::fillOutputContainer(std::vector<Digit>* digits)
+void Strip::fillOutputContainer(std::vector<Digit>& digits)
 {
   // transfer digits that belong to the strip to the output array of digits
   // we assume that the Strip has stored inside only digits from one readout
@@ -98,7 +87,7 @@ void Strip::fillOutputContainer(std::vector<Digit>* digits)
   auto iter = itBeg;
   for (; iter != mDigits.end(); ++iter) {
     Digit& dig = iter->second;
-    digits->emplace_back(dig);
+    digits.emplace_back(dig);
   }
 
   //  if (iter!=mDigits.end()) iter--;

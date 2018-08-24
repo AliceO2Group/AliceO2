@@ -52,7 +52,7 @@ class Digitizer
 
   void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truthcontainer)
   {
-    mMCTrueContainer = truthcontainer;
+    mMCTruthOutputContainer = truthcontainer;
   }
 
   void initParameters();
@@ -60,8 +60,8 @@ class Digitizer
 
   void test(const char* geo = "O2geometry.root");
   void testFromHits(const char* geo = "O2geometry.root", const char* hits = "AliceO2_TGeant3.tof.mc_10_event.root");
-  void fillOutputContainer(std::vector<Digit>* digits);
-  void flushOutputContainer(std::vector<Digit>* digits); // flush all residual buffered data
+  void fillOutputContainer(std::vector<Digit>& digits);
+  void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
 
   void setContinuous(bool val) { mContinuous = val; }
 
@@ -101,7 +101,7 @@ class Digitizer
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel> mMCTruthContainer[MAXWINDOWS];
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mMCTruthContainerCurrent = &mMCTruthContainer[0]; ///< Array for MCTruth information associated to digits in mDigitsArrray.
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mMCTruthContainerNext[MAXWINDOWS - 1];            ///< Array for MCTruth information associated to digits in mDigitsArrray.
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTrueContainer;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCTruthOutputContainer;
 
   // array of strips to store the digits per strip (one for the current readout window, one for the next one)
   std::vector<Strip> mStrips[MAXWINDOWS];
