@@ -46,7 +46,8 @@ void Digitizer::init()
 
 //______________________________________________________________________
 
-void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits){
+void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
+{
   // hits array of TOF hits for a given simulated event
   //mDigits = digits;
 
