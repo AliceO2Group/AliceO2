@@ -46,7 +46,7 @@ void Digitizer::init()
 
 //______________________________________________________________________
 
-void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* digits){
+void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits){
   // hits array of TOF hits for a given simulated event
   //mDigits = digits;
 
@@ -54,11 +54,11 @@ void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* dig
   //while(mContinuous && readoutwindow > mReadoutWindowCurrent){
   if (mContinuous && readoutwindow > mReadoutWindowCurrent) {
     digits->clear();
-    //fillOutputContainer(digits);
+    //fillOutputContainer(*digits);
     // waiting for the new framework to store previous readout window
 
     for (Int_t i = mReadoutWindowCurrent; i < readoutwindow; i++) { // temporary loop because current framework doesn't allow to store outputs in digitizer class
-      fillOutputContainer(digits);
+      fillOutputContainer(*digits);
     }
     //mReadoutWindowCurrent++;
     mReadoutWindowCurrent = readoutwindow;
@@ -114,7 +114,7 @@ void Digitizer::process(const std::vector<HitType>* hits,std::vector<Digit>* dig
 
   if (!mContinuous) { // fill output container per event
     digits->clear();
-    fillOutputContainer(digits);
+    fillOutputContainer(*digits);
   }
 }
 
