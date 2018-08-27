@@ -23,6 +23,7 @@ set(SRCS
     src/BoostOptionsRetriever.cxx
     src/ConfigParamsHelper.cxx
     src/CompletionPolicy.cxx
+    src/ChannelSpecHelpers.cxx
     src/CompletionPolicyHelpers.cxx
     src/ChannelConfigurationPolicy.cxx
     src/ChannelConfigurationPolicyHelpers.cxx
@@ -199,6 +200,7 @@ set(TEST_SRCS
       test/test_AlgorithmSpec.cxx
       test/test_BoostOptionsRetriever.cxx
       test/test_CompletionPolicy.cxx
+      test/test_ChannelSpecHelpers.cxx
       test/test_DataRelayer.cxx
       test/test_DataSampling.cxx
       test/test_DataSamplingCondition.cxx

@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "DeviceSpecHelpers.h"
+#include "ChannelSpecHelpers.h"
 #include <wordexp.h>
 #include <algorithm>
 #include <boost/program_options.hpp>
@@ -36,31 +37,17 @@ namespace o2
 namespace framework
 {
 
-char const* channelTypeFromEnum(enum ChannelType type)
-{
-  switch (type) {
-    case Pub:
-      return "pub";
-    case Sub:
-      return "sub";
-    case Push:
-      return "push";
-    case Pull:
-      return "pull";
-  }
-}
-
 /// This creates a string to configure channels of a FairMQDevice
 /// FIXME: support shared memory
 std::string inputChannel2String(const InputChannelSpec& channel)
 {
   std::string result;
   char buffer[32];
-  auto addressFormat = (channel.method == Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
+  auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
   result += "name=" + channel.name + ",";
-  result += std::string("type=") + channelTypeFromEnum(channel.type) + ",";
-  result += std::string("method=") + (channel.method == Bind ? "bind" : "connect") + ",";
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type) + ",";
+  result += std::string("method=") + ChannelSpecHelpers::methodAsString(channel.method) + ",";
   result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
 
   return result;
@@ -70,11 +57,11 @@ std::string outputChannel2String(const OutputChannelSpec& channel)
 {
   std::string result;
   char buffer[32];
-  auto addressFormat = (channel.method == Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
+  auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
   result += "name=" + channel.name + ",";
-  result += std::string("type=") + channelTypeFromEnum(channel.type) + ",";
-  result += std::string("method=") + (channel.method == Bind ? "bind" : "connect") + ",";
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type) + ",";
+  result += std::string("method=") + ChannelSpecHelpers::methodAsString(channel.method) + ",";
   result += std::string("address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
 
   return result;
