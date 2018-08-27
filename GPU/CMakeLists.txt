@@ -7,6 +7,7 @@ install(DIRECTORY
         TPCCAGPUTracking
         TPCFastTransformation
         TPCSpaceChargeBase
+        Common
         DESTINATION sources
         PATTERN "TPCCAGPUTracking/Standalone/cmodules/.*" EXCLUDE
 )
