@@ -4,7 +4,12 @@
 #include "../cmodules/vecpod.h"
 #include <GL/glew.h>
 #include <GL/gl.h>
+#include <GL/glext.h>
 #include <GL/glu.h>
+
+#if !defined(GL_VERSION_4_3) || GL_VERSION_4_3 == 0
+#error Unsupported OpenGL version < 4.3
+#endif
 
 extern const int init_width, init_height;
 extern volatile int needUpdate;
