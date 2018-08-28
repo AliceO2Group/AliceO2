@@ -24,10 +24,10 @@
 //* any purpose. It is provided "as is" without express or implied warranty. *
 //****************************************************************************
 
-//  @file   Fifo.h
-//  @author Matthias Richter
-//  @since  2016-12-07
-//  @brief  Thread safe FIFO
+/// @file   Fifo.h
+/// @author Matthias Richter
+/// @since  2016-12-07
+/// @brief  Thread safe FIFO
 
 #include <queue>
 #include <mutex>

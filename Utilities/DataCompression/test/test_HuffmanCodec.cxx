@@ -8,24 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
+/// @file   test_HuffmanCodec.cxx
+/// @author Matthias Richter
+/// @since  2016-08-11
+/// @brief  Test program for Huffman codec template class
 
-//  @file   test_HuffmanCodec.cxx
-//  @author Matthias Richter
-//  @since  2016-08-11
-//  @brief  Test program for Huffman codec template class
-
-#define BOOST_TEST_MODULE Utility test
+#define BOOST_TEST_MODULE HuffmanCodec unit test
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
@@ -40,6 +28,8 @@
 #include "DataGenerator.h"
 #include "Fifo.h"
 
+// a decoder process working on the FIFO of encoded data and comparing to
+// original data from the corresponding FIFO
 template <class RandvalStreamT, class EncodedStreamT, class CodecT>
 void decoderProcess(RandvalStreamT& fifoRandvals, EncodedStreamT& fifoEncoded, CodecT& codec)
 {
@@ -83,7 +73,7 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   // third template parameter determines whether code has to be decoded
   // MSB to LSB (true) or LSB to MSB (false)
   using HuffmanModel_t =
-    o2::HuffmanModel<ProbabilityModel<SimpleRangeAlphabet_t>, o2::HuffmanNode<std::bitset<32>>, true>;
+    o2::HuffmanModel<ProbabilityModel<SimpleRangeAlphabet_t>, std::bitset<32>, true>;
   HuffmanModel_t huffmanmodel;
 
   std::cout << std::endl << "Huffman probability model after initialization: " << std::endl;

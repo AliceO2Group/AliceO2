@@ -8,26 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//-*- Mode: C++ -*-
+/* Local Variables:  */
+/* mode: c++         */
+/* End:              */
 
 #ifndef DC_PRIMITIVES_H
 #define DC_PRIMITIVES_H
-//****************************************************************************
-//* This file is free software: you can redistribute it and/or modify        *
-//* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or        *
-//* (at your option) any later version.                                      *
-//*                                                                          *
-//* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
-//*                                                                          *
-//* The authors make no claims about the suitability of this software for    *
-//* any purpose. It is provided "as is" without express or implied warranty. *
-//****************************************************************************
 
-//  @file   dc_primitives.h
-//  @author Matthias Richter
-//  @since  2016-08-15
-//  @brief  Primitives for data compression
+/// @file   dc_primitives.h
+/// @author Matthias Richter
+/// @since  2016-08-15
+/// @brief  Primitives for data compression
 
 /**
  * The following template classes are defined
