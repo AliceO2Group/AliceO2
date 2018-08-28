@@ -37,9 +37,9 @@
 #pragma link C++ class AliHLTTPCCAGPUTrackerBase+;
 
 //#pragma link C++ class AliHLTTRDTrack+; //Templated, should add linkdef for specialization, but with an ifdef for ROOT >= 6 only
-#pragma link C++ class AliHLTTRDTracker+;
+//#pragma link C++ class AliHLTTRDTracker+;
 #pragma link C++ class AliHLTTRDTrackerComponent+;
-#pragma link C++ class AliHLTTRDTrackletWord+;
+//#pragma link C++ class AliHLTTRDTrackletWord+;
 #pragma link C++ class AliHLTTRDTrackletReaderComponent+;
 
 #endif
