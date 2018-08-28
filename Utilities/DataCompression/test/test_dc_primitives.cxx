@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// @file   test_dc_primitives.cxx
+/// @author Matthias Richter
+/// @since  2016-08-31
+/// @brief  Test program for dc_primitives tools
+
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
