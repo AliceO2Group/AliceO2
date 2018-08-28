@@ -1029,6 +1029,22 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    TPCFastTransformation_bucket
+
+    DEPENDENCIES
+    dl
+    pthread
+    root_base_bucket
+    common_vc_bucket
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${ALITPCCOMMON_DIR}/sources/TPCFastTransformation
+    ${ALITPCCOMMON_DIR}/sources/Common
+)
+
+o2_define_bucket(
+    NAME
     TPCCAGPUTracking_bucket
 
     DEPENDENCIES
