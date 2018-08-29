@@ -3,21 +3,26 @@
 /* Copyright(c) 2007-2009, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
- #include "AliHLTTRDDef.h"
+#include "AliHLTTRDDef.h"
+#include "AliHLTTPCCADef.h"
+
 class AliHLTTRDTrackerDebug;
 class AliHLTTRDTrackletWord;
 class AliHLTTRDGeometry;
 class AliExternalTrackParam;
 class AliMCEvent;
+class AliHLTTPCGMMerger;
 
 //-------------------------------------------------------------------------
 class AliHLTTRDTracker {
  public:
 
+#ifndef HLTCA_GPUCODE
   AliHLTTRDTracker();
   AliHLTTRDTracker(const AliHLTTRDTracker &tracker) = delete;
   AliHLTTRDTracker & operator=(const AliHLTTRDTracker &tracker) = delete;
   ~AliHLTTRDTracker();
+#endif
 
   enum EHLTTRDTracker {
     kNLayers = 6,
@@ -44,68 +49,55 @@ class AliHLTTRDTracker {
     int fTrackletId;
   };
 
-  static bool Hypothesis_Sort(const Hypothesis &lhs, const Hypothesis &rhs) {
-    if (lhs.fLayers < 1 || rhs.fLayers < 1) {
-      return ( lhs.fChi2 < rhs.fChi2 );
-    }
-    else {
-      return ( (lhs.fChi2/lhs.fLayers) < (rhs.fChi2/rhs.fLayers) );
-    }
-  }
-
-  void Init();
-  void Reset();
-  void StartLoadTracklets(const int nTrklts);
-  void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
-  void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
-  bool CalculateSpacePoints();
-  bool FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t, int nTPCtracks);
-  int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
-  bool AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, const int layer) const;
-  int GetSector(float alpha) const;
-  float GetAlphaOfSector(const int sec) const;
-  float GetRPhiRes(float snp) const { return (0.04f*0.04f+0.33f*0.33f*(snp-0.126f)*(snp-0.126f)); } // parametrization obtained from track-tracklet residuals
-  void RecalcTrkltCov(const int trkltIdx, const float tilt, const float snp, const float rowSize);
+  GPUd() void Init();
+  GPUd() void Reset();
+  GPUd() void StartLoadTracklets(const int nTrklts);
+  GPUd() void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
+  GPUd() void DoTracking(HLTTRDTrack *tracksTPC, int *tracksTPClab, int nTPCtracks, int *tracksTPCnTrklts = 0x0, int *tracksTRDlabel = 0x0);
+  GPUd() bool CalculateSpacePoints();
+  GPUd() bool FollowProlongation(HLTTRDPropagator *prop, HLTTRDTrack *t, int nTPCtracks);
+  GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
+  GPUd() bool AdjustSector(HLTTRDPropagator *prop, HLTTRDTrack *t, const int layer) const;
+  GPUd() int GetSector(float alpha) const;
+  GPUd() float GetAlphaOfSector(const int sec) const;
+  GPUd() float GetRPhiRes(float snp) const { return (0.04f*0.04f+0.33f*0.33f*(snp-0.126f)*(snp-0.126f)); } // parametrization obtained from track-tracklet residuals
+  GPUd() void RecalcTrkltCov(const int trkltIdx, const float tilt, const float snp, const float rowSize);
   void CountMatches(const int trackID, std::vector<int> *matches) const;
-  void CheckTrackRefs(const int trackID, bool *findableMC) const;
-  void FindChambersInRoad(const HLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, std::vector<int> &det, const float zMax, const float alpha) const;
-  bool IsGeoFindable(const HLTTRDTrack *t, const int layer, const float alpha) const;
+  GPUd() void CheckTrackRefs(const int trackID, bool *findableMC) const;
+  GPUd() void FindChambersInRoad(const HLTTRDTrack *t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
+  GPUd() bool IsGeoFindable(const HLTTRDTrack *t, const int layer, const float alpha) const;
+  GPUd() void  SwapTracklets(const int left, const int right);
+  GPUd() int   PartitionTracklets(const int left, const int right);
+  GPUd() void  SwapHypothesis(const int left, const int right);
+  GPUd() int   PartitionHypothesis(const int left, const int right);
+  GPUd() void  Quicksort(const int left, const int right, const int size, const int type = 0);
+  GPUd() void  PrintSettings() const;
 
   // settings
-  void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
-  void EnableDebugOutput()              { fDebugOutput = true; }
-  void SetPtThreshold(float minPt)      { fMinPt = minPt; }
-  void SetMaxEta(float maxEta)          { fMaxEta = maxEta; }
-  void SetChi2Threshold(float chi2)     { fMaxChi2 = chi2; }
-  void SetChi2Penalty(float chi2)       { fChi2Penalty = chi2; }
-  void SetMaxMissingLayers(int ly)      { fMaxMissingLy = ly; }
-  void SetNCandidates(int n) {
-    if (!fIsInitialized) {
-      fNCandidates = n;
-    } else {
-      Error("SetNCandidates", "Cannot change fNCandidates after initialization");
-    }
-  }
-  AliMCEvent * GetMCEvent()   const { return fMCEvent; }
-  bool  GetIsDebugOutputOn()  const { return fDebugOutput; }
-  float GetPtThreshold()      const { return fMinPt; }
-  float GetMaxEta()           const { return fMaxEta; }
-  float GetChi2Threshold()    const { return fMaxChi2; }
-  float GetChi2Penalty()      const { return fChi2Penalty; }
-  int   GetMaxMissingLayers() const { return fMaxMissingLy; }
-  int   GetNCandidates()      const { return fNCandidates; }
-  void  PrintSettings() const;
+  GPUd() void SetMCEvent(AliMCEvent* mc)       { fMCEvent = mc;}
+  GPUd() void EnableDebugOutput()              { fDebugOutput = true; }
+  GPUd() void SetPtThreshold(float minPt)      { fMinPt = minPt; }
+  GPUd() void SetMaxEta(float maxEta)          { fMaxEta = maxEta; }
+  GPUd() void SetChi2Threshold(float chi2)     { fMaxChi2 = chi2; }
+  GPUd() void SetChi2Penalty(float chi2)       { fChi2Penalty = chi2; }
+  GPUd() void SetMaxMissingLayers(int ly)      { fMaxMissingLy = ly; }
+  GPUd() void SetNCandidates(int n);
+
+  GPUd() AliMCEvent * GetMCEvent()   const { return fMCEvent; }
+  GPUd() bool  GetIsDebugOutputOn()  const { return fDebugOutput; }
+  GPUd() float GetPtThreshold()      const { return fMinPt; }
+  GPUd() float GetMaxEta()           const { return fMaxEta; }
+  GPUd() float GetChi2Threshold()    const { return fMaxChi2; }
+  GPUd() float GetChi2Penalty()      const { return fChi2Penalty; }
+  GPUd() int   GetMaxMissingLayers() const { return fMaxMissingLy; }
+  GPUd() int   GetNCandidates()      const { return fNCandidates; }
 
   // output
-  HLTTRDTrack *Tracks()                       const { return fTracks;}
-  int NTracks()                               const { return fNTracks;}
-  AliHLTTRDSpacePointInternal *SpacePoints()  const { return fSpacePoints; }
+  GPUd() HLTTRDTrack *Tracks()                       const { return fTracks;}
+  GPUd() int NTracks()                               const { return fNTracks;}
+  GPUd() AliHLTTRDSpacePointInternal *SpacePoints()  const { return fSpacePoints; }
 
  protected:
-
-  static const float fgkX0[kNLayers];        // default values of anode wires
-  static const float fgkXshift;              // online tracklets evaluated above anode wire
-
   float *fR;                                  // rough radial position of each TRD layer
   bool fIsInitialized;                        // flag is set upon initialization
   HLTTRDTrack *fTracks;                       // array of trd-updated tracks
@@ -129,8 +121,9 @@ class AliHLTTRDTracker {
   float fChi2Penalty;                         // chi2 added to the track for no update
   float fZCorrCoefNRC;                        // tracklet z-position depends linearly on track dip angle
   int fNhypothesis;                           // number of track hypothesis per layer
-  std::vector<int> fMaskedChambers;           // vector holding bad TRD chambers
+  unsigned short *fMaskedChambers;            // array with bad TRD chambers indices
   AliMCEvent* fMCEvent;                       //! externaly supplied optional MC event
+  const AliHLTTPCGMMerger *fMerger;           // supplying parameters for AliHLTTPCGMPropagator
   AliHLTTRDTrackerDebug *fDebug;              // debug output
 
 };

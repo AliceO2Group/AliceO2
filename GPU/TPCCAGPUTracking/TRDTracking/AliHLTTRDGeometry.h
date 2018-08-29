@@ -23,50 +23,52 @@ public:
 
 #else
 
+#include "AliHLTTPCCADef.h"
+
 class TGeoHMatrix
 {
 public:
-	template <class T> void LocalToMaster(T*, T*) {}
+	template <class T> GPUd() void LocalToMaster(T*, T*) {}
 };
 
 class AliHLTTRDpadPlane
 {
 public:
-	float GetTiltingAngle() {return 0;}
-	float GetRowSize(int row) {return 0;}
-	float GetRowPos(int row) {return 0;}
-	float GetColPos(int col) {return 0;}
-	float GetNrows() {return 0;}
+	GPUd() float GetTiltingAngle() {return 0;}
+	GPUd() float GetRowSize(int row) {return 0;}
+	GPUd() float GetRowPos(int row) {return 0;}
+	GPUd() float GetColPos(int col) {return 0;}
+	GPUd() float GetNrows() {return 0;}
 };
 
 class AliHLTTRDGeometry
 {
 public:
-	static bool CheckGeometryAvailable() {return false;}
+	GPUd() static bool CheckGeometryAvailable() {return false;}
 
 	//Make sub-functionality available directly in AliHLTTRDGeometry
-	float GetPadPlaneWidthIPad(int det) {return 0;}
-	float GetPadPlaneRowPos(int layer, int stack, int row) {return 0;}
-	float GetPadPlaneRowSize(int layer, int stack, int row) {return 0;}
-	int GetGeomManagerVolUID(int det, int modId) {return 0;}
+	GPUd() float GetPadPlaneWidthIPad(int det) {return 0;}
+	GPUd() float GetPadPlaneRowPos(int layer, int stack, int row) {return 0;}
+	GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) {return 0;}
+	GPUd() int GetGeomManagerVolUID(int det, int modId) {return 0;}
 	
 	//Base functionality of TRDGeometry
-	float GetTime0(int layer) {return 0;}
-	float GetCol0(int layer) {return 0;}
-	int GetLayer(int det) {return 0;}
-	bool CreateClusterMatrixArray() {return false;}
-	float AnodePos() {return 0;}
-	TGeoHMatrix* GetClusterMatrix(int det) {return nullptr;}
-	int GetDetector(int layer, int stack, int sector) {return 0;}
-	AliHLTTRDpadPlane* GetPadPlane(int layer, int stack) {return nullptr;}
-	AliHLTTRDpadPlane* GetPadPlane(int detector) {return nullptr;}
-	int GetSector(int det) {return 0;}
-	int GetStack(int det) {return 0;}
-	int GetStack(float z, int layer) {return 0;}
-	float GetAlpha() {return 0;}
-	bool IsHole(int la, int st, int se) const {return false;}
-	int GetRowMax(int layer, int stack, int /*sector*/) {return 0;}
-	
+	GPUd() float GetTime0(int layer) {return 0;}
+	GPUd() float GetCol0(int layer) {return 0;}
+	GPUd() int GetLayer(int det) {return 0;}
+	GPUd() bool CreateClusterMatrixArray() {return false;}
+	GPUd() float AnodePos() {return 0;}
+	GPUd() TGeoHMatrix* GetClusterMatrix(int det) {return nullptr;}
+	GPUd() int GetDetector(int layer, int stack, int sector) {return 0;}
+	GPUd() AliHLTTRDpadPlane* GetPadPlane(int layer, int stack) {return nullptr;}
+	GPUd() AliHLTTRDpadPlane* GetPadPlane(int detector) {return nullptr;}
+	GPUd() int GetSector(int det) {return 0;}
+	GPUd() int GetStack(int det) {return 0;}
+	GPUd() int GetStack(float z, int layer) {return 0;}
+	GPUd() float GetAlpha() {return 0;}
+	GPUd() bool IsHole(int la, int st, int se) const {return false;}
+	GPUd() int GetRowMax(int layer, int stack, int /*sector*/) {return 0;}
+
 	static const int kNstack = 0;
 };
 

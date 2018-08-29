@@ -5,6 +5,7 @@
 
 #include "AliHLTTRDDef.h"
 #include "AliHLTTRDInterfaces.h"
+#include "AliHLTTPCCADef.h"
 
 class AliHLTTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
@@ -15,45 +16,46 @@ class AliHLTTRDTrack : public T
 {
  public:
 
-  AliHLTTRDTrack();
+  GPUd() AliHLTTRDTrack();
   AliHLTTRDTrack(const typename T::baseClass &t ) = delete;
-  AliHLTTRDTrack(const AliHLTTRDTrack& t);
-  AliHLTTRDTrack(const AliHLTExternalTrackParam& t);
-  AliHLTTRDTrack &operator=(const AliHLTTRDTrack& t);
+  GPUd() AliHLTTRDTrack(const AliHLTTRDTrack& t);
+  GPUd() AliHLTTRDTrack(const AliHLTExternalTrackParam& t);
+  GPUd() AliHLTTRDTrack &operator=(const AliHLTTRDTrack& t);
 
-  int   GetNlayers()              const;
-  int   GetTracklet(int iLayer)   const;
-  int   GetTPCtrackId()           const { return fTPCtrackId; }
-  int   GetNtracklets()           const { return fNtracklets; }
-  int   GetNtrackletsOffline()    const { return fNtrackletsOffline; }
-  int   GetLabelOffline()         const { return fLabelOffline; }
-  int   GetLabel()                const { return fLabel; }
-  float GetChi2()                 const { return fChi2; }
-  float GetMass()                 const { return fMass; }
-  int   GetNmissingConsecLayers(int iLayer) const;
-  bool  GetIsStopped()            const { return fIsStopped; }
-  bool  GetIsFindable(int iLayer) const { return fIsFindable[iLayer]; }
+  GPUd() int   GetNlayers()              const;
+  GPUd() int   GetTracklet(int iLayer)   const;
+  GPUd() int   GetTPCtrackId()           const { return fTPCtrackId; }
+  GPUd() int   GetNtracklets()           const { return fNtracklets; }
+  GPUd() int   GetNtrackletsOffline()    const { return fNtrackletsOffline; }
+  GPUd() int   GetLabelOffline()         const { return fLabelOffline; }
+  GPUd() int   GetLabel()                const { return fLabel; }
+  GPUd() float GetChi2()                 const { return fChi2; }
+  GPUd() float GetReducedChi2()          const { return GetNlayers() == 0 ? fChi2 : fChi2 / GetNlayers(); }
+  GPUd() float GetMass()                 const { return fMass; }
+  GPUd() int   GetNmissingConsecLayers(int iLayer) const;
+  GPUd() bool  GetIsStopped()            const { return fIsStopped; }
+  GPUd() bool  GetIsFindable(int iLayer) const { return fIsFindable[iLayer]; }
 
-  void AddTracklet(int iLayer, int idx)  { fAttachedTracklets[iLayer] = idx; fNtracklets++;}
-  void SetTPCtrackId(int v)              { fTPCtrackId = v;}
-  void SetNtracklets(int nTrklts)        { fNtracklets = nTrklts; }
-  void SetIsFindable(int iLayer)         { fIsFindable[iLayer] = true; }
-  void SetNtrackletsOffline(int nTrklts) { fNtrackletsOffline = nTrklts; }
-  void SetLabelOffline(int lab)          { fLabelOffline = lab; }
-  void SetIsStopped()                    { fIsStopped = true; }
+  GPUd() void AddTracklet(int iLayer, int idx)  { fAttachedTracklets[iLayer] = idx; fNtracklets++;}
+  GPUd() void SetTPCtrackId(int v)              { fTPCtrackId = v;}
+  GPUd() void SetNtracklets(int nTrklts)        { fNtracklets = nTrklts; }
+  GPUd() void SetIsFindable(int iLayer)         { fIsFindable[iLayer] = true; }
+  GPUd() void SetNtrackletsOffline(int nTrklts) { fNtrackletsOffline = nTrklts; }
+  GPUd() void SetLabelOffline(int lab)          { fLabelOffline = lab; }
+  GPUd() void SetIsStopped()                    { fIsStopped = true; }
 
-  void SetChi2(float chi2) { fChi2 = chi2; }
-  void SetMass(float mass) { fMass = mass; }
-  void SetLabel(int label) { fLabel = label; }
+  GPUd() void SetChi2(float chi2) { fChi2 = chi2; }
+  GPUd() void SetMass(float mass) { fMass = mass; }
+  GPUd() void SetLabel(int label) { fLabel = label; }
 
-  int GetTrackletIndex(int iLayer) const {
+  GPUd() int GetTrackletIndex(int iLayer) const {
     return GetTracklet(iLayer);
   }
 
   // conversion to / from HLT track structure
 
-  void ConvertTo( AliHLTTRDTrackDataRecord &t ) const;
-  void ConvertFrom( const AliHLTTRDTrackDataRecord &t );
+  GPUd() void ConvertTo( AliHLTTRDTrackDataRecord &t ) const;
+  GPUd() void ConvertFrom( const AliHLTTRDTrackDataRecord &t );
 
 
  protected:

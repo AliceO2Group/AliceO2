@@ -26,41 +26,42 @@
 #include "AliHLTTRDTrackletWord.h"
 #include <new>
 
-AliHLTTRDGeometry* AliHLTTRDTrackletWord::fgGeo = 0x0;
 
-AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord) :
+GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord) :
   fId(-1),
   fHCId(-1),
   fTrackletWord(trackletWord)
 {
-  for (int i=3;i--;) fLabel[i] = -1;
-  if (!fgGeo)
-    fgGeo = new AliHLTTRDGeometry;
+  for (int i=3;i--;) {
+    fLabel[i] = -1;
+  }
 }
 
-AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id, int* label) :
+GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(unsigned int trackletWord, int hcid, int id, int* label) :
   fId(id),
   fHCId(hcid),
   fTrackletWord(trackletWord)
 {
   if (label) {
-    for (int i=3;i--;) fLabel[i] = label[i];
+    for (int i=3;i--;) {
+      fLabel[i] = label[i];
+    }
   }
   else {
-    for (int i=3;i--;) fLabel[i] = -1;
+    for (int i=3;i--;) {
+      fLabel[i] = -1;
+    }
   }
-  if (!fgGeo)
-    fgGeo = new AliHLTTRDGeometry;
 }
 
-AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs) :
+GPUd() AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs) :
   fId(rhs.fId),
   fHCId(rhs.fHCId),
   fTrackletWord(rhs.fTrackletWord)
 {
-  for (int i=3;i--;) fLabel[i] =  rhs.fLabel[i];
-  if (!fgGeo)
-    fgGeo = new AliHLTTRDGeometry;
+  for (int i=3;i--;) {
+    fLabel[i] =  rhs.fLabel[i];
+  }
 }
 
 #ifdef HLTCA_BUILD_ALIROOT_LIB
@@ -73,9 +74,9 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs) :
   fHCId(rhs.GetHCId()),
   fTrackletWord(rhs.GetTrackletWord())
 {
-  for (int i=3;i--;) fLabel[i] = -1;
-  if (!fgGeo)
-    fgGeo = new AliHLTTRDGeometry;
+  for (int i=3;i--;) {
+    fLabel[i] = -1;
+  }
 }
 
 AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
@@ -83,9 +84,9 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
   fHCId(rhs.GetHCId()),
   fTrackletWord(rhs.GetTrackletWord())
 {
-  for (int i=3;i--;) fLabel[i] =  rhs.GetLabel(i);
-  if (!fgGeo)
-    fgGeo = new AliHLTTRDGeometry;
+  for (int i=3;i--;) {
+    fLabel[i] =  rhs.GetLabel(i);
+  }
 }
 
 AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM &rhs)
@@ -97,19 +98,19 @@ AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM 
 
 #endif
 
-AliHLTTRDTrackletWord::~AliHLTTRDTrackletWord()
+GPUd() AliHLTTRDTrackletWord::~AliHLTTRDTrackletWord()
 {
 
 }
 
-AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliHLTTRDTrackletWord &rhs)
+GPUd() AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliHLTTRDTrackletWord &rhs)
 {
   this->~AliHLTTRDTrackletWord();
   new(this) AliHLTTRDTrackletWord(rhs);
   return *this;
 }
 
-int AliHLTTRDTrackletWord::GetYbin() const {
+GPUd() int AliHLTTRDTrackletWord::GetYbin() const {
   // returns (signed) value of Y
   if (fTrackletWord & 0x1000) {
     return -((~(fTrackletWord-1)) & 0x1fff);
@@ -119,7 +120,7 @@ int AliHLTTRDTrackletWord::GetYbin() const {
   }
 }
 
-int AliHLTTRDTrackletWord::GetdY() const
+GPUd() int AliHLTTRDTrackletWord::GetdY() const
 {
   // returns (signed) value of the deflection length
   if (fTrackletWord & (1 << 19)) {
@@ -128,15 +129,4 @@ int AliHLTTRDTrackletWord::GetdY() const
   else {
     return ((fTrackletWord >> 13) & 0x7f);
   }
-}
-
-int AliHLTTRDTrackletWord::GetROB() const
-{
-  return 2 * (GetZbin() / 4) + (GetY() > 0 ? 1 : 0);
-}
-
-int AliHLTTRDTrackletWord::GetMCM() const
-{
-  return (((int) ((GetY()) / fgGeo->GetPadPlaneWidthIPad(GetDetector())) + 72) / 18) % 4
-    + 4 * (GetZbin() % 4);
 }

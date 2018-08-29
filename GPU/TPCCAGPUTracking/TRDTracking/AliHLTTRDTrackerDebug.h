@@ -223,41 +223,41 @@ class AliHLTTRDTrackerDebug
 class AliHLTTRDTrackerDebug
 {
   public:
-    void ExpandVectors() {}
-    void Reset() {}
+    GPUd() void ExpandVectors() {}
+    GPUd() void Reset() {}
 
     // general information
-    void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId) {}
-    void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0) {}
+    GPUd() void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId) {}
+    GPUd() void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0) {}
 
     // track parameters
-    void SetTrackParameter(const HLTTRDTrack &trk, int ly) {}
-    void SetTrackParameterNoUp(const HLTTRDTrack &trk, int ly) {}
-    void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) {}
-    void SetTrack(const HLTTRDTrack &trk) {}
-    void SetTrackNoUp(const HLTTRDTrack &trk) {}
+    GPUd() void SetTrackParameter(const HLTTRDTrack &trk, int ly) {}
+    GPUd() void SetTrackParameterNoUp(const HLTTRDTrack &trk, int ly) {}
+    GPUd() void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) {}
+    GPUd() void SetTrack(const HLTTRDTrack &trk) {}
+    GPUd() void SetTrackNoUp(const HLTTRDTrack &trk) {}
 
     // tracklet parameters
-    void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}
-    void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly) {}
-    void SetTrackletCovariance(const My_Float *fCov, int ly) {}
-    void SetTrackletProperties(const float dy, const int det, int ly) {}
-    void SetRawTrackletPositionReal(float fX, float *fYZ, int ly) {}
-    void SetCorrectedTrackletPositionReal(My_Float *fYZ, int ly) {}
-    void SetTrackletPropertiesReal(const int sec, const int det, int ly) {}
+    GPUd() void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}
+    GPUd() void SetCorrectedTrackletPosition(const My_Float (&fYZ)[2], int ly) {}
+    GPUd() void SetTrackletCovariance(const My_Float *fCov, int ly) {}
+    GPUd() void SetTrackletProperties(const float dy, const int det, int ly) {}
+    GPUd() void SetRawTrackletPositionReal(float fX, float *fYZ, int ly) {}
+    GPUd() void SetCorrectedTrackletPositionReal(My_Float *fYZ, int ly) {}
+    GPUd() void SetTrackletPropertiesReal(const int sec, const int det, int ly) {}
 
     // update information
-    void SetChi2Update(float chi2, int ly) {}
-    void SetChi2Real(float chi2, int ly) {}
+    GPUd() void SetChi2Update(float chi2, int ly) {}
+    GPUd() void SetChi2Real(float chi2, int ly) {}
 
     // other infos
-    void SetRoad(float roadY, float roadZ, int ly) {}
-    void SetUpdates(int *up) {}
-    void SetNmatchAvail(size_t i, int ly) {}
-    void SetFindable(bool *findable) {}
-    void SetFindableMC(bool *findableMC) {}
-    void SetMCinfo(float xv, float yv, float zv, int pdg) {}
-    void Output() {}
+    GPUd() void SetRoad(float roadY, float roadZ, int ly) {}
+    GPUd() void SetUpdates(int *up) {}
+    GPUd() void SetNmatchAvail(size_t i, int ly) {}
+    GPUd() void SetFindable(bool *findable) {}
+    GPUd() void SetFindableMC(bool *findableMC) {}
+    GPUd() void SetMCinfo(float xv, float yv, float zv, int pdg) {}
+    GPUd() void Output() {}
 };
 
 # endif
