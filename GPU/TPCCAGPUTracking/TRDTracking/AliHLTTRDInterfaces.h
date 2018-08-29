@@ -64,7 +64,7 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 {
 
   public:
-    propagatorInterface<AliTrackerBase> () : AliTrackerBase(), fParam(nullptr) {};
+    propagatorInterface<AliTrackerBase> (const void* = nullptr) : AliTrackerBase(), fParam(nullptr) {};
     propagatorInterface<AliTrackerBase> (const propagatorInterface<AliTrackerBase>&) = delete;
     propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase>&) = delete;
 
@@ -92,13 +92,14 @@ template <> class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #include "AliHLTTPCGMPropagator.h"
 #include "AliHLTTPCGMMerger.h"
 #include "AliHLTTPCCAParam.h"
+#include "AliHLTTPCCADef.h"
 
 template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrackParam
 {
   public:
-    trackInterface<AliHLTTPCGMTrackParam>() : AliHLTTPCGMTrackParam(), fAlpha(0.f) {};
-    trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) = delete;
-    trackInterface<AliHLTTPCGMTrackParam>(const trackInterface<AliHLTTPCGMTrackParam> &param) :
+    GPUd() trackInterface<AliHLTTPCGMTrackParam>() : AliHLTTPCGMTrackParam(), fAlpha(0.f) {};
+    GPUd() trackInterface<AliHLTTPCGMTrackParam>(const AliHLTTPCGMTrackParam &param) = delete;
+    GPUd() trackInterface<AliHLTTPCGMTrackParam>(const trackInterface<AliHLTTPCGMTrackParam> &param) :
       AliHLTTPCGMTrackParam(),
       fAlpha(param.fAlpha)
     {
@@ -127,22 +128,22 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
     };
 #endif
 
-    float getX()       const { return GetX(); }
-    float getAlpha()   const { return fAlpha; }
-    float getY()       const { return GetY(); }
-    float getZ()       const { return GetZ(); }
-    float getSnp()     const { return GetSinPhi(); }
-    float getTgl()     const { return GetDzDs(); }
-    float getQ2Pt()    const { return GetQPt(); }
-    float getEta()     const { return -logf( tanf( 0.5 * (0.5 * M_PI - atanf(getTgl())) ) ); }
-    float getPt()      const { return fabs(getQ2Pt()) > 0 ? fabs(1./getQ2Pt()) : 99999.f; }
-    float getSigmaY2() const { return GetErr2Y(); }
-    float getSigmaZ2() const { return GetErr2Z(); }
+    GPUd() float getX()       const { return GetX(); }
+    GPUd() float getAlpha()   const { return fAlpha; }
+    GPUd() float getY()       const { return GetY(); }
+    GPUd() float getZ()       const { return GetZ(); }
+    GPUd() float getSnp()     const { return GetSinPhi(); }
+    GPUd() float getTgl()     const { return GetDzDs(); }
+    GPUd() float getQ2Pt()    const { return GetQPt(); }
+    GPUd() float getEta()     const { return -logf( tanf( 0.5 * (0.5 * M_PI - atanf(getTgl())) ) ); }
+    GPUd() float getPt()      const { return fabs(getQ2Pt()) > 0 ? fabs(1./getQ2Pt()) : 99999.f; }
+    GPUd() float getSigmaY2() const { return GetErr2Y(); }
+    GPUd() float getSigmaZ2() const { return GetErr2Z(); }
 
-    const float *getCov() const { return GetCov(); }
+    GPUd() const float *getCov() const { return GetCov(); }
 
-    void setAlpha(float alpha) { fAlpha = alpha; }
-    void set(float x, float alpha, const float param[5], const float cov[15]) {
+    GPUd() void setAlpha(float alpha) { fAlpha = alpha; }
+    GPUd() void set(float x, float alpha, const float param[5], const float cov[15]) {
       SetX(x);
       for (int i=0; i<5; i++) {
         SetPar(i, param[i]);
@@ -162,39 +163,37 @@ template <> class trackInterface<AliHLTTPCGMTrackParam> : public AliHLTTPCGMTrac
 template <> class propagatorInterface<AliHLTTPCGMPropagator> : public AliHLTTPCGMPropagator
 {
   public:
-    propagatorInterface<AliHLTTPCGMPropagator>() : AliHLTTPCGMPropagator(), param(AliHLTTPCCAParam()), fTrack(nullptr) {
-      static const float kRho = 1.025e-3f;
-      static const float kRadLen = 29.532f;
-      static AliHLTTPCGMMerger fMerger;
+    GPUd() propagatorInterface<AliHLTTPCGMPropagator>(const AliHLTTPCGMMerger *pMerger) : AliHLTTPCGMPropagator(), fTrack(nullptr) {
+      constexpr float kRho = 1.025e-3f;
+      constexpr float kRadLen = 29.532f;
       this->SetMaterial( kRadLen, kRho );
-      this->SetPolynomialField( fMerger.pField() );
+      this->SetPolynomialField( pMerger->pField() );
       this->SetMaxSinPhi( HLTCA_MAX_SIN_PHI );
       this->SetToyMCEventsFlag(0);
       this->SetFitInProjections(0);
     };
     propagatorInterface<AliHLTTPCGMPropagator>(const propagatorInterface<AliHLTTPCGMPropagator>&) = delete;
     propagatorInterface<AliHLTTPCGMPropagator>& operator=(const propagatorInterface<AliHLTTPCGMPropagator>&) = delete;
-    AliHLTTPCCAParam param;
-    void setTrack(trackInterface<AliHLTTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); fTrack = trk;}
-    bool PropagateToX( float x, float maxSnp, float maxStep ) {
+    GPUd() void setTrack(trackInterface<AliHLTTPCGMTrackParam> *trk) { SetTrack(trk, trk->getAlpha()); fTrack = trk;}
+    GPUd() bool PropagateToX( float x, float maxSnp, float maxStep ) {
       bool ok = PropagateToXAlpha( x, GetAlpha(), true ) == 0 ? true : false;
       ok = fTrack->CheckNumericalQuality();
       return ok;
     }
-    bool rotate(float alpha) {
+    GPUd() bool rotate(float alpha) {
       if (RotateToAlpha(alpha) == 0) {
         fTrack->setAlpha(alpha);
         return fTrack->CheckNumericalQuality();
       }
       return false;
     }
-    bool update(const My_Float p[2], const My_Float cov[3]) {
+    GPUd() bool update(const My_Float p[2], const My_Float cov[3]) {
       // TODO sigma_yz not taken into account yet, is not zero due to pad tilting!
       return Update(p[0], p[1], 0, false, cov[0], cov[2]) == 0 ? true : false;
     }
-    float getAlpha() { return GetAlpha(); }
+    GPUd() float getAlpha() { return GetAlpha(); }
     // TODO sigma_yz not taken into account yet, is not zero due to pad tilting!
-    float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const { return PredictChi2( p[0], p[1], cov[0], cov[2]); }
+    GPUd() float getPredictedChi2(const My_Float p[2], const My_Float cov[3]) const { return PredictChi2( p[0], p[1], cov[0], cov[2]); }
 
     trackInterface<AliHLTTPCGMTrackParam> *fTrack;
 };

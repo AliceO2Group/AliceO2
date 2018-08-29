@@ -5,7 +5,7 @@
 #include "AliHLTExternalTrackParam.h"
 
 template <typename T>
-AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
+GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
   T(t),
   fChi2(0),
   fMass(0),
@@ -28,7 +28,7 @@ AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTExternalTrackParam &t) :
 #endif
 
 template <typename T>
-AliHLTTRDTrack<T>::AliHLTTRDTrack() :
+GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack() :
   fChi2(0),
   fMass(0),
   fLabel(-1),
@@ -50,7 +50,7 @@ AliHLTTRDTrack<T>::AliHLTTRDTrack() :
 
 
 template <typename T>
-AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
+GPUd() AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
   T(t),
   fChi2( t.fChi2 ),
   fMass( t.fMass ),
@@ -73,7 +73,7 @@ AliHLTTRDTrack<T>::AliHLTTRDTrack(const AliHLTTRDTrack<T>& t) :
 
 
 template <typename T>
-AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
+GPUd() AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
 {
   //------------------------------------------------------------------
   //Assignment operator
@@ -98,7 +98,7 @@ AliHLTTRDTrack<T> &AliHLTTRDTrack<T>::operator=(const AliHLTTRDTrack<T>& t)
 
 
 template <typename T>
-int AliHLTTRDTrack<T>::GetNlayers() const
+GPUd() int AliHLTTRDTrack<T>::GetNlayers() const
 {
   int res = 0;
   for (int iLy=0; iLy<6; iLy++) {
@@ -111,7 +111,7 @@ int AliHLTTRDTrack<T>::GetNlayers() const
 
 
 template <typename T>
-int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
+GPUd() int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
 {
   if (iLayer < 0 || iLayer > 5) {
     //Error("GetTracklet", "illegal layer number %i", iLayer);
@@ -122,7 +122,7 @@ int AliHLTTRDTrack<T>::GetTracklet(int iLayer) const
 
 
 template <typename T>
-int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
+GPUd() int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
 {
   int res = 0;
   while (!fIsFindable[iLayer]) {
@@ -134,7 +134,7 @@ int AliHLTTRDTrack<T>::GetNmissingConsecLayers(int iLayer) const
 
 
 template <typename T>
-void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
+GPUd() void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 {
   // convert to HLT structure
 
@@ -155,7 +155,7 @@ void AliHLTTRDTrack<T>::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 }
 
 template <typename T>
-void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
+GPUd() void AliHLTTRDTrack<T>::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 {
   // convert from HLT structure
 
