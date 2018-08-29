@@ -70,15 +70,10 @@ void DataProcessingDevice::Init() {
   LOG(DEBUG) << "DataProcessingDevice::InitTask::START";
   auto optionsRetriever(std::make_unique<FairOptionsRetriever>(GetConfig()));
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
-  if (mInputChannels.empty()) {
-    LOG(ERROR) << "DataProcessingDevice should have at least one input channel";
-  }
-  for (auto &channel : mInputChannels) {
-    OnData(channel.name.c_str(), &DataProcessingDevice::HandleData);
-  }
 
   auto& monitoring = mServiceRegistry.get<Monitoring>();
   monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
+
   if (mInit) {
     InitContext initContext{*mConfigRegistry,mServiceRegistry};
     mStatefulProcess = mInit(initContext);
@@ -92,13 +87,29 @@ void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(C
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
+/// We drive the state loop ourself so that we will be able to support
+/// non-data triggers like those which are time based.
+bool DataProcessingDevice::ConditionalRun()
+{
+  for (auto& channel : mInputChannels) {
+    FairMQParts parts;
+    auto result = this->ReceiveAsync(parts, channel.name);
+    if (result > 0) {
+      this->handleData(parts);
+    }
+  }
+  return true;
+}
+
 /// This is the inner loop of our framework. The actual implementation
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
 /// boilerplate which the user does not need to care about at top level.
-/// In the second part 
-bool
-DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
+bool DataProcessingDevice::handleData(FairMQParts& parts)
+{
+  assert(mInputChannels.empty() == false);
+  assert(parts.Size() > 0);
+
   static const std::string handleDataMetricName = "dpl/in_handle_data";
   // Initial part. Let's hide all the unnecessary and have
   // simple lambdas for each of the steps I am planning to have.
@@ -136,9 +147,7 @@ DataProcessingDevice::HandleData(FairMQParts &iParts, int /*index*/) {
   // want to support multithreaded dispatching of operations, I can simply
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
-  FairMQParts &parts = iParts;
   std::vector<DataRelayer::RecordAction> completed;
-
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather

@@ -35,18 +35,21 @@ namespace o2
 namespace framework
 {
 
-class DataProcessingDevice : public FairMQDevice {
-public:
-  DataProcessingDevice(const DeviceSpec &spec, ServiceRegistry &);
+class DataProcessingDevice : public FairMQDevice
+{
+ public:
+  DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry&);
   void Init() final;
   void PreRun() final;
   void PostRun() final;
   void Reset() final;
+  bool ConditionalRun() final;
 
  protected:
-  bool HandleData(FairMQParts &parts, int index);
-  void error(const char *msg);
-private:
+  bool handleData(FairMQParts&);
+  void error(const char* msg);
+
+ private:
   AlgorithmSpec::InitCallback mInit;
   AlgorithmSpec::ProcessCallback mStatefulProcess;
   AlgorithmSpec::ProcessCallback mStatelessProcess;
