@@ -91,6 +91,9 @@ void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
 
 void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceControl& control)
 {
+  ImGui::Text("Name: %s", spec.name.c_str());
+  ImGui::Text("Pid: %d", info.pid);
+
   if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Text("# channels: %lu", spec.inputChannels.size() + spec.outputChannels.size());
     ChannelsTableHelper::channelsTable("Inputs:", spec.inputChannels);
