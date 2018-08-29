@@ -1018,6 +1018,7 @@ o2_define_bucket(
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/HLTHeaders
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/cmodules
     ${ALITPCCOMMON_DIR}/sources/TPCCAGPUTracking/Standalone/include
+    ${ALITPCCOMMON_DIR}/sources/Common
 )
 
 o2_define_bucket(
@@ -1030,6 +1031,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${ALITPCCOMMON_DIR}/sources/TPCSpaceChargeBase
+    ${ALITPCCOMMON_DIR}/sources/Common
 )
 
 o2_define_bucket(
