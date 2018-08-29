@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(SimpleGUITest)
   ImGuiIO& io = ImGui::GetIO();
 
   // Build atlas
-  unsigned char* tex_pixels = NULL;
+  unsigned char* tex_pixels = nullptr;
   int tex_w, tex_h;
   io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_w, &tex_h);
 
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
   ImGuiIO& io = ImGui::GetIO();
 
   // Build atlas
-  unsigned char* tex_pixels = NULL;
+  unsigned char* tex_pixels = nullptr;
   int tex_w, tex_h;
   io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_w, &tex_h);
 
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(DeviceInspector)
   ImGuiIO& io = ImGui::GetIO();
 
   // Build atlas
-  unsigned char* tex_pixels = NULL;
+  unsigned char* tex_pixels = nullptr;
   int tex_w, tex_h;
   io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_w, &tex_h);
 
