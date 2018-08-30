@@ -14,6 +14,7 @@
 /// @brief  Processor spec for a ROOT file writer for TPC digits
 
 #include "TPCDigitRootWriterSpec.h"
+#include "TPCSectorHeader.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "TPCBase/Sector.h"
@@ -59,7 +60,6 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
   // assign input names to each channel
   auto digitchannelname = std::make_shared<std::vector<std::string>>();
   auto labelchannelname = std::make_shared<std::vector<std::string>>();
-  auto sectorchannelname = std::make_shared<std::vector<std::string>>();
   for (int i = 0; i < numberofsourcedevices; ++i) {
     {
       std::stringstream ss;
@@ -68,17 +68,12 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     }
     {
       std::stringstream ss;
-      ss << "sectorinput" << i;
-      sectorchannelname->push_back(ss.str());
-    }
-    {
-      std::stringstream ss;
       ss << "labelinput" << i;
       labelchannelname->push_back(ss.str());
     }
   }
 
-  auto initFunction = [numberofsourcedevices, digitchannelname, sectorchannelname, labelchannelname](InitContext& ic) {
+  auto initFunction = [numberofsourcedevices, digitchannelname, labelchannelname](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("tpc-digit-outfile");
     auto treename = ic.options().get<std::string>("treename");
@@ -121,7 +116,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [outputfile, outputtree, digits, digitchannelname, sectorchannelname, labelchannelname,
+    auto processingFct = [outputfile, outputtree, digits, digitchannelname, labelchannelname,
                           numberofsourcedevices](ProcessingContext& pc) {
       static bool finished = false;
       if (finished) {
@@ -140,10 +135,13 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
 
       for (int d = 0; d < numberofsourcedevices; ++d) {
         const auto cname = digitchannelname->operator[](d);
-        const auto sname = sectorchannelname->operator[](d);
         const auto lname = labelchannelname->operator[](d);
 
-        const int sector = pc.inputs().get<int>(sname.c_str());
+        auto sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(cname.c_str()));
+        if (!sectorHeader) {
+          LOG(FATAL) << "Missing sector header in TPC Digit data";
+        }
+        const int sector = sectorHeader->sector;
         LOG(INFO) << "GOT DIGITS FOR SECTOR " << sector;
 
         if (sector < 0) {
@@ -194,8 +192,6 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     inputs.emplace_back(InputSpec{ (*digitchannelname.get())[d].c_str(), "TPC", "DIGITS",
                                    static_cast<SubSpecificationType>(d), Lifetime::Timeframe }); // digit input
     inputs.emplace_back(InputSpec{ (*labelchannelname.get())[d].c_str(), "TPC", "DIGITSMCTR",
-                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe });
-    inputs.emplace_back(InputSpec{ (*sectorchannelname.get())[d].c_str(), "TPC", "SECTOR",
                                    static_cast<SubSpecificationType>(d), Lifetime::Timeframe });
   }
 
