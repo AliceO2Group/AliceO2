@@ -31,16 +31,18 @@ namespace o2
 namespace framework
 {
 
-namespace {
-size_t
-countDistinctTypes(std::vector<InputRoute> const &routes) {
-  size_t inputDataTypes = 0;
-  for (auto &route : routes) {
+namespace
+{
+std::vector<size_t> createDistinctRouteIndex(std::vector<InputRoute> const& routes)
+{
+  std::vector<size_t> result;
+  for (size_t ri = 0; ri < routes.size(); ++ri) {
+    auto& route = routes[ri];
     if (route.timeslice == 0) {
-      inputDataTypes += 1;
+      result.push_back(ri);
     }
   }
-  return inputDataTypes;
+  return result;
 }
 }
 
@@ -60,7 +62,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   : mInputRoutes{ inputRoutes },
     mForwardRoutes{ forwardRoutes },
     mMetrics{ metrics },
-    mCompletionPolicy{policy}
+    mCompletionPolicy{ policy },
+    mDistinctRoutesIndex{ createDistinctRouteIndex(inputRoutes) }
 {
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
   for (size_t ci = 0; ci < mCache.size(); ci++) {
@@ -103,7 +106,7 @@ DataRelayer::relay(std::unique_ptr<FairMQMessage> &&header,
   const auto &readonlyCache = mCache;
   auto& metrics = mMetrics;
   auto& dirty = mDirty;
-  auto numInputTypes = countDistinctTypes(mInputRoutes);
+  auto numInputTypes = mDistinctRoutesIndex.size();
 
   // IMPLEMENTATION DETAILS
   // 
@@ -240,7 +243,7 @@ DataRelayer::getReadyToProcess() {
   // THE STATE
   std::vector<RecordAction> completed;
   const auto &cache = mCache;
-  const auto numInputTypes = countDistinctTypes(mInputRoutes);
+  const auto numInputTypes = mDistinctRoutesIndex.size();
   //
   // THE IMPLEMENTATION DETAILS
   //
@@ -303,7 +306,7 @@ DataRelayer::getReadyToProcess() {
 
 std::vector<std::unique_ptr<FairMQMessage>>
 DataRelayer::getInputsForTimeslice(size_t timeslice) {
-  const auto numInputTypes = countDistinctTypes(mInputRoutes);
+  const auto numInputTypes = mDistinctRoutesIndex.size();
   // State of the computation
   std::vector<std::unique_ptr<FairMQMessage>> messages;
   messages.reserve(numInputTypes*2);
@@ -352,7 +355,7 @@ DataRelayer::getInputsForTimeslice(size_t timeslice) {
 
 size_t
 DataRelayer::getParallelTimeslices() const {
-  return mCache.size() / countDistinctTypes(mInputRoutes);
+  return mCache.size() / mDistinctRoutesIndex.size();
 }
 
 
@@ -364,7 +367,7 @@ void
 DataRelayer::setPipelineLength(size_t s) {
   mTimeslices.resize(s, INVALID_TIMESLICE_ID);
   mDirty.resize(mTimeslices.size(), false);
-  auto numInputTypes = countDistinctTypes(mInputRoutes);
+  auto numInputTypes = mDistinctRoutesIndex.size();
   assert(numInputTypes);
   mCache.resize(numInputTypes * mTimeslices.size());
   mMetrics.send({ (int)numInputTypes, "data_relayer/h" });
