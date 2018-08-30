@@ -384,7 +384,7 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
   float roadY = 0.f;
   float roadZ = 0.f;
 
-  fDebug->SetGeneralInfo(fNEvents, nTPCtracks, iTrack, trackID);
+  fDebug->SetGeneralInfo(fNEvents, nTPCtracks, iTrack, trackID, t->getPt());
 
   for (int iLayer=0; iLayer<kNLayers; ++iLayer) {
 
@@ -802,7 +802,6 @@ GPUd() bool AliHLTTRDTracker::FollowProlongation(HLTTRDPropagator *prop, HLTTRDT
 
     fDebug->SetTrack(*t);
 #ifdef ENABLE_HLTTRDDEBUG
-    fDebug->SetTrackNoUp(*trackNoUpdates);
     delete trackNoUpdates;
 #endif
     fDebug->SetUpdates(update);
@@ -907,13 +906,12 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
   // the track should be rejected (or this has to be done afterwards in analysis)
   //--------------------------------------------------------------------
 #ifndef HLTCA_GPUCODE
+#ifdef ENABLE_HLTMC
   for (int k = 0; k < kNChambers; k++) {
     int layer = fGeo->GetLayer(k);
     for (int iTrklt = 0; iTrklt < fNtrackletsInChamber[k]; iTrklt++) {
       int trkltIdx = fTrackletIndexArray[k] + iTrklt;
-#ifdef ENABLE_HLTMC
       bool trkltStored = false;
-#endif
       for (int il=0; il<3; il++) {
 	      int lb = fSpacePoints[trkltIdx].fLabel[il];
 	      if (lb<0) {
@@ -927,7 +925,6 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
         if (!fMCEvent) {
           continue;
         }
-#ifdef ENABLE_HLTMC
         //continue; //FIXME uncomment to count only exact matches
         AliMCParticle *mcPart = (AliMCParticle*) fMCEvent->GetTrack(lb);
         while (mcPart) {
@@ -942,10 +939,10 @@ void AliHLTTRDTracker::CountMatches(const int trackID, std::vector<int> *matches
         if (trkltStored) {
           break;
         }
-#endif
       }
     }
   }
+#endif
 #endif
 }
 
