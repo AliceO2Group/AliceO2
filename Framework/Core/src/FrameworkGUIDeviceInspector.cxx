@@ -14,7 +14,7 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/ChannelSpec.h"
 #include "DebugGUI/imgui.h"
-#include <signal.h>
+#include <csignal>
 
 namespace o2
 {
