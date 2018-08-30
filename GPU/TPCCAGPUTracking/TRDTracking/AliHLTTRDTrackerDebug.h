@@ -32,13 +32,13 @@ class AliHLTTRDTrackerDebug
                     fRoadY.Zero(); fRoadZ.Zero(); fTrackletXReal.Zero(); fTrackletYReal.Zero(); fTrackletZReal.Zero(); ; fTrackletYcorrReal.Zero(); fTrackletZcorrReal.Zero();
                     fTrackletSecReal.Zero(); fTrackletDetReal.Zero(); fTrackXReal.Zero(); fTrackYReal.Zero(); fTrackZReal.Zero(); fTrackSecReal.Zero();
                     fChi2Update.Zero(); fChi2Real.Zero(); fNmatchesAvail.Zero(); fFindable.Zero(); fFindableMC.Zero(); fUpdates.Zero();
-                    fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fNtrklts = 0; fNtrkltsRef = 0; fTrackIDref = -1; fNlayers = 0; fChi2 = 0; fNmatch = 0; fNfake = 0; fNrelated = 0;
-                    fXvMC = 0; fYvMC = 0; fZvMC = 0; fPdgCode = 0; //fParam.Reset(); fParamNoUp.Reset();
+                    fEv = 0; fNTPCtracks = 0; fTrk = 0; fTrackId = 0; fPtTPC = 0.f; fNtrklts = 0; fNtrkltsRef = 0; fTrackIDref = -1; fNlayers = 0; fChi2 = 0.f; fNmatch = 0; fNfake = 0; fNrelated = 0;
+                    fXvMC = 0; fYvMC = 0; fZvMC = 0; fPdgCode = 0;
                  }
 
     // general information
-    void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId)
-            { fEv = iEv; fNTPCtracks = nTPCtracks; fTrk = iTrk; fTrackId = trackId; }
+    void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId, float pt)
+            { fEv = iEv; fNTPCtracks = nTPCtracks; fTrk = iTrk; fTrackId = trackId; fPtTPC = pt; }
     void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0)
             { fNmatch = nMatch; fNfake = nFake; fNrelated = nRelated; }
 
@@ -50,9 +50,8 @@ class AliHLTTRDTrackerDebug
             { fTrackNoUpX(ly) = trk.getX(); fTrackNoUpY(ly) = trk.getY(); fTrackNoUpZ(ly) = trk.getZ(); fTrackNoUpPhi(ly) = trk.getSnp(); fTrackNoUpLambda(ly) = trk.getTgl();
               fTrackNoUpPt(ly) = trk.getPt(); fTrackNoUpSector(ly) = GetSector(trk.getAlpha()); fTrackNoUpYerr(ly) = trk.getSigmaY2(); fTrackNoUpZerr(ly) = trk.getSigmaZ2(); }
     void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) { fTrackXReal(ly) = trk.getX(); fTrackYReal(ly) = trk.getY(); fTrackZReal(ly) = trk.getZ(); fTrackSecReal(ly) = GetSector(trk.getAlpha()); }
-    void SetTrack(const HLTTRDTrack &trk) { fParam = trk; fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(); fTrackIDref = trk.GetLabelOffline();
+    void SetTrack(const HLTTRDTrack &trk) { fChi2 = trk.GetChi2(); fNlayers = trk.GetNlayers(); fNtrklts = trk.GetNtracklets(); fNtrkltsRef = trk.GetNtrackletsOffline(); fTrackIDref = trk.GetLabelOffline();
                                                 for (int iLy=0; iLy<6; iLy++) { if (trk.GetIsFindable(iLy)) fFindable(iLy) = 1; } }
-    void SetTrackNoUp(const HLTTRDTrack &trk) { fParamNoUp = trk; }
 
     // tracklet parameters
     void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) { fTrackletX(ly) = fX; fTrackletY(ly) = fYZ[0]; fTrackletZ(ly) = fYZ[1]; }
@@ -76,72 +75,70 @@ class AliHLTTRDTrackerDebug
 
     void Output() {
       (*fStreamer) << "tracksFinal" <<
-        "event=" << fEv <<                           // event number
-        "nTPCtracks=" << fNTPCtracks <<              // total number of TPC tracks for this event
-        "iTrack=" << fTrk <<                         // track number in event
-        "trackID=" << fTrackId <<                    // MC track label
-        "trackX.=" << &fTrackX <<
-        "trackY.=" << &fTrackY <<
-        "trackZ.=" << &fTrackZ <<
-        "trackPhi.=" << &fTrackPhi <<                // phi angle of track (track.fP[2])
-        "trackLambda.=" << &fTrackLambda <<          // lambda angle of track (track.fP[3])
-        "trackPt.=" << &fTrackPt <<                  // track pT
-        "trackYerr.=" << &fTrackYerr <<              // sigma_y^2 for track
-        "trackZerr.=" << &fTrackZerr <<              // sigma_z^2 for track
-        "trackSec.=" << &fTrackSector <<             // sector of track
-        "trackNoUpX.=" << &fTrackNoUpX <<
-        "trackNoUpY.=" << &fTrackNoUpY <<
-        "trackNoUpZ.=" << &fTrackNoUpZ <<
-        "trackNoUpPhi.=" << &fTrackNoUpPhi <<        // phi angle of track (track.fP[2])
-        "trackNoUpLambda.=" << &fTrackNoUpLambda <<  // lambda angle of track (track.fP[3])
-        "trackNoUpPt.=" << &fTrackNoUpPt <<          // track pT
-        "trackNoUpYerr.=" << &fTrackNoUpYerr <<      // sigma_y^2 for track
-        "trackNoUpZerr.=" << &fTrackNoUpZerr <<      // sigma_z^2 for track
-        "trackNoUpSec.=" << &fTrackNoUpSector <<     // sector of track
-        "trackletX.=" << &fTrackletX <<              // x position of tracklet used for update (sector coords)
-        "trackletY.=" << &fTrackletYcorr <<          // y position of tracklet used for update (sector coords, tilt corrected position)
-        "trackletZ.=" << &fTrackletZcorr <<          // z position of tracklet used for update (sector coords, tilt corrected position)
-        "trackletYRaw.=" << &fTrackletY <<           // y position of tracklet used for update (sector coords)
-        "trackletZRaw.=" << &fTrackletZ <<           // z position of tracklet used for update (sector coords)
-        "trackletYerr.=" << &fTrackletY2err <<       // sigma_y^2 for tracklet
-        "trackletYZerr.=" << &fTrackletYZerr <<      // sigma_yz for tracklet
-        "trackletZerr.=" << &fTrackletZ2err <<       // sigma_z^2 for tracklet
-        "trackletDy.=" << &fTrackletDy <<            // deflection for tracklet
-        "trackletDet.=" << &fTrackletDet <<          // detector of tracklet
-        "trackXReal.=" << &fTrackXReal <<
-        "trackYReal.=" << &fTrackYReal <<
-        "trackZReal.=" << &fTrackZReal <<
-        "trackSecReal.=" << &fTrackSecReal <<
+        "event=" << fEv <<                            // event number
+        "nTPCtracks=" << fNTPCtracks <<               // total number of TPC tracks for this event
+        "iTrack=" << fTrk <<                          // track index in event
+        "trackID=" << fTrackId <<                     // TPC MC track label
+        "trackPtTPC=" << fPtTPC <<                    // track pT before any propagation
+        "trackX.=" << &fTrackX <<                     // x-pos of track (layerwise)
+        "trackY.=" << &fTrackY <<                     // y-pos of track (layerwise)
+        "trackZ.=" << &fTrackZ <<                     // z-pos of track (layerwise)
+        "trackPhi.=" << &fTrackPhi <<                 // phi angle of track (track.fP[2])
+        "trackLambda.=" << &fTrackLambda <<           // lambda angle of track (track.fP[3])
+        "trackPt.=" << &fTrackPt <<                   // track pT (layerwise)
+        "trackYerr.=" << &fTrackYerr <<               // sigma_y^2 for track
+        "trackZerr.=" << &fTrackZerr <<               // sigma_z^2 for track
+        "trackSec.=" << &fTrackSector <<              // TRD sector of track
+        "trackNoUpX.=" << &fTrackNoUpX <<             // x-pos of track w/o updates (layerwise)
+        "trackNoUpY.=" << &fTrackNoUpY <<             // y-pos of track w/o updates (layerwise)
+        "trackNoUpZ.=" << &fTrackNoUpZ <<             // z-pos of track w/o updates (layerwise)
+        "trackNoUpPhi.=" << &fTrackNoUpPhi <<         // phi angle of track w/o updates (track.fP[2])
+        "trackNoUpLambda.=" << &fTrackNoUpLambda <<   // lambda angle of track w/o updates (track.fP[3])
+        "trackNoUpPt.=" << &fTrackNoUpPt <<           // track pT w/o updates (layerwise)
+        "trackNoUpYerr.=" << &fTrackNoUpYerr <<       // sigma_y^2 for track w/o updates
+        "trackNoUpZerr.=" << &fTrackNoUpZerr <<       // sigma_z^2 for track w/o updates
+        "trackNoUpSec.=" << &fTrackNoUpSector <<      // TRD sector of track w/o updates
+        "trackletX.=" << &fTrackletX <<               // x position of tracklet used for update (sector coords)
+        "trackletY.=" << &fTrackletYcorr <<           // y position of tracklet used for update (sector coords, tilt corrected position)
+        "trackletZ.=" << &fTrackletZcorr <<           // z position of tracklet used for update (sector coords, tilt corrected position)
+        "trackletYRaw.=" << &fTrackletY <<            // y position of tracklet used for update (sector coords)
+        "trackletZRaw.=" << &fTrackletZ <<            // z position of tracklet used for update (sector coords)
+        "trackletYerr.=" << &fTrackletY2err <<        // sigma_y^2 for tracklet
+        "trackletYZerr.=" << &fTrackletYZerr <<       // sigma_yz for tracklet
+        "trackletZerr.=" << &fTrackletZ2err <<        // sigma_z^2 for tracklet
+        "trackletDy.=" << &fTrackletDy <<             // deflection for tracklet
+        "trackletDet.=" << &fTrackletDet <<           // TRD chamber of tracklet
+        "trackXReal.=" << &fTrackXReal <<             // x-pos for track at first found tracklet radius w/ matching MC label
+        "trackYReal.=" << &fTrackYReal <<             // y-pos for track at first found tracklet radius w/ matching MC label
+        "trackZReal.=" << &fTrackZReal <<             // z-pos for track at first found tracklet radius w/ matching MC label
+        "trackSecReal.=" << &fTrackSecReal <<         // TRD sector for track at first found tracklet w/ matching MC label
         "trackletXReal.=" << &fTrackletXReal <<       // x position (sector coords) for matching or related tracklet if available, otherwise 0
-        "trackletYReal.=" << &fTrackletYcorrReal <<       // y position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
-        "trackletZReal.=" << &fTrackletZcorrReal <<       // z position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
-        "trackletYRawReal.=" << &fTrackletYReal << // y position (sector coords) for matching or related tracklet if available, otherwise 0
-        "trackletZRawReal.=" << &fTrackletZReal << // z position (sector coords) for matching or related tracklet if available, otherwise 0
+        "trackletYReal.=" << &fTrackletYcorrReal <<   // y position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
+        "trackletZReal.=" << &fTrackletZcorrReal <<   // z position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
+        "trackletYRawReal.=" << &fTrackletYReal <<    // y position (sector coords) for matching or related tracklet if available, otherwise 0
+        "trackletZRawReal.=" << &fTrackletZReal <<    // z position (sector coords) for matching or related tracklet if available, otherwise 0
         "trackletSecReal.=" << &fTrackletSecReal <<   // sector number for matching or related tracklet if available, otherwise -1
         "trackletDetReal.=" << &fTrackletDetReal <<   // detector number for matching or related tracklet if available, otherwise -1
-        "chi2Update.=" << &fChi2Update <<
-        "chi2Real.=" << &fChi2Real <<
-        "chi2Total=" << fChi2 <<
-        "nLayers=" << fNlayers <<
-        "nTracklets=" << fNtrklts <<
-        "nTrackletsOffline=" << fNtrkltsRef <<
-        "labelRef=" << fTrackIDref <<
-        // not possible to stream non ROOT objects
-        //"track.=" << &fParam <<
-        //"trackNoUp.=" << &fParamNoUp <<
-        "roadY.=" << &fRoadY <<
-        "roadZ.=" << &fRoadZ <<
-        "findable.=" << &fFindable <<
-        "findableMC.=" << &fFindableMC <<
-        "update.=" << &fUpdates <<
-        "nRelated=" << fNrelated <<
-        "nMatching=" << fNmatch <<
-        "nFake=" << fNfake <<
+        "chi2Update.=" << &fChi2Update <<             // chi2 for update
+        "chi2Real.=" << &fChi2Real <<                 // chi2 for first tracklet w/ matching MC label
+        "chi2Total=" << fChi2 <<                      // total chi2 for track
+        "nLayers=" << fNlayers <<                     // number of layers in which track was findable
+        "nTracklets=" << fNtrklts <<                  // number of attached tracklets
+        "nTrackletsOffline=" << fNtrkltsRef <<        // number of attached offline tracklets
+        "labelRef=" << fTrackIDref <<                 // TRD MC track label from offline, if provided
+        "roadY.=" << &fRoadY <<                       // search road width in Y
+        "roadZ.=" << &fRoadZ <<                       // search road width in Z
+        "findable.=" << &fFindable <<                 // whether or not track was in active TRD volume (layerwise)
+        "findableMC.=" << &fFindableMC <<             // whether or not a MC hit existed inside the TRD for the track (layerwise) 
+        "update.=" << &fUpdates <<                    // layerwise tracklet attachment (0 - no tracklet, [1-3] matching tracklet, [4-6] related tracklet, 9 fake tracklet)
+        "nRelated=" << fNrelated <<                   // number of attached related tracklets
+        "nMatching=" << fNmatch <<                    // number of attached matching tracklets
+        "nFake=" << fNfake <<                         // number of attached fake tracklets
         "nMatchingTracklets.=" << &fNmatchesAvail <<  // number of matching + related tracklets for this track in each layer
-        "XvMC=" << fXvMC <<                          // MC production vertex x
-        "YvMC=" << fYvMC <<                          // MC production vertex y
-        "ZvMC=" << fZvMC <<                          // MC production vertex z
-        "pdgCode=" <<fPdgCode <<                     // MC PID
+        "XvMC=" << fXvMC <<                           // MC production vertex x
+        "YvMC=" << fYvMC <<                           // MC production vertex y
+        "ZvMC=" << fZvMC <<                           // MC production vertex z
+        "pdgCode=" <<fPdgCode <<                      // MC PID
         "\n";
     }
 
@@ -150,6 +147,7 @@ class AliHLTTRDTrackerDebug
     int fNTPCtracks;
     int fTrk;
     int fTrackId;
+    float fPtTPC;
     int fNtrklts;
     int fNtrkltsRef;
     int fTrackIDref;
@@ -205,8 +203,6 @@ class AliHLTTRDTrackerDebug
     TVectorF fFindable;
     TVectorF fFindableMC;
     TVectorF fUpdates;
-    HLTTRDTrack fParam;
-    HLTTRDTrack fParamNoUp;
     float fXvMC;
     float fYvMC;
     float fZvMC;
@@ -227,7 +223,7 @@ class AliHLTTRDTrackerDebug
     GPUd() void Reset() {}
 
     // general information
-    GPUd() void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId) {}
+    GPUd() void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId, float pt) {}
     GPUd() void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0) {}
 
     // track parameters
@@ -235,7 +231,6 @@ class AliHLTTRDTrackerDebug
     GPUd() void SetTrackParameterNoUp(const HLTTRDTrack &trk, int ly) {}
     GPUd() void SetTrackParameterReal(const HLTTRDTrack &trk, int ly) {}
     GPUd() void SetTrack(const HLTTRDTrack &trk) {}
-    GPUd() void SetTrackNoUp(const HLTTRDTrack &trk) {}
 
     // tracklet parameters
     GPUd() void SetRawTrackletPosition(const float fX, const float (&fYZ)[2], int ly) {}
