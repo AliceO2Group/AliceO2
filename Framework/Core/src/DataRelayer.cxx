@@ -71,6 +71,36 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   }
 }
 
+void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
+                                        ServiceRegistry& services)
+{
+  for (size_t ti = 0; ti < mTimeslices.size(); ++ti) {
+    // FIXME: for the moment we need to have at least one data input before we
+    //        can invoke the dangling inputs helpers.
+    //        This is useful for stuff like conditions or histograms, but not
+    //        (yet) for timers. For those we would need to have a mechanism
+    //        to create valid timeslices.
+    if (mTimeslices[ti].value == INVALID_TIMESLICE) {
+      continue;
+    }
+    assert(mDistinctRoutesIndex.empty() == false);
+    for (size_t ri = 0; ri < mDistinctRoutesIndex.size(); ++ri) {
+      auto& route = mInputRoutes[mDistinctRoutesIndex[ri]];
+      auto& expirator = expirationHandlers[mDistinctRoutesIndex[ri]];
+      auto timestamp = mTimeslices[ti].value;
+      auto& part = mCache[ti * mDistinctRoutesIndex.size() + ri];
+      if (part.header == nullptr && part.payload == nullptr && expirator.checker && expirator.checker(mTimeslices[ti].value)) {
+        assert(ti * mDistinctRoutesIndex.size() + ri < mCache.size());
+        assert(expirator.handler);
+        expirator.handler(services, part, timestamp);
+        mDirty[ti] = true;
+        assert(part.header != nullptr);
+        assert(part.payload != nullptr);
+      }
+    }
+  }
+}
+
 /// This does the mapping between a route and a InputSpec. The
 /// reason why these might diffent is that when you have timepipelining
 /// you have one route per timeslice, even if the type is the same.

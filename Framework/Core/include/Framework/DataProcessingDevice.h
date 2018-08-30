@@ -19,6 +19,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/ExpirationHandler.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
 #include "Framework/ArrowContext.h"
@@ -66,6 +67,7 @@ class DataProcessingDevice : public FairMQDevice
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer mRelayer;
+  std::vector<ExpirationHandler> mExpirationHandlers;
 
   int mErrorCount;
   int mProcessingCount;

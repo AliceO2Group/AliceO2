@@ -7,24 +7,30 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_LIFETIME_H
-#define FRAMEWORK_LIFETIME_H
+
+#ifndef FRAMEWORK_EXPIRATIONHANDLER_H
+#define FRAMEWORK_EXPIRATIONHANDLER_H
+
+#include <cstdint>
+#include <functional>
 
 namespace o2
 {
 namespace framework
 {
 
-/// Possible Lifetime of objects being exchanged by the DPL.
-/// FIXME: currently only Timeframe behaves as expected.
-enum struct Lifetime {
-  Timeframe,
-  Condition,
-  QA,
-  Transient,
-  Timer
+struct PartRef;
+struct ServiceRegistry;
+
+struct ExpirationHandler {
+  using Checker = std::function<bool(uint64_t timestamp)>;
+  using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, uint64_t timestamp)>;
+
+  Checker checker;
+  Handler handler;
 };
 
 } // namespace framework
 } // namespace o2
-#endif
+
+#endif // FRAMEWORK_EXPIRATIONHANDLER_H

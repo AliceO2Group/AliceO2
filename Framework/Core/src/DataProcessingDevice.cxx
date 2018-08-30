@@ -61,12 +61,23 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 /// This  takes care  of initialising  the device  from its  specification. In
 /// particular it needs to:
 ///
-/// * Allocate the channels as needed and attach HandleData to each one of them
-/// * Invoke the actual init
+/// * Fetch parameters from configuration
+/// * Materialize the correct callbacks for expiring records. We need to do it
+///   here because the configuration is available only at this point.
+/// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init() {
   LOG(DEBUG) << "DataProcessingDevice::InitTask::START";
   auto optionsRetriever(std::make_unique<FairOptionsRetriever>(GetConfig()));
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+
+  mExpirationHandlers.clear();
+  for (auto& route : mSpec.inputs) {
+    ExpirationHandler handler{
+      route.danglingConfigurator(*mConfigRegistry),
+      route.expirationConfigurator(*mConfigRegistry)
+    };
+    mExpirationHandlers.emplace_back(std::move(handler));
+  }
 
   auto& monitoring = mServiceRegistry.get<Monitoring>();
   monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
@@ -96,6 +107,8 @@ bool DataProcessingDevice::ConditionalRun()
       this->tryDispatchComputation();
     }
   }
+  mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+  this->tryDispatchComputation();
   return true;
 }
 
@@ -114,7 +127,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts)
   assert(!mSpec.inputs.empty());
 
   // These duplicate references are created so that each function
-  // does not need to know about the whole class state, but I can 
+  // does not need to know about the whole class state, but I can
   // fine grain control what is exposed at each state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
   monitoringService.send({ 1, "dpl/in_handle_data" });
@@ -334,7 +347,7 @@ bool DataProcessingDevice::tryDispatchComputation()
     stringContext.clear();
   };
 
-  // This is how we do the forwarding, i.e. we push 
+  // This is how we do the forwarding, i.e. we push
   // the inputs which are shared between this device and others
   // to the next one in the daisy chain.
   // FIXME: do it in a smarter way than O(N^2)
@@ -346,7 +359,7 @@ bool DataProcessingDevice::tryDispatchComputation()
 
       // If is now possible that the record is not complete when
       // we forward it, because of a custom completion policy.
-      // this means that we need to skip the empty entries in the 
+      // this means that we need to skip the empty entries in the
       // record for being forwarded.
       if (input.header == nullptr || input.payload == nullptr) {
         continue;

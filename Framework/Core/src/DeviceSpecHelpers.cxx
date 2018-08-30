@@ -22,6 +22,8 @@
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/Lifetime.h"
+#include "Framework/LifetimeHelpers.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/WorkflowSpec.h"
 
@@ -36,6 +38,74 @@ namespace o2
 {
 namespace framework
 {
+
+struct ExpirationHandlerHelpers {
+  static InputRoute::DanglingConfigurator danglingTimeframeConfigurator()
+  {
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+  }
+
+  static InputRoute::ExpirationConfigurator expiringTimeframeConfigurator()
+  {
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::doNothing(); };
+  }
+
+  static InputRoute::DanglingConfigurator danglingConditionConfigurator()
+  {
+    // FIXME: this should really be expireAlways. However, since we do not have
+    //        a proper backend for conditions yet, I keep it behaving like it was
+    //        before.
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+  }
+
+  static InputRoute::ExpirationConfigurator expiringConditionConfigurator(InputRoute& route)
+  {
+    return [route](ConfigParamRegistry const&) {
+      std::string prefix = std::string{ "/" } + route.matcher.origin.str + "/" + route.matcher.description.str;
+      return LifetimeHelpers::fetchFromCCDBCache(prefix);
+    };
+  }
+
+  static InputRoute::DanglingConfigurator danglingQAConfigurator()
+  {
+    // FIXME: this should really be expireAlways. However, since we do not have
+    //        a proper backend for conditions yet, I keep it behaving like it was
+    //        before.
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+  }
+
+  static InputRoute::ExpirationConfigurator expiringQAConfigurator()
+  {
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromQARegistry(); };
+  }
+
+  static InputRoute::DanglingConfigurator danglingTimerConfigurator(InputRoute& route)
+  {
+    return [route](ConfigParamRegistry const& options) {
+      std::string rateName = std::string{ "period-" } + route.matcher.origin.str + "-" + route.matcher.description.str;
+      auto period = options.get<int>(rateName.c_str());
+      return LifetimeHelpers::expireTimed(std::chrono::milliseconds(period));
+    };
+  }
+
+  static InputRoute::ExpirationConfigurator expiringTimerConfigurator(InputRoute& route)
+  {
+    return [route](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(route); };
+  }
+
+  static InputRoute::DanglingConfigurator danglingTransientConfigurator()
+  {
+    // FIXME: this should really be expireAlways. However, since we do not have
+    //        a proper backend for conditions yet, I keep it behaving like it was
+    //        before.
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+  }
+
+  static InputRoute::ExpirationConfigurator expiringTransientConfigurator(InputRoute& route)
+  {
+    return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
+  }
+};
 
 /// This creates a string to configure channels of a FairMQDevice
 /// FIXME: support shared memory
@@ -355,6 +425,28 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     route.matcher = consumer.inputs[edge.consumerInputIndex];
     route.sourceChannel = consumerDevice.inputChannels[ci].name;
     route.timeslice = edge.producerTimeIndex;
+    switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
+      case Lifetime::Timeframe:
+        route.danglingConfigurator = ExpirationHandlerHelpers::danglingTimeframeConfigurator();
+        route.expirationConfigurator = ExpirationHandlerHelpers::expiringTimeframeConfigurator();
+        break;
+      case Lifetime::Condition:
+        route.danglingConfigurator = ExpirationHandlerHelpers::danglingConditionConfigurator();
+        route.expirationConfigurator = ExpirationHandlerHelpers::expiringConditionConfigurator(route);
+        break;
+      case Lifetime::QA:
+        route.danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator();
+        route.expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator();
+        break;
+      case Lifetime::Timer:
+        route.danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(route);
+        route.expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(route);
+        break;
+      case Lifetime::Transient:
+        route.danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator();
+        route.expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(route);
+        break;
+    }
     consumerDevice.inputs.push_back(route);
   };
 
