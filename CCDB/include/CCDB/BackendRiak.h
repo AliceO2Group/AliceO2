@@ -18,7 +18,7 @@
 #include "CCDB/Backend.h"
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class BackendRiak : public Backend {
 

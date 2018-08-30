@@ -20,7 +20,7 @@
 #include "TString.h"     // for TString
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class ConditionId : public TObject
 {

@@ -25,7 +25,7 @@
 #include "TSystem.h"       // for TSystem, gSystem
 #include "CCDB/XmlHandler.h"    // for XmlHandler
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(StorageParameters)
 

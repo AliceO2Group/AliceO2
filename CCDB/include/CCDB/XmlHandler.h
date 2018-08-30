@@ -21,10 +21,10 @@ class TList;
 
 #include <cstddef>      // for NULL
 
-namespace o2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace ccdb { class IdRunRange; }}
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 class XmlHandler : public TObject
 {
 

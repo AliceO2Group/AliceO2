@@ -25,7 +25,7 @@ namespace CCDB
 // a dictionary for TObjectWrapper<A> must exist (next to the one for A)
 BOOST_AUTO_TEST_CASE(ReadWriteTest1)
 {
-  auto cdb = o2::CDB::Manager::Instance();
+  auto cdb = o2::ccdb::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
 
   TestClass parameter;
@@ -33,8 +33,8 @@ BOOST_AUTO_TEST_CASE(ReadWriteTest1)
   parameter.mD = TESTVALUE;
 
   int run = 1;
-  auto id = new o2::CDB::ConditionId("TestParam/Test/Test", run, run, 1, 0);
-  auto md = new o2::CDB::ConditionMetaData();
+  auto id = new o2::ccdb::ConditionId("TestParam/Test/Test", run, run, 1, 0);
+  auto md = new o2::ccdb::ConditionMetaData();
   cdb->putObjectAny(&parameter, *id, md);
 
   auto condread = cdb->getCondition("TestParam/Test/Test", run);

@@ -17,7 +17,7 @@
 #include "TString.h"  // for TString
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 //  Set of data describing the object  				   //
 //  but not used to identify the object 			   //
 

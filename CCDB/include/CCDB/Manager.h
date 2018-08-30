@@ -20,22 +20,22 @@
 #include <CCDB/TObjectWrapper.h>
 
 class TFile;
-namespace o2 { namespace CDB { class Condition; }}  // lines 20-20
-namespace o2 { namespace CDB { class ConditionId; }}  // lines 21-21
-namespace o2 { namespace CDB { class ConditionMetaData; }}  // lines 24-24
-namespace o2 { namespace CDB { class IdPath; }}  // lines 22-22
-namespace o2 { namespace CDB { class IdRunRange; }}  // lines 23-23
-namespace o2 { namespace CDB { class Storage; }}  // lines 25-25
-namespace o2 { namespace CDB { class StorageFactory; }}  // lines 26-26
-namespace o2 { namespace CDB { class StorageParameters; }}  // lines 27-27
+namespace o2 { namespace ccdb { class Condition; }}  // lines 20-20
+namespace o2 { namespace ccdb { class ConditionId; }}  // lines 21-21
+namespace o2 { namespace ccdb { class ConditionMetaData; }}  // lines 24-24
+namespace o2 { namespace ccdb { class IdPath; }}  // lines 22-22
+namespace o2 { namespace ccdb { class IdRunRange; }}  // lines 23-23
+namespace o2 { namespace ccdb { class Storage; }}  // lines 25-25
+namespace o2 { namespace ccdb { class StorageFactory; }}  // lines 26-26
+namespace o2 { namespace ccdb { class StorageParameters; }}  // lines 27-27
 
 
 //  @file   Manager.h
 //  @author Raffaele Grosso
-//  @since  2014-12-02 
+//  @since  2014-12-02
 //  @brief  Adapted to o2 from the original AliCDBManager.h in AliRoot
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 /// @class Manager
 /// Steer retrieval and upload of condition objects from/to

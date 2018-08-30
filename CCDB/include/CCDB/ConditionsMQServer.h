@@ -24,7 +24,7 @@
 #include "ParameterMQServer.h"
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class ConditionsMQServer : public ParameterMQServer {
 public:

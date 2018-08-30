@@ -15,7 +15,7 @@
 #include <vector>
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class ObjectHandler {
 public:

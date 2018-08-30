@@ -32,7 +32,7 @@ namespace EventVisualisation {
 /// (Raw data, hits, digits, clusters, ESDs, AODs...). It is a role of detector-specific data macros to
 /// interpret data from different formats as visualisation objects (points, lines...) and register them
 /// for drawing in the MultiView.
-  
+
 class EventManager : public TEveEventManager, public TQObject
 {
   public:
@@ -44,15 +44,15 @@ class EventManager : public TEveEventManager, public TQObject
 
     /// Returns an instance of EventManager
     static EventManager& getInstance();
-  
+
     /// Setter of the current data source
     inline void setDataSourceType(EDataSource source){mCurrentDataSourceType = source;}
     /// Sets the CDB path in CCDB Manager
-    inline void setCdbPath(std::string path){ o2::CDB::Manager::Instance()->setDefaultStorage(path.c_str()); }
-  
+    inline void setCdbPath(std::string path){ o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str()); }
+
   private:
     EDataSource mCurrentDataSourceType; ///< enum type of the current data source
-  
+
     /// Default constructor
     EventManager();
     /// Default destructor

@@ -12,7 +12,7 @@
 
 #include "CCDB/ConditionsMQServer.h"
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
 namespace bpo = boost::program_options;

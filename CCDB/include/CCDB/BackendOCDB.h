@@ -21,7 +21,7 @@
 #include <memory>
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class BackendOCDB : public Backend {
 

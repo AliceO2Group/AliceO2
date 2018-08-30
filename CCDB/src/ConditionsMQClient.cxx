@@ -33,7 +33,7 @@
 
 #include "boost/filesystem.hpp"
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
 ConditionsMQClient::ConditionsMQClient() : mRunId(0), mParameterName() {}

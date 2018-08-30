@@ -22,11 +22,11 @@
 #include "TObject.h"            // for TObject
 #include "TString.h"            // for TString
 
-namespace o2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace ccdb { class IdRunRange; }}
 
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 /// Class containing the condition (a ROOT TObject) and the metadata identifying it (ConditionId)
 /// An instance of this class is a CDB object and has a specified run-range validity, version
@@ -120,7 +120,7 @@ class Condition : public TObject
         obj = wrapped->getObj();
         return true;
       }
-      return false; 
+      return false;
    }
 
     void setConditionMetaData(ConditionMetaData *metaData)

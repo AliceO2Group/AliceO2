@@ -17,7 +17,7 @@
 #include "Rtypes.h"   // for Int_t, Bool_t, IdRunRange::Class, ClassDef, etc
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 class IdRunRange : public TObject
 {
 

@@ -23,7 +23,7 @@
 #include <zlib.h>
 #include <iostream>
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
 // special class to expose protected TMessage constructor

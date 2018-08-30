@@ -20,15 +20,15 @@
 #include "TObject.h"    // for TObject
 #include "TString.h"    // for TString
 
-namespace o2 { namespace CDB { class Condition; }}  // lines 18-18
-namespace o2 { namespace CDB { class ConditionId; }}
-namespace o2 { namespace CDB { class ConditionMetaData; }}
-namespace o2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace ccdb { class Condition; }}  // lines 18-18
+namespace o2 { namespace ccdb { class ConditionId; }}
+namespace o2 { namespace ccdb { class ConditionMetaData; }}
+namespace o2 { namespace ccdb { class IdRunRange; }}
 
 class TFile;
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class Condition;
 

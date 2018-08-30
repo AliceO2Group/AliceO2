@@ -16,7 +16,7 @@
 #include <TObjString.h>  // for TObjString
 #include <TRegexp.h>     // for TRegexp
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 
 ClassImp(IdPath)
 

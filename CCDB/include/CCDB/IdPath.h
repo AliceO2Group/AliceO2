@@ -19,7 +19,7 @@
 #include "Rtypes.h"   // for Bool_t, IdPath::Class, ClassDef, etc
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class IdPath : public TObject
 {

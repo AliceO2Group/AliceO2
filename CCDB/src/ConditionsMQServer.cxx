@@ -37,12 +37,12 @@
 
 #include <boost/algorithm/string.hpp>
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using std::endl;
 using std::cout;
 using std::string;
 
-ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), mCdbManager(o2::CDB::Manager::Instance()) {}
+ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), mCdbManager(o2::ccdb::Manager::Instance()) {}
 
 void ConditionsMQServer::InitTask()
 {

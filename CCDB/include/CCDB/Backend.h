@@ -25,7 +25,7 @@
 
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class Condition;
 

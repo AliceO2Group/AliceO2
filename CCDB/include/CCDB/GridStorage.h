@@ -23,12 +23,12 @@ class TList;
 class TObjArray;
 
 class TObject;
-namespace o2 { namespace CDB { class Condition; }}
-namespace o2 { namespace CDB { class ConditionId; }}
-namespace o2 { namespace CDB { class ConditionMetaData; }}
+namespace o2 { namespace ccdb { class Condition; }}
+namespace o2 { namespace ccdb { class ConditionId; }}
+namespace o2 { namespace ccdb { class ConditionMetaData; }}
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class GridStorage : public Storage
 {

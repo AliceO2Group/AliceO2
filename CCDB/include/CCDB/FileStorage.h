@@ -20,12 +20,12 @@ class TFile;  // lines 8-8
 class TList;
 
 class TObject;
-namespace o2 { namespace CDB { class Condition; }}
-namespace o2 { namespace CDB { class ConditionId; }}
-namespace o2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace ccdb { class Condition; }}
+namespace o2 { namespace ccdb { class ConditionId; }}
+namespace o2 { namespace ccdb { class IdRunRange; }}
 
 namespace o2 {
-namespace CDB {
+namespace ccdb {
 
 class FileStorage : public Storage
 {

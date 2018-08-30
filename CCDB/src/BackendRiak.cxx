@@ -20,7 +20,7 @@
 
 #include <FairMQLogger.h>
 
-using namespace o2::CDB;
+using namespace o2::ccdb;
 using namespace std;
 
 BackendRiak::BackendRiak() {}
