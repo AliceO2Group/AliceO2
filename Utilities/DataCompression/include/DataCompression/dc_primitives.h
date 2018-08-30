@@ -144,18 +144,20 @@ class ExampleAlphabet
   /// get the range of indices aka number of indices
   constexpr unsigned getIndexRange();
 
-  using _iterator_base = std::iterator<std::forward_iterator_tag, T>;
+  template <typename ValueT>
+  using _iterator_base = std::iterator<std::forward_iterator_tag, ValueT>;
 
   /// a forward iterator to access the list of elements
-  class iterator : public _iterator_base
+  template <typename ValueT>
+  class Iterator : public _iterator_base<ValueT>
   {
    public:
-    iterator();
-    ~iterator();
+    Iterator();
+    ~Iterator();
 
-    using self_type = iterator;
-    using reference = typename _iterator_base::reference;
-    using pointer = typename _iterator_base::pointer;
+    using self_type = Iterator;
+    using reference = typename _iterator_base<ValueT>::reference;
+    using pointer = typename _iterator_base<ValueT>::pointer;
 
     // prefix increment
     self_type& operator++();
@@ -173,6 +175,13 @@ class ExampleAlphabet
    private:
   };
 
+  using iterator = Iterator<value_type>;
+  using const_iterator = Iterator<const value_type>;
+
+  /// return forward iterator to begin of element list
+  const_iterator begin() const;
+  /// the end of element list
+  const_iterator end() const;
   /// return forward iterator to begin of element list
   iterator begin();
   /// the end of element list
@@ -235,19 +244,22 @@ class ContiguousAlphabet
   /// name is part of the type definition, defined as a boost mpl string
   constexpr const char* getName() const { return boost::mpl::c_str<NameT>::value; }
 
-  using _iterator_base = std::iterator<std::forward_iterator_tag, T>;
+  template <typename ValueT>
+  using _iterator_base = std::iterator<std::forward_iterator_tag, ValueT>;
 
   /// a forward iterator to access the list of elements
-  class iterator : public _iterator_base
+  template <typename ValueT>
+  class Iterator : public _iterator_base<ValueT>
   {
    public:
-    iterator() : mValue(_max), mIsEnd(true) {}
-    iterator(T value, bool isEnd) : mValue(value), mIsEnd(isEnd) {}
-    ~iterator() {}
+    Iterator() : mValue(_max), mIsEnd(true) {}
+    Iterator(T value, bool isEnd) : mValue(value), mIsEnd(isEnd) {}
+    ~Iterator() {}
 
-    using self_type = iterator;
-    using reference = typename _iterator_base::reference;
-    using pointer = typename _iterator_base::pointer;
+    using self_type = Iterator;
+    using value_type = typename _iterator_base<ValueT>::value_type;
+    using reference = typename _iterator_base<ValueT>::reference;
+    using pointer = typename _iterator_base<ValueT>::pointer;
 
     // prefix increment
     self_type& operator++()
@@ -291,9 +303,18 @@ class ContiguousAlphabet
     bool operator!=(const self_type& other) { return not(*this == other); }
 
    private:
-    T mValue;
+    value_type mValue;
     bool mIsEnd;
   };
+
+  using iterator = Iterator<value_type>;
+  using const_iterator = Iterator<const value_type>;
+
+  /// return forward iterator to begin of element list
+  const_iterator begin() const { return iterator(_min, false); }
+
+  /// the end of element list
+  const_iterator end() const { return iterator(_max, true); }
 
   /// return forward iterator to begin of element list
   iterator begin() { return iterator(_min, false); }
@@ -396,6 +417,10 @@ class ProbabilityModel
     static WeightType dummy = _default0;
     return dummy;
   }
+
+  typename TableType::const_iterator begin() const { return mProbabilityTable.begin(); }
+
+  typename TableType::const_iterator end() const { return mProbabilityTable.end(); }
 
   typename TableType::iterator begin() { return mProbabilityTable.begin(); }
 
