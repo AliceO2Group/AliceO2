@@ -17,17 +17,14 @@
 #include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataProcessingHeader.h"
 
-#include <TRandom3.h>
+#include "PCG/pcg_random.hpp"
 
 namespace o2
 {
 namespace framework
 {
 
-// todo: choose the best PRNG (TRandom3 is fast, but i am not sure about its statistical soundness and behaviour with
-// very small percents) or use completely different decision mechanism (map or formula f(timeslice) -> {0,1})
 // todo: consider using run number as a seed
-
 using namespace o2::header;
 
 /// \brief A DataSamplingCondition which makes decisions randomly, but with determinism.
@@ -36,15 +33,21 @@ class DataSamplingConditionRandom : public DataSamplingCondition
 
  public:
   /// \brief Constructor.
-  DataSamplingConditionRandom() : DataSamplingCondition(), mSeed(0), mFraction(0.0), mGenerator(0){};
+  DataSamplingConditionRandom() : DataSamplingCondition(),
+                                  mThreshold(0),
+                                  mGenerator(0),
+                                  mCurrentTimesliceID(0),
+                                  mLastDecision(false){};
   /// \brief Default destructor
-  ~DataSamplingConditionRandom() = default;
+  ~DataSamplingConditionRandom() override = default;
 
   /// \brief Reads 'fraction' parameter (type double, between 0 and 1) and seed (int).
-  void configure(const boost::property_tree::ptree& cfg) override
+  void configure(const boost::property_tree::ptree& config) override
   {
-    mFraction = cfg.get<double>("fraction");
-    mSeed = cfg.get<int>("seed");
+    mThreshold = static_cast<uint32_t>(config.get<double>("fraction") * std::numeric_limits<uint32_t>::max());
+    mGenerator.seed(config.get<uint64_t>("seed"));
+    mCurrentTimesliceID = 0;
+    mLastDecision = false;
   };
   /// \brief Makes pseudo-random, deterministic decision based on TimesliceID.
   /// The reason behind using TimesliceID is to ensure, that data of the same events is sampled even on different FLPs.
@@ -53,14 +56,25 @@ class DataSamplingConditionRandom : public DataSamplingCondition
     const auto* dpHeader = get<DataProcessingHeader*>(dataRef.header);
     assert(dpHeader);
 
-    mGenerator.SetSeed(dpHeader->startTime + mSeed);
-    return static_cast<bool>(mGenerator.Binomial(1, mFraction));
+    int64_t diff = dpHeader->startTime - mCurrentTimesliceID;
+    if (diff == -1) {
+      return mLastDecision;
+    } else if (diff < -1) {
+      mGenerator.backstep(static_cast<uint64_t>(-diff));
+    } else if (diff > 0) {
+      mGenerator.advance(static_cast<uint64_t>(diff));
+    }
+
+    mLastDecision = mGenerator() < mThreshold;
+    mCurrentTimesliceID = dpHeader->startTime + 1;
+    return mLastDecision;
   }
 
  private:
-  int mSeed;
-  double mFraction;
-  TRandom3 mGenerator;
+  uint32_t mThreshold;
+  pcg32_fast mGenerator;
+  bool mLastDecision;
+  DataProcessingHeader::StartTime mCurrentTimesliceID;
 };
 
 std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataSamplingConditionRandom()

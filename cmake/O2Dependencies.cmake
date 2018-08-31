@@ -265,7 +265,6 @@ o2_define_bucket(
     Tree
     TreePlayer
     Net
-    MathUtils
     DebugGUI
     ${Monitoring_LIBRARIES}
     ${Configuration_LIBRARIES}
@@ -275,6 +274,7 @@ o2_define_bucket(
     ${Monitoring_INCLUDE_DIRS}
     ${Configuration_INCLUDE_DIRS}
     ${COMMON_INCLUDE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/Utilities/PCG/include
 )
 
 o2_define_bucket(
