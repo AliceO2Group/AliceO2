@@ -17,8 +17,10 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #include <vector>
 #include <bitset>
 #include <thread>
@@ -58,9 +60,49 @@ void decoderProcess(RandvalStreamT& fifoRandvals, EncodedStreamT& fifoEncoded, C
   }));
 }
 
-using namespace o2::data_compression;
+template <typename CodecT, typename GeneratorT>
+void checkRandom(CodecT& codec, GeneratorT& generator, int nRolls = 1000000)
+{
+  using ValueT = typename CodecT::value_type;
+  using CodeT = typename CodecT::code_type;
+  auto const& huffmanmodel = codec.getCodingModel();
 
-BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
+  ////////////////////////////////////////////////////////////////////////////
+  // test loop for random values
+  //
+
+  // FIFO for the random numbers
+  o2::test::Fifo<ValueT> fifoRandvals;
+
+  // FIFO for encoded values
+  using FifoBuffer_t = o2::test::Fifo<uint32_t>;
+  FifoBuffer_t fifoEncoded;
+
+  int n = nRolls;
+  std::cout << std::endl
+            << "Testing encoding-decoding with " << nRolls << " random value(s) ..." << std::endl;
+
+  std::thread decoderThread([&]() { decoderProcess(fifoRandvals, fifoEncoded, codec); });
+
+  while (n-- > 0) {
+    uint16_t codeLen = 0;
+    CodeT code;
+    ValueT value = generator();
+    codec.Encode(value, code, codeLen);
+    fifoRandvals.push(value);
+    if (huffmanmodel.OrderMSB) {
+      code <<= (code.size() - codeLen);
+    }
+    fifoEncoded.push(code.to_ulong(), n == 0);
+    // std::cout << "encoded: " << std::setw(4) << value << " code: " << code << std::endl;
+  }
+
+  decoderThread.join();
+
+  std::cout << "... done" << std::endl;
+}
+
+auto setupCodec(int verbosity = 0)
 {
   // defining a contiguous alphabet of integral 16 bit unsigned numbers
   // in the range [-7, 10] including the upper bound
@@ -83,10 +125,13 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
     HuffmanModel<ProbabilityModel<SimpleRangeAlphabet_t>, std::bitset<32>, true>;
   HuffmanModel_t huffmanmodel;
 
-  std::cout << std::endl << "Huffman probability model after initialization: " << std::endl;
   huffmanmodel.init(0.);
-  for (auto s : alphabet) {
-    std::cout << "val = " << std::setw(2) << s << " --> weight = " << huffmanmodel[s] << std::endl;
+  if (verbosity > 0) {
+    std::cout << std::endl
+              << "Huffman probability model after initialization: " << std::endl;
+    for (auto s : alphabet) {
+      std::cout << "val = " << std::setw(2) << s << " --> weight = " << huffmanmodel[s] << std::endl;
+    }
   }
 
   // add probabilities from data generator as weights for every symbol
@@ -96,81 +141,88 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
 
   // normalizing the weight to the total weight thus having the probability
   // for every symbol
-  std::cout << std::endl << "Probabilities from DataGenerator:" << std::endl;
   huffmanmodel.normalize();
-  for (auto i : huffmanmodel) {
-    std::cout << "val = " << std::setw(2) << i.first << " --> weight = " << i.second << std::endl;
+  if (verbosity > 0) {
+    std::cout << std::endl
+              << "Probabilities from DataGenerator:" << std::endl;
+    for (auto i : huffmanmodel) {
+      std::cout << "val = " << std::setw(2) << i.first << " --> weight = " << i.second << std::endl;
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////
   // generate the Huffman tree in the Huffman model and create a Huffman
   // codec operating on the probability table
-  std::cout << std::endl << "Generating binary tree and Huffman codes" << std::endl;
   huffmanmodel.GenerateHuffmanTree();
-  huffmanmodel.print();
-  using Codec_t = HuffmanCodec<HuffmanModel_t>;
-  Codec_t codec(huffmanmodel);
+  if (verbosity > 0) {
+    std::cout << std::endl
+              << "Generating binary tree and Huffman codes" << std::endl;
+    huffmanmodel.print();
+  }
+  return std::pair<HuffmanCodec<HuffmanModel_t>, DataGenerator_t>(huffmanmodel, dg);
+}
+
+BOOST_AUTO_TEST_CASE(test_HuffmanCodec_basic)
+{
+  auto setup = setupCodec();
+  auto& codec = setup.first;
+  auto& dg = setup.second;
+  auto const& huffmanmodel = codec.getCodingModel();
+  using ValueT = decltype(setup.first)::value_type;
+  using CodeT = decltype(setup.first)::code_type;
 
   ////////////////////////////////////////////////////////////////////////////
   // print Huffman code summary and perform an encoding-decoding check for
   // every symbol
   std::cout << std::endl
-            << "Huffman code summary: " << (HuffmanModel_t::orderMSB ? "MSB to LSB" : "LSB to MSB") << std::endl;
-  for (auto i : huffmanmodel) {
+            << "Huffman code summary: " << (huffmanmodel.OrderMSB ? "MSB to LSB" : "LSB to MSB") << std::endl;
+  for (auto const& i : huffmanmodel) {
     uint16_t codeLen = 0;
-    HuffmanModel_t::code_type code;
+    CodeT code;
     codec.Encode(i.first, code, codeLen);
     std::cout << "value: " << std::setw(4) << i.first << "   code length: " << std::setw(3) << codeLen << "   code: ";
-    if (not HuffmanModel_t::orderMSB) {
+    if (not huffmanmodel.OrderMSB) {
       std::cout << std::setw(code.size() - codeLen);
     }
     for (int k = 0; k < codeLen; k++) {
       std::cout << code[codeLen - 1 - k];
     }
     std::cout << std::endl;
-    if (HuffmanModel_t::orderMSB) {
+    if (huffmanmodel.OrderMSB) {
       code <<= (code.size() - codeLen);
     }
     uint16_t decodedLen = 0;
-    HuffmanModel_t::value_type value;
+    ValueT value;
     codec.Decode(value, code, decodedLen);
     if (codeLen != decodedLen || value != i.first) {
       std::cout << "mismatch in decoded value: " << value << "(" << decodedLen << ")" << std::endl;
     }
   }
 
-  ////////////////////////////////////////////////////////////////////////////
-  // test loop for random values
-  //
+  checkRandom(codec, dg);
+}
 
-  // FIFO for the random numbers
-  o2::test::Fifo<DataGenerator_t::value_type> fifoRandvals;
+BOOST_AUTO_TEST_CASE(test_HuffmanCodec_configuration)
+{
+  auto setup = setupCodec();
+  auto& codec = setup.first;
+  auto& dg = setup.second;
+  auto const& huffmanmodel = codec.getCodingModel();
+  using ValueT = decltype(setup.first)::value_type;
+  using CodeT = decltype(setup.first)::code_type;
 
-  // FIFO for encoded values
-  using FifoBuffer_t = o2::test::Fifo<uint32_t>;
-  FifoBuffer_t fifoEncoded;
+  // check writing and reading of the huffman configuration
+  std::stringstream filename;
+  filename << boost::filesystem::temp_directory_path().string() << "/" << boost::filesystem::unique_path().string()
+           << "_testHuffmanCodec.zlib";
 
-  const int nRolls = 1000000;
-  int n = nRolls;
-  std::cout << std::endl << "Testing encoding-decoding with " << nRolls << " random value(s) ..." << std::endl;
+  auto nNodes = codec.writeConfiguration(filename.str().c_str(), "zlib");
+  BOOST_CHECK(nNodes > 0);
+  auto result = codec.loadConfiguration(filename.str().c_str(), "zlib");
+  BOOST_CHECK(result == 0);
+  boost::filesystem::remove(filename.str());
 
-  std::thread decoderThread([&]() { decoderProcess(fifoRandvals, fifoEncoded, codec); });
-
-  while (n-- > 0) {
-    uint16_t codeLen = 0;
-    HuffmanModel_t::code_type code;
-    DataGenerator_t::value_type value = dg();
-    codec.Encode(value, code, codeLen);
-    fifoRandvals.push(value);
-    if (HuffmanModel_t::orderMSB) {
-      code <<= (code.size() - codeLen);
-    }
-    fifoEncoded.push(code.to_ulong(), n == 0);
-    // std::cout << "encoded: " << std::setw(4) << value << " code: " << code << std::endl;
-  }
-
-  decoderThread.join();
-  std::cout << "... done" << std::endl;
+  checkRandom(codec, dg);
 }
 
 } // namespace data_compression
