@@ -58,7 +58,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   timer.Start();
 
   // CDB manager
-//   o2::ccdb::Manager *cdbManager = o2::ccdb::Manager::Instance();
+  //   o2::ccdb::Manager *cdbManager = o2::ccdb::Manager::Instance();
 //   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
 //   cdbManager->setRun(0);
 

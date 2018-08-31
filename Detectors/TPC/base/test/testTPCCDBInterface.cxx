@@ -40,7 +40,10 @@ void writeObject(T& obj, const std::string_view type, const std::string_view nam
 {
   auto cdb = o2::ccdb::Manager::Instance();
 
-  auto id = new o2::ccdb::ConditionId("TPC/" + type + "/" + name, run, run, 1, 0);
+  auto id = new o2::ccdb::ConditionId(
+    "TPC/" + type +
+      "/" + name,
+    run, run, 1, 0);
   auto md = new o2::ccdb::ConditionMetaData();
   cdb->putObjectAny(&obj, *id, md);
 }

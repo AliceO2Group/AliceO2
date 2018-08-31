@@ -215,7 +215,7 @@ void GridStorage::setRetry(Int_t nretry, Int_t initsec)
   // Function to set the exponential retry for putting entries in the OCDB
 
   LOG(WARNING) << "WARNING!!! You are changing the exponential retry times and delay: this "
-    "function should be used by experts!" << FairLogger::endl;
+                  "function should be used by experts!" << FairLogger::endl;
   mNretry = nretry;
   mInitRetrySeconds = initsec;
   LOG(DEBUG) << "mNretry = " << mNretry << ", mInitRetrySeconds = " << mInitRetrySeconds << FairLogger::endl;
@@ -756,7 +756,8 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
         TObjString *target = (TObjString *) arraySEs->At(nSEs - remainingSEs);
         targetSE = target->String();
         if (!(targetSE.BeginsWith("ALICE::") && targetSE.CountChar(':') == 4)) {
-          LOG(ERROR) << R"(")" << targetSE.Data() << R"(" is an invalid storage element identifier.)" << FairLogger::endl;
+          LOG(ERROR) << R"(")" << targetSE.Data() << R"(" is an invalid storage element identifier.)"
+                     << FairLogger::endl;
           continue;
         }
         if (fullFilename.Contains('?')) {
@@ -822,7 +823,8 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
       if (!reopenedFile) {
         reOpenResult = kFALSE;
         LOG(INFO) << R"(The file ")" << fullFilename.Data()
-                  << R"(" was closed successfully but cannot be reopened. Trying now to regenerate it (regeneration attempt number )" << ++reOpenAttempts << FairLogger::endl;
+                  << R"(" was closed successfully but cannot be reopened. Trying now to regenerate it (regeneration attempt number )"
+                  << ++reOpenAttempts << FairLogger::endl;
         delete file;
         file = nullptr;
         LOG(DEBUG) << "Removing file " << filename.Data() << FairLogger::endl;
@@ -894,7 +896,8 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
                  << FairLogger::endl;
     } else {
       if (!putInCvmfs(filename, reopenedFile))
-        LOG(ERROR) << R"(Could not upload AliEn file ")" << filename.Data() << R"(" to CVMFS OCDB!)" << FairLogger::endl;
+        LOG(ERROR) << R"(Could not upload AliEn file ")" << filename.Data() << R"(" to CVMFS OCDB!)"
+                   << FairLogger::endl;
     }
     reopenedFile->Close();
     delete reopenedFile;
@@ -928,7 +931,8 @@ Bool_t GridStorage::putInCvmfs(TString &filename, TFile *cdbFile) const
     return kFALSE;
   }
   // now cvmfsDirname is the full dirname in cvmfs
-  LOG(DEBUG) << R"(Publishing ")" << basename.Data() << R"(" in ")" << cvmfsDirname.Data() << R"(")" << FairLogger::endl;
+  LOG(DEBUG) << R"(Publishing ")" << basename.Data() << R"(" in ")" << cvmfsDirname.Data() << R"(")"
+             << FairLogger::endl;
 
   // Tar the file with the right prefix path. Include the directory structure in the tarball
   // to cover the case of a containing directory being new in cvmfs, plus a container directory
@@ -980,7 +984,8 @@ Bool_t GridStorage::addTag(TString &folderToTag, const char *tagname)
   TGridResult *gridres = gGrid->Command(addTagCommand.Data());
   const char *resCode = gridres->GetKey(0, "__result__"); // '1' if success
   if (resCode[0] != '1') {
-    LOG(ERROR) << R"(Couldn't add ")" << tagname << R"(" tags to folder )" << folderToTag.Data() << "!" << FairLogger::endl;
+    LOG(ERROR) << R"(Couldn't add ")" << tagname << R"(" tags to folder )" << folderToTag.Data() << "!"
+               << FairLogger::endl;
     result = kFALSE;
   }
   delete gridres;
@@ -1406,7 +1411,7 @@ GridStorageParameters::GridStorageParameters(const char *gridUrl, const char *us
   // constructor
   setType("alien");
   TString uri = Form("%s?User=%s?DBFolder=%s?SE=%s?CacheFolder=%s"
-                       "?OperateDisconnected=%d?CacheSize=%lld?CleanupInterval=%ld",
+                     "?OperateDisconnected=%d?CacheSize=%lld?CleanupInterval=%ld",
                      mGridUrl.Data(), mUser.Data(), mDBFolder.Data(), mSE.Data(), mCacheFolder.Data(),
                      mOperateDisconnected, mCacheSize, mCleanupInterval);
   setUri(uri.Data());

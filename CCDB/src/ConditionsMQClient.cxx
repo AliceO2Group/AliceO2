@@ -29,11 +29,13 @@
 using namespace o2::ccdb;
 using namespace std;
 
-ConditionsMQClient::ConditionsMQClient() : mRunId(0), mParameterName() {}
+ConditionsMQClient::ConditionsMQClient() : mRunId(0), mParameterName()
+{}
 
 ConditionsMQClient::~ConditionsMQClient() = default;
 
-void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hint); }
+void CustomCleanup(void *data, void *hint)
+{ delete static_cast<std::string *>(hint); }
 
 void ConditionsMQClient::InitTask()
 {
@@ -45,7 +47,7 @@ void ConditionsMQClient::InitTask()
 
 void ConditionsMQClient::Run()
 {
-  Backend* backend;
+  Backend *backend;
 
   while (CheckCurrentState(RUNNING)) {
 
@@ -77,11 +79,11 @@ void ConditionsMQClient::Run()
           std::string key = str.substr(0, pos);
 
           if (mOperationType == "GET") {
-            std::string* messageString = new string();
+            std::string *messageString = new string();
             backend->Serialize(messageString, key, mOperationType, mDataSource);
 
             unique_ptr<FairMQMessage> request(fTransportFactory->CreateMessage(
-              const_cast<char*>(messageString->c_str()), messageString->length(), CustomCleanup, messageString));
+              const_cast<char *>(messageString->c_str()), messageString->length(), CustomCleanup, messageString));
             unique_ptr<FairMQMessage> reply(fTransportFactory->CreateMessage());
 
             if (fChannels.at("data-get").at(0).Send(request) > 0) {
@@ -91,11 +93,11 @@ void ConditionsMQClient::Run()
               }
             }
           } else if (mOperationType == "PUT") {
-            std::string* messageString = new string();
+            std::string *messageString = new string();
             backend->Pack(directoryIterator->path().string(), key, messageString);
 
             unique_ptr<FairMQMessage> request(fTransportFactory->CreateMessage(
-              const_cast<char*>(messageString->c_str()), messageString->length(), CustomCleanup, messageString));
+              const_cast<char *>(messageString->c_str()), messageString->length(), CustomCleanup, messageString));
 
             if (fChannels.at("data-put").at(0).Send(request) > 0) {
               LOG(DEBUG) << "Message sent" << endl;

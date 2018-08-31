@@ -37,36 +37,36 @@ std::string demangle(const char *name)
 template<typename T>
 class TObjectWrapper : public TObject
 {
-  public:
-    TObjectWrapper(T *obj) : mObj(obj), TObject()
-    {
-      // make sure that a dictionary for this wrapper exists
-      auto &t = typeid(*this);
-      std::string message("Need dicionary for type ");
-      auto typestring = demangle(t.name());
-      message.append(typestring);
-      message.append("\n");
-      auto hasdict = TClass::HasDictionarySelection(typestring.c_str());
-      if (!hasdict) {
-        throw std::runtime_error(message);
-      }
+ public:
+  TObjectWrapper(T *obj) : mObj(obj), TObject()
+  {
+    // make sure that a dictionary for this wrapper exists
+    auto &t = typeid(*this);
+    std::string message("Need dicionary for type ");
+    auto typestring = demangle(t.name());
+    message.append(typestring);
+    message.append("\n");
+    auto hasdict = TClass::HasDictionarySelection(typestring.c_str());
+    if (!hasdict) {
+      throw std::runtime_error(message);
     }
+  }
 
-    TObjectWrapper() : TObjectWrapper(nullptr)
-    {}
+  TObjectWrapper() : TObjectWrapper(nullptr)
+  {}
 
-    void setObj(T *obj)
-    { mObj = obj; }
+  void setObj(T *obj)
+  { mObj = obj; }
 
-    T *getObj() const
-    { return mObj; }
+  T *getObj() const
+  { return mObj; }
 
-    ~TObjectWrapper() override = default;
+  ~TObjectWrapper() override = default;
 
-  private:
-    T *mObj;
+ private:
+  T *mObj;
 
-  ClassDefOverride(TObjectWrapper, 1);
+ ClassDefOverride(TObjectWrapper, 1);
 };
 }
 

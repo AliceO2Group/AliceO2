@@ -48,7 +48,10 @@ class EventManager : public TEveEventManager, public TQObject
     /// Setter of the current data source
     inline void setDataSourceType(EDataSource source){mCurrentDataSourceType = source;}
     /// Sets the CDB path in CCDB Manager
-    inline void setCdbPath(std::string path){ o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str()); }
+    inline void setCdbPath(std::string path)
+    {
+      o2::ccdb::Manager::Instance()->setDefaultStorage(path.c_str());
+    }
 
   private:
     EDataSource mCurrentDataSourceType; ///< enum type of the current data source

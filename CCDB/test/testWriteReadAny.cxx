@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace CCDB
+namespace ccdb
 {
 /// \brief Test writing/reading arbitrary (non TObject) classes A to CCDB
 // a dictionary for TObjectWrapper<A> must exist (next to the one for A)

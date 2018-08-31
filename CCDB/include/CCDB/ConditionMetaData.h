@@ -24,85 +24,85 @@ namespace ccdb {
 class ConditionMetaData : public TObject
 {
 
-  public:
-    ConditionMetaData();
+ public:
+  ConditionMetaData();
 
-    ConditionMetaData(const char *responsible, UInt_t beamPeriod = 0, const char *alirootVersion = "",
-                      const char *comment = "");
+  ConditionMetaData(const char *responsible, UInt_t beamPeriod = 0, const char *alirootVersion = "",
+                    const char *comment = "");
 
-    ~ConditionMetaData() override;
+  ~ConditionMetaData() override;
 
-    void setObjectClassName(const char *name)
-    {
-      mObjectClassName = name;
-    };
+  void setObjectClassName(const char *name)
+  {
+    mObjectClassName = name;
+  };
 
-    const char *getObjectClassName() const
-    {
-      return mObjectClassName.Data();
-    };
+  const char *getObjectClassName() const
+  {
+    return mObjectClassName.Data();
+  };
 
-    void setResponsible(const char *yourName)
-    {
-      mResponsible = yourName;
-    };
+  void setResponsible(const char *yourName)
+  {
+    mResponsible = yourName;
+  };
 
-    const char *getResponsible() const
-    {
-      return mResponsible.Data();
-    };
+  const char *getResponsible() const
+  {
+    return mResponsible.Data();
+  };
 
-    void setBeamPeriod(UInt_t period)
-    {
-      mBeamPeriod = period;
-    };
+  void setBeamPeriod(UInt_t period)
+  {
+    mBeamPeriod = period;
+  };
 
-    UInt_t getBeamPeriod() const
-    {
-      return mBeamPeriod;
-    };
+  UInt_t getBeamPeriod() const
+  {
+    return mBeamPeriod;
+  };
 
-    void setAliRootVersion(const char *version)
-    {
-      mAliRootVersion = version;
-    };
+  void setAliRootVersion(const char *version)
+  {
+    mAliRootVersion = version;
+  };
 
-    const char *getAliRootVersion() const
-    {
-      return mAliRootVersion.Data();
-    };
+  const char *getAliRootVersion() const
+  {
+    return mAliRootVersion.Data();
+  };
 
-    void setComment(const char *comment)
-    {
-      mComment = comment;
-    };
+  void setComment(const char *comment)
+  {
+    mComment = comment;
+  };
 
-    const char *getComment() const
-    {
-      return mComment.Data();
-    };
+  const char *getComment() const
+  {
+    return mComment.Data();
+  };
 
-    void addDateToComment();
+  void addDateToComment();
 
-    void setProperty(const char *property, TObject *object);
+  void setProperty(const char *property, TObject *object);
 
-    TObject *getProperty(const char *property) const;
+  TObject *getProperty(const char *property) const;
 
-    Bool_t removeProperty(const char *property);
+  Bool_t removeProperty(const char *property);
 
-    void printConditionMetaData();
+  void printConditionMetaData();
 
-  private:
-    TString mObjectClassName; // object's class name
-    TString mResponsible;     // object's responsible person
-    UInt_t mBeamPeriod;       // beam period
-    TString mAliRootVersion;  // AliRoot version
-    TString mComment;         // extra comments
-    // TList mCalibRuns;
+ private:
+  TString mObjectClassName; // object's class name
+  TString mResponsible;     // object's responsible person
+  UInt_t mBeamPeriod;       // beam period
+  TString mAliRootVersion;  // AliRoot version
+  TString mComment;         // extra comments
+  // TList mCalibRuns;
 
-    TMap mProperties; // list of object specific properties
+  TMap mProperties; // list of object specific properties
 
-  ClassDefOverride(ConditionMetaData, 1)
+ ClassDefOverride(ConditionMetaData, 1)
 };
 }
 }

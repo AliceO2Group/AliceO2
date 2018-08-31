@@ -18,77 +18,80 @@
 
 class TFile;  // lines 8-8
 class TList;
+
 class TObject;
 
 namespace o2 {
 namespace ccdb {
 
 class Condition;
+
 class ConditionId;
+
 class IdRunRange;
 
 class FileStorage : public Storage
 {
-    friend class FileStorageFactory;
+  friend class FileStorageFactory;
 
-  public:
-    Bool_t isReadOnly() const override
-    {
-      return mReadOnly;
-    };
+ public:
+  Bool_t isReadOnly() const override
+  {
+    return mReadOnly;
+  };
 
-    Bool_t hasSubVersion() const override
-    {
-      return kFALSE;
-    };
+  Bool_t hasSubVersion() const override
+  {
+    return kFALSE;
+  };
 
-    Bool_t hasConditionType(const char *path) const override;
+  Bool_t hasConditionType(const char *path) const override;
 
-    Bool_t idToFilename(const ConditionId &id, TString &filename) const override;
+  Bool_t idToFilename(const ConditionId &id, TString &filename) const override;
 
-    void setRetry(Int_t /* nretry */, Int_t /* initsec */) override;
+  void setRetry(Int_t /* nretry */, Int_t /* initsec */) override;
 
-  protected:
-    Condition *getCondition(const ConditionId &query) override;
+ protected:
+  Condition *getCondition(const ConditionId &query) override;
 
-    ConditionId *getConditionId(const ConditionId &query) override;
+  ConditionId *getConditionId(const ConditionId &query) override;
 
-    TList *getAllEntries(const ConditionId &query) override;
+  TList *getAllEntries(const ConditionId &query) override;
 
-    Bool_t putCondition(Condition *entry, const char *mirrors = "") override;
+  Bool_t putCondition(Condition *entry, const char *mirrors = "") override;
 
-    TList *getIdListFromFile(const char *fileName) override;
+  TList *getIdListFromFile(const char *fileName) override;
 
-  private:
-    FileStorage(const FileStorage &source);
+ private:
+  FileStorage(const FileStorage &source);
 
-    FileStorage &operator=(const FileStorage &source);
+  FileStorage &operator=(const FileStorage &source);
 
-    FileStorage(const char *dbFile, Bool_t readOnly);
+  FileStorage(const char *dbFile, Bool_t readOnly);
 
-    ~FileStorage() override;
+  ~FileStorage() override;
 
-    Bool_t keyNameToId(const char *keyname, IdRunRange &runRange, Int_t &version, Int_t &subVersion);
+  Bool_t keyNameToId(const char *keyname, IdRunRange &runRange, Int_t &version, Int_t &subVersion);
 
-    Bool_t idToKeyName(const IdRunRange &runRange, Int_t version, Int_t subVersion, TString &keyname);
+  Bool_t idToKeyName(const IdRunRange &runRange, Int_t version, Int_t subVersion, TString &keyname);
 
-    Bool_t makeDir(const TString &dir);
+  Bool_t makeDir(const TString &dir);
 
-    Bool_t prepareId(ConditionId &id);
+  Bool_t prepareId(ConditionId &id);
 
-    //	Bool_t getId(const  ConditionId& query,  ConditionId& result);
-    ConditionId *getId(const ConditionId &query);
+  //	Bool_t getId(const  ConditionId& query,  ConditionId& result);
+  ConditionId *getId(const ConditionId &query);
 
-    void queryValidFiles() override;
+  void queryValidFiles() override;
 
-    void getEntriesForLevel0(const ConditionId &query, TList *result);
+  void getEntriesForLevel0(const ConditionId &query, TList *result);
 
-    void getEntriesForLevel1(const ConditionId &query, TList *result);
+  void getEntriesForLevel1(const ConditionId &query, TList *result);
 
-    TFile *mFile;     // FileStorage file
-    Bool_t mReadOnly; // ReadOnly flag
+  TFile *mFile;     // FileStorage file
+  Bool_t mReadOnly; // ReadOnly flag
 
-  ClassDefOverride(FileStorage, 0)
+ ClassDefOverride(FileStorage, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -100,15 +103,15 @@ class FileStorage : public Storage
 class FileStorageFactory : public StorageFactory
 {
 
-  public:
-    Bool_t validateStorageUri(const char *dbString) override;
+ public:
+  Bool_t validateStorageUri(const char *dbString) override;
 
-    StorageParameters *createStorageParameter(const char *dbString) override;
+  StorageParameters *createStorageParameter(const char *dbString) override;
 
-  protected:
-    Storage *createStorage(const StorageParameters *param) override;
+ protected:
+  Storage *createStorage(const StorageParameters *param) override;
 
-  ClassDefOverride(FileStorageFactory, 0)
+ ClassDefOverride(FileStorageFactory, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -120,34 +123,34 @@ class FileStorageFactory : public StorageFactory
 class FileStorageParameters : public StorageParameters
 {
 
-  public:
-    FileStorageParameters();
+ public:
+  FileStorageParameters();
 
-    FileStorageParameters(const char *dbPath, Bool_t readOnly = kFALSE);
+  FileStorageParameters(const char *dbPath, Bool_t readOnly = kFALSE);
 
-    ~FileStorageParameters() override;
+  ~FileStorageParameters() override;
 
-    const TString &getPathString() const
-    {
-      return mDBPath;
-    };
+  const TString &getPathString() const
+  {
+    return mDBPath;
+  };
 
-    Bool_t isReadOnly() const
-    {
-      return mReadOnly;
-    };
+  Bool_t isReadOnly() const
+  {
+    return mReadOnly;
+  };
 
-    StorageParameters *cloneParam() const override;
+  StorageParameters *cloneParam() const override;
 
-    virtual ULong_t getHash() const;
+  virtual ULong_t getHash() const;
 
-    virtual Bool_t isEqual(const TObject *obj) const;
+  virtual Bool_t isEqual(const TObject *obj) const;
 
-  private:
-    TString mDBPath;  // FileStorage file path name
-    Bool_t mReadOnly; // ReadOnly flag
+ private:
+  TString mDBPath;  // FileStorage file path name
+  Bool_t mReadOnly; // ReadOnly flag
 
-  ClassDefOverride(FileStorageParameters, 0)
+ ClassDefOverride(FileStorageParameters, 0)
 };
 }
 }

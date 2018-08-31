@@ -18,10 +18,10 @@
 using namespace o2::ccdb;
 using namespace std;
 
-void Backend::Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,
-                        const std::string& dataSource, const std::string& object /*= std::vector<char>()*/)
+void Backend::Serialize(std::string *&messageString, const std::string &key, const std::string &operationType,
+                        const std::string &dataSource, const std::string &object /*= std::vector<char>()*/)
 {
-  messaging::RequestMessage* requestMessage = new messaging::RequestMessage;
+  messaging::RequestMessage *requestMessage = new messaging::RequestMessage;
   requestMessage->set_command(operationType);
   requestMessage->set_datasource(dataSource);
   requestMessage->set_key(key);
