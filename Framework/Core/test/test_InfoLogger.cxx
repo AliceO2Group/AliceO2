@@ -16,15 +16,15 @@
 #include <InfoLogger/InfoLogger.hxx>
 using namespace AliceO2::InfoLogger;
 
-BOOST_AUTO_TEST_CASE(InfoLoggerTest) {
- 
+BOOST_AUTO_TEST_CASE(InfoLoggerTest)
+{
+
   // define infologger output to stdout, as we don't want to use the default infoLoggerD pipe which might not be running here
   setenv("INFOLOGGER_MODE", "stdout", 1);
-  
+
   // create the infologger interface
   InfoLogger theLog;
-  
+
   // log a test message
   BOOST_CHECK(theLog.log("This is a log message test to stdout") == 0);
-  
 }
