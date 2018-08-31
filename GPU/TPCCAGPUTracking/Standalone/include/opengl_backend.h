@@ -7,8 +7,8 @@
 #include <GL/glext.h>
 #include <GL/glu.h>
 
-#if !defined(GL_VERSION_4_3) || GL_VERSION_4_3 == 0
-#error Unsupported OpenGL version < 4.3
+#if !defined(GL_VERSION_4_6) || GL_VERSION_4_6 != 1
+#error Unsupported OpenGL version < 4.6
 #endif
 
 extern const int init_width, init_height;
