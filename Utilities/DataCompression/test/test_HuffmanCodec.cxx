@@ -28,6 +28,11 @@
 #include "DataGenerator.h"
 #include "Fifo.h"
 
+namespace o2
+{
+namespace data_compression
+{
+
 // a decoder process working on the FIFO of encoded data and comparing to
 // original data from the corresponding FIFO
 template <class RandvalStreamT, class EncodedStreamT, class CodecT>
@@ -53,6 +58,8 @@ void decoderProcess(RandvalStreamT& fifoRandvals, EncodedStreamT& fifoEncoded, C
   }));
 }
 
+using namespace o2::data_compression;
+
 BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
 {
   // defining a contiguous alphabet of integral 16 bit unsigned numbers
@@ -73,7 +80,7 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   // third template parameter determines whether code has to be decoded
   // MSB to LSB (true) or LSB to MSB (false)
   using HuffmanModel_t =
-    o2::HuffmanModel<ProbabilityModel<SimpleRangeAlphabet_t>, std::bitset<32>, true>;
+    HuffmanModel<ProbabilityModel<SimpleRangeAlphabet_t>, std::bitset<32>, true>;
   HuffmanModel_t huffmanmodel;
 
   std::cout << std::endl << "Huffman probability model after initialization: " << std::endl;
@@ -101,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   std::cout << std::endl << "Generating binary tree and Huffman codes" << std::endl;
   huffmanmodel.GenerateHuffmanTree();
   huffmanmodel.print();
-  using Codec_t = o2::HuffmanCodec<HuffmanModel_t>;
+  using Codec_t = HuffmanCodec<HuffmanModel_t>;
   Codec_t codec(huffmanmodel);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -165,3 +172,6 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
   decoderThread.join();
   std::cout << "... done" << std::endl;
 }
+
+} // namespace data_compression
+} // namespace o2

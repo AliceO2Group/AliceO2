@@ -34,6 +34,11 @@
 #include <boost/mpl/range_c.hpp>
 #include <boost/mpl/string.hpp>
 
+namespace o2
+{
+namespace data_compression
+{
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // General meta programming tools
@@ -403,4 +408,6 @@ class ProbabilityModel
   WeightType mTotalWeight;
 };
 
+} // namespace data_compression
+} // namespace o2
 #endif
