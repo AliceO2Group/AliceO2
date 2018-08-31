@@ -3,6 +3,7 @@
 /* Copyright(c) 2007-2009, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
+#include "AliTPCCommonDef.h"
 #include "AliHLTTRDDef.h"
 #include "AliHLTTPCCADef.h"
 
@@ -19,8 +20,8 @@ class AliHLTTRDTracker {
 
 #ifndef HLTCA_GPUCODE
   AliHLTTRDTracker();
-  AliHLTTRDTracker(const AliHLTTRDTracker &tracker) = delete;
-  AliHLTTRDTracker & operator=(const AliHLTTRDTracker &tracker) = delete;
+  AliHLTTRDTracker(const AliHLTTRDTracker &tracker) CON_DELETE;
+  AliHLTTRDTracker & operator=(const AliHLTTRDTracker &tracker) CON_DELETE;
   ~AliHLTTRDTracker();
 #endif
 

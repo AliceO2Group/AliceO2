@@ -17,8 +17,10 @@
 #ifndef ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
 #define ALICE_ALITPCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMQA_H
 
+#include "AliTPCCommonDef.h"
 #include "TPCFastTransformManager.h"
 #include <cmath>
+#include <iostream>
 
 #include "Rtypes.h"
 #include "TString.h"
@@ -40,13 +42,13 @@ class TPCFastTransformQA
   TPCFastTransformQA();
 
   /// Copy constructor: disabled
-  TPCFastTransformQA(const TPCFastTransformQA& ) = delete;
+  TPCFastTransformQA(const TPCFastTransformQA& ) CON_DELETE;
  
   /// Assignment operator: disabled 
-  TPCFastTransformQA &operator=(const TPCFastTransformQA &)  = delete;    
+  TPCFastTransformQA &operator=(const TPCFastTransformQA &) CON_DELETE;
      
   /// Destructor
-  ~TPCFastTransformQA() = default;
+  ~TPCFastTransformQA() CON_DEFAULT;
 
   /// _______________  Main functionality  ________________________
 

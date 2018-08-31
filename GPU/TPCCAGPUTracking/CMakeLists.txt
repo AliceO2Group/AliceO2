@@ -20,7 +20,7 @@ elseif(ALITPCCOMMON_BUILD_TYPE STREQUAL "ALIROOT")
     set(MODULE AliTPCCAGPUTracking)
 endif()
 
-include_directories(. SliceTracker Merger)
+include_directories(. SliceTracker Merger ../Common)
 
 set(SRCS SliceTracker/AliHLTTPCCATrack.cxx 
     SliceTracker/AliHLTTPCCABaseTrackParam.cxx
@@ -118,7 +118,6 @@ set(HDRS ${HDRS}
     Merger/AliHLTTPCGMMergedTrackHit.h
     TRDTracking/AliHLTTRDDef.h
     TRDTracking/AliHLTTRDTrackPoint.h
-    TRDTracking/AliHLTTRDInterfaces.h
     TRDTracking/AliHLTTRDTrack.h
     TRDTracking/AliHLTTRDTrackData.h
     TRDTracking/AliHLTTRDTrackPoint.h
@@ -131,6 +130,7 @@ set(HDRS2
     SliceTracker/AliCAGPULogging.h
     TRDTracking/AliHLTTRDGeometry.h
     TRDTracking/AliHLTTRDTrackerDebug.h
+    TRDTracking/AliHLTTRDInterfaces.h
 )
 
 #Extra cpp files, whose headers we don't pass to CINT
