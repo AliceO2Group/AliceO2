@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CINT__
+#ifdef __CLING__
 
 #pragma link off all globals;
 #pragma link off all classes;
