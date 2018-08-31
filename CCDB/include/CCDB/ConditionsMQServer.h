@@ -26,26 +26,27 @@
 namespace o2 {
 namespace ccdb {
 
-class ConditionsMQServer : public ParameterMQServer {
-public:
-  ConditionsMQServer();
+class ConditionsMQServer : public ParameterMQServer
+{
+  public:
+    ConditionsMQServer();
 
-  ~ConditionsMQServer() override;
+    ~ConditionsMQServer() override;
 
-  void Run() override;
+    void Run() override;
 
-  void InitTask() override;
+    void InitTask() override;
 
-private:
-  Manager* mCdbManager;
+  private:
+    Manager *mCdbManager;
 
-  void getFromOCDB(std::string key);
+    void getFromOCDB(std::string key);
 
-  /// Parses a serialized message for a data source entry
-  void ParseDataSource(std::string& dataSource, const std::string& data);
+    /// Parses a serialized message for a data source entry
+    void ParseDataSource(std::string &dataSource, const std::string &data);
 
-  /// Deserializes a message and stores the value to an std::string using Protocol Buffers
-  void Deserialize(const std::string& messageString, std::string& key);
+    /// Deserializes a message and stores the value to an std::string using Protocol Buffers
+    void Deserialize(const std::string &messageString, std::string &key);
 };
 }
 }

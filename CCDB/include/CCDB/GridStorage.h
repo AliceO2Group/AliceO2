@@ -17,18 +17,16 @@
 #include "TString.h"  // for TString
 
 class TFile;
-
 class TList;
-
 class TObjArray;
-
 class TObject;
-namespace o2 { namespace ccdb { class Condition; }}
-namespace o2 { namespace ccdb { class ConditionId; }}
-namespace o2 { namespace ccdb { class ConditionMetaData; }}
 
 namespace o2 {
 namespace ccdb {
+
+class Condition;
+class ConditionId;
+class ConditionMetaData;
 
 class GridStorage : public Storage
 {

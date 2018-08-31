@@ -25,21 +25,22 @@
 namespace o2 {
 namespace ccdb {
 
-class ConditionsMQClient : public FairMQDevice {
-public:
-  ConditionsMQClient();
-  ~ConditionsMQClient() override;
+class ConditionsMQClient : public FairMQDevice
+{
+  public:
+    ConditionsMQClient();
+    ~ConditionsMQClient() override;
 
-protected:
-  void InitTask() override;
-  void Run() override;
+  protected:
+    void InitTask() override;
+    void Run() override;
 
-private:
-  int mRunId;
-  std::string mParameterName;
-  std::string mOperationType;
-  std::string mDataSource;
-  std::string mObjectPath;
+  private:
+    int mRunId;
+    std::string mParameterName;
+    std::string mOperationType;
+    std::string mDataSource;
+    std::string mObjectPath;
 
 };
 }

@@ -20,41 +20,26 @@
 #include <CCDB/TObjectWrapper.h>
 
 class TFile;
-namespace o2 { namespace ccdb { class Condition; }}  // lines 20-20
-namespace o2 { namespace ccdb { class ConditionId; }}  // lines 21-21
-namespace o2 { namespace ccdb { class ConditionMetaData; }}  // lines 24-24
-namespace o2 { namespace ccdb { class IdPath; }}  // lines 22-22
-namespace o2 { namespace ccdb { class IdRunRange; }}  // lines 23-23
-namespace o2 { namespace ccdb { class Storage; }}  // lines 25-25
-namespace o2 { namespace ccdb { class StorageFactory; }}  // lines 26-26
-namespace o2 { namespace ccdb { class StorageParameters; }}  // lines 27-27
 
-
-//  @file   Manager.h
-//  @author Raffaele Grosso
-//  @since  2014-12-02
-//  @brief  Adapted to o2 from the original AliCDBManager.h in AliRoot
+///  @file   Manager.h
+///  @author Raffaele Grosso
+///  @since  2014-12-02
+///  @brief  Adapted to o2 from the original AliCDBManager.h in AliRoot
 namespace o2 {
 namespace ccdb {
+
+class Condition;
+class ConditionId;
+class ConditionMetaData;
+class IdPath;
+class IdRunRange;
+class Storage;
+class StorageFactory;
+class StorageParameters;
 
 /// @class Manager
 /// Steer retrieval and upload of condition objects from/to
 /// different storages (local, alien, file)
-class Condition;
-
-class ConditionId;
-
-class IdPath;
-
-class IdRunRange;
-
-class ConditionMetaData;
-
-class Storage;
-
-class StorageFactory;
-
-class StorageParameters;
 
 class Manager : public TObject
 {
@@ -152,8 +137,9 @@ class Manager : public TObject
 
     Bool_t putObject(TObject *object, const ConditionId &id, ConditionMetaData *metaData, const char *mirrors = "");
 
-    template <typename T>
-    Bool_t putObjectAny(T *ptr, const ConditionId &id, ConditionMetaData *metaData, const char *mirrors = "") {
+    template<typename T>
+    Bool_t putObjectAny(T *ptr, const ConditionId &id, ConditionMetaData *metaData, const char *mirrors = "")
+    {
       TObjectWrapper<T> local(ptr);
       return putObject(&local, id, metaData, mirrors);
     }

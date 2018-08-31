@@ -19,14 +19,14 @@
 #include "TString.h"  // for TString
 
 class TList;
-
 class TObject;
-namespace o2 { namespace ccdb { class Condition; }}
-namespace o2 { namespace ccdb { class ConditionId; }}
-namespace o2 { namespace ccdb { class IdRunRange; }}
 
 namespace o2 {
 namespace ccdb {
+
+class Condition;
+class ConditionId;
+class IdRunRange;
 
 class LocalStorage : public Storage
 {

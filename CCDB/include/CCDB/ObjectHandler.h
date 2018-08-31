@@ -17,13 +17,14 @@
 namespace o2 {
 namespace ccdb {
 
-class ObjectHandler {
-public:
-  ObjectHandler();
-  virtual ~ObjectHandler();
+class ObjectHandler
+{
+  public:
+    ObjectHandler();
+    virtual ~ObjectHandler();
 
-  /// Returns the binary payload of a ROOT file as an std::string
-  static void GetObject(const std::string& path, std::string& object);
+    /// Returns the binary payload of a ROOT file as an std::string
+    static void GetObject(const std::string &path, std::string &object);
 
 };
 }

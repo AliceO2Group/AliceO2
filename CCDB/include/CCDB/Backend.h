@@ -23,25 +23,25 @@
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>
 
-
 namespace o2 {
 namespace ccdb {
 
 class Condition;
 
-class Backend {
-public:
-  virtual ~Backend()= default;
+class Backend
+{
+  public:
+    virtual ~Backend() = default;
 
-  /// Pack
-  virtual void Pack(const std::string& path, const std::string& key, std::string*& messageString) = 0;
+    /// Pack
+    virtual void Pack(const std::string &path, const std::string &key, std::string *&messageString) = 0;
 
-  /// UnPack
-  virtual Condition* UnPack(std::unique_ptr<FairMQMessage> msg) = 0;
+    /// UnPack
+    virtual Condition *UnPack(std::unique_ptr<FairMQMessage> msg) = 0;
 
-  /// Serializes a key (and optionally value) to an std::string using Protocol Buffers
-  void Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,
-                 const std::string& dataSource, const std::string& object = std::string());
+    /// Serializes a key (and optionally value) to an std::string using Protocol Buffers
+    void Serialize(std::string *&messageString, const std::string &key, const std::string &operationType,
+                   const std::string &dataSource, const std::string &object = std::string());
 };
 }
 }

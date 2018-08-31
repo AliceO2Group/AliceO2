@@ -16,8 +16,6 @@
 #include "CCDB/Condition.h"          // for Condition
 #include "CCDB/Manager.h"            // for Manager
 
-namespace o2 { namespace ccdb { class IdRunRange; }}
-
 using namespace o2::ccdb;
 
 ClassImp(Storage)

@@ -20,20 +20,16 @@
 #include "TObject.h"    // for TObject
 #include "TString.h"    // for TString
 
-namespace o2 { namespace ccdb { class Condition; }}  // lines 18-18
-namespace o2 { namespace ccdb { class ConditionId; }}
-namespace o2 { namespace ccdb { class ConditionMetaData; }}
-namespace o2 { namespace ccdb { class IdRunRange; }}
-
 class TFile;
 
 namespace o2 {
 namespace ccdb {
 
 class Condition;
-
+class ConditionId;
+class ConditionMetaData;
+class IdRunRange;
 class IdPath;
-
 class Param;
 
 class Storage : public TObject
@@ -116,7 +112,8 @@ class Storage : public TObject
 
     virtual Bool_t idToFilename(const ConditionId &id, TString &filename) const = 0;
 
-    void queryStorages(Int_t run, const char *pathFilter = "*", Int_t version = -1, ConditionMetaData *mdFilter = nullptr);
+    void
+    queryStorages(Int_t run, const char *pathFilter = "*", Int_t version = -1, ConditionMetaData *mdFilter = nullptr);
 
     void printrQueryStorages();
 
