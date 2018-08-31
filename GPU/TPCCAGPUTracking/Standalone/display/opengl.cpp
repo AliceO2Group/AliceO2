@@ -548,6 +548,16 @@ void updateConfig()
 int InitGL()
 {
 	CHKERR(glewInit());
+	
+	int glVersion[2] = {0, 0};
+	glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
+	glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
+	if (glVersion[0] < 4 || (glVersion[0] == 4 && glVersion[1] < 6))
+	{
+		printf("Unsupported OpenGL runtime %d.%d < 4.6\n", glVersion[0], glVersion[1]);
+		return(0);
+	}
+	
 	CHKERR(glCreateBuffers(36, vbo_id));
 	CHKERR(glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0]));
 	CHKERR(glGenBuffers(1, &indirect_id));
@@ -561,7 +571,7 @@ int InitGL()
 	if (configStandalone.OMPThreads != -1) omp_set_num_threads(configStandalone.OMPThreads);
 	threadBuffers.resize(omp_get_max_threads());
 	threadTracks.resize(omp_get_max_threads());
-	return(true);                                     // Initialization Went OK
+	return(1);                                     // Initialization Went OK
 }
 
 void ExitGL()
