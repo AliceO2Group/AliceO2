@@ -19,6 +19,9 @@
 # Init
 include(FindPackageHandleStandardArgs)
 
+# Need Common
+find_package(Common REQUIRED)
+
 # find includes
 find_path(INFOLOGGER_INCLUDE_DIR InfoLogger.hxx
            HINTS ${InfoLogger_ROOT}/include ENV LD_LIBRARY_PATH PATH_SUFFIXES "../include/InfoLogger" "../../include/InfoLogger" )
@@ -29,7 +32,7 @@ set(InfoLogger_INCLUDE_DIRS ${INFOLOGGER_INCLUDE_DIR})
 
 # find library
 find_library(INFOLOGGER_LIBRARY NAMES InfoLogger HINTS ${InfoLogger_ROOT}/lib ENV LD_LIBRARY_PATH)
-set(InfoLogger_LIBRARIES ${INFOLOGGER_LIBRARY})
+set(InfoLogger_LIBRARIES ${INFOLOGGER_LIBRARY} ${Common_LIBRARIES})
 
 # handle the QUIETLY and REQUIRED arguments and set InfoLogger_FOUND to TRUE
 # if all listed variables are TRUE
