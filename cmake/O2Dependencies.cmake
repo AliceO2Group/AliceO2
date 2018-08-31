@@ -2184,3 +2184,14 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
 )
+
+o2_define_bucket(
+    NAME
+    utility_datacompression_bucket
+
+    DEPENDENCIES
+    CommonUtils
+    common_boost_bucket
+
+    INCLUDE_DIRECTORIES
+)

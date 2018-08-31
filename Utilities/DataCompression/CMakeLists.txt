@@ -10,7 +10,7 @@ set(SRCS
 
 set(LIBRARY_NAME ${MODULE_NAME})
 
-set(BUCKET_NAME common_boost_bucket)
+set(BUCKET_NAME utility_datacompression_bucket)
 
 #O2_GENERATE_LIBRARY()
 

@@ -31,6 +31,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream> // stringstream in configuration parsing
+#include "CommonUtils/CompStream.h"
 
 namespace o2
 {
@@ -162,29 +163,60 @@ template <typename _CodingModel>
 class HuffmanCodec
 {
  public:
+  using model_type = _CodingModel;
+  using value_type = typename model_type::value_type;
+  using code_type = typename model_type::code_type;
+
   HuffmanCodec() = delete; // forbidden
-  HuffmanCodec(const _CodingModel& model) : mCodingModel(model) {}
+  HuffmanCodec(const model_type& model) : mCodingModel(model) {}
   ~HuffmanCodec() {}
 
-  using model_type = _CodingModel;
-
-  /// Return Huffman code for a value
-  template <typename CodeType, typename ValueType>
-  const bool Encode(ValueType v, CodeType& code, uint16_t& codeLength) const
+  /// Encode a value and return Huffman code and code lenght
+  /// @param v          value to be encoded
+  /// @param code       [out] returned code
+  /// @param codeLength [out] length of the returned code
+  template <typename ValueType>
+  const bool Encode(ValueType v, code_type& code, uint16_t& codeLength) const
   {
     code = mCodingModel.Encode(v, codeLength);
     return true;
   }
 
-  template <typename ReturnType, typename CodeType, bool orderMSB = true>
-  bool Decode(ReturnType& v, CodeType code, uint16_t& codeLength) const
+  /// Decode a value
+  /// @param v          [out] decoded value
+  /// @param code       [in] code to be processed
+  /// @param codeLength [out] length of the processed code
+  template <typename ReturnType>
+  bool Decode(ReturnType& v, code_type code, uint16_t& codeLength) const
   {
     v = mCodingModel.Decode(code, codeLength);
     return true;
   }
 
+  /// Get the underlying coding model
+  model_type const& getCodingModel() const
+  {
+    return mCodingModel;
+  }
+
+  /// Load configuration from file
+  ///
+  /// Text file can be in compressed format, supported methods: gzip, zlib, bzip2, and lzma
+  int loadConfiguration(const char* filename, std::string method = "zlib")
+  {
+    return mCodingModel.read(filename, method);
+  }
+
+  /// Write configuration to file
+  ///
+  /// Can be written in compressed format, supported methods: gzip, zlib, bzip2, and lzma
+  int writeConfiguration(const char* filename, std::string method = "zlib") const
+  {
+    return mCodingModel.write(filename, method);
+  }
+
  private:
-  _CodingModel mCodingModel;
+  model_type mCodingModel;
 };
 
 /**
@@ -203,7 +235,7 @@ class HuffmanCodec
  * - class StorageType as template parameter for Alphabet type
  * - error policy
  */
-template <typename _BASE, typename Rep, bool _orderMSB = true>
+template <typename _BASE, typename Rep, bool orderMSB = true>
 class HuffmanModel : public _BASE
 {
  public:
@@ -214,7 +246,7 @@ class HuffmanModel : public _BASE
   using code_type = Rep;
   using node_type = HuffmanNode<code_type>;
   using value_type = typename _BASE::value_type;
-  static constexpr bool orderMSB = _orderMSB;
+  static constexpr bool OrderMSB = orderMSB;
 
   int init(double v = 1.) { return _BASE::initWeight(mAlphabet, v); }
 
@@ -283,7 +315,7 @@ class HuffmanModel : public _BASE
         break;
       }
       bool bit = false;
-      if (orderMSB) {
+      if (OrderMSB) {
         bit = code.test(codeMSB - codeLength);
       } else {
         bit = code.test(codeLength);
@@ -376,7 +408,7 @@ class HuffmanModel : public _BASE
   /**
    * assign code to this node loop to right and left nodes
    *
-   * Code direction is determined by template parameter _orderMSB being either
+   * Code direction is determined by template parameter orderMSB being either
    * true or false.
    * Code can be built up in two directions, either with the bit of the parent
    * node in the MSB or LSB. In the latter case, the bit of the parent node
@@ -396,7 +428,7 @@ class HuffmanModel : public _BASE
     int retcodelen = codelen;
     if (node->getLeftChild()) { // bit '1' branch
       code_type c = node->getBinaryCode();
-      if (orderMSB) { // note: this is a compile time switch
+      if (OrderMSB) { // note: this is a compile time switch
         c <<= 1;
         c.set(0);
       } else {
@@ -409,7 +441,7 @@ class HuffmanModel : public _BASE
     }
     if (node->getRightChild()) { // bit '0' branch
       code_type c = node->getBinaryCode();
-      if (orderMSB) {
+      if (OrderMSB) {
         c <<= 1;
         c.reset(0);
       } else {
@@ -424,18 +456,45 @@ class HuffmanModel : public _BASE
   }
 
   /**
-   * @brief Write Huffman table in self-consistent format.
+   * @brief Write Huffman table to file.
+   *
+   * The file can be compressed on-the-fly, supported methods:
+   * gzip, zlib, bzip2, and lzma
+   *
+   * Configuration is written in self-consistent text file format.
    */
-  int write(std::ostream& out)
+  int write(const char* filename, std::string method = "zlib") const
+  {
+    o2::io::ocomp_stream out(filename, method);
+    return write(out);
+  }
+
+  /**
+   * @brief Write Huffman table in self-consistent format to an output stream
+   */
+  int write(std::ostream& out) const
   {
     if (mTreeNodes.size() == 0) {
       return 0;
     }
-    return write(out, (*mTreeNodes.begin()).get(), 0);
+    return write(out, (*mTreeNodes.begin()).get());
   }
 
   /**
    * @brief Read configuration from file
+   *
+   * Read configuration text file, can be in compressed format, supported
+   * methods: gzip, zlib, bzip2, and lzma
+   */
+  int read(const char* filename, std::string method = "zlib")
+  {
+    o2::io::icomp_stream in(filename, method);
+    return read(in);
+  }
+
+  /**
+   * @brief Read configuration from stream
+   * The previous configuration is discarded.
    *
    * The text file contains a self-consistent representatio of the Huffman tree,
    * one node definition per line. Each node has an index (corresponding to the
@@ -576,7 +635,7 @@ class HuffmanModel : public _BASE
    * leave of each branch and then the corresponding parent tree nodes.
    */
   template <typename NodeType>
-  int write(std::ostream& out, NodeType* node, int nodeIndex) const
+  int write(std::ostream& out, NodeType* node, int nodeIndex = 0) const
   {
     if (!node) {
       return nodeIndex;
